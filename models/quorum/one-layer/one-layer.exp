@@ -1,0 +1,247 @@
+# -*- Text -*-
+#
+# Experiment: 
+# $Id$
+# ------------------------------------------------------------------------
+
+.global
+        .solver = "lqns";
+        .format = "csv";
+        .template = "one-layer-k-a-c.in";
+.end
+
+.experiment "lqns-det"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+
+        .declare
+		s1 = 1, 2, 6;			# processor scheduling.
+		c1 = 1, 5;			# lower level server service time.
+                a1 = 1, 5;    	 		# activity service time.
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+		s1;		
+                c1;
+		a1;
+                k1;
+
+        .control
+		.sf  ( pB1 ) = { s1 };
+                .aqc ( tB1, a1, a5 ) = { k1 };
+                .ast ( tB1, a1 ) = { a1 };
+                .ast ( tB1, a2 ) = { a1 };
+                .ast ( tB1, a3 ) = { a1 };
+                .ast ( tB1, a4 ) = { a1 };
+                .ast ( tB1, a5 ) = { a1 };
+                .st ( eC1, 1 ) = { c1 };
+                .st ( eC2, 1 ) = { c1 };
+                .st ( eC3, 1 ) = { c1 };
+                .st ( eC4, 1 ) = { c1 };
+                .st ( eC5, 1 ) = { c1 };
+
+        .observe
+		.plot { s1 };
+                .plot { c1 };
+                .plot { a1 };
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+.experiment "lqns-geo"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+		.apt ( tB1, a1 ) = 0;
+		.apt ( tB1, a2 ) = 0;
+		.apt ( tB1, a3 ) = 0;
+		.apt ( tB1, a4 ) = 0;
+		.apt ( tB1, a5 ) = 0;
+
+        .declare
+		s1 = 1, 2, 6;			# processor scheduling.
+		c1 = 1, 5;			# lower level server service time.
+                a1 = 1, 5;    	 		# activity service time.
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+		s1;		
+                c1;
+		a1;
+                k1;
+
+        .control
+		.sf  ( pB1 ) = { s1 };
+                .aqc ( tB1, a1, a5 ) = { k1 };
+                .ast ( tB1, a1 ) = { a1 };
+                .ast ( tB1, a2 ) = { a1 };
+                .ast ( tB1, a3 ) = { a1 };
+                .ast ( tB1, a4 ) = { a1 };
+                .ast ( tB1, a5 ) = { a1 };
+                .st ( eC1, 1 ) = { c1 };
+                .st ( eC2, 1 ) = { c1 };
+                .st ( eC3, 1 ) = { c1 };
+                .st ( eC4, 1 ) = { c1 };
+                .st ( eC5, 1 ) = { c1 };
+
+        .observe
+		.plot { s1 };
+                .plot { c1 };
+                .plot { a1 };
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+# ------------------------------------------------------------------------
+
+.experiment "lqsim-det"
+
+        .set
+                .solver = "lqsim";
+		.lqsimopts = "-C2.0  -S24681357";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+
+        .declare
+		s1 = 1, 2, 6;			# processor scheduling.
+		c1 = 1, 5;			# lower level server service time.
+                a1 = 1, 5;    	 		# activity service time.
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+		s1;		
+                c1;
+		a1;
+                k1;
+
+        .control
+		.sf  ( pB1 ) = { s1 };
+                .aqc ( tB1, a1, a5 ) = { k1 };
+                .ast ( tB1, a1 ) = { a1 };
+                .ast ( tB1, a2 ) = { a1 };
+                .ast ( tB1, a3 ) = { a1 };
+                .ast ( tB1, a4 ) = { a1 };
+                .ast ( tB1, a5 ) = { a1 };
+                .st ( eC1, 1 ) = { c1 };
+                .st ( eC2, 1 ) = { c1 };
+                .st ( eC3, 1 ) = { c1 };
+                .st ( eC4, 1 ) = { c1 };
+                .st ( eC5, 1 ) = { c1 };
+
+        .observe
+		.plot { s1 };
+                .plot { c1 };
+                .plot { a1 };
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+.experiment "lqsim-geo"
+
+        .set
+                .solver = "lqsim";
+		.lqsimopts = "-C2.0 -S24681357";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+		.apt ( tB1, a1 ) = 0;
+		.apt ( tB1, a2 ) = 0;
+		.apt ( tB1, a3 ) = 0;
+		.apt ( tB1, a4 ) = 0;
+		.apt ( tB1, a5 ) = 0;
+
+        .declare
+		s1 = 1, 2, 6;			# processor scheduling.
+		c1 = 1, 5;			# lower level server service time.
+                a1 = 1, 5;    	 		# activity service time.
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+		s1;		
+                c1;
+		a1;
+                k1;
+
+        .control
+		.sf  ( pB1 ) = { s1 };
+                .aqc ( tB1, a1, a5 ) = { k1 };
+                .ast ( tB1, a1 ) = { a1 };
+                .ast ( tB1, a2 ) = { a1 };
+                .ast ( tB1, a3 ) = { a1 };
+                .ast ( tB1, a4 ) = { a1 };
+                .ast ( tB1, a5 ) = { a1 };
+                .st ( eC1, 1 ) = { c1 };
+                .st ( eC2, 1 ) = { c1 };
+                .st ( eC3, 1 ) = { c1 };
+                .st ( eC4, 1 ) = { c1 };
+                .st ( eC5, 1 ) = { c1 };
+
+        .observe
+		.plot { s1 };
+                .plot { c1 };
+                .plot { a1 };
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+# ------------------------------------------------------------------------
+
+.experiment "lqns-no-overhang"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "-zignore-overhang";
+
+	.initialize
+		.sf ( pB1 ) = 6;
+		.pq ( pB1 ) = 0.1;
+                .ast ( tB1, a1 ) = 1;
+                .ast ( tB1, a2 ) = 1;
+                .ast ( tB1, a3 ) = 1;
+                .ast ( tB1, a4 ) = 1;
+                .ast ( tB1, a5 ) = 1;
+                .st ( eC1, 1 ) = 5;
+                .st ( eC2, 1 ) = 5;
+                .st ( eC3, 1 ) = 5;
+                .st ( eC4, 1 ) = 5;
+                .st ( eC5, 1 ) = 5;
+		.apt ( tB1, a1 ) = 0;
+		.apt ( tB1, a2 ) = 0;
+		.apt ( tB1, a3 ) = 0;
+		.apt ( tB1, a4 ) = 0;
+		.apt ( tB1, a5 ) = 0;
+
+        .declare
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+                k1;
+
+        .control
+                .aqc ( tB1, a1, a5 ) = { k1 };
+
+        .observe
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+

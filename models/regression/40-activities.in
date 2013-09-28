@@ -1,0 +1,42 @@
+# SRVN Model Description File, for file: $HeadURL$
+# 
+# ------------------------------------------------------------------------
+# $Id$
+# ------------------------------------------------------------------------
+
+G "Activities with AND fork/join." 1e-05 50 10 0.9 -1
+
+P 2
+  p client f
+  p server f
+-1
+
+T 2
+  t client r client -1 client
+  t server n server -1 server
+-1
+
+E 2
+# ---------- client ----------
+  A client client
+# ---------- server ----------
+  A server server
+-1
+
+A client
+  s client 1
+  y client server 1
+
+-1
+
+A server
+  s server 0.25
+  s fork1  0.4
+  s fork2  0.6
+  s join   0.25
+:
+  server -> fork1 & fork2;
+  fork1 & fork2 -> join;
+  join[server]
+-1
+

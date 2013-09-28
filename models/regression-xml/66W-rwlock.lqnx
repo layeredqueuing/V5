@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<lqn-model name="./rwlock_testing/100-rwlock.lqnx" description="" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="rwlock (reader only) called from a sequence of phases,  " conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="customer" scheduling="inf">
+      <task name="customer" scheduling="ref" multiplicity="3">
+         <entry name="customer" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="customer_1" phase="1" host-demand-mean="0.5"  call-order="DETERMINISTIC">
+                  <synch-call dest="readers" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+     <task name="readers" scheduling="fcfs" multiplicity="3">
+       <entry name="readers" type="PH1PH2">
+         <entry-phase-activities>
+           <activity name="readers_1" phase="1" host-demand-mean="0.5"   call-order="DETERMINISTIC">
+             <synch-call dest="app_wait" calls-mean="1"/>
+           </activity>
+           <activity name="readers_2" phase="2" host-demand-mean="0.5"  call-order="DETERMINISTIC">
+             <synch-call dest="app_signal" calls-mean="1"/>
+           </activity>
+         </entry-phase-activities>
+       </entry>
+     </task>
+      <task name="app_wait" scheduling="fcfs">
+         <entry name="app_wait" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="app_wait_1" phase="1" host-demand-mean="1"  call-order="DETERMINISTIC">
+                  <synch-call dest="writer_lock" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="app_signal" scheduling="fcfs">
+         <entry name="app_signal" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="app_signal_1" phase="1" host-demand-mean="1"  call-order="DETERMINISTIC">
+                  <asynch-call dest="writer_unlock" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   <task name="rwlock" multiplicity="3" scheduling="rwlock">
+      <entry name="reader_unlock" type="PH1PH2" rwlock="r-unlock">
+        <entry-phase-activities>
+          <activity name="reader_unlock_1" phase="1" host-demand-mean="0.3"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="reader_lock" type="PH1PH2" rwlock="r-lock">
+        <entry-phase-activities>
+          <activity name="reader_lock_1" phase="1" host-demand-mean="0.7"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="writer_unlock" type="PH1PH2" rwlock="w-unlock">
+        <entry-phase-activities>
+          <activity name="writer_unlock_1" phase="1" host-demand-mean="0.3"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="writer_lock" type="PH1PH2" rwlock="w-lock">
+        <entry-phase-activities>
+          <activity name="writer_lock_1" phase="1" host-demand-mean="0.7"/>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+</lqn-model>

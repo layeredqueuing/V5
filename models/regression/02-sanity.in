@@ -1,0 +1,37 @@
+# SRVN Model Description File, for file: $HeadURL$
+# 
+# ------------------------------------------------------------------------
+# $Id$
+# ------------------------------------------------------------------------
+
+G "Simplest model - rendezvous using activities ." 1e-05 50 10 0.9 -1
+
+P 2
+  p client f
+  p server f
+-1
+
+T 2
+  t client r client -1 client
+  t server n server -1 server
+-1
+
+E 2
+# ---------- client ----------
+  A client client
+# ---------- server ----------
+  A server server
+-1
+
+A client
+  s client 1
+  y client server 1
+
+-1
+
+A server
+  s server 1
+:
+  server[server]
+-1
+

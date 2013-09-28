@@ -1,0 +1,9 @@
+Test output file for variable width columns for 99-peva-99.lqnx.
+
+$p1         $p2         $y1         $y2         t1.throughput
+
+0           2           0.1         0.05        0.09258     
+0           2           0.1         0.05        0.09258     
+0           2           0.1         0.05        0.09258     
+0           2           0.1         0.05        0.09258     
+0           2           0.1         0.05        0.09258     

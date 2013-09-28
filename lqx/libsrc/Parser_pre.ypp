@@ -1,0 +1,236 @@
+/*
+ *  Parser.ypp
+ *  ModLang
+ *
+ *  Created by Martin Mroz on 14/01/09.
+ *  Copyright 2009 __MyCompanyName__. All rights reserved.
+ *
+ */
+
+%name ModLangParser
+%default_type { SyntaxTreeNode* }
+%parse_accept { ctx->parseAccepted(); }
+%parse_failure { ctx->parseFailed(); }
+%syntax_error { ctx->syntaxError(TOKEN); }
+%extra_argument { Parser* ctx }
+%token_type { ScannerToken* }
+%stack_size 1000
+%token_prefix PT_P_
+%include {
+#include "Scanner.h"
+#include "Parser.h"
+#include "SyntaxTree.h"
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <iostream>
+using namespace LQX;
+}
+
+%nonassoc BOOLEAN STRING DOUBLE IDENTIFIER.
+%nonassoc FOR FOREACH IN WHILE IF ELSE.
+%nonassoc FILE_WRITE FILE_READ FILE_APPEND READ_LOOP.
+%nonassoc FILE_OPEN FILE_PRINT FILE_PRINTLN FILE_PRINT_SP FILE_PRINTLN_SP FILE_CLOSE READ_DATA.
+%nonassoc OBRACKET CBRACKET OBRACE CBRACE OSQUARE CSQUARE DOT.
+%nonassoc INC DEC STAR SLASH PLUS MINUS MOD LEFTSHIFT RIGHTSHIFT.
+%nonassoc LOGIC_OR LOGIC_AND LOGIC_NOT.
+%nonassoc EQUALS_EQUALS NOT_EQUALS LESS_THAN GREATER_THAN LESS_EQUAL GREATER_EQUAL.
+%nonassoc EQUALS SEMICOLON COMMA MAPS NULL FUNCTION ELLIPSIS.
+
+ /*
+  * program
+  * Start Symbol
+  *
+  * Defines the program's opening and closing grammar in addition to the "root" scope which 
+  * consists of both function declarations and simple expressions.
+  */
+
+program ::= root_stmt_list(A).                                               { ctx->setRootStatementList(A); }
+
+%type root_stmt_list { std::vector<SyntaxTreeNode*>*  }
+root_stmt_list(X) ::= root_stmt(A).                                          { X = new std::vector<SyntaxTreeNode*>(); X->push_back(A); }
+root_stmt_list(X) ::= root_stmt_list(A) root_stmt(B).                        { X = A; if (B != NULL) { X->push_back(B); } }
+
+root_stmt(X) ::= stmt(A).                                                    { X = A; }
+root_stmt(X) ::= declare_fn_stmt(A).                                         { X = A; }
+root_stmt(X) ::= .                                                           { X = NULL; }
+
+ /*
+  * stmt_list
+  * Statement List
+  *
+  * This is the list of top-level statements that can be performed in the language. This is
+  * simply an aggregation construct for the actual statements.
+  */
+
+%type stmt_list { std::vector<SyntaxTreeNode*>*  }
+stmt_list(X) ::= stmt(A).                                                     { X = new std::vector<SyntaxTreeNode*>(); X->push_back(A); }
+stmt_list(X) ::= stmt_list(A) stmt(B).                                        { X = A; if (B != NULL) { X->push_back(B); } }
+
+ /*
+  * stmt
+  * Classes of Statements
+  */
+
+stmt(X) ::= expr_stmt(A).                                                     { X = A; }
+stmt(X) ::= conditional_stmt(A).                                              { X = A; }
+stmt(X) ::= compound_stmt(A).                                                 { X = A; }
+stmt(X) ::= loop_stmt(A).                                                     { X = A; }
+
+ /*
+  * compound_stmt
+  * Compound Statements
+  */
+
+compound_stmt(X) ::= OBRACE CBRACE.                                           { X = NULL; }
+compound_stmt(X) ::= OBRACE stmt_list(A) CBRACE.                              { X = new CompoundStatementNode(A); }
+
+ /*
+  * loop_stmt
+  * Loop Expressions
+  */
+
+loop_stmt(X) ::= WHILE OBRACKET expr(A) CBRACKET stmt(B).                     { X = new LoopStatementNode( NULL, A, NULL, B ); }
+loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN 
+  expr(C) CBRACKET stmt(D).                                                   { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
+loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) IN expr(C) CBRACKET stmt(D).  { X = new ForeachStatementNode( "", A->getStoredIdentifier(), false, A->getIsExternal(), C, D ); }
+loop_stmt(X) ::= FOR OBRACKET expr_stmt(A) expr_stmt(B) 
+  opt_e(C) CBRACKET stmt(D).                                                  { X = new LoopStatementNode( A, B, C, D ); }
+opt_e(X) ::= .                                                                { X = NULL; }
+opt_e(X) ::= expr(A).                                                         { X = A; }
+
+
+
+
+ /*
+  * conditional_stmt
+  * Basic Conditional Statements
+  */
+
+conditional_stmt(X) ::= IF OBRACKET expr(A) CBRACKET stmt(B) opt_else(C).     { X = new ConditionalStatementNode(A, B, C); }
+
+opt_else(X) ::= .                                                             { X = NULL; }
+opt_else(X) ::= ELSE stmt(A).                                                 { X = A; }
+
+ /*
+  * expr_stmt
+  * Basic Expressional Statements
+  */
+
+expr_stmt(X) ::= SEMICOLON.                                                   { X = NULL; }
+expr_stmt(X) ::= expr(A) SEMICOLON.                                           { X = A; }
+
+expr(X) ::= assignment_stmt(A).                                               { X = A; }
+expr(X) ::= expr(A) COMMA assignment_stmt(B).                                 { X = new CompoundStatementNode(A, B, NULL); }
+
+assignment_stmt(X) ::= logic_or_stmt(A).                                      { X = A; }
+assignment_stmt(X) ::= logic_or_stmt(A) EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, B); }
+
+logic_or_stmt(X) ::= logic_and_stmt(A).                                       { X = A; }
+logic_or_stmt(X) ::= logic_or_stmt(A) LOGIC_OR logic_and_stmt(B).             { X = new LogicExpression(LogicExpression::OR, A, B); }
+
+logic_and_stmt(X) ::= relation_stmt(A).                                       { X = A; }
+logic_and_stmt(X) ::= logic_and_stmt(A) LOGIC_AND relation_stmt(B).           { X = new LogicExpression(LogicExpression::AND, A, B); }
+
+relation_stmt(X) ::= compare_stmt(A).                                         { X = A; }
+relation_stmt(X) ::= relation_stmt(A) EQUALS_EQUALS compare_stmt(B).          { X = new ComparisonExpression(ComparisonExpression::EQUALS, A, B); }
+relation_stmt(X) ::= relation_stmt(A) NOT_EQUALS compare_stmt(B).             { X = new ComparisonExpression(ComparisonExpression::NOT_EQUALS,  A, B); }
+
+compare_stmt(X) ::= shift_stmt(A).                                            { X = A; }
+compare_stmt(X) ::= compare_stmt(A) LESS_THAN shift_stmt(B).                  { X = new ComparisonExpression(ComparisonExpression::LESS_THAN, A, B); }
+compare_stmt(X) ::= compare_stmt(A) LESS_EQUAL shift_stmt(B).                 { X = new ComparisonExpression(ComparisonExpression::LESS_OR_EQUAL, A, B); }
+compare_stmt(X) ::= compare_stmt(A) GREATER_THAN shift_stmt(B).               { X = new ComparisonExpression(ComparisonExpression::GREATER_THAN, A, B); }
+compare_stmt(X) ::= compare_stmt(A) GREATER_EQUAL shift_stmt(B).              { X = new ComparisonExpression(ComparisonExpression::GREATER_OR_EQUAL, A, B); }
+
+shift_stmt(X) ::= add_sub_stmt(A).                                            { X = A; }
+shift_stmt(X) ::= shift_stmt(A) LEFTSHIFT add_sub_stmt(B).                    { X = new MathExpression(MathExpression::SHIFT_LEFT, A, B); }
+shift_stmt(X) ::= shift_stmt(A) RIGHTSHIFT add_sub_stmt(B).                   { X = new MathExpression(MathExpression::SHIFT_RIGHT, A, B); }
+
+add_sub_stmt(X) ::= mul_div_stmt(A).                                          { X = A; }
+add_sub_stmt(X) ::= add_sub_stmt(A) PLUS mul_div_stmt(B).                     { X = new MathExpression(MathExpression::ADD, A, B); }  
+add_sub_stmt(X) ::= add_sub_stmt(A) MINUS mul_div_stmt(B).                    { X = new MathExpression(MathExpression::SUBTRACT, A, B); }
+
+mul_div_stmt(X) ::= prefix_stmt(A).                                           { X = A; }
+mul_div_stmt(X) ::= mul_div_stmt(A) STAR prefix_stmt(B).                      { X = new MathExpression(MathExpression::MULTIPLY, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) SLASH prefix_stmt(B).                     { X = new MathExpression(MathExpression::DIVIDE, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) MOD prefix_stmt(B).                       { X = new MathExpression(MathExpression::MODULUS, A, B); }  
+
+prefix_stmt(X) ::= vpf_stmt(A).                                               { X = A; }
+prefix_stmt(X) ::= LOGIC_NOT vpf_stmt(A).                                     { X = new LogicExpression(LogicExpression::NOT, A, NULL); }
+
+vpf_stmt(X) ::= postfix_stmt(A).                                              { X = A; }
+vpf_stmt(X) ::= vpf_stmt(A) OSQUARE logic_or_stmt(B) CSQUARE.                 { X = new MethodInvocationExpression("array_get", A, B, NULL); }
+vpf_stmt(X) ::= vpf_stmt(A) DOT IDENTIFIER(B).                                { X = new ObjectPropertyReadNode(A, B->getStoredIdentifier()); }
+
+postfix_stmt(X) ::= basic_stmt(A).                                            { X = A; }
+postfix_stmt(X) ::= IDENTIFIER(A) OBRACKET CBRACKET.                          { X = new MethodInvocationExpression(A->getStoredIdentifier()); }
+postfix_stmt(X) ::= IDENTIFIER(A) OBRACKET expr_list(B) CBRACKET.             { X = new MethodInvocationExpression(A->getStoredIdentifier(), B); }
+
+basic_stmt(X) ::= NULL.                                                       { X = new ConstantValueExpression(); }
+basic_stmt(X) ::= STRING(A).                                                  { X = new ConstantValueExpression(A->getStoredString()); }
+basic_stmt(X) ::= DOUBLE(A).                                                  { X = new ConstantValueExpression(A->getStoredDouble()); }
+basic_stmt(X) ::= BOOLEAN(A).                                                 { X = new ConstantValueExpression(A->getStoredBoolean()); }
+basic_stmt(X) ::= IDENTIFIER(A).                                              { X = new VariableExpression(A->getStoredIdentifier(), A->getIsExternal()); }
+basic_stmt(X) ::= OSQUARE expr_list(A) CSQUARE.                               { X = new MethodInvocationExpression("array_create", A); }
+basic_stmt(X) ::= OSQUARE CSQUARE.                                            { X = new MethodInvocationExpression("array_create"); }
+basic_stmt(X) ::= OBRACE map_list(A) CBRACE.                                  { X = new MethodInvocationExpression("array_create_map", A); }
+basic_stmt(X) ::= OBRACKET expr(A) CBRACKET.                                  { X = A; }
+
+/*
+ * file_open_stmt file_close_stmt file_input_stmt file_output_stmt
+ * File Output/Input Expressions
+ */
+
+expr(X) ::= file_open_stmt(A).						     { X = A; }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
+  COMMA FILE_WRITE CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), true ); }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
+  COMMA FILE_APPEND CBRACKET.					 	     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), true, true ); }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
+  COMMA FILE_READ CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), false ); }
+
+expr(X) ::= file_close_stmt(A).						     { X = A; }
+file_close_stmt(X) ::= FILE_CLOSE OBRACKET IDENTIFIER(A) 
+  CBRACKET.	    							     { X = new FileCloseStatementNode( A->getStoredIdentifier() ); }
+
+expr(X) ::= file_input_stmt(A). 					     { X = A; } 
+file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
+  COMMA expr_list(B) CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), B ); }
+file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
+  COMMA READ_LOOP CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), NULL ); }
+
+expr(X) ::= file_output_stmt(A).					     { X = A; }
+file_output_stmt(X) ::= FILE_PRINT OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, false, false ); }
+file_output_stmt(X) ::= FILE_PRINTLN OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, true, false ); }
+file_output_stmt(X) ::= FILE_PRINT_SP OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, false, true ); }
+file_output_stmt(X) ::= FILE_PRINTLN_SP OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, true, true ); }
+
+/*
+ * expr_list
+ * A list of value-producing expression nodes.
+ */
+
+%type expr_list { std::vector<SyntaxTreeNode*>* }
+expr_list(X) ::= assignment_stmt(A).                                          { X = new std::vector<SyntaxTreeNode*>(); X->push_back(A); }
+expr_list(X) ::= expr_list(A) COMMA assignment_stmt(B).                       { X = A; A->push_back(B); }
+
+%type map_list { std::vector<SyntaxTreeNode*>* }
+map_list(X) ::= assignment_stmt(A) MAPS assignment_stmt(B).                   { X = new std::vector<SyntaxTreeNode*>(); X->push_back(A); X->push_back(B); }
+map_list(X) ::= map_list(A) COMMA assignment_stmt(B) MAPS assignment_stmt(C). { X = A; A->push_back(B); A->push_back(C); }
+
+ /*
+  * declare_fn_stmt
+  * Declaring a New Function
+  */
+
+%type func_longer_proto { std::vector<std::string>* }
+func_longer_proto(X) ::= IDENTIFIER(A).                                       { X = new std::vector<std::string>(); X->push_back(A->getStoredIdentifier()); }
+func_longer_proto(X) ::= func_longer_proto(A) COMMA IDENTIFIER(B).            { X = A; X->push_back(B->getStoredIdentifier()); }
+func_longer_proto(X) ::= func_longer_proto(A) COMMA ELLIPSIS.                 { X = A; X->push_back("..."); }
+
+%type func_proto { std::vector<std::string>* }
+func_proto(X) ::= OBRACKET CBRACKET.                                          { X = new std::vector<std::string>(); }
+func_proto(X) ::= OBRACKET ELLIPSIS CBRACKET.                                 { X = new std::vector<std::string>(); X->push_back("..."); }
+func_proto(X) ::= OBRACKET func_longer_proto(A) CBRACKET.                     { X = A; }
+
+declare_fn_stmt(X) ::= FUNCTION IDENTIFIER(A) func_proto(B) compound_stmt(C). { X = new FunctionDeclarationNode(A->getStoredIdentifier(), B, C); }

@@ -1,0 +1,178 @@
+<?xml version="1.0"?>
+<!-- BUG 638 -->
+<lqn-model name="LQNS_SF_15" description="lqn2xml 5.5 solution for model from: LQNS_SF_15.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="SYSC5101 Project Part II - (d)Experiment 4" conv_val="1e-05" it_limit="100" underrelax_coeff="0.5" print_int="1"/>
+   <processor name="UserP1" scheduling="inf" speed-factor="1">
+      <task name="Users1" scheduling="ref" multiplicity="100">
+         <entry name="users1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="users1_2" phase="2" host-demand-mean="1">
+                  <synch-call dest="Entrynet1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="UserP2" scheduling="inf" speed-factor="1">
+      <task name="Users2" scheduling="ref" multiplicity="200">
+         <entry name="users2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="users2_2" phase="2" host-demand-mean="1">
+                  <synch-call dest="Entrynet2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="Users3" scheduling="ref" multiplicity="50">
+         <entry name="users3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="users3_2" phase="2" host-demand-mean="1">
+                  <synch-call dest="Entrynet3" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="Network1" scheduling="inf" speed-factor="1">
+      <task name="Net1" scheduling="inf">
+         <entry name="Entrynet1" type="PH1PH2">
+            <forwarding dest="EntrySF1" prob="1"/>
+            <entry-phase-activities>
+               <activity name="Entrynet1_1" phase="1" host-demand-mean="0.1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="Network2" scheduling="inf" speed-factor="1">
+      <task name="Net2" scheduling="inf">
+         <entry name="Entrynet2" type="PH1PH2">
+            <forwarding dest="EntrySF2" prob="1"/>
+            <entry-phase-activities>
+               <activity name="Entrynet2_1" phase="1" host-demand-mean="0.15"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="Network3" scheduling="inf" speed-factor="1">
+      <task name="Net3" scheduling="inf">
+         <entry name="Entrynet3" type="PH1PH2">
+            <forwarding dest="EntrySF3" prob="1"/>
+            <entry-phase-activities>
+               <activity name="Entrynet3_1" phase="1" host-demand-mean="0.05"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="SfP" scheduling="fcfs" speed-factor="1">
+      <task name="SFacade" scheduling="fcfs" multiplicity="$n">
+         <entry name="EntrySF1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntrySF1_1" phase="1" host-demand-mean="0.005">
+                  <synch-call dest="EntryServ1" calls-mean="0.5"/>
+                  <synch-call dest="EntryServ2" calls-mean="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="EntrySF2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntrySF2_1" phase="1" host-demand-mean="0.01">
+                  <synch-call dest="EntryServ1" calls-mean="0.5"/>
+                  <synch-call dest="EntryServ2" calls-mean="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="EntrySF3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntrySF3_1" phase="1" host-demand-mean="0.02">
+                  <synch-call dest="EntryServ1" calls-mean="0.5"/>
+                  <synch-call dest="EntryServ2" calls-mean="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="BrowsP" scheduling="fcfs" speed-factor="1">
+      <task name="BrowsService" scheduling="inf">
+         <entry name="EntryServ2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryServ2_1" phase="1" host-demand-mean="0.03">
+                  <synch-call dest="EntryCT" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="ShopP" scheduling="fcfs" speed-factor="1">
+      <task name="ShopService" scheduling="inf">
+         <entry name="EntryServ1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryServ1_1" phase="1" host-demand-mean="0.03">
+                  <synch-call dest="EntryPay1" calls-mean="3"/>
+                  <synch-call dest="EntryPay2" calls-mean="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="CTp" scheduling="fcfs" speed-factor="1">
+      <task name="ProductService" scheduling="fcfs">
+         <entry name="EntryCT" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryCT_1" phase="1" host-demand-mean="0.005">
+                  <synch-call dest="EntryDCT" calls-mean="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="OrderP" scheduling="fcfs" speed-factor="1">
+      <task name="OrderProcessing" scheduling="fcfs">
+         <entry name="EntryPay1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryPay1_1" phase="1" host-demand-mean="0.001">
+                  <synch-call dest="EntryVisa" calls-mean="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="EntryPay2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryPay2_1" phase="1" host-demand-mean="0.001">
+                  <synch-call dest="EntryMasterCard" calls-mean="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DBp" scheduling="fcfs" speed-factor="1">
+      <task name="DB" scheduling="inf">
+         <entry name="EntryDCT" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryDCT_1" phase="1" host-demand-mean="0.005"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="PayP" scheduling="fcfs" speed-factor="1">
+      <task name="PaymentProcessing" scheduling="fcfs">
+         <entry name="EntryVisa" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryVisa_1" phase="1" host-demand-mean="0.001"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="EntryMasterCard" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="EntryMasterCard_1" phase="1" host-demand-mean="0.001"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx><![CDATA[
+   println( "N   UserP1   UserP2   UserP3" );
+   N = [ 5, 10, 15, 20, 25, 50, 100, 150, 200, 250, @infinity];
+   foreach ( i, $n in N ) {
+     solve();
+     println( $n, ": ", task("Users1").throughput, ", ", task("Users2").throughput, ", ", task("Users3").throughput );
+   }
+]]>
+   </lqx>
+</lqn-model>

@@ -1,0 +1,38 @@
+G
+"Database example: Data logger traffic = 0.2"
+0.00001
+100
+1
+0.9
+-1
+
+P 4
+p QP f
+p DL f
+p DBM f
+p FS f
+-1
+
+T 5
+t QP1 r QP1 -1 QP
+t QP2 r QP2 -1 QP
+t DL n DL -1 DL
+t DBM n DBM -1 DBM
+t FS n FS -1 FS
+-1
+
+E 5
+s QP1 0 5 0 -1
+Z QP1 5 0 0 -1
+y QP1 DBM 0 1 0 -1
+s QP2 0 5 0 -1
+Z QP2 5 0 0 -1
+y QP2 DBM 0 1 0 -1
+a DL 0.2
+s DL 0 2 0 -1
+y DL FS 0 1 0 -1
+s DBM 10 2 0 -1
+y DBM FS 3 1 0 -1
+s FS 1 1 0 -1
+-1
+

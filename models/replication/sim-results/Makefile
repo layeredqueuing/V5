@@ -1,0 +1,15 @@
+# Makefile for 
+# Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
+#
+# ------------------------------------------------------------------------
+# $Id$
+# ------------------------------------------------------------------------
+#
+
+SRVN=	parasrvn
+OPTS=	-A1.e7,1.0,5e6 -M -S1067373897
+
+include ../Makefile.inc
+
+diff:	$(DST)
+	srvndiff -atask='A[0-9]*' -atask='B[0-9]*' -atask='C[0-9]*' -atask='D[0-9]*' -aentry='A[0-9]*' -aentry='B[0-9]*' -aentry='C[0-9]*' -aentry='D[0-9]*'  -aprocessor='A[0-9]*' -aprocessor='B[0-9]*' -aprocessor='C[0-9]*' -aprocessor='D[0-9]*' ../sim-results ../full-results ../lqns-results

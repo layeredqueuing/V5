@@ -1,0 +1,74 @@
+G "One Layer Model from QEST-07-Quorum paper." 0.000010 50 10 0.900000 -1
+
+P 6
+  p pB1 f
+  p pC1 f 
+  p pC2 f 
+  p pC3 f 
+  p pC4 f 
+  p pC5 f 
+-1
+
+T 6
+  t tB1          r eB1 -1 pB1   
+  t tC1          n eC1 -1 pC1   
+  t tC2          n eC2 -1 pC2   
+  t tC3          n eC3 -1 pC3 
+  t tC4          n eC4 -1 pC4
+  t tC5          n eC5 -1 pC5        
+-1
+
+E 0
+ 
+  s eC1             1.000000    0.000000    -1
+  f eC1 1 -1
+
+  s eC2             1.000000    0.000000    -1
+  f eC2 1 -1
+
+  s eC3             1.000000    0.000000    -1
+  f eC3 1 -1
+
+  s eC4             1.000000    0.000000    -1
+  f eC4 1 -1
+
+  s eC5             1.000000    0.000000    -1
+  f eC5 1 -1
+
+  A eB1 aa  
+ -1
+
+A tB1
+s aa 1
+f aa 1
+
+s a1 5
+y a1 eC1 2
+f a1 1
+
+s a2 5
+y a2 eC2 2
+f a2 1
+
+s a3 5
+y a3 eC3 2
+f a3 1
+
+s a4 5
+y a4 eC4 2
+f a4 1
+
+s a5 5
+y a5 eC5 2
+f a5 1
+
+s aReply 10
+f aReply  1
+  
+
+:
+aa -> a1& a2 & a3 & a4 & a5;
+a1& a2 & a3 & a4 & a5 (5) -> aReply
+ 
+-1
+

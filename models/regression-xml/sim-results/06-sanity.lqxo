@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqsim -C1.0,1000 -M -S1049217653 -o06-sanity.lqxo 06-sanity.lqnx -->
+<lqn-model name="06-sanity" description="lqsim 5.0 solution for model from: 06-sanity.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model - client think time." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.779098" iterations="4" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00"/>
+   </solver-params>
+   <processor name="client" scheduling="inf">
+      <result-processor utilization="0.249775">
+         <result-conf-95 utilization="0.0013908"/>
+         <result-conf-99 utilization="0.002553"/>
+      </result-processor>
+      <task name="client" scheduling="ref" think-time="0.5" replication="1">
+         <result-task throughput="0.500172" utilization="0.749845" phase1-utilization="0.749845" proc-utilization="0.249775">
+            <result-conf-95 throughput="0.00128442" utilization="0.00312178" phase1-utilization="0.00312178" proc-utilization="0.0013908"/>
+            <result-conf-99 throughput="0.00235772" utilization="5.05793" phase1-utilization="0.00573045" proc-utilization="0.002553"/>
+         </result-task>
+         <entry name="client" type="PH1PH2">
+            <result-entry utilization="0.749845" throughput="0.500172" squared-coeff-variation="1.89587" proc-utilization="0.249775">
+               <result-conf-95 utilization="0.00312178" throughput="0.00128442" squared-coeff-variation="0" proc-utilization="0.0013908"/>
+               <result-conf-99 utilization="0.00573045" throughput="0.00235772" squared-coeff-variation="0" proc-utilization="0.002553"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="0.5">
+                  <result-activity proc-waiting="0" service-time="1.49916" service-time-variance="4.26094" utilization="0.749845">
+                     <result-conf-95 proc-waiting="0" service-time="0.00993943" service-time-variance="0.0144614" utilization="0.00312178"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0182452" service-time-variance="0.026546" utilization="0.00573045"/>
+                  </result-activity>
+                  <synch-call dest="server" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <result-processor utilization="0.50007">
+         <result-conf-95 utilization="0.00224548"/>
+         <result-conf-99 utilization="0.00412188"/>
+      </result-processor>
+      <task name="server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.500036" utilization="0.50007" phase1-utilization="0.50007" proc-utilization="0.50007">
+            <result-conf-95 throughput="0.0052503" utilization="0.00224548" phase1-utilization="0.00224548" proc-utilization="0.00224548"/>
+            <result-conf-99 throughput="0.00963765" utilization="4.1305" phase1-utilization="0.00412188" proc-utilization="0.00412188"/>
+         </result-task>
+         <entry name="server" type="PH1PH2">
+            <result-entry utilization="0.50007" throughput="0.500036" squared-coeff-variation="1.00264" proc-utilization="0.50007">
+               <result-conf-95 utilization="0.00224548" throughput="0.0052503" squared-coeff-variation="0" proc-utilization="0.00224548"/>
+               <result-conf-99 utilization="0.00412188" throughput="0.00963765" squared-coeff-variation="0" proc-utilization="0.00412188"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="server_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.00007" service-time-variance="1.00279" utilization="0.50007">
+                     <result-conf-95 proc-waiting="0" service-time="0.00880076" service-time-variance="0.0158307" utilization="0.00224548"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.016155" service-time-variance="0.0290594" utilization="0.00412188"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

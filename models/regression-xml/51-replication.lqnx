@@ -1,0 +1,65 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml 51-replication.in -->
+<!-- Sat May 23 21:15:12 2009 -->
+
+<lqn-model name="51-replication" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="" conv_val="1e-05" it_limit="500" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="A1" scheduling="fcfs" replication="2">
+      <task name="A1" scheduling="ref" replication="2">
+	 <fan-out dest="C1" value="3"/>
+         <entry name="A1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="A1_ph2" phase="2" host-demand-mean="2">
+                  <synch-call dest="C1" calls-mean="2"/>
+                  <synch-call dest="C2" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="B1" scheduling="fcfs" replication="10">
+      <task name="B1" scheduling="ref" replication="10">
+	 <fan-out dest="C1" value="3"/>
+         <entry name="B1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="B1_ph2" phase="2" host-demand-mean="4">
+                  <synch-call dest="C1" calls-mean="3"/>
+                  <synch-call dest="C2" calls-mean="3"/>
+                  <synch-call dest="D1" calls-mean="4"/>
+                  <synch-call dest="D2" calls-mean="4"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="C1" scheduling="fcfs" replication="3">
+      <task name="C1" scheduling="fcfs" replication="3">
+         <fan-in source="A1"  value="2"/>
+         <fan-in source="B1"  value="10"/>
+         <entry name="C1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="C1_ph1" phase="1" host-demand-mean="3"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="C2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="C2_ph1" phase="1" host-demand-mean="3"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="D1" scheduling="fcfs" replication="10">
+      <task name="D1" scheduling="fcfs" replication="10">
+         <entry name="D1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="D1_ph1" phase="1" host-demand-mean="5"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="D2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="D2_ph1" phase="1" host-demand-mean="5"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

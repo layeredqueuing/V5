@@ -1,0 +1,83 @@
+# -*- Text -*-
+#
+# Experiment: Figure 11.
+# $Id$
+# ------------------------------------------------------------------------
+
+.global
+        .solver = "lqns";
+        .format = "csv";
+        .template = "two-layer-k-a-c-d.in";
+.end
+
+.experiment "lqns-alpha"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "";
+
+	.initialize
+		.sf ( pB1 ) = 1;		# Delay server
+                .aqc ( tB1, a1, a5 ) = 1;
+
+        .declare
+		alpha = 0.0, 0.2, 0.4, 0.6, 0.8, 1.0;
+
+        .vary
+		alpha;
+
+        .control
+                .st ( eC1, 1 ) = { 1 + alpha * ( 1 - 1 ) };
+                .st ( eC2, 1 ) = { 1 + alpha * ( 2 - 1 ) };
+                .st ( eC3, 1 ) = { 1 + alpha * ( 3 - 1 ) };
+                .st ( eC4, 1 ) = { 1 + alpha * ( 4 - 1 ) };
+                .st ( eC5, 1 ) = { 1 + alpha * ( 5 - 1 ) };
+                .arr ( tB1, a1, eC1 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a2, eC2 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a3, eC3 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a4, eC4 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a5, eC5 ) = { 2 * ( 1 + alpha ) };
+
+        .observe
+		.plot { alpha };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+# ------------------------------------------------------------------------
+
+.experiment "lqsim-alpha"
+
+        .set
+                .solver = "lqsim";
+		.lqsimopts = "-C2.0  -S24681357";
+
+	.initialize
+		.sf ( pB1 ) = 1;		# Delay server
+                .aqc ( tB1, a1, a5 ) = 1;
+
+        .declare
+		alpha = 0.0, 0.2, 0.4, 0.6, 0.8, 1.0;
+
+        .vary
+		alpha;
+
+        .control
+                .st ( eC1, 1 ) = { 1 + alpha * ( 1 - 1 ) };
+                .st ( eC2, 1 ) = { 1 + alpha * ( 2 - 1 ) };
+                .st ( eC3, 1 ) = { 1 + alpha * ( 3 - 1 ) };
+                .st ( eC4, 1 ) = { 1 + alpha * ( 4 - 1 ) };
+                .st ( eC5, 1 ) = { 1 + alpha * ( 5 - 1 ) };
+                .arr ( tB1, a1, eC1 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a2, eC2 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a3, eC3 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a4, eC4 ) = { 2 * ( 1 + alpha ) };
+                .arr ( tB1, a5, eC5 ) = { 2 * ( 1 + alpha ) };
+
+        .observe
+		.plot { alpha };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+		.vtc ( .e, eB1, 1, 95 );
+
+.end

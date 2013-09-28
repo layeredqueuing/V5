@@ -1,0 +1,1 @@
+./configure --disable-shared CXXFLAGS='-I/include' CCFLAGS='-I/include' LDFLAGS='-L/bin -L/lib -L/usr/local/lib -static-libstdc++ -static-libgcc' -C

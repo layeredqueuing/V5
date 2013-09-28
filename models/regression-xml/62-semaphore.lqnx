@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml ../regression/62-semaphore.in -->
+<lqn-model name="../regression/62-semaphore" description="lqn2xml 5.1 solution for model from: ../regression/62-semaphore.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Semaphore called from forwarding chain." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="customer" scheduling="fcfs">
+      <task name="customer" scheduling="ref" multiplicity="3">
+         <entry name="customer" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="customer_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="app_wait" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <task name="app_wait" scheduling="fcfs">
+         <entry name="app_wait" type="PH1PH2">
+            <forwarding dest="app_signal" prob="1"/>
+            <entry-phase-activities>
+               <activity name="app_wait_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="wait" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="app_signal" scheduling="fcfs">
+         <entry name="app_signal" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="app_signal_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <asynch-call dest="signal" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="semaphore" scheduling="semaphore">
+         <entry name="signal" type="PH1PH2" semaphore="signal">
+            <entry-phase-activities>
+               <activity name="signal_1" phase="1" host-demand-mean="0.3"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="wait" type="PH1PH2" semaphore="wait">
+            <entry-phase-activities>
+               <activity name="wait_1" phase="1" host-demand-mean="0.7"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,0 +1,174 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.4  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.3  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.2  1994/08/04  20:52:11  greg
+\C Intermediate save
+\C
+\C Revision 1.1  1994/06/24  19:11:32  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\section{Entry}
+\label{sec:entry}
+
+\htmlrule
+\subsection{Class Entry}
+
+The class \file{Entry} is an abstract superclasses which is not used
+directly.
+
+\subsubsection{Instance Variables}
+\label{sec:entry-ivars}
+
+\begin{verbatim}
+public:
+    Vector<double *> wait;      /* waiting times.               */
+    double variance[MAX_PHASES+1]; /* Computed variance.        */
+    unsigned short index;       /* My index (for mva)           */
+    ProcessorEntry * processorEntry[MAX_PHASES+1];
+protected:
+    Vector<Call> myCalls;       /* Who I call.                  */
+    Vector<Call *> myCallers;   /* Who calls me.                */
+private:
+    const char * myName;
+    double service[MAX_PHASES+1];
+    double coeffOfVar[MAX_PHASES+1];
+    phase_type phaseType[MAX_PHASES+1];
+    short traceFlag;
+    short phaseIsPresent[MAX_PHASES+1];
+    double openArrivals;
+    short calledFlag;           /* true if entry referenced.    */
+    double myThroughput;
+    double myCv_sqr;            /* Coefficient of variation.    */
+    const unsigned entryId;     /* Gobal entry id. (for chain)  */
+
+#if defined(NOTDEF)
+    double tput_bound;          /* Upper bound of throughput.   */
+    DOUBLE capacity;            /* Queue capacity for entry.    */
+    unsigned initial_value;     /* Initial value for queue.     */
+    DOUBLE insert_rate[DIMQ];   /* Queue insertion rate.        */
+    double guard_delay[DIMQ];   /* Delay to callers by guard    */
+#endif
+\end{verbatim}
+
+\subsubsection{Constructors for Layerize}
+\begin{verbatim}
+Entry();
+Entry( const char * aStr, const unsigned id=0 );
+~Entry();
+\end{verbatim}
+
+\subsubsection{Initialization}
+\begin{description}
+\item[initialize] \texonly{---} \\
+\code{initialize();}
+
+\label{sec:entry-configure}
+\item[configure] \texonly{---} \\
+\code{configure();}
+
+\label{sec:entry-initWait}
+\item[initWait] \texonly{---} \\
+\code{void initWait( const Layerize& );}
+
+\end{description}
+\subsubsection{Copying}
+\subsubsection{Instance Variable Access}
+
+\begin{description}
+\item[task] \texonly{---} \\
+\code{Entry& task( const Task * );}\\
+\code{const Task * task() const}
+
+\item[phaseTypeFlag] \texonly{---} \\
+\code{phase_type& phaseTypeFlag( const unsigned phase );}\\
+\code{phase_type phaseTypeFlag( const unsigned phase ) const;}
+
+\item[coefficientOfVariation] \texonly{---} \\
+\code{double& coefficientOfVariation( const unsigned phase );}\\
+\code{double coefficientOfVariation( const unsigned phase ) const;}
+
+\item[openArrivalRate] \texonly{---} \\
+\code{double& openArrivalRate();}\\
+\code{double openArrivalRate() const;}
+
+\item[trace] \texonly{---} \\
+\code{Entry& trace( const int flag );}\\
+\code{int trace() const;}
+
+\item[isCalled] \texonly{---} \\
+\code{Entry& isCalled( const short aFlag );}\\
+\code{short isCalled() const;}
+
+\item[serviceTime] \texonly{---} \\
+\code{Entry& serviceTime( const unsigned, double );} \\
+\code{double serviceTime( const unsigned phase ) const;} \\
+\code{double serviceTime() const;}
+
+\item[rendezvous] \texonly{---} \\
+\code{Entry& rendezvous( Entry *, const unsigned, const double );}\\
+\code{double rendezvous( const Entry *, const unsigned ) const;}\\
+\code{double rendezvous( const Entry * ) const;}
+
+\item[sumOfRendezvous] \texonly{---} \\
+\code{double sumOfRendezvous( const unsigned p ) const;}\\
+\code{double sumOfRendezvous() const;}
+
+\item[postRendezvousCalls] \texonly{---} \\
+\code{double postRendezvousCalls( const Entry * ) const;}
+
+\item[double sumOfPostRendezvousCalls] \texonly{---} \\
+\code{double sumOfPostRendezvousCalls() const;}
+
+\item[sendNoReply] \texonly{---} \\
+\code{Entry& sendNoReply( Entry *, const unsigned, const double );}\\
+\code{double sendNoReply( const Entry *, const unsigned ) const;}\\
+\code{double sendNoReply( const Entry * ) const;}
+
+\item[sumOfSendNoReply] \texonly{---} \\
+\code{double sumOfSendNoReply( const unsigned p ) const;}
+
+\item[double throughput] \texonly{---} \\
+\code{double throughput() const;}
+\code{Entry& throughput( const double );}
+\end{description}
+
+\subsubsection{Queries}
+\subsubsection{Computation}
+
+\begin{description}
+
+\label{sec:entry-saveWait}
+\item[saveWait()] \texonly{---} \\
+\code{void saveWait();}
+
+\label{sec:entry-deltaWait}
+\item[deltaWait] \texonly{---} \\
+\code{double deltaWait( const unsigned );}
+
+\end{description}
+
+\subsubsection{Input and Output}
+
+\subsection{Helper Functions}
+\label{sec:entry-load}
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 

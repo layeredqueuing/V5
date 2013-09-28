@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<lqn-model name="../regression/101-rwlock" description="lqn2xml 5.1 solution for model from: ../regression/100-rwlock.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+  <solver-params comment="Rwlock called from a sequence of phases." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+  <processor name="customer" scheduling="inf">
+    <task name="customer" scheduling="ref" multiplicity="3">
+      <entry name="customer1" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="customer1_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+            <synch-call dest="reader" calls-mean="10"/>
+              <synch-call dest="writer" calls-mean="3"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+  <processor name="server"  scheduling="fcfs">
+    <task name="reader" multiplicity="6" scheduling="fcfs" >
+      <entry name="reader" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="reader_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+            <synch-call dest="reader_lock" calls-mean="1"/>
+          </activity>
+          <activity name="reader_2" phase="2" host-demand-mean="0.5" call-order="DETERMINISTIC">
+            <asynch-call dest="reader_unlock" calls-mean="1"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+    <task name="writer" multiplicity="3" scheduling="fcfs">
+      <entry name="writer" type="PH1PH2">
+        <entry-phase-activities>
+          <activity name="writer_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+            <synch-call dest="writer_lock" calls-mean="1"/>
+          </activity>
+          <activity name="writer_2" phase="2" host-demand-mean="0.5" call-order="DETERMINISTIC">
+            <asynch-call dest="writer_unlock" calls-mean="1"/>
+          </activity>
+        </entry-phase-activities>
+      </entry>
+    </task>
+    
+  </processor>
+  <processor name="rwlockserver" scheduling="fcfs">
+    <task name="rwlock" multiplicity="6" scheduling="rwlock">
+      <entry name="reader_unlock" type="PH1PH2" rwlock="r-unlock">
+        <entry-phase-activities>
+          <activity name="reader_unlock_1" phase="1" host-demand-mean="0.1"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="reader_lock" type="PH1PH2" rwlock="r-lock">
+        <entry-phase-activities>
+          <activity name="reader_lock_1" phase="1" host-demand-mean="0.2"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="writer_unlock" type="PH1PH2" rwlock="w-unlock">
+        <entry-phase-activities>
+          <activity name="writer_unlock_1" phase="1" host-demand-mean="0.1"/>
+        </entry-phase-activities>
+      </entry>
+      <entry name="writer_lock" type="PH1PH2" rwlock="w-lock">
+        <entry-phase-activities>
+          <activity name="writer_lock_1" phase="1" host-demand-mean="0.2"/>
+        </entry-phase-activities>
+      </entry>
+    </task>
+  </processor>
+</lqn-model>
+
+

@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o20-multiserver.lqnx 20-multiserver.in -->
+<!-- Wed May  6 09:57:10 2009 -->
+
+<lqn-model name="20-multiserver" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest multiserver model." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="client" multiplicity="1" scheduling="inf">
+      <task name="client" multiplicity="4" scheduling="ref">
+         <entry name="client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="1">
+                  <synch-call dest="server" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" multiplicity="1" scheduling="inf">
+      <task name="server" multiplicity="2" scheduling="fcfs">
+         <entry name="server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="server_ph1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

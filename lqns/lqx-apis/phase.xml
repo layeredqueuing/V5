@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqx-api>
+  <info>
+    <name>Phase</name>
+    <binding>LQNS Bindings</binding>
+    <provided-by>LQNS2</provided-by>
+  </info>
+  <constructors>
+    <method>
+      <ret>Phase</ret>
+      <args>
+        <object>entry</object>
+        <numeric_int>nr</numeric_int>
+      </args>
+      <name>phase</name>
+      <data>Returns the Phase object for a given entry's phase number specified as nr</data>
+    </method>
+  </constructors>
+  <attributes>
+    <attr>
+      <name>service_time</name>
+      <type>double</type>
+      <data>Phase service time</data>
+    </attr>
+    <attr>
+      <name>service_time_v</name>
+      <type>double</type>
+      <data>Phase service time variance</data>
+    </attr>
+    <attr>
+      <name>utilization</name>
+      <type>double</type>
+      <data>Phase utilization</data>
+    </attr>
+    <attr>
+      <name>proc_waiting</name>
+      <type>double</type>
+      <data>Phases' processor waiting time</data>
+    </attr>
+  </attributes>
+</lqx-api>

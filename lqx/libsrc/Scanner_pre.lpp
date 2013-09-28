@@ -1,0 +1,261 @@
+/* -*- c++ -*-
+ *  Scanner.l
+ *  ModLang
+ *
+ *  Created by Martin Mroz on 14/01/09.
+ *  Copyright 2009 __MyCompanyName__. All rights reserved.
+ *
+ */
+
+%option noyywrap
+
+%{
+/* We implement the Scanner here */
+#include "Scanner.h"
+#include "Parser.h"
+#include <sstream>
+#include <string>
+extern "C" {
+#include <string.h>
+#include <ctype.h>
+};
+  
+#pragma mark -
+  
+  /* This value is accessed from the Scanner class for return values */
+  LQX::ScannerToken* ml_scanner_token_value = NULL;
+  
+  static int tokenCodeOnly(int tokenCode)
+  {
+    /* Store the basic token in the scanner here */
+    ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode);
+    return tokenCode;
+  }
+  
+  static int tokenCodeBoolean(int tokenCode, bool value)
+  {
+    /* Store the basic token in the scanner here */
+    ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, value);
+    return tokenCode;
+  }
+  
+  static std::string startOfString;
+  static int tokenCodeExtractString(int tokenCode)
+  {
+    /* Build the scanner token, free and return */
+    ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, 
+						   LQX::ScannerToken::TYPE_STRING, startOfString.c_str(), startOfString.size(), false);
+    return tokenCode;
+  }
+  
+  static int tokenCodeDouble(int tokenCode, double value)
+  {
+    /* Store the basic token in the scanner here */
+    ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, value);
+    return tokenCode;
+  }
+  
+  static int tokenCodeExtractIdentifier(int tokenCode, bool external)
+  {
+    /* Build the identifier token, free and return */
+    ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, 
+      LQX::ScannerToken::TYPE_IDENTIFIER, yytext, yyleng, external);
+    return tokenCode;
+  }
+  
+  static char pathname[150];
+  static const char* stripQuotes( const char* token )
+  {
+      int i, j=0;
+      int len = strlen( token );
+       for( i = 0; i < len; i++ ) {
+      	   if( token[i] != ' ' && token[i] != '\"' && token[i] != '<' && token[i] != '>' && token[i] != '\t' ){
+	       pathname[j++] = token[i];
+	   }
+      }
+      pathname[j] = 0;
+      return( pathname );
+  }  
+
+
+  static int scannerErrorOccurred(char valueAtLocation);
+
+  #define MAX_INCLUDE_DEPTH 10
+  YY_BUFFER_STATE include_stack[MAX_INCLUDE_DEPTH];
+  FILE* open_files[MAX_INCLUDE_DEPTH];
+  int include_stack_ptr = 0;
+
+  
+%}
+
+/* Regular Expressions */
+digit       [0-9]
+digits      {digit}+
+integer     ("-")?{digits}
+real        ("-")?{digits}\.({digits}?)([eE]("+"|"-")?{digits})?
+letter      [a-zA-Z]
+identifier  ("_"|{letter})({letter}|{digit}|"_")*
+
+/* Alternate Parse States */
+%x comment
+%x ml_string
+%x incl
+%%
+
+ /* Allow both C and C++-style comments */
+
+"/*"              { BEGIN(comment); }
+<comment>\n       { }
+<comment>"*/"     { BEGIN(INITIAL); }
+<comment>.        { /* Skip Any Other Characters */ }
+"//".*            { }
+
+include           BEGIN(incl);
+
+<incl>[^\n]+   { /* got the include file name */
+
+         if ( include_stack_ptr >= MAX_INCLUDE_DEPTH )
+         {
+             fprintf( stderr, "Includes nested too deeply.\n" );
+             exit( 1 );
+	 }
+         
+	 const char *filepath = stripQuotes( yytext );
+	 if( !(yyin = fopen( filepath, "r" )) ) {
+    	     fprintf( stderr, "The include file \"%s\" could not be opened.\n", filepath );
+	     exit( 1 );
+	 }
+
+	 open_files[include_stack_ptr] = yyin;
+         include_stack[include_stack_ptr] = YY_CURRENT_BUFFER;
+	 include_stack_ptr++;
+
+ 	 yy_switch_to_buffer( yy_create_buffer( yyin, YY_BUF_SIZE ) );
+     	 BEGIN(INITIAL);
+}
+
+<<EOF>> {
+
+         if ( --include_stack_ptr < 0 )
+         {
+             yyterminate();
+         }
+         else
+         {
+             yy_delete_buffer( YY_CURRENT_BUFFER );
+             yy_switch_to_buffer( include_stack[include_stack_ptr] );
+	     fclose( open_files[include_stack_ptr] );
+         }
+}
+
+ /* Words for User-Defined Functions */
+
+"function"        { return tokenCodeOnly(LQX::PT_FUNCTION); }
+"..."             { return tokenCodeOnly(LQX::PT_ELLIPSIS); }
+
+ /* Words for Control Flow */
+
+"for"             { return tokenCodeOnly(LQX::PT_FOR); }
+"foreach"         { return tokenCodeOnly(LQX::PT_FOREACH); }
+"in"              { return tokenCodeOnly(LQX::PT_IN); }
+"while"           { return tokenCodeOnly(LQX::PT_WHILE); }
+"if"              { return tokenCodeOnly(LQX::PT_IF); }
+"else"            { return tokenCodeOnly(LQX::PT_ELSE); }
+"null"            { return tokenCodeOnly(LQX::PT_NULL); }
+"NULL"            { return tokenCodeOnly(LQX::PT_NULL); }
+
+  /* Words for File Output */
+
+"file_open"    	  { return tokenCodeOnly(LQX::PT_FILE_OPEN); }
+"print"	  	  { return tokenCodeOnly(LQX::PT_FILE_PRINT); }
+"println"	  { return tokenCodeOnly(LQX::PT_FILE_PRINTLN); }
+"print_spaced"	  { return tokenCodeOnly(LQX::PT_FILE_PRINT_SP); }
+"println_spaced"  { return tokenCodeOnly(LQX::PT_FILE_PRINTLN_SP); }
+"file_close"	  { return tokenCodeOnly(LQX::PT_FILE_CLOSE); }
+"write"		  { return tokenCodeOnly(LQX::PT_FILE_WRITE); }
+"read"		  { return tokenCodeOnly(LQX::PT_FILE_READ); }
+"append"	  { return tokenCodeOnly(LQX::PT_FILE_APPEND); }
+"read_data"	  { return tokenCodeOnly(LQX::PT_READ_DATA); }
+"read_loop"	  { return tokenCodeOnly(LQX::PT_READ_LOOP); }
+
+ /* Operator Tokens + Assorted */
+
+"++"              { return tokenCodeOnly(LQX::PT_INCREMENT); } 
+"--"              { return tokenCodeOnly(LQX::PT_DECREMENT); } 
+"||"              { return tokenCodeOnly(LQX::PT_LOGIC_OR); }          
+"&&"              { return tokenCodeOnly(LQX::PT_LOGIC_AND); } 
+"=="              { return tokenCodeOnly(LQX::PT_EQUALS_EQUALS); } 
+"!="              { return tokenCodeOnly(LQX::PT_NOT_EQUALS); } 
+"<="              { return tokenCodeOnly(LQX::PT_LESS_EQUAL); } 
+">="              { return tokenCodeOnly(LQX::PT_GREATER_EQUAL); } 
+"<<"              { return tokenCodeOnly(LQX::PT_LEFTSHIFT); } 
+">>"              { return tokenCodeOnly(LQX::PT_RIGHTSHIFT); } 
+"<"               { return tokenCodeOnly(LQX::PT_LESS_THAN); } 
+">"               { return tokenCodeOnly(LQX::PT_GREATER_THAN); } 
+"!"               { return tokenCodeOnly(LQX::PT_LOGIC_NOT); } 
+"*"               { return tokenCodeOnly(LQX::PT_STAR); } 
+"/"               { return tokenCodeOnly(LQX::PT_SLASH); }
+"+"               { return tokenCodeOnly(LQX::PT_PLUS); }
+"-"               { return tokenCodeOnly(LQX::PT_MINUS); }
+"%"               { return tokenCodeOnly(LQX::PT_MOD); }
+"("               { return tokenCodeOnly(LQX::PT_OPEN_BRACKET); }
+")"               { return tokenCodeOnly(LQX::PT_CLOSE_BRACKET); }
+"{"               { return tokenCodeOnly(LQX::PT_OPEN_BRACE); }
+"}"               { return tokenCodeOnly(LQX::PT_CLOSE_BRACE); }
+"["               { return tokenCodeOnly(LQX::PT_OPEN_SQUARE); }
+"]"               { return tokenCodeOnly(LQX::PT_CLOSE_SQUARE); }
+";"               { return tokenCodeOnly(LQX::PT_SEMICOLON); }
+","               { return tokenCodeOnly(LQX::PT_COMMA); }
+"="               { return tokenCodeOnly(LQX::PT_EQUALS); }
+"."               { return tokenCodeOnly(LQX::PT_DOT); }
+"=>"              { return tokenCodeOnly(LQX::PT_MAPS); }
+
+ /* Immediate Values */
+
+"true"            { return tokenCodeBoolean(LQX::PT_BOOLEAN, true); }
+"false"           { return tokenCodeBoolean(LQX::PT_BOOLEAN, false); }
+\"                { /* " */ BEGIN(ml_string); startOfString = ""; }
+<ml_string>{
+    \"            { /* saw closing quote - all done */  BEGIN(INITIAL);
+			startOfString += '\0';
+			return tokenCodeExtractString(LQX::PT_STRING); 
+    		  }
+    \\[0-7]{1,3}  { /* octal escape sequence */
+        		unsigned int result;
+			(void) sscanf( yytext + 1, "%o", &result );
+			if ( result <= 0xff ) {
+			    startOfString += static_cast<char>(result);
+			}
+		  }
+    \\n           { startOfString += '\n'; }
+    \\t  	  { startOfString += '\t'; }
+    \\r  	  { startOfString += '\r'; }
+    \\b  	  { startOfString += '\b'; }
+    \\f  	  { startOfString += '\f'; }
+    \\(.|\n)      { startOfString += yytext[1]; }
+    [^\\\n\"]+    { startOfString.append( yytext, yyleng ); }
+    .             { BEGIN(INITIAL); return scannerErrorOccurred(yytext[0]); }
+}
+{real}            { return tokenCodeDouble(LQX::PT_DOUBLE, strtod(yytext, NULL)); }
+{integer}         { return tokenCodeDouble(LQX::PT_DOUBLE, strtol(yytext, NULL, 10)); }
+"$"{identifier}	  { return tokenCodeExtractIdentifier(LQX::PT_IDENTIFIER, true); }
+"@"{identifier}	  { return tokenCodeExtractIdentifier(LQX::PT_IDENTIFIER, true); }
+{identifier}      { return tokenCodeExtractIdentifier(LQX::PT_IDENTIFIER, false); }
+
+ /* -- Magic Patterns -- */
+
+[ \n\r\t]+        { /* =whitespace */ }
+.                 { return scannerErrorOccurred(yytext[0]); }
+
+%%
+
+static int scannerErrorOccurred(char valueAtLocation)
+{
+  /* Return an annotated error message */
+  std::string s = "error: Unexpected character value `";
+  s += valueAtLocation;
+  s += "'";
+  ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, LQX::PT_ERROR, 
+    LQX::ScannerToken::TYPE_STRING, s.c_str(), s.size(), false);
+  return LQX::PT_ERROR;
+}

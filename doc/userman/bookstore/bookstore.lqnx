@@ -1,0 +1,221 @@
+<?xml version="1.0"?>
+<lqn-model name="bookstore" description="lqn2xml 5.4 solution for model from: bookstore.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="lqn2fig -Lg bookstore.lqn" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="5">
+      <pragma param="group" value="DatabaseProc"/>
+      <pragma param="multiserver" value="conway"/>
+   </solver-params>
+   <processor name="AdminProc" scheduling="inf" speed-factor="1">
+      <task name="Administrator" scheduling="ref">
+         <entry name="ARE" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="ARE_1" phase="1" host-demand-mean="100000">
+                  <synch-call dest="BME2" calls-mean="0.5"/>
+                  <synch-call dest="IME7" calls-mean="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="BookstoreProc" scheduling="fcfs" speed-factor="1">
+      <task name="BackorderMgr" scheduling="fcfs">
+         <entry name="BME2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="BME2_1" phase="1" host-demand-mean="3e-06">
+                  <synch-call dest="IME8" calls-mean="50"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="Server" scheduling="fcfs" multiplicity="5">
+         <entry name="SE6" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="SE6_1" phase="1" host-demand-mean="8e-06">
+                  <synch-call dest="CADE5" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="SE3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="SE3_1" phase="1" host-demand-mean="6e-06" max-service-time="74">
+                  <synch-call dest="SCE3" calls-mean="1"/>
+                  <synch-call dest="CE1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="SE1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="SE1_1" phase="1" host-demand-mean="4e-06">
+                  <synch-call dest="IME1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="ShoppingCart" scheduling="inf">
+         <entry name="SCE3" type="NONE"/>
+         <task-activities>
+            <activity name="AFBA109" host-demand-mean="1" call-order="DETERMINISTIC"/>
+            <activity name="AFBA112" host-demand-mean="4e-06" call-order="DETERMINISTIC">
+               <synch-call dest="IME6" calls-mean="1"/>
+            </activity>
+            <activity name="AFBA130" host-demand-mean="1" call-order="DETERMINISTIC"/>
+            <activity name="AFBA133" host-demand-mean="1" call-order="DETERMINISTIC"/>
+            <activity name="AJA131" host-demand-mean="2e-06" call-order="DETERMINISTIC">
+               <asynch-call dest="CAME2" calls-mean="1"/>
+            </activity>
+            <activity name="OFBA146" host-demand-mean="1" call-order="DETERMINISTIC"/>
+            <activity name="OFBA97" host-demand-mean="1" call-order="DETERMINISTIC">
+               <synch-call dest="CE1" calls-mean="1"/>
+            </activity>
+            <activity name="OJA110" host-demand-mean="2e-06" call-order="DETERMINISTIC"/>
+            <activity name="SCE3A95" bound-to-entry="SCE3" host-demand-mean="2e-06" call-order="DETERMINISTIC"/>
+            <precedence>
+               <pre>
+                  <activity name="SCE3A95"/>
+               </pre>
+               <post-OR>
+                  <activity name="OFBA97" prob="0.95"/>
+                  <activity name="OFBA146" prob="0.05"/>
+               </post-OR>
+            </precedence>
+            <precedence>
+               <pre-OR>
+                  <activity name="OFBA146"/>
+                  <activity name="AFBA109"/>
+               </pre-OR>
+               <post>
+                  <activity name="OJA110"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="OJA110"/>
+               </pre>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="OFBA97"/>
+               </pre>
+               <post-AND>
+                  <activity name="AFBA109"/>
+                  <activity name="AFBA112"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="AFBA112"/>
+               </pre>
+               <post-AND>
+                  <activity name="AFBA130"/>
+                  <activity name="AFBA133"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+		  <service-time-distribution min="0" max="10" number-bins="10"/>
+                  <activity name="AFBA130"/>
+                  <activity name="AFBA133"/>
+               </pre-AND>
+               <post>
+                  <activity name="AJA131"/>
+               </post>
+            </precedence>
+            <reply-entry name="SCE3">
+               <reply-activity name="OJA110"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+      <task name="InventoryMgr" scheduling="fcfs">
+         <entry name="IME1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="IME1_1" phase="1" host-demand-mean="2">
+                  <synch-call dest="DE1" calls-mean="2.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="IME6" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="IME6_1" phase="1" host-demand-mean="5">
+                  <synch-call dest="DE1" calls-mean="5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="IME7" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="IME7_1" phase="1" host-demand-mean="3e-06">
+                  <synch-call dest="DE1" calls-mean="500"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="IME8" type="PH1PH2">
+            <forwarding dest="CAME5" prob="1"/>
+            <entry-phase-activities>
+               <activity name="IME8_1" phase="1" host-demand-mean="2">
+                  <synch-call dest="DE1" calls-mean="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="CustAccMgr" scheduling="fcfs">
+         <entry name="CAME2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CAME2_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="CADE4" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="CAME5" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CAME5_1" phase="1" host-demand-mean="3.00001">
+                  <synch-call dest="CADE6" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="Catalogue" scheduling="inf">
+         <entry name="CE1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CE1_1" phase="1" host-demand-mean="10"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="CustProc" scheduling="inf" speed-factor="1">
+      <task name="Customer" scheduling="ref" multiplicity="5">
+         <entry name="CRE" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CRE_1" phase="1" host-demand-mean="3000">
+                  <synch-call dest="SE1" calls-mean="0.915225"/>
+                  <synch-call dest="SE3" calls-mean="0.0843525"/>
+                  <synch-call dest="SE6" calls-mean="0.0004221"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DatabaseProc" scheduling="fcfs" speed-factor="2">
+      <task name="Database" scheduling="fcfs">
+         <entry name="DE1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DE1_1" phase="1" host-demand-mean="20"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="CustAccDatabase" scheduling="fcfs" multiplicity="3">
+         <entry name="CADE5" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CADE5_1" phase="1" host-demand-mean="191"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="CADE4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CADE4_1" phase="1" host-demand-mean="100"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="CADE6" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CADE6_1" phase="1" host-demand-mean="150"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

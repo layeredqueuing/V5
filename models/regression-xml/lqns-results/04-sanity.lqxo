@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqns -Pvariance=mol,threads=mak 04-sanity.lqnx -->
+<lqn-model name="04-sanity" description="lqns 5.3 solution for model from: 04-sanity.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model - send-no-reply." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+         <mva-info submodels="2" core="4" step="21" step-squared="111" wait="222" wait-squared="12684" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="client" scheduling="fcfs">
+      <result-processor utilization="1"/>
+      <task name="client" scheduling="ref">
+         <result-task throughput="1" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="client" type="PH1PH2">
+            <result-entry utilization="1" throughput="1" squared-coeff-variation="1" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" service-time-variance="1" utilization="1"/>
+                  <asynch-call dest="server" calls-mean="1">
+                     <result-call waiting="1" waiting-variance="0"/>
+                  </asynch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <result-processor utilization="0.5"/>
+      <task name="server" scheduling="fcfs">
+         <result-task throughput="1" utilization="0.5" phase1-utilization="0.5" proc-utilization="0.5"/>
+         <entry name="server" type="PH1PH2">
+            <result-entry utilization="0.5" throughput="1" squared-coeff-variation="1" proc-utilization="0.5"/>
+            <entry-phase-activities>
+               <activity name="server_ph1" phase="1" host-demand-mean="0.5">
+                  <result-activity proc-waiting="0" service-time="0.5" service-time-variance="0.25" utilization="0.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

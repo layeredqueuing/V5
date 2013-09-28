@@ -1,0 +1,196 @@
+<?xml version="1.0"?>
+<lqn-model name="66-rwlock" description="lqsim 5.4 solution for model from: 66-rwlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="rwlock (reader only) called from a sequence of phases,  " conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.426689" iterations="3" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00"/>
+   </solver-params>
+   <processor name="customer" scheduling="inf" speed-factor="1">
+      <result-processor utilization="0.124935">
+         <result-conf-95 utilization="0.000676647"/>
+         <result-conf-99 utilization="0.00156071"/>
+      </result-processor>
+      <task name="customer" scheduling="ref" multiplicity="3">
+         <result-task throughput="0.249982" utilization="3" phase1-utilization="3" proc-utilization="0.124935">
+            <result-conf-95 throughput="0.00119735" utilization="0" proc-utilization="0.000676647"/>
+            <result-conf-99 throughput="0.00276173" utilization="17.1906" proc-utilization="0.00156071"/>
+         </result-task>
+         <entry name="customer" type="PH1PH2">
+            <result-entry utilization="3" throughput="0.249982" squared-coeff-variation="0.0390878" proc-utilization="0.124935">
+               <result-conf-95 utilization="0" throughput="0.00119735" squared-coeff-variation="0" proc-utilization="0.000676647"/>
+               <result-conf-99 utilization="0" throughput="0.00276173" squared-coeff-variation="0" proc-utilization="0.00156071"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="customer_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+                  <result-activity proc-waiting="0" service-time="12.0009" service-time-variance="5.62946" utilization="3">
+                     <result-conf-95 proc-waiting="0" service-time="0.0574484" service-time-variance="0.129403" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.132506" service-time-variance="0.298472" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="readers" calls-mean="1">
+                     <result-call waiting="3.25084" waiting-variance="1.8924">
+                        <result-conf-95 waiting="0.0139552" waiting-variance="0.039505"/>
+                        <result-conf-99 waiting="0.0321881" waiting-variance="0.0911195"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0.00472428"/>
+         <result-conf-99 utilization="0.0108967"/>
+      </result-processor>
+      <task name="readers" scheduling="fcfs" multiplicity="3">
+         <result-task throughput="0.249982" utilization="2.99993" phase1-utilization="2.06241" phase2-utilization="0.937515" proc-utilization="0.250033">
+            <result-conf-95 throughput="0.00119735" utilization="3.71669e-05" phase1-utilization="0.00114859" phase2-utilization="0.00118176" proc-utilization="0.0018153"/>
+            <result-conf-99 throughput="0.00276173" utilization="17.1904" phase1-utilization="0.00264925" phase2-utilization="0.00272576" proc-utilization="0.00418704"/>
+         </result-task>
+         <entry name="readers" type="PH1PH2">
+            <result-entry utilization="2.99993" throughput="0.249982" squared-coeff-variation="0.0381649" proc-utilization="0.250033">
+               <result-conf-95 utilization="0.00164797" throughput="0.00119735" squared-coeff-variation="0" proc-utilization="0.0018153"/>
+               <result-conf-99 utilization="0.00380109" throughput="0.00276173" squared-coeff-variation="0" proc-utilization="0.00418704"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="readers_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+                  <result-activity proc-waiting="1.29955" service-time="8.25024" service-time-variance="3.72765" utilization="2.06241">
+                     <result-conf-95 proc-waiting="0.0187593" service-time="0.0397975" service-time-variance="0.0578745" utilization="0.00114859"/>
+                     <result-conf-99 proc-waiting="0.043269" service-time="0.0917942" service-time-variance="0.133489" utilization="0.00264925"/>
+                  </result-activity>
+                  <synch-call dest="app_wait" calls-mean="1">
+                     <result-call waiting="2.45101" waiting-variance="1.30907">
+                        <result-conf-95 waiting="0.00385388" waiting-variance="0.0476244"/>
+                        <result-conf-99 waiting="0.0088891" waiting-variance="0.109847"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+               <activity name="readers_2" phase="2" host-demand-mean="0.5" call-order="DETERMINISTIC">
+                  <result-activity proc-waiting="1.54753" service-time="3.75033" service-time-variance="1.76862" utilization="0.937515">
+                     <result-conf-95 proc-waiting="0.0219076" service-time="0.0185764" service-time-variance="0.00888339" utilization="0.00118176"/>
+                     <result-conf-99 proc-waiting="0.0505306" service-time="0.042847" service-time-variance="0.0204898" utilization="0.00272576"/>
+                  </result-activity>
+                  <synch-call dest="app_signal" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="app_wait" scheduling="fcfs">
+         <result-task throughput="0.249982" utilization="0.999999" phase1-utilization="0.999999" proc-utilization="0.249694">
+            <result-conf-95 throughput="0.00119735" utilization="2.97518e-06" phase1-utilization="2.97518e-06" proc-utilization="0.003661"/>
+            <result-conf-99 throughput="0.00276173" utilization="9.925" phase1-utilization="6.86235e-06" proc-utilization="0.00844421"/>
+         </result-task>
+         <entry name="app_wait" type="PH1PH2">
+            <result-entry utilization="0.999999" throughput="0.249982" squared-coeff-variation="0.114668" proc-utilization="0.249694">
+               <result-conf-95 utilization="2.97518e-06" throughput="0.00119735" squared-coeff-variation="0" proc-utilization="0.003661"/>
+               <result-conf-99 utilization="6.86235e-06" throughput="0.00276173" squared-coeff-variation="0" proc-utilization="0.00844421"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="app_wait_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <result-activity proc-waiting="1.80202" service-time="4.00028" service-time-variance="1.83494" utilization="0.999999">
+                     <result-conf-95 proc-waiting="0.000937841" service-time="0.0191843" service-time-variance="0.0204179" utilization="2.97518e-06"/>
+                     <result-conf-99 proc-waiting="0.00216316" service-time="0.0442492" service-time-variance="0.0470944" utilization="6.86235e-06"/>
+                  </result-activity>
+                  <synch-call dest="reader_lock" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="app_signal" scheduling="fcfs">
+         <result-task throughput="0.249982" utilization="0.42547" phase1-utilization="0.42547" proc-utilization="0.250426">
+            <result-conf-95 throughput="0.00119735" utilization="0.00269526" phase1-utilization="0.00269526" proc-utilization="0.00195629"/>
+            <result-conf-99 throughput="0.00276173" utilization="6.47389" phase1-utilization="0.00621671" proc-utilization="0.00451225"/>
+         </result-task>
+         <entry name="app_signal" type="PH1PH2">
+            <result-entry utilization="0.42547" throughput="0.249982" squared-coeff-variation="0.343149" proc-utilization="0.250426">
+               <result-conf-95 utilization="0.00269526" throughput="0.00119735" squared-coeff-variation="0" proc-utilization="0.00195629"/>
+               <result-conf-99 utilization="0.00621671" throughput="0.00276173" squared-coeff-variation="0" proc-utilization="0.00451225"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="app_signal_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <result-activity proc-waiting="0.700229" service-time="1.702" service-time-variance="0.994038" utilization="0.42547">
+                     <result-conf-95 proc-waiting="0.00155206" service-time="0.00289794" service-time-variance="0.027578" utilization="0.00269526"/>
+                     <result-conf-99 proc-waiting="0.00357987" service-time="0.00668418" service-time-variance="0.0636094" utilization="0.00621671"/>
+                  </result-activity>
+                  <asynch-call dest="reader_unlock" calls-mean="1">
+                     <result-call waiting="1.29896" waiting-variance="0.592052" loss-probability="0">
+                        <result-conf-95 waiting="0.00555614" waiting-variance="0.00494366" loss-probability="0"/>
+                        <result-conf-99 waiting="0.0128154" waiting-variance="0.0114027" loss-probability="0"/>
+                     </result-call>
+                  </asynch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="rwlock" scheduling="rwlock" multiplicity="3">
+         <result-task throughput="0.249982" utilization="0.624549" phase1-utilization="0.624549" proc-utilization="0.249848" rwlock-reader-waiting="0.499354" rwlock-reader-waiting-variance="0.12478" rwlock-reader-holding="6.50115" rwlock-reader-holding-variance="3.17091" rwlock-reader_utilization="1" rwlock-writer-waiting="0" rwlock-writer-waiting-variance="0" rwlock-writer-holding="0" rwlock-writer-holding-variance="0" rwlock-writer_utilization="0">
+            <result-conf-95 throughput="0.00169691" utilization="0.00237092" phase1-utilization="0.00249483" proc-utilization="0.00133923" rwlock-reader-waiting="3.04071" rwlock-reader-waiting-variance="1.52" rwlock-reader-holding="10.9715" rwlock-reader-holding-variance="7.66237" rwlock-reader_utilization="4.303" rwlock-writer-waiting="0" rwlock-writer-waiting-variance="0" rwlock-writer-holding="0" rwlock-writer-holding-variance="0" rwlock-writer_utilization="0"/>
+            <result-conf-99 throughput="0.00391396" utilization="7.84357" phase1-utilization="0.00575439" proc-utilization="0.00308898" rwlock-reader-waiting="7.0135" rwlock-reader-waiting-variance="3.50593" rwlock-reader-holding="25.3061" rwlock-reader-holding-variance="17.6735" rwlock-reader_utilization="9.925" rwlock-writer-waiting="0" rwlock-writer-waiting-variance="0" rwlock-writer-holding="0" rwlock-writer-holding-variance="0" rwlock-writer_utilization="0"/>
+         </result-task>
+         <entry name="reader_unlock" type="PH1PH2" rwlock="r-unlock">
+            <result-entry utilization="0.324715" throughput="0.249982" squared-coeff-variation="0.35089" proc-utilization="0.0748439">
+               <result-conf-95 utilization="0.00155974" throughput="0.00119735" squared-coeff-variation="0" proc-utilization="0.00105939"/>
+               <result-conf-99 utilization="0.00359759" throughput="0.00276173" squared-coeff-variation="0" proc-utilization="0.00244351"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="reader_unlock_1" phase="1" host-demand-mean="0.3">
+                  <result-activity proc-waiting="0.999558" service-time="1.29896" service-time-variance="0.592052" utilization="0.324715">
+                     <result-conf-95 proc-waiting="0.00117134" service-time="0.00555614" service-time-variance="0.00494366" utilization="0.00155974"/>
+                     <result-conf-99 proc-waiting="0.00270172" service-time="0.0128154" service-time-variance="0.0114027" utilization="0.00359759"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="reader_lock" type="PH1PH2" rwlock="r-lock">
+            <result-entry utilization="0.299834" throughput="0.249983" squared-coeff-variation="0.428171" proc-utilization="0.175004">
+               <result-conf-95 utilization="0.00194714" throughput="0.00120244" squared-coeff-variation="0" proc-utilization="0.00081929"/>
+               <result-conf-99 utilization="0.00449115" throughput="0.00277346" squared-coeff-variation="0" proc-utilization="0.00188972"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="reader_lock_1" phase="1" host-demand-mean="0.7">
+                  <result-activity proc-waiting="0.499354" service-time="1.19942" service-time-variance="0.615968" utilization="0.299834">
+                     <result-conf-95 proc-waiting="0.00396382" service-time="0.00526488" service-time-variance="0.00630063" utilization="0.00194714"/>
+                     <result-conf-99 proc-waiting="0.00914267" service-time="0.0121436" service-time-variance="0.0145326" utilization="0.00449115"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="writer_unlock" type="PH1PH2" rwlock="w-unlock">
+            <result-entry utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0">
+               <result-conf-95 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="writer_unlock_1" phase="1" host-demand-mean="0.3">
+                  <result-activity proc-waiting="0" service-time="0" service-time-variance="0" utilization="0">
+                     <result-conf-95 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="writer_lock" type="PH1PH2" rwlock="w-lock">
+            <result-entry utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0">
+               <result-conf-95 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="writer_lock_1" phase="1" host-demand-mean="0.7">
+                  <result-activity proc-waiting="0" service-time="0" service-time-variance="0" utilization="0">
+                     <result-conf-95 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

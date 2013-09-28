@@ -1,0 +1,95 @@
+# SRVN Model Description File, for file: activity-templ.lqn
+# This template documents the use of activities in depth 
+# It assumes familiarity with other features documented in
+# reservtemplate.lqn or in template.lqn 
+
+G "Activity template" 1e-06 50 5 0.9 -1
+
+P 4
+  p UserP f i
+  p ServerP s 0		#processor sharing at the server 
+  p Disk1P f
+  p Disk2P f
+-1
+
+T 5
+  t User r user -1 UserP z 50 m 50
+  t Server n server -1 ServerP m 4	# 4 threads (with activities)
+  t BigLoop n bigLoop -1 ServerP i	# pseudo-task for a complex loop pattern
+  t Disk1 n disk1read disk1write -1 Disk1P
+  t Disk2 n disk2read disk2write -1 Disk2P
+-1
+
+E 7
+# ---------- User ----------
+  s user 1 -1
+  f user 1  -1
+  y user server 1 -1		# one request to the server per cycle.
+# ---------- Server ----------
+  A server serverStart		# Entry server is defined using activities.
+# ---------- BigLoop ----------
+  A bigLoop first
+# ---------- Disk1 ----------
+  s disk1write 0.04 -1		# operation time of this entry.
+  s disk1read 0.04 -1
+# ---------- Disk2 ----------
+  s disk2write 0.03 -1
+  s disk2read 0.03 -1
+-1
+
+#Optional sections for definition of activities 
+# One section for each task that has activities, beginning A TaskName 
+# list of activity parameters, using the syntax for entry parameters, but 
+# with just one value and no terminator -1 
+# : (separator), then a section for precedence among activities 
+# Syntax for precedence:
+# a1 -> a2 for sequence 
+# a1 -> a2 & a3 ... AND-fork (any number) 
+# a1 & a2 ... -> a3 AND join 
+# a1 & a2 ... -> a3 & a4 ... AND join followed by AND fork 
+# a1 -> (prob2)a2 + (prob3)a3 ... OR fork (any number, with probabilities) 
+# a1 -> meanCount*a2,a3....for a repeated activity a2, followed by a3
+# (notice that activities that follow a2 are inside the loop) 
+# a6[entryName] indicates that after a6, a reply will be sent to entryName
+#
+A Server
+  s serverStart 0	# Every activity that is used must have a host demand
+  s seqInit 0.3
+  s parInit 0.1
+  s parA 0.05
+  y parA disk1read 1.3
+  s parB 0.08
+  y parB disk2read 2.1
+  s parReply 0.01
+  s loopOperation 0.1
+  y loopOperation disk1read 0.7
+  s loop2 0
+  s bigLoopDriver 0
+  f bigLoopDriver 1	# Exactly one call operation (deterministic)	
+  y bigLoopDriver bigLoop 1	  # trigger the pseudo-task for the complex loop
+  s seqReply 0.005
+  s loopEnd 0
+:
+  serverStart -> (0.6)parInit + (0.4)seqInit;
+  parInit -> parA & parB;
+  parB & parA -> parReply;
+  parReply[server];		# reply for the parallel branch.
+  seqInit -> 3.5 * loopOperation, loopEnd;
+  loopOperation -> loop2;	# this activitiy is also in the loop.
+  loopEnd -> 1.2 * bigLoopDriver, seqReply;  # big loop is executed 1.2 times on average.
+  seqReply[server]	# reply for the sequential branch.
+-1
+
+A BigLoop
+  s first 0.01
+  s second 0
+  y second disk1write 1
+  s third 0
+  y third disk2write 1
+  s fourth 0.13
+:
+  first -> second & third;
+  third & second -> fourth;
+  fourth[bigLoop]
+-1
+

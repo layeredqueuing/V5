@@ -1,0 +1,217 @@
+<?xml version="1.0"?>
+<lqn-model name="pyramid" description="lqn2xml 5.5 solution for model from: pyramid.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="lqngen" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="9.68587e-06" iterations="10" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+         <mva-info submodels="4" core="40" step="417" step-squared="5663" wait="100328" wait-squared="4.67956e+08" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="p11" scheduling="inf" speed-factor="1">
+      <result-processor utilization="0.544604"/>
+      <task name="t11" scheduling="ref" multiplicity="$n" think-time="10">
+         <result-task throughput="5.44604" utilization="45.5396" proc-utilization="0"/>
+         <entry name="e11" type="PH1PH2">
+            <result-entry utilization="45.5396" throughput="5.44604" squared-coeff-variation="0" proc-utilization="0.544604" throughput-bound="9.61538"/>
+            <entry-phase-activities>
+               <activity name="e11_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="8.36195" service-time-variance="166.323" utilization="45.5396"/>
+                  <synch-call dest="e21" calls-mean="0.5">
+                     <result-call waiting="7.90606" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e22" calls-mean="0.5">
+                     <result-call waiting="7.90606" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p21" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.272302"/>
+      <task name="t21" scheduling="fcfs">
+         <result-task throughput="2.72302" utilization="0.969104" proc-utilization="0"/>
+         <entry name="e21" type="PH1PH2">
+            <result-entry utilization="0.969104" throughput="2.72302" squared-coeff-variation="0" proc-utilization="0.272302" throughput-bound="3.33334"/>
+            <entry-phase-activities>
+               <activity name="e21_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.355893" service-time-variance="0.178797" utilization="0.969104"/>
+                  <synch-call dest="e31" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e32" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e33" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p22" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.272302"/>
+      <task name="t22" scheduling="fcfs">
+         <result-task throughput="2.72302" utilization="0.969104" proc-utilization="0"/>
+         <entry name="e22" type="PH1PH2">
+            <result-entry utilization="0.969104" throughput="2.72302" squared-coeff-variation="0" proc-utilization="0.272302" throughput-bound="3.33334"/>
+            <entry-phase-activities>
+               <activity name="e22_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.355893" service-time-variance="0.178797" utilization="0.969104"/>
+                  <synch-call dest="e31" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e32" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e33" calls-mean="0.333333">
+                     <result-call waiting="0.0464128" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p31" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.181535"/>
+      <task name="t31" scheduling="fcfs">
+         <result-task throughput="1.81535" utilization="0.38028" proc-utilization="0"/>
+         <entry name="e31" type="PH1PH2">
+            <result-entry utilization="0.38028" throughput="1.81535" squared-coeff-variation="0" proc-utilization="0.181535" throughput-bound="5"/>
+            <entry-phase-activities>
+               <activity name="e31_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.209481" service-time-variance="0.0468824" utilization="0.38028"/>
+                  <synch-call dest="e41" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e42" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e43" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e44" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p32" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.181535"/>
+      <task name="t32" scheduling="fcfs">
+         <result-task throughput="1.81535" utilization="0.38028" proc-utilization="0"/>
+         <entry name="e32" type="PH1PH2">
+            <result-entry utilization="0.38028" throughput="1.81535" squared-coeff-variation="0" proc-utilization="0.181535" throughput-bound="5"/>
+            <entry-phase-activities>
+               <activity name="e32_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.209481" service-time-variance="0.0468824" utilization="0.38028"/>
+                  <synch-call dest="e41" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e42" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e43" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e44" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p33" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.181535"/>
+      <task name="t33" scheduling="fcfs">
+         <result-task throughput="1.81535" utilization="0.38028" proc-utilization="0"/>
+         <entry name="e33" type="PH1PH2">
+            <result-entry utilization="0.38028" throughput="1.81535" squared-coeff-variation="0" proc-utilization="0.181535" throughput-bound="5"/>
+            <entry-phase-activities>
+               <activity name="e33_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.209481" service-time-variance="0.0468824" utilization="0.38028"/>
+                  <synch-call dest="e41" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e42" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e43" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e44" calls-mean="0.25">
+                     <result-call waiting="0.00948053" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p41" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.136151"/>
+      <task name="t41" scheduling="fcfs">
+         <result-task throughput="1.36151" utilization="0.136151" proc-utilization="0"/>
+         <entry name="e41" type="PH1PH2">
+            <result-entry utilization="0.136151" throughput="1.36151" squared-coeff-variation="0" proc-utilization="0.136151" throughput-bound="10"/>
+            <entry-phase-activities>
+               <activity name="e41_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" service-time-variance="0.01" utilization="0.136151"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p42" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.136151"/>
+      <task name="t42" scheduling="fcfs">
+         <result-task throughput="1.36151" utilization="0.136151" proc-utilization="0"/>
+         <entry name="e42" type="PH1PH2">
+            <result-entry utilization="0.136151" throughput="1.36151" squared-coeff-variation="0" proc-utilization="0.136151" throughput-bound="10"/>
+            <entry-phase-activities>
+               <activity name="e42_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" service-time-variance="0.01" utilization="0.136151"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p43" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.136151"/>
+      <task name="t43" scheduling="fcfs">
+         <result-task throughput="1.36151" utilization="0.136151" proc-utilization="0"/>
+         <entry name="e43" type="PH1PH2">
+            <result-entry utilization="0.136151" throughput="1.36151" squared-coeff-variation="0" proc-utilization="0.136151" throughput-bound="10"/>
+            <entry-phase-activities>
+               <activity name="e43_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" service-time-variance="0.01" utilization="0.136151"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p44" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.136151"/>
+      <task name="t44" scheduling="fcfs">
+         <result-task throughput="1.36151" utilization="0.136151" proc-utilization="0"/>
+         <entry name="e44" type="PH1PH2">
+            <result-entry utilization="0.136151" throughput="1.36151" squared-coeff-variation="0" proc-utilization="0.136151" throughput-bound="10"/>
+            <entry-phase-activities>
+               <activity name="e44_1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" service-time-variance="0.01" utilization="0.136151"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx>
+     <![CDATA[
+     foreach ( ix, $n in [50, 100] ) {
+        print( $n, ": " );
+        solve();
+	println( task("t11").throughput );
+     }
+     ]]>
+   </lqx>
+</lqn-model>

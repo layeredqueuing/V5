@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<lqn-model name="02-sanity" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplest model - with activities ." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="client" scheduling="fcfs">
+      <task name="client" scheduling="ref">
+         <entry name="client" type="NONE"/>
+         <task-activities>
+            <activity name="client" bound-to-entry="client" host-demand-mean="1">
+               <synch-call dest="server" calls-mean="1"/>
+            </activity>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <task name="server" scheduling="fcfs">
+         <entry name="server" type="NONE"/>
+         <task-activities>
+            <activity name="server" bound-to-entry="server" host-demand-mean="1"/>
+            <reply-entry name="server">
+               <reply-activity name="server"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

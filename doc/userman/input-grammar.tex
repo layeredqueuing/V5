@@ -1,0 +1,361 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  grammar
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\newcommand{\altflg}[1]{#1}
+\newcommand{\swapflg}{\let\tmpflg\chgflg\let\chgflg\altflg\let\altflg\tmpflg}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[LQN\_input\_file] \<general\_info> \<processor\_info> \opt{\<group\_info>} 
+  \<task\_info> \<entry\_info> \rep{\<activity\_info>}{0}{}
+  \oritem \<parameter\_list> \<processor\_info> \opt{\<group\_info>} 
+  \<task\_info> \<entry\_info> \rep{\<activity\_info>}{0}{} \opt{\<report\_info>} \opt{\<convergence\_info>}
+\end{bnf}
+
+\subsection{SPEX Parameters}
+\label{sec:spex-parameters}\index{SPEX!grammar!paramters}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[parameter\_list]  \rep{\<comma\_expr>}{1}{np}
+
+  \defitem[comma\_expr] \<variable\_def>
+  \oritem[ \<expression> , \<variable\_def> ]
+
+  \defitem[variable\_def] \<variable> = \<ternary\_expr>
+  \oritem [ \< expression\_list> ]
+  \oritem [ \<real> : \<real> , \<real> ]
+
+\end{bnf}
+
+\subsection{General Information}
+\label{sec:general-in}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[general\_info] G \<comment> \<conv\_val> \<it\_limit>
+  \?\<print\_int>? \?\<underrelax\_coeff>? \<end\_list>
+
+  \defitem[comment] \<string> \(comment on the model)\index{model!comment}
+
+  \swapflg
+  \defitem[conv\_val] \<real> \(convergence value) \chg{\ddag}\index{convergence!value}
+
+  \defitem[it\_limit] \<integer> \(max. nb. of iterations) \chg{\ddag}\index{iteration limit}
+
+  \defitem[print\_int] \<integer> \chg{\ddag}\index{print interval}
+  \itemsep\oritemsep
+  \item \(intermed. res. print interval)
+  \itemsep\defitemsep
+
+  \defitem[underrelax\_coeff] \<real> \(under\_relaxation coefficient)\index{under-relaxation coefficient}
+  \chg{\ddag}
+  \swapflg
+
+  \defitem[end\_list] -1 \(end\_of\_list mark)
+
+  \defitem[string] " \<text> "
+\end{bnf}
+
+\subsection{Processor Information}
+\label{sec:processor}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[processor\_info] P \<np> \<$p$\_decl\_list>
+
+  \defitem[np] \<integer> \(total number of processors)
+
+  \defitem[$p$\_decl\_list] \rep{\<$p$\_decl>}{1}{np} \<end\_list>
+
+  \defitem[$p$\_decl] p \<proc\_id> \<scheduling\_flag> \?\<quantum>?\index{scheduling!processor}
+  \?\<multi\_server\_flag>?  \?\<replication\_flag>? \?\<proc\_rate>?\index{replication!processor}
+
+  \defitem[proc\_id] \<integer> \| \<identifier>
+  \itemsep\oritemsep
+  \item \(processor identifier)
+  \itemsep\defitemsep
+
+  \defitem[scheduling\_flag] f \(First come, first served)
+  \oritem h \(Head Of Line)
+  \oritem p \(Priority, preemeptive)
+  \oritem c \<real> \(completely fair scheduling\index{processor!scheduling!completely fair})
+  \oritem s \<real> \(processor sharing\index{processor!sharing}\index{processor!scheduling!sharing})
+  \oritem i \(Infinite or delay)
+  \oritem r \(Random)
+
+  \defitem[quantum] \<real>\index{quantum} \| \<variable>
+
+  \defitem[multi\_server\_flag] m \<copies> \(number of duplicates)
+  \oritem i \(Infinite server)
+
+  \defitem[replication\_flag] r \<copies> \(number of replicas)
+
+  \defitem[proc\_rate] R \<ratio> \| \<variable> \(Relative proc. speed)
+
+  \defitem[copies] \<integer> \| \<variable>
+
+  \defitem[ratio] \<real> \| \<variable>
+
+\end{bnf}
+
+\subsection{Group Information}
+\label{sec:group}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[group\_info] U \<ng> \<$g$\_decl\_list> \<end\_list>
+
+  \defitem[ng] \<integer> \(total number of groups)
+
+  \defitem[$g$\_decl\_list] \rep{\<$g$\_decl>}{1}{ng} \<end\_list>
+
+  \defitem[$g$\_decl] g \<group\_id> \<group\_share> \opt{\<cap\_flag>} \<proc\_id>
+
+\defitem[group\_id] \<identifier>
+
+\defitem[group\_share] \<real> \| \<variable>
+
+\defitem[cap\_flag] c
+\end{bnf}
+
+\subsection{Task Information}
+\label{sec:task}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[task\_info] T \<nt> \<$t$\_decl\_list>
+
+  \defitem[nt] \<integer> \(total number of tasks)
+
+  \defitem[$t$\_decl\_list] \rep{\<$t$\_decl>}{1}{nt} \<end\_list>
+
+  \defitem[$t$\_decl] t \<task\_id> \<task\_sched\_type>\index{scheduling!task}
+  \<entry\_list> \?\<queue\_length>?\index{queue length}
+  \<proc\_id> \?\<task\_pri>? \?\<think\_time\_flag>?\index{think time}
+  \?\<multi\_server\_flag>? \?\<replication\_flag>?\index{replication!task}
+  \?\<group\_flag>?\index{group share}
+  \oritem i \<from\_task> \<to\_task> \<fan\_in>\index{fan-in}
+  \oritem o \<from\_task> \<to\_task> \<fan\_out>\index{fan-out}
+
+  \defitem[task\_id] \<integer> \| \<identifier>
+  \itemsep\oritemsep
+  \item \(task identifier)
+  \itemsep\defitemsep
+
+  \defitem[task\_sched\_type] r \(reference task)
+  \oritem n \(non-reference task)
+  \oritem h \(Head of line)
+  \oritem f \(FIFO Scheduling)
+  \oritem i \(Infinite or delay server)
+  \oritem p \(Polled scheduling at entries)
+  \oritem b \(Bursty Reference task)
+  \oritem S \(Semaphore)\index{scheduling!semaphore}
+  \oritem Z \(Semaphore -- initially empty)
+
+  \defitem[entry\_list] \rep{\<entry\_id>}{1}{{\it ne\/}_t} \<end\_list>
+  \itemsep\oritemsep
+  \item \(task $t$ has $ne_t$ entries)
+  \itemsep\defitemsep
+
+  \defitem[entry\_id] \<integer> \| \<identifier>
+  \itemsep\oritemsep
+  \item \(entry identifier)
+  \itemsep\defitemsep
+
+  \defitem[queue\_length] q \<integer> \(open class queue length)
+
+  \defitem[task\_pri] \<integer> \(task priority, optional)
+
+  \defitem[group\_flag] g \<identfier> \(Group for scheduling)
+
+  \defitem[from\_task] \<task\_id> \(Source task)
+  \defitem[to\_task] \<task\_id> \(Destination task)
+  \defitem[fan\_in] \<integer> \(fan in to this task)
+  \defitem[fan\_out] \<integer> \(fan out from this task)
+\end{bnf}
+
+
+\subsection{Entry Information}
+\label{sec:entry}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[entry\_info] E \<ne> \<entry\_decl\_list>
+
+  \defitem[ne] \<integer> \(total number of entries)
+
+  \defitem[entry\_decl\_list] \rep{\<entry\_decl>}{1}{} \<end\_list>
+
+  \item \(k = maximum number of phases)
+
+  \defitem[entry\_decl] a \<entry\_id> \<arrival\_rate>
+  \oritem A \<entry\_id> \<activity\_id> 
+  \oritem F \<from\_entry> \<to\_entry> \<p\_forward>\index{forwarding probability}
+  \oritem H \<entry\_id> \<phase> \<hist\_min> ':' \<hist\_max> \<hist\_bins> \<hist\_type>\index{histogram}
+  \oritem M \<entry\_id> \rep{\<max\_service\_time>}{1}{k} \<end\_list>\index{maximum service time}\index{service time!maximum}
+  \oritem P \<entry\_id> \(Signal Semaphore)\index{semaphore!signal}
+  \oritem V \<entry\_id> \(Wait Semaphore)\index{semaphore!signal}
+  \oritem Z \<entry\_id> \rep{\<think\_time>}{1}{k} \<end\_list>\index{think time}
+  \oritem c \<entry\_id> \rep{\<coeff\_of\_variation>}{1}{k} \<end\_list>\index{coefficient of variation}
+  \oritem f \<entry\_id> \rep{\<ph\_type\_flag>}{1}{k} \<end\_list>\index{phase!type}
+  \oritem p \<entry\_id> \<entry\_priority>\index{priority!entry}
+  \oritem s \<entry\_id> \rep{\<service\_time>}{1}{k} \<end\_list>\index{service time}
+  \oritem y \<from\_entry> \<to\_entry> \rep{\<rendezvous>}{1}{k} \<end\_list>\index{rendezvous}
+  \oritem z \<from\_entry> \<to\_entry> \rep{\<send\_no\_reply>}{1}{k} \<end\_list>\index{send-no-reply}
+
+  \defitem[arrival\_rate] \<real> \| \<variable> \(open arrival rate to entry)
+  \defitem[coeff\_of\_variation] \<real> \| \<variable> \(squared service time coefficient of variation)
+  \defitem[from\_entry] \<entry\_id> \(Source of a message)
+  \defitem[hist\_bins] \<integer> \(Number of bins in histogram.)
+  \defitem[hist\_max] \<real> \(Median service time.)
+  \defitem[hist\_min] \<real> \(Median service time.)
+  \defitem[hist\_type] log \| linear \| sqrt \(bin type.)
+  \defitem[max\_service\_time] \<real> \(Median service time.)
+  \defitem[p\_forward] \<real> \(probability of forwarding)
+  \defitem[phase] 1 \| 2 \| 3 \(phase of entry)
+  \defitem[ph\_type\_flag] 0 \(stochastic phase)
+  \oritem 1 \(deterministic phase)
+  \defitem[rate] \<real> \| \<variable> \(nb. of calls per arrival)
+  \defitem[rendezvous] \<real>  \| \<variable> \(mean number of RNVs/ph)
+  \defitem[send\_no\_reply] \<real> \| \<variable> \(mean nb.of non-blck.sends/ph)
+  \defitem[service\_time] \<real> \| \<variable> \(mean phase service time)
+  \defitem[think\_time] \<real> \| \<variable> \(Think time for phase.)
+  \defitem[to\_entry] \<entry\_id> \(Destination of a message)
+\end{bnf}
+
+\subsection{Activity Information}
+\label{sec:activity}
+
+\begin{bnf}{multi\_server\_flag}
+
+  \defitem[activity\_info] \<activity\_defn\_list> \?\<activity\_connections>? \<end\_list>
+
+\item \( Activity definition. )
+
+  \defitem[activity\_defn\_list] \rep{\<activity\_defn>}{1}{\it na}
+  \defitem[activity\_defn] c \<activity\_id> \<coeff\_of\_variation> \( Sqr. Coeff. of Var. )\index{coefficient of variation}
+  \oritem f \<activity\_id> \<ph\_type\_flag> \( Phase type )\index{phase!type}
+  \oritem H \<entry\_id> \<hist\_min> ':' \<hist\_max> \<hist\_bins> \<hist\_type>\index{histogram}
+  \oritem M \<activity\_id> \<max\_service\_time>\index{maximum service time}\index{service time!maximum}
+  \oritem s \<activity\_id> \<ph\_serv\_time> \( Service time )\index{service time}
+  \oritem Z \<activity\_id> \<think\_time> \( Think time )\index{think time}
+  \oritem y \<activity\_id> \<to\_entry> \<rendezvous> \( Rendezvous  )\index{rendezvous}
+  \oritem z \<activity\_id> \<to\_entry> \<send\_no\_reply> \( Send-no-reply )\index{send-no-reply}
+
+\item \( Activity Connections. )\index{activity!connection|see{precedence}}\index{activity!connection}
+
+  \defitem[activity\_connections] : \<activity\_conn\_list>
+
+  \defitem[activity\_conn\_list] \<activity\_conn> \rep{; \<activity\_conn>}{1}{\it na}
+
+  \defitem[activity\_conn] \<join\_list>
+  \oritem \<join\_list> -> \<fork\_list>\index{->@\texttt{->}|see{precedence}}
+
+  \defitem[join\_list] \<reply\_activity>\index{join-list}
+  \oritem \<and\_join\_list>\index{AND-join}
+  \oritem \<or\_join\_list>\index{OR-join}
+
+  \defitem[fork\_list] \<activity\_id>
+  \oritem \<and\_fork\_list>\index{and-fork}
+  \oritem \<or\_fork\_list>\index{or-fork}
+  \oritem \<loop\_list>\index{LOOP}
+
+  \defitem[and\_join\_list] \<reply\_activity> \rep{\& \<reply\_activity>}{1}{\it na} \opt{\<quorum\_count>}
+  \defitem[or\_join\_list] \<reply\_activity> \rep{+ \<reply\_activity>}{1}{\it na}
+  \defitem[and\_fork\_list] \<activity\_id> \rep{\& \<activity\_id>}{1}{\it na}
+  \defitem[or\_fork\_list] \<prob\_activity> \rep{+ \<prob\_activity>}{1}{\it na}
+  \defitem[loop\_list] \<loop\_activity> \rep{, \<loop\_activity>}{0}{na} \opt{\<end\_activity>}
+
+  \defitem[prob\_activity] ( \<real> ) \<activity\_id>
+  \defitem[loop\_activity] \<real> * \<activity\_id>
+  \defitem[end\_activity] , \<activity\_id>
+  \defitem[reply\_activity] \<activity\_id> \opt{\<reply\_list>}
+
+  \defitem[reply\_list] [ \<entry\_id> \rep{, \<entry\_id> }{0}{ne} ]
+  \defitem[quorum\_count] ( \<integer> ) \( Quorum )\index{quorum}
+\end{bnf}
+
+\subsection{SPEX Report Information}\index{SPEX!grammar!report}
+\begin{bnf}{multi\_server\_flag}
+  \defitem[report\_info] R \<nr> \<report\_decl\_list>
+\end{bnf}
+
+\subsection{SPEX Convergence Information}\index{SPEX!grammar!convergence}
+\begin{bnf}{multi\_server\_flag}
+  \defitem[convergence\_info] C \<nc> \<convergence\_decl\_list>
+\end{bnf}
+
+\subsection{Expressions}\index{SPEX!grammar!expressions}
+\label{sec:spex-expressions}
+\begin{bnf}{multi\_server\_flag}
+
+  \defitem[ternary\_expression] \<or\_expression> ? \<or\_expression> : \<or\_expression>
+  \oritem \<or\_expression>
+
+  \defitem[or\_expression] \<or\_expression> $|$ \<and\_expression> \( Logical OR )
+  \oritem \<and\_expression>
+
+  \defitem[and\_expression] \<and\_epxression> $\&$ \<compare\_expression> \( Logical AND )
+  \oritem \<compare\_expression>
+
+  \defitem[compare\_expression] \<compare\_expression> == \<expression>
+  \oritem \<compare\_expression> != \<expression>
+  \oritem \<compare\_expression> < \<expression>
+  \oritem \<compare\_expression> <= \<expression>
+  \oritem \<compare\_expression> > \<expression>
+  \oritem \<compare\_expression> >= \<expression>
+  \oritem \<expression>
+
+  \defitem[expression] \<expression> + \<term>
+  \oritem \<expression> $-$ \<term> 
+  \oritem \<term>
+
+  \defitem[term] \<term> * \<power>
+  \oritem \<term> / \<power>
+  \oritem \<term> \% \<power> \( Modulus )
+  \oritem \<power>
+
+  \defitem[power] \<prefix> ** \<power> \( Exponentiation, right associative) % \char94 forces raw caret.
+  \oritem \<prefix>
+
+  \defitem[prefix] ! \<factor> \( Logical NOT )
+  \oritem \<factor>
+
+  \defitem[factor] ( \<expression> )
+  \oritem \<identifier> ( \<expression\_list> )
+  \oritem \<variable> [ \<expression\_list> ]
+  \oritem \<variable>
+  \oritem \<double>
+
+  \defitem[expression\_list] \<expression> \rep{, \<expression> }{0}{}
+
+  \defitem[int] \( Non negative integer )
+  \defitem[double] \( Non negative double precision number )
+  
+\end{bnf}
+
+\subsection{Identifiers}
+% This paragraph describes the identifiers. Using text was alot easier
+% than introducing some new BNF symbols, etc.
+% Added July 23, 1991 by alex
+
+Identifiers\index{identifiers} may be zero or more leading underscores
+(`\_'), followed by a character, followed by any number of characters,
+numbers or underscores. Punctuation characters and other special
+characters such as the dollar-sign (`\$') are not permitted.  The
+following, {\tt \_p1}, {\tt foo\_bar}, and {\tt \_\_P\_21\_proc} are
+valid identifiers, while {\tt \_21} and {\tt \$proc} are not.
+
+\subsection{Variables}\index{SPEX!variables}
+
+SPEX variables all start with a dollar-sign (`\$') followed by any number of characters, numbers or
+underscores (`\_').  The following, \texttt{\$s1}, \texttt{\$1}, and \texttt{\$\_x} are all valid variables.
+SPEX variables are treated as global symbols by the underlying LQX program.  Variables used to store arrays
+will also generate a \emph{local} variable of the same name, except without the leading dollar-sign.  
+
+%%% Local Variables: 
+%%% mode: latex
+%%% TeX-master: "userman"
+%%% End: 

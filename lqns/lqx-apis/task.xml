@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqx-api>
+  <info>
+    <name>Task</name>
+    <binding>LQNS Bindings</binding>
+    <provided-by>LQNS2</provided-by>
+  </info>
+  <constructors>
+    <method>
+      <ret>Task</ret>
+      <args>
+        <string>name</string>
+      </args>
+      <name>task</name>
+      <data>Returns an instance of Task from the current LQNS2 model with the given name.</data>
+    </method>
+  </constructors>
+  <attributes>
+    <attr>
+      <name>throughput</name>
+      <type>double</type>
+      <data>The throughput of the Task</data>
+    </attr>
+    <attr>
+      <name>utilization</name>
+      <type>double</type>
+      <data>The utilization of the Task</data>
+    </attr>
+    <attr>
+      <name>proc_utilization</name>
+      <type>double</type>
+      <data>This Task's processor utilization</data>
+    </attr>
+    <attr>
+      <name>phase_utilizations</name>
+      <type>Array</type>
+      <data>Individual phase utilizations</data>
+    </attr>
+  </attributes>
+</lqx-api>

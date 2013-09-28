@@ -1,0 +1,220 @@
+.TH PETRISRVN 1 "2 March 1999"
+.\" $Header$
+.SH NAME
+petrisrvn \- simulate stochastic rendezvous networks. 
+.SH SYNOPSIS
+.sp
+.B petrisrvn
+[
+.B \-dknprvV
+] [
+.B \-m \fIfile\fR
+] [
+.B \-o \fIfile\fR
+] [
+.B \-P \fIpragma\fR
+] [
+.B \-z \fIspecialopts\fR
+] [
+filename
+\&.\|.\|.
+]
+.SH DESCRIPTION
+\fBPetrisrvn\fR is used to analytically solve stochastice rendezvous networks
+using GreatSPN.  Refer to \fI``The Stochastic
+Rendezvous Network Model for Performance of Synchronous Multi-tasking
+Distributed Software''\fR for details of the model.  Refer to
+\fI``SRVN Input File Format''\fR for a complete description of the
+input file format for the programs.  See below for program
+restrictions and limits.
+.PP
+\fBPetrisrvn\fR reads its input from \fIfilename\fR, specified at the
+command line if present, or from the standard input otherwise.  By
+default, output for an input file \fIfilename\fR specified on the
+command line will be placed in the file \fIfilename\fB.out\fR.  If the
+\fB\-p\fP switch is used, parseable output will also be written into
+\fIfilename\fB.p\fR. If XML input is used, results will be written
+back to the original input file.  This behaviour can be changed using
+the \fB\-o\fIoutput\fR switch, described below.  If several files are
+named, then each is treated as a separate model and output will be
+placed in separate output files.  If input is from the standard input,
+output will be directed to the standard output.  The file name `\-' is
+used to specify standard input.
+.PP
+The \fB\-o\fIoutput\fR option can be used to direct output to the file
+\fIoutput\fR regardless of the source of input.  Output will be XML if
+XML input is used, parseable output if the \fB\-p\fP switch is used,
+and normal output otherwise.  Multiple input files cannot be specified
+when using this option.  Output can be directed to standard output by
+using \fB\-o\fI\-\fR (i.e., the output file name is `\fI\-\fR'.)
+.SH "OPTIONS"
+.TP 
+\fB\-d\fR
+Turn on debugging output.  Dump task and entry information showing
+internal index numbers.  This option is useful for determining the
+names of the servers and tasks since the parasol output routines do no
+emit this information at present.  Output is directed to stdout unless
+redirected using \fB\-m \fIfile\fR.
+.TP
+\fB\-k\fR
+Keep all results from the solution of the petrinet.
+.TP
+\fB\-n\fR
+Read input, but do not solve.  No output is generated.
+.TP
+.TP
+\fB\-o\fR \fIfile\fR
+Direct analysis results to \fIoutput\fR.  A filename of `\fI\-\fR'
+directs output to standard output.
+.TP
+\fB\-p\fR
+Generate parseable output suitable as input to other programs such as
+\fBsrvndiff\fR and \fBmultisrvn\fR. The parseable output is sent to an
+output file, one for each input file specified, determined from its
+corresponding input file by the addition of \fB.p\fR.  If standard
+input is used as the input source, then the parseable output is output
+to the standard output device.  In this case, only parseable output is
+emitted.  If the \fB-o\fR \fIoutput\fR option is used, the parseable
+output is sent to a file whose name is derived from \fIoutput\fR by
+the addition of the suffix \fB.p\fR.  If a suffix already exists on
+\fIoutput\fR then that suffix is replaced.
+.TP
+\fB\-P\fI pragma[=value]\fR
+Set \fIpragma\fP to value.  See the section on pragmas below.
+.TP
+\fB\-r\fR
+Reread a preexisting, solved model (generated using \fB\-k\fR).
+.TP
+\fB\-w\fR
+Ignore warnings.  The default is to print out all warnings.
+.TP
+\fB\-v\fR
+Display solution execution.  For \fBpetrisrvn\fP, the
+output of the various petrinet solution stages is shown.
+.TP
+\fB\-V\fR
+Display version number.  
+\fB\-z\fI specialopts\fR
+This flag is used to select special options.  Arguments of the form
+\fInn\fP are integers while arguments of the form \fInn.n\fP are real
+numbers. 
+.RS
+.TP
+in-servicefP
+Generate addition states to measure the in-service and overtaking
+probabilities. 
+.TP
+global-delay=\fInn.n\fP
+Set the interprocessor delay to \fInn.n\fP for all tasks.  Delays
+specified in the input file will override the global value.
+.TP
+spacing=\fInn.n\fP
+Change the spacing between objects.  The default spacing is 3.0.
+.TP
+uncondition=\fInn.n\fP
+Uncondition the in-service probabilities.
+.TP
+customers
+Normally, all multiserver reference tasks are translated into separate
+instances of the reference task.  The state space can be reduced by
+aggregating all of the unique instances into one copy with multiple
+tokens.   There is a tradeoff (which is?)
+.TP
+default-open-queue-max=\fIn\fP
+Set the default queue maximum size for open class traffic.  The
+default value is 15.
+.RE
+.SH "PRAGMAS"
+.TP 10
+\fItask_scheduling = \fIarg\fP
+.RS
+.TP 15
+\fIFIFO\fP
+Force all tasks to use first-come, first-served scheduling.
+.TP
+\fIRAND\fP
+Force all tasks to use random scheduling for message servicing
+(reduces state space)
+.RE
+.TP 10
+\fIprocessor_scheduling = \fIarg\fP
+.RS
+.TP 15
+\fIFIFO\fP
+Force all processors to use first-come, first-served scheduling.
+.TP
+\fIRAND\fP
+Force all processors to use random scheduling for message servicing
+(reduces state space)
+.RE
+SH "RETURN VALUE"
+\fBPetrisrvn\fR exits with 0 on success, 1 if the model failed to converge,
+2 if the input was invalid, 4 if a command line argument was
+incorrect, 8 for file read/write problems and -1 for fatal errors.  If
+multiple input files are being processed, the exit code is the
+bit-wise OR of the above conditions.
+.SH "MODEL LIMITS"
+The following table lists the acceptable parameter types for
+\fBpetrisrvn\fR.  An error will be reported if an unsupported parameter
+is supplied unless the value is the same as the default.
+.PP
+.TP 32
+Phases
+3
+.TP 
+Scheduling
+FIFO, HOL, PPR, RAND
+.TP
+Open arrivals
+yes
+.TP
+Phase type
+stochastic, deterministic
+.TP
+Coefficient of variation
+yes
+.TP
+Interprocessor-delay
+yes
+.TP
+Asynchronous connections
+yes
+.TP
+Forwarding
+yes
+.TP
+Multi-servers
+yes
+.TP
+Infinite-servers
+yes
+.TP
+Max Entries
+30 (Limited to state space).
+.TP
+Max Tasks
+15 (limited to state space).
+.TP
+Max Processors
+15 (limited to state space).
+.TP
+Max Multiserver.
+6
+.TP
+Max Entries per Task
+10
+.TP
+Max Slices per Entry
+5 (for deterministic phases).
+.SH "SEE ALSO"
+\fI``The Stochastic Rendezvous Network Model for Performance of
+Synchronous Multi-tasking Distributed Software''\fR by C.M. Woodside
+et.al.
+.LP
+\fI``SRVN Input File Format''\fP by Dorina Petriu et. al.
+.LP
+srvndiff(1), egrep(1), floating_point(3)
+.SH BUGS
+The format of the debugging output generated by the \fB\-d\fR option
+requires a knowledge of the internals of \fBsrvn\fR in order to be
+understood.

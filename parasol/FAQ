@@ -1,0 +1,82 @@
+			The PARASOL FAQ File
+
+1) What exactly is PARASOL?
+
+PARASOL is a C library that implements a computer system simulation
+system.  It supports a simulated, user-configured, multiprocessor
+environment on which user-written software (in C or C++) is executed.
+The modelling paradigm is "execution based" permitting detailed models
+of software, including cooperating processes. Note that although it
+supports simulated networks of computers, PARASOL executes as a single
+process on a single machine.
+
+2) What does PARASOL cost?
+
+Nothing - it is distributed under the terms of GNU licensing as
+specified by Free Software Foundation, Inc. See the files COPYING and
+COPYING.LIB.
+
+3) Can it be used to estimate performance of distributed/parallel systems?
+
+Yes - in fact PARASOL was designed with this expressly in mind.  It
+provides the usual discrete simulation package features including
+facilities for generating random variates and for collecting and
+statistically analyzing measurements.  Furthermore, because it utilizes
+compiled user code to model software, PARASOL is very efficient and
+well suited to performance modelling.
+
+4) Can PARASOL be used for prototyping distributed/parallel systems?
+
+Yes - we have used it to build very accurate emulators of quite large
+parallel systems (> 100 processors) and used these as convenient
+off-line tools for parallel application software development and
+debugging.  Simplified versions of these emulators serve as rapid
+prototyping environments for "proof of concept" testing.
+
+5) How are processes and IPC modelled under PARASOL?
+
+PARASOL models a process (or an isr, for that matter) as a thread.
+This provides for low cost context switching necessary for efficient
+modelling.  Interprocess communication is modelled explicitly with
+message passing while shared memory synchronization uses spinlocks and
+semaphores. From this perspective, PARASOL looks much like a distribued
+O/S.
+
+6) On what systems can I host PARASOL?
+
+PARASOL is basically a UNIX product requiring a POSIX compliant
+platform and ANSI C.  The official release supports PARASOL running on
+the following:
+
+	- Sun SPARCstations running SunO/S or Solaris
+	- PC's (386's or better) running Linux, Mach, or NextStep
+	- HP snakes running HPUX
+	- SGI Indigo's running IRIX
+
+It will probably port easily to any environment supporting 32 bit C
+applications.  It is reasonably hungry for memory - at least if large
+systems are to be modelled. An 8 MB system is probably pretty minimal
+but then again that is so for most UNIX systems.
+
+7) Does PARASOL support OO modelling?
+
+Yes - PARASOL works well with C++ and, with this release, we've
+introduced a first-level, C++ class library called PARASOL++.  This
+will, we hope, provide the standard C++ interface to PARASOL.
+
+8) What exactly does the release package contain? 
+
+The official release contains the entire PARASOL source for the three
+PARASOL libraries.  In addition, it has source code for several example
+PARASOL applications, a test suite for those adventuresome enough to
+wish to port PARASOL to a new environment, and a small but useful set
+of PARASOL tools.  The latter group includes trace filters to permit
+PARASOL users to visualize complex system states through ORNL's
+ParaGraph and Carleton's XTG. Another tool is DPSM (Distributed PARASOL
+Simulation Manager) which uses a PVM (Parallel Virtual Machine), also
+from ORNL, to harness unused workstation capacity for fast performance
+simulations. If you have access to a net of workstations, this is for
+you!  Finally, the release contains full documentation on PARASOL and
+its tools.
+
+

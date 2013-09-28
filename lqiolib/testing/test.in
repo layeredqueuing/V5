@@ -1,0 +1,43 @@
+# Experiment case description file
+# Created by MultiSRVN, --
+
+G
+
+"
+	Experiment name: expt01
+	SRVN description file: srvnmdl.in
+	Comment: ''
+	Independent variable(s):
+	    1[1])	.tm ( dispatcher ) = 1,  
+"
+
+1e-05 50 10 0.5 -1
+
+P 5
+   p clients f i
+   p dispatcher f i
+   p server1 f 
+   p server2 f 
+   p server3 f 
+-1
+
+T 5
+   t clients r clients -1 clients m 10
+   t dispatcher n dispatcher_gate1 -1 dispatcher 
+   t server1 n server1_gate2 -1 server1 
+   t server2 n server2_gate3 -1 server2 
+   t server3 n server3_gate4 -1 server3 
+-1
+
+E 5
+   s clients 0 10 0 -1
+   s dispatcher_gate1 1 1 0 -1
+   s server1_gate2 1 1 0 -1
+   s server2_gate3 1 1 0 -1
+   s server3_gate4 1 1 0 -1
+   y clients dispatcher_gate1 0 1 0 -1
+   y dispatcher_gate1 server1_gate2 3 0 0 -1
+   y dispatcher_gate1 server2_gate3 0 3 0 -1
+   y dispatcher_gate1 server3_gate4 1.5 1.5 0 -1
+-1
+

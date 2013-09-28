@@ -1,0 +1,112 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o85-fork.lqnx 85-fork.in -->
+<!-- Fri May 29 10:46:28 2009 -->
+
+<lqn-model name="85-fork" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="fork-join" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
+   <processor name="p1" scheduling="fcfs">
+      <task name="t1" scheduling="ref">
+         <entry name="e1" type="NONE"/>
+         <task-activities>
+            <activity name="a1" bound-to-entry="e1" host-demand-mean="0.1">
+               <synch-call dest="d2" calls-mean="2.5"/>
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="b1" host-demand-mean="0.1">
+               <synch-call dest="d2" calls-mean="2.5"/>
+               <synch-call dest="d3" calls-mean="2.5"/>
+            </activity>
+            <activity name="b2" host-demand-mean="0.1">
+               <synch-call dest="d3" calls-mean="2.5"/>
+            </activity>
+            <activity name="c1" host-demand-mean="0.1">
+               <synch-call dest="d3" calls-mean="2.5"/>
+               <synch-call dest="d4" calls-mean="2.5"/>
+            </activity>
+            <activity name="c2" host-demand-mean="0.1">
+               <synch-call dest="d4" calls-mean="2.5"/>
+            </activity>
+            <activity name="d1" host-demand-mean="0.1">
+               <synch-call dest="d4" calls-mean="2.5"/>
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <activity name="e1" host-demand-mean="0.1">
+               <synch-call dest="d2" calls-mean="2.5"/>
+               <synch-call dest="d1" calls-mean="2.5"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="a1"/>
+               </pre>
+               <post-AND>
+                  <activity name="b1"/>
+                  <activity name="b2"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="b1"/>
+               </pre>
+               <post-AND>
+                  <activity name="c1"/>
+                  <activity name="c2"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="c1"/>
+                  <activity name="d1"/>
+               </pre-AND>
+               <post>
+                  <activity name="e1"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="c2"/>
+                  <activity name="b2"/>
+               </pre-AND>
+               <post>
+                  <activity name="d1"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="d2" scheduling="fcfs">
+      <task name="d2" scheduling="fcfs">
+         <entry name="d2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d2_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d3" scheduling="fcfs">
+      <task name="d3" scheduling="fcfs">
+         <entry name="d3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d3_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d4" scheduling="fcfs">
+      <task name="d4" scheduling="fcfs">
+         <entry name="d4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d4_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d1" scheduling="fcfs">
+      <task name="d1" scheduling="fcfs">
+         <entry name="d1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

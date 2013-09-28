@@ -1,0 +1,32 @@
+G "#pragma tda=fcfs #pragma variance=none TDA test #1" 1e-06 50 5 0.900000 -1
+
+#pragma tda=fcfs
+#pragma variance=none
+
+P 4
+p client1Proc f
+p client2Proc f
+p client3Proc f
+p server1Proc f
+-1
+
+T 4
+t client1 r cl1 -1 client1Proc
+t client2 r cl2 -1 client2Proc
+t client3 r cl3 -1 client3Proc
+t server1 n s1 s2 s3 -1 server1Proc
+-1
+
+E 6
+s cl1 2.0 0 0 -1
+s cl2 0.5 0 0 -1
+s cl3 1.0 0 0 -1
+s s1 1.0 5.0 0 -1
+s s2 0.5 0.5 0 -1
+s s3 0.5 1.0 0 -1
+
+y cl1 s1 1.0 0 0 -1
+y cl2 s2 1.0 0 0 -1
+y cl3 s3 1.0 0 0 -1
+
+-1

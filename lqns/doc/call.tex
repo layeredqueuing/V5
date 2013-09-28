@@ -1,0 +1,225 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:51  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.3  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.2  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.1  1994/06/24  19:11:32  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\section{Call}
+\label{sec:call}
+
+Call objects are used to store the arc information such as the calling
+rate and the queueing delays in the SRVN model.  Arcs can be any one
+of the following types:
+\begin{itemize}
+\item rendezvous,
+\item send-no-reply, and
+\item forwarding.
+\end{itemize}
+In general, only one call object is allocated for a connection from
+one entry to another regardless of the number of defined phases and
+the type of the call.
+
+\subsubsection{Instance Variables}
+\label{sec:call-ivars}
+\begin{verbatim}
+public:
+    Probability prForward;         /* Forwarding probability.   */
+    unsigned partition;            /* Used by layerizer.        */
+    
+protected:
+    double rnvCalls[MAX_PHASES+1]; /* rendezvous.               */
+    double snrCalls[MAX_PHASES+1]; /* send no reply.            */
+    double wait[MAX_PHASES+1];     /* Waiting time.             */
+    const Entry* source;           /* Calling entry.            */
+    const Entry* realEntry;        /* to whom I am referring to */
+    const Entry* fescEntry;        /* if set, reroute to me.    */
+\end{verbatim}
+
+\begin{description}
+\item[source] \texonly{---} The originating \link{\file{Entry}}{sec:entry}.
+
+\item[realEntry] \texonly{---} The destination \link{\file{Entry}}{sec:entry}.
+
+\item[fescEntry] \texonly{---} The destination \link{\file{Entry}}{sec:entry}
+  if \link{flow equivalent service centers}[ (\Sec\Ref)]{sec:hwsw} are
+  employed to span layers.
+
+\item[rnvCalls] \texonly{---} The number of rendezvous, by 
+  phase of \var{source}.  Set by calls to
+  \link{\code{store_rnv_data()}}{sec:entry-load}. 
+
+\item[snrCalls] \texonly{---} The number of asynchronous requests, by
+  phase of \var{source}.  Set by calls to
+  \link{\code{store_snr_data()}}{sec:entry-load}. 
+
+\item[wait] \texonly{---} The computed waiting time for one call.  Set
+  by \link{\code{saveWait()}}[ (\Sec\Ref)]{sec:entry-saveWait}.
+
+\item[prForward] \texonly{---} The forwarding probability from the
+  \var{source} entry to the destination \var{realEntry}.
+
+\item[partition] \texonly{---} The \link{\bold{partition}}[
+  (\Sec\Ref)]{sec:layerize} number to which the waiting time results,
+  \var{wait}, apply.
+\end{description}
+
+\subsubsection{Constructors for Call}
+
+\begin{verbatim}
+    Call();
+    Call( const Entry * fromEntry, const Entry * toEntry );
+    virtual ~Call();
+\end{verbatim}
+
+\subsubsection{Initialization}
+
+\begin{description}
+\item[initialize] \texonly{---} \\
+\code{void initialize();}
+
+Clear \var{rnvCalls}, \var{snrCalls} and \var{wait}.
+
+\end{description}
+
+\subsubsection{Copying}
+
+\subsubsection{Instance Variable Access}
+
+\begin{description}
+
+\item[setSrcEntry] \texonly{---} \\
+\code{void setSrcEntry( Entry * anEntry ) }
+
+\item[setDstEntry] \texonly{---} \\
+\code{void setDstEntry( Entry * anEntry ) }
+
+\item[setFESCEntry] \texonly{---} \\
+\code{void setFESCEntry( Entry * anEntry ) }
+
+\item[ setWait] \texonly{---} \\
+\code{Call& setWait( unsigned p, double value ) }
+
+\item[owner] \texonly{---} \\
+\code{const Entry * owner() }
+
+\item[ rendezvous] \texonly{---} \\
+\code{Call& rendezvous( const unsigned p, const double value );}
+
+\item[rendezvous] \texonly{---} \\
+\code{double rendezvous( const unsigned p ) }
+
+\item[ sendNoReply] \texonly{---} \\
+\code{Call& sendNoReply( const unsigned p, const double value );}
+
+\item[sendNoReply] \texonly{---} \\
+\code{double sendNoReply( const unsigned p ) }
+
+\end{description}
+
+\subsubsection{Queries}
+\begin{description}
+
+\item[allCalls] \texonly{---} \\
+\code{double allCalls() }
+
+\item[srcClass] \texonly{---} \\
+\code{unsigned srcClass() }
+
+\item[srcVisits] \texonly{---} \\
+\code{double srcVisits() }
+
+\item[srcTask] \texonly{---} \\
+\code{const Entity * srcTask() }
+
+\item[queueingTime] \texonly{---} \\
+\code{double queueingTime( const unsigned ) }
+
+\item[rendezvousDelay] \texonly{---} \\
+\code{double rendezvousDelay( const unsigned p ) }
+
+\item[mrlTerm] \texonly{---} \\
+\code{double mrlTerm( const unsigned p, const double x ) }
+
+\item[isForwardedCall] \texonly{---} \\
+\code{boolean isForwardedCall() }
+
+\end{description}
+
+\subsubsection{Computation}
+
+\subsubsection{Input and Output}
+\begin{description}
+
+\item[ print] \texonly{---} \\
+\code{ostream& print( ostream& = cout ) }
+
+\item[ printDelays] \texonly{---} \\
+\code{ostream& printDelays( ostream& output, const unsigned np, const
+  double rnv[], const double fwd[] ) }
+
+\end{description}
+
+\subsubsection{Proxies}
+
+The following set of functions re-route the request to the
+\link{\var{realEntry}}{sec:call-ivars} or the
+\link{\var{fescEntry}}{sec:call-ivars} as necessary.  Refer to class
+\link{\file{Entry}}[ (\Sec\Ref)]{sec:entry} for their function.  Also
+note, these functions are defined in \file{entry.h} so that they can
+be in-lined.
+
+\begin{description}
+\item[entry] \texonly{---} \\
+\code{const Entry * entry() }
+
+\item[name] \texonly{---} \\
+\code{const char * name() }
+
+\item[task] \texonly{---} \\
+\code{const Entity * task() }
+
+\item[station] \texonly{---} \\
+\code{Server * station() }
+
+\item[index] \texonly{---} \\
+\code{short index() }
+
+\item[variance] \texonly{---} \\
+\code{double variance( const unsigned phase ) }
+
+\item[type] \texonly{---} \\
+\code{phase_type phaseTypeFlag( const unsigned phase ) }
+
+\item[serviceTime] \texonly{---} \\
+\code{double serviceTime( const unsigned phase ) }
+
+\item[elapsedTime] \texonly{---} \\
+\code{double elapsedTime( const unsigned phase ) }
+
+\item[Cv] \texonly{---} \\
+\code{double Cv_sqr() }
+
+\end{description}
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 
+

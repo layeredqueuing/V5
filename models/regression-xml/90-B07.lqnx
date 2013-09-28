@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<!-- @Article{srvn:woodside-94a, -->
+<!--   author =       "Woodside, C. Murray and Neilson, John E. and Petriu, -->
+<!--                   Dorina C. and Majumdar, Shikharesh", -->
+<!--   title =        "The Stochastic Rendezvous Network Model for -->
+<!--                   Performance of Synchronous Client-Server-Like Distributed Software", -->
+<!--   journal =      ieeetc, -->
+<!--   year =         1995, -->
+<!--   volume =       44, -->
+<!--   number =       8, -->
+<!--   pages =        "20-34", -->
+<!--   month =        aug, -->
+<lqn-model name="B07" description="Regression Test." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="B7 - only 2 processors        " conv_val="1e-06" it_limit="200" print_int="40" underrelax_coeff="0.5"/>
+   <processor name="p1" scheduling="fcfs">
+      <task name="t1" scheduling="ref">
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_ph2" phase="2" host-demand-mean="1.5">
+                  <synch-call dest="e3" calls-mean="1"/>
+                  <synch-call dest="e4" calls-mean="0.5"/>
+                  <synch-call dest="e5" calls-mean="2"/>
+               </activity>
+               <activity name="e1_ph3" phase="3" host-demand-mean="0.5">
+                  <synch-call dest="e5" calls-mean="1.1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="fcfs">
+         <entry name="e3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e3_ph1" phase="1" host-demand-mean="0.1"/>
+               <activity name="e3_ph2" phase="2" host-demand-mean="2"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e4_ph1" phase="1" host-demand-mean="0.3"/>
+               <activity name="e4_ph2" phase="2" host-demand-mean="0.5"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t4" scheduling="fcfs">
+         <entry name="e5" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_ph1" phase="1" host-demand-mean="0.3">
+                  <synch-call dest="e6" calls-mean="0.5"/>
+               </activity>
+               <activity name="e5_ph2" phase="2" host-demand-mean="0.1">
+                  <synch-call dest="e6" calls-mean="1.7"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <task name="t2" scheduling="fcfs">
+         <entry name="e2" type="PH1PH2" open-arrival-rate = "0.01">
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="0"/>
+               <activity name="e2_ph2" phase="2" host-demand-mean="0.1">
+                  <synch-call dest="e5" calls-mean="2"/>
+                  <synch-call dest="e6" calls-mean="1"/>
+               </activity>
+               <activity name="e2_ph3" phase="3" host-demand-mean="0.2">
+                  <synch-call dest="e5" calls-mean="1.1"/>
+                  <synch-call dest="e6" calls-mean="2.5"/>
+                  <synch-call dest="e7" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t5" scheduling="fcfs">
+         <entry name="e6" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e6_ph1" phase="1" host-demand-mean="1"/>
+               <activity name="e6_ph2" phase="2" host-demand-mean="2"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e7" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e7_ph1" phase="1" host-demand-mean="0.1"/>
+               <activity name="e7_ph2" phase="2" host-demand-mean="0.7"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

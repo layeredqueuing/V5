@@ -1,0 +1,61 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.3  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.2  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.1  1994/06/24  19:11:32  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\chapter{Entities}
+\label{sec:entities}
+
+\dfn{Entities} represent the software and hardware \dfn{nodes} in the
+model.  Software entities are represented by
+\link{\dfn{tasks}}{sec:task}.  These entities may also be used to
+represent hardware devices such as disks.  Processors are modelled
+specially in the model, hence are represented by their own class
+\link{\file{Processor}}{sec:processor}.
+
+\begin{figure}[htbp]
+  \label{fig:entity}
+  \begin{center}
+    \T \tex \leavevmode \input{entity.epic}
+    \caption{Entity class hierarchy}
+    \H \htmlimage{entity.gif}
+  \end{center}
+\end{figure}
+
+Entities are used to group \link{\dfn{Entries}}{sec:entries} as the
+entries are used to specify the behaviour in the overall layered
+queueing network model.
+
+\begin{iftex}
+\begin{itemize}
+\item Entity
+\item Processor
+\item Task
+\end{itemize}
+\end{iftex}
+\input{entity.tex}
+\input{processor.tex}
+\input{task.tex}
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 

@@ -1,0 +1,56 @@
+#			  General Information Section
+
+G "This is a model representing a two-branch pipeline."
+0.000010		# Convergience limit
+50			# Iteration limit
+1			# Print interval
+0.500000		# Coefficient of variation
+-1
+
+#			     Processor Information
+P 7
+p P_T1 f		# Processor P_T1 FCFS
+p P_T2 f		# Processor P_T2 FCFS
+p P_T3 f		# Processor P_T3 FCFS
+p P_T4 f		# Processor P_T4 FCFS
+p P_T5 f		# Processor P_T5 FCFS
+p P_T6 f		# Processor P_T6 FCFS
+p P_T7 f		# Processor P_T7 FCFS
+-1
+
+#				Task Information
+T 7
+t T1 r T1 -1 P_T1	# Reference task T1, Entry T1, Processor P_T1
+t T2 n T2_e2 -1 P_T2	# Non-reference task T2, Entry T2_e2, Processor P_T2
+t T3 n T3_e3 -1 P_T3	# Non-reference task T3, Entry T3_e3, Processor P_T3
+t T4 n T4_e4 -1 P_T4	# Non-reference task T4, Entry T4_e4, Processor P_T4
+t T5 n T5_e5 -1 P_T5	# Non-reference task T5, Entry T5_e5, Processor P_T5
+t T6 n T6_e6 -1 P_T6	# Non-reference task T6, Entry T6_e6, Processor P_T6
+t T7 n T7_e7 -1 P_T7	# Non-reference task T7, Entry T7_e7, Processor P_T7
+-1
+
+#			       Entry Information
+E 7
+#						Phase 1   Phase 2   Phase 3			
+f T2_e2 0 0 1 -1	# Phase type:            sto.      sto.      det.
+f T3_e3 0 0 1 -1	# Phase type:            sto.      sto.      det.
+f T4_e4 0 0 1 -1	# Phase type:            sto.      sto.      det.
+f T5_e5 0 0 1 -1	# Phase type:            sto.      sto.      det.
+f T6_e6 0 0 1 -1	# Phase type:            sto.      sto.      det.
+s T1 0 1 0 -1		# Phase service times:   0         1         - NA -
+s T2_e2 0.05 1 0.05 -1	# Phase service times:   v         a         v
+s T3_e3 0.05 1 0.05 -1	# Phase service times:   v         b         v
+s T4_e4 0.05 1 0.05 -1	# Phase service times:   v         c         v
+s T5_e5 0.05 1 0.05 -1	# Phase service times:   v         d         v
+s T6_e6 0.05 1 0.05 -1	# Phase service times:   v         e         v
+s T7_e7 0.5 0.5 0 -1	# Phase service times:   f         g	     - NA -
+y T1 T2_e2 0 1 0 -1	# Calls T1, T2_e2:       0         1         0
+y T2_e2 T3_e3 0 0 1 -1	# Calls T2_e2, T3_e3:    0         0         1
+y T3_e3 T4_e4 0 0 1 -1	# Calls T3_e3, T4_e4:    0         0         1
+y T2_e2 T5_e5 0 0 1 -1	# Calls T2_e2, T5_e5:    0         0         1
+y T5_e5 T6_e6 0 0 1 -1	# Calls T5_e5, T6_e6:    0         0         1
+y T2_e2 T7_e7 0 0 0 -1	# Calls T2_e2, T7_e7:    0         alpha     0
+y T3_e3 T7_e7 0 0 0 -1	# Calls T3_e3, T7_e7:    0         beta      0
+y T5_e5 T7_e7 0 0 0 -1	# Calls T6_e6, T7_e7:    0         gamma     0
+-1
+

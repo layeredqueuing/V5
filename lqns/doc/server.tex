@@ -1,0 +1,629 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.5  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.4  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.3  1994/08/04  20:52:11  greg
+\C Intermediate save
+\C
+\C Revision 1.2  1994/06/24  19:11:32  greg
+\C Format changes.
+\C
+\C Revision 1.1  1994/06/23  19:11:01  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\section{Server}
+\label{sec:server}
+
+The Server class defines {\em stations\/} in the queueing network
+model.  
+
+
+\subsection{Server Class Hierarchy}
+\label{sec:server-hierarchy}
+
+The class relationships for the MVA server module are shown in
+\htmlonly{the \link{figure
+    below}{fig:server}}\texonly{Figure~\ref{fig:server}}.  The class
+\file{Server} is an abstract superclasses which is not used directly.
+
+\begin{figure}[htbp]
+  \label{fig:server}
+  \begin{center}
+    \T \tex \leavevmode \input{server.epic}
+    \caption{Server class hierarchy}
+    \H \htmlimage{server.gif}
+  \end{center}
+\end{figure}
+
+\htmlrule
+\C
+\C ----------------------------------------------------------------------
+\C
+\subsection{Class Server  --- Abstract Superclass}
+\subsubsection{Instance variables}
+\label{sec:server-ivars}
+
+\begin{verbatim}
+public:
+double *W;                  /* Waiting time per visit.      */
+unsigned index;             /* Not used locally.            */
+Interlock * IL;             /* Interlock stuff.             */
+
+protected:             
+const unsigned E;           /* Number of entries.           */
+const unsigned K;           /* Number of Classes.           */
+double ***s;                /* Service Time per phase.      */
+double ***v;                /* Visit ratios per phase.      */
+\end{verbatim}
+
+\begin{description}
+\item[E] \texonly{---} Number of \underline{E}ntries.
+\item[IL] \texonly{---} Interlocked throughput.  Dimensioned by \bold{class}.
+\item[K] \texonly{---} Number of Classes.
+\item[s] \texonly{---} \underline{S}ervice time per visit.  Dimensioned by
+  \bold{entry}, \bold{class} and \bold{phase}.
+\item[v] \texonly{---} \underline{V}isit ratios. Dimensioned by
+  \bold{entry}, \bold{class} and \bold{phase}.
+\item[W] \texonly{---} \underline{W}aiting time per visit.  Dimensioned by \bold{class}.
+\end{description}
+
+\subsubsection{Constructors for Class Server}
+
+Servers are created by calling the appropriate server type constructor
+with two arguments, \var{e} and \var{k}.  The [optional] \var{e}
+argument specifies the maximum number of entries for the server.  The
+[optional] \var{k} argument specifies the number of classes.  If the
+number of entries or classes is not specified, one is assumed.  These
+values cannot be changed once the server is created.
+
+\begin{verbatim}
+Server();
+Server( const unsigned k );
+Server( const unsigned e, const unsigned k );
+\end{verbatim}
+
+
+\subsubsection{Initialization}
+\label{sec:server-initialization}
+
+\begin{description}
+\item[initialize] \texonly{---} Initialization.\\
+  \code{void initialize( const unsigned e, const unsigned k );}
+
+  \code{Initialize()} is used to allocate storage for most of the arrays
+  defined in this class.  The exceptions are the
+  \link{populations}{sec:population} \var{L} and \var{U}; these instance
+  variabels are allocated by the appropriate \link{MVA}{sec:mva} solver.
+
+  \label{sec:server-initstep}
+\item[initStep] \texonly{---} Per-MVA step initialization.\\
+  \code{void initStep( const MVA& solver);}
+
+  This method is called before the \link{MVA step}{sec:mva-step} for a
+  given population.  Some server types need initialization while others
+  do not.  By default, no operation is performed but is overridden by
+  subclasses.
+
+\item[check] \texonly{---} Simple model check.\\
+  \code{void check();}
+
+  Perform a simple model consistency check.
+\end{description}
+
+\subsubsection{Instance Variable Access}
+
+Two forms exist for most member functions that access instance
+variables.  The first takes two arguments: the \bold{class}, \var{k} and the
+value being stored.  The second form includes the \bold{entry}, \var{e} and
+\bold{phase}, \var{p}. 
+
+\begin{description}
+\item[setService] \texonly{---} Set service time.\\
+  \code{Server& setService( const unsigned k, const double s);}\\
+  \code{Server& setService( const unsigned e, const unsigned k, const
+    unsigned p, const double s);}
+
+  Set the service time for the station to \var{s}.  
+
+\item[setVisits] \texonly{---} Set visit ratios.\\
+  \code{Server& setVisits( const unsigned k, const double v );}\\
+  \code{Server& setVisits( const unsigned e, const unsigned k, const
+    double v );}
+
+  Set the visit ratio for the station to \var{v}.
+
+\item[addVisits] \texonly{---} Add to visit ratio.\\
+  \code{Server& setVisits( const unsigned e, const unsigned k, const
+    double v );}
+
+  Add \var{v} to the present value of the visit ratio for the station.
+
+\item[clearVisits] \texonly{---} Clear visit ratios.\\
+  \code{clearVistis( const unsigned k );}
+
+  Clear visit ratios for class \var{k}.
+
+\item[setVariance] \texonly{---} Set variance.\\
+  \code{Server& setVariance( const unsigned e, const unsigned k, const
+    unsigned p, const double v);}\\
+  \code{Server& setServerVariance( const double v);}
+
+  Set the variance for the entry (or station) to \var{v}.  The server
+  class must be one that uses variance in its waiting time calculation.
+  Otherwise, a call to these functions will generate run-time errors.
+\end{description}
+
+\subsubsection{Queries}
+\begin{description}
+\item[nEntries] \texonly{---} Number of Entries.\\
+  \code{unsigned nEntries() const;}
+
+  Return the number of entries for this station.
+
+\item[S] \texonly{---} Service Time.\\
+  \code{double S( const unsigned e, const unsigned k ) const;}\\
+  \code{double S( const unsigned e, const unsigned k, const unsigned p ) const;}\\
+  \code{double etaS( const unsigned e, const unsigned k ) const;}\\
+
+  Return the service time.  The first form of \code{S()} returns the
+  total service time over all phases.  The second form returns the
+  service time for the phase \var{p}.  The final form, \code{etaS()}
+  returns the service time ratioed by the number of visits (see
+  \link{\code{eta()}}{sec:server-eta}).
+
+\item[V] \texonly{---} Visit ratios.\\
+  \code{double V( const unsigned e, const unsigned k ) const;}\\
+  \code{double V( const unsigned k ) const;}
+
+  Return the visit ratios by [optionally] \bold{entry} and \bold{class}.
+
+\item[R] \texonly{---} Residence time.\\
+  \code{double R( const unsigned e, const unsigned k ) const;}\\
+  \code{double R( const unsigned k ) const;}\\
+  \code{double R() const;}
+
+  Return the residence time given by \math[visits times waiting]{v_{ek}
+    W_{ek}}.  Residence time can be returned by \bold{entry} and
+  \bold{class}.  
+
+\item[computeMarginalQueueSize] \texonly{---} Return true if necessary\\
+  \code{int computeMarginalQueueSize();}
+
+  Return non-zero value if the marginal queue sizes need to be
+  calculated for the station.  By default, marginal queue sizes are NOT
+  calclated. 
+
+  \label{sec:server-eta}
+\item[eta] \texonly{---} Visit ratio fraction.\\
+  \code{double eta( const unsigned e, const unsigned k ) const;}
+
+  Return the fraction of visits by \var{e} and \var{k} to the total
+  number of visits to the station.  Private member function.
+
+\item[prOt] \texonly{---} Overtaking probability.\\
+  \code{double prOt( const unsigned e, const unsigned k, const unsigned
+    p) const;}
+
+  Return the overtaking probability.  The overtaking probabilty for most
+  server types is zero by default.  Overridden by subclasses that
+  support phases.
+
+\end{description}
+
+\subsubsection{Computation}
+
+\begin{description}
+\item[wait] \texonly{---} Find waiting time. \\
+  \code{double wait( const MVA& solver, const unsigned e, const unsigned k, const
+    PopVector & N ) const;}
+
+  Calculate and return the waiting time using the \link{MVA}{sec:mva}
+  solver, \var{solver} for \bold{entry} \var{e} and \bold{class} \var{k}
+  at a \link{population vector}{sec:vector} \var{N}.  Implemented by subclasses.
+
+\item[interlock] \texonly{---} Find interlocked throughput.\\
+  \code{double interlock( const double lambda, const unsigned k) const;}
+
+  Return the interlocked throughput at this station for a \bold{class}
+  \var{k} for a given input throughput of \var{lambda}.  This function
+  is used by the MVA sovler to adjust for interlocked flows.
+
+\end{description}
+
+\subsubsection{Input and Output}
+\label{sec:server-print}
+
+The following functions are used to print information about the
+receiver.  \var{Ostream} specifies the output stream.
+
+\begin{description}
+\item[print] \texonly{---} Print input parameters.\\
+  \code{ostream& print( ostream& os ) const;}
+
+  Print input information about this station.  \code{Print()} calls
+  \code{printInput()} for all entries and classes.
+
+\item[printExtraInfo] \texonly{---} Print bonus infor\\
+  \code{ostream& printExtraInfo( ostream& output, const unsigned = 0 );}
+
+  Print out any extra information (such as overtaking probabilities) for
+  the station.  By default, there is no extra information to print.
+
+\item[printInput] \texonly{---} Print input parameters.\\
+  \code{ostream& printInput( ostream&, const unsigned, const unsigned )
+    const;}
+
+  Print out the input values for Service Time
+  \link{\var{s}}{sec:server-ivars} and Visit Ratios
+  \link{\var{v}}{sec:server-ivars} for \bold{entry} \var{e},
+  \bold{class} \var{k}. 
+
+\item[printResults] \texonly{---} Print results.\\
+  \code{ostream& printResults( ostream& os ) const;}
+
+  Print result information about this station.  \code{Print()} calls
+  \code{printEntry()} for all entries and classes.
+
+\item[printEntry] \texonly{---} Print results.\\
+  \code{ostream& printEntry( ostream& os, const unsigned e, const
+    unsigned k ) const;}
+
+  Print Queue Length \link{\var{L}}{sec:server-ivars}, Waiting Time
+  \link{\var{W}}{sec:server-ivars}, throughput and Utilization
+  \link{\var{U}}{sec:server-ivars} for this station for \bold{entry}
+  \var{e} and \bold{class} \var{k}.
+\end{description}
+
+\subsection{Class FCFS_Server}
+\label{sec:server-fcfs}
+
+\subsection{Class Delay_Server}
+\label{sec:server-delay}
+
+\subsection{Class HVFCFS_Server}
+\label{sec:server-hvfcfs}
+
+\subsection{Class Phased_Server}
+\label{sec:server-phased}
+
+\subsection{Class HVFCFS_Phased_Server}
+\label{sec:server-hvfcfs-phased}
+
+\subsection{Class Blended_HVFCFS_Server}
+\label{sec:server-blended-hvfcfs}
+
+\subsection{Class Blended_HVFCFS_Phased_Server}
+\label{sec:server-blended-hvfcfs-phased}
+
+\C
+\C ----------------------------------------------------------------------
+\C
+\subsection{Class Simple_Multi_Server}
+\label{sec:simple-multiserver}
+
+This class implements \link{BCMP-type (or product form)
+  multiservers}[~\Cite]{queue:reiser-80}.  As with simple First-Come,
+First Served servers, the service time for each class at a given
+server should be the same.  
+
+\subsubsection{Instance Variables}
+\label{sec:simple-multiserver-ivars}
+\begin{verbatim}
+unsigned J;                 /* Number of servers.           */
+\end{verbatim}
+
+\begin{description}
+\item[M] \texonly{---} Number of stations.
+\end{description}
+
+\subsubsection{Constructors for Simple_Multi_Server}
+
+Constructors for multiple server stations take an additional argument,
+\var{copies}, that sets the number of servers for the station object.
+The number of classes \var{k} and the number of entries \var{e} are
+both optional.
+
+\begin{verbatim}
+    Simple_Multi_Server( const unsigned copies );
+    Simple_Multi_Server( const unsigned k, const unsigned copies );
+    Simple_Multi_Server( const unsigned e, const unsigned k, const unsigned copies );
+\end{verbatim}
+
+\subsubsection{Initialization}
+
+\begin{description}
+\item[initialize] \texonly{---} Initialization\\
+  \code{void initialize();}
+
+  The initialization function merely checks that the user defined at
+  least one server.
+\end{description}
+
+\subsubsection{Instance Variable Access}
+
+\begin{description}
+\item[marginalProbabilitiesSize()] \texonly{---} Return the number of servers.\\
+  \code{int marginalProbabilitiesSize() const;}
+
+  Return the number of servers \math[\var{J}]{J}.
+
+\end{description}
+
+\subsubsection{Computation}
+\begin{description}
+
+\item[wait] \texonly{---} Waiting Time\\
+  \code{double wait( const MVA&, const unsigned, const unsigned, const PopVector & ) const;}
+
+  The following expression, from \link{Reiser and
+    Lavenberg}[~\Cite]{queue:reiser-80}, equation (3.8), is used to find
+  the waiting time
+  \begin{iftex}
+    \tex
+    \begin{equation}
+      W_{mk}({\bf N}) = \frac{ s_{mk} }{J_{m}} \left[ 1 + L_{mk}({\bf N} -
+      e_k) + \sum_{j=0}^{J_{m} - 2} (J_{m} - 1 - j) P(j,{\bf N} - e_k) \right]
+    \end{equation}
+  \end{iftex}
+
+\end{description}
+
+\subsubsection{Input and Output}
+\begin{description}
+\item[print] \texonly{---} Print input data\\
+  \code{ostream& print( ostream& output ) const;}
+
+  Print information about this station.
+\end{description}
+
+\C
+\C ----------------------------------------------------------------------
+\C
+\subsection{Class Multi_Server}
+\label{sec:multiserver}
+
+\subsubsection{Constructors for Multi_Server}
+
+\begin{verbatim}
+
+\end{verbatim}
+
+\subsubsection{Computation}
+\begin{description}
+
+\item[wait] \texonly{---} Waiting Time\\
+  \code{double wait( const MVA&, const unsigned, const unsigned, const PopVector & ) const;}
+
+  The waiting time for multiservers with service times that differ for
+  each chains is from \link{Eqn (19)}[~\Cite]{queue:deSouzaeSilva-87}
+  (also: \link{Eqn (2.7)}[~\Cite]{queue:conway-88}).
+
+  \begin{iftex}
+    \tex
+    \begin{equation}
+      W_{mk}({\bf N}) = s_{mk}
+      + \sum_{i=1}^{K}{\it XE}_{mki}({\bf N}) L_{mi}^{*}({\bf N} - e_k)
+      + {\it XR}_{mk}({\bf N})P_{m}(J_{m},{\bf N} - e_k) 
+    \end{equation}
+  \end{iftex}
+  
+  \begin{iftex}
+      \tex
+    \begin{eqnarray}
+      {\it XE}_{mki}({\bf N}) & = & \sum_{{\bf n} \in A_{ik}}\frac{{\it
+          PS}_{mk}({\bf n},i,{\bf N})}{n_1\mu_{m1}+...+n_K\mu_{mK}}
+      \label{eqn:msfcfs-xe} \\
+      {\it XR}_{mk}({\bf N}) & = & \sum_{{\bf n} \in B_{k}}\frac{{\it
+          PS}_{mk}({\bf n},{\bf N})}{n_1\mu_{m1}+...+n_K\mu_{mK}}
+      \label{eqn:msfcfs-xr} \\
+      {\it PS}_{mk}({\bf n},i,{\bf N}) & = & \frac{A_m( {\bf n}, {\bf N} -
+        e_k )}{C_{mi}( {\bf N} - e_k )}
+      \\
+      {\it PS}_{mk}({\bf n},{\bf N}) & = & \frac{A_m( {\bf n}, {\bf N} -
+        e_k )}{C_m( {\bf N} - e_k )}
+      \\
+      A_m({\bf n},{\bf N}-e_k) & = & \frac{J_{m}!}{n_1!n_2!...n_K!} \left[
+      \prod_{x=1}^{K} F_{mx}^{n_{x}}({\bf N}-e_k) \right]
+      \\
+      C_{mi}({\bf N}-e_k) & = & \sum_{{\bf n} \in A_{ik}}A_m({\bf n},{\bf N}-e_k)
+      \\
+      C_m({\bf N}-e_k) & = & \sum_{{\bf n} \in B_{k}}A_m({\bf n},{\bf
+        N}-e_k)
+      \\ 
+      F_{mx}({\bf N}-e_k) & = & \frac{U_{mx}({\bf
+          N}-e_k)}{\sum_{y=1}^{K} U_{my}({\bf N}-e_k)}
+      \label{eqn:msfcfs-f} \\
+      L_{mi}^{*}({\bf N} - e_k) & = & L_{mi}({\bf N} - e_k) -
+      U_{mi}({\bf N} - e_k)
+    \end{eqnarray}
+  \end{iftex}
+
+  The populations for the vector {\bf n} used in the summations of the
+  \var{XE} and \var{XR} terms in the waiting time expression,
+  (\link{Eqns (16) and (17)}[~\Cite]{queue:deSouzaeSilva-87}), are
+  generated by objects of the classes
+  \link{\file{A_Iterator}}[~(\Sec\Ref)]{sec:pop-AIter} and
+  \link{\file{B_iterator}}[~(\Sec\Ref)]{sec:pop-BIter} respectively.
+  \begin{iftex}
+    \tex
+    The populations satisfy the constraints of (eqn:pop-A) and
+    (eqn-pop-B). 
+    \begin{eqnarray}
+      A_{ik} & = & \leftbracket {\bf n} | n_1+...+n_K = J_{m}, n_j \geq 0, j =
+      1,...,K, {\bf n} \leq ({\bf N} - e_k), n_i \geq 1 \rightbracket
+      \label{eqn:pop-A}\\ 
+      B_{k} & = & \leftbracket {\bf n} | n_1+...+n_K = J_{m}, n_j \geq 0, j =
+      1,...,K, {\bf n} \leq ({\bf N} - e_k) \rightbracket
+      \label{eqn:pop-B}
+    \end{eqnarray}
+  \end{iftex}
+
+\item[effectiveBacklog] \texonly{---} XE term.\\
+  \code{double effectiveBacklog( const MVA& solver, const PopVector& N,
+    const unsigned k ) const;}
+
+  The mean effective backlog of work in the queue when a chain \var{k}
+  customer arrives, \math[\var{XE}]{XE_{mk}} (\link{Eqn
+    (18)}[~\Cite]{queue:deSouzaeSilva-87}), multiplied by the number
+  of customers in the queue.
+
+  \begin{iftex}
+    \tex
+    \begin{displaymath}
+      \sum_{i=1}^{K}{\it XE}_{mki}({\bf N}) L_{mi}^{*}({\bf N} - e_k)
+    \end{displaymath}
+  \end{iftex}
+
+\item[departureTime] \texonly{---} XR term.\\
+  \code{double departureTime( const MVA& solver, const PopVector& N, const unsigned k ) const;}
+
+  The average elapsed time until the first customer leaves,
+  \math[\var{XR}]{XR_{mk}} \link{(Eqn
+    (16))}[~\Cite]{queue:deSouzaeSilva-87}, multiplied by the
+  probability that all servers are busy,
+  \math[\var{P(J,N-ek)}]{P_{m}(J_{m},{\bf N} - e_k)}.
+
+  \begin{iftex}
+    \tex
+    \begin{displaymath}
+      {\it XR}_{mk}({\bf N})P_{m}(J_{m},{\bf N} - e_k) 
+    \end{displaymath}
+  \end{iftex}
+
+\item[sumOf_PS_k] \texonly{---} \math[Sum of A(n,N-ek)/C(n,N-ek)]{\sum
+    \frac{A_m( {\bf n}, {\bf N} - e_k )}{C_m( {\bf N} - e_k )}}\\ 
+  \code{double sumOf_PS_k( const MVA& solver, const PopVector& N,
+    const unsigned k, PopulationIterator& next ) const;}
+
+  Common expression to the XE and XR calculation \link{(Eqns (9) and
+    (13))}[~\Cite]{queue:deSouzaeSilva-87}.  The `\var{next}' argument
+  determines the values that are used in the sum.
+
+  \begin{iftex}
+    Equations~(\ref{eqn:msfcfs-xe}) and (\ref{eqn:msfcfs-xr}) are
+    re-expressed as:
+
+    \tex
+    \begin{eqnarray*}
+      {\it XE}_{mki}({\bf N}) & = & \frac{\displaystyle \sum_{ {\bf n} \in
+        A_{ik}} \frac{ A_{m}({\bf n},{\bf N} - e_k) }{
+        n_1\mu_{m1}+...+n_K\mu_{mK} } }{\displaystyle \sum_{{\bf n} \in A_{ik}}
+      A_{m}({\bf n},{\bf N} - e_k) }
+      \label{eqn:msfcfs-xe-new} \\
+      {\it XR}_{mk}({\bf N}) & = & \frac{\displaystyle \sum_{ {\bf n} \in
+        B_{k}} \frac{A_{m}({\bf n},{\bf N} - e_k) }{
+        n_1\mu_{m1}+...+n_K\mu_{mK} } }{\displaystyle \sum_{{\bf n} \in B_{k}}
+      A_{m}({\bf n},{\bf N} - e_k) }
+      \label{eqn:msfcfs-xr-new}
+    \end{eqnarray*}
+  \end{iftex}
+
+\item[A] \texonly{---} \math[\var{A}]{A_m} term \\
+  \code{const MVA& solver, const PopVector& n, const PopVector& N, const unsigned k ) const;}
+
+  The \math[\var{A}]{A_m} term \link{(Eqn
+    10)}[~\Cite]{queue:deSouzaeSilva-87}.
+
+  \begin{iftex}
+    \tex
+    \begin{displaymath}
+      A_m({\bf n},{\bf N}-e_k) = J_{m}! \cdot \frac{\displaystyle
+      \prod_{x=1}^{K} F_{mx}^{n_{x}}({\bf N}-e_k) }{\displaystyle
+      \prod_{x=1}^{K} n_{x}! }
+    \end{displaymath}
+  \end{iftex}
+
+\item[F] \texonly{---} Fraction of utilization \\
+  \code{double F( const MVA& solver, const unsigned i, const PopVector& N, const unsigned k ) const;}
+
+  The fraction of class \var{i} utilization at the server \link{(Eqn
+  (11))}[~\Cite]{queue:deSouzaeSilva-87}).
+
+  \begin{iftex}
+    \tex
+    \begin{displaymath}
+      F_{mx}({\bf N}-e_k) = \frac{ U_{mx}({\bf N}-e_k) }{
+        \sum_{y=1}^{K} U_{my}({\bf N}-e_k) }
+    \end{displaymath}
+  \end{iftex}
+
+\item[meanMinimumService] \texonly{---} Mean minimum service time\\
+  \code{double meanMinimumService( const PopVector& N ) const;}
+
+  The elapsed time for the arrival of this customer until the next
+  departure \link{Eqn (15)}[~\Cite]{queue:deSouzaeSilva-87}.  It is
+  simply the minimum of the service times of customers in service for
+  exponentially distributed service times:
+  
+  \begin{iftex}
+    \tex
+    \begin{displaymath}
+      \frac{ 1 }{ \sum_{y=1}^{K} \frac{ n_{k} }{ s_{k} } }
+    \end{displaymath}
+  \end{iftex}
+
+\end{description}
+
+
+\subsubsection{Input and Output}
+
+\begin{description}
+\item[print] \texonly{---} Print input data\\
+  \code{ostream& print( ostream& output ) const;}
+
+  Print information about this station.
+\end{description}
+
+
+\subsection{Class MOL Multiserver}
+\label{sec:mol-multiserver}
+
+\subsubsection{Instance Variables}
+\label{sec:mol-multiserver-ivars}
+\begin{verbatim}
+
+\end{verbatim}
+
+\begin{description}
+\item[wait] \texonly{---} Waiting Time\\
+  \code{double wait( const MVA&, const unsigned, const unsigned, const
+    PopVector & ) const;}
+
+  The waiting time expression for...
+
+\end{description}
+
+\subsubsection{Constructors for MOL Multiserver}
+
+\begin{verbatim}
+
+\end{verbatim}
+
+\subsubsection{Initialization}
+\subsubsection{Copying}
+\subsubsection{Instance Variable Access}
+\subsubsection{Queries}
+\subsubsection{Computation}
+\subsubsection{Input and Output}
+
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 

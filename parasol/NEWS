@@ -1,0 +1,26 @@
+Notes on PARASOL 3.1 Release D
+------------------------------
+
+Professor John Neilson, who wrote most of PARASOL, told me 
+that he is "out of the picture with respect to PARASOL".  Since he
+released version 3.1, I have found and fixed a number of bugs in
+the source and added a few features.  I thought that I would 
+make another release to share what I've done.  
+
+In this release I have also merged in some code that
+Greg Franks has written, specifically, messages with priorities and 
+some functionality around the added "sched_time".  (Look at it in the code.)
+
+I, personally, have added a call "ps_curr_priority", which gives the
+priority that a specified host on a specified node is currently running
+at.
+
+Recently, Greg Franks has changed the Makefile structure and etc. to
+use automake/autoconf.  Hopefully this work can soon be integrated.
+
+		Craig Scratchley
+		Administrator for parasol project on sourceforge.net
+		Feb. 2003
+
+
+$Header$

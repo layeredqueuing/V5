@@ -1,0 +1,266 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqns -Pvariance=mol,threads=mak 75-distributions.lqnx -->
+<lqn-model name="75-distributions" description="lqns 5.3 solution for model from: 75-distributions.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+         <mva-info submodels="1" core="2" step="26" step-squared="338" wait="16900" wait-squared="1.42805e+08" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="constant" scheduling="inf">
+      <result-processor utilization="1"/>
+      <task name="constant" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="constant" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="0" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="constant_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0">
+                  <service-time-distribution number-bins="12" min="0" max="9">
+                     <histogram-bin begin="0" end="0.75" prob="0"/>
+                     <histogram-bin begin="0.75" end="1.5" prob="0"/>
+                     <histogram-bin begin="1.5" end="2.25" prob="0"/>
+                     <histogram-bin begin="2.25" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="3.75" prob="0"/>
+                     <histogram-bin begin="3.75" end="4.5" prob="0"/>
+                     <histogram-bin begin="4.5" end="5.25" prob="0"/>
+                     <histogram-bin begin="5.25" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="6.75" prob="0"/>
+                     <histogram-bin begin="6.75" end="7.5" prob="0"/>
+                     <histogram-bin begin="7.5" end="8.25" prob="0"/>
+                     <histogram-bin begin="8.25" end="9" prob="0"/>
+                     <overflow-bin begin="9" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="0" utilization="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="exponential" scheduling="inf">
+      <result-processor utilization="1"/>
+      <task name="exponential" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="exponential" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="1" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="exponential_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <histogram-bin begin="0" end="1" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0"/>
+                     <histogram-bin begin="2" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="4" prob="0"/>
+                     <histogram-bin begin="4" end="5" prob="0"/>
+                     <histogram-bin begin="5" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="7" prob="0"/>
+                     <histogram-bin begin="7" end="8" prob="0"/>
+                     <histogram-bin begin="8" end="9" prob="0"/>
+                     <histogram-bin begin="9" end="10" prob="0"/>
+                     <histogram-bin begin="10" end="11" prob="0"/>
+                     <histogram-bin begin="11" end="12" prob="0"/>
+                     <histogram-bin begin="12" end="13" prob="0"/>
+                     <histogram-bin begin="13" end="14" prob="0"/>
+                     <histogram-bin begin="14" end="15" prob="0"/>
+                     <histogram-bin begin="15" end="16" prob="0"/>
+                     <histogram-bin begin="16" end="17" prob="0"/>
+                     <histogram-bin begin="17" end="18" prob="0"/>
+                     <histogram-bin begin="18" end="19" prob="0"/>
+                     <histogram-bin begin="19" end="20" prob="0"/>
+                     <histogram-bin begin="20" end="21" prob="0"/>
+                     <histogram-bin begin="21" end="22" prob="0"/>
+                     <histogram-bin begin="22" end="23" prob="0"/>
+                     <histogram-bin begin="23" end="24" prob="0"/>
+                     <histogram-bin begin="24" end="25" prob="0"/>
+                     <histogram-bin begin="25" end="26" prob="0"/>
+                     <histogram-bin begin="26" end="27" prob="0"/>
+                     <histogram-bin begin="27" end="28" prob="0"/>
+                     <histogram-bin begin="28" end="29" prob="0"/>
+                     <histogram-bin begin="29" end="30" prob="0"/>
+                     <histogram-bin begin="30" end="31" prob="0"/>
+                     <histogram-bin begin="31" end="32" prob="0"/>
+                     <histogram-bin begin="32" end="33" prob="0"/>
+                     <histogram-bin begin="33" end="34" prob="0"/>
+                     <histogram-bin begin="34" end="35" prob="0"/>
+                     <histogram-bin begin="35" end="36" prob="0"/>
+                     <histogram-bin begin="36" end="37" prob="0"/>
+                     <histogram-bin begin="37" end="38" prob="0"/>
+                     <histogram-bin begin="38" end="39" prob="0"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="9" utilization="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="gamma" scheduling="inf">
+      <result-processor utilization="1"/>
+      <task name="gamma" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="gamma" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="0.222222" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="gamma_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0.222222">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <histogram-bin begin="0" end="1" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0"/>
+                     <histogram-bin begin="2" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="4" prob="0"/>
+                     <histogram-bin begin="4" end="5" prob="0"/>
+                     <histogram-bin begin="5" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="7" prob="0"/>
+                     <histogram-bin begin="7" end="8" prob="0"/>
+                     <histogram-bin begin="8" end="9" prob="0"/>
+                     <histogram-bin begin="9" end="10" prob="0"/>
+                     <histogram-bin begin="10" end="11" prob="0"/>
+                     <histogram-bin begin="11" end="12" prob="0"/>
+                     <histogram-bin begin="12" end="13" prob="0"/>
+                     <histogram-bin begin="13" end="14" prob="0"/>
+                     <histogram-bin begin="14" end="15" prob="0"/>
+                     <histogram-bin begin="15" end="16" prob="0"/>
+                     <histogram-bin begin="16" end="17" prob="0"/>
+                     <histogram-bin begin="17" end="18" prob="0"/>
+                     <histogram-bin begin="18" end="19" prob="0"/>
+                     <histogram-bin begin="19" end="20" prob="0"/>
+                     <histogram-bin begin="20" end="21" prob="0"/>
+                     <histogram-bin begin="21" end="22" prob="0"/>
+                     <histogram-bin begin="22" end="23" prob="0"/>
+                     <histogram-bin begin="23" end="24" prob="0"/>
+                     <histogram-bin begin="24" end="25" prob="0"/>
+                     <histogram-bin begin="25" end="26" prob="0"/>
+                     <histogram-bin begin="26" end="27" prob="0"/>
+                     <histogram-bin begin="27" end="28" prob="0"/>
+                     <histogram-bin begin="28" end="29" prob="0"/>
+                     <histogram-bin begin="29" end="30" prob="0"/>
+                     <histogram-bin begin="30" end="31" prob="0"/>
+                     <histogram-bin begin="31" end="32" prob="0"/>
+                     <histogram-bin begin="32" end="33" prob="0"/>
+                     <histogram-bin begin="33" end="34" prob="0"/>
+                     <histogram-bin begin="34" end="35" prob="0"/>
+                     <histogram-bin begin="35" end="36" prob="0"/>
+                     <histogram-bin begin="36" end="37" prob="0"/>
+                     <histogram-bin begin="37" end="38" prob="0"/>
+                     <histogram-bin begin="38" end="39" prob="0"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="2" utilization="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="hyperexponential" scheduling="inf">
+      <result-processor utilization="1"/>
+      <task name="hyperexponential" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="hyperexponential" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="9" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="hyperexponential_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="9">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <histogram-bin begin="0" end="1" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0"/>
+                     <histogram-bin begin="2" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="4" prob="0"/>
+                     <histogram-bin begin="4" end="5" prob="0"/>
+                     <histogram-bin begin="5" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="7" prob="0"/>
+                     <histogram-bin begin="7" end="8" prob="0"/>
+                     <histogram-bin begin="8" end="9" prob="0"/>
+                     <histogram-bin begin="9" end="10" prob="0"/>
+                     <histogram-bin begin="10" end="11" prob="0"/>
+                     <histogram-bin begin="11" end="12" prob="0"/>
+                     <histogram-bin begin="12" end="13" prob="0"/>
+                     <histogram-bin begin="13" end="14" prob="0"/>
+                     <histogram-bin begin="14" end="15" prob="0"/>
+                     <histogram-bin begin="15" end="16" prob="0"/>
+                     <histogram-bin begin="16" end="17" prob="0"/>
+                     <histogram-bin begin="17" end="18" prob="0"/>
+                     <histogram-bin begin="18" end="19" prob="0"/>
+                     <histogram-bin begin="19" end="20" prob="0"/>
+                     <histogram-bin begin="20" end="21" prob="0"/>
+                     <histogram-bin begin="21" end="22" prob="0"/>
+                     <histogram-bin begin="22" end="23" prob="0"/>
+                     <histogram-bin begin="23" end="24" prob="0"/>
+                     <histogram-bin begin="24" end="25" prob="0"/>
+                     <histogram-bin begin="25" end="26" prob="0"/>
+                     <histogram-bin begin="26" end="27" prob="0"/>
+                     <histogram-bin begin="27" end="28" prob="0"/>
+                     <histogram-bin begin="28" end="29" prob="0"/>
+                     <histogram-bin begin="29" end="30" prob="0"/>
+                     <histogram-bin begin="30" end="31" prob="0"/>
+                     <histogram-bin begin="31" end="32" prob="0"/>
+                     <histogram-bin begin="32" end="33" prob="0"/>
+                     <histogram-bin begin="33" end="34" prob="0"/>
+                     <histogram-bin begin="34" end="35" prob="0"/>
+                     <histogram-bin begin="35" end="36" prob="0"/>
+                     <histogram-bin begin="36" end="37" prob="0"/>
+                     <histogram-bin begin="37" end="38" prob="0"/>
+                     <histogram-bin begin="38" end="39" prob="0"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="81" utilization="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="pareto" scheduling="inf">
+      <result-processor utilization="1"/>
+      <task name="pareto" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1"/>
+         <entry name="pareto" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="1" proc-utilization="1"/>
+            <entry-phase-activities>
+               <activity name="pareto_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <histogram-bin begin="0" end="1" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0"/>
+                     <histogram-bin begin="2" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="4" prob="0"/>
+                     <histogram-bin begin="4" end="5" prob="0"/>
+                     <histogram-bin begin="5" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="7" prob="0"/>
+                     <histogram-bin begin="7" end="8" prob="0"/>
+                     <histogram-bin begin="8" end="9" prob="0"/>
+                     <histogram-bin begin="9" end="10" prob="0"/>
+                     <histogram-bin begin="10" end="11" prob="0"/>
+                     <histogram-bin begin="11" end="12" prob="0"/>
+                     <histogram-bin begin="12" end="13" prob="0"/>
+                     <histogram-bin begin="13" end="14" prob="0"/>
+                     <histogram-bin begin="14" end="15" prob="0"/>
+                     <histogram-bin begin="15" end="16" prob="0"/>
+                     <histogram-bin begin="16" end="17" prob="0"/>
+                     <histogram-bin begin="17" end="18" prob="0"/>
+                     <histogram-bin begin="18" end="19" prob="0"/>
+                     <histogram-bin begin="19" end="20" prob="0"/>
+                     <histogram-bin begin="20" end="21" prob="0"/>
+                     <histogram-bin begin="21" end="22" prob="0"/>
+                     <histogram-bin begin="22" end="23" prob="0"/>
+                     <histogram-bin begin="23" end="24" prob="0"/>
+                     <histogram-bin begin="24" end="25" prob="0"/>
+                     <histogram-bin begin="25" end="26" prob="0"/>
+                     <histogram-bin begin="26" end="27" prob="0"/>
+                     <histogram-bin begin="27" end="28" prob="0"/>
+                     <histogram-bin begin="28" end="29" prob="0"/>
+                     <histogram-bin begin="29" end="30" prob="0"/>
+                     <histogram-bin begin="30" end="31" prob="0"/>
+                     <histogram-bin begin="31" end="32" prob="0"/>
+                     <histogram-bin begin="32" end="33" prob="0"/>
+                     <histogram-bin begin="33" end="34" prob="0"/>
+                     <histogram-bin begin="34" end="35" prob="0"/>
+                     <histogram-bin begin="35" end="36" prob="0"/>
+                     <histogram-bin begin="36" end="37" prob="0"/>
+                     <histogram-bin begin="37" end="38" prob="0"/>
+                     <histogram-bin begin="38" end="39" prob="0"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="9" utilization="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

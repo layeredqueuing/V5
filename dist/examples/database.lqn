@@ -1,0 +1,150 @@
+# Experiment case description file
+# Created by MultiSRVN, --
+
+G
+
+"
+"
+
+1e-05 50 1 0.5 -1
+
+P 6
+   p DB_C f
+   p DB_S f
+   p LW_C f i
+   p LW_S f i
+   p proc1 s
+   p proc2 s
+-1
+
+T 22
+   t DRO_C r DRO_C -1 proc1
+   t DRO_S r DRO_S -1 proc2
+   t DU_C r DU_C -1 proc1
+   t DU_S r DU_S -1 proc2
+   t LRO_C r LRO_C -1 proc1
+   t LRO_S r LRO_S -1 proc2
+   t LU_C r LU_C -1 proc1
+   t LU_S r LU_S -1 proc2
+   t DB_C n DB_C_1 -1 DB_C
+   t DB_S n DB_S_1 -1 DB_S
+   t DMIO_C n DMIO_C_READ DMIO_C_WRITE -1 proc1 i
+   t DMIO_S n DMIO_S_WRITE DMIO_S_READ -1 proc2 m 2
+   t DM_C n DM_C_LRO DM_C_LU DM_C_DRO DM_C_DU -1 proc1 i
+   t DM_S n DM_S_LRO DM_S_LU DM_S_DRO DM_S_DU -1 proc2 i
+   t LR_C n LR_C_1 -1 proc1 i
+   t LR_S n LR_S_1 -1 proc2 i
+   t LW_C n LW_C_LRO LW_C_LU LW_C_DRO LW_C_DU -1 LW_C i
+   t LW_S n LW_S_LRO LW_S_LU LW_S_DRO LW_S_DU -1 LW_S i
+   t TMS_C n TMS_C_DRO TMS_C_DU -1 proc1 i
+   t TMS_S n TMS_S_DU TMS_S_DRO -1 proc2 i
+   t TM_C n TM_C_LRO TM_C_LU TM_C_DRO TM_C_DU -1 proc1 i
+   t TM_S n TM_S_DRO TM_S_DU TM_S_LRO TM_S_LU -1 proc2 i
+-1
+
+E 44
+   s DRO_C 0 31.2 0 -1
+   s DRO_S 0 31.2 0 -1
+   s DU_C 0 31.2 0 -1
+   s DU_S 0 31.2 0 -1
+   s LRO_C 0 31.2 0 -1
+   s LRO_S 0 31.2 0 -1
+   s LU_C 0 31.2 0 -1
+   s LU_S 0 31.2 0 -1
+   s DB_C_1 28 0 0 -1
+   s DB_S_1 40 0 0 -1
+   s DMIO_C_READ 1.5 0 0 -1
+   s DMIO_C_WRITE 2.5 0 0 -1
+   s DMIO_S_WRITE 2.5 0 0 -1
+   s DMIO_S_READ 1.5 0 0 -1
+   s DM_C_DU 43 0 0 -1
+   s DM_C_LU 43 0 0 -1
+   s DM_C_DRO 27 0 0 -1
+   s DM_C_LRO 27 0 0 -1
+   s DM_S_LRO 27 0 0 -1
+   s DM_S_LU 43 0 0 -1
+   s DM_S_DRO 27 0 0 -1
+   s DM_S_DU 43 0 0 -1
+   s LR_C_1 2.2 0 0 -1
+   s LR_S_1 2.2 0 0 -1
+   s LW_C_LRO 1570 0 0 -1
+   s LW_C_LU 1238 0 0 -1
+   s LW_C_DRO 1495 0 0 -1
+   s LW_C_DU 1020 0 0 -1
+   s LW_S_LRO 2761 0 0 -1
+   s LW_S_LU 1907 0 0 -1
+   s LW_S_DRO 2851 0 0 -1
+   s LW_S_DU 2193 0 0 -1
+   s TMS_C_DRO 6 0 0 -1
+   s TMS_C_DU 6 0 0 -1
+   s TMS_S_DU 6 0 0 -1
+   s TMS_S_DRO 6 0 0 -1
+   s TM_C_LRO 8 0 0 -1
+   s TM_C_LU 8 0 0 -1
+   s TM_C_DRO 6 0 0 -1
+   s TM_C_DU 6 0 0 -1
+   s TM_S_DRO 6 0 0 -1
+   s TM_S_DU 6 0 0 -1
+   s TM_S_LRO 8 0 0 -1
+   s TM_S_LU 8 0 0 -1
+   y DRO_C TM_C_DRO 0 4 0 -1
+   y DRO_S TM_S_DRO 0 4 0 -1
+   y DU_C TM_C_DU 0 4 0 -1
+   y DU_S TM_S_DU 0 4 0 -1
+   y LRO_C TM_C_LRO 0 4 0 -1
+   y LRO_S TM_S_LRO 0 4 0 -1
+   y LU_C TM_C_LU 0 4 0 -1
+   y LU_S TM_S_LU 0 4 0 -1
+   y DM_C_DU DMIO_C_WRITE 4 0 0 -1
+   y DM_C_DU DB_C_1 12 0 0 -1
+   y DM_C_DU LR_C_1 4 0 0 -1
+   y DM_C_DU LW_C_DU 0.007 0 0 -1
+   y DM_C_LU DMIO_C_WRITE 4 0 0 -1
+   y DM_C_LU DB_C_1 12 0 0 -1
+   y DM_C_LU LR_C_1 4 0 0 -1
+   y DM_C_LU LW_C_LU 0.007 0 0 -1
+   y DM_C_DRO LR_C_1 4 0 0 -1
+   y DM_C_DRO DMIO_C_READ 4 0 0 -1
+   y DM_C_DRO DB_C_1 4 0 0 -1
+   y DM_C_DRO LW_C_DRO 0.007 0 0 -1
+   y DM_C_LRO LR_C_1 4 0 0 -1
+   y DM_C_LRO DMIO_C_READ 4 0 0 -1
+   y DM_C_LRO DB_C_1 4 0 0 -1
+   y DM_C_LRO LW_C_LRO 0.007 0 0 -1
+   y DM_S_DRO DB_S_1 4 0 0 -1
+   y DM_S_DRO DMIO_S_READ 4 0 0 -1
+   y DM_S_DRO LR_S_1 4 0 0 -1
+   y DM_S_DRO LW_S_DRO 0.008 0 0 -1
+   y DM_S_LRO DB_S_1 4 0 0 -1
+   y DM_S_LRO DMIO_S_READ 4 0 0 -1
+   y DM_S_LRO LR_S_1 4 0 0 -1
+   y DM_S_LRO LW_S_LRO 0.008 0 0 -1
+   y DM_S_LU DB_S_1 12 0 0 -1
+   y DM_S_LU DMIO_S_WRITE 4 0 0 -1
+   y DM_S_LU LR_S_1 4 0 0 -1
+   y DM_S_LU LW_S_LU 0.008 0 0 -1
+   y DM_S_DU DB_S_1 12 0 0 -1
+   y DM_S_DU DMIO_S_WRITE 4 0 0 -1
+   y DM_S_DU LR_S_1 4 0 0 -1
+   y DM_S_DU LW_S_DU 0.008 0 0 -1
+   y TMS_C_DRO DM_C_DRO 1 0 0 -1
+   y TMS_C_DU DM_C_DU 1 0 0 -1
+   y TMS_S_DU DM_S_DU 1 0 0 -1
+   y TMS_S_DRO DM_S_DRO 1 0 0 -1
+   y TM_C_LRO DM_C_LRO 1 0 0 -1
+   y TM_C_LU DM_C_LU 1 0 0 -1
+   y TM_C_DRO TMS_S_DRO 1 0 0 -1
+   y TM_C_DRO DM_C_DRO 1 0 0 -1
+   y TM_C_DU TMS_S_DU 1 0 0 -1
+   y TM_C_DU DM_C_DU 1 0 0 -1
+   y TM_S_DRO TMS_C_DRO 1 0 0 -1
+   y TM_S_DRO DM_S_DRO 1 0 0 -1
+   y TM_S_DU TMS_C_DU 1 0 0 -1
+   y TM_S_DU DM_S_DU 1 0 0 -1
+   y TM_S_LRO DM_S_LRO 1 0 0 -1
+   y TM_S_LU DM_S_LU 1 0 0 -1
+-1
+
+
+
+

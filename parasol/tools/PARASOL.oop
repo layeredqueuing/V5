@@ -1,0 +1,456 @@
+% @(#)PARASOL.oop	1.1 17:16:59 8/21/95
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%	PARASOL.opp - XTG event stream interpreter for xtg_filter output
+%									
+%	Copyright (C) 1995 School of Computer Science, 			
+%		Carleton University, Ottawa, Ont., Canada		
+%		Written by Patrick Morin				
+%		Based (loosely) on ada.oop by Alex Hubbard.
+%
+%   This program is free software; you can redistribute it and/or modify
+%   it under the terms of the GNU General Public License as published by
+%   the Free Software Foundation; either version 2, or (at your option)
+%   any later version.
+%
+%   This program is distributed in the hope that it will be useful,
+%   but WITHOUT ANY WARRANTY; without even the implied warranty of
+%   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%   GNU General Public License for more details.
+%
+%   You should have received a copy of the GNU General Public License
+%   along with this program; if not, write to the Free Software
+%   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+%
+%   The author may be reached at morin@scs.carleton.ca or through
+%   the School of Computer Science at Carleton University.
+%
+%	Created: 11/08/95 (PRM)
+%	History: May 1/95 PRM Wrote it.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+class:  systemInit of object.
+
+begin :-
+	terminalIoManager-openTerminalStream(mainConsole,passive,[]),
+	applicationEventDispatcher-new("xtgEventDispatcher",active,[]).
+
+% *************************************************************************
+
+class: applicationEventDispatcher of timelineEventDispatcher.
+
+methods: instance.
+
+$applicationInitialize :-
+	mainConsole-writeln("PARASOL XTG Application V0.0"),
+	$presentationObjectCreationEvent(msgPresentation,_).
+
+event("TASK_CREATED",Time,Object,D) :-
+	$primitiveObjectCreationEvent(taskPrimitiveObject,
+		event("TASK_CREATED",Time,Object,D)), !.
+
+event("SEMAPHORE_RESETTING",Time,Object,Data) :-
+	$primitiveObjectCreationEvent(semaPrimitiveObject,
+		event("SEMAPHORE_RESETTING",Time,Object,Data)), !.
+
+event("SEMAPHORE_SIGNALLING",Time,Object,Data) :-
+	$primitiveObjectCreationEvent(semaPrimitiveObject,
+		event("SEMAPHORE_SIGNALLING",Time,Object,Data)), !.
+
+event("SEMAPHORE_TASK_WAITING",Time,Object,Data) :-
+	$primitiveObjectCreationEvent(semaPrimitiveObject,
+		event("SEMAPHORE_TASK_WAITING",Time,Object,Data)), !.
+
+event("TASK_LOCKING",Time,Object,Data) :-
+	$primitiveObjectCreationEvent(lockPrimitiveObject,
+		event("TASK_LOCKING",Time,Object,Data)), !.
+
+event("SPINLOCK_TASK_UNLOCKING",Time,Object,Data) :-
+	$primitiveObjectCreationEvent(lockPrimitiveObject,
+		event("SPINLOCK_TASK_UNLOCKING",Time,Object,Data)), !.
+
+event(E,Time,Object,D) :-
+	super-event(E,Time,Object,D), !.
+
+% Override this so that it fails quietly.
+$checkUniqueness(X) :-
+	not(X isA object).
+
+%$primitiveObjectName(object(O,I,_),I).
+
+% *************************************************************************
+
+class: taskPrimitiveObject of primitiveObject.
+
+methods: instance.
+
+%	General transitions
+
+$transition(start,"TASK_CREATED",_,state(suspended,0)) :-
+	$mapOsState(state(suspended,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(_,"TASK_DEAD",_,state(dead,0)) :-
+	$mapOsState(state(dead,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(executing,_),"TASK_SLEEPING",_,state(sleeping,0)) :-
+	$mapOsState(state(sleeping,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(blocked_on_semaphore,SID),"TASK_SUSPENDED",Data,
+	state(blocked_on_semaphore,SID)) :-
+	$mapOsState(state(blocked_on_semaphore,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(_,"TASK_SUSPENDED",_,state(suspended,0)) :-
+	$mapOsState(state(suspended,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(StartState,"TASK_WAITING_ON_SEMAPHORE",_,StartState) :-
+	$mapOsState(StartState,Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(StartState,"TASK_BLOCKED_ON_SEMAPHORE",Data,
+	state(blocked_on_semaphore,SID)) :-
+	$getNameValue(Data,sid(SID)),
+	$mapOsState(state(blocked_on_semaphore,SID),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(StartState,"TASK_SPINNING",Data,
+	state(spinning,LID)) :-
+	$getNameValue(Data,lid(LID)),
+	$mapOsState(state(spinning,LID),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(_,"TASK_READY",_,state(ready,0)) :-
+	$mapOsState(state(ready,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(_,"TASK_EXECUTING",_,state(executing,0)) :-
+	$mapOsState(state(executing,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(StartState,"TASK_RECEIVES",_,StartState) :-
+	$mapOsState(StartState,Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(executing,_),"TASK_BLOCKED_ON_PORT",_,
+	state(blocked_on_port,0)) :-
+	$mapOsState(state(blocked_on_port,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(CurrentState,"TASK_SENDING",Data,CurrentState) :-
+	$mapOsState(CurrentState,Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(CurrentState,"TASK_DUMMY",Data,CurrentState) :-
+	$mapOsState(CurrentState,Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(CurrentState,"TASK_LOCKING",Data,state(executing,0)) :-
+	$mapOsState(state(executing,0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(StartState,E,D,StartState) :-
+	$mapOsState(StartState,Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture),
+	super-$transition(StartState,E,D,StartState).
+
+$mapOsState(state(suspended,_),blue,dot,3).
+$mapOsState(state(sleeping,_),blue,solid,3).
+$mapOsState(state(spinning,_),black,dot,3).
+$mapOsState(state(blocked_on_semaphore,_),black,solid,3).
+$mapOsState(state(executing,_),green,solid,3).
+$mapOsState(state(ready,_),green,dot,3).
+$mapOsState(state(blocked_on_port,_),red,solid,3).
+$mapOsState(state(dead,_),white,solid, 3).
+$mapOsState(S,_,_,_) :-
+	mainConsole-writeln("taskPrimitiveObject-$mapOsState/4 failed"),
+	mainConsole-writeln(S).
+
+% *************************************************************************
+
+class: semaPrimitiveObject of primitiveObject.
+
+ivars: [].
+
+methods: instance.
+
+$transition(start,"SEMAPHORE_TASK_WAITING",Data,state(0)) :-
+	$mapSemaState(state(0),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(start,"SEMAPHORE_SIGNALLING",Data, state(2)) :-
+	$mapSemaState(state(2),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"SEMAPHORE_TASK_WAITING",Data, state(NewValue)) :-
+	NewValue is Value - 1,
+	$mapSemaState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"SEMAPHORE_SIGNALLING",Data, state(NewValue)) :-
+	NewValue is Value + 1,
+	$mapSemaState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(CurrentState,"SEMAPHORE_RESETTING",Data, state(NewValue)) :-
+	$getNameValue(Data,value(NewValue)),
+	$mapSemaState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),EventType,_,state(Value)) :-
+	$mapSemaState(state(Value),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$mapSemaState(state(0),blue,solid,3).
+
+$mapSemaState(state(Value),red,solid,3) :-
+	Value < 0.
+
+$mapSemaState(state(Value),green,solid,3) :-
+	Value > 0.
+
+$mapSemaState(_,green,solid,3) :-
+	mainConsole-writeln("semaPrimitiveObject-$mapSemaState/4 failed").
+
+% ************************************************************************
+
+class: lockPrimitiveObject of primitiveObject.
+
+ivars: [].
+
+methods: instance.
+
+$transition(start,"TASK_LOCKING",Data,state(0)) :-
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(start,"SPINLOCK_TASK_UNLOCKING",Data,state(1)) :-
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"TASK_SPINNING",Data,state(NewValue)) :-
+	NewValue is Value - 1,
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"TASK_LOCKING",Data,state(NewValue)) :-
+	Value > 0,
+	NewValue is Value - 1,
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"TASK_LOCKING",Data,state(Value)) :-
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),"SPINLOCK_TASK_UNLOCKING",Data, state(NewValue)) :-
+	TempValue is Value + 1,
+	$min(TempValue,1,NewValue),
+	$mapLockState(state(NewValue),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+$transition(state(Value),EventType,_,state(Value)) :-
+	$mapLockState(state(Value),Colour,Texture,Thickness),
+	$renderStateLine(0,Colour,Thickness,Texture).
+
+% The third argument unifies with the minimum of the first two arguments
+$min(A,B,A) :-
+	A < B.
+
+$min(A,B,B).
+
+$mapLockState(state(0),blue,solid,3).
+
+$mapLockState(state(Value),red,solid,3) :-
+	Value < 0.
+
+$mapLockState(state(Value),green,solid,3) :-
+	Value == 1.
+
+$mapLockState(_,green,solid,3) :-
+	mainConsole-writeln("semaPrimitiveObject-$mapSemaState/4 failed").
+
+
+% ************************************************************************
+
+class: msgPresentation of presentationObject.
+
+ivars: [messageList=[]].
+
+methods: instance.
+
+%
+% The following methods present messages between tasks
+%
+event("TASK_RECEIVES",Time,object(_,I,_),Data) :-
+	$getNameValue(Data,mid(MID)),
+	$removeMessage(message(STime,SID,MID,LID)),
+	$presentMessage(STime,Time,SID,I,LID).
+
+
+event("TASK_SENDING",Time,object(_,I,_),Data) :-
+	$getNameValue(Data,mid(MID)),
+	$retrieveTimelineObject(_,object(_,I,_),_,_,_,_,_,[Sender]),
+	$tlobjTimelineID(Sender,STL),
+	$getTimelinePosition(STL,SenderPos),
+	$presentHorizontalLine(LID,SenderPos,0,black,1,solid),
+	$saveMessage(message(Time,I,MID,LID)).
+
+$presentMessage(STime,STime,SID,RID,LID) :-
+	$retrieveTimelineObject(_,object("TASK",SID,_),_,_,_,_,_,[Sender]),
+	$retrieveTimelineObject(_,object("TASK",RID,_),_,_,_,_,_,[Receiver]),
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentHorizontalLine(LID,ReceiverPos,0,black,1,solid),
+	$presentVerticalDirectedLine(SenderPos,0,ReceiverPos,0,destination,
+		black,1,solid).
+
+$presentMessage(STime,RTime,SID,RID,LID) :-
+	$retrieveTimelineObject(_,object("TASK",RID,_),_,_,_,_,_,[Receiver]),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentHorizontalLine(LID,ReceiverPos,0,black,1,solid).
+
+
+%
+% The following methods present interactions between tasks and synchronization
+% objects (semaphores and spinlocks)
+%
+event("SEMAPHORE_TASK_WAITING",Time,Object,Data) :-
+	$getNameValue(Data,tid(TID)),
+	$retrieveTimelineObject(_,object("TASK",TID,_),_,_,_,_,_,[Sender]),
+	$retrieveTimelineObject(_,Object,_,_,_,_,_,[Receiver]), 
+	$tlobjNewState(Receiver,NewState),
+	$presentSyncProcure(Sender,Receiver,NewState).
+
+event("SEMAPHORE_SIGNALLING",Time,Object,Data) :-
+	$getNameValue(Data,tid(TID)),
+	$retrieveTimelineObject(_,object("TASK",TID,_),_,_,_,_,_,[Sender]),
+	$retrieveTimelineObject(_,Object,_,_,_,_,_,[Receiver]), 
+	$presentSyncRelease(Sender,Receiver).
+
+event("TASK_SPINNING",Time,Object,Data) :-
+	$getNameValue(Data,tid(TID)),
+	$retrieveTimelineObject(_,object("TASK",TID,_),_,_,_,_,_,[Sender]),
+	$retrieveTimelineObject(_,Object,_,_,_,_,_,[Receiver]), 
+	$presentSyncProcure(Sender,Receiver,state(-1)).
+
+event("TASK_LOCKING",Time,object("TASK",I,_),Data) :-
+	$getNameValue(Data,lid(LID)),
+	$retrieveTimelineObject(_,object("TASK",I,_),_,_,_,_,_,[Sender]),
+	$tlobjOldState(Sender,state(spinning,_)),
+	$retrieveTimelineObject(_,object("SPINLOCK",LID,_),_,_,_,_,_,
+		[Receiver]), 
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentVerticalDirectedLine(ReceiverPos,0,SenderPos,0,destination,
+		green,1,solid).
+ 
+event("TASK_LOCKING",Time,object("TASK",I,_),Data) :-
+	$getNameValue(Data,lid(LID)),
+	$retrieveTimelineObject(_,object("TASK",I,_),_,_,_,_,_,[Sender]),
+	$tlobjOldState(Sender,state(executing,_)),
+	$retrieveTimelineObject(_,object("SPINLOCK",LID,_),_,_,_,_,_,
+		[Receiver]), 
+ 	$presentSyncProcure(Sender,Receiver,state(1)).
+
+event("SPINLOCK_TASK_UNLOCKING",Time,Object,Data) :-
+	$getNameValue(Data,tid(TID)),
+	$retrieveTimelineObject(_,object("TASK",TID,_),_,_,_,_,_,[Sender]),
+	$retrieveTimelineObject(_,Object,_,_,_,_,_,[Receiver]), 
+	$presentSyncRelease(Sender,Receiver).
+
+$presentSyncProcure(Sender,Receiver,state(Value)) :-
+	Value >= 0,
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentVerticalDirectedLine(SenderPos,0,ReceiverPos,0,destination,
+		red,1,solid),
+	$presentVerticalDirectedLine(ReceiverPos,0,SenderPos,0,destination,
+		green,1,solid).
+
+$presentSyncProcure(Sender,Receiver,state(Value)) :-
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentVerticalDirectedLine(SenderPos,0,ReceiverPos,0,destination,
+		red,1,solid).
+
+$presentSyncRelease(Sender,Receiver) :-
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentVerticalDirectedLine(SenderPos,0,ReceiverPos,0,destination,
+		blue,1,solid).
+
+
+event("TASK_READY",Time,Object,Data) :-
+	$retrieveTimelineObject(_,Object,_,_,_,_,_,[Receiver]),
+	$tlobjOldState(Receiver,state(blocked_on_semaphore,SID)),
+	$retrieveTimelineObject(_,object("SEMAPHORE",SID,_),_,_,_,_,_,[Sender]),
+	$tlobjTimelineID(Sender,STL),
+	$tlobjTimelineID(Receiver,RTL),
+	$getTimelinePosition(STL,SenderPos),
+	$getTimelinePosition(RTL,ReceiverPos),
+	$presentVerticalDirectedLine(SenderPos,0,ReceiverPos,0,destination,
+		green,1,solid).
+
+%
+% The following methods have to do with managing hte message list
+%
+$saveMessage(Message) :-
+	theValueOf(messageList,MessageList),
+	$append([Message],MessageList,NewList),
+	makeTheValueOf(messageList,NewList).
+
+$getMessage(Message) :-
+	theValueOf(messageList,MessageList),
+	$member(Message,MessageList).
+
+$removeMessage(Message) :-
+	theValueOf(messageList,MessageList),
+	$remove(Message,MessageList,NewList),
+	makeTheValueOf(messageList,NewList).
+
+% This rule is the member rule which determines if a given element is
+% a member of the given list.
+
+$member(X,[X|Z]) :- !.
+$member(X,[Y|Z]) :- $member(X,Z).
+
+% This rule removes the given element fron the given list.  
+
+$remove(X,[],[]) :- !.
+$remove(X,[X|Z],Z) :- !.
+$remove(X,[W|Z],Y) :-
+	$remove(X,Z,Q),
+	$append([W],Q,Y), !.
+
+% This is the classic append rule which concatenates two lists forming
+% a third list.
+
+$append([],Z,Z) :- !.
+$append([X|Y],Z,[X|W] ) :- $append(Y,Z,W).
+
+% *************************************************************************
+
+
+
+
+
+
+
+
+
+

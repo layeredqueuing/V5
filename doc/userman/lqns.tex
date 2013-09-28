@@ -1,0 +1,533 @@
+%%  -*- mode: latex; mode: outline-minor; fill-column: 108 -*- 
+%% Title:  lqns
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             12 March 2013
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{Invoking the Analytic Solver ``lqns''}
+\label{sec:invoking-lqns}
+The Layered Queueing Network Solver (LQNS)\index{LQNS} is used to
+solved Layered Queueing Network models analytically.
+\textbf{Lqns} reads its input from \texttt{filename}, specified at the
+command line if present, or from the standard input otherwise.  By
+default, output for an input file \texttt{filename} specified on the
+command line will be placed in the file \texttt{filename.out}.  If the
+\flag{p}{} switch is used, parseable output will also be written into
+\texttt{filename.p}. If XML input\index{input!XML} or the \flag{x}{} switch is used, XML output\index{output!XML} will be written to 
+\texttt{filename.lqxo}.  This behaviour can be changed using the
+\flag{o}{}\texttt{output} switch, described below.  If several files are
+named, then each is treated as a separate model and output will be
+placed in separate output files.  If input is from the standard input,
+output will be directed to the standard output.  The file name `\texttt{-}' is
+used to specify standard input.
+
+
+The \flag{o}{}\texttt{output} option can be used to direct output to the file
+\texttt{output} regardless of the source of input.  Output will be XML\index{XML}\index{output!XML}
+if XML input\index{XML!input} or if the \flag{x}{} switch is used, parseable output if the \flag{p}{} switch is used,
+and normal output otherwise.  Multiple input files cannot be specified
+when using this option.  Output can be directed to standard output by
+using \flag{o}{}\texttt{-} (i.e., the output file name is `\texttt{-}'.)
+\section{Command Line Options}
+\label{sec:options}
+\begin{description}
+\item[\flag{a}{}, \longopt{ignore-advisories}]~\\
+Ignore advisories.  The default is to print out all advisories.\index{advisory!ignore}
+\item[\flag{b}{}, \longopt{bounds-only}]~\\
+This option is used to compute the ``Type 1 throughput bounds''\index{throughput!bounds}\index{bounds!throughput} only.
+These bounds are computed assuming no contention anywhere in the model
+and represent the guaranteed not to exceed values.
+\item[\flag{d}{}, \longopt{debug}=\emph{arg}]~\\
+This option is used to enable debug output.\index{debug}
+\emph{Arg} can be one of:
+\begin{description}
+\item[\optarg{activities}{}]
+Activities -- not functional.
+\item[\optarg{all}{}]
+Enable all debug output.
+\item[\optarg{calls}{}]
+Print out the number of rendezvous between all tasks.
+\item[\optarg{forks}{}]
+Print out the fork-join matching process.
+\item[\optarg{interlock}{}]
+Print out the interlocking table and the interlocking between all tasks and processors.
+\item[\optarg{joins}{}]
+Joins -- not functional.
+\item[\optarg{layers}{}]
+Print out the contents of all of the layers found in the model.
+\item[\optarg{lqx}{}]
+Debug LQX parser.
+\item[\optarg{overtaking}{}]
+Overtaking -- not functional.
+\item[\optarg{quorum}{}]
+Print out results from pseudo activities used by quorum.
+\item[\optarg{xml}{}]
+Debug XML.
+\end{description}
+\item[\flag{e}{}, \longopt{error}=\emph{arg}]~\\
+This option is to enable floating point exception handling.\index{floating point!exception}
+\emph{Arg} must be one of the following:
+\begin{enumerate}
+\item \textbf{a}
+Abort immediately on a floating point error (provided the floating point unit can do so).
+\item \textbf{d}
+Abort on floating point errors. (default)
+\item \textbf{i}
+Ignore floating point errors.
+\item \textbf{w}
+Warn on floating point errors.
+\end{enumerate}
+The solver checks for floating point overflow,\index{overflow} division by zero and invalid operations.
+Underflow and inexact result exceptions are always ignored.
+
+
+In some instances, infinities \index{infinity}\index{floating point!infinity} will be propogated within the solver.  Please refer to the
+\textbf{stop-on-message-loss} pragma below.
+\item[\flag{f}{}, \longopt{fast}]~\\
+This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA.
+It is equivalent to setting \textbf{pragma} \emph{mva}=\emph{one-step}, \emph{layering}=\emph{batched}, \emph{multiserver}=\emph{conway}
+\item[\flag{H}{}, \longopt{help}=\emph{arg}]~\\
+\item[\flag{I}{}, \longopt{input-format}=\emph{arg}]~\\
+This option is used to force the input file format to either \emph{xml} or \emph{lqn}.
+By default, if the suffix of the input filename is one of: \emph{.in}, \emph{.lqn} or \emph{.xlqn}
+, then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+\item[\flag{n}{}, \longopt{no-execute}]~\\
+Read input, but do not solve.  The input is checked for validity.  
+No output is generated.
+\item[\flag{o}{}, \longopt{output}=\emph{arg}]~\\
+Direct analysis results to \emph{output}\index{output}.  A filename of `\texttt{-}\index{standard input}'
+directs output to standard output.  If \texttt{output}is a directory, all output is saved in \texttt{output/input.out}. If the input model contains a SPEX program with loops, the SPEX output is sent to \texttt{output}; the individual model output files are found in the directory \texttt{output.d}. If \textbf{lqns} is invoked with this
+option, only one input file can be specified.
+\item[\flag{p}{}, \longopt{parseable}]~\\
+Generate parseable output suitable as input to other programs such as
+\textbf{lqn2ps(1)} and \textbf{srvndiff(1)}.  If input is from
+\texttt{filename}, parseable output is directed to \texttt{filename.p}.
+If standard input is used for input, then the parseable output is sent
+to the standard output device.  If the \flag{o}{}\texttt{output} option is used, the
+parseable output is sent to the file name \texttt{output}.
+(In this case, only parseable output is emitted.)
+\item[\flag{P}{}, \longopt{pragma}=\emph{arg}]~\\
+Change the default solution strategy.  Refer to the PRAGMAS section\index{pragma}
+below for more information.
+\item[\flag{r}{}, \longopt{rtf}]~\\
+Output results using Rich Text Format instead of plain text.  Processors, entries and tasks with high utilizations are coloured in red.
+\item[\flag{t}{}, \longopt{trace}=\emph{arg}]~\\
+This option is used to set tracing \index{tracing} options which are used to print out various
+intermediate results \index{results!intermediate} while a model is being solved.
+\emph{arg} can be any combination of the following:
+\begin{description}
+\item[\optarg{activities}{}]
+Print out results of activity aggregation.
+\item[\optarg{convergence}{=\emph{arg}}]
+Print out convergence arg after each submodel is solved.  This option is useful for tracking the rate of convergence for a model.
+The optional numeric argument supplied to this option will print out the convergence value for the specified MVA submodel, otherwise,
+the convergence value for all submodels will be printed.
+\item[\optarg{delta\_wait}{}]
+Print out difference in entry service time after each submodel is solved.
+\item[\optarg{forks}{}]
+Print out overlap table for forks prior to submodel solution.
+\item[\optarg{idle\_time}{}]
+Print out computed idle time after each submodel is solved.
+\item[\optarg{interlock}{}]
+Print out interlocking adjustment before each submodel is solved.
+\item[\optarg{joins}{}]
+Print out computed join delay and join overlap table prior to submodel solution.
+\item[\optarg{mva}{=\emph{arg}}]
+Print out the MVA submodel and its solution. A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed.
+\item[\optarg{overtaking}{}]
+Print out overtaking calculations.
+\item[\optarg{print}{}]
+Print out intermediate solutions at the print interval specified in the model.  The print interval field in the input is ignored otherwise.
+\item[\optarg{quorum}{}]
+Print quorum traces.
+\item[\optarg{throughput}{}]
+Print throughput's values.
+\item[\optarg{variance}{}]
+Print out the variances calculated after each submodel is solved.
+\item[\optarg{wait}{}]
+Print waiting time for each rendezvous in the model after it has been computed.
+\end{description}
+\item[\flag{v}{}, \longopt{verbose}]~\\
+Generate output after each iteration of the MVA solver and the convergence value at the end of each outer iteration of the solver.
+\item[\flag{V}{}, \longopt{version}]~\\
+Print out version and copyright information.\index{version}\index{copyright}
+\item[\flag{w}{}, \longopt{no-warnings}]~\\
+Ignore warnings.  The default is to print out all warnings.\index{warning!ignore}
+\item[\flag{x}{}, \longopt{xml}]~\\
+Generate XML output regardless of input format.
+\item[\flag{z}{}, \longopt{special}=\emph{arg}]~\\
+This option is used to select special options.  Arguments of the form
+\emph{nn} are integers while arguments of the form \emph{nn.n} are real
+numbers.  \emph{Arg} can be any of the following:
+\begin{description}
+\item[\optarg{convergence-value}{=\emph{arg}}]
+Set the convergence value to \emph{arg}.  
+\emph{Arg} must be a number between 0.0 and 1.0.
+\item[\optarg{full-reinitialize}{}]
+For multiple runs, reinitialize all processors.
+\item[\optarg{generate}{=\emph{arg}}]
+This option is used for debugging the solver.  A directory named \emph{arg} will be created containing source code for invoking the MVA solver directly.
+\item[\optarg{ignore-overhanging-threads}{}]
+Ignore the effect of the overhanging threads.
+\item[\optarg{iteration-limit}{=\emph{arg}}]
+Set the maximum number of iterations to \emph{arg}.
+\emph{Arg} must be an integer greater than 0.  The default value is 50.
+\item[\optarg{man}{=\emph{arg}}]
+Output this manual page.  If an optional \emph{arg}
+is supplied, output will be written to the file named \emph{arg}.
+Otherwise, output is sent to stdout.
+\item[\optarg{min-steps}{=\emph{arg}}]
+Force the solver to iterate min-steps times.
+\item[\optarg{mol-ms-underrelaxation}{=\emph{arg}}]
+Set the under-relaxation factor to \emph{arg} for the MOL multiserver approximation.
+\emph{Arg} must be a number between 0.0 and 1.0.
+The default value is 0.5.\item[\optarg{overtaking}{}]
+Print out overtaking probabilities.\item[\optarg{print-interval}{=\emph{arg}}]
+Set the printing interval to \emph{arg}.  The
+\flag{d}{} or \flag{v}{} options must also be selected to display intermediate results.
+The default value is 10.
+\item[\optarg{single-step}{}]
+Stop after each MVA submodel is solved.  Any character typed at the terminal except end-of-file will resume the calculation.  End-of-file will cancel single-stepping altogether.
+\item[\optarg{skip-layer}{=\emph{arg}}]
+Ignore submodel \emph{arg} during solution.
+\item[\optarg{tex}{=\emph{arg}}]
+Output this manual page in LaTeX format.   If an optional \emph{arg}
+is supplied, output will be written to the file named \emph{arg}.
+Otherwise, output is sent to stdout.
+\item[\optarg{underrelaxation}{=\emph{arg}}]
+Set the underrelaxation to \emph{arg}.
+\emph{Arg} must be a number between 0.0 and 1.0.
+The default value is 0.9.
+\end{description}
+If any one of \emph{convergence}, \emph{iteration-limit}, or\emph{print-interval} are used as arguments, the corresponding 
+value specified in the input file for general information, `G', is
+ignored.  
+\item[\flag{c}{}, \longopt{convergence}=\emph{arg}]~\\
+Set the convergence value to \emph{arg}.  
+\emph{Arg} must be a number between 0.0 and 1.0.
+\index{convergence!value}\item[\flag{e}{}, \longopt{exact-mva}]~\\
+Use Exact MVA to solve all submodels.\index{MVA!exact}
+\item[\longopt{hwsw-layering}]~\\
+\item[\flag{i}{}, \longopt{iteration-limit}=\emph{arg}]~\\
+Set the maximum number of iterations to \emph{arg}.
+\emph{Arg} must be an integer greater than 0.  The default value is 50.
+\item[\longopt{srvn-layering}]~\\
+Solve the model using submodels containing exactly one server.
+\item[\longopt{squashed-layering}]~\\
+Use only one submodel to solve the model.
+\item[\flag{m}{}, \longopt{method-of-layers}]~\\
+This option is to use the Method Of Layers solution approach to solving the layer submodels.
+\item[\longopt{processor-sharing}]~\\
+Use Processor Sharing scheduling at all fixed-rate processors.
+\item[\flag{s}{}, \longopt{schweitzer-amva}]~\\
+Use Bard-Schweitzer approximate MVA to solve all submodels.\index{MVA!Bard-Schweitzer}
+\item[\flag{o}{}, \longopt{no-stop-on-message-loss}]~\\
+Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an
+error message indicating that the arrival rate is too high for the service time of the entry
+\item[\longopt{trace-mva}]~\\
+Output the inputs and results of each MVA submodel for every iteration of the solver.
+\item[\flag{u}{}, \longopt{underrelaxation}=\emph{arg}]~\\
+Set the underrelaxation to \emph{arg}.
+\emph{Arg} must be a number between 0.0 and 1.0.
+The default value is 0.9.
+\item[\longopt{no-variance}]~\\
+Do not use variances in the waiting time calculations.
+\item[\longopt{reload-lqx}]~\\
+Re-run the LQX\index{LQX} program without re-solving the models.  Results must exist from a previous solution run.
+This option is useful if LQX print statements are changed.
+\item[\longopt{no-header}]~\\
+\item[\longopt{debug-lqx}]~\\
+Output debugging information as an LQX\index{LQX!debug} program is being parsed.
+\item[\longopt{debug-xml}]~\\
+Output XML\index{XML!debug} elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
+this option can be used to localize the error.
+\item[\longopt{debug-srvn}]~\\
+\end{description}
+
+
+\textbf{Lqns} exits\index{exit!success} with 0 on success, 1 if the model failed to converge,\index{convergence!failure}
+2 if the input was invalid\index{input!invalid}, 4 if a command line argument was\index{command line!incorrect}
+incorrect, 8 for file read/write problems and -1 for fatal errors\index{error!fatal}.  If
+multiple input files are being processed, the exit code is the
+bit-wise OR of the above conditions.
+\section{Pragmas}
+\label{sec:lqns-pragmas}
+\emph{Pragmas}\index{pragma} are used to alter the behaviour of the solver in a
+variety of ways.  They can be specified in the input file with
+``\#pragma'', on the command line with the \flag{P}{} option, or through
+the environment variable \index{environment variable}\emph{LQNS\_PRAGMAS}\index{LQNS\_PRAGMAS@\texttt{LQNS\_PRAGMAS}}.  Command line
+specification of pragmas overrides those defined in the environment
+variable which in turn override those defined in the input file.  The
+following pragmas are supported.  Invalid pragma\index{pragma!invalid} specification at the
+command line will stop the solver.  Invalid pragmas defined in the
+environment variable or in the input file are ignored as they might be
+used by other solvers.
+\begin{description}
+\item[\optarg{cycles}{=\emph{arg}}]~\\
+This pragma is used to enable or disable cycle detection\index{cycle!detection} in the call
+graph.\index{call graph}  Cycles may indicate the presence of deadlocks.\index{deadlock}
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{allow}{}]
+Allow cycles in the call graph.  The interlock\index{interlock} adjustment is disabled.
+\item[\optarg{disallow}{}]
+Disallow cycles in the call graph.
+\end{description}
+The default is disallow.
+\item[\optarg{interlocking}{=\emph{arg}}]~\\
+The interlocking\index{interlock} is used to correct the throughputs\index{throughput!interlock} at stations as a
+result of solving the model using layers~\cite{perf:franks-95-ipds-interlock}.  This pragma is used to
+choose the algorithm used.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{none}{}]
+Do not perform interlock adjustment.
+\item[\optarg{throughput}{}]
+Perform interlocking by adjusting throughputs.
+\end{description}
+The default is throughput.
+\item[\optarg{layering}{=\emph{arg}}]~\\
+This pragma is used to select the layering strategy\index{layering!strategy} used by the solver.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{batched}{}]
+Batched layering\index{batched layers}\index{layering!batched} -- solve layers composed of as many servers as possible from top to bottom.
+\item[\optarg{batched-back}{}]
+Batched layering with back propagation -- solve layers composed of as many servers as possible from top to bottom, then from bottom to top to improve solution speed.
+\item[\optarg{hwsw}{}]
+Hardware/software layers\index{hardware-software layers}\index{layers!hardware-software} -- The model is solved using two submodels:
+One consisting solely of the tasks in the model, and the other with the tasks calling the processors.
+\item[\optarg{mol}{}]
+Method Of layers\index{method of layers}\index{layering!method of} -- solve layers using the Method of Layers~\cite{perf:rolia-95-ieeese-mol}\index{Method of Layers}\index{layering!Method of Layers}. Layer spanning is performed by allowing clients to appear in more than one layer.
+\item[\optarg{mol-back}{}]
+Method Of layers -- solve layers using the Method of Layers.  Software submodels are solved top-down then bottom up to improve solution speed.
+\item[\optarg{squashed}{}]
+Squashed layers\index{squashed layers}\index{layering!squashed} -- All the tasks and processors are placed into one submodel.
+Solution speed may suffer because this method generates the most number of chains in the MVA solution.  See also \flag{P}{}\emph{mva}.
+\item[\optarg{srvn}{}]
+SRVN layers\index{srvn layers}\index{layering!srvn} -- solve layers composed of only one server.
+This method of solution is comparable to the technique used by the \textbf{srvn} solver.  See also \flag{P}{}\emph{mva}.
+\end{description}
+The default is batched-back.
+\item[\optarg{multiserver}{=\emph{arg}}]~\\
+This pragma is used to choose the algorithm for solving multiservers\index{multiserver!algorithm}.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{bruell}{}]
+Use the Bruell multiserver\index{multiserver!Bruell}~\cite{queue:bruell-84-peva-load-dependent} calculation for all multiservers.
+\item[\optarg{conway}{}]
+Use the Conway multiserver\index{multiserver!Conway}~\cite{queue:deSouzaeSilva-87,queue:conway-88} calculation for all multiservers.
+\item[\optarg{reiser}{}]
+Use the Reiser multiserver\index{multiserver!Reiser}~\cite{queue:reiser-79} calculation for all multiservers.
+\item[\optarg{reiser-ps}{}]
+Use the Reiser multiserver calculation for all multiservers. For multiservers with multiple entries, scheduling is processor sharing\index{processor!sharing}, not FIFO. 
+\item[\optarg{rolia}{}]
+Use the Rolia\index{multiserver!Rolia}~\cite{perf:rolia-92,perf:rolia-95-ieeese-mol} multiserver calculation for all multiservers.
+\item[\optarg{rolia-ps}{}]
+Use the Rolia multiserver calculation for all multiservers. For multiservers with multiple entries, scheduling is processor sharing\index{processor!sharing}, not FIFO. 
+\item[\optarg{schmidt}{}]
+Use the Schmidt multiserver\index{multiserver!Schmidt}~\cite{queue:schmidt-97} calculation for all multiservers.
+\item[\optarg{suri}{}]
+experimental.
+\end{description}
+The default multiserver\index{multiserver!default} calculation uses the the Conway multiserver for multiservers with less than five servers, and the Rolia multiserver otherwise.
+
+\item[\optarg{mva}{=\emph{arg}}]~\\
+This pragma is used to choose the MVA\index{MVA} algorithm used to solve the submodels.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{exact}{}]
+Exact MVA\index{MVA!exact}.  Not suitable for large systems.
+\item[\optarg{fast}{}]
+Fast Linearizer
+\item[\optarg{linearizer}{}]
+Linearizer.\index{MVA!Linearizer}\index{Linearizer}
+\item[\optarg{one-step}{}]
+Perform one step of Bard Schweitzer approximate MVA for each iteration of a submodel.  The default is to perform Bard Schweitzer approximate MVA until convergence for each submodel.  This option, combined with \flag{P}{}\emph{layering=srvn} most closely approximates the solution technique used by the \textbf{srvn} solver.
+\item[\optarg{one-step-linearizer}{}]
+Perform one step of Linearizer approximate MVA for each iteration of a submodel.  The default is to perform Linearizer approximate MVA until convergence for each submodel.
+\item[\optarg{schweitzer}{}]
+Bard-Schweitzer approximate MVA.\index{MVA!Bard-Schweitzer}\index{Bard-Schweitzer}
+\end{description}
+The default is linearizer.
+\item[\optarg{overtaking}{=\emph{arg}}]~\\
+This pragma is usesd to choose the overtaking\index{overtaking} approximation.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{markov}{}]
+Markov phase 2 calculation.\index{overtaking!Markov}
+\item[\optarg{none}{}]
+Disable all second phase servers.  All stations are modeled as having a single phase by summing the phase information.
+\item[\optarg{rolia}{}]
+Use the method from the Method of Layers.\index{overtaking!Method of Layers}
+\item[\optarg{simple}{}]
+Simpler, but faster approximation.
+\item[\optarg{special}{}]
+?
+\end{description}
+The default is rolia.
+\item[\optarg{processor}{=\emph{arg}}]~\\
+Force the scheduling type\index{scheduling!processor}\index{processor!scheduling} of all uni-processors to the type specfied.
+\begin{description}
+\item[\optarg{fcfs}{}]
+All uni-processors are scheduled first-come, first-served.
+\item[\optarg{hol}{}]
+All uni-processors are scheduled using head-of-line priority.\index{priority!head of line}
+\item[\optarg{ppr}{}]
+All uni-processors are scheduled using priority, pre-emptive resume.\index{priority!preemptive-resume}
+\item[\optarg{ps}{}]
+All uni-processors are scheduled using processor sharing.\index{processor sharing}
+\end{description}
+The default is to use the processor scheduling specified in the model.
+
+\item[\optarg{severity-level}{=\emph{arg}}]~\\
+This pragma is used to enable or disable warning messages.
+\begin{description}
+\item[\optarg{advisory}{}]
+\item[\optarg{all}{}]
+\item[\optarg{run-time}{}]
+\item[\optarg{warning}{}]
+\end{description}
+The default is all.
+\item[\optarg{stop-on-message-loss}{=\emph{arg}}]~\\
+This pragma is used to control the operation of the solver when the
+arrival rate\index{arrival rate} exceeds the service rate of a server.
+\emph{Arg} must be one of: 
+\begin{description}
+\item[\optarg{false}{}]
+Ignore queue overflows\index{overflow} for open arrivals\index{open arrival!overflow} and send-no-reply\index{send-no-reply!overflow} requests.  If a queue overflows, its waiting times is reported as infinite.\index{infinity}\item[\optarg{true}{}]
+Stop if messages are lost.
+\end{description}
+The default is false.
+\item[\optarg{tau}{=\emph{arg}}]~\\
+Set the tau adjustment factor to \emph{arg}.
+\emph{Arg} must be an integer between 0 and 25.
+A value of \emph{zero} disables the adjustment.
+\item[\optarg{threads}{=\emph{arg}}]~\\
+This pragma is used to change the behaviour of the solver when solving
+models with fork-join\index{fork}\index{join} interactions.
+\begin{description}
+\item[\optarg{exponential}{}]
+Use exponential values instead of three-point approximations in all approximations\index{three-point approximation}~\cite{perf:jiang-96}.
+\item[\optarg{hyper}{}]
+Inflate overlap probabilities based on arrival instant estimates.
+\item[\optarg{mak}{}]
+Use Mak-Lundstrom\index{Mak-Lundstrom}~\cite{perf:mak-90} approximations for join delays.\index{join!delay}
+\item[\optarg{none}{}]
+Do not perform overlap calculation for forks.\index{overlap calculation}
+\end{description}
+The default is hyper.
+\item[\optarg{variance}{=\emph{arg}}]~\\
+This pragma is used to choose the variance\index{variance} calculation used by the solver.
+\begin{description}
+\item[\optarg{init-only}{}]
+Initialize the variances, but don't recompute as the model is solved.\index{variance!initialize only}
+\item[\optarg{mol}{}]
+Use the MOL variance calculation.\index{variance!Method of Layers}\index{Method of Layers!variance}
+\item[\optarg{no-entry}{}]
+By default, any task with more than one entry will use the variance calculation.  This pragma will switch off the variance calculation for tasks with only one entry.
+\item[\optarg{none}{}]
+Disable variance adjustment.  All stations in the MVA submodels are either delay- or FIFO-servers.
+\item[\optarg{stochastic}{}]
+?
+\end{description}
+
+\end{description}
+\section{Stopping Criteria}
+\label{sec:lqns-stopping-criteria}
+\textbf{Lqns} computes the model results by iterating through a set of
+submodels until either convergence\index{convergence} is achieved, or the iteration limit\index{iteration limit|textbf}
+is hit. Convergence is determined by taking the root of the mean of
+the squares of the difference in the utilization of all of the servers
+from the last two iterations of the MVA solver over the all of the
+submodels then comparing the result to the convergence value specified
+in the input file. If the RMS change in utilization is less than
+convergence value\index{convergence!value|textbf}, then the results are considered valid.
+
+
+If the model fails to converge,\index{convergence!failure} three options are available:
+\begin{enumerate}
+\item reduce the under-relaxation coefficient. Waiting and idle times are
+propogated between submodels during each iteration. The
+under-relaxation coefficient determines the amount a service time is
+changed between each iteration. A typical value is 0.7 - 0.9; reducing
+it to 0.1 may help.
+\item increase the iteration limit.\index{iteration limit} The iteration limit sets the upper bound
+on the number of times all of the submodels are solved. This value may
+have to be increased, especially if the under-relaxation coefficient
+is small, or if the model is deeply nested. The default value is 50
+iterations.
+\item increase the convergence test value\index{convergence!value}. Note that the convergence value
+is the standard deviation in the change in the utilization of the
+servers, so a value greater than 1.0 makes no sense.
+\end{enumerate}
+
+
+The convergence value can be observed using \flag{t}{}\emph{convergence} flag.
+\section{Model Limits}
+\label{sec:model-limits}
+The following table lists the acceptable parameter types for
+\textbf{lqns}.  An error will
+be reported if an unsupported parameter is supplied except when the
+value supplied is the same as the default.
+
+
+%%--------------------------------------------------------------------
+%% Table Begin
+%%--------------------------------------------------------------------
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[c]{ll}
+    Parameter&lqns \\
+    \hline
+    Phases\index{ phase!maximum} & 3\\
+    Scheduling\index{ scheduling} & FIFO, HOL, PPR\\
+    Open arrivals\index{ open arrival} & yes\\
+    Phase type\index{ phase!type} & stochastic, deterministic\\
+    Think Time\index{ think time} & yes\\
+    Coefficient of variation\index{ coefficient of variation} & yes\\
+    Interprocessor-delay\index{ interprocessor delay} & yes\\
+    Asynchronous connections\index{ asynchronous connections} & yes\\
+    Forwarding\index{ forwarding} & yes\\
+    Multi-servers\index{ multi-server} & yes\\
+    Infinite-servers\index{ infinite server} & yes\\
+    Max Entries\index{ entry!maximum} & 1000\\
+    Max Tasks\index{ task!maximum} & 1000\\
+    Max Processors\index{ processor!maximum} & 1000\\
+    Max Entries per Task & 1000\\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:lqns-model-limits}LQNS Model Limits\index{limits!lqns}.}
+\end{table}
+\section{Diagnostics}
+\label{sec:lqns-diagnostics}
+Most diagnostic messages result from errors in the input file.
+If the solver reports errors, then no solution will be generated for
+the model being solved.  Models which generate warnings may not be
+correct.  However, the solver will generate output.
+
+
+Sometimes the model fails to converge\index{convergence!failure}, particularly if there are several
+heavily utilized servers in a submodel.  Sometimes, this problem can
+be solved by reducing the value of the under-relaxation coefficient.  It
+may also be necessary to increase the iteration-limit\index{iteration limit}, particularly if
+there are many submodels.  With replicated models, it may be necessary
+to use `srvn' layering to get the model to converge.  Convergence can be tracked
+using the \flag{t}{}\emph{convergence} option.
+
+
+The solver will sometimes report some servers with `high' utilization.
+This problem is the result of some of the approximations used, in particular, two-phase servers.
+Utilizations in excess of 10\% are likely the result of failures in the solver.
+Please send us the model file so that we can improve the algorithms.
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

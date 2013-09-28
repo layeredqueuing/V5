@@ -1,0 +1,29 @@
+# SRVN Model Description File, for folder replicants
+# Created by XTimeBench version 1.13, Fri Sep  8 18:12:07 1995
+# For the "srvn" solver program.
+
+G "" 0.000010 1000 10 0.900000 -1
+
+P 3
+  p A1 f r 4 
+  p B1 f r 2 
+  p C1 f r 2 
+-1
+
+T 3
+  t A1          r A1 -1 A1 0 r 4 
+  t B1          n B1 -1 B1 0 r 2 
+  t C1          n C1 -1 C1 0 r 2 
+-1
+
+E 3
+  s A1             0.000000    1.000000    -1
+  y A1          B1 0.000000    1.000000    -1
+  s B1             1.000000    0.000000    -1
+  y B1          C1 1.000000    0.000000    -1
+  s C1             1.000000    0.000000    -1
+  i A1 B1 4 -1
+  o A1 B1 2  -1
+  i B1 C1 2  -1
+  o B1 C1 2  -1
+-1

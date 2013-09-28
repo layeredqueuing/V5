@@ -1,0 +1,100 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  userman
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Oct  4 2005
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\documentclass{report}
+\usepackage{times}
+\usepackage{bnf,epsf,dcolumn,verbatim,subfig,makeidx,rotating,color,listings,multicol}
+\usepackage{hyperref}
+\newcolumntype{d}[1]{D{.}{.}{#1}}
+% Some useful definitions...
+
+\marginparwidth 72pt
+\oddsidemargin 0pt
+\evensidemargin 0pt
+\topmargin -32pt
+\textwidth 6.5in
+\textheight 8.7in
+
+\makeindex
+\newcommand{\flag}[2]{\texttt{-#1}\emph{#2}\index{-#1@\texttt{-#1}}}
+\newcommand{\longopt}[1]{\texttt{--#1}\index{--#1@\texttt{--#1}}}
+\newcommand{\ctrlparam}[1]{\texttt{#1}\index{#1@\texttt{#1}}}
+\newcommand{\optarg}[2]{\emph{#1}{#2}\index{#1@\textit{#1}}}
+\newcommand{\pragma}[1]{\emph{#1}\index{#1@\textit{#1}}}
+\newcommand{\manpage}[2]{\emph{#1(#2)}\index{#1}}
+\newcommand{\indexerror}[1]{\index{error!#1}\index{#1!error}}
+\newcommand{\dindex}[2]{\index{#1!#2}\index{#2!#1}}
+\newcommand{\schemaelement}[1]{\texttt{#1}\index{element!#1}\index{#1@\textit{#1}}}
+\newcommand{\attribute}[1]{\texttt{#1}\index{attribute!#1}\index{#1@\texttt{#1}}}
+\newcommand{\schematype}[1]{\textbf{#1}\index{type!#1}\index{#1@\textbf{#1}}}
+
+\lstset{
+  basicstyle=\small,
+  keywordstyle=\bfseries,
+  identifierstyle=,
+  commentstyle=\slshape,
+  stringstyle=\ttfamily,
+  showstringspaces=false
+  frame=leftline,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  numbersep=-4pt
+}
+
+
+\begin{document}
+
+\title{Layered Queueing Network Solver and Simulator User Manual}
+\author{Greg Franks \and Peter Maly \and Murray Woodside \and Dorina
+  C. Petriu \and Alex Hubbard \and Martin Mroz}
+\date{Department of Systems and Computer Engineering\\
+  Carleton University\\
+  Ottawa ON K1S~5B6\\
+  \texttt{\{cmw,greg\}@sce.carleton.ca}\\[1cm]
+  \today\\[1cm]
+  $\ $Revision$\ $ } \maketitle \clearpage
+\tableofcontents
+\clearpage
+\begin{abstract}
+  
+The Layered Queuing Network\index{Layered Queueing Network} (LQN) model is a canonical form for extended
+queueing networks\index{queueing network!extended}\index{queueing network!layered} with a layered structure.
+The layered structure arises from servers at one level making requests to servers at lower levels as a
+consequence of a request from a higher level. LQN was developed for modeling software systems, but it
+applies to any extended queueing network with multiple resource possession\index{resource!possession}, in
+which multiple resources are held in a nested fashion.
+
+This document describes the elements found in Layered Queueing Network Model, the results produced when a
+LQN model is solved, and the input and output file formats.  It also describes the method used to invoke the
+analytic and simulation solvers, and the possible errors that can arise when solving a model.  The reader is
+referred to ``Tutorial Introduction to Layered Modeling of Software Performance''~\cite{sw:woodside-xx} for
+constructing models.
+\end{abstract}
+
+\include{model}
+\include{results}
+\include{schema}
+\include{lqx}
+\include{srvn}
+\include{lqns}
+\include{lqsim}
+\include{errors}
+\include{defects}
+\appendix
+\include{grammar}
+\clearpage
+\bibliographystyle{plainurl}
+\bibliography{userman}
+%\bibliography{/home/greg/usr/bib/bibtex-full.bib,/home/greg/usr/bib/queueing,/home/greg/usr/bib/perf,/home/greg/usr/bib/sw,/home/greg/usr/bib/srvn}
+\clearpage
+\printindex
+\end{document} 

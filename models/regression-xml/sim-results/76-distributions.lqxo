@@ -1,0 +1,215 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqsim -C1.0,1000 -M -S1049217653 -o76-distributions.lqxo 76-distributions.lqnx -->
+<lqn-model name="76-distributions" description="lqsim 5.0 solution for model from: 76-distributions.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.975066" iterations="7" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00"/>
+   </solver-params>
+   <processor name="constant" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0.000955314"/>
+         <result-conf-99 utilization="0.00144722"/>
+      </result-processor>
+      <task name="constant_client" scheduling="ref" replication="1">
+         <result-task throughput="0.333489" utilization="1" phase1-utilization="1" proc-utilization="0.333372">
+            <result-conf-95 throughput="0.00270059" utilization="0" proc-utilization="0.000675509"/>
+            <result-conf-99 throughput="0.00409116" utilization="3.707" proc-utilization="0.00102334"/>
+         </result-task>
+         <entry name="constant_client" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333489" squared-coeff-variation="1.19079" proc-utilization="0.333372">
+               <result-conf-95 utilization="0" throughput="0.00270059" squared-coeff-variation="0" proc-utilization="0.000675509"/>
+               <result-conf-99 utilization="0" throughput="0.00409116" squared-coeff-variation="0" proc-utilization="0.00102334"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="constant_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0">
+                  <result-activity proc-waiting="0" service-time="2.99863" service-time-variance="10.7073" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0242473" service-time-variance="0.220339" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0367326" service-time-variance="0.333795" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="constant_server" calls-mean="2">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="constant_server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.666628" utilization="0.666628" phase1-utilization="0.666628" proc-utilization="0.666628">
+            <result-conf-95 throughput="0.000675385" utilization="0.000675509" phase1-utilization="0.000675509" proc-utilization="0.000675509"/>
+            <result-conf-99 throughput="0.00102315" utilization="3.02666" phase1-utilization="0.00102334" proc-utilization="0.00102334"/>
+         </result-task>
+         <entry name="constant_server" type="PH1PH2">
+            <result-entry utilization="0.666628" throughput="0.666628" squared-coeff-variation="0" proc-utilization="0.666628">
+               <result-conf-95 utilization="0.000675509" throughput="0.000675385" squared-coeff-variation="0" proc-utilization="0.000675509"/>
+               <result-conf-99 utilization="0.00102334" throughput="0.00102315" squared-coeff-variation="0" proc-utilization="0.00102334"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="constant_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0">
+                  <result-activity proc-waiting="0" service-time="1" service-time-variance="0" utilization="0.666628">
+                     <result-conf-95 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0.000675509"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0.00102334"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="exponential" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0.00228851"/>
+         <result-conf-99 utilization="0.00346691"/>
+      </result-processor>
+      <task name="exponential_client" scheduling="ref" replication="1">
+         <result-task throughput="0.33434" utilization="1" phase1-utilization="1" proc-utilization="0.333321">
+            <result-conf-95 throughput="0.00261888" utilization="0" proc-utilization="0.00161822"/>
+            <result-conf-99 throughput="0.00396739" utilization="3.707" proc-utilization="0.00245147"/>
+         </result-task>
+         <entry name="exponential_client" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.33434" squared-coeff-variation="1.44605" proc-utilization="0.333321">
+               <result-conf-95 utilization="0" throughput="0.00261888" squared-coeff-variation="0" proc-utilization="0.00161822"/>
+               <result-conf-99 utilization="0" throughput="0.00396739" squared-coeff-variation="0" proc-utilization="0.00245147"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="exponential_client_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2.99099" service-time-variance="12.9364" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0234749" service-time-variance="0.219398" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0355625" service-time-variance="0.33237" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="exponential_server" calls-mean="2">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="exponential_server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.666645" utilization="0.666679" phase1-utilization="0.666679" proc-utilization="0.666679">
+            <result-conf-95 throughput="0.00215186" utilization="0.00161822" phase1-utilization="0.00161822" proc-utilization="0.00161822"/>
+            <result-conf-99 throughput="0.00325989" utilization="3.02678" phase1-utilization="0.00245147" proc-utilization="0.00245147"/>
+         </result-task>
+         <entry name="exponential_server" type="PH1PH2">
+            <result-entry utilization="0.666679" throughput="0.666645" squared-coeff-variation="0.998099" proc-utilization="0.666679">
+               <result-conf-95 utilization="0.00161822" throughput="0.00215186" squared-coeff-variation="0" proc-utilization="0.00161822"/>
+               <result-conf-99 utilization="0.00245147" throughput="0.00325989" squared-coeff-variation="0" proc-utilization="0.00245147"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="exponential_server_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.00005" service-time-variance="0.998207" utilization="0.666679">
+                     <result-conf-95 proc-waiting="0" service-time="0.00520467" service-time-variance="0.0142901" utilization="0.00161822"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.00788463" service-time-variance="0.0216483" utilization="0.00245147"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="gamma" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0.000739736"/>
+         <result-conf-99 utilization="0.00112064"/>
+      </result-processor>
+      <task name="gamma_client" scheduling="ref" replication="1">
+         <result-task throughput="0.333218" utilization="1" phase1-utilization="1" proc-utilization="0.333386">
+            <result-conf-95 throughput="0.00218353" utilization="0" proc-utilization="0.000523072"/>
+            <result-conf-99 throughput="0.00330786" utilization="3.707" proc-utilization="0.000792411"/>
+         </result-task>
+         <entry name="gamma_client" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333218" squared-coeff-variation="1.25127" proc-utilization="0.333386">
+               <result-conf-95 utilization="0" throughput="0.00218353" squared-coeff-variation="0" proc-utilization="0.000523072"/>
+               <result-conf-99 utilization="0" throughput="0.00330786" squared-coeff-variation="0" proc-utilization="0.000792411"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="gamma_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0.25">
+                  <result-activity proc-waiting="0" service-time="3.00105" service-time-variance="11.2694" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0196893" service-time-variance="0.124979" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0298277" service-time-variance="0.189333" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="gamma_server" calls-mean="2">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="gamma_server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.666851" utilization="0.666614" phase1-utilization="0.666614" proc-utilization="0.666614">
+            <result-conf-95 throughput="0.00164145" utilization="0.000523072" phase1-utilization="0.000523072" proc-utilization="0.000523072"/>
+            <result-conf-99 throughput="0.00248666" utilization="3.02663" phase1-utilization="0.000792411" proc-utilization="0.000792411"/>
+         </result-task>
+         <entry name="gamma_server" type="PH1PH2">
+            <result-entry utilization="0.666614" throughput="0.666851" squared-coeff-variation="0.249917" proc-utilization="0.666614">
+               <result-conf-95 utilization="0.000523072" throughput="0.00164145" squared-coeff-variation="0" proc-utilization="0.000523072"/>
+               <result-conf-99 utilization="0.000792411" throughput="0.00248666" squared-coeff-variation="0" proc-utilization="0.000792411"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="gamma_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0.25">
+                  <result-activity proc-waiting="0" service-time="0.999645" service-time-variance="0.249739" utilization="0.666614">
+                     <result-conf-95 proc-waiting="0" service-time="0.00261973" service-time-variance="0.00276864" utilization="0.000523072"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.00396867" service-time-variance="0.00419426" utilization="0.000792411"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="hyperexponential" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0.00645613"/>
+         <result-conf-99 utilization="0.0097805"/>
+      </result-processor>
+      <task name="hyperexponential_client" scheduling="ref" replication="1">
+         <result-task throughput="0.333732" utilization="1" phase1-utilization="1" proc-utilization="0.334246">
+            <result-conf-95 throughput="0.00517041" utilization="0" proc-utilization="0.00456517"/>
+            <result-conf-99 throughput="0.00783274" utilization="3.707" proc-utilization="0.00691586"/>
+         </result-task>
+         <entry name="hyperexponential_client" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333732" squared-coeff-variation="3.52611" proc-utilization="0.334246">
+               <result-conf-95 utilization="0" throughput="0.00517041" squared-coeff-variation="0" proc-utilization="0.00456517"/>
+               <result-conf-99 utilization="0" throughput="0.00783274" squared-coeff-variation="0" proc-utilization="0.00691586"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="hyperexponential_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="9">
+                  <result-activity proc-waiting="0" service-time="2.99653" service-time-variance="31.6616" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0464298" service-time-variance="1.38285" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0703372" service-time-variance="2.09491" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="hyperexponential_server" calls-mean="2">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="hyperexponential_server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.666489" utilization="0.665754" phase1-utilization="0.665754" proc-utilization="0.665754">
+            <result-conf-95 throughput="0.0064008" utilization="0.00456517" phase1-utilization="0.00456517" proc-utilization="0.00456517"/>
+            <result-conf-99 throughput="0.00969668" utilization="3.02468" phase1-utilization="0.00691586" proc-utilization="0.00691586"/>
+         </result-task>
+         <entry name="hyperexponential_server" type="PH1PH2">
+            <result-entry utilization="0.665754" throughput="0.666489" squared-coeff-variation="9.0058" proc-utilization="0.665754">
+               <result-conf-95 utilization="0.00456517" throughput="0.0064008" squared-coeff-variation="0" proc-utilization="0.00456517"/>
+               <result-conf-99 utilization="0.00691586" throughput="0.00969668" squared-coeff-variation="0" proc-utilization="0.00691586"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="hyperexponential_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="9">
+                  <result-activity proc-waiting="0" service-time="0.998916" service-time-variance="8.98629" utilization="0.665754">
+                     <result-conf-95 proc-waiting="0" service-time="0.0148656" service-time-variance="0.449629" utilization="0.00456517"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0225201" service-time-variance="0.681151" utilization="0.00691586"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

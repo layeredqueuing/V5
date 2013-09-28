@@ -1,0 +1,275 @@
+.TH SRVN 1 "21 October 1997"
+.\" $HeadURL$
+.SH NAME
+srvndiff \- compare SRVN results.
+.SH SYNOPSIS
+.br
+.B srvndiff
+[
+.B (+|\-)Abcdeghijklmpqrstuvwyz
+] [
+.B \-CIHMPQRSTUV
+] [
+.B \-S \fIn.n\fR
+] [
+.B \-a \fIaggregate\fR
+] [
+.B \-f \fIformat\fR
+] [
+.B \-o \fIoutput\fR
+] 
+filename1
+[ [ [ [ [ filename2 ] filename3 ] filename4 ] filename5 ] filename6]
+.sp
+.B srvndiff
+[
+.B (+|\-)Abcdeghijklmpqrstuvwyz
+] [
+.B \-@CIHMPQRSTUV
+] [
+.B \-F \fIfileglob\fR
+] [
+.B \-L \fIfilelist\fR
+] [
+.B \-S \fIn.n\fR
+] [
+.B \-a \fIaggregate\fR
+] [
+.B \-f \fIformat\fR
+] [
+.B \-o \fIoutput\fR
+] 
+directory1
+[ [ [ [ [ directory2 ] directory3 ] directory4 ] directory5 ] directory 6]
+.sp
+.B srvndiff
+[
+.B -D
+]
+filename1 filename2
+.B 
+.SH DESCRIPTION
+\fBSrvndiff\fR is used to compare the output from the SRVN solvers
+\fBlqns\fR(1), \fBsrvn\fR(1), \fBsrvntda\fR(1), \fBlqsim\fR(1) and
+\fBpetrisrvn\fR(1).  It may also be used to print out a summary of
+results. 
+
+The arguments to \fBsrvndiff\fR may be either file names or directory
+names.  If the arguments are directory names, \fBsrvndiff\fR will
+search for all files ending in either \fI.p\fP or \fI.lqxo\fP and use the results for
+comparison. 
+
+From one to four file or directory arguments can be specified.
+Directory and file arguments cannot be mixed.  Standard input may be
+specified using the file name \fB\-\fP.  
+
+If only one file or directory argument is supplied, then a summary of
+the contents of the argument is produced.  If two or more arguments
+are supplied, the contents of the extra arguments are compared against
+the contents of the first for the purposes of error reporting.
+
+.SH "OPTIONS"
+.TP 12
+\fB\-@\fI filelist\fR
+Only select those files in the directory that match the files listed
+in the file \fIfilelist\fR.
+.TP 12
+\fB\-a\fB (task|processor)=\fIname\fR
+Aggregate the throughput or utilizations of all tasks or processors
+that match the pattern specified by \fIname\fP.  Regular
+expressions are specified in the same manner as \fBed(1)\fP.
+.TP 12
+\fB(+|\-)A\fR
+Print either everything or nothing.  Options are processed from left
+to right: the last occurance of an option used to print a result takes
+precedence. 
+.TP
+\fB(+|\-)b\fR
+Print (don't print) the waiting time for processors.  The default is to not print this value.  
+.TP
+\fB\-C\fR
+Don't print confidence intervals (if confidence intervals present).
+.TP
+\fB(+|\-)c\fR
+Print (don't print) coefficient of variation for all phases on an
+entry.  The default is to not print this value.  Confidence intervals
+are not available for this report.
+.TP
+\fB\-D\fR
+Generate a parseable output file with the absolute difference between
+the results in filename1 and filename2.  This output can be used as
+input to other programs such as lqn2ps.
+.TP
+\fB(+|\-)d\fR
+Print (don't print) send-no-reply waiting time variances.  The default is to not print
+send-no-reply waiting time variances.
+.TP
+\fB(+|\-)E\fR 
+Print (don't print) error columns of report only.  The default is to
+print the error columns \fBand\fP the results.  Overrides \fB\-R\fP.
+.TP
+\fB(+|\-)e\fR
+Print (don't print) the probability that the maximum service time was
+exceeded (if present).
+.TP
+\fB\-f\fI format\fR
+Set the output format for the specified column.
+.RS
+.TP
+\fBseparator=\fIstring\fR
+Set column separator to \fIstring\fP.
+.TP
+\fBresult=\fIformat\fR
+Set the format string for the result columns to \fIformat\fP.
+\fIFormat\fP must take the form of a valid format specifier to
+\fBprintf(3)\fP with a width and precision argument for a double. The
+default is ``%12.8lg''.
+.TP
+\fBconfidence=\fIfomat\fR
+Set the format string for confidence interval columns.  The default is
+``%10.3lg''.
+.TP
+\fBerror=\fIformat\fR
+Set the format string for the error columns.  The default is ``%6.2lf''.
+.TP
+\fBpercent-confidence[=\fIformat\fB]\fR
+Report confidence intervals as percentages.  If specified, use \fIformat\fP as the
+format string.  Otherwise, use the default ``%8.3lf''.
+.RE
+.TP
+\fB\-F\fI fileglob\fR
+Only select those files in the directory that match the shell glob
+expression \fIfileglob\fR.  Note that the glob expression is
+\fBnot\fR a regular expression.
+.TP
+\fB(+|\-)g\fR 
+Print (don't print) group utilizations.  The default is to
+print the group utilization results.
+.TP
+\fB\-H\fR 
+Print a summary of all options.
+.TP
+\fB(+|\-)h\fR 
+Print (don't print) semaphore waiting (hold) times.  The default is to
+not print the semaphore waiting times.
+.TP
+\fB(+|\-)i\fR
+Print (don't print) the number of iterations needed to solve the
+model.  The default is to not print the number of iterations.
+.TP
+\fB\-I\fR
+Ignore non-convergence errors.  Normally, srvndiff will not report
+results from solutions that did not meet the specified convergence
+criteria for the solver.
+.TP
+\fB(+|\-)i\fR
+Print (don't print) solver iterations.  The default is to not print solver iterations.
+.TP
+\fB(+|\-)j\fR
+Print (don't print) join delays.  The default is to print join delays.
+.TP
+\fB(+|\-)k\fR
+Print (don't print) join delay variance.  The default is to not print
+join delay variance.
+.TP
+\fB(+|\-)l\fR
+Print (don't print) message loss probabilities.  The default is to not print
+message loss probabilities.
+.TP
+\fB\-L\fI label\fR
+Use \fIlabel\fR as file label.
+.TP
+\fB\-M\fR
+Print the absolute value of an error.
+.TP
+\fB(+|\-)m\fR
+Print (don't print) the number of times the MVA wait() function was called.  The default is to not
+print this result.
+.TP
+\fB\-o\fI output\fR
+Direct output to the file named \fIoutput\fR.  By default, output goes
+to standard output.
+.TP
+\fB\-P\fR
+Use normalized processor utilization.  Processor
+utilizations are normalized to one CPU with this option.  The default is to not
+print processor utilization.
+.TP
+\fB(+|\-)p\fR
+Print (don't print) processor utilization.  The default is to not
+print processor utilization.
+.TP
+\fB\-Q\fR
+Quiet - only print out a message if files differ.  The \fB\-S\fR flag can be
+used to set the amount the RMS error the files differ by before being flagged as
+being different.
+.TP
+\fB(+|\-)q\fR
+Print (don't print) open arrival queue lengths.  The default is to not
+print open arrival queue lengths.
+.TP
+\fB\-R\fR
+Print Root Mean Square (RMS) errors only.  This option overrides \fB(+|\-)e\fP.
+.TP
+\fB(+|\-)r\fR
+Print (don't print) solver run times.  The default is to not
+print solver run times.
+.TP
+\fB(+|\-)s\fR
+Print (don't print) entry service times.  The default is to not print
+entry service times.
+.TP
+\fB\-S\fI n.n\fR
+Set the error threshold to \fIn.n\fP.  If the difference any result is greater than
+\fIn.n\fP, srvndiff returns with a non-zero exit code.  
+.TP
+\fB-T\fR 
+Don't print the total RMS error values.  \fBSrvndiff\fP must be comparing
+the results from directories or this option has no effect.  The
+default is to print the totals.
+.TP
+\fB(+|\-)t\fR
+Print (don't print) task throughput. The default is to print task
+throughput. 
+.TP
+\fB-U\fR
+Print the total error summary only.  The default is to print
+both the summary and the individual results.
+.TP
+\fB(+|\-)u\fR
+Print (don't print) task utilizations.  The default is to print task
+utilizations.
+.TP
+\fB(+|\-)v\fR
+Print (don't print) service time variance.  The default is to not print
+service time variances.
+.TP
+\fB\-V\fR
+Print version number.
+.TP
+\fB(+|\-)W\fR
+Print (don't print) read-write lock utilization.  The default is to not print
+this result.
+.TP
+\fB(+|\-)w\fR
+Print (don't print) entry waiting times.  The default is to not print
+entry waiting times.
+.TP
+\fB\-x\fB (task|processor)=\fIname\fR
+Exclude the throughput or utilizations of all tasks or processors
+that match the pattern specified by \fIname\fP.  Regular
+expressions are specified in the same manner as \fBed(1)\fP.
+A task or processor that matches the aggregation pattern will be
+included in the results even if it also matches the exclusion
+pattern. 
+.TP
+\fB(+|\-)y\fR
+Print (don't print) waiting time variances.  The default is to not print
+entry waiting time variances.
+.TP
+\fB(+|\-)z\fR
+Print (don't print) send-no-reply waiting time results.  The default
+is to print send-no-reply waiting time results.
+.PP
+The \fB\-S\fP flag has precedence over \fB+U\fP.  The \fB+U\fP flag has
+precedence over \fB\-R\fP.

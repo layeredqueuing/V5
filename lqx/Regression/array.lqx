@@ -1,0 +1,26 @@
+/*@RESULTS
+x[0] = 0
+x[1] = 1
+x[2] = 2
+x[2] = [0=>3, 1=>4, 2=>5]
+0 --> 0
+1 --> 1
+2 --> [0=>3, 1=>4, 2=>5]
+*/
+
+x = array_create(0,1,2);
+print("x[0] = ", x[0]);
+print("x[1] = ", x[1]);
+print("x[2] = ", x[2]);
+
+x[2] = array_create(3,4,5);
+print("x[2] = ", x[2]);
+
+foreach(k,v in x) {
+	print(k, " --> ", v);
+	foreach(v in array_create(0,"1",true)) {
+		print("  -2> ", v);
+	}
+	print(k, " --> ", v);
+	print();
+}

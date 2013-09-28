@@ -1,0 +1,83 @@
+#FIG 3.2
+Portrait
+Center
+Inches
+Letter  
+75.00
+Single
+-2
+# Created By: lqn2fig Version 3.1
+# Invoked as: lqn2fig -i -Pnone -Y36 -Zsort=descending snr.lqn
+1200 2
+0 32 #ffa500
+# Task WebServer n display -1 ServerCPU
+6 1275 2175 1950 2325
+4 1 -1 5 0 -1 9 0.0000 4 90 615 1583 2283 WebServer\001
+-6
+# Entry display s [1]
+6 1350 1800 1875 2025
+4 1 -1 5 0 -1 9 0.0000 4 120 435 1583 1908 display\001
+-6
+# Task TicketDB n queryTDB -1 ServerCPU
+6 600 3525 1200 3675
+4 1 -1 5 0 -1 9 0.0000 4 90 555 900 3633 TicketDB\001
+-6
+# Entry queryTDB s [1]
+6 600 3150 1200 3375
+4 1 -1 5 0 -1 9 0.0000 4 120 600 900 3258 queryTDB\001
+-6
+# Task LogServer n log -1 ServerCPU
+6 1950 3525 2625 3750
+4 1 -1 5 0 -1 9 0.0000 4 120 600 2267 3633 LogServer\001
+-6
+# Entry log s [1]
+6 2100 3150 2400 3375
+4 1 -1 5 0 -1 9 0.0000 4 120 195 2267 3258 log\001
+-6
+# Created By: lqn2fig Version 3.1
+# Invoked as: lqn2fig -i -Pnone -Y36 rnv.lqn
+6 2250 2625 3150 2850
+4 0 0 50 0 1 10 0.0000 4 150 885 2250 2775 Asynchronous\001
+-6
+# Created By: lqn2fig Version 3.1
+# Invoked as: lqn2fig -i -Pnone -Y36 rnv.lqn
+6 1650 1125 2700 1275
+4 0 0 50 0 1 10 0.0000 4 105 1020 1650 1275 External Arrival\001
+-6
+# Created By: lqn2fig Version 3.1
+# Invoked as: lqn2fig -i -Pnone -Y36 rnv.lqn
+6 1125 2625 1950 2850
+4 0 0 50 0 1 10 0.0000 4 150 795 1125 2775 Synchronous\001
+-6
+# ========== Open Arrival Source WebServer ==========
+1 3 0 1 -1 -1 40 0 0 0.000 1 0.0000 1583 675 83 83 1583 758 1583 758
+# Task WebServer n display -1 ServerCPU
+2 3 0 1 -1 -1 30 0 0 0.000 0 0 -1 0 0 5
+	 1058 1650 983 2400 2108 2400 2183 1650 1058 1650
+# Entry display s [1]
+2 1 0 1 -1 -1 29 0 -1 0.000 0 0 -1 0 0 4
+	 1270 1650 1225 2100 1897 2100 1942 1650
+# Call display queryTDB y (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1464 2100 900 3000
+# Call display log z (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 0 1.00 48.00 96.00
+	 1703 2100 2267 3000
+# Task TicketDB n queryTDB -1 ServerCPU
+2 3 0 1 -1 -1 20 0 0 0.000 0 0 -1 0 0 5
+	 375 3000 300 3750 1425 3750 1500 3000 375 3000
+# Entry queryTDB s [1]
+2 1 0 1 -1 -1 19 0 -1 0.000 0 0 -1 0 0 4
+	 587 3000 542 3450 1213 3450 1258 3000
+# Task LogServer n log -1 ServerCPU
+2 3 0 1 -1 -1 20 0 0 0.000 0 0 -1 0 0 5
+	 1742 3000 1667 3750 2792 3750 2867 3000 1742 3000
+# Entry log s [1]
+2 1 0 1 -1 -1 19 0 -1 0.000 0 0 -1 0 0 4
+	 1953 3000 1908 3450 2580 3450 2625 3000
+# Call WebServer WebServer
+2 1 0 1 -1 -1 40 0 -1 0.000 0 0 -1 1 0 2
+	2 0 1.00 48.00 96.00
+	 1575 758 1575 1650

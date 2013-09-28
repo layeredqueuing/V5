@@ -1,0 +1,410 @@
+.\" -*- nroff -*-
+.TH lqn2ps 1 "12 August 2013"  "5.7"
+.\" $Id$
+.\"
+.\" --------------------------------
+.SH "NAME"
+lqn2emf, lqn2fig, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
+.SH "SYNOPSIS"
+.br
+.B lqn2ps
+[\fIOPTION \&.\|.\|.\fP]
+[
+FILE \&.\|.\|.
+]
+.SH "DESCRIPTION"
+\fBlqn2ps\fR, \fBlqn2lqn\fR, \fBlqn2xml\fR, and \fBlqn2out\fR
+are used to transform an LQN input file (with results) into:
+graphical output such as PostScript,
+a new old-style input file,
+a new XML input/output file,
+and textual output respectively.
+In general, the name of the program is used to specify the output format, 
+although the \fB\-O\fR switch always overrides this behaviour.
+Refer to the \fB\-O\fR switch described below for the output formats supported.
+.PP
+\fBlqn2ps\fR reads its input from \fIfilename\fR, specified at the
+command line if present, or from the standard input otherwise.  Output
+for an input file \fIfilename\fR specified on the command line will be
+placed in the file \fIfilename.ext\fR, where \fI.ext\fR depends on the
+conversion taking place (see the \fB\-O\fR switch).
+If \fBlqn2lqn\fR or \fBlqn2xml\fR is used to reformat an existing LQN-type or XML input file respectively,
+the output is written back to the original file name.
+The original file is renamed to \fIfilename\fB~\fR.
+If several input files are given, then each is treated as a separate model and
+output will be placed in separate output files.  This behaviour can be changed
+using the \fB\-o\fR option, described below.  If input is from the
+standard input, output will be directed to the standard output.  The
+file name `\-' is used to specify standard input.
+.SH "OPTIONS"
+.TP
+\fB\-A\fR, \fB\-\-aggregate=\fIobjects\fR
+The \fB\-A\fI objects\fR option is used to aggregate objects.
+.RS
+.TP
+\fB\fBnone\fR\fR
+Don't aggregate objects.
+.TP
+\fB\fBsequences\fR\fR
+Aggregate sequences of activities into a single activity.
+.TP
+\fB\fBactivities\fR\fR
+Aggregate activities called by an entry into the entry.
+.TP
+\fB\fBphases\fR\fR
+Aggregate activities called by an entry into the entry and remove all phases.
+.PP
+A new model that results from aggregation may not necessarily have the same solution as the original model.
+An aggregated model is smaller, so it will solve faster.
+.LP
+(The default is none).
+.RE
+.TP
+\fB\-B\fR, \fB\-\-border=\fIborder\fR
+Set the border (in points).
+.TP
+\fB\-C\fR, \fB\-\-colour=\fIcolour\fR
+Colour output.
+.TP
+\fB\-D\fR, \fB\-\-jlqndef\fR
+Use jlqnDef-style icons (rectangles).
+.TP
+\fB\-F\fR, \fB\-\-font-size=\fIfont-size\fR
+Set the font size (from 6 to 36 points).
+.TP
+\fB\-I\fR, \fB\-\-input-format=\fIformat\fR
+The \fB\-I\fI format\fR option  is used to force the input file format to either \fIxml\fR or \fIlqn\fR.
+By default, if the suffix of the input filename is one of: \fI.in\fR, \fI.lqn\fR or \fI.xlqn\fR
+, then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+.TP
+\fB\-H\fR, \fB\-\-help\fR
+Print help.
+.TP
+\fB\-J\fR, \fB\-\-justification=\fIobject=justification\fR
+The \fB\-J\fI object=justification\fR option is used to set the justification for \fIobject\fP.  \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivities\fR.
+\fIJustification\fR is one of \fBleft\fR, \fBcenter\fR, \fBright\fR or \fBalign\fR.
+The default is center justifcation for all objects.
+.TP
+\fB\-K\fR, \fB\-\-key=\fIkey\fR
+Print key.
+.TP
+\fB\-L\fR, \fB\-\-layering=\fIlayering\fR
+The \fB\-L\fI layering\fR option is used to choose the layering strategy for output.
+.RS
+.TP
+\fB\fBbatch\fR\fR
+Batch layering (default for lqns(1))
+.TP
+\fB\fBgroup\fR=\fIregexp\fR\fR
+Batch layering, but tasks are grouped by the processors identified by \fIregexp\fP.
+Multiple occurances of this option can be used to specify multiple groups.
+Processors not matching any group expression are assigned to the last "default" group.
+Groups may also be identified in the input file using the \fIgroup\fP pragma.
+.TP
+\fB\fBhwsw\fR\fR
+Hardware-Software layering (Clients and software servers in one layer,
+software servers and processors in the other).
+.TP
+\fB\fBsrvn\fR\fR
+Each server is assigned to its own submodel.
+.TP
+\fB\fBprocessor\fR\fR
+Batch layering, but tasks are grouped by processor.
+Processors are ordered by the level of their calling tasks,
+i.e., processors for reference tasks appear first.
+.TP
+\fB\fBprocessor-task\fR\fR
+Hardware-Software layering, but tasks are grouped by processor.
+.TP
+\fB\fBtask-processor\fR\fR
+Hardware-Software layering, but tasks are grouped by processor.
+.TP
+\fB\fBshare\fR\fR
+Batch layering, but tasks are grouped by their processor share.
+Shares are ordered by the level of their calling tasks,
+i.e., processors for reference tasks appear first.
+.TP
+\fB\fBsquashed\fR\fR
+Place all tasks in level 1, and all processors in level 2.  There is only
+one submodel overall.
+.TP
+\fB\fBmethod-of-layers\fR\fR
+Mol layering (all of the processors are on their own layer).
+.TP
+\fB\fBclient\fR\fR
+.LP
+(The default is batch).
+.RE
+.TP
+\fB\-M\fR, \fB\-\-magnification=\fImagnification\fR
+Magnification.
+.TP
+\fB\-N\fR, \fB\-\-precision=\fIprecision\fR
+Number of digits of output precision.
+.TP
+\fB\-O\fR, \fB\-\-format=\fIformat\fR
+Set the output format.
+.RS
+.TP
+\fB\fBeepic\fR\fR
+Generate eepic macros for LaTeX.
+.TP
+\fB\fBemf\fR\fR
+Generate Windows Enhanced Meta File (vector) output.
+.TP
+\fB\fBfig\fR\fR
+Generate input for xfig(1).
+.TP
+\fB\fBgif\fR\fR
+Generate GIF (bitmap) output.
+.TP
+\fB\fBjpeg\fR\fR
+Generate JPEG (bitmap) output.
+.TP
+\fB\fBnull\fR\fR
+Generate no output except summary statistics about the model or models.
+.TP
+\fB\fBout\fR\fR
+Generate a new output file using the results from a parseable output file or from the results found in an XML file.
+.TP
+\fB\fBparseable\fR\fR
+Generate a new parseable output file using the results from a parseable output file or from the results found in an XML file.
+.TP
+\fB\fBrtf\fR\fR
+Generate a new output file in Rich Text Format using the results from a parseable output file or from the results found in an XML file.
+.TP
+\fB\fBlqn\fR\fR
+Generate a new input file.  Results are ignored unless a subset of the input file is being generated.
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+consisting only of the objects selected.
+If a parseable output file is available, the transformed subset will derive service times based on results. 
+Refer to \fI``SRVN Input File Format''\fR for a complete
+description of the input file format for the programs.
+New input files are always "cleaned up".
+.TP
+\fB\fBps\fR\fR
+Generate Encapsulated Postscript.
+.TP
+\fB\fBpstex\fR\fR
+Generate PostScript and LaTeX (pstex).
+.TP
+\fB\fBpng\fR\fR
+Generate Portable Network Graphics (bitmap) output.
+.TP
+\fB\fBsvg\fR\fR
+Generate Scalable Vector Graphics (vector) output.
+.TP
+\fB\fBsxd\fR\fR
+Generate OpenOffice Drawing (vector) output.  
+The output file must be a regular file.  Output to special files is not supported.
+.TP
+\fB\fBxml\fR\fR
+Generate an XML input file.  If results are available, they are included.
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+consisting only of the objects selected.
+New input files are always "cleaned up".
+.RE
+.TP
+\fB\-P\fR, \fB\-\-processors=\fIprocessors\fR
+Specify which processors are displayed.
+.RS
+.TP
+\fB\fBnone\fR\fR
+Don't display any processors..
+.TP
+\fB\fBdefault\fR\fR
+Only display those processors that might have contention.
+.TP
+\fB\fBall\fR\fR
+Show all processors.
+.TP
+\fB\fBnon-infinite\fR\fR
+Show all non-infinite processors.
+.LP
+(The default is default).
+This option has no effect for LQN input and output file generation.
+.RE
+.TP
+\fB\-Q\fR, \fB\-\-queueing-model=\fIqueueing-model\fR
+The \fB\-Q\fI queueing-model\fR option is used to generate a diagram of the underlying queueing
+model for the submodel number given as an argument.
+This option has no effect for LQN input and output file generation.
+.TP
+\fB\-R\fR, \fB\-\-replication=\fIoperation\fR
+The \fB\-R\fI operation\fR option is to expand or remove replication.
+.RS
+.TP
+\fB\fBnone\fR\fR
+Don't remove or expand replication.
+.TP
+\fB\fBexpand\fR\fR
+Exapand replicated models into a flat model.  Tasks and processors are renamed to <name>_1, <name>_2, etc.
+.TP
+\fB\fBremove\fR\fR
+Remove all replication from the model.
+.LP
+(The default is none).
+.RE
+.TP
+\fB\-S\fR, \fB\-\-submodel=\fIsubmodel\fR
+The \fB\-S\fI submodel\fR option is used to generate a diagram of the submodel number given as an argument.
+If this option is used with \fBlqn2lqn\fP, parameters will be derived to approximate the submodel at the time of the final solution.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Tool version.
+.TP
+\fB\-W\fR, \fB\-\-warnings\fR
+Suppress warnings.
+.TP
+\fB\-X\fR, \fB\-\-x-spacing=\fIspacing[,width]\fR
+X spacing [and task width] (points).
+.TP
+\fB\-Y\fR, \fB\-\-y-spacing=\fIspacing[,height]\fR
+Y spacing [and task height] (points).
+.TP
+\fB\-Z\fR, \fB\-\-special=\fIspecial[=arg]\fR
+Special options:
+.RS
+.TP
+\fB\fBannotate\fR\fR
+Annotate the lqn input file (lqn output only).
+.TP
+\fB\fBarrow-scaling\fR\fR
+Scale the size of arrow heads by the scaling factor \fIarg\fP.
+.TP
+\fB\fBclear-label-background\fR\fR
+Clear the area behind the label (fig output only).
+.TP
+\fB\fBexhaustive-topological-sort\fR\fR
+Don't short circuit the topological sorter.  (Some models render better).
+.TP
+\fB\fBflatten\fR\fR
+Submodels drawn with \-S or \-Q normally place clients in their level found from the full model.  This option draws all clients for a given submodel in one layer.
+.TP
+\fB\fBforwarding\fR\fR
+Nest forwarding instead of keeping it at the current level (historical). 
+.TP
+\fB\fBgroup\fR\fR
+When using \-Lgroup, name a group.  Multiple groups are named using a comma separated list.
+.TP
+\fB\fBlayer-number\fR\fR
+Print the layer number (valid for graphical output only).
+.TP
+\fB\fBno-alignment-box\fR\fR
+Don't generate the alignment boxes (Fig output).
+.TP
+\fB\fBno-async\fR\fR
+Don't follow asynchronous calls when doing the topological sort.
+.TP
+\fB\fBno-cv-sqr\fR\fR
+Remove all coefficient of variation terms from a model.  This option is used when generating new models.
+.TP
+\fB\fBno-phase-type\fR\fR
+Remove all phase type flag terms from a model.  This option is used when generating new models.
+.TP
+\fB\fBno-reference-task-conversion\fR\fR
+When generating new models as submodels of existing models, servers in the original model are converted to reference tasks when possible.  This option overrides this conversion; these models use open-arrivals instead.
+.TP
+\fB\fBrename\fR\fR
+Rename all of the icons to p\fIn\fP, t\fIn\fP, e\fIn\fP and a\fIn\fP where \fIn\fP is an integer starting from one.
+.TP
+\fB\fBsort\fR\fR
+Set the order of sorting of objects in a layer (ascending, descending, topological, none).
+.TP
+\fB\fBsquish\fR\fR
+Rename entries/activities by taking only capital letters, letters following an underscore, or numbers.
+.TP
+\fB\fBsubmodels\fR\fR
+Output to terminal the clients and servers of each submodel.
+.TP
+\fB\fBtasks-only\fR\fR
+Draw the model omitting all entries.
+.RE
+.TP
+\fB(\-|+)a\fR, \fB\-\-[no-]open-wait\fR
+Print queue length results for open arrivals. (The default is on).
+.TP
+\fB(\-|+)b\fR, \fB\-\-[no-]throughput-bounds\fR
+Print task throughput bounds. (The default is off).
+.TP
+\fB(\-|+)c\fR, \fB\-\-[no-]confidence-intervals\fR
+Print confidence intervals. (The default is off).
+.TP
+\fB(\-|+)e\fR, \fB\-\-[no-]entry-utilization\fR
+Print entry utilization. (The default is off).
+.TP
+\fB(\-|+)f\fR, \fB\-\-[no-]entry-throughput\fR
+Print entry throughput. (The default is off).
+.TP
+\fB(\-|+)g\fR, \fB\-\-[no-]histograms\fR
+Print histograms. (The default is off).
+.TP
+\fB(\-|+)h\fR, \fB\-\-[no-]hold-times\fR
+Print hold times. (The default is off).
+.TP
+\fB(\-|+)i\fR, \fB\-\-[no-]input-parameters\fR
+Print input parameters. (The default is on).
+.TP
+\fB(\-|+)j\fR, \fB\-\-[no-]join-delays\fR
+Print join delay results. (The default is on).
+.TP
+\fB\-k\fR, \fB\-\-chain=\fIclient\fR
+Print all paths from client <n>. (The default is 0).
+.TP
+\fB(\-|+)l\fR, \fB\-\-[no-]loss-probability\fR
+Print message loss probabilities. (The default is on).
+.TP
+\fB\-o\fR, \fB\-\-output=\fIfilename\fR
+The \fB\-o\fI filename\fR option is used to direct all output to the
+file \fIoutput\fR regardless of the source of input.  Multiple input
+files cannot be specified when using this option except with
+PostScript or EEPIC output.  Output can be directed to standard output by using
+\fB\-o\fI\-\fR (i.e., the output 
+file name is `\fI\-\fR'.)
+.TP
+\fB(\-|+)p\fR, \fB\-\-[no-]processor-utilization\fR
+Print processor utilization results. (The default is on).
+.TP
+\fB(\-|+)q\fR, \fB\-\-[no-]processor-queueing\fR
+Print processor waiting time results. (The default is on).
+.TP
+\fB(\-|+)r\fR, \fB\-\-[no-]results\fR
+Print results. (The default is on).
+.TP
+\fB(\-|+)s\fR, \fB\-\-[no-]service\fR
+Print execution time results. (The default is on).
+.TP
+\fB(\-|+)t\fR, \fB\-\-[no-]task-throughput\fR
+Print task throughput results. (The default is on).
+.TP
+\fB(\-|+)u\fR, \fB\-\-[no-]task-utilization\fR
+Print task utilization results. (The default is on).
+.TP
+\fB(\-|+)v\fR, \fB\-\-[no-]variance\fR
+Print execution time variance results. (The default is off).
+.TP
+\fB(\-|+)w\fR, \fB\-\-[no-]waiting\fR
+Print waiting time results. (The default is on).
+.TP
+\fB(\-|+)x\fR, \fB\-\-[no-]service-exceeded\fR
+Print maximum execution time exceeded. (The default is off).
+.TP
+\fB\-\-verbose\fR
+Verbose output.
+.TP
+\fB\-\-task-service-time\fR
+Print task service times (for --tasks-only).
+.TP
+\fB\-\-generate-manual\fR
+Generate manual suitable for input to man(1).
+.TP
+\fB\-\-run-lqx\fR
+"Run" the LQX program instantiating variables and generating model files.
+.TP
+\fB\-\-reload-lqx\fR
+"Run" the LQX program reloading results generated earlier.
+.TP
+\fB\-\-include-only=\fIregexp\fR
+The \fB\-I\fI regexp\fR option is used to include only those objects that match \fIregexp\fR
+and those objects who call the matching objects in the output.
+.SH "SEE ALSO"

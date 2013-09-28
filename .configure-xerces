@@ -1,0 +1,2 @@
+./configure -C --prefix=/usr/local --with-xerces
+

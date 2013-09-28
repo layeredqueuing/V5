@@ -1,0 +1,176 @@
+#FIG 3.2
+Portrait
+Center
+Inches
+Letter  
+75.00
+Single
+-2
+# Created By: lqn2fig Version 3.1
+# Invoked as: lqn2fig -r -i -Y18 -Pall -Ltask-processor -Zsort=none web-server.lqn
+1200 2
+0 32 #ffa500
+# Call interact connect y (1)
+6 1208 1075 1208 1225
+-6
+# Call interact confirm y (1)
+6 1703 1075 1703 1225
+-6
+# Call interact reserve y (1)
+6 2199 1075 2199 1225
+-6
+# Call interact display y (1)
+6 2694 1075 2694 1225
+-6
+# Call Browser UserCPU
+6 2893 1142 2893 1292
+-6
+# Processor UserCPU f
+6 3566 1650 4091 1800
+4 1 -1 5 0 -1 9 0.0000 4 90 510 3828 1758 UserCPU\001
+-6
+# Task WebServer n display reserve confirm connect -1 ServerCPU
+6 1343 1875 2018 2025
+4 1 -1 5 0 -1 9 0.0000 4 90 615 1681 1983 WebServer\001
+-6
+# Entry connect s [0]
+6 426 1500 951 1650
+4 1 -1 5 0 -1 9 0.0000 4 90 450 688 1608 connect\001
+-6
+# Entry confirm s [0]
+6 1098 1500 1623 1650
+4 1 -1 5 0 -1 9 0.0000 4 90 450 1360 1608 confirm\001
+-6
+# Call confirm updateTDB y (1)
+6 1728 2125 1728 2275
+-6
+# Entry reserve s [0]
+6 1769 1500 2294 1650
+4 1 -1 5 0 -1 9 0.0000 4 75 405 2032 1608 reserve\001
+-6
+# Call reserve updateTDB y (1)
+6 2111 2225 2111 2375
+-6
+# Call reserve queryTDB y (1)
+6 2440 2125 2440 2275
+-6
+# Entry display s [0]
+6 2441 1500 2966 1650
+4 1 -1 5 0 -1 9 0.0000 4 120 435 2703 1608 display\001
+-6
+# Call display queryTDB y (1)
+6 2803 2225 2803 2375
+-6
+# Call WebServer ServerCPU
+6 2466 2192 2466 2342
+-6
+# Call TicketDB ServerCPU
+6 2847 3242 2847 3392
+-6
+# Processor ServerCPU f
+6 3491 3750 4166 3900
+4 1 -1 5 0 -1 9 0.0000 4 90 615 3828 3858 ServerCPU\001
+-6
+6 1343 2400 2762 3150
+# Task TicketDB n queryTDB updateTDB -1 ServerCPU
+6 1753 2925 2353 3075
+4 1 -1 5 0 -1 9 0.0000 4 90 555 2053 3033 TicketDB\001
+-6
+# Entry updateTDB s [0]
+6 1394 2550 2069 2700
+4 1 -1 5 0 -1 9 0.0000 4 120 660 1732 2658 updateTDB\001
+-6
+# Entry queryTDB s [0]
+6 2103 2550 2703 2700
+4 1 -1 5 0 -1 9 0.0000 4 120 600 2403 2658 queryTDB\001
+-6
+# Task TicketDB n queryTDB updateTDB -1 ServerCPU
+2 3 0 1 -1 -1 20 0 0 0.000 0 0 -1 0 0 5
+	 1418 2400 1343 3150 2687 3150 2762 2400 1418 2400
+# Entry updateTDB s [0]
+2 1 0 1 -1 -1 19 0 -1 0.000 0 0 -1 0 0 3
+	 1373 2850 2045 2850 2090 2400
+# Entry queryTDB s [0]
+2 1 0 1 -1 -1 19 0 -1 0.000 0 0 -1 0 0 2
+	 2045 2850 2717 2850
+-6
+6 1050 300 2400 1050
+# Task Browser r interact -1 UserCPU
+6 1449 825 1974 975
+4 1 -1 5 0 -1 9 0.0000 4 90 465 1712 933 Browser\001
+-6
+# Entry interact s [0]
+6 1412 450 2012 600
+4 1 -1 5 0 -1 9 0.0000 4 90 435 1712 558 interact\001
+-6
+# Task Browser r interact -1 UserCPU
+2 3 0 1 -1 -1 40 0 0 0.000 0 0 -1 0 0 5
+	 1187 300 1112 1050 2237 1050 2312 300 1187 300
+# Entry interact s [0]
+2 1 0 1 -1 -1 39 0 -1 0.000 0 0 -1 0 0 4
+	 1398 300 1353 750 2025 750 2070 300
+-6
+# Processor UserCPU f
+1 3 0 1 -1 -1 31 0 0 0.000 1 0.0000 3862 1758 375 375 3862 2133 3862 2133
+1 3 0 1 -1 -1 30 0 0 0.000 1 0.0000 3828 1725 375 375 3828 2100 3828 2100
+# Processor ServerCPU f
+1 3 0 1 -1 -1 10 0 0 0.000 1 0.0000 3828 3825 375 375 3828 4200 3828 4200
+# Call interact connect y (1)
+2 1 0 1 -1 -1 38 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1497 750 688 1350
+# Call interact confirm y (1)
+2 1 0 1 -1 -1 38 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1640 750 1360 1350
+# Call interact reserve y (1)
+2 1 0 1 -1 -1 38 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1783 750 2032 1350
+# Call interact display y (1)
+2 1 0 1 -1 -1 38 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1927 750 2703 1350
+# Task WebServer n display reserve confirm connect -1 ServerCPU
+2 3 0 1 -1 -1 30 0 0 0.000 0 0 -1 0 0 5
+	 375 1350 300 2100 2987 2100 3062 1350 375 1350
+# Entry connect s [0]
+2 1 0 1 -1 -1 29 0 -1 0.000 0 0 -1 0 0 3
+	 330 1800 1002 1800 1047 1350
+# Entry confirm s [0]
+2 1 0 1 -1 -1 29 0 -1 0.000 0 0 -1 0 0 3
+	 1002 1800 1673 1800 1718 1350
+# Call confirm updateTDB y (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1360 1800 1612 2400
+# Entry reserve s [0]
+2 1 0 1 -1 -1 29 0 -1 0.000 0 0 -1 0 0 3
+	 1673 1800 2345 1800 2390 1350
+# Call reserve updateTDB y (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 1912 1800 1851 2400
+# Call reserve queryTDB y (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 2151 1800 2284 2400
+# Entry display s [0]
+2 1 0 1 -1 -1 29 0 -1 0.000 0 0 -1 0 0 2
+	 2345 1800 3017 1800
+# Call display queryTDB y (1)
+2 1 0 1 -1 -1 28 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 2703 1800 2523 2400
+# Call WebServer ServerCPU
+2 1 0 1 -1 -1 30 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 2841 2100 3586 3539
+# Call TicketDB ServerCPU
+2 1 0 1 -1 -1 20 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 2407 3150 3507 3632
+# Call Browser UserCPU
+2 1 0 1 -1 -1 49 0 -1 0.000 0 0 -1 1 0 2
+	2 1 1.00 48.00 96.00
+	 2101 1050 3511 1524

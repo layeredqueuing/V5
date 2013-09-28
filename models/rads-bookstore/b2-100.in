@@ -1,0 +1,1070 @@
+# UCM2LQN output
+
+G
+"catalogue, 100 customers"
+1e-05
+50
+5
+0.9
+-1
+
+P 0
+p CustProc f i
+p AdminProc f i
+p RADSProc f i
+p BookstoreProc f
+p DatabaseProc f R 2.000000
+-1
+
+T 0
+t Customer r Customer_RefE -1  CustProc m 100
+t Administrator r Administrator_RefE -1  AdminProc
+t RADSbookstore f RADSbookstore_E1 RADSbookstore_E2 -1  RADSProc i
+t Server f Server_E1 Server_E2 Server_E3 Server_E4 Server_E5 Server_E6 -1  BookstoreProc m 5
+t Catalogue f Catalogue_E1 Catalogue_E2 Catalogue_E3 Catalogue_E4 -1  BookstoreProc i
+t InventoryMgr f InventoryMgr_E1 InventoryMgr_E2 InventoryMgr_E3 InventoryMgr_E4 InventoryMgr_E5 InventoryMgr_E6 InventoryMgr_E7 InventoryMgr_E8 -1  BookstoreProc
+t ShoppingCart f ShoppingCart_E1 ShoppingCart_E2 ShoppingCart_E3 -1  BookstoreProc i
+t Database f Database_E1 Database_E2 Database_E3 Database_E4 Database_E5 Database_E6 -1  DatabaseProc
+t BackorderMgr f BackorderMgr_E1 BackorderMgr_E2 -1  BookstoreProc
+t CustAccMgr f CustAccMgr_E1 CustAccMgr_E2 CustAccMgr_E3 CustAccMgr_E4 CustAccMgr_E5 -1  BookstoreProc
+t CustAccDatabase f CustAccDatabase_E1 CustAccDatabase_E2 CustAccDatabase_E3 CustAccDatabase_E4 CustAccDatabase_E5 CustAccDatabase_E6 CustAccDatabase_E7 -1  DatabaseProc m 3
+t InventoryMgr_C1 f InventoryMgr_C1_E1 -1  BookstoreProc
+t InventoryMgr_C2 f InventoryMgr_C2_E1 -1  BookstoreProc
+t InventoryMgr_C3 f InventoryMgr_C3_E1 -1  BookstoreProc
+t InventoryMgr_C4 f InventoryMgr_C4_E1 -1  BookstoreProc
+t BackorderMgr_C1 f BackorderMgr_C1_E1 -1  BookstoreProc
+t InventoryMgr_C5 f InventoryMgr_C5_E1 -1  BookstoreProc
+-1
+
+E 0
+A Customer_RefE Customer_RefE_a2
+A Administrator_RefE Administrator_RefE_a181
+A RADSbookstore_E1 RADSbookstore_E1_a4
+A RADSbookstore_E2 RADSbookstore_E2_a183
+A Server_E1 Server_E1_a9
+A Server_E2 Server_E2_a25
+# F Server_E2 Catalogue_E2 1.0 -1: changed to nested synchronous calls
+A Server_E3 Server_E3_a37
+A Server_E4 Server_E4_a51
+A Server_E5 Server_E5_a93
+A Server_E6 Server_E6_a155
+A Catalogue_E1 BrowseList
+A Catalogue_E2 ItemDetails
+A Catalogue_E3 ItemCode
+A Catalogue_E4 PriceList
+A InventoryMgr_E1 InventoryMgr_E1_a11
+A InventoryMgr_E2 InventoryMgr_E2_a27
+A InventoryMgr_E3 InventoryMgr_E3_a39
+A InventoryMgr_E4 InventoryMgr_E4_a53
+A InventoryMgr_E5 InventoryMgr_E5_a99
+A InventoryMgr_E6 InventoryMgr_E6_a114
+A InventoryMgr_E7 InventoryMgr_E7_a188
+A InventoryMgr_E8 InventoryMgr_E8_a203
+F InventoryMgr_E8 CustAccMgr_E5 1.0 -1
+A ShoppingCart_E1 ShoppingCart_E1_a43
+A ShoppingCart_E2 ShoppingCart_E2_a57
+A ShoppingCart_E3 ShoppingCart_E3_a95
+A Database_E1 Database_E1_a14
+A Database_E2 Database_E2_a29
+A Database_E3 Database_E3_a102
+A Database_E4 Database_E4_a117
+A Database_E5 Database_E5_a191
+A Database_E6 Database_E6_a206
+A BackorderMgr_E1 BackorderMgr_E1_a135
+A BackorderMgr_E2 BackorderMgr_E2_a200
+A CustAccMgr_E1 CustAccMgr_E1_a65
+A CustAccMgr_E2 CustAccMgr_E2_a140
+A CustAccMgr_E3 CustAccMgr_E3_a157
+A CustAccMgr_E4 CustAccMgr_E4_a171
+A CustAccMgr_E5 CustAccMgr_E5_a217
+A CustAccDatabase_E1 CustAccDatabase_E1_a67
+A CustAccDatabase_E2 CustAccDatabase_E2_a76
+A CustAccDatabase_E3 CustAccDatabase_E3_a84
+A CustAccDatabase_E4 CustAccDatabase_E4_a142
+A CustAccDatabase_E5 CustAccDatabase_E5_a161
+A CustAccDatabase_E6 CustAccDatabase_E6_a219
+A CustAccDatabase_E7 CustAccDatabase_E7_a223
+A InventoryMgr_C1_E1 InventoryMgr_C1_E1_a12
+A InventoryMgr_C2_E1 InventoryMgr_C2_E1_a100
+A InventoryMgr_C3_E1 InventoryMgr_C3_E1_a115
+A InventoryMgr_C4_E1 InventoryMgr_C4_E1_a189
+A BackorderMgr_C1_E1 BackorderMgr_C1_E1_a201
+A InventoryMgr_C5_E1 InventoryMgr_C5_E1_a204
+-1
+
+A Customer
+f Customer_RefE_a2 0
+s Customer_RefE_a2 3000
+f makeRequest_h6 1
+s makeRequest_h6 1.000000
+f SendMsg_a3 1
+s SendMsg_a3 0.0
+y SendMsg_a3 RADSbookstore_E1 1.000000
+f ReceiveReply_a178 1
+s ReceiveReply_a178 0.0
+f DoneCust_a179 1
+s DoneCust_a179 0.0
+:
+Customer_RefE_a2 -> makeRequest_h6;
+makeRequest_h6 -> SendMsg_a3;
+SendMsg_a3 -> ReceiveReply_a178;
+ReceiveReply_a178 -> DoneCust_a179
+-1
+
+A Administrator
+f Administrator_RefE_a181 0
+s Administrator_RefE_a181 100000
+f makeRequest_h14 1
+s makeRequest_h14 1.000000
+f SendMsg_a182 1
+s SendMsg_a182 0.0
+y SendMsg_a182 RADSbookstore_E2 1.000000
+f ReceiveReply_a233 1
+s ReceiveReply_a233 0.0
+f DoneAdmin_a234 1
+s DoneAdmin_a234 0.0
+:
+Administrator_RefE_a181 -> makeRequest_h14;
+makeRequest_h14 -> SendMsg_a182;
+SendMsg_a182 -> ReceiveReply_a233;
+ReceiveReply_a233 -> DoneAdmin_a234
+-1
+
+A Catalogue
+f BrowseList 1
+s BrowseList 10.000000
+f ItemDetails 1
+s ItemDetails 3.000000
+f ItemCode 1
+s ItemCode 2.000000
+f PriceList 1
+s PriceList 5.000000
+:
+BrowseList[ Catalogue_E1 ];  # list for browsing
+ItemDetails[ Catalogue_E2 ];  # item info for viewing
+ItemCode[ Catalogue_E3 ];  # item code for shopping cart
+PriceList[ Catalogue_E4 ]  # price list for checkout
+-1
+
+A RADSbookstore
+f RADSbookstore_E1_a4 1
+s RADSbookstore_E1_a4 0.0
+f StubOrFork_a5 1
+s StubOrFork_a5 0.0
+f BrowseStart_a7 1
+s BrowseStart_a7 0.0
+f SendMsg_a8 1
+s SendMsg_a8 0.0
+y SendMsg_a8 Server_E1 1.000000
+f ReceiveReply_a21 1
+s ReceiveReply_a21 0.0
+f BrowseEnd_a22 1
+s BrowseEnd_a22 0.0
+f ViewStart_a23 1
+s ViewStart_a23 0.0
+f SendMsg_a24 1
+s SendMsg_a24 0.0
+y SendMsg_a24 Server_E2 1.000000
+f ReceiveReply_a33 1
+s ReceiveReply_a33 0.0
+f ViewEnd_a34 1
+s ViewEnd_a34 0.0
+f AddStart_a35 1
+s AddStart_a35 0.0
+f SendMsg_a36 1
+s SendMsg_a36 0.0
+y SendMsg_a36 Server_E3 1.000000
+f ReceiveReply_a47 1
+s ReceiveReply_a47 0.0
+f AddEnd_a48 1
+s AddEnd_a48 0.0
+f RemoveStart_a49 1
+s RemoveStart_a49 0.0
+f SendMsg_a50 1
+s SendMsg_a50 0.0
+y SendMsg_a50 Server_E4 1.000000
+f ReceiveReply_a61 1
+s ReceiveReply_a61 0.0
+f RemoveEnd_a62 1
+s RemoveEnd_a62 0.0
+f LoginStart_a63 1
+s LoginStart_a63 0.0
+f SendMsg_a64 1
+s SendMsg_a64 0.0
+y SendMsg_a64 CustAccMgr_E1 1.000000
+f ReceiveReply_a89 1
+s ReceiveReply_a89 0.0
+f LoginEnd_a90 1
+s LoginEnd_a90 0.0
+f CheckoutStart_a91 1
+s CheckoutStart_a91 0.0
+f SendMsg_a92 1
+s SendMsg_a92 0.0
+y SendMsg_a92 Server_E5 1.000000
+f ReceiveReply_a151 1
+s ReceiveReply_a151 0.0
+f CheckoutEnd_a152 1
+s CheckoutEnd_a152 0.0
+f RegisterStart_a153 1
+s RegisterStart_a153 0.0
+f SendMsg_a154 1
+s SendMsg_a154 0.0
+y SendMsg_a154 Server_E6 1.000000
+f ReceiveReply_a175 1
+s ReceiveReply_a175 0.0
+f RegisterEnd_a176 1
+s RegisterEnd_a176 0.0
+f StubOrJoin_a6 1
+s StubOrJoin_a6 0.0
+f SendMsg_a177 1
+s SendMsg_a177 0.0
+f RADSbookstore_E2_a183 1
+s RADSbookstore_E2_a183 0.0
+f StubOrFork_a184 1
+s StubOrFork_a184 0.0
+f UpdateInvStart_a186 1
+s UpdateInvStart_a186 0.0
+f SendMsg_a187 1
+s SendMsg_a187 0.0
+y SendMsg_a187 InventoryMgr_E7 1.000000
+f ReceiveReply_a196 1
+s ReceiveReply_a196 0.0
+f UpdateInvEnd_a197 1
+s UpdateInvEnd_a197 0.0
+f BackordersStart_a198 1
+s BackordersStart_a198 0.0
+f SendMsg_a199 1
+s SendMsg_a199 0.0
+y SendMsg_a199 BackorderMgr_E2 1.000000
+f ReceiveReply_a230 1
+s ReceiveReply_a230 0.0
+f BackordersEnd_a231 1
+s BackordersEnd_a231 0.0
+f StubOrJoin_a185 1
+s StubOrJoin_a185 0.0
+f SendMsg_a232 1
+s SendMsg_a232 0.0
+:
+RADSbookstore_E1_a4 -> StubOrFork_a5;
+StubOrFork_a5 -> (0.4217629) BrowseStart_a7 + (0.4217629) ViewStart_a23 + (0.0843525) AddStart_a35 + (0.0210881) RemoveStart_a49 + (0.0295234) LoginStart_a63 + (0.0210881) CheckoutStart_a91 + (0.0004221) RegisterStart_a153;
+BrowseStart_a7 -> SendMsg_a8;
+SendMsg_a8 -> ReceiveReply_a21;
+ReceiveReply_a21 -> BrowseEnd_a22;
+ViewStart_a23 -> SendMsg_a24;
+SendMsg_a24 -> ReceiveReply_a33;
+ReceiveReply_a33 -> ViewEnd_a34;
+AddStart_a35 -> SendMsg_a36;
+SendMsg_a36 -> ReceiveReply_a47;
+ReceiveReply_a47 -> AddEnd_a48;
+RemoveStart_a49 -> SendMsg_a50;
+SendMsg_a50 -> ReceiveReply_a61;
+ReceiveReply_a61 -> RemoveEnd_a62;
+LoginStart_a63 -> SendMsg_a64;
+SendMsg_a64 -> ReceiveReply_a89;
+ReceiveReply_a89 -> LoginEnd_a90;
+CheckoutStart_a91 -> SendMsg_a92;
+SendMsg_a92 -> ReceiveReply_a151;
+ReceiveReply_a151 -> CheckoutEnd_a152;
+RegisterStart_a153 -> SendMsg_a154;
+SendMsg_a154 -> ReceiveReply_a175;
+ReceiveReply_a175 -> RegisterEnd_a176;
+BrowseEnd_a22 + ViewEnd_a34 + AddEnd_a48 + RemoveEnd_a62 + LoginEnd_a90 + CheckoutEnd_a152 + RegisterEnd_a176 -> StubOrJoin_a6;
+StubOrJoin_a6 -> SendMsg_a177;
+SendMsg_a177[ RADSbookstore_E1 ];
+RADSbookstore_E2_a183 -> StubOrFork_a184;
+StubOrFork_a184 -> (0.500000) UpdateInvStart_a186 + (0.500000) BackordersStart_a198;
+UpdateInvStart_a186 -> SendMsg_a187;
+SendMsg_a187 -> ReceiveReply_a196;
+ReceiveReply_a196 -> UpdateInvEnd_a197;
+BackordersStart_a198 -> SendMsg_a199;
+SendMsg_a199 -> ReceiveReply_a230;
+ReceiveReply_a230 -> BackordersEnd_a231;
+UpdateInvEnd_a197 + BackordersEnd_a231 -> StubOrJoin_a185;
+StubOrJoin_a185 -> SendMsg_a232;
+SendMsg_a232[ RADSbookstore_E2 ]
+-1
+
+A Server
+f Server_E1_a9 1
+s Server_E1_a9 0.0
+f SendMsg_a10 1
+s SendMsg_a10 0.0
+y SendMsg_a10 Catalogue_E1 1.000000
+f ReceiveReply_a19 1
+s ReceiveReply_a19 0.0
+f SendMsg_a20 1
+s SendMsg_a20 0.0
+f Server_E2_a25 1
+s Server_E2_a25 0.0
+f SendMsg_a1001 1
+s SendMsg_a1001 0.0
+y SendMsg_a1001 Catalogue_E2 1.000000
+f ReceiveReply_a1002 1
+s ReceiveReply_a1002 0.0
+f SendMsg_a26 1
+s SendMsg_a26 0.0
+f Server_E3_a37 1
+s Server_E3_a37 0.0
+f SendMsg_a38 1
+s SendMsg_a38 0.0
+y SendMsg_a38 Catalogue_E3 1.000000
+f ReceiveReply_a41 1
+s ReceiveReply_a41 0.0
+f SendMsg_a42 1
+s SendMsg_a42 0.0
+y SendMsg_a42 ShoppingCart_E1 1.000000
+f ReceiveReply_a45 1
+s ReceiveReply_a45 0.0
+f SendMsg_a46 1
+s SendMsg_a46 0.0
+f Server_E4_a51 1
+s Server_E4_a51 0.0
+f SendMsg_a52 1
+s SendMsg_a52 0.0
+y SendMsg_a52 Catalogue_E3 1.000000
+f ReceiveReply_a55 1
+s ReceiveReply_a55 0.0
+f SendMsg_a56 1
+s SendMsg_a56 0.0
+y SendMsg_a56 ShoppingCart_E2 1.000000
+f ReceiveReply_a59 1
+s ReceiveReply_a59 0.0
+f SendMsg_a60 1
+s SendMsg_a60 0.0
+f Server_E5_a93 1
+s Server_E5_a93 0.0
+f SendMsg_a94 1
+s SendMsg_a94 0.0
+y SendMsg_a94 ShoppingCart_E3 1.000000
+f ReceiveReply_a149 1
+s ReceiveReply_a149 0.0
+f SendMsg_a150 1
+s SendMsg_a150 0.0
+f Server_E6_a155 1
+s Server_E6_a155 0.0
+f SendMsg_a156 1
+s SendMsg_a156 0.0
+y SendMsg_a156 CustAccMgr_E3 1.000000
+f ReceiveReply_a159 1
+s ReceiveReply_a159 0.0
+f SendMsg_a160 1
+s SendMsg_a160 0.0
+y SendMsg_a160 CustAccDatabase_E5 1.000000
+f ReceiveReply_a169 1
+s ReceiveReply_a169 0.0
+f SendMsg_a170 1
+s SendMsg_a170 0.0
+y SendMsg_a170 CustAccMgr_E4 1.000000
+f ReceiveReply_a173 1
+s ReceiveReply_a173 0.0
+f SendMsg_a174 1
+s SendMsg_a174 0.0
+:
+Server_E1_a9 -> SendMsg_a10;
+SendMsg_a10 -> ReceiveReply_a19;
+ReceiveReply_a19 -> SendMsg_a20;
+SendMsg_a20[ Server_E1 ];
+Server_E2_a25 -> SendMsg_a1001;
+SendMsg_a1001 -> ReceiveReply_a1002;
+ReceiveReply_a1002 -> SendMsg_a26;
+SendMsg_a26[ Server_E2 ];
+Server_E3_a37 -> SendMsg_a38;
+SendMsg_a38 -> ReceiveReply_a41;
+ReceiveReply_a41 -> SendMsg_a42;
+SendMsg_a42 -> ReceiveReply_a45;
+ReceiveReply_a45 -> SendMsg_a46;
+SendMsg_a46[ Server_E3 ];
+Server_E4_a51 -> SendMsg_a52;
+SendMsg_a52 -> ReceiveReply_a55;
+ReceiveReply_a55 -> SendMsg_a56;
+SendMsg_a56 -> ReceiveReply_a59;
+ReceiveReply_a59 -> SendMsg_a60;
+SendMsg_a60[ Server_E4 ];
+Server_E5_a93 -> SendMsg_a94;
+SendMsg_a94 -> ReceiveReply_a149;
+ReceiveReply_a149 -> SendMsg_a150;
+SendMsg_a150[ Server_E5 ];
+Server_E6_a155 -> SendMsg_a156;
+SendMsg_a156 -> ReceiveReply_a159;
+ReceiveReply_a159 -> SendMsg_a160;
+SendMsg_a160 -> ReceiveReply_a169;
+ReceiveReply_a169 -> SendMsg_a170;
+SendMsg_a170 -> ReceiveReply_a173;
+ReceiveReply_a173 -> SendMsg_a174;
+SendMsg_a174[ Server_E6 ]
+-1
+
+A ShoppingCart
+f ShoppingCart_E1_a43 1
+s ShoppingCart_E1_a43 0.0
+f addItemSC_h23 1
+s addItemSC_h23 1.000000
+f SendMsg_a44 1
+s SendMsg_a44 0.0
+f ShoppingCart_E2_a57 1
+s ShoppingCart_E2_a57 0.0
+f removeItemSC_h207 1
+s removeItemSC_h207 1.000000
+f SendMsg_a58 1
+s SendMsg_a58 0.0
+f ShoppingCart_E3_a95 1
+s ShoppingCart_E3_a95 0.0
+f OrFork_a96 1
+s OrFork_a96 0.0
+f OrForkBranch_a97 1
+s OrForkBranch_a97 0.0
+f getInvoice_h44 1
+s getInvoice_h44 1.000000
+f SendMsg_a98 1
+s SendMsg_a98 0.0
+y SendMsg_a98 Catalogue_E4 1.000000
+f ReceiveReply_a107 1
+s ReceiveReply_a107 0.0
+f AndFork_a108 1
+s AndFork_a108 0.0
+f AndForkBranch_a109 1
+s AndForkBranch_a109 0.0
+f displayInvoice_h90 1
+s displayInvoice_h90 1.000000
+f OrJoinBranch_a111 1
+s OrJoinBranch_a111 0.0
+f AndForkBranch_a112 1
+s AndForkBranch_a112 0.0
+f SendMsg_a113 1
+s SendMsg_a113 0.0
+y SendMsg_a113 InventoryMgr_E6 1.000000
+f ReceiveReply_a128 1
+s ReceiveReply_a128 0.0
+f AndFork_a129 1
+s AndFork_a129 0.0
+f AndForkBranch_a130 1
+s AndForkBranch_a130 0.0
+f shipAvailL_h81 1
+s shipAvailL_h81 1.000000
+f AndJoinBranch_a132 1
+s AndJoinBranch_a132 0.0
+f AndForkBranch_a133 1
+s AndForkBranch_a133 0.0
+f backorderBackL_h234 1
+s backorderBackL_h234 1.000000
+f SendMsg_a134 1
+s SendMsg_a134 0.0
+#y SendMsg_a134 BackorderMgr_E1 1.000000
+f ReceiveReply_a137 1
+s ReceiveReply_a137 0.0
+f AndJoinBranch_a138 1
+s AndJoinBranch_a138 0.0
+f AndJoin_a131 1
+s AndJoin_a131 0.0
+f SendMsg_a139 1
+s SendMsg_a139 0.0
+z SendMsg_a139 CustAccMgr_E2 1.000000
+f OrForkBranch_a146 1
+s OrForkBranch_a146 0.0
+f displayCartEmpty_h87 1
+s displayCartEmpty_h87 1.000000
+f OrJoinBranch_a147 1
+s OrJoinBranch_a147 0.0
+f OrJoin_a110 1
+s OrJoin_a110 0.0
+f SendMsg_a148 1
+s SendMsg_a148 0.0
+:
+ShoppingCart_E1_a43 -> addItemSC_h23;
+addItemSC_h23 -> SendMsg_a44;
+SendMsg_a44[ ShoppingCart_E1 ];
+ShoppingCart_E2_a57 -> removeItemSC_h207;
+removeItemSC_h207 -> SendMsg_a58;
+SendMsg_a58[ ShoppingCart_E2 ];
+ShoppingCart_E3_a95 -> OrFork_a96;
+OrFork_a96 -> (0.950000) OrForkBranch_a97 + (0.050000) OrForkBranch_a146;
+OrForkBranch_a97 -> getInvoice_h44;
+getInvoice_h44 -> SendMsg_a98;
+SendMsg_a98 -> ReceiveReply_a107;
+ReceiveReply_a107 -> AndFork_a108;
+AndFork_a108 -> AndForkBranch_a109 & AndForkBranch_a112;
+AndForkBranch_a109 -> displayInvoice_h90;
+displayInvoice_h90 -> OrJoinBranch_a111;
+AndForkBranch_a112 -> SendMsg_a113;
+SendMsg_a113 -> ReceiveReply_a128;
+ReceiveReply_a128 -> AndFork_a129;
+AndFork_a129 -> AndForkBranch_a130 & AndForkBranch_a133;
+AndForkBranch_a130 -> shipAvailL_h81;
+shipAvailL_h81 -> AndJoinBranch_a132;
+AndForkBranch_a133 -> backorderBackL_h234;
+backorderBackL_h234 -> SendMsg_a134;
+SendMsg_a134 -> ReceiveReply_a137;
+ReceiveReply_a137 -> AndJoinBranch_a138;
+AndJoinBranch_a132 & AndJoinBranch_a138 -> AndJoin_a131;
+AndJoin_a131 -> SendMsg_a139;
+OrForkBranch_a146 -> displayCartEmpty_h87;
+displayCartEmpty_h87 -> OrJoinBranch_a147;
+OrJoinBranch_a111 + OrJoinBranch_a147 -> OrJoin_a110;
+OrJoin_a110 -> SendMsg_a148;
+SendMsg_a148[ ShoppingCart_E3 ]
+-1
+
+A InventoryMgr
+f InventoryMgr_E1_a11 1
+s InventoryMgr_E1_a11 0.0
+f loopBrowseList_h31 0
+s loopBrowseList_h31 0.0
+y loopBrowseList_h31 InventoryMgr_C1_E1 10.000000
+f displayBrowseList_h29 1
+s displayBrowseList_h29 1.000000
+f SendMsg_a18 1
+s SendMsg_a18 0.0
+f InventoryMgr_E2_a27 1
+s InventoryMgr_E2_a27 0.0
+f getItemInfo_h226 1
+s getItemInfo_h226 1.000000
+f SendMsg_a28 1
+s SendMsg_a28 0.0
+y SendMsg_a28 Database_E2 1.000000
+f ReceiveReply_a31 1
+s ReceiveReply_a31 0.0
+f displayItemInfo_h227 1
+s displayItemInfo_h227 1.000000
+f SendMsg_a32 1
+s SendMsg_a32 0.0
+f InventoryMgr_E3_a39 1
+s InventoryMgr_E3_a39 0.0
+f getItemCode_h22 1
+s getItemCode_h22 1.000000
+f SendMsg_a40 1
+s SendMsg_a40 0.0
+f InventoryMgr_E4_a53 1
+s InventoryMgr_E4_a53 0.0
+f getItemCode_h206 1
+s getItemCode_h206 1.000000
+f SendMsg_a54 1
+s SendMsg_a54 0.0
+f InventoryMgr_E5_a99 1
+s InventoryMgr_E5_a99 0.0
+f loopItemPrices_h45 0
+s loopItemPrices_h45 0.0
+y loopItemPrices_h45 InventoryMgr_C2_E1 2.500000
+f SendMsg_a106 1
+s SendMsg_a106 0.0
+f InventoryMgr_E6_a114 1
+s InventoryMgr_E6_a114 0.0
+f loopItems_h57 0
+s loopItems_h57 0.0
+y loopItems_h57 InventoryMgr_C3_E1 2.500000
+f SendMsg_a127 1
+s SendMsg_a127 0.0
+f InventoryMgr_E7_a188 1
+s InventoryMgr_E7_a188 0.0
+f loopInventory_h213 0
+s loopInventory_h213 0.0
+y loopInventory_h213 InventoryMgr_C4_E1 500.000000
+f SendMsg_a195 1
+s SendMsg_a195 0.0
+f InventoryMgr_E8_a203 1
+s InventoryMgr_E8_a203 0.0
+f loopBackorderItems_h108 0
+s loopBackorderItems_h108 0.0
+y loopBackorderItems_h108 InventoryMgr_C5_E1 1.500000
+f SendMsg_a216 1
+s SendMsg_a216 0.0
+:
+InventoryMgr_E1_a11 -> loopBrowseList_h31;
+loopBrowseList_h31 -> displayBrowseList_h29;
+displayBrowseList_h29 -> SendMsg_a18;
+SendMsg_a18[ InventoryMgr_E1 ];
+InventoryMgr_E2_a27 -> getItemInfo_h226;
+getItemInfo_h226 -> SendMsg_a28;
+SendMsg_a28 -> ReceiveReply_a31;
+ReceiveReply_a31 -> displayItemInfo_h227;
+displayItemInfo_h227 -> SendMsg_a32;
+SendMsg_a32[ InventoryMgr_E2 ];
+InventoryMgr_E3_a39 -> getItemCode_h22;
+getItemCode_h22 -> SendMsg_a40;
+SendMsg_a40[ InventoryMgr_E3 ];
+InventoryMgr_E4_a53 -> getItemCode_h206;
+getItemCode_h206 -> SendMsg_a54;
+SendMsg_a54[ InventoryMgr_E4 ];
+InventoryMgr_E5_a99 -> loopItemPrices_h45;
+loopItemPrices_h45 -> SendMsg_a106;
+SendMsg_a106[ InventoryMgr_E5 ];
+InventoryMgr_E6_a114 -> loopItems_h57;
+loopItems_h57 -> SendMsg_a127;
+SendMsg_a127[ InventoryMgr_E6 ];
+InventoryMgr_E7_a188 -> loopInventory_h213;
+loopInventory_h213 -> SendMsg_a195;
+SendMsg_a195[ InventoryMgr_E7 ];
+InventoryMgr_E8_a203 -> loopBackorderItems_h108;
+loopBackorderItems_h108 -> SendMsg_a216;
+SendMsg_a216[ InventoryMgr_E8 ]
+-1
+
+A Database
+f Database_E1_a14 1
+s Database_E1_a14 0.0
+f getItemNameDB_h36 0
+s getItemNameDB_h36 20.000000
+f SendMsg_a15 1
+s SendMsg_a15 0.0
+f Database_E2_a29 1
+s Database_E2_a29 0.0
+f getItemInfoDB_h225 0
+s getItemInfoDB_h225 20.000000
+f SendMsg_a30 1
+s SendMsg_a30 0.0
+f Database_E3_a102 1
+s Database_E3_a102 0.0
+f getItemInfoDB_h232 0
+s getItemInfoDB_h232 20.000000
+f SendMsg_a103 1
+s SendMsg_a103 0.0
+f Database_E4_a117 1
+s Database_E4_a117 0.0
+f stockItemDB_h61 0
+s stockItemDB_h61 20.000000
+f SendMsg_a118 1
+s SendMsg_a118 0.0
+f Database_E5_a191 1
+s Database_E5_a191 0.0
+f stockItemDB_h215 0
+s stockItemDB_h215 20.000000
+f SendMsg_a192 1
+s SendMsg_a192 0.0
+f Database_E6_a206 1
+s Database_E6_a206 0.0
+f stockItemDB_h126 0
+s stockItemDB_h126 20.000000
+f SendMsg_a207 1
+s SendMsg_a207 0.0
+:
+Database_E1_a14 -> getItemNameDB_h36;
+getItemNameDB_h36 -> SendMsg_a15;
+SendMsg_a15[ Database_E1 ];
+Database_E2_a29 -> getItemInfoDB_h225;
+getItemInfoDB_h225 -> SendMsg_a30;
+SendMsg_a30[ Database_E2 ];
+Database_E3_a102 -> getItemInfoDB_h232;
+getItemInfoDB_h232 -> SendMsg_a103;
+SendMsg_a103[ Database_E3 ];
+Database_E4_a117 -> stockItemDB_h61;
+stockItemDB_h61 -> SendMsg_a118;
+SendMsg_a118[ Database_E4 ];
+Database_E5_a191 -> stockItemDB_h215;
+stockItemDB_h215 -> SendMsg_a192;
+SendMsg_a192[ Database_E5 ];
+Database_E6_a206 -> stockItemDB_h126;
+stockItemDB_h126 -> SendMsg_a207;
+SendMsg_a207[ Database_E6 ]
+-1
+
+A BackorderMgr
+f BackorderMgr_E1_a135 1
+s BackorderMgr_E1_a135 0.0
+f updateBackorder_h80 1
+s updateBackorder_h80 1.000000
+f SendMsg_a136 1
+s SendMsg_a136 0.0
+f BackorderMgr_E2_a200 1
+s BackorderMgr_E2_a200 0.0
+f loopBackorders_h105 0
+s loopBackorders_h105 0.0
+y loopBackorders_h105 BackorderMgr_C1_E1 50.000000
+f SendMsg_a229 1
+s SendMsg_a229 0.0
+:
+BackorderMgr_E1_a135 -> updateBackorder_h80;
+updateBackorder_h80 -> SendMsg_a136;
+SendMsg_a136[ BackorderMgr_E1 ];
+BackorderMgr_E2_a200 -> loopBackorders_h105;
+loopBackorders_h105 -> SendMsg_a229;
+SendMsg_a229[ BackorderMgr_E2 ]
+-1
+
+A CustAccMgr
+f CustAccMgr_E1_a65 1
+s CustAccMgr_E1_a65 0.0
+f checkLogin_h156 1
+s checkLogin_h156 1.000000
+f SendMsg_a66 1
+s SendMsg_a66 0.0
+y SendMsg_a66 CustAccDatabase_E1 1.000000
+f ReceiveReply_a69 1
+s ReceiveReply_a69 0.0
+f OrFork_a70 1
+s OrFork_a70 0.0
+f OrForkBranch_a71 1
+s OrForkBranch_a71 0.0
+f displayFailLogin_h173 1
+s displayFailLogin_h173 1.000000
+f OrJoinBranch_a73 1
+s OrJoinBranch_a73 0.0
+f OrForkBranch_a74 1
+s OrForkBranch_a74 0.0
+f checkPasswd_h165 1
+s checkPasswd_h165 1.000000
+f SendMsg_a75 1
+s SendMsg_a75 0.0
+y SendMsg_a75 CustAccDatabase_E2 1.000000
+f ReceiveReply_a78 1
+s ReceiveReply_a78 0.0
+f OrFork_a79 1
+s OrFork_a79 0.0
+f OrForkBranch_a80 1
+s OrForkBranch_a80 0.0
+f displayFailPasswd_h176 1
+s displayFailPasswd_h176 1.000000
+f OrJoinBranch_a81 1
+s OrJoinBranch_a81 0.0
+f OrForkBranch_a82 1
+s OrForkBranch_a82 0.0
+f getAccount_h158 1
+s getAccount_h158 1.000000
+f SendMsg_a83 1
+s SendMsg_a83 0.0
+y SendMsg_a83 CustAccDatabase_E3 1.000000
+f ReceiveReply_a86 1
+s ReceiveReply_a86 0.0
+f OrJoinBranch_a87 1
+s OrJoinBranch_a87 0.0
+f OrJoin_a72 1
+s OrJoin_a72 0.0
+f SendMsg_a88 1
+s SendMsg_a88 0.0
+f CustAccMgr_E2_a140 1
+s CustAccMgr_E2_a140 0.0
+f updateAccount_h82 1
+s updateAccount_h82 1.000000
+f SendMsg_a141 1
+s SendMsg_a141 0.0
+y SendMsg_a141 CustAccDatabase_E4 1.000000
+f ReceiveReply_a144 1
+s ReceiveReply_a144 0.0
+f CustAccUpdateEnd_a145 1
+s CustAccUpdateEnd_a145 0.0
+f CustAccMgr_E3_a157 1
+s CustAccMgr_E3_a157 0.0
+f recordCustInfo_h183 1
+s recordCustInfo_h183 1.000000
+f SendMsg_a158 1
+s SendMsg_a158 0.0
+f CustAccMgr_E4_a171 1
+s CustAccMgr_E4_a171 0.0
+f addCustAcc_h184 1
+s addCustAcc_h184 1.000000
+f SendMsg_a172 1
+s SendMsg_a172 0.0
+f CustAccMgr_E5_a217 1
+s CustAccMgr_E5_a217 0.0
+f getAccount_h133 1
+s getAccount_h133 1.000000
+f SendMsg_a218 1
+s SendMsg_a218 0.0
+y SendMsg_a218 CustAccDatabase_E6 1.000000
+f ReceiveReply_a221 1
+s ReceiveReply_a221 0.0
+f shipAvailL_h139 1
+s shipAvailL_h139 1.000000
+f updateAccount_h136 1
+s updateAccount_h136 1.000000
+f SendMsg_a222 1
+s SendMsg_a222 0.0
+y SendMsg_a222 CustAccDatabase_E7 1.000000
+f ReceiveReply_a225 1
+s ReceiveReply_a225 0.0
+f SendMsg_a226 1
+s SendMsg_a226 0.0
+:
+CustAccMgr_E1_a65 -> checkLogin_h156;
+checkLogin_h156 -> SendMsg_a66;
+SendMsg_a66 -> ReceiveReply_a69;
+ReceiveReply_a69 -> OrFork_a70;
+OrFork_a70 -> (0.040000) OrForkBranch_a71 + (0.960000) OrForkBranch_a74;
+OrForkBranch_a71 -> displayFailLogin_h173;
+displayFailLogin_h173 -> OrJoinBranch_a73;
+OrForkBranch_a74 -> checkPasswd_h165;
+checkPasswd_h165 -> SendMsg_a75;
+SendMsg_a75 -> ReceiveReply_a78;
+ReceiveReply_a78 -> OrFork_a79;
+OrFork_a79 -> (0.100000) OrForkBranch_a80 + (0.900000) OrForkBranch_a82;
+OrForkBranch_a80 -> displayFailPasswd_h176;
+displayFailPasswd_h176 -> OrJoinBranch_a81;
+OrForkBranch_a82 -> getAccount_h158;
+getAccount_h158 -> SendMsg_a83;
+SendMsg_a83 -> ReceiveReply_a86;
+ReceiveReply_a86 -> OrJoinBranch_a87;
+OrJoinBranch_a73 + OrJoinBranch_a81 + OrJoinBranch_a87 -> OrJoin_a72;
+OrJoin_a72 -> SendMsg_a88;
+SendMsg_a88[ CustAccMgr_E1 ];
+CustAccMgr_E2_a140 -> updateAccount_h82;
+updateAccount_h82 -> SendMsg_a141;
+SendMsg_a141 -> ReceiveReply_a144;
+ReceiveReply_a144 -> CustAccUpdateEnd_a145;
+CustAccMgr_E3_a157 -> recordCustInfo_h183;
+recordCustInfo_h183 -> SendMsg_a158;
+SendMsg_a158[ CustAccMgr_E3 ];
+CustAccMgr_E4_a171 -> addCustAcc_h184;
+addCustAcc_h184 -> SendMsg_a172;
+SendMsg_a172[ CustAccMgr_E4 ];
+CustAccMgr_E5_a217 -> getAccount_h133;
+getAccount_h133 -> SendMsg_a218;
+SendMsg_a218 -> ReceiveReply_a221;
+ReceiveReply_a221 -> shipAvailL_h139;
+shipAvailL_h139 -> updateAccount_h136;
+updateAccount_h136 -> SendMsg_a222;
+SendMsg_a222 -> ReceiveReply_a225;
+ReceiveReply_a225 -> SendMsg_a226;
+SendMsg_a226[ CustAccMgr_E5 ]
+-1
+
+A CustAccDatabase
+f CustAccDatabase_E1_a67 1
+s CustAccDatabase_E1_a67 0.0
+f checkLoginDB_h163 0
+s checkLoginDB_h163 20.000000
+f SendMsg_a68 1
+s SendMsg_a68 0.0
+f CustAccDatabase_E2_a76 1
+s CustAccDatabase_E2_a76 0.0
+f checkPasswdDB_h166 0
+s checkPasswdDB_h166 20.000000
+f SendMsg_a77 1
+s SendMsg_a77 0.0
+f CustAccDatabase_E3_a84 1
+s CustAccDatabase_E3_a84 0.0
+f getAccountDB_h161 0
+s getAccountDB_h161 50.000000
+f SendMsg_a85 1
+s SendMsg_a85 0.0
+f CustAccDatabase_E4_a142 1
+s CustAccDatabase_E4_a142 0.0
+f updateAccountDB_h83 0
+s updateAccountDB_h83 100.000000
+f SendMsg_a143 1
+s SendMsg_a143 0.0
+f CustAccDatabase_E5_a161 1
+s CustAccDatabase_E5_a161 0.0
+f OrFork_a162 1
+s OrFork_a162 0.0
+f OrForkBranch_a163 1
+s OrForkBranch_a163 0.0
+f getAccountDB_h229 0
+s getAccountDB_h229 20.000000
+f OrJoinBranch_a165 1
+s OrJoinBranch_a165 0.0
+f OrForkBranch_a166 1
+s OrForkBranch_a166 0.0
+f newAccountDB_h196 0
+s newAccountDB_h196 200.000000
+f OrJoinBranch_a167 1
+s OrJoinBranch_a167 0.0
+f OrJoin_a164 1
+s OrJoin_a164 0.0
+f SendMsg_a168 1
+s SendMsg_a168 0.0
+f CustAccDatabase_E6_a219 1
+s CustAccDatabase_E6_a219 0.0
+f getAccountDB_h134 0
+s getAccountDB_h134 50.000000
+f SendMsg_a220 1
+s SendMsg_a220 0.0
+f CustAccDatabase_E7_a223 1
+s CustAccDatabase_E7_a223 0.0
+f updateAccountDB_h137 0
+s updateAccountDB_h137 100.000000
+f SendMsg_a224 1
+s SendMsg_a224 0.0
+:
+CustAccDatabase_E1_a67 -> checkLoginDB_h163;
+checkLoginDB_h163 -> SendMsg_a68;
+SendMsg_a68[ CustAccDatabase_E1 ];
+CustAccDatabase_E2_a76 -> checkPasswdDB_h166;
+checkPasswdDB_h166 -> SendMsg_a77;
+SendMsg_a77[ CustAccDatabase_E2 ];
+CustAccDatabase_E3_a84 -> getAccountDB_h161;
+getAccountDB_h161 -> SendMsg_a85;
+SendMsg_a85[ CustAccDatabase_E3 ];
+CustAccDatabase_E4_a142 -> updateAccountDB_h83;
+updateAccountDB_h83 -> SendMsg_a143;
+SendMsg_a143[ CustAccDatabase_E4 ];
+CustAccDatabase_E5_a161 -> OrFork_a162;
+OrFork_a162 -> (0.050000) OrForkBranch_a163 + (0.950000) OrForkBranch_a166;
+OrForkBranch_a163 -> getAccountDB_h229;
+getAccountDB_h229 -> OrJoinBranch_a165;
+OrForkBranch_a166 -> newAccountDB_h196;
+newAccountDB_h196 -> OrJoinBranch_a167;
+OrJoinBranch_a165 + OrJoinBranch_a167 -> OrJoin_a164;
+OrJoin_a164 -> SendMsg_a168;
+SendMsg_a168[ CustAccDatabase_E5 ];
+CustAccDatabase_E6_a219 -> getAccountDB_h134;
+getAccountDB_h134 -> SendMsg_a220;
+SendMsg_a220[ CustAccDatabase_E6 ];
+CustAccDatabase_E7_a223 -> updateAccountDB_h137;
+updateAccountDB_h137 -> SendMsg_a224;
+SendMsg_a224[ CustAccDatabase_E7 ]
+-1
+
+A InventoryMgr_C1
+f InventoryMgr_C1_E1_a12 1
+s InventoryMgr_C1_E1_a12 0.0
+f getItemName_h34 1
+s getItemName_h34 1.000000
+f SendMsg_a13 1
+s SendMsg_a13 0.0
+y SendMsg_a13 Database_E1 1.000000
+f ReceiveReply_a16 1
+s ReceiveReply_a16 0.0
+f DoneLoop_a17 1
+s DoneLoop_a17 0.0
+:
+InventoryMgr_C1_E1_a12 -> getItemName_h34;
+getItemName_h34 -> SendMsg_a13;
+SendMsg_a13 -> ReceiveReply_a16;
+ReceiveReply_a16 -> DoneLoop_a17;
+DoneLoop_a17[ InventoryMgr_C1_E1 ]
+-1
+
+A InventoryMgr_C2
+f InventoryMgr_C2_E1_a100 1
+s InventoryMgr_C2_E1_a100 0.0
+f getItemInfo_h230 1
+s getItemInfo_h230 1.000000
+f SendMsg_a101 1
+s SendMsg_a101 0.0
+y SendMsg_a101 Database_E3 1.000000
+f ReceiveReply_a104 1
+s ReceiveReply_a104 0.0
+f DoneLoop_a105 1
+s DoneLoop_a105 0.0
+:
+InventoryMgr_C2_E1_a100 -> getItemInfo_h230;
+getItemInfo_h230 -> SendMsg_a101;
+SendMsg_a101 -> ReceiveReply_a104;
+ReceiveReply_a104 -> DoneLoop_a105;
+DoneLoop_a105[ InventoryMgr_C2_E1 ]
+-1
+
+A InventoryMgr_C3
+f InventoryMgr_C3_E1_a115 1
+s InventoryMgr_C3_E1_a115 0.0
+f getItem_h60 1
+s getItem_h60 1.000000
+f SendMsg_a116 1
+s SendMsg_a116 0.0
+y SendMsg_a116 Database_E4 1.000000
+f ReceiveReply_a119 1
+s ReceiveReply_a119 0.0
+f OrFork_a120 1
+s OrFork_a120 0.0
+f OrForkBranch_a121 1
+s OrForkBranch_a121 0.0
+f addToBackL_h68 1
+s addToBackL_h68 1.000000
+f OrJoinBranch_a123 1
+s OrJoinBranch_a123 0.0
+f OrForkBranch_a124 1
+s OrForkBranch_a124 0.0
+f addToAvailL_h65 1
+s addToAvailL_h65 1.000000
+f OrJoinBranch_a125 1
+s OrJoinBranch_a125 0.0
+f OrJoin_a122 1
+s OrJoin_a122 0.0
+f DoneLoop_a126 1
+s DoneLoop_a126 0.0
+:
+InventoryMgr_C3_E1_a115 -> getItem_h60;
+getItem_h60 -> SendMsg_a116;
+SendMsg_a116 -> ReceiveReply_a119;
+ReceiveReply_a119 -> OrFork_a120;
+OrFork_a120 -> (0.100000) OrForkBranch_a121 + (0.900000) OrForkBranch_a124;
+OrForkBranch_a121 -> addToBackL_h68;
+addToBackL_h68 -> OrJoinBranch_a123;
+OrForkBranch_a124 -> addToAvailL_h65;
+addToAvailL_h65 -> OrJoinBranch_a125;
+OrJoinBranch_a123 + OrJoinBranch_a125 -> OrJoin_a122;
+OrJoin_a122 -> DoneLoop_a126;
+DoneLoop_a126[ InventoryMgr_C3_E1 ]
+-1
+
+A InventoryMgr_C4
+f InventoryMgr_C4_E1_a189 1
+s InventoryMgr_C4_E1_a189 0.0
+f SendMsg_a190 1
+s SendMsg_a190 0.0
+y SendMsg_a190 Database_E5 1.000000
+f ReceiveReply_a193 1
+s ReceiveReply_a193 0.0
+f DoneLoop_a194 1
+s DoneLoop_a194 0.0
+:
+InventoryMgr_C4_E1_a189 -> SendMsg_a190;
+SendMsg_a190 -> ReceiveReply_a193;
+ReceiveReply_a193 -> DoneLoop_a194;
+DoneLoop_a194[ InventoryMgr_C4_E1 ]
+-1
+
+A BackorderMgr_C1
+f BackorderMgr_C1_E1_a201 1
+s BackorderMgr_C1_E1_a201 0.0
+f fillBackorder_h106 1
+s fillBackorder_h106 1.000000
+f SendMsg_a202 1
+s SendMsg_a202 0.0
+y SendMsg_a202 InventoryMgr_E8 1.000000
+f ReceiveReply_a227 1
+s ReceiveReply_a227 0.0
+f updateBackorder_h129 1
+s updateBackorder_h129 1.000000
+f DoneLoop_a228 1
+s DoneLoop_a228 0.0
+:
+BackorderMgr_C1_E1_a201 -> fillBackorder_h106;
+fillBackorder_h106 -> SendMsg_a202;
+SendMsg_a202 -> ReceiveReply_a227;
+ReceiveReply_a227 -> updateBackorder_h129;
+updateBackorder_h129 -> DoneLoop_a228;
+DoneLoop_a228[ BackorderMgr_C1_E1 ]
+-1
+
+A InventoryMgr_C5
+f InventoryMgr_C5_E1_a204 1
+s InventoryMgr_C5_E1_a204 0.0
+f getItem_h110 1
+s getItem_h110 1.000000
+f SendMsg_a205 1
+s SendMsg_a205 0.0
+y SendMsg_a205 Database_E6 1.000000
+f ReceiveReply_a208 1
+s ReceiveReply_a208 0.0
+f OrFork_a209 1
+s OrFork_a209 0.0
+f OrForkBranch_a210 1
+s OrForkBranch_a210 0.0
+f addToBackL_h123 1
+s addToBackL_h123 1.000000
+f OrJoinBranch_a212 1
+s OrJoinBranch_a212 0.0
+f OrForkBranch_a213 1
+s OrForkBranch_a213 0.0
+f addToAvailL_h120 1
+s addToAvailL_h120 1.000000
+f OrJoinBranch_a214 1
+s OrJoinBranch_a214 0.0
+f OrJoin_a211 1
+s OrJoin_a211 0.0
+f DoneLoop_a215 1
+s DoneLoop_a215 0.0
+:
+InventoryMgr_C5_E1_a204 -> getItem_h110;
+getItem_h110 -> SendMsg_a205;
+SendMsg_a205 -> ReceiveReply_a208;
+ReceiveReply_a208 -> OrFork_a209;
+OrFork_a209 -> (0.100000) OrForkBranch_a210 + (0.900000) OrForkBranch_a213;
+OrForkBranch_a210 -> addToBackL_h123;
+addToBackL_h123 -> OrJoinBranch_a212;
+OrForkBranch_a213 -> addToAvailL_h120;
+addToAvailL_h120 -> OrJoinBranch_a214;
+OrJoinBranch_a212 + OrJoinBranch_a214 -> OrJoin_a211;
+OrJoin_a211 -> DoneLoop_a215;
+DoneLoop_a215[ InventoryMgr_C5_E1 ]
+-1
+

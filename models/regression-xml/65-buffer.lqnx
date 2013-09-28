@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<lqn-model name="65-buffer" description="lqn2xml 5.4 solution for model from: 65-buffer.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="lqngen" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="buffer" scheduling="fcfs">
+      <task name="buffer_empty" scheduling="semaphore" initially="0">
+         <entry name="empty_signal" type="PH1PH2" semaphore="signal">
+            <entry-phase-activities>
+               <activity name="empty_signal_1" phase="1" host-demand-mean="0.1"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="empty_wait" type="PH1PH2" semaphore="wait">
+            <entry-phase-activities>
+               <activity name="empty_wait_1" phase="1" host-demand-mean="0.1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="buffer_full" scheduling="semaphore">
+         <entry name="full_wait" type="PH1PH2" semaphore="wait">
+            <entry-phase-activities>
+               <activity name="full_wait_1" phase="1" host-demand-mean="0.1"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="full_signal" type="PH1PH2" semaphore="signal">
+            <entry-phase-activities>
+               <activity name="full_signal_1" phase="1" host-demand-mean="0.1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="sink" scheduling="inf">
+      <task name="sink" scheduling="ref">
+         <entry name="sink" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="sink_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="empty_wait" calls-mean="1"/>
+               </activity>
+               <activity name="sink_2" phase="2" host-demand-mean="0" call-order="DETERMINISTIC">
+                  <asynch-call dest="full_signal" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="source" scheduling="inf">
+      <task name="source" scheduling="ref">
+         <entry name="source" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="source_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="full_wait" calls-mean="1"/>
+               </activity>
+               <activity name="source_2" phase="2" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <asynch-call dest="empty_signal" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

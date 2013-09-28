@@ -1,0 +1,72 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o60-quorum.lqnx 60-quorum.in -->
+<!-- Thu May 28 09:03:26 2009 -->
+
+<lqn-model name="60-quorum" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="quorum model (meets assumptions)" conv_val="0.0001" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
+   <processor name="p1" scheduling="fcfs">
+      <task name="t1" scheduling="ref">
+         <entry name="e1" type="NONE"/>
+         <task-activities>
+            <activity name="a1" bound-to-entry="e1" host-demand-mean="1"/>
+            <activity name="b1" host-demand-mean="0.1" call-order="DETERMINISTIC">
+               <synch-call dest="d1" calls-mean="1"/>
+            </activity>
+            <activity name="b2" host-demand-mean="0.1" call-order="DETERMINISTIC">
+               <synch-call dest="d2" calls-mean="1"/>
+            </activity>
+            <activity name="b3" host-demand-mean="0.1" call-order="DETERMINISTIC">
+               <synch-call dest="d3" calls-mean="1"/>
+            </activity>
+            <activity name="c1" host-demand-mean="1"/>
+            <precedence>
+               <pre>
+                  <activity name="a1"/>
+               </pre>
+               <post-AND>
+                  <activity name="b1"/>
+                  <activity name="b2"/>
+                  <activity name="b3"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND quorum="2">
+                  <activity name="b1"/>
+                  <activity name="b2"/>
+                  <activity name="b3"/>
+               </pre-AND>
+               <post>
+                  <activity name="c1"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="d1" scheduling="fcfs">
+      <task name="d1" scheduling="fcfs">
+         <entry name="d1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d2" scheduling="fcfs">
+      <task name="d2" scheduling="fcfs">
+         <entry name="d2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d2_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d3" scheduling="fcfs">
+      <task name="d3" scheduling="fcfs">
+         <entry name="d3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d3_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

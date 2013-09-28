@@ -1,0 +1,27 @@
+# SRVN Model Description File
+# $HeadURL$
+# 
+# ------------------------------------------------------------------------
+# $Id$
+# ------------------------------------------------------------------------
+
+G "Simplest model - client think time." 1e-05 50 10 0.9 -1
+
+P 2
+  p client f i
+  p server f
+-1
+
+T 2
+  t client r client -1 client z 0.5
+  t server n server -1 server
+-1
+
+E 2
+# ---------- client ----------
+  s client 0.5 -1
+  y client server 1 -1
+# ---------- server ----------
+  s server 1 -1
+-1
+

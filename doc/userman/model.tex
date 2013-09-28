@@ -1,0 +1,694 @@
+%%  -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  model
+%% $HeadURL$
+%%
+%% Doc: /home/greg/usr/src/doc/userman/model.tex
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{The Layered Queueing Network Model}
+\label{sec:lqn}
+
+Figure~\ref{fig:bookstore} illustrates the LQN notation with an
+example of an on-line e-commerce system. In an LQN, software
+resources\index{resource!software} are all called
+``tasks''\index{task}, have queues\index{queue} and provide classes of
+service which are called ``entries''\index{entry}.  The
+demand\index{demand} for each class of service\index{service!class}
+can be specified through ``phases''\index{phase}, or for more complex
+interactions, using ``activities''\index{activity}.  In
+Figure~\ref{fig:bookstore}, a task is shown as a parallelogram,
+containing parallelograms for its entries and rectangles for
+activities. Processor\index{processor} resources are shown as circles,
+attached to the tasks that use them. Stacked icons\index{icon!stacked}
+represent tasks or processors with multiplicity\index{multiplicity},
+making it a multiserver\index{multiserver}. A multiserver may
+represent a multi-threaded task, a collection of identical users, or a
+symmetric multiprocessor with a common scheduler.
+Multiplicity\index{multiplicity} is shown on the diagram with a label
+in braces. For example there are five copies of the task `Server' in
+Figure~\ref{fig:bookstore}.
+
+\begin{figure}[htbp]
+  \centering
+  \epsfxsize=\textwidth
+  \epsffile{bookstore/bookstore.eps}
+  \caption{Notation}
+  \label{fig:bookstore}
+\end{figure}
+
+Entries and activities have directed arcs\index{arcs} to other entries
+at lower layers to represent service
+requests\index{service!request}\index{request} (or
+messages)\footnote{requests may jump over
+  layers\index{layer!spanning}, such as the request from the
+  Administrator task to the InventoryMgr task.}. A request from an
+entry or an activity to an entry may return a
+reply\index{request!reply}\index{reply} to the requester (a
+synchronous request\index{request!synchronous}, or
+\emph{rendezvous}\index{rendezvous}) indicated in
+Figure~\ref{fig:bookstore} by solid arrows with closed arrowheads.
+For example, task Administrator makes a request to task BackorderMgr
+who then makes a request to task InventoryMgr. While task InventoryMgr
+is servicing the request, tasks BackorderMgr and Administrator are
+blocked\index{request!blocked}.  A request may be
+forwarded\index{forwarding}\index{request!forward} to another entry
+for later reply, such as from InventoryMgr to CustAccMgr.  Finally a
+request may not return any reply at all (an asynchronous
+request\index{request!asynchronous} or
+\emph{send-no-reply}\index{send-no-reply}, shown as an arrow with an
+open arrow head, for example, the request from task ShoppingCart to
+CustAccMgr.
+
+The first way that the demand at entries can be specified is through
+phases\index{phase}.  The parameters of an
+entry\index{entry!parameters} are the mean number of requests for
+lower entries (shown as labels in parenthesis on the request arcs),
+and the mean total host demand for the entry (in units of time, shown
+as a label on the entry in brackets). An entry may continue to be busy
+after it sends a reply\index{reply}, in an asynchronous ``second
+phase''\index{phase!second}\index{phase!asynchronous} of
+service~\cite{perf:franks-99b} so each parameter is an array of values
+for the first and second phase.  Second phases are a common
+performance optimization, for example for transaction cleanup and
+logging, or delayed write operations.
+
+The second way that demand can be specified is through
+activities\index{activity}.  Activities are the lowest level of
+granularity in a performance model and are linked together in a
+directed graph to indicate precedence\index{precedence!activity}.
+When a request arrives at an entry, it triggers the first activity of
+the activity graph\index{activity graph}.  Subsequent activities may
+follow sequentially, or may fork\index{fork} into multiple paths which
+later join\index{join}.  The fork may take the form of an `AND' which
+means that all the activities on the branch\index{branch!AND} after
+the fork can run in parallel, or in the form of an `OR', which chooses
+one of the branches\index{branch!OR} with a specified
+probability\index{branch!probability}.  In Figure~\ref{fig:bookstore},
+a request that is received by entry ``SCE3'' of task ``ShoppingCart''
+is processed using an activity called ``SCE3A95'' that represents the
+main thread\index{thread} of control, then the main thread is
+OR-Forked into two branches, one of which is later
+AND-forked\index{AND-fork} into three threads.  The three threads,
+starting with activities `AFBA109', `AFBA130' and `AFBA133'
+respectively, run in parallel.  The first thread
+replies\index{reply!activity}\index{activity!reply} to the entry
+through activity `OJA110' then ends.  The remaining two threads join
+into one thread at activity `AJA131'.  When both `OJA110' and `AJA131'
+terminate, the task can accept a new request.
+
+The holding time\index{holding time} for one class of service is the
+entry service time, which is not a constant parameter but is
+determined by its lower servers.  Thus the essence of layered queuing
+is a form of simultaneous resource
+possession\index{resource!possession!simultaneous}. In software
+systems delays and congestion are heavily influenced by
+synchronous\index{request!synchronous} interactions such as remote
+procedure calls\index{remote procedure call} (RPCs) or
+rendezvous\index{rendezvous}, and the LQN model captures these delays
+by incorporating the lower layer queueing and service into the service
+time of the upper layer server.  This ``active
+server''\index{server!active}\index{active server}
+feature~\cite{srvn:woodside-94-ieeetc-srvn} is the key difference between layered
+and ordinary queueing networks.
+
+\section{Model Elements}
+\label{sec:elements}
+
+Figure~\ref{fig:meta-model} shows the
+\emph{meta-model}\index{meta model} used to describe Layered Queueing
+Networks\index{Layered Queueing Network}.  This model is unique in
+that it is more closely aligned with the architecture of a software
+system that it is with a conventional queueing network model such as
+Performance Model Interchange
+Format\index{Performance Model Interchange Format}
+(PMIF)~\cite{perf:smith-99-jss-pmif,perf:smith-2004-pmif2}.  The latter consists of
+stations with queues and visits, whereas a LQN has processors, tasks
+and requests.
+
+A Layered Queueing Network is a directed graph.  Nodes in the
+graph\index{node} consist of tasks\index{task},
+processors\index{processor}, entries\index{entry},
+activities\index{activity}, and precedence\index{precedence}.
+Arcs\index{arcs} in the graph consist of requests\index{request} from
+one node to another.  The model objects are described below.
+
+\begin{figure}[htbp]
+  \centering
+%  \epsfxsize=\textwidth
+  \epsffile{model/meta-model.eps}
+  \caption{LQN Meta Model}
+  \label{fig:meta-model}
+\end{figure}
+
+\subsection{Processors}
+\label{sec:processors}
+
+Processors\index{processor|(textbf} are used by the
+activities\index{activity} within a performance model to consume
+\emph{time}.  They are \emph{pure servers}\index{server!pure} in that
+they only accept requests from other servers and clients.  They can be
+actual processors in the system, or may simply be place holders for
+tasks representing customers and other logical resources.
+
+Each processor has a single queue for requests.  Requests may be
+scheduled using the following queueing disciplines:
+\begin{description}
+\item[FIFO] First-in, first out\index{scheduling!fifo} (first-come,
+  first-served).  Tasks are served in the order in which they arrive.
+\item[PPR] Priority, preemptive
+  resume\index{priority!preemptive resume}.  Tasks with
+  priorities\index{processor!priority}\index{priority!processor}
+  higher than the task currently running on the processor will preempt
+  the running task.
+\item[HOL] Head-of-line priority\index{priority!head of line}.  Tasks
+  with higher priorities will be served by the processor first.  Tasks
+  in the queue will not preempt a task running on the processor even
+  though the running task may have a lower priority.
+\item[PS] Processor sharing\index{processor!sharing|textbf}.  The processor
+  runs all tasks ``simultaneously''.  The rate of service by the
+  processor is inversely proportional to the number of executing
+  tasks.  For \emph{lqsim}\index{lqsim!scheduling}, processor
+  sharing\index{scheduling!processor sharing} is implemented as
+  \emph{round-robin}\index{round robin}\index{scheduling!round robin}
+  -- a \emph{quantum}\index{quantum} must be specified.
+\item[RAND] Random scheduling\index{scheduling!random}.  The processor selects a task at random. 
+\item[CFS] Completely fair scheduling\index{scheduling!cfs}\index{scheduling!completely fair}~\cite{perf:li-2009-mascots-fairshare}.  Tasks are scheduled within groups\index{group} using
+  round-robin scheduling and groups are scheduled according to their share\index{share}.  A
+  \emph{quantum}\index{quantum} must be specified.  This scheduling discipline is implemented on the
+  simulator only at present.
+\end{description}
+
+Priorities\index{priority!highest} range from zero to positive
+infinity, with a priority of zero being the highest.  The default
+priority for all tasks is zero.\index{processor|)}
+
+\subsection{Groups}
+\label{sec:groups}
+
+Groups\index{group|(\textbf}\cite{perf:li-2009-mascots-fairshare} are used to divide up a processor's
+execution time up into \emph{shares}\index{share}.  The tasks within a group divide the share up among
+themselves evenly.  Groups can only be created on processors running the scheduling discipline
+\emph{completely fair scheduling},\index{scheduling!completely fair}.  \index{group|)}.
+
+Shares may either be \emph{guaranteed}\index{share!guarantee} or \emph{capped}\index{share!cap}.  Guarantee
+shares act as a floor for the share that a group receives.  If surplus CPU time is available (i.e., the
+processor is not fully utilized), tasks in a guaranteed group can exceed their share\index{share!exceed}.
+Cap shares act as a hard ceiling.  Tasks within these groups will never receive more than their share of CPU
+time.  
+
+Note: Completely fair scheduling is a form of priority scheduling\index{scheduling!priority}.  With layered
+models, calls made by tasks within groups to lower level servers can cause \emph{priority
+  inversion}\index{priority!inversion}.  Cap scheduling tends to behave better than guaranteed scheduling
+for these cases.
+
+\subsection{Tasks}
+\label{sec:tasks}
+
+Tasks\index{task|(textbf} are used in layered queueing networks to
+represent resources.  Resources include, but are not limited to:
+actual tasks (or processes) in a computer system,
+customers\index{customer}, buffers\index{buffers}, and hardware
+devices.  In essence, whenever some entity requires some sort of
+service, requests between tasks involved.
+
+A task has a queue\index{task!queue} for requests and runs on a
+processor.  Items are served from the queue in a first-come,
+first-served manner.  Different classes of
+service\index{service!class} are specified using
+\emph{entries}\index{entry} (c.f.~\S\ref{sec:entries}).  Tasks may
+also have internal concurrency\index{concurrency}, specified using
+\emph{activities}\index{activity} (c.f.~\S\ref{sec:activities}).
+
+Requests can be served using the following scheduling
+methods\index{scheduling!task}:
+\begin{description}
+\item[FIFO] First-in, first out\index{scheduling!fifo} (first-come,
+  first-served).  Requests are served in the order in which they
+  arrive.  This scheduling discipline is the default for tasks.
+\item[PPR] Priority, preemptive resume\index{priority!preemptive
+    resume}.  Requests arriving at entries with
+  priorities\index{entry!priority}\index{priority!entry} higher than
+  entry that task is currently processing will preempt the execution
+  of the current entry.
+\item[HOL] Head-of-line priority\index{priority!head of line}.
+  Requests arriving at entries with higher priorities will be served
+  by the task first.  Requests in the queue will not preempt the
+  processing of the current entry by the task.
+\end{description}
+
+Priorities\index{priority!highest} range from zero to positive
+infinity, with a priority of zero being the highest.  The default
+priority for all entries is zero.
+
+The subclasses of \emph{task} are:
+\begin{description}
+\item[\emph{Reference Task:}] Reference tasks\index{task!reference}\index{reference task|textbf} are used to
+  represent customers\index{customer} in the layered queueing network.  They are like normal tasks in that
+  they have entries and can make requests.  However, they can never receive requests and are always found at
+  the top of a call graph.  They typically generate traffic in the underlying closed queueing
+  model\index{queueing model!closed} by making rendezvous\index{rendezvous!reference task} requests to
+  lower-level servers.  Reference tasks can also generate traffic in the underlying open queueing
+  model\index{queueing model!open} by making send-no-reply requests instead of rendezvous requests.
+  However, open class customers are more typically represented using open arrivals which is simply encoded
+  as a parameter to an entry.
+  
+  \emph{Bursty} reference tasks\index{task!reference!bursty|textbf}\index{reference task!bursty|textbf} are
+  a special case of reference tasks where the service time for the slices\index{slice} are random variables
+  with a \emph{Pareto} distribution\index{Pareto distribution} (c.f.~\S\ref{sec:slices}).
+\item[\emph{Semaphore Task:}] Semaphore tasks\index{task!semaphore}\index{semaphore task|textbf} are used to
+  model passive resources\index{resource!passive} such as buffers.  They always have two entries which are
+  used to \emph{signal}\index{entry!signal}\index{signal} and \emph{wait}\index{entry!wait}\index{wait} the
+  semaphore.  The wait entry must be called using a synchronous request whereas the signal entry can be
+  called using any type of request.  Once a request is accepted by the wait entry, no further requests will
+  be accepted until a request is processed by the signal entry.  The signal and wait entries do not have to
+  called from a common task.  However, the two entries must share a common call graph, and the call graph
+  must be deterministic.  The entries themselves can be defined using phases or activies and can make
+  requests to other tasks.  Counting semaphores\index{semaphore!counting} can be modeled using a
+  multiserver.
+\item[\emph{Synch Task:}] Synchronization tasks\index{task!synchronization}
+  \index{synchronization task|textbf} are used...  Cannot be a multiserver.\typeout{Write me!}
+\end{description}\index{task|)}
+
+
+\subsection{Entries}
+\label{sec:entries}
+
+Entries\index{entry|(textbf} service requests and are used to
+differentiate the service provided by a task.  An entry can accept
+either synchronous\index{message!synchronous}\index{message|see{request}}, or
+asynchronous\index{message!asynchronous} requests, but not both.
+Synchronous requests are part of the \emph{closed} queueing
+model\index{queueing model!closed}\index{closed model} whereas
+asynchronous requests are part of the \emph{open} 
+model\index{queueing model!open}\index{open model}.  Message types are
+described in Section~\ref{sec:requests} below.
+
+Entries also generate the replies for synchronous
+requests\index{rendezvous}.  Typically, a reply to a message is
+returned to the client who originally sent the message.  However,
+entries may also \emph{forward}\index{forwarding} the reply.  The next
+entry which accepts the forwarded reply may forward the message in
+turn, or may reply back to the originating client.  For example, in
+Figure~\ref{fig:bookstore}, entry `IME8' on task `IventoryMgr'
+forwards the request from entry `BME2' on task `BackorderMgr' to entry
+`CAME5' on task `CustAccMgr'.  The reply from `CAME2' will be sent
+directly back to `BME2'.
+
+The parameters for an entry can be specified using either
+phases\index{phase} or activities\index{activity}\footnote{The
+  meta-model in Figure~\protect\ref{fig:meta-model} only shows
+  activities, phases are a notational short-hand.}.  The activity
+method is typically used when a task has complex internal behaviour
+such as forks\index{fork} and joins\index{join}, or if its behaviour
+is specified as an activity graph\index{activity graph} such as those
+used by Smith and Williams~\cite{perf:smith-2002}.  The phase method
+is simply a short hand notation for specifying a sequence of one to
+three activities, with the
+reply\index{reply!phase}\index{reply!activity} being generated by the
+first activity in the sequence.  Figure~\ref{fig:entry-specification}
+shows both methods for specifying a two-phase client calling a
+two-phase server.
+
+\begin{figure}[htbp]
+  \centering
+  \subfloat[Phases]{\epsffile{model/entry-phases.eps}}
+  \subfloat[Activities]{\epsffile{model/entry-activities.eps}}
+  \caption{Entry Specification}
+  \label{fig:entry-specification}
+\end{figure}
+
+Regardless of the specification method used for an entry, its
+behaviour as a server to its clients is by \emph{phase}\index{phase},
+shown in Figure~\ref{fig:phase}.  Phases consume time on processors
+and make requests to entries.  Phase one is a \emph{service phase} and
+is similar to the service given by a station in a queueing network.
+Phase one ends after the server sends a reply\index{reply!phase}.
+Subsequent phases are \emph{autonomous}\index{autonomous phase}\index{phase!autonomous} phases
+which are launched by phase one.  These phases operate in parallel
+with the clients which initiated them.  The simulator and analytic
+solver limit the number of phases to three.
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{model/phase.eps}
+  \caption{Phases for an Entry.\protect\index{phase}}
+  \label{fig:phase}
+\end{figure}
+
+\subsection{Activities}
+\label{sec:activities}
+
+Activities\index{activity|textbf} are the lowest-level of
+specification in the performance model.  They are connected together
+using ``Precedence'' (c.f.~\S\ref{sec:precedence})\index{precedence}
+to form a directed graph\index{directed graph} to represent more than
+just sequential execution scenarios.
+
+Activities consume time on processors.  The \emph{service time}\index{service time} is defined by a mean and
+variance, the latter through \index{coefficient of variation}\emph{coefficient of variation squared}
+\footnote{The squared coefficient of variation is variance divided by the square of the mean.}. The service
+time between requests to lower level servers is assumed to be exponentially distributed (with the exception
+of \emph{bursty reference tasks}\index{task!reference!bursty}) so the total service time is the sum of a
+random number of exponentially distributed random variables.
+
+Activities also make requests to entries on other tasks.  The distribution of requests to lower level
+servers is set by the \emph{call order}\index{call order} for the activity which is either
+\emph{stochastic}\index{stochastic} or \emph{deterministic}\index{deterministic}.  If the call order is
+deterministic, the activity makes the exact number of requests specified to the lower level servers.  The
+number of requests is integral; the order of requests to different entries is not defined.  If the call
+order is stochastic, the activity makes a random number of requests to the lower level servers.  The mean
+number of requests is specified by the value specified.  Requests are assumed to be geometrically
+distributed.
+
+For entries which accept rendezvous\index{rendezvous} requests,
+replies must be generated.  If the entry is specified using phases,
+the reply\index{reply!implicit} is implicit after phase
+one\index{phase!reply}.  However, if the entry is specified using
+activities\index{activity!reply}, one or more of the activities must
+explicitly\index{reply!explicitly} generate the reply.  Exactly one
+reply must be generated for each request.\index{entry|)}
+
+\subsubsection{Slices}\index{slice|(textbf}
+\label{sec:slices}
+
+Activities consume time by making requests to the processor associated with the task.  The service time
+demand specified for an activity is divided into {\em slices} between requests to other entries, shown in
+the UML Sequence Diagram in Figure~\ref{fig:slices}. The mean number of slices is always $1 + Y$ where $Y$
+is total total number of requests made by the activity.  
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{model/slice.eps}
+  \caption{Slices\protect\index{slice}.  The \emph{slice time} is shown using the label $\zeta$.}
+  \label{fig:slices}
+\end{figure}
+
+By default, the demand of a \emph{slice} is assumed to be exponentially distributed~\cite{srvn:woodside-94-ieeetc-srvn}
+but a variance may be specified through the \index{coefficient of variation|textbf}\emph{coefficient of
+  variation squared} ($\textit{cv}^2 = \sigma^2 / \overline{s}^2$) parameter for the entry or activity.  The
+method used to solve the model depends on the solver being used:
+\begin{description}
+\item[Analytic Solver:] All servers with $\textit{cv}^2 \ne 1$ use the HVFCFS MVA approximation
+  from~\cite{queue:reiser-79}.  
+\item[Simulator:] The simulator uses the following distributions for generating random variates for slice
+  times provided that the task is \emph{not} a bursty reference task.
+  \begin{description}
+  \item[$\textit{cv}^2 = 0$:] deterministic.
+  \item[$0 < \textit{cv}^2 < 1$:] gamma\index{distribution!gamma}.
+  \item[$\textit{cv}^2 = 1$:] exponential\index{distribution!exponential}.
+  \item[$\textit{cv}^2 > 1$:] bizarro...
+  \end{description}
+  If the task is a bursty reference task\index{reference task!bursty}, then the simulator generates random
+  variates for slice times according to the Pareto distribution\index{distribution!Pareto}. The scale $x_m >
+  0$ and shape $k > 0$ parameters for the distribution are derived from the service time $s$ and coefficient
+  of variation squared $\textit{cv}^2$ parameters for the corresponding activity (or phase).
+  \begin{eqnarray*}
+    k & = & \sqrt{\frac{1}{\textit{cv}^2} + 1} + 1 \\
+    x_m & = & s \times \frac{(k - 1)}{k}
+  \end{eqnarray*}
+  On-off\index{on-off behaviour} behaviour can simulated by using two or more phases at the client, where on
+  phase corresponds to the on period and makes requests to other servers, while the other phase corresponds
+  to the off period.
+\end{description}
+\index{slice|)}
+
+\subsection{Precedence}
+\label{sec:precedence}
+
+\emph{Precedence}\index{precedence|(textbf} is used to connect
+activities within a task to from an \emph{activity graph}.  Referring
+to Figure~\ref{fig:meta-model}, precedence is subclassed into
+`\textbf{Pre}'\index{pre-precedence} (or \emph{`join'}\index{join!precedence})
+and `\textbf{Post}'\index{post-precedence} (or \emph{`fork'}\index{fork!precedence}).  To
+connect one activity to another, the source activity connects to a
+\emph{pre-}precedence (or a \emph{join-}list\index{join-list}).  The
+\emph{pre-}precedence then connects to a \emph{post-}precedence (or a
+\emph{fork-}list\index{fork-list}) which, in turn, connects to the
+destination activity.  Table~\ref{tab:activity-notation} summarizes
+the precedence types.
+
+\begin{table}[htbp]
+  \begin{center}
+    \begingroup\makeatletter\ifx\SetFigFont\undefined%
+    \gdef\SetFigFont#1#2#3#4#5{%
+      \reset@font\fontsize{#1}{#2pt}%
+      \fontfamily{#3}\fontseries{#4}\fontshape{#5}%
+      \selectfont}%
+    \fi\endgroup%
+    \leavevmode
+    \begin{tabular}{|m{1in}|m{3cm}|m{3.5in}|}
+      \hline
+      Name & Icon & Description\\
+      \hline
+      \hline
+%
+% Join lists (pre-)
+%
+      Sequence\index{precedence!sequence}
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,339)(529,107)
+        \thinlines
+        \put(541,119){\makebox(1080,315){}}
+        \put(1081,389){\line( 0,-1){225}}
+      \end{picture}%
+      & Transfer of control from an activity to a join-list.\\
+      \hline
+      And-Join\index{precedence!and-join}\index{and~join} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,429)(529,-28)
+        \thinlines
+        \put(541,-16){\makebox(1080,585){}}
+        \put(1081,119){\circle{180}}
+        \multiput(856,344)(5.78571,-5.78571){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1018,182){\vector( 1,-1){0}}
+        \put(1081, 67){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\updefault}\&}}}}
+        \multiput(1306,344)(-5.64286,-5.64286){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1148,186){\vector(-1,-1){0}}
+      \end{picture}%
+      & A Synchronization point for concurrent activities.\\
+      \hline
+      Quorum-Join\index{precedence!quourm-join}\index{quorum~join} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,429)(529,-28)
+        \thinlines
+        \put(541,-16){\makebox(1080,585){}}
+        \put(1081,119){\circle{180}}
+        \multiput(856,344)(5.78571,-5.78571){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1018,182){\vector( 1,-1){0}}
+        \put(1081, 67){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\itdefault}n}}}}
+        \multiput(1306,344)(-5.64286,-5.64286){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1148,186){\vector(-1,-1){0}}
+      \end{picture}%
+      & A Synchronization point for concurrent activities where only $n$ branches must finish.\\
+      \hline
+      Or-Join\index{precedence!or-join}\index{or~join} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,429)(529,17)
+        \thinlines
+        \put(541, 29){\makebox(1080,405){}}
+        \put(1081,164){\circle{180}}
+        \multiput(856,389)(5.64286,-5.64286){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1014,231){\vector( 1,-1){0}}
+        \multiput(1306,389)(-5.67857,-5.67857){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1147,230){\vector(-1,-1){0}}
+        \put(1081,112){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\updefault}+}}}}
+      \end{picture}%
+      & \mbox{} \\
+      \hline
+      \hline
+%
+% Fork lists (post-precedence)
+%
+      Sequence\index{precedence!sequence}
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,339)(529,107)
+        \thinlines
+        \put(541,119){\makebox(1080,315){}}
+        \put(1081,389){\vector( 0,-1){225}}
+      \end{picture}%
+      & Transfer of control from fork-list to activity\\
+      \hline
+      And-Fork\index{precedence!and-fork}\index{and~fork} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,474)(529,-28)
+        \thinlines
+        \put(541,-16){\makebox(1080,450){}}
+        \multiput(1019,192)(-5.62069,-5.62069){30}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(856, 29){\vector(-1,-1){0}}
+        \multiput(1146,189)(5.71429,-5.71429){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1306, 29){\vector( 1,-1){0}}
+        \put(1081,254){\circle{180}}
+        \put(1081,202){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\updefault}\&}}}}
+      \end{picture}%
+      & Start of concurrent execution.  There can be
+      any number of forked paths. \\
+      \hline
+      Or-Fork\index{precedence!or-fork}\index{or~fork} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,474)(529,-28)
+        \thinlines
+        \put(541,-16){\makebox(1080,450){}}
+        \put(1081,254){\circle{180}}
+        \put(1081,202){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\updefault}+}}}}
+        \put(901,119){\makebox(0,0)[rb]{\smash{{\SetFigFont{8}{9.6}{\rmdefault}{\mddefault}{\updefault}$p$}}}}
+        \put(1261,119){\makebox(0,0)[lb]{\smash{{\SetFigFont{8}{9.6}{\rmdefault}{\mddefault}{\updefault}$1-p$}}}}
+        \multiput(1144,191)(5.78571,-5.78571){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(1306, 29){\vector( 1,-1){0}}
+        \multiput(1017,190)(-5.75000,-5.75000){29}{\makebox(1.5875,11.1125){\SetFigFont{5}{6}{\rmdefault}{\mddefault}{\updefault}.}}
+        \put(856, 29){\vector(-1,-1){0}}
+      \end{picture}%
+      & A branching point where one of the paths
+      is selected with probability $p$.  There can be any number of branches.\\
+      \hline
+      Loop\index{precedence!loop}\index{loop} 
+      & \centering\setlength{\unitlength}{4144sp}%
+      \begin{picture}(1104,474)(529,-28)
+        \thinlines
+        \put(541,-16){\makebox(1080,450){}}
+        \put(1081,299){\circle{180}}
+        \put(1081,209){\vector( 0,-1){180}}
+        \put(1017,235){\vector(-1,-1){206}}
+        \put(1145,235){\vector( 1,-1){206}}
+        \put(856,119){\makebox(0,0)[rb]{\smash{{\SetFigFont{8}{9.6}{\rmdefault}{\mddefault}{\updefault}$n_1$}}}}
+        \put(1036, 29){\makebox(0,0)[rb]{\smash{{\SetFigFont{8}{9.6}{\rmdefault}{\mddefault}{\updefault}$n_2$}}}}
+        \put(1081,226){\makebox(0,0)[b]{\smash{{\SetFigFont{10}{12.0}{\rmdefault}{\mddefault}{\updefault}*}}}}
+      \end{picture}%
+      & Repeat the activity an average of $n$ times.\\
+      \hline
+    \end{tabular}
+    \caption{\label{tab:activity-notation}Activity graph notation.}
+  \end{center}
+\end{table}
+
+The semantics of an activity graph\index{activity graph!semantics} are
+as follows.  For AND-forks\index{AND-fork}, AND-joins\index{AND-join} and QUORUM-joins\index{QUORUM-join},
+each branch of a join must originate from a common fork, and each
+branch of the join must have a matching branch from the fork.
+Branches\index{branch!AND} from AND-forks need not necessarily join, either explictily by a ``dangling''
+thread not participating in a join, or implicitly through a quorum 
+join\index{join!quorum}\index{quorum join}, where only  a subset of the branches must join while ignoring
+the rest. However, all threads started by a fork must terminate before the task
+will accept a new message (i.e., there is an implied join collecting
+all threads at the end of a task's cycle).  Branches to an AND-join do
+not necessarily have to originate from a fork -- for this case each
+branch must originate from a unique entry.  This case is used to
+synchronize\index{server!synchronize}\index{synchronization server}
+two or more clients at the server.
+
+For OR-forks\index{OR-fork}, the sum of the
+probabilities\index{branch!probability}\index{probability!branch} of
+the branches must sum to one -- there is no ``default'' operation.
+AND-forks may join at OR-joins\index{OR-join}.  The threads from the
+AND-fork implicitly join when the task cycle completes.  OR-joins may
+be called directly from entries.  This case is analogous to running
+common code for different requests to a task.
+
+LOOPs\index{LOOP} consist of one or more
+branches\index{branch!loop count}\index{loop count}, each of which is
+run a random number of times with the specified mean, followed by an
+optional deterministic branch\index{branch!deterministic}
+exit\index{branch!exit} which is followed after all the looping has
+completed.
+
+Replies\index{activity!reply} can only occur from activities in
+\emph{pre-}precedence (\emph{and-}join) lists.  Activities cannot
+reply to entries from a loop branch because the number of times that a
+branch is executed is a random number.\index{precedence|)}
+
+\subsection{Requests}
+\label{sec:requests}
+
+Service requests\index{request|(textbf} from one task to another can be
+one of three types: rendezvous\index{rendezvous},
+forwarded\index{forwarding}, and send-no-reply\index{send-no-reply},
+shown in Figure~\ref{fig:request-types}.  A rendezvous request is a
+blocking synchronous request -- the client is suspended while the
+server processes the request.  A send-no-reply request is an
+asynchronous request -- the client continues execution after the send
+takes place.  A forwarded request results when the reply to a client
+is redirected to a subsequent server which, may forward the request
+itself, or may reply to the originating client.\index{request|)}
+
+\begin{figure}[htbp]
+  \centering
+  \subfloat[Rendezvous]{\hspace{1cm}\epsffile{model/request-rnv.eps}\hspace{1cm}}
+  \subfloat[Forwarding]{\hspace{1cm}\epsffile{model/request-fwd.eps}\hspace{1cm}}
+  \subfloat[Send-no-reply]{\hspace{1cm}\epsffile{model/request-snr.eps}\hspace{1cm}}
+  \caption{Request Types.\index{request!types}}
+  \label{fig:request-types}
+\end{figure}
+
+\section{Multiplicity and Replication}
+\label{sec:replication}\label{sec:multiplicity}\index{replication|(textbf}\index{multiplicity|(textbf}
+
+One common technique to improve the performance of a system is to add
+copies of servers.  The performance model supports two techniques:
+multiplicity\index{multiplicity|textbf} and
+replication\index{replication|textbf}.  Multiplicity is the simpler
+technique of the two as a single queue is served by multiple servers.
+Replication requires a more elaborate specification because the queues
+of the servers are also copied, so requests must be routed to the
+various queues.  Multi-servers can be replicated.
+Figure~\ref{fig:multiplicity-replication} shows the underlying
+queueing models for each technique.
+
+\begin{figure}[htbp]
+  \centering
+  \subfloat[Multi-server]{\hspace{1cm}\epsffile{replication/multiserver.eps}\hspace{1cm}}
+  \subfloat[Replicated]{\hspace{1cm}\epsffile{replication/replicaserver.eps}\hspace{1cm}}
+  \caption{Multiple copies of servers.}
+  \label{fig:multiplicity-replication}
+\end{figure}
+
+Replication reduces the number of nodes in the layered queueing model
+by combining tasks and processors with identical behaviour into a
+single object, shown in Figure~\ref{fig:replicated-flat}.  The left
+figure shows three identical clients making requests to two identical
+servers.  The right figure is the same model, but specified using
+replication.  Labels within angle brackets in
+Figure~\ref{fig:replicated-flat}(b) denote the number of replicas.
+
+\begin{figure}[htbp]
+  \centering
+  \subfloat[Flat]{\epsffile{replication/flat.eps}}
+  \subfloat[Replicated]{\epsffile{replication/replicated.eps}}
+  \caption{Replicated Model}
+  \label{fig:replicated-flat}
+\end{figure}
+
+Replication also introduces the notion of
+\emph{fan-in}\index{fan-out|textbf} and
+\emph{fan-in}\index{fan-in|textbf}, denoted using the
+\texttt{O=}\emph{n} and \texttt{I=}\emph{n} labels on the request from
+t1 to t2 in Figure~\ref{fig:replicated-flat}(b).  Fan-out represents
+the number of replicated servers that a client task calls.  Similarly,
+fan-in represents the number of replicated clients that call a server.
+The product of the number of clients and the fan-out to a server must
+be the same as the product of the number of servers and the fan-in to
+the server.  Further, both fan-in and fan-out must be integral and
+non-zero.  
+
+The total number of requests that a client makes to a server is the product of the mean number of requests
+and the fan-out.  If the performance of a system is being evaluated by varying the replication parameter of
+a server, the number of requests to the server must be varied inversely with the number of server replicas
+in order to retain a constant number of requests from the client.
+\index{replication|)}\index{multiplicity|)}
+
+\section{A Brief History}
+\label{sec:history}
+
+LQN~\cite{perf:franks-2009-ieeese-lqn} is a combination of Stochastic Rendezvous
+Networks~\cite{srvn:woodside-94-ieeetc-srvn} and the Method of Layers~\cite{perf:rolia-95-ieeese-mol}.
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

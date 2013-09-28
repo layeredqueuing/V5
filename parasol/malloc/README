@@ -1,0 +1,26 @@
+This is a version of the GNU malloc library modified for use with PARASOL.  It
+is based on the standalone distribution of GNU malloc, but the makefiles and
+some of the header files have been changed.  The original version of GNU malloc
+is available via anonymous ftp at: prep.ai.mit.edu.
+
+Patrick Morin
+morin@scs.carleton.ca
+
+The following message constitutes the README file that comes with GNU malloc:
+
+=====================Original GNU malloc README file==========================
+
+This is the standalone distribution of GNU malloc.
+GNU malloc is part of the GNU C Library, but is also distributed separately.
+
+If you find bugs in GNU malloc, send reports to bug-glibc@prep.ai.mit.edu.
+
+GNU malloc is free software.  See the file COPYING.LIB for copying conditions.
+
+The makefile builds libmalloc.a and gmalloc.o.  If you are using GNU malloc
+to replace your system's existing malloc package, it is important to make
+sure you get all GNU functions, not some of the GNU functions and some from
+the system library.  gmalloc.o has all the functions in one file, so using
+that will make sure you don't accidentally mix the two malloc packages.
+
+==============================================================================

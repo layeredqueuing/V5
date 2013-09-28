@@ -1,0 +1,50 @@
+G "fork-join" 1e-06 50 5 0.9 -1
+
+P 5
+  p p1 f
+  p d1 f
+  p d2 f
+  p d3 f
+  p d4 f
+-1
+
+T 5
+  t t1  r  e1 -1 p1
+  t d1  n  d1 -1 d1
+  t d2  n  d2 -1 d2
+  t d3  n  d3 -1 d3
+  t d4  n  d4 -1 d4
+-1
+
+E 5
+  A  e1  a1
+  s  d1  0.04 -1
+  s  d2  0.04 -1
+  s  d3  0.04 -1
+  s  d4  0.04 -1
+-1
+
+A  t1
+  s  a1  0.1
+  s  b1  0.1
+  s  b2  0.2
+  s  b2a 0.0
+  s  b2b 0.0
+  s  c1  0.0
+  y  a1  d1  2.5
+  y  a1  d2  2.5
+  y  a1  d3  2.5
+  y  a1  d4  2.5
+  y  b1  d1  2.5
+  y  b1  d2  2.5
+  y  b1  d3  2.5
+  y  b1  d4  2.5
+  y  b2  d1  2.5
+  y  b2  d2  2.5
+  y  b2  d3  2.5
+  y  b2  d4  2.5
+:
+  a1 -> b1 & b2a;
+  b2a -> 0.5 * b2 , b2b;
+  b1 & b2b -> c1
+-1

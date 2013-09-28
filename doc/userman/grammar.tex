@@ -1,0 +1,329 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  grammar
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{Traditional Grammar}
+\label{sec:old-grammar}
+
+This chapter gives the formal description of Layered Queueing Network
+input file and parseable output file grammars in extended BNF form.
+For the nonterminals the notation \nt{nonterminal\_id} is used, while
+the terminals are written without brackets as they appear in the input
+text.  The notation \rep{$\cdots$}{n}{m}, where $n \leq m$ means that
+the part inside the curly brackets is repeated at least $n$ times and
+at most $m$ times. If $n=0$, then the part may be missing in the input
+text. The notation \opt{\nt{$\cdots$}} means that the non-terminal is
+optional.
+
+\section{Input File Grammar}
+\label{sec:input-file-bnf}
+
+\input{input-grammar}
+
+\section{Output File Grammar}
+\label{sec:output-file-bnf}
+
+\begin{bnf}{LQN\_output\_file}
+  \defitem[LQN\_output\_file] \<general> \?\<bound>?  \?\<waiting>?
+  \?\<wait\_var>? \?\<snr\_waiting>?  \?\<snr\_wait\_var>? \?\<drop\_prob>? \?\<join>?
+  \?\<service>? \?\<variance>? \?<exceeded>? \rep{<distribution>}{0}{} \<thpt\_ut> \?\<open\_arrivals>?
+  \<processor>
+
+  \defitem[from\_entry] \<entry\_name> \(Source entry id.)
+
+  \defitem[to\_entry] \<entry\_name> \(Destination entry id.)
+
+  \defitem[entry\_name] \<identifier>
+
+  \defitem[task\_name] \<identifier>
+
+  \defitem[proc\_name] \<identifier>
+
+  \defitem[float\_phase\_list] \rep{\<real>}{}{} \<end\_list>
+
+  \defitem[real] \<float> \| \<integer>
+\end{bnf}
+
+\subsection{General Information}
+\label{sec:general-p}
+
+\begin{bnf}{LQN\_output\_file}
+  \defitem[general] \<valid> \<convergence> \<iterations> \<n\_processors> \<n\_phases>
+
+  \defitem[valid] V \<yes\_or\_no>
+
+  \defitem[yes\_or\_no] y \| Y \| n \| N
+
+  \defitem[convergence] C \<real>
+
+  \defitem[iterations] I \<integer>
+
+  \defitem[n\_processors] PP \<integer>
+
+  \defitem[n\_phases] NP \<integer>
+\end{bnf}
+
+
+\subsection{Throughput Bounds}
+\label{sec:bounds}\index{throughput!bounds}
+\begin{bnf}{multi\_server\_flag}
+  \defitem[bound] B \<nt> \rep{\<bounds\_entry>}{1}{nt} \<end\_list>
+
+  \defitem[bounds\_entry] \<task\_name> \<real>
+
+  \defitem[nt] \<integer>\(Total number of tasks)
+\end{bnf}
+
+\subsection{Waiting Times}
+\label{sec:rendezvous-delay-p}\index{rendezvous!delay}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[waiting] W \<ne> \rep{\<waiting\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[waiting\_t\_tbl] \<task\_name> : \<waiting\_e\_tbl> \<end\_list> \opt{\<waiting\_a\_tbl>}
+
+  \defitem[waiting\_e\_tbl] \rep{\<waiting\_entry>}{0}{ne}
+
+  \defitem[waiting\_entry] \<from\_entry> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[ne] \<integer> \(Number of Entries)
+
+  \defitem[waiting\_a\_tbl] : \rep{\<waiting\_activity>}{0}{na} \<end\_list>
+
+  \defitem[waiting\_activity] \<from\_activity> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[na] \<integer> \(Number of Activities)
+\end{bnf}
+
+\subsection{Waiting Time Variance}
+\label{sec:rendezvous-variance-p}\index{rendezvous!variance}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[wait\_var] VARW \<ne> \rep{\<wait\_var\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[wait\_var\_t\_tbl] \<task\_name> : \<wait\_var\_e\_tbl> \<end\_list> \opt{\<wait\_var\_a\_tbl>}
+
+  \defitem[wait\_var\_e\_tbl] \rep{\<wait\_var\_entry>}{0}{ne}
+
+  \defitem[wait\_var\_entry] \<from\_entry> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[wait\_var\_a\_tbl] : \rep{\<wait\_var\_activity>}{0}{na} \<end\_list>
+
+  \defitem[wait\_var\_activity] \<from\_activity> \<to\_entry> \<float\_phase\_list>
+\end{bnf}
+
+\subsection{Send-No-Reply Waiting Time}
+\label{sec:send-no-reply-wait-p}\index{send-no-reply!delay}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[snr\_waiting] Z \<ne> \rep{\<snr\_waiting\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[snr\_waiting\_t\_tbl] \<task\_name> : \<snr\_waiting\_e\_tbl> \<end\_list> \opt{\<snr\_waiting\_a\_tbl>}
+
+  \defitem[snr\_waiting\_e\_tbl] \rep{\<snr\_waiting\_entry>}{0}{ne}
+
+  \defitem[snr\_waiting\_entry] \<from\_entry> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[snr\_waiting\_a\_tbl] : \rep{\<snr\_waiting\_activity>}{0}{na} \<end\_list>
+
+  \defitem[snr\_waiting\_activity] \<from\_activity> \<to\_entry> \<float\_phase\_list>
+
+\end{bnf}
+
+\subsection{Send-No-Reply Wait Variance}
+\label{sec:send-no-reply-variance-p}\index{send-no-reply!variance}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[snr\_wait\_var] VARZ \<ne> \rep{\<snr\_wait\_var\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[snr\_wait\_var\_t\_tbl] \<task\_name> : \<snr\_wait\_var\_e\_tbl> \<end\_list> \opt{\<snr\_wait\_var\_a\_tbl>}
+
+  \defitem[snr\_wait\_var\_e\_tbl] \rep{\<snr\_wait\_var\_entry>}{0}{ne}
+
+  \defitem[snr\_wait\_var\_entry] \<from\_entry> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[snr\_wait\_var\_a\_tbl] : \rep{\<snr\_wait\_var\_activity>}{0}{na} \<end\_list>
+
+  \defitem[snr\_wait\_var\_activity] \<from\_activity> \<to\_entry> \<float\_phase\_list>
+\end{bnf}
+
+\subsection{Arrival Loss Probabilities}
+\label{sec:arrival-loss-p}\index{open arrival!loss probability}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[drop\_prob] DP \<ne> \rep{\<drop\_prob\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[drop\_prob\_t\_tbl] \<task\_name> : \<drop\_prob\_e\_tbl> \<end\_list> \opt{\<drop\_prob\_a\_tbl>}
+
+  \defitem[drop\_prob\_e\_tbl] \rep{\<drop\_prob\_entry>}{0}{ne}
+
+  \defitem[drop\_prob\_entry] \<from\_entry> \<to\_entry> \<float\_phase\_list>
+
+  \defitem[drop\_prob\_a\_tbl] : \rep{\<drop\_prob\_activity>}{0}{na} \<end\_list>
+
+  \defitem[drop\_prob\_activity] \<from\_activity> \<to\_entry> \<float\_phase\_list>
+
+\end{bnf}
+
+\subsection{Join Delays}
+\label{sec:join-delay-p}\index{join!delay}
+
+\begin{bnf}{multi\_server\_flag}
+
+  \defitem[join] J \<ne> \rep{\<join\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[join\_t\_tbl] \<task\_name> : \<join\_a\_tbl> \<end\_list>
+
+  \defitem[join\_a\_tbl] \rep{\<join\_entry>}{0}{na}
+
+  \defitem[join\_entry] \<from\_activity> \<to\_activity> \<real>
+  \<real>
+\end{bnf}
+
+
+\subsection{Service Time}
+\label{sec:service-time-p}\index{service time}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[service] X \<ne> \rep{\<service\_t\_tbl>}{1}{nt} \<end\_list>
+
+  \defitem[service\_t\_tbl] \<task\_name> : \<service\_e\_tbl> \<end\_list> \opt{\<service\_a\_tbl>}
+
+  \defitem[service\_e\_tbl] \rep{\<service\_entry>}{0}{ne}
+
+  \defitem[service\_entry] \<entry\_name> \<float\_phase\_list>
+
+  \defitem[service\_a\_tbl] : \rep{\<service\_activity>}{0}{na} \<end\_list>
+
+  \defitem[service\_activity] \<activity\_name> \<float\_phase\_list>
+\end{bnf}
+
+\subsection{Service Time Variance}
+\label{sec:service-time-variance-p}\index{service time!variance}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[variance] VAR \<ne> \rep{\<variance\_t\_tbl>}{1}{nt}
+  \<end\_list>
+
+  \defitem[variance\_t\_tbl] \<task\_name> : \<variance\_e\_tbl> \<end\_list> \opt{\<variance\_a\_tbl>}
+
+  \defitem[variance\_e\_tbl] \rep{\<variance\_entry>}{0}{ne}
+
+  \defitem[variance\_entry] \<entry\_name> \<float\_phase\_list>
+
+  \defitem[variance\_a\_tbl] : \rep{\<variance\_activity>}{0}{na} \<end\_list>
+
+  \defitem[variance\_activity] \<activity\_name> \<float\_phase\_list>
+\end{bnf}
+
+\subsection{Probability Service Time Exceeded}
+\label{sec:service-time-exceeded-p}\index{service time!exceeded}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[variance] VAR \<ne> \rep{\<variance\_t\_tbl>}{1}{nt}
+  \<end\_list>
+
+\end{bnf}
+
+\subsection{Service Time Distribution}
+\label{sec:service-time-distribution-p}\index{service time!distribution}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[distribution] D \<entry\_name> \<statistics> \rep{\<hist\_bin>}{0}{}  \<end\_list>
+  \oritem D  \<task\_name> \<activity\_name> \<statistics> \rep{\<hist\_bin>}{0}{}  \<end\_list>
+
+  \defitem[statistics] \<phase> \<mean> \<stddev> \<skew> \<kurtosis>
+
+  \defitem[hist\_bin] \<begin> \<end> \<probability> \rep{\<bin\_conf>}{0}{2}
+
+  \defitem[mean] \<real> \(Distribution mean)
+  \defitem[stddev] \<real> \(Distribution standard deviation)
+  \defitem[skew] \<real> \(Distribution skew)
+  \defitem[kurtosis] \<real> \(Distribution kurtosis)
+  \defitem[probability] \<real> \( 0.0 - 1.0 )
+
+  \defitem[bin\_conf] \% \<conf\_level> \<real>
+\end{bnf}
+
+\subsection{Throughputs and Utilizations}
+\label{sec:througput-utilization-p}\index{throughput}\index{utilization!task}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[thpt\_ut] FQ \<nt> \rep{\<thpt\_ut\_task>}{1}{nt} \<end\_list>
+
+  \defitem[thpt\_ut\_task] \<task\_name> \<net> \rep{<thpt\_ut\_entry>}{1}{net} \<end\_list> \?\<thpt\_ut\_task\_total>?
+
+  \defitem[thpt\_ut\_entry] \<entry\_name> \<entry\_info> \rep{\<thpt\_ut\_confidence>}{0}{}
+
+  \defitem[entry\_info] \<throughput> \<utilization> \<end\_list> \<total\_util>
+
+  \defitem[throughput] \<real> \(Task Throughput)
+
+  \defitem[utilization] \<float\_phase\_list> \(Per phase task util.)
+
+  \defitem[total\_util] \<real>
+
+  \defitem[thpt\_ut\_task\_total] \<entry\_info>
+
+  \rep{\<thpt\_ut\_conf>}{0}{}
+
+  \defitem[thpt\_ut\_conf] \% \<conf\_level> \<entry\_info>
+
+  \defitem[conf\_level] \<integer>
+\end{bnf}
+
+\subsection{Arrival Rates and Waiting Times}
+\label{sec:open-wait-p}\index{open arrival!waiting time}\index{waiting time!open arrival}
+
+\begin{bnf}{multi\_server\_flag}
+  \defitem[open\_arrivals] R \<no> \rep{\<open\_arvl\_entry>}{1}{no} \<end\_list>
+
+  \defitem[no] \<integer> \(Number of Open Arrivals)
+
+  \defitem[open\_arvl\_entry] \<from\_entry> \<to\_entry> \<real> \<real> \oritem \<from\_entry> \<to\_entry> \<real> Inf
+\end{bnf}
+
+\subsection{Utilization and Waiting per Phase for Processor}
+\label{sec:processor-wait-utilization-p}\index{utilization!processor|textbf}\index{queueing time!processor|textbf}
+\begin{bnf}{multi\_server\_flag}
+  \defitem[processor] \rep{\<proc\_group>}{1}{n\_processors} \<end\_list>
+
+  \defitem[proc\_group] P \<proc\_name> \<nt> \rep{\<proc\_task>}{1}{nt} \<end\_list> \?\<proc\_total>?
+
+  \defitem[proc\_task] \<task\_name> \<proc\_task\_info> \rep{\<proc\_entry\_info>}{1}{ne} \<end\_list> \?\<task\_total>?
+
+  \defitem[proc\_task\_info] \<ne> \<priority> \?\<multiplicity>?
+
+  \defitem[priority] \<integer> \(Prio. of task)
+
+  \defitem[multiplicity] \<integer> \(Number of task instances)
+
+  \defitem[proc\_info] \<entry\_name> \<proc\_entry\_info> \rep{\<proc\_entry\_conf>}{0}{}
+
+  \defitem[proc\_entry\_info] \<utilization> \<sched\_delay> \<end\_list>
+
+  \defitem[sched\_delay] \<float\_phase\_list> \(Scheduling delay)
+
+  \defitem[proc\_entry\_conf] \% \<integer> \<proc\_entry\_info>
+
+  \defitem[task\_total] \<real> \rep{\<proc\_total\_conf>}{0}{}
+
+  \defitem[proc\_total] \<real> \rep{\<proc\_total\_conf>}{0}{} \<end\_list>
+
+  \defitem[proc\_total\_conf] \% \<integer> \<real>
+\end{bnf}
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

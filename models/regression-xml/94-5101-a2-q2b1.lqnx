@@ -1,0 +1,101 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml 94-5101-a2-q2b1.in -->
+<lqn-model name="94-5101-a2-q2b1" description="lqn2xml 5.3 solution for model from: 94-5101-a2-q2b1.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="
+	Experiment name: q2b1
+	SRVN description file: web-server.in
+	Comment: ''
+
+	Declared variables:
+	n_users = 225
+
+	Controlled parameters:
+	[9]  n_users  = 225
+" conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="10">
+      <pragma param="multiserver" value="conway"/>
+   </solver-params>
+   <processor name="DB_CPU" scheduling="fcfs">
+      <task name="DB" scheduling="fcfs">
+         <entry name="DB_Read" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DB_Read_1" phase="1" host-demand-mean="20.4">
+                  <synch-call dest="DB_Disk" calls-mean="4"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="DB_Update" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DB_Update_1" phase="1" host-demand-mean="30.6">
+                  <synch-call dest="DB_Disk" calls-mean="6"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DB_Disk" scheduling="fcfs">
+      <task name="DB_Disk" scheduling="fcfs">
+         <entry name="DB_Disk" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DB_Disk_1" phase="1" host-demand-mean="5"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="User" scheduling="inf">
+      <task name="User" scheduling="ref" multiplicity="225" think-time="3000">
+         <entry name="User" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="User_1" phase="1" host-demand-mean="0">
+                  <synch-call dest="Protocol" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="WS_CPU" scheduling="ps" quantum="0.1">
+      <task name="Protocol" scheduling="fcfs">
+         <entry name="Protocol" type="PH1PH2">
+            <forwarding dest="WebServer" prob="1"/>
+            <entry-phase-activities>
+               <activity name="Protocol_1" phase="1" host-demand-mean="6.2"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="WebServer" scheduling="fcfs" multiplicity="10">
+         <entry name="WebServer" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="WebServer_1" phase="1" host-demand-mean="9.821">
+                  <synch-call dest="WS_Disk" calls-mean="1.51"/>
+                  <synch-call dest="CGI_Update" calls-mean="0.04"/>
+                  <synch-call dest="CGI_Read" calls-mean="0.06"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="CGI" scheduling="fcfs" multiplicity="3">
+         <entry name="CGI_Update" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CGI_Update_1" phase="1" host-demand-mean="15">
+                  <synch-call dest="DB_Update" calls-mean="1.6"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="CGI_Read" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="CGI_Read_1" phase="1" host-demand-mean="5">
+                  <synch-call dest="DB_Read" calls-mean="4.3"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="WS_Disk" scheduling="fcfs">
+      <task name="WS_Disk" scheduling="fcfs">
+         <entry name="WS_Disk" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="WS_Disk_1" phase="1" host-demand-mean="5"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,0 +1,44 @@
+%%  -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  defects
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{Known Defects}
+\label{sec:defects}
+
+\section{MOL Multiserver Approximation Failure}
+\label{sec:MOLMultiserver}
+
+The MOL multiserver approximation sometimes fails when the service
+time of the clients to the multiserver are significantly smaller than
+the service time of the server itself.  The utilization of the
+multiserver will be too high.  Sometimes, the problem can be solved by
+changing the mol-underrelaxation.  Otherwise, switch to the
+more-expensive Conway multiserver approximation.
+
+\section{Chain construction for models with multi- and infinite-servers}
+\label{sec:ChainConstruction}
+
+\section{No algorithm for phased multiservers OPEN class.}
+\label{sec:PhaseMultiOpen}
+
+\section{Overtaking probabilities are calculated using CV=1}
+\label{sec:Overtaking}
+
+\section{Need to implement queue lengths for open classes.}
+\label{sec:QueueLengths}
+
+
+
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

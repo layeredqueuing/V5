@@ -1,0 +1,171 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.4  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.3  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.2  1994/08/04  20:52:11  greg
+\C Intermediate save
+\C
+\C Revision 1.1  1994/06/24  19:11:32  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\section{Entity}
+\label{sec:entity}
+
+Abstract superclass for \link{tasks}{sec:task} and
+\link{processors}{sec:processor}. 
+
+\subsection{Class Entity}
+\subsubsection{Instance Variables}
+\label{sec:entity-ivars}
+
+\begin{verbatim}
+
+public:
+    Server * station;               /* Used by MVA solver.          */
+private:
+    const char * myName;            /* Name of this entity.         */
+    short traceFlag;                /* trace ref to this queue.     */
+    scheduling_type myScheduling;   /* Pseudo task scheduling.      */
+protected:
+    Vector<Entry *> * entryList;    /* Entries for this entity.     */
+    short depth;                    /* My depth in tree.  1 == top  */
+\end{verbatim}
+
+\begin{description}
+\item[myName] \texonly{---} The name of the entity.
+\item[traceFlag] \texonly{---} Boolean for debugging purposes.  Not
+  used at present.
+\item[myScheduling] \texonly{---} Scheduling type (FIFO, HOL, etc) for
+  processors and tasks.
+\item[entryList] \texonly{---} The entries for the entity.
+\item[depth] \texonly{---} Depth in the tree.
+\item[station] \texonly{---} Instance variable set to the
+  \link{station}{sec:server} to reference results from the
+  \link{MVA}{sec:mva} solvers.
+\end{description}
+
+\subsubsection{Constructors for Layerize}
+
+\begin{verbatim}
+Entity( const char * aStr, const scheduling_type aType );
+Entity( const char * aStr, Vector<Entry *> * entries );
+\end{verbatim}
+
+\subsubsection{Initialization}
+\subsubsection{Copying}
+\subsubsection{Instance Variable Access}
+
+\begin{description}
+\item[trace] \texonly{---} \\
+\code{Entity& trace( const int flag );}\\
+\code{int trace() const;}
+
+Set or return \link{\var{traceFlag}}{sec:entity-ivars} for this
+\bold{entity}.  If \var{traceFlag} is set, debugging information will be
+printed out for this entity.
+
+\item[copies] \texonly{---} \\
+\code{Entity& copies( const unsigned );}\\
+\code{unsigned copies() const;}
+
+Set or return the number of copies of the \bold{entity}.  Implemented
+by subclasses.
+
+\item[scheduling] \texonly{---} \\
+\code{Entity& scheduling( const scheduling_type aType );}\\
+\code{scheduling_type scheduling() const;}
+
+Set or return \link{\var{myScheduling}}{sec:entity-ivars}.
+
+\item[entries] \texonly{---} \\
+\code{const Vector<Entry *>& entries() const;}
+
+Return the \link{\var{entryList}}{sec:entity-ivars} of the entity.  
+
+\end{description}
+
+\subsubsection{Queries}
+
+\begin{description}
+\item[name] \texonly{---} Return the name of the task.\\
+\code{const char * name() const;}
+
+\item[typeStr] \texonly{---} Return the type of the entity.\\
+\code{const char * typeStr() const;}
+
+\item[isTask] \texonly{---} Am I a task?\\
+\code{int isTask() const;}
+
+\item[isProcessor] \texonly{---} Am I a processor?\\
+\code{int isProcessor() const}
+
+\item[nEntries] \texonly{---} Return the number of \link{\bold{entries}}{sec:entries}\\
+\code{unsigned nEntries() const;}
+
+\end{description}
+
+\subsubsection{MVA Interface}
+
+The following member functions form the interface between the layered
+queueing network model and the \link{MVA}{sec:mva} solver.  Note that
+some functions will cause segementation violations if called outside
+the realm of the \link{layerizer}{sec:layerize}.
+
+\begin{description}
+
+\label{sec:entity-makeServer}
+\item[makeServer] \texonly{---} Make a Server.\\
+\code{Server * makeServer( const unsigned );}
+
+Generate a station for the MVA model for an entity which acts as a
+\bold{server}.  Implemented in:
+\begin{itemize}
+\item \link{Task}{sec:task-mva}
+\item \link{Processor}{sec:processor-mva}
+\end{itemize}
+
+\item[freeStation] \texonly{---} Release MVA Model Station.\\
+\code{freeStation();}
+
+\label{sec:entity-saveServerResults}
+\item[saveServerResults] \texonly{---} Save Results for a Server.\\
+\code{double saveServerResults();}
+
+Called by \link{layerizer}{sec:layerize} after a layer has been
+solved. 
+
+\item[R] \texonly{---} Return Residence Time\\
+\code{double R( const unsigned e, const unsigned k ) const;}
+
+\end{description}
+\subsubsection{Input and Output}
+
+\begin{description}
+\item[print] \texonly{---} Print entity information.\\
+\code{ostream& print( ostream& ) const;}
+
+\item[printStation] \texonly{---} Print corresponding MVA station information.\\
+\code{ostream& printStation( ostream& ) const;}
+
+\end{description}
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 

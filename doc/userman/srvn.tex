@@ -1,0 +1,922 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%%
+%% Title:  spex
+%%
+%% $HeadURL: http://franks.dnsalias.com/svn/lqn/trunk/doc/userman/lqns.tex $
+%% Original Author:     Alex Hubbard
+%% Created:             27 April 2011
+%%
+%% ------------------------------------------------------------------------
+%%  $Id$
+%% ------------------------------------------------------------------------
+%%
+\lstdefinelanguage{LQN}{
+  basicstyle=\ttfamily,
+  keywords={G,P,U,T,E,A,R,C,p,g,t,s,y,c,f,z,F,-1,->,\#pragma},
+  classoffset=1,
+  morekeywords={<param>,<proc-id>,<group-id>,<task-id>,<entry-id>,<activity-id>,<sched>,<opt-mult>,<opt-cap>,<opt-pri>,<opt-grp>,<opt-think-time>,<opt-obs>,<opt-repl>,<value>,<expression>,<entry-list>,<activity-list>,<expression-list>,<real>,<int>,<string>},
+  keywordstyle=\itshape,
+  classoffset=0,
+  alsoletter={-1<>},
+  sensitive=true,
+  morecomment=[l]{\# },
+  morestring=[b]'',
+  index={pragma}
+}
+\lstdefinelanguage{LQX}{
+  keywords={foreach,in},
+  keywords={[2]solve,println,task,processor,entry,throughput,utilization},
+  keywordstyle=[2]{\itshape},
+  morecomment=[l]{//},
+}
+\newcommand{\nonterminal}[1]{$<$\emph{#1}$>$\mbox{}}
+%%
+%%
+%%
+\chapter{LQN Input File Format}
+\label{ch:srvn}
+
+This Chapter describes the original `SRVN' input file format, augmented with the Software Performance
+EXperiment driver (SPEX)\index{SPEX} grammar.  In this model format models are specified breadth-first, in
+contrast to the XML format described in \S\ref{sec:xml-grammar} where models are specified depth-first.
+This specification means that all resources such as processors, tasks and entries, are defined before they
+are referenced. Furthermore, each resource is grouped into its own section in the input file.
+Listing~\ref{lst:lqn-file-layout} shows the basic layout of the model.
+
+\lstset{language=LQN,numbersep=10pt,firstnumber=1,texcl}
+\begin{lstlisting}[float,caption={LQN file layout},label=lst:lqn-file-layout]
+  # \color{blue}Pragmas
+  #pragma <param>=<value>
+
+  # \color{red}Parameters (SPEX)
+  $var = <expression>
+  $var = [ <expression-list> ]
+
+  # \color{blue}General Information
+  G "<string>" <real> <int> <int> <real> -1
+
+  # \color{black}Processor definitions
+  P 0
+    p <proc-id> <sched> <opt-mult> <opt-repl> <opt-obs>
+  -1
+
+  # \color{blue}Group definitions
+  U 0
+    g <group-id> <real> <opt-cap> <proc-id>
+  -1
+
+  # \color{black}Task definitions
+  T 0
+    t <task-id> <sched> <entry-list> -1 <proc-id> <opt-pri> <opt-think-time>
+                <opt-mult> <opt-repl> <opt-grp> <opt-obs>
+  -1
+
+  # Entry definitions
+  E 0
+    A <activity-id>
+    s <entry-id> <real> ... -1 <opt-obs>
+    y <entry-id> <entry-id> <real> ... -1 <opt-obs>
+  -1
+
+  # \color{blue}Activity definitions
+  A <task-id>
+    s <activity-id> <real> <opt-obs>
+    y <activity-id> <entry-id> <real> <opt-obs>
+  :
+    <activity-list> -> <activity-list>
+  -1
+
+  # \color{red}Result defintions (SPEX)
+  R 0
+    $var = <expression>
+  -1
+
+  # \color{red}Convergence defintions (SPEX)
+  C 0
+    $var = <expression>
+  -1
+\end{lstlisting}
+
+Each of the sections within the input file begins with a key-letter, as follows:
+\begin{description}
+\item[\$] SPEX parameters\index{SPEX!parameters} (optional).
+\item[G] General solver parameters (optional).
+\item[P] Processor definitions.
+\item[U] Processor group definitions (optional).
+\item[T] Task definitions.
+\item[E] Entry definitions.
+\item[A] Task activity definitions  (optional).
+\item[R] SPEX result definitions\index{SPEX!results}  (optional).
+\item[C] SPEX convergence\index{SPEX!convergence}  (optional).
+\end{description}
+Section~\ref{sec:lqn-file-format} describes the input sections necessary to solve a model, i.e.\ \texttt{P},
+\texttt{U} \texttt{T}, \texttt{E}, and \texttt{A}.  Section~\ref{sec:spex} describes the additional input
+sections for solving multiple models using SPEX, i.e.\ \texttt{\$}, \texttt{R}, and \texttt{C}.  The
+complete input grammar is listed in Appendix~\ref{sec:old-grammar}.
+
+\section{Lexical Conventions}
+
+The section describes the lexical conventions of the SRVN input file format.
+
+\subsection{White Space}
+
+White space\dindex{LQN}{white space}, such as spaces, tabs and new-lines, is ignored except within strings.
+Object definitions can span multiple lines.
+
+\subsection{Comments}
+
+Any characters following a hash mark (\#)\index{\#} through to the end of the line are considered to be a
+comment\dindex{LQN}{comment} and are generally ignored.  However, should a line begin with optional whitespace
+followed by `\texttt{\#pragma}'\index{\#pragma}\index{pragma}, then the remainder of the line will be
+treated by the solver as a pragma (more on pragmas below).
+
+\subsection{Identifiers}
+\label{sec:lqn-identifiers}\label{LQN!identifiers|textbf}
+
+Identifiers\dindex{LQN}{identifier} are used to name the objects in the model.  They consist of zero or more
+leading underscores (`\_'), followed by a character, followed by any number of characters, numbers or
+underscores. Punctuation characters and other special characters such as the dollar-sign (`\texttt{\$}') are
+not permitted.  Non-numeric identifiers must be a minimum of two characters in length\footnote{Single
+  characters are used for section and record keys.}  The following, {\tt 1}, {\tt p1}, {\tt p\_1}, and {\tt
+  \_\_P\_21\_proc} are valid identifiers, while {\tt \$proc} and {\tt \$1} are not.
+
+\subsection{Variables}
+\label{sec:lqn-variables}\label{LQN!variables|textbf}
+
+Variables \dindex{LQN}{parameter} are used to set values of various objects such as the multiplicity of
+tasks and the service times of the phases of entries.  Variables are modifed by
+SPEX\dindex{SPEX}{Variables} (see~\S\ref{sec:spex}) to run multiple experiments.  Variables start with a
+dollar-sign (`\texttt{\$}') followed by any number of characters, numbers or underscores.  {\tt \$var} and
+{\tt \$1} are valid variables while {\tt \$\$} is not.
+
+\section{LQN Model Specification}
+\label{sec:lqn-file-format}
+\index{LQN|(textbf}
+
+This section describes the mandatory and option input for a basic LQN model file.  SPEX information, namely
+\emph{Variables}, (\S\ref{sec:lqn-activity-information}), \emph{Report Information}
+(\S\ref{sec:lqn-report-information}) and \emph{Convergence Information}
+(\S\ref{sec:lqn-convergence-information}) are described in the section that follows.  All input files are
+composed of three mandatory sections: \emph{Processor Information} (\S\ref{sec:lqn-processor-information}),
+\emph{Task Information} (\S\ref{sec:lqn-task-information}) and \emph{Entry Information}
+(\S\ref{sec:lqn-entry-information}), which define the processors, tasks and entries respectively in the
+model.  All of the other sections for a basic model file are optional.  They are: \emph{Pragmas},
+\emph{General Information} (\S\ref{sec:lqn-general-information}), \emph{Group Information}
+(\S\ref{sec:lqn-group-information}), and \emph{Activity Information}.  The syntax of these specifications
+are described next in the order in which they appear in the input model.
+
+\subsection{Pragmas}
+
+Any line beginning with optional whitespace followed by the word `\texttt{\#pragma}'\dindex{LQN!pragma}
+defines a pragma which is used by either the analytic solver or the simulator to change its behaviour.  The
+syntax for a pramga directive is shown in line~2 in Listing~\ref{lst:lqn-file-layout}.  Pragma's which are
+not handled by either the simulator or the analytic solver are ignored.  Pragma's can appear anywhere in the
+input file\footnote{Pragma's are processed during lexical analysis.}  though they typically appear first.
+
+\subsection{General Information}
+\label{sec:lqn-general-information}
+
+The optional general information section is used to set various control parameters for the analytic solver
+LQNS\index{LQNS!parameters}.  These parameters, with the exception of the model comment, are ignored by the
+simulator, lqsim.  Listing~\ref{lst:lqn-general-info} shows the format of this section.  Note that these
+parameters can also be set using SPEX variables, described below
+in~\S\ref{sec:spex-control}\index{SPEX!parameter!control}.
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[caption={General Information},label=lst:lqn-general-info,frame=single]
+G "<string>"	# Model title.
+  <real> 	# convergence value
+  <int>         # iteration limit
+  <int>         # Optional print interval.
+  <real>        # Optional under-relaxation.
+-1
+\end{lstlisting}
+
+\subsection{Processor Information}
+\label{sec:lqn-processor-information}
+
+Processors\dindex{LQN}{processor} are specified in the processor information section of the input file using
+the syntax shown in Listing~\ref{lst:lqn-proc-info}.  The start of the section is identified using
+``\texttt{P} \nonterminal{int}'' and ends with ``\texttt{-1}''.  The \nonterminal{int} parameter is either
+the number of processor definitions in this section, or zero\footnote{The number of processors,
+  \nonterminal{int}, is ignored with all current solvers.}.
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[caption={Processor Information},label=lst:lqn-proc-info,frame=single]
+P <int>
+  p <proc-id> <sched> <opt-mult>
+-1
+\end{lstlisting}
+
+Each processor in the model is defined using the syntax shown in line~2 in Listing~\ref{lst:lqn-proc-info}.
+Each record in this section beginning with a `\texttt{p}' defines a processor. \nonterminal{proc-id} is
+either an integer or an identifier (defined earlier in \S\ref{sec:lqn-identifiers}).  \nonterminal{sched} is
+used to define the scheduling discipline for the processor and is one of the code letters listed in
+Table~\ref{tab:lqn-proc-sched}.  The scheduling disciplines supported by the model are described in
+Section~\ref{sec:processors}.  Finally, the optional \nonterminal{opt-mult} specifies the number of copies
+of this processor serving a common queue.  Multiplicity is specified using the syntax shown in
+Table~\ref{tab:lqn-multiplicity}.  By default, a single copy of a processor is used for the model.
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c|l|}
+    \hline
+    \textbf{\nonterminal{sched}} & \multicolumn{1}{c|}{\textbf{Scheduling Discipline}} \\
+    \hline
+    \texttt{f} & First-come, first served\index{scheduling!FCFS}.\\
+    \texttt{p} & Priority-preemptive resume.\\
+    \texttt{r} & Random.\\
+    \texttt{i} & Delay (infinite server).\\
+    \texttt{h} & Head-of-Line\index{scheduling!head-of-line}.\\
+    \texttt{c} \nonterminal{real} & Completely fair share with time quantum  \nonterminal{real}.\index{scheduling!completely fair}\\
+    \texttt{s} \nonterminal{real} & Round Robin with time quantum \nonterminal{real}.\\
+    \hline
+  \end{tabular}
+  \caption{Processor Scheduling Disciplines (see~\S\protect\ref{sec:processors}).\dindex{processor}{scheduling}}
+  \label{tab:lqn-proc-sched}
+\end{table}
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c|l|}
+    \hline
+    \textbf{\nonterminal{opt-mult}} & \multicolumn{1}{c|}{\textbf{Multiplicity}} \\
+    \hline
+    \texttt{m} \nonterminal{int} & \nonterminal{int} identical copies with a common queue. \\
+    \texttt{i} & Infinite (or delay).\\
+    \hline
+    \hline
+    \textbf{\nonterminal{opt-repl}} & \multicolumn{1}{c|}{\textbf{Repliplication}} \\
+    \hline
+    \texttt{r} \nonterminal{int} & \nonterminal{int} replicated copies with separate queues. \\
+    \hline
+  \end{tabular}
+  \caption{Multiplicity and Replication (see~\S\protect\ref{sec:replication}).\dindex{LQN}{multiplicity}}
+  \label{tab:lqn-multiplicity}
+\end{table}
+
+\subsection{Group Information}
+\label{sec:lqn-group-information}
+
+Groups\dindex{LQN}{group} are specified in the group information section of
+
+\begin{lstlisting}[caption={Group Information},label=lst:lqn-group-info,frame=single,firstnumber=1]
+U <int>
+  g <group-id> <real> <opt-cap> <proc-id>
+-1
+\end{lstlisting}
+
+\subsection{Task Information}
+\label{sec:lqn-task-information}
+
+Tasks\dindex{LQN}{task} are specified in the task information section of the input file using the syntax
+shown in Listing~\ref{lst:lqn-task-info}.  The start of the task section is identified using
+``\texttt{T}~\nonterminal{int}'' and ends with ``\texttt{-1}''.  The \nonterminal{int} parameter is either
+the number of task definitions in this section, or zero.
+
+\begin{lstlisting}[caption={Task Information},label=lst:lqn-task-info,frame=single,firstnumber=1]
+T <int>
+  t <task-id> <sched> <entry-list> -1 <proc-id> <opt-pri> <opt-think-time>
+              <opt-mult> <opt-repl> <opt-grp>
+  i <task-id> <task-id> <int>    # fan-in for replication
+  o <task-id> <task-id> <int>    # fan-out for replication
+-1
+\end{lstlisting}
+
+Each task definition within this section starts with a `\texttt{t}' and is is defined using the syntax shown
+in lines~2 and 3 of Listing~\ref{lst:lqn-task-info}\footnote{Line 3 is a continuation of line 2.}.
+\nonterminal{task-id} is an identifier which names the task.  \nonterminal{sched} is used to define the
+request distribution for reference tasks\dindex{reference}{task}, or the scheduling discipline for
+non-reference tasks.  The scheduling and distribution code letters are shown in
+Table~\ref{tab:lqn-task-sched}.  Some disciplines are only supported by the simulator; these are identified
+using ``\dag''.  \nonterminal{entry-list} is a list of idententifiers naming the entries of the task.  The
+optional \nonterminal{opt-pri} is used to set the priority for the task provided that the processor running
+the task is scheduled using a priority discipline.  The optional \nonterminal{opt-think-time} specifies a
+think time\index{think time} for a reference task.  The optional \nonterminal{opt-mult} specifies the number
+of copies of this task serving a common queue.  Multiplicity is specified using the syntax shown in
+Table~\ref{tab:lqn-multiplicity}.  By default, a single copy of a task is used for the model. Finally, the
+optional \nonterminal{opt-grp} is used to identify the group that this task belongs to provided that the
+task's processor is using fair-share scheduling\index{scheduling!fair share}
+
+
+\begin{table}[h]
+  \centering
+  \begin{tabular}{|c|l|}
+    \hline
+    \multicolumn{2}{|c|}{Reference tasks (customers)\index{task!reference}\index{reference task}.}\\
+    \hline
+    \textbf{\nonterminal{sched}} & \multicolumn{1}{c|}{\textbf{Request Distribution}} \\
+    \hline
+    r & Poisson.\\
+    b & Bursty\dag.\\
+    u & Uniform\dag.\\
+    \hline
+    \hline
+    \multicolumn{2}{|c|}{Non-Reference tasks (servers)\index{task!reference}\index{reference task}.}\\
+    \hline
+    \textbf{\nonterminal{sched}} & \multicolumn{1}{c|}{\textbf{Queueing Discipline}} \\
+    \hline
+    n & First come, first served\index{scheduling!FCFS}.\\
+    P & Polled service at entries\dag.\\
+    h & Head-of-line priority\index{scheduling!head-of-line}.\\
+    f & First come, first served\index{scheduling!FCFS}.\\
+    i & Infinite (delay) server.\\
+    w & Read-Write lock task\dag.\\
+    S & Semaphore task\dag.\\
+    Z & Semaphore task\dag.\\
+    \hline
+  \end{tabular}
+  \caption{Task Scheduling Disciplines (see~\S\protect\ref{sec:tasks}).}
+  \label{tab:lqn-task-sched}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|c|l|}
+    \hline
+    \textbf{Option} & \multicolumn{1}{c|}{\textbf{Parameter}} \\
+    \hline
+    \nonterminal{integer} & Task priority for tasks running on processors supporting priorities.\\
+    \texttt{z} \nonterminal{real} & Think Time for reference tasks.\\
+    \texttt{q} \nonterminal{real} & Maximum queue length for asynchronous requests. \\
+    \texttt{m} \nonterminal{integer} & Task multiplicity.\\
+    \texttt{r} \nonterminal{integer} & Task replication.\\
+    \texttt{g} \nonterminal{identifier} & Group identifier for tasks running of processors with fair share scheduling.\\
+    \hline
+  \end{tabular}
+  \caption{Optional parameters for tasks (see~\S\protect\ref{sec:tasks}).}
+  \label{tab:lqn-task-think-time}
+\end{table}
+
+\subsection{Entry Information}
+\label{sec:lqn-entry-information}
+
+Entries\dindex{LQN}{entry} are specified in the entry information section starting from
+``\texttt{E}~\nonterminal{int}'' and ending with ``\texttt{-1}''.  The \nonterminal{int} parameter is either
+the number of entry definitions in this section, or zero.  Each record in the entry section defines a single
+parameter for an entry, such as its priority, or a single parameter for the phases of the entry, such as
+service time.  Listing~\ref{lst:lqn-entry-info} shows the syntax for the most commonly used parameters.
+
+\begin{lstlisting}[caption={Entry Information},label=lst:lqn-entry-info,frame=single,firstnumber=1,float]
+E <int>
+  A <entry-id> <activity-id>            # Start activity.
+  F <entry-id> <entry-id> <real>        # forward.
+  s <entry-id> <real> ... -1            # Service time by phase.
+  y <entry-id> <entry-id> <real> ... -1 # Synchronous request by phase.
+-1
+\end{lstlisting}
+
+All entry records start with a key letter, followed by an \nonterminal{entry-id}, followed by from one to up
+to five arguments.  Table~\ref{tab:lqn-entry-specifier} lists all the possible entry specifiers.  The table
+is split into six classes, based on the arguments to the parameter.  Records used to specifiy service time
+and call rate parameters for phases take a list of from one to three arguments and terminated with a
+`\texttt{-1}'.  All other entry records, with the exception of histogram information, take a fixed number of
+arguments.   Records which only apply to the simulator are marked with a `\dag'.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|l|p{1.3in}|p{2.4in}|}
+    \hline
+    \multicolumn{1}{|c|}{\textbf{Key}}
+    &\multicolumn{1}{c|}{\textbf{Paramater}}
+    &\multicolumn{1}{c|}{\textbf{Arguments}}\\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{One argument}}\\
+    \hline
+    \texttt{a} \nonterminal{entry-id} \nonterminal{real} & Arrival Rate   & \\
+    \hline
+    \texttt{A} \nonterminal{entry-id} \nonterminal{activity-id}& Start activity & \\
+    \hline
+    \texttt{p} \nonterminal{entry-id} \nonterminal{int} & Entry priority & \\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{One to three phase arguments}}\\
+    \hline
+    \texttt{s} \nonterminal{entry-id} \nonterminal{real} $...$ -1 & Service Time. & The entry's \nonterminal{entry-id} and mean service
+    time\index{entry!service time} value per phase.\\
+    \hline
+    \texttt{c} \nonterminal{entry-id} \nonterminal{real} $...$ -1 & Coefficient of Variation Squared.~\index{coefficient of variation} & The entry's
+    \nonterminal{entry-id} and $\textit{CV}^2$ value for each phase.\\
+    \hline
+    \texttt{f} \nonterminal{entry-id} \nonterminal{int} $...$ -1 & Call Order & \texttt{STOCHASTIC} or \texttt{DETERMINISTIC} \\
+    \hline
+    \texttt{M} \nonterminal{entry-id} \nonterminal{real} $...$ -1 & Max Service Time\dag & Output probability that the service time result exceeds the
+    \nonterminal{real} parameter, per phase.\\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{Arguments for a single phase}}\\
+    \hline
+    \multicolumn{2}{|l|}{\texttt{H} \nonterminal{int} \nonterminal{entry-id} \nonterminal{real} :
+      \nonterminal{real} \nonterminal{opt-int}}  & Histogram\dag:  An \nonterminal{int} phase, followed by a range from
+    \nonterminal{real} to \nonterminal{real}, and an optional \nonterminal{int} buckets. \\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{Destination and one argument}}\\
+    \hline
+    \texttt{F} \nonterminal{entry-id} \nonterminal{real} -1 & Forwarding Probability & Source and Destination entries, and probability reply is forwarded.\\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{Destination and one to three phase arguments}}\\
+    \hline
+    \texttt{y} \nonterminal{entry-id} \nonterminal{entry-id} \nonterminal{real} $...$ -1 & Rendevous Rate & Source and Destination entries, and rate per phase.\\
+    \hline
+    \texttt{z} \nonterminal{entry-id} \nonterminal{entry-id} \nonterminal{real} $...$ -1 & Send-no-Reply Rate & Source and Destination entries, and rate per phase.\\
+    \hline
+    \hline
+    \multicolumn{3}{|c|}{\emph{Semaphores and Locks}\dag} \\
+    \hline
+    \texttt{P}  \nonterminal{entry-id} & Signal\dag & Entry \nonterminal{entry-id} is used to \emph{signal}\index{signal} a semaphore
+    task\index{semaphore task}.\\
+    \hline
+    \texttt{V}  \nonterminal{entry-id} & Wait\dag   & \\
+    \hline
+    \texttt{R}  \nonterminal{entry-id} & Read lock\dag & \\
+    \hline
+    \texttt{U}  \nonterminal{entry-id} & Read unlock\dag  & \\
+    \hline
+    \texttt{W}  \nonterminal{entry-id} & Write lock\dag   & \\
+    \hline
+    \texttt{X}  \nonterminal{entry-id} & Write unlock\dag & \\
+    \hline
+  \end{tabular}
+  \caption{Entry Specifiers\index{LQN!entry}}
+  \label{tab:lqn-entry-specifier}
+\end{table}
+
+\subsection{Activity Information}
+\label{sec:lqn-activity-information}
+
+Activity information\index{LQN!activity}\index{activity!LQN} sections are required to specify the parameters
+and connectivity of the activities for a task.  Note that unlike all other sections, each task with
+activities has its own activity information section. 
+
+An activity information section starts with ``\texttt{A}~\nonterminal{task-id}'' and ends with
+``\texttt{-1}''.  The data within an activity information section is partitioned into two parts.  The first
+part lists the parameter data for an activity in a fashion similar to the parameter data for an entry; the
+second section defines the connectivity of the activities.  Listing~\ref{lst:lqn-activity-info} shows the
+basic syntax.
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[caption={Activity Information},label=lst:lqn-activity-info,frame=single,firstnumber=1]
+A <task-id>
+  s <activity-id> <real>
+  c <activity-id> <real>
+  f <activity-id> <int>
+  y <activity-id> <entry-id> <real>
+  z <activity-id> <entry-id> <real>
+:
+  <activity-list> -> <activity-list>
+-1
+\end{lstlisting}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|l|l|p{3.5in}|}
+    \hline
+    \multicolumn{1}{|c|}{\textbf{Key}}
+    &\multicolumn{1}{c|}{\textbf{Paramater}}
+    &\multicolumn{1}{c|}{\textbf{Arguments}}\\
+    \hline
+    \multicolumn{3}{|c|}{\emph{one to three phase arguments}}\\
+    \hline
+    \texttt{s} & Service Time. & The entry's \nonterminal{entry-id} and mean service time value per phase.\\
+    \hline
+    \texttt{c} & Coefficient of Variation Squared.~\index{coefficient of variation} & The entry's
+    \nonterminal{entry-id} and $\textit{CV}^2$ value for each phase.\\
+    \hline
+    \texttt{f} & Call Order & \texttt{STOCHASTIC} or \texttt{DETERMINISTIC} \\
+    \hline
+    \multicolumn{3}{|c|}{\emph{Destination and one to three phase arguments}}\\
+    \hline
+    \texttt{y} & Rendevous Rate & Source and Destination entries, and rate per phase.\\
+    \hline
+    \texttt{z} & Send-no-Reply Rate & Source and Destination entries, and rate per phase.\\
+    \hline
+  \end{tabular}
+  \caption{Activity Specifiers\index{LQN!activity}}
+  \label{tab:lqn-activity-specifier}
+\end{table}
+
+\begin{table}
+  \centering
+  \begin{tabular}{|l|p{3.5in}|}
+    \hline
+    \multicolumn{2}{|c|}{\emph{Post (or Join) lists}} \\
+    \hline
+    \nonterminal{activity-id} & \\
+    \hline
+    \nonterminal{activity-id} $+$ \nonterminal{activity-id} $+ ...$ & \\
+    \hline
+    \nonterminal{activity-id} $\&$ \nonterminal{activity-id} $\& ...$ & \\
+    \hline
+    \hline
+    \multicolumn{2}{|c|}{\emph{Pre (or Fork) lists}} \\
+    \hline
+    \nonterminal{activity-id} & \\
+    \hline
+    \nonterminal{activity-id} $+$ \nonterminal{activity-id} $+ ...$ & \\
+    \hline
+    \nonterminal{activity-id} $\&$ \nonterminal{activity-id} $\& ...$ & \\
+    \hline
+  \end{tabular}
+  \caption{Activity Lists\dindex{LQN}{activity list}}
+  \label{tab:lqn-activity-lists}
+\end{table}
+
+\index{LQN|)}
+
+\section{SPEX: Software Performance Experiment Driver}
+\label{sec:spex}
+\index{SPEX|(textbf}
+
+SPEX, the \textbf{S}oftware \textbf{P}erformance \textbf{E}x\textbf{P}eriment driver, was originally a Perl
+program used to generate and solve multiple layered queueing network models.  With version 5 of the solvers
+this functionality has been incorporated into the \texttt{lqiolib}\index{lqiolib} and
+\texttt{lqx}\index{lqx} libraries used by the simulator and analytic solver.  The primary benefit of this
+change is that analytic solutions can run faster for reasons described
+in~\cite{perf:mroz-2009-valuetools-lqx}.
+
+SPEX augments the input file described in \S\ref{sec:lqn-file-format} by adding
+\emph{variables}\dindex{spex}{variables} for setting input values, a \emph{Report Information}
+(\S\ref{sec:lqn-report-information}) used to format output, and an optional \emph{Convergence Information}
+(\ref{sec:lqn-convergence-information}) for feeding result values back into input variables.
+Listing~\ref{lst:lqn-file-layout} shows these sections starting with comments in
+\color{red}red\color{black}.  The syntax of these sections are described next in the order in which they
+appear in the input model.
+
+\subsection{Variables}
+\label{sec:spex-variables}\index{SPEX!variables|(textbf}
+
+SPEX variables are used to set and possibly vary various input values to the model, and to record results
+from the solution of the model.  There are four types of variables:
+control, scalar, array and observation.  Control variables are used to define parameters that control the
+execution of the solver.  Scalar and array variables are used to set input parameters to the model.
+Finally, observation variables are used to record results such as throughputs and utilizations.
+
+\subsubsection{Control Variables}
+\label{sec:spex-control}\index{SPEX!variables!control}
+
+Control variables are used to set parameters that are used to control either the analytic solver
+\emph{lqns}, or the simulator \emph{lqsim}.  With the exception of \ctrlparam{\$comment}, all of these
+variables can be changed as SPEX executes, though this behaviour may not be appropriate in many cases.
+Table~\ref{tab:spex-control} lists all of the control variables accepted by SPEX.  See Table~\ref{tab:spex-obsolete-control} for 
+control variables that are no longer recognized.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|l|l|l|c|}
+\hline
+  \multicolumn{1}{|c|}{\textbf{Control Variable}}
+  &\multicolumn{1}{c|}{\textbf{Type of Value}}
+  &\multicolumn{1}{c|}{\textbf{Default Value}}
+  & \textbf{Program}
+\\
+\hline
+  \ctrlparam{\$model\_comment}  	    & \nonterminal{string}  & ""      &       \\
+  \ctrlparam{\$solver}		            & \nonterminal{string}  & \multicolumn{2}{c|}{\emph{deprecated}} \\
+\hline
+  \ctrlparam{\$convergence\_limit}	    & \nonterminal{real}    & 0.00001 & lqns  \\
+  \ctrlparam{\$iteration\_limit}	    & \nonterminal{int}	    & 100     & lqns  \\
+  \ctrlparam{\$print\_interval}		    & \nonterminal{int}	    & 1       & lqns  \\
+  \ctrlparam{\$underrelaxation}             & \nonterminal{real}    & 0.9     & lqns  \\
+\hline
+  \ctrlparam{\$block\_time}                 & \nonterminal{int}     & 50000   & lqsim \\
+  \ctrlparam{\$number\_of\_blocks}          & \nonterminal{int}     & 1       & lqsim \\
+  \ctrlparam{\$result\_precision}           & \nonterminal{real}    & --      & lqsim \\
+  \ctrlparam{\$seed\_value}                 & \nonterminal{int}     & --      & lqsim \\
+  \ctrlparam{\$warm\_up\_loops}             & \nonterminal{int}     & --      & lqsim \\
+  \hline
+  \end{tabular}
+  \caption{Spex Control Variables}
+  \label{tab:spex-control}
+\end{table}
+
+\subsubsection{Scalar Variables}
+\label{sec:spex-scalar}\index{SPEX!variables!scalar}
+
+Scalar variables are used to set input values for the model and are initialized using any
+\nonterminal{ternary-expression} (\texttt{?:}\index{?:}\index{SPEX!ternary expressions}) using this syntax:
+\begin{quotation}
+    \$name = \nonterminal{ternary-expression}
+\end{quotation}
+The \nonterminal{ternary-expression} may contain any variables defined previously or subsequently in the
+input file; order does not matter.  However, undefined variables and observation variables (more on these
+below) are not permitted.  If \nonterminal{ternary-expression} is an actual ternary expression, the test
+part must evaluate to a boolean.  Refer to Appendix~\ref{sec:old-grammar},~\S\ref{sec:spex-expressions} for
+the complete grammar for \nonterminal{ternary-expression}.
+
+\subsubsection{Array Variables}
+\label{sec:spex-array}\index{SPEX!variables!array}
+
+Array variables are used to specify a range of values that an input parameter may take on.  There are two
+ways to specify this information:
+\begin{lstlisting}[numbersep=10pt,firstnumber=1]
+  $name = [x, y, z, ...]
+  $name = [a : b, c]
+\end{lstlisting}
+The first form is used to set the variable \texttt{\$name} to the values in the list, \texttt{x},
+\texttt{y}, \texttt{z}, \texttt{...}.  The second form is used the set the variable \texttt{\$name} from the
+value \texttt{a} to \texttt{b} using a step size of \texttt{c}.  The value of \texttt{b} must be greater
+that \texttt{a}, and the step size must be positive.  Regardless of the format, the values for array
+variables must be constants.
+
+During the execution of the solver, SPEX iterates over all of the values defined for each array variable. If
+multiple arrays are defined, then SPEX generates the cross-product of all possible parameter values.  Note
+that if a scalar variable is defined in terms of an array variable, then the scalar variable will be
+recomputed for each model generated by SPEX.
+
+\subsubsection{Observation Variables}
+\label{sec:spex-observation}\index{SPEX!variables!observation}
+
+There is a set of special symbols that are used to indicate to SPEX
+which result values from the solution of the model are of interest.
+This result indication has the following form:
+\begin{quotation}
+  \%\nonterminal{key}\nonterminal{phase} \$var
+\end{quotation}
+where \nonterminal{key} is a one or two letter key indicating the type of data to be observed and
+\nonterminal{phase} is an optional integer indicating the phase of the data to be observed.  The data, once
+obtained from the results of the model, is placed into the variable \$var where it may be used in the Result
+Information section described below.
+
+To obtain confidence interval information, the format is
+\begin{quotation}
+  \%\nonterminal{key}\nonterminal{phase}[confidence] \$var1 \$var2
+\end{quotation}
+where confidence can be 95 or 99, \$var1 is the mean and \$var2 is the half-width of the confidence interval.
+
+The location of a result indication determines the entity to be observed.  Table~\ref{tab:obs-location}
+describes each of the keys and where they may be used.
+
+\begin{table}
+  \centering
+  \begin{tabular}{|l|l|l|l|l|}
+    \hline
+    \multicolumn{1}{|c|}{\textbf{Key}}
+    &\multicolumn{1}{c|}{\textbf{Phase}}
+    &\multicolumn{1}{c|}{\textbf{Description}}
+    &\multicolumn{2}{l|}{\textbf{Location}}\\
+\hline
+  \texttt{\%u}  & no  & Utilization                    & processor declaration          & (p info) \\
+                & yes &                                & task declaration               & (t info) \\
+                & yes &                                & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%f}  & no  & Throughput                     & task declaration               & (t info) \\
+                & no  &                                & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%pu} & no  & Processor Utilization          & task declaration               & (t info) \\
+                & no  &                                & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%s}  & yes & Service Time                   & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%v}  & yes & Service Time Variance          & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%fb} & no  & Throughput Bound               & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%pw} & yes & Processor waiting time by task & entry service declaration      & (s info) \\
+\hline
+  \texttt{\%w}  & yes & Call waiting time              & entry call declaration         & (y info) \\
+                & no  &                                & entry open arrival declaration & (a info) \\
+\hline
+  \end{tabular}
+  \caption{Observation Key location}
+  \label{tab:obs-location}
+\end{table}
+
+For any key/location combination that takes a phase argument, if none
+is supplied then the sum of the values for all phases is reported.
+This also happens if a phase of zero is given.
+
+\label{sec:spex-variables|)}
+
+\subsection{Report Information}
+\label{sec:lqn-report-information}\index{SPEX!report}
+
+The purpose of the report information section of the input file is to specify which variable values
+(including result indications) are to be printed in the SPEX result file.  The format of this section is
+shown in Listing~\ref{lst:lqn-report-info}.
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[caption={Report Information},label=lst:lqn-report-info,frame=single,float]
+R <int>
+  $var
+  $var = <ternary-expression>
+-1
+\end{lstlisting}
+
+There may be any number of report declarations, however, the integer parameter to \texttt{R} must either be
+the number of report declarations present or zero\footnote{The number is ignored; it is present in the
+syntax so that the report section matches the other sections.}.
+
+The \nonterminal{expression} may be any valid LQX expression as discussed above.  Note that in this section,
+the report indication variables\index{variables!report indication} and the parameter
+variables\index{variables!parameters} may both be used together.  The values of the variables listed in this
+section are printed from left to right in the order that they appear in the input file separated by commas.
+This output can then be used as input to Gnuplot\index{Gnuplot} or a spreadsheet such as Excel\index{Excel}.
+
+There is a special variable called \texttt{\$0}\index{\$0} which represents the independent variable in the
+results tables (the x-axis in plots).  The variable \texttt{\$0} may be set to any expression allowing for
+flexibility in producing result tables.  This variable cannot be used as a parameter in the model.
+
+\subsection{Convergence Information}
+\label{sec:lqn-convergence-information}
+
+Spex allows a parameter value to be modified at the end of a model solution and
+then fed back in to the model.  The model is solved repeatedly until the parameter
+value converges.  The convergence section is declared in a manner similar to the
+result section:
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[caption={Convergence Information},label=lst:lqn-convergence-info,frame=single]
+C <int>
+   $var
+   $var = <ternary-expression>
+-1
+\end{lstlisting}
+
+Convergence variables must be parameters.  They cannot be
+result variables.
+
+\subsection{Differeneces to SPEX 1}
+
+This section outlines differences in the syntax between SPEX\index{SPEX!versions} version 1 and version 2.
+SPEX version 1 was processed by a Perl\index{Perl!SPEX} program to convert the model into a conventional LQN
+model file.  SPEX version 2 is now parsed directly and converted into LQX\index{SPEX!LQX} internally.
+
+\subsubsection{Array Initialization}
+
+Lists used for array initialization\index{SPEX!arrays} must now be enclosed within square brackets
+(`[]')\index{[]}.  Further, the items must be separated using
+commas. Figure~\ref{fig:spex-array-initialization} shows the old and new syntax.
+\newsavebox{\spexone}
+\newsavebox{\spextwo}
+\begin{lrbox}{\spexone}
+\begin{minipage}{.3\textwidth}
+  \lstset{language=LQN,basicstyle=\ttfamily\color{red},numbersep=10pt,firstnumber=1}
+\begin{lstlisting}
+$array = 1 2 3
+$array = 1:10,2
+\end{lstlisting}
+\end{minipage}
+\end{lrbox}
+\begin{lrbox}{\spextwo}
+\begin{minipage}{.3\textwidth}
+  \lstset{language=LQN,basicstyle=\ttfamily\color{blue},numbersep=10pt,firstnumber=1}
+\begin{lstlisting}
+$array = [1, 2, 3]
+$array = [1:10,2]
+\end{lstlisting}
+\end{minipage}
+\end{lrbox}
+\begin{figure}
+  \centering
+  \subfloat[Spex 1]{\usebox{\spexone}}
+  \subfloat[Spex 2]{\usebox{\spextwo}}
+  \caption{x}
+  \label{fig:spex-array-initialization}
+\end{figure}
+
+\subsubsection{Perl Expressions}
+
+Perl Expressions are no longer supported in SPEX 2.0\index{SPEX!Perl}\index{Perl!SPEX}.  Rather, a subset of
+LQX expressions are used instead.  For SPEX convergence
+expressions\index{SPEX!convergence}\index{Convergence!SPEX}, Perl \texttt{if then else} statements must be
+converted to use the ternary \texttt{?:}\index{?:}\index{SPEX!if-then-else}\index{SPEX!ternary expressions}
+operator.  SPEX 2 cannot invoke Perl functions.
+
+\subsubsection{Line Continuation}
+
+Line continuation\index{line continuation}, where a line is terminated by a backslash (`\textbackslash')\index{\textbackslash}, is not needed
+with Version 2 SPEX.  All whitespace, including newlines, is ignored.
+
+\subsubsection{Comments}
+
+In Version 1 of SPEX, all text before a dollar sign (`\$'), or either an upper case `G' or `P' at the start
+of a line, was treated as a comment.  Since Version 2 SPEX is parsed directly, all comments must start with
+the hash symbol (`\#')\index{\#}.
+
+\subsubsection{String Substitution}
+
+Version 2 SPEX does not support variable substitution of string parameters such as pragmas, and scheduling
+types.  This restriction may be lifted in future versions.
+
+\subsubsection{Pragmas}
+
+Version 1 SPEX did not require the hash symbol (`\#')\index{\#} for setting pragmas.  Version 2 SPEX does.
+
+\subsubsection{SPEX AGR}
+
+SPEX AGR\index{SPEX!AGR} is no longer supported.
+
+\subsubsection{Control Variables}
+\label{sec:spex-obsolete-control}
+
+Version 2 SPEX does not support the control variables shown in Table~\ref{tab:spex-obsolete-control}.
+\begin{table}
+  \centering
+  \begin{tabular}{|l|}
+\hline
+  \multicolumn{1}{|c|}{\textbf{Control Variable}}\\
+\hline
+\ctrlparam{\$convergence\_iters}          \\
+\ctrlparam{\$convergence\_under\_relax}   \\
+\ctrlparam{\$coefficient\_of\_variation}  \\
+\ctrlparam{\$hosts}                       \\
+\hline
+  \end{tabular}
+  \caption{Obsolete SPEX Control Variables.}
+  \label{tab:spex-obsolete-control}
+\end{table}
+
+\subsubsection{Random Numbers}
+
+Version 2 SPEX introduces the function \texttt{rand()}\index{rand@\texttt{rand()}}\index{SPEX!random
+  numbers} to generate random numbers in the range of $[0..1)$.  To generate a set of experiments with
+random parameters, an array (or set of arrays) with the number of elements corresponding to the number of
+experiments is required to cause SPEX to iterate (see Section~\ref{sec:spex-and-lqx}).
+Listing~\ref{lst:spex-rand} shows the syntax to generate random values for ten experiments.
+
+\lstset{language=LQN,numbersep=10pt,firstnumber=1,texcl}
+\begin{lstlisting}[float,caption={SPEX random parameter generation},label=lst:spex-rand]
+  $experiments = [1:10,1]             # 10 experiments.
+  $experiments, $parameter1 = rand()  # \$experiments is ignored.
+  $experiments, $parameter2 = rand()  # \$experiments is ignored.
+\end{lstlisting}
+
+\index{SPEX|)}
+
+\subsection{SPEX and LQX}
+\label{sec:spex-and-lqx}
+
+SPEX uses LQX\index{LQX} to generate individual model files.  All scalar paramaters are treated as globally
+scoped variables in LQX and can be used to set parameters in the model.  If the assignement expression for a
+scalar variable does not reference any array variables, it is set prior to the iteration of any loop.
+Otherwise, the scalar variable is set during the execution of the innermost loop of the program.
+
+Array variables are used to generate \texttt{foreach} loops in the LQX program.  The variable defining the
+array is local (i.e.\ without the `\$') with the name of the SPEX parameter.  Each array variable generates
+a for loop; the loops are nested in the order of the definition of the array variable.  The value variable
+for the \texttt{foreach} loop is global (i.e.\ with the `\$') with the name of the SPEX parameter and can be
+used as a parameter in the model.
+
+If SPEX convergence is used, a final innermost loop is created.  This loop tests the variables defined in
+the convergence section for change, and if any of the variables changes by a non-trivial amount, the loop
+repeats.
+
+Listing~\ref{lst:spex-file-layout} shows a model defined defined using SPEX syntax.
+Listing~\ref{lst:spex-lqx} shows the corresponding LQX program generated by the model file.  
+
+\lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
+\begin{lstlisting}[float,caption={SPEX file layout.},label=lst:spex-file-layout]
+$m_client = [1, 2, 3]
+$m_server = [1, 2, 3]
+$s_server = $m_server / 2
+
+P 2
+  p client i
+  p server s 0.1
+-1
+
+T 2
+  t client r client -1 client m $m_client %f $f_client
+  t server n server -1 server m $m_server %u $u_server
+-1
+
+E 2
+  s client 1 -1
+  y client server $s_server -1
+  s server 1 -1
+-1
+
+R 3
+  $0
+  $f_client
+  $u_server
+-1
+\end{lstlisting}
+
+\lstset{language=LQX,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1,texcl=false}
+\begin{lstlisting}[float,caption={LQX Program for SPEX input.},label=lst:spex-lqx]
+m_client = [1, 2, 3];                         	// $m_client = [1,2,3]
+m_server = [2, 3, 4];                         	// $m_server = [2,3,4]
+foreach( $m_client in m_client ) {
+  foreach( $m_server in m_server ) {
+    $s_server = $m_client / 2;                	// $s_server = $m_client / 2;
+    solve();
+    $f_client = task("client").throughput;	// %f $f_client
+    $u_server = task("server").utilization;     // %u $u_server
+    println_spaced( $0, ", ", $f_client, ", ", $u_server );
+  }
+}
+\end{lstlisting}
+
+
+
+
+%%% Local Variables:
+%%% mode: latex
+%%% mode: outline-minor
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End:
