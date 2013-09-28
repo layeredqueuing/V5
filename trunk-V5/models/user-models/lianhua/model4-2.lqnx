@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!-- lqn2xml -->
+<lqn-model name="./interlock-2/model4/model4-2" description="lqn2xml 5.6 solution for model from: ./interlock-2/model4/model4-2.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="interlocking Test model1" conv_val="1e-05" it_limit="10" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="client" scheduling="inf" speed-factor="1">
+      <task name="c0" scheduling="ref" multiplicity="2">
+         <entry name="c0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="c0_1" phase="1" host-demand-mean="0">
+                  <synch-call dest="s0" calls-mean="1"/>
+                  <synch-call dest="s1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs" speed-factor="1">
+      <task name="s0" scheduling="fcfs">
+         <entry name="s0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="s0_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="s1" scheduling="fcfs">
+         <entry name="s1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="s1_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="s2" scheduling="ref">
+         <entry name="s2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="s2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

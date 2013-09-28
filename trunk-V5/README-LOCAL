@@ -1,0 +1,69 @@
+$Id$
+
+The software herein with the exception of parasol is:
+
+Copyright the Real-Time and Distributed Systems Group,
+Department of Systems and Computer Engineering,
+Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+
+
+This package contains:
+lqns:      Analytic solver for Layered Queueing Networks
+lqsim:     Simulator for Layered Queueing Networks
+srvndiff:  Result comparison program.
+parasol:   Event-driven Simulation package.
+lqiolib:   LQN/SRVN input/output file parsing library.
+lqn2ps:    LQN file format converter.
+
+BUILD INSTRUCTIONS (Unix variants)
+----------------------------------
+
+To build and install from the distribution tarball using the gcc/g++
+compiler:
+
+./configure
+make
+make install
+
+Please refer to the file INSTALL for more information.
+
+To bootstrap the build process above, run the file .bootstrap in the
+src directory.
+
+BUILD INSTRUCTIONS (Windows)
+----------------------------
+There are three options: MinGW, Cygwin, and DJGPP.  Use MingGW for
+distribution as it builds native executables in Win32 mode.  DJGPP
+builds WIN16 executables (and has problems with cross device files).
+Cygwin requires special libraries for Unix emulation.  Cygwin is
+probably the best choice for development.
+
+If using MinGW:
+1) Install mingw.  It's relatively painless now.
+   - Add groff: mingw-get install msys-groff
+   - Add expat: mingw-get install mingw32-libexpat
+
+./bootstrap
+./configure-mingw
+make
+make install
+
+2) The user manuals are built using LaTeX and 
+   Install miktex - http://www.miktex.org/
+   Install ghostview - http://www.cs.wisc.edu/~ghost/
+   Install fig2dev - http://schmidt-web-berlin.de/winfig.htm
+
+   Modify %PATH% to point to the bin directories of the above four packages. 
+   See: My Computer -> Change a setting -> Performance and Maintenance -> System ->
+   Advanced -> Environment Variables
+
+If using Cygwin:
+Note: Be sure that tetex, groff, and xfree (for ps2pdf) are all
+installed!  
+
+./configure
+make
+make install
+
+lqns must be executed from the cygwin environment.  
+

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqx-api>
+  <info>
+    <name>Processor</name>
+    <binding>LQNS Bindings</binding>
+    <provided-by>LQNS2</provided-by>
+  </info>
+  <constructors>
+    <method>
+      <ret>Processor</ret>
+      <args>
+        <string>name</string>
+      </args>
+      <name>processor</name>
+      <data>Returns an instance of Processor from the current LQNS2 model with the given name.</data>
+    </method>
+  </constructors>
+  <attributes>
+    <attr>
+      <name>utilization</name>
+      <type>double</type>
+      <data>The utilization of the Processor</data>
+    </attr>
+  </attributes>
+</lqx-api>

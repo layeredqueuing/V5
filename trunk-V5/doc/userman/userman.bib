@@ -1,0 +1,620 @@
+@string{a-p = "Academic Press" }
+@string{a-w = "Addison Wesley"}
+@string{ieee-cs = "{IEEE} Computer Society Press"}
+@string{ieeepds  = "{IEEE} Transactions on Parallel and Distributed Systems"}
+@string{ieeetcomm = "{IEEE} Transactions on Communications" }
+@string{ieeetr = "{IEEE} Transactions on Reliability"}
+@string{jss = "Journal of Systems and Software" }
+@string{mascots-09 = "Proceedings of the Seventeenth {IEEE}/{ACM} International Symposium on Modeling, Analysis, and Simulation of Computer and Telecommunications Systems ({MASCOTS} 2009)"}
+@string{ottawa = "Ottawa, Ontario, Canada"}
+@string{peva = "Performance Evaluation"}
+@string{qest-04 = {Proceedings of the First International Conference on the Quantative Evaluation of Systems {(QEST)}}}
+@string{s-v = "Springer-Verlag"}
+@string{sce = "Department of Systems and Computer Engineering, Carleton University" }
+@string{scs = "School of Computer Science, Carleton University" }
+
+@InProceedings{perf:franks-95-ipds-interlock,
+  author = 	 "Franks, Greg",
+  title = 	 "Traffic Dependencies in Client-Server Systems and
+		  Their Effect on Performance Prediction",
+  pages =	 "24-33",
+  booktitle =	 "IEEE International Computer Performance and
+		  Dependability Symposium",
+  year =	 1995,
+  publisher =	 ieee-cs,
+  address =	 "Erlangen, Germany",
+  month =	 apr,
+  doi =          {10.1109/IPDS.1995.395840},
+  abstract =	 "Client-server systems are becoming increasingly
+		  common in the world today as users move from
+		  centralized mainframe facilities to networks of
+		  distributed work stations.  This form of work
+		  demands new performance models as the interactions
+		  in client-server systems are more complex than the
+		  types supported by classic queueing network solvers
+		  such as Mean Value Analysis.  However, certain
+		  interaction patterns can arise in multi-level
+		  client-server systems that require special
+		  treatment.  This paper describes these interactions
+		  (referred to as interlocking here) and how they
+		  affect the performance estimates of solution methods
+		  using surrogate delays to solve multi-level
+		  client-server models.  It then describes a method to
+		  take interlocking into account when solving the
+		  performance models.  These corrections often reduce
+		  the solution error to close to zero when compared to
+		  exact solutions for situations where interlocking is
+		  significant.",
+  postscript =   "ftp://ftp.sce.carleton.ca/pub/rads/interlock.ps.Z"
+}
+
+@PhdThesis{perf:franks-99b,
+  author = 	 "Franks, Roy Gregory",
+  title = 	 "Performance Analysis of Distributed Server Systems",
+  school = 	 sce,
+  year = 	 1999,
+  address =	 ottawa,
+  month =	 dec
+}
+
+@Article{perf:franks-2009-ieeese-lqn,
+  author = 	 {Greg Franks and Tariq Al-Omari and Murray Woodside
+                  and Olivia Das and Salem Derisavi},
+  title = 	 {Enhanced Modeling and Solution of Layered Queueing Networks},
+  journal = 	 ieeese,
+  year = 	 2009,
+  volume =	 35,
+  number =	 2,
+  pages =	 {148--161},
+  month = 	 mar # {--} # apr,
+  DOI = 	 {10.1109/TSE.2008.74},
+  abstract =     {Layered queues are a canonical form of extended
+                  queueing network for systems with nested multiple
+                  resource possession, in which successive depths of
+                  nesting define the layers. The model has been
+                  applied to most modern distributed systems, which
+                  use different kinds of client-server and
+                  master-slave relationships, and scales up well. The
+                  Layered Queueing Network (LQN) model is described
+                  here in a unified fashion, including its many more
+                  extensions to match the semantics of sophisticated
+                  practical distributed and parallel systems. These
+                  include efficient representation of replicated
+                  services, parallel and quorum execution, and
+                  dependability analysis under failure and
+                  reconfiguration. The full LQN model is defined here
+                  and its solver is described. A substantial case
+                  study to an air traffic control system shows errors
+                  (compared to simulation) of a few percent. The LQN
+                  model is compared to other models and solutions, and
+                  is shown to cover all their features.} 
+}
+
+@MastersThesis{perf:jiang-96,
+  author = 	 "Jiang, Xianghong",
+  title = 	 "Evaluation of Approximation for Response Time of
+                  Parallel Task Graph Model",
+  school = 	 sce,
+  year = 	 1996,
+  address =	 "Canada",
+  month =	 apr,
+  abstract = 	 "Parallel processing has been widely used to
+                  implement highly complex computation or deal with
+                  real0time tasks when the requirements for system
+                  performance are critical.  Response time is an
+                  important performance measure for systems with
+                  parallel processing.  An approximate method to
+                  calculate the response time of delay of parallel
+                  (fork-join) segment o computation based on the task
+                  graph model is presented.\\ In general, calculating
+                  the response time of fork-join segments requires
+                  full information about the probability
+                  distributions of each path, which is difficult to
+                  obtain.  It is much easier to obtain the mean and
+                  variance from measurement.  Therefore,
+                  approximation must be used to calculating [sic] the
+                  response time for fork-join segments.  \\ The
+                  approximation method described in this theses is
+                  fast but not always accurate.  It only needs the
+                  mean and variance of each branch of a fork-join
+                  segment; it approximates the distribution by
+                  three-point values, and estimate the mean and
+                  variance of the total delay.\\ The approximation is
+                  fully evaluated by used [sic] for calculating
+                  response time for different type of complex task
+                  graphs.  Resource contention scenario are also
+                  studied.  The results of the approximate compared
+                  closely to the results obtained from detailed
+                  simulation.  It shows that the approximation is
+                  more accurate for fork-join with small variance,
+                  with mean absolute error less than 1\% over 100
+                  cases with CV (coefficient of variation) <= 1.  For
+                  CV > 1, the mean absolute error over 100 cases is
+                  less than 4\%.  The approximation is good for solving
+                  performance measure for complex graphs with parallel
+                  path [sic]."
+}
+
+@InProceedings{perf:li-2009-mascots-fairshare,
+  author = 	 {Lianhua Li and Greg Franks},
+  title = 	 {Performance Modeling  of Systems using Fair Share Scheduling with Layered Queueing Networks},
+  booktitle =	 mascots-09,
+  pages =	 {1--10},
+  year =	 2009,
+  doi =          {10.1109/MASCOT.2009.5366689},
+  address =	 {London},
+  month =	 sep # {~21--23},
+  annote =	 {Fair-share scheduling attempts to grant access to a
+                  resource based on the amount of ``share'' that a
+                  task possesses.  It is widely used in places such as
+                  Internet routing, and recently, in the Linux kernel.
+                  Software performance engineering is concerned with
+                  creating responsive applications and often uses
+                  modeling to predict the behaviour of a system before
+                  the system is built.  This work extends the Layered
+                  Queueing Network (LQN) performance model used to
+                  model distributed software systems by including
+                  hierarchical fair-share scheduling with both
+                  guarantees and caps. To exercise the model, the
+                  Completely Fair Scheduler, found in recent Linux
+                  kernels, is incorporated into PARASOL, the
+                  underlying simulation engine of the LQN simulator,
+                  lqsim.  This simulator is then used to study the
+                  effects of fair-share scheduling on a multi-tier
+                  implementation of a building security system.  The
+                  results here show that fair-share scheduling with
+                  guarantees is not sufficient when an application is
+                  layered into multiple tiers because of contention at
+                  lower layers in the system.  Fair-share scheduling
+                  with caps must be used instead.} 
+}
+
+@Article{perf:mak-90,
+  author = 	 "Mak, Victor W. and Lundstrom, Stephen F. ",
+  title = 	 "Predicting Performance of Parallel Computations",
+  journal =	 ieeepds,
+  doi =          {10.1109/71.80155},
+  year =	 1990,
+  volume =	 1,
+  number =	 3,
+  pages =	 "257--270",
+  month =	 jul,
+  annote =       "See also: perf:chu-84, perf:chu-91.  Classifies
+		  program activity, i.e. asynchronous, synchronous,
+		  master-slave and partitioned.  Modifies MVA
+		  residence time by inflating it based on ``overlap
+		  probability''.  Does not consider nested service.",  
+  abstract =	 "This paper describes an accurate and computationally
+		  efficient method for predicting performance of a
+		  class of parallel computations running on
+		  concurrent systems.  Earlier work either dealt with
+		  very restricted computation structures or used
+		  method with exponential complexity.  A parallel
+		  computation is modeled as a task system with
+		  precedence relationships expressed as a
+		  series-parallel directed acyclic graph.  Resources
+		  in a concurrent system are modeled as service centers
+		  in a queueing network model.  Using these two models
+		  as inputs, the method outputs predictions of
+		  expected execution time of the parallel computation
+		  and the concurrent system utilization.  The
+		  method has been validated against both detailed
+		  simulation and actual execution on a commercial
+		  multiprocessor.  Using one hundred test cases, the
+		  average error of the prediction when compared to
+		  simulation statistics was 1.7\% with a standard
+		  deviation of 1.5\%., and the maximum error was
+		  about 10\%."
+}
+
+@InProceedings{perf:mroz-2009-valuetools-lqx,
+  author = 	 {Martin Mroz and Greg Franks},
+  title = 	 {A Performance Experiment System Supporting Fast Mapping of System Issues},
+  booktitle =	 {Fourth International Conference on Performance Evaluation Methodologies and Tools},
+  year =	 2009,
+  address =	 {Pisa, Italy},
+  month =	 oct # {~20--22},
+  doi =	         {10.4108/ICST.VALUETOOLS2009.7807},
+  annote =	 {The most fruitful use of a performance model is to
+                  study deep properties of the system, and
+                  hypothetical situations that might lead to improved
+                  configurations or designs. This requires executing
+                  experiments on the model, which evaluate systematic
+                  changes. Parameter estimation methods also exploit
+                  search in a parameter space to fit a model to
+                  performance data. Estimation, sensitivity and
+                  optimization experiments can require hundreds of
+                  evaluations, and the efficiency of the analytic
+                  model solver may become an issue. Analytic models
+                  usually provide fast solutions (compared to
+                  simulations) but repetitive solutions for near-
+                  models offer opportunities for further reducing the
+                  effort. This work describes an  driver for a layered
+                  queueing solver which provides a factor of two
+                  improvement. It also raises the issue of
+                  domain-specific languages for model experiments,
+                  versus general languages with suitable libraries.} 
+}
+@TechReport{perf:neilson-91b,
+  author = 	 "Neilson, John E.",
+  title = 	 "{PARASOL}: A Simulator for Distributed and/or Parallel Systems",
+  institution =  scs,
+  year = 	 1991,
+  number =	 "SCS TR-192",
+  address =	 ottawa,
+  month =	 may
+}
+
+@PhdThesis{perf:rolia-92,
+  author =	 "Rolia, Jerome Alexander",
+  title =	 "Predicting the Performance of Software Systems",
+  school =	 "Univerisity of Toronto",
+  year =	 1992,
+  address =	 "Toronto, Ontario, Canada",
+  month =	 jan,
+  annote =	 "See perf:rolia-92a",
+  abstract =	 "With the advent of distributed and multi-processing
+		  computing, systems of cooperating processes have
+		  become an attractive alternative to monolithic
+		  programs.  In such software systems it is often
+		  possible to alter the degree of parallelism within
+		  a program, and for the parallel threads to
+		  synchronize and communicate.	There is a likelyhood
+		  that proceses will incur delays for both hardware
+		  and software resources.  The resulting performance
+		  behaviours can be difficult to understand without the
+		  use of performance modelling tools.  The purpose of
+		  this thesis is to develop analytical performance
+		  modelling techniques that can be used to study
+		  software systesms.  In particular, fixed sets of
+		  processes and several communication and
+		  synchronization mechanisms are considered."
+}
+
+@Article{perf:rolia-95-ieeese-mol,
+  author = 	 "Rolia, J. A. and Sevcik, K. A.",
+  title = 	 "The Method of Layers",
+  journal =	 ieeese,
+  doi =	         "10.1109/32.403785",
+  year =	 "1995",
+  volume =	 "21",
+  number =	 "8",
+  pages =	 "689-700",
+  month =	 aug,
+  keywords =     "Management of distributed applications; Performance
+                  of systems; Queuing network models; Software
+                  performance engineering; Software performance
+                  models; Networks",
+  abstract =	 "Distributed applications are being developed that
+		  contain one or more layers of software servers.
+		  Software processes within such systems suffer
+		  contention delays both for shared hardware and at
+		  the software servers. The responsiveness of these
+		  systems is affected by the software design, the
+		  threading level and number of instances of software
+		  processes, and  the allocation of processes to
+		  processors. The Method Of Layers (MOL) is proposed
+		  to provide performance estimates for such systems.
+		  The MOL uses the mean value analysis (MVA) algorithm
+		  Linearizer as a subprogram  to assist in predicting
+		  model performance measures.",
+  annote =       "Primary reference to MOL, layered queueing network."
+}
+
+@article{perf:smith-99-jss-pmif,
+  author =       "C. U. Smith and L. G. Williams",
+  title =        "A performance model interchange format",
+  journal =      jss,
+  volume =       49,
+  number =       1,
+  pages =        "63--80",
+  year =         1999,
+  doi =          {10.1016/S0164-1212(99)00067-9},
+  abstract =     {A Performance Model Interchange Format (PMIF)
+                  provides a mechanism whereby system model
+                  information may be transferred among performance
+                  modeling tools. The PMIF allows diverse tools to
+                  exchange information and requires only that the
+                  importing and exporting tools support the PMIF. This
+                  paper presents the definition of a PMIF by
+                  describing a meta-model of the information
+                  requirements and the transfer format derived from
+                  it. It describes how tool developers can implement
+                  the PMIF, how the model interchange via export and
+                  import works in practice, and how the PMIF can be
+                  extended. A simple case study illustrates the
+                  format. The paper concludes with the current status
+                  of the PMIF, lessons learned, some suggestions for
+                  extensions, and current work in progress.}
+}
+
+@Book{perf:smith-2002,
+  author =	 "Smith, C. U. and Williams, L. G",
+  title = 	 "Performance Solutions: A Practical Guide to Creating Responsive, Scalable Software",
+  publisher = 	 a-w,
+  year = 	 2002,
+  series =	 "Object Technology Series"
+}
+
+@InProceedings{perf:smith-2004-pmif2,
+  author = 	 {Smith, Connie U. and Llad{\'{o}}, Catalina M.},
+  title = 	 {Performance Model Interchange Format ({PMIF 2.0)}: {XML} Definition and Implementation},
+  booktitle =	 qest-04,
+  pages =	 {38-47},
+  year =	 2004,
+  address =	 {Enschede, the Netherlands},
+  month =	 sep #"~27--30",
+  doi =          {10.1109/QEST.2004.1348017},
+  publisher =	 ieee-cs,
+  annote =	 {A Performance Model Interchange Format (PMIF)
+                  provides a mechanism whereby system model
+                  information may be transferred among performance
+                  modeling tools. The PMIF allows diverse tools to
+                  exchange information and requires only that the
+                  importing and exporting tools either support the
+                  PMIF or provide an interface that reads/writes model
+                  specifications from/to a file. This paper presents a
+                  new version of the PMIF specification (PMIF 2.0) and
+                  its XML implementation. The paper also describes a
+                  prototype that was implemented to prove the concept,
+                  in which the exporting tool is SPE7ED and the
+                  importing tool is Qnap, and it discusses the issues
+                  in this and the reverse exchange. It shows the
+                  validation of the prototype based on the solution of
+                  examples that were exported from SPE7ED and imported
+                  by Qnap. In addition, it proposes some extensions to
+                  PMIF 2.0.}
+}
+
+@MastersThesis{perf:wu-2003,
+  author = 	 {Xiuping Wu},
+  title = 	 {An Approach to Predicting Peformance for Component Based Systems},
+  school = 	 sce,
+  year = 	 2003,
+  address =	 ottawa,
+  month =	 aug,
+  url =          {ftp://ftp.sce.carleton.ca/pub/cmw/xpwu-mthesis.pdf},
+  abstract = 	 {Component Based Software Engineering has emerged as
+                  a promising paradigm for  software engineering. It
+                  brings higher efficiency and better quality by using
+                  reusable software components. It also offers some
+                  potential advantages for performance engineering. If
+                  a planned system involves many pre-existing
+                  components, it could be easier to model it than a
+                  system with completely new components. In this
+                  research, each software component is represented by
+                  a parameterized performance sub-model stored in a
+                  library. These sub-models extract performance
+                  sensitive attributes of the software components. By
+                  using these sub-models, system models can be built
+                  quickly for many different configurations. As well,
+                  those configurations are tied to software
+                  configurations. An approach is described to model
+                  component based software systems based on these
+                  sub-models and a system assembly model. A language
+                  and a tool have been developed to help generate
+                  system performance models. The final performance
+                  models are in the format of a layered queuing
+                  network model. A case study illustrates the use of
+                  the tool.}
+}
+
+@Article{queue:bruell-84-peva-load-dependent,
+  author = 	 "Bruell, S. C. and Balbo, G. and Afshari, P. V.",
+  title = 	 "Mean Value Analysis of Mixed, Multiple Class {BCMP}
+		  Networks with Load Dependent Service Centers",
+  journal =	 peva,
+  year =	 1984,
+  issn =         "0166-5316",
+  doi =          "10.1016/0166-5316(84)90010-5",
+  volume =	 4,
+  number =       4,
+  pages =	 "241--260",
+  abstract =	 "In this paper we describe a mean value analysis
+		  algorithm to solve product form queueing network
+		  model of the Baskett, Chandy, Muntz and Palacios
+		  Type (BCMP).  These networks can accommodate multiple
+		  job classes and load dependent service stations.
+		  The networks can be closed (i.e., jobs neither enter
+		  nor leave the network), open (i.e., jobs can enter
+		  and leave the network), or mixed (i.e., closed with
+		  respect to some job classes and open with respect to
+		  others).  Two major aspects of this paper are: 1)
+		  to present a unified approach to the solution of
+		  this class of BCMP queueing networks, and 2) to
+		  thereby extend and consolidate the results of
+		  several authors.  The paper concludes by collecting
+		  together all the results into an explicit algorithm,
+		  MVALDMX (for mean value analysis loaded dependent
+		  mixed) that is a generalization of the original mean
+		  MVA algorithm of Resier and Lavenburg."
+}
+
+@InCollection{queue:conway-88,
+  author = 	 "Conway, Adrian E.",
+  title = 	 "Fast Approximate Solution of Queueing Networks with
+		  Multi-Server Chain-Dependent {FCFS} Queues",
+  booktitle =	 "Modeling Techniques and Tools for Computer
+		  Performance Evaluation", 
+  publisher =	 "Plenum",
+  year =	 1989,
+  editor =	 "Puigjaner, Ramon and Potier, Dominique",
+  pages =	 "385--396",
+  address =	 "New York",
+  callno =       "QA76.9.C65I54",
+  isbn =         "0-306-43368-0",
+  abstract =	 "In this paper, we develop a Linearizer-type
+		  approximation technique for the analysis of large
+		  multiple-chain queuing networks that contain
+		  multi-server first-come, first served queues with
+		  service times that are chain dependent.  Use is made
+		  of a waiting time approximation based on Mean Value
+		  Analysis that has recently been developed by Souza
+		  e Silva and Muntz.  The storage requirements of the
+		  iterative scheme are of the order of $NR^2$, and the
+		  computational requirements are of the order of
+		  $NR^3$, where $N$ is the number of nodes and $R$ is
+		  the number of closed routing chains.  In comparing
+		  the results obtained with published empirical stress
+		  tests results, the accuracy of the  Linearizer-type
+		  approximation is found to be acceptable.  An
+		  application in which the proposed iterative
+		  technique is found to be particularly useful is in
+		  the analysis of large queueing networks with nested
+		  passive resources and many closed routing chains,
+		  of the type arising in the modeling of compute
+		  systems with multi-programming constraints and of
+		  computer communication networks with window flow
+		  controls. "
+}
+
+@Article{queue:deSouzaeSilva-87,
+  author = 	 "de Souza e Silva, Edmundo and Muntz, Richard R.",
+  title = 	 "Approximate Solutions for a Class of Non-Product
+		  Form Queueing Network Models",
+  journal =	 peva,
+  issn =         "0166-5316",
+  doi =          "10.1016/0166-5316(87)90042-3",
+  year =	 1987,
+  volume =	 7,
+  number =       3,
+  pages =	 "221--242",
+  keywords =     "Approximate Solution; Computer Systems Modeling;
+                  Multiple Chain Model; Performance Evaluation;
+                  Queueing Network Model; Passive Resource;
+                  Multiserver FCFS Queues", 
+  abstract =	 "We investigate approximate solution techniques for
+		  solving a class of non-product form closed queueing
+		  networks with simultaneous resource possession.  We
+		  propose a simple and accurate solution technique
+		  which can handle simultaneously held resources
+		  dedicated to a single type of user as well as
+		  resources shared among different types of users.
+		  The proposed algorithm can also handle the case of
+		  nested passive resources.  An approximate solution
+		  for non-product form networks with
+                  first-come-first-serve multiple service centers  
+		  with different service times for different types of
+		  users is also developed, since this solution is
+		  needed for our main algorithm.  Comparison with
+		  simulation and other approximate techniques
+		  demonstrates the good accuracy and performance of
+		  our solution method."
+}
+
+@Article{queue:reiser-79,
+  author =	 "Reiser, Martin",
+  title =	 "A Queueing Network Analysis of Computer Communication Networks with Window Flow Control",
+  journal =	 ieeetcomm,
+  year =	 1979,
+  volume =	 27,
+  number =	 8,
+  pages =	 "1199 -- 1209",
+  month =	 aug,
+  doi =          {10.1109/TCOM.1979.1094531},
+  abstract =	 "A computer communication network with window flow
+		  control is model by a closed multichain queueing
+		  network.  The severe computational limitation of
+		  previous solution algorithms is overcome with a
+		  heuristic derived from the recently found mean value
+		  analysis.  A large numerical example is given."
+}
+
+@Article{queue:schmidt-97,
+  author = 	 "Schmidt, Rainer",
+  title = 	 "An Approximate {MVA} Algorithm for Exponential,
+                  Class-Dependent Multiple Servers",
+  journal = 	 peva,
+  year = 	 1997,
+  volume =	 29,
+  number =       4,
+  doi =          {10.1016/S0166-5316(96)00048-X},
+  pages =	 "245--254",
+  keywords = 	 "Closed Queueing Networks; Mean Value Analysis;
+                  Queue-dependent service; Sojourn time approximation;
+                  Multiple-server queue; Norton's theorem",
+  abstract = 	 "Mean Value Analysis (MVA) is an efficient algorithm
+                  for determining the mean sojourn time, the mean queue
+                  length, and the throughput in a closed, multiclass
+                  queueing network.  It provides exact results for the
+                  class of product-form networks.  Often different
+                  classes have different service requirements in FCFS
+                  queues, but such networks are not of product form.
+                  There are several possibilities to compute
+                  performance measures for such nodes and networks.
+                  In this paper we present an approximation formula
+                  for multiple-server FCFS queues with
+                  class-depended service times as a Norton Flow
+                  equivalent product node, where the departure rate
+                  of any class depends on the number of customers of
+                  all classes in the queue.  We will use this
+                  approximation in the sojourn time formula of some
+                  exact and approximate MVA algorithms."
+}
+
+@Article{srvn:woodside-94-ieeetc-srvn,
+  author = 	 "Woodside, C. Murray and Neilson, John E. and Petriu,
+		  Dorina C. and Majumdar, Shikharesh",
+  title = 	 "The Stochastic Rendezvous Network Model for
+		  Performance of Synchronous Client-Server-Like Distributed Software",
+  journal =	 ieeetc,
+  year =	 1995,
+  volume =	 44,
+  number =	 8,
+  pages =	 "20--34",
+  month =	 aug,
+  doi =          {10.1109/12.368012},
+  keywords =     "Client server; Performance; Remote procedure call;
+		  Software performance; Distributed software;
+		  Rendezvous networks; Multiple entries; Systems;
+		  Programs",
+  annote =	 "Distributed or parallel software with synchronous
+		  communication via rendezvous is found in
+		  client-server systems and in proposed Open
+		  Distributed Systems, in implementation environments
+		  such as Ada, V, Remote Procedure Call systems, in
+		  Transputer systems, and in specification techniques
+		  such as CSP, CCS and LOTOS. The delays induced by
+		  rendezvous can cause serious performance problems,
+		  which are not easy to estimate using conventional
+		  models which focus on hardware contention, or on a
+		  restricted view of the parallelism which ignores
+		  implementation constraints. Stochastic Rendezvous
+		  Networks are queueing networks of a new type which
+		  have been proposed as a modelling framework for
+		  these systems. They incorporate the two key
+		  phenomena of included service and a second phase of
+		  service. This paper extends the model to also
+		  incorporate different services or entries associated
+		  with each task. Approximations to arrival-instant
+		  probabilities are employed with a Mean-Value
+		  Analysis framework, to give approximate performance
+		  estimates. The method has been applied to moderately
+		  large industrial software systems.",
+  annote =       "Primary reference to SRVN, layered queueing network.",
+}
+
+@Misc{sw:woodside-xx,
+  OPTkey = 	 {},
+  author =	 {Murray Woodside and Greg Franks},
+  title =	 {Tutorial Introduction to Layered Modeling of Software Performance},
+  OPThowpublished = {},
+  OPTmonth = 	 {},
+  OPTyear = 	 {},
+  note =	 {Revision 6554},
+  OPTannote = 	 {}
+}
+
+@Manual{sw:xerces,
+  title = 	 {Xerces {C++} Documentation},
+  OPTkey = 	 {},
+  OPTauthor = 	 {},
+  organization = {The Apache Software Foundation},
+  OPTaddress = 	 {},
+  OPTedition = 	 {},
+  OPTmonth = 	 {},
+  OPTyear = 	 {},
+  OPTnote = 	 {},
+  OPTannote = 	 {}
+}
+

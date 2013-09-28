@@ -1,0 +1,134 @@
+			PARASOL 3.1 Release Notes
+
+A significant new release of PARASOL is now available. Those who are
+new to PARASOL are referred to the FAQ file and to the documentation
+found under the doc directory.  Briefly, PARASOL is a simulation
+package aimed specifically at modellers of distributed or parallel
+computer systems.  It provides for a user-specified, emulated execution
+environment, typically involving a network of processors, on which
+user-specified software, written in C or C++, is executed.  Thus, in a
+single tool, PARASOL supports both software prototyping and performance
+modelling.
+
+Considerable effort has gone into adding functionality and versatility
+to the previous release, viz., Version 2.3.  For example, it now
+features the following innovations:
+
+	a) Improved execution traces to facilitate debugging
+	   and model validation.  Included are filters which
+	   provide interfaces to visualization tools such as 
+	   ParaGraph and xtg.
+
+	b) A warning flag option to further facilitate de-
+	   bugging by causing warnings to be written to stderr
+	   if library calls misfire due to inappropriate
+	   arguments.
+	   
+	c) A new provision for highly flexible node scheduling 
+	   using user written schedulers.  This provision 
+	   permits a new class of applications to use PARASOL
+	   directly without the need for kernel hacking.
+		
+	d) A new class library called PARASOL++ for C++ 
+	   object oriented users. This library provides the
+	   base classes for most PARASOL-based applications 
+	   without requiring the PARASOL kernel to be 
+	   accessed directly.
+
+	e) A new PVM-based (Parallel Virtual Machine) 
+	   simulation manager called DPSM (Distributed
+	   PARASOL Simulation Manager) which manages 
+	   concurrent experimental replications to achieve 
+	   user specified confidence intervals.
+
+	f) Improved statistics handling with the addition 
+  	   of RATE statistics, a "reset all" function, and 
+	   several new options for node utilization statistics.
+
+	g) New support for glocal variables - this will be 
+	   appreciated most by modellers of highly detailed 
+	   simulations/emulations when modelling static data.
+
+	h) New default stack sizing which improves PARASOL's
+	   resistance to stack overflows - a problem which 
+	   manifest itself particularly with optimized Linux-
+	   based models.
+
+	i) Improved and updated documentation with several new 
+	   case study examples.  Added new documentation for
+	   PARASOL++, DPSM, and the visualization tools.
+
+	j) An improved test suite for system verification and 
+	   to aid in porting PARASOL to new platforms.
+
+During the development of this release, PARASOL underwent extensive
+testing and beta releases were offered to users who had experienced
+problems with version 2.3.  To our knowledge all reported bugs were
+fixed in 3.1 while maintaining, to a very large degree, backwards
+compatability with its predecessor.  Compatability exceptions follow:
+
+	a) Users of the custom library will see two minor 
+	   changes to the ps_run_parasol function and its 
+	   semantics. Its two run flag arguments have been 
+	   rolled into a single or'ed flag. The semantic 
+  	   change is that the simple default statistical
+	   summaries are no longer provided however the call
+	   now returns. Thus, if summary statistics are 
+	   desired these should be explicitly obtained 
+	   simply by calling ps_stats after the return 
+	   from ps_run_parasol.
+
+	b) Users of ps_create2 must adjust their stacksize 
+	   arguments since stacks are now specified relative 
+	   to the default stack size rather than in absolute 
+	   terms. Relative stacksizing is considered easier 
+	   than absolute, particularly when PARASOL is used
+	   in hetergeneous computing environments.	  
+
+	c) Users of ps_ready_queue will see that it requires 
+	   two additional arguments because it has been 
+	   enhanced to return more detailed information.
+
+	d) User defined post processing of execution traces 
+	   could require change as the new traces have been 
+	   significantly simplified through the elimination 
+	   of confusing logged events associated with built-
+	   in PARASOL tasks such as the reaper, surrogate
+	   tasks, etc. As well, message sequence numbering 
+	   has been added to disambiguate traces. 
+
+Among the most noteworthy bug fixes were those for following problems:
+
+	a) Pool buffer failures due to data misalignment
+	   associated with non-eight byte entities.
+
+	b) Preemptive/Resume scheduling error that saw 
+	   preempted tasks resumed only after those of 
+	   equal priority.
+
+	c) Messages associated with a port being left
+	   behind in a port set when that port left the
+	   port set.
+
+	d) A Preemptive/Resume node scheduling error 
+	   associated with port sets that could cause 
+	   PARASOL to hang.
+
+	e) A very rare dangling event problem with event 
+	   handling that resulted in a PARASOL "non calendar 
+	   event" abort.
+	
+	f) Problems with ps_migrate that failed to correctly 
+	   handle null moves and processor speed changes. 
+
+	g) Disrupted shared port message queues when a
+	   finite time_out parameter was used with 
+	   ps_receive_shared call.
+
+	h) Dangling event pointers occuring when BLOCKED
+	   tasks were suspended.
+
+	i) Stack overflow problems triggered with heavy
+	   recursion in broad task creation trees.
+
+

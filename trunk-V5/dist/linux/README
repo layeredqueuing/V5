@@ -1,0 +1,12 @@
+#!/bin/sh
+# The easy way...
+cd ../..
+make rpm
+
+#
+#cd $HOME/usr/src-linux/
+#make dist
+#cp lqns-X.X.tar.gz  $HOME/rpmbuild/SOURCES/		# Suse Linux
+#cp lqns-X.X.tar.gz  /usr/src/xxx/rpmbuild/SOURCES/	# Centos/RHEL
+#cd dist/linux/
+#rpmbuild -bb lqns.spec 

@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml 03-sanity.in -->
+<!-- Mon May 25 10:29:34 2009 -->
+
+<lqn-model name="03-sanity" description="Sanity test 3 -- forwarding" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Forwarding sanity test." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.5"/>
+   <processor name="p0" scheduling="inf">
+      <task name="t0" scheduling="ref" multiplicity="4">
+         <entry name="e0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e0_ph1" phase="1" host-demand-mean="0.5">
+                  <synch-call dest="e1" calls-mean="0.25"/>
+               </activity>
+               <activity name="e0_ph2" phase="2" host-demand-mean="0.5">
+                  <synch-call dest="e1" calls-mean="0.75"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1" scheduling="fcfs">
+      <task name="t1" scheduling="fcfs" multiplicity="2">
+         <entry name="e1" type="PH1PH2">
+            <forwarding dest="e2" prob="0.5"/>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <task name="t2" scheduling="fcfs" multiplicity="2">
+         <entry name="e2" type="PH1PH2">
+            <forwarding dest="e3" prob="0.5"/>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p3" scheduling="fcfs">
+      <task name="t3" scheduling="fcfs">
+         <entry name="e3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e3_ph1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

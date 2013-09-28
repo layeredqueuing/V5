@@ -1,0 +1,182 @@
+G #
+"LQN model version 2.1 of ReportNet with  infinite threads on Web Server
+ and DB query time 10 sec. Service demand of content is 100ms, Number of users=10, CM dbop=1s " #
+#Convergence criterion, iteration limit, print interval, under-relax
+#Under-relaxation coefficient stabilizes the algorithm if less than 1
+0.00001 #
+100 #
+1 #
+0.9 #
+# End of General Information, -1 is the terminator
+-1 #
+#
+# Processor Information: No of processors or 0 (0 is better)
+P 0 #
+#p ProcessorName SchedDiscipline [multiplicity, default = 1]
+#                   [replication, default = 1]
+#	Discipline = f fifo|r random|p premptive|
+#			h hol or non-pre-empt|s proc-sharing
+#	multiplicity = m value (multiprocessor)|i (infinite)
+#       replication = r value
+p ClientP f i  #Client 
+p WebP f  
+p LBP f    #Virtual Load Balancer
+p A_TomCat f 
+p B_TomCat f #
+p C_TomCat f #
+p CMP f  
+p DBP f i  #Database Server
+# End of Processor Information
+-1 #
+# Task Information: No of Tasks or 0
+T 0  #
+#t TaskName RefFlag EntryList -1 Processor [multiplicity, default = 1]
+#                      [replication, default = 1]
+#	RefFlag = r (reference or user)|n (other)
+#       r type accepts no requests, is a pure client task
+#	optional multiplicity = m value (multiprocessor)|i (infinite)
+#       optional replication count = r value
+t Client r Request -1 ClientP m 10 #
+t RSClient n RSRequest -1 ClientP i  # Client accessing Reporting Service
+t PSClient n PSRequest -1 ClientP i  # PS Client  
+t WebS n AcceptRS AcceptPS -1 WebP i  #Web Server 
+t LB n LBprocRS LBprocPS -1 LBP i #Load Balancer
+t A_DSP n A_DispRS A_DispPS -1 A_TomCat i #Dispatcher
+t A_ReportA1 n A_Affine1 -1 A_TomCat  
+t A_ReportA2 n A_Affine2 -1 A_TomCat        # Affine thread
+t A_ReportN1 n A_NonAffine1 -1 A_TomCat m 4 
+t A_ReportN2 n A_NonAffine2 -1 A_TomCat m 4  # 4 non-affine threads 
+t A_PSRender n A_Render -1 A_TomCat i    # Presentation service for the initial reporting request
+t A_PS n A_Presentation -1 A_TomCat i   #Presentation Service
+t CM n content -1 CMP m 10
+t DB n initial followup dbop -1 DBP i  # database operations for initial, followup and content manager respectively
+t B_DSP n B_DispRS B_DispPS -1 B_TomCat i #Dispatcher
+t B_ReportA1 n B_Affine1 -1 B_TomCat  # Affine thread
+t B_ReportA2 n B_Affine2 -1 B_TomCat        # Affine thread
+t B_ReportN1 n B_NonAffine1 -1 B_TomCat m 4 # 4 non-affine threads
+t B_ReportN2 n B_NonAffine2 -1 B_TomCat m 4  # 4 non-affine threads 
+t B_PSRender n B_Render -1 B_TomCat i  #
+t B_PS n B_Presentation -1 B_TomCat i   #Presentation Service
+#
+t C_DSP n C_DispRS C_DispPS -1 C_TomCat i #Dispatcher
+t C_ReportA1 n C_Affine1 -1 C_TomCat  # Affine thread
+t C_ReportA2 n C_Affine2 -1 C_TomCat        # Affine thread
+t C_ReportN1 n C_NonAffine1 -1 C_TomCat m 4 # 4 non-affine threads
+t C_ReportN2 n C_NonAffine2 -1 C_TomCat m 4  # 4 non-affine threads 
+t C_PSRender n C_Render -1 C_TomCat i  #
+t C_PS n C_Presentation -1 C_TomCat i   #Presentation Service
+# End of Task Information 
+-1 #
+#
+#Entry Information: No. of Entries or 0
+E 0 #
+# Entry parameters in three possible formats:
+# (1) ParameterToken EntryName value
+#	a entry open-arrival-rate
+#	A entry initial-activity-name
+# (2) ParameterToken EntryName Phase1value Phase2 Phase3 -1
+#    Tokens and Value Definitions are:
+#       s for HostServiceRequests for EntryName
+#       c for HostServiceCoefficientofVariation
+#       f for PhaseTypeFlag (0 for stochastic requests, 1 for deterministic)
+# (3) Entry-to-entry parameters in the format
+#    ParameterToken FromEntry ToEntry Phase1Value Phase2 Phase3 -1
+#    Tokens and Value definitions are:
+#       y for mean SynchronousCalls (no. of rendezvous)
+#       F for ProbForwarding (forward to this entry rather than replying)
+#       z for mean AsynchronousCalls (or no. of sned-no-reply messages)
+#       o for Fanout of calls (to replicated tasks)
+#       i for FanIn of calls (from replicated tasks)
+y Request RSRequest 0 5 -1 #
+y Request PSRequest 0 15 -1 #
+y RSRequest AcceptRS 1 -1 #  
+y PSRequest AcceptPS 1 -1 #
+y AcceptRS LBprocRS 1 0 -1 #
+y AcceptPS LBprocPS 1 0 -1 #
+y AcceptRS A_DispRS 0.33333 -1 #
+y AcceptRS B_DispRS 0.33333 -1 #
+y AcceptRS C_DispRS 0.33333 -1 #
+y AcceptPS A_DispPS 0.33333 -1 #
+y AcceptPS B_DispPS 0.33333 -1 #
+y AcceptPS C_DispPS 0.33333 -1 #
+y A_DispPS A_Presentation 1 0 -1 #
+y A_Presentation content 1 0 -1 #
+y A_DispRS A_Affine1 0.4 0 -1 #
+y A_DispRS A_Affine2 0.4 0 -1 #
+y A_DispRS A_NonAffine1 0.1 0 -1 #
+y A_DispRS A_NonAffine2 0.1 0 -1 #
+y A_Affine1 followup 1 0 -1 #
+y A_NonAffine1 initial 1 0 -1 #
+y A_Affine2 followup 1 0 -1 #
+y A_NonAffine2 initial 1 0 -1 #
+y A_NonAffine1 A_Render 1 0 -1 # initial request access Presentation Service
+y A_NonAffine2 A_Render 1 0 -1 # initial request access Presentation Service
+y A_Render content 2 0 -1 #
+y content dbop 1 0 -1 # 
+y B_DispPS B_Presentation 1 0 -1 #
+y B_Presentation content 1 0 -1 #
+y B_DispRS B_Affine1 0.4 0 -1 #
+y B_DispRS B_Affine2 0.4 0 -1 #
+y B_DispRS B_NonAffine1 0.1 0 -1 #
+y B_DispRS B_NonAffine2 0.1 0 -1 #
+y B_Affine1 followup 1 0 -1 #
+y B_NonAffine1 initial 1 0 -1 #
+y B_Affine2 followup 1 0 -1 #
+y B_NonAffine2 initial 1 0 -1 #
+y B_NonAffine1 B_Render 1 0 -1 # initial request access Presentation Service
+y B_NonAffine2 B_Render 1 0 -1 # initial request access Presentation Service
+y B_Render content 2 0 -1 #
+#
+y C_DispPS C_Presentation 1 0 -1 #
+y C_Presentation content 1 0 -1 #
+y C_DispRS C_Affine1 0.4 0 -1 #
+y C_DispRS C_Affine2 0.4 0 -1 #
+y C_DispRS C_NonAffine1 0.1 0 -1 #
+y C_DispRS C_NonAffine2 0.1 0 -1 #
+y C_Affine1 followup 1 0 -1 #
+y C_NonAffine1 initial 1 0 -1 #
+y C_Affine2 followup 1 0 -1 #
+y C_NonAffine2 initial 1 0 -1 #
+y C_NonAffine1 C_Render 1 0 -1 # initial request access Presentation Service
+y C_NonAffine2 C_Render 1 0 -1 # initial request access Presentation Service
+y C_Render content 2 0 -1 #
+#
+s Request 0 0.010 -1  #
+Z Request 0 20 -1  #20s of think time in total. 1 sec for each interaction
+s RSRequest 0 0  -1 
+s PSRequest 0 0 -1 
+s AcceptRS 0.015 0 -1   #15 ms 
+s AcceptPS 0.015 0 -1   #
+s LBprocRS 0.020 0 -1   #20ms on Load Balancer
+s LBprocPS 0.020 0 -1   # 
+s A_DispRS 0.050 0 -1    #50ms to dispatch a Reporting Service
+s A_DispPS 0.050 0 -1    #
+s B_DispRS 0.050 0 -1    #50ms to dispatch a Reporting Service
+s B_DispPS 0.050 0 -1    #
+s C_DispPS 0.050 0 -1    #
+#
+s content 0.100 0 -1  #100 ms on content manager
+s A_Presentation 0.050 -1 #
+s A_Affine1 0.100 0 -1 #100ms
+s A_Affine2 0.100 0 -1 # 100ms
+s A_NonAffine1 0.100 0 -1 #100ms
+s A_NonAffine2 0.100 0 -1 #100ms
+s B_Presentation 0.050 -1 #
+s B_Affine1 0.100 0 -1 #100ms
+s B_Affine2 0.100 0 -1 # 100ms
+s B_NonAffine1 0.100 0 -1 #100ms
+s B_NonAffine2 0.100 0 -1 #100ms
+#
+s C_Presentation 0.050 -1 #
+s C_Affine1 0.100 0 -1 #100ms
+s C_Affine2 0.100 0 -1 # 100ms
+s C_NonAffine1 0.100 0 -1 #100ms
+s C_NonAffine2 0.100 0 -1 #100ms
+#
+s followup 1 0 -1    # 1s for followup requests
+s initial 10 0 -1   # 10s for initial requests
+s dbop 1 0 -1 #1s for accessing database by  content manager
+s A_Render 0.050 -1   #  50 ms
+s B_Render 0.050 -1   #  50 ms
+s C_Render 0.050 -1   #  50 ms
+-1    #

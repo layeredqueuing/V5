@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Copyright March 2004, the Real-Time and Distributed Systems Group,
+    Department of Systems and Computer Engineering,
+    Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+  -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <xsd:include schemaLocation="lqn-core.xsd"/>
+  <xsd:element name="lqn-model" type="LqnModelType">
+    
+    <xsd:unique name="UniqueProcessorName">
+      <xsd:selector xpath="processor"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+
+    <xsd:unique name="UniqueTaskName">
+      <xsd:selector xpath="./processor/task"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+
+    <xsd:unique name="UniqueEntryName">
+      <xsd:selector xpath="./processor/task/entry"/>
+      <xsd:field xpath="@name"/>
+    </xsd:unique>
+
+    <xsd:keyref name="ExistingSyncDest" refer="DestEntry">
+      <xsd:selector xpath=".//synch-call"/>
+      <xsd:field xpath="@dest"/>
+    </xsd:keyref>
+
+    <xsd:keyref name="ExistingAsyncDest" refer="DestEntry">
+      <xsd:selector xpath=".//asynch-call"/>
+      <xsd:field xpath="@dest"/>
+    </xsd:keyref>
+
+    <xsd:keyref name="ExistingForwardingDest" refer="DestEntry">
+      <xsd:selector xpath="./processor/task/entry/forwarding"/>
+      <xsd:field xpath="@dest"/>
+    </xsd:keyref>
+
+    <xsd:key name="DestEntry">
+      <xsd:selector xpath="./processor/task/entry|./processor/group/task/entry"/>
+      <xsd:field xpath="@name"/>
+    </xsd:key>
+
+  </xsd:element>
+  <xsd:complexType name="LqnModelType">
+    <xsd:sequence>
+      <xsd:element name="run-control" minOccurs="0">
+	<xsd:complexType>
+	  <xsd:sequence>
+	    <xsd:element name="para" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:choice>
+		  <xsd:sequence>
+		    <xsd:element name="start-value" type="xsd:int"/>
+		    <xsd:element name="end-value" type="xsd:int"/>
+		    <xsd:element name="step-value" type="xsd:int"/>
+		  </xsd:sequence>
+		  <xsd:sequence>
+		    <xsd:element name="value" type="xsd:int" maxOccurs="unbounded"/>
+		  </xsd:sequence>
+		</xsd:choice>
+	      </xsd:complexType>
+	    </xsd:element>
+	  </xsd:sequence>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="plot-control" minOccurs="0">
+	<xsd:complexType>
+	  <xsd:sequence>
+	    <xsd:element name="first-plot">
+	      <xsd:complexType>
+		<xsd:attribute name="variable" type="xsd:string"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	    <xsd:element name="plot" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attribute name="variable" type="xsd:string"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	  </xsd:sequence>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="solver-params">
+	<xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="result-general" minOccurs="0" maxOccurs="1">
+	      <xsd:complexType>
+		<xsd:sequence>
+		  <xsd:element name="mva-info" minOccurs="0" maxOccurs="1">
+		    <xsd:complexType>
+		      <xsd:attribute name="submodels" type="xsd:nonNegativeInteger" use="required"/>
+		      <xsd:attribute name="core" type="xsd:nonNegativeInteger" use="required"/>
+		      <xsd:attribute name="step" type="xsd:double" use="required"/>
+		      <xsd:attribute name="step-squared" type="xsd:double" use="optional"/>
+		      <xsd:attribute name="wait" type="xsd:double" use="required"/>
+		      <xsd:attribute name="wait-squared" type="xsd:double" use="optional"/>
+		      <xsd:attribute name="faults" type="xsd:nonNegativeInteger" use="optional"/>
+		    </xsd:complexType>
+		  </xsd:element>  
+		</xsd:sequence>
+		<xsd:attribute name="conv-val" type="xsd:double" use="required"/>
+		<xsd:attribute name="valid" use="required">
+		  <xsd:simpleType>
+		    <xsd:restriction base="xsd:string">
+		      <xsd:enumeration value="YES"/>
+		      <xsd:enumeration value="NO"/>
+		    </xsd:restriction>
+		  </xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="iterations" type="xsd:double" use="optional"/>
+		<xsd:attribute name="elapsed-time" type="xsd:time" use="optional"/>
+		<xsd:attribute name="system-cpu-time" type="xsd:time" use="optional"/>
+		<xsd:attribute name="user-cpu-time" type="xsd:time" use="optional"/>
+		<xsd:attribute name="platform-info" type="xsd:string" use="optional"/>
+		<xsd:attribute name="solver-info" type="xsd:string" use="optional"/>
+	      </xsd:complexType>
+            </xsd:element>
+	    <xsd:element name="pragma" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attribute name="param" type="xsd:string" use="required"/>
+		<xsd:attribute name="value" type="xsd:string" use="required"/>
+	      </xsd:complexType>
+	    </xsd:element>
+          </xsd:sequence>
+	  <xsd:attribute name="comment" type="xsd:string" default=""/>
+	  <xsd:attribute name="conv_val" type="xsd:double" default="1"/>
+	  <xsd:attribute name="it_limit" type="xsd:int" default="50"/>
+	  <xsd:attribute name="print_int" type="xsd:int" default="0"/>
+	  <xsd:attribute name="underrelax_coeff" type="xsd:double" default="0.9"/>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="processor" type="ProcessorType" maxOccurs="unbounded"/>
+      <xsd:element name="slot" type="SlotType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="lqx" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string"/>
+    <xsd:attribute name="description" type="xsd:string"/>
+    <xsd:attribute name="lqn-schema-version" type="xsd:decimal" fixed="1.0"/>
+    <xsd:attributeGroup ref="LQNCoreVersion"/>
+    <xsd:attribute name="xml-debug" type="xsd:boolean"/>
+  </xsd:complexType>
+</xsd:schema>

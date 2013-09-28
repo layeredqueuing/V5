@@ -1,0 +1,141 @@
+# -*- Text -*-
+
+# Experiment: expt11 - expt03
+#				.st ( client, 2 ) = { s1 * c1 };
+
+.global
+        .solver = "lqns";
+        .format = "gnuplot";
+        .template = "multiserver.in";
+.end
+
+.experiment conway
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "-Pmultiserver=conway";
+                .format = "gnuplot";
+
+        .declare
+                n1 = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+                n2 = 1, 2, 3, 4, 5;
+		p1 = 1.0, 0.9, 0.7, 0.5, 0.3, 0.1, 0.0;
+		p2 = { 1.0 - p1 };
+
+        .vary
+                n1;
+		n2;
+                p1;
+
+        .control
+                .tm ( c1 ) = { n1 };
+                .tm ( s1 ) = { n2 };
+                .st ( e1, 1 ) = { p1 };
+                .st ( e1, 2 ) = { p2 };
+
+        .observe
+                .plot { n1 };
+                .plot { n2 };
+                .plot { p1 };
+		.ut ( .t, s1 );
+                .th ( .t, c1 );
+.end
+
+
+.experiment rolia
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "-Pmultiserver=rolia";
+                .format = "gnuplot";
+
+        .declare
+                n1 = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+                n2 = 1, 2, 3, 4, 5;
+		p1 = 1.0, 0.9, 0.7, 0.5, 0.3, 0.1, 0.0;
+		p2 = { 1.0 - p1 };
+
+        .vary
+                n1;
+		n2;
+                p1;
+
+        .control
+                .tm ( c1 ) = { n1 };
+                .tm ( s1 ) = { n2 };
+                .st ( e1, 1 ) = { p1 };
+                .st ( e1, 2 ) = { p2 };
+
+        .observe
+                .plot { n1 };
+                .plot { n2 };
+                .plot { p1 };
+		.ut ( .t, s1 );
+                .th ( .t, c1 );
+.end
+
+
+.experiment exactmva
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "-Pmultiserver=conway,mva=exact";
+                .format = "gnuplot";
+
+        .declare
+                n1 = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+                n2 = 1, 2, 3, 4, 5;
+		p1 = 1.0, 0.9, 0.7, 0.5, 0.3, 0.1, 0.0;
+		p2 = { 1.0 - p1 };
+
+        .vary
+                n1;
+		n2;
+                p1;
+
+        .control
+                .tm ( c1 ) = { n1 };
+                .tm ( s1 ) = { n2 };
+                .st ( e1, 1 ) = { p1 };
+                .st ( e1, 2 ) = { p2 };
+
+        .observe
+                .plot { n1 };
+                .plot { n2 };
+                .plot { p1 };
+		.ut ( .t, s1 );
+                .th ( .t, c1 );
+.end
+
+
+.experiment petri
+
+        .set
+                .solver = "petri";
+                .format = "gnuplot";
+
+        .declare
+                n1 = 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;
+                n2 = 1, 2, 3, 4, 5;
+		p1 = 1.0, 0.9, 0.7, 0.5, 0.3, 0.1, 0.0;
+		p2 = { 1.0 - p1 };
+
+        .vary
+                n1;
+		n2;
+                p1;
+
+        .control
+                .tm ( c1 ) = { n1 };
+                .tm ( s1 ) = { n2 };
+                .st ( e1, 1 ) = { p1 };
+                .st ( e1, 2 ) = { p2 };
+
+        .observe
+                .plot { n1 };
+                .plot { n2 };
+                .plot { p1 };
+		.ut ( .t, c1 );
+                .th ( .t, c1 );
+
+.end

@@ -1,0 +1,47 @@
+# SRVN Model Description File, for file: thesislqn.lqn
+# $Id$
+# ------------------------------------------------------------------------
+G "Bug 685" 1e-05 100 1 0.9 -1
+
+
+P 5
+  p P_Client f m 20
+  p P_Webserver f
+  p P_Databaseserver f
+  p P_Delayserver i
+  p P_Storage f
+-1
+
+T 6
+  t user r request -1 P_Client m 20
+  t webworker n pagerequest -1 P_Webserver m 10
+  t dbcontrol n dbrequest -1 P_Databaseserver i 
+  t dbworker n query update failure -1 P_Databaseserver m 5
+  t delay n sleepdelay -1 P_Delayserver i 
+  t disk n diskop -1 P_Storage
+-1
+
+E 8
+# ---------- user ----------
+  s request 10 -1
+  y request pagerequest 1 -1
+# ---------- webworker ----------
+  s pagerequest 0.05 -1
+  y pagerequest dbrequest 1 -1
+# ---------- dbcontrol ----------
+  s dbrequest 0 -1
+  y dbrequest query 1 -1
+  y dbrequest update 1 -1
+  y dbrequest failure 0 -1
+  y dbrequest sleepdelay 0 -1
+# ---------- dbworker ----------
+  s query 0.02 -1
+  y query diskop 5 -1
+  s update 0.03 -1
+  y update diskop 3 -1
+  s failure 0.02 -1
+# ---------- delay ----------
+  s sleepdelay 0.4 -1
+# ---------- disk ----------
+  s diskop 0.05 -1
+-1

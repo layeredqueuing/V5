@@ -1,0 +1,27 @@
+MODEL: dtp	# Model name
+
+STATISTICS   	# Begin statistics section
+
+	"Client Response Time" 95 1.0
+	"Concentrator Node Utilization" 95 2.0
+	"Bus Utilization" 95 2.0
+
+ENDSTATISTICS 	# End statistics section
+
+EXPERIMENTS  	# Begin experiments section
+
+	DURATION: 500	# Simulation duration
+
+	PARAMETERS	# Parameters for experiment 1
+		50 5 0.3 0.7
+	ENDPARAMETERS
+
+	PARAMETERS	# Parameters for experiment 2
+		100 5 0.3 0.7
+	ENDPARAMETERS
+
+	PARAMETERS	# Parameters for experiment 3
+		200 5 0.3 0.7
+	ENDPARAMETERS
+
+ENDEXPERIMENTS 	# End experiments section

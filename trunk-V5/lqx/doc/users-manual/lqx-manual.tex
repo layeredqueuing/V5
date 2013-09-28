@@ -1,0 +1,1024 @@
+%
+%  untitled
+%
+%  Created by Martin Mroz on 2009-02-03.
+%  Copyright (c) 2009 __MyCompanyName__. All rights reserved.
+%
+\documentclass[]{article}
+
+% Use utf-8 encoding for foreign characters
+\usepackage[utf8]{inputenc}
+
+% Setup for fullpage use
+\usepackage{fullpage}
+
+% Uncomment some of the following if you use the features
+%
+% Running Headers and footers
+%\usepackage{fancyhdr}
+
+% Multipart figures
+%\usepackage{subfigure}
+
+% More symbols
+%\usepackage{amsmath}
+%\usepackage{amssymb}
+%\usepackage{latexsym}
+
+% Surround parts of graphics with box
+\usepackage{boxedminipage}
+\usepackage{multicol}
+
+% Package for including code in the document
+\usepackage{listings}
+
+% If you want to generate a toc for each chapter (use with book)
+\usepackage{minitoc}
+
+% This is now the recommended way for checking for PDFLaTeX:
+\usepackage{ifpdf}
+
+%\newif\ifpdf
+%\ifx\pdfoutput\undefined
+%\pdffalse % we are not running PDFLaTeX
+%\else
+%\pdfoutput=1 % we are running PDFLaTeX
+%\pdftrue
+%\fi
+
+\setlength{\parindent}{0pt} 
+\setlength{\parskip}{2ex}
+
+\ifpdf
+\usepackage[pdftex]{graphicx}
+\else
+\usepackage{graphicx}
+\fi
+
+\lstset{
+  basicstyle=\small,
+  keywordstyle=\bfseries,
+  identifierstyle=,
+  commentstyle=\slshape,
+  stringstyle=\ttfamily,
+  showstringspaces=false
+  frame=leftline,
+  numbers=left,
+  numberstyle=\tiny,
+  stepnumber=1,
+  numbersep=-4pt
+}
+
+\newcommand{\ModLang}{LQX }
+\newcommand{\lqns}{Layer Queueing Network Solver}
+
+\begin{document}
+
+\ifpdf
+\DeclareGraphicsExtensions{.pdf, .jpg, .tif}
+\else
+\DeclareGraphicsExtensions{.eps, .jpg}
+\fi
+
+% -------------------------------------------------------- [Title Page]
+
+\vskip 1.0in
+\pagestyle{empty}
+{\LARGE \textbf{\ModLang Users Guide}}\\
+{\large General Purpose Language for Simulation Modeling}\\
+{\small Tuesday, 3 February 2009 - Martin Mroz}
+\newpage
+
+% -------------------------------------------------------- [Table of Contents]
+
+\pagestyle{plain}
+\tableofcontents
+\newpage
+
+% -------------------------------------------------------- [Introduction]
+
+\section{Introduction to \ModLang}
+
+The \ModLang programming language is a general purpose programming 
+language used for the control of input parameters to the \lqns system
+for the purposes of sensitivity analysis. This language allows a user to
+perform a wide range of different actions on a variety of different input
+sources, and to subsequently solve the model and control the output of
+the resulting data.
+
+\subsection{Input File Format}
+
+The \ModLang programming language follows grammar rules which are very
+similar to those of ANSI C and PHP. The main difference between these 
+languages and \ModLang is that \ModLang is a loosely typed language with
+strict runtime type-checking and a lack of variable coercion 
+(``type casting''). Additionally, variables need not be declared before
+their first use. They do, however, have to be initialized. If they
+are un-initialized prior to their first use, the program will fail.
+
+\subsubsection{Comment Style}
+
+\ModLang supports two of the most common commenting syntaxes, ``C-style'' 
+and ``C++-style.'' Any time the scanner discovers two forward slashes
+side-by-side ({\tt //}), it skips any remaining text on that line 
+(until it reaches a newline). These are ``C++-style'' comments. The other
+rule that the scanner uses is that should it encounter a forward slash
+followed by an asterisk (``/*''), it will ignore any text it finds up
+until a terminating asterisk followed by a slash (``*/''). The preferred
+commenting style in \ModLang programs is to use ``C++-style'' comments
+for single-line comments and to use ``C-style'' comments where they
+span multiple lines. This is a matter of style.
+
+\subsubsection{Intrinsic Types}
+
+There are 5 intrinsic types in the \ModLang programming languages:
+
+\begin{itemize}
+\item \textbf{Number}: All numbers are stored in IEEE double-precision floating point format.
+\item \textbf{String}: Any literal values between (``) and ('') in the input.
+\item \textbf{Null}: This is a special type used to refer to an ``empty'' variable.
+\item \textbf{Boolean}: A type whose value is limited to either ``true'' or ``false.''
+\item \textbf{Object}: An semi-opaque type used for storing complex objects. See ``Objects.''
+\item \textbf{File Handle} File handles to open files for writing/appending or reading. See ``File Handles.''
+\end{itemize}
+
+\ModLang also supports a pseudo-intrinsic ``Array'' type. Whereas for any other
+object types, the only way to interact with them is to explicitly invoke a
+method on them, objects of type Array may be accessed with {\tt operator []}
+and with {\tt operator []=}, in a familiar C- and C++-style syntax.
+
+The Object type also allows certain attributes to be exposed as ``properties.''
+These values are accessed with the traditional C-style {\tt object.property}
+syntax. An example property is the {\tt size} property for an object of
+type Array, accessed as {\tt array.size} Only instances of type Object
+or its derivatives have properties. Number, String, Null and Boolean 
+instances all have no properties.
+
+\newpage
+\subsubsection{Arrays and Iteration}
+
+The built-in Array type is very similar to that used by PHP. It is actually
+a hash table, also known as a ``Dictionary'' or a ``Map'' for which you may use
+any object as a key, and any object as a value. It is important to realize that
+different types of keys will reference different entries. That is to say that
+{\tt integer 0} and {\tt string ``0''} will not yield the same value from the
+Array when used as a key.
+
+The Array object exposes a couple of convenience APIs, as detailed in Section~\ref{sec:api}.
+These methods are simply short-hand notation for the full function calls they
+replace, and provide no additional functionality. Arrays may be created in
+three different ways:
+
+\begin{itemize}
+\item {\tt array\_create(...)} and {\tt array\_create\_map(key,value,...)}:\\
+  The explicit, but long and wordy way of creating an array of objects or a map is by using
+  the standard functional API. {\tt array\_create(...)} takes an arbitrary number
+  of parameters (from 0 up to the maximum specified, for all practical purposes infinity),
+  and returns a new Array instance consisting of {\tt [0=>arg1, 1=>arg2, 2=>arg3, ...]}.
+  
+  The other function, {\tt array\_create\_map(key,value,...)} takes an even number of
+  arguments, from 0 to 2n. The first argument is used as the key, and the second argument
+  used as the value for that key, and so on. The resulting Array instance consists
+  of {\tt [arg1=>arg2, arg3=>arg4, ...]}. Both of these methods are documented in Section~\ref{sec:api}.
+\item {\tt $[$arg1, arg2, ...$]$}: Shorthand notation for {\tt array\_create(...)}
+\item \{{\tt k1=$>$v1, k2=$>$v2, ...}\}: Shorthand notation for {\tt array\_create\_map(...)}
+\end{itemize}
+
+The \ModLang language supports two different methods of iterating over the 
+contents of an Array. The first involves knowing what the keys in the array
+actually are. This is a ``traditional'' iteration.
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  /* Traditional Array Iteration */
+  for (idx = 0; key < array.size; idx=idx+1) {
+    print("Key ", idx, " => ", array[idx]);
+  } \end{lstlisting}
+
+In the above code snippet, we assume there exists an array which contains
+{\tt n} values, stored at indexes 0 through {\tt n-1}, continuously. However, 
+the language provides a more elegant method for iterating over the contents 
+of an array which does not require prior knowledge of the contents of the array. 
+This is known as a ``{\tt foreach}'' loop. The statement above can be rewritten 
+as follows:
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  /* More modern array itteration */
+  foreach (key, value in array) {
+    print("Key ", key, " => ", value);
+  } 
+\end{lstlisting}
+
+This method of iteration is much cleaner and is the recommended way of
+iterating over the contents of an array. However, there is little guarantee
+of the order of the results in a {\tt foreach} loop, especially when keys
+of multiple different types are used.
+
+\newpage
+
+\subsubsection{Type Casting}
+
+The \ModLang programming language provides a number of built-in methods for
+converting between variables of different types. Any of these methods support
+any input value type except for the Object type. The following is a non-extensive
+list of use cases for each of the different type casting methods and the
+results. Complete documentation is provided in Section~\ref{sec:api}.
+
+\begin{multicols}{2}
+  \begin{center}
+    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+      \hline
+      \multicolumn{2}{|l|}{\textbf{str(...)}}\\
+      \hline
+      {\tt str()} & ``'' \\
+      {\tt str(1.0)} & ``1'' \\
+      {\tt str(1.0, "+", true)} & ``1+true'' \\
+      {\tt str([1.0, "t"])} & ``[0=$>$1, 1=$>$t]''\\
+      {\tt str(null)} & ``(null)''\\
+      \hline
+    \end{tabular}
+  \end{center}
+  \begin{center}
+    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+      \hline
+      \multicolumn{2}{|l|}{\textbf{double(?)}}\\
+      \hline
+      {\tt double(1.0)} & 1.0\\
+      {\tt double(null)}& 0.0\\
+      {\tt double("9")} & 9.0\\
+      {\tt double(true)}& 1.0\\
+      {\tt double([0])} & {\tt null}\\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{multicols}
+
+\begin{multicols}{2}
+  \begin{center}
+    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+      \hline
+      \multicolumn{2}{|l|}{\textbf{boolean(?)}}\\
+      \hline
+      {\tt boolean(1.0)} & {\tt true}\\
+      {\tt boolean(17.0)} & {\tt true}\\
+      {\tt boolean(-9.0)} & {\tt true}\\
+      {\tt boolean(0.0)} & {\tt false}\\
+      {\tt boolean(null)}& {\tt false}\\
+      {\tt boolean("yes")}&{\tt true}\\
+      {\tt boolean(true)}& {\tt true}\\
+      {\tt boolean([0])} & {\tt null}\\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{multicols}
+
+\subsubsection{User-Defined Functions}
+
+The LQX programming language has support for user-defined functions. When
+defined in the language, functions do not check their arguments types so every
+effort must be taken to ensure that arguments are the type that you expect them
+to be. The number of arguments will be checked. Variable-length 
+argument lists are also supported with the use of the
+ellipsis ({\tt ...}) notation. Any arguments given that fall into the ellipsis
+are converted into an array named ({\tt \_va\_list}) in the functions' scope.
+This is a regular instance of Array consisting of 0 or more items and can be
+operated on using any of the standard operators.
+
+User-defined functions do \textbf{not} have access to any variables except
+their arguments and External (\$-prefixed) and Constant (@-prefixed) variables.
+Any additional variables must be passed in as arguments, and all values must
+be returned. All arguments are in \textbf{only}. There are no out or inout
+arguments supported. All arguments are copied, pass-by-value. The basic syntax 
+for declaring functions is as follows:
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  function <name>(<arg1>, <arg2>, ...) {
+    <body>
+    return (value);
+  }
+\end{lstlisting}
+
+You can return a value from a function anywhere in the body using the {\tt return}
+function. A function which reaches the end of its body without a call to return will
+automatically return NULL. {\tt return()} is a function, not a language construct, 
+and as such the brackets are required. The number of arguments is not limited, 
+so long as each one has a unique name there are no other constraints.
+
+% -------------------------------------------------------- [Examples]
+
+\newpage
+\subsection{Writing Programs in \ModLang}
+
+\subsubsection{Hello, World Program}
+
+A good place to start learning how to write programs in \ModLang is of course
+the traditional Hello World program. This would actually be a single line,
+and is not particularly interesting. This would be as follows:
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  println("Hello, World!"); 
+\end{lstlisting}
+
+The ``{\tt println()}'' function takes an arbitrary number of arguments of any
+type and will output them (barring a file handle as the first parameter) to 
+standard output, followed by a newline.
+
+\subsubsection{Fibonacci Sequence}
+
+This particular program is a great example of how to perform flow control
+using the \ModLang programming language. The Fibonacci sequence is an extremely
+simple infinite sequence which is defined as the following piecewise function:
+
+\begin{equation}
+  \mathrm{fib}(X) =  \left\{ \begin{array}{l l} 1 & x = 0, 1 \\ \mathrm{fib}(x-1) + 
+      \mathrm{fib}(x-2) & \mathrm{otherwise} \end{array} \right.
+\end{equation}
+
+Thus we can see that the Fibonacci sequence is defined as a recursive sequence.
+The naive approach would be to write this code as a recursive function. However,
+this is extremely inefficient as the overhead of even simple recursion in LQX
+can be substantial. The best way is to roll the algorithm into into a loop of some
+type. In this case, the loop is terminated when we have reached a target
+number in the Fibonacci sequence \{ 1, 1, 2, 3, 5, 8, 13, 21, ...\}.
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  /* Initial Values */
+  fib_n_minus_two = 1;
+  fib_n_minus_one = 1;
+  fib_n = 0;
+  
+  /* Loop until we reach 21 */
+  while (fib_n < 21) {
+    fib_n = fib_n_minus_one + fib_n_minus_two;
+    fib_n_minus_two = fib_n_minus_one;
+    fib_n_minus_one = fib_n;
+    println("Currently: ", fib_n);
+  } 
+\end{lstlisting}
+
+As you can see, this language is extremely similar to C or PHP. One of the
+few differences as far as expressions are concerned is that pre-increment/decrement 
+and post-increment/decrement are not supported. Neither are short form expressions such
+as {\tt +=, -=, *=, /=}, etc.
+
+\newpage
+\subsubsection{Re-using Code Sections}
+
+Many times, there will be code in your \ModLang programs that you would like to invoke
+in many places, varying only the parameters. The \ModLang programming language does
+provide a pretty standard functions system as described earlier. Bearing in mind the
+caveats (some degree of overhead in function calls, plus the inability to see
+global variables without having them passed in), we can make pretty ingenious use
+of user-defined functions within \ModLang code.
+
+When defining functions, you can specify only the number of arguments, not their
+types, so you need to make sure things are what you expect them to be, or your
+code may not perform as you expect. We will begin by demonstrating a substantially
+shorter (but as described earlier) much less efficient implementation of the
+Fibonacci Sequence using functions and recursion.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  function fib(n) {
+    if (n == 0 || n == 1) { return (1); }
+    return (fib(n-2) + fib(n-1));
+  }
+\end{lstlisting}
+
+Once defined, a function may be used anywhere in your code, even in other user 
+defined functions (and itself | recursively). This particular example functions
+very well for the first 10-11 fibonacci numbers but becomes substantially slower
+due to the increased number of relatively expensive function invocations.
+\emph{Remember}, {\tt return() } is a function, not a language construct.
+The brackets are required.
+
+A much more interesting use of functions, specifically those with variable
+length argument lists, is an implementation of the formula for standard deviation
+of a set of values:
+
+\lstset{language=C++}
+\begin{lstlisting}
+  function average(/*Array<double>*/ inputs) {
+    double sum = 0.0;
+    foreach (v in inputs) { sum = sum + v; }
+    return (sum / inputs.size);
+  }
+  
+  function stdev(/*boolean*/ sample, ...) {
+    x_bar = average(_va_list);
+    sum_of_diff = 0.0;
+    
+    /* Figure out the divisor */
+    divisor = _va_list.size;
+    if (sample == true) {
+      divisor = divisor - 1;
+    }
+    
+    /* Compute sum of difference */
+    foreach (v in _va_list) { 
+      sum_of_diff = sum_of_diff + pow(v - x_bar, 2); 
+    }
+    
+    return (pow(sum_of_diff / divisor, 0.5));
+  }
+\end{lstlisting}
+
+You can then proceed to compute the standard deviation of the variable length of
+arguments for either sample or non-sample values as follows, from anywhere in your
+program after it has been defined:
+
+\lstset{language=C++}
+\begin{lstlisting}
+  stdev(true,  1, 2, 5, 7, 9, 11);
+  stdev(false, 2, 9, 3, 4, 2);
+\end{lstlisting}
+
+\newpage
+\subsubsection{Using and Iterating over Arrays}
+
+As mentioned in the ``Arrays and Iteration'' under section 1.1 of the Manual, 
+\ModLang supports intrinsic arrays and {\tt foreach} iteration. Additionally, any
+type of object may be used as either a key or a value in the array. The following
+example illustrates how values may be added to an array, and how you can 
+iterate over its contents and print it out. The following snippet creates an array,
+stores some key-value pairs with different types of keys and values, looks up a
+couple of them and then iterates over all of them.
+
+\lstset{language=C++}
+\begin{lstlisting}  
+  /* Create an Array */
+  array = array\_create();
+  
+  /* Store some key-value pairs */
+  array[0] = "Slappy";
+  array[1] = "Skippy";
+  array[2] = "Jimmy";
+  
+  /* Iterate over the names */
+  foreach ( index,name in array ) {
+    print("Chipmunk #", index, " = ", name);
+  }
+  
+  /* Store variables of different types, shorthand */
+  array = {true => 1.0, false => 3.0, "one" => true, "three" => false}
+  
+  /* Shorthand indexed creation with iteration */
+  foreach (value in [1,1,2,3,5,8,13]) {
+    print ("Next fibonacci is ", value);
+  }
+\end{lstlisting}
+
+\subsection{Program Input/Output and External Control}
+
+The \ModLang language allows users to write formatted output to external files and standard output and to read
+input data from external files/pipes and standard input. These features may be combined to allow LQNX to be
+controlled by a parent process as a child process providing model solving functionality. These capabilities will
+be described in the following sections.
+
+\subsubsection{File Handles}
+
+The \ModLang language allows users to open files for program input and output. Handles to these
+open files are stored in the symbol table for use by the print() functions for file output and the
+read\_data() function for data input. Files may be opened for writing/appending or for reading.
+The \ModLang interpreter keeps track of which file handles were opened for writing and which
+were opened for reading.
+
+The following command opens a file for writing. If it exists it is overwritten. It is also possible
+to append to an existing file. The three options for the third parameter are {\tt write}, {\tt append}, and {\tt read}.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  file_open( output_file1, "test_output_99-peva.txt", write );
+\end{lstlisting}
+
+To close an open file handle the following command is used:
+
+\lstset{language=C++}
+\begin{lstlisting}
+  file_close( output\_file1 );
+\end{lstlisting}
+
+\subsubsection{File Output}
+
+Program output to both files and standard output is possible with the print functions. If the first parameter to
+the functions is an existing file handle opened for writing output is directed to that file. If the first parameter
+is not a file handle output is sent to standard output. Standard output is useful when it is desired to control LQNX
+execution from a parent process using pipes. If the given file handle has been opened for reading instead of writing
+a runtime error results.
+
+There are four variations of print commands with two options. One option is a newline at the end of the line. It is
+possible to specify additional newlines with the {\tt endl} parameter. The second option is controlling the spacing
+between columns either by specifying column widths in integers or supplying a text string to be placed between columns.
+
+The basic print functions are {\tt print()} and {\tt println()} with the {\tt ln} specifying a newline at the end.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  println( output_file1, "Model run #: ", i, " t1.throughput: ", t1.throughput );
+
+  print( output_file1, "Model run #: ", i, " t1.throughput: ", t1.throughput, endl );
+\end{lstlisting}
+
+It should be noted that with the extra {\tt endl} parameter both of these calls will produce the same output.
+The acceptable inputs to all print functions are valid file handles, quoted strings, \ModLang variables that
+evaluate to numerical or boolean values ( or expressions that evaluate to numerical/boolean values ) as well 
+as the newline specifier {\tt endl}. Parameters should be separated by commas.
+
+To print to standard output no file handle is specified as follows:
+
+\lstset{language=C++}
+\begin{lstlisting}
+  println( "subprocess lqns run \#: ", i, " t1.throughput: ", t1.throughput );
+\end{lstlisting}
+
+To specify the content between columns the print functions {\tt print\_spaced()} and {\tt println\_spaced() }
+are used. The first parameter after the file handle (the second parameter when a file handle is specified) is 
+used to specify either column widths or a text string to be placed between columns. If no file handle is specified
+as when printing to standard output then the first parameter is expected to be the spacing specifier. The specifier
+must be either an integer or a string.
+
+The following {\tt println\_spaced()} command specifies the string {\tt ", " } to be placed between columns. It could be used
+to create comma separated value (csv) files.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  println_spaced( output_file2, ", ", $p1, $p2, $y1, $y2, t1.throughput );
+\end{lstlisting}
+
+Example output: 0, 2, 0.1, 0.05, 0.0907554
+
+The following {\tt println\_spaced()} command specifies the integer 12 as the column width.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  println_spaced( output\_file3, 12, \$p1, \$p2, \$y1, \$y2, t1.throughput );
+\end{lstlisting}
+
+\subsubsection{Reading Input Data from Files/Pipes}
+
+Reading data from input files/pipes is done with the {\tt read\_data()} function. Data can either be read from a valid
+file handle that has been opened for reading or from standard input. Reading data from standard input is useful when
+is useful when it is desired to control LQNX execution from a parent process using pipes.
+If the given file handle has been opened for writing rather than reading a runtime error results. The first 
+parameter is either a valid file handle for reading or the strings {\tt stdout} or {\tt - } specifying 
+standard input. The data that can be read can be either numerical values or boolean values.
+
+There are two forms in which the {\tt read\_data()} function can be used. The first is by specifying a list of
+\ModLang variables which correspond to the expected inputs from the file/pipe. This requires the data inputs
+from the pipe to be in the expected order.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  read_data( input_file, y, p, keep_running );
+\end{lstlisting}
+
+The second form  in which the {\tt read\_data()} function can be used is much more robust. It can go into a loop
+attempting to read string/value pairs from the input pipe until a termination string {\tt STOP\_READ } is encountered.
+The string must corespond to an existing \ModLang variable (either numeric or boolean) and the corresponding
+value must be of the same type.  
+
+\lstset{language=C++}
+\begin{lstlisting}
+  read_data( stdin, read_loop );
+\end{lstlisting}
+
+Sample input:
+
+\lstset{language=C++}
+\begin{lstlisting}
+  y 10.0 p 1.0 STOP_READ
+  continue_processing false STOP_READ
+\end{lstlisting}
+
+\subsubsection{Controlling LQNX from a Parent Process}
+
+The file output and data reading functions can be combined to allow an LQNX process to be created and controlled
+by a parent process through pipes. Input data can be read in from pipes, be used to solve a model with those
+parameters and the output of the solve can be sent back through the pipes to the parent process for analysis.
+A \ModLang program can easily be written to contain a main loop that reads input, solves the model, and returns
+output for analysis. The termination of the loop can be controlled by a boolean flag that can be set from the
+parent process.
+
+This section describes an example of how to control LQNX execution from a parent process, in this case a {\tt perl }
+script which uses the {\tt open2()} function to create a child process with both the standard input and output
+mapped to file handles in the {\tt perl} parent process. This allows data sent from the parent to be read with
+{\tt read\_data( stdin, ...)} and output from the \ModLang print statements sent to standard output to be received for
+analysis in the parent.
+
+This also provides synchronization between the parent and the child
+LQNX processes. The {\tt read\_data()} function
+blocks the LQNX process until it has received its expected data. Similarly the parent process can be programmed
+to wait for feedback from the child LQNX process before it continues.
+
+The following is an example perl script that can be used to control a LQNX child process.
+
+\lstset{language=Perl}
+\begin{lstlisting}  
+  #!/usr/bin/perl -w
+  # script to test the creation and control of an lqns solver subprocess 
+  # using the LQX language with synchronization
+
+  use FileHandle;
+  use IPC::Open2;
+
+  @phases = ( 0.0, 0.25, 0.5, 0.75, 1.0 );
+  @calls = ( 0.1, 3.0, 10.0 );
+
+  # run lqnx as subprocess receiving data from standard input
+  open2( *lqnxOutput, *lqnxInput, "lqnx 99-peva-pipe.lqnx" );
+
+  for $call (@calls) {
+    for $phase (@phases) {
+      print( lqnxInput "y ", $call, " p ", $phase, " STOP_READ " );
+      while( $response = <lqnxOutput>) !~ m/subprocess lqns run/ ){}
+      print( "Response from lqnx subprocess: ", $response );
+    }
+  }
+
+  # send data to terminate lqnx process
+  print( lqnxInput "continue_processing false STOP_READ" );
+\end{lstlisting}
+
+
+The above program invokes the lqnx program with its input file as a child process with {\tt open2()}. Two file
+handles are passed as parameters. These will be used to send data over the pipe to the LQNX process to be
+received as standard input and to receive feedback from the LQX program which it sends as standard output.
+
+The while loop at line 17 waits for the desired feedback from the model solve before continuing. This example
+uses stored data but a real application such as optimization would need to analyze the feedback data to decide
+which data to send back in the next iteration therefore this synchronization is important.
+
+When the data is exhausted the LQNX process needs to be told to quit. This is done with the final print statement
+which sets the continue\_processing flag to false. This causes the main loop in the LQX program which follows to
+quit.
+
+\lstset{language=C++}
+\begin{lstlisting}
+  <lqx><![CDATA[
+
+  i = 1;
+  p = 0.0;
+  y = 0.0;
+  continue_processing = true;
+
+  while ( continue_processing ) {
+
+    read_data( stdin, read_loop ); /* read data from input pipe */
+
+    if( continue_processing ) {
+
+      $p1 = 2.0 * p;
+      $p2 = 2.0 * (1 - p);
+      $y1 = y;
+      $y2 = 0.5 * y;
+      solve();
+
+      /* send output of solve through stdout through pipe */
+      println( "subprocess lqns run #: ", i, " t1.throughput: ", t1.throughput );
+      i = i + 1;
+    }
+  }
+  ]]></lqx>
+
+\end{lstlisting}
+
+The variables {\tt p}, {\tt y}, and {\tt continue\_processing} all need to be initialized to their correct 
+types before the loop begins as they need to exist when the {\tt read\_data()} function searches for them
+in the symbol table. This is necessary as they are all local variables. External variables that exist in
+the LQN model such as {\tt \$p} and {\tt \$y} don't need initialization.
+
+\subsection{Actual Example of an LQX Model Program}
+
+The following LQX code is the complete LQX program for the model designated {\tt peva-99}.
+The model itself contains a few model parameters which the LQX code configures, notably
+{\tt \$p1}, {\tt \$p2}, {\tt \$y1} and {\tt \$y2}. The LQX program is responsible for
+setting the values of all model parameters at least once, invoking solve and optionally
+printing out certain result values. Accessing of result values is done via the LQNS 
+bindings API documented in Section 3.
+
+The program begins by defining an array of values that it will be setting for each of
+the external variables. By enumerating as follows, the program will set the variables
+for the cross product of {\tt phase} and {\tt calls}.
+
+\lstset{language=C++}
+\lstset{name=lqx-program}
+\begin{lstlisting}
+  phase = [ 0.0, 0.25, 0.5, 0.75, 1.0 ];
+  calls = [ 0.1, 3.0, 10.0 ];
+  foreach ( idx,p in phase ) {
+    foreach ( idx,y in calls ) {\end{lstlisting}
+    
+    Next, the program uses the input values {\tt p} and {\tt y} to compute the values of
+    {\tt \$p1}, {\tt \$p2}, {\tt \$y1} and {\tt \$y2}. Any assignment to a variable 
+    beginning with a {\tt \$} requires that variable to have been defined externally,
+    within the model definition. When such an assignment is made the value of the right-hand 
+    side is effectively put everywhere the left-hand side is found within the model.
+
+    \lstset{ firstnumber= 5  }  
+    \begin{lstlisting}
+      $p1 = 2.0 * p;
+      $p2 = 2.0 * (1 - p);
+      $y1 = y;
+      $y2 = 0.5 * y;
+    \end{lstlisting}
+    
+    Since all variables have now been set, the program invokes the solve function with
+    its optional parameter, the suffix to use for the output file of the current run.
+    This particular program outputs {\tt in.out-\$p1-\$p2-\$y1-\$y2} files, so that
+    results for a given set of input values can easily be found. As shown in the 
+    documentation in Section 3, {\tt solve(<opt> suffix)} will return a boolean
+    indicating whether or not the solution converged, and this program will abort
+    when that happens, although that is certainly not a requirement.
+    
+    \lstset{ firstnumber=9}     
+    \begin{lstlisting}
+      if (solve(str($p1,"-",$p2,"-",$y1,"-",$y2)) == false) {
+        println("peva-99.xml:LQX: Failed to solve the model properly.");
+        abort(1, "Failed to solve the model.");
+      } else {
+      \end{lstlisting}
+      
+      The remainder of the program outputs a small table of results for certain key
+      values of interest to the person running the solution using the APIs in Section 3.
+      
+      \lstset{ firstnumber=13}    
+      \begin{lstlisting}
+        t0 = task("t0");
+        p0 = processor("p0");
+        e0 = entry("e0");
+        ph1 = phase(e0, 1);
+        ctoe1 = call(ph1, "e1");
+        println("+-------------------------------------+");
+        println("t0 Throughput:  ", t0.throughput        );
+        println("t0 Utilization: ", t0.utilization       );
+        println("+                -----                +");
+        println("e0 Throughput:  ", e0.throughput        );
+        println("e0 TP Bound:    ", e0.throughput_bound  );
+        println("e0 Utilization: ", e0.utilization       );
+        println("+                -----                +");
+        println("ph Utilization: ", ph1.utilization      );
+        println("ph Svt Variance:", ph1.service_time_v   );
+        println("ph Service Time:", ph1.service_time     );
+        println("ph Proc Waiting:", ph1.proc_waiting     );
+        println("+                -----                +");
+        println("call Wait Time: ", ctoe1.wait_time      );
+        println("+-------------------------------------+");
+      }
+    }
+  }
+\end{lstlisting}
+
+\newpage
+% ------------------------------------------------------------------------------
+
+\section{API Documentation}
+\label{sec:api}
+\subsection{Built-in Class: Array}
+
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  numeric & {\tt size} & The number of key-value pairs stored in the array.\\
+  \hline
+\end{tabular}\\
+\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  object[Array] & {\tt array\_create(...)} & This method returns a new instance of the Array class,
+  where each the first argument to the method is mapped to index numeric(0), the second one to
+  numeric(1) and so on, yielding {\tt [0=$>$arg0, 1=$>$arg1, ...]}\\
+  object[Array] & {\tt array\_create\_map(k,v,...)} & This method returns a new instance of the Array
+  class where the first argument to the constructor is used as the key, and the second is used
+  as the value, and so on. The result is a n array {\tt [arg0=$>$arg1, arg2=$>$arg3,...] }\\
+  \hline
+\end{tabular}  \\
+\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
+  \hline
+  null & {\tt array\_set(object[Array] a, ? key, ? value)} & This method sets the value {\tt value} of any
+  type for the key {\tt key} of any type, for array {\tt a}. The shorthand notation for this operation
+  is to use the {\tt operator []}.\\
+  ref$<$?$>$ & {\tt array\_get(object[Array] a, ? key) } & This method obtains a reference to the slot in the
+  array {\tt a} for the key {\tt key}. If there is no value defined in the array yet for the given key,
+  a new slot is created for that key, assigned to NULL, and a reference returned.\\
+  boolean & {\tt array\_has(object[Array] a, ? key)} & Returns whether or not there is a value defined
+  on array {\tt a} for the given key, {\tt key}.\\
+  \hline
+\end{tabular}
+\newpage
+
+\subsection{Built-in Global Methods and Constants}
+
+\subsubsection{Intrinsic Constants}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constants}}\\
+  \hline
+  double & {\tt @infinity} & IEEE floating-point numeric infinity.\\
+  double & {\tt @type\_un} & The type\_id for an Undefined Variable.\\
+  double & {\tt @type\_boolean} & The type\_id for a Boolean Variable.\\
+  double & {\tt @type\_double} & The type\_id for a Numeric Variable.\\
+  double & {\tt @type\_string} & The type\_id for a String Variable.\\
+  double & {\tt @type\_null} & The type\_id for a Null Variable.\\
+  \hline
+\end{tabular}
+
+\subsubsection{General Utility Functions}
+
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
+  \hline
+  null & {\tt abort(numeric n, string r)} & This call will immediately halt the flow of the program,
+  with failure code {\tt n} and description string {\tt r}. This cannot be ``caught'' in any way
+  by the program and will result in the interpreter not executing any more of the program.\\
+  null & {\tt copyright()} & Displays the \ModLang copyright message.\\
+  null & {\tt print\_symbol\_table()} & This is a very useful debugging tool which output the
+  name and value of all variables in the current interpreter scope.\\
+  null & {\tt print\_special\_table()} & This is also a useful debugging tool which outputs the
+  name and value of all special (External and Constant) variables in the interpreter scope.\\
+  numeric & {\tt type\_id(? any)} & This method returns the Type ID of any variable, including 
+  intrinsic types (numeric, boolean, null, etc.) and the result can be matched to the
+  constants prefixed with @type (@type\_null, @type\_un, @type\_double, etc.)\\
+  null & {\tt return(? any)} & This method will return any value from a user-defined function.
+  This method cannot be used in global scope.\\
+  \hline
+\end{tabular}
+
+\subsubsection{Numeric/Floating-Point Utility Functions}
+
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
+  \hline
+  numeric & {\tt abs(numeric n)} & Returns the absolute value of the argument {\tt n} \\
+  numeric & {\tt ceil(numeric n)} & Returns the value of {\tt n} rounded up.\\
+  numeric & {\tt floor(numeric n)} & Returns the value of {\tt n} rounded down.\\
+  numeric & {\tt pow(numeric bas, numeric x)} & Returns {\tt bas} to the power {\tt x}.\\
+  \hline
+\end{tabular}
+
+\subsubsection{Type-casting Functions}
+
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
+  \hline
+  string & {\tt str(...)} & This method will return the same value as the function {\tt print(...)}
+  would have displayed on the screen. Each argument is coerced to a string and then adjacent
+  values are concatenated.\\
+  numeric & {\tt double(? x)} & This method will return 1.0 or 0.0 if provided a boolean of 
+  {\tt true} or {\tt false} respectively. It will return the passed value for a double,
+  0.0 for a null and fail (NULL) for an object. If it was passed a string, it will attempt
+  to convert it to a double. If the whole string was not numeric, it will return NULL, otherwise
+  it will return the decoded numeric value.\\
+  boolean & {\tt bool(? x)} & This method will return {\tt true} for a numeric value of (not 0.0), a
+  boolean {\tt true} or a string ``true'' or ``yes''. It will return {\tt false} for a numeric
+  value 0.0, a NULL or a string ``false'' or ``no'', or a boolean {\tt false}. It will
+  return NULL otherwise.\\
+  \hline
+\end{tabular}
+
+\newpage
+% ------------------------------------------------------------------------------
+
+\section{API Documentation for the LQNS Bindings}
+
+\subsection{LQNS2 Class: Processor}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt utilization} & The utilization of the Processor\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Processor & {\tt processor(string name)} & Returns an instance of Processor from the current LQNS2 model with the given name.\\
+  \hline
+\end{tabular}
+
+\subsection{LQNS2 Class: Task}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt throughput} & The throughput of the Task\\
+  double & {\tt utilization} & The utilization of the Task\\
+  double & {\tt proc\_utilization} & This Task's processor utilization\\
+  Array & {\tt phase\_utilizations} & Individual phase utilizations\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Task & {\tt task(string name)} & Returns an instance of Task from the current LQNS2 model with the given name.\\
+  \hline
+\end{tabular}
+
+\subsection{LQNS2 Class: Entry}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt throughput} & Entry throughput\\
+  double & {\tt throughput\_bound} & Entry throughput bound\\
+  double & {\tt utilization} & Entry utilization\\
+  double & {\tt proc\_utilization} & Entry processor utilization\\
+  double & {\tt coeff\_variation\_sq} & Squared coefficient of variation\\
+  double & {\tt open\_wait\_time} & Entry open wait time\\
+  boolean & {\tt has\_phase\_1} & Whether the entry has a phase 1 result\\
+  boolean & {\tt has\_phase\_2} & Whether the entry has a phase 2 result\\
+  boolean & {\tt has\_open\_wait\_time} & Whether the entry has an open wait time\\
+  double & {\tt ph\_1\_service\_time} & Phase 1 Service Time\\
+  double & {\tt ph\_1\_service\_time\_v} & Phase 1 Service Time Variance\\
+  double & {\tt ph\_1\_proc\_waiting} & Phase 1 Processor Wait Time\\
+  double & {\tt ph\_2\_service\_time} & Phase 2 Service Time\\
+  double & {\tt ph\_2\_service\_time\_v} & Phase 2 Service Time Variance\\
+  double & {\tt ph\_2\_proc\_waiting} & Phase 2 Processor Wait Time\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Entry & {\tt entry(string name)} & Returns the Entry object for the model entry whose name is given as name\\
+  \hline
+\end{tabular}
+
+\subsection{LQNS2 Class: Phase}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt service\_time} & Phase service time\\
+  double & {\tt service\_time\_v} & Phase service time variance\\
+  double & {\tt utilization} & Phase utilization\\
+  double & {\tt proc\_waiting} & Phases' processor waiting time\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Phase & {\tt phase(object entry, numeric\_int nr)} & Returns the Phase object for a given entry's phase number specified as nr\\
+  \hline
+\end{tabular}
+
+\subsection{LQNS2 Class: Call}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt wait\_time} & Call waiting time\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Call & {\tt call(object phase, string destinationEntry)} & Returns the call from an entry's phase (phase) to the destination entry whose name is (dest)\\
+  \hline
+\end{tabular}
+
+\subsection{LQNS2 Class: Activity}
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  double & {\tt service\_time} & Activity service time\\
+  double & {\tt service\_time\_v} & Activity service time variance\\
+  double & {\tt utilization} & Activity utilization\\
+  double & {\tt proc\_waiting} & Activities' processor waiting time\\
+  double & {\tt cv\_squared} & The square of the coefficient of variation\\
+  double & {\tt throughput} & The activity throughput\\
+  double & {\tt proc\_utilization} & The activities' share of the processor utilization\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Activity & {\tt activity(object task, string name)} & Returns an instance of Activity from the current LQNS2 model, whose name corresponds to an activity in the given task.\\
+  \hline
+\end{tabular}
+
+\end{document}

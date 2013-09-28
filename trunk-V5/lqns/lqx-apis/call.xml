@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqx-api>
+  <info>
+    <name>Call</name>
+    <binding>LQNS Bindings</binding>
+    <provided-by>LQNS2</provided-by>
+  </info>
+  <constructors>
+    <method>
+      <ret>Call</ret>
+      <args>
+        <object>phase</object>
+        <string>destinationEntry</string>
+      </args>
+      <name>call</name>
+      <data>Returns the call from an entry's phase (phase) to the destination entry whose name is (dest)</data>
+    </method>
+  </constructors>
+  <attributes>
+    <attr>
+      <name>wait_time</name>
+      <type>double</type>
+      <data>Call waiting time</data>
+    </attr>
+  </attributes>
+</lqx-api>

@@ -1,0 +1,95 @@
+% BNF environment style,
+% Alex Hubbard, January 1991
+%
+% $Source$
+% $Revision$
+% $Date$
+
+\newdimen\@bnfsymbolwidth
+\newdimen\@bnfsymbolskip
+\newdimen\@bnflabelwidth
+\newdimen\@bnfitemsep
+\newdimen\defitemsep
+\newdimen\oritemsep
+
+\def\defsym{$\rightarrow$}
+\def\orsym{$\mid$}
+
+\def\nt#1{$\langle${\it #1\/}$\rangle$}
+\def\ct#1{\hskip 0pt plus 1filll $/*$~{\it #1\/}~$*/$\ignorespaces}
+\def\rep#1#2#3{$\lbrace$#1$\rbrace_{#2}^{#3}$}
+\def\chgflg#1{{\scriptsize$\Leftarrow\rm #1$}}
+\def\chg#1{\hfill\rlap{\hbox to\rightmargin{\hfil\chgflg{#1}}}}
+\def\opt#1{$\hbox{#1}_{\rm opt}$}
+
+\def\bnf#1{\relax
+	\let\> =\defsym
+	\let\| =\orsym
+	\let\< =\@nt
+	\let\( =\@ct
+        \let\? =\@opt
+	\setbox\@tempboxa\hbox{\defsym}
+	\@bnfsymbolwidth\wd\@tempboxa
+	\@bnfsymbolskip 1em
+	\setbox\@tempboxa\hbox{{\small \nt{#1}}}
+	\@bnflabelwidth\wd\@tempboxa
+	\advance\@bnflabelwidth\@bnfsymbolwidth
+	\advance\@bnflabelwidth 2\@bnfsymbolskip
+	\list{}{\relax
+		\rightmargin\leftmargin
+		\labelwidth\@bnflabelwidth
+		\advance\leftmargin\@bnflabelwidth
+		\itemindent\z@
+		\listparindent\z@
+		\labelsep\z@
+		\parsep\z@
+		\let\makelabel\@bnfmklab
+	}
+	\let\bnfsymbol\relax
+	\defitemsep\itemsep
+        \oritemsep\z@
+	\small
+	\tt
+	\raggedright
+	\ignorespaces
+}
+
+\def\endbnf{\endlist}
+
+\def\defitem[#1]{\relax
+	\let\@tmpsymbol\bnfsymbol
+	\@bnfitemsep\itemsep
+	\let\bnfsymbol\defsym
+	\itemsep\defitemsep
+	\@noitemargfalse
+	\@item[\nt{#1}]
+	\let\bnfsymbol\@tmpsymbol
+	\itemsep\@bnfitemsep
+}
+
+\def\oritem{\relax
+	\let\@tmpsymbol\bnfsymbol
+	\@bnfitemsep\itemsep
+	\let\bnfsymbol\orsym
+	\itemsep\oritemsep
+	\@noitemargtrue
+	\@item[]
+	\let\bnfsymbol\@tmpsymbol
+	\itemsep\@bnfitemsep
+}
+
+\def\setnosym{\let\bnfsymbol\relax}
+\def\setbnfsym#1{\let\bnfsymbol=#1}
+
+\def\@bnfmklab#1{\relax
+	#1\relax
+	\hskip\@bnfsymbolskip
+	\hfil
+	\@bnfsymbol
+	\hskip\@bnfsymbolskip
+}
+
+\def\@bnfsymbol{\hbox to \@bnfsymbolwidth{\hfil\bnfsymbol\hfil}}
+\def\@nt#1>{\nt{#1}}
+\def\@ct#1){\ct{#1}}
+\def\@opt#1?{\opt{#1}}

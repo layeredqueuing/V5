@@ -1,0 +1,46 @@
+# Experiment case description file
+# Created by MultiSRVN for greg, 01/24/06 13:14:16
+# lqsim -p -C1.0  -o ./phase/case-02-05.out ./phase/case-02-05.in
+G
+
+"
+	Experiment name: phase
+	SRVN description file: phase.in
+	Comment: ''
+
+	Declared variables:
+	n1 = 5
+	n2 = 2
+
+	Controlled parameters:
+	[2]  n2  =  2 
+	[5]  n1  =  5 
+"
+
+1e-05 50 10 0.9 -1
+
+P 0
+   p client f i
+   p server f
+   p lock f
+-1
+
+T 0
+   t client r client -1 client m 5
+   t server n server -1 server
+   t lock n acquire release -1 lock m 2
+-1
+
+E 0
+   f client 1 1 -1
+   s client 0.2 0.8 -1
+   f server 1 -1
+   s server 0.2 -1
+   c acquire 1 0.5 -1
+   s acquire 0.001 0.3 -1
+   s release 0.001 -1
+   y client acquire 1 0 -1
+   y client server 0 1 -1
+   z server release 1 -1
+-1
+

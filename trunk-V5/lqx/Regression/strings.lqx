@@ -1,0 +1,12 @@
+
+/* Test str() Formatting */
+a = array_create(1);
+x = "Hello 1 true [0=>1]";
+y = str("Hello", " ", 1.0, " ", true, " ", a);
+if (str_cmp(x, y) != 0) { abort(1, "Failure in str(7) function."); }
+if (str_cmp(str(), "") != 0) { abort(1, "Failure in str(0) function."); }
+
+/* print() uses str() under the hood */
+print("Hello", " ", 1.0, " ", true, " ", a);
+print("Hello 1 true [0=>1]");
+print("These should match...");

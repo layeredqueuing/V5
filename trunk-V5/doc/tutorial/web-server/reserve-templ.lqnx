@@ -1,0 +1,99 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml reserve-templ.lqn -->
+<!-- Sat Oct 17 11:32:17 2009 -->
+
+<lqn-model name="reserve-templ" description="LQN model file" 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Layered Queueing Network for a Web-based Reservation System" 
+		  conv_val="0.0001" it_limit="500" print_int="1" underrelax_coeff="0.5"/>
+   <processor name="UserP" scheduling="fcfs">
+      <task name="Users" scheduling="ref" multiplicity="100">
+         <entry name="users" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="users_ph2" phase="2" host-demand-mean="56">
+                  <synch-call dest="connect" calls-mean="1"/>
+                  <synch-call dest="disconnect" calls-mean="1"/>
+                  <synch-call dest="interact" calls-mean="6"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="ReservP" scheduling="fcfs">
+      <task name="Reserv" scheduling="fcfs" multiplicity="5">
+         <entry name="connect" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="connect_ph1" phase="1" host-demand-mean="0.001">
+                  <synch-call dest="netware" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="disconnect" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="disconnect_ph1" phase="1" host-demand-mean="0.0001">
+                  <synch-call dest="netware" calls-mean="1"/>
+                  <synch-call dest="dbupdate" calls-mean="1"/>
+               </activity>
+               <activity name="disconnect_ph2" phase="2" host-demand-mean="0.0007"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="interact" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="interact_ph1" phase="1" host-demand-mean="0.0014">
+                  <synch-call dest="netware" calls-mean="1"/>
+                  <synch-call dest="dbupdate" calls-mean="1.15"/>
+                  <synch-call dest="ccreq" calls-mean="0.1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="Netware" scheduling="fcfs">
+         <entry name="netware" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="netware_ph1" phase="1" host-demand-mean="0.0012">
+                  <synch-call dest="reservDisk" calls-mean="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DBP" scheduling="fcfs">
+      <task name="DB" scheduling="fcfs">
+         <entry name="dbupdate" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="dbupdate_ph1" phase="1" host-demand-mean="0.0085">
+                  <synch-call dest="dbDisk" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="CCReqP" scheduling="fcfs">
+      <task name="CCReq" scheduling="fcfs">
+         <entry name="ccreq" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="ccreq_ph1" phase="1" host-demand-mean="3"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="ReservDiskP" scheduling="fcfs">
+      <task name="ReservDisk" scheduling="fcfs">
+         <entry name="reservDisk" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="reservDisk_ph1" phase="1" host-demand-mean="0.011"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DBDiskP" scheduling="fcfs">
+      <task name="DBDisk" scheduling="fcfs">
+         <entry name="dbDisk" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="dbDisk_ph1" phase="1" host-demand-mean="0.011"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

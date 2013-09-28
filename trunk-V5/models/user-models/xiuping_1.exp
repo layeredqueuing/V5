@@ -1,0 +1,47 @@
+# Department of Systems and Computer Engineering
+
+.global
+	.solver = "lqns";
+	.format = "latex";
+	.template = "xiuping_1.in";
+
+.end
+
+.experiment lqns
+	.set
+		.solver = "lqns";
+		.lqnsopts = "-Pmultiserver=rolia,mva=schweitzer -zmol-underrelaxation=.1";
+
+	.declare
+		n1 = 10,20,30,40,45,50,55,60,65,70,75,100,150;
+
+	.vary
+		n1;
+
+	.control
+		.tm ( Client ) = { n1 };
+
+	.observe
+		.plot { n1 }; 
+		.th ( .t, Client ) "X_{y}";
+.end
+
+.experiment sim
+	.set
+		.solver = "parasrvn";
+		.paraopts  = "-A1e6,1.0,1e5 -S1028133445";
+
+	.declare
+		n1 = 10,20,30,40,45,50,55,60,65,70,75,100,150;
+
+	.vary
+		n1;
+
+	.control
+		.tm ( Client ) = { n1 };
+
+	.observe
+		.plot { n1 }; 
+		.th ( .t, Client ) "X_{y}";
+.end
+

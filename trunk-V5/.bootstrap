@@ -1,0 +1,19 @@
+#!/bin/sh
+find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in \) -print | xargs rm -rf 
+(cd lqx; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
+(cd lqiolib; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
+(cd parasol; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd lqns; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd lqsim; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd lqn2ps; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd lqngen; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd srvndiff; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
+(cd petrisrvn; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
+(cd doc; aclocal -I ../config; automake -a -c; autoconf; automake) 
+(cd lqneditor; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
+aclocal -I config
+automake -a -c
+autoheader
+autoconf
+automake
+

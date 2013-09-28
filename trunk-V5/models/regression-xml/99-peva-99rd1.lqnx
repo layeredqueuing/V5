@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<!-- @Article{perf:franks-99, -->
+<!--   author =  "Franks, Greg and Woodside, Murray", -->
+<!--   title =   "Effectiveness of Early Replies in Client-Server Systems", -->
+<!--   journal = "Performance Evaluation", -->
+<!--   year =    1999, -->
+<!--   volume =  36, -->
+<!--   number =  1, -->
+<!--   month =   aug, -->
+<!--   pages =   "165-184", -->
+<!--   doi =     "10.1016/S0166-5316(99)00034-6", -->
+<lqn-model description="peva model." name="peva-99" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Overtkaing " conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9">
+   <result-general conv-val="9.70343e-08" elapsed-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" iterations="6.00000e+00" platform-info="merlin-pc.sce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" solver-info="lqns 4.3.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" system-cpu-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" user-cpu-time=" 0:00:00.00ce.carleton.ca Linux 2.6.24.7-92.fc8&#xA;" valid="YES"/>
+   </solver-params>
+   <processor name="p0" scheduling="inf">
+   <result-processor utilization="9.07554e-01"/>
+      <task name="t0" scheduling="ref">
+      <result-task phase1-utilization="5.00000e-01" phase2-utilization="5.00000e-01" proc-utilization="9.07554e-01" throughput="9.07554e-01" utilization="1.00000e+00"/>
+         <entry name="e0" type="PH1PH2">
+         <result-entry proc-utilization="9.07554e-01" squared-coeff-variation="5.47362e-01" throughput="9.07554e-01" throughput-bound="1.00000e+00" utilization="1.00000e+00"/>
+            <entry-phase-activities>
+               <activity host-demand-mean="0.5" name="e0_ph1" phase="1">
+               <result-activity proc-waiting="0.00000e+00" service-time="5.50932e-01" service-time-variance="3.32277e-01" utilization="5.00000e-01"/>
+                  <synch-call calls-mean="$y1" dest="e1">
+                  <result-call waiting="3.50542e-01"/>
+                  </synch-call>
+                  <synch-call calls-mean="$y2" dest="e2">
+                  <result-call waiting="3.17548e-01"/>
+                  </synch-call>
+               </activity>
+               <activity host-demand-mean="0.5" name="e0_ph2" phase="2">
+               <result-activity proc-waiting="0.00000e+00" service-time="5.50932e-01" service-time-variance="3.32277e-01" utilization="5.00000e-01"/>
+                  <synch-call calls-mean="$y2" dest="e2">
+                  <result-call waiting="3.17548e-01"/>
+                  </synch-call>
+                  <synch-call calls-mean="$y1" dest="e3">
+                  <result-call waiting="3.50542e-01"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1" scheduling="fcfs">
+   <result-processor utilization="1.81511e-01"/>
+      <task name="t1" scheduling="fcfs">
+      <result-task phase1-utilization="0.00000e+00" phase2-utilization="1.81511e-01" proc-utilization="1.81511e-01" throughput="9.07554e-02" utilization="1.81511e-01"/>
+         <entry name="e1" type="PH1PH2">
+         <result-entry proc-utilization="1.81511e-01" squared-coeff-variation="1.00000e+00" throughput="9.07554e-02" throughput-bound="5.00000e-01" utilization="1.81511e-01"/>
+            <entry-phase-activities>
+               <activity host-demand-mean="$p1" name="e1_ph1" phase="1">
+               <result-activity proc-waiting="0.00000e+00" service-time="0.00000e+00" service-time-variance="0.00000e+00" utilization="0.00000e+00"/>
+               </activity>
+               <activity host-demand-mean="$p2" name="e1_ph2" phase="2">
+               <result-activity proc-waiting="0.00000e+00" service-time="2.00000e+00" service-time-variance="4.00000e+00" utilization="1.81511e-01"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+   <result-processor utilization="1.81511e-01"/>
+      <task name="t2" scheduling="fcfs">
+      <result-task phase1-utilization="0.00000e+00" phase2-utilization="1.81511e-01" proc-utilization="1.81511e-01" throughput="9.07554e-02" utilization="1.81511e-01"/>
+         <entry name="e2" type="PH1PH2">
+         <result-entry proc-utilization="1.81511e-01" squared-coeff-variation="1.00000e+00" throughput="9.07554e-02" throughput-bound="5.00000e-01" utilization="1.81511e-01"/>
+            <entry-phase-activities>
+               <activity host-demand-mean="$p1" name="e2_ph1" phase="1">
+               <result-activity proc-waiting="0.00000e+00" service-time="0.00000e+00" service-time-variance="0.00000e+00" utilization="0.00000e+00"/>
+               </activity>
+               <activity host-demand-mean="$p2" name="e2_ph2" phase="2">
+               <result-activity proc-waiting="0.00000e+00" service-time="2.00000e+00" service-time-variance="4.00000e+00" utilization="1.81511e-01"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p3" scheduling="fcfs">
+   <result-processor utilization="1.81511e-01"/>
+      <task name="t3" scheduling="fcfs">
+      <result-task phase1-utilization="0.00000e+00" phase2-utilization="1.81511e-01" proc-utilization="1.81511e-01" throughput="9.07554e-02" utilization="1.81511e-01"/>
+         <entry name="e3" type="PH1PH2">
+         <result-entry proc-utilization="1.81511e-01" squared-coeff-variation="1.00000e+00" throughput="9.07554e-02" throughput-bound="5.00000e-01" utilization="1.81511e-01"/>
+            <entry-phase-activities>
+               <activity host-demand-mean="$p1" name="e3_ph1" phase="1">
+               <result-activity proc-waiting="0.00000e+00" service-time="0.00000e+00" service-time-variance="0.00000e+00" utilization="0.00000e+00"/>
+               </activity>
+               <activity host-demand-mean="$p2" name="e3_ph2" phase="2">
+               <result-activity proc-waiting="0.00000e+00" service-time="2.00000e+00" service-time-variance="4.00000e+00" utilization="1.81511e-01"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+<lqx><![CDATA[
+
+/* data now read from file simulating stream from a pipe */
+file_open( input_file, "99-peva-data-stream1.lqx", read );
+
+/*  call to open file for writing, default mode is overwrite but appending to an existing file is supported */
+/*  with file_open( handle, "filepath", append ); */
+/*  opens a file for writing and places the open file pointer in the symbol table for later use */
+
+file_open( output_file1, "test_output_99-peva.txt", write );
+println( output_file1, "Test output file for 99-peva-99.lqnx.", endl );
+
+/*  test file to test spacing of columns with given character string separator, in this case ", " */
+file_open( output_file2, "test_output_spaced_99-peva.txt", write );
+println( output_file2, "Test output file for spaced columns for 99-peva-99.lqnx.", endl );
+
+/* test file to test table output with specified column widths */
+file_open( output_file3, "test_output_tab_spaced_99-peva.txt", write );
+println( output_file3, "Test output file for variable width columns for 99-peva-99.lqnx.", endl );
+println_spaced( output_file3, 12, "$p1", "$p2", "$y1", "$y2", "t1.throughput", endl );
+
+t1 = task( "t1" );
+
+i = 1;
+p = 0.0;
+y = 0.0;
+keep_running = true;
+
+while ( keep_running ) {
+
+// disabled print statement temporarily needed to mask variable scoping bug
+ if( i < 1 ) println( "Before read_data ", i, " keep_running: ", keep_running );  
+
+    /* with this form of read_data, expected data is specified, function returns when given variables have been read */
+    read_data( input_file, y, p, keep_running ); 
+
+ // println( "After read_data ", i, " keep_running: ", keep_running );  
+
+    if( keep_running ) {
+
+        $p1 = 2.0 * p;
+        $p2 = 2.0 * (1 - p);
+        $y1 = y;
+        $y2 = 0.5 * y;
+        solve();
+
+        /*  standard output format with all character strings and string equivalents catenated together */
+        println( output_file1, "Solving model run #: ", i, " t1.throughput: ", t1.throughput );
+
+        /* function for output with columns separated by a given character string, the second parameter */
+        println_spaced( output_file2, ", ", $p1, $p2, $y1, $y2, t1.throughput );
+
+        /* in this case an integer is given as the second parameter instead of a string, it is */
+        /* interpreted as the desired width of columns in a table output */
+        println_spaced( output_file3, 12, $p1, $p2, $y1, $y2, t1.throughput );
+        i = i + 1;
+    }
+}
+
+file_close( input_file );
+file_close( output_file1 );
+file_close( output_file2 );
+file_close( output_file3 );
+
+]]></lqx>
+</lqn-model>

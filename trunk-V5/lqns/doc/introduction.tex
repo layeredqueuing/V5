@@ -1,0 +1,83 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.3  1995/01/11 21:05:12  greg
+\C Revised for R12 of MVA software.
+\C
+\C Revision 1.2  1994/12/09  02:02:36  greg
+\C update.
+\C
+\C Revision 1.1  1994/06/23  19:11:01  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\chapter{Introduction}
+
+The {\bf L}ayered {\bf Q}ueueing {\bf N}etwork {\bf Solver} (LQNS) is
+a software package for solving \link{\emph{``Stochastic Rendevous
+    Networks''}}[~\Cite]{srvn:woodside-89b} or \link{\emph{``Layered
+    Queueing Models''}}[~\Cite]{perf:rolia-92}.  These models are
+characterized by multiple layers of \link{\dfn{tasks}}{sec:task} using
+the send-receive-reply or rendezvous mechanism for inter-task
+communication.  Services provided by each task in the model are
+further specified though \link{\dfn{entries}}{sec:entries}.  Service
+requests from one task to another are made through
+\link{\dfn{Calls}}{sec:call}, which in fact link one entry to
+another.
+
+The sections that follow show the overall data flow through the
+solver, and how the major components used in generating a solution are
+connected together.
+
+\section{Data Flow}
+\label{sec:data-flow}
+
+Data flow...
+
+\begin{figure}[htbp]
+  \label{fig:dataflow}
+  \begin{center}
+    \T \tex \leavevmode \input{dataflow.epic}
+    \caption{Data Flow}
+    \H \htmlimage{dataflow.gif}
+  \end{center}
+\end{figure}
+
+\section{Class Hierarchy}
+\label{sec:class-hierarchy}
+
+The \link{overall class hierarchy}{fig:overall} for the LQNS solver is
+shown below \texonly{in Figure~\ref{fig:overall}} using the notation
+of \link{Rumbaugh et.~al.}[~\Cite]{sw:rumbaugh-91}.  The first row of
+classes, \file{Load}, \file{Store} and \file{Layerize} correspond to
+the processes in the second dataflow diagram in
+\texonly{Figure~\ref{fig:dataflow}}\htmlonly{\link{the last
+    section}{fig:dataflow}}. The classes \file{Call}, \file{Entry} and
+\file{Entity} are used to created objects that represent the
+\file{Model Database}.  Finally, the classes \file{MVA} and
+\file{Server} are used to solve the MVA models created the the class
+\file{Layerize}.
+
+\begin{figure}[htbp]
+  \label{fig:overall}
+  \begin{center}
+    \T \tex \leavevmode \input{overall.epic}
+    \caption{Class Hierarchy}
+    \H \htmlimage{overall.gif}
+  \end{center}
+\end{figure}
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "lqns"
+\C End: 

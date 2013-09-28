@@ -1,0 +1,531 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta content="text/html; charset=ISO-8859-1"
+ http-equiv="content-type">
+  <title>Description of the LQN XML Schema</title>
+  <style type="text/css"> .textElement { font-family: Courier New; color: #800000; }</style>
+  <style type="text/css"> .textOperator { font-family: Courier New; color: #0000FF; }</style>
+  <style type="text/css"> .textContents { font-family: Courier New; color: #000000; }</style>
+  <style type="text/css"> .textAttr { font-family: Courier New; color: #FF0000; }</style>
+</head>
+<body>
+<big><big><span style="font-weight: bold;">&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; Description of the LQN XML Schema</span></big></big><br>
+<br>
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; <span
+ style="font-weight: bold;">Peter Maly<br>
+<br>
+</span>&nbsp;&nbsp;&nbsp; &nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp; &nbsp; &nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; <span
+ style="font-weight: bold;">March 2004</span><br>
+<br>
+<br>
+<big><span style="font-weight: bold;">Introduction</span></big><br>
+<br>
+&nbsp;&nbsp;&nbsp; The definition of LQN models using XML is an
+evolution of the original SRVN<br>
+file format [2].&nbsp; The new XML format is based on the work done in
+[4], with<br>
+further refinement for general usage.&nbsp; There are new features in
+the XML format<br>
+to support new concepts for building and assembling models using
+components.<br>
+The normal LQN tool suite (like LQNS, ParaSRVN) do not support these new<br>
+features, however other tools outside the suite are being written to
+utilize<br>
+the new parts of the XML format.<br>
+<br>
+&nbsp;&nbsp; It is assumed that the reader of this document has a
+working understanding<br>
+of Layered Queuing Network models [3], and is somewhat familiar with the<br>
+various parameters that go into the model [2].&nbsp; This document does
+not go into<br>
+the details of the new extensions introduced in [4] such as components,
+slot,<br>
+interface, sub-models, etc...<br>
+<br>
+<br>
+<big><span style="font-weight: bold;">Basic XML terminology</span></big><br>
+<br>
+&nbsp;&nbsp;&nbsp; Anyone who is familiar with basic XML terminology
+can skip this section.&nbsp; In<br>
+order to use the XML format version of the LQN input file, one does not
+have to<br>
+be an expert in XML.&nbsp; There are three pieces of terminology which
+are used<br>
+throughout this document and are described here for convenience.&nbsp;
+For further<br>
+information about XML, please consult the wealth of book and web sites<br>
+pertaining to the topic.<br>
+<br>
+<table style="text-align: left; width: 550px; height: 73px;" border="0"
+ cellspacing="0" cellpadding="0">
+  <tbody>
+    <tr>
+      <td style="vertical-align: top; width: 150px; font-weight: bold;">Element</td>
+      <td style="vertical-align: top;">Also known as a "tag", which is
+anything inside a XML file encapsulated by <span class="textOperator">&lt;</span>
+and <span class="textOperator">&gt;</span>
+characters.&nbsp; For example a processor element in XML would appear
+as <span class="textOperator">&lt;</span><span class="textElement">processor</span><span
+ class="textOperator">&gt;</span>.&nbsp; Whatever data is contained
+within the
+processor element would be encapsulated by the start tag <span
+ class="textOperator">&lt;</span><span class="textElement">processor</span><span
+ class="textOperator">&gt;</span> and end tag <span
+ class="textOperator">&lt;/</span><span class="textElement">processor</span><span
+ class="textOperator">&gt;</span>.&nbsp; Elements that
+contain no data can be written as <span class="textOperator">&lt;</span><span
+ class="textElement">processor</span><span class="textOperator">&gt;</span><span
+ class="textOperator">&lt;/</span><span class="textElement">processor</span><span
+ class="textOperator">&gt;</span>
+or in short hand <span class="textOperator">&lt;</span><span
+ class="textElement">processor</span><span class="textOperator">/&gt;</span>.</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; font-weight: bold;">Attribute</td>
+      <td style="vertical-align: top;">Defines the property of an
+element.&nbsp; Continuing with the example of the processor element, a
+processor could have a name of "p1" and a multiplicity of 3.&nbsp; This
+would be shown in XML by: <span class="textOperator">&lt;</span><span
+ class="textElement">processor</span> <span class="textAttr">name</span><span
+ class="textOperator">=</span>"p1" <span class="textAttr">multiplicity</span><span
+ class="textOperator">=</span>"3"<span class="textOperator">&gt;</span>
+where name and multiplicity are attributes of the element processor.</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; font-weight: bold;">XML schema</td>
+      <td style="vertical-align: top;">Is a standard which defines
+rules by which an XML file must follow in order to be VALID.&nbsp; When
+a XML parser reads in a XML file, it may have the ability to validate
+the XML file against the XML schema. More information about XML schemas
+can be found in [1] or other books and/or sources on the WWW.</td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top;"><br>
+      </td>
+      <td style="vertical-align: top;"><br>
+      </td>
+    </tr>
+    <tr>
+      <td style="vertical-align: top; font-weight: bold;">Constraint
+checking</td>
+      <td style="vertical-align: top;">Part of the XML schema standard
+to allow powerful error checking on a XML file.&nbsp; The two
+constraints defined in the XML schema standard are to ensure uniqueness
+across a specified element and/or attributes, and ensure references
+made to other parts of an XML file exist.</td>
+    </tr>
+  </tbody>
+</table>
+<br>
+<br>
+<big><span style="font-weight: bold;">How to use the XML Schema</span></big><br>
+<br>
+The three schema files which comprise the XML definition for layered
+models are:<br>
+<br>
+lqn.xsd<br>
+lqn-sub.xsd<br>
+lqn-core.xsd<br>
+<br>
+The first line of any XML LQN model will look like this:<br>
+<br>
+<span class="textOperator">&lt;</span><span class="textElement"></span><span
+ class="textElement">lqn-model</span> <span class="textAttr">xmlns:xsi</span><span
+ class="textOperator">=</span>"http://www.w3.org/2001/XMLSchema-instance"<br>
+<span class="textAttr">xsi:noNamespaceSchemaLocation</span><span
+ class="textOperator">=</span>"lqn.xsd"<span class="textOperator">&gt;</span><br>
+<br>
+&nbsp;&nbsp;&nbsp; Notice that the root element of the XML
+specification is <span class="textElement">lqn-model</span>, and<br>
+through the <span class="textAttr">xsi:noNamespaceSchemaLocation</span>
+attribute, it specifies that<br>
+this XML file conforms to the lqn.xsd schema.&nbsp; The bulk of the
+specification<br>
+that pertains to defining a LQN model is in the lqn-core.xsd file, and
+is<br>
+included by lqn.xsd.&nbsp; From a user's perspective, ensure
+that all three<br>
+.xsd files exist have the same path, i.e. exist in the same
+location.&nbsp; For more<br>
+information about the schema, see http://lqn.html and [4].<br>
+<br>
+<br>
+<big><span style="font-weight: bold;">Basic structure of the XML file</span></big><br>
+<br>
+&nbsp;&nbsp;&nbsp; Given the tree/hierarchical nature of XML, layered
+models are specified in a<br>
+bottom-up order, which is the reverse of how layered models are
+typically<br>
+presented.&nbsp; A simplified layout of an incomplete LQN model written
+in XML<br>
+is shown below:<br>
+<br>
+<span class="textOperator">&lt;</span><span class="textElement">lqn-model</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">solver-params</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">pragma</span><span class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">/solver-params</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">processor</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">task</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">entry</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">entry-phase-activities</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span
+ class="textOperator">&lt;</span><span class="textElement">activity</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">synch-call</span><span class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; &nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">asynch-call</span><span class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;/</span><span class="textElement">activity</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">activity</span><span
+ class="textOperator">&gt;</span> ... <span class="textOperator">&lt;/</span><span
+ class="textElement">activity</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;/</span><span class="textElement">entry-phase-activities</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">entry-activity-graph</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">activity</span><span
+ class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">precedence</span><span
+ class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;/</span><span class="textElement">entry-activity-graph</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; &nbsp; <span class="textOperator">&lt;/</span><span
+ class="textElement">entry</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span
+ class="textOperator">&lt;</span><span class="textElement">entry</span><span
+ class="textOperator">&gt;</span> ...
+<span class="textOperator">&lt;/</span><span class="textElement">entry</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span
+ class="textOperator">&lt;</span><span class="textElement">task-activities</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">activity</span><span
+ class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;</span><span class="textElement">precedence</span><span
+ class="textOperator">/&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<span class="textOperator">&lt;/</span><span class="textElement">task-activities</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="textOperator">&lt;/</span><span
+ class="textElement">task</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">task</span><span class="textOperator">&gt;</span>
+... <span class="textOperator">&lt;/</span><span class="textElement">task</span><span
+ class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; <span class="textOperator">&lt;/</span><span
+ class="textElement">processor</span><span class="textOperator">&gt;</span><br>
+&nbsp;&nbsp; <span class="textOperator">&lt;</span><span
+ class="textElement">processor</span><span class="textOperator">&gt;</span>
+... <span class="textOperator">&lt;/</span><span class="textElement">processor</span><span
+ class="textOperator">&gt;</span><br>
+<span class="textOperator">&lt;/</span><span class="textElement">lqn-model</span><span
+ class="textOperator">&gt;</span><br>
+<br>
+&nbsp;&nbsp;&nbsp; Notice how a processor is defined first, then within
+the processor block<br>
+all the tasks associated with it, then within the task block all the
+entries<br>
+associated with, etc...<br>
+<br>
+&nbsp;&nbsp;&nbsp; Activity graphs (specified by task-activities)
+belong to a task, and hence<br>
+are siblings to entry elements.&nbsp; The element entry-activity-graph
+specifies<br>
+an activity graph contained within one entry, but is not supported by<br>
+any of the LQN tools.&nbsp; The concept of phases still exists, but now<br>
+each phase is an activity, and is defined in the entry-phase-activities<br>
+element.<br>
+<br>
+&nbsp;&nbsp;&nbsp;The link <a href="./lqn/lqn-doc.html">core XML LQN
+schema</a> contains all the required details for<br>
+defining LQNs using the new XML format.<br>
+<br>
+&nbsp;&nbsp;&nbsp; For completeness, the detailed description of the <a
+ href="./submodel/lqnsub-doc.html">
+lqn-submodel schema</a> has<br>
+also been included with the documentation, but is not expanded on.
+Refer to<br>
+[4] for more details.<br>
+<br>
+<br>
+<big><span style="font-weight: bold;">List of constraints that the XML
+schema enforces for validity</span></big><br>
+<ul>
+  <li>All processor have a unique name</li>
+  <li>All tasks have a unique name</li>
+  <li>All entries have a unique name</li>
+  <li>All activities have a unique name within a given task</li>
+  <li>All synchronous calls must have a valid destination</li>
+  <li>All asynchronous calls must have a valid destination</li>
+  <li>All forwarding calls must have a valid destination</li>
+  <li>All activity connections (in precedence blocks) refer to valid
+activities</li>
+  <li>All activity replies must refer to a valid entry</li>
+  <li>All activity loops must refer to a valid activities</li>
+  <li>Each entry has only one activity bound to it<br>
+  </li>
+  <li>Phases restricted to values 1-3 (mainly for legacy purposes)</li>
+  <li>All phase attributes within an entry must be unique</li>
+</ul>
+<br>
+<big><span style="font-weight: bold;">Tips on debugging an XML file</span></big><br>
+<br>
+&nbsp;&nbsp;&nbsp; The entire LQN tool set uses the Xerces XML parser
+library.&nbsp; From personal<br>
+experience it does not appear to be the most rigorous when validating
+XML files<br>
+against schemas, and also tends to give rather cryptic error messages
+as opposed<br>
+to other tools.<br>
+<br>
+&nbsp;&nbsp;&nbsp; If an XML file fails to pass the validation phase,
+and the error looks cryptic,<br>
+chances are very good that there is a genuine problem with the XML
+file.&nbsp; Xerces<br>
+has a bad habit of coming back with cryptic errors when constraint
+checking<br>
+fails, and only gives you the general area in the file where the actual
+problem<br>
+is.<br>
+<br>
+&nbsp;&nbsp;&nbsp; One easy and convenient solution around this problem
+is to validate the XML file<br>
+using another XML tool.&nbsp; Tools that have been found to give more
+user friendly<br>
+feedback are XMLSpy (any edition), and XSDvalid (Java based, freely
+available).<br>
+Another solution is to check if a particular tool can de-activate schema<br>
+validation and rely on the actual tool to do its own internal error
+checking.<br>
+Currently this is no supported in any of the LQN tools which are XML
+enabled,<br>
+but it maybe implemented later on.<br>
+<br>
+&nbsp;&nbsp;&nbsp; If the XML file validates using other tools, but
+fails validation with Xerces,<br>
+or if the XML file fails validation on other tools, but passes with
+Xerces then<br>
+please report the problem.&nbsp; The likelihood of validation passing
+with Xerces and<br>
+not other tools will be much higher then the reverse scenario, because
+Xerces<br>
+does not rigorously apply the XML Schema standard as other tools.&nbsp;
+Other sources<br>
+of problems could be errors in the XML schema itself, or some unknown
+bug in the<br>
+Xerces library.<br>
+<br>
+<br>
+<br>
+<big><span style="font-weight: bold;">Tips on interpreting error
+messages from the Xerces XML parser</span></big><br>
+<br>
+As mentioned in the previous section, Xerces reports cryptic error
+messages when<br>
+constraint checking fails.&nbsp; If another XML tool is not readily
+available<br>
+then below are some guidelines to assist in finding the error in an XML
+file.<br>
+<br>
+Possible error messages when constraint checking fails:<br>
+<br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">Duplicate unique value declared for
+identity constraint of element 'task'.</span><br>
+<br>
+This means one or more activities are being bound to the same
+entry.&nbsp; This is not<br>
+allowed, as an entry is only allowed to be bound to one activity.&nbsp;
+Check all<br>
+bound-to-entry attributes for all activities to ensure this constraint
+is being met.<br>
+<br>
+<br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">Duplicate unique value declared for
+identity constraint of
+element 'lqn-model'.</span><br>
+<br>
+This means an element has a duplicate name, and the parser gives the
+line number<br>
+to the start of the second instance of duplicate element.&nbsp; The
+first instance<br>
+exists somewhere above the the second instance in the XML file.&nbsp;
+The following<br>
+elements must have unique name attributes, but the uniqueness does not
+span<br>
+elements.&nbsp; Therefore a processor and task element can have the
+same name<br>
+attribute, but two processor elements cannot have the same name
+attribute.<br>
+<br>
+The following elements must have a unique name attribute:<br>
+<ul>
+  <li>processor</li>
+  <li>task</li>
+  <li>entry</li>
+</ul>
+<br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">The key for identity constraint of element
+'lqn-model' is not
+found.</span><br>
+<br>
+When this error appears, Xerces does not give too many hints on where
+the error<br>
+actually occurs because it will always give a line number which points
+to the<br>
+end of the file (i.e. where the terminating tag <span
+ class="textOperator">&lt;/</span><span class="textElement">lqn-model</span><span
+ class="textOperator">&gt;</span> is).<br>
+<br>
+In this case, the following three points should be inspected to ensure
+validity<br>
+of the model:<br>
+<ul>
+  <li>All synchronous calls have a dest attribute which refers to a
+valid entry.</li>
+</ul>
+<ul>
+  <li>All asynchronous calls have a dest attribute which refers to a
+valid entry.</li>
+</ul>
+<ul>
+  <li>All forwarding calls have a dest attribute which refers to a
+valid entry.</li>
+</ul>
+<br>
+If it is not practical to manually inspect the model, run the XML file
+through<br>
+another tool like XMLSpy or XSDvalid which will report more descriptive
+errors.<br>
+<br>
+<br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">The key for identity constraint of element
+'task' is not found.</span><br>
+<br>
+When this error appears, it means there is something wrong within the
+task element<br>
+indicated by the line number.<br>
+Check to make sure that:<br>
+<ul>
+  <li>The name attribute of all reply-entry elements refers to a valid
+entry name,<br>
+which exists within the same task as the task activity graph.</li>
+</ul>
+<ul>
+  <li>All activities which contain the attribute bound-to-entry have a
+valid entry<br>
+name that exists within the same task as the task activity graph.<br>
+  </li>
+</ul>
+<br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">Duplicate unique value declared for
+identity constraint of element 'task'<br>
+<br>
+</span>When this error appears, it means an activity does not have a
+unique name within<br>
+the task element specified by the XML parser error output.<br>
+<br style="font-style: italic;">
+<span style="font-style: italic;"></span><br>
+<span style="font-weight: bold;">Message:</span> <span
+ style="font-style: italic;">The key for identity constraint of element
+'task-activities'
+is not found.</span><br>
+<br>
+When this error appears, it means there is something wrong within the<br>
+task-activities element indicated by the line number.<br>
+<br>
+Check to make sure that:<br>
+<ul>
+  <li>All activities referenced within the precedence elements refer to<br>
+activities which are defined for that particular task activity graph.<br>
+  </li>
+</ul>
+<ul>
+  <li>The name attribute of all reply-activity elements refers to an
+activity<br>
+defined within the mentioned task-activities element.</li>
+</ul>
+<ul>
+  <li>The head attribute of all post-LOOP elements refers to an
+activity defined<br>
+within the mentioned task-activities element.</li>
+</ul>
+<ul>
+  <li>All post-LOOP elements which contain the optional attribute end,
+refers to<br>
+an activity defined within the mentioned task-activities element.<br>
+  </li>
+</ul>
+<br>
+<big><span style="font-weight: bold;">References</span></big><br>
+<ol>
+  <li>R. Allen Wyke, A. Watt, <span style="font-style: italic;">XML
+Schema Essentials</span>, John Wiley &amp; Sons Inc,<br>
+2002.<br>
+    <br>
+  </li>
+  <li>D. C. Petriu, R. G. Franks, A. Hubbard, "SRVN Input File Format",
+RADS Lab<br>
+internal report - Carleton University, November 1998.<br>
+    <br>
+  </li>
+  <li>C.M. Woodside, J.E. Neilson, D.C. Petriu and S. Majumdar, "The
+Stochastic<br>
+Rendezvous Network Model for Performance of Synchronous
+Client-Server-Like<br>
+Distributed Software", <span style="font-style: italic;">IEEE
+Transactions on Computers</span>, Vol. 44, No. 1,<br>
+January 1995, pp. 20-34.<br>
+    <br>
+  </li>
+  <li>Xiuping Wu, "An Approach to Predicting Peformance for Component
+Based<br>
+Systems", M. Eng thesis, Carleton University, August 2003<br>
+    <br>
+  </li>
+</ol>
+</body>
+</html>

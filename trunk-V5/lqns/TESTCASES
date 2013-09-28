@@ -1,0 +1,23 @@
+test1:		2 Class MVA -- queue:chandy-82
+test1hv:	 high variance stations.
+test1hvp:        high variance with phases.
+test1p:          phases.
+test1ps:         Processor sharing.
+
+test2:		Four customers, one server.
+
+test3:		FCFS with class dependent average service times -- perf:lazowska-84, Pg 264
+
+test4:		FCFS with high variability service times -- perf:lazowska-84, Pg 267
+
+test7:		Markov Phased server test.  N customers.  2 clients to common entry.
+
+test9a:		Simple Multiserver.
+test9c:         Multiserver -- Conway solver and model.  Long.
+test9d:         Multiserver -- Conway solver.
+test9i:         Multiserver -- vary the number of servers.  Test all one phase server types.
+
+test11:		Priority MVA Test cases -- FCFS version
+test11a:	  PR version
+test11b:	  HOL version
+test11f:	  ??

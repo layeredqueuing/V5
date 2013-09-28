@@ -1,0 +1,9 @@
+Note:
+
+This library has a C++ file (filename.cc), so one may not be able to
+use the normal ar command (Solaris/Irix).  See "Program and Library
+Variables" in the automake documentation.  See ../configure.in for
+setting LIBAR.
+
+
+

@@ -1,0 +1,79 @@
+# -*- Text -*-
+# Department of Systems and Computer Engineering
+
+.global
+	.solver = "lqns";
+	.format = "gnu";
+	.template = "customers.lqnx";
+
+.end
+
+.experiment lqns
+	.set
+		.solver = "lqns";
+		.lqnsopts = " -w";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5;
+		n2 = 1, 2, 3, 4, 5;
+
+	.vary
+		n1;
+		n2;
+
+	.control
+		.tm ( client ) = { n1 };
+		.tm ( server ) = { n2 };
+
+	.observe
+		.plot { n1 };
+		.plot { n2 };
+		.th ( .t, client ) "X_{y}";
+.end
+
+.experiment petrisrvn
+	.set
+		.solver = "petrisrvn";
+		.petriopts = " -w";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5;
+		n2 = 1, 2, 3, 4, 5;
+
+	.vary
+		n1;
+		n2;
+
+	.control
+		.tm ( client ) = { n1 };
+		.tm ( server ) = { n2 };
+
+	.observe
+		.plot { n1 };
+		.plot { n2 };
+		.th ( .t, client ) "X_{y}";
+.end
+
+.experiment lqsim
+	.set
+		.solver = "lqsim";
+		.lqsimopts = " -w -C2.0";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5;
+		n2 = 1, 2, 3, 4, 5;
+
+	.vary
+		n1;
+		n2;
+
+	.control
+		.tm ( client ) = { n1 };
+		.tm ( server ) = { n2 };
+
+	.observe
+		.plot { n1 };
+		.plot { n2 };
+		.th ( .t, client ) "X_{y}";
+.end
+

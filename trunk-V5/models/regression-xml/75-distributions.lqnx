@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o75-distributions.lqnx 75-distributions.in -->
+<!-- Fri May 29 10:46:25 2009 -->
+
+<lqn-model name="75-distributions" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="constant" scheduling="inf">
+      <task name="constant" scheduling="ref">
+         <entry name="constant" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="constant_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0">
+                  <service-time-distribution min="0" max="9" number-bins="12"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="exponential" scheduling="inf">
+      <task name="exponential" scheduling="ref">
+         <entry name="exponential" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="exponential_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution min="0" max="40" number-bins="40"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="gamma" scheduling="inf">
+      <task name="gamma" scheduling="ref">
+         <entry name="gamma" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="gamma_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0.222222">
+                  <service-time-distribution min="0" max="40" number-bins="40"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="hyperexponential" scheduling="inf">
+      <task name="hyperexponential" scheduling="ref">
+         <entry name="hyperexponential" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="hyperexponential_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="9">
+                  <service-time-distribution min="0" max="40" number-bins="40"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="pareto" scheduling="inf">
+      <task name="pareto" scheduling="burst">
+         <entry name="pareto" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="pareto_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution min="0" max="40" number-bins="40"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

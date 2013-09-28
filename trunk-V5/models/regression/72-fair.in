@@ -1,0 +1,37 @@
+# SRVN Model Description File, for file: cfs1.in
+# For: greg
+# Wed Dec 10 11:12:32 2008
+
+G "Group scheduling test" 1e-05 50 10 0.9 -1
+
+P 3
+  p p1 f i
+  p p2 f i
+  p p3 c 0.1
+-1
+
+U 2
+  g g1 0.75 p3
+  g g2 0.25 p3
+-1
+
+T 4
+  t c1 r c1 -1 p1 m 10
+  t c2 r c2 -1 p2 m 20
+  t s1 n s1 -1 p3 m  5 g g1
+  t s2 n s2 -1 p3 m 10 g g2
+-1
+
+E 4
+# ---------- c1 ----------
+  s c1 1 -1
+  y c1 s1 1 -1
+# ---------- c2 ----------
+  s c2 1 -1
+  y c2 s2 1 -1
+# ---------- s1 ----------
+  s s1 1 -1
+# ---------- s2 ----------
+  s s2 1 -1
+-1
+

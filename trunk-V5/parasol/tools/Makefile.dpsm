@@ -1,0 +1,40 @@
+# @(#)Makefile.dpsm	1.2 16:17:36 8/28/95
+#
+# Makefile.aimk for PVM example programs.
+#
+# Set PVM_ROOT to the path where PVM includes and libraries are installed.
+# Set PVM_ARCH to your architecture type (SUN4, HP9K, RS6K, SGI, etc.)
+# Set ARCHLIB to any special libs needed on PVM_ARCH (-lrpc, -lsocket, etc.)
+# otherwise leave ARCHLIB blank
+#
+# PVM_ARCH=	LINUX
+# PVM_ROOT=	$(HOME)/pvm3
+ARCHLIB	=
+
+SDIR	=	.
+BDIR	=	$(HOME)/pvm3/bin
+XDIR	=	$(BDIR)/$(PVM_ARCH)
+
+CC	=	gcc
+CFLAGS	=	-Wall -g -I$(PVM_ROOT)/include
+LIBS	=	-lpvm3 $(ARCHLIB)
+GLIBS	=	-lgpvm3
+
+LFLAGS	=	-L$(PVM_ROOT)/lib/$(PVM_ARCH)
+
+all: dpsm dpss
+
+$(XDIR):
+	- mkdir $(BDIR)
+	- mkdir $(XDIR)
+
+dpsm: $(SDIR)/dpsm.c $(XDIR)
+	$(CC) $(CFLAGS) -o $@ $(SDIR)/$@.c $(LFLAGS) $(LIBS) -lm
+	mv $@ $(XDIR)
+
+dpss: $(SDIR)/dpss.c $(XDIR)
+	$(CC) $(CFLAGS) -o $@ $(SDIR)/$@.c $(LFLAGS) $(LIBS)
+	mv $@ $(XDIR)
+
+clean:
+	rm -f *.o dpsm dpss *~ *# *% 

@@ -1,0 +1,82 @@
+# -*- Text -*-
+
+.global
+	.solver = "petrisrvn";
+	.format = "gnuplot";
+#	.format = "latex";
+.end
+
+.experiment sync
+	.set
+		.template = "sync.in";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5, 6;
+
+	.vary
+		n1;
+
+	.control
+		.tm ( client ) = { n1 };
+
+	.observe
+		.plot { n1 }; 
+		.th ( .t, client ) "\lambda_{client}";
+		.wt ( .ee, client, acquire, 1 ) "\wait_{client,acquire}";
+		.jd ( .taa, lock, acquire, release ) "Join";
+.end
+
+
+.experiment lock
+	.set
+		.template = "lock.in";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5, 6;
+		n2 = 1, 2, 3;
+
+	.vary
+		n2;
+		n1;
+
+	.control
+		.tm ( client ) = { n1 };
+		.tm ( lock ) = { n2 };
+
+	.observe
+		.plot { n2 };
+		.plot { n1 }; 
+		.th ( .t, client ) "\lambda_{client}";
+		.wt ( .ee, client, acquire, 1 ) "\wait_{client,acquire}";
+		.ht ( .t, lock, 2 ) "lock_{lock}";
+.end
+
+
+
+.experiment phase
+	.set
+		.template = "phase.in";
+		.solver = "lqsim";
+		.lqsimopts = "-C1.0";
+
+	.declare
+		n1 = 1, 2, 3, 4, 5, 6;
+		n2 = 1, 2, 3;
+
+	.vary
+		n2;
+		n1;
+
+	.control
+		.tm ( client ) = { n1 };
+		.tm ( lock ) = { n2 };
+		.st ( acquire, 2 ) = { 0.6 / n2 };
+
+	.observe
+		.plot { n2 }; 
+		.plot { n1 }; 
+		.th ( .t, client ) "\lambda_{t2}";
+		.wt ( .ee, client, acquire, 1 ) "\wait_{client,acquire}";
+.end
+
+

@@ -1,0 +1,233 @@
+<?xml version="1.0"?>
+<!-- lqsim -confidence=1.0 -seed=123456 -xml -output=bug-685-sim.lqxo -->
+<lqn-model name="bug-685" description="lqsim 5.7 solution for model from: bug-685.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Bug 685" conv_val="1e-05" it_limit="100" underrelax_coeff="0.9" print_int="1">
+      <result-general valid="NO" conv-val="2.39578" iterations="30" platform-info="merlin.sce.carleton.ca Darwin 12.2.0" user-cpu-time="00:02:20.78" system-cpu-time="00:01:37.57" elapsed-time="00:05:02.66"/>
+   </solver-params>
+   <processor name="P_Client" scheduling="fcfs" multiplicity="20">
+      <result-processor utilization="17.8501">
+         <result-conf-95 utilization="0.0719974"/>
+         <result-conf-99 utilization="0.0970293"/>
+      </result-processor>
+      <task name="user" scheduling="ref" multiplicity="20" queue-length="0">
+         <result-task throughput="1.78693" utilization="20" phase1-utilization="20" proc-utilization="17.8501">
+            <result-conf-95 throughput="0.0129084" utilization="0" proc-utilization="0.0719974"/>
+            <result-conf-99 throughput="0.0173963" utilization="12.3252" proc-utilization="0.0970293"/>
+         </result-task>
+         <entry name="request" type="PH1PH2">
+            <result-entry utilization="20" throughput="1.78693" squared-coeff-variation="1.0703" proc-utilization="17.8501">
+               <result-conf-95 utilization="0" throughput="0.0129084" squared-coeff-variation="0" proc-utilization="0.0719974"/>
+               <result-conf-99 utilization="0" throughput="0.0173963" squared-coeff-variation="0" proc-utilization="0.0970293"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="request_ph1" phase="1" host-demand-mean="10">
+                  <result-activity proc-waiting="0" service-time="11.1925" utilization="20" service-time-variance="134.079">
+                     <result-conf-95 proc-waiting="0" service-time="0.0806514" utilization="0" service-time-variance="2.83011"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.108692" utilization="0" service-time-variance="3.81407"/>
+                  </result-activity>
+                  <synch-call dest="pagerequest" calls-mean="1">
+                     <result-call waiting="0.00257168" waiting-variance="0.00706948">
+                        <result-conf-95 waiting="0.00157879" waiting-variance="0.00665367"/>
+                        <result-conf-99 waiting="0.0021277" waiting-variance="0.008967"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="P_Webserver" scheduling="fcfs">
+      <result-processor utilization="0.0892415">
+         <result-conf-95 utilization="0.000906848"/>
+         <result-conf-99 utilization="0.00122214"/>
+      </result-processor>
+      <task name="webworker" scheduling="fcfs" multiplicity="10" queue-length="0">
+         <result-task throughput="1.78398" utilization="2.14533" phase1-utilization="2.14533" proc-utilization="0.0892415">
+            <result-conf-95 throughput="0.0132896" utilization="0.0707857" phase1-utilization="0.0707857" proc-utilization="0.000906848"/>
+            <result-conf-99 throughput="0.0179101" utilization="4.0367" phase1-utilization="0.0953963" proc-utilization="0.00122214"/>
+         </result-task>
+         <entry name="pagerequest" type="PH1PH2">
+            <result-entry utilization="2.14533" throughput="1.78398" squared-coeff-variation="5.04225" proc-utilization="0.0892415">
+               <result-conf-95 utilization="0.0707857" throughput="0.0132896" squared-coeff-variation="0" proc-utilization="0.000906848"/>
+               <result-conf-99 utilization="0.0953963" throughput="0.0179101" squared-coeff-variation="0" proc-utilization="0.00122214"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="pagerequest_ph1" phase="1" host-demand-mean="0.05">
+                  <result-activity proc-waiting="0.0048253" service-time="1.20258" utilization="2.14533" service-time-variance="7.29215">
+                     <result-conf-95 proc-waiting="0.000165153" service-time="0.0425074" utilization="0.0707857" service-time-variance="0.555366"/>
+                     <result-conf-99 proc-waiting="0.000222574" service-time="0.0572862" utilization="0.0953963" service-time-variance="0.748454"/>
+                  </result-activity>
+                  <synch-call dest="dbrequest" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="P_Databaseserver" scheduling="fcfs">
+      <result-processor utilization="0.0891016">
+         <result-conf-95 utilization="0.00103498"/>
+         <result-conf-99 utilization="0.00139481"/>
+      </result-processor>
+      <task name="dbcontrol" scheduling="inf" queue-length="0">
+         <result-task throughput="1.78422" utilization="2.04748" phase1-utilization="2.04748" proc-utilization="0">
+            <result-conf-95 throughput="0.0196635" utilization="0.0706412" phase1-utilization="0.0706412" proc-utilization="0"/>
+            <result-conf-99 throughput="0.0265001" utilization="3.94357" phase1-utilization="0.0952015" proc-utilization="0"/>
+         </result-task>
+         <entry name="dbrequest" type="PH1PH2">
+            <result-entry utilization="2.04748" throughput="1.78422" squared-coeff-variation="3.04665" proc-utilization="0">
+               <result-conf-95 utilization="0.0706412" throughput="0.0196635" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0.0952015" throughput="0.0265001" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="dbrequest_ph1" phase="1" host-demand-mean="0">
+                  <result-activity proc-waiting="0.00136191" service-time="1.14753" utilization="2.04748" service-time-variance="4.01193">
+                     <result-conf-95 proc-waiting="4.16723e-05" service-time="0.0355762" utilization="0.0706412" service-time-variance="0.279642"/>
+                     <result-conf-99 proc-waiting="5.61608e-05" service-time="0.0479452" utilization="0.0952015" service-time-variance="0.376868"/>
+                  </result-activity>
+                  <synch-call dest="query" calls-mean="1">
+                     <result-call waiting="0.037228" waiting-variance="0.0297306">
+                        <result-conf-95 waiting="0.00522806" waiting-variance="0.0054417"/>
+                        <result-conf-99 waiting="0.00704573" waiting-variance="0.00733365"/>
+                     </result-call>
+                  </synch-call>
+                  <synch-call dest="update" calls-mean="1">
+                     <result-call waiting="0.0371084" waiting-variance="0.0297273">
+                        <result-conf-95 waiting="0.00552431" waiting-variance="0.00583941"/>
+                        <result-conf-99 waiting="0.00744498" waiting-variance="0.00786964"/>
+                     </result-call>
+                  </synch-call>
+                  <synch-call dest="failure" calls-mean="0">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+                  <synch-call dest="sleepdelay" calls-mean="0">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="dbworker" scheduling="fcfs" multiplicity="5" queue-length="0">
+         <result-task throughput="3.56529" utilization="1.91252" phase1-utilization="1.91252" proc-utilization="0.0891016">
+            <result-conf-95 throughput="0.0496656" utilization="0.0557533" phase1-utilization="0.0421796" proc-utilization="0.00103498"/>
+            <result-conf-99 throughput="0.0669332" utilization="3.81138" phase1-utilization="0.0568445" proc-utilization="0.00139481"/>
+         </result-task>
+         <entry name="query" type="PH1PH2">
+            <result-entry utilization="1.18417" throughput="1.78219" squared-coeff-variation="1.81511" proc-utilization="0.0356349">
+               <result-conf-95 utilization="0.0361493" throughput="0.0269696" squared-coeff-variation="0" proc-utilization="0.000587763"/>
+               <result-conf-99 utilization="0.0487175" throughput="0.0363463" squared-coeff-variation="0" proc-utilization="0.000792115"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="query_ph1" phase="1" host-demand-mean="0.02">
+                  <result-activity proc-waiting="0.00277129" service-time="0.664442" utilization="1.18417" service-time-variance="0.801342">
+                     <result-conf-95 proc-waiting="7.38228e-05" service-time="0.0165563" utilization="0.0361493" service-time-variance="0.0392272"/>
+                     <result-conf-99 proc-waiting="9.94894e-05" service-time="0.0223125" utilization="0.0487175" service-time-variance="0.0528656"/>
+                  </result-activity>
+                  <synch-call dest="diskop" calls-mean="5">
+                     <result-call waiting="0.0784386" waiting-variance="0.00901162">
+                        <result-conf-95 waiting="0.00253925" waiting-variance="0.000280732"/>
+                        <result-conf-99 waiting="0.00342209" waiting-variance="0.000378337"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="update" type="PH1PH2">
+            <result-entry utilization="0.72835" throughput="1.78311" squared-coeff-variation="1.95777" proc-utilization="0.0534666">
+               <result-conf-95 utilization="0.0217336" throughput="0.0255438" squared-coeff-variation="0" proc-utilization="0.000851885"/>
+               <result-conf-99 utilization="0.0292899" throughput="0.0344248" squared-coeff-variation="0" proc-utilization="0.00114807"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="update_ph1" phase="1" host-demand-mean="0.03">
+                  <result-activity proc-waiting="0.00173538" service-time="0.408467" utilization="0.72835" service-time-variance="0.326644">
+                     <result-conf-95 proc-waiting="5.93734e-05" service-time="0.00959674" utilization="0.0217336" service-time-variance="0.0165027"/>
+                     <result-conf-99 proc-waiting="8.00162e-05" service-time="0.0129333" utilization="0.0292899" service-time-variance="0.0222404"/>
+                  </result-activity>
+                  <synch-call dest="diskop" calls-mean="3">
+                     <result-call waiting="0.0755974" waiting-variance="0.00878809">
+                        <result-conf-95 waiting="0.00251656" waiting-variance="0.000293633"/>
+                        <result-conf-99 waiting="0.00339151" waiting-variance="0.000395723"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="failure" type="PH1PH2">
+            <result-entry utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0">
+               <result-conf-95 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="failure_ph1" phase="1" host-demand-mean="0.02">
+                  <result-activity proc-waiting="0" service-time="0" utilization="0">
+                     <result-conf-95 proc-waiting="0" service-time="0" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="P_Delayserver" scheduling="inf">
+      <result-processor utilization="0">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="delay" scheduling="inf" queue-length="0">
+         <result-task throughput="0" utilization="0" proc-utilization="0">
+            <result-conf-95 throughput="0" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="0" utilization="0" proc-utilization="0"/>
+         </result-task>
+         <entry name="sleepdelay" type="PH1PH2">
+            <result-entry utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0">
+               <result-conf-95 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="sleepdelay_ph1" phase="1" host-demand-mean="0.4">
+                  <result-activity proc-waiting="0" service-time="0" utilization="0">
+                     <result-conf-95 proc-waiting="0" service-time="0" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="P_Storage" scheduling="fcfs">
+      <result-processor utilization="0.712688">
+         <result-conf-95 utilization="0.0105649"/>
+         <result-conf-99 utilization="0.014238"/>
+      </result-processor>
+      <task name="disk" scheduling="fcfs" queue-length="0">
+         <result-task throughput="14.251" utilization="0.712688" phase1-utilization="0.712688" proc-utilization="0.712688">
+            <result-conf-95 throughput="0.210068" utilization="0.0105649" phase1-utilization="0.0105649" proc-utilization="0.0105649"/>
+            <result-conf-99 throughput="0.283105" utilization="2.32664" phase1-utilization="0.014238" proc-utilization="0.014238"/>
+         </result-task>
+         <entry name="diskop" type="PH1PH2">
+            <result-entry utilization="0.712688" throughput="14.251" squared-coeff-variation="0.999914" proc-utilization="0.712688">
+               <result-conf-95 utilization="0.0105649" throughput="0.210068" squared-coeff-variation="0" proc-utilization="0.0105649"/>
+               <result-conf-99 utilization="0.014238" throughput="0.283105" squared-coeff-variation="0" proc-utilization="0.014238"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="diskop_ph1" phase="1" host-demand-mean="0.05">
+                  <result-activity proc-waiting="0" service-time="0.0500096" utilization="0.712688" service-time-variance="0.00250075">
+                     <result-conf-95 proc-waiting="0" service-time="0.000146136" utilization="0.0105649" service-time-variance="1.85542e-05"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.000196945" utilization="0.014238" service-time-variance="2.5005e-05"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,0 +1,374 @@
+.TH LQSIM 1 "$Date::2013-01-30 $"
+.\" $Id$
+.SH NAME
+lqsim \- simulate layered queueing networks. 
+.SH SYNOPSIS
+.sp
+.B lqsim
+[
+.B \-dnpRvV
+] [
+.B \-A \fIrun-time[,precision[,skip]]\fR
+] [
+.B \-B \fIblocks[,run-time[,skip]]\fR
+] [
+.B \-C \fIprecision[,initial-loops[,run-time]]\fR
+] [
+.B \-e \fI(e|i|w)\fR
+] [
+.B \-h \fI(file|directory)\fR
+] [
+.B \-I \fI(xml|lqn)\fR
+] [
+.B \-m \fIfile\fR
+] [
+.B \-o \fI(file|directory)\fR
+] [
+.B \-P \fIpragma\fR
+] [
+.B \-S \fIseed\fR
+] [
+.B \-t \fItraceopts\fR
+] [
+.B \-T \fIrun-time\fR
+] [
+filename
+\&.\|.\|.
+]
+.SH DESCRIPTION
+\fBLqsim\fR is used to simulate layered queueing networks using the
+PARASOL simulation system.  Models can be specified using the LQN
+modelling language, or with extensible markable language (XML).  Refer
+to the \fI``Layered Queueing Network Solver and Simulator User
+Manual''\fR for details of the model and for a complete description of
+the input file formats for the program.
+.PP
+\fBLqsim\fR reads its input from \fIfilename\fR, specified at the
+command line if present, or from the standard input otherwise.  By
+default, output for an input file \fIfilename\fR specified on the
+command line will be placed in the file \fIfilename\fB.out\fR.  If the
+\fB\-p\fP switch is used, parseable output will also be written into
+\fIfilename\fB.p\fR. If XML input or the \fB\-x\fP switch is used, XML output will be written
+to \fIfilename\fB.lqxo\fR.  This behaviour can be changed using
+the \fB\-o\fIoutput\fR switch, described below.  If several files are
+named, then each is treated as a separate model and output will be
+placed in separate output files.  If input is from the standard input,
+output will be directed to the standard output.  The file name `\-' is
+used to specify standard input.
+.PP
+The \fB\-o\fIoutput\fR option can be used to direct output to the file
+or directory named \fIoutput\fR regardless of the source of input.
+Output will be XML if XML input or if the \fB\-x\fP switch is used,
+parseable output if the \fB\-p\fP switch is used, and normal output
+otherwise; multiple input files cannot be specified.  If \fIoutput\fP
+is a directory, results will be written in the directory named
+\fIoutput\fP.  Output can be directed to standard output by using
+\fB\-o\fI\-\fR (i.e., the output file name is `\fI\-\fR'.)
+.SH "OPTIONS"
+.TP
+\fB\-A\fR, \fB\-\-automatic\fR=\fIrun-time[,precision[,skip]]\fR
+Use automatic blocking with a simulation block size of \fIrun-time\fP.
+The \fIprecision\fP argument specifies the desired mean 95% confidence
+level.  By default, \fIprecision\fP is 1.0%.  The simulator will stop
+when this value is reached, or when 30 blocks have run.  \fISkip\fP
+specifies the time value of the initial skip period.  Statistics
+gathered during the skip period are discarded.  By default, its value
+is 0.  When the run completes, the results reported will be the
+average value of the data collected in all of the blocks.  If the -R
+flag is used, confidence intervals will be reported to the monitor
+file.
+.TP 
+\fB\-B\fR, \fB\-\-blocks\fR=\fIblocks[,run-time[,skip]]\fR
+Use manual blocking with \fIblocks\fP blocks.  \fIblocks\fP must be
+less than or equal to 30.  The run time for each block is specified
+with \fIrun-time\fP.  \fISkip\fP specifies the time value of the initial
+skip period.  Statistics gathered during the skip period are
+discarded.  By default, its value is 0.  When the run completes, the
+results reported will be the average value of the data collected in
+all of the blocks.  If the \fB\-R\fP flag is used, confidence
+intervals will be reported to the \fImonitor\fP file.
+.TP
+\fB\-C\fR, \fB\-\-confidence\fR=\fIprecision[,initial-loops[,run-time]]\fR
+Use automatic blocking, stopping when the specified \fIprecision\fP is
+met.  The run time of each block is estimated, based on
+\fIinitial-loops\fP  running on each reference task.  The default
+value for \fIinitial-loops\fP is 500.  The \fIrun-time\fP argument
+specifies the maximum total run time.
+.TP
+\fB\-d\fR, \fB\-\-debug\fR
+This option is used to dump task and entry information showing
+internal index numbers.  This option is useful for determining the
+names of the servers and tasks when tracing the execution of the
+simulator since the Parasol output routines do no emit this
+information at present.  Output is directed to stdout unless
+redirected using \fB\-m \fIfile\fR.
+.TP 
+\fB\-e\fR, \fB\-\-error\fR=(a|i|w)\fR
+Floating point error disposition.  By default, floating point errors
+are ignored (\fB\-ei\fP).  Selecting \fB\-ea\fP causes \fBlqsim\fP to
+abort on the floating point errors \fIoverflow, division by zero, \fP
+or \fIoperand error\fP (see \fBfloating_point(3)\fP).  \fB\-ew\fP
+prints a warning only on floating point error (not implemented at
+present).
+.IP
+The solver checks for floating point overflow, division by zero and
+invalid operations.  Underflow and inexact result exceptions are
+always ignored.
+.IP
+In some instances, infinities will be propogated within the solver.
+Please refer to the stop-on-message-loss pragma below.
+.TP
+\fB\-H\fR, \fB\-\-help\fR 
+Output a summary of the command line options.
+.TP
+\fB\-I\fR, \fB\-\-input-format\fR=(xml|lqn)\fR
+Force the input file format to be either XML or LQN.  By default, if
+the input file type is one of: \fI.in\fR, \fI.lqn\fR, or \fI.xlqn\fR,
+then LQN input is expected.  Otherwise XML input is expected.  
+.TP
+\fB\-n\fR, \fB\-\-no-execute\fR
+Read input, but do not solve.  The input is checked for validity. No
+output is generated. 
+.TP
+\fB\-o\fR, \fB\-\-output\fR=\fIfile\fR
+Direct analysis results to \fIfile\fR.  A file name of `\fI\-\fR'
+directs output to standard output.  If \fIoutput\fP is a directory,
+all output from the simulator will be placed there with filenames
+based on the name of the input files processed.  Otherwise, only one
+input file can be processed; its output will be placed in
+\fIoutput\fP. 
+.TP
+\fB\-p\fR, \fB\-\-parseable\fR
+Generate parseable output suitable as input to other programs such as
+\fBsrvndiff\fR and \fBmultisrvn\fR. The parseable output is sent to an
+output file, one for each input file specified, determined from its
+corresponding input file by the addition of \fB.p\fR.  If standard
+input is used as the input source, then the parseable output is output
+to the standard output device.  If the \fB-o\fI output\fR option is
+used, the parseable output is sent to the file name output. (In this
+case, only parseable output is emitted.)
+.TP
+\fB\-P\fR, \fB\-\-pragma\fR=\fIpragma[=value]\fR
+Set \fIpragma\fP to value.  See the section on pragmas below.
+.TP
+\fB\-R\fR, \fB\-\-raw-statistics\fR
+Print the values of the statistical counters to the monitor file.  If
+the \fB\-A\fP, \fB\-B\fP or \fB\-C\fP option was used, the mean value, 95th and
+99th percentile are reported.  At present, statistics are gathered for
+the task cycle time, utilization, and waiting time for messages, and
+for entry cycle time and utilization.
+.TP
+\fB\-S\fR, \fB\-\-seed\fR=\fInumber\fR 
+Set the initial seed value for the random number generator.  By
+default, the system time from time(3) is used.  The same seed value is
+used to initialize the random number generator for each file when
+multiple input files are specified.
+.TP
+\fB\-t\fR, \fB\-\-trace\fR=\fItraceopts\fR
+Tracing options.
+.RS
+.TP
+driver
+Print out the underlying tracing information from the Parasol
+simulation engine.
+.TP
+processor[=\fIpattern\fP]
+Trace activity for processors whose name match \fIpattern\fP.  If
+\fIpattern\fP is not specified, activity on all processors is reported.
+\fIpattern\fP is regular expression of the type accepted by
+\fBegrep(1)\fR.
+.TP
+task[=\fIpattern\fP]
+Trace activity for tasks whose name match \fIpattern\fP.  If
+\fIpattern\fP is not specified, activity on all tasks is reported.
+\fIpattern\fP is regular expression of the type accepted by
+\fBegrep(1)\fR.
+.TP
+events=\fIpattern[:pattern]\fP
+Display only events matching pattern.  The events are: msg-async,
+msg-send, msg-receive, msg-reply, msg-done, msg-abort, msg-forward,
+worker-dispatch, worker-idle, task-created, task-ready, task-running,
+task-computing, task-waiting, thread-start, thread-enqueue,
+thread-dequeue, thread-idle, thread-create, thread-reap, thread-stop,
+activity-start, activity_execute, activity_fork, and activity_join.
+.TP
+msgbuf
+Show \fImsgbuf\fP allocation and deallocation.
+.TP
+timeline
+Generate events for the timeline tool.
+.RE
+.TP
+\fB\-T\fR, \fB\-\-run-time\fR=\fInumber\fR
+Set the run time for the simulation.  The default is 10,000 units.
+Specifying \fB\-T\fP after either \fB\-A\fP or \fB\-B\fP changes the
+simulation block size, but does not turn off blocked statistics
+collection.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Display solution execution.  For \fBlqsim\fP, the
+simulation block number and mean confidence level are displayed.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Display version number.  
+.TP
+\fB\-w\fR, \fB\-\-no-warnings\fR
+Suppress the output of warning messages.
+.TP
+\fB\-x\fR, \fB\-\-xml\fR
+Generate XML output regardless of input format.
+.TP
+\fB\-\-print-interval\fR=\fInn\fP
+Set the printing interval to \fInn\fP.  Results are printed after
+\fInn\fP blocks have run.  The default value is 10.
+.TP
+\fB\-\-global-delay=\fInn.n\fP
+Set the interprocessor delay to \fInn.n\fP for all tasks.  Delays
+specified in the input file will override the global value.
+.TP
+\fB\-\-reload-lqx\fR
+Re-run the LQX program without re-solving the models.  Results must exist from a previous solution run.
+This option is useful if LQX print statements are changed.
+.TP
+\fB\-\-restart\fR
+Re-run the LQX program without re-solving the models.  If valid results do
+not exist for a given set of parameters, the simulation is run.  This option is useful if a
+simulation was stopped part way through LQX execution or if some
+results are invalid.
+.TP
+\fB\-\-debug-xml\fR
+Output the XML elements and attributes as they are being parsed.  If
+there is an error in the input file, parsing will generally stop at
+the line causing the problem.
+.TP
+\fB\-\-debug-lqx\fR
+Enable the debugging code for the LQX parser.  This will output the
+results of the parse, not of the execution of the lqx program.
+.PP
+\fBLqsim\fR exits with 0 on success, 1 if the model failed to meet the
+convergence criteria, 2 if the input was invalid, 4 if a command line
+argument was incorrect, 8 for file read/write problems and -1 for
+fatal errors. If multiple input files are being processed, the exit
+code is the bit-wise OR of the above conditions.
+.SH "PRAGMAS"
+.TP 10
+\fIscheduling\fP
+.RS
+.TP 15
+\fIdefault\fP
+Use the scheduler built into parasol for processor scheduling.  (faster)
+.TP
+\fIcustom\fP
+Use the custom scheduler for scheduling which permits more statistics
+to be gathered about processor utilization and waiting times.
+However, this option invokes more internal tasks, so simulations are
+slower than when using the default scheduler.
+.TP
+\fIdefault-natural\fP
+Use the parasol scheduler; don't reschedule after the end of each
+phase or activity.
+.TP
+\fIcustom-natural\fP
+Use the custom scheduler; don't reschedule after the end of each
+phase or activity.
+.RE
+.TP
+\fImessages = nn\fP
+Set the number of message buffers to \fInn\fP.  The default is 1000.
+.TP
+\fIstop-on-message-loss = {on,off}\fP
+In models with open queueing (open arrivals or asynchronous messages),
+arrival rates may exceed service rates.  The simulator can either
+discard the arrival, or it can halt.
+.TP
+\fIreschedule-on-async-send = {on,off}\fP
+In models with asynchronous messages, the simulator does not
+reschedule the processor after an asynchronous message is sent (unlike
+the case with synchronous messages).  Setting this pragma to "on"
+causes a reschedule after each asynchronous message.
+.SH "STOPPING CRITERIA"
+It is important that the length of the simulation be chosen properly.
+Results may be inaccurate if the simulation run is too short.
+Simulations that run too long waste time and resources.
+.PP
+\fBLqsim\fP uses \fIbatch means\fP (or the \fImethod of samples\fP)
+to generate confidence intervals.  With automatic blocking, the
+confidences intervals are computed after running for three blocks plus
+the initialial \fIskip\fP period.  If the root or the mean of the
+squares of the confidence intervals for the entry service times is
+within the specified \fIprecision\fP, the simulation stops.
+Otherwise, it runs for another block and repeats the test.
+With manual blocking, \fBlqsim\fP runs the number of blocks
+specified then stops.  In either case, the simulator will stop after
+30 blocks.
+.PP
+Confidence intervals can be tightened by either running additional
+blocks or by increasing the block size.  A rule of thumb is the block
+size should be 10,000 times larger than the largest service time
+demand in the input model.
+.SH "MODEL LIMITS"
+The following table lists the acceptable parameter types for
+\fBlqsim\fR.  An error will be reported if an unsupported parameter
+is supplied unless the value is the same as the default.
+.PP
+.TP 32
+Phases
+3
+.TP 
+Scheduling
+FIFO, HOL, PPR, RAND
+.TP
+Open arrivals
+yes
+.TP
+Phase type
+stochastic, deterministic
+.TP
+Coefficient of variation
+yes
+.TP
+Interprocessor-delay
+yes
+.TP
+Asynchronous connections
+yes
+.TP
+Forwarding
+yes
+.TP
+Multi-servers
+yes
+.TP
+Infinite-servers
+yes
+.TP
+Max Entries
+unlimited
+.TP
+Max Tasks
+1000
+.TP
+Max Processors
+1000
+.TP
+Max Entries per Task
+unlimited
+.SH "SEE ALSO"
+.LP
+Greg Franks el. al., ``Enhanced Modeling and Solution of Layered
+Queueing Networks'',
+\fIIEEE Trans. Soft. Eng.\fP, Vol. 35, No. 2, Mar-Apr 2990, pp. 148-161.
+.LP
+\fI``The Stochastic Rendezvous Network Model for Performance of
+Synchronous Multi-tasking Distributed Software''\fR by C.M. Woodside
+et.al.
+.LP
+\fI``Layered Queueing Network Solver and Simulator User Manual''\fP.
+.LP
+\fI``Tutorial Introduction to Layered Modeling of Software Performance''\fP.
+.LP
+srvndiff(1), egrep(1), floating_point(3)
+.SH BUGS
+The format of the debugging output generated by the \fB\-d\fR option
+requires a knowledge of the internals of \fBlqsim\fR in order to be
+understood.

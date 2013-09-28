@@ -1,0 +1,34 @@
+<?xml version="1.0"?>
+<lqn-model name="send-interlock" description="petrisrvn 5.7 solution for model from: send-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Send Interlock" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="6.38276e-06" iterations="0" platform-info="franks Linux 3.1.10-1.19-default" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.12"/>
+   </solver-params>
+   <processor name="p1" scheduling="fcfs">
+      <result-processor utilization="1"/>
+      <task name="c0" scheduling="ref" multiplicity="2" queue-length="0">
+         <result-task throughput="0.5" utilization="2" phase1-utilization="2" proc-utilization="0.5"/>
+         <entry name="c0" type="PH1PH2">
+            <result-entry utilization="2" throughput="0.5" squared-coeff-variation="0" proc-utilization="0.5"/>
+            <entry-phase-activities>
+               <activity name="c0_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="1.2" service-time="4" utilization="2"/>
+                  <synch-call dest="s1" calls-mean="1">
+                     <result-call waiting="0.4"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="s1" scheduling="fcfs" queue-length="0">
+         <result-task throughput="0.5" utilization="0.7" phase1-utilization="0.7" proc-utilization="0.5"/>
+         <entry name="s1" type="PH1PH2">
+            <result-entry utilization="0.7" throughput="0.5" squared-coeff-variation="0" proc-utilization="0.5"/>
+            <entry-phase-activities>
+               <activity name="s1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0.4" service-time="1.4" utilization="0.7"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

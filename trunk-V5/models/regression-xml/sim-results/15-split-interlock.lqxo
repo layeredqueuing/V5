@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<lqn-model name="15-split-interlock" description="lqsim 5.4 solution for model from: 15-split-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Split Interlock on processor" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.948681" iterations="6" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00"/>
+   </solver-params>
+   <processor name="p0" scheduling="inf" speed-factor="1">
+      <result-processor utilization="0.333284">
+         <result-conf-95 utilization="0.00155467"/>
+         <result-conf-99 utilization="0.00243812"/>
+      </result-processor>
+      <task name="t0" scheduling="ref">
+         <result-task throughput="0.333862" utilization="1" phase1-utilization="1" proc-utilization="0.333284">
+            <result-conf-95 throughput="0.00339691" utilization="0" proc-utilization="0.00155467"/>
+            <result-conf-99 throughput="0.00532725" utilization="4.032" proc-utilization="0.00243812"/>
+         </result-task>
+         <entry name="e0" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333862" squared-coeff-variation="1.45071" proc-utilization="0.333284">
+               <result-conf-95 utilization="0" throughput="0.00339691" squared-coeff-variation="0" proc-utilization="0.00155467"/>
+               <result-conf-99 utilization="0" throughput="0.00532725" squared-coeff-variation="0" proc-utilization="0.00243812"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="e0_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2.99528" service-time-variance="13.0154" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0304765" service-time-variance="0.221365" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0477951" service-time-variance="0.347159" utilization="0"/>
+                  </result-activity>
+                  <synch-call dest="e1" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0">
+                        <result-conf-95 waiting="0" waiting-variance="0"/>
+                        <result-conf-99 waiting="0" waiting-variance="0"/>
+                     </result-call>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1" scheduling="fcfs" speed-factor="1">
+      <result-processor utilization="0.666716">
+         <result-conf-95 utilization="0.00587111"/>
+         <result-conf-99 utilization="0.00920744"/>
+      </result-processor>
+      <task name="t1" scheduling="fcfs">
+         <result-task throughput="0.333192" utilization="0.332944" phase1-utilization="0.332944" proc-utilization="0.332944">
+            <result-conf-95 throughput="0.00313367" utilization="0.00376028" phase1-utilization="0.00376028" proc-utilization="0.00376028"/>
+            <result-conf-99 throughput="0.00491442" utilization="2.32652" phase1-utilization="0.0058971" proc-utilization="0.0058971"/>
+         </result-task>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="0.332944" throughput="0.333192" squared-coeff-variation="1.00179" proc-utilization="0.332944">
+               <result-conf-95 utilization="0.00376028" throughput="0.00313367" squared-coeff-variation="0" proc-utilization="0.00376028"/>
+               <result-conf-99 utilization="0.0058971" throughput="0.00491442" squared-coeff-variation="0" proc-utilization="0.0058971"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="0.999258" service-time-variance="1.00031" utilization="0.332944">
+                     <result-conf-95 proc-waiting="0" service-time="0.00750833" service-time-variance="0.0316438" utilization="0.00376028"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.011775" service-time-variance="0.0496257" utilization="0.0058971"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t2" scheduling="fcfs">
+         <result-task throughput="0.333173" utilization="0.333771" phase1-utilization="0.333771" proc-utilization="0.333771">
+            <result-conf-95 throughput="0.00346205" utilization="0.00450891" phase1-utilization="0.00450891" proc-utilization="0.00450891"/>
+            <result-conf-99 throughput="0.0054294" utilization="2.3294" phase1-utilization="0.00707115" proc-utilization="0.00707115"/>
+         </result-task>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.333771" throughput="0.333173" squared-coeff-variation="1.00214" proc-utilization="0.333771">
+               <result-conf-95 utilization="0.00450891" throughput="0.00346205" squared-coeff-variation="0" proc-utilization="0.00450891"/>
+               <result-conf-99 utilization="0.00707115" throughput="0.0054294" squared-coeff-variation="0" proc-utilization="0.00707115"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.0018" service-time-variance="1.00574" utilization="0.333771">
+                     <result-conf-95 proc-waiting="0" service-time="0.0105076" service-time-variance="0.0347865" utilization="0.00450891"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0164786" service-time-variance="0.0545543" utilization="0.00707115"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

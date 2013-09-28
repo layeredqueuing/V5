@@ -1,0 +1,83 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o76-distributions.lqnx 76-distributions.in -->
+<!-- Fri May 29 10:46:27 2009 -->
+
+<lqn-model name="76-distributions" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
+   <processor name="constant" scheduling="inf">
+      <task name="constant_client" scheduling="ref">
+         <entry name="constant_client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="constant_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0">
+                  <service-time-distribution min="0" max="10" number-bins="50"/>
+                  <synch-call dest="constant_server" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="constant_server" scheduling="fcfs">
+         <entry name="constant_server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="constant_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="exponential" scheduling="inf">
+      <task name="exponential_client" scheduling="ref">
+         <entry name="exponential_client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="exponential_client_ph1" phase="1" host-demand-mean="1">
+                  <service-time-distribution min="0" max="10" number-bins="50"/>
+                  <synch-call dest="exponential_server" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="exponential_server" scheduling="fcfs">
+         <entry name="exponential_server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="exponential_server_ph1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="gamma" scheduling="inf">
+      <task name="gamma_client" scheduling="ref">
+         <entry name="gamma_client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="gamma_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0.25">
+                  <service-time-distribution min="0" max="10" number-bins="50"/>
+                  <synch-call dest="gamma_server" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="gamma_server" scheduling="fcfs">
+         <entry name="gamma_server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="gamma_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="0.25"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="hyperexponential" scheduling="inf">
+      <task name="hyperexponential_client" scheduling="ref">
+         <entry name="hyperexponential_client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="hyperexponential_client_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="9">
+                  <service-time-distribution min="0" max="10" number-bins="50"/>
+                  <synch-call dest="hyperexponential_server" calls-mean="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="hyperexponential_server" scheduling="fcfs">
+         <entry name="hyperexponential_server" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="hyperexponential_server_ph1" phase="1" host-demand-mean="1" host-demand-cvsq="9"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

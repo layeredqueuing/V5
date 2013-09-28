@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml activity-templ.lqn -->
+<!-- Sat Oct 17 22:53:15 2009 -->
+
+<lqn-model name="activity-templ" description="LQN Model file." 
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	   xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Activity template" 
+		  conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
+   <processor name="UserP" scheduling="fcfs">
+      <task name="User" scheduling="ref" multiplicity="50" think-time="50">
+         <entry name="user" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="user_ph1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="server" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="ServerP" scheduling="ps">
+      <task name="Server" scheduling="fcfs" multiplicity="4">
+         <entry name="server" type="NONE"/>
+         <task-activities>
+            <activity name="serverStart" bound-to-entry="server" host-demand-mean="0"/>
+            <activity name="seqInit" host-demand-mean="0.3"/>
+            <activity name="parInit" host-demand-mean="0.1"/>
+            <activity name="parA" host-demand-mean="0.05">
+               <synch-call dest="disk1read" calls-mean="1.3"/>
+            </activity>
+            <activity name="parB" host-demand-mean="0.08">
+               <synch-call dest="disk2read" calls-mean="2.1"/>
+            </activity>
+            <activity name="parReply" host-demand-mean="0.01"/>
+            <activity name="loopOperation" host-demand-mean="0.1">
+               <synch-call dest="disk1read" calls-mean="0.7"/>
+            </activity>
+            <activity name="loop2" host-demand-mean="0"/>
+            <activity name="bigLoopDriver" host-demand-mean="0" call-order="DETERMINISTIC">
+               <synch-call dest="bigLoop" calls-mean="1"/>
+            </activity>
+            <activity name="seqReply" host-demand-mean="0.005"/>
+            <activity name="loopEnd" host-demand-mean="0"/>
+            <precedence>
+               <pre>
+                  <activity name="serverStart"/>
+               </pre>
+               <post-OR>
+                  <activity name="parInit" prob="0.6"/>
+                  <activity name="seqInit" prob="0.4"/>
+               </post-OR>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="parInit"/>
+               </pre>
+               <post-AND>
+                  <activity name="parA"/>
+                  <activity name="parB"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="parA"/>
+                  <activity name="parB"/>
+               </pre-AND>
+               <post>
+                  <activity name="parReply"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="seqInit"/>
+               </pre>
+               <post-LOOP end="loopEnd">
+                  <activity name="loopOperation" count="3.5"/>
+               </post-LOOP>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="loopOperation"/>
+               </pre>
+               <post>
+                  <activity name="loop2"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre>
+                  <activity name="loopEnd"/>
+               </pre>
+               <post-LOOP end="seqReply">
+                  <activity name="bigLoopDriver" count="1.2"/>
+               </post-LOOP>
+            </precedence>
+            <reply-entry name="server">
+               <reply-activity name="parReply"/>
+               <reply-activity name="seqReply"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+      <task name="BigLoop" scheduling="fcfs">
+         <entry name="bigLoop" type="NONE"/>
+         <task-activities>
+            <activity name="first" bound-to-entry="bigLoop" host-demand-mean="0.01"/>
+            <activity name="second" host-demand-mean="0">
+               <synch-call dest="disk1write" calls-mean="1"/>
+            </activity>
+            <activity name="third" host-demand-mean="0">
+               <synch-call dest="disk2write" calls-mean="1"/>
+            </activity>
+            <activity name="fourth" host-demand-mean="0.13"/>
+            <precedence>
+               <pre>
+                  <activity name="first"/>
+               </pre>
+               <post-AND>
+                  <activity name="second"/>
+                  <activity name="third"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="second"/>
+                  <activity name="third"/>
+               </pre-AND>
+               <post>
+                  <activity name="fourth"/>
+               </post>
+            </precedence>
+            <reply-entry name="bigLoop">
+               <reply-activity name="fourth"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="Disk1P" scheduling="fcfs">
+      <task name="Disk1" scheduling="fcfs">
+         <entry name="disk1read" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="disk1read_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="disk1write" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="disk1write_ph1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="Disk2P" scheduling="fcfs">
+      <task name="Disk2" scheduling="fcfs">
+         <entry name="disk2read" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="disk2read_ph1" phase="1" host-demand-mean="0.03"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="disk2write" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="disk2write_ph1" phase="1" host-demand-mean="0.03"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

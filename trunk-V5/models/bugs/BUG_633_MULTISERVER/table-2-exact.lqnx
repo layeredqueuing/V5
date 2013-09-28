@@ -1,0 +1,54 @@
+<?xml version="1.0"?>
+<!-- lqn2xml -->
+<lqn-model name="single-class" description="lqn2xml 5.5 solution for model from: single-class.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Table 2, Page 5 from Suri et. al." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="mva" value="exact"/>
+      <pragma param="severity-level" value="run-time"/>
+   </solver-params>
+   <processor name="client" scheduling="inf" speed-factor="1">
+      <task name="client" scheduling="ref" multiplicity="8">
+         <entry name="client" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="client_1" phase="1" host-demand-mean="0">
+                  <synch-call dest="server1" calls-mean="1"/>
+                  <synch-call dest="server2" calls-mean="1"/>
+                  <synch-call dest="server3" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="inf" speed-factor="1">
+      <task name="server1" scheduling="fcfs">
+         <entry name="server1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="server1_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="server2" scheduling="fcfs" multiplicity="2">
+         <entry name="server2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="server2_1" phase="1" host-demand-mean="$s2"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="server3" scheduling="fcfs" multiplicity="4">
+         <entry name="server3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="server3_1" phase="1" host-demand-mean="$s3"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx><![CDATA[
+   S2 = [ 2, 2, 2, 1, 4, 1, 4, 1, 4 ];
+   S3 = [ 2, 4, 8, 2, 2, 4, 4, 8, 8 ];
+   foreach ( i, $s2 in S2 ) {
+     $s3 = S3[i];
+     solve();
+     println( 1, " ", $s2, " ", $s3, ": ", task("client").throughput );
+   }
+]]>
+   </lqx>
+</lqn-model>

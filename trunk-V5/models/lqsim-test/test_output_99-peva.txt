@@ -1,0 +1,7 @@
+Test output file for 99-peva-99.lqnx.
+
+Solving model run #: 1 t1.throughput: 0.09258
+Solving model run #: 2 t1.throughput: 0.09258
+Solving model run #: 3 t1.throughput: 0.09258
+Solving model run #: 4 t1.throughput: 0.09258
+Solving model run #: 5 t1.throughput: 0.09258

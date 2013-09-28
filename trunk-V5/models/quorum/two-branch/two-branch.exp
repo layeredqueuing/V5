@@ -1,0 +1,134 @@
+# -*- Text -*-
+#
+# Experiment:
+# $Id$
+# ------------------------------------------------------------------------
+
+.global
+        .solver = "lqns";
+        .format = "csv";
+        .template = "twolayer-2branches-k-a-c-d.in";
+.end
+
+.experiment "lqns-det"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+
+        .declare
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+                k1;
+
+        .control
+                .aqc ( tB1, a1, a5 ) = { k1 };
+
+        .observe
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+
+.experiment "lqns-geo"
+
+        .set
+                .solver = "lqns";
+		.lqnsopts = "";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+		.apt ( tB1, a1 ) = 0;
+		.apt ( tB1, a2 ) = 0;
+		.apt ( tB1, a3 ) = 0;
+		.apt ( tB1, a4 ) = 0;
+		.apt ( tB1, a5 ) = 0;
+		.pt ( eC1, 1 ) = 0;
+		.pt ( eC2, 1 ) = 0;
+		.pt ( eC3, 1 ) = 0;
+		.pt ( eC4, 1 ) = 0;
+		.pt ( eC5, 1 ) = 0;
+
+        .declare
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+                k1;
+
+        .control
+                .aqc ( tB1, a1, a5 ) = { k1 };
+
+        .observe
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+# ------------------------------------------------------------------------
+
+.experiment "lqsim-det"
+
+        .set
+                .solver = "lqsim";
+		.lqsimopts = "-C2.0  -S24681357";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+
+        .declare
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+                k1;
+
+        .control
+                .aqc ( tB1, a1, a5 ) = { k1 };
+
+        .observe
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+
+
+
+.experiment "lqsim-geo"
+
+        .set
+                .solver = "lqsim";
+		.lqsimopts = "-C2.0  -S24681357";
+
+	.initialize
+		.pq ( pB1 ) = 0.1;
+		.apt ( tB1, a1 ) = 0;
+		.apt ( tB1, a2 ) = 0;
+		.apt ( tB1, a3 ) = 0;
+		.apt ( tB1, a4 ) = 0;
+		.apt ( tB1, a5 ) = 0;
+		.pt ( eC1, 1 ) = 0;
+		.pt ( eC2, 1 ) = 0;
+		.pt ( eC3, 1 ) = 0;
+		.pt ( eC4, 1 ) = 0;
+		.pt ( eC5, 1 ) = 0;
+
+        .declare
+                k1 = 1, 2, 3, 4, 5;		# Quorum count
+
+        .vary
+                k1;
+
+        .control
+                .aqc ( tB1, a1, a5 ) = { k1 };
+
+        .observe
+                .plot { k1 };
+                .xt ( .e, eB1, 1 );
+		.vt ( .e, eB1, 1 );
+.end
+

@@ -1,0 +1,183 @@
+G "Gamma model test for laxity of 5.0 utilization of 0.8 with 1.0 coefficient of variation "
+0.00001 100 1 0.9 -1
+
+P 0
+p Pinf01 f i
+p Pinf02 f i
+p Pinf03 f i
+p Pinf04 f i
+p Proc1 f
+p Proc2 f
+p Proc3 f
+p Proc4 f
+-1
+
+T 0
+t Driver01 r driver01 -1 Pinf01
+t Response01 n resp01 -1 Pinf01 i
+t Driver02 r driver02 -1 Pinf02
+t Response02 n resp02 -1 Pinf02 i
+t Driver03 r driver03 -1 Pinf03
+t Response03 n resp03 -1 Pinf03 i
+t Driver04 r driver04 -1 Pinf04
+t Response04 n resp04 -1 Pinf04 i
+t Task01 n task01 -1 Proc3
+t Task02 n task02 -1 Proc2
+t Task03 n task03 -1 Proc4
+t Task04 n task04 -1 Proc4
+t Task05 n task05 -1 Proc4
+t Task06 n task06_e1 task06_e2 -1 Proc1
+t Task07 n task07_e1 task07_e2 -1 Proc3
+t Task08 n task08_e1 task08_e2 -1 Proc2
+t Task09 n task09 -1 Proc4
+t Task10 n task10_e1 task10_e2 -1 Proc1
+t Task11 n task11_e1 task11_e2 -1 Proc2
+t Task12 n task12_e1 task12_e2 -1 Proc1
+t Task13 n task13_e1 task13_e2 -1 Proc2
+t Task14 n task14_e1 task14_e2 -1 Proc3
+t Task15 n task15_e1 task15_e2 -1 Proc4
+t Task16 n task16_e1 task16_e2 -1 Proc3
+-1
+
+E 0
+Z driver01 0 648.8581737880095 0 -1
+M resp01 1559.5332628579472 0 0 -1
+Z driver02 0 880.1796551125734 0 -1
+M resp02 2115.5153851654545 0 0 -1
+Z driver03 0 932.7707065120453 0 -1
+M resp03 2241.9181913554935 0 0 -1
+Z driver04 0 833.2742101382562 0 -1
+M resp04 2002.7779571701342 0 0 -1
+f driver01 1 0 0 -1
+c driver01 0 1.0  0 -1
+y driver01 resp01 1 0 0 -1
+s resp01 0 0 0 -1
+c resp01 0 0 0 -1
+f resp01 1 0 0 -1
+y resp01 task01 1 0 0 -1
+s task01 104.62036734964738 0 0 -1
+c task01 1.0 0 0 -1
+f driver02 1 0 0 -1
+c driver02 0 1.0 0 -1
+y driver02 resp02 1 0 0 -1
+s resp02 0 0 0 -1
+c resp02 0 0 0 -1
+f resp02 1 0 0 -1
+y resp02 task02 1 0 0 -1
+s task02 85.0460384575833 0 0 -1
+c task02 1.0 0 0 -1
+f driver03 1 0 0 -1
+c driver03 0 1.0 0 -1
+y driver03 resp03 1 0 0 -1
+s resp03 0 0 0 -1
+c resp03 0 0 0 -1
+f resp03 1 0 0 -1
+y resp03 task03 1 0 0 -1
+s task03 113.06795651333401 0 0 -1
+c task03 1.0 0 0 -1
+f driver04 1 0 0 -1
+c driver04 0 1.0  0 -1
+y driver04 resp04 1 0 0 -1
+s resp04 0 0 0 -1
+c resp04 0 0 0 -1
+f resp04 1 0 0 -1
+y resp04 task04 1 0 0 -1
+s task04 112.85170796740124 0 0 -1
+c task04 1.0 0 0 -1
+
+F task01 task05 1 -1
+s task05 115.96176634181977 0 0 -1
+c task05 1.0 0 0 -1
+f task01 1 0 0 -1
+z task01 task06_e1 1 0 0 -1
+s task06_e1 104.79867722283882 0 0 -1
+c task06_e1 1.0 0 0 -1
+
+F task02 task06_e2 1 -1
+s task06_e2 91.38559061516804 0 0 -1
+c task06_e2 1.0 0 0 -1
+f task02 1 0 0 -1
+y task02 task07_e1 1 0 0 -1
+s task07_e1 83.54045871533609 0 0 -1
+c task07_e1 1.0 0 0 -1
+
+F task03 task07_e2 1 -1
+s task07_e2 109.45033239061304 0 0 -1
+c task07_e2 1.0 0 0 -1
+f task03 1 0 0 -1
+z task03 task08_e1 1 0 0 -1
+s task08_e1 112.42082322754831 0 0 -1
+c task08_e1 1.0 0 0 -1
+
+F task04 task08_e2 1 -1
+s task08_e2 92.7276550763373 0 0 -1
+c task08_e2 1.0 0 0 -1
+f task04 1 0 0 -1
+y task04 task09 1 0 0 -1
+s task09 107.30757965621608 0 0 -1
+c task09 1.0 0 0 -1
+
+f task05 1 0 0 -1
+y task05 task10_e1 1 0 0 -1
+s task10_e1 91.32451888012228 0 0 -1
+c task10_e1 1.0 0 0 -1
+z task05 task11_e1 1 0 0 -1
+s task11_e1 99.55973054372164 0 0 -1
+c task11_e1 1.0 0 0 -1
+z task05 task12_e1 1 0 0 -1
+s task12_e1 104.20973058979405 0 0 -1
+c task12_e1 1.0 0 0 -1
+
+f task06_e1 1 0 0 -1
+z task06_e1 task10_e2 1 0 0 -1
+s task10_e2 85.16664118303795 0 0 -1
+c task10_e2 1.0 0 0 -1
+f task06_e2 1 0 0 -1
+F task06_e2 task11_e2 1 -1
+s task11_e2 80.72719892692032 0 0 -1
+c task11_e2 1.0 0 0 -1
+
+f task07_e1 1 0 0 -1
+y task07_e1 task14_e1 1 0 0 -1
+s task14_e1 95.49926534120777 0 0 -1
+c task14_e1 1.0 0 0 -1
+f task07_e2 1 0 0 -1
+F task07_e2 task12_e2 1 -1
+s task12_e2 113.93604921975819 0 0 -1
+c task12_e2 1.0 0 0 -1
+
+f task08_e1 1 0 0 -1
+z task08_e1 task13_e1 1 0 0 -1
+s task13_e1 114.57483774099909 0 0 -1
+c task13_e1 1.0 0 0 -1
+f task08_e2 1 0 0 -1
+F task08_e2 task13_e2 1 -1
+s task13_e2 87.6686487340722 0 0 -1
+c task13_e2 1.0 0 0 -1
+
+f task09 1 0 0 -1
+z task09 task14_e2 1 0 0 -1
+s task14_e2 95.98924336992039 0 0 -1
+c task14_e2 1.0 0 0 -1
+
+f task11_e2 1 0 0 -1
+F task11_e2 task15_e1 1 -1
+s task15_e1 82.40379031808322 0 0 -1
+c task15_e1 1.0 0 0 -1
+
+f task12_e2 1 0 0 -1
+z task12_e2 task15_e2 1 0 0 -1
+s task15_e2 94.89011518779522 0 0 -1
+c task15_e2 1.0 0 0 -1
+
+f task12_e2 1 0 0 -1
+F task12_e2 task16_e1 1 -1
+s task16_e1 111.92930014739346 0 0 -1
+c task16_e1 1.0 0 0 -1
+
+f task13_e1 1 0 0 -1
+z task13_e1 task16_e2 1 0 0 -1
+s task16_e2 94.77353493612206 0 0 -1
+c task16_e2 1.0 0 0 -1
+
+-1

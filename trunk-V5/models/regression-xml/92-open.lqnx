@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqn2xml -o92-open.lqnx 92-open.in -->
+<!-- Fri May 29 10:46:32 2009 -->
+
+<lqn-model name="92-open" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
+      <pragma param="stop-on-message-loss" value="false"/>
+   </solver-params>
+   <processor name="choose" scheduling="inf">
+      <task name="choose" scheduling="inf">
+         <entry name="choose" type="PH1PH2" open-arrival-rate = "0.01">
+            <entry-phase-activities>
+               <activity name="choose_ph1" phase="1" host-demand-mean="1e-05">
+                  <synch-call dest="DBD" calls-mean="1"/>
+                  <synch-call dest="DBP" calls-mean="1"/>
+                  <synch-call dest="WSD" calls-mean="1"/>
+                  <synch-call dest="WSP" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DBD" scheduling="fcfs">
+      <task name="DBD" scheduling="fcfs">
+         <entry name="DBD" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DBD_ph1" phase="1" host-demand-mean="10.52"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="DBP" scheduling="fcfs">
+      <task name="DBP" scheduling="fcfs">
+         <entry name="DBP" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="DBP_ph1" phase="1" host-demand-mean="10.73"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="WSD" scheduling="fcfs">
+      <task name="WSD" scheduling="fcfs">
+         <entry name="WSD" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="WSD_ph1" phase="1" host-demand-mean="7.55"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="WSP" scheduling="fcfs">
+      <task name="WSP" scheduling="fcfs">
+         <entry name="WSP" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="WSP_ph1" phase="1" host-demand-mean="17.12"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,0 +1,70 @@
+LAYERED QUEUEING NETWORK MODELING SOFTWARE
+
+Commands:
+
+lqns         -- Analytical model solver
+lqsim        -- Model simulator
+srvndiff     -- Result file differencer.
+lqn2ps       -- Model formatter and converter
+
+Type "<command> --help" for a quick summary of usage.
+
+Documents:
+
+lqn2ps.pdf     -- Postscrpt version of man-page for srvn2eepic.
+lqns.pdf       -- manual page for the analytic solver.
+lqsim.pdf      -- manual page for simulator.
+srvndiff.pdf   -- manual page for srvndiff.
+tutorial.pdf   -- Tutorial for Layered Queueing Networks
+userman.pdf    -- User manual for Layered Queueing Network solvers.
+
+Jlqndef:
+
+Jlqndef is an editor for Layered Queueing Network model files.  It is
+not included with this package, but is available as a separate
+download.
+
+Requirements for jlqndef:
+
+Set the environment variable LQNDIR to the path of the lqn root
+directory (eg $HOME/lqn).
+
+Set the environment variable TMPDIR to the path of the directory in
+which to store temporary files (eg /tmp).
+
+Add the directory $LQNDIR/bin to your executables search path.
+
+The graphical model editor is written in java and uses Swing 
+components of Java 2, so either JDK1.2.x or JRE1.2.x must be 
+installed on your machine. 
+These packages are available from Sun Microsystems:
+http://java.sun.com/jdk.
+The directory of the java or jre binary must be in the
+executables search path.
+To run Java 2, Solaris 2.6 or greater is required.
+
+Examples:
+
+Change into the $LQNDIR/examples directory and run
+
+        jlqndef &
+
+Load one of the examples using the file menu. The document lqndef.ps
+has a step-by-step tutorial on using the tool.  It will guide you
+through the examples.  There may be some minor differences between the
+tool and the guide but they should not be a problem.
+
+Some Tips:
+
+1) When creating a model with jlqndef, add all the model's processors
+first, then add the tasks and entries and finally add the calls
+between entries.
+
+If there are any questions or if you discover a bug, please contact us
+by email at artt@sce.carleton.ca.
+
+--
+Murray Woodside                      Systems And Computer Engineering, 
+(613) 520-5721     (voice)           Carleton University,
+(613) 520-5727       (fax)           1125 Colonel By Drive,
+cmw@sce.carleton.ca                  Ottawa, Ontario, Canada  K1S 5B6.

@@ -1,0 +1,108 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqsim -C1.0,1000 -M -S1049217653 -o40-activities.lqxo 40-activities.lqnx -->
+<lqn-model name="40-activities" description="lqsim 5.0 solution for model from: 40-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Activities with and fork/join." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.965004" iterations="7" platform-info="" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00"/>
+   </solver-params>
+   <processor name="client" scheduling="fcfs">
+      <result-processor utilization="0.800305">
+         <result-conf-95 utilization="0.00519734"/>
+         <result-conf-99 utilization="0.00787354"/>
+      </result-processor>
+      <task name="client" scheduling="ref" replication="1">
+         <result-task throughput="0.399802" utilization="1" phase1-utilization="1" proc-utilization="0.400153">
+            <result-conf-95 throughput="0.00486978" utilization="0" proc-utilization="0.00367508"/>
+            <result-conf-99 throughput="0.00737731" utilization="3.707" proc-utilization="0.00556743"/>
+         </result-task>
+         <entry name="client" type="NONE">
+            <result-entry utilization="1" throughput="0.399802" squared-coeff-variation="1.47072" proc-utilization="0.400153" phase1-service-time="2.50129" phase1-service-time-variance="0.000154836">
+               <result-conf-95 utilization="0" throughput="0.00486978" squared-coeff-variation="0" proc-utilization="0.00367508" phase1-service-time="0.0304488" phase1-service-time-variance="0.317668"/>
+               <result-conf-99 utilization="0" throughput="0.00737731" squared-coeff-variation="0" proc-utilization="0.00556743" phase1-service-time="0.0461274" phase1-service-time-variance="0.48124"/>
+            </result-entry>
+         </entry>
+         <task-activities>
+            <activity name="client" bound-to-entry="client" host-demand-mean="1">
+               <result-activity proc-waiting="0" service-time="2.50129" service-time-variance="9.20148" utilization="1">
+                  <result-conf-95 proc-waiting="0" service-time="0.0304488" service-time-variance="0.317668" utilization="0"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.0461274" service-time-variance="0.48124" utilization="0"/>
+               </result-activity>
+               <synch-call dest="server" calls-mean="1">
+                  <result-call waiting="0" waiting-variance="0">
+                     <result-conf-95 waiting="0" waiting-variance="0"/>
+                     <result-conf-99 waiting="0" waiting-variance="0"/>
+                  </result-call>
+               </synch-call>
+            </activity>
+         </task-activities>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <result-processor utilization="1.19969">
+         <result-conf-95 utilization="0.00458608"/>
+         <result-conf-99 utilization="0.00694753"/>
+      </result-processor>
+      <task name="server" scheduling="fcfs" replication="1">
+         <result-task throughput="0.400183" utilization="0.599847" phase1-utilization="0.599847" proc-utilization="0.599847">
+            <result-conf-95 throughput="0.000708911" utilization="0.00367508" phase1-utilization="0.00367508" proc-utilization="0.00367508"/>
+            <result-conf-99 throughput="0.00107394" utilization="2.87106" phase1-utilization="0.00556743" proc-utilization="0.00556743"/>
+         </result-task>
+         <entry name="server" type="NONE">
+            <result-entry utilization="0.599847" throughput="0.400183" squared-coeff-variation="0.287948" proc-utilization="0.599847" phase1-service-time="1.49893" phase1-service-time-variance="1.42808e-05" phase1-proc-waiting="0.124875">
+               <result-conf-95 utilization="0.00367508" throughput="0.000708911" squared-coeff-variation="0" proc-utilization="0.00367508" phase1-service-time="0.0092472" phase1-service-time-variance="0.00815091" phase1-proc-waiting="0.00144406"/>
+               <result-conf-99 utilization="0.00556743" throughput="0.00107394" squared-coeff-variation="0" proc-utilization="0.00556743" phase1-service-time="0.0140087" phase1-service-time-variance="0.0123479" phase1-proc-waiting="0.00218764"/>
+            </result-entry>
+         </entry>
+         <task-activities>
+            <activity name="fork1" host-demand-mean="0.4">
+               <result-activity proc-waiting="0.299762" service-time="0.699373" service-time-variance="0.429099" utilization="0.279877">
+                  <result-conf-95 proc-waiting="0.00413039" service-time="0.00770642" service-time-variance="0.0123553" utilization="0.00309857"/>
+                  <result-conf-99 proc-waiting="0.00625719" service-time="0.0116746" service-time-variance="0.0187172" utilization="0.00469407"/>
+               </result-activity>
+            </activity>
+            <activity name="fork2" host-demand-mean="0.6">
+               <result-activity proc-waiting="0.199737" service-time="0.799426" service-time-variance="0.482443" utilization="0.319916">
+                  <result-conf-95 proc-waiting="0.0018252" service-time="0.00606411" service-time-variance="0.00713965" utilization="0.00258529"/>
+                  <result-conf-99 proc-waiting="0.00276503" service-time="0.00918662" service-time-variance="0.010816" utilization="0.00391649"/>
+               </result-activity>
+            </activity>
+            <activity name="join" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.249954" service-time-variance="0.0625384" utilization="0.100027">
+                  <result-conf-95 proc-waiting="0" service-time="0.00133597" service-time-variance="0.000882407" utilization="0.000497602"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.00202388" service-time-variance="0.00133677" utilization="0.000753826"/>
+               </result-activity>
+            </activity>
+            <activity name="server" bound-to-entry="server" host-demand-mean="0.25">
+               <result-activity proc-waiting="0" service-time="0.249682" service-time-variance="0.0624875" utilization="0.0999183">
+                  <result-conf-95 proc-waiting="0" service-time="0.00241994" service-time-variance="0.00173568" utilization="0.000932071"/>
+                  <result-conf-99 proc-waiting="0" service-time="0.00366601" service-time-variance="0.00262941" utilization="0.00141201"/>
+               </result-activity>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="server"/>
+               </pre>
+               <post-AND>
+                  <activity name="fork1"/>
+                  <activity name="fork2"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="0.999299" join-variance="0.520889">
+                     <result-conf-95 join-waiting="0.00694116" join-variance="0.00826826"/>
+                     <result-conf-99 join-waiting="0.0105153" join-variance="0.0125257"/>
+                  </result-join-delay>
+                  <activity name="fork1"/>
+                  <activity name="fork2"/>
+               </pre-AND>
+               <post>
+                  <activity name="join"/>
+               </post>
+            </precedence>
+            <reply-entry name="server">
+               <reply-activity name="join"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

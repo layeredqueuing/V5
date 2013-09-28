@@ -1,0 +1,34 @@
+G "ERR_JOIN_PATH_MISMATCH" 1e-06 50 5 0.9 -1
+
+P 3
+  p p1 f
+  p d1 f
+  p d2 f
+-1
+
+T 3
+  t t1  r  e1 -1 p1
+  t d1  n  d1 -1 d1
+  t d2  n  d2 -1 d2
+-1
+
+E 3
+  A  e1  a1
+  s  d1  0.04 -1
+  s  d2  0.04 -1
+-1
+
+A  t1
+  s  a1  0.1
+  s  b1  0.1
+  s  b2  0.1
+  s  c1  0.1
+  s  c2  0.1
+  s  d1  0.1
+  y  b1  d1  2.5
+  y  b2  d2  2.5
+:
+  a1 -> b1 & b2;
+  b2 -> c1 & c2;
+  b1 & c1 & c2 -> d1
+-1

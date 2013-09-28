@@ -1,0 +1,39 @@
+This directory contains the source code and make files for the PARASOL
+library, the PARASOL custom library, and the PARASOL++ library.
+
+The files included in this directory are:
+
+Library makefiles:
+makefile.hpux	- A HPUX make file for HP Series 9000's
+makefile.linux	- A Linux make file for PC's
+makefile.mach	- A Mach make file for PC's
+makefile.ns	- A NextStep make file for PC's
+makefile.sgi	- An SGI IRIX make file for SGI Indigos
+makefile.solaris- A Solaris make file for SPARCstations
+makefile.sunos	- A SunOS make file for SPARCSstations
+Makefile	- A soft link to the appropriate makefile
+
+
+PARASOL library source files:
+para_library.c	- The source code for the PARASOL library and the PARASOL 
+		  custom library.
+<other>.c	- GNU C library source code for miscellaneous functions 
+		  required for some ports.
+
+PARASOL++ library source files:
+carrier.cc	- The source code for the PS_AbstractCarrier, PS_Bus and
+		  PS_Link classes.
+genesis.cc	- The source code for the PS_GenesisTask, PS_Ether and 
+		  PS_ParasolNode classes.
+node.cc		- The source code for the PS_AbstractNode, PS_UserNode and 
+		  PS_SystemNode classes.
+para_entity.cc	- The source code for the PS_ParasolEntity class.
+port.cc		- The source code for the PS_Port, PS_SharedPort and 
+		  PS_PortSet classes.
+semaphore.cc	- The source code for the PS_Semaphore class.
+spinlock.cc	- The source code for the PS_Spinlock class.
+statistic.cc	- The source code for the PS_AbstractStatistic, 
+	  	  PS_RateStatistic, PS_VariableStatistic and 
+		  PS_SampleStatistic classes.
+task.cc		- The source code for the PS_AbstractTask, PS_UserTask and
+		  PS_SystemTask classes.

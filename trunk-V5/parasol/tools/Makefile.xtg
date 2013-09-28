@@ -1,0 +1,12 @@
+# @(#)Makefile.xtg	1.2 17:15:31 8/21/95 
+# Makefile for XTG Filter program
+
+CC = gcc
+CFLAGS = -O
+
+xtg_filter: xtg_filter.c
+	$(CC) $(CFLAGS) -o $@ $@.c
+
+clean:
+	rm -f xtg_filter
+

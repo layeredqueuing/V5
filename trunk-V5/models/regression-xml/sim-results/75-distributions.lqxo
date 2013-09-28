@@ -1,0 +1,329 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqsim -C1.0,1000 -S1049217653 75-distributions.lqnx -->
+<lqn-model name="75-distributions" description="lqsim 5.2 solution for model from: 75-distributions.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="0.941421" iterations="8" platform-info="merlin.sce.carleton.ca Darwin 10.5.0" user-cpu-time="00:19:10.00" system-cpu-time="00:09:43.00" elapsed-time="00:29:45.00"/>
+   </solver-params>
+   <processor name="constant" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="constant" scheduling="ref">
+         <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="1">
+            <result-conf-95 throughput="4.06584e-06" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="6.01538e-06" utilization="3.499" proc-utilization="0"/>
+         </result-task>
+         <entry name="constant" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="0" proc-utilization="1">
+               <result-conf-95 utilization="0" throughput="4.06584e-06" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="6.01538e-06" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="constant_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0">
+                  <service-time-distribution number-bins="12" min="0" max="9">
+                     <underflow-bin begin="0" end="0" prob="0"/>
+                     <histogram-bin begin="0.75" end="1.5" prob="0"/>
+                     <histogram-bin begin="1.5" end="2.25" prob="0"/>
+                     <histogram-bin begin="2.25" end="3" prob="0"/>
+                     <histogram-bin begin="3" end="3.75" prob="0"/>
+                     <histogram-bin begin="3.75" end="4.5" prob="1"/>
+                     <histogram-bin begin="4.5" end="5.25" prob="0"/>
+                     <histogram-bin begin="5.25" end="6" prob="0"/>
+                     <histogram-bin begin="6" end="6.75" prob="0"/>
+                     <histogram-bin begin="6.75" end="7.5" prob="0"/>
+                     <histogram-bin begin="7.5" end="8.25" prob="0"/>
+                     <histogram-bin begin="8.25" end="9" prob="0"/>
+                     <histogram-bin begin="9" end="9.75" prob="0"/>
+                     <overflow-bin begin="9" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3" service-time-variance="0" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="exponential" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="exponential" scheduling="ref">
+         <result-task throughput="0.334027" utilization="1" phase1-utilization="1" proc-utilization="1">
+            <result-conf-95 throughput="0.00185201" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="0.00274003" utilization="3.499" proc-utilization="0"/>
+         </result-task>
+         <entry name="exponential" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.334027" squared-coeff-variation="1.00233" proc-utilization="1">
+               <result-conf-95 utilization="0" throughput="0.00185201" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0.00274003" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="exponential_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <underflow-bin begin="0" end="0" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0.283701" conf-95="0.0837744" conf-99="0.123944"/>
+                     <histogram-bin begin="2" end="3" prob="0.20393" conf-95="0.0718543" conf-99="0.106308"/>
+                     <histogram-bin begin="3" end="4" prob="0.145733" conf-95="0.063929" conf-99="0.0945826"/>
+                     <histogram-bin begin="4" end="5" prob="0.103936" conf-95="0.069126" conf-99="0.102271"/>
+                     <histogram-bin begin="5" end="6" prob="0.0748739" conf-95="0.0701771" conf-99="0.103826"/>
+                     <histogram-bin begin="6" end="7" prob="0.053202" conf-95="0.0500587" conf-99="0.0740615"/>
+                     <histogram-bin begin="7" end="8" prob="0.0380267" conf-95="0.0399875" conf-99="0.0591612"/>
+                     <histogram-bin begin="8" end="9" prob="0.0273408" conf-95="0.0590733" conf-99="0.0873985"/>
+                     <histogram-bin begin="9" end="10" prob="0.019551" conf-95="0.0399865" conf-99="0.0591598"/>
+                     <histogram-bin begin="10" end="11" prob="0.0140988" conf-95="0.0491988" conf-99="0.0727892"/>
+                     <histogram-bin begin="11" end="12" prob="0.0100004" conf-95="0.0314313" conf-99="0.0465024"/>
+                     <histogram-bin begin="12" end="13" prob="0.00727948" conf-95="0.0392919" conf-99="0.0581321"/>
+                     <histogram-bin begin="13" end="14" prob="0.00521722" conf-95="0.0354125" conf-99="0.0523926"/>
+                     <histogram-bin begin="14" end="15" prob="0.00379027" conf-95="0.0327682" conf-99="0.0484803"/>
+                     <histogram-bin begin="15" end="16" prob="0.00272238" conf-95="0.0308479" conf-99="0.0456393"/>
+                     <histogram-bin begin="16" end="17" prob="0.00184353" conf-95="0.0326406" conf-99="0.0482915"/>
+                     <histogram-bin begin="17" end="18" prob="0.00135496" conf-95="0.0221046" conf-99="0.0327036"/>
+                     <histogram-bin begin="18" end="19" prob="0.000906342" conf-95="0.024131" conf-99="0.0357017"/>
+                     <histogram-bin begin="19" end="20" prob="0.000686221" conf-95="0.0172911" conf-99="0.025582"/>
+                     <histogram-bin begin="20" end="21" prob="0.000500975" conf-95="0.0209407" conf-99="0.0309815"/>
+                     <histogram-bin begin="21" end="22" prob="0.00041276" conf-95="0.0147972" conf-99="0.0218923"/>
+                     <histogram-bin begin="22" end="23" prob="0.000256152" conf-95="0.0164985" conf-99="0.0244095"/>
+                     <histogram-bin begin="23" end="24" prob="0.000169048" conf-95="0.0152856" conf-99="0.0226149"/>
+                     <histogram-bin begin="24" end="25" prob="0.000115579" conf-95="0.0120408" conf-99="0.0178143"/>
+                     <histogram-bin begin="25" end="26" prob="0.000101976" conf-95="0.0138856" conf-99="0.0205436"/>
+                     <histogram-bin begin="26" end="27" prob="6.83689e-05" conf-95="0.0109783" conf-99="0.0162422"/>
+                     <histogram-bin begin="27" end="28" prob="4.47493e-05" conf-95="0.0121898" conf-99="0.0180348"/>
+                     <histogram-bin begin="28" end="29" prob="2.98272e-05" conf-95="0.00969669" conf-99="0.0143462"/>
+                     <histogram-bin begin="29" end="30" prob="3.10815e-05" conf-95="0.0100271" conf-99="0.0148351"/>
+                     <histogram-bin begin="30" end="31" prob="2.85986e-05" conf-95="0.0090056" conf-99="0.0133237"/>
+                     <histogram-bin begin="31" end="32" prob="9.93968e-06" conf-95="0.00648578" conf-99="0.00959566"/>
+                     <histogram-bin begin="32" end="33" prob="1.36733e-05" conf-95="0.00713913" conf-99="0.0105623"/>
+                     <histogram-bin begin="33" end="34" prob="4.97696e-06" conf-95="0.00545522" conf-99="0.00807096"/>
+                     <histogram-bin begin="34" end="35" prob="4.98322e-06" conf-95="0.00649156" conf-99="0.00960422"/>
+                     <histogram-bin begin="35" end="36" prob="4.97145e-06" conf-95="0.00545219" conf-99="0.00806648"/>
+                     <histogram-bin begin="36" end="37" prob="3.73733e-06" conf-95="0.00537122" conf-99="0.00794668"/>
+                     <histogram-bin begin="37" end="38" prob="2.49001e-06" conf-95="0.00507822" conf-99="0.00751319"/>
+                     <histogram-bin begin="38" end="39" prob="1.24589e-06" conf-95="0.00443959" conf-99="0.00656835"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <histogram-bin begin="40" end="41" prob="1.24355e-06" conf-95="0.00443542" conf-99="0.00656217"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="2.99378" service-time-variance="8.98358" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0166508" service-time-variance="0.257129" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0246347" service-time-variance="0.38042" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="gamma" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="gamma" scheduling="ref">
+         <result-task throughput="0.333456" utilization="1" phase1-utilization="1" proc-utilization="1">
+            <result-conf-95 throughput="0.000790384" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="0.00116937" utilization="3.499" proc-utilization="0"/>
+         </result-task>
+         <entry name="gamma" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333456" squared-coeff-variation="0.223305" proc-utilization="1">
+               <result-conf-95 utilization="0" throughput="0.000790384" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0.00116937" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="gamma_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="0.222222">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <underflow-bin begin="0" end="0" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0.0358878" conf-95="0.0454955" conf-99="0.0673102"/>
+                     <histogram-bin begin="2" end="3" prob="0.224972" conf-95="0.0826561" conf-99="0.122289"/>
+                     <histogram-bin begin="3" end="4" prob="0.302759" conf-95="0.0844214" conf-99="0.124901"/>
+                     <histogram-bin begin="4" end="5" prob="0.223429" conf-95="0.0928837" conf-99="0.137421"/>
+                     <histogram-bin begin="5" end="6" prob="0.121786" conf-95="0.0639656" conf-99="0.0946366"/>
+                     <histogram-bin begin="6" end="7" prob="0.0557527" conf-95="0.0646485" conf-99="0.095647"/>
+                     <histogram-bin begin="7" end="8" prob="0.0225033" conf-95="0.0413236" conf-99="0.061138"/>
+                     <histogram-bin begin="8" end="9" prob="0.00857195" conf-95="0.0318624" conf-99="0.0471401"/>
+                     <histogram-bin begin="9" end="10" prob="0.00290126" conf-95="0.0256455" conf-99="0.0379423"/>
+                     <histogram-bin begin="10" end="11" prob="0.000947555" conf-95="0.0232148" conf-99="0.0343462"/>
+                     <histogram-bin begin="11" end="12" prob="0.000349948" conf-95="0.021855" conf-99="0.0323343"/>
+                     <histogram-bin begin="12" end="13" prob="0.000103351" conf-95="0.013357" conf-99="0.0197615"/>
+                     <histogram-bin begin="13" end="14" prob="2.73942e-05" conf-95="0.0110395" conf-99="0.0163329"/>
+                     <histogram-bin begin="14" end="15" prob="7.46984e-06" conf-95="0.00702811" conf-99="0.010398"/>
+                     <histogram-bin begin="15" end="16" prob="1.2447e-06" conf-95="0.00443747" conf-99="0.00656521"/>
+                     <histogram-bin begin="16" end="17" prob="0"/>
+                     <histogram-bin begin="17" end="18" prob="0"/>
+                     <histogram-bin begin="18" end="19" prob="0"/>
+                     <histogram-bin begin="19" end="20" prob="0"/>
+                     <histogram-bin begin="20" end="21" prob="0"/>
+                     <histogram-bin begin="21" end="22" prob="0"/>
+                     <histogram-bin begin="22" end="23" prob="0"/>
+                     <histogram-bin begin="23" end="24" prob="0"/>
+                     <histogram-bin begin="24" end="25" prob="0"/>
+                     <histogram-bin begin="25" end="26" prob="0"/>
+                     <histogram-bin begin="26" end="27" prob="0"/>
+                     <histogram-bin begin="27" end="28" prob="0"/>
+                     <histogram-bin begin="28" end="29" prob="0"/>
+                     <histogram-bin begin="29" end="30" prob="0"/>
+                     <histogram-bin begin="30" end="31" prob="0"/>
+                     <histogram-bin begin="31" end="32" prob="0"/>
+                     <histogram-bin begin="32" end="33" prob="0"/>
+                     <histogram-bin begin="33" end="34" prob="0"/>
+                     <histogram-bin begin="34" end="35" prob="0"/>
+                     <histogram-bin begin="35" end="36" prob="0"/>
+                     <histogram-bin begin="36" end="37" prob="0"/>
+                     <histogram-bin begin="37" end="38" prob="0"/>
+                     <histogram-bin begin="38" end="39" prob="0"/>
+                     <histogram-bin begin="39" end="40" prob="0"/>
+                     <histogram-bin begin="40" end="41" prob="0"/>
+                     <overflow-bin begin="40" end="0" prob="0"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="2.99891" service-time-variance="2.00828" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.00711687" service-time-variance="0.0145295" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0105294" service-time-variance="0.0214963" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="hyperexponential" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="hyperexponential" scheduling="ref">
+         <result-task throughput="0.331794" utilization="1" phase1-utilization="1" proc-utilization="1">
+            <result-conf-95 throughput="0.00556383" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="0.00823165" utilization="3.499" proc-utilization="0"/>
+         </result-task>
+         <entry name="hyperexponential" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.331794" squared-coeff-variation="9.02891" proc-utilization="1">
+               <result-conf-95 utilization="0" throughput="0.00556383" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0.00823165" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="hyperexponential_ph1" phase="1" host-demand-mean="3" host-demand-cvsq="9">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <underflow-bin begin="0" end="0" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0.460605" conf-95="0.0960382" conf-99="0.142088"/>
+                     <histogram-bin begin="2" end="3" prob="0.236388" conf-95="0.0964758" conf-99="0.142735"/>
+                     <histogram-bin begin="3" end="4" prob="0.122791" conf-95="0.0768394" conf-99="0.113683"/>
+                     <histogram-bin begin="4" end="5" prob="0.0638705" conf-95="0.0653567" conf-99="0.0966947"/>
+                     <histogram-bin begin="5" end="6" prob="0.0337205" conf-95="0.0539376" conf-99="0.0798003"/>
+                     <histogram-bin begin="6" end="7" prob="0.0180389" conf-95="0.0478654" conf-99="0.0708165"/>
+                     <histogram-bin begin="7" end="8" prob="0.0100626" conf-95="0.0371188" conf-99="0.054917"/>
+                     <histogram-bin begin="8" end="9" prob="0.00591949" conf-95="0.038062" conf-99="0.0563125"/>
+                     <histogram-bin begin="9" end="10" prob="0.00374417" conf-95="0.0323514" conf-99="0.0478636"/>
+                     <histogram-bin begin="10" end="11" prob="0.00277034" conf-95="0.0306956" conf-99="0.045414"/>
+                     <histogram-bin begin="11" end="12" prob="0.00198676" conf-95="0.0250402" conf-99="0.0370468"/>
+                     <histogram-bin begin="12" end="13" prob="0.00165419" conf-95="0.0175308" conf-99="0.0259367"/>
+                     <histogram-bin begin="13" end="14" prob="0.0014875" conf-95="0.0270015" conf-99="0.0399486"/>
+                     <histogram-bin begin="14" end="15" prob="0.00139038" conf-95="0.0250822" conf-99="0.0371089"/>
+                     <histogram-bin begin="15" end="16" prob="0.00133265" conf-95="0.0262345" conf-99="0.0388138"/>
+                     <histogram-bin begin="16" end="17" prob="0.0012618" conf-95="0.019794" conf-99="0.0292851"/>
+                     <histogram-bin begin="17" end="18" prob="0.00124416" conf-95="0.0241359" conf-99="0.0357089"/>
+                     <histogram-bin begin="18" end="19" prob="0.00115771" conf-95="0.0251223" conf-99="0.0371682"/>
+                     <histogram-bin begin="19" end="20" prob="0.00115659" conf-95="0.0246341" conf-99="0.036446"/>
+                     <histogram-bin begin="20" end="21" prob="0.00107234" conf-95="0.0219788" conf-99="0.0325174"/>
+                     <histogram-bin begin="21" end="22" prob="0.00105252" conf-95="0.0173665" conf-99="0.0256936"/>
+                     <histogram-bin begin="22" end="23" prob="0.000996113" conf-95="0.0225015" conf-99="0.0332908"/>
+                     <histogram-bin begin="23" end="24" prob="0.00094999" conf-95="0.0228896" conf-99="0.033865"/>
+                     <histogram-bin begin="24" end="25" prob="0.000912603" conf-95="0.0288989" conf-99="0.0427557"/>
+                     <histogram-bin begin="25" end="26" prob="0.000917636" conf-95="0.0208453" conf-99="0.0308405"/>
+                     <histogram-bin begin="26" end="27" prob="0.00083567" conf-95="0.0225773" conf-99="0.033403"/>
+                     <histogram-bin begin="27" end="28" prob="0.00081727" conf-95="0.0194721" conf-99="0.0288088"/>
+                     <histogram-bin begin="28" end="29" prob="0.000800727" conf-95="0.021341" conf-99="0.0315738"/>
+                     <histogram-bin begin="29" end="30" prob="0.000785961" conf-95="0.0132779" conf-99="0.0196445"/>
+                     <histogram-bin begin="30" end="31" prob="0.000733531" conf-95="0.0214854" conf-99="0.0317875"/>
+                     <histogram-bin begin="31" end="32" prob="0.00071595" conf-95="0.019462" conf-99="0.028794"/>
+                     <histogram-bin begin="32" end="33" prob="0.000678603" conf-95="0.0237471" conf-99="0.0351337"/>
+                     <histogram-bin begin="33" end="34" prob="0.000679687" conf-95="0.0195723" conf-99="0.0289571"/>
+                     <histogram-bin begin="34" end="35" prob="0.000616655" conf-95="0.0220339" conf-99="0.032599"/>
+                     <histogram-bin begin="35" end="36" prob="0.000579493" conf-95="0.0199128" conf-99="0.0294609"/>
+                     <histogram-bin begin="36" end="37" prob="0.000585763" conf-95="0.0211312" conf-99="0.0312635"/>
+                     <histogram-bin begin="37" end="38" prob="0.000595673" conf-95="0.0145629" conf-99="0.0215457"/>
+                     <histogram-bin begin="38" end="39" prob="0.000524403" conf-95="0.0167728" conf-99="0.0248153"/>
+                     <histogram-bin begin="39" end="40" prob="0.000530844" conf-95="0.0197635" conf-99="0.02924"/>
+                     <histogram-bin begin="40" end="41" prob="0.000487091" conf-95="0.0217588" conf-99="0.032192"/>
+                     <overflow-bin begin="40" end="0" prob="0.0135497" conf-95="0.0469215" conf-99="0.0694201"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="3.01407" service-time-variance="82.0243" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.0501128" service-time-variance="5.10224" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0741415" service-time-variance="7.54873" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="pareto" scheduling="inf">
+      <result-processor utilization="1">
+         <result-conf-95 utilization="0"/>
+         <result-conf-99 utilization="0"/>
+      </result-processor>
+      <task name="pareto" scheduling="burst">
+         <result-task throughput="0.333486" utilization="1" phase1-utilization="1" proc-utilization="1">
+            <result-conf-95 throughput="0.00214842" utilization="0" proc-utilization="0"/>
+            <result-conf-99 throughput="0.00317857" utilization="3.499" proc-utilization="0"/>
+         </result-task>
+         <entry name="pareto" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.333486" squared-coeff-variation="0.931881" proc-utilization="1">
+               <result-conf-95 utilization="0" throughput="0.00214842" squared-coeff-variation="0" proc-utilization="0"/>
+               <result-conf-99 utilization="0" throughput="0.00317857" squared-coeff-variation="0" proc-utilization="0"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="pareto_ph1" phase="1" host-demand-mean="3">
+                  <service-time-distribution number-bins="40" min="0" max="40">
+                     <underflow-bin begin="0" end="0" prob="0"/>
+                     <histogram-bin begin="1" end="2" prob="0"/>
+                     <histogram-bin begin="2" end="3" prob="0.267887" conf-95="0.102076" conf-99="0.151021"/>
+                     <histogram-bin begin="3" end="4" prob="0.457156" conf-95="0.111329" conf-99="0.16471"/>
+                     <histogram-bin begin="4" end="5" prob="0.137489" conf-95="0.0690276" conf-99="0.102126"/>
+                     <histogram-bin begin="5" end="6" prob="0.0573559" conf-95="0.0512952" conf-99="0.0758908"/>
+                     <histogram-bin begin="6" end="7" prob="0.0286577" conf-95="0.063017" conf-99="0.0932332"/>
+                     <histogram-bin begin="7" end="8" prob="0.016071" conf-95="0.0468045" conf-99="0.0692469"/>
+                     <histogram-bin begin="8" end="9" prob="0.00974069" conf-95="0.0429013" conf-99="0.0634722"/>
+                     <histogram-bin begin="9" end="10" prob="0.00640732" conf-95="0.0309144" conf-99="0.0457376"/>
+                     <histogram-bin begin="10" end="11" prob="0.00427181" conf-95="0.0374876" conf-99="0.0554627"/>
+                     <histogram-bin begin="11" end="12" prob="0.00309308" conf-95="0.028326" conf-99="0.0419082"/>
+                     <histogram-bin begin="12" end="13" prob="0.00228245" conf-95="0.03523" conf-99="0.0521226"/>
+                     <histogram-bin begin="13" end="14" prob="0.00173801" conf-95="0.0238818" conf-99="0.035333"/>
+                     <histogram-bin begin="14" end="15" prob="0.00122396" conf-95="0.0224996" conf-99="0.0332881"/>
+                     <histogram-bin begin="15" end="16" prob="0.00107573" conf-95="0.0183521" conf-99="0.0271519"/>
+                     <histogram-bin begin="16" end="17" prob="0.000818069" conf-95="0.0216697" conf-99="0.0320602"/>
+                     <histogram-bin begin="17" end="18" prob="0.000672269" conf-95="0.0156003" conf-99="0.0230805"/>
+                     <histogram-bin begin="18" end="19" prob="0.000506831" conf-95="0.0187911" conf-99="0.0278013"/>
+                     <histogram-bin begin="19" end="20" prob="0.000420922" conf-95="0.0206439" conf-99="0.0305424"/>
+                     <histogram-bin begin="20" end="21" prob="0.000356035" conf-95="0.019521" conf-99="0.0288811"/>
+                     <histogram-bin begin="21" end="22" prob="0.000316288" conf-95="0.0184477" conf-99="0.0272932"/>
+                     <histogram-bin begin="22" end="23" prob="0.000245303" conf-95="0.0139143" conf-99="0.020586"/>
+                     <histogram-bin begin="23" end="24" prob="0.000239049" conf-95="0.0167447" conf-99="0.0247737"/>
+                     <histogram-bin begin="24" end="25" prob="0.000176815" conf-95="0.0159783" conf-99="0.0236398"/>
+                     <histogram-bin begin="25" end="26" prob="0.000135738" conf-95="0.009227" conf-99="0.0136513"/>
+                     <histogram-bin begin="26" end="27" prob="0.000153166" conf-95="0.00998548" conf-99="0.0147735"/>
+                     <histogram-bin begin="27" end="28" prob="0.000129455" conf-95="0.0137064" conf-99="0.0202786"/>
+                     <histogram-bin begin="28" end="29" prob="0.000100863" conf-95="0.0142356" conf-99="0.0210614"/>
+                     <histogram-bin begin="29" end="30" prob="0.000124529" conf-95="0.0137396" conf-99="0.0203276"/>
+                     <histogram-bin begin="30" end="31" prob="9.58687e-05" conf-95="0.0108952" conf-99="0.0161194"/>
+                     <histogram-bin begin="31" end="32" prob="7.46935e-05" conf-95="0.0103453" conf-99="0.0153059"/>
+                     <histogram-bin begin="32" end="33" prob="7.59366e-05" conf-95="0.0116759" conf-99="0.0172744"/>
+                     <histogram-bin begin="33" end="34" prob="4.8584e-05" conf-95="0.00932559" conf-99="0.0137971"/>
+                     <histogram-bin begin="34" end="35" prob="6.72411e-05" conf-95="0.0128561" conf-99="0.0190205"/>
+                     <histogram-bin begin="35" end="36" prob="4.72745e-05" conf-95="0.0123924" conf-99="0.0183344"/>
+                     <histogram-bin begin="36" end="37" prob="6.47829e-05" conf-95="0.0111082" conf-99="0.0164345"/>
+                     <histogram-bin begin="37" end="38" prob="4.60563e-05" conf-95="0.0113808" conf-99="0.0168378"/>
+                     <histogram-bin begin="38" end="39" prob="4.35768e-05" conf-95="0.0091607" conf-99="0.0135532"/>
+                     <histogram-bin begin="39" end="40" prob="2.49046e-05" conf-95="0.00854072" conf-99="0.0126359"/>
+                     <histogram-bin begin="40" end="41" prob="2.9855e-05" conf-95="0.0094405" conf-99="0.0139672"/>
+                     <overflow-bin begin="40" end="0" prob="0.000535473" conf-95="0.0164792" conf-99="0.0243809"/>
+                  </service-time-distribution>
+                  <result-activity proc-waiting="0" service-time="2.99865" service-time-variance="8.37939" utilization="1">
+                     <result-conf-95 proc-waiting="0" service-time="0.01932" service-time-variance="6.06112" utilization="0"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0285838" service-time-variance="8.96738" utilization="0"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

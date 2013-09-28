@@ -1,0 +1,106 @@
+DMG file:
+
+[From http://www.stepwise.com/Articles/Technical/2001-03-29.01.html]
+
+Apple encourages developers to distribute applications that don't
+require an installer as disk image (.dmg) files. These allow users to
+drag the files from a 'virtual' disk volume to the location where they
+would like to have them on their hard drive.
+
+There are several different types of disk images. Standard .img files
+are a dual fork format, and require MacBinary encoding to transfer via
+the web or FTP. A second format, .dmg, are a single fork format. These
+require no additional encoding to transfer.
+
+There isn't currently a nice GUI tool for creating .dmg files on Mac
+OS X 10.0. You can still create them, but you need to resort to the
+command line tools hdiutil, hdid and newfs_hfs.
+
+A typical process for doing this as as follows.
+
+1. Create a writeable disk image (adjust the size according to your
+   needs, the blank space is compressed)
+
+     hdiutil create -megabytes 50 lqns-5.4.dmg -layout NONE
+
+2. Next, you want to mount the image. However you do not want the
+   system to be notified of the mount, so you must used the -nomount
+   command.
+
+     hdid -nomount lqns-5.4.dmg
+
+This command will return a /dev/disk<somenumber> of the mounted image,
+you'll need to use that in some of the following steps.
+
+3. Now we need to format the mounted disk image as an HFS+ volume and
+   give it the <volume name> that it will mount under in the
+   Finder.. Note that you need to substitute the /dev/disk<somenumber>
+   from above. You will be asked for the administrator password when
+   you enter this command.
+
+     sudo newfs_hfs -v lqns /dev/disk<somenumber>
+
+4. Unmount (eject) the formatted volume from the system. Again, note
+   the substitution
+
+     hdiutil eject /dev/disk<somenumber>
+
+5. and finally, we need to mount the image editable
+
+     hdid lqns-5.4.dmg
+
+You'll now have a new volume showing up in the Finder that is called lqns.
+
+6. Use the Finder to copy and arrange your files on the image, and
+   when you are finished, eject the volume. This doesn't always work,
+   the Finder might complain that it is in use. In these cases, it
+   seems necessary to reboot.
+
+   cd /opt
+   find . \( -name 'liblq*' -o -name 'lq*' -o -name 'srvn*' \) -depth -print | cpio -pd /Volumes/lqns
+
+7. Once you've finished copying items to your volume and ejected it,
+   you need to convert the read-write version to a read-only version
+   using the following command.
+
+If your dmg files are intended for 10.1 or above, you can force them
+to be compressed using the zlib algorithms (which are significantly
+more efficient at making smaller archives) by changing one letter
+(UDCO to UDZO) when you convert it to the final image.
+
+     hdiutil convert -format UDZO lqns-5.4.dmg -o lqns-5.4.z.dmg
+
+You now have a distributable disk image. And if you're releasing
+software, be sure to add it to Softrak.
+
+------------------------------------------------------------------------
+
+9) Create Mac Installer
+Screen Next we'll create a Mac installer.  Using "Finder", navigate
+into the "Developer:Applications:Utilities" folder and double-click
+"PackageMaker".  (Prior to OS X Panther [10.4], the names of the
+fields, tabs, and menu items in the steps below are a little
+different, but they do the same thing).
+
+Steps:
+
+   1. On the first screen, select "Single Package Project" and click
+      "OK".
+   2. In the "Title:" field enter "Layered Queuing Network Solver".
+   3. Click the "Contents" tab.  Then use the "Root:" chooser button
+      to locate the "Show Time Mac App" folder and "Open" it.
+   4. On the "Configuration" tab in the "Default Location:" field,
+      enter "/Applications".
+   5. Check the flags "Allow Revert to Previous Version" and
+      "Relocatable".
+   6. On the "Package Version" tab, fill out the fields as follows.
+      Identifier:  com.centerkey.showtime
+      Get Info String:  Show Time 1.0
+      Version:  1.0
+   7. Go to the "Project" menu and select "Build...".
+   8. In the "Save As:" field, enter "ShowTimeInstaller.pkg".
+   9. Navigate into the "ItsShowtime" folder and click the "Save"
+      button. 
+
+You'll be given the option to save your installer settings when you
+quit "PackageMaker".

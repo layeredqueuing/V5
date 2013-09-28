@@ -1,0 +1,92 @@
+# SRVN Model Description File, for file: reserve-temp.lqn
+
+G 
+# Comments between quotes, as many lines as necessary 
+"Layered Queueing Network for a Web-based Reservation System" 
+0.0001	# Convergence criterion, 
+500	# iteration limit, 
+1	# print interval, 
+0.5	# underrelaxation (stabilizes the algorithm if less than 1.)
+# End of General Information 
+-1
+
+# Processor Information (the zero is necessary; it may also give the number of processors) 
+P 0
+# SYNTAX: p ProcessorName SchedDiscipline [multiplicity, default = 1]
+# SchedDiscipline = f fifo
+#                 | r random
+#		  | p premptive
+#		  | h hol (or non-pre-empt)
+#		  | s proc-sharing 
+# multiplicity = m value (multiprocessor)
+#	       | i (infinite)
+  p UserP f i
+  p DBP f
+  p ReservP f
+  p CCReqP f i
+  p ReservDiskP f
+  p DBDiskP f
+-1
+
+# Task Information: (the zero is necessary; it may also give the number of tasks) 
+T 7
+# SYNTAX: t TaskName RefFlag EntryList -1 ProcessorName [multiplicity]
+#   TaskName is any string, globally unique among tasks 
+#   RefFlag = r (reference or user task)
+#           | n (other) 
+#   multiplicity = m value (multithreaded)
+#                | i (infinite)
+  t Users r users -1 UserP m 100
+  t Reserv n interact disconnect connect -1 ReservP m 5
+  t Netware n netware -1 ReservP
+  t DB n dbupdate -1 DBP
+  t CCReq n ccreq -1 CCReqP i
+  t ReservDisk n reservDisk -1 ReservDiskP
+  t DBDisk n dbDisk -1 DBDiskP
+-1
+
+#Entry Information: (the zero is necessary; it may also give the total number of entries) 
+E 0 
+# SYNTAX-FORM-A: Token EntryName Value1 [Value2] [Value3] -1
+# EntryName is a string, globally unique over all entries 
+# Values are for phase 1, 2 and 3 (phase 1 is before the reply) 
+# Token indicate the significance of the Value: 
+#   s HostServiceDemand for EntryName 
+#   c HostServiceCoefficientofVariation
+#   f PhaseTypeFlag
+# SYNTAX-FORM-B: Token FromEntry ToEntry Value1 [Value2] [Value3] 1
+# Token indicate the Value Definitions: 
+#   y SynchronousCalls (no. of rendezvous) 
+#   F ProbForwarding (forward to ToEntry rather than replying) 
+#   z AsynchronousCalls (no. of send-no-reply messages) 
+#   o Fanout (for replicated servers)(ignore this) 
+#   i FanIn (for replicated servers)(ignore this)
+# This example only shows use of host demands and synchronous requests
+# ---------- Users ----------
+  s users 0 56 -1
+  y users connect 0 1 -1
+  y users interact 0 6 -1
+  y users disconnect 0 1 -1
+# ---------- Reserv ----------
+  s connect 0.001 -1
+  y connect netware 1 -1
+  s disconnect 0.0001 0.0007 -1
+  y disconnect netware 1 0 -1
+  y disconnect dbupdate 1 0 -1
+  s interact 0.0014 -1
+  y interact netware 1 -1
+  y interact ccreq 0.1 -1
+  y interact dbupdate 1.15 -1
+# ---------- Netware ----------
+  s netware 0.0012 -1
+  y netware reservDisk 1.5 -1
+# ---------- DB ----------
+  s dbupdate 0.0085 -1
+  y dbupdate dbDisk 2 -1
+# ---------- CCReq ----------
+  s ccreq 3 -1
+# ---------- ReservDisk ----------
+  s reservDisk 0.011 -1
+# ---------- DBDisk ----------
+  s dbDisk 0.011 -1
+-1

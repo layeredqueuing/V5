@@ -1,0 +1,723 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- edited with XMLSpy v2006 rel. 3 sp1 (http://www.altova.com) by Greg Franks (Carle) -->
+<!--
+    Copyright March 2004, the Real-Time and Distributed Systems Group,
+    Department of Systems and Computer Engineering,
+    Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+  -->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <!--
+      lqn-core is the kernel of lqn sub-model and assembly model
+    -->
+  <xsd:element name="lqn-core" type="Lqn-CoreType"/>
+  <xsd:complexType name="Lqn-CoreType">
+    <xsd:sequence>
+      <xsd:element name="processor" type="ProcessorType" maxOccurs="unbounded"/>
+      <xsd:element name="slot" type="SlotType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      LQNCoreVersionType
+    -->
+  <xsd:attributeGroup name="LQNCoreVersion">
+    <xsd:attribute name="lqncore-schema-version" type="xsd:decimal" fixed="1.1"/>
+  </xsd:attributeGroup>
+  <!--
+      SlotType
+    -->
+  <xsd:complexType name="SlotType">
+    <xsd:sequence>
+      <xsd:element name="Interface">
+	<xsd:complexType>
+	  <xsd:sequence>
+	    <xsd:element name="in-port" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attribute name="name" type="xsd:string" use="required"/>
+		<xsd:attribute name="connect-from">
+		  <xsd:simpleType>
+		    <xsd:list itemType="xsd:string"/>
+		  </xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="description" type="xsd:string"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	    <xsd:element name="out-port" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attribute name="name" type="xsd:string" use="required"/>
+		<xsd:attribute name="connect-to">
+		  <xsd:simpleType>
+		    <xsd:list itemType="xsd:string"/>
+		  </xsd:simpleType>
+		</xsd:attribute>
+		<xsd:attribute name="description" type="xsd:string"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	  </xsd:sequence>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="binding" type="BindType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="bind-target" type="xsd:string" use="required"/>
+    <xsd:attribute name="id" type="xsd:string" use="required"/>
+    <xsd:attribute name="replic_num" type="xsd:int"/>
+  </xsd:complexType>
+  <!--
+      SlotType definition
+    -->
+  <xsd:complexType name="BindType">
+    <xsd:sequence>
+      <xsd:element name="parameter" minOccurs="0" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:attribute name="name" type="xsd:string" use="required"/>
+	  <xsd:attribute name="value" type="xsd:string" use="required"/>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="processor-binding" minOccurs="0" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:attribute name="source" type="xsd:string" use="required"/>
+	  <xsd:attribute name="target" type="xsd:string" use="required"/>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="port-binding" minOccurs="0" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:attribute name="source" type="xsd:string" use="required"/>
+	  <xsd:attribute name="target" type="xsd:string" use="required"/>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      ProcessorType
+    -->
+  <xsd:complexType name="ProcessorType">
+    <xsd:annotation>
+      <xsd:documentation>Processors run tasks.</xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:element name="result-processor" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice>
+	<xsd:element name="group" type="GroupType" maxOccurs="unbounded"/>
+	<xsd:element name="task" type="TaskType" maxOccurs="unbounded"/>
+      </xsd:choice>
+    </xsd:sequence>
+    <xsd:attribute name="multiplicity" type="SrvnNonNegativeInteger" default="1"/>
+    <xsd:attribute name="speed-factor" type="SrvnFloat" default="1"/>
+    <xsd:attribute name="scheduling" type="SchedulingType" default="fcfs"/>
+    <xsd:attribute name="replication" type="xsd:nonNegativeInteger" default="1"/>
+    <xsd:attribute name="quantum" type="SrvnFloat" default="0"/>
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <!--
+      SchedulingType for processors.
+    -->
+  <xsd:simpleType name="SchedulingType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="fcfs"/>
+      <xsd:enumeration value="ps"/>
+      <xsd:enumeration value="pp"/>
+      <xsd:enumeration value="inf"/>
+      <xsd:enumeration value="rand"/>
+      <xsd:enumeration value="hol"/>
+      <xsd:enumeration value="ps-hol"/>
+      <xsd:enumeration value="ps-pp"/>
+      <xsd:enumeration value="cfs"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!--
+      TaskSchedulingType
+    -->
+  <xsd:simpleType name="TaskSchedulingType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="ref"/>
+      <xsd:enumeration value="fcfs"/>
+      <xsd:enumeration value="pri"/>
+      <xsd:enumeration value="hol"/>
+      <xsd:enumeration value="burst"/>
+      <xsd:enumeration value="uniform"/>
+      <xsd:enumeration value="poll"/>
+      <xsd:enumeration value="inf"/>
+      <xsd:enumeration value="semaphore"/>
+      <xsd:enumeration value="rwlock"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!--
+      TaskType
+    -->
+  <xsd:complexType name="TaskType">
+    <xsd:sequence>
+      <xsd:element name="result-task" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="service-time-distribution" type="OutputDistributionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice>
+	<xsd:element name="fan-out" type="FanOutType" minOccurs="0" maxOccurs="unbounded"/>
+	<xsd:element name="fan-in" type="FanInType" minOccurs="0" maxOccurs="unbounded"/>
+      </xsd:choice>
+      <xsd:element name="entry" type="EntryType" maxOccurs="unbounded"/>
+      <xsd:element name="service" type="ServiceType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="task-activities" type="TaskActivityGraph" minOccurs="0">
+	<xsd:keyref name="MatchingTaskActivities" refer="ActivityDefs">
+	  <xsd:selector xpath=".//activity"/>
+	  <xsd:field xpath="@name"/>
+	</xsd:keyref>
+	<xsd:keyref name="MatchingLoopHeadActivities" refer="ActivityDefs">
+	  <xsd:selector xpath="./precedence/post-LOOP"/>
+	  <xsd:field xpath="@head"/>
+	</xsd:keyref>
+	<xsd:keyref name="MatchingLoopEndActivities" refer="ActivityDefs">
+	  <xsd:selector xpath="./precedence/post-LOOP"/>
+	  <xsd:field xpath="@end"/>
+	</xsd:keyref>
+	<xsd:keyref name="MatchingReplyActivities" refer="ActivityDefs">
+	  <xsd:selector xpath="./reply-entry/reply-activity"/>
+	  <xsd:field xpath="@name"/>
+	</xsd:keyref>
+	<xsd:key name="ActivityDefs">
+	  <xsd:selector xpath="./activity"/>
+	  <xsd:field xpath="@name"/>
+	</xsd:key>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="multiplicity" type="SrvnNonNegativeInteger" default="1"/>
+    <xsd:attribute name="replication" type="xsd:nonNegativeInteger" default="1"/>
+    <xsd:attribute name="initially" type="xsd:nonNegativeInteger" use="optional"/>
+    <xsd:attribute name="scheduling" type="TaskSchedulingType" default="fcfs"/>
+    <xsd:attribute name="think-time" type="SrvnFloat" default="0"/>
+    <xsd:attribute name="priority" type="xsd:nonNegativeInteger" default="0"/>
+    <xsd:attribute name="queue-length" type="xsd:nonNegativeInteger" default="0"/>
+    <xsd:attribute name="activity-graph" type="TaskOptionType"/>
+  </xsd:complexType>
+  <!--
+      TaskOptionType
+    -->
+  <xsd:simpleType name="TaskOptionType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="YES"/>
+      <xsd:enumeration value="NO"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!--
+      EntryType
+    -->
+  <xsd:complexType name="EntryType">
+    <xsd:sequence>
+      <xsd:element name="result-entry" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="service-time-distribution" type="OutputEntryDistributionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="forwarding" type="EntryMakingCallType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:choice>
+	<xsd:element name="entry-activity-graph" type="EntryActivityGraph" minOccurs="0"/>
+	<xsd:element name="entry-phase-activities" type="PhaseActivities" minOccurs="0">
+	  <xsd:unique name="UniquePhaseNumber">
+	    <xsd:selector xpath="activity"/>
+	    <xsd:field xpath="@phase"/>
+	  </xsd:unique>
+	</xsd:element>
+      </xsd:choice>
+    </xsd:sequence>
+    <xsd:attribute name="type" use="required">
+      <xsd:simpleType>
+	<xsd:restriction base="xsd:string">
+	  <xsd:enumeration value="PH1PH2"/>
+	  <xsd:enumeration value="GRAPH"/>
+	  <xsd:enumeration value="NONE"/>
+	</xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="open-arrival-rate" type="SrvnFloat"/>
+    <xsd:attribute name="priority" type="xsd:int"/>
+    <xsd:attribute name="semaphore" type="SemaphoreType"/>
+    <xsd:attribute name="rwlock" type="RWLockType"/>
+  </xsd:complexType>
+  <!--
+      ActivityGraphBase
+    -->
+  <xsd:complexType name="ActivityGraphBase">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityDefType" maxOccurs="unbounded"/>
+      <xsd:element name="precedence" type="PrecedenceType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      ActivityDefBase
+    -->
+  <xsd:complexType name="ActivityDefBase">
+    <xsd:sequence>
+      <xsd:element name="service-time-distribution" type="OutputDistributionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="result-activity" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="host-demand-mean" type="SrvnFloat" use="required"/>
+    <xsd:attribute name="host-demand-cvsq" type="SrvnFloat"/>
+    <xsd:attribute name="think-time" type="SrvnFloat"/>
+    <xsd:attribute name="max-service-time" type="SrvnFloat"/>
+    <xsd:attribute name="call-order" type="CallOrderType" default="STOCHASTIC"/>
+  </xsd:complexType>
+  <!--
+      ActivityDefType (activities for task activity graphs)
+    -->
+  <xsd:complexType name="ActivityDefType">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityDefBase">
+	<xsd:sequence>
+	  <xsd:choice>
+	    <xsd:group ref="Call-List-Group"/>
+	    <xsd:group ref="Activity-CallGroup" maxOccurs="unbounded"/>
+	  </xsd:choice>
+	</xsd:sequence>
+	<xsd:attribute name="bound-to-entry" type="xsd:string"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      EntryActivityDefType (activities for entry activity graphs)
+
+      *** NOTE: this is not supported yet by the parser.
+      *** NOTE: first-activity can equal anything, its very presence means everything
+    -->
+  <xsd:complexType name="EntryActivityDefType">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityDefBase">
+	<xsd:sequence>
+	  <xsd:choice>
+	    <xsd:group ref="Call-List-Group"/>
+	    <xsd:group ref="Activity-CallGroup" maxOccurs="unbounded"/>
+	  </xsd:choice>
+	</xsd:sequence>
+	<xsd:attribute name="first-activity" type="xsd:string"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      ActivityPhasesType (activities for specifying phases)
+    -->
+  <xsd:complexType name="ActivityPhasesType">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityDefBase">
+	<xsd:sequence>
+	  <xsd:choice>
+	    <xsd:group ref="Call-List-Group"/>
+	    <xsd:group ref="Activity-CallGroup" maxOccurs="unbounded"/>
+	  </xsd:choice>
+	</xsd:sequence>
+	<xsd:attribute name="phase" use="required">
+	  <xsd:simpleType>
+	    <xsd:restriction base="xsd:positiveInteger">
+	      <xsd:minInclusive value="1"/>
+	      <xsd:maxInclusive value="3"/>
+	    </xsd:restriction>
+	  </xsd:simpleType>
+	</xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      PrecedenceType
+    -->
+  <xsd:complexType name="PrecedenceType">
+    <xsd:sequence>
+      <xsd:choice>
+	<xsd:element name="pre" type="SingleActivityListType"/>
+	<xsd:element name="pre-OR" type="ActivityListType"/>
+	<xsd:element name="pre-AND" type="AndJoinListType"/>
+      </xsd:choice>
+      <xsd:choice>
+	<xsd:element name="post" type="SingleActivityListType" minOccurs="0"/>
+	<xsd:element name="post-OR" type="OrListType" minOccurs="0"/>
+	<xsd:element name="post-AND" type="ActivityListType" minOccurs="0"/>
+	<xsd:element name="post-LOOP" type="ActivityLoopListType" minOccurs="0"/>
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      ActivityType (activity in <precedence> relationship)
+    -->
+  <xsd:complexType name="ActivityType">
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <!--
+      ActivityLoopType (for generalized loops in <precendence> relationship)
+    -->
+  <xsd:complexType name="ActivityLoopType">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityType">
+	<xsd:attribute name="count" type="SrvnFloat" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      ActivityOrType (for generalized loops in <precendence> relationship)
+    -->
+  <xsd:complexType name="ActivityOrType">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityType">
+	<xsd:attribute name="prob" type="xsd:string" default="1"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      SingleActivityListType
+    -->
+  <xsd:complexType name="SingleActivityListType">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityType"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      OrListType
+    -->
+  <xsd:complexType name="OrListType">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityOrType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      ActivityListType
+    -->
+  <xsd:complexType name="ActivityListType">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      AndJoinListType
+    -->
+  <xsd:complexType name="AndJoinListType">
+    <xsd:sequence>
+      <xsd:element name="result-join-delay" type="OutputResultJoinDelayType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="service-time-distribution" type="OutputDistributionType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="activity" type="ActivityType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="quorum" type="xsd:nonNegativeInteger" default="0"/>
+  </xsd:complexType>
+  <!--
+      ActivityLoopListType
+    -->
+  <xsd:complexType name="ActivityLoopListType">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityLoopType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="end" type="xsd:string"/>
+  </xsd:complexType>
+  <!--
+      TaskActivityGraph
+    -->
+  <xsd:complexType name="TaskActivityGraph">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityGraphBase">
+	<xsd:sequence>
+	  <xsd:element name="reply-entry" minOccurs="0" maxOccurs="unbounded">
+	    <xsd:complexType>
+	      <xsd:group ref="ReplyActivity"/>
+	      <xsd:attribute name="name" type="xsd:string" use="required"/>
+	    </xsd:complexType>
+	  </xsd:element>
+	</xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      EntryActivityGraph
+    -->
+  <xsd:complexType name="EntryActivityGraph">
+    <xsd:complexContent>
+      <xsd:extension base="ActivityGraphBase">
+	<xsd:group ref="ReplyActivity"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      PhaseActivities
+    -->
+  <xsd:complexType name="PhaseActivities">
+    <xsd:sequence>
+      <xsd:element name="activity" type="ActivityPhasesType" maxOccurs="3"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  <!--
+      ReplyActivity
+    -->
+  <xsd:group name="ReplyActivity">
+    <xsd:sequence>
+      <xsd:element name="reply-activity" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:attribute name="name" type="xsd:string" use="required"/>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:group>
+  <!--
+      ServiceType
+    -->
+  <xsd:complexType name="ServiceType">
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <!--
+      CallOrderType
+    -->
+  <xsd:simpleType name="CallOrderType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="STOCHASTIC"/>
+      <xsd:enumeration value="DETERMINISTIC"/>
+      <xsd:enumeration value="LIST"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!--
+      Activity-CallGroup
+    -->
+  <xsd:group name="Activity-CallGroup">
+    <xsd:sequence>
+      <xsd:choice>
+	<xsd:element name="synch-call" type="ActivityMakingCallType" minOccurs="0"/>
+	<xsd:element name="asynch-call" type="ActivityMakingCallType" minOccurs="0"/>
+      </xsd:choice>
+    </xsd:sequence>
+  </xsd:group>
+  <!-- 
+       MakingCallType
+    -->
+  <xsd:complexType name="MakingCallType">
+    <xsd:sequence>
+      <xsd:element name="result-call" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="dest" type="xsd:string" use="required"/>
+  </xsd:complexType>
+  <!--
+      ActivityMakingCallType
+    -->
+  <xsd:complexType name="ActivityMakingCallType">
+    <xsd:complexContent>
+      <xsd:extension base="MakingCallType">
+	<xsd:attribute name="calls-mean" type="SrvnFloat" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      EntryMakingCallType
+    -->
+  <xsd:complexType name="EntryMakingCallType">
+    <xsd:complexContent>
+      <xsd:extension base="MakingCallType">
+	<xsd:attribute name="prob" type="SrvnFloat" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      Call-List-Group  *** NOT SUPPORTED ***
+    -->
+  <xsd:group name="Call-List-Group">
+    <xsd:sequence>
+      <xsd:element name="call-list" minOccurs="0" maxOccurs="unbounded">
+	<xsd:complexType>
+	  <xsd:sequence>
+	    <xsd:element name="synch-call" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attributeGroup ref="CallListType"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	    <xsd:element name="asynch-call" minOccurs="0" maxOccurs="unbounded">
+	      <xsd:complexType>
+		<xsd:attributeGroup ref="CallListType"/>
+	      </xsd:complexType>
+	    </xsd:element>
+	  </xsd:sequence>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:group>
+  <!--
+      CallListType   *** NOT SUPPORTED ***
+    -->
+  <xsd:attributeGroup name="CallListType">
+    <xsd:attribute name="dest" type="xsd:string" use="required"/>
+  </xsd:attributeGroup>
+  <!--
+      FanInType
+  -->
+  <xsd:complexType name="FanInType">
+    <xsd:attribute name="source" type="xsd:string" use="required"/>
+    <xsd:attribute name="value" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  <!--
+      FanOutType
+  -->
+  <xsd:complexType name="FanOutType">
+    <xsd:attribute name="dest" type="xsd:string" use="required"/>
+    <xsd:attribute name="value" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  <!--
+      External Variable
+    -->
+  <xsd:simpleType name="ExtVariable">
+    <xsd:restriction base="xsd:string">
+      <xsd:pattern value="$(_|[a-zA-Z])(([a-zA-Z]|[0-9]|_)+)?"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  <!--
+      SRVN float type which is union of decimal and scientific notation
+    -->
+  <xsd:simpleType name="SrvnFloat">
+    <xsd:union memberTypes="xsd:double xsd:decimal ExtVariable"/>
+  </xsd:simpleType>
+  <!--
+      SRVN integer type which is union of xsd:int and an external variable
+    -->
+  <xsd:simpleType name="SrvnNonNegativeInteger">
+    <xsd:union memberTypes="xsd:nonNegativeInteger ExtVariable"/>
+  </xsd:simpleType>
+  <!--
+      SemaphoreType
+    -->
+  <xsd:simpleType name="SemaphoreType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="signal"/>
+      <xsd:enumeration value="wait"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!--
+      RWLockType
+    -->
+  <xsd:simpleType name="RWLockType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="r-unlock"/>
+      <xsd:enumeration value="r-lock"/>
+      <xsd:enumeration value="w-unlock"/>
+      <xsd:enumeration value="w-lock"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
+  <!--
+      OutputResultType
+    -->
+  <xsd:complexType name="OutputResultType">
+    <xsd:all>
+      <xsd:element name="result-conf-95" minOccurs="0" maxOccurs="1">
+	<xsd:complexType>
+	  <xsd:attributeGroup ref="ResultContentType"/>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="result-conf-99" minOccurs="0" maxOccurs="1">
+	<xsd:complexType>
+	  <xsd:attributeGroup ref="ResultContentType"/>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+    <xsd:attributeGroup ref="ResultContentType"/>
+  </xsd:complexType>
+  <!--
+      OutputResultJoinDelayType
+    -->
+  <xsd:complexType name="OutputResultJoinDelayType">
+    <xsd:all>
+      <xsd:element name="result-conf-95" minOccurs="0" maxOccurs="1">
+	<xsd:complexType>
+	  <xsd:attribute name="join-waiting" type="xsd:double" use="optional"/>
+	  <xsd:attribute name="join-variance" type="xsd:double" use="optional"/>
+	</xsd:complexType>
+      </xsd:element>
+      <xsd:element name="result-conf-99" minOccurs="0" maxOccurs="1">
+	<xsd:complexType>
+	  <xsd:attribute name="join-waiting" type="xsd:double" use="optional"/>
+	  <xsd:attribute name="join-variance" type="xsd:double" use="optional"/>
+	</xsd:complexType>
+      </xsd:element>
+    </xsd:all>
+    <xsd:attribute name="join-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="join-variance" type="xsd:double" use="optional"/>
+  </xsd:complexType>
+  <!--
+      ResultContentType attribute group
+    -->
+  <xsd:attributeGroup name="ResultContentType">
+    <xsd:attribute name="open-wait-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="loss-probability" type="xsd:double" use="optional"/>
+    <xsd:attribute name="prob-exceed-max-service-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="proc-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="proc-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-proc-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-proc-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-proc-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="semaphore-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="semaphore-waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="semaphore-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-reader-holding" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-reader-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-reader-waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-reader-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-writer-holding" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-writer-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-writer-waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="rwlock-writer-utilization" type="xsd:double" use="optional"/>   
+    <xsd:attribute name="service-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-service-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-service-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-service-time" type="xsd:double" use="optional"/>
+    <xsd:attribute name="service-time-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-service-time-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-service-time-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-service-time-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="squared-coeff-variation" type="xsd:double" use="optional"/>
+    <xsd:attribute name="throughput" type="xsd:double" use="optional"/>
+    <xsd:attribute name="throughput-bound" type="xsd:double" use="optional"/>
+    <xsd:attribute name="utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-utilization" type="xsd:double" use="optional"/>
+    <xsd:attribute name="waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-waiting" type="xsd:double" use="optional"/>
+    <xsd:attribute name="waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase1-waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase2-waiting-variance" type="xsd:double" use="optional"/>
+    <xsd:attribute name="phase3-waiting-variance" type="xsd:double" use="optional"/>
+  </xsd:attributeGroup>
+  <!--
+      OutputDistributionType
+    -->
+  <xsd:complexType name="OutputDistributionType">
+    <xsd:sequence>
+      <xsd:element name="underflow-bin" type="HistogramBinType" minOccurs="0"/>
+      <xsd:element name="histogram-bin" type="HistogramBinType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="overflow-bin" type="HistogramBinType" minOccurs="0"/>
+    </xsd:sequence>
+    <xsd:attribute name="min" type="xsd:double" use="required"/>
+    <xsd:attribute name="mid-point" type="xsd:double" use="optional"/>
+    <xsd:attribute name="max" type="xsd:double" use="required"/>
+    <xsd:attribute name="bin-size" type="xsd:double" use="optional"/>
+    <xsd:attribute name="number-bins" type="xsd:nonNegativeInteger" default="20"/>
+    <xsd:attribute name="mean" type="xsd:double" use="optional"/>
+    <xsd:attribute name="std-dev" type="xsd:double" use="optional"/>
+    <xsd:attribute name="skew" type="xsd:double" use="optional"/>
+    <xsd:attribute name="kurtosis" type="xsd:double" use="optional"/>
+  </xsd:complexType>
+  <!--
+      OutputEntryDistributionType
+    -->
+  <xsd:complexType name="OutputEntryDistributionType">
+    <xsd:complexContent>
+      <xsd:extension base="OutputDistributionType">
+	<xsd:attribute name="phase" type="xsd:nonNegativeInteger" use="required"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  <!--
+      HistogramBinType
+    -->
+  <xsd:complexType name="HistogramBinType">
+    <xsd:attribute name="begin" type="xsd:double" use="required"/>
+    <xsd:attribute name="end" type="xsd:double" use="optional"/>
+    <xsd:attribute name="prob" type="xsd:double" use="required"/>
+    <xsd:attribute name="conf-95" type="xsd:double" use="optional"/>
+    <xsd:attribute name="conf-99" type="xsd:double" use="optional"/>
+  </xsd:complexType>
+  <xsd:complexType name="GroupType">
+    <xsd:sequence>
+      <xsd:element name="result-group" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
+      <xsd:element name="task" type="TaskType" maxOccurs="unbounded"/>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:string" use="required"/>
+    <xsd:attribute name="cap" type="xsd:boolean" use="optional" default="false"/>
+    <xsd:attribute name="share" type="SrvnFloat" use="required"/>
+  </xsd:complexType>
+</xsd:schema>

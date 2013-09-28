@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<lqn-model name="tower" description="lqn2xml 5.5 solution for model from: tower.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Chapter 2: Tower Pattern" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="variance" value="none"/>
+   </solver-params>
+   <processor name="users" scheduling="inf" speed-factor="1">
+      <task name="users" scheduling="ref" multiplicity="10">
+         <entry name="users" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="users_1" phase="1" host-demand-mean="0">
+                  <synch-call dest="e2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs" speed-factor="1">
+      <task name="t2" scheduling="fcfs" multiplicity="$m2">
+         <entry name="e2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e3" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p3" scheduling="fcfs" speed-factor="1">
+      <task name="t3" scheduling="fcfs"  multiplicity="$m3">
+         <entry name="e3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e3_1" phase="1" host-demand-mean="$beta_2">
+                  <synch-call dest="e4" calls-mean="$beta_2"/>
+                  <synch-call dest="cs" calls-mean="$beta_1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="cs" scheduling="fcfs">
+         <entry name="cs" type="PH1PH2">
+            <entry-phase-activities>
+	       <activity name="cs_1" phase="1" host-demand-mean="$beta_1">
+	          <synch-call dest="e4" calls-mean="1"/>
+	       </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p4" scheduling="fcfs" speed-factor="1">
+      <task name="t4" scheduling="fcfs"  multiplicity="$m4">
+         <entry name="e4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e4_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e5_1" calls-mean="1"/>
+                  <synch-call dest="e5_2" calls-mean="1"/>
+                  <synch-call dest="e5_3" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_1" scheduling="fcfs" speed-factor="1">
+      <task name="t5_1" scheduling="fcfs">
+         <entry name="e5_1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_1_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_2" scheduling="fcfs" speed-factor="1">
+      <task name="t5_2" scheduling="fcfs">
+         <entry name="e5_2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_3" scheduling="fcfs" speed-factor="1">
+      <task name="t5_3" scheduling="fcfs">
+         <entry name="e5_3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_3_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx>
+     <![CDATA[
+       $m2 = 6;
+       $m3 = 5;
+       $m4 = 4;
+       beta = [0.0001, 0.33, 0.67, 1.0];
+       foreach( ix, $beta_1 in beta ) {
+         $beta_2 = 1.0 - $beta_1;
+	 println( ix, ": ", $beta_1 );
+         solve();
+	 println( "  Throughput:  ", task("users").throughput );
+	 println( "  Utilization: ", task("t5_1").utilization );
+       }
+     ]]>
+   </lqx>
+</lqn-model>

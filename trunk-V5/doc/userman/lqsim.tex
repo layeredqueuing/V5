@@ -1,0 +1,362 @@
+%%  -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  lqsim
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{Invoking the Simulator ``lqsim''}
+\label{sec:invoking-lqsim}
+
+Lqsim is used to simulate layered queueing networks using the
+PARASOL\index{Parasol}~\cite{perf:neilson-91b} simulation system.
+Lqsim reads its input from files specified at the command line if
+present, or from the standard input otherwise.  By default, output for
+an input file \texttt{filename} specified on the command line will be
+placed in the file \texttt{filename.out}.  If the \flag{p}{} switch is
+used, parseable output\index{output!parseable} will also be written
+into \texttt{filename.p}. If XML input\index{input!XML} is used,
+results will be written back to the original input file.  This
+behaviour can be changed using the \flag{o}{output} switch, described
+below.  If several files are named, then each is treated as a separate
+model and output will be placed in separate output files.  If input is
+from the standard input, output will be directed to the standard
+output.  The file name `\texttt{-}' is used to specify standard input.
+
+The \flag{o}{output} option can be used to direct output to the file or directory named \emph{output}
+regardless of the source of input.  Output will be XML\index{XML}\index{output!XML} if XML
+input\index{input!XML} is used, parseable output if the \flag{p}{} switch is used, and normal output
+otherwise; multiple input files cannot be specified.  If \emph{output} is a directory, results will be
+written in the directory named \texttt{output}.  Output can be directed to standard output by using
+\texttt{-o-} (i.e., the output file name is `\texttt{-}'.)
+
+\section{Command Line Options}
+\label{sec:lqsim-options}\index{command line}
+
+\begin{description}
+\item[\flag{A}{}, \longopt{automatic}=\emph{run-time[,precision[,skip]]}]~\\
+  Use automatic
+  blocking\index{automatic blocking}\index{block!automatic} with a
+  simulation block
+  size\index{block!size}\index{simulation!block}\index{block!simulation}
+  of \emph{run-time}\index{run time!simulation}.  The
+  \emph{precision}\index{precision!simulation} argument specifies the
+  desired mean 95\% confidence level\index{confidence level}.  By
+  default, precision is 1.0\%.  The simulator will stop when this
+  value is reached, or when 30 blocks have run.
+  \emph{Skip}\index{skip period} specifies the time value of the
+  initial skip period.
+  Statistics\index{statistics}\index{simulation!statistics} gathered
+  during the skip period are discarded.  By default, its value is 0.
+  When the run completes, the results reported will be the average
+  value of the data collected in all of the blocks.  If the \flag{R}{}
+  flag is used, the confidence intervals\index{confidence intervals}
+  will for the raw statistics will be included in the monitor
+  file\index{file!monitor}\index{monitor file}.
+\item[\flag{B}{}, \longopt{blocks}=\emph{blocks[,run-time[,skip]]}]~\\
+  Use manual blocking\index{manual blocking}\index{block!manual} with
+  \emph{blocks} blocks.  The value of \emph{blocks} must be less than
+  or equal to 30.  The run time for each block is specified with
+  \emph{run-time}\index{run time!simulation}.  \emph{Skip}\index{skip}
+  specifies the time value of the initial skip period.
+\item[\flag{C}{}, \longopt{confidence}=\emph{precision[,initial-loops[,run-time]]}]~\\
+  Use automatic
+  blocking\index{automatic blocking}\index{block!automatic}, stopping
+  when the specified precision\index{precision!simulation} is met.
+  The run time of each block is estimated, based on
+  \emph{initial-loops}\index{initial-loops} running on each
+  reference\index{task!reference}\index{reference task} task.  The
+  default value for \emph{initial-loops} is 500.  The \emph{run-time}
+  argument specifies the maximum total run time.
+\item[\flag{d}{}, \longopt{debug}]~\\ This option is used to dump task and entry
+  information showing internal index numbers.  This option is useful
+  for determining the names of the servers and tasks when tracing the
+  execution of the simulator since the Parasol output routines do no
+  emit this information at present.  Output is directed to stdout
+  unless redirected using \flag{m}{file}.
+\item[\flag{e}, \longopt{error}=\emph{error}]~\\
+  This option is to enable floating point
+  exception\index{floating point!exception} handling.
+  \begin{description}
+  \item[a] Abort immediately on a floating point error (provided the
+    floating point unit can do so).
+  \item[b] Abort on floating point errors. (default)
+  \item[i] Ignore floating point errors.
+  \item[w] Warn on floating point errors.
+  \end{description}
+  The solver checks for floating point overflow\index{overflow},
+  division by zero and invalid operations.  Underflow and inexact
+  result exceptions are always ignored.
+  
+  In some instances,
+  infinities\index{infinity}\index{floating point!infinity} will be
+  propogated within the solver.  Please refer to the
+  \pragma{stop-on-message-loss} pragma below.
+\item[\flag{h}{output}]~\\
+  Generate comma separated values for the service time distribution\index{service time!distribution}
+  data\index{distribution!service time}.  If \emph{output} is a directory, the output file name will be the
+  name of a the input file with a \texttt{.csv}\index{output!csv} extension.  Otherwise, the output will be
+  written to the named file.
+\item[\flag{m}{file}]~\\
+  Direct all output generated by the various
+  debugging\index{file!debug} and tracing\index{file!tracing} options
+  to the monitor\index{file!monitor} file \emph{file}, rather than to
+  standard output.  A filename of `\texttt{-}' directs output to
+  standard output.
+\item[\flag{n}{}, \longopt{no-execute}]~\\
+  Read input, but do not solve.  The input is checked for validity. No
+  output is generated.
+\item[\flag{o}{}, \longopt{output}=\emph{output}]~\\
+  Direct analysis results to output\index{output}.  A file name of `\texttt{-}' directs output to standard
+  output.  If \emph{output} is a directory, all output from the simulator will be placed there with
+  filenames based on the name of the input files processed.  Otherwise, only one input file can be
+  processed; its output will be placed in \emph{output}.
+\item[\flag{p}{}, \longopt{parseable}]~\\
+  Generate parseable output\index{output!parseable} suitable as input
+  to other programs such as \manpage{MultiSRVN}{1} and
+  \manpage{srvndiff}{1}.  If input is from \texttt{filename},
+  parseable output is directed to \texttt{filename.p}.  If standard
+  input\index{standard input} is used for input, then the parseable
+  output is sent to the standard output device.  If the
+  \flag{o}{output} option is used, the parseable output is sent to the
+  file name output.  (In this case, only parseable output is emitted.)
+\item[\flag{P}, \longopt{pragma}=\emph{pragma}]~\\
+  Change the default solution strategy.  Refer to the PRAGMAS chapter
+  (\S\ref{sec:lqsim-pragmas})\index{pragma} below for more information.
+\item[\flag{R}{}, \longopt{raw-statistics}]~\\
+  Print the values of the statistical
+  counters\index{counters!statistical}\index{statistical counters} to
+  the monitor file\index{file!monitor}.  If the \flag{A}{}, \flag{B}{}
+  or \flag{C}{} option was used, the mean value, 95th and 99th
+  percentile are reported.  At present, statistics are gathered for
+  the task\index{cycle-time!task} and entry\index{cycle-time!entry},
+  cycle time task\index{utilization!task},
+  processor\index{utilization!processor} and
+  entry\index{utilization!entry} utilization, and waiting
+  time\index{waiting time} for messages.
+\item[\flag{S}{}, \longopt{seed}=\emph{seed}]~\\
+  Set the initial seed\index{seed} value for the random
+  number\index{random number!generation} generator.  By default, the
+  system time from time \manpage{time}{3} is used.  The same seed
+  value is used to initialize the random number generator for each
+  file when multiple input files are specified.
+\item[\flag{t}{}, \longopt{trace}=\emph{traceopts}]~\\
+  This option is used to set tracing\index{tracing} options which are
+  used to print out various steps of the simulation while it is
+  executing.  \emph{Traceopts} is any combination of the following:
+  \begin{description}
+  \item[\optarg{driver}{}] Print out the underlying tracing
+    information from the Parasol\index{Parasol} simulation engine.
+  \item[\optarg{processor}{=regex}] Trace activity for
+    processors\index{processor!trace}\index{trace!processor} whose
+    name match \emph{regex}.  If \emph{regex}is not specified,
+    activity on all processors is reported.  \emph{Regex} is regular
+    expression of the type accepted by \manpage{egrep}{1}.
+  \item[\optarg{task}{=regex}] Trace activity for
+    tasks\index{task!trace}\index{trace!task} whose name match
+    \emph{regex}.  If \emph{regex} is not specified, activity on all
+    tasks is reported.  pattern is regular expression of the type
+    accepted by \manpage{egrep}{1}.
+  \item[\optarg{events}{regex[:regex]}] Display only events matching
+    pattern.  The events are: msg-async, msg-send, msg-receive,
+    msg-reply, msg-done, msg-abort, msg-forward, worker-dispatch,
+    worker- idle, task-created, task-ready, task-running,
+    task-computing, task-waiting, thread-start, thread-enqueue,
+    thread-dequeue, thread-idle, thread-create, thread-reap,
+    thread-stop, activity-start, activity-execute, activity-fork, and
+    activity-join.
+  \item[\optarg{msgbuf}{}] Show msgbuf allocation and deallocation.
+  \item[\optarg{timeline}{}] Generate events for the timeline tool.
+  \end{description}
+\item[\flag{T}{}, \longopt{run-time}=\emph{run-time}]~\\
+  Set the run time\index{run time!simulation} for the simulation.  The
+  default is 10,000 units.  Specifying \flag{T}{} after either
+  \flag{A}{} or \flag{B}{} changes the simulation block size, but does
+  not turn off blocked statistics
+  collection\index{simulation!block}\index{statistics!simulation}.
+\item[\flag{v}{}, \longopt{verbose}]~\\
+  Print out statistics\index{solution!statistics}\index{statistics}
+  about the solution on the standard output device.
+\item[\flag{V}{}, \longopt{version}]~\\
+  Print out version\index{version} and copyright\index{copyright}
+  information.
+\item[\flag{w}{}, \longopt{no-warnings}]~\\
+Ignore warnings.  The default is to print out all warnings.\index{warning!ignore}
+\item[\flag{x}{}, \longopt{xml}]~\\
+Generate XML output regardless of input format.
+\item[\flag{z}{specialopts}]~\\
+  This flag is used to select special options.  Arguments of the form
+  $n$ are integers while arguments of the form $n.n$ are real
+  numbers.  \emph{Specialopts} is any combination of the following:
+  \begin{description}
+  \item[\optarg{print-interval}{=nn}] Set the printing interval to
+    $n$.  Results are printed after $nn$ blocks have run.  The default
+    value is 10.
+  \item[\optarg{global-delay}{=n.n}] Set the interprocessor
+    delay\index{delay!interprocessor} to nn.n for all tasks.  Delays
+    specified in the input file will override the global value.
+  \end{description}
+\item[\longopt{global-delay}]~\\
+Set the inter-processor communication delay to n.n.
+\item[\longopt{print-interval}]~\\
+Ouptut results after n iterations.
+\item[\longopt{restart}]~\\
+Re-run the LQX\index{LQX} program without re-solving the models unless a valid solution does not exist.  
+This option is useful if LQX print statements are changed, or if a subset of simulations has to be re-run.
+\item[\longopt{debug-lqx}]~\\
+Output debugging informtion as an LQX\index{LQX!debug} program is being parsed.
+\item[\longopt{debug-xml}]~\\
+Output XML\index{XML!debug} elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
+this option can be used to localize the error.
+\end{description}
+
+\section{Return Status}
+\label{sec:lqsim-return-status}
+
+Lqsim exits 0 on success\index{exit!success}, 1 if the simulation
+failed to meet the convergence criteria\index{convergence!failure}, 2
+if the input was invalid\index{input!invalid}, 4 if a command line
+argument was incorrect\index{command line!incorrect}, 8 for file
+read/write problems and -1 for fatal errors\index{error!fatal}.  If
+multiple input files\index{input!multiple} are being processed, the
+exit code is the bit-wise OR of the above conditions.
+
+\section{Pragmas}
+\label{sec:lqsim-pragmas}
+
+Pragmas\index{pragma} are used to alter the behaviour of the simulator
+in a variety of ways.  They can be specified in the input file with
+``\#pragma'', on the command line with the \flag{P}{} option, or
+through the environment variable\index{environment variable}
+\texttt{LQSIM\_PRAGMAS}\index{LQSIM\_PRAGMAS@\texttt{LQSIM\_PRAGMAS}}.
+Command line\index{command line} specification of pragmas overrides
+those defined in the environment variable\index{environment
+  variable!override} which in turn override those defined in the input
+file.
+
+The following pragmas are supported.  An invalid pragma
+specification\index{pragma!invalid!command line} at the command line
+will stop the solver.  Invalid pragmas defined in the environment
+variable or in the input\index{pragma!invalid!input file} file are
+ignored as they might be used by other solvers.
+\begin{description}
+\item[\optarg{scheduling}{=enum}]~\\
+  This pragma is used to select the scheduler used for
+  processors\index{processor!scheduling}.  \emph{Enum} is any one of
+  the following:
+  \begin{description}
+  \item[default] Use the scheduler built into parasol for processor
+    scheduling.  (faster)
+  \item[custom] Use the custom
+    scheduler\index{processor!scheduling!custom} for scheduling which
+    permits more statistics to be gathered about processor
+    utilization\index{utilization!processor}\index{processor!utilization}
+    and waiting
+    times\index{waiting!processor}\index{processor!waiting}.  However,
+    this option invokes more internal tasks, so simulations are slower
+    than when using the default scheduler.
+  \item[default-natural] Use the parasol scheduler, but don't
+    reschedule\index{processor!scheduling!natural} after the end of
+    each phase\index{reschedule!phase}\index{phase!reschedule} or
+    activity\index{reschedule!activity}\index{activity!reschedule}.
+    This action more closely resembles the scheduling of real
+    applications.
+  \item[custom-natural] Use the custom scheduler; don't reschedule
+    after the end of each phase or activity.
+  \end{description}
+\item[\optarg{messages}{\emph{=n}}]~\\
+  Set the number of message buffers\index{message!buffers} to $n$.
+  The default is 1000.
+\item[\optarg{stop-on-message-loss}{\emph{=bool}}] ~\\
+  This pragma is used to control the operation of the solver when the
+  arrival rate\index{arrival rate} exceeds the service rate of a
+  server.  The simulator can either discard the arrival, or it can
+  halt.  The meanings of \emph{bool} are:
+  \begin{description}
+  \item[false] Ignore queue overflows for open
+    arrivals\index{open arrival!overflow} and
+    send-no-reply\index{send-no-reply!overflow} requests.  If a queue
+    overflows\index{overflow}, its waiting times is reported as
+    infinite\index{infinity}.
+  \item[true] Stop if messages are lost.
+  \end{description}
+\item[\optarg{reschedule-on-async-send}{\emph{=bool}}]~\\
+  In models with send-no-reply\index{send-no-reply} messages, the
+  simulator does not reschedule the processor after an asynchronous
+  message is sent (unlike the case with synchronous messages).  The
+  meanings of \emph{bool} are:
+  \begin{description}
+  \item[true] reschedule after each asynchronous message.
+  \item[false] reschedule after each asynchronous message.
+  \end{description}
+\end{description}
+
+\section{Stopping Criteria}
+\label{sec:stopping-criteria}\index{stopping criteria}
+
+It is important that the length of the
+simulation\index{length!simulation} be chosen properly.  Results may
+be inaccurate if the simulation run is too short.  Simulations that
+run too long waste time and resources.
+
+Lqsim uses \emph{batch means}\index{batch means} (or the method of
+samples\index{method of samples}) to generate confidence
+intervals\index{confidence intervals}.  With automatic
+blocking\index{automatic blocking}\index{block!automatic}, the
+confidence intervals are computed after the simulations runs for three
+blocks plus the initial skip period\index{skip period} If the root or
+the mean of the squares\index{root mean square} of the confidence
+intervals for the entry service times\index{service time!entry} is
+within the specified precision, the simulation stops.  Otherwise, the
+simulation runs for another block and repeats the test.  With manual
+blocking\index{block!manual}, lqsim runs the number of blocks
+specified then stops.  In either case, the simulator will stop after
+30 blocks.
+
+Confidence intervals can be tightened by either running additional
+blocks or by increasing the block size\index{block!size}.  A rule of
+thumb is the block size should be 10,000 times larger than the largest
+service time demand\index{service time!demand} in the input model.
+
+\section{Model Limits}
+\label{sec:lqsim-model-limits}
+
+The following table lists the acceptable parameter types and limits
+for lqsim.  An error will be reported if an unsupported parameter is
+supplied except when the value supplied is the same as the default.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[c]{ll}
+    Parameter&lqsim \\
+    \hline
+    Phases\index{phase!maximum} & 3 \\
+    Scheduling\index{scheduling} & FIFO, HOL, PPR, RAND \\
+    Open arrivals\index{open arrival} & yes \\
+    Phase type\index{phase!type} & stochastic, deterministic \\
+    Think Time\index{think time}  & yes  \\
+    Coefficient of variation\index{coefficient of variation} & yes \\
+    Interprocessor-delay\index{interprocessor delay} & yes \\
+    Asynchronous connections\index{asynchronous connections} & yes \\
+    Forwarding\index{forwarding} & yes \\
+    Multi-servers\index{multi-server} & yes \\
+    Infinite-servers\index{infinite server} & yes \\
+    Max Entries\index{entry!maximum} & unlimited \\
+    Max Tasks\index{task!maximum} & 1000 \\
+    Max Processors\index{processor!maximum} & 1000 \\
+    Max Entries per Task & unlimited \\
+  \end{tabular}
+  \caption{\label{tab:lqsim-model-limits}Lqsim Model Limits\index{limits!lqsim}}
+\end{table}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

@@ -1,0 +1,221 @@
+\C 
+\C $Id$
+\C 
+\C $Log$
+\C Revision 31.0  2005/01/02 02:30:29  greg
+\C Bring all files up to revision 31.
+\C
+\C Revision 30.0  2003/11/12 18:56:52  greg
+\C Bring all files up to revision 30.0
+\C
+\C Revision 29.0  2003/06/13 00:48:38  greg
+\C bounce version number.
+\C
+\C Revision 1.3  1994/08/04 20:52:11  greg
+\C Intermediate save
+\C
+\C Revision 1.2  1994/06/24  19:11:32  greg
+\C Format changes.
+\C
+\C Revision 1.1  1994/06/23  19:11:01  greg
+\C Initial revision
+\C
+\C ----------------------------------------------------------------------
+\section{Vectors}
+\label{sec:vector}
+
+Vector objects have the following properties:\begin{itemize}
+\item range checked.
+\item indexed from \math[1 to n]{1...n} rather than from \math[0 to n
+  - 1]{0...(n-1)}. 
+\item expandable.
+\end{itemize}
+The \code{Vector} class is a template so
+vectors of any type can be created.  
+
+\subsection{Class Vector}
+
+\subsubsection{Instance Variables}
+
+\begin{verbatim}
+private:
+    unsigned sz;
+    Type *ia;
+\end{verbatim}
+
+\begin{description}
+\item[sz] \texonly{---} The size of the array \var{ia}.
+\item[ia] \texonly{---} The array of elements of type \code{Type}.
+\end{description}
+\subsubsection{Constructors for Vector}
+\label{sec:vector-constructors}
+
+Objects of type \code{Vector} are created using the following
+constructor:
+
+\begin{verbatim}
+Vector( unsigned size=VectorSize );
+Vector( const Type *ar, unsigned size );
+Vector( const Vector<Type>& iA );
+\end{verbatim}
+
+The first form creates a new vector with all \var{size} elements
+initialized to \var{Nil}.  If the argument \var{size} is not supplied,
+a vector of size \var{VectorSize} is created.  The second form of the
+constructor creates a vector with \var{size} elements, and sets their
+initial values from the conventional array \var{ar}.  The final form
+of the constructor duplicates the argument \var{iA}.
+
+The vector can be enlarged using the \code{grow()} call.
+
+\subsubsection{Initialization}
+\begin{description}
+
+\item[init] \texonly{---} Vector initialization.\\
+\code{void init( const Type* ar, unsigned size );}
+
+Initialize the vector from the conventional array \var{ar}.  The
+number of elements to copy is specified with \var{size}.
+\end{description}
+
+\subsubsection{Copying}
+\label{sec:vector-copying}
+
+The following set of functions and operators are used to: copy, change the
+size of, or add to the vector.  
+
+\begin{description}
+\item[grow] \texonly{---} Enlarge vector.\\
+\code{void grow( const unsigned amt );}
+
+\code{grow()}, adds \var{amt} elements to the vector.  The new
+elements are not initialized.
+
+\item[Assignment] \texonly{---} Copy operator.\\
+The operator ``\code{=}'' copies the vector.  The size of the receiver
+will be set to the size of the sender.  
+
+\item[Insertion] \texonly{---} Concatenation operator.\\
+\code{Vector<Type>& operator<<( const Type& element );}\\
+\code{Vector<Type>& operator<<( const Vector<Type>& vector );}
+
+Append an object to the vector.  There are two forms:
+\begin{itemize}
+\item \code{Type&} \var{element} --- insert a single
+  \var{element} to the end of the vector.
+\item \code{const Vector<Type>&} \var{vector} --- concatenate a
+  complete \var{vector} to the vector.
+\end{itemize}
+
+\item[Extraction] \texonly{---} Concatenation operator\\
+\code{Vector<Type>& operator>>( const Type& element );}
+
+Insert \var{element} at the front of the vector.  
+
+\item[findOrAdd] \texonly{---} Find or add element in vector.\\
+\code{unsigned findOrAdd( const Type& element );}
+
+Locate \var{element} in the vector.  If it is found, return the
+corresponding index.  Otherwise, append \var{element} and return the
+index. 
+\end{description}
+
+\subsubsection{Instance Variable Access}
+\label{sec:vector-ivar}
+
+\begin{description}
+
+\item[Index] \texonly{---} Index operator.\\
+\code{Type& operator[](const unsigned ix);}\\
+\code{Type operator[](const unsigned ix);}
+
+Return the element at the index \var{ix}.  The index is range checked.
+\end{description}
+
+\subsubsection{Queries}
+\label{sec:vector-queries}
+
+\begin{description}
+
+\item[size] \texonly{---} Vector size.\\
+\code{unsigned size() const;}
+
+Return the size of the vector.
+
+\item[find] \texonly{---} Find element in vector.\\
+\code{int find( const Type & ) const;}
+
+The \code{find()} function returns the index of the first object which
+equates to \var{elem}.  \var{elem} must respond to the ``\code{==}''
+operator.  If no matching objects are found, \code{find()} returns -1.
+\end{description}
+
+\subsubsection{Input and Output}
+\label{sec:vector-io}
+
+\begin{description}
+\item[Extraction] \texonly{---} Printing operator.\\
+\code{ostream& operator << ( ostream& os, const Vector<Type>&
+  vector);}\\
+\code{void print( ostream& os = cout ) const;}
+
+The output operator \code{<<} writes the contents of \var{vector} to
+the stream \var{os} in the form \kbd{<n>(1,2,...,n)}.  The member
+function \code{print()} performs the same function.  If \var{os} is
+not supplied, output is sent to \var{cout}.
+\end{description}
+
+\subsection{Class VectorIterator}
+\label{sec:vector-iterator}
+
+
+\subsubsection{Instance Variables}
+
+\begin{verbatim}
+private:
+    const Vector<Type>& vecPtr;
+    unsigned index;
+\end{verbatim}
+
+\begin{description}
+\item[vecPtr] \texonly{---} A pointer to the vector that this iterator
+  applies to.
+\item[index] \texonly{---} The current index into the vector.
+\end{description}
+
+
+\subsubsection{Constructors for Class VectorIterator}
+
+Vector Iterators are created by passing the associated
+\link{vector}{sec:vector} to the \code{VectorIterator} constructor.
+The name of the iterator object is used as a function to sequence
+through the vector.  This class can only be used with vectors of
+simple types (such as integer), or to vectors of pointers to objects.  
+
+\begin{verbatim}
+VectorIteratorPtr( const Vector<Type>& aVec );
+\end{verbatim}
+
+\subsubsection{Instance Methods}
+
+\begin{description}
+\item[()] \texonly{---} Iterator.\\
+\code{Type operator()();}
+
+Return the next object in the vector.  If there are no further
+objects, return \bold{Nil} and reset \var{index} to zero.  The next
+call to this function will then return the first object in the vector.
+
+\end{description}
+
+\subsection{Class VectorIteratorPtr}
+
+This class is similar to the preceding one except that the function
+operator returns \bold{pointers} to the elements in the vector rather
+than the elements themselves.  It can be used for both simple and
+complex types.
+
+\C Local Variables: 
+\C mode: latex
+\C TeX-master: "libmva"
+\C End: 

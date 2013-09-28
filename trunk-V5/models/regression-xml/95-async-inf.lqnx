@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<!-- lqns -?xml -->
+<lqn-model name="95-async-inf" description="lqns 5.7 solution for model from: bug-693.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Open arrival to infinite server making sync call to infinite server" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="7.03048e-06" iterations="2" platform-info="Gregs-iMac.local Darwin 12.3.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.00">
+         <mva-info submodels="4" core="4" step="40" step-squared="444" wait="3582" wait-squared="5.32024e+06" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="p1" scheduling="inf">
+      <result-processor utilization="4.99713"/>
+      <task name="t1" scheduling="ref" multiplicity="100" queue-length="0">
+         <result-task throughput="4.99713" utilization="100" phase1-utilization="100" proc-utilization="4.99713"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="100" throughput="4.99713" squared-coeff-variation="2.71516" proc-utilization="4.99713" throughput-bound="50"/>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="20.0115" utilization="100" service-time-variance="1087.31"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="18.0115"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="inf">
+      <result-processor utilization="5.49685"/>
+      <task name="t2" scheduling="fcfs" multiplicity="5" queue-length="0">
+         <result-task throughput="4.99713" utilization="4.99713" phase1-utilization="4.99713" proc-utilization="4.99713"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="4.99713" throughput="4.99713" squared-coeff-variation="1" proc-utilization="4.99713" throughput-bound="5"/>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" utilization="4.99713" service-time-variance="1"/>
+                  <asynch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0.1"/>
+                  </asynch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="inf" queue-length="0">
+         <result-task throughput="4.99713" utilization="0.499713" phase1-utilization="0.499713" proc-utilization="0.499713"/>
+         <entry name="e3" type="PH1PH2">
+            <result-entry utilization="0.499713" throughput="4.99713" squared-coeff-variation="2" proc-utilization="0.499713" throughput-bound="5"/>
+            <entry-phase-activities>
+               <activity name="e3_ph1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" utilization="0.499713" service-time-variance="0.02"/>
+                  <synch-call dest="e4" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t4" scheduling="inf" queue-length="0">
+         <result-task throughput="0" utilization="0" proc-utilization="0"/>
+         <entry name="e4" type="PH1PH2">
+            <result-entry utilization="0" throughput="0" squared-coeff-variation="1" proc-utilization="0" throughput-bound="10"/>
+            <entry-phase-activities>
+               <activity name="e4_ph1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0" service-time="0.1" utilization="0" service-time-variance="0.01"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

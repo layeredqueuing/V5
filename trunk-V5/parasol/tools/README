@@ -1,0 +1,23 @@
+This directory contains some PARASOL tools included with version 3.1.
+These include of the Parasol Distributed Simulation Manager (DPSM), the
+XTG filter files and the ParaGraph filter. Since DPSM requires the PVM
+library, its makefile will require customizing - consequently, the DPSM
+tool is not automatically made.
+
+The files for DPSM are:
+
+Makefile.dpsm	- A sample Makefile for making the dpsm package.
+dpsm.c		- The dpsm "master" program.
+dpss.c		- The dpsm slave program.
+dpsm.h		- Some defines used in both dpsm.c and dpss.c.
+simfile		- An example dpsm input file.
+
+The files for the XTG filter are:
+
+Makefile.xtg	- A make file for the xtg_filter program.
+xtg_filter.c	- The xtg filter program.
+PARASOL.oop	- The MLog event stream interpreter.
+
+The file for the ParaGraph filter is:
+
+pgfilter.awk	- An awk script which makes up the paragraph filter.

@@ -1,0 +1,49 @@
+G
+"Example Layered Queueing Network"
+0.00001
+100
+1
+0.9
+-1
+
+P 7
+p c1 f
+p c2 f
+p c3 f
+p c4 f
+p c5 f
+p s1 f
+p s2 f
+-1
+
+T 7
+t c1 r c1 -1 c1
+t c2 r c2 -1 c2
+t c3 r c3 -1 c3
+t c4 r c4 -1 c4
+t c5 r c5 -1 c5
+t s1 n s1 -1 s1
+t s2 n put get -1 s2
+-1
+
+E 8
+s c1 0 7 0 -1
+y c1 s1 0 1 0 -1
+s c2 0 7 0 -1
+y c2 s1 0 3 0 -1
+s c3 0 7 0 -1
+y c3 s1 0 1.5 0 -1
+s c4 0 7 0 -1
+y c4 s1 0 4 0 -1
+y c4 put 0 1.8 0 -1
+s c5 0 7 0 -1
+y c5 s1 0 6 0 -1
+y c5 put 0 4 0 -1
+y c5 get 0 2.5 0 -1
+s s1 1 0.5 0 -1
+y s1 get 0.3 0 0 -1
+y s1 put 0.3 0 0 -1
+s put 0.1 0.8 0 -1
+s get 0.9 0.1 0 -1
+-1
+

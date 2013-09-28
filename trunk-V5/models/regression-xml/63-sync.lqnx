@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+<lqn-model name="63-sync" description="lqn2xml 5.4 solution for model from: 63-sync.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Sync-server called from a sequence of phases." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="customer" scheduling="inf">
+      <task name="customer" scheduling="ref" multiplicity="3">
+         <entry name="customer" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="customer_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
+                  <synch-call dest="app_wait" calls-mean="1"/>
+               </activity>
+               <activity name="customer_2" phase="2" host-demand-mean="0.5" call-order="DETERMINISTIC">
+                  <synch-call dest="app_signal" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <task name="app_wait" scheduling="fcfs">
+         <entry name="app_wait" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="app_wait_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="wait" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="app_signal" scheduling="fcfs">
+         <entry name="app_signal" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="app_signal_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <asynch-call dest="signal" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="semaphore" scheduling="fcfs">
+         <entry name="signal" type="NONE"/>
+         <entry name="wait" type="NONE"/>
+         <task-activities>
+            <activity name="done" host-demand-mean="0"/>
+            <activity name="signal" bound-to-entry="signal" host-demand-mean="0.3"/>
+            <activity name="wait" bound-to-entry="wait" host-demand-mean="0.7"/>
+            <precedence>
+               <pre-AND>
+                  <activity name="wait"/>
+                  <activity name="signal"/>
+               </pre-AND>
+               <post>
+                  <activity name="done"/>
+               </post>
+            </precedence>
+            <reply-entry name="wait">
+               <reply-activity name="wait"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

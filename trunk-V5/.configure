@@ -1,0 +1,2 @@
+ARCHROOT=$HOME/`uname -s`
+./configure --prefix=$ARCHROOT --cache-file=config.cache 

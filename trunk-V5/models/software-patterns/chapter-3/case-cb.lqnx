@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<lqn-model name="tower" description="lqn2xml 5.5 solution for model from: tower.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Chapter 3, case b." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="variance" value="none"/>
+   </solver-params>
+   <processor name="p1" scheduling="fcfs" speed-factor="1">
+      <task name="t1" scheduling="ref" multiplicity="10">
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e234" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p234" scheduling="fcfs" speed-factor="1" multiplicity="3">
+      <task name="t234" scheduling="fcfs" multiplicity="$m2">
+         <entry name="e234" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="3">
+                  <synch-call dest="e5_1" calls-mean="1"/>
+                  <synch-call dest="e5_2" calls-mean="1"/>
+                  <synch-call dest="e5_3" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_1" scheduling="fcfs" speed-factor="1">
+      <task name="t5_1" scheduling="fcfs">
+         <entry name="e5_1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_1_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_2" scheduling="fcfs" speed-factor="1">
+      <task name="t5_2" scheduling="fcfs">
+         <entry name="e5_2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p5_3" scheduling="fcfs" speed-factor="1">
+      <task name="t5_3" scheduling="fcfs">
+         <entry name="e5_3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e5_3_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <lqx>
+     <![CDATA[
+       n2 = [10, 4, 1];
+       foreach( ix, m in n2 ) {
+          $m2 = m;
+	  println( ix, ": ", $m2 );
+	  solve();					     
+	  println( "  Throughput:  ", task("t1").throughput );
+	  println( "  Utilization: ", task("t5_1").utilization );
+       }
+     ]]>
+   </lqx>
+</lqn-model>

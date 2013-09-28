@@ -1,0 +1,43 @@
+
+This directory contains the source code for PARASOL kernel test
+programs as well as a Makefile for their creation. Included is the
+script "run_tests" which executes all of the test programs reporting
+errors discovered to stderr - you can safely ignore "Empty calendar"
+messages from test12 and the invalid parameter tests. Included are the
+following tests:
+
+      Program Name		Exercises
+
+	test01			Links and messages
+	test02			Buses and messages
+	test03			Send and receive variants
+	test04			Shared ports
+	test05			Statistics
+	test06			Spinlocks
+	test07			Semaphores
+	test08			Port passing
+	test09			Port sets
+	test10			Create/kill (memory leaks)
+	test11			Resume, suspend, awaken, sleep, & 
+				compute
+	test12			Info functions
+	test13			Scheduling
+	test14			PR scheduling
+	test15			RR fairness
+	test16			Sync
+	test17			Migrate
+	test18			User scheduling
+	invalid			Invalid parameters
+	randtest		Randomness check (ports and buses)
+
+Noted unresolved problems include:
+
+test03	fails under Mach with an Invalid Time Stamp error.  This 
+	appears to result from a bug in the sscanf function 
+	(possibly as a result of using an old version of gcc).
+
+test10	fails under NextStep and IRIX because the code "wrapper" 
+	approach to catching tasks which "run off the end" doesn't 
+	seem to work under for some reason.
+
+

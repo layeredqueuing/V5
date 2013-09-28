@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<lqx-api>
+  <info>
+    <name>Phase</name>
+    <binding>LQNS Bindings</binding>
+    <provided-by>LQNS2</provided-by>
+  </info>
+  <constructors>
+    <method>
+      <ret>Entry</ret>
+      <args>
+        <string>name</string>
+      </args>
+      <name>entry</name>
+      <data>Returns the Entry object for the model entry whose name is given as name</data>
+    </method>
+  </constructors>
+  <attributes>
+    <attr>
+      <name>throughput</name>
+      <type>double</type>
+      <data>Entry throughput</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>throughput_bound</name>
+      <data>Entry throughput bound</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>utilization</name>
+      <data>Entry utilization</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>proc_utilization</name>
+      <data>Entry processor utilization</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>coeff_variation_sq</name>
+      <data>Squared coefficient of variation</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>open_wait_time</name>
+      <data>Entry open wait time</data>
+    </attr>
+    <attr>
+      <type>boolean</type>
+      <name>has_phase_1</name>
+      <data>Whether the entry has a phase 1 result</data>
+    </attr>
+    <attr>
+      <type>boolean</type>
+      <name>has_phase_2</name>
+      <data>Whether the entry has a phase 2 result</data>
+    </attr>
+    <attr>
+      <type>boolean</type>
+      <name>has_open_wait_time</name>
+      <data>Whether the entry has an open wait time</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_1_service_time</name>
+      <data>Phase 1 Service Time</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_1_service_time_v</name>
+      <data>Phase 1 Service Time Variance</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_1_proc_waiting</name>
+      <data>Phase 1 Processor Wait Time</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_2_service_time</name>
+      <data>Phase 2 Service Time</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_2_service_time_v</name>
+      <data>Phase 2 Service Time Variance</data>
+    </attr>
+    <attr>
+      <type>double</type>
+      <name>ph_2_proc_waiting</name>
+      <data>Phase 2 Processor Wait Time</data>
+    </attr>
+  </attributes>
+</lqx-api>

@@ -1,0 +1,1036 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  schema
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\chapter{XML Grammar}
+\label{sec:xml-grammar}
+
+The definition of LQN models using XML\index{XML Grammar|(textbf}\index{Grammar!XML|(textbf} is an evolution of
+the original SRVN file format (c.f.~\S\ref{ch:srvn} and~Appendix~\ref{sec:input-file-bnf}).  The
+new XML format is based on the work done in~\cite{perf:wu-2003}, with
+further refinement for general usage.  There are new features in the
+XML format to support new concepts for building and assembling models
+using components\index{components}.  The normal LQN tool suite (like
+\manpage{lqns}{1} and \manpage{lqsim}{1}) do not support these new
+features, however other tools outside the suite are being written to
+utilize the new parts of the XML format.
+
+\section{Basic XML File Structure}
+\label{sec:xml-file-structure}
+
+In XML, layered models are specified in a bottom-up order, which is
+the reverse of how layered models are typically presented.  First, a
+processor is defined, then within the processor block, all the tasks
+than run on it are defined.  Similarly, within each task block all the
+entries that are associated with it are defined, etc.  A simplified
+layout of an incomplete LQN model written in XML is shown in
+Figure~\ref{fig:xml-file-layout}.
+
+\lstset{language=XML,basicstyle=\ttfamily,numbersep=10pt}
+\begin{lstlisting}[float,caption={XML file layout.},label=fig:xml-file-layout]
+<lqn-model>
+   <solver-params>
+      <pragma/>
+   </solver-params>
+   <processor>
+      <task>
+         <entry>
+            <entry-phase-activities>
+               <activity>
+                  <synch-call/>
+                  <asynch-call/>
+               </activity>
+               <activity> ... </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry> ... </entry>
+         <task-activities>
+            <activity/>
+            <precedence/>
+         </task-activities>
+      </task>
+      <task> ... </task>
+   </processor>
+   <processor> ... </processor>
+</lqn-model>
+\end{lstlisting}
+
+Activity graphs (specified by task-activities) belong to a task, and
+hence are siblings to entry elements.  The element
+entry-activity-graph specifies an activity graph contained within one
+entry, but is not supported by any of the LQN tools.  The concept of
+phases still exists, but now each phase is an activity, and is defined
+in the entry-phase-activities element.
+
+\section{Schema Elements}
+\label{sec:schema-elements}
+
+The XML definition for layered models consists of three files:
+\begin{description}
+\item[\texttt{lqn.xsd}\index{lqn.xsd}:] lqn.xsd is the root of the schema.
+\item[\texttt{lqn-sub.xsd}\index{lqn-sub.xsd}] ...
+\item[\texttt{lqn-core.xsd}\index{lqn-core.xsd}] lqn-core is the
+  actual model specfication and is included by lqn.xsd.
+\end{description}
+All three files should exist in the same location.  If the solver cannot located the \texttt{lqn.xsd} file,
+it will emit an error\footnote{See the error message ``The primary document entity could not be opened'' on
+  \pageref{error:primary-document}.} and stop\indexerror{primary document}.
+
+Figure~\ref{fig:Schema} shows the schema for Layered Queueing Networks
+using Unified Modeling Language notation.  The model is defined starting from
+\texttt{lqn-model}.  Unless otherwise specified in the figure, the order of
+elements in the model is from left to right, i.e., \texttt{<solver-params>}
+always preceeds \texttt{<processor>} in the input file.  Optional elements are
+shown using a multiplicity of zero for an association.  Note that results
+(optional, shown in blue) are part of the schema.
+
+\begin{figure}[htbp]
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/schema.eps}
+  \caption{Top-level LQN Schema.  Elements shown in \color{blue}blue\color{black}\mbox{} are results found in the output.
+    Elements shown in \color{red}red\color{black}\mbox{} are not implemented.  Unless otherwise indicated, all elements are
+    ordered from left to right.}
+  \label{fig:Schema}
+\end{figure}
+
+\subsection{LqnModelType}
+\label{sec:LqnModelType}
+
+The first element in a layered queueing network XML input\index{input!XML} file is
+\schemaelement{lqn-model}, which is of type \schematype{LqnModelType} and is shown in
+Figure~\ref{fig:LqnModelType}.  \textbf{LqnModelType} has five elements, namely:
+\schemaelement{run-control}, \schemaelement{plot-control}, \schemaelement{solver-params},
+\schemaelement{processor} and \schemaelement{slot}.  \texttt{Run-control} and \texttt{plot-control} are not
+not implemented.  \texttt{Processor} is described under Section~\ref{sec:ProcessorType}.  \texttt{Slot} is
+described in~\cite{perf:wu-2003}.  The attributes for \textbf{LqnModelType} are shown in
+Table~\ref{tab:LqnModelType}.
+
+\begin{figure}[htbp]
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/lqn-model-schema.eps}
+  \caption{Top-level LQN Schema.}
+  \label{fig:LqnModelType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.5in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & optional & & The name of the model. \\
+    \hline
+    \attribute{description} & string & optional & & A description
+    of the model. \\
+    \hline
+    \attribute{lqn-schema-version} & integer & fixed & 1.0 & The version of the schema
+    (used by the solver in case of substantial schema changes for model
+    conversion.) \\
+    \hline
+    \attribute{lqncore-schema-version} & integer & fixed & 1.0 & \\
+    \hline
+    \attribute{xml-debug} & boolean & optional & false & \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:LqnModelType}Attributes for elements of type \schematype{LqnModelType}
+    from Figure~\protect\ref{fig:LqnModelType}.}
+\end{table}
+
+The element \schemaelement{solver-params} is used to set various
+operating parameters for the analytic solver, and to record various
+output statistics after a run completes.  It contains the elements
+\schemaelement{result-general} and \schemaelement{pragma}.  The
+attributes for \schemaelement{solver-params} are shown in
+Table~\ref{tab:solver-params}.  These attributes are mainly used to
+control the analytic solver.  Refer to
+Section~\ref{sec:lqns-stopping-criteria} for more information.  The
+attributes for \schemaelement{result-general} are shown in
+Table~\ref{tab:result-general}.  Refer to
+Sections~\ref{sec:analytic-header-out} and
+\ref{sec:simulator-header-out} for the interpretation of header
+information.  The attributes for \schemaelement{pragma} are show in
+Table~\ref{tab:pragma}.  Refer to Section~\ref{sec:lqns-pragmas} for
+the pragmas supported by lqns and to Section~\ref{sec:lqsim-pragmas}
+for the pragmas supported by lqsim.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{conv\_val}   & float   & optional & 1 & Convergence
+    value\index{lqns!convergence value} for lqns
+    (c.f~\S\protect\ref{sec:lqns-stopping-criteria}).  Ignored by lqsim.\\
+    \hline
+    \attribute{it\_limit}   & integer & optional & 50 & Iteration limit\index{iteration limit} for lqns
+    (c.f~\S\protect\ref{sec:lqns-stopping-criteria}).  Ignored by lqsim.\\
+    \hline
+    \attribute{print\_int}  & integer & optional & 0 & Print interval for intermediate
+    results.  The \flag{t}{print} must be specified to lqns\index{print interval!lqns} to generate
+    output after \emph{it\_limit} iterations.  Blocked
+    statistics\index{statistics!blocked} must be specified to
+    lqsim\index{print interval} using
+    the \flag{A}{n}, \flag{B}{n}, or \flag{C}{n} flags. \\
+    \hline
+    \attribute{underrelax\_coeff} & float & optional & 0.5 & Under-relaxation
+    coefficient for lqns (c.f~\S\protect\ref{sec:lqns-stopping-criteria}).
+    Ignored by lqsim. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:solver-params}Attributes of element \schemaelement{solver-params} from
+    Figure~\protect\ref{fig:LqnModelType}.} 
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.8in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \hline
+    \attribute{conv-val} & float & required & & Convergence value
+    (c.f.~\protect\ref{sec:analytic-header-out}) \\
+    \hline
+    \attribute{valid} & enumeration & required & & Either \texttt{YES} or
+    \texttt{NO}. \\
+    \hline
+    \attribute{iterations} & float & optional & & The number of iterations of the
+    analytic solver or the number of blocks for the simulator.\\
+    \hline
+    \attribute{elapsed-time} & string & optional & & The wall-clock time used by
+    the solver. \\
+    \hline
+    \attribute{system-cpu-time} & string & optional & & The CPU time spent in
+    kernel-mode. \\
+    \hline
+    \attribute{user-cpu-time} & string & optional & & The CPU time spent in user
+    mode. \\
+    \hline
+    \attribute{platform-info} & string & optional & & The operating system and CPU
+    type. \\
+    \hline
+    \attribute{solver-info} & string & optional & & The version of the solver. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:result-general}Attributes of element \schemaelement{result-general} from
+    Figure~\protect\ref{fig:LqnModelType}.} 
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \hline
+    \attribute{param} & string & required & & The name of the parameter.
+    (c.f.~\protect\ref{sec:lqns-pragmas}, \S\ref{sec:lqsim-pragmas}) \\
+    \hline
+    \attribute{value} & string & required & & the value assigned to the pragma. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:pragma}Attributes of element \schemaelement{pragma} from
+    Figure~\protect\ref{fig:LqnModelType}.} 
+\end{table}
+
+%%
+%% Processor
+%%
+
+\subsection{ProcessorType}
+\label{sec:ProcessorType}
+
+Elements of type \schematype{ProcessorType}, shown in Figure~\ref{fig:ProcessorType} are used to define the
+processors in the model.  They contain an optional \texttt{result-processor} element and elements of either
+\schematype{GroupType} or \schematype{TaskType}.  The \attribute{scheduling} attribute must by set to
+\texttt{cfs}, for completely fair scheduling\index{scheduling!completely fair}, if \schematype{GroupType}
+elements are present and to any other type if \schematype{GroupType} are not found.  \schematype{GroupType}
+and \schematype{TaskType} elements may not be both be defined in a processor.
+
+Element \schemaelement{result-processor} is of type \schematype{OutputResultType} and is described in
+Section~\ref{sec:OutputResultType}.  Element \schemaelement{task} is described in
+Section~\ref{sec:TaskType}.  The attributes of \schematype{ProcessorType}, described in \ref{sec:processor},
+are shown in Table~\ref{tab:ProcessorType}.
+
+\begin{figure}[htbp]
+%  \epsfxsize=\textwidth 
+  \centering
+  \epsffile{schema-uml/processor-schema.eps}
+  \caption{Processor Schema.}
+  \label{fig:ProcessorType}
+\end{figure}
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name}         & string         & required & & \\
+    \hline
+    \attribute{multiplicity} & integer        & optional & 1 & See \S\protect\ref{sec:multiplicity} \\
+    \hline
+    \attribute{speed-factor} & float          & optional & 1.0 & Scaling factor for
+    the processor. \\
+    \hline
+    \attribute{scheduling}   & enumeration & optional & fcfs & The allowed
+    scheduling types are \texttt{fcfs}, \texttt{hol}, \texttt{pp},
+    \texttt{rand}, \texttt{inf}, \texttt{ps-hol}, \texttt{ps-pp} and \texttt{cfs}. See
+    \S\protect\ref{sec:processors}\index{scheduling!processor}\index{scheduling!head of line}. \\
+    \hline
+    \attribute{replication}  & integer        & optional & 1 & See \S\protect\ref{sec:replication} \\
+    \hline
+    \attribute{quantum}      & float          & optional & 0.0 & Mandatory for
+    processor sharing\index{processor!sharing} scheduling when using lqsim. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ProcessorType}Attributes for elements of type \schematype{ProcessorType}.}
+\end{table}
+%%
+%%
+%% Group
+%%
+\subsection{GroupType}
+\label{sec:GroupType}
+
+Optional elements of type \schematype{GroupType}, shown in Figure~\ref{fig:ProcessorType}, are used to
+define groups of tasks for processors running completely fair scheduling\index{scheduling!completely fair}.
+Each group must contain a minimum of one task.  The attributes of \schematype{GroupType} are shown in
+Table~\ref{tab:GroupType}. 
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.8in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name}         & string         & required & & \\
+    \hline
+    \attribute{share}        & float          & required & & The fraction of the processor allocated to this
+    group. \\
+    \hline
+    \attribute{cap}          & boolean        & optional & false & If true, shares are
+    \emph{caps}\index{share!cap} (ceilings).  Otherwise, shares are guarantees\index{share!guarantee}
+    (floors) \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:GroupType}Attributes for elements of type \schematype{GroupType}}
+\end{table}
+%%
+%%
+%% Task
+%%
+\subsection{TaskType}
+\label{sec:TaskType}
+
+Elements of type \schematype{TaskType}, shown in Figure~\ref{fig:TaskType}, are used to define the tasks in
+the model.  These elements contain an optional \schemaelement{result-task} element, one or more elements of
+\textbf{EntryType}, and optionally, elements of \schemaelement{service} and \schemaelement{task-activities}.
+Element \schemaelement{result-task} is of type \schematype{OutputResultType}, and is described in
+Section~\ref{sec:OutputResultType}.  Element \schemaelement{entry} is described in
+Section~\ref{sec:EntryType}.  The attributes of \schematype{TaskType}, described in Section~\ref{sec:task},
+are shown in Table~\ref{tab:TaskType}.
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{schema-uml/task-schema.eps}
+  \caption{TaskType}
+  \label{fig:TaskType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.8in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name}         & string         & required & & \\
+    \hline
+    \attribute{multiplicity} & integer & optional & 1 & See \S\protect\ref{sec:multiplicity}.\\
+    \hline
+    \attribute{priority}     & integer & optional & 0 & The priority used by the
+    processor for scheduling.  See \S\protect\ref{sec:processors}. \\
+    \hline
+    \attribute{queue-length} & integer & optional & 0 & Maximum queue size (for
+    open-class requests only).  See \S\protect\ref{sec:tasks}. \\
+    \hline
+    \attribute{replication}  & integer & optional & 1 & See \S\protect\ref{sec:replication}\\
+    \hline
+    \attribute{scheduling}   & enumeration & optional & FCFS & The scheduling
+    of requests at the task.  The allowed
+    scheduling types are \texttt{ref}, \texttt{fcfs}, \texttt{hol}, \texttt{pri},
+    \texttt{inf}, \texttt{burst}, and \texttt{poll} and \texttt{semaphore}. See \S\protect\ref{sec:tasks}.\index{scheduling!task} \\
+    \hline
+    \attribute{activity-graph} & enumeration & required & &
+    \texttt{yes} or \texttt{no}\\
+    \hline
+    \hline
+    \attribute{think-time}   & float         & optional & 0 & Reference tasks only.  Customer think time. \\
+    \hline
+    \hline
+    \attribute{initially}    & integer       & optional & \emph{multiplicity} & Semaphore tasks only.  Set the initial
+    number of semaphore tokens to zero.  By default, the number of tokens is set to the multiplicity of the task.  \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:TaskType}Attributes for elements of type \schematype{TaskType}}
+\end{table}
+
+\subsection{FanInType and FanOutType}
+\label{sec:FanInType}
+\label{sec:FanOutType}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.5in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{source}     & integer & required &  & (See \S\ref{sec:replication}) \\
+    \hline
+    \attribute{value}      & integer & required &  & (See \S\ref{sec:replication}) \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:FanInType}Attributes for elements of type \schematype{FanInType}.}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.5in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{dest}       & integer & required &  & (See \S\ref{sec:replication}) \\
+    \hline
+    \attribute{value}      & integer & required &  & (See \S\ref{sec:replication}) \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:FanOutType}Attributes for elements of type \schematype{FanOutType}.}
+\end{table}
+
+\subsection{EntryType}
+\label{sec:EntryType}
+
+Elements of type \schematype{EntryType}, shown in Figure~\ref{fig:EntryType}, are used to define the entries
+of tasks.  Entries can be specified one of three ways, based on the attribute \attribute{type} of an
+\schemaelement{entry} element, namely:
+\begin{figure}[htbp]
+  \centering
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/entry-schema.eps}
+  \caption{Schema for type \schematype{EntryType}.}
+  \label{fig:EntryType}
+\end{figure}
+\begin{description}
+\item[\texttt{ph1ph2}] The entry is specified using phases.  The
+  phases are specified using an \schemaelement{entry-phase-activities}
+  element which is of the \schematype{ActivityPhasesType} type.
+  Activities defined within this element must have a unique
+  \attribute{phase} attribute.  
+\item[\texttt{graph}] The entry is specified as an activity
+  graph\index{activity graph} defined within the entry.  The demand is
+  specified using elements of type \schematype{ActivityEntryDefType}.
+  This method of defining an entry is not supported currently.
+\item[\texttt{none}] The entry is specified using an activity graph
+  defined within the task.  A \schemaelement{task-activities} element
+  of type \schematype{ActivtyDefType} must be present and one of the
+  activities defined within this element must have a
+  \attribute{bound-to-entry} attribute.  The
+  \schematype{TaskActivityGraph} type is defined in
+  Section~\ref{sec:TaskActivityGraph}.
+\end{description}
+\schematype{ActivityPhasesType},   \schematype{ActivityEntryDefType} and
+\schematype{ActivtyDefType} are all based on
+\schematype{ActivityDefBase}, described in
+Section~\ref{sec:ActivityDefBase}.  They only differ in the way the
+start of the graph is identified, and in the case of
+\schematype{ActivityPhasesType}, the way the activities are connected.  
+
+The attributes for \schematype{EntryType}, described in
+Section~\ref{sec:entry}, are shown in Table~\ref{tab:EntryType}.  The optional
+element \schemaelement{result-entry} is of type
+\textbf{OutputResultType}, and is described in
+Section~\ref{sec:OutputResultType}.  The optional element
+\schemaelement{forwarding} is used to describe the probability of
+forwarding a request to another entry; it is described in
+Section~\ref{sec:MakingCallType}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.5in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & required & & The entry name\\
+    \hline
+    \attribute{type} & enumeration & required & & \texttt{PH1PH2}, \texttt{GRAPH}, or \texttt{NONE} \\
+    \hline
+    \attribute{open-arrival-rate} & float & optional & \index{open arrival} & \\
+    \hline
+    \attribute{priority} & integer & optional & & (c.f.~\ref{sec:tasks}) \\
+    \hline
+    \attribute{sempahore} & enumeration & optional & & \texttt{signal} or \texttt{wait} (c.f.~\ref{sec:tasks}) \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:EntryType}Attributes for elements of type \schematype{EntryType}.}
+\end{table}
+
+\subsection{ActivityGraphBase}
+\label{sec:ActivityGraphBase}
+
+Elements of type \schematype{ActivityGraphBase}, shown in
+Figure~\ref{fig:ActivityGraphBase}, are used to define activities
+(c.f.~\ref{sec:activities})\index{activity} and their relationships to
+each other.  They are used by elements of both \schematype{EntryType} and
+\schematype{TaskActivityGraph} types.
+
+\begin{figure}[htbp]
+  \centering
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/activity-schema.eps}
+  \caption{Schema diagram for the type \schematype{ActivityGraphBase}}
+  \label{fig:ActivityGraphBase}
+\end{figure}
+
+Elements of the \schematype{ActivityGraphBase} consist of a sequence
+of one or more \schemaelement{activity} elements followed by a
+sequence of \schemaelement{precedence} elements.  \texttt{Activity}
+elements are used to store the demand for an
+activity\index{activity!demand}\index{demand} and requests to other
+servers (through the \schematype{ActivityDefType}) and, optionally,
+results through elements of \schematype{ActivityDefType}.
+\texttt{Precedence} elements are defined by the
+\schematype{PrecedenceType} in Section~\ref{sec:PrecedenceType}.
+
+\subsection{TaskActivityGraph}
+\label{sec:TaskActivityGraph}
+
+Task Activity Graphs\index{activity graph!task}, defined using
+elements of type \schematype{TaskActivityGraph} and shown in
+Figure~\ref{fig:ActivityGraphBase}, are used to specify the behaviour
+of a task using activities.  This type is almost the same as
+\schematype{EntryActivityGraph}, except that the activity that replies
+to an entry\index{reply!activity} must explicitly specify the entry
+for which the reply is being generated.  The actual activity graph is
+defined using elements of type \schematype{ActivityGraphBase},
+described in Section~\ref{sec:ActivityGraphBase}.  The attributes for
+elements \schemaelement{reply-entry} and
+\schemaelement{reply-activity} are shown in
+Tables~\ref{tab:reply-entry} and \ref{tab:reply-activity}
+respectively.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & required & & The name of the
+    entry for which the list of \schemaelement{reply-activity} elements
+    generate replies.\\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:reply-entry}Attributes of element \schemaelement{reply-entry} from
+    Figure~\protect\ref{fig:ActivityGraphBase}.} 
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & required & & The name of the
+    activity which generates a reply.  The entry is either implicitly
+    defined if this element is defined within an
+    \schematype{EntryType}, or part of list defined within a
+    \schemaelement{reply-element}. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:reply-activity}Attributes of element \schemaelement{reply-activity} from
+    Figure~\protect\ref{fig:ActivityGraphBase}.} 
+\end{table}
+
+\subsection{ActivityDefBase}
+\label{sec:ActivityDefBase}
+
+The type \schematype{ActivityDefBase}, shown in Figure~\ref{fig:ActivityGraphBase}, is used to define the
+parameters for an activity, such as demand\index{demand} and call-order\index{call order}.  This type is
+extended by \schematype{ActivityPhasesType}, \schematype{EntryActivityDefType}, and
+\schematype{ActivityDefType} to define the requests\index{request} from an activity to an entry, and to
+connect the activity graph\index{activity graph!connection} to the requesting entry.
+Table~\ref{tab:ActivityDefBase} lists the parameters used as attributes and the attributes used by the three
+sub-types.  Refer to Section~\ref{sec:activity} for more information on these parameters.  Refer to
+\schematype{MakingCallType} (\S\ref{sec:MakingCallType}) for the \schemaelement{Activity-CallGroup} used to
+make requests to other entries\footnote{\schemaelement{Call-List-Group} is not defined at present.}. Refer
+to \schematype{OutputResultForwardingANDJoinDelay} (\S\ref{sec:OutputResultJoinDelayType}) for
+\schemaelement{result-join-delay} and \schemaelement{result-forwarding} for join-delay\index{join!delay} and
+forwarding\index{forwarding} results respectively.  Refer to \schematype{OutputDistributionType}
+(\S\ref{sec:OutputDistributionType}) for \schemaelement{service-time-distribtion}.  Finally, refer to
+\schematype{OutputResultType} (\S\ref{sec:OutputResultType}) for \schemaelement{result-activity}.  This
+element contains most of the results for an activity\index{activity!results}\index{results!activity} or
+phase\index{results!phase}\index{phase!results}.
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name}             & string & required & & \\
+    \hline
+    \attribute{host-demand-mean} & float  & required & & The mean
+    service time\index{service time} demand for the activity.\\
+    \hline
+    \attribute{host-demand-cvsq} & float  & optional & 1.0 & The
+    squared coefficient of variation~\index{coefficient of variation} for the activity.\\
+    \hline
+    \attribute{think-time}       & float  & optional & 0.0 & \\
+    \hline
+    \attribute{max-service-time} & float  & optional & 0.0 & \\
+    \hline
+    \attribute{call-order}       & enumeration & optional &
+    STOCHASTIC & \texttt{STOCHASTIC} or \texttt{DETERMINISTIC} \\
+    \hline
+    \hline
+    \multicolumn{5}{|c|}{\schematype{ActivtyPhasesType}}\\
+    \hline
+    \attribute{phase} & integer & required & & 1, 2, or 3 \\
+    \hline
+    \hline
+    \multicolumn{5}{|c|}{\schematype{ActivtyEntryDefType}}\\
+    \hline
+    \attribute{first-activity} & string & required & &  \\
+    \hline
+    \hline
+    \multicolumn{5}{|c|}{\schematype{ActivtyDefType}} \\
+    \hline
+    \attribute{bound-to-entry}   & string & optional & & If set, this
+    activity is the start of an activity
+    graph\index{activity graph!start}. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ActivityDefBase}Attributes for elements of type \schematype{ActivityDefBase}.}
+\end{table}
+
+
+\subsection{MakingCallType}
+\label{sec:MakingCallType}
+
+The type \schematype{MakingCallType}, shown in
+Figure~\ref{fig:MakingCallType}, is used to define the parameters for
+requests\index{request} to entries.  This type is extended by
+\schematype{ActivityMakingCallType} and
+\schematype{EntryMakingCallType} to defined requests from activities
+to entries and for forwarding requests from entry to entry
+respectively.  Requests from activities to entries can be either
+synchronous, (i.e., a \emph{rendezvous}\index{rendezvous}), through a
+\schemaelement{sync-call} element, or asynchronous (i.e., a
+\emph{send-no-reply}\index{send-no-reply}), through a
+\schemaelement{async-call} element.  Section~\ref{sec:requests}
+defines the parameters for a request.
+Table~\ref{tab:MakingCallType} lists the attributes for the
+types.
+
+\begin{figure}[htbp]
+  \centering
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/call-schema.eps}
+  \caption{Schema diagram for the group \schematype{MakingCallType}.}
+  \label{fig:MakingCallType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{dest}       & string  & required &   & The name of the entry to which the requests are made. \\
+    \hline
+    \hline
+    \multicolumn{5}{|c|}{\schematype{ActivityMakingCallType}}\\
+    \hline
+    \hline
+    \attribute{calls-mean} & float   & required &   & The mean number of requests. \\
+    \hline
+    \hline
+    \multicolumn{5}{|c|}{\schematype{EntryMakingCallType}}\\
+    \hline
+    \hline
+    \attribute{prob} & float   & required &   & The probability of forwarding requests. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:MakingCallType}Attributes for elements of type \schematype{MakingCallType}.}
+\end{table}
+
+%
+% Precedence
+%
+
+\subsection{PrecedenceType}
+\label{sec:PrecedenceType}
+
+The type \schematype{PrecedenceType}, shown in
+Figure~\ref{fig:PrecedenceType}, is used to connect one activity to
+another within an activity graph\index{activity graph}.  Each element
+of this type contains exactly one \schemaelement{pre} element and,
+optionally, one \schemaelement{post} element.  The pre elements are
+referred to as \emph{join}-lists\index{join-list} as all of the
+branches associated with the activities in the join-list must finish
+(i.e.~``join'') before the activities in the subsequent post element
+can start.  The post element itself is referred to as a
+\emph{fork}-list\index{fork-list}.
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{schema-uml/precedence-schema.eps}
+  \caption{Schema diagram for the type \schematype{PrecedenceType}.}
+  \label{fig:PrecedenceType}
+\end{figure}
+
+Elements of \schematype{PrecedenceType} can be of one of five types:
+\begin{description}
+\item[\schematype{SingleActivityListType}:] Elements of this type have
+  no attributes and a sequence of exactly one \schemaelement{activity}
+  element of \schematype{ActivityType}.
+\item[\schematype{ActivityListType}:] Elements of this type have no
+  attributes and a sequence one or more \schemaelement{activity}
+  elements of \schematype{ActivityType}.
+\item[\schematype{AndJoinListType}:] Elements of this type have an optional \schemaelement{quorum} element
+  and a sequence of one or more or more \schemaelement{activity} elements of \schematype{ActivityType}.
+  Table~\ref{tab:AndJoinListType} show the attributes of \schematype{AndJoinListType}.
+\item[\schematype{OrListType}:] Elements of this type have no
+  attributes and a sequence one or more \schemaelement{activity}
+  elements of \schematype{ActivityOrType}.  These elements specify an
+  activity name and a branch
+  probability\index{branch!probability}\index{probability!branch}.
+  Table~\ref{tab:ActivityOrType} show the attributes of
+  \schematype{ActivityOrType}.
+\item[\schematype{ActivityLoopListType}:] Elements of this type have
+  one optional attribute and a sequence one or more
+  \schemaelement{activity} elements of \schematype{ActivityLoopType}.
+  These elements specify an activity name and a loop
+  count\index{branch!loop count}\index{loop count}.  The optional
+  attribute is used to specify the activity that is executed after all
+  the loop\index{loop} branches complete.
+  Tables~\ref{tab:ActivityLoopListType} and \ref{tab:ActivityLoopType}
+  show the attributes of \schematype{ActivityLoopListType} and
+  \schematype{ActivityLoopType} respectively.
+\end{description}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & required & & \\
+    \hline
+    \attribute{quorum} & integer & optional & 0 & The number of branches which must complete for the join to
+    finish.  If this attribute is not specified, then all of the branches must finish, which makes this
+    object an AND-Join\index{join!and}\index{join!quorum}\index{quorum~join}\\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:AndJoinListType}Attributes for elements of type \schematype{AndJoinListType}.}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{name} & string & required & & \\
+    \hline
+    \attribute{prob} & float & optional & 1.0 & The probability that the branch is
+    taken, on average (c.f.~\S\ref{sec:precedence}) \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ActivityOrType}Attributes for elements of type \schematype{ActivityOrType}.}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+  \hline
+  \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+  \textbf{Comments} \\
+  \hline
+  \attribute{end} & string & required & & \\
+  \hline
+  \end{tabular}
+  \caption{\label{tab:ActivityLoopListType}Attributes for elements of type \schematype{ActivityLoopListType}.}
+\end{table}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{3in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} &
+    \textbf{Comments} \\
+    \hline
+    \attribute{count} & float & optional & 1.0 & The number of times the loop is
+    executed, on average (c.f.~\S\ref{sec:precedence})\\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ActivityLoopType}Attributes for elements of type \schematype{ActivityLoopType}.}
+\end{table}
+
+\subsection{OutputResultType}
+\label{sec:OutputResultType}
+
+The type \schematype{OutputResultType}, shown in Figure~\ref{fig:OutputResultType}, is used to create
+elements that store results described earlier in Section~\ref{sec:results}.  \schematype{OutputResultType}
+is a subtype of \schematype{ResultContentType}.  This latter type defines the result element's attributes.
+Elements of this \schematype{OutputResultType} can contain two elements of type
+\schematype{ResultContentType}, which contain the $\pm 95\%$ and $\pm 99\%$ confidence intervals, provided
+that these results are available.  The attributes for elements of \schematype{ResultContentType} are listed
+in Table~\ref{tab:ResultContentType} and are used to store the actual results produced by the solver.  Note
+that all the attributes are optional: elements of this type will only have those attributes which are
+relevant.
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{schema-uml/result-schema.eps}
+  \caption{Schema diagram for type \schematype{OutputResultType}}
+  \label{fig:OutputResultType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|p{2.5in}|c|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Comments} & \textbf{(xref)}\\
+    \hline
+    \hline
+    \attribute{proc-utilization} & float & Processor utilization for a task, entry, or activity. & \S\ref{sec:processor-wait-utilization-out}\index{utilization!processor}\\
+    \hline
+    \attribute{proc-waiting} & float & Waiting time at a processor for an activity. & \S\ref{sec:processor-wait-utilization-out}\index{queueing time!processor} \\
+    \hline
+    \attribute{phaseX-proc-waiting} & float & Waiting time at a processor for phase \emph{X} of an entry. & \S\ref{sec:processor-wait-utilization-out})\index{queueing time!processor} \\
+    \hline
+    \hline
+    \attribute{open-wait-time} & float & Waiting time for open arrivals. \index{waiting time!open arrival} & \S\ref{sec:open-wait-out} \\
+    \hline
+    \attribute{service-time} & float & Activity service time. & \S\ref{sec:service-time-out}\index{service time}\\
+    \hline
+    \attribute{loss-probability} & float & Probability of dropping an asynchronous message. & \S\ref{sec:rendezvous-delay-out}\index{loss probability}\\
+    \hline
+    \attribute{phaseX-service-time} & float & Service time for phase X of an entry. & \S\ref{sec:service-time-out}\index{service time}\\
+    \hline
+    \attribute{service-time-variance} & float & Variance for an activity. & \S\ref{sec:service-time-variance-out}\index{service time!variance} \\
+    \hline
+    \attribute{phaseX-service-time-variance} & float & Variance for phase \emph{X} of an entry. & \S\ref{sec:service-time-variance-out}\index{service time!variance} \\
+    \hline
+    \attribute{phaseX-utilization} & float & Utilization for phase \emph{X} of an entry. & \S\ref{sec:througput-utilization-out} \\
+    \hline
+    \attribute{prob-exceed-max-service-time} & float & & \S\ref{sec:service-time-distribution-out}\index{service time!probability exceeded} \\
+    \hline
+    \attribute{squared-coeff-variation} & float & Squared coefficient of variation\index{coefficient of variation} over all phases of an entry & \S\ref{sec:service-time-variance-out}\index{service time!variance} \\
+    \hline
+    \attribute{throughput-bound} & float & Throughput bound for an entry. & \S\ref{sec:bounds-out}\index{throughput!bounds}\\
+    \hline
+    \hline
+    \attribute{throughput} & float & Throughput for a task, entry or activity. & \S\ref{sec:througput-utilization-out}\index{throughput}\\
+    \hline
+    \attribute{utilization} & float & Utilization for a task, entry, activity. & \S\ref{sec:througput-utilization-out}\index{utilization!task}\index{utilization!entry}\\
+    \hline
+    \hline
+    \attribute{waiting} & float & Rendezvous delay & \S\ref{sec:rendezvous-delay-out}\index{rendezvous!delay}\\
+    \hline
+    \attribute{waiting-variance} & float & Variance of delay for a rendezvous & \S\ref{sec:rendezvous-variance-out}\index{rendezvous!variance}\\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:ResultContentType}Attributes for elements of type \schematype{ResultContentType}.}
+\end{table}
+
+\subsection{OutputResultJoinDelayType}
+\label{sec:OutputResultJoinDelayType}
+
+The type \schematype{OutputResultJoinDelayType} is similar to \schematype{OutputResultType}.  The attributes
+of this type are shown in Table~\ref{tab:OutputResultJoinDelay}.
+
+\begin{figure}[htbp]
+  \centering
+  \epsffile{schema-uml/result-join-delay-schema.eps}
+  \caption{Schema diagram for type \schematype{OutputResultJoinDelayType}}
+  \label{fig:OutputResultJoinDelayType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|p{2.5in}|c|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Comments} & \textbf{(xref)}\\
+    \hline
+    \hline
+    \attribute{join-waiting} & float & Join delay\index{join!delay} & \S\ref{sec:join-delay-out} \\
+    \hline
+    \attribute{join-variance} & float & Join delay variance\index{join!variance} & \S\ref{sec:join-delay-out} \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:OutputResultJoinDelay}Attributes for elements of type
+    \schematype{OutputResultJoinDelayType}.}
+\end{table}
+
+\subsection{OutputDistributionType}
+\label{sec:OutputDistributionType}
+
+Elements of type \schematype{OutputDistributionType}, shown in Figure~\ref{fig:OutputDistributionType}, are
+used to define and store histograms\index{histogram} of phase and activity service times\index{service time!histogram}.
+The optional \schemaelement{underflow-bin}, \schemaelement{overflow-bin} and \schemaelement{histogram-bin}
+elements, all the elements are of type \schematype{HistogramBinType}, are used to store results.  
+
+The attributes of \schematype{OutputDistributionType} elements are used to both store the parameters for the
+histogram, and output statistics.  Refer to Table~\ref{tab:OutputDistributionType}
+
+\begin{figure}[htbp]
+  \centering
+%  \epsfxsize=\textwidth 
+  \epsffile{schema-uml/distribution-schema.eps}
+  \caption{Schema for type \schematype{OutputDistributionType}.}
+  \label{fig:OutputDistributionType}
+\end{figure}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|l|l|p{2.8in}|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Use} & \textbf{Default} & \textbf{Comments} \\
+    \hline
+    \attribute{min} & float & required & & The lower bound of the collected histogram data. \\
+    \hline
+    \attribute{max} & float & required & & The upper bound of the collected histogram data. \\
+    \hline
+    \attribute{number-bins} & integer & optional & 20 & The number of bins in the distribution. \\
+    \hline
+    \hline
+    \attribute{mid-point} & float & optional & & \\
+    \hline
+    \attribute{bin-size} & float & optional & &  \\
+%     \hline
+%     \attribute{mean} & float & optional & & The mean of the distribution. \\
+%     \hline
+%     \attribute{std-dev} & float & optional & & The standard deviation of the distribution. \\
+%     \hline
+%     \attribute{skew} & float & optional & & The skew of the distribution. \\
+%     \hline
+%     \attribute{kurtosis} & float & optional & & The kurtosis of the distribution. \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:OutputDistributionType}Attributes for elements of type \schematype{OutputDistributionType}.}
+\end{table}
+
+\subsection{HistogramBinType}
+\label{sec:HistogramBinType}
+
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}[l]{|l|l|p{2.5in}|c|}
+    \hline
+    \textbf{Name} & \textbf{Type} & \textbf{Comments} & \textbf{(xref)}\\
+    \hline
+    \hline
+    \attribute{begin} & float & Lower limit of the bin. & \\
+    \hline
+    \attribute{end} & float & Upper limit of the bin. & \\
+    \hline
+    \attribute{prob} & float & The probability that the measured value lies within
+    \attribute{begin} and \attribute{end}. & \\
+    \hline
+    \attribute{conf-95} & float & & \\
+    \hline
+    \attribute{conf-99} & float & & \\
+    \hline
+  \end{tabular}
+  \caption{\label{tab:HistogramBinType}Attributes for elements of type
+    \schematype{HistogramBinType}.}
+\end{table}
+
+\section{Schema Constraints}
+\label{sec:schema-constraints}
+
+The schema contains a set of constraints\index{schema!constraints}
+that are checked by the Xerces\index{Xerces} XML
+parser~\cite{sw:xerces} to ensure that the model file is
+valid.  XML editors can also enforce these constraints so that the
+model is somewhat correct before being passed to the simulator or
+analytic solver.  The constraints are as follow:
+\begin{itemize}
+\item All processor must have a unique name.
+\item All tasks must have a unique name.
+\item All entries must have a unique name.
+\item All activities must have a unique name within a given task.
+\item All synchronous requests must have a valid destination.
+\item All asynchronous requests must have a valid destination.
+\item All forwarding requests must have a valid destination.
+\item All activity connections (in precedence blocks) must refer to
+  valid activities.\index{activity!connection}\index{precedence}
+\item All activity replies must refer to a valid entry.
+\item All activity loops must refer to a valid activities.
+\item Each entry has only one activity bound to it.
+\item Phases are restricted to values one through three.
+\item All phase attributes\index{attribute!unique phase} within an
+  entry must be unique.
+\end{itemize}
+Further validation is performed by the solver itself.  Refer to
+Section~\ref{sec:error-messages} for the error messages generated.
+
+One downside of using the Xerces\index{Xerces!error messages} XML
+parser library is that the Xerces tends to give rather cryptic error
+messages when compared to other tools.  If an XML file fails to pass
+the validation phase, and the error looks cryptic, chances are very
+good that there is a genuine problem with the XML input file.  Xerces\index{Xerces}
+has a bad habit of coming back with cryptic errors when constraint
+checking\index{constraint checking} fails, and only gives you the
+general area in the file where the actual problem is.
+
+One easy and convenient solution around this problem is to validate
+the XML\index{XML!validation} file using another XML tool.  Tools that
+have been found to give more user friendly feedback are
+XMLSpy\index{XMLSpy} (any edition), and XSDvalid\index{XSDvalid} (Java
+based, freely available).  Another solution is to check if a
+particular tool can de-activate schema validation and rely on the
+actual tool to do its own internal error checking.  Currently this is
+not supported in any of the LQN tools which are XML enabled, but it
+maybe implemented later on.
+
+If the XML file validates using other tools, but fails validation with
+Xerces\index{Xerces!validation}, or if the XML file fails validation on other tools, but passes
+with Xerces then please report the problem.  The likelihood of
+validation passing with Xerces and not other tools will be much higher
+then the reverse scenario, because Xerces does not rigorously apply
+the XML Schema standard as other tools.  Other sources of problems
+could be errors in the XML schema itself, or some unknown bug in the
+Xerces library.
+\index{XML Grammar)|}\index{Grammar!XML)|}
+
+%%% Local Variables: 
+%%% mode: latex
+%%% mode: outline-minor 
+%%% fill-column: 108
+%%% TeX-master: "userman"
+%%% End: 

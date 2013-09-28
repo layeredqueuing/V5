@@ -1,0 +1,63 @@
+echo "running test 01"
+./test01 1 1000 > /dev/null
+echo "test 01 complete"
+echo "running test 02"
+./test02 1 1000 > /dev/null
+echo "test 02 complete"
+echo "running test 03"
+./test03 1 1000 > /dev/null
+echo "test 03 complete"
+echo "running test 04"
+./test04 1 1000 > /dev/null
+echo "test 04 complete"
+echo "running test 05"
+./test05 1 1000 > /dev/null
+echo "test 05 complete"
+echo "running test 06"
+./test06 1 1000 > /dev/null
+echo "test 06 complete"
+echo "running test 07"
+./test07 1 1000 > /dev/null
+echo "test 07 complete"
+echo "running test 08"
+./test08 1 1000 > /dev/null
+echo "test 08 complete"
+echo "running test 09"
+./test09 1 1000 > /dev/null
+echo "test 09 complete"
+echo "running test 10"
+./test10 1 1000 > /dev/null
+echo "test 10 complete"
+echo "running test 11"
+./test11 1 1000 > /dev/null
+echo "test 11 complete"
+echo "running test 12"
+./test12 1 1000 > /dev/null
+echo "test 12 complete"
+echo "running test 13"
+./test13 1 1000 > /dev/null
+echo "test 13 complete"
+echo "running test 14"
+./test14 1 1000 > /dev/null
+echo "test 14 complete"
+echo "running test 15"
+./test15 1 1000 > /dev/null
+echo "test 15 complete"
+echo "running test 16"
+./test16 1 1000 > /dev/null
+echo "test 16 complete"
+echo "running test 17"
+./test17 1 1000 > /dev/null
+echo "test 17 complete"
+echo "running test 18"
+./test18 1 1000 > /dev/null
+echo "test 18 complete"
+echo "running test 19"
+./test19 1 1000 > /dev/null
+echo "test 19 complete"
+echo "running invalid parameter tests"
+./invalid 1 1000 > /dev/null
+echo "invalid parameter tests complete"
+echo "running randomness tests"
+./randtest 1 1000 > /dev/null
+echo "randomness tests complete"

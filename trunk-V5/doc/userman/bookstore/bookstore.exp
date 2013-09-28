@@ -1,0 +1,24 @@
+# -*- Text -*-
+
+.global
+	.solver = "lqns";
+	.format = "gnuplot";
+	.template = "bookstore.lqn";
+	.lqnsopts = "-Pstop-on-message-loss=false,multiserver=rolia -w";
+#
+.end
+
+.experiment "bookstore"
+	.declare
+		n = 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120;
+	.vary
+		n;
+
+	.control
+		.tm ( Customer ) = { n };
+
+	.observe
+		.plot { n }; 
+		.th ( .t, Customer ) "lambda_{k}";
+.end
+

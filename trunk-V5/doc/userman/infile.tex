@@ -1,0 +1,137 @@
+%% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
+%% Title:  grammar
+%%
+%% $HeadURL$
+%% Original Author:     Greg Franks <greg@sce.carleton.ca>
+%% Created:             Tue Jul 18 2006
+%%
+%% ----------------------------------------------------------------------
+%% $Id$
+%% ----------------------------------------------------------------------
+
+\documentclass{article}
+\usepackage{times}
+\usepackage{bnf}
+
+\oddsidemargin  18pt
+\evensidemargin  18pt
+\textwidth   6.5in
+%\topmargin   0pt
+%\textheight  8.5in
+%\marginparwidth 0pt
+%\marginparsep 0pt
+\setcounter{secnumdepth}{0}
+
+\begin{document}
+
+\title{SRVN Input File Format\\ {\small\rm\$Id$\$$}}
+\author {Dorina C. Petriu \and R. Gregory Franks \and Alex Hubbard}
+\date{\today} 
+\maketitle
+
+\section{SRVN Input File Format}
+The Stochastic Rendezvous Network (SRVN) is a modelling method under
+development, and is currently being upgraded and extendend. Due to
+this fact, the input file format was chosen to be as flexible as
+possible, and easy to be expand when the need for new input data
+occurs.
+
+The SRVN input file has four sections, each consisting of a variable
+length list, possibly with other lists nested therein.  The {\em end
+of list} marker is $-1$.
+
+The input file may be annotated with comments.\marginpar{\chgflg{3}}
+Comments start with the octothorpe symbol, `{\tt \#}', and finish at the
+end of the line.  Comments may appear anywhere except within strings.
+
+\begin{description}
+\item [General information section] gives input parameters related to
+  the numerical computation.  It consists of five fields:
+  \begin{enumerate}
+  \item the convergence value,
+  \item the underrelaxation coefficient,
+  \item the maximum number of iterations,
+  \item the number of iterations after which intermediate results
+    are printed,
+  \item and a field for {\em comments on model} which is not
+    interpreted by the analysis program.
+  \end{enumerate}
+  
+\item [Processor information section] declares the total number of
+  processors in the system, and the corresponding scheduling policy for
+  each processor.  The scheduling policy may be First Come First Served
+  (FCFS) (the default value), Priority Preemptive Resume (PPR) or Head
+  Of the Line (HOL)\footnote{Also known as Priority, Non-preemptive.}.
+  The processors are named using symbolic identifiers.
+  
+\item [Task information section] declares the total number of tasks in
+  the system, and the following parameters for each task: task type
+  (reference or non-reference), the list of entries belonging to this
+  task, the processor on which the task is allocated, and task priority
+  (if it applies). The tasks are named using symbolic identifiers. Each
+  task must have at least one entry because the workload parameters are
+  associated with entries.  As a particular case, a reference task has
+  one and only one entry, which is never called by other tasks
+  (entries).
+  
+\item [Entry information section] declares the total number of entries
+  and the workload parameters associated with each. The entries are
+  named using symbolic identifiers. Each entry is associated to a task
+  by way of an {\em entry list} for the task. (The model description is
+  invalid if an entry is associated to more than one task, or no task at
+  all).  In the BNF description below, the non-terminals {\em
+  from\_entry\/} and {\em to\_entry\/} must belong to separate tasks.
+
+The entry workload is divided in phases.  The input file format does
+not limit the number of phases: it uses a variable length list with
+parameters ordered by phase.  Default values are assumed for all
+undeclared parameters.  The parameters declared for entries are:
+
+\begin{itemize}
+\item open arrival rate to entry (default = 0);
+\item list of mean service times per phase (default = 0);
+\item list of phase type flags (default = 0):
+  \begin{enumerate}
+  \item exponentially distributed service time and geometrically
+    distributed number of calls;
+  \item deterministic service time and deterministic number of
+    calls;
+  \item exponential service time and deterministic number of calls;
+  \end{enumerate}
+\item coefficient of variation of the service time slice between two
+  calls, given by phase (default = 1.0);
+\item mean number of RNVs per phase from this entry to other entries
+  (default = 0.0);
+\item mean number of nonblocking sends per phase from this entry to
+  other entries (default = 0.0).
+\item probability of forwarding a rendezvous to another entry (default
+  = 0.0).
+\item internal messaging between entries.
+\end{itemize}
+\end{description}
+
+\section{BNF Description of SRVN Input File Format}
+
+\input{input-grammar}
+
+\subsection{Other Solvers}
+
+\subsubsection{Lqsim}
+The SRVN input file is also used by the layered queueing network simulator.
+\marginpar{\chgflg{3}} Certain optional nonterminals only apply to the
+simulator (for example, {\em cpu\_quantum}).  These nonterminals are
+identified by a `\dag'.  If they are present as input to the SRVN
+solver, they are ignored.  Mandatory fields marked by a `\ddag' are
+ignored by the simulator.
+
+\subsubsection{PetriSRVN}
+
+Mandatory fields marked by a `\ddag' are ignored by the Petri net
+solver.
+
+\subsubsection{Layered Queueing Network Solver}
+
+
+\subsubsection{Bounds Solver}
+
+\end{document}

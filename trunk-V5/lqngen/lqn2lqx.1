@@ -1,0 +1,146 @@
+.\" t -*- nroff -*-
+.TH lqn2lqx 1 "12 August 2004"
+.\" $Header$
+.\"
+.\" --------------------------------
+.SH "NAME"
+lqn2lqx
+.SH "SYNOPSIS"
+.br
+.B lqn2lqx
+[
+.B \-A \fIprobability\fR
+] [
+.B \-C \fInumber\fR
+] [
+.B \-E \fInumber\fR
+] [
+.B \-F \fIprobaility\fR
+] [
+.B \-G \fIoptions\fR
+] [
+.B \-I \fIprobability\fR
+] [
+.B \-L \fInumber\fR
+] [
+.B \-M \fIprobability\fR
+] [
+.B \-O \fI(xml|lqn)\fR
+] [
+.B \-P \fInumber\fR
+] [
+.B \-S \fInumber\fR
+] [
+.B \-T \fInumber\fR
+] [
+.B \-X \fIseed\fR
+] [
+.B \-Y \fInumber\fR
+] [
+.B \-Z \fInumber\fR
+] [
+.B \-a \fIrate\fR
+] [
+.B \-c \fInumber\fR
+] [
+.B \-d \fIcall-depth\fR
+] [
+.B \-f \fIprobability\fR
+] [
+.B \-p \fIrequest-rate\fR
+] [
+.B \-s \fIvalue\fR
+] [
+.B \-t \fIrequest-rate\fR
+] [
+.B \-y \fIrate\fR
+] [
+.B \-z \fIrate\fR
+] [
+file | directory [\fIcount\fR]
+]
+.SH "DESCRIPTION"
+\fBlqn2lqx\fR is used to add LQX to an existing model file.
+.SH "OPTIONS"
+.TP
+\fB\-A\fI <open-arrivals>\fR
+  Probability entry has open arrival. default  [0]
+.TP
+\fB\-C\fI <customers>\fR
+ Number of Reference Tasks. default [uniform 1,8] 
+.TP
+\fB\-D\fI <think-time>\fR
+Think time at Reference Tasks. default  [exponential,0,10]  
+.TP
+\fB\-E\fI <entries> \fR
+  Number of Entries per task. default [exponential1,,1.5]
+.TP
+\fB\-F\fI <forwarding> [0]\fR
+ Probability entry forwards RNV. default [0]
+.TP
+\fB\-G\fI <options>\fR
+  Model parameters.
+.TP
+\fB\-I\fI <infinite-server>\fR
+ [0.15]  Probability object is an infinite server.
+.TP
+\fB\-L\fI <layers>\fR
+ [uniform,3,8]  Number of layers.
+.TP
+\fB\-M\fI <multi-\fR
+server> [0.15]  Probability object is a mulit-server.
+.TP
+\fB\-O\fI <(xml|lqn)>\fR
+  Output format.
+.TP
+\fB\-P\fI <processors>\fR
+ [uniform,1,15]  Number of processors.
+.TP
+\fB\-S\fI <phases>\fR
+ [exponential,1,1.25]  Number of phases.
+.TP
+\fB\-T\fI <tasks>\fR
+ [exponential,1,3]  Number of tasks in a layer.
+.TP
+\fB\-X\fI <seed>\fR
+  Seed value for random number generator.
+.TP
+\fB\-Y\fI <rendezvous>\fR
+ [exponential,1,1.5]  Number of incomming RNV arcs to an entry.
+.TP
+\fB\-Z\fI <send-no-reply>\fR
+ [uniform,0,0]  Number of incomming SNR arcs to an entry.
+.TP
+\fB\-a\fI <arrival-rate>\fR
+ [exponential,0,0]  Arrival rate at entry with open arrivals
+.TP
+\fB\-c\fI <customers>\fR
+ [exponential,1,4]  Number of customers in each Referece Task.
+.TP
+\fB\-d\fI <call-\fR
+depth> [exponential,1,1.25]  Depth of calls.
+.TP
+\fB\-f\fI <forwarding>\fR
+ [0]  Forwarding probability at entry with forwarding.
+.TP
+\fB\-h\fI\fR
+  help!
+.TP
+\fB\-p\fI <proc-mult> \fR
+[uniform,2,10]  Processor multiplicty.
+.TP
+\fB\-s\fI <service-time>\fR
+  Phase service time.
+.TP
+\fB\-t\fI <task-mult>\fR
+ [uniform,2,10]  Task multiplicity.
+.TP
+\fB\-y\fI <rnv-rate>\fR
+  RNV rate at entries with RNVs.
+.TP
+\fB\-z\fI <snr-rate>\fR
+  SNR rate at entries with SNRs.
+.TP
+\fB\-@\fI <filename>\fR
+  Read options from filename.
+.SH "SEE ALSO"

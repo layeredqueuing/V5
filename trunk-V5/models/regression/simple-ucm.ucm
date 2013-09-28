@@ -1,0 +1,161 @@
+<?xml version='1.0' standalone='no'?>
+<!DOCTYPE ucm-design SYSTEM "ucm21xml.dtd">
+
+<ucm-design design-id="design1" dtd-version="21" design-name="greg" description="" notation="Buhr-UCM" width="1320" height="1100">
+
+   <component-specification>
+      <component component-id="c0" component-name="t1" formal="no" colour="0">
+         <regular type="process" protected="no" replicated="no" replication-factor="2" slot="no" />
+      </component>
+
+      <component component-id="c1" component-name="t2" formal="no" colour="0">
+         <regular type="process" protected="no" replicated="no" replication-factor="2" slot="no" />
+      </component>
+
+      <component component-id="c2" component-name="t3" formal="no" colour="0">
+         <regular type="process" protected="no" replicated="no" replication-factor="2" slot="no" />
+      </component>
+
+   </component-specification>
+
+   <responsibility-specification>
+      <responsibility resp-id ="r2" resp-name="a1">
+         <service-request-spec>
+            <service-request service-type="pr" request-number="1.5" />
+         </service-request-spec>
+      </responsibility>
+      <responsibility resp-id ="r1" resp-name="a2">
+         <service-request-spec>
+            <service-request service-type="pr" request-number="1.5" />
+         </service-request-spec>
+      </responsibility>
+      <responsibility resp-id ="r0" resp-name="a4">
+         <service-request-spec>
+            <service-request service-type="pr" request-number="1.0" />
+            <service-request service-type="pr" request-number="2.0" />
+         </service-request-spec>
+      </responsibility>
+   </responsibility-specification>
+
+   <device-directory>
+      <device device-id="dv0" device-type="processor" device-name="p1" description="" op-time="0.000000e+00"/>
+   </device-directory>
+
+   <root-maps>
+      <model model-id="m0" model-name="root" title="" description="" >
+
+         <path-spec>
+            <path-label-list>
+               <path-label path-label-id="pl0" label="_" />
+            </path-label-list>
+            <hypergraph>
+               <hyperedge hyperedge-id="h0" hyperedge-name="a0" fx="0.028030" fy="0.020909" >
+                  <start arrival="exponential" mean="0.100000" label-alignment="centered" >
+                  </start>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h1" fx="0.038636" fy="0.046364" >
+                  <empty-segment path-label-id="pl0" >
+                  </empty-segment>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h2" hyperedge-name="" fx="0.122727" fy="0.036364" >
+                  <end-point label-alignment="centered" >
+                  </end-point>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h6" fx="0.096970" fy="0.196364" >
+                  <empty-segment path-label-id="pl0" >
+                  </empty-segment>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h7" fx="0.063636" fy="0.072727" >
+                  <empty-segment path-label-id="pl0" >
+                  </empty-segment>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h8" fx="0.187879" fy="0.340000" >
+                  <responsibility-ref resp-id="r0" direction="UP" />
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h9" fx="0.077273" fy="0.192727" >
+                  <responsibility-ref resp-id="r1" direction="UP" />
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h10" fx="0.132576" fy="0.266364" >
+                  <empty-segment path-label-id="pl0" >
+                  </empty-segment>
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h11" fx="0.046212" fy="0.062727" >
+                  <responsibility-ref resp-id="r2" direction="UP" />
+               </hyperedge>
+
+               <hyperedge hyperedge-id="h12" fx="0.060985" fy="0.128182" >
+                  <empty-segment path-label-id="pl0" >
+                  </empty-segment>
+               </hyperedge>
+
+               <hyperedge-connection source-hyperedge="h0" >
+                  <hyperedge-ref hyperedge-id="h1" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h1" >
+                  <hyperedge-ref hyperedge-id="h11" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h6" >
+                  <hyperedge-ref hyperedge-id="h7" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h7" >
+                  <hyperedge-ref hyperedge-id="h2" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h8" >
+                  <hyperedge-ref hyperedge-id="h6" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h9" >
+                  <hyperedge-ref hyperedge-id="h10" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h10" >
+                  <hyperedge-ref hyperedge-id="h8" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h11" >
+                  <hyperedge-ref hyperedge-id="h12" />
+               </hyperedge-connection>
+               <hyperedge-connection source-hyperedge="h12" >
+                  <hyperedge-ref hyperedge-id="h9" />
+               </hyperedge-connection>
+            </hypergraph>
+
+         </path-spec>
+
+         <structure-spec>
+            <component-ref component-ref-id="cr0" fx="0.033333" fy="0.050000" width="0.040000" height="0.040000" anchored="no" referenced-component="c0">
+               <responsibility-list>
+                  <hyperedge-ref hyperedge-id="h11" />
+               </responsibility-list>
+               <other-hyperedge-list>
+                  <hyperedge-ref hyperedge-id="h7" />
+               </other-hyperedge-list>
+            </component-ref>
+
+            <component-ref component-ref-id="cr1" fx="0.065152" fy="0.170909" width="0.040000" height="0.040000" anchored="no" referenced-component="c1">
+               <responsibility-list>
+                  <hyperedge-ref hyperedge-id="h9" />
+               </responsibility-list>
+               <other-hyperedge-list>
+                  <hyperedge-ref hyperedge-id="h6" />
+               </other-hyperedge-list>
+            </component-ref>
+
+            <component-ref component-ref-id="cr2" fx="0.162879" fy="0.313636" width="0.040000" height="0.040000" anchored="no" referenced-component="c2">
+               <responsibility-list>
+                  <hyperedge-ref hyperedge-id="h8" />
+               </responsibility-list>
+            </component-ref>
+
+         </structure-spec>
+
+      </model>
+
+   </root-maps>
+
+</ucm-design>

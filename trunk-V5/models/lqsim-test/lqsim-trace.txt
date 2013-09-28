@@ -1,0 +1,199 @@
+[andrew@localhost lqsim-test]$ lqsim 99-peva-repeat.lqnx
+$p1         $p2         $y1         $y2         t1.throughput
+old ps_run_time: 0.000000 new duration: 100001.000000
+In Model::run() ps_now: 0
+Activity::configure() called for ID# 1.
+Inside Activity::configure() for ID# 1 r_util._sum: 0.
+Activity::configure() called for ID# 2.
+Inside Activity::configure() for ID# 2 r_util._sum: 0.
+Activity::configure() called for ID# 3.
+Inside Activity::configure() for ID# 3 r_util._sum: 0.
+Activity::configure() called for ID# 5.
+Inside Activity::configure() for ID# 5 r_util._sum: 0.
+Activity::configure() called for ID# 6.
+Inside Activity::configure() for ID# 6 r_util._sum: 0.
+Activity::configure() called for ID# 7.
+Inside Activity::configure() for ID# 7 r_util._sum: 0.
+Activity::configure() called for ID# 9.
+Inside Activity::configure() for ID# 9 r_util._sum: 0.
+Activity::configure() called for ID# 10.
+Inside Activity::configure() for ID# 10 r_util._sum: 0.
+Activity::configure() called for ID# 11.
+Inside Activity::configure() for ID# 11 r_util._sum: 0.
+Activity::configure() called for ID# 13.
+Inside Activity::configure() for ID# 13 r_util._sum: 0.
+Activity::configure() called for ID# 14.
+Inside Activity::configure() for ID# 14 r_util._sum: 0.
+Activity::configure() called for ID# 15.
+Inside Activity::configure() for ID# 15 r_util._sum: 0.
+ phase: 1 r_util.mean(): 0.499831 Activity #: 1 _sum: 0.499831 _n: 1.
+ phase: 2 r_util.mean(): 0.500169 Activity #: 2 _sum: 0.500169 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 5 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.180858 Activity #: 6 _sum: 0.180858 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 9 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.182631 Activity #: 10 _sum: 0.182631 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 13 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.184835 Activity #: 14 _sum: 0.184835 _n: 1.
+Model::run() returned
+Parasol driver() returned
+ps_run_parasol_returned
+0, 2, 0.1, 0.05, 0.09089
+0           2           0.1         0.05        0.09089
+old ps_run_time: 100001.000000 new duration: 100001.000000
+In Model::run() ps_now: 0
+Activity::configure() called for ID# 1.
+Inside Activity::configure() for ID# 1 r_util._sum: 0.
+Activity::configure() called for ID# 2.
+Inside Activity::configure() for ID# 2 r_util._sum: 0.
+Activity::configure() called for ID# 3.
+Inside Activity::configure() for ID# 3 r_util._sum: 0.
+Activity::configure() called for ID# 5.
+Inside Activity::configure() for ID# 5 r_util._sum: 0.
+Activity::configure() called for ID# 6.
+Inside Activity::configure() for ID# 6 r_util._sum: 0.
+Activity::configure() called for ID# 7.
+Inside Activity::configure() for ID# 7 r_util._sum: 0.
+Activity::configure() called for ID# 9.
+Inside Activity::configure() for ID# 9 r_util._sum: 0.
+Activity::configure() called for ID# 10.
+Inside Activity::configure() for ID# 10 r_util._sum: 0.
+Activity::configure() called for ID# 11.
+Inside Activity::configure() for ID# 11 r_util._sum: 0.
+Activity::configure() called for ID# 13.
+Inside Activity::configure() for ID# 13 r_util._sum: 0.
+Activity::configure() called for ID# 14.
+Inside Activity::configure() for ID# 14 r_util._sum: 0.
+Activity::configure() called for ID# 15.
+Inside Activity::configure() for ID# 15 r_util._sum: 0.
+ phase: 1 r_util.mean(): 0.499831 Activity #: 1 _sum: 0.499831 _n: 1.
+ phase: 2 r_util.mean(): 1.50016 Activity #: 2 _sum: 1.50016 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 5 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 1.18051 Activity #: 6 _sum: 1.18051 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 9 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.182631 Activity #: 10 _sum: 0.182631 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 13 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 1.18482 Activity #: 14 _sum: 1.18482 _n: 1.
+Model::run() returned
+Parasol driver() returned
+ps_run_parasol_returned
+0, 2, 0.1, 0.05, 0.09089
+0           2           0.1         0.05        0.09089
+old ps_run_time: 100001.000000 new duration: 100001.000000
+In Model::run() ps_now: 0
+Activity::configure() called for ID# 1.
+Inside Activity::configure() for ID# 1 r_util._sum: 0.
+Activity::configure() called for ID# 2.
+Inside Activity::configure() for ID# 2 r_util._sum: 0.
+Activity::configure() called for ID# 3.
+Inside Activity::configure() for ID# 3 r_util._sum: 0.
+Activity::configure() called for ID# 5.
+Inside Activity::configure() for ID# 5 r_util._sum: 0.
+Activity::configure() called for ID# 6.
+Inside Activity::configure() for ID# 6 r_util._sum: 0.
+Activity::configure() called for ID# 7.
+Inside Activity::configure() for ID# 7 r_util._sum: 0.
+Activity::configure() called for ID# 9.
+Inside Activity::configure() for ID# 9 r_util._sum: 0.
+Activity::configure() called for ID# 10.
+Inside Activity::configure() for ID# 10 r_util._sum: 0.
+Activity::configure() called for ID# 11.
+Inside Activity::configure() for ID# 11 r_util._sum: 0.
+Activity::configure() called for ID# 13.
+Inside Activity::configure() for ID# 13 r_util._sum: 0.
+Activity::configure() called for ID# 14.
+Inside Activity::configure() for ID# 14 r_util._sum: 0.
+Activity::configure() called for ID# 15.
+Inside Activity::configure() for ID# 15 r_util._sum: 0.
+ phase: 1 r_util.mean(): 0.499831 Activity #: 1 _sum: 0.499831 _n: 1.
+ phase: 2 r_util.mean(): 2.50015 Activity #: 2 _sum: 2.50015 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 5 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 2.18015 Activity #: 6 _sum: 2.18015 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 9 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.182631 Activity #: 10 _sum: 0.182631 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 13 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 2.1848 Activity #: 14 _sum: 2.1848 _n: 1.
+Model::run() returned
+Parasol driver() returned
+ps_run_parasol_returned
+0, 2, 0.1, 0.05, 0.09089
+0           2           0.1         0.05        0.09089
+old ps_run_time: 100001.000000 new duration: 100001.000000
+In Model::run() ps_now: 0
+Activity::configure() called for ID# 1.
+Inside Activity::configure() for ID# 1 r_util._sum: 0.
+Activity::configure() called for ID# 2.
+Inside Activity::configure() for ID# 2 r_util._sum: 0.
+Activity::configure() called for ID# 3.
+Inside Activity::configure() for ID# 3 r_util._sum: 0.
+Activity::configure() called for ID# 5.
+Inside Activity::configure() for ID# 5 r_util._sum: 0.
+Activity::configure() called for ID# 6.
+Inside Activity::configure() for ID# 6 r_util._sum: 0.
+Activity::configure() called for ID# 7.
+Inside Activity::configure() for ID# 7 r_util._sum: 0.
+Activity::configure() called for ID# 9.
+Inside Activity::configure() for ID# 9 r_util._sum: 0.
+Activity::configure() called for ID# 10.
+Inside Activity::configure() for ID# 10 r_util._sum: 0.
+Activity::configure() called for ID# 11.
+Inside Activity::configure() for ID# 11 r_util._sum: 0.
+Activity::configure() called for ID# 13.
+Inside Activity::configure() for ID# 13 r_util._sum: 0.
+Activity::configure() called for ID# 14.
+Inside Activity::configure() for ID# 14 r_util._sum: 0.
+Activity::configure() called for ID# 15.
+Inside Activity::configure() for ID# 15 r_util._sum: 0.
+ phase: 1 r_util.mean(): 0.499831 Activity #: 1 _sum: 0.499831 _n: 1.
+ phase: 2 r_util.mean(): 3.50014 Activity #: 2 _sum: 3.50014 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 5 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 3.1798 Activity #: 6 _sum: 3.1798 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 9 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.182631 Activity #: 10 _sum: 0.182631 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 13 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 3.18478 Activity #: 14 _sum: 3.18478 _n: 1.
+Model::run() returned
+Parasol driver() returned
+ps_run_parasol_returned
+0, 2, 0.1, 0.05, 0.09089
+0           2           0.1         0.05        0.09089
+old ps_run_time: 100001.000000 new duration: 100001.000000
+In Model::run() ps_now: 0
+Activity::configure() called for ID# 1.
+Inside Activity::configure() for ID# 1 r_util._sum: 0.
+Activity::configure() called for ID# 2.
+Inside Activity::configure() for ID# 2 r_util._sum: 0.
+Activity::configure() called for ID# 3.
+Inside Activity::configure() for ID# 3 r_util._sum: 0.
+Activity::configure() called for ID# 5.
+Inside Activity::configure() for ID# 5 r_util._sum: 0.
+Activity::configure() called for ID# 6.
+Inside Activity::configure() for ID# 6 r_util._sum: 0.
+Activity::configure() called for ID# 7.
+Inside Activity::configure() for ID# 7 r_util._sum: 0.
+Activity::configure() called for ID# 9.
+Inside Activity::configure() for ID# 9 r_util._sum: 0.
+Activity::configure() called for ID# 10.
+Inside Activity::configure() for ID# 10 r_util._sum: 0.
+Activity::configure() called for ID# 11.
+Inside Activity::configure() for ID# 11 r_util._sum: 0.
+Activity::configure() called for ID# 13.
+Inside Activity::configure() for ID# 13 r_util._sum: 0.
+Activity::configure() called for ID# 14.
+Inside Activity::configure() for ID# 14 r_util._sum: 0.
+Activity::configure() called for ID# 15.
+Inside Activity::configure() for ID# 15 r_util._sum: 0.
+ phase: 1 r_util.mean(): 0.499831 Activity #: 1 _sum: 0.499831 _n: 1.
+ phase: 2 r_util.mean(): 4.50014 Activity #: 2 _sum: 4.50014 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 5 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 4.17945 Activity #: 6 _sum: 4.17945 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 9 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 0.182631 Activity #: 10 _sum: 0.182631 _n: 1.
+ phase: 1 r_util.mean(): 0 Activity #: 13 _sum: 0 _n: 1.
+ phase: 2 r_util.mean(): 4.18476 Activity #: 14 _sum: 4.18476 _n: 1.
+Model::run() returned
+Parasol driver() returned
+ps_run_parasol_returned
+0, 2, 0.1, 0.05, 0.09089
+0           2           0.1         0.05        0.09089
+[andrew@localhost lqsim-test]$ cd 99-peva-repeat
+

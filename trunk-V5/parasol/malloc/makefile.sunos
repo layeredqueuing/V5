@@ -1,0 +1,44 @@
+# @(#)makefile.sunos	1.1 08:23:17 8/22/95 
+# Copyright (C) 1991, 1992, 1993 Free Software Foundation, Inc.
+# This file is part of the GNU C Library.
+
+# The GNU C Library is free software; you can redistribute it and/or
+# modify it under the terms of the GNU Library General Public License
+# as published by the Free Software Foundation; either version 2 of
+# the License, or (at your option) any later version.
+
+# The GNU C Library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Library General Public License for more details.
+
+# You should have received a copy of the GNU Library General Public
+# License along with the GNU C Library; see the file COPYING.LIB.  If
+# not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+# Cambridge, MA 02139, USA.
+
+# Makefile for malloc in PARASOL.
+
+#
+# History: 17/08/95 (PRM) Modified this file so that it will simply add
+#                         the malloc functions to libparasol.a and 
+#                         libparasolc.a
+
+CC = gcc
+
+gmalloc = valloc.c malloc.c free.c cfree.c realloc.c calloc.c morecore.c memalign.c
+sources = valloc.c malloc.c free.c cfree.c realloc.c calloc.c morecore.c memalign.c mcheck.c mtrace.c mstats.c vm-limit.c ralloc.c
+objects = valloc.o malloc.o free.o cfree.o realloc.o calloc.o morecore.o memalign.o mcheck.o mtrace.o mstats.o vm-limit.o ralloc.o
+headers = malloc.h
+
+libparasol.a: $(objects)
+	ar r ../lib/libparasol.a $(objects)
+
+libparasolc.a: $(objects)
+	ar r ../lib/libparasolc.a $(objects)
+
+.c.o:
+	$(CC) $(CFLAGS) $(CPPFLAGS) -I. -I../include -c $< $(OUTPUT_OPTION)
+
+clean:
+	rm -f *.o core

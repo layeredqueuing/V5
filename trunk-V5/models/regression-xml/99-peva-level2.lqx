@@ -1,0 +1,5 @@
+// test file for recursive include level 2
+
+include < 99-peva-level3.lqx >
+
+println( "Include file 99-peva-level2.lqx found." );

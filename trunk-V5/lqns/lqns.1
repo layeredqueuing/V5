@@ -1,0 +1,741 @@
+.\" t -*- nroff -*-
+.TH lqns 1 "23 August 2013" "5.7"
+.\" $Id$
+.\"
+.\" --------------------------------
+.SH "NAME"
+lqns \- solve layered queueing network models.
+.SH "SYNOPSIS"
+.br
+.B lqns
+[\fIOPTIONS\fR].\|.\|. [\fIFILE\fR] \&.\|.\|.
+.SH "DESCRIPTION"
+\fBLqns\fP is used to solve layered queueing network models using 
+analytic techniques.  Models can be specified using the LQN modeling
+language, or with extensible markup language (XML).  Refer to the
+\fI``Layered Queueing Network Solver and Simulator User Manual''\fP
+for details of the model and for a complete description of the input file
+formats for the program.
+.PP
+\fBLqns\fP reads its input from \fIfilename\fR, specified at the
+command line if present, or from the standard input otherwise.  By
+default, output for an input file \fIfilename\fR specified on the
+command line will be placed in the file \fIfilename\fB.out\fR.  If the
+\fB\-p\fP switch is used, parseable output will also be written into
+\fIfilename\fB.p\fR. If XML input or the \fB\-x\fP switch is used, XML output will be written to 
+\fIfilename\fB.lqxo\fR.  This behaviour can be changed using the
+\fB\-o\fP\fIoutput\fR switch, described below.  If several files are
+named, then each is treated as a separate model and output will be
+placed in separate output files.  If input is from the standard input,
+output will be directed to the standard output.  The file name `\fI-\fR' is
+used to specify standard input.
+.PP
+The \fB\-o\fP\fIoutput\fR option can be used to direct output to the file
+\fIoutput\fR regardless of the source of input.  Output will be XML
+if XML input or if the \fB\-x\fP switch is used, parseable output if the \fB\-p\fP switch is used,
+and normal output otherwise.  Multiple input files cannot be specified
+when using this option.  Output can be directed to standard output by
+using \fB\-o\fP\fI-\fR (i.e., the output file name is `\fI-\fR'.)
+.SH "OPTIONS"
+.TP
+\fB\-a\fP, \fB\-\-ignore-advisories\fR
+Ignore advisories.  The default is to print out all advisories.
+.TP
+\fB\-b\fP, \fB\-\-bounds-only\fR
+This option is used to compute the ``Type 1 throughput bounds'' only.
+These bounds are computed assuming no contention anywhere in the model
+and represent the guaranteed not to exceed values.
+.TP
+\fB\-d\fP, \fB\-\-debug\fR=\fIarg\fR
+This option is used to enable debug output.
+\fIArg\fP can be one of:
+.RS
+.TP
+\fBall\fR
+Enable all debug output.
+.TP
+\fBforks\fR
+Print out the fork-join matching process.
+.TP
+\fBinterlock\fR
+Print out the interlocking table and the interlocking between all tasks and processors.
+.TP
+\fBlayers\fR
+Print out the contents of all of the layers found in the model.
+.TP
+\fBlqx\fR
+Print out the actions the LQX parser while reading an LQX program.
+.TP
+\fBovertaking\fR
+Print the overtaking probabilities in the output file.
+.TP
+\fBxml\fR
+Print out the actions of the Expat parser while reading XML input.
+.RE
+.TP
+\fB\-e\fP, \fB\-\-error\fR=\fIarg\fR
+This option is to enable floating point exception handling.
+\fIArg\fP must be one of the following:
+.RS
+.TP 3
+\fBa\fP
+Abort immediately on a floating point error (provided the floating point unit can do so).
+.TP 3
+\fBd\fP
+Abort on floating point errors. (default)
+.TP 3
+\fBi\fP
+Ignore floating point errors.
+.TP 3
+\fBw\fP
+Warn on floating point errors.
+The solver checks for floating point overflow, division by zero and invalid operations.
+Underflow and inexact result exceptions are always ignored.
+.PP
+In some instances, infinities  will be propogated within the solver.  Please refer to the
+\fBstop-on-message-loss\fP pragma below.
+.RE
+.TP
+\fB\-f\fP, \fB\-\-fast\fR
+This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA.
+It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\fP=\fIbatched\fP, \fImultiserver\fP=\fIconway\fP
+.TP
+\fB\-H\fP, \fB\-\-help\fR=\fIarg\fR
+.TP
+\fB\-I\fP, \fB\-\-input-format\fR=\fIarg\fR
+This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
+By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP or \fI.xlqn\fP
+, then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+.TP
+\fB\-n\fP, \fB\-\-no-execute\fR
+Read input, but do not solve.  The input is checked for validity.  
+No output is generated.
+.TP
+\fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
+Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
+directs output to standard output.  If \fIoutput\fR is a directory, all output is saved in \fIoutput/input.out\fR. If the input model contains a SPEX program with loops, the SPEX output is sent to \fIoutput\fR; the individual model output files are found in the directory \fIoutput.d\fR. If \fBlqns\fP is invoked with this
+option, only one input file can be specified.
+.TP
+\fB\-p\fP, \fB\-\-parseable\fR
+Generate parseable output suitable as input to other programs such as
+\fBlqn2ps(1)\fP and \fBsrvndiff(1)\fP.  If input is from
+\fIfilename\fR, parseable output is directed to \fIfilename\fB.p\fR.
+If standard input is used for input, then the parseable output is sent
+to the standard output device.  If the \fB\-o\fP\fIoutput\fR option is used, the
+parseable output is sent to the file name \fIoutput\fR.
+(In this case, only parseable output is emitted.)
+.TP
+\fB\-P\fP, \fB\-\-pragma\fR=\fIarg\fR
+Change the default solution strategy.  Refer to the PRAGMAS section
+below for more information.
+.TP
+\fB\-r\fP, \fB\-\-rtf\fR
+Output results using Rich Text Format instead of plain text.  Processors, entries and tasks with high utilizations are coloured in red.
+.TP
+\fB\-t\fP, \fB\-\-trace\fR=\fIarg\fR
+This option is used to set tracing  options which are used to print out various
+intermediate results  while a model is being solved.
+\fIarg\fP can be any combination of the following:
+.RS
+.TP
+\fBactivities\fR
+Print out results of activity aggregation.
+.TP
+\fBconvergence\fR=\fIarg\fR
+Print out convergence value after each submodel is solved.
+This option is useful for tracking the rate of convergence for a model.
+The optional numeric argument supplied to this option will print out the convergence value for the specified MVA submodel, otherwise,
+the convergence value for all submodels will be printed.
+.TP
+\fBdelta_wait\fR
+Print out difference in entry service time after each submodel is solved.
+.TP
+\fBforks\fR
+Print out overlap table for forks prior to submodel solution.
+.TP
+\fBidle_time\fR
+Print out computed idle time after each submodel is solved.
+.TP
+\fBinterlock\fR
+Print out interlocking adjustment before each submodel is solved.
+.TP
+\fBintermediate\fR
+Print out intermediate solutions at the print interval specified in the model.
+The print interval field in the input is ignored otherwise.
+.TP
+\fBjoins\fR
+Print out computed join delay and join overlap table prior to submodel solution.
+.TP
+\fBmva\fR=\fIarg\fR
+Print out the MVA submodel and its solution.
+A numeric argument supplied to this option will print out only the specified MVA submodel, otherwise, all submodels will be printed.
+.TP
+\fBovertaking\fR
+Print out overtaking calculations.
+.TP
+\fBquorum\fR
+Print quorum traces.
+.TP
+\fBthroughput\fR
+Print throughput's values.
+.TP
+\fBvariance\fR
+Print out the variances calculated after each submodel is solved.
+.TP
+\fBwait\fR
+Print waiting time for each rendezvous in the model after it has been computed.
+.RE
+.TP
+\fB\-v\fP, \fB\-\-verbose\fR
+Generate output after each iteration of the MVA solver and the convergence value at the end of each outer iteration of the solver.
+.TP
+\fB\-V\fP, \fB\-\-version\fR
+Print out version and copyright information.
+.TP
+\fB\-w\fP, \fB\-\-no-warnings\fR
+Ignore warnings.  The default is to print out all warnings.
+.TP
+\fB\-x\fP, \fB\-\-xml\fR
+Generate XML output regardless of input format.
+.TP
+\fB\-z\fP, \fB\-\-special\fR=\fIarg\fR
+This option is used to select special options.  Arguments of the form
+\fInn\fP are integers while arguments of the form \fInn.n\fP are real
+numbers.  \fIArg\fP can be any of the following:
+.RS
+.TP
+\fBconvergence-value\fR=\fIarg\fR
+Set the convergence value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
+.TP
+\fBfull-reinitialize\fR
+For multiple runs, reinitialize all processors.
+.TP
+\fBgenerate\fR=\fIarg\fR
+This option is used for debugging the solver.
+A directory named \fIarg\fP will be created containing source code for invoking the MVA solver directly.
+.TP
+\fBignore-overhanging-threads\fR
+Ignore the effect of the overhanging threads.
+.TP
+\fBiteration-limit\fR=\fIarg\fR
+Set the maximum number of iterations to \fIarg\fP.
+\fIArg\fP must be an integer greater than 0.  The default value is 50.
+.TP
+\fBman\fR=\fIarg\fR
+Output this manual page.  
+If an optional \fIarg\fP
+is supplied, output will be written to the file named \fIarg\fP.
+Otherwise, output is sent to stdout.
+.TP
+\fBmin-steps\fR=\fIarg\fR
+Force the solver to iterate min-steps times.
+.TP
+\fBmol-ms-underrelaxation\fR=\fIarg\fR
+Set the under-relaxation factor to \fIarg\fP for the MOL multiserver approximation.
+\fIArg\fP must be a number between 0.0 and 1.0.
+The default value is 0.5..TP
+\fBovertaking\fR
+Print out overtaking probabilities.
+.TP
+\fBprint-interval\fR=\fIarg\fR
+Set the printing interval to \fIarg\fP.
+The \fB\-d\fP or \fB\-v\fP options must also be selected to display intermediate results.
+The default value is 10.
+.TP
+\fBsingle-step\fR
+Stop after each MVA submodel is solved.
+Any character typed at the terminal except end-of-file will resume the calculation.  End-of-file will cancel single-stepping altogether.
+.TP
+\fBskip-layer\fR=\fIarg\fR
+Ignore submodel \fIarg\fP during solution.
+.TP
+\fBtex\fR=\fIarg\fR
+Output this manual page in LaTeX format.
+If an optional \fIarg\fP
+is supplied, output will be written to the file named \fIarg\fP.
+Otherwise, output is sent to stdout.
+.TP
+\fBunderrelaxation\fR=\fIarg\fR
+Set the underrelaxation to \fIarg\fP.
+\fIArg\fP must be a number between 0.0 and 1.0.
+The default value is 0.9.
+.LP
+If any one of \fIconvergence\fP, \fIiteration-limit\fP, or\fIprint-interval\fP are used as arguments, the corresponding 
+value specified in the input file for general information, `G', is
+ignored.  
+.RE
+.TP
+\fB\-\-convergence\fR=\fIarg\fR
+Set the convergence value to \fIarg\fP.  
+\fIArg\fP must be a number between 0.0 and 1.0.
+.TP
+\fB\-\-exact-mva\fR
+Use Exact MVA to solve all submodels.
+.TP
+\fB\-\-hwsw-layering\fR
+.TP
+\fB\-\-iteration-limit\fR=\fIarg\fR
+Set the maximum number of iterations to \fIarg\fP.
+\fIArg\fP must be an integer greater than 0.  The default value is 50.
+.TP
+\fB\-\-srvn-layering\fR
+Solve the model using submodels containing exactly one server.
+.TP
+\fB\-\-squashed-layering\fR
+Use only one submodel to solve the model.
+.TP
+\fB\-\-method-of-layers\fR
+This option is to use the Method Of Layers solution approach to solving the layer submodels.
+.TP
+\fB\-\-processor-sharing\fR
+Use Processor Sharing scheduling at all fixed-rate processors.
+.TP
+\fB\-\-schweitzer-amva\fR
+Use Bard-Schweitzer approximate MVA to solve all submodels.
+.TP
+\fB\-\-no-stop-on-message-loss\fR
+Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an
+error message indicating that the arrival rate is too high for the service time of the entry
+.TP
+\fB\-\-trace-mva\fR
+Output the inputs and results of each MVA submodel for every iteration of the solver.
+.TP
+\fB\-\-underrelaxation\fR=\fIarg\fR
+Set the underrelaxation to \fIarg\fP.
+\fIArg\fP must be a number between 0.0 and 1.0.
+The default value is 0.9.
+.TP
+\fB\-\-no-variance\fR
+Do not use variances in the waiting time calculations.
+.TP
+\fB\-\-reload-lqx\fR
+Re-run the LQX program without re-solving the models.  Results must exist from a previous solution run.
+This option is useful if LQX print statements are changed.
+.TP
+\fB\-\-no-header\fR
+.TP
+\fB\-\-debug-lqx\fR
+Output debugging information as an LQX program is being parsed.
+.TP
+\fB\-\-debug-xml\fR
+Output XML elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
+this option can be used to localize the error.
+.TP
+\fB\-\-debug-srvn\fR
+.PP
+\fBLqns\fP exits with 0 on success, 1 if the model failed to converge,
+2 if the input was invalid, 4 if a command line argument was
+incorrect, 8 for file read/write problems and -1 for fatal errors.  If
+multiple input files are being processed, the exit code is the
+bit-wise OR of the above conditions.
+.SH "PRAGMAS"
+\fIPragmas\fP are used to alter the behaviour of the solver in a
+variety of ways.  They can be specified in the input file with
+``#pragma'', on the command line with the \fB\-P\fP option, or through
+the environment variable \fILQNS_PRAGMAS\fP.  Command line
+specification of pragmas overrides those defined in the environment
+variable which in turn override those defined in the input file.  The
+following pragmas are supported.  Invalid pragma specification at the
+command line will stop the solver.  Invalid pragmas defined in the
+environment variable or in the input file are ignored as they might be
+used by other solvers.
+.TP
+\fBcycles\fR=\fIarg\fR
+This pragma is used to enable or disable cycle detection in the call
+graph.  Cycles may indicate the presence of deadlocks.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBallow\fP
+Allow cycles in the call graph.  The interlock adjustment is disabled.
+.TP
+\fBdisallow\fP
+Disallow cycles in the call graph.
+.LP
+The default is disallow.
+.RE
+.TP
+\fBinterlocking\fR=\fIarg\fR
+The interlocking is used to correct the throughputs at stations as a
+result of solving the model using layers.  This pragma is used to
+choose the algorithm used.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBnone\fP
+Do not perform interlock adjustment.
+.TP
+\fBthroughput\fP
+Perform interlocking by adjusting throughputs.
+.LP
+The default is throughput.
+.RE
+.TP
+\fBlayering\fR=\fIarg\fR
+This pragma is used to select the layering strategy used by the solver.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBbatched\fP
+Batched layering -- solve layers composed of as many servers as possible from top to bottom.
+.TP
+\fBbatched-back\fP
+Batched layering with back propagation -- solve layers composed of as many servers as possible from top to bottom, then from bottom to top to improve solution speed.
+.TP
+\fBhwsw\fP
+Hardware/software layers -- The model is solved using two submodels:
+One consisting solely of the tasks in the model, and the other with the tasks calling the processors.
+.TP
+\fBmol\fP
+Method Of layers -- solve layers using the Method of Layers. Layer spanning is performed by allowing clients to appear in more than one layer.
+.TP
+\fBmol-back\fP
+Method Of layers -- solve layers using the Method of Layers.  Software submodels are solved top-down then bottom up to improve solution speed.
+.TP
+\fBsquashed\fP
+Squashed layers -- All the tasks and processors are placed into one submodel.
+Solution speed may suffer because this method generates the most number of chains in the MVA solution.  See also \fB\-P\fP\fImva\fP.
+.TP
+\fBsrvn\fP
+SRVN layers -- solve layers composed of only one server.
+This method of solution is comparable to the technique used by the \fBsrvn\fP solver.  See also \fB\-P\fP\fImva\fP.
+.LP
+The default is batched-back.
+.RE
+.TP
+\fBmultiserver\fR=\fIarg\fR
+This pragma is used to choose the algorithm for solving multiservers.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBbruell\fP
+Use the Bruell multiserver calculation for all multiservers.
+.TP
+\fBconway\fP
+Use the Conway multiserver calculation for all multiservers.
+.TP
+\fBreiser\fP
+Use the Reiser multiserver calculation for all multiservers.
+.TP
+\fBreiser-ps\fP
+Use the Reiser multiserver calculation for all multiservers. For multiservers with multiple entries, scheduling is processor sharing, not FIFO. 
+.TP
+\fBrolia\fP
+Use the Rolia multiserver calculation for all multiservers.
+.TP
+\fBrolia-ps\fP
+Use the Rolia multiserver calculation for all multiservers. For multiservers with multiple entries, scheduling is processor sharing, not FIFO. 
+.TP
+\fBschmidt\fP
+Use the Schmidt multiserver calculation for all multiservers.
+.TP
+\fBsuri\fP
+experimental.
+.LP
+The default multiserver calculation uses the the Conway multiserver for multiservers with less than five servers, and the Rolia multiserver otherwise.
+
+.RE
+.TP
+\fBmva\fR=\fIarg\fR
+This pragma is used to choose the MVA algorithm used to solve the submodels.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBexact\fP
+Exact MVA.  Not suitable for large systems.
+.TP
+\fBfast\fP
+Fast Linearizer
+.TP
+\fBlinearizer\fP
+Linearizer.
+.TP
+\fBone-step\fP
+Perform one step of Bard Schweitzer approximate MVA for each iteration of a submodel.  The default is to perform Bard Schweitzer approximate MVA until convergence for each submodel.  This option, combined with \fB\-P\fP\fIlayering=srvn\fP most closely approximates the solution technique used by the \fBsrvn\fP solver.
+.TP
+\fBone-step-linearizer\fP
+Perform one step of Linearizer approximate MVA for each iteration of a submodel.  The default is to perform Linearizer approximate MVA until convergence for each submodel.
+.TP
+\fBschweitzer\fP
+Bard-Schweitzer approximate MVA.
+.LP
+The default is linearizer.
+.RE
+.TP
+\fBovertaking\fR=\fIarg\fR
+This pragma is usesd to choose the overtaking approximation.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBmarkov\fP
+Markov phase 2 calculation.
+.TP
+\fBnone\fP
+Disable all second phase servers.  All stations are modeled as having a single phase by summing the phase information.
+.TP
+\fBrolia\fP
+Use the method from the Method of Layers.
+.TP
+\fBsimple\fP
+Simpler, but faster approximation.
+.TP
+\fBspecial\fP
+?
+.LP
+The default is rolia.
+.RE
+.TP
+\fBprocessor\fR=\fIarg\fR
+Force the scheduling type of all uni-processors to the type specfied.
+.RS
+.TP
+\fBfcfs\fP
+All uni-processors are scheduled first-come, first-served.
+.TP
+\fBhol\fP
+All uni-processors are scheduled using head-of-line priority.
+.TP
+\fBppr\fP
+All uni-processors are scheduled using priority, pre-emptive resume.
+.TP
+\fBps\fP
+All uni-processors are scheduled using processor sharing.
+.LP
+The default is to use the processor scheduling specified in the model.
+
+.RE
+.TP
+\fBseverity-level\fR=\fIarg\fR
+This pragma is used to enable or disable warning messages.
+.RS
+.TP
+\fBadvisory\fP
+.TP
+\fBall\fP
+.TP
+\fBrun-time\fP
+.TP
+\fBwarning\fP
+.LP
+The default is all.
+.RE
+.TP
+\fBstop-on-message-loss\fR=\fIarg\fR
+This pragma is used to control the operation of the solver when the
+arrival rate exceeds the service rate of a server.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBfalse\fP
+Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as infinite..TP
+\fBtrue\fP
+Stop if messages are lost.
+.LP
+The default is false.
+.RE
+.TP
+\fBtau\fR=\fIarg\fR
+Set the tau adjustment factor to \fIarg\fP.
+\fIArg\fP must be an integer between 0 and 25.
+A value of \fIzero\fP disables the adjustment.
+.TP
+\fBthreads\fR=\fIarg\fR
+This pragma is used to change the behaviour of the solver when solving
+models with fork-join interactions.
+.RS
+.TP
+\fBexponential\fP
+Use exponential values instead of three-point approximations in all approximations.
+.TP
+\fBhyper\fP
+Inflate overlap probabilities based on arrival instant estimates.
+.TP
+\fBmak\fP
+Use Mak-Lundstrom approximations for join delays.
+.TP
+\fBnone\fP
+Do not perform overlap calculation for forks.
+.LP
+The default is hyper.
+.RE
+.TP
+\fBvariance\fR=\fIarg\fR
+This pragma is used to choose the variance calculation used by the solver.
+.RS
+.TP
+\fBinit-only\fP
+Initialize the variances, but don't recompute as the model is solved.
+.TP
+\fBmol\fP
+Use the MOL variance calculation.
+.TP
+\fBno-entry\fP
+By default, any task with more than one entry will use the variance calculation.  This pragma will switch off the variance calculation for tasks with only one entry.
+.TP
+\fBnone\fP
+Disable variance adjustment.  All stations in the MVA submodels are either delay- or FIFO-servers.
+.TP
+\fBstochastic\fP
+?
+.LP
+
+.RE
+.SH "STOPPING CRITERIA"
+\fBLqns\fP computes the model results by iterating through a set of
+submodels until either convergence is achieved, or the iteration limit
+is hit. Convergence is determined by taking the root of the mean of
+the squares of the difference in the utilization of all of the servers
+from the last two iterations of the MVA solver over the all of the
+submodels then comparing the result to the convergence value specified
+in the input file. If the RMS change in utilization is less than
+convergence value, then the results are considered valid.
+.PP
+If the model fails to converge, three options are available:
+.TP 3
+1.
+reduce the under-relaxation coefficient. Waiting and idle times are
+propogated between submodels during each iteration. The
+under-relaxation coefficient determines the amount a service time is
+changed between each iteration. A typical value is 0.7 - 0.9; reducing
+it to 0.1 may help.
+.TP 3
+2.
+increase the iteration limit. The iteration limit sets the upper bound
+on the number of times all of the submodels are solved. This value may
+have to be increased, especially if the under-relaxation coefficient
+is small, or if the model is deeply nested. The default value is 50
+iterations.
+.TP 3
+3.
+increase the convergence test value. Note that the convergence value
+is the standard deviation in the change in the utilization of the
+servers, so a value greater than 1.0 makes no sense.
+.PP
+The convergence value can be observed using \fB\-t\fP\fIconvergence\fP flag.
+.SH "MODEL LIMITS"
+The following table lists the acceptable parameter types for
+\fBlqns\fP.  An error will
+be reported if an unsupported parameter is supplied except when the
+value supplied is the same as the default.
+.PP
+.\"--------------------------------------------------------------------
+.\" Table Begin
+.\"--------------------------------------------------------------------
+.ne 20
+.TS
+center tab (&) ;
+lw(30x) le .
+Parameter&lqns
+=
+T{
+Phases
+T}&T{
+3
+T}
+T{
+Scheduling
+T}&T{
+FIFO, HOL, PPR
+T}
+T{
+Open arrivals
+T}&T{
+yes
+T}
+T{
+Phase type
+T}&T{
+stochastic, deterministic
+T}
+T{
+Think Time
+T}&T{
+yes
+T}
+T{
+Coefficient of variation
+T}&T{
+yes
+T}
+T{
+Interprocessor-delay
+T}&T{
+yes
+T}
+T{
+Asynchronous connections
+T}&T{
+yes
+T}
+T{
+Forwarding
+T}&T{
+yes
+T}
+T{
+Multi-servers
+T}&T{
+yes
+T}
+T{
+Infinite-servers
+T}&T{
+yes
+T}
+T{
+Max Entries
+T}&T{
+1000
+T}
+T{
+Max Tasks
+T}&T{
+1000
+T}
+T{
+Max Processors
+T}&T{
+1000
+T}
+T{
+Max Entries per Task
+T}&T{
+1000
+T}
+_
+.TE
+.SH "DIAGNOSTICS"
+Most diagnostic messages result from errors in the input file.
+If the solver reports errors, then no solution will be generated for
+the model being solved.  Models which generate warnings may not be
+correct.  However, the solver will generate output.
+.PP
+Sometimes the model fails to converge, particularly if there are several
+heavily utilized servers in a submodel.  Sometimes, this problem can
+be solved by reducing the value of the under-relaxation coefficient.  It
+may also be necessary to increase the iteration-limit, particularly if
+there are many submodels.  With replicated models, it may be necessary
+to use `srvn' layering to get the model to converge.  Convergence can be tracked
+using the \fB\-t\fP\fIconvergence\fP option.
+.PP
+The solver will sometimes report some servers with `high' utilization.
+This problem is the result of some of the approximations used, in particular, two-phase servers.
+Utilizations in excess of 10\% are likely the result of failures in the solver.
+Please send us the model file so that we can improve the algorithms.
+.SH "SEE ALSO"
+Greg Franks el. al., ``Enhanced Modeling and Solution of Layered
+Queueing Networks'', \fIIEEE Trans. Soft. Eng.\fP, Vol. 35, No. 2, Mar-Apr 2990, pp. 148-161.
+.LP
+C. M. Woodside et. al., ``The Stochastic Rendezvous Network
+Model for Performance of Synchronous Multi-tasking Distributed
+Software'', \fIIEEE Trans. Comp.\fP, Vol. 44, No. 8, Aug 1995, pp. 20-34.
+.LP
+J. A. Rolia and K. A. Sevcik, ``The Method of Layers'', \fIIEEE Trans. SE\fP, Vol. 21, No. 8, Aug. 1995, pp 689-700.
+.LP
+\fI``Layered Queueing Network Solver and Simulator User Manual''\fP
+.LP
+\fI``Tutorial Introduction to Layered Modeling of Software Performance''\fP
+.LP
+lqsim(1), lqn2ps(1), srvndiff(1), egrep(1),
+floating_point(3)

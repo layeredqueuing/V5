@@ -1,0 +1,140 @@
+<?xml version="1.0"?>
+<!-- Invoked as: lqns -Pvariance=mol,threads=mak 90-B07.lqnx -->
+<lqn-model name="90-B07" description="lqns 5.3 solution for model from: 90-B07.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="B7 - only 2 processors        " conv_val="1e-06" it_limit="200" underrelax_coeff="0.5" print_int="40">
+      <result-general valid="YES" conv-val="6.46667e-07" iterations="26" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:03.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:03.00">
+         <mva-info submodels="4" core="104" step="1064" step-squared="15470" wait="276255" wait-squared="5.15962e+09" faults="0"/>
+      </result-general>
+   </solver-params>
+   <processor name="p1" scheduling="fcfs">
+      <result-processor utilization="0.190796"/>
+      <task name="t1" scheduling="ref">
+         <result-task throughput="0.0310794" utilization="1" phase2-utilization="0.654458" phase3-utilization="0.345542" proc-utilization="0.0621589"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.0310794" squared-coeff-variation="1.77521" proc-utilization="0.0621589"/>
+            <entry-phase-activities>
+               <activity name="e1_ph2" phase="2" host-demand-mean="1.5">
+                  <result-activity proc-waiting="0.489141" service-time="21.0576" service-time-variance="1219.8" utilization="0.654458"/>
+                  <synch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0.415666" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e4" calls-mean="0.5">
+                     <result-call waiting="0.415666" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e5" calls-mean="2">
+                     <result-call waiting="7.50887" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+               <activity name="e1_ph3" phase="3" host-demand-mean="0.5">
+                  <result-activity proc-waiting="0.228266" service-time="11.118" service-time-variance="618.022" utilization="0.345542"/>
+                  <synch-call dest="e5" calls-mean="1.1">
+                     <result-call waiting="7.87362" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="fcfs">
+         <result-task throughput="0.0466191" utilization="0.0798102" phase1-utilization="0.00882571" phase2-utilization="0.0709845" proc-utilization="0.0776985"/>
+         <entry name="e3" type="PH1PH2">
+            <result-entry utilization="0.0666745" throughput="0.0310794" squared-coeff-variation="0.871526" proc-utilization="0.0652667"/>
+            <entry-phase-activities>
+               <activity name="e3_ph1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0.0226489" service-time="0.122649" service-time-variance="0.010513" utilization="0.00381185"/>
+               </activity>
+               <activity name="e3_ph2" phase="2" host-demand-mean="2">
+                  <result-activity proc-waiting="0.0226489" service-time="2.02265" service-time-variance="4.00051" utilization="0.0628627"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e4" type="PH1PH2">
+            <result-entry utilization="0.0131357" throughput="0.0155397" squared-coeff-variation="0.477274" proc-utilization="0.0124318"/>
+            <entry-phase-activities>
+               <activity name="e4_ph1" phase="1" host-demand-mean="0.3">
+                  <result-activity proc-waiting="0.0226489" service-time="0.322649" service-time-variance="0.090513" utilization="0.00501386"/>
+               </activity>
+               <activity name="e4_ph2" phase="2" host-demand-mean="0.5">
+                  <result-activity proc-waiting="0.0226489" service-time="0.522649" service-time-variance="0.250513" utilization="0.0081218"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t4" scheduling="fcfs">
+         <result-task throughput="0.127347" utilization="0.823662" phase1-utilization="0.200138" phase2-utilization="0.623524" proc-utilization="0.0509386"/>
+         <entry name="e5" type="PH1PH2">
+            <result-entry utilization="0.823662" throughput="0.127347" squared-coeff-variation="1.45165" proc-utilization="0.0509386"/>
+            <entry-phase-activities>
+               <activity name="e5_ph1" phase="1" host-demand-mean="0.3">
+                  <result-activity proc-waiting="0.176067" service-time="1.5716" service-time-variance="8.80055" utilization="0.200138"/>
+                  <synch-call dest="e6" calls-mean="0.5">
+                     <result-call waiting="1.19099" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+               <activity name="e5_ph2" phase="2" host-demand-mean="0.1">
+                  <result-activity proc-waiting="0.31692" service-time="4.89628" service-time-variance="51.9269" utilization="0.623524"/>
+                  <synch-call dest="e6" calls-mean="1.7">
+                     <result-call waiting="1.63484" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.956613"/>
+      <task name="t2" scheduling="fcfs">
+         <result-task throughput="0.01" utilization="0.671914" phase2-utilization="0.342228" phase3-utilization="0.329686" proc-utilization="0.003"/>
+         <entry name="e2" type="PH1PH2" open-arrival-rate="0.01">
+            <result-entry utilization="0.671914" throughput="0.01" squared-coeff-variation="1.00249" proc-utilization="0.003" open-wait-time="204.971"/>
+            <entry-phase-activities>
+               <activity name="e2_ph2" phase="2" host-demand-mean="0.1">
+                  <result-activity proc-waiting="5.93221" service-time="34.2228" service-time-variance="2652.55" utilization="0.342228"/>
+                  <synch-call dest="e5" calls-mean="2">
+                     <result-call waiting="10.7739" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e6" calls-mean="1">
+                     <result-call waiting="2.49953" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+               <activity name="e2_ph3" phase="3" host-demand-mean="0.2">
+                  <result-activity proc-waiting="8.3051" service-time="32.9686" service-time-variance="1873.37" utilization="0.329686"/>
+                  <synch-call dest="e5" calls-mean="1.1">
+                     <result-call waiting="10.1162" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e6" calls-mean="2.5">
+                     <result-call waiting="2.57331" waiting-variance="0"/>
+                  </synch-call>
+                  <synch-call dest="e7" calls-mean="1">
+                     <result-call waiting="2.57331" waiting-variance="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t5" scheduling="fcfs">
+         <result-task throughput="0.325204" utilization="0.953662" phase1-utilization="0.316229" phase2-utilization="0.637433" proc-utilization="0.953613"/>
+         <entry name="e6" type="PH1PH2">
+            <result-entry utilization="0.94566" throughput="0.315204" squared-coeff-variation="0.5555" proc-utilization="0.945613"/>
+            <entry-phase-activities>
+               <activity name="e6_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="7.4958e-05" service-time="1.00007" service-time-variance="1" utilization="0.315228"/>
+               </activity>
+               <activity name="e6_ph2" phase="2" host-demand-mean="2">
+                  <result-activity proc-waiting="7.4958e-05" service-time="2.00007" service-time-variance="4" utilization="0.630432"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e7" type="PH1PH2">
+            <result-entry utilization="0.00800153" throughput="0.01" squared-coeff-variation="0.780957" proc-utilization="0.00800003"/>
+            <entry-phase-activities>
+               <activity name="e7_ph1" phase="1" host-demand-mean="0.1">
+                  <result-activity proc-waiting="7.4958e-05" service-time="0.100075" service-time-variance="0.01" utilization="0.00100075"/>
+               </activity>
+               <activity name="e7_ph2" phase="2" host-demand-mean="0.7">
+                  <result-activity proc-waiting="7.4958e-05" service-time="0.700075" service-time-variance="0.49" utilization="0.00700077"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

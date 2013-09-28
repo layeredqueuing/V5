@@ -1,0 +1,374 @@
+.\" $Header$
+.TH WSPN 3 "28 April 1992"
+.SH NAME
+change_itrate, 
+change_pmar,
+change_res,
+change_rpar,
+change_trate, 
+collect_res,
+free_netobj,
+init_net,
+load_file,
+make_net_dir,
+put_file,
+read_file,
+save_file,
+save_net_files,
+solution_stats,
+solve,
+solve2,
+value_itput,
+value_itrate,
+value_mpar, 
+value_pmar, 
+value_pmmean, 
+value_prob, 
+value_res, 
+value_rpar, 
+value_tput, 
+value_trate,
+write_file
+- library interface to GreatSPN solver.
+.SH SYNOPSIS
+#include <wspn.h>
+.LP
+.nf
+.ft B
+int read_file(char \(**net_name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+make_net_dir(char \(**dirname)
+.ft
+.fi
+.LP
+.nf
+.ft B
+load_file(struct net_object \(**netobj)
+.ft
+.fi
+.LP
+.nf
+.ft B
+put_file()
+.ft
+.fi
+.LP
+.nf
+.ft B
+read_file(char \(**netname)
+.ft
+.fi
+.LP
+.nf
+.ft B
+write_file(char \(**netname)
+.ft
+.fi
+.LP
+.nf
+.ft B
+solution_stats( int \(**tangible, int \(**vanishing, double \(**precision )
+.ft
+.fi
+.LP
+.nf
+.ft B
+solve(char \(**net_name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+solve2(char \(**net_name, int fd)
+.ft
+.fi
+.LP
+.nf
+.ft B
+collect_res(int complain, \(**toolname)
+.ft
+.fi
+.LP
+.nf
+.ft B
+free_netobj( struct net_object \(**net )
+.ft
+.fi
+.LP
+.nf
+.ft B
+change_trate(char \(**name, double value)
+.ft
+.fi
+.LP
+.nf
+.ft B
+change_itrate(char \(**name, double value)  
+.ft
+.fi
+.LP
+.nf
+.ft B
+change_pmar(char \(**name, int value) 
+.ft
+.fi
+.LP
+.nf
+.ft B
+change_rpar(char \(**name, double value) 
+.ft
+.fi
+.LP
+.nf
+.ft B
+change_res(char \(**name, double value)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_pmmean(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_prob(char \(**name, int m)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_res(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_trate(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_itrate(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+int value_mpar(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+int value_pmar(char \(**name)
+.ft
+.fi
+
+.LP
+.nf
+.ft B
+double value_rpar(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_tput(char \(**name)
+.ft
+.fi
+.LP
+.nf
+.ft B
+double value_itput(char \(**name)
+.ft
+.fi
+.SH DESCRIPTION
+.LP
+The following functions are used to load an existing petri net
+description.
+.RS
+.LP
+.B read_file(\|) 
+is used to read the files that define the net 
+.IR net_name .  
+It first calls 
+.B load_file(\|)
+to load the net description, followed by
+.B collect_res(\|) 
+to read the results.
+.LP
+.B load_file(\|)
+is used to load a petri net description.  Data is read from the file
+descriptors 
+.I nfp
+and 
+.IR dfp .
+.LP
+.B collect_res(\|)
+is used to read the result information after a net has been solved.
+This function can only be called after
+.BR read_file(\|) ,
+.BR put_file(\|) ,
+or
+.BR save_net_files(\|) .
+.LP
+.B solution_stats(\|)
+reads various statistics produced by the solution of the net, namely,
+the number of tangible and vanishing markings, and the final precision
+of the solution.  This function can only be called after
+.BR collect_res(\|) .
+.RE
+.LP
+The following functions are used to save a petri net description.
+.RS
+.LP
+.B write_file(\|)
+is used to set the net name.  It does not save the net.  Obsolete.
+.LP
+.B put_file(\|)
+is used to save the net whose name was established through 
+.BR write_file(\|) . 
+Obsolete.
+.LP
+.B save_net_files(\|)
+saves the petri net named
+.IR netname .
+The argument
+.IR toolname ,
+which is the name of the program calling 
+.BR save_net_files(\|) ,
+is used if an error occurs during the save.
+.RE
+.LP
+The following functions are used to solve a previously saved petri
+net. 
+.RS
+.LP 
+.B solve(\|) 
+is used to solve the net 
+.IR net_name .
+The results are automatically collected.
+.LP
+.B solve2(\|)
+is also used to solve the net
+.IR net_name .
+The second argument is a file descriptor to route messages from the
+solver.  The results are not automatically collected.
+.RE
+.LP
+Some miscellaneous functions
+.RS
+.LP
+.B init_net(\|)
+initializes the data structures.
+.LP
+.B free_netobj(\|)
+frees all storage for the net 
+.IR net .
+.LP
+.B make_net_dir(\|)
+creates a directory if one did not already exist.  If 
+.I dirname
+already exists, but is not accessible, the function reports and error
+and calls 
+.BR exit(3) .
+.RE
+.LP
+The following functions alter parameters in a GreatSPN model.
+.RS
+.LP
+.B change_trate(\|)
+changes the transition rate for the timed transition 
+.IR name .
+For example, change_trate("T5", 5.5), sets the firing rate of timed
+transition ``T5'' to the value 5.5.
+.LP
+.B change_itrate(\|) 
+changes the switch probabilities of immediate
+transition 
+.IR name .
+.LP
+.B change_pmar(\|) 
+changes the number of tokens at place
+.I name
+to 
+.I value 
+tokens.
+.LP
+.B change_rpar(\|) 
+changes the rate parameter of 
+.IR name .
+.LP
+.B change_res(\|)
+changes the result 
+.I name
+to 
+.IR value .
+.RE
+.LP
+The following functions are used to retrieve values from a model.
+.RS
+.LP
+.B value_pmmean(\|)
+returns the mean number of tokens in the place 
+.IR name .
+For example, value_pmmean("P3"), where P3 is a place name, will return
+the value of the GSPN expression ``E{#P3}''.
+.LP
+.B value_prob(\|) 
+is used to find the probability of 
+.I m 
+tokens in the place named
+.IR name .
+For example, value_prob("P3", 4) will return the value of the
+GSPN expression ``P{#P3=4}''.
+.LP
+.B value_res(\|)
+will return the value of the GSPN expression with the name 
+.IR name .  
+.LP
+.B value_trate(\|)
+returns the firing rate of the timed transition 
+.IR name .
+.LP
+.B value_itrate(\|)
+returns the switch probabilities of the immediate transition 
+.IR name .
+.B value_mpar(\|)
+returns the marking parameter value for
+.IR name .
+.LP
+.B value_pmar(\|)
+returns the initial number of tokens in the place 
+.IR name .
+.LP
+.B value_rpar(\|)
+returns the value of the specified rate parameter.
+.LP
+.B value_tput(\|)
+returns the throughput of the specified timed transition 
+.IR name .
+.B value_itput(\|)
+returns the throughput of the specified immediate transition 
+.IR name .
+.RE
+.LP
+The parameter 
+.I name
+for all of the functions listed above is a 
+.SM NULL
+terminated string.
+.SH NOTES
+The value functions will return 0 for invalid place or transition
+names.  The change functions return 1 for success and 0 otherwise.  In
+cases of failures, a warning message is printed on stderr.
+.SH EXAMPLE
+
+.SH "SEE ALSO"

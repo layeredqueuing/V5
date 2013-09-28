@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+   Copyright March 2004, the Real-Time and Distributed Systems Group,
+   Department of Systems and Computer Engineering,
+   Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+-->
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+	<!--define lqn-sub-model here. -->
+	<xsd:include schemaLocation="lqn-core.xsd"/>
+	<xsd:element name="lqn-submodel" type="Lqn-SubType"/>
+	<xsd:complexType name="Lqn-SubType">
+		<xsd:sequence>
+			<xsd:element name="interface">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="in-port" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="name" type="xsd:string" use="required"/>
+								<xsd:attribute name="connect-to" type="xsd:string"/>
+								<xsd:attribute name="description" type="xsd:string"/>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="out-port" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="name" type="xsd:string" use="required"/>
+								<xsd:attribute name="connect-from" type="xsd:string"/>
+								<xsd:attribute name="description" type="xsd:string"/>
+							</xsd:complexType>
+						</xsd:element>
+						<xsd:element name="replaceable-processor" minOccurs="0" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="name" type="xsd:string" use="required"/>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="parameter" minOccurs="0">
+				<xsd:complexType>
+					<xsd:sequence>
+						<xsd:element name="para" maxOccurs="unbounded">
+							<xsd:complexType>
+								<xsd:attribute name="name" type="xsd:string"/>
+								<xsd:attribute name="default" type="xsd:string"/>
+							</xsd:complexType>
+						</xsd:element>
+					</xsd:sequence>
+				</xsd:complexType>
+			</xsd:element>
+			<xsd:element name="processor" type="ProcessorType" maxOccurs="unbounded"/>
+			<xsd:element name="slot" type="SlotType" minOccurs="0" maxOccurs="unbounded"/>
+		</xsd:sequence>
+		<xsd:attribute name="name" type="xsd:string"/>
+		<xsd:attribute name="description" type="xsd:string"/>
+		<xsd:attribute name="lqnsub-schema-version" type="xsd:decimal" fixed="1.1"/>
+		<xsd:attributeGroup ref="LQNCoreVersion"/>
+	</xsd:complexType>
+</xsd:schema>

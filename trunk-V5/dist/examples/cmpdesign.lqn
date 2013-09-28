@@ -1,0 +1,54 @@
+#                       General Information
+G "Design Comparison"
+0.000010                # Convergience limit      
+50                      # Iteration limit         
+10                      # Print interval          
+0.500000                # Coefficient of variation
+-1
+
+#                       Processor Information
+P 0
+  p Application f       # Processor Application FCFS
+  p Clients     f i     # Infinite server processor Clients FCFS
+  p FileServer  f       # Processor FileServer FCFS
+-1
+
+#                       Task Information
+T 0
+  t Clients r           # Reference task Clients
+    Clients -1          # with entry Clients
+    Clients             # on processor Clients
+    0 m 4               # having priority 0 and 4 instances
+
+  t Application n       # Non-reference task Application
+    Application_Rqst -1 # with entry Application_Rqst
+    Application         # on processor Application
+    0                   # having priority 0.
+
+  t FileServer n        # Non-reference task FileServer
+    FileServer_Screen   # with entry FileServer_Screen
+    FileServer_Data -1  # and entry FileServer_Data
+    FileServer          # on processor FileServer
+    0                   # having priority 0.
+-1
+
+#                       Entry Information
+E 0
+# Phase Service Times   P 1    P 2    P 3
+
+  s Application_Rqst    0.7    0.3    0.0 -1 # Design C
+# s Application_Rqst    1.4    0.5    0.0 -1 # Design S
+  s Clients             0.0   10.0    0.0 -1 # Design C
+# s Clients             0.0    1.0    0.0 -1 # Design S
+  s FileServer_Data     0.4    0.1    0.0 -1
+  s FileServer_Screen   0.4    0.1    0.0 -1
+
+# Call rates per phase  P 1    P 2    P 3
+
+  y Application_Rqst 
+    FileServer_Data    1.0    0.0    0.0 -1
+  y Clients
+    Application_Rqst   0.0    2.0    0.0 -1
+  y Clients
+    FileServer_Screen  0.0    5.0    0.0 -1
+-1

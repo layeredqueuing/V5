@@ -1,0 +1,6 @@
+2004-02-17  Greg Franks  <rgfranks@alumni.uwaterloo.ca>
+
+	* Petrisrvn (V3_0)
+	- processor waiting times are now reported over all slices.
+	
+

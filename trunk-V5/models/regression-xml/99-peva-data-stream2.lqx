@@ -1,0 +1,17 @@
+test_string "test string with spaces" STOP_READ
+y 0.1 p 0.0 STOP_READ
+y 0.1 p 0.25 STOP_READ
+y 0.1 p 0.5 STOP_READ
+y 0.1 p 0.75 STOP_READ
+y 0.1 p 1.0 STOP_READ
+y 3.0 p 0.0 STOP_READ
+y 3.0 p 0.25 STOP_READ
+y 3.0 p 0.5 STOP_READ
+y 3.0 p 0.75 STOP_READ
+y 3.0 p 1.0 STOP_READ
+y 10.0 p 0.0 STOP_READ
+y 10.0 p 0.25 STOP_READ
+y 10.0 p 0.5 STOP_READ
+y 10.0 p 0.75 STOP_READ
+y 10.0 p 1.0 STOP_READ
+continue_processing false STOP_READ

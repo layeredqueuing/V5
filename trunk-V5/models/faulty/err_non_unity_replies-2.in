@@ -1,0 +1,31 @@
+# SRVN Model Description File, for file: bad-reply-3.in
+
+G "ERR_NON_UNITY_REPLIES Missing reply on or-branch" 1e-06 50 5 0.9 -1
+
+P 2
+  p p1 f i
+  p p2 f
+-1
+
+T 2
+  t t1 r e1 -1 p1 m 4
+  t t2 n e2 -1 p2
+-1
+
+E 2
+# ---------- t1 ----------
+  s e1 1 -1
+  y e1 e2 1 -1
+# ---------- t2 ----------
+  A e2 a1
+-1
+
+A t2
+  s a1 1
+  s a2 1
+  s a3 1
+  :
+  a1 -> (0.5) a2 + (0.5) a3;
+  a2[e2]
+-1
+

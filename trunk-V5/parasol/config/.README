@@ -1,0 +1,4 @@
+This dirctory is for config stuff.  It is normally populated by
+running 
+
+automake -a -c 

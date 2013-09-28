@@ -1,0 +1,40 @@
+G
+"Single Link, No Throttling, No Compression"
+0.00001
+100
+1
+0.9
+-1
+
+P 14
+p WAN_Driver f r 120
+p LAN_Driver f
+p WAN_Operation f r 120
+p LAN_Operation f
+p MUNICH_rx f r 120
+p MUNICH_tx f r 120
+p LAN_tx f
+p LAN_rx f
+p bus_resource f
+p lan_resource f
+p MUNICH_mem_ops_RX f
+p MUNICH_mem_ops_TX f
+p LAN_mem_ops_RX f
+p LAN_mem_ops_TX f
+-1
+
+T 1
+t WAN_driver_RX r Wdriver_dummy -1 WAN_Driver z 125.0 r 120
+-1
+
+E 1
+f Wdriver_dummy 1 -1
+s Wdriver_dummy 0 -1
+Z Wdriver_dummy 0.000125 -1
+y Wdriver_dummy WAN_rx_op 0 -1
+-1
+
+# The following graphical information may be ignored.
+
+--3ba2_7067-158d_3646-559b_305d--
+
