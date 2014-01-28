@@ -1255,7 +1255,7 @@ ostream&
 Model::printSubmodelWait( ostream& output ) const
 {
     int precision = output.precision(6);
-    FMT_FLAGS flags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
     output.setf( ios::left, ios::adjustfield );
 
     output << setw(8) <<  "Submodel    ";
@@ -1279,7 +1279,7 @@ Model::printSubmodelWait( ostream& output ) const
 ostream& 
 Model::printOvertaking( ostream& output ) const
 {
-    std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
     output << endl << endl << "Inservice probabilities (p->'a'):" << endl << endl;
     for ( unsigned int i = 0; i < 4; ++i ) {
 	output << "Entry " << "abcd"[i] << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-7) << " ";

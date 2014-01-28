@@ -78,7 +78,7 @@ Probability::operator/=( const double arg )
 double 
 Probability::check( const double arg ) const
 {
-    if ( !finite(arg) || arg < 0.0 || (1.0 + NOISE) < arg ) {
+    if ( !isfinite(arg) || arg < 0.0 || (1.0 + NOISE) < arg ) {
 	throw domain_error( "Probability::check" );
     } else if ( 1.0 < arg ) {
 	return 1.0;    /* A little noise -- truncate. */
@@ -125,7 +125,7 @@ Positive::operator/=( const double arg )
 double 
 Positive::check( const double arg ) const
 {
-    if ( !finite(arg) || arg < 0.0 ) {
+    if ( !isfinite(arg) || arg < 0.0 ) {
 	throw domain_error( "Positive::check" );
     }
     return arg;

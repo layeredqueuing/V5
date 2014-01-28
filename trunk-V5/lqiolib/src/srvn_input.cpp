@@ -428,7 +428,7 @@ srvn_store_prob_forward_data ( void * from_entry_v, void * to_entry_v, void * pr
     LQIO::DOM::Entry* to_entry = static_cast<LQIO::DOM::Entry *>(to_entry_v);
     if ( from_entry == NULL || to_entry == NULL) return;
 
-    LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName(), LQIO::DOM::Entry::ENTRY_STANDARD);
+    LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
     LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
     
     /* Build a variable for the storage of the P(fwd) and set it on the originator */

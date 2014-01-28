@@ -149,7 +149,7 @@ ostream&
 MVACount::print( ostream& output ) const
 {
     const unsigned precision = output.precision(5);
-    FMT_FLAGS flags = output.setf( ios::right, ios::adjustfield );
+    ios_base::fmtflags flags = output.setf( ios::right, ios::adjustfield );
     output << setw(4)  << _n << " " 
 	   << setw(3)  << _k << " "
 	   << setw(3)  << _s << " "
@@ -439,7 +439,7 @@ print_time_func( ostream& output, const clock_t time )
     const double mins  = fmod( floor( dtime / 60.0 ), 60.0 );
     const double hrs   = floor( dtime / 3600.0 );
 
-    FMT_FLAGS flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
+    ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
     int precision = output.precision(0);
     output.setf( ios::right, ios::adjustfield );
 	

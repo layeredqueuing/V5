@@ -582,7 +582,7 @@ Pragma::usage( ostream& output )
 {
     Pragma::initialize();
     output << "Valid pragmas: " << endl;
-    FMT_FLAGS flags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
 
     for ( std::map<const char *, Pragma::pragma_info>::const_iterator p = Pragma::__pragmas.begin(); p != Pragma::__pragmas.end(); ++p  ) {
 	output << "\t" << setw(20) << p->first;

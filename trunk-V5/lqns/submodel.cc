@@ -491,7 +491,7 @@ MVASubmodel::rebuild()
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
 
-		if ( finite( aClient->population() ) ) {
+		if ( isfinite( aClient->population() ) ) {
 		    myCustomers[k] = static_cast<unsigned>(aClient->population());
 		} else {
 		    myCustomers[k] = 0;
@@ -516,7 +516,7 @@ MVASubmodel::rebuild()
 		for ( unsigned i = 1; i <= threads; ++i ) {
 		    k += 1;
 
-		    if ( finite( aClient->population() ) ) {
+		    if ( isfinite( aClient->population() ) ) {
 			myCustomers[k] = static_cast<unsigned>(aClient->population()) * aServer->fanIn(aClient); 
 		    } else {
 			myCustomers[k] = 0;
@@ -586,7 +586,7 @@ MVASubmodel::makeChains()
 		k += 1;				// Add one chain.
 
 		aClient->addClientChain( number(), k );	// Set my chain number.
-		if ( finite( aClient->population() ) ) {
+		if ( isfinite( aClient->population() ) ) {
 		    myCustomers[k] = static_cast<unsigned>(aClient->population());
 		} else {
 		    myCustomers[k] = 0;
@@ -626,7 +626,7 @@ MVASubmodel::makeChains()
 		    aClient->addClientChain( number(), k );
 		    aServer->addServerChain( k );
 		    myPriority[k]  = aClient->priority();
-		    if ( finite( aClient->population() ) ) {
+		    if ( isfinite( aClient->population() ) ) {
 			myCustomers[k] = static_cast<unsigned>(aClient->population()) * aServer->fanIn(aClient); 
 		    } else {
 			myCustomers[k] = 0;
@@ -693,7 +693,7 @@ MVASubmodel::reinitClients()
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
 
-		if ( finite( aClient->population() ) ) {
+		if ( isfinite( aClient->population() ) ) {
 		    myCustomers[k] = static_cast<unsigned>(aClient->population());
 		} else {
 		    myCustomers[k] = 0;
@@ -716,7 +716,7 @@ MVASubmodel::reinitClients()
 		    k += 1;
 
 		    myPriority[k]  = aClient->priority();
-		    if ( finite( aClient->population() ) ) {
+		    if ( isfinite( aClient->population() ) ) {
 			myCustomers[k] = static_cast<unsigned>(aClient->population()) * aServer->fanIn(aClient); 
 		    } else {
 			myCustomers[k] = 0;
@@ -773,7 +773,7 @@ double
 MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned k ) const
 {
     const double s = aStation->S( e, k, 1 );
-    if ( finite( s ) && closedModel ) {  //tomari 
+    if ( isfinite( s ) && closedModel ) {  //tomari 
 	//Solution for replicated models with open arrivals.
 	// See bug # 87.
 
@@ -1029,7 +1029,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		    if ( pragma.getStopOnMessageLoss() ) {
 			while ( aServer = nextServer() ) {
 			    const Server * aStation = aServer->serverStation();
-			    if ( !finite( aStation->R(0) ) ) {
+			    if ( !isfinite( aStation->R(0) ) ) {
 				LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(0), aServer->name(), aStation->S(0) / aStation->mu() );
 			    }
 			}
@@ -1069,7 +1069,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		if ( pragma.getStopOnMessageLoss() ) {
 		    while ( aServer = nextServer() ) {
 			const Server * aStation = aServer->serverStation();
-			if ( !finite( aStation->R(0) ) ) {
+			if ( !isfinite( aStation->R(0) ) ) {
 			    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(0), aServer->name(), aStation->S(0) / aStation->mu() );
 			}
 		    }
@@ -1083,7 +1083,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	}
 
 	if ( closedModel && trace ) {
-	    FMT_FLAGS oldFlags = cout.setf( ios::right, ios::adjustfield );
+	    ios_base::fmtflags oldFlags = cout.setf( ios::right, ios::adjustfield );
 	    cout << *closedModel << endl << endl;
 	    cout.flags( oldFlags );
 	}
@@ -1243,7 +1243,7 @@ MVASubmodel::saveServerResults( Entity * aServer )
 
 	if ( aServer->isInClosedModel() && closedModel ) {
 	    const double tput = closedModel->entryThroughput( *aStation, e );
-	    if ( finite( tput ) ) {
+	    if ( isfinite( tput ) ) {
 		lambda += tput;
 	    } else if ( tput < 0.0 ) {
 		throw domain_error( "MVASubmodel::saveServerResults" );

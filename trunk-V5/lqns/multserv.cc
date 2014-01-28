@@ -682,7 +682,7 @@ Positive
 Rolia_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const
 {
     const double s = solver.sumOf_SL_m( *this, N, k );
-    if ( !finite( s ) ) throw domain_error( "Rolia_Multi_Server::sumOf_SL" );
+    if ( !isfinite( s ) ) throw domain_error( "Rolia_Multi_Server::sumOf_SL" );
     return solver.PB2( *this, N, k ) * s  / mu();
 }
 

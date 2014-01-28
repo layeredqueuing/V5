@@ -2267,7 +2267,7 @@ SVG::setfill_str( ostream& output, Graphic::colour_type aColour )
 ostream&
 SVG::stroke_str( ostream& output, Graphic::colour_type aColour )
 {
-    FMT_FLAGS flags = output.setf( ios::hex, ios::basefield );
+    ios_base::fmtflags flags = output.setf( ios::hex, ios::basefield );
     output << " stroke=\"" << setcolour( aColour )
 	   << "\" stroke-width=\"" << SVG_SCALING	// 1 pt.
 	   << "\"";
@@ -2284,7 +2284,7 @@ SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const doubl
     const unsigned n_points = 4;
 
     output << "<polygon";
-    FMT_FLAGS flags = output.setf( ios::hex, ios::basefield );
+    ios_base::fmtflags flags = output.setf( ios::hex, ios::basefield );
     output << " fill=\""
 	   << setcolour( pen_colour )
 	   << "\"";

@@ -743,7 +743,7 @@ Entry::computeCV_sqr() const
 	sum_V += variance(p);
     }
 
-    if ( !finite( sum_S ) ) {
+    if ( !isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
 	return sum_V / square(sum_S);
@@ -965,13 +965,13 @@ Entry::isInterlocked( const Entry * dstEntry ) const
 bool
 Entry::checkDroppedCalls() const
 {
-    bool rc = finite( openWait );
+    bool rc = isfinite( openWait );
 
     Sequence<Call *> nextCall( callerList() );
     Call * aCall;
 
     while ( aCall = nextCall() ) {
-	rc = rc && ( !aCall->hasSendNoReply() || finite( aCall->wait() ) );
+	rc = rc && ( !aCall->hasSendNoReply() || isfinite( aCall->wait() ) );
     }
     return rc;
 }
@@ -1149,7 +1149,7 @@ double
 TaskEntry::processorUtilization() const
 {
     const Processor * aProc = owner()->processor();
-    const double util = finite( throughput() ) ? throughput() * serviceTime() : 0.0;
+    const double util = isfinite( throughput() ) ? throughput() * serviceTime() : 0.0;
 
     /* Adjust for processor rate */
 	

@@ -134,7 +134,7 @@ namespace LQIO {
         const double mins  = fmod( floor( dtime / 60.0 ), 60.0 );
         const double hrs   = floor( dtime / 3600.0 );
 
-        const std::_Ios_Fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
+        const ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
         const int precision = output.precision(0);
         output.setf( ios::right, ios::adjustfield );
 
@@ -193,7 +193,7 @@ namespace LQIO {
     ostream&
     SRVN::Output::phaseHeader( ostream& output, const unsigned int n_phases )
     {
-        std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
         for ( unsigned p = 1; p <= n_phases; p++ ) {
             ostringstream aString;
             aString << "Phase " << p;
@@ -209,7 +209,7 @@ namespace LQIO {
     ostream&
     SRVN::Output::holdHeader( ostream& output, const char * s )
     {
-        std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
         output << newline << newline << textbf << s << newline << newline << textrm
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
                << setw(ObjectOutput::__maxStrLen) << "Wait Entry"
@@ -224,7 +224,7 @@ namespace LQIO {
     ostream&
     SRVN::Output::rwlockHeader( ostream& output, const char * s )
     {
-        std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
         output << newline << newline << s << newline << newline
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
                << setw(ObjectOutput::__maxStrLen) << "Lock Entry"
@@ -265,7 +265,7 @@ namespace LQIO {
     ostream&
     SRVN::Output::printInput( ostream& output ) const
     {
-        std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
         output << newline << textbf << processor_info_str << newline << newline 
                << textrm << setw(ObjectOutput::__maxStrLen) << "Processor Name" << "Type    Copies  Scheduling";
@@ -355,7 +355,7 @@ namespace LQIO {
     ostream&
     SRVN::Output::printResults( ostream& output ) const
     {
-        std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
         if ( getDOM().entryHasThroughputBound() ) {
             output << textbf << task_header( throughput_bounds_str ) << "Throughput  " << newline << textrm;
@@ -489,7 +489,7 @@ namespace LQIO {
     {
 	if ( __parseable ) {
 	    output << "-1";
-	    std::_Ios_Fmtflags oldFlags = output.setf( ios::right, ios::adjustfield );
+	    ios_base::fmtflags oldFlags = output.setf( ios::right, ios::adjustfield );
 	    output << newline << setw(offset) << ":";
 	    output.flags(oldFlags);
 	} else {
@@ -504,7 +504,7 @@ namespace LQIO {
     ostream&
     SRVN::ObjectOutput::confLevel( ostream& output, const unsigned int fill, const ConfidenceIntervals::confidence_level_t level )
     {
-        std::_Ios_Fmtflags flags = output.setf( ios::right, ios::adjustfield );
+        ios_base::fmtflags flags = output.setf( ios::right, ios::adjustfield );
         output << setw( fill-4 ) << ( __parseable ? " " : "+/-" );
         if ( level == ConfidenceIntervals::CONF_95 ) {
             output << (__parseable ? "%95 " : "95% " );
@@ -777,7 +777,7 @@ namespace LQIO {
     ostream&
     SRVN::Parseable::printResults( ostream& output ) const
     {
-	std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+	ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
 	if ( getDOM().entryHasThroughputBound() ) {
 	    output << "B " << getDOM().getNumberOfEntries() << endl;
@@ -1232,7 +1232,7 @@ namespace LQIO {
         const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(ep.second);
         if ( !processor ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *processor );
         _output.flags(oldFlags);
     }
@@ -1241,7 +1241,7 @@ namespace LQIO {
     void
     SRVN::ProcessorOutput::printParameters( const DOM::Processor& processor ) const
     {
-        const std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         SRVN::EntityOutput::printParameters( processor );
         _output << scheduling_type_str[processor.getSchedulingType()];
 	if ( processor.hasRate() && processor.getRateValue() != 1 ) {
@@ -1417,7 +1417,7 @@ namespace LQIO {
         const DOM::Processor * processor = dynamic_cast<const DOM::Processor *>(ep.second);
         if ( !processor ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *processor );
         _output.flags(oldFlags);
     }
@@ -1482,7 +1482,7 @@ namespace LQIO {
     void
     SRVN::GroupOutput::operator()( const std::pair<const std::string,DOM::Group*>& group ) const
     {
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *(group.second) );
         _output.flags(oldFlags);
     }
@@ -1490,7 +1490,7 @@ namespace LQIO {
     void
     SRVN::GroupOutput::printParameters( const DOM::Group& group ) const
     {
-        const std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
 	_output << setw(__maxStrLen-1) << group.getName()
 		<< " " << setw(6) << *group.getGroupShare();
 	if ( group.getCap() ) {
@@ -1513,7 +1513,7 @@ namespace LQIO {
     void
     SRVN::GroupInput::operator()( const std::pair<const std::string,DOM::Group*>& group ) const
     {
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *(group.second) );
         _output.flags(oldFlags);
     }
@@ -1533,7 +1533,7 @@ namespace LQIO {
         const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
         if ( !task ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *task );
         _output.flags(oldFlags);
     }
@@ -1542,7 +1542,7 @@ namespace LQIO {
     void
     SRVN::TaskOutput::printParameters( const DOM::Task& t ) const
     {
-        const std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         SRVN::EntityOutput::printParameters( t );
         const DOM::Processor * processor = t.getProcessor();
         _output << setw(__maxStrLen-1) << ( processor ? processor->getName() : "--");
@@ -1863,7 +1863,7 @@ namespace LQIO {
         const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
         if ( !task ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         (this->*_func)( *task );
         _output.flags(oldFlags);
     }
@@ -2034,7 +2034,7 @@ namespace LQIO {
         const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
         if ( !task ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
         std::vector<DOM::Entry *>::const_iterator nextEntry;
         bool print_task_name = true;
@@ -2434,7 +2434,7 @@ namespace LQIO {
     void
     SRVN::PhaseInput::operator()( const std::pair<unsigned,DOM::Phase *>& p ) const
     {
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
 	(this->*_func)( *(p.second) );
         _output.flags(oldFlags);
     }
@@ -2474,7 +2474,7 @@ namespace LQIO {
     void
     SRVN::ActivityInput::operator()( const std::pair<std::string,DOM::Activity *>& a ) const
     {
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
 	(this->*_func)( *(a.second) );
         _output.flags(oldFlags);
     }
@@ -2525,7 +2525,7 @@ namespace LQIO {
     void
     SRVN::ActivityListInput::operator()( const DOM::ActivityList * precedence ) const
     {
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
 	(this->*_func)( *precedence );
         _output.flags(oldFlags);
     }
@@ -2658,7 +2658,7 @@ namespace LQIO {
         const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
         if ( !task ) return;
 
-        std::_Ios_Fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         const std::vector<DOM::Entry *>& entries = task->getEntryList();
         std::vector<DOM::Entry *>::const_iterator nextEntry;
         bool print_task_name = true;
