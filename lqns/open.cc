@@ -119,7 +119,7 @@ Open::convert( const PopVector& N ) const
 	try {
 	    const double num = Q[m]->alpha( n - 1 );
 	    const double den = Q[m]->alpha( n );
-	    if ( finite( num ) && finite( den ) ) {
+	    if ( isfinite( num ) && isfinite( den ) ) {
 		*Q[m] *= (den / num);
 	    } else {
 		*Q[m] = get_infinity();
@@ -227,7 +227,7 @@ Open::entryThroughput( const Server& aStation, const unsigned e ) const
 	return 0;
     } else if ( aStation.Rho() < aStation.mu() ) {
 	return aStation.V( e, 0 );
-    } else if ( !finite(aStation.mu()) && !finite(aStation.S( e, 0 )) ) {
+    } else if ( !isfinite(aStation.mu()) && !isfinite(aStation.S( e, 0 )) ) {
 	return aStation.V( e, 0 );		/* BUG_566 Infinite Server */
     } else {
 	return aStation.V( e, 0 ) * aStation.mu() / aStation.Rho();	/* Server overloaded.  Scale back throughput */

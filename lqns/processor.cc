@@ -458,7 +458,7 @@ Processor::insertDOMResults(void) const
 ostream&
 Processor::print( ostream& output ) const
 {
-    const FMT_FLAGS oldFlags = output.setf( ios::left, ios::adjustfield );
+    const ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
     output << setw(8) << name()
 	   << " " << setw(9) << processor_type( *this )
 	   << " " << setw(5) << replicas() 

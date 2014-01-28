@@ -145,7 +145,7 @@ choose( unsigned i, unsigned j )
 void
 under_relax( double& old_value, const double new_value, const double relax ) 
 {
-    if ( finite( new_value ) && finite( old_value ) ) {
+    if ( isfinite( new_value ) && isfinite( old_value ) ) {
 	old_value = new_value * relax + old_value * (1.0 - relax);
 	if ( flags.trace_idle_time ) {
 	cout <<"under_relax() .. relax=" << relax << endl;

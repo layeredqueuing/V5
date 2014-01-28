@@ -159,7 +159,7 @@ Slice_Info::setRates( const double xj, const Probability& prA )
 
     Probability q[7];
 	
-    if ( !finite(temp) ) {
+    if ( !isfinite(temp) ) {
 	q[0] = 1.0;
 	q[3] = 0.0;
     } else if ( temp ) { 
@@ -171,7 +171,7 @@ Slice_Info::setRates( const double xj, const Probability& prA )
     }
 	
     temp = xj + slice;
-    if ( !finite( temp ) ) {
+    if ( !isfinite( temp ) ) {
 	q[1] = 0.0;
 	q[5] = 1.0;
     } else if ( temp ) {

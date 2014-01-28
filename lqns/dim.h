@@ -34,16 +34,6 @@ using namespace std;
 #define MAX_PHASES      3                       /* Number of Phases.            */
 #define N_SEMAPHORE_ENTRIES     2               /* Number of semaphore entries  */
 
-
-/* Stoopid standards... */
-#if defined(__SUNPRO_CC) && (__SUNPRO_CC >= 0x500)
-#define FMT_FLAGS ios_base::fmtflags
-#elif (defined(__GNUG__) && (__GNUG__ > 2)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-#define FMT_FLAGS std::_Ios_Fmtflags
-#else
-#define FMT_FLAGS long
-#endif
-
 static inline unsigned max( const unsigned a1, const unsigned a2 )
 {
     return ( a1 > a2 ) ? a1 : a2;

@@ -749,7 +749,7 @@ Phase::forward( const Entry * toEntry ) const
 double
 Phase::utilization() const
 {
-    if ( finite( throughput() ) ) {
+    if ( isfinite( throughput() ) ) {
 	return throughput() * elapsedTime();
     } else {
 	return 0.0;
@@ -1308,7 +1308,7 @@ Phase::recalculateDynamicValues()
 double
 Phase::computeVariance() 
 {
-    if ( !finite( elapsedTime() ) ) {
+    if ( !isfinite( elapsedTime() ) ) {
 	myVariance = elapsedTime();
     } else switch ( pragma.getVariance() ) {
 
@@ -1379,12 +1379,12 @@ Phase::stochastic_phase() const
 	const double blocking_mean = aCall->wait(); //includes service ph 1
 	// + Positive( aCall->dstEntry()->elapsedTime(1) ); 
 	/* mean delay for one of these calls */
-	if ( !finite( blocking_mean ) ) {
+	if ( !isfinite( blocking_mean ) ) {
 	    return blocking_mean;
 	}
 
 	const double blocking_var = aCall->variance();		/* BUG_655 */
-	if ( !finite( blocking_var ) ) {
+	if ( !isfinite( blocking_var ) ) {
 	    return blocking_var;
 	}
 	// this includes variance due to service
@@ -1489,7 +1489,7 @@ Phase::deterministic_phase() const
 	
     while ( aCall = nextCall() ) {
 	const double var = aCall->variance();
-	if ( finite( var ) ) {
+	if ( isfinite( var ) ) {
 	    variance += aCall->fanOut() * aCall->rendezvous() * var;
 	}
     }

@@ -865,7 +865,7 @@ OrForkActivityList::aggregate( Stack<Entry *>& entryStack, const AndForkActivity
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 if ( submodel == 0 ) {
 		    const double s =  anEntry->elapsedTime(p);
-		    if ( !finite( s ) ) continue;			/* Ignore bogus branches */
+		    if ( !isfinite( s ) ) continue;			/* Ignore bogus branches */
                     branch[i][p].init( s, anEntry->variance(p) );
                     for ( unsigned j = 1; j <= i; ++j ) {
                         sum[p] += varianceTerm( prBranch(i), branch[i][p], prBranch(j), branch[j][p] );

@@ -2233,7 +2233,7 @@ HelpLaTeX::trailer( ostream& output ) const
 ostream&
 HelpPlain::print_option( ostream& output, const char * name, const Options::Option& opt ) const
 {
-    std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
     string s = name;
     if ( opt.hasArg() ) {
 	s += "=arg";

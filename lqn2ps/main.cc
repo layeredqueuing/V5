@@ -625,7 +625,7 @@ value_double_str( ostream& output, const double aDouble )
 static ostream&
 conf_level_str( ostream& output, const int fill, const int level ) 
 {	
-    FMT_FLAGS flags = output.setf( ios::right, ios::adjustfield );
+    ios_base::fmtflags flags = output.setf( ios::right, ios::adjustfield );
     output << setw( fill-4 ) << "+/- " << setw(2) << level << "% ";
     output.flags( flags );
     return output;

@@ -1188,7 +1188,7 @@ HVFCFS_Server::r( const unsigned e, const unsigned k, const unsigned p ) const
 
     if ( service == 0.0 ) {
 	return 0.0;
-    } else if ( !finite(service) ) {
+    } else if ( !isfinite(service) ) {
 	return service;
     } else {
 	return ( service + myVariance[e][k][p] / service ) / 2.0;

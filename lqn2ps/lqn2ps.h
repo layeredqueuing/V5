@@ -55,7 +55,7 @@ extern std::string command_line;
 #endif
 
 /* Stoopid standards... */
-#define FMT_FLAGS std::_Ios_Fmtflags
+#define FMT_FLAGS ios_base::fmtflags
 
 const unsigned int MAX_PHASES	    = 3;	/* Number of Phases.		*/
 

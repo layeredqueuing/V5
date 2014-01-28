@@ -419,7 +419,7 @@ MVA::step( const PopVector& N, const unsigned currPri )
 	for ( m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
 	    for ( e = 1; e <= E; ++e ) {
-		if ( finite( Q[m]->R(e,k) ) ) {
+		if ( isfinite( Q[m]->R(e,k) ) ) {
 		    sum += Q[m]->R(e,k);
 		} else {
 		    sum = get_infinity();
@@ -430,7 +430,7 @@ MVA::step( const PopVector& N, const unsigned currPri )
 
 	if ( sum <= 0.0 ) {
 	    X[n][k] = get_infinity();
-	} else if ( !finite( sum ) ) {
+	} else if ( !isfinite( sum ) ) {
 	    X[n][k] = 0.;
 	} else {
 	    X[n][k] = N[k] / sum;					// throughput
@@ -440,7 +440,7 @@ MVA::step( const PopVector& N, const unsigned currPri )
 	    const unsigned E = Q[m]->nEntries();
 
 	    for ( e = 1; e <= E; ++e ) {
-		if ( !finite( X[n][k] ) || X[n][k] == 0.0 ) {			/* inf */
+		if ( !isfinite( X[n][k] ) || X[n][k] == 0.0 ) {			/* inf */
 		    L[n][m][e][k] = 0.0;
 		    U[n][m][e][k] = 0.0;
 		} else {
@@ -634,7 +634,7 @@ MVA::sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) c
 
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    const double s = station.S(e,k);
-	    if ( !finite(s) ) return s;						/* Infinitiy */
+	    if ( !isfinite(s) ) return s;						/* Infinitiy */
 	    sum += s * L[Nej][m][e][k] * scaling;
 	}
     }
@@ -671,7 +671,7 @@ MVA::sumOf_SQ_m( const Server& station, const PopVector &N, const unsigned j ) c
 	    const double delta = L[Nej][m][e][k] - U[Nej][m][e][k];
 	    if ( delta == 0.0 ) continue;
 	    const double s = station.S(e,k);
-	    if ( !finite(s) ) return s;						/* Infinity */
+	    if ( !isfinite(s) ) return s;						/* Infinity */
 	    sum += s * delta * scaling;
 	}
     }
@@ -734,7 +734,7 @@ MVA::sumOf_rU_m( const Server& station, const PopVector& N, const unsigned j ) c
 
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    const double r = station.r(e,k);
-	    if ( !finite( r ) ) return r;					/* Infinity */
+	    if ( !isfinite( r ) ) return r;					/* Infinity */
 	    sum += r * U[Nej][m][e][k] * scaling;
 	}
     }
@@ -879,7 +879,7 @@ MVA::sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability&
     double sum = 0.0;
     for ( unsigned k = 1; k <= K; ++k ) {
 	const double s = station.S(e,k);
-	if ( !finite(s) || s == 0 ) continue;
+	if ( !isfinite(s) || s == 0 ) continue;
 	const double Uk = U[Nej][m][e][k];
 	if ( Uk == 0.0 ) continue;
 
@@ -1097,7 +1097,7 @@ MVA::throughput( const Server& station ) const
 
     double sum = 0.0;
     for ( unsigned k = 1; k <= K; ++k ) {
-	if ( finite( X[n][k] ) ) {						/* inf */
+	if ( isfinite( X[n][k] ) ) {						/* inf */
 	    sum += Q[m]->V(k) * X[n][k];
 	} else if ( Q[m]->V(k) > 0.0 ) {
 	    sum = X[n][k];
@@ -1120,7 +1120,7 @@ MVA::throughput( const Server& station, const unsigned k ) const
     const unsigned m = station.closedIndex;
     const unsigned n = offset(NCust);						/* Hoist */
 
-    if ( finite( X[n][k] ) ) {
+    if ( isfinite( X[n][k] ) ) {
 	return Q[m]->V(k) * X[n][k];
     } else {
 	return X[n][k];
@@ -1134,7 +1134,7 @@ double
 MVA::throughput( const unsigned m, const unsigned k ) const
 {
     const unsigned n = offset(NCust);						/* Hoist */
-    if ( finite( X[n][k] ) ) {
+    if ( isfinite( X[n][k] ) ) {
 	return X[n][k] * Q[m]->V(k);
     } else {
 	return 0;
@@ -1155,7 +1155,7 @@ MVA::entryThroughput( const Server& station, const unsigned e ) const
 
     double sum = 0.0;
     for ( unsigned k = 1; k <= K; ++k ) {
-	if ( !finite( X[n][k] ) ) return X[n][k];
+	if ( !isfinite( X[n][k] ) ) return X[n][k];
 	sum += Q[m]->V(e,k) * X[n][k];
     }
 
@@ -1192,7 +1192,7 @@ MVA::normalizedThroughput( const Server& station, const unsigned e,  const unsig
     double sum = 0.0;
     double totCust = 0;
 
-    if ( finite( X[n][k] ) ) {
+    if ( isfinite( X[n][k] ) ) {
 	sum += Q[m]->V(e,k) * X[n][k];
     }
     if ( Q[m]->V(e,k) ) {
@@ -1545,7 +1545,7 @@ MVA::nrFactor( const Server& station, const unsigned e, const unsigned k ) const
 
     assert( 0 < k && k <= K && e <= station.nEntries() );
 
-    return finite( X[n][k] ) ? X[n][k] * L[n][m][e][k] / NCust[k] : 0.0;
+    return isfinite( X[n][k] ) ? X[n][k] * L[n][m][e][k] / NCust[k] : 0.0;
 }
 
 
@@ -1581,7 +1581,7 @@ double
 MVA::tau( const Server& station, const unsigned j, const unsigned k, const PopVector& N ) const
 {
     const unsigned n = offset(N);						/* Hoist */
-    if ( N[j] == 0 || !finite( X[n][j] ) || !finite( X[n][k] ) ) return 1.0;
+    if ( N[j] == 0 || !isfinite( X[n][j] ) || !isfinite( X[n][k] ) ) return 1.0;
 
     const double lambda_mj = X[n][j] * station.V(j);				/* BUG 547 */
     const double lambda_mk = X[n][k] * station.V(k);
@@ -2005,7 +2005,7 @@ Schweitzer::initialize()
 	for ( m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
 	    for ( unsigned e = 1; e <= E; ++e ) {
-		if ( Q[m]->V(e,k) == 0.0 || !finite( Dm[k] ) ) continue;	/* inf */
+		if ( Q[m]->V(e,k) == 0.0 || !isfinite( Dm[k] ) ) continue;	/* inf */
 		Dm[k] += Q[m]->S(e,k) * Q[m]->V(e,k);
 	    }
 	}
@@ -2023,7 +2023,7 @@ Schweitzer::initialize()
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    for ( k = 1; k <= K; ++k ) {
 		if ( Dm[k] > 0.0 ) {
-		    if ( !finite( Q[m]->S(e,k) ) ) {				/* inf */
+		    if ( !isfinite( Q[m]->S(e,k) ) ) {				/* inf */
 			L[n][m][e][k] = Q[m]->S(e,k);
 			Lk[m] = L[n][m][e][k];
 		    } else {
@@ -2052,7 +2052,7 @@ Schweitzer::initialize()
 	    const double J = Q[m]->mu();
 	    const unsigned E = Q[m]->nEntries();
 
-	    if ( !finite( Lk[m] ) ) {						/* inf */
+	    if ( !isfinite( Lk[m] ) ) {						/* inf */
 		sum = Lk[m];
 		continue;
 	    }
@@ -2072,7 +2072,7 @@ Schweitzer::initialize()
 
 	if ( sum <= 0.0 ) {
 	    X[n][k] = get_infinity();
-	} else if ( !finite( sum ) ) {
+	} else if ( !isfinite( sum ) ) {
 	    X[n][k] = 0.;
 	} else {
 	    X[n][k] = NCust[k] / sum;
@@ -2092,7 +2092,7 @@ Schweitzer::initialize()
 
 	for ( k = 1; k <= K; ++k ) {
 	    for ( unsigned e = 1; e <= E; ++e ) {
-		if ( Q[m]->V(e,k) == 0.0 || Q[m]->S(e,k) == 0.0 || X[n][k] == 0.0 || !finite(X[n][k]) ) {
+		if ( Q[m]->V(e,k) == 0.0 || Q[m]->S(e,k) == 0.0 || X[n][k] == 0.0 || !isfinite(X[n][k]) ) {
 		    U[n][m][e][k] = 0.0;
 		    Q[m]->W[e][k][0] = 0.0;
 		} else {
@@ -2286,7 +2286,7 @@ Schweitzer::estimate_Lm( const unsigned m, const PopVector & N, const unsigned n
 
 	    for ( unsigned e = 1; e <= E; ++e ) {
 		const double L_n_m_e_k = L[n][m][e][k];
-		if ( !finite( L_n_m_e_k ) ) continue;
+		if ( !isfinite( L_n_m_e_k ) ) continue;
 
 		const double F  = L_n_m_e_k / N_k;		/* Eq:9 */
 		const double L_ej = max( (N_k - static_cast<double>( k == j )) * (F + D_mekj(m,e,k,j)), 0 );

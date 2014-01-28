@@ -3277,7 +3277,7 @@ namespace LQIO {
             const double secs  = fmod( floor( dtime ), 60.0 );
             const double mins  = fmod( floor( dtime / 60.0 ), 60.0 );
             const double hrs   = floor( dtime / 3600.0 );
-            const std::_Ios_Fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
+            const ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
             const int precision = output.precision(0);
             output.setf( ios::right, ios::adjustfield );
 

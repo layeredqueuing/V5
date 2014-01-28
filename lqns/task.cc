@@ -310,7 +310,7 @@ Task::initPopulation()
 
     myPopulation = countCallers( sources );
 
-    if ( isInClosedModel() && ( myPopulation == 0 || !finite( myPopulation ) ) ) {
+    if ( isInClosedModel() && ( myPopulation == 0 || !isfinite( myPopulation ) ) ) {
 	LQIO::solution_error( ERR_BOGUS_COPIES, myPopulation, name() );
     }
     return *this;
@@ -679,7 +679,7 @@ Task::countCallers( Cltn<const Task *> & reject )
 		double delta = 0.0;
 		if ( aTask->isInfinite() ) {
 		    delta = aTask->countCallers( reject );
-		    if ( finite( delta ) && delta > 0 ) {
+		    if ( isfinite( delta ) && delta > 0 ) {
 			isInClosedModel( true );
 			aTask->isInClosedModel( true );
 		    } else {
@@ -694,7 +694,7 @@ Task::countCallers( Cltn<const Task *> & reject )
 		    isInClosedModel( true );
 		    aTask->isInClosedModel( true );
 		}
-		if ( finite( sum ) ) {
+		if ( isfinite( sum ) ) {
 		    sum += delta * static_cast<double>(fanIn( aTask ));
 		}
 
@@ -706,7 +706,7 @@ Task::countCallers( Cltn<const Task *> & reject )
 	}
     }
 
-    if ( !isInfinite() && (sum > copies() || isInOpenModel() || !finite( sum ) || hasSecondPhase() ) ) {
+    if ( !isInfinite() && (sum > copies() || isInOpenModel() || !isfinite( sum ) || hasSecondPhase() ) ) {
 	sum = static_cast<double>(copies());
     } else if ( isInfinite() && hasSecondPhase() && sum > 0.0 ) {
 	sum = 100000;		/* Should be a pragma. */
@@ -1513,7 +1513,7 @@ Task::printOverlapTable( ostream& output, const ChainVector& chain, const Vector
     unsigned i;
     unsigned j;
     int precision = output.precision(3);
-    FMT_FLAGS flags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
     output.setf( ios::left, ios::adjustfield );
 
     /* Overlap table.  */
@@ -1735,7 +1735,7 @@ ServerTask::configure( const unsigned nSubmodels )
 bool
 ServerTask::hasInfinitePopulation() const
 {
-    return isInfinite() && !finite(population());
+    return isInfinite() && !isfinite(population());
 }
 
 
@@ -2275,7 +2275,7 @@ ltTask::operator()(const Task * t1, const Task * t2) const
 ostream&
 Task::print( ostream& output ) const
 {
-    FMT_FLAGS oldFlags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
     output << setw(8) << name() 
 	   << " " << setw(9) << task_type(*this) 
