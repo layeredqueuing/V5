@@ -29,9 +29,7 @@
 #if HAVE_IEEEFP_H && !defined(MSDOS)
 #include <ieeefp.h>
 #elif HAVE_FENV_H
-#if (__GNUC__ && __GNUC__ < 3 && defined(linux)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 800))
-#define __USE_GNU
-#endif
+#define _GLIBCXX_HAVE_FENV_H 1
 #include <fenv.h>
 #endif
 
@@ -146,6 +144,7 @@ static const struct option longopts[] =
     { "error",	          required_argument, 0, 'e' },
     { "help",             no_argument,       0, 'H' },
     { "input-format", 	  required_argument, 0, 'I' },
+    { "max-blocks",	  required_argument, 0, 'M' },
     { "no-execute",       no_argument,	     0, 'n' },
     { "output",           required_argument, 0, 'o' },
     { "parseable",        no_argument,	     0, 'p' },
@@ -165,12 +164,12 @@ static const struct option longopts[] =
     { "reload-lqx",	  no_argument,       0, 256+'r' },
     { "restart",	  no_argument,	     0, 256+'R' },
     { "no-header",	  no_argument,	     0, 256+'h' },
-    { "debug-xml",        no_argument,       0, 256+'x' },
     { "debug-lqx",        no_argument,       0, 256+'l' },
+    { "debug-xml",        no_argument,       0, 256+'x' },
     { 0, 0, 0, 0 }
 };
 #endif
-static const char opts[] = "A:B:C:de:h:HI:m:Mno:pP:rRsS:t:T:vVwx";
+static const char opts[] = "A:B:C:de:h:HI:jm:Mno:pP:rRsS:t:T:vVwx";
 static const char * opthelp[]  = {
     /* "automatic"	*/    "Set the block time to <t>, the precision to <p> and the initial skip period to <s>.",
     /* "blocks"		*/    "Set the number of blocks to <b>, the block time to <t> and the initial skip period to <s>.",
@@ -179,6 +178,7 @@ static const char * opthelp[]  = {
     /* "error"		*/    "Set the floating pint exeception mode.",
     /* "help"		*/    "Show this help.",
     /* input-format	*/    "Force input format to ARG.  Arg is either 'lqn' or 'xml'.",
+    /* "max-blocks"	*/    "Set the maximum number of blocks for the simulation (default is 30).",
     /* "no-execute"	*/    "Build the simulation, but do not solve.",
     /* "output"		*/    "Redirect ouptut to FILE.",
     /* "parseable"	*/    "Generate parseable (.p) output.",
@@ -196,10 +196,10 @@ static const char * opthelp[]  = {
     /* "global-delay"	*/    "Set the inter-processor communication delay to n.n.",
     /* no-stop-on-mess  */    "Do not stop the simulator if asynchronous messages are lost due to queue overfull.",
     /* "reload-lqx"	*/    "Run the LQX program, but re-use the results from a previous invocation.",
-    /* "restart"	*/    "Reuse existing valid results.  Otherwise run the simulation.",
+    /* "restart"	*/    "Reuse existing valid results.  Otherwise, run the simulation.",
     /* no-header	*/    "Do not output the variable name header on SPEX results.",
-    /* "debug-xml"	*/    "Output debugging information while parsing XML input.",
     /* "debug-lqx"	*/    "Output debugging information while parsing LQX input.",
+    /* "debug-xml"	*/    "Output debugging information while parsing XML input.",
     0
 };
 
@@ -466,6 +466,16 @@ main( int argc, char * argv[] )
 	case (256+'l'):
 	    ModLangParserTrace(stderr, "lqx:");
 	    break;
+
+	case 'M': {
+	    char * endptr;
+	    parameters._max_blocks = strtol( optarg, &endptr, 10 );
+	    if ( parameters._max_blocks <= 2 || endptr != '\0' ) {
+		(void) fprintf( stderr, "%s: invalid argument to --max-blocks - %s\n", io_vars.lq_toolname, optarg );
+		exit( FILEIO_ERROR );
+	    }
+	    break;
+	}
 
 	case 'm':
 	    if ( strcmp( optarg, "-" ) == 0 ) {
