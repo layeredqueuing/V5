@@ -37,14 +37,14 @@
 #include <fptrap.h>
 #include <fpxcp.h>
 #elif HAVE_FENV_H
-#if (__GNUC__ && __GNUC__ < 3 && defined(linux)) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER < 800))
-#define __USE_GNU
-#endif
+#define _GLIBCXX_HAVE_FENV_H 1
 #include <fenv.h>
 #elif defined(MSDOS) || HAVE_FLOAT_H
 #undef __STRICT_ANSI__
 #include <float.h>
 #endif
+
+#pragma STDC FENV_ACCESS ON
 
 #include "fpgoop.h"
 
