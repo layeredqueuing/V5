@@ -148,6 +148,7 @@ private:
     void saveClientResults( Task * );
     void saveServerResults( Entity * );
     void saveWait( Entry *, const Server * );
+	void setThreadChain() const ;
 
     ostream& printClosedModel( ostream& ) const;
     ostream& printOpenModel( ostream& ) const;

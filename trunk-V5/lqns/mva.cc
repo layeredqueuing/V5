@@ -144,6 +144,11 @@
 
 int MVA::boundsLimit = 0;		/* Enable bounds limiting if non-zero */
 double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */
+#if DEBUG_MVA
+bool MVA::debug_P = false;
+bool MVA::debug_L = false;
+bool MVA::debug_D = false;
+#endif
 
 //#define	DEBUG
 //#define	DEBUG_STEP
@@ -181,7 +186,7 @@ MVA::MVA( Vector<Server *>& q, const PopVector& N,
     : NCust(N), M(q.size()), K(N.size()), Q(q), Z(thinkTime),
       priority(prio), overlapFactor(of), L(), U(), P(), X(),
       faultCount(0), maxP(q.size()),
-      nPrio(0), sortedPrio(), stepCount(0), waitCount(0), maxOffset(0)
+      nPrio(0), sortedPrio(), stepCount(0), waitCount(0), maxOffset(0), _isThread()
 {
     assert( M > 0 && K > 0 );
 
@@ -192,7 +197,7 @@ MVA::MVA( Vector<Server *>& q, const PopVector& N,
 	Q[m]->setMarginalProbabilitiesSize( N );
 	maxP[m] = 0;
     }
-
+	
     initialize();
 }
 
@@ -340,7 +345,11 @@ void
 MVA::initialize()
 {
     sortedPrio.grow(K);
+	_isThread.grow(K+1);
 
+	for ( unsigned k = 1; k < K; ++k ) {
+	_isThread[k] = 0;
+    }
     nPrio = 1;
     sortedPrio[nPrio] = priority[1];
 
@@ -397,7 +406,7 @@ MVA::step( const PopVector& N, const unsigned currPri )
     unsigned m;			/* Station index.		*/
     unsigned e;			/* Entry index.			*/
     unsigned k;			/* Class index.			*/
-
+   // cout<<"MVA::step() with population "<<N<<endl;
     for ( m = 1; m <= M; ++m ) {
 	for ( k = 1; k <= K; ++k ) {
 	    if ( priority[k] != currPri ) continue;
@@ -463,9 +472,9 @@ MVA::step( const PopVector& N, const unsigned currPri )
 	    marginalProbabilities( m, N );
 	}
     }
-
-#if	defined(DEBUG_STEP)
-    printP( cout, N );
+//printP( cout, N );
+#if DEBUG_MVA
+    if ( debug_P ) printP( cout, N );
 #endif
 
     if ( !check_fp_ok() ) {
@@ -516,7 +525,7 @@ MVA::marginalProbabilities( const unsigned m, const PopVector& N )
 
     /* KLUDGE -- adjust probabilties if necessary. */
 
-    if ( sum > 1.0 ) {
+    if ( sum_of_P> 1.0 ) {
 	P[n][m][0] = 0.0;			// P_m(0,N)			   Eqn 2.6
 	for ( unsigned j = 1; j <= J; ++j ) {
 	    P[n][m][j] /= sum_of_P;		/* Renormalization */
@@ -1156,9 +1165,12 @@ MVA::entryThroughput( const Server& station, const unsigned e ) const
     double sum = 0.0;
     for ( unsigned k = 1; k <= K; ++k ) {
 	if ( !isfinite( X[n][k] ) ) return X[n][k];
-	sum += Q[m]->V(e,k) * X[n][k];
-    }
-
+	if (getThreadChain(k)){
+		sum += Q[m]->V(e,k) * X[n][getThreadChain(k)];
+	}else{
+		sum += Q[m]->V(e,k) * X[n][k];
+      }
+	}
     return sum;
 }
 
@@ -1505,7 +1517,7 @@ MVA::arrivalRate( const Server& station, const unsigned e, const unsigned k, con
 	    retval = N[k] * station.V(e,k) / divisor;
 	}
     }
-#if defined(DEBUG)
+#if DEBUG_MVA
     cerr << "arrivalRate(" << station.closedIndex << "," << e << "," << k << ") = " << retval << endl;
 #endif
     return retval;
@@ -1976,12 +1988,9 @@ Schweitzer::~Schweitzer()
 	    delete [] last_L[m][e];
 	}
 	delete [] last_L[m];
-
-
     }
     delete [] last_L;
 }
-
 
 
 /*
@@ -2176,11 +2185,11 @@ Schweitzer::core( const PopVector & N )
     const double termination_test = 1.0 / ( 4000 + 16 * sum );
     unsigned i = 0;
 
-#if	defined(DEBUG)
+#if DEBUG_MVA
     cout << "Initially..." << endl;
     //N.print( cout );
-    printL( cout, N );
-    printP( cout, N );
+    if ( debug_L ) printL( cout, N );
+    if ( debug_P ) printP( cout, N );
 #endif
 
     do {
@@ -2218,10 +2227,10 @@ Schweitzer::core( const PopVector & N )
 	/* Emergency stop... */
 
 	i += 1;
-#if	defined(DEBUG)
+#if DEBUG_MVA
 	if ( i > 45 ) {
 	    cout << "After " << iterations() << " Iterations..." << endl;
-	    printL( cout, N );
+	    if ( debug_L ) printL( cout, N );
 	}
 #endif
 	if ( i > 80 ) {
@@ -2242,9 +2251,9 @@ Schweitzer::core( const PopVector & N )
 
     } while ( max_delta >= termination_test );
 
-#if	defined(DEBUG)
+#if DEBUG_MVA
     cout << "After " << iterations() << " Iterations..." << endl;
-    printL( cout, N );
+    if ( debug_L ) printL( cout, N );
 #endif
 }
 
@@ -2627,7 +2636,6 @@ Linearizer::~Linearizer()
 }
 
 
-
 /*
  * Solver for linearizer.  See reference for description.
  */
@@ -2792,8 +2800,8 @@ Linearizer::update_Delta( const PopVector & N )
 	    }
 	}
     }
-#if	defined(DEBUG)
-    printD( cout, N );
+#if DEBUG_MVA
+    if ( debug_D ) printD( cout, N );
 #endif
 }
 
@@ -2869,7 +2877,6 @@ OneStepLinearizer::solve()
 	if ( c > 0 ) N[c] -= 1;
 
 	save_L();
-
 	estimate_L( N );
 	estimate_P( N );
 	step( N );
@@ -2883,7 +2890,6 @@ OneStepLinearizer::solve()
 
     estimate_L( NCust );
     estimate_P( NCust );
-
     step( NCust );
 }
 
@@ -2994,8 +3000,8 @@ Linearizer2::update_Delta( const PopVector & N )
 	}
     }
 
-#if	defined(DEBUG)
-    printD( cout, N );
+#if DEBUG_MVA
+    if ( debug_D ) printD( cout, N );
 #endif
 }
 
