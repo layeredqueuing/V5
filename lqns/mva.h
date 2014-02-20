@@ -16,6 +16,7 @@
 
 #if	!defined(MVA_H)
 #define	MVA_H
+/* undef DEBUG_MVA 1 */
 
 #include "pop.h"
 #include "vector.h"
@@ -27,54 +28,6 @@ class GeneralPopulationMap;
 class SpecialPopulationMap;
 
 ostream& operator<<( ostream &, MVA& );
-
-#if defined(__SUNPRO_CC) 
-template <class Type>
-class PopulationData {
-public:
-    PopulationData() : maxSize(0), data(0) {}
-    ~PopulationData() {
-	if(maxSize != 0) {
-	    delete [] data;
-	}
-    }
-
-    void dimension( size_t size ) {
-	const size_t oldSize = maxSize;
-
-	if ( maxSize == size ) return;	/* NOP */
-	maxSize = size;
-
-	Type * oldArray = data;
-	if(maxSize != 0) {
-	    data = new Type [maxSize];
-	    for ( size_t i = 0; i < oldSize; ++i ) {
-		data[i] = oldArray[i];
-	    }
-	    for ( size_t i = oldSize; i < maxSize; ++i ) {
-		data[i] = 0;
-	    }
-	} else {
-	    data = 0;
-	}
-
-	if ( oldArray ) {
-	    delete [] oldArray;
-	}
-    }
-
-    size_t size() { return maxSize; }
-
-    Type& operator[](const unsigned ix) const { 
-	assert(ix < maxSize); 
-	return data[ix]; 
-    }
-
-protected:
-    unsigned maxSize;
-    Type * data;
-};
-#endif
 
 /* -------------------------------------------------------------------- */
 
@@ -105,7 +58,6 @@ protected:
      * function that works on population vectors.
      */
 
-#if !defined(__SUNPRO_CC) 
     template <class Type>
     class PopulationData {
     public:
@@ -151,7 +103,6 @@ protected:
 	unsigned maxSize;
 	Type * data;
     };
-#endif
 
 //Shorthand for [N][m][e][k]
 typedef PopulationData<double ***> N_m_e_k; 
@@ -166,7 +117,10 @@ public:
 
     unsigned nChains() const { return K; }
     virtual double filter() const = 0;
-	
+	void setThreadChain(const unsigned k, const unsigned kk){ _isThread[k]=kk;}
+	unsigned getThreadChain(const unsigned k) const { return _isThread[k];}
+
+    virtual bool isExactMVA() const {return false;}
     virtual double sumOf_L_m( const Server& station, const PopVector &N, const unsigned j ) const;
     virtual double sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) const;
     double sumOf_SU_m( const Server& station, const PopVector &N, const unsigned j ) const;
@@ -233,6 +187,7 @@ protected:
     virtual void marginalProbabilities( const unsigned m, const PopVector& N );
     virtual void marginalProbabilities2( const unsigned m, const PopVector& N );
 	
+
     ostream& printL( ostream&, const PopVector& ) const;
     ostream& printW( ostream& ) const;
     ostream& printU( ostream&, const PopVector & N ) const;
@@ -255,6 +210,11 @@ private:
 public:
     static int boundsLimit;		/* Enable bounds limiting.	*/
     static double MOL_multiserver_underrelaxation;
+#if DEBUG_MVA
+    static bool debug_P;
+    static bool debug_L;
+    static bool debug_D;
+#endif
 	
 protected:
     const PopVector& NCust;		/* Number of Customers.		*/
@@ -281,6 +241,7 @@ private:
     Vector<unsigned> sortedPrio;	/* sorted and uniq priorities	*/ 
     unsigned long stepCount;		/* Number of iterations of step	*/
     unsigned long waitCount;		/* Number of calls to wait	*/
+	Vector<unsigned> _isThread;
     unsigned maxOffset;			/* For L, U, X and P dimensions	*/
 };
 
@@ -358,6 +319,7 @@ public:
     Linearizer( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Linearizer();
+
     virtual void solve();
 	
 protected:

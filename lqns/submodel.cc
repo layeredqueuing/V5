@@ -456,11 +456,29 @@ MVASubmodel::build()
 	    unsigned n_delta = 0;
 	    aClient->updateWaitReplication( *this, n_delta );
 	}
+	setThreadChain();
     }
 }
 
 
+void
+MVASubmodel::setThreadChain() const 
+{
+	Sequence<Task *> nextClient(clients);
+    //Sequence<Entity *> nextServer(servers);
 
+	Task * aClient;
+	while ( aClient = nextClient() ) {
+		
+	const ChainVector& aChain = aClient->clientChains( number() );
+	const unsigned kk = aChain[1];
+	for ( unsigned ix = 2; ix <= aChain.size(); ++ix ) {
+	    const unsigned k = aChain[ix];
+		closedModel->setThreadChain(k, kk) ;
+		}
+	}
+
+}
 /*
  * Rebuild stations and customers as needed.
  */
@@ -1152,7 +1170,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	if ( flags.single_step ) {
 	    debug_stop( iterations, 0 );
 	}
-
 
     } while ( deltaRep > Model::convergence_value );
 
