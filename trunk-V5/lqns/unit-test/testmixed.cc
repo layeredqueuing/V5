@@ -74,7 +74,7 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'n':
-	    if ( sscanf( optarg, "%ld", &count ) != 1 || count < 0 ) {
+	    if ( sscanf( optarg, "%lu", &count ) != 1 ) {
 		cerr << "Bogus loop count: " << optarg << endl;
 		exit( 1 );
 	    }
@@ -93,7 +93,7 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'z':
-	    if ( sscanf( optarg, "%d", &special ) != 1 || special < 0 ) {
+	    if ( sscanf( optarg, "%u", &special ) != 1 ) {
 		cerr << "Bogus \"special\": " << optarg << endl;
 		exit( 1 );
 	    }
