@@ -1,0 +1,37 @@
+<?xml version="1.0"?>
+<lqn-model name="22-multiserver" description="petrisrvn 5.7 solution for model from: 22-multiserver.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Equal clients and servers.  Wait = 0." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="5.04984e-08" iterations="0" platform-info="santana.sce.carleton.ca Linux 2.6.18-371.1.2.el5" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.08"/>
+   </solver-params>
+   <processor name="client" scheduling="inf">
+      <result-processor utilization="1.5"/>
+      <task name="client" scheduling="ref" multiplicity="3">
+         <result-task throughput="1.5" utilization="3" phase1-utilization="3" proc-utilization="1.5"/>
+         <entry name="client" type="PH1PH2">
+            <result-entry utilization="3" throughput="1.5" squared-coeff-variation="0" proc-utilization="1.5"/>
+            <entry-phase-activities>
+               <activity name="client_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2" utilization="3"/>
+                  <synch-call dest="server" calls-mean="1">
+                     <result-call waiting="0"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="inf">
+      <result-processor utilization="1.5"/>
+      <task name="server" scheduling="fcfs" multiplicity="3">
+         <result-task throughput="1.5" utilization="1.5" phase1-utilization="1.5" proc-utilization="1.5"/>
+         <entry name="server" type="PH1PH2">
+            <result-entry utilization="4.5" throughput="1.5" squared-coeff-variation="0" proc-utilization="1.5"/>
+            <entry-phase-activities>
+               <activity name="server_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" utilization="1.5"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

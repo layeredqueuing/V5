@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<lqn-model name="82-sync" description="petrisrvn 5.7 solution for model from: 82-sync.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Synchronization with fork-join on one branch." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="6.95005e-06" iterations="0" platform-info="santana.sce.carleton.ca Linux 2.6.18-371.1.2.el5" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.16"/>
+   </solver-params>
+   <processor name="p1" scheduling="inf">
+      <result-processor utilization="1.23048"/>
+      <task name="t1" scheduling="ref">
+         <result-task throughput="0.615237" utilization="1" phase1-utilization="1" proc-utilization="0.615237"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.615237" squared-coeff-variation="0" proc-utilization="0.615237"/>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.62539" utilization="1"/>
+                  <synch-call dest="e3" calls-mean="1">
+                     <result-call waiting="0.375389"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t2" scheduling="ref">
+         <result-task throughput="0.615238" utilization="1" phase1-utilization="1" proc-utilization="0.615238"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="1" throughput="0.615238" squared-coeff-variation="0" proc-utilization="0.615238"/>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1.62539" utilization="1"/>
+                  <synch-call dest="e4" calls-mean="1">
+                     <result-call waiting="0.0598325"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.369143"/>
+      <task name="t3" scheduling="fcfs">
+         <result-task throughput="0.615238" utilization="0.828199" phase1-utilization="0.414402" phase2-utilization="0.413796" proc-utilization="0.369143"/>
+         <entry name="e3" type="PH1PH2">
+            <result-entry utilization="0.540827" throughput="0.615238" squared-coeff-variation="0" proc-utilization="0.307619" phase1-service-time="0.25" phase2-service-time="0.814362" phase1-utilization="2.12703" phase2-utilization="0.413796"/>
+         </entry>
+         <entry name="e4" type="PH1PH2">
+            <result-entry utilization="0.287372" throughput="0.615238" squared-coeff-variation="0" proc-utilization="0.123048" phase1-service-time="0.565555" phase1-utilization="2.4144"/>
+         </entry>
+         <task-activities>
+            <activity name="a1" bound-to-entry="e3" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.1" utilization="0.0615238" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <activity name="a2" bound-to-entry="e4" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.1" utilization="0.0615238" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <activity name="a3" host-demand-mean="0.1">
+               <result-activity proc-waiting="0.05" service-time="0.15" utilization="0.0922857" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <activity name="a4" host-demand-mean="0.1">
+               <result-activity proc-waiting="0.05" service-time="0.15" utilization="0.0922857" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <activity name="a5" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.1" utilization="0.0615238" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <activity name="a6" host-demand-mean="0.1">
+               <result-activity proc-waiting="0" service-time="0.1" utilization="0.0615238" throughput="0.615238" proc-utilization="0.0615238"/>
+            </activity>
+            <precedence>
+               <pre>
+                  <activity name="a1"/>
+               </pre>
+               <post-AND>
+                  <activity name="a3"/>
+                  <activity name="a4"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="0.2" join-variance="0"/>
+                  <activity name="a4"/>
+                  <activity name="a3"/>
+               </pre-AND>
+               <post>
+                  <activity name="a5"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="0.929917" join-variance="0"/>
+                  <activity name="a5"/>
+                  <activity name="a2"/>
+               </pre-AND>
+               <post>
+                  <activity name="a6"/>
+               </post>
+            </precedence>
+            <reply-entry name="e3">
+               <reply-activity name="a4"/>
+            </reply-entry>
+            <reply-entry name="e4">
+               <reply-activity name="a6"/>
+            </reply-entry>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

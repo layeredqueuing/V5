@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<lqn-model name="12-interlock" description="petrisrvn 5.7 solution for model from: 12-interlock.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simple Interlock" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="9.94832e-06" iterations="0" platform-info="santana.sce.carleton.ca Linux 2.6.18-371.1.2.el5" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.09"/>
+   </solver-params>
+   <processor name="p0" scheduling="inf">
+      <result-processor utilization="0.345407"/>
+      <task name="t0" scheduling="ref" multiplicity="2">
+         <result-task throughput="0.345407" utilization="2" phase1-utilization="2" proc-utilization="0.345407"/>
+         <entry name="e0" type="PH1PH2">
+            <result-entry utilization="2" throughput="0.345407" squared-coeff-variation="0" proc-utilization="0.345407"/>
+            <entry-phase-activities>
+               <activity name="e0_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="5.79027" utilization="2"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0.435486"/>
+                  </synch-call>
+                  <synch-call dest="e1" calls-mean="1">
+                     <result-call waiting="1.11288"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1" scheduling="fcfs">
+      <result-processor utilization="0.345401"/>
+      <task name="t1" scheduling="fcfs">
+         <result-task throughput="0.345401" utilization="0.774369" phase1-utilization="0.774369" proc-utilization="0.345401"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="0.774369" throughput="0.345401" squared-coeff-variation="0" proc-utilization="0.345401"/>
+            <entry-phase-activities>
+               <activity name="e1_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="2.24194" utilization="0.774369"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0.241939"/>
+                  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="fcfs">
+      <result-processor utilization="0.690811"/>
+      <task name="t2" scheduling="fcfs">
+         <result-task throughput="0.690811" utilization="0.690811" phase1-utilization="0.690811" proc-utilization="0.690811"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.690811" throughput="0.690811" squared-coeff-variation="0" proc-utilization="0.690811"/>
+            <entry-phase-activities>
+               <activity name="e2_ph1" phase="1" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="0.999999" utilization="0.690811"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

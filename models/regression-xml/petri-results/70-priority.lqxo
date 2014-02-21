@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<lqn-model name="70-priority" description="petrisrvn 5.7 solution for model from: 70-priority.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Priority Premptive Resume" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <result-general valid="YES" conv-val="4.94557e-06" iterations="0" platform-info="santana.sce.carleton.ca Linux 2.6.18-371.1.2.el5" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:00.10"/>
+   </solver-params>
+   <processor name="p0" scheduling="pp">
+      <result-processor utilization="0.689321"/>
+      <task name="t0" scheduling="ref" think-time="4" priority="4">
+         <result-task throughput="0.2" utilization="0.2" phase2-utilization="0.2" proc-utilization="0.2"/>
+         <entry name="e0" type="PH1PH2">
+            <result-entry utilization="0.2" throughput="0.2" squared-coeff-variation="0" proc-utilization="0.2"/>
+            <entry-phase-activities>
+               <activity name="e0_ph2" phase="2" host-demand-mean="1">
+                  <result-activity proc-waiting="0" service-time="1" utilization="0.2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t1" scheduling="ref" think-time="4" priority="2">
+         <result-task throughput="0.174648" utilization="0.301408" phase2-utilization="0.301408" proc-utilization="0.174648"/>
+         <entry name="e1" type="PH1PH2">
+            <result-entry utilization="0.301408" throughput="0.174648" squared-coeff-variation="0" proc-utilization="0.174648"/>
+            <entry-phase-activities>
+               <activity name="e1_ph2" phase="2" host-demand-mean="1">
+                  <result-activity proc-waiting="0.357526" service-time="1.7258" utilization="0.301408"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t2" scheduling="ref" think-time="4" priority="2">
+         <result-task throughput="0.174648" utilization="0.301408" phase2-utilization="0.301408" proc-utilization="0.174648"/>
+         <entry name="e2" type="PH1PH2">
+            <result-entry utilization="0.301408" throughput="0.174648" squared-coeff-variation="0" proc-utilization="0.174648"/>
+            <entry-phase-activities>
+               <activity name="e2_ph2" phase="2" host-demand-mean="1">
+                  <result-activity proc-waiting="0.357526" service-time="1.7258" utilization="0.301408"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="t3" scheduling="ref" think-time="4">
+         <result-task throughput="0.140025" utilization="0.439903" phase2-utilization="0.439903" proc-utilization="0.140025"/>
+         <entry name="e3" type="PH1PH2">
+            <result-entry utilization="0.439903" throughput="0.140025" squared-coeff-variation="0" proc-utilization="0.140025"/>
+            <entry-phase-activities>
+               <activity name="e3_ph2" phase="2" host-demand-mean="1">
+                  <result-activity proc-waiting="2.14161" service-time="3.1416" utilization="0.439903"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>
