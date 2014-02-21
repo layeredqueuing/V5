@@ -1528,52 +1528,29 @@ Model::trans_res ()
 /* Output processing.							*/
 /*----------------------------------------------------------------------*/
 
-int
+void
 Model::print() const
 {
-    int rc = io_vars.anError;
-
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
 
-    string directoryName;
+    const std::string directory_name = createDirectory();
+    const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
+
+    /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
+ 
     bool override = false;
-    if ( has_output_file_name() ) {
-	if ( LQIO::Filename::isDirectory( _output_file_name.c_str() ) > 0 ) {
-	    directoryName = _output_file_name;
-	} else if ( LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out" );
-	    override = strcmp( filename(), _output_file_name.c_str() ) == 0;
-	}
+    if ( has_output_file_name() && LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
+	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out" );
+	override = filename() == _output_file_name;
     }
 
-    std::string suffix;
-    if ( _document->getResultInvocationNumber() > 0 ) {
-	suffix = SolverInterface::Solve::customSuffix;
-	if ( directoryName.size() == 0 ) {
-	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( has_output_file_name() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
-	    directoryName = filename();
-	}
-	int rc = access( directoryName.c_str(), R_OK|W_OK|X_OK );
-	if ( rc < 0 ) {
-	    if ( errno == ENOENT ) {
-#if defined(WINNT)
-		rc = mkdir( directoryName.c_str() );
-#else
-		rc = mkdir( directoryName.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
-#endif
-	    }
-	    if ( rc < 0 ) {
-		solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directoryName.c_str(), strerror( errno ) );
-	    }
-	}
-    } else {
-	suffix = "";
-    }
+    /* SRVN type statistics */
 
-    if ( override || ((!has_output_file_name() || directoryName.size() > 0 ) && _input_file_name != "-" )) {
-	if ( _document->isXMLDOMPresent() == true || xml_flag ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directoryName.c_str(), suffix.c_str() );
+    if ( override || ((!has_output_file_name() || directory_name.size() > 0 ) && strcmp( LQIO::input_file_name, "-" ) != 0) ) {
+	ofstream output;
+
+	if ( _document->isXMLDOMPresent() || xml_flag ) {
+	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
 	    filename.backup();
 	    _document->serializeDOM( filename(), true );
 	}
@@ -1581,8 +1558,7 @@ Model::print() const
 	/* Parseable output. */
 
 	if ( parse_flag ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), "p", directoryName.c_str(), suffix.c_str() );
-	    ofstream output;
+	    LQIO::Filename filename( _input_file_name.c_str(), "p", directory_name.c_str(), suffix.c_str() );
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
@@ -1594,16 +1570,12 @@ Model::print() const
 
 	/* Regular output */
 
-	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out", directoryName.c_str(), suffix.c_str() );
-
-	ofstream output;
+	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
 	output.open( filename(), ios::out );
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
-	} else if ( rtf_flag ) {
-	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
-	    _document->print( output );
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( output );
 	    }
@@ -1615,9 +1587,7 @@ Model::print() const
 	if ( parse_flag ) {
 	    _document->print( cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else if ( rtf_flag ) {
-	    _document->print( cout, LQIO::DOM::Document::RTF_OUTPUT );
-	} else {
-	    _document->print( cout );
+	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( cout );
 	    }
@@ -1628,28 +1598,28 @@ Model::print() const
 	/* Do not map filename. */
 
 	LQIO::Filename::backup( _output_file_name.c_str() );
-	ofstream output;
 
-	output.open( _output_file_name.c_str(), ios::out );
-	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	} else if ( parse_flag ) {
-	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	} else if ( xml_flag ) {
+	if ( xml_flag ) {
 	    _document->serializeDOM( _output_file_name.c_str(), true );
-	} else if ( rtf_flag ) {
-	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
-	    _document->print( output );
-	    if ( inservice_match_pattern != 0 ) {
-		print_inservice_probability( output );
+	    ofstream output;
+	    output.open( _output_file_name.c_str(), ios::out );
+	    if ( !output ) {
+	        solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+	    } else if ( parse_flag ) {
+	        _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	    } else {
+	        _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+		if ( inservice_match_pattern != 0 ) {
+		    print_inservice_probability( output );
+		}
 	    }
+	    output.close();
 	}
-	output.close();
     }
+
     cout.flush();
     cerr.flush();
-    return rc;
 }
 
 
@@ -1697,6 +1667,50 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats )
     for ( vector<Processor *>::const_iterator p = ::processor.begin(); p != ::processor.end(); ++p ) {
 	(*p)->insert_DOM_results();
     }
+}
+
+
+
+/*----------------------------------------------------------------------*/
+/* 			  Utility routines.				*/
+/*----------------------------------------------------------------------*/
+
+/*
+ * Create a directory (if needed)
+ */
+
+string
+Model::createDirectory() const
+{
+    string directory_name;
+    if ( has_output_file_name() && LQIO::Filename::isDirectory( _output_file_name.c_str() ) > 0 ) {
+	directory_name = _output_file_name;
+    }
+
+    if ( _document->getResultInvocationNumber() > 0 ) {
+	if ( directory_name.size() == 0 ) {
+	    /* We need to create a directory to store output. */
+	    LQIO::Filename filename( has_output_file_name() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+	    directory_name = filename();
+	}
+    }
+
+    if ( directory_name.size() > 0 ) {
+	int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
+	if ( rc < 0 ) {
+	    if ( errno == ENOENT ) {
+#if defined(WINNT)
+		rc = mkdir( directory_name.c_str() );
+#else
+		rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
+#endif
+	    }
+	    if ( rc < 0 ) {
+		solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name.c_str(), strerror( errno ) );
+	    }
+	}
+    }
+    return directory_name;
 }
 
 /*

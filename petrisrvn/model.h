@@ -167,7 +167,8 @@ private:
 
     void build_open_arrivals ();
 
-    int print() const;
+    void print() const;
+    string createDirectory() const;
     void print_inservice_probability( ostream& output ) const;
     unsigned print_inservice_cd( ostream& output, const Entry * a, const Entry * b, const Task * j, double tot_tput[], double col_sum[DIMPH+1] ) const;
 

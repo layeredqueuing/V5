@@ -392,10 +392,6 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	print_raw_stats( stddbg );
     }
 
-    _document->setResultConvergenceValue(confidence)
-	.setResultValid(valid)
-	.setResultIterations(number_blocks);
-
     const string directory_name = createDirectory();
     const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
 
@@ -446,10 +442,8 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
 	if ( global_parse_flag ) {
 	    _document->print( cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	} else if ( global_rtf_flag ) {
-	    _document->print( cout, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
-	    _document->print( cout );
+	    _document->print( cout, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
 	}
 
     } else {
@@ -467,10 +461,8 @@ Model::print( const bool valid, const double confidence, const bool backup )
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	    } else if ( global_parse_flag ) {
 		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	    } else if ( global_rtf_flag ) {
-		_document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	    } else {
-		_document->print( output );
+	        _document->print( output, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
 	    }
 	    output.close();
 	}
