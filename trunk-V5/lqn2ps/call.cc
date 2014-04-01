@@ -644,7 +644,7 @@ Call::hasInfiniteWait() const
 { 
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	const LQIO::DOM::Call * dom = getDOM(p);
-	if ( dom && !finite( dom->getResultWaitingTime() ) )  return true;
+	if ( dom && !isfinite( dom->getResultWaitingTime() ) )  return true;
     }
     return false;
 }

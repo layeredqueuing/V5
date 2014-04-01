@@ -275,7 +275,7 @@ Label::appendSTM( const TaskCallManip& m )
 Label& 
 Label::appendD( const double aDouble )
 {
-    if ( !finite( aDouble ) ) {
+    if ( !isfinite( aDouble ) ) {
 	if ( aDouble < 0.0 ) {
 	    *myStrings.back() << '-'; 
 	}
@@ -511,7 +511,7 @@ LabelEMF::appendS( const string& s )
 Label& 
 LabelEMF::appendD( const double aDouble )
 {
-    if ( !finite( aDouble ) ) {
+    if ( !isfinite( aDouble ) ) {
 	if ( aDouble < 0.0 ) {
 	    appendC( '-' ); 
 	}
