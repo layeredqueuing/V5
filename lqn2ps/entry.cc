@@ -910,7 +910,7 @@ Entry::Cv_sqr() const
 {
     const double t = executionTime();
 
-    if ( !finite( t ) ) {
+    if ( !isfinite( t ) ) {
 	return t;
     } else if ( t > 0.0 ) {
 	return variance() / square(t);
