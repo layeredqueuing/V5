@@ -1494,7 +1494,7 @@ TaskCall::label()
 	while ( anEntry = nextEntry() ) {
 	    if ( !anEntry->hasQueueingTime() ) continue;
 	    if ( print ) myLabel->newLine();
-	    *myLabel << anEntry->name() << " w=" << print_queueing_time(*anEntry);
+	    *myLabel << anEntry->name() << ": " << print_queueing_time(*anEntry);
 	    print = true;
 	}
     }
@@ -1687,7 +1687,7 @@ ProcessorCall::label()
 	while ( anEntry = nextEntry() ) {
 	    if ( !anEntry->hasQueueingTime() || anEntry->isActivityEntry() ) continue;
 	    if ( print ) myLabel->newLine();
-	    *myLabel << anEntry->name() << " w=" << print_queueing_time(*anEntry);
+	    *myLabel << anEntry->name() << ": " << print_queueing_time(*anEntry);
 	    print = true;
 	}
 	Sequence<Activity *> nextActivity(aTask->activities());
@@ -1695,7 +1695,7 @@ ProcessorCall::label()
 	while ( anActivity = nextActivity() ) {
 	    if ( !anActivity->hasQueueingTime() ) continue;
 	    if ( print ) myLabel->newLine();
-	    *myLabel << anActivity->name() << " w=" << anActivity->queueingTime();
+	    *myLabel << anActivity->name() << ": " << anActivity->queueingTime();
 	    print = true;
 	}
     }

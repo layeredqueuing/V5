@@ -140,7 +140,7 @@ private:
 	void operator()( const LQIO::DOM::Call * );
     };
 	
-    typedef void (Generate::*serializeFunc)( const ModelVariable::variableValueFunc );
+    typedef void (Generate::*parameterize_fptr)( const ModelVariable::variableValueFunc );
 
 public:
     Generate( const unsigned runs );
@@ -180,7 +180,7 @@ private:
     LQIO::DOM::Entry * addEntry( const string& name, unsigned n_phases, variateFunc );
     LQIO::DOM::Call * addCall( LQIO::DOM::Entry *, LQIO::DOM::Entry *, variateFunc  );
 
-    void addLQX( serializeFunc f, const ModelVariable::variableValueFunc g );
+    void addLQX( parameterize_fptr f, const ModelVariable::variableValueFunc g );
     void serialize( const ModelVariable::variableValueFunc f );
     void serialize2( const ModelVariable::variableValueFunc f );
 
