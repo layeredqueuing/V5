@@ -816,10 +816,6 @@ Model::run( int task_id )
 	    }
 	}
 
-	double confidence = 0.0;
-	bool valid = false;		/* Results valid? 		*/
-	bool backup = true;		/* Only back up a file once. 	*/
-
 	if ( _parameters._initial_delay ) {
 	    if ( verbose_flag ) {
 		(void) putc( 'I', stderr );
@@ -845,16 +841,17 @@ Model::run( int task_id )
 	 * Accumulate statistical data.
 	 */
 
-	number_blocks = 0;
-	do {
-	    number_blocks += 1;
+	double confidence = 0.0;
+	bool valid = false;		/* Results valid? 		*/
+	bool backup = true;		/* Only back up a file once. 	*/
+	for ( number_blocks = 1; !valid && number_blocks <= _parameters._max_blocks; number_blocks += 1 ) {
+	    
 	    if ( verbose_flag ) {
 		(void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
 	    }
 
 	    ps_sleep( _parameters._block_period );
 	    accumulate_data();
-	    insertDOMResults( valid || _parameters._precision == 0.0, confidence );
 
 	    if ( number_blocks > 2 ) {
 //		set_t_values();
@@ -865,14 +862,16 @@ Model::run( int task_id )
 			(void) putc( '\n', stderr );
 		    }
 		}
-		if ( confidence < _parameters._precision ) {
-		    valid = true;
-		} else if ( print_interval > 0 && number_blocks % print_interval == 0 && number_blocks < _parameters._max_blocks ) {
-		    print_intermediate( valid, confidence );
-		    backup = false;
-		}
+		valid = ( confidence < _parameters._precision );
 	    }
-	} while ( (!valid || _parameters._precision == 0.0) && number_blocks < _parameters._max_blocks );
+
+	    insertDOMResults( valid || _parameters._precision == 0.0, confidence );
+
+	    if ( !valid && print_interval > 0 && number_blocks % print_interval == 0 ) {
+		print_intermediate( valid, confidence );
+		backup = false;
+	    }
+	}
 
 	if ( verbose_flag || trace_driver ) (void) putc( '\n', stderr );
 
@@ -881,7 +880,7 @@ Model::run( int task_id )
 	 * Print final results
 	 */
 
-	print( (bool)(valid || _parameters._precision == 0.0), confidence, backup );
+	print( (valid || _parameters._precision == 0.0), confidence, backup );
 
 	if ( !valid && _parameters._precision > 0.0 ) {
 	    LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, confidence );
