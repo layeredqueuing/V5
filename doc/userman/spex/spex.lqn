@@ -1,0 +1,25 @@
+$m_client = [1, 2, 3]
+$m_server = [1, 2, 3]
+$s_server = $m_server / 2
+
+P 2
+  p client i
+  p server s 0.1
+-1
+
+T 2
+  t client r client -1 client m $m_client %f $f_client
+  t server n server -1 server m $m_server %u $u_server
+-1
+
+E 2
+  s client 1 -1
+  y client server $s_server -1
+  s server 1 -1
+-1
+
+R 3
+  $0
+  $f_client
+  $u_server
+-1
