@@ -483,9 +483,8 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
 {
     Point origin(0,0);
     Point extent(0,0);
-    const unsigned int len_1 = s.size();
-    assert( len_1 % 2 == 0 );
-    const unsigned int len_2 = (len_1 % 4 == 0) ? len_1 : len_1 + 2;	/* Pad to long word */
+    const unsigned int len_1 = s.size();    /* Pad to long-word */
+    const unsigned int len_2 = ( len_1 & 0x03 ) == 0 ? len_1 : len_1 + 4 - ( len_1 & 0x03 );
     output << start_record( EMR_SETTEXTCOLOR, 12 ) << rgb( colour_value[colour].red, colour_value[colour].green, colour_value[colour].blue );
     output << setfont( font ) << justify( justification );
     output << start_record( EMR_EXTTEXTOUTW, 76 + len_2 )			/*  0 */
@@ -501,12 +500,12 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
 	   << point( origin ) 		/* Rectangle clipping -- not used */	/* 56 */
 	   << point( extent )							/* 64 */
 	   << writel( 0 );		/* Offset to DX */			/* 72 */
-    for ( unsigned i = 0; i < len_1; i += 2 ) {					/* 76 */
+    for ( unsigned int i = 0; i < len_1; i += 2 ) {				/* 76 */
 	output << s[i+1] << s[i];		/* Little endian */
     }
     /* Pad to long-word */
-    for ( unsigned i = len_1; i < len_2; i += 2 ) {
-	output << '\0' << '\0';
+    for ( unsigned int i = len_1; i < len_2; i += 1 ) {
+	output << '\0';
     }
 
     return fontsize * EMF_SCALING;

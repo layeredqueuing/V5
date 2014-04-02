@@ -409,8 +409,8 @@ double
 LabelEMF::width() const
 {
     unsigned w = 0;
-    for ( int i = 1; i <= size(); ++i ) {
-	w = ::max( w, myStrings[i]->str().length() );
+    for ( vector<ostringstream *>::const_iterator s = myStrings.begin(); s != myStrings.end(); ++s ) {
+	w = ::max( w, (*s)->str().length() );
     }
     return w * normalized_font_size() / 4.5;		// A guess.
 }
