@@ -440,7 +440,7 @@ Generate::addCall( LQIO::DOM::Entry * dom_src, LQIO::DOM::Entry * dom_dst, varia
 
 
 void
-Generate::addLQX( serializeFunc f, const ModelVariable::variableValueFunc g )
+Generate::addLQX( parameterize_fptr f, const ModelVariable::variableValueFunc g )
 {
     const unsigned n = getNumberOfRuns();
     (this->*f)( g );					/* Make Variables */
