@@ -66,6 +66,7 @@ Section "Executables" SEC01
 ;  CreateShortCut "$INSTDIR\lqn2emf.lnk" "$INSTDIR\lqn2ps.exe" "-Oemf"
 ;  CreateShortCut "$INSTDIR\lqn2lqn.lnk" "$INSTDIR\lqn2ps.exe" "-Olqn"
   File "..\..\srvndiff\srvndiff.exe"
+  File "..\..\lqngen\lqngen.exe"
 ;;; MinGW stuff.
 ;  File "C:\mingw\bin\mingwm10.dll"
 ;;; Xerces XML stuff.
@@ -404,6 +405,7 @@ Section Uninstall
   Delete "$INSTDIR\lqn2srvn.exe"
   Delete "$INSTDIR\srvndiff.exe"
   Delete "$INSTDIR\lqn2ps.exe"
+  Delete "$INSTDIR\lqngen.exe"
   Delete "$INSTDIR\lqsim.exe"
   Delete "$INSTDIR\lqns.exe"
 
