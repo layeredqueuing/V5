@@ -1887,7 +1887,7 @@ OpenArrival::label()
 	 && Flags::have_results 
 	 && Flags::print[OPEN_WAIT].value.b ) {
 	if ( print ) myLabel->newLine();
-	Graphic::colour_type c = finite( destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
+	Graphic::colour_type c = isfinite( destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
 	myLabel->colour(c) << begin_math() << destination->openWait() << end_math();
 	print = true;
     }
