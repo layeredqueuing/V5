@@ -50,6 +50,7 @@ namespace LQX {
   
   class IncompatibleTypeException : public RuntimeException {
   public:
+    IncompatibleTypeException(const std::string& from, const std::string& to, const std::string& expr) throw();
     IncompatibleTypeException(const std::string& from, const std::string& to) throw();
     IncompatibleTypeException(const std::string& name) throw();
     virtual ~IncompatibleTypeException() throw();

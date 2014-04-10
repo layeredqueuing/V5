@@ -88,7 +88,6 @@ Task::~Task()
     myClientStation.deleteContents();
     myPrecedence.deleteContents();
     myActivityList.deleteContents();
-    dead_activities.deleteContents();
     entryList.deleteContents();		/* Deletes processor calls */
 }
 
@@ -217,7 +216,6 @@ Task::configure( const unsigned nSubmodels )
     /* Configure the threads... */
 
     for ( unsigned i = 2; i <= myThreads.size(); ++i ) {
-	myThreads[i]->index = nEntries() + i - 1;
 	myThreads[i]->check();
     }
 }
@@ -640,7 +638,7 @@ Task::servers(	Cltn<Entity *> & calledTasks, const Cltn<Entity *> & includeOnly 
  * This function locates all unique calling tasks to the receiver.
  * Tasks that are located are added to the collection `reject' so
  * that they are only counted once.  If we hit a multi-server or an
- * infinite server, we locate their sourcing tasks in order to
+ * inisfinite server, we locate their sourcing tasks in order to
  * determine the proper population levels.  Multi-servers are treated
  * a little specially in that they limit the number of customers that
  * can be seen.  Note that we need to know replication information
@@ -997,6 +995,19 @@ Task::recalculateDynamicValues()
 	anEntry->recalculateDynamicValues();
     }
 }
+
+
+double 
+Task::bottleneckStrength() const
+{
+    /* find out who I call */
+    Sequence<Entry *> nextEntry( entries() );
+    const Entry * anEntry;
+    while ( anEntry = nextEntry() ) {
+    }
+    return 0;
+}
+
 
 /*----------------------------------------------------------------------*/
 /*                       Threads (subthreads)                           */
@@ -1461,6 +1472,7 @@ Task::insertDOMResults(void) const
     myDOMTask->setResultUtilization(totalTaskUtil);
     myDOMTask->setResultThroughput(totalThroughput);
     myDOMTask->setResultProcessorUtilization(totalProcUtil);
+    myDOMTask->setResultBottleneckStrength(0);
 }
 
 
@@ -1625,7 +1637,7 @@ ReferenceTask::check() const
     if ( nEntries() != 1 ) {
 	LQIO::solution_error( LQIO::WRN_TOO_MANY_ENTRIES_FOR_REF_TASK, name() );
     }
-    if ( queueLength() > 0 ) {
+    if ( myDOMTask->hasQueueLength() ) {
 	LQIO::solution_error( LQIO::WRN_QUEUE_LENGTH, name() );
     }
 
@@ -1729,7 +1741,7 @@ ServerTask::configure( const unsigned nSubmodels )
 
 
 /*
- * Return true if the population is infinite (i.e., an open source)
+ * Return true if the population is inisfinite (i.e., an open source)
  */
 
 bool
@@ -2246,10 +2258,6 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 	domTask->setSchedulingType(SCHEDULE_FIFO);
 	aTask = new ServerTask( domTask, aProcessor, aGroup, entries );
 	break;
-    }
-
-    if ( flags.trace_task && strcmp( flags.trace_task, task_name ) == 0 ) {
-	aTask->trace( true );
     }
 
     task.insert( aTask );		/* Insert into map */

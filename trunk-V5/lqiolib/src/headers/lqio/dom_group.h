@@ -10,7 +10,7 @@
 #define __LQIO_DOM_GROUP__
 
 #include <string>
-#include <vector>
+#include <set>
 #include "dom_object.h"
 
 namespace LQIO {
@@ -24,7 +24,7 @@ namespace LQIO {
 	public:
       
 	    /* Designated initializers for the Group type */
-	    Group(const Document * document, const char * name, Processor* proc, ExternalVariable * share, bool cap, const void * group_element);
+	    Group(const Document * document, const char * name, Processor* proc=0, ExternalVariable * share=0, bool cap=false, const void * group_element=0);
 	    Group( const Group & );
 	    virtual ~Group();
       
@@ -33,13 +33,13 @@ namespace LQIO {
 	    void setProcessor(Processor* processor);
 	    double getGroupShareValue() const;
 	    ExternalVariable * getGroupShare() const;
-	    Group& setGroupShare(ExternalVariable * groupShare);
+	    void setGroupShare(ExternalVariable * groupShare);
 	    void setGroupShareValue( double value );
 	    const bool getCap() const;
 	    void setCap(const bool cap);
       
 	    void addTask(Task* task);
-	    const std::vector<Task*>& getTaskList() const { return _taskList; }
+	    const std::set<Task*>& getTaskList() const { return _taskList; }
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -58,7 +58,7 @@ namespace LQIO {
 	    ExternalVariable * _groupShare;
 	    bool _cap;
 
-	    std::vector<Task*> _taskList;
+	    std::set<Task*> _taskList;
 
 	    /* Results */
 	    double _resultUtilization;

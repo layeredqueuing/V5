@@ -10,14 +10,6 @@
 #include <config.h>
 #endif
 
-#include "dom_document.h"
-#include "srvn_input.h"
-#include "dom_histogram.h"
-#include "input.h"
-#include "error.h"
-#include "glblerr.h"
-#include "filename.h"
-
 #include <iostream>
 #include <cstdlib>
 #include <cstdarg>
@@ -30,9 +22,28 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <sys/stat.h>
+#if HAVE_SYS_MMAN_H
+#include <sys/types.h>
+#include <sys/mman.h>
+#endif
+
+#include "dom_document.h"
+#include "srvn_input.h"
+#include "srvn_results.h"
+#include "dom_histogram.h"
+#include "input.h"
+#include "error.h"
+#include "glblerr.h"
+#include "filename.h"
+
+
+struct yy_buffer_state;
 
 extern "C" {
-    extern FILE * srvnin;		/* from srvn_gram.y, implicitly */
+    extern FILE * LQIO_in;		/* from srvn_gram.y, implicitly */
+    extern yy_buffer_state * LQIO__scan_string( const char * );
+    extern void LQIO__delete_buffer( yy_buffer_state * );
 }
 
 /* Pointer to the current document and entry list map */
@@ -91,7 +102,7 @@ srvn_add_processor( const char *processor_name, scheduling_type scheduling_flag,
     }
 
     double value;
-    if ( !static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->wasSet() || (static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->getValue( value ) && value != 0.0) ) {
+    if ( cpu_quantum != NULL && (!static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->wasSet() || (static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->getValue( value ) && value != 0.0)) ) {
 	if ( scheduling_flag == SCHEDULE_FIFO
 	      || scheduling_flag == SCHEDULE_HOL
 	      || scheduling_flag == SCHEDULE_PPR
@@ -171,8 +182,8 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 
     } else if ( scheduling == SCHEDULE_SEMAPHORE || scheduling == SCHEDULE_SEMAPHORE_R ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::currentDocument, task_name, 
-					     *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), 
-					     static_cast<LQIO::DOM::ExternalVariable *>(queue_length), processor, priority, 
+					     *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
+					     static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
 					     static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 					     n_replicas, group, (void *)0);
 	if ( scheduling == SCHEDULE_SEMAPHORE_R ) {
@@ -181,8 +192,8 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 
     } else if ( scheduling == SCHEDULE_RWLOCK ) {
 	task = new LQIO::DOM::RWLockTask( LQIO::DOM::currentDocument, task_name, 
-					  *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), 
-					  static_cast<LQIO::DOM::ExternalVariable *>(queue_length), processor, priority, 
+					  *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
+					  static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
 					  static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 					  n_replicas, group, (void *)0);
 
@@ -193,21 +204,19 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 	if ( schedule_customer( scheduling ) ) {
 	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, "Task", task_name );
 	}
-	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, SCHEDULE_DELAY,
-				    *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), 
-				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), processor, priority, 
+	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, SCHEDULE_DELAY, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
+				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
 				    new LQIO::DOM::ConstantExternalVariable(1), 
 				    n_replicas, group, (void *)0);
 
     } else {
-	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, scheduling, 
-				    *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), 
-				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), processor, priority, 
+	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, scheduling, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
+				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
 				    static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 				    n_replicas, group, (void *)0);
     }
 
-    if ( !static_cast<LQIO::DOM::ExternalVariable *>(think_time)->wasSet() || (static_cast<LQIO::DOM::ExternalVariable *>(think_time)->getValue( value ) && value != 0.0)) {
+    if ( think_time != NULL && (!static_cast<LQIO::DOM::ExternalVariable *>(think_time)->wasSet() || (static_cast<LQIO::DOM::ExternalVariable *>(think_time)->getValue( value ) && value != 0.0))) {
 	if ( schedule_customer( scheduling ) ) {
 	    task->setThinkTime( static_cast<LQIO::DOM::ExternalVariable *>(think_time) );
 	} else {
@@ -347,7 +356,7 @@ srvn_store_entry_priority ( void * entry_v, const int arg )
     LQIO::DOM::Entry* entry = static_cast<LQIO::DOM::Entry*>(entry_v);
     if ( !entry ) return;
 
-    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName());
     
     /* Store the open arrival rate */
     entry->setEntryPriority(new LQIO::DOM::ConstantExternalVariable(arg));
@@ -359,7 +368,7 @@ srvn_store_open_arrival_rate (void  * entry_v, void * arg )
     /* Obtain the entry that we will be adding the phase times to */
     LQIO::DOM::Entry* entry = static_cast<LQIO::DOM::Entry*>(entry_v);
     if ( !entry ) return;
-    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName());
     
     /* Store the open arrival rate */
     entry->setOpenArrivalRate(static_cast<LQIO::DOM::ExternalVariable *>(arg));
@@ -428,13 +437,13 @@ srvn_store_prob_forward_data ( void * from_entry_v, void * to_entry_v, void * pr
     LQIO::DOM::Entry* to_entry = static_cast<LQIO::DOM::Entry *>(to_entry_v);
     if ( from_entry == NULL || to_entry == NULL) return;
 
-    LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
-    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName());
+    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName());
     
     /* Build a variable for the storage of the P(fwd) and set it on the originator */
     LQIO::DOM::Call * call = from_entry->getForwardingToTarget(to_entry);
     if ( call == NULL ) {
-	LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, from_entry, to_entry, static_cast<LQIO::DOM::ExternalVariable *>(prob), 0 );
+	LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, from_entry, to_entry, static_cast<LQIO::DOM::ExternalVariable *>(prob) );
 	from_entry->addForwardingCall(call);
 	string name = from_entry->getName();
 	name += '_';
@@ -460,7 +469,7 @@ srvn_store_rnv_data (void * from_entry_v, void * to_entry_v, unsigned n_phases, 
     }
     /* Make sure that this is a standard entry */
     LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName(), LQIO::DOM::Entry::ENTRY_STANDARD);
-    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName());
     
     /* Push all the times */
     va_list ap;
@@ -476,8 +485,8 @@ srvn_store_rnv_data (void * from_entry_v, void * to_entry_v, unsigned n_phases, 
         
 	/* Check the existence */
 	if (call == NULL) {
-	    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::RENDEZVOUS, phase, to_entry, i, ev);
-	    from_entry->appendOriginatingCall(call);
+	    call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::RENDEZVOUS, phase, to_entry, ev);
+	    phase->addCall( call );
 	    string name = phase->getName();
 	    name += '_';
 	    name += to_entry->getName();
@@ -512,7 +521,7 @@ srvn_store_snr_data ( void * from_entry_v, void * to_entry_v, unsigned n_phases,
     }
     /* Make sure that this is a standard entry */
     LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName(), LQIO::DOM::Entry::ENTRY_STANDARD);
-    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName());
     
     /* Push all the times */
     va_list ap;
@@ -528,8 +537,8 @@ srvn_store_snr_data ( void * from_entry_v, void * to_entry_v, unsigned n_phases,
         
 	/* Check the existence */
 	if (call == NULL) {
-	    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument,LQIO::DOM::Call::SEND_NO_REPLY, phase, to_entry, i, ev);
-	    from_entry->appendOriginatingCall(call);
+	    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument,LQIO::DOM::Call::SEND_NO_REPLY, phase, to_entry, ev);
+	    phase->addCall( call );
 	    string name = phase->getName();
 	    name += '_';
 	    name += to_entry->getName();
@@ -610,9 +619,9 @@ srvn_store_activity_rnv_data ( void * activity, void * dst_entry_v, void * calls
 {
     LQIO::DOM::Entry* dst_entry = static_cast<LQIO::DOM::Entry *>(dst_entry_v);
     if ( !activity || !dst_entry ) return 0;
-    LQIO::DOM::Document::db_check_set_entry(dst_entry, dst_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(dst_entry, dst_entry->getName());
     
-    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::RENDEZVOUS, static_cast<LQIO::DOM::Activity *>(activity), dst_entry, 0,
+    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::RENDEZVOUS, static_cast<LQIO::DOM::Activity *>(activity), dst_entry,
 						static_cast<LQIO::DOM::ExternalVariable *>(calls));
     static_cast<LQIO::DOM::Activity *>(activity)->addCall(call);
     return call;
@@ -630,9 +639,9 @@ srvn_store_activity_snr_data ( void * activity, void * dst_entry_v, void * calls
 {
     LQIO::DOM::Entry* dst_entry = static_cast<LQIO::DOM::Entry *>(dst_entry_v);
     if ( !activity || !dst_entry ) return 0;
-    LQIO::DOM::Document::db_check_set_entry(dst_entry, dst_entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(dst_entry, dst_entry->getName());
     
-    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::SEND_NO_REPLY, static_cast<LQIO::DOM::Activity *>(activity), dst_entry, 0, 
+    LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::currentDocument, LQIO::DOM::Call::SEND_NO_REPLY, static_cast<LQIO::DOM::Activity *>(activity), dst_entry,
 						static_cast<LQIO::DOM::ExternalVariable *>(calls));
     static_cast<LQIO::DOM::Activity *>(activity)->addCall(call);
     return call;
@@ -661,7 +670,7 @@ srvn_set_histogram ( void * entry_v, const unsigned phase, const double min, con
 {
     /* Grab the entry */
     LQIO::DOM::Entry* entry = static_cast<LQIO::DOM::Entry *>(entry_v);
-    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::ENTRY_NOT_DEFINED);
+    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName());
     if ( !entry ) return;
     
     /* Grab the phase and store the histogram.  DO NOT Create a phase. */
@@ -826,12 +835,20 @@ srvn_find_task ( const char * taskName )
 
 void * srvn_int_constant( const int i )
 {
-    return new LQIO::DOM::ConstantExternalVariable( static_cast<double>(i) );
+    if ( i > 0 ) {
+	return new LQIO::DOM::ConstantExternalVariable( static_cast<double>(i) );
+    } else {
+	return NULL;
+    }
 }
 
 void * srvn_real_constant( const double d )
 {
-    return new LQIO::DOM::ConstantExternalVariable( d );
+    if ( d > 0. ) {
+	return new LQIO::DOM::ConstantExternalVariable( d );
+    } else { 
+	return NULL;
+    }
 }
 
 void * srvn_variable( const char * s )
@@ -874,7 +891,7 @@ namespace LQIO {
 
 	    /* Create the AND join list */
 	    if (activityList == NULL) {
-		activityList = new AndJoinActivityList(LQIO::DOM::currentDocument,domTask,ActivityList::AND_JOIN_ACTIVITY_LIST,element,quorum_count);
+		activityList = new AndJoinActivityList(LQIO::DOM::currentDocument,domTask,quorum_count,element);
 	    }
 	    activityList->add(activity);
 	    activity->outputTo(activityList);
@@ -987,58 +1004,81 @@ namespace LQIO {
 
 
 extern "C" {
-    int srvnparse();
+    int LQIO_parse();
 }
 
-LQIO::DOM::Document* LQIO::DOM::LoadSRVN(const string& input_filename, const string& output_filename, lqio_params_stats* ioVars, unsigned& errorCode )
+bool LQIO::SRVN::load(LQIO::DOM::Document& document, const string& input_filename, const string& output_filename, unsigned& errorCode, bool load_results )
 {
-    LQIO::input_file_name = input_filename.c_str();
-    LQIO::output_file_name = output_filename.c_str();
-
     if ( input_filename == "-" ) {
-	srvnin = stdin;
-	LQIO::input_file_name = ioVars->lq_toolname;
-    } else if (!( srvnin = fopen( input_filename.c_str(), "r" ) ) ) {
-	std::cerr << ioVars->lq_toolname << ": Cannot open input file " << LQIO::input_file_name << " - " << strerror( errno ) << std::endl;
+	LQIO_in = stdin;
+    } else if (!( LQIO_in = fopen( input_filename.c_str(), "r" ) ) ) {
+	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open input file " << LQIO::input_file_name << " - " << strerror( errno ) << std::endl;
 	return 0;
     } 
+    int LQIO_in_fd = fileno( LQIO_in );
 
-    if ( isatty( fileno( srvnin ) ) ) {
-	std::cerr << ioVars->lq_toolname << ": Input from terminal is not allowed." << std::endl;
+    struct stat statbuf;
+    if ( isatty( LQIO_in_fd ) ) {
+	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from terminal is not allowed." << std::endl;
 	return 0;
-    } else if ( LQIO::Filename::isWriteableFile( fileno( srvnin ) ) == 0 ) {
-	std::cerr << ioVars->lq_toolname << ": Input from " << LQIO::input_file_name << " is not allowed." << std::endl;
-	return 0;
-    }
-
-    /* 
-     * Create a document to store the product.  Since we want to dump XML, use expat.
-     */
-
-    Document::create( ioVars, true );
-
-    /* Read in the model, invoke the builder, and see what happened */
-    LQIO_line_number = 1;
-    int return_code;
-    try {
-	return_code = srvnparse();
+    } else if ( fstat( LQIO_in_fd, &statbuf ) != 0 ) {
+	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << input_file_name << " - " << strerror( errno ) << std::endl;
+	return false;
+#if defined(S_ISSOCK)
+    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
+#else
+    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
+#endif
+	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from " << input_file_name << " is not allowed." << std::endl;
+	return false;
     } 
-    catch ( runtime_error& e ) {
-	std::cerr << ioVars->lq_toolname << ": " << e.what() << "." << std::endl;
-	return_code = 0;
+
+    LQIO_lineno = 1;
+
+#if HAVE_MMAP
+    char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, LQIO_in_fd, 0 ));
+    if ( buffer != MAP_FAILED ) {
+	yy_buffer_state * yybuf = LQIO__scan_string( buffer );
+	try {
+	    errorCode = LQIO_parse();
+	}
+	catch ( runtime_error& e ) {
+	    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": " << e.what() << "." << std::endl;
+	    errorCode = 1;
+	}
+	LQIO__delete_buffer( yybuf );
+	munmap( buffer, statbuf.st_size );
+    } else {
+#endif
+	/* Try the old way (for pipes) */
+	try {
+	    errorCode = LQIO_parse();
+	}
+	catch ( runtime_error& e ) {
+	    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": " << e.what() << "." << std::endl;
+	    errorCode = 1;
+	}
+#if HAVE_MMAP
+    }
+#endif
+    if ( LQIO::DOM::Document::io_vars->anError ) {
+	errorCode = 1;
+    } else if ( load_results && input_filename != "-" ) {
+	LQIO::Filename parse_name( input_filename.c_str(), "p" );
+	if ( parse_name.mtimeCmp( input_filename.c_str() ) < 0 ) {
+	    cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
+		 << " -- results ignored. " << endl;
+	} else {
+	    LQIO::SRVN::loadResults( parse_name() );
+	}
     }
 
-    if ( srvnin != stdin ) {
-	fclose( srvnin );
+
+    if ( LQIO_in && LQIO_in != stdin ) {
+	fclose( LQIO_in );
     }
 
-    if (return_code != 0) {
-	delete LQIO::DOM::currentDocument;
-	return NULL;
-    }
-
-    /* All went well, so return it */
-    return LQIO::DOM::currentDocument;
+    return errorCode == 0;
 }
 
 
@@ -1050,14 +1090,14 @@ LQIO::DOM::Document* LQIO::DOM::LoadSRVN(const string& input_filename, const str
  */
 
 void
-srvnerror( const char * fmt, ... )
+LQIO_error( const char * fmt, ... )
 {
     extern size_t srvnleng;
     extern char *srvntext;
 
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::RUNTIME_ERROR, LQIO::input_file_name, LQIO_line_number, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::RUNTIME_ERROR, LQIO::input_file_name, LQIO_lineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1076,7 +1116,7 @@ srvnwarning( const char * fmt, ... )
 
     va_list args;
     va_start( args, fmt );
-    LQIO::verrprintf( stderr, LQIO::WARNING_ONLY, LQIO::input_file_name, LQIO_line_number, 0, fmt, args );
+    LQIO::verrprintf( stderr, LQIO::WARNING_ONLY, LQIO::input_file_name, LQIO_lineno, 0, fmt, args );
     va_end( args );
 }
 

@@ -31,13 +31,15 @@ namespace LQIO {
 	ConfidenceIntervals& set_level( const confidence_level_t );
 	double operator()( double value ) const;
 	double invert( double value ) const;
-
+	bool is_set() const { return _t_value != 0; }
+	
     private:
 	static double t_values[2][34];
 	double _t_value;
 	confidence_level_t _level;
 	unsigned int _blocks;
+	bool _is_set;
     };
-};
+}
 
 #endif /* __CONFIDENCE_INTERVALS_H */

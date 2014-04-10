@@ -10,6 +10,7 @@
 #include <xercesc/dom/DOM.hpp>
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLUni.hpp>
+#include "common_io.h"
 #include "dom_document.h"
 #include "dom_phase.h"
 #include "confidence_intervals.h"
@@ -33,8 +34,8 @@ namespace LQIO {
 	    friend std::ostream& operator<<(std::ostream & os, const XercesElementManip& m ) { return m._f(os,m._e); }
 	};
 
-	class Xerces_Document : public Document {
-	    friend Document * Document::create( lqio_params_stats*, bool );
+	class Xerces_Document : private Common_IO {
+	    friend DOM::Document::~Document();
 
 	private:
 	    struct ltXMLCh {
@@ -42,16 +43,16 @@ namespace LQIO {
 	    };
 
 	public:
-	  static Document * LoadLQNX( const std::string& filename, lqio_params_stats * io_vars, unsigned int & errorCode );		// Factory.
+	    static bool load( Document&, const std::string& filename, lqio_params_stats * io_vars, unsigned int & errorCode );		// Factory.
 
 	protected:
-	    Xerces_Document( lqio_params_stats* io_vars );
+	    Xerces_Document( Document& );
 
 	public:
 	    virtual ~Xerces_Document();
 
 	    virtual bool isXMLDOMPresent() const;
-	    virtual void serializeDOM( const char * file_name, bool instantiate=false ) const;
+	    static void serializeDOM( std::ostream&, bool instantiate=false );
 
 	private:
 	    Xerces_Document( const Xerces_Document& );
@@ -88,6 +89,8 @@ namespace LQIO {
 	    void handleHistogram( DOM::DocumentObject *, const DOMElement * );
 	    void handleHistogramBins( DOM::Histogram * histogram, const DOMNodeList * histogram_bins );
 
+	    void serializeDOM2( std::ostream&, bool instantiate ) const;
+
 	    void insertDocumentResults() const;
 	    void insertProcessorResults( const Processor * ) const;
 	    void insertGroupResults( const Group * ) const;
@@ -117,9 +120,11 @@ namespace LQIO {
 	    
 
 	private:
-	    XercesDOMParser *parser;
+	    Document& _document;
+	    XercesDOMParser *_parser;
 	    DOMTreeErrorReporter *errReporter;
 
+	    static Xerces_Document * __xercesDOM;
 	    static unsigned __indent;
 	    const DOMElement *_root;
 

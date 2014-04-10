@@ -163,20 +163,6 @@ Layer::prune()
 }
 
 
-
-const Layer&
-Layer::aggregate() const
-{
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->aggregate();
-    }
-    return *this;
-}
-
-
-
 const Layer&
 Layer::sort( compare_func_ptr compare ) const
 {
@@ -698,8 +684,8 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
     }
     if ( task ) {
 	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
-	std::vector<LQIO::DOM::Task*>& old_list = const_cast<std::vector<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
-	std::vector<LQIO::DOM::Task*>::iterator pos = find( old_list.begin(), old_list.end(), dom_task );
+	std::set<LQIO::DOM::Task*>& old_list = const_cast<std::set<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
+	std::set<LQIO::DOM::Task*>::iterator pos = find( old_list.begin(), old_list.end(), dom_task );
 	old_list.erase( pos );		// Remove task from original processor 
 	dom_processor->addTask( dom_task );
 	dom_task->setProcessor( dom_processor );
@@ -735,9 +721,8 @@ Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& proces
     if ( !task ) {
 	findOrAddSurrogateProcessor( document, processor, 0, level+1 );
 	LQIO::DOM::Processor * dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
-	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, 0, 
-					dom_processor, 0, 
-					new LQIO::DOM::ConstantExternalVariable(1), 1, 0, 0 );
+	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor, 
+					0, 0, new LQIO::DOM::ConstantExternalVariable(1), 1, 0, 0 );
 	document->addTaskEntity( dom_task );
 	dom_processor->addTask( dom_task );
 	task = new ServerTask( dom_task, processor, 0, entries );
@@ -944,7 +929,6 @@ Layer::drawQueueingNetwork( ostream& output ) const
     Entity * aServer;
     while ( aServer = nextServer() ) {
 	if ( aServer->isSelected() ) {
-	    aServer->drawServer( output );
 	    aServer->drawQueueingNetwork( output, max_x, y(), chain, clientArc );	/* Draw it. */
 	}
     }

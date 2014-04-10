@@ -197,8 +197,8 @@ Help::initialize()
     option_table['d']     = &Help::flagDebug;
     option_table['e']     = &Help::flagError;
     option_table['f']	  = &Help::flagFast;
-    option_table['n']     = &Help::flagNoExecute;
     option_table['I'] 	  = &Help::flagInputFormat;
+    option_table['n']     = &Help::flagNoExecute;
     option_table['o']     = &Help::flagOutput;
     option_table['p']     = &Help::flagParseable;
     option_table['P']     = &Help::flagPragmas;
@@ -222,7 +222,9 @@ Help::initialize()
     option_table[256+'u'] = &Help::flagUnderrelaxation;
     option_table[256+'z'] = &Help::flagSquashedLayering;
     option_table[256+'v'] = &Help::flagNoVariance;
+    option_table[512+'h'] = &Help::flagNoHeader;
     option_table[512+'r'] = &Help::flagReloadLQX;
+    option_table[512+'R'] = &Help::flagRestartLQX;
     option_table[512+'l'] = &Help::flagDebugLQX;
     option_table[512+'x'] = &Help::flagDebugXML;
 
@@ -669,6 +671,16 @@ Help::flagTraceMVA( ostream& output, bool verbose ) const
 }
 
 ostream&
+Help::flagNoHeader( ostream& output, bool verbose ) const
+{
+    output << "Do not print out the Result Variable header when running with SPEX input." << endl;
+    if ( verbose ) {
+	output << "This option has no effect otherwise." << endl;
+    }
+    return output;
+}
+
+ostream&
 Help::flagNoVariance( ostream& output, bool verbose ) const
 {
     output << "Do not use variances in the waiting time calculations." << endl;
@@ -678,8 +690,16 @@ Help::flagNoVariance( ostream& output, bool verbose ) const
 ostream&
 Help::flagReloadLQX( ostream& output, bool verbose ) const
 {
-    output << "Re-run the LQX" << ix( *this, "LQX" ) <<  " program without re-solving the models.  Results must exist from a previous solution run." << endl
-	   << "This option is useful if LQX print statements are changed." << endl;
+    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving the models.  Results must exist from a previous solution run." << endl
+	   << "This option is useful if LQX print statements or SPEX results are changed." << endl;
+    return output;
+}
+
+ostream&
+Help::flagRestartLQX( ostream& output, bool verbose ) const
+{
+    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved." << endl
+	   << "This option is useful for running a second pass with a new convergnece value and/or iteration limit." << endl;
     return output;
 }
 
@@ -803,14 +823,6 @@ Help::traceDeltaWait( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::traceEntry( ostream & output, bool verbose ) const
-{
-    output << "Print out results for the processor named " << emph( *this, "arg" ) << " after each submodel is solved." << endl
-	   << emph( *this, "Arg" ) << " can be a regular expression.  Not implemented." << endl;
-    return output;
-}
-
-ostream&
 Help::traceForks( ostream & output, bool verbose ) const
 {
     output << "Print out overlap table for forks prior to submodel solution." << endl;
@@ -866,25 +878,9 @@ Help::traceIntermediate( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::traceProcessor( ostream & output, bool verbose ) const
-{
-    output << "Print out results for the processor named " << emph( *this, "arg" ) << " after each submodel is solved." << endl
-	   << emph( *this, "Arg" ) << " can be a regular expression.  Not implemented." << endl;
-    return output;
-}
-
-ostream&
 Help::traceReplication( ostream & output, bool verbose ) const
 {
     output << "" << endl;
-    return output;
-}
-
-ostream&
-Help::traceTask( ostream & output, bool verbose ) const
-{
-    output << "Print out results for the task named " << emph( *this, "arg" ) << " after each submodel is solved. " << endl
-	   << emph( *this, "Arg" ) << " can be a regular expression.  Not implemented." << endl;
     return output;
 }
 
@@ -1185,7 +1181,7 @@ Help::pragmaSeverityLevel( ostream& output, bool verbose ) const
     output << "This pragma is used to enable or disable warning messages." << endl;
     return output;
 }
-
+
 ostream&
 Help::pragmaCyclesAllow( ostream& output, bool verbose ) const
 {
@@ -1203,7 +1199,7 @@ Help::pragmaCyclesDisallow( ostream& output, bool verbose ) const
 ostream& 
 Help::pragmaStopOnMessageLossFalse( ostream& output, bool verbose ) const
 {
-    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
+    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as inisfinite." << ix( *this, "infinity" ) << "";
     return output;
 }
 

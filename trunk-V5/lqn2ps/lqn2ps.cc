@@ -19,6 +19,7 @@
 #endif
 #include <lqio/dom_document.h>
 #include <lqio/srvn_results.h>
+#include <lqio/srvn_spex.h>
 #include "runlqx.h"
 #include "getopt2.h"
 #include "layer.h"
@@ -32,7 +33,7 @@
 #include "processor.h"
 #include "activity.h"
 
-extern "C" int srvndebug;
+extern "C" int LQIO_debug;
 
 extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
 bool SolverInterface::Solve::solveCallViaLQX = false;/* Flag when a solve() call was made */
@@ -126,12 +127,14 @@ option_type Flags::print[] = {
     { "tasks-only",        512+'t', 0,                     0,                      {0},                 false, "Print tasks only." },
     /* Miscellaneous */
     { "no-colour",	   512+'C', 0,			   0,			   {0},		        false, "Use grey scale when colouring result." },
+    { "no-header",	   512+'H', 0,			   0,			   {0},			false, "Do not output the variable name header on SPEX results." },
     { "surrogates",        768+'z', 0,                     0,                      {0},                 false, "[Don't] Add surrogate tasks for submodel/include-only output." },
     { "parse-file",        512+'p', "filename",            0,                      {0},                 false, "Load parseable results from filename." },
-    { "debug-xml",         512+'X', 0,                     0,                      {0},                 false, "Output debugging information while parsing XML input." },
     { "debug-lqx",	   512+'L', 0,                     0,                      {0},                 false, "Output debugging information while parsing LQX input." },
     { "debug-srvn",	   512+'Y', 0,                     0,                      {0},                 false, "Output debugging information while parsing SRVN input." },
+    { "debug-xml",         512+'X', 0,                     0,                      {0},                 false, "Output debugging information while parsing XML input." },
     { "debug-submodels",   512+'S', 0,                     0,			   {0},			false, "Show submodels." },
+    { "dump-graphviz",	   512+'G', 0,			   0, 			   {0},			false, "Output LQX parse tree in graphviz format." },
     { 0,                         0, 0,                     0,                      {0},                 false, 0 }
 };
 #if HAVE_GETOPT_H
@@ -170,6 +173,8 @@ lqn2ps( int argc, char *argv[] )
 #endif
 
     for ( ;; ) {
+	char * endptr = 0;
+
 #if HAVE_GETOPT_LONG
 	const int c = getopt2_long( argc, argv, opts.c_str(), longopts, NULL );
 #else	
@@ -213,7 +218,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 'B':
-	    if ( sscanf( optarg, "%lf", &Flags::print[BORDER].value.f ) != 1 || Flags::print[BORDER].value.f < 0.0 ) {
+	    Flags::print[BORDER].value.f = strtod( optarg, &endptr );
+	    if ( Flags::print[BORDER].value.f < 0.0 || *endptr != '\0' ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    } 
@@ -240,10 +246,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'F':
-	    if ( sscanf( optarg, "%d", &Flags::print[FONT_SIZE].value.i ) != 1 ) {
-		invalid_option( c, optarg );
-		exit( 1 );
-	    } else if ( Flags::print[FONT_SIZE].value.i < min_fontsize || max_fontsize < Flags::print[FONT_SIZE].value.i ) {
+	    Flags::print[FONT_SIZE].value.i = strtol( optarg, &endptr, 10 );
+	    if ( *endptr != '\0' || Flags::print[FONT_SIZE].value.i < min_fontsize || max_fontsize < Flags::print[FONT_SIZE].value.i ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    }
@@ -251,6 +255,11 @@ lqn2ps( int argc, char *argv[] )
 
 	case 512+'f':
 	    Flags::flatten_submodel = true;
+	    break;
+
+	case 512+'G':
+	    Flags::print[RUN_LQX].value.b 	= true;		    /* Run lqx */
+	    Flags::dump_graphviz 		= true;
 	    break;
 
 	case 'H':
@@ -262,6 +271,10 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::print[LAYERING].value.i = LAYERING_HWSW;
 	    break;
 	    
+	case 512+'H':
+            LQIO::DOM::Spex::__no_header = true;
+	    break;
+
 	case 'I':
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::io), &value );
 	    switch ( arg ) {
@@ -353,7 +366,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'k':
-	    if ( sscanf( optarg, "%d", &Flags::print[CHAIN].value.i ) != 1 && Flags::print[CHAIN].value.i < 1 ) {
+	    Flags::print[CHAIN].value.i = strtol( optarg, &endptr, 10 );
+	    if ( *endptr != '\0' || Flags::print[CHAIN].value.i < 1 ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    }
@@ -429,7 +443,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'M':
-	    if ( sscanf( optarg, "%lf", &Flags::print[MAGNIFICATION].value.f ) != 1 || Flags::print[MAGNIFICATION].value.f <= 0.0 ) {
+	    Flags::print[MAGNIFICATION].value.f = strtod( optarg, &endptr );
+	    if ( *endptr != '\0' || Flags::print[MAGNIFICATION].value.f <= 0.0 ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    } 
@@ -445,7 +460,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 'N':
-	    if ( sscanf( optarg, "%d", &Flags::print[PRECISION].value.i ) != 1 || Flags::print[PRECISION].value.i < 1 ) {
+	    Flags::print[PRECISION].value.i = strtol( optarg, &endptr, 10 );
+	    if ( *endptr != '\0' || Flags::print[PRECISION].value.i < 1 ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    } 
@@ -498,7 +514,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'Q':
-	    if ( sscanf( optarg, "%d", &Flags::print[QUEUEING_MODEL].value.i ) != 1 && Flags::print[QUEUEING_MODEL].value.i < 1 ) {
+	    Flags::print[QUEUEING_MODEL].value.i = strtol( optarg, &endptr, 10 );
+	    if ( *endptr != '\0' || Flags::print[QUEUEING_MODEL].value.i < 1 ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    }
@@ -530,7 +547,8 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'S':
-	    if ( sscanf( optarg, "%d", &Flags::print[SUBMODEL].value.i ) != 1 && Flags::print[SUBMODEL].value.i < 1 ) {
+	    Flags::print[SUBMODEL].value.i = strtol( optarg, &endptr, 10 );
+	    if ( *endptr != '\0' || Flags::print[SUBMODEL].value.i < 1 ) {
 		invalid_option( c, optarg );
 		exit( 1 );
 	    }
@@ -558,7 +576,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 512+'Y':
-	    srvndebug = true;
+	    LQIO_debug = true;
 	    break;
 
 	case 512+'w':
@@ -686,6 +704,7 @@ lqn2ps( int argc, char *argv[] )
     }
 
     if ( queueing_output() ) {
+	Flags::arrow_scaling *= 0.75;
 	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 
 	if ( submodel_output() ) {
@@ -863,7 +882,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
     }
     if ( parse_file_name && Flags::print[RESULTS].value.b ) {
 	try {
-	    Flags::have_results = loadSRVNResults( parse_file_name );
+	    Flags::have_results = LQIO::SRVN::loadResults( parse_file_name );
 	} 
 	catch ( runtime_error &error ) {
 	    cerr << io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << endl;
@@ -878,7 +897,13 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	Flags::have_results = Flags::print[RESULTS].value.b && document->hasResults();
     }
 
-    /* Try to open parse output */
+    /* Simplify model if requested -- this rewrites the DOM. */
+
+    if ( Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
+	Model::aggregate( *document );
+    }
+
+    /* Now fold, mutiliate and spindle */
 
     Model * aModel;
     switch ( Flags::print[LAYERING].value.i ) {
@@ -956,7 +981,9 @@ process( const string& input_file_name, const string& output_file_name, int mode
 			}
 		    }
 
-		    if ( status == 0 ) {
+		    if ( Flags::dump_graphviz ) {
+			program->getGraphvizRepresentation( std::cout );
+		    } else if ( status == 0 ) {
 			/* Invoke the LQX program itself */
 			if ( !program->invoke() ) {
 			    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, input_file_name.c_str() );

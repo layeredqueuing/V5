@@ -141,7 +141,9 @@ private:
     ostream& flagStopOnMessageLoss( ostream& output, bool verbose ) const;
     ostream& flagTraceMVA( ostream& output, bool verbose ) const;
     ostream& flagNoVariance( ostream& output, bool verbose ) const;
+    ostream& flagNoHeader( ostream& output, bool verbose ) const;
     ostream& flagReloadLQX( ostream& output, bool verbose ) const;
+    ostream& flagRestartLQX( ostream& output, bool verbose ) const;
     ostream& flagDebugLQX( ostream& output, bool verbose ) const;
     ostream& flagDebugXML( ostream& output, bool verbose ) const;
     ostream& flagMethoOfLayers( ostream& output, bool verbose ) const;
@@ -164,7 +166,6 @@ public:
     ostream& traceActivities( ostream & output, bool verbose ) const;
     ostream& traceConvergence( ostream & output, bool verbose ) const;
     ostream& traceDeltaWait( ostream & output, bool verbose ) const;
-    ostream& traceEntry( ostream & output, bool verbose ) const;
     ostream& traceForks( ostream & output, bool verbose ) const;
     ostream& traceIdleTime( ostream & output, bool verbose ) const;
     ostream& traceInterlock( ostream & output, bool verbose ) const;
@@ -172,9 +173,7 @@ public:
     ostream& traceMva( ostream & output, bool verbose ) const;
     ostream& traceOvertaking( ostream & output, bool verbose ) const;
     ostream& traceIntermediate( ostream & output, bool verbose ) const;
-    ostream& traceProcessor( ostream & output, bool verbose ) const;
     ostream& traceReplication( ostream & output, bool verbose ) const;
-    ostream& traceTask( ostream & output, bool verbose ) const;
     ostream& traceVariance( ostream & output, bool verbose ) const;
     ostream& traceWait( ostream & output, bool verbose ) const;
     ostream& traceThroughput( ostream & output, bool verbose ) const;

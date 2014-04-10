@@ -42,8 +42,6 @@
 #include "error.h"
 #include "srvndiff.h"
 
-extern char * lq_toolname;
-
 namespace LQIO {
     namespace DOM {
         using namespace std;
@@ -218,15 +216,11 @@ namespace LQIO {
         /* DOM input.                                                       */
 	/* ---------------------------------------------------------------- */
 
-	Expat_Document *
-	Expat_Document::LoadLQNX( const char* filename, unsigned& errorCode )
+	bool
+	Expat_Document::load( const char* filename )
 	{
-	    Expat_Document * document = new Expat_Document();
-	    if ( !document->parse( filename ) ) {
-		delete document;
-		return 0;
-	    }
-	    return document;
+	    Expat_Document document;
+	    return document.parse( filename );
 	}
 
 
@@ -345,11 +339,9 @@ namespace LQIO {
 	    }
 	    catch ( LQIO::missing_attribute& e ) {
 		document->input_error( "Missing attribute \"%s\" for element <%s>", e.what(), el );
-		throw;
 	    }
 	    catch ( std::invalid_argument& e ) {
 		document->input_error( "Invalid argument \"%s\" to attribute for element <%s>", e.what(), el );
-		throw;
 	    }
 	}
 
@@ -484,7 +476,7 @@ namespace LQIO {
 			     getDoubleAttribute(attributes,Xconv_val_result),
 			     iterations,
 			     0,			// Processors -- obsolete
-			     1 );			// Phases -- obsolete?
+			     1 );		// Phases -- obsolete?
 		_stack.push( parse_stack_t(element,&Expat_Document::startMVAInfo,object) );
 
 	    } else if ( strcasecmp( element, Xpragma ) == 0 ) {
@@ -501,6 +493,17 @@ namespace LQIO {
 	Expat_Document::startMVAInfo( const DocumentObject *, const XML_Char * element, const XML_Char ** attributes )
 	{
 	    if ( strcasecmp( element, Xmva_info ) == 0 ) {
+		try {
+		    add_mva_solver_info ( getLongAttribute(attributes,Xsubmodels),
+					  getLongAttribute(attributes,Xcore),
+					  getDoubleAttribute(attributes,Xstep),
+					  getDoubleAttribute(attributes,Xstep_squared),
+					  getDoubleAttribute(attributes,Xwait),
+					  getDoubleAttribute(attributes,Xwait_squared),
+					  getLongAttribute(attributes,Xfaults) );
+		}
+		catch ( missing_attribute& ) {
+		}
 		_stack.push( parse_stack_t(element,&Expat_Document::startNOP) );
 	    } else {
 		throw element_error( element );

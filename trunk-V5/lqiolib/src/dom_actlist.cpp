@@ -26,6 +26,16 @@ namespace LQIO {
 	{
 	}
 
+	bool ActivityList::isJoinList() const
+	{
+	    return _type == JOIN_ACTIVITY_LIST || _type == AND_JOIN_ACTIVITY_LIST || _type == OR_JOIN_ACTIVITY_LIST;
+	}
+
+	bool ActivityList::isForkList() const
+	{
+	    return _type == FORK_ACTIVITY_LIST || _type == AND_FORK_ACTIVITY_LIST || _type == OR_FORK_ACTIVITY_LIST || _type == REPEAT_ACTIVITY_LIST;
+	}
+
 	void ActivityList::setTask( const Task * task )
 	{
 	    _task = task;
@@ -107,15 +117,14 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 
-	AndJoinActivityList::AndJoinActivityList(const Document * document, const Task * task, ActivityListType type, const void * xmlDOMElement, ExternalVariable * quorum) 
-	    : ActivityList(document,task,type,xmlDOMElement), _quorum(quorum), _histogram(0),
+	AndJoinActivityList::AndJoinActivityList(const Document * document, const Task * task, ExternalVariable * quorum, const void * xmlDOMElement) 
+	    : ActivityList(document,task,AND_JOIN_ACTIVITY_LIST,xmlDOMElement), _quorum(quorum), _histogram(0),
 	      _resultJoinDelay(0.0),
 	      _resultJoinDelayVariance(0.0),
 	      _hasResultVarianceJoinDelay(false),
 	      _resultVarianceJoinDelay(0.0),
 	      _resultVarianceJoinDelayVariance(0.0)
 	{
-	    assert( type == DOM::ActivityList::AND_JOIN_ACTIVITY_LIST );
 	    const_cast<Document *>(document)->setTaskHasAndJoin(true);
 	}
 

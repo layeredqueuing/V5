@@ -16,54 +16,66 @@
 #include <lqio/dom_processor.h>
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_document.h>
+#include <lqio/expat_document.h>
 #include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
+#include <lqx/SyntaxTree.h>
+#include <../lqiolib/src/srvn_gram.h>		/* Derived file */
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
+#include "randomvar.h"
 
-const char * Generate::model_opts[] = {
-    "iteration-limit",
-    "print-interval",
-    "overtaking",
-    "convergence",
-    "underrelaxation",
-    "comment",
-    0
-};
+unsigned Generate::__iteration_limit    = 50;
+unsigned Generate::__print_interval     = 10;
+double Generate::__convergence_value    = 0.00001;
+double Generate::__underrelaxation      = 0.9;
+const char * Generate::__comment 	= "";
 
-unsigned Generate::iteration_limit   = 50;
-unsigned Generate::print_interval    = 10;
-double Generate::convergence_value   = 0.00001;
-double Generate::underrelaxation     = 0.9;
+static const unsigned int REF_LAYER = 0;
+static const unsigned int SERVER_LAYER = 1;
 
-
-const char * Generate::comment = "";
 
 LQIO::DOM::ConstantExternalVariable * Generate::ONE = 0;
-LQIO::DOM::ConstantExternalVariable * Generate::ZERO = 0;
+
+unsigned int Generate::__number_of_clients	= 1;
+unsigned int Generate::__number_of_processors	= 1;
+unsigned int Generate::__number_of_tasks	= 1;
+unsigned int Generate::__number_of_layers	= 1;
+Generate::layering_t Generate::__layering_type	= Generate::DETERMINISTIC_LAYERING;
+
+RV::RandomVariable * Generate::__service_time			= 0;
+RV::RandomVariable * Generate::__think_time			= 0;
+RV::RandomVariable * Generate::__forwarding_probability		= 0;
+RV::RandomVariable * Generate::__rendezvous_rate		= 0;
+RV::RandomVariable * Generate::__send_no_reply_rate		= 0;
+RV::RandomVariable * Generate::__customers_per_client		= 0;
+RV::RandomVariable * Generate::__task_multiplicity		= 0;
+RV::RandomVariable * Generate::__processor_multiplicity		= 0;
+RV::RandomVariable * Generate::__probability_second_phase	= 0;
+RV::RandomVariable * Generate::__probability_infinite_server	= 0;
+RV::RandomVariable * Generate::__number_of_entries		= 0;
 
 /*
  * Initialize probabilities.
  */
 
-Generate::Generate( const unsigned runs ) 
-    : _runs(runs)
+Generate::Generate( LQIO::DOM::Document * document, const unsigned runs ) 
+    : _document(document), _runs(runs), _number_of_layers(0)
 {
-    _document = LQIO::DOM::Document::create( &io_vars );		// For XML output.
-
-    if ( !comment || strlen(comment) == 0 ) {
-	comment = command_line.c_str();
-    }
-    if ( !ONE )   ONE = new LQIO::DOM::ConstantExternalVariable( 1.0 );
-    if ( !ZERO ) ZERO = new LQIO::DOM::ConstantExternalVariable( 0.0 );
+    if ( !ONE )	ONE = new LQIO::DOM::ConstantExternalVariable( 1.0 );
 }
 
 
-Generate::Generate( const unsigned runs, LQIO::DOM::Document * document ) 
-    : _document(document ), _runs(runs)
+Generate::Generate( const unsigned layers, const unsigned runs ) 
+    : _document(0), _runs(runs), _number_of_layers(layers)
 {
-    if ( !ONE )   ONE = new LQIO::DOM::ConstantExternalVariable( 1.0 );
-    if ( !ZERO ) ZERO = new LQIO::DOM::ConstantExternalVariable( 0.0 );
+    if ( !ONE ) ONE = new LQIO::DOM::ConstantExternalVariable( 1.0 );
+    _document = new LQIO::DOM::Document( &io_vars, LQIO::DOM::Document::AUTOMATIC_INPUT );		// For XML output.
+    _layer_CDF.resize( _number_of_layers + 1 );
+    _task.resize( _number_of_layers + 1 );
+    _entry.resize( _number_of_layers + 1 );
+    _layer_CDF[0] = 0;
 }
 
 
@@ -71,294 +83,279 @@ Generate::~Generate()
 {
     delete _document;
     _document = 0;
-    comment = "";
 }
 
-/* 
- * Generate a default model by invoking functions directy.
+/*
+ * Generate a model.
  */
 
-void
-Generate::fixed( variateFunc get_parameter )
+Generate&
+Generate::operator()()
 {
-    _task.resize( 2 );
-    _entry.resize( 2 );
-    const string client_name = "client";
-    const string server_name = "server"; 
+    if ( _processor.size() > 0 ) return *this;
 
-    opt[SERVICE_TIME].opts.func = &Generate::deterministic;
-    opt[SERVICE_TIME].mean = 1;
-    opt[PHASE2_PROBABILITY].opts.func = &Generate::deterministic;
-    opt[PHASE2_PROBABILITY].mean = 0;
-    opt[RNV_PROBABILITY].opts.func = &Generate::deterministic;
-    opt[RNV_PROBABILITY].mean = 1;
-    opt[RNV_REQUESTS].opts.func = &Generate::deterministic;
-    opt[RNV_REQUESTS].mean = 1;
-    opt[THINK_TIME].opts.func = &Generate::deterministic;
-    opt[THINK_TIME].mean = 0;
+    makeLayerCDF();
 
-    LQIO::DOM::Processor * clientProcessor = addProcessor( client_name, SCHEDULE_DELAY, ONE );
-    LQIO::DOM::Processor * serverProcessor = addProcessor( server_name, SCHEDULE_PS, ONE );
-    _processor.push_back( serverProcessor );
- 
-    LQIO::DOM::Entry * clientEntry = addEntry( client_name, 1, get_parameter );
-    vector<LQIO::DOM::Entry *> clientEntries;
-    _entry[0].push_back( clientEntry );
-    clientEntries.push_back( clientEntry );
-    _task[0].push_back( addTask( client_name, SCHEDULE_CUSTOMER, ONE, clientEntries, clientProcessor ) );
+    std::vector<unsigned int> stride(  _number_of_layers + 1 );
+    const unsigned int width = static_cast<unsigned int>( ceil( log10( __number_of_tasks ) ) );
 
-    LQIO::DOM::Entry * serverEntry = addEntry( server_name, 1, get_parameter );
-    vector<LQIO::DOM::Entry *> serverEntries;
-    _entry[1].push_back( serverEntry );
-    serverEntries.push_back( serverEntry) ;
-    _task[1].push_back( addTask( server_name, SCHEDULE_FIFO, ONE, serverEntries, serverProcessor ) );
-
-    _call.push_back( addCall( clientEntry, serverEntry, get_parameter ) );
-
-    if ( Flags::lqx_output ) {
-	addLQX( &Generate::serialize, getNumberOfRuns() > 1 ? &ModelVariable::vector : &ModelVariable::scalar );
+    /* Create all clients, and give them their own processor */
+    for ( unsigned int i = 0; i < __number_of_clients; ++i ) {
+	std::ostringstream name;
+	name << "c" << setw( width ) << setfill( '0' ) << i;
+	LQIO::DOM::Processor * proc = addProcessor( name.str(), SCHEDULE_DELAY );		// Hide this one.
+	vector<LQIO::DOM::Entry *> entries;
+	LQIO::DOM::Entry * entry = addEntry( name.str() );
+	_entry[REF_LAYER].push_back( entry );
+	entries.push_back( entry );
+	_task[REF_LAYER].push_back( addTask( name.str(), SCHEDULE_CUSTOMER, entries, proc ) );	// Get RV for number of customers.
     }
-    _document->setModelParameters( comment, new LQIO::DOM::ConstantExternalVariable( convergence_value ), 
-				   new LQIO::DOM::ConstantExternalVariable( iteration_limit ), 
-				   new LQIO::DOM::ConstantExternalVariable( print_interval ), 
-				   new LQIO::DOM::ConstantExternalVariable( underrelaxation ), 0 );
-}
 
+    /* Create all processors */
+    for ( unsigned int i = 0; i < __number_of_processors; ++i ) {
+	std::ostringstream name;
+	name << "p" << i;
+	LQIO::DOM::Processor * proc = addProcessor( name.str(), SCHEDULE_PS );
+	_processor.push_back( proc );
+    }
+
+    /* Create and distribute all tasks,  connect to processors */
+
+    for ( unsigned int i = 0; i < __number_of_tasks; ++i ) {
+	std::ostringstream entry_name;
+	std::ostringstream task_name;
+	entry_name << "e" << setw( width ) << setfill( '0' ) << i;
+	task_name  << "t" << setw( width ) << setfill( '0' ) << i;
+
+	const unsigned int layer = ( i < _number_of_layers ? (i + 1) : getLayer( i ) );		/* Always put one task in every layer. */
+	vector<LQIO::DOM::Entry *> entries;
+	LQIO::DOM::Entry * entry = addEntry( entry_name.str(), __probability_second_phase );
+	_entry[layer].push_back( entry );
+	entries.push_back( entry );
+	unsigned int p = ( i <  __number_of_processors ? i : static_cast<unsigned int>(floor( drand48() * __number_of_processors ) ) );
+	const scheduling_type sched = ( __probability_infinite_server && (*__probability_infinite_server)() != 0.0 ) ? SCHEDULE_DELAY : SCHEDULE_FIFO;
+	_task[layer].push_back( addTask( task_name.str(), sched, entries, _processor[p] ) );
+    }
+
+    /* Set stride so that we can route calls to other layers */
+
+    unsigned int n_tasks = 0;
+    for ( unsigned int i = 0; i <= _number_of_layers; ++i ) {
+	n_tasks += _task[i].size();
+	stride[i] = n_tasks;
+    }
+
+    /* Connect all servers to parents */
+
+    assert( _entry[REF_LAYER].size() == __number_of_clients );
+
+    for ( unsigned int j = SERVER_LAYER; j <= _number_of_layers; ++j ) {
+	unsigned int i = 0;
+	const unsigned int number_of_clients = _entry[j-1].size();
+	for ( std::vector<LQIO::DOM::Entry *>::const_iterator dst = _entry[j].begin(); dst != _entry[j].end(); ++dst ) {
+	    LQIO::DOM::Entry * src = _entry[j-1][i];
+	    _call.push_back( addCall( src, *dst, __probability_second_phase ) );
+	    i = (i + 1) % number_of_clients;		// too few clients handled here.
+	}
+    }
+
+    /* Create extra entries on all tasks and move calls */
+
+    if ( __number_of_entries ) {
+	for ( unsigned int j = SERVER_LAYER; j <= _number_of_layers; ++j ) {
+	    for ( std::vector<LQIO::DOM::Task *>::const_iterator task = _task[j].begin(); task != _task[j].end(); ++task ) {
+		const unsigned n_entries = (*__number_of_entries)();
+		vector<LQIO::DOM::Entry *>& entries = const_cast<vector<LQIO::DOM::Entry *>&>((*task)->getEntryList());
+		const LQIO::DOM::Entry * entry = entries.front();
+		for ( unsigned int i = 1; i < n_entries; ++i ) {
+		    std::ostringstream name;
+		    
+		    name << entry->getName() << static_cast<char>((i-1)+'a');
+		    LQIO::DOM::Entry * entry = addEntry( name.str(), __probability_second_phase );
+		    entries.push_back(entry);
+
+		    const unsigned int e = static_cast<unsigned int>(stride[j-1] * drand48());
+		    unsigned int prev_stride = 0;
+		    for ( unsigned int l = 0; l <= _number_of_layers; ++l ) {
+			if ( e >= stride[l] ) {
+			    prev_stride = stride[l];
+			} else {
+			    const unsigned int ee = e-prev_stride;
+			    assert( ee < _entry[l].size() );
+			    _call.push_back( addCall( _entry[l][ee], entry, __probability_second_phase ) );
+			    break;
+			}
+		    }
+		}
+	    }
+	}
+    }
+
+    /* If I have too many clients for the first server layer, randomly connect extra clients to ANY server */
+
+    const unsigned int n_clients = _task[REF_LAYER].size();
+    const unsigned int n_servers = _task[SERVER_LAYER].size();
+    if ( n_clients > n_servers ) {
+	for ( unsigned int i = n_servers; i < n_clients; ++i ) {
+	    const std::vector<LQIO::DOM::Entry*>& list = _task[REF_LAYER][i]->getEntryList();
+	    const unsigned int e = static_cast<unsigned int>(floor( static_cast<double>(n_tasks-stride[0]) * drand48() ) ) + stride[0];	/* Skip ref task */
+	    unsigned int prev_stride = 0;
+	    for ( unsigned int l = 0; l <= _number_of_layers; ++l ) {
+		if ( e >= stride[l] ) {
+		    prev_stride = stride[l];
+		} else {
+		    unsigned int ee = e-prev_stride;
+		    assert( ee < _entry[l].size() );
+		    _call.push_back( addCall( list[0], _entry[l][ee] ) );
+		    break;
+		}
+	    }
+	}
+    }
+
+    /* ---- */
+
+    if ( Flags::spex_output ) {
+	addSpex( &Generate::set_variables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
+    } else if ( Flags::xml_output && Flags::lqx_output ) {
+	addLQX( &Generate::set_variables, getNumberOfRuns() > 1 ? &ModelVariable::lqx_random : &ModelVariable::lqx_scalar );
+    }
+    _document->setModelParameters( __comment, new LQIO::DOM::ConstantExternalVariable( __convergence_value ), 
+				   new LQIO::DOM::ConstantExternalVariable( __iteration_limit ), 
+				   new LQIO::DOM::ConstantExternalVariable( __print_interval ), 
+				   new LQIO::DOM::ConstantExternalVariable( __underrelaxation ), 0 );
+    
+    return *this;
+}
 
 
 /*
- * Generate a random model.
+ * Translate all constants to variables, then output control program.
  */
 
 void
-Generate::random( variateFunc get_parameter )
+Generate::reparameterize()
 {
-    const unsigned n_layers = unsigned_rv( NUMBER_OF_LAYERS );
-    assert( n_layers >= 2 );
-    _task.resize( n_layers );
-    _entry.resize( n_layers );
-
-    /* Create Reference tasks */
-
-    const unsigned n_ref_tasks = unsigned_rv( NUMBER_OF_CUSTOMERS );
-    assert( n_ref_tasks > 0 );
-    for ( unsigned r = 0; r < n_ref_tasks; ++r ) {
- 	ostringstream proc_name;
-	proc_name << "p" << _document->getNumberOfProcessors() + 1;
-	LQIO::DOM::Processor * aProcessor = addProcessor( proc_name.str(), SCHEDULE_DELAY, ONE );
-
- 	ostringstream entry_name;
-	entry_name << "e" << _document->getNumberOfEntries() + 1;
-	vector<LQIO::DOM::Entry *> entries;
-	LQIO::DOM::Entry * anEntry = addEntry( entry_name.str(), 1, get_parameter );
-	entries.push_back( anEntry );
-	_entry[0].push_back( anEntry );
-
- 	ostringstream task_name;
-	task_name << "t" << _document->getNumberOfTasks() + 1;
-	_task[0].push_back( addTask( task_name.str(), SCHEDULE_CUSTOMER, 
-				     (this->*get_parameter)( CUSTOMERS, task_name.str() ), 		/* Copies */
-				     entries,
-				     aProcessor,
-				     (this->*get_parameter)( THINK_TIME, task_name.str() ) ) );
-    }
-
-    /* Create processors */
-
-    const unsigned n_tasks = n_layers == 2 ? 0 : max( unsigned_rv( NUMBER_OF_TASKS ), n_layers-2 );		/* Need one task per layer, not counting reference tasks. */
-    const unsigned n_procs = min( unsigned_rv( NUMBER_OF_PROCESSORS ), n_tasks );
-    assert( n_procs >= 0 );
-    for ( unsigned i = 1; i <= n_procs; ++i ) {
-	LQIO::DOM::Processor * aProcessor;
-	ostringstream proc_name;
-	proc_name << "p" << _document->getNumberOfProcessors() + 1;
-        const double x = drand48();
-        if ( x < opt[INFINITE_SERVER].mean ) {
-            aProcessor = addProcessor( proc_name.str(), SCHEDULE_DELAY, ONE );
-        } else if ( x < opt[INFINITE_SERVER].mean + opt[MULTI_SERVER].mean ) {
-            aProcessor = addProcessor( proc_name.str(), SCHEDULE_FIFO, (this->*get_parameter)( PROCESSOR_MULTIPLICITY, proc_name.str() ) );
-        } else {
-            aProcessor = addProcessor( proc_name.str(), SCHEDULE_PS, ONE );
-        }
-	_processor.push_back( aProcessor );
-    }
-    shuffle( _processor );
-
-    /* Create other tasks */
-
-    for ( unsigned j = 0; j < n_tasks; ++j ) {
-	const unsigned int h = j < n_procs ? j : uniform(0,n_procs);		/* Pick randomly after all assigned */
-	assert( h < n_procs );
-	LQIO::DOM::Processor * aProcessor = _processor[h];
-
-	const unsigned int l = ((j+1) < n_layers) ? j : uniform( 1, n_layers-1 );	/* Pick randomly after all assigned */
-
-	vector<LQIO::DOM::Entry *> entries;
-	const unsigned nEntries = unsigned_rv( NUMBER_OF_ENTRIES );
-	assert( nEntries > 0 );
-	for ( unsigned e = 1; e <= nEntries; ++e ) {
-	    ostringstream entry_name;
-	    entry_name << "e" << _document->getNumberOfEntries() + 1;
-	    LQIO::DOM::Entry * anEntry = addEntry( entry_name.str(), choose( PHASE2_PROBABILITY ) ? 2 : 1, get_parameter );
-	    entries.push_back( anEntry );
-	    _entry[l].push_back( anEntry );
-	}
-
-	ostringstream task_name;
-	task_name << "t" << _document->getNumberOfTasks() + 1;
-
-	LQIO::DOM::Task * aTask;
-	const double x = drand48();
-	if ( x < opt[INFINITE_SERVER].mean ) {
-	    aTask = addTask( task_name.str(), SCHEDULE_DELAY, ONE, entries, aProcessor );
-	} else if ( x < opt[INFINITE_SERVER].mean + opt[MULTI_SERVER].mean ) {
-	    aTask = addTask( task_name.str(), SCHEDULE_FIFO, (this->*get_parameter)( TASK_MULTIPLICITY, task_name.str() ), entries, aProcessor );
+    if ( Flags::sensitivity > 0.0 ) {
+	if ( Flags::spex_output ) {
+	    addSensitivitySPEX( &Generate::sensitivity_variables, &ModelVariable::spex_sensitivity );
 	} else {
-	    aTask = addTask( task_name.str(), SCHEDULE_FIFO, ONE, entries, aProcessor );
+	    addSensitivityLQX( &Generate::sensitivity_variables, &ModelVariable::lqx_sensitivity );
 	}
-
-	_task[l].push_back( aTask );
-    }
-
-
-    /* 
-     * Connect reference tasks to top layer.  All layer 2 servers need
-     * to connect to a client task, and all client tasks must call a
-     * server task.  If more clients, than servers, choose server entry
-     * randomly, and vice-versa 
-     */
-
-    const std::vector<LQIO::DOM::Entry*>& src_entries = _entry[0];
-    const unsigned int n_src_entries = src_entries.size();
-    const std::vector<LQIO::DOM::Entry*>& dst_entries = _entry[1];
-    const unsigned int n_dst_entries = dst_entries.size();
-
-    const unsigned int n_clients = min( n_src_entries, n_dst_entries );
-    for ( unsigned int i = 0; i < n_clients; ++i ) {
-	_call.push_back( addCall( src_entries[i], dst_entries[i], get_parameter ) );
-    }
-
-    if ( n_clients < _entry[0].size() ) {
-
-	/* Too few servers - make more connections */
-
-	for ( unsigned int i = n_clients; i < n_src_entries; ++i ) {
-	    const unsigned e = n_dst_entries * drand48();
-	    _call.push_back( addCall( src_entries[i], dst_entries[e], get_parameter ) );
-	}
-
-    } else if (  n_clients < _entry[1].size() ) {
-		
-	/* Too many server entries... */
-
-	for ( unsigned int i = n_clients; i < n_dst_entries; ++i ) {
-	    const unsigned int e = n_src_entries * drand48();
-	    _call.push_back(  addCall( src_entries[e], dst_entries[i], get_parameter ) );
+    } else {
+	if ( Flags::spex_output ) {
+	    addSpex( &Generate::make_variables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
+	} else {
+	    addLQX( &Generate::make_variables, getNumberOfRuns() > 1 ? &ModelVariable::lqx_random : &ModelVariable::lqx_scalar );
 	}
     }
-
-    /*
-     * Now connect all entries for l>2 layers to upper level layers.
-     * First entry on every task must go to an entry in l-1 to ensure
-     * that this task goes in this layer.  Other entries can go to
-     * anywhere.
-     */
-
-    for ( unsigned int l = 2; l < n_layers; ++l ) {
-	for ( unsigned int i = 0; i < _task[l].size(); ++i ) {
-	    const std::vector<LQIO::DOM::Entry*>& dst_entries = _task[l][i]->getEntryList();
-
-	    for ( unsigned int j = 0; j < dst_entries.size(); ++j ) {
-		const unsigned int k = ( j == 0 ) ? l - 1 : l * drand48();
-		const unsigned int e = _entry[k].size() * drand48();		/* Pick a random enty */
-		_call.push_back( addCall( _entry[k][e], dst_entries[j], get_parameter ) );
-	    }
-	}
-    }
-
-    if ( Flags::lqx_output ) {
-	addLQX( &Generate::serialize2, getNumberOfRuns() > 1 ? &ModelVariable::vector : &ModelVariable::scalar );
-    }
-    _document->setModelParameters( comment, new LQIO::DOM::ConstantExternalVariable( convergence_value ), 
-				   new LQIO::DOM::ConstantExternalVariable( iteration_limit ), 
-				   new LQIO::DOM::ConstantExternalVariable( print_interval ), 
-				   new LQIO::DOM::ConstantExternalVariable( underrelaxation ), 0 );
 }
-
+
+/* ------------------------------------------------------------------------ */
 
 void
-Generate::reparameterize( )
+Generate::makeLayerCDF() 
 {
-    addLQX( &Generate::serialize2, getNumberOfRuns() > 1 ? &ModelVariable::vector : &ModelVariable::scalar );
-}
-
-/*
- * Set the general arguments, G "comment" ...
- */
+    _layer_CDF[0] = 0;		/* Don't use the ref task layer */
 
-bool
-Generate::getGeneralArgs( char * options )
-{
-    char * value;
+    const layering_t layering_type = (__layering_type == RANDOM_LAYERING ? static_cast<layering_t>(ceil( drand48() * static_cast<double>(FAT_LAYERING-DETERMINISTIC_LAYERING) ) + DETERMINISTIC_LAYERING) 
+				      : __layering_type);
+    double sum = 0;
 
-    while ( *options ) {
-	switch( getsubopt( &options, const_cast<char * const *>(Generate::model_opts), &value ) ) {
-	case MODEL_COMMENT:
-	    Generate::comment = value;
-	    break;
-
-	case ITERATION_LIMIT:
-	    if ( !value || (Generate::iteration_limit = (unsigned)strtol( value, 0, 10 )) == 0 ) {
-		cerr << io_vars.lq_toolname << "iteration-limit=" << value << " is invalid, choose non-negative integer." << endl;
-		(void) exit( 3 );
-	    }
-	    break;
-
-	case PRINT_INTERVAL:
-	    if ( !value || (Generate::print_interval = (unsigned)strtol( value, 0, 10 )) == 0 ) {
-		cerr << io_vars.lq_toolname << "print-interval=" << value << " is invalid, choose non-negative integer." << endl;
-		(void) exit( 3 );
-	    }
-	    break;
-
-	case CONVERGENCE_VALUE:
-	    if ( !value || (Generate::convergence_value = strtod( value, 0 )) == 0 ) {
-		cerr << io_vars.lq_toolname << "convergence=" << value << " is invalid, choose non-negative real." << endl;
-		(void) exit( 3 );
-	    }
-	    break;
-
-	case UNDERRELAXATION:
-	    if ( !value || (Generate::underrelaxation = strtod( value, 0 )) < -1.0 || 1.0 < Generate::underrelaxation ) {
-		cerr << io_vars.lq_toolname << "underrelaxation=" << value << " is invalid, choose real between 0.0 and 1.0." << endl;
-		(void) exit( 3 );
-	    }
-	    break;
-
-	default:
-	    return false;
+    switch ( layering_type ) {
+    case DETERMINISTIC_LAYERING:
+    case UNIFORM_LAYERING:
+	for ( unsigned int i = SERVER_LAYER; i <= _number_of_layers; ++i ) {
+	    _layer_CDF[i] = static_cast<double>(i);
 	}
+	sum = _layer_CDF[_number_of_layers];
+	break;
+
+    case PYRAMID_LAYERING:
+	for ( unsigned int i = SERVER_LAYER; i <= _number_of_layers; ++i ) {
+	    _layer_CDF[i] = _layer_CDF[i-1] + static_cast<double>(i);
+	}
+	sum = _layer_CDF[_number_of_layers];
+	break;
+
+    case FUNNEL_LAYERING:
+	for ( unsigned int i = SERVER_LAYER; i <= _number_of_layers; ++i ) {
+	    sum += sum + static_cast<double>(i);
+	}
+	_layer_CDF[_number_of_layers] = sum;
+	for ( unsigned int i = _number_of_layers-1; i >= SERVER_LAYER ; --i ) {
+	    _layer_CDF[i] = _layer_CDF[i+1] - (_number_of_layers-i);
+	}
+	break;
+
+    case FAT_LAYERING: {
+	const unsigned int median = static_cast<unsigned int>(_number_of_layers / 2.0 + 0.5);
+	for ( unsigned int i = SERVER_LAYER; i <= _number_of_layers; ++i ) {
+	    _layer_CDF[i] = _layer_CDF[i-1] + (i <= median ? static_cast<double>(i) : static_cast<double>(_number_of_layers - i + 1));
+	}
+	sum = _layer_CDF[_number_of_layers];
+    } break;
+	
+    default:
+	abort();
     }
-    return true;
+
+    /* Normalize */
+
+    for ( unsigned int i = SERVER_LAYER; i <= _number_of_layers; ++i ) {
+	_layer_CDF[i] /= sum;
+    }
+
+    /* debug */
+    // cerr << "Sum = " << sum << std::endl;
+    // double prev = 0;
+    // for ( unsigned int i = 0; i <= _number_of_layers; ++i ) {
+    // 	cerr << i << ": " << _layer_CDF[i] << ", delta = " << (_layer_CDF[i] - prev) << std::endl;
+    // 	prev = _layer_CDF[i];
+    // }
 }
-
+
+unsigned int
+Generate::getLayer( const unsigned int i ) const
+{
+    /* Get the default layer for the task (starting from 1 working down) */
+
+    unsigned int layer = 0;
+    if ( __layering_type == DETERMINISTIC_LAYERING ) {
+	layer = (i % _number_of_layers) + 1;
+    } else {
+	layer = SERVER_LAYER;
+	const double rv = drand48();	
+	while ( _layer_CDF[layer] < rv && layer < _number_of_layers ) {
+	    ++layer;
+	}
+//	cerr << "RV is: " << rv << ", Layer is: " << layer << std::endl;
+    }
+    return layer;
+}
+
+
 /*
  * Add a processor to layer.
  */
 
 LQIO::DOM::Processor * 
-Generate::addProcessor( const string& name, const scheduling_type sched_flag, LQIO::DOM::ExternalVariable * n_copies )
+Generate::addProcessor( const string& name, const scheduling_type sched_flag )
 {
-    LQIO::DOM::Processor * dom_processor;
-
-    dom_processor = new LQIO::DOM::Processor( _document, name.c_str(), sched_flag, n_copies, 1, (void *)0 );
-    dom_processor->setRateValue( 1.0 );
-    if ( sched_flag == SCHEDULE_PS ) {
-	dom_processor->setQuantumValue( 0.1 );
+    LQIO::DOM::ExternalVariable * n_copies = 0;
+    if ( sched_flag == SCHEDULE_DELAY ) {
+	n_copies = ONE;
+    } else {
+	n_copies = get_rv( "$p_", name, __processor_multiplicity );
     }
-    _document->addProcessorEntity( dom_processor );    /* Map into the document */
+    LQIO::DOM::Processor * processor = new LQIO::DOM::Processor( _document, name.c_str(), sched_flag, n_copies );
+    processor->setRateValue( 1.0 );
+    if ( sched_flag == SCHEDULE_PS ) {
+	processor->setQuantumValue( 0.1 );
+    }
+    _document->addProcessorEntity( processor );    /* Map into the document */
 
-    return dom_processor;
+    return processor;
 }
 
 
@@ -367,23 +364,20 @@ Generate::addProcessor( const string& name, const scheduling_type sched_flag, LQ
  */
 
 LQIO::DOM::Task *
-Generate::addTask( const string& name, const scheduling_type sched_flag, LQIO::DOM::ExternalVariable * n_copies, 
-		   const vector<LQIO::DOM::Entry *>& dom_entries, LQIO::DOM::Processor * dom_processor, LQIO::DOM::ExternalVariable * think_time )
+Generate::addTask( const string& name, const scheduling_type sched_flag, const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * processor )
 {
-    LQIO::DOM::Task * dom_task;
-    dom_task = new LQIO::DOM::Task( _document, name.c_str(), sched_flag, dom_entries, 0, 
-				    dom_processor,
-				    /* priority */ 0, 		
-				    n_copies, /* replicas */ 1, /* Group */ 0, (void *)0 );
+    LQIO::DOM::Task * task = new LQIO::DOM::Task( _document, name.c_str(), sched_flag, entries, processor );
+    _document->addTaskEntity(task);
+    processor->addTask(task);
 
-
-    if ( think_time ) {
-	dom_task->setThinkTime( think_time );
+    if ( sched_flag == SCHEDULE_CUSTOMER ) {
+	task->setCopies( get_rv( "$c_", name, __customers_per_client ) );
+	task->setThinkTime( get_rv( "$Z_", name, __think_time ) );
+    } else if ( sched_flag != SCHEDULE_DELAY ) {
+	task->setCopies( get_rv( "$m_", name, __task_multiplicity ) );
     }
 
-    _document->addTaskEntity(dom_task);
-    dom_processor->addTask(dom_task);
-    return dom_task;
+    return task;
 }
 
 
@@ -392,63 +386,68 @@ Generate::addTask( const string& name, const scheduling_type sched_flag, LQIO::D
  */
 
 LQIO::DOM::Entry *
-Generate::addEntry( const string& name, unsigned n_phases, variateFunc get_parameter )
+Generate::addEntry( const string& name, const RV::RandomVariable * pr_2nd_phase )
 {
-    LQIO::DOM::Entry* dom_entry = new LQIO::DOM::Entry( _document, name.c_str(), (void *)0 );
-    _document->addEntry(dom_entry);
+    LQIO::DOM::Entry* entry = new LQIO::DOM::Entry( _document, name.c_str(), (void *)0 );
+    _document->addEntry(entry);
+    _document->db_check_set_entry( entry, name, LQIO::DOM::Entry::ENTRY_STANDARD );
+    unsigned int n_phases = 1;
+    if ( pr_2nd_phase && (*pr_2nd_phase)() != 0.0 ) {
+	n_phases = 2;
+    }
     for ( unsigned p = 1; p <= n_phases; ++p ) {
-	LQIO::DOM::Phase* dom_phase = dom_entry->getPhase(p);
+	LQIO::DOM::Phase* phase = entry->getPhase(p);
 	string phase_name=name;
 	phase_name += '_';
 	phase_name += "_123"[p];
-	dom_phase->setName( phase_name );
-        dom_phase->setServiceTime( (this->*get_parameter)( SERVICE_TIME, phase_name ) );
+	phase->setName( phase_name );
+	phase->setServiceTime( get_rv( "$s_", phase_name, __service_time ) );
     }
 
-    return dom_entry;
+    return entry;
 }
 
 
-LQIO::DOM::Call *
-Generate::addCall( LQIO::DOM::Entry * dom_src, LQIO::DOM::Entry * dom_dst, variateFunc get_parameter )
-{
-    const unsigned p = choose( PHASE2_PROBABILITY ) ? 2 : 1;
-    LQIO::DOM::Phase * phase = dom_src->getPhase( p ); 
-    LQIO::DOM::Call * dom_call;
-    string call_name = phase->getName();
-    call_name += '_';
-    call_name += dom_dst->getName();
-    if ( choose( RNV_PROBABILITY ) ) {
-	dom_call = new LQIO::DOM::Call( _document,
-					LQIO::DOM::Call::RENDEZVOUS, 
-					phase,
-					dom_dst, p,
-					(this->*get_parameter)( RNV_REQUESTS, call_name ) );
-    } else {
-	dom_call = new LQIO::DOM::Call( _document,
-					LQIO::DOM::Call::SEND_NO_REPLY, 
-					phase,
-					dom_dst, p,
-					(this->*get_parameter)( SNR_REQUESTS, call_name ) );
-    }
-    dom_src->appendOriginatingCall(dom_call);
-    dom_call->setName( call_name );
+/*
+ * Create a synch call from phase 1 of src to dst.
+ */
 
-    return dom_call;
+LQIO::DOM::Call *
+Generate::addCall( LQIO::DOM::Entry * src, LQIO::DOM::Entry * dst, const RV::RandomVariable * pr_2nd_phase )
+{
+    const unsigned n_phases = src->getMaximumPhase();
+    LQIO::DOM::Phase * phase = 0;
+    if ( n_phases > 1 && pr_2nd_phase && (*pr_2nd_phase)() != 0.0 ) {
+	phase = src->getPhase( 2 ); 
+    } else {
+	phase = src->getPhase( 1 ); 	
+    }
+
+    string name = phase->getName();
+    name += '_';
+    name += dst->getName();
+
+    LQIO::DOM::Call * call;
+    call = new LQIO::DOM::Call( _document, LQIO::DOM::Call::RENDEZVOUS, phase, dst );
+    call->setCallMean( get_rv( "$y_", name, __rendezvous_rate ) );
+    phase->addCall( call );
+    call->setName( name );
+
+    return call;
 }
 
 
 
 void
-Generate::addLQX( parameterize_fptr f, const ModelVariable::variableValueFunc g )
+Generate::addLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g )
 {
-    const unsigned n = getNumberOfRuns();
     (this->*f)( g );					/* Make Variables */
 
+    const unsigned n = getNumberOfRuns();
     if ( n > 1 ) {
-	_program << print_header( *_document, 1, "\"i, \"" );
+	_program << print_header( *_document, 1, "i" );
 	_program << indent( 1 ) << "for ( i = 0; i < " << n << "; i = i + 1 ) {" << endl;
-	(this->*f)( &ModelVariable::index );		/* Get Variables */
+	(this->*f)( &ModelVariable::lqx_function );	/* Get Variables */
 	_program << indent( 2 ) << "solve();" << endl;
 	_program << print_results( *_document, 2, "i" );
 	_program << indent( 1 ) << "}" << endl;
@@ -462,54 +461,202 @@ Generate::addLQX( parameterize_fptr f, const ModelVariable::variableValueFunc g 
 
 
 void
-Generate::serialize( const ModelVariable::variableValueFunc f )  
+Generate::addSensitivityLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g )
 {
-    for_each( _processor.begin(), _processor.end(), GetProcessorVariable( *this, f ) );
-    for ( vector<vector<LQIO::DOM::Task *> >::const_iterator layer = _task.begin(); layer != _task.end(); ++layer ) {
-	for_each( (*layer).begin(), (*layer).end(), GetTaskVariable( *this, f ) );		//vector of vector
+    (this->*f)( g );		/* Should be the vector generator */
+
+    _program << print_header( *_document, 1 );
+    const std::map<std::string,LQIO::DOM::Entry*>& entries = _document->getEntries();	
+    forEach( entries.begin(), entries.end(), 1 );
+    _document->setLQXProgramText( _program.str() );
+}
+
+void
+Generate::forEach( std::map<std::string,LQIO::DOM::Entry*>::const_iterator e, const std::map<std::string,LQIO::DOM::Entry*>::const_iterator& end, const unsigned int i )
+{
+    if ( e == end ) {
+	_program << indent( i ) << "solve();" << endl;
+	_program << print_results( *_document, i );
+    } else {
+	const LQIO::DOM::Entry * entry = e->second;
+	if ( isReferenceTask( entry->getTask() ) ) {
+	    forEach( ++e, end, i );
+	} else {
+	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
+	    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
+		LQIO::DOM::Phase* phase = p->second;
+		std::string name = "$s_";
+		name += phase->getName();
+		const char * buf = name.c_str();
+		_program << indent( i ) << "foreach( " << name << " in " << &buf[1] << " ) {" << endl;
+		forEach( ++e, end, i+1 );
+		_program << indent( i ) << "}" << endl;
+	    }
+	}
     }
-    for ( vector<vector<LQIO::DOM::Entry *> >::const_iterator layer = _entry.begin(); layer != _entry.end(); ++layer ) {
-	for_each( (*layer).begin(), (*layer).end(), GetEntryVariable( *this, f ) );	//vector of vector
-    }
-    for_each( _call.begin(), _call.end(), GetCallVariable( *this, f ) );	
 }
 
 
 
 void
-Generate::serialize2( const ModelVariable::variableValueFunc f )
+Generate::addSpex( get_set_var_fptr f, const ModelVariable::variableValueFunc g )
 {
-    SetProcessorVariable setProcessorVariable( *this, f );
-    SetTaskVariable setTaskVariable( *this, f );
-    SetEntryVariable setEntryVariable( *this, f );
-    SetCallVariable setCallVariable( *this, f );
+    /* Insert all of the SPEX control code. */
+    const unsigned n = getNumberOfRuns();
+    if ( n > 1 ) {
+	spex_array_comprehension( "$experiments", 1, n, 1 );
+    }
 
-    const map<unsigned,LQIO::DOM::Entity *>& entities = _document->getEntities();			// For remapping by lqn2ps.
-    for ( map<unsigned,LQIO::DOM::Entity *>::const_iterator ep = entities.begin(); ep != entities.end(); ++ep ) {
-	LQIO::DOM::Entity * entity = ep->second;
-	LQIO::DOM::Processor * processor = dynamic_cast<LQIO::DOM::Processor *>(entity);
-	if ( !processor ) continue;
-	setProcessorVariable( processor );
-	const std::vector<LQIO::DOM::Task*>& tasks = processor->getTaskList();
-	for ( std::vector<LQIO::DOM::Task*>::const_iterator tp = tasks.begin(); tp != tasks.end(); ++tp ) {
-	    LQIO::DOM::Task * task = *tp;
-	    setTaskVariable( task );
-	    const vector<LQIO::DOM::Entry*>& entries = task->getEntryList();
-	    for ( vector<LQIO::DOM::Entry*>::const_iterator entp = entries.begin(); entp != entries.end(); ++entp ) {
-		LQIO::DOM::Entry * entry = *entp;
-		setEntryVariable( entry );
-		const unsigned n_phases = entry->getMaximumPhase();
-		for ( unsigned p = 1; p <= n_phases; ++p ) {
-		    if ( !entry->hasPhase(p) ) continue;
-		    const LQIO::DOM::Phase* phase = entry->getPhase(p);
-		    const std::vector<LQIO::DOM::Call*>& calls = phase->getCalls();
-		    for_each( calls.begin(), calls.end(), setCallVariable );
-		}
+    /* Make the variables in the model. */
+    (this->*f)( g );
+
+    spex_result_assignment_statement( "$0", 0 );		/* print out index first. */
+
+    insertSPEXObservations();
+}
+
+
+void
+Generate::addSensitivitySPEX( get_set_var_fptr f, const ModelVariable::variableValueFunc g )
+{
+    (this->*f)( g );		/* Should be the vector generator */
+
+    insertSPEXObservations();
+}
+
+/*
+ * Get either a value or a variable name.  The value is based on the
+ * random variate class passed in.  If a variable is being created,
+ * then a subsequent pass which produces the "code" will assign
+ * values.
+ */
+
+LQIO::DOM::ExternalVariable * 
+Generate::get_rv( const std::string& prefix, const std::string& name, const RV::RandomVariable * value ) const
+{
+    std::string var = prefix + name;
+    if ( Flags::lqx_output || Flags::spex_output ) {
+	return _document->getSymbolExternalVariable( var );
+    } else {
+	return new LQIO::DOM::ConstantExternalVariable( (*value)() );
+    }
+}
+
+
+bool 
+Generate::isReferenceTask( const LQIO::DOM::Task * task ) 
+{
+    if ( !task ) return false;
+    switch ( task->getSchedulingType() ) {
+    case SCHEDULE_CUSTOMER:
+    case SCHEDULE_POLL:
+    case SCHEDULE_BURST: 
+	return true;
+    default:
+	return false;
+    }
+}
+
+bool 
+Generate::isInterestingProcessor( const LQIO::DOM::Processor * processor ) 
+{
+    if ( !processor ) return false;
+    const std::set<LQIO::DOM::Task*>& tasks = processor->getTaskList();
+
+    if ( tasks.size() == 0 ) return false;
+    if ( tasks.size() > 1 ) return true;
+    return !isReferenceTask( *tasks.begin() );
+}
+
+
+
+/* ------------------------------------------------------------------------ */
+
+/*
+ * This function will SET any variables if they are NOT already defined (as constants)
+ */
+
+void
+Generate::set_variables( const ModelVariable::variableValueFunc f )
+{
+    SetProcessorVariable setProcessorVariable( *this, f, __processor_multiplicity );
+    SetTaskVariable setTaskVariable( *this, f, __customers_per_client, __think_time, __task_multiplicity );
+    SetEntryVariable setEntryVariable( *this, f, __service_time );
+
+    const std::map<std::string,LQIO::DOM::Task*>& tasks = _document->getTasks();
+
+    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = tasks.begin(); t != tasks.end(); ++t ) {
+	LQIO::DOM::Task * task = t->second;
+	setTaskVariable( task );
+	if ( !isReferenceTask( task ) ) {
+	    setProcessorVariable( const_cast<LQIO::DOM::Processor *>(task->getProcessor()) );
+	}
+	const std::vector<LQIO::DOM::Entry*>& entries = task->getEntryList();
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+	    LQIO::DOM::Entry* entry = *e;
+	    setEntryVariable( entry );
+	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
+	    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
+		const LQIO::DOM::Phase* phase = p->second;
+		const std::vector<LQIO::DOM::Call*>& calls = phase->getCalls();
+		for_each( calls.begin(), calls.end(), SetCallVariable( *this, f, __rendezvous_rate, __send_no_reply_rate, __forwarding_probability ) );
 	    }
 	}
     }
 }
- 
+
+
+/* 
+ * Need to "make variables" by clobbering existing values 
+ */
+
+void
+Generate::make_variables( const ModelVariable::variableValueFunc f )
+{
+    MakeProcessorVariable makeProcessorVariable( *this, f, __processor_multiplicity );
+    MakeTaskVariable makeTaskVariable( *this, f, __customers_per_client, __think_time, __task_multiplicity );
+    MakeEntryVariable makeEntryVariable( *this, f, __service_time );
+
+    const std::map<std::string,LQIO::DOM::Task*>& tasks = _document->getTasks();
+
+    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = tasks.begin(); t != tasks.end(); ++t ) {
+	LQIO::DOM::Task * task = t->second;
+	makeTaskVariable( task );
+	if ( !isReferenceTask( task ) ) {
+	    makeProcessorVariable( const_cast<LQIO::DOM::Processor *>(task->getProcessor()) );
+	}
+	const std::vector<LQIO::DOM::Entry*>& entries = task->getEntryList();
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+	    LQIO::DOM::Entry* entry = *e;
+	    makeEntryVariable( entry );
+	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
+	    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
+		const LQIO::DOM::Phase* phase = p->second;
+		const std::vector<LQIO::DOM::Call*>& calls = phase->getCalls();
+		for_each( calls.begin(), calls.end(), MakeCallVariable( *this, f, __rendezvous_rate, __send_no_reply_rate, __forwarding_probability ) );
+	    }
+	}
+    }
+}
+
+
+/*
+ * Make service time variables 
+ */
+
+void
+Generate::sensitivity_variables( const ModelVariable::variableValueFunc f )
+{
+   MakeEntryVariable makeEntryVariable( *this, f, __service_time );
+
+   const std::map<std::string,LQIO::DOM::Entry*>& entries = _document->getEntries();
+   for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+       LQIO::DOM::Entry * entry = e->second;
+       if ( !isReferenceTask( entry->getTask() ) ) continue;
+       makeEntryVariable( entry );
+   }
+}
+
 /* 
  * Output an input file.
  */
@@ -522,7 +669,7 @@ Generate::print( ostream& output ) const
 	_document->serializeDOM( output, false );	/* Output LQX code if running. */
 #endif
     } else {
-	LQIO::SRVN::Input srvn( *_document, _document->getEntities(), Flags::annotate_input );
+	LQIO::SRVN::Input srvn( *_document, _document->getEntities(), Flags::annotate_input, false );
 	srvn.print( output );
     }
 
@@ -531,276 +678,427 @@ Generate::print( ostream& output ) const
 
 
 
-ostream&
+/* static */ ostream&
 Generate::printHeader( ostream& output, const LQIO::DOM::Document& document, const int i, const string& prefix )
 {
-    output << indent(i) << "println(";
+    output << indent(i) << "println_spaced( \", ";
     if ( prefix.size() ) {
-	output << prefix << ", ";
+	output << "\", \"" << prefix;		/* The iteration number */
+    }
+    if ( Flags::observe.iterations ) {
+	output << "\"," << endl << indent( i + 2 ) << "  "
+	       << "\"iterations";
+    }
+    if ( Flags::observe.mva_waits ) {
+	output << "\", " << endl << indent( i + 2 ) << "  "
+	       << "\"waits";
+    }
+    if ( Flags::observe.user_time ) {
+	output << "\", " << endl << indent( i + 2 ) << "  "
+	       << "\"usr cpu";
+    }
+    if ( Flags::observe.system_time ) {
+	output << "\", " << endl << indent( i + 2 ) << "  "
+	       << "\"sys cpu";
     }
     const map<unsigned,LQIO::DOM::Entity *>& entities = document.getEntities();
     for ( map<unsigned,LQIO::DOM::Entity *>::const_iterator ep = entities.begin(); ep != entities.end(); ++ep ) {
 	LQIO::DOM::Entity * entity = ep->second;
-	if ( ep != entities.begin() ) {
-	    output << ", \"," << endl << indent( i + 2 ) << "  ";
-	}
-	if ( dynamic_cast<LQIO::DOM::Processor *>(entity) ) {
-	    output << "\"p(" << entity->getName() << ").util";
-	} else if ( entity->getSchedulingType() == SCHEDULE_CUSTOMER ) {
-	    output << "\"t(" << entity->getName() << ").tput";
-	} else {
-	    output << "\"t(" << entity->getName() << ").util";
+	if ( isInterestingProcessor( dynamic_cast<LQIO::DOM::Processor *>(entity) ) && Flags::observe.utilization ) {
+	    output << "\", " << endl << indent( i + 2 ) << "  "
+		   << "\"p(" << entity->getName() << ").util";
+	} else if ( isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.throughput ) {
+	    output << "\", " << endl << indent( i + 2 ) << "  "
+		   << "\"t(" << entity->getName() << ").tput";
+	} else if ( dynamic_cast<LQIO::DOM::Task *>(entity) && !isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.utilization ) {
+	    output << "\", " << endl << indent( i + 2 ) << "  "
+		   << "\"t(" << entity->getName() << ").util";
 	}
     }
-    output << "\");" << endl;	
+    output << "\" );" << endl;
     return output;
 }
 
 
-ostream&
+/* static */ ostream&
 Generate::printResults( ostream& output, const LQIO::DOM::Document& document, const int i, const string& prefix )
 {
-    output << indent(i) << "println(";
+    output << indent(i) << "println_spaced( \", \"";
     if ( prefix.size() ) {
-	output << prefix << ", \", \", ";
+	output  << ", " << prefix;
+    }
+    if ( Flags::observe.iterations ) {
+	output << "," << endl << indent( i + 2 ) << "  "
+	       << "document().iterations";
+    }
+    if ( Flags::observe.mva_waits ) {
+	output << "," << endl << indent( i + 2 ) << "  "
+	       << "document().waits";
+    }
+    if ( Flags::observe.mva_waits ) {
+	output << "," << endl << indent( i + 2 ) << "  "
+	       << "document().user_cpu_time";
+    }
+    if ( Flags::observe.mva_waits ) {
+	output << "," << endl << indent( i + 2 ) << "  "
+	       << "document().system_cpu_time";
     }
     const map<unsigned,LQIO::DOM::Entity *>& entities = document.getEntities();
     for ( map<unsigned,LQIO::DOM::Entity *>::const_iterator ep = entities.begin(); ep != entities.end(); ++ep ) {
 	LQIO::DOM::Entity * entity = ep->second;
-	if ( ep != entities.begin() ) {
-	    output << ", \", \"," << endl << indent( i + 2 ) << "  ";
-	}
-	if ( dynamic_cast<LQIO::DOM::Processor *>(entity) ) {
-	    output << "processor(\"" << entity->getName() << "\").utilization";
-	} else if ( entity->getSchedulingType() == SCHEDULE_CUSTOMER ) {		/* Reference task */
-	    output << "task(\"" << entity->getName() << "\").throughput";
-	} else {
-	    output << "task(\"" << entity->getName() << "\").utilization";
+	if ( isInterestingProcessor( dynamic_cast<LQIO::DOM::Processor *>(entity) ) && Flags::observe.utilization ) {
+	    output << "," << endl << indent( i + 2 ) << "  " 
+		   << "processor(\"" << entity->getName() << "\").utilization";
+	} else if ( isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.throughput ) {		/* Reference task */
+	    output << "," << endl << indent( i + 2 ) << "  "
+		   << "task(\"" << entity->getName() << "\").throughput";
+	} else if ( dynamic_cast<LQIO::DOM::Task *>(entity) && !isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.utilization ) {
+	    output << "," << endl << indent( i + 2 ) << "  "
+		   << "task(\"" << entity->getName() << "\").utilization";
 	}
     }
     output << ");" << endl;
     return output;
 }
 
-ostream& 
+void
+Generate::insertSPEXObservations()
+{
+    if ( Flags::observe.iterations ) {
+	std::string name = "$i";
+	spex_document_observation( KEY_ITERATIONS, name.c_str() );
+	spex_result_assignment_statement( name.c_str(), 0 );
+    }
+    if ( Flags::observe.mva_waits ) {
+	std::string name = "$w";
+	spex_document_observation( KEY_WAITING, name.c_str() );
+	spex_result_assignment_statement( name.c_str(), 0 );
+    }
+    if ( Flags::observe.user_time ) {
+	std::string name = "$usr";
+	spex_document_observation( KEY_USER_TIME, name.c_str() );
+	spex_result_assignment_statement( name.c_str(), 0 );
+    }
+    if ( Flags::observe.system_time ) {
+	std::string name = "$sys";
+	spex_document_observation( KEY_USER_TIME, name.c_str() );
+	spex_result_assignment_statement( name.c_str(), 0 );
+    }
+    /* Make the result variables */
+    const map<unsigned,LQIO::DOM::Entity *>& entities = _document->getEntities();
+    for ( map<unsigned,LQIO::DOM::Entity *>::const_iterator ep = entities.begin(); ep != entities.end(); ++ep ) {
+	LQIO::DOM::Entity * entity = ep->second;
+	if ( isInterestingProcessor( dynamic_cast<LQIO::DOM::Processor *>(entity) ) && Flags::observe.utilization ) {
+	    std::string name = "$p_";
+	    name += entity->getName();
+	    spex_processor_observation( entity, KEY_UTILIZATION, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	} else if ( isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.throughput ) {		/* Reference task */
+	    std::string name = "$f_";
+	    name += entity->getName();
+	    spex_task_observation( entity, KEY_THROUGHPUT, 0, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	} else if ( dynamic_cast<LQIO::DOM::Task *>(entity) && !isReferenceTask( dynamic_cast<LQIO::DOM::Task *>(entity) ) && Flags::observe.utilization ) {
+	    std::string name = "$u_";
+	    name += entity->getName();
+	    spex_task_observation( entity, KEY_UTILIZATION, 0, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	}
+    }
+}
+
+
+/* static */ ostream& 
 Generate::printIndent( ostream& output, const int i ) 
 {
     output << setw( i * 3 ) << " ";
     return output;
 }
- 
-template <class Type> void
-Generate::shuffle( vector<Type>& array ) 
+
+ostream&
+Generate::verbose( ostream& output ) const
 {
-    const unsigned n = array.size();
-    for ( unsigned i = n; i >= 1; --i ) {
-	const unsigned k = static_cast<unsigned>(drand48() * i);
-	if ( i-1 != k ) {
-	    Type temp = array[k];
-	    array[k] = array[i-1];
-	    array[i-1] = temp;
+    output << "Layer, tasks, multi, entries, phase 2" << std::endl;
+    for ( unsigned int l = 0; l <= _number_of_layers; ++l ) {
+	unsigned int is_multi = 0;
+	try {
+	    for ( std::vector<LQIO::DOM::Task *>::const_iterator task = _task[l].begin(); task != _task[l].end(); ++task ) {
+		double copies = LQIO::DOM::to_double( *(*task)->getCopies() );
+		if (  copies > 1. ) {
+		    is_multi += 1;
+		}
+	    }
 	}
+	catch ( std::domain_error &e ) {		/* If we are using variables, can't tell, so ignore. */
+	}
+	unsigned int phase_2 = 0;
+	for ( std::vector<LQIO::DOM::Entry *>::const_iterator entry = _entry[l].begin(); entry != _entry[l].end(); ++entry ) {
+	    if ( (*entry)->hasPhase(2) ) {
+		phase_2 += 1;
+	    }
+	}
+	output << l << ", " << _task[l].size() << ", " << is_multi << ", " << _entry[l].size() << ", " << phase_2 << std::endl;
     }
+    return output;
 }
-
-double
-Generate::double_rv( opt_values i )
-{
-    return (*opt[i].opts.func)( opt[i].floor, opt[i].mean );
-}
-
-unsigned
-Generate::unsigned_rv( unsigned i )
-{
-    if ( opt[i].opts.func == &Generate::uniform ) {
-	return static_cast<unsigned>( (*opt[i].opts.func)( opt[i].floor, opt[i].mean + 1.0 ) );	/* Range */
-    } else {
-	return static_cast<unsigned>( (*opt[i].opts.func)( opt[i].floor, opt[i].mean ) + 0.5 );	/* Round off */
-    }
-}
-
-
-LQIO::DOM::ExternalVariable * 
-Generate::get_constant( const opt_values arg, const string& ) const
-{
-    return new LQIO::DOM::ConstantExternalVariable( get_value( arg ) );
-}
-
-
-LQIO::DOM::ExternalVariable * 
-Generate::get_variable( const opt_values arg, const string& name ) const
-{
-    assert( name.size() > 0 );
-    string var = "$";
-    switch ( arg ) {
-    case CUSTOMERS:		/* Fall through */
-    case TASK_MULTIPLICITY:	var += "n_";	break;
-    case PROCESSOR_MULTIPLICITY:var += "m_";	break;
-    case RNV_REQUESTS:		var += "y_";	break;
-    case SERVICE_TIME:		var += "s_";	break;
-    case SNR_REQUESTS:		var += "z_";	break;
-    case THINK_TIME:		var += "z_";	break;
-    default:
-	abort();
-    }
-    var += name;
-
-    return _document->getSymbolExternalVariable( var );
-}
-
-
-double
-Generate::get_value( const opt_values arg ) 
-{
-    switch ( arg ) {
-    case CUSTOMERS:
-    case NUMBER_OF_ENTRIES:
-    case NUMBER_OF_PROCESSORS:
-    case NUMBER_OF_TASKS:
-    case PROCESSOR_MULTIPLICITY:
-    case TASK_MULTIPLICITY:
-	return unsigned_rv( arg );
-    case RNV_REQUESTS:
-    case SERVICE_TIME:
-    case SNR_REQUESTS:
-    case THINK_TIME:
-	return double_rv( arg );
-    default:
-	abort();
-    }
-    return 0.;
-}
-
-
-
-bool
-Generate::choose( unsigned i )
-{
-    return drand48() < opt[i].mean;
-}
- 
+
 /* ------------------------------------------------------------------------ */
 
 void
-Generate::ModelVariable::scalar( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const
+Generate::ModelVariable::lqx_scalar( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
 {
     if ( var.wasSet() ) return;		// Ignore.
-    _model._program << indent( 1 ) << var << " = " << get_value( index ) << ";" << endl;
+    _model._program << indent( 1 ) << var << " = " << (*value)() << ";" << endl;
 }
 
 
 /*
- * Generate a vector of values.
+ * Generate a vector of values (outside `for' loop).
  */
 
 void
-Generate::ModelVariable::vector( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const
+Generate::ModelVariable::lqx_random( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
 {
-    if ( var.wasSet() ) return;		// Ignore.
-    ostringstream name;
-    name << var;
-    const string& buf = name.str();
-    _model._program << indent( 1 ) << &buf[1] << " = [";
-    for ( unsigned int i = 0; i < _model.getNumberOfRuns(); ++i ) {
-	if ( i > 0 ) _model._program << ", ";
-	_model._program << get_value( index );
+    if ( value->getType() == RV::RandomVariable::DETERMINISTIC ) {
+	_model._program << indent( 1 ) << var << " = " << (*value)() << ";" << endl;
     }
-    _model._program << "];" << endl;	// = get... 
 }
 
 void
-Generate::ModelVariable::index( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const
+Generate::ModelVariable::lqx_sensitivity( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
 {
-    if ( var.wasSet() ) return;		// Ignore.
+    double val = 0;
+    if ( var.wasSet() ) {
+	var.getValue( val );
+    } else {
+	val = (*value)();
+    }
     ostringstream name;
     name << var;
     const string& buf = name.str();
-    _model._program << indent( 2 ) << var << " = " << &buf[1] << "[i];" << endl;	// = get... 
+    double delta = val * Flags::sensitivity;
+    _model._program << indent( 1 ) << &buf[1] << " = [ "
+		    << val-delta << ", "
+		    << val << ", "
+		    << val+delta << " ];" << endl;
 }
 
+/*
+ * This method is invoked inside of the LQX `for' loop for random models.
+ */
+
 void
-Generate::GetProcessorVariable::operator()( const LQIO::DOM::Processor * processor ) 
+Generate::ModelVariable::lqx_function( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
 {
-    const LQIO::DOM::ExternalVariable& copies = *processor->getCopies();
-    (this->*_f)( copies, PROCESSOR_MULTIPLICITY );
+    if ( !var.wasSet() && value->getType() != RV::RandomVariable::DETERMINISTIC ) {
+	_model._program << indent( 2 ) << var << " = " << value->name();
+	if ( value->getType() == RV::RandomVariable::DISCREET ) {
+	    /* Set the floor of the RV to 1.0.  Adjust mean. */
+	    RV::RandomVariable * clone = value->clone();
+	    clone->setMean( clone->getMean() - 1.0 );
+	    _model._program << "( ";
+	    for ( unsigned int i = 1; i <= clone->nArgs(); ++i ) {
+		if ( i > 1 ) _model._program << ", ";
+		_model._program << clone->getArg(i);
+	    }
+	    _model._program << " ) + 1;" << endl;
+	    delete clone;
+	} else {
+	    _model._program << "( ";
+	    for ( unsigned int i = 1; i <= value->nArgs(); ++i ) {
+		if ( i > 1 ) _model._program << ", ";
+		_model._program << value->getArg(i);
+	    }
+	    _model._program << " );" << endl;	
+	}
+    }
+}
+
+/*
+ * This method is invoked inside of the LQX `for' loop for random models.
+ */
+
+void
+Generate::ModelVariable::lqx_index( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
+{
+    if ( var.wasSet() ) return; // Ignore.
+    ostringstream name;
+    name << var;
+    const string& buf = name.str();
+    _model._program << indent( 2 ) << var << " = " << &buf[1] << "[i];" << endl; 
+}
+
+/*
+ * Generate a vector of values.  For spex, it's "$x, $y = expr."
+ */
+
+void
+Generate::ModelVariable::spex_random( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
+{
+    if ( var.wasSet() ) {
+	return;		// Ignore.
+    } else if ( dynamic_cast<const RV::Deterministic *>(value) ) {
+	return spex_scalar( var, value );
+    } else {
+	std::ostringstream name;
+	name << var;
+
+	/* Get args and form call to RV generator */
+
+	LQX::SyntaxTreeNode * expr = 0;
+	if ( value->getType() == RV::RandomVariable::DISCREET ) {
+	    std::vector<LQX::SyntaxTreeNode *> * args = new std::vector<LQX::SyntaxTreeNode*>();
+	    /* Set the floor of the RV to 1.0.  Adjust mean. */
+	    RV::RandomVariable * clone = value->clone();
+	    clone->setMean( clone->getMean() - 1.0 );
+	    for ( unsigned int i = 1; i <= clone->nArgs(); ++i ) {
+		args->push_back( new LQX::ConstantValueExpression( clone->getArg(i) ) );
+	    }
+	    /* Need to add 1.. */
+	    expr = new LQX::MathExpression(LQX::MathExpression::ADD, new LQX::MethodInvocationExpression( clone->name(), args ), new LQX::ConstantValueExpression(1.0) );
+	    delete clone;
+	} else {
+	    std::vector<LQX::SyntaxTreeNode *> * args = new std::vector<LQX::SyntaxTreeNode*>();
+	    for ( unsigned int i = 1; i <= value->nArgs(); ++i ) {
+		args->push_back( new LQX::ConstantValueExpression( value->getArg(i) ) );
+	    }
+	    expr = new LQX::MethodInvocationExpression( value->name(), args );
+	}
+
+	spex_forall( "$experiments", name.str().c_str(), expr );
+    }
+}
+
+void
+Generate::ModelVariable::spex_scalar( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
+{
+    if ( var.wasSet() ) return;		// Ignore.
+    // Need to pass in function to store in spex. -- spex_forall() or spex_assignment}
+    std::ostringstream name;
+    name << var;
+    LQX::SyntaxTreeNode * expr = new LQX::ConstantValueExpression( (*value)() );
+    spex_assignment_statement( name.str().c_str(), expr, true );
 }
 
 
 void
-Generate::SetProcessorVariable::operator()( const LQIO::DOM::Processor * processor ) 
+Generate::ModelVariable::spex_sensitivity( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const
+{
+    double val = 0;
+    if ( var.wasSet() ) {
+	var.getValue( val );
+    } else {
+	val = (*value)();
+    }
+    double delta = val * Flags::sensitivity;
+    std::vector<LQX::SyntaxTreeNode *> * list = new std::vector<LQX::SyntaxTreeNode*>();
+    list->push_back( new LQX::ConstantValueExpression( val - delta ) );
+    list->push_back( new LQX::ConstantValueExpression( val ) );
+    list->push_back( new LQX::ConstantValueExpression( val + delta ) );
+    ostringstream name;
+    name << var;
+    spex_array_assignment( name.str().c_str(), list, true );
+}
+
+/* ------------------------------------------------------------------------ */
+
+void
+Generate::MakeProcessorVariable::operator()( LQIO::DOM::Processor * processor ) const
+{
+    LQIO::DOM::ExternalVariable * copies = const_cast<LQIO::DOM::ExternalVariable *>(processor->getCopies());
+     if ( dynamic_cast<LQIO::DOM::ConstantExternalVariable *>( copies ) ) {
+	copies = _model.get_rv( "$p_", processor->getName(), _multiplicity );
+	processor->setCopies( copies );
+    }
+    (this->*_f)( *copies, _multiplicity );
+}
+
+
+void
+Generate::SetProcessorVariable::operator()( const LQIO::DOM::Processor * processor ) const
 {
     const LQIO::DOM::ExternalVariable * copies = processor->getCopies();
     if ( !copies->wasSet() ) {
-	(this->*_f)( *copies, PROCESSOR_MULTIPLICITY );
+	(this->*_f)( *copies, _multiplicity );
     }
 }
 
 
 void
-Generate::GetTaskVariable::operator()( const LQIO::DOM::Task * task ) 
+Generate::MakeTaskVariable::operator()( LQIO::DOM::Task * task ) const
 {
-    const LQIO::DOM::ExternalVariable& copies = *task->getCopies();
-    switch ( task->getSchedulingType() ) {
-    case SCHEDULE_CUSTOMER:
-    case SCHEDULE_POLL:
-    case SCHEDULE_BURST: (this->*_f)( copies, CUSTOMERS ); break;
-    default:		 (this->*_f)( copies, TASK_MULTIPLICITY ); break;
-    }
-    const LQIO::DOM::ExternalVariable * think_time = task->getThinkTime();
-    if ( think_time ) {
-	(this->*_f)( *think_time, THINK_TIME );
+    LQIO::DOM::ExternalVariable * copies = const_cast<LQIO::DOM::ExternalVariable *>(task->getCopies());
+    if ( isReferenceTask( task ) ) {
+	if ( dynamic_cast<LQIO::DOM::ConstantExternalVariable *>( copies ) ) {
+	    copies = _model.get_rv( "$c_", task->getName(), _customers );
+	    task->setCopies( copies );
+	}
+	(this->*_f)( *copies, _customers ); 
+	LQIO::DOM::ExternalVariable * think_time = dynamic_cast<LQIO::DOM::ExternalVariable * >( task->getThinkTime() );
+	if ( !think_time || dynamic_cast<LQIO::DOM::ConstantExternalVariable *>( think_time ) ) {
+	    think_time = _model.get_rv( "$Z_", task->getName(), _think_time );
+	    task->setThinkTime( think_time );
+	}
+	(this->*_f)( *think_time, _think_time );
+    } else {
+	if ( dynamic_cast<LQIO::DOM::ConstantExternalVariable *>( copies ) ) {
+	    copies = _model.get_rv( "$c_", task->getName(), _multiplicity );
+	    task->setCopies( copies );
+	}
+	(this->*_f)( *copies, _multiplicity ); 
     }
 }
 
 
 
 void
-Generate::SetTaskVariable::operator()( const LQIO::DOM::Task * task ) 
+Generate::SetTaskVariable::operator()( const LQIO::DOM::Task * task ) const
 {
-    opt_values i;
-    switch ( task->getSchedulingType() ) {
-    case SCHEDULE_CUSTOMER: /* Fall through */
-    case SCHEDULE_POLL:     /* Fall through */
-    case SCHEDULE_BURST:    i = CUSTOMERS; break;
-    default:		    i = TASK_MULTIPLICITY; break;
+    const RV::RandomVariable * var;
+    if ( isReferenceTask( task ) ) {
+	var = _customers; 
+	LQIO::DOM::ExternalVariable * think_time = task->getThinkTime();
+	if ( think_time && !think_time->wasSet() ) {
+	    (this->*_f)( *think_time, _think_time );
+	}
+    } else {
+	var = _multiplicity; 
     }
 
     const LQIO::DOM::ExternalVariable * copies = task->getCopies();
     if ( !copies->wasSet() ) {
-	(this->*_f)( *copies, i ); 
-    }
-
-    LQIO::DOM::ExternalVariable * think_time = task->getThinkTime();
-    if ( think_time && !think_time->wasSet() ) {
-	(this->*_f)( *think_time, THINK_TIME );
+	(this->*_f)( *copies, var ); 
     }
 }
 
 
 
 void
-Generate::GetEntryVariable::operator()( const LQIO::DOM::Entry * entry ) 
+Generate::MakeEntryVariable::operator()( LQIO::DOM::Entry * entry ) const
 {
-    const unsigned n_phases = entry->getMaximumPhase();
-    for ( unsigned p = 1; p <= n_phases; ++p ) {
-	LQIO::DOM::Phase* phase = entry->getPhase(p);
-	const LQIO::DOM::ExternalVariable& service = *phase->getServiceTime();
-	(this->*_f)( service, SERVICE_TIME );
+    const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
+    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
+	LQIO::DOM::Phase* phase = p->second;
+	LQIO::DOM::ExternalVariable * service = const_cast<LQIO::DOM::ExternalVariable *>( phase->getServiceTime() );
+	if ( dynamic_cast<LQIO::DOM::ConstantExternalVariable *>( service ) ) {
+	    service = _model.get_rv( "$s_", phase->getName(), _service_time );
+	    phase->setServiceTime( service );
+	}
+	(this->*_f)( *service, _service_time );
     }
 }
 
 
 
 void
-Generate::SetEntryVariable::operator()( const LQIO::DOM::Entry * entry ) 
+Generate::SetEntryVariable::operator()( const LQIO::DOM::Entry * entry ) const
 {
-    const unsigned n_phases = entry->getMaximumPhase();
-    for ( unsigned p = 1; p <= n_phases; ++p ) {
-	if ( !entry->hasPhase(p) ) continue;
-	const LQIO::DOM::Phase* phase = entry->getPhase(p);
+    const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
+    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
+	LQIO::DOM::Phase* phase = p->second;
 	const LQIO::DOM::ExternalVariable * service = phase->getServiceTime();
 	if ( !service->wasSet() ) {
-	    (this->*_f)( *service, SERVICE_TIME );
+	    (this->*_f)( *service, _service_time );
 	}
     }
 }
@@ -808,14 +1106,23 @@ Generate::SetEntryVariable::operator()( const LQIO::DOM::Entry * entry )
 
 
 void
-Generate::GetCallVariable::operator()( const LQIO::DOM::Call * call ) 
+Generate::MakeCallVariable::operator()( LQIO::DOM::Call * call ) const
 {
     /* check for var... */
-    const LQIO::DOM::ExternalVariable& calls = *call->getCallMean();
+    LQIO::DOM::ExternalVariable * calls = const_cast<LQIO::DOM::ExternalVariable *>( call->getCallMean() );
+    if ( dynamic_cast<LQIO::DOM::ConstantExternalVariable *>(calls) ) {
+	switch ( call->getCallType() ) {
+	case LQIO::DOM::Call::RENDEZVOUS:    calls = _model.get_rv( "$y_", call->getName(), _rnv_rate ); break;
+	case LQIO::DOM::Call::SEND_NO_REPLY: calls = _model.get_rv( "$z_", call->getName(), _snr_rate ); break;
+	case LQIO::DOM::Call::FORWARD:       calls = _model.get_rv( "$f_", call->getName(), _forwarding_rate ); break;
+	default: abort();
+	}
+	call->setCallMean( calls );
+    }
     switch ( call->getCallType() ) {
-    case LQIO::DOM::Call::RENDEZVOUS:    (this->*_f)( calls, RNV_REQUESTS ); break;
-    case LQIO::DOM::Call::SEND_NO_REPLY: (this->*_f)( calls, SNR_REQUESTS ); break;
-    case LQIO::DOM::Call::FORWARD:       (this->*_f)( calls, FORWARDING_REQUESTS ); break;
+    case LQIO::DOM::Call::RENDEZVOUS:    (this->*_f)( *calls, _rnv_rate ); break;
+    case LQIO::DOM::Call::SEND_NO_REPLY: (this->*_f)( *calls, _snr_rate ); break;
+    case LQIO::DOM::Call::FORWARD:       (this->*_f)( *calls, _forwarding_rate ); break;
     default: abort();
     }
 }
@@ -823,18 +1130,18 @@ Generate::GetCallVariable::operator()( const LQIO::DOM::Call * call )
 
 
 void
-Generate::SetCallVariable::operator()( const LQIO::DOM::Call * call ) 
+Generate::SetCallVariable::operator()( const LQIO::DOM::Call * call ) const
 {
     /* check for var... */
-    opt_values i;
+    const RV::RandomVariable * var;
     switch ( call->getCallType() ) {
-    case LQIO::DOM::Call::RENDEZVOUS:    i = RNV_REQUESTS; break;
-    case LQIO::DOM::Call::SEND_NO_REPLY: i = SNR_REQUESTS; break;
-    case LQIO::DOM::Call::FORWARD:       i = FORWARDING_REQUESTS; break;
+    case LQIO::DOM::Call::RENDEZVOUS:    var = _rnv_rate; break;
+    case LQIO::DOM::Call::SEND_NO_REPLY: var = _snr_rate; break;
+    case LQIO::DOM::Call::FORWARD:       var = _forwarding_rate; break;
     default: abort();
     }
     const LQIO::DOM::ExternalVariable * calls = call->getCallMean();
     if ( !calls->wasSet() ) {
-	(this->*_f)( *calls, i ); 
+	(this->*_f)( *calls, var ); 
     }
 }

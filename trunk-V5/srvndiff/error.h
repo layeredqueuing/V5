@@ -56,6 +56,7 @@
 #include <stdexcept>
 
 extern const char * input_file_name;
+extern const char * lq_toolname;
 
 namespace LQIO {
 
@@ -222,5 +223,7 @@ namespace LQIO {
     public:
 	explicit unexpected_attribute( const std::string& attribute ) : runtime_error( attribute ) {}
     };
+
+    void argument_error( const std::string& attr, const std::string& arg ) throw( std::invalid_argument );
 }
 #endif

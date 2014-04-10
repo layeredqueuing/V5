@@ -369,7 +369,7 @@ Task::find_activity( const char * activity_name ) const
 void
 Task::alloc_pool()
 {
-    const unsigned size = queue_length() > 0 ? queue_length() : DEFAULT_QUEUE_SIZE;
+    const unsigned size = getDOM()->hasQueueLength() ? getDOM()->getQueueLengthValue() : DEFAULT_QUEUE_SIZE;
     if ( !_msg_tab ) {
 	_msg_tab = new Message[size];
     }

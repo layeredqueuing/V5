@@ -63,7 +63,7 @@ getopt2( int nargc, char * const * nargv, const char *ostr )
 int
 getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct option * longopts, int * longindex )
 {
-    static char *place = EMSG;	/* option letter processing */
+    static const char *place = EMSG;	/* option letter processing */
     register char *oli;		/* option letter list index */
     char *p;
     if (!(p = strrchr(*nargv, '/')))
@@ -85,7 +85,7 @@ getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct op
 	    } else {
 		unsigned count = 0;
 		int has_arg = no_argument;
-		char * q = strchr(&place[2],'=');
+		char * q = const_cast<char *>(strchr(&place[2],'='));
 		if ( q ) *q++ = '\0';		/* Point to =arg... */
 		else q = nargv[optind+1];
 		const unsigned len = strlen( &place[2] );
@@ -148,7 +148,7 @@ getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct op
     }
     else {					/* need an argument */
 	if (*place)			/* no white space */
-	    optarg = place;
+	    optarg = const_cast<char *>(place);
 	else if (nargc <= ++optind) {	/* no arg */
 	    place = EMSG;
 	    if (opterr) {

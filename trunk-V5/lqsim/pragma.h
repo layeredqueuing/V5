@@ -32,7 +32,8 @@ private:
 	PROCESSOR_SCHEDULING,
 	QUORUM_REPLY,	
 	RESCHEDULE_ON_SNR, 
-	STOP_ON_MESSAGE_LOSS
+	STOP_ON_MESSAGE_LOSS,
+	XML_SCHEMA
     } PRAGMA_PARAM;
 
 public:
@@ -66,7 +67,8 @@ public:
     bool eq_quorum_delayed_calls( const Pragma& p ) const { return _quorum_delayed_calls == p._quorum_delayed_calls; }
     bool eq_reschedule_on_async_send( const Pragma& p ) const { return _reschedule_on_async_send == p._reschedule_on_async_send; }
     bool eq_scheduling_model( const Pragma& p ) const { return _scheduling_model == p._scheduling_model; }
-
+    bool eq_xml_schema( const Pragma& p ) const { return true; }
+    
     void updateDOM( LQIO::DOM::Document* document ) const;
 
     static void initialize();
@@ -80,12 +82,14 @@ private:
     bool set_quorum_delayed_calls( const std::string& );
     bool set_reschedule_on_async_send( const std::string& );
     bool set_scheduling_model( const std::string& );
+    bool set_xml_schema( const std::string& );
 
     const char * get_abort_on_dropped_message() const;
     const char * get_nice() const;
     const char * get_quorum_delayed_calls() const;
     const char * get_reschedule_on_async_send() const;
     const char * get_scheduling_model() const;
+    const char * get_xml_schema() const;
 
     int str_to_scheduling_type( const std::string&, int default_sched );
     bool true_or_false( const std::string& ) const;

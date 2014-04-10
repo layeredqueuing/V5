@@ -1,146 +1,194 @@
 .\" t -*- nroff -*-
-.TH lqn2ps 1 "12 August 2004"
-.\" $Header$
+.TH lqngen 1 "12 August 2013"
+.\" $Id$
 .\"
 .\" --------------------------------
 .SH "NAME"
 lqngen
 .SH "SYNOPSIS"
 .br
-.B lqngen
+.B lqngen 
 [
-.B \-A \fIprobability\fR
-] [
-.B \-C \fInumber\fR
-] [
-.B \-E \fInumber\fR
-] [
-.B \-F \fIprobaility\fR
-] [
-.B \-G \fIoptions\fR
-] [
-.B \-I \fIprobability\fR
-] [
-.B \-L \fInumber\fR
-] [
-.B \-M \fIprobability\fR
-] [
-.B \-O \fI(xml|lqn)\fR
-] [
-.B \-P \fInumber\fR
-] [
-.B \-S \fInumber\fR
-] [
-.B \-T \fInumber\fR
-] [
-.B \-X \fIseed\fR
-] [
-.B \-Y \fInumber\fR
-] [
-.B \-Z \fInumber\fR
-] [
-.B \-a \fIrate\fR
-] [
-.B \-c \fInumber\fR
-] [
-.B \-d \fIcall-depth\fR
-] [
-.B \-f \fIprobability\fR
-] [
-.B \-p \fIrequest-rate\fR
-] [
-.B \-s \fIvalue\fR
-] [
-.B \-t \fIrequest-rate\fR
-] [
-.B \-y \fIrate\fR
-] [
-.B \-z \fIrate\fR
-] [
-file | directory [\fIcount\fR]
-]
+OPTION
+]... 
+[
+FILE
+] 
 .SH "DESCRIPTION"
-\fBlqngen\fR is used to create an an LQN input file.
+\fBlqngen\fR is used to create an LQN input file.  If no \fIFILE\fP is
+specified, the model will be output to \fIstdout\fP.  If no options
+are specified, a simple annotated model consisting of one reference task, one
+serving task and their respecitive processors is produced.  To create
+a simple model with more layers, use the \fB\-\-layers\fP=\fIarg\fP
+option.  To create a simple model with with LQX or SPEX code, use
+\fB\-\-lqx-output\fP or \fB\-\-spex-output\fP respectively.
 .SH "OPTIONS"
 .TP
-\fB\-A\fI <open-arrivals>\fR
-  Probability entry has open arrival. default  [0]
+\fB\-C\fP, \fB\-\-clients\fR=\fIarg\fR
+Create \fIarg\fP client \fI(reference)\fR tasks.  Use \fB\-\-customers\fP to
+specify the average number of customers (copies) at each client task.
 .TP
-\fB\-C\fI <customers>\fR
- Number of Reference Tasks. default [uniform 1,8] 
+\fB\-L\fP, \fB\-\-layers\fR=\fIarg\fR
+Create \fIarg\fP layers of server tasks.  The total number of layers
+in the model will be \fIarg + 2\fP because one layer is used for
+client tasks, and one layer will be used for one or more processors.
 .TP
-\fB\-D\fI <think-time>\fR
-Think time at Reference Tasks. default  [exponential,0,10]  
+\fB\-M\fP, \fB\-\-models\fR=\fIarg\fR
+Generate \fIarg\fP model files.  Provided some randomness is present
+in layer creation (see \fB\-\-fat\fP, \fB\-\-funnel\fP,
+\fB\-\-pyramid\fP, and \fB\-\-deterministic\fP), each of the model
+files will likely have different topologies.
 .TP
-\fB\-E\fI <entries> \fR
-  Number of Entries per task. default [exponential1,,1.5]
+\fB\-N\fP, \fB\-\-experiments\fR=\fIarg\fR
+Generate \fIarg\fP experiments within one model file. The experiments
+will be run using either SPEX (for lqn input), or LQX (for XML input).
 .TP
-\fB\-F\fI <forwarding> [0]\fR
- Probability entry forwards RNV. default [0]
+\fB\-O\fP, \fB\-\-format\fR=\fIarg\fR
+Set the output file format to: \fIxml\fP, \fIlqn\fP, or \fIjson\fP.
 .TP
-\fB\-G\fI <options>\fR
-  Model parameters.
+\fB\-P\fP, \fB\-\-processors\fIarg\fR
+Create  \fIarg\fP processors in each  model file.
 .TP
-\fB\-I\fI <infinite-server>\fR
- [0.15]  Probability object is an infinite server.
+\fB\-S\fP, \fB\-\-seed\fR=\fIarg\fR
+Set the value for the random number generator to \fIarg\fP.
 .TP
-\fB\-L\fI <layers>\fR
- [uniform,3,8]  Number of layers.
+\fB\-T\fP, \fB\-\-tasks\fR=\fIarg\fR
+Create  \fIarg\fP tasks in each  model file.  The number of tasks must
+be greater than or equal to the number of layers.
 .TP
-\fB\-M\fI <multi-\fR
-server> [0.15]  Probability object is a mulit-server.
+\fB\-d\fP, \fB\-\-deterministic\fR
+Use \fIdeterministic\fP values for all subsequent parameters and
+create layers deterministically.
 .TP
-\fB\-O\fI <(xml|lqn)>\fR
-  Output format.
+\fB\-e\fP, \fB\-\-entries\fP=arg\fR
+Create an average of \fIarg\fP entries on each serving task.   The
+number of entries created is set using the current discreet random
+number generator.  
 .TP
-\fB\-P\fI <processors>\fR
- [uniform,1,15]  Number of processors.
+\fB\-h\fP, \fB\-\-help\fR
+Print out a brief help summary and exit.
 .TP
-\fB\-S\fI <phases>\fR
- [exponential,1,1.25]  Number of phases.
+\fB\-n\fP, \fB\-\-customers\fR=\fIarg\fP
+Set the \fImean\fP number of customers for each client task to \fIarg\fP.  The
+number of customers created per reference task is set using the current
+discreet random number generator.
+\" .TP
+\"  Lqn2lqx only
+\" \fB\-o\fP, \fB\-\-output\fP=\fIarg\fP
+\" Redirect output to the file named \fIarg\fP.  If \fIarg\fP is \fB-\fP,
+\" output is redirected to \fIstdout\fP.  This option cannot be used with \fB\-\-models\fP.
 .TP
-\fB\-T\fI <tasks>\fR
- [exponential,1,3]  Number of tasks in a layer.
+\fB\-p\fR, \fB\-\-processor-multiplicity\fR=\fIarg\fP
+Set the \fImean\fP processor multiplicity for each processor to
+\fIarg\fP.  The
+number of copies of each processor is set using the current discreet (or uniform) random number generator.
 .TP
-\fB\-X\fI <seed>\fR
-  Seed value for random number generator.
+\fB\-s\fP, \fB\-\-service-time\fR=\fIarg\fP
+Set the \fImean\fP  phase service time to \fIarg\fP.  The mean phase
+service time is set using the current continous random number generator.
 .TP
-\fB\-Y\fI <rendezvous>\fR
- [exponential,1,1.5]  Number of incomming RNV arcs to an entry.
+\fB\-t\fR, \fB\-\-task-multiplicity\fR=\fIarg\fP
+Set the \fImean\fP task multiplicity for each task to
+\fIarg\fP.  The
+number of copies of each task is set using the current discreet (or uniform) random number generator.
 .TP
-\fB\-Z\fI <send-no-reply>\fR
- [uniform,0,0]  Number of incomming SNR arcs to an entry.
+\fB\-v\fP,  \fB\-\-verbose\fR
+Verbose output (whatever that is...)
 .TP
-\fB\-a\fI <arrival-rate>\fR
- [exponential,0,0]  Arrival rate at entry with open arrivals
+\fB\-y\fP, \fB\-\-rendezvous-rate\fR=\fIarg\fP
+Send the mean rendezous (synchronous call) rate to \fIarg\fP.  
+The mean rendezvous rate is set using the current continous random number generator.
 .TP
-\fB\-c\fI <customers>\fR
- [exponential,1,4]  Number of customers in each Referece Task.
+\fB\-z\fP, \fB\-\-think-time\fR=\fIarg\fP
+Send the mean think time at reference tasks to \fIarg\fP.  
+The mean think time is set using the current continous random number generator.
 .TP
-\fB\-d\fI <call-\fR
-depth> [exponential,1,1.25]  Depth of calls.
+\fB\-2\fP, \fB\-\-second-phase\fR
+Set the probability that an entry at a server task has a second phase
+to \fIarg\fP.  \fIArg\fP must be between 0 and 1.
 .TP
-\fB\-f\fI <forwarding>\fR
- [0]  Forwarding probability at entry with forwarding.
+\fB\-\-no-annotate\fP
+Do not annotate LQN-type input files.  This option has no effect for
+XML or JSON output.
 .TP
-\fB\-h\fI\fR
-  help!
+\fB\-\-comment\fR=\fIarg\fP
+Set the model comment to \fIarg\fP.  By default, the comment is set to
+the command line options of the invocation of \fBlqngen\fP.
 .TP
-\fB\-p\fI <proc-mult> \fR
-[uniform,2,10]  Processor multiplicty.
+\fB\-\-under-relaxation\fR=\fIarg\fP
+Set the model under-relaxation to \fIarg\fP.  By default, the
+under-relaxation is set to 0.9.
 .TP
-\fB\-s\fI <service-time>\fR
-  Phase service time.
+\fB\-\-iteration-limit\fR=\fIarg\fP
+Set the model iteration limit to \fIarg\fP.  By default, the iteration
+limit is set to 50.  For models with many layers, this  value should
+be higher.
 .TP
-\fB\-t\fI <task-mult>\fR
- [uniform,2,10]  Task multiplicity.
+\fB\-\-convergence-limit\fR=\fIarg\fP
+Set the model convergence limit to \fIarg\fP.  By default, the
+convergence limit is set to 0.00001.
 .TP
-\fB\-y\fI <rnv-rate>\fR
-  RNV rate at entries with RNVs.
+\fB\-\-normal\fR=\fIarg\fP
+Set the continuous random variable generator to use a Normal
+distribution with a standard deviation of \fIarg\fP for any subsequent
+flag that uses a continuous distribution.  
 .TP
-\fB\-z\fI <snr-rate>\fR
-  SNR rate at entries with SNRs.
+\fB\-\-gamma\fR=\fIarg\fP
+Set the continuous random variable generator to use a Gamma
+distribution with a shape parameter of \fIarg\fP  for any subsequent
+flag that uses a continuous distribution.  Integer values of
+\fIarg\fP will generate random numbers with an Erlang distribution.  A
+shape value of 1 will generate random numbers with an Exponential
+distribution.  Note that the parameter argument for subsequent
+\fB\-\-service-time\fP, \fB\-\-rendezvous-rate\fP, and
+\fB\-\-think-time\fP options set the distribution's \fIscale\fP value,
+and not it's mean.
 .TP
-\fB\-@\fI <filename>\fR
-  Read options from filename.
+\fB\-\-poisson\fR
+Use a Poisson distribution for all subsequent options that use a
+discreet random variable generator.
+.TP
+\fB\-\-uniform\fR=\fIarg\fP
+Use a uniform distribution for all subsequent options that use a
+discreet or continuous random variable generator.  The spread of the
+distribution is set to \fIarg\fP.
+.TP
+\fB\-\-funnel\fP
+Create a model with a ``funnel'' shape, that is there are more serving
+tasks at the top of the model than at the bottom.  The default is to
+create a model with tasks randomly distributed among the layers.
+.TP
+\fB\-\-pyramid\fP
+Create a model with a ``pyramid'' shape, that is there are more serving
+tasks at the bottom of the model than at the top.  The default is to
+create a model with tasks randomly distributed among the layers.
+.TP
+\fB\-\-fat\fP
+Create a model with a ``fat'' shape, that is there are more serving
+tasks in the middle of the model than at either the top or the bottom.
+The default is to create a model with tasks randomly distributed among
+the layers.
+.TP
+\fB\-\-json-output\fP
+Output the input model in Java Script Object Notation (JSON).
+.TP
+\fB\-\-xml-output\fP
+Output the input model in eXtensible Markup Language (XML).
+.TP
+\fB\-\-lqx-output\fP
+Generate LQX control code for XML output files.  Variables will be
+created for all parameters set by the options above and will be
+initialized using the current random number generator.  If
+\fB\-\-experiments\fP=\fIarg\fP is also used, loop code will be
+produced to generate \fIarg\fP runs.  This option will enable XML output.
+.TP
+\fB\-\-spex-output\fP
+Generate SPEX control code for LQN output files.  Variables will be
+created for all parameters set by the options above and will be
+initialized using the current random number generator.  If
+\fB\-\-experiments\fP=\fIarg\fP is also used, loop code will be
+produce to generate \fIarg\fP runs.  This option will enable LQN
+output.
+.LP
+
 .SH "SEE ALSO"

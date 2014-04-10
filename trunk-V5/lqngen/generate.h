@@ -5,6 +5,9 @@
  *
  */
 
+#if !defined(GENERATE_H)
+#define GENERATE_H
+
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
@@ -14,6 +17,7 @@
 #include <cstdlib>
 #include <lqio/dom_document.h>
 #include <lqio/dom_extvar.h>
+#include "randomvar.h"
 
 using namespace std;
 
@@ -31,15 +35,6 @@ namespace LQIO {
 	class Call;
     }
 }
-
-#if !HAVE_DRAND48
-static double drand48() 
-{
-    return static_cast<double>(rand())/static_cast<double>(RAND_MAX);
-}
-#endif
-
-
 
 class Generate 
 {
@@ -68,8 +63,6 @@ private:
     };
 
 
-    typedef LQIO::DOM::ExternalVariable * (Generate::*variateFunc)( const opt_values, const string& ) const;
-
     class ModelVariable {
 	friend class Generate;
 
@@ -78,136 +71,200 @@ private:
 //	ModelVariable& operator=( const ModelVariable& );
 
     protected:
-	typedef void (ModelVariable::*variableValueFunc)( const LQIO::DOM::ExternalVariable&, const opt_values ) const;
+	typedef void (ModelVariable::*variableValueFunc)( const LQIO::DOM::ExternalVariable&, const RV::RandomVariable * ) const;
 
 	ModelVariable( Generate& model, variableValueFunc f ) : _model(model), _f(f) {}
 
-	void scalar( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const;
-	void vector( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const;
-	void index( const LQIO::DOM::ExternalVariable& var, const opt_values index ) const;
+	void lqx_scalar( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void lqx_random( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void lqx_function( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void lqx_sensitivity( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const;
+	void lqx_index( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void spex_scalar( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void spex_random( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * ) const;
+	void spex_sensitivity( const LQIO::DOM::ExternalVariable& var, const RV::RandomVariable * value ) const;
 
+#if __cplusplus >= 201103L
+    private:
+#endif
 	Generate& _model;
+
+    protected:
 	const variableValueFunc _f;
     };
 
-    class GetProcessorVariable : public ModelVariable {
+    class MakeProcessorVariable : public ModelVariable {
 
     public: 
-	GetProcessorVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Processor * );
+	MakeProcessorVariable( Generate& model, variableValueFunc f, RV::RandomVariable * multiplicity ) : ModelVariable( model, f ), _multiplicity(multiplicity) {}
+	void operator()( LQIO::DOM::Processor * ) const;
+
+    private:
+	RV::RandomVariable * _multiplicity;
     };
 	
     class SetProcessorVariable : public ModelVariable {
 
     public: 
-	SetProcessorVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Processor * );
+	SetProcessorVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * multiplicity ) : ModelVariable( model, f ), _multiplicity(multiplicity) {}
+	void operator()( const LQIO::DOM::Processor * ) const;
+
+    private:
+	const RV::RandomVariable * _multiplicity;
     };
 	
-    class GetTaskVariable : public ModelVariable {
+    class MakeTaskVariable : public ModelVariable {
     public:
-	GetTaskVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Task * );
+	MakeTaskVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * customers, const RV::RandomVariable * think_time, const RV::RandomVariable * multiplicity ) 
+	    : ModelVariable( model, f ), _customers(customers), _think_time(think_time), _multiplicity(multiplicity) {}
+	void operator()( LQIO::DOM::Task * ) const;
+
+    private:
+	const RV::RandomVariable * _customers;
+	const RV::RandomVariable * _think_time;
+	const RV::RandomVariable * _multiplicity;
     };
 	
     class SetTaskVariable : public ModelVariable {
     public:
-	SetTaskVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Task * );
+	SetTaskVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * customers, const RV::RandomVariable * think_time, const RV::RandomVariable * multiplicity ) 
+	    : ModelVariable( model, f ), _customers(customers), _think_time(think_time), _multiplicity(multiplicity) {}
+	void operator()( const LQIO::DOM::Task * ) const;
+
+    private:
+	const RV::RandomVariable * _customers;
+	const RV::RandomVariable * _think_time;
+	const RV::RandomVariable * _multiplicity;
     };
 	
-    class GetEntryVariable : public ModelVariable {
+    class MakeEntryVariable : public ModelVariable {
     public:
-	GetEntryVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Entry * );
+	MakeEntryVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * service_time  ) : ModelVariable( model, f ), _service_time(service_time) {}
+	void operator()( LQIO::DOM::Entry * ) const;
+    private:
+	const RV::RandomVariable * _service_time;
     };
 	
     class SetEntryVariable : public ModelVariable {
     public:
-	SetEntryVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Entry * );
+	SetEntryVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * service_time ) : ModelVariable( model, f ), _service_time(service_time) {}
+	void operator()( const LQIO::DOM::Entry * ) const;
+    private:
+	const RV::RandomVariable * _service_time;
     };
 	
-    class GetCallVariable : public ModelVariable {
+    class MakeCallVariable : public ModelVariable {
     public:
-	GetCallVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Call * );
+	MakeCallVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * rnv_rate, const RV::RandomVariable * snr_rate, const RV::RandomVariable * forwarding_rate ) 
+	    : ModelVariable( model, f ), _rnv_rate( rnv_rate ), _snr_rate( snr_rate ), _forwarding_rate( forwarding_rate ) {}
+	void operator()( LQIO::DOM::Call * ) const;
+
+
+    private:
+	const RV::RandomVariable * _rnv_rate;
+	const RV::RandomVariable * _snr_rate;
+	const RV::RandomVariable * _forwarding_rate;
     };
 	
     class SetCallVariable : public ModelVariable {
     public:
-	SetCallVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const LQIO::DOM::Call * );
+	SetCallVariable( Generate& model, variableValueFunc f, const RV::RandomVariable * rnv_rate, const RV::RandomVariable * snr_rate, const RV::RandomVariable * forwarding_rate ) 
+	    : ModelVariable( model, f ), _rnv_rate( rnv_rate ), _snr_rate( snr_rate ), _forwarding_rate( forwarding_rate ) {}
+	void operator()( const LQIO::DOM::Call * ) const;
+
+    private:
+	const RV::RandomVariable * _rnv_rate;
+	const RV::RandomVariable * _snr_rate;
+	const RV::RandomVariable * _forwarding_rate;
     };
 	
-    typedef void (Generate::*parameterize_fptr)( const ModelVariable::variableValueFunc );
+    typedef void (Generate::*get_set_var_fptr)( const ModelVariable::variableValueFunc );
 
 public:
-    Generate( const unsigned runs );
-    Generate( const unsigned runs, LQIO::DOM::Document * );
+    typedef enum { RANDOM_LAYERING, DETERMINISTIC_LAYERING, UNIFORM_LAYERING, PYRAMID_LAYERING, FUNNEL_LAYERING, FAT_LAYERING } layering_t;
+
+public:
+    Generate( LQIO::DOM::Document * doc, const unsigned runs );
+    Generate( const unsigned layers, const unsigned runs );
     virtual ~Generate();
 
     unsigned long getNumberOfRuns() const { return _runs; }
 
-    void fixed( variateFunc );
-    void random( variateFunc );
+    Generate& operator()();		// generate.
     void reparameterize();
 
     ostream& print( ostream& ) const;
-
-    static bool getGeneralArgs( char * options );
+    ostream& verbose( ostream& ) const;
 
     static option_type opt[];
     static const char * model_opts[];
-    static const char * comment;
 
-    static double exponential( double offset, double mean ) { return offset - (mean - offset) * log( drand48() ); }
-    static double pareto( double offset, double mean ) { return offset + pow( drand48(), -mean / ( mean - 1.0 ) ); }
-    static double uniform( double low, double high ) { return low + (high - low) * drand48(); }
-    static double loguniform( double low, double high ) { return exp( uniform( log(low), log(high) ) ); }
-    static double deterministic( double, double value ) { return value; }
-    static double probability( double, double mean ) { return mean; }
-
-    LQIO::DOM::ExternalVariable * get_constant( const opt_values, const string& ) const;
-    LQIO::DOM::ExternalVariable * get_variable( const opt_values, const string& ) const;
-    static double get_value( const opt_values );
+protected:
+    LQIO::DOM::ExternalVariable * get_rv( const std::string&, const std::string& name, const RV::RandomVariable * ) const;
 
 private:
+    void makeLayerCDF();
+    unsigned int getLayer( const unsigned int ) const;
+    LQIO::DOM::Processor * addProcessor( const string&, const scheduling_type sched_flag );
+    LQIO::DOM::Task * addTask( const string& name, const scheduling_type sched_flag, const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * aProcessor);
+    LQIO::DOM::Entry * addEntry( const string& name, const RV::RandomVariable * rv=0 );
+    LQIO::DOM::Call * addCall( LQIO::DOM::Entry *, LQIO::DOM::Entry *, const RV::RandomVariable * rv=0 );
 
-    LQIO::DOM::Processor * addProcessor( const string&, const scheduling_type sched_flag, LQIO::DOM::ExternalVariable * n_copies );
-    LQIO::DOM::Task * addTask( const string& name, const scheduling_type sched_flag, LQIO::DOM::ExternalVariable * n_copies, 
-			       const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * aProcessor, LQIO::DOM::ExternalVariable * think_time=0 );
-    LQIO::DOM::Entry * addEntry( const string& name, unsigned n_phases, variateFunc );
-    LQIO::DOM::Call * addCall( LQIO::DOM::Entry *, LQIO::DOM::Entry *, variateFunc  );
+    void addSpex( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
+    void addLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
+    void addSensitivityLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
+    void forEach( std::map<std::string,LQIO::DOM::Entry*>::const_iterator e, const std::map<std::string,LQIO::DOM::Entry*>::const_iterator& end, const unsigned int );
+    void addSensitivitySPEX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
 
-    void addLQX( parameterize_fptr f, const ModelVariable::variableValueFunc g );
-    void serialize( const ModelVariable::variableValueFunc f );
-    void serialize2( const ModelVariable::variableValueFunc f );
+    static bool isReferenceTask( const LQIO::DOM::Task * );
+    static bool isInterestingProcessor( const LQIO::DOM::Processor * );
 
-    template <class Type> void shuffle( vector<Type>& );
+    void set_variables( const ModelVariable::variableValueFunc f );
+    void make_variables( const ModelVariable::variableValueFunc f );
+    void sensitivity_variables( const ModelVariable::variableValueFunc f );
 
     static std::ostream& printIndent( std::ostream& output, const int i );
     static std::ostream& printHeader( std::ostream& output, const LQIO::DOM::Document& d, const int i, const string&  );
     static std::ostream& printResults( std::ostream& output, const LQIO::DOM::Document& d, const int i, const string&  );
+    void insertSPEXObservations();
+
     static IntegerManip indent( const int i ) { return IntegerManip( &printIndent, i ); }
     static ProgramManip print_header( const LQIO::DOM::Document& d, const int i, const string& s="" ) { return ProgramManip( &printHeader, d, i, s ); }
     static ProgramManip print_results( const LQIO::DOM::Document& d, const int i, const string& s="" ) { return ProgramManip( &printResults, d, i, s ); }
 
-    /* default values */
-    static unsigned iteration_limit;
-    static unsigned print_interval;
-    static double convergence_value;
-    static double underrelaxation;
+public:
+    static unsigned int __number_of_clients;
+    static unsigned int __number_of_processors;
+    static unsigned int __number_of_tasks;
+    static unsigned int __number_of_layers;
+    static layering_t __layering_type;
 
+    static RV::RandomVariable * __service_time;
+    static RV::RandomVariable * __think_time;
+    static RV::RandomVariable * __forwarding_probability;
+    static RV::RandomVariable * __rendezvous_rate;
+    static RV::RandomVariable * __send_no_reply_rate;
+    static RV::RandomVariable * __customers_per_client;
+    static RV::RandomVariable * __task_multiplicity;
+    static RV::RandomVariable * __processor_multiplicity;
+    static RV::RandomVariable * __probability_second_phase;
+    static RV::RandomVariable * __probability_infinite_server;
+    static RV::RandomVariable * __number_of_entries;
+    
+    static const char * __comment;
+    static unsigned __iteration_limit;
+    static unsigned __print_interval;
+    static double __convergence_value;
+    static double __underrelaxation;
+
+private:
     static LQIO::DOM::ConstantExternalVariable * ONE;
-    static LQIO::DOM::ConstantExternalVariable * ZERO;
-
-    static double double_rv( opt_values );
-    static unsigned unsigned_rv( unsigned );
-    static bool choose( unsigned );
 
     LQIO::DOM::Document * _document;
-    const unsigned _runs;
+    const unsigned int _runs;
+    const unsigned int _number_of_layers;
+
+    vector<double> _layer_CDF;
 
     vector<vector<LQIO::DOM::Task *> > _task;
     vector<vector<LQIO::DOM::Entry *> > _entry;
@@ -219,3 +276,4 @@ private:
 
 
 inline ostream& operator<<( ostream& output, const Generate& self ) { return self.print( output ); }
+#endif

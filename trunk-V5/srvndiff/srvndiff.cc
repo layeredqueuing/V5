@@ -80,6 +80,7 @@ extern int finite( double );
 #endif
 
 using namespace std;
+#define	LINE_WIDTH	1024
 
 /* Indecies to result_str array below */
 
@@ -130,8 +131,6 @@ static const char * time_str[] = {
     "User",
     "Elapsed"
 };
-
-char 	*toolname;			/* Program name			*/
 
 /* dragged in from srvniolib/error.c */
 unsigned resultlinenumber;	/* Line number of current parse line in input file */
@@ -227,7 +226,7 @@ map<int, set<int> > task_entry_tab;		/* Input mapping */
 map<int, set<int> > proc_task_tab;		/* Input mapping */
 
 unsigned pass;				/* src = 0,1, dst = 2 */
-static char header[132];
+static char header[LINE_WIDTH];
 
 static FILE * output;
 
@@ -298,15 +297,6 @@ static int error_width		= 6;
 static const char * separator_format	= " ";
 static int separator_width	= 1;
 
-#define	LINE_WIDTH	132
-
-/* Options */
-#define N_LONG_OPTS	100
-string opts;
-#if HAVE_GETOPT_LONG
-static struct option longopts[N_LONG_OPTS];
-#endif
-
 static const char * aggregate_opts[] = {
 #define	AGGR_TASK	0
     "task",
@@ -336,15 +326,14 @@ static const char * format_opts[] = {
  * Flags to control output report.
  */
 
-static bool print_copyright 		= false;
 static bool print_cv_square 		= false;
 static bool print_exceeded		= false;
 static bool print_group_util		= true;
 static bool print_iterations		= false;
-static bool print_mva_waits		= false;
 static bool print_join_delay 		= true;
 static bool print_join_variance 	= false;
 static bool print_loss_probability 	= true;
+static bool print_mva_waits		= false;
 static bool print_open_wait 		= true;
 static bool print_overtaking		= false;
 static bool print_processor_util 	= false;
@@ -363,13 +352,15 @@ static bool print_variance		= false;
 static bool print_waiting		= true;
 static bool print_waiting_variance	= false;
 
-static bool print_error_only 		= false;
-static bool print_results_only 		= false;
-static bool print_rms_error_only 	= false;
-static bool print_quiet 		= false;
-static bool print_error_absolute_value 	= false;
 static bool print_conf_as_percent	= false;
 static bool print_confidence_intervals 	= true;
+static bool print_copyright 		= false;
+static bool print_error_absolute_value 	= false;
+static bool print_error_only 		= false;
+static bool print_latex			= false;
+static bool print_quiet 		= false;
+static bool print_results_only 		= false;
+static bool print_rms_error_only 	= false;
 static bool print_total_rms_error 	= true;
 static bool print_totals_only 		= false;
 static bool normalize_processor_util	= false;
@@ -426,7 +417,7 @@ static struct {
     { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results.", &print_cv_square },
     { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance.", &print_snr_waiting_variance },
     { "service-time-exceeded",       'e', true,  no_argument,       "Print max service time exceeded", &print_exceeded },
-    { "format",                      'f', false, required_argument, "set the output Format for results.", 0 },
+    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format.", 0 },
     { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations.", &print_group_util },
     { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization.", &print_sema_util },
     { "iterations",                  'i', true,  no_argument,       "Print solver iterations.", &print_iterations },
@@ -443,9 +434,10 @@ static struct {
     { "utilizations",                'u', true,  no_argument,       "Print task Utilzation result.", &print_task_util },
     { "variances",                   'v', true,  no_argument,       "Print variance results.", &print_variance },
     { "waiting-times",               'w', true,  no_argument,       "Print waiting time results.", &print_waiting },
-    { "exclude",                     'x', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task,processor, or entry.", 0 },
+    { "exclude",                     'x', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task, processor, or entry.", 0 },
     { "waiting-time-variances",      'y', true,  no_argument,       "Print waiting time variance results.", &print_waiting_variance },
     { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results.", &print_snr_waiting },
+    { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX.", 0 },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input.", 0  },
     { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results.", 0 },
     { 0, 0, 0, 0, 0, 0 }
@@ -492,7 +484,7 @@ static bool process_file(const char *filename, unsigned pass_no);
 static void compare_files(const unsigned n, char * const files[] );
 static void print(unsigned passes, char * const names[] );
 static void make_header( char * h_ptr, char * const names[], const unsigned passes, const bool print_conf, const int only_print_error );
-static void print_sub_heading( const result_str_t result, const unsigned passes, const bool, const char * fmt,... );
+static void print_sub_heading( const result_str_t result, const unsigned passes, const bool, const char * file_name, const unsigned width, const char * title, const char * sub_title );
 static void print_runtime( const result_str_t result, const char * file_name, const unsigned passes, const unsigned );
 static void print_iteration( const result_str_t result, const char * file_name, const unsigned passes, const unsigned );
 static void print_entry_waiting( const result_str_t result, const char * file_name, const unsigned passes );
@@ -524,8 +516,8 @@ double rms_error( const vector<stats_buf>&, vector<double>& rms );
 #if (defined(linux) || defined(__linux__)) && !defined(__USE_XOPEN_EXTENDED)
 extern int getsubopt (char **, char * const *, char **);
 #endif
+static void makeopts( string& opts, std::vector<struct option>& longopts );
 
-LQIO::CommandLine command_line( opts, longopts );
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -543,59 +535,50 @@ main (int argc, char * const argv[])
     unsigned label_index = 0;
 
     struct stat stat_buf;
-
 /* 	xxdebug = 1; */
+
+    static string opts = "";
+#if HAVE_GETOPT_H
+    static std::vector<struct option> longopts;
+    makeopts( opts, longopts );
+#if __cplusplus < 201103L
+    LQIO::CommandLine command_line( opts, &longopts.front() );
+#else
+    LQIO::CommandLine command_line( opts, longopts.data() );
+#endif
+#else
+    makeopts( opts );
+    LQIO::CommandLine command_line( opts );
+#endif
 
     output = stdout;
     char * name = strrchr( argv[0], '/' );
     if ( name ) {
-        toolname = name+1;
+        lq_toolname = name+1;
     } else {
-        toolname = argv[0];
+        lq_toolname = argv[0];
     }
-    command_line = toolname;
+    command_line = lq_toolname;
 
 #if HAVE_FENV_H && HAVE_FEENABLEEXCEPT && defined(DEBUG)
     feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );
 #endif
 
-    unsigned int i = 0, k = 0;
-    for (i = 0; i < MAX_AGGREGATE; ++i ) {
+    for ( unsigned int i = 0; i < MAX_AGGREGATE; ++i ) {
 #if HAVE_REGEX_T
 	n_aggregate[i] = 0;
 	n_exclude[i] = 0;
 #endif
     }
 
-    for ( i = 0, k = 0; flag_info[i].name != 0; ++i ) {
-	longopts[k].has_arg = flag_info[i].has_arg;
-	longopts[k].flag = 0;
-	if ( flag_info[i].plus_or_minus ) {
-	    longopts[k].val = flag_info[i].val | 0x0100;		/* Denote as '+' */
-	    longopts[k++].name = flag_info[i].name;
-	    string name = "no-";
-	    longopts[k].val = flag_info[i].val;
-	    name += flag_info[i].name;
-	    longopts[k++].name = strdup( name.c_str() );		/* Make a copy */
-	} else {
-	    longopts[k].val = flag_info[i].val;
-	    longopts[k++].name = flag_info[i].name;
-	}
-	if ( (flag_info[i].val & 0xff00) == 0 ) {
-	    opts += static_cast<char>(flag_info[i].val);
-	    if ( flag_info[i].has_arg == required_argument ) {
-		opts += ':';
-	    }
-	}
-    }
-    longopts[k].name = 0;
-    longopts[k].val  = 0;
-
-    assert ( k < N_LONG_OPTS );
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
-	const int c = getopt2_long( argc, argv, opts.c_str(), longopts, NULL );
+#if __cplusplus < 201103L
+	const int c = getopt2_long( argc, argv, opts.c_str(), &longopts.front(), NULL );
+#else
+	const int c = getopt2_long( argc, argv, opts.c_str(), longopts.data(), NULL );
+#endif
 #else
 	const int c = getopt2( argc, argv, opts.c_str() );
 #endif
@@ -649,7 +632,7 @@ main (int argc, char * const argv[])
 		    break;
 
 		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -a -- %s\n", toolname, value );
+		    (void) fprintf( stderr, "%s: invalid argument to -a -- %s\n", lq_toolname, value );
 		    usage( false );
 		}
 	    }
@@ -697,7 +680,7 @@ main (int argc, char * const argv[])
 		    break;
 
 		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -x -- %s\n", toolname, value );
+		    (void) fprintf( stderr, "%s: invalid argument to -x -- %s\n", lq_toolname, value );
 		    usage( false );
 		}
 	    }
@@ -776,7 +759,7 @@ main (int argc, char * const argv[])
 		    break;
 
 		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -f -- %s\n", toolname, value );
+		    (void) fprintf( stderr, "%s: invalid argument to -f -- %s\n", lq_toolname, value );
 		    usage( false );
 		}
 	    }
@@ -944,7 +927,7 @@ main (int argc, char * const argv[])
 	case 'S':
 	    error_threshold = atof( optarg );
 	    if ( error_threshold <= 0 ) {
-		(void) fprintf( stderr, "%s: invalid argument to -S -- %s\n", toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid argument to -S -- %s\n", lq_toolname, optarg );
 		usage( false );
 	    }
 	    break;
@@ -959,6 +942,12 @@ main (int argc, char * const argv[])
 
 	case 'V':
 	    print_copyright = true;
+	    break;
+
+	case (512+'l'):
+	    print_latex = true;
+	    separator_format = " & ";
+	    separator_width  = 3;
 	    break;
 
 	case (512+'w'):
@@ -1003,7 +992,7 @@ main (int argc, char * const argv[])
 	print_results_only    = false;
     }
     if ( list_of_files && file_pattern_flag ) {
-	(void) fprintf( stderr, "%s: -F and -L are mutually exclusive.\n", toolname );
+	(void) fprintf( stderr, "%s: -F and -L are mutually exclusive.\n", lq_toolname );
 	exit( 1 );
     }
 
@@ -1017,26 +1006,26 @@ main (int argc, char * const argv[])
 	    init_totals( n_args, 0 );
 	    compare_files( n_args, &argv[optind] );
 	} else if ( stat( argv[optind], &stat_buf ) < 0 ) {
-	    (void) fprintf( stderr, "%s: cannot stat ", toolname );
+	    (void) fprintf( stderr, "%s: cannot stat ", lq_toolname );
 	    perror( argv[optind] );
 	} else if ( S_ISDIR( stat_buf.st_mode ) ) {
 	    if ( difference_mode ) {
-		(void) fprintf( stderr, "%s: Cannot use --difference with directories.\n", toolname );
+		(void) fprintf( stderr, "%s: Cannot use --difference with directories.\n", lq_toolname );
 	    } else {
 		compare_directories( n_args, &argv[optind] );
 	    }
 	} else if ( list_of_files ) {
 	    if ( difference_mode ) {
-		(void) fprintf( stderr, "%s: Cannot use --difference with --files.\n", toolname );
+		(void) fprintf( stderr, "%s: Cannot use --difference with --files.\n", lq_toolname );
 	    } else {
-		(void) fprintf( stderr, "%s: list of files specified, %s must be a directory.\n", toolname, argv[optind] );
+		(void) fprintf( stderr, "%s: list of files specified, %s must be a directory.\n", lq_toolname, argv[optind] );
 	    }
 	} else {
 	    init_totals( n_args, 0 );
 	    compare_files( n_args, &argv[optind] );
 	}
     } else {
-	(void) fprintf( stderr, "%s: arg count\n", toolname );
+	(void) fprintf( stderr, "%s: arg count\n", lq_toolname );
 	usage( false );
     }
 
@@ -1045,6 +1034,42 @@ main (int argc, char * const argv[])
     return global_differences_found ? 3 : 0;
 }
 
+static void
+makeopts( string& opts, std::vector<struct option>& longopts ) 
+{
+    struct option opt;
+    opt.flag = 0;
+    for ( unsigned int i = 0; flag_info[i].name != 0; ++i ) {
+	opt.has_arg = flag_info[i].has_arg;
+	if ( flag_info[i].plus_or_minus ) {
+	    opt.val = flag_info[i].val | 0x0100;		/* Denote as '+' */
+	    opt.name = flag_info[i].name;
+	    longopts.push_back( opt );
+
+	    opt.val = flag_info[i].val;
+	    string name = "no-";
+	    name += flag_info[i].name;
+	    opt.name = strdup( name.c_str() );			/* Make a copy */
+	    longopts.push_back( opt );	
+	} else {
+	    opt.val = flag_info[i].val;
+	    opt.name = flag_info[i].name;
+	    longopts.push_back( opt );	
+	}
+	if ( (flag_info[i].val & 0xff00) == 0 ) {
+	    opts += static_cast<char>(flag_info[i].val);
+	    if ( flag_info[i].has_arg == required_argument ) {
+		opts += ':';
+	    }
+	}
+    }
+    opt.name = 0;
+    opt.val  = 0;
+    opt.has_arg = 0;
+    longopts.push_back( opt );	
+}
+
+
 /*
  * Print out a helpful (?) message.
  */
@@ -1052,8 +1077,8 @@ main (int argc, char * const argv[])
 static void
 usage( const bool full_usage )
 {
-    (void) fprintf( stderr, "Usage:\t%s [OPTIONS] file1 [file2 [file3... [file6]]]\n", toolname);
-    (void) fprintf( stderr, "\t%s [OPTIONS] directory1 [directory2 [directory3... [directory6]]]\n", toolname );
+    (void) fprintf( stderr, "Usage:\t%s [OPTIONS] file1 [file2 [file3... [file6]]]\n", lq_toolname);
+    (void) fprintf( stderr, "\t%s [OPTIONS] directory1 [directory2 [directory3... [directory6]]]\n", lq_toolname );
 
     if ( !full_usage ) return;
 
@@ -1082,7 +1107,7 @@ usage( const bool full_usage )
 	    switch ( static_cast<char>(flag_info[i].val) ) {
 	    case 'a': s += "=<obj>=regex"; break;
 	    case 'x': s += "=<obj>=regex"; break;
-	    case 'f': s += "=<col>=%N.n"; break;
+	    case 'f': s += "=<col>=<arg>"; break;
 	    case 'o': s += "=filename";	 break;
 	    case 'S': s += "=N.n";	 break;
 	    default:  s += "=ARG";	 break;
@@ -1120,16 +1145,16 @@ format_ok ( const char * value, int choice, int * size )
     char fmt[32];
 
     if ( !value ) {
-	(void) fprintf( stderr, "%s: No format specified to %s\n", toolname, format_opts[choice] );
+	(void) fprintf( stderr, "%s: No format specified to %s\n", lq_toolname, format_opts[choice] );
 	return false;
     } else if ( sscanf( value, "%%%d.%d%s", &len, &prec, fmt ) != 3 ) {
-	(void) fprintf( stderr, "%s: Invalid format to %s -- %s\n", toolname, format_opts[choice], value );
+	(void) fprintf( stderr, "%s: Invalid format to %s -- %s\n", lq_toolname, format_opts[choice], value );
 	return false;
     } else if ( len < 4 ) {
-	(void) fprintf( stderr, "%s: Invalid length value to %s -- %s\n", toolname, format_opts[choice], value );
+	(void) fprintf( stderr, "%s: Invalid length value to %s -- %s\n", lq_toolname, format_opts[choice], value );
 	return false;
     } else if ( len < prec + 4 ) {
-	(void) fprintf( stderr, "%s: Precision is too large to %s -- %s\n", toolname, format_opts[choice], value );
+	(void) fprintf( stderr, "%s: Precision is too large to %s -- %s\n", lq_toolname, format_opts[choice], value );
 	return false;
     } else {
 	*size = len;
@@ -1147,7 +1172,7 @@ my_fopen (const char *filename, const char *mode)
     FILE * fptr = fopen( filename, mode );
 
     if ( !fptr ) {
-	(void) fprintf( stderr, "%s: cannot open ", toolname );
+	(void) fprintf( stderr, "%s: cannot open ", lq_toolname );
 	perror( filename );
 	exit( 2 );
     }
@@ -1180,15 +1205,19 @@ compare_directories (unsigned n, char * const dirs[])
 		rc = glob( path, 0, NULL, &dir_list[i] );
 	    }
 	    if ( dir_list[i].gl_pathc == 0 ) {
+		sprintf( path, "%s/%s.lqjo", dirs[i], file_pattern );
+		rc = glob( path, 0, NULL, &dir_list[i] );
+	    }
+	    if ( dir_list[i].gl_pathc == 0 ) {
 		sprintf( path, "%s/%s", dirs[i], file_pattern );
 		rc = glob( path, 0, NULL, &dir_list[i] );
 	    }
 	    if ( rc == GLOB_NOSPACE ) {
-		(void) fprintf( stderr, "%s: no more core!\n", toolname );
+		(void) fprintf( stderr, "%s: no more core!\n", lq_toolname );
 		exit( 2 );
 	    }
 	    if ( dir_list[i].gl_pathc == 0 ) {
-		(void) fprintf( stderr, "%s: no matching files in %s!\n", toolname, dirs[i] );
+		(void) fprintf( stderr, "%s: no matching files in %s!\n", lq_toolname, dirs[i] );
 	    }
 	}
 #else
@@ -1202,7 +1231,7 @@ compare_directories (unsigned n, char * const dirs[])
 	commonize( n, dirs );
     }
     if ( dir_list[0].gl_pathc == 0 ) {
-	(void) fprintf( stderr, "%s: No files.\n", toolname );
+	(void) fprintf( stderr, "%s: No files.\n", lq_toolname );
 	return;
     }
 
@@ -1215,7 +1244,7 @@ compare_directories (unsigned n, char * const dirs[])
 
     for ( i = FILE2; i < n; ++i ) {
 	if ( dir_list[FILE1].gl_pathc != dir_list[i].gl_pathc ) {
-	    (void) fprintf( stderr, "%s: Directory size mismatch between %s and %s.\n", toolname,
+	    (void) fprintf( stderr, "%s: Directory size mismatch between %s and %s.\n", lq_toolname,
 			    dirs[FILE1], dirs[i] );
 	    goto done;
 	}
@@ -1301,7 +1330,7 @@ build_file_list (const char *dir, glob_t *dir_list)
     unsigned l;
 
     if ( !dptr ) {
-	(void) fprintf( stderr, "%s: cannot open directory ", toolname  );
+	(void) fprintf( stderr, "%s: cannot open directory ", lq_toolname  );
 	perror( dir );
 	exit( 2 );
     }
@@ -1311,7 +1340,7 @@ build_file_list (const char *dir, glob_t *dir_list)
     while ( ( d = readdir( dptr ) ) != NULL ) {
 	(void) sprintf( path, "%s/%s", dir, d->d_name );
 	if ( stat( path, &stat_buf ) < 0 ) {
-	    (void) fprintf( stderr, "%s: cannot stat ", toolname );
+	    (void) fprintf( stderr, "%s: cannot stat ", lq_toolname );
 	    perror( path );
 	    continue;
 	}
@@ -1319,7 +1348,7 @@ build_file_list (const char *dir, glob_t *dir_list)
 	    continue;	/* Ignore funny files. */
 	}
 	p = strrchr( d->d_name, '.' );
-	if ( !p || (strcmp( p, ".p" ) != 0 && strcmp( p, ".lqxo" ) != 0) ) {
+	if ( !p || (strcmp( p, ".p" ) != 0 && strcmp( p, ".lqxo" ) != 0 && strcmp( p, ".lqjo" ) != 0 ) ) {
 	    continue;	/* Ignore non .p files.	*/
 	}
 #if HAVE_REGEX_H
@@ -1342,7 +1371,7 @@ build_file_list (const char *dir, glob_t *dir_list)
 						   sizeof( char * ) * dir_list->gl_offs );
 	}
 	if ( !dir_list->gl_pathv ) {
-	    (void) fprintf( stderr, "%s: no more core!\n", toolname );
+	    (void) fprintf( stderr, "%s: no more core!\n", lq_toolname );
 	    exit( 2 );
 	}
 	dir_list->gl_pathv[dir_list->gl_pathc] = strdup( path );
@@ -1405,10 +1434,13 @@ build_file_list2 ( const unsigned n,  char * const dirs[] )
 		if ( stat( path, &stat_buf ) < 0 ) {
 		    (void) sprintf( path, "%s/%s.lqxo", dirs[i], basename );
 		    if ( stat( path, &stat_buf ) < 0 ) {
-			(void) fprintf( stderr, "%s: cannot stat ", toolname );
-			(void) sprintf( path, "%s/%s", dirs[i], filename );
-			perror( path );
-			continue;
+			(void) sprintf( path, "%s/%s.lqjo", dirs[i], basename );
+			if ( stat( path, &stat_buf ) < 0 ) {
+			    (void) fprintf( stderr, "%s: cannot stat ", lq_toolname );
+			    (void) sprintf( path, "%s/%s", dirs[i], filename );
+			    perror( path );
+			    continue;
+			}
 		    }
 		}
 	    }
@@ -1425,7 +1457,7 @@ build_file_list2 ( const unsigned n,  char * const dirs[] )
 							 sizeof( char * ) * dir_list[i].gl_offs );
 	    }
 	    if ( !dir_list[i].gl_pathv ) {
-		(void) fprintf( stderr, "%s: no more core!\n", toolname );
+		(void) fprintf( stderr, "%s: no more core!\n", lq_toolname );
 		exit( 2 );
 	    }
 	    dir_list[i].gl_pathv[dir_list[i].gl_pathc] = strdup( path );
@@ -1547,7 +1579,7 @@ process_file (const char *filename, unsigned pass_no)
 
     if ( !an_error && (valid_flag == 0 && !ignore_invalid_result_error) ) {
 	an_error =  1;
-	fprintf( stderr, "%s: %s: Results not valid\n", toolname, filename );
+	fprintf( stderr, "%s: %s: Results not valid\n", lq_toolname, filename );
     }
 
     return static_cast<bool>(an_error || result_error_flag);
@@ -1771,11 +1803,22 @@ static void
 make_header ( char * h_ptr, char * const names[], const unsigned passes, const bool print_conf, const int only_print_error )
 {
     char * o_ptr = h_ptr;		/* Pointer into header string.	*/
-    unsigned j;
+
+    if ( print_latex ) {
+	unsigned columns = 0;
+	for ( unsigned int j = 0; j < passes; ++j ) {
+	    if ( only_print_error ) {
+		if ( j == 0 && only_print_error == 1 ) continue;			/* Skip col 0 on error reports */
+	    } 
+	    columns += 1;
+	}
+
+	h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "\\begin{tabular}{|c|*{%d}{d{2}|}}\n\\hline\n%%-*.*s ", columns );
+    }
 
     /* Now make a cute header. */
 
-    for ( j = 0; j < passes && h_ptr - o_ptr < LINE_WIDTH; ++j ) {
+    for ( unsigned int j = 0; j < passes && h_ptr - o_ptr < LINE_WIDTH; ++j ) {
 	unsigned field_width;		/* default heading width.	*/
 	unsigned l;
 	char * s = dirname( names[j] );
@@ -1807,25 +1850,26 @@ make_header ( char * h_ptr, char * const names[], const unsigned passes, const b
 	}
 	l = strlen( s );
 
+	h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*s", separator_width, separator_format );
 
-	(void) sprintf( h_ptr, "%*s", separator_width, separator_format );
-	h_ptr += separator_width;
-
-	if ( l >= field_width ) {
-	    (void) sprintf( h_ptr, "%*.*s",
+	if ( print_latex ) {
+	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "\\multicolumn{1}{c|}{%s}", s );
+	} else if ( l >= field_width ) {
+	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*.*s",
 			    field_width, field_width, s );
 	} else {
-	    (void) sprintf( h_ptr, "%*c%*.*s%*c",
+	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*c%*.*s%*c",
 			    (field_width-l)/2, ' ',
 			    l, l, s,
 			    (field_width+1-l)/2, ' ' );
 	}
-	h_ptr += field_width;
 
 	if ( j > 0 && !only_print_error ) {
-	    (void) sprintf( h_ptr, "%*s", separator_width, separator_format );
-	    h_ptr += separator_width;
+	    h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), "%*s", separator_width, separator_format );
 	}
+    }
+    if ( print_latex ) {
+	h_ptr += snprintf( h_ptr, (o_ptr+LINE_WIDTH-h_ptr), " \\\\\n\\hline\n" );
     }
 }
 
@@ -1835,18 +1879,18 @@ make_header ( char * h_ptr, char * const names[], const unsigned passes, const b
  */
 
 static void
-print_sub_heading ( const result_str_t result, const unsigned passes, const bool conf_flag, const char * fmt, ... )
+print_sub_heading ( const result_str_t result, const unsigned passes, const bool conf_flag, const char * file_name, const unsigned int width, const char * title, const char * sub_title )
 {
-    unsigned j;
-    va_list args;
-
     if ( print_rms_error_only || print_quiet ) return;
 
-    va_start( args, fmt );
-    (void) vfprintf( output, fmt, args );
-    va_end( args );
+    if ( print_latex ) {
+	(void) fprintf( output, title, width-1, width-1, file_name );
+	(void) fprintf( output, "\\hline\n%-*.*s ", width-1, width-1, sub_title );
+    } else {
+	(void) fprintf( output, "%-*.*s %s\n%-*.*s", width-1, width-1, file_name, title, width, width, sub_title );
+    }
 
-    for ( j = 0; j < passes; ++j ) {
+    for ( unsigned int j = 0; j < passes; ++j ) {
 	if ( !print_error_only ) {
 	    (void) fprintf( output, separator_format );
 	    (void) fprintf( output, "%*s", result_width, result_str[(int)result].string );
@@ -1864,6 +1908,9 @@ print_sub_heading ( const result_str_t result, const unsigned passes, const bool
 		(void) fprintf( output, "%*s", error_width, "%diff" );
 	    }
 	}
+    }
+    if ( print_latex ) {
+	(void) fprintf( output, " \\\\\n\\hline" );
     }
     (void) fputc( '\n', output );
 }
@@ -1883,9 +1930,7 @@ print_entry_waiting ( const result_str_t result, const char * file_name, const u
     /* Entries */
 
     if ( entry_waiting( result, passes, rms, 0 ) ) {
-	print_sub_heading( result, passes, print_confidence_intervals,
-			   "%-32.32s     %s\nFrom Entry\tTo Entry\tPhase",
-			   file_name, header );
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       Phase" );
 	entry_waiting( result, passes, rms, print_entry );
 	count += 1;
     }
@@ -1896,9 +1941,7 @@ print_entry_waiting ( const result_str_t result, const char * file_name, const u
 	if ( !print_rms_error_only ) {
 	    (void) fputc( '\n', output );
 	}
-	print_sub_heading( result, passes, print_confidence_intervals,
-			   "%-32.32s     %s\nFrom Task:Act\tTo Entry\t     ",
-			   file_name, header );
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Task:Act   To Entry             " );
 	activity_waiting( result, passes, rms, print_activity );
 	count += 1;
     }
@@ -2010,9 +2053,7 @@ print_entry_overtaking ( const result_str_t result, const char * file_name, cons
     /* Entries */
 
     if ( entry_overtaking( result, passes, rms, 0 ) ) {
-	print_sub_heading( result, passes, print_confidence_intervals,
-			   "%-32.32s     %s\nFrom Entry\tTo Entry\tPhase",
-			   file_name, header );
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry        Phase" );
 	entry_overtaking( result, passes, rms, print_entry );
 	count += 1;
     }
@@ -2092,7 +2133,7 @@ print_activity_join ( const result_str_t result, const char * file_name, const u
     if ( !print_rms_error_only ) {
 	(void) fputc( '\n', output );
     }
-    print_sub_heading( result, passes, print_confidence_intervals, "%-32.32s%s\nFrom Task:Act\tTo Task:Act\t", file_name, header );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, 32, header, "From Task:Act   To Task:Act     " );
 
     for ( std::map<int, std::map<int, join_info_t> >::const_iterator next_i = join_tab[FILE1].begin(); next_i != join_tab[FILE1].end(); ++next_i ) {
 	unsigned i = next_i->first;
@@ -2117,7 +2158,7 @@ print_entry_service ( const result_str_t result, const char * file_name, const u
 {
     vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s     %s\nEntry\t\tPhase", file_name, header );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Entry           Phase" );
 
     for ( map<int,entry_info>::const_iterator i = entry_tab[FILE1].begin(); i != entry_tab[FILE1].end(); ++i ) {
         unsigned p;
@@ -2134,13 +2175,16 @@ print_entry_service ( const result_str_t result, const char * file_name, const u
 	    print_entry( result, passes, i->first, 0, p, &rms, find_symbol_pos( i->first, ST_ENTRY ), p+1 );
 	}
     }
+    if ( print_latex && !print_rms_error_only ) {
+	(void) fprintf( output, "\\hline\n" );
+    }
 
     /* Activities */
     if ( activity_tab[FILE1].size() > 0 && result_str[(int)result].act_check_func ) {
 	if ( !print_rms_error_only ) {
 	    (void) fputc( '\n', output );
 	}
-	print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s     %s\nTask:Activity\t     ", file_name, header );
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Task:Activity        " );
 
 	for ( map<int,activity_info>::const_iterator i = activity_tab[FILE1].begin(); i != activity_tab[FILE1].end(); ++i ) {
 	    unsigned j;
@@ -2153,9 +2197,15 @@ print_entry_service ( const result_str_t result, const char * file_name, const u
 
 	    print_activity( result, passes, i->first, 0, &rms, find_symbol_pos( i->first, ST_ACTIVITY ) );
 	}
+	if ( print_latex && !print_rms_error_only ) {
+	    (void) fprintf( output, "\\hline\n" );
+	}
     }
 
     print_rms_error( file_name, result, rms, passes, print_confidence_intervals );
+    if ( print_latex && !print_rms_error_only ) {
+	(void) fprintf( output, "\\end{tabular}\n" );
+    }
 }
 
 
@@ -2176,7 +2226,7 @@ print_task ( const result_str_t result, const char * file_name, const unsigned p
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
-	    print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s %s\nTask\t\t", file_name, header   );
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Task" );
 	    first_record = false;
 	}
 
@@ -2205,7 +2255,7 @@ print_entry_open ( const result_str_t result, const char * file_name, const unsi
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
-	    print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s %s\nEntry\t\t", file_name, header );
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Entry" );
 	    first_record = false;
 	}
 
@@ -2226,7 +2276,7 @@ print_group ( const result_str_t result, const char * file_name, const unsigned 
 {
     vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s %s\nGroup\t\t", file_name, header );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Group" );
 
     for ( map<int,group_info>::const_iterator i = group_tab[FILE1].begin(); i != group_tab[FILE1].end(); ++i ) {
 	print_entry( result, passes, i->first, 0, 0, &rms, find_symbol_pos( i->first, ST_GROUP ) );
@@ -2244,7 +2294,7 @@ print_processor ( const result_str_t result, const char * file_name, const unsig
 {
     vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, "%-15.15s %s\nProcessor\t", file_name, header );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Processor" );
 
     for ( map<int,processor_info>::const_iterator i = processor_tab[FILE1].begin(); i != processor_tab[FILE1].end(); ++i ) {
 	print_entry( result, passes, i->first, 0, 0, &rms, find_symbol_pos( i->first, ST_PROCESSOR ) );
@@ -2263,7 +2313,8 @@ print_runtime ( const result_str_t result, const char * file_name, const unsigne
 {
     unsigned p;
 
-    print_sub_heading( result, passes, false, "%-15.15s %s\nStatistic\t", file_name, header );
+    print_sub_heading( result, passes, false, file_name, 16, header, "Statistic" );
+
     for ( p = 0; p <= 2; ++p ) {
 	unsigned j;
 	double value[MAX_PASS];
@@ -2319,8 +2370,7 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
     unsigned j;
     double value[MAX_PASS];
 
-
-    print_sub_heading( result, passes, false, "%-15.15s %s\n\t\t", file_name, header );
+    print_sub_heading( result, passes, false, file_name, 16, header, " " );
     if ( !print_rms_error_only ) {
 	(void) fprintf( output, result_str[(int)result].format, " " );
     }
@@ -2393,6 +2443,9 @@ print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsi
     }
 
     if ( !print_rms_error_only ) {
+	if ( print_latex ) {
+	    (void) fprintf( output, " \\\\" );
+	}
 	(void) fputc( '\n', output );
     }
 }
@@ -2429,6 +2482,9 @@ print_activity ( const result_str_t result, const unsigned passes, unsigned i, u
     }
 
     if ( !print_rms_error_only ) {
+	if ( print_latex ) {
+	    (void) fprintf( output, " \\\\" );
+	}
 	(void) fputc( '\n', output );
     }
 }
@@ -2464,11 +2520,11 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 	(*delta)[j].update( value[0] );
     } else {
 	double error;
-	if ( finite( value[j] ) && finite( value[FILE1] ) ) {
+	if ( static_cast<bool>(finite( value[j] )) && static_cast<bool>(finite( value[FILE1] )) ) {
 	    error = value[j] - value[FILE1];
-	} else if ( !finite( value[j] ) && finite( value[FILE1] ) ) {
+	} else if ( !static_cast<bool>(finite( value[j] )) && static_cast<bool>(finite( value[FILE1] )) ) {
 	    error = value[j];
-	} else if ( finite( value[j] ) && !finite( value[FILE1] ) ) {
+	} else if ( static_cast<bool>(finite( value[j] )) && !static_cast<bool>(finite( value[FILE1] )) ) {
 	    error = -value[FILE1];
 	} else {
 	    error = 0.0;
@@ -2549,11 +2605,17 @@ print_rms_error ( const char * file_name, const result_str_t result, const vecto
 
 	}
 	if ( !print_totals_only ) {
+	    if ( print_latex ) {
+		(void) fprintf( output, " \\\\" );
+	    }
 	    (void) fputc( '\n', output );
 	}
     }
 
     if ( !(print_rms_error_only || print_totals_only || print_quiet)) {
+	if ( print_latex ) {
+	    (void) fprintf( output, "\\hline" );
+	}
 	(void) fputc( '\n', output );
     }
 
@@ -3375,8 +3437,8 @@ commonize (unsigned n, char *const dirs[])
 		char * q = strrchr( dst, '.' );
 		for ( ; p && q && *p != '.' && *p == *q; ++p, ++q );
 		if ( p && q && *p == '.' && *q == '.'
-		     && ( ( strcmp( p, ".p" ) == 0 && ( strcmp( q, ".lqxo" ) == 0 || strcmp( q, "xml" ) == 0 ) )
-			  || ( strcmp( q, ".p" ) == 0 && ( strcmp( p, ".lqxo" ) == 0 || strcmp( q, "xml" ) == 0 ) ) ) ) {
+		     && ( ( strcmp( p, ".p" ) == 0 && ( strcmp( q, ".lqxo" ) == 0 || strcmp( q, ".xml" ) == 0 ) )
+			    || ( strcmp( q, ".p" ) == 0 && ( strcmp( p, ".lqxo" ) == 0 || strcmp( p, ".xml" ) == 0 ) ) ) ) {
 		    result = 0;
 		}
 	    }
@@ -3386,7 +3448,7 @@ commonize (unsigned n, char *const dirs[])
 
 		/* dir2 entry not found -- shift and delete... */
 
-		(void) fprintf( stderr, "%s: file \"%s\" not found in \"%s\"\n", toolname,
+		(void) fprintf( stderr, "%s: file \"%s\" not found in \"%s\"\n", lq_toolname,
 				basename( dir_list[i].gl_pathv[j] ), dirs[0] );
 		(void) free( dir_list[i].gl_pathv[j] );
 		for ( k = j + 1; k < dir_list[i].gl_pathc; ++k ) {
@@ -3400,7 +3462,7 @@ commonize (unsigned n, char *const dirs[])
 
 		/* dir1 entry not found -- shift and delete all dirs up to dir2 */
 
-		(void) fprintf( stderr, "%s: file \"%s\" not found in \"%s\"\n", toolname,
+		(void) fprintf( stderr, "%s: file \"%s\" not found in \"%s\"\n", lq_toolname,
 				basename( dir_list[0].gl_pathv[j] ), dirs[i] );
 		for ( l = 0; l < i; ++l ) {
 		    unsigned k;		/* Index for squishing list.	*/
@@ -3648,7 +3710,7 @@ static int readInResults(const char *filename)
     if ( strcmp( filename, "-" ) == 0 ) {
 	if ( list_of_files == stdin ) {
 	    error_code = 1;
-	    fprintf( stderr, "%s: stdin cannot be used as an input file.\n", toolname );
+	    fprintf( stderr, "%s: stdin cannot be used as an input file.\n", lq_toolname );
 	} else {
 	    resultin = stdin;
 	    input_file_name = "stdin";
@@ -3671,8 +3733,10 @@ static int readInResults(const char *filename)
 	    } else {
 		error_code = errno;
 	    }
-	} else if ( LQIO::DOM::Expat_Document::LoadLQNX( filename, error_code ) == 0 ) {
-	    error_code = 1;
+	} else {
+	    if ( !LQIO::DOM::Expat_Document::load( filename ) ) {
+		error_code = 1;
+	    }
 	}
     }
     return error_code;
@@ -4001,7 +4065,7 @@ regexec_check( int errcode, regex_t *r )
     if ( errcode ) {
 	char buf[BUFSIZ];
 	regerror( errcode, r, buf, BUFSIZ );
-	fprintf( stderr, "%s: %s\n", toolname, buf );
+	fprintf( stderr, "%s: %s\n", lq_toolname, buf );
 	exit( 2 );
 	return false;
     } else {

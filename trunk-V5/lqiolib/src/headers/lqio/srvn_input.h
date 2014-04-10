@@ -79,7 +79,7 @@ extern "C" {
 
 
     void srvn_pragma(const char* pragmaText);
-    void srvnerror( const char * fmt, ... );
+    void LQIO_error( const char * fmt, ... );
     void srvnwarning( const char * fmt, ... );
 
     void * srvn_int_constant( const int );
@@ -92,7 +92,9 @@ extern "C" {
 namespace LQIO {
     namespace DOM {
 	class Document;
-	Document* LoadSRVN(const std::string&, const std::string&, lqio_params_stats* ioVars, unsigned& errorCode);
+    }
+    namespace SRVN {
+	bool load(DOM::Document&, const std::string&, const std::string&, unsigned& errorCode, bool);
     }
 }
 

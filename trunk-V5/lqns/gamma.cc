@@ -26,7 +26,7 @@ Gamma_Distribution::Gamma_Distribution( double shape, double scale )
 void
 Gamma_Distribution::setParameters( double shape, double scale )
 {
-    assert( shape >= 0 && scale && scale >= 0 );
+    assert( shape >= 0 && scale > 0 );
 
     _c = shape * log( scale ) + logGamma( shape );
 }

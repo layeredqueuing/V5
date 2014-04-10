@@ -323,7 +323,7 @@ Model::construct()
 		DEBUG("[4]: Phase " << call->getPhase() << " Call (" << src->getName() << ") -> (" << dst->getName() << ")" << endl);
 #endif
 		/* Add the call to the system */
-		Entry::add_call(call);
+		newEntry->add_call( p, call);
 	    }
 	}
 
@@ -645,18 +645,14 @@ Model::reload()
     /* Default mapping */
 
     LQIO::Filename directory_name( has_output_file_name() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
-    const char * suffix = SolverInterface::Solve::customSuffix.c_str();
 
     if ( access( directory_name(), R_OK|W_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
-    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name(), suffix );
-		
     unsigned int errorCode;
-    if ( !_document->loadResults( filename(), errorCode ) ) {
-	cerr << io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
+    if ( !_document->loadResults( directory_name(), _input_file_name, SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
 	return NORMAL_TERMINATION;
@@ -1418,7 +1414,7 @@ Model::build_open_arrivals ()
 	a_task->entries.push_back( an_entry );
 
 	LQIO::DOM::ConstantExternalVariable  * var  = new LQIO::DOM::ConstantExternalVariable( 1 );
-	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::QUASI_SEND_NO_REPLY, phase, dst_dom, 1, var, 0 );
+	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::QUASI_SEND_NO_REPLY, phase, dst_dom, var );
 	phase->addCall( call );
 	an_entry->phase[1].add_call( call );
     }
@@ -1533,18 +1529,17 @@ Model::print() const
 {
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
 
+    const bool lqx_output = _document->getResultInvocationNumber() > 0;
     const std::string directory_name = createDirectory();
     const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
- 
     bool override = false;
     if ( has_output_file_name() && LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
 	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out" );
 	override = filename() == _output_file_name;
     }
 
-    /* SRVN type statistics */
 
     if ( override || ((!has_output_file_name() || directory_name.size() > 0 ) && strcmp( LQIO::input_file_name, "-" ) != 0) ) {
 	ofstream output;
@@ -1552,12 +1547,19 @@ Model::print() const
 	if ( _document->isXMLDOMPresent() || xml_flag ) {
 	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
 	    filename.backup();
-	    _document->serializeDOM( filename(), true );
+	    ofstream output;
+	    output.open( filename(), ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    } else {
+		_document->serializeDOM( output, true );
+	    }
+	    output.close();
 	}
 
 	/* Parseable output. */
 
-	if ( parse_flag ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || parse_flag ) {
 	    LQIO::Filename filename( _input_file_name.c_str(), "p", directory_name.c_str(), suffix.c_str() );
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
@@ -1599,23 +1601,21 @@ Model::print() const
 
 	LQIO::Filename::backup( _output_file_name.c_str() );
 
-	if ( xml_flag ) {
-	    _document->serializeDOM( _output_file_name.c_str(), true );
+	ofstream output;
+	output.open( _output_file_name.c_str(), ios::out );
+	if ( !output ) {
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+	} else if ( xml_flag ) {
+	    _document->serializeDOM( output, true );
+	} else if ( parse_flag ) {
+	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else {
-	    ofstream output;
-	    output.open( _output_file_name.c_str(), ios::out );
-	    if ( !output ) {
-	        solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	    } else if ( parse_flag ) {
-	        _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	    } else {
-	        _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
-		if ( inservice_match_pattern != 0 ) {
-		    print_inservice_probability( output );
-		}
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    if ( inservice_match_pattern != 0 ) {
+		print_inservice_probability( output );
 	    }
-	    output.close();
 	}
+	output.close();
     }
 
     cout.flush();

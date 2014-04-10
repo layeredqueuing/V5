@@ -70,6 +70,10 @@ namespace SolverInterface
 	/* Run the solver and return its success as a boolean value */
 	try {
 	    assert (_aModel );
+	    std::stringstream ss;
+	    _document->printExternalVariables( ss );
+	    _document->setModelComment( ss.str() );
+
 	    _document->setResultInvocationNumber(invocationCount);
 	    const bool ok = ((_aModel->*_solve)() == NORMAL_TERMINATION);
 	    return LQX::Symbol::encodeBoolean(ok);

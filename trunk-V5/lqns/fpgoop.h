@@ -23,14 +23,14 @@
 #endif
 
 /* Borland C++ 4.02 does not have the IEEE math support functions like
- * finite(), isnan(), etc.  However, precise exceptions are supported and used
+ * isisfinite(), isnan(), etc.  However, precise exceptions are supported and used
  * here which means that these kinds of tests are unnecessary. */
 
 #if !HAVE_FINITE
-#if defined(isfinite)		/* See math.h */
-#define finite(d) isfinite(d)
+#if defined(isisfinite)		/* See math.h */
+#define isfinite(d) isfinite(d)
 #else
-#define finite(d) (1)
+#define isfinite(d) (1)
 #endif
 #endif
 

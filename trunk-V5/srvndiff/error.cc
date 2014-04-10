@@ -15,6 +15,7 @@
  */
 #include "error.h"
 #include <string.h>
+#include <string>
 #include <cstdarg>
 
 const char * lq_toolname;
@@ -56,6 +57,7 @@ namespace LQIO {
     verrprintf( FILE * output, const severity_t level, const char * file_name, unsigned int linenumber, unsigned int column, const char * fmt, va_list args )
     {
 	if ( level >= severity_level ) {
+	    (void) fprintf( output, " %s: ", lq_toolname );
 	    if ( file_name && strlen( file_name ) > 0 ) {
 		(void) fprintf( output, "%s:", file_name );
 		if ( linenumber ) {
@@ -70,5 +72,15 @@ namespace LQIO {
 		(void) fprintf( output, "%s\n", fmt );	/* Don't interpret % in fmt because there are no args. */
 	    }
 	}
+    }
+
+    void
+    argument_error( const std::string& attr, const std::string& arg ) throw( std::invalid_argument )
+    {
+	std::string err = attr;
+	err += "\"=\"";
+	err += arg;
+	err += "\"";
+	throw std::invalid_argument( err.c_str() );
     }
 };

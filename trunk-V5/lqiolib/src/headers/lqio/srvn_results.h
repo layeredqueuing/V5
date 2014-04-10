@@ -15,6 +15,7 @@
 
 #if	defined(__cplusplus)
 #include <cstdio>
+#include <string>
 extern "C" {
 #else
 #include <stdio.h>
@@ -115,6 +116,10 @@ void total_thpt_ut_confidence( const char * task_name, int conf_level, double tp
 #if	defined(__cplusplus)
 }
 
-bool loadSRVNResults( const char * inputFileName );
+namespace LQIO {
+    namespace SRVN {
+	bool loadResults( const std::string& );
+    }
+}
 #endif
 #endif	/* SRVN_RESULTS_H */

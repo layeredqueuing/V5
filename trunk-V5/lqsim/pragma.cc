@@ -1,6 +1,5 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
- * $HeadURL$
  * ------------------------------------------------------------------------
  * $Id$
  * ------------------------------------------------------------------------
@@ -171,6 +170,16 @@ Pragma::get_quorum_delayed_calls() const
 }
 
 
+bool
+Pragma::set_xml_schema( const std::string& value )
+{
+    return true;
+}
+
+const char * 
+Pragma::get_xml_schema() const
+{
+}
 
 void
 Pragma::initialize()
@@ -182,6 +191,7 @@ Pragma::initialize()
     __pragmas["reschedule-on-async-send"] = pragma_info( QUORUM_REPLY,         &Pragma::set_reschedule_on_async_send, &Pragma::get_reschedule_on_async_send, &Pragma::eq_reschedule_on_async_send );
     __pragmas["scheduling"] =               pragma_info( RESCHEDULE_ON_SNR,    &Pragma::set_scheduling_model,         &Pragma::get_scheduling_model,         &Pragma::eq_scheduling_model );
     __pragmas["stop-on-message-loss"] =     pragma_info( STOP_ON_MESSAGE_LOSS, &Pragma::set_abort_on_dropped_message, &Pragma::get_abort_on_dropped_message, &Pragma::eq_abort_on_dropped_message );
+    __pragmas["xml-schema"] =		    pragma_info( XML_SCHEMA,	       &Pragma::set_xml_schema,		      &Pragma::get_xml_schema,		     &Pragma::eq_xml_schema );
 }
 
 

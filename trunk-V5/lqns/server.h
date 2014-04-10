@@ -107,7 +107,7 @@ public:
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }
     virtual void setMarginalProbabilitiesSize( const PopVector& ) { return; }
     virtual int vectorProbabilities() const { return 0; }
-    virtual int infiniteServer() const { return 0; }
+    virtual int inisfiniteServer() const { return 0; }
     virtual int priorityServer() const { return 0; }
 
     virtual const char * typeStr() const = 0;
@@ -181,7 +181,7 @@ public:
 	
     virtual double alpha( const unsigned ) const;
 
-    virtual int infiniteServer() const { return 1; }
+    virtual int inisfiniteServer() const { return 1; }
 
     virtual const char * typeStr() const { return "Infinite_Server"; }
 };

@@ -371,7 +371,8 @@ bool Task::is_client() const
 
 bool Task::is_single_place_task() const
 {
-    return type() == REF_TASK && customers_flag;
+    return type() == REF_TASK && (customers_flag
+				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
 
 
@@ -989,7 +990,7 @@ OpenTask::get_results( unsigned m )
     Phase& phase = entries[0]->phase[1];
     Call call;
     LQIO::DOM::ConstantExternalVariable value(1.0);
-    LQIO::DOM::Call dom( _document, LQIO::DOM::Call::SEND_NO_REPLY, 0, 0, 1, &value, 0 );
+    LQIO::DOM::Call dom( _document, LQIO::DOM::Call::SEND_NO_REPLY, 0, 0, &value );
     call._dom = &dom;
     phase.compute_queueing_delay( call, m, _dst, multiplicity(), &phase );
 }

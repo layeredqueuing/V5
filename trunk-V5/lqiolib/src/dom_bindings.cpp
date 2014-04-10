@@ -32,6 +32,7 @@ namespace LQIO {
 	{
 	    result_table_t( get_result_fptr m=0, get_result_fptr v=0 ) : mean(m), variance(v) {}
 	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
+	    LQX::SymbolAutoRef operator()( DOM::DocumentObject& domObject ) const { return LQX::Symbol::encodeDouble( (domObject.*mean)() ); }
 	    get_result_fptr mean;
 	    get_result_fptr variance;
 	};
@@ -46,9 +47,7 @@ namespace LQIO {
 		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
 		    try {
-			get_result_fptr mean = attribute->second.mean;
-			const double value = (_domObject->*mean)();
-			return LQX::Symbol::encodeDouble( value );
+			return attribute->second( *_domObject );
 		    }
 		    catch ( LQIO::should_implement e ) {
 		    }
@@ -689,6 +688,45 @@ namespace LQIO {
 #pragma mark -
 
     class LQXDocument : public LQX::LanguageObject {
+    protected:
+	typedef double (DOM::Document::*get_double_fptr)() const;
+	typedef unsigned int (DOM::Document::*get_unsigned_fptr)() const;
+	typedef bool (DOM::Document::*get_bool_fptr)() const;
+	typedef clock_t (DOM::Document::*get_clock_fptr)() const;
+
+	struct result_table_t
+	{
+	private:
+	    typedef enum { IS_NULL, IS_DOUBLE, IS_BOOL, IS_UNSIGNED, IS_CLOCK } result_t;
+
+	public:
+	    result_table_t() : _t(IS_NULL) {}
+	    result_table_t( get_double_fptr f ) : _t(IS_DOUBLE) { fptr.r_double = f; }
+	    result_table_t( get_unsigned_fptr f ) : _t(IS_UNSIGNED) { fptr.r_unsigned = f; }
+	    result_table_t( get_bool_fptr f ) : _t(IS_BOOL) { fptr.r_bool = f; }
+	    result_table_t( get_clock_fptr f ) : _t(IS_CLOCK) { fptr.r_clock = f; }
+
+	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
+	    LQX::SymbolAutoRef operator()( LQIO::DOM::Document& document ) const 	
+		{
+		    switch ( _t ) {
+		    case IS_DOUBLE: return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
+		    case IS_UNSIGNED: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_unsigned)()) );
+		    case IS_CLOCK: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_clock)()) );
+		    case IS_BOOL: return LQX::Symbol::encodeBoolean( (document.*fptr.r_bool)() );
+		    case IS_NULL: return LQX::Symbol::encodeNull();
+		    }
+		}
+
+	    union {
+		get_double_fptr r_double;
+		get_unsigned_fptr r_unsigned;
+		get_bool_fptr r_bool;
+		get_clock_fptr r_clock;
+	    } fptr;
+	    result_t _t;
+	};
+
     public:
 
 	const static uint32_t kLQXDocumentObjectTypeId = 10+5;
@@ -700,6 +738,19 @@ namespace LQIO {
 
 	virtual ~LQXDocument()
 	    {
+	    }
+
+	static void initializeTables() 
+	    {
+		if ( __attributeTable.size() != 0 ) return;
+
+		__attributeTable["iterations"]	    = result_table_t( &DOM::Document::getResultIterations );
+		__attributeTable["user_cpu_time"]   = result_table_t( &DOM::Document::getResultUserTime );
+		__attributeTable["system_cpu_time"] = result_table_t( &DOM::Document::getResultSysTime );
+		__attributeTable["elapsed_time"]    = result_table_t( &DOM::Document::getResultElapsedTime );
+		__attributeTable["valid"]	    = result_table_t( &DOM::Document::getResultValid );
+		__attributeTable["invocation"]	    = result_table_t( &DOM::Document::getResultInvocationNumber );
+		__attributeTable["waits"]	    = result_table_t( &DOM::Document::getResultMVAWait );
 	    }
 
 	/* Comparison and Operators */
@@ -733,18 +784,9 @@ namespace LQIO {
 	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
 	    {
 		/* All the valid properties of documents */
-		if ( name == "iterations" ) {
-		    return LQX::Symbol::encodeDouble( static_cast<double>(_document->getResultIterations()) );
-		} else if ( name == "user_cpu_time" ) {
-		    return LQX::Symbol::encodeDouble( static_cast<double>(_document->getResultUserTime()) );
-		} else if ( name == "system_cpu_time" ) {
-		    return LQX::Symbol::encodeDouble( static_cast<double>(_document->getResultSysTime()) );
-		} else if ( name == "elapsed_time" ) {
-		    return LQX::Symbol::encodeDouble( static_cast<double>(_document->getResultElapsedTime()) );
-		} else if ( name == "valid" ) {
-		    return LQX::Symbol::encodeBoolean( _document->getResultValid() );
-		} else if ( name == "invocation" ) {
-		    return LQX::Symbol::encodeDouble( static_cast<double>(_document->getResultInvocationNumber()) );
+		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		if ( attribute != __attributeTable.end() ) {
+		    return attribute->second( *_document );
 		}
 
 		/* Anything we don't handle may be handled by our superclass */
@@ -753,8 +795,10 @@ namespace LQIO {
 
     private:
 	DOM::Document * _document;
-
+	static std::map<const char *,result_table_t,result_table_t> __attributeTable;
     };
+
+    std::map<const char *,LQXDocument::result_table_t,LQXDocument::result_table_t> LQXDocument::__attributeTable;
 
     class LQXGetDocument : public LQX::Method {
     public:
@@ -901,6 +945,7 @@ namespace LQIO {
     void RegisterBindings(LQX::Environment* env, DOM::Document* document)
     {
 	LQXDocumentObject::initializeTables();
+	LQXDocument::initializeTables();
 
 	LQX::MethodTable* mt = env->getMethodTable();
 	mt->registerMethod(new LQXGetTask(document));

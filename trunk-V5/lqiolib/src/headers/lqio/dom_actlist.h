@@ -38,12 +38,14 @@ namespace LQIO {
       
 	public:
 	    /* Designated constructor and destructor */
-	    ActivityList(const Document * document,const Task *,ActivityListType type,const void *);
+	    ActivityList(const Document * document,const Task *,ActivityListType type,const void *element=0);
 	    virtual ~ActivityList();
       
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
       
 	    /* Accessors and Mutators */
+	    bool isJoinList() const;
+	    bool isForkList() const;
       
 	    /* Managing membership */
 	    void setTask( const Task * task );
@@ -98,7 +100,7 @@ namespace LQIO {
     
 	class AndJoinActivityList : public ActivityList {
 	public:
-	    AndJoinActivityList(const Document * document, const Task * task, ActivityListType type, const void *, ExternalVariable *quorumCount );
+	    AndJoinActivityList(const Document * document, const Task * task, ExternalVariable *quorumCount, const void * element=0 );
 	    AndJoinActivityList( const AndJoinActivityList& );
 	    virtual ~AndJoinActivityList();
 

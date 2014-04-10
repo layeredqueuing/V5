@@ -150,8 +150,6 @@ private:
     LQIO::DOM::Call* myCallDOM;
 	
     unsigned chainNumber;  
-    unsigned myThroughput;
-
 };
 
 

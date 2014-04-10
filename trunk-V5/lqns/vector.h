@@ -19,8 +19,8 @@
  * ------------------------------------------------------------------------
  */
 
-#ifndef	VECTOR_H
-#define	VECTOR_H
+#ifndef	LQNS_VECTOR_H
+#define	LQNS_VECTOR_H
 
 #include "dim.h"
 #include <assert.h>

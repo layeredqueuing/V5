@@ -21,7 +21,6 @@
 #include "dom_extvar.h"
 #include "dom_phase.h"
 #include "dom_group.h"
-#include "confidence_intervals.h"
 
 struct lqio_params_stats;
 
@@ -33,6 +32,7 @@ namespace LQIO {
     namespace DOM {
 	
 	class Document {
+
 	public:
 	    typedef enum { TEXT_OUTPUT, RTF_OUTPUT, PARSEABLE_OUTPUT } output_format;
 	    typedef enum { AUTOMATIC_INPUT, LQN_INPUT, XML_INPUT } input_format;
@@ -42,12 +42,14 @@ namespace LQIO {
 	    Document( const Document& );
 	    
 	    /* Constructors and Destructors */
-	protected:
-	    Document( lqio_params_stats* );
 
 	public:
+	    Document( lqio_params_stats*, input_format );
 	    virtual ~Document();
       
+	    const void * getXMLDOMElement() const { return _xmlDomElement; }
+	    input_format getInputFormat() const { return _format; }
+
 	    /* STORE: Model Parameter Information */
 	    void setModelParameters(const char *comment, ExternalVariable* conv_val, ExternalVariable* it_limit, ExternalVariable* print_int, ExternalVariable* underrelax_coeff, const void * arg );
 	    void setMVAStatistics( const unsigned int, const unsigned long, const double, const double, const double, const double, const unsigned int );
@@ -79,7 +81,7 @@ namespace LQIO {
 	    bool hasSymbolExternalVariable(const std::string& name) const;
 	    unsigned getSymbolExternalVariableCount() const;
 	    bool areAllExternalVariablesAssigned() const;
-	    std::string getUndefinedExternalVariables() const;
+	    std::vector<std::string> getUndefinedExternalVariables() const;
       
 	    /* Setting the LQX Program Code */
 	    void setLQXProgramText(const std::string& program);
@@ -184,6 +186,7 @@ namespace LQIO {
 	    Document& setResultIterations(unsigned int resultIterations);
 	    unsigned int getResultNumberOfBlocks() const { return _hasConfidenceIntervals ? _resultIterations : 0; }
 	    Document& setResultHasConfidenceIntervals( const bool hasConfidenceIntervals ) { _hasConfidenceIntervals = hasConfidenceIntervals; return *this; }
+	    Document& setResultHasBottleneckStrength( const bool hasBottleneckStrength ) { _hasBottleneckStrength = hasBottleneckStrength; return *this; }
 	    const std::string& getResultPlatformInformation() const { return _resultPlatformInformation; }
 	    Document& setResultPlatformInformation(const std::string& resultPlatformInformation);
 	    const std::string& getResultSolverInformation() const { return _resultSolverInformation; }
@@ -195,64 +198,52 @@ namespace LQIO {
 	    clock_t getResultUserTime() const { return _resultUserTime; }
 	    Document& setResultUserTime(clock_t resultUserTime);
 
+	    unsigned int getResultMVASubmodels() const { return _mvaStatistics.submodels; }
+	    unsigned long getResultMVACore() const { return _mvaStatistics.core; }
+	    double getResultMVAStep() const { return _mvaStatistics.step; }
+	    double getResultMVAStepSquared() const { return _mvaStatistics.step_squared; }
+	    double getResultMVAWait() const { return _mvaStatistics.wait; }
+	    double getResultMVAWaitSquared() const { return _mvaStatistics.wait_squared; }
+	    unsigned int getResultMVAFaults() const { return _mvaStatistics.faults; }
+
 	    /* Queries */
 	    
 	    virtual bool hasResults() const;
 	    bool hasConfidenceIntervals() const { return _hasConfidenceIntervals; }
-	    virtual bool isXMLDOMPresent() const { return false; }
-
-	    const void * getXMLDOMElement() const { return _xmlDomElement; }
+	    bool hasBottleneckStrength() const { return _hasBottleneckStrength; }
+	    virtual bool isXMLDOMPresent() const;
 
 	    /* I/O */
-	    virtual void serializeDOM(const char *, bool instantiate=false) const {}
-	    virtual void serializeDOM( std::ostream& output, bool instantiate ) const {}
+	    void serializeDOM( std::ostream& output, bool instantiate=false ) const;
 	    static Document* load(const std::string&, input_format format, const std::string&, lqio_params_stats*, unsigned& errorCode, bool load_results );
-	    static Document* create( lqio_params_stats*, bool load_results = false );
-	    virtual bool loadResults( const char * filename, unsigned& errorCode ) { return false; }
+	    virtual bool loadResults( const std::string&, const std::string&, const std::string&, unsigned& errorCode );
 	    std::ostream& print( std::ostream& ouptut, const output_format format=TEXT_OUTPUT ) const;
+	    std::ostream& printExternalVariables( std::ostream& ouptut ) const;
 
 	    /* Semi-private */
 
-	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType);
-	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
+	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType = DOM::Entry::ENTRY_NOT_DEFINED );
+	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol) throw( std::invalid_argument );
 	    static lqio_params_stats* io_vars;
 	    static bool __debugXML;
       
-	protected:
+	private:
 	    unsigned max( const unsigned i, const unsigned j ) { return i > j ? i : j; }
-	    double invert( const double ) const;
 	    
-	public:
-      
-	    struct MVAStatistics {
-		MVAStatistics() : submodels(0), core(0), step(0.0), step_squared(0.0), wait(0.0), wait_squared(0.0), faults(0) {}
-		unsigned int submodels;
-		unsigned long core;
-		double step;
-		double step_squared;
-		double wait;
-		double wait_squared;
-		unsigned int faults;
-	    } _mvaStatistics;
-
-	protected:
-	    const ConfidenceIntervals _conf_95;
-	    const ConfidenceIntervals _conf_99;
-
+	private:
 	    /* List of Processors */
 
-	    std::map<std::string, Processor*> _processors;    /* processor.name -> Processor */
-	    std::map<std::string, Group*> _groups;            /* group.name -> Group */
-	    std::map<std::string, Task*> _tasks;              /* task.name -> Task */
-	    std::map<std::string, Entry*> _entries;           /* entry.name -> Entry */
-	    std::map<unsigned, Entity*> _entities;            /* entity.id -> Entity */
+	    std::map<std::string, Processor*> _processors;    	/* processor.name -> Processor */
+	    std::map<std::string, Group*> _groups;            	/* group.name -> Group */
+	    std::map<std::string, Task*> _tasks;              	/* task.name -> Task */
+	    std::map<std::string, Entry*> _entries;           	/* entry.name -> Entry */
+	    std::map<unsigned, Entity*> _entities;            	/* entity.id -> Entity */
 
-	private:
-      
 	    /* We need to make sure all variables named the same point the same */
 	    std::map<std::string, SymbolExternalVariable*> _variables;
       
-	    unsigned _nextEntityId;                           /* */
+	    unsigned _nextEntityId;                           	/* for sorting, see _entities 	*/
+	    const input_format _format;				/* input format 		*/
       
 	    /* Parameter Information */
 	    std::string _comment;
@@ -307,6 +298,7 @@ namespace LQIO {
 
 	    bool _resultValid;
 	    bool _hasConfidenceIntervals;
+	    bool _hasBottleneckStrength;
 	    unsigned int _resultInvocationNumber;
 	    double _resultConvergenceValue;
 	    unsigned int _resultIterations;
@@ -315,13 +307,23 @@ namespace LQIO {
 	    clock_t _resultUserTime;
 	    clock_t _resultSysTime;
 	    clock_t _resultElapsedTime;
+
+	    struct MVAStatistics {
+		MVAStatistics() : submodels(0), core(0), step(0.0), step_squared(0.0), wait(0.0), wait_squared(0.0), faults(0) {}
+		unsigned int submodels;
+		unsigned long core;
+		double step;
+		double step_squared;
+		double wait;
+		double wait_squared;
+		unsigned int faults;
+	    } _mvaStatistics;
+
 	};
 
 	extern Document* currentDocument;
     }
     
-    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
-
     extern const char* input_file_name;
     extern const char* output_file_name;
 }

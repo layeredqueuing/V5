@@ -61,6 +61,11 @@ namespace LQX {
 
 namespace LQX {
   
+  IncompatibleTypeException::IncompatibleTypeException(const std::string& expr, const std::string& from, const std::string& to) throw()
+    : RuntimeException("Unable to Convert `%s' From: `%s' To: `%s'", expr.c_str(), from.c_str(), to.c_str() )
+  {
+  }
+  
   IncompatibleTypeException::IncompatibleTypeException(const std::string& from, const std::string& to) throw()
     : RuntimeException("Unable to Convert From: `%s' To: `%s'", from.c_str(), to.c_str())
   {

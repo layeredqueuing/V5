@@ -365,7 +365,7 @@ Call::setVisits( const unsigned k, const unsigned p, const double rate )
     const Entity * aServer = dstTask();
     if ( aServer->hasServerChain( k ) && hasRendezvous() && !srcTask()->hasInfinitePopulation() ) {
 	Server * aStation = aServer->serverStation();
-	const unsigned e = dstEntry()->index;
+	const unsigned e = dstEntry()->index();
    
 	aStation->addVisits( e, k, p, rendezvous() * rate );
     }
@@ -402,7 +402,7 @@ void
 Call::setLambda( const unsigned, const unsigned p, const double rate )
 {
     Server * aStation = dstTask()->serverStation();
-    const unsigned e = dstEntry()->index;
+    const unsigned e = dstEntry()->index();
     if ( hasSendNoReply() ) {
 	aStation->addVisits( e, 0, p, srcPhase()->throughput() * sendNoReply() );
     } else if ( hasRendezvous() && srcTask()->isInOpenModel() && srcTask()->isInfinite() ) {
@@ -432,7 +432,7 @@ Call::clearWait( const unsigned k, const unsigned p, const double )
 void
 Call::saveOpen( const unsigned, const unsigned p, const double )
 {
-    const unsigned e = dstEntry()->index;
+    const unsigned e = dstEntry()->index();
     const Server * aStation = dstTask()->serverStation();
 
     if ( aStation->V( e, 0, p ) > 0.0 ) {
@@ -453,7 +453,7 @@ void
 Call::saveWait( const unsigned k, const unsigned p, const double )
 {
     const Entity * aServer = dstTask();
-    const unsigned e = dstEntry()->index;
+    const unsigned e = dstEntry()->index();
     const Server * aStation = aServer->serverStation();
 
     if ( aStation->V( e, k, p ) > 0.0 ) {

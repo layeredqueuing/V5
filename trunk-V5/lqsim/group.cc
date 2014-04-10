@@ -47,15 +47,15 @@ Group::create()
     double share_sum = 0.0;
 
     if ( _task_list.size() == 0 ) {
-	const vector<LQIO::DOM::Task *>& dom_list = _domGroup->getTaskList();
-	for ( vector<LQIO::DOM::Task *>::const_iterator t = dom_list.begin(); t != dom_list.end(); ++t ) {
+	const set<LQIO::DOM::Task *>& dom_list = _domGroup->getTaskList();
+	for ( set<LQIO::DOM::Task *>::const_iterator t = dom_list.begin(); t != dom_list.end(); ++t ) {
 	    Task * cp = Task::find( (*t)->getName().c_str() );
 	    assert( cp );
-	    _task_list.push_back(cp);
+	    _task_list.insert(cp);
 	    cp->set_group_id(-1);
 	}
     } else {
-	for ( vector<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+	for ( set<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
 	    Task * cp = *t;
 	    cp->set_group_id(-1);			// Reset the parasol group id.
 	}
@@ -65,7 +65,7 @@ Group::create()
 
     if ( _total_tasks > 1 ) {
 	const double new_share = share / _total_tasks;
-	for ( vector<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+	for ( set<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
 	    Task * cp = *t;
 	    if ( cp->multiplicity() > 1 ) {
 		int group_id = ps_build_group( name(), new_share, _processor.node_id(), cap() );
@@ -87,7 +87,7 @@ Group::create()
 	return false;
     }
 
-    for ( vector<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+    for ( set<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
 	Task * cp = *t;
 	if ( cp->group_id() != -1 ) continue;
 	cp->set_group_id(group_id);
@@ -161,7 +161,7 @@ Group::insertDOMResults()
     double proc_util_mean = 0.0;
     double proc_util_var  = 0.0;
 
-    for ( vector<Task *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
+    for ( set<Task *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
 	Task * cp = *t;
 	
 	for ( vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {

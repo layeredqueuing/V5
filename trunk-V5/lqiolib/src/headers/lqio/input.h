@@ -93,7 +93,7 @@ typedef struct lqio_params_stats {
 
 } lqio_params_stats;
 
-extern unsigned int LQIO_line_number;		/* Input line number -- can't use namespace because it's used with C */
+extern int LQIO_lineno;				/* Input line number -- can't use namespace because it's used with C */
 
 extern const char * scheduling_type_str[N_SCHEDULING_TYPES+1];
 extern const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1];   

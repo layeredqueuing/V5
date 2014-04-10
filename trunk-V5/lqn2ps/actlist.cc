@@ -62,7 +62,6 @@ public:
     ActivityListManip( ostream& (*ff)( ostream& ) )
 	: f(ff) {}
 private:
-    const ActivityList * anActivityList;
     ostream& (*f)( ostream& );
 
     friend ostream& operator<<(ostream & os, const ActivityListManip& m ) 
@@ -295,7 +294,7 @@ ForkActivityList::backtrack( Stack<const AndForkActivityList *>& forkStack ) con
  */
 
 double
-ForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+ForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) 
 {
     if ( myActivity ) {
 	return myActivity->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
@@ -437,7 +436,7 @@ JoinActivityList::backtrack( Stack<const AndForkActivityList *>& forkStack ) con
  */
 
 double
-JoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+JoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) 
 {
     if ( next() ) {
 	double count = next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
@@ -450,7 +449,7 @@ JoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsig
 	    /* Simple sequence -- aggregate */
 	    
 	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(next())->myActivity;
-	    const_cast<Activity *>(myActivity)->merge( *nextActivity ).disconnect( nextActivity );
+	    myActivity->merge( *nextActivity ).disconnect( nextActivity );
 	    delete nextActivity;
 	} 
 	return count;
@@ -912,7 +911,7 @@ OrForkActivityList::backtrack( Stack<const AndForkActivityList *>& forkStack ) c
  */
 
 double
-OrForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+OrForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )
 {
     double sum = 0.0;
 
@@ -1148,7 +1147,7 @@ AndForkActivityList::backtrack( Stack<const AndForkActivityList *>& forkStack ) 
  */
 
 double
-AndForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+AndForkActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )
 {
     double sum = 0.0;
 
@@ -1381,7 +1380,7 @@ OrJoinActivityList::findActivityChildren( Stack<const Activity *>& activityStack
  */
 
 double
-OrJoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )  const
+OrJoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )
 {
     if ( next() ) {
 	return next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
@@ -1569,7 +1568,7 @@ AndJoinActivityList::addToEntryList( unsigned i, Entry * anEntry ) const
  */
 
 double
-AndJoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+AndJoinActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )
 {
     if ( isSynchPoint() && next() ) {
 	return next()->aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
@@ -1717,7 +1716,7 @@ RepeatActivityList::label()
  */
 
 double
-RepeatActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc ) const
+RepeatActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, aggregateFunc aFunc )
 {
     double sum = ForkActivityList::aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 

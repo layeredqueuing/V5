@@ -521,10 +521,11 @@ Entry::add( LQIO::DOM::Entry* domEntry, Task * task )
 
 
 void 
-add_call( LQIO::DOM::Call* domCall )
+Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
 {
     /* Begin by extracting the from/to DOM entries from the call and their names */
-    const LQIO::DOM::Entry* fromDOMEntry = domCall->getSourceEntry();
+    assert( get_DOM() == domCall->getSourceEntry() );
+    assert( 0 < p && p <= MAX_PHASES );
     const LQIO::DOM::Entry* toDOMEntry = domCall->getDestinationEntry();
 
     /* Make sure this is one of the supported call types */
@@ -535,20 +536,14 @@ add_call( LQIO::DOM::Call* domCall )
     }
 	
     /* Internal Entry references */
-    const char* from_entry_name = fromDOMEntry->getName().c_str();
     const char* to_entry_name = toDOMEntry->getName().c_str();
-    const unsigned p = domCall->getPhase();
-    Entry * from_entry;
-    Entry * to_entry;
-
-    if ( !Entry::find( from_entry_name, from_entry, to_entry_name, to_entry ) ) return;
-    if ( !from_entry->test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD ) ) return;
+    Entry * to_entry = Entry::find( to_entry_name );
+    if ( !to_entry ) return;
+    if ( !test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD ) ) return;
     if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS && !to_entry->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) return;
     if ( (domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY || domCall->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY) && !to_entry->test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) return;
 
-    if ( p <= MAX_PHASES ) {
-	from_entry->phase[p].tinfo.store_target_info( to_entry, domCall );
-    }
+    phase[p].tinfo.store_target_info( to_entry, domCall );
 }
 
 /*

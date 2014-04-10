@@ -142,6 +142,18 @@ protected:
 	modelFunc myFunc;
     };
 
+    class Aggregate
+    {
+    public:
+	Aggregate();
+
+	void operator()( const std::pair<std::string,LQIO::DOM::Task *>& task  );
+	void operator()( const LQIO::DOM::Entry * entry );
+
+    private:
+	unsigned int aggregate( LQIO::DOM::Entry * entry, unsigned int p, double rate, const LQIO::DOM::Activity * activity );
+    };
+
     friend ostream& operator<<( ostream& output, const Model::Stats& self ) { return self.print( output ); }
 
 public:
@@ -167,6 +179,7 @@ public:
     bool process();
     bool store();
     bool reload();
+    static void aggregate( LQIO::DOM::Document& );
     static double scaling() { return __model->_scaling; }
 
     Model& accumulateStatistics( const string& fileName );
@@ -190,7 +203,7 @@ protected:
     virtual bool selectSubmodel( const unsigned );
 
     virtual unsigned totalize();
-    unsigned nLayers() const;
+    unsigned nLayers() const { return _numberOfLayers; }
     unsigned nTasks() const { return _taskCount; }
     unsigned nProcessors() const { return _processorCount; }
     unsigned nEntries() const { return _entryCount; }
@@ -228,7 +241,6 @@ private:
     Model& rename();
     Model& squishNames();
     Model const& format( Layer& aSubmodel ) const;
-    Model& aggregate();
 
     unsigned count( const boolTaskFunc ) const;
     unsigned count( const callFunc ) const;
@@ -274,7 +286,7 @@ private:
 #if defined(PMIF_OUTPUT)
     ostream& printPMIF( ostream& output ) const;
 #endif
-    void printXML( const string& ) const;
+    void printXML( ostream& output ) const;
 
     ostream& printLayers( ostream& ) const;
 

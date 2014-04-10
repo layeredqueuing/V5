@@ -7,7 +7,7 @@
  *
  */
 
-%option noyywrap
+%option noyywrap yylineno
 
 %{
 /* We implement the Scanner here */
@@ -15,10 +15,8 @@
 #include "Parser.h"
 #include <sstream>
 #include <string>
-extern "C" {
 #include <string.h>
 #include <ctype.h>
-};
   
 #pragma mark -
   

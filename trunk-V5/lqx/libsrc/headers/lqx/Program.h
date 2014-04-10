@@ -14,6 +14,7 @@
 #include "SymbolTable.h"
 #include <vector>
 #include <string>
+#include <iostream>
 
 namespace LQX {
   
@@ -43,7 +44,8 @@ namespace LQX {
     virtual ~Program();
     
     /* Interacting with the program */
-    std::string getGraphvizRepresentation() const;
+    std::ostream& getGraphvizRepresentation(std::ostream&) const;
+    std::ostream& print(std::ostream&) const;
     double getCompileTime() const;
     double getLastRunTime() const;
     bool invoke();

@@ -200,26 +200,25 @@ namespace LQIO {
 
 	std::map<XMLCh *,ActivityList::ActivityListType,Xerces_Document::ltXMLCh> Xerces_Document::Xpre_post;
 	unsigned Xerces_Document::__indent = 0;
+        Xerces_Document * Xerces_Document::__xercesDOM = 0;
 
-	Document *
-	Xerces_Document::LoadLQNX( const std::string& filename, lqio_params_stats* ioVars, unsigned& errorCode )
+	bool
+	Xerces_Document::load( Document& document, const std::string& filename, lqio_params_stats* ioVars, unsigned& errorCode )
 	{
-            input_file_name = filename.c_str();
-            output_file_name = filename.c_str();
-	    Xerces_Document * document = 0;
 	    try {
-		document = new Xerces_Document( ioVars );
-		LQIO_line_number = 0;		/* Suppress line numbers */
-		if ( document->parse( filename.c_str() ) ) {
-		    document->handleModel( inputFileDOM->getDocumentElement() );
-		    const std::string& program_text = document->getLQXProgramText();
+		LQIO_lineno = 0;		/* Suppress line numbers */
+
+		__xercesDOM = new Xerces_Document( document );
+		if ( __xercesDOM->parse( filename.c_str() ) ) {
+		    __xercesDOM->handleModel( inputFileDOM->getDocumentElement() );
+		    const std::string& program_text = document.getLQXProgramText();
 		    if ( program_text.size() ) {
 			/* If we have an LQX program, then we need to compute */
-		        LQX::Program* program = LQX::Program::loadFromText(filename.c_str(), document->getLQXProgramLineNumber(), program_text.c_str());
+			LQX::Program* program = LQX::Program::loadFromText(filename.c_str(), document.getLQXProgramLineNumber(), program_text.c_str());
 			if (program == NULL) {
 			    LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, filename.c_str() );
 			} 
-			document->setLQXProgram( program );
+			document.setLQXProgram( program );
 		    }
 		} else {
 		    Document::io_vars->anError = true;
@@ -256,17 +255,14 @@ namespace LQIO {
 		Document::io_vars->anError = true;
 		throw;
 	    }
-	    return document;
+	    return Document::io_vars->anError == false;
 	}
 
 
-	Xerces_Document::Xerces_Document( lqio_params_stats* ioVars )
-	    : Document( ioVars ), parser(0), errReporter(0)
+	Xerces_Document::Xerces_Document( Document& document )
+	    : _document( document ), _parser(0), errReporter(0)
 	{
 	    assert (inputFileDOM == NULL);		/* Singleton */
-
-	    io_vars->error_count = 0;			/* See error.c */
-	    io_vars->anError = false;
 
 	    /* Initialize the XML4C2 system */
 	    try {
@@ -274,8 +270,7 @@ namespace LQIO {
 	    }
 
 	    catch(const XMLException &toCatch) {
-		cerr << "Error during Xerces-c Initialization.\n"
-		     << "  Exception message:"
+		cerr << "Error during Xerces-c Initialization:   "
 		     << StrX(toCatch.getMessage()) << endl;
 		exit(1);
 	    }
@@ -288,44 +283,26 @@ namespace LQIO {
 	       The parser will call back to methods of the ErrorHandler if it
 	       discovers errors during the course of parsing the XML document. */
 
-	    parser = new XercesDOMParser;
-	    parser->setValidationScheme(XercesDOMParser::Val_Always);
-	    parser->setDoNamespaces(true);
-	    parser->setDoSchema(true);
-	    parser->setValidationSchemaFullChecking(true);
+	    _parser = new XercesDOMParser;
+	    _parser->setValidationScheme(XercesDOMParser::Val_Always);
+	    _parser->setDoNamespaces(true);
+	    _parser->setDoSchema(true);
+	    _parser->setValidationSchemaFullChecking(true);
 
 	    errReporter = new DOMTreeErrorReporter();
-	    parser->setErrorHandler(errReporter);
+	    _parser->setErrorHandler(errReporter);
 	}
 
 
 	Xerces_Document::~Xerces_Document()
 	{
-//	    _root->release();
-	    XMLPlatformUtils::Terminate();
-
-#if 0
-	    /* Clean up the error handler. The parser does not adopt handlers
-	       since they could be many objects or one object installed for multiple
-	       handlers.
-	    */
-	    if (errReporter != NULL) {
-		delete errReporter;
-	    }
-
-	    /* Delete the parser itself.  Must be done prior to calling Terminate, below. */
-
-	    if (parser != NULL) {
-		delete parser;
-	    }
-
-//	    delete_strings();
-#endif
-	    errReporter = NULL;
-	    parser = NULL;
-
 	    /* And call the termination method */
 
+	    XMLPlatformUtils::Terminate();
+
+	    errReporter = NULL;
+	    _parser = NULL;
+	    __xercesDOM = NULL;
 
 	    inputFileDOM = NULL;
 	}
@@ -340,13 +317,13 @@ namespace LQIO {
 	bool
 	Xerces_Document::parse( const char * filename )
 	{
-	    parser->parse(filename);
+	    _parser->parse(filename);
 
 	    /* If the parse was successful, output the document data from the DOM tree */
 
 	    if ( errReporter->getSawErrors() ) return false;
 
-	    inputFileDOM = parser->getDocument();
+	    inputFileDOM = _parser->getDocument();
 	    _root = inputFileDOM->getDocumentElement();
 	    const XMLCh *rootElementName = _root->getTagName();
 
@@ -356,7 +333,7 @@ namespace LQIO {
 	    if (rootElementName == NULL || XMLString::compareIStringASCII(rootElementName, Xlqn_model) != 0 ) return false;
 
 	    StrX debug( _root->getAttribute(Xxml_debug) );
-	    __debugXML |= debug.optBool();
+	    Document::__debugXML |= debug.optBool();
 
 	    return true;
 	}
@@ -372,7 +349,7 @@ namespace LQIO {
 	void
 	Xerces_Document::handleModel( const DOMElement * lqnModel )
 	{
-	    if ( __debugXML ) cerr << start_element( lqnModel ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( lqnModel ) << endl;
 
 	    DOMNodeList * lqnModelList = lqnModel->getChildNodes();
 	    unsigned state = 0;
@@ -399,7 +376,7 @@ namespace LQIO {
 		handleCalls( lqnModel );	/* All processors read, but no LQX - go back and add calls */
 	    }
 
-	    if ( __debugXML ) cerr << end_element( lqnModel ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( lqnModel ) << endl;
 
 	}
 
@@ -407,12 +384,12 @@ namespace LQIO {
 	Xerces_Document::handleModelParameters( const DOMElement * param_element )
 	{
 	    assert( param_element );	// Dynamic cast failed?
-	    setModelParameters(StrX(param_element->getAttribute(Xcomment)).asCStr(),
-			       db_build_parameter_variable(StrX(param_element->getAttribute(Xconv_val)).asCStr(),NULL),
-			       db_build_parameter_variable(StrX(param_element->getAttribute(Xit_limit)).asCStr(),NULL),
-			       db_build_parameter_variable(StrX(param_element->getAttribute(Xprint_int)).asCStr(),NULL),
-			       db_build_parameter_variable(StrX(param_element->getAttribute(Xunderrelax_coeff)).asCStr(),NULL),
-			       param_element);
+	    _document.setModelParameters(StrX(param_element->getAttribute(Xcomment)).asCStr(),
+					 _document.db_build_parameter_variable(StrX(param_element->getAttribute(Xconv_val)).asCStr(),NULL),
+					 _document.db_build_parameter_variable(StrX(param_element->getAttribute(Xit_limit)).asCStr(),NULL),
+					 _document.db_build_parameter_variable(StrX(param_element->getAttribute(Xprint_int)).asCStr(),NULL),
+					 _document.db_build_parameter_variable(StrX(param_element->getAttribute(Xunderrelax_coeff)).asCStr(),NULL),
+					 param_element);
 
 	    /* handle pragmas and results */
 
@@ -422,7 +399,7 @@ namespace LQIO {
 	    for ( unsigned x = 0; x < nodeListLength; x++ ) {
 		const DOMElement * child_element = dynamic_cast<DOMElement *>(nodeList->item(x));
 		if ( !child_element ) continue;
-		if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		if ( XMLString::compareIStringASCII(child_element->getTagName(), Xpragma) == 0 ) {
 		    /* Get the pragmas if there are any */
@@ -432,20 +409,20 @@ namespace LQIO {
 			throw missing_attribute( StrX(Xpragma).asCStr() );
 			continue;
 		    }
-		    addPragma(parameter.asCStr(),StrX(child_element->getAttribute(Xvalue)).asCStr());
+		    _document.addPragma(parameter.asCStr(),StrX(child_element->getAttribute(Xvalue)).asCStr());
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xresult_general) == 0 ) {
 		    /* Get the results if there are any */
 
 		    double iterations = StrX(child_element->getAttribute(Xiterations)).optLong();
-		    setResultValid( StrX(child_element->getAttribute(Xvalid)).optBool() );
-		    setResultConvergenceValue( StrX(child_element->getAttribute(Xconv_val_result)).optDouble() );
-		    setResultIterations( iterations );
-		    setResultElapsedTime( StrX(child_element->getAttribute(Xelapsed_time)).optTime() );
-		    setResultSysTime( StrX(child_element->getAttribute(Xsystem_cpu_time)).optTime() );
-		    setResultUserTime( StrX(child_element->getAttribute(Xuser_cpu_time)).optTime() );	
+		    _document.setResultValid( StrX(child_element->getAttribute(Xvalid)).optBool() );
+		    _document.setResultConvergenceValue( StrX(child_element->getAttribute(Xconv_val_result)).optDouble() );
+		    _document.setResultIterations( iterations );
+		    _document.setResultElapsedTime( StrX(child_element->getAttribute(Xelapsed_time)).optTime() );
+		    _document.setResultSysTime( StrX(child_element->getAttribute(Xsystem_cpu_time)).optTime() );
+		    _document.setResultUserTime( StrX(child_element->getAttribute(Xuser_cpu_time)).optTime() );	
 		    StrX platform_info(child_element->getAttribute(Xplatform_info));
-		    if ( platform_info.optCStr() ) setResultPlatformInformation( platform_info.asCStr() );
+		    if ( platform_info.optCStr() ) _document.setResultPlatformInformation( platform_info.asCStr() );
 		    if ( 1 < iterations && iterations <= 30 ) {
 			const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( iterations );
 		    }
@@ -457,13 +434,13 @@ namespace LQIO {
 			const DOMElement * stats_element = dynamic_cast<DOMElement *>(nodeList2->item(y));
 			if ( !stats_element ) continue;
 			if ( XMLString::compareIStringASCII(child_element->getTagName(), Xmva_info) == 0 ) {
-			    setMVAStatistics( StrX(stats_element->getAttribute(Xsubmodels)).optLong(),
-					      StrX(stats_element->getAttribute(Xcore)).optLong(),
-					      StrX(stats_element->getAttribute(Xstep)).optDouble(),
-					      StrX(stats_element->getAttribute(Xstep_squared)).optDouble(),
-					      StrX(stats_element->getAttribute(Xwait)).optDouble(),
-					      StrX(stats_element->getAttribute(Xwait_squared)).optDouble(),
-					      StrX(stats_element->getAttribute(Xfaults)).optLong() );
+			    _document.setMVAStatistics( StrX(stats_element->getAttribute(Xsubmodels)).optLong(),
+							StrX(stats_element->getAttribute(Xcore)).optLong(),
+							StrX(stats_element->getAttribute(Xstep)).optDouble(),
+							StrX(stats_element->getAttribute(Xstep_squared)).optDouble(),
+							StrX(stats_element->getAttribute(Xwait)).optDouble(),
+							StrX(stats_element->getAttribute(Xwait_squared)).optDouble(),
+							StrX(stats_element->getAttribute(Xfaults)).optLong() );
 			}
 		    }
 		}
@@ -479,15 +456,15 @@ namespace LQIO {
 	void
 	Xerces_Document::handleProcessor( const DOMElement *processor_element )
 	{
-	    if ( __debugXML ) cerr << start_element( processor_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( processor_element ) << endl;
 
 	    const StrX processorName(processor_element->getAttribute(Xname));
 	    if ( !processorName ) missing_attribute( StrX(processor_element->getTagName()).asCStr() );
 
 	    const scheduling_type scheduling_flag = static_cast<scheduling_type>(getEnumerationFromElement( processor_element->getAttribute(Xscheduling), schedulingTypeXMLString, SCHEDULE_FIFO ));
-	    Processor *  processor = new Processor( this, processorName.asCStr(),
+	    Processor *  processor = new Processor( &_document, processorName.asCStr(),
 						    scheduling_flag,
-						    db_build_parameter_variable(StrX(processor_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
+						    _document.db_build_parameter_variable(StrX(processor_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 						    StrX(processor_element->getAttribute(Xreplication)).asLong(),
 						    processor_element );
 
@@ -500,7 +477,7 @@ namespace LQIO {
 		     || scheduling_flag == SCHEDULE_RAND ) {
 		    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processorName.asCStr(), scheduling_type_str[scheduling_flag] );
 		} else {
-		    processor->setQuantum( db_build_parameter_variable(quantum.asCStr(),NULL) );
+		    processor->setQuantum( _document.db_build_parameter_variable(quantum.asCStr(),NULL) );
 		}
 	    } else if ( scheduling_flag == SCHEDULE_CFS ) {
 		input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processorName.asCStr(), scheduling_type_str[scheduling_flag] );
@@ -508,12 +485,12 @@ namespace LQIO {
 
 	    const StrX rate(processor_element->getAttribute(Xspeed_factor));
 	    if ( rate.optCStr() ) {
-		processor->setRate( db_build_parameter_variable( rate.asCStr(), NULL ) );
+		processor->setRate( _document.db_build_parameter_variable( rate.asCStr(), NULL ) );
 	    } else {
 		processor->setRate( new ConstantExternalVariable( 1. ) );
 	    }
 
-	    addProcessorEntity( processor );
+	    _document.addProcessorEntity( processor );
 	    Document::io_vars->n_processors += 1;
 	
 	    /* handle groups, tasks, or results */
@@ -536,7 +513,7 @@ namespace LQIO {
 		    task_count += handleGroup( child_element, processorName.asCStr() );
 
 		} else if (state == 0 && XMLString::compareIStringASCII(child_element->getTagName(), Xresult_processor) == 0 ) {
-		    if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		    processor->setResultUtilization( StrX(child_element->getAttribute(Xutilization)).optDouble() );
 
@@ -556,7 +533,7 @@ namespace LQIO {
 		input_error2( WRN_NO_TASKS_DEFINED_FOR_PROCESSOR, processorName.asCStr() );
 	    }
 
-	    if ( __debugXML ) cerr << end_element( processor_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( processor_element ) << endl;
 	}
 
 
@@ -570,18 +547,18 @@ namespace LQIO {
 	int
 	Xerces_Document::handleGroup(const DOMElement *group_element, const char *processorName)
 	{
-	    if ( __debugXML ) cerr << start_element( group_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( group_element ) << endl;
 
 	    StrX groupName(group_element->getAttribute(Xname));
 	    if ( !groupName ) throw missing_attribute( StrX(group_element->getTagName()).asCStr() );
 
-	    Processor* processor = getProcessorByName(processorName);
+	    Processor* processor = _document.getProcessorByName(processorName);
 	    if (processor == NULL) {
 		return 0;
 	    } 
 	    
 	    /* Check if this group exists yet */
-	    if (getGroupByName(groupName.asCStr()) != NULL) {
+	    if (_document.getGroupByName(groupName.asCStr()) != NULL) {
 		LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", groupName.asCStr() );
 		return 0;
 	    }
@@ -592,13 +569,13 @@ namespace LQIO {
 		LQIO::input_error2( LQIO::WRN_NON_CFS_PROCESSOR, groupName.asCStr(), processor->getName().c_str() );
 	    } else {
 		/* Store the group inside of the Document */
-		group = new Group(this,
+		group = new Group(&_document,
 				  groupName.asCStr(),
 				  processor,
-				  db_build_parameter_variable( StrX(group_element->getAttribute(Xshare)).asCStr(), NULL ),
+				  _document.db_build_parameter_variable( StrX(group_element->getAttribute(Xshare)).asCStr(), NULL ),
 				  StrX(group_element->getAttribute(Xcap)).asBool(),
 				  group_element );
-		addGroup(group);
+		_document.addGroup(group);
 		processor->addGroup(group);
 
 		Document::io_vars->n_groups += 1;
@@ -615,7 +592,7 @@ namespace LQIO {
 		    task_count += handleTask( child_element, processorName, groupName.asCStr() );
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xresult_group) == 0 ) {
-		    if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 		    if ( !group ) continue;
 
 		    group->setResultUtilization( StrX(child_element->getAttribute(Xutilization)).optDouble() );
@@ -632,7 +609,7 @@ namespace LQIO {
 		}
 	    }
 
-	    if ( __debugXML ) cerr << end_element( group_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( group_element ) << endl;
 
 	    return task_count;
 	}
@@ -651,7 +628,7 @@ namespace LQIO {
 		internal_error( __FILE__, __LINE__, "handleTasks" );
 		return 0;
 	    }
-	    if ( __debugXML ) cerr << start_element( task_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( task_element ) << endl;
 
 	    StrX taskName(task_element->getAttribute(Xname));
 	    if ( !taskName ) throw missing_attribute( StrX(Xtask).asCStr() );
@@ -663,13 +640,13 @@ namespace LQIO {
 		return 0;
 	    }
 
-	    Processor* processor = getProcessorByName(processorName);
+	    Processor* processor = _document.getProcessorByName(processorName);
 	    if ( !processor ) internal_error( __FILE__, __LINE__, "handleTasks" );		// We should have a processor.
 
 	    /* Ditto for the group, if specified */
 	    Group * group = NULL;
 	    if ( groupName ) {
-		group = getGroupByName(groupName);
+		group = _document.getGroupByName(groupName);
 	    }
 
 	    Task * task = 0;
@@ -677,11 +654,10 @@ namespace LQIO {
 	    const StrX tokens = task_element->getAttribute(Xinitially);
 
 	    if ( sched_type == SCHEDULE_SEMAPHORE ) {
-		task = new SemaphoreTask( this, taskName.asCStr(), entries,
-					  db_build_parameter_variable( StrX(task_element->getAttribute(Xqueue_length)).asCStr(), NULL ),
-					  processor,
+		task = new SemaphoreTask( &_document, taskName.asCStr(), entries, processor,
+					  _document.db_build_parameter_variable( StrX(task_element->getAttribute(Xqueue_length)).asCStr(), NULL ),
 					  StrX(task_element->getAttribute(Xpriority)).asLong(),
-					  db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
+					  _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 					  StrX(task_element->getAttribute(Xreplication)).asLong(),
 					  group,						/* For Group */
 					  task_element );
@@ -690,11 +666,10 @@ namespace LQIO {
 		}
 
 	    }else if(sched_type == SCHEDULE_RWLOCK){
-		task = new RWLockTask( this, taskName.asCStr(), entries,
-				       db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
-				       processor,
+		task = new RWLockTask( &_document, taskName.asCStr(), entries, processor,
+				       _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
 				       StrX(task_element->getAttribute(Xpriority)).asLong(),
-				       db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
+				       _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 				       StrX(task_element->getAttribute(Xreplication)).asLong(),
 				       group,						/* For Group */
 				       task_element );	
@@ -703,11 +678,10 @@ namespace LQIO {
 		}
 	    }else {
 		
-		task = new Task( this, taskName.asCStr(), sched_type, entries,
-				 db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
-				 processor,
+		task = new Task( &_document, taskName.asCStr(), sched_type, entries, processor,
+				 _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
 				 StrX(task_element->getAttribute(Xpriority)).asLong(),
-				 db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
+				 _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 				 StrX(task_element->getAttribute(Xreplication)).asLong(),
 				 group,								/* For Group */
 				 task_element );
@@ -723,14 +697,14 @@ namespace LQIO {
 	    char * end_ptr = 0;
 	    if ( think_time.optDouble() != 0.0 ) {	/* Ignore schema default value */
 		if ( sched_type == SCHEDULE_CUSTOMER ) {
-		    task->setThinkTime( db_build_parameter_variable(think_time_str,NULL) );
+		    task->setThinkTime( _document.db_build_parameter_variable(think_time_str,NULL) );
 		} else {
 		    LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, taskName.asCStr() );
 		}
 	    }
 
 	    /* Link in the entity information */
-	    addTaskEntity(task);
+	    _document.addTaskEntity(task);
 	    processor->addTask(task);
 	    if ( group ) group->addTask(task);
 
@@ -759,7 +733,7 @@ namespace LQIO {
 		    handleHistogram( task, child_element );
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xresult_task ) == 0 ) {
-		    if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		    task->setResultThroughput( StrX(child_element->getAttribute(Xthroughput)).optDouble() )
 			.setResultUtilization( StrX(child_element->getAttribute(Xutilization)).optDouble() )
@@ -831,7 +805,7 @@ namespace LQIO {
 		}
 	    }
 
-	    if ( __debugXML ) cerr << end_element( task_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( task_element ) << endl;
 
 	    return 1;
 	}
@@ -862,8 +836,8 @@ namespace LQIO {
 		const DOMElement * curEntry = dynamic_cast<DOMElement *>(entry_list->item(x));
 		StrX entryName(curEntry->getAttribute(Xname));
 		if ( !entryName ) throw missing_attribute( StrX(Xentry).asCStr() );
-		Entry * entry = new Entry(this, entryName.asCStr(), curEntry);
-		addEntry(entry);
+		Entry * entry = new Entry(&_document, entryName.asCStr(), curEntry);
+		_document.addEntry(entry);
 		entries.push_back( entry );
 	    }
 	}
@@ -878,12 +852,12 @@ namespace LQIO {
 	void
 	Xerces_Document::handleEntry( const DOMElement * entry_element )
 	{
-	    if ( __debugXML ) cerr << start_element( entry_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( entry_element ) << endl;
 
 	    StrX entryName(entry_element->getAttribute(Xname));
 	    if ( !entryName ) throw  missing_attribute( StrX(Xentry).asCStr() );
 
-	    Entry * entry = getEntryByName(entryName.asCStr());
+	    Entry * entry = _document.getEntryByName(entryName.asCStr());
 
 	    /* Get the remaining entry parameters */
 
@@ -899,12 +873,12 @@ namespace LQIO {
 	    StrX priority(entry_element->getAttribute(Xpriority));
 	    if ( priority.optCStr() ) {
 		bool isSymbol = false;
-		entry->setEntryPriority(db_build_parameter_variable(priority.optCStr(), &isSymbol));
+		entry->setEntryPriority(_document.db_build_parameter_variable(priority.optCStr(), &isSymbol));
 	    }
 	    StrX openArrivals(entry_element->getAttribute(Xopen_arrival_rate));
 	    if ( openArrivals.optCStr() ) {
 		bool isSymbol = false;
-		entry->setOpenArrivalRate(db_build_parameter_variable(openArrivals.optCStr(), &isSymbol));
+		entry->setOpenArrivalRate(_document.db_build_parameter_variable(openArrivals.optCStr(), &isSymbol));
 	    }
 	    const XMLCh * semaphore = entry_element->getAttribute(Xsemaphore);
 	    if ( *semaphore != 0 ) {
@@ -952,11 +926,11 @@ namespace LQIO {
 		if ( !child_element ) continue;
 
 		if ( XMLString::compareIStringASCII(child_element->getTagName(), Xentry_phase_activities ) == 0 ) {
-		    db_check_set_entry(entry, entryName.asCStr(), Entry::ENTRY_STANDARD);
+		    _document.db_check_set_entry(entry, entryName.asCStr(), Entry::ENTRY_STANDARD);
 		    handleEntryActivities( entry, child_element );
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xservice_time_distribution ) == 0 ) {
-			handleHistogram( entry, child_element );
+		    handleHistogram( entry, child_element );
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xresult_entry ) == 0 ) {
 		    const unsigned max_p = entry->getEntryType() == Entry::ENTRY_STANDARD ? 0 : entry->getMaximumPhase();
@@ -999,7 +973,7 @@ namespace LQIO {
 
 	    }
 
-	    if ( __debugXML ) cerr << end_element( entry_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( entry_element ) << endl;
 	}
 
 
@@ -1011,7 +985,7 @@ namespace LQIO {
 	void
 	Xerces_Document::handleEntryActivities(Entry * entry, const DOMElement *activity_list_element )
 	{
-	    if ( __debugXML ) cerr << start_element( activity_list_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( activity_list_element ) << endl;
 
 	    const DOMNodeList *activityList = activity_list_element->getChildNodes();
 	    for ( unsigned x=0;x<activityList->getLength();x++) {
@@ -1024,7 +998,7 @@ namespace LQIO {
 		Phase* phase = entry->getPhase(p.asLong());
 		if (!phase) internal_error( __FILE__, __LINE__, "handleEntryActivities" );
 		if ( activityName.optCStr() ) phase->setName( activityName.asCStr() );
-		if ( __debugXML ) cerr << start_element2( activity_element ) << " phase=\"" << p.asLong() << "\">" << endl;
+		if ( Document::__debugXML ) cerr << start_element2( activity_element ) << " phase=\"" << p.asLong() << "\">" << endl;
 
 		phase->setXMLDOMElement( activity_element );
 
@@ -1033,20 +1007,20 @@ namespace LQIO {
 		StrX demand = activity_element->getAttribute(Xhost_demand_mean);
 		if ( demand.optCStr() ) {
 		    bool isSymbol = false;
-		    phase->setServiceTime(db_build_parameter_variable(demand.asCStr(), &isSymbol));
+		    phase->setServiceTime(_document.db_build_parameter_variable(demand.asCStr(), &isSymbol));
 		}
 		StrX cvsq = activity_element->getAttribute(Xhost_demand_cvsq);
 		if ( cvsq.optCStr() ) {
-		    phase->setCoeffOfVariationSquared(db_build_parameter_variable(cvsq.asCStr(), NULL));
+		    phase->setCoeffOfVariationSquared(_document.db_build_parameter_variable(cvsq.asCStr(), NULL));
 		}
 		StrX think = activity_element->getAttribute(Xthink_time);
 		if ( think.optCStr() ) {
-		    phase->setThinkTime(db_build_parameter_variable(think.asCStr(),NULL));
+		    phase->setThinkTime(_document.db_build_parameter_variable(think.asCStr(),NULL));
 		}
  		StrX max_time = activity_element->getAttribute(Xmax_service_time);
  		if ( max_time.optCStr() ) {
  		    bool isSymbol = false;
-		    phase->setHistogram(new Histogram( this, Histogram::CONTINUOUS, 2, max_time.asLong(), max_time.asLong(), 0 ));
+		    phase->setHistogram(new Histogram( &_document, Histogram::CONTINUOUS, 2, max_time.asLong(), max_time.asLong(), 0 ));
 		}
 		const XMLCh * call_order = activity_element->getAttribute(Xcall_order);
 		if ( *call_order != 0 ) {
@@ -1061,7 +1035,7 @@ namespace LQIO {
 		for ( unsigned y = 0; y < nodeListLength; y++ ) {
 		    const DOMElement * child_element = dynamic_cast<DOMElement *>(nodeList->item(y));
 		    if ( !child_element ) continue;
-		    if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		    if ( XMLString::compareIStringASCII(child_element->getTagName(), Xservice_time_distribution ) == 0 ) {
 			handleHistogram( phase, child_element );
@@ -1085,10 +1059,10 @@ namespace LQIO {
 			throw element_error( StrX(child_element->getTagName()).asCStr() );
 		    }
 		}
-		if ( __debugXML ) cerr << end_element( activity_element ) << endl;
+		if ( Document::__debugXML ) cerr << end_element( activity_element ) << endl;
 	    }
 
-	    if ( __debugXML ) cerr << end_element( activity_list_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( activity_list_element ) << endl;
 	}
 
 
@@ -1097,7 +1071,7 @@ namespace LQIO {
 	void
 	Xerces_Document::handleTaskActivities(Task * curTask, const DOMElement *activity_list_element)
 	{
-	    if ( __debugXML ) cerr << start_element( activity_list_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( activity_list_element ) << endl;
 
 	    DOMNodeList *activityList	 = activity_list_element->getChildNodes();
 
@@ -1113,18 +1087,18 @@ namespace LQIO {
 
 		} else if ( XMLString::compareIStringASCII(child_element->getTagName(), Xreply_entry ) == 0 ) {
 		    /* Find all activities that generate a reply */
-		    if ( __debugXML ) cerr << start_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << start_element( child_element ) << endl;
 
 		    DOMNodeList *repActList = child_element->getElementsByTagName(Xreply_activity);
 		    StrX entryName(child_element->getAttribute(Xname));
 		    for ( unsigned y = 0; y < repActList->getLength(); y++ ) {
 			const DOMElement * reply_list_element = dynamic_cast<DOMElement *>(repActList->item(y));
-			if ( __debugXML ) cerr << simple_element( reply_list_element ) << endl;
+			if ( Document::__debugXML ) cerr << simple_element( reply_list_element ) << endl;
 			
 			const StrX activity_name(reply_list_element->getAttribute(Xname));
 			if ( !activity_name ) continue;
 
-			Entry* entry = getEntryByName(entryName.asCStr());
+			Entry* entry = _document.getEntryByName(entryName.asCStr());
 
 			/* Now we need to find an entry for the given name */
 			if ( entry->getTask() != curTask ) {
@@ -1134,13 +1108,13 @@ namespace LQIO {
 			    activity->getReplyList().push_back(entry);
 			}
 		    }
-		    if ( __debugXML ) cerr << end_element( child_element ) << endl;
+		    if ( Document::__debugXML ) cerr << end_element( child_element ) << endl;
 		} else {
 		    throw element_error( StrX(child_element->getTagName()).asCStr() );
 		}
 	    }
 
-	    if ( __debugXML ) cerr << end_element( activity_list_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( activity_list_element ) << endl;
 	}
 
 
@@ -1148,7 +1122,7 @@ namespace LQIO {
 	void
 	Xerces_Document::handleActivity(Task * curTask, const DOMElement *activity_element)
 	{
-	    if ( __debugXML ) cerr << start_element( activity_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( activity_element ) << endl;
 
 	    StrX activityName( activity_element->getAttribute(Xname));
 	    if ( !activityName ) throw missing_attribute( StrX(Xactivity).asCStr() );
@@ -1158,22 +1132,22 @@ namespace LQIO {
 
 	    const StrX firstEntry(activity_element->getAttribute(Xbound_to_entry));
 	    if ( firstEntry.optCStr() ) {
-		Entry* entry = getEntryByName(firstEntry.asCStr());
-		db_check_set_entry(entry, firstEntry.asCStr(), Entry::ENTRY_ACTIVITY);
+		Entry* entry = _document.getEntryByName(firstEntry.asCStr());
+		_document.db_check_set_entry(entry, firstEntry.asCStr(), Entry::ENTRY_ACTIVITY);
 		entry->setStartActivity(activity);
 	    }
 
 	    StrX demand = activity_element->getAttribute(Xhost_demand_mean);
 	    if ( demand.optCStr() ) {
-		activity->setServiceTime(db_build_parameter_variable(demand.asCStr(), NULL));
+		activity->setServiceTime(_document.db_build_parameter_variable(demand.asCStr(), NULL));
 	    }
 	    StrX cvsq = activity_element->getAttribute(Xhost_demand_cvsq);
 	    if ( cvsq.optCStr() ) {
-		activity->setCoeffOfVariationSquared(db_build_parameter_variable(cvsq.asCStr(), NULL));
+		activity->setCoeffOfVariationSquared(_document.db_build_parameter_variable(cvsq.asCStr(), NULL));
 	    }
 	    StrX think = activity_element->getAttribute(Xthink_time);
 	    if ( think.optCStr() ) {
-		activity->setThinkTime(db_build_parameter_variable(think.asCStr(), NULL));
+		activity->setThinkTime(_document.db_build_parameter_variable(think.asCStr(), NULL));
 	    }
 
 //		    handleActivity(curTask, activityName.asCStr(), activity_element, "max-service-time", &set_max_activity_service_time);
@@ -1192,7 +1166,7 @@ namespace LQIO {
 	    for ( unsigned x = 0; x < nodeListLength; x++ ) {
 		const DOMElement * child_element = dynamic_cast<DOMElement *>(nodeList->item(x));
 		if ( !child_element ) continue;
-		if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		if ( XMLString::compareIStringASCII(child_element->getTagName(), Xservice_time_distribution ) == 0 ) {
 		    handleHistogram( activity, child_element );
@@ -1223,7 +1197,7 @@ namespace LQIO {
 		    throw element_error( StrX(child_element->getTagName()).asCStr() );
 		}
 	    }
-	    if ( __debugXML ) cerr << end_element( activity_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( activity_element ) << endl;
 	}
 
 	/*
@@ -1247,7 +1221,7 @@ namespace LQIO {
 	void
 	Xerces_Document::handlePrecedence(Task * curTask, const DOMElement *precedence_element )
 	{
-	    if ( __debugXML ) cerr << start_element( precedence_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( precedence_element ) << endl;
 
 	    /* Go do all the precedence elements which wire up the various activities */
 
@@ -1268,15 +1242,16 @@ namespace LQIO {
 		switch ( item->second ) {
 		case ActivityList::AND_JOIN_ACTIVITY_LIST:
 		    if ( pre_list ) internal_error( __FILE__, __LINE__, "Duplicate pre." );
-		    pre_list = new AndJoinActivityList( this, curTask, item->second, pre_post_element, 
-							db_build_parameter_variable(StrX(precedence_element->getAttribute(Xquorum)).optCStr(),NULL ) );
+		    pre_list = new AndJoinActivityList( &_document, curTask, 
+							_document.db_build_parameter_variable(StrX(precedence_element->getAttribute(Xquorum)).optCStr(),NULL ),
+							pre_post_element );
 		    handleActivityList( pre_list, curTask, pre_post_element, item->second );
 		    break;
 
 		case ActivityList::OR_JOIN_ACTIVITY_LIST:
 		case ActivityList::JOIN_ACTIVITY_LIST:
 		    if ( pre_list ) internal_error( __FILE__, __LINE__, "Duplicate pre." );
-		    pre_list = new ActivityList( this, curTask, item->second, pre_post_element );
+		    pre_list = new ActivityList( &_document, curTask, item->second, pre_post_element );
 		    handleActivityList( pre_list, curTask, pre_post_element, item->second );
 		    break;
 
@@ -1284,13 +1259,13 @@ namespace LQIO {
 		case ActivityList::FORK_ACTIVITY_LIST:
 		case ActivityList::AND_FORK_ACTIVITY_LIST:
 		    if ( post_list ) internal_error( __FILE__, __LINE__, "Duplicate post." );
-		    post_list = new ActivityList( this, curTask, item->second, pre_post_element );
+		    post_list = new ActivityList( &_document, curTask, item->second, pre_post_element );
 		    handleActivityList( post_list, curTask, pre_post_element, item->second );
 		    break;
 
 		case ActivityList::REPEAT_ACTIVITY_LIST:
 		    if ( post_list ) internal_error( __FILE__, __LINE__, "Duplicate post." );
-		    post_list = new ActivityList( this, curTask, item->second, pre_post_element );
+		    post_list = new ActivityList( &_document, curTask, item->second, pre_post_element );
 		    handleActivityList( post_list, curTask, pre_post_element, item->second );
 		    handleListEnd( post_list, curTask, pre_post_element ); 
 		    break;
@@ -1310,14 +1285,14 @@ namespace LQIO {
 		internal_error( __FILE__, __LINE__, "handleActivitySequence" );
 	    }
 
-	    if ( __debugXML ) cerr << end_element( precedence_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( precedence_element ) << endl;
 	}
 
 
 	void
 	Xerces_Document::handleActivityList( ActivityList * activity_list, Task * domTask, const DOMElement *precedence_element, const ActivityList::ActivityListType type )
 	{
-	    if ( __debugXML ) cerr << start_element( precedence_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( precedence_element ) << endl;
 
 	    const DOMNodeList * child_list = precedence_element->getChildNodes();
 	    const unsigned int len = child_list->getLength();
@@ -1325,7 +1300,7 @@ namespace LQIO {
 	    for ( unsigned x = 0; x < len; ++x ) {
 		const DOMElement * child_element = dynamic_cast<DOMElement *>(child_list->item(x));
 		if ( !child_element ) continue;
-		if ( __debugXML ) cerr << simple_element( child_element ) << endl;
+		if ( Document::__debugXML ) cerr << simple_element( child_element ) << endl;
 
 		const XMLCh * tag_name = child_element->getTagName();
 		if ( XMLString::compareIStringASCII(tag_name, Xservice_time_distribution ) == 0 ) {
@@ -1366,24 +1341,24 @@ namespace LQIO {
 			case ActivityList::OR_FORK_ACTIVITY_LIST: 
 			{
 			    StrX prob(child_element->getAttribute(Xprob));
-			    activity_list->add(activity,db_build_parameter_variable(prob.asCStr(),NULL));
+			    activity_list->add(activity,_document.db_build_parameter_variable(prob.asCStr(),NULL));
 			    activity->inputFrom(activity_list);
 			}
-			    break;
+			break;
 			case ActivityList::REPEAT_ACTIVITY_LIST:
 			{
 			    StrX count(child_element->getAttribute(Xcount));
-			    activity_list->add(activity,db_build_parameter_variable(count.asCStr(),NULL));
+			    activity_list->add(activity,_document.db_build_parameter_variable(count.asCStr(),NULL));
 			    activity->inputFrom(activity_list);
 			}
-			    break;
+			break;
 			}
 		    }
 		} else {
 		    throw element_error( StrX(tag_name).asCStr() );
 		}
 	    }
-	    if ( __debugXML ) cerr << end_element( precedence_element ) << endl;
+	    if ( Document::__debugXML ) cerr << end_element( precedence_element ) << endl;
 	}
 
 	void
@@ -1415,7 +1390,7 @@ namespace LQIO {
 		if ( !task_element ) continue;
 
 		StrX taskName( task_element->getAttribute(Xname) );
-		Task * task= getTaskByName(taskName.asCStr());
+		Task * task= _document.getTaskByName(taskName.asCStr());
 
 		DOMNodeList * entryList = task_element->getChildNodes();
 
@@ -1441,7 +1416,7 @@ namespace LQIO {
 	    const StrX entry_name( entryElement->getAttribute(Xname));
 	    /* extract calls from all task-activities */
 
-	    Entry* entry = getEntryByName(entry_name.asCStr());
+	    Entry* entry = _document.getEntryByName(entry_name.asCStr());
 	    if ( !entry ) internal_error( __FILE__, __LINE__, "handleCallsForEntry" );
 
 	    for ( unsigned x = 0; x < activityList->getLength(); x++ ) {
@@ -1451,7 +1426,7 @@ namespace LQIO {
 		if ( !XMLString::textToBin( activityElement->getAttribute(Xphase), phase ) ) continue;
 		
 		DOMNodeList * callList = activityElement->getChildNodes();
-		if ( __debugXML ) cerr << "  <!-- Entry name=\"" << entry_name.asCStr() << "\" phase=\"" << phase << "\" -->" << endl;
+		if ( Document::__debugXML ) cerr << "  <!-- Entry name=\"" << entry_name.asCStr() << "\" phase=\"" << phase << "\" -->" << endl;
 
 		for ( unsigned y = 0; y < callList->getLength(); y++ ) {
 		    const DOMElement * callElement = dynamic_cast<DOMElement *>(callList->item(y));
@@ -1510,20 +1485,20 @@ namespace LQIO {
 	    for ( unsigned y = 0 ; y < forwardList->getLength(); y++ ) {
 		const DOMElement *forward_element = dynamic_cast<DOMElement *>(forwardList->item(y));
 		StrX dstEntryName(forward_element->getAttribute(Xdest));
-		if ( __debugXML ) cerr << "          <" << StrX(forward_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
+		if ( Document::__debugXML ) cerr << "          <" << StrX(forward_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
 		if ( !dstEntryName ) throw missing_attribute( StrX(Xforwarding).asCStr() );
 
 		StrX prob(forward_element->getAttribute(Xprob));
 		if ( !prob ) throw missing_attribute( StrX(Xforwarding).asCStr() );
-		Entry* to_entry = getEntryByName(dstEntryName.asCStr());
-		Entry* from_entry = getEntryByName(entryName.asCStr());
+		Entry* to_entry = _document.getEntryByName(dstEntryName.asCStr());
+		Entry* from_entry = _document.getEntryByName(entryName.asCStr());
 		Call * call = from_entry->getForwardingToTarget(to_entry);
 
 		if ( call == NULL ) {
 		    bool isSymbol = false;
-		    Call* call = new Call(this, from_entry, to_entry,
-						    db_build_parameter_variable(prob.asCStr(), &isSymbol),
-						    forward_element );
+		    Call* call = new Call( &_document, from_entry, to_entry,
+					   _document.db_build_parameter_variable(prob.asCStr(), &isSymbol),
+					   forward_element );
 		    from_entry->addForwardingCall(call);
 		} else {
 		    if (call->getCallType() != Call::NULL_CALL) {
@@ -1531,7 +1506,7 @@ namespace LQIO {
 		    }
 		}
 
-		if ( __debugXML ) cerr << "          </" << StrX(forward_element->getTagName()).asCStr() << "\">" << endl;
+		if ( Document::__debugXML ) cerr << "          </" << StrX(forward_element->getTagName()).asCStr() << "\">" << endl;
 	    }
 	}
 
@@ -1545,34 +1520,33 @@ namespace LQIO {
 	Xerces_Document::handleEntryCall( Entry * from_entry, int from_phase, const Call::CallType call_type, const DOMElement * call_element )
 	{
 	    StrX dstEntryName(call_element->getAttribute(Xdest));
-	    if ( __debugXML ) cerr << "          <" << StrX(call_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
+	    if ( Document::__debugXML ) cerr << "          <" << StrX(call_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
 	    if ( !dstEntryName ) throw missing_attribute( StrX(call_element->getTagName()).asCStr() );
 
 	    StrX calls(call_element->getAttribute(Xcalls_mean));
 	    if ( !calls ) throw missing_attribute( StrX(call_element->getTagName()).asCStr() );
 
 	    /* Obtain the entry that we will be adding the phase times to */
-	    Entry* to_entry = getEntryByName(dstEntryName.asCStr());
+	    Entry* to_entry = _document.getEntryByName(dstEntryName.asCStr());
 
 	    assert(to_entry != NULL);
 
 	    /* Make sure that this is a standard entry */
-	    db_check_set_entry(from_entry, from_entry->getName().c_str(), Entry::ENTRY_STANDARD);
-	    db_check_set_entry(to_entry, dstEntryName.asCStr(), Entry::ENTRY_NOT_DEFINED);
-
+	    _document.db_check_set_entry(from_entry, from_entry->getName().c_str(), Entry::ENTRY_STANDARD);
+	    _document.db_check_set_entry(to_entry, dstEntryName.asCStr());
 
 	    /* Push all the times */
 
 	    Phase* phase = from_entry->getPhase(from_phase);
 	    bool isSymbol = false;
-	    ExternalVariable* ev_calls = db_build_parameter_variable(calls.asCStr(), &isSymbol);
+	    ExternalVariable* ev_calls = _document.db_build_parameter_variable(calls.asCStr(), &isSymbol);
 
 	    Call* call = from_entry->getCallToTarget(to_entry, from_phase);
 
 	    /* Check the existence */
 	    if (call == NULL) {
-		call = new Call(this, call_type, phase, to_entry, from_phase, ev_calls, call_element );
-		from_entry->appendOriginatingCall(call);
+		call = new Call(&_document, call_type, phase, to_entry, ev_calls, call_element );
+		phase->addCall( call );
 	    } else {
 		if (call->getCallType() != Call::NULL_CALL) {
 		    LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
@@ -1605,7 +1579,7 @@ namespace LQIO {
 		    }
 		}
 	    }
-	    if ( __debugXML ) cerr << "          </" << StrX(call_element->getTagName()).asCStr() << "\">" << endl;
+	    if ( Document::__debugXML ) cerr << "          </" << StrX(call_element->getTagName()).asCStr() << "\">" << endl;
 	}
 
 
@@ -1614,21 +1588,21 @@ namespace LQIO {
 	Xerces_Document::handleActivityCall( Activity * from_activity, const Call::CallType call_type, const DOMElement * call_element )
 	{
 	    StrX dstEntryName(call_element->getAttribute(Xdest));
-	    if ( __debugXML ) cerr << "          <" << StrX(call_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
+	    if ( Document::__debugXML ) cerr << "          <" << StrX(call_element->getTagName()).asCStr() << " dest=\"" << dstEntryName.asCStr() << "\">" << endl;
 	    if ( !dstEntryName ) throw missing_attribute( StrX(call_element->getTagName()).asCStr() );
 
 	    StrX calls(call_element->getAttribute(Xcalls_mean));
 	    if ( !calls ) throw missing_attribute( StrX(call_element->getTagName()).asCStr() );
 
 	    /* Obtain the entry that we will be adding the phase times to */
-	    Entry* to_entry = getEntryByName(dstEntryName.asCStr());
+	    Entry* to_entry = _document.getEntryByName(dstEntryName.asCStr());
 	    assert(to_entry != NULL);
 
 	    /* Push all the times */
 
-	    ExternalVariable* ev_calls = db_build_parameter_variable(calls.asCStr(), NULL);
+	    ExternalVariable* ev_calls = _document.db_build_parameter_variable(calls.asCStr(), NULL);
 
-	    Call* call = new Call(this, call_type, from_activity, to_entry, 0, ev_calls, call_element );
+	    Call* call = new Call(&_document, call_type, from_activity, to_entry, ev_calls, call_element );
 	    from_activity->addCall(call);
 
 	    /* Get child nodes. */
@@ -1652,7 +1626,7 @@ namespace LQIO {
 		    }
 		}
 	    }
-	    if ( __debugXML ) cerr << "          </" << StrX(call_element->getTagName()).asCStr() << "\">" << endl;
+	    if ( Document::__debugXML ) cerr << "          </" << StrX(call_element->getTagName()).asCStr() << "\">" << endl;
 	}
 
 	void
@@ -1660,14 +1634,14 @@ namespace LQIO {
 	{
 	    /* This is the element containing the LQX code */
 
-	    if ( __debugXML ) cerr << start_element( lqx_element ) << endl;
+	    if ( Document::__debugXML ) cerr << start_element( lqx_element ) << endl;
 	
 	    const XMLCh* body = dynamic_cast<DOMText*>(lqx_element->getFirstChild())->getData();
 
 	    /* Now, invoke the callout */
-	    setLQXProgramText(Xt(body));
+	    _document.setLQXProgramText(Xt(body));
 
-   	    if ( __debugXML ) cerr << end_element( lqx_element ) << endl;
+   	    if ( Document::__debugXML ) cerr << end_element( lqx_element ) << endl;
 	}
 
 	void
@@ -1682,11 +1656,11 @@ namespace LQIO {
 		if ( !dynamic_cast<Entry *>(object)) {
 		    input_error( "Unexpected attribute <%s> ", Xphase );
 		} else {
-		    histogram = new Histogram(this, Histogram::CONTINUOUS, n_bins.asLong(), min.asDouble(), max.asDouble(), histogram_element );
+		    histogram = new Histogram(&_document, Histogram::CONTINUOUS, n_bins.asLong(), min.asDouble(), max.asDouble(), histogram_element );
 		    object->setHistogramForPhase( phase.optLong(), histogram );
 		}
 	    } else {
-		histogram = new Histogram(this, Histogram::CONTINUOUS, n_bins.asLong(), min.asDouble(), max.asDouble(), histogram_element );
+		histogram = new Histogram(&_document, Histogram::CONTINUOUS, n_bins.asLong(), min.asDouble(), max.asDouble(), histogram_element );
 		object->setHistogram( histogram );
 
 	    }
@@ -1717,32 +1691,43 @@ namespace LQIO {
 	/* DOM serialization - write results to XERCES then save.	    */
 	/* ---------------------------------------------------------------- */
 
+        void Xerces_Document::serializeDOM( std::ostream& output, bool instantiate ) 
+	{
+	    if ( __xercesDOM ) {
+		__xercesDOM->serializeDOM2( output, instantiate );
+	    } else {
+		throw runtime_error( "XML output failed: no DOM." );
+	    }
+	}
+
+
 	/* store the results in the XML DOM, then serialize that. */
-	void Xerces_Document::serializeDOM( const char * file_name, bool instantiate ) const
+	void Xerces_Document::serializeDOM2( ostream& output, bool instantiate ) const
 	{
 	    clearExistingDOMResults();
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
-		const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( getResultNumberOfBlocks() );
-		const_cast<ConfidenceIntervals *>(&_conf_99)->set_blocks( getResultNumberOfBlocks() );
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
+		const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( _document.getResultNumberOfBlocks() );
+		const_cast<ConfidenceIntervals *>(&_conf_99)->set_blocks( _document.getResultNumberOfBlocks() );
 	    }
 
 	    insertDocumentResults();
 
-	    for ( std::map<std::string, Processor*>::const_iterator procIter = _processors.begin(); procIter != _processors.end(); ++procIter) {
+	    const std::map<std::string,LQIO::DOM::Processor *>& processors = _document.getProcessors();
+	    for ( std::map<std::string, Processor*>::const_iterator procIter = processors.begin(); procIter != processors.end(); ++procIter) {
 		insertProcessorResults( procIter->second );
 	    }
 
-	    LQIO::serializeDOM(file_name, instantiate);
+	    LQIO::serializeDOM(output, instantiate);
 	}
 
 	
 	void
 	Xerces_Document::insertDocumentResults() const
 	{
-	    DOMElement * document_element = (DOMElement *)(getXMLDOMElement());
-	    if ( hasPragmas() ) {
-		const std::map<std::string,std::string>& pragmas = getPragmaList();
+	    DOMElement * document_element = (DOMElement *)(_document.getXMLDOMElement());
+	    if ( _document.hasPragmas() ) {
+		const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
 		for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
 		    XercesWrite pragma_element( document_element, Xpragma );
 		    pragma_element( Xparam, next_pragma->first );
@@ -1751,24 +1736,24 @@ namespace LQIO {
 	    }
 
 	    XercesWrite result_element( document_element, Xresult_general );
-	    result_element( Xconv_val_result, getResultConvergenceValue() );
-	    result_element( Xvalid,           getResultValid() ? "YES" : "NO");
-	    result_element( Xiterations,      getResultIterations() );
-	    result_element( Xplatform_info,   getResultPlatformInformation() );
-	    result_element( Xsolver_info,     getResultSolverInformation() );
-	    result_element.insert_time( Xuser_cpu_time,   getResultUserTime() );
-	    result_element.insert_time( Xsystem_cpu_time, getResultSysTime() );
-	    result_element.insert_time( Xelapsed_time,    getResultElapsedTime() );
+	    result_element( Xconv_val_result, _document.getResultConvergenceValue() );
+	    result_element( Xvalid,           _document.getResultValid() ? "YES" : "NO");
+	    result_element( Xiterations,      _document.getResultIterations() );
+	    result_element( Xplatform_info,   _document.getResultPlatformInformation() );
+	    result_element( Xsolver_info,     _document.getResultSolverInformation() );
+	    result_element.insert_time( Xuser_cpu_time,   _document.getResultUserTime() );
+	    result_element.insert_time( Xsystem_cpu_time, _document.getResultSysTime() );
+	    result_element.insert_time( Xelapsed_time,    _document.getResultElapsedTime() );
 	    
-	    if ( _mvaStatistics.submodels ) {
+	    if ( _document.getResultMVASubmodels() ) {
 		XercesWrite mva_element( result_element.getElement(), Xmva_info );
-		mva_element( Xsubmodels, _mvaStatistics.submodels );
-		mva_element( Xcore, static_cast<double>(_mvaStatistics.core) );
-		mva_element( Xstep, _mvaStatistics.step );
-		mva_element( Xstep_squared, _mvaStatistics.step_squared );
-		mva_element( Xwait, _mvaStatistics.wait );
-		mva_element( Xwait_squared, _mvaStatistics.wait_squared );
-		mva_element( Xfaults, _mvaStatistics.faults );
+		mva_element( Xsubmodels, _document.getResultMVASubmodels() );
+		mva_element( Xcore, static_cast<double>(_document.getResultMVACore()) );
+		mva_element( Xstep, _document.getResultMVAStep() );
+		mva_element( Xstep_squared, _document.getResultMVAStepSquared() );
+		mva_element( Xwait, _document.getResultMVAWait() );
+		mva_element( Xwait_squared, _document.getResultMVAWaitSquared() );
+		mva_element( Xfaults, _document.getResultMVAFaults() );
 	    }
 	}
 
@@ -1778,7 +1763,7 @@ namespace LQIO {
 	{
 	    XercesWrite result_element( (DOMElement *)(processor->getXMLDOMElement()), Xresult_processor );
 	    result_element( Xutilization, processor->getResultUtilization());
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_95 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_99 );
@@ -1788,13 +1773,13 @@ namespace LQIO {
 
 	    /* Now do my groups and tasks */
 
-	    const std::vector<Group*>& groupList = processor->getGroupList();
-	    for (std::vector<Group*>::const_iterator groupIter = groupList.begin(); groupIter != groupList.end(); ++groupIter) {
+	    const std::set<Group*>& groupList = processor->getGroupList();
+	    for (std::set<Group*>::const_iterator groupIter = groupList.begin(); groupIter != groupList.end(); ++groupIter) {
 		insertGroupResults( *groupIter );
 	    }
 
-	    const std::vector<Task*>& taskList = processor->getTaskList();
-	    for ( std::vector<Task*>::const_iterator  taskIter = taskList.begin(); taskIter != taskList.end(); ++taskIter) {
+	    const std::set<Task*>& taskList = processor->getTaskList();
+	    for ( std::set<Task*>::const_iterator  taskIter = taskList.begin(); taskIter != taskList.end(); ++taskIter) {
 		insertTaskResults( *taskIter );
 	    }
 	}
@@ -1807,7 +1792,7 @@ namespace LQIO {
 
 	    result_element(Xutilization, group->getResultUtilization());
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -1855,7 +1840,7 @@ namespace LQIO {
 		result_element( Xrwlock_writer_utilization, rwlock->getResultWriterHoldingUtilization() );
 	    }
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -1954,7 +1939,7 @@ namespace LQIO {
 		result_element(Xopen_wait_time, entry->getResultOpenWaitTime());
 	    }
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99);
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -2012,7 +1997,7 @@ namespace LQIO {
 	    result_element(Xservice_time_variance, phase->getResultVarianceServiceTime() );
 	    result_element(Xutilization, phase->getResultUtilization() );
 	    result_element(Xproc_waiting, phase->getResultProcessorWaiting() );
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -2048,7 +2033,7 @@ namespace LQIO {
 	    result_element(Xthroughput, activity->getResultThroughput());
 	    result_element(Xproc_utilization, activity->getResultProcessorUtilization());
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -2067,7 +2052,7 @@ namespace LQIO {
 	    if ( call->hasResultVarianceWaitingTime() ) {
 		result_element(Xwaiting_variance, call->getResultVarianceWaitingTime());
 	    }
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		/* Order is important */
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
@@ -2093,7 +2078,7 @@ namespace LQIO {
 		result_element(Xjoin_variance, activity_list->getResultVarianceJoinDelay());
 	    }
 
-	    if ( getResultNumberOfBlocks() > 1 ) {
+	    if ( _document.getResultNumberOfBlocks() > 1 ) {
 		XercesWriteConfidence conf_99_element(result_element.getElement(), Xresult_conf_99, _conf_99 );
 		XercesWriteConfidence conf_95_element(result_element.getElement(), Xresult_conf_95, _conf_95 );
 		conf_99_element(Xjoin_waiting, activity_list->getResultJoinDelayVariance());
@@ -2126,7 +2111,7 @@ namespace LQIO {
 		bin_element( Xend,   histogram->getBinEnd(i) );
 		bin_element( Xprob,  histogram->getBinMean(i) );
 		const double variance = histogram->getBinVariance(i);
-		if ( variance > 0 && getResultNumberOfBlocks() > 1 ) {
+		if ( variance > 0 && _document.getResultNumberOfBlocks() > 1 ) {
 		    bin_element( Xconf_95, _conf_95( variance ) );
 		    bin_element( Xconf_99, _conf_99( variance ) );
 		}

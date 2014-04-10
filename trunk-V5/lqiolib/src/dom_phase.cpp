@@ -281,8 +281,10 @@ namespace LQIO {
 	Phase& Phase::setResultServiceTimeVariance(const double resultServiceTimeVariance)
 	{
 	    /* Stores the given ResultServiceTime of the Phase */
+	    if ( resultServiceTimeVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultServiceTimeVariance = resultServiceTimeVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
 
@@ -309,8 +311,10 @@ namespace LQIO {
 	Phase& Phase::setResultVarianceServiceTimeVariance(const double resultVarianceServiceTimeVariance)
 	{
 	    /* Stores the given ResultVarianceServiceTime of the Phase */
+	    if ( resultVarianceServiceTimeVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultVarianceServiceTimeVariance = resultVarianceServiceTimeVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
 
@@ -354,8 +358,10 @@ namespace LQIO {
 	Phase& Phase::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
 	    /* Stores the given ResultUtilization of the Phase */
+	    if ( resultUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultUtilizationVariance = resultUtilizationVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
 
@@ -381,8 +387,10 @@ namespace LQIO {
 	Phase& Phase::setResultProcessorWaitingVariance(const double resultProcessorWaitingVariance)
 	{
 	    /* Stores the given ResultProcessorWaiting of the Phase */
+	    if ( resultProcessorWaitingVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultProcessorWaitingVariance = resultProcessorWaitingVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
 

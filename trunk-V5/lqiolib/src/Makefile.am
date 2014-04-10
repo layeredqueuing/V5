@@ -8,7 +8,7 @@ liblqio_la_SOURCES = error.cpp glblerr.cpp \
 	dom_bindings.cpp dom_document.cpp dom_entity.cpp dom_entry.cpp dom_processor.cpp \
 	dom_task.cpp dom_activity.cpp dom_actlist.cpp dom_call.cpp dom_extvar.cpp dom_object.cpp dom_phase.cpp \
 	dom_group.cpp dom_histogram.cpp\
-	commandline.cpp labels.cpp filename.cpp getsbopt.cc \
+	common_io.cpp commandline.cpp labels.cpp filename.cpp getsbopt.cc \
 	confidence_intervals.cpp \
 	srvn_input.cpp srvn_output.cpp srvn_results.cpp srvn_spex.cpp \
 	srvn_gram.y srvn_scan.l srvn_result_gram.y srvn_result_scan.l
@@ -29,11 +29,11 @@ liblqio_la_LDFLAGS =  -no-undefined -version-info 0:1:0
 
 # Force rename of variables.  For FLEX -- should check. :-)
 srvn_scan.c: srvn_scan.l srvn_gram.h
-	$(LEX) -t $(LFLAGS) -Psrvn srvn_scan.l > srvn_scan.c
+	$(LEX) -t $(LFLAGS) -PLQIO_ srvn_scan.l > srvn_scan.c
 
 # Force rename of variables.  For BISON -- should check. :-)
 srvn_gram.c srvn_gram.h: srvn_gram.y
-	$(YACC) -dtv -p srvn -o srvn_gram.c srvn_gram.y
+	$(YACC) -dtv -p LQIO_ -o srvn_gram.c srvn_gram.y
 
 # Force rename of variables.  For FLEX -- should check. :-)
 srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h

@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include "graphic.h"
 #include "point.h"
-#if HAVE_GD_H && HAVE_LIBGD
+#if HAVE_GD_H
 #include <gdfontt.h>
 #include <gdfonts.h>
 #include <gdfontl.h>
@@ -34,18 +34,22 @@ static void box_to_points( const Point& origin, const Point& extent, Point point
 Colour::colour_defn Colour::colour_value[] =
 {
     {0.000, 0.000, 0.000},		/* TRANSPARENT, */
-    {0.000, 0.000, 0.000},		/* DEFAULT, */
-    {0.000, 0.000, 0.000},		/* BLACK,   */
-    {1.000, 0.000, 0.000},		/* RED,     */
-    {1.000, 1.000, 0.000},		/* YELLOW,  */
-    {0.000, 1.000, 0.000},		/* GREEN,   */
-    {0.000, 1.000, 1.000},		/* CYAN,    */
-    {0.000, 0.000, 1.000},		/* BLUE,    */
-    {1.000, 0.000, 1.000},		/* MAGENTA, */
-    {1.000, 0.647, 0.000},		/* ORANGE   */
-    {1.000, 0.840, 0.000},		/* GOLD     */
-    {1.000, 1.000, 1.000},		/* WHITE,   */
-    {0.900, 0.900, 0.900}		/* GREY_10  */
+    {0.000, 0.000, 0.000},		/* DEFAULT, 	*/
+    {0.000, 0.000, 0.000},		/* BLACK,   	*/
+    {1.000, 1.000, 1.000},		/* WHITE,   	*/
+    {0.900, 0.900, 0.900},		/* GREY_10  	*/
+    {1.000, 0.000, 1.000},		/* MAGENTA, 	*/
+    {0.500, 0.000, 1.000},		/* VIOLET   	*/
+    {0.000, 0.000, 1.000},		/* BLUE,    	*/
+    {0.000, 0.500, 1.000},		/* OCEAN,	*/
+    {0.000, 1.000, 1.000},		/* CYAN,    	*/
+    {0.000, 1.000, 0.500},		/* TURQUOIS	*/
+    {0.000, 1.000, 0.000},		/* GREEN,   	*/
+    {0.500, 1.000, 0.000},		/* SPRINGGREEN	*/
+    {1.000, 1.000, 0.000},		/* YELLOW,  	*/
+    {1.000, 0.500, 0.000},		/* ORANGE   	*/
+    {1.000, 0.000, 0.000},		/* RED,     	*/
+    {1.000, 0.840, 0.000}		/* GOLD     	*/
 };
 
 
@@ -54,16 +58,20 @@ const char * Colour::colour_name[] =
     "White",
     "black",
     "black",
-    "Red",
-    "Yellow",
-    "Green",
-    "Cyan",
-    "Blue",
-    "Magenta",
-    "Orange",
-    "Goldenrod",
     "White",
-    "White"
+    "Grey"
+    "Magenta",
+    "Violet",
+    "Blue",
+    "Azure",
+    "Cyan",
+    "Turquois",
+    "Green",
+    "SpringGreen",		/* Chartreuse */
+    "Yellow",
+    "Orange",
+    "Red",
+    "Goldenrod",
 };
 
 float
@@ -485,6 +493,7 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     Point extent(0,0);
     const unsigned int len_1 = s.size();    /* Pad to long-word */
     const unsigned int len_2 = ( len_1 & 0x03 ) == 0 ? len_1 : len_1 + 4 - ( len_1 & 0x03 );
+
     output << start_record( EMR_SETTEXTCOLOR, 12 ) << rgb( colour_value[colour].red, colour_value[colour].green, colour_value[colour].blue );
     output << setfont( font ) << justify( justification );
     output << start_record( EMR_EXTTEXTOUTW, 76 + len_2 )			/*  0 */
@@ -494,7 +503,7 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
 	   << writef( EMF_SCALING )	/* X Scale */				/* 28 */
 	   << writef( EMF_SCALING )	/* Y Scale */				/* 32 */
 	   << point( c )							/* 40 */
-	   << writel( len_1/2 )							/* 44 */
+	   << writel( (len_1+1)/2 )						/* 44 */
 	   << writel( 76 )		/* Offset to text */			/* 48 */
 	   << writel( 0 )		/* No options */			/* 52 */
 	   << point( origin ) 		/* Rectangle clipping -- not used */	/* 56 */
@@ -507,7 +516,6 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     for ( unsigned int i = len_1; i < len_2; i += 1 ) {
 	output << '\0';
     }
-
     return fontsize * EMF_SCALING;
 }
 
@@ -892,16 +900,20 @@ int Fig::colour_index[] =
     -1,		/* TRANSPARENT */
     -1,		/* DEFAULT, */
     0,		/* BLACK,   */
-    4,		/* RED,     */
-    6,		/* YELLOW,  */
-    2,		/* GREEN,   */
-    3,		/* CYAN,    */
-    1,		/* BLUE,    */
-    5,		/* MAGENTA, */
-    32,		/* ORANGE,  */
-    31,		/* GOLD     */
     7,		/* WHITE,   */
-    7		/* GREY_10  */
+    7,		/* GREY_10  */
+    5,		/* MAGENTA, */
+    32,
+    1,		/* BLUE,    */
+    33,
+    3,		/* CYAN,    */
+    34,
+    2,		/* GREEN,   */
+    35,
+    6,		/* YELLOW,  */
+    32,		/* ORANGE,  */
+    4,		/* RED,     */
+    36,		/* GOLD     */
 };
 
 int Fig::linestyle_value[] =
@@ -945,7 +957,7 @@ int Fig::fill_value[] =
     0,		/* Zero */
     18,		/* 90% */
     20,		/* 100% */
-    38		/* Tine */
+    38		/* Tint */
 };
 
 /*
@@ -955,7 +967,7 @@ int Fig::fill_value[] =
 ostream&
 Fig::initColours( ostream& output )
 {
-    for ( int i = 3; i <= Graphic::WHITE; ++i ) {
+    for ( int i = 3; i <= Graphic::GOLD; ++i ) {
 	if ( colour_index[i] >= 32 ) {
 	    output << "0 " << colour_index[i] << " " << rgb( colour_value[i].red, colour_value[i].green, colour_value[i].blue ) << endl;
 	}

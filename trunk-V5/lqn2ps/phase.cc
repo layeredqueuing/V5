@@ -35,7 +35,6 @@ operator<<( ostream& output, const Phase& self )
 {
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_SRVN:
-	break;
     case FORMAT_XML:
 	break;
     }

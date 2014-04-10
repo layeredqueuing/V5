@@ -90,7 +90,7 @@ public:
     static Entry * find( const std::string& );
     static bool find( const std::string& from_entry_name, Entry *&from_entry, const std::string& to_entry_name, Entry *&to_entry );
 
-    static void add_call( LQIO::DOM::Call * );
+    void add_call( const unsigned int p, LQIO::DOM::Call * );
     static void add_fwd_call( LQIO::DOM::Call * );
 
     void initialize();

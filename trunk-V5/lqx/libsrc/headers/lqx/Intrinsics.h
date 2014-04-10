@@ -29,7 +29,10 @@ namespace LQX {
     DeclareLanguageMethod(Log,		    "d",  "log",		 "Returns the natural logarithm of arg1.");
     DeclareLanguageMethod(Round,	    "d",  "round",		 "Returns arg1 rounded to the nearest integer.");
     DeclareLanguageMethod(Normal,	    "dd", "normal",		 "Returns a normally distributed random number with mean of arg1 and a standard deviation of arg2." );
-    
+    DeclareLanguageMethod(Gamma,	    "dd", "gamma",	         "Returns a Gamma distributed random number with a mean of arg1 and a shape of arg2." );
+    DeclareLanguageMethod(Uniform,	    "dd", "uniform",	         "Returns a uniformily distributed random number between arg1 and arg2." );
+    DeclareLanguageMethod(Poisson,	    "d",  "poisson",	         "Returns a Poisson distributed random number with a mean of arg1." );
+
     DeclareLanguageMethod(Str,              "+",  "str",                 "Coerce arguments list to flat string");
     DeclareLanguageMethod(Double,           "a",  "double",              "Attempt to convert the argument to a double");
     DeclareLanguageMethod(Boolean,          "a",  "bool",                "Attempt to convert the argument to a boolean");

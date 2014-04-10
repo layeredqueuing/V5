@@ -20,8 +20,7 @@
 #include <xercesc/dom/DOMImplementation.hpp>
 #include <xercesc/dom/DOMImplementationLS.hpp>
 
-#include <xercesc/framework/StdOutFormatTarget.hpp>
-#include <xercesc/framework/LocalFileFormatTarget.hpp>
+#include <xercesc/framework/MemBufFormatTarget.hpp>
 #include <xercesc/parsers/XercesDOMParser.hpp>
 #include <xercesc/util/XMLUni.hpp>
 #include <xercesc/util/IOException.hpp>
@@ -100,44 +99,30 @@ namespace LQIO {
 
 /* Function that starts off the whole reading in of the XML file */
 
-    bool serializeDOM(const char *outputFileName, bool)
+    bool serializeDOM(std::ostream& output, bool)
     {
 	XMLCh tempStr[100];
 	XMLString::transcode("LS", tempStr, 99);
 	DOMImplementationLS *impl = dynamic_cast<DOMImplementationLS *>(DOMImplementationRegistry::getDOMImplementation(tempStr));
-	XMLFormatTarget *myFormTarget;
-#if XERCES_VERSION_MAJOR >= 3
 	DOMLSSerializer   *theSerializer = impl->createLSSerializer();
 	DOMLSOutput       *theOutputDesc = impl->createLSOutput();
-#else
-	DOMWriter *theSerializer = impl->createDOMWriter();
-#endif
 
 	bool rc = false;
 
 	try
 	{
-	    if (outputFileName != NULL)
-	    {
-		errno = 0;
-		myFormTarget = new LocalFileFormatTarget(outputFileName);
-	    }
-	    else
-	    {
-		myFormTarget = new StdOutFormatTarget();
-	    }
+	    MemBufFormatTarget *myFormTarget = new MemBufFormatTarget();
 
-#if XERCES_VERSION_MAJOR >= 3
 	    /* do the serialization through DOMLSSerializer::write(); */
 
 	    theOutputDesc->setByteStream(myFormTarget);
-
 	    theSerializer->write(inputFileDOM, theOutputDesc);
-#else
-	    /* do the serialization through DOMLSSerializer::writeNode(); */
 
-	    theSerializer->writeNode(myFormTarget, *inputFileDOM);
-#endif
+	    const XMLByte * data = myFormTarget->getRawBuffer();
+	    XMLSize_t len = myFormTarget->getLen();
+
+	    output.write( reinterpret_cast<const char *>(data), len );
+
 	    delete myFormTarget;
 	    rc = true;
 	}
@@ -306,7 +291,7 @@ namespace LQIO {
     void
     missing_attribute( const char * attr, const DOMNode * node )
     {
-	input_error2( ERR_ATTRIBUTE_MISSING, attr, StrX( node->getNodeName() ).asCStr() );
+	input_error2( ERR_MISSING_ATTRIBUTE, StrX( node->getNodeName() ).asCStr(), attr );
     }
 
 };

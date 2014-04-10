@@ -42,7 +42,7 @@ namespace LQIO {
 	Processor::~Processor()
 	{
 	    /* Delete all owned tasks */
-	    std::vector<Task*>::iterator iter;
+	    std::set<Task*>::iterator iter;
 	    for (iter = _taskList.begin(); iter != _taskList.end(); ++iter) {
 		delete (*iter);
 	    }
@@ -75,10 +75,10 @@ namespace LQIO {
 	    const_cast<Document *>(getDocument())->setProcessorHasRate(true);
 	}
 
-	Processor& 
+	void
 	Processor::setRate(ExternalVariable * newRate) 
 	{ 
-	    _processorRate = newRate; return *this; 
+	    _processorRate = newRate;
 	    const_cast<Document *>(getDocument())->setProcessorHasRate( newRate != NULL );
 	}	
     
@@ -112,13 +112,13 @@ namespace LQIO {
 	void Processor::addTask(Task* task)
 	{
 	    /* Link the task into the list */
-	    _taskList.push_back(task);
+	    _taskList.insert(task);
 	}
     
 	void Processor::addGroup(Group* group)
 	{
 	    /* Link the group into the list */
-	    _groupList.push_back(group);
+	    _groupList.insert(group);
 	}
     
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -138,9 +138,9 @@ namespace LQIO {
 
 	double Processor::computeResultUtilization()
 	{
-	    if ( getResultUtilization() == 0 ) {
+	    if ( getResultUtilization() == 0 || _taskList.size() == 1 ) {
 		double sum = 0;
-		std::vector<Task*>::const_iterator taskIter;
+		std::set<Task*>::const_iterator taskIter;
 		for (taskIter = _taskList.begin(); taskIter != _taskList.end(); ++taskIter) {
 		    sum += (*taskIter)->computeResultProcessorUtilization();
 		}
@@ -157,8 +157,10 @@ namespace LQIO {
 	Processor& Processor::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
 	    /* Stores the given ResultUtilization of the Processor */ 
+	    if ( resultUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultUtilizationVariance = resultUtilizationVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
     

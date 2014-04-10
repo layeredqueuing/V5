@@ -6,7 +6,7 @@
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
-OPTS=	-Pvariance=mol,threads=mak -w -M 
+OPTS=	-Pvariance=mol,threads=mak -w 
 
 SANITY=	01-sanity.lqxo \
 	02-sanity.lqxo \

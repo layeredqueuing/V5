@@ -20,7 +20,7 @@ namespace SolverInterface {
 	
     class Solve : public LQX::Method {
     public: 
-	typedef int (Model::*solve_fptr)();
+	typedef bool (Model::*solve_fptr)();
 		
 	/* Parameters necessary to call runSolverOnCurrentDOM() */
 	Solve(LQIO::DOM::Document* document, solve_fptr solve, Model* aModel) :

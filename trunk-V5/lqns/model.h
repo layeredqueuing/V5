@@ -73,6 +73,7 @@ public:
 
     bool solve();
     bool reload();
+    bool restart();
 
     void sanityCheck();
 
@@ -93,8 +94,8 @@ protected:
     virtual void backPropogate() {}
 
     virtual double run() = 0;			/* Solve Model.		*/
+    Model& solve( Sequence<Submodel *>& );
     Model& solveSubmodel( Submodel * );
-    Model& solveSubmodel( Sequence<Submodel *>& );
 
     void printIntermediate( const double ) const;
 	

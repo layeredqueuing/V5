@@ -145,14 +145,12 @@
 int MVA::boundsLimit = 0;		/* Enable bounds limiting if non-zero */
 double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */
 #if DEBUG_MVA
-bool MVA::debug_P = false;
-bool MVA::debug_L = false;
 bool MVA::debug_D = false;
+bool MVA::debug_L = false;
+bool MVA::debug_P = false;
+bool MVA::debug_U = false;
+bool MVA::debug_W = false;
 #endif
-
-//#define	DEBUG
-//#define	DEBUG_STEP
-
 
 /* ----------------------- Helper Functions --------------------------- */
 
@@ -336,6 +334,43 @@ MVA::dimension( PopulationData<double **>& array, const size_t mapMaxOffset )
 
 
 /*
+ * Reset everything back to zero.
+ */
+
+void
+MVA::reset()
+{
+    for ( unsigned n = 0; n < maxOffset; ++n) {
+	for ( unsigned m = 1; m <= M; ++m ) {
+	    const unsigned E = Q[m]->nEntries();
+
+	    L[n][m][0] = 0;
+	    U[n][m][0] = 0;
+	    for ( unsigned e = 1; e <= E; ++e ) {
+		for ( unsigned k = 0; k <= K; k++ ) {
+		    L[n][m][e][k] = 0.0;
+		    U[n][m][e][k] = 0.0;
+		}
+	    }
+	    
+	    if ( P[n][m] ) {
+		const unsigned J = Q[m]->marginalProbabilitiesSize();
+		for ( unsigned j = 0; j <= J; ++j ) {
+		    P[n][m][j] = 0.0;
+		}
+		P[n][m][0] = 1.0;	// Initially, no servers busy with zero customers.
+	    }
+	}
+
+	for ( unsigned k = 1; k <= K; ++k ) {
+	    X[n][k] = 0.0;
+	}
+    }
+}
+
+
+
+/*
  * Initialize the sorted priority array.  Priorities are sorted from
  * highest (= 0) to lowest (= +oo).  Duplicates are removed from the
  * list.
@@ -415,8 +450,8 @@ MVA::step( const PopVector& N, const unsigned currPri )
 	}
     }
 
-#if	defined(DEBUG_STEP)
-    printW( cout );
+#if DEBUG_MVA
+    if ( debug_W ) printW( cout );
 #endif
 
     const unsigned n = offset(N);					/* Hoist */
@@ -472,8 +507,9 @@ MVA::step( const PopVector& N, const unsigned currPri )
 	    marginalProbabilities( m, N );
 	}
     }
-//printP( cout, N );
+
 #if DEBUG_MVA
+    if ( debug_U ) printU( cout, N );
     if ( debug_P ) printP( cout, N );
 #endif
 
@@ -525,10 +561,11 @@ MVA::marginalProbabilities( const unsigned m, const PopVector& N )
 
     /* KLUDGE -- adjust probabilties if necessary. */
 
-    if ( sum_of_P> 1.0 ) {
+    if ( sum_of_P > 1.0 ) {
 	P[n][m][0] = 0.0;			// P_m(0,N)			   Eqn 2.6
+	const double normalization = 1.0 / sum_of_P;
 	for ( unsigned j = 1; j <= J; ++j ) {
-	    P[n][m][j] /= sum_of_P;		/* Renormalization */
+	    P[n][m][j] *= normalization;		/* Renormalization */
 	}
     } else {
 	P[n][m][0] = 1.0 - sum_of_P;		// P_m(0,N)			   Eqn 2.6
@@ -1666,15 +1703,18 @@ MVA::print( ostream& output ) const
 	    printVectorP( output, m, NCust );
 	} else if ( P[n][m] ) {
 	    const unsigned J = Q[m]->marginalProbabilitiesSize();
-	    for ( unsigned i = 0, j = 0; j <= J; ++j ) {
-		if ( P[n][m][j] > 0 ) {
-		    if ( i++ == 0 ) {
-			output << m << ":";
-		    } else {
-			output << ",";
-		    }
-		    output << " P_" << j << " = " << setw(width) << P[n][m][j];
+	    for ( unsigned j = 0; j <= J; ++j ) {
+		if ( j == 0 ) {
+		    output << m << ":";
+		} else {
+		    output << ",";
 		}
+		if ( j < J ) {
+		    output << " P_" << j;
+		} else {
+		    output << " PB";
+		}
+		output << " = " << setw(width) << P[n][m][j];
 	    }
 	    output << endl;
 	}
@@ -1747,6 +1787,7 @@ MVA::printPri( ostream& output ) const
 
 
 
+#if	DEBUG_MVA
 /*
  * Jiffy printer of Queue Length L at NCust.
  */
@@ -1786,7 +1827,28 @@ MVA::printW( ostream& output ) const
 		output << "W_{" << m << "," << e << "," << k << "} = " << Q[m]->W[e][k][0];
 		output << endl;
 	    }
-	    output << endl;
+	}
+    }
+    return output;
+}
+
+
+/*
+ * Jiffy printer of Utilization at NCust.
+ */
+
+ostream&
+MVA::printU( ostream& output, const PopVector& N  ) const
+{
+    const unsigned n = getPopulationMap()->offset(N);
+    for ( unsigned m = 1; m <= M; ++m ) {
+	const unsigned E = Q[m]->nEntries();
+	for ( unsigned e = 1; e <= E; ++e ) {
+	    for ( unsigned k = 1; k <= K; ++k ) {
+		if ( k > 1 ) output << ", ";
+		output << "U_{" << m << "," << e << "," << k << "}" << N << " = " << U[n][m][e][k];
+		output << endl;
+	    }
 	}
     }
     return output;
@@ -1817,19 +1879,21 @@ MVA::printP( ostream& output, const PopVector & N ) const
 	} else if ( P[n][m] ) {
 	    const unsigned J = Q[m]->marginalProbabilitiesSize();
 
-	    for ( unsigned i = 0, j = 0; j <= J; ++j ) {
-		if ( P[n][m][j] > 0 ) {		/* Suppress zero's */
-		    if ( i++ > 0 ) output << ", ";
-		    output << "P_{" << m << j << "}" << N << " = " << P[n][m][j];
+	    for ( unsigned j = 0; j <= J; ++j ) {
+		if ( j > 0 ) output << ", ";
+		if ( j < J ) {
+		    output << "P_{" << m << "," << j << "}";
+		} else {
+		    output << "PB_{" << m << "}";
 		}
+		output << N << " = " << P[n][m][j];
 	    }
 	    output << endl;
-//			output << " (PB_{" << m << j << "} = " << PB( *(Q[m]), N, j ) << ")" << endl;
 	}
     }
     return output;
 }
-
+#endif
 
 
 /*
@@ -1950,7 +2014,7 @@ ExactMVA::priorityInflation( const Server& station, const PopVector &N, const un
  */
 
 Schweitzer::Schweitzer( Vector<Server *>&q, const PopVector & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
-    : MVA( q, N, z, prio, of), map(N), c(0), last_L(0)
+    : MVA( q, N, z, prio, of), map(N), c(0), initialized(false), last_L(0)
 {
     /* Allocate array space and initialize */
 
@@ -1990,6 +2054,23 @@ Schweitzer::~Schweitzer()
 	delete [] last_L[m];
     }
     delete [] last_L;
+}
+
+
+void
+Schweitzer::reset() 
+{
+    MVA::reset();
+
+    for ( unsigned m = 1; m <= M; ++m ) {
+	const unsigned E = Q[m]->nEntries();
+
+	for ( unsigned e = 1; e <= E; ++e ) {
+	    for ( unsigned k = 0; k <= K; k++ ) {
+		last_L[m][e][k] = 0.0;	//Initialize with zero content
+	    }
+	}
+    }
 }
 
 
@@ -2070,7 +2151,7 @@ Schweitzer::initialize()
 		double temp = 1.0;
 		if ( J != 0 ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] ) / J;
-		} else if ( Q[m]->infiniteServer() == 0 ) {
+		} else if ( Q[m]->inisfiniteServer() == 0 ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] );
 		}
 		temp *= Q[m]->S(e,k) * Q[m]->V(e,k);
@@ -2125,19 +2206,21 @@ Schweitzer::initialize()
 #endif
 	    if ( P[n][m] ) {
 
-		const unsigned J = Q[m]->marginalProbabilitiesSize();
 		const double pop = NCust.sum();
-//		const Probability temp = pop > 0.0 ? 2.0 * pop / (J * pop * (pop + 1.0)) : 0.0;
-		const Probability temp = pop > 0.0 ? 2.0 / (J * (pop + 1.0)) : 0.0;
-		Probability sum  = 0.0;
+		if ( pop > 0 ) {
+		    const unsigned J = Q[m]->marginalProbabilitiesSize();
+//		    const Probability temp = pop > 0.0 ? 2.0 * pop / (J * pop * (pop + 1.0)) : 0.0;
+		    const Probability temp = pop > 0.0 ? 2.0 / (J * (pop + 1.0)) : 0.0;
+		    Probability sum  = 0.0;
 
-		for ( unsigned j = 1; j < J; ++j ) {
-		    P[n][m][j] = temp;
-		    sum       += temp;
+		    for ( unsigned j = 1; j < J; ++j ) {
+			P[n][m][j] = temp;
+			sum       += temp;
+		    }
+		    const double PmjN = min( 1.0 - sum, pop >= J ? temp * (pop + 1.0 - J) : 0.0 );
+		    P[n][m][J] = PmjN;
+		    P[n][m][0] = 1.0 - (sum + PmjN);
 		}
-		const double PmjN = min( 1.0 - sum, pop >= J ? temp * (pop + 1.0 - J) : 0.0 );
-		P[n][m][J] = PmjN;
-		P[n][m][0] = 1.0 - (sum + PmjN);
 	    }
     }
 
@@ -2154,14 +2237,17 @@ void
 Schweitzer::solve()
 {
     map.dimension( NCust );			/* Reset ALL associated arrays */
-    dimension( P, map.maxOffset() );
     clearCount();
 
-    /*
-     * Now set initial utilizations and marginal queue probabilties at all stations.
-     */
-
-    initialize();
+    bool reset = !initialized;
+    reset = dimension( P, map.maxOffset() ) || reset;
+    if ( reset ) {
+	for ( unsigned m = 1; m <= M; ++m ) {
+	    maxP[m] = Q[m]->marginalProbabilitiesSize();
+	}
+	initialize();
+	initialized = true;
+    }
 
     try {
 	core( NCust );
@@ -2178,7 +2264,7 @@ Schweitzer::solve()
  */
 
 void
-Schweitzer::core( const PopVector & N )
+Schweitzer::core( const PopVector& N )
 {
     double max_delta;
     const unsigned sum = NCust.sum();
@@ -2186,7 +2272,7 @@ Schweitzer::core( const PopVector & N )
     unsigned i = 0;
 
 #if DEBUG_MVA
-    cout << "Initially..." << endl;
+    if ( debug_L || debug_P ) cout << "Initially..." << endl;
     //N.print( cout );
     if ( debug_L ) printL( cout, N );
     if ( debug_P ) printP( cout, N );
@@ -2206,7 +2292,11 @@ Schweitzer::core( const PopVector & N )
 	}
 
 	estimate_L( N );
+#if	NEW
+	if ( c == 0 ) estimate_P( N );
+#else
 	estimate_P( N );
+#endif
 	step( N );
 
 	/* Iteration termination test. */
@@ -2228,7 +2318,7 @@ Schweitzer::core( const PopVector & N )
 
 	i += 1;
 #if DEBUG_MVA
-	if ( i > 45 ) {
+	if ( i > 45 && debug_L ) {
 	    cout << "After " << iterations() << " Iterations..." << endl;
 	    if ( debug_L ) printL( cout, N );
 	}
@@ -2252,8 +2342,10 @@ Schweitzer::core( const PopVector & N )
     } while ( max_delta >= termination_test );
 
 #if DEBUG_MVA
-    cout << "After " << iterations() << " Iterations..." << endl;
-    if ( debug_L ) printL( cout, N );
+    if ( debug_L ) {
+	cout << "After " << iterations() << " Iterations..." << endl;
+	printL( cout, N );
+    }
 #endif
 }
 
@@ -2358,11 +2450,13 @@ Schweitzer::estimate_P( const PopVector & N )
 void
 Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
 {
+#if new
+    MVA::marginalProbabilities( m, N );
+#else
     const unsigned n  = offset(N);					/* Hoist */
 
     if ( P[n][m] == 0 ) return;
 
-    unsigned j;
     const unsigned J  = Q[m]->marginalProbabilitiesSize();
     const unsigned JJ = min( J, N.sum() );	/* Note: loops end at the minimum of servers, customers. */
     const double U_m  = min( static_cast<double>(J), utilization( m, N ) );
@@ -2373,12 +2467,12 @@ Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
 
 	/* Find P(1,N) thru P(J-1,N) */
 
-	for ( j = 1; j < JJ; ++j ) {
+	for ( unsigned int j = 1; j < JJ; ++j ) {
 	    P[n][m][j] = prod;						/* Eqn 5.3 */
 	    sum  += P[n][m][j];
 	    prod *= U_m / Q[m]->mu(j+1);
 	}
-	for ( j = JJ + 1; j <= J; ++j ) {
+	for ( unsigned int j = JJ + 1; j <= J; ++j ) {
 	    P[n][m][j] = 0.0;
 	}
 
@@ -2393,16 +2487,17 @@ Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
 
 	P[n][m][0] = P0;
 	if ( P0 != 0.0 ) {
-	    for ( j = 1; j <= JJ; ++j ) {
+	    for ( unsigned int j = 1; j <= JJ; ++j ) {
 		P[n][m][j] *= P0;
 	    }
 	} 
     } else {
-	for ( j = 1; j < JJ; ++j ) {
+	for ( unsigned int j = 1; j < JJ; ++j ) {
 	    P[n][m][j] = 0.0;
 	}
 	P[n][m][JJ] = 1.0;
     }
+#endif
 }
 
 
@@ -2524,12 +2619,21 @@ void
 OneStepMVA::solve()
 {
     map.dimension( NCust );			/* Reset ALL associated arrays */
-    dimension( P, map.maxOffset() );
     clearCount();
+
+    bool reset = !initialized;
+    reset = dimension( P, map.maxOffset() ) || reset;
+
+    if ( reset ) {
+	for ( unsigned m = 1; m <= M; ++m ) {
+	    maxP[m] = Q[m]->marginalProbabilitiesSize();
+	}
+	initialize();
+	initialized = true;
+    }
 
     estimate_L( NCust );
     estimate_P( NCust );
-
     step( NCust );
 }
 
@@ -2636,6 +2740,41 @@ Linearizer::~Linearizer()
 }
 
 
+void
+Linearizer::reset() 
+{
+    Schweitzer::reset();
+
+    for ( unsigned n = 0; n < map.maxOffset(); ++n ) {
+	for ( unsigned m = 1; m <= M; ++m ) {
+	    saved_P[n][m] = 0;
+	    saved_L[n][m][0] = 0;
+	    saved_U[n][m][0] = 0;
+	}
+    }
+
+    D[0] = 0;
+
+    for ( unsigned m = 1; m <= M; ++m ) {
+	const unsigned E = Q[m]->nEntries();
+
+	D[m][0] = 0;
+
+	for ( unsigned e = 1; e <= E; ++e ) {
+	    D[m][e][0] = 0;
+	    for ( unsigned j = 1; j <= K; ++j ) {
+		for ( unsigned l = 1; l <= K; ++l ) {
+		    D[m][e][j][l] = 0.0;
+		}
+	    }
+	}
+    }
+
+    initialized = false;
+}
+
+
+
 /*
  * Solver for linearizer.  See reference for description.
  */
@@ -2653,20 +2792,7 @@ Linearizer::solve()
 
     c = 0;
 
-    /* BUG 628 -- Recompute iff marginals change. */
-
-    bool reset = !initialized;
-    reset = dimension( P, map.maxOffset() ) || reset;		/* Don't short circuit this!!! */
-    reset = dimension( saved_P, map.maxOffset() ) || reset;
-    if ( reset ) {
-	for ( unsigned m = 1; m <= M; ++m ) {
-	    maxP[m] = Q[m]->marginalProbabilitiesSize();
-	}
-	initialize();
-	estimate_L( NCust );
-	estimate_P( NCust );
-	initialized = true;
-    }
+    initialize();
 
     for ( I = 1; I <= 2 ; ++I ) {
 
@@ -2702,6 +2828,26 @@ Linearizer::solve()
     }
 }
 
+
+
+void
+Linearizer::initialize() 
+{
+    /* BUG 628 -- Recompute iff marginals change. */
+
+    bool reset = !initialized;
+    reset = dimension( P, map.maxOffset() ) || reset;		/* Don't short circuit this!!! */
+    reset = dimension( saved_P, map.maxOffset() ) || reset;
+    if ( reset ) {
+	for ( unsigned m = 1; m <= M; ++m ) {
+	    maxP[m] = Q[m]->marginalProbabilitiesSize();
+	}
+	Schweitzer::initialize();
+	estimate_L( NCust );
+	estimate_P( NCust );
+	initialized = true;
+    }
+}
 
 
 /*
@@ -2853,19 +2999,11 @@ OneStepLinearizer::solve()
     /* Initialize */
 
     map.dimension( NCust );			/* Reset ALL associated arrays */
-    dimension( P, map.maxOffset() );
     clearCount();
 
     c = 0;
-    if ( !initialized ) {
-	dimension( saved_P, map.maxOffset() );
-	dimension( P, map.maxOffset() );
-	for ( unsigned m = 1; m <= M; ++m ) {
-	    maxP[m] = Q[m]->marginalProbabilitiesSize();
-	}
-	initialize();
-	initialized = true;
-    }
+
+    initialize();
 
     /*
      * NB: `c' is an instance variable used by our Lm function.

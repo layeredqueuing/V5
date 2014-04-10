@@ -184,6 +184,7 @@ private:
     void accumulateCallers( Cltn<const Task *> & sources ) const;
     unsigned countMultiServer( const Cltn<const Task *> & sources ) const;
     void findOrAddServer( const Cltn<Call *> &, Cltn<Entity *> &, const Cltn<Entity *> * includeOnly = 0) const;
+    double bottleneckStrength() const;
 
     /* Thread stuff */
 
@@ -195,7 +196,7 @@ protected:
     LQIO::DOM::Task* myDOMTask;		/* Stores all of the data.      */
 	
 private:
-    const Processor * myProcessor;	/* proc. allocated to task. */
+    const Processor * myProcessor;	/* proc. allocated to task. 	*/
     const Group * myGroup;		/* Group allocated to task.	*/
     double myOverlapFactor;		/* Aggregate input o.f.		*/
     unsigned maxThreads;		/* Max concurrent threads.	*/
@@ -203,16 +204,11 @@ private:
     Cltn<Activity *> myActivityList;	/* Activities for this task.	*/
     Cltn<ActivityList *> myPrecedence;	/* Items I own for deletion.	*/
 
-    void * myDOMElement;
-
     /* MVA interface */
 
     Cltn<Thread *> myThreads;	 	/* My Threads.			*/
     Vector<ChainVector> myClientChains;	/* Client chains by submodel	*/
     Cltn<Server *> myClientStation;	/* Clients by submodel.		*/
-
-    /* Garbage collection */
-    Cltn<Activity *> dead_activities;	
 };
 
 /* ------------------------- Reference Tasks -------------------------- */

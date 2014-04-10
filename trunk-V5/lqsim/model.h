@@ -100,9 +100,9 @@ public:
 
     bool hasVariables() const;
 
-    int start();
-    int reload();		/* Load results from LQX */
-    int restart();
+    bool start();
+    bool reload();		/* Load results from LQX */
+    bool restart();
     
     static LQIO::DOM::Document* load( const string&, const string& );
     static int genesis_task_id() { return __genesis_task_id; }
@@ -134,7 +134,10 @@ private:
     LQIO::DOM::Document* _document;
     string _input_file_name;
     string _output_file_name;
-    clock_t _start_time;
+    clock_t _start_clock;
+#if defined(HAVE_SYS_TIMES_H)
+    struct tms _start_times;
+#endif
     simulation_parameters _parameters;
     static int __genesis_task_id;
     static Model * __model;

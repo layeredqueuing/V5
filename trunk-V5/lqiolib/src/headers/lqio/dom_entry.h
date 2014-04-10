@@ -41,7 +41,7 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Structors] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 	    /* Designated initializer for entries */
-	    Entry(const Document * document, const char * name, const void * element );
+	    Entry(const Document * document, const char * name, const void * element=0 );
 	    virtual ~Entry();
 
 	    Entry * clone() const;	// Copy constructor is private */
@@ -58,8 +58,8 @@ namespace LQIO {
 	    bool hasPhase(unsigned phase) const;
 	    void setPhase( unsigned p, Phase * phase );
 	    unsigned getMaximumPhase() const;
-	    void appendOriginatingCall(Call* call);
-	    Call* getCallToTarget(Entry* target, unsigned phase) const;
+	    bool isStandardEntry() const;
+	    Call* getCallToTarget(const Entry* target, unsigned phase) const;
 
 	    /* Additional Entry Parameters */
 	    void setOpenArrivalRate(ExternalVariable* value);
@@ -132,70 +132,72 @@ namespace LQIO {
 	    Entry& setResultOpenWaitTimeVariance(const double resultOpenWaitTimeVariance);
 
 	    /* Result Information for Phase Service Info */
-	    double getResultPhasePServiceTime(unsigned p) const;
+	    double getResultPhasePServiceTime( unsigned ) const;
 	    double getResultPhase1ServiceTime() const { return getResultPhasePServiceTime(1); }
 	    double getResultPhase2ServiceTime() const { return getResultPhasePServiceTime(2); }
 	    double getResultPhase3ServiceTime() const { return getResultPhasePServiceTime(3); }
-	    Entry& setResultPhasePServiceTime(const unsigned p,const double resultPhasePServiceTime) { return setResultPhaseP( p, _resultPhasePServiceTime, resultPhasePServiceTime ); }
-	    Entry& setResultPhase1ServiceTime(const double resultPhasePServiceTime) { return setResultPhaseP( 1, _resultPhasePServiceTime, resultPhasePServiceTime ); }
-	    Entry& setResultPhase2ServiceTime(const double resultPhasePServiceTime) { return setResultPhaseP( 2, _resultPhasePServiceTime, resultPhasePServiceTime ); }
-	    Entry& setResultPhase3ServiceTime(const double resultPhasePServiceTime) { return setResultPhaseP( 3, _resultPhasePServiceTime, resultPhasePServiceTime ); }
+	    Entry& setResultPhasePServiceTime(const unsigned p,const double resultPhasePServiceTime);
+	    Entry& setResultPhase1ServiceTime(const double resultPhasePServiceTime) { return setResultPhasePServiceTime( 1, resultPhasePServiceTime ); }
+	    Entry& setResultPhase2ServiceTime(const double resultPhasePServiceTime) { return setResultPhasePServiceTime( 2, resultPhasePServiceTime ); }
+	    Entry& setResultPhase3ServiceTime(const double resultPhasePServiceTime) { return setResultPhasePServiceTime( 3, resultPhasePServiceTime ); }
 	    double getResultPhasePServiceTimeVariance(unsigned p) const;
        	    double getResultPhase1ServiceTimeVariance() const { return getResultPhasePServiceTimeVariance(1); }
 	    double getResultPhase2ServiceTimeVariance() const { return getResultPhasePServiceTimeVariance(2); }
 	    double getResultPhase3ServiceTimeVariance() const { return getResultPhasePServiceTimeVariance(3); }
-	    Entry& setResultPhasePServiceTimeVariance(const unsigned p, const double resultPhasePServiceTimeVariance) { return setResultPhaseP( p, _resultPhasePServiceTimeVariance, resultPhasePServiceTimeVariance ); }
-	    Entry& setResultPhase1ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhaseP( 1, _resultPhasePServiceTimeVariance, resultPhasePServiceTimeVariance ); }
-	    Entry& setResultPhase2ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhaseP( 2, _resultPhasePServiceTimeVariance, resultPhasePServiceTimeVariance ); }
-	    Entry& setResultPhase3ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhaseP( 3, _resultPhasePServiceTimeVariance, resultPhasePServiceTimeVariance ); }
+	    Entry& setResultPhasePServiceTimeVariance(const unsigned p, const double resultPhasePServiceTimeVariance);
+	    Entry& setResultPhase1ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhasePServiceTimeVariance( 1, resultPhasePServiceTimeVariance ); }
+	    Entry& setResultPhase2ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhasePServiceTimeVariance( 2, resultPhasePServiceTimeVariance ); }
+	    Entry& setResultPhase3ServiceTimeVariance(const double resultPhasePServiceTimeVariance) { return setResultPhasePServiceTimeVariance( 3, resultPhasePServiceTimeVariance ); }
 	    double getResultPhasePVarianceServiceTime(unsigned p) const;
 	    double getResultPhase1VarianceServiceTime() const { return getResultPhasePVarianceServiceTime(1); }
 	    double getResultPhase2VarianceServiceTime() const { return getResultPhasePVarianceServiceTime(2); }
 	    double getResultPhase3VarianceServiceTime() const { return getResultPhasePVarianceServiceTime(3); }
-	    Entry& setResultPhasePVarianceServiceTime(const unsigned p, const double resultPhasePVarianceServiceTime) { return setResultPhaseP( p, _resultPhasePVarianceServiceTime, resultPhasePVarianceServiceTime ); }
-	    Entry& setResultPhase1VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhaseP( 1, _resultPhasePVarianceServiceTime, resultPhasePVarianceServiceTime ); }
-	    Entry& setResultPhase2VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhaseP( 2, _resultPhasePVarianceServiceTime, resultPhasePVarianceServiceTime ); }
-	    Entry& setResultPhase3VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhaseP( 3, _resultPhasePVarianceServiceTime, resultPhasePVarianceServiceTime ); }
+	    Entry& setResultPhasePVarianceServiceTime(const unsigned p, const double resultPhasePVarianceServiceTime);
+	    Entry& setResultPhase1VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhasePVarianceServiceTime( 1, resultPhasePVarianceServiceTime ); }
+	    Entry& setResultPhase2VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhasePVarianceServiceTime( 2, resultPhasePVarianceServiceTime ); }
+	    Entry& setResultPhase3VarianceServiceTime(const double resultPhasePVarianceServiceTime) { return setResultPhasePVarianceServiceTime( 3, resultPhasePVarianceServiceTime ); }
 	    double getResultPhasePVarianceServiceTimeVariance(unsigned p) const;
 	    double getResultPhase1VarianceServiceTimeVariance() const { return getResultPhasePVarianceServiceTimeVariance(1); }
        	    double getResultPhase2VarianceServiceTimeVariance() const { return getResultPhasePVarianceServiceTimeVariance(2); }
 	    double getResultPhase3VarianceServiceTimeVariance() const { return getResultPhasePVarianceServiceTimeVariance(3); }
-	    Entry& setResultPhasePVarianceServiceTimeVariance(const unsigned p, const double resultPhasePVarianceServiceTimeVariance) { return setResultPhaseP( p, _resultPhasePVarianceServiceTimeVariance, resultPhasePVarianceServiceTimeVariance ); }
-	    Entry& setResultPhase1VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhaseP( 1, _resultPhasePVarianceServiceTimeVariance, resultPhasePVarianceServiceTimeVariance ); }
-	    Entry& setResultPhase2VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhaseP( 2, _resultPhasePVarianceServiceTimeVariance, resultPhasePVarianceServiceTimeVariance ); }
-	    Entry& setResultPhase3VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhaseP( 3, _resultPhasePVarianceServiceTimeVariance, resultPhasePVarianceServiceTimeVariance ); }
+	    Entry& setResultPhasePVarianceServiceTimeVariance(const unsigned p, const double resultPhasePVarianceServiceTimeVariance);
+	    Entry& setResultPhase1VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhasePVarianceServiceTimeVariance( 1, resultPhasePVarianceServiceTimeVariance ); }
+	    Entry& setResultPhase2VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhasePVarianceServiceTimeVariance( 2, resultPhasePVarianceServiceTimeVariance ); }
+	    Entry& setResultPhase3VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { return setResultPhasePVarianceServiceTimeVariance( 3, resultPhasePVarianceServiceTimeVariance ); }
 	    double getResultPhasePProcessorWaiting(unsigned p) const;
  	    double getResultPhase1ProcessorWaiting() const { return getResultPhasePProcessorWaiting(1); }
  	    double getResultPhase2ProcessorWaiting() const { return getResultPhasePProcessorWaiting(2); }
 	    double getResultPhase3ProcessorWaiting() const { return getResultPhasePProcessorWaiting(3); }
-	    Entry& setResultPhasePProcessorWaiting(const unsigned p, const double resultPhasePProcessorWaiting) { return setResultPhaseP( p, _resultPhasePProcessorWaiting, resultPhasePProcessorWaiting ); }
-	    Entry& setResultPhase1ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhaseP( 1, _resultPhasePProcessorWaiting, resultPhasePProcessorWaiting ); }
-	    Entry& setResultPhase2ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhaseP( 2, _resultPhasePProcessorWaiting, resultPhasePProcessorWaiting ); }
-	    Entry& setResultPhase3ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhaseP( 3, _resultPhasePProcessorWaiting, resultPhasePProcessorWaiting ); }
+	    Entry& setResultPhasePProcessorWaiting(const unsigned p, const double resultPhasePProcessorWaiting);
+	    Entry& setResultPhase1ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhasePProcessorWaiting( 1, resultPhasePProcessorWaiting ); }
+	    Entry& setResultPhase2ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhasePProcessorWaiting( 2, resultPhasePProcessorWaiting ); }
+	    Entry& setResultPhase3ProcessorWaiting(const double resultPhasePProcessorWaiting) { return setResultPhasePProcessorWaiting( 3, resultPhasePProcessorWaiting ); }
        	    double getResultPhasePProcessorWaitingVariance(unsigned p) const;
  	    double getResultPhase1ProcessorWaitingVariance() const { return getResultPhasePProcessorWaitingVariance(1); }
 	    double getResultPhase2ProcessorWaitingVariance() const { return getResultPhasePProcessorWaitingVariance(2); }
 	    double getResultPhase3ProcessorWaitingVariance() const { return getResultPhasePProcessorWaitingVariance(3); }
-	    Entry& setResultPhasePProcessorWaitingVariance(const unsigned p, const double resultPhasePProcessorWaitingVariance) { return setResultPhaseP( p, _resultPhasePProcessorWaitingVariance, resultPhasePProcessorWaitingVariance ); }
-	    Entry& setResultPhase1ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhaseP( 1, _resultPhasePProcessorWaitingVariance, resultPhasePProcessorWaitingVariance ); }
-	    Entry& setResultPhase2ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhaseP( 2, _resultPhasePProcessorWaitingVariance, resultPhasePProcessorWaitingVariance ); }
-	    Entry& setResultPhase3ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhaseP( 3, _resultPhasePProcessorWaitingVariance, resultPhasePProcessorWaitingVariance ); }
+	    Entry& setResultPhasePProcessorWaitingVariance(const unsigned p, const double resultPhasePProcessorWaitingVariance);
+	    Entry& setResultPhase1ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhasePProcessorWaitingVariance( 1, resultPhasePProcessorWaitingVariance ); }
+	    Entry& setResultPhase2ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhasePProcessorWaitingVariance( 2, resultPhasePProcessorWaitingVariance ); }
+	    Entry& setResultPhase3ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { return setResultPhasePProcessorWaitingVariance( 3, resultPhasePProcessorWaitingVariance ); }
 	    double getResultPhasePUtilization(unsigned p) const;
        	    double getResultPhase1Utilization() const { return getResultPhasePUtilization(1); }
  	    double getResultPhase2Utilization() const { return getResultPhasePUtilization(2); }
 	    double getResultPhase3Utilization() const { return getResultPhasePUtilization(3); }
-	    Entry& setResultPhasePUtilization(const unsigned p, const double resultPhasePUtilization) { return setResultPhaseP( p, _resultPhasePUtilization, resultPhasePUtilization ); }
-	    Entry& setResultPhase1Utilization(const double resultPhasePUtilization) { return setResultPhaseP( 1, _resultPhasePUtilization, resultPhasePUtilization ); }
-	    Entry& setResultPhase2Utilization(const double resultPhasePUtilization) { return setResultPhaseP( 2, _resultPhasePUtilization, resultPhasePUtilization ); }
-	    Entry& setResultPhase3Utilization(const double resultPhasePUtilization) { return setResultPhaseP( 3, _resultPhasePUtilization, resultPhasePUtilization ); }
+	    Entry& setResultPhasePUtilization(const unsigned p, const double resultPhasePUtilization);
+	    Entry& setResultPhase1Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization( 1, resultPhasePUtilization ); }
+	    Entry& setResultPhase2Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization( 2, resultPhasePUtilization ); }
+	    Entry& setResultPhase3Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization( 3, resultPhasePUtilization ); }
 	    double getResultPhasePUtilizationVariance(unsigned p) const;
        	    double getResultPhase1UtilizationVariance() const { return getResultPhasePUtilizationVariance(1); }
 	    double getResultPhase2UtilizationVariance() const { return getResultPhasePUtilizationVariance(2); }
 	    double getResultPhase3UtilizationVariance() const { return getResultPhasePUtilizationVariance(3); }
-	    Entry& setResultPhasePUtilizationVariance(const unsigned p, const double resultPhasePUtilizationVariance) { return setResultPhaseP( p, _resultPhasePUtilizationVariance, resultPhasePUtilizationVariance ); }
-	    Entry& setResultPhase1UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhaseP( 1, _resultPhasePUtilizationVariance, resultPhasePUtilizationVariance ); }
-	    Entry& setResultPhase2UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhaseP( 2, _resultPhasePUtilizationVariance, resultPhasePUtilizationVariance ); }
-	    Entry& setResultPhase3UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhaseP( 3, _resultPhasePUtilizationVariance, resultPhasePUtilizationVariance ); }
+	    Entry& setResultPhasePUtilizationVariance(const unsigned p, const double resultPhasePUtilizationVariance);
+	    Entry& setResultPhase1UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 1, resultPhasePUtilizationVariance ); }
+	    Entry& setResultPhase2UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 2, resultPhasePUtilizationVariance ); }
+	    Entry& setResultPhase3UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 3, resultPhasePUtilizationVariance ); }
+	    double getResultPhasePMaxServiceTimeExceeded(unsigned p) const;
+	    double getResultPhasePMaxServiceTimeExceededVariance(unsigned p) const;
 
 	    /* Actually store the results in the XML */
 	    bool hasResultsForPhase(unsigned phase) const;

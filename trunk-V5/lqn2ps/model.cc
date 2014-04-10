@@ -6,6 +6,7 @@
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
@@ -31,6 +32,7 @@
 #include <sys/stat.h>
 #endif
 #include <lqio/dom_document.h>
+#include <lqio/expat_document.h>
 #include <lqio/srvn_output.h>
 #include "stack.h"
 #include "model.h"
@@ -449,7 +451,7 @@ Model::prepare()
 		LQIO::DOM::Call* call = *iter;
 				
 		/* Add the call to the system */
-		Call::create(call);
+		newEntry->addCall( p, call );
 	    }
 			
 	    /* Set the phase information for the entry */
@@ -527,10 +529,6 @@ Model::process()
 	Flags::print[COLOUR].value.i = COLOUR_OFF;
     }
     
-    if ( Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
-	aggregate();
-    }
-
     if ( share_output() ) {
 	group_by_share();
     } else if ( processor_output() ) {
@@ -561,7 +559,7 @@ Model::process()
 	    return false;
 	} else if ( Flags::print[LAYERING].value.i == LAYERING_CLIENT ) {
  	    layers[layer_number].generateClientSubmodel();
-	} else {
+	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
  	    layers[layer_number].generateSubmodel();
 	    if ( Flags::surrogates ) {
 		layers[layer_number].transmorgrify( _document, surrogate_processor, surrogate_task );
@@ -683,12 +681,8 @@ Model::store()
 
     } else if ( _outputFileName == "-" ) {
 
-	if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_XML && !queueing_output() ) {
-	    printXML( _outputFileName.c_str() );
-	} else {
-	    cout.exceptions( ios::failbit | ios::badbit );
-	    cout << *this;
-	}
+	cout.exceptions( ios::failbit | ios::badbit );
+	cout << *this;
 
     } else {
 
@@ -697,10 +691,8 @@ Model::store()
 	string directory_name;
 	const char * suffix = "";
 
-	if ( hasOutputFileName() ) {
-	    if ( LQIO::Filename::isDirectory( _outputFileName.c_str() ) > 0 ) {
-		directory_name = _outputFileName;
-	    }
+	if ( hasOutputFileName() && LQIO::Filename::isDirectory( _outputFileName.c_str() ) > 0 ) {
+	    directory_name = _outputFileName;
 	}
 
 	if ( _document->getResultInvocationNumber() > 0 ) {
@@ -765,51 +757,47 @@ Model::store()
 
 	filename.backup();
 
-	if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_XML && !queueing_output() ) {
-	    printXML( filename() );
-	} else {
-	    ofstream output;
-	    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
+	ofstream output;
+	switch( Flags::print[OUTPUT_FORMAT].value.i ) {
 #if defined(EMF_OUTPUT)
-	    case FORMAT_EMF:
-		if ( LQIO::Filename::isRegularFile( filename() ) == 0 ) {
-		    ostringstream msg; 
-		    msg << "Cannot open output file " << filename() << " - not a regular file.";
-		    throw runtime_error( msg.str() );
-		} else {
-		    output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
-		}
-		break;
+	case FORMAT_EMF:
+	    if ( LQIO::Filename::isRegularFile( filename() ) == 0 ) {
+		ostringstream msg; 
+		msg << "Cannot open output file " << filename() << " - not a regular file.";
+		throw runtime_error( msg.str() );
+	    } else {
+		output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+	    }
+	    break;
 #endif
 #if HAVE_GD_H && HAVE_LIBGD
 #if HAVE_GDIMAGEGIFPTR
-	    case FORMAT_GIF:
+	case FORMAT_GIF:
 #endif
 #if HAVE_LIBJPEG
-	    case FORMAT_JPEG:
+	case FORMAT_JPEG:
 #endif
 #if HAVE_LIBPNG
-	    case FORMAT_PNG:
+	case FORMAT_PNG:
 #endif
-		output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
-		break;
+	    output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+	    break;
 #endif /* HAVE_LIBGD */
 
-	    default:
-		output.open( filename(), ios::out );
-		break;
-	    }
-
-	    if ( !output ) {
-		ostringstream msg; 
-		msg << "Cannot open output file " << filename() << " - " << strerror( errno );
-		throw runtime_error( msg.str() );
-	    } else {
-		output.exceptions ( ios::failbit | ios::badbit );
-		output << *this;
-	    }
-	    output.close();
+	default:
+	    output.open( filename(), ios::out );
+	    break;
 	}
+
+	if ( !output ) {
+	    ostringstream msg; 
+	    msg << "Cannot open output file " << filename() << " - " << strerror( errno );
+	    throw runtime_error( msg.str() );
+	} else {
+	    output.exceptions ( ios::failbit | ios::badbit );
+	    output << *this;
+	}
+	output.close();
     } 
     return true;
 }
@@ -825,19 +813,16 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( _inputFileName.c_str(), "d" );		/* Get the base file name */
-    const char * suffix = SolverInterface::Solve::customSuffix.c_str();
+    LQIO::Filename directory_name( hasOutputFileName() ? _outputFileName.c_str() : _inputFileName.c_str(), "d" );		/* Get the base file name */
 
     if ( access( directory_name(), R_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
-    LQIO::Filename filename( _inputFileName.c_str(), "lqxo", directory_name(), suffix );
-		
     unsigned int errorCode;
-    if ( !_document->loadResults( filename(), errorCode ) ) {
-	cerr << io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
+    if ( !_document->loadResults( directory_name(), _inputFileName, 
+				  SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
 	label();
@@ -1060,24 +1045,6 @@ Model::check()
 
 
 
-/*
- *
- */
-
-unsigned
-Model::nLayers() const
-{
-    unsigned count = 0;
-
-    for ( unsigned i = 1; i <= layers.size() ;++i ) {
-	if ( !layers[i] ) continue;
-	count += 1;
-    }
-    return count;
-}
-
-
-
 /* 
  * Now count them up. 
  */
@@ -1166,23 +1133,6 @@ Model::squishNames()
 
 
 /*
- * Remove all activities/phases.
- */
-
-Model&
-Model::aggregate()
-{
-    Entry::max_phases = 1;
-
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].aggregate();
-    }	
-
-    return *this;
-}
-
-
-/*
  * Format for printing.
  */
 
@@ -1239,16 +1189,16 @@ Model::format( Layer& serverLayer ) const
     }
 
     double start_y = serverLayer.y();
-//    myOrigin.moveTo( MAXDOUBLE, MAXDOUBLE );
-//    myExtent.moveTo( 0, 0 );
+    myOrigin.moveTo( MAXDOUBLE, MAXDOUBLE );
+    myExtent.moveTo( 0, 0 );
 
-//    serverLayer.format( start_y ).sort( Entity::compareCoord );
-//    myOrigin.min( serverLayer.x(), serverLayer.y() );
-//    myExtent.max( serverLayer.x() + serverLayer.width(), serverLayer.y() + serverLayer.height() );
+    serverLayer.format( start_y ).sort( Entity::compareCoord );
+    myOrigin.min( serverLayer.x(), serverLayer.y() );
+    myExtent.max( serverLayer.x() + serverLayer.width(), serverLayer.y() + serverLayer.height() );
     start_y += ( serverLayer.x() + serverLayer.height() + Flags::print[Y_SPACING].value.f);
 
     clientLayer.format( start_y ).sort( Entity::compareCoord );
-    myOrigin.min( clientLayer.x(), clientLayer.x() );
+    myOrigin.min( clientLayer.x(), clientLayer.y() );
     myExtent.max( clientLayer.x() + clientLayer.width(), clientLayer.y() + clientLayer.height() );
 
     clientLayer.justify( right() );
@@ -1590,6 +1540,10 @@ Model::accumulateEntryStats( const string& filename ) const
 ostream& 
 Model::print( ostream& output ) const
 {
+    if ( Flags::print[PRECISION].value.i >= 0 ) {
+	output.precision(Flags::print[PRECISION].value.i);
+    }
+
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
 	printEEPIC( output );
@@ -1659,6 +1613,8 @@ Model::print( ostream& output ) const
     case FORMAT_XML:
 	if ( queueing_output() ) {
 	    printPMIF( output );
+	} else {
+	    printXML( output );
 	}
 	break;
 #endif
@@ -1672,6 +1628,177 @@ Model::print( ostream& output ) const
     return output;
 }
 
+/* ------------------------------------------------------------------------ */
+/*                      Major model transmorgrification                     */
+/* ------------------------------------------------------------------------ */
+/* static */ void
+Model::aggregate( LQIO::DOM::Document& document ) 
+{
+    const std::map<std::string,LQIO::DOM::Task *>& tasks = document.getTasks();
+    for_each( tasks.begin(), tasks.end(), Model::Aggregate() );
+}
+
+#if 0
+/*
+ * Aggregate activities to activities and/or activities to phases.  If
+ * activities are left after aggregation, we will have to recompute
+ * their level because there likely is a lot less of them to draw.
+ */
+
+Task&
+Task::aggregate()
+{
+    Sequence<Entry *> nextEntry(entries());
+    Entry * anEntry;
+
+    while ( anEntry = nextEntry() ) {
+	anEntry->aggregate();
+    }
+
+    switch ( Flags::print[AGGREGATION].value.i ) {
+    case AGGREGATE_ENTRIES:
+	activityList.deleteContents().chop(activityList.size());
+	aggregateEntries();
+	break;
+
+    case AGGREGATE_ACTIVITIES:
+    case AGGREGATE_PHASES:
+	activityList.deleteContents().chop(activityList.size());
+	break;
+
+    default:
+	/* Recompute levels. */
+	Sequence<Activity *> nextActivity( activityList );
+	Activity * anActivity;
+	while ( anActivity = nextActivity() ) {
+	    anActivity->resetLevel();
+	}
+	generate();
+	break;
+    }
+
+    return *this;
+}
+
+
+/*
+ * Aggregate all entries to this task.
+ */
+
+Task&
+Task::aggregateEntries()
+{
+    Sequence<Entry *> nextEntry(entries());
+    Entry * anEntry;
+
+    /* Aggregate calls to task */
+
+    for ( unsigned i = 1; i <= paths().size(); ++i ) {
+	while ( anEntry = nextEntry() ) {
+	    anEntry->aggregateEntries( myPaths[i] );	/* Aggregate based on ref-task chain. */
+	}
+    }
+
+    return *this;
+}
+
+/*
+ * Aggregate activities to this entry.
+ */
+
+
+Entry&
+Entry::aggregate()
+{
+    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
+    if ( startActivity() ) {
+
+	Stack<const Activity *> activityStack( owner()->activities().size() ); 
+	unsigned next_p = 1;
+	startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
+
+	switch ( Flags::print[AGGREGATION].value.i ) {
+	case AGGREGATE_ACTIVITIES:
+	case AGGREGATE_PHASES:
+	case AGGREGATE_ENTRIES:
+	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
+	    break;
+
+	case AGGREGATE_SEQUENCES:
+	case AGGREGATE_THREADS:
+	    if ( startActivity()->transmorgrify() ) {
+		const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
+	    }
+	    break;
+
+	default:
+	    abort();
+	}
+    }
+
+    /* Convert entry if necessary */
+
+    if ( dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ) {
+	myActivity = 0;
+	if ( myActivityCall ) {
+	    delete myActivityCall;
+	    myActivityCall = 0;
+	}
+	myActivityCallers.clearContents();
+    }
+
+    switch ( Flags::print[AGGREGATION].value.i ) {
+    case AGGREGATE_PHASES:
+    case AGGREGATE_ENTRIES:
+	aggregatePhases();
+	break;
+    }
+
+    return *this;
+}
+
+
+/*
+ * Aggregate all entries to the task level
+ */
+
+const Entry&
+Entry::aggregateEntries( const unsigned k ) const
+{
+    if ( !hasPath( k ) ) return *this;		/* Not for this chain! */
+
+    Task * srcTask = const_cast<Task *>(owner());
+
+    const double scaling = srcTask->throughput() ? (throughput() / srcTask->throughput()) : (1.0 / srcTask->nEntries());
+    const double s = srcTask->serviceTime( k ) + scaling * serviceTimeForSRVNInput();
+    srcTask->serviceTime( k, s );
+    const_cast<Processor *>(owner()->processor())->serviceTime( k, s );
+
+    Sequence<Call *> nextCall( callList() );
+    Call * aCall;
+
+    while ( aCall = nextCall() ) {
+	TaskCall * aTaskCall;
+	if ( aCall->isPseudoCall() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddFwdCall( aCall->dstTask() ));
+	} else if ( aCall->hasRendezvous() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasRendezvous ));
+	    aTaskCall->rendezvous( aTaskCall->rendezvous() + scaling * aCall->sumOfRendezvous() );
+	} else if ( aCall->hasSendNoReply() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasSendNoReply ));
+	    aTaskCall->sendNoReply( aTaskCall->sendNoReply() + scaling * aCall->sumOfSendNoReply() );
+	} else if ( aCall->hasForwarding() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasForwarding ));
+	    aTaskCall->taskForward( aTaskCall->forward() + scaling * aCall->forward() );
+	} else {
+	    abort();
+	}
+    }
+
+    return *this;
+}
+#endif
+
 #if defined(REP2FLAT)
 Model&
 Model::expandModel()
@@ -1739,8 +1866,8 @@ Model::expandModel()
     /*  Delete all original Entities from the symbol table and collections */
 
     for ( set<Entry *,ltEntry>::const_iterator nextEntry = old_entry.begin(); nextEntry != old_entry.end(); ++nextEntry ) {
-	Entry * aEntry = *nextEntry;
-	delete aEntry;
+	Entry * anEntry = *nextEntry;
+	delete anEntry;
     }
 
     for ( set<Task *,ltTask>::const_iterator nextTask = old_task.begin(); nextTask != old_task.end(); ++nextTask ) {
@@ -1784,7 +1911,6 @@ Model::removeReplication()
 ostream&
 Model::printEEPIC( ostream & output ) const
 {
-    output.precision(Flags::print[PRECISION].value.i);
     output << "% Created By: " << io_vars.lq_toolname << " Version " << VERSION << endl
 	   << "% Invoked as: " << command_line << ' ' << _inputFileName << endl
 	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << endl
@@ -1993,7 +2119,7 @@ Model::remapEntities() const
 ostream& 
 Model::printInput( ostream& output ) const
 {
-    LQIO::SRVN::Input srvn( *getDOM(), remapEntities(), Flags::annotate_input );
+    LQIO::SRVN::Input srvn( *getDOM(), remapEntities(), Flags::annotate_input, Flags::print[RUN_LQX].value.b );
     srvn.print( output );
     return output;
 }
@@ -2058,10 +2184,10 @@ Model::printTXT( ostream& output ) const
  */
 
 void
-Model::printXML( const string& filename ) const
+Model::printXML( ostream& output ) const
 {
     remapEntities();		/* Reorder to our order */
-    _document->serializeDOM( filename.c_str(), Flags::print[RUN_LQX].value.b );	/* Don't output LQX code if running. */
+    _document->serializeDOM( output, Flags::print[RUN_LQX].value.b );	/* Don't output LQX code if running. */
 }
 
 
@@ -2569,7 +2695,7 @@ HWSW_Model::layerize()
 Model&
 MOL_Model::layerize()
 {
-    const unsigned PROC_LEVEL = layers.size();
+    const unsigned PROC_LEVEL = nLayers();
 
     for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
@@ -2952,6 +3078,91 @@ Model::Stats::print( ostream& output) const
     output << "  max    = " << max << " (" << max_filename << ")" << endl;
     output << "  min    = " << min << " (" << min_filename << ")" << endl;
     return output;
+}
+
+Model::Aggregate::Aggregate() 
+{
+}
+
+void 
+Model::Aggregate::operator()( const std::pair<std::string,LQIO::DOM::Task *>& tp )
+{
+    LQIO::DOM::Task * task = tp.second;
+    if ( task->getActivities().size() != 0 ) {
+	const std::vector<LQIO::DOM::Entry *>& entries = task->getEntryList();
+	for_each( entries.begin(), entries.end(), Model::Aggregate() );
+    }
+    /* For each entry that has activities do... */
+    /* Merge sequences to single (new?) activity */
+    /* OK - is an entry defined by activities, so lets rip em out. */
+}
+
+void 
+Model::Aggregate::operator()( const LQIO::DOM::Entry * entry )
+{
+    /* aggregate this activity to phase */
+    aggregate( const_cast<LQIO::DOM::Entry *>(entry), 1, 1.0, entry->getStartActivity() );
+}
+
+
+unsigned int
+Model::Aggregate::aggregate( LQIO::DOM::Entry * entry, unsigned int p, double rate, const LQIO::DOM::Activity * activity ) 
+{
+    if ( !activity ) return p;
+
+    /* aggregate activity service time to phase */
+
+    LQIO::DOM::Phase * phase = entry->getPhase(p);		// Will create a phase if necessary.
+    LQIO::DOM::ExternalVariable * dst_service_time = const_cast<LQIO::DOM::ExternalVariable *>(phase->getServiceTime());
+    LQIO::DOM::ExternalVariable * src_service_time = const_cast<LQIO::DOM::ExternalVariable *>(activity->getServiceTime());
+    if ( !dst_service_time ) {
+	phase->setServiceTime( src_service_time );
+    } else if ( phase->hasServiceTime() && activity->hasServiceTime() ) {
+	*dst_service_time *= rate;
+	*src_service_time += *dst_service_time;
+    }
+	
+    /* Move calls from activity to phase */
+
+    std::vector<LQIO::DOM::Call *>& dst_calls = const_cast<std::vector<LQIO::DOM::Call *>&>(phase->getCalls());
+    const std::vector<LQIO::DOM::Call *>& src_calls = activity->getCalls();
+    for ( std::vector<LQIO::DOM::Call *>::const_iterator src_call = src_calls.begin(); src_call != src_calls.end(); ++src_call ) {
+	LQIO::DOM::Call * call = *src_call;
+	LQIO::DOM::ExternalVariable * dst_call_mean = const_cast<LQIO::DOM::ExternalVariable *>(call->getCallMean());
+	if ( dst_call_mean && dst_call_mean->wasSet() ) {
+	    *dst_call_mean *= rate;    // Adjust rate... 
+	}
+	dst_calls.push_back( call );
+    }
+    
+    // if activity replies to entry, p = 2 
+
+    /* Go down the activity list, follow all paths of forks, stop at joins (except if only one activity). */
+
+    LQIO::DOM::ActivityList * join = activity->getOutputToList();
+    if ( join ) {
+
+	std::vector<const LQIO::DOM::Activity*>& join_list = const_cast<std::vector<const LQIO::DOM::Activity*>&>(join->getList());
+	if ( join_list.size() == 1 ) {
+	    LQIO::DOM::ActivityList * fork = join->getNext();
+	    const std::vector<const LQIO::DOM::Activity*>& fork_list = fork->getList();
+	    for ( std::vector<const LQIO::DOM::Activity*>::const_iterator ap = fork_list.begin(); ap != fork_list.end(); ++ap ) {
+		p = aggregate( entry, p, rate, (*ap ) );	// set rate if or-fork or loop 
+	    }
+	}
+    
+	/* remove activity */
+
+	for ( std::vector<const LQIO::DOM::Activity*>::iterator item = join_list.begin(); item != join_list.end(); ++item ) {
+	    if ( activity == *item ) {
+		join_list.erase( item );
+		break;
+	    }
+	}
+    }
+    // delete activity
+    
+    return p;
 }
 
 static ostream&

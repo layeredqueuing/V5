@@ -61,10 +61,15 @@ namespace SolverInterface
 	}
 			
 	/* Make sure all external variables are accounted for */
-	std::string undefined = _document->getUndefinedExternalVariables();
+	const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	if ( undefined.size() > 0) {
-	    cerr << io_vars.lq_toolname << ": The following external variables were not assigned at time of solve: " << undefined << endl;
-	    cerr << io_vars.lq_toolname << ": Solve was not invoked." << endl;
+	    cerr << io_vars.lq_toolname << ": The following external variables were not assigned at time of solve: ";
+	    for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
+		if ( var != undefined.begin() ) cerr << ", ";
+		cerr << *var << endl;
+	    }
+	    cerr << endl;
+	    io_vars.anError = true;
 	    return LQX::Symbol::encodeBoolean(false);
 	}
 			
@@ -74,6 +79,10 @@ namespace SolverInterface
 	/* Run the solver and return its success as a boolean value */
 	try {
 	    assert( _aModel );
+	    std::stringstream ss;
+	    _document->printExternalVariables( ss );
+	    _document->setModelComment( ss.str() );
+
 	    _aModel->InitializeModel();
 	    _document->setResultInvocationNumber( invocationCount );
 	    const bool ok = (_aModel->*_solve)();

@@ -145,22 +145,18 @@ namespace LQIO {
 	    return _maxPhase;
 	}
     
-	void Entry::appendOriginatingCall(Call* call)
+	bool Entry::isStandardEntry() const
 	{
-	    /* Push back the call that we originate */
-	    unsigned phaseNumber = call->getPhase();
-	    Phase* phase = getPhase(phaseNumber);
-	    phase->addCall(call);
+	    return _type == Entry::ENTRY_STANDARD_NOT_DEFINED || _type == Entry::ENTRY_STANDARD;
 	}
-    
-	Call* Entry::getCallToTarget(Entry* target, unsigned phase) const
+
+	Call* Entry::getCallToTarget(const Entry* target, unsigned phase) const
 	{
 	    /* Attempt to find the call to the given target */
 	    if (hasPhase(phase)) {
 		const Phase* domPhase = getPhase(phase);
 		return domPhase->getCallToTarget(target);
 	    }
-      
 	    return NULL;
 	}
     
@@ -304,25 +300,36 @@ namespace LQIO {
 
 	bool Entry::hasHistogramForPhase( unsigned p) const
 	{ 
-	    return _histograms.find(p) != _histograms.end();
+	    if ( isStandardEntry() ) {
+		return hasPhase(p) && getPhase(p)->hasHistogram();
+	    } else {
+		return _histograms.find(p) != _histograms.end();
+	    }
 	}
 	    
-	const Histogram* Entry::getHistogramForPhase ( unsigned p ) const
+	const Histogram* Entry::getHistogramForPhase( unsigned p ) const
 	{
-	    assert(0 < p && p <= Phase::MAX_PHASE);
-	    std::map<unsigned, Histogram*>::const_iterator histogram = _histograms.find(p);
-	    if ( histogram == _histograms.end() ) {
-		return  0;
+	    if ( isStandardEntry() ) {
+		if ( hasPhase(p) ) {
+		    return getPhase(p)->getHistogram();
+		}
 	    } else {
-		return histogram->second;
+		std::map<unsigned, Histogram*>::const_iterator histogram = _histograms.find(p);
+		if ( histogram != _histograms.end() ) {
+		    return histogram->second;
+		}
 	    }
+	    return  0;
 	}
 
 	void Entry::setHistogramForPhase( unsigned p, Histogram* histogram )
 	{
 	    assert(0 < p && p <= Phase::MAX_PHASE);
-
-	    _histograms[p] = histogram;
+	    if ( isStandardEntry() ) {
+		getPhase(p)->setHistogram( histogram );
+	    } else {
+		_histograms[p] = histogram;
+	    }
 	}
 
 	bool Entry::hasMaxServiceTimeExceeded() const 
@@ -426,7 +433,9 @@ namespace LQIO {
 	Entry& Entry::setResultThroughputVariance(const double resultThroughputVariance)
 	{
 	    /* Stores the given ResultThroughput of the Entry */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    if ( resultThroughputVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultThroughputVariance = resultThroughputVariance;
 	    return *this;
 	}
@@ -462,13 +471,15 @@ namespace LQIO {
 	double Entry::getResultUtilizationVariance() const
 	{
 	    /* Returns the given ResultUtilization of the Entry */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return _resultUtilizationVariance;
 	}
     
 	Entry& Entry::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
 	    /* Stores the given ResultUtilization of the Entry */ 
+	    if ( resultUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultUtilizationVariance = resultUtilizationVariance;
 	    return *this;
 	}
@@ -495,7 +506,9 @@ namespace LQIO {
 	Entry& Entry::setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance)
 	{
 	    /* Stores the given ResultProcessorUtilization of the Entry */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    if ( resultProcessorUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultProcessorUtilizationVariance = resultProcessorUtilizationVariance;
 	    return *this;
 	}
@@ -565,65 +578,233 @@ namespace LQIO {
     
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
+	/*
+	 * If I am a standard entry, proxy the call to the phase.  Otherwise, get/store
+	 * the result locally (activity entries have phase results too).
+	 */
+
 	Entry& 
 	Entry::setResultPhaseP( const unsigned p, double * result, double value ) 
 	{
-	    _hasResultsForPhase[p-1] = true;
+	    assert( 0 < p && p <= Phase::MAX_PHASE );
+	    if ( value ) {
+		_hasResultsForPhase[p-1] = true;
+	    }
 	    result[p-1] = value;
 	    return *this;
 	}
 
+	Entry& Entry::setResultPhasePServiceTime(const unsigned p,const double resultServiceTime)
+	{
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultServiceTime( resultServiceTime );
+	    } else {
+		setResultPhaseP( p, _resultPhasePServiceTime, resultServiceTime );
+	    }
+	    return *this;
+	}
 
-	double Entry::getResultPhasePServiceTime(unsigned phase) const
+    
+	double Entry::getResultPhasePServiceTime(unsigned p) const
 	{
 	    /* Returns the ResultPhasePServiceTime of the Entry */
-	    return _resultPhasePServiceTime[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultServiceTime();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePServiceTime[p-1];
+	    }
 	}
-    
-	double Entry::getResultPhasePServiceTimeVariance(unsigned phase) const
+
+	Entry& Entry::setResultPhasePServiceTimeVariance(const unsigned p, const double resultServiceTimeVariance) 
+	{
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultServiceTimeVariance( resultServiceTimeVariance );
+	    } else {
+		setResultPhaseP( p, _resultPhasePServiceTimeVariance, resultServiceTimeVariance );
+	    }
+	    return *this;
+	}
+
+	double Entry::getResultPhasePServiceTimeVariance(unsigned p) const
 	{
 	    /* Returns the given ResultPhasePServiceTime of the Entry */ 
-	    return _resultPhasePServiceTimeVariance[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultServiceTimeVariance();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePServiceTimeVariance[p-1];
+	    }
 	}
     
-	double Entry::getResultPhasePVarianceServiceTime(unsigned phase) const
+	Entry& Entry::setResultPhasePVarianceServiceTime(unsigned p, double resultVarianceServiceTime ) 
 	{
-	    /* Returns the ResultPhasePServiceTimeVariance of the Entry */
-	    return _resultPhasePServiceTimeVariance[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultVarianceServiceTime( resultVarianceServiceTime );
+	    } else {
+		setResultPhaseP( p, _resultPhasePVarianceServiceTime, resultVarianceServiceTime );
+	    }
+	    return *this;
 	}
 
-	double Entry::getResultPhasePVarianceServiceTimeVariance(unsigned phase) const
+	double Entry::getResultPhasePVarianceServiceTime( unsigned p ) const
+	{
+	    /* Returns the given ResultPhasePServiceTime of the Entry */ 
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultVarianceServiceTime();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePVarianceServiceTime[p-1];
+	    }
+	}
+
+	Entry& Entry::setResultPhasePVarianceServiceTimeVariance(unsigned p, double resultVarianceServiceTimeVariance) 
+	{
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultVarianceServiceTimeVariance( resultVarianceServiceTimeVariance );
+	    } else {
+		setResultPhaseP( p, _resultPhasePVarianceServiceTimeVariance, resultVarianceServiceTimeVariance );
+	    }
+	    return *this;
+	}
+
+	double Entry::getResultPhasePVarianceServiceTimeVariance(unsigned p) const
 	{
 	    /* Returns the given ResultPhasePVarianceServiceTime of the Entry */
-	    return _resultPhasePVarianceServiceTimeVariance[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultVarianceServiceTimeVariance();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePVarianceServiceTimeVariance[p-1];
+	    }
 	}
 
-	double Entry::getResultPhasePProcessorWaiting(unsigned phase) const
+	Entry& Entry::setResultPhasePProcessorWaiting(unsigned p, double resultProcessorWaiting ) 
+	{
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultProcessorWaiting( resultProcessorWaiting );
+	    } else {
+		setResultPhaseP( p, _resultPhasePProcessorWaiting, resultProcessorWaiting );
+	    }
+	    return *this;
+	}
+
+	double Entry::getResultPhasePProcessorWaiting(unsigned p) const
 	{
 	    /* Returns the ResultPhasePProcessorWaiting of the Entry */
-	    return _resultPhasePProcessorWaiting[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultProcessorWaiting();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePProcessorWaiting[p-1];
+	    }
 	}
 
-	double Entry::getResultPhasePProcessorWaitingVariance(unsigned phase) const
+	Entry& Entry::setResultPhasePProcessorWaitingVariance(unsigned p, double resultProcessorWaitingVariance ) 
+	{
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultProcessorWaitingVariance( resultProcessorWaitingVariance );
+	    } else {
+		setResultPhaseP( p, _resultPhasePProcessorWaitingVariance, resultProcessorWaitingVariance );
+	    }
+	    return *this;
+	}
+
+	double Entry::getResultPhasePProcessorWaitingVariance(unsigned p) const
 	{
 	    /* Returns the given ResultPhasePProcessorWaiting of the Entry */ 
-	    return _resultPhasePProcessorWaitingVariance[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultProcessorWaitingVariance();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePProcessorWaitingVariance[p-1];
+	    }
 	}
     
-	double Entry::getResultPhasePUtilization( unsigned phase ) const
+	Entry& Entry::setResultPhasePUtilization( unsigned p, double resultUtilization ) 
 	{
-	    return _resultPhasePUtilization[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultUtilization( resultUtilization );
+	    } else {
+		setResultPhaseP( p, _resultPhasePUtilization, resultUtilization );
+	    }
+	    return *this;
 	}
 
-	double Entry::getResultPhasePUtilizationVariance( unsigned phase ) const
+	double Entry::getResultPhasePUtilization( unsigned p ) const
 	{
-	    return _resultPhasePUtilizationVariance[phase-1];
+	    /* Returns the ResultPhasePServiceTime of the Entry */
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultUtilization();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePUtilization[p-1];
+	    }
 	}
 
-	bool Entry::hasResultsForPhase(unsigned phase) const
+	Entry& Entry::setResultPhasePUtilizationVariance( unsigned p, double resultUtilizationVariance ) 
 	{
-	    assert(0 < phase && phase <= Phase::MAX_PHASE);
-	    return _hasResultsForPhase[phase-1];
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		phase->second->setResultUtilizationVariance( resultUtilizationVariance );
+	    } else {
+		setResultPhaseP( p, _resultPhasePUtilizationVariance, resultUtilizationVariance );
+	    }
+	    return *this;
+	}
+
+	double Entry::getResultPhasePUtilizationVariance( unsigned p ) const
+	{
+	    /* Returns the ResultPhasePServiceTime of the Entry */
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultUtilizationVariance();
+	    } else {
+		assert( 0 < p && p <= Phase::MAX_PHASE );
+		return _resultPhasePUtilizationVariance[p-1];
+	    }
+	}
+
+	double Entry::getResultPhasePMaxServiceTimeExceeded( unsigned p ) const
+	{
+	    /* Returns the ResultPhasePServiceTime of the Entry */
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultMaxServiceTimeExceeded();
+	    } else {
+		return 0;
+	    }
+	}
+
+	double Entry::getResultPhasePMaxServiceTimeExceededVariance( unsigned p ) const
+	{
+	    /* Returns the ResultPhasePServiceTime of the Entry */
+	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
+	    if ( isStandardEntry() && phase != _phases.end() ) {
+		return phase->second->getResultMaxServiceTimeExceededVariance();
+	    } else {
+		return 0;
+	    }
+	}
+
+	bool Entry::hasResultsForPhase(unsigned p) const
+	{
+	    assert(0 < p && p <= Phase::MAX_PHASE);
+	    return _hasResultsForPhase[p-1];
 	}
     
 	bool Entry::hasResultsForOpenWait() const

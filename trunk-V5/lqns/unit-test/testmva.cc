@@ -86,7 +86,6 @@ static int nocheck_flag = 0;			/* Don't check if 1.		*/
 int main (int argc, char *argv[])
 {
     unsigned solver_set = 0;
-    int c;
     bool ok;
     unsigned long count = 1;
     unsigned special = 0;

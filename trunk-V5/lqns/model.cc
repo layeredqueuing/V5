@@ -48,7 +48,6 @@
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/input.h>
-#include <lqio/srvn_output.h>
 #include "errmsg.h"
 #include "cltn.h"
 #include "fpgoop.h"
@@ -76,6 +75,8 @@
 #include "actlist.h"
 #include "report.h"
 #include "runlqx.h"
+#include <lqio/srvn_output.h>
+#include <lqio/expat_document.h>
 
 double Model::convergence_value = 0.00001;
 unsigned Model::iteration_limit = 50;;
@@ -170,7 +171,12 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 	    if ( check_model ) {
 		set<Task *,ltTask>::const_iterator nextTask = task.begin();
 		aModel->generate( nextTask );
-		aModel->setInitialized();
+		if ( !io_vars.anError ) {
+		    aModel->setInitialized();
+		} else {
+		    delete aModel;
+		    aModel = 0;
+		}
 	    }
 	}
 	catch ( exception_handled& e ) {
@@ -293,8 +299,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 
 	/* Add the entries so we can reverse them */
 	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
-//	    allEntries.push_back( *nextEntry );		// Save the DOM entry.
-	    entryCollection << Entry::create( *nextEntry );
+	    entryCollection << Entry::create( *nextEntry, entryCollection.size() );
 	    if ((*nextEntry)->getStartActivity() != NULL) {
 		activityEntries.push_back(*nextEntry);
 	    }
@@ -352,7 +357,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 #endif
 
 		/* Add the call to the system */
-		add_call(call);
+		newEntry->add_call( p, call );
 	    }
 
 	    /* Set the phase information for the entry */
@@ -947,8 +952,9 @@ Model::solve()
 	Generate::makefile( nSubmodels() );	/* We are dumping C source -- make a makefile. */
     }
 
+    const bool lqx_output = _document->getResultInvocationNumber() > 0;
     const string directoryName = createDirectory();
-    const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
+    const string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
 
@@ -959,15 +965,22 @@ Model::solve()
     }
 
     if ( override || ((!hasOutputFileName() || directoryName.size() > 0 ) && _input_file_name != "-" )) {
-	if ( _document->isXMLDOMPresent() == true || flags.xml_output ) {
+	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || flags.xml_output ) {	/* No parseable/json output, so create XML */
 	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directoryName.c_str(), suffix.c_str() );
+	    ofstream output;
 	    filename.backup();
-	    _document->serializeDOM( filename(), true );
+	    output.open( filename(), ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    } else {
+		_document->serializeDOM( output, true );
+		output.close();
+	    }
 	}
 
 	/* Parseable output. */
 
-	if ( flags.parseable_output ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || flags.parseable_output ) {
 	    LQIO::Filename filename( _input_file_name.c_str(), "p", directoryName.c_str(), suffix.c_str() );
 	    ofstream output;
 	    output.open( filename(), ios::out );
@@ -975,8 +988,8 @@ Model::solve()
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+		output.close();
 	    }
-	    output.close();
 	}
 
 	/* Regular output */
@@ -1016,25 +1029,23 @@ Model::solve()
 
 	LQIO::Filename::backup( _output_file_name.c_str() );
 
-	if ( flags.xml_output ) {
-	    _document->serializeDOM( _output_file_name.c_str(), true );
+	ofstream output;
+	output.open( _output_file_name.c_str(), ios::out );
+	if ( !output ) {
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+	} else if ( flags.xml_output ) {
+	    _document->serializeDOM( output, true );
+	} else if ( flags.parseable_output ) {
+	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	} else if ( flags.rtf_output ) {
+	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
-	    ofstream output;
-	    output.open( _output_file_name.c_str(), ios::out );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	    } else if ( flags.parseable_output ) {
-		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	    } else if ( flags.rtf_output ) {
-		_document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
-	    } else {
-		_document->print( output );
-		if ( flags.print_overtaking ) {
-		    printOvertaking( output );
-		}
+	    _document->print( output );
+	    if ( flags.print_overtaking ) {
+		printOvertaking( output );
 	    }
-	    output.close();
 	}
+	output.close();
     }
     if ( flags.verbose ) {
 	report.print( cout );
@@ -1057,31 +1068,42 @@ Model::reload()
     /* Default mapping */
 
     LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
-    const char * suffix = SolverInterface::Solve::customSuffix.c_str();
 
     if ( access( directory_name(), R_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
-    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name(), suffix );
-
     unsigned int errorCode;
-    if ( !const_cast<LQIO::DOM::Document *>(_document)->loadResults( filename(), errorCode ) ) {
+    if ( !const_cast<LQIO::DOM::Document *>(_document)->loadResults( directory_name(), _input_file_name, 
+								     SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
-	return true;
+	return _document->getResultValid();
     }
 }
 
 
+bool
+Model::restart()
+{
+    try {
+	if ( !reload() ) {
+	    return solve();
+	} 
+	return false;
+    }
+    catch ( LQX::RuntimeException& e ) {
+	return solve();
+    }
+}
 
 /*
  * Solve the submodel.  Return largest delta value encountered.
  */
 
 Model&
-Model::solveSubmodel( Sequence<Submodel *>& nextSubmodel )
+Model::solve( Sequence<Submodel *>& nextSubmodel )
 {
     Submodel * aSubmodel;
 
@@ -1233,21 +1255,19 @@ Model::printIntermediate( const double convergence ) const
 
     report.finish( convergence, *this );	/* Save results */
 
+    ofstream output;
+    output.open( filename(), ios::out );
+
+    if ( !output ) return;			/* Ignore errors */
+
     if ( flags.xml_output ) {
-	_document->serializeDOM( filename(), true );
+        _document->serializeDOM( output, true );
+    } else if ( flags.parseable_output ) {
+	_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
     } else {
-	ofstream output;
-	output.open( filename(), ios::out );
-
-	if ( !output ) return;			/* Ignore errors */
-
-	if ( flags.parseable_output ) {
-	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	} else {
-	    _document->print( output );
-	}
-	output.close();
+	_document->print( output );
     }
+    output.close();
 }
 
 
@@ -1454,14 +1474,11 @@ MOL_Model::run()
     Sequence<Submodel *> nextSubmodel( _submodels, HWSubmodel-1 );
 
     do {
-	_iterations += 1;
-
-	unsigned sw_iterations = 0;
 	do {
-	    sw_iterations += 1;
-	    if ( flags.trace_convergence || flags.verbose ) cerr << "Iteration: " << _iterations << "," << sw_iterations << " ";
+	    _iterations += 1;
+	    if ( flags.trace_convergence || flags.verbose ) cerr << "Iteration: " << _iterations << " ";
 
-	    solveSubmodel( nextSubmodel );			/* -- Step 3 -- */
+	    solve( nextSubmodel );			/* -- Step 3 -- */
 
 	    delta = 0.0;
 	    count = 0;
@@ -1476,7 +1493,7 @@ MOL_Model::run()
 		backPropogate();
 	    }
 
-	} while ( delta > convergence_value &&  sw_iterations < iteration_limit );		/* -- Step 4 -- */
+	} while ( delta > convergence_value &&  _iterations < iteration_limit );		/* -- Step 4 -- */
 
 	/* Print intermediate results if necessary */
 
@@ -1526,7 +1543,7 @@ BackPropogate_MOL_Model::backPropogate()
     if ( _max_depth < 4 ) return;
     BackwardsSequence<Submodel *>prevSubmodel( _submodels, 2, sync_submodel ? sync_submodel - 1 : _max_depth - 2 );
 
-    solveSubmodel( prevSubmodel );
+    solve( prevSubmodel );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1605,7 +1622,7 @@ Batch_Model::run()
 	_iterations += 1;
 	if ( flags.trace_convergence || flags.verbose ) cerr << "Iteration: " << _iterations << " ";
 
-	solveSubmodel( nextSubmodel );
+	solve( nextSubmodel );
 
 	/* compute convergence for next pass. */
 
@@ -1660,7 +1677,7 @@ BackPropogate_Batch_Model::backPropogate()
     if ( _max_depth < 3 ) return;
     BackwardsSequence<Submodel *>prevSubmodel( _submodels, 2, sync_submodel ? sync_submodel - 1 : _max_depth - 1 );
 
-    solveSubmodel( prevSubmodel );
+    solve( prevSubmodel );
 }
 
 /*----------------------------------------------------------------------*/

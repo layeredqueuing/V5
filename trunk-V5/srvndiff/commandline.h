@@ -32,7 +32,7 @@ namespace LQIO {
     {
     public:
     CommandLine( const std::string& opts, const struct option * longopts = 0 )
-	: _opts(opts), _longopts(longopts), _s() {}
+	: _longopts(longopts), _s() {}
 
 	CommandLine& operator=( const std::string& );
 	CommandLine& operator+=( const std::string& s );
@@ -41,7 +41,6 @@ namespace LQIO {
 	inline const char * c_str() { return _s.c_str(); }
 
     private:
-	const std::string& _opts;
 	const option * _longopts;
 	std::string _s;
     };

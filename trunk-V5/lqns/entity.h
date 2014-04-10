@@ -75,8 +75,6 @@ public:
     virtual const Processor * processor() const = 0;
     virtual Entity& processor( Processor * aProcessor ) = 0;
     virtual scheduling_type scheduling() const { return domEntity->getSchedulingType(); }
-    Entity& trace( const int flag ) { traceFlag = flag; return *this; }
-    int trace() const { return traceFlag; }
     virtual Entity& copies( const unsigned );
     virtual unsigned copies() const;
     virtual Entity& replicas( const unsigned );
@@ -92,6 +90,7 @@ public:
 
     double throughput() const;
     double utilization() const;
+    double saturation() const;
 
     /* Queries */
 
@@ -127,7 +126,6 @@ public:
 
     const Cltn<Entry *>& entries() const { return entryList; }
     Entity& addEntry( Entry * );
-    Entity& removeEntry( Entry * );
     Cltn<Entry *> * entries( Cltn<Entry *> * entries );
     Entry * entryAt( const unsigned index ) const { return entryList[index]; }
 
@@ -216,9 +214,8 @@ protected:
 
 private:
     unsigned short myMaxPhase;		/* Max phase over all entries	*/
-    short traceFlag;			/* trace ref to this queue.	*/
     unsigned mySubmodel;		/* My submodel, 0 == ref task.	*/
-    mutable double myLastUtilization;	/* For convergence test.								*/
+    mutable double myLastUtilization;	/* For convergence test.	*/
 
     /* MVA interface */
 

@@ -498,12 +498,12 @@ namespace LQX {
     }
   }
   
-  SymbolTable::SymbolTable(const SymbolTable& other) throw ()
+  SymbolTable::SymbolTable(const SymbolTable&) throw ()
   {
     throw NonCopyableException();
   }
   
-  SymbolTable& SymbolTable::operator=(const SymbolTable& other) throw ()
+  SymbolTable& SymbolTable::operator=(const SymbolTable&) throw ()
   {
     throw NonCopyableException();
   }

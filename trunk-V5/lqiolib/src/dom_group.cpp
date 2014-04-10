@@ -56,11 +56,10 @@ namespace LQIO {
 	    return _groupShare;
 	}
 
-	Group& Group::setGroupShare( ExternalVariable * groupShare )
+	void Group::setGroupShare( ExternalVariable * groupShare )
 	{
 	    /* Stores the given GroupShare of the Group */ 
 	    _groupShare = groupShare;
-	    return *this;
 	}
     
 	void Group::setGroupShareValue(const double value)
@@ -87,7 +86,7 @@ namespace LQIO {
 	void Group::addTask(Task* task)
 	{
 	    /* Link the task into the list */
-	    _taskList.push_back(task);
+	    _taskList.insert(task);
 	}
     
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -113,8 +112,10 @@ namespace LQIO {
 	Group& Group::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
 	    /* Stores the given ResultUtilization of the Group */ 
+	    if ( resultUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultUtilizationVariance = resultUtilizationVariance;
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
 	    return *this;
 	}
     }

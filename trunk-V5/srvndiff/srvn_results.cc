@@ -806,7 +806,6 @@ add_proc (const char *processor)
 void
 add_task_proc (const char * proc, const char *task, int multiplicity, double util )
 {
-    const unsigned int p = find_or_add_processor( proc, task );
     const unsigned int t = find_or_add_task( task );
 
     if ( t != 0 ) {

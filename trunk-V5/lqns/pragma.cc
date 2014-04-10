@@ -38,6 +38,7 @@ std::map<const char *, Pragma::param_info, lt_str>  Pragma::__processor_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__threads_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__variance_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__warning_args;
+std::map<const char *, Pragma::param_info, lt_str>  Pragma::__xml_schema_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__quorum_distribution_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__quorum_delayed_calls_args;
@@ -188,8 +189,8 @@ Pragma::initialize()
     __variance_args["init-only"] =      param_info( INIT_VARIANCE_ONLY,      &Help::pragmaVarianceInitOnly);
 
     __pragmas["severity-level"] =       pragma_info( &Pragma::setSeverityLevelTo, &Pragma::getSeverityLevelStr, &Pragma::eqSeverityLevel, &Help::pragmaSeverityLevel, &__warning_args );
-    __warning_args["all"] =             param_info( LQIO::NO_ERROR, &Help::pragmaSeverityLevelWarnings );
-    __warning_args["warning"] =         param_info( LQIO::WARNING_ONLY, &Help::pragmaSeverityLevelWarnings );
+    __warning_args["all"] =             param_info( LQIO::NO_ERROR, 	 &Help::pragmaSeverityLevelWarnings );
+    __warning_args["warning"] =         param_info( LQIO::WARNING_ONLY,  &Help::pragmaSeverityLevelWarnings );
     __warning_args["advisory"] =        param_info( LQIO::ADVISORY_ONLY, &Help::pragmaSeverityLevelRunTime);
     __warning_args["run-time"] =        param_info( LQIO::RUNTIME_ERROR, &Help::pragmaSeverityLevelRunTime);
 }				        
@@ -314,7 +315,7 @@ bool
 Pragma::setMVATo( const string& aStr )
 {
     std::map<const char *, Pragma::param_info, lt_str>::const_iterator p = __mva_args.find( aStr.c_str() );
-    if ( p == __mva_args.end() ) return true;
+    if ( p == __mva_args.end() ) return false;
 
     setMVA( static_cast<PRAGMA_MVA>(p->second._i) );
     return true;
@@ -503,7 +504,6 @@ Pragma::setSeverityLevel( const LQIO::severity_t severity_level )
     _severity_level = severity_level;
     return *this;
 }
-
 
 /*
  * Convert s to scheduling type.
