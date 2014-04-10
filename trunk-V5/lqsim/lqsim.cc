@@ -869,8 +869,8 @@ process( const string& input_file, const string& output_file, const Model::simul
 	if ( aModel.hasVariables() ) {
 	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, input_file.c_str() );
 	    status = FILEIO_ERROR;
-	} else {
-	    status = aModel.start();
+	} else if ( !aModel.start() ) {
+	    status = FILEIO_ERROR;
 	}
     }
 
