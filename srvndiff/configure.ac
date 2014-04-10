@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------
 # $Id$
 # ------------------------------------------------------------------------
-AC_INIT(srvndiff, 5.7, greg@sce.carleton.ca)
+AC_INIT(srvndiff, 5.8, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([srvndiff.h])
 AC_CONFIG_HEADERS([config.h])
@@ -67,6 +67,7 @@ AC_CHECK_HEADERS([termios.h])
 AC_CHECK_HEADERS([unistd.h])
 AC_CHECK_HEADERS([values.h]) 
 AC_CHECK_HEADERS([libintl.h])
+AC_CHECK_HEADERS([sys/mman.h])
 
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
@@ -112,6 +113,7 @@ AC_CHECK_FUNCS([strchr])
 AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strrchr])
+AC_CHECK_FUNCS([mmap])
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

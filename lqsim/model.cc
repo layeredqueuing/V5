@@ -271,7 +271,7 @@ Model::construct()
 		LQIO::DOM::Entry* dst = const_cast<LQIO::DOM::Entry*>(call->getDestinationEntry());
 		DEBUG("[4]: Phase " << call->getPhase() << " Call (" << src->getName() << ") -> (" << dst->getName() << ")" << endl);
 #endif
-		add_call(call);			/* Add the call to the system */
+		newEntry->add_call( p, call );			/* Add the call to the system */
 	    }
 			
 	    newEntry->set_DOM(p, phase);    	/* Set the phase information for the entry */
@@ -352,7 +352,7 @@ Model::create()
     }
     for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
-	if ( aTask->type() ) n_ref_tasks += 1;
+	if ( aTask->is_reference_task() ) n_ref_tasks += 1;
 	aTask->create();
     }
 
@@ -392,8 +392,9 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	print_raw_stats( stddbg );
     }
 
+    const bool lqx_output = _document->getResultInvocationNumber() > 0;
     const string directory_name = createDirectory();
-    const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
+    const string suffix = lqx_output ? SolverInterface::Solve::customSuffix : "";
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
  
@@ -407,16 +408,23 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
     if ( override || ((!hasOutputFileName() || directory_name.size() > 0 ) && strcmp( LQIO::input_file_name, "-" ) != 0) ) {
 
-	if (_document->isXMLDOMPresent() || global_xml_flag) {
+	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || global_xml_flag ) {	/* No parseable/json output, so create XML */
+	    ofstream output;
 	    LQIO::Filename filename( LQIO::input_file_name, "lqxo", directory_name.c_str(), suffix.c_str() );
 	    filename.backup();
-	    _document->serializeDOM( filename(), true );		// don't save LQX
+	    output.open( filename(), ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    } else {
+		_document->serializeDOM( output, true );		// don't save LQX
+		output.close();
+	    }
 	}
     
 	/* Parseable output. */
 
-	ofstream output;
-	if ( global_parse_flag ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || global_parse_flag ) {
+	    ofstream output;
 	    LQIO::Filename filename( LQIO::input_file_name, "p", directory_name.c_str(), suffix.c_str() );
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
@@ -429,6 +437,7 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
 	/* Regular output */
 
+	ofstream output;
 	LQIO::Filename filename( LQIO::input_file_name, global_rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
 	output.open( filename(), ios::out );
 	if ( !output ) {
@@ -452,20 +461,20 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
 	LQIO::Filename::backup( _output_file_name.c_str() );
 
-	if ( global_xml_flag ) {
-	    _document->serializeDOM( _output_file_name.c_str() );
+	ofstream output;
+	output.open( _output_file_name.c_str(), ios::out );
+	if ( !output ) {
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+	} else if ( global_xml_flag ) {
+	    _document->serializeDOM( output );
+	} else if ( global_parse_flag ) {
+	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	} else if ( global_rtf_flag ) {
+	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
-	    ofstream output;
-	    output.open( _output_file_name.c_str(), ios::out );
-	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
-	    } else if ( global_parse_flag ) {
-		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	    } else {
-	        _document->print( output, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
-	    }
-	    output.close();
+	    _document->print( output );
 	}
+	output.close();
     }
 }
 
@@ -501,21 +510,19 @@ Model::print_intermediate( const bool valid, const double confidence )
     /* Make filename look like an emacs autosave file. */
     filename << "~" << number_blocks << "~";
 
-    if ( global_xml_flag ) {
-	_document->serializeDOM( filename(), true );
+    ofstream output;
+    output.open( filename(), ios::out );
+
+    if ( !output ) {
+	return;			/* Ignore errors */
+    } else if ( global_xml_flag ) {
+	_document->serializeDOM( output, true );
+    } else if ( global_parse_flag ) {
+	_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
     } else {
-	ofstream output;
-	output.open( filename(), ios::out );
-
-	if ( !output ) return;			/* Ignore errors */
-
-	if ( global_parse_flag ) {
-	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
-	} else {
-	    _document->print( output );
-	}
-	output.close();
+	_document->print( output );
     }
+    output.close();
 }
 
 
@@ -591,12 +598,12 @@ Model::insertDOMResults( const bool valid, const double confidence )
     tms_t time_buf;
 
     clock_t stop_time = times( &time_buf );
-    _document->setResultUserTime( time_buf.tms_utime );
-    _document->setResultSysTime( time_buf.tms_stime );
+    _document->setResultUserTime( time_buf.tms_utime - _start_times.tms_utime );
+    _document->setResultSysTime( time_buf.tms_stime - _start_times.tms_stime  );
 #else
     clock_t stop_time = time( NULL );
 #endif
-    _document->setResultElapsedTime(stop_time - _start_time);
+    _document->setResultElapsedTime(stop_time - _start_clock);
 
     string buf;
 
@@ -688,20 +695,15 @@ Model::hasVariables() const
  * Solve the model. 
  */
 
-int
+bool
 Model::start()
 {
-#if defined(HAVE_SYS_TIMES_H)
-    struct tms junk_time;
-#else
-    clock_t junk_time;
-#endif
     int simulation_flags= 0x00;
     
 #if defined(HAVE_SYS_TIMES_H)
-    _start_time = times( &junk_time );
+    _start_clock = times( &_start_times );
 #else
-    _start_time = time( 0 );
+    _start_clock = time( 0 );
 #endif
 
     _parameters.get_parameters_from( *_document );
@@ -724,11 +726,7 @@ Model::start()
 	object_tab[i] = 0;
     }
 
-    if ( io_vars.anError ) {
-	return INVALID_INPUT;
-    } else {
-	return NORMAL_TERMINATION;
-    }
+    return io_vars.anError == 0;
 }
 
 
@@ -737,27 +735,24 @@ Model::start()
  * Read result files only.  LQX print uses these results.
  */
 
-int
+bool
 Model::reload()
 {
     /* Default mapping */
 
     LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
-    const char * suffix = SolverInterface::Solve::customSuffix.c_str();
 
     if ( access( directory_name(), R_OK|W_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
-    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name(), suffix );
-		
-    unsigned int errorCode;
-    if ( !_document->loadResults( filename(), errorCode ) ) {
-	cerr << io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
+    unsigned int errorCode = 0;
+    if ( !_document->loadResults( directory_name(), _input_file_name, 
+				  SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
-	return NORMAL_TERMINATION;
+	return _document->getResultValid();
     }
 }
 
@@ -766,12 +761,17 @@ Model::reload()
  * Run the simulation for invalid or missing results.  Otherwise, reload existing results.
  */
 
-int
+bool
 Model::restart()
 {
-    if ( reload() == NORMAL_TERMINATION && _document->getResultValid() ) {
-	return NORMAL_TERMINATION;
-    } else {
+    try {
+	if ( reload() ) {
+	    return true;
+	} else {
+	    return start();
+	} 
+    }
+    catch ( LQX::RuntimeException& e ) {
 	return start();
     }
 }
@@ -854,7 +854,6 @@ Model::run( int task_id )
 	    accumulate_data();
 
 	    if ( number_blocks > 2 ) {
-//		set_t_values();
 		confidence = rms_confidence();
 		if ( verbose_flag ) {
 		    (void) fprintf( stderr, "[%.2g]", confidence );

@@ -96,7 +96,6 @@ public:
     virtual scheduling_type discipline() const { return _dom_task->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
     virtual int priority() const { return _dom_task->getPriority(); }		/* priority		        */
-    virtual unsigned queue_length() const { return _dom_task->getQueueLengthValue(); }
     virtual void * task_element() const { return const_cast<void *>(_dom_task->getXMLDOMElement()); }
 
     task_type type() const { return _type; }
@@ -316,7 +315,6 @@ public:
     virtual unsigned multiplicity() const { return 1; }			/* Special access!		*/
     virtual int priority() const { return 0; }				/* priority		        */
     virtual double think_time() const { return 0.0; }			/* Think time for ref. tasks.	*/
-    virtual unsigned queue_length() const { return 0; }
     virtual void * task_element() const { return 0; }
     virtual bool derive_utilization() const { return true; }
 

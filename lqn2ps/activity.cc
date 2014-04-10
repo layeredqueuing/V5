@@ -1399,7 +1399,7 @@ Activity::add_activity_lists()
     /* Obtain the Task and Activity information DOM records */
     const LQIO::DOM::Activity* domAct = dynamic_cast<const LQIO::DOM::Activity *>(getDOM());
     if (domAct == NULL) { return *this; }
-    const Task * task = dynamic_cast<const Task *>(owner());
+    const Task * task = owner();
 	
     /* May as well start with the outputToList, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();

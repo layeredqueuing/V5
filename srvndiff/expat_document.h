@@ -96,7 +96,7 @@ namespace LQIO {
 	    };
 
 	public:
-	    static Expat_Document * LoadLQNX( const char * filename, unsigned int & errorCode );		// Factory.
+	    static bool load( const char * filename );		// Factory.
 	    virtual ~Expat_Document();
 
 	private:

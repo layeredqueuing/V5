@@ -6,6 +6,16 @@
  *
  */
 
+#if defined(HAVE_CONFIG_H)
+#include <config.h>
+#endif
+
+#include <sys/stat.h>
+#if HAVE_SYS_MMAN_H
+#include <sys/types.h>
+#include <sys/mman.h>
+#endif
+
 #include "dom_document.h"
 #include <algorithm>
 #include "dom_processor.h"
@@ -24,6 +34,15 @@ const char * parse_file_name;	/* Filename for the parser's input file */
 static unsigned int n_phases = 0;
 
 static void results_error2( unsigned err, ... );
+
+struct yy_buffer_state;
+
+extern "C" {
+    extern FILE * resultin;		/* from srvn_gram.y, implicitly */
+    int resultparse();
+    extern yy_buffer_state * result_scan_string( const char * );
+    extern void result_delete_buffer( yy_buffer_state * );
+}
 
 /*----------------------------------------------------------------------*/
 /*		 	   Called from xxparse.  			*/
@@ -92,7 +111,7 @@ add_proc (const char *processor_name)
     LQIO::DOM::Processor * processor = LQIO::DOM::currentDocument->getProcessorByName( processor_name );
     if ( !processor ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, processor_name );
-    } else if ( processor->getResultUtilization() == 0.0 ) {
+    } else {
 	processor->computeResultUtilization();		// Derive from task utilizations */
     }
 }
@@ -139,7 +158,7 @@ add_thpt_ut (const char *task_name)
     LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
     if ( !task ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, task_name );
-    } else if ( task->getResultThroughput() == 0.0 ) {
+    } else {
 	task->computeResultThroughput();
 	task->computeResultUtilization();
     }
@@ -344,8 +363,8 @@ add_service (const char *entry_name, double *time)
     LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultServiceTime( time[p-1] );
 	    }
 	}
@@ -361,8 +380,8 @@ add_service_confidence( const char *entry_name, int conf_level, double * time )
     LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
 											LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
@@ -381,8 +400,8 @@ add_variance (const char *entry_name, double *time)
     LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultVarianceServiceTime( time[p-1] );
 	    }
 	}
@@ -398,8 +417,8 @@ add_variance_confidence( const char * entry_name, int conf_level, double * time 
     LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
 												LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
@@ -457,8 +476,8 @@ add_entry_thpt_ut (const char *entry_name, double tput, double *util, double tot
 	    .setResultUtilization( total_util );
     
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultUtilization( util[p-1] );
 	    }
 	}
@@ -479,8 +498,8 @@ add_entry_thpt_ut_confidence (const char * entry_name, int conf_level, double tp
 									  LQIO::ConfidenceIntervals::CONF_95 ) );
     
     for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	LQIO::DOM::Phase * phase = entry->getPhase(p);
-	if ( phase ) {
+	if ( entry->hasPhase(p) ) {
+	    LQIO::DOM::Phase * phase = entry->getPhase(p);
 	    phase->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( util[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
 										    LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
@@ -530,8 +549,8 @@ add_entry_proc (const char *entry_name, double utilization, double *waiting)
     if ( entry ) {
 	entry->setResultProcessorUtilization( utilization );
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultProcessorWaiting( waiting[p-1] );
 	    }
 	}
@@ -555,8 +574,8 @@ add_entry_proc_confidence( const char *entry_name, int conf_level, double utiliz
 	entry->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
 											 LQIO::ConfidenceIntervals::CONF_95 ) );
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    if ( phase ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
 		phase->setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
@@ -579,7 +598,7 @@ add_waiting (const char *from, const char *to, double *delay)
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
 	    LQIO::DOM::Call* call = from_entry->getCallToTarget(to_entry, p);
-	    if (call) {
+	    if ( call ) {
 		call->setResultWaitingTime( delay[p-1] );
 	    }
 	}
@@ -1077,27 +1096,41 @@ add_join_confidence(const char * task_name, const char *first, const char *last,
  * This will likey be deprecated somewhat with XML input.
  */
 
-extern "C" {
-    int resultparse();
-}
+namespace LQIO {
+    namespace SRVN {
+	bool
+	loadResults( const std::string& filename )
+	{
+	    if ( ! LQIO::DOM::currentDocument ) {
+		return false;
+	    }
+	    resultin = fopen( filename.c_str(), "r" );
+	    if ( resultin != NULL ) {
+		parse_file_name = filename.c_str();
+		resultlinenumber = 1;
+#if HAVE_MMAP
+		struct stat statbuf;
+		int resultin_fd = fileno( resultin );
 
-bool
-loadSRVNResults( const char * filename )
-{
-    if ( ! LQIO::DOM::currentDocument ) {
-	return false;
-    }
-
-    extern FILE * resultin;
-    resultin = fopen( filename, "r" ); 
-    if ( resultin != 0 ) {
-	parse_file_name = filename;
-	resultlinenumber = 1;
-	resultparse();
-	fclose( resultin );
-	return !LQIO::DOM::Document::io_vars->anError;
-    } else {
-	return false;
+		char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, resultin_fd, 0 ));
+		if ( buffer != MAP_FAILED ) {
+		    yy_buffer_state * yybuf = result_scan_string( buffer );
+		    resultparse();
+		    result_delete_buffer( yybuf );
+		    munmap( buffer, statbuf.st_size );
+		} else {
+		    /* Try the old way (for pipes) */
+#endif
+		    resultparse();
+#if HAVE_MMAP
+		}
+#endif		
+		fclose( resultin );
+		return !LQIO::DOM::Document::io_vars->anError;
+	    } else {
+		return false;
+	    }
+	}
     }
 }
 

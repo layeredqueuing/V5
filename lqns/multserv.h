@@ -178,6 +178,15 @@ private:
     double sumOf_PS_k( const MVA& solver, const PopVector& N, const unsigned k, PopulationIterator& next ) const;
     double meanMinimumService( const PopVector& N ) const;
     double A( const MVA& solver, const PopVector& n, const PopVector& N, const unsigned k ) const;
+
+#if	DEBUG_MVA
+    ostream& printXE( ostream&, const unsigned int i, const PopVector& N, const unsigned int k, const double xe, const double q ) const;
+    ostream& printXR( ostream&, const PopVector& N, const unsigned int k, const double xr, const double PB ) const;
+
+public:
+    static bool debug_XE;
+#endif
+
 };
 
 /* ------------------- Phased Conway Multi Server   ------------------- */

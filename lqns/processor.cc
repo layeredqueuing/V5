@@ -147,6 +147,16 @@ Processor::initPopulation()
 
 
 
+double
+Processor::rate() const 
+{
+    if ( myDOMProcessor->hasRate() ) {
+	return myDOMProcessor->getRateValue();
+    } else {
+	return 1.0;
+    }
+}
+    
 /*
  * Indicate whether the variance calculation should take place.  NOTE
  * that processors should not have the variance calculation set true,
@@ -491,10 +501,6 @@ void Processor::create( LQIO::DOM::Processor* domProcessor )
 
     aProcessor = new Processor( domProcessor );
     ::processor.insert( aProcessor );
-
-    if ( flags.trace_processor && strcmp( flags.trace_processor, processor_name ) == 0 ) {
-	aProcessor->trace( true );
-    }
 }
 
 

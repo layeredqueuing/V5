@@ -16,7 +16,7 @@ namespace LQIO {
 	unsigned long DocumentObject::sequenceNumber = 0;
 
 	DocumentObject::DocumentObject(const Document * document, const char * name, const void * xmlDOMElement ) 
-	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _xmlDOMElement(xmlDOMElement) 
+	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _comment(), _xmlDOMElement(xmlDOMElement) 
 	{
 	    assert( document );
 	    sequenceNumber += 1;
@@ -35,6 +35,21 @@ namespace LQIO {
 	{
 	    /* Set the new entity name */
 	    _name = newName;
+	}
+
+	const std::string& DocumentObject::getComment() const
+	{
+	    return _comment;
+	}
+
+	void DocumentObject::setComment( const std::string& comment )
+	{
+	    _comment = comment;
+	}
+
+	bool DocumentObject::hasResults() const
+	{
+	    return getDocument()->hasResults();
 	}
 
 	void DocumentObject::subclass() const

@@ -59,6 +59,7 @@ bool Flags::squish_names		= false;
 bool Flags::surrogates			= false;
 bool Flags::use_colour			= true;
 bool Flags::debug_submodels	        = false;
+bool Flags::dump_graphviz		= false;
 
 double Flags::act_x_spacing		= 6.0;
 double Flags::arrow_scaling		= 1.0;
@@ -214,6 +215,7 @@ const char * Options::pragma[] = {
     "squish",				/* PRAGMA_SQUISH_ENTRY_NAMES,		*/
     "submodels",			/* PRAGMA_SUBMODEL_CONTENTS,		*/
     "tasks-only",			/* PRAGMA_TASKS_ONLY			*/
+    "xml-schema",			/* PRAGMA_XML_SCHEMA			*/
     0					
 };
 
@@ -250,6 +252,8 @@ const char * Options::string [] = {
     "string",
     0
 };
+
+static bool get_bool( const std::string&, bool default_value );
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -387,20 +391,20 @@ pragma( const string& parameter, const string& value )
 	if ( parameter.compare( Options::pragma[i] ) != 0 ) continue;
 
 	switch ( i ) {
-	case PRAGMA_ANNOTATE:                   Flags::annotate_input 			= true; break;
-	case PRAGMA_CLEAR_LABEL_BACKGROUND:     Flags::clear_label_background 		= true; break;
-	case PRAGMA_EXHAUSTIVE_TOPOLOGICAL_SORT:Flags::exhaustive_toplogical_sort 	= true; break;
-	case PRAGMA_FLATTEN_SUBMODEL:		Flags::flatten_submodel			= true;	break;
-	case PRAGMA_FORWARDING_DEPTH:           Flags::print_forwarding_by_depth 	= true; break;
-	case PRAGMA_LAYER_NUMBER:               Flags::print_layer_number 		= true; break;
-	case PRAGMA_NO_ALIGNMENT_BOX:		Flags::print_alignment_box		= false; break;
-	case PRAGMA_NO_ASYNC_TOPOLOGICAL_SORT:  Flags::async_topological_sort		= false; break;
-	case PRAGMA_NO_CV_SQR:			Flags::output_coefficient_of_variation  = false; break;
-	case PRAGMA_NO_PHASE_TYPE:		Flags::output_phase_type                = false; break;
-	case PRAGMA_NO_REF_TASK_CONVERSION:	Flags::convert_to_reference_task	= false; break;
-	case PRAGMA_RENAME:			Flags::rename_model	 		= true; break;
-	case PRAGMA_SQUISH_ENTRY_NAMES:         Flags::squish_names	 		= true; break;
-	case PRAGMA_SUBMODEL_CONTENTS:          Flags::print_submodels 			= true; break;
+	case PRAGMA_ANNOTATE:                   Flags::annotate_input 			= get_bool( value, true ); break;
+	case PRAGMA_CLEAR_LABEL_BACKGROUND:     Flags::clear_label_background 		= get_bool( value, true ); break;
+	case PRAGMA_EXHAUSTIVE_TOPOLOGICAL_SORT:Flags::exhaustive_toplogical_sort 	= get_bool( value, true ); break;
+	case PRAGMA_FLATTEN_SUBMODEL:		Flags::flatten_submodel			= get_bool( value, true ); break;
+	case PRAGMA_FORWARDING_DEPTH:           Flags::print_forwarding_by_depth 	= get_bool( value, true ); break;
+	case PRAGMA_LAYER_NUMBER:               Flags::print_layer_number 		= get_bool( value, true ); break;
+	case PRAGMA_NO_ALIGNMENT_BOX:		Flags::print_alignment_box		= get_bool( value, false ); break;
+	case PRAGMA_NO_ASYNC_TOPOLOGICAL_SORT:  Flags::async_topological_sort		= get_bool( value, false ); break;
+	case PRAGMA_NO_CV_SQR:			Flags::output_coefficient_of_variation  = get_bool( value, false ); break;
+	case PRAGMA_NO_PHASE_TYPE:		Flags::output_phase_type                = get_bool( value, false ); break;
+	case PRAGMA_NO_REF_TASK_CONVERSION:	Flags::convert_to_reference_task	= get_bool( value, false ); break;
+	case PRAGMA_RENAME:			Flags::rename_model	 		= get_bool( value, true ); break;
+	case PRAGMA_SQUISH_ENTRY_NAMES:         Flags::squish_names	 		= get_bool( value, true ); break;
+	case PRAGMA_SUBMODEL_CONTENTS:          Flags::print_submodels 			= get_bool( value, true ); break;
 
 	case PRAGMA_QUORUM_REPLY:
 	    io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
@@ -458,6 +462,13 @@ pragma( const string& parameter, const string& value )
 
 
 
+/* static */ bool
+get_bool( const std::string& arg, const bool default_value )
+{
+    if ( arg.size() == 0 ) return default_value;
+    return strcasecmp( arg.c_str(), "true" ) == 0 || strcasecmp( arg.c_str(), "yes" ) == 0 || strcasecmp( arg.c_str(), "t" ) == 0;
+}
+
 /*
  * Return true if we are generating graphical output of some form.
  */

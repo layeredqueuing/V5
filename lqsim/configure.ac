@@ -3,7 +3,7 @@
 # ------------------------------------------------------------------------
 # $Id$
 # ------------------------------------------------------------------------
-AC_INIT(lqsim, 5.7, greg@sce.carleton.ca)
+AC_INIT(lqsim, 5.8, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqsim.h])
 AC_CONFIG_HEADERS([config.h])

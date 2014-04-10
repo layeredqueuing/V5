@@ -40,7 +40,7 @@ namespace LQIO {
 	    };
       
 	    /* Constructor for the basic histogram type */
-	    Histogram(const Document *, histogram_t type, unsigned n_bins, double min, double max, const void * histogram_element );
+	    Histogram(const Document *, histogram_t type, unsigned n_bins, double min, double max, const void * histogram_element=0 );
 	    virtual ~Histogram();
       
 	    /* Accessors and Mutators */

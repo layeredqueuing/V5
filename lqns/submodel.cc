@@ -676,7 +676,7 @@ MVASubmodel::initClient( Task * aClient )
 	const Entry * anEntry;
 
 	while( anEntry = nextEntry() ) {
-	    const unsigned e = anEntry->index;
+	    const unsigned e = anEntry->index();
 
 	    for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
 		const double s = anEntry->waitExcept( number(), k, p );
@@ -766,7 +766,7 @@ MVASubmodel::modifyClientServiceTime( Task * aClient )
 
     while( anEntry = nextEntry() ) {
 			 
-	const unsigned e = anEntry->index;
+	const unsigned e = anEntry->index();
 
 	const ChainVector& aChain = aClient->clientChains( number() );
 	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
@@ -828,7 +828,7 @@ MVASubmodel::initServer( Entity * aServer )
 
     while ( anEntry = nextEntry() ) {
 
-	const unsigned e = anEntry->index;
+	const unsigned e = anEntry->index();
 	const double openArrivalRate = anEntry->openArrivalRate();
 
 	if ( openArrivalRate > 0.0 ) {
@@ -862,13 +862,6 @@ MVASubmodel::initServer( Entity * aServer )
     if ( aServer->isInClosedModel() && pragma.getInterlock() == THROUGHPUT_INTERLOCK ) {
 	setInterlock( aServer );
     }
-
-    if ( aServer->trace() ) {
-	cout << "Submodel " << number() << ", server" << endl << *aServer << endl
-	     << print_server_chains( *aServer )
-	     << *aServer->serverStation() 
-	     << "  Throughput = " << aServer->throughput() << endl << endl;
-    }
 }
 
 
@@ -880,7 +873,7 @@ MVASubmodel::initServer( Entity * aServer )
 void
 MVASubmodel::setServiceTime( Entity * aServer, const Entry * anEntry, unsigned k ) const
 {
-    const unsigned e = anEntry->index;
+    const unsigned e = anEntry->index();
     Server * aStation = aServer->serverStation();
 
     if ( aStation->V( e, k ) == 0 ) return;
@@ -921,7 +914,7 @@ MVASubmodel::setInterlock( Entity * aServer ) const
 	    const unsigned k = aChain[ix];
 	    if ( aServer->hasServerChain(k) ) {
 		while ( anEntry = nextEntry() ) {	/* My entries. */
-		    aStation->setInterlock( anEntry->index, k, PrIL );
+		    aStation->setInterlock( anEntry->index(), k, PrIL );
 		}
 	    }
 	}
@@ -1009,13 +1002,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    while ( aClient = nextClient() ) {
 		if ( aClient->replicas() > 1 ) {
 		    modifyClientServiceTime( aClient );
-
-		    if ( aClient->trace() ) {
-			cout << "Submodel " << number() << ":" << iter <<", client" << endl << *aClient << endl
-			     << print_client_chains( *aClient, number() )
-			     << *aClient->clientStation( number() ) 
-			     << "  Throughput = " << aClient->throughput() << endl << endl;
-		    }
 		}
 	    }
 	}
@@ -1220,9 +1206,9 @@ MVASubmodel::saveClientResults( Task * aClient )
 	     * multiservers.
 	     */
 
-	    lambda = closedModel->normalizedThroughput( *aStation, anEntry->index, myChain[1] ) * aClient->population() ;
+	    lambda = closedModel->normalizedThroughput( *aStation, anEntry->index(), myChain[1] ) * aClient->population() ;
 	} else {
-	    lambda = closedModel->throughput( *aStation, anEntry->index, myChain[1] );
+	    lambda = closedModel->throughput( *aStation, anEntry->index(), myChain[1] );
 	}
 	anEntry->throughput( lambda );
     }
@@ -1251,7 +1237,7 @@ MVASubmodel::saveServerResults( Entity * aServer )
     Entry * anEntry;
 
     while ( anEntry = nextEntry() ) {
-	const unsigned e = anEntry->index;
+	const unsigned e = anEntry->index();
 	double lambda = 0.0;
 
 	if ( aServer->isInOpenModel() && openModel ) {

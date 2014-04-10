@@ -52,7 +52,6 @@ public:
     Layer const& check() const;
     Layer& prune();
 
-    Layer const& aggregate() const;
     Layer const& sort( compare_func_ptr ) const;
     Layer const& format( const double ) const;
     Layer const& reformat() const;

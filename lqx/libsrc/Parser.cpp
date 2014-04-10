@@ -23,7 +23,8 @@ extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
 #pragma mark -
 
 namespace LQX {
-  
+
+  /* This array must match PT_P_* in Parser_pre.h */
   static const char* tokenNameMap[] = {
     "End Of Stream",
     "Boolean Value",
@@ -44,7 +45,7 @@ namespace LQX {
     "print",
     "println",
     "print_spaced",
-    "println_spaced"
+    "println_spaced",
     "file_close",
     "read_data",
     "(",
@@ -77,6 +78,8 @@ namespace LQX {
     ",",
     "->",
     "NULL",
+    "f()",
+    "...",
     "<invalid>"
   };
   
@@ -106,12 +109,12 @@ namespace LQX {
     ModLangParserFree(_parser, free);
   }
   
-  Parser::Parser(const Parser& other) throw ()
+  Parser::Parser(const Parser&) throw ()
   {
     throw NonCopyableException();
   }
   
-  Parser& Parser::operator=(const Parser& other) throw ()
+  Parser& Parser::operator=(const Parser&) throw ()
   {
     throw NonCopyableException();
   }

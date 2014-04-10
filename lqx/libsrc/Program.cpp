@@ -20,6 +20,7 @@
 
 /* C++ Headers */
 #include <iostream>
+#include <sstream>
 
 namespace LQX {
 
@@ -144,20 +145,19 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     delete(_program);
   }
   
-  Program::Program(const Program& other) throw ()
+  Program::Program(const Program&) throw ()
   {
     throw NonCopyableException();
   }
   
-  Program& Program::operator=(const Program& other) throw ()
+  Program& Program::operator=(const Program&) throw ()
   {
     throw NonCopyableException();
   }
   
-  std::string Program::getGraphvizRepresentation() const
+  std::ostream& Program::getGraphvizRepresentation( std::ostream& ss ) const
   {
     /* Output the full graph */
-    std::stringstream ss;
     ss << "digraph \"G\" {" << std::endl;
     
     /* Walk through the list and spit stuff out */
@@ -168,9 +168,21 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     
     /* Output the directed graph footing */
     ss << "};" << std::endl;
-    return ss.str();
+    return ss;
   }
   
+  std::ostream& Program::print( std::ostream& output ) const
+  {
+    /* Walk through the list and spit stuff out */
+    std::vector<LQX::SyntaxTreeNode*>::iterator iter;
+    for (iter = _program->begin(); iter != _program->end(); ++iter) {
+      (*iter)->print(output);
+      if ( (*iter)->simpleStatement() ) { output << ";" << std::endl; }
+    }
+    
+    return output;
+  }
+
   double Program::getCompileTime() const
   {
     return _compileTime;

@@ -286,26 +286,18 @@ namespace LQIO {
 		abort();
 		result = _initial;
 		return true;
+	    } else if (_externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE) {
+		result = _externalSymbol->getDoubleValue();
+		return true;
 	    } else {
-		if (_externalSymbol->getType() != LQX::Symbol::SYM_DOUBLE) {
-		    return false;
-		} else {
-		    result = _externalSymbol->getDoubleValue();
-		    return true;
-		}
+		return false;
 	    }
 	}
     
 	bool SymbolExternalVariable::wasSet() const
 	{
 	    /* This is just a very basic check */
-	    if (_externalSymbol == NULL) {
-		return false;
-	    } else if (_externalSymbol->getType() != LQX::Symbol::SYM_DOUBLE) {
-		return false;
-	    } else {
-		return true;
-	    }
+	    return !(_externalSymbol == NULL) && _externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE;
 	}
     
 	std::ostream& SymbolExternalVariable::print( std::ostream& output ) const
@@ -314,5 +306,5 @@ namespace LQIO {
 	    return output;
 	}
 
-    };
-};
+    }
+}

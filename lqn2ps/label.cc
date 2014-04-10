@@ -15,7 +15,7 @@
 #include "label.h"
 #include "entry.h"
 #include "call.h"
-#if HAVE_GD_H && HAVE_LIBGD
+#if HAVE_GD_H
 #include <gdfontt.h>
 #include <gdfonts.h>
 #include <gdfontl.h>
@@ -408,7 +408,7 @@ Label::boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) c
 double
 LabelEMF::width() const
 {
-    unsigned w = 0;
+    unsigned int w = 0;
     for ( vector<ostringstream *>::const_iterator s = myStrings.begin(); s != myStrings.end(); ++s ) {
 	w = ::max( w, (*s)->str().length() );
     }
@@ -605,8 +605,9 @@ LabelEMF::print( ostream& output ) const
     /* Now put out stuff */
     Point aPoint = initialPoint();
     for ( int i = 0; i < size(); ++i ) {
-	if ( myStrings[i]->str().size() ) {
-	    const double dy = text( output, aPoint, myStrings[i]->str(),
+	const std::string& str = myStrings[i]->str();
+	if ( str.size() ) {
+	    const double dy = text( output, aPoint, str,
 				    myFont[i], Flags::print[FONT_SIZE].value.i,
 				    justification(), static_cast<Graphic::colour_type>(myColour[i]) );
 	    aPoint.moveBy( 0, dy );
@@ -735,7 +736,7 @@ LabelFig::initialPoint() const
     return aPoint;
 }
 
-#if HAVE_GD_H && HAVE_LIBGD
+#if HAVE_GD_H && HAVE_LIBGD 
 /* -------------------------------------------------------------------- */
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */

@@ -75,10 +75,10 @@ public:
 
     ActivityList * inputFrom( ActivityList * );
     ActivityList * inputFrom () const { return inputFromList; }
-    Activity& replyList (Cltn<const Entry *> *) ;
+    Activity& replyList(Cltn<const Entry *> *);
     Cltn<const Entry *> * replyList() const { return myReplyList; }
     ActivityList * outputTo ( ActivityList * );
-    ActivityList * outputTo () const { return outputToList;}
+    ActivityList * outputTo() const { return outputToList;}
 
     const LQIO::DOM::ExternalVariable & rendezvous ( const Entry *) const;
     Activity& rendezvous( Entry *, const LQIO::DOM::Call * );

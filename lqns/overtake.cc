@@ -211,7 +211,7 @@ Overtaking::computeOvertaking( const Entry& entA, const Entry& entB, const Entry
 	    const double prOtC = prOt[i] * ( y_aj[0] / y_aj[i] ); // Condition!
 	    if ( print_func == 0 ) {
 		Server * aStation = _server->serverStation();
-		Probability *** totOt = aStation->getPrOt(entB.index);
+		Probability *** totOt = aStation->getPrOt(entB.index());
 		const Task * srcTask = dynamic_cast<const Task *>(entA.owner());
 				
 		const ChainVector& aChain = const_cast<Task *>(srcTask)->clientChains(_server->submodel());

@@ -5,7 +5,7 @@
 # $Id$
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
-AC_INIT(lqngen, 5.7, greg@sce.carleton.ca)
+AC_INIT(lqngen, 5.8, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqngen.h])
 AC_CONFIG_HEADERS([config.h])

@@ -55,21 +55,20 @@ const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
 /* ------------------------ Constructors etc. ------------------------- */
 
 
-Entry::Entry( LQIO::DOM::Entry* aDomEntry, const unsigned id )
+Entry::Entry( LQIO::DOM::Entry* aDomEntry, const unsigned id, const unsigned index )
     : openWait(0),
-      index(0),
       myDOMEntry(aDomEntry),
       nextOpenWait(0),
       myActivity(0),
       myMaxPhase(0),
       _entryId(id),
+      _index(index+1),
       myType(ENTRY_NOT_DEFINED),
       mySemaphoreType(aDomEntry ? aDomEntry->getSemaphoreFlag() : SEMAPHORE_NONE),
       calledFlag(NOT_CALLED),
       myReplies(0),
       myThroughput(0.0),
-      myThroughputBound(0.0),
-      traceFlag(false)
+      myThroughputBound(0.0)
 {
     /* Allocate phases */
 
@@ -1398,7 +1397,7 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
  */
 
 DeviceEntry::DeviceEntry( LQIO::DOM::Entry* domEntry, const unsigned id, Processor * aProc )
-    : Entry(domEntry,id), myProcessor(aProc)
+    : Entry(domEntry,id,aProc->nEntries()), myProcessor(aProc)
 {
     aProc->addEntry( this );
 }
@@ -1573,8 +1572,9 @@ DeviceEntry::queueingTime( const unsigned ) const
  */
 
 VirtualEntry::VirtualEntry( const Activity * anActivity ) 
-    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name(), NULL), 0, anActivity->owner() )
+    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name(), NULL), 0, anActivity->owner()->nEntries() )
 {
+    owner( anActivity->owner() );
 }
 
 
@@ -1784,7 +1784,7 @@ CallInfo::operator()()
 /*----------------------------------------------------------------------*/
 
 Entry *
-Entry::create(LQIO::DOM::Entry* domEntry )
+Entry::create(LQIO::DOM::Entry* domEntry, unsigned int index )
 {
     const char* entry_name = domEntry->getName().c_str();
 	
@@ -1793,7 +1793,7 @@ Entry::create(LQIO::DOM::Entry* domEntry )
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
 	return 0;
     } else {
-	Entry * anEntry = new TaskEntry( domEntry, entry.size() + 1 );
+	Entry * anEntry = new TaskEntry( domEntry, entry.size() + 1, index );
 	entry.insert( anEntry );
 	
 	/* Make sure that the entry type is set properly for all entries */
@@ -1807,15 +1807,9 @@ Entry::create(LQIO::DOM::Entry* domEntry )
     }
 }
 
-void add_call( LQIO::DOM::Call* domCall )
+void 
+Entry::add_call( const unsigned p, LQIO::DOM::Call* domCall )
 {
-    /* Begin by extracting the from/to DOM entries from the call and their names */
-    LQIO::DOM::Entry* fromDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getSourceEntry());
-    LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
-    const char* from_entry_name = fromDOMEntry->getName().c_str();
-    const char* to_entry_name = toDOMEntry->getName().c_str();
-    unsigned p = domCall->getPhase();
-	
     /* Make sure this is one of the supported call types */
     if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
 	domCall->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
@@ -1823,19 +1817,20 @@ void add_call( LQIO::DOM::Call* domCall )
 	abort();
     }
 	
+    LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
+    const char* to_entry_name = toDOMEntry->getName().c_str();
+
     /* Internal Entry references */
-    Entry * fromEntry;
     Entry * toEntry;
 	
     /* Begin by mapping the entry names to their entry types */
-    if ( map_entry_name( from_entry_name, fromEntry, false, STANDARD_ENTRY ) && 
-	 map_entry_name( to_entry_name, toEntry, true ) ) {
-	if ( p <= MAX_PHASES ) {
-	    if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
-		fromEntry->rendezvous( toEntry, p, domCall );
-	    } else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
-		fromEntry->sendNoReply( toEntry, p, domCall );
-	    }
+    if ( !entryTypeOk(STANDARD_ENTRY) ) {
+	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name() );
+    } else if ( map_entry_name( to_entry_name, toEntry, true ) ) {
+	if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
+	    rendezvous( toEntry, p, domCall );
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
+	    sendNoReply( toEntry, p, domCall );
 	}
     }
 }

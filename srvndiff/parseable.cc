@@ -33,7 +33,6 @@ static double get_diff( result_str_t result, unsigned int i, unsigned int k=0, u
 
 void print_parseable( FILE * output )
 {
-    fprintf( output, "# %s\n", command_line.c_str() );
     fprintf( output, "V y\nC 0\nI 0\nPP %ld\nNP %d\n\n", processor_tab[FILE1].size(), phases );
 
     /* Waiting times */

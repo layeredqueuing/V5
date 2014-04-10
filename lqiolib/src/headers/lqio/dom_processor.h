@@ -9,7 +9,7 @@
 #ifndef __LQIO_DOM_PROCESSOR__
 #define __LQIO_DOM_PROCESSOR__
 
-#include <vector>
+#include <set>
 #include "dom_entity.h"
 
 namespace LQIO {
@@ -25,8 +25,7 @@ namespace LQIO {
 
 	    /* Designated initializers for the SVN DOM Entity type */
 	    Processor(const Document *document, const char * processor_name, scheduling_type scheduling_flag,
-		      ExternalVariable* n_cpus, int n_replicas, 
-		      const void * processor_element);
+		      ExternalVariable* n_cpus=0, int n_replicas=1, const void * processor_element=0);
 	    Processor( const Processor& );
 	    virtual ~Processor();
 
@@ -38,12 +37,12 @@ namespace LQIO {
 	    const double getRateValue() const;
 	    ExternalVariable * getRate() const { return _processorRate; }
 	    void setRateValue(const double newRate);
-	    Processor& setRate(ExternalVariable * newRate);
+	    void setRate(ExternalVariable * newRate);
 
 	    bool hasQuantum() const { return _processorQuantum != 0; }
 	    const double getQuantumValue() const;
 	    ExternalVariable * getQuantum() const { return _processorQuantum; }
-	    Processor& setQuantum( ExternalVariable * newQuantum ) { _processorQuantum = newQuantum; return *this; }
+	    void setQuantum( ExternalVariable * newQuantum ) { _processorQuantum = newQuantum; }
 	    void setQuantumValue(const double newQuantum);
 
 	    bool hasPriorityScheduling() const;
@@ -51,8 +50,8 @@ namespace LQIO {
 	    /* Managing the Task List */
 	    void addTask(Task* task);
 	    void addGroup(Group* group);
-	    const std::vector<Task*>& getTaskList() const { return _taskList; }
-	    const std::vector<Group*>& getGroupList() const { return _groupList; }
+	    const std::set<Task*>& getTaskList() const { return _taskList; }
+	    const std::set<Group*>& getGroupList() const { return _groupList; }
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -71,8 +70,8 @@ namespace LQIO {
 	    /* Instance variables for Processors */
 	    ExternalVariable * _processorRate;
 	    ExternalVariable * _processorQuantum;
-	    std::vector<Task*> _taskList;
-	    std::vector<Group*> _groupList;
+	    std::set<Task*> _taskList;
+	    std::set<Group*> _groupList;
 
 	    /* Computation Results from LQNS */
 	    double _resultUtilization;

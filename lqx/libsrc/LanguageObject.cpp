@@ -58,7 +58,7 @@ namespace LQX {
     return "Object";
   }
   
-  SymbolAutoRef LanguageObject::getPropertyNamed(Environment* env, const std::string& name) throw (RuntimeException)
+  SymbolAutoRef LanguageObject::getPropertyNamed(Environment*, const std::string& name) throw (RuntimeException)
   {
     /* All we support is type id's */
     if (name == "type_id") {

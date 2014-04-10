@@ -58,6 +58,7 @@ public:
 
     Entry& initialize();
     double configure();
+    void add_call( const unsigned int p, LQIO::DOM::Call* domCall );
 
     virtual bool is_defined() const { return get_DOM()->getEntryType() != LQIO::DOM::Entry::ENTRY_NOT_DEFINED; }
     virtual bool is_regular() const;
@@ -147,9 +148,6 @@ typedef double (*double_func_ptr)( const tar_t * );
 extern unsigned open_arrival_count;	/* non-zero if any open arrivals*/
 
 typedef double (*entry_func_ptr)( const Entry * ep );
-
-void add_call( LQIO::DOM::Call* domCall );
-
 
 void build_links( class Task * cp, unsigned link_tab[] );
 

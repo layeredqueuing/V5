@@ -77,7 +77,6 @@ Entity::Entity( LQIO::DOM::Entity* domVersion, Cltn<Entry *>* entries )
       myThinkTime(0.0),
       myServerStation(0),		/* Reference tasks don't have server stations. */
       myMaxPhase(1),
-      traceFlag(0),
       mySubmodel(0),
       myLastUtilization(-1.0)		/* Force update 		*/
 {
@@ -132,7 +131,6 @@ Entity::configure( const unsigned nSubmodels )
 	attributes.variance = true;
     }
     for ( unsigned i = 1; anEntry = nextEntry(); ++i ) {
-	anEntry->index = i;
 	anEntry->configure( nSubmodels );
 	myMaxPhase = max( myMaxPhase, anEntry->maxPhase() );
 
@@ -198,7 +196,7 @@ Entity::copies( const unsigned n )
 
 
 /*
- * We need a way to fake out infinity... so if copies is infinite, then we change to an infinite server.
+ * We need a way to fake out infinity... so if copies is inisfinite, then we change to an infinite server.
  */
 
 unsigned
@@ -253,22 +251,6 @@ Entity&
 Entity::addEntry( Entry * anEntry )
 {
     entryList << anEntry;
-    anEntry->index = entryList.size();
-	
-    return *this;
-}
-
-
-
-/*
- * remove an entry from the list of entries for this task and set local index
- * for MVA.
- */
-
-Entity&
-Entity::removeEntry( Entry * anEntry )
-{
-    entryList -= anEntry;
     return *this;
 }
 
@@ -359,6 +341,24 @@ Entity::utilization() const
 
 
 
+/*
+ * Return the "saturation" (normalized utilization)
+ */
+
+double
+Entity::saturation() const
+{
+    if ( isInfinite() ) { 
+	return 0.0;
+    } else {
+	const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies(); 
+	double value;
+	assert(dom_copies->getValue(value) == true);
+	return utilization() / value;
+    }
+}
+    
+    
 /*
  * Find all tasks that call this task and add them to the argument.
  * Return the number of calling tasks ADDED!

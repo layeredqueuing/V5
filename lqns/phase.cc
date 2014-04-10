@@ -165,23 +165,28 @@ NullPhase::waitExcept( const unsigned submodel ) const
 void
 NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m, const double v )
 {
-    /* Compute gamma stuff. */
-    const double b = v / m;
-    const double k = (m*m) / v;
-    Gamma_Distribution dist( k, b );
-
-    /* Convert the Cumulative Distribution into a discrete probability distribution */
     const unsigned int n_bins = histogram->getBins();		/* +2 for under and over-flow */
     const double bin_size = histogram->getBinSize();
-    double x = histogram->getMin();
-    double prev = 0.0;
-    for ( unsigned int i = 0; i <= n_bins; ++i ) {	
-	const double temp = dist.getCDF(x);
-	histogram->setBinMeanVariance( i, temp - prev );
-	prev = temp;
-	x   += bin_size;
+
+    if ( v > 0 ) {
+	/* Compute gamma stuff. */
+	const double b = v / m;
+	const double k = (m*m) / v;
+	Gamma_Distribution dist( k, b );
+
+	/* Convert the Cumulative Distribution into a discrete probability distribution */
+	double x = histogram->getMin();
+	double prev = 0.0;
+	for ( unsigned int i = 0; i <= n_bins; ++i, x += bin_size ) {	
+	    const double temp = dist.getCDF(x);
+	    histogram->setBinMeanVariance( i, temp - prev );
+	    prev = temp;
+	}
+	histogram->setBinMeanVariance( n_bins + 1, 1.0 - prev );	/* overflow */
+    } else {
+	/* deterministic */
+	histogram->setBinMeanVariance( histogram->getBinIndex( m ), 1.0 );
     }
-    histogram->setBinMeanVariance( n_bins + 1, 1.0 - prev );	/* overflow */
 }
 
 /*----------------------------------------------------------------------*/
@@ -670,7 +675,7 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 	Call * aCall = findOrAddFwdCall( toEntry, fwdCall );
 	LQIO::DOM::Phase* aDOM = getDOM();
 	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::RENDEZVOUS,
-							       myDOMPhase, toEntry->getDOM(), 0,
+							       myDOMPhase, toEntry->getDOM(), 
 							       new LQIO::DOM::ConstantExternalVariable(value));
 	aCall->rendezvous(rendezvousCall);
     }
@@ -1024,7 +1029,7 @@ Phase::getTaskWait( unsigned int submodel, const double relax ) //tomari : quoru
     Sequence<Call *> xCall( callList() );
     const Call * aCall;
     while ( aCall = xCall() ) {
-	if ( aCall->submodel() == submodel ) {
+	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
 	    totalRendezvous += aCall->rendezvous();
 
 	}
@@ -1034,7 +1039,7 @@ Phase::getTaskWait( unsigned int submodel, const double relax ) //tomari : quoru
 
     Sequence<Call *> nextCall( callList() );
     while ( aCall = nextCall() ) {
-	if ( aCall->submodel() == submodel ) {
+	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
 	    newWait += aCall->wait() * (aCall->rendezvous() /totalRendezvous);
 
 	}
@@ -1052,7 +1057,7 @@ Phase::getRendezvous( unsigned int submodel, const double relax ) //tomari : quo
     Sequence<Call *> nextCall( callList() );
     const Call * aCall;
     while ( aCall = nextCall() ) {
-	if ( aCall->submodel() == submodel ) {
+	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
 	    totalRendezvous += aCall->rendezvous();
 
 	}
@@ -1275,7 +1280,7 @@ Phase::recalculateDynamicValues()
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
 	if ( callDOM ) delete callDOM;
 	myProcessorCall->rendezvous( new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							 NULL, myProcessorEntry->getDOM(), 1, new LQIO::DOM::ConstantExternalVariable(nCalls)) );
+							 NULL, myProcessorEntry->getDOM(), new LQIO::DOM::ConstantExternalVariable(nCalls)) );
 	/* Recompute dynamic values. */
 		
 	const double newWait = oldSliceTime > 0.0 ? myProcessorCall->wait() * newSliceTime / oldSliceTime : newSliceTime;
@@ -1590,7 +1595,7 @@ Phase::initProcessor()
     }
 
     LQIO::DOM::Call* processorCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							    NULL, myProcessorEntry->getDOM(), 1, 
+							    NULL, myProcessorEntry->getDOM(), 
 							    new LQIO::DOM::ConstantExternalVariable(nCalls));
     myProcessorCall->rendezvous( processorCallDom );
 
@@ -1617,7 +1622,7 @@ Phase::initProcessor()
 
 	myThinkCall = newProcessorCall( myThinkEntry );
 	LQIO::DOM::Call* thinkCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							    NULL, myThinkEntry->getDOM(), 1, 
+							    NULL, myThinkEntry->getDOM(), 
 							    new LQIO::DOM::ConstantExternalVariable(1));
 
 	myThinkCall->rendezvous( thinkCallDom );

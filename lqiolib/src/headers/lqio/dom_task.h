@@ -30,10 +30,10 @@ namespace LQIO {
 	public:
       
 	    /* Designated initializer for the Task entity */
-	    Task(const Document * document, const char * name, const scheduling_type scheduling, const std::vector<DOM::Entry *>& entryList, 
-		 ExternalVariable* queue_length, const Processor* processor, const int priority, 
-		 ExternalVariable* n_copies, const int n_replicas,
-		 const Group * group, const void * task_element);
+	    Task(const Document * document, const char * name, const scheduling_type scheduling,  const std::vector<DOM::Entry *>& entryList,
+		 const Processor* processor=0, ExternalVariable* queue_length=0, const int priority=0, 
+		 ExternalVariable* n_copies=0, const int n_replicas=1,
+		 const Group * group=0, const void * task_element=0);
 	    Task( const Task& );
 	    virtual ~Task();
       
@@ -45,27 +45,27 @@ namespace LQIO {
 	    /* Variable Accessors and Mutators */
 	    unsigned int getQueueLengthValue() const;
 	    ExternalVariable * getQueueLength() const;
-	    Task& setQueueLengthValue(const int queueLength);
-	    Task& setQueueLength(ExternalVariable * queueLength);
+	    void setQueueLengthValue(const unsigned int queueLength);
+	    void setQueueLength(ExternalVariable * queueLength);
 	    bool hasQueueLength() const;
 	    int getPriority() const;
-	    Task& setPriority(const int priority);
+	    void setPriority(const unsigned int priority);
 	    double getThinkTimeValue() const;
 	    ExternalVariable * getThinkTime() const;
-	    Task& setThinkTime(ExternalVariable * thinkTime);
+	    void setThinkTime(ExternalVariable * thinkTime);
 	    void setThinkTimeValue( double value );
 	    bool hasThinkTime() const;
-	    Task& setFanOut( const std::string&, unsigned );
+	    void setFanOut( const std::string&, unsigned );
 	    unsigned int getFanOut( const std::string& ) const;
 	    const std::map<const std::string,unsigned int>& getFanOuts() const;
-	    Task& setFanIn( const std::string&, unsigned );
+	    void setFanIn( const std::string&, unsigned );
 	    unsigned int getFanIn( const std::string& ) const;
 	    const std::map<const std::string,unsigned int>& getFanIns() const;
       
 	    /* Access to the "constant" elements */
-	    Task& setProcessor( Processor * );		// Used for cloning only.
+	    void setProcessor( Processor * );		// Used for cloning only.
 	    const Processor* getProcessor() const;
-	    Task& setGroup( Group * );			// Used for cloning only.
+	    void setGroup( Group * );			// Used for cloning only.
 	    const Group* getGroup() const;
       
 	    /* Accessors and Mutators for Activities */
@@ -86,17 +86,19 @@ namespace LQIO {
 	    double getResultPhase2Utilization() const { return getResultPhasePUtilization(2); }
 	    double getResultPhase3Utilization() const { return getResultPhasePUtilization(3); }
 	    virtual Task& setResultPhaseUtilizations(unsigned int count, double* resultPhaseUtilizations);
-	    virtual Task& setResultPhase1Utilization(const double resultPhasePUtilization);
-	    virtual Task& setResultPhase2Utilization(const double resultPhasePUtilization);
-	    virtual Task& setResultPhase3Utilization(const double resultPhasePUtilization);
+	    virtual Task& setResultPhasePUtilization(unsigned int phase, const double resultPhasePUtilization);
+	    virtual Task& setResultPhase1Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization(1,resultPhasePUtilization); }
+	    virtual Task& setResultPhase2Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization(2,resultPhasePUtilization); }
+	    virtual Task& setResultPhase3Utilization(const double resultPhasePUtilization) { return setResultPhasePUtilization(3,resultPhasePUtilization); }
 	    double getResultPhasePUtilizationVariance( const unsigned ) const;
 	    double getResultPhase1UtilizationVariance() const { return getResultPhasePUtilizationVariance(1); }
 	    double getResultPhase2UtilizationVariance() const { return getResultPhasePUtilizationVariance(2); }
 	    double getResultPhase3UtilizationVariance() const { return getResultPhasePUtilizationVariance(3); }
 	    virtual Task& setResultPhaseUtilizationVariances(unsigned int count, double* resultPhaseUtilizationsVariance);
-	    virtual Task& setResultPhase1UtilizationVariance(const double resultPhasePUtilization);
-	    virtual Task& setResultPhase2UtilizationVariance(const double resultPhasePUtilization);
-	    virtual Task& setResultPhase3UtilizationVariance(const double resultPhasePUtilization);
+	    virtual Task& setResultPhase1UtilizationVariance(const double resultPhasePUtilization) { return setResultPhasePUtilizationVariance(1,resultPhasePUtilization); }
+	    virtual Task& setResultPhase2UtilizationVariance(const double resultPhasePUtilization) { return setResultPhasePUtilizationVariance(2,resultPhasePUtilization); }
+	    virtual Task& setResultPhase3UtilizationVariance(const double resultPhasePUtilization) { return setResultPhasePUtilizationVariance(3,resultPhasePUtilization); }
+	    virtual Task& setResultPhasePUtilizationVariance(unsigned int phase, const double resultPhasePUtilization);
 	    double getResultUtilization() const;
 	    double computeResultUtilization();
 	    virtual Task& setResultUtilization(const double resultUtilization);
@@ -112,6 +114,8 @@ namespace LQIO {
 	    virtual Task& setResultProcessorUtilization(const double resultProcessorUtilization);
 	    double getResultProcessorUtilizationVariance() const;
 	    virtual Task& setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance);
+	    double getResultBottleneckStrength() const;
+	    virtual Task& setResultBottleneckStrength( const double resultBottleneckStrength );
 
 	private:
 	    Task& operator=( const Task& );
@@ -122,7 +126,7 @@ namespace LQIO {
 	    std::vector<Entry*> _entryList;
 	    ExternalVariable * _queueLength;
 	    Processor* _processor;
-	    int _priority;
+	    unsigned int _priority;
 	    ExternalVariable * _thinkTime;
 	    Group * _group;
 	    const void* _xmlDomElement;
@@ -145,6 +149,8 @@ namespace LQIO {
 	    double _resultThroughputVariance;
 	    double _resultUtilization;
 	    double _resultUtilizationVariance;
+	    double _resultBottleneckStrength;
+
 	};
 
 	class SemaphoreTask : public Task {
@@ -156,7 +162,7 @@ namespace LQIO {
 	    } InitialStateType;
       
 	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			  ExternalVariable* queue_length, const Processor* processor, const int priority, 
+			  const Processor* processor, ExternalVariable* queue_length, const int priority, 
 			  ExternalVariable* n_copies, const int n_replicas,
 			  const Group * group, const void * task_element );
 	    SemaphoreTask( const SemaphoreTask& );
@@ -200,7 +206,7 @@ namespace LQIO {
 	public:
 	    
 	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-		       ExternalVariable* queue_length, const Processor* processor, const int priority, 
+		       const Processor* processor, ExternalVariable* queue_length, const int priority, 
 		       ExternalVariable* n_copies, const int n_replicas,
 		       const Group * group, const void * task_element   );
 	    //  n_copies is the number of concurrent readers

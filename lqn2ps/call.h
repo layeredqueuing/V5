@@ -128,9 +128,9 @@ protected:
     typedef SRVNCallManip (* print_func_ptr)( const Call& );
 
 public:
+    Call();
     Call( const Entry * toEntry, const unsigned );
     virtual ~Call();
-    static void create( LQIO::DOM::Call* domCall );
     static int compareDst( const void *, const void * );
     static int compareSrc( const void *, const void * );
     static void reset();
@@ -396,7 +396,7 @@ public:
     ProxyTaskCall( const Task * fromTask, const Task * toTask );
 
     virtual bool isPseudoCall() const { return true; }
-    ProxyTaskCall& rendezvous( unsigned p, double value );
+    ProxyTaskCall& rendezvous( const unsigned int p, double value );
 };
 
 class PseudoTaskCall : public TaskCall 

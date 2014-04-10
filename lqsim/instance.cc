@@ -93,7 +93,14 @@ Instance::~Instance()
 void
 Instance::start( void * )
 {
-    object_tab[ps_myself]->run();
+    try {
+	object_tab[ps_myself]->run();
+    } 
+    catch ( runtime_error& e ) {
+	fprintf( stderr, "%s: task \"%s\": %s\n", io_vars.lq_toolname, object_tab[ps_myself]->name(), e.what() );
+	io_vars.anError = true;
+	ps_suspend( ps_myself );
+    }
 }
 
 

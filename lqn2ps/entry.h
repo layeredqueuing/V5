@@ -75,11 +75,10 @@ public:
 
     static void reset();
     Cltn<Entry *> * link( Cltn<Entry *> * aCltn = 0 );
+    void addCall( const unsigned int p, LQIO::DOM::Call* domCall );
 	
     void check() const;
     unsigned findChildren( CallStack&, const unsigned ) const;
-    Entry& aggregate();
-    const Entry& aggregateEntries( const unsigned ) const;
     unsigned setChain( unsigned curr_k, unsigned next_k, const Entity * aServer, callFunc aFunc ) const;
     unsigned referenceTasks( Cltn<const Entity *>&, Element * dst ) const;
     unsigned clients( Cltn<const Entity *>&, const callFunc = 0 ) const;

@@ -271,7 +271,7 @@ Generate::printClientStation( ostream& output, const Task& aClient ) const
     const Entry * anEntry;
 
     while ( anEntry = nextEntry() ) {
-	const unsigned e = anEntry->index;
+	const unsigned e = anEntry->index();
 	bool hasService = false;
 
 	for ( unsigned k = 1; k <= K; ++k ) {
@@ -328,7 +328,7 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
     const Entry * anEntry;
 
     while ( anEntry = nextEntry() ) {
-	const unsigned e = anEntry->index;
+	const unsigned e = anEntry->index();
 	bool hasService = false;
 	unsigned k;
 		
@@ -417,7 +417,7 @@ Generate::printInterlock( ostream& output, const Entity& aServer ) const
 		const Entry * anEntry;
 		while ( anEntry = nextEntry() ) {
 		    output << "    " << station_name( aServer ) << "->setInterlock("
-			   << anEntry->index << "," 
+			   << anEntry->index() << "," 
 			   << k << ","
 			   << PrIL << ");" << endl;
 		}

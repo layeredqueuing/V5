@@ -13,10 +13,10 @@
 namespace LQIO {
     namespace DOM {
     
-	Call::Call(const Document * document, const CallType type, Phase* source, Entry* destination, const unsigned int phase, 
+	Call::Call(const Document * document, const CallType type, Phase* source, Entry* destination, 
 		   ExternalVariable* callMean, const void * element ) :
 	    DocumentObject(document,"",element),
-	    _callType(type), _phase(phase), _destinationEntry(destination), 
+	    _callType(type), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(0),
 	    _hasResultVarianceWaitingTime(false), _hasResultDropProbability(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
@@ -30,7 +30,7 @@ namespace LQIO {
 	/* Special case for forwarding */
 	Call::Call(const Document * document, Entry* source, Entry* destination, ExternalVariable* callMean, const void * element ) :
 	    DocumentObject(document,"",element),
-	    _callType(Call::FORWARD), _phase(0), _destinationEntry(destination), 
+	    _callType(Call::FORWARD), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(0),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
@@ -43,7 +43,7 @@ namespace LQIO {
         
 	Call::Call(const Call& src) :
 	    DocumentObject(src.getDocument(),"",0),
-	    _callType(src._callType), _phase(src._phase), _destinationEntry(src._destinationEntry), 
+	    _callType(src._callType), _destinationEntry(src._destinationEntry), 
 	    _callMean(src._callMean), _histogram(src._histogram),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
@@ -67,18 +67,6 @@ namespace LQIO {
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-    
-	const unsigned Call::getPhase() const
-	{
-	    /* Returns the Phase of Call */
-	    return _phase;
-	}
-
-	void Call::setPhase(const unsigned phase)
-	{
-	    /* Stores the given Phase in the Call */ 
-	    _phase = phase;
-	}
     
 	const Call::CallType Call::getCallType() const
 	{

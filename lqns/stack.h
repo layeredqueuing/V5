@@ -4,8 +4,8 @@
  * $Id$
  */
 
-#ifndef _STACK_H
-#define _STACK_H
+#ifndef LQNS_STACK_H
+#define LQNS_STACK_H
 
 #include <assert.h>
 

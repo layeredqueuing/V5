@@ -62,8 +62,9 @@
 #include "prob.h"
 #include "mva.h"
 
-//#define DEBUG
-
+#if DEBUG_MVA
+bool Conway_Multi_Server::debug_XE = false;
+#endif
 
 /* --- Simple Multi-Server.  All chains have identical service time --- */
 
@@ -371,7 +372,7 @@ Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const un
 void
 Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
 {
-    const Positive sum = effectiveBacklog( solver, N, k ) + solver.PB( *this, N, k ) * departureTime( solver, N, k );
+    const Positive sum = effectiveBacklog( solver, N, k ) + departureTime( solver, N, k );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -397,9 +398,13 @@ Conway_Multi_Server::effectiveBacklog( const MVA& solver, const PopVector& N, co
     for ( unsigned i = 1; i <= K; ++i ) {
 	if ( N[i] == 0 ) continue;
 
-	A_Iterator step( *this, i, N, k );
-		
-	sum += sumOf_PS_k( solver, N, k, step ) * solver.queueOnly( *this, i, N, k );
+	A_Iterator nextA( *this, i, N, k );
+	const double xe = sumOf_PS_k( solver, N, k, nextA );
+	const double q = solver.queueOnly( *this, i, N, k );
+#if	DEBUG_MVA
+	if ( debug_XE ) printXE( cout, i, N, k, xe, q );
+#endif
+	sum += xe * q;
     }
     return sum;
 }
@@ -413,10 +418,13 @@ double
 Conway_Multi_Server::departureTime( const MVA& solver, const PopVector& N, const unsigned k ) const
 {
     if ( N[k] == 0 || V(k) == 0.0 ) return 0.0;
-
-    B_Iterator step( *this, N, k );
-
-    return sumOf_PS_k( solver, N, k, step );
+    B_Iterator nextB( *this, N, k );
+    const double xr = sumOf_PS_k( solver, N, k, nextB );
+    const double PB = solver.PB( *this, N, k );
+#if	DEBUG_MVA
+    if ( debug_XE ) printXR( cout, N, k, xr, PB );
+#endif
+    return xr * PB;
 }
 
 
@@ -433,6 +441,7 @@ Conway_Multi_Server::sumOf_PS_k( const MVA& solver, const PopVector& N, const un
     PopVector n(K);				// Need to sequence over this.
 
     while ( next( n ) ) {
+	assert( n.sum() == mu() );
 	const double A_ = A( solver, n, N, k );
 	sumOf_A += A_ * meanMinimumService( n );
 	sumOf_C += A_;
@@ -500,6 +509,24 @@ Conway_Multi_Server::meanMinimumService( const PopVector& n ) const
 
     return sum > 0.0 ? 1.0 / sum : 0.0;
 }
+
+
+#if	DEBUG_MVA
+ostream& 
+Conway_Multi_Server::printXE( ostream& output, const unsigned int i, const PopVector& N, const unsigned int k, const double xe, const double q ) const
+{
+    output << "XE_{" << closedIndex << "," << k << "," << i << "}" << N << " = " << xe << ", Q* = " << q << endl;
+    return output;
+}
+
+
+ostream& 
+Conway_Multi_Server::printXR( ostream& output, const PopVector& N, const unsigned int k, const double xe, const double pb ) const
+{
+    output << "XR_{" << closedIndex << "," << k << "}" << N << " = " << xe << ", PB = " << pb << endl;
+    return output;
+}
+#endif
 
 /* ----------------------Phased Multi-Server -------------------------- */
 

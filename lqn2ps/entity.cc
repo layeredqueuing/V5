@@ -395,11 +395,23 @@ Entity::colour() const
 	    if ( u < 0.4 || !Flags::use_colour && u < 0.8 ) {
 		return Graphic::DEFAULT_COLOUR;
 	    } else if ( Flags::use_colour ) {
-		if ( u < 0.5 ) {
+		if ( u < 0.1 ) {
+		    return Graphic::VIOLET;
+		} else if ( u < 0.2 ) {
 		    return Graphic::BLUE;
+		} else if ( u < 0.3 ) {
+		    return Graphic::OCEAN;
+		} else if ( u < 0.4 ) {
+		    return Graphic::CYAN;
+		} else if ( u < 0.5 ) {
+		    return Graphic::TURQUOISE;
 		} else if ( u < 0.6 ) {
 		    return Graphic::GREEN;
+		} else if ( u < 0.7 ) {
+		    return Graphic::SPRINGGREEN;
 		} else if ( u < 0.8 ) {
+		    return Graphic::YELLOW;
+		} else if ( u < 0.9 ) {
 		    return Graphic::ORANGE;
 		} else { 
 		    return Graphic::RED;
@@ -447,7 +459,7 @@ Entity::label()
 ostream&
 Entity::print( ostream& output ) const
 {
-    LQIO::SRVN::EntityInput::print( output, dynamic_cast<const LQIO::DOM::Entity *>(getDOM()) );
+    LQIO::SRVN::EntityInput::print( output, true, dynamic_cast<const LQIO::DOM::Entity *>(getDOM()) );
     return output;
 }
 
@@ -495,11 +507,11 @@ Entity::drawServer( ostream& output ) const
 Graphic::colour_type 
 Entity::chainColour( unsigned int k ) const
 {
-    static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::RED, Graphic::BLUE, Graphic::GREEN, Graphic::ORANGE };
+    static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::OCEAN, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
 
     if ( Flags::print[COLOUR].value.i == COLOUR_CHAINS ) { 
-	return chain_colours[k%5];
-    } else if ( colour() == Graphic::GREY_10 ) {
+	return chain_colours[k%12];
+    } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
 	return Graphic::BLACK;
     } else {
 	return colour();

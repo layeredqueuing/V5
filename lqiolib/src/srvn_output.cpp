@@ -18,7 +18,9 @@
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <lqx/SyntaxTree.h>
 #include "srvn_output.h"
+#include "common_io.h"
 #include "srvn_spex.h"
 #include "dom_extvar.h"
 #include "dom_document.h"
@@ -108,13 +110,13 @@ namespace LQIO {
     }
 
     SRVN::TimeManip SRVN::ObjectOutput::print_time( const clock_t t )  { return SRVN::TimeManip( &SRVN::ObjectOutput::printTime, t ); }
-    SRVN::StringManip SRVN::Output::task_header( const char * s )      { return SRVN::StringManip( &SRVN::Output::taskHeader, s ); }
-    SRVN::StringManip SRVN::Output::entry_header( const char * s )     { return SRVN::StringManip( &SRVN::Output::entryHeader, s ); }
-    SRVN::StringManip SRVN::Output::activity_header( const char * s )  { return SRVN::StringManip( &SRVN::Output::activityHeader, s ); }
-    SRVN::StringManip SRVN::Output::call_header( const char * s )      { return SRVN::StringManip( &SRVN::Output::callHeader, s ); }
+    DOM::StringManip SRVN::Output::task_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::taskHeader, s ); }
+    DOM::StringManip SRVN::Output::entry_header( const std::string& s )     { return DOM::StringManip( &SRVN::Output::entryHeader, s ); }
+    DOM::StringManip SRVN::Output::activity_header( const std::string& s )  { return DOM::StringManip( &SRVN::Output::activityHeader, s ); }
+    DOM::StringManip SRVN::Output::call_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::callHeader, s ); }
     SRVN::UnsignedManip SRVN::Output::phase_header( const unsigned n ) { return SRVN::UnsignedManip( &SRVN::Output::phaseHeader, n ); }
-    SRVN::StringManip SRVN::Output::hold_header( const char * s )      { return SRVN::StringManip( &SRVN::Output::holdHeader, s ); }
-    SRVN::StringManip SRVN::Output::rwlock_header( const char * s )    { return SRVN::StringManip( &SRVN::Output::rwlockHeader, s ); }
+    DOM::StringManip SRVN::Output::hold_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::holdHeader, s ); }
+    DOM::StringManip SRVN::Output::rwlock_header( const std::string& s )    { return DOM::StringManip( &SRVN::Output::rwlockHeader, s ); }
 
     ostream&
     SRVN::ObjectOutput::printTime( ostream& output, const clock_t time )
@@ -156,7 +158,7 @@ namespace LQIO {
      */
 
     ostream&
-    SRVN::Output::taskHeader( ostream& output, const char * s )
+    SRVN::Output::taskHeader( ostream& output, const std::string& s )
     {
         output << newline << newline << textbf << s << newline << newline << textrm
                << setw(ObjectOutput::__maxStrLen) << "Task Name" << setw(ObjectOutput::__maxStrLen) << "Entry Name";
@@ -164,14 +166,14 @@ namespace LQIO {
     }
 
     /* static */ ostream&
-    SRVN::Output::entryHeader( ostream& output, const char * s )
+    SRVN::Output::entryHeader( ostream& output, const std::string& s )
     {
         output << task_header( s ) << phase_header( ObjectOutput::__maxPhase );
         return output;
     }
 
     ostream&
-    SRVN::Output::activityHeader( ostream& output, const char * s )
+    SRVN::Output::activityHeader( ostream& output, const std::string& s )
     {
         output << newline << newline << s << newline << newline
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
@@ -181,7 +183,7 @@ namespace LQIO {
     }
 
     ostream&
-    SRVN::Output::callHeader( ostream& output, const char * s )
+    SRVN::Output::callHeader( ostream& output, const std::string& s )
     {
         output << newline << newline << textbf << s << newline << newline << textrm
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
@@ -207,7 +209,7 @@ namespace LQIO {
     }
 
     ostream&
-    SRVN::Output::holdHeader( ostream& output, const char * s )
+    SRVN::Output::holdHeader( ostream& output, const std::string& s )
     {
         ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
         output << newline << newline << textbf << s << newline << newline << textrm
@@ -222,7 +224,7 @@ namespace LQIO {
     }
 
     ostream&
-    SRVN::Output::rwlockHeader( ostream& output, const char * s )
+    SRVN::Output::rwlockHeader( ostream& output, const std::string& s )
     {
         ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
         output << newline << newline << s << newline << newline
@@ -555,6 +557,7 @@ namespace LQIO {
     SRVN::ObjectOutput::phaseInfo( ostream& output, const DOM::Entry & entry, const phaseFunc func )
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	assert( phases.size() <= DOM::Phase::MAX_PHASE );
         std::map<unsigned, DOM::Phase*>::const_iterator p;
         for (p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
@@ -572,6 +575,7 @@ namespace LQIO {
     SRVN::ObjectOutput::phaseTypeInfo( ostream& output, const DOM::Entry & entry, const phaseTypeFunc func )
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	assert( phases.size() <= DOM::Phase::MAX_PHASE );
         std::map<unsigned, DOM::Phase*>::const_iterator p;
         for (p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
@@ -588,6 +592,7 @@ namespace LQIO {
     {
 	unsigned int np = 0;
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	assert( phases.size() <= DOM::Phase::MAX_PHASE );
 	if ( entry.getStartActivity() ) {
 	    if ( !entry_func ) return output;
 	    for ( unsigned int p = 1; p <= 2; ++p ) {
@@ -616,6 +621,7 @@ namespace LQIO {
     {
 	unsigned int np = 0;
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	assert( phases.size() <= DOM::Phase::MAX_PHASE );
 	if ( entry.getStartActivity() ) {
 	    if ( !entry_func ) return output;
 	    for ( unsigned int p = 1; p <= 2; ++p ) {
@@ -690,6 +696,19 @@ namespace LQIO {
         return output;
     }
 
+    void
+    SRVN::ObjectInput::printReplyList( const std::vector<DOM::Entry*>& replies ) const
+    {
+	_output << "[";
+	for ( std::vector<DOM::Entry *>::const_iterator next_entry = replies.begin(); next_entry != replies.end(); ++next_entry ) {
+	    if ( next_entry != replies.begin() ) {
+		_output << ",";
+	    }
+	    _output << (*next_entry)->getName();
+	}
+	_output << "]";
+    }
+
     ostream&
     SRVN::ObjectInput::printNumberOfCalls( ostream& output, const DOM::Call& call ) 
     {
@@ -759,15 +778,15 @@ namespace LQIO {
 	output << "#!User: " << SRVN::ObjectOutput::print_time( document.getResultUserTime() ) << endl
 	       << "#!Sys:  " << SRVN::ObjectOutput::print_time( document.getResultSysTime() ) << endl
 	       << "#!Real: " << SRVN::ObjectOutput::print_time( document.getResultElapsedTime() ) << endl;
-	if ( document._mvaStatistics.submodels > 0 ) {
+	if ( document.getResultMVASubmodels() > 0 ) {
 	    output << "#!Solver: "
-		   << document._mvaStatistics.submodels << ' '
-		   << document._mvaStatistics.core << ' '
-		   << document._mvaStatistics.step << ' '
-		   << document._mvaStatistics.step_squared << ' '
-		   << document._mvaStatistics.wait << ' '
-		   << document._mvaStatistics.wait_squared << ' '
-		   << document._mvaStatistics.faults << endl;
+		   << document.getResultMVASubmodels() << ' '
+		   << document.getResultMVACore() << ' '
+		   << document.getResultMVAStep() << ' '
+		   << document.getResultMVAStepSquared() << ' '
+		   << document.getResultMVAWait() << ' '
+		   << document.getResultMVAWaitSquared() << ' '
+		   << document.getResultMVAFaults() << endl;
 	}
 	output << endl;
 	return output;
@@ -921,8 +940,8 @@ namespace LQIO {
     /* Input Output							*/
     /* ---------------------------------------------------------------- */
 
-    SRVN::Input::Input( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool annotate  )
-	: _document(document), _entities(entities), _annotate(annotate)
+    SRVN::Input::Input( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool annotate, bool instantiate  )
+	: _document(document), _entities(entities), _annotate(annotate), _instantiate(instantiate)
     {
 	/* Initialize lengths */
 	const std::map<std::string,LQIO::DOM::Entry*>& entries = document.getEntries();
@@ -935,6 +954,7 @@ namespace LQIO {
 
 	    const LQIO::DOM::Entry * entry = e->second;
 	    const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
+	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
 	    for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
 		ostringstream s;
 		const DOM::Phase* phase = p->second;
@@ -961,8 +981,13 @@ namespace LQIO {
     ostream&
     SRVN::Input::print( ostream& output ) const
     {
-	if ( _document.getSymbolExternalVariableCount() != 0 ) {
+	printHeader( output );
+
+	if ( LQIO::DOM::Spex::numberOfInputVariables() > 0 && !_instantiate ) {
+	    output << std::endl;
+	    LQIO::DOM::Spex::printInputVariables( output );
 	}
+
 	printGeneral( output );
 
 	const unsigned int n_proc = count_if( _entities.begin(), _entities.end(), is_processor );
@@ -978,7 +1003,7 @@ namespace LQIO {
 		   << "#   multiplicity = m value {multiprocessor}" << endl
 		   << "#                | i {infinite or delay server}" << endl;
 	}
-	for_each( _entities.begin(), _entities.end(), ProcessorInput( output, &ProcessorInput::print ) );
+	for_each( _entities.begin(), _entities.end(), ProcessorInput( output, _instantiate, &ProcessorInput::print ) );
 	output << -1 << endl;
 
 
@@ -988,7 +1013,7 @@ namespace LQIO {
 	    if ( _annotate ) {
 		output << "# SYNTAX: g GroupName share cap ProcessorName" << endl;
 	    }
-	    for_each( groups.begin(), groups.end(), GroupInput( output, &GroupInput::print ) );
+	    for_each( groups.begin(), groups.end(), GroupInput( output, _instantiate, &GroupInput::print ) );
 	    output << -1 << endl;
 	}
 
@@ -1002,7 +1027,7 @@ namespace LQIO {
 		   << "#   multiplicity = m value {multithreaded}" << endl
 		   << "#                | i {infinite}" << endl;
 	}
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::print ) );
+	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::print ) );
 	output << -1 << endl;
 
 	output << endl << "E " << _document.getNumberOfEntries() << endl;
@@ -1020,25 +1045,26 @@ namespace LQIO {
 		   << "#       F - ProbForwarding {forward to ToEntry rather than replying} " << endl
 		   << "#       z - AsynchronousCalls {no. of send-no-reply messages} " << endl;
 	}
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::printEntryInput ) );
+	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::printEntryInput ) );
 	output << -1 << endl;
 
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::printActivityInput ) );
-	return output;
+	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::printActivityInput ) );
 
-	const unsigned int n_R = LQIO::DOM::Spex::__result_variables.size();
-	if ( n_R > 0 ) {
-	    output << "R " << n_R << endl;
-	    output << "-1" << endl << endl;
+	const unsigned int n_R = LQIO::DOM::Spex::numberOfResultVariables();
+	if ( n_R > 0 && !_instantiate ) {
+	    output << endl << "R " << n_R << endl;
+	    LQIO::DOM::Spex::printResultVariables( output );
+	    output << "-1" << endl;
 	}
+	return output;
     }
 
-/*
- * Print out the "general information" for srvn input output.
- */
+    /*
+     * Print out the "general information" for srvn input output.
+     */
 
     ostream&
-    SRVN::Input::printGeneral( ostream& output ) const
+    SRVN::Input::printHeader( ostream& output ) const
     {	
 	output << "# SRVN Model Description File, for file: " << LQIO::input_file_name << endl
 	       << "# Generated by: " << LQIO::DOM::Document::io_vars->lq_toolname << ", version " << LQIO::DOM::Document::io_vars->lq_version << endl;
@@ -1062,24 +1088,35 @@ namespace LQIO {
 	    }
 	    output << endl;
 	}
+	return output;
+    }
 
-	/* Print general information */
+    /* 
+     * Print general information 
+     */
 
-	output << "G \"" << _document.getModelComment() << "\" " ;
+    ostream&
+    SRVN::Input::printGeneral( ostream& output ) const
+    {	
+	output << endl << "G \"" << _document.getModelComment() << "\" " ;
 	if ( _annotate ) {
 	    output << "\t\t\t# Model comment " << endl
 		   << _document.getModelConvergenceValue() << "\t\t\t# Convergence test value." << endl
 		   << _document.getModelIterationLimit() << "\t\t\t# Maximum number of iterations." << endl
 		   << _document.getModelPrintInterval() << "\t\t\t# Print intermediate results (see manual pages)" << endl
 		   << _document.getModelUnderrelaxationCoefficient() << "\t\t\t# Model under-relaxation ( 0.0 < x <= 1.0)" << endl
-		   << -1 << endl << endl;
+		   << -1;
 	} else {
 	    output << _document.getModelConvergenceValue() << " "
 		   << _document.getModelIterationLimit() << " "
 		   << _document.getModelPrintInterval() << " "
 		   << _document.getModelUnderrelaxationCoefficient() << " "
-		   << -1 << endl << endl;
+		   << -1;
 	}
+	if ( !_instantiate ) {
+	    LQIO::DOM::Spex::printObservationVariables( output );
+	}
+	output << endl;
 	return output;
     }
 
@@ -1132,21 +1169,30 @@ namespace LQIO {
         }
 	_output << newline;
 
+	const map<string,string>& pragmas = document.getPragmaList();
+	if ( pragmas.size() ) {
+	    _output << "Pragma" << (pragmas.size() > 1 ? "s:" : ":") << newline;
+	    for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
+		_output << "    " << nextPragma->first << "=" << nextPragma->second << newline;
+	    }
+	    _output << newline;
+	}
+
         _output << "Solver: " << document.getResultPlatformInformation() << newline
 		<< "    User:       " << print_time( document.getResultUserTime() ) << newline
 		<< "    System:     " << print_time( document.getResultSysTime() ) << newline
 		<< "    Elapsed:    " << print_time( document.getResultElapsedTime() ) << newline
 		<< newline;
 
-	if ( document._mvaStatistics.submodels > 0 ) {
-	    _output << "    Submodels:  " << document._mvaStatistics.submodels << newline
-		    << "    MVA Core(): " << setw(ObjectOutput::__maxDblLen) << document._mvaStatistics.core << newline
-		    << "    MVA Step(): " << setw(ObjectOutput::__maxDblLen) << document._mvaStatistics.step << newline
-//				       document._mvaStatistics.step_squared <<
-		    << "    MVA Wait(): " << setw(ObjectOutput::__maxDblLen) << document._mvaStatistics.wait << newline;
-//				       document._mvaStatistics.wait_squared <<
-	    if ( document._mvaStatistics.faults ) {
-		_output << "*** Faults ***" << document._mvaStatistics.faults << newline;
+	if ( document.getResultMVASubmodels() > 0 ) {
+	    _output << "    Submodels:  " << document.getResultMVASubmodels() << newline
+		    << "    MVA Core(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVACore() << newline
+		    << "    MVA Step(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVAStep() << newline
+//				       document.getResultMVAStepSquared() <<
+		    << "    MVA Wait(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVAWait() << newline;
+//				       document.getResultMVAWaitSquared() <<
+	    if ( document.getResultMVAFaults() ) {
+		_output << "*** Faults ***" << document.getResultMVAFaults() << newline;
 	    }
 	}
     }
@@ -1181,12 +1227,12 @@ namespace LQIO {
     SRVN::EntityManip SRVN::EntityInput::replicas_of( const DOM::Entity & e )   { return SRVN::EntityManip( &SRVN::EntityInput::printReplicas, e ); }
 
     ostream&
-    SRVN::EntityInput::print( ostream& output, const DOM::Entity * entity ) 
+    SRVN::EntityInput::print( ostream& output, bool instantiate, const DOM::Entity * entity ) 
     {
 	if ( dynamic_cast<const DOM::Task *>(entity) ) {
-	    LQIO::SRVN::TaskInput( output, 0 ).print( *dynamic_cast<const LQIO::DOM::Task *>(entity) );
+	    LQIO::SRVN::TaskInput( output, instantiate, 0 ).print( *dynamic_cast<const LQIO::DOM::Task *>(entity) );
 	} else {
-	    LQIO::SRVN::ProcessorInput( output, 0 ).print( *dynamic_cast<const LQIO::DOM::Processor *>(entity) );
+	    LQIO::SRVN::ProcessorInput( output, instantiate, 0 ).print( *dynamic_cast<const LQIO::DOM::Processor *>(entity) );
 	}
 	return output;
     }
@@ -1254,9 +1300,10 @@ namespace LQIO {
     void
     SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor ) const
     {
-        const std::vector<DOM::Task*>& tasks = processor.getTaskList();
-	const std::vector<DOM::Group*>& groups = processor.getGroupList();
-	const double proc_util = !processor.isInfinite() ? processor.getResultUtilization() / (static_cast<double>(processor.getCopiesValue()) * processor.getRateValue()): 0;
+        const std::set<DOM::Task*>& tasks = processor.getTaskList();
+	const std::set<DOM::Group*>& groups = processor.getGroupList();
+	const double rate = processor.hasRate() ? processor.getRateValue() : 1.0;
+	const double proc_util = !processor.isInfinite() ? processor.getResultUtilization() / (static_cast<double>(processor.getCopiesValue()) * rate): 0;
 
         if ( __parseable ) {
             _output << "P " << processor.getName() << " " << tasks.size() << newline;
@@ -1273,7 +1320,7 @@ namespace LQIO {
 
 	/* groups go here... */
 	if ( groups.size() > 0 ) {
-	    for ( std::vector<DOM::Group*>::const_iterator nextGroup = groups.begin(); nextGroup != groups.end(); ++nextGroup ) {
+	    for ( std::set<DOM::Group*>::const_iterator nextGroup = groups.begin(); nextGroup != groups.end(); ++nextGroup ) {
 		const DOM::Group& group = *(*nextGroup);
 		printUtilizationAndWaiting( processor, group.getTaskList() );
 		if ( !__parseable ) {
@@ -1316,10 +1363,10 @@ namespace LQIO {
 
 
     void
-    SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor, const std::vector<DOM::Task*>& tasks ) const
+    SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor, const std::set<DOM::Task*>& tasks ) const
     {
 	const bool is_infinite = processor.isInfinite();
-        for ( std::vector<DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
+        for ( std::set<DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
             const DOM::Task * task = *nextTask;
             bool print_task_name = true;
             unsigned int item_count = 0;
@@ -1432,6 +1479,9 @@ namespace LQIO {
 		<< copies_of( processor )
 	        << replicas_of( processor )
 	        << rate_of( processor );	
+	if ( !_instantiate ) {
+	    LQIO::DOM::Spex::printObservationVariables( _output, processor );
+	}
 	_output << endl;
     }
 
@@ -1521,6 +1571,13 @@ namespace LQIO {
     void
     SRVN::GroupInput::print( const DOM::Group& group ) const
     {
+	_output << "  g " << group.getName()
+		<< " " << *group.getGroupShare();
+	if ( group.getCap() ) {
+	    _output << " c";
+	}	
+	const LQIO::DOM::Processor * proc = group.getProcessor();
+	_output << " " << proc->getName() << std::endl;
     }
 
     /* -------------------------------------------------------------------- */
@@ -1870,28 +1927,31 @@ namespace LQIO {
 
 
     void
-    SRVN::TaskInput::print( const DOM::Task& t ) const
+    SRVN::TaskInput::print( const DOM::Task& task ) const
     {
-	_output << "  t " << t.getName()
-		<< " " << scheduling_of( t )
-		<< entries_of( t )
-		<< queue_length_of( t )
-		<< " " << t.getProcessor()->getName()
-		<< priority_of( t )
-		<< think_time_of( t )
-		<< copies_of( t )
-		<< replicas_of( t )
-		<< group_of( t );
+	_output << "  t " << task.getName()
+		<< " " << scheduling_of( task )
+		<< entries_of( task )
+		<< queue_length_of( task )
+		<< " " << task.getProcessor()->getName()
+		<< priority_of( task )
+		<< think_time_of( task )
+		<< copies_of( task )
+		<< replicas_of( task )
+		<< group_of( task );
+	if ( !_instantiate ) {
+	    LQIO::DOM::Spex::printObservationVariables( _output, task );
+	}
 	_output << endl;
 
-	for ( std::map<const std::string, unsigned int>::const_iterator fi = t.getFanIns().begin(); fi != t.getFanIns().end(); ++fi ) {
+	for ( std::map<const std::string, unsigned int>::const_iterator fi = task.getFanIns().begin(); fi != task.getFanIns().end(); ++fi ) {
 	    if ( fi->second > 1 ) {	/* task name, fan in */
-		_output << "  i " << fi->first << " " << t.getName() << " " << fi->second << endl;
+		_output << "  i " << fi->first << " " << task.getName() << " " << fi->second << endl;
 	    }
 	}
-	for ( std::map<const std::string, unsigned int>::const_iterator fo = t.getFanOuts().begin(); fo != t.getFanOuts().end(); ++fo ) {
+	for ( std::map<const std::string, unsigned int>::const_iterator fo = task.getFanOuts().begin(); fo != task.getFanOuts().end(); ++fo ) {
 	    if ( fo->second > 1 ) {
-		_output << "  o " << t.getName() << " " << fo->first << " " << fo->second << endl;
+		_output << "  o " << task.getName() << " " << fo->first << " " << fo->second << endl;
 	    }
 	}
     }
@@ -1996,7 +2056,7 @@ namespace LQIO {
     {
 	_output << "# ---------- " << task.getName() << " ----------" << endl;
 	const std::vector<DOM::Entry *> & entries = task.getEntryList();
-	for_each( entries.begin(), entries.end(), EntryInput( _output, &EntryInput::print ) );
+	for_each( entries.begin(), entries.end(), EntryInput( _output, _instantiate, &EntryInput::print ) );
     }
 
     void
@@ -2006,12 +2066,20 @@ namespace LQIO {
 	if ( activities.size() == 0 ) return;
 
 	_output << endl << "A " << task.getName() << endl;
-	for_each( activities.begin(), activities.end(), ActivityInput( _output, &ActivityInput::print ) );
+	for_each( activities.begin(), activities.end(), ActivityInput( _output, _instantiate, &ActivityInput::print ) );
 
 	const std::set<DOM::ActivityList*>& precedences = task.getActivityLists();
 	if ( precedences.size() ) {
 	    _output << " :" << endl;
-	    for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size() ) );
+	    for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, _instantiate, &ActivityListInput::print, precedences.size() ) );
+	} else if ( activities.size() ) {
+	    const std::map<std::string,DOM::Activity*>::const_iterator i = activities.begin();
+	    const LQIO::DOM::Activity * activity = i->second;
+	    if ( activity->getReplyList().size() > 0 ) {
+		_output << " :" << endl << "  " << activity->getName();
+		printReplyList( activity->getReplyList() );
+		_output << endl;
+	    }
 	}
 
 	_output << "-1" << endl;
@@ -2213,6 +2281,7 @@ namespace LQIO {
 	    if ( !value ) {
 		/* Recompute based on variance */
 		const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+		assert( phases.size() <= DOM::Phase::MAX_PHASE );
 		double sum_of_t = 0;
 		double sum_of_v = 0;
 		for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
@@ -2334,35 +2403,39 @@ namespace LQIO {
 	    printForwarding( entry );
 
 	} else {
-	    const std::map<unsigned, DOM::Phase*>& p = entry.getPhaseList();
+	    const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
 
 	    _output << "  s " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-	    for_each( p.begin(), p.end(), PhaseInput( _output, &PhaseInput::printServiceTime ) );
+	    for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printServiceTime ) );
+	    if ( !_instantiate ) {
+		LQIO::DOM::Spex::printObservationVariables( _output, entry );
+	    }
 	    _output << " -1" << endl;
 
 	    if ( entry.hasNonExponentialPhases() ) {
 		_output << "  c " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( p.begin(), p.end(), PhaseInput( _output, &PhaseInput::printCoefficientOfVariation ) );
+		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printCoefficientOfVariation ) );
 		_output << " -1" << endl;
 	    }
 	    if ( entry.hasThinkTime() ) {
 		_output << "  Z " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( p.begin(), p.end(), PhaseInput( _output, &PhaseInput::printThinkTime ) );
+		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printThinkTime ) );
 		_output << " -1" << endl;
 	    }
 	    if ( entry.hasDeterministicPhases() ) {
 		_output << "  f " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( p.begin(), p.end(), PhaseInput( _output, &PhaseInput::printPhaseFlag ) );
+		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printPhaseFlag ) );
 		_output << " -1" << endl;
 	    }
 	    if ( entry.hasMaxServiceTimeExceeded() ) {
 		_output << "  M " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( p.begin(), p.end(), PhaseInput( _output, &PhaseInput::printMaxServiceTimeExceeded ) );
+		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printMaxServiceTimeExceeded ) );
 		_output << " -1" << endl;
 	    }
 	    if ( entry.hasHistogram() ) {
 		/* Histograms are stored by phase for regular entries.  Activity entries don't have phases...  Punt... */
-		for ( std::map<unsigned, DOM::Phase*>::const_iterator np = p.begin(); np != p.end();  ++np ) {
+		for ( std::map<unsigned, DOM::Phase*>::const_iterator np = phases.begin(); np != phases.end();  ++np ) {
 		    const DOM::Phase * p = np->second;
 		    if ( p->hasHistogram() ) {
 			const DOM::Histogram *h = p->getHistogram();
@@ -2392,8 +2465,9 @@ namespace LQIO {
     { 
 	/* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
 
-	std::map<const DOM::Entry *, ForPhase> callsByPhase;
+	std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
 	const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+	assert( phases.size() <= DOM::Phase::MAX_PHASE );
 	for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
 	    const DOM::Phase* phase = p->second;
 	    const unsigned index = p->first;
@@ -2401,7 +2475,7 @@ namespace LQIO {
 	    for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
 		const DOM::Call * call = *nextCall;
 		const DOM::Entry * dest = call->getDestinationEntry();
-		ForPhase& y = callsByPhase[dest];
+		DOM::ForPhase& y = callsByPhase[dest];
 		y.setType( call->getCallType() ); 
 		y[index] = call;
 	    }
@@ -2409,8 +2483,8 @@ namespace LQIO {
 
 	/* Now iterate over the collection of calls */
 
-	for ( std::map<const DOM::Entry *, ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
-	    const ForPhase& callInfo = next_y->second;
+	for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+	    const DOM::ForPhase& callInfo = next_y->second;
 	    _output << "  ";
 	    switch ( callInfo.getType() ) {
 	    case DOM::Call::RENDEZVOUS: _output << "y"; break;
@@ -2425,6 +2499,13 @@ namespace LQIO {
 		    _output << number_of_calls( *call );
 		} else {
 		    _output << " 0";
+		}
+	    }
+	
+	    if ( !_instantiate ) {
+		for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+		    const DOM::Call * call = callInfo[p->first];
+		    LQIO::DOM::Spex::printObservationVariables( _output, *call );
 		}
 	    }
 	    _output << " -1" << endl;
@@ -2533,26 +2614,21 @@ namespace LQIO {
     void
     SRVN::ActivityListInput::print( const DOM::ActivityList& precedence ) const
     {
-	switch ( precedence.getListType() ) {
-	case DOM::ActivityList::JOIN_ACTIVITY_LIST:
-	case DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
-	case DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
-	    _output << " ";
-	    printPreList( precedence );
-	    if ( precedence.getNext() ) {
-		_output << " -> ";
-		printPostList( *precedence.getNext() );
-		const_cast<SRVN::ActivityListInput *>(this)->_count += 2;
-	    } else {
-		const_cast<SRVN::ActivityListInput *>(this)->_count += 1;
-	    }
-	    if ( _count < _size ) {
-		_output << ";";
-	    }
-	    _output << endl;
-	    break;
-	default: break;
+	if ( precedence.isForkList() ) return;
+
+	_output << " ";
+	printPreList( precedence );
+	if ( precedence.getNext() ) {
+	    _output << " -> ";
+	    printPostList( *precedence.getNext() );
+	    _count += 2;
+	} else {
+	    _count += 1;
 	}
+	if ( _count < _size ) {
+	    _output << ";";
+	}
+	_output << endl;
     }
 
     void
@@ -2584,14 +2660,7 @@ namespace LQIO {
 	    _output << " " << activity->getName();
 	    const std::vector<DOM::Entry*>& replies = activity->getReplyList();
 	    if ( replies.size() ) {
-		_output << "[";
-		for ( std::vector<DOM::Entry *>::const_iterator next_entry = replies.begin(); next_entry != replies.end(); ++next_entry ) {
-		    if ( next_entry != replies.begin() ) {
-			_output << ",";
-		    }
-		    _output << (*next_entry)->getName();
-		}
-		_output << "]";
+		printReplyList( replies );
 	    }
 	}
     }
@@ -2666,8 +2735,9 @@ namespace LQIO {
             const DOM::Entry * entry = *nextEntry;
 
             /* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
-            std::map<const DOM::Entry *, ForPhase> callsByPhase;
+            std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
             const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
+	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
             for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
                 const DOM::Phase* phase = p->second;
                 const unsigned index = p->first;
@@ -2676,16 +2746,16 @@ namespace LQIO {
                     const DOM::Call * call = *nextCall;
                     if ( call && (call->*_testFunc)() ) {
                         const DOM::Entry * dest = call->getDestinationEntry();
-                        ForPhase& y = callsByPhase[dest];
+                        DOM::ForPhase& y = callsByPhase[dest];
                         y[index] = call;
                     }
                 }
             }
 
             /* Now iterate over the collection of calls */
-            for ( std::map<const DOM::Entry *, ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
-                const ForPhase& callInfo = next_y->second;
-		const_cast<ForPhase *>(&callInfo)->setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
+            for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+                const DOM::ForPhase& callInfo = next_y->second;
+		const_cast<DOM::ForPhase *>(&callInfo)->setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
                 _output << entity_name( *(ep.second), print_task_name )
                         << entry_name( *entry ) 
                         << entry_name( *(next_y->first) )
@@ -2824,7 +2894,7 @@ namespace LQIO {
     }
 
     ostream&
-    SRVN::CallOutput::printCalls( ostream& output, const CallOutput& info, const ForPhase& phases, const callConfFPtr func, const ConfidenceIntervals* conf )
+    SRVN::CallOutput::printCalls( ostream& output, const CallOutput& info, const DOM::ForPhase& phases, const callConfFPtr func, const ConfidenceIntervals* conf )
     {
         for ( unsigned p = 1; p <= phases.getMaxPhase(); ++p ) {
             output << setw(__maxDblLen-1);
@@ -2835,15 +2905,7 @@ namespace LQIO {
         return output;
     }
 
-    SRVN::ForPhase::ForPhase()
-	: _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::NULL_CALL)
-    {
-        for ( unsigned p = 0; p < DOM::Phase::MAX_PHASE; ++p ) {
-            ia[p] = 0;
-        }
-    }
-
-    SRVN::CallOutput::CallResultsManip SRVN::CallOutput::print_calls( const SRVN::CallOutput& c, const SRVN::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l )
+    SRVN::CallOutput::CallResultsManip SRVN::CallOutput::print_calls( const SRVN::CallOutput& c, const DOM::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l )
     {
         return CallResultsManip( &SRVN::CallOutput::printCalls, c, p, x, l );
     }
@@ -2873,14 +2935,9 @@ namespace LQIO {
 	    }
 
             const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
+	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
             for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
                 const DOM::Phase* phase = p->second;
-
-		if ( phase->hasHistogram() ) {
-		    _output << "Service time histogram for entry " << entry->getName() << ", phase " << p->first << newline;
-		    (this->*_func)( *phase->getHistogram() );
-		}
-
 		const std::vector<DOM::Call*>& calls = phase->getCalls();
 		for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
 		    const DOM::Call * call = *c;

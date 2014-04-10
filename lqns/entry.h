@@ -124,12 +124,12 @@ public:
     int operator==( const Entry& anEntry ) const;
     static void reset();
     static Entry * find( const string& entry_name );
-    static Entry * create( LQIO::DOM::Entry* domEntry );
+    static Entry * create( LQIO::DOM::Entry* domEntry, unsigned int );
 	
 protected:
     /* Instance creation */
 
-    Entry( LQIO::DOM::Entry* aDomEntry, const unsigned );
+    Entry( LQIO::DOM::Entry* aDomEntry, const unsigned, const unsigned );
 
 public:
     virtual ~Entry();
@@ -151,6 +151,7 @@ public:
 
     /* Instance Variable access */
 
+    unsigned int index() const { return _index; }
     unsigned int entryId() const { return _entryId; }
     phase_type phaseTypeFlag( const unsigned p ) const { return phase[p].phaseTypeFlag(); }
     double openArrivalRate() const { return hasOpenArrivals() ? myDOMEntry->getOpenArrivalRateValue() : 0; }
@@ -158,8 +159,6 @@ public:
     double computeCV_sqr( const unsigned p ) const { return phase[p].computeCV_sqr(); }
     double computeCV_sqr() const;
     int priority() const { return myDOMEntry->hasEntryPriority() ? (int)myDOMEntry->getEntryPriorityValue() : 0; }
-    Entry& trace( const bool yesOrNo ) { traceFlag = yesOrNo; return *this; }
-    bool trace() const { return traceFlag; }
     bool isCalled( const requesting_type callType );
     requesting_type isCalled() const { return calledFlag; }
     Entry& setEntryInformation( LQIO::DOM::Entry * entryInfo );
@@ -248,6 +247,7 @@ public:
 
     /* Computation */
 
+    void add_call( const unsigned p, LQIO::DOM::Call* domCall );
     void sliceTime( const Entry& dst, Slice_Info phase_info[], double y_xj[] ) const;
     virtual void computeVariance() {}
     virtual Entry& updateWait( const Submodel&, const double ) = 0;
@@ -287,10 +287,6 @@ protected:
 public:
     double openWait;				/* Computed open response time.	*/
 
-    /* Stuff for MVA solution. */
-	
-    unsigned short index;			/* My index (for mva)		*/
-	
 protected:
     LQIO::DOM::Entry* myDOMEntry;	
     NullPhase total;
@@ -305,6 +301,7 @@ protected:
 
 private:
     const unsigned _entryId;			/* Gobal entry id. (for chain)	*/
+    const unsigned short _index;		/* My index (for mva)		*/
     entry_type myType;
     semaphore_entry_type mySemaphoreType;	/* Extra type information	*/
     requesting_type calledFlag;			/* true if entry referenced.	*/
@@ -312,8 +309,6 @@ private:
     double myThroughput;			/* Computed throughput.		*/
     double myThroughputBound;			/* Type 1 throughput bound.	*/
 	
-    bool traceFlag;				/* true if tracing "this".	*/
-
     Cltn<Call *> myCallers;			/* Who calls me.		*/
 
     vector<InterlockInfo> _interlock;		/* Interlock table.		*/
@@ -325,7 +320,7 @@ private:
 class TaskEntry : public Entry 
 {
 public:
-    TaskEntry( LQIO::DOM::Entry* domEntry, const unsigned id = 0, const Entity *aTask = 0 ) : Entry(domEntry,id), myTask(aTask) {}
+    TaskEntry( LQIO::DOM::Entry* domEntry, const unsigned id, const unsigned int index ) : Entry(domEntry,id,index), myTask(0) {}
 
     virtual void initProcessor();
     virtual void initWait();
@@ -396,7 +391,6 @@ public:
     virtual Call * processorCall( const unsigned ) const { return 0; }
 };
 
-void add_call( LQIO::DOM::Call* domCall );
 void set_start_activity (Task* newTask, LQIO::DOM::Entry* targetEntry);
 
 /* ------------------ Proxy messages for class call. ------------------ */
@@ -408,7 +402,7 @@ void set_start_activity (Task* newTask, LQIO::DOM::Entry* targetEntry);
  */
 
 inline const Entity * Call::dstTask() const { return destination->owner(); }
-inline short Call::index() const { return destination->index; }
+inline short Call::index() const { return destination->index(); }
 inline double Call::serviceTime() const { return destination->serviceTime(1); }
 
 

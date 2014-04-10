@@ -15,8 +15,9 @@ noinst_HEADERS = confidence_intervals.h \
 	dom_phase.h \
 	dom_processor.h \
 	dom_task.h \
-	error.h \
+	common_io.h \
 	commandline.h \
+	error.h \
 	filename.h \
 	getsbopt.h \
 	glblerr.h \

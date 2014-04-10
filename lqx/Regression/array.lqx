@@ -22,5 +22,5 @@ foreach(k,v in x) {
 		print("  -2> ", v);
 	}
 	print(k, " --> ", v);
-	print();
+	print("");
 }

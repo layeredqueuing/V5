@@ -1,5 +1,5 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "23 August 2013" "5.7"
+.TH lqns 1 "22 November 2013" "6.0"
 .\" $Id$
 .\"
 .\" --------------------------------
@@ -106,6 +106,9 @@ It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\f
 This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
 By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP or \fI.xlqn\fP
 , then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+.TP
+\fB\-j\fP, \fB\-\-json\fR
+Generate JSON output regardless of input format.
 .TP
 \fB\-n\fP, \fB\-\-no-execute\fR
 Read input, but do not solve.  The input is checked for validity.  
@@ -270,50 +273,60 @@ ignored.
 Set the convergence value to \fIarg\fP.  
 \fIArg\fP must be a number between 0.0 and 1.0.
 .TP
-\fB\-\-exact-mva\fR
-Use Exact MVA to solve all submodels.
-.TP
-\fB\-\-hwsw-layering\fR
-.TP
 \fB\-\-iteration-limit\fR=\fIarg\fR
 Set the maximum number of iterations to \fIarg\fP.
 \fIArg\fP must be an integer greater than 0.  The default value is 50.
-.TP
-\fB\-\-srvn-layering\fR
-Solve the model using submodels containing exactly one server.
-.TP
-\fB\-\-squashed-layering\fR
-Use only one submodel to solve the model.
-.TP
-\fB\-\-method-of-layers\fR
-This option is to use the Method Of Layers solution approach to solving the layer submodels.
-.TP
-\fB\-\-processor-sharing\fR
-Use Processor Sharing scheduling at all fixed-rate processors.
-.TP
-\fB\-\-schweitzer-amva\fR
-Use Bard-Schweitzer approximate MVA to solve all submodels.
-.TP
-\fB\-\-no-stop-on-message-loss\fR
-Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an
-error message indicating that the arrival rate is too high for the service time of the entry
-.TP
-\fB\-\-trace-mva\fR
-Output the inputs and results of each MVA submodel for every iteration of the solver.
 .TP
 \fB\-\-underrelaxation\fR=\fIarg\fR
 Set the underrelaxation to \fIarg\fP.
 \fIArg\fP must be a number between 0.0 and 1.0.
 The default value is 0.9.
 .TP
+\fB\-\-exact-mva\fR
+Use Exact MVA to solve all submodels.
+.TP
+\fB\-\-schweitzer-amva\fR
+Use Bard-Schweitzer approximate MVA to solve all submodels.
+.TP
+\fB\-\-batch-layering\fR
+.TP
+\fB\-\-hwsw-layering\fR
+.TP
+\fB\-\-method-of-layers\fR
+This option is to use the Method Of Layers solution approach to solving the layer submodels.
+.TP
+\fB\-\-squashed-layering\fR
+Use only one submodel to solve the model.
+.TP
+\fB\-\-srvn-layering\fR
+Solve the model using submodels containing exactly one server.
+.TP
+\fB\-\-processor-sharing\fR
+Use Processor Sharing scheduling at all fixed-rate processors.
+.TP
+\fB\-\-no-stop-on-message-loss\fR
+Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an
+error message indicating that the arrival rate is too high for the service time of the entry
+.TP
 \fB\-\-no-variance\fR
 Do not use variances in the waiting time calculations.
 .TP
 \fB\-\-reload-lqx\fR
-Re-run the LQX program without re-solving the models.  Results must exist from a previous solution run.
-This option is useful if LQX print statements are changed.
+Re-run the LQX/SPEX program without re-solving the models.  Results must exist from a previous solution run.
+This option is useful if LQX print statements or SPEX results are changed.
+.TP
+\fB\-\-restart\fR
+Re-run the LQX/SPEX program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved.
+This option is useful for running a second pass with a new convergnece value and/or iteration limit.
 .TP
 \fB\-\-no-header\fR
+Do not print out the Result Variable header when running with SPEX input.
+This option has no effect otherwise.
+.TP
+\fB\-\-reset-mva\fR
+.TP
+\fB\-\-trace-mva\fR
+Output the inputs and results of each MVA submodel for every iteration of the solver.
 .TP
 \fB\-\-debug-lqx\fR
 Output debugging information as an LQX program is being parsed.
@@ -321,6 +334,8 @@ Output debugging information as an LQX program is being parsed.
 \fB\-\-debug-xml\fR
 Output XML elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
+.TP
+\fB\-\-debug-json\fR
 .TP
 \fB\-\-debug-srvn\fR
 .PP
@@ -528,7 +543,7 @@ arrival rate exceeds the service rate of a server.
 .RS
 .TP
 \fBfalse\fP
-Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as infinite..TP
+Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as inisfinite..TP
 \fBtrue\fP
 Stop if messages are lost.
 .LP
@@ -580,6 +595,20 @@ Disable variance adjustment.  All stations in the MVA submodels are either delay
 ?
 .LP
 
+.RE
+.TP
+\fBxml-schema\fR=\fIarg\fR
+This pragma is used to set scheman used for JSON output.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBfalse\fP
+JSON output is similar to LQN input -- processors, then tasks, then entries, then activities.
+.TP
+\fBtrue\fP
+JSON output is similar to XML input -- processors contain tasks, and tasks contain entries and activities.
+.LP
+The default is false.
 .RE
 .SH "STOPPING CRITERIA"
 \fBLqns\fP computes the model results by iterating through a set of

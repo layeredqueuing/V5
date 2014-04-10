@@ -48,7 +48,7 @@ private:
     const Processor &_processor;
     const unsigned int _total_tasks;
 
-    vector<Task*> _task_list;
+    set<Task*> _task_list;
 };
 
 /*

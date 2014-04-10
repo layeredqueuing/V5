@@ -29,6 +29,10 @@
 #include <stdexcept>
 #include <lqio/input.h>
 #include <lqio/dom_extvar.h>
+#if HAVE_REGEX_H
+#include <regex.h>
+#endif
+
 
 using namespace std;
 
@@ -49,13 +53,6 @@ namespace LQIO {
 
 extern lqio_params_stats io_vars;
 extern std::string command_line;
-
-#if HAVE_REGEX_H
-#include <regex.h>
-#endif
-
-/* Stoopid standards... */
-#define FMT_FLAGS ios_base::fmtflags
 
 const unsigned int MAX_PHASES	    = 3;	/* Number of Phases.		*/
 
@@ -210,15 +207,16 @@ typedef enum {
     PRAGMA_SORT,
     PRAGMA_SQUISH_ENTRY_NAMES,
     PRAGMA_SUBMODEL_CONTENTS,
-    PRAGMA_TASKS_ONLY
+    PRAGMA_TASKS_ONLY,	
+    PRAGMA_XML_SCHEMA
 } pragma_type;
 
 typedef enum {
     COLOUR_OFF,
-    COLOUR_RESULTS,
-    COLOUR_LAYERS,
-    COLOUR_CLIENTS,
-    COLOUR_SERVER_TYPE,
+    COLOUR_RESULTS,		/* Default */
+    COLOUR_LAYERS,		/* Each layer gets its own colour */
+    COLOUR_CLIENTS,		/* Each client chaing gets its own colour */
+    COLOUR_SERVER_TYPE,		/* client, server, etc... */
     COLOUR_CHAINS		/* Useful for queueing output only */
 } colouring_type;
 	
@@ -325,6 +323,7 @@ struct Flags
     static bool squish_names;
     static bool surrogates;
     static bool use_colour;
+    static bool dump_graphviz;
     static double act_x_spacing;
     static double arrow_scaling;
     static double entry_height;

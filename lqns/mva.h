@@ -113,6 +113,7 @@ public:
 	 const Vector<unsigned>&, const VectorMath<double>* );
     virtual ~MVA();
 
+    virtual void reset();
     virtual void solve() = 0;
 
     unsigned nChains() const { return K; }
@@ -187,11 +188,12 @@ protected:
     virtual void marginalProbabilities( const unsigned m, const PopVector& N );
     virtual void marginalProbabilities2( const unsigned m, const PopVector& N );
 	
-
+#if	DEBUG_MVA
     ostream& printL( ostream&, const PopVector& ) const;
     ostream& printW( ostream& ) const;
     ostream& printU( ostream&, const PopVector & N ) const;
     ostream& printP( ostream&, const PopVector & N ) const;
+#endif
     ostream& printVectorP( ostream& output, const unsigned m, const PopVector& N ) const;
 
 private:
@@ -211,9 +213,11 @@ public:
     static int boundsLimit;		/* Enable bounds limiting.	*/
     static double MOL_multiserver_underrelaxation;
 #if DEBUG_MVA
-    static bool debug_P;
-    static bool debug_L;
     static bool debug_D;
+    static bool debug_L;
+    static bool debug_P;
+    static bool debug_U;
+    static bool debug_W;
 #endif
 	
 protected:
@@ -221,6 +225,7 @@ protected:
     const unsigned M;			/* Number of stations.		*/
     const unsigned K;			/* Number of classes.		*/
     Vector<Server *>& Q;		/* Queue type.  SS/delay.	*/
+
 private:
     const VectorMath<double>& Z;	/* Think time per class.	*/
 
@@ -273,6 +278,7 @@ public:
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Schweitzer();
 
+    virtual void reset();
     virtual void solve();
     virtual Probability priorityInflation( const Server& station, const PopVector &N, const unsigned k ) const;
     virtual double filter() const { return MOL_multiserver_underrelaxation; };
@@ -298,6 +304,7 @@ protected:
 protected:
     SpecialPopulationMap map;
     unsigned c;				/* Customer from class c removed*/
+    bool initialized;			/* True if initialized.		*/
 
 private:
     double ***last_L;			/* For local comparison.	*/
@@ -320,6 +327,7 @@ public:
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Linearizer();
 
+    virtual void reset();
     virtual void solve();
 	
 protected:
@@ -328,7 +336,7 @@ protected:
 	
     ostream& printD( ostream&, const PopVector& ) const;
 
-protected:
+    void initialize();
     void save_L();
     void restore_L();
 

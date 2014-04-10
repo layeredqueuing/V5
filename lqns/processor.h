@@ -52,7 +52,7 @@ public:
     const Cltn<Task *>& tasks() const { return taskList; }
     virtual Entity& processor( Processor * aProcessor );
     virtual const Processor * processor() const;
-    virtual double rate() const { return myDOMProcessor->getRateValue(); }
+    virtual double rate() const;
 
     /* Queries */
 	

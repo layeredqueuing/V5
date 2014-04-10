@@ -228,6 +228,12 @@ GenericCall::draw( ostream& output ) const
 /*                          Calls between Entries                       */
 /*----------------------------------------------------------------------*/
 
+Call::Call()
+    : GenericCall(), destination(0),
+      myForwarding(0)
+{
+}
+
 /*
  * Initialize and zero fields.   Reverse links are set here.  Forward
  * links are done by subclass.  Processor calls are linked specially.
@@ -254,42 +260,6 @@ Call::~Call()
 {
     destination = 0;			/* to whom I am referring to	*/
 }
-
-
-void 
-Call::create( LQIO::DOM::Call* domCall )
-{
-    /* Begin by extracting the from/to DOM entries from the call and their names */
-
-    LQIO::DOM::Entry* fromDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getSourceEntry());
-    LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
-    const char* from_entry_name = fromDOMEntry->getName().c_str();
-    const char* to_entry_name = toDOMEntry->getName().c_str();
-    unsigned p = domCall->getPhase();
-	
-    /* Make sure this is one of the supported call types */
-    if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
-	domCall->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
-	domCall->getCallType() != LQIO::DOM::Call::NULL_CALL) {
-	abort();
-    }
-	
-    /* Internal Entry references */
-    Entry * fromEntry;
-    Entry * toEntry;
-	
-    /* Begin by mapping the entry names to their entry types */
-    if ( map_entry_names( from_entry_name, fromEntry, to_entry_name, toEntry, LQIO::input_error2 ) ) {
-	if ( p <= MAX_PHASES ) {
-	    if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
-		fromEntry->rendezvous( toEntry, p, domCall );
-	    } else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
-		fromEntry->sendNoReply( toEntry, p, domCall );
-	    }
-	}
-    }
-}
-
 
 
 int

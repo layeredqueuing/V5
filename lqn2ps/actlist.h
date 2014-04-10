@@ -78,7 +78,7 @@ public:
     virtual unsigned findChildren( CallStack&, const unsigned, Stack<const Activity *>& ) const = 0;
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const = 0;
     virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const = 0;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const = 0;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) = 0;
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const = 0;
     virtual double getIndex() const = 0;
     virtual ActivityList& reconnect( Activity *, Activity * );
@@ -171,7 +171,7 @@ public:
     virtual unsigned findChildren( CallStack&, const unsigned, Stack<const Activity *>& ) const;
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
     virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
     virtual double getIndex() const;
     virtual ForkActivityList& reconnect( Activity *, Activity * );
@@ -205,7 +205,7 @@ public:
     virtual unsigned findChildren( CallStack&, const unsigned, Stack<const Activity *>& ) const;
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
     virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
     virtual double getIndex() const;
     virtual JoinActivityList& reconnect( Activity *, Activity * );
@@ -324,7 +324,7 @@ public:
 
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
     virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
     virtual OrForkActivityList& add( Activity * anActivity );
     virtual activity_type myType() const { return OR_FORK; }
@@ -368,7 +368,7 @@ public:
 
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
     virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
 
 protected:
@@ -427,7 +427,7 @@ public:
     virtual OrJoinActivityList& add( Activity * anActivity );
 
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
 
 
@@ -454,7 +454,7 @@ public:
     AndJoinActivityList& quorumCount( int );
 
     virtual AndJoinActivityList& add( Activity * anActivity );
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
 
     bool isSynchPoint() const { return myJoinType == SYNCHRONIZATION_POINT; }
@@ -511,7 +511,7 @@ public:
     virtual unsigned size() const;
     virtual unsigned findChildren( CallStack&, const unsigned, Stack<const Activity *>& ) const;
     virtual unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, const unsigned, const double ) const;
-    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc ) const;
+    virtual double aggregate( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc ) const;
     virtual double getIndex() const;
 

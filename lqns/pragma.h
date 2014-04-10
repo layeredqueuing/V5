@@ -265,6 +265,7 @@ private:
     static std::map<const char *, param_info, lt_str>  __threads_args;
     static std::map<const char *, param_info, lt_str>  __variance_args;
     static std::map<const char *, param_info, lt_str>  __warning_args;
+    static std::map<const char *, param_info, lt_str>  __xml_schema_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     static std::map<const char *, param_info, lt_str>  __quorum_distribution_args;
     static std::map<const char *, param_info, lt_str>  __quorum_delayed_calls_args;

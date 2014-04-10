@@ -30,6 +30,9 @@ namespace LQIO {
 	    void setXMLDOMElement( const void * xmlDOMElement ) { _xmlDOMElement = xmlDOMElement; }
 	    const std::string& getName() const;
 	    void setName( const std::string& );
+	    bool hasResults() const;
+	    void setComment( const std::string& );
+	    const std::string& getComment() const;
 
 	    virtual bool hasHistogram() const { return false; }		/* Any object could have a histogram... */
 	    virtual const Histogram* getHistogram() const { subclass(); return 0; }	/* But don't... */
@@ -39,6 +42,8 @@ namespace LQIO {
 	    virtual void setHistogramForPhase( unsigned, Histogram* ) { subclass(); }
 
 	    /* Results -- overridden by subclasses */
+
+	    virtual DocumentObject& setResultBottleneckStrength( const double resultBottleneckStrength ) { subclass(); return *this; }
 	    virtual DocumentObject& setResultDropProbability( const double resultDropProbability ) { subclass(); return *this; }
 	    virtual DocumentObject& setResultDropProbabilityVariance( const double resultDropProbabilityVariance ) { subclass(); return *this; }
 	    virtual DocumentObject& setResultJoinDelay(const double joinDelay ) { subclass(); return *this; }
@@ -71,6 +76,14 @@ namespace LQIO {
 	    virtual DocumentObject& setResultPhase3VarianceServiceTimeVariance(const double resultPhasePVarianceServiceTimeVariance) { subclass(); return *this; }
 	    virtual DocumentObject& setResultPhaseUtilizationVariances(unsigned int count, double* resultPhaseUtilizationsVariance) { subclass(); return *this; }
 	    virtual DocumentObject& setResultPhaseUtilizations(unsigned int count, double* resultPhaseUtilizations) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePProcessorWaiting(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePProcessorWaitingVariance(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePServiceTime(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePServiceTimeVariance(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePUtilization(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePUtilizationVariance(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePVarianceServiceTime(unsigned p, double) { subclass(); return *this; }
+	    virtual DocumentObject& setResultPhasePVarianceServiceTimeVariance(unsigned p, double) { subclass(); return *this; }
 	    virtual DocumentObject& setResultProcessorUtilization(const double resultProcessorUtilization) { subclass(); return *this; }
 	    virtual DocumentObject& setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance) { subclass(); return *this; }
 	    virtual DocumentObject& setResultProcessorWaiting(const double resultProcessorWaiting) { subclass(); return *this; }
@@ -125,68 +138,70 @@ namespace LQIO {
 	    virtual DocumentObject& setResultVarianceWriterBlockedTimeVariance( const double ) { subclass(); return *this; }
 	    
 	    double getResultZero( unsigned phase=0 ) const { return 0; }
-	    virtual double getResultConvergenceValue() const { subclass(); return 0; }
-	    virtual double getResultDropProbability() const { subclass(); return 0; }
-	    virtual double getResultDropProbabilityVariance() const { subclass(); return 0; }
-	    virtual double getResultJoinDelay() const { subclass(); return 0; }
-	    virtual double getResultJoinDelayVariance() const { subclass(); return 0; }
-	    virtual double getResultMaxServiceTimeExceeded() const { subclass(); return 0; }
-	    virtual double getResultMaxServiceTimeExceededVariance() const { subclass(); return 0; }
-	    virtual double getResultOpenWaitTime() const { subclass(); return 0; }
-	    virtual double getResultOpenWaitTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase1ProcessorWaiting() const { subclass(); return 0; }
-	    virtual double getResultPhase1ProcessorWaitingVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase1ServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase1ServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase1Utilization() const { subclass(); return 0; }
-	    virtual double getResultPhase1UtilizationVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase1VarianceServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase1VarianceServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase2ProcessorWaiting() const { subclass(); return 0; }
-	    virtual double getResultPhase2ProcessorWaitingVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase2ServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase2ServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase2Utilization() const { subclass(); return 0; }
-	    virtual double getResultPhase2UtilizationVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase2VarianceServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase2VarianceServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase3ProcessorWaiting() const { subclass(); return 0; }
-	    virtual double getResultPhase3ProcessorWaitingVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase3ServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase3ServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase3Utilization() const { subclass(); return 0; }
-	    virtual double getResultPhase3UtilizationVariance() const { subclass(); return 0; }
-	    virtual double getResultPhase3VarianceServiceTime() const { subclass(); return 0; }
-	    virtual double getResultPhase3VarianceServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultPhasePProcessorWaiting(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePProcessorWaitingVariance(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePServiceTime(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePServiceTimeVariance(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePUtilization(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePUtilizationVariance(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePVarianceServiceTime(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultPhasePVarianceServiceTimeVariance(unsigned p) const { subclass(); return 0; }
-	    virtual double getResultProcessorUtilization() const { subclass(); return 0; }
-	    virtual double getResultProcessorUtilizationVariance() const { subclass(); return 0; }
-	    virtual double getResultProcessorWaiting() const { subclass(); return 0; }
-	    virtual double getResultProcessorWaitingVariance() const { subclass(); return 0; }
-	    virtual double getResultServiceTime() const { subclass(); return 0; }
-	    virtual double getResultServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultSquaredCoeffVariation() const { subclass(); return 0; }
-	    virtual double getResultSquaredCoeffVariationVariance() const { subclass(); return 0; }
-	    virtual double getResultThroughput() const { subclass(); return 0; }
-	    virtual double getResultThroughputBound() const { subclass(); return 0; }
-	    virtual double getResultThroughputVariance() const { subclass(); return 0; }
-	    virtual double getResultUtilization() const { subclass(); return 0; }
-	    virtual double getResultUtilizationVariance() const { subclass(); return 0; }
-	    virtual double getResultVarianceJoinDelay() const { subclass(); return 0; }
-	    virtual double getResultVarianceJoinDelayVariance() const { subclass(); return 0; }
-	    virtual double getResultVarianceServiceTime() const { subclass(); return 0; }
-	    virtual double getResultVarianceServiceTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultVarianceWaitingTime() const { subclass(); return 0; }
-	    virtual double getResultVarianceWaitingTimeVariance() const { subclass(); return 0; }
-	    virtual double getResultWaitingTime() const { subclass(); return 0; }
-	    virtual double getResultWaitingTimeVariance() const { subclass(); return 0; }
+            virtual double getResultConvergenceValue() const { subclass(); return 0; }
+            virtual double getResultDropProbability() const { subclass(); return 0; }
+            virtual double getResultDropProbabilityVariance() const { subclass(); return 0; }
+            virtual double getResultJoinDelay() const { subclass(); return 0; }
+            virtual double getResultJoinDelayVariance() const { subclass(); return 0; }
+            virtual double getResultMaxServiceTimeExceeded() const { subclass(); return 0; }
+            virtual double getResultMaxServiceTimeExceededVariance() const { subclass(); return 0; }
+            virtual double getResultOpenWaitTime() const { subclass(); return 0; }
+            virtual double getResultOpenWaitTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase1ProcessorWaiting() const { subclass(); return 0; }
+            virtual double getResultPhase1ProcessorWaitingVariance() const { subclass(); return 0; }
+            virtual double getResultPhase1ServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase1ServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase1Utilization() const { subclass(); return 0; }
+            virtual double getResultPhase1UtilizationVariance() const { subclass(); return 0; }
+            virtual double getResultPhase1VarianceServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase1VarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase2ProcessorWaiting() const { subclass(); return 0; }
+            virtual double getResultPhase2ProcessorWaitingVariance() const { subclass(); return 0; }
+            virtual double getResultPhase2ServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase2ServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase2Utilization() const { subclass(); return 0; }
+            virtual double getResultPhase2UtilizationVariance() const { subclass(); return 0; }
+            virtual double getResultPhase2VarianceServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase2VarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase3ProcessorWaiting() const { subclass(); return 0; }
+            virtual double getResultPhase3ProcessorWaitingVariance() const { subclass(); return 0; }
+            virtual double getResultPhase3ServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase3ServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase3Utilization() const { subclass(); return 0; }
+            virtual double getResultPhase3UtilizationVariance() const { subclass(); return 0; }
+            virtual double getResultPhase3VarianceServiceTime() const { subclass(); return 0; }
+            virtual double getResultPhase3VarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhasePMaxServiceTimeExceeded(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePMaxServiceTimeExceededVariance(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePProcessorWaiting(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePProcessorWaitingVariance(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePServiceTime(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePServiceTimeVariance(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePUtilization(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePUtilizationVariance(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePVarianceServiceTime(unsigned p) const { subclass(); return 0; }
+            virtual double getResultPhasePVarianceServiceTimeVariance(unsigned p) const { subclass(); return 0; }
+            virtual double getResultProcessorUtilization() const { subclass(); return 0; }
+            virtual double getResultProcessorUtilizationVariance() const { subclass(); return 0; }
+            virtual double getResultProcessorWaiting() const { subclass(); return 0; }
+            virtual double getResultProcessorWaitingVariance() const { subclass(); return 0; }
+            virtual double getResultServiceTime() const { subclass(); return 0; }
+            virtual double getResultServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultSquaredCoeffVariation() const { subclass(); return 0; }
+            virtual double getResultSquaredCoeffVariationVariance() const { subclass(); return 0; }
+            virtual double getResultThroughput() const { subclass(); return 0; }
+            virtual double getResultThroughputBound() const { subclass(); return 0; }
+            virtual double getResultThroughputVariance() const { subclass(); return 0; }
+            virtual double getResultUtilization() const { subclass(); return 0; }
+            virtual double getResultUtilizationVariance() const { subclass(); return 0; }
+            virtual double getResultVarianceJoinDelay() const { subclass(); return 0; }
+            virtual double getResultVarianceJoinDelayVariance() const { subclass(); return 0; }
+            virtual double getResultVarianceServiceTime() const { subclass(); return 0; }
+            virtual double getResultVarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultVarianceWaitingTime() const { subclass(); return 0; }
+            virtual double getResultVarianceWaitingTimeVariance() const { subclass(); return 0; }
+            virtual double getResultWaitingTime() const { subclass(); return 0; }
+            virtual double getResultWaitingTimeVariance() const { subclass(); return 0; }
 
 	    /*  For Semaphore */
 	    virtual double getResultHoldingTime() const { subclass(); return 0; }
@@ -228,6 +243,7 @@ namespace LQIO {
 	    const Document * _document;			/* Pointer to the root. */
 	    const unsigned long _sequenceNumber;
 	    std::string _name;
+	    std::string _comment;
 	    const void * _xmlDOMElement;
 
 	    static unsigned long sequenceNumber;

@@ -1,10 +1,10 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "12 August 2013"  "5.7"
+.TH lqn2ps 1 "27 February 2014"  "6.0"
 .\" $Id$
 .\"
 .\" --------------------------------
 .SH "NAME"
-lqn2emf, lqn2fig, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
+lqn2emf, lqn2fig, lqn2json, lqn2out, lqn2ps, lqn2lqn, lqn2sxd, lqn2xml \- format and translate layered queueing network models.
 .SH "SYNOPSIS"
 .br
 .B lqn2ps
@@ -64,7 +64,21 @@ An aggregated model is smaller, so it will solve faster.
 Set the border (in points).
 .TP
 \fB\-C\fR, \fB\-\-colour=\fIcolour\fR
-Colour output.
+The \fB\-C\fI colour\fR option is used to choose how to colour objects.
+.RS
+.TP
+\fB\fBoff\fR\fR
+Use gray scale instead of colour for results..TP
+\fB\fBresults\fR\fR
+Colour nodes based on utilization and arcs based on the utilization of the destination.  This is the default..TP
+\fB\fBlayers\fR\fR
+Colour nodes based on their layer..TP
+\fB\fBclients\fR\fR
+Colour nodes based on their client(s)..TP
+\fB\fBtype\fR\fR
+Client tasks are coloured red, server tasks are coloured blue..TP
+\fB\fBchains\fR\fR
+Queueing output only: colour each chain differently..RE
 .TP
 \fB\-D\fR, \fB\-\-jlqndef\fR
 Use jlqnDef-style icons (rectangles).
@@ -73,9 +87,10 @@ Use jlqnDef-style icons (rectangles).
 Set the font size (from 6 to 36 points).
 .TP
 \fB\-I\fR, \fB\-\-input-format=\fIformat\fR
-The \fB\-I\fI format\fR option  is used to force the input file format to either \fIxml\fR or \fIlqn\fR.
-By default, if the suffix of the input filename is one of: \fI.in\fR, \fI.lqn\fR or \fI.xlqn\fR
-, then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+The \fB\-I\fI format\fR option  is used to force the input file format to either \fIxml\fR, \fIlqn\fR, of \fIjson\fR.
+By default, if the suffix of the input filename is one of: \fI.in\fR, \fI.lqn\fR, \fI.xlqn\fR, of \fI.txt\fR,
+then the LQN parser will be used.  If the suffix of the input filename is one of: \fI.json\fR, \fI.lqnj\fR, \fI.jlqn\fR, of \fI.lqjo\fR,
+then the JSON parser will be used.  Otherwise, input is assumed to be XML.
 .TP
 \fB\-H\fR, \fB\-\-help\fR
 Print help.
@@ -155,11 +170,11 @@ Generate Windows Enhanced Meta File (vector) output.
 \fB\fBfig\fR\fR
 Generate input for xfig(1).
 .TP
-\fB\fBgif\fR\fR
-Generate GIF (bitmap) output.
-.TP
-\fB\fBjpeg\fR\fR
-Generate JPEG (bitmap) output.
+\fB\fBjson\fR\fR
+Generate an JSON input file.  If results are available, they are included.
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
+consisting only of the objects selected.
+New input files are always "cleaned up".
 .TP
 \fB\fBnull\fR\fR
 Generate no output except summary statistics about the model or models.
@@ -187,9 +202,6 @@ Generate Encapsulated Postscript.
 .TP
 \fB\fBpstex\fR\fR
 Generate PostScript and LaTeX (pstex).
-.TP
-\fB\fBpng\fR\fR
-Generate Portable Network Graphics (bitmap) output.
 .TP
 \fB\fBsvg\fR\fR
 Generate Scalable Vector Graphics (vector) output.
@@ -319,6 +331,9 @@ Output to terminal the clients and servers of each submodel.
 .TP
 \fB\fBtasks-only\fR\fR
 Draw the model omitting all entries.
+.TP
+\fB\fBxml-schema\fR\fR
+If true and exporting JSON, use the XML schema for objects rather than the default LQN schema.
 .RE
 .TP
 \fB(\-|+)a\fR, \fB\-\-[no-]open-wait\fR

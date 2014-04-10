@@ -149,7 +149,8 @@ Entry::test_and_set_recv( requesting_type recv )
 }
 
 
-/* static */ void Entry::add_call( LQIO::DOM::Call * call )
+void 
+Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 {
     /* Make sure this is one of the supported call types */
     if (call->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
@@ -158,16 +159,8 @@ Entry::test_and_set_recv( requesting_type recv )
 	abort();
     }
 	
-    /* Begin by extracting the from/to DOM entries from the call and their names */
-    LQIO::DOM::Entry* fromDOMEntry = const_cast<LQIO::DOM::Entry*>(call->getSourceEntry());
-    const unsigned p = call->getPhase();
-	
-    /* Internal Entry references */
-    Entry * from_entry = Entry::find( fromDOMEntry->getName() );
-    if ( !from_entry ) abort();
-	
-    if ( !from_entry->test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD ) ) return;
-    from_entry->phase[p].add_call( call );
+    if ( !test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD ) ) return;
+    phase[p].add_call( call );
 }
 
 

@@ -13,7 +13,7 @@ noinst_HEADERS 	= activity.h actlist.h entry.h errmsg.h group.h histogram.h inst
 		message.h pragma.h processor.h result.h runlqx.h stack.h target.h task.h
 EXTRA_DIST	= lqsim.1
 
-lqsim_CXXFLAGS	= -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch
+lqsim_CXXFLAGS	= -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual
 lqsim_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -L../parasol/src -lparasolc
 lqsim_LDFLAGS	= @STATIC@
 man1_MANS	= lqsim.1

@@ -73,7 +73,7 @@ namespace LQIO {
     {
 	va_list args;
 	va_start( args, fmt );
-	verrprintf( stderr, RUNTIME_ERROR, LQIO::input_file_name, LQIO_line_number, 0, fmt, args );
+	verrprintf( stderr, RUNTIME_ERROR, LQIO::input_file_name, LQIO_lineno, 0, fmt, args );
 	va_end( args );
     }
 
@@ -84,7 +84,7 @@ namespace LQIO {
     {
 	va_list args;
 	va_start( args, err );
-	verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, LQIO::input_file_name, LQIO_line_number, 0,
+	verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, LQIO::input_file_name, LQIO_lineno, 0,
 		    LQIO::DOM::Document::io_vars->error_messages[err].message, args );
 	va_end( args );
     }

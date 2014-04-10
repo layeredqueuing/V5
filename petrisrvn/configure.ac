@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------
 # $Id$
 # ------------------------------------------------------------------------
-AC_INIT(petrisrvn, 5.7, greg@sce.carleton.ca)
+AC_INIT(petrisrvn, 5.8, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([petrisrvn.h])
 AC_CONFIG_HEADERS([config.h])

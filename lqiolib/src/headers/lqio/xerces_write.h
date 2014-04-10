@@ -16,6 +16,7 @@
 #define __XERCES_RESULT_H
 
 #include <string>
+#include <ostream>
 #include <xercesc/dom/DOM.hpp>
 #include <xercesc/util/XercesDefs.hpp>		// For XMLCh type.
 #include "confidence_intervals.h"
@@ -25,7 +26,7 @@ XERCES_CPP_NAMESPACE_USE
 
 namespace LQIO {
 
-    bool serializeDOM(const char *outputFileName, bool instantiate=false);
+    bool serializeDOM(std::ostream&, bool instantiate=false);
     int doesDOMcontainResults();
 
     class XercesWrite {

@@ -1,8 +1,13 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
+<<<<<<< .working
  * $Id$
  *
+=======
+ * $Id$
+ * ------------------------------------------------------------------------
+>>>>>>> .merge-right.r11941
  */
 
 #ifndef _LQNGEN_H
@@ -16,15 +21,17 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
+#include <vector>
 #include <set>
 #include <stdexcept>
 #include <lqio/input.h>
-extern lqio_params_stats io_vars;
-extern std::string command_line;
-
+#include "randomvar.h"
 #if HAVE_REGEX_H
 #include <regex.h>
 #endif
+
+
+extern lqio_params_stats io_vars;
 
 struct Options
 {
@@ -47,57 +54,12 @@ typedef enum {
 #endif
 } output_format;
 
-typedef double (*variate_func)( double, double );
-
 typedef enum
 {
-    ARRIVALS_PROB          ,
-    NUMBER_OF_CUSTOMERS    ,
-    THINK_TIME             ,
-    NUMBER_OF_ENTRIES      ,
-    FORWARDING_REQUESTS    ,
-    GENERAL_PARAMETERS     ,
-    NUMBER_OF_LAYERS       ,
-    OUTPUT_FORMAT2         ,
-    NUMBER_OF_PROCESSORS   ,
-    SEED                   ,
-    NUMBER_OF_TASKS        ,
-    ARRIVAL_RATE           ,
-    CUSTOMERS              ,
-    DETERMINISTIC          ,
-    FORWARDING_PROB        ,
-    HELP                   ,
-    INFINITE_SERVER        ,
-    NUMBER		   ,
-    MULTI_SERVER           ,
-    PROCESSOR_MULTIPLICITY ,
-    PHASE2_PROBABILITY     ,
-    SERVICE_TIME           ,
-    TASK_MULTIPLICITY      ,
-    VERBOSE		   ,
-    RNV_PROBABILITY        ,
-    RNV_REQUESTS           ,
-    SNR_REQUESTS           ,
-    INDIRECT               
+    BOTH,
+    LQNGEN_ONLY,
+    LQN2LQX_ONLY
 } opt_values;
-
-typedef enum 
-{
-    ITERATION_LIMIT,
-    PRINT_INTERVAL,
-    OVERTAKING,
-    CONVERGENCE_VALUE,
-    UNDERRELAXATION,
-    MODEL_COMMENT
-} general_options;
-
-typedef enum
-{
-    DEFAULT_STRUCTURE,
-    FUNNEL,
-    PYRAMID,
-    PRODUCT_FORM
-} model_structure;
 
 typedef struct 
 {
@@ -105,12 +67,10 @@ typedef struct
     const char * name;
     union {
 	void * null;
-	variate_func func;
+	RV::RandomVariable * f;
 	const char ** s;
     } opts;
-    double floor;
-    double mean;
-    const bool lqngen_only;			/* Only valid for lqngen output */
+    const opt_values program;
     const char * msg;
 } option_type;
 
@@ -123,23 +83,26 @@ struct Flags
     static bool spex_output;
     static bool deterministic_only;
     static bool lqn2lqx;
-    static model_structure structure;
-    static unsigned long number_of_runs;
+    static struct observations_t {
+	bool utilization;
+	bool throughput;
+	bool residence_time;
+	bool mva_waits;
+	bool iterations;
+	bool user_time;
+	bool system_time;
+    } observe;
+    static double sensitivity;
+    static unsigned int number_of_runs;
+    static unsigned int number_of_models;
 };
 
-/*
- * Return square.  C++ doesn't even have an exponentiation operator, let
- * alone a smart one.
- */
+bool common_arg( const int c, char * optarg, char ** endptr );
 
-static inline double square( const double x )
-{
-    return x * x;
-}
-
-
-static inline unsigned long min( const unsigned long a1, const unsigned long a2 )
-{
-    return ( a1 < a2 ) ? a1 : a2;
-}
+#if HAVE_GETOPT_H
+void makeopts( std::string& opts, std::vector<struct option>& longopts );
+#else
+void makeopts( std::string& opts );
 #endif
+void usage();
+#endif /* LQNGEN_H */

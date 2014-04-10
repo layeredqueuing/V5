@@ -19,9 +19,8 @@ namespace LQIO {
     namespace DOM {
 
 	Task::Task(const Document * document, const char * task_name, const scheduling_type scheduling, const std::vector<Entry *>& entryList, 
-		   ExternalVariable* queue_length, const Processor* processor, const int priority, 
-		   ExternalVariable* n_copies, const int n_replicas,
-		   const Group * group, const void * task_element) 
+		   const Processor* processor, ExternalVariable* queue_length, const int priority, 
+		   ExternalVariable* n_copies, const int n_replicas, const Group * group, const void * task_element) 
 	    : Entity(document, task_name, scheduling, n_copies, n_replicas, TYPE_TASK, task_element),
 	      _entryList(entryList),
 	      _queueLength(queue_length),
@@ -34,7 +33,8 @@ namespace LQIO {
 	      _resultPhaseCount(0),
 	      _resultProcUtilization(0.0), _resultProcUtilizationVariance(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
-	      _resultUtilization(0.0), _resultUtilizationVariance(0.0)
+	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
+	      _resultBottleneckStrength(0.0)
 	{
 	    /* Associate the entries with tasks */
 	    std::vector<Entry *>::const_iterator nextEntry;
@@ -102,21 +102,19 @@ namespace LQIO {
 	    return _queueLength && (!_queueLength->wasSet() || !_queueLength->getValue(value) || value > 0);	    /* Check whether we have it or not */
 	}
 
-	Task& Task::setQueueLengthValue( const int value )
+	void Task::setQueueLengthValue( const unsigned int value )
 	{
 	    if ( _queueLength == NULL ) {
 		_queueLength = new ConstantExternalVariable(value);
 	    } else {
 		_queueLength->set(value);
 	    }
-	    return *this;
 	}
 
 
-	Task& Task::setQueueLength(ExternalVariable * queueLength)
+	void Task::setQueueLength(ExternalVariable * queueLength)
 	{
 	    _queueLength = queueLength;
-	    return *this;
 	}
     
 	int Task::getPriority() const
@@ -124,10 +122,9 @@ namespace LQIO {
 	    return _priority;
 	}
     
-	Task& Task::setPriority(const int priority)
+	void Task::setPriority(const unsigned int priority)
 	{
 	    _priority = priority;
-	    return *this;
 	}
     
 	double Task::getThinkTimeValue() const
@@ -159,11 +156,10 @@ namespace LQIO {
 	    const_cast<Document *>(getDocument())->setTaskHasThinkTime(true);
 	}
 
-	Task& Task::setThinkTime(ExternalVariable * thinkTime)
+	void Task::setThinkTime(ExternalVariable * thinkTime)
 	{
 	    _thinkTime = thinkTime;
 	    const_cast<Document *>(getDocument())->setTaskHasThinkTime(thinkTime != NULL);
-	    return *this;
 	}
     
 	const Group* Task::getGroup() const
@@ -171,10 +167,9 @@ namespace LQIO {
 	    return _group;
 	}
 
-	Task& Task::setGroup( Group* group )
+	void Task::setGroup( Group* group )
 	{
 	    _group = group;
-	    return *this;
 	}
     
 	const Processor* Task::getProcessor() const
@@ -182,16 +177,14 @@ namespace LQIO {
 	    return _processor;
 	}
 
-	Task& Task::setProcessor( Processor* processor )
+	void Task::setProcessor( Processor* processor )
 	{
 	    _processor = processor;
-	    return *this;
 	}
     
-	Task& Task::setFanOut( const std::string& task, unsigned int value )
+	void Task::setFanOut( const std::string& task, unsigned int value )
 	{
 	    _fanOut[task] = value;
-	    return *this;
 	}
 
 	unsigned int Task::getFanOut( const std::string& task ) const
@@ -211,10 +204,9 @@ namespace LQIO {
 	}
 
 
-	Task& Task::setFanIn( const std::string& task, unsigned int value )
+	void Task::setFanIn( const std::string& task, unsigned int value )
 	{
 	    _fanIn[task] = value;
-	    return *this;
 	}
 
 	unsigned int Task::getFanIn( const std::string& task ) const
@@ -305,24 +297,13 @@ namespace LQIO {
 	    return *this;
 	}
     
-	Task& Task::setResultPhase1Utilization(const double resultPhasePUtilization) 
+	Task& Task::setResultPhasePUtilization(unsigned int p, const double resultPhasePUtilization) 
 	{
-	    _resultPhaseUtilizations[0] = resultPhasePUtilization;
-	    if ( _resultPhaseCount < 1 ) _resultPhaseCount = 1;
-	    return *this;
-	}
-
-	Task& Task::setResultPhase2Utilization(const double resultPhasePUtilization) 
-	{
-	    _resultPhaseUtilizations[1] = resultPhasePUtilization;
-	    if ( _resultPhaseCount < 2 ) _resultPhaseCount = 2;
-	    return *this;
-	}
-
-	Task& Task::setResultPhase3Utilization(const double resultPhasePUtilization) 
-	{
-	    _resultPhaseUtilizations[2] = resultPhasePUtilization;
-	    if ( _resultPhaseCount < 3 ) _resultPhaseCount = 3;
+	    assert( 0 < p && p <= Phase::MAX_PHASE );
+	    _resultPhaseUtilizations[p-1] = resultPhasePUtilization;
+	    if ( _resultPhaseUtilizations[p-1] > 0.0 && p > _resultPhaseCount ) {
+		_resultPhaseCount = p;
+	    }
 	    return *this;
 	}
 
@@ -347,21 +328,10 @@ namespace LQIO {
 	    return *this;
 	}
     
-	Task& Task::setResultPhase1UtilizationVariance(const double resultPhasePUtilizationVariance) 
+	Task& Task::setResultPhasePUtilizationVariance(unsigned int p, const double resultPhasePUtilizationVariance) 
 	{
-	    _resultPhaseUtilizationVariances[0] = resultPhasePUtilizationVariance;
-	    return *this;
-	}
-
-	Task& Task::setResultPhase2UtilizationVariance(const double resultPhasePUtilizationVariance) 
-	{
-	    _resultPhaseUtilizationVariances[1] = resultPhasePUtilizationVariance;
-	    return *this;
-	}
-
-	Task& Task::setResultPhase3UtilizationVariance(const double resultPhasePUtilizationVariance) 
-	{
-	    _resultPhaseUtilizationVariances[2] = resultPhasePUtilizationVariance;
+	    assert( 0 < p && p <= Phase::MAX_PHASE );
+	    _resultPhaseUtilizationVariances[p-1] = resultPhasePUtilizationVariance;
 	    return *this;
 	}
 
@@ -373,7 +343,7 @@ namespace LQIO {
 
 	double Task::computeResultUtilization() 
 	{
-	    if ( getResultUtilization() == 0 ) {
+	    if ( getResultUtilization() == 0 || _entryList.size() == 1 ) {
 		double sum = 0;
 		std::vector<Entry *>::const_iterator nextEntry;
 		for ( nextEntry = _entryList.begin(); nextEntry != _entryList.end(); ++nextEntry ) {
@@ -401,7 +371,9 @@ namespace LQIO {
 	Task& Task::setResultUtilizationVariance(const double resultUtilizationVariance)
 	{
 	    /* Stores the given ResultUtilization of the Task */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    if ( resultUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultUtilizationVariance = resultUtilizationVariance;
 	    return *this;
 	}
@@ -421,7 +393,7 @@ namespace LQIO {
     
 	double Task::computeResultThroughput() 
 	{
-	    if ( getResultThroughput() == 0 ) {
+	    if ( getResultThroughput() == 0 || _entryList.size() == 1 ) {
 		double sum = 0;
 		std::vector<Entry *>::const_iterator nextEntry;
 		for ( nextEntry = _entryList.begin(); nextEntry != _entryList.end(); ++nextEntry ) {
@@ -433,11 +405,13 @@ namespace LQIO {
 	}
 
 
-	Task& Task::setResultThroughputVariance(const double resulThroughputVariance)
+	Task& Task::setResultThroughputVariance(const double resultThroughputVariance)
 	{
 	    /* Stores the given ResultThroughput of the Task */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
-	    _resultThroughputVariance = resulThroughputVariance;
+	    if ( resultThroughputVariance ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);	
+	    }
+	    _resultThroughputVariance = resultThroughputVariance;
 	    return *this;
 	}
     
@@ -455,7 +429,7 @@ namespace LQIO {
 
 	double Task::computeResultProcessorUtilization() 
 	{
-	    if ( getResultProcessorUtilization() == 0.0 ) {
+	    if ( getResultProcessorUtilization() == 0.0 || _entryList.size() == 1 ) {
 		double sum = 0.0;
 		std::vector<Entry *>::const_iterator nextEntry;
 		for ( nextEntry = _entryList.begin(); nextEntry != _entryList.end(); ++nextEntry ) {
@@ -486,17 +460,35 @@ namespace LQIO {
 	Task& Task::setResultProcessorUtilizationVariance(const double resultProcessorUtilizationVariance)
 	{
 	    /* Stores the given ResultProcessorUtilization of the Class */ 
-	    const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    if ( resultProcessorUtilizationVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultProcUtilizationVariance = resultProcessorUtilizationVariance;
 	    return *this;
 	}
     
+	double Task::getResultBottleneckStrength() const
+	{
+	    return _resultBottleneckStrength;
+	}
+
+	Task& Task::setResultBottleneckStrength( const double resultBottleneckStrength )
+	{
+	    /* Stores the given ResultProcessorUtilization of the Class */ 
+	    if ( resultBottleneckStrength > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasBottleneckStrength(true);
+	    }
+	    _resultBottleneckStrength = resultBottleneckStrength;
+	    return *this;
+	}
 
+	/* ------------------------------------------------------------------------ */
+
 	SemaphoreTask::SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-				     ExternalVariable* queue_length, const Processor* processor, const int priority, 
+				     const Processor* processor, ExternalVariable* queue_length, const int priority, 
 				     ExternalVariable* n_copies, const int n_replicas,
 				     const Group * group, const void * task_element)
-	    : Task(document, name, SCHEDULE_SEMAPHORE, entryList, queue_length, processor, priority, 
+	    : Task(document, name, SCHEDULE_SEMAPHORE, entryList, processor, queue_length, priority, 
 		   n_copies, n_replicas, group, task_element ),
 	      _initialState(INITIALLY_FULL),
 	      _resultHoldingTime(0.),
@@ -565,12 +557,11 @@ namespace LQIO {
 	}
 
 	RWLockTask::RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			       ExternalVariable* queue_length, const Processor* processor, const int priority, 
+			       const Processor* processor, ExternalVariable* queue_length, const int priority, 
 			       ExternalVariable* n_copies, const int n_replicas,
 			       const Group * group, const void * task_element)
-	    : Task(document, name, SCHEDULE_RWLOCK, entryList, 
-		   queue_length, processor, priority, 
-		   n_copies, n_replicas, group,  task_element ),
+	    : Task(document, name, SCHEDULE_RWLOCK, entryList, processor, 
+		   queue_length, priority, n_copies, n_replicas, group,  task_element ),
 	      _resultReaderHoldingTime(0.),
 	      _resultReaderHoldingTimeVariance(0.),
 	      _resultVarianceReaderHoldingTime(0.),

@@ -282,10 +282,34 @@ man()
 	    cout << ".RE" << endl;
 	    break;
 
+	case 'C':
+	    cout << "The " << current_option(i) << "is used to choose how to colour objects." << endl
+		 << ".RS" << endl;
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_OFF) << "\\fR" << endl
+		 << "Use gray scale instead of colour for results.";
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_RESULTS) << "\\fR" << endl
+		 << "Colour nodes based on utilization and arcs based on the utilization of the destination.  This is the default.";
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_LAYERS) << "\\fR" << endl
+		 << "Colour nodes based on their layer.";
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_CLIENTS) << "\\fR" << endl
+		 << "Colour nodes based on their client(s).";
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_SERVER_TYPE) << "\\fR" << endl
+		 << "Client tasks are coloured red, server tasks are coloured blue.";
+	    cout << ".TP" << endl 
+		 << "\\fB" << current_arg(i,COLOUR_CHAINS) << "\\fR" << endl
+		 << "Queueing output only: colour each chain differently.";
+	    cout << ".RE" << endl;
+	    break;
+
 	case 'I':
-	    cout << "The " << current_option(i) << " is used to force the input file format to either \\fIxml\\fR or \\fIlqn\\fR." << endl
-		 << "By default, if the suffix of the input filename is one of: \\fI.in\\fR, \\fI.lqn\\fR or \\fI.xlqn\\fR" << endl
-		 << ", then the LQN parser will be used.  Otherwise, input is assumed to be XML." << endl;
+	    cout << "The " << current_option(i) << " is used to force the input file format to either \\fIxml\\fR, or \\fIlqn\\fR." << endl
+		 << "By default, if the suffix of the input filename is one of: \\fI.in\\fR, \\fI.lqn\\fR, \\fI.xlqn\\fR, of \\fI.txt\\fR," << endl
+		 << "then the LQN parser will be used.  Otherwise, input is assumed to be XML." << endl;
 	    break;
 
 	case 512+'I':
@@ -393,12 +417,12 @@ man()
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_FIG) << "\\fR" << endl
 		 << "Generate input for xfig(1)." << endl;
-#if HAVE_GD_H && HAVE_GDIMAGEGIFPTR
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_GIF) << "\\fR" << endl
 		 << "Generate GIF (bitmap) output." << endl;
 #endif
-#if HAVE_GD_H && HAVE_LIBJPEG 
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_JPEG) << "\\fR" << endl
 		 << "Generate JPEG (bitmap) output." << endl;
@@ -430,7 +454,7 @@ man()
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_PSTEX) << "\\fR" << endl
 		 << "Generate PostScript and LaTeX (pstex)." << endl;
-#if HAVE_GD_H && HAVE_LIBPNG
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_PNG) << "\\fR" << endl
 		 << "Generate Portable Network Graphics (bitmap) output." << endl;

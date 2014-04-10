@@ -128,12 +128,6 @@ Options::Trace::delta_wait( const char *arg )
 }
 
 void
-Options::Trace::entry( const char *arg )
-{
-    flags.trace_entry = const_cast<char *>(arg);
-}
-
-void
 Options::Trace::forks( const char *arg )
 {
     flags.trace_forks = true;
@@ -185,21 +179,9 @@ Options::Trace::intermediate( const char *arg )
 }
 
 void
-Options::Trace::processor( const char *arg )
-{
-    flags.trace_processor = const_cast<char *>(arg);
-}
-
-void
 Options::Trace::replication( const char *arg )
 {
     flags.trace_replication = true;
-}
-
-void
-Options::Trace::task( const char *arg )
-{
-    flags.trace_task = const_cast<char *>(arg);
 }
 
 void

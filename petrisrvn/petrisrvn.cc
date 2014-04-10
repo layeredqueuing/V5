@@ -111,7 +111,7 @@ static void my_handler (int);
  */
 
 
-static const char * opts = "dHI:km:no:pP:rRtvVwxz:";
+static const char * opts = "dHI:jkm:no:pP:rRtvVwxz:";
 
 #if HAVE_GETOPT_LONG
 static const struct option longopts[] =

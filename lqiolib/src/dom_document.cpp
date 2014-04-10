@@ -24,6 +24,7 @@
 #include "srvn_input.h"
 #include "srvn_results.h"
 #include "srvn_output.h"
+#include "srvn_spex.h"
 #include "filename.h"
 
 namespace LQIO {
@@ -35,11 +36,9 @@ namespace LQIO {
 	Document* currentDocument = NULL;
 	bool Document::__debugXML = false;
     
-	Document::Document( lqio_params_stats* ioVars ) 
-	    : _conf_95( ConfidenceIntervals( LQIO::ConfidenceIntervals::CONF_95 ) ),
-	      _conf_99( ConfidenceIntervals( LQIO::ConfidenceIntervals::CONF_99 ) ),
-	      _processors(), _groups(), _tasks(), _entries(), 
-	      _entities(), _variables(), _nextEntityId(0), 
+	Document::Document( lqio_params_stats* ioVars, input_format format ) 
+	    : _processors(), _groups(), _tasks(), _entries(), 
+	      _entities(), _variables(), _nextEntityId(0), _format(format),
 	      _comment(), _comment2(), _convergenceValue(0), _iterationLimit(0), _printInterval(0), _underrelaxationCoefficient(0), 
 	      _seedValue(0), _numberOfBlocks(0), _blockTime(0), _resultPrecision(0), _warmUpLoops(0), _warmUpTime(0),
 	      _xmlDomElement(0),
@@ -88,11 +87,17 @@ namespace LQIO {
 
 	    io_vars = NULL;
 	    if ( input_file_name ) {
+		free( const_cast<char *>(input_file_name) );
 		input_file_name = 0;
 	    }
 	    if ( output_file_name ) {
+		free( const_cast<char *>(output_file_name) );
 		output_file_name = 0;
 	    }
+#if HAVE_LIBXERCES_C
+	    delete Xerces_Document::__xercesDOM;
+#endif	    
+	    LQIO::DOM::Spex::clear();
 	}
     
 	void Document::setModelParameters(const char* comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
@@ -455,8 +460,7 @@ namespace LQIO {
 	bool Document::areAllExternalVariablesAssigned() const
 	{
 	    /* Check to make sure all external variables were set */
-	    std::map<std::string, SymbolExternalVariable*>::const_iterator iter;
-	    for (iter = _variables.begin(); iter != _variables.end(); ++iter) {
+	    for (std::map<std::string, SymbolExternalVariable*>::const_iterator iter = _variables.begin(); iter != _variables.end(); ++iter) {
 		SymbolExternalVariable* current = iter->second;
 		if (current->wasSet() == false) {
 		    return false;
@@ -466,17 +470,14 @@ namespace LQIO {
 	    return true;
 	}
     
-	std::string Document::getUndefinedExternalVariables() const
+	std::vector<std::string> Document::getUndefinedExternalVariables() const
 	{
 	    /* Returns a list of all undefined external variables as a string */
-	    std::string names;
+	    std::vector<std::string> names;
 	    for (std::map<std::string, SymbolExternalVariable*>::const_iterator iter = _variables.begin(); iter != _variables.end(); ++iter) {
 		SymbolExternalVariable* current = iter->second;
 		if (current->wasSet() == false) {
-		    if ( names.size() > 0 ) {
-			names += ", ";
-		    }
-		    names += iter->first;
+		    names.push_back(iter->first);
 		}
 	    }
 	    return names;
@@ -593,10 +594,15 @@ namespace LQIO {
 	    return _hasResults;
 	}
 
+	bool Document::isXMLDOMPresent() const 
+	{
+	    return _xmlDomElement != NULL;
+	}
+
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 	ExternalVariable* 
-	Document::db_build_parameter_variable(const char* input, bool* isSymbol) 
+	Document::db_build_parameter_variable(const char* input, bool* isSymbol) throw( std::invalid_argument )
 	{
 	    if (input && input[0] == '$') {
 		if (isSymbol) { *isSymbol = true; }
@@ -612,8 +618,10 @@ namespace LQIO {
 
 		    /* Check if we finished parsing okay */
 		    if (endPtr != realEndPtr) {
-			printf("WARNING: Not all of `%s' was converted to a double.\n", input);
-			printf("WARNING: Problem ignored.\n");
+			std::string err = "<double>: \"";
+			err += input;
+			err += "\"";
+			throw std::invalid_argument( err.c_str() );
 		    }
 		}
 
@@ -624,12 +632,12 @@ namespace LQIO {
 	}
 	
 	void 
-	Document::db_check_set_entry(Entry* entry, const string& toEntryName, Entry::EntryType requisiteType)
+	Document::db_check_set_entry(Entry* entry, const string& entry_name, Entry::EntryType requisiteType)
 	{
 	    if ( !entry ) {
-		input_error2( ERR_NOT_DEFINED, toEntryName.c_str() );
+		input_error2( ERR_NOT_DEFINED, entry_name.c_str() );
 	    } else if ( requisiteType != Entry::ENTRY_NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
-		input_error2( ERR_MIXED_ENTRY_TYPES, toEntryName.c_str() );
+		input_error2( ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
 	    }
 	}
 
@@ -649,17 +657,6 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document* Document::create( lqio_params_stats* io_vars, bool load_results )
-	{
-#if HAVE_LIBXERCES_C
-	    return new Xerces_Document( io_vars );
-#elif HAVE_LIBEXPAT
-	    return new Expat_Document( io_vars, load_results );		// For XML output.
-#else
-	    return new Document( io_vars, load_results );		// For XML output.
-#endif
-	}
-
 	/*
 	 * Load document.  Based on the file extension, pick the
 	 * appropriate loader.  LQNX (XML) input and output are found
@@ -670,11 +667,13 @@ namespace LQIO {
 	/* static */ Document* 
 	Document::load(const string& input_filename, input_format format, const string& output_filename, lqio_params_stats * ioVars, unsigned& errorCode, bool load_results )
 	{
+	    input_file_name = strdup( input_filename.c_str() );
+	    output_file_name = strdup( output_filename.c_str() );
+            ioVars->error_count = 0;                   /* See error.c */
+            ioVars->anError = false;
+
 	    errorCode = 0;
 
-	    /* Create a document to store the product */
-	    Document * document = 0;
-	
 	    /* Figure out input file type based on suffix */
 
 	    if ( format == AUTOMATIC_INPUT ) {
@@ -684,39 +683,58 @@ namespace LQIO {
 		    std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
 		    if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" ) {
 			format = LQN_INPUT;		/* Override */
+		    } else {
+			format = XML_INPUT;
 		    }
 		}
 	    }
 
+	    /* Create a document to store the product */
+	    Document * document = new Document( ioVars, format );
+	
 	    /* Read in the model, invoke the builder, and see what happened */
 
+	    bool rc = true;
 	    if ( format == LQN_INPUT ) {
-		document = LoadSRVN( input_filename, output_filename, ioVars,  errorCode );
-		if ( document != 0 && load_results ) {
-		    LQIO::Filename parse_name( input_filename.c_str(), "p" );
-		    if ( parse_name.mtimeCmp( input_filename.c_str() ) < 0 ) {
-			cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
-			     << " -- results ignored. " << endl;
-		    } else {
-			loadSRVNResults( parse_name() );
-		    }
-		}
+		rc = SRVN::load( *document, input_filename, output_filename, errorCode, load_results );
 	    } else {
 #if HAVE_LIBXERCES_C
-		document = Xerces_Document::LoadLQNX( input_filename, ioVars, errorCode );
-		if ( errorCode != 0 ) {
-		    delete document;
-		    return NULL;
-		} 
+		rc = Xerces_Document::load( *document, input_filename, ioVars, errorCode );
 #elif HAVE_LIBEXPAT
-		document = Expat_Document::LoadLQNX( input_filename, output_filename, ioVars, errorCode, load_results );
+		rc = Expat_Document::load( *document, input_filename, output_filename, errorCode, load_results );
 #endif
 	    }
+	    if ( errorCode != 0 ) {
+		rc = false;
+	    } 
 
 	    /* All went well, so return it */
-	    return document;
+	    if ( rc ) {
+		return document;
+	    } else {
+		delete document;
+		return 0;
+	    }
 	}
 
+
+	bool
+	Document::loadResults(const std::string& directory_name, const std::string& file_name, const std::string& suffix, unsigned& errorCode )
+	{
+	    if ( getInputFormat() == LQN_INPUT ) {
+		LQIO::Filename filename( file_name.c_str(), "p", directory_name.c_str(), suffix.c_str() );
+		return LQIO::SRVN::loadResults( filename() );
+	    } else if ( getInputFormat() == XML_INPUT ) {
+		LQIO::Filename filename( file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
+#if HAVE_LIBXERCES_C
+		return false;
+#else
+		return Expat_Document::loadResults( *this, file_name, errorCode );
+#endif
+	    } else {
+		return false;
+	    }
+	}
 
 	/*
 	 * Print in input order.
@@ -740,10 +758,35 @@ namespace LQIO {
 	}
 
 
-	double
-	Document::invert( const double arg ) const
+	std::ostream& Document::printExternalVariables( std::ostream& output ) const
 	{
-	    return _conf_95.invert( arg );
+	    /* Check to make sure all external variables were set */
+	    for (std::map<std::string, SymbolExternalVariable*>::const_iterator var_p = _variables.begin(); var_p != _variables.end(); ++var_p) {
+		if ( var_p != _variables.begin() ) {
+		    output << ", ";
+		}
+
+		const SymbolExternalVariable* var = var_p->second;
+		output << *var;
+
+		double value;
+		if ( var->wasSet() && var->getValue( value ) ) {
+		    output << " = " << value;
+		}
+	    }
+	    return output;
 	}
+
+	void 
+	Document::serializeDOM( std::ostream & output, bool instantiate ) const
+	{
+#if HAVE_LIBXERCES_C
+	    Xerces_Document::serializeDOM( output, instantiate );
+#else
+	    Expat_Document expat( *const_cast<Document *>(this), false, false );
+	    expat.serializeDOM( output, instantiate );
+#endif
+	}
+
     }
 }

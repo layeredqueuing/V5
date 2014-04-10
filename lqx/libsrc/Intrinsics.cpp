@@ -23,9 +23,51 @@
 
 namespace LQX {
 
+#if !HAVE_DRAND48
+    static double erand48( unsigned short xsubi[3] );
+#endif
+    
     static unsigned short xsubi[3] = { 0x0123, 0x4567, 0x89ab };
 
     namespace Intrinsics {
+
+	static double exp_rv( double a )
+	{
+	    return -a * log( erand48( xsubi ) );
+	}
+
+	static double erlang_rv( double a, unsigned int b )
+	{
+	    double prod = 1.0;
+	    for ( unsigned int i = 0; i < b; ++i ) {
+		prod *= erand48( xsubi );
+	    }
+	    return -a * log( prod );
+	}
+
+	static double beta_rv( double a, double b )
+	{
+	    if ( a >= 1 || b >= 1 ) throw RuntimeException("Invalid argument for Beta RV()");
+	    for (;;) {
+		const double x = pow( erand48( xsubi ), 1/a );
+		const double y = pow( erand48( xsubi ), 1/b );
+		if ( x + y <= 1 ) return x / (x + y);
+	    }
+	}
+
+	static double gamma_rv( double a, double b )
+	{
+	    if ( a <= 0 || b <= 0 ) throw RuntimeException("Invalid argument for Gamma RV()");
+	    if ( b < 1 ) {
+		const double x = beta_rv(b, 1-b);
+		const double y = exp_rv(1);
+		return a * x * y;
+	    } else if ( b == floor( b ) ) {
+		return erlang_rv( a, static_cast<unsigned int>(floor( b )) );
+	    } else {
+		return erlang_rv( a, static_cast<unsigned int>(floor( b )) ) + gamma_rv( a, b - floor(b) );
+	    }
+	}
 
 	inline double get_infinity()
 	{
@@ -91,10 +133,6 @@ namespace LQX {
     
     }
   
-#if !HAVE_DRAND48
-    static double erand48( unsigned short xsubi[3] );
-#endif
-    
     namespace Intrinsics {
     
 	/* This method on the other hand actually does all the heavy lifting */
@@ -165,6 +203,36 @@ namespace LQX {
 	    }
 
 	    return Symbol::encodeDouble( mean + stddev * (sum - 6) );
+	}
+
+	SymbolAutoRef Gamma::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	{
+	    const double mean = decodeDouble( args, 0 );
+	    const double b = decodeDouble( args, 1 );	// shape 
+	    if ( b <= 0 || mean <= 0 ) throw RuntimeException("Invalid argument to Gamma.");
+	    const double a = mean / b;
+	    return Symbol::encodeDouble( gamma_rv( a, b ) );
+	}
+
+	SymbolAutoRef Uniform::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	{
+	    const double low = decodeDouble( args, 0 );
+	    const double high = decodeDouble( args, 1 );	// shape 
+	    if ( high > low ) throw RuntimeException("Invalid argument to Gamma.");
+	    return Symbol::encodeDouble( erand48( xsubi ) *  ( high - low ) + low );
+	}
+
+	SymbolAutoRef Poisson::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	{
+	    const double mean = decodeDouble( args, 0 );
+	    const double limit = exp(-mean);
+	    double prod = 1;
+	    unsigned int i = 0;
+	    while ( prod >= limit ) {
+		prod *= erand48(xsubi);
+		i += 1;
+	    }
+	    return Symbol::encodeDouble( static_cast<double>(i) );
 	}
     }
   
@@ -346,6 +414,9 @@ namespace LQX {
 	}
     
     }
+
+    namespace Intrinsincs {
+    }
   
     void RegisterIntrinsics(MethodTable* table)
     {
@@ -366,6 +437,8 @@ namespace LQX {
 	table->registerMethod(new Intrinsics::Rand());
 	table->registerMethod(new Intrinsics::Round());
 	table->registerMethod(new Intrinsics::Normal());
+	table->registerMethod(new Intrinsics::Gamma());
+	table->registerMethod(new Intrinsics::Poisson());
 	table->registerMethod(new Intrinsics::Str());
 	table->registerMethod(new Intrinsics::Double());
 	table->registerMethod(new Intrinsics::Boolean());

@@ -17,13 +17,15 @@
 #include <cstring>
 #include <cstdio>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
 
 /* Quote the item in the context of a stringstream */
 #define QUOTE(x) "\"" << x << "\""
 #define strequal( x, y ) ( strcmp( x, y ) == 0 )
 
 namespace LQX {
-  
+
   static unsigned convertToInteger(double rightNumber) throw (IncompatibleTypeException) {
     unsigned rightInteger = 0;
     long integralPart = (long)rightNumber;
@@ -31,13 +33,18 @@ namespace LQX {
     if (rightNumber < 0 || fractionalPart != 0) {
       throw IncompatibleTypeException("double", "integer");
     }
-    
+
     /* Return the integral part of the double */
     rightInteger = integralPart;
     return rightInteger;
   }
-  
-};
+
+  /* The names of the operations */
+  const char* SyntaxTreeNode::logicNames[] = { "||", "&&", "!" };
+  const char* SyntaxTreeNode::compareNames[] = { "==", "!=", "<", ">", "<=", ">=" };
+  const char* SyntaxTreeNode::arithmeticNames[] = { "<<", ">>", "+", "-", "*", "/", "%" };
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -50,13 +57,13 @@ namespace LQX {
     _statements(statements)
   {
   }
-  
+
   CompoundStatementNode::CompoundStatementNode(SyntaxTreeNode* first, ...) :
     _statements(new std::vector<SyntaxTreeNode*>())
   {
     /* Add the first statement to the list */
     _statements->push_back(first);
-    
+
     /* Add Remaining */
     va_list ap;
     va_start(ap, first);
@@ -72,17 +79,17 @@ namespace LQX {
     for (iter = _statements->begin(); iter != _statements->end(); iter++) {
       delete (*iter);
     }
-    
+
     /* Delete the statements list */
     delete(_statements);
   }
 
-  void CompoundStatementNode::debugPrintGraphviz(std::stringstream& output)
+  void CompoundStatementNode::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"Invoke\", shape=box];" << std::endl;
-    
+
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _statements->begin(); iter != _statements->end(); iter++) {
@@ -93,6 +100,17 @@ namespace LQX {
     }
   }
 
+  std::ostream& CompoundStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    /* Output all of the expressions we will be running */
+    std::vector<SyntaxTreeNode*>::iterator iter;
+    for (iter = _statements->begin(); iter != _statements->end(); iter++) {
+      (*iter)->print(output,indent);
+      if ( (*iter)->simpleStatement() ) { output << ";" << std::endl; }
+    }
+    return output;
+  }
+
   SymbolAutoRef CompoundStatementNode::invoke(Environment* env) throw (RuntimeException)
   {
 #if defined(__VARIABLE_SCOPING__)
@@ -100,23 +118,23 @@ namespace LQX {
     SymbolTable* st = env->getSymbolTable();
     st->pushContext();
 #endif
-    
+
     /* Invoke all of the statements given */
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _statements->begin(); iter != _statements->end(); iter++) {
       (*iter)->invoke(env);
     }
-    
+
 #if defined(__VARIABLE_SCOPING__)
     /* Pop the variable context */
     st->popContext();
 #endif
-    
+
     /* Returns Nothing */
     return Symbol::encodeNull();
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -125,7 +143,7 @@ namespace LQX {
 
 namespace LQX {
 
-  ConditionalStatementNode::ConditionalStatementNode(SyntaxTreeNode* testNode, 
+  ConditionalStatementNode::ConditionalStatementNode(SyntaxTreeNode* testNode,
     SyntaxTreeNode* ifTrue, SyntaxTreeNode* ifFalse) :
     _testNode(testNode), _trueAction(ifTrue), _falseAction(ifFalse)
   {
@@ -139,26 +157,26 @@ namespace LQX {
     delete(_falseAction);
   }
 
-  void ConditionalStatementNode::debugPrintGraphviz(std::stringstream& output)
+  void ConditionalStatementNode::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"If Then Else\", shape=box];" << std::endl;
-    
+
     /* Output the Test Node */
     if (_testNode) {
       uintptr_t testNodeId = reinterpret_cast<uintptr_t>(_testNode);
       _testNode->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(testNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the True Action Node */
     if (_trueAction) {
       uintptr_t trueNodeId = reinterpret_cast<uintptr_t>(_trueAction);
       _trueAction->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(trueNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the False Action Node */
     if (_falseAction) {
       uintptr_t falseNodeId = reinterpret_cast<uintptr_t>(_falseAction);
@@ -167,19 +185,38 @@ namespace LQX {
     }
   }
 
+  std::ostream& ConditionalStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    output << std::setw(indent*2) << " " << "if (";
+    if (_testNode) { _testNode->print(output); }
+    output << ")";
+    if (_trueAction) {
+      output << " {" << std::endl;
+      _trueAction->print(output,indent+1);
+      output << std::setw(indent*2) << " " << "}";
+    }
+    if (_falseAction) {
+      output << " else {" << std::endl;
+      _falseAction->print(output,indent+1);
+      output << std::setw(indent*2) << " " << "}";
+    }
+    output << std::endl;
+    return output;
+  }
+
   SymbolAutoRef ConditionalStatementNode::invoke(Environment* env) throw (RuntimeException)
   {
     /* Make sure there's something to do */
     if (_testNode == NULL) {
       throw InternalErrorException("");
     }
-    
+
     /* Make sure we got ourselves a boolean */
     SymbolAutoRef testValue = _testNode->invoke(env);
     if (testValue == NULL || testValue->getType() != Symbol::SYM_BOOLEAN) {
       throw IncompatibleTypeException(testValue->getTypeName(), "boolean");
     }
-    
+
     /* Invoke the appropriate node */
     bool result = testValue->getBooleanValue();
     if (result && _trueAction) {
@@ -187,11 +224,11 @@ namespace LQX {
     } else if (!result && _falseAction) {
       return _falseAction->invoke(env);
     }
-    
+
     return Symbol::encodeNull();
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -200,7 +237,7 @@ namespace LQX {
 
 namespace LQX {
 
-  AssignmentStatementNode::AssignmentStatementNode(SyntaxTreeNode* target, SyntaxTreeNode* value) : 
+  AssignmentStatementNode::AssignmentStatementNode(SyntaxTreeNode* target, SyntaxTreeNode* value) :
     _target(target), _value(value)
   {
   }
@@ -211,7 +248,7 @@ namespace LQX {
     delete(_value);
   }
 
-  void AssignmentStatementNode::debugPrintGraphviz(std::stringstream& output)
+  void AssignmentStatementNode::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this), valueNode = reinterpret_cast<uintptr_t>(_value);
@@ -224,6 +261,15 @@ namespace LQX {
     output << std::endl;
   }
 
+  std::ostream& AssignmentStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    _target->print(output);
+    output << " = ";
+    _value->print(output);
+    return output;
+  }
+
   SymbolAutoRef AssignmentStatementNode::invoke(Environment* env) throw (RuntimeException)
   {
     /* Obtain the value we are assigning here */
@@ -231,7 +277,7 @@ namespace LQX {
     if (value == NULL) {
       throw InternalErrorException("Unable to obtain rvalue for assignment.");
     }
-    
+
     /* Figure out what we are setting on */
     SymbolAutoRef target = _target->invoke(env);
     if (target->isConstant()) {
@@ -239,11 +285,11 @@ namespace LQX {
     } else {
       target->copyValue(*value);
     }
-    
+
     return target;
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -252,7 +298,7 @@ namespace LQX {
 
 namespace LQX {
 
-  LogicExpression::LogicExpression(LogicOperation op, SyntaxTreeNode* left, SyntaxTreeNode* right) : 
+  LogicExpression::LogicExpression(LogicOperation op, SyntaxTreeNode* left, SyntaxTreeNode* right) :
     _operation(op), _left(left), _right(right)
   {
   }
@@ -264,23 +310,20 @@ namespace LQX {
     delete(_right);
   }
 
-  void LogicExpression::debugPrintGraphviz(std::stringstream& output)
+  void LogicExpression::debugPrintGraphviz(std::ostream& output)
   {
-    /* The names of the operations */
-    static const char* logicNames[] = { "||", "&&", "!" };
-    
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     const char* thisName = logicNames[static_cast<uint32_t>(_operation)];
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
-    
+
     /* Output the Left Node */
     if (_left) {
       uintptr_t leftNodeId = reinterpret_cast<uintptr_t>(_left);
       _left->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(leftNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the Right Node */
     if (_right) {
       uintptr_t rightNodeId = reinterpret_cast<uintptr_t>(_right);
@@ -289,19 +332,30 @@ namespace LQX {
     }
   }
 
+  std::ostream& LogicExpression::print( std::ostream& output, unsigned int ) const
+  {
+    bool brackets = _left && _right;
+    if ( brackets ) { output << "("; }		// Always do this to ensure order of ops
+    if (_left) { _left->print(output); }
+    output << ' ' << logicNames[static_cast<uint32_t>(_operation)] << ' ';
+    if (_right) { _right->print(output); }
+    if ( brackets ) { output << ")"; }		// Always do this to ensure order of ops
+    return output;
+  }
+
   SymbolAutoRef LogicExpression::invoke(Environment* env) throw (RuntimeException)
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
     SymbolAutoRef right(NULL);
     bool hasRight = false;
-    
+
     /* Obtain the right side of the expression where applicable */
     if (_operation == AND || _operation == OR) {
       right = _right->invoke(env);
       hasRight = true;
     }
-    
+
     /* Check if everything actually worked out right */
     if (left == NULL || (hasRight == true && right == NULL)) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
@@ -310,28 +364,28 @@ namespace LQX {
     } else if ((hasRight && (right->getType() != Symbol::SYM_BOOLEAN))) {
       throw IncompatibleTypeException(right->getTypeName(), "boolean");
     }
-    
+
     /* Get the value to perform the operation */
     bool result = false;
-    
+
     /* Do the actual work */
     switch (_operation) {
-      case AND: 
+      case AND:
         result = left->getBooleanValue() && right->getBooleanValue();
         break;
       case OR:
         result = left->getBooleanValue() || right->getBooleanValue();
         break;
       case NOT:
-	  result = !left->getBooleanValue();
-        break;
+	result = !left->getBooleanValue();
+      break;
     }
-    
+
     /* Return an anonymous symbol */
     return Symbol::encodeBoolean(result);
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -353,29 +407,34 @@ namespace LQX {
     delete(_right);
   }
 
-  void ComparisonExpression::debugPrintGraphviz(std::stringstream& output)
+  void ComparisonExpression::debugPrintGraphviz(std::ostream& output)
   {
-    /* The names of the operations */
-    static const char* compareNames[] = { "==", "!=", "<", ">", "<=", ">=" };
-    
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     const char* thisName = compareNames[static_cast<uint32_t>(_mode)];
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
-    
+
     /* Output the Left Node */
     if (_left) {
       uintptr_t leftNodeId = reinterpret_cast<uintptr_t>(_left);
       _left->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(leftNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the Right Node */
     if (_right) {
       uintptr_t rightNodeId = reinterpret_cast<uintptr_t>(_right);
       _right->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(rightNodeId) << ";" << std::endl;
     }
+  }
+
+  std::ostream& ComparisonExpression::print( std::ostream& output, unsigned int ) const
+  {
+    if (_left) { _left->print(output); }
+    output << ' ' << compareNames[static_cast<uint32_t>(_mode)] << ' ';
+    if (_right) { _right->print(output); }
+    return output;
   }
 
   SymbolAutoRef ComparisonExpression::invoke(Environment* env) throw (RuntimeException)
@@ -385,16 +444,16 @@ namespace LQX {
     SymbolAutoRef right = _right->invoke(env);
     Symbol::Type leftType, rightType;
     bool result = false;
-        
+
     /* Check if everything actually worked out right */
     if (left == NULL || right == NULL) {
       throw InternalErrorException("Unable to find either the lvalue or the rvalue.");
     }
-    
+
     /* Get the type of the nodes */
     leftType = left->getType();
     rightType = right->getType();
-    
+
     /* We can compare objects against eachother and nulls using built-in operations */
     if (leftType == Symbol::SYM_NULL && rightType == Symbol::SYM_NULL) {
       switch (_mode) {
@@ -418,17 +477,17 @@ namespace LQX {
         default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
       }
     } else {
-      
+
       /* Check to see if we can work this as a double or a boolean comparison */
       if (left->getType() == Symbol::SYM_DOUBLE && right->getType() != Symbol::SYM_DOUBLE) {
         throw IncompatibleTypeException(right->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
       } else if (left->getType() == Symbol::SYM_BOOLEAN && right->getType() != Symbol::SYM_BOOLEAN) {
-        throw IncompatibleTypeException(right->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));      
-      } else if ((left->getType() != Symbol::SYM_BOOLEAN && left->getType() != Symbol::SYM_DOUBLE) && 
+        throw IncompatibleTypeException(right->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
+      } else if ((left->getType() != Symbol::SYM_BOOLEAN && left->getType() != Symbol::SYM_DOUBLE) &&
         (right->getType() != Symbol::SYM_BOOLEAN && right->getType() != Symbol::SYM_DOUBLE)) {
         throw InternalErrorException("Unknown type in comparison.");
       }
-      
+
       /* If we are dealing with doubles, do it that way. */
       if (left->getType() == Symbol::SYM_DOUBLE) {
         double d1 = left->getDoubleValue();
@@ -451,14 +510,14 @@ namespace LQX {
           default:               throw RuntimeException("Booleans can only be compared with == and !=");
         }
       }
-      
+
     }
-    
+
     /* Generate the boolean symbol for the result */
     return Symbol::encodeBoolean(result);
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -466,8 +525,8 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
-  MathExpression::MathExpression(MathOperation op, SyntaxTreeNode* left, SyntaxTreeNode* right) : 
+
+  MathExpression::MathExpression(MathOperation op, SyntaxTreeNode* left, SyntaxTreeNode* right) :
     _operation(op), _left(left), _right(right)
   {
   }
@@ -479,23 +538,20 @@ namespace LQX {
     delete(_right);
   }
 
-  void MathExpression::debugPrintGraphviz(std::stringstream& output)
+  void MathExpression::debugPrintGraphviz(std::ostream& output)
   {
-    /* The names of the operations */
-    static const char* compareNames[] = { "<<", ">>", "+", "-", "*", "/", "%" };
-    
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
-    const char* thisName = compareNames[static_cast<uint32_t>(_operation)];
+    const char* thisName = arithmeticNames[static_cast<uint32_t>(_operation)];
     output << QUOTE(thisNode) << " [label=\"" << thisName << "\", shape=box];" << std::endl;
-    
+
     /* Output the Left Node */
     if (_left) {
       uintptr_t leftNodeId = reinterpret_cast<uintptr_t>(_left);
       _left->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(leftNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the Right Node */
     if (_right) {
       uintptr_t rightNodeId = reinterpret_cast<uintptr_t>(_right);
@@ -504,34 +560,49 @@ namespace LQX {
     }
   }
 
+  std::ostream& MathExpression::print( std::ostream& output, unsigned int ) const
+  {
+    bool brackets = _left && _right;
+    if ( brackets ) { output << "("; }		// Always do this to ensure order of ops
+    if (_left) { _left->print(output); }
+    output << ' ' << arithmeticNames[static_cast<uint32_t>(_operation)] << ' ';
+    if (_right) { _right->print(output); }
+    if ( brackets ) { output << ")"; }
+    return output;
+  }
+
   SymbolAutoRef MathExpression::invoke(Environment* env) throw (RuntimeException)
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
     SymbolAutoRef right = _right->invoke(env);
-    
+
     /* Check if everything actually worked out right */
     if (left == NULL || right == NULL) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
     } else if (left->getType() != Symbol::SYM_DOUBLE) {
-      throw IncompatibleTypeException(left->getTypeName(), "double");
+      std::stringstream ss;
+      _left->print( ss, 0 );
+      throw IncompatibleTypeException( ss.str(), left->getTypeName(), "double" );
     } else if (right->getType() != Symbol::SYM_DOUBLE) {
-      throw IncompatibleTypeException(right->getTypeName(), "double");      
+      std::stringstream ss;
+      _right->print( ss, 0 );
+      throw IncompatibleTypeException( ss.str(), right->getTypeName(), "double" );
     }
-    
+
     /* Pull out the values */
     double leftNumber = left->getDoubleValue();
     double rightNumber = right->getDoubleValue();
     double result = 0.0f;
     unsigned rightInteger = 0;
-    unsigned leftInteger = 0; 
-    
+    unsigned leftInteger = 0;
+
     /* If this operation requires an integer argument, then we need to grab it */
     if (_operation == SHIFT_LEFT || _operation == SHIFT_RIGHT || _operation == MODULUS) {
       rightInteger = convertToInteger(rightNumber);
       leftInteger = convertToInteger(leftNumber);
     }
-    
+
     /* Perform the operation itself */
     switch (_operation) {
       case SHIFT_LEFT:
@@ -559,12 +630,12 @@ namespace LQX {
         throw InternalErrorException("Unsupported Math Operation");
         break;
     };
-    
+
     /* Generate an anonymous symbol and assign it a double */
     return Symbol::encodeDouble(result);
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -578,11 +649,17 @@ namespace LQX {
     /* Assign a NULL value */
     _current = Symbol::encodeNull();
   }
-  
+
   ConstantValueExpression::ConstantValueExpression(const char* stringValue)
   {
     /* Assign a string value */
     _current = Symbol::encodeString(stringValue);
+  }
+
+  ConstantValueExpression::ConstantValueExpression(const std::string& stringValue)
+  {
+    /* Assign a string value */
+    _current = Symbol::encodeString(stringValue.c_str());
   }
 
   ConstantValueExpression::ConstantValueExpression(double numericalValue)
@@ -590,7 +667,7 @@ namespace LQX {
     /* Assign a double value */
     _current = Symbol::encodeDouble(numericalValue);
   }
-  
+
   ConstantValueExpression::ConstantValueExpression(bool booleanValue)
   {
     /* Assign a boolean value */
@@ -601,11 +678,11 @@ namespace LQX {
   {
   }
 
-  void ConstantValueExpression::debugPrintGraphviz(std::stringstream& output)
+  void ConstantValueExpression::debugPrintGraphviz(std::ostream& output)
   {
     /* Output the value string */
     std::string valueStr;
-    
+
     /* Figure out what to say */
     switch (_current->getType()) {
       case Symbol::SYM_BOOLEAN: {
@@ -626,19 +703,43 @@ namespace LQX {
         break;
       }
     }
-    
+
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"" << valueStr << "\"];" << std::endl;
   }
 
-  SymbolAutoRef ConstantValueExpression::invoke(Environment* env) throw (RuntimeException)
+  std::ostream& ConstantValueExpression::print( std::ostream& output, unsigned int ) const
+  {
+    /* Output the value string */
+    std::string valueStr;
+
+    /* Figure out what to say */
+    switch (_current->getType()) {
+      case Symbol::SYM_BOOLEAN:
+	output << (_current->getBooleanValue() ? "true" : "false");
+        break;
+      case Symbol::SYM_DOUBLE:
+        output << _current->getDoubleValue();
+	break;
+      case Symbol::SYM_STRING:
+	output << "\"" << _current->getStringValue() << "\"";
+        break;
+      default:
+	output << "<<invalid>>";
+        break;
+    }
+
+    return output;
+  }
+
+  SymbolAutoRef ConstantValueExpression::invoke(Environment*) throw (RuntimeException)
   {
     /* Simple enough... */
     return _current;
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -646,28 +747,34 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
+
   VariableExpression::VariableExpression(const std::string& name, bool external) : _name(name), _external(external)
   {
   }
-  
+
   VariableExpression::~VariableExpression()
   {
   }
-  
-  void VariableExpression::debugPrintGraphviz(std::stringstream& output)
+
+  void VariableExpression::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"" << _name << "\"];" << std::endl;
   }
-  
+
+  std::ostream& VariableExpression::print( std::ostream& output, unsigned int ) const
+  {
+    output << _name;
+    return output;
+  }
+
   SymbolAutoRef VariableExpression::invoke(Environment* env) throw (RuntimeException)
   {
     /* Get the Symbol Table from the Environment */
     SymbolTable* table = env->getSymbolTable();
     SymbolTable* specialTable = env->getSpecialSymbolTable();
-    
+
     /* Check if the value is defined */
     if (!_external && !table->isDefined(_name)) {
       table->define(_name);
@@ -677,12 +784,12 @@ namespace LQX {
     } else if (_external && !specialTable->isDefined(_name)) {
       throw UndefinedVariableException(_name);
     }
-  
+
     /* If it is, return it for us */
     return _external ? specialTable->get(_name) : table->get(_name);
   }
-  
-};
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -690,17 +797,17 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
-  MethodInvocationExpression::MethodInvocationExpression(const std::string& name) : 
+
+  MethodInvocationExpression::MethodInvocationExpression(const std::string& name) :
     _name(name), _arguments(new std::vector<SyntaxTreeNode*>())
   {
   }
-  
+
   MethodInvocationExpression::MethodInvocationExpression(const std::string& name, std::vector<SyntaxTreeNode*>* arguments) :
     _name(name), _arguments(arguments)
   {
   }
-  
+
   MethodInvocationExpression::MethodInvocationExpression(const std::string& name, SyntaxTreeNode* first, ...) :
     _name(name), _arguments(new std::vector<SyntaxTreeNode*>())
   {
@@ -712,19 +819,19 @@ namespace LQX {
     while ((node = va_arg(ap, SyntaxTreeNode*)) != NULL) { _arguments->push_back(node); }
     va_end(ap);
   }
-  
+
   MethodInvocationExpression::~MethodInvocationExpression()
   {
     /* Delete the arguments list */
     delete _arguments;
   }
-  
-  void MethodInvocationExpression::debugPrintGraphviz(std::stringstream& output)
+
+  void MethodInvocationExpression::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"Call(" << _name << ")\"];" << std::endl;
-    
+
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
@@ -734,12 +841,29 @@ namespace LQX {
       output << QUOTE(thisNode) << " -> " QUOTE(currentNodeId) << ";" << std::endl;
     }
   }
-  
+
+  std::ostream& MethodInvocationExpression::print( std::ostream& output, unsigned int indent ) const
+  {
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << _name << "(";
+    /* Output all of the expressions we will be running */
+    std::vector<SyntaxTreeNode*>::iterator iter;
+    for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
+      SyntaxTreeNode* current = *iter;
+      if ( iter != _arguments->begin() ) {
+	  output << ", ";
+      }
+      current->print(output,indent);
+    }
+    output << ")";
+    return output;
+  }
+
   SymbolAutoRef MethodInvocationExpression::invoke(Environment* env) throw (RuntimeException)
   {
     /* Get the Symbol Table from the Environment */
     std::vector<SymbolAutoRef > args;
-    
+
     /* Obtain all the arguments we need */
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
@@ -747,12 +871,12 @@ namespace LQX {
       if (arg == NULL) throw InternalErrorException("One of the arguments produces no value.");
       args.push_back(arg);
     }
-    
+
     /* Run the method with the given arguments */
     return env->invokeGlobalMethod(_name, &args);
   }
-  
-};
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -760,12 +884,12 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
+
   LoopStatementNode::LoopStatementNode(SyntaxTreeNode* onStart, SyntaxTreeNode* stop, SyntaxTreeNode* onEachRun, SyntaxTreeNode* action) :
     _onBegin(onStart), _stopCondition(stop), _onEachRun(onEachRun), _action(action)
   {
   }
-  
+
   LoopStatementNode::~LoopStatementNode()
   {
     /* Clean up the nodes */
@@ -774,34 +898,34 @@ namespace LQX {
     delete(_onEachRun);
     delete(_action);
   }
-  
-  void LoopStatementNode::debugPrintGraphviz(std::stringstream& output)
+
+  void LoopStatementNode::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"Loop\", shape=box];" << std::endl;
-    
+
     /* Output the Begin Node */
     if (_onBegin) {
       uintptr_t onBeginId = reinterpret_cast<uintptr_t>(_onBegin);
       _onBegin->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(onBeginId) << ";" << std::endl;
     }
-    
+
     /* Output the Stop Condition Node */
     if (_stopCondition) {
       uintptr_t stopNodeId = reinterpret_cast<uintptr_t>(_stopCondition);
       _stopCondition->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(stopNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the On Each Run Node */
     if (_onEachRun) {
       uintptr_t onRunId = reinterpret_cast<uintptr_t>(_onEachRun);
       _onEachRun->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " QUOTE(onRunId) << ";" << std::endl;
     }
-    
+
     /* Output the Action Node */
     if (_action) {
       uintptr_t actionId = reinterpret_cast<uintptr_t>(_action);
@@ -809,7 +933,23 @@ namespace LQX {
       output << QUOTE(thisNode) << " -> " QUOTE(actionId) << ";" << std::endl;
     }
   }
-  
+
+  std::ostream& LoopStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << "for ( ";
+    if ( _onBegin ) { _onBegin->print(output); }
+    output << "; ";
+    if ( _stopCondition ) { _stopCondition->print(output); }
+    output << "; ";
+    if ( _onEachRun ) { _onEachRun->print(output); } 
+    output << ") {" << std::endl;
+    if ( _action ) { _action->print( output, indent + 1 ); }
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << "}" << std::endl;
+    return output;
+  }
+
   SymbolAutoRef LoopStatementNode::invoke(Environment* env) throw (RuntimeException)
   {
 #if defined(__VARIABLE_SCOPING__)
@@ -817,13 +957,13 @@ namespace LQX {
     SymbolTable* st = env->getSymbolTable();
     st->pushContext();
 #endif
-    
+
     /* Make the initial thing happen for us here */
     if (_onBegin) { _onBegin->invoke(env); }
-    
+
     /* Run the loop */
     for (;;) {
-      
+
       /* Find out if we should stop */
       if (_stopCondition) {
         SymbolAutoRef shouldStop = _stopCondition->invoke(env);
@@ -833,20 +973,20 @@ namespace LQX {
           break;
         }
       }
-      
+
       /* Invoke the loop action */
       if (_action) { _action->invoke(env); }
       if (_onEachRun) { _onEachRun->invoke(env); }
     }
-    
+
 #if defined(__VARIABLE_SCOPING__)
     /* Pops the Context */
     st->popContext();
 #endif
     return Symbol::encodeNull();
   }
-  
-};
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -854,36 +994,36 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
+
   ForeachStatementNode::ForeachStatementNode(const std::string& keyName, const std::string& valueName, bool ek, bool ev, SyntaxTreeNode* arrayNode, SyntaxTreeNode* action) :
     _keyName(keyName), _keyIsExternal(ek), _valueName(valueName), _valueIsExternal(ev), _arrayNode(arrayNode), _actionNode(action)
   {
   }
-  
+
   ForeachStatementNode::~ForeachStatementNode()
   {
     /* Clean up allocated memory */
     delete(_arrayNode);
     delete(_actionNode);
   }
-  
-  void ForeachStatementNode::debugPrintGraphviz(std::stringstream& output)
+
+  void ForeachStatementNode::debugPrintGraphviz(std::ostream& output)
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
     output << QUOTE(thisNode) << " [label=\"Loop\", shape=box];" << std::endl;
-    
+
     /* Output the variables */
     output << QUOTE(thisNode << "x") << " [label=\"" << _keyName << ", " << _valueName << "\"];" << std::endl;
     output << QUOTE(thisNode) << " -> " << QUOTE(thisNode << "x") << ";" << std::endl;
-    
+
     /* Output the array node */
     if (_arrayNode) {
       uintptr_t arrayNodeId = reinterpret_cast<uintptr_t>(_arrayNode);
       _arrayNode->debugPrintGraphviz(output);
       output << QUOTE(thisNode) << " -> " << QUOTE(arrayNodeId) << ";" << std::endl;
     }
-    
+
     /* Output the array node */
     if (_actionNode) {
       uintptr_t actionNodeId = reinterpret_cast<uintptr_t>(_actionNode);
@@ -891,7 +1031,23 @@ namespace LQX {
       output << QUOTE(thisNode) << " -> " << QUOTE(actionNodeId) << ";" << std::endl;
     }
   }
-  
+
+  std::ostream& ForeachStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << "foreach( ";
+    if ( _keyName != "" ) {
+      output << _keyName << ", ";
+    }
+    output  << _valueName << " in ";
+    _arrayNode->print(output,indent);
+    output << " ) { " << std::endl;
+    _actionNode->print(output,indent+1);
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << "}" << std::endl;
+    return output;
+  }
+
   SymbolAutoRef ForeachStatementNode::invoke(Environment* env) throw (RuntimeException)
   {
 #if defined(__VARIABLE_SCOPING__)
@@ -899,10 +1055,10 @@ namespace LQX {
     SymbolTable* st = env->getSymbolTable();
     st->pushContext();
 #endif
-    
+
     SymbolAutoRef arraySymbol = _arrayNode->invoke(env);
     ArrayObject* arrayObject = NULL;
-    
+
     /* Check to see the type of the symbol matches up right */
     if (arraySymbol->getType() == Symbol::SYM_NULL) {
       return Symbol::encodeNull();
@@ -911,55 +1067,55 @@ namespace LQX {
     } else if (arraySymbol->getObjectValue()->getTypeId() != kArrayObjectTypeId) {
       throw RuntimeException("The object provided to the `foreach' statement was not an Array.");
     }
-    
+
     /* The provided object is an Array */
     arrayObject = (ArrayObject *)arraySymbol->getObjectValue();
     std::map<SymbolAutoRef,SymbolAutoRef>::iterator iter;
-    
+
     /* Get the Symbol Table from the Environment */
     SymbolTable* table = env->getSymbolTable();
     SymbolTable* specialTable = env->getSpecialSymbolTable();
     SymbolAutoRef keySymbol, valueSymbol;
-    
+
     /* Grab the key from the table */
     if (_keyName != "") {
       if (_keyIsExternal) {
-        if (!specialTable->isDefined(_keyName)) 
+        if (!specialTable->isDefined(_keyName))
           throw UndefinedVariableException(_keyName);
         keySymbol = specialTable->get(_keyName);
       } else {
-        if (!table->isDefined(_keyName)) 
+        if (!table->isDefined(_keyName))
           table->define(_keyName);
         keySymbol = table->get(_keyName);
       }
     }
-    
+
     /* Grab the value from the table */
     if (_valueIsExternal) {
-      if (!specialTable->isDefined(_valueName)) 
+      if (!specialTable->isDefined(_valueName))
         throw UndefinedVariableException(_valueName);
       valueSymbol = specialTable->get(_valueName);
     } else {
-      if (!table->isDefined(_valueName)) 
+      if (!table->isDefined(_valueName))
         table->define(_valueName);
       valueSymbol = table->get(_valueName);
     }
-    
+
     /* Itterate over the key-value pairs in the array */
     for (iter = arrayObject->begin(); iter != arrayObject->end(); ++iter) {
       if (_keyName != "") { keySymbol->copyValue(*(iter->first)); }
       valueSymbol->copyValue(*(iter->second));
       if (_actionNode != NULL) { _actionNode->invoke(env); }
     }
-    
+
 #if defined(__VARIABLE_SCOPING__)
     /* Pops the Context */
     st->popContext();
 #endif
     return Symbol::encodeNull();
   }
-  
-};
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -977,9 +1133,15 @@ namespace LQX {
   {
   }
 
-  void FileOpenStatementNode::debugPrintGraphviz( std::stringstream& output )
+  void FileOpenStatementNode::debugPrintGraphviz( std::ostream& output )
   {
     output << "NOT SUPPORTED";
+  }
+
+  std::ostream& FileOpenStatementNode::print( std::ostream& output, unsigned int ) const
+  {
+      output << "OPEN FILE";
+    return output;
   }
 
   SymbolAutoRef FileOpenStatementNode::invoke( Environment* env ) throw ( RuntimeException )
@@ -1030,7 +1192,7 @@ namespace LQX {
     return Symbol::encodeNull();
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -1048,9 +1210,15 @@ namespace LQX {
   {
   }
 
-  void FileCloseStatementNode::debugPrintGraphviz( std::stringstream& output )
+  void FileCloseStatementNode::debugPrintGraphviz( std::ostream& output )
   {
     output << "NOT SUPPORTED";
+  }
+
+  std::ostream& FileCloseStatementNode::print( std::ostream& output, unsigned int ) const
+  {
+      output << "Close file.";
+    return output;
   }
 
   SymbolAutoRef FileCloseStatementNode::invoke( Environment* env ) throw ( RuntimeException )
@@ -1058,7 +1226,7 @@ namespace LQX {
     /*  search for file handle in symbol table, if found close file and remove handle from table */
     std::stringstream err;
     SymbolTable* table = env->getSymbolTable();
-   
+
     if( !table->isDefined( _fileHandle ) ) {
       err << "The file handle \"" << _fileHandle.c_str() << "\" could not be found.";
       throw RuntimeException( err.str().c_str() );
@@ -1087,27 +1255,43 @@ namespace LQX {
     return Symbol::encodeNull();
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
-  
+
 namespace LQX {
 
   FilePrintStatementNode::FilePrintStatementNode( std::vector<SyntaxTreeNode*>* arguments, bool newline, bool spacing ) :
     _arguments(arguments), _newline(newline), _spacing(spacing)
   {
   }
-  
+
   FilePrintStatementNode::~FilePrintStatementNode()
   {
   }
 
-  void FilePrintStatementNode::debugPrintGraphviz( std::stringstream& output )
+  void FilePrintStatementNode::debugPrintGraphviz( std::ostream& output )
   {
     output << "NOT SUPPORTED";
+  }
+
+  std::ostream& FilePrintStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << "println";
+    if ( _spacing ) { output << "_spaced"; }
+    output << "(";
+    if ( _arguments ) {
+      for ( std::vector<SyntaxTreeNode*>::iterator iter = _arguments->begin(); iter != _arguments->end(); ++iter ) {
+        if ( iter != _arguments->begin() ) { output << ", "; }
+	(*iter)->print(output,indent);
+      }
+    }
+    output << ")";
+    return output;
   }
 
   SymbolAutoRef FilePrintStatementNode::invoke( Environment* env ) throw ( RuntimeException )
@@ -1120,12 +1304,12 @@ namespace LQX {
     SymbolAutoRef symbol;
     Symbol::Type type;
     bool file_pointer_found = false;
-   
+
     /* check if first argument is a valid open file write pointer, if not set output to standard output */
     iter = _arguments->begin();
     arg = (*iter)->invoke( env );
     if (arg == NULL) throw InternalErrorException( "The first argument produces no value." );
-   
+
     type = arg->getType();
 
     if( (type == Symbol::SYM_FILE_WRITE_POINTER) || (type == Symbol::SYM_FILE_READ_POINTER) ) {
@@ -1133,7 +1317,7 @@ namespace LQX {
 	err <<  "The given file handle \"" << arg->getStringValue() << "\" has been opened for reading instead of writing.";
 	throw RuntimeException( err.str().c_str() );
       }
-	  
+
       outfile = arg->getFilePointerValue();
 
       if( outfile == NULL ) {
@@ -1174,7 +1358,7 @@ namespace LQX {
 	  } else if( current->getType() == Symbol::SYM_DOUBLE ) {
 	    tab_spacing = true;
 	    column_width = (int) current->getDoubleValue();
-	  } else {  
+	  } else {
 	    throw InternalErrorException( "Second argument to print_spaced or println_spaced is not either a separator string or an integer specifying column width." );
 	  }
 
@@ -1196,10 +1380,10 @@ namespace LQX {
       }
 
      switch (current->getType()) {
-      case Symbol::SYM_BOOLEAN: 
+      case Symbol::SYM_BOOLEAN:
 	ss << (current->getBooleanValue() ? "true" : "false");
 	break;
-      case Symbol::SYM_DOUBLE: 
+      case Symbol::SYM_DOUBLE:
 	ss << current->getDoubleValue();
 	break;
       case Symbol::SYM_STRING:
@@ -1213,18 +1397,18 @@ namespace LQX {
 	break;
      case Symbol::SYM_NEWLINE:
 	fprintf( outfile, "%s\n", ss.str().c_str() );
-	ss.str(""); // clear the string  
+	ss.str(""); // clear the string
 	break;
       case Symbol::SYM_UNINITIALIZED:
 	ss << "<<uninitialized>>";
 	break;
-      default: 
+      default:
 	printf( "description: %s\n", current->description().c_str() );
 	throw InternalErrorException( "Unsupported type passed to print function." );
 	break;
       }
 
-    } 
+    }
 
     fprintf( outfile, "%s%s", ss.str().c_str(), _newline ? "\n" : "" );
     fflush( outfile );
@@ -1232,27 +1416,33 @@ namespace LQX {
     return Symbol::encodeNull();
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
-  
+
 namespace LQX {
 
   ReadDataStatementNode::ReadDataStatementNode( const std::string& fileHandle, std::vector<SyntaxTreeNode*>* arguments ) :
     _fileHandle(fileHandle), _arguments(arguments)
   {
   }
-  
+
   ReadDataStatementNode::~ReadDataStatementNode()
   {
   }
 
-  void ReadDataStatementNode::debugPrintGraphviz( std::stringstream& output )
+  void ReadDataStatementNode::debugPrintGraphviz( std::ostream& output )
   {
     output << "NOT SUPPORTED";
+  }
+
+  std::ostream& ReadDataStatementNode::print( std::ostream& output, unsigned int ) const
+  {
+      output << "read file.";
+    return output;
   }
 
   SymbolAutoRef ReadDataStatementNode::invoke( Environment* env ) throw ( RuntimeException )
@@ -1302,7 +1492,7 @@ namespace LQX {
     if( _arguments != NULL ){
 
       std::vector<SymbolAutoRef > args;
-    
+
       std::vector<SyntaxTreeNode*>::iterator iter;
       for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
 	SymbolAutoRef arg = (*iter)->invoke( env );
@@ -1348,7 +1538,7 @@ namespace LQX {
 	table = ( input_string[0] == '$' ) ? specialTable : standardTable;
 
 	if( !table->isDefined( input_string ) ) {
-	  
+
 	  int count = 0; // search for scalar array element in the form array_name["key"]
 
 	  array_name = strtok( input_string, "[\"" );
@@ -1410,7 +1600,7 @@ namespace LQX {
 
 	} else if( type == Symbol::SYM_OBJECT ) {
 	  if( value_type == Symbol::SYM_DOUBLE ) {
-	    
+
 	    if( fscanf( infile, "%lf", &input_value ) != 1 ){
 	      err << "Unable to read expected double value from the input file with handle \"" << _fileHandle.c_str() << "\".";
 	      throw RuntimeException( err.str().c_str() );
@@ -1496,7 +1686,7 @@ namespace LQX {
     }
   }
 
-};
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -1504,39 +1694,45 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
+
   ObjectPropertyReadNode::ObjectPropertyReadNode(SyntaxTreeNode* object, const std::string& property) :
     _objectNode(object), _propertyName(property)
   {
   }
-  
+
   ObjectPropertyReadNode::~ObjectPropertyReadNode()
   {
     /* Clean up allocated memory */
     delete(_objectNode);
   }
-  
-  void ObjectPropertyReadNode::debugPrintGraphviz(std::stringstream& output)
+
+  void ObjectPropertyReadNode::debugPrintGraphviz(std::ostream& output)
   {
     output << "NOT SUPPORTED";
   }
-  
+
+  std::ostream& ObjectPropertyReadNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    _objectNode->print(output,indent) << "." << _propertyName;
+    return output;
+  }
+
   SymbolAutoRef ObjectPropertyReadNode::invoke(Environment* env) throw (RuntimeException)
   {
     /* First step is to grab the object */
     SymbolAutoRef symbol = _objectNode->invoke(env);
-    
+
     /* Attempt to access the property of the object */
     if (symbol->getType() != Symbol::SYM_OBJECT) {
       throw RuntimeException("Property accesses must be performed on objects.");
     }
-    
+
     /* Access the property from the language object */
     LanguageObject* lo = symbol->getObjectValue();
     return lo->getPropertyNamed(env, _propertyName);
   }
-  
-};
+
+}
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -1544,7 +1740,7 @@ namespace LQX {
 #pragma mark -
 
 namespace LQX {
-  
+
   SymbolAutoRef FunctionDeclarationNode::LanguageImplementedMethod::invoke(Environment* env, std::vector<SymbolAutoRef>& args) throw (RuntimeException)
   {
     /* [1] Push a new invocation context */
@@ -1552,7 +1748,7 @@ namespace LQX {
     SymbolTable* mst = NULL;
     env->languageMethodPrologue();
     mst = env->getSymbolTable();
-    
+
     /* [2] Copy any named arguments over */
     unsigned argsIndex = 0;
     std::vector<std::string>::const_iterator iter;
@@ -1571,19 +1767,19 @@ namespace LQX {
         sar->copyValue(*args[argsIndex++]);
       }
     }
-    
+
     /* [3] Run the method while catching ReturnValue */
     try {
       const_cast<SyntaxTreeNode*>(_action)->invoke(env);
     } catch (const ReturnValue& rv) {
       result = const_cast<ReturnValue&>(rv).getValue();
     }
-    
+
     /* [4] Tear apart the work we did */
     env->languageMethodEpilogue();
     return result;
   }
-  
+
   FunctionDeclarationNode::FunctionDeclarationNode(const std::string& name, std::vector<std::string>* proto, SyntaxTreeNode* body) :
     _name(name), _prototype(proto), _body(body), _argTypes("")
   {
@@ -1591,7 +1787,7 @@ namespace LQX {
     if (_prototype->size() != 0) {
       std::stringstream ss;
       std::vector<std::string>::iterator iter;
-      
+
       /* The idea is we add an `any' for all regular arguments and a `+' for an ellipsis */
       for (iter = _prototype->begin(); iter != _prototype->end(); ++iter) {
         if (*iter == "...") {
@@ -1601,24 +1797,30 @@ namespace LQX {
           ss << "a";
         }
       }
-      
+
       /* The argument type list is flattened */
       _argTypes = ss.str();
     }
   }
-  
+
   FunctionDeclarationNode::~FunctionDeclarationNode()
   {
     /* Clean out the prototype */
     delete(_prototype);
   }
-  
-  void FunctionDeclarationNode::debugPrintGraphviz(std::stringstream& output)
+
+  void FunctionDeclarationNode::debugPrintGraphviz(std::ostream& output)
   {
     /* There is no implementation right now */
     output << "NOT SUPPORTED";
   }
-  
+
+  std::ostream& FunctionDeclarationNode::print( std::ostream& output, unsigned int ) const
+  {
+    output << "Define function.";
+    return output;
+  }
+
   SymbolAutoRef FunctionDeclarationNode::invoke(Environment* env) throw (RuntimeException)
   {
     /* Check if this method was registered yet */
@@ -1627,11 +1829,11 @@ namespace LQX {
       std::cout << "THROW EXCEPTION HERE, INTERNAL ERROR.";
       return Symbol::encodeNull();
     }
-    
+
     /* Since it was not, generate a nice little LanguageImplementedMethod for it */
     LanguageImplementedMethod* lim = new LanguageImplementedMethod(_name, _argTypes, _prototype, _body);
     mt->registerMethod(lim);
     return Symbol::encodeNull();
   }
-  
-};
+
+}

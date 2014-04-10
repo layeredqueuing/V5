@@ -25,12 +25,12 @@ namespace LQX {
   {
   }
   
-  MethodTable::MethodTable(const MethodTable& other) throw ()
+  MethodTable::MethodTable(const MethodTable&) throw ()
   {
     throw NonCopyableException();
   }
   
-  MethodTable& MethodTable::operator=(const MethodTable& other) throw ()
+  MethodTable& MethodTable::operator=(const MethodTable&) throw ()
   {
     throw NonCopyableException();
   }

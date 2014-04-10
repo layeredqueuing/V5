@@ -53,16 +53,14 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializer for the call information */
-	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, const unsigned int phase, ExternalVariable* callMean, const void * element=0);
-	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean, const void * element=0);
+	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=0, const void * element=0);
+	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=0, const void * element=0);
 	    virtual ~Call();
 	    Call * clone() const;
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	    /* Accessors and Mutators */
-	    const unsigned getPhase() const;
-	    void setPhase(const unsigned phase);
 	    const CallType getCallType() const;
 	    void setCallType(const CallType callType);
 	    void setSourceEntry( Entry* );
@@ -110,7 +108,6 @@ namespace LQIO {
 		Phase* _phase;
 		Entry * _entry;		/* Forwarding. */
 	    } _source;
-	    unsigned int _phase;
 	    Entry* _destinationEntry;
 
 	    /* Variables which can be scripted */

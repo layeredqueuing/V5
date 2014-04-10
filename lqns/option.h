@@ -95,7 +95,6 @@ namespace Options
 	static void activities( const char * ); 
 	static void convergence( const char * );
 	static void delta_wait( const char * );
-	static void entry( const char * );
 	static void forks( const char * );
 	static void idle_time( const char * );
 	static void interlock( const char * );
@@ -103,9 +102,7 @@ namespace Options
 	static void mva( const char * );
 	static void overtaking( const char * );
 	static void intermediate( const char * );
-	static void processor( const char * );
 	static void replication( const char * );
-	static void task( const char * );
 	static void variance( const char * );
 	static void wait( const char * );
 	static void throughput( const char * );

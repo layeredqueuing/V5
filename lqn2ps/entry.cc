@@ -271,6 +271,40 @@ Entry::openArrivalRate() const
 
 
 
+void
+Entry::addCall( const unsigned int p, LQIO::DOM::Call* domCall )
+{
+    /* Begin by extracting the from/to DOM entries from the call and their names */
+
+    assert( getDOM() == domCall->getSourceEntry());
+    assert( 0 < p && p <= MAX_PHASES );
+    LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
+    const char* to_entry_name = toDOMEntry->getName().c_str();
+	
+    /* Make sure this is one of the supported call types */
+    if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
+	domCall->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
+	domCall->getCallType() != LQIO::DOM::Call::NULL_CALL) {
+	abort();
+    }
+	
+    /* Internal Entry references */
+    Entry * toEntry = Entry::find( to_entry_name );
+    if ( !toEntry ) {
+	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, to_entry_name );
+    } else if ( this == toEntry ) {
+	LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, name().c_str(), to_entry_name );
+    } else {
+	if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
+	    rendezvous( toEntry, p, domCall );
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
+	    sendNoReply( toEntry, p, domCall );
+	}
+    }
+}
+
+
+
 /*
  * Set the value of calls to entry `toEntry', `phase'.  Retotal
  * total.
@@ -558,7 +592,7 @@ Entry::forwardingRendezvous( Entry * toEntry, const unsigned p, const double val
 	    dom = new LQIO::DOM::Call( getDOM()->getDocument(),
 				       LQIO::DOM::Call::RENDEZVOUS, 
 				       const_cast<LQIO::DOM::Phase *>(phase[p].getDOM()),
-				       const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(toEntry->getDOM())), p,
+				       const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(toEntry->getDOM())),
 				       new LQIO::DOM::ConstantExternalVariable(value) );
 	    aCall->rendezvous(p,dom);
 	}
@@ -1486,104 +1520,6 @@ Entry::check() const
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
 	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
     }
-}
-
-
-
-/*
- * Aggregate activities to this entry.
- */
-
-
-Entry&
-Entry::aggregate()
-{
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    if ( startActivity() ) {
-
-	Stack<const Activity *> activityStack( owner()->activities().size() ); 
-	unsigned next_p = 1;
-	startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
-
-	switch ( Flags::print[AGGREGATION].value.i ) {
-	case AGGREGATE_ACTIVITIES:
-	case AGGREGATE_PHASES:
-	case AGGREGATE_ENTRIES:
-	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
-	    break;
-
-	case AGGREGATE_SEQUENCES:
-	case AGGREGATE_THREADS:
-	    if ( startActivity()->transmorgrify() ) {
-		const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
-	    }
-	    break;
-
-	default:
-	    abort();
-	}
-    }
-
-    /* Convert entry if necessary */
-
-    if ( dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ) {
-	myActivity = 0;
-	if ( myActivityCall ) {
-	    delete myActivityCall;
-	    myActivityCall = 0;
-	}
-	myActivityCallers.clearContents();
-    }
-
-    switch ( Flags::print[AGGREGATION].value.i ) {
-    case AGGREGATE_PHASES:
-    case AGGREGATE_ENTRIES:
-	aggregatePhases();
-	break;
-    }
-
-    return *this;
-}
-
-
-/*
- * Aggregate all entries to the task level
- */
-
-const Entry&
-Entry::aggregateEntries( const unsigned k ) const
-{
-    if ( !hasPath( k ) ) return *this;		/* Not for this chain! */
-
-    Task * srcTask = const_cast<Task *>(owner());
-
-    const double scaling = srcTask->throughput() ? (throughput() / srcTask->throughput()) : (1.0 / srcTask->nEntries());
-    const double s = srcTask->serviceTime( k ) + scaling * serviceTimeForSRVNInput();
-    srcTask->serviceTime( k, s );
-    const_cast<Processor *>(owner()->processor())->serviceTime( k, s );
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	TaskCall * aTaskCall;
-	if ( aCall->isPseudoCall() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddFwdCall( aCall->dstTask() ));
-	} else if ( aCall->hasRendezvous() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasRendezvous ));
-	    aTaskCall->rendezvous( aTaskCall->rendezvous() + scaling * aCall->sumOfRendezvous() );
-	} else if ( aCall->hasSendNoReply() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasSendNoReply ));
-	    aTaskCall->sendNoReply( aTaskCall->sendNoReply() + scaling * aCall->sumOfSendNoReply() );
-	} else if ( aCall->hasForwarding() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasForwarding ));
-	    aTaskCall->taskForward( aTaskCall->forward() + scaling * aCall->forward() );
-	} else {
-	    abort();
-	}
-    }
-
-    return *this;
 }
 
 

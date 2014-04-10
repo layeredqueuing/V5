@@ -26,14 +26,15 @@
 extern char * generate_file_name;
 
 extern struct FLAGS {
-    unsigned no_execute:1;			/* -n: Load, but do not solve model.	*/
     unsigned bounds_only:1;			/* -b: Load, compute bounds then stop.	*/
-    unsigned parseable_output:1;		/* -p: Generate parseable output file	*/
-    unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
-    unsigned xml_output:1;			/* -x: Ouptut XML output		*/
-    unsigned verbose:1;				/* -v: Be chatty.			*/
-    unsigned generate:1;			/* -zgenerate=xx: Generate MVA program.	*/
     unsigned deprecate_merge:1;			/* -M: merge SNR and RNV waits.		*/
+    unsigned generate:1;			/* -zgenerate=xx: Generate MVA program.	*/
+    unsigned no_execute:1;			/* -n: Load, but do not solve model.	*/
+    unsigned parseable_output:1;		/* -p: Generate parseable output file	*/
+    unsigned reset_mva:1;			/* --reset-mva (reset mva each iter.)	*/
+    unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
+    unsigned verbose:1;				/* -v: Be chatty.			*/
+    unsigned xml_output:1;			/* -x: Ouptut XML output		*/
     
     unsigned average_variance:1;		/* Use average variance values.		*/
 
@@ -64,11 +65,8 @@ extern struct FLAGS {
     unsigned ignore_overhanging_threads:1;
     unsigned full_reinitialize:1;		/* Maybe a pragma?			*/
     unsigned reload_only:1;			/* Reload lqx.				*/
+    unsigned restart:1;				/* Restart reusing valid results.	*/
 	
-    char * trace_task;				/* Task to trace. 			*/
-    char * trace_processor;			/* Processor to trace.			*/
-    char * trace_entry;				/* Entry to trace.			*/
-
     unsigned long single_step;			/* Stop after each major iteration	*/
     unsigned int skip_submodel;			/* Don't solve this level.		*/
     unsigned int min_steps;			/* Minimum number of iterations.	*/

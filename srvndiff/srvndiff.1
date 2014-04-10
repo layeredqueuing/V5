@@ -1,52 +1,20 @@
-.TH SRVN 1 "21 October 1997"
+.TH SRVN 1 "21 March 2013"
 .\" $HeadURL$
 .SH NAME
 srvndiff \- compare SRVN results.
 .SH SYNOPSIS
 .br
 .B srvndiff
-[
-.B (+|\-)Abcdeghijklmpqrstuvwyz
-] [
-.B \-CIHMPQRSTUV
-] [
-.B \-S \fIn.n\fR
-] [
-.B \-a \fIaggregate\fR
-] [
-.B \-f \fIformat\fR
-] [
-.B \-o \fIoutput\fR
-] 
-filename1
-[ [ [ [ [ filename2 ] filename3 ] filename4 ] filename5 ] filename6]
+[\fIOPTIONS\fR].\|.\|. \fIFILE1\fR [[[[[\fIFILE2\fR] \fIFILE3\fR] \fIFILE4\fR] \fIFILE5\fR]  \fIFILE6\fR] 
 .sp
 .B srvndiff
-[
-.B (+|\-)Abcdeghijklmpqrstuvwyz
-] [
-.B \-@CIHMPQRSTUV
-] [
-.B \-F \fIfileglob\fR
-] [
-.B \-L \fIfilelist\fR
-] [
-.B \-S \fIn.n\fR
-] [
-.B \-a \fIaggregate\fR
-] [
-.B \-f \fIformat\fR
-] [
-.B \-o \fIoutput\fR
-] 
-directory1
-[ [ [ [ [ directory2 ] directory3 ] directory4 ] directory5 ] directory 6]
+[\fIOPTIONS\fR].\|.\|. \fIDIR1\fR [[[[[\fIDIR2\fR] \fIDIR3\fR] \fIDIR4\fR] \fIDIR5\fR]  \fIDIR6\fR] 
 .sp
 .B srvndiff
 [
 .B -D
 ]
-filename1 filename2
+\FIFILE1\fR \FIFILE2\fR
 .B 
 .SH DESCRIPTION
 \fBSrvndiff\fR is used to compare the output from the SRVN solvers
@@ -59,9 +27,9 @@ names.  If the arguments are directory names, \fBsrvndiff\fR will
 search for all files ending in either \fI.p\fP or \fI.lqxo\fP and use the results for
 comparison. 
 
-From one to four file or directory arguments can be specified.
+From one to six file or directory arguments can be specified.
 Directory and file arguments cannot be mixed.  Standard input may be
-specified using the file name \fB\-\fP.  
+specified using the file name \fB\-\fP.
 
 If only one file or directory argument is supplied, then a summary of
 the contents of the argument is produced.  If two or more arguments
@@ -70,24 +38,24 @@ the contents of the first for the purposes of error reporting.
 
 .SH "OPTIONS"
 .TP 12
-\fB\-@\fI filelist\fR
+\fB\-@\fP, \fB\-\-files\fR=\fIarg\fR
 Only select those files in the directory that match the files listed
 in the file \fIfilelist\fR.
 .TP 12
-\fB\-a\fB (task|processor)=\fIname\fR
+\fB\-a\fP, \fB\-\-aggregate\fR=\fR(task|processor)\fR=\fIname\fR
 Aggregate the throughput or utilizations of all tasks or processors
 that match the pattern specified by \fIname\fP.  Regular
 expressions are specified in the same manner as \fBed(1)\fP.
 .TP 12
-\fB(+|\-)A\fR
+\fB(+|\-)A\fP, \fB\-\-[no\-]results
 Print either everything or nothing.  Options are processed from left
 to right: the last occurance of an option used to print a result takes
 precedence. 
 .TP
-\fB(+|\-)b\fR
+\fB(+|\-)b\fP, \fB\-\-[no\-]processor-waiting
 Print (don't print) the waiting time for processors.  The default is to not print this value.  
 .TP
-\fB\-C\fR
+\fB\-C\fP, \fB\-\-no-confidence-intervals
 Don't print confidence intervals (if confidence intervals present).
 .TP
 \fB(+|\-)c\fR
@@ -209,7 +177,7 @@ Print (don't print) open arrival queue lengths.  The default is to not
 print open arrival queue lengths.
 .TP
 \fB\-R\fR
-Print Root Mean Square (RMS) errors only.  This option overrides \fB(+|\-)e\fP.
+Print Root Mean Square (RMS) errors only.  This option overrides \fB(+|\-)E\fP.
 .TP
 \fB(+|\-)r\fR
 Print (don't print) solver run times.  The default is to not

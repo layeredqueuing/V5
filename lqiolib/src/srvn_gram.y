@@ -1,8 +1,8 @@
-%{
 /*
  * $Id$ 
  */
 
+%{
 #define YYDEBUG 1
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +20,8 @@ static void * curr_entry = 0;
 static void * dest_entry = 0;
 static void * curr_activity = 0;
 static bool constant_expression = true;
-extern int srvnlex();
+static bool spex_initialization = false;
+extern int LQIO_lex();
 %}
 
 %token <aString>	TEXT END_LIST SYMBOL VARIABLE RANGE_ERR SOLVER
@@ -29,7 +30,7 @@ extern int srvnlex();
 %token			TRANSITION
 
 /*+ spex */
-%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE
+%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE KEY_ITERATIONS KEY_USER_TIME KEY_SYSTEM_TIME 
 %token			TOK_LESS_EQUAL TOK_LOGIC_NOT TOK_LESS_THAN TOK_NOT_EQUALS TOK_GREATER_EQUAL TOK_EQUALS TOK_LOGIC_AND TOK_GREATER_THAN TOK_LOGIC_OR TOK_POWER
 /*- spex */
 
@@ -54,7 +55,7 @@ extern int srvnlex();
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
 %type <anInt>		replication_flag cap_flag task_pri hist_bins
 %type <aFloat>		constant 
-%type <aParseTreeNode>  comma_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix factor 
+%type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl
 %type <aParseTreeList>	parameter_list expression_list r_decl_list c_decl_list opt_convergence_info
 
@@ -72,8 +73,8 @@ extern int srvnlex();
 /*----------------------------------------------------------------------*/
 
 SRVN_input_file		: srvn_spec
-			| parameter_list srvn_spec opt_report_info opt_convergence_info			/* spex */
-				{ spex_set_program( $1, $3, $4 ); }
+			| { spex_initialization = true; } parameter_list srvn_spec { spex_initialization = false; } opt_report_info opt_convergence_info			/* spex */
+				{ spex_set_program( $2, $5, $6 ); }
     			;
 
 srvn_spec		: general_info processor_info group_info task_info entry_info activity_info_list
@@ -83,12 +84,16 @@ srvn_spec		: general_info processor_info group_info task_info entry_info activit
 
 general_info		: 'G' comment conv_val it_limit print_int underrelax_coeff END_LIST
 				{ srvn_set_model_parameters( $2, $3, $4, $5, $6 ); }
+				general_obs
     			| 'G' comment conv_val it_limit underrelax_coeff END_LIST
 				{ srvn_set_model_parameters( $2, $3, $4, 0, $5 ); }
+				general_obs
     			| 'G' comment conv_val it_limit END_LIST
 				{ srvn_set_model_parameters( $2, $3, $4, 0, 0 ); }
+				general_obs
     			| 'G' comment END_LIST
 				{ srvn_set_model_parameters( $2, 0, 0, 0, 0 ); }
+				general_obs
 			|
 			;
 
@@ -107,20 +112,35 @@ print_int		: integer 		/*  intermediate result print interval  */
 underrelax_coeff  	: real			/*  under-relaxation coefficient	*/
     			;
 
-/* -------------------------- Parameter list -------------------------- */
 /*+ spex */
-parameter_list		: comma_expr					{ $$ = spex_list( 0,  $1 ); }
-			| parameter_list comma_expr			{ $$ = spex_list( $1, $2 ); }
+general_obs		: general_obs_info general_obs
+			|
 			;
 
-comma_expr		: assignment					{ $$ = $1; }
-			| expression ',' assignment			{ $$ = spex_comma( $1, $3 ); }
+
+general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAITING, $2 ); }
+			| KEY_ITERATIONS VARIABLE			{ spex_document_observation( KEY_ITERATIONS, $2 ); }
+			| KEY_USER_TIME VARIABLE			{ spex_document_observation( KEY_USER_TIME, $2 ); }
+			| KEY_SYSTEM_TIME VARIABLE			{ spex_document_observation( KEY_SYSTEM_TIME, $2 ); }
+			;
+
+
+/*- spex */
+
+/* -------------------------- Parameter list -------------------------- */
+/*+ spex */
+parameter_list		: forall_expr					{ $$ = spex_list( 0,  $1 ); }
+			| parameter_list forall_expr			{ $$ = spex_list( $1, $2 ); }
+			;
+
+forall_expr		: assignment					{ $$ = $1; }
+			| VARIABLE ',' VARIABLE '=' ternary_expr	{ $$ = spex_forall( $1, $3, $5 ); }
 			;
 
 assignment		: VARIABLE '=' ternary_expr			{ $$ = spex_assignment_statement( $1, $3, constant_expression ); constant_expression = true; }
 			| VARIABLE '=' '[' expression_list ']'		{ $$ = spex_array_assignment( $1, $4, constant_expression ); constant_expression = true; }
 			| VARIABLE '=' '[' constant ':' constant ',' constant ']'
-									{ $$ = spex_array_assignment2( $1, $4, $6, $8, constant_expression ); constant_expression = true; }
+									{ $$ = spex_array_comprehension( $1, $4, $6, $8 ); constant_expression = true; }
 			| SOLVER					{ srvnwarning( "Spex control variable \"%s\" is not supported.", $1 ); $$ = 0; }		/* Silently ignore $solver */
 			;
 
@@ -167,7 +187,7 @@ factor			: '(' expression ')'				{ $$ = $2; }			/* See Parser_pre.ypp: basic_stm
 			| rvalue '(' ')'				{ $$ = spex_invoke_function( $1, 0 ); }
 			| rvalue '(' expression_list ')'		{ $$ = spex_invoke_function( $1, $3 ); }
 			| rvalue '[' expression ']'			{ $$ = spex_invoke_function( "array_get", $3 ); }
-			| rvalue					{ $$ = spex_get_symbol( $1 ); constant_expression = false; }
+			| rvalue					{ $$ = spex_get_symbol( $1, spex_initialization ); constant_expression = false; }
 			| constant					{ $$ = spex_get_real( $1 ); }
 			;
 
@@ -361,12 +381,15 @@ task_obs		: task_obs_info task_obs
 			|
 			;
 
-task_obs_info		: KEY_THROUGHPUT VARIABLE			{ spex_task_observation( curr_task, KEY_THROUGHPUT, $1, 0, $2, 0 ); }
-			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
-			| KEY_UTILIZATION VARIABLE			{ spex_task_observation( curr_task, KEY_UTILIZATION, $1, 0, $2, 0 ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_UTILIZATION, $1, $2, $3, $4 ); }
-			| KEY_PROCESSOR_UTILIZATION VARIABLE		{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, $1, 0, $2, 0 ); }
-			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, $1, $2, $3, $4 ); }
+/*													 obj,       key                        ph  cf, v1, v2 */
+task_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  0,  $2, 0  ); }
+			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  $2, $3, $4 ); }			/* conf */
+			| KEY_UTILIZATION VARIABLE				{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       0,  0,  $2, 0  ); }
+			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       0,  $2, $3, $4 ); }			/* conf */
+			| KEY_UTILIZATION INTEGER VARIABLE 			{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $2, 0,  $3, 0  ); }			/* phase */
+			| KEY_UTILIZATION INTEGER INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $2, $3, $4, $5 ); }			/* phase. conf */
+			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  0,  $2, 0  ); }
+			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  $2, $3, $4 ); }			/* conf */
 			;
 /*- spex */
 
@@ -680,6 +703,9 @@ c_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_convergence_assignment_stateme
 real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 			| INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
+/*+ spex */
+			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
+/*- spex */
     			;
 
 constant		: FLOAT					{ $$ = $1; }
@@ -711,7 +737,8 @@ make_name( int i )
 {
     char * buf = (char *)malloc( 10 );
     if ( buf ) {
-	(void) sprintf( buf, "%d", i );
+	if ( snprintf( buf, 10, "%d", i ) >= 10 ) {
+	}
     }
     return buf;
 }

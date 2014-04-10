@@ -59,7 +59,6 @@ public:
 
     virtual void rename();
     virtual void squishName();
-    virtual Task& aggregate();
 
     virtual Entity& processor( const Processor * aProcessor ) { myProcessor = aProcessor; return *this; }
     virtual const Processor * processor() const { return myProcessor; }
@@ -205,7 +204,6 @@ public:
 #endif
 
 private:
-    Task& aggregateEntries();
 #if defined(QNAP_OUTPUT)
     ostream& printQNAPRequests( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const;
     ostream& printQNAPRequests( ostream& output, Sequence<EntityCall *> &nextCall, const bool multi_class, QNAP_Element_func chain_func, callFunc2 call_func ) const;

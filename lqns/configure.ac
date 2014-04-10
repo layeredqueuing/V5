@@ -2,7 +2,7 @@
 # ------------------------------------------------------------------------
 # $Id$
 # ------------------------------------------------------------------------
-AC_INIT(lqns, 5.7, greg@sce.carleton.ca)
+AC_INIT(lqns, 5.8, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([dim.h])
 AC_CONFIG_HEADERS([config.h])
@@ -85,7 +85,7 @@ AC_FUNC_STRFTIME
 AC_FUNC_STRTOD
 AC_FUNC_VPRINTF
 AC_STRUCT_TM
-AC_CHECK_FUNCS([ctime floor lgamma mkdir pow sqrt snprintf strdup strerror strrchr strtol uname rmdir])
+AC_CHECK_FUNCS([ctime floor isascii lgamma mkdir pow sqrt snprintf strcasecmp strdup strerror strrchr strtol uname rmdir])
 AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky ieee_retrospective signbit])
 AC_CHECK_FUNCS([getopt_long getsubopt getrusage])
 AC_CONFIG_FILES([Makefile unit-test/Makefile regression/Makefile])

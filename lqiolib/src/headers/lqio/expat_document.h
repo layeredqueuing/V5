@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <cstdarg>
 #include <iostream>
+#include "common_io.h"
 #include "dom_document.h"
 #include "dom_histogram.h"
 #if HAVE_STRINGS_H
@@ -21,14 +22,13 @@
 
 namespace LQIO {
     namespace DOM {
-	
 	class Expat_Document;
-
+	
 	typedef void (Expat_Document::*handler_fptr)( DocumentObject *, const XML_Char *, const XML_Char ** );
 	typedef DocumentObject& (DocumentObject::*set_result_fptr)( const double );
 
-	class Expat_Document : public Document {
-	    friend Document * Document::create( lqio_params_stats*, bool );
+	class Expat_Document : private Common_IO {
+	    friend void Document::serializeDOM( std::ostream&, bool instantiate ) const;
 
 	private:
 	    typedef double (DOM::Entry::*doubleEntryFunc)( const unsigned ) const;
@@ -66,37 +66,6 @@ namespace LQIO {
 	    struct attribute_table_t
 	    {
 		bool operator()( const XML_Char * s1, const XML_Char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-	    };
-
-	    class ExternalVariableManip {
-	    public:
-		ExternalVariableManip( std::ostream& (*f)(std::ostream&, const char *, const ExternalVariable& ), const char * a, const ExternalVariable& v ) : _f(f), _a(a), _v(v) {}
-	    private:
-		std::ostream& (*_f)( std::ostream&, const char *, const ExternalVariable& );
-		const char * _a;
-		const ExternalVariable& _v;
-
-		friend std::ostream& operator<<(std::ostream & os, const ExternalVariableManip& m ) { return m._f(os,m._a,m._v); }
-	    };
-
-	    class IntegerManip {
-	    public:
-		IntegerManip( std::ostream& (*f)(std::ostream&, const int ), const int i ) : _f(f), _i(i) {}
-	    private:
-		std::ostream& (*_f)( std::ostream&, const int );
-		const int _i;
-
-		friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) { return m._f(os,m._i); }
-	    };
-
-	    class StringManip {
-	    public:
-		StringManip( std::ostream& (*f)(std::ostream&, const std::string& ), const std::string& s ) : _f(f), _s(s) {}
-	    private:
-		std::ostream& (*_f)( std::ostream&, const std::string& );
-		const std::string& _s;
-
-		friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) { return m._f(os,m._s); }
 	    };
 
 	    class XMLCharManip {
@@ -143,6 +112,18 @@ namespace LQIO {
 		friend std::ostream& operator<<(std::ostream & os, const XMLCharTimeManip& m ) { return m._f(os,m._a,m._v); }
 	    };
 
+	    class ExternalVariableManip {
+	    public:
+		ExternalVariableManip( std::ostream& (*f)(std::ostream&, const XML_Char *, const ExternalVariable& ), const XML_Char * a, const ExternalVariable& v ) : _f(f), _a(a), _v(v) {}
+	    private:
+		std::ostream& (*_f)( std::ostream&, const XML_Char *, const ExternalVariable& );
+		const XML_Char * _a;
+		const ExternalVariable& _v;
+
+		friend std::ostream& operator<<(std::ostream & os, const ExternalVariableManip& m ) { return m._f(os,m._a,m._v); }
+	    };
+
+
 	    class EntryResultsManip {
 	    public:
 		EntryResultsManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const XML_Char **, const doubleEntryFunc, const ConfidenceIntervals * ),
@@ -169,20 +150,19 @@ namespace LQIO {
 		friend std::ostream& operator<<(std::ostream & os, const TaskResultsManip& m ) { return m._f(os,m._t,m._a,m._p,m._c); }
 	    };
 
-	protected:
-	    Expat_Document( lqio_params_stats* io_vars, const bool load_results );
+	private:
+	    friend class LQIO::DOM::Document;
 
+	    Expat_Document( Document&, bool=true, bool=false );
 	public:
 	    virtual ~Expat_Document();
 
-	    virtual bool isXMLDOMPresent() const;
-	    virtual bool hasResults() const { return _resultsLoaded || Document::hasResults(); }
+	    bool hasResults() const { return _document.hasResults(); }
 
-	    virtual void serializeDOM( const char * file_name, bool instantiate ) const;		// For XERCES compatibility
- 	    virtual void serializeDOM( std::ostream& output, bool instantiate ) const;
-
-	    static Document * LoadLQNX( const std::string&, const std::string&, lqio_params_stats * io_vars, unsigned int & errorCode, const bool load_results );		// Factory.
-	    virtual bool loadResults( const char * filename, unsigned& errorCode );
+	    void serializeDOM( std::ostream& output, bool instantiate ) const;
+	    
+	    static bool load( Document&, const std::string&, const std::string&, unsigned int & errorCode, const bool load_results );		// Factory.
+	    static bool loadResults( Document&, const std::string&, unsigned& errorCode );
 
 	private:
 	    Expat_Document( const Expat_Document& );
@@ -240,6 +220,7 @@ namespace LQIO {
 	    Call * handleEntryCall( DocumentObject *, const XML_Char ** attributes );
 	    Call * handlePhaseCall( DocumentObject *, const XML_Char ** attributes, const Call::CallType call_type );
 	    Histogram * handleHistogram( DocumentObject * object, const XML_Char ** attributes );
+
 	    Histogram * handleQueueLengthDistribution( DocumentObject * object, const XML_Char ** attributes );
 	    void handleHistogramBin( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes );
 	    void handleResults( DocumentObject *, const XML_Char ** attributes );
@@ -249,16 +230,16 @@ namespace LQIO {
 	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 	    Histogram * findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 
-	    bool checkAttributes( const XML_Char ** attributes, std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
+	    bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
 	    const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=0 ) const;
 	    const double getDoubleAttribute( const XML_Char ** attributes, const XML_Char * Xconv_val, const double default_value=-1.0 ) const;
 	    const long getLongAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const long default_value=-1 ) const;
 	    const bool getBoolAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const bool default_value=false ) const;
 	    const clock_t getTimeAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int ) const;
-	    const unsigned int getEnumerationAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const XML_Char **, const unsigned int ) const;
+	    const scheduling_type getSchedulingAttribute( const XML_Char ** attributes, const scheduling_type ) const;
 
 	    void exportHeader( std::ostream& output ) const;
-	    void exportParameters( std::ostream& output ) const;
+	    void exportGeneral( std::ostream& output ) const;
 	    void exportProcessor( std::ostream& output, const Processor & ) const;
 	    void exportGroup( std::ostream& output, const Group & ) const;
 	    void exportTask( std::ostream& output,const Task & ) const;
@@ -300,12 +281,13 @@ namespace LQIO {
 	    static bool __instantiate;
 
 	private:
+	    Document& _document;
 	    XML_Parser _parser;
 	    bool _XMLDOMPresent;
 	    bool _createObjects;
 	    bool _loadResults;
-	    bool _resultsLoaded;
 	    std::stack<parse_stack_t> _stack;
+
 	    static int __indent;
 
 	private:
@@ -336,6 +318,7 @@ namespace LQIO {
 	    static const XML_Char *Xasynch_call;
 	    static const XML_Char *Xbegin;
 	    static const XML_Char *Xbound_to_entry;
+	    static const XML_Char *Xbottleneck_strength;
 	    static const XML_Char *Xcall_order;
 	    static const XML_Char *Xcalls_mean;
 	    static const XML_Char *Xcap;
@@ -358,7 +341,6 @@ namespace LQIO {
 	    static const XML_Char *Xgroup;
 	    static const XML_Char *Xhost_demand_cvsq;
 	    static const XML_Char *Xhost_demand_mean;
-	    static const XML_Char *Xhost_max_phase_service_time;
 	    static const XML_Char *Xinitially;
 	    static const XML_Char *Xit_limit;
 	    static const XML_Char *Xiterations;

@@ -55,7 +55,23 @@ private:
     Graphic& operator=( const Graphic& );
 
 public:
-    typedef enum { TRANSPARENT, DEFAULT_COLOUR, BLACK, RED, YELLOW, GREEN, CYAN, BLUE, MAGENTA, ORANGE, GOLD, WHITE, GREY_10 } colour_type;
+    typedef enum { TRANSPARENT, 
+		   DEFAULT_COLOUR, 
+		   BLACK, 
+		   WHITE, 
+		   GREY_10, 
+		   MAGENTA, 
+		   VIOLET, 
+		   BLUE, 
+		   OCEAN, 
+		   CYAN, 
+		   TURQUOISE, 
+		   GREEN, 
+		   SPRINGGREEN, 
+		   YELLOW, 
+		   ORANGE, 
+		   RED, 
+		   GOLD } colour_type;
     typedef enum { DEFAULT_LINESTYLE, SOLID, DASHED, DOTTED, DASHED_DOTTED } linestyle_type;
     typedef enum { NO_ARROW, CLOSED_ARROW, OPEN_ARROW } arrowhead_type;
     typedef enum { NO_FILL, DEFAULT_FILL, FILL_ZERO, FILL_90, FILL_SOLID, FILL_TINT } fill_type;
