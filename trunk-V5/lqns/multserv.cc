@@ -372,7 +372,7 @@ Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const un
 void
 Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
 {
-    const Positive sum = effectiveBacklog( solver, N, k ) + departureTime( solver, N, k );
+    const Positive sum = effectiveBacklog( solver, N, k ) + solver.PB( *this, N, k ) * departureTime( solver, N, k );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -418,13 +418,10 @@ double
 Conway_Multi_Server::departureTime( const MVA& solver, const PopVector& N, const unsigned k ) const
 {
     if ( N[k] == 0 || V(k) == 0.0 ) return 0.0;
+
     B_Iterator nextB( *this, N, k );
-    const double xr = sumOf_PS_k( solver, N, k, nextB );
-    const double PB = solver.PB( *this, N, k );
-#if	DEBUG_MVA
-    if ( debug_XE ) printXR( cout, N, k, xr, PB );
-#endif
-    return xr * PB;
+
+    return  sumOf_PS_k( solver, N, k, nextB );
 }
 
 
