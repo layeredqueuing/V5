@@ -8,6 +8,12 @@
 %% ------------------------------------------------------------------------
 \newcommand{\ModLang}{LQX }
 \newcommand{\lqns}{Layer Queueing Network Solver}
+\lstdefinelanguage{LQX}{
+  keywords={foreach,in,if,else,for,while},
+  keywords={[2]solve,print,println,println_spaced,task,processor,entry,throughput,utilization,read_data,array_create},
+  keywordstyle=[2]{\itshape},
+  morecomment=[l]{//},
+}
 
 \chapter{\ModLang Users Guide}
 \index{LQX|(textbf}
@@ -105,7 +111,7 @@ The \ModLang language supports two different methods of iterating over the
 contents of an Array. The first involves knowing what the keys in the array
 actually are. This is a ``traditional'' iteration.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   /* Traditional Array Iteration */
   for (idx = 0; key < array.size; idx=idx+1) {
@@ -120,7 +126,7 @@ of an array which does not require prior knowledge of the contents of the array.
 This is known as a ``{\tt foreach}'' loop. The statement above can be rewritten 
 as follows:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   /* More modern array itteration */
   foreach (key, value in array) {
@@ -143,7 +149,7 @@ results. Complete documentation is provided in Section~\ref{sec:api}.
 
 \begin{multicols}{2}
   \begin{center}
-    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+    \begin{tabular}{|p{1.7in}|p{1.0in}|}
       \hline
       \multicolumn{2}{|l|}{\textbf{str(...)}}\\
       \hline
@@ -156,7 +162,7 @@ results. Complete documentation is provided in Section~\ref{sec:api}.
     \end{tabular}
   \end{center}
   \begin{center}
-    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+    \begin{tabular}{|p{1.7in}|p{1.0in}|}
       \hline
       \multicolumn{2}{|l|}{\textbf{double(?)}}\\
       \hline
@@ -172,7 +178,7 @@ results. Complete documentation is provided in Section~\ref{sec:api}.
 
 \begin{multicols}{2}
   \begin{center}
-    \begin{tabular}{|p{1.5in}|p{1.2in}|}
+    \begin{tabular}{|p{1.7in}|p{1.0in}|}
       \hline
       \multicolumn{2}{|l|}{\textbf{boolean(?)}}\\
       \hline
@@ -208,7 +214,7 @@ be returned. All arguments are in \textbf{only}. There are no out or inout
 arguments supported. All arguments are copied, pass-by-value. The basic syntax 
 for declaring functions is as follows:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   function <name>(<arg1>, <arg2>, ...) {
     <body>
@@ -232,7 +238,7 @@ A good place to start learning how to write programs in \ModLang is of course
 the traditional Hello World program. This would actually be a single line,
 and is not particularly interesting. This would be as follows:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   println("Hello, World!"); 
 \end{lstlisting}
@@ -259,7 +265,7 @@ can be substantial. The best way is to roll the algorithm into into a loop of so
 type. In this case, the loop is terminated when we have reached a target
 number in the Fibonacci sequence \{ 1, 1, 2, 3, 5, 8, 13, 21, ...\}.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   /* Initial Values */
   fib_n_minus_two = 1;
@@ -295,7 +301,7 @@ code may not perform as you expect. We will begin by demonstrating a substantial
 shorter (but as described earlier) much less efficient implementation of the
 Fibonacci Sequence using functions and recursion.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   function fib(n) {
     if (n == 0 || n == 1) { return (1); }
@@ -314,7 +320,7 @@ A much more interesting use of functions, specifically those with variable
 length argument lists, is an implementation of the formula for standard deviation
 of a set of values:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   function average(/*Array<double>*/ inputs) {
     double sum = 0.0;
@@ -345,7 +351,7 @@ You can then proceed to compute the standard deviation of the variable length of
 arguments for either sample or non-sample values as follows, from anywhere in your
 program after it has been defined:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   stdev(true,  1, 2, 5, 7, 9, 11);
   stdev(false, 2, 9, 3, 4, 2);
@@ -361,7 +367,7 @@ iterate over its contents and print it out. The following snippet creates an arr
 stores some key-value pairs with different types of keys and values, looks up a
 couple of them and then iterates over all of them.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}  
   /* Create an Array */
   array = array\_create();
@@ -403,14 +409,14 @@ were opened for reading.
 The following command opens a file for writing. If it exists it is overwritten. It is also possible
 to append to an existing file. The three options for the third parameter are {\tt write}, {\tt append}, and {\tt read}.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   file_open( output_file1, "test_output_99-peva.txt", write );
 \end{lstlisting}
 
 To close an open file handle the following command is used:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   file_close( output\_file1 );
 \end{lstlisting}
@@ -429,7 +435,7 @@ between columns either by specifying column widths in integers or supplying a te
 
 The basic print functions are {\tt print()} and {\tt println()} with the {\tt ln} specifying a newline at the end.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   println( output_file1, "Model run #: ", i, " t1.throughput: ", t1.throughput );
 
@@ -443,7 +449,7 @@ as the newline specifier {\tt endl}. Parameters should be separated by commas.
 
 To print to standard output no file handle is specified as follows:
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   println( "subprocess lqns run #: ", i, " t1.throughput: ", t1.throughput );
 \end{lstlisting}
@@ -457,7 +463,7 @@ must be either an integer or a string.
 The following {\tt println\_spaced()} command specifies the string {\tt ", " } to be placed between columns. It could be used
 to create comma separated value (csv) files.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   println_spaced( output_file2, ", ", $p1, $p2, $y1, $y2, t1.throughput );
 \end{lstlisting}
@@ -466,7 +472,7 @@ Example output: 0, 2, 0.1, 0.05, 0.0907554
 
 The following {\tt println\_spaced()} command specifies the integer 12 as the column width.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   println_spaced( output_file3, 12, $p1, $p2, $y1, $y2, t1.throughput );
 \end{lstlisting}
@@ -484,7 +490,7 @@ There are two forms in which the {\tt read\_data()} function can be used. The fi
 \ModLang variables which correspond to the expected inputs from the file/pipe. This requires the data inputs
 from the pipe to be in the expected order.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   read_data( input_file, y, p, keep_running );
 \end{lstlisting}
@@ -494,7 +500,7 @@ attempting to read string/value pairs from the input pipe until a termination st
 The string must corespond to an existing \ModLang variable (either numeric or boolean) and the corresponding
 value must be of the same type.  
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   read_data( stdin, read_loop );
 \end{lstlisting}
@@ -569,7 +575,7 @@ When the data is exhausted the LQNX process needs to be told to quit. This is do
 which sets the continue\_processing flag to false. This causes the main loop in the LQX program which follows to
 quit.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \begin{lstlisting}
   <lqx><![CDATA[
 
@@ -611,19 +617,20 @@ The model itself contains a few model parameters which the LQX code configures, 
 {\tt \$p1}, {\tt \$p2}, {\tt \$y1} and {\tt \$y2}. The LQX program is responsible for
 setting the values of all model parameters at least once, invoking solve and optionally
 printing out certain result values. Accessing of result values is done via the LQNS 
-bindings API documented in Section 3.
+bindings API documented in Section~\ref{sec:api}.
 
 The program begins by defining an array of values that it will be setting for each of
 the external variables. By enumerating as follows, the program will set the variables
 for the cross product of {\tt phase} and {\tt calls}.
 
-\lstset{language=C++}
+\lstset{language=LQX}
 \lstset{name=lqx-program}
 \begin{lstlisting}
   phase = [ 0.0, 0.25, 0.5, 0.75, 1.0 ];
   calls = [ 0.1, 3.0, 10.0 ];
   foreach ( idx,p in phase ) {
-    foreach ( idx,y in calls ) {\end{lstlisting}
+    foreach ( idx,y in calls ) {
+    \end{lstlisting}
     
     Next, the program uses the input values {\tt p} and {\tt y} to compute the values of
     {\tt \$p1}, {\tt \$p2}, {\tt \$y1} and {\tt \$y2}. Any assignment to a variable 
@@ -691,7 +698,7 @@ for the cross product of {\tt phase} and {\tt calls}.
 \label{sec:api}
 \subsection{Built-in Class: Array}
 
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
   \hline
@@ -699,7 +706,7 @@ for the cross product of {\tt phase} and {\tt calls}.
   \hline
 \end{tabular}\\
 \\\ \\
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
   \hline
@@ -712,7 +719,7 @@ for the cross product of {\tt phase} and {\tt calls}.
   \hline
 \end{tabular}  \\
 \\\ \\
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
   \hline
@@ -730,7 +737,7 @@ for the cross product of {\tt phase} and {\tt calls}.
 \subsection{Built-in Global Methods and Constants}
 
 \subsubsection{Intrinsic Constants}
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Constants}}\\
   \hline
@@ -745,7 +752,7 @@ for the cross product of {\tt phase} and {\tt calls}.
 
 \subsubsection{General Utility Functions}
 
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
   \hline
@@ -767,7 +774,7 @@ for the cross product of {\tt phase} and {\tt calls}.
 
 \subsubsection{Numeric/Floating-Point Utility Functions}
 
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
   \hline
@@ -784,7 +791,7 @@ for the cross product of {\tt phase} and {\tt calls}.
 
 \subsubsection{Type-casting Functions}
 
-\begin{tabular}{|p{1.0in}|p{2.0in}||p{3in}|}
+\begin{tabular}{|p{0.8in}|p{2.2in}||p{3in}|}
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Methods}}\\
   \hline

@@ -11,12 +11,12 @@
 #if	!defined(TESTMVA_H)
 #define	TESTMVA_H
 
-using namespace std;
-
 #include <iostream>
 #include <iomanip>
 #include "vector.h"
 #include "pop.h"
+
+using namespace std;
 
 class Server;
 class Population;

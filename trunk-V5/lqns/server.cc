@@ -776,7 +776,7 @@ Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 /* --------------------- Generic Infinite Server ---------------------- */
 
 /* 
- * Capacity function.	For a delay server, the capacity is inisfinite.
+ * Capacity function.	For a delay server, the capacity is infinite.
  * We are assuming IEEE arithmetic here.
  */
 
@@ -789,7 +789,7 @@ Infinite_Server::mu() const
 
 
 /*
- * Waiting time expression for an inisfinite server with phases.
+ * Waiting time expression for an infinite server with phases.
  */
 
 void 
@@ -810,7 +810,7 @@ Infinite_Server::wait( const MVA&, const unsigned k, const PopVector & ) const
 
 /*
  * Queue length for Open models -- same as open server (for now).
- * One never waits at an inisfinite server.  :-)
+ * One never waits at an infinite server.  :-)
  */
 
 void
@@ -851,7 +851,7 @@ Infinite_Server::alpha( const unsigned ) const
 
 
 /*
- * Waiting time expression for an inisfinite server with NO phases.
+ * Waiting time expression for an infinite server with NO phases.
  */
 
 void 

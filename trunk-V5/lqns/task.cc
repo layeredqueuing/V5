@@ -638,7 +638,7 @@ Task::servers(	Cltn<Entity *> & calledTasks, const Cltn<Entity *> & includeOnly 
  * This function locates all unique calling tasks to the receiver.
  * Tasks that are located are added to the collection `reject' so
  * that they are only counted once.  If we hit a multi-server or an
- * inisfinite server, we locate their sourcing tasks in order to
+ * infinite server, we locate their sourcing tasks in order to
  * determine the proper population levels.  Multi-servers are treated
  * a little specially in that they limit the number of customers that
  * can be seen.  Note that we need to know replication information
@@ -1741,7 +1741,7 @@ ServerTask::configure( const unsigned nSubmodels )
 
 
 /*
- * Return true if the population is inisfinite (i.e., an open source)
+ * Return true if the population is infinite (i.e., an open source)
  */
 
 bool

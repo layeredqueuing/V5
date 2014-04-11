@@ -1861,7 +1861,7 @@ Task::label()
 		myLabel->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    *myLabel << _mu() << "=" << utilization();
+	    *myLabel << _rho() << "=" << utilization();
 	    if ( hasBogusUtilization() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
 		myLabel->colour(Graphic::RED);
 	    }

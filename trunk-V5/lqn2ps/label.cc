@@ -347,6 +347,14 @@ Label::mu()
 }
 
 
+Label&
+Label::rho()
+{
+    font(Graphic::SYMBOL_FONT) << "r";
+    return *this;
+}
+
+
 Label& 
 Label::sigma()
 {
@@ -439,6 +447,13 @@ Label&
 LabelEMF::mu()
 {
     *myStrings.back() << static_cast<char>(0x03) << static_cast<char>(0xbc);	/* Greek 0x3bc */
+    return *this;
+}
+
+Label&
+LabelEMF::rho()
+{
+    *myStrings.back() << static_cast<char>(0x03) << static_cast<char>(0xc1);	/* Greek 0x3c1 */
     return *this;
 }
 
@@ -783,6 +798,21 @@ LabelGD::mu()
 }
 
 
+/* GD uses 8859-2 */
+
+Label&
+LabelGD::rho()
+{
+    if ( haveTTF && mathMode ) {
+//	*myStrings.back() << "&#0956;";	/* Greek 0x3bc */
+	(*this) << "U";
+    } else {
+	(*this) << "U";
+    }
+    return *this;
+}
+
+
 Label&
 LabelGD::times()
 {
@@ -982,6 +1012,13 @@ LabelSVG::mu()
 }
 
 Label&
+LabelSVG::rho()
+{
+    *myStrings.back() << "&#0961;";	/* Greek 0x3c1 */
+    return *this;
+}
+
+Label&
 LabelSVG::times()
 {
     *myStrings.back() << "&#0215;";	/* 0x00d7 */
@@ -1077,6 +1114,13 @@ Label&
 LabelSXD::mu()
 {
     *myStrings.back() << "&#0956;";	/* Greek 0x3bc */
+    return *this;
+}
+
+Label&
+LabelSXD::rho()
+{
+    *myStrings.back() << "&#0961;";	/* Greek 0x3c1 */
     return *this;
 }
 
@@ -1251,6 +1295,14 @@ LabelTeX::mu()
 
 
 Label&
+LabelTeX::rho()
+{
+    *myStrings.back() << "\\rho";
+    return *this;
+}
+
+
+Label&
 LabelTeX::sigma()
 {
     *myStrings.back() << "\\sigma^{2}";
@@ -1328,6 +1380,14 @@ Label&
 LabelPsTeX::mu()
 {
     *myStrings.back() << "\\\\mu";
+    return *this;
+}
+
+
+Label&
+LabelPsTeX::rho()
+{
+    *myStrings.back() << "\\\\rho";
     return *this;
 }
 
@@ -1424,6 +1484,7 @@ LabelManip _epsilon() { return LabelManip( &mathFunc, &Label::epsilon ); }
 LabelManip _infty() { return LabelManip( &mathFunc, &Label::infty ); }
 LabelManip _lambda() { return LabelManip( &mathFunc, &Label::lambda ); }
 LabelManip _mu() { return LabelManip( &mathFunc, &Label::mu ); }
+LabelManip _percent() { return LabelManip( &mathFunc, &Label::percent ); }
+LabelManip _rho() { return LabelManip( &mathFunc, &Label::rho ); }
 LabelManip _sigma() { return LabelManip( &mathFunc, &Label::sigma ); }
 LabelManip _times() { return LabelManip( &mathFunc, &Label::times ); }
-LabelManip _percent() { return LabelManip( &mathFunc, &Label::percent ); }

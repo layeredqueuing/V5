@@ -1199,7 +1199,7 @@ Help::pragmaCyclesDisallow( ostream& output, bool verbose ) const
 ostream& 
 Help::pragmaStopOnMessageLossFalse( ostream& output, bool verbose ) const
 {
-    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as inisfinite." << ix( *this, "infinity" ) << "";
+    output << "Ignore queue overflows" << ix( *this, "overflow" ) << " for open arrivals" << ix( *this, "open arrival!overflow" ) << " and send-no-reply" << ix( *this, "send-no-reply!overflow" ) << " requests.  If a queue overflows, its waiting times is reported as infinite." << ix( *this, "infinity" ) << "";
     return output;
 }
 

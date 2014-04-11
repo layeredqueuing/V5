@@ -184,7 +184,7 @@ MVA::MVA( Vector<Server *>& q, const PopVector& N,
     : NCust(N), M(q.size()), K(N.size()), Q(q), Z(thinkTime),
       priority(prio), overlapFactor(of), L(), U(), P(), X(),
       faultCount(0), maxP(q.size()),
-      nPrio(0), sortedPrio(), stepCount(0), waitCount(0), maxOffset(0), _isThread()
+      nPrio(0), sortedPrio(), stepCount(0), waitCount(0), _isThread(), maxOffset(0)
 {
     assert( M > 0 && K > 0 );
 
@@ -2151,7 +2151,7 @@ Schweitzer::initialize()
 		double temp = 1.0;
 		if ( J != 0 ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] ) / J;
-		} else if ( Q[m]->inisfiniteServer() == 0 ) {
+		} else if ( Q[m]->infiniteServer() == 0 ) {
 		    temp += ( Lk[m] - L[n][m][e][k] / NCust[k] );
 		}
 		temp *= Q[m]->S(e,k) * Q[m]->V(e,k);
@@ -2206,21 +2206,19 @@ Schweitzer::initialize()
 #endif
 	    if ( P[n][m] ) {
 
+		const unsigned J = Q[m]->marginalProbabilitiesSize();
 		const double pop = NCust.sum();
-		if ( pop > 0 ) {
-		    const unsigned J = Q[m]->marginalProbabilitiesSize();
-//		    const Probability temp = pop > 0.0 ? 2.0 * pop / (J * pop * (pop + 1.0)) : 0.0;
-		    const Probability temp = pop > 0.0 ? 2.0 / (J * (pop + 1.0)) : 0.0;
-		    Probability sum  = 0.0;
+//		const Probability temp = pop > 0.0 ? 2.0 * pop / (J * pop * (pop + 1.0)) : 0.0;
+		const Probability temp = pop > 0.0 ? 2.0 / (J * (pop + 1.0)) : 0.0;
+		Probability sum  = 0.0;
 
-		    for ( unsigned j = 1; j < J; ++j ) {
-			P[n][m][j] = temp;
-			sum       += temp;
-		    }
-		    const double PmjN = min( 1.0 - sum, pop >= J ? temp * (pop + 1.0 - J) : 0.0 );
-		    P[n][m][J] = PmjN;
-		    P[n][m][0] = 1.0 - (sum + PmjN);
+		for ( unsigned j = 1; j < J; ++j ) {
+		    P[n][m][j] = temp;
+		    sum       += temp;
 		}
+		const double PmjN = min( 1.0 - sum, pop >= J ? temp * (pop + 1.0 - J) : 0.0 );
+		P[n][m][J] = PmjN;
+		P[n][m][0] = 1.0 - (sum + PmjN);
 	    }
     }
 
@@ -2292,11 +2290,7 @@ Schweitzer::core( const PopVector& N )
 	}
 
 	estimate_L( N );
-#if	NEW
-	if ( c == 0 ) estimate_P( N );
-#else
 	estimate_P( N );
-#endif
 	step( N );
 
 	/* Iteration termination test. */
@@ -2450,9 +2444,6 @@ Schweitzer::estimate_P( const PopVector & N )
 void
 Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
 {
-#if new
-    MVA::marginalProbabilities( m, N );
-#else
     const unsigned n  = offset(N);					/* Hoist */
 
     if ( P[n][m] == 0 ) return;
@@ -2497,7 +2488,6 @@ Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
 	}
 	P[n][m][JJ] = 1.0;
     }
-#endif
 }
 
 

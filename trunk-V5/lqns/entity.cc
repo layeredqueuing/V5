@@ -196,7 +196,7 @@ Entity::copies( const unsigned n )
 
 
 /*
- * We need a way to fake out infinity... so if copies is inisfinite, then we change to an infinite server.
+ * We need a way to fake out infinity... so if copies is infinite, then we change to an infinite server.
  */
 
 unsigned

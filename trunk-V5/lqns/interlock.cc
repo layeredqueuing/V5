@@ -49,7 +49,7 @@ StringNManip trunc( const char *, const unsigned );
 
 /*
  * Generate the interlock table.  It is impossible to interlock on
- * inisfinite servers since all calls (by definition) go to unique
+ * infinite servers since all calls (by definition) go to unique
  * instances.
  */
 
@@ -488,7 +488,7 @@ Interlock::countSources( const Cltn<const Entity *>& paths )
     /*
      * Now count up all the copies of sourcing tasks.  Note that we
      * have to use the special population() call to account
-     * properly for inisfinite servers.
+     * properly for infinite servers.
      */
 
     Sequence<const Entity *> nextSrcTask( allSourceTasks );

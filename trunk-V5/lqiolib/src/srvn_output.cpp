@@ -2502,13 +2502,14 @@ namespace LQIO {
 		}
 	    }
 	
+	    _output << " -1";
 	    if ( !_instantiate ) {
 		for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
 		    const DOM::Call * call = callInfo[p->first];
 		    LQIO::DOM::Spex::printObservationVariables( _output, *call );
 		}
 	    }
-	    _output << " -1" << endl;
+	    _output << endl;
         }
     }
 

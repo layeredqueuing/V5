@@ -52,7 +52,7 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::ADVISORY_ONLY, "Under-relaxation ignored.  %g outside range [0-2), using %g." },                                            /* ADV_UNDERRELAXATION                  */
     { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                        /* WRN_COEFFICIENT_OF_VARIATION         */
     { LQIO::WARNING_ONLY,  "Value specified for %s, %d, is invalid." },                                                                 /* WRN_INVALID_INT_VALUE                */
-    { LQIO::WARNING_ONLY,  "Entry \"%s\" on inisfinite server \"%s\" has %d phases." },							/* WRN_MULTI_PHASE_INFINITE_SERVER	*/
+    { LQIO::WARNING_ONLY,  "Entry \"%s\" on infinite server \"%s\" has %d phases." },							/* WRN_MULTI_PHASE_INFINITE_SERVER	*/
     { LQIO::WARNING_ONLY,  "No requests made from \"%s\" to \"%s\"." },                                                                 /* WRN_NO_REQUESTS_MADE                 */
     { LQIO::NO_ERROR, 0 }
 };

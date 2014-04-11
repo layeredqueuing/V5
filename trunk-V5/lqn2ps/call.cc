@@ -1648,24 +1648,25 @@ ProcessorCall::moveDst( const Point& aPoint )
 ProcessorCall&
 ProcessorCall::label()
 {
-    if ( dynamic_cast<const Task *>(srcTask())->hasQueueingTime() &&
-	 Flags::have_results && Flags::print[PROCESS_QUEUEING].value.b ) {
-	bool print = false;
-	const Task * aTask = dynamic_cast<const Task *>(srcTask());
-	Sequence<Entry *> nextEntry(aTask->entries());
-	Entry * anEntry;
+    if ( !Flags::have_results ) return *this;
+    const Task * aTask = dynamic_cast<const Task *>(srcTask());
+    Sequence<Entry *> nextEntry(aTask->entries());
+    Entry * anEntry;
+
+    bool print = false;
+    if ( Flags::print[PROCESS_UTIL].value.b ) {
 	while ( anEntry = nextEntry() ) {
 	    if ( !anEntry->hasQueueingTime() || anEntry->isActivityEntry() ) continue;
-	    if ( print ) myLabel->newLine();
-	    *myLabel << anEntry->name() << ": " << print_queueing_time(*anEntry);
+	    *myLabel << (!print ? "Ue=" : ";") << anEntry->processorUtilization();
 	    print = true;
 	}
-	Sequence<Activity *> nextActivity(aTask->activities());
-	Activity * anActivity;
-	while ( anActivity = nextActivity() ) {
-	    if ( !anActivity->hasQueueingTime() ) continue;
-	    if ( print ) myLabel->newLine();
-	    *myLabel << anActivity->name() << ": " << anActivity->queueingTime();
+    }
+    if ( aTask->hasQueueingTime() && Flags::print[PROCESS_QUEUEING].value.b ) {
+	if ( print ) myLabel->newLine();
+	print = false;
+	while ( anEntry = nextEntry() ) {
+	    if ( !anEntry->hasQueueingTime() || anEntry->isActivityEntry() ) continue;
+	    *myLabel << (!print ? "We=" : ";") << print_queueing_time(*anEntry);
 	    print = true;
 	}
     }

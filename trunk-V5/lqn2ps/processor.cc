@@ -557,7 +557,7 @@ Processor::label()
 	}
     }
     if ( Flags::have_results && Flags::print[PROCESS_UTIL].value.b ) {
-	myLabel->newLine() << begin_math( &Label::mu ) << "=" << utilization() << end_math();
+	myLabel->newLine() << begin_math( &Label::rho ) << "=" << utilization() << end_math();
 	if ( hasBogusUtilization() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
 	    myLabel->colour(Graphic::RED);
 	}
