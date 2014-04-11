@@ -60,7 +60,7 @@ extern "C" {
     void * spex_inline_expression( void * arg );
     void * spex_result_assignment_statement( const char *var, void * arg );
     void * spex_convergence_assignment_statement( const char *var, void * arg );
-    void * spex_get_symbol( const char * s, const bool );
+    void * spex_get_symbol( const char * s );
     void * spex_get_real( double arg );
 
 #if defined(__cplusplus)
@@ -103,21 +103,18 @@ namespace LQIO {
 		friend 	std::ostream& operator<<( std::ostream&, const Spex::ComprehensionInfo& );
 
 	    public:
-		ComprehensionInfo() : _init_val(0), _test_val(0), _step_val(0), _init(0), _test(0), _step(0) {}
-		ComprehensionInfo( const char *, double, double, double );
+		ComprehensionInfo() : _init(0), _test(0), _step(0) {}
+		ComprehensionInfo( double, double, double );
 
-		LQX::SyntaxTreeNode * init() const { return _init; }
-		LQX::SyntaxTreeNode * test() const { return _test; }
-		LQX::SyntaxTreeNode * step() const { return _step; }
+		LQX::SyntaxTreeNode * init(const std::string&) const;
+		LQX::SyntaxTreeNode * test(const std::string&) const;
+		LQX::SyntaxTreeNode * step(const std::string&) const;
 		std::ostream& print( std::ostream& output ) const;
 
 	    private:
-		double _init_val;
-		double _test_val;
-		double _step_val;
-		LQX::SyntaxTreeNode * _init;
-		LQX::SyntaxTreeNode * _test;
-		LQX::SyntaxTreeNode * _step;
+		double _init;
+		double _test;
+		double _step;
 	    };
 
 	    friend std::ostream& operator<<( std::ostream&, const Spex::ComprehensionInfo& );

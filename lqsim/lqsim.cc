@@ -814,6 +814,11 @@ process( const string& input_file, const string& output_file, const Model::simul
 	cerr << io_vars.lq_toolname << ": Input model was not constructed successfully." << endl;
 	return FILEIO_ERROR;
     }
+
+    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::DOM::Spex::__no_header ) {
+        cerr << io_vars.lq_toolname << ": --no-header is ignored for " << input_file << "." << endl;
+    }
+
 	
     pragma.updateDOM( document );	/* Save pragmas */
 

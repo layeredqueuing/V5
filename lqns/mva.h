@@ -246,7 +246,7 @@ private:
     Vector<unsigned> sortedPrio;	/* sorted and uniq priorities	*/ 
     unsigned long stepCount;		/* Number of iterations of step	*/
     unsigned long waitCount;		/* Number of calls to wait	*/
-	Vector<unsigned> _isThread;
+    Vector<unsigned> _isThread;
     unsigned maxOffset;			/* For L, U, X and P dimensions	*/
 };
 

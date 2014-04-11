@@ -5,7 +5,7 @@
 # $Id$
 # ------------------------------------------------------------------------
 
-AM_CXXFLAGS	= -DTESTMVA -DTESTDIST 
+AM_CXXFLAGS	= -DTESTMVA -DDEBUG_MVA
 AM_CPPFLAGS	= -I..
 check_PROGRAMS  = test0 test0a \
 		  test1 test1hv test1hvp test1p test1ps \

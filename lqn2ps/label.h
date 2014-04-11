@@ -73,9 +73,10 @@ public:
     virtual Label& epsilon();
     virtual Label& infty();
     virtual Label& lambda();
-    virtual Label& times();
-    virtual Label& sigma();
     virtual Label& mu();
+    virtual Label& rho();
+    virtual Label& sigma();
+    virtual Label& times();
     Label& percent();
 
     virtual ostream& print( ostream& ) const = 0;
@@ -122,6 +123,7 @@ public:
     virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
+    virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
     virtual ostream& print( ostream& ) const;
@@ -160,11 +162,12 @@ class LabelGD : public Label, private GD
 public:
     virtual double width() const;
 
+    virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
-    virtual Label& times();
+    virtual Label& rho();
     virtual Label& sigma();
-    virtual Label& infty();
+    virtual Label& times();
     virtual Label& appendPC( const char * s );
 
     virtual ostream& print( ostream& output ) const;
@@ -202,6 +205,7 @@ public:
     virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
+    virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
     virtual ostream& print( ostream& ) const;
@@ -220,6 +224,7 @@ public:
     virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
+    virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
     virtual ostream& print( ostream& ) const;
@@ -255,6 +260,7 @@ public:
     virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
+    virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
     virtual ostream& print( ostream& ) const;
@@ -270,6 +276,7 @@ public:
     virtual Label& infty();
     virtual Label& lambda();
     virtual Label& mu();
+    virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
     virtual ostream& print( ostream& output ) const;
@@ -325,7 +332,8 @@ LabelManip _epsilon();
 LabelManip _infty();
 LabelManip _lambda();
 LabelManip _mu();
+LabelManip _percent();
+LabelManip _rho();
 LabelManip _sigma();
 LabelManip _times();
-LabelManip _percent();
 #endif

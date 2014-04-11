@@ -1639,6 +1639,9 @@ print ( unsigned passes, char * const names[] )
 
     if ( !print_rms_error_only ) {
 	make_header( header, names, passes, print_confidence_intervals, print_error_only ? 1 : 0 );
+    } else if ( print_latex ) {
+	make_header( header, names, passes, print_confidence_intervals, print_error_only ? 1 : 0 );
+	(void) fprintf( output, header, 16, 16, file_name );
     }
 
     /* Run times */
@@ -1789,12 +1792,14 @@ print ( unsigned passes, char * const names[] )
 	print_entry_service( P_PROCESSOR_WAIT, file_name, passes );
     }
 
-    if ( !print_rms_error_only ) {
-	(void) fputc( '\n', output );
-    }
-
     if ( print_overtaking ) {
 	print_entry_overtaking( P_OVERTAKING, file_name, passes, entry_tab[FILE1].size() );
+    }
+
+    if ( !print_rms_error_only ) {
+	(void) fputc( '\n', output );
+    } else if ( print_latex ) {
+	(void) fprintf( output, "\\end{tabular}\n" );
     }
 }
 

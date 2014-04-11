@@ -728,7 +728,7 @@ namespace LQIO {
 		LQIO::Filename filename( file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
 #if HAVE_LIBXERCES_C
 		return false;
-#else
+#elif HAVE_LIBEXPAT
 		return Expat_Document::loadResults( *this, file_name, errorCode );
 #endif
 	    } else {
@@ -782,7 +782,7 @@ namespace LQIO {
 	{
 #if HAVE_LIBXERCES_C
 	    Xerces_Document::serializeDOM( output, instantiate );
-#else
+#elif HAVE_LIBEXPAT
 	    Expat_Document expat( *const_cast<Document *>(this), false, false );
 	    expat.serializeDOM( output, instantiate );
 #endif

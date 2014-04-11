@@ -41,20 +41,21 @@ const struct option longopts[] =
 {
     { "all",             no_argument,       0, 'a' },
     { "bard-schweitzer", no_argument,       0, 'b' },
-    { "debug",           no_argument,       0, 'd' },
+    { "debug-mva",	 no_argument,	    0, 'd' },
     { "exact-mva",       no_argument,       0, 'e' },
     { "fast-linearizer", no_argument,       0, 'f' },
     { "help",            no_argument,       0, 'h' },
     { "iterations",      required_argument, 0, 'i' },
     { "linearizer",      no_argument,       0, 'l' },
     { "no-check",        no_argument,       0, 'n' },
+    { "print",           no_argument,       0, 'p' },
     { "silent",          no_argument,       0, 's' },
     { "test-number",     required_argument, 0, 't' },
     { "verbose",         no_argument,       0, 'v' },
     { 0, 0, 0, 0 }
 };
 #endif
-const char opts[]	= "abdefhi:lnst:v";
+const char opts[]	= "abdefhi:lnpst:v";
 const char * opthelp[]  = {
     /* "all",             */    "Test using all MVA solvers.",
     /* "bard-schweitzer", */    "Test using Bard-Schweitzer solver.",
@@ -65,6 +66,7 @@ const char * opthelp[]  = {
     /* "iterations",      */    "Run the test ARG times.",
     /* "linearizer",      */    "Test using Generic Linearizer.",
     /* "no-check",        */    "Do not check solution against \"correct\" values.",
+    /* "print"		  */	"Print out station info.",
     /* "silent",          */    "",
     /* "test",            */    "Select test ARG.  Arg is an integer.",
     /* "verbose",         */    "",
@@ -75,7 +77,7 @@ const char * opthelp[]  = {
 
 static int silencio_flag = 0;			/* Don't print results if 1	*/
 static int verbose_flag = 0;			/* Print iteration count if 1	*/
-static int debug_flag = 0;			/* Print station info.		*/
+static int print_flag = 0;			/* Print station info.		*/
 static int nocheck_flag = 0;			/* Don't check if 1.		*/
 
 
@@ -112,9 +114,13 @@ int main (int argc, char *argv[])
 	    break;
 
 	case 'd':
-	    debug_flag = 1;
+	    MVA::debug_D = true;
+	    MVA::debug_L = true;
+	    MVA::debug_P = true;
+	    MVA::debug_U = true;
+	    MVA::debug_W = true;
 	    break;
-			    
+
 	case 'e':
 	    solver_set |= EXACT_SOLVER_BIT;
 	    break;
@@ -142,6 +148,10 @@ int main (int argc, char *argv[])
 	    nocheck_flag = 1;
 	    break;
 			
+	case 'p':
+	    print_flag = 1;
+	    break;
+			    
 	case 's':
 	    silencio_flag = 1;
 	    break;
@@ -204,7 +214,7 @@ run( const unsigned solver_set, const unsigned special )
 	return 0;
     }
 	
-    if ( debug_flag ) {
+    if ( print_flag ) {
 	for ( unsigned j = 1; j <= Q.size(); ++j ) {
 	    cout << *Q[j] << endl;
 	}

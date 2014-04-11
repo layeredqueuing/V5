@@ -539,6 +539,10 @@ process ( const string& inputFileName, const string& outputFileName )
 
     pragma.updateDOM( document );       /* Save pragmas */
 
+    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::DOM::Spex::__no_header ) {
+        cerr << io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << endl;
+    }
+
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
     Model * aModel = NULL;
     int rc = 0;

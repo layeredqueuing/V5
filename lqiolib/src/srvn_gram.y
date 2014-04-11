@@ -20,7 +20,6 @@ static void * curr_entry = 0;
 static void * dest_entry = 0;
 static void * curr_activity = 0;
 static bool constant_expression = true;
-static bool spex_initialization = false;
 extern int LQIO_lex();
 %}
 
@@ -73,8 +72,8 @@ extern int LQIO_lex();
 /*----------------------------------------------------------------------*/
 
 SRVN_input_file		: srvn_spec
-			| { spex_initialization = true; } parameter_list srvn_spec { spex_initialization = false; } opt_report_info opt_convergence_info			/* spex */
-				{ spex_set_program( $2, $5, $6 ); }
+			| parameter_list srvn_spec opt_report_info opt_convergence_info			/* spex */
+				{ spex_set_program( $1, $3, $4 ); }
     			;
 
 srvn_spec		: general_info processor_info group_info task_info entry_info activity_info_list
@@ -187,7 +186,7 @@ factor			: '(' expression ')'				{ $$ = $2; }			/* See Parser_pre.ypp: basic_stm
 			| rvalue '(' ')'				{ $$ = spex_invoke_function( $1, 0 ); }
 			| rvalue '(' expression_list ')'		{ $$ = spex_invoke_function( $1, $3 ); }
 			| rvalue '[' expression ']'			{ $$ = spex_invoke_function( "array_get", $3 ); }
-			| rvalue					{ $$ = spex_get_symbol( $1, spex_initialization ); constant_expression = false; }
+			| rvalue					{ $$ = spex_get_symbol( $1 ); constant_expression = false; }
 			| constant					{ $$ = spex_get_real( $1 ); }
 			;
 
