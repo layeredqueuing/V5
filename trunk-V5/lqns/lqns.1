@@ -1,5 +1,5 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "22 November 2013" "6.0"
+.TH lqns 1 "13 April 2014" "5.8"
 .\" $Id$
 .\"
 .\" --------------------------------
@@ -106,9 +106,6 @@ It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\f
 This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
 By default, if the suffix of the input filename is one of: \fI.in\fP, \fI.lqn\fP or \fI.xlqn\fP
 , then the LQN parser will be used.  Otherwise, input is assumed to be XML.
-.TP
-\fB\-j\fP, \fB\-\-json\fR
-Generate JSON output regardless of input format.
 .TP
 \fB\-n\fP, \fB\-\-no-execute\fR
 Read input, but do not solve.  The input is checked for validity.  
@@ -335,8 +332,6 @@ Output debugging information as an LQX program is being parsed.
 Output XML elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
 .TP
-\fB\-\-debug-json\fR
-.TP
 \fB\-\-debug-srvn\fR
 .PP
 \fBLqns\fP exits with 0 on success, 1 if the model failed to converge,
@@ -543,7 +538,7 @@ arrival rate exceeds the service rate of a server.
 .RS
 .TP
 \fBfalse\fP
-Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as inisfinite..TP
+Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as infinite..TP
 \fBtrue\fP
 Stop if messages are lost.
 .LP
@@ -595,20 +590,6 @@ Disable variance adjustment.  All stations in the MVA submodels are either delay
 ?
 .LP
 
-.RE
-.TP
-\fBxml-schema\fR=\fIarg\fR
-This pragma is used to set scheman used for JSON output.
-\fIArg\fP must be one of: 
-.RS
-.TP
-\fBfalse\fP
-JSON output is similar to LQN input -- processors, then tasks, then entries, then activities.
-.TP
-\fBtrue\fP
-JSON output is similar to XML input -- processors contain tasks, and tasks contain entries and activities.
-.LP
-The default is false.
 .RE
 .SH "STOPPING CRITERIA"
 \fBLqns\fP computes the model results by iterating through a set of
