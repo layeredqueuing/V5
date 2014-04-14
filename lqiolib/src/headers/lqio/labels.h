@@ -41,10 +41,10 @@ namespace LQIO {
     extern const char * overtaking_prob_str;
     extern const char * semaphore_hold_time_str;
     extern const char * semaphore_hold_variance_str;
-	extern const char * rwlock_hold_time_str;
-	extern const char * rwlock_reader_hold_time_str;
+    extern const char * rwlock_hold_time_str;
+    extern const char * rwlock_reader_hold_time_str;
     extern const char * rwlock_reader_hold_variance_str;
-	extern const char * rwlock_writer_hold_time_str;
+    extern const char * rwlock_writer_hold_time_str;
     extern const char * rwlock_writer_hold_variance_str;
 
     extern const char * service_time_exceeded_str;

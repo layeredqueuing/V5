@@ -1,3 +1,63 @@
+* Bugs fixed in 5.8
+641    blo  P1   RESO   FIXE   Build Sy   Missing dll files lqsim/lqns
+526    nor  P2   RESO   FIXE   lqiolib    Regression/array.lqx fails due to syntax error.
+642    enh  P5   RESO   FIXE   lqiolib    lqns/lqsim cannot load old-style model file.
+643    enh  P5   RESO   FIXE   lqiolib    signal SIGABRT in srvn_find_task (taskName=<value temporarily unavailable, due to optimizations>) at srvn_input.cpp:761
+647    nor  P5   RESO   FIXE   lqiolib    Spex arrays/results
+651    cri  P1   RESO   FIXE   lqiolib    signal SIGSEGV, in LQIO::DOM::DocumentObject::setName (this=0x0, newName=...) at dom_object.cpp:37
+668    nor  P2   RESO   FIXE   lqiolib    Generated XML model file fails to load.
+670    nor  P2   RESO   FIXE   lqiolib    entry-phase-activities and <entry type="NONE">
+672    maj  P1   RESO   FIXE   lqiolib    Spex fails with entry service times.
+690    enh  P3   RESO   FIXE   lqiolib    Add rand() function to LQX
+692    enh  P2   RESO   FIXE   lqiolib    Undeclared entries not detected in LQN input file.
+696    min  P3   RESO   FIXE   lqiolib    SPEX should stop on error in solver.
+702    min  P4   RESO   FIXE   lqiolib    Task fanIn not handled correctly.
+713    min  P5   RESO   FIXE   lqiolib    Ampersands in strings case problems.
+718    enh  P5   RESO   FIXE   lqiolib    Redirect "default" lqx output.
+722    enh  P5   RESO   FIXE   lqiolib    Change srvn input to use mmap.
+737    enh  P5   RESO   FIXE   lqiolib    Entry specified using both activity and phase methods because of forwarding.
+743    nor  P3   RESO   FIXE   lqiolib    Faulty model construction for arrays.
+695    nor  P5   RESO   FIXE   lqn2ps     Waiting time result not displayed if phase 1 waiting time = 0
+703    enh  P5   RESO   FIXE   lqn2ps     Deprecate icon slope. Add jlqndef rendering style.
+704    maj  P1   RESO   FIXE   lqn2ps     signal SIGABRT, in Call::sumOfRendezvous ()
+706    nor  P2   RESO   FIXE   lqn2ps     --flatten is borked.
+711    nor  P5   RESO   FIXE   lqn2ps     signal SIGABRT: LQIO::SRVN::ActivityListInput::print (this=0x7fff5fbfd0f0, precedence=@0x10070c7a0) at srvn_output.cpp:2554
+725    enh  P5   RESO   FIXE   lqn2ps     signal SIGABRT, in Model::process (this=0x1008042a8) at model.cc:567
+731    enh  P5   RESO   FIXE   lqn2ps     -Zflatten ignores -Y and botches centering.
+736    enh  P5   RESO   FIXE   lqn2ps     Converting xml model with groups to lqn model does not output groups.
+739    enh  P5   RESO   FIXE   lqn2ps     Infinite loop in backtrack
+742    min  P4   RESO   FIXE   lqn2ps     Labels for servers are duplicated.
+745    enh  P5   RESO   FIXE   lqn2ps     signal SIGABRT, in EMF::text () at graphic.cc:495
+663    nor  P2   RESO   FIXE   lqngen     Call rate parameters $y_ are not output properly.
+665    enh  P5   RESO   FIXE   lqngen     First item in service time array is not initialized.
+605    nor  P2   RESO   FIXE   lqns       Faulty model regression tests that fail/abort/segv.
+657    enh  P3   RESO   FIXE   lqns       -o with SPEX should use <filename> as directory name.
+675    enh  P2   RESO   FIXE   lqns       Output distribution information from lqns.
+676    maj  P5   RESO   FIXE   lqns       EXC_BAD_ACCESS, in LQIO::DOM::Document::getModelPrintInterval (this=0x1fc2) at dom_document.cpp:155
+677    enh  P5   RESO   FIXE   lqns       EXC_BAD_ACCESS, Could not access memory in Phase::recalculateDynamicValues (this=0x10100a408) at phase.cc:1283
+678    maj  P1   RESO   FIXE   lqns       signal EXC_BAD_ACCESS, Could not access memory in Entry::serviceTime (this=0x0, p=1) at entry.h:167
+682    nor  P5   RESO   FIXE   lqns       LQX enhancements broken with new interlock.
+693    nor  P2   RESO   FIXE   lqns       Async messages to infinite server get lost.
+714    nor  P2   RESO   FIXE   lqns       Intermediate results not saved in DOM.
+717    min  P4   RESO   FIXE   lqns       debug interlock is not printing out a valid path table.
+723    enh  P5   RESO   FIXE   lqns       signal SIGABRT in Gamma_Distribution::setParameters at gamma.h:29
+724    enh  P5   RESO   FIXE   lqns       Interlocker borked in 5.7
+726    enh  P5   RESO   FIXE   lqns       signal SIGFPE, in MVA::step (this=0xc24bc195, N=@0xc24bc195, currPri=2273678227) at mva.cc:472
+733    enh  P5   RESO   FIXE   lqns       signal EXC_BAD_ACCESS, in Linearizer::save_L (this=0x100819c80) at mva.cc:2815
+740    maj  P1   RESO   FIXE   lqns       Bogus throughput at forked activities.
+744    enh  P5   RESO   WORK   lqns       V[456] results don't match V3 for supposed product form network.
+747    cri  P1   RESO   FIXE   lqns       SIGSEGV, Segmentation fault in MVA::entryThroughput (this=0x8162680, station=..., e=1) at mva.cc:1206
+748    maj  P5   RESO   FIXE   lqns       unit-test 8p fails.
+619    cri  P1   RESO   FIXE   lqsim      Processor waiting time for CFS scheduled processors is wrong.
+710    maj  P1   RESO   FIXE   lqsim      Computed service time for activities with service time is zero.
+654    nor  P2   RESO   FIXE   miscella   Mingw update had broken floating point handling.
+380    maj  P1   RESO   FIXE   Parasol    signal SIGSEGV, Segmentation fault in update_cfs_curr (cfs_rq=0xb1e9874) at para_library.c:8515
+653    nor  P2   RESO   FIXE   Parasol    "Not a run task" error: Using the clang compiler.
+659    nor  P5   RESO   FIXE   petrisrv   Regression tests failing
+660    nor  P5   RESO   FIXE   petrisrv   LQX model construction aborts.
+679    maj  P5   RESO   FIXE   petrisrv   Reference task multiplicity is not updated with LQX
+700    maj  P2   RESO   FIXE   petrisrv   Memory fault on second solve - model activities. 
+
 * Bugs fixed in 5.7
 620    nor  P3   VERI   FIXE   lqiolib    signal SIGABRT in LQIO::DOM::DocumentObject::subclass (this=0x100b0dea0) at dom_object.cpp:51
 622    nor  P3   VERI   FIXE   lqiolib    XML Results with groups do not parse.

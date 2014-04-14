@@ -203,6 +203,7 @@ unsigned
 Entity::copies() const
 {
     const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies(); 
+    if ( !dom_copies ) return 1;
     double value;
     assert(dom_copies->getValue(value) == true);
     if ( isinf( value ) ) return 1;
@@ -230,14 +231,7 @@ Entity::replicas( const unsigned n )
 bool 
 Entity::isInfinite() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies(); 
-    double value;
-    assert(dom_copies->getValue(value) == true);
-    if ( isinf( value ) ) {
-	return true;
-    } else { 
-	return scheduling() == SCHEDULE_DELAY; 
-    }
+    return domEntity->isInfinite();
 }
 
 

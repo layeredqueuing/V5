@@ -1591,13 +1591,14 @@ unsigned
 ReferenceTask::copies() const
 {
     const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies();
+    if ( !dom_copies ) return 1;
     double value;
     assert(dom_copies->getValue(value) == true);
     if ( isinf( value ) ) {
 	LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, name() );
 	return 1;
     } else if ( value - floor(value) != 0 ) {
-	throw domain_error( "ReferencerTask::copies" );
+	throw domain_error( "ReferenceTask::copies" );
     }
     return static_cast<unsigned int>(value);
 }

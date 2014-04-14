@@ -115,7 +115,7 @@ namespace LQIO {
 	    /* Return true if this is (or can be) a multiserver */
 	    double v;
 	    const LQIO::DOM::ExternalVariable * m = getCopies();
-	    return !m->wasSet() || !m->getValue(v) || v > 1.0;
+	    return m && (!m->wasSet() || !m->getValue(v) || v > 1.0);
 	}
     
 	const bool Entity::isInfinite() const
@@ -123,9 +123,9 @@ namespace LQIO {
 	    if ( getSchedulingType() == SCHEDULE_DELAY ) {
 		return true;
 	    } else {
-		const LQIO::DOM::ExternalVariable * dom_copies = getCopies(); 
+		const LQIO::DOM::ExternalVariable * copies = getCopies(); 
 		double value;
-		return dom_copies->getValue(value) == true && std::isinf( value ) != 0;
+		return copies && (copies->getValue(value) == true && std::isinf( value ) != 0);
 	    }
 	}
     }

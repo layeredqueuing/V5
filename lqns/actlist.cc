@@ -1163,7 +1163,6 @@ AndForkActivityList::aggregate( Stack<Entry *>& entryStack, const AndForkActivit
         bool isQuorumDelayedThreadsActive = false;
         double totalParallelLocal = 0;
         double totalSequentialLocal = 0;
-        double probQuorumDelaySeqExecution = 0;
 
         /* Calculate start time */
 
@@ -1271,11 +1270,6 @@ AndForkActivityList::aggregate( Stack<Entry *>& entryStack, const AndForkActivit
             }
         }
 
-        if (totalParallelLocal+ totalSequentialLocal > 0) {
-            probQuorumDelaySeqExecution = totalParallelLocal/
-                (totalParallelLocal+ totalSequentialLocal);
-        }
-
         //to disable accounting for sequential execution in the quorum delayed threads,
         //set probQuorumDelaySeqExecution to zero.
         //0probQuorumDelaySeqExecution = 0;
@@ -1329,6 +1323,11 @@ AndForkActivityList::aggregate( Stack<Entry *>& entryStack, const AndForkActivit
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
         if ( myJoinList && myJoinList->hasQuorum()
+	     if (totalParallelLocal+ totalSequentialLocal > 0) {
+		 double probQuorumDelaySeqExecution = totalParallelLocal/
+		     (totalParallelLocal+ totalSequentialLocal);
+	     }
+
              && submodel == Model::sync_submodel
              && !flags.disable_expanding_quorum_tree /*!pragmaQuorumDistribution.test(DISABLE_EXPANDING_QUORUM)*/
              && pragma.getQuorumDelayedCalls() == KEEP_ALL_QUORUM_DELAYED_CALLS ) {

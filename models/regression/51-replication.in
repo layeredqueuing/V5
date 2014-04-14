@@ -18,10 +18,10 @@ T 4
   t B1 r B1 -1 B1 r 10
   t C1 n C2 C1 -1 C1 r 3
   t D1 n D2 D1 -1 D1 r 10
-  i A1 C1 2 
-  o A1 C1 3 
-  i B1 C1 10 
-  o B1 C1 3 
+  I A1 C1 2 
+  O A1 C1 3 
+  I B1 C1 10 
+  O B1 C1 3 
 -1
 
 E 6

@@ -15,7 +15,7 @@ P 3
 T 4
   t sink r sink -1 sink
   t source r source -1 source
-  t buffer_empty Z empty_signal empty_wait -1 buffer
+  t buffer_empty S empty_signal empty_wait -1 T 0 buffer 
   t buffer_full S full_wait full_signal -1 buffer
 -1
 

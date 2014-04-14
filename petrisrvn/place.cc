@@ -61,6 +61,7 @@ unsigned int Place::multiplicity() const
 {
     const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
     double value;
+    if ( !copies ) return 1;
     assert(copies->getValue(value) == true);
     if ( isinf( value ) ) return 1;
     if ( value - floor(value) != 0 ) {
@@ -73,8 +74,7 @@ bool Place::is_infinite() const
 {
     const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
     double value;
-    assert(copies->getValue(value) == true);
-    if ( isinf( value ) ) {
+    if ( copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value )) ) {
 	return true;
     } else { 
 	return scheduling() == SCHEDULE_DELAY; 

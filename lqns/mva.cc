@@ -380,9 +380,9 @@ void
 MVA::initialize()
 {
     sortedPrio.grow(K);
-	_isThread.grow(K+1);
+    _isThread.grow(K+1);
 
-	for ( unsigned k = 1; k < K; ++k ) {
+    for ( unsigned k = 1; k <= K; ++k ) {
 	_isThread[k] = 0;
     }
     nPrio = 1;
@@ -1203,11 +1203,11 @@ MVA::entryThroughput( const Server& station, const unsigned e ) const
     for ( unsigned k = 1; k <= K; ++k ) {
 	if ( !isfinite( X[n][k] ) ) return X[n][k];
 	if (getThreadChain(k)){
-		sum += Q[m]->V(e,k) * X[n][getThreadChain(k)];
-	}else{
-		sum += Q[m]->V(e,k) * X[n][k];
-      }
+	    sum += Q[m]->V(e,k) * X[n][getThreadChain(k)];
+	} else {
+	    sum += Q[m]->V(e,k) * X[n][k];
 	}
+    }
     return sum;
 }
 
@@ -2206,8 +2206,8 @@ Schweitzer::initialize()
 #endif
 	    if ( P[n][m] ) {
 
-		const unsigned J = Q[m]->marginalProbabilitiesSize();
 		const double pop = NCust.sum();
+		const unsigned J = Q[m]->marginalProbabilitiesSize();
 //		const Probability temp = pop > 0.0 ? 2.0 * pop / (J * pop * (pop + 1.0)) : 0.0;
 		const Probability temp = pop > 0.0 ? 2.0 / (J * (pop + 1.0)) : 0.0;
 		Probability sum  = 0.0;

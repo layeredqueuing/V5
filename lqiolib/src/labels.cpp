@@ -71,7 +71,6 @@ const char * scheduling_type_str[N_SCHEDULING_TYPES+1] =
     "BURST",
     "UNIFORM",
     "SEMAPHORE",
-    "SEMAPHORE",
     "CFS",
     "RWLOCK",
     0
@@ -91,7 +90,6 @@ const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1] =
     "poll",
     "burst",
     "uniform",
-    "semaphore",
     "semaphore",
     "cfs",
     "rwlock",

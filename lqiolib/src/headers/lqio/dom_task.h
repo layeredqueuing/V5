@@ -162,9 +162,9 @@ namespace LQIO {
 	    } InitialStateType;
       
 	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			  const Processor* processor, ExternalVariable* queue_length, const int priority, 
-			  ExternalVariable* n_copies, const int n_replicas,
-			  const Group * group, const void * task_element );
+			  const Processor* processor, ExternalVariable* queue_length=0, const int priority=0, 
+			  ExternalVariable* n_copies=0, const int n_replicas=1,
+			  const Group * group=0, const void * task_element=0 );
 	    SemaphoreTask( const SemaphoreTask& );
 
 	    const InitialStateType getInitialState() const;
@@ -206,9 +206,9 @@ namespace LQIO {
 	public:
 	    
 	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-		       const Processor* processor, ExternalVariable* queue_length, const int priority, 
-		       ExternalVariable* n_copies, const int n_replicas,
-		       const Group * group, const void * task_element   );
+		       const Processor* processor, ExternalVariable* queue_length=0, const int priority=0, 
+		       ExternalVariable* n_copies=0, const int n_replicas=1,
+		       const Group * group=0, const void * task_element=0 );
 	    //  n_copies is the number of concurrent readers
 
 	    RWLockTask( const RWLockTask& );

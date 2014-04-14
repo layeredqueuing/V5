@@ -1968,14 +1968,7 @@ namespace LQIO {
 	case SCHEDULE_POLL:      output << 'P'; break;
 	case SCHEDULE_PPR:	 output << 'p'; break;
 	case SCHEDULE_RWLOCK:    output << 'W'; break;
-	case SCHEDULE_SEMAPHORE: 
-	case SCHEDULE_SEMAPHORE_R: 
-	    if ( dynamic_cast<const DOM::SemaphoreTask&>(task).getInitialState() == LQIO::DOM::SemaphoreTask::INITIALLY_EMPTY ) {
-		output << 'Z'; break;
-	    } else {
-		output << 'S'; break;
-	    }
-	    break;
+	case SCHEDULE_SEMAPHORE: output << 'S'; break;
 	case SCHEDULE_UNIFORM:   output << 'u'; break;
 	default:	   	 output << '?'; break;
 	}

@@ -758,14 +758,7 @@ Task::multiplicity() const
 bool 
 Task::is_infinite() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = getDOM()->getCopies(); 
-    double value;
-    assert(dom_copies->getValue(value) == true);
-    if ( isinf( value ) ) {
-	return true;
-    } else { 
-	return discipline() == SCHEDULE_DELAY; 
-    }
+    return getDOM()->isInfinite();
 }
 
 

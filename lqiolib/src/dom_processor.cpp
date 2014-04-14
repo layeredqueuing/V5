@@ -60,8 +60,11 @@ namespace LQIO {
 	{
 	    /* Return the processor rate */
 	    double value = 0.0;
-	    assert(_processorRate->getValue(value) == true);
-	    return value;
+	    if ( _processorRate && _processorRate->getValue(value) ) {
+		return value;
+	    } else {
+		return 1.0;
+	    }
 	}
     
 	void Processor::setRateValue(const double value)
