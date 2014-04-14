@@ -45,7 +45,6 @@
 726    enh  P5   RESO   FIXE   lqns       signal SIGFPE, in MVA::step (this=0xc24bc195, N=@0xc24bc195, currPri=2273678227) at mva.cc:472
 733    enh  P5   RESO   FIXE   lqns       signal EXC_BAD_ACCESS, in Linearizer::save_L (this=0x100819c80) at mva.cc:2815
 740    maj  P1   RESO   FIXE   lqns       Bogus throughput at forked activities.
-744    enh  P5   RESO   WORK   lqns       V[456] results don't match V3 for supposed product form network.
 747    cri  P1   RESO   FIXE   lqns       SIGSEGV, Segmentation fault in MVA::entryThroughput (this=0x8162680, station=..., e=1) at mva.cc:1206
 748    maj  P5   RESO   FIXE   lqns       unit-test 8p fails.
 619    cri  P1   RESO   FIXE   lqsim      Processor waiting time for CFS scheduled processors is wrong.

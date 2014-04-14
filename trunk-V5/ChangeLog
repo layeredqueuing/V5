@@ -1,3 +1,11 @@
+2014-04-13  Greg Franks  <greg@franks.dnsalias.com>
+
+	* lqiolib
+	- 'i' and 'o' changed for replication.
+	- Many enhancements to SPEX input.
+	* lqn2ps (V5_8)
+	- remove icon-slope.  Add jlqndef style output.
+
 2012-11-16  Gregory Franks  <greg@Gregs-MacBook.local>
 
 	* lqiolib
