@@ -180,15 +180,12 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
 	return 0;
 
-    } else if ( scheduling == SCHEDULE_SEMAPHORE || scheduling == SCHEDULE_SEMAPHORE_R ) {
+    } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::currentDocument, task_name, 
 					     *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
 					     static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
 					     static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 					     n_replicas, group, (void *)0);
-	if ( scheduling == SCHEDULE_SEMAPHORE_R ) {
-	    dynamic_cast<LQIO::DOM::SemaphoreTask *>(task)->setInitialState(LQIO::DOM::SemaphoreTask::INITIALLY_EMPTY);
-	}
 
     } else if ( scheduling == SCHEDULE_RWLOCK ) {
 	task = new LQIO::DOM::RWLockTask( LQIO::DOM::currentDocument, task_name, 
@@ -569,6 +566,16 @@ srvn_set_start_activity ( void * entry_v, const char * startActivityName )
     entry->setStartActivity(activity);
 }
 
+
+void 
+srvn_set_tokens( void * task_v, unsigned int tokens )
+{
+    LQIO::DOM::Task * task = static_cast<LQIO::DOM::Task *>(task_v);
+    if ( !task ) return;
+    if ( dynamic_cast<LQIO::DOM::SemaphoreTask *>(task) && tokens == 0 ) {
+	dynamic_cast<LQIO::DOM::SemaphoreTask *>(task)->setInitialState(LQIO::DOM::SemaphoreTask::INITIALLY_EMPTY);
+    }
+}
 
 /*
  * find an activity.  

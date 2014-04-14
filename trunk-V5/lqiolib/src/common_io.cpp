@@ -53,7 +53,6 @@ namespace LQIO {
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_BURST]] =	      SCHEDULE_BURST;  
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_UNIFORM]] =     SCHEDULE_UNIFORM;
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_SEMAPHORE]] =   SCHEDULE_SEMAPHORE;    	 
-	    scheduling_table[schedulingTypeXMLString[SCHEDULE_SEMAPHORE_R]] = SCHEDULE_SEMAPHORE_R;
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_CFS]] =	      SCHEDULE_CFS;
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_RWLOCK]] =      SCHEDULE_RWLOCK;
 	}

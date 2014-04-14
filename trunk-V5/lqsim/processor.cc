@@ -52,9 +52,8 @@ int Processor::scheduling_types[N_SCHEDULING_TYPES] =
     -1,		/* SCHEDULE_BURST	*/
     -1, 	/* SCHEDULE_UNIFORM	*/
     -1,		/* SCHEDULE_SEMAPHORE	*/
-    -1, 	/* SCHEDULE_SEMAPHORE_R */
     CFS,	/* SCHEDULE_CFS		*/
-	-1	    /* SCHEDULE_RWLOCK */
+    -1		/* SCHEDULE_RWLOCK 	*/
 };		   
 
 
@@ -135,13 +134,7 @@ Processor::multiplicity() const
 bool 
 Processor::is_infinite() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = _domProcessor->getCopies(); 
-    double value;
-    if ( dom_copies->wasSet() && dom_copies->getValue(value) == true && isinf( value ) ) {
-	return true;
-    } else { 
-	return discipline() == SCHEDULE_DELAY; 
-    }
+    return _domProcessor->isInfinite();
 }
 
 

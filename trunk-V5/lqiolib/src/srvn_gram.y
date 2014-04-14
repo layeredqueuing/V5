@@ -52,7 +52,7 @@ extern int LQIO_lex();
 %type <schedulingFlag>	proc_sched_flag task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
-%type <anInt>		replication_flag cap_flag task_pri hist_bins
+%type <anInt>		replication_flag cap_flag task_pri hist_bins token_flag
 %type <aFloat>		constant 
 %type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl
@@ -310,23 +310,26 @@ t_decl_list		: t_decl_list t_decl
     			| t_decl
     			;
 
-/*			   1  2       3               4          5        6                 7       8        9               10                11 		12  */
-t_decl			: 't' task_id task_sched_flag entry_list END_LIST queue_length_flag proc_id task_pri think_time_flag multi_server_flag replication_flag group_flag
+/*			   1  2       3               4          5        6                 7          8       9        10              11 		  12               13 */
+t_decl			: 't' task_id task_sched_flag entry_list END_LIST queue_length_flag token_flag proc_id task_pri think_time_flag multi_server_flag replication_flag group_flag
 				{
-				  curr_task = srvn_add_task( $2, $3, $4, $6, $7, $8, $9, $10, $11, $12 );
-				  (void) free($2);
-				  (void) free($7);
-				  if ( $12 != 0 ) {
-				    (void) free($12);
-				  }
+				    curr_task = srvn_add_task( $2, $3, $4, $6, $8, $9, $10, $11, $12, $13 );
+				    (void) free($2);
+				    (void) free($8);
+				    if ( $12 != 0 ) {
+					(void) free($13);
+				    }
+				    if ( $7 ) {
+					srvn_set_tokens( curr_task, $7 );
+				    }
 				}
 				task_obs
-			| 'i' task_id task_id INTEGER
+			| 'I' task_id task_id INTEGER
 			{
 			    srvn_store_fanin( $2, $3, $4 );
 			    free( $2 ); free( $3 );
 			}
-			| 'o' task_id task_id INTEGER
+			| 'O' task_id task_id INTEGER
 			{
 			    srvn_store_fanout( $2, $3, $4 );
 			    free( $2 ); free( $3 );
@@ -339,7 +342,6 @@ task_id			: symbol		/*  task identifier			*/
 
 task_sched_flag		: 'P'	{ $$ = SCHEDULE_POLL; }			/* Polled scheduling at entries.	*/
 			| 'S'	{ $$ = SCHEDULE_SEMAPHORE; }		/* Semaphore task.			*/
-			| 'Z'	{ $$ = SCHEDULE_SEMAPHORE_R; }		/* Semaphore task (init zero).		*/
 			| 'b'	{ $$ = SCHEDULE_BURST; }		/* Bursty Reference task		*/
 			| 'f'	{ $$ = SCHEDULE_FIFO; }			/* FIFO Scheduling.			*/
 			| 'h'	{ $$ = SCHEDULE_HOL; }			/* Head of line.			*/
@@ -369,6 +371,10 @@ think_time_flag		: 'z' real	{ $$ = $2; }			/* Think time for a task (optional).	
 
 queue_length_flag	: 'q' integer	{ $$ = $2; }
 			|		{ $$ = srvn_int_constant(0); }
+			;
+
+token_flag		: 'T' INTEGER	{ $$ = $2; }
+			|		{ $$ = 0; }
 			;
 
 group_flag		: 'g' group_id 	{ $$ = $2; }

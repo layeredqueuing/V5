@@ -220,21 +220,18 @@ namespace LQIO {
 	LQX::SyntaxTreeNode* Spex::foreach_loop( std::vector<std::string>::const_iterator var_p, expr_list * result, expr_list * convergence ) const 
 	{
 	    if ( var_p != __array_variables.end() ) {
-		std::string var = *var_p;	/* Make local copy in case we force to local */
-		const bool is_external = is_global_var( var );
-		if ( !is_external && var[0] == '$' ) {
-		    var[0] = '_';		/* Force to local variable */
-		}
+		std::string local = *var_p;	/* Make local copy because we force to local */
+		local[0] = '_';			/* Force to local variable */
 		std::map<std::string,Spex::ComprehensionInfo>::const_iterator i = __comprehensions.find( *var_p );
 		if ( i == __comprehensions.end() ) {
 		    /* if we have $x = [...] */
-		    return new LQX::ForeachStatementNode( "", var.c_str(), /* key ext */ false, /* val */ is_external, 
-							  new LQX::VariableExpression( &var.c_str()[1], false ), 
+		    return new LQX::ForeachStatementNode( "", local.c_str(), /* key ext */ false, /* val */ false, 
+							  new LQX::VariableExpression( &local.c_str()[1], false ), 
 							  foreach_loop( ++var_p, result, convergence ) );
 		} else {
 		    /* for ( i = begin; i < end; ++i ) 
 		           $x = f(i); */
-		    return new LQX::LoopStatementNode( i->second.init(var), i->second.test(var), i->second.step(var), foreach_loop( ++var_p, result, convergence ) );
+		    return new LQX::LoopStatementNode( i->second.init(local), i->second.test(local), i->second.step(local), foreach_loop( ++var_p, result, convergence ) );
 		}
 	    } else if ( convergence ) {
 		return new LQX::CompoundStatementNode( convergence_loop( convergence, result ) );
@@ -305,7 +302,20 @@ namespace LQIO {
 	{
 	    expr_list * loop_code = new expr_list;
 
-	    *loop_code = Spex::__deferred_assignment;	/* load in all deferred assignement statements, eg '$x = $loop'... */
+	    /* load in all deferred assignement statements, eg '$x = $loop'... */
+	    *loop_code = Spex::__deferred_assignment;
+
+	    /* "Assign" any array variables which are used as parameters */
+	    for ( std::vector<std::string>::const_iterator var_p = __array_variables.begin(); var_p != __array_variables.end(); ++var_p ) {
+		if ( is_global_var( *var_p ) ) {
+		    std::string local = *var_p;
+		    local[0] = '_';
+		    loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( *var_p, true ), 
+									    new LQX::VariableExpression( local, false ) ) );
+		}
+	    }
+
+	    /* Increment magic variable $0 */
 	    loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), 
 								    new LQX::MathExpression(LQX::MathExpression::ADD, new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 1.0 ) ) ) );
 

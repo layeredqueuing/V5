@@ -220,7 +220,7 @@ Entity::isMultiServer() const
 { 
     const LQIO::DOM::ExternalVariable * m = dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopies();
     double v;
-    return !m->wasSet() || !m->getValue(v) || v > 1.0;
+    return m && (!m->wasSet() || !m->getValue(v) || v > 1.0);
 }
 
 
