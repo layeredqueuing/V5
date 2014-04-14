@@ -17,6 +17,11 @@
 722    enh  P5   RESO   FIXE   lqiolib    Change srvn input to use mmap.
 737    enh  P5   RESO   FIXE   lqiolib    Entry specified using both activity and phase methods because of forwarding.
 743    nor  P3   RESO   FIXE   lqiolib    Faulty model construction for arrays.
+620    nor  P3   VERI   FIXE   lqiolib    signal SIGABRT in LQIO::DOM::DocumentObject::subclass (this=0x100b0dea0) at dom_object.cpp:51
+622    nor  P3   VERI   FIXE   lqiolib    XML Results with groups do not parse.
+629    nor  P3   VERI   FIXE   lqiolib    Group specification for models without groups causes parsing to fail.
+640    enh  P5   VERI   FIXE   lqiolib    signal SIGABRT, Aborted. in LQIO::DOM::Entity::getCopiesValue (this=0x100606ec0) at dom_entity.cpp:63
+646    enh  P4   VERI   FIXE   lqiolib    Merge SPEX into libliqio/liblqx
 695    nor  P5   RESO   FIXE   lqn2ps     Waiting time result not displayed if phase 1 waiting time = 0
 703    enh  P5   RESO   FIXE   lqn2ps     Deprecate icon slope. Add jlqndef rendering style.
 704    maj  P1   RESO   FIXE   lqn2ps     signal SIGABRT, in Call::sumOfRendezvous ()
@@ -28,6 +33,9 @@
 739    enh  P5   RESO   FIXE   lqn2ps     Infinite loop in backtrack
 742    min  P4   RESO   FIXE   lqn2ps     Labels for servers are duplicated.
 745    enh  P5   RESO   FIXE   lqn2ps     signal SIGABRT, in EMF::text () at graphic.cc:495
+618    nor  P3   VERI   FIXE   lqn2ps     Default fill for EMF is black. It should be white.
+623    nor  P3   VERI   FIXE   lqn2ps     Colour is wrong for processors with speed-factor (rate) set.
+632    nor  P3   VERI   FIXE   lqn2ps     Submodel output with XML is borked.
 663    nor  P2   RESO   FIXE   lqngen     Call rate parameters $y_ are not output properly.
 665    enh  P5   RESO   FIXE   lqngen     First item in service time array is not initialized.
 605    nor  P2   RESO   FIXE   lqns       Faulty model regression tests that fail/abort/segv.
@@ -47,6 +55,11 @@
 740    maj  P1   RESO   FIXE   lqns       Bogus throughput at forked activities.
 747    cri  P1   RESO   FIXE   lqns       SIGSEGV, Segmentation fault in MVA::entryThroughput (this=0x8162680, station=..., e=1) at mva.cc:1206
 748    maj  P5   RESO   FIXE   lqns       unit-test 8p fails.
+548    nor  P3   VERI   FIXE   lqns       -zgenerate=<foo> doesn't generate good model files.
+628    cri  P1   VERI   FIXE   lqns       Infinities for copies not reset when running LQX.
+635    nor  P3   VERI   FIXE   lqns       signal EXC_BAD_ACCESS 0x0000000100365162 in LQIO::DOM::Task::Task (this=0x100703690, document=0x100700890, task_name=0x100702e10 "server2",
+638    nor  P3   VERI   FIXE   lqns       Multiserver model fails to solve.
+639    cri  P1   VERI   FIXE   lqns       EXC_BAD_ACCESS, in Schweitzer::core (this=0x1006264b0, N=@0x1006199e0) at mva.cc:2197 
 619    cri  P1   RESO   FIXE   lqsim      Processor waiting time for CFS scheduled processors is wrong.
 710    maj  P1   RESO   FIXE   lqsim      Computed service time for activities with service time is zero.
 654    nor  P2   RESO   FIXE   miscella   Mingw update had broken floating point handling.
@@ -75,21 +88,21 @@
 639    cri  P1   VERI   FIXE   lqns       EXC_BAD_ACCESS, in Schweitzer::core (this=0x1006264b0, N=@0x1006199e0) at mva.cc:2197 
 
 * Bugs fixed in 5.6
-620    nor  P3 	 RESO 	FIXE   lqiolib 	  signal SIGABRT in LQIO::DOM::DocumentObject::subclass (this=0x100b0dea0) at dom_object.cpp:51
-622    nor  P3 	 RESO 	FIXE   lqiolib 	  XML Results with groups do not parse.
-629    nor  P3 	 RESO 	FIXE   lqiolib 	  Group specification for models without groups causes parsing to fail.
-640    enh  P5 	 RESO 	FIXE   lqiolib 	  signal SIGABRT, Aborted. in LQIO::DOM::Entity::getCopiesValue (this=0x100606ec0) at dom_entity.cpp:63 
-613    nor  P3 	 RESO 	INVA   lqn2ps 	  -I and -T are borked.
-618    nor  P3 	 RESO 	FIXE   lqn2ps 	  Default fill for EMF is black. It should be white.
-623    nor  P3 	 RESO 	FIXE   lqn2ps 	  Colour is wrong for processors with speed-factor (rate) set.
-632    nor  P3 	 RESO 	FIXE   lqn2ps 	  Submodel output with XML is borked.
-628    cri  P1 	 RESO 	FIXE   lqns 	  Infinities for copies not reset when running LQX.
-639    cri  P1 	 RESO 	FIXE   lqns 	  EXC_BAD_ACCESS, in Schweitzer::core (this=0x1006264b0, N=@0x1006199e0) at mva.cc:2197
-548    nor  P3 	 RESO 	FIXE   lqns 	  -zgenerate=<foo> doesn't generate good model files.
-635    nor  P3 	 RESO 	FIXE   lqns 	  signal EXC_BAD_ACCESS 0x0000000100365162 in LQIO::DOM::Task::Task (this=0x100703690, document=0x100700890, task_name=0x100702e10 "server2",
-637    maj  P3 	 RESO 	INVA   lqns 	  signal EXC_BAD_ACCESS in SpecialPopulationMap::dimension (this=0x1000017f0, maxCustomers=@0x48f87d8948000001) at pop.cc:116
-638    nor  P3 	 RESO 	FIXE   lqns 	  Multiserver model fails to solve.
-203    min  P4 	 RESO 	WONT   lqns 	  Task and processor utilizations don't match.
+620    nor  P3   RESO   FIXE   lqiolib    signal SIGABRT in LQIO::DOM::DocumentObject::subclass (this=0x100b0dea0) at dom_object.cpp:51
+622    nor  P3   RESO   FIXE   lqiolib    XML Results with groups do not parse.
+629    nor  P3   RESO   FIXE   lqiolib    Group specification for models without groups causes parsing to fail.
+640    enh  P5   RESO   FIXE   lqiolib    signal SIGABRT, Aborted. in LQIO::DOM::Entity::getCopiesValue (this=0x100606ec0) at dom_entity.cpp:63 
+613    nor  P3   RESO   INVA   lqn2ps     -I and -T are borked.
+618    nor  P3   RESO   FIXE   lqn2ps     Default fill for EMF is black. It should be white.
+623    nor  P3   RESO   FIXE   lqn2ps     Colour is wrong for processors with speed-factor (rate) set.
+632    nor  P3   RESO   FIXE   lqn2ps     Submodel output with XML is borked.
+628    cri  P1   RESO   FIXE   lqns       Infinities for copies not reset when running LQX.
+639    cri  P1   RESO   FIXE   lqns       EXC_BAD_ACCESS, in Schweitzer::core (this=0x1006264b0, N=@0x1006199e0) at mva.cc:2197
+548    nor  P3   RESO   FIXE   lqns       -zgenerate=<foo> doesn't generate good model files.
+635    nor  P3   RESO   FIXE   lqns       signal EXC_BAD_ACCESS 0x0000000100365162 in LQIO::DOM::Task::Task (this=0x100703690, document=0x100700890, task_name=0x100702e10 "server2",
+637    maj  P3   RESO   INVA   lqns       signal EXC_BAD_ACCESS in SpecialPopulationMap::dimension (this=0x1000017f0, maxCustomers=@0x48f87d8948000001) at pop.cc:116
+638    nor  P3   RESO   FIXE   lqns       Multiserver model fails to solve.
+203    min  P4   RESO   WONT   lqns       Task and processor utilizations don't match.
 
 * Bugs fixed in 5.5
 588    nor  P3   RESO   FIXE   document   The "man" sections for lqns/lqsim are out of date.
