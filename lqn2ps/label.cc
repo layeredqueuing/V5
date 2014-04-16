@@ -290,9 +290,11 @@ Label&
 Label::appendV( const LQIO::DOM::ExternalVariable& v ) 
 {
     if ( Flags::instantiate ) {
-	*myStrings.back() << to_double( v );
+	appendD( to_double( v ) );
     } else {
-	*myStrings.back() << v;
+	stringstream s;		/* For Unicode - We need to expand the string */
+	s << v;
+	appendS( s.str() );
     }
     return *this;
 }

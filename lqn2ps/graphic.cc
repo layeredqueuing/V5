@@ -492,7 +492,22 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     Point origin(0,0);
     Point extent(0,0);
     const unsigned int len_1 = s.size();    /* Pad to long-word */
-    const unsigned int len_2 = ( len_1 & 0x03 ) == 0 ? len_1 : len_1 + 4 - ( len_1 & 0x03 );
+    if ( len_1 % 2 != 0 ) {
+	ostringstream msg; 
+	msg << "EMF::text - Bogus string! Length is " << len_1 << ", string is ";
+	for ( unsigned int i = 0; i < len_1; i += 1  ) {
+	    msg.fill( '0' );
+	    if ( isprint( s[i] ) ) {
+		msg << s[i];
+	    } else {
+		msg << "0x" << setw(2) << static_cast<int>(s[i]);
+	    }
+	    msg << " ";
+	}
+	msg << ".";
+	throw runtime_error( msg.str() );
+    }
+    const unsigned int len_2 = ( len_1 & 0x03 ) == 0 ? len_1 : (len_1 & 0xfffc) + 4;
 
     output << start_record( EMR_SETTEXTCOLOR, 12 ) << rgb( colour_value[colour].red, colour_value[colour].green, colour_value[colour].blue );
     output << setfont( font ) << justify( justification );
@@ -1034,7 +1049,7 @@ Fig::init( ostream& output, int object_code, int sub_type,
 	output << " " << static_cast<float>(DOT_GAP);	// float style_val	(dash length/dot gap 1/80 inch)
 	break;
     default:
-	output << " 0.000";				// float style_val	(dash length/dot gap 1/80 inch)
+	output << " 0.0000";				// float style_val	(dash length/dot gap 1/80 inch)
 	break;
     }
 
@@ -1164,7 +1179,7 @@ Fig::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
 	   output << tex_font_value[font];
     }
     output << " " << fontsize 	//float	font_size    (font size in points)
-	   << " 0.000 "		//float	angle	     (radians, the angle of the text)
+	   << " 0.0000 "	//float	angle	     (radians, the angle of the text)
 	   << flags		//int	font_flags   (bit vector)
 	   << " " << fontsize * FIG_SCALING		//float	height	     (Fig units - ignored)
 	   << " " << s.length() * fontsize * FIG_SCALING	//float	length	     (Fig units - ignored)
@@ -1181,9 +1196,9 @@ Fig::arrowHead( ostream& output, Graphic::arrowhead_type style, const double sca
 {
     output << '\t' << arrowhead_value[style].arrow_type	// int 	arrow_type	(enumeration type)
 	   << ' '  << arrowhead_value[style].arrow_style// int	arrow_style	(enumeration type)
-	   << " 1.0"					// float arrow_thickness(1/80 inch)
-	   << " " << 3.0 * scale			// float arrow_width	(Fig units)
-	   << " " << 6.0 * scale			// float arrow_height	(Fig units)
+	   << " 1.00"					// float arrow_thickness(1/80 inch)
+	   << " " << std::setprecision(2) << 3.0 * scale	// float arrow_width	(Fig units)
+	   << " " << std::setprecision(2) << 6.0 * scale	// float arrow_height	(Fig units)
 	   << endl;
     return output;
 }

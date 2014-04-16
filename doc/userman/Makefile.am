@@ -5,7 +5,7 @@
 # $Id$
 # ------------------------------------------------------------------------
 
-SUBDIRS = model bookstore schema-uml replication timing-diagrams
+SUBDIRS = model bookstore replication srvn-schema timing-diagrams xml-schema 
 DST = 	userman
 INFILE = infile
 LATEX = latex -shell-escape -interaction=nonstopmode -file-line-error

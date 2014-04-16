@@ -134,11 +134,11 @@
 
   \defitem[$t$\_decl] t \<task\_id> \<task\_sched\_type>\index{scheduling!task}
   \<entry\_list> \?\<queue\_length>?\index{queue length}
-  \<proc\_id> \?\<task\_pri>? \?\<think\_time\_flag>?\index{think time}
+  \<proc\_id> \?\<task\_pri>? \?\<think\_time\_flag>?\index{think time} \?\<tokens>?
   \?\<multi\_server\_flag>? \?\<replication\_flag>?\index{replication!task}
   \?\<group\_flag>?\index{group share}
-  \oritem i \<from\_task> \<to\_task> \<fan\_in>\index{fan-in}
-  \oritem o \<from\_task> \<to\_task> \<fan\_out>\index{fan-out}
+  \oritem I \<from\_task> \<to\_task> \<fan\_in>\index{fan-in}
+  \oritem O \<from\_task> \<to\_task> \<fan\_out>\index{fan-out}
 
   \defitem[task\_id] \<integer> \| \<identifier>
   \itemsep\oritemsep
@@ -153,7 +153,6 @@
   \oritem p \(Polled scheduling at entries)
   \oritem b \(Bursty Reference task)
   \oritem S \(Semaphore)\index{scheduling!semaphore}
-  \oritem Z \(Semaphore -- initially empty)
 
   \defitem[entry\_list] \rep{\<entry\_id>}{1}{{\it ne\/}_t} \<end\_list>
   \itemsep\oritemsep
@@ -165,11 +164,13 @@
   \item \(entry identifier)
   \itemsep\defitemsep
 
-  \defitem[queue\_length] q \<integer> \(open class queue length)
-
   \defitem[task\_pri] \<integer> \(task priority, optional)
 
+  \defitem[queue\_length] q \<integer> \(open class queue length)
+
   \defitem[group\_flag] g \<identfier> \(Group for scheduling)
+
+  \defitem[tokens] t \<integer> \(Initial tokens)
 
   \defitem[from\_task] \<task\_id> \(Source task)
   \defitem[to\_task] \<task\_id> \(Destination task)

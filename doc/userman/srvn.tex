@@ -35,7 +35,15 @@ EXperiment driver (SPEX)\index{SPEX} grammar.  In this model format models are s
 contrast to the XML format described in \S\ref{sec:xml-grammar} where models are specified depth-first.
 This specification means that all resources such as processors, tasks and entries, are defined before they
 are referenced. Furthermore, each resource is grouped into its own section in the input file.
-Listing~\ref{lst:lqn-file-layout} shows the basic layout of the model.
+Figure~\ref{fig:srvn-schema} shows the basic schema and Listing~\ref{lst:lqn-file-layout} shows the basic
+layout of the model file.
+
+\begin{figure}[ht]
+  \centering
+  \epsffile{srvn-schema/srvn-schema.eps}
+  \caption{SRVN input schema}
+  \label{fig:srvn-schema}
+\end{figure}
 
 \lstset{language=LQN,numbersep=10pt,firstnumber=1,texcl}
 \begin{lstlisting}[float,caption={LQN file layout},label=lst:lqn-file-layout]
@@ -270,10 +278,11 @@ the number of task definitions in this section, or zero.
 
 \begin{lstlisting}[caption={Task Information},label=lst:lqn-task-info,frame=single,firstnumber=1]
 T <int>
-  t <task-id> <sched> <entry-list> -1 <proc-id> <opt-pri> <opt-think-time>
+  t <task-id> <sched> <entry-list> -1 <opt-queue-length> <opt-tokens>  
+              <proc-id> <opt-pri> <opt-think-time>
               <opt-mult> <opt-repl> <opt-grp>
-  i <task-id> <task-id> <int>    # fan-in for replication
-  o <task-id> <task-id> <int>    # fan-out for replication
+  I <task-id> <task-id> <int>    # fan-in for replication
+  O <task-id> <task-id> <int>    # fan-out for replication
 -1
 \end{lstlisting}
 
@@ -317,7 +326,6 @@ task's processor is using fair-share scheduling\index{scheduling!fair share}
     i & Infinite (delay) server.\\
     w & Read-Write lock task\dag.\\
     S & Semaphore task\dag.\\
-    Z & Semaphore task\dag.\\
     \hline
   \end{tabular}
   \caption{Task Scheduling Disciplines (see~\S\protect\ref{sec:tasks}).}
@@ -333,6 +341,7 @@ task's processor is using fair-share scheduling\index{scheduling!fair share}
     \nonterminal{integer} & Task priority for tasks running on processors supporting priorities.\\
     \texttt{z} \nonterminal{real} & Think Time for reference tasks.\\
     \texttt{q} \nonterminal{real} & Maximum queue length for asynchronous requests. \\
+    \texttt{T} \nonterminal{integer} & Initial tokens at semaphore task\dag.\\
     \texttt{m} \nonterminal{integer} & Task multiplicity.\\
     \texttt{r} \nonterminal{integer} & Task replication.\\
     \texttt{g} \nonterminal{identifier} & Group identifier for tasks running of processors with fair share scheduling.\\
@@ -564,22 +573,24 @@ control variables that are no longer recognized.
   \multicolumn{1}{|c|}{\textbf{Control Variable}}
   &\multicolumn{1}{c|}{\textbf{Type of Value}}
   &\multicolumn{1}{c|}{\textbf{Default Value}}
-  & \textbf{Program}
-\\
-\hline
+  & \textbf{Program}\\
+  \hline
   \ctrlparam{\$model\_comment}  	    & \nonterminal{string}  & ""      &       \\
   \ctrlparam{\$solver}		            & \nonterminal{string}  & \multicolumn{2}{c|}{\emph{deprecated}} \\
-\hline
+  \hline
   \ctrlparam{\$convergence\_limit}	    & \nonterminal{real}    & 0.00001 & lqns  \\
   \ctrlparam{\$iteration\_limit}	    & \nonterminal{int}	    & 100     & lqns  \\
   \ctrlparam{\$print\_interval}		    & \nonterminal{int}	    & 1       & lqns  \\
   \ctrlparam{\$underrelaxation}             & \nonterminal{real}    & 0.9     & lqns  \\
-\hline
+  \hline
   \ctrlparam{\$block\_time}                 & \nonterminal{int}     & 50000   & lqsim \\
   \ctrlparam{\$number\_of\_blocks}          & \nonterminal{int}     & 1       & lqsim \\
   \ctrlparam{\$result\_precision}           & \nonterminal{real}    & --      & lqsim \\
   \ctrlparam{\$seed\_value}                 & \nonterminal{int}     & --      & lqsim \\
   \ctrlparam{\$warm\_up\_loops}             & \nonterminal{int}     & --      & lqsim \\
+  \hline
+  \ctrlparam{\$convergence\_iters}          & \nonterminal{int}     & --      & spex \\
+  \ctrlparam{\$convergence\_under\_relax}   & \nonterminal{real}    & --      & spex \\
   \hline
   \end{tabular}
   \caption{Spex Control Variables}
@@ -813,8 +824,6 @@ Version 2 SPEX does not support the control variables shown in Table~\ref{tab:sp
 \hline
   \multicolumn{1}{|c|}{\textbf{Control Variable}}\\
 \hline
-\ctrlparam{\$convergence\_iters}          \\
-\ctrlparam{\$convergence\_under\_relax}   \\
 \ctrlparam{\$coefficient\_of\_variation}  \\
 \ctrlparam{\$hosts}                       \\
 \hline
