@@ -40,6 +40,7 @@ namespace LQIO {
 	    : _processors(), _groups(), _tasks(), _entries(), 
 	      _entities(), _variables(), _nextEntityId(0), _format(format),
 	      _comment(), _comment2(), _convergenceValue(0), _iterationLimit(0), _printInterval(0), _underrelaxationCoefficient(0), 
+	      _defaultConvergenceValue(0.00001),
 	      _seedValue(0), _numberOfBlocks(0), _blockTime(0), _resultPrecision(0), _warmUpLoops(0), _warmUpTime(0),
 	      _xmlDomElement(0),
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _loadedPragmas(), 
@@ -105,6 +106,9 @@ namespace LQIO {
 	    /* Set up initial model parameters */
 	    _comment = std::string(comment);
 	    _convergenceValue = conv_val;
+	    if ( conv_val && conv_val->wasSet() ) {
+		conv_val->getValue( _defaultConvergenceValue );		/* Reset default */
+	    }
 	    _iterationLimit   = it_limit;
 	    _printInterval    = print_int;
 	    _underrelaxationCoefficient = underrelax_coeff;
@@ -135,11 +139,9 @@ namespace LQIO {
 
 	const double Document::getModelConvergenceValue() const
 	{	
-	    double value = 0.0;
-	    if ( _convergenceValue ) {
-		assert(_convergenceValue->getValue(value) == true);
-	    } else {
-		value = 0.000001;
+	    double value = _defaultConvergenceValue;
+	    if ( _convergenceValue && _convergenceValue->wasSet() ) {
+		_convergenceValue->getValue(value);
 	    }
 	    return value;
 	}
@@ -291,6 +293,36 @@ namespace LQIO {
 	    return *this;
 	}
 
+
+	const double Document::getSpexConvergenceIterationLimit() const	
+	{
+	    double value = 0.0;
+	    if ( _spexIterationLimit ) {
+		assert(_spexIterationLimit->getValue(value) == true);
+	    } 
+	    return value;
+	}
+
+	Document& Document::setSpexConvergenceIterationLimit( ExternalVariable * spexIterationLimit )
+	{
+	    _spexIterationLimit = spexIterationLimit;
+	    return *this;
+	}
+
+	const double Document::getSpexConvergenceUnderrelaxation() const
+	{
+	    double value = 0.0;
+	    if ( _spexUnderrelaxation ) {
+		assert(_spexUnderrelaxation->getValue(value) == true);
+	    } 
+	    return value;
+	}
+
+	Document& Document::setSpexConvergenceUnderrelaxation( ExternalVariable * spexUnderrelaxation )
+	{
+	    _spexUnderrelaxation = spexUnderrelaxation;
+	    return *this;
+	}
 
 	void 
 	Document::setMVAStatistics( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )

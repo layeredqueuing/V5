@@ -238,13 +238,11 @@ namespace LQIO {
 	    void subclass() const;
 
 	private:
-
-	    /* Instance variables for DocumentObjects */
 	    const Document * _document;			/* Pointer to the root. */
 	    const unsigned long _sequenceNumber;
 	    std::string _name;
 	    std::string _comment;
-	    const void * _xmlDOMElement;
+	    const void * _xmlDOMElement;		/* Used by XERCES to point to DOM. */
 
 	    static unsigned long sequenceNumber;
 	};

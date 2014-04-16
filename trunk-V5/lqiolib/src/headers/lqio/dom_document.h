@@ -125,6 +125,10 @@ namespace LQIO {
 	    Document& setSimulationResultPrecision( ExternalVariable * );
 	    Document& setSimulationWarmUpLoops( ExternalVariable * );    
 	    Document& setSimulationWarmUpTime( ExternalVariable * );    
+	    const double getSpexConvergenceIterationLimit() const;
+	    const double getSpexConvergenceUnderrelaxation() const;
+	    Document& setSpexConvergenceIterationLimit( ExternalVariable * );
+	    Document& setSpexConvergenceUnderrelaxation( ExternalVariable * );
 
       
 	    /* Cached values for formatting */
@@ -258,6 +262,10 @@ namespace LQIO {
 	    ExternalVariable * _resultPrecision;
 	    ExternalVariable * _warmUpLoops;
 	    ExternalVariable * _warmUpTime;
+	    ExternalVariable * _spexIterationLimit;
+	    ExternalVariable * _spexUnderrelaxation;
+
+	    double _defaultConvergenceValue;
 
 	    const void * _xmlDomElement;	/* Xerces object */
 

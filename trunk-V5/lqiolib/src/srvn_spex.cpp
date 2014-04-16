@@ -41,16 +41,18 @@ namespace LQIO {
 	{
 	    if ( LQIO::DOM::Spex::__control_parameters.size() != 0 ) return;
 
-            __control_parameters["$convergence_limit"] = &Document::setModelConvergenceValue;
-            __control_parameters["$iteration_limit"]   = &Document::setModelIterationLimit;
-            __control_parameters["$print_interval"]    = &Document::setModelPrintInterval;
-            __control_parameters["$seed_value"]        = &Document::setSimulationSeedValue;
-            __control_parameters["$underrelaxation"]   = &Document::setModelUnderrelaxationCoefficient;
-            __control_parameters["$block_time"]        = &Document::setSimulationBlockTime;
-            __control_parameters["$model_comment"]     = 0;
-            __control_parameters["$number_of_blocks"]  = &Document::setSimulationNumberOfBlocks;
-            __control_parameters["$result_precision"]  = &Document::setSimulationResultPrecision;
-            __control_parameters["$warm_up_loops"]     = &Document::setSimulationWarmUpLoops;    
+	    __control_parameters["$convergence_iters"] 		= &Document::setSpexConvergenceIterationLimit;
+	    __control_parameters["$convergence_under_relax"]	= &Document::setSpexConvergenceUnderrelaxation;
+            __control_parameters["$block_time"]        		= &Document::setSimulationBlockTime;
+            __control_parameters[__convergence_limit_str] 	= &Document::setModelConvergenceValue;
+            __control_parameters["$iteration_limit"]   		= &Document::setModelIterationLimit;
+            __control_parameters["$model_comment"]     		= 0;		/* Handle specially */
+            __control_parameters["$number_of_blocks"]  		= &Document::setSimulationNumberOfBlocks;
+            __control_parameters["$print_interval"]    		= &Document::setModelPrintInterval;
+            __control_parameters["$result_precision"]  		= &Document::setSimulationResultPrecision;
+            __control_parameters["$seed_value"]        		= &Document::setSimulationSeedValue;
+            __control_parameters["$underrelaxation"]   		= &Document::setModelUnderrelaxationCoefficient;
+            __control_parameters["$warm_up_loops"]     		= &Document::setSimulationWarmUpLoops;    
 
 	    /* This should map srvn_scan.l */
 
@@ -104,6 +106,8 @@ namespace LQIO {
 	    return LQIO::DOM::currentDocument->hasSymbolExternalVariable( name );
 	}
 
+	/* ------------------------------------------------------------------------ */
+
 	/*
 	 * Parameters have all been declared and set.  Now we start the control program.
 	 * Create the foreach loops for all of the local variables created due to array lists in the parameters.
@@ -111,20 +115,36 @@ namespace LQIO {
 
 	expr_list * Spex::construct_program( expr_list * main_line, expr_list * result, expr_list * convergence ) 
 	{
-	    if ( !__have_vars ) return main_line;		/* If we have only set control variables, then nothing to do. */
+	    /* If we have only set control variables, then nothing to do. */
+	    if ( !__have_vars ) return main_line;		
 
+	    /* Add magic variable if not present */
+	    if ( __convergence_variables.size() > 0 && !LQIO::DOM::currentDocument->hasSymbolExternalVariable( __convergence_limit_str ) ) {
+		double convergence_value = currentDocument->getModelConvergenceValue();
+		main_line->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( __convergence_limit_str, true ), new LQX::ConstantValueExpression( convergence_value ) ) );			/* Add $0 variable */
+		currentDocument->setModelConvergenceValue( LQIO::DOM::currentDocument->db_build_parameter_variable( __convergence_limit_str, NULL ) );
+	    }
+
+	    /* Initialize loop counter variable */
 	    main_line->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ), new LQX::ConstantValueExpression( 0.0 ) ) );			/* Add $0 variable */
+
+	    /* Add observation variables */
 	    for ( std::map<std::string,LQX::SyntaxTreeNode *>::iterator obs_p = __observations.begin(); obs_p != __observations.end(); ++obs_p ) {
 		const std::string& name = obs_p->first;
 		main_line->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, false ), new LQX::ConstantValueExpression( 0.0 ) ) );	/* Initialize all observations variables */
 	    }
+
+	    /* Add code for printing a header in the output file. */
 	    if ( !__no_header ) {
 		main_line->push_back( print_header() );
 	    }
+
+	    /* Add the code for running the SPEX program -- recursive call. */
 	    main_line->push_back( foreach_loop( __array_variables.begin(), result, convergence ) );
 	    return main_line;
 	}
 
+	/* ------------------------------------------------------------------------ */
 
 	LQX::SyntaxTreeNode * Spex::observation( const int key, const char * name ) 
 	{
@@ -261,7 +281,7 @@ namespace LQIO {
 																				      new LQX::VariableExpression( &name[1], false ), 
 																				      new LQX::VariableExpression( name, true ) ), 
 																	      0 ),
-													 new LQX::VariableExpression( "$convergence_limit", true ) ) ) );
+													 new LQX::VariableExpression( __convergence_limit_str, true ) ) ) );
 
 		/* Prepare for next variable */
 		if ( var_p !=  __convergence_variables.begin() ) {
@@ -486,6 +506,9 @@ namespace LQIO {
 	bool Spex::__verbose = false;
 	bool Spex::__no_header = false;
 	unsigned int Spex::__varnum = 0;
+
+	const char * Spex::__convergence_limit_str = "$convergence_limit";
+
     }
 }
 
@@ -555,6 +578,16 @@ namespace LQIO {
 }
 
 /* ------------------------------------------------------------------------ */
+/* Non-document stuff set at LQX runtime				    */
+/* ------------------------------------------------------------------------ */
+
+void spex_set_comment( LQIO::DOM::ExternalVariable * var )
+{
+    /* var doesn't allow string types, so we will have to modify extvar.*/
+    LQIO::DOM::currentDocument->setModelComment( "" );
+}
+
+/* ------------------------------------------------------------------------ */
 /* Interface between the parser and the spex generator.			    */
 /* ------------------------------------------------------------------------ */
 
@@ -587,14 +620,15 @@ void * spex_assignment_statement( const char * name, void * expr, const bool con
 
     /* Funky variables for convergence and what have you.  They are explict in the model file, so fake it. */
     std::map<std::string,LQIO::DOM::setParameterFunc>::const_iterator i = LQIO::DOM::Spex::__control_parameters.find( name );
+    std::map<std::string,LQIO::DOM::setSpexFunc>::const_iterator j;
     if ( i != LQIO::DOM::Spex::__control_parameters.end() ) {
 	LQIO::DOM::setParameterFunc f = i->second;
 	if ( f ) {
 	    (LQIO::DOM::currentDocument->*f)(LQIO::DOM::currentDocument->db_build_parameter_variable( name, NULL ));
-	} else if ( i->first == "$model_comment" ) {
-	    LQIO::DOM::currentDocument->setModelComment( name );
+	    statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name,true), static_cast<LQX::SyntaxTreeNode *>(expr) );
+	} else if ( i->first == "$comment" ) {
+//	statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name,true), static_cast<LQX::SyntaxTreeNode *>(expr) );
 	}
-	statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name,true), static_cast<LQX::SyntaxTreeNode *>(expr) );
     } else if ( LQIO::DOM::spex.__input_variables.find( name ) != LQIO::DOM::spex.__input_variables.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "variable", name );
 	return 0;

@@ -1,52 +1,10 @@
 /* dumpemf.c	-- Greg Franks Thu Dec  2 2004
  *
- * $Log$
- * Revision 3.3  2004/12/17 04:33:36  greg
- * Possible fixes for EMF line drawing.
- *
- * Revision 3.2  2004/12/09 17:30:08  greg
- * 617   nor   P2   ASSI     srvnioli   Symbol clash srvniolib/error.h: runtime_error, stdexcept:...
- *
- * Revision 3.1  2004/12/07 18:05:03  greg
- * 602   enh   P5   NEW     srvn2eep   WMF output would be useful.
- *
- * Revision 1.1.2.10  2004/12/07 17:53:05  greg
- * Seems to work now.
- *
- * Revision 1.1.2.9  2004/12/07 04:02:11  greg
- * EMF now mostly works.
- *
- * Revision 1.1.2.8  2004/12/06 17:48:26  greg
- * Fix Arrow colours.
- *
- * Revision 1.1.2.7  2004/12/06 16:55:05  greg
- * Add Text.  Needs font scaling.
- *
- * Revision 1.1.2.6  2004/12/06 06:07:19  greg
- * Now draws and fills.
- *
- * Revision 1.1.2.5  2004/12/06 05:06:17  greg
- * Tints circles.  Now to decode 'polygons'
- *
- * Revision 1.1.2.4  2004/12/06 04:25:35  greg
- * Now does colour (pens)
- *
- * Revision 1.1.2.3  2004/12/06 03:31:28  greg
- * Finally have good scaling.
- *
- * Revision 1.1.2.2  2004/12/03 19:04:58  greg
- * Now does bounding box correctly.
- *
- * Revision 1.1.2.1  2004/12/03 04:27:16  greg
- * Draws stuff.  Still buggy.
- *
+ * $Id$
  */
 
-#ifndef lint
-static char *rcsid = "$Header$";
-#endif
-
 #include <stdio.h>
+#include <stdlib.h>
 
 typedef enum {
     NOP,

@@ -23,6 +23,13 @@
 namespace LQX {
     class SyntaxTreeNode;
 }
+namespace LQIO {
+    namespace DOM {
+	class ExternalVariable;
+	class Document;
+	class DocumentObject;
+    }
+}
 
 extern "C" {
 #endif
@@ -64,16 +71,15 @@ extern "C" {
     void * spex_get_real( double arg );
 
 #if defined(__cplusplus)
+    void spex_set_comment( LQIO::DOM::ExternalVariable * );
 }
 
 typedef std::vector<LQX::SyntaxTreeNode*> expr_list;
 
 namespace LQIO {
     namespace DOM {
-	class ExternalVariable;
-	class Document;
-	class DocumentObject;
 	typedef LQIO::DOM::Document& (LQIO::DOM::Document::*setParameterFunc)( LQIO::DOM::ExternalVariable* );
+	typedef void (*setSpexFunc)( LQIO::DOM::ExternalVariable* );
 
 	class Spex {
 	    friend void * ::spex_array_assignment( const char * name, void * list, const bool constant_expression );
@@ -181,6 +187,8 @@ namespace LQIO {
 	    static std::map<int,std::string> __key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to lqx function name */
 	    static bool __have_vars;							/* True if any $var (except control args) set */
 	    static unsigned int __varnum;						/* For creating temporaries */
+
+	    static const char * __convergence_limit_str;
 	};
 
 	inline std::ostream& operator<<( std::ostream& output, const Spex::ComprehensionInfo& self) { return self.print( output ); }
