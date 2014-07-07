@@ -251,6 +251,48 @@ Task::squishName()
 
 
 /*
+ * Aggregate activities to activities and/or activities to phases.  If
+ * activities are left after aggregation, we will have to recompute
+ * their level because there likely is a lot less of them to draw.
+ */
+
+Task&
+Task::aggregate()
+{
+    Sequence<Entry *> nextEntry(entries());
+    Entry * anEntry;
+
+    while ( anEntry = nextEntry() ) {
+	anEntry->aggregate();
+    }
+
+    switch ( Flags::print[AGGREGATION].value.i ) {
+    case AGGREGATE_ENTRIES:
+	activityList.deleteContents().chop(activityList.size());
+	aggregateEntries();
+	break;
+
+    case AGGREGATE_ACTIVITIES:
+    case AGGREGATE_PHASES:
+	activityList.deleteContents().chop(activityList.size());
+	break;
+
+    default:
+	/* Recompute levels. */
+	Sequence<Activity *> nextActivity( activityList );
+	Activity * anActivity;
+	while ( anActivity = nextActivity() ) {
+	    anActivity->resetLevel();
+	}
+	generate();
+	break;
+    }
+
+    return *this;
+}
+
+
+/*
  * Sort entries and activities based on when they were visited.
  */
 
@@ -288,6 +330,28 @@ Task::span() const
 	if ( n ) return n;		/* Force those making calls to lower levels right */
     }
     return 0;
+}
+
+
+/*
+ * Aggregate all entries to this task.
+ */
+
+Task&
+Task::aggregateEntries()
+{
+    Sequence<Entry *> nextEntry(entries());
+    Entry * anEntry;
+
+    /* Aggregate calls to task */
+
+    for ( unsigned i = 1; i <= paths().size(); ++i ) {
+	while ( anEntry = nextEntry() ) {
+	    anEntry->aggregateEntries( myPaths[i] );	/* Aggregate based on ref-task chain. */
+	}
+    }
+
+    return *this;
 }
 
 
