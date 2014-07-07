@@ -1386,18 +1386,22 @@ Entry::aggregatePhases()
     LQIO::DOM::Phase * phase_1 = const_cast<LQIO::DOM::Phase *>(phase[1].getDOM());
     if ( !phase_1 ) {
 	phase_1 = new LQIO::DOM::Phase( getDOM()->getDocument(), const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(getDOM())) );
-	phase_1->setServiceTimeValue( 0.0 );
 	phase[1].setDOM( phase_1 );
 	phaseIsPresent( 1, true );
     }
-    LQIO::DOM::ExternalVariable * service_time = const_cast<LQIO::DOM::ExternalVariable *>(phase_1->getServiceTime());
-    assert( service_time );
+    double service_time = 0;
+    if ( phase_1->hasServiceTime() ) {
+	service_time += to_double(*phase_1->getServiceTime());
+    }
+
     for ( unsigned p = 2; p <= maxPhase(); ++p ) {
-	if ( !phase[p].getDOM() ) continue;
-	(*service_time) += phase[p].serviceTime();
+	const LQIO::DOM::Phase * phase_p = phase[p].getDOM();
+	if ( !phase_p || !phase_p->hasServiceTime() ) continue;
+	service_time += to_double(*phase_p->getServiceTime());
 	phase_1->setResultServiceTime( executionTime( 1 ) + executionTime( p ) );
 	phaseIsPresent( p, false );
     }
+    phase_1->setServiceTimeValue(service_time);
     return *this;
 }
 
@@ -1520,6 +1524,104 @@ Entry::check() const
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
 	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
     }
+}
+
+
+
+/*
+ * Aggregate activities to this entry.
+ */
+
+
+Entry&
+Entry::aggregate()
+{
+    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
+    if ( startActivity() ) {
+
+	Stack<const Activity *> activityStack( owner()->activities().size() ); 
+	unsigned next_p = 1;
+	startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
+
+	switch ( Flags::print[AGGREGATION].value.i ) {
+	case AGGREGATE_ACTIVITIES:
+	case AGGREGATE_PHASES:
+	case AGGREGATE_ENTRIES:
+	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
+	    break;
+
+	case AGGREGATE_SEQUENCES:
+	case AGGREGATE_THREADS:
+	    if ( startActivity()->transmorgrify() ) {
+		const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
+	    }
+	    break;
+
+	default:
+	    abort();
+	}
+    }
+
+    /* Convert entry if necessary */
+
+    if ( dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ) {
+	myActivity = 0;
+	if ( myActivityCall ) {
+	    delete myActivityCall;
+	    myActivityCall = 0;
+	}
+	myActivityCallers.clearContents();
+    }
+
+    switch ( Flags::print[AGGREGATION].value.i ) {
+    case AGGREGATE_PHASES:
+    case AGGREGATE_ENTRIES:
+	aggregatePhases();
+	break;
+    }
+
+    return *this;
+}
+
+
+/*
+ * Aggregate all entries to the task level
+ */
+
+const Entry&
+Entry::aggregateEntries( const unsigned k ) const
+{
+    if ( !hasPath( k ) ) return *this;		/* Not for this chain! */
+
+    Task * srcTask = const_cast<Task *>(owner());
+
+    const double scaling = srcTask->throughput() ? (throughput() / srcTask->throughput()) : (1.0 / srcTask->nEntries());
+    const double s = srcTask->serviceTime( k ) + scaling * serviceTimeForSRVNInput();
+    srcTask->serviceTime( k, s );
+    const_cast<Processor *>(owner()->processor())->serviceTime( k, s );
+
+    Sequence<Call *> nextCall( callList() );
+    Call * aCall;
+
+    while ( aCall = nextCall() ) {
+	TaskCall * aTaskCall;
+	if ( aCall->isPseudoCall() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddFwdCall( aCall->dstTask() ));
+	} else if ( aCall->hasRendezvous() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasRendezvous ));
+//	    aTaskCall->rendezvous( aTaskCall->rendezvous() + scaling * aCall->sumOfRendezvous() );
+	} else if ( aCall->hasSendNoReply() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasSendNoReply ));
+//	    aTaskCall->sendNoReply( aTaskCall->sendNoReply() + scaling * aCall->sumOfSendNoReply() );
+	} else if ( aCall->hasForwarding() ) {
+	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasForwarding ));
+//	    aTaskCall->taskForward( aTaskCall->forward() + scaling * aCall->forward() );
+	} else {
+	    abort();
+	}
+    }
+
+    return *this;
 }
 
 

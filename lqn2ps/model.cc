@@ -505,6 +505,13 @@ Model::process()
 #endif
 
     if ( !generate() ) return false;
+
+    /* Simplify model if requested -- this rewrites the DOM. We need paths and stuff. */
+
+    if ( Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
+	aggregate( *const_cast<LQIO::DOM::Document *>(getDOM()) );
+    }
+
     layerize();
 
     /* Assign numbers to layers. */
@@ -1631,172 +1638,19 @@ Model::print( ostream& output ) const
 /* ------------------------------------------------------------------------ */
 /*                      Major model transmorgrification                     */
 /* ------------------------------------------------------------------------ */
+
 /* static */ void
 Model::aggregate( LQIO::DOM::Document& document ) 
 {
-    const std::map<std::string,LQIO::DOM::Task *>& tasks = document.getTasks();
-    for_each( tasks.begin(), tasks.end(), Model::Aggregate() );
+//    const std::map<std::string,LQIO::DOM::Task *>& tasks = document.getTasks();
+//    for_each( task.begin(), task.end(), Model::Aggregate() );
+    for ( std::set<Task *>::const_iterator tp = task.begin(); tp != task.end(); ++tp ) {
+	Task * task = *tp;
+	task->aggregate();
+    }
 }
 
 #if 0
-/*
- * Aggregate activities to activities and/or activities to phases.  If
- * activities are left after aggregation, we will have to recompute
- * their level because there likely is a lot less of them to draw.
- */
-
-Task&
-Task::aggregate()
-{
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->aggregate();
-    }
-
-    switch ( Flags::print[AGGREGATION].value.i ) {
-    case AGGREGATE_ENTRIES:
-	activityList.deleteContents().chop(activityList.size());
-	aggregateEntries();
-	break;
-
-    case AGGREGATE_ACTIVITIES:
-    case AGGREGATE_PHASES:
-	activityList.deleteContents().chop(activityList.size());
-	break;
-
-    default:
-	/* Recompute levels. */
-	Sequence<Activity *> nextActivity( activityList );
-	Activity * anActivity;
-	while ( anActivity = nextActivity() ) {
-	    anActivity->resetLevel();
-	}
-	generate();
-	break;
-    }
-
-    return *this;
-}
-
-
-/*
- * Aggregate all entries to this task.
- */
-
-Task&
-Task::aggregateEntries()
-{
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    /* Aggregate calls to task */
-
-    for ( unsigned i = 1; i <= paths().size(); ++i ) {
-	while ( anEntry = nextEntry() ) {
-	    anEntry->aggregateEntries( myPaths[i] );	/* Aggregate based on ref-task chain. */
-	}
-    }
-
-    return *this;
-}
-
-/*
- * Aggregate activities to this entry.
- */
-
-
-Entry&
-Entry::aggregate()
-{
-    const LQIO::DOM::Entry * dom = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
-    if ( startActivity() ) {
-
-	Stack<const Activity *> activityStack( owner()->activities().size() ); 
-	unsigned next_p = 1;
-	startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
-
-	switch ( Flags::print[AGGREGATION].value.i ) {
-	case AGGREGATE_ACTIVITIES:
-	case AGGREGATE_PHASES:
-	case AGGREGATE_ENTRIES:
-	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
-	    break;
-
-	case AGGREGATE_SEQUENCES:
-	case AGGREGATE_THREADS:
-	    if ( startActivity()->transmorgrify() ) {
-		const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
-	    }
-	    break;
-
-	default:
-	    abort();
-	}
-    }
-
-    /* Convert entry if necessary */
-
-    if ( dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ) {
-	myActivity = 0;
-	if ( myActivityCall ) {
-	    delete myActivityCall;
-	    myActivityCall = 0;
-	}
-	myActivityCallers.clearContents();
-    }
-
-    switch ( Flags::print[AGGREGATION].value.i ) {
-    case AGGREGATE_PHASES:
-    case AGGREGATE_ENTRIES:
-	aggregatePhases();
-	break;
-    }
-
-    return *this;
-}
-
-
-/*
- * Aggregate all entries to the task level
- */
-
-const Entry&
-Entry::aggregateEntries( const unsigned k ) const
-{
-    if ( !hasPath( k ) ) return *this;		/* Not for this chain! */
-
-    Task * srcTask = const_cast<Task *>(owner());
-
-    const double scaling = srcTask->throughput() ? (throughput() / srcTask->throughput()) : (1.0 / srcTask->nEntries());
-    const double s = srcTask->serviceTime( k ) + scaling * serviceTimeForSRVNInput();
-    srcTask->serviceTime( k, s );
-    const_cast<Processor *>(owner()->processor())->serviceTime( k, s );
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	TaskCall * aTaskCall;
-	if ( aCall->isPseudoCall() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddFwdCall( aCall->dstTask() ));
-	} else if ( aCall->hasRendezvous() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasRendezvous ));
-	    aTaskCall->rendezvous( aTaskCall->rendezvous() + scaling * aCall->sumOfRendezvous() );
-	} else if ( aCall->hasSendNoReply() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasSendNoReply ));
-	    aTaskCall->sendNoReply( aTaskCall->sendNoReply() + scaling * aCall->sumOfSendNoReply() );
-	} else if ( aCall->hasForwarding() ) {
-	    aTaskCall = dynamic_cast<TaskCall *>(srcTask->findOrAddCall( aCall->dstTask(), &GenericCall::hasForwarding ));
-	    aTaskCall->taskForward( aTaskCall->forward() + scaling * aCall->forward() );
-	} else {
-	    abort();
-	}
-    }
-
-    return *this;
-}
 #endif
 
 #if defined(REP2FLAT)
@@ -3080,89 +2934,10 @@ Model::Stats::print( ostream& output) const
     return output;
 }
 
-Model::Aggregate::Aggregate() 
-{
-}
-
 void 
-Model::Aggregate::operator()( const std::pair<std::string,LQIO::DOM::Task *>& tp )
+Model::Aggregate::operator()( Task * task )
 {
-    LQIO::DOM::Task * task = tp.second;
-    if ( task->getActivities().size() != 0 ) {
-	const std::vector<LQIO::DOM::Entry *>& entries = task->getEntryList();
-	for_each( entries.begin(), entries.end(), Model::Aggregate() );
-    }
-    /* For each entry that has activities do... */
-    /* Merge sequences to single (new?) activity */
-    /* OK - is an entry defined by activities, so lets rip em out. */
-}
-
-void 
-Model::Aggregate::operator()( const LQIO::DOM::Entry * entry )
-{
-    /* aggregate this activity to phase */
-    aggregate( const_cast<LQIO::DOM::Entry *>(entry), 1, 1.0, entry->getStartActivity() );
-}
-
-
-unsigned int
-Model::Aggregate::aggregate( LQIO::DOM::Entry * entry, unsigned int p, double rate, const LQIO::DOM::Activity * activity ) 
-{
-    if ( !activity ) return p;
-
-    /* aggregate activity service time to phase */
-
-    LQIO::DOM::Phase * phase = entry->getPhase(p);		// Will create a phase if necessary.
-    LQIO::DOM::ExternalVariable * dst_service_time = const_cast<LQIO::DOM::ExternalVariable *>(phase->getServiceTime());
-    LQIO::DOM::ExternalVariable * src_service_time = const_cast<LQIO::DOM::ExternalVariable *>(activity->getServiceTime());
-    if ( !dst_service_time ) {
-	phase->setServiceTime( src_service_time );
-    } else if ( phase->hasServiceTime() && activity->hasServiceTime() ) {
-	*dst_service_time *= rate;
-	*src_service_time += *dst_service_time;
-    }
-	
-    /* Move calls from activity to phase */
-
-    std::vector<LQIO::DOM::Call *>& dst_calls = const_cast<std::vector<LQIO::DOM::Call *>&>(phase->getCalls());
-    const std::vector<LQIO::DOM::Call *>& src_calls = activity->getCalls();
-    for ( std::vector<LQIO::DOM::Call *>::const_iterator src_call = src_calls.begin(); src_call != src_calls.end(); ++src_call ) {
-	LQIO::DOM::Call * call = *src_call;
-	LQIO::DOM::ExternalVariable * dst_call_mean = const_cast<LQIO::DOM::ExternalVariable *>(call->getCallMean());
-	if ( dst_call_mean && dst_call_mean->wasSet() ) {
-	    *dst_call_mean *= rate;    // Adjust rate... 
-	}
-	dst_calls.push_back( call );
-    }
-    
-    // if activity replies to entry, p = 2 
-
-    /* Go down the activity list, follow all paths of forks, stop at joins (except if only one activity). */
-
-    LQIO::DOM::ActivityList * join = activity->getOutputToList();
-    if ( join ) {
-
-	std::vector<const LQIO::DOM::Activity*>& join_list = const_cast<std::vector<const LQIO::DOM::Activity*>&>(join->getList());
-	if ( join_list.size() == 1 ) {
-	    LQIO::DOM::ActivityList * fork = join->getNext();
-	    const std::vector<const LQIO::DOM::Activity*>& fork_list = fork->getList();
-	    for ( std::vector<const LQIO::DOM::Activity*>::const_iterator ap = fork_list.begin(); ap != fork_list.end(); ++ap ) {
-		p = aggregate( entry, p, rate, (*ap ) );	// set rate if or-fork or loop 
-	    }
-	}
-    
-	/* remove activity */
-
-	for ( std::vector<const LQIO::DOM::Activity*>::iterator item = join_list.begin(); item != join_list.end(); ++item ) {
-	    if ( activity == *item ) {
-		join_list.erase( item );
-		break;
-	    }
-	}
-    }
-    // delete activity
-    
-    return p;
+    task->aggregate();
 }
 
 static ostream&

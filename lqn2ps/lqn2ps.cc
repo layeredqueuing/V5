@@ -897,12 +897,6 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	Flags::have_results = Flags::print[RESULTS].value.b && document->hasResults();
     }
 
-    /* Simplify model if requested -- this rewrites the DOM. */
-
-    if ( Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
-	Model::aggregate( *document );
-    }
-
     /* Now fold, mutiliate and spindle */
 
     Model * aModel;

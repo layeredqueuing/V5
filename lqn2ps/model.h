@@ -145,13 +145,9 @@ protected:
     class Aggregate
     {
     public:
-	Aggregate();
+	Aggregate() {}
 
-	void operator()( const std::pair<std::string,LQIO::DOM::Task *>& task  );
-	void operator()( const LQIO::DOM::Entry * entry );
-
-    private:
-	unsigned int aggregate( LQIO::DOM::Entry * entry, unsigned int p, double rate, const LQIO::DOM::Activity * activity );
+	void operator()( Task * task  );
     };
 
     friend ostream& operator<<( ostream& output, const Model::Stats& self ) { return self.print( output ); }
