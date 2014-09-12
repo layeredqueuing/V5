@@ -123,9 +123,9 @@ namespace LQIO {
 	    if ( getSchedulingType() == SCHEDULE_DELAY ) {
 		return true;
 	    } else {
-		const LQIO::DOM::ExternalVariable * copies = getCopies(); 
-		double value;
-		return copies && (copies->getValue(value) == true && std::isinf( value ) != 0);
+		double v;
+		const LQIO::DOM::ExternalVariable * m = getCopies(); 
+		return m && m->wasSet() && m->getValue(v) == true && (std::isinf( v ) != 0);
 	    }
 	}
     }

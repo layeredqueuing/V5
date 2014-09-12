@@ -217,16 +217,21 @@ namespace LQIO {
      */
 
     int
-    Filename::mtimeCmp( const char * filename ) 
+    Filename::mtimeCmp( const char * filename ) throw( std::invalid_argument )
     {
 	struct stat dst;
 	struct stat src;
 
-	int rc = stat( filename, &dst ) - stat( (*this)(), &src );	/* error is -1 */
-	if ( rc == 0 ) {
-	    return src.st_mtime - dst.st_mtime;
+	if ( stat( filename, &dst ) < 0 ) {
+	    std::string err = "Cannot stat: ";
+	    err += filename;
+	    throw std::invalid_argument( err.c_str() );
+	} else if ( stat( (*this)(), &src ) < 0 ) {
+	    std::string err = "Cannot stat: ";
+	    err += filename;
+	    throw std::invalid_argument( err.c_str() );
 	} else {
-	    return rc;
+	    return src.st_mtime - dst.st_mtime;
 	}
     }
 
