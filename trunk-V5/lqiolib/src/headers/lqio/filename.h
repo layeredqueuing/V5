@@ -21,6 +21,7 @@
 
 #if defined(__cplusplus)
 #include <string>
+#include <stdexcept>
 
 /* Autconf botches inline sometimes. */
 
@@ -48,7 +49,7 @@ namespace LQIO {
 	const char * generate( const char * base, const char * extension = 0, const char * directory = 0, const char * suffix = 0 );
 	Filename& backup() { Filename::backup( (*this)() ); return *this; }
 
-	int mtimeCmp( const char * fileName );
+	int mtimeCmp( const char * fileName ) throw( std::invalid_argument );
 
 	unsigned rfind( const string& s ) const;
 	unsigned  find( const string& s ) const;

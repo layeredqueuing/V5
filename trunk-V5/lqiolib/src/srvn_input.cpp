@@ -1072,11 +1072,16 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const string& input_filenam
 	errorCode = 1;
     } else if ( load_results && input_filename != "-" ) {
 	LQIO::Filename parse_name( input_filename.c_str(), "p" );
-	if ( parse_name.mtimeCmp( input_filename.c_str() ) < 0 ) {
-	    cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
-		 << " -- results ignored. " << endl;
-	} else {
-	    LQIO::SRVN::loadResults( parse_name() );
+	try {
+	    if ( parse_name.mtimeCmp( input_filename.c_str() ) < 0 ) {
+		std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
+			  << " -- results ignored. " << std::endl;
+	    } else {
+		LQIO::SRVN::loadResults( parse_name() );
+	    }
+	} 
+	catch ( std::invalid_argument& err ) {
+	    /* Ignore */
 	}
     }
 
