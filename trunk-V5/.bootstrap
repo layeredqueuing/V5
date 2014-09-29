@@ -10,7 +10,7 @@ find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in
 (cd srvndiff; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
 (cd petrisrvn; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
 (cd doc; aclocal -I ../config; automake -a -c; autoconf; automake) 
-(cd lqneditor; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
+#(cd lqneditor; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
 aclocal -I config
 automake -a -c
 autoheader
