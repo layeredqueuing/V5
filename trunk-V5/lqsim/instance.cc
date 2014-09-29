@@ -1213,19 +1213,21 @@ Instance::compute ( Activity * ap, Activity * pp )
 
 	r_a_execute = ap->r_cpu_util.raw;
 
-	_cp->cpu_active += 1;
-	ps_record_stat( ap->r_cpu_util.raw,  _cp->cpu_active );	/* Phase P execution.	*/
+	ap->cpu_active += 1;
+	ps_record_stat( ap->r_cpu_util.raw,  ap->cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
 	    r_e_execute = pp->r_cpu_util.raw;
-	    ps_record_stat( pp->r_cpu_util.raw, _cp->cpu_active );	/* CPU util by phase */
+	    pp->cpu_active += 1;
+	    ps_record_stat( pp->r_cpu_util.raw, pp->cpu_active );	/* CPU util by phase */
 	}
 
 	(*_cp->compute_func)( time );
 
-	_cp->cpu_active -= 1;
-	ps_record_stat( ap->r_cpu_util.raw,  _cp->cpu_active );	/* Phase P execution.	*/
+	ap->cpu_active -= 1;
+	ps_record_stat( ap->r_cpu_util.raw,  pp->cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
-	    ps_record_stat( pp->r_cpu_util.raw, _cp->cpu_active );
+	    pp->cpu_active -= 1;
+	    ps_record_stat( pp->r_cpu_util.raw, pp->cpu_active );
 	}
 	r_a_execute = -1;
 	r_e_execute = -1;

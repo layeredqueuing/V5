@@ -92,7 +92,6 @@ Task::Task( const task_type type, LQIO::DOM::Task* domTask, Processor * processo
       max_phases(1),
       max_activities(0),
       active(0),
-      cpu_active(0),
       hold_active(0),
       _hist_data(0),
       _msg_tab(0)
@@ -239,7 +238,6 @@ Task::create()
 
     /* statistics */
     active = 0;			/* Reset counts */
-    cpu_active = 0;
     hold_active = 0;
 
     r_cycle.init( SAMPLE,        "%s %-11.11s - Cycle Time        ", type_name(), name() );

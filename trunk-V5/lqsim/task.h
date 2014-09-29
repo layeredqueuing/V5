@@ -171,7 +171,6 @@ public:
     unsigned max_phases;		/* Max # phases, this task.	*/
     unsigned max_activities;		/* Max # of activities.		*/
     unsigned active;			/* Number of active instances.	*/
-    unsigned cpu_active;		/* Number of active instances.	*/
     unsigned hold_active;		/* Number of active instances.	*/
     Histogram * _hist_data;            	/* Structure which stores histogram data for this task */
     result_t r_cycle;			/* Cycle time.		        */
