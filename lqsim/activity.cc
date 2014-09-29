@@ -73,6 +73,7 @@ Activity::Activity( Task * cp, LQIO::DOM::Phase * dom_phase )
       _input(0),
       _output(0),
       active(0),
+      cpu_active(0),
       my_phase(0),
       is_reachable(false),
       is_start_activity(false),
