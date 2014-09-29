@@ -1213,21 +1213,21 @@ Instance::compute ( Activity * ap, Activity * pp )
 
 	r_a_execute = ap->r_cpu_util.raw;
 
-	ap->cpu_active += 1;
-	ps_record_stat( ap->r_cpu_util.raw,  ap->cpu_active );	/* Phase P execution.	*/
+	ap->_cpu_active += 1;
+	ps_record_stat( ap->r_cpu_util.raw,  ap->_cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
 	    r_e_execute = pp->r_cpu_util.raw;
-	    pp->cpu_active += 1;
-	    ps_record_stat( pp->r_cpu_util.raw, pp->cpu_active );	/* CPU util by phase */
+	    pp->_cpu_active += 1;
+	    ps_record_stat( pp->r_cpu_util.raw, pp->_cpu_active );	/* CPU util by phase */
 	}
 
 	(*_cp->compute_func)( time );
 
-	ap->cpu_active -= 1;
-	ps_record_stat( ap->r_cpu_util.raw,  pp->cpu_active );	/* Phase P execution.	*/
+	ap->_cpu_active -= 1;
+	ps_record_stat( ap->r_cpu_util.raw,  pp->_cpu_active );	/* Phase P execution.	*/
 	if ( ap != pp ) {
-	    pp->cpu_active -= 1;
-	    ps_record_stat( pp->r_cpu_util.raw, pp->cpu_active );
+	    pp->_cpu_active -= 1;
+	    ps_record_stat( pp->r_cpu_util.raw, pp->_cpu_active );
 	}
 	r_a_execute = -1;
 	r_e_execute = -1;
@@ -1365,8 +1365,8 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
     timeline_trace( ACTIVITY_START, ap );
 
-    ap->active += count;
-    ps_record_stat2( ap->r_util.raw, ap->active, start_time );		/* Activity utilization.*/
+    ap->_active += count;
+    ps_record_stat2( ap->r_util.raw, ap->_active, start_time );		/* Activity utilization.*/
 
     /*
      * Delay for "think time".  
@@ -1520,8 +1520,8 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 	}
     }
 
-    ap->active -= count;
-    ps_record_stat( ap->r_util.raw, ap->active );
+    ap->_active -= count;
+    ps_record_stat( ap->r_util.raw, ap->_active );
 
     /*Add the preemption time to the waiting time if available. Tao*/
 

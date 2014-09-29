@@ -120,8 +120,8 @@ public:
     struct activity_list_t *_input;	/* Node which calls me.		*/
     struct activity_list_t *_output;	/* Node which I call.		*/
     Targets tinfo;			/* target info			*/
-    unsigned active;			/* Number of active instances.	*/
-    unsigned cpu_active;		/* Number of active instances.	*/
+    unsigned _active;			/* Number of active instances.	*/
+    unsigned _cpu_active;		/* Number of active instances.	*/
     unsigned my_phase;			/* True if in phase 2.		*/
     bool is_reachable;			/* True if we can reach it	*/
     bool is_start_activity;		/* True if I am a start activity*/

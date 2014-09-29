@@ -72,8 +72,8 @@ Activity::Activity( Task * cp, LQIO::DOM::Phase * dom_phase )
        index(0),
       _input(0),
       _output(0),
-      active(0),
-      cpu_active(0),
+      _active(0),
+      _cpu_active(0),
       my_phase(0),
       is_reachable(false),
       is_start_activity(false),
@@ -150,7 +150,8 @@ Activity::configure( Task * cp )
     const double n_calls = tinfo.compute_PDF( (bool)(type() == PHASE_STOCHASTIC), type(), name() );
     double slice;
     
-    active = 0;
+    _active = 0;
+    _cpu_active = 0;
 
     if ( cp ) {
 	_task = cp; 
@@ -180,7 +181,6 @@ Activity::configure( Task * cp )
     r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name() );
     r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name() );
     r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
-
 	
     if ( type() == PHASE_DETERMINISTIC ) {
 	slice = service() / (n_calls + 1);	/* Spread calls evenly */

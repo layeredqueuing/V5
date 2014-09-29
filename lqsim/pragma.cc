@@ -179,6 +179,7 @@ Pragma::set_xml_schema( const std::string& value )
 const char * 
 Pragma::get_xml_schema() const
 {
+    return 0;
 }
 
 void
