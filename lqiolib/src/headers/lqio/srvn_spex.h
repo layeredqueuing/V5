@@ -89,6 +89,8 @@ namespace LQIO {
 	    friend void * ::spex_assignment_statement( const char * name, void * expr, const bool constant_expression );
 	    friend void * ::spex_forall( const char * iter_name, const char * name, void * expr );
 	    friend void * ::spex_inline_expression( void * arg );
+	    friend void * ::spex_entry_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 );
+	    friend void * ::spex_activity_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
 
 
 	    /* Saves info needed to output the observation variables */
