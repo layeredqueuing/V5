@@ -881,14 +881,14 @@ void * spex_entry_observation( void * obj, const int key, const int phase, const
     if ( !obj || !var ) return 0;
     LQIO::DOM::Entry * entry = static_cast<LQIO::DOM::Entry *>(obj);
 
-    if ( entry->hasPhase(phase) || ((key == KEY_THROUGHPUT || key == KEY_UTILIZATION || key == KEY_PROCESSOR_UTILIZATION) && phase == 0) ) {
+    if ( entry->hasPhase(phase) || key == KEY_SERVICE_TIME || ((key == KEY_THROUGHPUT || key == KEY_UTILIZATION || key == KEY_PROCESSOR_UTILIZATION) && phase == 0) ) {
 	LQX::SyntaxTreeNode * object =  LQIO::DOM::spex.observation( *entry, phase, key, var );
 	if ( var2 && object ) {
 	    object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
 	}
 	return object;
     } else {
-	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, "%x", entry->getName().c_str() );
+	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, "%s", LQIO::DOM::Spex::__key_code_map[key].c_str(), entry->getName().c_str() );
 	return 0;
     }
 
@@ -901,7 +901,7 @@ void * spex_activity_observation( void * obj, const int key, const int phase, co
 
     if ( !obj || !var ) return 0;
     if ( phase != 0 ) {
-	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, "%x", activity->getName().c_str() );
+	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, "%s", LQIO::DOM::Spex::__key_code_map[key].c_str(), activity->getName().c_str() );
 	return 0;
     } else {
 	LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( *activity, 0, key, var );
