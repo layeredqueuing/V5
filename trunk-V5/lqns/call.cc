@@ -223,7 +223,7 @@ Call::rendezvousDelay() const
 const Task *
 Call::srcTask() const
 {
-    return dynamic_cast<const Task *>(srcEntry()->owner());
+    return dynamic_cast<const Task *>(source->owner());
 }
 
 
