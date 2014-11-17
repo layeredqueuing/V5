@@ -520,6 +520,7 @@ entry_obs		: entry_obs_info entry_obs
 			|
 			;
 
+										/* Note $1 will be the phase as an integer 1, 2, or 3, if present, otherwise 0 */
 entry_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, 0, $2, 0 ); }
 			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
 			| KEY_UTILIZATION VARIABLE				{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, 0, $2, 0 ); }

@@ -91,7 +91,8 @@ namespace LQIO {
 	    friend void * ::spex_inline_expression( void * arg );
 	    friend void * ::spex_entry_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 );
 	    friend void * ::spex_activity_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
-
+	    friend void * ::spex_call_observation( void * src, const int key, const int phase, void * dst, const int conf, const char * var, const char * var2 );
+	    friend void * ::spex_activity_call_observation( void * src, const int key, const int phase, void * dst, const int conf, const char * var, const char * var2 );
 
 	    /* Saves info needed to output the observation variables */
 	    class ObservationInfo {

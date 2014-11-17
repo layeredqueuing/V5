@@ -103,7 +103,7 @@ namespace LQIO {
         { WARNING_ONLY,  "Entry \"%s\" does not receive any requests." },                                                           /* WRN_NO_REQUESTS_TO_ENTRY             */
         { WARNING_ONLY,  "Entry \"%s\" has no service time specified for any phase." },                                             /* WRN_NO_SERVICE_TIME                  */
 	{ WARNING_ONLY,  "Entry \"%s\" attribute type=\"%s\" - entry type should be \"%s\"." },					    /* WRN_ENTRY_TYPE_MISMATCH		    */
-	{ WARNING_ONLY,  "Invalid phase, %d, specified for result \"%s\" for entry \"%s\"." },					    /* WRN_INVALID_RESULT_PHASE		    */
+	{ WARNING_ONLY,  "Invalid phase, %d, specified for spex result \"%%%s\" for entry \"%s\"." },				    /* WRN_INVALID_RESULT_PHASE		    */
         { WARNING_ONLY,  "Non-zero quantum specified for \"%s\" scheduling." },                                                     /* WRN_QUANTUM_SCHEDULING               */
         { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
         { WARNING_ONLY,  "Parameter is specified multiple times." },                                                                /* WRN_MULTIPLE_SPECIFICATION           */
