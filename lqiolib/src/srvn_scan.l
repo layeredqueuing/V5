@@ -121,7 +121,7 @@ P	[0123]?
 {K}u{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_UTILIZATION; }
 {K}usr			{ LQIO_lval.anInt = 0; return KEY_USER_TIME; }
 {K}v{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_VARIANCE; }
-{K}wv{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_WAITING_VARIANCE; }
+{K}wv{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[3] ); return KEY_WAITING_VARIANCE; }
 {K}w{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_WAITING; }
 
 ({C}|{S})		return *LQIO_text;
