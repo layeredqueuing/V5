@@ -33,6 +33,7 @@ unsigned LQIO_linenno = 1;
 
 static char * dup_LQIO_text( char * str, int len );
 static char * dup_comment( char * str, int len );
+static int get_result_phase( char );
 %}
 
 D	[0-9]
@@ -114,14 +115,14 @@ P	[0123]?
 {K}fb			{ LQIO_lval.anInt = 0; return KEY_THROUGHPUT_BOUND; }
 {K}i			{ LQIO_lval.anInt = 0; return KEY_ITERATIONS; }
 {K}pu			{ LQIO_lval.anInt = 0; return KEY_PROCESSOR_UTILIZATION; }
-{K}pw{P}		{ LQIO_lval.anInt = (int)(LQIO_text[3] - '0'); return KEY_PROCESSOR_WAITING; }
-{K}s{P}			{ LQIO_lval.anInt = (int)(LQIO_text[2] - '0'); return KEY_SERVICE_TIME; }
+{K}pw{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[3] ); return KEY_PROCESSOR_WAITING; }
+{K}s{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_SERVICE_TIME; }
 {K}sys			{ LQIO_lval.anInt = 0; return KEY_SYSTEM_TIME; }
-{K}u{P}			{ LQIO_lval.anInt = (int)(LQIO_text[2] - '0'); return KEY_UTILIZATION; }
+{K}u{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_UTILIZATION; }
 {K}usr			{ LQIO_lval.anInt = 0; return KEY_USER_TIME; }
-{K}v{P}			{ LQIO_lval.anInt = (int)(LQIO_text[2] - '0'); return KEY_VARIANCE; }
-{K}wv{P}		{ LQIO_lval.anInt = (int)(LQIO_text[2] - '0'); return KEY_WAITING_VARIANCE; }
-{K}w{P}			{ LQIO_lval.anInt = (int)(LQIO_text[2] - '0'); return KEY_WAITING; }
+{K}v{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_VARIANCE; }
+{K}wv{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_WAITING_VARIANCE; }
+{K}w{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_WAITING; }
 
 ({C}|{S})		return *LQIO_text;
 
@@ -172,3 +173,13 @@ dup_comment( char * str, int len )
 }
 
 
+static int
+get_result_phase( char c )
+{
+    switch ( c ) {
+    case '1': return 1;
+    case '2': return 2;
+    case '3': return 3;
+    }
+    return 0;
+}
