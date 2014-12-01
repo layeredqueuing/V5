@@ -1,143 +1,163 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no" ?><!-- Invoked as: lqn2xml ../regression/61-semaphore.in --><lqn-model description="lqn2xml 5.1 solution for model from: ../regression/61-semaphore.in." name="../regression/61-semaphore" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Semaphore called using a second phase rendezvous" conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9">
-      <result-general conv-val="0.8408661" elapsed-time="00:00:00.000" iterations="3" platform-info="" solver-info="" system-cpu-time="00:00:00.000" user-cpu-time="00:00:00.000" valid="YES">
-         <mva-info core="0" faults="0" step="0" step-squared="0" submodels="0" wait="0" wait-squared="0"/>
-      </result-general>
-   </solver-params>
-   <processor name="customer" scheduling="inf">
-      <result-processor utilization="0.3339308">
-         <result-conf-95 utilization="0.006450256"/>
-         <result-conf-99 utilization="0.002796519"/>
-      </result-processor>
-      <task multiplicity="3" name="customer" scheduling="ref">
-         <result-task phase1-utilization="3" proc-utilization="0.3339308" throughput="0.3337052" utilization="3">
-            <result-conf-95 phase1-utilization="0" proc-utilization="0.002796519" throughput="0.004632814" utilization="0"/>
-            <result-conf-99 phase1-utilization="0" proc-utilization="0.006450256" throughput="0.01068573" utilization="0"/>
-         </result-task>
-         <entry name="customer" type="PH1PH2">
-            <result-entry proc-utilization="0.3339308" squared-coeff-variation="1.915718" throughput="0.3337052" utilization="3">
-               <result-conf-95 proc-utilization="0.002796519" throughput="0.004632814" utilization="0"/>
-               <result-conf-99 proc-utilization="0.006450256" throughput="0.01068573" utilization="0"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity host-demand-mean="1" name="customer_1" phase="1">
-                  <result-activity proc-waiting="0" service-time="8.990053" service-time-variance="154.8303" utilization="3">
-                     <result-conf-95 proc-waiting="0" service-time="0.1253674" service-time-variance="1.76551" utilization="0"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.2891637" service-time-variance="4.072202" utilization="0"/>
-                  </result-activity>
-                  <synch-call calls-mean="1" dest="app_wait">
-                     <result-call waiting="6.395415" waiting-variance="4.2755">
-                        <result-conf-95 waiting="0.02841212" waiting-variance="0.05567715"/>
-                        <result-conf-99 waiting="0.06553343" waiting-variance="0.128421"/>
-                     </result-call>
-                  </synch-call>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="server" scheduling="fcfs">
-      <result-processor utilization="0.9999898">
-         <result-conf-95 utilization="0.008752347"/>
-         <result-conf-99 utilization="0.003794594"/>
-      </result-processor>
-      <task name="app_wait" scheduling="fcfs">
-         <result-task phase1-utilization="0.5337942" phase2-utilization="0.4661956" proc-utilization="0.3339035" throughput="0.3334068" utilization="0.9999898">
-            <result-conf-95 phase1-utilization="0.003141368" phase2-utilization="0.003145928" proc-utilization="0.002971614" throughput="0.001138124" utilization="4.56107e-06"/>
-            <result-conf-99 phase1-utilization="0.007245661" phase2-utilization="0.007256178" proc-utilization="0.006854117" throughput="0.002625118" utilization="1.052025e-05"/>
-         </result-task>
-         <entry name="app_wait" type="PH1PH2">
-            <result-entry proc-utilization="0.3339035" squared-coeff-variation="0.1653657" throughput="0.3334068" utilization="0.9999898">
-               <result-conf-95 proc-utilization="0.002971614" throughput="0.001138124" utilization="0.004445791"/>
-               <result-conf-99 proc-utilization="0.006854117" throughput="0.002625118" utilization="0.01025435"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity call-order="DETERMINISTIC" host-demand-mean="0.9" name="app_wait_1" phase="1">
-                  <result-activity proc-waiting="0" service-time="1.60103" service-time-variance="0.8942614" utilization="0.5337942">
-                     <result-conf-95 proc-waiting="0" service-time="0.008357879" service-time-variance="0.02210201" utilization="0.003141368"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.0192777" service-time-variance="0.05097896" utilization="0.007245661"/>
-                  </result-activity>
-                  <synch-call calls-mean="1" dest="wait">
-                     <result-call waiting="0" waiting-variance="0">
-                        <result-conf-95 waiting="0" waiting-variance="0"/>
-                        <result-conf-99 waiting="0" waiting-variance="0"/>
-                     </result-call>
-                  </synch-call>
-               </activity>
-               <activity call-order="DETERMINISTIC" host-demand-mean="0.1" name="app_wait_2" phase="2">
-                  <result-activity proc-waiting="0.3002003" service-time="1.398282" service-time-variance="0.5933468" utilization="0.4661956">
-                     <result-conf-95 proc-waiting="0.002390185" service-time="0.01246449" service-time-variance="0.01462751" utilization="0.003145928"/>
-                     <result-conf-99 proc-waiting="0.005513034" service-time="0.02874972" service-time-variance="0.03373879" utilization="0.007256178"/>
-                  </result-activity>
-                  <synch-call calls-mean="1" dest="app_signal">
-                     <result-call waiting="0" waiting-variance="0">
-                        <result-conf-95 waiting="0" waiting-variance="0"/>
-                        <result-conf-99 waiting="0" waiting-variance="0"/>
-                     </result-call>
-                  </synch-call>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-      <task name="app_signal" scheduling="fcfs">
-         <result-task phase1-utilization="0.332848" proc-utilization="0.332848" throughput="0.3334068" utilization="0.332848">
-            <result-conf-95 phase1-utilization="0.002124279" proc-utilization="0.002124279" throughput="0.001138124" utilization="0.002124279"/>
-            <result-conf-99 phase1-utilization="0.004899713" proc-utilization="0.004899713" throughput="0.002625118" utilization="0.004899713"/>
-         </result-task>
-         <entry name="app_signal" type="PH1PH2">
-            <result-entry proc-utilization="0.332848" squared-coeff-variation="0.4996108" throughput="0.3334068" utilization="0.332848">
-               <result-conf-95 proc-utilization="0.002124279" throughput="0.001138124" utilization="0.002124279"/>
-               <result-conf-99 proc-utilization="0.004899713" throughput="0.002625118" utilization="0.004899713"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity call-order="DETERMINISTIC" host-demand-mean="1" name="app_signal_1" phase="1">
-                  <result-activity proc-waiting="0" service-time="0.9983271" service-time-variance="0.4979406" utilization="0.332848">
-                     <result-conf-95 proc-waiting="0" service-time="0.008845922" service-time-variance="0.01055898" utilization="0.002124279"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.02040339" service-time-variance="0.02435461" utilization="0.004899713"/>
-                  </result-activity>
-                  <asynch-call calls-mean="1" dest="signal">
-                     <result-call waiting="0.7992713" waiting-variance="0.3389463">
-                        <result-conf-95 waiting="0.00425608" waiting-variance="0.005461521"/>
-                        <result-conf-99 waiting="0.009816777" waiting-variance="0.01259716"/>
-                     </result-call>
-                  </asynch-call>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-      <task name="semaphore" scheduling="semaphore">
-         <result-task phase1-utilization="0.4996319" proc-utilization="0.3332383" semaphore-utilization="0.8333264" semaphore-waiting="2.499434" semaphore-waiting-variance="1.285934" throughput="0.3334068" utilization="0.4996319">
-            <result-conf-95 phase1-utilization="0.001504933" proc-utilization="0.001027569" semaphore-utilization="0.001163936" semaphore-waiting="0.006715049" semaphore-waiting-variance="0.04191843" throughput="0.001609551" utilization="0.0006675446"/>
-            <result-conf-99 phase1-utilization="0.003471173" proc-utilization="0.002370119" semaphore-utilization="0.002684654" semaphore-waiting="0.01548846" semaphore-waiting-variance="0.09668612" throughput="0.003712478" utilization="0.001539712"/>
-         </result-task>
-         <entry name="signal" semaphore="signal" type="PH1PH2">
-            <result-entry proc-utilization="0.1000888" squared-coeff-variation="0.5305697" throughput="0.3334068" utilization="0.2664824">
-               <result-conf-95 proc-utilization="0.0005852133" throughput="0.001138124" utilization="0.001245552"/>
-               <result-conf-99 proc-utilization="0.001349812" throughput="0.002625118" utilization="0.002872903"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity host-demand-mean="0.3" name="signal_1" phase="1">
-                  <result-activity proc-waiting="0.499071" service-time="0.7992713" service-time-variance="0.3389463" utilization="0.2664824">
-                     <result-conf-95 proc-waiting="0.002128631" service-time="0.00425608" service-time-variance="0.005461521" utilization="0.001245552"/>
-                     <result-conf-99 proc-waiting="0.004909752" service-time="0.009816777" service-time-variance="0.01259716" utilization="0.002872903"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-         <entry name="wait" semaphore="wait" type="PH1PH2">
-            <result-entry proc-utilization="0.2331495" squared-coeff-variation="1.002332" throughput="0.3334068" utilization="0.2331495">
-               <result-conf-95 proc-utilization="0.0008446439" throughput="0.001138124" utilization="0.0008446439"/>
-               <result-conf-99 proc-utilization="0.001948197" throughput="0.002625118" utilization="0.001948197"/>
-            </result-entry>
-            <entry-phase-activities>
-               <activity host-demand-mean="0.7" name="wait_1" phase="1">
-                  <result-activity proc-waiting="0" service-time="0.6992948" service-time-variance="0.4901536" utilization="0.2331495">
-                     <result-conf-95 proc-waiting="0" service-time="0.004449907" service-time-variance="0.008063824" utilization="0.0008446439"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.01026385" service-time-variance="0.01859945" utilization="0.001948197"/>
-                  </result-activity>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-</lqn-model>
+# lqn2ps 6.0
+# lqn2ps -Oparseable -N5 61-semaphore.lqxo
+V y
+C 0.83995
+I 4
+PP 2
+NP 2
+
+#!User:  0:00:04.00
+#!Sys:   0:00:00.00
+#!Real:  0:00:04.00
+
+W 0
+customer       :customer        app_wait        6.289       0           -1 
+                                            %95 0.016464    0           -1 
+                                            %99 0.030222    0           -1 
+                -1 
+app_wait       :app_wait        wait            0           0           -1 
+                                            %95 0           0           -1 
+                                            %99 0           0           -1 
+                app_wait        app_signal      0           0           -1 
+                                            %95 0           0           -1 
+                                            %99 0           0           -1 
+                -1 
+-1
+
+VARW 0
+customer       :customer        app_wait        4.7188       0            -1 
+                                            %95 0.043304     0            -1 
+                                            %99 0.07949      0            -1 
+                -1 
+app_wait       :app_wait        wait            0            0            -1 
+                                            %95 0            0            -1 
+                                            %99 0            0            -1 
+                app_wait        app_signal      0            0            -1 
+                                            %95 0            0            -1 
+                                            %99 0            0            -1 
+                -1 
+-1
+
+Z 0
+app_signal     :app_signal      signal          0.79954     0           -1 
+                                            %95 0.002525    0           -1 
+                                            %99 0.0046351   0           -1 
+                -1 
+-1
+
+VARZ 0
+app_signal     :app_signal      signal          0.34019      0            -1 
+                                            %95 0.002856     0            -1 
+                                            %99 0.0052425    0            -1 
+                -1 
+-1
+
+X 5
+customer       :customer        8.9786      0           -1 
+                            %95 0.14177     0           -1 
+                            %99 0.26023     0           -1 
+                -1 
+app_wait       :app_wait        1.6009      1.3995      -1 
+                            %95 0.0072366   0.005078    -1 
+                            %99 0.013284    0.0093213   -1 
+                -1 
+app_signal     :app_signal      0.99964     0           -1 
+                            %95 0.0062052   0           -1 
+                            %99 0.01139     0           -1 
+                -1 
+semaphore      :signal          0.79954     0           -1 
+                            %95 0.002525    0           -1 
+                            %99 0.0046351   0           -1 
+                wait            0.69937     0           -1 
+                            %95 0.0048544   0           -1 
+                            %99 0.0089109   0           -1 
+                -1 
+-1
+
+VAR 5
+customer       :customer        153.4       0           -1 
+                            %95 3.0406      0           -1 
+                            %99 5.5815      0           -1 
+                -1 
+app_wait       :app_wait        0.89646     0.59506     -1 
+                            %95 0.017923    0.0040566   -1 
+                            %99 0.0329      0.0074465   -1 
+                -1 
+app_signal     :app_signal      0.50036     0           -1 
+                            %95 0.0051307   0           -1 
+                            %99 0.0094182   0           -1 
+                -1 
+semaphore      :signal          0.34019     0           -1 
+                            %95 0.002856    0           -1 
+                            %99 0.0052425   0           -1 
+                wait            0.49104     0           -1 
+                            %95 0.0081423   0           -1 
+                            %99 0.014946    0           -1 
+                -1 
+-1
+
+H 0
+semaphore      :wait            signal          2.4995      1.2841      0.83212    
+                                            %95 0.0074957   0.027592    0.00089272 
+                                            %99 0.013759    0.05065     0.0016387  
+-1
+
+FQ 4
+customer       :customer        0.33413     3           0           -1 3
+                            %95 0.0052529   0           0           -1 0
+                            %99 0.0096424   0           0           -1 0
+                -1 
+app_wait       :app_wait        0.33292     0.53296     0.46592     -1 0.99889
+                            %95 0.00085697  0.0015787   0.0016035   -1 0.0022502
+                            %99 0.0015731   0.0028979   0.0029435   -1 0.0041306
+                -1 
+app_signal     :app_signal      0.33292     0.3328      0           -1 0.3328
+                            %95 0.00085176  0.001873    0           -1 0.001873
+                            %99 0.0015635   0.0034382   0           -1 0.0034382
+                -1 
+semaphore      :signal          0.33292     0.26618     0           -1 0.26618
+                            %95 0.00085697  0.00077106  0           -1 0.00077106
+                            %99 0.0015731   0.0014154   0           -1 0.0014154
+                wait            0.33292     0.23283     0           -1 0.23283
+                            %95 0.00085438  0.0012029   0           -1 0.0012029
+                            %99 0.0015683   0.002208    0           -1 0.002208
+                -1 
+                                0.33292     0.49901     0           -1 0.49901
+                            %95 0.0012101   0.0014288   0           -1 0.00080059
+                            %99 0.0022213   0.0026227   0           -1 0.0014696
+-1
+
+P customer 1
+customer        1  0 3  customer        0.33378     0.11839     0           -1 
+                                    %95 0.0024061   0.0025047   0           -1 
+                                    %99 0.0044167   0.0045976   0           -1 
+                        -1 
+-1 
+
+P server 3
+app_wait        1  0 1  app_wait        0.33342     0           0.2999      -1 
+                                    %95 0.00068167  0           0.0017732   -1 
+                                    %99 0.0012513   0           0.003255    -1 
+                        -1 
+app_signal      1  0 1  app_signal      0.3328      0           0           -1 
+                                    %95 0.001873    0           0           -1 
+                                    %99 0.0034382   0           0           -1 
+                        -1 
+semaphore       2  0 1  signal          0.099843    0.49964     0           -1 
+                                    %95 0.00069383  0.0024028   0           -1 
+                                    %99 0.0012736   0.0044106   0           -1 
+                        wait            0.23283     0           0           -1 
+                                    %95 0.0012029   0           0           -1 
+                                    %99 0.002208    0           0           -1 
+                        -1 
+                                        0.33267     
+                                    %95 0.0013886   
+                                    %99 0.002549    
+                -1 
+                                        0.99889
+                                    %95 0.0024292
+                                    %99 0.0044592
+-1 
+
+-1
+
