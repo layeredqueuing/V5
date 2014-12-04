@@ -23,11 +23,18 @@
 \setcounter{secnumdepth}{2}
 
 \begin{document}
-\lstdefinelanguage{lqnx}[]{XML}{
-  morekeywords={entry-phase-activities,lqn-model,precedence,pre,pre-AND,pre-OR,post,
-  post-AND,post-OR,post-LOOP,reply-activity,reply-entry,solver-params,synch-call,task-activities},
-  morekeywords={[2]activity,entry,processor,task},
-  alsodigit={-},
+\lstdefinelanguage{LQN}{
+  basicstyle=\ttfamily,
+  keywords={G,P,U,T,E,A,R,C,p,g,t,s,c,f,y,z,u,F,-1,->,\#pragma},
+  classoffset=1,
+  morekeywords={<param>,<proc-id>,<group-id>,<task-id>,<entry-id>,<activity-id>,<sched>,<opt-mult>,<opt-cap>,<opt-pri>,<opt-grp>,<opt-think-time>,<opt-obs>,<opt-repl>,<value>,<expression>,<entry-list>,<activity-list>,<expression-list>,<real>,<int>,<string>},
+  keywordstyle=\itshape,
+  classoffset=0,
+  alsoletter={-1<>},
+  sensitive=true,
+  morecomment=[l]{\# },
+  morestring=[b]'',
+  index={pragma}
 }
 \title{Tutorial Introduction to Layered Modeling of Software Performance}
 \bibliographystyle{plainurl}
@@ -272,7 +279,7 @@ There are two solvers for layered queues, that take the same input files:
 
 The simulator \emph{lqsim}]\index{simulator}\index{lqsim} is invoked as:
 \begin{verbatim}
-   lqsim [run controls] infile.lqnx
+   lqsim [run controls] infile.lqn
 \end{verbatim}
 and also generates an output file \texttt{infile.out}, which includes
 confidence intervals on the estimated performance parameters.
@@ -316,8 +323,8 @@ The behaviour of a task can be specified either using phases\index{phase} for an
 entry\index{entry}, or through activities\index{activity} defined for a task.  Usually, it is
 simpler to specifiy behaviour using phases (shown in black) since most
 tasks do not incorporate internal parallelism.  The file
-\texttt{reserv-templ.lqnx} in the
-Appendix~\ref{sec:reserve-templ.lqnx} contains the reservation system.
+\texttt{reserv-templ} in the
+Appendix~\ref{sec:reserve-templ} contains the reservation system.
 It is a sample template file for models based entirely on entries.
 More information about tasks modeled using activities is found in
 Section~\ref{sec:activities}. 
@@ -973,34 +980,15 @@ control, and extract the results in a compact form.
   mean values, p is the confidence level.
 \end{itemize}
 \clearpage
-\appendix
-\section{XML Schemas}
-
-\begin{figure}[h!]
-  \centering
-  \includegraphics{schema.eps}
-  \caption{Language Schema}
-  \label{fig:schema}
-\end{figure}
-
-\begin{figure}[h!]
-  \centering
-%  \epsfxsize=\textwidth
-  \includegraphics{activity-schema.eps}
-  \caption{Schema for activities}
-  \label{fig:schema-activities}
-\end{figure}
-
-\clearpage
-\section{Model File: reserve-templ.lqnx}
-\label{sec:reserve-templ.lqnx}
+\section{Model File: reserve-templ.lqn}
+\label{sec:reserve-templ}
 \lstset{basicstyle=\ttfamily\footnotesize,stringstyle=\emph,columns=fullflexible}
 \lstset{keywordstyle=\color{blue},keywordstyle={[2]\color{red}}}
-\lstinputlisting[language=lqnx]{web-server/reserve-templ.lqnx}
+\lstinputlisting[language=LQN]{web-server/reserve-templ.lqn}
 \clearpage
-\section{Model File: activity-templ.lqnx}
-\label{activity-templ.lqnx}
-\lstinputlisting[language=lqnx]{activity-templ/activity-templ.lqnx}
+\section{Model File: activity-templ.lqn}
+\label{activity-templ}
+\lstinputlisting[language=LQN]{activity-templ/activity-templ.lqn}
 \clearpage
 \printindex
 \end{document}
