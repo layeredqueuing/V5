@@ -23,6 +23,22 @@ namespace LQIO {
 	class Task;
 
 	class Entry : public DocumentObject {
+	public:
+	    class Count {
+	    protected:
+		typedef bool (LQIO::DOM::Phase::*test_fn)() const;
+		
+	    public:
+		Count( test_fn f ) :  _f(f), _count( 0 ) {}
+		
+		void operator()( const LQIO::DOM::Entry * );
+		bool count() const { return _count; }
+
+	    private:
+		test_fn _f;
+		bool _count;
+	    };
+	    
 	private:
 	    Entry(const Entry& );
 	    Entry& operator=( const Entry& );

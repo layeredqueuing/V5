@@ -46,7 +46,7 @@ namespace LQIO {
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _loadedPragmas(), 
 	      _maximumPhase(0), _hasResults(false), _hasRendezvous(false), _hasSendNoReply(false), _hasForwarding(false), _hasMaxServiceTime(false), _hasHistogram(false), 
 	      _hasSemaphoreWait(false), _hasReaderWait(false), _hasWriterWait(false),
-	      _entryHasThinkTime(false), _entryHasNonExponentialPhase(false), _entryHasDeterministicPhase(false), 
+	      _entryHasThinkTime(false), 
 	      _entryHasOpenArrivals(false), _entryHasThroughputBound(false), _entryHasOpenWait(false),
 	      _entryHasWaitingTimeVariance(false), _entryHasServiceTimeVariance(false), _entryHasDropProbability(false),
 	      _taskHasAndJoin(false), _taskHasThinkTime(false),
@@ -682,12 +682,17 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& 
-	Document::setPhaseType( const phase_type t )
+	bool
+	Document::hasNonExponentialPhase() const
 	{
-	    if ( t == PHASE_DETERMINISTIC ) _entryHasDeterministicPhase = true;
-	    return *this;
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::isNonExponential ) ).count() != 0;
 	}
+
+	bool Document::hasDeterministicPhase() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasDeterministicCalls ) ).count() != 0;
+	}
+
 
 	/*
 	 * Load document.  Based on the file extension, pick the

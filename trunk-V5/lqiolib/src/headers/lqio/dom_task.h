@@ -28,6 +28,22 @@ namespace LQIO {
     
 	class Task : public Entity {
 	public:
+	    class Count {
+	    protected:
+		typedef bool (LQIO::DOM::Phase::*test_fn)() const;
+		
+	    public:
+		Count( test_fn f ) :  _f(f), _count( 0 ) {}
+		
+		void operator()( const std::pair<std::string,LQIO::DOM::Task *>& );
+		bool count() const { return _count; }
+
+	    private:
+		test_fn _f;
+		bool _count;
+	    };
+	    
+	public:
       
 	    /* Designated initializer for the Task entity */
 	    Task(const Document * document, const char * name, const scheduling_type scheduling,  const std::vector<DOM::Entry *>& entryList,

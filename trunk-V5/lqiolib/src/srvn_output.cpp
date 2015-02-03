@@ -327,7 +327,7 @@ namespace LQIO {
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallRate ) );
         }
 
-        if ( getDOM().entryHasDeterministicPhase() ) {
+        if ( getDOM().hasDeterministicPhase() ) {
 	    output << entry_header( phase_type_str ) << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryPhaseType, &EntryOutput::printActivityPhaseType ) );
         } else {
@@ -335,7 +335,7 @@ namespace LQIO {
             output << "All phases are stochastic." << newline;
         }
 
-        if ( getDOM().entryHasNonExponentialPhase() ) {
+        if ( getDOM().hasNonExponentialPhase() ) {
             output << entry_header( cv_square_str ) << newline << textrm;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryCoefficientOfVariation, &EntryOutput::printActivityCoefficientOfVariation ) );
         } else {

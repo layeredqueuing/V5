@@ -836,5 +836,19 @@ namespace LQIO {
 	    }
 	}
     
+
+	/* ------------------------------------------------------------------------ */
+
+	void Entry::Count::operator()( const LQIO::DOM::Entry * e ) 
+	{
+	    const std::map<unsigned, Phase*>& phases = e->getPhaseList();
+	    
+	    for ( std::map<unsigned, Phase*>::const_iterator next = phases.begin(); next != phases.end(); ++next) {
+		const Phase* p = next->second;
+		if ( (p->*_f)() ) {
+		    _count += 1;
+		}
+	    }
+	}
     }
 }
