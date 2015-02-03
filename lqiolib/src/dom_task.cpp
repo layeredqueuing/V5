@@ -435,8 +435,7 @@ namespace LQIO {
 		for ( nextEntry = _entryList.begin(); nextEntry != _entryList.end(); ++nextEntry ) {
 		    sum += (*nextEntry)->getResultProcessorUtilization();
 		}
-		std::map<std::string,Activity*>::const_iterator nextActivity;
-		for ( nextActivity = _activities.begin(); nextActivity != _activities.end(); ++nextActivity ) {
+		for ( std::map<std::string,Activity*>::const_iterator nextActivity = _activities.begin(); nextActivity != _activities.end(); ++nextActivity ) {
 		    sum += nextActivity->second->getResultProcessorUtilization();
 		}
 		setResultProcessorUtilization( sum );
@@ -480,6 +479,22 @@ namespace LQIO {
 	    }
 	    _resultBottleneckStrength = resultBottleneckStrength;
 	    return *this;
+	}
+
+	/* ------------------------------------------------------------------------ */
+
+	void Task::Count::operator()( const std::pair<std::string,LQIO::DOM::Task *>& t ) 
+	{
+	    const std::vector<Entry*>& entries = t.second->getEntryList();
+	    _count = for_each( entries.begin(), entries.end(), LQIO::DOM::Entry::Count( _f ) ).count();
+	    
+	    const std::map<std::string,Activity*>&  activities = t.second->getActivities();
+	    for ( std::map<std::string,Activity*>::const_iterator next = activities.begin(); next != activities.end(); ++next ) {
+		const Activity* a = next->second;
+		if ( (a->*_f)() ) {
+		    _count += 1;
+		}
+	    }
 	}
 
 	/* ------------------------------------------------------------------------ */

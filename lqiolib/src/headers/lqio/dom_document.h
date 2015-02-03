@@ -142,6 +142,8 @@ namespace LQIO {
 	    bool hasRendezvous() const { return _hasRendezvous; }
 	    bool hasSendNoReply() const { return _hasSendNoReply; }
 	    bool hasForwarding() const { return _hasForwarding; }
+	    bool hasNonExponentialPhase() const;
+	    bool hasDeterministicPhase() const;
 	    Document& setHasMaxServiceTime( const bool hasMaxServiceTime ) { _hasMaxServiceTime = hasMaxServiceTime; return *this; }
 	    bool hasMaxServiceTime() const { return _hasMaxServiceTime; }
 	    Document& setHasHistogram( const bool hasHistogram ) { _hasHistogram = hasHistogram; return *this; }
@@ -156,10 +158,6 @@ namespace LQIO {
 
 	    Document& setEntryHasThinkTime( const bool entryHasThinkTime ) { _entryHasThinkTime = entryHasThinkTime; return *this; }
 	    bool entryHasThinkTime() const { return _entryHasThinkTime; }
-	    Document& setEntryHasNonExponentialPhase( const bool entryHasNonExponentialPhase ) { _entryHasNonExponentialPhase = entryHasNonExponentialPhase; return *this; }
-	    bool entryHasNonExponentialPhase() const { return _entryHasNonExponentialPhase; }
-	    Document& setPhaseType( const phase_type );
-	    bool entryHasDeterministicPhase() const { return _entryHasDeterministicPhase; }
 	    Document& setEntryHasOpenArrivals( const bool entryHasOpenArrivals ) { _entryHasOpenArrivals = entryHasOpenArrivals; return *this; }
 	    bool entryHasOpenArrivals() const { return _entryHasOpenArrivals; }
 	    Document& setEntryHasThroughputBound( const bool entryHasThroughputBound ) { _entryHasThroughputBound = entryHasThroughputBound; return *this; }
@@ -290,8 +288,6 @@ namespace LQIO {
 	    bool _hasReaderWait;
 	    bool _hasWriterWait;
 	    bool _entryHasThinkTime;
-	    bool _entryHasNonExponentialPhase;
-	    bool _entryHasDeterministicPhase;
 	    bool _entryHasOpenArrivals;
 	    bool _entryHasThroughputBound;
 	    bool _entryHasOpenWait;	

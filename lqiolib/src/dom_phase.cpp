@@ -112,9 +112,6 @@ namespace LQIO {
 	{
 	    /* Stores the given PhaseTypeFlags of the Phase */
 	    _phaseTypeFlag = phaseTypeFlag;
-	    if ( phaseTypeFlag == PHASE_DETERMINISTIC ) {
-		const_cast<Document *>(getDocument())->setPhaseType(phaseTypeFlag);
-	    }
 	}
 
 	const Entry* Phase::getSourceEntry() const
