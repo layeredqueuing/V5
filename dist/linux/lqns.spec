@@ -5,7 +5,7 @@
 
 %define product_name lqns
 %define product_version VERSION
-%define rpm_release 3
+%define rpm_release 4
 %define product_nameversion %{product_name}-%{product_version}
 %define product_source_dir %{product_nameversion}
 %define product_tarball %{product_nameversion}.tar.gz
@@ -40,8 +40,6 @@ resources, and the modeling concepts include asynchronous messaging,
 and parallel execution.
 
 %changelog
-* Thu Oct 1 2009 Greg Franks <greg@sce.carleton.ca> 4.4
-- Removed Copyright: The Department of Systems and Computer Engineeering, Carleton University.
 * Thu May 13 2004 Greg Franks <greg@sce.carleton.ca> 3.2-1
 - Initial version.
 
