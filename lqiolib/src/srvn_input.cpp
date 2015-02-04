@@ -337,9 +337,13 @@ srvn_store_coeff_of_variation (void * entry_v, unsigned n_phases, ...)
     va_start(ap, n_phases);
     for (unsigned int i = 1; i <= n_phases; i++) {
 	void * arg = va_arg(ap, void *);
-	if ( arg == 0 ) continue;
-	LQIO::DOM::Phase* phase = entry->getPhase(i);
-	phase->setCoeffOfVariationSquared(static_cast<LQIO::DOM::ExternalVariable *>(arg));
+	if ( arg != 0 ) {
+	    LQIO::DOM::Phase* phase = entry->getPhase(i);
+	    phase->setCoeffOfVariationSquared(static_cast<LQIO::DOM::ExternalVariable *>(arg));
+	} else if ( entry->hasPhase(i) ) {
+	    LQIO::DOM::Phase* phase = entry->getPhase(i);
+	    phase->setCoeffOfVariationSquaredValue( 0. );
+	}
     }
     
     /* Close the argument list */
