@@ -75,13 +75,13 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
-	@srvndiff -Q $(EPSILON) $@ ../../models/regression/sim-results/$*.p
+	@srvndiff -Q $(EPSILON) ../../models/regression/sim-results/$*.p $@ 
 
 .lqnx.d:
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff $< ../../models/regression/sim-results/$*.p > $@
+	-srvndiff ../../models/regression/sim-results/$*.p $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q $(EPSILON) -@- . ../../models/regression/sim-results
