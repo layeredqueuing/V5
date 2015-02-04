@@ -1349,7 +1349,7 @@ GD::destroy()
     im = 0;
 }
 
-#if HAVE_GD_H && HAVE_GDIMAGEGIFPTR
+#if HAVE_GDIMAGEGIFPTR
 ostream&
 GD::outputGIF( ostream& output )
 {

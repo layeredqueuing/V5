@@ -14,6 +14,7 @@
 #include <cassert>
 #include <iostream>
 #include <cmath>
+#include <algorithm>
 
 namespace LQIO {
     namespace DOM {
