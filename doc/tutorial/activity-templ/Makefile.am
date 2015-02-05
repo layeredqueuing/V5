@@ -9,7 +9,7 @@
 SUBDIRS = 
 SRCS =	activity-templ.fig
 
-EXTRA_DIST = $(SRCS) activity-templ.lqnx
+EXTRA_DIST = $(SRCS) activity-templ.lqnx activity-templ.lqn
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 
