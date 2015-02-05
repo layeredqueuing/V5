@@ -9,7 +9,7 @@
 SUBDIRS = 
 SRCS =	web-server-class.fig	web-server-deploy.fig	web-server.fig
 
-EXTRA_DIST = $(SRCS) reserve-templ.lqnx
+EXTRA_DIST = $(SRCS) reserve-templ.lqnx reserve-templ.lqn
 
 SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 

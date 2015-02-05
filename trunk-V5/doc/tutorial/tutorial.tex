@@ -306,28 +306,28 @@ LQNS/LQSIM in a simpler format using the ``original'' language\index{model langu
 and results. This facility replaces the experiment controller SPEX\index{SPEX}, which worked with the original
 language but has become unmaintainable. See section~\ref{sec:spex}.
 
-\subsection{XML Input File Grammar}
-%\subsection{Model solver code for the reservation system in Figure~\protect{\ref{fig:ticket-reservation-system}}}
-\label{sec:xml-grammar}
+%% \subsection{XML Input File Grammar}
+%% %\subsection{Model solver code for the reservation system in Figure~\protect{\ref{fig:ticket-reservation-system}}}
+%% \label{sec:xml-grammar}
 
-Input to the lqns model solver uses the schema shown in
-Figure~\ref{fig:schema} on page~\pageref{fig:schema}\index{schema}.  The ``classes''\index{schema!classes} in
-Figure~\ref{fig:schema} correspond to elements\index{schema!elements} in the XML input file.
-The attributes\index{schema!attribtues} for the classes correspond to the most commonly used
-parameters\index{XML!parameters} for a model.  Notice how every task must have a processor\index{processor},
-and tasks\index{task} are used to model many things: devices other than CPUs,
-external services that introduce a delay, users and their reaction
-time, critical sections and locks, buffers, etc.
+%% Input to the lqns model solver uses the schema shown in
+%% Figure~\ref{fig:schema} on page~\pageref{fig:schema}\index{schema}.  The ``classes''\index{schema!classes} in
+%% Figure~\ref{fig:schema} correspond to elements\index{schema!elements} in the XML input file.
+%% The attributes\index{schema!attribtues} for the classes correspond to the most commonly used
+%% parameters\index{XML!parameters} for a model.  Notice how every task must have a processor\index{processor},
+%% and tasks\index{task} are used to model many things: devices other than CPUs,
+%% external services that introduce a delay, users and their reaction
+%% time, critical sections and locks, buffers, etc.
 
-The behaviour of a task can be specified either using phases\index{phase} for an
-entry\index{entry}, or through activities\index{activity} defined for a task.  Usually, it is
-simpler to specifiy behaviour using phases (shown in black) since most
-tasks do not incorporate internal parallelism.  The file
-\texttt{reserv-templ} in the
-Appendix~\ref{sec:reserve-templ} contains the reservation system.
-It is a sample template file for models based entirely on entries.
-More information about tasks modeled using activities is found in
-Section~\ref{sec:activities}. 
+%% The behaviour of a task can be specified either using phases\index{phase} for an
+%% entry\index{entry}, or through activities\index{activity} defined for a task.  Usually, it is
+%% simpler to specifiy behaviour using phases (shown in black) since most
+%% tasks do not incorporate internal parallelism.  The file
+%% \texttt{reserv-templ} in the
+%% Appendix~\ref{sec:reserve-templ} contains the reservation system.
+%% It is a sample template file for models based entirely on entries.
+%% More information about tasks modeled using activities is found in
+%% Section~\ref{sec:activities}. 
 
 \section{Task resources, queueing, and multiplicity (threads)}
 \label{sec:tasks}
@@ -973,7 +973,7 @@ control, and extract the results in a compact form.
   consult a statistics text. Lqsim will calculate confidence
   intervals for you, for all its results, if you run with the
   \texttt{-A} (automatic) or \texttt{-B} (batched) run options. These
-  have the form -A,a,p,b or -B,n,b where b is a batch length in model
+  have the form \texttt{-A,a,p,b} or \texttt{-B,n,b} where b is a batch length in model
   time units, which should be say 100 times longer than the longest
   service time in your model, and n is the number batches (suggest 30,
   which is the max allowed). For A, a is the accuracy target in 5 of
