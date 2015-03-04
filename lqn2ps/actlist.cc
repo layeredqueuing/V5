@@ -1712,7 +1712,6 @@ RepeatActivityList::label()
 
 /*
  * Return the sum of aFunc.
- * Rate is set to zero for branches so that we don't count replies.
  */
 
 double
@@ -1724,7 +1723,12 @@ RepeatActivityList::aggregate( const Entry * anEntry, const unsigned curr_p, uns
     Activity * anActivity;
     for ( unsigned i = 1; anActivity = nextActivity(); ++i ) {
 	unsigned branch_p = curr_p;
-	sum += anActivity->aggregate( anEntry, curr_p, branch_p, i == 1 ? 1: 0.0, activityStack, aFunc );
+	double mult = 1.0;
+	const LQIO::DOM::ExternalVariable * var = rateBranch(i);
+	if ( var ) {
+	    var->getValue( mult );
+	}
+	sum += anActivity->aggregate( anEntry, curr_p, branch_p, mult * rate, activityStack, aFunc );
     }
     return sum;
 }
