@@ -53,6 +53,7 @@ public:
     virtual const Processor * processor() const;
     bool hasRate() const;
     LQIO::DOM::ExternalVariable& rate() const;
+    bool hasQuantum() const;
     LQIO::DOM::ExternalVariable& quantum() const;
     unsigned taskDepth() const;
     double meanLevel() const;

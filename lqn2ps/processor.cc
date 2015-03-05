@@ -164,9 +164,9 @@ Processor::processor( const Processor * )
 bool
 Processor::hasRate() const
 { 
-    const LQIO::DOM::ExternalVariable * m = dynamic_cast<const LQIO::DOM::Processor *>(getDOM())->getRate();
+    const LQIO::DOM::ExternalVariable * rate = dynamic_cast<const LQIO::DOM::Processor *>(getDOM())->getRate();
     double v;
-    return !m->wasSet() || !m->getValue(v) || v != 1.0;
+    return !rate->wasSet() || !rate->getValue(v) || v != 1.0;
 }
 
 LQIO::DOM::ExternalVariable& 
@@ -175,6 +175,13 @@ Processor::rate() const
     return *dynamic_cast<const LQIO::DOM::Processor *>(getDOM())->getRate();
 }
 
+bool
+Processor::hasQuantum() const
+{ 
+    const LQIO::DOM::ExternalVariable * quantum = dynamic_cast<const LQIO::DOM::Processor *>(getDOM())->getQuantum();
+    double v;
+    return quantum && (!quantum->wasSet() || !quantum->getValue(v) || v != 1.0);
+}
 
 LQIO::DOM::ExternalVariable& 
 Processor::quantum() const
@@ -711,20 +718,11 @@ Processor::create( const LQIO::DOM::Processor* domProcessor )
  */
 
 static ostream&
-proc_scheduling_of_str( ostream& output, const Processor & aProcessor )
+proc_scheduling_of_str( ostream& output, const Processor & processor )
 {
-    output << ' ';
-    switch ( aProcessor.scheduling() ) {
-    case SCHEDULE_DELAY:    output << 'i'; break;
-    case SCHEDULE_FIFO:	    output << 'f'; break;
-    case SCHEDULE_HOL:	    output << 'h'; break;
-    case SCHEDULE_PPR:	    output << 'p'; break;
-    case SCHEDULE_RAND:     output << 'r'; break;
-    case SCHEDULE_CFS:	    output << "c " << aProcessor.quantum(); break;
-    case SCHEDULE_PS:       output << "s " << aProcessor.quantum(); break;
-    case SCHEDULE_PS_HOL:   output << "H " << aProcessor.quantum(); break;
-    case SCHEDULE_PS_PPR:   output << "P " << aProcessor.quantum(); break;
-    default:		    output << '?'; break;
+    output << ' ' << scheduling_type_flag[static_cast<unsigned int>(processor.scheduling())];
+    if ( processor.hasQuantum() ) {
+	output << ' ' << processor.quantum();
     }
     return output;
 }

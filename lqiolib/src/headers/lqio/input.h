@@ -95,5 +95,6 @@ extern int LQIO_lineno;				/* Input line number -- can't use namespace because i
 
 extern const char * scheduling_type_str[N_SCHEDULING_TYPES+1];
 extern const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1];   
+extern const char scheduling_type_flag[N_SCHEDULING_TYPES];
 #endif
 #endif	/* LQIO_INPUT_H */
