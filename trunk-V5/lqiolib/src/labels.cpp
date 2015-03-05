@@ -76,6 +76,8 @@ const char * scheduling_type_str[N_SCHEDULING_TYPES+1] =
     0
 };
 
+const char scheduling_type_flag[N_SCHEDULING_TYPES] = "rifhprsHPPbucw";
+
 const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1] =
 {
     "ref",
