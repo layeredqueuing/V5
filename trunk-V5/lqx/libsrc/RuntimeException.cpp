@@ -107,12 +107,12 @@ namespace LQX {
 
 namespace LQX {
   
-  ArgumentMismatchException::ArgumentMismatchException(std::string name, int has, int min, int max) throw()
+  ArgumentMismatchException::ArgumentMismatchException(const std::string& name, int has, int min, int max) throw()
     : RuntimeException("Function %s needs between %d and %d arguments, but has %d", name.c_str(), min, max, has)
   {
   }
   
-  ArgumentMismatchException::ArgumentMismatchException(std::string name, const std::string& is, const std::string& shouldBe) throw()
+  ArgumentMismatchException::ArgumentMismatchException(const std::string& name, const std::string& is, const std::string& shouldBe) throw()
     : RuntimeException("Argument to function %s is %s but should be %s", name.c_str(), is.c_str(), shouldBe.c_str())
   {
   }
@@ -130,7 +130,7 @@ namespace LQX {
 
 namespace LQX {
 
-  AbortException::AbortException(std::string whyAbort, double code) throw()
+  AbortException::AbortException(const std::string& whyAbort, double code) throw()
     : RuntimeException("abort() function called, code = %f, reason: %s",
 	  code, whyAbort.c_str()) 
   {
@@ -149,7 +149,7 @@ namespace LQX {
 
 namespace LQX {
   
-  InvalidPropertyException::InvalidPropertyException(std::string typeName, std::string propertyName) throw()
+  InvalidPropertyException::InvalidPropertyException(const std::string& typeName, const std::string& propertyName) throw()
     : RuntimeException("Object of type %s does not have property %s",
     typeName.c_str(), propertyName.c_str()) 
   {
@@ -168,12 +168,30 @@ namespace LQX {
 
 namespace LQX {
   
-  IndexNotValidException::IndexNotValidException(std::string keyDesc, std::string arrayDesc) throw()
+  IndexNotValidException::IndexNotValidException(const std::string& keyDesc, const std::string& arrayDesc) throw()
   : RuntimeException("Index %s is not valid for array %s", keyDesc.c_str(), arrayDesc.c_str())
   {
   }
   
   IndexNotValidException::~IndexNotValidException() throw()
+  {
+  }
+  
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+namespace LQX {
+  
+  InvalidArgumentException::InvalidArgumentException(const std::string& name, const std::string& arg) throw()
+  : RuntimeException("Invalid argument to function %s: %s", name.c_str(), arg.c_str())
+  {
+  }
+  
+  InvalidArgumentException::~InvalidArgumentException() throw()
   {
   }
   

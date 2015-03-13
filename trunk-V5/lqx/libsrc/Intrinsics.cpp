@@ -47,7 +47,11 @@ namespace LQX {
 
 	static double beta_rv( double a, double b )
 	{
-	    if ( a >= 1 || b >= 1 ) throw RuntimeException("Invalid argument for Beta RV()");
+	    if ( a >= 1 ) {
+		throw InvalidArgumentException("beta(a,b)","a >= 1");
+	    } else if ( b >= 1 ) {
+		throw InvalidArgumentException("beta(a,b)","b >= 1");
+	    }
 	    for (;;) {
 		const double x = pow( erand48( xsubi ), 1/a );
 		const double y = pow( erand48( xsubi ), 1/b );
@@ -57,7 +61,11 @@ namespace LQX {
 
 	static double gamma_rv( double a, double b )
 	{
-	    if ( a <= 0 || b <= 0 ) throw RuntimeException("Invalid argument for Gamma RV()");
+	    if ( a <= 0 ) {
+		throw InvalidArgumentException("gamma(a,b)", "a <= 0" );
+	    } else if ( b <= 0 ) {
+		throw InvalidArgumentException("gamma(a,b)", "b <= 0" );
+	    }
 	    if ( b < 1 ) {
 		const double x = beta_rv(b, 1-b);
 		const double y = exp_rv(1);
@@ -182,6 +190,7 @@ namespace LQX {
 	SymbolAutoRef Log::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
 	{
 	    double arg1 = decodeDouble(args, 0);
+	    if ( arg1 < 0 ) throw InvalidArgumentException("log(a)", "a < 0");
 	    return Symbol::encodeDouble(log(arg1));
 	}
 
@@ -209,7 +218,11 @@ namespace LQX {
 	{
 	    const double mean = decodeDouble( args, 0 );
 	    const double b = decodeDouble( args, 1 );	// shape 
-	    if ( b <= 0 || mean <= 0 ) throw RuntimeException("Invalid argument to Gamma.");
+	    if ( mean <= 0 ) {
+		throw InvalidArgumentException("gamma(a,b)", "a <= 0" );
+	    } else if ( b <= 0 ) {
+		throw InvalidArgumentException("gamma(a,b)", "b <= 0" );
+	    }
 	    const double a = mean / b;
 	    return Symbol::encodeDouble( gamma_rv( a, b ) );
 	}
@@ -218,7 +231,7 @@ namespace LQX {
 	{
 	    const double low = decodeDouble( args, 0 );
 	    const double high = decodeDouble( args, 1 );	// shape 
-	    if ( high > low ) throw RuntimeException("Invalid argument to Gamma.");
+	    if ( low >= high ) throw InvalidArgumentException("uniform(a,b)", "a >= b" );
 	    return Symbol::encodeDouble( erand48( xsubi ) *  ( high - low ) + low );
 	}
 
@@ -439,6 +452,7 @@ namespace LQX {
 	table->registerMethod(new Intrinsics::Normal());
 	table->registerMethod(new Intrinsics::Gamma());
 	table->registerMethod(new Intrinsics::Poisson());
+	table->registerMethod(new Intrinsics::Uniform());
 	table->registerMethod(new Intrinsics::Str());
 	table->registerMethod(new Intrinsics::Double());
 	table->registerMethod(new Intrinsics::Boolean());
