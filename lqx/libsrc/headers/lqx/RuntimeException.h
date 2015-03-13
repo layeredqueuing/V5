@@ -74,8 +74,8 @@ namespace LQX {
   
   class ArgumentMismatchException : public RuntimeException {
   public:
-    ArgumentMismatchException(std::string name, int has, int min, int max) throw();
-    ArgumentMismatchException(std::string name, const std::string& is, const std::string& shouldBe) throw();
+    ArgumentMismatchException(const std::string& name, int has, int min, int max) throw();
+    ArgumentMismatchException(const std::string& name, const std::string& is, const std::string& shouldBe) throw();
     virtual ~ArgumentMismatchException() throw();
   };
   
@@ -86,7 +86,7 @@ namespace LQX {
 
   class AbortException : public RuntimeException {
   public:
-    AbortException(std::string whyAbort, double code) throw();
+    AbortException(const std::string& whyAbort, double code) throw();
     virtual ~AbortException() throw();
   };
 
@@ -97,7 +97,7 @@ namespace LQX {
 
   class InvalidPropertyException : public RuntimeException {
   public:
-    InvalidPropertyException(std::string typeName, std::string propertyName) throw();
+    InvalidPropertyException(const std::string& typeName, const std::string& propertyName) throw();
     virtual ~InvalidPropertyException() throw();
   };
   
@@ -108,8 +108,19 @@ namespace LQX {
   
   class IndexNotValidException : public RuntimeException {
   public:
-    IndexNotValidException(std::string keyDesc, std::string arrayDesc) throw();
+    IndexNotValidException(const std::string& keyDesc, const std::string& arrayDesc) throw();
     virtual ~IndexNotValidException() throw();
+  };
+  
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+  
+  class InvalidArgumentException : public RuntimeException {
+  public:
+    InvalidArgumentException(const std::string& keyDesc, const std::string& arrayDesc) throw();
+    virtual ~InvalidArgumentException() throw();
   };
   
 }

@@ -5,7 +5,7 @@
 
 %define product_name lqns
 %define product_version VERSION
-%define rpm_release 4
+%define rpm_release 5
 %define product_nameversion %{product_name}-%{product_version}
 %define product_source_dir %{product_nameversion}
 %define product_tarball %{product_nameversion}.tar.gz
