@@ -162,7 +162,7 @@ namespace LQIO {
 	    }
 	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( local, false ), node );
 	    __observations[local] = assignment;
-	    return node;
+	    return object;		/* For chaining */
 	}
 
 	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject& document_object, const int phase, const int key, const char * name ) 
@@ -190,7 +190,7 @@ namespace LQIO {
 	    assert( node );
 	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( local, false ), node );
 	    __observations[local] = assignment;
-	    return node;
+	    return object;		/* For chaining */
 	}
     
 	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject& src, const int phase, const DocumentObject& dst, const int key, const char * name )
@@ -215,7 +215,7 @@ namespace LQIO {
 	    LQX::ObjectPropertyReadNode * node = new LQX::ObjectPropertyReadNode( object, __key_lqx_function_map[key] ); 
 	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( local, false ), node );
 	    __observations[local] = assignment;
-	    return node;		/* For chaining */
+	    return object;		/* For chaining */
 	}
 
 	LQX::SyntaxTreeNode * Spex::confidence_interval( LQX::SyntaxTreeNode * object, const int key, const int interval, const char * name ) 
@@ -227,7 +227,7 @@ namespace LQIO {
 	    assert( node );
 	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( local, false ), node );
 	    __observations[local] = assignment;
-	    return node;		/* For chaining */
+	    return object;		/* For chaining */
 	}
 
 
