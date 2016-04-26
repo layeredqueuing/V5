@@ -1,4 +1,4 @@
-// $Id$
+// $Id: carrier.h 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	carrier.h - PS_Carrier, PS_Link and PS_Bus class declarations.
 //

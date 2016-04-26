@@ -1,4 +1,4 @@
-// $Id$
+// $Id: statistic.h 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	statistic.h - PS_AbstractStatistic, PS_RateStatistic, 
 //		     PS_VariableStatistic and PS_SampleStatistic class

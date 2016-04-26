@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12542 2016-04-04 17:00:21Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(lqsim, 5.8, greg@sce.carleton.ca)
+AC_INIT(lqsim, 5.9, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqsim.h])
 AC_CONFIG_HEADERS([config.h])
@@ -36,7 +36,6 @@ AC_PROG_LN_S
 # ----------------------------------------------------------------------
 # Checks for libraries.
 AC_CHECK_LIB([m], [sqrt])
-AC_SEARCH_LIBS([regcomp], [regex] )
 
 # ----------------------------------------------------------------------
 # Checks for header files.
@@ -53,12 +52,9 @@ AC_TYPE_SIZE_T
 # ----------------------------------------------------------------------
 # Checks for library functions.
 AC_FUNC_FORK
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_FUNC_VPRINTF
 AC_CHECK_FUNCS([floor getopt_long pow regcomp sqrt strchr strdup strerror uname])
 AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpclass fpgetsticky fpsetmask fpsetsticky])
 
-AM_CONDITIONAL([COND_REGEX], [test ${ac_cv_func_regcomp} = "no"])
 AC_CONFIG_FILES([Makefile regression/Makefile])
 AC_OUTPUT

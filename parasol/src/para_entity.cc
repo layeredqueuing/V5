@@ -1,4 +1,4 @@
-// $Id$
+// $Id: para_entity.cc 7631 2007-11-14 18:10:13Z greg $
 //=======================================================================
 //	para_entity.cc - PS_ParasolEntity class definition.
 //

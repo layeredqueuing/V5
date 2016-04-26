@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
- * $HeadURL$ -- Greg Franks
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/overtake.h $ -- Greg Franks
  *
- * $Id$
+ * $Id: overtake.h 11963 2014-04-10 14:36:42Z greg $
  */
 
 #ifndef _OVERTAKE_H

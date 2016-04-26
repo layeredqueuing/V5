@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_bindings.cpp 11963 2014-04-10 14:36:42Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.

@@ -1,4 +1,4 @@
-/*
+/* -*- c-mode -*-
  *  Parser.ypp
  *  ModLang
  *
@@ -27,15 +27,18 @@
 using namespace LQX;
 }
 
+/* The enumeration must match the headers/lqx/Parser.h */
+
 %nonassoc BOOLEAN STRING DOUBLE IDENTIFIER.
-%nonassoc FOR FOREACH IN WHILE IF ELSE.
+%nonassoc FOR FOREACH IN WHILE BREAK IF ELSE RETURN.
 %nonassoc FILE_WRITE FILE_READ FILE_APPEND READ_LOOP.
 %nonassoc FILE_OPEN FILE_PRINT FILE_PRINTLN FILE_PRINT_SP FILE_PRINTLN_SP FILE_CLOSE READ_DATA.
 %nonassoc OBRACKET CBRACKET OBRACE CBRACE OSQUARE CSQUARE DOT.
-%nonassoc INC DEC STAR SLASH PLUS MINUS MOD LEFTSHIFT RIGHTSHIFT.
+%nonassoc EXP STAR SLASH PLUS MINUS MOD LEFTSHIFT RIGHTSHIFT.
 %nonassoc LOGIC_OR LOGIC_AND LOGIC_NOT.
 %nonassoc EQUALS_EQUALS NOT_EQUALS LESS_THAN GREATER_THAN LESS_EQUAL GREATER_EQUAL.
-%nonassoc EQUALS SEMICOLON COMMA MAPS NULL FUNCTION ELLIPSIS.
+%nonassoc EQUALS EXP_EQUALS STAR_EQUALS SLASH_EQUALS PLUS_EQUALS MINUS_EQUALS MOD_EQUALS LEFTSHIFT_EQUALS RIGHTSHIFT_EQUALS.
+%nonassoc SEMICOLON COMMA MAPS NULL FUNCTION ELLIPSIS.
 
  /*
   * program
@@ -46,6 +49,7 @@ using namespace LQX;
   */
 
 program ::= root_stmt_list(A).                                               { ctx->setRootStatementList(A); }
+program ::= .                                                                { ctx->setRootStatementList(NULL); }
 
 %type root_stmt_list { std::vector<SyntaxTreeNode*>*  }
 root_stmt_list(X) ::= root_stmt(A).                                          { X = new std::vector<SyntaxTreeNode*>(); X->push_back(A); }
@@ -53,7 +57,6 @@ root_stmt_list(X) ::= root_stmt_list(A) root_stmt(B).                        { X
 
 root_stmt(X) ::= stmt(A).                                                    { X = A; }
 root_stmt(X) ::= declare_fn_stmt(A).                                         { X = A; }
-root_stmt(X) ::= .                                                           { X = NULL; }
 
  /*
   * stmt_list
@@ -72,10 +75,49 @@ stmt_list(X) ::= stmt_list(A) stmt(B).                                        { 
   * Classes of Statements
   */
 
-stmt(X) ::= expr_stmt(A).                                                     { X = A; }
-stmt(X) ::= conditional_stmt(A).                                              { X = A; }
-stmt(X) ::= compound_stmt(A).                                                 { X = A; }
-stmt(X) ::= loop_stmt(A).                                                     { X = A; }
+stmt(X) ::= open_stmt(A).                                                     { X = A; }
+stmt(X) ::= closed_stmt(A).                                                   { X = A; }
+
+ /*
+  * conditional_stmt
+  * Basic Conditional Statements
+  */
+
+open_stmt(X) ::= IF OBRACKET expr(A) CBRACKET stmt(B).                              { X = new ConditionalStatementNode(A, B, NULL); }
+open_stmt(X) ::= IF OBRACKET expr(A) CBRACKET closed_stmt(B) ELSE open_stmt(C).     { X = new ConditionalStatementNode(A, B, C); }
+open_stmt(X) ::= open_loop_stmt(A).						    { X = A; }
+
+closed_stmt(X) ::= expr_stmt(A).                                                    { X = A; }
+closed_stmt(X) ::= BREAK SEMICOLON.                                                 { X = new BreakStatementNode(); }
+closed_stmt(X) ::= RETURN SEMICOLON.                                                { X = new ReturnStatementNode( NULL ); }
+closed_stmt(X) ::= RETURN logic_or_stmt(A) SEMICOLON.                               { X = new ReturnStatementNode( A ); }
+closed_stmt(X) ::= compound_stmt(A).                                                { X = A; }
+closed_stmt(X) ::= IF OBRACKET expr(A) CBRACKET closed_stmt(B) ELSE closed_stmt(C). { X = new ConditionalStatementNode(A, B, C); }
+closed_stmt(X) ::= closed_loop_stmt(A).                                             { X = A; }
+
+ /*
+  * loop_stmt
+  * Loop Expressions
+  */
+
+open_loop_stmt(X) ::= WHILE OBRACKET expr(A) CBRACKET open_stmt(B).           { X = new LoopStatementNode( NULL, A, NULL, B ); }
+open_loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN 
+  expr(C) CBRACKET open_stmt(D).                                              { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
+open_loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) IN expr(C) CBRACKET 
+  open_stmt(D).                                                               { X = new ForeachStatementNode( "", A->getStoredIdentifier(), false, A->getIsExternal(), C, D ); }
+open_loop_stmt(X) ::= FOR OBRACKET expr_stmt(A) expr_stmt(B) 
+  opt_e(C) CBRACKET open_stmt(D).                                             { X = new LoopStatementNode( A, B, C, D ); }
+
+closed_loop_stmt(X) ::= WHILE OBRACKET expr(A) CBRACKET closed_stmt(B).       { X = new LoopStatementNode( NULL, A, NULL, B ); }
+closed_loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN 
+  expr(C) CBRACKET closed_stmt(D).                                            { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
+closed_loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) IN expr(C) CBRACKET 
+  closed_stmt(D).                                                             { X = new ForeachStatementNode( "", A->getStoredIdentifier(), false, A->getIsExternal(), C, D ); }
+closed_loop_stmt(X) ::= FOR OBRACKET expr_stmt(A) expr_stmt(B) 
+  opt_e(C) CBRACKET closed_stmt(D).                                           { X = new LoopStatementNode( A, B, C, D ); }
+
+opt_e(X) ::= .                                                                { X = NULL; }
+opt_e(X) ::= expr(A).                                                         { X = A; }
 
  /*
   * compound_stmt
@@ -84,33 +126,6 @@ stmt(X) ::= loop_stmt(A).                                                     { 
 
 compound_stmt(X) ::= OBRACE CBRACE.                                           { X = NULL; }
 compound_stmt(X) ::= OBRACE stmt_list(A) CBRACE.                              { X = new CompoundStatementNode(A); }
-
- /*
-  * loop_stmt
-  * Loop Expressions
-  */
-
-loop_stmt(X) ::= WHILE OBRACKET expr(A) CBRACKET stmt(B).                     { X = new LoopStatementNode( NULL, A, NULL, B ); }
-loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN 
-  expr(C) CBRACKET stmt(D).                                                   { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
-loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) IN expr(C) CBRACKET stmt(D).  { X = new ForeachStatementNode( "", A->getStoredIdentifier(), false, A->getIsExternal(), C, D ); }
-loop_stmt(X) ::= FOR OBRACKET expr_stmt(A) expr_stmt(B) 
-  opt_e(C) CBRACKET stmt(D).                                                  { X = new LoopStatementNode( A, B, C, D ); }
-opt_e(X) ::= .                                                                { X = NULL; }
-opt_e(X) ::= expr(A).                                                         { X = A; }
-
-
-
-
- /*
-  * conditional_stmt
-  * Basic Conditional Statements
-  */
-
-conditional_stmt(X) ::= IF OBRACKET expr(A) CBRACKET stmt(B) opt_else(C).     { X = new ConditionalStatementNode(A, B, C); }
-
-opt_else(X) ::= .                                                             { X = NULL; }
-opt_else(X) ::= ELSE stmt(A).                                                 { X = A; }
 
  /*
   * expr_stmt
@@ -124,7 +139,15 @@ expr(X) ::= assignment_stmt(A).                                               { 
 expr(X) ::= expr(A) COMMA assignment_stmt(B).                                 { X = new CompoundStatementNode(A, B, NULL); }
 
 assignment_stmt(X) ::= logic_or_stmt(A).                                      { X = A; }
-assignment_stmt(X) ::= logic_or_stmt(A) EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, B); }
+assignment_stmt(X) ::= vpf_stmt(A) EQUALS logic_or_stmt(B).                   { X = new AssignmentStatementNode(A, B); }
+assignment_stmt(X) ::= vpf_stmt(A) EXP_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::POWER, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) STAR_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::MULTIPLY, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) SLASH_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::DIVIDE, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) PLUS_EQUALS logic_or_stmt(B).              { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::ADD, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) MINUS_EQUALS logic_or_stmt(B).             { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SUBTRACT, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) MOD_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::MODULUS, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) LEFTSHIFT_EQUALS logic_or_stmt(B).         { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_LEFT, A, B)); }
+assignment_stmt(X) ::= vpf_stmt(A) RIGHTSHIFT_EQUALS logic_or_stmt(B).        { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_RIGHT, A, B)); }
 
 logic_or_stmt(X) ::= logic_and_stmt(A).                                       { X = A; }
 logic_or_stmt(X) ::= logic_or_stmt(A) LOGIC_OR logic_and_stmt(B).             { X = new LogicExpression(LogicExpression::OR, A, B); }
@@ -150,10 +173,13 @@ add_sub_stmt(X) ::= mul_div_stmt(A).                                          { 
 add_sub_stmt(X) ::= add_sub_stmt(A) PLUS mul_div_stmt(B).                     { X = new MathExpression(MathExpression::ADD, A, B); }  
 add_sub_stmt(X) ::= add_sub_stmt(A) MINUS mul_div_stmt(B).                    { X = new MathExpression(MathExpression::SUBTRACT, A, B); }
 
-mul_div_stmt(X) ::= prefix_stmt(A).                                           { X = A; }
-mul_div_stmt(X) ::= mul_div_stmt(A) STAR prefix_stmt(B).                      { X = new MathExpression(MathExpression::MULTIPLY, A, B); }  
-mul_div_stmt(X) ::= mul_div_stmt(A) SLASH prefix_stmt(B).                     { X = new MathExpression(MathExpression::DIVIDE, A, B); }  
-mul_div_stmt(X) ::= mul_div_stmt(A) MOD prefix_stmt(B).                       { X = new MathExpression(MathExpression::MODULUS, A, B); }  
+mul_div_stmt(X) ::= exp_stmt(A).                                              { X = A; }
+mul_div_stmt(X) ::= mul_div_stmt(A) STAR exp_stmt(B).                         { X = new MathExpression(MathExpression::MULTIPLY, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) SLASH exp_stmt(B).                        { X = new MathExpression(MathExpression::DIVIDE, A, B); }  
+mul_div_stmt(X) ::= mul_div_stmt(A) MOD exp_stmt(B).                          { X = new MathExpression(MathExpression::MODULUS, A, B); }  
+
+exp_stmt(X) ::= prefix_stmt(A).                                               { X = A; }
+exp_stmt(X) ::= prefix_stmt(A) EXP exp_stmt(B).                               { X = new MathExpression(MathExpression::POWER, A, B); }                
 
 prefix_stmt(X) ::= vpf_stmt(A).                                               { X = A; }
 prefix_stmt(X) ::= LOGIC_NOT vpf_stmt(A).                                     { X = new LogicExpression(LogicExpression::NOT, A, NULL); }

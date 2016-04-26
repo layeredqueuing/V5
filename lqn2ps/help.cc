@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id$
+ * $Id: help.cc 12550 2016-04-06 22:33:52Z greg $
  */
 
 #include "lqn2ps.h"
@@ -100,13 +100,13 @@ usage( const bool full_usage )
 #else
     for ( unsigned i = 0; i < N_FLAG_VALUES; ++i ) {
 	if ( !Flags::print[i].arg ) {
-	    cerr << "(+|-)" << Flags::print[i].c << "  " << Flags::print[i].msg 
+	    cerr << "(+|-)" << static_cast<char>(Flags::print[i].c) << "  " << Flags::print[i].msg 
 		 << " (" << (Flags::print[i].value.b ? "true" : "false") << ")" << endl;
 	}
     }
-    for ( i = 0; i < N_FLAG_VALUES; ++i ) {
+    for ( unsigned int i = 0; i < N_FLAG_VALUES; ++i ) {
 	if ( Flags::print[i].arg ) {
-	    cerr << flag_value(i) << endl;
+	    cerr << "-" << static_cast<char>(Flags::print[i].c) << "  " << Flags::print[i].msg << endl;
 	}
     }
 #endif
@@ -152,7 +152,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
 
-    cout << comm << " $Id$" << endl
+    cout << comm << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 

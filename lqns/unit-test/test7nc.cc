@@ -1,9 +1,9 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test7nc.cc $
  *
  * Markov Phased server test.  N customers.  One client to common entry.
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test7nc.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

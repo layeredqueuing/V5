@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id$
+ * $Id: lqn2ps.cc 12350 2015-12-02 02:55:32Z greg $
  */
 
 #include "lqn2ps.h"
@@ -35,7 +35,7 @@
 
 extern "C" int LQIO_debug;
 
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 bool SolverInterface::Solve::solveCallViaLQX = false;/* Flag when a solve() call was made */
 
 static bool setAllResultOptions( const bool yesOrNo );
@@ -162,7 +162,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     string output_file_name = "";
 
-    sscanf( "$Date$", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2015-12-01 21:55:32 -0500 (Tue, 01 Dec 2015) $", "%*s %s %*s", copyrightDate );
 
     static string opts = "";
 #if HAVE_GETOPT_H

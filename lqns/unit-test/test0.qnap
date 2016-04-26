@@ -1,9 +1,9 @@
-& $HeadURL$
+& $HeadURL: svn://franks.dnsalias.com/lqn/trunk/lqns/unit-test/test0.qnap $
 &
 & Lazowska, Ch 6, Page 117
 &
 & ------------------------------------------------------------------------
-& $Id$
+& $Id: test0.qnap 7648 2008-01-19 20:40:21Z greg $
 & ------------------------------------------------------------------------
 /declare/
    queue Disk1, Disk2, Think, CPU;

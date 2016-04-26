@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/lqns.h $
  *
  * SRVN command line interface.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id$
+ * $Id: lqns.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

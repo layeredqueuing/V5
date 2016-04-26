@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id$
+ * $Id: option.cc 12350 2015-12-02 02:55:32Z greg $
  */
 
 #include <config.h>
@@ -20,7 +20,7 @@
 #include "mva.h"
 #include "pragma.h"
 
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 std::map<const char *, Options::Debug, lt_str> Options::Debug::__table;
 const char ** Options::Debug::__options;

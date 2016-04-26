@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_extvar.h 12338 2015-12-01 17:12:23Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -43,6 +43,7 @@ namespace LQIO {
 	    /* Obtaining the Value */
 	    virtual void set(double value) = 0;
 	    virtual bool getValue(double& result) const = 0;
+	    virtual const std::string& getName() const = 0;
 	    virtual bool wasSet() const = 0;
 
 	protected:
@@ -78,6 +79,7 @@ namespace LQIO {
 	    /* Obtaining the Value */
 	    virtual void set(double value);
 	    virtual bool getValue(double& result) const;
+	    virtual const std::string& getName() const;
 	    virtual bool wasSet() const;
       
 	protected:
@@ -114,6 +116,7 @@ namespace LQIO {
 	    virtual void set(double value);
 	    virtual bool getValue(double& result) const;
 	    virtual bool wasSet() const;
+	    virtual const std::string& getName() const { return _name; }
       
 	protected:
 	    virtual std::ostream& print( std::ostream& ) const;
@@ -139,5 +142,4 @@ namespace LQIO {
 	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
     };
 };
-
 #endif /* __LQIO_DOM_EXTVAR__ */

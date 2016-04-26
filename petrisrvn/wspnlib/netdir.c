@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: netdir.c 10972 2012-06-19 01:12:22Z greg $
  *
  *  Check for "nets" dir.
  *

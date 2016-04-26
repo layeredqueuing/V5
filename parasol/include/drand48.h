@@ -1,7 +1,7 @@
 /* drand48.h	-- Greg Franks
  *
  * $HeadURL$
- * $Id$
+ * $Id: drand48.h 9042 2009-10-14 01:31:21Z greg $
  */
 
 #ifndef _DRAND48_H

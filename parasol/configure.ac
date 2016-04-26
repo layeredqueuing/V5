@@ -1,7 +1,7 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 # $id$
-# $HeadURL$
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/parasol/configure.ac $
 
 #AC_PREREQ(2.57)
 AC_INIT(parsol, 3.2, greg@sce.carleton.ca)
@@ -34,9 +34,7 @@ AC_CHECK_TYPES([stack_t])
 
 # Checks for library functions.
 AC_FUNC_FORK
-AC_FUNC_MALLOC
 AC_FUNC_MEMCMP
-AC_FUNC_REALLOC
 AC_FUNC_SELECT_ARGTYPES
 AC_TYPE_SIGNAL
 AC_CHECK_FUNCS([bzero getpagesize drand48 feenableexcept fpsetmask kill _longjmp memset memmove pow _setjmp select sigaltstack sqrt strcasecmp strchr strncasecmp strrchr strstr])

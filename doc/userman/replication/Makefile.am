@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile.am 10133 2011-01-03 19:31:58Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	flat.fig          multiserver.fig   replicaserver.fig replicated.fig    

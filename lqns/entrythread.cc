@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id$
+ * $Id: entrythread.cc 11963 2014-04-10 14:36:42Z greg $
  *
  */
 

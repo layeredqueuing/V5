@@ -13,7 +13,7 @@ if ( double(false) != 0.0  ) { abort(1, "d: failed 3"); }
 if ( double(9.888) != 9.888) { abort(1, "d: failed 4"); }
 if ( double(NULL)  != 0.0  ) { abort(1, "d: failed 5"); }
 if ( double(ary)   != NULL ) { abort(1, "d: failed 6"); }
-print("All tests on double() passed.");
+println("All tests on double() passed.");
 
 /* Check all the different cases for function bool() */
 if ( bool(true)    != true ) { abort(2, "b: failed 1"); }
@@ -28,4 +28,4 @@ if ( bool(-989.01) != true)  { abort(2, "b: failed 9"); }
 if ( bool(989.01)  != true)  { abort(2, "b: failed 10"); }
 if ( bool(NULL)    != false) { abort(2, "b: failed 11"); }
 if ( bool(ary)     != false) { abort(2, "b: failed 12"); }
-print("All tests on bool() passed.");
+println("All tests on bool() passed.");

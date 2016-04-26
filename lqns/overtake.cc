@@ -1,5 +1,5 @@
 /* overtake.C	-- Greg Franks Mon Mar 17 1997
- * $Id$
+ * $Id: overtake.cc 11963 2014-04-10 14:36:42Z greg $
  * 
  * Overtaking calculation.  See also slice.[Ch].
  * See

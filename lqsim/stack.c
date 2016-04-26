@@ -9,9 +9,9 @@
 /*
  * Input output processing.
  *
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/stack.c $
  *
- * $Id$
+ * $Id: stack.c 8913 2009-09-02 20:19:09Z greg $
  */
 
 #include "stack.h"

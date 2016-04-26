@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: filename.cpp 12112 2014-09-12 13:51:38Z greg $
  *
  * File name generation.
  *

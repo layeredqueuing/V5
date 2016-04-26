@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: cltn.cc 11963 2014-04-10 14:36:42Z greg $
  *
  * Collections.  Range checked.  Some set functions.  Start from 1.
  *

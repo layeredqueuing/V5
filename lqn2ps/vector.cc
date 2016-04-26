@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: vector.cc 11963 2014-04-10 14:36:42Z greg $
  *
  * Vectors.  Used for scalar types.  See Cltn for other types.  Range
  * checked.  Initialize.  Range from 1..n.

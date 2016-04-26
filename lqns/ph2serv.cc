@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: ph2serv.cc 11963 2014-04-10 14:36:42Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *

@@ -1,0 +1,11 @@
+function test()
+{
+  for ( i = 0; i < 10; i += 1  ) {
+    if ( i > 4 ) {
+      return i;
+    }
+  }
+}
+
+assert( test() == 5 );
+

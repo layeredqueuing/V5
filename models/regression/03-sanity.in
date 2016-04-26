@@ -1,7 +1,7 @@
-# SRVN Model Description File, for file: $HeadURL$
+# SRVN Model Description File, for file: $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/03-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 03-sanity.in 11963 2014-04-10 14:36:42Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - forwarding" 1e-05 50 10 0.5 -1

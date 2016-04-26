@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 11016 2012-06-25 19:04:30Z greg $
 # Binaries that need to be produced
 SUBDIRS = headers/lqx
 lib_LTLIBRARIES = liblqx.la

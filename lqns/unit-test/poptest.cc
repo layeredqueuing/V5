@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/poptest.cc $
  *
  * Population iterator testor.  See usage().
  * ------------------------------------------------------------------------
  *
- * $Id$
+ * $Id: poptest.cc 9164 2010-01-28 19:27:03Z greg $
  */
 
 #include "testmva.h"

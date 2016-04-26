@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id$
+ * $Id: main.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 #include "lqn2ps.h"

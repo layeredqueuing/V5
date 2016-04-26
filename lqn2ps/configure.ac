@@ -1,11 +1,11 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-# $HeadURL$
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/configure.ac $
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12542 2016-04-04 17:00:21Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
-AC_INIT(lqn2ps, 5.8, greg@sce.carleton.ca)
+AC_INIT(lqn2ps, 5.9, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqn2ps.h])
 AC_CONFIG_HEADERS([config.h])
@@ -48,7 +48,6 @@ if test "x$enable_shared" != "xno"; then
    AC_CHECK_LIB([gd], [gdMalloc])
    AC_CHECK_LIB([fontconfig], [FcConfigSubstitute])
 fi
-AC_SEARCH_LIBS([regcomp], [regex] )
 
 # ----------------------------------------------------------------------
 # Checks for header files.
@@ -63,13 +62,11 @@ AC_CHECK_HEADERS([getopt.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
-AC_FUNC_MALLOC
 AC_FUNC_STRTOD
 AC_TYPE_SIZE_T
 
 # ----------------------------------------------------------------------
 # Checks for library functions.
-#AC_FUNC_MALLOC
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([basename ctime getsubopt])

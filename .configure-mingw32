@@ -1,0 +1,1 @@
+./configure --disable-shared CXXFLAGS='-static-libstdc++ -static-libgcc' -C

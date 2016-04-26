@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id$
+ * $Id: message.h 11378 2013-04-21 03:44:25Z greg $
  */
 
 #ifndef MESSAGE_H

@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 #
-# $Id$
+# $Id: Makefile 6206 2005-05-31 23:41:58Z greg $
 #
 
 SRVN=		petrisrvn

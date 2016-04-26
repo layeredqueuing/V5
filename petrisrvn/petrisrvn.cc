@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: petrisrvn.cc 12350 2015-12-02 02:55:32Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -59,7 +59,7 @@
 #include "runlqx.h"		// Coupling here is ugly at the moment
 #include "pragma.h"
 
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 static bool copyright_flag	= false; /* Print copyright notice	*/
 

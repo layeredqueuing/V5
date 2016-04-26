@@ -10,9 +10,9 @@
 /*
  * Input output processing.
  *
- * $URL$
+ * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id$
+ * $Id: entry.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 #include <parasol.h>

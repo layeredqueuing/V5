@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: change.c 10401 2011-07-06 22:53:31Z greg $
  *
  *  This file changes the net definitions.
  *

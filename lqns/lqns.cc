@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: lqns.cc 12548 2016-04-06 15:13:47Z greg $
  *
  * Command line processing.
  *
@@ -45,7 +45,7 @@
 
 extern "C" int LQIO_debug;
 
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 extern void init_errmsg(void);
 
 lqio_params_stats io_vars =
@@ -188,7 +188,11 @@ extern "C" int getsubopt (char **, char * const *, char **);
 int main (int argc, char *argv[])
 {
     string outputFileName = "";
+#if HAVE_GETOPT_LONG
     LQIO::CommandLine command_line( opts, longopts );
+#else
+    LQIO::CommandLine command_line( opts );
+#endif
 
     unsigned global_error_flag = 0;     /* Error detected anywhere??    */
 
@@ -197,7 +201,7 @@ int main (int argc, char *argv[])
     io_vars.lq_toolname = basename( argv[0] );
     command_line = io_vars.lq_toolname;
 
-    sscanf( "$Date$", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2016-04-06 11:13:47 -0400 (Wed, 06 Apr 2016) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 

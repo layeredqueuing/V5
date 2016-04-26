@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: para_protos.h 12546 2016-04-05 16:43:26Z greg $ */
 
 /************************************************************************/
 /*	para_protos.h - PARASOL library prototype and macro file	*/
@@ -104,7 +104,7 @@ extern	ps_table_t	ps_stat_tab;
 #define ps_my_schedule_time	(ps_htp->sched_time)
 #define ps_my_end_compute_time	(ps_htp->end_compute_time)
 
-#define	ps_myself ((((long)ps_htp)-ps_task_tab.base)/ps_task_tab.entry_size)
+#define	ps_myself ((((char *)ps_htp)-ps_task_tab.base)/ps_task_tab.entry_size)
 
 #define	ps_task_name(task)	(ps_task_ptr((task))->name)
 #define	ps_task_state(task)	(ps_task_ptr((task))->state)

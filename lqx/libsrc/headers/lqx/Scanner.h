@@ -10,6 +10,8 @@
 #ifndef __SCANNER_H__
 #define __SCANNER_H__
 
+#include "Parser.h"
+
 namespace LQX {
   
   class ScannerToken {
@@ -27,10 +29,10 @@ namespace LQX {
   public:
     
     /* Constructors and Destructor */
-    ScannerToken(int lineno, int code);
-    ScannerToken(int lineno, int code, bool b);
-    ScannerToken(int lineno, int code, double d);
-    ScannerToken(int lineno, int code, Type type, const char* string, unsigned int len, bool external);
+    ScannerToken(int lineno, ParserToken code);
+    ScannerToken(int lineno, ParserToken code, bool b);
+    ScannerToken(int lineno, ParserToken code, double d);
+    ScannerToken(int lineno, ParserToken code, Type type, const char* string, unsigned int len, bool external);
     ScannerToken(const ScannerToken& other);
     virtual ~ScannerToken();
     
@@ -39,7 +41,7 @@ namespace LQX {
     
     /* Obtaining the Value */
     unsigned getLineNumber() const;
-    int getTokenCode() const;
+    ParserToken getTokenCode() const;
     Type getStoredType() const;
     double getStoredDouble() const;
     const char* getStoredString() const;
@@ -53,7 +55,7 @@ namespace LQX {
     
     /* Code, Type and Values */
     unsigned _lineNumber;
-    int _tokenCode;
+    ParserToken _tokenCode;
     Type _storedType;
     bool _external;
     union {

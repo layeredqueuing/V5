@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id$
+ * $Id: submodel.h 11963 2014-04-10 14:36:42Z greg $
  */
 
 #ifndef _SUBMODEL_H

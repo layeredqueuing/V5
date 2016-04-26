@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: para_types.h 12547 2016-04-05 18:32:45Z greg $ */
 /************************************************************************/
 /*	para_types.h - PARASOL library typedef file			*/
 /*									*/
@@ -107,12 +107,12 @@ typedef	struct	ps_comm_t {			/* communication struct	*/
 
 typedef	struct  ps_cpu_t {			/* cpu processor struct	*/
 	long	state;				/* cpu state		*/
-	long	run_task;			/* running task	index	*/
+	size_t	run_task;			/* running task	index	*/
 	long	stat;				/* statistics index	*/
 	struct	ps_table_t	*ts_tab;	/* task stats table	*/
 	long	scheduler;			/* scheduler task	*/
 	long	catcher;			/* catcher task(if any)	*/
-	long	last_task;			/* last task index	*/
+	size_t	last_task;			/* last task index	*/
 	long 	port_n;				/* # of port		*/
 	struct ps_cfs_rq_t *group_rq;		/* pointer of cfs_rq for each group */ 
 } ps_cpu_t;
@@ -153,7 +153,7 @@ typedef	struct ps_link_t {			/* one-way link struct	*/
 
 typedef	struct	ps_lock_t {			/* lock struct		*/
 	long	state;				/* lock state		*/
-	long	owner;				/* lock owner index	*/
+	size_t	owner;				/* lock owner index	*/
 	long	queue;				/* lock queue           */
 	long	count;				/* lock queue count	*/
 	long	next;				/* next lock index	*/
@@ -272,7 +272,7 @@ typedef struct 	ps_table_t {			/* dynamic table struct	*/
 	long	used;				/* # of entries used	*/
 	long	rover;				/* rover index		*/
 	char	*tab;				/* table pointer	*/
-	long	base;				/* table base		*/
+	char	*base;				/* table base		*/
 } ps_table_t;
 
 /************************************************************************/

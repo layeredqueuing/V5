@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/interlock.h $
  *
  * Layer-ization of model.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id$
+ * $Id: interlock.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

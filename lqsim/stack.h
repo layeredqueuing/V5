@@ -9,9 +9,9 @@
 /*
  * Global vars for simulation.
  *
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/stack.h $
  *
- * $Id$
+ * $Id: stack.h 8771 2009-06-20 11:55:10Z greg $
  */
 
 #ifndef PARA_STACK_H

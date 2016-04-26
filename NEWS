@@ -1,3 +1,5 @@
+* Bugs fixed in 5.9
+
 * Bugs fixed in 5.8
 641    blo  P1   RESO   FIXE   Build Sy   Missing dll files lqsim/lqns
 526    nor  P2   RESO   FIXE   lqiolib    Regression/array.lqx fails due to syntax error.

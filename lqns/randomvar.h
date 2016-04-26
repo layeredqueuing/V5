@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/randomvar.h $
  * randomvar.h	-- Greg Franks
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -8,7 +8,7 @@
  *
  * January, 2005
  *
- * $Id$
+ * $Id: randomvar.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

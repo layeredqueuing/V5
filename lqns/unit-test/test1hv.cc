@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test1hv.cc $
  *
  * Test case from:
  *     author =   "Chandy, K. Mani and Neuse, Doug",
@@ -15,7 +15,7 @@
  * Uses highly variable server instead of regular FCFS server.  Results should
  * match FCFS Server exactly.
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test1hv.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

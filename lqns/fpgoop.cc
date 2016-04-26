@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: fpgoop.cc 12482 2016-03-03 22:18:06Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -31,14 +31,13 @@
 #include <cstdlib>
 #include <signal.h>
 #include <cmath>
-#if HAVE_IEEEFP_H && !defined(MSDOS)
+#if HAVE_FENV_H
+#include <fenv.h>
+#elif HAVE_IEEEFP_H && !defined(MSDOS)
 #include <ieeefp.h>
 #elif defined(_AIX)
 #include <fptrap.h>
 #include <fpxcp.h>
-#elif HAVE_FENV_H
-#define _GLIBCXX_HAVE_FENV_H 1
-#include <fenv.h>
 #elif defined(MSDOS) || HAVE_FLOAT_H
 #undef __STRICT_ANSI__
 #include <float.h>
@@ -48,7 +47,7 @@
 
 #include "fpgoop.h"
 
-#if defined(__hpux) || (HAVE_IEEEFP_H && !defined(MSDOS))
+#if defined(__hpux) || (HAVE_IEEEFP_H && !defined(MSDOS) && !defined(WINNT))
 typedef	fp_except fp_bit_type;
 #elif defined(_AIX)
 typedef	fpflag_t fp_bit_type;
@@ -71,7 +70,7 @@ static struct {
     fp_bit_type bit;
     const char * str;
 } fp_op_str[] = {
-#if defined(__hpux) || (HAVE_IEEEFP_H && !defined(MSDOS))
+#if defined(__hpux) || (HAVE_IEEEFP_H && !defined(MSDOS) && !defined(WINNT))
     { FP_X_INV, "Invalid operation" },
     { FP_X_DZ, "Overflow" },
     { FP_X_OFL, "Underflow" },

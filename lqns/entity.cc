@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: entity.cc 11977 2014-04-14 00:46:01Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.

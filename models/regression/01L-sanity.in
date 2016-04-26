@@ -1,8 +1,8 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/01L-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 01L-sanity.in 11166 2012-10-18 14:11:41Z greg $
 # ------------------------------------------------------------------------
 
 $c = [0.2 : 2.0, 0.2]	# Client Service Time

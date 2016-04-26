@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: confidence_intervals.h 9744 2010-08-18 03:24:28Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */

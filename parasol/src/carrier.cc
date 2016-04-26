@@ -1,4 +1,4 @@
-// $Id$
+// $Id: carrier.cc 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	carrier.cc - PS_Carrier, PS_Link and PS_Bus class definitions.
 //

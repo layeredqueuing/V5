@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12479 2016-03-02 01:28:28Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(petrisrvn, 5.8, greg@sce.carleton.ca)
+AC_INIT(petrisrvn, 5.9, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([petrisrvn.h])
 AC_CONFIG_HEADERS([config.h])
@@ -49,8 +49,6 @@ AC_TYPE_SIZE_T
 
 # Checks for library functions.
 AC_FUNC_FORK 
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC 
 AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_VPRINTF

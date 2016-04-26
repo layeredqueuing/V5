@@ -1,4 +1,4 @@
-// $Id$
+// $Id: semaphore.h 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	semaphore.h - PS_Semaphore class declaration.
 //

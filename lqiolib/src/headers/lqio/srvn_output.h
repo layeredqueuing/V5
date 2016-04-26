@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: srvn_output.h 11963 2014-04-10 14:36:42Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */

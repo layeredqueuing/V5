@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test3ehvp.cc $
  *
  * Pg 264, Lazowska test.
  * FCFS with class dependent average service times.  Use HV server rather
@@ -8,7 +8,7 @@
  *
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test3ehvp.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
   */
 

@@ -9,9 +9,9 @@
 /*
  * Global vars for simulation.
  *
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/processor.h $
  *
- * $Id$
+ * $Id: processor.h 10477 2011-09-12 23:32:33Z greg $
  */
 
 #ifndef	PROCESSOR_H

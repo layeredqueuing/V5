@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/task.cc $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: task.cc 11977 2014-04-14 00:46:01Z greg $
  * ------------------------------------------------------------------------
  */
 

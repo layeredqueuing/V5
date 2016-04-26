@@ -10,14 +10,17 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
-#include "Scanner.h"
 #include <string>
 #include <vector>
+
+/* Warning - this file is not automatically generated.  The enumeration must match the Parser_pre.ypp and Parser.cpp */
 
 namespace LQX {
   
   /* Forward References */
   class SyntaxTreeNode;
+  class ScannerToken;
+
   
   typedef enum ParserToken {
     PT_EOS = 0,
@@ -33,8 +36,10 @@ namespace LQX {
     PT_FOREACH,
     PT_IN,
     PT_WHILE,
+    PT_BREAK,
     PT_IF,
     PT_ELSE,
+    PT_RETURN,
 
     /* File Output Words */
     PT_FILE_WRITE,
@@ -59,8 +64,7 @@ namespace LQX {
     PT_DOT,
     
     /* Math Operators */
-    PT_INCREMENT,
-    PT_DECREMENT,
+    PT_EXP,
     PT_STAR,
     PT_SLASH,
     PT_PLUS,
@@ -84,6 +88,14 @@ namespace LQX {
     
     /* Assignment Operators */
     PT_EQUALS,
+    PT_EXP_EQUALS,
+    PT_STAR_EQUALS,
+    PT_SLASH_EQUALS,
+    PT_PLUS_EQUALS,
+    PT_MINUS_EQUALS,
+    PT_MOD_EQUALS,
+    PT_LEFTSHIFT_EQUALS,
+    PT_RIGHTSHIFT_EQUALS,
     
     /* Mixed, New Variables */
     PT_SEMICOLON,
@@ -91,9 +103,10 @@ namespace LQX {
     PT_MAPS,
     PT_NULL,
     
-    /* An invalid token */
     PT_FUNCTION,
     PT_ELLIPSIS,
+
+    /* An invalid token */
     PT_ERROR
     
   } ParserToken;

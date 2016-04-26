@@ -1,5 +1,5 @@
 /*
- * $Id$ 
+ * $Id: srvn_gram.y 12338 2015-12-01 17:12:23Z greg $ 
  */
 
 %{
@@ -29,7 +29,7 @@ extern int LQIO_lex();
 %token			TRANSITION
 
 /*+ spex */
-%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE KEY_ITERATIONS KEY_USER_TIME KEY_SYSTEM_TIME 
+%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE KEY_ITERATIONS KEY_ELAPSED_TIME KEY_USER_TIME KEY_SYSTEM_TIME 
 %token			TOK_LESS_EQUAL TOK_LOGIC_NOT TOK_LESS_THAN TOK_NOT_EQUALS TOK_GREATER_EQUAL TOK_EQUALS TOK_LOGIC_AND TOK_GREATER_THAN TOK_LOGIC_OR TOK_POWER
 /*- spex */
 
@@ -71,8 +71,7 @@ extern int LQIO_lex();
 /* Input file grammar.							*/
 /*----------------------------------------------------------------------*/
 
-SRVN_input_file		: srvn_spec
-			| parameter_list srvn_spec opt_report_info opt_convergence_info			/* spex */
+SRVN_input_file		: parameter_list srvn_spec opt_report_info opt_convergence_info			/* spex */
 				{ spex_set_program( $1, $3, $4 ); }
     			;
 
@@ -82,18 +81,19 @@ srvn_spec		: general_info processor_info group_info task_info entry_info activit
 /* --------------------- General information -------------------------- */
 
 general_info		: 'G' comment conv_val it_limit print_int underrelax_coeff END_LIST
-				{ srvn_set_model_parameters( $2, $3, $4, $5, $6 ); }
+				{ srvn_set_model_parameters( $2, $3, $4, $5, $6 ); free( $2 ); }
 				general_obs
     			| 'G' comment conv_val it_limit underrelax_coeff END_LIST
-				{ srvn_set_model_parameters( $2, $3, $4, 0, $5 ); }
+				{ srvn_set_model_parameters( $2, $3, $4, 0, $5 ); free( $2 ); }
 				general_obs
     			| 'G' comment conv_val it_limit END_LIST
-				{ srvn_set_model_parameters( $2, $3, $4, 0, 0 ); }
+				{ srvn_set_model_parameters( $2, $3, $4, 0, 0 ); free( $2 ); }
 				general_obs
     			| 'G' comment END_LIST
-				{ srvn_set_model_parameters( $2, 0, 0, 0, 0 ); }
+				{ srvn_set_model_parameters( $2, 0, 0, 0, 0 ); free( $2 ); }
 				general_obs
 			|
+				{ srvn_set_model_parameters( "", 0, 0, 0, 0 ); }
 			;
 
 comment			: TEXT 			/* Comment on the model			*/
@@ -119,6 +119,7 @@ general_obs		: general_obs_info general_obs
 
 general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAITING, $2 ); }
 			| KEY_ITERATIONS VARIABLE			{ spex_document_observation( KEY_ITERATIONS, $2 ); }
+			| KEY_ELAPSED_TIME VARIABLE			{ spex_document_observation( KEY_ELAPSED_TIME, $2 ); }
 			| KEY_USER_TIME VARIABLE			{ spex_document_observation( KEY_USER_TIME, $2 ); }
 			| KEY_SYSTEM_TIME VARIABLE			{ spex_document_observation( KEY_SYSTEM_TIME, $2 ); }
 			;
@@ -128,7 +129,7 @@ general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAIT
 
 /* -------------------------- Parameter list -------------------------- */
 /*+ spex */
-parameter_list		: forall_expr					{ $$ = spex_list( 0,  $1 ); }
+parameter_list		: 						{ $$ = spex_list( 0,  0 ); }
 			| parameter_list forall_expr			{ $$ = spex_list( $1, $2 ); }
 			;
 
@@ -140,6 +141,7 @@ assignment		: VARIABLE '=' ternary_expr			{ $$ = spex_assignment_statement( $1, 
 			| VARIABLE '=' '[' expression_list ']'		{ $$ = spex_array_assignment( $1, $4, constant_expression ); constant_expression = true; }
 			| VARIABLE '=' '[' constant ':' constant ',' constant ']'
 									{ $$ = spex_array_comprehension( $1, $4, $6, $8 ); constant_expression = true; }
+			| VARIABLE '=' TEXT				{ $$ = spex_assignment_statement( $1, spex_get_string( $3 ), true ); free( $3 ); }
 			| SOLVER					{ srvnwarning( "Spex control variable \"%s\" is not supported.", $1 ); $$ = 0; }		/* Silently ignore $solver */
 			;
 

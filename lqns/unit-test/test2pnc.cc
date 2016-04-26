@@ -1,11 +1,11 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test2pnc.cc $
  *
  * Four customers, one server.
  * This version has a phased server.
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test2pnc.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

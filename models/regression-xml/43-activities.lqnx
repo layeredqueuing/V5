@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml /home/greg/usr/src/models/regression/43-activities.in -->
 <!-- Thu May 28 11:03:06 2009 -->
 
-<lqn-model name="/home/greg/usr/src/models/regression/43-activities" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="/home/greg/usr/src/models/regression/43-activities" description="$Id: 43-activities.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Activities with AND fork-join - reply on branch." conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
    <processor name="client" scheduling="inf">
       <task name="client" scheduling="ref" multiplicity="2">

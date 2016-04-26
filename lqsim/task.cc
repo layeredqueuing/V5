@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id$
+ * $Id: task.cc 12145 2014-09-29 01:36:03Z greg $
  */
 
 #include <iostream>

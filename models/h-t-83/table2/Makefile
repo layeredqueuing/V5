@@ -1,8 +1,8 @@
 # Makefile for
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
-# $HeadURL$
+# $HeadURL: svn://franks.dnsalias.com/lqn/trunk/models/h-t-83/table2/Makefile $
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile 7730 2008-02-28 03:55:37Z greg $
 # ------------------------------------------------------------------------
 
 CPU1=case-01-01-01-01.p case-01-01-01-02.p case-01-01-02-01.p case-01-01-02-02.p case-01-02-01-01.p case-01-02-01-02.p case-01-02-02-01.p case-01-02-02-02.p case-01-03-01-01.p case-01-03-01-02.p case-01-03-02-01.p case-01-03-02-02.p

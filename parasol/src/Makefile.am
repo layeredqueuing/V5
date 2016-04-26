@@ -1,9 +1,9 @@
 # -*- Makefile -*-
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/parasol/src/Makefile.am $
 # Makefile for Parasol libraries.
 #
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile.am 11142 2012-10-06 16:22:24Z greg $
 # ------------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I../include

@@ -1,5 +1,5 @@
 /* activity.c	-- Greg Franks Thu Feb 20 1997
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/activity.cc $
  * 
  * Everything you wanted to know about an activity, but were afraid to ask.
  *
@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: activity.cc 11963 2014-04-10 14:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 

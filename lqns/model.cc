@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: model.cc 12547 2016-04-05 18:32:45Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -76,7 +76,6 @@
 #include "report.h"
 #include "runlqx.h"
 #include <lqio/srvn_output.h>
-#include <lqio/expat_document.h>
 
 double Model::convergence_value = 0.00001;
 unsigned Model::iteration_limit = 50;;

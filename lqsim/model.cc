@@ -9,9 +9,9 @@
 /*
  * Input processing.
  *
- * $URL$
+ * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id$
+ * $Id: model.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 /* Debug Messages for Loading */

@@ -1,4 +1,4 @@
-// $Id$
+// $Id: para_entity.h 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	para_entity.h - PS_ParasolEntity class declaration.
 //

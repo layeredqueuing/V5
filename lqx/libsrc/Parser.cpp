@@ -9,6 +9,7 @@
 
 #include "NonCopyable.h"
 #include "Parser.h"
+#include "Scanner.h"
 #include <sstream>
 #include <cstdio>
 #include <cstdlib>
@@ -24,7 +25,7 @@ extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
 
 namespace LQX {
 
-  /* This array must match PT_P_* in Parser_pre.h */
+  /* This array must match PT_P_* in Parser_pre.h and Parser_pre.ypp */
   static const char* tokenNameMap[] = {
     "End Of Stream",
     "Boolean Value",
@@ -35,8 +36,10 @@ namespace LQX {
     "foreach",
     "in",
     "while",
+    "break",
     "if",
     "else",
+    "return",
     "write",
     "read",
     "append",
@@ -55,8 +58,7 @@ namespace LQX {
     "[",
     "]",
     ".",
-    "++",
-    "--",
+    "**",
     "*",
     "/",
     "+",
@@ -74,6 +76,14 @@ namespace LQX {
     "<=",
     ">=",
     "=",
+    "**=",
+    "*=",
+    "/=",
+    "+=",
+    "-=",
+    "%=",
+    "<<=",
+    ">>=",
     ";",
     ",",
     "->",
@@ -122,7 +132,7 @@ namespace LQX {
   bool Parser::processToken(LQX::ScannerToken* value)
   {
     /* Parse the given token along side the code and Parser */
-    if (!value) value = new LQX::ScannerToken(0, 0);
+    if (!value) value = new LQX::ScannerToken(0, LQX::PT_EOS);
     ModLangParser(_parser, value->getTokenCode(), value, this);
     return !_syntaxErrorDidOccur;
   }
@@ -162,7 +172,7 @@ namespace LQX {
     /* Mark down that an error occurred */
     _syntaxErrorDidOccur = true;
     _syntaxErrorMessage = "error: Unexpected token `";
-    _syntaxErrorMessage += ParserTokenToName((ParserToken)problemToken->getTokenCode());
+    _syntaxErrorMessage += ParserTokenToName(problemToken->getTokenCode());
     _syntaxErrorMessage += "'";
     _syntaxErrorLineno = problemToken->getLineNumber();
   }

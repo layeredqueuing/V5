@@ -1,4 +1,4 @@
-// $Id$
+// $Id: node.h 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	node.h - PS_AbstractNode, PS_UserNode and PS_SystemNode class
 //		 declarations.

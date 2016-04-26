@@ -6,20 +6,16 @@
 #include "randomvar.h"
 #include <sstream>
 
-namespace RV {
-    double Gamma::operator()() const 
+namespace RV
+{
+
+    std::ostream& RandomVariable::print( std::ostream& output ) const
     {
-	if ( _b < 1 ) {
-	    return _a * Beta( _b, 1.0 - _b )() * Exponential( 1.0 )();
-	} else if ( _b == floor( _b ) ) {
-	    double prod = 1;
-	    for ( unsigned int i = 0; i < _b; ++i ) {
-		prod *= drand48();
-	    }
-	    return -_a * log( prod );
-	} else {
-	    return Gamma(_a, floor(_b))() + Gamma( _a, _b - floor(_b) )();
+	output << name() << "(" << getArg(1);
+	if ( nArgs() == 2 ) {
+	    output << "," << getArg(2);
 	}
+	output << ")"; return output;
     }
 
     double Beta::operator()() const
@@ -38,21 +34,40 @@ namespace RV {
 	return x / ( x + y );
     }
 
-    Probability::Probability( double mean ) : RandomVariable(CONTINUOUS), _mean(0) 
-    { 
-	setArg( 1, mean );
+
+    Beta& Beta::setMean( double mean )
+    {
+	if ( mean <= 0 || 1 <= mean ) throw std::domain_error( "mean <= 0 || 1 <= mean" );
+	_a = mean * _b / ( 1.0 - mean );
+	return *this;
+    }
+    
+    double Gamma::operator()() const 
+    {
+	if ( _b < 1 ) {
+	    return _a * Beta( _b, 1.0 - _b )() * Exponential( 1.0 )();
+	} else if ( _b == floor( _b ) ) {
+	    double prod = 1;
+	    for ( unsigned int i = 0; i < _b; ++i ) {
+		prod *= drand48();
+	    }
+	    return -_a * log( prod );
+	} else {
+	    return Gamma(_a, floor(_b))() + Gamma( _a, _b - floor(_b) )();
+	}
     }
 
-    Probability& Probability::setArg( unsigned int i, double arg )
+    Pareto& Pareto::setMean( double mean )
     {
-	assert ( i == 1 );
-	if ( arg < 0.0 || 1.0 < arg ) {
-	    std::ostringstream err;
-	    err << "Invalid probability: " << arg;
-	    throw std::domain_error( err.str() );
-	} else {
-	    _mean = arg;
-	}
+	if ( mean <= 1.0 ) throw std::domain_error( "mean <= 1" );
+	_a = mean / ( mean - 1.0 );
+	return *this;
+    }
+
+    Probability& Probability::setMean( double mean )
+    {
+	if ( mean < 0 || 1 < mean ) throw std::domain_error( "mean < 0 || 1 < mean" );
+	_mean = mean;
 	return *this;
     }
 }

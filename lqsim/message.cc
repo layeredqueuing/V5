@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id$
+ * $Id: message.cc 9962 2010-11-02 12:47:17Z greg $
  */
 
 #include <iostream>

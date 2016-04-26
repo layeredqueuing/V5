@@ -1,5 +1,5 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/55-replication.in $
 # 
 # Test case "table1, set1" from 
 # @Article{perf:heidelberger-83,
@@ -14,7 +14,7 @@
 # with replicated activities.  See 45-activity.in
 #
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 55-replication.in 11977 2014-04-14 00:46:01Z greg $
 # ------------------------------------------------------------------------
 
 G "fork-join (set1) with replication" 1e-06 50 5 0.9 -1

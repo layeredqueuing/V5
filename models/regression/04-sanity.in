@@ -1,7 +1,7 @@
-# SRVN Model Description File, for file: $HeadURL$
+# SRVN Model Description File, for file: $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/04-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 04-sanity.in 8649 2009-05-26 15:02:59Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - send-no-reply." 1e-05 50 10 0.9 -1

@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: wspn.c 11063 2012-07-06 16:15:58Z greg $
  *
  *  This is the main program modeling the decomposition of complex nets.
  *  ctiny

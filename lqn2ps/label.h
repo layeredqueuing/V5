@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id$
+ * $Id: label.h 11969 2014-04-11 21:19:54Z greg $
  */
 
 #ifndef _LABEL_H

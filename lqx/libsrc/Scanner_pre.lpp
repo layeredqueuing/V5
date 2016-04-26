@@ -23,14 +23,14 @@
   /* This value is accessed from the Scanner class for return values */
   LQX::ScannerToken* ml_scanner_token_value = NULL;
   
-  static int tokenCodeOnly(int tokenCode)
+  static int tokenCodeOnly(LQX::ParserToken tokenCode)
   {
     /* Store the basic token in the scanner here */
     ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode);
     return tokenCode;
   }
   
-  static int tokenCodeBoolean(int tokenCode, bool value)
+  static int tokenCodeBoolean(LQX::ParserToken tokenCode, bool value)
   {
     /* Store the basic token in the scanner here */
     ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, value);
@@ -38,7 +38,7 @@
   }
   
   static std::string startOfString;
-  static int tokenCodeExtractString(int tokenCode)
+  static int tokenCodeExtractString(LQX::ParserToken tokenCode)
   {
     /* Build the scanner token, free and return */
     ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, 
@@ -46,14 +46,14 @@
     return tokenCode;
   }
   
-  static int tokenCodeDouble(int tokenCode, double value)
+  static int tokenCodeDouble(LQX::ParserToken tokenCode, double value)
   {
     /* Store the basic token in the scanner here */
     ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, value);
     return tokenCode;
   }
   
-  static int tokenCodeExtractIdentifier(int tokenCode, bool external)
+  static int tokenCodeExtractIdentifier(LQX::ParserToken tokenCode, bool external)
   {
     /* Build the identifier token, free and return */
     ml_scanner_token_value = new LQX::ScannerToken(ml_scanner_lineno, tokenCode, 
@@ -157,10 +157,12 @@ include           BEGIN(incl);
 "foreach"         { return tokenCodeOnly(LQX::PT_FOREACH); }
 "in"              { return tokenCodeOnly(LQX::PT_IN); }
 "while"           { return tokenCodeOnly(LQX::PT_WHILE); }
+"break"		  { return tokenCodeOnly(LQX::PT_BREAK); }
 "if"              { return tokenCodeOnly(LQX::PT_IF); }
 "else"            { return tokenCodeOnly(LQX::PT_ELSE); }
 "null"            { return tokenCodeOnly(LQX::PT_NULL); }
 "NULL"            { return tokenCodeOnly(LQX::PT_NULL); }
+"return"	  { return tokenCodeOnly(LQX::PT_RETURN); }
 
   /* Words for File Output */
 
@@ -178,8 +180,7 @@ include           BEGIN(incl);
 
  /* Operator Tokens + Assorted */
 
-"++"              { return tokenCodeOnly(LQX::PT_INCREMENT); } 
-"--"              { return tokenCodeOnly(LQX::PT_DECREMENT); } 
+"**"              { return tokenCodeOnly(LQX::PT_EXP); } 
 "||"              { return tokenCodeOnly(LQX::PT_LOGIC_OR); }          
 "&&"              { return tokenCodeOnly(LQX::PT_LOGIC_AND); } 
 "=="              { return tokenCodeOnly(LQX::PT_EQUALS_EQUALS); } 
@@ -207,6 +208,11 @@ include           BEGIN(incl);
 "="               { return tokenCodeOnly(LQX::PT_EQUALS); }
 "."               { return tokenCodeOnly(LQX::PT_DOT); }
 "=>"              { return tokenCodeOnly(LQX::PT_MAPS); }
+"*="              { return tokenCodeOnly(LQX::PT_STAR_EQUALS); }
+"/="              { return tokenCodeOnly(LQX::PT_SLASH_EQUALS); }
+"+="              { return tokenCodeOnly(LQX::PT_PLUS_EQUALS); }
+"-="              { return tokenCodeOnly(LQX::PT_MINUS_EQUALS); }
+"%="              { return tokenCodeOnly(LQX::PT_MOD_EQUALS); }
 
  /* Immediate Values */
 

@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: para_library.c 12548 2016-04-06 15:13:47Z greg $ */
 
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
@@ -154,6 +154,7 @@
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
+#include <setjmp.h>
 
 #define TEMP_STR_SIZE	128
 
@@ -475,7 +476,7 @@ SYSCALL	ps_create2(
 	ps_task_t	*tp;			/* task pointer		*/
 	long	adjustment;			/* stack base adjuster	*/
 	sched_info 	*si;			/* sched_info pointer	*/
-#if	!HAVE_SIGALTSTACK
+#if	!HAVE_SIGALTSTACK || _WIN32 || _WIN64
 	long	*ctxt;				/* context pointer	*/
 	long	dss;				/* default stack size	*/
 #endif
@@ -488,12 +489,14 @@ SYSCALL	ps_create2(
 		return(BAD_PARAM("priority"));
 	if((group!=-1 && group < 0) || group >node_ptr(node)->ngroup)
 		return(BAD_PARAM("group"));
+	if(stackscale <= 0.)
+	    	return(BAD_PARAM("stackscale"));
 	if(ps_htp != DRIVER_PTR)
 		myid = ps_myself;
 	if((task = get_table_entry(&ps_task_tab)) == SYSERR)
 		return(OTHER_ERR("growing task table"));
 
-#if	HAVE_SIGALTSTACK
+#if	HAVE_SIGALTSTACK && !_WIN32 && !_WIN64
 	stacksize = (long)(stackscale * (double)0x8000) + MINSIGSTKSZ;	/* punt... */
 #else
 	stacksize = (long)(stackscale * (double)sp_dss) + 0x100;
@@ -542,7 +545,7 @@ SYSCALL	ps_create2(
 	tp->hp = NULL_HOST_PTR;
 	if(!(tp->stack_base = (double *) malloc((unsigned)stacksize)))
 		ps_abort("Insufficient memory");
-	if((adjustment = ((long)tp->stack_base % sizeof(double)))) {
+	if((adjustment = ((size_t)tp->stack_base % sizeof(double)))) {
 		adjustment = sizeof(double) - adjustment;
 		stacksize -= sizeof(double);
 	}
@@ -551,7 +554,7 @@ SYSCALL	ps_create2(
 	memset (tp->stack_base, 0x55, stacksize);
 #endif /*STACK_TESTING*/
 
-#if	HAVE_SIGALTSTACK
+#if	HAVE_SIGALTSTACK && !_WIN32 && !_WIN64
 	mctx_create( &tp->context, tp->code, 0, tp->stack_base, stacksize );
 #else
 	if(ps_htp == DRIVER_PTR) {
@@ -564,14 +567,14 @@ SYSCALL	ps_create2(
 	}
 	ctxt = (long *) &tp->context;
 	if(sp_dir > 0)
-		ctxt[sp_ind] = (long)tp->stack_base + adjustment + 0x100;
+		ctxt[sp_ind] = (size_t)tp->stack_base + adjustment + 0x100;
 	else
 		/* WCS - 20 Aug 1997 - Added: << - 0x100 >> in consideration of assumed   */
 		/* setjmp nonzero return value, actually provided by some longjmp call.   */
 		/* Will this be adequate for all architectures?  << - sizeof(long) >>      */
 		/* seems to work for NeXTSTEP on Intel.  Where does the return value fall */
 		/* with respect to the env argument?  Why is 0x100 used when sp_dir > 0?  */
-		ctxt[sp_ind] = (long)tp->stack_base + adjustment + stacksize - 0x100;
+		ctxt[sp_ind] = (size_t)tp->stack_base + adjustment + stacksize - 0x100;
 #endif
 
 	tp->code = code;
@@ -648,7 +651,7 @@ long stack_corruption_tester (
 	void 	(*fn)(void)			/* function to test	*/
 )
 {
-#if	!HAVE_SIGALTSTACK
+#if	!HAVE_SIGALTSTACK || _WIN32 || _WIN64
 	char 		*stack;			/* stack base		*/
 	long		bytes;			/* bytes used		*/
 	long		stacksize;		/* bytes allocated	*/
@@ -662,13 +665,14 @@ long stack_corruption_tester (
 	stacksize = 2048 * sp_delta * sizeof(double) / sizeof(double);	
 	if(!(stack = (char *) malloc((unsigned)stacksize)))
 		ps_abort("Insufficient memory");
-	if((adjustment = (long)stack % sizeof(double)) != 0) {
+	if((adjustment = (size_t)stack % sizeof(double)) != 0) {
 		adjustment = sizeof(double) - adjustment;
 		stacksize -= sizeof(double);
 	}
 	
 	memset (stack, 0x55, stacksize);	/* initialize stack 	*/
 	
+#if !_WIN32 && !_WIN64
 	if(!_setjmp(oldc)) {			/* save old context	*/
  		if(!_setjmp(newc)) {		/* setup new context	*/
 			ctxt = (long *)newc;
@@ -685,6 +689,24 @@ long stack_corruption_tester (
 			_longjmp (oldc, 1);	/* back to old context	*/
 		}
 	}
+#else
+	if(!setjmp(oldc)) {			/* save old context	*/
+ 		if(!setjmp(newc)) {		/* setup new context	*/
+			ctxt = (long *)newc;
+			if(sp_dir > 0)
+				ctxt[sp_ind] = (size_t)(stack + 0x100);
+			else
+				ctxt[sp_ind] = (size_t)(stack + adjustment 
+				    + stacksize - 0x100);
+			func = fn;
+ 			longjmp (newc, 1);	/* enter new context	*/
+ 		}
+		else {				/* we're in new context	*/
+			(*func)();
+			longjmp (oldc, 1);	/* back to old context	*/
+		}
+	}
+#endif
 	if (sp_dir > 0) {			/* start at the top	*/
 		for (i = stacksize - 1; i >= 0; i--)
 			if (stack[i] != 0x55) break;
@@ -1426,7 +1448,7 @@ SYSCALL ps_buffer_size(
 {
 	ps_buf_t	*ibp;			/* internal buffer ptr	*/
 
-	if(((long)bp)%4)
+	if(((size_t)bp)%4)
 		return(BAD_PARAM("bp"));
 	ibp = (ps_buf_t *) (bp - 2*sizeof(double));
 	if(ibp->signature != BUFFER)
@@ -1577,7 +1599,7 @@ SYSCALL	ps_free_buffer(
 	ps_buf_t	*ibp;			/* internal buffer ptr	*/
 	ps_pool_t	*pp;			/* pool pointer		*/
 
-	if(((long)bp)%4)
+	if(((size_t)bp)%4)
 		return(BAD_PARAM("bp"));
 	ibp = (ps_buf_t *) (bp - 2*sizeof(double));
 	if(ibp->signature != BUFFER)
@@ -1604,7 +1626,7 @@ char	*ps_get_buffer(
 	ps_pool_t	*pp;			/* pool pointer		*/
 
 	if(pool < 0 || pool >= ps_pool_tab.used)
-		return(BAD_PARAM("pool"));
+	    return (char *)(BAD_PARAM("pool"));
 
 	if((ibp = (pp = pool_ptr(pool))->flist) == NULL_BUF_PTR) {
 		if((ibp = (ps_buf_t *) malloc(pp->size + 2*sizeof(double)))
@@ -3152,24 +3174,24 @@ void	ps_stats(void)
 	long	stat;				/* statistic index	*/
 	ps_stat_t	*sp;			/* statistic pointer	*/
 	char	name[40];			/* statistic name	*/
-	long	copy;				/* working copy		*/
+	void *	copy;				/* working copy		*/
 	long	bytes;				/* size of table	*/
 
 /*	Make a sorted working copy so that we can prlong the stats in	*/
 /*	sorted order but don't invalidate any id's.			*/
 
 	bytes = ps_stat_tab.used * ps_stat_tab.entry_size;
-	if (!(copy = (long)malloc(bytes)))
+	if (!(copy = malloc(bytes)))
 		ps_abort("Insufficient Memory");
-	memcpy ((void*)copy, (void*)ps_stat_tab.base, bytes);
-	qsort ((void*)copy, ps_stat_tab.used, ps_stat_tab.entry_size,
+	memcpy (copy, (void*)ps_stat_tab.base, bytes);
+	qsort (copy, ps_stat_tab.used, ps_stat_tab.entry_size,
 	    (compar)stat_compare);
 
 	printf("\n\nSimulation statistics for time = %G.\n", ps_now);
 	printf("\n Name\t\t\t\t\tType\t  Mean\tObs(#|interval)\n\n");
 
 	for(stat = 0; stat < ps_stat_tab.used; stat++) {
-		sp = (ps_stat_t*)(copy + stat * ps_stat_tab.entry_size);
+	  sp = (ps_stat_t*)((char *)copy + stat * ps_stat_tab.entry_size);
 		padstr(name, sp->name, 38);
 		printf("%s", name);
 
@@ -3218,7 +3240,7 @@ void	ps_stats(void)
 
 
 /*	Cleanup our working copy					*/
-	free ((void*)copy);
+	free (copy);
 }
 	
 
@@ -3658,15 +3680,19 @@ SYSCALL	ps_headroom(void)
 /* Checks the headroom remaining on the stack of the caller.		*/
 
 {
-#if	!HAVE_SIGALTSTACK
+#if	!HAVE_SIGALTSTACK || _WIN32 || _WIN64
 	long	*context;			/* task context		*/
 
 	context = (long *) &sp_jb[0];
+#if	_WIN32 || _WIN64
+	setjmp(sp_jb[0]);
+#else
 	_setjmp(sp_jb[0]);
+#endif
 	if(sp_dir > 0)
-		return(((long)ps_htp->stack_limit) - context[sp_ind]);
+		return(((size_t)ps_htp->stack_limit) - context[sp_ind]);
 	else
-		return(context[sp_ind] - (long)ps_htp->stack_base);
+		return(context[sp_ind] - (size_t)ps_htp->stack_base);
 #else
 	return 0;
 #endif
@@ -3711,7 +3737,7 @@ SYSCALL	ps_run_parasol(
 
  	
 
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 /*	Test stack for loading direction and jmp_buf index		*/
 	if(sp_tester(&sp_dir, &sp_ind, &sp_delta) == SYSERR)
 		sp_dss = sp_delta * 20 * sizeof(double);
@@ -4481,7 +4507,7 @@ LOCAL	void	end_block_handler(
 {
 	ps_task_t	*tp;			/* task pointer		*/
 
-	if((tp = ps_task_ptr((long)ep->gp))->state != TASK_BLOCKED)
+	if((tp = ps_task_ptr((size_t)ep->gp))->state != TASK_BLOCKED)
 		ps_abort("Bad end block event");
 	tp->tep = NULL_EVENT_PTR;
   	ps_htp = tp;
@@ -4507,7 +4533,7 @@ LOCAL	void	end_compute_handler(
 {
 	ps_task_t	*ctp;			/* current task pointer	*/
 
-	if((ctp = ps_task_ptr((long)ep->gp))->state != TASK_COMPUTING)
+	if((ctp = ps_task_ptr((size_t)ep->gp))->state != TASK_COMPUTING)
 		ps_abort("Bad computing timeout event");
 	ctp->tep = NULL_EVENT_PTR;
 	ps_htp = ctp;
@@ -4540,7 +4566,7 @@ LOCAL 	void	end_quantum_handler(
 	ps_node_t	*np;			/* node pointer		*/
 	ps_cpu_t	*hp;			/* host cpu pointer	*/
 
-	hp = (tp = ps_task_ptr((long)ep->gp))->hp;
+	hp = (tp = ps_task_ptr((size_t)ep->gp))->hp;
 	np = node_ptr(tp->node);
 	tp->qep = NULL_EVENT_PTR;
 	switch(tp->state) {
@@ -4577,7 +4603,7 @@ LOCAL	void	end_receive_handler(
 {
 	ps_task_t	*tp;			/* task pointer		*/
 
-	if((tp = ps_task_ptr((long)ep->gp))->state != TASK_RECEIVING)
+	if((tp = ps_task_ptr((size_t)ep->gp))->state != TASK_RECEIVING)
 		ps_abort("Bad receive timeout event");
 
 	tp->rtoep = NULL_EVENT_PTR;
@@ -4597,7 +4623,7 @@ LOCAL	void	end_sleep_handler(
 	ps_task_t	*tp;			/* task pointer		*/
 	ps_node_t 	*np;			/* node pointer		*/
 
-	if((tp = ps_task_ptr((long)ep->gp))->state != TASK_SLEEPING)  
+	if((tp = ps_task_ptr((size_t)ep->gp))->state != TASK_SLEEPING)  
 		ps_abort("Bad end sleep event");
 	tp->tep = NULL_EVENT_PTR;
 	np=node_ptr(tp->node);
@@ -4622,7 +4648,7 @@ LOCAL	void	end_sync_handler(
 	ps_cpu_t	*hp;			/* host cpu pointer	*/
 	ps_node_t	*np;			/* node pointer		*/
 
-	hp = (tp = ps_task_ptr((long)(ep->gp)))->hp;
+	hp = (tp = ps_task_ptr((size_t)(ep->gp)))->hp;
 	np = node_ptr(tp->node);
 	tp->tep = NULL_EVENT_PTR;
 /* update run task and cooling hot task */
@@ -5770,7 +5796,7 @@ LOCAL	void	sched(void)
 	}
 	if(ep->time == ps_now && ep->type == END_BLOCK) {
 		remove_event(ep);
-		if((tp = ps_task_ptr((long)ep->gp))->state != TASK_BLOCKED)
+		if((tp = ps_task_ptr((size_t)ep->gp))->state != TASK_BLOCKED)
 			ps_abort("Bad END_BLOCK event");
 		tp->tep = NULL_EVENT_PTR;
 		ctp = ps_htp;
@@ -5847,7 +5873,7 @@ LOCAL	long	get_table_entry(
 		tabp->tab = new_tab;
 		tabp->rover = tabp->tab_size;
 		tabp->tab_size = new_size;
-		tabp->base = ((long) tabp->tab) + sizeof(double);
+		tabp->base = tabp->tab + sizeof(double);
 	}
 	for(id = tabp->rover, i = 0; i < tabp->tab_size; i++) {
 		if(!*((long *)(tabp->tab+id*tabp->entry_size)))
@@ -5899,7 +5925,7 @@ LOCAL	long	init_table(
 	  }
 	}
 
-	tabp->base = ((long) tabp->tab) + sizeof(double);
+	tabp->base = tabp->tab + sizeof(double);
 	memset(tabp->tab, '\0', tab_size * tabp->entry_size); 
 	return(OK);
 }
@@ -6077,8 +6103,8 @@ LOCAL	 void 	event_report(void)
 			case END_SLEEP:
 			case END_RECEIVE:
 			case END_BLOCK:
-				tp = ps_task_ptr((long)ep->gp);
-				fprintf(stderr, "%4ld | %s\n", (long)ep->gp,
+				tp = ps_task_ptr((size_t)ep->gp);
+				fprintf(stderr, "%4ld | %s\n", (size_t)ep->gp,
 					tp->name);
 				break;
 			
@@ -6438,7 +6464,7 @@ void	ts_report(
 )
 {
 /* WCS - 30 Aug 1997 - Added.  Should be made more efficient. */
-#if	!HAVE_SIGALTSTACK
+#if	!HAVE_SIGALTSTACK || _WIN32 || _WIN64
 	long headroom;
 	char string[TEMP_STR_SIZE];  /* is this long enough for any string encounterable? */
 	
@@ -7468,7 +7494,7 @@ LOCAL	long	sp_tester(
 	long	*sp_deltap			/* sp delta pointer	*/
 )
 {
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 	long	i;				/* loop index		*/
 	long	istop;				/* loop index stopper	*/
 	long	*jbp[3];			/* jmp_buf ptr array	*/
@@ -7502,7 +7528,7 @@ LOCAL	long	sp_tester(
 
 /************************************************************************/
 
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 LOCAL	void	sp_winder(
 
 /* Winds stack for sp_tester.						*/
@@ -7512,8 +7538,12 @@ LOCAL	void	sp_winder(
 {
 	long	y;				/* stack marker		*/
 
+#if	_WIN32 || _WIN64
+	setjmp(sp_jb[x]);
+#else
 	_setjmp(sp_jb[x]);
-	sp_yadd[x] = (long) &y;
+#endif
+	sp_yadd[x] = (size_t) &y;
 	if(x)
 		sp_winder(x-1);
 }
@@ -7565,8 +7595,6 @@ void	test_all_stacks(void)
 	printf ("\nsp_delta = %ld", sp_delta);
  	printf ("\nsp_dss = %ld", sp_dss);
 	printf ("\nmax_stack = %ld\n", max_stack);
-#if	!HAVE_SIGALTSTACK
-#endif
 }
 
 /************************************************************************/
@@ -7632,7 +7660,7 @@ void	warning(
 /*		Parasol Scheduler Support Functions			*/
 /************************************************************************/
 
-#if	HAVE_SIGALTSTACK
+#if	HAVE_SIGALTSTACK && !_WIN32 && !_WIN64
 static mctx_t mctx_caller;
 static sig_atomic_t mctx_called;
 static mctx_t  *mctx_creat;
@@ -8347,7 +8375,7 @@ void dq_cfs_task(ps_task_t * tp){
 /************************************************************************/
 SYSCALL check_fair(ps_task_t *run_tp,ps_task_t *ready_tp){
 
-	long gran=0.05;
+	double gran=0.05;
 	if ((tid(ready_tp)==NULL_TASK) || (run_tp==ready_tp))
 		return (FALSE);
 	if(run_tp->group!=ready_tp->group)
@@ -8696,8 +8724,8 @@ static void 	print_event(
 	case END_SLEEP:
 	case END_RECEIVE:
 	case END_BLOCK:
-		tp = ps_task_ptr((long)ep->gp);
-		fprintf(stderr, "%4ld | %s", (long)ep->gp,
+		tp = ps_task_ptr((size_t)ep->gp);
+		fprintf(stderr, "%4ld | %s", (size_t)ep->gp,
 			tp->name);
 		break;
 	

@@ -1,4 +1,4 @@
-// $Id$
+// $Id: semaphore.cc 9042 2009-10-14 01:31:21Z greg $
 //=======================================================================
 //	semaphore.cc - PS_Semaphore class definition.
 //

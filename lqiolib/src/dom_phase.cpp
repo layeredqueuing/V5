@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_phase.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -66,7 +66,10 @@ namespace LQIO {
 	double Phase::getServiceTimeValue() const
 	{
 	    double value = 0.0;
-	    assert(_serviceTime->getValue(value) == true);
+	    if ( !_serviceTime || _serviceTime->getValue(value) != true || value < 0 ) {
+		/* LQX may set this negative, so we don't know it's wrong until it's used. */
+		throw std::domain_error( "Invalid service time." );
+	    }
 	    return value;
 	}
 
@@ -130,7 +133,9 @@ namespace LQIO {
 	{
 	    /* Retun the phase think time */
 	    double value = 0.0;
-	    assert(_thinkTime->getValue(value) == true);
+	    if ( !_thinkTime || _thinkTime->getValue(value) != true || value < 0 ) {
+		throw std::domain_error( "Invalid think time." );
+	    }
 	    return value;
 	}
 
@@ -165,7 +170,9 @@ namespace LQIO {
 	{
 	    /* Obtain the value */
 	    double value;
-	    assert(_coeffOfVariationSq->getValue(value) == true);
+	    if ( !_coeffOfVariationSq || _coeffOfVariationSq->getValue(value) != true || value < 0 ) {
+		throw std::domain_error( "Invalid coefficient of variation squared." );
+	    }
 	    return value;
 	}
 

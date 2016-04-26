@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: srvn_input.cpp 12554 2016-04-08 20:28:43Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,6 +16,7 @@
 #include <cassert>
 #include <string>
 #include <cstring>
+#include <errno.h>
 #if HAVE_SYS_ERRNO_H
 #include <sys/errno.h>
 #endif
@@ -23,8 +24,10 @@
 #include <unistd.h>
 #endif
 #include <sys/stat.h>
-#if HAVE_SYS_MMAN_H
+#if HAVE_SYS_TYPES_H
 #include <sys/types.h>
+#endif
+#if HAVE_SYS_MMAN_H
 #include <sys/mman.h>
 #endif
 

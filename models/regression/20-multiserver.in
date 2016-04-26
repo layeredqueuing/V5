@@ -1,6 +1,6 @@
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/20-multiserver.in $
 #
-# $Id$
+# $Id: 20-multiserver.in 11963 2014-04-10 14:36:42Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest multiserver model." 1e-05 50 10 0.9 -1

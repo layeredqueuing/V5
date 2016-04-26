@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/call.h $
  *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id$
+ * $Id: call.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

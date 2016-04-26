@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id$
+ * $Id: server.cc 11969 2014-04-11 21:19:54Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,

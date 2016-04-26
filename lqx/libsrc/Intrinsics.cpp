@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 #include <config.h>
 #include "Intrinsics.h"
@@ -16,6 +17,7 @@
 #include "Environment.h"
 #include "LanguageObject.h"
 #include "RuntimeFlowControl.h"
+#include "Array.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -28,6 +30,54 @@ namespace LQX {
 #endif
     
     static unsigned short xsubi[3] = { 0x0123, 0x4567, 0x89ab };
+
+    namespace Helpers {
+
+	struct GetMax
+	{	
+	public:
+	    GetMax() : _set(false), _max(0.) {}
+	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { setMax( item.second ); }
+	    void operator()( const SymbolAutoRef& current ) { setMax( current ); }
+	    double value() const { return _max; }
+
+	private:
+	    void setMax( const SymbolAutoRef& current ) {
+		if ( current->getType() != Symbol::SYM_DOUBLE ) {
+		    throw IncompatibleTypeException(current->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
+		} else if ( !_set || current->getDoubleValue() > _max ) {
+		    _max = current->getDoubleValue();
+		    _set = true;
+		}
+	    } 
+
+	    bool _set;
+	    double _max;
+	};
+
+	struct GetMin
+	{	
+	public:
+	    GetMin() : _set(false), _min(0.) {}
+	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { setMin( item.second ); }
+	    void operator()( const SymbolAutoRef& current ) { setMin( current ); }
+	    double value() const { return _min; }
+
+	private:
+	    void setMin( const SymbolAutoRef& current ) {
+		if ( current->getType() != Symbol::SYM_DOUBLE ) {
+		    throw IncompatibleTypeException(current->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
+		} else if ( !_set || current->getDoubleValue() < _min ) {
+		    _min = current->getDoubleValue();
+		    _set = true;
+		}
+	    } 
+
+	    bool _set;
+	    double _min;
+	};
+
+    }
 
     namespace Intrinsics {
 
@@ -194,10 +244,41 @@ namespace LQX {
 	    return Symbol::encodeDouble(log(arg1));
 	}
 
+	SymbolAutoRef Max::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	{
+	    double max = 0;
+	    ArrayObject* arrayObject;
+	    if ( args.size() == 1 && args[0]->getType() == Symbol::SYM_OBJECT && (arrayObject = dynamic_cast<ArrayObject *>(args[0]->getObjectValue())) != NULL) {
+		max = for_each( arrayObject->begin(), arrayObject->end(), Helpers::GetMax() ).value();
+	    } else {
+		max = for_each( args.begin(), args.end(), Helpers::GetMax() ).value();
+	    }
+	    return Symbol::encodeDouble(max);
+	}
+    
+	SymbolAutoRef Min::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	{
+	    double min = 0;
+	    ArrayObject* arrayObject;
+	    if ( args.size() == 1 && args[0]->getType() == Symbol::SYM_OBJECT && (arrayObject = dynamic_cast<ArrayObject *>(args[0]->getObjectValue())) != NULL) {
+		min = for_each( arrayObject->begin(), arrayObject->end(), Helpers::GetMin() ).value();
+	    } else {
+		min = for_each( args.begin(), args.end(), Helpers::GetMin() ).value();
+	    }
+	    return Symbol::encodeDouble(min);
+	}
+    
 	SymbolAutoRef Round::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
 	{
 	    double arg1 = decodeDouble(args, 0);
 	    return Symbol::encodeDouble(round(arg1));
+	}
+
+	SymbolAutoRef Sqrt::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	{
+	    double arg1 = decodeDouble(args, 0);
+	    if ( arg1 < 0 ) throw RuntimeException("Invalid argument to sqrt.");
+	    return Symbol::encodeDouble(sqrt(arg1));
 	}
 
 	SymbolAutoRef Normal::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
@@ -397,17 +478,14 @@ namespace LQX {
 	    throw AbortException(reason, code);
 	}
     
-	SymbolAutoRef Return::invoke(Environment* env, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Assert::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
 	{
-	    /* Try to find out if we are in a language-defined method */
-	    if (env->isExecutingInMainContext()) {
-		std::cerr << "WARNING: Attempt to return() out of the main context will fail." << std::endl;
-		std::cerr << "WARNING: You may only ever invoke return() out of a user-defined function." << std::endl;
-		return Symbol::encodeNull();
+	    SymbolAutoRef& symbol = args[0];
+	    Symbol::Type t = symbol->getType();
+	    if ( symbol->getType() != Symbol::SYM_BOOLEAN || symbol->getBooleanValue() != true ) {
+		throw AbortException("Assert failed.", 0);
 	    }
-      
-	    /* This will be caught within the LanguageImplementedMethod wrapper */
-	    throw ReturnValue(Symbol::duplicate(args[0]));
+	    return Symbol::encodeNull();
 	}
     
 	SymbolAutoRef TypeID::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
@@ -428,9 +506,6 @@ namespace LQX {
     
     }
 
-    namespace Intrinsincs {
-    }
-  
     void RegisterIntrinsics(MethodTable* table)
     {
 	xsubi[0] = 0x0123;
@@ -446,9 +521,12 @@ namespace LQX {
 	table->registerMethod(new Intrinsics::Exp());
 	table->registerMethod(new Intrinsics::Floor());
 	table->registerMethod(new Intrinsics::Log());
+	table->registerMethod(new Intrinsics::Max());
+	table->registerMethod(new Intrinsics::Min());
 	table->registerMethod(new Intrinsics::Pow());
-	table->registerMethod(new Intrinsics::Rand());
 	table->registerMethod(new Intrinsics::Round());
+	table->registerMethod(new Intrinsics::Sqrt());
+	table->registerMethod(new Intrinsics::Rand());
 	table->registerMethod(new Intrinsics::Normal());
 	table->registerMethod(new Intrinsics::Gamma());
 	table->registerMethod(new Intrinsics::Poisson());
@@ -456,8 +534,8 @@ namespace LQX {
 	table->registerMethod(new Intrinsics::Str());
 	table->registerMethod(new Intrinsics::Double());
 	table->registerMethod(new Intrinsics::Boolean());
+	table->registerMethod(new Intrinsics::Assert());
 	table->registerMethod(new Intrinsics::Abort());
-	table->registerMethod(new Intrinsics::Return());
 	table->registerMethod(new Intrinsics::TypeID());
     }
   

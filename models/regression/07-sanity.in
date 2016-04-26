@@ -1,8 +1,8 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/07-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 07-sanity.in 8690 2009-05-29 13:49:16Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - entry think time." 1e-05 50 10 0.9 -1

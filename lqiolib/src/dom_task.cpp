@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_task.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -131,8 +131,10 @@ namespace LQIO {
 	double Task::getThinkTimeValue() const
 	{
 	    /* Retun the phase think time */
-	    double value = 0.0;
-	    assert(_thinkTime->getValue(value) == true);
+	    double value;
+	    if ( !_thinkTime || _thinkTime->getValue(value) != true || value < 0. ) {
+		throw std::domain_error( "Invalid think time." );
+	    }
 	    return value;
 	}
 
@@ -487,7 +489,7 @@ namespace LQIO {
 	void Task::Count::operator()( const std::pair<std::string,LQIO::DOM::Task *>& t ) 
 	{
 	    const std::vector<Entry*>& entries = t.second->getEntryList();
-	    _count = for_each( entries.begin(), entries.end(), LQIO::DOM::Entry::Count( _f ) ).count();
+	    _count += for_each( entries.begin(), entries.end(), LQIO::DOM::Entry::Count( _f ) ).count();
 	    
 	    const std::map<std::string,Activity*>&  activities = t.second->getActivities();
 	    for ( std::map<std::string,Activity*>::const_iterator next = activities.begin(); next != activities.end(); ++next ) {

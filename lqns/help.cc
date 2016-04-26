@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id$
+ * $Id: help.cc 12550 2016-04-06 22:33:52Z greg $
  */
 
 #include <config.h>
@@ -17,8 +17,6 @@
 #include "help.h"
 #include "option.h"
 #include "pragma.h"
-
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
 
 class HelpManip {
 public:
@@ -46,9 +44,9 @@ usage ( const char * optarg )
     if ( !optarg ) {
 	cerr << "Usage: " << io_vars.lq_toolname;
 
-#if HAVE_GETOPT_LONG
 	cerr << " [option] [file ...]" << endl << endl;
 	cerr << "Options" << endl;
+#if HAVE_GETOPT_LONG
 	const char ** p = opthelp;
 	for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
 	    string s;
@@ -267,6 +265,7 @@ Help::print( ostream& output ) const
     section( output, "OPTIONS", "Command Line Options" );
     label( output, "sec:options" );
     dl_begin( output );
+#if HAVE_GETOPT_LONG
     for ( const struct option *o = longopts; (o->name || o->val); ++o ) {
 	longopt( output, o );
 	help_fptr f = option_table[o->val];
@@ -274,6 +273,7 @@ Help::print( ostream& output ) const
 	    (this->*f)( output, true );
 	}
     }
+#endif
     dl_end( output );
 
     pp( output );
@@ -1652,7 +1652,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id$" << endl
+    output << __comment << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -1934,8 +1934,8 @@ const char * HelpLaTeX::__comment = "%%";
 ostream&
 HelpLaTeX::preamble( ostream& output ) const
 {
-#if defined(HAVE_CTIME)
     char date[32];
+#if defined(HAVE_CTIME)
     time_t tloc;
     time( &tloc );
 
@@ -1945,12 +1945,12 @@ HelpLaTeX::preamble( ostream& output ) const
     output << __comment << "  -*- mode: latex; mode: outline-minor; fill-column: 108 -*- " << endl
 	   << __comment << " Title:  lqns" << endl
 	   << __comment << "" << endl
-	   << __comment << " $HeadURL$" << endl
+	   << __comment << " $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/help.cc $" << endl
 	   << __comment << " Original Author:     Greg Franks <greg@sce.carleton.ca>" << endl
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id$" << endl
+	   << __comment << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl

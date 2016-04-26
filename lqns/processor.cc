@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/processor.cc $
  * 
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: processor.cc 11963 2014-04-10 14:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 

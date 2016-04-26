@@ -29,27 +29,27 @@ static LQX::Scanner* sharedScanner = 0;
 
 namespace LQX {
   
-  ScannerToken::ScannerToken(int lineno, int code) : 
+  ScannerToken::ScannerToken(int lineno, ParserToken code) : 
     _lineNumber(lineno), _tokenCode(code), _storedType(TYPE_NONE), _external(false)
   {
     /* Store nothing */
   }
   
-  ScannerToken::ScannerToken(int lineno, int code, bool b) : 
+  ScannerToken::ScannerToken(int lineno, ParserToken code, bool b) : 
     _lineNumber(lineno), _tokenCode(code), _storedType(TYPE_BOOLEAN), _external(false)
   {
     /* Store the boolean value */
     _storedValue.boolean = b;
   }
   
-  ScannerToken::ScannerToken(int lineno, int code, double d) : 
+  ScannerToken::ScannerToken(int lineno, ParserToken code, double d) : 
     _lineNumber(lineno), _tokenCode(code), _storedType(TYPE_DOUBLE), _external(false)
   {
     /* Store the double value */
     _storedValue.doubleValue = d;
   }
   
-  ScannerToken::ScannerToken(int lineno, int code, Type type, const char* string, unsigned int len, bool external) : 
+  ScannerToken::ScannerToken(int lineno, ParserToken code, Type type, const char* string, unsigned int len, bool external) : 
     _lineNumber(lineno), _tokenCode(code), _storedType(type), _external(external)
   {
     /* Copy in the string for Identifiers and Strings */
@@ -93,7 +93,7 @@ namespace LQX {
     return _lineNumber;
   }
   
-  int ScannerToken::getTokenCode() const
+  ParserToken ScannerToken::getTokenCode() const
   {
     return _tokenCode;
   }
@@ -140,7 +140,7 @@ namespace LQX {
   
 #pragma mark -
   
-  Scanner::Scanner() : _current(0, 0), _currentBuffer(NULL)
+  Scanner::Scanner() : _current(0, LQX::PT_EOS), _currentBuffer(NULL)
   { 
   }
   
@@ -148,7 +148,7 @@ namespace LQX {
   {
   }
   
-  Scanner::Scanner(const Scanner&) throw () : _current(0,0)
+  Scanner::Scanner(const Scanner&) throw () : _current(0, LQX::PT_EOS)
   {
     throw NonCopyableException();
   }

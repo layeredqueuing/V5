@@ -66,6 +66,20 @@ namespace LQX {
     double _compileTime;
     double _lastRunTime;
     
+    struct printStatement {
+      printStatement( std::ostream& output ) : _output( output ) {};
+      void operator()( const LQX::SyntaxTreeNode* node ) const;
+    private:
+      std::ostream& _output;
+    };
+
+    struct printGraphviz {
+      printGraphviz( std::ostream& output ) : _output( output ) {};
+      void operator()( const LQX::SyntaxTreeNode* node ) const;
+    private:
+      std::ostream& _output;
+    };
+
   };
   
 }

@@ -3,7 +3,7 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id$
+# $Id: Makefile.am 11483 2013-08-16 12:47:24Z greg $
 #----------------------------------------------------------------------
 
 SUBDIRS = model calls activity-templ web-server pseudo-tasks

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/open.h $
  *
  * Open Network solver.
  *
@@ -7,9 +7,9 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date$
+ * $Date: 2014-04-10 10:36:42 -0400 (Thu, 10 Apr 2014) $
  *
- * $Id$
+ * $Id: open.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

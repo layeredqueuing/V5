@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id$
+ * $Id: syncserv.cc 11963 2014-04-10 14:36:42Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,

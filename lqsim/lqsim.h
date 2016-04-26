@@ -11,9 +11,9 @@
 /*
  * Global vars for setting up simulation.
  *
- * $URL$
+ * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id$
+ * $Id: lqsim.h 11963 2014-04-10 14:36:42Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)

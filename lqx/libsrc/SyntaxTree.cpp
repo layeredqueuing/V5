@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
 #include <sstream>
@@ -26,24 +27,39 @@
 
 namespace LQX {
 
-  static unsigned convertToInteger(double rightNumber) throw (IncompatibleTypeException) {
-    unsigned rightInteger = 0;
-    long integralPart = (long)rightNumber;
-    double fractionalPart = rightNumber - (double)integralPart;
+  static unsigned long convertToNatural(double rightNumber) throw (IncompatibleTypeException) {
+    long integralPart = static_cast<long>(rightNumber);
+    double fractionalPart = rightNumber - static_cast<double>(integralPart);
     if (rightNumber < 0 || fractionalPart != 0) {
       throw IncompatibleTypeException("double", "integer");
     }
 
     /* Return the integral part of the double */
-    rightInteger = integralPart;
-    return rightInteger;
+    return integralPart;
   }
 
   /* The names of the operations */
   const char* SyntaxTreeNode::logicNames[] = { "||", "&&", "!" };
   const char* SyntaxTreeNode::compareNames[] = { "==", "!=", "<", ">", "<=", ">=" };
-  const char* SyntaxTreeNode::arithmeticNames[] = { "<<", ">>", "+", "-", "*", "/", "%" };
+  const char* SyntaxTreeNode::arithmeticNames[] = { "<<", ">>", "+", "-", "*", "/", "%", "**" };
+  std::string SyntaxTreeNode::variablePrefix;
 
+  class IntegerManip {
+  public:
+    IntegerManip( std::ostream& (*f)(std::ostream&, const int ), const int i ) : _f(f), _i(i) {}
+  private:
+    std::ostream& (*_f)( std::ostream&, const int );
+    const int _i;
+
+    friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) { return m._f(os,m._i); }
+  };
+
+  static inline std::ostream& left_fill( std::ostream& output, int i ) {
+      if ( i > 0 ) { output << std::setw( i*2 ) << " "; }
+      return output;
+  }
+
+  static inline IntegerManip left_fill( const int i ) { return IntegerManip( &left_fill, i ); }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -84,7 +100,7 @@ namespace LQX {
     delete(_statements);
   }
 
-  void CompoundStatementNode::debugPrintGraphviz(std::ostream& output)
+  void CompoundStatementNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -106,7 +122,8 @@ namespace LQX {
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _statements->begin(); iter != _statements->end(); iter++) {
       (*iter)->print(output,indent);
-      if ( (*iter)->simpleStatement() ) { output << ";" << std::endl; }
+      if ( (*iter)->simpleStatement() ) { output << ";"; }
+      output << std::endl;
     }
     return output;
   }
@@ -157,7 +174,7 @@ namespace LQX {
     delete(_falseAction);
   }
 
-  void ConditionalStatementNode::debugPrintGraphviz(std::ostream& output)
+  void ConditionalStatementNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -187,20 +204,17 @@ namespace LQX {
 
   std::ostream& ConditionalStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-    output << std::setw(indent*2) << " " << "if (";
+    output << left_fill( indent ) << "if (";
     if (_testNode) { _testNode->print(output); }
-    output << ")";
+    output << ") {" << std::endl;
     if (_trueAction) {
-      output << " {" << std::endl;
       _trueAction->print(output,indent+1);
-      output << std::setw(indent*2) << " " << "}";
     }
     if (_falseAction) {
-      output << " else {" << std::endl;
+      output << left_fill( indent ) << "} else {" << std::endl;
       _falseAction->print(output,indent+1);
-      output << std::setw(indent*2) << " " << "}";
     }
-    output << std::endl;
+    output << left_fill( indent ) << "}";
     return output;
   }
 
@@ -214,7 +228,7 @@ namespace LQX {
     /* Make sure we got ourselves a boolean */
     SymbolAutoRef testValue = _testNode->invoke(env);
     if (testValue == NULL || testValue->getType() != Symbol::SYM_BOOLEAN) {
-      throw IncompatibleTypeException(testValue->getTypeName(), "boolean");
+      throw IncompatibleTypeException(_testNode, testValue->getTypeName(), "boolean");
     }
 
     /* Invoke the appropriate node */
@@ -248,7 +262,7 @@ namespace LQX {
     delete(_value);
   }
 
-  void AssignmentStatementNode::debugPrintGraphviz(std::ostream& output)
+  void AssignmentStatementNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this), valueNode = reinterpret_cast<uintptr_t>(_value);
@@ -263,7 +277,7 @@ namespace LQX {
 
   std::ostream& AssignmentStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-    if ( indent ) { output << std::setw(indent*2) << " "; }
+    output << left_fill( indent );
     _target->print(output);
     output << " = ";
     _value->print(output);
@@ -281,7 +295,9 @@ namespace LQX {
     /* Figure out what we are setting on */
     SymbolAutoRef target = _target->invoke(env);
     if (target->isConstant()) {
-      std::cout << "warning: Attempting to assign to a constant variable. No effect." << std::endl;
+      std::stringstream s;
+      s << *_target;
+      throw RuntimeException( "Attempt to assign to constant `%s'.", s.str().c_str() );
     } else {
       target->copyValue(*value);
     }
@@ -310,7 +326,7 @@ namespace LQX {
     delete(_right);
   }
 
-  void LogicExpression::debugPrintGraphviz(std::ostream& output)
+  void LogicExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -334,12 +350,16 @@ namespace LQX {
 
   std::ostream& LogicExpression::print( std::ostream& output, unsigned int ) const
   {
-    bool brackets = _left && _right;
-    if ( brackets ) { output << "("; }		// Always do this to ensure order of ops
-    if (_left) { _left->print(output); }
-    output << ' ' << logicNames[static_cast<uint32_t>(_operation)] << ' ';
-    if (_right) { _right->print(output); }
-    if ( brackets ) { output << ")"; }		// Always do this to ensure order of ops
+    if ( _left && _right ) { 
+      output << "(";		 		// Always do this to ensure order of ops
+      _left->print(output);
+      output << ' ' << logicNames[static_cast<uint32_t>(_operation)] << ' '; 
+      _right->print(output);
+      output << ")";
+    } else { 
+     output << logicNames[static_cast<uint32_t>(_operation)]; 
+     _left->print(output);
+    }
     return output;
   }
 
@@ -360,9 +380,9 @@ namespace LQX {
     if (left == NULL || (hasRight == true && right == NULL)) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
     } else if (left->getType() != Symbol::SYM_BOOLEAN) {
-      throw IncompatibleTypeException(left->getTypeName(), "boolean");
+      throw IncompatibleTypeException(_left, left->getTypeName(), "boolean");
     } else if ((hasRight && (right->getType() != Symbol::SYM_BOOLEAN))) {
-      throw IncompatibleTypeException(right->getTypeName(), "boolean");
+      throw IncompatibleTypeException(_right, right->getTypeName(), "boolean");
     }
 
     /* Get the value to perform the operation */
@@ -407,7 +427,7 @@ namespace LQX {
     delete(_right);
   }
 
-  void ComparisonExpression::debugPrintGraphviz(std::ostream& output)
+  void ComparisonExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -442,8 +462,6 @@ namespace LQX {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
     SymbolAutoRef right = _right->invoke(env);
-    Symbol::Type leftType, rightType;
-    bool result = false;
 
     /* Check if everything actually worked out right */
     if (left == NULL || right == NULL) {
@@ -451,66 +469,74 @@ namespace LQX {
     }
 
     /* Get the type of the nodes */
-    leftType = left->getType();
-    rightType = right->getType();
+    const Symbol::Type leftType  = left->getType();
+    const Symbol::Type rightType = right->getType();
+    bool result = false;
 
     /* We can compare objects against eachother and nulls using built-in operations */
-    if (leftType == Symbol::SYM_NULL && rightType == Symbol::SYM_NULL) {
-      switch (_mode) {
-        case EQUALS:     result = true;  break;
-        case NOT_EQUALS: result = false; break;
-        default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+    if (leftType == Symbol::SYM_NULL) {
+      if (rightType == Symbol::SYM_NULL) {
+	switch (_mode) {
+          case EQUALS:     result = true;  break;
+          case NOT_EQUALS: result = false; break;
+          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+	}
+      } else if (rightType == Symbol::SYM_OBJECT) {
+	switch (_mode) {
+          case EQUALS:     result = false; break;
+          case NOT_EQUALS: result = true;  break;
+          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+        }
+      } else {
+	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_NULL));
       }
-    } else if ((leftType == Symbol::SYM_NULL && rightType == Symbol::SYM_OBJECT) ||
-      (leftType == Symbol::SYM_OBJECT && rightType == Symbol::SYM_NULL)) {
-      switch (_mode) {
-        case EQUALS:     result = false; break;
-        case NOT_EQUALS: result = true;  break;
-        default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+    } else if (leftType == Symbol::SYM_OBJECT) {
+      if (rightType == Symbol::SYM_NULL)  {
+        switch (_mode) {
+          case EQUALS:     result = false; break;
+          case NOT_EQUALS: result = true;  break;
+          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+        }
+      } else if (rightType == Symbol::SYM_OBJECT) {
+	LanguageObject* leftObject = left->getObjectValue();
+	LanguageObject* rightObject = right->getObjectValue();
+        switch (_mode) {
+	  case EQUALS:     result =  leftObject->isEqualTo(rightObject); break;
+          case NOT_EQUALS: result = !leftObject->isEqualTo(rightObject); break;
+          default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+	}
+      } else {
+	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_OBJECT));
       }
-    } else if ((leftType == Symbol::SYM_NULL && rightType == Symbol::SYM_OBJECT)) {
-      LanguageObject* leftObject = left->getObjectValue();
-      LanguageObject* rightObject = right->getObjectValue();
+    } else if (leftType == Symbol::SYM_DOUBLE) {
+      /* If we are dealing with doubles, do it that way. */
+      if (rightType != Symbol::SYM_DOUBLE) {
+	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
+      }
+      double d1 = left->getDoubleValue();
+      double d2 = right->getDoubleValue();
       switch (_mode) {
-        case EQUALS:     result =  leftObject->isEqualTo(rightObject); break;
-        case NOT_EQUALS: result = !leftObject->isEqualTo(rightObject); break;
-        default:         throw RuntimeException("Objects/nulls can only be compared with == and !=");
+        case EQUALS:           result = (d1 == d2); break;
+        case NOT_EQUALS:       result = (d1 != d2); break;
+        case LESS_THAN:        result = (d1 <  d2); break;
+        case GREATER_THAN:     result = (d1 >  d2); break;
+        case LESS_OR_EQUAL:    result = (d1 <= d2); break;
+        case GREATER_OR_EQUAL: result = (d1 >= d2); break;
+        default:               throw InternalErrorException("Invalid operation specified.");
+      }
+    } else if (leftType == Symbol::SYM_BOOLEAN) {
+      if (rightType != Symbol::SYM_BOOLEAN) {
+	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
+      }
+      bool b1 = left->getBooleanValue();
+      bool b2 = right->getBooleanValue();
+      switch (_mode) {
+        case EQUALS:           result = (b1 == b2); break;
+        case NOT_EQUALS:       result = (b1 != b2); break;
+        default:               throw RuntimeException("Booleans can only be compared with == and !=");
       }
     } else {
-
-      /* Check to see if we can work this as a double or a boolean comparison */
-      if (left->getType() == Symbol::SYM_DOUBLE && right->getType() != Symbol::SYM_DOUBLE) {
-        throw IncompatibleTypeException(right->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
-      } else if (left->getType() == Symbol::SYM_BOOLEAN && right->getType() != Symbol::SYM_BOOLEAN) {
-        throw IncompatibleTypeException(right->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
-      } else if ((left->getType() != Symbol::SYM_BOOLEAN && left->getType() != Symbol::SYM_DOUBLE) &&
-        (right->getType() != Symbol::SYM_BOOLEAN && right->getType() != Symbol::SYM_DOUBLE)) {
-        throw InternalErrorException("Unknown type in comparison.");
-      }
-
-      /* If we are dealing with doubles, do it that way. */
-      if (left->getType() == Symbol::SYM_DOUBLE) {
-        double d1 = left->getDoubleValue();
-        double d2 = right->getDoubleValue();
-        switch (_mode) {
-          case EQUALS:           result = (d1 == d2); break;
-          case NOT_EQUALS:       result = (d1 != d2); break;
-          case LESS_THAN:        result = (d1 <  d2); break;
-          case GREATER_THAN:     result = (d1 >  d2); break;
-          case LESS_OR_EQUAL:    result = (d1 <= d2); break;
-          case GREATER_OR_EQUAL: result = (d1 >= d2); break;
-          default:               throw InternalErrorException("Invalid operation specified.");
-        }
-      } else if (left->getType() == Symbol::SYM_BOOLEAN) {
-        bool b1 = left->getBooleanValue();
-        bool b2 = right->getBooleanValue();
-        switch (_mode) {
-          case EQUALS:           result = (b1 == b2); break;
-          case NOT_EQUALS:       result = (b1 != b2); break;
-          default:               throw RuntimeException("Booleans can only be compared with == and !=");
-        }
-      }
-
+      throw InternalErrorException("Unknown type in comparison.");
     }
 
     /* Generate the boolean symbol for the result */
@@ -538,7 +564,7 @@ namespace LQX {
     delete(_right);
   }
 
-  void MathExpression::debugPrintGraphviz(std::ostream& output)
+  void MathExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -581,38 +607,26 @@ namespace LQX {
     if (left == NULL || right == NULL) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
     } else if (left->getType() != Symbol::SYM_DOUBLE) {
-      std::stringstream ss;
-      _left->print( ss, 0 );
-      throw IncompatibleTypeException( ss.str(), left->getTypeName(), "double" );
+      throw IncompatibleTypeException( _left, left->getTypeName(), "double" );
     } else if (right->getType() != Symbol::SYM_DOUBLE) {
-      std::stringstream ss;
-      _right->print( ss, 0 );
-      throw IncompatibleTypeException( ss.str(), right->getTypeName(), "double" );
+      throw IncompatibleTypeException( _right, right->getTypeName(), "double" );
     }
 
     /* Pull out the values */
     double leftNumber = left->getDoubleValue();
     double rightNumber = right->getDoubleValue();
     double result = 0.0f;
-    unsigned rightInteger = 0;
-    unsigned leftInteger = 0;
-
-    /* If this operation requires an integer argument, then we need to grab it */
-    if (_operation == SHIFT_LEFT || _operation == SHIFT_RIGHT || _operation == MODULUS) {
-      rightInteger = convertToInteger(rightNumber);
-      leftInteger = convertToInteger(leftNumber);
-    }
 
     /* Perform the operation itself */
     switch (_operation) {
       case SHIFT_LEFT:
-        result = leftInteger << rightInteger;
+        result = convertToNatural(leftNumber) << convertToNatural(rightNumber);
         break;
       case SHIFT_RIGHT:
-        result = leftInteger >> rightInteger;
+        result = convertToNatural(leftNumber) >> convertToNatural(rightNumber);
         break;
       case MODULUS:
-        result = leftInteger % rightInteger;
+	result = fmod( leftNumber, rightNumber );	/* More general than % */
         break;
       case ADD:
         result = leftNumber + rightNumber;
@@ -626,6 +640,9 @@ namespace LQX {
       case DIVIDE:
         result = leftNumber / rightNumber;
         break;
+      case POWER:
+	result = pow( leftNumber, rightNumber );
+	break;
       default:
         throw InternalErrorException("Unsupported Math Operation");
         break;
@@ -678,7 +695,7 @@ namespace LQX {
   {
   }
 
-  void ConstantValueExpression::debugPrintGraphviz(std::ostream& output)
+  void ConstantValueExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output the value string */
     std::string valueStr;
@@ -756,7 +773,7 @@ namespace LQX {
   {
   }
 
-  void VariableExpression::debugPrintGraphviz(std::ostream& output)
+  void VariableExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -765,6 +782,9 @@ namespace LQX {
 
   std::ostream& VariableExpression::print( std::ostream& output, unsigned int ) const
   {
+    if ( !_external ) {			/* Hack for SPEX - all vars have $... */
+      output << variablePrefix;
+    }
     output << _name;
     return output;
   }
@@ -826,7 +846,7 @@ namespace LQX {
     delete _arguments;
   }
 
-  void MethodInvocationExpression::debugPrintGraphviz(std::ostream& output)
+  void MethodInvocationExpression::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -844,8 +864,7 @@ namespace LQX {
 
   std::ostream& MethodInvocationExpression::print( std::ostream& output, unsigned int indent ) const
   {
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << _name << "(";
+    output << left_fill( indent ) << _name << "(";
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
     for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
@@ -899,7 +918,7 @@ namespace LQX {
     delete(_action);
   }
 
-  void LoopStatementNode::debugPrintGraphviz(std::ostream& output)
+  void LoopStatementNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -936,8 +955,7 @@ namespace LQX {
 
   std::ostream& LoopStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << "for ( ";
+    output << left_fill( indent ) << "for ( ";
     if ( _onBegin ) { _onBegin->print(output); }
     output << "; ";
     if ( _stopCondition ) { _stopCondition->print(output); }
@@ -945,8 +963,7 @@ namespace LQX {
     if ( _onEachRun ) { _onEachRun->print(output); } 
     output << ") {" << std::endl;
     if ( _action ) { _action->print( output, indent + 1 ); }
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << "}" << std::endl;
+    output << left_fill( indent ) << "}";
     return output;
   }
 
@@ -968,14 +985,18 @@ namespace LQX {
       if (_stopCondition) {
         SymbolAutoRef shouldStop = _stopCondition->invoke(env);
         if (shouldStop->getType() != Symbol::SYM_BOOLEAN) {
-          throw IncompatibleTypeException(shouldStop->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
+	  throw IncompatibleTypeException(_stopCondition, shouldStop->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
         } else if (shouldStop->getBooleanValue() == false) {
           break;
         }
       }
 
       /* Invoke the loop action */
-      if (_action) { _action->invoke(env); }
+      try {
+        if (_action) { _action->invoke(env); }
+      } catch ( const BreakException& e ) {
+	break;
+      }
       if (_onEachRun) { _onEachRun->invoke(env); }
     }
 
@@ -1007,7 +1028,7 @@ namespace LQX {
     delete(_actionNode);
   }
 
-  void ForeachStatementNode::debugPrintGraphviz(std::ostream& output)
+  void ForeachStatementNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* Output this nodes declaration */
     uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
@@ -1034,8 +1055,7 @@ namespace LQX {
 
   std::ostream& ForeachStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << "foreach( ";
+    output << left_fill( indent ) << "foreach( ";
     if ( _keyName != "" ) {
       output << _keyName << ", ";
     }
@@ -1043,8 +1063,7 @@ namespace LQX {
     _arrayNode->print(output,indent);
     output << " ) { " << std::endl;
     _actionNode->print(output,indent+1);
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << "}" << std::endl;
+    output << left_fill( indent ) << "}";
     return output;
   }
 
@@ -1063,7 +1082,7 @@ namespace LQX {
     if (arraySymbol->getType() == Symbol::SYM_NULL) {
       return Symbol::encodeNull();
     } else if (arraySymbol->getType() != Symbol::SYM_OBJECT) {
-      throw IncompatibleTypeException(Symbol::typeToString(arraySymbol->getType()), "Array");
+      throw IncompatibleTypeException(_arrayNode, Symbol::typeToString(arraySymbol->getType()), "Array");
     } else if (arraySymbol->getObjectValue()->getTypeId() != kArrayObjectTypeId) {
       throw RuntimeException("The object provided to the `foreach' statement was not an Array.");
     }
@@ -1105,13 +1124,105 @@ namespace LQX {
     for (iter = arrayObject->begin(); iter != arrayObject->end(); ++iter) {
       if (_keyName != "") { keySymbol->copyValue(*(iter->first)); }
       valueSymbol->copyValue(*(iter->second));
-      if (_actionNode != NULL) { _actionNode->invoke(env); }
+      try {
+	if (_actionNode != NULL) { _actionNode->invoke(env); }
+      } catch ( const BreakException& e ) {
+	break;
+      }
     }
 
 #if defined(__VARIABLE_SCOPING__)
     /* Pops the Context */
     st->popContext();
 #endif
+    return Symbol::encodeNull();
+  }
+
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+
+namespace LQX {
+
+    ReturnStatementNode::ReturnStatementNode( SyntaxTreeNode* expr ) :
+	_expr(expr)
+    {
+    }
+
+    ReturnStatementNode::~ReturnStatementNode()
+    {
+	delete _expr;
+    }
+
+    void ReturnStatementNode::debugPrintGraphviz(std::ostream& output) const
+    {
+	/* Output this nodes declaration */
+	uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
+	output << QUOTE(thisNode) << " [label=\"Return\", shape=box];" << std::endl;
+    }
+
+    std::ostream& ReturnStatementNode::print( std::ostream& output, unsigned int indent ) const
+    {
+	output << left_fill( indent ) << "return";
+	if ( _expr ) { 
+	    output << " "; 
+	    _expr->print( output, indent );
+	}
+	return output;
+    }
+
+    SymbolAutoRef ReturnStatementNode::invoke(Environment* env) throw (RuntimeException)
+    {
+	/* Try to find out if we are in a language-defined method */
+	if (env->isExecutingInMainContext()) {
+	    std::cerr << "WARNING: Attempt to return() out of the main context will fail." << std::endl;
+	    std::cerr << "WARNING: You may only ever invoke return() out of a user-defined function." << std::endl;
+	    return Symbol::encodeNull();
+	}
+	if ( _expr ) {
+	    throw ReturnValue( _expr->invoke(env) );
+	} else {
+	    throw ReturnValue(Symbol::encodeNull());
+	}
+    }
+
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+namespace LQX {
+
+  BreakStatementNode::BreakStatementNode()
+  {
+  }
+
+  BreakStatementNode::~BreakStatementNode()
+  {
+  }
+
+  void BreakStatementNode::debugPrintGraphviz(std::ostream& output) const
+  {
+    /* Output this nodes declaration */
+    uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
+    output << QUOTE(thisNode) << " [label=\"Break\", shape=box];" << std::endl;
+  }
+
+  std::ostream& BreakStatementNode::print( std::ostream& output, unsigned int indent ) const
+  {
+    output << left_fill( indent ) << "break";
+    return output;
+  }
+
+  SymbolAutoRef BreakStatementNode::invoke(Environment*) throw (RuntimeException)
+  {
+    throw BreakException();
     return Symbol::encodeNull();
   }
 
@@ -1133,14 +1244,14 @@ namespace LQX {
   {
   }
 
-  void FileOpenStatementNode::debugPrintGraphviz( std::ostream& output )
+  void FileOpenStatementNode::debugPrintGraphviz( std::ostream& output ) const
   {
     output << "NOT SUPPORTED";
   }
 
-  std::ostream& FileOpenStatementNode::print( std::ostream& output, unsigned int ) const
+  std::ostream& FileOpenStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-      output << "OPEN FILE";
+    output << left_fill( indent ) << "file_open( " << _fileHandle << ")";
     return output;
   }
 
@@ -1158,7 +1269,7 @@ namespace LQX {
       symbol = table->get( _fileHandle );
       output_file = symbol->getFilePointerValue();
       if( output_file != NULL ) {
-	err <<  "The file handle \"" << _fileHandle.c_str() << "\" is already being used.";
+	err <<  "The file handle \"" << _fileHandle << "\" is already being used.";
 	throw RuntimeException( err.str().c_str() );
       }
     } else {
@@ -1172,7 +1283,7 @@ namespace LQX {
       mode = "r";
 
     if( (output_file = fopen( _filePath.c_str(), mode )) == 0 ) {
-      err << "The file \"" << _filePath.c_str() << "\" could not be opened for ";
+      err << "The file \"" << _filePath << "\" could not be opened for ";
       if( _write ){
 	if( _append )
 	  err << "appending.";
@@ -1210,14 +1321,14 @@ namespace LQX {
   {
   }
 
-  void FileCloseStatementNode::debugPrintGraphviz( std::ostream& output )
+  void FileCloseStatementNode::debugPrintGraphviz( std::ostream& output ) const
   {
     output << "NOT SUPPORTED";
   }
 
-  std::ostream& FileCloseStatementNode::print( std::ostream& output, unsigned int ) const
+  std::ostream& FileCloseStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-      output << "Close file.";
+    output << left_fill( indent ) << "file_close( " << _fileHandle << ")";
     return output;
   }
 
@@ -1228,7 +1339,7 @@ namespace LQX {
     SymbolTable* table = env->getSymbolTable();
 
     if( !table->isDefined( _fileHandle ) ) {
-      err << "The file handle \"" << _fileHandle.c_str() << "\" could not be found.";
+      err << "The file handle \"" << _fileHandle << "\" could not be found.";
       throw RuntimeException( err.str().c_str() );
     }
 
@@ -1236,14 +1347,14 @@ namespace LQX {
 
     Symbol::Type type = symbol->getType();
     if( !((type == Symbol::SYM_FILE_WRITE_POINTER) || (type == Symbol::SYM_FILE_READ_POINTER)) ) {
-      err << "The given variable \"" << _fileHandle.c_str() << "\" is not a file handle.";
+      err << "The given variable \"" << _fileHandle << "\" is not a file handle.";
       throw RuntimeException( err.str().c_str() );
     }
 
     FILE* outfile = symbol->getFilePointerValue();
 
     if( outfile == NULL ) {
-      err << "The file with handle \"" << _fileHandle.c_str() << "\" has already been closed.";
+      err << "The file with handle \"" << _fileHandle << "\" has already been closed.";
       throw RuntimeException( err.str().c_str() );
     }
 
@@ -1273,15 +1384,14 @@ namespace LQX {
   {
   }
 
-  void FilePrintStatementNode::debugPrintGraphviz( std::ostream& output )
+  void FilePrintStatementNode::debugPrintGraphviz( std::ostream& output ) const
   {
     output << "NOT SUPPORTED";
   }
 
   std::ostream& FilePrintStatementNode::print( std::ostream& output, unsigned int indent ) const
   {
-    if ( indent ) { output << std::setw(indent*2) << " "; }
-    output << "println";
+    output << left_fill( indent ) << "println";
     if ( _spacing ) { output << "_spaced"; }
     output << "(";
     if ( _arguments ) {
@@ -1434,14 +1544,14 @@ namespace LQX {
   {
   }
 
-  void ReadDataStatementNode::debugPrintGraphviz( std::ostream& output )
+  void ReadDataStatementNode::debugPrintGraphviz( std::ostream& output ) const
   {
     output << "NOT SUPPORTED";
   }
 
   std::ostream& ReadDataStatementNode::print( std::ostream& output, unsigned int ) const
   {
-      output << "read file.";
+    output << "read file.";
     return output;
   }
 
@@ -1466,7 +1576,7 @@ namespace LQX {
     else {
 
       if( !standardTable->isDefined( _fileHandle ) ) {
-	err << "The file handle \"" << _fileHandle.c_str() << "\" could not be found.";
+	err << "The file handle \"" << _fileHandle << "\" could not be found.";
 	throw RuntimeException( err.str().c_str() );
       }
 
@@ -1474,17 +1584,17 @@ namespace LQX {
 
       Symbol::Type type = symbol->getType();
       if( !((type == Symbol::SYM_FILE_WRITE_POINTER) || (type == Symbol::SYM_FILE_READ_POINTER)) ) {
-	err << "The given variable \"" << _fileHandle.c_str() << "\" is not a file handle.";
+	err << "The given variable \"" << _fileHandle << "\" is not a file handle.";
 	throw RuntimeException( err.str().c_str() );
       } else if( type != Symbol::SYM_FILE_READ_POINTER ) {
-	err << "The given file handle  \"" << _fileHandle.c_str() << "\" has been opened for writing instead of reading.";
+	err << "The given file handle  \"" << _fileHandle << "\" has been opened for writing instead of reading.";
 	throw RuntimeException( err.str().c_str() );
       }
 
       infile = symbol->getFilePointerValue();
 
       if( infile == NULL ) {
-	err << "The file with handle \"" << _fileHandle.c_str() << "\" has already been closed.";
+	err << "The file with handle \"" << _fileHandle << "\" has already been closed.";
 	throw RuntimeException( err.str().c_str() );
       }
     }
@@ -1507,7 +1617,7 @@ namespace LQX {
 	Symbol::Type type = current->getType();
 	if( type == Symbol::SYM_DOUBLE ){
 	  if( fscanf( infile, "%lf", &input_value ) != 1 ){
-	    err << "Unable to read expected double value from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	    err << "Unable to read expected double value from the input file with handle \"" << _fileHandle << "\".";
 	    throw RuntimeException( err.str().c_str() );
 	  }
 	  current->assignDouble( input_value );
@@ -1528,7 +1638,7 @@ namespace LQX {
 
 	map_input = false;
 	if( fscanf( infile, "%127s", &input_string[0] ) != 1 ){
-	  err << "Unable to read expected string value from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	  err << "Unable to read expected string value from the input file with handle \"" << _fileHandle << "\".";
 	  throw RuntimeException( err.str().c_str() );
 	}
 
@@ -1586,7 +1696,7 @@ namespace LQX {
 	Symbol::Type type = symbol->getType();
 	if( type == Symbol::SYM_DOUBLE ) {
 	  if( fscanf( infile, "%lf", &input_value ) != 1 ){
-	    err << "Unable to read expected double value from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	    err << "Unable to read expected double value from the input file with handle \"" << _fileHandle << "\".";
 	    throw RuntimeException( err.str().c_str() );
 	  }
 	  symbol->assignDouble( input_value );
@@ -1602,7 +1712,7 @@ namespace LQX {
 	  if( value_type == Symbol::SYM_DOUBLE ) {
 
 	    if( fscanf( infile, "%lf", &input_value ) != 1 ){
-	      err << "Unable to read expected double value from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	      err << "Unable to read expected double value from the input file with handle \"" << _fileHandle << "\".";
 	      throw RuntimeException( err.str().c_str() );
 	    }
 	    array->put( key_symbol, Symbol::encodeDouble( input_value ) );
@@ -1633,7 +1743,7 @@ namespace LQX {
     bool first_word = true;
     while( true ) {
       if( fscanf( infile, "%127s", &input_string[0] ) != 1 ){
-	err << "Unable to read expected quoted string from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	err << "Unable to read expected quoted string from the input file with handle \"" << _fileHandle << "\".";
 	throw RuntimeException( err.str().c_str() );
       }
       if( first_word ) {
@@ -1671,9 +1781,9 @@ namespace LQX {
 
     if( fscanf( infile, "%127s", &input_string[0] ) != 1 ){
       if( variable )
-	err << "Unable to read expected boolean value for variable \"" << variable << "\" the input file with handle \"" << _fileHandle.c_str() << "\".";
+	err << "Unable to read expected boolean value for variable \"" << variable << "\" the input file with handle \"" << _fileHandle << "\".";
       else
-	err << "Unable to read expected boolean value from the input file with handle \"" << _fileHandle.c_str() << "\".";
+	err << "Unable to read expected boolean value from the input file with handle \"" << _fileHandle << "\".";
       throw RuntimeException( err.str().c_str() );
     }
     if( strequal( input_string, "true" ) )
@@ -1706,7 +1816,7 @@ namespace LQX {
     delete(_objectNode);
   }
 
-  void ObjectPropertyReadNode::debugPrintGraphviz(std::ostream& output)
+  void ObjectPropertyReadNode::debugPrintGraphviz(std::ostream& output) const
   {
     output << "NOT SUPPORTED";
   }
@@ -1773,6 +1883,8 @@ namespace LQX {
       const_cast<SyntaxTreeNode*>(_action)->invoke(env);
     } catch (const ReturnValue& rv) {
       result = const_cast<ReturnValue&>(rv).getValue();
+    } catch (const BreakException& e) {
+      throw RuntimeException( e.what() );	// Re-throw as different type.
     }
 
     /* [4] Tear apart the work we did */
@@ -1809,7 +1921,7 @@ namespace LQX {
     delete(_prototype);
   }
 
-  void FunctionDeclarationNode::debugPrintGraphviz(std::ostream& output)
+  void FunctionDeclarationNode::debugPrintGraphviz(std::ostream& output) const
   {
     /* There is no implementation right now */
     output << "NOT SUPPORTED";

@@ -12,6 +12,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
+#include <sstream>
+#include <string>
+#include <SyntaxTree.h>
 
 namespace LQX {
   
@@ -34,6 +37,10 @@ namespace LQX {
     return _reason.c_str();
   }
   
+  std::string& RuntimeException::insert( size_t pos, const std::string& s ) 
+  {
+    return _reason.insert( pos, s );
+  }
 }
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -61,9 +68,12 @@ namespace LQX {
 
 namespace LQX {
   
-  IncompatibleTypeException::IncompatibleTypeException(const std::string& expr, const std::string& from, const std::string& to) throw()
-    : RuntimeException("Unable to Convert `%s' From: `%s' To: `%s'", expr.c_str(), from.c_str(), to.c_str() )
+  IncompatibleTypeException::IncompatibleTypeException(const SyntaxTreeNode* expr, const std::string& from, const std::string& to) throw()
+    : RuntimeException("Unable to Convert From: `%s' To: `%s'", from.c_str(), to.c_str() )
   {
+    std::stringstream s;
+    s << " `" << *expr << "'";	/* If `expr' is a variable node, then this will get the name of the variable */
+    insert( 17, s.str() );
   }
   
   IncompatibleTypeException::IncompatibleTypeException(const std::string& from, const std::string& to) throw()

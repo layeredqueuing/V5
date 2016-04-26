@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: mva.cc 11977 2014-04-14 00:46:01Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.

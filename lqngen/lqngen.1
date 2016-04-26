@@ -1,194 +1,342 @@
-.\" t -*- nroff -*-
-.TH lqngen 1 "12 August 2013"
-.\" $Id$
+.\" -*- nroff -*-
+.TH lqngen 1 "06 January 2016"  "5.9"
+.\" $Id: lqngen.1 12412 2016-01-06 17:56:04Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
-lqngen
+lqngen \- generate layered queueing network models.
 .SH "SYNOPSIS"
 .br
-.B lqngen 
-[
-OPTION
-]... 
+.B lqngen
+[\fIOPTION \&.\|.\|.\fP]
 [
 FILE
-] 
+]
 .SH "DESCRIPTION"
-\fBlqngen\fR is used to create an LQN input file.  If no \fIFILE\fP is
+\fBlqngen\fP is used to create one or more LQN input files.  If no \fIFILE\fP is
 specified, the model will be output to \fIstdout\fP.  If no options
 are specified, a simple annotated model consisting of one reference task, one
-serving task and their respecitive processors is produced.  To create
-a simple model with more layers, use the \fB\-\-layers\fP=\fIarg\fP
-option.  To create a simple model with with LQX or SPEX code, use
+serving task and their respective processors is produced.  
+To create a random model with exactly \fIn\fP tasks, use \fB\-\-automatic\fP=\fIn\fP (see options below).
+If \fIFILE\fP exists, it will be over written with a new model file.  To convert a model
+to use either SPEX or LQX, use \fBlqn2lqx\fP(1). or the \fB\-\-transform\fP option.
+.PP
+The size of a model is controlled by setting the number of server-task layers with \fB\-L\fP\fIn\fP, 
+tasks with \fB\-T\fP\fIn\fP, 
+processors with \fB\-T\fP\fIn\fP
+and customers with \fB\-C\fP\fIn\fP where \fIn\fP is greater than or equal to 1.
+By default, tasks are added starting from the reference tasks and working down ensuring that each layer has
+the same number of tasks.  The structure of the model can be changed using one of
+\fB\-\-fat\fP, \fB\-\-pyramid\fP, \fB\-\-hour-glass\fP or 
+\fB\-\-random\fP.
+.PP
+All parameters are initialized to 1 by default.  To change the default value or to randomize the values, use one or all of
+\fB\-\-customers\fP=\fIn\fP, \fB\-\-processor-multiplicity\fP=\fIn\fP, \fB\-\-service-time\fP=\fIn.n\fP, 
+\fB\-\-task-multiplicity\fP=\fIn\fP, \fB\-\-request-rate\fP=\fIn.n\fP and \fB\-\-think-time\fP=\fIn.n\fP.
+Two different random number generators (including \fIconstant\fP) are used, one for integer values to set multiplicities, and one for continuous values to set 
+service times and request rates.  The default continuous random number distribution is \fIGamma(0.5,2)\fP (Erlang 2 with a mean value of 1).
+The default discreet random number distribution is \fIPoisson(1)\fP (Poisson with a mean of 1 starting from 1, not zero).
+An optional \fIARG\fP is used to set the spread or shape parameter for the generator, not the mean value.
+The random number generator option must appear before the parameter option
+and different random number generators can be used for each of the parameter types.
+Finally, The various random number generators are described below.  
+.PP
+To create a simple model with with LQX or SPEX code, use
 \fB\-\-lqx-output\fP or \fB\-\-spex-output\fP respectively.
+In this case, all scalar parameters in the input file are replaced with variables.
+.PP
+Two choices exist to create multiple models:\fB\-\-experiments\fP=\fIn\fP and \fB\-\-models\fP=\fIn\fP.
+For the first case, SPEX arrays or LQX \f(CWfor\fP loops are created to run one model file with multiple values.
+For the second case, different model files are created in a subdirectory called \fIfilename.d\fP where \fIfileanme\fP
+is specified on the command line.  Randomness in the input specification is required for this option.
+
 .SH "OPTIONS"
 .TP
-\fB\-C\fP, \fB\-\-clients\fR=\fIarg\fR
-Create \fIarg\fP client \fI(reference)\fR tasks.  Use \fB\-\-customers\fP to
+\fB\-A\fR, \fB\-\-automatic=\fIARG\fR
+Create a model with exactly \fIARG\fP tasks.  The number of entries of a task
+is a random variable with a mean of 1.2.  This value can be changed using \fB\-e\fP\fIn\fP.
+The number of clients, layers, processors and clients
+is a random variable with a mean of the square root of \fIARG\fP.
+The processor and task multiplicity is a random variable with a mean of 1.5.
+Multiplicities for processors and tasks can be changed using \fB\-p\fP\fIn\fP and 
+\fB\-m\fP\fIn\fP respectively.  Phase service times, rendezvous rates, and client think times 
+are all random variables with a mean of 1.0. These values can be changed using 
+\fB\-s\fP\fIn\fP, \fB\-y\fP\fIn\fP and \fB\-z\fP\fIn\fP respectively.
+.TP
+\fB\-C\fR, \fB\-\-clients=\fIARG\fR
+Create \fIARG\fP client \fI(reference)\fP tasks.  Use \fB\-\-customers\fP to
 specify the average number of customers (copies) at each client task.
 .TP
-\fB\-L\fP, \fB\-\-layers\fR=\fIarg\fR
-Create \fIarg\fP layers of server tasks.  The total number of layers
-in the model will be \fIarg + 2\fP because one layer is used for
+\fB\-L\fR, \fB\-\-layers=\fIARG\fR
+Create \fIARG\fP layers of server tasks.  The total number of layers
+in the model will be \fIARG+2\fP because one layer is used for
 client tasks, and one layer will be used for one or more processors.
 .TP
-\fB\-M\fP, \fB\-\-models\fR=\fIarg\fR
-Generate \fIarg\fP model files.  Provided some randomness is present
-in layer creation (see \fB\-\-fat\fP, \fB\-\-funnel\fP,
-\fB\-\-pyramid\fP, and \fB\-\-deterministic\fP), each of the model
-files will likely have different topologies.
+\fB\-P\fR, \fB\-\-processors=\fIARG\fR
+Create  \fIARG\fP processors in each model file.
 .TP
-\fB\-N\fP, \fB\-\-experiments\fR=\fIarg\fR
-Generate \fIarg\fP experiments within one model file. The experiments
-will be run using either SPEX (for lqn input), or LQX (for XML input).
-.TP
-\fB\-O\fP, \fB\-\-format\fR=\fIarg\fR
-Set the output file format to: \fIxml\fP, \fIlqn\fP, or \fIjson\fP.
-.TP
-\fB\-P\fP, \fB\-\-processors\fIarg\fR
-Create  \fIarg\fP processors in each  model file.
-.TP
-\fB\-S\fP, \fB\-\-seed\fR=\fIarg\fR
-Set the value for the random number generator to \fIarg\fP.
-.TP
-\fB\-T\fP, \fB\-\-tasks\fR=\fIarg\fR
-Create  \fIarg\fP tasks in each  model file.  The number of tasks must
+\fB\-T\fR, \fB\-\-tasks=\fIARG\fR
+Create  \fIARG\fP tasks in each model file.  The number of tasks must
 be greater than or equal to the number of layers.
 .TP
-\fB\-d\fP, \fB\-\-deterministic\fR
-Use \fIdeterministic\fP values for all subsequent parameters and
-create layers deterministically.
+\fB\-Y\fR, \fB\-\-outgoing-requests=\fIARG\fR
+Generate an average of \fIARG\fP incomming requests to each entry.
+Connections are made at random from a higher level task to a lower level task.
+So that all tasks are reachable, this number must not be less than one.
 .TP
-\fB\-e\fP, \fB\-\-entries\fP=arg\fR
-Create an average of \fIarg\fP entries on each serving task.   The
+\fB\-M\fR, \fB\-\-models=\fIARG\fR
+Generate \fIARG\fP model files, provided some randomness is present
+in layer creation (see \fB\-\-fat\fP, \fB\-\-funnel\fP).
+With this option, the file name arguments are treated as directory names, and the 
+generated model files are named \f(CWcase-1.lqn\fP, \f(CWcase-2.lqn\fP, etc.
+.TP
+\fB\-N\fR, \fB\-\-experiments=\fIARG\fR
+Generate \fIARG\fP experiments within one model file. The experiments
+will be run using either SPEX (for LQN input), or LQX (for XML input).
+This option will turn on either \fB\-\-spex-output\fP, or \fB\-\-lqx-output\fP
+depending on the output format.
+.TP
+\fB\-O\fR, \fB\-\-format=\fIARG\fR
+Set the output file format, \fIARG\fP, to: \fIxml\fP, \fIlqn\fP.
+.TP
+\fB\-c\fR, \fB\-\-customers=\fIARG\fR
+Set the \fImean\fP number of customers at each of the client reference tasks to \fIARG\fP.
+.TP
+\fB\-e\fR, \fB\-\-entries=\fIARG\fR
+Create an average of \fIARG\fP entries on each serving task.   The
 number of entries created is set using the current discreet random
 number generator.  
 .TP
-\fB\-h\fP, \fB\-\-help\fR
-Print out a brief help summary and exit.
+\fB\-i\fR, \fB\-\-infinite-server=\fIARG\fR
+Set the probability that a server task is infinite to \fIARG\fP.
+Processors are not affected.
 .TP
-\fB\-n\fP, \fB\-\-customers\fR=\fIarg\fP
-Set the \fImean\fP number of customers for each client task to \fIarg\fP.  The
-number of customers created per reference task is set using the current
-discreet random number generator.
-\" .TP
-\"  Lqn2lqx only
-\" \fB\-o\fP, \fB\-\-output\fP=\fIarg\fP
-\" Redirect output to the file named \fIarg\fP.  If \fIarg\fP is \fB-\fP,
-\" output is redirected to \fIstdout\fP.  This option cannot be used with \fB\-\-models\fP.
-.TP
-\fB\-p\fR, \fB\-\-processor-multiplicity\fR=\fIarg\fP
+\fB\-p\fR, \fB\-\-processor-multiplicity=\fIARG\fR
 Set the \fImean\fP processor multiplicity for each processor to
-\fIarg\fP.  The
+\fIARG\fP.  The
 number of copies of each processor is set using the current discreet (or uniform) random number generator.
 .TP
-\fB\-s\fP, \fB\-\-service-time\fR=\fIarg\fP
-Set the \fImean\fP  phase service time to \fIarg\fP.  The mean phase
-service time is set using the current continous random number generator.
+\fB\-s\fR, \fB\-\-service-time=\fIARG\fR
+Set the \fImean\fP phase service time to \fIARG\fP.  The mean phase
+service time is set using the current continuous random number generator.
 .TP
-\fB\-t\fR, \fB\-\-task-multiplicity\fR=\fIarg\fP
+\fB\-t\fR, \fB\-\-task-multiplicity=\fIARG\fR
 Set the \fImean\fP task multiplicity for each task to
-\fIarg\fP.  The
+\fIARG\fP.  The
 number of copies of each task is set using the current discreet (or uniform) random number generator.
 .TP
-\fB\-v\fP,  \fB\-\-verbose\fR
-Verbose output (whatever that is...)
+\fB\-y\fR, \fB\-\-request-rate=\fIARG\fR
+Set the mean rendezous (synchronous call) rate to \fIARG\fP.  
+The mean rendezvous rate is set using the current continuous random number generator.
 .TP
-\fB\-y\fP, \fB\-\-rendezvous-rate\fR=\fIarg\fP
-Send the mean rendezous (synchronous call) rate to \fIarg\fP.  
-The mean rendezvous rate is set using the current continous random number generator.
+\fB\-z\fR, \fB\-\-think-time=\fIARG\fR
+Set the mean think time at reference tasks to \fIARG\fP.  
+The mean think time is set using the current continuous random number generator.
 .TP
-\fB\-z\fP, \fB\-\-think-time\fR=\fIarg\fP
-Send the mean think time at reference tasks to \fIarg\fP.  
-The mean think time is set using the current continous random number generator.
-.TP
-\fB\-2\fP, \fB\-\-second-phase\fR
+\fB\-2\fR, \fB\-\-second-phase=\fIARG\fR
 Set the probability that an entry at a server task has a second phase
-to \fIarg\fP.  \fIArg\fP must be between 0 and 1.
+to \fIARG\fP.  \fIARG\fP must be between 0 and 1.
 .TP
-\fB\-\-no-annotate\fP
-Do not annotate LQN-type input files.  This option has no effect for
-XML or JSON output.
+\fB\-h\fR, \fB\-\-help\fR
+Print out a brief help summary and exit.
 .TP
-\fB\-\-comment\fR=\fIarg\fP
-Set the model comment to \fIarg\fP.  By default, the comment is set to
-the command line options of the invocation of \fBlqngen\fP.
+\fB\-v\fR, \fB\-\-verbose\fR
+Verbose output. List the actual number of Clients, Server Tasks, Processors, Entries and Calls created.
 .TP
-\fB\-\-under-relaxation\fR=\fIarg\fP
-Set the model under-relaxation to \fIarg\fP.  By default, the
-under-relaxation is set to 0.9.
+\fB\-\-xml-output\fR
+Output the input model in eXtensible Markup Language (XML).
 .TP
-\fB\-\-iteration-limit\fR=\fIarg\fP
-Set the model iteration limit to \fIarg\fP.  By default, the iteration
-limit is set to 50.  For models with many layers, this  value should
-be higher.
+\fB\-\-lqx-output\fR
+Generate LQX control code for XML output files.  Variables will be
+created for all parameters set by the options above and will be
+initialized using the current random number generator.  If
+\fB\-\-experiments\fP=\fIARG\fP is also used, loop code will be
+produced to generate \fIARG\fP runs.  This option will enable XML output.
 .TP
-\fB\-\-convergence-limit\fR=\fIarg\fP
-Set the model convergence limit to \fIarg\fP.  By default, the
-convergence limit is set to 0.00001.
+\fB\-\-spex-output\fR
+Generate SPEX control code for LQN output files.  Variables will be
+created for all parameters set by the options above and will be
+initialized using the current random number generator.  If
+\fB\-\-experiments\fP=\fIARG\fP is also used, loop code will be
+produce to generate \fIARG\fP runs.  This option will enable LQN
+output.
 .TP
-\fB\-\-normal\fR=\fIarg\fP
+\fB\-\-transform\fR
+Transform the input model, rather than creating it (i.e., run the program as \fBlqn2lqx\fP(1).)
+.TP
+\fB\-\-seed=\fIARG\fR
+Set the seed value for the random number generator to \fIARG\fP.
+.TP
+\fB\-\-binomial\fR
+Use a Binomial distribution for all subsequent options that use a
+discreet random variable generator.
+.TP
+\fB\-\-constant\fR
+Use \fIconstant\fP values for all subsequent parameters.
+.TP
+\fB\-\-normal=\fIARG\fR
 Set the continuous random variable generator to use a Normal
-distribution with a standard deviation of \fIarg\fP for any subsequent
-flag that uses a continuous distribution.  
+distribution with a standard deviation of \fIARG\fP for any subsequent
+flag that uses a continuous distribution.
 .TP
-\fB\-\-gamma\fR=\fIarg\fP
+\fB\-\-gamma=\fIARG\fR
 Set the continuous random variable generator to use a Gamma
-distribution with a shape parameter of \fIarg\fP  for any subsequent
+distribution with a shape parameter of \fIARG\fP  for any subsequent
 flag that uses a continuous distribution.  Integer values of
-\fIarg\fP will generate random numbers with an Erlang distribution.  A
+\fIARG\fP will generate random numbers with an Erlang distribution.  A
 shape value of 1 will generate random numbers with an Exponential
-distribution.  Note that the parameter argument for subsequent
-\fB\-\-service-time\fP, \fB\-\-rendezvous-rate\fP, and
-\fB\-\-think-time\fP options set the distribution's \fIscale\fP value,
-and not it's mean.
+distribution.
 .TP
 \fB\-\-poisson\fR
 Use a Poisson distribution for all subsequent options that use a
-discreet random variable generator.
+discreet random variable generator.  The distribution is shifted right by one so that
+the lower bound on generated values is always one.  Mean values are adjusted accordingly.
 .TP
-\fB\-\-uniform\fR=\fIarg\fP
+\fB\-\-uniform=\fIARG\fR
 Use a uniform distribution for all subsequent options that use a
 discreet or continuous random variable generator.  The spread of the
-distribution is set to \fIarg\fP.
+distribution is set to \fIARG\fP although this value will be
+ignored if a mean value is set.  The lower bound for continuous distributions
+is zero.  For discreet distributions, the lower bound is one.  The upper bound
+for either distribution is set to twice the mean plus the lower bound.
 .TP
-\fB\-\-funnel\fP
+\fB\-\-funnel\fR
 Create a model with a ``funnel'' shape, that is there are more serving
 tasks at the top of the model than at the bottom.  The default is to
 create a model with tasks randomly distributed among the layers.
 .TP
-\fB\-\-pyramid\fP
+\fB\-\-pyramid\fR
 Create a model with a ``pyramid'' shape, that is there are more serving
 tasks at the bottom of the model than at the top.  The default is to
 create a model with tasks randomly distributed among the layers.
 .TP
-\fB\-\-fat\fP
+\fB\-\-fat\fR
 Create a model with a ``fat'' shape, that is there are more serving
 tasks in the middle of the model than at either the top or the bottom.
 The default is to create a model with tasks randomly distributed among
 the layers.
 .TP
-\fB\-\-json-output\fP
-Output the input model in Java Script Object Notation (JSON).
+\fB\-\-hour-glass\fR
+Generate a model with more tasks at both the top and bottom than in the middle.
 .TP
-\fB\-\-xml-output\fP
-Output the input model in eXtensible Markup Language (XML).
+\fB\-\-random\fR
+Choose a random number of tasks at each layer.
 .TP
-\fB\-\-lqx-output\fP
-Generate LQX control code for XML output files.  Variables will be
-created for all parameters set by the options above and will be
-initialized using the current random number generator.  If
-\fB\-\-experiments\fP=\fIarg\fP is also used, loop code will be
-produced to generate \fIarg\fP runs.  This option will enable XML output.
+\fB\-\-deterministic\fR
+Deterministically add tasks from top to bottom.  The first task is called by it's immediate client.
+Any additional entries, (see \fB\-e\fP) can be called by any higher-level task. 
 .TP
-\fB\-\-spex-output\fP
-Generate SPEX control code for LQN output files.  Variables will be
-created for all parameters set by the options above and will be
-initialized using the current random number generator.  If
-\fB\-\-experiments\fP=\fIarg\fP is also used, loop code will be
-produce to generate \fIarg\fP runs.  This option will enable LQN
-output.
-.LP
+\fB\-\-breadth\fR
+Assign processors deterministically from left to right, i.e., the first group of tasks are assigned processor 1, the next set gets processor 2, etc..
+.TP
+\fB\-\-depth\fR
+Assign processors deterministically from top to bottom, i.e., task 1 gets processor 1, task 2 gets processor 2, etc.
+.TP
+\fB\-\-no-observation\fR
+Do not insert any LQX code or spex observation variables.
+.TP
+\fB\-\-[no-]input-parameters\fR
+When generating SPEX or LQX output, either include or not include in the output the value of the parameters that change
+as a result of executing the program.  Constant parameters are not included.
+The default is to include the parameters.
+.TP
+\fB\-\-[no-]throughput\fR
+Insert LQX code or SPEX observation variables to output task throughput for all ``intersting'' tasks.
+Interesting tasks are those which might have contention present.
+The default is to insert observation variables.
+.TP
+\fB\-\-[no-]residence-time\fR
+Insert LQX code or SPEX observation variables to output entry service (residence) time.
+The default is to insert observation variables.
+.TP
+\fB\-\-[no-]waiting-time\fR
+Insert LQX code or SPEX observation variables to either observe or not observe the waiting time between phases and entries.
+The default is to observe waiting time.
+.TP
+\fB\-\-[no-]utilization\fR
+Insert LQX code or SPEX observation variables to either observe or not observe processor utilization for all ``interesting'' processors.
+Interesting processors are those which might have contention present.
+The default is to observe processor utilization.
+.TP
+\fB\-\-[no-]mva-waits\fR
+Insert LQX code or SPEX observation variables to output the number of calls to wait().
+The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]iterations\fR
+Insert LQX code or SPEX observation variables to output the number of solver iterations.
+The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]elapsed-time\fR
+Insert LQX code or SPEX observation variables to output the solver's ELAPSED time.
+The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]user-cpu-time\fR
+Insert LQX code or SPEX observation variables to output the solver's USER CPU time.
+The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]system-cpu-time\fR
+Insert LQX code or SPEX observation variables to output the solver's SYSTEM CPU time.
+The default is to not insert observation variables.
+.TP
+\fB\-\-comment=\fIARG\fR
+Set the model comment to \fIARG\fP.  By default, the comment is set to
+the command line options of the invocation of \fBlqngen\fP.
+.TP
+\fB\-\-convergence-value=\fIARG\fR
+Set the model convergence limit to \fIARG\fP.  By default, the
+convergence limit is set to 0.00001.
+.TP
+\fB\-\-under-relaxation=\fIARG\fR
+Set the model under-relaxation to \fIARG\fP.  By default, the
+under-relaxation is set to 0.9.
+.TP
+\fB\-\-iteration-limit=\fIARG\fR
+Set the model iteration limit to \fIARG\fP.  By default, the iteration
+limit is set to 50.  For models with many layers, this  value should
+be higher.
+.TP
+\fB\-\-[no-]annotate\fR
+Annotate LQN-type input files with syntax help.  This option has no effect for
+XML or JSON output.  The default is to annotate LQN model files.
+.TP
+\fB\-\-long-names\fR
+Use ``long'' names such as \f(CWProcessor0\fP, \f(CWClient0\fP, \f(CWTask0\fP, and \f(CWEntry0\fP, rather than short names such as \f(CWp0\fP, \f(CWc0\fP, \f(CWt0\fP, and \f(CWe0\fP
+.TP
+\fB\-\-manual-page\fR
+Generate the manual page and send the output to \fIstdout\fP.
 
 .SH "SEE ALSO"
+\fBlqngen\fP(1), \fBlqns\fP(1), \fBlqsim\fP(1), \fBlqn2ps\fP(1)
+
+.SH "EXAMPLES"
+To generate an annontated input file consisting of a single client calling a single server, both with their own processor: 
+.sp
+.ti 0.75i
+\f(CWlqngen output.lqn\fP
+.sp
+To create a model with two tiers with two classes of customers and where each tier is running on its own processor: 
+.sp
+.ti 0.75i
+\f(CWlqngen -L2 -C2 -T4 -P2 output.lqn\fP
+.sp
+To add exactly two entries to each server task: 
+.sp
+.ti 0.75i
+\f(CWlqngen -L2 -T4 -P2 -C2 -c -e2 output.lqn\fP
+.sp
+Note that entries always accept at least one request, but an entry may not necessarily generate requests to lower layers.
+.sp
+To create two separate randomly generated models with nine tasks: 
+.sp
+.ti 0.75i
+\f(CWlqngen -A9 -M2 model\fP
+.sp
+
+The directory \fImodel\fP will contain two files named \fIcase-1.xlqn\fP and \fIcase-2.xlqn\fP.
+.sp
+To generate two experiments with random service times uniformly distributed between [0.5,1.5]: 
+.sp
+.ti 0.75i
+\f(CWlqngen -N2 --uniform=1 -s1\fP
+.sp
+Note that the distribution \fImust be\fP specified prior to the parameter.

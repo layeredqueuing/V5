@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: test7e4.cc 8841 2009-07-14 14:21:57Z greg $
  *
  * Four customers, one server (inService probability test).
  * This version has a phased server.

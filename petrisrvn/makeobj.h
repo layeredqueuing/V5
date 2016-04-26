@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: makeobj.h 10985 2012-06-21 01:00:51Z greg $
  *
  * Stochastic RendezVous Network header
  */

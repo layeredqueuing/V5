@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test3e.cc $
  *
  * Pg 264, Lazowska test.
  * FCFS with class dependent average service times.
@@ -7,7 +7,7 @@
  *
  * ------------------------------------------------------------------------
  *
- * $Id$
+ * $Id: test3e.cc 8841 2009-07-14 14:21:57Z greg $
  */
 
 #include <cmath>

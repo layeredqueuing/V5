@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: read.c 10972 2012-06-19 01:12:22Z greg $
  *
  *  This file reads in the net definitions and shows them.
  *

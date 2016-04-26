@@ -21,6 +21,7 @@
 /* C++ Headers */
 #include <iostream>
 #include <sstream>
+#include <algorithm>
 
 namespace LQX {
 
@@ -159,12 +160,8 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
   {
     /* Output the full graph */
     ss << "digraph \"G\" {" << std::endl;
-    
-    /* Walk through the list and spit stuff out */
-    std::vector<LQX::SyntaxTreeNode*>::iterator iter;
-    for (iter = _program->begin(); iter != _program->end(); ++iter) {
-      (*iter)->debugPrintGraphviz(ss);
-    }
+
+    for_each( _program->begin(), _program->end(), printGraphviz( ss ) );
     
     /* Output the directed graph footing */
     ss << "};" << std::endl;
@@ -173,13 +170,7 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
   
   std::ostream& Program::print( std::ostream& output ) const
   {
-    /* Walk through the list and spit stuff out */
-    std::vector<LQX::SyntaxTreeNode*>::iterator iter;
-    for (iter = _program->begin(); iter != _program->end(); ++iter) {
-      (*iter)->print(output);
-      if ( (*iter)->simpleStatement() ) { output << ";" << std::endl; }
-    }
-    
+    for_each( _program->begin(), _program->end(), printStatement( output ) );
     return output;
   }
 
@@ -252,6 +243,19 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
   {
     /* Allow more messing around */
     return _runEnvironment;
+  }
+
+  void Program::printStatement::operator()( const LQX::SyntaxTreeNode* node ) const 
+  {
+    node->print( _output );
+    if ( node->simpleStatement() ) {
+      _output << ";" << std::endl;
+    }
+  }
+
+  void Program::printGraphviz::operator()( const LQX::SyntaxTreeNode* node ) const 
+  {
+    node->debugPrintGraphviz( _output );
   }
   
 }

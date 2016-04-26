@@ -1,5 +1,5 @@
 /*	-*- c++ -*-
- * $Id$
+ * $Id: xerces_write.cpp 10357 2011-06-21 17:48:38Z greg $
  *
  * Read in XML input files.
  *

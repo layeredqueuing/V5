@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * stack.h	-- Greg Franks
  *
- * $Id$
+ * $Id: stack.h 11963 2014-04-10 14:36:42Z greg $
  */
 
 #ifndef LQNS_STACK_H

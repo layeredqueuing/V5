@@ -1,11 +1,11 @@
 # -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
-# $HeadURL$
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqngen/configure.ac $
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12542 2016-04-04 17:00:21Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
-AC_INIT(lqngen, 5.8, greg@sce.carleton.ca)
+AC_INIT(lqngen, 5.9, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqngen.h])
 AC_CONFIG_HEADERS([config.h])
@@ -40,7 +40,6 @@ AC_PROG_LN_S
 # ----------------------------------------------------------------------
 # Checks for libraries.
 #
-AC_SEARCH_LIBS([regcomp], [regex] )
 
 # ----------------------------------------------------------------------
 # Checks for header files.
@@ -51,13 +50,11 @@ AC_CHECK_HEADERS([getopt.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
-AC_FUNC_MALLOC
 AC_FUNC_STRTOD
 AC_TYPE_SIZE_T
 
 # ----------------------------------------------------------------------
 # Checks for library functions.
-#AC_FUNC_MALLOC
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([basename ctime geteuid getsubopt])

@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile.am 11987 2014-04-16 20:57:40Z greg $
 # ------------------------------------------------------------------------
 
 SUBDIRS = model bookstore replication srvn-schema timing-diagrams xml-schema 

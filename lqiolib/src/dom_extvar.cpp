@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_extvar.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -177,7 +177,7 @@ namespace LQIO {
     
 	ConstantExternalVariable::ConstantExternalVariable( const ExternalVariable& src )
 	{
-	    if ( !src.getValue( _value ) ) throw std::domain_error( "" );
+	    if ( !src.getValue( _value ) ) throw std::domain_error( "unassigned variable." );
 	}
 
 	ConstantExternalVariable& ConstantExternalVariable::operator=( const ConstantExternalVariable& src )  throw (std::domain_error)
@@ -206,6 +206,12 @@ namespace LQIO {
 	    return true;
 	}
     
+	const std::string& ConstantExternalVariable::getName() const
+	{
+	    static const std::string s = "";
+	    return s;
+	}
+
 	bool ConstantExternalVariable::wasSet() const
 	{
 	    return true;
@@ -239,7 +245,7 @@ namespace LQIO {
 	    if (src.getValue(v)) {
 		_externalSymbol->assignDouble(v);
 	    } else {
-		throw std::domain_error("");
+		throw std::domain_error("unassigned variable.");
 	    }
 	    return *this;
 	}

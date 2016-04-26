@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id$
+ * $Id: task.h 12145 2014-09-29 01:36:03Z greg $
  */
 
 /************************************************************************/

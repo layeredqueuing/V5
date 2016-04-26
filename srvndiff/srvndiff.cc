@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id$
+ * $Id: srvndiff.cc 12548 2016-04-06 15:13:47Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -116,7 +116,7 @@ typedef void (*entry_waiting_func)( const result_str_t result, const unsigned pa
 				    unsigned i, unsigned k, unsigned p, vector<stats_buf>*, ... );
 typedef void (*activity_waiting_func)( const result_str_t result, const unsigned passes,
 				       unsigned i, unsigned k, vector<stats_buf>*, ... );
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
 static bool regexec_check( int, regex_t * );
 #endif
 
@@ -588,7 +588,7 @@ main (int argc, char * const argv[])
 	command_line.append( c, optarg );
 
 	switch( c ) {
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
 	case 'a':
 
 	    /* Aggregation.   Confidence levels are probably wrong when aggregating */
@@ -639,7 +639,7 @@ main (int argc, char * const argv[])
 	    break;
 #endif
 
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
 	case 'x':
 
 	    /* Exclusion.   Ignore these tasks/processors */
@@ -892,7 +892,7 @@ main (int argc, char * const argv[])
 #if HAVE_GLOB
 	    file_pattern = optarg;
 	    file_pattern_flag = true;
-#elif HAVE_REGEX_H
+#elif HAVE_REGEX_H && HAVE_REGCOMP
 	    file_pattern_flag = regexec_check( regcomp( &file_pattern, optarg, REG_EXTENDED ), &file_pattern );
 #endif
 	    break;
@@ -966,7 +966,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date$", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2016-04-06 11:13:47 -0400 (Wed, 06 Apr 2016) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1122,7 +1122,7 @@ usage( const bool full_usage )
 #else
     (void) fprintf( stderr, "\n\nFlag description:\n" );
     for ( unsigned i = 0; flag_info[i].description; ++i ) {
-	(void) fprintf( stderr, "    %c - %s", flag_info[i].flag, flag_info[i].description );
+	(void) fprintf( stderr, "    %c - %s", flag_info[i].val, flag_info[i].description );
 	if ( flag_info[i].value ) {
 	    (void) fprintf( stderr, ": %s", *flag_info[i].value ? "ON" : "OFF" );
 	}
@@ -1351,7 +1351,7 @@ build_file_list (const char *dir, glob_t *dir_list)
 	if ( !p || (strcmp( p, ".p" ) != 0 && strcmp( p, ".lqxo" ) != 0 && strcmp( p, ".lqjo" ) != 0 ) ) {
 	    continue;	/* Ignore non .p files.	*/
 	}
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
 	if ( file_pattern_flag ) {
 	    char c = *p;
 	    *p = '\0';	/* Set end of string */
@@ -3506,7 +3506,7 @@ unsigned int
 find_or_add_processor( const char * processor )
 {
     unsigned int p = 0;
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
     /* Aggregate before exclude */
 
     for ( unsigned int i = 0; i < n_aggregate[AGGR_PROC]; ++i ) {
@@ -3545,7 +3545,7 @@ find_or_add_group( const char * group )
 {
     unsigned int p = 0;
 #if 0
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
     /* Aggregate before exclude */
 
     for ( unsigned int i = 0; i < n_aggregate[AGGR_PROC]; ++i ) {
@@ -3587,7 +3587,7 @@ find_or_add_task( const char * task )
 
     /* Aggregate before exclude */
 
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
     for ( unsigned int i = 0; i < n_aggregate[AGGR_TASK]; ++i ) {
 	if ( regexec( &aggregate[AGGR_TASK][i].pattern, task, 0, 0, 0 ) != REG_NOMATCH ) {
 	    t = find_symbol_name( aggregate[AGGR_TASK][i].string, ST_TASK );
@@ -3633,7 +3633,7 @@ unsigned int
 find_or_add_entry( const char * name )
 {
     unsigned int e;
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
     /* Aggregate before exclude */
 
     for ( unsigned i = 0; i < n_aggregate[AGGR_ENTRY]; ++i ) {
@@ -3680,7 +3680,7 @@ find_or_add_activity( const char * task, const char * name )
     char buf[132];
     unsigned a;
 
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
     /* Check if we are excluding the task from output */
 
     for ( unsigned i = 0; i < n_exclude[AGGR_TASK]; ++i ) {
@@ -4063,7 +4063,7 @@ relative_error( const double a, const double b )
 }
 
 
-#if HAVE_REGEX_H
+#if HAVE_REGEX_H && HAVE_REGCOMP
 static bool
 regexec_check( int errcode, regex_t *r )
 {

@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id$
+# $Id: Makefile.am 11963 2014-04-10 14:36:42Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config 
 SUBDIRS		= 

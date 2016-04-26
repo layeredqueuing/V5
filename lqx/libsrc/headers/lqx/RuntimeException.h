@@ -15,6 +15,8 @@
 
 namespace LQX {
   
+  class SyntaxTreeNode;
+
   class RuntimeException : public std::exception {
   public:
     
@@ -24,6 +26,9 @@ namespace LQX {
     
     /* Access to the instance variables */
     virtual const char* what() const throw();
+
+  protected:
+    std::string& insert( size_t pos, const std::string& str );
     
   private:
     
@@ -50,7 +55,7 @@ namespace LQX {
   
   class IncompatibleTypeException : public RuntimeException {
   public:
-    IncompatibleTypeException(const std::string& from, const std::string& to, const std::string& expr) throw();
+    IncompatibleTypeException(const SyntaxTreeNode* expr, const std::string& from, const std::string& to) throw();
     IncompatibleTypeException(const std::string& from, const std::string& to) throw();
     IncompatibleTypeException(const std::string& name) throw();
     virtual ~IncompatibleTypeException() throw();

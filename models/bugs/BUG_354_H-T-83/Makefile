@@ -4,7 +4,7 @@
 # $HeadURL: svn://franks.dnsalias.com/papers/trunk/ieeetse-qest/Makefile $
 #
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile 7737 2008-02-28 14:44:24Z greg $
 # ------------------------------------------------------------------------
 
 SUBDIRS = petri lqns new

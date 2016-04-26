@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test9i.cc $
  *
  * Vary the number of servers.  Test all multi-server models.
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test9i.cc 9164 2010-01-28 19:27:03Z greg $
  * ------------------------------------------------------------------------
  */
 

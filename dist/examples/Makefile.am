@@ -1,5 +1,5 @@
-# $HeadURL$
-# $Id$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/dist/examples/Makefile.am $
+# $Id: Makefile.am 10904 2012-05-23 17:36:00Z greg $
 # Used for make dist.
 # ------------------------------------------------------------------------
 

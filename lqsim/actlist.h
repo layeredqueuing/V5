@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id$
+ * $Id: actlist.h 11133 2012-10-04 14:02:19Z greg $
  */
 
 #ifndef ACTLIST_H

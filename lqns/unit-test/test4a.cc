@@ -1,12 +1,12 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test4a.cc $
  *
  * Pg 267, Lazowska test.
  * FCFS with high variability in service times.
  *
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test4a.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

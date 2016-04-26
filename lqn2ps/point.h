@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * point.h	-- Greg Franks
  *
- * $Id$
+ * $Id: point.h 11963 2014-04-10 14:36:42Z greg $
  */
 
 #ifndef _POINT_H

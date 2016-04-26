@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml 51-replication.in -->
 <!-- Sat May 23 21:15:12 2009 -->
 
-<lqn-model name="51-replication" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="51-replication" description="$Id: 51-replication.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="500" print_int="10" underrelax_coeff="0.9"/>
    <processor name="A1" scheduling="fcfs" replication="2">
       <task name="A1" scheduling="ref" replication="2">

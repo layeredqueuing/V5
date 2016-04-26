@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/ph2serv.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id$
+ * $Id: ph2serv.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

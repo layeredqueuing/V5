@@ -9,18 +9,18 @@ x[2] = [0=>3, 1=>4, 2=>5]
 */
 
 x = array_create(0,1,2);
-print("x[0] = ", x[0]);
-print("x[1] = ", x[1]);
-print("x[2] = ", x[2]);
+println("x[0] = ", x[0]);
+println("x[1] = ", x[1]);
+println("x[2] = ", x[2]);
 
 x[2] = array_create(3,4,5);
-print("x[2] = ", x[2]);
+println("x[2] = ", x[2]);
 
 foreach(k,v in x) {
-	print(k, " --> ", v);
+	println(k, " --> ", v);
 	foreach(v in array_create(0,"1",true)) {
-		print("  -2> ", v);
+		println("  -2> ", v);
 	}
-	print(k, " --> ", v);
-	print("");
+	println(k, " --> ", v);
+	println("");
 }

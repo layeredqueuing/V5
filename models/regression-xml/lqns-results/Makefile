@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile 11424 2013-06-10 19:25:50Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns

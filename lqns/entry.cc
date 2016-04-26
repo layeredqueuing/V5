@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/entry.cc $
  * 
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: entry.cc 11963 2014-04-10 14:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 

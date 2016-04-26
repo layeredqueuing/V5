@@ -1,5 +1,5 @@
 # -*- autoconf -*-
-# $Id$
+# $Id: xercesc.m4 9266 2010-03-23 19:26:48Z greg $
 
 # --------------------- #
 # Checks for Xerces.    #

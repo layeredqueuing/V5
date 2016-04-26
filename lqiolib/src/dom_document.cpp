@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_document.cpp 12463 2016-02-24 20:25:53Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -733,6 +733,7 @@ namespace LQIO {
 
 	    bool rc = true;
 	    if ( format == LQN_INPUT ) {
+		LQIO::DOM::Spex::initialize_control_parameters();
 		rc = SRVN::load( *document, input_filename, output_filename, errorCode, load_results );
 	    } else {
 #if HAVE_LIBXERCES_C

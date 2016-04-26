@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_entity.h 11188 2012-11-06 00:43:19Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.

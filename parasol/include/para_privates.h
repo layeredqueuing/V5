@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: para_privates.h 12547 2016-04-05 18:32:45Z greg $ */
 /************************************************************************/
 /*	para_privates.h - PARASOL library internal header file		*/
 /*									*/
@@ -681,7 +681,7 @@ LOCAL	void	trace_rep(void);
 
 /* This is representative of the PARASOL tracing function ts_report	*/
  
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 /************************************************************************/
 
 LOCAL	void	wrapper(
@@ -704,7 +704,7 @@ LOCAL	long	sp_tester(
 
 /************************************************************************/
 
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 LOCAL	void	sp_winder(
 	long	x				/* recursion index	*/
 );
@@ -824,13 +824,13 @@ void cap_handler(ps_task_t *tp);
 
 /*	Macros								*/
 
-#define	nid(np)	((((long)(np))-ps_node_tab.base)/ps_node_tab.entry_size)
+#define	nid(np)	((((char *)(np))-ps_node_tab.base)/ps_node_tab.entry_size)
 #define	hid(np, hp) (((ps_cpu_t *)hp) - (ps_cpu_t *)(((ps_node_t *)np)->cpu))
-#define	bid(bp)	((((long)(bp))-ps_bus_tab.base)/ps_bus_tab.entry_size)
-#define	lid(lp)	((((long)(lp))-ps_link_tab.base)/ps_link_tab.entry_size)
-#define	pid(pp)	((((long)(pp))-ps_port_tab.base)/ps_port_tab.entry_size)
-#define	tid(tp)	((((long)(tp))-ps_task_tab.base)/ps_task_tab.entry_size)
-#define	sid(sip)	((((long)(sip))-ps_sched_info_tab.base)/ps_sched_info_tab.entry_size)
+#define	bid(bp)	((((char *)(bp))-ps_bus_tab.base)/ps_bus_tab.entry_size)
+#define	lid(lp)	((((char *)(lp))-ps_link_tab.base)/ps_link_tab.entry_size)
+#define	pid(pp)	((((char *)(pp))-ps_port_tab.base)/ps_port_tab.entry_size)
+#define	tid(tp)	((((char *)(tp))-ps_task_tab.base)/ps_task_tab.entry_size)
+#define	sid(sip)	((((char *)(sip))-ps_sched_info_tab.base)/ps_sched_info_tab.entry_size)
 
 #define	node_ptr(id)	((ps_node_t*)(ps_node_tab.base+(id)*ps_node_tab.entry_size))
 #define	group_ptr(id)	((ps_group_t*)(ps_group_tab.base+(id)*ps_group_tab.entry_size))
@@ -860,22 +860,23 @@ void cap_handler(ps_task_t *tp);
 #define bus_delay	(mp->size/bp->trate)
 #define	link_delay	(mp->size/lp->trate)
 
-
+#if !_WIN32 && !_WIN64
 #if !defined(HAVE__SETJMP) 
 #define	_setjmp		setjmp
 #endif
 #if !defined(HAVE__LONGJMP) 
 #define	_longjmp	longjmp
 #endif
+#endif
 
-#if	HAVE_SIGALTSTACK
-#define mctx_save(mctx) setjmp((mctx)->jb) 		/* save machine context */ 
-#define mctx_restore(mctx) longjmp((mctx)->jb, 1)	/* restore machine context */
-#define ctxsw(old,new)	if(!setjmp((old)->jb)) longjmp((new)->jb, 1)
-#else
+#if	!HAVE_SIGALTSTACK && !_WIN32 && !_WIN64
 #define mctx_save(mctx) _setjmp((mctx)->jb) 		/* save machine context */ 
 #define mctx_restore(mctx) _longjmp((mctx)->jb, 1)	/* restore machine context */
 #define ctxsw(old,new)	if(!_setjmp((old)->jb)) _longjmp((new)->jb, 1)
+#else
+#define mctx_save(mctx) setjmp((mctx)->jb) 		/* save machine context */ 
+#define mctx_restore(mctx) longjmp((mctx)->jb, 1)	/* restore machine context */
+#define ctxsw(old,new)	if(!setjmp((old)->jb)) longjmp((new)->jb, 1)
 #endif
 
 /*	CPU states and flags						*/
@@ -1063,7 +1064,7 @@ LOCAL	long	reaper_port;			/* grim reaper port	*/
 LOCAL	ps_mess_t *next_mess = NULL_MESS_PTR;	/* free mess pointer	*/
 LOCAL 	ps_tp_pair_t *tpflist = NULL_PAIR_PTR;	/* tp pair free list	*/
 LOCAL 	long	sp_dir;				/* stack direction flag	*/
-#if !HAVE_SIGALTSTACK
+#if !HAVE_SIGALTSTACK || _WIN32 || _WIN64
 LOCAL	long	sp_ind;				/* stack jmp_buf index	*/
 LOCAL	jmp_buf	sp_jb[3];			/* sp test jmp buf array*/
 LOCAL	long	sp_yadd[3];			/* sp test address array*/

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id$
+ * $Id: dim.cc 12547 2016-04-05 18:32:45Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -284,6 +284,9 @@ template class Vector<Exponential>;
 template class Vector<GenericPhase>;
 template class Vector<InterlockInfo>;
 template class Vector<MVACount>;
+#if _WIN64
+template class Vector<unsigned long long>;
+#endif
 template class Vector<Vector<Exponential> >;
 template class Vector<Vector<unsigned> >;
 template class Vector<VectorMath<double> >;

@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_histogram.cpp 11090 2012-07-11 12:12:57Z greg $
  *
  *  Created by Martin Mroz on 07/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.

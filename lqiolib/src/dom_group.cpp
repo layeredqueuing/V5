@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_group.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -46,7 +46,9 @@ namespace LQIO {
 	{
 	    /* Returns the GroupShare of the Group */
 	    double value = 0.0;
-	    assert(_groupShare->getValue(value) == true);
+	    if ( !_groupShare || _groupShare->getValue(value) != true || value < 0 ) {
+		throw std::domain_error( "Invalid group share." );
+	    }
 	    return value;
 	}
 

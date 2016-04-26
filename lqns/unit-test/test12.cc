@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test12.cc $
  *
  * Test case from:
  *      author =       "de Souza e Silva, Edmundo and Muntz, Richard R.",
@@ -16,7 +16,7 @@
  * See table 4a.
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test12.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

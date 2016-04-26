@@ -1,5 +1,5 @@
 /*	-*- c++ -*-
- * $Id$
+ * $Id: confidence_intervals.cpp 10533 2011-11-16 16:13:01Z greg $
  *
  * Read in XML input files.
  *

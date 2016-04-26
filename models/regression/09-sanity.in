@@ -1,8 +1,8 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/09-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 09-sanity.in 8982 2009-09-23 03:36:13Z greg $
 # ------------------------------------------------------------------------
 
 G "Most Common features." 	# Model comment 

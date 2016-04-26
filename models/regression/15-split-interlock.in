@@ -1,5 +1,5 @@
 # SRVN Model Description File, for file: 10-interlock.in
-# $Id$
+# $Id: 15-split-interlock.in 10090 2010-12-07 15:16:11Z greg $
 # ------------------------------------------------------------------------
 
 G "Split Interlock on processor" 1e-05 50 10 0.9 -1

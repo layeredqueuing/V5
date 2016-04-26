@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: glblerr.cpp 12214 2014-11-17 17:33:04Z greg $
  *
  * Error messages common to solvers.
  *

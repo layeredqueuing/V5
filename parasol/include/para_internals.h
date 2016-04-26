@@ -1,4 +1,4 @@
-/* $Id$ */
+/* $Id: para_internals.h 9326 2010-04-27 05:34:23Z miga $ */
 /************************************************************************/
 /*	para_internals.h - PARASOL library internal header file		*/
 /*									*/

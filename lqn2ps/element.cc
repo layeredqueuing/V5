@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id$
+ * $Id: element.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 #include "element.h"

@@ -1,7 +1,7 @@
 # Make file for Parasol test files
 #
 # ------------------------------------------------------------------------
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/parasol/tests/Makefile.am $
 # ------------------------------------------------------------------------
 
 AM_CPPFLAGS	= -I../include

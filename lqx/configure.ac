@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id$
+# $Id: configure.ac 12480 2016-03-02 01:29:06Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
@@ -36,8 +36,6 @@ AC_TYPE_SIZE_T
 AC_HEADER_TIME
 
 # Checks for library functions.
-AC_FUNC_MALLOC
-AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 AC_CHECK_FUNCS([drand48 gettimeofday strdup strtol floor memset pow strcasecmp strchr strrchr])
 

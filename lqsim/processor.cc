@@ -9,9 +9,9 @@
 /*
  * Input output processing.
  *
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id$
+ * $Id: processor.cc 11977 2014-04-14 00:46:01Z greg $
  * ------------------------------------------------------------------------
  */
 

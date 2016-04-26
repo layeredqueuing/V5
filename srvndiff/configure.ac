@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12542 2016-04-04 17:00:21Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(srvndiff, 5.8, greg@sce.carleton.ca)
+AC_INIT(srvndiff, 5.9, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([srvndiff.h])
 AC_CONFIG_HEADERS([config.h])
@@ -40,7 +40,6 @@ AM_PROG_LEX
 # Checks for libraries.
 AC_CHECK_LIB([expat], [XML_ParserCreateNS])
 AC_CHECK_LIB([m], [sqrt])
-AC_SEARCH_LIBS([regcomp], [regex] )
 # ----------------------------------------------------------------------
 # Checks for header files.
 AC_HEADER_STDC
@@ -93,9 +92,7 @@ AC_CHECK_TYPES([ptrdiff_t])
 AC_FUNC_CLOSEDIR_VOID 
 AC_FUNC_ERROR_AT_LINE
 AC_PROG_GCC_TRADITIONAL
-AC_FUNC_MALLOC
 AC_FUNC_MEMCMP 
-AC_FUNC_REALLOC 
 AC_FUNC_SELECT_ARGTYPES 
 AC_FUNC_SETVBUF_REVERSED
 AC_FUNC_STAT

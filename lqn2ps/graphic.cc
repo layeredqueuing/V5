@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id$
+ * $Id: graphic.cc 12233 2015-02-04 04:11:59Z greg $
  */
 
 #include <cassert>

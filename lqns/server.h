@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/server.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id$
+ * $Id: server.h 11969 2014-04-11 21:19:54Z greg $
  *
  * ------------------------------------------------------------------------
  */

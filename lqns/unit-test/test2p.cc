@@ -1,11 +1,11 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test2p.cc $
  *
  * Four customers, one server (inService probability test).
  * This version has a phased server.
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: test2p.cc 8841 2009-07-14 14:21:57Z greg $
  * ------------------------------------------------------------------------
  */
 

@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: save.c 11002 2012-06-23 22:44:59Z greg $
  *
  * Routines to translate a GSPN internal data structures used by the
  * editor into the definition in file "~/nets/netname.net"

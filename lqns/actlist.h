@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/actlist.h $
  *
  * Everything you wanted to know about an activity, but were afraid to ask.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id$
+ * $Id: actlist.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

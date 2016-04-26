@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: symtbl.cc 11963 2014-04-10 14:36:42Z greg $
  *
  * The symbol table and related functions are kept in this file.  The
  * symbol table is comprised of an array of records where each record

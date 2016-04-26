@@ -1,5 +1,5 @@
 /* -*- c++ -*-
-double  * $HeadURL$
+double  * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/generate.h $
  *
  * Generate MVA program for given layer.
  *
@@ -9,7 +9,7 @@ double  * $HeadURL$
  *
  * November, 1994
  *
- * $Id$
+ * $Id: generate.h 11963 2014-04-10 14:36:42Z greg $
  *
  * ------------------------------------------------------------------------
  */

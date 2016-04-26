@@ -1,5 +1,5 @@
 /* actlist.cc   -- Greg Franks Thu Feb 20 1997
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/actlist.cc $
  *
  * Everything you wanted to know about connecting activities, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: actlist.cc 11977 2014-04-14 00:46:01Z greg $
  * ------------------------------------------------------------------------
  */
 

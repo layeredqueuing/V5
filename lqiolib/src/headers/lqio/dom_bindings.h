@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_bindings.h 9005 2009-09-30 13:32:13Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.

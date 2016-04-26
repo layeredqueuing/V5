@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml -o22-multiserver.lqnx 22-multiserver.in -->
 <!-- Wed May  6 10:36:33 2009 -->
 
-<lqn-model name="22-multiserver" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="22-multiserver" description="$Id: 22-multiserver.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Equal clients and servers.  Wait = 0." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="client" multiplicity="1" scheduling="inf">
       <task name="client" multiplicity="3" scheduling="ref">

@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/disttest.cc $
  *
  * Distribution function tests.
  * ------------------------------------------------------------------------
  *
- * $Id$
+ * $Id: disttest.cc 9164 2010-01-28 19:27:03Z greg $
  */
 
 #include "testmva.h"

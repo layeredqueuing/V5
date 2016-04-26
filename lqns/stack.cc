@@ -1,5 +1,5 @@
 /* stack.cc	-- Greg Franks Wed Sep 23 1998
- * $Id$
+ * $Id: stack.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 #include "stack.h"

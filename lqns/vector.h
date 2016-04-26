@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/vector.h $
  *
  * Vectors.  Used for scalar types.  See Cltn for other types.  Range checked.
  * Initialize.  Range from 1..n.
@@ -15,7 +15,7 @@
  * November, 1994
  * July 2007
  *
- * $Id$
+ * $Id: vector.h 11963 2014-04-10 14:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 

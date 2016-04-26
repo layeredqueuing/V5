@@ -370,7 +370,7 @@ namespace LQX {
     /* Destructor is empty. */
   }
   
-  bool SymbolTable::define(std::string name)
+  bool SymbolTable::define(const std::string& name)
   {
     /* Make sure this is not defined */
     if (this->isDefined(name, false)) {
@@ -384,7 +384,7 @@ namespace LQX {
     return true;
   }
   
-  bool SymbolTable::isDefined(std::string name, bool globally)
+  bool SymbolTable::isDefined(const std::string& name, bool globally)
   {
     /* See if this is defined here */
     if (globally == false) {
@@ -408,7 +408,7 @@ namespace LQX {
     return false;
   }
   
-  SymbolAutoRef SymbolTable::get(std::string name)
+  SymbolAutoRef SymbolTable::get(const std::string& name)
   {
     /* If this is undefined, return NULL */
     if(!this->isDefined(name)) {

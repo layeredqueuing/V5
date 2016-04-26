@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml -o76-distributions.lqnx 76-distributions.in -->
 <!-- Fri May 29 10:46:27 2009 -->
 
-<lqn-model name="76-distributions" description="$Id$" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="76-distributions" description="$Id: 76-distributions.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Distribution tests." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="constant" scheduling="inf">
       <task name="constant_client" scheduling="ref">

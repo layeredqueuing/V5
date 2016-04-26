@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: lqsim.cc 12548 2016-04-06 15:13:47Z greg $
  */
 
 
@@ -26,11 +26,11 @@
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
 #endif
+#if HAVE_FENV_H
+#include <fenv.h>
+#endif
 #if HAVE_IEEEFP_H && !defined(MSDOS)
 #include <ieeefp.h>
-#elif HAVE_FENV_H
-#define _GLIBCXX_HAVE_FENV_H 1
-#include <fenv.h>
 #endif
 
 #if HAVE_FLOAT_H
@@ -57,7 +57,7 @@
 
 extern FILE* Timeline_Open(char* file_name); /* Open the timeline output stream */
 
-#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS))
+#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(WINNT))
 typedef	fp_except fp_bit_type;
 #elif defined(_AIX)
 typedef	fpflag_t fp_bit_type;
@@ -266,7 +266,7 @@ static struct {
     fp_bit_type bit;
     const char * str;
 } fp_op_str[] = {
-#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS))
+#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(WINNT))
     { FP_X_INV, "Invalid operation" },
     { FP_X_DZ, "Overflow" },
     { FP_X_OFL, "Underflow" },
@@ -300,7 +300,7 @@ static struct {
 Pragma pragma;
 Pragma saved_pragma;
 
-extern void ModLangParserTrace(FILE *TraceFILE, const char *zTracePrompt);
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 
 static void usage(void);
@@ -331,7 +331,11 @@ main( int argc, char * argv[] )
     extern int optind;
 
     bool command_line_error = false;
+#if HAVE_GETOPT_LONG
     LQIO::CommandLine command_line( opts, longopts );
+#else
+    LQIO::CommandLine command_line( opts );
+#endif
 
     /* Set the program name and revision numbers.			*/
 
@@ -342,7 +346,7 @@ main( int argc, char * argv[] )
 	io_vars.lq_toolname = argv[0];
     }
     command_line = io_vars.lq_toolname;
-    (void) sscanf( "$Date$", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2016-04-06 11:13:47 -0400 (Wed, 06 Apr 2016) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     init_errmsg();
@@ -684,7 +688,7 @@ main( int argc, char * argv[] )
   
 	int file_count = argc - optind;
 		
-	if ( output_file.size() > 0  && file_count > 1 && !LQIO::Filename::isDirectory( output_file.c_str() ) > 0 ) {
+	if ( output_file.size() > 0  && file_count > 1 && LQIO::Filename::isDirectory( output_file.c_str() ) > 0 ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", io_vars.lq_toolname );
 	    exit( INVALID_ARGUMENT );
 	}
@@ -717,10 +721,10 @@ usage(void)
 {
     fprintf( stderr, "Usage: %s", io_vars.lq_toolname );
 
-#if HAVE_GETOPT_LONG
     fprintf( stderr, " [option] [file ...]\n\n" );
     fprintf( stderr, "Options:\n" );
 
+#if HAVE_GETOPT_LONG
     const char ** p = opthelp;
     for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
 	string s;
@@ -750,7 +754,7 @@ usage(void)
     }
 
 #else
-    for ( char * s = opts; *s; ++s ) {
+    for ( const char * s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
 	    ++s;
 	} else {
@@ -759,7 +763,7 @@ usage(void)
     }
     cerr << ']';
 	
-    for ( char * s = opts; *s; ++s ) {
+    for ( const char * s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
 	    fprintf( stderr, " [-%c", *s );
 	    switch ( *s ) {
@@ -773,18 +777,14 @@ usage(void)
 	    case 't': fprintf( stderr, "trace" ); break;
 	    case 'T': fprintf( stderr, "time" ); break;
 	    } 
-	    fputf( ']', stderr );
+	    fputc( ']', stderr );
 	    ++s;
 	}
     }
     fprintf( stderr, " [file ...]\n" );
 	
     (void) fprintf( stderr, "\t-t " );
-    for ( char ** sp = &trace_opts[0]; *sp; ++sp ) {
-	(void) fprintf( stderr, "%s%c", *sp, *(sp+1) ? ',' : '\n' );
-    }
-    (void) fprintf( stderr, "\t-z " );
-    for ( char ** sp = &special_opts[0]; *sp; ++sp ) {
+    for ( const char ** sp = &trace_opts[0]; *sp; ++sp ) {
 	(void) fprintf( stderr, "%s%c", *sp, *(sp+1) ? ',' : '\n' );
     }
     Pragma::usage();

@@ -1,6 +1,6 @@
 #
 # LQNS RPM file.
-# $Id$
+# $Id: lqns-dynamic.spec 9267 2010-03-23 19:58:32Z greg $
 
 %define product_name lqns
 %define product_version 5.0

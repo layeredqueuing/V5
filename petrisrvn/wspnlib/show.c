@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: show.c 10972 2012-06-19 01:12:22Z greg $
  *
  *  This file shows the net definitions and results.
  *

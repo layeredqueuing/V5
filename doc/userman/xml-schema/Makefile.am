@@ -1,7 +1,7 @@
 # Makefile for bookstore
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: Makefile.am 11756 2013-10-23 12:24:29Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	activity-schema.fig \

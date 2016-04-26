@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id$
+ * $Id: model.cc 12547 2016-04-05 18:32:45Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -32,7 +32,6 @@
 #include <sys/stat.h>
 #endif
 #include <lqio/dom_document.h>
-#include <lqio/expat_document.h>
 #include <lqio/srvn_output.h>
 #include "stack.h"
 #include "model.h"

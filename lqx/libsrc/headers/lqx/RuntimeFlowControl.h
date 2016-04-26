@@ -1,4 +1,4 @@
-/*
+/* -*- c++ -*-
  *  RuntimeFlowControl.h
  *  ModLang
  *
@@ -28,15 +28,21 @@
 
 namespace LQX {
 	
-	class ReturnValue : public RuntimeException {
-	public:
-		ReturnValue(SymbolAutoRef value) throw() : RuntimeException("ReturnValue"), _value(value) {}
-		virtual ~ReturnValue() throw() {}
-		SymbolAutoRef getValue() { return _value; }
-	private:
-		SymbolAutoRef _value;
-	};
+    class ReturnValue : public RuntimeException {
+    public:
+	ReturnValue(SymbolAutoRef value) throw() : RuntimeException("ReturnValue"), _value(value) {}
+	virtual ~ReturnValue() throw() {}
+	SymbolAutoRef getValue() { return _value; }
+    private:
+	SymbolAutoRef _value;
+    };
 	
+    class BreakException : public RuntimeException {
+    public:
+	BreakException() : RuntimeException("Break outside of loop context.") {}
+	virtual ~BreakException() throw() {}
+    };
+  
 }
 
 #endif /* __RUNTIME_FLOW_CONTROL_H__ */

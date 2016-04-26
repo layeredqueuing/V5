@@ -10,7 +10,7 @@
 /*
  * Generic Stack operations.
  *
- * $Id$
+ * $Id: stack.h 10991 2012-06-21 19:11:22Z greg $
  */
 
 #ifndef MY_STACK_H

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL$
+ * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/testmva.cc $
  *
  * Example from:
  *     author =   "Chandy, K. Mani and Neuse, Doug",
@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id$
+ * $Id: testmva.cc 11969 2014-04-11 21:19:54Z greg $
  * ------------------------------------------------------------------------
  */
 

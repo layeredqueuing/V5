@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: srvn_output.cpp 12554 2016-04-08 20:28:43Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -15,8 +15,17 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#if HAVE_PWD_H
+#include <pwd.h>
+#endif
+#if HAVE_SYS_TYPES_H
+#include <sys/types.h>
+#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
+#endif
+#if HAVE_PWD_H
+#include <pwd.h>
 #endif
 #include <lqx/SyntaxTree.h>
 #include "srvn_output.h"
@@ -2401,10 +2410,11 @@ namespace LQIO {
 
 	    _output << "  s " << setw( ObjectInput::__maxEntLen ) << entry.getName();
 	    for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printServiceTime ) );
+	    _output << " -1";
 	    if ( !_instantiate ) {
 		LQIO::DOM::Spex::printObservationVariables( _output, entry );
 	    }
-	    _output << " -1" << endl;
+	    _output << endl;
 
 	    if ( entry.hasNonExponentialPhases() ) {
 		_output << "  c " << setw( ObjectInput::__maxEntLen ) << entry.getName();

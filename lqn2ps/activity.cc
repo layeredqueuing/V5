@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id$
+ * $Id: activity.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 

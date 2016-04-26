@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: wspn.h 10985 2012-06-21 01:00:51Z greg $
  */
 
 #if !defined(WSPNLIB_WSPN_H)

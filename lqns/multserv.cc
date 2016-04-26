@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id$
+ * $Id: multserv.cc 11971 2014-04-11 21:43:26Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From

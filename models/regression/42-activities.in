@@ -1,8 +1,8 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/42-activities.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 42-activities.in 8649 2009-05-26 15:02:59Z greg $
 # ------------------------------------------------------------------------
 
 G "Activities with AND fork-join - reply on branch." 1e-06 50 5 0.9 -1

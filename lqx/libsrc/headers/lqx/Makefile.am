@@ -1,4 +1,4 @@
-# $Id$
+# $Id: Makefile.am 9224 2010-03-02 18:40:36Z greg $
 noinst_HEADERS = Array.h \
 	Environment.h \
 	Intrinsics.h \

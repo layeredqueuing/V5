@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: glblerr.h 12458 2016-02-21 18:48:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -89,7 +89,7 @@ namespace LQIO {
         ERR_PARSE_ERROR,
 	ERR_DUPLICATE_X_LIST,
         ERR_INVALID_PROC_RATE,
-        ERR_NO_GROUP_DEFINED_FOR_PR0CESSOR,
+        ERR_NO_GROUP_DEFINED_FOR_PROCESSOR,
         ERR_RANGE_ERROR,
         ERR_REF_TASK_FORWARDING,
         ERR_REFERENCE_TASK_OPEN_ARRIVALS,

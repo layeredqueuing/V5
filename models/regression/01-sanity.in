@@ -1,8 +1,8 @@
 # SRVN Model Description File
-# $HeadURL$
+# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/models/regression/01-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: 01-sanity.in 8674 2009-05-28 15:05:07Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - rendezvous." 	# Model comment 

@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id$
+ * $Id: petrisrvn.h 11083 2012-07-10 12:30:35Z greg $
  *
  * Solve LQN using petrinets.
  */

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id$
+ * $Id: instance.cc 12547 2016-04-05 18:32:45Z greg $
  */
 
 /*
@@ -2108,7 +2108,7 @@ Instance::timeline_trace( const trace_events event, ... )
 	case ACTIVITY_JOIN:
 	    ap    = va_arg( args, Activity * );
 	    alp   = va_arg( args, activity_list_t * );
-	    (void) fprintf( stddbg, "activity %s --JOIN--, %ld", ap->name(), (unsigned long)alp );
+	    (void) fprintf( stddbg, "activity %s --JOIN--, %ld", ap->name(), reinterpret_cast<size_t>(alp) );
 	    break;
 
 	case ENQUEUE_READER:
@@ -2166,7 +2166,7 @@ Instance::timeline_trace( const trace_events event, ... )
 
 	    /*	case SYNC_INTERACTION_FAILED: */
 	case SYNC_INTERACTION_COMPLETED:
-	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, ps_now * 1000, ps_myself, reinterpret_cast<long>(va_arg( args, long *)) );
+	    (void) fprintf( stddbg, "%d %12.3f %#04lx %#04lx\n", event, ps_now * 1000, ps_myself, reinterpret_cast<size_t>(va_arg( args, long *)) );
 	    timeline_trace( TASK_IS_READY,   1 );
 	    break;
 

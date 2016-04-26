@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_entity.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -65,8 +65,9 @@ namespace LQIO {
 	{
 	    /* Obtain the copies count */
 	    double value;
-	    assert(_copies->getValue(value) == true);
-	    assert(value - floor(value) == 0);
+	    if ( !_copies || _copies->getValue(value) != true || value - floor(value) != 0 ) {
+		throw std::domain_error( "Invalid copies." );
+	    }
 	    return static_cast<unsigned int>(value);
 	}
     

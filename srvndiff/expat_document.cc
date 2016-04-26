@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id$
+ * $Id: expat_document.cc 12542 2016-04-04 17:00:21Z greg $
  *
  * Read in XML input files.
  *
@@ -27,9 +27,7 @@
 #include <cassert>
 #include <cmath>
 #include <fcntl.h>
-#if HAVE_SYS_ERRNO_H
-#include <sys/errno.h>
-#endif
+#include <errno.h>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif

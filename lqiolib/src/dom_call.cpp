@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: dom_call.cpp 12458 2016-02-21 18:48:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -121,7 +121,9 @@ namespace LQIO {
 	{
 	    /* Obtain the call mean */
 	    double result = 0.0;
-	    assert (_callMean->getValue(result) == true);
+	    if ( !_callMean || _callMean->getValue(result) != true || result < 0. ) {
+		throw std::domain_error( "Invalid call rate." );
+	    }
 	    return result;
 	}
 

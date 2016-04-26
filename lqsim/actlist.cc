@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id$
+ * $Id: actlist.cc 10462 2011-09-07 20:28:27Z greg $
  */
 
 #include <sstream>

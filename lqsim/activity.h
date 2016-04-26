@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id$
+ * $Id: activity.h 12147 2014-09-29 17:10:36Z greg $
  */
 
 #ifndef ACTIVITY_H

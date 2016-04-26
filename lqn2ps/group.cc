@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id$
+ * $Id: group.cc 11963 2014-04-10 14:36:42Z greg $
  */
 
 #include "group.h"

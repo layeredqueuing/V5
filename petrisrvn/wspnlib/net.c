@@ -1,5 +1,5 @@
 /*
- * $Id$
+ * $Id: net.c 11063 2012-07-06 16:15:58Z greg $
  */
 
 #include <../config.h>

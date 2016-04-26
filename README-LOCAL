@@ -1,4 +1,4 @@
-$Id$
+$Id: README-LOCAL 12548 2016-04-06 15:13:47Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -32,23 +32,24 @@ src directory.
 
 BUILD INSTRUCTIONS (Windows)
 ----------------------------
-There are three options: MinGW, Cygwin, and DJGPP.  Use MingGW for
-distribution as it builds native executables in Win32 mode.  DJGPP
-builds WIN16 executables (and has problems with cross device files).
-Cygwin requires special libraries for Unix emulation.  Cygwin is
-probably the best choice for development.
+There are three options: MinGW, MinGW2, Cygwin, and DJGPP.  Use MinGW2 for
+distribution as it builds native executables in Win32 mode.  Cygwin is
+probably the best choice for development.  I believe the original MinGW is no 
+longer supported.  DJGPP builds for DOS.
 
-If using MinGW:
-1) Install mingw.  It's relatively painless now.
-   - Add groff: mingw-get install msys-groff
-   - Add expat: mingw-get install mingw32-libexpat
+If using MinGW2:
+1) Install mingw2.  It's relatively painless now.
+   - Update packages to latest:
+     % pacman -Syu
+   - I recommend to you install most used developer apps by:
+     % pacman -S base-devel
+   - You can run MSYS2 with mingw32_shell.bat and install mingw-w64 toolchain:
+     % pacman -S mingw-w64-i686-toolchain
 
-./bootstrap
-./configure-mingw
-make
-make install
+2) Install other libraries for mingw.
+   Install expat - 
 
-2) The user manuals are built using LaTeX and 
+3) The user manuals are built using LaTeX and 
    Install miktex - http://www.miktex.org/
    Install ghostview - http://www.cs.wisc.edu/~ghost/
    Install fig2dev - http://schmidt-web-berlin.de/winfig.htm
@@ -56,6 +57,19 @@ make install
    Modify %PATH% to point to the bin directories of the above four packages. 
    See: My Computer -> Change a setting -> Performance and Maintenance -> System ->
    Advanced -> Environment Variables
+
+   ** For msys64, you have to set the PATH in .bashrc
+
+4) Build away...
+   ** Make sure that you run the 64 bit version of MINGW (Programs->MSYS2 64bit->MinGW-w64 Win64 Shell)
+   ** You need /mingw64/bin/gcc
+
+   ./bootstrap
+   ./configure-mingw
+   make
+   make install
+
+
 
 If using Cygwin:
 Note: Be sure that tetex, groff, and xfree (for ps2pdf) are all

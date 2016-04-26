@@ -1,12 +1,12 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id$
+# $Id: configure.ac 12479 2016-03-02 01:28:28Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(lqns, 5.8, greg@sce.carleton.ca)
+AC_INIT(lqns, 5.9.1, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([dim.h])
 AC_CONFIG_HEADERS([config.h])
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 AC_PROG_MAKE_SET
 AC_SUBST(STATIC)
 
@@ -76,7 +76,6 @@ AC_HEADER_STDBOOL
 # ----------------------------------------------------------------------
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_MALLOC
 AC_FUNC_SELECT_ARGTYPES 
 AC_FUNC_SETVBUF_REVERSED
 AC_TYPE_SIGNAL

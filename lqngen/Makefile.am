@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id$
+# $Id: Makefile.am 12297 2015-11-17 21:10:22Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config
 SUBDIRS		= 
@@ -8,13 +8,13 @@ SUBDIRS		=
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers
 bin_PROGRAMS 	= lqngen
 OTHEREXE	= lqn2lqx
-lqngen_SOURCES  = lqngen.cc lqn2lqx.cc generate.cc randomvar.cc
-noinst_HEADERS 	= generate.h lqngen.h randomvar.h
+lqngen_SOURCES  = lqngen.cc generate.cc help.cc randomvar.cc 
+noinst_HEADERS 	= generate.h help.h lqngen.h randomvar.h 
 
 EXTRA_DIST	= lqngen.1 lqn2lqx.1
 
 lqngen_CXXFLAGS = -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
-lqngen_LDADD 	= -L../lqiolib/src/.libs -llqio 
+lqngen_LDADD 	= -L../lqiolib/src/.libs -llqio -L../lqx/libsrc/.libs -llqx 
 lqngen_LDFLAGS	= @STATIC@
 
 man1_MANS	= lqngen.1 lqn2lqx.1

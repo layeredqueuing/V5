@@ -1,6 +1,6 @@
 /* dumpemf.c	-- Greg Franks Thu Dec  2 2004
  *
- * $Id$
+ * $Id: dumpemf.c 11987 2014-04-16 20:57:40Z greg $
  */
 
 #include <stdio.h>

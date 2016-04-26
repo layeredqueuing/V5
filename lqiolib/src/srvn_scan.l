@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id$
+ * $Id: srvn_scan.l 12338 2015-12-01 17:12:23Z greg $
  */
 %option noyywrap yylineno
 
@@ -31,7 +31,7 @@ extern YYSTYPE LQIO_lval;
 
 unsigned LQIO_linenno = 1;
 
-static char * dup_LQIO_text( char * str, int len );
+extern char * dup_LQIO_text( char * str, int len );
 static char * dup_comment( char * str, int len );
 static int get_result_phase( char );
 %}
@@ -118,6 +118,7 @@ P	[0123]?
 {K}pw{P}		{ LQIO_lval.anInt = get_result_phase( LQIO_text[3] ); return KEY_PROCESSOR_WAITING; }
 {K}s{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_SERVICE_TIME; }
 {K}sys			{ LQIO_lval.anInt = 0; return KEY_SYSTEM_TIME; }
+{K}time			{ LQIO_lval.anInt = 0; return KEY_ELAPSED_TIME; }
 {K}u{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_UTILIZATION; }
 {K}usr			{ LQIO_lval.anInt = 0; return KEY_USER_TIME; }
 {K}v{P}			{ LQIO_lval.anInt = get_result_phase( LQIO_text[2] ); return KEY_VARIANCE; }
@@ -133,7 +134,7 @@ P	[0123]?
  * Copy str to mallocated storage.
  */
 
-static char *
+char *
 dup_LQIO_text( char * str, int len )
 {
     char * p = (char *)malloc( (unsigned)len+1 );

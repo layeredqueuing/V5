@@ -133,9 +133,9 @@ namespace LQX {
   public:
     
     /* Interface to the table */
-    bool define(std::string name);
-    bool isDefined(std::string name, bool globally=true);
-    SymbolAutoRef get(std::string name);
+    bool define(const std::string& name);
+    bool isDefined(const std::string& name, bool globally=true);
+    SymbolAutoRef get(const std::string& name);
     
     /* Variable Scoping */
     void pushContext();

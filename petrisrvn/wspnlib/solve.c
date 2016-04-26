@@ -1,5 +1,5 @@
 /*
- *  $Id$
+ *  $Id: solve.c 10972 2012-06-19 01:12:22Z greg $
  *
  * Solve the petri net "net_name".  The actual work is performed by a subprocess.
  */
