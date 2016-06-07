@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 12554 2016-04-08 20:28:43Z greg $
+ *  $Id: srvn_output.cpp 12594 2016-06-06 16:53:56Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2569,6 +2569,9 @@ namespace LQIO {
     {
 	_output << "  s " << activity.getName();
 	printServiceTime( activity );
+	if ( !_instantiate ) {
+	    DOM::Spex::printObservationVariables( _output, activity );
+	}
 	_output << endl;
 	if ( activity.isNonExponential() ) {
 	    _output << "  c " << activity.getName();
@@ -2603,7 +2606,11 @@ namespace LQIO {
 	const std::vector<DOM::Call *>& calls = activity.getCalls();
 	for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
 	    const DOM::Call * call = *nextCall;
-	    _output << "  " << call_type( *call ) << " " << activity.getName() << " " << call->getDestinationEntry()->getName() << number_of_calls( *call ) << endl;
+	    _output << "  " << call_type( *call ) << " " << activity.getName() << " " << call->getDestinationEntry()->getName() << number_of_calls( *call );
+	    if ( !_instantiate ) {
+		DOM::Spex::printObservationVariables( _output, *call );
+	    }
+	    _output << endl;
 	}
     }
 

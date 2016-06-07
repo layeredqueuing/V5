@@ -10,9 +10,9 @@
 /*
  * Input output processing.
  *
- * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/entry.cc $
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entry.cc 12595 2016-06-06 16:54:07Z greg $
  */
 
 #include <parasol.h>
@@ -478,7 +478,7 @@ Pseudo_Entry::Pseudo_Entry( const char * name, Task * task )
 	char * activity_name = new char[strlen( name ) + 16];
 	(void) sprintf( activity_name, "Entry %s - Ph %d", name, p );
 	phase[p].rename( activity_name );
-	delete activity_name;
+	delete [] activity_name;
     }
 }
 

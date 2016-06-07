@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 12360 2015-12-03 18:17:34Z greg $
+ *  $Id: srvn_spex.cpp 12594 2016-06-06 16:53:56Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -21,15 +21,17 @@
 #include "dom_phase.h"
 #include "srvn_input.h"
 #include "srvn_spex.h"
-#include "srvn_gram.h"
 #include "glblerr.h"
+
+extern "C" {
+#include "srvn_gram.h"
+}
 
 namespace LQIO {
     namespace DOM {
 
 	Spex::Spex() 
 	{
-	    __varnum = 0;
 	}
 
 	
@@ -102,6 +104,7 @@ namespace LQIO {
 	    __document_variables.clear();			/* Saves all key-$var for the document */
 	    __input_iterator.clear();
 	    __result_expression.clear();
+	    __inline_expression.clear();			/* Maps temp vars to expressions */
 	}
 
 
@@ -201,6 +204,10 @@ namespace LQIO {
 
 	/* ------------------------------------------------------------------------ */
 
+	/*
+	 * Document variables 
+	 */
+	
 	LQX::SyntaxTreeNode * Spex::observation( const int key, const char * name ) 
 	{
 	    __document_variables.push_back( ObservationInfo( key, 0, name ) );
@@ -214,70 +221,86 @@ namespace LQIO {
 	    case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, "system_cpu_time" ); break;
 	    default:	abort();
 	    }
-	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
-	    __observations[&name[1]] = assignment;
+	    __observations[&name[1]] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
 	    return object;		/* For chaining */
 	}
 
-	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject& document_object, const int phase, const int key, const char * name ) 
+	/*
+	 * Group, Processor, Task, Entry, Phase variables 
+	 */
+	
+	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject* document_object, const unsigned int phase, const std::string& type_name, ObservationInfo& obs ) 
 	{
-	    __observation_variables.insert( std::pair<const DocumentObject*,ObservationInfo>(&document_object,ObservationInfo( key, phase, name )) );
-	    const char * type_name;
-	    if ( dynamic_cast<const LQIO::DOM::Processor *>(&document_object) != 0 ) {
-		type_name = "processor";
-	    } else if ( dynamic_cast<const LQIO::DOM::Task *>(&document_object) != 0 ) {
-		type_name = "task";
-	    } else if ( dynamic_cast<const LQIO::DOM::Entry *>(&document_object) != 0 ) {
-		type_name = "entry";
-	    } else if ( dynamic_cast<const LQIO::DOM::Activity *>(&document_object) != 0 ) {
-		type_name = "activity";
-	    } else {   
-		abort();
-	    }
-	    LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( type_name, new LQX::ConstantValueExpression( document_object.getName() ), 0 );
-	    if ( phase > 0 && phase <= LQIO::DOM::Phase::MAX_PHASE ) {
+	    LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( type_name, new LQX::ConstantValueExpression( document_object->getName() ), 0 );
+	    if ( dynamic_cast<const Entry *>(document_object) != 0 && 0 < phase && phase <= LQIO::DOM::Phase::MAX_PHASE ) {
+		/* A phase of an entry */
 		object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), 0 );
+		document_object = dynamic_cast<const Entry *>(document_object)->getPhase( phase );
 	    }
-	    LQX::ObjectPropertyReadNode * node = new LQX::ObjectPropertyReadNode( object, __key_lqx_function_map[key] ); 
-	    assert( node );
-	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
-	    __observations[&name[1]] = assignment;
-	    return object;		/* For chaining */
+	    return observation( object, document_object, obs );
 	}
     
-	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject& src, const int phase, const DocumentObject& dst, const int key, const char * name )
+	/* 
+	 * Activity variables 
+	 */
+	
+	LQX::SyntaxTreeNode * Spex::observation( const Task* task, const Activity * activity, const std::string& type_name, ObservationInfo& obs ) 
 	{
-	    LQX::MethodInvocationExpression * object;
-	    const LQIO::DOM::Call * call_object;
-	    if ( dynamic_cast<const LQIO::DOM::Entry *>(&src) != 0 && phase != 0 ) {
-		object = new LQX::MethodInvocationExpression( "entry", new LQX::ConstantValueExpression( src.getName() ), 0 );
-		object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), 0 );
-		call_object = dynamic_cast<const LQIO::DOM::Entry&>(src).getCallToTarget( dynamic_cast<const LQIO::DOM::Entry *>(&dst), phase );
-	    } else if ( dynamic_cast<const LQIO::DOM::Activity *>(&src) != 0 && phase == 0 ) {
-		object = new LQX::MethodInvocationExpression( "activity", new LQX::ConstantValueExpression( src.getName() ), 0 );
-		call_object = dynamic_cast<const LQIO::DOM::Activity&>(src).getCallToTarget( dynamic_cast<const LQIO::DOM::Entry *>(&dst) );
-	    } else {
-		abort();
+	    LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "task", new LQX::ConstantValueExpression( task->getName() ), 0 );
+	    object = new LQX::MethodInvocationExpression( "activity", object, new LQX::ConstantValueExpression( activity->getName() ), 0 );
+	    return observation( object, activity, obs );
+	}
+	
+	/*
+	 * Call Variables 
+	 */
+	
+	LQX::SyntaxTreeNode * Spex::observation( const DocumentObject* src, const unsigned int phase, const Entry* dst, ObservationInfo& obs )
+	{
+	    assert( dynamic_cast<const LQIO::DOM::Entry *>(src) != 0 && phase != 0 );
+
+	    LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "entry", new LQX::ConstantValueExpression( src->getName() ), 0 );
+	    object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), 0 );
+	    const LQIO::DOM::Call * call_object = dynamic_cast<const LQIO::DOM::Entry *>(src)->getCallToTarget( dynamic_cast<const LQIO::DOM::Entry *>(dst), phase );
+	    object = new LQX::MethodInvocationExpression( "call", object, new LQX::ConstantValueExpression( dst->getName() ), 0 );
+	    return observation( object, call_object, obs );
+
+	}
+
+	/* 
+	 * Activity Call variables 
+	 */
+	
+	LQX::SyntaxTreeNode * Spex::observation( const Task* task, const Activity * activity, const Entry * dst, ObservationInfo& obs ) 
+	{
+	    LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "task", new LQX::ConstantValueExpression( task->getName() ), 0 );
+	    object = new LQX::MethodInvocationExpression( "activity", object, new LQX::ConstantValueExpression( activity->getName() ), 0 );
+	    const LQIO::DOM::Call * call_object = activity->getCallToTarget( dst );
+	    object = new LQX::MethodInvocationExpression( "call", object, new LQX::ConstantValueExpression( dst->getName() ), 0 );
+	    return observation( object, call_object, obs );
+	}
+	
+	/*
+	 * Common code.
+	 */
+	
+	LQX::SyntaxTreeNode * Spex::observation( LQX::MethodInvocationExpression * lqx_obj, const DocumentObject * doc_obj, ObservationInfo& obs )
+	{
+	    const char * name = obs.getVariableName().c_str();
+	    const int key = obs.getKey();
+	    const unsigned int conf_level = obs.getConfLevel();
+	    const char * conf_name = obs.getConfVariableName().c_str();
+	    __observation_variables.insert( std::pair<const DocumentObject*,ObservationInfo>(doc_obj,obs) );		/* Save variable names */
+	    __observations[&name[1]] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),
+									 new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map[key] ) );
+	    if ( conf_level != 0 ) {
+		lqx_obj = new LQX::MethodInvocationExpression( "conf_int", lqx_obj, new LQX::ConstantValueExpression( static_cast<double>(conf_level) ), 0 );
+		__observations[&conf_name[1]] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &conf_name[1], false ),
+										  new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map[key] ) );
 	    }
-	    __observation_variables.insert( std::pair<const DocumentObject*,ObservationInfo>(call_object,ObservationInfo( key, phase, name )) );
-	    object = new LQX::MethodInvocationExpression( "call", object, new LQX::ConstantValueExpression( dst.getName() ), 0 );
-	    LQX::ObjectPropertyReadNode * node = new LQX::ObjectPropertyReadNode( object, __key_lqx_function_map[key] ); 
-	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
-	    __observations[&name[1]] = assignment;
-	    return object;		/* For chaining */
+	    return lqx_obj;		/* For chaining */
 	}
-
-	LQX::SyntaxTreeNode * Spex::confidence_interval( LQX::SyntaxTreeNode * object, const int key, const int interval, const char * name ) 
-	{
-	    object = new LQX::MethodInvocationExpression( "conf_int", object, new LQX::ConstantValueExpression( static_cast<double>(interval) ), 0 );
-	    LQX::ObjectPropertyReadNode * node = new LQX::ObjectPropertyReadNode( object, __key_lqx_function_map[key] ); 
-	    assert( node );
-	    LQX::AssignmentStatementNode * assignment = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
-	    __observations[&name[1]] = assignment;
-	    return object;		/* For chaining */
-	}
-
-
+	
 	/*
 	 * foreach( i,$var in list );
 	 * loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN expr(C) CBRACKET stmt(D). 
@@ -470,71 +493,84 @@ namespace LQIO {
 	/* lqn 'input' output functions for printing spex stuff out in input file.  */
 	/* ------------------------------------------------------------------------ */
 
-	/* static */ std::ostream&
-	Spex::printInputVariables( std::ostream& output )
-	{
-	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
-	    for_each( __input_variables.begin(), __input_variables.end(), printInputVariable( output ) );
-	    return output;
-	}
+	/* static */ std::ostream& 	 
+	Spex::printInputVariables( std::ostream& output ) 	 
+	{ 	 
+	    LQX::SyntaxTreeNode::setVariablePrefix( "$" ); 	 
+	    for_each( __input_variables.begin(), __input_variables.end(), PrintInputVariable( output ) ); 	 
+	    return output; 	 
+	} 	 
+	  	 
+	/* 	 
+	 * Find all observation variables that match object and print them out. 	 
+	 */ 	 
+	  	 
+	/* static  */ std::ostream& 	 
+	Spex::printObservationVariables( std::ostream& output ) 	 
+	{ 	 
+	    for ( std::vector<ObservationInfo>::const_iterator obs = __document_variables.begin(); obs != __document_variables.end(); ++obs ) { 	 
+		output << " "; 	 
+		obs->print( output ); 	 
+	    } 	 
+	    return output; 	 
+	} 	 
+	  	 
+	/* static  */ std::ostream& 	 
+	Spex::printObservationVariables( std::ostream& output, const DocumentObject& object ) 	 
+	{ 	 
+	    std::pair<obs_var_tab_t::iterator, obs_var_tab_t::iterator> range = __observation_variables.equal_range( &object ); 	 
+	    for ( obs_var_tab_t::iterator obs = range.first; obs != range.second; ++obs ) { 	 
+		output << " "; 	 
+		obs->second.print( output ); 	 
+	    } 	 
+	    /* If object is an entry, call again as a phase. */ 	 
+	    if ( dynamic_cast<const Entry *>(&object) != 0 ) { 	 
+		const std::map<unsigned, Phase*>& phases = dynamic_cast<const Entry *>(&object)->getPhaseList(); 	 
+		for ( std::map<unsigned, Phase*>::const_iterator phase = phases.begin(); phase != phases.end(); ++phase ) { 	 
+		    printObservationVariables( output, *phase->second ); 	 
+		} 	 
+	    } 	 
+	    return output; 	 
+	} 	 
+	  	 
+	/* static  */ std::ostream& 	 
+	Spex::printResultVariables( std::ostream& output ) 	 
+	{ 	 
+	    /* Force output in the order of input. */ 	 
+	    LQX::SyntaxTreeNode::setVariablePrefix( "$" ); 	 
+	    for ( std::vector<std::string>::iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) { 	 
+		output << "  " << Spex::print_result_variable( *var ) << std::endl; 	 
+	    } 	 
+	    return output; 	 
+	} 	 
 
-	/*
-	 * Find all observation variables that match object and print them out.
-	 */
-
-	/* static  */ std::ostream&
-	Spex::printObservationVariables( std::ostream& output )
-	{
-	    for ( std::vector<ObservationInfo>::const_iterator obs = __document_variables.begin(); obs != __document_variables.end(); ++obs ) {
-		output << " ";
-		obs->print( output );
-	    }
-	    return output;
-	}
-
-	/* static  */ std::ostream&
-	Spex::printObservationVariables( std::ostream& output, const DocumentObject& object )
-	{
-	    std::pair<obs_var_tab_t::iterator, obs_var_tab_t::iterator> range = __observation_variables.equal_range( &object );
-	    for ( obs_var_tab_t::iterator obs = range.first; obs != range.second; ++obs ) {
-		output << " ";
-		obs->second.print( output );
-	    }
-	    return output;
-	}
-
-	/* static  */ std::ostream&
-	Spex::printResultVariables( std::ostream& output )
-	{
-	    /* Force output in the order of input. */
-	    for ( std::vector<std::string>::iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
-		output << "  " << *var;
-		std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator expr = __result_expression.find( *var );
-		if ( expr != __result_expression.end() && expr->second ) {
-		    output << " = " << *(expr->second);
-		}
-		output << std::endl;
-	    }
-	    return output;
-	}
-
-	void
-	Spex::printInputVariable::operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& var ) const
+	std::ostream&
+	Spex::printInputVariable( std::ostream& output, const std::pair<std::string,LQX::SyntaxTreeNode *>& var )
 	{
 	    std::map<std::string,Spex::ComprehensionInfo>::const_iterator comp = __comprehensions.find(var.first);
 	    if ( comp != __comprehensions.end() ) {
-		_output << var.first << " = " << comp->second;
+		output << var.first << " = " << comp->second;
 	    } else {
 		std::map<std::string,std::string>::const_iterator iter_var = __input_iterator.find(var.first);
 		if ( iter_var != __input_iterator.end() ) {		/* For $iter, $var = <expr> */
-		    _output << iter_var->second << ", ";
+		    output << iter_var->second << ", ";
 		}
-		_output << var.first << " = " << *(var.second);
+		output << var.first << " = " << *(var.second);
 	    }
-	    _output << std::endl;
+	    return output;
 	}
 
-
+	std::ostream&
+	Spex::printResultVariable( std::ostream& output, const std::string& var )
+	{
+	    output << var;
+	    std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator expr = __result_expression.find( var );
+	    if ( expr != __result_expression.end() && expr->second ) {
+		output << " = " << *(expr->second);
+	    }
+	    return output;
+	}
+
 	/* ------------------------------------------------------------------------ */
 
 	class Spex spex;
@@ -554,14 +590,13 @@ namespace LQIO {
 	std::map<std::string,Spex::attribute_table_t> Spex::__control_parameters;
 	std::map<int,std::string> Spex::__key_code_map;				/* Maps srvn_gram.h KEY_XXX to name */
 	std::map<int,std::string> Spex::__key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to lqx function name */
-	std::map<std::string,LQX::SyntaxTreeNode *> Spex::__result_expression;	/* */
+	std::map<std::string,LQX::SyntaxTreeNode *> Spex::__result_expression;	/* Maps result vars to expressions */
+	std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *> Spex::__inline_expression;	/* Maps temp vars to expressions */
 
 	bool Spex::__verbose = false;
 	bool Spex::__no_header = false;
-	unsigned int Spex::__varnum = 0;
 
 	const char * Spex::__convergence_limit_str = "$convergence_limit";
-
     }
 }
 
@@ -633,6 +668,14 @@ namespace LQIO {
 namespace LQIO {
     namespace DOM {
 
+	Spex::ObservationInfo::ObservationInfo( int key, unsigned int phase, const char * variable_name, unsigned int conf_level, const char * conf_variable_name ) 
+	    : _key(key), _phase(phase), _variable_name(variable_name), _conf_level(conf_level), _conf_variable_name("")
+	{
+	    if ( conf_level != 0 && conf_variable_name != 0 ) {
+		_conf_variable_name = conf_variable_name;
+	    }
+	}
+
 	bool
 	Spex::ObservationInfo::operator()( const DocumentObject * o1, const DocumentObject * o2 ) const 
 	{ 
@@ -642,20 +685,21 @@ namespace LQIO {
 	std::ostream&
 	Spex::ObservationInfo::print( std::ostream& output ) const
 	{
-	    output << "%" << __key_code_map[_key];
+	    output << "%" << __key_code_map.at(_key);
 	    if ( _phase != 0 ) {
 		output << _phase;
 	    }
+	    if ( _conf_level > 0 ) {
+		output << " " << _conf_level;
+	    }
 	    output << " " << _variable_name;
+	    if ( _conf_level > 0 ) {
+		output << " " << _conf_variable_name;
+	    }
 	    return output;
 	}
     }
 }
-
-/* ------------------------------------------------------------------------ */
-/* Non-document stuff set at LQX runtime				    */
-/* ------------------------------------------------------------------------ */
-
 
 /* ------------------------------------------------------------------------ */
 /* Interface between the parser and the spex generator.			    */
@@ -671,13 +715,12 @@ namespace LQIO {
 void spex_set_program( void * param_arg, void * result_arg, void * convergence_arg )
 {
     expr_list * program = static_cast<expr_list *>(param_arg);
-    if ( LQIO::DOM::spex.construct_program( program, 
-					    static_cast<expr_list *>(result_arg), 
-					    static_cast<expr_list *>(convergence_arg) ) ) {
+    if ( program && LQIO::DOM::spex.construct_program( program, 
+						       static_cast<expr_list *>(result_arg), 
+						       static_cast<expr_list *>(convergence_arg) ) ) {
 	LQIO::DOM::currentDocument->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }
-
 
 /*
  * Create a Globally-scoped variable.  Note that these must all be assigned prior to calling solve().
@@ -874,62 +917,49 @@ void * spex_invoke_function( const char * s, void * arg )
 void * spex_inline_expression( void * expr )
 {
     std::ostringstream name;
-    name << "$_";
-    do {
-	name << std::setw(3) << std::setfill('0') << LQIO::DOM::Spex::__varnum;
-	LQIO::DOM::Spex::__varnum += 1;
-    } while ( LQIO::DOM::currentDocument->hasSymbolExternalVariable( name.str().c_str() ) );
+    name << "$_" << std::setw(3) << std::setfill('0') << LQIO::DOM::Spex::__inline_expression.size() << "_";
     LQX::SyntaxTreeNode * statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression(name.str(),true), static_cast<LQX::SyntaxTreeNode *>(expr) );
     LQIO::DOM::Spex::__deferred_assignment.push_back( statement );
-    return LQIO::DOM::currentDocument->db_build_parameter_variable(name.str().c_str(),NULL);
+    LQIO::DOM::ExternalVariable * var = LQIO::DOM::currentDocument->db_build_parameter_variable(name.str().c_str(),NULL);
+    LQIO::DOM::Spex::__inline_expression.insert( std::pair<const LQIO::DOM::ExternalVariable *,const LQX::SyntaxTreeNode*>(var,static_cast<LQX::SyntaxTreeNode *>(expr)) );
+    return var;
 }
 
 
 void * spex_document_observation( const int key, const char * var )
 {
     if ( !var ) return 0;
-    LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( key, var );
-    return object;
+    return LQIO::DOM::spex.observation( key, var );
 }
 
-void * spex_processor_observation( void * obj, const int key, const int conf, const char * var, const char * var2 ) 
+void * spex_processor_observation( const void * obj, const int key, const int conf, const char * var, const char * var2 ) 
 {
     if ( !obj || !var ) return 0;
 
-    LQIO::DOM::Processor * processor = static_cast<LQIO::DOM::Processor *>(obj);
-    LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( *processor, 0, key, var );
-    if ( var2 && object ) {
-	object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-    }
-    return object;
+    LQIO::DOM::Spex::ObservationInfo obs( key, 0, var, conf, var2 );
+    return LQIO::DOM::spex.observation( static_cast<const LQIO::DOM::Processor *>(obj), 0, "processor", obs );
 }
 
 
-void * spex_task_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 )
+void * spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 )
 {
     if ( !obj || !var ) return 0;
 
-    LQIO::DOM::Task * task = static_cast<LQIO::DOM::Task *>(obj);
-    LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( *task, phase, key, var );
-    if ( var2 && object ) {
-	object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-    }
-    return object;
+    LQIO::DOM::Spex::ObservationInfo obs( key, phase, var, conf, var2 );
+    return LQIO::DOM::spex.observation( static_cast<const LQIO::DOM::Task *>(obj), phase, "task", obs );
 }
 
-void * spex_entry_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 )
+void * spex_entry_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 )
 {
     if ( !obj || !var ) return 0;
 
-    LQIO::DOM::Entry * entry = static_cast<LQIO::DOM::Entry *>(obj);
+    const LQIO::DOM::Entry * entry = static_cast<const LQIO::DOM::Entry *>(obj);
 
-    if ( (entry->hasPhase(phase) && ( key == KEY_SERVICE_TIME || key == KEY_UTILIZATION  || key == KEY_PROCESSOR_UTILIZATION  || key == KEY_PROCESSOR_WAITING  || key == KEY_VARIANCE ) )
+    if ( ((0 < phase && phase <= LQIO::DOM::Phase::MAX_PHASE) && ( key == KEY_SERVICE_TIME || key == KEY_UTILIZATION  || key == KEY_PROCESSOR_UTILIZATION  || key == KEY_PROCESSOR_WAITING  || key == KEY_VARIANCE ))
 	 || (phase == 0 && (key == KEY_THROUGHPUT || key == KEY_UTILIZATION || key == KEY_PROCESSOR_UTILIZATION)) ) {
-	LQX::SyntaxTreeNode * object =  LQIO::DOM::spex.observation( *entry, phase, key, var );
-	if ( var2 && object ) {
-	    object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-	}
-	return object;
+	/* This is by phase... but LQX needs entry and phase name */
+	LQIO::DOM::Spex::ObservationInfo obs( key, phase, var, conf, var2 );
+	return LQIO::DOM::spex.observation( entry, phase, "entry", obs );
     } else {
 	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, LQIO::DOM::Spex::__key_code_map[key].c_str(), entry->getName().c_str() );
 	return 0;
@@ -937,64 +967,39 @@ void * spex_entry_observation( void * obj, const int key, const int phase, const
 
 }
 
-
-void * spex_activity_observation( void * obj, const int key, const int phase, const int conf, const char * var, const char * var2 )
+void * spex_activity_observation( const void * task, const void * activity, const int key, const int conf, const char * var, const char * var2 )
 {
-    if ( !obj || !var ) return 0;
+    if ( !task || !activity || !var ) return 0;
 
-    LQIO::DOM::Activity * activity = static_cast<LQIO::DOM::Activity *>(obj);
-
-    if ( phase != 0 ) {
-	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, LQIO::DOM::Spex::__key_code_map[key].c_str(), activity->getName().c_str() );
-	return 0;
-    } else {
-	LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( *activity, 0, key, var );
-	if ( var2 && object ) {
-	    object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-	}
-	return object;
-    }
-
+    LQIO::DOM::Spex::ObservationInfo obs( key, 0, var, conf, var2 );
+    return LQIO::DOM::spex.observation( static_cast<const LQIO::DOM::Task *>(task), static_cast<const LQIO::DOM::Activity *>(activity), "activity", obs );
 }
 
 
-void * spex_call_observation( void * src, const int key, const int phase, void * dst, const int conf, const char * var, const char * var2 )
+void * spex_call_observation( const void * src, const int key, const int phase, const void * dst, const int conf, const char * var, const char * var2 )
 {
     if ( !src || !dst || !var ) return 0;
 
-    LQIO::DOM::Entry * src_entry = static_cast<LQIO::DOM::Entry *>(src);
-    LQIO::DOM::Entry * dst_entry = static_cast<LQIO::DOM::Entry *>(dst);
+    const LQIO::DOM::Entry * src_entry = static_cast<const LQIO::DOM::Entry *>(src);
+    const LQIO::DOM::Entry * dst_entry = static_cast<const LQIO::DOM::Entry *>(dst);
 
-    if ( phase == 0 || !src_entry->hasPhase(phase) ) {
+    if ( phase <= 0 || LQIO::DOM::Phase::MAX_PHASE < phase ) {
 	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, LQIO::DOM::Spex::__key_code_map[key].c_str(), src_entry->getName().c_str() );
 	return 0;
     } else {
-	LQX::SyntaxTreeNode * object = LQIO::DOM::spex.observation( *src_entry, phase, *dst_entry, key, var );
-	if ( var2 && object ) {
-	    object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-	}
-	return object;
+	LQIO::DOM::Spex::ObservationInfo obs( key, phase, var, conf, var2 );
+	return LQIO::DOM::spex.observation( src_entry, phase, dst_entry, obs );
     }
 
 }
 
-void * spex_activity_call_observation( void * src, const int key, const int phase, void * dst, const int conf, const char * var, const char * var2 )
+void * spex_activity_call_observation( const void * task, const void * activity, const int key, const void * dst, const int conf, const char * var, const char * var2 )
 {
-    if ( !src || !dst || !var ) return 0;
+    if ( !task || !activity || !dst || !var ) return 0;
 
-    LQIO::DOM::Activity * src_activity = static_cast<LQIO::DOM::Activity *>(src);
-    LQIO::DOM::Entry * dst_entry = static_cast<LQIO::DOM::Entry *>(dst);
-
-    if ( phase != 0 ) {
-	input_error2( LQIO::WRN_INVALID_RESULT_PHASE, phase, LQIO::DOM::Spex::__key_code_map[key].c_str(), src_activity->getName().c_str() );
-	return 0;
-    } else {
-	LQX::SyntaxTreeNode * object =  LQIO::DOM::spex.observation( *src_activity, 0, *dst_entry, key, var );
-	if ( var2 && object ) {
-	    object = LQIO::DOM::spex.confidence_interval( object, key, conf, var2 );
-	}	
-	return object;
-    }
+    LQIO::DOM::Spex::ObservationInfo obs( key, 0, var, conf, var2 );
+    return LQIO::DOM::spex.observation( static_cast<const LQIO::DOM::Task *>(task), static_cast<const LQIO::DOM::Activity *>(activity),
+					static_cast<const LQIO::DOM::Entry *>(dst), obs );
 }
 
 /*

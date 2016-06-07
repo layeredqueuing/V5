@@ -1,5 +1,6 @@
+
 /*
- * $Id: srvn_gram.y 12338 2015-12-01 17:12:23Z greg $ 
+ * $Id: srvn_gram.y 12594 2016-06-06 16:53:56Z greg $ 
  */
 
 %{
@@ -188,7 +189,7 @@ factor			: '(' expression ')'				{ $$ = $2; }			/* See Parser_pre.ypp: basic_stm
 			| rvalue '(' ')'				{ $$ = spex_invoke_function( $1, 0 ); }
 			| rvalue '(' expression_list ')'		{ $$ = spex_invoke_function( $1, $3 ); }
 			| rvalue '[' expression ']'			{ $$ = spex_invoke_function( "array_get", $3 ); }
-			| rvalue					{ $$ = spex_get_symbol( $1 ); constant_expression = false; }
+			| VARIABLE					{ $$ = spex_get_symbol( $1 ); constant_expression = false; }
 			| constant					{ $$ = spex_get_real( $1 ); }
 			;
 
@@ -391,10 +392,8 @@ task_obs		: task_obs_info task_obs
 /*													 obj,       key                        ph  cf, v1, v2 */
 task_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  0,  $2, 0  ); }
 			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_THROUGHPUT,  	       0,  $2, $3, $4 ); }			/* conf */
-			| KEY_UTILIZATION VARIABLE				{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       0,  0,  $2, 0  ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       0,  $2, $3, $4 ); }			/* conf */
-			| KEY_UTILIZATION INTEGER VARIABLE 			{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $2, 0,  $3, 0  ); }			/* phase */
-			| KEY_UTILIZATION INTEGER INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $2, $3, $4, $5 ); }			/* phase. conf */
+			| KEY_UTILIZATION VARIABLE				{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $1, 0,  $2, 0  ); }
+			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_task_observation( curr_task, KEY_UTILIZATION, 	       $1, $2, $3, $4 ); }			/* conf */
 			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  0,  $2, 0  ); }
 			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_task_observation( curr_task, KEY_PROCESSOR_UTILIZATION, 0,  $2, $3, $4 ); }			/* conf */
 			;
@@ -571,8 +570,9 @@ activity_defn		: 's' activity_def real activity_obs		{ srvn_store_activity_servi
 			| 'f' activity_def INTEGER			{ srvn_set_activity_phase_type_flag( $2, $3 ); }
 			| 'H' activity_def constant ':' constant hist_bins 	{ srvn_set_activity_histogram( $2, $3, $5, $6 ); }
 			| 'M' activity_def constant			{ srvn_set_activity_histogram( $2, $3, $3, 0 );  }
-			| 'y' activity_def dest_ref real act_call_obs	{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_rnv_data( $2, $3, $4 ) ); }
-			| 'z' activity_def dest_ref real act_call_obs	{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_snr_data( $2, $3, $4 ) ); }
+			/* srvn_store_rvn_data creates the call, so observe variables have to be afterwards */
+			| 'y' activity_def dest_ref real		{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_rnv_data( $2, $3, $4 ) ); } act_call_obs
+			| 'z' activity_def dest_ref real		{ srvn_set_activity_call_name( curr_task, $2, $3, srvn_store_activity_snr_data( $2, $3, $4 ) ); } act_call_obs
 			| 'Z' activity_def real	activity_obs		{ srvn_store_activity_think_time( $2, $3 ); }
 			;
 
@@ -650,28 +650,28 @@ activity_obs		: activity_obs_info activity_obs
 			|
 			;
 
-activity_obs_info	: KEY_THROUGHPUT VARIABLE				{ spex_activity_observation( curr_activity, KEY_THROUGHPUT, $1, 0, $2, 0 ); }
-			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_activity, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
-			| KEY_UTILIZATION VARIABLE	  			{ spex_activity_observation( curr_activity, KEY_UTILIZATION, $1, 0, $2, 0 ); }
-			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_activity, KEY_UTILIZATION, $1, $2, $3, $4 ); }
-			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_activity_observation( curr_activity, KEY_PROCESSOR_UTILIZATION, $1, 0, $2, 0 ); }
-			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_activity, KEY_PROCESSOR_UTILIZATION, $1, $2, $3, $4 ); }
-			| KEY_PROCESSOR_WAITING VARIABLE    	     		{ spex_activity_observation( curr_activity, KEY_PROCESSOR_WAITING, $1, 0, $2, 0 ); }
-			| KEY_PROCESSOR_WAITING INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_activity, KEY_PROCESSOR_WAITING, $1, $2, $3, $4 ); }
-			| KEY_SERVICE_TIME VARIABLE		 		{ spex_activity_observation( curr_activity, KEY_SERVICE_TIME, $1, 0, $2, 0 ); }
-			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_activity, KEY_SERVICE_TIME, $1, $2, $3, $4 ); }
-			| KEY_VARIANCE VARIABLE		    			{ spex_activity_observation( curr_activity, KEY_VARIANCE, $1, 0, $2, 0 ); }
-			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_activity, KEY_VARIANCE, $1, $2, $3, $4 ); }
+activity_obs_info	: KEY_THROUGHPUT VARIABLE				{ spex_activity_observation( curr_task, curr_activity, KEY_THROUGHPUT, 0, $2, 0 ); }
+			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_THROUGHPUT, $2, $3, $4 ); }
+			| KEY_UTILIZATION VARIABLE	  			{ spex_activity_observation( curr_task, curr_activity, KEY_UTILIZATION, 0, $2, 0 ); }
+			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_UTILIZATION, $2, $3, $4 ); }
+			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_UTILIZATION, 0, $2, 0 ); }
+			| KEY_PROCESSOR_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_UTILIZATION, $2, $3, $4 ); }
+			| KEY_PROCESSOR_WAITING VARIABLE    	     		{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_WAITING, 0, $2, 0 ); }
+			| KEY_PROCESSOR_WAITING INTEGER VARIABLE VARIABLE	{ spex_activity_observation( curr_task, curr_activity, KEY_PROCESSOR_WAITING, $2, $3, $4 ); }
+			| KEY_SERVICE_TIME VARIABLE		 		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, 0, $2, 0 ); }
+			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, $2, $3, $4 ); }
+			| KEY_VARIANCE VARIABLE		    			{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, 0, $2, 0 ); }
+			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, $2, $3, $4 ); }
 			;
 
 act_call_obs		: act_call_obs_info act_call_obs
 			|
 			;
 			
-act_call_obs_info	: KEY_WAITING VARIABLE					{ spex_activity_call_observation( curr_activity, KEY_WAITING, $1, dest_entry, 0, $2, 0 ); }
-			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_activity_call_observation( curr_activity, KEY_WAITING, $1, dest_entry, $2, $3, $4 ); }
-			| KEY_WAITING_VARIANCE VARIABLE				{ spex_activity_call_observation( curr_activity, KEY_WAITING_VARIANCE, $1, dest_entry, 0, $2, 0 ); }
-			| KEY_WAITING_VARIANCE INTEGER VARIABLE VARIABLE	{ spex_activity_call_observation( curr_activity, KEY_WAITING_VARIANCE, $1, dest_entry, $2, $3, $4 ); }
+act_call_obs_info	: KEY_WAITING VARIABLE					{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING, dest_entry, 0, $2, 0 ); }
+			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING, dest_entry, $2, $3, $4 ); }
+			| KEY_WAITING_VARIANCE VARIABLE				{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING_VARIANCE, dest_entry, 0, $2, 0 ); }
+			| KEY_WAITING_VARIANCE INTEGER VARIABLE VARIABLE	{ spex_activity_call_observation( curr_task, curr_activity, KEY_WAITING_VARIANCE, dest_entry, $2, $3, $4 ); }
 			;
 /*- spex */
 /* -------------------------- Report Section -------------------------- */

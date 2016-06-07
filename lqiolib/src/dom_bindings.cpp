@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_bindings.cpp 12594 2016-06-06 16:53:56Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -482,10 +482,10 @@ namespace LQIO {
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
 	    double phase = decodeDouble(args, 1);
-	    LQXEntry* entry = (LQXEntry *)lo;
+	    LQXEntry* entry = dynamic_cast<LQXEntry *>(lo);
 
 	    /* Make sure that what we have is an entry */
-	    if (lo->getTypeId() != LQXEntry::kLQXEntryObjectTypeId) {
+	    if (!entry) {
 		printf("warning: Argument 1 to phase(object,double) is not an entry.\n");
 		return LQX::Symbol::encodeNull();
 	    }
@@ -565,10 +565,10 @@ namespace LQIO {
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
 	    const char* actName = decodeString(args, 1);
-	    LQXTask* task = (LQXTask *)lo;
+	    LQXTask* task = dynamic_cast<LQXTask *>(lo);
 
 	    /* Make sure that what we have is an entry */
-	    if (lo->getTypeId() != LQXTask::kLQXTaskObjectTypeId) {
+	    if (!task) {
 		printf("warning: Argument 1 to activity(object,string) is not a task.\n");
 		return LQX::Symbol::encodeNull();
 	    }
@@ -658,21 +658,27 @@ namespace LQIO {
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
 	    const char* destEntry = decodeString(args, 1);
-	    LQXPhase* phase = (LQXPhase *)lo;
+	    LQXPhase* phase = dynamic_cast<LQXPhase *>(lo);
 
-	    /* Make sure that what we have is an entry */
-	    if (lo->getTypeId() != LQXPhase::kLQXPhaseObjectTypeId) {
-		printf("warning: Argument 1 to call(object,string) is not a phase.\n");
-		return LQX::Symbol::encodeNull();
+	    DOM::Phase * domPhase = 0;
+	    if ( phase ) {
+		/* Obtain the phase for the entry */
+		domPhase = phase->getDOMPhase();
+	    } else {
+		LQXActivity * activity = dynamic_cast<LQXActivity *>(lo);
+		if ( activity ) {
+		    domPhase = activity->getDOMActivity();
+		} else {
+		    throw LQX::RuntimeException("Argument 1 to call(object,string) is not a phase.");
+		    return LQX::Symbol::encodeNull();
+		}
 	    }
 
-	    /* Obtain the phase for the entry */
-	    DOM::Phase* domPhase = phase->getDOMPhase();
 	    const std::vector<DOM::Call*>& calls = domPhase->getCalls();
 	    std::vector<DOM::Call*>::const_iterator iter;
 	    for (iter = calls.begin(); iter != calls.end(); ++iter) {
 		const DOM::Call* call = *iter;
-		if (((DOM::Entry *)call->getDestinationEntry())->getName() == destEntry) {
+		if (call->getDestinationEntry()->getName() == destEntry) {
 		    return LQX::Symbol::encodeObject(new LQXCall((DOM::Call*)call), false);
 		}
 	    }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 12542 2016-04-04 17:00:21Z greg $
+ * $Id: expat_document.cpp 12594 2016-06-06 16:53:56Z greg $
  *
  * Read in XML input files.
  *
@@ -189,13 +189,13 @@ namespace LQIO {
 			    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Read error on " << input_file_name << " - " << strerror( errno ) << std::endl;
 			    rc = false;
 			    break;
-			} else if (!XML_Parse(_parser, buffer, len, len != BUFFSIZE)) {
+			} else if (!XML_Parse(_parser, buffer, len, len == 0 )) {
 			    const char * error = XML_ErrorString(XML_GetErrorCode(_parser));
 			    input_error( error );
 			    rc = false;
 			    break;
 			}
-		    } while ( len == BUFFSIZE );
+		    } while ( len > 0 );
 #if HAVE_MMAP
 		}
 #endif
