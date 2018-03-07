@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/task.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 12145 2014-09-29 01:36:03Z greg $
+ * $Id: task.h 12980 2017-04-05 00:09:25Z greg $
  */
 
 /************************************************************************/
@@ -95,7 +95,7 @@ public:
     virtual const char * name() const { return _dom_task->getName().c_str(); }
     virtual scheduling_type discipline() const { return _dom_task->getSchedulingType(); }
     virtual unsigned multiplicity() const;					/* Special access!		*/
-    virtual int priority() const { return _dom_task->getPriority(); }		/* priority		        */
+    virtual int priority() const;
     virtual void * task_element() const { return const_cast<void *>(_dom_task->getXMLDOMElement()); }
 
     task_type type() const { return _type; }

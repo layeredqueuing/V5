@@ -182,8 +182,8 @@
     <xsd:attribute name="initially" type="xsd:nonNegativeInteger" use="optional"/>
     <xsd:attribute name="scheduling" type="TaskSchedulingType" default="fcfs"/>
     <xsd:attribute name="think-time" type="SrvnFloat" default="0"/>
-    <xsd:attribute name="priority" type="xsd:nonNegativeInteger" default="0"/>
-    <xsd:attribute name="queue-length" type="xsd:nonNegativeInteger" default="0"/>
+    <xsd:attribute name="priority" type="SrvnNonNegativeInteger" default="0"/>
+    <xsd:attribute name="queue-length" type="SrvnNonNegativeInteger" default="0"/>
     <xsd:attribute name="activity-graph" type="TaskOptionType"/>
   </xsd:complexType>
   <!--
@@ -387,7 +387,7 @@
       <xsd:element name="service-time-distribution" type="OutputDistributionType" minOccurs="0" maxOccurs="unbounded"/>
       <xsd:element name="activity" type="ActivityType" maxOccurs="unbounded"/>
     </xsd:sequence>
-    <xsd:attribute name="quorum" type="xsd:nonNegativeInteger" default="0"/>
+    <xsd:attribute name="quorum" type="SrvnNonNegativeInteger" default="0"/>
   </xsd:complexType>
   <!--
       ActivityLoopListType

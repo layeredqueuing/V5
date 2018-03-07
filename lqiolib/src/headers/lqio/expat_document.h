@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: expat_document.h 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -350,6 +350,7 @@ namespace LQIO {
 	    static const XML_Char *Xlqn_model;
 	    static const XML_Char *Xlqx;
 	    static const XML_Char *Xmax;
+	    static const XML_Char *Xmax_rss;
 	    static const XML_Char *Xmax_service_time;
 	    static const XML_Char *Xmin;
 	    static const XML_Char *Xmultiplicity;

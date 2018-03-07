@@ -47,8 +47,8 @@ namespace LQX {
   protected:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Method(const Method& other) throw ();
-    Method& operator=(const Method& other) throw ();
+    Method(const Method& other);
+    Method& operator=(const Method& other);
     
   public:
     
@@ -60,7 +60,7 @@ namespace LQX {
     /* Methods overriden by subclasses */
     virtual std::string getName() const = 0;
     virtual std::string getHelp() const;
-    virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args) throw (RuntimeException) = 0;
+    virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args) = 0;
     
   protected:
     
@@ -70,10 +70,10 @@ namespace LQX {
   protected:
     
     /* Helper methods for cleanliness */
-    bool decodeBoolean(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException);
-    double decodeDouble(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException);
-    const char* decodeString(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException);
-    LanguageObject* decodeObject(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException);
+    bool decodeBoolean(std::vector<SymbolAutoRef >& args, int n);
+    double decodeDouble(std::vector<SymbolAutoRef >& args, int n);
+    const char* decodeString(std::vector<SymbolAutoRef >& args, int n);
+    LanguageObject* decodeObject(std::vector<SymbolAutoRef >& args, int n);
     
   private:
     
@@ -107,8 +107,8 @@ namespace LQX {
   protected:
     
     /* This object is not copyable, and will throw an exception if you try */
-    MethodTable(const MethodTable& other) throw ();
-    MethodTable& operator=(const MethodTable& other) throw ();
+    MethodTable(const MethodTable& other);
+    MethodTable& operator=(const MethodTable& other);
     
   public:
     
@@ -132,11 +132,11 @@ public: \
   virtual std::string getName() const { return name; } \
   virtual const char* getParameterInfo() const { return params; } \
   virtual std::string getHelp() const { return help; } \
-  virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args) throw (RuntimeException); \
+  virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args); \
 };
 
 /* Quick and Dirty Macro for Implementing Methods */
 #define ImplementLanguageMethod(dec_name) \
-SymbolAutoRef dec_name::invoke(Environment* env, std::vector<SymbolAutoRef >& args) throw (RuntimeException) \
+SymbolAutoRef dec_name::invoke(Environment* env, std::vector<SymbolAutoRef >& args) \
 
 #endif /* __METHODTABLE_H__ */

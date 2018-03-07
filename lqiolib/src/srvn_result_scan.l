@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 10600 2011-12-12 21:41:28Z greg $
+ * $Id: srvn_result_scan.l 13204 2018-03-06 22:52:04Z greg $
  */
 
 /* 
@@ -54,6 +54,7 @@ U	"_"
 ^"#!Real:"		return(REAL_TIME);
 ^"#!User:"		return(USER_TIME);
 ^"#!Sys:"		return(SYST_TIME);
+^"#!MaxRSS":		return(MAX_RSS);
 
 ^"#!Solver:"		return(SOLVER);
 "#"[^!](.)*             |

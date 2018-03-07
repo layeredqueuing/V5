@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/task.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/task.cc $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: task.cc 13204 2018-03-06 22:52:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -404,6 +404,21 @@ Task::initThreads()
 }
 
 
+
+int
+Task::priority() const
+{
+    const LQIO::DOM::ExternalVariable * dom_priority = myDOMTask->getPriority();
+    if ( !dom_priority ) return 0;
+    double value;
+    assert( dom_priority->getValue(value) == true);
+    if ( value != rint(value) ) {
+	LQIO::solution_error( LQIO::ERR_POSITIVE_INTEGER_EXPECTED, "priority", value,
+			      "task", name() );
+	value = 0.;
+    }
+    return static_cast<int>(value);
+}
 
 /*
  * Set the processor for this task.  Setting it twice is probably an

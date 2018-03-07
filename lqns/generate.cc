@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: generate.cc 13188 2018-03-02 17:44:42Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -444,7 +444,7 @@ Generate::print( const MVASubmodel& aSubModel )
     output.open( fileName.str().c_str(), ios::out );
 
     if ( !output ) {
-	cerr << io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << endl;
+	cerr << io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << endl;
     } else {
 	Generate aCModel( aSubModel );
 	aCModel.print( output );

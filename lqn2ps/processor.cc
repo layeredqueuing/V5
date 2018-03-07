@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 12246 2015-03-05 21:38:54Z greg $
+ * $Id: processor.cc 13200 2018-03-05 22:48:55Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -619,7 +619,7 @@ Processor::removeShare( Share * aShare )
 
 #if defined(REP2FLAT)
 Processor *
-Processor::find_replica( const string& processor_name, const unsigned replica ) throw( runtime_error )
+Processor::find_replica( const string& processor_name, const unsigned replica )
 {
     ostringstream aName;
     aName << processor_name << "_" << replica;

@@ -32,18 +32,18 @@ y = 5;
 z = 6;
 
 /* Print the Table */
-print();
-print("   +-+ Outside the Compound Statement +-+");
+println();
+println("   +-+ Outside the Compound Statement +-+");
 print_symbol_table();
 
 {
   /* Define "a", assign "x" */
   a = 1.1;
   x = 99999;
-  print("   +-+ Within the Compound Statement +-+");
+  println("   +-+ Within the Compound Statement +-+");
   print_symbol_table();
 }
 
 /* Print the Table */
-print("   +-+ Outside the Compound Statement +-+");
+println("   +-+ Outside the Compound Statement +-+");
 print_symbol_table();

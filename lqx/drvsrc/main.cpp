@@ -14,8 +14,12 @@
 #include "lqx/Array.h"
 using namespace LQX;
 
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
+
 int run(int argc, char** argv)
 {
+//  ModLangParserTrace(stderr, "lqx:");
+
   /* Output a usage */
   if (argc < 2) {
     std::cout << "Usage: " << argv[0] << " path" << std::endl;
@@ -29,8 +33,10 @@ int run(int argc, char** argv)
   }
   
   /* Pass in some variables for the first time ever */
-  SymbolAutoRef argCount = program->defineExternalVariable("$argc");
-  SymbolAutoRef argArray = program->defineExternalVariable("$argv");
+  const std::string xargc("$argc");
+  const std::string xargv("$argv");
+  SymbolAutoRef argCount = program->defineExternalVariable(xargc);
+  SymbolAutoRef argArray = program->defineExternalVariable(xargv);
   
   /* Define the argument count */
   argCount->assignDouble(argc);

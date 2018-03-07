@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 12079 2014-07-07 12:17:26Z greg $
+ * $Id: task.h 12980 2017-04-05 00:09:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -64,7 +64,7 @@ public:
     virtual Entity& processor( const Processor * aProcessor ) { myProcessor = aProcessor; return *this; }
     virtual const Processor * processor() const { return myProcessor; }
     const Share * share() const { return myShare; }
-    virtual int priority() const;
+    bool hasPriority() const;
 
     virtual int rootLevel() const;
     virtual Task const& sort() const;
@@ -97,8 +97,6 @@ public:
     virtual bool isForwardingTarget() const;
     virtual bool isCalled( const requesting_type ) const;
     virtual bool hasThinkTime() const { return false; }
-
-    virtual int queueLength() const { return 0; }
 
     double openArrivalRate() const;
 

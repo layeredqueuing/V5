@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.h 11188 2012-11-06 00:43:19Z greg $
+ *  $Id: dom_entity.h 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -43,7 +43,7 @@ namespace LQIO {
 	    const scheduling_type getSchedulingType() const;
 	    void setSchedulingType(const scheduling_type type);
 	    bool hasCopies() const;
-	    const unsigned int getCopiesValue() const throw ();
+	    const unsigned int getCopiesValue() const;
 	    const ExternalVariable* getCopies() const;
 	    void setCopies(ExternalVariable* newCopies);
 	    void setCopiesValue(const unsigned int);

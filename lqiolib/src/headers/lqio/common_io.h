@@ -109,10 +109,13 @@ namespace LQIO {
 		bool operator()( const char * s1, const char * s2 ) const;
 	    };
 
+	public:
+	    static bool is_default_value( const LQIO::DOM::ExternalVariable *, double );
+
 	protected:
 	    double invert( const double ) const;
 	    static void init_tables();
-	    void invalid_argument( const std::string& attr, const std::string& arg ) const throw( std::invalid_argument );
+	    static void invalid_argument( const std::string& attr, const std::string& arg );
 
 	protected:
 	    const ConfidenceIntervals _conf_95;

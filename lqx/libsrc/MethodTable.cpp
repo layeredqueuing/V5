@@ -25,12 +25,12 @@ namespace LQX {
   {
   }
   
-  MethodTable::MethodTable(const MethodTable&) throw ()
+  MethodTable::MethodTable(const MethodTable&)
   {
     throw NonCopyableException();
   }
   
-  MethodTable& MethodTable::operator=(const MethodTable&) throw ()
+  MethodTable& MethodTable::operator=(const MethodTable&)
   {
     throw NonCopyableException();
   }
@@ -68,7 +68,7 @@ namespace LQX {
     return "";
   }
   
-  bool Method::decodeBoolean(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException)
+  bool Method::decodeBoolean(std::vector<SymbolAutoRef >& args, int n)
   {
     /* Get the symbol from the list */
     SymbolAutoRef symbol = args[n];
@@ -77,7 +77,7 @@ namespace LQX {
     return symbol->getBooleanValue();
   }
   
-  double Method::decodeDouble(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException)
+  double Method::decodeDouble(std::vector<SymbolAutoRef >& args, int n)
   {
     /* Get the symbol from the list */
     SymbolAutoRef symbol = args[n];
@@ -86,7 +86,7 @@ namespace LQX {
     return symbol->getDoubleValue();
   }
   
-  const char* Method::decodeString(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException)
+  const char* Method::decodeString(std::vector<SymbolAutoRef >& args, int n)
   {
     /* Get the symbol from the list */
     SymbolAutoRef symbol = args[n];
@@ -95,7 +95,7 @@ namespace LQX {
     return symbol->getStringValue();
   }
   
-  LanguageObject* Method::decodeObject(std::vector<SymbolAutoRef >& args, int n) throw (IncompatibleTypeException)
+  LanguageObject* Method::decodeObject(std::vector<SymbolAutoRef >& args, int n)
   {
     /* Get the symbol from the list */
     SymbolAutoRef symbol = args[n];

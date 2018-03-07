@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: lqn2ps.h 13200 2018-03-05 22:48:55Z greg $
  *
  */
 
@@ -601,7 +601,7 @@ int lqn2ps( int argc, char *argv[] );
 void setOutputFormat( const int i );
 
 #if HAVE_REGEX_T
-void regexp_check( const int, regex_t * r ) throw( runtime_error );
+void regexp_check( const int, regex_t * r );
 #endif
 double delta( const Vector<double>& values );
 bool graphical_output();

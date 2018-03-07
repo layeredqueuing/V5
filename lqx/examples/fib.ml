@@ -36,5 +36,5 @@ while ( fib < 100000 ) {
   fib = fib_before_last + fib_last;
   fib_before_last = fib_last;
   fib_last = fib;
-  print(fib);
+  println(fib);
 }

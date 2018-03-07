@@ -2,7 +2,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: runlqx.cc 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,7 +25,7 @@ namespace SolverInterface
     bool Solve::solveCallViaLQX = false;	/* Flag when a solve() call was made */
     bool Solve::implicitSolve = false;
 
-    LQX::SymbolAutoRef Solve::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) 
+    LQX::SymbolAutoRef Solve::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
     {
 	solveCallViaLQX = true;
 	if ( !implicitSolve ) {

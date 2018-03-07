@@ -1,6 +1,6 @@
 
 /*
- * $Id: srvn_gram.y 12594 2016-06-06 16:53:56Z greg $ 
+ * $Id: srvn_gram.y 12980 2017-04-05 00:09:25Z greg $ 
  */
 
 %{
@@ -48,12 +48,12 @@ extern int LQIO_lex();
 }
 
 %type <aVariable>	quantum cpu_rate think_time_flag act_prob act_count group_share conv_val it_limit print_int underrelax_coeff
-%type <aVariable>	real integer multi_server_flag queue_length_flag quorum_count rvalue
+%type <aVariable>	real integer multi_server_flag queue_length_flag task_pri quorum_count rvalue
 %type <domObject>	entry_ref dest_ref activity_def activity_ref task_ref
 %type <schedulingFlag>	proc_sched_flag task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
-%type <anInt>		replication_flag cap_flag task_pri hist_bins token_flag
+%type <anInt>		replication_flag cap_flag hist_bins token_flag
 %type <aFloat>		constant 
 %type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl
@@ -360,8 +360,8 @@ entry_list		: entry_id 		{ $$ = srvn_add_entry( $1, 0 ); (void) free( $1 ); }
 			| entry_list entry_id 	{ $$ = srvn_add_entry( $2, $1 ); (void) free( $2 ); }
     			;
 
-task_pri		: INTEGER	{ $$ = $1; }			/*  task priority (optional)		*/
-    			|		{ $$ = 0; }
+task_pri		: integer	{ $$ = $1; }			/*  task priority (optional)		*/
+			|		{ $$ = 0; }
     			;
 
 entry_id		: symbol					/*  entry identifier			*/
@@ -369,11 +369,11 @@ entry_id		: symbol					/*  entry identifier			*/
 
 
 think_time_flag		: 'z' real	{ $$ = $2; }			/* Think time for a task (optional).	*/
-			|		{ $$ = srvn_int_constant(0); }
+			|		{ $$ = 0; }
 			;
 
 queue_length_flag	: 'q' integer	{ $$ = $2; }
-			|		{ $$ = srvn_int_constant(0); }
+			|		{ $$ = 0; }
 			;
 
 token_flag		: 'T' INTEGER	{ $$ = $2; }

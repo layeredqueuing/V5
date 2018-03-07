@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.h 12338 2015-12-01 17:12:23Z greg $
+ *  $Id: dom_extvar.h 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -27,7 +27,7 @@ namespace LQIO {
       
 	    /* Designated Initializers for Variables */
 	    ExternalVariable();
-	    ExternalVariable& operator=( const ExternalVariable& )  throw (std::domain_error);
+	    ExternalVariable& operator=( const ExternalVariable& );
 	    virtual ExternalVariable * clone() const = 0;
 	    virtual ~ExternalVariable();
 
@@ -35,10 +35,10 @@ namespace LQIO {
 	    ExternalVariable( const ExternalVariable& );
 
 	public:
-	    ExternalVariable& operator*=( const ExternalVariable& ) throw (std::domain_error);
-	    ExternalVariable& operator*=( const double ) throw (std::domain_error);
-	    ExternalVariable& operator+=( const ExternalVariable& ) throw (std::domain_error);
-	    ExternalVariable& operator+=( const double ) throw (std::domain_error);
+	    ExternalVariable& operator*=( const ExternalVariable& );
+	    ExternalVariable& operator*=( const double );
+	    ExternalVariable& operator+=( const ExternalVariable& );
+	    ExternalVariable& operator+=( const double );
 	    
 	    /* Obtaining the Value */
 	    virtual void set(double value) = 0;
@@ -56,20 +56,20 @@ namespace LQIO {
     
 	class ConstantExternalVariable : public ExternalVariable {
 	public:
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
+	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double );
+	    friend LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& );
+	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
+	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double );
+	    friend LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& );
+	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
+	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double );
+	    friend LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& );
+	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
 
 	public:
 	    /* Initializing the constant external variable */
 	    ConstantExternalVariable(double constant);
-	    ConstantExternalVariable& operator=( const ConstantExternalVariable& ) throw (std::domain_error);
+	    ConstantExternalVariable& operator=( const ConstantExternalVariable& );
 	    ConstantExternalVariable( const ExternalVariable& );
 	    virtual ConstantExternalVariable * clone() const;
 	    virtual ~ConstantExternalVariable();
@@ -101,7 +101,7 @@ namespace LQIO {
       
 	    /* Designated initializers once again */
 	    SymbolExternalVariable(const std::string& name);
-	    SymbolExternalVariable& operator=( const SymbolExternalVariable& ) throw (std::domain_error);
+	    SymbolExternalVariable& operator=( const SymbolExternalVariable& );
 	    virtual SymbolExternalVariable * clone() const;
 	    virtual ~SymbolExternalVariable();
       
@@ -131,15 +131,15 @@ namespace LQIO {
 	};
     
 	double to_double( const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& ) throw (std::domain_error);
+	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double );
+	LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& );
+	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
+	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double );
+	LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& );
+	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
+	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double );
+	LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& );
+	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
     };
 };
 #endif /* __LQIO_DOM_EXTVAR__ */

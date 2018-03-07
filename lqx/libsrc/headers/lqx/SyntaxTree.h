@@ -35,8 +35,8 @@ namespace LQX {
   protected:
     
     /* This object is not copyable, and will throw an exception if you try */
-    SyntaxTreeNode(const SyntaxTreeNode&) throw(NonCopyableException) { throw NonCopyableException(); }
-    virtual SyntaxTreeNode& operator=(const SyntaxTreeNode&) throw(NonCopyableException) { throw NonCopyableException(); }
+    SyntaxTreeNode(const SyntaxTreeNode&) { throw NonCopyableException(); }
+    virtual SyntaxTreeNode& operator=(const SyntaxTreeNode&) { throw NonCopyableException(); }
     
   public:
     
@@ -44,7 +44,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const = 0;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const = 0;
     virtual bool simpleStatement() const { return true; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException) = 0;
+    virtual SymbolAutoRef invoke(Environment* env) = 0;
     
   protected:
     /* The names of the operations */
@@ -72,7 +72,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -97,7 +97,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual bool simpleStatement() const { return false; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -123,7 +123,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -156,7 +156,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -194,7 +194,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -234,7 +234,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -264,7 +264,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
 
   private:
     
@@ -288,7 +288,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
   
   private:
     
@@ -315,7 +315,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
@@ -342,7 +342,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual bool simpleStatement() const { return false; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
@@ -372,7 +372,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual bool simpleStatement() const { return false; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
@@ -402,7 +402,7 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual bool simpleStatement() const { return true; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
@@ -425,12 +425,68 @@ namespace LQX {
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
     virtual bool simpleStatement() const { return true; }		// Statements that end with `;' 
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
     /* Instance variables for return */
     SyntaxTreeNode * _expr;
+  };
+  
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+  
+  class SelectExpression : public SyntaxTreeNode {
+  public:
+    
+    /* Constructors and Destructors */
+    SelectExpression(const std::string& valueName, bool ev, SyntaxTreeNode* arrayNode, SyntaxTreeNode* condition);
+    virtual ~SelectExpression();
+    
+    /* -- Invoking will call pushContext() on Symbol Table -- */
+    /* Actual implementation of tree methods */
+    virtual void debugPrintGraphviz(std::ostream& output) const;
+    virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
+    virtual bool simpleStatement() const { return true; }		// Statements that end with `;' 
+    virtual SymbolAutoRef invoke(Environment* env);
+    
+  private:
+    
+    /* Instance variables for itteration */
+    std::string _valueName;
+    bool _valueIsExternal;
+    SyntaxTreeNode* _arrayNode;
+    SyntaxTreeNode* _selectCondition;
+    
+  };
+  
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+  class ComprehensionExpression : public SyntaxTreeNode {
+  public:
+    
+    /* Constructors and Destructors */
+    ComprehensionExpression(const std::string& valueName, bool ev, SyntaxTreeNode* initialValue, SyntaxTreeNode* stopCondition, SyntaxTreeNode* onEachRun);
+    virtual ~ComprehensionExpression();
+    
+    /* -- Invoking will call pushContext() on Symbol Table -- */
+    /* Actual implementation of tree methods */
+    virtual void debugPrintGraphviz(std::ostream& output) const;
+    virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
+    virtual bool simpleStatement() const { return true; }		// Statements that end with `;' 
+    virtual SymbolAutoRef invoke(Environment* env);
+    
+  private:
+    
+    /* Instance variables for itteration */
+    std::string _valueName;
+    bool _valueIsExternal;
+    SyntaxTreeNode* _initialValue;
+    SyntaxTreeNode* _stopCondition;
+    SyntaxTreeNode* _onEachRun;
   };
   
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -448,7 +504,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     
@@ -471,7 +527,7 @@ namespace LQX {
 
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke( Environment* env ) throw (RuntimeException);
+    virtual SymbolAutoRef invoke( Environment* env );
 
   private:
 
@@ -494,7 +550,7 @@ namespace LQX {
 
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke( Environment* env ) throw (RuntimeException);
+    virtual SymbolAutoRef invoke( Environment* env );
 
   private:
 
@@ -514,7 +570,7 @@ namespace LQX {
 
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke( Environment* env ) throw (RuntimeException);
+    virtual SymbolAutoRef invoke( Environment* env );
 
   private:
 
@@ -536,12 +592,12 @@ namespace LQX {
 
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke( Environment* env ) throw (RuntimeException);
+    virtual SymbolAutoRef invoke( Environment* env );
 
   private:
 
-    char * readString( FILE *infile, char *quoted_string, const char *variable = NULL ) throw (RuntimeException);
-    bool readBoolean( FILE *infile, const char *variable = NULL ) throw (RuntimeException);
+    char * readString( FILE *infile, char *quoted_string, const char *variable = NULL );
+    bool readBoolean( FILE *infile, const char *variable = NULL );
 
     std::string _fileHandle;
     std::vector<SyntaxTreeNode*>* _arguments;
@@ -564,7 +620,7 @@ namespace LQX {
       virtual std::string getName() const { return _name; }
       virtual const char* getParameterInfo() const { return _arguments.c_str(); }
       virtual std::string getHelp() const { return "No help available for Language-Implemented Methods"; }
-      virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args) throw (RuntimeException);
+      virtual SymbolAutoRef invoke(Environment* env, std::vector<SymbolAutoRef >& args);
     private:
       const std::string _name;
       const std::string _arguments;
@@ -581,7 +637,7 @@ namespace LQX {
     /* Actual implementation of tree methods */
     virtual void debugPrintGraphviz(std::ostream& output) const;
     virtual std::ostream& print(std::ostream& output, unsigned int indent=0) const;
-    virtual SymbolAutoRef invoke(Environment* env) throw (RuntimeException);
+    virtual SymbolAutoRef invoke(Environment* env);
     
   private:
     

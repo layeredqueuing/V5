@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/task.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/task.h $
  *
  * Tasks.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: task.h 12980 2017-04-05 00:09:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,8 +84,7 @@ public:
 
     /* Instance Variable Access */
 
-    Entity& priority( const int anInt ) { myDOMTask->setPriority(anInt); return *this; }
-    int priority() const { return myDOMTask->getPriority(); }
+    int priority() const;
     virtual unsigned queueLength() const { return 0; }
     virtual Entity& processor( Processor * aProcessor );
     virtual const Processor * processor() const { return myProcessor; }

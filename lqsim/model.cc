@@ -9,9 +9,9 @@
 /*
  * Input processing.
  *
- * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/model.cc $
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: model.cc 13204 2018-03-06 22:52:04Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -36,6 +36,9 @@
 #endif
 #if HAVE_SYS_UTSNAME_H
 #include <sys/utsname.h>
+#endif
+#if HAVE_SYS_RESOURCE_H
+#include <sys/resource.h>
 #endif
 #if HAVE_VALUES_H
 #include <values.h>
@@ -605,6 +608,13 @@ Model::insertDOMResults( const bool valid, const double confidence )
 #endif
     _document->setResultElapsedTime(stop_time - _start_clock);
 
+#if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
+    struct rusage r_usage;
+    if ( getrusage( RUSAGE_SELF, &r_usage ) == 0 && r_usage.ru_maxrss > 0 ) {
+	_document->setResultMaxRSS( r_usage.ru_maxrss );
+    }
+#endif
+
     string buf;
 
 #if defined(HAVE_UNAME)
@@ -821,7 +831,7 @@ Model::run( int task_id )
 		(void) putc( 'I', stderr );
 	    }
 	    ps_sleep( _parameters._initial_delay );
-	    if ( initial_loops > 0 ) {
+	    if ( initial_loops() > 0 ) {
 		if ( verbose_flag ) {
 		    (void) fprintf( stderr, "(%g)", ps_now );
 		}

@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 12246 2015-03-05 21:38:54Z greg $
+ * $Id: processor.h 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -93,7 +93,7 @@ public:
     Processor& removeShare( Share * );
 
 #if defined(REP2FLAT)
-    static Processor * find_replica( const string&, const unsigned ) throw( runtime_error );
+    static Processor * find_replica( const string&, const unsigned );
     Processor * expandProcessor( const int extention ) const;
 #endif
 

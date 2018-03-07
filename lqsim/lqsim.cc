@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 12548 2016-04-06 15:13:47Z greg $
+ * $Id: lqsim.cc 13202 2018-03-06 02:22:58Z greg $
  */
 
 
@@ -346,7 +346,7 @@ main( int argc, char * argv[] )
 	io_vars.lq_toolname = argv[0];
     }
     command_line = io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2016-04-06 11:13:47 -0400 (Wed, 06 Apr 2016) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2018-03-05 21:22:58 -0500 (Mon, 05 Mar 2018) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     init_errmsg();
@@ -474,7 +474,7 @@ main( int argc, char * argv[] )
 	case 'M': {
 	    char * endptr;
 	    parameters._max_blocks = strtol( optarg, &endptr, 10 );
-	    if ( parameters._max_blocks <= 2 || endptr != '\0' ) {
+	    if ( parameters._max_blocks <= 2 || *endptr != '\0' ) {
 		(void) fprintf( stderr, "%s: invalid argument to --max-blocks - %s\n", io_vars.lq_toolname, optarg );
 		exit( FILEIO_ERROR );
 	    }
@@ -688,7 +688,7 @@ main( int argc, char * argv[] )
   
 	int file_count = argc - optind;
 		
-	if ( output_file.size() > 0  && file_count > 1 && LQIO::Filename::isDirectory( output_file.c_str() ) > 0 ) {
+	if ( output_file.size() > 0  && file_count > 1 && LQIO::Filename::isDirectory( output_file.c_str() ) == 0 ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", io_vars.lq_toolname );
 	    exit( INVALID_ARGUMENT );
 	}

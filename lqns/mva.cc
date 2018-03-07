@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: mva.cc 12973 2017-03-30 00:11:11Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -292,10 +292,6 @@ MVA::dimension( const size_t mapMaxOffset )
 
     dimension( P, mapMaxOffset );
 
-    for ( unsigned m = 1; m <= M; ++m ) {
-	maxP[m] = Q[m]->marginalProbabilitiesSize();
-    }
-
     maxOffset = mapMaxOffset;
 }
 
@@ -329,6 +325,11 @@ MVA::dimension( PopulationData<double **>& array, const size_t mapMaxOffset )
 	    }
 	}
     }
+
+    for ( unsigned m = 1; m <= M; ++m ) {
+	maxP[m] = Q[m]->marginalProbabilitiesSize();
+    }
+
     return rc;
 }
 
@@ -340,6 +341,8 @@ MVA::dimension( PopulationData<double **>& array, const size_t mapMaxOffset )
 void
 MVA::reset()
 {
+    dimension( P, maxOffset );
+
     for ( unsigned n = 0; n < maxOffset; ++n) {
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();

@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 12079 2014-07-07 12:17:26Z greg $
+ * $Id: entry.h 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -225,7 +225,7 @@ public:
     virtual Entry& depth( const unsigned );
 
 #if defined(REP2FLAT)
-    static Entry * find_replica( const string&, const unsigned ) throw( runtime_error );
+    static Entry * find_replica( const string&, const unsigned );
 
     Entry * expandEntry( int replica ) const;
     const Entry& expandCalls() const;

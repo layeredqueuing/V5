@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 12233 2015-02-04 04:11:59Z greg $
+ * $Id: graphic.cc 13188 2018-03-02 17:44:42Z greg $
  */
 
 #include <cassert>
@@ -55,23 +55,23 @@ Colour::colour_defn Colour::colour_value[] =
 
 const char * Colour::colour_name[] =
 {
-    "White",
-    "black",
-    "black",
-    "White",
-    "Grey"
-    "Magenta",
-    "Violet",
-    "Blue",
-    "Azure",
-    "Cyan",
-    "Turquois",
-    "Green",
-    "SpringGreen",		/* Chartreuse */
-    "Yellow",
-    "Orange",
-    "Red",
-    "Goldenrod",
+     "White",			/* TRANSPARENT */
+     "black",			/* DEFAULT_COLOUR */
+     "black",			/* BLACK */
+     "White",			/* WHITE */
+     "Grey",			/* GREY_10 */
+     "Magenta",			/* MAGENTA */
+     "Violet",			/* VIOLET */
+     "Blue",			/* BLUE */
+     "Azure",			/* OCEAN */
+     "Cyan",			/* CYAN */
+     "Turquoise",		/* TURQUOISE */
+     "Green",			/* GREEN */
+     "SpringGreen",		/* SPRINGGREEN - Chartreuse */
+     "Yellow",			/* YELLOW */
+     "Orange",			/* ORANGE */
+     "Red",			/* RED */
+     "Goldenrod"		/* GOLD */
 };
 
 float
@@ -823,16 +823,16 @@ EMF::writes_str( ostream& output, const unsigned short aShort )
     return output;
 }
 
-ColourManip
+Colour::ColourManip
 EMF::setfill( const Graphic::colour_type aColour )
 {
-    return ColourManip( EMF::setfill_str, aColour );
+    return Colour::ColourManip( EMF::setfill_str, aColour );
 }
 
-JustificationManip
+Colour::JustificationManip
 EMF::justify( const justification_type justification )
 {
-    return JustificationManip( justify_str, justification );
+    return Colour::JustificationManip( justify_str, justification );
 }
 
 PointManip
@@ -856,16 +856,16 @@ EMF::point( const Point& aPoint )
 }
 
 
-ColourManip
+Colour::ColourManip
 EMF::setcolour( const Graphic::colour_type aColour )
 {
-    return ColourManip( EMF::setcolour_str, aColour );
+    return Colour::ColourManip( EMF::setcolour_str, aColour );
 }
 
-FontManip
+Colour::FontManip
 EMF::setfont( const Graphic::font_type aFont )
 {
-    return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
 }
 
 DoubleManip
@@ -1249,8 +1249,8 @@ Fig::moveto( const Point& aPoint )
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */
 
-int GD::pen_value[Graphic::WHITE+1];
-int GD::fill_value[Graphic::WHITE+1];
+int GD::pen_value[sizeof(colour_value)/sizeof(colour_defn)];
+int GD::fill_value[sizeof(colour_value)/sizeof(colour_defn)];
 
 /* See http://fontconfig.org/fontconfig-user.html */
 const char * GD::font_value[] =
@@ -1317,7 +1317,13 @@ GD::create( int x, int y )
     pen_value[Graphic::TRANSPARENT] = gdTransparent;
     fill_value[Graphic::TRANSPARENT] = gdTransparent;
 
-    for ( unsigned i = Graphic::RED; i < (unsigned)Graphic::WHITE; ++i ) {
+    pen_value[Graphic::GREY_10] = gdImageColorAllocate( im,
+						      to_byte( colour_value[Graphic::GREY_10].red ),
+						      to_byte( colour_value[Graphic::GREY_10].green ),
+						      to_byte( colour_value[Graphic::GREY_10].blue) );
+    fill_value[Graphic::GREY_10] = pen_value[Graphic::GREY_10];
+
+    for ( unsigned i = (unsigned)Graphic::MAGENTA; i <= (unsigned)Graphic::GOLD; ++i ) {
 	pen_value[i] = gdImageColorAllocate( im,
 					     to_byte( colour_value[i].red ),
 					     to_byte( colour_value[i].green ),
@@ -1985,22 +1991,22 @@ PostScript::arrowHead(ostream& output, const Point& src, const Point& dst, const
     return output;
 }
 
-ColourManip
+Colour::ColourManip
 PostScript::setcolour( const Graphic::colour_type aColour )
 {
-    return ColourManip( PostScript::setcolour_str, aColour );
+    return Colour::ColourManip( PostScript::setcolour_str, aColour );
 }
 
-ColourManip
+Colour::ColourManip
 PostScript::stroke( const Graphic::colour_type aColour )
 {
-    return ColourManip( PostScript::stroke_str, aColour );
+    return Colour::ColourManip( PostScript::stroke_str, aColour );
 }
 
-ColourManip
+Colour::ColourManip
 PostScript::setfill( const Graphic::colour_type aColour )
 {
-    return ColourManip( PostScript::setfill_str, aColour );
+    return Colour::ColourManip( PostScript::setfill_str, aColour );
 }
 
 PointManip
@@ -2010,23 +2016,23 @@ PostScript::moveto( const Point& aPoint )
 }
 
 
-FontManip
+Colour::FontManip
 PostScript::setfont( const Graphic::font_type aFont )
 {
-    return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
 }
 
-JustificationManip
+Colour::JustificationManip
 PostScript::justify( const justification_type justification )
 {
-    return JustificationManip( justify_str, justification );
+    return Colour::JustificationManip( justify_str, justification );
 }
 
 
-LineStyleManip
+Colour::LineStyleManip
 PostScript::linestyle( const Graphic::linestyle_type aStyle )
 {
-    return LineStyleManip( PostScript::linestyle_str, aStyle );
+    return Colour::LineStyleManip( PostScript::linestyle_str, aStyle );
 }
 
 /* -------------------------------------------------------------------- */
@@ -2168,9 +2174,10 @@ SVG::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     output << "<text x=\"" << static_cast<int>(c.x() + 0.5)
 	   << "\" y=\"" << static_cast<int>(c.y() + 0.5) << "\""
 	   << setfont( font )
+	   << " fill=\"" << setcolour( colour ) << "\""
 	   << justify( justification )
 	   << ">"
-	   << s
+	   << xml_escape( s.c_str() )
 	   << "</text>" << endl;
 
     return -fontsize * SVG_SCALING;
@@ -2253,7 +2260,7 @@ SVG::justify_str( ostream& output, const justification_type justification )
 ostream&
 SVG::setcolour_str( ostream& output, Graphic::colour_type aColour )
 {
-    output << colour_name[aColour];
+    output << colour_name[static_cast<int>(aColour)];
     return output;
 }
 
@@ -2302,6 +2309,24 @@ SVG::stroke_str( ostream& output, Graphic::colour_type aColour )
 }
 
 
+/*
+ * Escape special characters in XML.  &# is not escaped (font stuff.)
+ */
+
+ostream&
+SVG::xml_escape_str( ostream& output, const char * s, const char * )
+{
+    for ( ; *s != '\0'; ++s ) {
+	switch ( *s ) {
+	case '&': if ( *(s+1) != '#' ) output << "&amp;"; else output << "&"; break;
+	case '<': output << "&lt;"; break;
+	case '>': output << "&gt;"; break;
+	default:  output << *s; break;
+	}
+    }
+    return output;
+}
+
 ostream&
 SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const double scale,
 		const Graphic::colour_type pen_colour, const Graphic::colour_type fill ) const
@@ -2311,9 +2336,7 @@ SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const doubl
 
     output << "<polygon";
     ios_base::fmtflags flags = output.setf( ios::hex, ios::basefield );
-    output << " fill=\""
-	   << setcolour( pen_colour )
-	   << "\"";
+    output << " fill=\"" << setcolour( pen_colour ) << "\"";
     output.setf( flags );
     output << stroke( pen_colour )
 	   << " points=\"";
@@ -2329,50 +2352,6 @@ SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const doubl
     }
     output << "\"/>" << endl;
     return output;
-}
-
-ColourManip
-SVG::setcolour( const Graphic::colour_type aColour )
-{
-    return ColourManip( SVG::setcolour_str, aColour );
-}
-
-ColourManip
-SVG::stroke( const Graphic::colour_type aColour )
-{
-    return ColourManip( SVG::stroke_str, aColour );
-}
-
-ColourManip
-SVG::setfill( const Graphic::colour_type aColour )
-{
-    return ColourManip( SVG::setfill_str, aColour );
-}
-
-PointManip
-SVG::moveto( const Point& aPoint )
-{
-    return PointManip( point, aPoint );
-}
-
-
-FontManip
-SVG::setfont( const Graphic::font_type aFont )
-{
-    return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
-}
-
-JustificationManip
-SVG::justify( const justification_type justification )
-{
-    return JustificationManip( justify_str, justification );
-}
-
-
-LineStyleManip
-SVG::linestyle( const Graphic::linestyle_type aStyle )
-{
-    return LineStyleManip( SVG::linestyle_str, aStyle );
 }
 
 #if defined(SXD_OUTPUT)
@@ -3029,10 +3008,10 @@ SXD::style_properties_str( ostream& output, const unsigned int j )
 }
 
 
-ArrowManip
+Colour::ArrowManip
 SXD::arrow_style( const Graphic::arrowhead_type arrow )
 {
-    return ArrowManip( arrow_style_str, arrow );
+    return Colour::ArrowManip( arrow_style_str, arrow );
 }
 
 BoxManip
@@ -3041,22 +3020,22 @@ SXD::box( const Point& origin, const Point& extent )
     return BoxManip( box_str, origin, extent );
 }
 
-ColourManip
+Colour::ColourManip
 SXD::setfill( const Graphic::colour_type colour )
 {
-    return ColourManip( setfill_str, colour );
+    return Colour::ColourManip( setfill_str, colour );
 }
 
-ColourManip
+Colour::ColourManip
 SXD::stroke_colour( const Graphic::colour_type colour )
 {
-    return ColourManip( stroke_colour_str, colour );
+    return Colour::ColourManip( stroke_colour_str, colour );
 }
 
-FontManip
+Colour::FontManip
 SXD::setfont( const Graphic::font_type aFont )
 {
-    return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
 }
 
 UnsignedManip
@@ -3065,10 +3044,10 @@ SXD::style_properties( const unsigned int j )
     return UnsignedManip( style_properties_str, j );
 }
 
-JustificationManip
+Colour::JustificationManip
 SXD::justify( const justification_type justification )
 {
-    return JustificationManip( justify_str, justification );
+    return Colour::JustificationManip( justify_str, justification );
 }
 
 PointManip
@@ -3312,28 +3291,28 @@ TeX::moveto( const Point& aPoint )
 }
 
 
-ColourManip
+Colour::ColourManip
 TeX::setcolour( const Graphic::colour_type aColour )
 {
-    return ColourManip( TeX::setcolour_str, aColour );
+    return Colour::ColourManip( TeX::setcolour_str, aColour );
 }
 
-ColourManip
+Colour::ColourManip
 TeX::setfill( const Graphic::colour_type aColour )
 {
-    return ColourManip( TeX::setfill_str, aColour );
+    return Colour::ColourManip( TeX::setfill_str, aColour );
 }
 
-JustificationManip
+Colour::JustificationManip
 TeX::justify( const justification_type justification )
 {
-    return JustificationManip( justify_str, justification );
+    return Colour::JustificationManip( justify_str, justification );
 }
 
-FontManip
+Colour::FontManip
 TeX::setfont( const Graphic::font_type aFont )
 {
-    return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
+    return Colour::FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i );
 }
 
 Graphic::colour_type

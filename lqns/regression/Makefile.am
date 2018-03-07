@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 11963 2014-04-10 14:36:42Z greg $
+# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -32,6 +32,7 @@ ACT=	40-activities.lqxo \
 	46-activities.lqxo 
 REPL=	50-replication.lqxo \
 	51-replication.lqxo \
+	52-replication.lqxo \
 	55-replication.lqxo \
 	56-replication.lqxo
 SIM=	70-priority.lqxo \

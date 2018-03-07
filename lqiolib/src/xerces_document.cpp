@@ -1,5 +1,5 @@
-/* -*- c++ -*-
- * $Id: xerces_document.cpp 11963 2014-04-10 14:36:42Z greg $
+a/* -*- c++ -*-
+ * $Id: xerces_document.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  * Read in XML input files.
  *
@@ -92,6 +92,7 @@ namespace LQIO {
 	XMLCh * Xerces_Document::Xhistogram_bin = 0;
 	XMLCh * Xerces_Document::Xhost_demand_cvsq = 0;
 	XMLCh * Xerces_Document::Xhost_demand_mean = 0;
+	XMLCh * Xerces_Document::Xmax_rss = 0;
 	XMLCh * Xerces_Document::Xmax_service_time = 0;
 	XMLCh * Xerces_Document::Xinitially = 0;
 	XMLCh * Xerces_Document::Xit_limit = 0;
@@ -420,7 +421,8 @@ namespace LQIO {
 		    _document.setResultIterations( iterations );
 		    _document.setResultElapsedTime( StrX(child_element->getAttribute(Xelapsed_time)).optTime() );
 		    _document.setResultSysTime( StrX(child_element->getAttribute(Xsystem_cpu_time)).optTime() );
-		    _document.setResultUserTime( StrX(child_element->getAttribute(Xuser_cpu_time)).optTime() );	
+		    _document.setResultUserTime( StrX(child_element->getAttribute(Xuser_cpu_time)).optTime() );
+		    _document.setResultMaxRSS( StrX(child_element->getAttribute(Xmax_rss)).optLong() );
 		    StrX platform_info(child_element->getAttribute(Xplatform_info));
 		    if ( platform_info.optCStr() ) _document.setResultPlatformInformation( platform_info.asCStr() );
 		    if ( 1 < iterations && iterations <= 30 ) {
@@ -656,7 +658,7 @@ namespace LQIO {
 	    if ( sched_type == SCHEDULE_SEMAPHORE ) {
 		task = new SemaphoreTask( &_document, taskName.asCStr(), entries, processor,
 					  _document.db_build_parameter_variable( StrX(task_element->getAttribute(Xqueue_length)).asCStr(), NULL ),
-					  StrX(task_element->getAttribute(Xpriority)).asLong(),
+					  _document.db_build_parameter_variable( StrX(task_element->getAttribute(Xpriority)).asCStr(), NULL ),
 					  _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 					  StrX(task_element->getAttribute(Xreplication)).asLong(),
 					  group,						/* For Group */
@@ -668,7 +670,7 @@ namespace LQIO {
 	    }else if(sched_type == SCHEDULE_RWLOCK){
 		task = new RWLockTask( &_document, taskName.asCStr(), entries, processor,
 				       _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
-				       StrX(task_element->getAttribute(Xpriority)).asLong(),
+				       _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xpriority)).asCStr(), NULL ),
 				       _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 				       StrX(task_element->getAttribute(Xreplication)).asLong(),
 				       group,						/* For Group */
@@ -680,7 +682,7 @@ namespace LQIO {
 		
 		task = new Task( &_document, taskName.asCStr(), sched_type, entries, processor,
 				 _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xqueue_length)).asCStr(),NULL),
-				 StrX(task_element->getAttribute(Xpriority)).asLong(),
+				 _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xpriority)).asCStr(), NULL ),
 				 _document.db_build_parameter_variable(StrX(task_element->getAttribute(Xmultiplicity)).asCStr(),NULL),
 				 StrX(task_element->getAttribute(Xreplication)).asLong(),
 				 group,								/* For Group */
@@ -1744,6 +1746,9 @@ namespace LQIO {
 	    result_element.insert_time( Xuser_cpu_time,   _document.getResultUserTime() );
 	    result_element.insert_time( Xsystem_cpu_time, _document.getResultSysTime() );
 	    result_element.insert_time( Xelapsed_time,    _document.getResultElapsedTime() );
+	    if ( _document.getResultMaxRSS() > 0 ) {
+		result_element( Xmax_rss,         _document.getResultMaxRSS() );
+	    }
 	    
 	    if ( _document.getResultMVASubmodels() ) {
 		XercesWrite mva_element( result_element.getElement(), Xmva_info );
@@ -2175,6 +2180,7 @@ namespace LQIO {
             Xlqn_model =                        Xt("lqn-model");
             Xlqx =                              Xt("lqx");
             Xmax =                              Xt("max");
+            Xmax_rss =                          Xt("max-rss");
             Xmax_service_time =                 Xt("max-service-time");
             Xmin =                              Xt("min");
             Xmultiplicity =                     Xt("multiplicity");

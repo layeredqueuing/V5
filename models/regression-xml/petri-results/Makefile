@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 11898 2014-02-21 18:16:20Z greg $
+# $Id: Makefile 13190 2018-03-03 04:18:19Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -32,6 +32,7 @@ DST=	$(SANITY) \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo \
+	52-replication.lqxo \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \

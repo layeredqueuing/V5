@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 12594 2016-06-06 16:53:56Z greg $
+ * $Id: expat_document.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  * Read in XML input files.
  *
@@ -458,6 +458,7 @@ namespace LQIO {
                     _document.setResultElapsedTime( getTimeAttribute(attributes, Xelapsed_time) );
                     _document.setResultSysTime( getTimeAttribute(attributes,Xsystem_cpu_time) );
                     _document.setResultUserTime( getTimeAttribute(attributes,Xuser_cpu_time) );
+		    _document.setResultMaxRSS( getLongAttribute(attributes,Xmax_rss,0) );
                     _document.setResultPlatformInformation( getStringAttribute(attributes,Xplatform_info) );
                     if ( 1 < iterations && iterations <= 30 ) {
                         const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( iterations );
@@ -1155,7 +1156,7 @@ namespace LQIO {
                 if ( sched_type == SCHEDULE_SEMAPHORE ) {
                     task = new SemaphoreTask( &_document, task_name, entries, processor,
                                               _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-                                              getLongAttribute(attributes,Xpriority,0),
+                                              _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
                                               _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
                                               getLongAttribute(attributes,Xreplication,1),
                                               group,
@@ -1168,7 +1169,7 @@ namespace LQIO {
                 } else if ( sched_type == SCHEDULE_RWLOCK ){
                     task = new RWLockTask( &_document, task_name, entries, processor,
                                            _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-                                           getLongAttribute(attributes,Xpriority,0),
+					   _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
                                            _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
                                            getLongAttribute(attributes,Xreplication,1),
                                            group,
@@ -1180,7 +1181,7 @@ namespace LQIO {
                 } else {
                     task = new Task( &_document, task_name, sched_type, entries, processor,
                                      _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-                                     getLongAttribute(attributes,Xpriority,0),
+				     _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
                                      _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
                                      getLongAttribute(attributes,Xreplication,1),
                                      group,
@@ -2005,6 +2006,9 @@ namespace LQIO {
                            << time_attribute( Xuser_cpu_time, _document.getResultUserTime() )
                            << time_attribute( Xsystem_cpu_time, _document.getResultSysTime() )
                            << time_attribute( Xelapsed_time, _document.getResultElapsedTime() );
+		    if ( _document.getResultMaxRSS() > 0 ) {
+			output << attribute( Xmax_rss, _document.getResultMaxRSS() );
+		    }
                     if ( has_mva_info ) {
                         output << ">" << endl;
                         output << simple_element( Xmva_info )
@@ -2156,8 +2160,8 @@ namespace LQIO {
             if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
                 output << attribute( Xthink_time, *task.getThinkTime() );
             }
-            if ( task.getPriority() ) {
-                output << attribute( Xpriority, task.getPriority() );
+            if ( task.hasPriority() ) {
+                output << attribute( Xpriority, *task.getPriority() );
             }
             if ( task.hasQueueLength() ) {
                 output << attribute( Xqueue_length, *task.getQueueLength() );
@@ -3233,6 +3237,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xlqn_model =                           "lqn-model";
         const XML_Char * Expat_Document::Xlqx =                                 "lqx";
         const XML_Char * Expat_Document::Xmax =                                 "max";
+	const XML_Char * Expat_Document::Xmax_rss = 				"max-rss";
         const XML_Char * Expat_Document::Xmax_service_time =                    "max-service-time";
         const XML_Char * Expat_Document::Xmin =                                 "min";
         const XML_Char * Expat_Document::Xmultiplicity =                        "multiplicity";

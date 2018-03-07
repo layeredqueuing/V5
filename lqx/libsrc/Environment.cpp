@@ -39,12 +39,12 @@ namespace LQX {
     delete _specialVariables;
   }
   
-  Environment::Environment(const Environment& ) throw ()
+  Environment::Environment(const Environment& )
   {
     throw NonCopyableException();
   }
   
-  Environment& Environment::operator=(const Environment& ) throw ()
+  Environment& Environment::operator=(const Environment& )
   {
     throw NonCopyableException();
   }
@@ -67,7 +67,7 @@ namespace LQX {
     return _methodTable;
   }
   
-  SymbolAutoRef Environment::invokeGlobalMethod(std::string name, std::vector<SymbolAutoRef >* arguments) throw (RuntimeException)
+  SymbolAutoRef Environment::invokeGlobalMethod(std::string name, std::vector<SymbolAutoRef >* arguments)
   {
     /* Don't do any type checking _yet_ */
     Method* method = _methodTable->getMethod(name);

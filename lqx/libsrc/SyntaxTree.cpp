@@ -92,7 +92,7 @@ namespace LQX {
   {
     /* Delete all of the items in the list */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _statements->begin(); iter != _statements->end(); iter++) {
+    for (iter = _statements->begin(); iter != _statements->end(); ++iter) {
       delete (*iter);
     }
 
@@ -108,7 +108,7 @@ namespace LQX {
 
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _statements->begin(); iter != _statements->end(); iter++) {
+    for (iter = _statements->begin(); iter != _statements->end(); ++iter) {
       SyntaxTreeNode* current = *iter;
       uintptr_t currentNodeId = reinterpret_cast<uintptr_t>(current);
       current->debugPrintGraphviz(output);
@@ -120,7 +120,7 @@ namespace LQX {
   {
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _statements->begin(); iter != _statements->end(); iter++) {
+    for (iter = _statements->begin(); iter != _statements->end(); ++iter) {
       (*iter)->print(output,indent);
       if ( (*iter)->simpleStatement() ) { output << ";"; }
       output << std::endl;
@@ -128,7 +128,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef CompoundStatementNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef CompoundStatementNode::invoke(Environment* env)
   {
 #if defined(__VARIABLE_SCOPING__)
     /* Compound statements push the variable context */
@@ -138,7 +138,7 @@ namespace LQX {
 
     /* Invoke all of the statements given */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _statements->begin(); iter != _statements->end(); iter++) {
+    for (iter = _statements->begin(); iter != _statements->end(); ++iter) {
       (*iter)->invoke(env);
     }
 
@@ -218,7 +218,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ConditionalStatementNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef ConditionalStatementNode::invoke(Environment* env)
   {
     /* Make sure there's something to do */
     if (_testNode == NULL) {
@@ -284,7 +284,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef AssignmentStatementNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef AssignmentStatementNode::invoke(Environment* env)
   {
     /* Obtain the value we are assigning here */
     SymbolAutoRef value = _value->invoke(env);
@@ -363,7 +363,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef LogicExpression::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef LogicExpression::invoke(Environment* env)
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
@@ -457,7 +457,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ComparisonExpression::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef ComparisonExpression::invoke(Environment* env)
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
@@ -473,7 +473,7 @@ namespace LQX {
     const Symbol::Type rightType = right->getType();
     bool result = false;
 
-    /* We can compare objects against eachother and nulls using built-in operations */
+    /* We can compare objects against each other and nulls using built-in operations */
     if (leftType == Symbol::SYM_NULL) {
       if (rightType == Symbol::SYM_NULL) {
 	switch (_mode) {
@@ -535,6 +535,21 @@ namespace LQX {
         case NOT_EQUALS:       result = (b1 != b2); break;
         default:               throw RuntimeException("Booleans can only be compared with == and !=");
       }
+    } else if (leftType == Symbol::SYM_STRING) {
+      if (rightType != Symbol::SYM_STRING) {
+	throw IncompatibleTypeException(_right, right->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
+      }
+      const int diff = strcmp( left->getStringValue(), right->getStringValue() );
+      switch (_mode) {
+        case EQUALS:           result = (diff == 0); break;
+        case NOT_EQUALS:       result = (diff != 0); break;
+        case LESS_THAN:        result = (diff <  0); break;
+        case GREATER_THAN:     result = (diff >  0); break;
+        case LESS_OR_EQUAL:    result = (diff <= 0); break;
+        case GREATER_OR_EQUAL: result = (diff >= 0); break;
+        default:               throw InternalErrorException("Invalid operation specified.");
+      }
+      
     } else {
       throw InternalErrorException("Unknown type in comparison.");
     }
@@ -597,7 +612,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef MathExpression::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef MathExpression::invoke(Environment* env)
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
@@ -750,7 +765,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ConstantValueExpression::invoke(Environment*) throw (RuntimeException)
+  SymbolAutoRef ConstantValueExpression::invoke(Environment*)
   {
     /* Simple enough... */
     return _current;
@@ -789,7 +804,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef VariableExpression::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef VariableExpression::invoke(Environment* env)
   {
     /* Get the Symbol Table from the Environment */
     SymbolTable* table = env->getSymbolTable();
@@ -854,7 +869,7 @@ namespace LQX {
 
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
+    for (iter = _arguments->begin(); iter != _arguments->end(); ++iter) {
       SyntaxTreeNode* current = *iter;
       uintptr_t currentNodeId = reinterpret_cast<uintptr_t>(current);
       current->debugPrintGraphviz(output);
@@ -867,7 +882,7 @@ namespace LQX {
     output << left_fill( indent ) << _name << "(";
     /* Output all of the expressions we will be running */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
+    for (iter = _arguments->begin(); iter != _arguments->end(); ++iter) {
       SyntaxTreeNode* current = *iter;
       if ( iter != _arguments->begin() ) {
 	  output << ", ";
@@ -878,14 +893,14 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef MethodInvocationExpression::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef MethodInvocationExpression::invoke(Environment* env)
   {
     /* Get the Symbol Table from the Environment */
     std::vector<SymbolAutoRef > args;
 
     /* Obtain all the arguments we need */
     std::vector<SyntaxTreeNode*>::iterator iter;
-    for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
+    for (iter = _arguments->begin(); iter != _arguments->end(); ++iter) {
       SymbolAutoRef arg = (*iter)->invoke(env);
       if (arg == NULL) throw InternalErrorException("One of the arguments produces no value.");
       args.push_back(arg);
@@ -967,7 +982,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef LoopStatementNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef LoopStatementNode::invoke(Environment* env)
   {
 #if defined(__VARIABLE_SCOPING__)
     /* Compound statements push the variable context */
@@ -1067,7 +1082,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ForeachStatementNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef ForeachStatementNode::invoke(Environment* env)
   {
 #if defined(__VARIABLE_SCOPING__)
     /* Compound statements push the variable context */
@@ -1120,7 +1135,7 @@ namespace LQX {
       valueSymbol = table->get(_valueName);
     }
 
-    /* Itterate over the key-value pairs in the array */
+    /* Iterate over the key-value pairs in the array */
     for (iter = arrayObject->begin(); iter != arrayObject->end(); ++iter) {
       if (_keyName != "") { keySymbol->copyValue(*(iter->first)); }
       valueSymbol->copyValue(*(iter->second));
@@ -1175,7 +1190,7 @@ namespace LQX {
 	return output;
     }
 
-    SymbolAutoRef ReturnStatementNode::invoke(Environment* env) throw (RuntimeException)
+    SymbolAutoRef ReturnStatementNode::invoke(Environment* env)
     {
 	/* Try to find out if we are in a language-defined method */
 	if (env->isExecutingInMainContext()) {
@@ -1220,10 +1235,234 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef BreakStatementNode::invoke(Environment*) throw (RuntimeException)
+  SymbolAutoRef BreakStatementNode::invoke(Environment*)
   {
     throw BreakException();
     return Symbol::encodeNull();
+  }
+
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+namespace LQX {
+
+  SelectExpression::SelectExpression(const std::string& valueName, bool ev, SyntaxTreeNode* arrayNode, SyntaxTreeNode* selectCondition) :
+    _valueName(valueName), _valueIsExternal(ev), _arrayNode(arrayNode), _selectCondition(selectCondition)
+  {
+  }
+
+  SelectExpression::~SelectExpression()
+  {
+    /* Clean up allocated memory */
+    delete(_arrayNode);
+    delete(_selectCondition);
+  }
+
+  void SelectExpression::debugPrintGraphviz(std::ostream& output) const
+  {
+    /* Output this nodes declaration */
+    uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
+    output << QUOTE(thisNode) << " [label=\"Select\", shape=box];" << std::endl;
+
+    /* Output the variables */
+    output << QUOTE(thisNode << "x") << " [label=\"" << _valueName << ", " << _valueName << "\"];" << std::endl;
+    output << QUOTE(thisNode) << " -> " << QUOTE(thisNode << "x") << ";" << std::endl;
+
+    /* Output the array node */
+    if (_arrayNode) {
+      uintptr_t arrayNodeId = reinterpret_cast<uintptr_t>(_arrayNode);
+      _arrayNode->debugPrintGraphviz(output);
+      output << QUOTE(thisNode) << " -> " << QUOTE(arrayNodeId) << ";" << std::endl;
+    }
+
+    /* Output the array node */
+    if (_selectCondition) {
+      uintptr_t selectConditionId = reinterpret_cast<uintptr_t>(_selectCondition);
+      _selectCondition->debugPrintGraphviz(output);
+      output << QUOTE(thisNode) << " -> " << QUOTE(selectConditionId) << ";" << std::endl;
+    }
+  }
+
+  std::ostream& SelectExpression::print( std::ostream& output, unsigned int indent ) const
+  {
+    output << left_fill( indent ) << "select( " << _valueName << " in ";
+    _arrayNode->print(output);
+    output << "; ";
+    _selectCondition->print(output);
+    output << " )";
+    return output;
+  }
+
+  SymbolAutoRef SelectExpression::invoke(Environment* env)
+  {
+#if defined(__VARIABLE_SCOPING__)
+    /* Compound statements push the variable context */
+    SymbolTable* st = env->getSymbolTable();
+    st->pushContext();
+#endif
+
+    /* Get the Symbol Table from the Environment */
+    SymbolTable* table = env->getSymbolTable();
+    SymbolTable* specialTable = env->getSpecialSymbolTable();
+    SymbolAutoRef valueSymbol;
+
+    /* Grab the value from the table */
+    if (_valueIsExternal) {
+      if (!specialTable->isDefined(_valueName))
+        throw UndefinedVariableException(_valueName);
+      valueSymbol = specialTable->get(_valueName);
+    } else {
+      if (!table->isDefined(_valueName))
+        table->define(_valueName);
+      valueSymbol = table->get(_valueName);
+    }
+
+    ArrayObject* destinationArray = new ArrayObject();
+    SymbolAutoRef arraySymbol = _arrayNode->invoke(env);
+
+    /* Check to see the type of the symbol matches up right */
+    if (arraySymbol->getType() == Symbol::SYM_NULL) {
+      return Symbol::encodeNull();
+    }
+    ArrayObject* sourceArray = dynamic_cast<ArrayObject *>(arraySymbol->getObjectValue());
+    if (sourceArray == NULL ) {
+      throw RuntimeException("The object provided to the `select' statement was not an Array.");
+    }
+
+    /* Iterate over the key-value pairs in the array */
+    unsigned int i = 0;
+    for ( std::map<SymbolAutoRef,SymbolAutoRef>::iterator iter = sourceArray->begin(); iter != sourceArray->end(); ++iter) {
+      valueSymbol->copyValue(*(iter->second));
+      SymbolAutoRef shouldSelect = _selectCondition->invoke(env);
+      if (shouldSelect->getType() != Symbol::SYM_BOOLEAN) {
+        throw IncompatibleTypeException(_selectCondition, shouldSelect->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
+      } else if (shouldSelect->getBooleanValue() == true) {
+	SymbolAutoRef keySym = Symbol::encodeDouble(i++);
+	SymbolAutoRef symbol = Symbol::encodeNull();	/* Create a copy. */
+	symbol->copyValue(*(iter->second));
+	destinationArray->put( keySym, symbol );
+      }
+    }
+
+#if defined(__VARIABLE_SCOPING__)
+    /* Pops the Context */
+    st->popContext();
+#endif
+    /* Return the encoded array with or without items */
+    return Symbol::encodeObject(destinationArray);
+  }
+
+}
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+namespace LQX {
+
+  ComprehensionExpression::ComprehensionExpression(const std::string& valueName, bool ev, SyntaxTreeNode* initialValue, SyntaxTreeNode* stopCondition, SyntaxTreeNode* onEachRun) :
+    _valueName(valueName), _valueIsExternal(ev), _initialValue(initialValue), _stopCondition(stopCondition), _onEachRun(onEachRun)
+  {
+  }
+
+  ComprehensionExpression::~ComprehensionExpression()
+  {
+    /* Clean up allocated memory */
+    if ( _initialValue ) delete _initialValue;
+    delete _stopCondition;
+    if ( _onEachRun ) delete _onEachRun;
+  }
+
+  void ComprehensionExpression::debugPrintGraphviz(std::ostream& output) const
+  {
+    /* Output this nodes declaration */
+    uintptr_t thisNode = reinterpret_cast<uintptr_t>(this);
+    output << QUOTE(thisNode) << " [label=\"Comprehension\", shape=box];" << std::endl;
+
+    /* Output the variables */
+    output << QUOTE(thisNode << "x") << " [label=\"" << _valueName << ", " << _valueName << "\"];" << std::endl;
+    output << QUOTE(thisNode) << " -> " << QUOTE(thisNode << "x") << ";" << std::endl;
+  }
+
+  std::ostream& ComprehensionExpression::print( std::ostream& output, unsigned int indent ) const
+  {
+    output << left_fill( indent ) << "comprehension( " << _valueName;
+    if ( _initialValue ) {
+	output << " = ";
+	_initialValue->print(output);
+    }
+    output << "; ";
+    _stopCondition->print(output);
+    output << "; ";
+    if ( _onEachRun ) _onEachRun->print(output);
+    output << " )";
+    return output;
+  }
+
+  SymbolAutoRef ComprehensionExpression::invoke(Environment* env)
+  {
+#if defined(__VARIABLE_SCOPING__)
+    /* Compound statements push the variable context */
+    SymbolTable* st = env->getSymbolTable();
+    st->pushContext();
+#endif
+
+    /* Get the Symbol Table from the Environment */
+    SymbolTable* table = env->getSymbolTable();
+    SymbolTable* specialTable = env->getSpecialSymbolTable();
+    SymbolAutoRef valueSymbol;
+
+    /* Grab the value from the table */
+    if (_valueIsExternal) {
+      if (!specialTable->isDefined(_valueName))
+        throw UndefinedVariableException(_valueName);
+      valueSymbol = specialTable->get(_valueName);
+    } else {
+      if (!table->isDefined(_valueName))
+        table->define(_valueName);
+      valueSymbol = table->get(_valueName);
+    }
+
+    ArrayObject* destinationArray = new ArrayObject();
+
+    /* Run initial value */
+    if ( _initialValue ) {
+      SymbolAutoRef value = _initialValue->invoke(env);
+      valueSymbol->copyValue(*value);
+    } else {
+      valueSymbol->assignDouble(0.0);
+    }
+    valueSymbol->setIsConstant(false);
+	
+    for ( unsigned int i = 0; ; i += 1 ) {
+      SymbolAutoRef stop = _stopCondition->invoke(env);
+      if (stop->getType() != Symbol::SYM_BOOLEAN) {
+        throw IncompatibleTypeException(_stopCondition, stop->getTypeName(), Symbol::typeToString(Symbol::SYM_BOOLEAN));
+      } else if (stop->getBooleanValue() == false) {
+	break;
+      }
+      SymbolAutoRef keySym = Symbol::encodeDouble(i);
+      SymbolAutoRef symbol = Symbol::encodeNull();	/* Create a copy. */
+      symbol->copyValue(*valueSymbol);
+      destinationArray->put( keySym, symbol );
+      if ( _onEachRun ) { 
+	_onEachRun->invoke(env);
+      } else {
+	valueSymbol->assignDouble(valueSymbol->getDoubleValue() + 1.0);
+      }
+    }
+
+#if defined(__VARIABLE_SCOPING__)
+    /* Pops the Context */
+    st->popContext();
+#endif
+    /* Return the encoded array with or without items */
+    return Symbol::encodeObject(destinationArray);
   }
 
 }
@@ -1255,7 +1494,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef FileOpenStatementNode::invoke( Environment* env ) throw ( RuntimeException )
+  SymbolAutoRef FileOpenStatementNode::invoke( Environment* env )
   {
     /* open file for writing using _filePath and place file pointer and handle in Symbol table */
     FILE *output_file;
@@ -1332,7 +1571,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef FileCloseStatementNode::invoke( Environment* env ) throw ( RuntimeException )
+  SymbolAutoRef FileCloseStatementNode::invoke( Environment* env )
   {
     /*  search for file handle in symbol table, if found close file and remove handle from table */
     std::stringstream err;
@@ -1404,50 +1643,42 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef FilePrintStatementNode::invoke( Environment* env ) throw ( RuntimeException )
+  SymbolAutoRef FilePrintStatementNode::invoke( Environment* env )
   {
-    std::stringstream ss, err;
+    std::stringstream ss;
     FILE* outfile;
     std::vector<SymbolAutoRef > args;
-    std::vector<SyntaxTreeNode*>::iterator iter;
     SymbolAutoRef arg;
     SymbolAutoRef symbol;
-    Symbol::Type type;
+    Symbol::Type type = Symbol::SYM_UNINITIALIZED;
     bool file_pointer_found = false;
 
     /* check if first argument is a valid open file write pointer, if not set output to standard output */
-    iter = _arguments->begin();
-    arg = (*iter)->invoke( env );
-    if (arg == NULL) throw InternalErrorException( "The first argument produces no value." );
+    for ( std::vector<SyntaxTreeNode*>::iterator iter = _arguments->begin(); iter != _arguments->end(); ++iter ) {
+      arg = (*iter)->invoke( env );
+      if (arg == NULL) throw InternalErrorException( "The first argument produces no value." );
+      args.push_back( arg );
 
-    type = arg->getType();
-
-    if( (type == Symbol::SYM_FILE_WRITE_POINTER) || (type == Symbol::SYM_FILE_READ_POINTER) ) {
-      if( type != Symbol::SYM_FILE_WRITE_POINTER ) {
-	err <<  "The given file handle \"" << arg->getStringValue() << "\" has been opened for reading instead of writing.";
-	throw RuntimeException( err.str().c_str() );
+      if ( iter == _arguments->begin() ) {
+	switch ( arg->getType() ) {
+	case Symbol::SYM_FILE_READ_POINTER:
+	  throw RuntimeException( "%s is not open for writing.", arg->getStringValue() );
+	  break;
+	case Symbol::SYM_FILE_WRITE_POINTER:
+	  outfile = arg->getFilePointerValue();
+	  if( outfile == NULL ) {
+	    throw RuntimeException( "%s is not open for writing.", arg->getStringValue() );
+	  }
+	  file_pointer_found = true;
+	  break;
+	default:
+	  break;
+	}
       }
-
-      outfile = arg->getFilePointerValue();
-
-      if( outfile == NULL ) {
-	err << "The file with handle \"" << arg->getStringValue() << "\" has already been closed.";
-	throw RuntimeException( err.str().c_str() );
-      }
-      file_pointer_found = true;
     }
 
     if( !file_pointer_found ) {
       outfile = env->getDefaultOutput();
-      args.push_back( arg );
-    }
-
-    iter++;
-
-    for ( ; iter != _arguments->end(); iter++ ) {
-      arg = (*iter)->invoke( env );
-      if (arg == NULL) throw InternalErrorException( "One of the arguments produces no value." );
-      args.push_back( arg );
     }
 
     bool first_arg = true;
@@ -1555,7 +1786,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ReadDataStatementNode::invoke( Environment* env ) throw ( RuntimeException )
+  SymbolAutoRef ReadDataStatementNode::invoke( Environment* env )
   {
     /* find open file pointer corresponding to fileHandle in Symbol table, error if not found */
     SymbolAutoRef symbol, key_symbol;
@@ -1604,7 +1835,7 @@ namespace LQX {
       std::vector<SymbolAutoRef > args;
 
       std::vector<SyntaxTreeNode*>::iterator iter;
-      for (iter = _arguments->begin(); iter != _arguments->end(); iter++) {
+      for (iter = _arguments->begin(); iter != _arguments->end(); ++iter) {
 	SymbolAutoRef arg = (*iter)->invoke( env );
 	if (arg == NULL) throw InternalErrorException( "One of the arguments to read_data produces no value." );
 	args.push_back( arg );
@@ -1732,7 +1963,7 @@ namespace LQX {
     return Symbol::encodeNull();
   }
 
-  char * ReadDataStatementNode::readString( FILE *infile,  char *unquoted_string, const char *variable )  throw ( RuntimeException )
+  char * ReadDataStatementNode::readString( FILE *infile,  char *unquoted_string, const char *variable )
   {
 
     char input_string[128], current_variable[50] = "", quoted_string[100] = "";
@@ -1774,7 +2005,7 @@ namespace LQX {
     return( unquoted_string );
   }
 
-  bool ReadDataStatementNode::readBoolean( FILE *infile, const char *variable ) throw (RuntimeException)
+  bool ReadDataStatementNode::readBoolean( FILE *infile, const char *variable )
   {
     char input_string[128];
     std::stringstream err;
@@ -1827,7 +2058,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef ObjectPropertyReadNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef ObjectPropertyReadNode::invoke(Environment* env)
   {
     /* First step is to grab the object */
     SymbolAutoRef symbol = _objectNode->invoke(env);
@@ -1851,7 +2082,7 @@ namespace LQX {
 
 namespace LQX {
 
-  SymbolAutoRef FunctionDeclarationNode::LanguageImplementedMethod::invoke(Environment* env, std::vector<SymbolAutoRef>& args) throw (RuntimeException)
+  SymbolAutoRef FunctionDeclarationNode::LanguageImplementedMethod::invoke(Environment* env, std::vector<SymbolAutoRef>& args)
   {
     /* [1] Push a new invocation context */
     SymbolAutoRef result = Symbol::encodeNull();
@@ -1933,7 +2164,7 @@ namespace LQX {
     return output;
   }
 
-  SymbolAutoRef FunctionDeclarationNode::invoke(Environment* env) throw (RuntimeException)
+  SymbolAutoRef FunctionDeclarationNode::invoke(Environment* env)
   {
     /* Check if this method was registered yet */
     MethodTable* mt = env->getMethodTable();

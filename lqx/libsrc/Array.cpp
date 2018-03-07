@@ -32,31 +32,26 @@ namespace LQX {
   
   bool ArrayObject::isEqualTo(const LanguageObject* other) const
   {
-    /* Check the Type Ids to make sure they're both Arrays */
-    if (other->getTypeId() != kArrayObjectTypeId) return false;
-    ArrayObject* otherArrayObject = (ArrayObject *)other;
-    return ((this->_map) == otherArrayObject->_map);
+    const ArrayObject* otherArrayObject = dynamic_cast<const ArrayObject *>(other);
+    return otherArrayObject && (_map == otherArrayObject->_map);
   }
   
   bool ArrayObject::isLessThan(const LanguageObject* other) const
   {
     /* Check the Type Ids to make sure they're both Arrays */
-    if (other->getTypeId() != kArrayObjectTypeId) {
-      return this->LanguageObject::isLessThan(other);
-    }
-    
+    const ArrayObject* otherArrayObject = dynamic_cast<const ArrayObject *>(other);
+    if ( !otherArrayObject ) return this->LanguageObject::isLessThan(other);
+
     /* Use the built-in operator< on std::map */
-    ArrayObject* otherArrayObject = (ArrayObject *)other;
-    bool lt = ((this->_map) < otherArrayObject->_map);
-    return lt;
+    return _map < otherArrayObject->_map;
   }
   
-  std::string ArrayObject::description()
+  std::string ArrayObject::description() const
   {
     /* Return a very simple description */
     std::stringstream ss;
     ss << "[";
-    std::map<SymbolAutoRef,SymbolAutoRef>::iterator iter;
+    std::map<SymbolAutoRef,SymbolAutoRef>::const_iterator iter;
     for (iter = _map.begin(); iter != _map.end(); ++iter) {
       ss << iter->first->description() << "=>" << iter->second->description();
       if (iter != --(_map.end())) {
@@ -69,13 +64,13 @@ namespace LQX {
     return ss.str();
   }
   
-  std::string ArrayObject::getTypeName()
+  std::string ArrayObject::getTypeName() const
   {
     /* Return the name of this type */
     return std::string("Array");
   }
   
-  LanguageObject* ArrayObject::duplicate() throw (RuntimeException)
+  LanguageObject* ArrayObject::duplicate()
   {
     /* Do a value-copy on the internal array map */
     ArrayObject* copy = new ArrayObject();
@@ -83,7 +78,7 @@ namespace LQX {
     return copy;
   }
   
-  SymbolAutoRef ArrayObject::getPropertyNamed(Environment* env, const std::string& name) throw (RuntimeException)
+  SymbolAutoRef ArrayObject::getPropertyNamed(Environment* env, const std::string& name)
   {
     /* Return the array size */
     if (name == "size") {
@@ -104,10 +99,15 @@ namespace LQX {
     return _map.end();
   }
   
+  void ArrayObject::clear()
+  {
+    _map.clear();
+  }
+
   void ArrayObject::put(SymbolAutoRef key, SymbolAutoRef value)
   {
     /* Comparison is handled automatically */
-    _map[key] = value;
+    _map[key] = value;      
   }
   
   SymbolAutoRef& ArrayObject::get(SymbolAutoRef key)
@@ -116,13 +116,13 @@ namespace LQX {
     return _map[key];
   }
   
-  bool ArrayObject::has(SymbolAutoRef key)
+  bool ArrayObject::has(SymbolAutoRef key) const
   {
     /* Check whether or not we have a value with the given key */
     return _map.find(key) != _map.end();
   }
   
-  unsigned ArrayObject::size()
+  unsigned ArrayObject::size() const
   {
     /* Return the size of the map */
     return _map.size();
@@ -176,21 +176,39 @@ namespace LQX {
     return Symbol::encodeObject(builtObject);
   }
   
+  ImplementLanguageMethod(ArrayObject::array_clear)
+  {
+    /* Decode all of the arguments from the list given */
+    LanguageObject* lo = decodeObject(args, 0);
+    
+    /* Make sure things are what we think they are */
+    ArrayObject* array = dynamic_cast<ArrayObject *>(lo);
+    if ( !array ) {
+      throw RuntimeException("Argument is not an instance of `Array'");
+    }
+
+    array->clear();
+    return Symbol::encodeNull();
+  }
+
   ImplementLanguageMethod(ArrayObject::array_set)
   {
     /* Decode all of the arguments from the list given */
     LanguageObject* lo = decodeObject(args, 0);
-    SymbolAutoRef key = args[1];
+    SymbolAutoRef key = Symbol::duplicate(args[1]);	/* x[i] causes grief since i aliased */
     SymbolAutoRef value = args[2];
     value->setIsConstant(false);
     
     /* Make sure things are what we think they are */
-    if (lo->getTypeId() != kArrayObjectTypeId) {
+    ArrayObject* array = dynamic_cast<ArrayObject *>(lo);
+    if ( !array ) {
       throw RuntimeException("Argument is not an instance of `Array'");
     }
-        
-    /* Place the value into the array */
-    (*((ArrayObject *)lo)).put(key, value);
+
+    /* Place the value into the array.  We need a copy (like an assignment statement). */
+    SymbolAutoRef symbol = Symbol::encodeNull();
+    symbol->copyValue( *value );
+    array->put(key, symbol);
     return Symbol::encodeNull();
   }
   
@@ -198,15 +216,15 @@ namespace LQX {
   {
     /* Decode all of the arguments from the list given */
     LanguageObject* lo = decodeObject(args, 0);
-    SymbolAutoRef key = args[1];
+    SymbolAutoRef key = Symbol::duplicate(args[1]);	/* x[i] causes grief since i aliased */
     
     /* Make sure things are what we think they are */
-    if (lo->getTypeId() != kArrayObjectTypeId) {
+    ArrayObject* array = dynamic_cast<ArrayObject *>(lo);
+    if ( !array ) {
       throw RuntimeException("Argument is not an instance of `Array'");
     }
-    
+
     /* Obtain the hashable string */
-    ArrayObject* array = (ArrayObject *)lo;
     if (array->has(key) == false) {
       SymbolAutoRef symbol = Symbol::encodeNull();
       symbol->setIsConstant(false);
@@ -224,14 +242,36 @@ namespace LQX {
     SymbolAutoRef key = args[1];
     
     /* Make sure things are what we think they are */
-    if (lo->getTypeId() != kArrayObjectTypeId) {
+    ArrayObject* array = dynamic_cast<ArrayObject *>(lo);
+    if ( !array ) {
       throw RuntimeException("Argument is not an instance of `Array'");
     }
-    
-    /* Obtain the hashable string */
-    ArrayObject* array = (ArrayObject *)lo;
+
     return Symbol::encodeBoolean(array->has(key));
   }
+
+  ImplementLanguageMethod(ArrayObject::array_append)
+  {
+    /* Decode all of the arguments from the list given */
+    LanguageObject* lo = decodeObject(args, 0);
+    
+    /* Make sure things are what we think they are */
+    ArrayObject* array = dynamic_cast<ArrayObject *>(lo);
+    if ( !array ) {
+      throw RuntimeException("Argument is not an instance of `Array'");
+    }
+    std::vector<SymbolAutoRef>::iterator iter;
+    for (iter = args.begin() + 1; iter != args.end(); ++iter) {
+      SymbolAutoRef key = Symbol::encodeDouble(array->size());
+      SymbolAutoRef symbol = Symbol::encodeNull();	/* Create a copy. */
+      symbol->copyValue( **iter );
+      array->put( key, symbol );
+    }
+
+    return Symbol::encodeObject(array);
+  }
+  
+
 
 #pragma mark -
   
@@ -240,9 +280,11 @@ namespace LQX {
     /* Register all of the methods for the Array type */
     table->registerMethod(new ArrayObject::array_create());
     table->registerMethod(new ArrayObject::array_create_map());
+    table->registerMethod(new ArrayObject::array_clear());
     table->registerMethod(new ArrayObject::array_set());
     table->registerMethod(new ArrayObject::array_get());
     table->registerMethod(new ArrayObject::array_has());
+    table->registerMethod(new ArrayObject::array_append());
   }
   
 };

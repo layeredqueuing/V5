@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 12594 2016-06-06 16:53:56Z greg $
+ *  $Id: srvn_output.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -554,7 +554,7 @@ namespace LQIO {
     SRVN::ObjectOutput::entryInfo( ostream& output, const DOM::Entry & entry, const entryFunc func )
     {
         const DOM::ExternalVariable * value = (entry.*func)();
-        if ( value  != 0 ) {
+        if ( value  != NULL ) {
             output << setw(__maxDblLen) << to_double( *value ) << ' ';
         } else {
             output << setw(__maxDblLen) << 0.0;
@@ -787,6 +787,9 @@ namespace LQIO {
 	output << "#!User: " << SRVN::ObjectOutput::print_time( document.getResultUserTime() ) << endl
 	       << "#!Sys:  " << SRVN::ObjectOutput::print_time( document.getResultSysTime() ) << endl
 	       << "#!Real: " << SRVN::ObjectOutput::print_time( document.getResultElapsedTime() ) << endl;
+	if ( document.getResultMaxRSS() > 0 ) {
+	    output << "#!MaxRSS: " << document.getResultMaxRSS() << endl;
+	}
 	if ( document.getResultMVASubmodels() > 0 ) {
 	    output << "#!Solver: "
 		   << document.getResultMVASubmodels() << ' '
@@ -1190,8 +1193,11 @@ namespace LQIO {
         _output << "Solver: " << document.getResultPlatformInformation() << newline
 		<< "    User:       " << print_time( document.getResultUserTime() ) << newline
 		<< "    System:     " << print_time( document.getResultSysTime() ) << newline
-		<< "    Elapsed:    " << print_time( document.getResultElapsedTime() ) << newline
-		<< newline;
+		<< "    Elapsed:    " << print_time( document.getResultElapsedTime() ) << newline;
+	if ( document.getResultMaxRSS() > 0 ) {
+	    _output << "    MaxRSS:     " << document.getResultMaxRSS() << newline;
+	}
+	_output << newline;
 
 	if ( document.getResultMVASubmodels() > 0 ) {
 	    _output << "    Submodels:  " << document.getResultMVASubmodels() << newline
@@ -1379,6 +1385,10 @@ namespace LQIO {
             const DOM::Task * task = *nextTask;
             bool print_task_name = true;
             unsigned int item_count = 0;
+	    unsigned int priority = 0;
+	    if ( task->hasPriority() ) {
+		priority = to_double( *task->getPriority() );
+	    }
 
             const std::vector<DOM::Entry *> & entries = task->getEntryList();
             for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry, ++item_count ) {
@@ -1389,7 +1399,7 @@ namespace LQIO {
 		    if ( print_task_name ) {
 			_output << setw( __maxStrLen-1 ) << task->getName() << " "
 				<< setw(2) << entries.size() << " "
-				<< setw(1) << task->getPriority() << " "
+				<< setw(1) << priority << " "
 				<< setw(2) << to_double( *task->getCopies() ) << " ";
 			print_task_name = false;
 		    } else {
@@ -1397,7 +1407,7 @@ namespace LQIO {
 		    }
                 } else if ( print_task_name ) {
                     _output << entity_name( *task, print_task_name )
-                            << setw(3) << task->getPriority() << " "
+                            << setw(3) << priority << " "
                             << setw(3) << to_double( *task->getCopies() ) << " ";
                 } else {
                     _output << setw(__maxStrLen+8) << " ";
@@ -1616,7 +1626,11 @@ namespace LQIO {
 	    const DOM::Group * group = t.getGroup();
 	    _output << ' ' << setw(__maxStrLen-1) << ( group ? group->getName() : "--");
 	}
-        _output << ' ' << setw(3) << t.getPriority() << ' ';
+	if ( t.hasPriority() ) {
+	    _output << ' ' << setw(3) << to_double( *t.getPriority());
+	} else {
+	    _output << setw(4) << ' ';
+	}
         if ( __task_has_think_time ) {
             _output << setw(__maxDblLen-1);
             if ( t.getSchedulingType() == SCHEDULE_CUSTOMER ) {
@@ -2029,8 +2043,8 @@ namespace LQIO {
     ostream& 
     SRVN::TaskInput::printPriority( ostream& output,  const DOM::Task& task ) 
     { 
-	if ( task.getPriority() || task.getProcessor()->hasPriorityScheduling() ) {
-	    output << " " << task.getPriority();
+	if ( task.hasPriority() || task.getProcessor()->hasPriorityScheduling() ) {
+	    output << " " << *task.getPriority();
 	}
 	return output; 
     }

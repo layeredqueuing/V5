@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 12554 2016-04-08 20:28:43Z greg $
+ *  $Id: srvn_input.cpp 12980 2017-04-05 00:09:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -32,6 +32,7 @@
 #endif
 
 #include "dom_document.h"
+#include "common_io.h"
 #include "srvn_input.h"
 #include "srvn_results.h"
 #include "dom_histogram.h"
@@ -67,6 +68,16 @@ static inline bool schedule_customer( scheduling_type scheduling_flag )
     return scheduling_flag == SCHEDULE_CUSTOMER || scheduling_flag == SCHEDULE_UNIFORM || scheduling_flag == SCHEDULE_BURST;
 }
 
+/*
+ * Check if n is zero (the NULL case shoud not happen...)
+ */
+
+static inline bool is_zero( const LQIO::DOM::ExternalVariable * n )
+{
+    double value = 0.0;
+    return n == NULL || (n->wasSet() && n->getValue(value) && value == 0);
+}
+    
 static void set_phase_name( const LQIO::DOM::Entry * entry, LQIO::DOM::Phase * phase, const unsigned i )
 {
     if ( phase->getName().size() > 0 ) return;
@@ -93,19 +104,18 @@ srvn_add_processor( const char *processor_name, scheduling_type scheduling_flag,
     if ( LQIO::DOM::currentDocument->getProcessorByName(processor_name) ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name );
 	return 0;
-    } else if ( n_cpus == 0 ) {
+    } else if ( is_zero(static_cast<LQIO::DOM::ExternalVariable *>(n_cpus)) ) {
 	/* Force to SCHEDULE_DELAY */
 	processor = new LQIO::DOM::Processor( LQIO::DOM::currentDocument, processor_name, SCHEDULE_DELAY, 
 					      new LQIO::DOM::ConstantExternalVariable(1),
-					      n_replicas, 0 );
+					      n_replicas );
     } else {
 	processor = new LQIO::DOM::Processor( LQIO::DOM::currentDocument, processor_name, scheduling_flag, 
 					      static_cast<LQIO::DOM::ExternalVariable *>(n_cpus),
-					      n_replicas, 0 );
+					      n_replicas );
     }
 
-    double value;
-    if ( cpu_quantum != NULL && (!static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->wasSet() || (static_cast<const LQIO::DOM::ExternalVariable *>(cpu_quantum)->getValue( value ) && value != 0.0)) ) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( static_cast<LQIO::DOM::ExternalVariable *>(cpu_quantum), 0. ) ) {
 	if ( scheduling_flag == SCHEDULE_FIFO
 	      || scheduling_flag == SCHEDULE_HOL
 	      || scheduling_flag == SCHEDULE_PPR
@@ -154,7 +164,7 @@ srvn_add_group( const char *group_name, void * group_share, const char *processo
 
 void *
 srvn_add_task (const char * task_name, const scheduling_type scheduling, const void * entries, 
-	       void * queue_length, const char * processor_name, const int priority, 
+	       void * queue_length, const char * processor_name, void * priority, 
 	       void * think_time, void * n_copies, const int n_replicas, const char * group_name )
 {
     /* Obtain the processor we will add to */
@@ -186,37 +196,35 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
     } else if ( scheduling == SCHEDULE_SEMAPHORE ) {
 	task = new LQIO::DOM::SemaphoreTask( LQIO::DOM::currentDocument, task_name, 
 					     *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
-					     static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
+					     static_cast<LQIO::DOM::ExternalVariable *>(queue_length), static_cast<LQIO::DOM::ExternalVariable *>(priority), 
 					     static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 					     n_replicas, group, (void *)0);
 
     } else if ( scheduling == SCHEDULE_RWLOCK ) {
 	task = new LQIO::DOM::RWLockTask( LQIO::DOM::currentDocument, task_name, 
 					  *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
-					  static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
+					  static_cast<LQIO::DOM::ExternalVariable *>(queue_length), static_cast<LQIO::DOM::ExternalVariable *>(priority), 
 					  static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 					  n_replicas, group, (void *)0);
 
 
-    } else if ( n_copies == 0 					/* Always infinite if copies == 0 */
-		|| scheduling == SCHEDULE_DELAY
-		|| (static_cast<LQIO::DOM::ExternalVariable *>(n_copies)->wasSet() && static_cast<LQIO::DOM::ExternalVariable *>(n_copies)->getValue(value) && value == 0) ) {
+    } else if ( is_zero( static_cast<LQIO::DOM::ExternalVariable *>(n_copies) ) || scheduling == SCHEDULE_DELAY ) {
 	if ( schedule_customer( scheduling ) ) {
 	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, "Task", task_name );
 	}
 	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, SCHEDULE_DELAY, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
-				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
+				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), static_cast<LQIO::DOM::ExternalVariable *>(priority), 
 				    new LQIO::DOM::ConstantExternalVariable(1), 
 				    n_replicas, group, (void *)0);
 
     } else {
 	task = new LQIO::DOM::Task( LQIO::DOM::currentDocument, task_name, scheduling, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor, 
-				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), priority, 
+				    static_cast<LQIO::DOM::ExternalVariable *>(queue_length), static_cast<LQIO::DOM::ExternalVariable *>(priority), 
 				    static_cast<LQIO::DOM::ExternalVariable *>(n_copies), 
 				    n_replicas, group, (void *)0);
     }
 
-    if ( think_time != NULL && (!static_cast<LQIO::DOM::ExternalVariable *>(think_time)->wasSet() || (static_cast<LQIO::DOM::ExternalVariable *>(think_time)->getValue( value ) && value != 0.0))) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( static_cast<LQIO::DOM::ExternalVariable *>(think_time), 0.0 ) ) {
 	if ( schedule_customer( scheduling ) ) {
 	    task->setThinkTime( static_cast<LQIO::DOM::ExternalVariable *>(think_time) );
 	} else {

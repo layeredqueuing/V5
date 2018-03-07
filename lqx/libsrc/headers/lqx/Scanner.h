@@ -95,8 +95,8 @@ namespace LQX {
     Scanner();
     
     /* This object is not copyable, and will throw an exception if you try */
-    Scanner(const Scanner& other) throw ();
-    Scanner& operator=(const Scanner& other) throw ();
+    Scanner(const Scanner& other);
+    Scanner& operator=(const Scanner& other);
     
   private:
     

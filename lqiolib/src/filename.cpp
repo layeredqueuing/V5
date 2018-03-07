@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 12112 2014-09-12 13:51:38Z greg $
+ * $Id: filename.cpp 13200 2018-03-05 22:48:55Z greg $
  *
  * File name generation.
  *
@@ -217,7 +217,7 @@ namespace LQIO {
      */
 
     int
-    Filename::mtimeCmp( const char * filename ) throw( std::invalid_argument )
+    Filename::mtimeCmp( const char * filename ) 
     {
 	struct stat dst;
 	struct stat src;

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * graphic.h	-- Greg Franks
  *
- * $Id: graphic.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: graphic.h 13170 2018-02-27 21:36:27Z greg $
  */
 
 #ifndef _GRAPHIC_H
@@ -12,11 +12,7 @@
 #include <gd.h>
 #endif
 
-class JustificationManip;
-class ColourManip;
-class FontManip;
 class Label;
-class LineStyleManip;
 class XMLStringManip;
 class Point;
 class PointManip;
@@ -48,12 +44,67 @@ private:
 	{ return m.f(os,m.myShort); }
 };
 
+class PointManip
+{
+public:
+    PointManip( ostream& (*ff)(ostream&, const Point& aPoint ),
+		const Point& aPoint )
+	: f(ff), myPoint(aPoint) {}
+private:
+    ostream& (*f)( ostream&, const Point& aPoint );
+    const Point& myPoint;
+
+    friend ostream& operator<<(ostream & os, const PointManip& m )
+	{ return m.f( os, m.myPoint ); }
+};
+
+class BoxManip
+{
+public:
+    BoxManip( ostream& (*ff)(ostream&, const Point& origin, const Point& extent ),
+		const Point& origin, const Point& extent )
+	: f(ff), myOrigin(origin), myExtent(extent) {}
+private:
+    ostream& (*f)( ostream&, const Point& origin, const Point& extent );
+    const Point& myOrigin;
+    const Point& myExtent;
+
+    friend ostream& operator<<(ostream & os, const BoxManip& m )
+	{ return m.f( os, m.myOrigin, m.myExtent ); }
+};
+
+class RGBManip
+{
+public:
+    RGBManip( ostream& (*ff)(ostream&, const float red, const float green, const float blue ),
+		const float red, const float green, const float blue )
+	: f(ff), myRed(red), myGreen(green), myBlue(blue) {}
+private:
+    ostream& (*f)( ostream&, const float red, const float green, const float blue );
+    const float myRed;
+    const float myGreen;
+    const float myBlue;
+
+    friend ostream& operator<<(ostream & os, const RGBManip& m )
+	{ return m.f( os, m.myRed, m.myGreen, m.myBlue ); }
+};
+
+class XMLStringManip {
+public:
+    XMLStringManip( ostream& (*ff)(ostream&, const char *, const char * ), const char * s1=0, const char * s2=0 )
+	: f(ff), myS1(s1), myS2(s2) {}
+private:
+    ostream& (*f)( ostream&, const char *, const char * );
+    const char * myS1;
+    const char * myS2;
+
+    friend ostream& operator<<(ostream & os, const XMLStringManip& m )
+	{ return m.f(os,m.myS1,m.myS2); }
+};
+
+
 class Graphic
 {
-private:
-    Graphic( const Graphic& );
-    Graphic& operator=( const Graphic& );
-
 public:
     typedef enum { TRANSPARENT, 
 		   DEFAULT_COLOUR, 
@@ -77,6 +128,11 @@ public:
     typedef enum { NO_FILL, DEFAULT_FILL, FILL_ZERO, FILL_90, FILL_SOLID, FILL_TINT } fill_type;
     typedef enum { DEFAULT_FONT, TIMES_ROMAN, TIMES_ITALIC, TIMES_BOLD, SYMBOL_FONT } font_type;
 
+private:
+    Graphic( const Graphic& );
+    Graphic& operator=( const Graphic& );
+
+public:
     explicit Graphic( colour_type pen_colour = DEFAULT_COLOUR, colour_type fill_colour = DEFAULT_COLOUR, linestyle_type ls = DEFAULT_LINESTYLE ) 
 	: myPenColour(pen_colour), myFillColour(fill_colour), myFillStyle(FILL_TINT), myLinestyle(ls), myDepth(0) 
 	{}
@@ -115,6 +171,80 @@ public:
 	float green;
 	float blue;
     } colour_defn;
+
+protected:
+class ColourManip
+{
+public:
+    ColourManip( ostream& (*ff)(ostream&, const Graphic::colour_type aColour ),
+		const Graphic::colour_type aColour )
+	: f(ff), myColour(aColour) {}
+private:
+    ostream& (*f)( ostream&, const Graphic::colour_type aColour );
+    const Graphic::colour_type myColour;
+
+    friend ostream& operator<<(ostream & os, const ColourManip& m )
+	{ return m.f( os, m.myColour ); }
+};
+
+class FontManip
+{
+public:
+    FontManip( ostream& (*ff)(ostream&, const Graphic::font_type aFont, const int size ),
+		const Graphic::font_type aFont, const int size )
+	: f(ff), myFont(aFont), mySize(size) {}
+private:
+    ostream& (*f)( ostream&, const Graphic::font_type aFont, const int size );
+    const Graphic::font_type myFont;
+    const int mySize;
+
+
+    friend ostream& operator<<(ostream & os, const FontManip& m )
+	{ return m.f( os, m.myFont, m.mySize ); }
+};
+
+class LineStyleManip
+{
+public:
+    LineStyleManip( ostream& (*ff)(ostream&, const Graphic::linestyle_type linestyle ),
+		const Graphic::linestyle_type linestyle )
+	: f(ff), myLineStyle(linestyle) {}
+private:
+    ostream& (*f)( ostream&, const Graphic::linestyle_type linestyle );
+    const Graphic::linestyle_type myLineStyle;
+
+    friend ostream& operator<<(ostream & os, const LineStyleManip& m )
+	{ return m.f( os, m.myLineStyle ); }
+};
+
+class JustificationManip
+{
+public:
+    JustificationManip( ostream& (*ff)(ostream&, const justification_type justification ),
+		const justification_type justification )
+	: f(ff), myJustification(justification) {}
+private:
+    ostream& (*f)( ostream&, const justification_type justification );
+    const justification_type myJustification;
+
+    friend ostream& operator<<(ostream & os, const JustificationManip& m )
+	{ return m.f( os, m.myJustification ); }
+};
+
+
+class ArrowManip
+{
+public:
+    ArrowManip( ostream& (*ff)(ostream&, const Graphic::arrowhead_type arrow ),
+		const Graphic::arrowhead_type arrow )
+	: f(ff), myArrow(arrow) {}
+private:
+    ostream& (*f)( ostream&, const Graphic::arrowhead_type arrow );
+    const Graphic::arrowhead_type myArrow;
+
+    friend ostream& operator<<(ostream & os, const ArrowManip& m )
+	{ return m.f( os, m.myArrow ); }
+};
 
 protected:
     static float tint( const float, const float );
@@ -383,13 +513,14 @@ private:
     ostream& arrowHead( ostream& output, const Point&, const Point&, const double scale,
 			const Graphic::colour_type, const Graphic::colour_type ) const;
 
-    static ColourManip setfill( const Graphic::colour_type );
-    static ColourManip setcolour( const Graphic::colour_type );
-    static ColourManip stroke( const Graphic::colour_type );
-    static FontManip setfont( const Graphic::font_type aFont );
-    static JustificationManip justify( const justification_type ); 
-    static LineStyleManip linestyle( const Graphic::linestyle_type );
-    static PointManip moveto( const Point& );
+    static ColourManip setfill( const Graphic::colour_type aColour ) { return ColourManip( SVG::setfill_str, aColour ); }
+    static ColourManip setcolour( const Graphic::colour_type aColour ) { return ColourManip( SVG::setcolour_str, aColour ); }
+    static ColourManip stroke( const Graphic::colour_type aColour ) { return ColourManip( SVG::stroke_str, aColour ); }
+    static FontManip setfont( const Graphic::font_type aFont ) { return FontManip( setfont_str, aFont, Flags::print[FONT_SIZE].value.i ); }
+    static JustificationManip justify( const justification_type justification ) { return JustificationManip( justify_str, justification ); }
+    static LineStyleManip linestyle( const Graphic::linestyle_type aStyle ) { return LineStyleManip( SVG::linestyle_str, aStyle ); }
+    static PointManip moveto( const Point& aPoint ) { return PointManip( point, aPoint ); }
+    static XMLStringManip xml_escape( const char * s ) { return XMLStringManip( xml_escape_str, s ); }
     
     static ostream& point( ostream& output, const Point& aPoint );
     static ostream& setfill_str( ostream& output, const Graphic::colour_type );
@@ -398,6 +529,7 @@ private:
     static ostream& setcolour_str( ostream& output, const Graphic::colour_type );
     static ostream& setfont_str( ostream& output, const Graphic::font_type aFont, const int fontSize );
     static ostream& stroke_str( ostream& output, const Graphic::colour_type );
+    static ostream& xml_escape_str( ostream& output, const char *, const char * );
     static colour_defn fill_value[];
     static font_defn font_value[];
 };
@@ -519,138 +651,4 @@ private:
 #endif
 };
 #endif
-
-class PointManip
-{
-public:
-    PointManip( ostream& (*ff)(ostream&, const Point& aPoint ), 
-		const Point& aPoint )
-	: f(ff), myPoint(aPoint) {}
-private:
-    ostream& (*f)( ostream&, const Point& aPoint );
-    const Point& myPoint;
-
-    friend ostream& operator<<(ostream & os, const PointManip& m )
-	{ return m.f( os, m.myPoint ); }
-};
-
-class BoxManip
-{
-public:
-    BoxManip( ostream& (*ff)(ostream&, const Point& origin, const Point& extent ), 
-		const Point& origin, const Point& extent )
-	: f(ff), myOrigin(origin), myExtent(extent) {}
-private:
-    ostream& (*f)( ostream&, const Point& origin, const Point& extent );
-    const Point& myOrigin;
-    const Point& myExtent;
-
-    friend ostream& operator<<(ostream & os, const BoxManip& m )
-	{ return m.f( os, m.myOrigin, m.myExtent ); }
-};
-
-class ColourManip 
-{
-public:
-    ColourManip( ostream& (*ff)(ostream&, const Graphic::colour_type aColour ), 
-		const Graphic::colour_type aColour )
-	: f(ff), myColour(aColour) {}
-private:
-    ostream& (*f)( ostream&, const Graphic::colour_type aColour );
-    const Graphic::colour_type myColour;
-
-    friend ostream& operator<<(ostream & os, const ColourManip& m )
-	{ return m.f( os, m.myColour ); }
-};
-
-class FontManip 
-{
-public:
-    FontManip( ostream& (*ff)(ostream&, const Graphic::font_type aFont, const int size ), 
-		const Graphic::font_type aFont, const int size )
-	: f(ff), myFont(aFont), mySize(size) {}
-private:
-    ostream& (*f)( ostream&, const Graphic::font_type aFont, const int size );
-    const Graphic::font_type myFont;
-    const int mySize;
-
-
-    friend ostream& operator<<(ostream & os, const FontManip& m )
-	{ return m.f( os, m.myFont, m.mySize ); }
-};
-
-class LineStyleManip 
-{
-public:
-    LineStyleManip( ostream& (*ff)(ostream&, const Graphic::linestyle_type linestyle ), 
-		const Graphic::linestyle_type linestyle )
-	: f(ff), myLineStyle(linestyle) {}
-private:
-    ostream& (*f)( ostream&, const Graphic::linestyle_type linestyle );
-    const Graphic::linestyle_type myLineStyle;
-
-    friend ostream& operator<<(ostream & os, const LineStyleManip& m )
-	{ return m.f( os, m.myLineStyle ); }
-};
-
-class JustificationManip 
-{
-public:
-    JustificationManip( ostream& (*ff)(ostream&, const justification_type justification ), 
-		const justification_type justification )
-	: f(ff), myJustification(justification) {}
-private:
-    ostream& (*f)( ostream&, const justification_type justification );
-    const justification_type myJustification;
-
-    friend ostream& operator<<(ostream & os, const JustificationManip& m )
-	{ return m.f( os, m.myJustification ); }
-};
-
-
-class ArrowManip 
-{
-public:
-    ArrowManip( ostream& (*ff)(ostream&, const Graphic::arrowhead_type arrow ), 
-		const Graphic::arrowhead_type arrow )
-	: f(ff), myArrow(arrow) {}
-private:
-    ostream& (*f)( ostream&, const Graphic::arrowhead_type arrow );
-    const Graphic::arrowhead_type myArrow;
-
-    friend ostream& operator<<(ostream & os, const ArrowManip& m )
-	{ return m.f( os, m.myArrow ); }
-};
-
-
-class RGBManip
-{
-public:
-    RGBManip( ostream& (*ff)(ostream&, const float red, const float green, const float blue ), 
-		const float red, const float green, const float blue )
-	: f(ff), myRed(red), myGreen(green), myBlue(blue) {}
-private:
-    ostream& (*f)( ostream&, const float red, const float green, const float blue );
-    const float myRed;
-    const float myGreen;
-    const float myBlue;
-
-    friend ostream& operator<<(ostream & os, const RGBManip& m )
-	{ return m.f( os, m.myRed, m.myGreen, m.myBlue ); }
-};
-
-class XMLStringManip {
-public:
-    XMLStringManip( ostream& (*ff)(ostream&, const char *, const char * ), const char * s1=0, const char * s2=0 )
-	: f(ff), myS1(s1), myS2(s2) {}
-private:
-    ostream& (*f)( ostream&, const char *, const char * );
-    const char * myS1;
-    const char * myS2;
-
-    friend ostream& operator<<(ostream & os, const XMLStringManip& m ) 
-	{ return m.f(os,m.myS1,m.myS2); }
-};
-
-Graphic::colour_type error_colour( double delta );
 #endif

@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 11963 2014-04-10 14:36:42Z greg $
+# $Id: Makefile 13190 2018-03-03 04:18:19Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -37,6 +37,7 @@ DST =	$(SANITY) \
 	46-activities.lqxo \
 	50-replication.lqxo \
 	51-replication.lqxo \
+	52-replication.lqxo \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \

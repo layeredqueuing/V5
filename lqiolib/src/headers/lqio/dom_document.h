@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 12230 2015-02-03 20:36:38Z greg $
+ *  $Id: dom_document.h 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -199,6 +199,9 @@ namespace LQIO {
 	    Document& setResultSysTime(clock_t resultSysTime);
 	    clock_t getResultUserTime() const { return _resultUserTime; }
 	    Document& setResultUserTime(clock_t resultUserTime);
+	    long getResultMaxRSS() const { return _resultMaxRSS; }
+	    Document& setResultMaxRSS( long resultMaxRSS );
+	    
 
 	    unsigned int getResultMVASubmodels() const { return _mvaStatistics.submodels; }
 	    unsigned long getResultMVACore() const { return _mvaStatistics.core; }
@@ -225,7 +228,7 @@ namespace LQIO {
 	    /* Semi-private */
 
 	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType = DOM::Entry::ENTRY_NOT_DEFINED );
-	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol) throw( std::invalid_argument );
+	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
 	    static lqio_params_stats* io_vars;
 	    static bool __debugXML;
       
@@ -311,6 +314,7 @@ namespace LQIO {
 	    clock_t _resultUserTime;
 	    clock_t _resultSysTime;
 	    clock_t _resultElapsedTime;
+	    long _resultMaxRSS;
 
 	    struct MVAStatistics {
 		MVAStatistics() : submodels(0), core(0), step(0.0), step_squared(0.0), wait(0.0), wait_squared(0.0), faults(0) {}

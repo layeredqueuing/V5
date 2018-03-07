@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 12594 2016-06-06 16:53:56Z greg $
+ *  $Id: dom_bindings.cpp 13201 2018-03-05 23:45:30Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -42,7 +42,7 @@ namespace LQIO {
 	    {
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
@@ -145,7 +145,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -161,7 +161,7 @@ namespace LQIO {
         DOM::Processor* getDOMProcessor() const { return dynamic_cast<DOM::Processor*>(_domObject); }
 
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of tasks */
 		if (name == "utilization") {
@@ -185,7 +185,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* procName = decodeString(args, 0);
@@ -249,7 +249,7 @@ namespace LQIO {
 		return s;
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -279,7 +279,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* taskName = decodeString(args, 0);
@@ -341,7 +341,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -354,7 +354,7 @@ namespace LQIO {
 		return "Entry";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		if (name == "has_phase_1") {
 		    return LQX::Symbol::encodeBoolean(getDOMEntry()->hasResultsForPhase(1));
@@ -385,7 +385,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* entryName = decodeString(args, 0);
@@ -447,7 +447,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -477,7 +477,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
@@ -531,7 +531,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -560,7 +560,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
@@ -623,7 +623,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -653,7 +653,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
@@ -774,7 +774,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -787,7 +787,7 @@ namespace LQIO {
 		return "Document";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of documents */
 		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
@@ -818,7 +818,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Return an encapsulated reference to the task */
 	    LQXDocument* docObject = new LQXDocument(_document);
@@ -875,7 +875,7 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString() throw (LQX::RuntimeException)
+	virtual std::string hashableString()
 	    {
 		/* Return the hashable string */
 		std::stringstream ss;
@@ -888,7 +888,7 @@ namespace LQIO {
 		return "ConfidenceInterval";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) throw (LQX::RuntimeException)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of document objects */
 		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
@@ -922,7 +922,7 @@ namespace LQIO {
 
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) {
+					  std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Return an encapsulated reference to the task */
 	    LQXDocumentObject* lo = dynamic_cast<LQXDocumentObject *>(decodeObject(args, 0));

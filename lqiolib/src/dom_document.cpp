@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 12463 2016-02-24 20:25:53Z greg $
+ *  $Id: dom_document.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -58,7 +58,8 @@ namespace LQIO {
 	      _resultIterations(0),
 	      _resultUserTime(0),
 	      _resultSysTime(0),
-	      _resultElapsedTime(0)
+	      _resultElapsedTime(0),
+	      _resultMaxRSS(0)
 	{
 	    assert( ioVars );			/* Must be set.  See Dom_builder.cpp */
 	    io_vars = ioVars;
@@ -621,6 +622,16 @@ namespace LQIO {
 	    return *this;
 	}
 
+	Document& Document::setResultMaxRSS( long resultMaxRSS )
+	{
+	    if ( resultMaxRSS > 0 ) {		/* Only set if > 0 */
+		_hasResults = true;
+		_resultMaxRSS = resultMaxRSS;
+	    }
+	    return *this;
+	}
+	
+
 	bool Document::hasResults() const
 	{
 	    return _hasResults;
@@ -634,7 +645,7 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 	ExternalVariable* 
-	Document::db_build_parameter_variable(const char* input, bool* isSymbol) throw( std::invalid_argument )
+	Document::db_build_parameter_variable(const char* input, bool* isSymbol)
 	{
 	    if (input && input[0] == '$') {
 		if (isSymbol) { *isSymbol = true; }

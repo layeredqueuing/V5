@@ -23,7 +23,7 @@ namespace LQX {
   namespace Strings {
     
     /* This method on the other hand actually does all the heavy lifting */
-    SymbolAutoRef str_cmp::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+    SymbolAutoRef str_cmp::invoke(Environment*, std::vector<SymbolAutoRef >& args)
     {
       /* Pass the arguments up to strcmp */
       const char* s1 = decodeString(args, 0);
@@ -36,7 +36,7 @@ namespace LQX {
   namespace Strings {
     
     /* This method on the other hand actually does all the heavy lifting */
-    SymbolAutoRef str_concat::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+    SymbolAutoRef str_concat::invoke(Environment*, std::vector<SymbolAutoRef >& args)
     {
       /* Pass the arguments up to strcmp */
       const char* s1 = decodeString(args, 0);

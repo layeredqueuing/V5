@@ -27,8 +27,8 @@ namespace LQX {
   protected:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Environment(const Environment& other) throw ();
-    Environment& operator=(const Environment& other) throw ();
+    Environment(const Environment& other);
+    Environment& operator=(const Environment& other);
     
   public:
     void setDefaultOutput( FILE * defaultOutput ) { _defaultOutput = defaultOutput; }
@@ -38,7 +38,7 @@ namespace LQX {
     SymbolTable* getSymbolTable() const;
     SymbolTable* getSpecialSymbolTable() const;
     MethodTable* getMethodTable() const;
-    SymbolAutoRef invokeGlobalMethod(std::string name, std::vector<SymbolAutoRef >* arguments) throw (RuntimeException);
+    SymbolAutoRef invokeGlobalMethod(std::string name, std::vector<SymbolAutoRef >* arguments);
     
     /* Support for methods defined in-language */
     bool isExecutingInMainContext();

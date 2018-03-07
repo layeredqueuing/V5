@@ -32,13 +32,13 @@ array[0] = x;
 array[x] = y;
 array[2] = z;
 array[3] = a;
-print();
+println();
 
 /* Print out the contents of the array */
 foreach (key,value in array) { 
-  print(key, " => ", array[key]);
+  println(key, " => ", array[key]);
 }
 
 /* Write the table */
-print();
+println();
 print_symbol_table();

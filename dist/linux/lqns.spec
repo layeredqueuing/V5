@@ -1,11 +1,11 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 12541 2016-04-01 21:33:45Z greg $
+# $Id: lqns.spec 12906 2017-01-26 03:32:30Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
 %define product_version VERSION
-%define rpm_release 2
+%define rpm_release 3
 %define product_nameversion %{product_name}-%{product_version}
 %define product_source_dir %{product_nameversion}
 %define product_tarball %{product_nameversion}.tar.gz

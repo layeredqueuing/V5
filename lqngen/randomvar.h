@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: randomvar.h 12412 2016-01-06 17:56:04Z greg $
+ * $Id: randomvar.h 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -206,6 +206,8 @@ namespace RV {
     public:
 	/* Jain: pg 485 */
 	Beta( double a, double b ) : RandomVariable(CONTINUOUS), _a(a), _b(b) {}
+	Beta( double mean ) : RandomVariable(CONTINUOUS), _a(mean), _b(mean) {}
+	Beta& operator=( double mean ) { return setMean( mean ); }
 	virtual Beta * clone() const { return new Beta( _a, _b ); }
 
 	virtual double operator()() const;

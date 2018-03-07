@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: error.h 13200 2018-03-05 22:48:55Z greg $
  */
 
 #if	!defined(SRVNIO_LIB_ERROR_H)
@@ -224,6 +224,6 @@ namespace LQIO {
 	explicit unexpected_attribute( const std::string& attribute ) : runtime_error( attribute ) {}
     };
 
-    void argument_error( const std::string& attr, const std::string& arg ) throw( std::invalid_argument );
+    void argument_error( const std::string& attr, const std::string& arg );
 }
 #endif

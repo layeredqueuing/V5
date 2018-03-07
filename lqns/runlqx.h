@@ -2,7 +2,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: runlqx.h 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -31,8 +31,7 @@ namespace SolverInterface {
 	virtual std::string getName() const { return "solve"; } 
 	virtual const char* getParameterInfo() const { return "1"; } 
 	virtual std::string getHelp() const { return "Solves the model."; } 
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, 
-					  std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException);
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args);
 	static bool solveCallViaLQX;
 	static bool implicitSolve;
 	static std::string customSuffix;

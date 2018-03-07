@@ -1,8 +1,8 @@
-# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/Makefile.am $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/Makefile.am $
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 11977 2014-04-14 00:46:01Z greg $
+# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA

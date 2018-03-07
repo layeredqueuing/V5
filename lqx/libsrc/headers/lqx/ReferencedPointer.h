@@ -101,6 +101,11 @@ namespace LQX {
       if (_value == other._value) { return false; }
       return (*_value < *other._value);
     }
+
+    bool operator!=(const ReferencedPointer<T>& other) const
+    {
+      return !(*this == other);
+    }
     
   private:
     

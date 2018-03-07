@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 12145 2014-09-29 01:36:03Z greg $
+ * $Id: task.cc 13204 2018-03-06 22:52:04Z greg $
  */
 
 #include <iostream>
@@ -18,6 +18,7 @@
 #include <sstream>
 #include <cassert>
 #include <cstring>
+#include <cmath>
 #include <algorithm>
 #include <parasol.h>
 #include "lqsim.h"
@@ -29,6 +30,7 @@
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/common_io.h>
 #include "errmsg.h"
 #include "task.h"
 #include "instance.h"
@@ -59,8 +61,7 @@ const char * Task::type_strings[] =
     "token_r",
     "signal",
     "rw_lock",
-    "rwlock",
-    "token_w"
+    "rwlock"
 };
 
 
@@ -622,14 +623,10 @@ Task::add( LQIO::DOM::Task* domTask )
     const char* processor_name = domTask->getProcessor()->getName().c_str();
     Processor * processor = Processor::find( processor_name );
 
-    unsigned priority = domTask->getPriority();
-    if ( priority != 0 && ( processor->discipline() == SCHEDULE_FIFO
-			    || processor->discipline() == SCHEDULE_PS
-			    || processor->discipline() == SCHEDULE_RAND ) ) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( domTask->getPriority(), 0 ) && ( processor->discipline() == SCHEDULE_FIFO
+								     || processor->discipline() == SCHEDULE_PS
+								     || processor->discipline() == SCHEDULE_RAND ) ) {
 	LQIO::input_error2( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, task_name, processor_name );
-    } else if ( priority < MIN_PRIORITY || MAX_PRIORITY < priority ) {
-	LQIO::input_error2( WRN_INVALID_PRIORITY, priority, MIN_PRIORITY, MAX_PRIORITY, priority );
-	domTask->setPriority(MAX_PRIORITY);
     }
 
     Group * group = 0;
@@ -752,6 +749,20 @@ Task::multiplicity() const
 }
 
 
+int
+Task::priority() const
+{
+    const LQIO::DOM::ExternalVariable * dom_priority = getDOM()->getPriority();
+    if ( !dom_priority ) return 0;
+    double value;
+    assert( dom_priority->getValue(value) == true);
+    if ( value != rint(value) ) {
+	LQIO::solution_error( LQIO::ERR_POSITIVE_INTEGER_EXPECTED, "priority", value,
+			      "task", name() );
+	value = 0.;
+    }
+    return static_cast<int>(value);
+}
 
 bool 
 Task::is_infinite() const
@@ -1236,7 +1247,6 @@ ReadWriteLock_Task::print( FILE * output ) const
 
     return output;
 }
-
 /* ------------------------------------------------------------------------ */
 void
 Pseudo_Task::insertDOMResults()

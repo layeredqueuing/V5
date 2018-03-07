@@ -12,6 +12,7 @@
 
 #include "ReferencedPointer.h"
 #include "SymbolTable.h"
+#include "RuntimeException.h"
 #include <vector>
 #include <string>
 #include <iostream>
@@ -35,8 +36,8 @@ namespace LQX {
     
     /* Always use the provided Static Initializers for loading */
     Program(std::vector<SyntaxTreeNode*>* rawProgram, double compileTime);
-    Program(const Program& other) throw ();
-    Program& operator=(const Program& other) throw ();
+    Program(const Program& other);
+    Program& operator=(const Program& other);
     
   public:
     
@@ -51,9 +52,9 @@ namespace LQX {
     bool invoke();
     
     /* Managing External Variables */
-    SymbolAutoRef defineConstantVariable(std::string name);
-    SymbolAutoRef defineExternalVariable(std::string name);
-    SymbolAutoRef getSpecialVariable(std::string name);
+    SymbolAutoRef defineConstantVariable(const std::string& name);
+    SymbolAutoRef defineExternalVariable(const std::string& name);
+    SymbolAutoRef getSpecialVariable(const std::string& name);
     
     /* For more advanced stuff */
     Environment* getEnvironment() const;

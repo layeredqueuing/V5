@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 11977 2014-04-14 00:46:01Z greg $
+ *  $Id: srvn_input.h 12980 2017-04-05 00:09:25Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -19,7 +19,7 @@ extern "C" {
 	
     void * srvn_add_processor(const char *processor_name, scheduling_type scheduling_flag, void * cpu_quantum, void * n_cpus, int n_replicas, void * cpu_rate );
     void * srvn_add_task(const char * task_name, const scheduling_type scheduling, const void * entries,
-			 void * queue_length, const char * processor_name, const int priority,
+			 void * queue_length, const char * processor_name, void * priority,
 			 void * think_time, void * n_copies, const int n_replicas, const char * group_name );
     void * srvn_add_entry(const char *, const void *);
     void * srvn_find_task( const char * );

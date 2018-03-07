@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: error.cc 13200 2018-03-05 22:48:55Z greg $
  *
  */
 #include "error.h"
@@ -75,7 +75,7 @@ namespace LQIO {
     }
 
     void
-    argument_error( const std::string& attr, const std::string& arg ) throw( std::invalid_argument )
+    argument_error( const std::string& attr, const std::string& arg )
     {
 	std::string err = attr;
 	err += "\"=\"";

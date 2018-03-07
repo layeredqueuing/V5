@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_entity.cpp 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -58,15 +58,15 @@ namespace LQIO {
 	bool Entity::hasCopies() const
 	{
 	    double value = 0.0;
-	    return _copies && (!_copies->wasSet() || !_copies->getValue(value) || value != 1);	    /* Check whether we have it or not */
+	    return _copies && (!_copies->wasSet() || !_copies->getValue(value) || (std::isfinite(value) && value > 1));	    /* Check whether we have it or not */
 	}
 
-	const unsigned int Entity::getCopiesValue() const throw ()
+	const unsigned int Entity::getCopiesValue() const
 	{
 	    /* Obtain the copies count */
 	    double value;
-	    if ( !_copies || _copies->getValue(value) != true || value - floor(value) != 0 ) {
-		throw std::domain_error( "Invalid copies." );
+	    if ( !_copies || _copies->getValue(value) != true || std::isinf(value) || value - floor(value) != 0 || value <= 0 ) {
+		throw std::domain_error( "invalid copies" );
 	    }
 	    return static_cast<unsigned int>(value);
 	}
@@ -116,7 +116,7 @@ namespace LQIO {
 	    /* Return true if this is (or can be) a multiserver */
 	    double v;
 	    const LQIO::DOM::ExternalVariable * m = getCopies();
-	    return m && (!m->wasSet() || !m->getValue(v) || v > 1.0);
+	    return m && (!m->wasSet() || !m->getValue(v) || (std::isfinite(v) && v > 1.0));
 	}
     
 	const bool Entity::isInfinite() const
@@ -126,7 +126,7 @@ namespace LQIO {
 	    } else {
 		double v;
 		const LQIO::DOM::ExternalVariable * m = getCopies(); 
-		return m && m->wasSet() && m->getValue(v) == true && (std::isinf( v ) != 0);
+		return m && m->wasSet() && m->getValue(v) && std::isinf(v);
 	    }
 	}
     }

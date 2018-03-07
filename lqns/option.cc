@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 12350 2015-12-02 02:55:32Z greg $
+ * $Id: option.cc 13032 2017-05-23 20:59:43Z greg $
  */
 
 #include <config.h>
@@ -86,13 +86,14 @@ Options::Debug::initialize()
     __table["xml"] =        Debug( &Debug::xml,         &Help::debugXML );
     __table["lqx"] =        Debug( &Debug::lqx,         &Help::debugLQX );
 
-    __options = new const char * [__table.size()];
+    __options = new const char * [__table.size()+1];
     std::map<const char *, Options::Debug>::const_iterator next_opt;
 
     unsigned int i = 0;
     for ( next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
 	__options[i++] = next_opt->first;
     }
+    __options[i] = NULL;
 }
 
 void
@@ -225,20 +226,21 @@ Options::Trace::initialize()
     __table["overtaking"] =  Trace( &Trace::overtaking        , false, &Help::traceOvertaking );
     __table["intermediate"] =Trace( &Trace::intermediate      , false, &Help::traceIntermediate );
 //  __table["processor"] =   Trace( &Trace::processor         , true,  &Help::traceProcessor );
-//  __table["replication"] = Trace( &Trace::replication       , false, &Help::traceReplication );
+    __table["replication"] = Trace( &Trace::replication       , false, &Help::traceReplication );
 //  __table["task"] =        Trace( &Trace::task              , true,  &Help::traceTask );
     __table["variance"] =    Trace( &Trace::variance          , false, &Help::traceVariance );
     __table["wait"] =	     Trace( &Trace::wait              , false, &Help::traceWait );
     __table["throughput"] =  Trace( &Trace::throughput        , false, &Help::traceThroughput );
     __table["quorum"] =      Trace( &Trace::quorum            , false, &Help::traceQuorum );
 
-    __options = new const char * [__table.size()];
+    __options = new const char * [__table.size()+1];
     std::map<const char *, Options::Trace>::const_iterator next_opt;
 
     unsigned int i = 0;
     for ( next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
 	__options[i++] = next_opt->first;
     }
+    __options[i] = NULL;
 }
 
 void
@@ -433,13 +435,14 @@ Options::Special::initialize()
     __table["ignore-overhanging-threads"] = Special( &Special::ignore_overhanging_threads, false, &Help::specialIgnoreOverhangingThreads );
     __table["full-reinitialize"] 	  = Special( &Special::full_reinitialize,          false, &Help::specialFullReinitialize );
 
-    __options = new const char * [__table.size()];
+    __options = new const char * [__table.size()+1];
     std::map<const char *, Options::Special>::const_iterator next_opt;
 
     unsigned int i = 0;
     for ( next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
 	__options[i++] = next_opt->first;
     }
+    __options[i] = NULL;
 }
 
 void

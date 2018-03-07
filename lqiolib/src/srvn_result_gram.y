@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_gram.y 11191 2012-11-06 01:58:57Z greg $
+ * $Id: srvn_result_gram.y 13204 2018-03-06 22:52:04Z greg $
  * ----------------------------------------------------------------------
  *
  * This file has been modified such that it uses result rather than yy on its
@@ -59,8 +59,9 @@ static void resulterror( const char * fmt );
 %token 		        VALIDITY_FLAG CONV_FLAG ITERATION_FLAG PROC_COUNT_FLAG PHASE_COUNT_FLAG BOUND_FLAG DROP_PROBABILITY_FLAG SERVICE_EXCEEDED_FLAG DISTRIBUTION_FLAG
 %token  		WAITING_FLAG WAITING_VARIANCE_FLAG SNR_WAITING_FLAG SNR_WAITING_VARIANCE_FLAG JOIN_FLAG HOLD_TIME_FLAG RWLOCK_HOLD_TIME_FLAG
 %token                  SERVICE_FLAG VARIANCE_FLAG THPT_UT_FLAG OPEN_ARRIV_FLAG PROC_FLAG OVERTAKING_FLAG ENDLIST
-%token			REAL_TIME USER_TIME SYST_TIME SOLVER
-%token <anInt> 		INTEGER 
+%token			REAL_TIME USER_TIME SYST_TIME MAX_RSS SOLVER
+%token <anInt> 		INTEGER
+%token <aLong>		LONG
 %token <aFloat>		FLOAT 
 %token <aString> 	SYMBOL TEXT TIME INFTY 
 %token <aChar>		CHAR 
@@ -74,6 +75,7 @@ static void resulterror( const char * fmt );
 
 %union {
 	int anInt;
+        long aLong;
 	double aFloat;
 	char *aString;
 	char aChar;
@@ -254,6 +256,8 @@ runtime_tbl_entry	: REAL_TIME TIME
 			    { add_user_time( $2 ); }
 			| SYST_TIME TIME
 			    { add_system_time( $2 ); }
+			| MAX_RSS LONG
+			    { add_max_rss( $2 ); }
 			| SOLVER INTEGER INTEGER real real real real INTEGER
 			    { add_mva_solver_info( $2, $3, $4, $5, $6, $7, $8 ); }
 			| SOLVER INTEGER INTEGER real real real real  real real real  TIME TIME TIME

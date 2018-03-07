@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: submodel.cc 13205 2018-03-06 23:30:13Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -456,7 +456,9 @@ MVASubmodel::build()
 	    unsigned n_delta = 0;
 	    aClient->updateWaitReplication( *this, n_delta );
 	}
-	setThreadChain();
+	if ( aClient->nThreads() > 1 ) {
+	    setThreadChain();
+	}
     }
 }
 
@@ -592,7 +594,7 @@ MVASubmodel::makeChains()
 	Sequence<Entity *> nextServer( clientsServers );
 	const unsigned threads = aClient->nThreads();
 
-	if ( aClient->replicas() <= 1 ) {
+	if ( !hasReplication ) {
 
 	    /* ---------------- Simple case --------------- */
 
@@ -1000,7 +1002,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    }
 
 	    while ( aClient = nextClient() ) {
-		if ( aClient->replicas() > 1 ) {
+		if ( hasReplication ) {
 		    modifyClientServiceTime( aClient );
 		}
 	    }

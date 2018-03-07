@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_task.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -20,7 +20,7 @@ namespace LQIO {
     namespace DOM {
 
 	Task::Task(const Document * document, const char * task_name, const scheduling_type scheduling, const std::vector<Entry *>& entryList, 
-		   const Processor* processor, ExternalVariable* queue_length, const int priority, 
+		   const Processor* processor, ExternalVariable* queue_length, ExternalVariable * priority, 
 		   ExternalVariable* n_copies, const int n_replicas, const Group * group, const void * task_element) 
 	    : Entity(document, task_name, scheduling, n_copies, n_replicas, TYPE_TASK, task_element),
 	      _entryList(entryList),
@@ -118,19 +118,44 @@ namespace LQIO {
 	    _queueLength = queueLength;
 	}
     
-	int Task::getPriority() const
+	int Task::getPriorityValue() const
+	{
+	    /* Retun the task priority as a value. */
+	    double value;
+	    if ( !_priority || _priority->getValue(value) != true || value != rint(value) ) {
+		throw std::domain_error( "invalid priority" );
+	    }
+	    return value;
+	}
+	
+	ExternalVariable * Task::getPriority() const
 	{
 	    return _priority;
 	}
     
-	void Task::setPriority(const unsigned int priority)
+	bool Task::hasPriority() const
+	{
+	    double value = 0.0;
+	    return _priority && (!_priority->wasSet() || !_priority->getValue(value) || value != 0.0);	    /* Check whether we have it or not */
+	}
+    
+	void Task::setPriority(ExternalVariable * priority)
 	{
 	    _priority = priority;
 	}
-    
+
+	void Task::setPriorityValue( int value )
+	{
+	    if ( _priority == NULL ) {
+		_priority = new ConstantExternalVariable(value);
+	    } else {
+		_priority->set(value);
+	    }
+	}
+
 	double Task::getThinkTimeValue() const
 	{
-	    /* Retun the phase think time */
+	    /* Retun the task think time */
 	    double value;
 	    if ( !_thinkTime || _thinkTime->getValue(value) != true || value < 0. ) {
 		throw std::domain_error( "Invalid think time." );
@@ -503,7 +528,7 @@ namespace LQIO {
 	/* ------------------------------------------------------------------------ */
 
 	SemaphoreTask::SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-				     const Processor* processor, ExternalVariable* queue_length, const int priority, 
+				     const Processor* processor, ExternalVariable* queue_length, ExternalVariable * priority, 
 				     ExternalVariable* n_copies, const int n_replicas,
 				     const Group * group, const void * task_element)
 	    : Task(document, name, SCHEDULE_SEMAPHORE, entryList, processor, queue_length, priority, 
@@ -575,7 +600,7 @@ namespace LQIO {
 	}
 
 	RWLockTask::RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			       const Processor* processor, ExternalVariable* queue_length, const int priority, 
+			       const Processor* processor, ExternalVariable* queue_length, ExternalVariable * priority, 
 			       ExternalVariable* n_copies, const int n_replicas,
 			       const Group * group, const void * task_element)
 	    : Task(document, name, SCHEDULE_RWLOCK, entryList, processor, 

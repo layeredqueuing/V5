@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: generate.h 12412 2016-01-06 17:56:04Z greg $
+ * $Id: generate.h 13200 2018-03-05 22:48:55Z greg $
  *
  */
 
@@ -31,13 +31,13 @@ namespace LQIO {
 	class Entity;
 	class Processor;
 	class Group;
-	class Task;    
+	class Task;
 	class Entry;
 	class Call;
     }
 }
 
-class Generate 
+class Generate
 {
 private:
     class IntegerManip {
@@ -64,6 +64,15 @@ private:
     };
 
 
+    class Groupize {
+    public:
+	Groupize( Generate& model ) : _model(model) {}
+	void operator()( const std::pair<std::string,LQIO::DOM::Processor *>& p ) const { _model.groupize( p.second ); }
+
+    private:
+	Generate& _model;
+    };
+
     class ModelVariable {
 	friend class Generate;
 
@@ -87,31 +96,40 @@ private:
     };
 
     class ProcessorVariable : public ModelVariable {
-    public: 
+    public:
 	ProcessorVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
 	void operator()( const std::pair<std::string,LQIO::DOM::Processor *>& ) const;
     };
 	
     class TaskVariable : public ModelVariable {
-    public: 
+    public:
 	TaskVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
 	void operator()( const std::pair<std::string,LQIO::DOM::Task *>& ) const;
     };
 	
     class EntryVariable : public ModelVariable {
-    public: 
+    public:
 	EntryVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
 	void operator()( const std::pair<std::string,LQIO::DOM::Entry *>& ) const;
     };
 	
     class PhaseVariable : public ModelVariable {
-    public: 
+    public:
 	PhaseVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
-	void operator()( const std::pair<unsigned, LQIO::DOM::Phase *>& ) const;
+	void operator()( const std::pair<unsigned, LQIO::DOM::Phase *>& p ) const { transform( p.second ); }
+
+    protected:
+	void transform( LQIO::DOM::Phase* ) const;
     };
-    
+
+    class ActivityVariable : public PhaseVariable {
+    public:
+	ActivityVariable( Generate& model, variableValueFunc f ) : PhaseVariable( model, f ) {}
+	void operator()( const std::pair<std::string, LQIO::DOM::Activity *>& a ) const { transform( a.second ); }
+    };
+
     class CallVariable : public ModelVariable {
-    public: 
+    public:
 	CallVariable( Generate& model, variableValueFunc f ) : ModelVariable( model, f ) {}
 	void operator()( LQIO::DOM::Call * ) const;
     };
@@ -149,7 +167,7 @@ private:
 	EntryHeading( std::ostream& output, int i ) : LQXOutput( output, i ) {}
 	void operator()( const std::pair<std::string,LQIO::DOM::Entry*>& e ) const;
     };
-    
+
     class PhaseHeading : public LQXOutput {
     public:
 	PhaseHeading( std::ostream& output, int i, const LQIO::DOM::Entry * entry ) : LQXOutput( output, i ), _entry(entry) {}
@@ -190,7 +208,7 @@ private:
 	EntryResult( std::ostream& output, int i ) : LQXOutput( output, i ) {}
 	void operator()( const std::pair<std::string,LQIO::DOM::Entry*>& e ) const;
     };
-    
+
     class PhaseResult : public LQXOutput {
     public:
 	PhaseResult( std::ostream& output, int i, const LQIO::DOM::Entry * entry ) : LQXOutput( output, i ), _entry(entry) {}
@@ -215,9 +233,16 @@ private:
     struct EntryObservation {
 	void operator()( const std::pair<std::string,LQIO::DOM::Entry*>& e ) const;
     };
-    
+
     struct PhaseObservation {
 	PhaseObservation( const LQIO::DOM::Entry * entry ) : _entry(entry) {}
+	void operator()( const std::pair<unsigned, LQIO::DOM::Phase*>& p ) const;
+    private:
+	const LQIO::DOM::Entry * _entry;
+    };
+	
+    struct PhaseCallObservation {
+	PhaseCallObservation( const LQIO::DOM::Entry * entry ) : _entry(entry) {}
 	void operator()( const std::pair<unsigned, LQIO::DOM::Phase*>& p ) const;
     private:
 	const LQIO::DOM::Entry * _entry;
@@ -283,9 +308,9 @@ private:
 	AccumulateRequests() : Accumulate() {}
 	void operator()( const LQIO::DOM::Call * );
     };
-    
+
 /* ------------------------------------------------------------------------ */
-    
+
     typedef void (Generate::*get_set_var_fptr)( const ModelVariable::variableValueFunc );
 
 public:
@@ -299,18 +324,20 @@ public:
     unsigned long getNumberOfRuns() const { return _runs; }
 
     Generate& operator()();		// generate.
-    void reparameterize();
+    Generate& groupize();
+    Generate& reparameterize();
 
     ostream& print( ostream& ) const;
     ostream& printStatistics( ostream& ) const;
 
 private:
     LQIO::DOM::Document& getDOM() const { return *_document; }
-    
+
     void populateLayers();
     Generate& generate();
     LQIO::DOM::Processor * addProcessor( const string&, const scheduling_type sched_flag );
-    LQIO::DOM::Task * addTask( const string& name, const scheduling_type sched_flag, const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * aProcessor);
+    LQIO::DOM::Group * addGroup( LQIO::DOM::Processor * processor, double share );
+    LQIO::DOM::Task * addTask( const string& name, const scheduling_type sched_flag, const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * processor );
     LQIO::DOM::Entry * addEntry( const string& name, const RV::Probability& rv );
     LQIO::DOM::Call * addCall( LQIO::DOM::Entry *, LQIO::DOM::Entry *, const RV::Probability& );
 
@@ -319,6 +346,7 @@ private:
     static bool isInterestingProcessor( const LQIO::DOM::Entity * );
     static bool isServerTask( const LQIO::DOM::Entity * );
 
+    void groupize( LQIO::DOM::Processor* );
     void addSpex( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
     void addLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
     void addSensitivityLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
@@ -353,8 +381,10 @@ public:
     static RV::RandomVariable * __processor_multiplicity;
     static RV::Probability      __probability_second_phase;
     static RV::Probability      __probability_infinite_server;
+    static RV::Probability	__probability_cfs_processor;
+    static RV::Beta             __group_share;
     static RV::RandomVariable * __number_of_entries;
-    
+
     static std::string __comment;
     static unsigned __iteration_limit;
     static unsigned __print_interval;

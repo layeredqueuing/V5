@@ -63,7 +63,7 @@ namespace LQX {
     return SymbolAutoRef(symbol, false);
   }
   
-  SymbolAutoRef Symbol::duplicate(SymbolAutoRef& source)
+  SymbolAutoRef Symbol::duplicate(const SymbolAutoRef& source)
   {
     /* Copy the constant value or duplicate the object */
     Symbol* symbol = new Symbol();
@@ -437,7 +437,7 @@ namespace LQX {
     _stack.push_back( std::map<std::string,SymbolAutoRef >() );
   }
   
-  void SymbolTable::popContext() throw (RuntimeException)
+  void SymbolTable::popContext()
   {
     /* Throw a variable context away */
     if (_stack.size() == 1) {
@@ -498,12 +498,12 @@ namespace LQX {
     }
   }
   
-  SymbolTable::SymbolTable(const SymbolTable&) throw ()
+  SymbolTable::SymbolTable(const SymbolTable&)
   {
     throw NonCopyableException();
   }
   
-  SymbolTable& SymbolTable::operator=(const SymbolTable&) throw ()
+  SymbolTable& SymbolTable::operator=(const SymbolTable&)
   {
     throw NonCopyableException();
   }

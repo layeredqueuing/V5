@@ -30,7 +30,7 @@ using namespace LQX;
 /* The enumeration must match the headers/lqx/Parser.h */
 
 %nonassoc BOOLEAN STRING DOUBLE IDENTIFIER.
-%nonassoc FOR FOREACH IN WHILE BREAK IF ELSE RETURN.
+%nonassoc FOR FOREACH IN WHILE BREAK IF ELSE RETURN SELECT.
 %nonassoc FILE_WRITE FILE_READ FILE_APPEND READ_LOOP.
 %nonassoc FILE_OPEN FILE_PRINT FILE_PRINTLN FILE_PRINT_SP FILE_PRINTLN_SP FILE_CLOSE READ_DATA.
 %nonassoc OBRACKET CBRACKET OBRACE CBRACE OSQUARE CSQUARE DOT.
@@ -148,6 +148,7 @@ assignment_stmt(X) ::= vpf_stmt(A) MINUS_EQUALS logic_or_stmt(B).             { 
 assignment_stmt(X) ::= vpf_stmt(A) MOD_EQUALS logic_or_stmt(B).               { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::MODULUS, A, B)); }
 assignment_stmt(X) ::= vpf_stmt(A) LEFTSHIFT_EQUALS logic_or_stmt(B).         { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_LEFT, A, B)); }
 assignment_stmt(X) ::= vpf_stmt(A) RIGHTSHIFT_EQUALS logic_or_stmt(B).        { X = new AssignmentStatementNode(A, new MathExpression(MathExpression::SHIFT_RIGHT, A, B)); }
+     
 
 logic_or_stmt(X) ::= logic_and_stmt(A).                                       { X = A; }
 logic_or_stmt(X) ::= logic_or_stmt(A) LOGIC_OR logic_and_stmt(B).             { X = new LogicExpression(LogicExpression::OR, A, B); }
@@ -191,6 +192,13 @@ vpf_stmt(X) ::= vpf_stmt(A) DOT IDENTIFIER(B).                                { 
 postfix_stmt(X) ::= basic_stmt(A).                                            { X = A; }
 postfix_stmt(X) ::= IDENTIFIER(A) OBRACKET CBRACKET.                          { X = new MethodInvocationExpression(A->getStoredIdentifier()); }
 postfix_stmt(X) ::= IDENTIFIER(A) OBRACKET expr_list(B) CBRACKET.             { X = new MethodInvocationExpression(A->getStoredIdentifier(), B); }
+postfix_stmt(X) ::= SELECT OBRACKET IDENTIFIER(A) IN expr(C) SEMICOLON
+  logic_or_stmt(B) CBRACKET.    					      { X = new SelectExpression(A->getStoredIdentifier(), A->getIsExternal(), C, B ); }
+postfix_stmt(X) ::= SELECT OBRACKET IDENTIFIER(A) opt_a(D) SEMICOLON  
+  logic_or_stmt(B) SEMICOLON opt_e(C) CBRACKET. 			      { X = new ComprehensionExpression(A->getStoredIdentifier(), A->getIsExternal(), D, B, C ); }
+
+opt_a(X) ::= .                                                                { X = NULL; }
+opt_a(X) ::= EQUALS logic_or_stmt(A).                                         { X = A; }
 
 basic_stmt(X) ::= NULL.                                                       { X = new ConstantValueExpression(); }
 basic_stmt(X) ::= STRING(A).                                                  { X = new ConstantValueExpression(A->getStoredString()); }
@@ -207,7 +215,7 @@ basic_stmt(X) ::= OBRACKET expr(A) CBRACKET.                                  { 
  * File Output/Input Expressions
  */
 
-expr(X) ::= file_open_stmt(A).						     { X = A; }
+postfix_stmt(X) ::= file_open_stmt(A).					     { X = A; }
 file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
   COMMA FILE_WRITE CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), true ); }
 file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
@@ -215,19 +223,20 @@ file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B)
 file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
   COMMA FILE_READ CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), false ); }
 
-expr(X) ::= file_close_stmt(A).						     { X = A; }
+postfix_stmt(X) ::= file_close_stmt(A).					     { X = A; }
 file_close_stmt(X) ::= FILE_CLOSE OBRACKET IDENTIFIER(A) 
   CBRACKET.	    							     { X = new FileCloseStatementNode( A->getStoredIdentifier() ); }
 
-expr(X) ::= file_input_stmt(A). 					     { X = A; } 
+postfix_stmt(X) ::= file_input_stmt(A). 				     { X = A; } 
 file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
   COMMA expr_list(B) CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), B ); }
 file_input_stmt(X) ::= READ_DATA OBRACKET IDENTIFIER(A)
   COMMA READ_LOOP CBRACKET.						     { X = new ReadDataStatementNode( A->getStoredIdentifier(), NULL ); }
 
-expr(X) ::= file_output_stmt(A).					     { X = A; }
+postfix_stmt(X) ::= file_output_stmt(A).				     { X = A; }
 file_output_stmt(X) ::= FILE_PRINT OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, false, false ); }
 file_output_stmt(X) ::= FILE_PRINTLN OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, true, false ); }
+file_output_stmt(X) ::= FILE_PRINTLN OBRACKET CBRACKET.			     { X = new FilePrintStatementNode( new std::vector<SyntaxTreeNode*>(), true, false ); }
 file_output_stmt(X) ::= FILE_PRINT_SP OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, false, true ); }
 file_output_stmt(X) ::= FILE_PRINTLN_SP OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, true, true ); }
 

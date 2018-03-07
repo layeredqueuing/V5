@@ -17,6 +17,7 @@
 #endif
 #include <cstring>
 #include "common_io.h"
+#include "dom_extvar.h"
 
 namespace LQIO {
     namespace DOM {
@@ -57,8 +58,8 @@ namespace LQIO {
 	    scheduling_table[schedulingTypeXMLString[SCHEDULE_RWLOCK]] =      SCHEDULE_RWLOCK;
 	}
 
-	void 
-	Common_IO::invalid_argument( const std::string& attr, const std::string& arg ) const throw( std::invalid_argument )
+	/* static */ void
+	Common_IO::invalid_argument( const std::string& attr, const std::string& arg )
 	{
 	    std::string err = attr;
 	    err += "\"=\"";
@@ -72,6 +73,18 @@ namespace LQIO {
 	Common_IO::invert( const double arg ) const
 	{
 	    return _conf_95.invert( arg );
+	}
+
+	/* 
+	 * This function is used to ignore default values in the
+	 * input.  
+	 */
+	
+	bool
+	Common_IO::is_default_value( const LQIO::DOM::ExternalVariable * var, double default_value ) 
+	{
+	    double value = 0.0;
+	    return var == NULL || (var->wasSet() && var->getValue(value) && value == default_value);
 	}
 
 	ForPhase::ForPhase()

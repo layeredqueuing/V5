@@ -7,6 +7,7 @@
  *
  */
 
+#include <config.h>
 #include "NonCopyable.h"
 #include "Program.h"
 #include "Scanner.h"
@@ -16,7 +17,16 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <cstring>
 #include <sys/time.h>
+#include <errno.h>
+#if HAVE_SYS_MMAN_H
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#endif
 
 /* C++ Headers */
 #include <iostream>
@@ -99,27 +109,44 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
   
   Program* Program::loadFromFile(char* path)
   {
+#if HAVE_MMAP
+    struct stat statbuf;
+    int fd = open( path, O_RDONLY );
+    if ( fd < 0 || fstat( fd, &statbuf ) < 0 ) {
+      throw RuntimeException( "Cannot open %s: %s.", path, strerror( errno ) );
+    }
+    char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, fd, 0 ));
+    Program* program = NULL;
+    if ( buffer != MAP_FAILED ) {
+      program = Program::loadFromText(path, 1, buffer);
+      munmap( buffer, statbuf.st_size );
+    } else {
+      throw RuntimeException( "Cannot open %s: %s.", path, strerror( errno ) );
+    }
+    close( fd );
+    return program;
+#else
     /* Attempt to open the file for reading */
     FILE* fp = fopen(path, "rb");
     if (fp == NULL) {
-      return NULL;
+	throw RuntimeException( "Cannot open %s: %s.", path, strerror( errno ) );
     }
     
     /* Probably not the most efficient way but it should work */
-    char* buffer = NULL;
     long length = 0;
     fseek(fp, 0, SEEK_END);
     length = ftell(fp);
     fseek(fp, 0, SEEK_SET);
-    buffer = (char *)malloc(length+1);
+    char * buffer = new char[length+1];
     fread(buffer, length, 1, fp);
     fclose(fp);
     buffer[length] = '\0';
     
     /* Load the program from the text, close up and return */
     Program* program = Program::loadFromText(path, 1, buffer);
-    free(buffer);
+    delete [] buffer;
     return program;
+#endif
   }
   
   Program* Program::loadRawProgram(std::vector<SyntaxTreeNode*>* rawProgram)
@@ -146,12 +173,12 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     delete(_program);
   }
   
-  Program::Program(const Program&) throw ()
+  Program::Program(const Program&)
   {
     throw NonCopyableException();
   }
   
-  Program& Program::operator=(const Program&) throw ()
+  Program& Program::operator=(const Program&)
   {
     throw NonCopyableException();
   }
@@ -200,7 +227,7 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
       for (iter = _program->begin(); iter != _program->end(); ++iter) {
         try {
           (*iter)->invoke(_runEnvironment);
-        } catch (LQX::RuntimeException re) {
+        } catch (const LQX::RuntimeException& re) {
           std::cout << "--> Runtime Exception Occured: " << re.what() << std::endl;
 	  success = false;
           break;
@@ -214,7 +241,7 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     return success;
   }
   
-  SymbolAutoRef Program::defineConstantVariable(std::string name)
+  SymbolAutoRef Program::defineConstantVariable(const std::string& name)
   {
     /* Now, External variables and Constant variables are the same */
     SymbolAutoRef sar = this->defineExternalVariable(name);
@@ -222,7 +249,7 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     return sar;
   }
   
-  SymbolAutoRef Program::defineExternalVariable(std::string name)
+  SymbolAutoRef Program::defineExternalVariable(const std::string& name)
   {
     /* Define a new external symbol in the symbol table and return a reference */
     LQX::SymbolTable* st = _runEnvironment->getSpecialSymbolTable();
@@ -232,7 +259,7 @@ Program* Program::loadFromText(const char* filename, const unsigned line_number,
     return sar;
   }
   
-  SymbolAutoRef Program::getSpecialVariable(std::string name)
+  SymbolAutoRef Program::getSpecialVariable(const std::string& name)
   {
     /* Return a reference to an external symbol */
     LQX::SymbolTable* st = _runEnvironment->getSpecialSymbolTable();

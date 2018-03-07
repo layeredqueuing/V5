@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: xerces_document.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: xerces_document.h 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -167,6 +167,7 @@ namespace LQIO {
             static XMLCh *Xlqn_model;
             static XMLCh *Xlqx;
             static XMLCh *Xmax;
+	    static XMLCh *Xmax_rss;
             static XMLCh *Xmax_service_time;
             static XMLCh *Xmin;
             static XMLCh *Xmultiplicity;

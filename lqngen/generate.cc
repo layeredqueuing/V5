@@ -1,7 +1,13 @@
-/* lqngen.cc    -- Greg Franks Thu Jul 29 2004
- * Model file generator.
+/* generate.cc    -- Greg Franks Thu Jul 29 2004
  *
- * $Id: generate.cc 12547 2016-04-05 18:32:45Z greg $
+ * Logic for generating and transforming the model.
+ * If generating, generate() constructs the DOM.  Otherwise the DOM is loaded.
+ * parameterize() is then called to convert constant parameters to variables.
+ * LQX is created directly, rather than by doing LQX::_program->print().  This is less verbose.
+ * However, to eliminate code here, the spex construction functions will have to save the
+ * LQX expressions and then construct the program.
+ * ------------------------------------------------------------------------
+ * $Id: generate.cc 13200 2018-03-05 22:48:55Z greg $
  */
 
 #include "lqngen.h"
@@ -13,6 +19,7 @@
 #include <lqio/input.h>
 #include <lqio/dom_task.h>
 #include <lqio/dom_entry.h>
+#include <lqio/dom_activity.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_document.h>
@@ -53,6 +60,8 @@ RV::RandomVariable * Generate::__processor_multiplicity		= 0;
 RV::RandomVariable * Generate::__number_of_entries		= 0;
 RV::Probability      Generate::__probability_second_phase	= 0.;
 RV::Probability      Generate::__probability_infinite_server	= 0.;
+RV::Probability	     Generate::__probability_cfs_processor	= 0.;
+RV::Beta	     Generate::__group_share			= 0.8;
 
 std::vector<std::string> Generate::__random_variables;
 
@@ -69,18 +78,21 @@ static struct document_observation {
     { Flags::USER_TIME,    KEY_USER_TIME,    "user",    "user_cpu_time",   "$usr" },
     { Flags::SYSTEM_TIME,  KEY_SYSTEM_TIME,  "system",  "system_cpu_time", "$sys" },
 };
-
-/*
- * Initialize probabilities.
- */
 
+struct HasKey {
+    HasKey( unsigned int key ) : _key(key) {}
+    bool operator()( const std::pair<const LQIO::DOM::DocumentObject *,LQIO::DOM::Spex::ObservationInfo>& p ) { return p.second.getKey() == _key; }
+private:
+    const unsigned int _key;
+};
+
 Generate::Generate( LQIO::DOM::Document * document, const unsigned runs ) 
     : _document(document), _runs(runs), _number_of_layers(0)
 {
 }
 
 
-Generate::Generate( const unsigned layers, const unsigned runs ) 
+Generate::Generate( const unsigned layers, const unsigned runs )
     : _document(0), _runs(runs), _number_of_layers(layers)
 {
     _document = new LQIO::DOM::Document( &io_vars, LQIO::DOM::Document::AUTOMATIC_INPUT );		// For XML output.
@@ -102,6 +114,7 @@ Generate&
 Generate::operator()()
 {
     generate();
+    groupize();
     reparameterize();
     return *this;
 }
@@ -175,9 +188,9 @@ Generate::generate()
 		    entries.push_back( entry );
 		}
 	    }
-	    
+	
 	    /* Add the processor -- */
-	    
+	
 	    unsigned int p;
 	    if ( Generate::__processor_layering == BREADTH_FIRST_LAYERING ) {
 		p = static_cast<int>(static_cast<double>(k) / tasks_per_processor);
@@ -196,7 +209,7 @@ Generate::generate()
 	stride[i] = _entry.size();
     }
 
-    /* 
+    /*
      * Connect all servers to parents.  The first entry of each server
      * is connected to a task in layer-1, all other entries can go to
      * any other entry above this layer.
@@ -210,7 +223,7 @@ Generate::generate()
 	    for ( std::vector<LQIO::DOM::Entry *>::const_iterator ep = entries.begin(); ep != entries.end(); ++ep ) {
 		LQIO::DOM::Entry * dst = *ep;
 		if ( ep == entries.begin() ) {
-		    const unsigned int k = __task_layering == RANDOM_LAYERING 
+		    const unsigned int k = __task_layering == RANDOM_LAYERING
 			? static_cast<unsigned int>(number_of_clients * drand48())	/* Picks any immediate client task.	*/
 			: i;								/* Pick the immediate client. 		*/
 		    LQIO::DOM::Entry * src = _task[j-1][k]->getEntryList().front();
@@ -256,7 +269,7 @@ Generate::generate()
 	    LQIO::DOM::Entry * dst = _entry.at(server_entry);
 
 	    /* Add the call */
-	    
+	
 	    for ( unsigned int retry = 0; retry < 3; ++retry ) {
 		LQIO::DOM::Call * call = addCall( src, dst, client_layer > REF_LAYER ? __probability_second_phase : 0 );
 		if ( call ) {
@@ -266,7 +279,7 @@ Generate::generate()
 	    }
 	}
     }
-    
+
 
     /* Connect any unconnected clients to any server. */
 
@@ -292,18 +305,18 @@ Generate::generate()
 }
 
 
-/* 
+/*
  * Determine how many tasks should go into each layer.  Generally, to
  * ensure that all layers are filled, population goes row by row and
  * adds columns as needed.
  */
 
 void
-Generate::populateLayers() 
+Generate::populateLayers()
 {
     const unsigned int n = _number_of_tasks.size();
     unsigned int count = 0;
-    
+
     switch ( __task_layering ) {
     case RANDOM_LAYERING:
 	for ( unsigned int i = SERVER_LAYER; i < n; ++i ) {
@@ -396,7 +409,7 @@ done: ;
  * Add a processor to layer.
  */
 
-LQIO::DOM::Processor * 
+LQIO::DOM::Processor *
 Generate::addProcessor( const string& name, const scheduling_type sched_flag )
 {
     LQIO::DOM::Processor * processor = new LQIO::DOM::Processor( _document, name.c_str(), sched_flag );
@@ -409,6 +422,25 @@ Generate::addProcessor( const string& name, const scheduling_type sched_flag )
 
     return processor;
 }
+
+
+/*
+ * Add a group to a processor
+ */
+
+LQIO::DOM::Group *
+Generate::addGroup( LQIO::DOM::Processor * processor, double share )
+{
+    if ( share <= 0 || 1 <= share ) throw std::domain_error( "share" );
+    std::ostringstream name;
+    name << ( Flags::long_names ? "Group" : "g" ) << _document->getNumberOfGroups() + 1;
+    LQIO::DOM::Group * group = new LQIO::DOM::Group( _document, name.str().c_str(), processor );		/* Guarantee, not cap */
+    group->setGroupShareValue( share );
+    processor->addGroup( group );
+    _document->addGroup( group );
+    return group;
+}
+
 
 
 /*
@@ -476,11 +508,64 @@ Generate::addCall( LQIO::DOM::Entry * src, LQIO::DOM::Entry * dst, const RV::Pro
 }
 
 
+
 /*
- * Translate all constants to variables, then output control program.  This works on the DOM.
+ * Add groups, to taste.
+ * First, go through all processors, finding those that aren't infinite and have more than one task.
+ * These processors are eligible.
+ * Next, add tasks to groups and voila, we're done.
  */
 
+Generate&
+Generate::groupize()
+{
+    const std::map<std::string,LQIO::DOM::Processor*>& processors = _document->getProcessors();
+    for_each( processors.begin(), processors.end(), Groupize( *this ) );
+    return *this;
+}
+
+
 void
+Generate::groupize( LQIO::DOM::Processor* processor )
+{
+    const std::set<LQIO::DOM::Task*>& tasks = processor->getTaskList();
+    const unsigned n_tasks = tasks.size();
+    if ( n_tasks <= 1 || processor->isInfinite() || !__probability_cfs_processor() ) return;
+
+    processor->setSchedulingType( SCHEDULE_CFS );
+
+    /* Create groups */
+
+    double remainder = 1.0;
+    std::vector<LQIO::DOM::Group *> groups;
+    do {
+	double share = remainder *  __group_share();
+	remainder -= share;
+	groups.push_back( addGroup( processor, share ) );
+    } while ( remainder > 0.2 && groups.size() + 1 < n_tasks );
+    groups.push_back( addGroup( processor, remainder ) );
+
+    /* Assign tasks to groups */
+
+    unsigned int i = 0;
+    const unsigned int n_groups = groups.size();
+    for ( std::set<LQIO::DOM::Task *>::const_iterator t = tasks.begin(); t != tasks.end(); ++t ) {
+	LQIO::DOM::Task * task = *t;
+	LQIO::DOM::Group * group = groups.at(i);
+	group->addTask( task );
+	task->setGroup( group );
+	i = (i + 1) % n_groups;
+    }
+}
+
+/*
+ * Translate all constant parameters in the DOM to variables, then output control program.
+ * This works on the DOM regardless of whether it was generated or loaded.
+ * LQX code is generated directly as a "program", rather than printing out the LQX through SPEX.
+ * It's less verbose this way, and SPEX generation doesn't construct the LQX program.
+ */
+
+Generate&
 Generate::reparameterize()
 {
     switch ( Flags::output_format ) {
@@ -496,14 +581,14 @@ Generate::reparameterize()
 	}
 	break;
     }
-
     if ( Flags::verbose ) {
 	printStatistics( cerr );
     }
+    return *this;
 }
 
 
-/* 
+/*
  * MakeXxxVariable is called to convert a constant into a variable in the DOM.  The mean
  * of the variable is set to the orginal value in the DOM.
  */
@@ -565,7 +650,7 @@ Generate::addSensitivityLQX( get_set_var_fptr f, const ModelVariable::variableVa
 Generate::printHeader( ostream& output, const LQIO::DOM::Document& document, const int i, const string& prefix )
 {
     if ( !Flags::has_any_observation() ) return output;
-    
+
     output << indent(i) << "println_spaced( \", ";
     if ( prefix.size() ) {
 	output << "\", \"" << prefix;		/* The iteration number */
@@ -593,7 +678,7 @@ Generate::printHeader( ostream& output, const LQIO::DOM::Document& document, con
 Generate::printResults( ostream& output, const LQIO::DOM::Document& document, const int i, const string& prefix )
 {
     if ( !Flags::has_any_observation() ) return output;
-    
+
     output << indent(i) << "println_spaced( \", \"";
     if ( prefix.size() ) {
 	output  << ", " << prefix;
@@ -751,7 +836,7 @@ Generate::DocumentHeading::operator()( struct document_observation& obs ) const
     }
 }
 
-void 
+void
 Generate::EntityHeading::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
 {
     const LQIO::DOM::Entity * entity = e.second;
@@ -813,12 +898,12 @@ Generate::DocumentResult::operator()( struct document_observation& obs ) const
 }
 
 
-void 
+void
 Generate::EntityResult::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
 {
     const LQIO::DOM::Entity * entity = e.second;
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
-	_output << "," << endl << indent( _i ) << "  " 
+	_output << "," << endl << indent( _i ) << "  "
 		<< "processor(\"" << entity->getName() << "\").utilization";
     } else if ( isReferenceTask( entity ) && Flags::observe[Flags::THROUGHPUT] ) {		/* Reference task */
 	_output << "," << endl << indent( _i ) << "  "
@@ -860,14 +945,21 @@ Generate::CallResult::operator()( const LQIO::DOM::Call * call ) const
 	    << "call(phase(entry(\"" << _entry->getName() << "\")," << _phase << "),\"" << dst->getName() << "\").waiting";
 }
 
-/* static */ ostream& 
-Generate::printIndent( ostream& output, const int i ) 
+/* static */ ostream&
+Generate::printIndent( ostream& output, const int i )
 {
     output << setw( i * 3 ) << " ";
     return output;
 }
 
 /* ------------------ Logic for creating an SPEX program ------------------ */
+
+/*
+ * Generate SPEX.  Note that the program isn't saved at this time.
+ * The LQX for the parameters and observation variables will have to be saved
+ * then a call to Spex::construct_program( expr_list * main_line, expr_list * result, expr_list * convergence )
+ * will have to be made.
+ */
 
 void
 Generate::addSpex( get_set_var_fptr f, const ModelVariable::variableValueFunc g )
@@ -980,25 +1072,32 @@ Generate::documentObservation( struct document_observation& obs )
     }
 }
 
-void 
+void
 Generate::EntityObservation::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
 {
     const LQIO::DOM::Entity * entity = e.second;
+    std::pair<LQIO::DOM::Spex::obs_var_tab_t::const_iterator, LQIO::DOM::Spex::obs_var_tab_t::const_iterator> range = LQIO::DOM::Spex::get_observation_variables().equal_range( entity );
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
-	std::string name = "$p_";
-	name += entity->getName();
-	spex_processor_observation( (void *)entity, KEY_UTILIZATION, 0, name.c_str(), 0 );
-	spex_result_assignment_statement( name.c_str(), 0 );
+	if ( count_if( range.first, range.second, HasKey( KEY_UTILIZATION ) ) == 0 ) {
+	    std::string name = "$p_";
+	    name += entity->getName();
+	    spex_processor_observation( entity, KEY_UTILIZATION, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	}
     } else if ( isReferenceTask( entity ) && Flags::observe[Flags::THROUGHPUT] ) {		/* Reference task */
-	std::string name = "$f_";
-	name += entity->getName();
-	spex_task_observation( (void *)entity, KEY_THROUGHPUT, 0, 0, name.c_str(), 0 );
-	spex_result_assignment_statement( name.c_str(), 0 );
+	if ( count_if( range.first, range.second, HasKey( KEY_THROUGHPUT ) ) == 0 ) {
+	    std::string name = "$f_";
+	    name += entity->getName();
+	    spex_task_observation( entity, KEY_THROUGHPUT, 0, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	}
     } else if ( isServerTask( entity ) && Flags::observe[Flags::UTILIZATION] ) {
-	std::string name = "$u_";
-	name += entity->getName();
-	spex_task_observation( (void *)entity, KEY_UTILIZATION, 0, 0, name.c_str(), 0 );
-	spex_result_assignment_statement( name.c_str(), 0 );
+	if ( count_if( range.first, range.second, HasKey( KEY_UTILIZATION ) ) == 0 ) {
+	    std::string name = "$u_";
+	    name += entity->getName();
+	    spex_task_observation( entity, KEY_UTILIZATION, 0, 0, name.c_str(), 0 );
+	    spex_result_assignment_statement( name.c_str(), 0 );
+	}
     }
 }
 
@@ -1007,24 +1106,31 @@ Generate::EntryObservation::operator()( const std::pair<std::string,LQIO::DOM::E
 {
     const LQIO::DOM::Entry * entry = e.second;
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
-    for_each( phases.begin(), phases.end(), PhaseObservation( entry ) );
+    std::pair<LQIO::DOM::Spex::obs_var_tab_t::const_iterator, LQIO::DOM::Spex::obs_var_tab_t::const_iterator> range = LQIO::DOM::Spex::get_observation_variables().equal_range( entry );
+    if ( Flags::observe[Flags::RESIDENCE_TIME] && count_if( range.first, range.second, HasKey( KEY_SERVICE_TIME ) ) == 0 ) {
+	for_each( phases.begin(), phases.end(), PhaseObservation( entry ) );
+    }
+    if ( Flags::observe[Flags::QUEUEING_TIME] && count_if( range.first, range.second, HasKey( KEY_WAITING ) ) == 0 ) {
+	for_each( phases.begin(), phases.end(), PhaseCallObservation( entry ) );
+    }
 }
 
 void
 Generate::PhaseObservation::operator()( const std::pair<unsigned, LQIO::DOM::Phase*>& p ) const
 {
     const LQIO::DOM::Phase * phase = p.second;
-    if ( Flags::observe[Flags::RESIDENCE_TIME] ) {
-	std::string name = "$r_";
-	name += phase->getName();
-	spex_entry_observation( (void *)_entry, KEY_SERVICE_TIME, p.first, 0, name.c_str(), 0 );
-	spex_result_assignment_statement( name.c_str(), 0 );
-    }
+    std::string name = "$r_";
+    name += phase->getName();
+    spex_entry_observation( _entry, KEY_SERVICE_TIME, p.first, 0, name.c_str(), 0 );
+    spex_result_assignment_statement( name.c_str(), 0 );
 
-    if ( Flags::observe[Flags::QUEUEING_TIME] ) {
-	const std::vector<LQIO::DOM::Call*>& calls = phase->getCalls();
-	for_each( calls.begin(), calls.end(), CallObservation( _entry, p.first ) );
-    }
+}
+
+void
+Generate::PhaseCallObservation::operator()( const std::pair<unsigned, LQIO::DOM::Phase*>& p ) const
+{
+    const std::vector<LQIO::DOM::Call*>& calls = p.second->getCalls();
+    for_each( calls.begin(), calls.end(), CallObservation( _entry, p.first ) );
 }
 
 void
@@ -1032,7 +1138,7 @@ Generate::CallObservation::operator()( const LQIO::DOM::Call * call ) const
 {
     std::string name = "$w_";
     name += call->getName();
-    spex_call_observation( (void *)_entry, KEY_WAITING, _phase, (void *)call->getDestinationEntry(), 0, name.c_str(), 0 );
+    spex_call_observation( _entry, KEY_WAITING, _phase, call->getDestinationEntry(), 0, name.c_str(), 0 );
     spex_result_assignment_statement( name.c_str(), 0 );
 }
 
@@ -1116,6 +1222,11 @@ Generate::TaskVariable::operator()( const std::pair<std::string,LQIO::DOM::Task 
 	}
 	(this->*_f)( *copies, multiplicity ); 		/* Inserts spex/lqx assignment code for variable */
     }
+
+    /* Activities */
+
+    const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
+    for_each( activities.begin(), activities.end(), ActivityVariable( _model, _f ) );
 }
 
 
@@ -1123,16 +1234,15 @@ Generate::TaskVariable::operator()( const std::pair<std::string,LQIO::DOM::Task 
 void
 Generate::EntryVariable::operator()( const std::pair<std::string,LQIO::DOM::Entry *>& e ) const
 {
-    const LQIO::DOM::Entry * entry = e.second; 
+    const LQIO::DOM::Entry * entry = e.second;
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
     for_each( phases.begin(), phases.end(), PhaseVariable( _model, _f ) );
 }
 
 
 void
-Generate::PhaseVariable::operator()( const std::pair<unsigned, LQIO::DOM::Phase*>& p ) const
+Generate::PhaseVariable::transform( LQIO::DOM::Phase * phase ) const
 {
-    LQIO::DOM::Phase * phase = p.second;
     LQIO::DOM::ExternalVariable * service = const_cast<LQIO::DOM::ExternalVariable *>( phase->getServiceTime() );
     const bool use_think_time = isReferenceTaskPhase( phase );
     RV::RandomVariable * service_time = const_cast<RV::RandomVariable *>( use_think_time ? __think_time : __service_time );
@@ -1143,7 +1253,7 @@ Generate::PhaseVariable::operator()( const std::pair<unsigned, LQIO::DOM::Phase*
 	}
 	service = get_rv( "$s_", phase->getName(), service_time );
 	phase->setServiceTime( service );
-    } 
+    }
     (this->*_f)( *service, service_time ); 		/* Inserts spex/lqx assignment code for variable */
 
     if ( Flags::sensitivity == 0.0 ) {
@@ -1189,7 +1299,7 @@ Generate::CallVariable::operator()( LQIO::DOM::Call * call ) const
  * values.
  */
 
-LQIO::DOM::ExternalVariable * 
+LQIO::DOM::ExternalVariable *
 Generate::ModelVariable::get_rv( const std::string& prefix, const std::string& name, const RV::RandomVariable * value ) const
 {
     std::string var = prefix + name;
@@ -1202,11 +1312,11 @@ Generate::ModelVariable::get_rv( const std::string& prefix, const std::string& n
 
 /* ------------------------------------------------------------------------ */
 
-/* 
+/*
  * Output an input file.
  */
 
-ostream& 
+ostream&
 Generate::print( ostream& output ) const
 {
     switch ( Flags::output_format ) {
@@ -1214,10 +1324,9 @@ Generate::print( ostream& output ) const
     case FORMAT_SRVN: {
 	LQIO::SRVN::Input srvn( getDOM(), _document->getEntities(), Flags::annotate_input, false );
 	srvn.print( output );
-    }
 	break;
     }
-
+    }
     return output;
 }
 
@@ -1251,7 +1360,7 @@ Generate::printStatistics( ostream& output ) const
     const double n_phases = static_cast<double>(service_time.count());	 		/* Server entries only */
     output << "    Mean number of phases per server entry: " << n_phases / n_entries << endl;
     output << "    Mean phase service time: " << service_time.mean() << endl;
-    
+
 
     AccumulateRequests requests = for_each( _call.begin(), _call.end(), AccumulateRequests() );			/* Arg is pass by value, so assignment is needed */
     const double n_calls = static_cast<double>( requests.count() );
@@ -1264,14 +1373,14 @@ Generate::printStatistics( ostream& output ) const
 
 /* ------------------------------------------------------------------------ */
 
-bool 
-Generate::isReferenceTask( const LQIO::DOM::Entity * task ) 
+bool
+Generate::isReferenceTask( const LQIO::DOM::Entity * task )
 {
     if ( !dynamic_cast<const LQIO::DOM::Task *>(task) ) return false;
     switch ( task->getSchedulingType() ) {
     case SCHEDULE_CUSTOMER:
     case SCHEDULE_POLL:
-    case SCHEDULE_BURST: 
+    case SCHEDULE_BURST:
 	return true;
     default:
 	return false;
@@ -1286,22 +1395,22 @@ Generate::isReferenceTaskPhase( const LQIO::DOM::Phase * phase )
 }
 
 
-bool 
-Generate::isServerTask( const LQIO::DOM::Entity * task ) 
+bool
+Generate::isServerTask( const LQIO::DOM::Entity * task )
 {
     if ( !dynamic_cast<const LQIO::DOM::Task *>(task) ) return false;
     switch ( task->getSchedulingType() ) {
     case SCHEDULE_CUSTOMER:
     case SCHEDULE_POLL:
-    case SCHEDULE_BURST: 
+    case SCHEDULE_BURST:
 	return false;
     default:
 	return true;
     }
 }
 
-bool 
-Generate::isInterestingProcessor( const LQIO::DOM::Entity * entity ) 
+bool
+Generate::isInterestingProcessor( const LQIO::DOM::Entity * entity )
 {
     const LQIO::DOM::Processor * processor = dynamic_cast<const LQIO::DOM::Processor *>(entity);
     if ( !processor ) return false;
@@ -1321,7 +1430,7 @@ Generate::Accumulate::operator+=( const LQIO::DOM::ExternalVariable * augend )
 	const double x = to_double( *augend );
 	_sum += x;
 	_sum_squared += ( x * x );
-	_n += 1; 
+	_n += 1;
     }
     return *this;
 }

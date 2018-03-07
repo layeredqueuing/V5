@@ -34,13 +34,13 @@ namespace LQX {
     return (_typeId < other->_typeId);
   }
   
-  std::string LanguageObject::description()
+  std::string LanguageObject::description() const
   {
     /* Return the description */
     return "Object";
   }
   
-  LanguageObject* LanguageObject::duplicate() throw (RuntimeException)
+  LanguageObject* LanguageObject::duplicate()
   {
     /* Unless this is overridden by the subclass this cannot ever happen */
     throw RuntimeException("Object of type %s cannot be duplicated.", this->getTypeName().c_str());
@@ -52,13 +52,13 @@ namespace LQX {
     return _typeId;
   }
   
-  std::string LanguageObject::getTypeName()
+  std::string LanguageObject::getTypeName() const
   {
     /* Return the type name */
     return "Object";
   }
   
-  SymbolAutoRef LanguageObject::getPropertyNamed(Environment*, const std::string& name) throw (RuntimeException)
+  SymbolAutoRef LanguageObject::getPropertyNamed(Environment*, const std::string& name)
   {
     /* All we support is type id's */
     if (name == "type_id") {

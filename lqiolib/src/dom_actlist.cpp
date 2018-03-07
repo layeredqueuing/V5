@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_actlist.cpp 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -70,14 +70,14 @@ namespace LQIO {
 	    _arguments[activity] = new ConstantExternalVariable( arg );
 	}
 
-	ExternalVariable * ActivityList::getParameter(const Activity* activity) const throw( std::domain_error )
+	ExternalVariable * ActivityList::getParameter(const Activity* activity) const
 	{
 	    std::map<const Activity*,ExternalVariable *>::const_iterator item = _arguments.find(activity);
 	    if ( item == _arguments.end() ) throw std::domain_error( activity->getName().c_str() );
 	    return item->second;
 	}
 
-	double ActivityList::getParameterValue(const Activity* activity) const throw( std::domain_error )
+	double ActivityList::getParameterValue(const Activity* activity) const
 	{
 	    std::map<const Activity*,ExternalVariable *>::const_iterator item = _arguments.find(activity);
 	    double value;

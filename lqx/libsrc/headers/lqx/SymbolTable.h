@@ -41,7 +41,7 @@ namespace LQX {
     static SymbolAutoRef encodeDouble( double value );
     static SymbolAutoRef encodeString( const char* value, bool release=false );
     static SymbolAutoRef encodeObject( LanguageObject* object, bool derefWhenDone=false );
-    static SymbolAutoRef duplicate( SymbolAutoRef& source );
+    static SymbolAutoRef duplicate( const SymbolAutoRef& source );
     
   public:
     
@@ -139,7 +139,7 @@ namespace LQX {
     
     /* Variable Scoping */
     void pushContext();
-    void popContext() throw (RuntimeException);
+    void popContext();
     
     /* Output debug data */
     void dump(std::stringstream& ss);
@@ -152,8 +152,8 @@ namespace LQX {
   protected:
     
     /* Symbol table is non-copyable */
-    SymbolTable(const SymbolTable& other) throw ();
-    SymbolTable& operator=(const SymbolTable& other) throw ();
+    SymbolTable(const SymbolTable& other);
+    SymbolTable& operator=(const SymbolTable& other);
     
   private:
     

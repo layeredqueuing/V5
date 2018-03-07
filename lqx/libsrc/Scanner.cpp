@@ -148,12 +148,12 @@ namespace LQX {
   {
   }
   
-  Scanner::Scanner(const Scanner&) throw () : _current(0, LQX::PT_EOS)
+  Scanner::Scanner(const Scanner&) : _current(0, LQX::PT_EOS)
   {
     throw NonCopyableException();
   }
   
-  Scanner& Scanner::operator=(const Scanner&) throw ()
+  Scanner& Scanner::operator=(const Scanner&)
   {
     throw NonCopyableException();
   }

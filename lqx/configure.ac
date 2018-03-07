@@ -1,5 +1,5 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 12480 2016-03-02 01:29:06Z greg $
+# $Id: configure.ac 12917 2017-02-08 21:34:18Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
@@ -37,6 +37,7 @@ AC_HEADER_TIME
 
 # Checks for library functions.
 AC_FUNC_STRTOD
-AC_CHECK_FUNCS([drand48 gettimeofday strdup strtol floor memset pow strcasecmp strchr strrchr])
+AC_CHECK_FUNCS([drand48 gettimeofday strdup strtol floor memset mmap pow strcasecmp strchr strrchr])
+AC_CHECK_HEADERS([sys/mman.h])
 
 AC_OUTPUT(Makefile preprocessing/Makefile libsrc/Makefile drvsrc/Makefile libsrc/headers/lqx/Makefile)

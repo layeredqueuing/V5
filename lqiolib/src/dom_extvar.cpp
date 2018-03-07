@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_extvar.cpp 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,7 +11,7 @@
 
 namespace LQIO {
     namespace DOM {
-    
+
 	double to_double( const LQIO::DOM::ExternalVariable& arg )
 	{
 	    double value;
@@ -26,7 +26,7 @@ namespace LQIO {
 	    return self.print( output );
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable& multiplicand, const double multiplier_d ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable& multiplicand, const double multiplier_d )
 	{
 	    double multiplicand_d;
 	    if ( !multiplicand.getValue( multiplicand_d ) ) throw std::domain_error( "" );
@@ -34,7 +34,7 @@ namespace LQIO {
 	    return product;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator*( const double multiplicand_d, const LQIO::DOM::ExternalVariable& multiplier ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator*( const double multiplicand_d, const LQIO::DOM::ExternalVariable& multiplier )
 	{
 	    double multiplier_d;
 	    if ( !multiplier.getValue( multiplier_d ) ) throw std::domain_error( "" );
@@ -42,7 +42,7 @@ namespace LQIO {
 	    return product;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable& multiplicand, const LQIO::DOM::ExternalVariable& multiplier ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable& multiplicand, const LQIO::DOM::ExternalVariable& multiplier )
 	{
 	    double multiplier_d, multiplicand_d;
 	    if ( !multiplier.getValue( multiplier_d ) ) throw std::domain_error( "" );
@@ -51,7 +51,7 @@ namespace LQIO {
 	    return product;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable& dividend, const double divisor ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable& dividend, const double divisor )
 	{
 	    double dividend_d;
 	    if ( !dividend.getValue( dividend_d ) ) throw std::domain_error( "" );
@@ -59,7 +59,7 @@ namespace LQIO {
 	    return quotient;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator/( const double dividend, const LQIO::DOM::ExternalVariable& divisor ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator/( const double dividend, const LQIO::DOM::ExternalVariable& divisor )
 	{
 	    double divisor_d;
 	    if ( !divisor.getValue( divisor_d ) ) throw std::domain_error( "" );
@@ -67,7 +67,7 @@ namespace LQIO {
 	    return quotient;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable& dividend, const LQIO::DOM::ExternalVariable& divisor ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable& dividend, const LQIO::DOM::ExternalVariable& divisor )
 	{
 	    double dividend_d, divisor_d;
 	    if ( !dividend.getValue( dividend_d ) ) throw std::domain_error( "" );
@@ -76,7 +76,7 @@ namespace LQIO {
 	    return quotient;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable& arg1, const double arg2 ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable& arg1, const double arg2 )
 	{
 	    double value;
 	    if ( !arg1.getValue( value ) ) throw std::domain_error( "" );
@@ -84,7 +84,7 @@ namespace LQIO {
 	    return sum;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator+( const double arg1, const LQIO::DOM::ExternalVariable& arg2 ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator+( const double arg1, const LQIO::DOM::ExternalVariable& arg2 )
 	{
 	    double value;
 	    if ( !arg2.getValue( value ) ) throw std::domain_error( "" );
@@ -92,7 +92,7 @@ namespace LQIO {
 	    return sum;
 	}
 
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable& arg1, const LQIO::DOM::ExternalVariable& arg2 ) throw (std::domain_error)
+	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable& arg1, const LQIO::DOM::ExternalVariable& arg2 )
 	{
 	    double value1, value2;
 	    if ( !arg1.getValue( value1 ) ) throw std::domain_error( "" );
@@ -109,13 +109,13 @@ namespace LQIO {
 	ExternalVariable::ExternalVariable()
 	{
 	}
-    
+
 	ExternalVariable::ExternalVariable( const ExternalVariable& )
 	{
 	    /* Nothing to copy */
 	}
-    
-	ExternalVariable& ExternalVariable::operator=( const ExternalVariable& )  throw (std::domain_error)
+
+	ExternalVariable& ExternalVariable::operator=( const ExternalVariable& )
 	{
 	    /* Nothing to copy */
 	    return *this;
@@ -124,9 +124,9 @@ namespace LQIO {
 	ExternalVariable::~ExternalVariable()
 	{
 	}
-    
+
 	ExternalVariable&
-	ExternalVariable::operator*=( const ExternalVariable& arg ) throw (std::domain_error)
+	ExternalVariable::operator*=( const ExternalVariable& arg ) 
 	{
 	    double multiplier, multiplicand;
 	    
@@ -137,7 +137,7 @@ namespace LQIO {
 	}
 
 	ExternalVariable&
-	ExternalVariable::operator*=( const double multiplier ) throw (std::domain_error)
+	ExternalVariable::operator*=( const double multiplier )
 	{
 	    double multiplicand;
 	    
@@ -147,7 +147,7 @@ namespace LQIO {
 	}
 
 	ExternalVariable&
-	ExternalVariable::operator+=( const ExternalVariable& arg ) throw (std::domain_error)
+	ExternalVariable::operator+=( const ExternalVariable& arg )
 	{
 	    double addend, augend;
 	    
@@ -158,7 +158,7 @@ namespace LQIO {
 	}
 
 	ExternalVariable&
-	ExternalVariable::operator+=( const double addend ) throw (std::domain_error)
+	ExternalVariable::operator+=( const double addend )
 	{
 	    double augend;
 	    
@@ -170,17 +170,17 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-    
+
 	ConstantExternalVariable::ConstantExternalVariable(double constant) : _value(constant)
 	{
 	}
-    
+
 	ConstantExternalVariable::ConstantExternalVariable( const ExternalVariable& src )
 	{
 	    if ( !src.getValue( _value ) ) throw std::domain_error( "unassigned variable." );
 	}
 
-	ConstantExternalVariable& ConstantExternalVariable::operator=( const ConstantExternalVariable& src )  throw (std::domain_error)
+	ConstantExternalVariable& ConstantExternalVariable::operator=( const ConstantExternalVariable& src )
 	{
 	    _value = src._value;
 	    return *this;
@@ -194,18 +194,18 @@ namespace LQIO {
 	ConstantExternalVariable::~ConstantExternalVariable()
 	{
 	}
-    
+
 	void ConstantExternalVariable::set(double value)
 	{
 	    _value = value;
 	}
-    
+
 	bool ConstantExternalVariable::getValue(double& result) const
 	{
 	    result = _value;
 	    return true;
 	}
-    
+
 	const std::string& ConstantExternalVariable::getName() const
 	{
 	    static const std::string s = "";
@@ -226,20 +226,20 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-    
-	SymbolExternalVariable::SymbolExternalVariable(const std::string & name) : 
+
+	SymbolExternalVariable::SymbolExternalVariable(const std::string & name) :
 	    _externalSymbol(NULL), _name(name), _initial(0.0)
 	{
 	}
-    
-	SymbolExternalVariable::SymbolExternalVariable(const SymbolExternalVariable& src ) : 
+
+	SymbolExternalVariable::SymbolExternalVariable(const SymbolExternalVariable& src ) :
 	    _externalSymbol(src._externalSymbol), _name(src._name), _initial(src._initial)
 	{
 	    abort();
 	}
 
 
-	SymbolExternalVariable& SymbolExternalVariable::operator=(const SymbolExternalVariable& src )  throw (std::domain_error)
+	SymbolExternalVariable& SymbolExternalVariable::operator=(const SymbolExternalVariable& src )
 	{
 	    double v;
 	    if (src.getValue(v)) {
@@ -259,7 +259,7 @@ namespace LQIO {
 	SymbolExternalVariable::~SymbolExternalVariable()
 	{
 	}
-    
+
 
 	bool SymbolExternalVariable::registerInEnvironment(LQX::Program* pgm)
 	{
@@ -305,7 +305,7 @@ namespace LQIO {
 	    /* This is just a very basic check */
 	    return !(_externalSymbol == NULL) && _externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE;
 	}
-    
+
 	std::ostream& SymbolExternalVariable::print( std::ostream& output ) const
 	{
 	    output << _name;

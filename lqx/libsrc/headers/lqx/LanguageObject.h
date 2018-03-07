@@ -29,15 +29,15 @@ namespace LQX {
     /* Comparison and Operators */
     virtual bool isEqualTo(const LanguageObject* other) const;
     virtual bool isLessThan(const LanguageObject* other) const;
-    virtual std::string description();
-    virtual LanguageObject* duplicate() throw (RuntimeException);
+    virtual std::string description() const;
+    virtual LanguageObject* duplicate();
     
     /* Properties of Language Objects */
     virtual uint32_t getTypeId() const;
-    virtual std::string getTypeName();
+    virtual std::string getTypeName() const;
     
     /* Support for Attributes -- Allow Objects to Bypass Method Addition for Simple Getters */
-    virtual SymbolAutoRef getPropertyNamed(Environment* env, const std::string& name) throw (RuntimeException);
+    virtual SymbolAutoRef getPropertyNamed(Environment* env, const std::string& name);
     
   private:
     

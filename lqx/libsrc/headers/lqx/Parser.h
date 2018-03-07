@@ -40,6 +40,7 @@ namespace LQX {
     PT_IF,
     PT_ELSE,
     PT_RETURN,
+    PT_SELECT,
 
     /* File Output Words */
     PT_FILE_WRITE,
@@ -133,8 +134,8 @@ namespace LQX {
   protected:
     
     /* This object is not copyable, and will throw an exception if you try */
-    Parser(const Parser& other) throw ();
-    Parser& operator=(const Parser& other) throw ();
+    Parser(const Parser& other);
+    Parser& operator=(const Parser& other);
     
   public:
     

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: srvn_results.cpp 13204 2018-03-06 22:52:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -85,6 +85,11 @@ void add_system_time( const char * time )
     LQIO::DOM::currentDocument->setResultSysTime( time_to_clock_t( time ) );
 }
 
+void add_max_rss( long max_rss )
+{
+    LQIO::DOM::currentDocument->setResultMaxRSS( max_rss );
+}
+    
 void add_mva_solver_info( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
 {
     LQIO::DOM::currentDocument->setMVAStatistics( submodels, core, step, step_squared, wait, wait_squared, faults );

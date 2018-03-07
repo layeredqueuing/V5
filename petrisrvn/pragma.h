@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 11085 2012-07-10 15:41:02Z greg $
+ * $Id: pragma.h 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,7 +82,7 @@ private:
     const char * get_stop_on_message_loss() const;
     const char * get_task_scheduling() const;
 
-    scheduling_type str_to_scheduling_type( const std::string&, scheduling_type default_sched=SCHEDULE_FIFO) throw(std::invalid_argument); 
+    scheduling_type str_to_scheduling_type( const std::string&, scheduling_type default_sched=SCHEDULE_FIFO); 
     static bool is_true( const std::string& );
 
 private:

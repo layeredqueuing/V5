@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 12547 2016-04-05 18:32:45Z greg $
+ * $Id: model.cc 13170 2018-02-27 21:36:27Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -843,7 +843,7 @@ string
 Model::getExtension()
 {
     string extension;
-    char * p;
+    const char * p;
 
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:

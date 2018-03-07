@@ -119,12 +119,12 @@ namespace LQX {
     ModLangParserFree(_parser, free);
   }
   
-  Parser::Parser(const Parser&) throw ()
+  Parser::Parser(const Parser&)
   {
     throw NonCopyableException();
   }
   
-  Parser& Parser::operator=(const Parser&) throw ()
+  Parser& Parser::operator=(const Parser&)
   {
     throw NonCopyableException();
   }

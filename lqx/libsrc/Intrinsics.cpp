@@ -36,45 +36,33 @@ namespace LQX {
 	struct GetMax
 	{	
 	public:
-	    GetMax() : _set(false), _max(0.) {}
-	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { setMax( item.second ); }
-	    void operator()( const SymbolAutoRef& current ) { setMax( current ); }
-	    double value() const { return _max; }
+	    GetMax() : _max() { _max = Symbol::encodeNull(); }
+	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { (*this)( item.second ); }
+	    void operator()( const SymbolAutoRef& current ) { 
+		if ( _max->getType() == Symbol::SYM_NULL || _max < current ) {
+		    _max = Symbol::duplicate(current);
+		}
+	    }
+	    SymbolAutoRef value() const { return _max; }
 
 	private:
-	    void setMax( const SymbolAutoRef& current ) {
-		if ( current->getType() != Symbol::SYM_DOUBLE ) {
-		    throw IncompatibleTypeException(current->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
-		} else if ( !_set || current->getDoubleValue() > _max ) {
-		    _max = current->getDoubleValue();
-		    _set = true;
-		}
-	    } 
-
-	    bool _set;
-	    double _max;
+	    SymbolAutoRef _max;
 	};
 
 	struct GetMin
 	{	
 	public:
-	    GetMin() : _set(false), _min(0.) {}
-	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { setMin( item.second ); }
-	    void operator()( const SymbolAutoRef& current ) { setMin( current ); }
-	    double value() const { return _min; }
+	    GetMin() : _min() { _min = Symbol::encodeNull();}
+	    void operator()( const std::pair<SymbolAutoRef,SymbolAutoRef>& item ) { (*this)( item.second ); }
+	    void operator()( const SymbolAutoRef& current ) { 
+		if ( _min->getType() == Symbol::SYM_NULL || current < _min ) {
+		    _min = Symbol::duplicate(current);
+		}
+	    }
+	    SymbolAutoRef value() const { return _min; }
 
 	private:
-	    void setMin( const SymbolAutoRef& current ) {
-		if ( current->getType() != Symbol::SYM_DOUBLE ) {
-		    throw IncompatibleTypeException(current->getTypeName(), Symbol::typeToString(Symbol::SYM_DOUBLE));
-		} else if ( !_set || current->getDoubleValue() < _min ) {
-		    _min = current->getDoubleValue();
-		    _set = true;
-		}
-	    } 
-
-	    bool _set;
-	    double _min;
+	    SymbolAutoRef _min;
 	};
 
     }
@@ -161,7 +149,7 @@ namespace LQX {
 	}
 
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Copyright::invoke(Environment*, std::vector<SymbolAutoRef >& ) throw (RuntimeException)
+	SymbolAutoRef Copyright::invoke(Environment*, std::vector<SymbolAutoRef >& )
 	{
 	    /* Prints out all the given values if any */
 	    std::cout << "Copyright (C) 2009 Carleton University." << std::endl;
@@ -170,7 +158,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef PrintSymbolTable::invoke(Environment* env, std::vector<SymbolAutoRef >& ) throw (RuntimeException)
+	SymbolAutoRef PrintSymbolTable::invoke(Environment* env, std::vector<SymbolAutoRef >& )
 	{
 	    /* Debug print the table */
 	    std::stringstream ss;
@@ -180,7 +168,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef PrintSpecialTable::invoke(Environment* env, std::vector<SymbolAutoRef >& ) throw (RuntimeException)
+	SymbolAutoRef PrintSpecialTable::invoke(Environment* env, std::vector<SymbolAutoRef >& )
 	{
 	    /* Debug print the table */
 	    std::stringstream ss;
@@ -194,7 +182,7 @@ namespace LQX {
     namespace Intrinsics {
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Floor::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Floor::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    /* Debug print the table */
 	    double arg = decodeDouble(args, 0);
@@ -202,7 +190,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Ceil::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Ceil::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    /* Debug print the table */
 	    double arg = decodeDouble(args, 0);
@@ -210,7 +198,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Abs::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Abs::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    /* Debug print the table */
 	    double arg = decodeDouble(args, 0);
@@ -218,7 +206,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Pow::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Pow::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    /* Debug print the table */
 	    double arg1 = decodeDouble(args, 0);
@@ -226,62 +214,62 @@ namespace LQX {
 	    return Symbol::encodeDouble(pow(arg1, arg2));
 	}
     
-	SymbolAutoRef Rand::invoke(Environment* , std::vector<SymbolAutoRef >& ) throw (RuntimeException)
+	SymbolAutoRef Rand::invoke(Environment* , std::vector<SymbolAutoRef >& )
 	{
 	    return Symbol::encodeDouble(erand48(xsubi));		/* We use this because others may use drand48() */
 	}
 
-	SymbolAutoRef Exp::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Exp::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    double arg1 = decodeDouble(args, 0);
 	    return Symbol::encodeDouble(exp(arg1));
 	}
 
-	SymbolAutoRef Log::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Log::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    double arg1 = decodeDouble(args, 0);
 	    if ( arg1 < 0 ) throw InvalidArgumentException("log(a)", "a < 0");
 	    return Symbol::encodeDouble(log(arg1));
 	}
 
-	SymbolAutoRef Max::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Max::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
-	    double max = 0;
+	    SymbolAutoRef max = Symbol::encodeNull();
 	    ArrayObject* arrayObject;
 	    if ( args.size() == 1 && args[0]->getType() == Symbol::SYM_OBJECT && (arrayObject = dynamic_cast<ArrayObject *>(args[0]->getObjectValue())) != NULL) {
 		max = for_each( arrayObject->begin(), arrayObject->end(), Helpers::GetMax() ).value();
 	    } else {
 		max = for_each( args.begin(), args.end(), Helpers::GetMax() ).value();
 	    }
-	    return Symbol::encodeDouble(max);
+	    return max;
 	}
     
-	SymbolAutoRef Min::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Min::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
-	    double min = 0;
+	    SymbolAutoRef min = Symbol::encodeNull();
 	    ArrayObject* arrayObject;
 	    if ( args.size() == 1 && args[0]->getType() == Symbol::SYM_OBJECT && (arrayObject = dynamic_cast<ArrayObject *>(args[0]->getObjectValue())) != NULL) {
 		min = for_each( arrayObject->begin(), arrayObject->end(), Helpers::GetMin() ).value();
 	    } else {
 		min = for_each( args.begin(), args.end(), Helpers::GetMin() ).value();
 	    }
-	    return Symbol::encodeDouble(min);
+	    return min;
 	}
     
-	SymbolAutoRef Round::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Round::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    double arg1 = decodeDouble(args, 0);
 	    return Symbol::encodeDouble(round(arg1));
 	}
 
-	SymbolAutoRef Sqrt::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Sqrt::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    double arg1 = decodeDouble(args, 0);
 	    if ( arg1 < 0 ) throw RuntimeException("Invalid argument to sqrt.");
 	    return Symbol::encodeDouble(sqrt(arg1));
 	}
 
-	SymbolAutoRef Normal::invoke(Environment* , std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Normal::invoke(Environment* , std::vector<SymbolAutoRef >& args)
 	{
 	    /* See Jain, Pg 494 - Convolution method with n = 12 */
 	    const double mean = decodeDouble(args, 0);
@@ -295,7 +283,7 @@ namespace LQX {
 	    return Symbol::encodeDouble( mean + stddev * (sum - 6) );
 	}
 
-	SymbolAutoRef Gamma::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	SymbolAutoRef Gamma::invoke( Environment *, std::vector<SymbolAutoRef>& args )
 	{
 	    const double mean = decodeDouble( args, 0 );
 	    const double b = decodeDouble( args, 1 );	// shape 
@@ -308,7 +296,7 @@ namespace LQX {
 	    return Symbol::encodeDouble( gamma_rv( a, b ) );
 	}
 
-	SymbolAutoRef Uniform::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	SymbolAutoRef Uniform::invoke( Environment *, std::vector<SymbolAutoRef>& args )
 	{
 	    const double low = decodeDouble( args, 0 );
 	    const double high = decodeDouble( args, 1 );	// shape 
@@ -316,7 +304,7 @@ namespace LQX {
 	    return Symbol::encodeDouble( erand48( xsubi ) *  ( high - low ) + low );
 	}
 
-	SymbolAutoRef Poisson::invoke( Environment *, std::vector<SymbolAutoRef>& args ) throw (RuntimeException)
+	SymbolAutoRef Poisson::invoke( Environment *, std::vector<SymbolAutoRef>& args )
 	{
 	    const double mean = decodeDouble( args, 0 );
 	    const double limit = exp(-mean);
@@ -333,7 +321,7 @@ namespace LQX {
     namespace Intrinsics {
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Str::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Str::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    /* Result string goes here */
 	    std::stringstream ss;
@@ -372,7 +360,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Double::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Double::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    SymbolAutoRef& current = args[0];
 	    double decodedValue = 0.0;
@@ -420,7 +408,7 @@ namespace LQX {
 	}
     
 	/* This method on the other hand actually does all the heavy lifting */
-	SymbolAutoRef Boolean::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Boolean::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    SymbolAutoRef& current = args[0];
 	    bool decodedValue = false;
@@ -471,14 +459,14 @@ namespace LQX {
   
     namespace Intrinsics {
     
-	SymbolAutoRef Abort::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Abort::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    const char* reason = decodeString(args, 1);
 	    double code = decodeDouble(args, 0);
 	    throw AbortException(reason, code);
 	}
     
-	SymbolAutoRef Assert::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef Assert::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    SymbolAutoRef& symbol = args[0];
 	    Symbol::Type t = symbol->getType();
@@ -488,7 +476,7 @@ namespace LQX {
 	    return Symbol::encodeNull();
 	}
     
-	SymbolAutoRef TypeID::invoke(Environment*, std::vector<SymbolAutoRef >& args) throw (RuntimeException)
+	SymbolAutoRef TypeID::invoke(Environment*, std::vector<SymbolAutoRef >& args)
 	{
 	    /* Find out what the argument here is */
 	    SymbolAutoRef& symbol = args[0];
@@ -539,7 +527,7 @@ namespace LQX {
 	table->registerMethod(new Intrinsics::TypeID());
     }
   
-    static inline void registerConstantDouble(SymbolTable* symbolTable, std::string name, double value)
+    static inline void registerConstantDouble(SymbolTable* symbolTable, const std::string& name, double value)
     {
 	/* Define and set up the constant */
 	symbolTable->define(name);

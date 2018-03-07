@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 12230 2015-02-03 20:36:38Z greg $
+ *  $Id: dom_task.h 13200 2018-03-05 22:48:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -47,9 +47,10 @@ namespace LQIO {
       
 	    /* Designated initializer for the Task entity */
 	    Task(const Document * document, const char * name, const scheduling_type scheduling,  const std::vector<DOM::Entry *>& entryList,
-		 const Processor* processor=0, ExternalVariable* queue_length=0, const int priority=0, 
-		 ExternalVariable* n_copies=0, const int n_replicas=1,
-		 const Group * group=0, const void * task_element=0);
+		 const Processor* processor=NULL, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
+		 ExternalVariable* n_copies=NULL, const int n_replicas=1,
+		 const Group * group=NULL, const void * task_element=0 );
+
 	    Task( const Task& );
 	    virtual ~Task();
       
@@ -64,8 +65,11 @@ namespace LQIO {
 	    void setQueueLengthValue(const unsigned int queueLength);
 	    void setQueueLength(ExternalVariable * queueLength);
 	    bool hasQueueLength() const;
-	    int getPriority() const;
-	    void setPriority(const unsigned int priority);
+	    int getPriorityValue() const;
+	    ExternalVariable * getPriority() const;
+	    void setPriority(ExternalVariable *);
+	    void setPriorityValue( int );
+	    bool hasPriority() const;
 	    double getThinkTimeValue() const;
 	    ExternalVariable * getThinkTime() const;
 	    void setThinkTime(ExternalVariable * thinkTime);
@@ -142,7 +146,7 @@ namespace LQIO {
 	    std::vector<Entry*> _entryList;
 	    ExternalVariable * _queueLength;
 	    Processor* _processor;
-	    unsigned int _priority;
+	    ExternalVariable * _priority;
 	    ExternalVariable * _thinkTime;
 	    Group * _group;
 	    const void* _xmlDomElement;
@@ -178,9 +182,9 @@ namespace LQIO {
 	    } InitialStateType;
       
 	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			  const Processor* processor, ExternalVariable* queue_length=0, const int priority=0, 
-			  ExternalVariable* n_copies=0, const int n_replicas=1,
-			  const Group * group=0, const void * task_element=0 );
+			  const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
+			  ExternalVariable* n_copies=NULL, const int n_replicas=1,
+			  const Group * group=NULL, const void * task_element=0 );
 	    SemaphoreTask( const SemaphoreTask& );
 
 	    const InitialStateType getInitialState() const;
@@ -222,9 +226,9 @@ namespace LQIO {
 	public:
 	    
 	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-		       const Processor* processor, ExternalVariable* queue_length=0, const int priority=0, 
-		       ExternalVariable* n_copies=0, const int n_replicas=1,
-		       const Group * group=0, const void * task_element=0 );
+		       const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
+		       ExternalVariable* n_copies=NULL, const int n_replicas=1,
+		       const Group * group=NULL, const void * task_element=0 );
 	    //  n_copies is the number of concurrent readers
 
 	    RWLockTask( const RWLockTask& );

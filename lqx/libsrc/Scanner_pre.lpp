@@ -163,6 +163,7 @@ include           BEGIN(incl);
 "null"            { return tokenCodeOnly(LQX::PT_NULL); }
 "NULL"            { return tokenCodeOnly(LQX::PT_NULL); }
 "return"	  { return tokenCodeOnly(LQX::PT_RETURN); }
+"select"	  { return tokenCodeOnly(LQX::PT_SELECT); }
 
   /* Words for File Output */
 

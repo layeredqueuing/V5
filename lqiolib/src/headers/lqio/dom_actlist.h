@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_actlist.h 13200 2018-03-05 22:48:55Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -54,8 +54,8 @@ namespace LQIO {
 	    const ActivityListType getListType() const;
 	    ActivityList& add(const Activity* activity, ExternalVariable * arg=NULL);
 	    void addValue( const Activity* activity, double arg );
-	    ExternalVariable * getParameter(const Activity* activity) const throw( std::domain_error );
-	    double getParameterValue(const Activity* activity) const throw( std::domain_error );
+	    ExternalVariable * getParameter(const Activity* activity) const;
+	    double getParameterValue(const Activity* activity) const;
       
 	    /* Managing connections */
 	    void setNext(ActivityList* next);

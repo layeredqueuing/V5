@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 12079 2014-07-07 12:17:26Z greg $
+ * $Id: entry.cc 13200 2018-03-05 22:48:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1732,6 +1732,7 @@ unsigned
 Entry::clients( Cltn<const Entity *> &clientsCltn, const callFunc aFunc ) const
 {
     Sequence<GenericCall *> nextCall( callerList() );
+
     GenericCall * aCall;
     while ( aCall = nextCall() ) {
 	if ( aCall->isSelected() && (!aFunc || (aCall->*aFunc)()) && aCall->srcTask()->pathTest() ) {
@@ -2207,7 +2208,7 @@ Entry::serviceTimeForQueueingNetwork(const unsigned p) const
 
 #if defined(REP2FLAT)
 Entry *
-Entry::find_replica( const string& entry_name, const unsigned replica ) throw( runtime_error )
+Entry::find_replica( const string& entry_name, const unsigned replica )
 {
     ostringstream aName;
     aName << entry_name << "_" << replica;

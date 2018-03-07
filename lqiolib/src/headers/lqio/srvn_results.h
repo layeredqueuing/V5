@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: srvn_results.h 13204 2018-03-06 22:52:04Z greg $
  */
 
 #if	!defined(SRVN_RESULTS_H)
@@ -94,6 +94,7 @@ void add_snr_waiting_confidence(const char *to, const char *from, int conf_level
 void add_solver_info(const char *);
 void add_system_info(const char *);
 void add_system_time(const char *);
+void add_max_rss(long);
 void add_task_proc(const char *task, int multiplicity, double );
 void add_task_proc_confidence(const char *task, int level, double );
 void add_thpt_ut(const char *task);

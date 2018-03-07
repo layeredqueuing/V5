@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/report.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/report.cc $
  * 
  * Various statistics about solution.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: report.cc 13204 2018-03-06 22:52:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -406,6 +406,13 @@ SolverReport::insertDOMResults() const
     _document->setResultSysTime(_delta_times.tms_stime);
 #endif
     _document->setResultElapsedTime(_delta_clock);
+
+#if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
+    struct rusage r_usage;
+    if ( getrusage( RUSAGE_SELF, &r_usage ) == 0 && r_usage.ru_maxrss > 0 ) {
+	_document->setResultMaxRSS( r_usage.ru_maxrss );
+    }
+#endif
 }
 
 

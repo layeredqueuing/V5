@@ -113,6 +113,7 @@
 		<xsd:attribute name="elapsed-time" type="xsd:time" use="optional"/>
 		<xsd:attribute name="system-cpu-time" type="xsd:time" use="optional"/>
 		<xsd:attribute name="user-cpu-time" type="xsd:time" use="optional"/>
+		<xsd:attribute name="max-rss" type="xsd:long" use="optional"/>
 		<xsd:attribute name="platform-info" type="xsd:string" use="optional"/>
 		<xsd:attribute name="solver-info" type="xsd:string" use="optional"/>
 	      </xsd:complexType>

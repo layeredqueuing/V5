@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqn2ps/task.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/task.cc $
  * 
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 12079 2014-07-07 12:17:26Z greg $
+ * $Id: task.cc 12980 2017-04-05 00:09:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -158,10 +158,10 @@ Task::reset()
 
 /* ------------------------ Instance Methods -------------------------- */
 
-int 
-Task::priority() const
+bool
+Task::hasPriority() const
 {
-    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getPriority();
+    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->hasPriority();
 }
 
 
@@ -807,7 +807,7 @@ Task::check() const
 
     /* Check prio/scheduling. */
 
-    if ( aProcessor && priority() != 0 && !aProcessor->hasPriorities() ) {
+    if ( aProcessor && hasPriority() && !aProcessor->hasPriorities() ) {
 	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name().c_str(), aProcessor->name().c_str() );
     }
 

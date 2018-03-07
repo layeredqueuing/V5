@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 12549 2016-04-06 20:31:57Z greg $
+ * $Id: lqngen.cc 12906 2017-01-26 03:32:30Z greg $
  */
 
 #include "lqngen.h"
@@ -1011,7 +1011,7 @@ multi( const std::string& dir )
 	output_file.open( file_name.str().c_str(), ios::out );
 
 	if ( !output_file ) {
-	    cerr << io_vars.lq_toolname << ": Cannot open output file " << file_name << " - " << strerror( errno ) << endl;
+	    cerr << io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << endl;
 	    exit ( 1 );
 	}
 

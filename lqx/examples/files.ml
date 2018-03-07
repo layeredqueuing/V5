@@ -17,20 +17,20 @@
  */
 
 /* Open a sample file */
-fp = file_open("/dev/null", "rb");
-path = file_get_path(fp);
+file_open(fp, "/dev/null", read);
+//path = file_get_path(fp);
 
 /* Show some stuff */
-print();
-print("The path to this file is:", file_get_path(fp));
-print("The open file is:", fp);
-print("Type ID:", get_type_id(fp));
-print();
+println();
+//println("The path to this file is:", file_get_path(fp));
+//println("The open file is:", fp);
+//println("Type ID:", get_type_id(fp));
+println();
 print_symbol_table();
-print();
+println();
 
 /* Close up the file */
 file_close(fp);
-print("The closed file is:", fp);
-print("The path to this file is:", file_get_path(fp));
-print();
+//println("The closed file is:", fp);
+//println("The path to this file is:", file_get_path(fp));
+println();
