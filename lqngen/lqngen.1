@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqngen 1 "06 January 2016"  "5.9"
-.\" $Id: lqngen.1 12412 2016-01-06 17:56:04Z greg $
+.TH lqngen 1 ""  "5.13"
+.\" $Id: lqngen.1 13479 2020-02-08 23:30:37Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -63,24 +63,63 @@ Multiplicities for processors and tasks can be changed using \fB\-p\fP\fIn\fP an
 are all random variables with a mean of 1.0. These values can be changed using 
 \fB\-s\fP\fIn\fP, \fB\-y\fP\fIn\fP and \fB\-z\fP\fIn\fP respectively.
 .TP
+\fB\-Q\fR, \fB\-\-queueing-model=\fIARG\fR
+Generate a model which can be solved by LQNS as a conventional queueing network with a maximum of \fIARG\fP customers.
+By default, a queuing network similar to experiment 1 of Chandy and Neuse for Linearizer
+will be created with 1 to 0.10*ARG classes, 0.10*ARG to 0.20*ARG stations and 0.10*ARG to ARG customers,
+using a uniform distribution.  Stations will have a 0.05 probability of being a delay queue.
+Set the number of customers with \fB\-\-total-customers\fP, the number of customer classes with \fB\-\-clients\fP, the number of stations with \fB\-\-tasks\fP, and the average number of stations visited by a client with \fB\-\-outgoing-requests\fP.
+.TP
 \fB\-C\fR, \fB\-\-clients=\fIARG\fR
-Create \fIARG\fP client \fI(reference)\fP tasks.  Use \fB\-\-customers\fP to
-specify the average number of customers (copies) at each client task.
+Create \fIARG\fP client \fI(reference)\fP tasks.  
+\fIARG\fP can be take the form of \fB\-\-clients\fP=\fIn\fP, or \fB\-\-clients\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIconstant\fP distribution is used.
+Use \fB\-\-customers\fP to specify the average number of customers (copies) at each client task.
 .TP
 \fB\-L\fR, \fB\-\-layers=\fIARG\fR
-Create \fIARG\fP layers of server tasks.  The total number of layers
-in the model will be \fIARG+2\fP because one layer is used for
+Create \fIARG\fP layers of server tasks.
+\fIARG\fP can be take the form of \fB\-\-layers\fP=\fIn\fP, or \fB\-\-layers\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIconstant\fP distribution is used.
+The total number of layers in the model will be \fIARG+2\fP because one layer is used for
 client tasks, and one layer will be used for one or more processors.
 .TP
 \fB\-P\fR, \fB\-\-processors=\fIARG\fR
 Create  \fIARG\fP processors in each model file.
+\fIARG\fP can be take the form of \fB\-\-processor\fP=\fIn\fP, or \fB\-\-processor\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIconstant\fP distribution is used.
+.TP
+\fB\-G\fR, \fB\-\-group=\fIARG\fR
+Set the probability that a processor is using Completely Fair Scheduling to \fIARG\fP
+provided that the processor is not an infinite server and that it provicdes service
+to more than one task.
+See also \fB\-g\fP.
 .TP
 \fB\-T\fR, \fB\-\-tasks=\fIARG\fR
-Create  \fIARG\fP tasks in each model file.  The number of tasks must
-be greater than or equal to the number of layers.
+Create  \fIARG\fP tasks in each model file.
+\fIARG\fP can be take the form of \fB\-\-task\fP=\fIn\fP, or \fB\-\-task\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIconstant\fP distribution is used.
+The number of tasks must be greater than or equal to the number of layers.
+.TP
+\fB\-E\fR, \fB\-\-entries=\fIARG\fR
+Create an average of \fIARG\fP entries on each serving task.
+\fIARG\fP can be take the form of \fB\-\-entries\fP=\fImean\fP, 
+\fB\-\-entries\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-entries\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
+This number must not be less than one.
 .TP
 \fB\-Y\fR, \fB\-\-outgoing-requests=\fIARG\fR
-Generate an average of \fIARG\fP incomming requests to each entry.
+Generate an average of \fIARG\fP outgoing requests from each entry.
+\fIARG\fP can be take the form of \fB\-\-outgoing-requests\fP=\fImean\fP, 
+\fB\-\-outgoing-requests\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-outgoing-requests\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 Connections are made at random from a higher level task to a lower level task.
 So that all tasks are reachable, this number must not be less than one.
 .TP
@@ -99,49 +138,81 @@ depending on the output format.
 \fB\-O\fR, \fB\-\-format=\fIARG\fR
 Set the output file format, \fIARG\fP, to: \fIxml\fP, \fIlqn\fP.
 .TP
+\fB\-H\fR, \fB\-\-help\fR
+Print out a brief help summary and exit.
+.TP
+\fB\-V\fR, \fB\-\-version\fR
+Print the version number of lqngen.
+.TP
 \fB\-c\fR, \fB\-\-customers=\fIARG\fR
 Set the \fImean\fP number of customers at each of the client reference tasks to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-customers\fP=\fImean\fP, 
+\fB\-\-customers\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-customers\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
 .TP
-\fB\-e\fR, \fB\-\-entries=\fIARG\fR
-Create an average of \fIARG\fP entries on each serving task.   The
-number of entries created is set using the current discreet random
-number generator.  
+\fB\-g\fR, \fB\-\-share=\fIARG\fR
+Set the share of the first group running on the processor to \fIARG\fP.
+The share for a group is based on the Beta distribution.
+.TP
+\fB\-d\fR, \fB\-\-delay-server=\fIARG\fR
+Set the probability that a processor is a delay server to \fIARG\fP.
+Tasks are not affected.
 .TP
 \fB\-i\fR, \fB\-\-infinite-server=\fIARG\fR
 Set the probability that a server task is infinite to \fIARG\fP.
 Processors are not affected.
 .TP
 \fB\-p\fR, \fB\-\-processor-multiplicity=\fIARG\fR
-Set the \fImean\fP processor multiplicity for each processor to
-\fIARG\fP.  The
-number of copies of each processor is set using the current discreet (or uniform) random number generator.
+Set the \fImean\fP processor multiplicity for each processor to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-processor-multiplicity\fP=\fImean\fP, 
+\fB\-\-processor-multiplicity\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-processor-multiplicity\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
 .TP
 \fB\-s\fR, \fB\-\-service-time=\fIARG\fR
-Set the \fImean\fP phase service time to \fIARG\fP.  The mean phase
-service time is set using the current continuous random number generator.
+Set the \fImean\fP phase service time to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-service-time\fP=\fImean\fP, 
+\fB\-\-service-time\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-service-time\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
 \fB\-t\fR, \fB\-\-task-multiplicity=\fIARG\fR
-Set the \fImean\fP task multiplicity for each task to
-\fIARG\fP.  The
-number of copies of each task is set using the current discreet (or uniform) random number generator.
+Set the \fImean\fP task multiplicity for each task to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-task-multiplicity\fP=\fImean\fP, 
+\fB\-\-task-multiplicity\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-task-multiplicity\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
 .TP
 \fB\-y\fR, \fB\-\-request-rate=\fIARG\fR
 Set the mean rendezous (synchronous call) rate to \fIARG\fP.  
-The mean rendezvous rate is set using the current continuous random number generator.
+\fIARG\fP can be take the form of \fB\-\-request-rate\fP=\fImean\fP, 
+\fB\-\-request-rate\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-request-rate\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
 \fB\-z\fR, \fB\-\-think-time=\fIARG\fR
-Set the mean think time at reference tasks to \fIARG\fP.  
-The mean think time is set using the current continuous random number generator.
+Set the mean think time at reference tasks to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-think-time\fP=\fImean\fP, 
+\fB\-\-think-time\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-think-time\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
 \fB\-2\fR, \fB\-\-second-phase=\fIARG\fR
 Set the probability that an entry at a server task has a second phase
 to \fIARG\fP.  \fIARG\fP must be between 0 and 1.
 .TP
-\fB\-h\fR, \fB\-\-help\fR
-Print out a brief help summary and exit.
-.TP
 \fB\-v\fR, \fB\-\-verbose\fR
 Verbose output. List the actual number of Clients, Server Tasks, Processors, Entries and Calls created.
+.TP
+\fB\-\-json-output\fR
+Output the input model in JavaScript Object Notation (JSON).
 .TP
 \fB\-\-xml-output\fR
 Output the input model in eXtensible Markup Language (XML).
@@ -166,6 +237,12 @@ Transform the input model, rather than creating it (i.e., run the program as \fB
 .TP
 \fB\-\-seed=\fIARG\fR
 Set the seed value for the random number generator to \fIARG\fP.
+.TP
+\fB\-\-beta=\fIARG\fR
+The BETA distribution is only used for choosing the share of a group when using a processor
+using Completely Fair Scheduling.
+Set the beta argument of the distribution to \fIARG\fP.  The alpha
+argument is set based on the value of the group "share" (set using \fB\-g\fP\fIn\fP).
 .TP
 \fB\-\-binomial\fR
 Use a Binomial distribution for all subsequent options that use a
@@ -224,13 +301,22 @@ Choose a random number of tasks at each layer.
 .TP
 \fB\-\-deterministic\fR
 Deterministically add tasks from top to bottom.  The first task is called by it's immediate client.
-Any additional entries, (see \fB\-e\fP) can be called by any higher-level task. 
+Any additional entries, (see \fB\-E\fP) can be called by any higher-level task. 
 .TP
 \fB\-\-breadth\fR
 Assign processors deterministically from left to right, i.e., the first group of tasks are assigned processor 1, the next set gets processor 2, etc..
 .TP
 \fB\-\-depth\fR
 Assign processors deterministically from top to bottom, i.e., task 1 gets processor 1, task 2 gets processor 2, etc.
+.TP
+\fB\-\-total-customers=\fIARG\fR
+Set the total number of customers to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-total-customers\fP=\fImean\fP, 
+\fB\-\-total-customers\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-total-customers\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
+This option cannot be used with \fB\-\-customers\fP=\fIn\fP.
 .TP
 \fB\-\-no-observation\fR
 Do not insert any LQX code or spex observation variables.
@@ -258,6 +344,10 @@ Insert LQX code or SPEX observation variables to either observe or not observe p
 Interesting processors are those which might have contention present.
 The default is to observe processor utilization.
 .TP
+\fB\-\-[no-]mva-steps\fR
+Insert LQX code or SPEX observation variables to output the number of calls to step().
+The default is to not insert observation variables.
+.TP
 \fB\-\-[no-]mva-waits\fR
 Insert LQX code or SPEX observation variables to output the number of calls to wait().
 The default is to not insert observation variables.
@@ -277,6 +367,10 @@ The default is to not insert observation variables.
 \fB\-\-[no-]system-cpu-time\fR
 Insert LQX code or SPEX observation variables to output the solver's SYSTEM CPU time.
 The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]pragma=\fIARG\fR
+Insert a pragma \fIARG\fP into all generated files.
+This option can be repeated for multiple pragmas.
 .TP
 \fB\-\-comment=\fIARG\fR
 Set the model comment to \fIARG\fP.  By default, the comment is set to

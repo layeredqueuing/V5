@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: ph2serv.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: ph2serv.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *
@@ -181,7 +181,7 @@ Rolia_Phased_Server::overtaking( const unsigned k ) const
  */
 
 void
-Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( k <= K );
 
@@ -231,7 +231,7 @@ Rolia_Phased_Server::printOutput( ostream& output, const unsigned i ) const
  */
 
 void
-HOL_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( k <= K );
 
@@ -255,7 +255,7 @@ HOL_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVec
  */
 
 void
-PR_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     Rolia_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -277,7 +277,7 @@ PR_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVect
  */
 
 void
-HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -302,7 +302,7 @@ HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Pop
  */
 
 void
-HOL_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -331,7 +331,7 @@ HOL_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const
  */
 
 void
-PR_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     HVFCFS_Rolia_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -354,7 +354,7 @@ PR_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const 
  */
  
 Positive
-Simple_Phased_Server::sumOf_S2U( const MVA& solver, const PopVector& N, const unsigned k ) const
+Simple_Phased_Server::sumOf_S2U( const MVA& solver, const Population& N, const unsigned k ) const
 {
     Positive sum = 0.0;
     for ( unsigned e = 1; e <= E; ++e ) {
@@ -375,7 +375,7 @@ Simple_Phased_Server::sumOf_S2U( const MVA& solver, const PopVector& N, const un
  */
 
 void
-Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( k <= K );
 
@@ -408,7 +408,7 @@ Simple_Phased_Server::printOutput( ostream& output, const unsigned i ) const
  */
 
 void
-HOL_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( k <= K );
 
@@ -430,7 +430,7 @@ HOL_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVe
  */
 
 void
-PR_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     Simple_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -452,7 +452,7 @@ PR_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVec
  */
 
 void
-HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -478,7 +478,7 @@ HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Po
  */
 
 void
-HOL_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -506,7 +506,7 @@ HOL_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, cons
  */
 
 void
-PR_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     HVFCFS_Simple_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -651,7 +651,7 @@ Markov_Phased_Server::PrOT( const unsigned k, const unsigned p_i ) const
  */
 
 Positive
-Markov_Phased_Server::sumOf_S2U( const MVA& solver, const unsigned p_i, const PopVector& N, const unsigned k ) const
+Markov_Phased_Server::sumOf_S2U( const MVA& solver, const unsigned p_i, const Population& N, const unsigned k ) const
 {
     Positive sum = 0.0;
     for ( unsigned e = 1; e <= E; ++e ) {
@@ -678,7 +678,7 @@ Markov_Phased_Server::sumOf_S2U( const MVA& solver, const unsigned p_i, const Po
  */
 
 void
-Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -735,7 +735,7 @@ Markov_Phased_Server::printOvertaking( ostream& output, const unsigned e, const 
  */
 
 void
-HOL_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -758,7 +758,7 @@ HOL_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVe
  */
 
 void
-PR_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     Markov_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -791,7 +791,7 @@ HVFCFS_Markov_Phased_Server::clear()
  */
 
 void
-HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -830,7 +830,7 @@ HVFCFS_Markov_Phased_Server::printInput( ostream& output, const unsigned e, cons
  */
 
 void
-HOL_HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -853,7 +853,7 @@ HOL_HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, cons
  */
 
 void
-PR_HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     HVFCFS_Markov_Phased_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );

@@ -7,17 +7,15 @@
  *
  */
 
-#include "Strings.h"
+#include "LQXStrings.h"
 
 #include "SymbolTable.h"
 #include "Environment.h"
 #include "LanguageObject.h"
 
 #include <sstream>
-extern "C" {
-#include <string.h>
-#include <stdlib.h>
-};
+#include <cstring>
+#include <cstdlib>
 
 namespace LQX {
   namespace Strings {

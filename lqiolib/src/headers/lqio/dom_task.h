@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_task.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -25,7 +25,8 @@ namespace LQIO {
 	class Task;
 	class Entry;
 	class Group;
-    
+        class Decision;
+
 	class Task : public Entity {
 	public:
 	    class Count {
@@ -36,20 +37,23 @@ namespace LQIO {
 		Count( test_fn f ) :  _f(f), _count( 0 ) {}
 		
 		void operator()( const std::pair<std::string,LQIO::DOM::Task *>& );
-		bool count() const { return _count; }
+		unsigned int count() const { return _count; }
 
 	    private:
-		test_fn _f;
-		bool _count;
+		const test_fn _f;
+		unsigned int _count;
 	    };
-	    
+
+	    static bool isSemaphoreTask( const std::pair<std::string,LQIO::DOM::Task *>& task ) { return task.second->getSchedulingType() == SCHEDULE_SEMAPHORE; }
+	    static bool isRWLockTask( const std::pair<std::string,LQIO::DOM::Task *>& task ) { return task.second->getSchedulingType() == SCHEDULE_RWLOCK; }
+
 	public:
-      
 	    /* Designated initializer for the Task entity */
-	    Task(const Document * document, const char * name, const scheduling_type scheduling,  const std::vector<DOM::Entry *>& entryList,
+	    Task(const Document * document, const char * name, const scheduling_type scheduling,  
+		 const std::vector<DOM::Entry *>& entryList,
 		 const Processor* processor=NULL, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-		 ExternalVariable* n_copies=NULL, const int n_replicas=1,
-		 const Group * group=NULL, const void * task_element=0 );
+		 ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
+		 const Group * group=NULL );
 
 	    Task( const Task& );
 	    virtual ~Task();
@@ -57,6 +61,8 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    const std::vector<Entry*>& getEntryList() const;
       
 	    /* Variable Accessors and Mutators */
@@ -75,19 +81,25 @@ namespace LQIO {
 	    void setThinkTime(ExternalVariable * thinkTime);
 	    void setThinkTimeValue( double value );
 	    bool hasThinkTime() const;
-	    void setFanOut( const std::string&, unsigned );
-	    unsigned int getFanOut( const std::string& ) const;
-	    const std::map<const std::string,unsigned int>& getFanOuts() const;
-	    void setFanIn( const std::string&, unsigned );
-	    unsigned int getFanIn( const std::string& ) const;
-	    const std::map<const std::string,unsigned int>& getFanIns() const;
+	    void setFanOut( const std::string&, ExternalVariable * );
+	    void setFanOutValue( const std::string&, unsigned int );
+	    ExternalVariable * getFanOut( const std::string& ) const;
+	    unsigned int getFanOutValue( const std::string& ) const;
+	    const std::map<const std::string,ExternalVariable *>& getFanOuts() const;
+	    void setFanIn( const std::string&, ExternalVariable * );
+	    void setFanInValue( const std::string&, unsigned int );
+	    ExternalVariable * getFanIn( const std::string& ) const;
+	    unsigned int getFanInValue( const std::string& ) const;
+	    const std::map<const std::string,ExternalVariable *>& getFanIns() const;
       
 	    /* Access to the "constant" elements */
 	    void setProcessor( Processor * );		// Used for cloning only.
 	    const Processor* getProcessor() const;
 	    void setGroup( Group * );			// Used for cloning only.
 	    const Group* getGroup() const;
-      
+	    virtual void setDecision( Decision *) {}
+	    virtual Decision * getDecision () const {return NULL;}
+
 	    /* Accessors and Mutators for Activities */
 	    Activity* getActivity(const std::string& name) const;
 	    Activity* getActivity(const std::string& name, bool create );
@@ -95,6 +107,7 @@ namespace LQIO {
 	    void addActivity( Activity * newActivity );
 	    void addActivityList(ActivityList *);
 	    const std::set<ActivityList*>& getActivityLists() const;
+	    bool hasAndJoinActivityList() const;
       
       
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -149,15 +162,14 @@ namespace LQIO {
 	    ExternalVariable * _priority;
 	    ExternalVariable * _thinkTime;
 	    Group * _group;
-	    const void* _xmlDomElement;
   	  
 	    /* Variables for Activities */
 	    std::map<std::string,Activity*> _activities;
 	    std::set<ActivityList *> _precedences;
 
 	    /* Variables for replication */
-	    std::map<const std::string, unsigned int> _fanOut;
-	    std::map<const std::string, unsigned int> _fanIn;
+	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanOut;
+	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanIn;
   	  
 	    /* Computation Results from LQNS */
 	    unsigned int _resultPhaseCount;
@@ -171,6 +183,8 @@ namespace LQIO {
 	    double _resultUtilizationVariance;
 	    double _resultBottleneckStrength;
 
+	public:
+	    static const char * __typeName;
 	};
 
 	class SemaphoreTask : public Task {
@@ -183,8 +197,8 @@ namespace LQIO {
       
 	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
 			  const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-			  ExternalVariable* n_copies=NULL, const int n_replicas=1,
-			  const Group * group=NULL, const void * task_element=0 );
+			  ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
+			  const Group * group=NULL );
 	    SemaphoreTask( const SemaphoreTask& );
 
 	    const InitialStateType getInitialState() const;
@@ -227,8 +241,8 @@ namespace LQIO {
 	    
 	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
 		       const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-		       ExternalVariable* n_copies=NULL, const int n_replicas=1,
-		       const Group * group=NULL, const void * task_element=0 );
+		       ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
+		       const Group * group=NULL );
 	    //  n_copies is the number of concurrent readers
 
 	    RWLockTask( const RWLockTask& );
@@ -316,7 +330,7 @@ namespace LQIO {
 	    double _resultVarianceWriterBlockedTime;
 	    double _resultVarianceWriterBlockedTimeVariance;
 
-	    //   Histogram* _histogram;
+//	    Histogram* _histogram;
 	};
     }
 }

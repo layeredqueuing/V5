@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 11052 2012-07-05 12:18:32Z greg $
+ * $Id: target.cc 13577 2020-05-30 02:47:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -53,7 +53,7 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
     } else if ( ps_send_priority( entry->port, entry->entry_id,
 			       (char *)&msg, reply_port,
 			       priority + entry->priority() ) == SYSERR ) {
-	abort();
+	throw std::runtime_error( "tar_t::send_synchronous" );
     }
 
     ps_my_schedule_time = ps_now;		/* In case we don't block...	*/
@@ -72,9 +72,12 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
 void
 tar_t::send_asynchronous( const Entry * src, const int priority )
 {
-    Message * msg = Message::alloc( src, this );
+    Entry * dst = this->entry;
+    Task * cp = dst->task();
+    Message * msg = cp->alloc_message();
+    if ( msg != NULL ) {
+	msg->init( src, this );
 
-    if ( msg ) {
 	ps_record_stat( r_loss_prob.raw, 0 );
 	Instance * ip = object_tab[ps_myself];
 	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, entry );
@@ -85,7 +88,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	} else if ( ps_send_priority( entry->port, entry->entry_id,
 				      (char *)msg, -1,
 				      priority + entry->priority() ) == SYSERR ) {
-	    abort();
+	    throw std::runtime_error( "tar_t::send_asynchronous" );
 	}
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
@@ -95,7 +98,6 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	    messages_lost = true;
 	}
     }
-
 }
 
 void
@@ -243,33 +245,52 @@ Targets::alloc_target_info( Entry * to_entry )
  */
 
 double
-Targets::compute_PDF ( const bool normalize, const phase_type type, const char * name )
+Targets::compute_PDF ( const LQIO::DOM::DocumentObject * dom, bool normalize )
 {
     double sum	= 0.0;
-    _type = type;
-
+    const char * srcName = (dom != nullptr) ? dom->getName().c_str() : "-";
+    _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : PHASE_STOCHASTIC;
+    
     vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
-	tp->configure();
-	if ( type == PHASE_DETERMINISTIC && fmod( tp->calls(), 1.0 ) > 1e-6 ) {
-	    LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Activity", name, "", "", tp->calls(), tp->entry->name() );
+	const char * dstName = tp->entry->name();
+	try {
+	    tp->configure();
+	    if ( _type == PHASE_DETERMINISTIC && tp->calls() != trunc( tp->calls() ) ) throw std::domain_error( "invalid integer" );
+	}
+	catch ( const std::domain_error& e ) {
+	    if ( dynamic_cast<const LQIO::DOM::Entry *>(dom) ) {
+		const LQIO::DOM::Entry * src = dynamic_cast<const LQIO::DOM::Entry *>(dom);
+		LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, src->getName().c_str(), dstName, e.what() );
+	    } else if ( dynamic_cast<const LQIO::DOM::Activity *>(dom) ) {
+		const LQIO::DOM::Activity * src = dynamic_cast<const LQIO::DOM::Activity *>(dom);
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", src->getTask()->getName().c_str(),
+				      "activity", srcName, dstName, e.what() );
+	    } else if ( dynamic_cast<const LQIO::DOM::Phase *>(dom) ) {
+		const LQIO::DOM::Phase * src = dynamic_cast<const LQIO::DOM::Phase *>(dom);
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", src->getSourceEntry()->getName().c_str(),
+				      "phase", srcName, dstName, e.what() );
+	    } else {
+		abort();
+	    }
+	    throw_bad_parameter();
 	}
 	sum += tp->calls();
 	tp->_tprob = sum;
 
-	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", name, tp->entry->name() );
-	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", name, tp->entry->name() );
-	tp->r_loss_prob.init( SAMPLE, "Loss %-11.11s %-11.11s          ", name, tp->entry->name() );
+	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
+	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
+	tp->r_loss_prob.init( SAMPLE, "Loss %-11.11s %-11.11s          ", srcName, dstName );
     }
 
-    if ( type != PHASE_DETERMINISTIC ) {
+    if ( _type != PHASE_DETERMINISTIC ) {
 	if ( normalize ) {
 	    sum += 1.0;
 	    for ( tp = target.begin(); tp != target.end(); ++tp ) {
 		tp->_tprob /= sum;
 	    }
-	} else if ( sum < 0.0 || 1.0 < sum ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_PROBABILITY, sum );
+	} else if ( sum > 1. ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, srcName, sum );
 	}
     }
 
@@ -319,8 +340,8 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 
 
 
-void
-Targets::accumulate()
+Targets&
+Targets::accumulate_data()
 {
     vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
@@ -329,11 +350,12 @@ Targets::accumulate()
 	    tp->r_loss_prob.accumulate();
 	}
     }
+    return *this;
 }
 
 
 
-void
+Targets&
 Targets::reset_stats()
 {
     vector<tar_t>::iterator tp;
@@ -344,10 +366,11 @@ Targets::reset_stats()
  	    tp->r_loss_prob.reset();
 	}
     }
+    return *this;
 }
 
 
-FILE * 
+const Targets&
 Targets::print_raw_stat( FILE * output ) const
 {
     vector<tar_t>::const_iterator tp;
@@ -359,15 +382,16 @@ Targets::print_raw_stat( FILE * output ) const
 	    tp->r_loss_prob.print_raw( output, "Calling %-11.11s- loss prob", ep->name() );
 	}
     }
-    return output;
+    return *this;
 }
 
 
-void
+Targets&
 Targets::insertDOMResults()
 {
     vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
 	tp->insertDOMResults();
     }
+    return *this;
 }

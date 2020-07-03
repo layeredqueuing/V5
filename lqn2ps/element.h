@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: element.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -10,17 +10,15 @@
 #define SRVN2EEPIC_ELEMENT_H
 
 #include "lqn2ps.h"
+#include <set>
 #include <lqio/dom_object.h>
 #include <lqio/dom_extvar.h>
 #include "node.h"
-#include "vector.h"
 
-template <class type> class Stack;
-template <class type> class Sequence;
+class CallStack;
 class Label;
 class Call;
 class Task;
-class CallStack;
 class Element;
 
 typedef enum { NOT_CALLED, RENDEZVOUS_REQUEST, SEND_NO_REPLY_REQUEST, OPEN_ARRIVAL_REQUEST } requesting_type;
@@ -42,18 +40,16 @@ public:
     const LQIO::DOM::DocumentObject * getDOM() const { return _documentObject; }
     Element& setDOM( const LQIO::DOM::DocumentObject * dom ) { _documentObject = dom; return *this; }
 
-    size_t elementId() const { return myElementId; }
-
-    virtual void rename();
-    virtual void squishName();
+    virtual Element& rename() = 0;
+    virtual Element& squishName();
     Element& addPath( const unsigned );
 
-    bool hasPath( const unsigned aPath ) const { return myPaths.find( aPath ); }
+    bool hasPath( const unsigned aPath ) const { return myPaths.find( aPath ) != myPaths.end(); }
     bool pathTest() const;
     bool isReachable() const { return myPaths.size() > 0; }
     virtual int span() const { return 0; }
     double index() const { return (left() + right()) / 2.0; }
-    const Vector<unsigned>& paths() const { return myPaths; }
+    const std::set<unsigned>& paths() const { return myPaths; }
     virtual Element& reformat() { return *this; }
 
     virtual Element& setClientClosedChain( unsigned );
@@ -63,14 +59,9 @@ public:
     bool hasClientClosedChain( unsigned ) const;
     bool hasClientOpenChain( unsigned ) const;
     bool hasServerChain( unsigned ) const;
-    unsigned closedChainAt( unsigned ) const;
-    unsigned openChainAt( unsigned ) const;
-    unsigned serverChainAt( unsigned ) const;
 
     virtual Graphic::colour_type colour() const = 0;
 
-    Point& origin() const { return myNode->origin; }
-    Point& extent() const { return myNode->extent; }
     Point center() const { return myNode->center(); }
     Point bottomLeft() const { return myNode->bottomLeft(); }
     Point bottomCenter() const { return myNode->bottomCenter(); }
@@ -78,12 +69,12 @@ public:
     Point topCenter() const { return myNode->topCenter(); }
     Point topLeft() const { return myNode->topLeft(); }
     Point topRight() const { return myNode->topRight(); }
-    double width() const { return myNode->extent.x(); }
-    double height() const { return myNode->extent.y(); }
-    double left() const { return myNode->origin.x(); }
-    double right() const { return myNode->origin.x() + myNode->extent.x(); }
-    double top() const { return myNode->origin.y()  + myNode->extent.y(); }
-    double bottom() const { return myNode->origin.y(); }
+    double width() const { return myNode->width(); }
+    double height() const { return myNode->height(); }
+    double left() const { return myNode->left(); }
+    double right() const { return myNode->left() + myNode->width(); }
+    double top() const { return myNode->bottom() + myNode->height(); }
+    double bottom() const { return myNode->bottom(); }
 
     virtual Element& moveTo( const double x, const double y ) { myNode->moveTo( x, y ); return *this; }
     virtual Element& moveBy( const double, const double );
@@ -95,54 +86,43 @@ public:
 
     /* Printing */
 
-    virtual ostream& draw( ostream& output ) const = 0;
+    virtual const Element& draw( ostream& output ) const = 0;
 
 protected:
-    unsigned followCalls( const Task *, Sequence<Call *>&, CallStack&, const unsigned ) const;
+    size_t followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator>, CallStack&, const unsigned ) const;
     virtual double getIndex() const = 0;
+    Graphic::colour_type colourForUtilization( double ) const;
+    Graphic::colour_type colourForDifference( double ) const;
 
-    static int compare( const Element *, const Element * );
     static double adjustForSlope( double y );
+
+public:
+#if defined(REP2FLAT)
+    std::string baseReplicaName( unsigned int& ) const;
+#endif    
+
+    size_t elementId() const { return _elementId; }
+    static bool compare( const Element *, const Element * );
 
 private:
     Element const& addForwardingRendezvous( CallStack& callStack ) const;
 
-protected:
+private:
     const LQIO::DOM::DocumentObject * _documentObject;
-    size_t myElementId;			/* Index			*/
+    const size_t _elementId;		/* Index			*/
+
+protected:
     Label * myLabel;			/* Label (for drawing).		*/
     Node * myNode;			/* Graphical thingy.		*/
 
-    Vector<unsigned> myPaths;		/* Who calls me.		*/
-    Vector<unsigned> myClientOpenChains;	/* Chains when I am a client 	*/
-    Vector<unsigned> myClientClosedChains;	/* Chains when I am a client 	*/
-    Vector<unsigned> myServerChains;	/* Chains when I am a server	*/
+    std::set<unsigned> myPaths;		/* Who calls me.		*/
+    std::set<unsigned> myClientOpenChains;	/* Chains when I am a client 	*/
+    std::set<unsigned> myClientClosedChains;	/* Chains when I am a client 	*/
+    std::set<unsigned> myServerChains;	/* Chains when I am a server	*/
 
 public:
     static const LQIO::DOM::ConstantExternalVariable ZERO;
 };
 
-#if defined(QNAP_OUTPUT) || defined(PMIF_OUTPUT)
-class QNAPElementManip {
-public:
-    QNAPElementManip( ostream& (*ff)(ostream&, const Element &, const bool, const unsigned ), 
-		     const Element & theElement, const bool multi_server, const unsigned theChain ) 
-	: f(ff), anElement(theElement), aMultiServer(multi_server), aChain(theChain) {}
-
-private:
-    ostream& (*f)( ostream&, const Element&, const bool, const unsigned );
-    const Element & anElement;
-    const bool aMultiServer;
-    const unsigned aChain;
-
-    friend ostream& operator<<(ostream & os, const QNAPElementManip& m ) 
-	{ return m.f(os,m.anElement,m.aMultiServer,m.aChain); }
-};
-
-QNAPElementManip server_chain( const Element& anElement, const bool, const unsigned );
-QNAPElementManip closed_chain( const Element& anElement, const bool, const unsigned );
-QNAPElementManip open_chain( const Element& anElement, const bool, const unsigned );
-typedef QNAPElementManip (*QNAP_Element_func)( const Element& anElement, const bool multi_class, const unsigned i );
-
-#endif
+typedef bool (* compare_func_ptr)( const Element *, const Element * );
 #endif

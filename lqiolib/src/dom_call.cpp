@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_call.cpp 13543 2020-05-19 17:29:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -13,37 +13,34 @@
 namespace LQIO {
     namespace DOM {
     
-	Call::Call(const Document * document, const CallType type, Phase* source, Entry* destination, 
-		   ExternalVariable* callMean, const void * element ) :
-	    DocumentObject(document,"",element),
-	    _callType(type), _destinationEntry(destination), 
+	const char * Call::__typeName = "call";
+
+	Call::Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean ) :
+	    DocumentObject(document,""),
+	    _callType(type), _sourceObject(source), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(0),
 	    _hasResultVarianceWaitingTime(false), _hasResultDropProbability(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
 	    _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0)
 	{
-	    const_cast<Document *>(document)->setCallType(type);
-	    _source._phase = source;
 	}
         
 	/* Special case for forwarding */
-	Call::Call(const Document * document, Entry* source, Entry* destination, ExternalVariable* callMean, const void * element ) :
-	    DocumentObject(document,"",element),
-	    _callType(Call::FORWARD), _destinationEntry(destination), 
+	Call::Call(const Document * document, Entry* source, Entry* destination, ExternalVariable* callMean ) :
+	    DocumentObject(document,""),
+	    _callType(Call::FORWARD), _sourceObject(source), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(0),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
 	    _resultDropProbability(0.0), _resultDropProbabilityVariance(0.0)
 	{
-	    const_cast<Document *>(document)->setCallType(Call::FORWARD);
-	    _source._entry = source;
 	}
         
 	Call::Call(const Call& src) :
-	    DocumentObject(src.getDocument(),"",0),
-	    _callType(src._callType), _destinationEntry(src._destinationEntry), 
+	    DocumentObject(src.getDocument(),""),
+	    _callType(src._callType), _sourceObject(src._sourceObject), _destinationEntry(src._destinationEntry), 
 	    _callMean(src._callMean), _histogram(src._histogram),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
@@ -80,22 +77,16 @@ namespace LQIO {
 	    _callType = callType;
 	}
     
-	const Entry* Call::getSourceEntry() const
+	const DocumentObject* Call::getSourceObject() const
 	{
-	    /* Return the source DOM::Entry */
-	    if ( _callType == Call::FORWARD ) {
-		return _source._entry;
-	    } else {
-		return _source._phase->getSourceEntry();
-	    }
+	    return _sourceObject;
 	}
     
-	void Call::setSourceEntry( Entry * source ) 
+	void Call::setSourceObject( DocumentObject* source ) 
 	{
-	    assert ( _callType == Call::FORWARD );
-	    _source._entry = source;
+	    _sourceObject = source;
 	}
-
+    
 	const Entry* Call::getDestinationEntry() const
 	{
 	    /* Return the destination DOM::Entry */
@@ -114,19 +105,23 @@ namespace LQIO {
     
 	void Call::setCallMean(ExternalVariable* callMean)
 	{
-	    _callMean = callMean;
+	    _callMean = checkDoubleVariable( callMean, 0.0 );
 	}
     
 	const double Call::getCallMeanValue() const
 	{
-	    /* Obtain the call mean */
-	    double result = 0.0;
-	    if ( !_callMean || _callMean->getValue(result) != true || result < 0. ) {
-		throw std::domain_error( "Invalid call rate." );
-	    }
-	    return result;
+	    return getDoubleValue( getCallMean(), 0.0 );
 	}
 
+	void Call::setCallMeanValue(double value)
+	{
+	    if ( _callMean == NULL ) {
+		_callMean = new ConstantExternalVariable( value );
+	    } else {
+		_callMean->set(value);
+	    }
+	}
+    
 	bool Call::hasHistogram() const
 	{
 	    return _histogram != 0 && _histogram->getBins() > 0; 
@@ -162,8 +157,9 @@ namespace LQIO {
 	Call& Call::setResultWaitingTimeVariance(const double resultWaitingTimeVariance)
 	{
 	    /* Stores the given ResultWaitingTime of the Call */ 
-	    const_cast<Document *>(getDocument())->setEntryHasWaitingTimeVariance(true);
-	    _hasResultVarianceWaitingTime = true;
+	    if ( resultWaitingTimeVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultWaitingTimeVariance = resultWaitingTimeVariance;
 	    return *this;
 	}
@@ -177,6 +173,7 @@ namespace LQIO {
 	Call& Call::setResultVarianceWaitingTime(const double resultVarianceWaitingTime)
 	{
 	    /* Stores the given ResultWaitingTime of the Call */ 
+	    _hasResultVarianceWaitingTime = true;
 	    _resultVarianceWaitingTime = resultVarianceWaitingTime;
 	    return *this;
 	}
@@ -190,6 +187,9 @@ namespace LQIO {
 	Call& Call::setResultVarianceWaitingTimeVariance(const double resultVarianceWaitingTimeVariance)
 	{
 	    /* Stores the given ResultWaitingTime of the Call */ 
+	    if ( resultVarianceWaitingTimeVariance > 0 ) {
+		const_cast<Document *>(getDocument())->setResultHasConfidenceIntervals(true);
+	    }
 	    _resultVarianceWaitingTimeVariance = resultVarianceWaitingTimeVariance;
 	    return *this;
 	}
@@ -203,7 +203,6 @@ namespace LQIO {
 	Call& 
 	Call::setResultDropProbability( const double resultDropProbability )
 	{
-	    const_cast<Document *>(getDocument())->setEntryHasDropProbability(true);
 	    _hasResultDropProbability = true;
 	    _resultDropProbability = resultDropProbability;
 	    return *this;
@@ -221,7 +220,5 @@ namespace LQIO {
 	    _resultDropProbabilityVariance = resultDropProbabilityVariance;
 	    return *this;
 	}
-
-    
     }
 }

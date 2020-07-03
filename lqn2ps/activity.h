@@ -1,30 +1,24 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: activity.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _ACTIVITY_H
 #define _ACTIVITY_H
 #include "lqn2ps.h"
+#include <vector>
+#include <deque>
 #include "element.h"
 #include "phase.h"
-#include "vector.h"
 
 class Activity;
 class ActivityList;
-class ActivityManip;
 class AndForkActivityList;
 class Arc;
 class Reply;
 class EntryActivityCall;
 class ProxyActivityCall;
-template <class Type> class Stack;
-
-/*
- * Printing functions.
- */
-
-ostream& operator<<( ostream&, const Activity& );
+class CallStack;
 
 /* -------------------- Nodes in the graph are... --------------------- */
 
@@ -32,13 +26,6 @@ class Activity : public Element,
 		 public Phase
 {
 public:
-    friend ActivityManip connection_list( Activity * anActivity );
-    friend ActivityManip reply_activity_name( Activity * anActivity );
-    friend class ForkActivityList;	/* For assigning myInputFromList*/
-    friend class JoinActivityList;	/* For assigning myOutputToList	*/
-    friend class AndOrForkActivityList;	/* For assigning myInputFromList*/
-    friend class AndOrJoinActivityList;	/* For assigning myOutputToList */
-    friend class OrForkActivityList;	/* For aggregation		*/
     friend class ActivityLayer;		/* For align activities? 	*/
 
     static bool hasJoins;		/* Joins present in results.	*/
@@ -53,20 +40,20 @@ public:
     Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom );
     virtual ~Activity();
 
-    virtual void check() const;
+    virtual bool check() const;
 
     Activity& merge( const Activity&, const double=1.0 );
 
-    virtual const Task * owner() const { return myTask; }
+    virtual const Task * owner() const { return _task; }
     virtual const string& name() const { return Element::name(); }
-    Activity& level( const unsigned aLevel ) { myLevel = aLevel; return *this; }
-    unsigned level() const { return myLevel; }
+    Activity& level( const size_t level ) { _level = level; return *this; }
+    size_t level() const { return _level; }
     Activity& resetLevel();
-    unsigned findChildren( CallStack&, const unsigned, Stack<const Activity *>& ) const;
-    unsigned findActivityChildren( Stack<const Activity *>&, Stack<const AndForkActivityList *>&, Entry *, const unsigned, unsigned, const double ) const;
-    unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    double aggregate( const Entry * anEntry, const unsigned curr_p, unsigned &next_p, const double rate, Stack<const Activity *>& activityStack, const aggregateFunc aFunc ) const;
-    virtual unsigned setChain( Stack<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callFunc aFunc  );
+    size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
+    size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, unsigned, const double ) const;
+    size_t backtrack( std::deque<const AndForkActivityList *>& ) const;
+    double aggregate( Entry * anEntry, const unsigned curr_p, unsigned &next_p, const double rate, std::deque<const Activity *>& activityStack, const aggregateFunc aFunc );
+    virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc  );
     virtual Activity& setClientClosedChain( unsigned );
     virtual Activity& setClientOpenChain( unsigned );
     virtual Activity& setServerChain( unsigned );
@@ -74,11 +61,12 @@ public:
     virtual const LQIO::DOM::Phase * getDOM() const;
 
     ActivityList * inputFrom( ActivityList * );
-    ActivityList * inputFrom () const { return inputFromList; }
-    Activity& replyList(Cltn<const Entry *> *);
-    Cltn<const Entry *> * replyList() const { return myReplyList; }
+    ActivityList * inputFrom () const { return _inputFrom; }
+    Activity& replies(const std::vector<Entry *>& );
+    const std::vector<Entry *>& replies() const { return _replies; }
+    const std::map<Entry *,Reply *>& replyArcs() const { return _replyArcs; }
     ActivityList * outputTo ( ActivityList * );
-    ActivityList * outputTo() const { return outputToList;}
+    ActivityList * outputTo() const { return _outputTo; }
 
     const LQIO::DOM::ExternalVariable & rendezvous ( const Entry *) const;
     Activity& rendezvous( Entry *, const LQIO::DOM::Call * );
@@ -86,40 +74,41 @@ public:
     Activity& sendNoReply( Entry *, const LQIO::DOM::Call * );
     Call * forwardingRendezvous( Entry *, const double );
 
-    virtual const Cltn<Call *>& callList() const { return myCalls; }
+    virtual const std::vector<Call *>& calls() const { return _calls; }
     Activity& rootEntry( const Entry * anEntry, const Arc * );
-    virtual const Entry * rootEntry() const { return myRootEntry; }
+    virtual const Entry * rootEntry() const { return _rootEntry; }
 
     double processorUtilization() const;
     double throughput() const;
 
-    unsigned countArcs( const callFunc = 0 ) const;
+    unsigned countArcs( const callPredicate = 0 ) const;
 
-    virtual bool hasCallsFor( unsigned ) const;
     bool hasRendezvous() const;
     bool hasSendNoReply() const;
-    bool hasCalls( const callFunc aFunc ) const;
-    int repliesTo( const Entry * anEntry ) const;		/* Return index to entry or 0 if not found. */
-    bool reachable() const { return reachableFrom != 0; }
+    bool hasCalls( const callPredicate aFunc ) const;
+    bool repliesTo( const Entry * anEntry ) const;
+    bool reachable() const { return _reachableFrom != 0; }
     bool isSelectedIndirectly() const;
     Activity& isSpecified( const bool yesOrNo ) { iAmSpecified = yesOrNo; return *this; }
     bool isSpecified() const { return iAmSpecified; }
-    bool isStartActivity() const { return myRootEntry != 0; }
-    const Activity * reachedFrom() const { return reachableFrom; }
+    bool isStartActivity() const { return _rootEntry != NULL; }
+    const Activity * reachedFrom() const { return _reachableFrom; }
 
     virtual double serviceTimeForSRVNInput() const;
     Activity& disconnect( Activity * );
     bool transmorgrify();
 
-    Activity const& sort() const;
-    static int compare( const void *, const void * );
-    static int compareCoord( const void * n1, const void *n2 );
+    Activity& sort();
+    static bool compareCoord( const Activity *, const Activity * );
 
-    double aggregateReplies( const Entry * anEntry, const unsigned p, const double rate ) const;
-    double aggregateService( const Entry * anEntry, const unsigned p, const double rate ) const;
+    double aggregateReplies( Entry * anEntry, const unsigned p, const double rate );
+    double aggregateService( Entry * anEntry, const unsigned p, const double rate );
 
+    virtual Activity& rename();
+    
 #if defined(REP2FLAT)
-    Activity& expandActivityCalls( const Activity& src, int replica) ;
+    Activity& expandActivityCalls( const Activity& src, int replica);
+    virtual Activity& replicateCall();
 #endif
 
     /* movement */
@@ -134,7 +123,7 @@ public:
 
     virtual Graphic::colour_type colour() const;
 
-    virtual ostream& draw(ostream &) const;
+    virtual const Activity& draw(ostream &) const;
 
 protected:
     Call * findCall( const Entry * anEntry ) const;
@@ -146,7 +135,7 @@ private:
     Activity( const Activity& anActivity );
     Activity& operator=( const Activity& );
 
-    void addSrcCall( Call * aCall ) { myCalls << aCall; }
+    void addSrcCall( Call * aCall ) { _calls.push_back(aCall); }
     Activity& appendReplyList( const Activity& src );
 
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
@@ -160,8 +149,6 @@ private:
     ostream& printName( ostream& output, int& ) const;
     ostream& printNameWithReply( ostream& ) const;
 
-    static ostream& print_reply_activity_name( ostream& output, const Activity * anActivity );
-
 public:
     static void complete_activity_connections();
 
@@ -170,43 +157,24 @@ private:
     static std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> actConnections;
 
 private:
-    const Task * myTask;		/* */
-    ActivityList * inputFromList;	/* Node which calls me		*/
-    ActivityList * outputToList;	/* Node which I call.		*/
-    Cltn<const Entry *> * myReplyList;	/* Who I generate replies to.	*/
-    Cltn<Call *> myCalls;		/* Who I call.			*/
-    Cltn<Reply *> myReplyArcList;	/* arcs for replies.		*/
-    const Entry * myRootEntry;		/* Set if root activity.	*/
-    const Arc * myCaller;		/* from the entry		*/
+    const Task * _task;			/* Container for activity	*/
+    ActivityList * _inputFrom;		/* Node which calls me		*/
+    ActivityList * _outputTo;		/* Node which I call.		*/
+    std::vector<Entry *> _replies;	/* Who I generate replies to.	*/
+    std::vector<Call *> _calls;		/* Who I call.			*/
+    std::map<Entry *,Reply *> _replyArcs;	/* arcs for replies.	*/
+    const Entry * _rootEntry;		/* Set if root activity.	*/
+    const Arc * _caller;		/* from the entry		*/
     bool iAmSpecified;			/* Set if defined		*/
-    unsigned myLevel;			/* For topological sorting	*/
-    unsigned myIndex;			/* For sorting			*/
-    mutable const Activity * reachableFrom;	/* Set if activity is reachable	*/
+    size_t _level;			/* For topological sorting	*/
+    mutable const Activity * _reachableFrom;	/* Set if activity is reachable	*/
 };
+
+inline ostream& operator<<( ostream& output, const Activity& self ) { self.draw( output ); return output; }
 
 class activity_cycle : public path_error 
 {
 public:
-    activity_cycle( const Activity *, Stack<const Activity *>& );
+    activity_cycle( const Activity *, std::deque<const Activity *>& );
 };
-
-/* -------------------------------------------------------------------- */
-/* Funky Formatting functions for inline with <<.			*/
-/* -------------------------------------------------------------------- */
-
-class ActivityManip {
-public:
-    ActivityManip( ostream& (*ff)(ostream&, const Activity * ), const Activity * theActivity )
-	: f(ff), anActivity(theActivity) {}
-private:
-    ostream& (*f)( ostream&, const Activity* );
-    const Activity * anActivity;
-
-    friend ostream& operator<<(ostream & os, const ActivityManip& m ) 
-	{ return m.f(os,m.anActivity); }
-};
-
-
-ActivityManip connection_list( Activity * anActivity );
-ActivityManip reply_activity_name( Activity * anActivity );
 #endif

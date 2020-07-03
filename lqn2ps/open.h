@@ -1,77 +1,75 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: open.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _OPEN_H
 #define _OPEN_H
 
 #include "lqn2ps.h"
-#include "cltn.h"
-#include "entity.h"
+#include <vector>
+#include "task.h"
 
-class Task;
 class OpenArrival;
 class OpenArrivalSource;
 
-extern Cltn<OpenArrivalSource *> opensource;
-
 /* ------------- Open Arrival Pseudo Tasks (for drawing)  ------------- */
 
-class OpenArrivalSource : public Entity {
+class OpenArrivalSource : public Task {		// "Clients", like reference tasks
 public:
-    OpenArrivalSource( const Entry * source );
+    OpenArrivalSource( Entry * source );
     ~OpenArrivalSource();
+    virtual OpenArrivalSource * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const { return 0; }
 
     virtual const string& name() const;
-    virtual void rename() {}			/* Don't bother */
-    virtual void squishName() {}		/* Don't bother */
-    virtual ostream& draw( ostream& output ) const;
-    virtual ostream& print( ostream& output ) const;
+    
+    virtual OpenArrivalSource& rename() { return *this; }	/* Don't bother */
+    virtual OpenArrivalSource& squishName() { return *this; }	/* Don't bother */
     virtual OpenArrivalSource& moveSrc( const Point& aPoint );
     double utilization() const { return 0.0; }
     virtual OpenArrivalSource& processor( const Processor * );
     const Processor * processor() const { return 0; }
 
-    virtual unsigned referenceTasks( Cltn<const Entity *>&, Element * ) const { return 0; }	/* We don't have clients */
-    virtual unsigned clients( Cltn<const Entity *>&, const callFunc = 0 ) const { return 0; }	/* We don't have clients */
-    virtual unsigned servers( Cltn<const Entity *>& ) const;
-    virtual bool isInOpenModel( const Cltn<Entity *>& servers ) const;
+    const std::vector<OpenArrival *>& calls() const { return _calls; }
+
+    virtual bool check() const { return true; }
+    virtual unsigned referenceTasks( std::vector<Entity *>&, Element * ) const { return 0; }	/* We don't have clients */
+    virtual unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const { return 0; }	/* We don't have clients */
+    virtual unsigned servers( std::vector<Entity *>& ) const;
+    virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isSelectedIndirectly() const;
     
-    virtual unsigned setChain( unsigned, callFunc aFunc ) const;
+    virtual unsigned setChain( unsigned, callPredicate aFunc );
     virtual OpenArrivalSource& aggregate();
 
     virtual double radius() const;
+
+    virtual OpenArrivalSource& format() { return *this; }
+    virtual OpenArrivalSource& reformat() { return *this; }
+    
+    virtual OpenArrivalSource& moveBy( const double dx, const double dy ) { Element::moveBy( dx, dy ); return *this; }
     virtual OpenArrivalSource& moveTo( const double x, const double y );
-    virtual OpenArrivalSource& label();
-
-    virtual Graphic::colour_type colour() const;
-
     virtual OpenArrivalSource& scaleBy( const double, const double );
     virtual OpenArrivalSource& translateY( const double );
     virtual OpenArrivalSource& depth( const unsigned );
 
-#if defined(PMIF_OUTPUT)
-    virtual ostream& printPMIFServer( ostream& output ) const;
-    virtual ostream& printPMIFClient( ostream& output ) const;
-    virtual ostream& printPMIFRequests( ostream& output ) const;
-    virtual ostream& printPMIFArcs( ostream& output ) const;
-#endif
+    virtual OpenArrivalSource& label();
+
+    virtual Graphic::colour_type colour() const;
+
+
+    virtual const OpenArrivalSource& draw( ostream& output ) const;
     virtual ostream& drawClient( ostream&, const bool is_in_open_model, const bool is_in_closed_model ) const;
-
-#if defined(QNAP_OUTPUT)
-    virtual ostream& printQNAPClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const;
-#endif
+    virtual ostream& print( ostream& output ) const;
 
 private:
-#if defined(QNAP_OUTPUT)
-    ostream& printQNAPRequests( ostream& output, const bool multi_class ) const;
-#endif
+    const Entry& myEntry() const { return *_entries.at(0); }
 
+public:
+    static std::vector<OpenArrivalSource *> __source;
+    
 private:
-    const Entry * myEntry;		/* Entry requesting arrivals.	*/
-    Cltn<OpenArrival *> myCalls;	/* Arc calling entry		*/
+    std::vector<OpenArrival *> _calls;	/* Arc calling entry		*/
 };
 #endif

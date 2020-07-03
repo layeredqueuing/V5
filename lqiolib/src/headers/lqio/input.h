@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 12246 2015-03-05 21:38:54Z greg $
+ * $Id: input.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -16,6 +16,7 @@
 
 /* Don't forget to fix labels.c */
 /* Add a new scheduler type 'CFS' 2008*/
+/* Add two new scheduler types for decisions  2016*/
 typedef enum {
     SCHEDULE_CUSTOMER,
     SCHEDULE_DELAY,
@@ -71,11 +72,13 @@ typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOC
 namespace LQIO { struct error_message_type; };
 typedef struct LQIO::error_message_type ErrorMessageType;
 	
-typedef struct lqio_params_stats {
-    unsigned n_entries;                         /* O:total number of entries      */
-    unsigned n_tasks;                           /* O:total number of tasks        */
-    unsigned n_processors;	                /* O:number of processors         */
-    unsigned n_groups;                          /* O:total number of groups       */
+typedef struct lqio_params_stats
+{
+    lqio_params_stats( const char * version, void (*action)(unsigned) ) : lq_toolname(NULL), lq_version(version), lq_command_line(NULL),
+	severity_action(action), max_error(10), error_count(0), severity_level(LQIO::NO_ERROR), error_messages(NULL) {}
+    void reset() { error_count = 0; }
+    bool anError() const { return error_count > 0; }
+	
     const char* lq_toolname;                    /* I:Name of tool for messages    */
     const char* lq_version;			/* I: version number		  */
     const char* lq_command_line;		/* I:Command line		  */
@@ -86,15 +89,14 @@ typedef struct lqio_params_stats {
     LQIO::severity_t severity_level;            /* I:Messages < severity_level ignored. */
 	
     ErrorMessageType* error_messages;		/* IO:Error Messages */
-	
-    bool anError;
-
 } lqio_params_stats;
 
 extern int LQIO_lineno;				/* Input line number -- can't use namespace because it's used with C */
 
-extern const char * scheduling_type_str[N_SCHEDULING_TYPES+1];
-extern const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1];   
-extern const char scheduling_type_flag[N_SCHEDULING_TYPES];
+extern struct scheduling_label_t {
+    const char * str;
+    const char * XML;
+    const char flag;
+} const scheduling_label[N_SCHEDULING_TYPES];
 #endif
 #endif	/* LQIO_INPUT_H */

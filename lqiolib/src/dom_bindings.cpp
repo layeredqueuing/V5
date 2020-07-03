@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 13201 2018-03-05 23:45:30Z greg $
+ *  $Id: dom_bindings.cpp 13499 2020-02-24 01:57:22Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -12,6 +12,7 @@
 #include <lqx/MethodTable.h>
 #include <lqx/LanguageObject.h>
 #include <lqx/Array.h>
+#include <lqx/RuntimeException.h>
 
 #include "dom_document.h"
 #include "confidence_intervals.h"
@@ -19,6 +20,23 @@
 #include <sstream>
 #include <cstring>
 namespace LQIO {
+
+    const char * __lqx_elapsed_time             = "elapsed_time";
+    const char * __lqx_exceeded_time            = "pr_time_exceeded";
+    const char * __lqx_iterations               = "iterations";
+    const char * __lqx_pr_exceeded              = "pr_exceeded";
+    const char * __lqx_processor_utilization    = "proc_utilization";
+    const char * __lqx_processor_waiting        = "proc_waiting";
+    const char * __lqx_service_time             = "service_time";
+    const char * __lqx_system_time              = "system_cpu_time";
+    const char * __lqx_throughput               = "throughput";
+    const char * __lqx_throughput_bound         = "throughput_bound";
+    const char * __lqx_user_time                = "user_cpu_time";
+    const char * __lqx_utilization              = "utilization";
+    const char * __lqx_variance                 = "service_time_variance";
+    const char * __lqx_waiting                  = "waiting";
+    const char * __lqx_waiting_variance         = "waiting_variance";
+    
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Object] */
@@ -28,28 +46,30 @@ namespace LQIO {
     protected:
 	typedef double (DOM::DocumentObject::*get_result_fptr)() const;
 
-	struct result_table_t
+	struct attribute_table_t
 	{
-	    result_table_t( get_result_fptr m=0, get_result_fptr v=0 ) : mean(m), variance(v) {}
+	    attribute_table_t( get_result_fptr m=0, get_result_fptr v=0 ) : mean(m), variance(v) {}
 	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-	    LQX::SymbolAutoRef operator()( DOM::DocumentObject& domObject ) const { return LQX::Symbol::encodeDouble( (domObject.*mean)() ); }
+	    LQX::SymbolAutoRef operator()( const DOM::DocumentObject& domObject ) const { return LQX::Symbol::encodeDouble( (domObject.*mean)() ); }
 	    get_result_fptr mean;
 	    get_result_fptr variance;
 	};
 
     public:
-	LQXDocumentObject( uint32_t kLQXobject, DOM::DocumentObject * domObject ) : LQX::LanguageObject(kLQXobject), _domObject(domObject)
+	LQXDocumentObject( uint32_t kLQXobject, const DOM::DocumentObject * domObject ) : LQX::LanguageObject(kLQXobject), _domObject(domObject)
 	    {
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
-		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		std::map<const char *,attribute_table_t,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
 		    try {
-			return attribute->second( *_domObject );
+			if ( _domObject ) {
+			    return attribute->second( *_domObject );
+			}
 		    }
-		    catch ( LQIO::should_implement e ) {
+		    catch ( const LQIO::should_implement& e ) {
 		    }
 		}
 
@@ -57,59 +77,62 @@ namespace LQIO {
 		return this->LanguageObject::getPropertyNamed(env, name);
 	    }
 
-        DOM::DocumentObject* getDOMObject() const { return _domObject; }
+        const DOM::DocumentObject* getDOMObject() const { return _domObject; }
 
 
 	static void initializeTables() 
 	    {
 		if ( __attributeTable.size() != 0 ) return;
 
-		__attributeTable["loss_probability"]               = result_table_t( &DOM::DocumentObject::getResultDropProbability,            &DOM::DocumentObject::getResultDropProbabilityVariance );
-		__attributeTable["open_wait_time"]                 = result_table_t( &DOM::DocumentObject::getResultOpenWaitTime,               &DOM::DocumentObject::getResultOpenWaitTimeVariance );
-		__attributeTable["phase1_proc_waiting"]            = result_table_t( &DOM::DocumentObject::getResultPhase1ProcessorWaiting,     &DOM::DocumentObject::getResultPhase1ProcessorWaitingVariance );
-		__attributeTable["phase1_service_time"]            = result_table_t( &DOM::DocumentObject::getResultPhase1ServiceTime,          &DOM::DocumentObject::getResultPhase1ServiceTimeVariance );
-		__attributeTable["phase1_service_time_variance"]   = result_table_t( &DOM::DocumentObject::getResultPhase1VarianceServiceTime,  &DOM::DocumentObject::getResultPhase1VarianceServiceTimeVariance );
-		__attributeTable["phase1_utilization"]             = result_table_t( &DOM::DocumentObject::getResultPhase1Utilization,          &DOM::DocumentObject::getResultPhase1UtilizationVariance );
-		__attributeTable["phase2_proc_waiting"]            = result_table_t( &DOM::DocumentObject::getResultPhase2ProcessorWaiting,     &DOM::DocumentObject::getResultPhase2ProcessorWaitingVariance );
-		__attributeTable["phase2_service_time"]            = result_table_t( &DOM::DocumentObject::getResultPhase2ServiceTime,          &DOM::DocumentObject::getResultPhase2ServiceTimeVariance );
-		__attributeTable["phase2_service_time_variance"]   = result_table_t( &DOM::DocumentObject::getResultPhase2VarianceServiceTime,  &DOM::DocumentObject::getResultPhase2VarianceServiceTimeVariance );
-		__attributeTable["phase2_utilization"]             = result_table_t( &DOM::DocumentObject::getResultPhase2Utilization,          &DOM::DocumentObject::getResultPhase2UtilizationVariance );
-		__attributeTable["phase3_proc_waiting"]            = result_table_t( &DOM::DocumentObject::getResultPhase3ProcessorWaiting,     &DOM::DocumentObject::getResultPhase3ProcessorWaitingVariance );
-		__attributeTable["phase3_service_time"]            = result_table_t( &DOM::DocumentObject::getResultPhase3ServiceTime,          &DOM::DocumentObject::getResultPhase3ServiceTimeVariance );
-		__attributeTable["phase3_service_time_variance"]   = result_table_t( &DOM::DocumentObject::getResultPhase3VarianceServiceTime,  &DOM::DocumentObject::getResultPhase3VarianceServiceTimeVariance );
-		__attributeTable["phase3_utilization"]             = result_table_t( &DOM::DocumentObject::getResultPhase3Utilization,          &DOM::DocumentObject::getResultPhase3UtilizationVariance );
-		__attributeTable["proc_utilization"]               = result_table_t( &DOM::DocumentObject::getResultProcessorUtilization,       &DOM::DocumentObject::getResultProcessorUtilizationVariance );
-		__attributeTable["proc_waiting"]                   = result_table_t( &DOM::DocumentObject::getResultProcessorWaiting,           &DOM::DocumentObject::getResultProcessorWaitingVariance );
-		__attributeTable["rwlock_reader_holding"]          = result_table_t( &DOM::DocumentObject::getResultReaderHoldingTime,          &DOM::DocumentObject::getResultReaderHoldingTimeVariance );
-		__attributeTable["rwlock_reader_holding_variance"] = result_table_t( &DOM::DocumentObject::getResultVarianceReaderHoldingTime,  &DOM::DocumentObject::getResultVarianceReaderHoldingTimeVariance );
-		__attributeTable["rwlock_reader_utilization"]      = result_table_t( &DOM::DocumentObject::getResultReaderHoldingUtilization,   &DOM::DocumentObject::getResultReaderHoldingUtilizationVariance );
-		__attributeTable["rwlock_reader_waiting"]          = result_table_t( &DOM::DocumentObject::getResultReaderBlockedTime,          &DOM::DocumentObject::getResultReaderBlockedTimeVariance );
-		__attributeTable["rwlock_reader_waiting_variance"] = result_table_t( &DOM::DocumentObject::getResultVarianceReaderBlockedTime,  &DOM::DocumentObject::getResultVarianceReaderBlockedTimeVariance );
-		__attributeTable["rwlock_writer_holding"]          = result_table_t( &DOM::DocumentObject::getResultWriterHoldingTime,          &DOM::DocumentObject::getResultWriterHoldingTimeVariance );
-		__attributeTable["rwlock_writer_holding_variance"] = result_table_t( &DOM::DocumentObject::getResultVarianceWriterHoldingTime,  &DOM::DocumentObject::getResultVarianceWriterHoldingTimeVariance );
-		__attributeTable["rwlock_writer_utilization"]      = result_table_t( &DOM::DocumentObject::getResultWriterHoldingUtilization,   &DOM::DocumentObject::getResultWriterHoldingUtilizationVariance );
-		__attributeTable["rwlock_writer_waiting"]          = result_table_t( &DOM::DocumentObject::getResultWriterBlockedTime,          &DOM::DocumentObject::getResultWriterBlockedTimeVariance );
-		__attributeTable["rwlock_writer_waiting_variance"] = result_table_t( &DOM::DocumentObject::getResultVarianceWriterBlockedTime,  &DOM::DocumentObject::getResultVarianceWriterBlockedTimeVariance );
-		__attributeTable["semaphore_utilization"]          = result_table_t( &DOM::DocumentObject::getResultHoldingUtilization,         &DOM::DocumentObject::getResultHoldingUtilizationVariance );
-		__attributeTable["semaphore_waiting"]              = result_table_t( &DOM::DocumentObject::getResultHoldingTime,                &DOM::DocumentObject::getResultHoldingTimeVariance );
-		__attributeTable["semaphore_waiting_variance"]     = result_table_t( &DOM::DocumentObject::getResultVarianceHoldingTime,        &DOM::DocumentObject::getResultVarianceHoldingTimeVariance );
-		__attributeTable["service_time"]                   = result_table_t( &DOM::DocumentObject::getResultServiceTime,                &DOM::DocumentObject::getResultServiceTimeVariance );
-		__attributeTable["service_time_variance"]          = result_table_t( &DOM::DocumentObject::getResultVarianceServiceTime,        &DOM::DocumentObject::getResultVarianceServiceTimeVariance );
-		__attributeTable["squared_coeff_variation"]        = result_table_t( &DOM::DocumentObject::getResultSquaredCoeffVariation,      0 );
-		__attributeTable["throughput"]                     = result_table_t( &DOM::DocumentObject::getResultThroughput,                 &DOM::DocumentObject::getResultThroughputVariance );
-		__attributeTable["throughput_bound"]               = result_table_t( &DOM::DocumentObject::getResultThroughputBound,            0 );
-		__attributeTable["utilization"]                    = result_table_t( &DOM::DocumentObject::getResultUtilization,                &DOM::DocumentObject::getResultUtilizationVariance );
-		__attributeTable["waiting"]                        = result_table_t( &DOM::DocumentObject::getResultWaitingTime,                &DOM::DocumentObject::getResultWaitingTimeVariance );
-		__attributeTable["waiting_variance"]               = result_table_t( &DOM::DocumentObject::getResultVarianceWaitingTime,        &DOM::DocumentObject::getResultVarianceWaitingTimeVariance );
-	    }
+                __attributeTable["loss_probability"]               = attribute_table_t( &DOM::DocumentObject::getResultDropProbability,            &DOM::DocumentObject::getResultDropProbabilityVariance );
+                __attributeTable["phase1_pr_time_exceeded"]        = attribute_table_t( &DOM::DocumentObject::getResultPhase1MaxServiceTimeExceeded, NULL );
+                __attributeTable["phase1_proc_waiting"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase1ProcessorWaiting,     &DOM::DocumentObject::getResultPhase1ProcessorWaitingVariance );
+                __attributeTable["phase1_service_time"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase1ServiceTime,          &DOM::DocumentObject::getResultPhase1ServiceTimeVariance );
+                __attributeTable["phase1_service_time_variance"]   = attribute_table_t( &DOM::DocumentObject::getResultPhase1VarianceServiceTime,  &DOM::DocumentObject::getResultPhase1VarianceServiceTimeVariance );
+                __attributeTable["phase1_utilization"]             = attribute_table_t( &DOM::DocumentObject::getResultPhase1Utilization,          &DOM::DocumentObject::getResultPhase1UtilizationVariance );
+                __attributeTable["phase2_proc_waiting"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase2ProcessorWaiting,     &DOM::DocumentObject::getResultPhase2ProcessorWaitingVariance );
+                __attributeTable["phase2_service_time"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase2ServiceTime,          &DOM::DocumentObject::getResultPhase2ServiceTimeVariance );
+                __attributeTable["phase2_service_time_variance"]   = attribute_table_t( &DOM::DocumentObject::getResultPhase2VarianceServiceTime,  &DOM::DocumentObject::getResultPhase2VarianceServiceTimeVariance );
+                __attributeTable["phase2_utilization"]             = attribute_table_t( &DOM::DocumentObject::getResultPhase2Utilization,          &DOM::DocumentObject::getResultPhase2UtilizationVariance );
+                __attributeTable["phase3_pr_time_exceeded"]        = attribute_table_t( &DOM::DocumentObject::getResultPhase2MaxServiceTimeExceeded, NULL );
+                __attributeTable["phase3_pr_time_exceeded"]        = attribute_table_t( &DOM::DocumentObject::getResultPhase3MaxServiceTimeExceeded, NULL );
+                __attributeTable["phase3_proc_waiting"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase3ProcessorWaiting,     &DOM::DocumentObject::getResultPhase3ProcessorWaitingVariance );
+                __attributeTable["phase3_service_time"]            = attribute_table_t( &DOM::DocumentObject::getResultPhase3ServiceTime,          &DOM::DocumentObject::getResultPhase3ServiceTimeVariance );
+                __attributeTable["phase3_service_time_variance"]   = attribute_table_t( &DOM::DocumentObject::getResultPhase3VarianceServiceTime,  &DOM::DocumentObject::getResultPhase3VarianceServiceTimeVariance );
+                __attributeTable["phase3_utilization"]             = attribute_table_t( &DOM::DocumentObject::getResultPhase3Utilization,          &DOM::DocumentObject::getResultPhase3UtilizationVariance );
+                __attributeTable["rwlock_reader_holding"]          = attribute_table_t( &DOM::DocumentObject::getResultReaderHoldingTime,          &DOM::DocumentObject::getResultReaderHoldingTimeVariance );
+                __attributeTable["rwlock_reader_holding_variance"] = attribute_table_t( &DOM::DocumentObject::getResultVarianceReaderHoldingTime,  &DOM::DocumentObject::getResultVarianceReaderHoldingTimeVariance );
+                __attributeTable["rwlock_reader_utilization"]      = attribute_table_t( &DOM::DocumentObject::getResultReaderHoldingUtilization,   &DOM::DocumentObject::getResultReaderHoldingUtilizationVariance );
+                __attributeTable["rwlock_reader_waiting"]          = attribute_table_t( &DOM::DocumentObject::getResultReaderBlockedTime,          &DOM::DocumentObject::getResultReaderBlockedTimeVariance );
+                __attributeTable["rwlock_reader_waiting_variance"] = attribute_table_t( &DOM::DocumentObject::getResultVarianceReaderBlockedTime,  &DOM::DocumentObject::getResultVarianceReaderBlockedTimeVariance );
+                __attributeTable["rwlock_writer_holding"]          = attribute_table_t( &DOM::DocumentObject::getResultWriterHoldingTime,          &DOM::DocumentObject::getResultWriterHoldingTimeVariance );
+                __attributeTable["rwlock_writer_holding_variance"] = attribute_table_t( &DOM::DocumentObject::getResultVarianceWriterHoldingTime,  &DOM::DocumentObject::getResultVarianceWriterHoldingTimeVariance );
+                __attributeTable["rwlock_writer_utilization"]      = attribute_table_t( &DOM::DocumentObject::getResultWriterHoldingUtilization,   &DOM::DocumentObject::getResultWriterHoldingUtilizationVariance );
+                __attributeTable["rwlock_writer_waiting"]          = attribute_table_t( &DOM::DocumentObject::getResultWriterBlockedTime,          &DOM::DocumentObject::getResultWriterBlockedTimeVariance );
+                __attributeTable["rwlock_writer_waiting_variance"] = attribute_table_t( &DOM::DocumentObject::getResultVarianceWriterBlockedTime,  &DOM::DocumentObject::getResultVarianceWriterBlockedTimeVariance );
+                __attributeTable["semaphore_utilization"]          = attribute_table_t( &DOM::DocumentObject::getResultHoldingUtilization,         &DOM::DocumentObject::getResultHoldingUtilizationVariance );
+                __attributeTable["semaphore_waiting"]              = attribute_table_t( &DOM::DocumentObject::getResultHoldingTime,                &DOM::DocumentObject::getResultHoldingTimeVariance );
+                __attributeTable["semaphore_waiting_variance"]     = attribute_table_t( &DOM::DocumentObject::getResultVarianceHoldingTime,        &DOM::DocumentObject::getResultVarianceHoldingTimeVariance );
+                __attributeTable["squared_coeff_variation"]         = attribute_table_t( &DOM::DocumentObject::getResultSquaredCoeffVariation,      NULL );
+                __attributeTable[__lqx_pr_exceeded]                 = attribute_table_t( &DOM::DocumentObject::getResultMaxServiceTimeExceeded,     NULL );
+                __attributeTable[__lqx_processor_utilization]       = attribute_table_t( &DOM::DocumentObject::getResultProcessorUtilization,       &DOM::DocumentObject::getResultProcessorUtilizationVariance );
+                __attributeTable[__lqx_processor_waiting]           = attribute_table_t( &DOM::DocumentObject::getResultProcessorWaiting,           &DOM::DocumentObject::getResultProcessorWaitingVariance );
+                __attributeTable[__lqx_service_time]                = attribute_table_t( &DOM::DocumentObject::getResultServiceTime,                &DOM::DocumentObject::getResultServiceTimeVariance );
+                __attributeTable[__lqx_variance]                    = attribute_table_t( &DOM::DocumentObject::getResultVarianceServiceTime,        &DOM::DocumentObject::getResultVarianceServiceTimeVariance );
+                __attributeTable[__lqx_throughput]                  = attribute_table_t( &DOM::DocumentObject::getResultThroughput,                 &DOM::DocumentObject::getResultThroughputVariance );
+                __attributeTable[__lqx_throughput_bound]            = attribute_table_t( &DOM::DocumentObject::getResultThroughputBound,            NULL );
+                __attributeTable[__lqx_utilization]                 = attribute_table_t( &DOM::DocumentObject::getResultUtilization,                &DOM::DocumentObject::getResultUtilizationVariance );
+                __attributeTable[__lqx_waiting]                     = attribute_table_t( &DOM::DocumentObject::getResultWaitingTime,                &DOM::DocumentObject::getResultWaitingTimeVariance );
+                __attributeTable[__lqx_waiting_variance]            = attribute_table_t( &DOM::DocumentObject::getResultVarianceWaitingTime,        &DOM::DocumentObject::getResultVarianceWaitingTimeVariance );
+            }
 
     protected:
-        DOM::DocumentObject * _domObject;
-        static std::map<const char *,result_table_t,result_table_t> __attributeTable;
+        const DOM::DocumentObject * _domObject;
+        static std::map<const char *,attribute_table_t,attribute_table_t> __attributeTable;
 
     };
 
-    std::map<const char *,LQXDocumentObject::result_table_t,LQXDocumentObject::result_table_t> LQXDocumentObject::__attributeTable;
+    std::map<const char *,LQXDocumentObject::attribute_table_t,LQXDocumentObject::attribute_table_t> LQXDocumentObject::__attributeTable;
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Processor] */
@@ -122,7 +145,7 @@ namespace LQIO {
         const static uint32_t kLQXProcessorObjectTypeId = 10+1;
 
         /* Designated Initializers */
-        LQXProcessor(DOM::Processor* proc) : LQXDocumentObject(kLQXProcessorObjectTypeId,proc)
+        LQXProcessor(const DOM::Processor* proc) : LQXDocumentObject(kLQXProcessorObjectTypeId,proc)
             {
             }
 
@@ -137,7 +160,7 @@ namespace LQIO {
                 return processor && processor->getDOMProcessor() == getDOMProcessor();  /* Return a comparison of the types */
             }
 
-        virtual std::string description()
+        virtual std::string description() const
             {
                 /* Return a description of the task */
                 std::stringstream ss;
@@ -145,23 +168,15 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Processor)&&n=" << getDOMProcessor()->getName();
-		return ss.str();
+		return LQIO::DOM::Processor::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Processor";
-	    }
-
-        DOM::Processor* getDOMProcessor() const { return dynamic_cast<DOM::Processor*>(_domObject); }
+        const DOM::Processor* getDOMProcessor() const { return dynamic_cast<const DOM::Processor*>(_domObject); }
 
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
 		/* All the valid properties of tasks */
 		if (name == "utilization") {
@@ -175,17 +190,16 @@ namespace LQIO {
 
     class LQXGetProcessor : public LQX::Method {
     public:
-	LQXGetProcessor(DOM::Document* doc) : _document(doc), _symbolCache() {}
+	LQXGetProcessor(const DOM::Document* doc) : _document(doc), _symbolCache() {}
 	virtual ~LQXGetProcessor() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "processor"; }
+	virtual std::string getName() const { return LQIO::DOM::Processor::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the processor associated with a name."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* procName = decodeString(args, 0);
@@ -198,7 +212,7 @@ namespace LQIO {
 
 	    /* There was no task given */
 	    if (proc == NULL) {
-		printf("warning: No processor specified with name %s\n", procName);
+		throw LQX::RuntimeException( "No processor specified with name ", procName );
 		return LQX::Symbol::encodeNull();
 	    }
 
@@ -209,7 +223,100 @@ namespace LQIO {
 	}
 
     private:
-	DOM::Document* _document;
+	const DOM::Document* _document;
+	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
+    };
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Group] */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+    class LQXGroup : public LQXDocumentObject {
+    public:
+
+        const static uint32_t kLQXGroupObjectTypeId = 10+7;
+
+        /* Designated Initializers */
+        LQXGroup(const DOM::Group* group) : LQXDocumentObject(kLQXGroupObjectTypeId,group)
+            {
+            }
+
+        virtual ~LQXGroup()
+            {
+            }
+
+        /* Comparison and Operators */
+        virtual bool isEqualTo(const LQX::LanguageObject* other) const
+            {
+                const LQXGroup* group = dynamic_cast<const LQXGroup *>(other);
+                return group && group->getDOMGroup() == getDOMGroup();  /* Return a comparison of the types */
+            }
+
+        virtual std::string description() const
+            {
+                /* Return a description of the task */
+                std::stringstream ss;
+                ss << "Group(" << getDOMGroup()->getName() << ")";
+		return ss.str();
+	    }
+
+	virtual std::string getTypeName() const
+	    {
+		return LQIO::DOM::Group::__typeName;
+	    }
+
+        const DOM::Group* getDOMGroup() const { return dynamic_cast<const DOM::Group*>(_domObject); }
+
+
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	    {
+		/* All the valid properties of tasks */
+		if (name == "utilization") {
+		    return LQX::Symbol::encodeDouble(getDOMGroup()->getResultUtilization());
+		}
+
+		/* Anything we don't handle may be handled by our superclass */
+		return this->LanguageObject::getPropertyNamed(env, name);
+	    }
+    };
+
+    class LQXGetGroup : public LQX::Method {
+    public:
+	LQXGetGroup(const DOM::Document* doc) : _document(doc), _symbolCache() {}
+	virtual ~LQXGetGroup() {}
+
+	/* Basic information for the method itself */
+	virtual std::string getName() const { return LQIO::DOM::Group::__typeName; }
+	virtual const char* getParameterInfo() const { return "s"; }
+	virtual std::string getHelp() const { return "Returns the group associated with a name."; }
+
+	/* Invocation of the method from the language */
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
+
+	    /* Decode the name of the group and look it up in cache */
+	    const char* groupName = decodeString(args, 0);
+	    if (_symbolCache.find(groupName) != _symbolCache.end()) {
+		return _symbolCache[groupName];
+	    }
+
+	    /* Obtain the group reference  */
+	    DOM::Group* group = _document->getGroupByName(groupName);
+
+	    /* There was no group given */
+	    if (group == NULL) {
+		throw LQX::RuntimeException("No group specified with name `%s'.", groupName);
+		return LQX::Symbol::encodeNull();
+	    }
+
+	    /* Return an encapsulated reference to the group */
+	    LQXGroup* groupObject = new LQXGroup(group);
+	    _symbolCache[groupName] = LQX::Symbol::encodeObject(groupObject, false);
+	    return _symbolCache[groupName];
+	}
+
+    private:
+	const DOM::Document* _document;
 	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
     };
 
@@ -224,7 +331,7 @@ namespace LQIO {
 	const static uint32_t kLQXTaskObjectTypeId = 10+0;
 
 	/* Designated Initializers */
-        LQXTask(DOM::Task* task) : LQXDocumentObject(kLQXTaskObjectTypeId,task)
+        LQXTask(const DOM::Task* task) : LQXDocumentObject(kLQXTaskObjectTypeId,task)
             {
             }
 
@@ -239,7 +346,7 @@ namespace LQIO {
 		return task && task->getDOMTask() == getDOMTask();	/* Return a comparison of the types */
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::string s = getTypeName();
@@ -249,37 +356,28 @@ namespace LQIO {
 		return s;
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Task)&&n=" << getDOMTask()->getName();
-		return ss.str();
+		return LQIO::DOM::Task::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Task";
-	    }
-
-        DOM::Task* getDOMTask() const { return dynamic_cast<DOM::Task*>(_domObject); }
+        const DOM::Task* getDOMTask() const { return dynamic_cast<const DOM::Task*>(_domObject); }
 
     private:
     };
 
     class LQXGetTask : public LQX::Method {
     public:
-	LQXGetTask(DOM::Document* doc) : _document(doc), _symbolCache() {}
+	LQXGetTask(const DOM::Document* doc) : _document(doc), _symbolCache() {}
 	virtual ~LQXGetTask() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "task"; }
+	virtual std::string getName() const { return LQIO::DOM::Task::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the task associated with a name."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* taskName = decodeString(args, 0);
@@ -292,7 +390,7 @@ namespace LQIO {
 
 	    /* There was no task given */
 	    if (task == NULL) {
-		printf("warning: No task specified with name %s\n", taskName);
+		throw LQX::RuntimeException("No task specified with name `%s'.", taskName);
 		return LQX::Symbol::encodeNull();
 	    }
 
@@ -303,7 +401,7 @@ namespace LQIO {
 	}
 
     private:
-	DOM::Document* _document;
+	const DOM::Document* _document;
 	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
     };
 
@@ -333,7 +431,7 @@ namespace LQIO {
 		return entry && entry->getDOMEntry() == getDOMEntry();
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
@@ -341,20 +439,12 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Entry)&&n=" << getDOMEntry()->getName();
-		return ss.str();
+		return LQIO::DOM::Entry::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Entry";
-	    }
-
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
 		if (name == "has_phase_1") {
 		    return LQX::Symbol::encodeBoolean(getDOMEntry()->hasResultsForPhase(1));
@@ -369,23 +459,22 @@ namespace LQIO {
 		return this->LQXDocumentObject::getPropertyNamed(env, name);
 	    }
 
-        DOM::Entry* getDOMEntry() const { return dynamic_cast<DOM::Entry*>(_domObject); }
+        const DOM::Entry* getDOMEntry() const { return dynamic_cast<const DOM::Entry*>(_domObject); }
 
     };
 
     class LQXGetEntry : public LQX::Method {
     public:
-	LQXGetEntry(DOM::Document* doc) : _document(doc), _symbolCache() {}
+	LQXGetEntry(const DOM::Document* doc) : _document(doc), _symbolCache() {}
 	virtual ~LQXGetEntry() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "entry"; }
+	virtual std::string getName() const { return LQIO::DOM::Entry::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the entry with the given name."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the name of the task and look it up in cache */
 	    const char* entryName = decodeString(args, 0);
@@ -398,7 +487,7 @@ namespace LQIO {
 
 	    /* There was no task given */
 	    if (entry == NULL) {
-		printf("warning: No entry specified with name %s\n", entryName);
+		throw LQX::RuntimeException("No entry specified with name `%s'.", entryName);
 		return LQX::Symbol::encodeNull();
 	    }
 
@@ -409,7 +498,7 @@ namespace LQIO {
 	}
 
     private:
-	DOM::Document* _document;
+	const DOM::Document* _document;
 	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
     };
 
@@ -424,7 +513,7 @@ namespace LQIO {
 	const static uint32_t kLQXPhaseObjectTypeId = 10+2;
 
 	/* Designated Initializers */
-	LQXPhase(DOM::Phase* phase) : LQXDocumentObject(kLQXPhaseObjectTypeId,phase)
+	LQXPhase(const DOM::Phase* phase) : LQXDocumentObject(kLQXPhaseObjectTypeId,phase)
 	    {
 	    }
 
@@ -439,7 +528,7 @@ namespace LQIO {
 		return phase && phase->getDOMPhase() == getDOMPhase();
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
@@ -447,20 +536,12 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Phase)&&n=" << (void *)getDOMPhase();
-		return ss.str();
+		return LQIO::DOM::Phase::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Phase";
-	    }
-
-        DOM::Phase* getDOMPhase() const { return dynamic_cast<DOM::Phase*>(_domObject); }
+        const DOM::Phase* getDOMPhase() const { return dynamic_cast<const DOM::Phase*>(_domObject); }
 
     };
 
@@ -471,13 +552,12 @@ namespace LQIO {
 	virtual ~LQXGetPhase() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "phase"; }
+	virtual std::string getName() const { return LQIO::DOM::Phase::__typeName; }
 	virtual const char* getParameterInfo() const { return "od"; }
 	virtual std::string getHelp() const { return "Returns the given phase of the given entry."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
@@ -486,13 +566,13 @@ namespace LQIO {
 
 	    /* Make sure that what we have is an entry */
 	    if (!entry) {
-		printf("warning: Argument 1 to phase(object,double) is not an entry.\n");
+		throw LQX::RuntimeException("Argument 1 to phase(object,double) is not an entry.");
 		return LQX::Symbol::encodeNull();
 	    }
 
 	    /* Obtain the phase for the entry */
-	    DOM::Entry* domEntry = entry->getDOMEntry();
-	    DOM::Phase* domPhase = domEntry->getPhase((unsigned)phase);
+	    const DOM::Entry* domEntry = entry->getDOMEntry();
+	    const DOM::Phase* domPhase = domEntry->getPhase((unsigned)phase);
 	    return LQX::Symbol::encodeObject(new LQXPhase(domPhase), false);
 	}
     };
@@ -508,7 +588,7 @@ namespace LQIO {
 	const static uint32_t kLQXActivityObjectTypeId = 10+4;
 
 	/* Designated Initializers */
-	LQXActivity(DOM::Activity* act) : LQXDocumentObject(kLQXActivityObjectTypeId,act)
+	LQXActivity(const DOM::Activity* act) : LQXDocumentObject(kLQXActivityObjectTypeId,act)
 	    {
 	    }
 
@@ -523,7 +603,7 @@ namespace LQIO {
 		return act && act->getDOMActivity() == getDOMActivity();
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
@@ -531,20 +611,12 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Activity)&&n=" << (void *)getDOMActivity();
-		return ss.str();
+		return LQIO::DOM::Activity::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Activity";
-	    }
-
-        DOM::Activity* getDOMActivity() const { return dynamic_cast<DOM::Activity*>(_domObject); }
+        const DOM::Activity* getDOMActivity() const { return dynamic_cast<const DOM::Activity*>(_domObject); }
     };
 
 // [MM] These should be cached.
@@ -554,33 +626,32 @@ namespace LQIO {
 	virtual ~LQXGetActivity() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "activity"; }
+	virtual std::string getName() const { return LQIO::DOM::Activity::__typeName; }
 	virtual const char* getParameterInfo() const { return "os"; }
 	virtual std::string getHelp() const { return "Returns the activity with the given name."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
 	    const char* actName = decodeString(args, 1);
 	    LQXTask* task = dynamic_cast<LQXTask *>(lo);
 
-	    /* Make sure that what we have is an entry */
+	    /* Make sure that what we have is a task */
 	    if (!task) {
-		printf("warning: Argument 1 to activity(object,string) is not a task.\n");
+		throw LQX::RuntimeException("Argument 1 to activity(object,string) is not a task.");
 		return LQX::Symbol::encodeNull();
 	    }
 
-	    /* Obtain the phase for the entry */
-	    DOM::Task* domTask = task->getDOMTask();
-	    DOM::Activity* domAct = domTask->getActivity(actName,false);
+	    /* Obtain the activity for the task */
+	    const DOM::Task* domTask = task->getDOMTask();
+	    const DOM::Activity* domAct = domTask->getActivity(actName);
 
 	    /* Make sure we got one */
 	    if (domAct == NULL) {
-		printf("warning: No activity named %s for task %s.\n",
-		       domTask->getName().c_str(), domAct->getName().c_str());
+		throw LQX::RuntimeException("No activity named `%s' for task `%s'.",
+					    domAct->getName().c_str(), domTask->getName().c_str());
 		return LQX::Symbol::encodeNull();
 	    }
 
@@ -599,7 +670,7 @@ namespace LQIO {
 	const static uint32_t kLQXCallObjectTypeId = 10+3;
 
 	/* Designated Initializers */
-	LQXCall(DOM::Call* call) : LQXDocumentObject(kLQXCallObjectTypeId,call)
+	LQXCall(const DOM::Call* call) : LQXDocumentObject(kLQXCallObjectTypeId,call)
 	    {
 	    }
 
@@ -614,29 +685,21 @@ namespace LQIO {
 		return call && call->getDOMCall() == getDOMCall();
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
-		ss << "Call(" << const_cast<DOM::Entry*>(getDOMCall()->getSourceEntry())->getName() << "->"
+		ss << "Call(" << const_cast<DOM::DocumentObject*>(getDOMCall()->getSourceObject())->getName() << "->"
 		   << const_cast<DOM::Entry*>(getDOMCall()->getDestinationEntry())->getName() << ")";
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
+	virtual std::string getTypeName() const
 	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Call)&&n=" << (void *)getDOMCall();
-		return ss.str();
+		return LQIO::DOM::Call::__typeName;
 	    }
 
-	virtual std::string getTypeName()
-	    {
-		return "Call";
-	    }
-
-        DOM::Call* getDOMCall() const { return dynamic_cast<DOM::Call*>(_domObject); }
+        const DOM::Call* getDOMCall() const { return dynamic_cast<const DOM::Call*>(_domObject); }
     };
 
 
@@ -647,20 +710,19 @@ namespace LQIO {
 	virtual ~LQXGetCall() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return "call"; }
+	virtual std::string getName() const { return LQIO::DOM::Call::__typeName; }
 	virtual const char* getParameterInfo() const { return "os"; }
 	virtual std::string getHelp() const { return "Returns the given call from entry to dest."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
 	    const char* destEntry = decodeString(args, 1);
 	    LQXPhase* phase = dynamic_cast<LQXPhase *>(lo);
 
-	    DOM::Phase * domPhase = 0;
+	    const DOM::Phase * domPhase = 0;
 	    if ( phase ) {
 		/* Obtain the phase for the entry */
 		domPhase = phase->getDOMPhase();
@@ -679,11 +741,11 @@ namespace LQIO {
 	    for (iter = calls.begin(); iter != calls.end(); ++iter) {
 		const DOM::Call* call = *iter;
 		if (call->getDestinationEntry()->getName() == destEntry) {
-		    return LQX::Symbol::encodeObject(new LQXCall((DOM::Call*)call), false);
+		    return LQX::Symbol::encodeObject(new LQXCall(call), false);
 		}
 	    }
 
-	    printf("warning: No call found for phase %s with destination entry %s.\n", lo->description().c_str(), destEntry);
+	    throw LQX::RuntimeException("No call found for phase `%s' with destination entry `%s'.", lo->description().c_str(), destEntry);
 	    return LQX::Symbol::encodeNull();
 	}
     };
@@ -698,37 +760,51 @@ namespace LQIO {
 	typedef double (DOM::Document::*get_double_fptr)() const;
 	typedef unsigned int (DOM::Document::*get_unsigned_fptr)() const;
 	typedef bool (DOM::Document::*get_bool_fptr)() const;
-	typedef clock_t (DOM::Document::*get_clock_fptr)() const;
+	typedef double (DOM::Document::*get_clock_fptr)() const;
+	typedef const LQIO::DOM::ExternalVariable * (DOM::Document::*get_extvar_fptr)() const;
 
-	struct result_table_t
+	struct attribute_table_t
 	{
 	private:
-	    typedef enum { IS_NULL, IS_DOUBLE, IS_BOOL, IS_UNSIGNED, IS_CLOCK } result_t;
+	    typedef enum { IS_NULL, IS_DOUBLE, IS_BOOL, IS_UNSIGNED, IS_CLOCK, IS_EXTVAR } result_t;
 
 	public:
-	    result_table_t() : _t(IS_NULL) {}
-	    result_table_t( get_double_fptr f ) : _t(IS_DOUBLE) { fptr.r_double = f; }
-	    result_table_t( get_unsigned_fptr f ) : _t(IS_UNSIGNED) { fptr.r_unsigned = f; }
-	    result_table_t( get_bool_fptr f ) : _t(IS_BOOL) { fptr.r_bool = f; }
-	    result_table_t( get_clock_fptr f ) : _t(IS_CLOCK) { fptr.r_clock = f; }
+	    attribute_table_t() : _t(IS_NULL) {}
+	    attribute_table_t( get_double_fptr f )   : _t(IS_DOUBLE)   { fptr.r_double = f; }
+	    attribute_table_t( get_unsigned_fptr f ) : _t(IS_UNSIGNED) { fptr.r_unsigned = f; }
+	    attribute_table_t( get_bool_fptr f )     : _t(IS_BOOL)     { fptr.r_bool = f; }
+	    attribute_table_t( get_extvar_fptr f )   : _t(IS_EXTVAR)   { fptr.r_extvar = f; }
 
 	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-	    LQX::SymbolAutoRef operator()( LQIO::DOM::Document& document ) const 	
+	    LQX::SymbolAutoRef operator()( const LQIO::DOM::Document& document ) const
 		{
 		    switch ( _t ) {
-		    case IS_DOUBLE: return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
+		    case IS_DOUBLE:   return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
 		    case IS_UNSIGNED: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_unsigned)()) );
-		    case IS_CLOCK: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_clock)()) );
-		    case IS_BOOL: return LQX::Symbol::encodeBoolean( (document.*fptr.r_bool)() );
-		    case IS_NULL: return LQX::Symbol::encodeNull();
+		    case IS_CLOCK:    return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_clock)()) );
+		    case IS_BOOL:     return LQX::Symbol::encodeBoolean( (document.*fptr.r_bool)() );
+		    case IS_EXTVAR: {
+			/* This is sneaky... If the external variable is writable, then we can set it using it's document property.
+			 * Otherwise, it is read-only */
+			const LQIO::DOM::ExternalVariable * var = (document.*fptr.r_extvar)();
+			const LQIO::DOM::SymbolExternalVariable * sym = dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(var);
+			if ( sym ) {
+			    return sym->_externalSymbol;
+			} else if ( var && var->wasSet() ) {
+			    return LQX::Symbol::encodeDouble(to_double(*var));
+			}
+			/* Fall through to default if not set */
 		    }
+		    default:          return LQX::Symbol::encodeNull();
 		}
+	    }
 
 	    union {
 		get_double_fptr r_double;
 		get_unsigned_fptr r_unsigned;
 		get_bool_fptr r_bool;
 		get_clock_fptr r_clock;
+		get_extvar_fptr r_extvar;
 	    } fptr;
 	    result_t _t;
 	};
@@ -738,7 +814,7 @@ namespace LQIO {
 	const static uint32_t kLQXDocumentObjectTypeId = 10+5;
 
 	/* Designated Initializers */
-	LQXDocument(DOM::Document * doc) : LQX::LanguageObject(kLQXDocumentObjectTypeId), _document(doc)
+	LQXDocument(const DOM::Document * doc) : LQX::LanguageObject(kLQXDocumentObjectTypeId), _document(doc)
 	    {
 	    }
 
@@ -750,13 +826,27 @@ namespace LQIO {
 	    {
 		if ( __attributeTable.size() != 0 ) return;
 
-		__attributeTable["iterations"]	    = result_table_t( &DOM::Document::getResultIterations );
-		__attributeTable["user_cpu_time"]   = result_table_t( &DOM::Document::getResultUserTime );
-		__attributeTable["system_cpu_time"] = result_table_t( &DOM::Document::getResultSysTime );
-		__attributeTable["elapsed_time"]    = result_table_t( &DOM::Document::getResultElapsedTime );
-		__attributeTable["valid"]	    = result_table_t( &DOM::Document::getResultValid );
-		__attributeTable["invocation"]	    = result_table_t( &DOM::Document::getResultInvocationNumber );
-		__attributeTable["waits"]	    = result_table_t( &DOM::Document::getResultMVAWait );
+		__attributeTable[__lqx_iterations]	= attribute_table_t( &DOM::Document::getResultIterations );
+		__attributeTable[__lqx_user_time]      	= attribute_table_t( &DOM::Document::getResultUserTime );
+		__attributeTable[__lqx_system_time] 	= attribute_table_t( &DOM::Document::getResultSysTime );
+		__attributeTable[__lqx_elapsed_time]	= attribute_table_t( &DOM::Document::getResultElapsedTime );
+		__attributeTable["valid"]	    	= attribute_table_t( &DOM::Document::getResultValid );
+		__attributeTable["invocation"]	    	= attribute_table_t( &DOM::Document::getResultInvocationNumber );
+		__attributeTable["waits"]	    	= attribute_table_t( &DOM::Document::getResultMVAWait );
+		__attributeTable["steps"]	    	= attribute_table_t( &DOM::Document::getResultMVAStep );
+		__attributeTable[DOM::Document::XComment]		    	= attribute_table_t( &DOM::Document::getModelComment );
+		__attributeTable[DOM::Document::XConvergence]		    	= attribute_table_t( &DOM::Document::getModelConvergence );
+		__attributeTable[DOM::Document::XIterationLimit]	    	= attribute_table_t( &DOM::Document::getModelIterationLimit );
+		__attributeTable[DOM::Document::XUnderrelaxationCoefficient]	= attribute_table_t( &DOM::Document::getModelUnderrelaxationCoefficient );
+		__attributeTable[DOM::Document::XPrintInterval]			= attribute_table_t( &DOM::Document::getModelPrintInterval );
+		__attributeTable[DOM::Document::XSimulationSeedValue]		= attribute_table_t( &DOM::Document::getSimulationSeed );
+		__attributeTable[DOM::Document::XSimulationNumberOfBlocks]	= attribute_table_t( &DOM::Document::getSimulationNumberOfBlocks );
+		__attributeTable[DOM::Document::XSimulationBlockTime]		= attribute_table_t( &DOM::Document::getSimulationBlockTime );
+		__attributeTable[DOM::Document::XSimulationPrecision]		= attribute_table_t( &DOM::Document::getSimulationPrecision );
+		__attributeTable[DOM::Document::XSimulationWarmUpLoops]		= attribute_table_t( &DOM::Document::getSimulationWarmUpLoops );
+		__attributeTable[DOM::Document::XSimulationWarmUpTime]		= attribute_table_t( &DOM::Document::getSimulationWarmUpTime );
+		__attributeTable[DOM::Document::XSpexIterationLimit]		= attribute_table_t( &DOM::Document::getSpexConvergenceIterationLimit );
+		__attributeTable[DOM::Document::XSpexUnderrelaxation]		= attribute_table_t( &DOM::Document::getSpexConvergenceUnderrelaxation );
 	    }
 
 	/* Comparison and Operators */
@@ -766,7 +856,7 @@ namespace LQIO {
 		return document && document->_document == _document;	/* Return a comparison of the types */
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
@@ -774,23 +864,15 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
-	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(Document)&&n=";
-		return ss.str();
-	    }
-
-	virtual std::string getTypeName()
+	virtual std::string getTypeName() const
 	    {
 		return "Document";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
 		/* All the valid properties of documents */
-		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		std::map<const char *,attribute_table_t,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
 		    return attribute->second( *_document );
 		}
@@ -800,15 +882,15 @@ namespace LQIO {
 	    }
 
     private:
-	DOM::Document * _document;
-	static std::map<const char *,result_table_t,result_table_t> __attributeTable;
+	const DOM::Document * _document;
+	static std::map<const char *,attribute_table_t,attribute_table_t> __attributeTable;
     };
 
-    std::map<const char *,LQXDocument::result_table_t,LQXDocument::result_table_t> LQXDocument::__attributeTable;
+    std::map<const char *,LQXDocument::attribute_table_t,LQXDocument::attribute_table_t> LQXDocument::__attributeTable;
 
     class LQXGetDocument : public LQX::Method {
     public:
-	LQXGetDocument(DOM::Document* doc) : _document(doc), _symbolCache() {}
+	LQXGetDocument(const DOM::Document* doc) : _document(doc), _symbolCache() {}
 	virtual ~LQXGetDocument() {}
 
 	/* Basic information for the method itself */
@@ -817,10 +899,9 @@ namespace LQIO {
 	virtual std::string getHelp() const { return "Returns the document."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
-	    /* Return an encapsulated reference to the task */
+	    /* Return an encapsulated reference to the document */
 	    LQXDocument* docObject = new LQXDocument(_document);
 	    const char* docName = "lqn-model";
 	    _symbolCache[docName] = LQX::Symbol::encodeObject(docObject, false);
@@ -828,7 +909,7 @@ namespace LQIO {
 	}
 
     private:
-	DOM::Document* _document;
+	const DOM::Document* _document;
 	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
     };
 
@@ -842,7 +923,7 @@ namespace LQIO {
 	const static uint32_t kLQXConfidenceIntervalObjectTypeId = 10+6;
 
 	/* Designated Initializers */
-	LQXConfidenceInterval(DOM::DocumentObject * doc, const double conf_val ) : LQXDocumentObject(kLQXConfidenceIntervalObjectTypeId,doc), _conf_int()
+	LQXConfidenceInterval(const DOM::DocumentObject * doc, const double conf_val ) : LQXDocumentObject(kLQXConfidenceIntervalObjectTypeId,doc), _conf_int()
 	    {
 		const unsigned long n_blocks = getDOMObject()->getDocument()->getResultNumberOfBlocks();
 		if ( n_blocks > 2 ) {
@@ -867,7 +948,7 @@ namespace LQIO {
 		return document && document->getDOMObject() == getDOMObject();	/* Return a comparison of the types */
 	    }
 
-	virtual std::string description()
+	virtual std::string description() const
 	    {
 		/* Return a description of the task */
 		std::stringstream ss;
@@ -875,23 +956,15 @@ namespace LQIO {
 		return ss.str();
 	    }
 
-	virtual std::string hashableString()
-	    {
-		/* Return the hashable string */
-		std::stringstream ss;
-		ss << "!!__external__(ConfidenceInterval)&&n=";
-		return ss.str();
-	    }
-
-	virtual std::string getTypeName()
+	virtual std::string getTypeName() const
 	    {
 		return "ConfidenceInterval";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
 		/* All the valid properties of document objects */
-		std::map<const char *,result_table_t,result_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		std::map<const char *,attribute_table_t,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
 		    try {
 			get_result_fptr variance = attribute->second.variance;
@@ -899,7 +972,7 @@ namespace LQIO {
 
 			return LQX::Symbol::encodeDouble( value );
 		    }
-		    catch ( LQIO::should_implement e ) {
+		    catch ( const LQIO::should_implement& e ) {
 		    }
 		}
 		/* Anything we don't handle may be handled by our superclass */
@@ -921,14 +994,13 @@ namespace LQIO {
 	virtual std::string getHelp() const { return "Returns the confidence interval."; }
 
 	/* Invocation of the method from the language */
-	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env,
-					  std::vector<LQX::SymbolAutoRef >& args) {
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Return an encapsulated reference to the task */
 	    LQXDocumentObject* lo = dynamic_cast<LQXDocumentObject *>(decodeObject(args, 0));
 	    double conf_val = decodeDouble(args, 1);
 
-	    DOM::DocumentObject * domObject = lo->getDOMObject();
+	    const DOM::DocumentObject * domObject = lo->getDOMObject();
 	    LQXConfidenceInterval* docObject = new LQXConfidenceInterval(domObject,conf_val);
 	    const char* objectName = domObject->getName().c_str();
 	    _symbolCache[objectName] = LQX::Symbol::encodeObject(docObject, false);
@@ -948,7 +1020,7 @@ namespace LQIO {
 
 namespace LQIO {
 
-    void RegisterBindings(LQX::Environment* env, DOM::Document* document)
+    void RegisterBindings(LQX::Environment* env, const DOM::Document* document)
     {
 	LQXDocumentObject::initializeTables();
 	LQXDocument::initializeTables();
@@ -956,6 +1028,7 @@ namespace LQIO {
 	LQX::MethodTable* mt = env->getMethodTable();
 	mt->registerMethod(new LQXGetTask(document));
 	mt->registerMethod(new LQXGetProcessor(document));
+	mt->registerMethod(new LQXGetGroup(document));
 	mt->registerMethod(new LQXGetEntry(document));
 	mt->registerMethod(new LQXGetPhase());
 	mt->registerMethod(new LQXGetCall());

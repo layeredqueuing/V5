@@ -1,11 +1,11 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test3.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/test3.cc $
  *
  * Pg 264, Lazowska test.
  * FCFS with class dependent average service times. 
  *
  * ------------------------------------------------------------------------
- * $Id: test3.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test3.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,13 +28,13 @@
 #define N_STATIONS	6
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned s5k_ix )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned s5k_ix )
 {
     const unsigned classes  = 2;
     const unsigned stations = N_STATIONS;
     
     Z.grow(classes);				/* Think times.			*/
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     priority.grow(classes);
     Q.grow(stations);				/* Queue type.  SS/delay.	*/
 

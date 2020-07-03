@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_actlist.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -38,12 +38,14 @@ namespace LQIO {
       
 	public:
 	    /* Designated constructor and destructor */
-	    ActivityList(const Document * document,const Task *,ActivityListType type,const void *element=0);
+	    ActivityList(const Document * document,const Task *,ActivityListType type );
 	    virtual ~ActivityList();
       
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
       
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    bool isJoinList() const;
 	    bool isForkList() const;
       
@@ -92,6 +94,8 @@ namespace LQIO {
 	    ActivityList* _prev;
 	    bool _processed;
       
+	public:
+	    static const char * __typeName;
 	};
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -100,7 +104,7 @@ namespace LQIO {
     
 	class AndJoinActivityList : public ActivityList {
 	public:
-	    AndJoinActivityList(const Document * document, const Task * task, ExternalVariable *quorumCount, const void * element=0 );
+	    AndJoinActivityList(const Document * document, const Task * task, ExternalVariable *quorumCount );
 	    AndJoinActivityList( const AndJoinActivityList& );
 	    virtual ~AndJoinActivityList();
 

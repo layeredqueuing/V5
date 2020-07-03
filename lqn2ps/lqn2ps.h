@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: lqn2ps.h 13533 2020-03-12 22:09:07Z greg $
  *
  */
 
@@ -12,8 +12,6 @@
 #define SVG_OUTPUT
 #define SXD_OUTPUT
 #define TXT_OUTPUT
-#define QNAP_OUTPUT
-#define PMIF_OUTPUT
 /* #define X11_OUTPUT */
 #define	TASK_ACTIVITIES		/* Graph type */
 #define REP2FLAT		/* Allow expansion */
@@ -25,14 +23,23 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <set>
 #include <stdexcept>
+#include <deque>
 #include <lqio/input.h>
 #include <lqio/dom_extvar.h>
 #if HAVE_REGEX_H
 #include <regex.h>
 #endif
+#if defined(HAVE_VALUES_H)
+#include <values.h>
+#endif
+#if defined(HAVE_FLOAT_H)
+#include <float.h>
+#endif
 
+#if !defined(MAXDOUBLE)
+#define MAXDOUBLE FLT_MAX
+#endif
 
 using namespace std;
 
@@ -48,6 +55,7 @@ namespace LQIO {
 	class Task;    
 	class Entry;
 	class Call;
+	class DocumentObject;
     };
 };
 
@@ -104,6 +112,8 @@ typedef enum {
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     FORMAT_JPEG,
 #endif
+    FORMAT_JSON,
+    FORMAT_LQX,
     FORMAT_NULL,
     FORMAT_OUTPUT,
     FORMAT_PARSEABLE,
@@ -112,9 +122,6 @@ typedef enum {
 #endif
     FORMAT_POSTSCRIPT,
     FORMAT_PSTEX,
-#if defined(QNAP_OUTPUT)
-    FORMAT_QNAP,
-#endif
     FORMAT_RTF,
     FORMAT_SRVN,
 #if defined(SVG_OUTPUT)
@@ -143,8 +150,7 @@ typedef enum {
     LAYERING_TASK_PROCESSOR,
     LAYERING_SHARE,
     LAYERING_SQUASHED,
-    LAYERING_MOL,
-    LAYERING_CLIENT
+    LAYERING_MOL
 } layering_format;
 
 typedef enum {
@@ -177,7 +183,8 @@ typedef enum {
 typedef enum {
     REPLICATION_NOP,
     REPLICATION_REMOVE,
-    REPLICATION_EXPAND
+    REPLICATION_EXPAND,
+    REPLICATION_RETURN
 } replication_type;
 
 typedef enum {
@@ -208,7 +215,7 @@ typedef enum {
     PRAGMA_SQUISH_ENTRY_NAMES,
     PRAGMA_SUBMODEL_CONTENTS,
     PRAGMA_TASKS_ONLY,	
-    PRAGMA_XML_SCHEMA
+    PRAGMA_SPEX_HEADER
 } pragma_type;
 
 typedef enum {
@@ -217,7 +224,8 @@ typedef enum {
     COLOUR_LAYERS,		/* Each layer gets its own colour */
     COLOUR_CLIENTS,		/* Each client chaing gets its own colour */
     COLOUR_SERVER_TYPE,		/* client, server, etc... */
-    COLOUR_CHAINS		/* Useful for queueing output only */
+    COLOUR_CHAINS,		/* Useful for queueing output only */
+    COLOUR_DIFFERENCES		/* Results are differences */
 } colouring_type;
 	
 typedef struct 
@@ -252,6 +260,7 @@ typedef enum
     COLOUR               ,
     JLQNDEF		 ,
     FONT_SIZE            ,
+    GNUPLOT		 ,
     INPUT_FILE_FORMAT	 , 
     HELP                 ,
     JUSTIFICATION        ,
@@ -283,8 +292,8 @@ typedef enum
     CHAIN                ,
     LOSS_PROBABILITY     ,
     OUTPUT_FILE          ,
-    PROCESS_UTIL         ,
-    PROCESS_QUEUEING     ,
+    PROCESSOR_UTILIZATION,
+    PROCESSOR_QUEUEING   ,
     RESULTS              ,
     SERVICE              ,
     TASK_THROUGHPUT      ,
@@ -292,9 +301,10 @@ typedef enum
     VARIANCE             ,
     WAITING              ,
     SERVICE_EXCEEDED     ,
-    VERBOSE              ,
+    MODEL_COMMENT        ,
+    SUMMARY              ,
+    IGNORE_ERRORS	 ,
     PRINT_AGGREGATE	 ,
-    MANUAL		 ,
     RUN_LQX		 ,
     RELOAD_LQX		 ,
     INCLUDE_ONLY         ,
@@ -315,6 +325,7 @@ struct Flags
     static bool output_coefficient_of_variation;
     static bool output_phase_type;
     static bool print_alignment_box;
+    static bool print_comment;
     static bool print_forwarding_by_depth;
     static bool print_layer_number;
     static bool print_submodel_number;
@@ -324,6 +335,7 @@ struct Flags
     static bool surrogates;
     static bool use_colour;
     static bool dump_graphviz;
+    static bool debug;
     static double act_x_spacing;
     static double arrow_scaling;
     static double entry_height;
@@ -359,28 +371,6 @@ struct Options
     static const char * sort[];
     static const char * pragma[];
 };
-
-static inline unsigned max( const unsigned a1, const unsigned a2 )
-{
-    return ( a1 > a2 ) ? a1 : a2;
-}
-
-
-static inline double max( const double a1, const double a2 )
-{
-    return ( a1 > a2 ) ? a1 : a2;
-}
-
-static inline unsigned min( const unsigned a1, const unsigned a2 )
-{
-    return ( a1 < a2 ) ? a1 : a2;
-}
-
-
-static inline double min( const double a1, const double a2 )
-{
-    return ( a1 < a2 ) ? a1 : a2;
-}
 
 /* ------------------------------------------------------------------------ */
 
@@ -423,14 +413,14 @@ public:
 
 class path_error : public exception {
 public:
-    explicit path_error( const unsigned depth=0 ) : myDepth(depth) {}
+    explicit path_error( const size_t depth=0 ) : _depth(depth) {}
     virtual ~path_error() throw() {} 
     virtual const char * what() const throw();
-    unsigned depth() const { return myDepth; }
+    size_t depth() const { return _depth; }
 
 protected:
-    string myMsg;
-    const unsigned myDepth;
+    std::string myMsg;
+    const size_t _depth;
 };
 
 /* ------------------------------------------------------------------------ */
@@ -562,48 +552,35 @@ private:
  * alone a smart one.
  */
 
-static inline double square( const double x )
-{
-    return x * x;
-}
-
+template <typename Type> inline Type square( Type a ) { return a * a; }
 
 class Task;
 class Entity;
-
-/*
- * Compare to tasks by their name.  Used by the set class to insert items
- */
-
-struct ltTask
-{
-    bool operator()(const Task * p1, const Task * p2) const;
-};
-
-template <class Type> class Vector;
-
 class Activity;
 class Entry;
 class GenericCall;
 class Label;
+class Phase;
 
-typedef bool (GenericCall::*callFunc)() const;
-typedef bool (Entry::*testFunc)() const;
+typedef bool (GenericCall::*callPredicate)() const;
+typedef bool (Task::*taskPredicate)() const;
 typedef ostream& (Entry::*entryFunc)( ostream& ) const;
 typedef ostream& (Activity::*activityFunc)( ostream& ) const;
 typedef ostream& (Entry::*entryCountFunc)( ostream&, int& ) const;
 typedef ostream& (Activity::*activityCountFunc)( ostream&, int& ) const;
-typedef double (Activity::*aggregateFunc)( const Entry *, const unsigned, const double ) const;
-typedef double (GenericCall::*callFunc2)() const;
-typedef const Entry& (Entry::*entryLabelFunc)( Label& ) const;
+typedef double (Activity::*aggregateFunc)( Entry *, const unsigned, const double );
+typedef double (GenericCall::*callPredicate2)() const;
+typedef Entry& (Entry::*entryLabelFunc)( Label& );
+typedef double (LQIO::DOM::DocumentObject::*get_function)() const;
+typedef LQIO::DOM::DocumentObject& (LQIO::DOM::DocumentObject::*set_function)( const double );
+
 
 int lqn2ps( int argc, char *argv[] );
 void setOutputFormat( const int i );
 
 #if HAVE_REGEX_T
-void regexp_check( const int, regex_t * r );
+void regexp_check( const int, regex_t * r ) throw( runtime_error );
 #endif
-double delta( const Vector<double>& values );
 bool graphical_output();
 bool output_output();
 bool input_output();
@@ -611,15 +588,216 @@ bool partial_output();
 bool processor_output();		/* true if sorting by processor */
 bool queueing_output();			/* true if generating queueing network */
 bool submodel_output();			/* true if generating a submodel */
+bool difference_output();		/* true if print differences */
 bool share_output();			/* true if sorting by processor share */
 int set_indent( const unsigned int anInt );
 inline double normalized_font_size() { return Flags::print[FONT_SIZE].value.i / Flags::print[MAGNIFICATION].value.f; }
 bool process_pragma( const char * );
-bool pragma( const string&, const string& );
+bool pragma( const std::string&, const std::string& );
 
 IntegerManip indent( const int anInt );
 IntegerManip temp_indent( const int anInt );
 Integer2Manip conf_level( const int, const int );
-ExtVarManip instantiate( const LQIO::DOM::ExternalVariable& );
 StringPlural plural( const string& s, const unsigned i );
+DoubleManip opt_pct( const double aDouble );
+
+/* ------------------------------------------------------------------------ */
+
+#if defined(REP2FLAT)
+    void update_mean( LQIO::DOM::DocumentObject *, set_function, const LQIO::DOM::DocumentObject *, get_function, unsigned );
+    void update_variance( LQIO::DOM::DocumentObject *, set_function, const LQIO::DOM::DocumentObject *, get_function );
+#endif
+
+
+template <class Type> struct Exec
+{
+    typedef Type& (Type::*funcPtr)();
+    Exec<Type>( funcPtr f ) : _f(f) {};
+    void operator()( Type * object ) const { (object->*_f)(); }
+    void operator()( Type& object ) const { (object.*_f)(); }
+private:
+    funcPtr _f;
+};
+
+template <class Type> struct ConstExec
+{
+    typedef const Type& (Type::*funcPtr)() const;
+    ConstExec<Type>( const funcPtr f ) : _f(f) {};
+    void operator()( const Type * object ) const { (object->*_f)(); }
+    void operator()( const Type& object ) const { (object.*_f)(); }
+private:
+    const funcPtr _f;
+};
+    
+template <class Type1, class Type2> struct Exec1
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x );
+    Exec1<Type1,Type2>( funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+};
+
+template <class Type1, class Type2> struct ConstExec1
+{
+    typedef const Type1& (Type1::*funcPtr)( Type2 x ) const;
+    ConstExec1<Type1,Type2>( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x ); }
+private:
+    const funcPtr _f;
+    Type2 _x;
+};
+
+template <class Type1, class Type2, class Type3> struct Exec2
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y );
+    Exec2<Type1,Type2,Type3>( funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x, _y ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x, _y ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+    Type3 _y;
+};
+
+
+template <class Type1, class Type2, class Type3> struct ExecX
+{
+    typedef Type1& (Type1::*funcPtr)( Type3 x );
+    ExecX<Type1,Type2,Type3>( funcPtr f, Type3 x ) : _f(f), _x(x) {}
+    void operator()( const Type2& object ) const { (object.second->*_f)( _x ); }
+private:
+    funcPtr _f;
+    Type3 _x;
+};
+
+template <class Type1, class Type2, class Type3> struct ConstExecX
+{
+    typedef const Type1& (Type1::*funcPtr)( Type3 x ) const;
+    ConstExecX<Type1,Type2,Type3>( const funcPtr f, Type3 x ) : _f(f), _x(x) {}
+    void operator()( const Type2& object ) const { (object.second->*_f)( _x ); }
+private:
+    const funcPtr _f;
+    Type3 _x;
+};
+
+template <class Type> struct ExecXY
+{
+    typedef Type& (Type::*funcPtrXY)( double x, double y );
+    ExecXY<Type>( funcPtrXY f, double x, double y ) : _f(f), _x(x), _y(y) {};
+    void operator()( Type * object ) const { (object->*_f)( _x, _y ); }
+    void operator()( Type& object ) const { (object.*_f)( _x, _y ); }
+private:
+    funcPtrXY _f;
+    double _x;
+    double _y;
+};
+
+template <class Type> struct Predicate
+{
+    typedef bool (Type::*predicate)() const;
+    Predicate<Type>( const predicate p ) : _p(p) {};
+    bool operator()( const Type * object ) const { return (object->*_p)(); }
+    bool operator()( const Type& object ) const { return (object.*_p)(); }
+private:
+    const predicate _p;
+};
+
+template <class Type1, class Type2> struct Predicate1
+{
+    typedef bool (Type1::*predicate)(Type2) const;
+    Predicate1<Type1,Type2>( const predicate p, Type2 v ) : _p(p), _v(v) {};
+    bool operator()( const Type1 * object ) const { return (object->*_p)(_v); }
+    bool operator()( const Type1& object ) const { return (object.*_p)(_v); }
+private:
+    const predicate _p;
+    Type2 _v;
+};
+
+template <class Type> struct AndPredicate
+{
+    typedef bool (Type::*predicate)() const;
+    AndPredicate<Type>( const predicate p ) : _p(p), _rc(true) {};
+    void operator()( const Type * object ) { _rc = (object->*_p)() && _rc; }
+    void operator()( const Type& object ) { _rc = (object.*_p)() && _rc; }
+    bool result() const { return _rc; }
+private:
+    const predicate _p;
+    bool _rc;
+};
+
+template <class Type1, class Type2> struct Count
+{
+    typedef unsigned (Type1::*funcPtr)(const Type2) const;
+    Count<Type1,Type2>( funcPtr f, const Type2 p ) : _f(f), _p(p), _count(0) {}
+    void operator()( const Type1 * object ) { _count += (object->*_f)(_p); }
+    void operator()( const Type1& object ) { _count += (object.*_f)(_p); }
+    unsigned int count() const { return _count; }
+private:
+    funcPtr _f;
+    const Type2 _p;
+    unsigned int _count;
+};
+
+template <class Type1, class Type2> struct Sum
+{
+    typedef Type2 (Type1::*funcPtr)() const;
+    Sum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0) {}
+    void operator()( const Type1 * object ) { _sum += (object->*_f)(); }
+    void operator()( const Type1& object ) { _sum += (object.*_f)(); }
+    Type2 sum() const { return _sum; }
+private:
+    funcPtr _f;
+    Type2 _sum;
+};
+	
+template <class Type1> struct Sum<Type1,LQIO::DOM::ExternalVariable>
+{
+    typedef const LQIO::DOM::ExternalVariable& (Type1::*funcPtr)() const;
+    Sum<Type1,LQIO::DOM::ExternalVariable>( funcPtr f ) : _f(f), _sum(0) {}
+    void operator()( const Type1 * object ) { _sum += LQIO::DOM::to_double((object->*_f)()); }
+    void operator()( const Type1& object ) { _sum += LQIO::DOM::to_double((object.*_f)()); }
+    double sum() const { return _sum; }
+private:
+    funcPtr _f;
+    double _sum;
+};
+	
+template <class Type1> struct SumP
+{
+    typedef const LQIO::DOM::ExternalVariable& (Type1::*funcPtr)( unsigned int ) const;
+    SumP<Type1>( funcPtr f, unsigned int p ) : _f(f), _p(p), _sum(0) {}
+    void operator()( const Type1 * object ) { _sum += LQIO::DOM::to_double((object->*_f)(_p)); }
+    void operator()( const Type1& object ) { _sum += LQIO::DOM::to_double((object.*_f)(_p)); }
+    double sum() const { return _sum; }
+private:
+    funcPtr _f;
+    unsigned int _p;
+    double _sum;
+};
+	
+template <class Type> struct EQ
+{
+    EQ<Type>( const Type * const a ) : _a(a) {}
+    bool operator()( const Type * const b ) const { return _a == b; }
+private:
+    const Type * const _a;
+};
+
+template <class Type> struct EQStr
+{
+    EQStr( const std::string & s ) : _s(s) {}
+    bool operator()(const Type * e1 ) const { return e1->name() == _s; }
+private:
+    const std::string & _s;
+};
+
+
+template <class Type> struct LT
+{
+    bool operator()(const Type * a, const Type * b) const { return a->name() < b->name(); }
+};
 #endif

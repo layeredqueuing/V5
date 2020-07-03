@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 12079 2014-07-07 12:17:26Z greg $
+ * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _MODEL_H
@@ -10,12 +10,12 @@
 #include "lqn2ps.h"
 #include <lqio/input.h>
 #include <lqio/filename.h>
-#include "vector.h"
+#include <lqio/common_io.h>
+#include <vector>
 #include "layer.h"
 #include "point.h"
+#include "element.h"
 
-template <class Type> class Stack;
-template <class Type> class Sequence;
 class Entity;
 class Group;
 class Key;
@@ -23,7 +23,6 @@ class Label;
 class Model;
 class Processor;
 class Task;
-class GroupByShareDefault;
 
 namespace LQIO {
     namespace DOM {
@@ -36,40 +35,28 @@ namespace LQIO {
 extern void add_group( LQIO::DOM::Group* group );
 #endif
 
-typedef ostream& (Entity::*entityFunc)( ostream& output ) const;
-typedef ostream& (Task::*taskFunc)( ostream& output ) const;
-typedef ostream& (Processor::*procFunc)( ostream& output ) const;
-typedef ostream& (Task::*taskCallFunc)( ostream& output, callFunc aFunc ) const;
-#if defined(__SUNPRO_CC)
-typedef unsigned (Model::*modelFunc)() const;
-typedef ostream& (Model::*printSXDFunc)( ostream& ) const;
-#endif
-
 class Model
 {
-    friend bool pragma( const string&, const string& );
-    friend void set_general( int v, double c, int i, int pr, int ph );
-    friend void add_elapsed_time( const char * value );
-    friend void add_system_time( const char * value );
-    friend void add_user_time( const char * value );
-    friend void add_solver_info( const char * value );
     typedef ostream& (*outputFuncPtr)( ostream& );
-    typedef bool (Task::*boolTaskFunc)() const;
-    
+
     /* Statistics collected.  Output is ordered by the order here. */
 
-    typedef enum { TOTAL_LAYERS, TOTAL_PROCESSORS, 
-		   TOTAL_TASKS, TOTAL_INFINITE_SERVERS, TOTAL_MULTISERVERS, 
-		   TOTAL_ENTRIES, 
-		   TASKS_PER_LAYER, 
-		   ENTRIES_PER_TASK, 
-		   PHASES_PER_ENTRY, SERVICE_TIME_PER_PHASE, 
+    typedef enum { TOTAL_LAYERS, TOTAL_PROCESSORS,
+		   TOTAL_TASKS, TOTAL_INFINITE_SERVERS, TOTAL_MULTISERVERS,
+		   TOTAL_ENTRIES,
+		   TASKS_PER_LAYER,
+		   ENTRIES_PER_TASK,
+		   PHASES_PER_ENTRY, SERVICE_TIME_PER_PHASE,
 		   RNVS_PER_ENTRY, RNV_RATE_PER_CALL,				/* IN */
 		   SNRS_PER_ENTRY, SNR_RATE_PER_CALL,
 		   OPEN_ARRIVALS_PER_ENTRY, OPEN_ARRIVAL_RATE_PER_ENTRY,
 		   FORWARDING_PER_ENTRY, FORWARDING_PROBABILITY_PER_CALL,	/* OUT */
 		   N_STATS } MODEL_STATS;
     typedef enum { REAL_TIME, USER_TIME, SYS_TIME } TIME_VALUES;
+public:
+    static const unsigned CLIENT_LEVEL = 0;
+    static const unsigned SERVER_LEVEL = 1;
+    static const unsigned PROCESSOR_LEVEL = 2;
 
 public:
     /* default values */
@@ -92,29 +79,36 @@ public:
 private:
     static const char * XMLSchema_instance;
 
-protected:
-#if !defined(__SUNPRO_CC)
-    typedef unsigned (Model::*modelFunc)() const;
-    typedef ostream& (Model::*printSXDFunc)( ostream& ) const;
-#endif
-    static const unsigned CLIENT_LEVEL = 1;
-    static const unsigned SERVER_LEVEL = 2;
-    static const unsigned PROCESSOR_LEVEL = 3;
+    struct Count {
+	Count() : _tasks(0), _processors(0), _entries(0), _activities(0) {}
+	Count& operator=( unsigned int value );
+	Count& operator+=( const Count& );
+	Count& operator()( const Entity * );
 
-    class LayerSequence
-    {
-    public:
-	LayerSequence( const Vector2<Layer> & layers  );
-	Entity * operator()() const;
-	unsigned size() const;
-	const LayerSequence& rewind() const;
-
+	unsigned tasks() const { return _tasks; }
+	unsigned processors() const { return _processors; }
+	unsigned entries() const { return _entries; }
+	unsigned activities() const { return _activities; }
+	
     private:
-	const Vector2<Layer> & myLayers;
-	mutable unsigned layerIndex;
-	mutable unsigned entityIndex;
+	unsigned _tasks;
+	unsigned _processors;
+	unsigned _entries;
+	unsigned _activities;
     };
 
+protected:
+    typedef unsigned (Model::*modelFunc)() const;
+    typedef ostream& (Model::*printSXDFunc)( ostream& ) const;
+
+    struct Remap {
+	Remap( std::map<unsigned, LQIO::DOM::Entity *>& entities ) : _entities(entities) {}
+	void operator()( const Layer& );
+	void operator()( const Entity * );
+    private:
+	std::map<unsigned, LQIO::DOM::Entity *>& _entities;
+    };
+    
     class Stats
     {
     public:
@@ -142,22 +136,14 @@ protected:
 	modelFunc myFunc;
     };
 
-    class Aggregate
-    {
-    public:
-	Aggregate() {}
-
-	void operator()( Task * task  );
-    };
-
     friend ostream& operator<<( ostream& output, const Model::Stats& self ) { return self.print( output ); }
 
 public:
-    Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name );
+    Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers );
 
     virtual ~Model();
-    bool prepare();
-    static void free();
+    static bool prepare( const LQIO::DOM::Document * document );
+    static unsigned topologicalSort();
 #if HAVE_REGEX_T
     static void add_group( const string& );
 #endif
@@ -165,7 +151,7 @@ public:
 private:
     Model( const Model& );		/* Copying is verbotten */
     Model& operator=( const Model& );
-    
+
 public:
     const LQIO::DOM::Document * getDOM() const { return _document; }
 
@@ -175,7 +161,6 @@ public:
     bool process();
     bool store();
     bool reload();
-    static void aggregate( LQIO::DOM::Document& );
     static double scaling() { return __model->_scaling; }
 
     Model& accumulateStatistics( const string& fileName );
@@ -189,33 +174,33 @@ public:
 
     static ostream& printEEPICprologue( ostream& output );
     static ostream& printEEPICepilogue( ostream& output );
-    static ostream& printPostScriptPrologue( ostream& output, const string&, unsigned left=0, unsigned top=0, unsigned right=612, unsigned bottom=792 );
+    ostream& printPostScriptPrologue( ostream& output, const string&, unsigned left=0, unsigned top=0, unsigned right=612, unsigned bottom=792 ) const;
     static ostream& printOverallStatistics( ostream& );
 
 protected:
     virtual bool generate();
-    unsigned topologicalSort();
     virtual Model& layerize() = 0;
     virtual bool selectSubmodel( const unsigned );
 
     virtual unsigned totalize();
-    unsigned nLayers() const { return _numberOfLayers; }
-    unsigned nTasks() const { return _taskCount; }
-    unsigned nProcessors() const { return _processorCount; }
-    unsigned nEntries() const { return _entryCount; }
+    unsigned nLayers() const { return _layers.size(); }
+    unsigned nTasks() const { return _total.tasks(); }
+    unsigned nProcessors() const { return _total.processors(); }
+    unsigned nEntries() const { return _total.entries(); }
+    unsigned nActivities() const { return _total.activities(); }
 
-    double left() const { return myOrigin.x(); }
-    double right() const { return myOrigin.x() + myExtent.x(); }
-    double top() const { return myOrigin.y() + myExtent.y(); }
-    double bottom() const { return myOrigin.y(); }
+    double left() const { return _origin.x(); }
+    double right() const { return _origin.x() + _extent.x(); }
+    double top() const { return _origin.y() + _extent.y(); }
+    double bottom() const { return _origin.y(); }
 
-    virtual Model const& sort( compare_func_ptr ) const;
-    Model const& format() const;
-    virtual Model const& justify() const;
-    Model const& align() const;
-    Model const& alignEntities() const;
-    Model const& finalScaleTranslate() const;
-    Model const& label() const;
+    virtual Model& sort( compare_func_ptr );
+    Model& format();
+    virtual Model & justify();
+    Model & align();
+    Model & alignEntities();
+    Model & finalScaleTranslate();
+    Model & label();
 
 
 private:
@@ -224,22 +209,23 @@ private:
     void group_by_submodel();
     Model& relayerize( const unsigned );
 
-    const Model& operator*=( const double s ) const;
-    const Model& translateScale( const double s ) const;
-    const Model& moveBy( const double, const double ) const;
+    Model& operator*=( const double s );
+    Model& translateScale( const double s );
+    Model& moveBy( const double, const double );
     bool hasOutputFileName() const { return _outputFileName.size() > 0 && _outputFileName != "-"; }
 
-    bool check();
+    bool check() const;
 #if defined(REP2FLAT)
     Model& expandModel();
     Model& removeReplication();
+    Model& returnReplication();
 #endif
     Model& rename();
     Model& squishNames();
-    Model const& format( Layer& aSubmodel ) const;
+    Model const& format( Layer& aSubmodel );
 
-    unsigned count( const boolTaskFunc ) const;
-    unsigned count( const callFunc ) const;
+    unsigned count( const taskPredicate ) const;
+    unsigned count( const callPredicate ) const;
     unsigned nMultiServers() const;
     unsigned nInfiniteServers() const;
 
@@ -261,7 +247,7 @@ private:
     ostream& printSVG( ostream& output ) const;
 #endif
 #if defined(SXD_OUTPUT)
-    const Model& printSXD( const char *, const char *, const char *, const printSXDFunc ) const;
+    const Model& printSXD( const std::string&, const std::string&, const char *, const printSXDFunc ) const;
     ostream& printSXD( ostream& output ) const;
     ostream& printSXDMeta( ostream& output ) const;
     ostream& printSXDMimeType( ostream& output ) const;
@@ -279,11 +265,8 @@ private:
     ostream& printOutput( ostream& output ) const;
     ostream& printParseable( ostream& output ) const;
     ostream& printRTF( ostream& output ) const;
-#if defined(PMIF_OUTPUT)
-    ostream& printPMIF( ostream& output ) const;
-#endif
-    void printXML( ostream& output ) const;
-
+    ostream& printJSON( ostream& output ) const;
+    ostream& printXML( ostream& output ) const;
     ostream& printLayers( ostream& ) const;
 
     static const char * get_userid();
@@ -294,18 +277,16 @@ public:
     static unsigned rendezvousCount[MAX_PHASES+1];
     static unsigned sendNoReplyCount[MAX_PHASES+1];
     static unsigned phaseCount[MAX_PHASES+1];
-    static Cltn<Group *> group;
 
 protected:
-    Vector2<Layer> layers;
-    Key * myKey;
+    std::vector<Layer> _layers;
+    Key * _key;
+    Label * _label;
 
-    mutable Point myOrigin;
-    mutable Point myExtent;
+    mutable Point _origin;
+    mutable Point _extent;
 
-    unsigned _taskCount;
-    unsigned _processorCount;
-    unsigned _entryCount;
+    Count _total;
 
 private:
     static Model * __model;
@@ -313,8 +294,8 @@ private:
     LQIO::DOM::Document * _document;
     const string _inputFileName;
     const string _outputFileName;
+    const LQIO::DOM::GetLogin _login;
 
-    unsigned int _numberOfLayers;
     unsigned int _modelNumber;
     double _scaling;
 
@@ -326,19 +307,22 @@ private:
 class Batch_Model : virtual public Model
 {
 public:
-    Batch_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ) {}
+    Batch_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual Model& layerize();
 };
 
-class ProcessorTask_Model : virtual public Model, public Batch_Model 
+class ProcessorTask_Model : virtual public Model, public Batch_Model
 {
 public:
-    ProcessorTask_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ) {}
+    ProcessorTask_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ),
+	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
     virtual Model& layerize() { return Batch_Model::layerize(); }
-    virtual Model const& justify() const;
+    virtual Model& justify();
 
 private:
     Model const& justify2( Layer &procLayer, Layer &taskLayer, const double ) const;
@@ -349,7 +333,8 @@ private:
 class HWSW_Model : public Model
 {
 public:
-    HWSW_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ) {}
+    HWSW_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual Model& layerize();
@@ -360,7 +345,8 @@ protected:
 class MOL_Model : public Model
 {
 public:
-    MOL_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ) {}
+    MOL_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual Model& layerize();
@@ -370,32 +356,48 @@ protected:
 
 class Group_Model : virtual public Model
 {
+    struct Justify {
+	Justify( size_t max_level ) : _x(0), _max_level(max_level) {}
+	unsigned int extent() const { return _x; }
+	void operator()( Group * );
+    private:
+	unsigned int _x;
+	const size_t _max_level;
+    };
+    
 public:
-    Group_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ) {}
+    Group_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
-    virtual Model const& justify() const;
+    virtual Model& justify();
 };
 
 
 class BatchProcessor_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 public:
-    BatchProcessor_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ), Group_Model( document, input_file_name, output_file_name ) {}
+    BatchProcessor_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ),
+	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
+	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual Model& layerize() { return Batch_Model::layerize(); }
-    virtual Model const& justify() const { return Group_Model::justify(); }
+    virtual Model& justify() { return Group_Model::justify(); }
 };
 
 class BatchGroup_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 public:
-    BatchGroup_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ), Group_Model( document, input_file_name, output_file_name ) {}
+    BatchGroup_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ),
+	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
+	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual Model& layerize() { return Batch_Model::layerize(); }
-    virtual Model const& justify() const { return Group_Model::justify(); }
+    virtual Model& justify() { return Group_Model::justify(); }
 };
 
 /* ----------------------- SRVN Partition Model ----------------------- */
@@ -403,7 +405,9 @@ protected:
 class SRVN_Model : virtual public Model, public Batch_Model
 {
 public:
-    SRVN_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ) {}
+    SRVN_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+	Model( document, input_file_name, output_file_name, number_of_layers ),
+	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
     virtual bool selectSubmodel( const unsigned );
@@ -413,36 +417,18 @@ protected:
 
 class Squashed_Model : virtual public Model, public Batch_Model
 {
+    struct Justify {
+	void operator()( Group * );
+    };
+    
 public:
-    Squashed_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ) {}
+    Squashed_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) :
+	Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ),
+	Batch_Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ) {}
 
     virtual bool generate();
-    virtual Model const& justify() const;
+    virtual Model& justify();
 };
 
-/* ------------------ Strict Client Partition Model ------------------- */
-
-class StrictClient_Model : virtual public Model, public Batch_Model {
-    friend class Model;
-
-public:
-    StrictClient_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) : Model( document, input_file_name, output_file_name ), Batch_Model( document, input_file_name, output_file_name ) {}
-
-};
-
-
-class CommentManip {
-public:
-    CommentManip( ostream& (*ff)(ostream&, const char *, const string& ), const char * aPrefix, const string& aStr )
-	: f(ff), myPrefix(aPrefix), myStr(aStr) {}
-private:
-    ostream& (*f)( ostream&, const char *, const string& );
-    const char * myPrefix;
-    const string& myStr;
-
-    friend ostream& operator<<(ostream & os, const CommentManip& m ) 
-	{ return m.f(os,m.myPrefix,m.myStr); }
-};
-
 inline ostream& operator<<( ostream& output, const Model& self ) { return self.print( output ); }
 #endif

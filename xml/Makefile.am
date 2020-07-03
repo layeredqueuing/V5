@@ -1,4 +1,4 @@
-# $HeadURL: svn://192.168.2.10/lqn/trunk-V5/xml/Makefile.am $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/xml/Makefile.am $
 #
 # Used for make dist.
 #

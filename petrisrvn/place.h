@@ -49,17 +49,10 @@ public:
     double get_y_pos() const { return _y_pos; }
 
 public:
-#if (__GNUC__ < 4 || (__GNUC__ == 4 &&__GNUC_MINOR__ == 0))
     static const double	SERVER_Y_OFFSET;
     static const double CLIENT_Y_OFFSET;
     static const double PLACE_X_OFFSET;
     static const double PLACE_Y_OFFSET;
-#else
-    static const double	SERVER_Y_OFFSET	= 3.0;
-    static const double CLIENT_Y_OFFSET = 0.5;
-    static const double PLACE_X_OFFSET	= -0.25;
-    static const double PLACE_Y_OFFSET	= 0.35;
-#endif
 
 private:
     LQIO::DOM::Entity* _dom;			/* The DOM Representation	*/

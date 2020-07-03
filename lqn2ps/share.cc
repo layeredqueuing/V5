@@ -1,8 +1,8 @@
 /* share.cc	-- Greg Franks Tue Nov  4 2008
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqn2ps/share.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/share.cc $
  *
  * ------------------------------------------------------------------------
- * $Id: share.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: share.cc 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,37 +17,10 @@
 #include "processor.h"
 #include "task.h"
 
-set<Share *,ltShare> share;
-
-/* ---------------------- Overloaded Operators ------------------------ */
-
-ostream&
-operator<<( ostream& output, const Share& self )
-{
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
-	self.print( output );
-	break;
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-	break;
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-	break;
-#endif
-    case FORMAT_XML:
-	break;
-    default:
-	self.draw( output );
-	break;
-    }
-
-    return output;
-}
+std::set<Share *,LT<Share> > Share::__share;
 
 Share::Share( const LQIO::DOM::Group* dom, const Processor * aProcessor )
-    : _documentObject( dom ), myProcessor(aProcessor)
+    : _documentObject( dom ), _processor(aProcessor)
 {
     if ( aProcessor ) {
 	const_cast<Processor *>(aProcessor)->addShare(this);
@@ -55,33 +28,27 @@ Share::Share( const LQIO::DOM::Group* dom, const Processor * aProcessor )
 }
 
 ostream& 
-Share::draw( ostream& output ) const
-{
-    return output;
-}
-
-
-ostream& 
 Share::print( ostream& output ) const
 {
     output << "  g " << name()
 	   << " " << share()
-	   << " " << myProcessor->name() 
+	   << " " << _processor->name() 
 	   << endl;
     return output;
 }
 
 /* static */
 void 
-Share::create( LQIO::DOM::Group* domGroup )
+Share::create( const std::pair<std::string,LQIO::DOM::Group *>& p )
 {
-    const std::string& group_name = domGroup->getName();
+    const std::string& group_name = p.first;
+    const LQIO::DOM::Group* domGroup = p.second;
     const std::string& processor_name = domGroup->getProcessor()->getName();
-    Processor* aProcessor = Processor::find(processor_name.c_str());
+    Processor* aProcessor = Processor::find( processor_name );
 
     if ( !aProcessor ) return;
 
-    if ( find_if( ::share.begin(), ::share.end(), eqShareStr( group_name.c_str() ) ) != ::share.end() ) {
+    if ( find_if( __share.begin(), __share.end(), EQStr<Share>( group_name ) ) != __share.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name.c_str() );
 	return;
     } 
@@ -90,7 +57,7 @@ Share::create( LQIO::DOM::Group* domGroup )
     }
 
     Share * aShare = new Share( domGroup, aProcessor );
-    ::share.insert(aShare);
+    __share.insert(aShare);
 }
 
 
@@ -98,10 +65,6 @@ Share::create( LQIO::DOM::Group* domGroup )
 Share * 
 Share::find( const string& name )
 {
-    set<Share *,ltShare>::const_iterator nextShare = find_if( ::share.begin(), ::share.end(), eqShareStr( name ) );
-    if ( nextShare == ::share.end() ) {
-	return 0;
-    } else {
-	return *nextShare;
-    }
+    std::set<Share *>::const_iterator share = find_if( __share.begin(), __share.end(), EQStr<Share>( name ) );
+    return share != __share.end() ? *share : 0;
 }

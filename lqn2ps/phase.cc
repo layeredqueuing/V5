@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: phase.cc 13550 2020-05-22 11:48:05Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <cstdlib>
 #include <string.h>
 #include <cmath>
@@ -19,8 +20,7 @@
 #include <lqio/dom_extvar.h>
 #include "model.h"
 #include "phase.h"
-#include "cltn.h"
-#include "vector.h"
+#include "activity.h"
 #include "entry.h"
 #include "entity.h"
 #include "task.h"
@@ -28,79 +28,10 @@
 #include "processor.h"
 #include "errmsg.h"
 
-/* ---------------------- Overloaded Operators ------------------------ */
-
-ostream& 
-operator<<( ostream& output, const Phase& self )
-{
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
-    case FORMAT_XML:
-	break;
-    }
-    return output;
-}
-
-ostream& 
-operator<<( ostream& output, const Phase::Histogram::Bin& self )
-{
-    return output;
-}
-
-
-Phase::Histogram::Histogram() 
-    : myNumBins(0),
-      myMin(0.0),
-      myMax(0.0),
-      myMean(0.0),
-      myStdDev(0.0),
-      mySkew(0.0),
-      myKurtosis(0.0)
-{
-}
-
-Phase::Histogram&
-Phase::Histogram::set( const double hist_min, const double hist_max, const unsigned n_bins )
-{
-    if ( hist_min < 0 ) {
-	LQIO::input_error2( LQIO::ERR_HISTOGRAM_INVALID_MIN, hist_min );
-    }
-
-    myMin       = hist_min;
-    myMax       = hist_max;
-    myNumBins   = n_bins + 2;
-
-    return *this;
-}
-
-Phase::Histogram&
-Phase::Histogram::moments( const double mean, const double stddev, const double skew, const double kurtosis )
-{
-    myMean = mean;
-    myStdDev = stddev;
-    mySkew = skew;
-    myKurtosis = kurtosis;
-    return *this;
-}
-
-
-Phase::Histogram&
-Phase::Histogram::addBin( const double begin, const double end, const double prob, const double conf95, const double conf99 )
-{
-    bins.grow(1);
-    const int n = bins.size();
-    bins[n].myBegin  = begin;
-    bins[n].myEnd    = end;
-    bins[n].myProb   = prob;
-    bins[n].myConf95 = conf95;
-    bins[n].myConf99 = conf99;
-    return *this;
-}
-
 Phase::Phase()
     : _documentObject(0),
-      myEntry(0), 
-      myPhase(0)
+      _entry(0), 
+      _phase(0)
 {
 }
 
@@ -112,6 +43,14 @@ Phase::~Phase()
 
 
 
+Phase::Phase( const Phase& src )
+    : _histogram( src._histogram ),
+      _documentObject( src._documentObject ),
+      _entry( src._entry ),
+      _phase( src._phase )
+{
+}
+
 /*
  * Assignment.  Used by rep2flat.  See bug 246.
  */
@@ -121,7 +60,10 @@ Phase::operator=( const Phase& src )
 {
     if ( *this == src ) return *this;
 
-    myHistogram = src.myHistogram;
+    _documentObject = src._documentObject;
+    _entry = src._entry;
+    _phase = src._phase;
+    _histogram = src._histogram;
     return *this;
 }
 
@@ -131,13 +73,14 @@ Phase::operator=( const Phase& src )
  * Set source entry and phase.
  */
 
-void
+Phase&
 Phase::initialize( Entry * src, const unsigned p )
 {
     assert ( 0 < p && p <= MAX_PHASES );
 		
-    myEntry = src;
-    myPhase = p;
+    _entry = src;
+    _phase = p;
+    return *this;
 }
 
 /* --------------------- Instance Variable access --------------------- */
@@ -188,8 +131,11 @@ Phase::thinkTime() const
 
 bool
 Phase::hasCV_sqr() const 
-{ 
-    return getDOM() && getDOM()->getCoeffOfVariationSquared() != 0;
+{
+    if ( getDOM() == NULL ) return false;
+    const LQIO::DOM::ExternalVariable * var = getDOM()->getCoeffOfVariationSquared();
+    double value = 1.0;
+    return var != NULL && ( !var->wasSet() || !var->getValue( value ) || value != 1.0 );
 }
 
 
@@ -272,18 +218,17 @@ Phase::queueingTime() const
  * Make sure deterministic phases are correct.
  */
 
-void
+bool 
 Phase::check() const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
+    bool rc = for_each( calls().begin(), calls().end(), AndPredicate<Call>( &Call::check ) ).result();
 
-    while ( aCall = nextCall() ) {
-	aCall->check();
-    }
-
-    if ( phaseTypeFlag() == PHASE_STOCHASTIC  && hasCV_sqr() ) {
-	LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, name().c_str() );	/* c, phase_flag are incompatible  */
+    if ( phaseTypeFlag() == PHASE_STOCHASTIC && hasCV_sqr() ) {
+	if ( dynamic_cast<const Activity *>(this) ) {			/* c, phase_flag are incompatible  */
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
+	} else {
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
+	}
     }
 
     Model::deterministicPhasesPresent  = Model::deterministicPhasesPresent  || phaseTypeFlag() == PHASE_DETERMINISTIC;
@@ -292,24 +237,26 @@ Phase::check() const
     Model::serviceExceededPresent      = Model::serviceExceededPresent      || serviceExceeded() > 0.0;
     Model::variancePresent             = Model::variancePresent             || variance() > 0.0;
     Model::histogramPresent            = Model::histogramPresent            || hasHistogram();
+    return rc;
 }
 
 
 const Phase&
-Phase::setChain( const unsigned k, const Entity * aServer, callFunc aFunc ) const
+Phase::setChain( const unsigned k, const Entity * aServer, callPredicate aFunc ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (!aFunc || (aCall->*aFunc)()) && (!aServer || (aCall->dstTask() == aServer) ) ) {
-	    aCall->setChain( k );
-	}
-    }
-
+    for_each ( calls().begin(), calls().end(), Phase::SetChain( k, aServer, aFunc ) );
     return *this;
 }
 
+
+
+void
+Phase::SetChain::operator()( Call * call ) const
+{
+    if ( call->isSelected() && (!_f || (call->*_f)()) && (!_server || (call->dstTask() == _server) ) ) {
+	call->setChain( _k );
+    }
+}
 
 
 /*
@@ -325,7 +272,7 @@ Phase::owner() const
 Phase&
 Phase::histogram( const double min, const double max, const unsigned n_bins )
 {
-    myHistogram.set( min, max, n_bins );
+    _histogram.set( min, max, n_bins );
 
     if ( n_bins == 0 ) {
 	Model::maxServiceTimePresent = true;
@@ -340,7 +287,7 @@ Phase::histogram( const double min, const double max, const unsigned n_bins )
 Phase&
 Phase::moments( const double mean, const double stddev, const double skew, const double kurtosis )
 {
-    myHistogram.moments( mean, stddev, skew, kurtosis );
+    _histogram.moments( mean, stddev, skew, kurtosis );
     return *this;
 }
 
@@ -348,7 +295,7 @@ Phase::moments( const double mean, const double stddev, const double skew, const
 Phase& 
 Phase::histogramBin( const double begin, const double end, const double prob, const double conf95, const double conf99 )
 {
-    myHistogram.addBin( begin, end, prob, conf95, conf99 );
+    _histogram.addBin( begin, end, prob, conf95, conf99 );
     return *this;
 }
 
@@ -360,14 +307,14 @@ Phase::histogramBin( const double begin, const double end, const double prob, co
 double 
 Phase::maxServiceTime() const 
 { 
-    return myHistogram.maxServiceTime();
+    return _histogram.hasMaxServiceTime();
 }
 
 
-const Cltn<Call *>& 
-Phase::callList() const 
+const std::vector<Call *>& 
+Phase::calls() const 
 { 
-    return entry()->callList(); 
+    return entry()->calls(); 
 }
 
 
@@ -378,9 +325,8 @@ Phase::recomputeCv_sqr( const Phase * aPhase )
     const double src_time = LQIO::DOM::to_double(aPhase->serviceTime());
     const double mean = dst_time + src_time;
     if ( mean > 0.0 ) {
-	const LQIO::DOM::ConstantExternalVariable variance = Cv_sqr() * square(dst_time) + aPhase->Cv_sqr() * square(src_time);
-	LQIO::DOM::ExternalVariable & cv_sqr = *const_cast<LQIO::DOM::ExternalVariable *>(getDOM()->getCoeffOfVariationSquared());
-	cv_sqr = variance / square(mean);
+	double variance = to_double(Cv_sqr()) * square(dst_time) + to_double(aPhase->Cv_sqr()) * square(src_time);
+	const_cast<LQIO::DOM::Phase *>(getDOM())->setCoeffOfVariationSquaredValue(variance / square(mean));
     }
     return *this;
 }
@@ -390,24 +336,11 @@ bool
 Phase::isNonExponential() const
 {
     const LQIO::DOM::Phase * dom = getDOM();
-    if ( dom ) {
-	const LQIO::DOM::ExternalVariable * var = dom->getCoeffOfVariationSquared();
-	double value;
-	return var && var->wasSet() && var->getValue(value) && value != 1.0;
+    if ( dom && dom->hasCoeffOfVariationSquared() ) {
+	return dom->getCoeffOfVariationSquaredValue() != 1.0;
     } else { 
 	return false;
     }
-}
-
-bool 
-Phase::hasCallsFor( unsigned p ) const
-{
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (aCall->hasRendezvousForPhase( p ) || aCall->hasSendNoReplyForPhase( p ) ) ) return true;
-    }
-    return false;
 }
 
 
@@ -420,71 +353,110 @@ Phase::hasCallsFor( unsigned p ) const
 double
 Phase::serviceTimeForSRVNInput() const
 {
-#if 0
-    double time = serviceTime();
-    const unsigned p = phase();
-    assert( p != 0 );
+    double time = 0.0;
+    try {
+	double time = to_double(serviceTime());
+	const unsigned p = phase();
+	assert( p != 0 );
 
-    /* Total time up to all lower level layers (not selected) */
+	/* Total time up to all lower level layers (not selected) */
 
-    Sequence<Call *> nextCall( entry()->callList() );
-    Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() && aCall->hasRendezvousForPhase(p) ) {
-	    time += (*aCall->rendezvous(p)) * (aCall->waiting(p) + aCall->dstEntry()->executionTime(1));
+	for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	    if ( !(*call)->isSelected() && (*call)->hasRendezvousForPhase(p) ) {
+		time += to_double((*call)->rendezvous(p)) * ((*call)->waiting(p) + (*call)->dstEntry()->executionTime(1));
+	    }
+	}
+
+	/* Add in processor queueing if it isn't selected */
+
+	if ( !owner()->processor()->isSelected() ) {
+	    time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
 	}
     }
-
-    /* Add in processor queueing if it isn't selected */
-
-    if ( !owner()->processor()->isSelected() ) {
-	time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
+    catch ( const std::domain_error( &e ) ) {
     }
-    
-#else
-    double time = 0.0;
-#endif
     return time;
 }
 
 
+#if defined(REP2FLAT)
 /*
- * Subtly different from serviceTimeForSRVNInput...  Clients don't get
- * their own service time.  It is always assigned to the processor.
+ * Strip suffix _<N>
  */
 
-double
-Phase::serviceTimeForQueueingNetwork() const
+Phase&
+Phase::replicatePhase()
 {
-    double time = 0.0;
-
-#if 0
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    const unsigned p = phase();
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() && aCall->hasRendezvousForPhase(p) > 0.0 ) {
-	    time += (*aCall->rendezvous(p)) * (aCall->waiting(p) + aCall->dstEntry()->executionTime(1));
-	}
+    if ( !getDOM() ) return *this;
+    std::string& name = const_cast<std::string&>(getDOM()->getName());
+    if ( name.size() <= 2 ) return *this;
+    size_t pos = name.rfind( '_' );
+    char * end_ptr = NULL;
+    if ( pos != std::string::npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
+	name = name.substr( 0, pos );
     }
-
-    if ( !owner()->processor()->isSelected() ) {
-	time += serviceTime() + queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
-    }
-#endif
-    return time;
+    return *this;
 }
 
 
-
-/*
- * Called by xxparse when we don't have a total.
- */
-
-const Phase&
-Phase::addThptUtil( double &util_sum ) const
+Phase&
+Phase::replicateCall()
 {
-    util_sum += utilization();
+    if ( !getDOM() ) return *this;
+    std::vector<LQIO::DOM::Call *>& calls = const_cast<std::vector<LQIO::DOM::Call *>&>(getDOM()->getCalls());
+    std::vector<LQIO::DOM::Call *> old_calls = calls;
+    calls.clear();
+    for ( std::vector<LQIO::DOM::Call *>::iterator call = old_calls.begin(); call != old_calls.end(); ++call ) {
+	const std::string& dst_name = (*call)->getDestinationEntry()->getName();
+	size_t pos = dst_name.rfind( '_' );
+	char * end_ptr = NULL;
+	if ( pos == std::string::npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr != '\0') ) {
+	    calls.push_back( *call );
+	}
+    }
+    return *this;
+}
+#endif
+
+Phase::Histogram::Histogram() 
+    : myNumBins(0),
+      myMin(0.0),
+      myMax(0.0),
+      myMean(0.0),
+      myStdDev(0.0),
+      mySkew(0.0),
+      myKurtosis(0.0)
+{
+}
+
+Phase::Histogram&
+Phase::Histogram::set( const double hist_min, const double hist_max, const unsigned n_bins )
+{
+    if ( hist_min < 0 ) {
+	LQIO::input_error2( LQIO::ERR_HISTOGRAM_INVALID_MIN, hist_min );
+    }
+
+    myMin       = hist_min;
+    myMax       = hist_max;
+    myNumBins   = n_bins + 2;
+
+    return *this;
+}
+
+Phase::Histogram&
+Phase::Histogram::moments( const double mean, const double stddev, const double skew, const double kurtosis )
+{
+    myMean = mean;
+    myStdDev = stddev;
+    mySkew = skew;
+    myKurtosis = kurtosis;
+    return *this;
+}
+
+
+Phase::Histogram&
+Phase::Histogram::addBin( const double begin, const double end, const double prob, const double conf95, const double conf99 )
+{
+    bins.push_back( Bin( begin, end, prob, conf95, conf99 ) );
     return *this;
 }

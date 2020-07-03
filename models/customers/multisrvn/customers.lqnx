@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $HeadURL: svn://franks.dnsalias.com/lqn/trunk/models/customers/multisrvn/customers.lqnx $ -->
+<!-- $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/customers/multisrvn/customers.lqnx $ -->
 
 <lqn-model name="customers" description="$Id: customers.lqnx 8582 2009-05-11 16:57:11Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simple model for varying customers." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>

@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id: server.cc 11969 2014-04-11 21:19:54Z greg $
+ * $Id: server.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -64,8 +64,7 @@ operator<<( ostream& output, const Server& self )
 
 /*
  * Allocate storage for arrays.  L and U are allocated by the
- * appropriate MVA solver.  MAX_ENTRIES and MAX_CLASSES are
- * somewhat arbitrary limits.  See dim.h.	
+ * appropriate MVA solver.  
  */
 
 void
@@ -75,9 +74,6 @@ Server::initialize()
 	
     if ( E == 0 ) {
 	throw out_of_range( "Server::initialize -- entries" );
-    }
-    if ( MAX_CLASSES < K ) {
-	throw out_of_range( "Server::initialize -- classes" );
     }
     if ( P == 0 || MAX_PHASES < P ) {
 	throw out_of_range( "Server::initialize -- phases" );
@@ -322,7 +318,7 @@ Server::S() const
  */
 
 double
-Server::S( const MVA& solver, const PopVector& N ) const
+Server::S( const MVA& solver, const Population& N ) const
 {
     double sumOfV    = 0.0;
     double sumOfS    = 0.0;
@@ -438,7 +434,7 @@ Server::etaS( const unsigned e, const unsigned k ) const
  */
 
 double
-Server::muS( const PopVector&, const unsigned ) const
+Server::muS( const Population&, const unsigned ) const
 {
     throw should_not_implement( "Server::muS", __FILE__, __LINE__ );
     return 0.0;
@@ -583,7 +579,7 @@ Server::R( const unsigned e, const unsigned k, const unsigned p ) const
  */
 
 void
-Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     const Positive queue = 1.0 + solver.queueLength( closedIndex, N );
 
@@ -645,7 +641,7 @@ Server::alpha( const unsigned n ) const
 
 
 double
-Server::priorityInflation( const MVA& solver, const PopVector &N, const unsigned k ) const
+Server::priorityInflation( const MVA& solver, const Population &N, const unsigned k ) const
 {
     return 1.0 / ( 1.0 - solver.priorityInflation( *this, N, k ) );
 }
@@ -793,7 +789,7 @@ Infinite_Server::mu() const
  */
 
 void 
-Infinite_Server::wait( const MVA&, const unsigned k, const PopVector & ) const
+Infinite_Server::wait( const MVA&, const unsigned k, const Population & ) const
 {
     assert( k <= K );
 
@@ -831,7 +827,7 @@ Infinite_Server::openWait() const
  */
 
 void
-Infinite_Server::mixedWait( const MVA& , const PopVector& ) const
+Infinite_Server::mixedWait( const MVA& , const Population& ) const
 {
     openWait();
 }
@@ -855,7 +851,7 @@ Infinite_Server::alpha( const unsigned ) const
  */
 
 void 
-Client::wait( const MVA&, const unsigned k, const PopVector & ) const
+Client::wait( const MVA&, const unsigned k, const Population & ) const
 {
     assert( k <= K );
 
@@ -878,7 +874,7 @@ Client::wait( const MVA&, const unsigned k, const PopVector & ) const
  */
 
 void
-PS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -918,7 +914,7 @@ PS_Server::openWait() const
  */
 
 void
-PR_PS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     PS_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -952,7 +948,7 @@ PR_PS_Server::openWait() const
  */
 
 void
-HOL_PS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -988,7 +984,7 @@ HOL_PS_Server::openWait() const
  */
 
 void
-FCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -1029,7 +1025,7 @@ FCFS_Server::openWait() const
  */
 
 void
-PR_FCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     FCFS_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -1063,7 +1059,7 @@ PR_FCFS_Server::openWait() const
  */
 
 void
-HOL_FCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -1206,7 +1202,7 @@ HVFCFS_Server::r( const unsigned e, const unsigned k, const unsigned p ) const
  */
 
 void
-HVFCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -1292,7 +1288,7 @@ HVFCFS_Server::printInput( ostream& output, const unsigned e, const unsigned k )
  */
 
 void
-PR_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+PR_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     HVFCFS_Server::wait( solver, k, N );
     const double inflation = priorityInflation( solver, N, k );
@@ -1314,7 +1310,7 @@ PR_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N 
  */
 
 void
-HOL_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+HOL_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 

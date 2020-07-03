@@ -329,30 +329,7 @@ namespace LQX {
 	    /* Prints out all the given values if any */
 	    std::vector<SymbolAutoRef>::iterator iter;
 	    for (iter = args.begin(); iter != args.end(); ++iter) {
-		SymbolAutoRef& current = *iter;
-		switch (current->getType()) {
-		case Symbol::SYM_BOOLEAN: 
-		    ss << (current->getBooleanValue() ? "true" : "false");
-		    break;
-		case Symbol::SYM_DOUBLE: 
-		    ss << current->getDoubleValue();
-		    break;
-		case Symbol::SYM_STRING:
-		    ss << current->getStringValue();
-		    break;
-		case Symbol::SYM_NULL:
-		    ss << "(NULL)";
-		    break;
-		case Symbol::SYM_OBJECT:
-		    ss << current->getObjectValue()->description();
-		    break;
-		case Symbol::SYM_UNINITIALIZED:
-		    ss << "<<uninitialized>>";
-		    break;
-		default: 
-		    throw InternalErrorException("Unsupported type passed to str() function.");
-		    break;
-		}
+		ss << *iter;
 	    } 
       
 	    /* Pass the arguments up to strcmp */

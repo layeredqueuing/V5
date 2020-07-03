@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.h 10673 2012-01-21 00:37:26Z greg $
+ *  $Id: dom_activity.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -17,7 +17,8 @@ namespace LQIO {
 	class Document;
 	class Entry;
 	class ActivityList;
-    
+	class Task;
+	
 	class Activity : public Phase {
 	public:
       
@@ -27,12 +28,14 @@ namespace LQIO {
 	    virtual ~Activity();
       
 	    /* Basic Activity Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    std::vector<DOM::Entry*>& getReplyList();
 	    const std::vector<DOM::Entry*>& getReplyList() const { return _replyList; }
 	    const bool isSpecified() const;
 	    void setIsSpecified(const bool isSpecified);
-	    unsigned int getIndex() const;
-	    void setIndex( unsigned int i );
+	    const DOM::Task * getTask() const;
+	    void setTask( DOM::Task * );
       
 	    /* Simple information covering start activities */
 	    bool isStartActivity() const { return this->getSourceEntry() != NULL; }
@@ -60,7 +63,7 @@ namespace LQIO {
 	    /* Instance Variables */
 	    std::vector<DOM::Entry*> _replyList;
 	    bool _isSpecified;
-	    unsigned int _index;
+	    Task * _task;
       
 	    /* Activity Lists */
 	    ActivityList* _outputList;
@@ -73,6 +76,8 @@ namespace LQIO {
 	    double _resultProcessorUtilization;
 	    double _resultProcessorUtilizationVariance;
       
+	public:
+	    static const char * __typeName;
 	};
     
     }

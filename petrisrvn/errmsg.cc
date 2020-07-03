@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 10402 2011-07-07 00:48:20Z greg $
+ * $Id: errmsg.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "petrisrvn.h"
@@ -72,9 +72,8 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.anError = true;
 	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= 10 ) {
+	if  ( io_vars.error_count >= io_vars.max_error ) {
 	    throw std::runtime_error( "Too many errors" );
 	}
 	break;

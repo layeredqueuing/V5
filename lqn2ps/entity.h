@@ -1,35 +1,43 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entity.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _ENTITY_H
 #define _ENTITY_H
 #include "lqn2ps.h"
-#include "vector.h"
-#include "cltn.h"
+#include <iostream>
+#include <vector>
 #include "element.h"
 #include <lqio/input.h>
 
-class Entity;
 class Processor;
 class Task;
 class Arc;
-
-ostream& operator<<( ostream&, const Entity& );
-
+class EntityCall;
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
-class Entity : public Element {
+class Entity : public Element
+{
+public:
+    struct CountCallers {
+	CountCallers( const callPredicate predicate ) : _predicate(predicate), _count(0) {}
+	void operator()( const Entity * entity );
+	unsigned int count() const { return _count; }
+	
+    private:
+	const callPredicate _predicate;
+	unsigned int _count;
+    };
 
 public:
     Entity( const LQIO::DOM::Entity*, const size_t id );
     virtual ~Entity();
-    static int compare( const void *, const void * );
-    static int compareLevel( const void *, const void * );
-    static int compareCoord( const void *, const void * );
+    static bool compare( const Entity *, const Entity * );
+    static bool compareLevel( const Entity *, const Entity * );
+    static bool compareCoord( const Entity * e1, const Entity * e2 ) { return e1->index() < e2->index(); }
 
     virtual Entity& aggregate() { return *this; }
 
@@ -37,33 +45,35 @@ public:
 	   
     virtual const Processor * processor() const = 0;
     virtual Entity& processor( const Processor * aProcessor ) = 0;
-    virtual Entity& setCopies( const unsigned anInt );
     const LQIO::DOM::ExternalVariable& copies() const;
-    const unsigned replicas() const;
+    unsigned int copiesValue() const;
+    const LQIO::DOM::ExternalVariable& replicas() const;
+    unsigned int replicasValue() const;
+    const LQIO::DOM::ExternalVariable& fanIn( const Entity * ) const;
+    const LQIO::DOM::ExternalVariable& fanOut( const Entity * ) const;
+    unsigned fanInValue( const Entity * ) const;
+    unsigned fanOutValue( const Entity * ) const;
     const scheduling_type scheduling() const;
 
-    Entity& setLevel( unsigned aLevel ) { myLevel = aLevel; return *this; }
-    unsigned level() const { return myLevel; }
-    Entity& setSubmodel( unsigned aSubmodel ) { mySubmodel = aSubmodel; return *this; }
-    unsigned submodel() const { return mySubmodel; }
-    bool isSelected() const { return iAmSelected; }
-    Entity& isSelected( bool yesOrNo ) { iAmSelected = yesOrNo; return *this; }
-    bool isSurrogate() const { return iAmASurrogate; }
-    Entity& isSurrogate( bool yesOrNo ) { iAmASurrogate = yesOrNo; return *this; }
+    Entity& setLevel( size_t level ) { _level = level; return *this; }
+    size_t level() const { return _level; }
+    bool isSelected() const { return _isSelected; }
+    Entity& isSelected( bool yesOrNo ) { _isSelected = yesOrNo; return *this; }
+    bool isSurrogate() const { return _isSurrogate; }
+    Entity& isSurrogate( bool yesOrNo ) { _isSurrogate = yesOrNo; return *this; }
     bool hasBogusUtilization() const;
 
-    virtual double variance() const { return myVariance; }
     virtual double utilization() const = 0;
 
-    const Cltn<GenericCall *>& callerList() const { return myCallers; }
-    void addDstCall( GenericCall * aCall ) { myCallers << aCall; }
-    void removeDstCall( GenericCall * aCall) { myCallers -= aCall; }
+    const std::vector<GenericCall *>& callers() const { return _callers; }
+    void addDstCall( GenericCall * aCall ) { _callers.push_back( aCall ); }
+    void removeDstCall( GenericCall * aCall);
 
     /* Queries */
 
     virtual bool forwardsTo( const Task * aTask ) const     { return false; }
     virtual bool hasForwardingLevel() const                 { return false; }
-    virtual bool hasCalls( const callFunc ) const           { return false; }
+    virtual bool hasCalls( const callPredicate ) const      { return false; }
     virtual bool isForwardingTarget() const                 { return false; }
     virtual bool isCalled( const requesting_type ) const    { return false; }
     bool isInfinite() const;
@@ -72,27 +82,24 @@ public:
     virtual bool isTask() const                             { return false; }
     virtual bool isProcessor() const                        { return false; }
     virtual bool isReferenceTask() const                    { return false; }
-    bool isReplicated() const                               { return replicas() > 1; }
+    bool isReplicated() const;
     virtual bool isSelectedIndirectly() const;
     virtual bool isServerTask() const                       { return false; }
-    unsigned fanIn( const Entity * ) const;
-    unsigned fanOut( const Entity * ) const;
 
-    virtual void check() const {}
-    virtual unsigned referenceTasks( Cltn<const Entity *>&, Element * ) const = 0;
-    virtual unsigned clients( Cltn<const Entity *> &, const callFunc = 0 ) const = 0;
-    virtual unsigned servers( Cltn<const Entity *> & ) const = 0;
+    bool test( const taskPredicate ) const;
+    
+    virtual bool check() const { return true; }
+    virtual unsigned referenceTasks( std::vector<Entity *>&, Element * ) const = 0;
+    virtual unsigned clients( std::vector<Entity *> &, const callPredicate = 0 ) const = 0;
+    virtual unsigned servers( std::vector<Entity *> & ) const = 0;
 
     virtual double getIndex() const { return index(); }
-    virtual Entity const & sort() const;
-    virtual unsigned setChain( unsigned k, callFunc aFunc ) const { return k; }
+    virtual Entity& sort();
+    virtual unsigned setChain( unsigned k, callPredicate aFunc ) const { return k; }
 
-    virtual bool isInOpenModel( const Cltn<Entity *>& servers ) const { return false; }
-    virtual bool isInClosedModel( const Cltn<Entity *>& servers  ) const { return false; }
+    virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const { return false; }
+    virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const { return false; }
 
-    Entity& serviceTime( const unsigned k, const double s );
-    double serviceTime( const unsigned k ) const;
-    virtual double serviceTimeForQueueingNetwork( const unsigned k, chainTestFunc ) const { return 0.0; }
 #if defined(REP2FLAT)
     virtual Entity& removeReplication();
 #endif
@@ -105,19 +112,9 @@ public:
 
     ostream& print( ostream& output ) const;
 
-    ostream& drawQueueingNetwork( ostream&, const double, const double, Vector<bool> &, Cltn<Arc *>& ) const;
+    ostream& drawQueueingNetwork( ostream&, const double, const double, std::vector<bool>&, std::vector<Arc *>& ) const;
     virtual ostream& drawClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const { return output; }
     virtual ostream& drawServer( ostream& ) const;
-#if defined(QNAP_OUTPUT)
-    virtual ostream& printQNAPClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const { return output; }
-    ostream& printQNAPServer( ostream& output, const bool multi_class ) const;
-#endif
-#if defined(PMIF_OUTPUT)
-    virtual ostream& printPMIFServer( ostream& output ) const;
-    virtual ostream& printPMIFClient( ostream& output ) const { return output; }
-    virtual ostream& printPMIFArcs( ostream& output ) const { return output; }
-    virtual ostream& printPMIFReplies( ostream& output ) const;
-#endif
 
     virtual ostream& printName( ostream& output, const int = 0 ) const;
 
@@ -127,51 +124,17 @@ protected:
 
 private:
     Graphic::colour_type chainColour( unsigned int ) const;
-    ostream& drawServerToClient( ostream&, const double, const double, const Entity *, Vector<bool> &, const unsigned, const unsigned ) const;
-    ostream& drawClientToServer( ostream&, const Entity *, Vector<bool> &, const unsigned, const unsigned, Cltn<Arc *>& lastArc ) const;
-#if defined(QNAP_OUTPUT)
-    ostream& printQNAPReplies( ostream& output, const bool multi_class ) const;
-#endif
+    ostream& drawServerToClient( ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;
+    ostream& drawClientToServer( ostream&, const Entity *, std::vector<bool> &, const unsigned, std::vector<Arc *>& lastArc ) const;
 
-protected:
-    double myVariance;			/* Computed variance.		*/
-    Cltn<GenericCall *> myCallers;	/* Arc calling processor	*/
-
-    Vector<double> myServiceTime;	/* Service time by chain.	*/
-    Vector<double> myWait;		/* Wait to other tasks by chain.*/
-
-    unsigned myLevel;			/* For sorting (by Y)		*/
-    unsigned mySubmodel;		/* For printing submodels.	*/
-    unsigned myIndex;			/* For sorting arcs. 		*/
-
-    bool iAmSelected;			/* Flag for picking off parts.	*/
-    bool iAmASurrogate;			/* Flag for formatting.		*/
-};
-
-
-/* -------------------------------------------------------------------- */
-/* Funky Formatting functions for inline with <<.			*/
-/* -------------------------------------------------------------------- */
-
-class SRVNEntityManip {
-public:
-    SRVNEntityManip( ostream& (*ff)(ostream&, const Entity & ), const Entity & theEntity ) 
-	: f(ff), anEntity(theEntity) {}
+    static unsigned offsetOf( const std::set<unsigned>&, unsigned );
 
 private:
-    ostream& (*f)( ostream&, const Entity& );
-    const Entity & anEntity;
-
-    friend ostream& operator<<(ostream & os, const SRVNEntityManip& m ) 
-	{ return m.f(os,m.anEntity); }
+    std::vector<GenericCall *> _callers;/* who calls me			*/
+    size_t _level;			/* For sorting (by Y)		*/
+    bool _isSelected;			/* Flag for picking off parts.	*/
+    bool _isSurrogate;			/* Flag for formatting.		*/
 };
 
-
-SRVNEntityManip copies_of( const Entity & anEntity );
-SRVNEntityManip replicas_of( const Entity & anEntity );
-SRVNEntityManip scheduling_of( const Entity & anEntity );
-#if defined(QNAP_OUTPUT)
-SRVNEntityManip qnap_name( const Entity & anEntity );
-SRVNEntityManip qnap_replicas( const Entity & anEntity );
-#endif
+ostream& operator<<( ostream& output, const Entity& self );
 #endif

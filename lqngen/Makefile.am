@@ -1,11 +1,11 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 12297 2015-11-17 21:10:22Z greg $
+# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config
 SUBDIRS		= 
 
-AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers
+AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers 
 bin_PROGRAMS 	= lqngen
 OTHEREXE	= lqn2lqx
 lqngen_SOURCES  = lqngen.cc generate.cc help.cc randomvar.cc 

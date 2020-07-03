@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13204 2018-03-06 22:52:04Z greg $
+ *  $Id: srvn_output.cpp 13550 2020-05-22 11:48:05Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -15,12 +15,6 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
-#if HAVE_PWD_H
-#include <pwd.h>
-#endif
-#if HAVE_SYS_TYPES_H
-#include <sys/types.h>
-#endif
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
@@ -31,6 +25,7 @@
 #include "srvn_output.h"
 #include "common_io.h"
 #include "srvn_spex.h"
+#include "glblerr.h"
 #include "dom_extvar.h"
 #include "dom_document.h"
 #include "dom_processor.h"
@@ -47,10 +42,6 @@
 namespace LQIO {
     using namespace std;
 
-    bool SRVN::ObjectOutput::__task_has_think_time = false;
-    bool SRVN::ObjectOutput::__task_has_group = false;
-
-
     unsigned int SRVN::ObjectOutput::__maxPhase = 0;
     ConfidenceIntervals * SRVN::ObjectOutput::__conf95 = 0;
     ConfidenceIntervals * SRVN::ObjectOutput::__conf99 = 0;
@@ -59,23 +50,22 @@ namespace LQIO {
     bool SRVN::ObjectOutput::__coloured = false;
     unsigned int SRVN::ObjectInput::__maxEntLen = 1;
     unsigned int SRVN::ObjectInput::__maxInpLen = 1;
-    
+
+    static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
     SRVN::Output::Output( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities,
-			  bool print_confidence_intervals, bool print_variances, bool print_histograms )
-        : _document(document), _entities(entities), 
-	  _print_variances(print_variances), _print_histograms(print_histograms)
+                          bool print_confidence_intervals, bool print_variances, bool print_histograms )
+        : _document(document), _entities(entities),
+          _print_variances(print_variances), _print_histograms(print_histograms)
     {
         /* Set various globals for pretting printing */
         assert( ObjectOutput::__maxPhase == 0 );
         ObjectOutput::__maxPhase = document.getMaximumPhase();
-        ObjectOutput::__task_has_think_time = document.taskHasThinkTime();
-	ObjectOutput::__task_has_group = document.getNumberOfGroups() > 0;
         ObjectOutput::__parseable = false;
-	ObjectOutput::__rtf = false;
-	ObjectOutput::__coloured = false;
-        const unsigned number_of_blocks = document.getResultNumberOfBlocks();
-        if ( number_of_blocks >= 2 && print_confidence_intervals ) {
+        ObjectOutput::__rtf = false;
+        ObjectOutput::__coloured = false;
+	const unsigned number_of_blocks = document.getResultNumberOfBlocks();
+        if ( document.hasConfidenceIntervals() && number_of_blocks >= 2 && print_confidence_intervals ) {
             ObjectOutput::__conf95 = new ConfidenceIntervals( ConfidenceIntervals::CONF_95, number_of_blocks );
             ObjectOutput::__conf99 = new ConfidenceIntervals( ConfidenceIntervals::CONF_99, number_of_blocks );
         } else {
@@ -94,73 +84,29 @@ namespace LQIO {
     }
 
     /* Proxies */
-    ostream& 
-    SRVN::Output::newline( ostream& output ) 
-    { 
-	return ObjectOutput::newline( output ); 
+    ostream&
+    SRVN::Output::newline( ostream& output )
+    {
+        return ObjectOutput::newline( output );
     }
-
-    ostream& 
-    SRVN::Output::textrm( ostream& output ) 
-    { 
-	return ObjectOutput::textrm( output );
-    }
-
-    ostream& 
-    SRVN::Output::textbf( ostream& output ) 
-    { 
-	return ObjectOutput::textbf( output );
-    }
-
-    ostream& 
-    SRVN::Output::textit( ostream& output ) 
-    { 
-	return ObjectOutput::textit( output );
-    }
-
-    SRVN::TimeManip SRVN::ObjectOutput::print_time( const clock_t t )  { return SRVN::TimeManip( &SRVN::ObjectOutput::printTime, t ); }
-    DOM::StringManip SRVN::Output::task_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::taskHeader, s ); }
-    DOM::StringManip SRVN::Output::entry_header( const std::string& s )     { return DOM::StringManip( &SRVN::Output::entryHeader, s ); }
-    DOM::StringManip SRVN::Output::activity_header( const std::string& s )  { return DOM::StringManip( &SRVN::Output::activityHeader, s ); }
-    DOM::StringManip SRVN::Output::call_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::callHeader, s ); }
-    SRVN::UnsignedManip SRVN::Output::phase_header( const unsigned n ) { return SRVN::UnsignedManip( &SRVN::Output::phaseHeader, n ); }
-    DOM::StringManip SRVN::Output::hold_header( const std::string& s )      { return DOM::StringManip( &SRVN::Output::holdHeader, s ); }
-    DOM::StringManip SRVN::Output::rwlock_header( const std::string& s )    { return DOM::StringManip( &SRVN::Output::rwlockHeader, s ); }
 
     ostream&
-    SRVN::ObjectOutput::printTime( ostream& output, const clock_t time )
+    SRVN::Output::textrm( ostream& output )
     {
-#if defined(HAVE_SYS_TIME_H)
-#if defined(CLK_TCK)
-	const double dtime = static_cast<double>(time) / static_cast<double>(CLK_TCK);
-#else
-	const double dtime = static_cast<double>(time) / static_cast<double>(sysconf(_SC_CLK_TCK));
-#endif
-	const double csecs = fmod( dtime * 100.0, 100.0 );
-#else
-	const double dtime = time;
-	const double csecs = 0.0;
-#endif
-        const double secs  = fmod( floor( dtime ), 60.0 );
-        const double mins  = fmod( floor( dtime / 60.0 ), 60.0 );
-        const double hrs   = floor( dtime / 3600.0 );
-
-        const ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
-        const int precision = output.precision(0);
-        output.setf( ios::right, ios::adjustfield );
-
-        output << setw(2) << hrs;
-        char fill = output.fill('0');
-        output << ':' << setw(2) << mins;
-        output << ':' << setw(2) << secs;
-        output << '.' << setw(2) << csecs;
-
-        output.flags(flags);
-        output.precision(precision);
-        output.fill(fill);
-        return output;
+        return ObjectOutput::textrm( output );
     }
 
+    ostream&
+    SRVN::Output::textbf( ostream& output )
+    {
+        return ObjectOutput::textbf( output );
+    }
+
+    ostream&
+    SRVN::Output::textit( ostream& output )
+    {
+        return ObjectOutput::textit( output );
+    }
 
     /*
      * Print out a generic header for Entry name on fptr.
@@ -225,9 +171,9 @@ namespace LQIO {
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
                << setw(ObjectOutput::__maxStrLen) << "Wait Entry"
                << setw(ObjectOutput::__maxStrLen) << "Signal Entry"
-	       << setw(ObjectOutput::__maxDblLen) << "Hold Time"
-	       << setw(ObjectOutput::__maxDblLen) << "Variance"
-	       << setw(ObjectOutput::__maxDblLen) << "Utilization";
+               << setw(ObjectOutput::__maxDblLen) << "Hold Time"
+               << setw(ObjectOutput::__maxDblLen) << "Variance"
+               << setw(ObjectOutput::__maxDblLen) << "Utilization";
         output.flags(oldFlags);
         return output;
     }
@@ -240,11 +186,11 @@ namespace LQIO {
                << setw(ObjectOutput::__maxStrLen) << "Task Name"
                << setw(ObjectOutput::__maxStrLen) << "Lock Entry"
                << setw(ObjectOutput::__maxStrLen) << "Unlock Entry"
-	       << setw(ObjectOutput::__maxDblLen) << "Blocked Time"
-	       << setw(ObjectOutput::__maxDblLen) << "Variance"
-	       << setw(ObjectOutput::__maxDblLen) << "Hold Time"
-	       << setw(ObjectOutput::__maxDblLen) << "Variance"
-	       << setw(ObjectOutput::__maxDblLen) << "Utilization";
+               << setw(ObjectOutput::__maxDblLen) << "Blocked Time"
+               << setw(ObjectOutput::__maxDblLen) << "Variance"
+               << setw(ObjectOutput::__maxDblLen) << "Hold Time"
+               << setw(ObjectOutput::__maxDblLen) << "Variance"
+               << setw(ObjectOutput::__maxDblLen) << "Utilization";
         output.flags(oldFlags);
         return output;
     }
@@ -259,7 +205,7 @@ namespace LQIO {
         printPreamble( output );
         printInput( output );
         printResults( output );
-	printPostamble( output );
+        printPostamble( output );
         return output;
     }
 
@@ -267,8 +213,8 @@ namespace LQIO {
     ostream&
     SRVN::Output::printPreamble( ostream& output ) const
     {
-	DocumentOutput print( output );
-	print( getDOM() );
+        DocumentOutput print( output );
+        print( getDOM() );
         return output;
     }
 
@@ -278,27 +224,27 @@ namespace LQIO {
     {
         ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
-        output << newline << textbf << processor_info_str << newline << newline 
+        output << newline << textbf << processor_info_str << newline << newline
                << textrm << setw(ObjectOutput::__maxStrLen) << "Processor Name" << "Type    Copies  Scheduling";
-	if ( getDOM().processorHasRate() ) {
-	    output << " Rate";
-	}
-	output << newline;
+        if ( getDOM().processorHasRate() ) {
+            output << " Rate";
+        }
+        output << newline;
         for_each( _entities.begin(), _entities.end(), ProcessorOutput( output, &ProcessorOutput::printParameters ) );
 
-	const std::map<std::string,DOM::Group*>& groups = const_cast<DOM::Document&>(getDOM()).getGroups();
-	if ( groups.size() > 0 ) {
-	    output << newline << textbf << group_info_str << newline << newline
-		   << setw(ObjectOutput::__maxStrLen) << "Group Name" << "Share       Processor Name" << newline << textrm;
-	    for_each( groups.begin(), groups.end(), GroupOutput( output, &GroupOutput::printParameters ) );
-	}
+        const std::map<std::string,DOM::Group*>& groups = getDOM().getGroups();
+        if ( groups.size() > 0 ) {
+            output << newline << textbf << group_info_str << newline << newline
+                   << setw(ObjectOutput::__maxStrLen) << "Group Name" << "Share       Processor Name" << newline << textrm;
+            for_each( groups.begin(), groups.end(), GroupOutput( output, &GroupOutput::printParameters ) );
+        }
 
         output << newline << newline << textbf << task_info_str << newline << newline
                << textrm << setw(ObjectOutput::__maxStrLen) << "Task Name" << "Type    Copies  " << setw(ObjectOutput::__maxStrLen) << "Processor Name";
-	if ( getDOM().getNumberOfGroups() > 0 ) {
-	    output << setw(ObjectOutput::__maxStrLen) << "Group Name";
-	}
-	output << "Pri ";
+        if ( getDOM().getNumberOfGroups() > 0 ) {
+            output << setw(ObjectOutput::__maxStrLen) << "Group Name";
+        }
+        output << "Pri ";
         if ( getDOM().taskHasThinkTime() ) {
             output << setw(ObjectOutput::__maxDblLen) << "Think Time";
         }
@@ -308,36 +254,36 @@ namespace LQIO {
         output << entry_header( service_demand_str ) << newline;
         for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryDemand, &EntryOutput::printActivityDemand  ) );
 
-        if ( getDOM().entryHasThinkTime() ) {
+        if ( getDOM().hasThinkTime() ) {
             output << entry_header( think_time_str ) << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryThinkTime, &EntryOutput::printActivityThinkTime ) );
         }
 
-	if ( getDOM().hasMaxServiceTime() ) {
-	    output << entry_header( max_service_time_str ) << newline;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTime ) );
-	}
+        if ( getDOM().hasMaxServiceTimeExceeded() ) {
+            output << entry_header( max_service_time_str ) << newline;
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTime ) );
+        }
 
 
         /* print mean number of Rendezvous */
 
         if ( getDOM().hasRendezvous() ) {
-	    output << call_header( rendezvous_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
+            output << call_header( rendezvous_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallRate ) );
         }
 
         if ( getDOM().hasForwarding() > 0 ) {
-	    output << call_header( forwarding_probability_str ) << setw(ObjectOutput::__maxDblLen) << "Prob" << newline;
+            output << call_header( forwarding_probability_str ) << setw(ObjectOutput::__maxDblLen) << "Prob" << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwarding ) );
         }
 
         if ( getDOM().hasSendNoReply() ) {
-	    output << call_header( send_no_reply_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
+            output << call_header( send_no_reply_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallRate ) );
         }
 
         if ( getDOM().hasDeterministicPhase() ) {
-	    output << entry_header( phase_type_str ) << newline;
+            output << entry_header( phase_type_str ) << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryPhaseType, &EntryOutput::printActivityPhaseType ) );
         } else {
             output << newline << newline << textbf << phase_type_str << newline << textrm;
@@ -353,7 +299,7 @@ namespace LQIO {
         }
 
         output << newline << newline << textbf << open_arrival_rate_str << newline << textrm;
-        if ( getDOM().entryHasOpenArrivals() ) {
+        if ( getDOM().hasOpenArrivals() ) {
             output << newline << setw(ObjectOutput::__maxStrLen) << "Entry Name" << setw(ObjectOutput::__maxDblLen) << "Arrival Rate" << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenArrivals ) );
         } else {
@@ -383,6 +329,9 @@ namespace LQIO {
                 for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
             }
         }
+	if ( getDOM().hasForwarding() ) {
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingWaiting ) );
+	}
         if ( getDOM().hasSendNoReply() ) {
             output << call_header( snr_waiting_time_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
@@ -415,30 +364,30 @@ namespace LQIO {
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryVarianceServiceTime, &EntryOutput::printActivityVarianceServiceTime  ) );
         }
 
-	/* Histograms */
+        /* Histograms */
 
-	if ( getDOM().hasMaxServiceTime() ) {
+        if ( getDOM().hasMaxServiceTimeExceeded() ) {
             output << entry_header( service_time_exceeded_str ) << newline;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTimeExceeded, &EntryOutput::printActivityMaxServiceTimeExceeded, &EntryOutput::testActivityMaxServiceTimeExceeded ) );
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTimeExceeded, &EntryOutput::printActivityMaxServiceTimeExceeded, &EntryOutput::testActivityMaxServiceTimeExceeded ) );
         }
 
-	if ( getDOM().hasHistogram() && _print_histograms ) {
+        if ( getDOM().hasHistogram() && _print_histograms ) {
             output << newline << newline << histogram_str << newline << newline;
-	    for_each( _entities.begin(), _entities.end(), HistogramOutput( output, &HistogramOutput::printHistogram ) );
-	}
+            for_each( _entities.begin(), _entities.end(), HistogramOutput( output, &HistogramOutput::printHistogram ) );
+        }
 
         /* Semaphore holding times */
 
         if ( getDOM().hasSemaphoreWait() ) {
             output << hold_header( semaphore_hold_time_str ) << newline;
-	    for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printHoldTime ) );
+            for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printHoldTime ) );
         }
 
         /* RWLock holding times */
 
-        if ( getDOM().hasReaderWait() ) {
+        if ( getDOM().hasRWLockWait() ) {
             output << rwlock_header( rwlock_hold_time_str ) << newline;
-	    for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printRWLOCKHoldTime ) );
+            for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printRWLOCKHoldTime ) );
         }
 
 
@@ -447,7 +396,7 @@ namespace LQIO {
         output << task_header( throughput_str ) << setw(ObjectOutput::__maxDblLen) << "Throughput" << phase_header( ObjectOutput::__maxPhase ) << setw(ObjectOutput::__maxDblLen) << "Total" << newline;
         for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printThroughputAndUtilization ) );
 
-	/* Open arrival wait times */
+        /* Open arrival wait times */
 
         if ( getDOM().entryHasOpenWait() ) {
             output << task_header( open_wait_str ) << setw(ObjectOutput::__maxDblLen) << "Lambda" << setw(ObjectOutput::__maxDblLen) << "Waiting time" << newline;
@@ -462,19 +411,6 @@ namespace LQIO {
         return output;
     }
 
-
-    /*
-     * Manipulators for inline output expressions ie
-     * cout << entity_name( "foo", flag ) << newline;
-     *
-     * The SRVN::Output functions passed as an argument to the constructor do the work.  Different manipulators exist for typing.
-     */
-
-    SRVN::EntityNameManip SRVN::ObjectOutput::entity_name( const DOM::Entity& e, bool& b ) { return SRVN::EntityNameManip( &SRVN::ObjectOutput::printEntityName, e, b ); }
-    SRVN::EntryNameManip SRVN::ObjectOutput::entry_name( const DOM::Entry& e ) { return SRVN::EntryNameManip( &SRVN::ObjectOutput::printEntryName, e ); }
-    SRVN::UnsignedManip SRVN::ObjectOutput::activity_separator( const unsigned n ) { return SRVN::UnsignedManip( &SRVN::ObjectOutput::activitySeparator, n ); }
-    SRVN::ConfidenceManip SRVN::ObjectOutput::conf_level( const unsigned int n, const ConfidenceIntervals::confidence_level_t l ) { return SRVN::ConfidenceManip( &SRVN::ObjectOutput::confLevel,n,l); }
-    SRVN::DoubleManip SRVN::ObjectOutput::colour( const double u ) { return SRVN::DoubleManip( &SRVN::ObjectOutput::textcolour, u ); }
 
     ostream&
     SRVN::ObjectOutput::printEntityName( ostream& output, const DOM::Entity& entity, bool& print )
@@ -491,25 +427,25 @@ namespace LQIO {
     ostream&
     SRVN::ObjectOutput::printEntryName( ostream& output, const DOM::Entry& entry )
     {
-	output << setw(__maxStrLen-1) << entry.getName() << " ";
+        output << setw(__maxStrLen-1) << entry.getName() << " ";
         return output;
     }
 
     ostream&
     SRVN::ObjectOutput::activitySeparator( ostream& output, const unsigned offset )
     {
-	if ( __parseable ) {
-	    output << "-1";
-	    ios_base::fmtflags oldFlags = output.setf( ios::right, ios::adjustfield );
-	    output << newline << setw(offset) << ":";
-	    output.flags(oldFlags);
-	} else {
-	    if ( offset > 0 ) {
-		output << setw(offset) << " ";
-	    }
-	    output << setw(__maxStrLen) << "Activity Name";
-	}
-	return output;
+        if ( __parseable ) {
+            output << "-1";
+            ios_base::fmtflags oldFlags = output.setf( ios::right, ios::adjustfield );
+            output << newline << setw(offset) << ":";
+            output.flags(oldFlags);
+        } else {
+            if ( offset > 0 ) {
+                output << setw(offset) << " ";
+            }
+            output << setw(__maxStrLen) << "Activity Name";
+        }
+        return output;
     }
 
     ostream&
@@ -529,36 +465,31 @@ namespace LQIO {
     ostream&
     SRVN::ObjectOutput::textcolour( ostream& output, const double utilization )
     {
-	if ( __rtf ) {
-	    if ( utilization >= 0.8 ) {	
-		output << "\\cf2 ";		/* Red 255,0,0 */
-		__coloured = true;
-	    } else if ( utilization >= 0.6 ) {
-		output << "\\cf3 ";		/* Orange 255,164,0 */
-		__coloured = true;
-	    } else if ( utilization >= 0.5 ) {
-		output << "\\cf4 ";		/* Green 0,255,0 */
-		__coloured = true;
-	    } else if ( utilization >= 0.4 ) {
-		output << "\\cf5 ";		/* Blue 0,255,0 */
-		__coloured = true;
-	    } else if ( __coloured ) {
-		output << "\\cf0 ";		/* Black 0,0,0 */
-		__coloured = false;
-	    }
-	}
-	return output;
+        if ( __rtf ) {
+            if ( utilization >= 0.8 ) {
+                output << "\\cf2 ";             /* Red 255,0,0 */
+                __coloured = true;
+            } else if ( utilization >= 0.6 ) {
+                output << "\\cf3 ";             /* Orange 255,164,0 */
+                __coloured = true;
+            } else if ( utilization >= 0.5 ) {
+                output << "\\cf4 ";             /* Green 0,255,0 */
+                __coloured = true;
+            } else if ( utilization >= 0.4 ) {
+                output << "\\cf5 ";             /* Blue 0,255,0 */
+                __coloured = true;
+            } else if ( __coloured ) {
+                output << "\\cf0 ";             /* Black 0,0,0 */
+                __coloured = false;
+            }
+        }
+        return output;
     }
 
     ostream&
     SRVN::ObjectOutput::entryInfo( ostream& output, const DOM::Entry & entry, const entryFunc func )
     {
-        const DOM::ExternalVariable * value = (entry.*func)();
-        if ( value  != NULL ) {
-            output << setw(__maxDblLen) << to_double( *value ) << ' ';
-        } else {
-            output << setw(__maxDblLen) << 0.0;
-        }
+	output << setw(__maxDblLen) << Input::print_double_parameter( (entry.*func)(), 0. ) << ' ';	
         return output;
     }
 
@@ -566,13 +497,12 @@ namespace LQIO {
     SRVN::ObjectOutput::phaseInfo( ostream& output, const DOM::Entry & entry, const phaseFunc func )
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	assert( phases.size() <= DOM::Phase::MAX_PHASE );
+        assert( phases.size() <= DOM::Phase::MAX_PHASE );
         std::map<unsigned, DOM::Phase*>::const_iterator p;
         for (p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
-            const DOM::ExternalVariable * value;
-            if ( phase && (value = (phase->*func)()) != 0 ) {
-                output << setw(__maxDblLen-1) << to_double( *value ) << ' ';
+            if ( phase ) {
+                output << setw(__maxDblLen-1) << Input::print_double_parameter( (phase->*func)(), 0. ) << ' ';
             } else {
                 output << setw(__maxDblLen) << 0.0;
             }
@@ -584,14 +514,14 @@ namespace LQIO {
     SRVN::ObjectOutput::phaseTypeInfo( ostream& output, const DOM::Entry & entry, const phaseTypeFunc func )
     {
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	assert( phases.size() <= DOM::Phase::MAX_PHASE );
+        assert( phases.size() <= DOM::Phase::MAX_PHASE );
         std::map<unsigned, DOM::Phase*>::const_iterator p;
         for (p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
-	    switch ( phase->getPhaseTypeFlag() ) {
-	    case PHASE_DETERMINISTIC: output << setw(__maxDblLen) << "determin"; break;
-	    case PHASE_STOCHASTIC:    output << setw(__maxDblLen) << "stochastic"; break;
-	    }
+            switch ( phase->getPhaseTypeFlag() ) {
+            case PHASE_DETERMINISTIC: output << setw(__maxDblLen) << "determin"; break;
+            case PHASE_STOCHASTIC:    output << setw(__maxDblLen) << "stochastic"; break;
+            }
         }
         return output;
     }
@@ -599,27 +529,27 @@ namespace LQIO {
     /* static */ ostream&
     SRVN::ObjectOutput::phaseResults( ostream& output, const DOM::Entry & entry, const doublePhaseFunc phase_func, const doubleEntryPhaseFunc entry_func, const bool pad )
     {
-	unsigned int np = 0;
+        unsigned int np = 0;
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	if ( entry.getStartActivity() ) {
-	    if ( !entry_func ) return output;
-	    for ( unsigned int p = 1; p <= 2; ++p ) {
-		output << setw(__maxDblLen-1) << (entry.*entry_func)(p) << ' ';
-	    }
-	    np = 2;
-	} else {
-	    for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		const DOM::Phase* phase = p->second;
-		output << setw(__maxDblLen-1) << (phase->*phase_func)() << ' ';
-	    }
-	    np = phases.size();
-	}
-	if ( pad || __parseable ) {
-	    for ( unsigned p = np; p < __maxPhase; ++p ) {
-		output << setw(__maxDblLen) << (__parseable ? "0 " : " ");
-	    }
-	}
+        assert( phases.size() <= DOM::Phase::MAX_PHASE );
+        if ( entry.getStartActivity() ) {
+            if ( !entry_func ) return output;
+            for ( unsigned int p = 1; p <= __maxPhase; ++p ) {
+                output << setw(__maxDblLen-1) << (entry.*entry_func)(p) << ' ';
+            }
+            np = __maxPhase;
+        } else {
+            for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                const DOM::Phase* phase = p->second;
+                output << setw(__maxDblLen-1) << (phase->*phase_func)() << ' ';
+            }
+            np = phases.size();
+        }
+        if ( pad || __parseable ) {
+            for ( unsigned p = np; p < __maxPhase; ++p ) {
+                output << setw(__maxDblLen) << (__parseable ? "0 " : " ");
+            }
+        }
         output << activityEOF;
         return output;
     }
@@ -628,27 +558,27 @@ namespace LQIO {
     /* static */ ostream&
     SRVN::ObjectOutput::phaseResultsConfidence( ostream& output, const DOM::Entry & entry, const doublePhaseFunc phase_func, const doubleEntryPhaseFunc entry_func, const ConfidenceIntervals * conf, const bool pad )
     {
-	unsigned int np = 0;
+        unsigned int np = 0;
         const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	if ( entry.getStartActivity() ) {
-	    if ( !entry_func ) return output;
-	    for ( unsigned int p = 1; p <= 2; ++p ) {
-		output << setw(__maxDblLen-1) << (*conf)((entry.*entry_func)(p)) << ' ';
-	    }
-	    np = 2;
-	} else {
-	    for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		const DOM::Phase* phase = p->second;
-		output << setw(__maxDblLen-1) << (*conf)((phase->*phase_func)()) << ' ';
-	    }
-	    np = phases.size();
-	}
-	if ( pad || __parseable ) {
-	    for ( unsigned p = np; p < __maxPhase; ++p ) {
-		output << setw(__maxDblLen) << (__parseable ? "0" : " ");
-	    }
-	}
+        assert( phases.size() <= DOM::Phase::MAX_PHASE );
+        if ( entry.getStartActivity() ) {
+            if ( !entry_func ) return output;
+            for ( unsigned int p = 1; p <= __maxPhase; ++p ) {
+                output << setw(__maxDblLen-1) << (*conf)((entry.*entry_func)(p)) << ' ';
+            }
+            np = __maxPhase;
+        } else {
+            for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                const DOM::Phase* phase = p->second;
+                output << setw(__maxDblLen-1) << (*conf)((phase->*phase_func)()) << ' ';
+            }
+            np = phases.size();
+        }
+        if ( pad || __parseable ) {
+            for ( unsigned p = np; p < __maxPhase; ++p ) {
+                output << setw(__maxDblLen) << (__parseable ? "0" : " ");
+            }
+        }
         output << activityEOF;
         return output;
     }
@@ -708,281 +638,332 @@ namespace LQIO {
     void
     SRVN::ObjectInput::printReplyList( const std::vector<DOM::Entry*>& replies ) const
     {
-	_output << "[";
-	for ( std::vector<DOM::Entry *>::const_iterator next_entry = replies.begin(); next_entry != replies.end(); ++next_entry ) {
-	    if ( next_entry != replies.begin() ) {
-		_output << ",";
-	    }
-	    _output << (*next_entry)->getName();
-	}
-	_output << "]";
+        _output << "[";
+        for ( std::vector<DOM::Entry *>::const_iterator next_entry = replies.begin(); next_entry != replies.end(); ++next_entry ) {
+            if ( next_entry != replies.begin() ) {
+                _output << ",";
+            }
+            _output << (*next_entry)->getName();
+        }
+        _output << "]";
     }
 
     ostream&
-    SRVN::ObjectInput::printNumberOfCalls( ostream& output, const DOM::Call& call ) 
+    SRVN::ObjectInput::printNumberOfCalls( ostream& output, const DOM::Call* call )
     {
-	const DOM::ExternalVariable* var = call.getCallMean();
-	double val = 0;
 	output << " " << setw(ObjectInput::__maxInpLen);
-	if ( !var ) {
-	    output << "0";
-	} else if ( var->wasSet() && var->getValue( val ) ) {
-	    output << val;
+	if ( call != nullptr ) {
+	    output << Input::print_double_parameter( call->getCallMean(), 0. );
 	} else {
-	    output << *var;
+	    output << 0;
 	}
 	return output;
     }
 
 
     ostream&
-    SRVN::ObjectInput::printCallType( ostream& output, const DOM::Call& call ) 
+    SRVN::ObjectInput::printCallType( ostream& output, const DOM::Call* call )
     {
-	switch ( call.getCallType() ) {
-	case DOM::Call::RENDEZVOUS: output << "y"; break;
-	case DOM::Call::SEND_NO_REPLY: output << "z"; break;
-	default: abort();
+        switch ( call->getCallType() ) {
+        case DOM::Call::RENDEZVOUS: output << "y"; break;
+        case DOM::Call::SEND_NO_REPLY: output << "z"; break;
+        default: abort();
+        }
+        return output;
+    }
+
+    /* 
+     * Collect all variables associated with the object, then print them out.  Since entries have their own variables, 
+     * and phases are associated with entries, do both at the same time.
+     */
+    
+    /* static  */ std::ostream&
+    SRVN::ObjectInput::printObservationVariables( std::ostream& output, const DOM::DocumentObject& object )
+    {
+	std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::get_observations().equal_range( &object );
+	for ( Spex::obs_var_tab_t::const_iterator obs = range.first; obs != range.second; ++obs ) {
+	    output << " ";
+	    obs->second.print( output );
+	}
+	/* If object is an entry, call again as a phase. */
+	if ( dynamic_cast<const DOM::Entry *>(&object) != 0 ) {
+	    const std::map<unsigned, DOM::Phase*>& phases = dynamic_cast<const DOM::Entry *>(&object)->getPhaseList();
+	    for ( std::map<unsigned, DOM::Phase*>::const_iterator phase = phases.begin(); phase != phases.end(); ++phase ) {
+		printObservationVariables( output, *phase->second );
+	    }
 	}
 	return output;
     }
 
     /* ---------------------------------------------------------------- */
-    /* Parseable Output							*/
+    /* Parseable Output                                                 */
     /* ---------------------------------------------------------------- */
 
     SRVN::Parseable::Parseable( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals )
-	: SRVN::Output( document, entities, print_confidence_intervals )
+        : SRVN::Output( document, entities, print_confidence_intervals )
     {
-	ObjectOutput::__parseable = true;		/* Set global for formatting. */
-	ObjectOutput::__rtf = false;			/* Set global for formatting. */
+        ObjectOutput::__parseable = true;               /* Set global for formatting. */
+        ObjectOutput::__rtf = false;                    /* Set global for formatting. */
     }
 
     SRVN::Parseable::~Parseable()
     {
-	ObjectOutput::__parseable = false;		/* Set global for formatting. */
+        ObjectOutput::__parseable = false;              /* Set global for formatting. */
     }
 
     ostream&
     SRVN::Parseable::print( ostream& output ) const
     {
-	printPreamble( output );
-	printResults( output );
-	return output;
+        printPreamble( output );
+        printResults( output );
+        return output;
     }
 
 
     ostream&
     SRVN::Parseable::printPreamble( ostream& output ) const
     {
-	output << "# " << DOM::Document::io_vars->lq_toolname << " " << LQIO::DOM::Document::io_vars->lq_version << endl;
-	if ( DOM::Document::io_vars->lq_command_line ) {
-	    output << "# " << DOM::Document::io_vars->lq_command_line << ' ' << LQIO::input_file_name << endl;
+        output << "# " << DOM::Document::io_vars->lq_toolname << " " << DOM::Document::io_vars->lq_version << endl;
+        if ( DOM::Document::io_vars->lq_command_line ) {
+            output << "# " << DOM::Document::io_vars->lq_command_line << ' ' << DOM::Document::__input_file_name << endl;
+        }
+	output << "# " << DOM::Common_IO::svn_id() << std::endl;
+        const DOM::Document& document(getDOM());
+        output << "V " << (document.getResultValid() ? "y" : "n") << endl
+               << "C " << document.getResultConvergenceValue() << endl
+               << "I " << document.getResultIterations() << endl
+               << "PP " << document.getNumberOfProcessors() << endl
+               << "NP " << document.getMaximumPhase() << endl << endl;
+
+	if ( document.getSymbolExternalVariableCount() > 0 ) {
+	    output << "# ";		/* Treat it as a comment. */
+	    document.printExternalVariables( output );
+	    output << endl << endl;
 	}
-	const DOM::Document& document(getDOM());
-	output << "V " << (document.getResultValid() ? "y" : "n") << endl
-	       << "C " << document.getResultConvergenceValue() << endl
-	       << "I " << document.getResultIterations() << endl
-	       << "PP " << document.getNumberOfProcessors() << endl
-	       << "NP " << document.getMaximumPhase() << endl;
-	output << "#!User: " << SRVN::ObjectOutput::print_time( document.getResultUserTime() ) << endl
-	       << "#!Sys:  " << SRVN::ObjectOutput::print_time( document.getResultSysTime() ) << endl
-	       << "#!Real: " << SRVN::ObjectOutput::print_time( document.getResultElapsedTime() ) << endl;
+
+	const char * comment = document.getModelCommentString();
+	if ( comment != NULL && comment[0] != '\0' ) {
+	    output << "#!Comment: " << print_comment( comment ) << endl;
+	}
+	if ( document.getResultUserTime() > 0.0 ) {
+	    output << "#!User: " << DOM::CPUTime::print( document.getResultUserTime() ) << endl;
+	}
+	if ( document.getResultSysTime() > 0.0 ) {
+	    output << "#!Sys:  " << DOM::CPUTime::print( document.getResultSysTime() ) << endl;
+	}
+	output << "#!Real: " << DOM::CPUTime::print( document.getResultElapsedTime() ) << endl;
 	if ( document.getResultMaxRSS() > 0 ) {
 	    output << "#!MaxRSS: " << document.getResultMaxRSS() << endl;
 	}
-	if ( document.getResultMVASubmodels() > 0 ) {
-	    output << "#!Solver: "
-		   << document.getResultMVASubmodels() << ' '
-		   << document.getResultMVACore() << ' '
-		   << document.getResultMVAStep() << ' '
-		   << document.getResultMVAStepSquared() << ' '
-		   << document.getResultMVAWait() << ' '
-		   << document.getResultMVAWaitSquared() << ' '
-		   << document.getResultMVAFaults() << endl;
-	}
-	output << endl;
-	return output;
+	const LQIO::DOM::MVAStatistics& mva_info = document.getResultMVAStatistics();
+	if ( mva_info.getNumberOfSubmodels() > 0 ) {
+            output << "#!Solver: "
+                   << mva_info.getNumberOfSubmodels() << ' '
+                   << mva_info.getNumberOfCore() << ' '
+                   << mva_info.getNumberOfStep() << ' '
+                   << mva_info.getNumberOfStepSquared() << ' '
+                   << mva_info.getNumberOfWait() << ' '
+                   << mva_info.getNumberOfWaitSquared() << ' '
+                   << mva_info.getNumberOfFaults() << endl;
+        }
+        output << endl;
+        return output;
     }
 
 
     ostream&
     SRVN::Parseable::printResults( ostream& output ) const
     {
-	ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+        ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
-	if ( getDOM().entryHasThroughputBound() ) {
-	    output << "B " << getDOM().getNumberOfEntries() << endl;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryThroughputBounds ) );
-	    output << "-1" << endl << endl;
-	}
+        if ( getDOM().entryHasThroughputBound() ) {
+            output << "B " << getDOM().getNumberOfEntries() << endl;
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryThroughputBounds ) );
+            output << "-1" << endl << endl;
+        }
 
-	/* Waiting times */
+        /* Waiting times */
 
-	if ( getDOM().hasRendezvous() ) {
-	    output << "W 0" << endl;
-	    for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-	    output << "-1" << endl << endl;
+        if ( getDOM().hasRendezvous() ) {
+	    unsigned int count = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous ) ).getCount();
+            output << "W " << count << endl;
+            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
+            output << "-1" << endl << endl;
 
-	    if ( getDOM().entryHasWaitingTimeVariance() ) {
-		output << "VARW 0" << endl;
-		for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
-		output << "-1" << endl << endl;
+            if ( getDOM().entryHasWaitingTimeVariance() ) {
+                output << "VARW " << count << endl;
+                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
+                output << "-1" << endl << endl;
+            }
+        }
+        if ( getDOM().hasSendNoReply() ) {
+	    unsigned int count = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply ) ).getCount();
+            output << "Z " << count << endl;
+            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
+            output << "-1" << endl << endl;
+            if ( getDOM().entryHasWaitingTimeVariance() ) {
+                output << "VARZ " << count << endl;
+                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
+                output << "-1" << endl << endl;
+            }
+        }
+
+        /* Drop probabilities. */
+
+        if ( getDOM().entryHasDropProbability() ) {
+	    unsigned int count = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasResultDropProbability ) ).getCount();
+            output << "DP " << count << endl;
+            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasResultDropProbability, &CallOutput::printDropProbability, &CallOutput::printDropProbabilityConfidence ) );
+            output << "-1" << endl << endl;
+        }
+
+        /* Join delays */
+
+        if ( getDOM().taskHasAndJoin() ) {
+            output << "J " << 0 << endl;
+            for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printJoinDelay ) );
+            output << "-1" << endl << endl;
+        }
+
+        /* Service time */
+        output << "X " << getDOM().getNumberOfEntries() << endl;
+        for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryServiceTime, &EntryOutput::printActivityServiceTime) );
+        output << "-1" << endl << endl;
+
+        if ( getDOM().entryHasServiceTimeVariance() ) {
+            output << "VAR " << getDOM().getNumberOfEntries() << endl;
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryVarianceServiceTime, &EntryOutput::printActivityVarianceServiceTime  ) );
+            output << "-1" << endl << endl;
+        }
+
+        if ( getDOM().hasMaxServiceTimeExceeded() ) {
+            output << "E " << 0 << endl;
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTimeExceeded, &EntryOutput::printActivityMaxServiceTimeExceeded, &EntryOutput::testActivityMaxServiceTimeExceeded ) );
+            output << "-1" << endl << endl;
+        }
+
+        /* Semaphore holding times */
+
+        if ( getDOM().hasSemaphoreWait() ) {
+            output << "H " << 0 << endl;
+            for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printHoldTime ) );
+            output << "-1" << endl << endl;
+        }
+
+        /* Rwlock holding times */
+
+        if ( getDOM().hasRWLockWait() ) {
+            output << "L " << 0 << endl;
+            for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printRWLOCKHoldTime ) );
+            output << "-1" << endl << endl;
+        }
+
+        /* Task Throughput and Utilization */
+
+        output << "FQ " << getDOM().getNumberOfTasks() << endl;
+        for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printThroughputAndUtilization ) );
+        output << "-1"  << endl << endl;
+
+        if ( getDOM().entryHasOpenWait() ) {
+            output << "R " << 0 << endl;
+            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
+            output << "-1"  << endl << endl;
+        }
+
+        /* Processor utilization and waiting */
+
+        for_each( _entities.begin(), _entities.end(), ProcessorOutput( output, &ProcessorOutput::printUtilizationAndWaiting ) );
+        output << "-1"  << endl << endl;
+
+        output.flags(oldFlags);
+        return output;
+    }
+
+    /*
+     * Strip newlines and other funny characters
+     */
+    
+    /* static */ std::ostream&
+    SRVN::Parseable::printComment( std::ostream& output, const std::string& s ) 
+    {
+	for ( std::string::const_iterator p = s.begin(); p != s.end() ; ++p ) {	/* Handle comments */
+	    if ( *p == '\n' ) {
+		output << "\\n";
+	    } else {
+		output << *p;
 	    }
 	}
-	if ( getDOM().hasSendNoReply() ) {
-	    output << "Z 0" << endl;
-	    for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-	    output << "-1" << endl << endl;
-	    if ( getDOM().entryHasWaitingTimeVariance() ) {
-		output << "VARZ 0" << endl;
-		for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
-		output << "-1" << endl << endl;
-	    }
-	}
-
-	/* Drop probabilities. */
-
-	if ( getDOM().entryHasDropProbability() ) {
-	    output << "DP " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasResultDropProbability, &CallOutput::printDropProbability, &CallOutput::printDropProbabilityConfidence ) );
-	    output << "-1" << endl << endl;
-	}
-
-	/* Join delays */
-
-	if ( getDOM().taskHasAndJoin() ) {
-	    output << "J " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printJoinDelay ) );
-	    output << "-1" << endl << endl;
-	}
-
-	/* Service time */
-	output << "X " << getDOM().getNumberOfEntries() << endl;
-	for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryServiceTime, &EntryOutput::printActivityServiceTime) );
-	output << "-1" << endl << endl;
-
-	if ( getDOM().entryHasServiceTimeVariance() ) {
-	    output << "VAR " << getDOM().getNumberOfEntries() << endl;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryVarianceServiceTime, &EntryOutput::printActivityVarianceServiceTime  ) );
-	    output << "-1" << endl << endl;
-	}
-
-	if ( getDOM().hasMaxServiceTime() ) {
-	    output << "E " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printEntryMaxServiceTimeExceeded, &EntryOutput::printActivityMaxServiceTimeExceeded, &EntryOutput::testActivityMaxServiceTimeExceeded ) );
-	    output << "-1" << endl << endl;
-	}
-
-	/* Semaphore holding times */
-
-	if ( getDOM().hasSemaphoreWait() ) {
-	    output << "H " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printHoldTime ) );
-	    output << "-1" << endl << endl;
-	}
-
-	/* Rwlock holding times */
-
-	if ( getDOM().hasReaderWait() ) {
-	    output << "L " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printRWLOCKHoldTime ) );
-	    output << "-1" << endl << endl;
-	}
-	
-	/* Task Throughput and Utilization */
-
-	output << "FQ " << getDOM().getNumberOfTasks() << endl;
-	for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printThroughputAndUtilization ) );
-	output << "-1"  << endl << endl;
-
-	if ( getDOM().entryHasOpenWait() ) {
-	    output << "R " << 0 << endl;
-	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
-	    output << "-1"  << endl << endl;
-	}
-
-	/* Processor utilization and waiting */
-
-	for_each( _entities.begin(), _entities.end(), ProcessorOutput( output, &ProcessorOutput::printUtilizationAndWaiting ) );
-	output << "-1"  << endl << endl;
-
-	output.flags(oldFlags);
 	return output;
     }
 
     /* ---------------------------------------------------------------- */
-    /* RTF Output							*/
+    /* RTF Output                                                       */
     /* ---------------------------------------------------------------- */
 
     SRVN::RTF::RTF( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals )
-	: SRVN::Output( document, entities, print_confidence_intervals )
+        : SRVN::Output( document, entities, print_confidence_intervals )
     {
-	ObjectOutput::__parseable = false;		/* Set global for formatting. */
-	ObjectOutput::__rtf = true;			/* Set global for formatting. */
+        ObjectOutput::__parseable = false;              /* Set global for formatting. */
+        ObjectOutput::__rtf = true;                     /* Set global for formatting. */
     }
 
     SRVN::RTF::~RTF()
     {
-	ObjectOutput::__rtf = false;			/* Set global for formatting. */
+        ObjectOutput::__rtf = false;                    /* Set global for formatting. */
     }
 
     ostream&
     SRVN::RTF::printPreamble( ostream& output ) const
     {
-	output << "{\\rtf1\\ansi\\ansicpg1252\\cocoartf1138\\cocoasubrtf230" << endl		// Boilerplate.
-	       << "{\\fonttbl\\f0\\fmodern\\fcharset0 CourierNewPSMT;\\f1\\fmodern\\fcharset0 CourierNewPS-BoldMT;\\f2\\fmodern\\fcharset0 CourierNewPS-ItalicMT;}" << endl	// Fonts (f0, f1... )
-	       << "{\\colortbl;\\red255\\green255\\blue255;\\red255\\green0\\blue0;\\red255\\green164\\blue0;\\red0\\green255\\blue0;\\red0\\green0\\blue255;}" << endl		// Colour table. (black, white, red).
-	       << "\\vieww15500\\viewh10160\\viewkind0" << endl
-	       << "\\pard\\tx560\\tx1120\\tx1680\\tx2240\\tx2800\\tx3360\\tx3920\\tx4480\\tx5040\\tx5600\\tx6160\\tx6720\\pardirnatural" << endl
-	       << "\\f0\\fs24 \\cf0 ";
+        output << "{\\rtf1\\ansi\\ansicpg1252\\cocoartf1138\\cocoasubrtf230" << endl            // Boilerplate.
+               << "{\\fonttbl\\f0\\fmodern\\fcharset0 CourierNewPSMT;\\f1\\fmodern\\fcharset0 CourierNewPS-BoldMT;\\f2\\fmodern\\fcharset0 CourierNewPS-ItalicMT;}" << endl     // Fonts (f0, f1... )
+               << "{\\colortbl;\\red255\\green255\\blue255;\\red255\\green0\\blue0;\\red255\\green164\\blue0;\\red0\\green255\\blue0;\\red0\\green0\\blue255;}" << endl         // Colour table. (black, white, red).
+               << "\\vieww15500\\viewh10160\\viewkind0" << endl
+               << "\\pard\\tx560\\tx1120\\tx1680\\tx2240\\tx2800\\tx3360\\tx3920\\tx4480\\tx5040\\tx5600\\tx6160\\tx6720\\pardirnatural" << endl
+               << "\\f0\\fs24 \\cf0 ";
 
-	DocumentOutput print( output );
-	print( getDOM() );
-	return output;
+        DocumentOutput print( output );
+        print( getDOM() );
+        return output;
     }
 
-    ostream& 
+    ostream&
     SRVN::RTF::printPostamble( ostream& output ) const
     {
-	output << "}" << endl;
-	return output;
+        output << "}" << endl;
+        return output;
     }
 
     /* ---------------------------------------------------------------- */
-    /* Input Output							*/
+    /* Input Output                                                     */
     /* ---------------------------------------------------------------- */
 
-    SRVN::Input::Input( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool annotate, bool instantiate  )
-	: _document(document), _entities(entities), _annotate(annotate), _instantiate(instantiate)
+    SRVN::Input::Input( const DOM::Document& document, const map<unsigned, DOM::Entity *>& entities, bool annotate )
+        : _document(document), _entities(entities), _annotate(annotate)
     {
-	/* Initialize lengths */
-	const std::map<std::string,LQIO::DOM::Entry*>& entries = document.getEntries();
-	ObjectInput::__maxEntLen = 1;		/* default */
-	ObjectInput::__maxInpLen = 1;		/* default */
+        /* Initialize lengths */
+        const std::map<std::string,DOM::Entry*>& entries = document.getEntries();
+        ObjectInput::__maxEntLen = 1;           /* default */
+        ObjectInput::__maxInpLen = 1;           /* default */
 
-	for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	    unsigned long size = e->first.size();
-	    if ( size > ObjectInput::__maxEntLen ) ObjectInput::__maxEntLen = size;
+        for ( std::map<std::string,DOM::Entry*>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
+            unsigned long size = e->first.size();
+            if ( size > ObjectInput::__maxEntLen ) ObjectInput::__maxEntLen = size;
 
-	    const LQIO::DOM::Entry * entry = e->second;
-	    const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
-	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	    for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		ostringstream s;
-		const DOM::Phase* phase = p->second;
-		if ( !phase ) continue;
-		const DOM::ExternalVariable * var = phase->getServiceTime();
-		double val;
-		if ( !var ) continue;
-		else if ( var->wasSet() && var->getValue( val ) ) {
-		    s << val;
-		} else {
-		    s << *var;
-		}
-		size = s.str().size();
-		if ( size > ObjectInput::__maxInpLen ) ObjectInput::__maxInpLen = size;
-	    }
-	}
+            const DOM::Entry * entry = e->second;
+            const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
+            assert( phases.size() <= DOM::Phase::MAX_PHASE );
+            for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                ostringstream s;
+                const DOM::Phase* phase = p->second;
+                if ( !phase ) continue;
+                const DOM::ExternalVariable * var = phase->getServiceTime();
+                if ( !var ) continue;
+                s << *var;
+                size = s.str().size();
+                if ( size > ObjectInput::__maxInpLen ) ObjectInput::__maxInpLen = size;
+            }
+        }
     }
 
     SRVN::Input::~Input()
@@ -993,82 +974,103 @@ namespace LQIO {
     ostream&
     SRVN::Input::print( ostream& output ) const
     {
-	printHeader( output );
+        printHeader( output );
 
-	if ( LQIO::DOM::Spex::numberOfInputVariables() > 0 && !_instantiate ) {
-	    output << std::endl;
-	    LQIO::DOM::Spex::printInputVariables( output );
-	}
-
-	printGeneral( output );
-
-	const unsigned int n_proc = count_if( _entities.begin(), _entities.end(), is_processor );
-	output << endl << "P " << n_proc << endl;
-	if ( _annotate ) {
-	    output << "# SYNTAX: p ProcessorName SchedDiscipline [multiplicity]" << endl
-		   << "#   ProcessorName is any string, globally unique among processors." << endl
-		   << "#   SchedDiscipline = f {fifo}" << endl
-		   << "#                   | r {random}" << endl
-		   << "#                   | p {premptive}" << endl
-		   << "#                   | h {hol (or non-pre-emptive priority)}" << endl
-		   << "#                   | s quantum {processor-sharing (or round-robin)} " << endl
-		   << "#   multiplicity = m value {multiprocessor}" << endl
-		   << "#                | i {infinite or delay server}" << endl;
-	}
-	for_each( _entities.begin(), _entities.end(), ProcessorInput( output, _instantiate, &ProcessorInput::print ) );
-	output << -1 << endl;
-
-
-	const std::map<std::string,DOM::Group*>& groups = _document.getGroups();
-	if ( groups.size() > 0 ) {
-	    output << endl << "U " << groups.size() << endl;
+        if ( Spex::numberOfInputVariables() > 0 && !_document.instantiated() ) {
+            output << endl;
 	    if ( _annotate ) {
-		output << "# SYNTAX: g GroupName share cap ProcessorName" << endl;
+ 		output << "# SPEX Variable definition and initialization." << endl
+		       << "# SYNTAX-FORM-A: $var = spex_expr" << endl
+		       << "#   spex_expr may contain operators, variables and constants." << endl
+		       << "# SYNTAX-FORM-B: $var = [constant_1, constant_2, ...]" << endl
+		       << "#   The solver will iterate over constant_1, constant_2, ..." << endl
+		       << "#   Arrays nest, so multiple arrays will generate a factorial experiment." << endl
+		       << "# SYNTAX-FORM-C: $var = [constant_1 : constant_2, constant_3]" << endl
+		       << "#   The solver will iterate from constant_1 to constant_2 with a step size of constant_3" << endl
+		       << "# SYNTAX-FORM-D: $index, $var = spex_expr" << endl
+		       << "#   $index is a variable defined using SYNTAX-FORM-B or C.  $index may or may not appear in spex_expr." << endl
+		       << "#   This form is used to allow one array to change multiple variables." << endl;
 	    }
-	    for_each( groups.begin(), groups.end(), GroupInput( output, _instantiate, &GroupInput::print ) );
-	    output << -1 << endl;
-	}
+	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
+	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
+	    for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputVariable( output ) );
+        }
 
-	const unsigned int n_task = count_if( _entities.begin(), _entities.end(), is_task );
-	output << endl << "T " << n_task << endl;
-	if ( _annotate ) {
-	    output << "# SYNTAX: t TaskName TaskType EntryList -1 ProcessorName [priority] [multiplicity]" << endl
-		   << "#   TaskName is any string, globally unique among tasks." << endl
-		   << "#   TaskType = r {reference or user task}" << endl
-		   << "#            | n {other} " << endl
-		   << "#   multiplicity = m value {multithreaded}" << endl
-		   << "#                | i {infinite}" << endl;
-	}
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::print ) );
-	output << -1 << endl;
+        printGeneral( output );
 
-	output << endl << "E " << _document.getNumberOfEntries() << endl;
-	if ( _annotate ) {
-	    output << "# SYNTAX-FORM-A: Token EntryName Value1 [Value2] [Value3] -1" << endl
-		   << "#   EntryName is a string, globally unique over all entries " << endl
-		   << "#   Values are for phase 1, 2 and 3 {phase 1 is before the reply} " << endl
-		   << "#   Token indicate the significance of the Value: " << endl
-		   << "#       s - HostServiceDemand for EntryName " << endl
-		   << "#       c - HostServiceCoefficientofVariation" << endl
-		   << "#       f - PhaseTypeFlag" << endl
-		   << "# SYNTAX-FORM-B: Token FromEntry ToEntry Value1 [Value2] [Value3] -1" << endl
-		   << "#   Token indicate the Value Definitions: " << endl
-		   << "#       y - SynchronousCalls {no. of rendezvous} " << endl
-		   << "#       F - ProbForwarding {forward to ToEntry rather than replying} " << endl
-		   << "#       z - AsynchronousCalls {no. of send-no-reply messages} " << endl;
-	}
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::printEntryInput ) );
-	output << -1 << endl;
+        const unsigned int n_proc = count_if( _entities.begin(), _entities.end(), is_processor );
+        output << endl << "P " << n_proc << endl;
+        if ( _annotate ) {
+            output << "# SYNTAX: p ProcessorName SchedDiscipline [multiplicity]" << endl
+                   << "#   ProcessorName is any string, globally unique among processors." << endl
+                   << "#   SchedDiscipline = f {fifo}" << endl
+                   << "#                   | r {random}" << endl
+                   << "#                   | p {premptive}" << endl
+                   << "#                   | h {hol (or non-pre-emptive priority)}" << endl
+                   << "#                   | s quantum {processor-sharing (or round-robin)} " << endl
+                   << "#   multiplicity = m value {multiprocessor}" << endl
+                   << "#                | i {infinite or delay server}" << endl;
+        }
+        for_each( _entities.begin(), _entities.end(), ProcessorInput( output, &ProcessorInput::print ) );
+        output << -1 << endl;
 
-	for_each( _entities.begin(), _entities.end(), TaskInput( output, _instantiate, &TaskInput::printActivityInput ) );
 
-	const unsigned int n_R = LQIO::DOM::Spex::numberOfResultVariables();
-	if ( n_R > 0 && !_instantiate ) {
-	    output << endl << "R " << n_R << endl;
-	    LQIO::DOM::Spex::printResultVariables( output );
-	    output << "-1" << endl;
-	}
-	return output;
+        const std::map<std::string,DOM::Group*>& groups = _document.getGroups();
+        if ( groups.size() > 0 ) {
+            output << endl << "U " << groups.size() << endl;
+            if ( _annotate ) {
+                output << "# SYNTAX: g GroupName share cap ProcessorName" << endl;
+            }
+            for_each( groups.begin(), groups.end(), GroupInput( output, &GroupInput::print ) );
+            output << -1 << endl;
+        }
+
+        const unsigned int n_task = count_if( _entities.begin(), _entities.end(), is_task );
+        output << endl << "T " << n_task << endl;
+        if ( _annotate ) {
+            output << "# SYNTAX: t TaskName TaskType EntryList -1 ProcessorName [priority] [multiplicity]" << endl
+                   << "#   TaskName is any string, globally unique among tasks." << endl
+                   << "#   TaskType = r {reference or user task}" << endl
+                   << "#            | n {other} " << endl
+                   << "#   multiplicity = m value {multithreaded}" << endl
+                   << "#                | i {infinite}" << endl;
+        }
+        for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::print ) );
+        output << -1 << endl;
+
+        output << endl << "E " << _document.getNumberOfEntries() << endl;
+        if ( _annotate ) {
+            output << "# SYNTAX-FORM-A: Token EntryName Value1 [Value2] [Value3] -1" << endl
+                   << "#   EntryName is a string, globally unique over all entries " << endl
+                   << "#   Values are for phase 1, 2 and 3 {phase 1 is before the reply} " << endl
+                   << "#   Token indicate the significance of the Value: " << endl
+                   << "#       s - HostServiceDemand for EntryName " << endl
+                   << "#       c - HostServiceCoefficientofVariation" << endl
+                   << "#       f - PhaseTypeFlag" << endl
+                   << "# SYNTAX-FORM-B: Token FromEntry ToEntry Value1 [Value2] [Value3] -1" << endl
+                   << "#   Token indicate the Value Definitions: " << endl
+                   << "#       y - SynchronousCalls {no. of rendezvous} " << endl
+                   << "#       F - ProbForwarding {forward to ToEntry rather than replying} " << endl
+                   << "#       z - AsynchronousCalls {no. of send-no-reply messages} " << endl;
+        }
+        for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::printEntryInput ) );
+        output << -1 << endl;
+
+        for_each( _entities.begin(), _entities.end(), TaskInput( output, &TaskInput::printActivityInput ) );
+
+        const unsigned int n_R = Spex::numberOfResultVariables();
+        if ( n_R > 0 && !_document.instantiated() ) {
+            output << endl << "R " << n_R << endl;
+	    if ( _annotate ) {
+		output << "# SYNTAX: spex-expr" << endl
+		       << "#   Any variable defined earlier can be used." << endl;
+	    }
+	    const std::vector<Spex::var_name_and_expr>& results = Spex::get_result_variables();
+	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
+	    for_each( results.begin(), results.end(), Spex::PrintResultVariable( output, 2 ) );
+            output << "-1" << endl;
+        }
+        return output;
     }
 
     /*
@@ -1077,139 +1079,258 @@ namespace LQIO {
 
     ostream&
     SRVN::Input::printHeader( ostream& output ) const
-    {	
-	output << "# SRVN Model Description File, for file: " << LQIO::input_file_name << endl
-	       << "# Generated by: " << LQIO::DOM::Document::io_vars->lq_toolname << ", version " << LQIO::DOM::Document::io_vars->lq_version << endl;
-#if defined(HAVE_GETEUID)
-	struct passwd * passwd = getpwuid(geteuid());
-	output << "# For: " << passwd->pw_name << endl;
-#elif defined(WINNT)
-	output << "#For : " << getenv("USERNAME") << endl;
+    {
+        output << "# SRVN Model Description File, for file: " << DOM::Document::__input_file_name << endl
+               << "# Generated by: " << DOM::Document::io_vars->lq_toolname << ", version " << DOM::Document::io_vars->lq_version << endl;
+	const DOM::GetLogin login;
+	output << "# For: " << login << endl;
+#if HAVE_CTIME
+        time_t tloc;
+        time( &tloc );
+        output << "# " << ctime( &tloc );
 #endif
-#if defined(HAVE_CTIME)
-	time_t tloc;
-	time( &tloc );
-	output << "# " << ctime( &tloc );
-#endif
-	output << "# Invoked as: " << LQIO::DOM::Document::io_vars->lq_command_line << ' ' << LQIO::input_file_name << endl;
-	
-	const map<string,string>& pragmas = _document.getPragmaList();
-	if ( pragmas.size() ) {
-	    for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
-		output << "#pragma " << nextPragma->first << "=" << nextPragma->second << endl;
-	    }
-	    output << endl;
-	}
-	return output;
+        output << "# Invoked as: " << DOM::Document::io_vars->lq_command_line << ' ' << DOM::Document::__input_file_name << endl
+	       << "# " << DOM::Common_IO::svn_id() << std::endl
+	       << "# " << std::setfill( '-' ) << std::setw( 72 ) << '-' << std::setfill( ' ' ) << std::endl;
+
+        const map<string,string>& pragmas = _document.getPragmaList();
+        if ( pragmas.size() ) {
+            output << endl;
+            for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
+                output << "#pragma " << nextPragma->first << "=" << nextPragma->second << endl;
+            }
+        }
+        return output;
     }
 
-    /* 
-     * Print general information 
+    /*
+     * Print general information. (Print default values if set by spex)
      */
 
     ostream&
     SRVN::Input::printGeneral( ostream& output ) const
-    {	
-	output << endl << "G \"" << _document.getModelComment() << "\" " ;
-	if ( _annotate ) {
-	    output << "\t\t\t# Model comment " << endl
-		   << _document.getModelConvergenceValue() << "\t\t\t# Convergence test value." << endl
-		   << _document.getModelIterationLimit() << "\t\t\t# Maximum number of iterations." << endl
-		   << _document.getModelPrintInterval() << "\t\t\t# Print intermediate results (see manual pages)" << endl
-		   << _document.getModelUnderrelaxationCoefficient() << "\t\t\t# Model under-relaxation ( 0.0 < x <= 1.0)" << endl
-		   << -1;
+    {
+        output << endl << "G \"" << *_document.getModelComment() << "\" " ;
+        if ( _annotate ) {
+            output << "\t\t\t# Model comment " << endl
+                   << *_document.getModelConvergence() << "\t\t\t# Convergence test value." << endl
+                   << *_document.getModelIterationLimit() << "\t\t\t# Maximum number of iterations." << endl
+                   << *_document.getModelPrintInterval() << "\t\t\t# Print intermediate results (see manual pages)" << endl
+                   << *_document.getModelUnderrelaxationCoefficient() << "\t\t\t# Model under-relaxation ( 0.0 < x <= 1.0)" << endl
+                   << -1;
+        } else {
+            output << *_document.getModelConvergence() << " "
+                   << *_document.getModelIterationLimit() << " "
+                   << *_document.getModelPrintInterval() << " "
+                   << *_document.getModelUnderrelaxationCoefficient() << " "
+                   << -1;
+        }
+        if ( !_document.instantiated() ) {
+	    for ( std::vector<Spex::ObservationInfo>::const_iterator obs = Spex::get_document_variables().begin(); obs != Spex::get_document_variables().end(); ++obs ) {
+		output << " ";
+		obs->print( output );
+	    }
+        }
+        output << endl;
+        return output;
+    }
+
+    bool
+    SRVN::Input::is_processor( const pair<unsigned,DOM::Entity *>& ep )
+    {
+        return dynamic_cast<const DOM::Processor *>(ep.second) != 0;
+    }
+
+    bool
+    SRVN::Input::is_task( const pair<unsigned, DOM::Entity *>& ep )
+    {
+        return dynamic_cast<const DOM::Task *>(ep.second) != 0;
+    }
+
+    /*
+     * Print out the variable, var.  If it's a variable, print out the name.  If the variable has been set, print the value, but only 
+     * if the value is valid.
+     */
+    
+    /* static */ ostream&
+    SRVN::Input::doubleAndGreaterThan( ostream& output, const std::string& str, const DOM::ExternalVariable * var, double floor_value )
+    {
+        if ( !var ) {
+	    return output;
+	} else if ( !var->wasSet() ) {
+	    output << str << print_double_parameter( var, floor_value );
 	} else {
-	    output << _document.getModelConvergenceValue() << " "
-		   << _document.getModelIterationLimit() << " "
-		   << _document.getModelPrintInterval() << " "
-		   << _document.getModelUnderrelaxationCoefficient() << " "
-		   << -1;
-	}
-	if ( !_instantiate ) {
-	    LQIO::DOM::Spex::printObservationVariables( output );
-	}
-	output << endl;
+	    double value;
+	    if ( !var->getValue(value) ) throw std::domain_error( "not a number" );
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    if ( value > floor_value ) {
+		output << str << *var;		/* Ignore if it's the default */
+	    }
+        }
 	return output;
     }
 
-    bool 
-    SRVN::Input::is_processor( const pair<unsigned,DOM::Entity *>& ep )
+    /*
+     * Print out the variable, var.  If it's a variable, print out the name.  If the variable has been set, print the value, but only 
+     * if the value is valid.
+     */
+    
+    /* static */ ostream&
+    SRVN::Input::integerAndGreaterThan( ostream& output, const std::string& str, const DOM::ExternalVariable * var, double floor_value )
     {
-	return dynamic_cast<const DOM::Processor *>(ep.second) != 0;
+        if ( !var ) {
+	    return output;
+	} else if ( !var->wasSet() ) {
+	    output << str << print_integer_parameter( var, floor_value );
+	} else {
+	    double value;
+	    if ( !var->getValue(value) ) throw std::domain_error( "not a number" );
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value != rint(value) ) throw std::domain_error( "invalid integer" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    if ( value > floor_value ) {
+		output << str << *var;
+	    }
+        }
+	return output;
     }
 
-    bool 
-    SRVN::Input::is_task( const pair<unsigned, DOM::Entity *>& ep )
+    /* static */ ostream&
+    SRVN::Input::printDoubleExtvarParameter( ostream& output, const DOM::ExternalVariable * var, double floor_value )
     {
-	return dynamic_cast<const DOM::Task *>(ep.second) != 0;
+	double value = 0;
+	if ( !var || (var->wasSet() && var->getValue(value)) ) {
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    output << value;
+	} else {
+	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::__inline_expression.find( var );
+	    if ( vp != Spex::__inline_expression.end() ) {
+		output << "{ ";
+		vp->second->print( output );
+		output << " }";
+	    } else {
+		output << *var;
+	    }
+	}
+	return output;
     }
-
+
+    /* static */ ostream&
+    SRVN::Input::printIntegerExtvarParameter( ostream& output, const DOM::ExternalVariable * var, double floor_value )
+    {
+	double value = 0;
+	if ( !var || (var->wasSet() && var->getValue(value)) ) {
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value != rint(value) ) throw std::domain_error( "invalid integer" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    output << value;
+	} else {
+	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::__inline_expression.find( var );
+	    if ( vp != Spex::__inline_expression.end() ) {
+		output << "{ ";
+		vp->second->print( output );
+		output << " }";
+	    } else {
+		output << *var;
+	    }
+	}
+	return output;
+    }
+    
     /* -------------------------------------------------------------------- */
     /* Document                                                             */
     /* -------------------------------------------------------------------- */
 
     void
     SRVN::DocumentOutput::operator()( const DOM::Document& document ) const
-    {	
-        _output << "Generated by: " << LQIO::DOM::Document::io_vars->lq_toolname << ", version " << LQIO::DOM::Document::io_vars->lq_version << newline
-		<< textit 
-		<< "Copyright the Real-Time and Distributed Systems Group," << newline
-		<< "Department of Systems and Computer Engineering" << newline
-		<< "Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << newline
-		<< textrm << newline;
+    {
+        _output << "Generated by: " << DOM::Document::io_vars->lq_toolname << ", version " << DOM::Document::io_vars->lq_version << newline
+                << textit
+                << "Copyright the Real-Time and Distributed Systems Group," << newline
+                << "Department of Systems and Computer Engineering" << newline
+                << "Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << newline
+                << textrm << newline;
 
-        if ( LQIO::DOM::Document::io_vars->lq_command_line ) {
-            _output << "Invoked as: " << LQIO::DOM::Document::io_vars->lq_command_line << ' ' << LQIO::input_file_name << newline;
+        if ( DOM::Document::io_vars->lq_command_line ) {
+            _output << "Invoked as: " << DOM::Document::io_vars->lq_command_line << ' ' << DOM::Document::__input_file_name << newline;
         }
-        _output << "Input:  " << LQIO::input_file_name << newline;
+        _output << "Input:  " << DOM::Document::__input_file_name << newline;
 #if     defined(HAVE_CTIME)
         time_t clock = time( (time_t *)0 );
         _output << ctime( &clock ) << newline;
 #endif
 
-        if ( document.getModelComment().length() > 0 ) {
-            _output << "Comment: " << document.getModelComment() << newline;
+        if ( document.getModelComment()->wasSet() ) {
+            _output << "Comment: " << document.getModelCommentString() << newline;
+        }
+        if ( document.getSymbolExternalVariableCount() > 0 ) {
+            _output << "Variables: ";
+            document.printExternalVariables( _output ) << newline;
         }
         _output << newline
-		<< "Convergence test value: " << document.getResultConvergenceValue() << newline
-		<< "Number of iterations:   " << document.getResultIterations() << newline;
-	if ( document.getSimulationSeedValue() != 0 ) {
-	    _output << "Seed Value:             " << document.getSimulationSeedValue() << newline;
-	}
+                << "Convergence test value: " << document.getResultConvergenceValue() << newline
+                << "Number of iterations:   " << document.getResultIterations() << newline;
+        if ( document.getSimulationSeedValue() != 0 ) {
+            _output << "Seed Value:             " << document.getSimulationSeedValue() << newline;
+        }
         if ( document.getExtraComment().length() > 0 ) {
             _output << "Other:                  " << document.getExtraComment() << newline;
         }
-	_output << newline;
+        _output << newline;
 
-	const map<string,string>& pragmas = document.getPragmaList();
-	if ( pragmas.size() ) {
-	    _output << "Pragma" << (pragmas.size() > 1 ? "s:" : ":") << newline;
-	    for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
-		_output << "    " << nextPragma->first << "=" << nextPragma->second << newline;
-	    }
-	    _output << newline;
+        const map<string,string>& pragmas = document.getPragmaList();
+        if ( pragmas.size() ) {
+            _output << "Pragma" << (pragmas.size() > 1 ? "s:" : ":") << newline;
+            for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
+                _output << "    " << nextPragma->first << "=" << nextPragma->second << newline;
+            }
+            _output << newline;
+        }
+
+        _output << "Solver: " << document.getResultPlatformInformation() << newline;
+	if ( document.getResultUserTime() > 0.0 ) {
+	    _output << "    User:       " << DOM::CPUTime::print( document.getResultUserTime() ) << newline;
 	}
-
-        _output << "Solver: " << document.getResultPlatformInformation() << newline
-		<< "    User:       " << print_time( document.getResultUserTime() ) << newline
-		<< "    System:     " << print_time( document.getResultSysTime() ) << newline
-		<< "    Elapsed:    " << print_time( document.getResultElapsedTime() ) << newline;
+	if ( document.getResultSysTime() > 0.0 ) {
+	    _output << "    System:     " << DOM::CPUTime::print( document.getResultSysTime() ) << newline;
+	}
+	_output << "    Elapsed:    " << DOM::CPUTime::print( document.getResultElapsedTime() ) << newline
+                << newline;
 	if ( document.getResultMaxRSS() > 0 ) {
 	    _output << "    MaxRSS:     " << document.getResultMaxRSS() << newline;
 	}
 	_output << newline;
 
-	if ( document.getResultMVASubmodels() > 0 ) {
-	    _output << "    Submodels:  " << document.getResultMVASubmodels() << newline
-		    << "    MVA Core(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVACore() << newline
-		    << "    MVA Step(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVAStep() << newline
-//				       document.getResultMVAStepSquared() <<
-		    << "    MVA Wait(): " << setw(ObjectOutput::__maxDblLen) << document.getResultMVAWait() << newline;
-//				       document.getResultMVAWaitSquared() <<
-	    if ( document.getResultMVAFaults() ) {
-		_output << "*** Faults ***" << document.getResultMVAFaults() << newline;
-	    }
-	}
+	const LQIO::DOM::MVAStatistics& mva_info = document.getResultMVAStatistics();
+	if ( mva_info.getNumberOfSubmodels() > 0 ) {
+            _output << "    Submodels:  " << mva_info.getNumberOfSubmodels() << newline
+                    << "    MVA Core(): " << setw(ObjectOutput::__maxDblLen) << mva_info.getNumberOfCore() << newline
+                    << "    MVA Step(): " << setw(ObjectOutput::__maxDblLen) << mva_info.getNumberOfStep() << newline
+//                                     mva_info.getNumberOfStepSquared() <<
+                    << "    MVA Wait(): " << setw(ObjectOutput::__maxDblLen) << mva_info.getNumberOfWait() << newline;
+//                                     mva_info.getNumberOfWaitSquared() <<
+            if ( mva_info.getNumberOfFaults() ) {
+                _output << "*** Faults ***" << mva_info.getNumberOfFaults() << newline;
+            }
+        }
     }
 
     /* -------------------------------------------------------------------- */
@@ -1217,75 +1338,41 @@ namespace LQIO {
     /* -------------------------------------------------------------------- */
 
     void
-    SRVN::EntityOutput::printParameters( const DOM::Entity& entity ) const
+    SRVN::EntityOutput::printCommonParameters( const DOM::Entity& entity ) const
     {
         bool print_task_name = true;
         _output << entity_name( entity, print_task_name );
         ostringstream myType;
-        if ( entity.getSchedulingType() == SCHEDULE_DELAY ) {
+        if ( entity.isInfinite() ) {
             myType << "Inf";
-	} else if ( entity.getSchedulingType() == SCHEDULE_CUSTOMER ) {
-            myType << "Ref("  << to_double( *entity.getCopies() ) << ")";
-	} else if ( entity.getSchedulingType() == SCHEDULE_SEMAPHORE ) {
-            myType << "Sema("  << to_double( *entity.getCopies() ) << ")";
-	} else if ( entity.getSchedulingType() == SCHEDULE_RWLOCK ) {
-            myType << "rw("  << to_double( *entity.getCopies() ) << ")";
+        } else if ( entity.getSchedulingType() == SCHEDULE_CUSTOMER ) {
+            myType << "Ref("  << entity.getCopiesValue() << ")";
+        } else if ( entity.getSchedulingType() == SCHEDULE_SEMAPHORE ) {
+            myType << "Sema("  << entity.getCopiesValue() << ")";
+        } else if ( entity.getSchedulingType() == SCHEDULE_RWLOCK ) {
+            myType << "rw("  << entity.getCopiesValue() << ")";
         } else if ( entity.isMultiserver() ) {
-            myType << "Mult(" << to_double( *entity.getCopies() ) << ")";
+            myType << "Mult(" << entity.getCopiesValue() << ")";
         } else {
             myType << "Uni";
         }
-        _output << setw(9) << myType.str() << " " << setw(5) << entity.getReplicas() << " ";
+        _output << setw(9) << myType.str() << " " << setw(5) << entity.getReplicasValue() << " ";
     }
 
-    SRVN::EntityManip SRVN::EntityInput::copies_of( const DOM::Entity & e )     { return SRVN::EntityManip( &SRVN::EntityInput::printCopies, e ); }
-    SRVN::EntityManip SRVN::EntityInput::replicas_of( const DOM::Entity & e )   { return SRVN::EntityManip( &SRVN::EntityInput::printReplicas, e ); }
-
     ostream&
-    SRVN::EntityInput::print( ostream& output, bool instantiate, const DOM::Entity * entity ) 
+    SRVN::EntityInput::print( ostream& output, const DOM::Entity * entity )
     {
-	if ( dynamic_cast<const DOM::Task *>(entity) ) {
-	    LQIO::SRVN::TaskInput( output, instantiate, 0 ).print( *dynamic_cast<const LQIO::DOM::Task *>(entity) );
-	} else {
-	    LQIO::SRVN::ProcessorInput( output, instantiate, 0 ).print( *dynamic_cast<const LQIO::DOM::Processor *>(entity) );
-	}
-	return output;
+        if ( dynamic_cast<const DOM::Task *>(entity) ) {
+            LQIO::SRVN::TaskInput( output, 0 ).print( *dynamic_cast<const DOM::Task *>(entity) );
+        } else {
+            LQIO::SRVN::ProcessorInput( output, 0 ).print( *dynamic_cast<const DOM::Processor *>(entity) );
+        }
+        return output;
     }
-
-    ostream&
-    SRVN::EntityInput::printCopies( ostream& output, const DOM::Entity & entity ) 
-    { 
-	const LQIO::DOM::ExternalVariable * m = entity.getCopies();
-	double v;
-	if ( m != 0 ) {
-	    if ( m->wasSet() && m->getValue(v) ) {
-		if ( v > 1 ) {
-		    output << " m " << v;
-		}
-	    } else {
-		output << " m " << *m;
-	    }
-	}
-	return output;
-    }
-
-    ostream&
-    SRVN::EntityInput::printReplicas( ostream& output, const DOM::Entity & entity )
-    { 
-	unsigned v = entity.getReplicas();
-	if ( v > 1 ) {
-	    output << " r " << v;
-	}
-	return output;
-    }
-
 
     /* -------------------------------------------------------------------- */
     /* Processors                                                           */
     /* -------------------------------------------------------------------- */
-
-    SRVN::ResultsManip SRVN::ProcessorOutput::processor_queueing_time( const DOM::Entry& e )  { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultProcessorWaiting, &DOM::Phase::getResultZero ); }
-    SRVN::ResultsConfidenceManip SRVN::ProcessorOutput::processor_queueing_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )  { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultProcessorWaitingVariance, &DOM::Phase::getResultZero, c, true ); }
 
     void
     SRVN::ProcessorOutput::operator()( const pair<unsigned, DOM::Entity *>& ep) const
@@ -1303,12 +1390,16 @@ namespace LQIO {
     SRVN::ProcessorOutput::printParameters( const DOM::Processor& processor ) const
     {
         const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-        SRVN::EntityOutput::printParameters( processor );
-        _output << scheduling_type_str[processor.getSchedulingType()];
-	if ( processor.hasRate() && processor.getRateValue() != 1 ) {
-	    _output << " " << processor.getRateValue();
+        SRVN::EntityOutput::printCommonParameters( processor );
+	if ( processor.isInfinite() ) {
+	    _output << scheduling_label[SCHEDULE_DELAY].str;
+	} else {
+	    _output << scheduling_label[processor.getSchedulingType()].str;
+	    if ( processor.hasRate() ) {
+		_output << " " << Input::print_double_parameter( processor.getRate(), 0. );
+	    }
 	}
-	_output << newline;
+        _output << newline;
         _output.flags(oldFlags);
     }
 
@@ -1316,16 +1407,16 @@ namespace LQIO {
     SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor ) const
     {
         const std::set<DOM::Task*>& tasks = processor.getTaskList();
-	const std::set<DOM::Group*>& groups = processor.getGroupList();
-	const double rate = processor.hasRate() ? processor.getRateValue() : 1.0;
-	const double proc_util = !processor.isInfinite() ? processor.getResultUtilization() / (static_cast<double>(processor.getCopiesValue()) * rate): 0;
+        const std::set<DOM::Group*>& groups = processor.getGroupList();
+        const double rate = processor.getRateValue();
+        const double proc_util = !processor.isInfinite() ? processor.getResultUtilization() / (static_cast<double>(processor.getCopiesValue()) * rate): 0;
 
         if ( __parseable ) {
             _output << "P " << processor.getName() << " " << tasks.size() << newline;
         } else {
             _output << newline << newline << textbf << utilization_str << ' ' << textrm << colour( proc_util )
-		    << processor.getName() << colour( 0 )
-		    << newline << newline
+                    << processor.getName() << colour( 0 )
+                    << newline << newline
                     << setw(__maxStrLen) << "Task Name"
                     << "Pri n   "
                     << setw(__maxStrLen) << "Entry Name"
@@ -1333,35 +1424,42 @@ namespace LQIO {
                     << Output::phase_header( __maxPhase ) << newline;
         }
 
-	/* groups go here... */
-	if ( groups.size() > 0 ) {
-	    for ( std::set<DOM::Group*>::const_iterator nextGroup = groups.begin(); nextGroup != groups.end(); ++nextGroup ) {
-		const DOM::Group& group = *(*nextGroup);
-		printUtilizationAndWaiting( processor, group.getTaskList() );
-		if ( !__parseable ) {
-		    _output << textit << setw(__maxStrLen*2+8) << "Group Total:"
-			    << setw(__maxDblLen-1) << group.getResultUtilization() << ' ' << newline;
-		    if ( __conf95 ) {
-			_output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
-				<< setw(__maxDblLen-1) << (*__conf95)(group.getResultUtilizationVariance()) << ' ' << newline;
-		    }
-		    if ( __conf99 ) {
-			_output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_99)
-				<< setw(__maxDblLen-1) << (*__conf99)(group.getResultUtilizationVariance()) << ' ' << newline;
-		    }
-		    _output << textrm;
+        /* groups go here... */
+        if ( groups.size() > 0 ) {
+            for ( std::set<DOM::Group*>::const_iterator nextGroup = groups.begin(); nextGroup != groups.end(); ++nextGroup ) {
+                const DOM::Group& group = *(*nextGroup);
+                printUtilizationAndWaiting( processor, group.getTaskList() );
+		std::string total = "Group ";
+                if ( __parseable ) {
+		    total = "G ";
+		    total += group.getName();
+		} else {
+		    total = "Group ";
+		    total += group.getName();
+		    total += " Total:";
 		}
+		_output << textit << setw(__maxStrLen*2+8) << total
+			<< setw(__maxDblLen-1) << group.getResultUtilization() << ' ' << newline;
+		if ( __conf95 ) {
+		    _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
+			    << setw(__maxDblLen-1) << (*__conf95)(group.getResultUtilizationVariance()) << ' ' << newline;
+		}
+		if ( __conf99 ) {
+		    _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_99)
+			    << setw(__maxDblLen-1) << (*__conf99)(group.getResultUtilizationVariance()) << ' ' << newline;
+		}
+		_output << textrm;
 	    }
-	} else {
-	    printUtilizationAndWaiting( processor, tasks );
-	}
+        } else {
+            printUtilizationAndWaiting( processor, tasks );
+        }
 
         /* Total for processor */
 
         if ( tasks.size() > 1 ) {
-	    if ( __parseable ) { _output << setw( __maxStrLen ) << " " << activityEOF << newline; }
-	    _output << textit << colour( proc_util )<< setw(__maxStrLen*2+8) << ( __parseable ? " " : "Processor Total:" )
-		    << processor.getResultUtilization()  << newline;
+            if ( __parseable ) { _output << setw( __maxStrLen ) << " " << activityEOF << newline; }
+            _output << textit << colour( proc_util )<< setw(__maxStrLen*2+8) << ( __parseable ? " " : "Processor Total:" )
+                    << processor.getResultUtilization()  << newline;
             if ( __conf95 ) {
                 _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
                         << (*__conf95)(processor.getResultUtilizationVariance()) << newline;
@@ -1370,9 +1468,9 @@ namespace LQIO {
                 _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_99)
                         << (*__conf99)(processor.getResultUtilizationVariance()) << newline;
             }
-	    _output << textrm << colour( 0 );
+            _output << textrm << colour( 0 );
         }
-	if ( __parseable ) { _output << activityEOF << newline << newline; }
+        if ( __parseable ) { _output << activityEOF << newline << newline; }
     }
 
 
@@ -1380,40 +1478,41 @@ namespace LQIO {
     void
     SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor, const std::set<DOM::Task*>& tasks ) const
     {
-	const bool is_infinite = processor.isInfinite();
+        const bool is_infinite = processor.isInfinite();
+	double copies = 1.0;
+	if ( !is_infinite ) {
+	    copies = static_cast<double>(processor.getCopiesValue());
+	}
         for ( std::set<DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
             const DOM::Task * task = *nextTask;
             bool print_task_name = true;
             unsigned int item_count = 0;
-	    unsigned int priority = 0;
-	    if ( task->hasPriority() ) {
-		priority = to_double( *task->getPriority() );
-	    }
 
             const std::vector<DOM::Entry *> & entries = task->getEntryList();
             for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry, ++item_count ) {
                 const DOM::Entry * entry = *nextEntry;
-		const double entry_util = (is_infinite) ? entry->getResultProcessorUtilization() / (static_cast<double>(processor.getCopiesValue()) * processor.getRateValue()) : 0;
-		_output << colour( entry_util );
-		if ( __parseable ) {
-		    if ( print_task_name ) {
-			_output << setw( __maxStrLen-1 ) << task->getName() << " "
-				<< setw(2) << entries.size() << " "
-				<< setw(1) << priority << " "
-				<< setw(2) << to_double( *task->getCopies() ) << " ";
-			print_task_name = false;
-		    } else {
-			_output << setw(__maxStrLen+8) << " ";
-		    }
+                const double entry_util = is_infinite ? 0 : entry->getResultProcessorUtilization() / (copies * processor.getRateValue());
+		const unsigned int multiplicity = task->isInfinite() ? 1 : task->getCopiesValue();
+                _output << colour( entry_util );
+                if ( __parseable ) {
+                    if ( print_task_name ) {
+                        _output << setw( __maxStrLen-1 ) << task->getName() << " "
+                                << setw(2) << entries.size() << " "
+                                << setw(1) << task->getPriorityValue() << " "
+                                << setw(2) << multiplicity << " ";
+                        print_task_name = false;
+                    } else {
+                        _output << setw(__maxStrLen+8) << " ";
+                    }
                 } else if ( print_task_name ) {
                     _output << entity_name( *task, print_task_name )
-                            << setw(3) << priority << " "
-                            << setw(3) << to_double( *task->getCopies() ) << " ";
+                            << setw(3) << task->getPriorityValue() << " "
+                            << setw(3) << multiplicity << " ";
                 } else {
                     _output << setw(__maxStrLen+8) << " ";
                 }
-                _output << entry_name( *entry ) 
-                        << setw(__maxDblLen-1) << entry->getResultProcessorUtilization() << " " 
+                _output << entry_name( *entry )
+                        << setw(__maxDblLen-1) << entry->getResultProcessorUtilization() << " "
                         << processor_queueing_time( *entry ) << newline;
                 if ( __conf95 ) {
                     _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
@@ -1425,7 +1524,7 @@ namespace LQIO {
                             << setw(__maxDblLen-1) << (*__conf99)(entry->getResultProcessorUtilizationVariance()) << " "
                             << setw(__maxDblLen-1) << processor_queueing_time_confidence( *entry, __conf99 ) << newline;
                 }
-		_output << colour( 0 );
+                _output << colour( 0 );
             }
 
             const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
@@ -1438,32 +1537,32 @@ namespace LQIO {
                             << setw(__maxStrLen-1) << activity->getName() << ' '
                             << setw(__maxDblLen-1) << activity->getResultProcessorUtilization() << ' '
                             << setw(__maxDblLen-1) << activity->getResultProcessorWaiting() << ' '
-			    << activityEOF << newline;
+                            << activityEOF << newline;
                     if ( __conf95 ) {
                         _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
                                 << setw(__maxDblLen-1) << (*__conf95)(activity->getResultProcessorUtilizationVariance()) << ' '
                                 << setw(__maxDblLen-1) << (*__conf95)(activity->getResultProcessorWaitingVariance()) << ' '
-				<< activityEOF << newline;
+                                << activityEOF << newline;
                     }
                     if ( __conf99 ) {
                         _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_99)
                                 << setw(__maxDblLen-1) << (*__conf99)(activity->getResultProcessorUtilizationVariance()) << ' '
                                 << setw(__maxDblLen-1) << (*__conf99)(activity->getResultProcessorWaitingVariance()) << ' '
-				<< activityEOF << newline;
+                                << activityEOF << newline;
                     }
                 }
             }
-	    if ( __parseable ) {
-		_output << setw(__maxStrLen+8) << " " << activityEOF << newline;
-	    }
+            if ( __parseable ) {
+                _output << setw(__maxStrLen+8) << " " << activityEOF << newline;
+            }
 
             /* Total for task */
 
             if ( item_count > 1 ) {
-		const double task_util = !processor.isInfinite() ? task->getResultProcessorUtilization() / (static_cast<double>(processor.getCopiesValue()) * processor.getRateValue()): 0;
-		_output << textit << colour( task_util );
-		_output << setw(__maxStrLen*2+8) << ( __parseable ? " " : "Task Total:" )
-			<< setw(__maxDblLen-1) << task->getResultProcessorUtilization() << ' ' << newline;
+                const double task_util = !processor.isInfinite() ? task->getResultProcessorUtilization() / (copies * processor.getRateValue()): 0;
+                _output << textit << colour( task_util );
+                _output << setw(__maxStrLen*2+8) << ( __parseable ? " " : "Task Total:" )
+                        << setw(__maxDblLen-1) << task->getResultProcessorUtilization() << ' ' << newline;
                 if ( __conf95 ) {
                     _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_95)
                             << setw(__maxDblLen-1) << (*__conf95)(task->getResultProcessorUtilizationVariance()) << ' ' << newline;
@@ -1472,7 +1571,7 @@ namespace LQIO {
                     _output << conf_level(__maxStrLen*2+8,ConfidenceIntervals::CONF_99)
                             << setw(__maxDblLen-1) << (*__conf99)(task->getResultProcessorUtilizationVariance()) << ' ' << newline;
                 }
-		_output << colour( 0 ) << textrm;
+                _output << colour( 0 ) << textrm;
             }
         }
     }
@@ -1493,54 +1592,71 @@ namespace LQIO {
     SRVN::ProcessorInput::print( const DOM::Processor& processor ) const
     {
         if ( processor.getTaskList().size() == 0 ) return;
-	_output << "  p " << processor.getName()
-		<< scheduling_of( processor )
-		<< copies_of( processor )
-	        << replicas_of( processor )
-	        << rate_of( processor );	
-	if ( !_instantiate ) {
-	    LQIO::DOM::Spex::printObservationVariables( _output, processor );
+        _output << "  p " << processor.getName()
+                << scheduling_of( processor )
+                << copies_of( processor )
+                << replicas_of( processor )
+                << rate_of( processor );
+        if ( !processor.getDocument()->instantiated() ) {
+            printObservationVariables( _output, processor );
+        }
+        _output << endl;
+    }
+
+    ostream&
+    SRVN::ProcessorInput::printCopies( ostream& output, const DOM::Processor & processor )
+    {
+	if ( !processor.isInfinite() ) {
+	    try {
+		output << Input::is_integer_and_gt( " m ", processor.getCopies(), 1.0 );
+	    }
+	    catch ( const std::domain_error& e ) {
+		solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "processor", processor.getName().c_str(), e.what() );
+		throw_bad_parameter();
+	    }
 	}
-	_output << endl;
+        return output;
+    }
+
+    ostream&
+    SRVN::ProcessorInput::printReplicas( ostream& output, const DOM::Processor & processor )
+    {
+	try {
+	    output << Input::is_integer_and_gt( " r ", processor.getReplicas(), 1.0 );
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", "processor", processor.getName().c_str(), e.what() );
+	}
+        return output;
     }
 
     ostream&
     SRVN::ProcessorInput::printRate( ostream& output, const DOM::Processor& processor )
     {
-	if ( !dynamic_cast<const DOM::Processor *>(& processor) ) return output;
-
-	const LQIO::DOM::ExternalVariable * r = dynamic_cast<const DOM::Processor&>(processor).getRate();
-	double v;
-	if ( r != 0 ) {
-	    if ( r->wasSet() && r->getValue(v) ) {
-		if ( v > 1.0 ) {
-		    output << " R " << v;
-		}
-	    } else {
-		output << " R " << *r;
-	    }
+	try {
+	    output << Input::is_double_and_gt( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 1.0 );
 	}
-	return output;
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", processor.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+        return output;
     }
 
 
     ostream&
     SRVN::ProcessorInput::printScheduling( ostream& output, const DOM::Processor & processor )
-    { 
-	output << ' ';
-	switch ( processor.getSchedulingType() ) {
-	case SCHEDULE_DELAY:    output << 'i'; break;
-	case SCHEDULE_FIFO:	output << 'f'; break;
-	case SCHEDULE_HOL:	output << 'h'; break;
-	case SCHEDULE_PPR:	output << 'p'; break;
-	case SCHEDULE_RAND:     output << 'r'; break;
-	case SCHEDULE_CFS:	output << "c " << processor.getQuantumValue(); break;
-	case SCHEDULE_PS:       output << "s " << processor.getQuantumValue(); break;
-	case SCHEDULE_PS_HOL:   output << "H " << processor.getQuantumValue(); break;
-	case SCHEDULE_PS_PPR:   output << "P " << processor.getQuantumValue(); break;
-	default:		output << '?'; break;
-	} 
-	return output;
+    {
+	output << " ";
+	if ( processor.isInfinite() ) {
+	    output << scheduling_label[SCHEDULE_DELAY].flag;
+	} else {
+	    output << scheduling_label[static_cast<unsigned int>(processor.getSchedulingType())].flag;
+	    if ( processor.hasQuantumScheduling() ) {
+		output << ' ' << Input::print_double_parameter( processor.getQuantum(), 0. );
+	    }
+	}
+        return output;
     }
 
 
@@ -1560,15 +1676,15 @@ namespace LQIO {
     SRVN::GroupOutput::printParameters( const DOM::Group& group ) const
     {
         const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-	_output << setw(__maxStrLen-1) << group.getName()
-		<< " " << setw(6) << *group.getGroupShare();
-	if ( group.getCap() ) {
-	    _output << " cap  ";
-	} else {
-	    _output << "      ";
-	}
-	_output << setw(__maxStrLen) << group.getProcessor()->getName()
-		<< newline;
+        _output << setw(__maxStrLen-1) << group.getName()
+                << " " << setw(6) << Input::print_double_parameter( group.getGroupShare(), 0. );
+        if ( group.getCap() ) {
+            _output << " cap  ";
+        } else {
+            _output << "      ";
+        }
+        _output << setw(__maxStrLen) << group.getProcessor()->getName()
+                << newline;
 
         _output.flags(oldFlags);
     }
@@ -1590,13 +1706,13 @@ namespace LQIO {
     void
     SRVN::GroupInput::print( const DOM::Group& group ) const
     {
-	_output << "  g " << group.getName()
-		<< " " << *group.getGroupShare();
-	if ( group.getCap() ) {
-	    _output << " c";
-	}	
-	const LQIO::DOM::Processor * proc = group.getProcessor();
-	_output << " " << proc->getName() << std::endl;
+        _output << "  g " << group.getName()
+                << " " << Input::print_double_parameter( group.getGroupShare(), 0. );
+        if ( group.getCap() ) {
+            _output << " c";
+        }
+        const DOM::Processor * proc = group.getProcessor();
+        _output << " " << proc->getName() << std::endl;
     }
 
     /* -------------------------------------------------------------------- */
@@ -1616,71 +1732,46 @@ namespace LQIO {
 
 
     void
-    SRVN::TaskOutput::printParameters( const DOM::Task& t ) const
+    SRVN::TaskOutput::printParameters( const DOM::Task& task ) const
     {
         const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-        SRVN::EntityOutput::printParameters( t );
-        const DOM::Processor * processor = t.getProcessor();
+        SRVN::EntityOutput::printCommonParameters( task );
+        const DOM::Processor * processor = task.getProcessor();
         _output << setw(__maxStrLen-1) << ( processor ? processor->getName() : "--");
-	if ( __task_has_group ) {
-	    const DOM::Group * group = t.getGroup();
-	    _output << ' ' << setw(__maxStrLen-1) << ( group ? group->getName() : "--");
-	}
-	if ( t.hasPriority() ) {
-	    _output << ' ' << setw(3) << to_double( *t.getPriority());
-	} else {
-	    _output << setw(4) << ' ';
-	}
-        if ( __task_has_think_time ) {
+        if ( task.getDocument()->getNumberOfGroups() > 0 ) {
+            const DOM::Group * group = task.getGroup();
+            _output << ' ' << setw(__maxStrLen-1) << ( group ? group->getName() : "--");
+        }
+        _output << ' ' << setw(3) << Input::print_double_parameter( task.getPriority(), 0. );
+        if ( task.getDocument()->taskHasThinkTime() ) {
             _output << setw(__maxDblLen-1);
-            if ( t.getSchedulingType() == SCHEDULE_CUSTOMER ) {
-                _output << *t.getThinkTime();
+            if ( task.getSchedulingType() == SCHEDULE_CUSTOMER ) {
+                _output << Input::print_double_parameter( task.getThinkTime(), 0. );
             } else {
                 _output << " ";
             }
-            _output << ' ';
         }
 
-        const std::vector<DOM::Entry *> & entries = t.getEntryList();
-        std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin();
-        string s;
-        for ( ;; ) {
-            s += (*nextEntry)->getName();
-            ++nextEntry;
-            if ( nextEntry != entries.end() ) {
-                s += ", ";
-            } else {
-                break;
-            }
+        const std::vector<DOM::Entry *> & entries = task.getEntryList();
+        for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
+	    if ( nextEntry != entries.begin() ) _output << ",";
+	    _output << " " << (*nextEntry)->getName();
         }
-        _output << setw(__maxStrLen) << s;
 
-        const std::map<std::string,DOM::Activity*>& activities = t.getActivities();
+        const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
         if ( activities.size() > 0 ) {
-            std::map<std::string,DOM::Activity*>::const_iterator nextActivity  = activities.begin();
-            s = " : ";
-            for ( ;; ) {
+            _output << " :";
+            for ( std::map<std::string,DOM::Activity*>::const_iterator nextActivity  = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
                 const DOM::Activity * activity = nextActivity->second;
-                s += activity->getName();
-                ++nextActivity;
-                if ( nextActivity != activities.end() ) {
-                    s += ", ";
-                } else {
-                    break;
-                }
+		if ( nextActivity != activities.begin() ) _output << ",";
+		_output << " " << activity->getName();
             }
-            _output << setw(__maxStrLen) << s;
         }
         _output << newline;
         _output.flags(oldFlags);
     }
 
     /* ---------- Results ---------- */
-
-    SRVN::ResultsManip SRVN::TaskOutput::entry_utilization( const DOM::Entry& e )    { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultUtilization, &DOM::Entry::getResultPhasePUtilization, true ); }
-    SRVN::TaskResultsManip SRVN::TaskOutput::task_utilization( const DOM::Task& t )  { return SRVN::TaskResultsManip( &SRVN::ObjectOutput::taskPhaseResults, t, &DOM::Task::getResultPhasePUtilization, true ); }
-    SRVN::ResultsConfidenceManip SRVN::TaskOutput::entry_utilization_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )   { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultUtilizationVariance, &DOM::Entry::getResultPhasePUtilizationVariance, c, true ); }
-    SRVN::TaskResultsConfidenceManip SRVN::TaskOutput::task_utilization_confidence( const DOM::Task& t, const ConfidenceIntervals * c ) { return SRVN::TaskResultsConfidenceManip( &SRVN::ObjectOutput::taskPhaseResultsConfidence, t, &DOM::Task::getResultPhasePUtilizationVariance, c, true ); }
 
     void
     SRVN::TaskOutput::printThroughputAndUtilization( const DOM::Task& task ) const
@@ -1689,14 +1780,16 @@ namespace LQIO {
         std::vector<DOM::Entry *>::const_iterator nextEntry;
         bool print_task_name = true;
         unsigned item_count = 0;
+	const bool is_infinite = task.isInfinite() || task.getSchedulingType() == SCHEDULE_CUSTOMER || task.getSchedulingType() == SCHEDULE_DELAY;
+	double copies = 1.0;
+	if ( !is_infinite ) {
+	    copies = static_cast<double>(task.getCopiesValue());
+	}
         for ( nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry, ++item_count ) {
             const DOM::Entry * entry = *nextEntry;
-	    const DOM::ExternalVariable * var = task.getCopies();
-	    double m;
-	    var->getValue( m );
-	    const double entry_util = (!task.isInfinite() && task.getSchedulingType() != SCHEDULE_CUSTOMER) ? entry->getResultUtilization() / m : 0;
+	    const double entry_util = entry->getResultUtilization() / copies;
             _output << colour( entry_util ) << entity_name( task, print_task_name )
-                    << entry_name( *entry ) 
+                    << entry_name( *entry )
                     << setw(__maxDblLen-1) << entry->getResultThroughput() << ' '
                     << entry_utilization( *entry )
                     << entry->getResultUtilization() << newline;
@@ -1712,7 +1805,7 @@ namespace LQIO {
                         << entry_utilization_confidence( *entry, __conf99 )
                         << (*__conf99)(entry->getResultUtilizationVariance()) << newline;
             }
-	    _output << colour( 0 );
+            _output << colour( 0 );
         }
 
         const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
@@ -1738,15 +1831,15 @@ namespace LQIO {
             }
         }
 
-	if ( item_count > 0 && __parseable ) {
-	    _output << setw(__maxStrLen) << " " << activityEOF << newline;
-	}
+        if ( item_count > 0 && __parseable ) {
+            _output << setw(__maxStrLen) << " " << activityEOF << newline;
+        }
 
         /* Totals */
         if ( item_count > 1 && task.getResultPhaseCount() > 0 ) {
-	    const double task_util = (!task.isInfinite() && task.getSchedulingType() != SCHEDULE_CUSTOMER) ? task.getResultUtilization() / static_cast<double>(task.getCopiesValue()) : 0;
-	    _output << textit << colour( task_util ) <<  setw( __maxStrLen*2 ) << (__parseable ? " " : "Total:" )
-		    << setw(__maxDblLen-1) << task.getResultThroughput() << ' '
+            const double task_util = task.getResultUtilization() / copies;
+            _output << textit << colour( task_util ) <<  setw( __maxStrLen*2 ) << (__parseable ? " " : "Total:" )
+                    << setw(__maxDblLen-1) << task.getResultThroughput() << ' '
                     << task_utilization( task )
                     << task.getResultUtilization() << newline;
             if ( __conf95 ) {
@@ -1761,7 +1854,7 @@ namespace LQIO {
                         << task_utilization_confidence( task, __conf99 )
                         << (*__conf99)(task.getResultUtilizationVariance()) << newline;
             }
-	    _output << colour( 0 ) << textrm;
+            _output << colour( 0 ) << textrm;
         }
     }
 
@@ -1800,9 +1893,9 @@ namespace LQIO {
                             << newline;
                 }
             }
-	    if ( !print_task_name && __parseable ) {
-		_output << activityEOF << newline;
-	    }
+            if ( !print_task_name && __parseable ) {
+                _output << activityEOF << newline;
+            }
         }
     }
 
@@ -1815,40 +1908,40 @@ namespace LQIO {
 
     void SRVN::TaskOutput::printHoldTime( const DOM::Task& task ) const
     {
-	const LQIO::DOM::SemaphoreTask * semaphore = dynamic_cast<const LQIO::DOM::SemaphoreTask *>(&task);
-	if ( !semaphore ) return;
+        const DOM::SemaphoreTask * semaphore = dynamic_cast<const DOM::SemaphoreTask *>(&task);
+        if ( !semaphore ) return;
 
         const std::vector<DOM::Entry *>& entries = task.getEntryList();
-	LQIO::DOM::Entry * wait_entry;
-	LQIO::DOM::Entry * signal_entry;
-	if ( entries[0]->getSemaphoreFlag() == SEMAPHORE_SIGNAL ) {
-	    wait_entry = entries[1];
-	    signal_entry = entries[0];
-	} else {
-	    wait_entry = entries[0];
-	    signal_entry = entries[1];
-	}
+        DOM::Entry * wait_entry;
+        DOM::Entry * signal_entry;
+        if ( entries[0]->getSemaphoreFlag() == SEMAPHORE_SIGNAL ) {
+            wait_entry = entries[1];
+            signal_entry = entries[0];
+        } else {
+            wait_entry = entries[0];
+            signal_entry = entries[1];
+        }
         bool print_task_name = true;
         _output << entity_name(task,print_task_name)
-		<< setw(__maxStrLen-1) << wait_entry->getName() << " "
-		<< setw(__maxStrLen-1) << signal_entry->getName() << " "
-		<< setw(__maxDblLen-1) << semaphore->getResultHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << semaphore->getResultVarianceHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << semaphore->getResultHoldingUtilization() << newline;
-	if ( __conf95 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
-		    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultVarianceHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultHoldingUtilizationVariance() ) << newline;
+                << setw(__maxStrLen-1) << wait_entry->getName() << " "
+                << setw(__maxStrLen-1) << signal_entry->getName() << " "
+                << setw(__maxDblLen-1) << semaphore->getResultHoldingTime()  << " "
+                << setw(__maxDblLen-1) << semaphore->getResultVarianceHoldingTime()  << " "
+                << setw(__maxDblLen-1) << semaphore->getResultHoldingUtilization() << newline;
+        if ( __conf95 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
+                    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultVarianceHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( semaphore->getResultHoldingUtilizationVariance() ) << newline;
 
-	}
-	if ( __conf99 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
-		    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultVarianceHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultHoldingUtilizationVariance() ) << newline;
+        }
+        if ( __conf99 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
+                    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultVarianceHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( semaphore->getResultHoldingUtilizationVariance() ) << newline;
 
-	}
+        }
     }
 
     /*
@@ -1861,80 +1954,80 @@ namespace LQIO {
 
     void SRVN::TaskOutput::printRWLOCKHoldTime( const DOM::Task& task ) const
     {
-	const LQIO::DOM::RWLockTask * rwlock = dynamic_cast<const LQIO::DOM::RWLockTask *>(&task);
-	if ( !rwlock ) return;
+        const DOM::RWLockTask * rwlock = dynamic_cast<const DOM::RWLockTask *>(&task);
+        if ( !rwlock ) return;
 
         const std::vector<DOM::Entry *>& entries = task.getEntryList();
-	LQIO::DOM::Entry * r_lock_entry;
-	LQIO::DOM::Entry * r_unlock_entry;
-	LQIO::DOM::Entry * w_lock_entry;
-	LQIO::DOM::Entry * w_unlock_entry;
-	
-	for (int i=0;i<4;i++){
-	    switch (entries[i]->getRWLockFlag()) {
-	    case RWLOCK_R_UNLOCK: r_unlock_entry=entries[i]; break;
-	    case RWLOCK_R_LOCK:	  r_lock_entry=entries[i]; break;
-	    case RWLOCK_W_UNLOCK: w_unlock_entry=entries[i]; break;
-	    case RWLOCK_W_LOCK:	  w_lock_entry=entries[i]; break;
-	    default: abort();
-	    }
-	}
+        DOM::Entry * r_lock_entry = NULL;
+        DOM::Entry * r_unlock_entry = NULL;
+        DOM::Entry * w_lock_entry = NULL;
+        DOM::Entry * w_unlock_entry = NULL;
+
+        for (int i=0;i<4;i++){
+            switch (entries[i]->getRWLockFlag()) {
+            case RWLOCK_R_UNLOCK: r_unlock_entry=entries[i]; break;
+            case RWLOCK_R_LOCK:   r_lock_entry=entries[i]; break;
+            case RWLOCK_W_UNLOCK: w_unlock_entry=entries[i]; break;
+            case RWLOCK_W_LOCK:   w_lock_entry=entries[i]; break;
+            default: abort();
+            }
+        }
 
         bool print_task_name = true;
         _output << entity_name(task,print_task_name)
-		<< setw(__maxStrLen-1) << r_lock_entry->getName() << " "
-		<< setw(__maxStrLen-1) << r_unlock_entry->getName() << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultReaderBlockedTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultVarianceReaderBlockedTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultReaderHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultVarianceReaderHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultReaderHoldingUtilization() << newline;
+                << setw(__maxStrLen-1) << r_lock_entry->getName() << " "
+                << setw(__maxStrLen-1) << r_unlock_entry->getName() << " "
+                << setw(__maxDblLen-1) << rwlock->getResultReaderBlockedTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultVarianceReaderBlockedTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultReaderHoldingTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultVarianceReaderHoldingTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultReaderHoldingUtilization() << newline;
 
-	if ( __conf95 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceReaderBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceReaderHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderHoldingUtilizationVariance() ) << newline;
-	}
-	if ( __conf99 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceReaderBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceReaderHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderHoldingUtilizationVariance() ) << newline;
-	}
-	_output << entity_name(task,print_task_name)
-		<< setw(__maxStrLen-1) << w_lock_entry->getName() << " "
-		<< setw(__maxStrLen-1) << w_unlock_entry->getName() << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultWriterBlockedTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultVarianceWriterBlockedTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultWriterHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultVarianceWriterHoldingTime()  << " "
-		<< setw(__maxDblLen-1) << rwlock->getResultWriterHoldingUtilization() << newline;
+        if ( __conf95 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceReaderBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceReaderHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultReaderHoldingUtilizationVariance() ) << newline;
+        }
+        if ( __conf99 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceReaderBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceReaderHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultReaderHoldingUtilizationVariance() ) << newline;
+        }
+        _output << entity_name(task,print_task_name)
+                << setw(__maxStrLen-1) << w_lock_entry->getName() << " "
+                << setw(__maxStrLen-1) << w_unlock_entry->getName() << " "
+                << setw(__maxDblLen-1) << rwlock->getResultWriterBlockedTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultVarianceWriterBlockedTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultWriterHoldingTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultVarianceWriterHoldingTime()  << " "
+                << setw(__maxDblLen-1) << rwlock->getResultWriterHoldingUtilization() << newline;
 
-	if ( __conf95 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceWriterBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceWriterHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterHoldingUtilizationVariance() ) << newline;
-	}
-	if ( __conf99 ) {
-	    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceWriterBlockedTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceWriterHoldingTimeVariance() ) << " "
-		    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterHoldingUtilizationVariance() ) << newline;
-	}
+        if ( __conf95 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceWriterBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultVarianceWriterHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf95)( rwlock->getResultWriterHoldingUtilizationVariance() ) << newline;
+        }
+        if ( __conf99 ) {
+            _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceWriterBlockedTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultVarianceWriterHoldingTimeVariance() ) << " "
+                    << setw(__maxDblLen-1) << (*__conf99)( rwlock->getResultWriterHoldingUtilizationVariance() ) << newline;
+        }
     }
 
     /*
-     * SRVN style for a task 
+     * SRVN style for a task
      */
 
     void
@@ -1952,165 +2045,173 @@ namespace LQIO {
     void
     SRVN::TaskInput::print( const DOM::Task& task ) const
     {
-	_output << "  t " << task.getName()
-		<< " " << scheduling_of( task )
-		<< entries_of( task )
-		<< queue_length_of( task )
-		<< " " << task.getProcessor()->getName()
-		<< priority_of( task )
-		<< think_time_of( task )
-		<< copies_of( task )
-		<< replicas_of( task )
-		<< group_of( task );
-	if ( !_instantiate ) {
-	    LQIO::DOM::Spex::printObservationVariables( _output, task );
-	}
-	_output << endl;
+        _output << "  t " << task.getName()
+                << scheduling_of( task )
+                << entries_of( task )
+                << queue_length_of( task )
+                << " " << task.getProcessor()->getName()
+                << priority_of( task )
+                << think_time_of( task )
+                << copies_of( task )
+                << replicas_of( task )
+                << group_of( task );
+        if ( !task.getDocument()->instantiated() ) {
+            printObservationVariables( _output, task );
+        }
+        _output << endl;
 
-	for ( std::map<const std::string, unsigned int>::const_iterator fi = task.getFanIns().begin(); fi != task.getFanIns().end(); ++fi ) {
-	    if ( fi->second > 1 ) {	/* task name, fan in */
-		_output << "  i " << fi->first << " " << task.getName() << " " << fi->second << endl;
-	    }
-	}
-	for ( std::map<const std::string, unsigned int>::const_iterator fo = task.getFanOuts().begin(); fo != task.getFanOuts().end(); ++fo ) {
-	    if ( fo->second > 1 ) {
-		_output << "  o " << task.getName() << " " << fo->first << " " << fo->second << endl;
-	    }
-	}
+        for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fi = task.getFanIns().begin(); fi != task.getFanIns().end(); ++fi ) {
+            if ( !DOM::Common_IO::is_default_value( fi->second, 1 ) ) {     /* task name, fan in */
+                _output << "  I " << fi->first << " " << task.getName() << " " << Input::print_integer_parameter(fi->second,0) << endl;
+            }
+        }
+        for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fo = task.getFanOuts().begin(); fo != task.getFanOuts().end(); ++fo ) {
+            if ( !DOM::Common_IO::is_default_value( fo->second, 1 ) ) {
+                _output << "  O " << task.getName() << " " << fo->first << " " << Input::print_integer_parameter(fo->second,0) << endl;
+            }
+        }
+
     }
 
     ostream&
     SRVN::TaskInput::printScheduling( ostream& output, const DOM::Task & task )
-    { 
-	switch ( task.getSchedulingType() ) {
-	case SCHEDULE_BURST:     output << 'b'; break;
-	case SCHEDULE_CUSTOMER:  output << 'r'; break;
-	case SCHEDULE_DELAY:     output << 'n'; break;
-	case SCHEDULE_FIFO:	 output << 'n'; break;
-	case SCHEDULE_HOL:	 output << 'h'; break;
-	case SCHEDULE_POLL:      output << 'P'; break;
-	case SCHEDULE_PPR:	 output << 'p'; break;
-	case SCHEDULE_RWLOCK:    output << 'W'; break;
-	case SCHEDULE_SEMAPHORE: output << 'S'; break;
-	case SCHEDULE_UNIFORM:   output << 'u'; break;
-	default:	   	 output << '?'; break;
+    {
+	output << " ";
+        if ( task.isInfinite() ) {
+            output << scheduling_label[SCHEDULE_DELAY].flag;
+        } else {
+	    output << scheduling_label[task.getSchedulingType()].flag;
 	}
-	return output;
-    }
-
-    ostream& 
-    SRVN::TaskInput::printEntryList( ostream& output,  const DOM::Task& task ) 
-    { 
-	const std::vector<DOM::Entry *> & entries = task.getEntryList();
-	for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
-	    const DOM::Entry * entry = *nextEntry;
-	    output << " " << entry->getName();
-	}
-	output << " -1";
-	return output; 
+        return output;
     }
 
     ostream&
-    SRVN::TaskInput::printCopies( ostream& output, const DOM::Task & task ) 
-    { 
-	if ( task.getSchedulingType() == SCHEDULE_DELAY ) { 
-	    output << " i ";
-	} else {
-	    const LQIO::DOM::ExternalVariable * m = task.getCopies();
-	    double v;
-	    if ( m != 0 ) {
-		if ( m->wasSet() && m->getValue(v) ) {
-		    if ( v > 1.0 ) {
-			output << " m " << v;
-		    }	
-		} else {
-		    output << " m " << *m;
-		}
+    SRVN::TaskInput::printEntryList( ostream& output,  const DOM::Task& task )
+    {
+        const std::vector<DOM::Entry *> & entries = task.getEntryList();
+        for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
+            const DOM::Entry * entry = *nextEntry;
+	    if ( entry->isDefined() ) {
+		output << " " << entry->getName();
 	    }
-	}
-	return output;
+        }
+        output << " -1";
+        return output;
     }
 
-    ostream& 
-    SRVN::TaskInput::printGroup( ostream& output,  const DOM::Task& task ) 
-    { 
-	if ( task.getGroup() ) {
-	    output << " g "  << task.getGroup()->getName();
-	}
-	return output; 
+    ostream&
+    SRVN::TaskInput::printCopies( ostream& output, const DOM::Task & task )
+    {
+        if ( !task.isInfinite() ) {
+	    try {
+		output << Input::is_integer_and_gt( " m ", task.getCopies(), 1.0 );
+	    }
+	    catch ( const std::domain_error& e ) {
+		solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", task.getName().c_str(), e.what() );
+		throw_bad_parameter();
+	    }
+        }
+        return output;
     }
 
-    ostream& 
-    SRVN::TaskInput::printPriority( ostream& output,  const DOM::Task& task ) 
-    { 
-	if ( task.hasPriority() || task.getProcessor()->hasPriorityScheduling() ) {
-	    output << " " << *task.getPriority();
-	}
-	return output; 
+    ostream&
+    SRVN::TaskInput::printGroup( ostream& output,  const DOM::Task& task )
+    {
+        if ( task.getGroup() ) {
+            output << " g "  << task.getGroup()->getName();
+        }
+        return output;
     }
 
-    ostream& 
-    SRVN::TaskInput::printQueueLength( ostream& output,  const DOM::Task& task ) 
-    { 
-	if ( task.hasQueueLength() ) {
-	    output << " q " << *task.getQueueLength();
-	}
-	return output; 
+    ostream&
+    SRVN::TaskInput::printPriority( ostream& output,  const DOM::Task& task )
+    {
+        if ( task.hasPriority() || task.getProcessor()->hasPriorityScheduling() ) {
+	    try {
+		output << " " << Input::print_integer_parameter( task.getPriority(), 0 );
+	    }
+	    catch ( const std::domain_error& e ) {
+		solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", task.getName().c_str(), e.what() );
+		throw_bad_parameter();
+	    }
+        }
+        return output;
     }
 
-    ostream& 
-    SRVN::TaskInput::printThinkTime( ostream& output,  const DOM::Task & task ) 
-    { 
-	if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
-	    output << " z " << *task.getThinkTime();
+    ostream&
+    SRVN::TaskInput::printQueueLength( ostream& output,  const DOM::Task& task )
+    {
+        if ( task.hasQueueLength() ) {
+	    try {
+		output << " q " << Input::print_integer_parameter( task.getQueueLength(), 0 );
+	    }
+	    catch ( const std::domain_error& e ) {
+		solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", task.getName().c_str(), e.what() );
+		throw_bad_parameter();
+	    }
+        }
+        return output;
+    }
+
+    ostream&
+    SRVN::TaskInput::printReplicas( ostream& output, const DOM::Task & task )
+    {
+	try {
+	    output << Input::is_integer_and_gt( " r ", task.getReplicas(), 1.0 );
 	}
-	return output;
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", "task", task.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+        return output;
+    }
+
+    ostream&
+    SRVN::TaskInput::printThinkTime( ostream& output,  const DOM::Task & task )
+    {
+        if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
+            output << " z " << Input::print_integer_parameter( task.getThinkTime(), 0 );
+        }
+        return output;
     }
 
     void
     SRVN::TaskInput::printEntryInput( const DOM::Task& task ) const
     {
-	_output << "# ---------- " << task.getName() << " ----------" << endl;
-	const std::vector<DOM::Entry *> & entries = task.getEntryList();
-	for_each( entries.begin(), entries.end(), EntryInput( _output, _instantiate, &EntryInput::print ) );
+        _output << "# ---------- " << task.getName() << " ----------" << endl;
+        const std::vector<DOM::Entry *> & entries = task.getEntryList();
+        for_each( entries.begin(), entries.end(), EntryInput( _output, &EntryInput::print ) );
     }
 
     void
     SRVN::TaskInput::printActivityInput( const DOM::Task& task ) const
     {
-	const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
-	if ( activities.size() == 0 ) return;
+        const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
+        if ( activities.size() == 0 ) return;
 
-	_output << endl << "A " << task.getName() << endl;
-	for_each( activities.begin(), activities.end(), ActivityInput( _output, _instantiate, &ActivityInput::print ) );
+        _output << endl << "A " << task.getName() << endl;
+        for_each( activities.begin(), activities.end(), ActivityInput( _output, &ActivityInput::print ) );
 
-	const std::set<DOM::ActivityList*>& precedences = task.getActivityLists();
-	if ( precedences.size() ) {
-	    _output << " :" << endl;
-	    for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, _instantiate, &ActivityListInput::print, precedences.size() ) );
-	} else if ( activities.size() ) {
-	    const std::map<std::string,DOM::Activity*>::const_iterator i = activities.begin();
-	    const LQIO::DOM::Activity * activity = i->second;
-	    if ( activity->getReplyList().size() > 0 ) {
-		_output << " :" << endl << "  " << activity->getName();
-		printReplyList( activity->getReplyList() );
-		_output << endl;
-	    }
-	}
+        const std::set<DOM::ActivityList*>& precedences = task.getActivityLists();
+        if ( precedences.size() ) {
+            _output << " :" << endl;
+            for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size() ) );
+        } else if ( activities.size() ) {
+            const std::map<std::string,DOM::Activity*>::const_iterator i = activities.begin();
+            const DOM::Activity * activity = i->second;
+            if ( activity->getReplyList().size() > 0 ) {
+                _output << " :" << endl << "  " << activity->getName();
+                printReplyList( activity->getReplyList() );
+                _output << endl;
+            }
+        }
 
-	_output << "-1" << endl;
+        _output << "-1" << endl;
     }
 
     /* -------------------------------------------------------------------- */
     /* Entries                                                              */
     /* -------------------------------------------------------------------- */
-
-    SRVN::PhaseManip SRVN::EntryOutput::coefficient_of_variation( const DOM::Entry& e ) { return SRVN::PhaseManip( &SRVN::ObjectOutput::phaseInfo, e, &DOM::Phase::getCoeffOfVariationSquared ); }
-    SRVN::ResultsManip SRVN::EntryOutput::max_service_time( const DOM::Entry& e )       { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getMaxServiceTime ); }
-    SRVN::EntryManip SRVN::EntryOutput::open_arrivals( const DOM::Entry& e )            { return SRVN::EntryManip( &SRVN::ObjectOutput::entryInfo, e, &DOM::Entry::getOpenArrivalRate ); }
-    SRVN::PhaseTypeManip SRVN::EntryOutput::phase_type( const DOM::Entry& e )           { return SRVN::PhaseTypeManip( &SRVN::ObjectOutput::phaseTypeInfo, e, &DOM::Phase::getPhaseTypeFlag ); }
-    SRVN::PhaseManip SRVN::EntryOutput::service_demand( const DOM::Entry& e )           { return SRVN::PhaseManip( &SRVN::ObjectOutput::phaseInfo, e, &DOM::Phase::getServiceTime ); }
-    SRVN::PhaseManip SRVN::EntryOutput::think_time( const DOM::Entry& e )               { return SRVN::PhaseManip( &SRVN::ObjectOutput::phaseInfo, e, &DOM::Phase::getThinkTime ); }
 
     void
     SRVN::EntryOutput::operator()( const pair<unsigned, DOM::Entity *>& ep) const
@@ -2128,26 +2229,26 @@ namespace LQIO {
 
         const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
         if ( activities.size() > 0 && _activityFunc != NULL ) {
-	    std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
-	    bool found;
-	    if ( _testFunc ) {
-		found = false;
-		for ( nextActivity = activities.begin(); !found && nextActivity != activities.end(); ++nextActivity ) {
-		    if ( (this->*_testFunc)( *nextActivity->second ) ) found = true;
-		}
-	    } else {
-		found = true;
-	    }
-	    if ( found ) {
-		_output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
-		for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
-		    (this->*_activityFunc)( *nextActivity->second );
-		}
-	    }
+            std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
+            bool found;
+            if ( _testFunc ) {
+                found = false;
+                for ( nextActivity = activities.begin(); !found && nextActivity != activities.end(); ++nextActivity ) {
+                    if ( (this->*_testFunc)( *nextActivity->second ) ) found = true;
+                }
+            } else {
+                found = true;
+            }
+            if ( found ) {
+                _output << entity_name( *(ep.second), print_task_name ) << activity_separator(0) << newline;
+                for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
+                    (this->*_activityFunc)( *nextActivity->second );
+                }
+            }
         }
-	if ( _activityFunc != NULL && print_task_name == false && __parseable ) {
-	    _output << setw(__maxStrLen) << " " << activityEOF << newline;
-	}
+        if ( _activityFunc != NULL && print_task_name == false && __parseable ) {
+            _output << setw(__maxStrLen) << " " << activityEOF << newline;
+        }
         _output.flags(oldFlags);
     }
 
@@ -2157,7 +2258,7 @@ namespace LQIO {
     SRVN::EntryOutput::printEntryCoefficientOfVariation( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name  ) const
     {
         if ( entry.getStartActivity() == NULL ) {
-            _output << entity_name( entity, print_task_name ) << entry_name( entry ) << coefficient_of_variation( entry ) << newline;
+	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << coefficient_of_variation( entry ) << newline;
         }
     }
 
@@ -2165,16 +2266,16 @@ namespace LQIO {
     SRVN::EntryOutput::printEntryDemand( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name ) const
     {
         if ( entry.getStartActivity() == NULL ) {
-            _output << entity_name( entity, print_task_name ) << entry_name( entry ) << service_demand( entry ) << newline;
+	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << service_demand( entry ) << newline;
         }
     }
 
     void
     SRVN::EntryOutput::printEntryMaxServiceTime( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name  ) const
     {
-	if ( entry.hasMaxServiceTimeExceeded() ) {
-	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << max_service_time( entry ) << newline;
-	}
+        if ( entry.hasMaxServiceTimeExceeded() ) {
+            _output << entity_name( entity, print_task_name ) << entry_name( entry ) << max_service_time( entry ) << newline;
+        }
     }
 
     void
@@ -2189,7 +2290,7 @@ namespace LQIO {
     SRVN::EntryOutput::printEntryThinkTime( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name  ) const
     {
         if ( entry.getStartActivity() == NULL ) {
-            _output << entity_name( entity, print_task_name ) << entry_name( entry ) << think_time( entry ) << newline;
+	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << think_time( entry ) << newline;
         }
     }
 
@@ -2197,24 +2298,30 @@ namespace LQIO {
     SRVN::EntryOutput::printForwarding( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name ) const
     {
         const std::vector<DOM::Call *>& forwarding = entry.getForwarding();
-        if ( forwarding.size() > 0 ) {
-            std::vector<DOM::Call*>::const_iterator nextCall;
-            for (  nextCall = forwarding.begin(); nextCall != forwarding.end(); ++nextCall ) {
-                const DOM::Call * call = *nextCall;
-                const DOM::Entry * dest = call->getDestinationEntry();
-                _output << entity_name( entity, print_task_name )
-                        << entry_name( entry )
-                        << entry_name( *dest )
-                        << setw(__maxDblLen) << *call->getCallMean()
-                        << newline;
-            }
-        }
+	std::vector<DOM::Call*>::const_iterator nextCall;
+	for ( nextCall = forwarding.begin(); nextCall != forwarding.end(); ++nextCall ) {
+	    const DOM::Call * call = *nextCall;
+	    const DOM::Entry * dest = call->getDestinationEntry();
+	    _output << entity_name( entity, print_task_name )
+		    << entry_name( entry )
+		    << entry_name( *dest )
+		    << setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. )
+		    << newline;
+	}
     }
 
     void
     SRVN::EntryOutput::printOpenArrivals( const DOM::Entry & entry, const DOM::Entity & entity, bool& print_task_name  ) const
     {
-        _output << entity_name( entity, print_task_name ) << entry_name( entry ) << open_arrivals( entry ) << newline;
+	if ( !entry.hasOpenArrivalRate() ) return;
+
+	try {
+	    _output << entity_name( entity, print_task_name ) << entry_name( entry ) << open_arrivals( entry ) << newline;
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", "entry", entry.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
     }
 
     /* ---- Activities ---- */
@@ -2232,31 +2339,16 @@ namespace LQIO {
         case PHASE_DETERMINISTIC: _output << setw(__maxDblLen) << "determin";
         case PHASE_STOCHASTIC:    _output << setw(__maxDblLen) << "stochastic";
         }
-	_output << newline;
+        _output << newline;
     }
 
     void
     SRVN::EntryOutput::printActivity( const DOM::Activity& activity, const activityFunc func ) const
     {
-	const LQIO::DOM::ExternalVariable * var = (activity.*func)();
-        _output << setw(__maxStrLen) << " " << setw(__maxStrLen) << activity.getName() << setw(__maxDblLen);
-	if ( var ) {
-	    _output << *var ;
-	} else {
-	    _output << 0.0;
-	}
-	_output << newline;
+	_output << setw(__maxStrLen) << " " << setw(__maxStrLen) << activity.getName() << setw(__maxDblLen) << Input::print_double_parameter( (activity.*func)(), 0. ) << newline;
     }
 
     /* ---- Entry Results ---- */
-
-    SRVN::ResultsManip SRVN::EntryOutput::service_time( const DOM::Entry& e )           { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultServiceTime, &DOM::Entry::getResultPhasePServiceTime, false ); }
-    SRVN::ResultsManip SRVN::EntryOutput::service_time_exceeded( const DOM::Entry& e )  { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultMaxServiceTimeExceeded, 0 ); }
-    SRVN::ResultsManip SRVN::EntryOutput::variance_service_time( const DOM::Entry& e )  { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultVarianceServiceTime, &DOM::Entry::getResultPhasePVarianceServiceTime, true ); }
-
-    SRVN::ResultsConfidenceManip SRVN::EntryOutput::service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )           { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultServiceTimeVariance, &DOM::Entry::getResultPhasePServiceTimeVariance, c); }
-    SRVN::ResultsConfidenceManip SRVN::EntryOutput::service_time_exceeded_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )  { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultMaxServiceTimeExceededVariance, 0, c); }
-    SRVN::ResultsConfidenceManip SRVN::EntryOutput::variance_service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )  { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultVarianceServiceTimeVariance, &DOM::Entry::getResultPhasePVarianceServiceTimeVariance, c); }
 
     void
     SRVN::EntryOutput::printEntryThroughputBounds( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
@@ -2277,13 +2369,13 @@ namespace LQIO {
     void
     SRVN::EntryOutput::printEntryMaxServiceTimeExceeded( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
     {
-	if ( entry.hasMaxServiceTimeExceeded() ) {
-	    _output << entity_name(entity,print) << entry_name( entry ) << service_time_exceeded(entry) << newline;
-	    if ( __conf95 ) {
-		_output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_95 ) << service_time_exceeded_confidence(entry,__conf95) << newline;
-		_output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_99 ) << service_time_exceeded_confidence(entry,__conf99) << newline;
-	    }
-	}
+        if ( entry.hasMaxServiceTimeExceeded() ) {
+            _output << entity_name(entity,print) << entry_name( entry ) << service_time_exceeded(entry) << newline;
+            if ( __conf95 ) {
+                _output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_95 ) << service_time_exceeded_confidence(entry,__conf95) << newline;
+                _output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_99 ) << service_time_exceeded_confidence(entry,__conf99) << newline;
+            }
+        }
     }
 
     void
@@ -2291,28 +2383,28 @@ namespace LQIO {
     {
         _output << entity_name(entity,print) << entry_name( entry ) << variance_service_time(entry);
 
-	double value = 0.0;
-	if ( !__parseable ) {
-	    value = entry.getResultSquaredCoeffVariation();
-	    if ( !value ) {
-		/* Recompute based on variance */
-		const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-		assert( phases.size() <= DOM::Phase::MAX_PHASE );
-		double sum_of_t = 0;
-		double sum_of_v = 0;
-		for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		    const DOM::Phase* phase = p->second;
-		    if ( !phase ) continue;
-		    sum_of_t += phase->getResultServiceTime();
-		    sum_of_v += phase->getResultVarianceServiceTime();
-		}
-		if ( sum_of_t > 0 ) {
-		    value = sum_of_v / ( sum_of_t * sum_of_t );
-		}
-	    }
-	    _output << setw(__maxDblLen) << value;
-	}
-	_output << newline;
+        double value = 0.0;
+        if ( !__parseable ) {
+            value = entry.getResultSquaredCoeffVariation();
+            if ( !value ) {
+                /* Recompute based on variance */
+                const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+                assert( phases.size() <= DOM::Phase::MAX_PHASE );
+                double sum_of_t = 0;
+                double sum_of_v = 0;
+                for ( std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                    const DOM::Phase* phase = p->second;
+                    if ( !phase ) continue;
+                    sum_of_t += phase->getResultServiceTime();
+                    sum_of_v += phase->getResultVarianceServiceTime();
+                }
+                if ( sum_of_t > 0 ) {
+                    value = sum_of_v / ( sum_of_t * sum_of_t );
+                }
+            }
+            _output << setw(__maxDblLen) << value;
+        }
+        _output << newline;
 
         value = entry.getResultSquaredCoeffVariationVariance();
         if ( __conf95 ) {
@@ -2334,23 +2426,46 @@ namespace LQIO {
     void
     SRVN::EntryOutput::printOpenQueueWait( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
     {
-	if ( !entry.hasOpenArrivalRate() ) return;
+        if ( !entry.hasOpenArrivalRate() ) return;
 
         _output << entity_name( entity, print )
-		<< entry_name( entry )
+                << entry_name( entry )
                 << setw(__maxDblLen-1) << entry.getResultThroughput() << " "
-                << setw(__maxDblLen-1) << entry.getResultOpenWaitTime() << newline;
+                << setw(__maxDblLen-1) << entry.getResultWaitingTime() << newline;
         if ( __conf95 ) {
             _output << conf_level( __maxStrLen * 2, ConfidenceIntervals::CONF_95 )
-                    << setw(__maxDblLen) << " "		/* Input parameter, so ignore it */
-                    << setw(__maxDblLen-1) << (*__conf95)(entry.getResultOpenWaitTimeVariance()) << newline;
+                    << setw(__maxDblLen) << " "         /* Input parameter, so ignore it */
+                    << setw(__maxDblLen-1) << (*__conf95)(entry.getResultWaitingTimeVariance()) << newline;
         }
         if ( __conf99 ) {
             _output << conf_level( __maxStrLen * 2, ConfidenceIntervals::CONF_99 )
                     << setw(__maxDblLen) << " "
-                    << setw(__maxDblLen-1) << (*__conf99)(entry.getResultOpenWaitTimeVariance()) << newline;
+                    << setw(__maxDblLen-1) << (*__conf99)(entry.getResultWaitingTimeVariance()) << newline;
         }
     }
+
+    void
+    SRVN::EntryOutput::printForwardingWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
+    {
+	const std::vector<DOM::Call *>& forwarding = entry.getForwarding();
+	for ( std::vector<DOM::Call *>::const_iterator call = forwarding.begin(); call != forwarding.end(); ++call ) {
+	    _output << entity_name( entity, print )
+		    << entry_name( entry )
+		    << entry_name( *(*call)->getDestinationEntry() )
+		    << setw(__maxDblLen) << (*call)->getResultWaitingTime()
+		    << newline;
+	    if ( __conf95 ) {
+		_output << conf_level( __maxStrLen * 3, ConfidenceIntervals::CONF_95 )
+			<< setw(__maxDblLen) << (*__conf95)((*call)->getResultWaitingTimeVariance()) << newline;
+	    }
+	    if ( __conf99 ) {
+		_output << conf_level( __maxStrLen * 3, ConfidenceIntervals::CONF_99 )
+			<< setw(__maxDblLen) << (*__conf99)((*call)->getResultWaitingTimeVariance()) << newline;
+	    }
+	    
+	}
+    }
+    
 
     /* ---------- Activity Results ---------- */
 
@@ -2363,170 +2478,181 @@ namespace LQIO {
     SRVN::EntryOutput::activityResults( const DOM::Activity& activity, const doubleActivityFunc mean,  const doubleActivityFunc variance ) const
     {
         _output << setw(__maxStrLen) << " " << setw(__maxStrLen-1) << activity.getName() << " " << setw(__maxDblLen) << (activity.*mean)() << activityEOF << newline;
-	if ( __conf95 && variance ) {
+        if ( __conf95 && variance ) {
             _output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_95 )
-		    << setw(__maxDblLen) << (*__conf95)((activity.*variance)()) << activityEOF << newline;
-	}
-	if ( __conf99 && variance ) {
+                    << setw(__maxDblLen) << (*__conf95)((activity.*variance)()) << activityEOF << newline;
+        }
+        if ( __conf99 && variance ) {
             _output << conf_level( __maxStrLen*2, ConfidenceIntervals::CONF_99 )
-		    << setw(__maxDblLen) << (*__conf99)((activity.*variance)()) << activityEOF << newline;
-	}
+                    << setw(__maxDblLen) << (*__conf99)((activity.*variance)()) << activityEOF << newline;
+        }
     }
 
     bool
     SRVN::EntryOutput::testForActivityResults( const DOM::Activity& activity, const boolActivityFunc tf ) const
     {
-	return !tf || (activity.*tf)();
+        return !tf || (activity.*tf)();
     }
 
     void
     SRVN::EntryInput::operator()( const DOM::Entry * entry ) const
     {
-	(this->*_entryFunc)( *entry );
+        (this->*_entryFunc)( *entry );
     }
-    
+
     void
     SRVN::EntryInput::print( const DOM::Entry& entry ) const
     {
-	if ( entry.hasOpenArrivalRate() ) {
-	    _output << "  a " << entry.getName() << " " << entry.getOpenArrivalRateValue() << endl;
-	}
+	if ( !entry.isDefined() ) return;
 
-	switch ( entry.getSemaphoreFlag() ) {
-	case SEMAPHORE_SIGNAL: _output << "  P " << entry.getName() << endl; break;
-	case SEMAPHORE_WAIT:   _output << "  V " << entry.getName() << endl; break;
-	default: break;
-	}
-	switch ( entry.getRWLockFlag() ) {
-	case RWLOCK_R_UNLOCK: _output << "  U " << entry.getName() << endl; break;
-	case RWLOCK_R_LOCK:   _output << "  R " << entry.getName() << endl; break;
-	case RWLOCK_W_UNLOCK: _output << "  X " << entry.getName() << endl; break;
-	case RWLOCK_W_LOCK:   _output << "  W " << entry.getName() << endl; break;
-	default: break;
-	}
-
-	if ( entry.getStartActivity() ) {
-	    _output << "  A " << entry.getName() << " " << entry.getStartActivity()->getName() << endl;
-	    if ( entry.hasHistogram() ) {
-		/* BUG_668 */
-		for ( unsigned p = 1; p <= DOM::Phase::MAX_PHASE; ++p ) {
-		    if ( entry.hasHistogramForPhase( p ) ) {
-			const DOM::Histogram *h = entry.getHistogramForPhase( p );
-			_output << "  H " << entry.getName() << " " << p << " " << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
-		    }
-		}
+        if ( entry.hasOpenArrivalRate() ) {
+	    try {
+		_output << "  a " << entry.getName() << " " << Input::print_double_parameter( entry.getOpenArrivalRate(), 0. ) << endl;
 	    }
-	    printForwarding( entry );
-
-	} else {
-	    const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
-
-	    _output << "  s " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-	    for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printServiceTime ) );
-	    _output << " -1";
-	    if ( !_instantiate ) {
-		LQIO::DOM::Spex::printObservationVariables( _output, entry );
+	    catch ( const std::domain_error& e ) {
+		solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", "entry", entry.getName().c_str(), e.what() );
 	    }
+        }
+
+        switch ( entry.getSemaphoreFlag() ) {
+        case SEMAPHORE_SIGNAL: _output << "  P " << entry.getName() << endl; break;
+        case SEMAPHORE_WAIT:   _output << "  V " << entry.getName() << endl; break;
+        default: break;
+        }
+        switch ( entry.getRWLockFlag() ) {
+        case RWLOCK_R_UNLOCK: _output << "  U " << entry.getName() << endl; break;
+        case RWLOCK_R_LOCK:   _output << "  R " << entry.getName() << endl; break;
+        case RWLOCK_W_UNLOCK: _output << "  X " << entry.getName() << endl; break;
+        case RWLOCK_W_LOCK:   _output << "  W " << entry.getName() << endl; break;
+        default: break;
+        }
+
+        if ( entry.getStartActivity() ) {
+            _output << "  A " << entry.getName() << " " << entry.getStartActivity()->getName() << endl;
+            if ( entry.hasHistogram() ) {
+                /* BUG_668 */
+                for ( unsigned p = 1; p <= DOM::Phase::MAX_PHASE; ++p ) {
+                    if ( entry.hasHistogramForPhase( p ) ) {
+                        const DOM::Histogram *h = entry.getHistogramForPhase( p );
+                        _output << "  H " << entry.getName() << " " << p << " " << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
+                    }
+                }
+            }
+            printForwarding( entry );
+
+        } else {
+            const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+            assert( phases.size() <= DOM::Phase::MAX_PHASE );
+
+            _output << "  s " << setw( ObjectInput::__maxEntLen ) << entry.getName();
+            for_each( phases.begin(), phases.end(), PhaseInput( _output, &PhaseInput::printServiceTime ) );
+            _output << " -1";
+            if ( !entry.getDocument()->instantiated() ) {
+                printObservationVariables( _output, entry );
+            }
 	    _output << endl;
 
-	    if ( entry.hasNonExponentialPhases() ) {
-		_output << "  c " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printCoefficientOfVariation ) );
-		_output << " -1" << endl;
-	    }
-	    if ( entry.hasThinkTime() ) {
-		_output << "  Z " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printThinkTime ) );
-		_output << " -1" << endl;
-	    }
-	    if ( entry.hasDeterministicPhases() ) {
-		_output << "  f " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printPhaseFlag ) );
-		_output << " -1" << endl;
-	    }
-	    if ( entry.hasMaxServiceTimeExceeded() ) {
-		_output << "  M " << setw( ObjectInput::__maxEntLen ) << entry.getName();
-		for_each( phases.begin(), phases.end(), PhaseInput( _output, _instantiate, &PhaseInput::printMaxServiceTimeExceeded ) );
-		_output << " -1" << endl;
-	    }
-	    if ( entry.hasHistogram() ) {
-		/* Histograms are stored by phase for regular entries.  Activity entries don't have phases...  Punt... */
-		for ( std::map<unsigned, DOM::Phase*>::const_iterator np = phases.begin(); np != phases.end();  ++np ) {
-		    const DOM::Phase * p = np->second;
-		    if ( p->hasHistogram() ) {
-			const DOM::Histogram *h = p->getHistogram();
-			_output << "  H " << entry.getName() << " " << np->first << " " << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
-		    }
-		}
-	    }
-	    printForwarding( entry );
-	    printCalls( entry );
-	}
+            if ( entry.hasNonExponentialPhases() ) {
+                _output << "  c " << setw( ObjectInput::__maxEntLen ) << entry.getName();
+                for_each( phases.begin(), phases.end(), PhaseInput( _output, &PhaseInput::printCoefficientOfVariation ) );
+                _output << " -1" << endl;
+            }
+            if ( entry.hasThinkTime() ) {
+                _output << "  Z " << setw( ObjectInput::__maxEntLen ) << entry.getName();
+                for_each( phases.begin(), phases.end(), PhaseInput( _output, &PhaseInput::printThinkTime ) );
+                _output << " -1" << endl;
+            }
+            if ( entry.hasDeterministicPhases() ) {
+                _output << "  f " << setw( ObjectInput::__maxEntLen ) << entry.getName();
+                for_each( phases.begin(), phases.end(), PhaseInput( _output, &PhaseInput::printPhaseFlag ) );
+                _output << " -1" << endl;
+            }
+            if ( entry.hasMaxServiceTimeExceeded() ) {
+                _output << "  M " << setw( ObjectInput::__maxEntLen ) << entry.getName();
+                for_each( phases.begin(), phases.end(), PhaseInput( _output, &PhaseInput::printMaxServiceTimeExceeded ) );
+                _output << " -1" << endl;
+            }
+            if ( entry.hasHistogram() ) {
+                /* Histograms are stored by phase for regular entries.  Activity entries don't have phases...  Punt... */
+                for ( std::map<unsigned, DOM::Phase*>::const_iterator np = phases.begin(); np != phases.end();  ++np ) {
+                    const DOM::Phase * p = np->second;
+                    if ( p->hasHistogram() ) {
+                        const DOM::Histogram *h = p->getHistogram();
+                        _output << "  H " << entry.getName() << " " << np->first << " " << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
+                    }
+                }
+            }
+            printForwarding( entry );
+            printCalls( entry );
+        }
     }
 
 
-    void SRVN::EntryInput::printForwarding( const DOM::Entry& entry ) const 
-    { 
-	/* Forwarding */
+    void SRVN::EntryInput::printForwarding( const DOM::Entry& entry ) const
+    {
+        /* Forwarding */
 
-	const std::vector<DOM::Call*>& fwds = entry.getForwarding();
-	for ( std::vector<DOM::Call*>::const_iterator nextFwd = fwds.begin(); nextFwd != fwds.end(); ++nextFwd ) {
-	    const DOM::Call * fwd = *nextFwd;
-	    _output << "  F " << setw( ObjectInput::__maxEntLen ) << entry.getName() 
-		    << " " << setw( ObjectInput::__maxEntLen ) << fwd->getDestinationEntry()->getName() << number_of_calls( *fwd ) << " -1" << endl;
-	}
+        const std::vector<DOM::Call*>& fwds = entry.getForwarding();
+        for ( std::vector<DOM::Call*>::const_iterator nextFwd = fwds.begin(); nextFwd != fwds.end(); ++nextFwd ) {
+            const DOM::Call * fwd = *nextFwd;
+	    const LQIO::DOM::Entry * dst = fwd->getDestinationEntry();
+	    try {
+		_output << "  F " << setw( ObjectInput::__maxEntLen ) << entry.getName()
+			<< " " << setw( ObjectInput::__maxEntLen ) << dst->getName() << number_of_calls( fwd ) << " -1" << endl;
+	    }
+	    catch ( const std::domain_error& e ) {
+		LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, entry.getName().c_str(), dst->getName().c_str(), e.what() );
+		throw_bad_parameter();
+	    }
+        }
     }
 
-    void SRVN::EntryInput::printCalls( const DOM::Entry& entry ) const 
-    { 
-	/* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
+    void SRVN::EntryInput::printCalls( const DOM::Entry& entry ) const
+    {
+        /* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
 
-	std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
-	const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
-	assert( phases.size() <= DOM::Phase::MAX_PHASE );
-	for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-	    const DOM::Phase* phase = p->second;
-	    const unsigned index = p->first;
-	    const std::vector<DOM::Call *>& calls = phase->getCalls();
-	    for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
-		const DOM::Call * call = *nextCall;
-		const DOM::Entry * dest = call->getDestinationEntry();
-		DOM::ForPhase& y = callsByPhase[dest];
-		y.setType( call->getCallType() ); 
-		y[index] = call;
-	    }
-	}
+        std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
+        const std::map<unsigned, DOM::Phase*>& phases = entry.getPhaseList();
+        assert( phases.size() <= DOM::Phase::MAX_PHASE );
+	for_each( phases.begin(), phases.end(), DOM::CollectCalls( callsByPhase ) );		/* Don't care about type of call here */
 
-	/* Now iterate over the collection of calls */
+        /* Now iterate over the collection of calls */
 
-	for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
-	    const DOM::ForPhase& callInfo = next_y->second;
-	    _output << "  ";
-	    switch ( callInfo.getType() ) {
-	    case DOM::Call::RENDEZVOUS: _output << "y"; break;
-	    case DOM::Call::SEND_NO_REPLY: _output << "z"; break;
-	    default: abort();
-	    }
-	    _output << " " << setw( ObjectInput::__maxEntLen ) << entry.getName() 
-		    << " " << setw( ObjectInput::__maxEntLen ) << (next_y->first)->getName();
-	    for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		const DOM::Call * call = callInfo[p->first];
-		if ( call ) {
-		    _output << number_of_calls( *call );
-		} else {
-		    _output << " 0";
+        for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+	    const DOM::Entry * dst = next_y->first;
+            const DOM::ForPhase& calls_by_phase = next_y->second;
+            _output << "  ";
+            switch ( calls_by_phase.getType() ) {
+            case DOM::Call::RENDEZVOUS: _output << "y"; break;
+            case DOM::Call::SEND_NO_REPLY: _output << "z"; break;
+            default: abort();
+            }
+            _output << " " << setw( ObjectInput::__maxEntLen ) << entry.getName()
+                    << " " << setw( ObjectInput::__maxEntLen ) << dst->getName();
+	    unsigned int n = 0;
+            for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p, ++n ) {
+		static const char * const phase[] = { "1", "2", "3" };
+		try {
+		    _output << number_of_calls( calls_by_phase[p->first] );
+		}
+		catch ( const std::domain_error& e ) {
+		    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER,
+					  "entry", entry.getName().c_str(),
+					  "phase", phase[n],
+					  dst->getName().c_str(), e.what() );
+		    throw_bad_parameter();
 		}
 	    }
-	
-	    _output << " -1";
-	    if ( !_instantiate ) {
-		for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-		    const DOM::Call * call = callInfo[p->first];
-		    LQIO::DOM::Spex::printObservationVariables( _output, *call );
-		}
-	    }
-	    _output << endl;
+            _output << " -1";
+            if ( !entry.getDocument()->instantiated() ) {
+                for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                    const DOM::Call * call = calls_by_phase[p->first];
+		    if ( call ) {
+			printObservationVariables( _output, *call );
+		    }
+                }
+            }
+            _output << endl;
         }
     }
 
@@ -2534,39 +2660,57 @@ namespace LQIO {
     SRVN::PhaseInput::operator()( const std::pair<unsigned,DOM::Phase *>& p ) const
     {
         ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-	(this->*_func)( *(p.second) );
+        (this->*_func)( *(p.second) );
         _output.flags(oldFlags);
     }
 
-    void SRVN::PhaseInput::printCoefficientOfVariation( const DOM::Phase& p ) const { _output << " " << setw(ObjectInput::__maxInpLen) << p.getCoeffOfVariationSquaredValue(); }
-    void SRVN::PhaseInput::printMaxServiceTimeExceeded( const DOM::Phase& p ) const { _output << " " << setw(ObjectInput::__maxInpLen) << p.getMaxServiceTime(); }
-    void SRVN::PhaseInput::printPhaseFlag( const DOM::Phase& p ) const    	    { _output << " " << setw(ObjectInput::__maxInpLen) << (p.hasDeterministicCalls() ? "1" : "0"); }
-
-    void SRVN::PhaseInput::printServiceTime( const DOM::Phase& p ) const
-    { 
-	const DOM::ExternalVariable* var = p.getServiceTime();
-	double val = 0;
-	_output << " " << setw(ObjectInput::__maxInpLen);
-	if ( !var ) {
-	    _output << "0";
-	} else if ( var->wasSet() && var->getValue( val ) ) {
-	    _output << val;
-	} else {
-	    _output << *var;
+    void SRVN::PhaseInput::printCoefficientOfVariation( const DOM::Phase& p ) const
+    {
+	try {
+	    _output << " " << setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getCoeffOfVariationSquared(), 0. );
 	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+	    
     }
 
+    void SRVN::PhaseInput::printMaxServiceTimeExceeded( const DOM::Phase& p ) const
+    {
+	try {
+	    _output << " " << setw(ObjectInput::__maxInpLen) << p.getMaxServiceTime();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "Exceeded", p.getTypeName(), p.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    
+    void SRVN::PhaseInput::printPhaseFlag( const DOM::Phase& p ) const
+    {
+	_output << " " << setw(ObjectInput::__maxInpLen) << (p.hasDeterministicCalls() ? "1" : "0");
+    }
+    
+    void SRVN::PhaseInput::printServiceTime( const DOM::Phase& p ) const
+    {
+	try {
+	    _output << " " << setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getServiceTime(), 0. );
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", p.getTypeName(), p.getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    
     void SRVN::PhaseInput::printThinkTime( const DOM::Phase& p ) const
-    { 
-	const DOM::ExternalVariable* var = p.getThinkTime();
-	double val = 0;
-	_output << " " << setw(ObjectInput::__maxInpLen);
-	if ( !var ) {
-	    _output << "0";
-	} else if ( var->wasSet() && var->getValue( val ) ) {
-	    _output << val;
-	} else {
-	    _output << *var;
+    {
+	try {
+	    _output << " " << setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getThinkTime(), 0. );
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
+	    throw_bad_parameter();
 	}
     }
 
@@ -2574,168 +2718,156 @@ namespace LQIO {
     SRVN::ActivityInput::operator()( const std::pair<std::string,DOM::Activity *>& a ) const
     {
         ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-	(this->*_func)( *(a.second) );
+        (this->*_func)( *(a.second) );
         _output.flags(oldFlags);
     }
 
     void
     SRVN::ActivityInput::print( const DOM::Activity& activity ) const
     {
-	_output << "  s " << activity.getName();
-	printServiceTime( activity );
-	if ( !_instantiate ) {
-	    DOM::Spex::printObservationVariables( _output, activity );
+        _output << "  s " << activity.getName();
+        printServiceTime( activity );
+	if ( !activity.getDocument()->instantiated() ) {
+	    printObservationVariables( _output, activity );
 	}
-	_output << endl;
-	if ( activity.isNonExponential() ) {
-	    _output << "  c " << activity.getName();
-	    printCoefficientOfVariation( activity );
-	    _output << endl;
-	}
-	if ( activity.hasThinkTime() ) {
-	    _output << "  Z " << activity.getName();
-	    printThinkTime( activity );
-	    _output << endl;
-	}
-	if ( activity.hasDeterministicCalls() ) {
-	    _output << "  f " << activity.getName();
-	    printPhaseFlag( activity );
-	    _output << endl;
-	}
-	if ( activity.hasMaxServiceTimeExceeded() ) {
-	    _output << "  M " << activity.getName();
-	    printMaxServiceTimeExceeded( activity );
-	    _output << endl;
-	}
-	if ( activity.hasHistogram() ) {
-	    const DOM::Histogram *h = activity.getHistogram();
-	    _output << "  H " << activity.getName() << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
-	}
-	printCalls( activity );
+        _output << endl;
+        if ( activity.isNonExponential() ) {
+            _output << "  c " << activity.getName();
+            printCoefficientOfVariation( activity );
+            _output << endl;
+        }
+        if ( activity.hasThinkTime() ) {
+            _output << "  Z " << activity.getName();
+            printThinkTime( activity );
+            _output << endl;
+        }
+        if ( activity.hasDeterministicCalls() ) {
+            _output << "  f " << activity.getName();
+            printPhaseFlag( activity );
+            _output << endl;
+        }
+        if ( activity.hasMaxServiceTimeExceeded() ) {
+            _output << "  M " << activity.getName();
+            printMaxServiceTimeExceeded( activity );
+            _output << endl;
+        }
+        if ( activity.hasHistogram() ) {
+            const DOM::Histogram *h = activity.getHistogram();
+            _output << "  H " << activity.getName() << h->getMin() << " : " <<  h->getMax() << " " << h->getBins() << endl;
+        }
+        const std::vector<DOM::Call *>& calls = activity.getCalls();
+	for_each( calls.begin(), calls.end(), ActivityCallInput( _output, &ActivityCallInput::print ) );
     }
 
-    void
-    SRVN::ActivityInput::printCalls( const DOM::Activity& activity ) const
-    {
-	const std::vector<DOM::Call *>& calls = activity.getCalls();
-	for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
-	    const DOM::Call * call = *nextCall;
-	    _output << "  " << call_type( *call ) << " " << activity.getName() << " " << call->getDestinationEntry()->getName() << number_of_calls( *call );
-	    if ( !_instantiate ) {
-		DOM::Spex::printObservationVariables( _output, *call );
-	    }
-	    _output << endl;
-	}
-    }
 
     void
     SRVN::ActivityListInput::operator()( const DOM::ActivityList * precedence ) const
     {
         ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
-	(this->*_func)( *precedence );
+        (this->*_func)( *precedence );
         _output.flags(oldFlags);
     }
 
     void
     SRVN::ActivityListInput::print( const DOM::ActivityList& precedence ) const
     {
-	if ( precedence.isForkList() ) return;
+        if ( precedence.isForkList() ) return;
 
-	_output << " ";
-	printPreList( precedence );
-	if ( precedence.getNext() ) {
-	    _output << " -> ";
-	    printPostList( *precedence.getNext() );
-	    _count += 2;
-	} else {
-	    _count += 1;
-	}
-	if ( _count < _size ) {
-	    _output << ";";
-	}
-	_output << endl;
+        _output << " ";
+        printPreList( precedence );
+        if ( precedence.getNext() ) {
+            _output << " -> ";
+            printPostList( *precedence.getNext() );
+            _count += 2;
+        } else {
+            _count += 1;
+        }
+        if ( _count < _size ) {
+            _output << ";";
+        }
+        _output << endl;
     }
 
     void
-    SRVN::ActivityListInput::printPreList( const DOM::ActivityList& precedence ) const		/* joins */
+    SRVN::ActivityListInput::printPreList( const DOM::ActivityList& precedence ) const          /* joins */
     {
-	const std::vector<const DOM::Activity*>& list = precedence.getList();
-	for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
-	    const DOM::Activity * activity = *next_activity;
-	    switch ( precedence.getListType() ) {
-	    case DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
-		if ( next_activity != list.begin() ) {
-		    _output << " &";
-		}
-		break;
+        const std::vector<const DOM::Activity*>& list = precedence.getList();
+        for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
+            const DOM::Activity * activity = *next_activity;
+            switch ( precedence.getListType() ) {
+            case DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
+                if ( next_activity != list.begin() ) {
+                    _output << " &";
+                }
+                break;
 
-	    case DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
-		if ( next_activity != list.begin() ) {
-		    _output << " +";
-		}
-		break;
+            case DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
+                if ( next_activity != list.begin() ) {
+                    _output << " +";
+                }
+                break;
 
-	    case DOM::ActivityList::JOIN_ACTIVITY_LIST:
-		break;
+            case DOM::ActivityList::JOIN_ACTIVITY_LIST:
+                break;
 
-	    default:
-		abort();
-	    }
+            default:
+                abort();
+            }
 
-	    _output << " " << activity->getName();
-	    const std::vector<DOM::Entry*>& replies = activity->getReplyList();
-	    if ( replies.size() ) {
-		printReplyList( replies );
-	    }
-	}
+            _output << " " << activity->getName();
+            const std::vector<DOM::Entry*>& replies = activity->getReplyList();
+            if ( replies.size() ) {
+                printReplyList( replies );
+            }
+        }
     }
 
     void
-    SRVN::ActivityListInput::printPostList( const DOM::ActivityList& precedence ) const		/* forks */
+    SRVN::ActivityListInput::printPostList( const DOM::ActivityList& precedence ) const         /* forks */
     {
-	const DOM::Activity * end_activity = 0;
-	bool first = true;
+        const DOM::Activity * end_activity = 0;
+        bool first = true;
 
-	const std::vector<const DOM::Activity*>& list = precedence.getList();
-	for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
-	    const DOM::Activity * activity = *next_activity;
-	    switch ( precedence.getListType() ) {
-	    case DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
-		if ( !first ) {
-		    _output << " & ";
-		}
-		break;
+        const std::vector<const DOM::Activity*>& list = precedence.getList();
+        for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
+            const DOM::Activity * activity = *next_activity;
+            switch ( precedence.getListType() ) {
+            case DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
+                if ( !first ) {
+                    _output << " & ";
+                }
+                break;
 
-	    case DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
-		if ( !first ) {
-		    _output << " + ";
-		}
-		_output << "(" << precedence.getParameterValue( activity ) << ") ";
-		break;
+            case DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
+                if ( !first ) {
+                    _output << " + ";
+                }
+                _output << "(" << precedence.getParameterValue( activity ) << ") ";
+                break;
 
-	    case DOM::ActivityList::FORK_ACTIVITY_LIST:
-		break;
+            case DOM::ActivityList::FORK_ACTIVITY_LIST:
+                break;
 
-	    case DOM::ActivityList::REPEAT_ACTIVITY_LIST:
-		if ( precedence.getParameter( activity ) == NULL ) {
-		    end_activity = activity;
-		    continue;
-		} 
-		if ( !first ) {
-		    _output << " , ";
-		}
-		_output << precedence.getParameterValue( activity ) << " * ";
-		break;
+            case DOM::ActivityList::REPEAT_ACTIVITY_LIST:
+                if ( precedence.getParameter( activity ) == NULL ) {
+                    end_activity = activity;
+                    continue;
+                }
+                if ( !first ) {
+                    _output << " , ";
+                }
+                _output << precedence.getParameterValue( activity ) << " * ";
+                break;
 
-	    default:
-		abort();
-	    }
-	    _output << activity->getName();
-	    first = false;
-	}
-	if ( end_activity ) {
-	    _output << ", " << end_activity->getName();
-	}
+            default:
+                abort();
+            }
+            _output << activity->getName();
+            first = false;
+        }
+        if ( end_activity ) {
+            _output << ", " << end_activity->getName();
+        }
     }
 
     /* -------------------------------------------------------------------- */
@@ -2744,6 +2876,8 @@ namespace LQIO {
 
     /*
      * This one is tortuous because a given phase may call lots of different entries.
+     * Note that if _meanFunc is NOT set, this function simply counts the number
+     * of calls.
      */
 
     void
@@ -2762,54 +2896,48 @@ namespace LQIO {
             /* Gather up all the call info over all phases and store in new map<to_entry,call*[3]>. */
             std::map<const DOM::Entry *, DOM::ForPhase> callsByPhase;
             const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
-	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
-            for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
-                const DOM::Phase* phase = p->second;
-                const unsigned index = p->first;
-                const std::vector<DOM::Call *>& calls = phase->getCalls();
-                for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
-                    const DOM::Call * call = *nextCall;
-                    if ( call && (call->*_testFunc)() ) {
-                        const DOM::Entry * dest = call->getDestinationEntry();
-                        DOM::ForPhase& y = callsByPhase[dest];
-                        y[index] = call;
-                    }
-                }
-            }
+            assert( phases.size() <= DOM::Phase::MAX_PHASE );
+	    for_each( phases.begin(), phases.end(), DOM::CollectCalls( callsByPhase, _testFunc ) );
 
             /* Now iterate over the collection of calls */
-            for ( std::map<const DOM::Entry *, DOM::ForPhase>::const_iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
-                const DOM::ForPhase& callInfo = next_y->second;
-		const_cast<DOM::ForPhase *>(&callInfo)->setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
-                _output << entity_name( *(ep.second), print_task_name )
-                        << entry_name( *entry ) 
-                        << entry_name( *(next_y->first) )
-                        << print_calls( *this, callInfo, _meanFunc) << newline;
-                if ( _confFunc && __conf95 ) {
-                    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
-                            << print_calls( *this, callInfo, _confFunc, __conf95 ) << newline;
-                }
-                if ( _confFunc && __conf99 ) {
-                    _output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
-                            << print_calls( *this, callInfo, _confFunc, __conf99 ) << newline;
-                }
-            }
+	    if ( _meanFunc ) {
+		for ( std::map<const DOM::Entry *, DOM::ForPhase>::iterator next_y = callsByPhase.begin(); next_y != callsByPhase.end(); ++next_y ) {
+		    DOM::ForPhase& calls_by_phase = next_y->second;
+		    calls_by_phase.setMaxPhase( __parseable ? __maxPhase : entry->getMaximumPhase() );
+		    _output << entity_name( *(ep.second), print_task_name )
+			    << entry_name( *entry )
+			    << entry_name( *(next_y->first) )
+			    << print_calls( *this, calls_by_phase, _meanFunc) << newline;
+		    if ( _confFunc && __conf95 ) {
+			_output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_95 )
+				<< print_calls( *this, calls_by_phase, _confFunc, __conf95 ) << newline;
+		    }
+		    if ( _confFunc && __conf99 ) {
+			_output << conf_level( __maxStrLen*3, ConfidenceIntervals::CONF_99 )
+				<< print_calls( *this, calls_by_phase, _confFunc, __conf99 ) << newline;
+		    }
+		}
+            } else {
+		_count += callsByPhase.size();
+	    }
         }
         /* Now repeat for activities */
         const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
         if ( activities.size() > 0 ) {
-	    unsigned count = 0;
+            unsigned count = 0;
             std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
             for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
                 const DOM::Activity * activity = nextActivity->second;
                 const std::vector<DOM::Call *>& calls = activity->getCalls();
                 for ( std::vector<DOM::Call*>::const_iterator nextCall = calls.begin(); nextCall != calls.end(); ++nextCall ) {
                     const DOM::Call * call = *nextCall;
-                    const DOM::Entry * dest = call->getDestinationEntry();
-                    if ( call && (call->*_testFunc)() ) {
+		    if ( call == NULL || !(call->*_testFunc)() ) {
+			continue;
+		    } else if ( _meanFunc ) {
+			const DOM::Entry * dest = call->getDestinationEntry();
                         if ( count == 0 ) {
                             _output << entity_name( *(ep.second), print_task_name ) << activity_separator(__maxStrLen) << newline;
-			    count += 1;
+                            count += 1;
                         }
                         _output << setw(__maxStrLen) << " "  << setw(__maxStrLen-1) << activity->getName() << " " << entry_name( *dest ) << setw(__maxDblLen-1);
                         (this->*_meanFunc)( call, 0 );
@@ -2824,16 +2952,18 @@ namespace LQIO {
                             (this->*_confFunc)( call, __conf99 );
                             _output << " " << activityEOF << newline;
                         }
-                    }
+                    } else {
+			_count += 1;
+		    }
                 }
             }
-	    if ( __parseable && count > 1 ) {
-		_output << setw(__maxStrLen) << " " << activityEOF << newline;
-	    }
+            if ( __parseable && _meanFunc && count > 1 ) {
+                _output << setw(__maxStrLen) << " " << activityEOF << newline;
+            }
         }
-	if ( __parseable && print_task_name == false ) {
-	    _output << setw(__maxStrLen) << " " << activityEOF << newline;
-	}
+        if ( __parseable && _meanFunc && print_task_name == false ) {
+            _output << setw(__maxStrLen) << " " << activityEOF << newline;
+        }
         _output.flags(oldFlags);
     }
 
@@ -2841,9 +2971,8 @@ namespace LQIO {
     void
     SRVN::CallOutput::printCallRate( const DOM::Call * call, const ConfidenceIntervals* ) const
     {
-        const DOM::ExternalVariable * value = 0;
-        if ( call && (value = call->getCallMean()) != 0 ) {
-            _output << to_double( *value );
+        if ( call ) {
+	    _output << Input::print_double_parameter( call->getCallMean(), 0 );
         } else {
             _output << 0.0;
         }
@@ -2853,69 +2982,60 @@ namespace LQIO {
     SRVN::CallOutput::printCallWaiting( const DOM::Call * call, const ConfidenceIntervals* ) const
     {
         double value = 0;
-        if ( call && (value = call->getResultWaitingTime()) != 0 ) {
-            _output << value;
-        } else {
-            _output << 0.0;
+        if ( call ) {
+	    value = call->getResultWaitingTime();
         }
+	_output << value;
     }
 
     void
     SRVN::CallOutput::printCallWaitingConfidence( const DOM::Call * call, const ConfidenceIntervals* conf ) const
     {
         double value = 0;
-        if ( call && conf && (value = call->getResultWaitingTimeVariance()) != 0 ) {
-            _output << (*conf)(value); // __number_of_blocks
-        } else {
-            _output << 0.0;
+        if ( call && conf ) {
+	    value = (*conf)(call->getResultWaitingTimeVariance());
         }
+	_output << value;
     }
 
     void
     SRVN::CallOutput::printCallVarianceWaiting( const DOM::Call * call, const ConfidenceIntervals* ) const
     {
         double value = 0;
-        _output << setw(__maxDblLen);
-        if ( call && (value = call->getResultVarianceWaitingTime()) != 0 ) {
-            _output << value;
-        } else {
-            _output << 0.0;
+        if ( call ) {
+	    value = call->getResultVarianceWaitingTime();
         }
+        _output << setw(__maxDblLen) << value;
     }
 
     void
     SRVN::CallOutput::printCallVarianceWaitingConfidence( const DOM::Call * call, const ConfidenceIntervals* conf ) const
     {
         double value = 0;
-        _output << setw(__maxDblLen);
-        if ( call && conf && (value = call->getResultVarianceWaitingTimeVariance()) != 0 ) {
-            _output << (*conf)(value);
-        } else {
-            _output << 0.0;
+        if ( call && conf ) {
+	    value = call->getResultVarianceWaitingTimeVariance();
         }
+        _output << setw(__maxDblLen) << (*conf)(value);
     }
 
     void
     SRVN::CallOutput::printDropProbability( const DOM::Call * call, const ConfidenceIntervals* ) const
     {
         double value = 0.0;
-        if ( call && (value = call->getResultDropProbability()) != 0 ) {
-            _output << value;
-        } else {
-            _output << 0.0;
+        if ( call ) {
+	    value = call->getResultDropProbability();
         }
+	_output << value;
     }
 
     void
     SRVN::CallOutput::printDropProbabilityConfidence( const DOM::Call * call, const ConfidenceIntervals* conf ) const
     {
         double value = 0;
-        _output << setw(__maxDblLen);
-        if ( call && conf && (value = call->getResultDropProbabilityVariance()) != 0 ) {
-            _output << (*conf)(value);
-        } else {
-            _output << 0.0;
+        if ( call && conf ) {
+	    value = (*conf)(call->getResultDropProbabilityVariance());
         }
+        _output << setw(__maxDblLen) << value;
     }
 
     ostream&
@@ -2926,13 +3046,31 @@ namespace LQIO {
             (info.*func)( phases[p], conf );
             output << " ";
         }
-	output << activityEOF;
+        output << activityEOF;
         return output;
     }
-
-    SRVN::CallOutput::CallResultsManip SRVN::CallOutput::print_calls( const SRVN::CallOutput& c, const DOM::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l )
+
+    void
+    SRVN::ActivityCallInput::print( const DOM::Call* call ) const
     {
-        return CallResultsManip( &SRVN::CallOutput::printCalls, c, p, x, l );
+	const LQIO::DOM::Activity * src = dynamic_cast<const LQIO::DOM::Activity *>(call->getSourceObject());
+	assert(src != nullptr );
+	const LQIO::DOM::Entry * dst = call->getDestinationEntry();
+	try {
+	    _output << "  " << call_type( call ) << " " << src->getName() << " " << dst->getName() << number_of_calls( call );
+	}
+	catch ( const std::domain_error& e ) {
+	    const LQIO::DOM::Task * task = src->getTask();
+	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER,
+				  "task", task->getName().c_str(),
+				  src->getTypeName(), src->getName().c_str(),
+				  dst->getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+	if ( !call->getDocument()->instantiated() ) {
+	    printObservationVariables( _output, *call );
+	}
+	_output << endl;
     }
 
     /* -------------------------------------------------------------------- */
@@ -2942,7 +3080,7 @@ namespace LQIO {
     void
     SRVN::HistogramOutput::operator()( const pair<unsigned, DOM::Entity *>& ep ) const
     {
-	if ( __parseable ) return;
+        if ( __parseable ) return;
 
         const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
         if ( !task ) return;
@@ -2952,64 +3090,64 @@ namespace LQIO {
         for ( nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
             const DOM::Entry * entry = *nextEntry;
 
-	    for ( unsigned int p = 1; p <= DOM::Phase::MAX_PHASE; ++p ) {		/* BUG_668 */
-		if ( entry->hasHistogramForPhase( p ) ) {
-		    _output << "Service time histogram for entry " << entry->getName() << ", phase " << p << newline;
-		    (this->*_func)( *entry->getHistogramForPhase( p ) );
-		}
-	    }
+            for ( unsigned int p = 1; p <= DOM::Phase::MAX_PHASE; ++p ) {               /* BUG_668 */
+                if ( entry->hasHistogramForPhase( p ) ) {
+                    _output << "Service time histogram for entry " << entry->getName() << ", phase " << p << newline;
+                    (this->*_func)( *entry->getHistogramForPhase( p ) );
+                }
+            }
 
             const std::map<unsigned, DOM::Phase*>& phases = entry->getPhaseList();
-	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
+            assert( phases.size() <= DOM::Phase::MAX_PHASE );
             for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
                 const DOM::Phase* phase = p->second;
-		const std::vector<DOM::Call*>& calls = phase->getCalls();
-		for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
-		    const DOM::Call * call = *c;
-		    if ( call->hasHistogram() ) {
-			_output << "Queue Length histogram for entry " << entry->getName() << ", phase " << p->first << ", call to " << call->getDestinationEntry()->getName() << newline;
-			(this->*_func)( *call->getHistogram() );
-		    }
-		}
-	    }
-	}
+                const std::vector<DOM::Call*>& calls = phase->getCalls();
+                for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
+                    const DOM::Call * call = *c;
+                    if ( call->hasHistogram() ) {
+                        _output << "Queue Length histogram for entry " << entry->getName() << ", phase " << p->first << ", call to " << call->getDestinationEntry()->getName() << newline;
+                        (this->*_func)( *call->getHistogram() );
+                    }
+                }
+            }
+        }
 
         const std::map<std::string,DOM::Activity*>& activities = task->getActivities();
-	std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
-	for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
-	    const DOM::Activity * activity = nextActivity->second;
-	    if ( activity->hasHistogram() ) {
-		_output << "Service time histogram for task " << task->getName() << ", activity " << activity->getName() << newline << newline;
-		(this->*_func)( *activity->getHistogram() );
-	    }
+        std::map<std::string,DOM::Activity*>::const_iterator nextActivity;
+        for ( nextActivity = activities.begin(); nextActivity != activities.end(); ++nextActivity ) {
+            const DOM::Activity * activity = nextActivity->second;
+            if ( activity->hasHistogram() ) {
+                _output << "Service time histogram for task " << task->getName() << ", activity " << activity->getName() << newline << newline;
+                (this->*_func)( *activity->getHistogram() );
+            }
 
-	    const std::vector<DOM::Call*>& calls = activity->getCalls();
-	    for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
-		const DOM::Call * call = *c;
-		if ( call->hasHistogram() ) {
-		    _output << "Queue length histogram for task " << task->getName() << ", activity " << activity->getName() << ", call to " << call->getDestinationEntry()->getName() << newline;
-		    (this->*_func)( *call->getHistogram() );
-		}
-	    }
-	}
+            const std::vector<DOM::Call*>& calls = activity->getCalls();
+            for ( std::vector<DOM::Call*>::const_iterator c = calls.begin(); c != calls.end(); ++c ) {
+                const DOM::Call * call = *c;
+                if ( call->hasHistogram() ) {
+                    _output << "Queue length histogram for task " << task->getName() << ", activity " << activity->getName() << ", call to " << call->getDestinationEntry()->getName() << newline;
+                    (this->*_func)( *call->getHistogram() );
+                }
+            }
+        }
 
-	const std::set<DOM::ActivityList*>& activity_lists = task->getActivityLists();
-	std::set<DOM::ActivityList*>::const_iterator nextActivityList;
-	for ( nextActivityList = activity_lists.begin(); nextActivityList != activity_lists.end(); ++nextActivityList ) {
-	    const DOM::ActivityList * activityList = *nextActivityList;
-	    if ( activityList->hasHistogram() ) {
+        const std::set<DOM::ActivityList*>& activity_lists = task->getActivityLists();
+        std::set<DOM::ActivityList*>::const_iterator nextActivityList;
+        for ( nextActivityList = activity_lists.begin(); nextActivityList != activity_lists.end(); ++nextActivityList ) {
+            const DOM::ActivityList * activityList = *nextActivityList;
+            if ( activityList->hasHistogram() ) {
                 const DOM::Activity * first;
                 const DOM::Activity * last;
                 activityList->activitiesForName( &first, &last );
-		_output << "Histogram for task " << task->getName() << ", join activity list " << first->getName() << " to " << last->getName() << newline << newline;
-		(this->*_func)( *activityList->getHistogram() );
-	    }
-	}
+                _output << "Histogram for task " << task->getName() << ", join activity list " << first->getName() << " to " << last->getName() << newline << newline;
+                (this->*_func)( *activityList->getHistogram() );
+            }
+        }
 
-	if ( task->hasHistogram() ) {
-	    _output << "Histogram for task " << task->getName() << newline << newline;
-	    (this->*_func)( *task->getHistogram() );
-	}
+        if ( task->hasHistogram() ) {
+            _output << "Histogram for task " << task->getName() << newline << newline;
+            (this->*_func)( *task->getHistogram() );
+        }
     }
 
 
@@ -3017,68 +3155,68 @@ namespace LQIO {
     void
     SRVN::HistogramOutput::printHistogram( const DOM::Histogram& histogram ) const
     {
-	static const double plot_width = 20;
-	const unsigned hist_bins = histogram.getBins();
-	if ( hist_bins == 0 ) return;
+        static const double plot_width = 20;
+        const unsigned hist_bins = histogram.getBins();
+        if ( hist_bins == 0 ) return;
 
-	const double hist_min = histogram.getMin();
-	const double hist_max = histogram.getMax();
-	const double bin_size = hist_bins > 0 ? (hist_max - hist_min)/static_cast<double>(hist_bins) : 0;
+        const double hist_min = histogram.getMin();
+        const double hist_max = histogram.getMax();
+        const double bin_size = hist_bins > 0 ? (hist_max - hist_min)/static_cast<double>(hist_bins) : 0;
 
-	double max_value = 0;
+        double max_value = 0;
 
-	/* Find biggest bin. */
-	const unsigned limit = histogram.getOverflowIndex();
-	for ( unsigned int i = 0; i <= limit; i++ ) {
-	    const double value = histogram.getBinMean( i );
-	    if ( value > max_value ) {
-		max_value = value;
-	    }
-	}
+        /* Find biggest bin. */
+        const unsigned limit = histogram.getOverflowIndex();
+        for ( unsigned int i = 0; i <= limit; i++ ) {
+            const double value = histogram.getBinMean( i );
+            if ( value > max_value ) {
+                max_value = value;
+            }
+        }
 
-	if ( histogram.getHistogramType() == DOM::Histogram::CONTINUOUS ) {
-	    _output << setw(4) << " " << setw( 17 ) << "<=  bin  <";
-	} else {
-	    _output << "  bin  ";
-	}
-	_output  << " " << setw(9) << "mean";
-	if ( __conf95 ) {
-	    _output << " " << setw(9) << "+/- 95%";
-	}
-	_output << newline;
-	for ( unsigned int i = ( hist_min == 0 ? 1 : 0); i <= limit; i++ ) {
-	    const double mean = histogram.getBinMean( i );
-	    if ( i == limit && mean == 0 ) break;
+        if ( histogram.getHistogramType() == DOM::Histogram::CONTINUOUS ) {
+            _output << setw(4) << " " << setw( 17 ) << "<=  bin  <";
+        } else {
+            _output << "  bin  ";
+        }
+        _output  << " " << setw(9) << "mean";
+        if ( __conf95 ) {
+            _output << " " << setw(9) << "+/- 95%";
+        }
+        _output << newline;
+        for ( unsigned int i = ( hist_min == 0 ? 1 : 0); i <= limit; i++ ) {
+            const double mean = histogram.getBinMean( i );
+            if ( i == limit && mean == 0 ) break;
 
-	    const double x1 = ( i == 0 ) ? 0 : hist_min + (i-1) * bin_size;
-	    const streamsize old_precision = _output.precision( 6 );
-	    if ( histogram.getHistogramType() == DOM::Histogram::CONTINUOUS ) {
-		const double x2 = ( i == limit ) ? __DBL_MAX__ : hist_min + i * bin_size;
-		_output << setw( 4 ) << " ";
-		if ( i == 0 ) {
-		    _output << setw( 17 ) << "underflow";
-		} else if ( i == limit ) {
-		    _output << setw( 17 ) << "overflow";
-		} else {
-		    _output << setw( 8 ) << x1 << " " << setw( 8 ) << x2;
-		}
-	    } else {
-		_output << "  " << setw(3) << x1 << "  ";
-	    }
-	    _output.setf( ios::fixed, ios::floatfield );
-	    _output << " " << setw( 9 ) << mean;
-	    if ( __conf95 ) {
-		_output << " " << setw( 9 ) << (*__conf95)(histogram.getBinVariance( i ));
-	    }
-	    _output.unsetf( ios::floatfield );
-	    _output.precision( old_precision );
-	    _output << "|";
-	    const unsigned int count = static_cast<unsigned int>( mean * plot_width / max_value + 0.5 );
-	    if ( count > 0 ) {
-		_output << setw( count ) << setfill( '*' ) << '*' << setfill( ' ' );
-	    }
-	    _output << newline;
-	}
-	_output << newline;
+            const double x1 = ( i == 0 ) ? 0 : hist_min + (i-1) * bin_size;
+            const streamsize old_precision = _output.precision( 6 );
+            if ( histogram.getHistogramType() == DOM::Histogram::CONTINUOUS ) {
+                const double x2 = ( i == limit ) ? __DBL_MAX__ : hist_min + i * bin_size;
+                _output << setw( 4 ) << " ";
+                if ( i == 0 ) {
+                    _output << setw( 17 ) << "underflow";
+                } else if ( i == limit ) {
+                    _output << setw( 17 ) << "overflow";
+                } else {
+                    _output << setw( 8 ) << x1 << " " << setw( 8 ) << x2;
+                }
+            } else {
+                _output << "  " << setw(3) << x1 << "  ";
+            }
+            _output.setf( ios::fixed, ios::floatfield );
+            _output << " " << setw( 9 ) << mean;
+            if ( __conf95 ) {
+                _output << " " << setw( 9 ) << (*__conf95)(histogram.getBinVariance( i ));
+            }
+            _output.unsetf( ios::floatfield );
+            _output.precision( old_precision );
+            _output << "|";
+            const unsigned int count = static_cast<unsigned int>( mean * plot_width / max_value + 0.5 );
+            if ( count > 0 ) {
+                _output << setw( count ) << setfill( '*' ) << '*' << setfill( ' ' );
+            }
+            _output << newline;
+        }
+        _output << newline;
     }
 }

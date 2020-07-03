@@ -1,30 +1,14 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: arc.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "lqn2ps.h"
 #include <cmath>
 #include <cstdlib>
+#include <algorithm>
 #include "arc.h"
 #include "model.h"
-
-template <typename Type> Type square( Type a ) 
-{
-    return a * a;
-}
-
-/* ---------------------- Overloaded Operators ------------------------ */
-
-/*
- * Printing function.
- */
-
-ostream&
-operator<<( ostream& output, const Arc& self ) 
-{
-    return self.print( output );
-}
 
 Arc *
 Arc::newArc( const unsigned size, const arrowhead_type arrow )
@@ -49,7 +33,6 @@ Arc::newArc( const unsigned size, const arrowhead_type arrow )
     case FORMAT_PNG:
 #endif
 	return new ArcGD( size, arrow );
-	break;
 #endif
 #if defined(SVG_OUTPUT)
     case FORMAT_SVG:
@@ -67,23 +50,10 @@ Arc::newArc( const unsigned size, const arrowhead_type arrow )
     case FORMAT_X11:
 	return new ArcX11( size, arrow );
 #endif
-	break;
-    case FORMAT_NULL:
-    case FORMAT_SRVN:
-    case FORMAT_OUTPUT:
-    case FORMAT_PARSEABLE:
-    case FORMAT_RTF:
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-    case FORMAT_XML:
-	return new ArcNull( size, arrow );
     default:
-	abort();
+	return new ArcNull( size, arrow );
     }
+    abort();
     return 0;
 }
 
@@ -96,10 +66,8 @@ Arc&
 Arc::operator=( const Arc &anArc )
 {
     if ( this == &anArc ) return *this;
-    unsigned n = size();
-    for ( unsigned i = 1; i <= n; ++i ) {
-	(*this)[i] = anArc[i];
-    }
+    myArrowhead = anArc.myArrowhead;
+    std::vector<Point>::operator=( anArc );
     return *this;
 }
 
@@ -115,10 +83,7 @@ Arc::arrowScaling() const
 Arc& 
 Arc::moveBy( const double dx, const double dy )
 {
-    unsigned n = size();
-    for ( unsigned i = 1; i <= n; ++i ) {
-	(*this)[i].moveBy( dx, dy );
-    }
+    for_each( begin(), end(), ExecXY<Point>( &Point::moveBy, dx, dy ) );
     return *this;
 }
 
@@ -126,7 +91,7 @@ Arc&
 Arc::moveSrc( const double x, const double y )
 {
     if ( size() > 0 ) {
-	(*this)[1].moveTo( x, y );
+	front().moveTo( x, y );
     }
     return *this;
 }
@@ -134,9 +99,8 @@ Arc::moveSrc( const double x, const double y )
 Arc&
 Arc::moveDst( const double x, const double y )
 {
-    const unsigned n = size();
-    if ( n > 0 ) {
-	(*this)[n].moveTo( x, y );
+    if ( size() > 0 ) {
+	back().moveTo( x, y );
     }
     return *this;
 }
@@ -146,7 +110,7 @@ Arc&
 Arc::moveSrcBy( const double dx, const double dy )
 {
     if ( size() > 0 ) {
-	(*this)[1].moveBy( dx, dy );
+	front().moveBy( dx, dy );
     }
     return *this;
 }
@@ -154,33 +118,71 @@ Arc::moveSrcBy( const double dx, const double dy )
 Arc&
 Arc::moveDstBy( const double dx, const double dy )
 {
-    const unsigned n = size();
-    if ( n > 0 ) {
-	(*this)[n].moveBy( dx, dy );
+    if ( size() > 0 ) {
+	back().moveBy( dx, dy );
     }
     return *this;
 }
 
 
-Point& 
+const Point& 
 Arc::secondPoint() const 
 { 
     const unsigned n = size();
-    for ( unsigned i = 2; i <= n; ++i ) {
-	if ( (*this)[i] != (*this)[1] ) return (*this)[i];
+    const Point& p = front();
+    for ( unsigned i = 1; i < n; ++i ) {
+	if ( at(i) != p ) return at(i);
     }
-    return (*this)[n];
+    return back();
 }
 
-Point& 
+const Point& 
 Arc::penultimatePoint() const 
 { 
     const unsigned n = size();
-    for ( unsigned i = n - 1; i >= 1; --i ) {
-	if ( (*this)[i] != (*this)[n] ) return (*this)[i];
+    const Point& p = back();
+    for ( unsigned i = n - 2; i > 0; --i ) {
+	if ( at(i) != p ) return at(i);
     }
-    return (*this)[1]; 
+    return front(); 
 }
+
+Arc&
+Arc::moveSecond( const Point& dst )
+{
+    Point& src = const_cast<Point&>(secondPoint());
+    if ( src != back() ) {
+	src = dst;
+    }
+    return *this;
+}
+
+Arc&
+Arc::movePenultimate( const Point& dst )
+{
+    Point& src = const_cast<Point&>(penultimatePoint());
+    if ( src != front() ) {
+	src = dst;
+    }
+    return *this;
+}
+
+Arc& 
+Arc::scaleBy( const double sx, const double sy ) 
+{
+    for_each( begin(), end(), ExecXY<Point>( &Point::scaleBy, sx, sy ) );
+    return *this;
+}
+
+
+
+Arc& 
+Arc::translateY( const double dy ) 
+{
+    for_each( begin(), end(), Exec1<Point,double>( &Point::translateY, dy ) );
+    return *this;
+}
+
 
 Point
 Arc::pointFromSrc( const double offset ) const
@@ -250,7 +252,7 @@ Arc::intersectsCircle( const Point& p1, const Point& p2, const Point& p3, const 
 	- square( r );
     
     const double temp = square( b ) - 4.0 * a * c;
-    if ( temp < 0 ) throw DoesNotIntersect();
+    if ( temp < 0 ) throw std::domain_error( "Does not intersect" );
     
     double mu1 = (-b + sqrt( temp )) / (2.0 * a);
     double mu2 = (-b - sqrt( temp )) / (2.0 * a);
@@ -266,60 +268,33 @@ Arc::intersectsCircle( const Point& p1, const Point& p2, const Point& p3, const 
 
 
 
-Arc& 
-Arc::scaleBy( const double sx, const double sy ) 
-{
-    int n = size();
-    for ( int i = 1; i <= n; ++i ) {
-	(*this)[i].x( sx * (*this)[i].x() );
-	(*this)[i].y( sy * (*this)[i].y() );
-    }
-    return *this;
-}
-
-
-
-Arc& 
-Arc::translateY( const double dy ) 
-{
-    int n = size();
-    for ( int i = 1; i <= n; ++i ) {
-	(*this)[i].y( dy - (*this)[i].y() );
-    }
-    return *this;
-}
-
-
 /*
  * Remove all duplicate points.  Shrink the arc as necessary.
  */
 
-unsigned
+std::vector<Point>
 Arc::removeDuplicates() const
 {
-    const unsigned n = size();
-    unsigned int j = 1;
-    for ( unsigned int i = 2; i <= n; ++i ) {
-	if ( (*this)[i] != (*this)[j] ) {
-	    j += 1;
-	    if ( i != j ) {
-		(*this)[j] = (*this)[i];
-	    }
+    std::vector<Point> new_arc;
+    Point last_point;
+    for ( std::vector<Point>::const_iterator point = begin(); point != end(); ++point ) {
+	if ( point == begin() || *point != last_point ) {
+	    new_arc.push_back(*point);
+	    last_point = *point;
 	}
     }
-    const_cast<Arc *>(this)->resize( j );
-    return j;
+    return new_arc;
 }
 
 #if defined(EMF_OUTPUT)
-ostream&
-ArcEMF::print( ostream& output ) const
+const ArcEMF&
+ArcEMF::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    EMF::polyline( output, j, &(*this)[1], penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	EMF::polyline( output, points, penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 
@@ -331,14 +306,14 @@ ArcEMF::comment( ostream& output, const string& aString ) const
 }
 #endif
 
-ostream&
-ArcFig::print( ostream& output ) const
+const ArcFig&
+ArcFig::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    Fig::polyline( output, j, &(*this)[1], Fig::POLYLINE, penColour(), Graphic::TRANSPARENT, depth(), linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	Fig::polyline( output, points, Fig::POLYLINE, penColour(), Graphic::TRANSPARENT, depth(), linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 
@@ -351,26 +326,29 @@ ArcFig::comment( ostream& output, const string& aString ) const
 }
 
 #if HAVE_GD_H && HAVE_LIBGD
-ostream&
-ArcGD::print( ostream& output ) const
+const ArcGD&
+ArcGD::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    for ( unsigned i = 1; i < j; ++i ) {    
-	GD::drawline( (*this)[i], (*this)[i+1], penColour(), linestyle() );
+    const unsigned int j = nPoints();
+    if ( j < 2 ) return *this;
+    std::vector<Point>::const_iterator p1 = begin();
+    for ( std::vector<Point>::const_iterator p2 = p1 + 1; p2 != end(); ++p2 ) {
+	if ( *p1 != *p2 ) {
+	    GD::drawline( *p1, *p2, penColour(), linestyle() );
+	    p1 = p2;
+	}
     }
     /* Now draw the arrowhead */
     
     switch ( arrowhead() ) {
     case CLOSED_ARROW:
-	arrowHead( (*this)[j-1], (*this)[j], arrowScaling(), penColour(), fillColour() );
+	arrowHead( penultimatePoint(), dstPoint(), arrowScaling(), penColour(), penColour() );
 	break;
     case OPEN_ARROW:
-	arrowHead( (*this)[j-1], (*this)[j], arrowScaling(), penColour(), Graphic::WHITE );
+	arrowHead( penultimatePoint(), dstPoint(), arrowScaling(), penColour(), Graphic::WHITE );
 	break;
     }
-    return output;
+    return *this;
 }
 
 
@@ -386,14 +364,14 @@ ArcGD::comment( ostream& output, const string& aString ) const
 }
 #endif
 
-ostream&
-ArcPostScript::print( ostream& output ) const
+const ArcPostScript&
+ArcPostScript::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    PostScript::polyline( output, j, &(*this)[1], penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	PostScript::polyline( output, points, penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 
@@ -405,14 +383,14 @@ ArcPostScript::comment( ostream& output, const string& aString ) const
 }
 
 #if defined(SVG_OUTPUT)
-ostream&
-ArcSVG::print( ostream& output ) const
+const ArcSVG&
+ArcSVG::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    SVG::polyline( output, j, &(*this)[1], penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	SVG::polyline( output, points, penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 
@@ -425,14 +403,14 @@ ArcSVG::comment( ostream& output, const string& aString ) const
 #endif
 
 #if defined(SXD_OUTPUT)
-ostream&
-ArcSXD::print( ostream& output ) const
+const ArcSXD&
+ArcSXD::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    SXD::polyline( output, j, &(*this)[1], penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	SXD::polyline( output, points, penColour(), Arc::linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 
@@ -444,14 +422,14 @@ ArcSXD::comment( ostream& output, const string& aString ) const
 }
 #endif
 
-ostream&
-ArcTeX::print( ostream& output ) const
+const ArcTeX&
+ArcTeX::draw( ostream& output ) const
 {
-    const unsigned j = removeDuplicates();
-    if ( j < 2 ) return output;
-
-    TeX::polyline( output, j, &(*this)[1], penColour(), linestyle(), arrowhead(), arrowScaling() );
-    return output;
+    std::vector<Point> points = removeDuplicates();
+    if ( points.size() > 0 ) {
+	TeX::polyline( output, points, penColour(), linestyle(), arrowhead(), arrowScaling() );
+    }
+    return *this;
 }
 
 

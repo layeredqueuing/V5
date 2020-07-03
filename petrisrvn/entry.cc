@@ -18,6 +18,7 @@
 #include <cmath>
 #include <algorithm>
 #include <vector>
+#include <sstream>
 #include <lqio/glblerr.h>
 #include <lqio/dom_entry.h>
 #include "model.h"
@@ -25,7 +26,6 @@
 #include "errmsg.h"
 #include "entry.h"
 #include "task.h"
-#include "stack.h"
 #include "phase.h"
 #include "results.h"
 
@@ -102,9 +102,24 @@ Entry&  Entry::set_start_activity( Activity * activity )
 double Entry::prob_fwd( const Entry * entry ) const
 {	
     std::map<const Entry *,Call>::const_iterator e = _fwd.find(entry);
-    if ( e == _fwd.end() ) return 0.0;
-    const LQIO::DOM::Call * call = e->second._dom;
-    return  call->getCallMeanValue();
+    if ( e != _fwd.end() ) {
+	const LQIO::DOM::Call * call = e->second._dom;
+	try { 
+	    const double value = call->getCallMeanValue();
+	    if ( value > 1.0 ) {
+		std::stringstream ss;
+		ss << value << " > " << 1;
+		throw std::domain_error( ss.str() );
+	    }
+	    return value;
+	}
+	catch ( const std::domain_error& e ) {
+	    const LQIO::DOM::Entry * dst = call->getDestinationEntry();
+	    LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, name(), dst->getName().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    return 0.0;
 }
 
 
@@ -172,10 +187,8 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
     }
 
     /* Begin by extracting the from/to DOM entries from the call and their names */
-    LQIO::DOM::Entry* fromDOMEntry = const_cast<LQIO::DOM::Entry*>(call->getSourceEntry());
-    LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(call->getDestinationEntry());
-    const char* from_entry_name = fromDOMEntry->getName().c_str();
-    const char* to_entry_name = toDOMEntry->getName().c_str();
+    const char* from_entry_name = call->getSourceObject()->getName().c_str();
+    const char* to_entry_name = call->getDestinationEntry()->getName().c_str();
 
     /* Internal Entry references */
     Entry * from_entry;
@@ -223,8 +236,8 @@ Entry::check (void)
 	    }
 	}
     } else if ( is_activity_entry() ) {
-	my_stack_t<Activity *> activity_stack;
-	my_stack_t<ActivityList *> fork_stack;
+	std::deque<Activity *> activity_stack;
+	std::deque<ActivityList *> fork_stack;
 	unsigned max_phase = 1;
 	double n_replies;
 	    
@@ -275,7 +288,7 @@ Entry::check (void)
 	}
     }
 
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 
@@ -489,8 +502,6 @@ Entry::insert_DOM_results()
 
     /* Write the results into the DOM */
 
-    _dom->resetResultFlags();
-    
     for ( unsigned m = 0; m < max_m; ++m ) {
 	tput += _throughput[m];
     }
@@ -520,12 +531,6 @@ Entry::insert_DOM_results()
 	    phase[p].insert_DOM_results();
 	}
     }
-	
-    /* Do open arrival rates... */
-    if (openArrivalRate() != 0.0) {
-//	_dom->setResultOpenWaitTime(openWait);
-    }
-	
 }
 
 /*

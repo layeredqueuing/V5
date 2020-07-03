@@ -522,7 +522,7 @@ namespace LQX {
   class FileOpenStatementNode : public SyntaxTreeNode {
   public:
 
-    FileOpenStatementNode( const std::string& fileHandle, const std::string& filePath, bool write, bool append=false );
+    FileOpenStatementNode( const std::string& fileHandle, SyntaxTreeNode* object, bool write, bool append=false );
     virtual ~FileOpenStatementNode();
 
     virtual void debugPrintGraphviz(std::ostream& output) const;
@@ -531,8 +531,8 @@ namespace LQX {
 
   private:
 
-    std::string _fileHandle;
-    std::string _filePath;
+    const std::string _fileHandle;
+    SyntaxTreeNode * _filePath;
     bool _write;
     bool _append;
   };

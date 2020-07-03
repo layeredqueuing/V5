@@ -1,9 +1,9 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test6.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/test6.cc $
  *
  * Hardware submodel for Flow.
  * ------------------------------------------------------------------------
- * $Id: test6.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test6.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -19,12 +19,12 @@ static const unsigned nStations		= 6;
 static const unsigned maxEntries	= 5;
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned )
 {
     const unsigned classes  = 5;
     const unsigned stations = nStations;
 	
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     Z.grow(classes);			/* Think times.			*/
     priority.grow(classes);
     Q.grow(stations);			/* Queue type.  SS/delay.	*/

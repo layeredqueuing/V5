@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/group.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
  * Global vars for simulation.
  *
- * $Id: group.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.h 13353 2018-06-25 20:27:13Z greg $
  */
 
 /************************************************************************/
@@ -34,7 +34,7 @@ public:
     const char * name() const { return _domGroup->getName().c_str(); }
     bool cap() const { return _domGroup->getCap(); }		/* Cap share		*/
     const Processor& processor() const { return _processor; }
-    bool create();
+    Group& create();
 
     void insertDOMResults();
 

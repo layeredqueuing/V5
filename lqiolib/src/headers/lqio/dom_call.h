@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_call.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -46,6 +46,8 @@ namespace LQIO {
 		QUASI_RENDEZVOUS		// Special (lqns)
 	    } CallType;
 
+	    typedef bool (DOM::Call::*boolCallFunc)() const;
+
 	private:
 	    Call& operator=( const Call& );		// Copying is verbotten
 	    Call( const Call& );
@@ -53,17 +55,19 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializer for the call information */
-	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=0, const void * element=0);
-	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=0, const void * element=0);
+	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=0 );
+	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=0 );
 	    virtual ~Call();
 	    Call * clone() const;
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    const CallType getCallType() const;
 	    void setCallType(const CallType callType);
-	    void setSourceEntry( Entry* );
+	    void setSourceObject( DocumentObject* );
 	    void setDestinationEntry( Entry* );
 	    const Histogram* getHistogram() const { return _histogram; }
 	    void setHistogram(Histogram* histogram);
@@ -74,13 +78,14 @@ namespace LQIO {
 	    bool hasForwarding() const { return _callType == Call::FORWARD; }
 
 	    /* Accessors for Call Information */
-	    const Entry* getSourceEntry() const;
+	    const DocumentObject* getSourceObject() const;
 	    const Entry* getDestinationEntry() const;
 
 	    /* External Variable Access (Do not call until set) */
 	    const ExternalVariable* getCallMean() const;
 	    void setCallMean(ExternalVariable* callMean);
 	    const double getCallMeanValue() const;
+	    void setCallMeanValue(double);
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -88,8 +93,8 @@ namespace LQIO {
 	    double getResultWaitingTime() const;
 	    virtual Call& setResultWaitingTime(const double resultWaitingTime);
 	    double getResultWaitingTimeVariance() const;
-	    bool hasResultVarianceWaitingTime() const { return _hasResultVarianceWaitingTime != 0.0; }
 	    virtual Call& setResultWaitingTimeVariance(const double resultWaitingTimeVariance);
+	    bool hasResultVarianceWaitingTime() const { return _hasResultVarianceWaitingTime; }
 	    double getResultVarianceWaitingTime() const;
 	    virtual Call& setResultVarianceWaitingTime(const double resultVarianceWaitingTime);
 	    double getResultVarianceWaitingTimeVariance() const;
@@ -104,10 +109,7 @@ namespace LQIO {
 
 	    /* Type of Entry */
 	    CallType _callType;
-	    union {
-		Phase* _phase;
-		Entry * _entry;		/* Forwarding. */
-	    } _source;
+	    DocumentObject * _sourceObject;
 	    Entry* _destinationEntry;
 
 	    /* Variables which can be scripted */
@@ -123,6 +125,9 @@ namespace LQIO {
 	    double _resultVarianceWaitingTimeVariance;
 	    double _resultDropProbability;
 	    double _resultDropProbabilityVariance;
+
+	public:
+	    static const char * __typeName;
 
 	};
 

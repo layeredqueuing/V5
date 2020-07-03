@@ -23,6 +23,7 @@
 #include <lqio/dom_task.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/common_io.h>
 #include "errmsg.h"
 #include "results.h"
 #include "petrisrvn.h"
@@ -73,6 +74,7 @@ Task::Task( LQIO::DOM::Task* dom, task_type type, Processor * processor )
 #if !defined(BUFFER_BY_ENTRY)
       _open_tokens(open_model_tokens),
 #endif
+      _proc_queue_count(0),
       _requestor_no(0)
 {
     initialize();
@@ -147,9 +149,7 @@ Task::create( LQIO::DOM::Task * dom )
     const string& task_name = dom->getName();
     if ( task_name.size() == 0 ) abort();
 
-    const scheduling_type sched_type = dom->getSchedulingType();
-
-    if ( dom->getReplicas() != 1 ) {
+    if ( dom->getReplicasValue() != 1 ) {
 	LQIO::input_error2( ERR_REPLICATION, "task", task_name.c_str() );
     }
 
@@ -159,20 +159,18 @@ Task::create( LQIO::DOM::Task * dom )
 	return 0;
     }
 
-    const int priority = dom->getPriority();
-    
-    if ( priority != 0 && ( bit_test( processor->scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
+    if ( !LQIO::DOM::Common_IO::is_default_value( dom->getPriority(), 0. ) && ( bit_test( processor->scheduling(), SCHED_FIFO_BIT|SCHED_PS_BIT|SCHED_RAND_BIT ) ) ) {
 	LQIO::input_error2( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, task_name.c_str(), processor->name() );
-	dom->setPriority( 0 );
     }
 
-    const LQIO::DOM::ExternalVariable* n_copies = dom->getCopies();
     Task * task = 0;
+
+    const scheduling_type sched_type = dom->getSchedulingType();
 
     switch ( sched_type ) {
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[sched_type], "task", task_name.c_str() );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, "task", task_name.c_str() );
 	/* fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
@@ -183,7 +181,7 @@ Task::create( LQIO::DOM::Task * dom )
 	
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[sched_type], "task", task_name.c_str() );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, "task", task_name.c_str() );
 	/* fall through */
     case SCHEDULE_FIFO:
     default:
@@ -205,8 +203,8 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
 	}
-	if ( !n_copies->wasSet() || to_double( *n_copies ) != 1 ) {
-	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), n_copies );
+	if ( dom->getCopiesValue() != 1 ) {
+	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), dom->getCopiesValue() );
 	}	
 	task = new Task( dom, INF_SERV, processor );
 	break;
@@ -215,7 +213,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
 	}
-	if ( !n_copies->wasSet() || to_double( *n_copies ) != 1 ) {
+	if ( dom->getCopiesValue() != 1 ) {
 	    input_error2( LQIO::ERR_INFINITE_TASK, task_name.c_str() );
 	}
 #if 0
@@ -338,23 +336,33 @@ Task::check()
 	}
     }
 
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 /* Priority for this task.	*/
 int Task::priority() const
 {
-    return dynamic_cast<LQIO::DOM::Task *>(get_dom())->getPriority();
+    int value = 0;
+    try {
+	value = dynamic_cast<LQIO::DOM::Task *>(get_dom())->getPriorityValue();
+    }
+    catch ( const std::domain_error &e ) {
+	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name(), e.what() );
+    }
+    return value;
 }
 
 double Task::think_time() const
 {
-    const LQIO::DOM::ExternalVariable * dom_think_time = dynamic_cast<LQIO::DOM::Task *>(get_dom())->getThinkTime();
-    double value = 0.;
-    if ( dom_think_time ) {
-	assert(dom_think_time->getValue(value) == true);
-    } 
-    return value;
+    if ( dynamic_cast<LQIO::DOM::Task *>(get_dom())->hasThinkTime() ) {
+	try {
+	    return dynamic_cast<LQIO::DOM::Task *>(get_dom())->getThinkTimeValue();
+	}
+	catch ( const std::domain_error &e ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name(), e.what() );
+	}
+    }
+    return 0.;
 }
 
 
@@ -373,6 +381,15 @@ bool Task::is_single_place_task() const
 {
     return type() == REF_TASK && (customers_flag
 				  || (n_threads() > 1 && !processor()->is_infinite()));
+}
+
+unsigned int Task::ref_count() const
+{
+    if ( is_infinite() ) {
+	return max_queue_length();
+    } else {
+	return multiplicity();
+    }
 }
 
 
@@ -536,12 +553,16 @@ unsigned int Task::set_queue_length()
 void
 Task::build_forwarding_lists()
 {
-    if ( type() != REF_TASK ) return;
+//    if ( type() != REF_TASK ) return;
 		
     for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	for ( unsigned p = 1; p <= (*e)->n_phases(); ++p ) {
 	    (*e)->phase[p].build_forwarding_list();
 	}
+    }
+
+    for ( vector<Activity *>::const_iterator a = activities.begin(); a != activities.end(); ++a ) {
+	(*a)->build_forwarding_list();
     }
 }
 
@@ -554,19 +575,19 @@ Task::build_forwarding_lists()
 void
 Task::make_queue_places()
 {
-    if ( _queue_made ) return;
-    _queue_made = true;
-
     const double x_pos = get_x_pos() - 0.5;
     const double y_pos = get_y_pos();	    
     const unsigned ne  = n_entries();  
 		
+    if ( _queue_made ) return;
+    _queue_made = true;
+
     /*
      * Create places for queueing at entry.
      */
 		
     for ( unsigned k = 1; k <= max_queue_length(); ++k ) {
-	(void) move_place_tag( create_place( X_OFFSET(1,0.0), y_pos + __queue_y_offset + (double)k, FIFO_LAYER, 1, "Sh%s%d", name(), k ), PLACE_X_OFFSET, PLACE_Y_OFFSET );
+        (void) move_place_tag( create_place( X_OFFSET(1,0.0), y_pos + __queue_y_offset + (double)k, FIFO_LAYER, 1, "Sh%s%d", name(), k ), PLACE_X_OFFSET, PLACE_Y_OFFSET );
     }
 }
 		
@@ -596,8 +617,8 @@ Task::transmorgrify()
 
     /* On tasks with dedicated processors, move the processor place. */
 
-    if ( processor() && processor()->is_single_place_processor() ) {
-	processor()->set_origin( X_OFFSET(4+1,0), y_pos );
+    if ( processor() && processor()->PX && processor()->is_single_place_processor() ) {
+        processor()->set_origin( X_OFFSET(4+1,0), y_pos );
 	processor()->PX->center.x = IN_TO_PIX( processor()->get_x_pos() );
 	processor()->PX->center.y = IN_TO_PIX( processor()->get_y_pos() );
     }
@@ -864,7 +885,8 @@ Task::get_throughput( const Entry * d, const Phase * phase_d, unsigned m  )
     double throughput = 0.0;
 	
     if ( !inservice_flag() || !is_server() || d == 0 ) {
-	throughput = get_tput( IMMEDIATE, "done%s%d", phase_d->name(), m );	/* done_P transition  */
+      //	throughput = get_tput( IMMEDIATE, "done%s%d", phase_d->name(), m );	/* done_P transition  */
+        throughput = phase_d->doneX[m]->f_time;		/* Access directly */
     } else {
 	unsigned p_d = this->n_phases() == 1 ? 1 : 2;
 	for ( vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e ) {
@@ -1004,5 +1026,5 @@ void
 OpenTask::insert_DOM_results()
 {
     LQIO::DOM::Entry * entry = const_cast<LQIO::DOM::Entry *>(_dst->get_dom());
-    entry->setResultOpenWaitTime( entries[0]->phase[1].response_time( _dst ) );
+    entry->setResultWaitingTime( entries[0]->phase[1].response_time( _dst ) );
 }

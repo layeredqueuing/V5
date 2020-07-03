@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: message.h 11378 2013-04-21 03:44:25Z greg $
+ * $Id: message.h 13353 2018-06-25 20:27:13Z greg $
  */
 
 #ifndef MESSAGE_H
@@ -22,10 +22,7 @@ class tar_t;
 
 class Message {
 public:
-    static Message * alloc( const Entry * ep, tar_t * tp );
-    static void free( Message * msg );
-
-    Message( const Entry * e=0, tar_t  * tp=0 ) { init( e, tp ); }
+    Message( const Entry * e=NULL, tar_t  * tp=NULL ) { init( e, tp ); }
     Message * init( const Entry * e, tar_t * tp );
     
     Activity * activity;		/* Activity to run.		*/
@@ -33,10 +30,7 @@ public:
     const Entry * client;		/* Pointer to sending entry.    */
     int reply_port;			/* Place to send reply.		*/
     const Entry * intermediate;		/* Pointer to intermediate entry*/
-    tar_t * source;			/* Index of appropriate stat.	*/
-    Message * next;			/* Pointer to next message.	*/
-
-private:
+    tar_t * target;			/* Index of appropriate stat.	*/
 };
 
 #endif

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.h 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_extvar.h 13543 2020-05-19 17:29:04Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,12 +16,17 @@
 #include <lqx/Program.h>
 
 namespace LQIO {
+    class LQXDocument;
+    
     namespace DOM {
     
 	class ConstantExternalVariable;
 	
 	class ExternalVariable {
 	    friend std::ostream& operator<<( std::ostream&, const LQIO::DOM::ExternalVariable& );
+
+	public:
+	    typedef enum { VAR_UNASSIGNED, VAR_DOUBLE, VAR_STRING } Type;
 	    
 	public:
       
@@ -35,19 +40,24 @@ namespace LQIO {
 	    ExternalVariable( const ExternalVariable& );
 
 	public:
-	    ExternalVariable& operator*=( const ExternalVariable& );
-	    ExternalVariable& operator*=( const double );
-	    ExternalVariable& operator+=( const ExternalVariable& );
-	    ExternalVariable& operator+=( const double );
-	    
+	    virtual Type getType() const { return VAR_UNASSIGNED; }
+
 	    /* Obtaining the Value */
 	    virtual void set(double value) = 0;
+	    virtual void setString( const char * value ) = 0;
 	    virtual bool getValue(double& result) const = 0;
+	    virtual bool getString( const char *& result) const = 0;
 	    virtual const std::string& getName() const = 0;
 	    virtual bool wasSet() const = 0;
 
+	    static bool isPresent( const ExternalVariable *, double lower_limit );	/* Variable is present (may not be instantiated) */
+
 	protected:
 	    virtual std::ostream& print( std::ostream& ) const = 0;
+	    virtual std::ostream& printVariableName( std::ostream& ) const = 0;
+
+	private:
+	    static std::ostream& printVariableName( std::ostream&, const ExternalVariable& );
 	};
     
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -56,19 +66,9 @@ namespace LQIO {
     
 	class ConstantExternalVariable : public ExternalVariable {
 	public:
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double );
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& );
-	    friend LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double );
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& );
-	    friend LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double );
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& );
-	    friend LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-
-	public:
 	    /* Initializing the constant external variable */
 	    ConstantExternalVariable(double constant);
+	    ConstantExternalVariable(const char * constant);
 	    ConstantExternalVariable& operator=( const ConstantExternalVariable& );
 	    ConstantExternalVariable( const ExternalVariable& );
 	    virtual ConstantExternalVariable * clone() const;
@@ -76,20 +76,28 @@ namespace LQIO {
       
 
 	public:
+	    virtual Type getType() const { return _variableType; }
+
 	    /* Obtaining the Value */
 	    virtual void set(double value);
+	    virtual void setString( const char * );
 	    virtual bool getValue(double& result) const;
+	    virtual bool getString( const char *& result) const;
 	    virtual const std::string& getName() const;
 	    virtual bool wasSet() const;
       
 	protected:
 	    virtual std::ostream& print( std::ostream& ) const;
+	    virtual std::ostream& printVariableName( std::ostream& ) const;
 
 	private:
       
 	    /* The stored value */
-	    double _value;
-      
+	    Type _variableType;
+	    union {
+		double d;
+		const char * s;
+	    } _value;
 	};
     
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -97,6 +105,8 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
     
 	class SymbolExternalVariable : public ExternalVariable {
+	    friend class LQIO::LQXDocument;
+	    
 	public:
       
 	    /* Designated initializers once again */
@@ -109,37 +119,37 @@ namespace LQIO {
 	    SymbolExternalVariable( const SymbolExternalVariable& );
 
 	public:
+	    virtual Type getType() const;
+
 	    /* Registering in an environment */
 	    bool registerInEnvironment(LQX::Program* pgm);
       
 	    /* Obtaining the Value */
 	    virtual void set(double value);
+	    virtual void setString(const char * s);
 	    virtual bool getValue(double& result) const;
+	    virtual bool getString(const char *& result) const;
 	    virtual bool wasSet() const;
 	    virtual const std::string& getName() const { return _name; }
       
 	protected:
 	    virtual std::ostream& print( std::ostream& ) const;
+	    virtual std::ostream& printVariableName( std::ostream& ) const;
 
-	private:
-      
 	    /* This one's a bit more complicated */
+#if	__GNUC__ == 4 && __GNUC_MINOR__ == 0
+	public:
+#else
+	private:
+#endif
+
 	    LQX::SymbolAutoRef _externalSymbol;
 	    std::string _name;
-	    double _initial;
-      
 	};
     
 	double to_double( const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const double );
-	LQIO::DOM::ConstantExternalVariable operator*( const double, const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator*( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const double );
-	LQIO::DOM::ConstantExternalVariable operator/( const double, const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator/( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const double );
-	LQIO::DOM::ConstantExternalVariable operator+( const double, const LQIO::DOM::ExternalVariable& );
-	LQIO::DOM::ConstantExternalVariable operator+( const LQIO::DOM::ExternalVariable&, const LQIO::DOM::ExternalVariable& );
-    };
-};
+	const char * to_string( const LQIO::DOM::ExternalVariable& );
+    }
+}
+
 #endif /* __LQIO_DOM_EXTVAR__ */

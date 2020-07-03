@@ -11,9 +11,9 @@
 /*
  * Global vars for setting up simulation.
  *
- * $URL: svn://192.168.2.10/lqn/trunk-V5/lqsim/lqsim.h $
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id: lqsim.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: lqsim.h 13577 2020-05-30 02:47:06Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -82,9 +82,8 @@ void * my_realloc( void * ptr, size_t size );
 void print_pragmas( FILE * output );
 void report_matherr( FILE * output );
 
-
-
 extern int nice_value;
+extern bool deferred_exception;		/* Fault detected in thread	*/
 
 extern lqio_params_stats io_vars;
 
@@ -170,6 +169,71 @@ typedef enum
 #if defined(__cplusplus)
 }
 #endif
+
+
+template <class Type> struct Exec
+{
+    typedef Type& (Type::*funcPtr)();
+    Exec<Type>( funcPtr f ) : _f(f) {};
+    void operator()( Type * object ) const { (object->*_f)(); }
+    void operator()( Type& object ) const { (object.*_f)(); }
+private:
+    funcPtr _f;
+};
+
+template <class Type> struct ConstExec
+{
+    typedef const Type& (Type::*funcPtr)() const;
+    ConstExec<Type>( const funcPtr f ) : _f(f) {};
+    void operator()( const Type * object ) const { (object->*_f)(); }
+    void operator()( const Type& object ) const { (object.*_f)(); }
+private:
+    const funcPtr _f;
+};
+    
+template <class Type1, class Type2> struct Exec1
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x );
+    Exec1<Type1,Type2>( funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+};
+
+template <class Type1, class Type2> struct ConstExec1
+{
+    typedef const Type1& (Type1::*funcPtr)( Type2 x ) const;
+    ConstExec1<Type1,Type2>( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x ); }
+private:
+    const funcPtr _f;
+    Type2 _x;
+};
+
+template <class Type1, class Type2 > struct ExecSum
+{
+    typedef Type2 (Type1::*funcPtr)();
+    ExecSum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {};
+    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
+    void operator()( Type1& object ) { _sum += (object.*_f)(); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type2 _sum;
+};
+    
+template <class Type> struct Predicate
+{
+    typedef bool (Type::*predicate)() const;
+    Predicate<Type>( const predicate p ) : _p(p) {};
+    bool operator()( const Type * object ) const { return (object->*_p)(); }
+    bool operator()( const Type& object ) const { return (object.*_p)(); }
+private:
+    const predicate _p;
+};
+
+static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 #endif
-
-

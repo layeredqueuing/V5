@@ -1,5 +1,7 @@
-# $Id: Makefile.am 11963 2014-04-10 14:36:42Z greg $
+# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
+
+#AM_CXXFLAGS=-std=c++11
 
 # This project uses Libtool to generate a product
 SUBDIRS = headers/lqio
@@ -10,6 +12,7 @@ liblqio_la_SOURCES = error.cpp glblerr.cpp \
 	dom_group.cpp dom_histogram.cpp\
 	common_io.cpp commandline.cpp labels.cpp filename.cpp getsbopt.cc \
 	confidence_intervals.cpp \
+	json_document.cpp \
 	srvn_input.cpp srvn_output.cpp srvn_results.cpp srvn_spex.cpp \
 	srvn_gram.y srvn_scan.l srvn_result_gram.y srvn_result_scan.l
 noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
@@ -19,20 +22,18 @@ liblqio_la_LIBADD = -L../../lqx/libsrc/.libs -llqx
 if EXPAT
 liblqio_la_SOURCES += expat_document.cpp
 liblqio_la_LIBADD += -lexpat
-else
-liblqio_la_SOURCES += xerces_common.cpp xerces_document.cpp xerces_write.cpp
 endif
 
 liblqio_la_CPPFLAGS = -I ../../lqx/libsrc/headers -I headers/lqio
-liblqio_lq_CXXFLAGS = -Wall -Wno-unknown-pragmas
+liblqio_la_CXXFLAGS = -Wall -Wno-unknown-pragmas
 liblqio_la_LDFLAGS =  -no-undefined -version-info 0:1:0
 
 # Force rename of variables.  For FLEX -- should check. :-)
-srvn_scan.c: srvn_scan.l srvn_gram.h
+srvn_scan.c: srvn_scan.l srvn_gram.h headers/lqio/srvn_input.h
 	$(LEX) -t $(LFLAGS) -PLQIO_ srvn_scan.l > srvn_scan.c
 
 # Force rename of variables.  For BISON -- should check. :-)
-srvn_gram.c srvn_gram.h: srvn_gram.y
+srvn_gram.c srvn_gram.h: srvn_gram.y headers/lqio/srvn_input.h
 	$(YACC) -dtv -p LQIO_ -o srvn_gram.c srvn_gram.y
 
 # Force rename of variables.  For FLEX -- should check. :-)
@@ -44,6 +45,8 @@ srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
 	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
 
 srvn_spex.cpp: srvn_gram.h
+json_document.cpp: srvn_gram.h
+srvn_input.cpp: srvn_gram.h
 
 # Files to remove during cleanup
 MOSTLYCLEANFILES = srvn_gram.h srvn_gram.c srvn_scan.c srvn_result_gram.h srvn_result_gram.c srvn_result_scan.c

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: entity.cc 13570 2020-05-27 15:10:55Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -16,10 +16,12 @@
 
 #include "dim.h"
 #include <string>
+#include <sstream>
 #include <cmath>
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
+#include "errmsg.h"
 #include "vector.h"
 #include "cltn.h"
 #include "fpgoop.h"
@@ -120,13 +122,6 @@ Entity::configure( const unsigned nSubmodels )
     Sequence<Entry *> nextEntry(entries());
     Entry * anEntry;
 
-    if ( copies() <= 0 ) {
-	LQIO::solution_error( LQIO::ERR_POSITIVE_INTEGER_EXPECTED, "multiplicity", copies(), "task", name() );
-    }
-    if ( replicas() <= 0 ) {
-	LQIO::solution_error( LQIO::ERR_POSITIVE_INTEGER_EXPECTED, "replicas", replicas(), "task", name() );
-    }
-
     if ( nEntries() > 1 && pragma.entry_variance() ) {
 	attributes.variance = true;
     }
@@ -182,35 +177,43 @@ Entity::initWait()
 
 
 /*
- * The default method is to ensure that there is only one copy specified.
- */
-
-Entity&
-Entity::copies( const unsigned n )
-{
-    if ( n != 1 ) {
-	throw should_not_implement( "Entity::copies", __FILE__, __LINE__ );
-    }
-    return *this;
-}
-
-
-/*
- * We need a way to fake out infinity... so if copies is infinite, then we change to an infinite server.
+ * Copies is always an unsigned integer greater than zero.  Infinite copies are infinite (delay) servers
+ * and should have exactly one instance.
  */
 
 unsigned
 Entity::copies() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies(); 
-    if ( !dom_copies ) return 1;
-    double value;
-    assert(dom_copies->getValue(value) == true);
-    if ( isinf( value ) ) return 1;
-    if ( value - floor(value) != 0 ) {
-	throw domain_error( "Entity::copies" );
+    unsigned int value = 1;
+    if ( !domEntity->isInfinite() ) {
+	try { 
+	    value = domEntity->getCopiesValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", domEntity->getTypeName(), name(), e.what() );
+	    throw_bad_parameter();
+	}
     }
-    return static_cast<unsigned int>(value);
+    return value;
+}
+
+
+/*
+ * Return the number of replicas (default is 1).
+ */
+
+unsigned
+Entity::replicas() const
+{
+    unsigned int value = 1;
+    try {
+	value = domEntity->getReplicasValue();
+    }
+    catch ( const std::domain_error &e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", domEntity->getTypeName(), name(), e.what() );
+	throw_bad_parameter();
+    }
+    return value;
 }
 
 
@@ -248,32 +251,6 @@ Entity::addEntry( Entry * anEntry )
     return *this;
 }
 
-
-
-/*
- * Return the fan-in to this server from...
- */
-
-unsigned
-Entity::fanIn( const Task * aClient ) const
-{
-    if ( dynamic_cast<LQIO::DOM::Task *>(domEntity) ) {
-	return dynamic_cast<LQIO::DOM::Task *>(domEntity)->getFanIn( aClient->name() );
-    } else {
-	return aClient->replicas() / replicas();
-    }
-}
-
-#warning fix me
-unsigned
-Entity::fanOut( const Entity * aServer ) const
-{
-    if ( dynamic_cast<LQIO::DOM::Task *>(domEntity) ) {
-	return dynamic_cast<LQIO::DOM::Task *>(domEntity)->getFanOut( aServer->name() );
-    } else {
-	return replicas() / aServer->replicas();
-    }
-}
 
 /*
  * Return the aggregate throughput of this entity.
@@ -351,8 +328,26 @@ Entity::saturation() const
 	return utilization() / value;
     }
 }
+
+
     
-    
+/*
+ * Return the total open arrival rate to this server.
+ */
+
+bool
+Entity::hasOpenArrivals() const
+{
+    Sequence<Entry *> nextEntry( entries() );
+    const Entry * anEntry;
+	
+    while ( anEntry = nextEntry() ) {
+	if ( anEntry->hasOpenArrivals() ) return true;
+    }
+    return false;
+}
+
+
 /*
  * Find all tasks that call this task and add them to the argument.
  * Return the number of calling tasks ADDED!

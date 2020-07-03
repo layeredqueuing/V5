@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/testmva.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/testmva.cc $
  *
  * Example from:
  *     author =   "Chandy, K. Mani and Neuse, Doug",
@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.cc 11969 2014-04-11 21:19:54Z greg $
+ * $Id: testmva.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -30,7 +30,7 @@
 #include "vector.h"
 #include "fpgoop.h"
 
-static bool doIt( const solverId, Vector<Server *>& Q, const PopVector & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
+static bool doIt( const solverId, Vector<Server *>& Q, const Population & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
 static bool run( const unsigned solver_set, const unsigned special );
 static void usage();
 char * progname;
@@ -106,7 +106,7 @@ int main (int argc, char *argv[])
 
 	switch( c ) {
 	case 'a':
-	    solver_set = (unsigned)-1;
+	    solver_set = EXACT_SOLVER_BIT|BARD_SCHWEITZER_SOLVER_BIT|LINEARIZER_SOLVER_BIT;
 	    break;
 			
 	case 'b':
@@ -200,7 +200,7 @@ int main (int argc, char *argv[])
 static bool 
 run( const unsigned solver_set, const unsigned special )
 {
-    PopVector N;
+    Population N;
     VectorMath<double> Z;
     VectorMath<unsigned> priority;
     Vector<Server *> Q;
@@ -253,7 +253,7 @@ static const char * names[] =
 };
 
 static bool
-doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMath<double> &Z, 
+doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMath<double> &Z, 
       const VectorMath<unsigned>& priority, const unsigned special )
 {
     bool ok = true;
@@ -363,3 +363,16 @@ usage()
 #endif
     cerr << endl;
 }
+
+#include <vector.cc>
+
+template class Vector<double>;
+template class Vector<unsigned int>;
+template class Vector<Server *>;
+template class VectorMath<unsigned int>;
+template class Vector<unsigned long>;
+template class VectorMath<double>;
+template class Vector<Vector<unsigned> >;
+template class Vector<VectorMath<double> >;
+template class Vector<VectorMath<unsigned> >;
+

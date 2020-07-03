@@ -1,7 +1,7 @@
 /* -*- c++ -*- 
  * arc.h	-- Greg Franks
  *
- * $Id: arc.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: arc.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _ARC_H
@@ -12,46 +12,41 @@
 #endif
 #include "point.h"
 #include "graphic.h"
-#include "vector.h"
 
-class Arc;
-ostream& operator<<( ostream&, const Arc& );
-
-class DoesNotIntersect
-{
-public:
-    DoesNotIntersect() {}
-};
-
-
-class Arc : public Graphic, public Vector2<Point>
+class Arc : public Graphic, protected std::vector<Point>
 {
 private:
     Arc( const Arc& );
 
 public:
     Arc( const unsigned size, const arrowhead_type anArrowhead ) 
-	: Graphic(), myArrowhead(anArrowhead)
-	{ grow(size); }
+	: Graphic(), std::vector<Point>(size), myArrowhead(anArrowhead)
+	{}
     virtual ~Arc() {}
     Arc& operator=( const Arc& );
 
     static Arc * newArc( const unsigned size = 2 , const arrowhead_type anArrowhead = CLOSED_ARROW );
-
+    unsigned int nPoints() const { return size(); }
+    Arc& resize( unsigned int size ) { std::vector<Point>::resize( size ); return *this; }
+    const Point& srcPoint() const { return front(); }
+    const Point& secondPoint() const;
+    Point& pointAt( unsigned i ) { return std::vector<Point>::at(i); }
+    const Point& pointAt( unsigned int i ) const { return std::vector<Point>::at(i); }
+    const Point& penultimatePoint() const;
+    const Point& dstPoint() const { return back(); }
+    
     /* Computation */
 
     Arc& moveBy( const double dx, const double dy );
     Arc& moveBy( const Point& aPoint ) { moveBy( aPoint.x(), aPoint.y() ); return *this; } 
-    Point& srcPoint() const { return (*this)[1]; }
-    Point& secondPoint() const;
-    Point& penultimatePoint() const;
-    Point& dstPoint() const { return (*this)[size()]; }
     Arc& moveDst( const double dx, const double dy );
     Arc& moveDst( const Point& aPoint ) { moveDst( aPoint.x(), aPoint.y() ); return *this; } 
     Arc& moveDstBy( const double dx, const double dy );
     Arc& moveSrc( const double dx, const double dy );
     Arc& moveSrc( const Point& aPoint ) { moveSrc( aPoint.x(), aPoint.y() ); return *this; } 
     Arc& moveSrcBy( const double dx, const double dy );
+    Arc& moveSecond( const Point& aPoint );
+    Arc& movePenultimate( const Point& aPoint );
     Arc& scaleBy( const double, const double );
     Arc& translateY( const double );
     virtual int direction() const { return 1; }
@@ -65,10 +60,10 @@ public:
     arrowhead_type arrowhead() const { return myArrowhead; }
     double arrowScaling() const;
 
-    virtual ostream& print( ostream& ) const = 0;
+    virtual const Arc& draw( ostream& ) const = 0;
 
 protected:
-    unsigned removeDuplicates() const;
+    std::vector<Point> removeDuplicates() const;
 
 private:
     Point intersectsCircle( const Point&, const Point&, const Point&, const double r ) const;
@@ -76,13 +71,16 @@ private:
 protected:
     arrowhead_type myArrowhead;
 };
+
+inline ostream& operator<<( ostream& output, const Arc& self ) { self.draw( output ); return output; }
+
 
 #if defined(EMF_OUTPUT)
 class ArcEMF : public Arc, private EMF
 {
 public:
     ArcEMF( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcEMF& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 #endif
@@ -93,7 +91,7 @@ public:
     ArcFig( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return -1; }
 
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcFig& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 
@@ -104,7 +102,7 @@ public:
     ArcGD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return -1; }
 
-    virtual ostream& print( ostream& output ) const;
+    virtual const ArcGD& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 #endif
@@ -115,7 +113,7 @@ public:
     ArcNull( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return 1; }
 
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual const ArcNull& draw( ostream& output ) const { return *this; }
     virtual ostream& comment( ostream& output, const string& ) const { return output; }
 };
 
@@ -123,7 +121,7 @@ class ArcPostScript : public Arc, private PostScript
 {
 public:
     ArcPostScript( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcPostScript& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 
@@ -132,7 +130,7 @@ class ArcSVG : public Arc, private SVG
 {
 public:
     ArcSVG( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcSVG& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 #endif
@@ -142,7 +140,7 @@ class ArcSXD : public Arc, private SXD
 {
 public:
     ArcSXD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcSXD& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 #endif
@@ -151,7 +149,7 @@ class ArcTeX : public Arc, private TeX
 {
 public:
     ArcTeX( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& ) const;
+    virtual const ArcTeX& draw( ostream& ) const;
     virtual ostream& comment( ostream& output, const string& ) const;
 };
 

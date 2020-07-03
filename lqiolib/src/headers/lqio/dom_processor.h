@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_processor.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -25,7 +25,7 @@ namespace LQIO {
 
 	    /* Designated initializers for the SVN DOM Entity type */
 	    Processor(const Document *document, const char * processor_name, scheduling_type scheduling_flag,
-		      ExternalVariable* n_cpus=0, int n_replicas=1, const void * processor_element=0);
+		      ExternalVariable* n_cpus=NULL, ExternalVariable* n_replicas=NULL );
 	    Processor( const Processor& );
 	    virtual ~Processor();
 
@@ -33,18 +33,21 @@ namespace LQIO {
 
 	    /* Accessors and Mutators */
 
+	    const char * getTypeName() const { return __typeName; }
+
 	    bool hasRate() const;
-	    const double getRateValue() const;
+	    double getRateValue() const;
 	    ExternalVariable * getRate() const { return _processorRate; }
 	    void setRateValue(const double newRate);
 	    void setRate(ExternalVariable * newRate);
 
-	    bool hasQuantum() const { return _processorQuantum != 0; }
-	    const double getQuantumValue() const;
+	    bool hasQuantum() const;
+	    double getQuantumValue() const;
 	    ExternalVariable * getQuantum() const { return _processorQuantum; }
 	    void setQuantum( ExternalVariable * newQuantum ) { _processorQuantum = newQuantum; }
 	    void setQuantumValue(const double newQuantum);
 
+	    bool hasQuantumScheduling() const;
 	    bool hasPriorityScheduling() const;
 
 	    /* Managing the Task List */
@@ -77,9 +80,12 @@ namespace LQIO {
 	    double _resultUtilization;
 	    double _resultUtilizationVariance;
 
+	public:
+	    static const char * __typeName;
+
 	};
 
-    };
-};
+    }
+}
 
 #endif /* __LQIO_DOM_PROCESSOR__ */

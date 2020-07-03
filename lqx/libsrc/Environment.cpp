@@ -10,7 +10,7 @@
 #include "NonCopyable.h"
 #include "Environment.h"
 #include "Intrinsics.h"
-#include "Strings.h"
+#include "LQXStrings.h"
 #include "Array.h"
 #include <stdarg.h>
 

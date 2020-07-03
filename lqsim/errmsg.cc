@@ -37,6 +37,7 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::RUNTIME_ERROR, "An error occurred while initializing parasol model.  The simulation was not run." },		/* ERR_INITIALIZATION_FAILED 	    */
     { LQIO::RUNTIME_ERROR, "Signal to semaphore task %s with no pending wait." },						/* ERR_SIGNAL_NO_WAIT		    */
     { LQIO::ADVISORY_ONLY, "Specified confidence interval of %4.2f%% not met after run time of %G. Actual value is %4.2f%%." }, /* ADV_PRECISION                    */
+    { LQIO::ADVISORY_ONLY, "Model is deadlocked." }, 										/* ADV_DEADLOCK			    */
     { LQIO::WARNING_ONLY,  "Histogram requested for entry \"%s\", phase %d -- phase is not present." },         		/* WRN_NO_PHASE_FOR_HISTOGRAM       */
     { LQIO::WARNING_ONLY,  "No quantum specified for PS scheduling discipline at processor \"%s\".  FIFO used." },              /* WRN_NO_QUANTUM_FOR_PS            */
     { LQIO::WARNING_ONLY,  "Priority specified (%d) is outside of range (%d,%d). (Value has been adjusted to %d)." },           /* WRN_INVALID_PRIORITY             */
@@ -77,10 +78,9 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.anError = true;
 	io_vars.error_count += 1;
 	if  ( io_vars.error_count >= 10 ) {
-	    throw ( runtime_error( "Too many errors" ) );
+	    throw ( std::runtime_error( "Too many errors" ) );
 	}
 	break;
     }

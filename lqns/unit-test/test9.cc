@@ -2,7 +2,7 @@
  * Multiserver test.
  * ------------------------------------------------------------------------
  *
- * $Id: test9.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test9.cc 13413 2018-10-23 15:03:40Z greg $
  */
 
 #include <cmath>
@@ -25,12 +25,12 @@
 #define	V22_COUNT	5
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned v22_ix )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned v22_ix )
 {
     const unsigned classes  = N_CLASSES;
     const unsigned stations = N_STATIONS;
 	
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     Z.grow(classes);			/* Think times.			*/
     priority.grow(classes);
     Q.grow(stations);			/* Queue type.  SS/delay.	*/

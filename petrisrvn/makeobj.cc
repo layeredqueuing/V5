@@ -8,15 +8,20 @@
 /************************************************************************/
 
 /*
- * $Id: makeobj.cc 11056 2012-07-05 22:22:21Z greg $
+ * $Id: makeobj.cc 13477 2020-02-08 23:14:37Z greg $
  *
  * Make various model objects.
  */
 
 #include "petrisrvn.h"
+#include <map>
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <stdexcept>
 #if HAVE_MALLOC_H
 #include <malloc.h>
 #endif
@@ -29,14 +34,7 @@
 #include "errmsg.h"
 #include "makeobj.h"
 
-#define	MAX_NAME_SIZE	20		/* greatspn only allows 32 chars, hash at 20.	*/
-#define	HASH_TABLE_SIZE	1001
-
-static char * add_to_hash_table( const char * key, char * aStr );
-static int hash ( const char * aStr  );
-static int strhcmp( const char * str1, const char * str2 );
-
-static char * hash_table[HASH_TABLE_SIZE];
+std::map<std::string,std::string> netobj_name_table;
 
 /*----------------------------------------------------------------------*/
 /*				PLACES					*/
@@ -56,7 +54,7 @@ create_place( double curr_x, double curr_y, LAYER layer, int tokens, const char 
     assert( curr_x > 0 && curr_y > 0 );
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
     if ( !netobj->places ) {
@@ -66,7 +64,7 @@ create_place( double curr_x, double curr_y, LAYER layer, int tokens, const char 
 	cur_place->next = (struct place_object *) malloc(sizeof (struct place_object));
 	cur_place = cur_place->next;
     }
-    cur_place->tag      = strdup32x( name );
+    cur_place->tag      = strdup( insert_netobj_name( name ).c_str() );
     cur_place->m0       = tokens;
     cur_place->tokens   = tokens;
     cur_place->color    = NULL;
@@ -106,20 +104,6 @@ move_place( struct place_object *cur_place, double x_offset, double y_offset )
 }
 
 
-struct place_object *
-rename_place( struct place_object *cur_place, const char * format, ... )
-{
-    va_list args;
-    char name[BUFSIZ];
-    va_start( args, format );
-    (void) vsprintf( name, format, args );
-    va_end( args );
-
-    cur_place->tag = strdup32x( name );
-    return cur_place;
-}
-
-
 /*
  * Create a rate parameter and link to list.
  */
@@ -132,7 +116,7 @@ create_rpar( double curr_x, double curr_y, LAYER layer, double rate, const char 
     static struct rpar_object *cur_rpar;
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
     if ( netobj->rpars == NULL) {
@@ -143,7 +127,7 @@ create_rpar( double curr_x, double curr_y, LAYER layer, double rate, const char 
 	cur_rpar = cur_rpar->next;
     }
 
-    cur_rpar->tag      = strdup32x( name );
+    cur_rpar->tag      = strdup( insert_netobj_name( name ).c_str() );
     cur_rpar->value    = rate;
     cur_rpar->center.x = IN_TO_PIX(curr_x);
     cur_rpar->center.y = IN_TO_PIX(curr_y);
@@ -169,7 +153,7 @@ no_rpar( const char * format, ... )
     unsigned i;
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
     for ( cur_rpar = netobj->rpars, i = 1; cur_rpar != NULL; cur_rpar = cur_rpar->next, ++i) {
@@ -182,7 +166,7 @@ no_rpar( const char * format, ... )
 
 
 /*
- * Return the index of the place.  The place name is created.
+ * Return the place object.  The tag name of the place is found in the netobj_name_table.
  */
 
 struct place_object *
@@ -194,13 +178,20 @@ no_place( const char * format, ... )
     struct place_object * cur_place;
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
-    for ( cur_place = netobj->places; cur_place != NULL; cur_place = cur_place->next ) {
-	if (strhcmp(cur_place->tag, name) == 0)
-	    return cur_place;
+    std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
+    if ( i != netobj_name_table.end() ) {
+	for ( cur_place = netobj->places; cur_place != NULL; cur_place = cur_place->next ) {
+	    if ( i->second == cur_place->tag ) {
+		return cur_place;
+	    }
+	}
     }
+    std::string msg = "No place named: ";
+    msg += name;
+    throw std::runtime_error( msg.c_str() );
     return 0;
 }
 
@@ -219,7 +210,7 @@ inc_marking( const char * format, ... )
     int tokens;
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
     tokens = value_pmar( name );
@@ -245,7 +236,7 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
     struct trans_object * cur_trans = (struct trans_object *) malloc(sizeof (struct trans_object ));
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
     cur_trans->next  = NULL;
@@ -267,7 +258,7 @@ create_trans( double x_pos, double y_pos, LAYER layer, double rate, short enable
 	break;
     }
 
-    cur_trans->tag	        = strdup32x( name );
+    cur_trans->tag	        = strdup( insert_netobj_name( name ).c_str() );	/* Need a copy since it is freed in wspnlib */
     cur_trans->fire_rate.ff 	= rate;
     cur_trans->kind     	= kind;
     cur_trans->enabl		= enable;		/* 0 == infinite server */
@@ -335,13 +326,20 @@ no_trans( const char * format, ... )
     struct trans_object * cur_trans;
 
     va_start( args, format );
-    (void) vsprintf( name, format, args );
+    (void) vsnprintf( name, BUFSIZ, format, args );
     va_end( args );
 
-    for ( cur_trans = netobj->trans; cur_trans != NULL; cur_trans = cur_trans->next ) {
-	if (strhcmp(cur_trans->tag, name) == 0)
-	    return cur_trans;
+    std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
+    if ( i != netobj_name_table.end() ) {
+	for ( cur_trans = netobj->trans; cur_trans != NULL; cur_trans = cur_trans->next ) {
+	    if ( i->second == cur_trans->tag ) {
+		return cur_trans;
+	    }
+	}
     }
+    std::string msg = "No transition named: ";
+    msg += name;
+    throw std::runtime_error( msg.c_str() );
     return 0;
 }
 
@@ -429,10 +427,10 @@ create_res ( double curr_x, double curr_y, const char *format_name, const char *
     static struct res_object *cur_res;
 
     va_start( args, format_result );
-    (void) vsprintf( name_str, format_name, args );
+    (void) vsnprintf( name_str, BUFSIZ, format_name, args );
     va_end( args );
     va_start( args, format_result );
-    (void) vsprintf( result_str, format_result, args );
+    (void) vsnprintf( result_str, BUFSIZ, format_result, args );
     va_end( args );
 
     if ( netobj->results == NULL) {
@@ -443,7 +441,7 @@ create_res ( double curr_x, double curr_y, const char *format_name, const char *
 	cur_res = cur_res->next;
     }
 
-    cur_res->tag = strdup32x( name_str );
+    cur_res->tag = strdup( insert_netobj_name( name_str ).c_str() );
     cur_res->text = (struct com_object *)malloc( sizeof( struct com_object ) );
     cur_res->text->line = strdup( result_str );
     cur_res->text->next = NULL;
@@ -584,149 +582,40 @@ shift_rpars( double offset_x, double offset_y )
  * GreatSPN is sooo picky...
  */
 
+const std::string& 
+insert_netobj_name( const std::string& name )
+{
+    std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
+    if ( i == netobj_name_table.end() ) {
+	bool hash = false;
+	std::ostringstream buf;
+	std::string::const_iterator src;
+	for ( src = name.begin(); src != name.end() && buf.str().size() < 6; ++src ) {
+	    if ( isalnum(*src) ) {
+		buf << *src;
+	    } else {
+		hash = true;
+	    }
+	}
+	if ( hash || src != name.end() ) {
+	    buf << std::setw( 4 ) << std::setfill( '0' ) << netobj_name_table.size();
+	}
+	std::pair<std::map<std::string,std::string>::const_iterator,bool> result = netobj_name_table.insert( std::pair<std::string,std::string>( name, buf.str() ) );
+	i = result.first;
+    }
+    return i->second;		/* Old GreatSPN code... */
+}
+
+
 char *
-strdup32x( const char * aStr )
+find_netobj_name( const std::string& name )
 {
-    if ( strchr( aStr, '_' ) != 0 ) {
-	char * buf = (char *)malloc( strlen( aStr ) + 1 );
-	char * p = buf;		/* destination of fixed string 	*/
-	const char * q = aStr;	/* Source from which we strip	*/
-	for ( ; *q; ++q ) {
-	    if ( isalnum( *q ) ) *p++ = *q;
-	}
-	*p++ = '\0';		/* Null terminate the sucker.	*/
-	p = add_to_hash_table( aStr, buf );
-	free( buf );
-	return p;
-    } else if ( strlen( aStr ) > MAX_NAME_SIZE ) {
-	return add_to_hash_table( aStr, 0 );
-    } else {
-	return strdup( aStr );
+    std::map<std::string,std::string>::const_iterator i = netobj_name_table.find( name );
+    if ( i != netobj_name_table.end() ) {
+	return const_cast<char *>(i->second.c_str());
     }
-}
-
-
-/*
- * Add aStr to the hash table and return a magical string.
- */
- 
-static char *
-add_to_hash_table( const char * key, char * aStr )
-{
-    int i = hash( key );
-    char buf[33];
-    unsigned count;
-	
-    if ( i == -1 ) {
-	LQIO::solution_error( FTL_TAG_TABLE_FULL );
-	exit( EXCEPTION_EXIT );
-    }
-
-    hash_table[i] = strdup( key );
-
-    if ( aStr ) {
-	strncpy( buf, aStr, MAX_NAME_SIZE );
-    } else {
-	strncpy( buf, key, MAX_NAME_SIZE );
-    }
-    buf[MAX_NAME_SIZE] = 0;
-    count = strlen( buf );
-    if ( count > MAX_NAME_SIZE ) count = MAX_NAME_SIZE;
-    sprintf( buf+count, "%d", i );
-    return strdup( buf );
-}
-
-
-/*
- * Hash a string.
- */
-
-static int
-hash ( const char * aStr  )
-{
-    const char * p;
-    unsigned long i;
-    unsigned long index;
-	
-    for ( p = aStr, i = 0; *p; ++p ) {
-	i += (unsigned)*p;
-    }
-
-    i %= HASH_TABLE_SIZE;
-    index = i;
-
-    do {
-	if ( !hash_table[i] || strcmp( hash_table[i], aStr ) == 0 ) {
-	    return i;
-	} else {
-	    i = (i + 1) % HASH_TABLE_SIZE;
-	}
-    } while ( i != index );
-
-    return -1;
-}
-
-
-
-/*
- * compare str1 to str2.  Hash str2 if necessary.
- */
-
-static int
-strhcmp( const char * str1, const char * str2 )
-{
-    if ( strlen( str2 ) > MAX_NAME_SIZE || strchr( str2, '_' ) ) {
-	char buf[BUFSIZ];
-	strcpy( buf, str2 );
-	hash_name( buf );
-	return strcmp( str1, buf );
-    } else {
-	return strcmp( str1, str2 );
-    }
-}
-
-
-
-/*
- * Translate the name into something found in the hash table.
- */
-
-void
-hash_name( char * aStr )
-{
-    int i = hash( aStr );
-    bool dohash = strlen( aStr ) > MAX_NAME_SIZE;
-    char * p = aStr;		/* destination of fixed string 	*/
-    char * q = aStr;		/* Source from which we strip	*/
-    for ( ; *q; ++q ) {
-	if ( isalnum( *q ) ) {
-	    *p++ = *q;
-	} else {
-	    dohash = true;
-	}
-    }
-    *p++ = '\0';		/* Null terminate the sucker.	*/
-    if ( dohash  ) {
-	int count;
-	aStr[MAX_NAME_SIZE] = 0;
-	count = strlen( aStr );
-	sprintf( aStr+count, "%d", i );
-    }
-}
-
-
-/*
- * Reset all entries in hash table.
- */
-
-void
-clear_hash_table()
-{
-    int i;
-    for ( i = 0; i < HASH_TABLE_SIZE; ++i ) {
-	if ( hash_table[i] ) {
-	    free( hash_table[i] );
-	    hash_table[i] = 0;
-	}
-    }
+    std::string msg = "No object named: ";
+    msg += name;
+    throw std::runtime_error( msg.c_str() );
+    return 0;
 }

@@ -1,7 +1,7 @@
 # Makefile for
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 #
-# $HeadURL: svn://franks.dnsalias.com/lqn/trunk/models/h-t-83/Makefile $
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/h-t-83/Makefile $
 #
 # ------------------------------------------------------------------------
 # $Id: Makefile 7397 2007-01-20 03:03:03Z greg $

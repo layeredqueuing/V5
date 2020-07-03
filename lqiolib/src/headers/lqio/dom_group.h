@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_group.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_group.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -24,11 +24,13 @@ namespace LQIO {
 	public:
       
 	    /* Designated initializers for the Group type */
-	    Group(const Document * document, const char * name, Processor* proc=0, ExternalVariable * share=0, bool cap=false, const void * group_element=0);
+	    Group(const Document * document, const char * name, Processor* proc=0, ExternalVariable * share=0, bool cap=false );
 	    Group( const Group & );
 	    virtual ~Group();
       
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    const Processor* getProcessor() const;
 	    void setProcessor(Processor* processor);
 	    double getGroupShareValue() const;
@@ -63,6 +65,10 @@ namespace LQIO {
 	    /* Results */
 	    double _resultUtilization;
 	    double _resultUtilizationVariance;
+
+	public:
+	    static const char * __typeName;
+
 	};
     }
 }

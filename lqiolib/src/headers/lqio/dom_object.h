@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 11987 2014-04-16 20:57:40Z greg $
+ *  $Id: dom_object.h 13546 2020-05-20 15:47:59Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -15,25 +15,48 @@ namespace LQIO {
     namespace DOM {
 	class Document;
 	class Histogram;
+	class ExternalVariable;
 
 	class DocumentObject {
+
 	protected:
-	    DocumentObject(const Document * document, const char *, const void * xmlDOMElement );
+	    friend class Document;		/* To access DocumentObject::Predicate */
+
+	    template <class Type> class Predicate {
+		typedef bool (Type::*test_fn)() const;
+
+	    public:
+		Predicate<Type>( const test_fn f ) : _f(f) {}
+		bool operator()( const Type * object ) const { return (object->*_f)(); }
+		bool operator()( const std::pair<std::string, Type *>& object ) const { return (object.second->*_f)(); }
+	    
+	    private:
+		const test_fn _f;
+	    };
+
+	protected:
+	    DocumentObject(const Document * document, const char * );
 
 	public:
 	    virtual ~DocumentObject();
 
 	    /* Accessors and Mutators */
+	    virtual const char * getTypeName() const = 0;
 	    unsigned long getSequenceNumber() const { return _sequenceNumber; }
 	    const Document * getDocument() const { return _document; }
-	    const void * getXMLDOMElement() const { return _xmlDOMElement; }	/* Return the DOM Element Pointer */
-	    void setXMLDOMElement( const void * xmlDOMElement ) { _xmlDOMElement = xmlDOMElement; }
 	    const std::string& getName() const;
 	    void setName( const std::string& );
 	    bool hasResults() const;
 	    void setComment( const std::string& );
 	    const std::string& getComment() const;
 
+	protected:
+	    ExternalVariable * checkIntegerVariable( ExternalVariable * var, int floor_value ) const;
+	    int getIntegerValue( const ExternalVariable * var, int floor_value ) const;
+	    ExternalVariable * checkDoubleVariable( ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
+	    double getDoubleValue( const ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
+	    
+	public:
 	    virtual bool hasHistogram() const { return false; }		/* Any object could have a histogram... */
 	    virtual const Histogram* getHistogram() const { subclass(); return 0; }	/* But don't... */
 	    virtual void setHistogram( Histogram* ) { subclass(); }
@@ -48,8 +71,6 @@ namespace LQIO {
 	    virtual DocumentObject& setResultDropProbabilityVariance( const double resultDropProbabilityVariance ) { subclass(); return *this; }
 	    virtual DocumentObject& setResultJoinDelay(const double joinDelay ) { subclass(); return *this; }
 	    virtual DocumentObject& setResultJoinDelayVariance(const double joinDelayVariance ) { subclass(); return *this; }
-	    virtual DocumentObject& setResultOpenWaitTime(const double resultOpenWaitTime) { subclass(); return *this; }
-	    virtual DocumentObject& setResultOpenWaitTimeVariance(const double resultOpenWaitTimeVariance) { subclass(); return *this; }
 	    virtual DocumentObject& setResultPhase1ProcessorWaiting(const double resultPhasePProcessorWaiting) { subclass(); return *this; }
 	    virtual DocumentObject& setResultPhase1ProcessorWaitingVariance(const double resultPhasePProcessorWaitingVariance) { subclass(); return *this; }
 	    virtual DocumentObject& setResultPhase1ServiceTime(const double resultPhasePServiceTime) { subclass(); return *this; }
@@ -145,8 +166,7 @@ namespace LQIO {
             virtual double getResultJoinDelayVariance() const { subclass(); return 0; }
             virtual double getResultMaxServiceTimeExceeded() const { subclass(); return 0; }
             virtual double getResultMaxServiceTimeExceededVariance() const { subclass(); return 0; }
-            virtual double getResultOpenWaitTime() const { subclass(); return 0; }
-            virtual double getResultOpenWaitTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase1MaxServiceTimeExceeded() const { subclass(); return 0; }
             virtual double getResultPhase1ProcessorWaiting() const { subclass(); return 0; }
             virtual double getResultPhase1ProcessorWaitingVariance() const { subclass(); return 0; }
             virtual double getResultPhase1ServiceTime() const { subclass(); return 0; }
@@ -155,6 +175,7 @@ namespace LQIO {
             virtual double getResultPhase1UtilizationVariance() const { subclass(); return 0; }
             virtual double getResultPhase1VarianceServiceTime() const { subclass(); return 0; }
             virtual double getResultPhase1VarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase2MaxServiceTimeExceeded() const { subclass(); return 0; }
             virtual double getResultPhase2ProcessorWaiting() const { subclass(); return 0; }
             virtual double getResultPhase2ProcessorWaitingVariance() const { subclass(); return 0; }
             virtual double getResultPhase2ServiceTime() const { subclass(); return 0; }
@@ -163,6 +184,7 @@ namespace LQIO {
             virtual double getResultPhase2UtilizationVariance() const { subclass(); return 0; }
             virtual double getResultPhase2VarianceServiceTime() const { subclass(); return 0; }
             virtual double getResultPhase2VarianceServiceTimeVariance() const { subclass(); return 0; }
+            virtual double getResultPhase3MaxServiceTimeExceeded() const { subclass(); return 0; }
             virtual double getResultPhase3ProcessorWaiting() const { subclass(); return 0; }
             virtual double getResultPhase3ProcessorWaitingVariance() const { subclass(); return 0; }
             virtual double getResultPhase3ServiceTime() const { subclass(); return 0; }
@@ -242,7 +264,6 @@ namespace LQIO {
 	    const unsigned long _sequenceNumber;
 	    std::string _name;
 	    std::string _comment;
-	    const void * _xmlDOMElement;		/* Used by XERCES to point to DOM. */
 
 	    static unsigned long sequenceNumber;
 	};

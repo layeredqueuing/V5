@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: pragma.cc 13533 2020-03-12 22:09:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,6 +17,7 @@
 #endif
 #include <lqio/labels.h>
 #include <lqio/input.h>
+#include <lqio/expat_document.h>
 
 using namespace std;
 
@@ -96,7 +97,7 @@ Pragma::set_processor_scheduling( const string& value )
 	_processor_scheduling = str_to_scheduling_type( value, SCHEDULE_FIFO );
 	return true;
     }
-    catch ( invalid_argument& arg ) {
+    catch ( const invalid_argument& arg ) {
 	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", io_vars.lq_toolname, arg.what() );
 	_processor_scheduling = SCHEDULE_FIFO;
 	return false;
@@ -106,7 +107,7 @@ Pragma::set_processor_scheduling( const string& value )
 const char *
 Pragma::get_processor_scheduling() const
 {
-    return schedulingTypeXMLString[_processor_scheduling];
+    return scheduling_label[_processor_scheduling].XML;
 }
 
 
@@ -144,7 +145,7 @@ Pragma::set_task_scheduling( const string& value )
 	_task_scheduling = str_to_scheduling_type( value, SCHEDULE_FIFO );
 	return true;
     }
-    catch ( invalid_argument& arg ) {
+    catch ( const invalid_argument& arg ) {
 	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", io_vars.lq_toolname, arg.what() );
 	_task_scheduling = SCHEDULE_FIFO;
 	return false;
@@ -154,10 +155,22 @@ Pragma::set_task_scheduling( const string& value )
 const char *
 Pragma::get_task_scheduling() const
 {
-    return schedulingTypeXMLString[_task_scheduling];
+    return scheduling_label[_task_scheduling].XML;
 }
 
 
+bool
+Pragma::set_spex_header( const std::string& value )
+{
+    LQIO::Spex::__no_header = is_true( value );
+    return true;
+}
+
+const char *
+Pragma::get_spex_header() const
+{
+    return LQIO::Spex::__no_header ? "true" : "false";
+}
 
 
 void
@@ -165,10 +178,11 @@ Pragma::initialize()
 {
     if ( __pragmas.size() > 0 ) return;
 
-    __pragmas["processor-scheduling"] =       pragma_info( PROCESSOR_SCHEDULING,       &Pragma::set_processor_scheduling,       &Pragma::get_processor_scheduling,       &Pragma::eq_processor_scheduling );
-    __pragmas["reschedule-on-async-send"] =   pragma_info( RESCHEDULE_ON_ASYNC_SEND,   &Pragma::set_reschedule_on_async_send,   &Pragma::get_reschedule_on_async_send,   &Pragma::eq_reschedule_on_async_send );
-    __pragmas["stop-on-message-loss"] =       pragma_info( STOP_ON_MESSAGE_LOSS,       &Pragma::set_stop_on_message_loss,       &Pragma::get_stop_on_message_loss,       &Pragma::eq_stop_on_message_loss );
-    __pragmas["task-scheduling"] =            pragma_info( TASK_SCHEDULING,            &Pragma::set_task_scheduling,    	&Pragma::get_task_scheduling,            &Pragma::eq_task_scheduling );
+    __pragmas["processor-scheduling"] =	      pragma_info( PROCESSOR_SCHEDULING,       &Pragma::set_processor_scheduling,	&Pragma::get_processor_scheduling,	 &Pragma::eq_processor_scheduling );
+    __pragmas["reschedule-on-async-send"] =   pragma_info( RESCHEDULE_ON_ASYNC_SEND,   &Pragma::set_reschedule_on_async_send,	&Pragma::get_reschedule_on_async_send,	 &Pragma::eq_reschedule_on_async_send );
+    __pragmas["stop-on-message-loss"] =	      pragma_info( STOP_ON_MESSAGE_LOSS,       &Pragma::set_stop_on_message_loss,	&Pragma::get_stop_on_message_loss,	 &Pragma::eq_stop_on_message_loss );
+    __pragmas["task-scheduling"] =	      pragma_info( TASK_SCHEDULING,	       &Pragma::set_task_scheduling,		&Pragma::get_task_scheduling,		 &Pragma::eq_task_scheduling );
+    __pragmas["no-header"] =		      pragma_info( SPEX_HEADER,		       &Pragma::set_spex_header,		&Pragma::get_spex_header,		 &Pragma::eq_spex_header );
 }
 
 
@@ -193,6 +207,8 @@ Pragma::usage(void)
 
 	case STOP_ON_MESSAGE_LOSS:
 	case RESCHEDULE_ON_ASYNC_SEND:
+	case XML_SCHEMA:
+	case SPEX_HEADER:
 	    (void) fprintf( stderr, "{true,false}" );
 	    break;
 	}
@@ -235,13 +251,13 @@ Pragma::updateDOM( LQIO::DOM::Document* document ) const
  */
 
 scheduling_type
-Pragma::str_to_scheduling_type( const string& s, scheduling_type default_sched ) throw( std::invalid_argument )
+Pragma::str_to_scheduling_type( const string& s, scheduling_type default_sched )
 {
     if ( s.size() == 0 ) {
 	return default_sched;
     } else {
 	for ( unsigned i = 0; i < N_SCHEDULING_TYPES; ++i ) {
-	    if ( s.compare( schedulingTypeXMLString[i] ) == 0 ) {
+	    if ( s.compare( ::scheduling_label[i].XML ) == 0 ) {
 		return static_cast<scheduling_type>(i);
 	    }
 	}

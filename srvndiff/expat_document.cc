@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 12542 2016-04-04 17:00:21Z greg $
+ * $Id: expat_document.cc 13488 2020-02-11 21:02:57Z greg $
  *
  * Read in XML input files.
  *
@@ -42,8 +42,6 @@
 
 namespace LQIO {
     namespace DOM {
-        using namespace std;
-
         bool Expat_Document::__debugXML = false;
 
         const XML_Char * Expat_Document::XNil = "";
@@ -229,7 +227,7 @@ namespace LQIO {
 	{
 	    _parser = XML_ParserCreateNS(NULL,'/');	/* Gobble header goop */
 	    if ( !_parser ) {
-		throw runtime_error("");
+		throw std::runtime_error("");
 	    }
 
 	    if ( precedence_table.size() == 0 ) {
@@ -324,13 +322,13 @@ namespace LQIO {
 	    const parse_stack_t& top = document->_stack.top();
 	    if ( __debugXML ) {
 		for ( unsigned i = 0; i < document->_stack.size(); ++i ) {
-		    cerr << "  ";
+		    std::cerr << "  ";
 		}
-		cerr << "<" << el;
+		std::cerr << "<" << el;
 		for ( const XML_Char ** attributes = attr; *attributes; attributes += 2 ) {
-		    cerr << " " << *attributes << "=\"" << *(attributes+1) << "\"";
+		    std::cerr << " " << *attributes << "=\"" << *(attributes+1) << "\"";
 		}
-		cerr << ">" << endl;
+		std::cerr << ">" << std::endl;
 	    }
 	    try {
 		(document->*top.start_func)(top.object.c_str(),el,attr);
@@ -356,12 +354,12 @@ namespace LQIO {
 		parse_stack_t& top = document->_stack.top();
 		if ( __debugXML ) {
 		    for ( unsigned i = 1; i < document->_stack.size(); ++i ) {
-			cerr << "  ";
+			std::cerr << "  ";
 		    }
 		    if ( top.element.size() ) {
-			cerr << "</" << top.element << ">" << endl;
+			std::cerr << "</" << top.element << ">" << std::endl;
 		    } else {
-			cerr << "empty stack" << endl;
+			std::cerr << "empty stack" << std::endl;
 		    }
 		}
 		done = (document->_stack.size() == 1) || (top == el);
@@ -438,6 +436,7 @@ namespace LQIO {
 	Expat_Document::startModelType( const DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
 	{
 	    if ( strcasecmp( element, Xsolver_parameters) == 0 ) {
+		handleModel( object, 0, 0, attributes );
 		_stack.push( parse_stack_t(element,&Expat_Document::startResultGeneral) );
 
 	    } else if ( strcasecmp( element, Xprocessor) == 0 ) {
@@ -963,6 +962,12 @@ namespace LQIO {
 	/* ------------------------------------------------------------------------ */
 
 	void
+	Expat_Document::handleModel( const DocumentObject * processor, const DocumentObject * extra, const DocumentObject * dest, const XML_Char ** attributes )
+	{
+	    comment_tab[pass] = getStringAttribute( attributes, Xcomment );
+	}
+	
+	void
 	Expat_Document::handleProcessorResults( const DocumentObject * processor, const DocumentObject * extra, const DocumentObject * dest, const XML_Char ** attributes )
 	{
 	    const unsigned int p = find_or_add_processor( processor );
@@ -975,11 +980,11 @@ namespace LQIO {
 	void
 	Expat_Document::handleGroupResults( const DocumentObject * group, const DocumentObject * extra, const DocumentObject * dest, const XML_Char ** attributes )
 	{
-	    const unsigned int p = find_or_add_group( group );
-	    if ( !p ) return;
+	    const unsigned int g = find_or_add_group( group );
+	    if ( !g ) return;
 	    
-	    group_tab[pass][p].utilization = getDoubleAttribute( attributes, Xutilization, 0.0 );
-	    group_tab[pass][p].has_results = true;
+	    group_tab[pass][g].utilization = getDoubleAttribute( attributes, Xutilization, 0.0 );
+	    group_tab[pass][g].has_results = true;
 	}
 
 	void
@@ -1013,8 +1018,9 @@ namespace LQIO {
 		entry_tab[pass][e].open_arrivals = true;
 	    }
 
-	    const double throughput = getDoubleAttribute( attributes, Xthroughput, 0.0 );
-	    entry_tab[pass][e].throughput = throughput;
+	    entry_tab[pass][e].throughput = getDoubleAttribute( attributes, Xthroughput, 0.0 );
+	    entry_tab[pass][e].utilization = getDoubleAttribute( attributes, Xutilization, 0.0 );
+	    entry_tab[pass][e].processor_utilization = getDoubleAttribute( attributes, Xproc_utilization, 0.0 );
 	    
 	    /* For case where we have activities... results specified at entry level */
 
@@ -1148,10 +1154,10 @@ namespace LQIO {
 	void
 	Expat_Document::handleGroupConfResults( const DocumentObject * group, const DocumentObject * extra, const DocumentObject * dest, const XML_Char ** attributes )
 	{
-	    const unsigned int p = find_or_add_group( group );
-	    if ( !p ) return;
+	    const unsigned int g = find_or_add_group( group );
+	    if ( !g ) return;
 	    
-	    group_tab[pass][p].utilization_conf = getDoubleAttribute( attributes, Xutilization, 0.0 );
+	    group_tab[pass][g].utilization_conf = getDoubleAttribute( attributes, Xutilization, 0.0 );
 	}
 
 	void
@@ -1183,6 +1189,21 @@ namespace LQIO {
 	    const double wait_time_conf = getDoubleAttribute( attributes, Xopen_wait_time, 0.0 );
 	    if ( wait_time_conf > 0.0 ) {
 		entry_tab[pass][e].open_wait_conf = wait_time_conf;
+	    }
+
+	    entry_tab[pass][e].throughput_conf = getDoubleAttribute( attributes, Xthroughput, 0.0 );
+	    entry_tab[pass][e].utilization_conf = getDoubleAttribute( attributes, Xutilization, 0.0 );
+	    entry_tab[pass][e].processor_utilization_conf = getDoubleAttribute( attributes, Xproc_utilization, 0.0 );
+
+	    /* For case where we have activities... results specified at entry level */
+
+	    for ( unsigned int p = 0; p < 2; ++p ) {
+		activity_info& ph = entry_tab[pass][e].phase[p];
+		const double s = getDoubleAttribute( attributes, XphaseP_service_time[p], 0.0 );
+		if ( s ) {
+		    ph.serv_conf = s;
+		    ph.var_conf = getDoubleAttribute( attributes, XphaseP_service_time_variance[p], 0.0 );
+		}
 	    }
 	}
 

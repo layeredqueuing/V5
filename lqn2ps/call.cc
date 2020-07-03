@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13200 2018-03-05 22:48:55Z greg $
+ * $Id: call.cc 13547 2020-05-21 02:22:16Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -11,6 +11,7 @@
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <cassert>
 #include <cstdlib>
 #include <cmath>
@@ -24,7 +25,6 @@
 #include "arc.h"
 #include "label.h"
 #include "entry.h"
-#include "cltn.h"
 #include "entity.h"
 #include "task.h"
 #include "open.h"
@@ -38,34 +38,6 @@ static LabelCallManip print_drop_probability( const Call& aCall );
 
 bool Call::hasVariance = false;
 
-/* ---------------------- Overloaded Operators ------------------------ */
-
-/*
- * Print out the number of rendezvous in standard output format.
- */
-
-ostream&
-operator<<( ostream& output, const GenericCall& self )
-{
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
-	self.print( output );
-	break;
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-	break;
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-	break;
-#endif
-    default:
-	self.draw( output );
-	break;
-    }
-    return output;
-}
-
 /*----------------------------------------------------------------------*/
 /*                            Generic  Calls                            */
 /*----------------------------------------------------------------------*/
@@ -75,9 +47,7 @@ GenericCall::GenericCall()
 {
     myArc = Arc::newArc();
     myLabel = Label::newLabel();
-    if ( myLabel ) {
-	myLabel->justification( Flags::label_justification );
-    }
+    myLabel->justification( Flags::label_justification );
 }
 
 
@@ -152,7 +122,7 @@ GenericCall::moveDst( const Point& aPoint )
 GenericCall&
 GenericCall::moveSecond( const Point& aPoint )
 { 
-    (*myArc)[2] =  aPoint; 
+    myArc->moveSecond( aPoint ); 
     return *this; 
 } 
 
@@ -161,7 +131,7 @@ GenericCall::moveSecond( const Point& aPoint )
 GenericCall&
 GenericCall::movePenultimate( const Point& aPoint )
 {
-    (*myArc)[myArc->size()-1] = aPoint; 
+    myArc->movePenultimate( aPoint ); 
     return *this;
 }
 
@@ -197,9 +167,11 @@ GenericCall::depth( const unsigned curDepth )
 
 
 
-ostream&
+const GenericCall&
 GenericCall::draw( ostream& output ) const
 {
+    if ( !isSelected() ) return *this;
+    
     ostringstream aComment;
     aComment << "Call "
 	     << srcName() << " " 
@@ -221,7 +193,74 @@ GenericCall::draw( ostream& output ) const
 
     myLabel->backgroundColour( Graphic::DEFAULT_COLOUR ).comment( output, aComment.str() );
     output << *myLabel;
+    return *this;
+}
+
+
+ostream& GenericCall::dump( ostream& output ) const
+{
+    const unsigned int n = nPoints();
+    for ( unsigned int i = 0; i < n; ++i ) {
+	if ( i > 0 ) std::cerr << ", ";
+	std::cerr << pointAt(i);
+    }
     return output;
+}
+
+
+/*
+ * Compare destinations of the arcs leaving the source entry (for sorting).
+ */
+
+bool
+GenericCall::compareSrc( const GenericCall * call1, const GenericCall * call2 )
+{
+    if ( dynamic_cast<const Call *>(call1) && dynamic_cast<const Call *>(call2) && dynamic_cast<const Call *>(call1)->dstEntry() == dynamic_cast<const Call *>(call2)->dstEntry() ) {
+	if ( call1->hasForwarding() && !call2->hasForwarding() ) {
+	    return false;
+	} else if ( !call1->hasForwarding() && call2->hasForwarding() ) {
+	    return true;
+	}
+    }
+
+    const double diff = call1->dstIndex() - call2->dstIndex();
+    if ( fabs( diff ) < 1.0 ) {
+	if ( (call1->dstLevel() <= call2->dstLevel() && call1->srcIndex() <= call1->dstIndex())
+	    || (call1->dstLevel() >= call2->dstLevel() && call1->srcIndex() >= call1->dstIndex())) {
+	    return false;
+	} else {
+	    return true;
+	}
+    }
+    return diff < 0;
+}
+
+
+/*
+ * Compare sources of the calls entering entry (for sorting).
+ */
+
+bool
+GenericCall::compareDst( const GenericCall * call1, const GenericCall * call2 )
+{
+    if ( dynamic_cast<const Call *>(call1) && dynamic_cast<const Call *>(call2) && dynamic_cast<const Call *>(call1)->dstEntry() == dynamic_cast<const Call *>(call2)->dstEntry() ) {
+	if ( call1->hasForwarding() && !call2->hasForwarding() ) {
+	    return false;
+	} else if ( !call1->hasForwarding() && call2->hasForwarding() ) {
+	    return true;
+	}
+    }
+
+    const double diff = call1->srcIndex() - call2->srcIndex();
+    if ( fabs( diff ) < 1.0 ) {
+	if ( (call1->srcLevel() < call2->srcLevel() && call1->srcIndex() >= call1->dstIndex())
+	    || (call1->srcLevel() > call2->srcLevel() && call1->srcIndex() <= call1->dstIndex()) ) {
+	    return true;
+	} else {
+	    return false;
+	}
+    }
+    return diff < 0;
 }
 
 /*----------------------------------------------------------------------*/
@@ -229,8 +268,11 @@ GenericCall::draw( ostream& output ) const
 /*----------------------------------------------------------------------*/
 
 Call::Call()
-    : GenericCall(), destination(0),
-      myForwarding(0)
+    : GenericCall(),
+      _destination(NULL),
+      _rendezvous(),
+      _sendNoReply(),
+      _forwarding(NULL)
 {
 }
 
@@ -240,15 +282,12 @@ Call::Call()
  */
 
 Call::Call( const Entry * toEntry, const unsigned nPhases )
-    : GenericCall(), destination(toEntry),
-      myForwarding(0)
+    : GenericCall(),
+      _destination(toEntry),
+      _rendezvous(nPhases,NULL),		/* rendezvous.			*/
+      _sendNoReply(nPhases,NULL),		/* send no reply.		*/
+      _forwarding(NULL)
 {
-    myRendezvous.grow(nPhases);			/* rendezvous.			*/
-    mySendNoReply.grow(nPhases);		/* send no reply.		*/
-    for ( unsigned p = 1; p <= nPhases; ++p ) {
-	myRendezvous[p] = 0;
-	mySendNoReply[p] = 0;
-    }
 }
 
 
@@ -258,7 +297,7 @@ Call::Call( const Entry * toEntry, const unsigned nPhases )
 
 Call::~Call()
 {
-    destination = 0;			/* to whom I am referring to	*/
+    _destination = NULL;			/* to whom I am referring to	*/
 }
 
 
@@ -272,13 +311,13 @@ Call::operator==( const Call& item ) const
 unsigned
 Call::fanIn() const
 {
-    return dstTask()->fanIn( srcTask() );
+    return dstTask()->fanInValue( srcTask() );
 }
 
 unsigned
 Call::fanOut() const
 {
-    return srcTask()->fanOut( dstTask() );
+    return srcTask()->fanOutValue( dstTask() );
 }
 
 
@@ -289,7 +328,8 @@ Call::fanOut() const
 Call&
 Call::merge( const Call& src, const double rate )
 {
-    for ( unsigned p = 1; p <= myRendezvous.size(); ++p ) {
+    const size_t n = numberOfPhases();
+    for ( size_t p = 1; p <= n; ++p ) {
 	merge( p, src, rate );
     }
     return *this;
@@ -298,32 +338,51 @@ Call::merge( const Call& src, const double rate )
 
 
 /*
- * Add all phases of src to the receiver.  multiply by rate.
+ * Merge calls from the activity (which is phase 1) to phase p of the entry.
  */
 
 Call&
-Call::merge( const int p, const Call& src, const double rate )
+Call::merge( const unsigned int p, const Call& src, const double rate )
 {
-    assert( (isPseudoCall() && src.isPseudoCall() ) || (!isPseudoCall() && !src.isPseudoCall() ) );
+    assert( ( (isPseudoCall() && src.isPseudoCall() ) || (!isPseudoCall() && !src.isPseudoCall() ) ) && ( 1 <= p && p <= numberOfPhases() ) );
 
-    if ( src.myRendezvous[p] ) {
-	const LQIO::DOM::ExternalVariable& rnv_src = *(src.myRendezvous[p]->getCallMean());
-	if ( myRendezvous[p] ) {
-	    LQIO::DOM::ExternalVariable& rnv_dst = *(const_cast<LQIO::DOM::ExternalVariable *>(myRendezvous[p]->getCallMean()));
-	    rnv_dst += rnv_src * rate;
+    if ( src.hasRendezvousForPhase(1) ) {
+	const LQIO::DOM::Call * call = src._rendezvous[0];	/* Phases go from 1-3, vector goes from 0-2. */
+	if ( !hasRendezvousForPhase(p) ) {
+	    if ( p > _rendezvous.size() ) {
+		_rendezvous.resize(p);				/* Make it big enough if neccessary */
+	    }
+	    _rendezvous[p-1] = call->clone();			/* Copy call. */
 	} else {
-	    myRendezvous[p] = src.myRendezvous[p]->clone();		/* Copy call. */
+	    rendezvous( p, to_double(rendezvous(p)) + call->getCallMeanValue() * rate );
 	}
+	deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
+    } else if ( src.hasSendNoReplyForPhase(1) ) {
+	const LQIO::DOM::Call * call = src._sendNoReply[0];	/* Phases go from 1-3, vector goes from 0-2. */
+	if ( !hasSendNoReplyForPhase(p) ) {
+	    if ( p > _sendNoReply.size() ) {
+		_sendNoReply.resize(p);
+	    }
+	    _sendNoReply[p-1] = src._sendNoReply[p-1]->clone();	/* Copy call. */
+	} else {
+	    sendNoReply( p, to_double(sendNoReply(p)) + call->getCallMeanValue() * rate );
+	}
+	deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
     }
+    /* Forwarding? */
 
-    if ( src.mySendNoReply[p] ) {
-	const LQIO::DOM::ExternalVariable& snr_src = *(src.mySendNoReply[p]->getCallMean());
-	if ( mySendNoReply[p] ) {
-	    LQIO::DOM::ExternalVariable& snr_dst = *(const_cast<LQIO::DOM::ExternalVariable *>(mySendNoReply[p]->getCallMean()));
-	    snr_dst += snr_src * rate;
+    if ( (hasRendezvous() || hasForwarding()) && hasSendNoReply() ) {
+	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+    }
+    if ( myArc ) {
+	if ( hasSendNoReply() ) {
+	    myArc->arrowhead(Graphic::OPEN_ARROW);
 	} else {
-	    mySendNoReply[p] = src.mySendNoReply[p]->clone();
-	}
+	    myArc->arrowhead(Graphic::CLOSED_ARROW);
+	    if ( hasForwarding() ) {
+		myArc->linestyle(Graphic::DASHED);
+	    }
+	} 
     }
 
     setArcType();
@@ -338,26 +397,46 @@ Call::merge( const int p, const Call& src, const double rate )
 Call&
 Call::aggregatePhases()
 {
-    for ( unsigned p = 2; p <= maxPhase(); ++p ) {
-	if ( myRendezvous[p] ) {
-	    const LQIO::DOM::ExternalVariable& rnv_src = *(myRendezvous[p]->getCallMean());
-	    if ( !myRendezvous[1] ) {
-		myRendezvous[1] = myRendezvous[p]->clone();
+    for ( unsigned p = 1; p < maxPhase(); ++p ) {		// Remember! p[0] is phase 1
+	if ( _rendezvous.at(p) ) {
+	    const LQIO::DOM::Call * call = _rendezvous[p];
+	    if ( !_rendezvous[0] ) {
+		_rendezvous[0] = call->clone();
 	    } else {
-		*const_cast<LQIO::DOM::ExternalVariable *>(myRendezvous[p]->getCallMean()) += rnv_src;
+		const double rnv_src = to_double(*call->getCallMean());
+		const_cast<LQIO::DOM::Call *>(_rendezvous[0])->setCallMeanValue(to_double(*_rendezvous[0]->getCallMean()) + rnv_src);
 	    }
+	    deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
 	}
-	if ( mySendNoReply[p] ) {
-	    const LQIO::DOM::ExternalVariable& snr_src = *(mySendNoReply[p]->getCallMean());
-	    if ( !mySendNoReply[1] ) {
-		mySendNoReply[1] = mySendNoReply[p]->clone();
+	if ( _sendNoReply[p] ) {
+	    const LQIO::DOM::Call * call = _sendNoReply[p];
+	    if ( !_sendNoReply[0] ) {
+		_sendNoReply[0] = call->clone();
 	    } else {
-		*const_cast<LQIO::DOM::ExternalVariable *>(mySendNoReply[p]->getCallMean()) += snr_src;
+		double snr_src = to_double(*call->getCallMean());
+		const_cast<LQIO::DOM::Call *>(_sendNoReply[0])->setCallMeanValue(to_double(*_sendNoReply[0]->getCallMean()) + snr_src);
 	    }
+	    deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
 	}
     }
 
     setArcType();
+    return *this;
+}
+
+
+/* 
+ * Remove reference from source phase and delete the call.
+ */
+
+Call&
+Call::deleteCall( LQIO::DOM::Call * call )
+{
+    const LQIO::DOM::Phase * phase = dynamic_cast<const LQIO::DOM::Phase *>(call->getSourceObject());
+    if ( phase ) {
+	const_cast<LQIO::DOM::Phase *>(phase)->eraseCall( const_cast<LQIO::DOM::Call*>(call) );
+    }
+    delete call;
     return *this;
 }
 
@@ -369,9 +448,6 @@ Call::aggregatePhases()
 Call&
 Call::setArcType()
 {
-    if ( (hasRendezvous() || hasForwarding()) && hasSendNoReply() ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
-    }
     if ( myArc ) {
 	if ( hasSendNoReply() ) {
 	    myArc->arrowhead(Graphic::OPEN_ARROW);
@@ -382,6 +458,11 @@ Call::setArcType()
 	    }
 	} 
     }
+
+    if ( (hasRendezvous() || hasForwarding()) && hasSendNoReply() ) {
+ 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+    }
+
     return *this;
 }
 
@@ -398,10 +479,10 @@ double
 Call::sumOfRendezvous() const
 {
     double sum = 0;
-    for ( unsigned p = 1; p <= myRendezvous.size(); ++p ) {
+    for ( std::vector<const LQIO::DOM::Call *>::const_iterator call = _rendezvous.begin(); call != _rendezvous.end(); ++call ) {
 	double result = 0.0;
-	if ( !hasRendezvousForPhase(p) ) continue;
-	const LQIO::DOM::ExternalVariable * value = myRendezvous[p]->getCallMean();
+	if ( !(*call) ) continue;
+	const LQIO::DOM::ExternalVariable * value = (*call)->getCallMean();
 	if ( !value ) continue;
 	else if ( !value->getValue(result) ) abort(); 		/* throw not_defined */
 	else sum += result;
@@ -414,7 +495,7 @@ Call::sumOfRendezvous() const
 const LQIO::DOM::ExternalVariable & 
 Call::rendezvous( const unsigned p ) const
 {
-    if ( myRendezvous[p] ) return *myRendezvous[p]->getCallMean();
+    if ( 0 < p && p <= _rendezvous.size() && _rendezvous[p-1] ) return *_rendezvous[p-1]->getCallMean();
     else return Element::ZERO;
 }
 
@@ -422,8 +503,8 @@ Call::rendezvous( const unsigned p ) const
 Call& 
 Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 {
-    if ( !mySendNoReply[p] ) {
-	myRendezvous[p] = value;
+    if ( !_sendNoReply.at(p-1) ) {
+	_rendezvous[p-1] = value;
 	if ( myArc ) {
 	    myArc->arrowhead(Graphic::CLOSED_ARROW);
 	}
@@ -434,15 +515,27 @@ Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
 }
 
 
+Call&
+Call::rendezvous( const unsigned p, const double value ) {
+    if ( !_sendNoReply.at(p-1) ) {
+	const_cast<LQIO::DOM::Call *>(_rendezvous[p-1])->setCallMeanValue(value);
+	if ( myArc ) {
+	    myArc->arrowhead(Graphic::CLOSED_ARROW);
+	}
+    } else {
+	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+    }
+    return *this;
+}
 
 
 double
 Call::sumOfSendNoReply() const
 {
     double sum = 0;
-    for ( unsigned p = 1; p <= mySendNoReply.size(); ++p ) {
-	if ( !hasSendNoReplyForPhase(p) ) continue;
-	const LQIO::DOM::ExternalVariable * value = mySendNoReply[p]->getCallMean();
+    for ( std::vector<const LQIO::DOM::Call *>::const_iterator call = _sendNoReply.begin(); call != _sendNoReply.end(); ++call ) {
+	if ( !(*call) ) continue;
+	const LQIO::DOM::ExternalVariable * value = (*call)->getCallMean();
 	double result = 0.0;
 	if ( !value ) continue;
 	else if ( !value->getValue(result) ) abort(); 		/* throw not_defined */
@@ -456,7 +549,7 @@ Call::sumOfSendNoReply() const
 const LQIO::DOM::ExternalVariable & 
 Call::sendNoReply( const unsigned p ) const
 {
-    if ( mySendNoReply[p] ) return *mySendNoReply[p]->getCallMean();
+    if ( 0 < p && p <= _sendNoReply.size() && _sendNoReply[p-1] ) return *_sendNoReply[p-1]->getCallMean();
     else return Element::ZERO;
 }
 
@@ -464,8 +557,22 @@ Call::sendNoReply( const unsigned p ) const
 Call& 
 Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 { 
-    if ( !myRendezvous[p] && !myForwarding ) {
-	mySendNoReply[p] = value;
+    if ( !_rendezvous.at(p-1) && !_forwarding ) {
+	_sendNoReply[p-1] = value;
+	if ( myArc ) {
+	    myArc->arrowhead(Graphic::OPEN_ARROW);
+	}
+    } else {
+	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
+    }
+    return *this; 
+} 
+
+Call& 
+Call::sendNoReply( const unsigned p, const double value )
+{ 
+    if ( !_rendezvous.at(p-1) && !_forwarding ) {
+	const_cast<LQIO::DOM::Call *>(_sendNoReply[p-1])->setCallMeanValue(value);
 	if ( myArc ) {
 	    myArc->arrowhead(Graphic::OPEN_ARROW);
 	}
@@ -478,7 +585,7 @@ Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
 const LQIO::DOM::ExternalVariable & 
 Call::forward() const
 {
-    if ( myForwarding ) return *myForwarding->getCallMean();
+    if ( _forwarding ) return *_forwarding->getCallMean();
     else return Element::ZERO;
 }
 
@@ -486,12 +593,12 @@ Call::forward() const
 Call& 
 Call::forward( const LQIO::DOM::Call * value )
 { 
-    if ( !mySendNoReply[1] ) {
-	myForwarding = value;
+    if ( !_sendNoReply[0] ) {
+	_forwarding = value;
 	if ( myArc ) {
 	    myArc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
-	    if ( !Flags::print_forwarding_by_depth && myArc->size() == 2 ) {
-		myArc->grow( 2 );
+	    if ( !Flags::print_forwarding_by_depth && myArc->nPoints() == 2 ) {
+		myArc->resize( 4 );
 	    }
 	}
     } else {
@@ -505,20 +612,23 @@ Call::forward( const LQIO::DOM::Call * value )
 const LQIO::DOM::Call *
 Call::getDOM( const unsigned int p ) const
 {
-    if ( hasRendezvousForPhase(p) ) {
-	return myRendezvous[p];
-    } else if ( hasSendNoReplyForPhase(p) ) {
-	return mySendNoReply[p];
-    } else {
-	return 0;
+    if ( 0 < p && p <= _rendezvous.size() ) {
+	if ( _rendezvous.at(p-1) ) {
+	    return _rendezvous[p-1];
+	} else if ( _sendNoReply.at(p-1) ) {
+	    return _sendNoReply[p-1];
+	} else {
+	    return _forwarding;
+	}
     }
+    return NULL;
 }
 
 
 const LQIO::DOM::Call *
 Call::getDOMFwd() const
 {
-    return myForwarding;
+    return _forwarding;
 }
 
 bool
@@ -526,7 +636,7 @@ Call::hasWaiting() const
 { 
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	LQIO::DOM::Call * dom = const_cast<LQIO::DOM::Call *>(getDOM(p));
-	if ( dom && dom->getResultWaitingTime() > 0. ) return true;
+	if ( dom && dom->getCallMean() != NULL ) return true;
     }
 
     return false;
@@ -682,15 +792,15 @@ Call::dstLevel() const
 bool 
 Call::hasRendezvousForPhase( const unsigned p ) const
 {
-    return myRendezvous[p] != NULL;
+    return (p-1) < _rendezvous.size() && _rendezvous[p-1] != NULL;
 }
 
 
 bool 
 Call::hasRendezvous() const
 {
-    for ( unsigned p = 1; p <= myRendezvous.size(); ++p ) {
-	if ( myRendezvous[p] ) return true;
+    for ( std::vector<const LQIO::DOM::Call *>::const_iterator call = _rendezvous.begin(); call != _rendezvous.end(); ++call ) {
+	if ( *call != NULL ) return true;
     }
     return false;
 }
@@ -700,15 +810,15 @@ Call::hasRendezvous() const
 bool 
 Call::hasSendNoReplyForPhase( const unsigned p ) const
 {
-    return mySendNoReply[p] != NULL;
+    return (p-1) < _sendNoReply.size() && _sendNoReply[p-1] != NULL;
 }
 
 
 bool
 Call::hasSendNoReply() const
 {
-    for ( unsigned p = 1; p <= mySendNoReply.size(); ++p ) {
-	if ( mySendNoReply[p] ) return true;
+    for ( std::vector<const LQIO::DOM::Call *>::const_iterator call = _sendNoReply.begin(); call != _sendNoReply.end(); ++call ) {
+	if ( *call != NULL ) return true;
     }
     return false;
 }
@@ -717,7 +827,7 @@ Call::hasSendNoReply() const
 bool
 Call::hasForwarding() const
 {
-    return myForwarding != 0;
+    return _forwarding != NULL;
 }
 
 
@@ -726,6 +836,7 @@ Call::colour() const
 {
     switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_RESULTS:
+    case COLOUR_DIFFERENCES:
 	if ( hasDropProbability() || hasInfiniteWait() ) {
 	    return Graphic::RED;
 	} else {
@@ -747,23 +858,35 @@ Call&
 Call::moveDst( const Point& aPoint )
 {
     GenericCall::moveDst( aPoint );
-
+    const double delta_y = Flags::print[Y_SPACING].value.f / 3.0;
+    /* Hack to stagger labels */
+    const std::vector<GenericCall *>& callers = dstEntry()->callers();
+    unsigned int even = 1;
+    for ( unsigned int i = 0; i < callers.size(); ++i ) {
+	if ( callers[i] == this ) {
+	    even = (i % 2) + 1;
+	    break;
+	}
+    }
     if ( Flags::label_justification == ABOVE_JUSTIFY ) {
 	/* Move all labels above entry */
 	Point tempPoint = myArc->dstPoint();
-	tempPoint.moveBy( 0, Flags::print[Y_SPACING].value.f / 3.0 );
+	tempPoint.moveBy( 0, delta_y * even );
 	myLabel->moveTo( tempPoint ).justification( CENTER_JUSTIFY );
     } else {
 	double offset;
 	const Point& p1 = myArc->penultimatePoint();
 	const Point& p2 = myArc->dstPoint();
 	if ( p1.y() > p2.y() ) {
-	    offset = Flags::print[Y_SPACING].value.f / 3.0;
-	    if ( hasForwardingLevel() && dstEntry()->callerList().find( this ) % 2 ) {
-		offset *= 2;
+	    offset = delta_y * even;
+	    if ( hasForwardingLevel() ) {
+		std::vector<GenericCall *>::const_iterator pos = find_if( dstEntry()->callers().begin(), dstEntry()->callers().end(), EQ<GenericCall>( this ) );
+		if ( pos != dstEntry()->callers().end() && (pos - dstEntry()->callers().begin()) % 2 ) {
+		    offset = delta_y * 2;
+		}
 	    }
 	} else {
-	    offset = Flags::print[Y_SPACING].value.f / 3.0 + Flags::icon_height;
+	    offset = delta_y + Flags::icon_height;
 	}
 	Point tempPoint = myArc->pointFromDst( offset );
 	myLabel->moveTo( tempPoint );
@@ -803,6 +926,37 @@ Call::label()
 }
 
 
+#if defined(REP2FLAT)
+Call&
+Call::replicateCall( std::vector<Call *>& calls, Call ** root )
+{
+    const Entry * dst = dstEntry();
+    unsigned int replica = 0;
+    dst->baseReplicaName( replica );
+    if ( replica == 1 ) {
+	*root = this;
+	calls.push_back( this );
+    } else {
+	/* DOM Copy will be a little trickier. */
+	for ( unsigned p = 1; p <= (*root)->maxPhase(); ++p ) {
+	    LQIO::DOM::Call * dst = const_cast<LQIO::DOM::Call *>((*root)->getDOM(p));
+	    LQIO::DOM::Call * src = const_cast<LQIO::DOM::Call *>(getDOM(p));
+	    if ( !dst || !src ) continue;
+	    update_mean( dst, &LQIO::DOM::DocumentObject::setResultWaitingTime, src, &LQIO::DOM::DocumentObject::getResultWaitingTime, replica );
+	    update_variance( dst, &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, src, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance );
+	    if ( dst->hasResultVarianceWaitingTime() ) {
+		update_mean( dst, &LQIO::DOM::DocumentObject::setResultVarianceWaitingTime, src, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTime, replica );
+		update_variance( dst, &LQIO::DOM::DocumentObject::setResultVarianceWaitingTimeVariance, src, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTimeVariance );
+	    }
+	    if ( dst->hasResultDropProbability() ) {
+		update_mean( dst, &LQIO::DOM::DocumentObject::setResultDropProbability, src, &LQIO::DOM::DocumentObject::getResultDropProbability, replica );
+		update_variance( dst, &LQIO::DOM::DocumentObject::setResultDropProbabilityVariance, src, &LQIO::DOM::DocumentObject::getResultDropProbabilityVariance );
+	    }
+	}
+    }
+    return *this;
+}
+#endif
 
 ostream&
 Call::print( ostream& output ) const
@@ -832,69 +986,21 @@ Call::printSRVNLine( ostream& output, char code, print_func_ptr func ) const
 	   << (*func)( *this ) << " -1" << endl;
     return output;
 }
+
+/* ------------------------ Exception Handling ------------------------ */
 
-
-/*
- * Compare destinations of the arcs leaving the source entry (for sorting).
- */
-
-int
-Call::compareSrc( const void * n1, const void *n2 )
+Call::cycle_error::cycle_error( const Call * aCall, const CallStack& callStack )
+    : path_error( callStack.size() )
 {
-    const Call * call1 = (*static_cast<Call **>(const_cast<void *>(n1)));
-    const Call * call2 = (*static_cast<Call **>(const_cast<void *>(n2)));
-
-    if ( call1->dstEntry() == call2->dstEntry() ) {
-	if ( call1->hasForwarding() && !call2->hasForwarding() ) {
-	    return 1;
-	} else if ( !call1->hasForwarding() && call2->hasForwarding() ) {
-	    return -1;
-	}
+    myMsg = aCall->dstName();
+    for ( unsigned i = callStack.size(); i > 0; --i ) {
+	if ( !callStack[i] ) continue;
+	myMsg += ", ";
+	myMsg += callStack[i]->dstName();
     }
-
-    const double diff = call1->dstIndex() - call2->dstIndex();
-    if ( fabs( diff ) < 1.0 ) {
-	if ( (call1->dstLevel() <= call2->dstLevel() && call1->srcIndex() <= call1->dstIndex())
-	    || (call1->dstLevel() >= call2->dstLevel() && call1->srcIndex() >= call1->dstIndex())) {
-	    return 1;
-	} else {
-	    return -1;
-	}
-    }
-    return static_cast<int>(copysign( 1.0, diff ) );
-}
-
-
-/*
- * Compare sources of the calls entering entry (for sorting).
- */
-
-int
-Call::compareDst( const void * n1, const void *n2 )
-{
-    const Call * call1 = (*static_cast<Call **>(const_cast<void *>(n1)));
-    const Call * call2 = (*static_cast<Call **>(const_cast<void *>(n2)));
-
-    if ( call1->dstEntry() == call2->dstEntry() ) {
-	if ( call1->hasForwarding() && !call2->hasForwarding() ) {
-	    return 1;
-	} else if ( !call1->hasForwarding() && call2->hasForwarding() ) {
-	    return -1;
-	}
-    }
-
-    const double diff = call1->srcIndex() - call2->srcIndex();
-    if ( fabs( diff ) < 1.0 ) {
-	if ( (call1->srcLevel() < call2->srcLevel() && call1->srcIndex() > call1->dstIndex())
-	    || (call1->srcLevel() > call2->srcLevel() && call1->srcIndex() < call1->dstIndex()) ) {
-	    return -1;
-	} else {
-	    return 1;
-	}
-    }
-    return static_cast<int>(copysign( 1.0, diff ) );
 }
 
+/* ------------------------ Exception Handling ------------------------ */
 EntryCall::EntryCall( const Entry * fromEntry, const Entry * toEntry )
     : Call( toEntry, MAX_PHASES ), source(fromEntry) 
 {
@@ -911,41 +1017,35 @@ EntryCall::~EntryCall()
  * Check replication
  */
 
-void
-EntryCall::check()
+bool
+EntryCall::check() const
 {
+    bool rc =true;
     /* Check */
 
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	double value;
+	double value = 0.;
 	char p_str[2];
-	p_str[0] = p + '0';
+	p_str[0] = "0123"[p];
 	p_str[1] = '\0';
-	if ( hasRendezvousForPhase(p) && rendezvous(p).wasSet() && rendezvous(p).getValue( value ) ) {
-	    if ( value < 0.0 ) {
-		LQIO::solution_error( LQIO::ERR_NEGATIVE_CALLS_FOR, "Entry", srcName().c_str(), "phase", p_str, value, dstName().c_str() );
+	if ( (hasRendezvousForPhase(p) && rendezvous(p).wasSet() && rendezvous(p).getValue( value ))
+	     || (hasSendNoReplyForPhase(p) && sendNoReply(p).wasSet() && sendNoReply(p).getValue( value )) ) {
+	    try {
+		if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+		if ( value < 0.0 ) {
+		    std::stringstream ss;
+		    ss << value << " < " << 0;
+		    throw std::domain_error( ss.str() );
+		}
+		if ( srcEntry()->phaseTypeFlag(p) == PHASE_DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
 	    }
-	    if ( srcEntry()->phaseTypeFlag(p) == PHASE_DETERMINISTIC && fmod( value, 1.0 ) > 1e-6 ) {
-		LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Entry", srcName().c_str(), "phase", p_str, value, dstName().c_str() );
-	    }
-	}
-	if ( hasSendNoReplyForPhase(p) && sendNoReply(p).wasSet() && sendNoReply(p).getValue( value ) ) {
-	    if ( value < 0.0 ) {
-		LQIO::solution_error( LQIO::ERR_NEGATIVE_CALLS_FOR, "Entry", srcName().c_str(), "phase", p_str, value, dstName().c_str() );
-	    }
-	    if ( srcEntry()->phaseTypeFlag(p) == PHASE_DETERMINISTIC && fmod( value, 1.0 ) > 1e-6 ) {
-		LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Entry", srcName().c_str(), "phase", p_str, value, dstName().c_str() );
+	    catch ( const std::domain_error& e ) {
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcName().c_str(), "phase", p_str, dstName().c_str(), e.what() );
+		rc = false;
 	    }
 	}
     }
-
-    const unsigned n_src = srcTask()->replicas();
-    const unsigned n_dst = dstTask()->replicas();
-    if ( n_src * fanOut() != n_dst * fanIn() ) {	/* Fully specified and valid */
-	LQIO::solution_error( ERR_REPLICATION, 
-			      "entry", srcName().c_str(), fanOut(), n_src,
-			      "entry", dstName().c_str(), fanIn() , n_dst );
-    }
+    return rc;
 }
 
 
@@ -966,7 +1066,7 @@ EntryCall::srcName() const
  * Return the source task of this call.  Sources are always tasks.
  */
 
-const Entity *
+const Task *
 EntryCall::srcTask() const
 {
     return srcEntry()->owner();
@@ -994,7 +1094,7 @@ EntryCall::phaseTypeFlag( const unsigned p ) const
 
 
 Call *
-EntryCall::addForwardingCall( Entry * toEntry, const double rate ) const
+EntryCall::addForwardingCall( Entry * toEntry, const double rate ) 
 {
     Call * aCall = 0;
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
@@ -1005,8 +1105,8 @@ EntryCall::addForwardingCall( Entry * toEntry, const double rate ) const
 }
 
 
-const EntryCall&
-EntryCall::setChain( const unsigned k ) const
+EntryCall&
+EntryCall::setChain( const unsigned k ) 
 {
     if ( hasSendNoReply() ) {
 	const_cast<Entry *>(srcEntry())->setClientOpenChain( k );
@@ -1061,32 +1161,31 @@ ActivityCall::~ActivityCall()
  * Check replication
  */
 
-void
-ActivityCall::check()
+bool
+ActivityCall::check() const
 {
+    bool rc = true;
+    
     /* Check */
 
     double value = 0.0;
-    if ( hasRendezvous() ) {
-	rendezvous().wasSet() && rendezvous().getValue(value);
-    } else if ( hasSendNoReply() ) {
-	sendNoReply().wasSet() && sendNoReply().getValue(value);
+    if ( ( hasRendezvous() && rendezvous().wasSet() && rendezvous().getValue(value) )
+	 || ( sendNoReply().wasSet() && sendNoReply().getValue(value) ) ) {
+	try {
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value < 0.0 ) {
+		std::stringstream ss;
+		ss << value << " < " << 0;
+		throw std::domain_error( ss.str() );
+	    }
+	    if ( srcActivity()->phaseTypeFlag() == PHASE_DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
+	}
+	catch ( const std::domain_error& e ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), "activity", srcName().c_str(), dstName().c_str(), e.what() );
+	    rc = false;
+	}
     }
-    if ( value < 0. ) {
-	LQIO::solution_error( LQIO::ERR_NEGATIVE_CALLS_FOR, "Task", srcTask()->name().c_str(), "activity", srcName().c_str(), value, dstName().c_str() );
-    } else if ( srcActivity()->phaseTypeFlag() == PHASE_DETERMINISTIC && fmod( value, 1.0 ) > 1e-6 ) {
-	LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Task", srcTask()->name().c_str(), "activity", srcName().c_str(), value, dstName().c_str() );
-    }
-
-    /* Check */
-
-    const unsigned n_src = srcTask()->replicas();
-    const unsigned n_dst = dstTask()->replicas();
-    if ( n_src * fanOut() != n_dst * fanIn() ) {	/* Fully specified and valid */
-	LQIO::solution_error( ERR_REPLICATION, 
-			      "activity", srcName().c_str(), fanOut(), n_src,
-			      "entry", dstName().c_str(), fanIn() , n_dst );
-    }
+    return rc;
 }
 
 
@@ -1105,7 +1204,7 @@ ActivityCall::srcName() const
  * Return the source task of this call.  Sources are always tasks.
  */
 
-const Entity *
+const Task *
 ActivityCall::srcTask() const
 {
     return srcActivity()->owner();
@@ -1118,8 +1217,8 @@ ActivityCall::srcIndex() const
     return srcActivity()->index();
 }
 
-const ActivityCall&
-ActivityCall::setChain( const unsigned k ) const
+ActivityCall&
+ActivityCall::setChain( const unsigned k ) 
 {
     if ( hasSendNoReply() ) {
 	const_cast<Activity *>(srcActivity())->setClientOpenChain( k );
@@ -1139,7 +1238,7 @@ ActivityCall::phaseTypeFlag( const unsigned ) const
 
 
 Call * 
-ActivityCall::addForwardingCall( Entry * toEntry, const double rate ) const
+ActivityCall::addForwardingCall( Entry * toEntry, const double rate ) 
 {
     return const_cast<Activity *>(srcActivity())->forwardingRendezvous( toEntry, rate * LQIO::DOM::to_double(rendezvous()) );
 }
@@ -1209,24 +1308,34 @@ Reply::colour() const
 
 /* ------------------ Calls to entities from tasks. ------------------- */
 
-const Entity * 
-EntityCall::srcTask() const 
-{ 
-    return mySrcTask; 
-}
-
-
-
 const string& 
 EntityCall::srcName() const
 {
     return srcTask()->name();
 }
+
+const string &
+EntityCall::dstName() const
+{
+    return dstEntity()->name();
+}
+
+double
+EntityCall::dstIndex() const
+{
+    return dstEntity()->index();
+}
+
+unsigned 
+EntityCall::dstLevel() const
+{
+    return dstEntity()->level();
+}
 
 /* -------------------- Calls to tasks from tasks. -------------------- */
 
 TaskCall::TaskCall( const Task * fromTask, const Task * toTask )
-    : EntityCall( fromTask ), myDstTask(toTask), myRendezvous(0), mySendNoReply(0), myForwarding(0)
+    : EntityCall( fromTask, toTask ), _rendezvous(0.), _sendNoReply(0.), _forwarding(0.)
 {
 }
 
@@ -1242,29 +1351,10 @@ TaskCall::operator==( const TaskCall& item ) const
 }
 
 
-const string &
-TaskCall::dstName() const
-{
-    return dstTask()->name();
-}
-
-double
-TaskCall::dstIndex() const
-{
-    return dstTask()->index();
-}
-
-unsigned 
-TaskCall::dstLevel() const
-{
-    return dstTask()->level();
-}
-
-
 TaskCall& 
 TaskCall::rendezvous( const LQIO::DOM::ConstantExternalVariable& value ) 
 { 
-    myRendezvous = value;
+    _rendezvous = value;
     if ( myArc ) {
 	myArc->arrowhead(Graphic::CLOSED_ARROW);
     }
@@ -1282,7 +1372,7 @@ TaskCall::sumOfRendezvous() const
 TaskCall& 
 TaskCall::sendNoReply( const LQIO::DOM::ConstantExternalVariable& value ) 
 { 
-    mySendNoReply = value;
+    _sendNoReply = value;
     if ( !hasRendezvous() && !hasForwarding() && myArc ) {
 	myArc->arrowhead(Graphic::OPEN_ARROW);
     }
@@ -1302,40 +1392,34 @@ TaskCall::sumOfSendNoReply() const
 unsigned
 TaskCall::fanIn() const
 {
-    return srcTask()->fanIn( dstTask() );
+    return dstEntity()->fanInValue( srcTask() );
 }
 
 unsigned
 TaskCall::fanOut() const
 {
-    return srcTask()->fanOut( dstTask() );
+    return srcTask()->fanOutValue( dstEntity() );
 }
 
 
 TaskCall& 
 TaskCall::taskForward( const LQIO::DOM::ConstantExternalVariable& value) 
 { 
-    myForwarding = value;
+    _forwarding = value;
     if ( !hasRendezvous() && myArc ) {
 	myArc->arrowhead(Graphic::CLOSED_ARROW).linestyle(Graphic::DASHED);
-	if ( !Flags::print_forwarding_by_depth && myArc->size() == 2 ) {
-	    myArc->grow( 2 );
+	if ( !Flags::print_forwarding_by_depth && myArc->nPoints() == 2 ) {
+	    myArc->resize( 4 );
 	}
     }
     return *this;
-}
-
-double
-TaskCall::serviceTime( const unsigned k ) const
-{
-    return dstTask()->serviceTime( k );
 }
 
 
 bool
 TaskCall::isSelected() const
 {
-    return (dstTask()->isSelected() 
+    return (dstEntity()->isSelected() 
 	    && ( ((submodel_output() || queueing_output())
 		  && (isPseudoCall() || (!isPseudoCall() && !hasForwarding())))
 		|| (!submodel_output()
@@ -1346,45 +1430,45 @@ TaskCall::isSelected() const
 		&& Flags::print[CHAIN].value.i == 0
 		&& !isPseudoCall())
 	    || (Flags::print[CHAIN].value.i != 0 
-		&& dstTask()->isSelectedIndirectly()));
+		&& dstEntity()->isSelectedIndirectly()));
 }
 
 bool TaskCall::hasRendezvous() const 
 { 
     double value;
-    return myRendezvous.wasSet() && myRendezvous.getValue( value ) && value > 0.0;
+    return _rendezvous.wasSet() && _rendezvous.getValue( value ) && value > 0.0;
 }
 
 bool TaskCall::hasSendNoReply() const 
 { 
     double value;
-    return mySendNoReply.wasSet() && mySendNoReply.getValue( value ) && value > 0.0;
+    return _sendNoReply.wasSet() && _sendNoReply.getValue( value ) && value > 0.0;
 }
 
 bool TaskCall::hasForwarding() const 
 { 
     double value;
-    return myForwarding.wasSet() && myForwarding.getValue( value ) && value > 0.0;
+    return _forwarding.wasSet() && _forwarding.getValue( value ) && value > 0.0;
 }
 
 
 bool
 TaskCall::isLoopBack() const
 {
-    return dynamic_cast<const Task *>(srcTask()) == dstTask();
+    return dynamic_cast<const Task *>(srcTask()) == dstEntity();
 }
 
 
 
-const TaskCall&
-TaskCall::setChain( const unsigned k ) const
+TaskCall&
+TaskCall::setChain( const unsigned k ) 
 {
     if ( hasSendNoReply() ) {
-	const_cast<Entity *>(srcTask())->setClientOpenChain( k );
+	const_cast<Task *>(srcTask())->setClientOpenChain( k );
     } else {
-	const_cast<Entity *>(srcTask())->setClientClosedChain( k );
+	const_cast<Task *>(srcTask())->setClientClosedChain( k );
     }
-    const_cast<Task *>(dstTask())->setServerChain( k );
+    const_cast<Entity *>(dstEntity())->setServerChain( k );
     return *this;
 }
 
@@ -1400,7 +1484,7 @@ TaskCall::colour() const
 
     }
     if ( hasAncestorLevel() || hasForwardingLevel() ) {
-	return dstTask()->colour();
+	return dstEntity()->colour();
     } else {
 	return Graphic::RED;
     }
@@ -1457,14 +1541,13 @@ TaskCall::label()
 	}
     }
     if ( dynamic_cast<const Task *>(srcTask())->hasQueueingTime() &&
-	 Flags::have_results && Flags::print[PROCESS_QUEUEING].value.b ) {
-	Sequence<Entry *> nextEntry(dynamic_cast<const Task *>(srcTask())->entries());
-	Entry * anEntry;
+	 Flags::have_results && Flags::print[PROCESSOR_QUEUEING].value.b ) {
 	bool print = false;
-	while ( anEntry = nextEntry() ) {
-	    if ( !anEntry->hasQueueingTime() ) continue;
+	const std::vector<Entry *>& entries = dynamic_cast<const Task *>(srcTask())->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    if ( !(*entry)->hasQueueingTime() ) continue;
 	    if ( print ) myLabel->newLine();
-	    *myLabel << anEntry->name() << ": " << print_queueing_time(*anEntry);
+	    *myLabel << (*entry)->name() << " w=" << print_queueing_time(**entry);
 	    print = true;
 	}
     }
@@ -1495,7 +1578,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 /* ----------------- Calls to processors from tasks. ------------------ */
 
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
-    : EntityCall( fromTask ), myProcessor(toProcessor)
+    : EntityCall( fromTask, toProcessor )
 {
 }
 
@@ -1508,32 +1591,6 @@ int
 ProcessorCall::operator==( const ProcessorCall& item ) const
 {
     return this == &item;
-}
-
-
-const string& 
-ProcessorCall::dstName() const
-{
-    return dstProcessor()->name();
-}
-
-double
-ProcessorCall::dstIndex() const
-{
-    return dstProcessor()->index();
-}
-
-unsigned
-ProcessorCall::dstLevel() const
-{
-    return dstProcessor()->level();
-}
-
-
-double
-ProcessorCall::serviceTime( const unsigned k ) const
-{
-    return dstProcessor()->serviceTime( k );
 }
 
 
@@ -1559,7 +1616,7 @@ ProcessorCall::forward() const
 unsigned
 ProcessorCall::fanIn() const
 {
-    return dstProcessor()->fanIn( srcTask() );
+    return dstEntity()->fanInValue( srcTask() );
 }
 
 unsigned
@@ -1572,27 +1629,27 @@ ProcessorCall::fanOut() const
 bool
 ProcessorCall::isSelected() const
 {
-    return ( dstProcessor()->isSelected() 
+    return ( dstEntity()->isSelected() 
 #if HAVE_REGEX_T
 	     || Flags::print[INCLUDE_ONLY].value.r 
 #endif
-	     )
-	&& ( dstProcessor()->isInteresting()
-	     || (Flags::print[CHAIN].value.i != 0 && dstProcessor()->isSelectedIndirectly())
+	)
+	&& ( dynamic_cast<const Processor *>(dstEntity())->isInteresting()
+	     || (Flags::print[CHAIN].value.i != 0 && dstEntity()->isSelectedIndirectly())
 	     || submodel_output() 
 	     || queueing_output() );
 }
 
 
-const ProcessorCall&
-ProcessorCall::setChain( const unsigned k ) const
+ProcessorCall&
+ProcessorCall::setChain( const unsigned k )
 {
     if ( hasSendNoReply() ) {
-	const_cast<Entity *>(srcTask())->setClientOpenChain( k );
+	const_cast<Task *>(srcTask())->setClientOpenChain( k );
     } else {
-	const_cast<Entity *>(srcTask())->setClientClosedChain( k );
+	const_cast<Task *>(srcTask())->setClientClosedChain( k );
     }
-    const_cast<Processor *>(dstProcessor())->setServerChain( k );
+    const_cast<Entity *>(dstEntity())->setServerChain( k );
     return *this;
 }
 
@@ -1604,7 +1661,7 @@ ProcessorCall::colour() const
     case COLOUR_CLIENTS:	return srcTask()->colour();
     case COLOUR_SERVER_TYPE:	return GenericCall::colour();
     }
-    return myProcessor->colour();
+    return dstEntity()->colour();
 }
 
 ProcessorCall& 
@@ -1637,7 +1694,7 @@ ProcessorCall&
 ProcessorCall::moveDst( const Point& aPoint )
 {
     GenericCall::moveDst( aPoint );		// Move to center of circle 
-    Point intersect = myArc->dstIntersectsCircle( aPoint, fabs( myProcessor->height() ) / 2 );
+    Point intersect = myArc->dstIntersectsCircle( aPoint, fabs( dstEntity()->height() ) / 2 );
     GenericCall::moveDst( intersect );		// Now move to edge.
 
     return *this;
@@ -1649,25 +1706,36 @@ ProcessorCall&
 ProcessorCall::label()
 {
     if ( !Flags::have_results ) return *this;
-    const Task * aTask = dynamic_cast<const Task *>(srcTask());
-    Sequence<Entry *> nextEntry(aTask->entries());
-    Entry * anEntry;
-
-    bool print = false;
-    if ( Flags::print[PROCESS_UTIL].value.b ) {
-	while ( anEntry = nextEntry() ) {
-	    if ( !anEntry->hasQueueingTime() || anEntry->isActivityEntry() ) continue;
-	    *myLabel << (!print ? "Ue=" : ";") << anEntry->processorUtilization();
-	    print = true;
+    const Task& src = *srcTask();
+    const std::vector<Entry *>& entries = src.entries();
+    const std::vector<Activity *>& activities = src.activities();
+    bool do_newline = false;
+    if ( Flags::print[ENTRY_UTILIZATION].value.b && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
+	    if ( do_newline ) myLabel->newLine();
+	    *myLabel << "U[" << (*entry)->name() << "]=" << opt_pct((*entry)->processorUtilization());
+	    do_newline = true;
+	}
+	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
+	    if ( !(*activity)->hasQueueingTime() ) continue;
+	    if ( do_newline ) myLabel->newLine();
+	    *myLabel << "U[" << (*activity)->name() << "]=" << opt_pct( (*activity)->processorUtilization() );
+	    do_newline = true;
 	}
     }
-    if ( aTask->hasQueueingTime() && Flags::print[PROCESS_QUEUEING].value.b ) {
-	if ( print ) myLabel->newLine();
-	print = false;
-	while ( anEntry = nextEntry() ) {
-	    if ( !anEntry->hasQueueingTime() || anEntry->isActivityEntry() ) continue;
-	    *myLabel << (!print ? "We=" : ";") << print_queueing_time(*anEntry);
-	    print = true;
+    if ( src.hasQueueingTime() && Flags::print[PROCESSOR_QUEUEING].value.b ) {
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    if ( !(*entry)->hasQueueingTime() || (*entry)->isActivityEntry() ) continue;
+	    if ( do_newline ) myLabel->newLine();
+	    *myLabel << "W[" << (*entry)->name() << "]=" << print_queueing_time(**entry);
+	    do_newline = true;
+	}
+	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
+	    if ( !(*activity)->hasQueueingTime() ) continue;
+	    if ( do_newline ) myLabel->newLine();
+	    *myLabel << "W[" << (*activity)->name() << "]=" << opt_pct( (*activity)->queueingTime() );
+	    do_newline = true;
 	}
     }
     return *this;
@@ -1686,7 +1754,7 @@ PseudoProcessorCall::PseudoProcessorCall( const Task * fromTask, const Processor
 /* ---------------- Calls from Open arrivals to tasks ----------------- */
 
 OpenArrival::OpenArrival( const OpenArrivalSource * from, const Entry * to )
-    : GenericCall(), source(from), destination(to)
+    : GenericCall(), source(from), _destination(to)
 {
     myArc->arrowhead(Graphic::OPEN_ARROW);
 }
@@ -1704,7 +1772,7 @@ OpenArrival::operator==( const OpenArrival& item ) const
 }
 
 
-const Entity * 
+const Task * 
 OpenArrival::srcTask() const 
 { 
     return source; 
@@ -1722,7 +1790,7 @@ OpenArrival::srcName() const
 const string&
 OpenArrival::dstName() const
 {
-    return destination->name();
+    return _destination->name();
 }
 
 
@@ -1736,14 +1804,14 @@ OpenArrival::srcIndex() const
 double
 OpenArrival::dstIndex() const
 {
-    return destination->index();
+    return _destination->index();
 }
 
 
 const Task * 
 OpenArrival::dstTask() const
 {
-    return destination->owner();
+    return _destination->owner();
 }
 
 unsigned 
@@ -1756,7 +1824,7 @@ OpenArrival::dstLevel() const
 const LQIO::DOM::ExternalVariable&
 OpenArrival::openArrivalRate() const
 {
-    return destination->openArrivalRate();
+    return _destination->openArrivalRate();
 }
 
 
@@ -1806,14 +1874,14 @@ OpenArrival::fanOut() const
 double 
 OpenArrival::openWait() const
 {
-    return destination->openWait();
+    return _destination->openWait();
 }
 
-const OpenArrival&
-OpenArrival::setChain( const unsigned k ) const
+OpenArrival&
+OpenArrival::setChain( const unsigned k ) 
 {
-    const_cast<Entity *>(srcTask())->setClientOpenChain( k );
-    const_cast<Entry *>(destination)->setServerChain( k );
+    const_cast<Task *>(dynamic_cast<const Task *>(srcTask()))->setClientOpenChain( k );
+    const_cast<Entry *>(_destination)->setServerChain( k );
     return *this;
 }
 
@@ -1851,15 +1919,15 @@ OpenArrival::label()
 {
     bool print = false;
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
-	*myLabel << begin_math( &Label::lambda ) << "=" << destination->openArrivalRate() << end_math();
+	*myLabel << begin_math( &Label::lambda ) << "=" << _destination->openArrivalRate() << end_math();
 	print = true;
     }
-    if ( destination->openWait()
+    if ( _destination->openWait()
 	 && Flags::have_results 
 	 && Flags::print[OPEN_WAIT].value.b ) {
 	if ( print ) myLabel->newLine();
-	Graphic::colour_type c = isfinite( destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
-	myLabel->colour(c) << begin_math() << destination->openWait() << end_math();
+	Graphic::colour_type c = isfinite( _destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
+	myLabel->colour(c) << begin_math() << _destination->openWait() << end_math();
 	print = true;
     }
     return *this;
@@ -1876,28 +1944,26 @@ OpenArrival::label()
  * BUG_301).
  */
 
-unsigned 
-CallStack::find( const Call * dstCall, const bool direct_path ) const
+std::deque<const Call *>::const_iterator
+CallStack::find( const Call * dstCall, const bool direct_path )
 {
     const Entry * dstEntry = dstCall->dstEntry();
-    const unsigned sz = Stack<const Call *>::size();
     bool broken = false; 
-    for ( unsigned j = sz; j > 0; --j ) {
-	const Call * aCall = (*this)[j];
-	if ( !aCall ) continue;
-	if ( aCall->hasSendNoReply() ) broken = true;		/* Cycle broken - async call */
+    for ( std::deque<const Call *>::const_reverse_iterator call = rbegin(); call != rend(); ++call ) {
+	if ( !(*call) ) continue;
+	if ( (*call)->hasSendNoReply() ) broken = true;		/* Cycle broken - async call */
 
-	if ( aCall->dstEntry() == dstEntry ) {			/* Cycle detected. */
-	    if ( aCall->hasRendezvous() && dstCall->hasRendezvous() && !broken ) {
-		throw call_cycle( dstCall, *this );		/* Dead lock */
-	    } if ( aCall->dstEntry() == dstEntry && direct_path ) {
-		throw call_cycle( dstCall, *this );		/* Live lock */
+	if ( (*call)->dstEntry() == dstEntry ) {		/* Cycle detected. */
+	    if ( (*call)->hasRendezvous() && dstCall->hasRendezvous() && !broken ) {
+		throw Call::cycle_error( dstCall, *this );		/* Dead lock */
+	    } if ( (*call)->dstEntry() == dstEntry && direct_path ) {
+		throw Call::cycle_error( dstCall, *this );		/* Live lock */
 	    } else {
-		return j;
+		return (call+1).base();
 	    }
 	}
     }
-    return 0;
+    return end();
 }
 
 
@@ -1906,17 +1972,16 @@ CallStack::find( const Call * dstCall, const bool direct_path ) const
  * We may skip back over forwarded calls when computing the size.
  */
 
-unsigned 
+size_t
 CallStack::size() const
 {
-    const unsigned sz = Stack<const Call *>::size();
+    const size_t sz = std::deque<const Call *>::size();
     if ( Flags::print_forwarding_by_depth ) {
 	return sz;
     } else {
-	unsigned k = 0;
-	for ( unsigned j = 1; j <= sz; ++j ) {
-	    const Call * aCall = (*this)[j];
-	    if ( !aCall || aCall->hasRendezvous() || aCall->hasSendNoReply() ) {
+	size_t k = 0;
+	for ( std::deque<const Call *>::const_iterator call = begin(); call != end(); ++call ) {
+	    if ( !(*call) || (*call)->hasRendezvous() || (*call)->hasSendNoReply() ) {
 		k += 1;
 	    }
 	}
@@ -1929,23 +1994,10 @@ CallStack::size() const
  * Return size of stack, regarless of model printing type.
  */
 
-unsigned 
+size_t
 CallStack::size2() const
 {
-    return Stack<const Call *>::size();
-}
-
-/* ------------------------ Exception Handling ------------------------ */
-
-call_cycle::call_cycle( const Call * aCall, const CallStack& callStack )
-    : path_error( callStack.size() )
-{
-    myMsg = aCall->dstName();
-    for ( unsigned i = callStack.size(); i > 0; --i ) {
-	if ( !callStack[i] ) continue;
-	myMsg += ", ";
-	myMsg += callStack[i]->dstName();
-    }
+    return std::deque<const Call *>::size();
 }
 
 /*----------------------------------------------------------------------*/
@@ -1972,6 +2024,7 @@ format_prologue( ostream& output, const Call& aCall, int p )
 	break;
     case FORMAT_POSTSCRIPT:
     case FORMAT_FIG:
+    case FORMAT_SVG:
 	if ( p != 1 ) {
 	    output << ',';
 	}
@@ -1996,6 +2049,7 @@ format_epilogue( ostream& output, const Call& aCall, int p )
 	}
 	break;
     case FORMAT_POSTSCRIPT:
+    case FORMAT_SVG:
     case FORMAT_FIG:
 	if ( aCall.phaseTypeFlag(p) == PHASE_DETERMINISTIC ) {
 	    output << ":D";
@@ -2010,7 +2064,7 @@ rendezvous_of_str( ostream& output, const Call& aCall )
 {
     for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
 	format_prologue( output, aCall, p );
-	output << instantiate( aCall.rendezvous(p) );
+	output << aCall.rendezvous(p);
 	format_epilogue( output, aCall, p );
     }
     return output;
@@ -2022,7 +2076,7 @@ sendnoreply_of_str( ostream& output, const Call& aCall )
 {
     for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
 	format_prologue( output, aCall, p );
-	output << instantiate( aCall.sendNoReply(p) );
+	output << aCall.sendNoReply(p);
 	format_epilogue( output, aCall, p );
     }
     return output;
@@ -2032,7 +2086,7 @@ sendnoreply_of_str( ostream& output, const Call& aCall )
 static ostream&
 forwarding_of_str( ostream& output, const Call& aCall )
 {
-    output << instantiate( aCall.forward() );
+    output << aCall.forward();
     return output;
 }
 
@@ -2060,7 +2114,7 @@ wait_of_str( Label& aLabel, const Call& aCall )
 	if ( p != 1 ) {
 	    aLabel << ','; 
 	}
-	aLabel << aCall.waiting(p);
+	aLabel << opt_pct(aCall.waiting(p));
     }
     return aLabel;
 }
@@ -2075,7 +2129,7 @@ drop_probability_of_str( Label& aLabel, const Call& aCall )
 	if ( p != 1 ) {
 	    aLabel << ',';
 	}
-	aLabel << aCall.dropProbability(p);
+	aLabel << opt_pct(aCall.dropProbability(p));
     }
     return aLabel;
 }
@@ -2095,21 +2149,6 @@ calls_of_str( ostream& output, const Call& aCall )
     }
     return output;
 }
-
-
-/*
- * No need for fancy forwarding like print_calls because we never use
- * this to generate srvn input/output.
- */
-
-#if defined(QNAP_OUTPUT)
-static ostream&
-qnap_visits_str( ostream& output, const EntityCall& aCall )
-{
-    output << "v_" << aCall.srcName() << "_" << aCall.dstName();
-    return output;
-}
-#endif
 
 
 static SRVNCallManip
@@ -2163,12 +2202,3 @@ print_drop_probability( const Call& aCall )
 {
     return LabelCallManip( &drop_probability_of_str, aCall );
 }
-
-
-#if defined(QNAP_OUTPUT)
-EntityCallManip
-qnap_visits( const EntityCall& aCall )
-{
-    return EntityCallManip( &qnap_visits_str, aCall );
-}
-#endif

@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
 #----------------------------------------------------------------------
 
 AUTOMAKE_OPTIONS = foreign
@@ -7,13 +7,16 @@ ACLOCAL_AMFLAGS=-I ../config
 AM_CPPFLAGS	= -I..
 srvndiff_CXXFLAGS = -Wall -Wno-format -Wno-format-security
 bin_PROGRAMS 	= srvndiff
-srvndiff_SOURCES = srvndiff.cc symtbl.cc getopt2.cc expat_document.cc srvn_result_scan.l srvn_result_gram.y commandline.cc confidence_intervals.cc error.cc srvn_results.cc getsbopt.cc parseable.cc 
-noinst_HEADERS  = confidence_intervals.h commandline.h config.h error.h expat_document.h getopt2.h getsbopt.h srvndiff.h srvn_result_gram.h srvn_results.h symtbl.h parseable.h 
+srvndiff_SOURCES = srvndiff.cc symtbl.cc getopt2.cc srvn_result_scan.l srvn_result_gram.y commandline.cc confidence_intervals.cc error.cc srvn_results.cc getsbopt.cc parseable.cc json_document.cc
+noinst_HEADERS  = confidence_intervals.h commandline.h config.h error.h expat_document.h getopt2.h getsbopt.h srvndiff.h srvn_result_gram.h srvn_results.h symtbl.h parseable.h json_document.h
+
+srvndiff_LDFLAGS= @STATIC@
+
+if EXPAT
+srvndiff_SOURCES += expat_document.cc
+endif
 
 EXTRA_DIST	= srvndiff.1
-
-srvndiff_LDADD	= 
-srvndiff_LDFLAGS= @STATIC@
 
 man1_MANS	= srvndiff.1
 

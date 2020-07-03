@@ -1,8 +1,8 @@
 /* runlqx.h	-- Greg Franks
  *
- * $URL$
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13200 2018-03-05 22:48:55Z greg $
+ * $Id: runlqx.cc 13562 2020-05-27 02:01:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -61,50 +61,46 @@ namespace SolverInterface
 	}
 			
 	/* Make sure all external variables are accounted for */
-	const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
-	if ( undefined.size() > 0) {
-	    cerr << io_vars.lq_toolname << ": The following external variables were not assigned at time of solve: ";
-	    for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
-		if ( var != undefined.begin() ) cerr << ", ";
-		cerr << *var << endl;
-	    }
-	    cerr << endl;
-	    io_vars.anError = true;
-	    return LQX::Symbol::encodeBoolean(false);
-	}
-			
-	/* Recalculate dynamic values */
-	Model::recalculateDynamicValues( _document );
-			
-	/* Run the solver and return its success as a boolean value */
+	bool ok = false;
 	try {
-	    assert( _aModel );
-	    std::stringstream ss;
-	    _document->printExternalVariables( ss );
-	    _document->setModelComment( ss.str() );
-
-	    _aModel->InitializeModel();
-	    _document->setResultInvocationNumber( invocationCount );
-	    const bool ok = (_aModel->*_solve)();
-	    return LQX::Symbol::encodeBoolean(ok);
-	}
-	catch ( runtime_error & error ) {
-	    cerr << io_vars.lq_toolname << ": runtime error - " << error.what() << endl;
-	    io_vars.anError = true;
-	}
-	catch ( logic_error& error ) {
-	    cerr << io_vars.lq_toolname << ": logic error - " << error.what() << endl;
-	    io_vars.anError = true;
-	}
-	catch ( floating_point_error& error ) {
-	    cerr << io_vars.lq_toolname << ": floating point error - " << error.what() << endl;
-	    io_vars.anError = true;
-	}
-	catch ( exception_handled& error ) {
-	    io_vars.anError = true;
-	}
+	    const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
+	    if ( undefined.size() > 0) {
+		std::string msg = "The following external variables were not assigned at time of solve: ";
+		for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
+		    if ( var != undefined.begin() ) msg += ", ";
+		    msg += *var;
+		}
+		throw std::runtime_error( msg );
+	    } 
 			
-	return LQX::Symbol::encodeBoolean(false);
+	    /* Recalculate dynamic values */
+	    Model::recalculateDynamicValues( _document );
+			
+	    /* Run the solver and return its success as a boolean value */
+	    assert( _aModel );
+	    if ( io_vars.anError() == true || !_aModel->initializeModel() ) {
+		throw std::runtime_error( "Unable to initialize model." );
+	    }
+
+	    _document->setResultInvocationNumber( invocationCount );
+	    ok = (_aModel->*_solve)();
+	}
+	catch ( const runtime_error& error ) {
+	    throw LQX::RuntimeException( error.what() );
+	}
+	catch ( const logic_error& error ) {
+	    throw LQX::RuntimeException( error.what() );
+	}
+	catch ( const floating_point_error& error ) {
+	    cerr << io_vars.lq_toolname << ": floating point error - " << error.what() << endl;
+	    io_vars.error_count += 1;
+	    ok = false;
+	}
+	catch ( const exception_handled& error ) {
+	    io_vars.error_count += 1;
+	    ok = false;
+	}
+	return LQX::Symbol::encodeBoolean(ok);
     }
 		
 }

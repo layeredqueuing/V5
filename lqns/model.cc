@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 12547 2016-04-05 18:32:45Z greg $
+ * $Id: model.cc 13562 2020-05-27 02:01:45Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -113,21 +113,14 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 
     Activity::actConnections.clear();
     Activity::domToNative.clear();
-    resetCounts();
     MVA::boundsLimit = pragma.getTau();
 
     /*
      * Fold, Mutilate and Spindle before main loop processing in solve.c
+     * disable model checking and expansion at this stage with LQX programs
      */
 
-    bool continue_processing;
-
-    if( check_model == true )
-        continue_processing = checkModel();
-    else /* disable model checking and expansion at this stage with LQX programs */
-        continue_processing = true;
-
-    if ( !io_vars.anError && continue_processing ) {
+    if ( io_vars.anError() == false && (check_model == false || checkModel() ) ) {
 
 	extendModel();			/* Do this before initProcessors() */
 
@@ -170,7 +163,7 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 	    if ( check_model ) {
 		set<Task *,ltTask>::const_iterator nextTask = task.begin();
 		aModel->generate( nextTask );
-		if ( !io_vars.anError ) {
+		if ( !io_vars.anError() ) {
 		    aModel->setInitialized();
 		} else {
 		    delete aModel;
@@ -178,7 +171,7 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 		}
 	    }
 	}
-	catch ( exception_handled& e ) {
+	catch ( const exception_handled& e ) {
 	    delete aModel;
 	    aModel = 0;
 	}
@@ -186,23 +179,26 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
     return aModel;
 }
 
-void
-Model::InitializeModel()
+bool
+Model::initializeModel()
 {
     /* perform all actions normally done in createModel() that need to be delayed until after */
     /* LQX programs begin execution to avoid problems with unset variables */
 
     checkModel();
 
-    if ( _model_initialized ) return;
+    if ( !_model_initialized ) {
 
-    initProcessors();		/* Set Processor Service times.	*/
+	initProcessors();		/* Set Processor Service times.	*/
 
-    set<Task *,ltTask>::const_iterator nextTask = task.begin();
-    this->generate( nextTask );
+	set<Task *,ltTask>::const_iterator nextTask = task.begin();
+	this->generate( nextTask );
 
-    _model_initialized = true;
+	_model_initialized = true;
+    }
+    return !io_vars.anError();
 }
+
 
 LQIO::DOM::Document*
 Model::load( const string& input_filename, const string& output_filename )
@@ -220,11 +216,7 @@ Model::load( const string& input_filename, const string& output_filename )
 	set_fp_abort();
     }
 
-    io_vars.n_processors     = 0;
-    io_vars.n_tasks	     = 0;
-    io_vars.n_entries	     = 0;
-    io_vars.anError          = false;
-    io_vars.error_count      = 0;
+    io_vars.reset();
     Entry::reset();
     Task::reset();
     ActivityList::reset();
@@ -236,7 +228,7 @@ Model::load( const string& input_filename, const string& output_filename )
     unsigned errorCode = 0;
 
     /* Attempt to load in the document from the filename/ptr and configured io_vars */
-    return LQIO::DOM::Document::load(input_filename, input_format, output_filename, &::io_vars, errorCode, false);
+    return LQIO::DOM::Document::load(input_filename, input_format, &::io_vars, errorCode, false);
 }
 
 
@@ -417,46 +409,6 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 
 
 /*
- * Patch up the n_X values to reflect reality.
- */
-
-void
-Model::resetCounts()
-{
-    unsigned n;
-
-    n = processor.size();
-    if ( io_vars.n_processors != 0 && io_vars.n_processors != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "processors", n, io_vars.n_processors, "processors", n );
-    }
-    io_vars.n_processors = n;
-
-    n = group.size();
-    if ( io_vars.n_groups != 0 && io_vars.n_groups != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "groups", n, io_vars.n_groups, "groups", n );
-    }
-    io_vars.n_groups = n;
-
-    n = task.size();
-    if ( io_vars.n_tasks != 0 && io_vars.n_tasks != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "tasks", n, io_vars.n_tasks, "tasks", n );
-    }
-    io_vars.n_tasks = n;
-
-    n = entry.size();
-    if ( io_vars.n_entries != 0 && io_vars.n_entries != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "entries", n, io_vars.n_entries, "entries", n );
-    }
-    io_vars.n_entries = n;
-
-    if ( io_vars.n_entries < io_vars.n_tasks ) {
-	LQIO::solution_error( LQIO::ERR_LESS_ENTRIES_THAN_TASKS, io_vars.n_entries, io_vars.n_tasks );
-    }
-}
-
-
-
-/*
  * Check input parameters.  Return true if all went well.  Return false
  * and set anError to true otherwise.
  */
@@ -485,7 +437,7 @@ Model::checkModel()
 	aProcessor->check();
     }
 
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 
@@ -533,10 +485,10 @@ Model::setModelParameters( const LQIO::DOM::Document* doc )
 {
 
     if ( !flags.override_print_interval ) {
-	print_interval = doc->getModelPrintInterval();
+	print_interval = doc->getModelPrintIntervalValue();
     }
     if ( !flags.override_iterations ) {
-	int it_limit = doc->getModelIterationLimit();
+	int it_limit = doc->getModelIterationLimitValue();
 	if ( it_limit < 5 ) {
 	    LQIO::input_error2( ADV_ITERATION_LIMIT, it_limit, iteration_limit );
 	} else {
@@ -555,7 +507,7 @@ Model::setModelParameters( const LQIO::DOM::Document* doc )
 	}
     }
     if ( !flags.override_underrelaxation ) {
-	double under = doc->getModelUnderrelaxationCoefficient();
+	double under = doc->getModelUnderrelaxationCoefficientValue();
 	if ( under <= 0.0 || 2.0 < under ) {
 	    LQIO::input_error2( ADV_UNDERRELAXATION, under, underrelaxation );
 	} else {
@@ -919,27 +871,14 @@ Model::solve()
     reinitialize();
 
     _converged = false;
-    try {
-	const double delta = run();
-	report.finish( delta, *this );
-	sanityCheck();
-	if ( !_converged ) {
-	    LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, convergence_value );
-	}
-	if ( flags.ignore_overhanging_threads ) {
-	    LQIO::solution_error( ADV_NO_OVERHANG );
-	}
+    const double delta = run();
+    report.finish( delta, *this );
+    sanityCheck();
+    if ( !_converged ) {
+	LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, convergence_value );
     }
-    catch ( runtime_error &e ) {
-	cerr << io_vars.lq_toolname << ": " << e.what() << endl;
-	return false;
-    }
-    catch ( class_error &e ) {
-	cerr << io_vars.lq_toolname << ": " << e.what() << endl;
-	return false;
-    }
-    catch ( exception_handled &e ) {
-	return false;
+    if ( flags.ignore_overhanging_threads ) {
+	LQIO::solution_error( ADV_NO_OVERHANG );
     }
 
     /* OK.  It solved. Now save the output. */
@@ -970,9 +909,9 @@ Model::solve()
 	    filename.backup();
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->serializeDOM( output, true );
+		_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
 		output.close();
 	    }
 	}
@@ -984,7 +923,7 @@ Model::solve()
 	    ofstream output;
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 		output.close();
@@ -998,7 +937,7 @@ Model::solve()
 	ofstream output;
 	output.open( filename(), ios::out );
 	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else if ( flags.rtf_output ) {
 	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
 	} else {
@@ -1033,7 +972,7 @@ Model::solve()
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( flags.xml_output ) {
-	    _document->serializeDOM( output, true );
+	    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );
 	} else if ( flags.parseable_output ) {
 	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else if ( flags.rtf_output ) {
@@ -1068,8 +1007,8 @@ Model::reload()
 
     LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
 
-    if ( access( directory_name(), R_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
+    if ( access( directory_name().c_str(), R_OK|X_OK ) < 0 ) {
+	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -1092,7 +1031,7 @@ Model::restart()
 	} 
 	return false;
     }
-    catch ( LQX::RuntimeException& e ) {
+    catch ( const LQX::RuntimeException& e ) {
 	return solve();
     }
 }
@@ -1247,7 +1186,7 @@ Model::printIntermediate( const double convergence ) const
 	extension = "out";
     }
 
-    LQIO::Filename filename( LQIO::input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
+    LQIO::Filename filename( _input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << _iterations << "~";
@@ -1260,7 +1199,7 @@ Model::printIntermediate( const double convergence ) const
     if ( !output ) return;			/* Ignore errors */
 
     if ( flags.xml_output ) {
-        _document->serializeDOM( output, true );
+	_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
     } else if ( flags.parseable_output ) {
 	_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
     } else {
@@ -1368,7 +1307,7 @@ Model::createDirectory() const
 unsigned
 Model::topologicalSort( set<Task *,ltTask>::const_iterator& nextTask )
 {
-    CallStack callStack( io_vars.n_tasks + 2 );
+    CallStack callStack( task.size() + 2 );
     unsigned max_depth = 0;
 
     for ( ; nextTask != task.end(); ++nextTask ) {
@@ -1383,14 +1322,13 @@ Model::topologicalSort( set<Task *,ltTask>::const_iterator& nextTask )
 	    catch( call_cycle& error ) {
 		callStack.shrink( error.depth() );
 		max_depth = max( error.depth(), max_depth );
-		io_vars.anError = true;		/* Set global error flag */
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	    }
 	    assert ( callStack.size() == 0 );
 	}
     }
 
-    if ( io_vars.anError ) {
+    if ( io_vars.anError() ) {
 	throw exception_handled( "Model::topologicalSort" );	//
     }
     return max_depth;

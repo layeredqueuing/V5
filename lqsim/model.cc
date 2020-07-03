@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13204 2018-03-06 22:52:04Z greg $
+ * $Id: model.cc 13577 2020-05-30 02:47:06Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -22,6 +22,7 @@
 #endif
 
 #include "lqsim.h"
+#include <algorithm>
 #include <fstream>
 #include <parasol.h>
 #include <para_internals.h>
@@ -75,10 +76,11 @@ typedef clock_t tms_t;
 #endif
 
 int Model::__genesis_task_id = 0;
-Model * Model::__model = 0;
+Model * Model::__model = NULL;
 double Model::max_service = 0.0;
 const double Model::simulation_parameters::DEFAULT_TIME = 1e5;
 LQIO::DOM::Document::input_format Model::input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
+bool deferred_exception = false;	/* domain error detected during run.. throw after parasol stops. */
 
 /*----------------------------------------------------------------------*/
 /*   Input processing.  Read input, extend and validate.                */
@@ -92,7 +94,16 @@ Model::Model( LQIO::DOM::Document* document, const string& input_file_name, cons
 	      const simulation_parameters& parameters ) 
     : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _parameters(parameters)
 {
-    reset_globals();
+    __model = this;
+
+    /* Initialize globals */
+    
+    open_arrival_count		= 0;
+    join_count			= 0;
+    fork_count			= 0;
+    max_service    		= 0.0;
+    total_tasks    		= 0;
+    client_init_count 		= 0;	/* For auto blocking (-C)	*/
 }
 
 
@@ -125,43 +136,22 @@ Model::~Model()
     Activity::actConnections.clear();
     Activity::domToNative.clear();
 
-    io_vars.n_tasks = io_vars.n_entries = io_vars.n_processors =io_vars.n_groups= 0;
     if ( _document ) {
 	delete _document;
     }
-
-    reset_globals();
+    __model = NULL;
 }
 
 
 LQIO::DOM::Document* 
 Model::load( const string& input_filename, const string& output_filename )
 {
-    io_vars.n_processors    = 0;
-    io_vars.n_tasks	    = 0;
-    io_vars.n_entries	    = 0;
-    io_vars.anError         = false;
-    io_vars.error_count     = 0;
+    io_vars.reset();
 
     /* This is a departure from before -- we begin by loading a model */
 
     unsigned errorCode = 0;
-    return  LQIO::DOM::Document::load( input_filename, input_format, output_filename, &io_vars, errorCode, false );
-}
-
-
-void
-Model::reset_globals()
-{
-    __model = 0;
-    /* Init globals. */
- 
-    open_arrival_count		= 0;
-    join_count			= 0;
-    fork_count			= 0;
-    max_service    		= 0.0;
-    total_tasks    		= 0;
-    client_init_count 		= 0;	/* For auto blocking (-C)	*/
+    return  LQIO::DOM::Document::load( input_filename, input_format, &io_vars, errorCode, false );
 }
 
 
@@ -171,7 +161,7 @@ Model::construct()
     /* Tell the user that we are starting to load up */
     DEBUG(endl << "[0]: Beginning model load, setting parameters." << endl);
     if ( !override_print_int ) {
-	print_interval = _document->getModelPrintInterval();
+	print_interval = _document->getModelPrintIntervalValue();
     }
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
@@ -190,7 +180,7 @@ Model::construct()
     for ( std::map<std::string,LQIO::DOM::Processor*>::const_iterator nextProcessor = processorList.begin(); nextProcessor != processorList.end(); ++nextProcessor ) {
 	LQIO::DOM::Processor* processor = nextProcessor->second;
 	DEBUG("[1]: Adding processor (" << processor->getName() << ")" << endl);
-	add_processor(processor);
+	Processor::add(processor);
     }
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
@@ -293,7 +283,7 @@ Model::construct()
 	if ( newEntry->is_regular() ) {
 	    const Task * aTask = newEntry->task();
 	    if ( aTask->type() != Task::CLIENT && aTask->type() != Task::OPEN_ARRIVAL_SOURCE ) {
-		newEntry->phase[1].act_add_reply( newEntry );	
+		newEntry->_phase[0].act_add_reply( newEntry );	
 	    }
 	}
 
@@ -320,11 +310,7 @@ Model::construct()
     /* Tell the user that we have finished */
     DEBUG("[0]: Finished loading the model" << endl << endl);
 
-    __model = this;
-
-    initialize_globals();
-
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 
@@ -339,31 +325,19 @@ Model::construct()
 bool
 Model::create()
 {
-    unsigned n_ref_tasks = 0;
-
     for ( unsigned j = 0; j < MAX_NODES; ++j ) {
 	link_tab[j] = -1;		/* Reset link table.	*/
     }
 
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = ::processor.begin(); nextProcessor != ::processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->create();
-    }
-    for ( set<Group *,ltGroup>::const_iterator nextGroup = ::group.begin(); nextGroup != ::group.end(); ++nextGroup ) {
-	Group * aGroup = *nextGroup;
-	aGroup->create();
-    }
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( aTask->is_reference_task() ) n_ref_tasks += 1;
-	aTask->create();
-    }
+    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::create ) );
+    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::create ) );
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::create ) );
 
-    if ( n_ref_tasks == 0 && open_arrival_count == 0 ) {
+    if ( count_if( ::task.begin(), ::task.end(), Predicate<Task>( &Task::is_reference_task ) ) == 0 && open_arrival_count == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
-    if ( io_vars.anError ) return false;		/* Early termination */
+    if ( io_vars.anError() ) return false;		/* Early termination */
 
     if ( _parameters._block_period < max_service * 100 && !no_execute_flag ) {
 	(void) fprintf( stderr, "%s: ***ERROR*** Simulation duration is too small!\n\tThe largest service time period is %G\n\tIncrease the run time to %G\n",
@@ -409,17 +383,17 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
     /* SRVN type statistics */
 
-    if ( override || ((!hasOutputFileName() || directory_name.size() > 0 ) && strcmp( LQIO::input_file_name, "-" ) != 0) ) {
+    if ( override || ((!hasOutputFileName() || directory_name.size() > 0 ) && _input_file_name != "-" ) ) {
 
 	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || global_xml_flag ) {	/* No parseable/json output, so create XML */
 	    ofstream output;
-	    LQIO::Filename filename( LQIO::input_file_name, "lqxo", directory_name.c_str(), suffix.c_str() );
+	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name.c_str(), suffix.c_str() );
 	    filename.backup();
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->serializeDOM( output, true );		// don't save LQX
+		_document->print( output, LQIO::DOM::Document::XML_OUTPUT );		// don't save LQX
 		output.close();
 	    }
 	}
@@ -428,10 +402,10 @@ Model::print( const bool valid, const double confidence, const bool backup )
 
 	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || global_parse_flag ) {
 	    ofstream output;
-	    LQIO::Filename filename( LQIO::input_file_name, "p", directory_name.c_str(), suffix.c_str() );
+	    LQIO::Filename filename( _input_file_name, "p", directory_name.c_str(), suffix.c_str() );
 	    output.open( filename(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 		output.close();
@@ -441,12 +415,12 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	/* Regular output */
 
 	ofstream output;
-	LQIO::Filename filename( LQIO::input_file_name, global_rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
+	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
 	output.open( filename(), ios::out );
 	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else {
-	    _document->print( output, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    _document->print( output, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
 	    output.close();
 	}
 
@@ -455,7 +429,7 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	if ( global_parse_flag ) {
 	    _document->print( cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else {
-	    _document->print( cout, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    _document->print( cout, global_rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
 	}
 
     } else {
@@ -469,13 +443,11 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( global_xml_flag ) {
-	    _document->serializeDOM( output );
+	    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );
 	} else if ( global_parse_flag ) {
 	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else if ( global_rtf_flag ) {
 	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
-	} else {
-	    _document->print( output );
 	}
 	output.close();
     }
@@ -508,7 +480,7 @@ Model::print_intermediate( const bool valid, const double confidence )
 	extension = "out";
     }
 
-    LQIO::Filename filename( LQIO::input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
+    LQIO::Filename filename( _input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << number_blocks << "~";
@@ -519,7 +491,7 @@ Model::print_intermediate( const bool valid, const double confidence )
     if ( !output ) {
 	return;			/* Ignore errors */
     } else if ( global_xml_flag ) {
-	_document->serializeDOM( output, true );
+	_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
     } else if ( global_parse_flag ) {
 	_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
     } else {
@@ -536,8 +508,8 @@ Model::print_intermediate( const bool valid, const double confidence )
 void
 Model::print_raw_stats( FILE * output ) const
 {
-#define	LONG_WIDTH	99
-#define	SHORT_WIDTH	69
+    const int long_width	= 99;
+    const int short_width	= 69;
 
     static const char * dashes = "--------------------------------------------------------------------------------------------";
 
@@ -549,23 +521,24 @@ Model::print_raw_stats( FILE * output ) const
   Name                                     Type       Mean     #Obs|Int
 */
     if ( number_blocks > 2 ) {
-	(void) fprintf( output, "Blocked simulation statistics for %s\n\tTime = %G.  Period = %G\n\n", LQIO::input_file_name, ps_now, _parameters._block_period );
+	(void) fprintf( output, "Blocked simulation statistics for %s\n\tTime = %G.  Period = %G\n\n", _input_file_name.c_str(), ps_now, _parameters._block_period );
 	(void) fprintf( output, "Name                                     Type       Mean        95%% +/-      99%% +/-   #Obs/Int\n");
-	(void) fprintf( output, "%.*s\n", LONG_WIDTH, dashes );
+	(void) fprintf( output, "%.*s\n", long_width, dashes );
     } else {
-	(void) fprintf( output, "Simulation statistics for %s\n\ttime = %G.\n\n", LQIO::input_file_name, ps_now );
+	(void) fprintf( output, "Simulation statistics for %s\n\ttime = %G.\n\n", _input_file_name.c_str(), ps_now );
 	(void) fprintf( output, "Name                                     Type       Mean     #Obs/Int\n");
-	(void) fprintf( output, "%.*s\n", SHORT_WIDTH, dashes );
+	(void) fprintf( output, "%.*s\n", short_width, dashes );
     }
 
     for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * cp = *nextTask;
-	cp->print( output );
+    	const Task * cp = *nextTask;
+    	cp->print( output );
     }
+//    for_each ( task.begin(), task.end(), ConstExec1<Task,FILE *>( &Task::print ) );
 
     (void) fprintf( output, "\n%.*s Processor Information %.*s\n",
-		    (((number_blocks > 2) ? LONG_WIDTH : SHORT_WIDTH) - 23) / 2, dashes,
-		    (((number_blocks > 2) ? LONG_WIDTH : SHORT_WIDTH) - 23) / 2, dashes );
+		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes,
+		    (((number_blocks > 2) ? long_width : short_width) - 23) / 2, dashes );
     for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	aProcessor->r_util.print_raw( output, "Processor %-11.11s - Utilization", aProcessor->name() );
@@ -574,8 +547,8 @@ Model::print_raw_stats( FILE * output ) const
 #ifdef	NOTDEF
     if ( ps_used_links ) {
 	(void) fprintf( output, "\n%.*s Link Information %*.s\n",
-			(((number_blocks > 2) ? LONG_WIDTH : SHORT_WIDTH) - 18) / 2, dashes,
-			(((number_blocks > 2) ? LONG_WIDTH : SHORT_WIDTH) - 18) / 2, dashes );
+			(((number_blocks > 2) ? long_width : short_width) - 18) / 2, dashes,
+			(((number_blocks > 2) ? long_width : short_width) - 18) / 2, dashes );
 	for ( l = 0; l < ps_used_links; ++l ) {
 	    link_utilization[l].print_raw_stat( output, "Link %-16.16s - Utilization", ps_link_tab[l].name );
 	}
@@ -727,6 +700,7 @@ Model::start()
 	simulation_flags = simulation_flags | RPF_WARNING;
     }
 
+    deferred_exception = false;
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
 
     for ( unsigned i = 1; i <= total_tasks; ++i ) {
@@ -736,7 +710,10 @@ Model::start()
 	object_tab[i] = 0;
     }
 
-    return io_vars.anError == 0;
+    if ( deferred_exception ) {
+	throw_bad_parameter();
+    }
+    return io_vars.anError() == 0;
 }
 
 
@@ -752,8 +729,8 @@ Model::reload()
 
     LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
 
-    if ( access( directory_name(), R_OK|W_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
+    if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
+	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -781,7 +758,7 @@ Model::restart()
 	    return start();
 	} 
     }
-    catch ( LQX::RuntimeException& e ) {
+    catch ( const LQX::RuntimeException& e ) {
 	return start();
     }
 }
@@ -798,8 +775,6 @@ Model::run( int task_id )
     bool rc = false;
     __genesis_task_id = task_id;
 
-    activity_count = 0;
-
     if ( verbose_flag ) {
 	(void) putc( 'C', stderr );		/* Constructing */
     }
@@ -809,100 +784,113 @@ Model::run( int task_id )
     fflush( stdout );
 #endif
 
-    if ( !create() ) {
-	rc = false;
-    } else if ( no_execute_flag ) {
-	rc = true;
-    } else {
+    try {
+	if ( !create() ) {
+	    rc = false;
+	} else if ( no_execute_flag ) {
+	    rc = true;
+	} else {
 
-	/*
-	 * Start all of the tasks.
-	 */
+	    /*
+	     * Start all of the tasks.
+	     */
 
-	for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	    Task * aTask = *nextTask;
-	    if ( !aTask->start() ) {
-		abort();
-	    }
-	}
-
-	if ( _parameters._initial_delay ) {
-	    if ( verbose_flag ) {
-		(void) putc( 'I', stderr );
-	    }
-	    ps_sleep( _parameters._initial_delay );
-	    if ( initial_loops() > 0 ) {
-		if ( verbose_flag ) {
-		    (void) fprintf( stderr, "(%g)", ps_now );
-		}
-		if ( client_init_count > 0 ) {
-		    LQIO::solution_error( ERR_INIT_DELAY, _parameters._initial_delay, client_init_count );
+	    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+		Task * aTask = *nextTask;
+		if ( !aTask->start() ) {
+		    abort();
 		}
 	    }
-	}
 
-	/*
-	 * Reset all counters (stuff during "initial_delay" is ignored)
-	 */
-
-	reset_stats();
-
-	/*
-	 * Accumulate statistical data.
-	 */
-
-	double confidence = 0.0;
-	bool valid = false;		/* Results valid? 		*/
-	bool backup = true;		/* Only back up a file once. 	*/
-	for ( number_blocks = 1; !valid && number_blocks <= _parameters._max_blocks; number_blocks += 1 ) {
-	    
-	    if ( verbose_flag ) {
-		(void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
-	    }
-
-	    ps_sleep( _parameters._block_period );
-	    accumulate_data();
-
-	    if ( number_blocks > 2 ) {
-		confidence = rms_confidence();
+	    if ( _parameters._initial_delay ) {
 		if ( verbose_flag ) {
-		    (void) fprintf( stderr, "[%.2g]", confidence );
-		    if ( number_blocks % 10 == 0 ) {
-			(void) putc( '\n', stderr );
+		    (void) putc( 'I', stderr );
+		}
+		ps_sleep( _parameters._initial_delay );
+		if ( deferred_exception ) throw std::runtime_error( "terminating" );
+		
+		if ( initial_loops() > 0 ) {
+		    if ( verbose_flag ) {
+			(void) fprintf( stderr, "(%g)", ps_now );
+		    }
+		    if ( client_init_count > 0 ) {
+			LQIO::solution_error( ERR_INIT_DELAY, _parameters._initial_delay, client_init_count );
 		    }
 		}
-		valid = ( confidence < _parameters._precision );
 	    }
 
-	    insertDOMResults( valid || _parameters._precision == 0.0, confidence );
+	    /*
+	     * Reset all counters (stuff during "initial_delay" is ignored)
+	     */
 
-	    if ( !valid && print_interval > 0 && number_blocks % print_interval == 0 ) {
-		print_intermediate( valid, confidence );
-		backup = false;
-	    }
-	}
+	    reset_stats();
 
-	if ( verbose_flag || trace_driver ) (void) putc( '\n', stderr );
+	    /*
+	     * Accumulate statistical data.
+	     */
 
-	/*
-	 * Run completed.
-	 * Print final results
-	 */
+	    double confidence = 0.0;
+	    bool valid = false;		/* Results valid? 		*/
+	    bool backup = true;		/* Only back up a file once. 	*/
+	    for ( number_blocks = 1; !valid && number_blocks <= _parameters._max_blocks; number_blocks += 1 ) {
+	    
+		if ( verbose_flag ) {
+		    (void) fprintf( stderr, " %c", "0123456789"[number_blocks%10] );
+		}
 
-	print( (valid || _parameters._precision == 0.0), confidence, backup );
+		ps_sleep( _parameters._block_period );
+		if ( deferred_exception ) throw std::runtime_error( "terminating" );
+		accumulate_data();
 
-	if ( !valid && _parameters._precision > 0.0 ) {
-	    LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, confidence );
-	}
-	if ( messages_lost ) {
-	    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-		const Task * cp = *nextTask;
-		if ( cp->has_lost_messages() )  {
-		    LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, cp->name() );
+		if ( number_blocks > 2 ) {
+		    confidence = rms_confidence();
+		    if ( verbose_flag ) {
+			(void) fprintf( stderr, "[%.2g]", confidence );
+			if ( number_blocks % 10 == 0 ) {
+			    (void) putc( '\n', stderr );
+			}
+		    }
+		    valid = ( confidence < _parameters._precision );
+		}
+
+		insertDOMResults( valid || _parameters._precision == 0.0, confidence );
+
+		if ( !valid && print_interval > 0 && number_blocks % print_interval == 0 ) {
+		    print_intermediate( valid, confidence );
+		    backup = false;
 		}
 	    }
+
+	    if ( verbose_flag || trace_driver ) (void) putc( '\n', stderr );
+
+	    /*
+	     * Run completed.
+	     * Print final results
+	     */
+
+	    print( (valid || _parameters._precision == 0.0), confidence, backup );
+
+	    if ( !valid && _parameters._precision > 0.0 ) {
+		LQIO::solution_error( ADV_PRECISION, _parameters._precision, _parameters._block_period * number_blocks + _parameters._initial_delay, confidence );
+	    }
+	    if ( messages_lost ) {
+		for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+		    const Task * cp = *nextTask;
+		    if ( cp->has_lost_messages() )  {
+			LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, cp->name() );
+		    }
+		}
+	    }
+	    rc = true;
 	}
-	rc = true;
+    }
+    catch ( const std::domain_error& e ) {
+	rc = false;
+	deferred_exception = true;
+    }
+    catch ( const std::runtime_error& e ) {
+	rc = false;
+	deferred_exception = true;
     }
 
     /* Force simulation to terminate. */
@@ -919,45 +907,6 @@ Model::run( int task_id )
 
     return rc;
 }
-
-void
-Model::initialize_globals()
-{
-    unsigned n;
-    
-    /*
-     * Check that the 'P nn', 'T nn', and 'E nn' lines are valid.
-     */
-
-    n = ::processor.size();
-    if ( io_vars.n_processors != 0 && io_vars.n_processors != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "processors", n, io_vars.n_processors, "processors", n );
-    }
-    io_vars.n_processors = n;
-
-    n = ::group.size();
-    if ( io_vars.n_groups != 0 && io_vars.n_groups != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "groups", n, io_vars.n_groups, "groups", n );
-    }
-    io_vars.n_groups = n;
-
-    n = ::task.size();
-    if ( io_vars.n_tasks != 0 && io_vars.n_tasks + open_arrival_count != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "tasks", n, io_vars.n_tasks, "tasks", n );
-    }
-    io_vars.n_tasks = n;
-
-    n = ::entry.size();
-    if ( io_vars.n_entries != 0 && io_vars.n_entries + open_arrival_count != n ) {
-	LQIO::solution_error( LQIO::WRN_DEFINED_NE_SPECIFIED_X, "entries", n, io_vars.n_entries, "entries", n );
-    }
-    io_vars.n_entries = n;
-
-    if ( io_vars.n_entries < io_vars.n_tasks ) {
-	LQIO::solution_error( LQIO::ERR_LESS_ENTRIES_THAN_TASKS, io_vars.n_entries, io_vars.n_tasks );
-    }
-}
-
 
 /*
  * Accumulate data from this run.
@@ -1067,8 +1016,7 @@ ps_genesis (void *)
 {
     if (!Model::__model->run( ps_myself ) ) {
 	LQIO::solution_error( ERR_INITIALIZATION_FAILED );
-    } 
-
+    }
     ps_suspend( ps_myself );
 }
 
@@ -1085,20 +1033,20 @@ void Model::simulation_parameters::get_parameters_from( LQIO::DOM::Document& doc
     }
     if ( _run_time == 0 ) {
 	if ( _precision == 0 ) {		/* Not set at command line... Try the document. */
-	    _precision = document.getSimulationResultPrecision();
+	    _precision = document.getSimulationPrecisionValue();
 	}
 	if ( _block_period == 0 ) {
-	    _block_period = document.getSimulationBlockTime();
+	    _block_period = document.getSimulationBlockTimeValue();
 	}
 
 	if ( _initial_delay == 0. ) {
-	    _initial_delay = document.getSimulationWarmUpTime();
+	    _initial_delay = document.getSimulationWarmUpTimeValue();
 	}
 	if ( _initial_loops == 0 ) {
-	    _initial_loops = document.getSimulationWarmUpLoops();
+	    _initial_loops = document.getSimulationWarmUpLoopsValue();
 	}
 	if ( _max_blocks == 0 ) {
-	    _max_blocks = document.getSimulationNumberOfBlocks();
+	    _max_blocks = document.getSimulationNumberOfBlocksValue();
 	}
 
 	if ( _max_blocks < 1 ) {

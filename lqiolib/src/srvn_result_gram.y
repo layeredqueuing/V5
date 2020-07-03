@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_gram.y 13204 2018-03-06 22:52:04Z greg $
+ * $Id: srvn_result_gram.y 13487 2020-02-11 20:30:20Z greg $
  * ----------------------------------------------------------------------
  *
  * This file has been modified such that it uses result rather than yy on its
@@ -38,8 +38,9 @@
 static unsigned 	i;	/* Index into phase list array */
 static unsigned		np;	/* Number of phases in phase list */
 static double		*fl;	/* Phase list array (float list) */
-static char 		*proc_name = 0;	/* Current task name */
-static char 		*task_name = 0;	/* Current task name */
+static char 		*proc_name = 0;		/* Current processor name */
+static char 		*task_name = 0;		/* Current task name */
+static char		*group_name = 0;	/* Current group name */
 static char		*from_name = 0;
 static char 		*to_name = 0;
 static char		*entry_name = 0; 
@@ -51,23 +52,22 @@ static void free_from_and_to_name();
 static void free_task_name();
 static void free_entry_name();
 static void free_activity_name();
-static double resultinfinity();
+extern double srvn_get_infinity();		/* srvn_input.cpp */
 static void resulterror( const char * fmt );
 
 %}
 
 %token 		        VALIDITY_FLAG CONV_FLAG ITERATION_FLAG PROC_COUNT_FLAG PHASE_COUNT_FLAG BOUND_FLAG DROP_PROBABILITY_FLAG SERVICE_EXCEEDED_FLAG DISTRIBUTION_FLAG
 %token  		WAITING_FLAG WAITING_VARIANCE_FLAG SNR_WAITING_FLAG SNR_WAITING_VARIANCE_FLAG JOIN_FLAG HOLD_TIME_FLAG RWLOCK_HOLD_TIME_FLAG
-%token                  SERVICE_FLAG VARIANCE_FLAG THPT_UT_FLAG OPEN_ARRIV_FLAG PROC_FLAG OVERTAKING_FLAG ENDLIST
+%token                  SERVICE_FLAG VARIANCE_FLAG THPT_UT_FLAG OPEN_ARRIV_FLAG PROC_FLAG GROUP_FLAG OVERTAKING_FLAG ENDLIST
 %token			REAL_TIME USER_TIME SYST_TIME MAX_RSS SOLVER
 %token <anInt> 		INTEGER
-%token <aLong>		LONG
-%token <aFloat>		FLOAT 
-%token <aString> 	SYMBOL TEXT TIME INFTY 
+%token <aFloat>		FLOAT TIME 
+%token <aString> 	SYMBOL TEXT INFTY VARIABLE COMMENT
 %token <aChar>		CHAR 
-%token			CONF_INT_FLAG TASK_ENTRY_FLAG
+%token			'%' ':'
 
-%type  <aString>	identifier proc_identifier task_identifier from_identifier to_identifier activity_identifier entry_identifier 
+%type  <aString>	identifier proc_identifier group_identifier task_identifier from_identifier to_identifier activity_identifier 
 
 %type  <aFloatList>	float_phase_list
 %type  <anInt>		validity_rep iteration_rep proc_count_rep phase_count_rep proc_task_info phase_identifier
@@ -75,7 +75,6 @@ static void resulterror( const char * fmt );
 
 %union {
 	int anInt;
-        long aLong;
 	double aFloat;
 	char *aString;
 	char aChar;
@@ -113,9 +112,13 @@ static void resulterror( const char * fmt );
  * resulterror();
  */
 	
-SRVN_output_file	: general opt_runtime opt_bound opt_waiting opt_waitvar opt_snr_waiting opt_snr_waitvar opt_drop_prob opt_join opt_service opt_variance opt_service_exceeded opt_distribution opt_hold_time opt_rwlock_hold_time opt_thpt_ut opt_open_arriv opt_proc opt_overtaking
+SRVN_output_file	: general opt_variables opt_runtime opt_bound opt_waiting opt_waitvar opt_snr_waiting opt_snr_waitvar opt_drop_prob opt_join opt_service opt_variance opt_service_exceeded opt_distribution opt_hold_time opt_rwlock_hold_time opt_thpt_ut opt_open_arriv opt_proc opt_overtaking
     			| error
 				{ yyclearin; }
+			;
+
+opt_variables		: variables opt_variables
+			|
 			;
 
 opt_runtime		: runtime
@@ -243,6 +246,19 @@ phase_count_rep		: PHASE_COUNT_FLAG INTEGER
 			;
 
 /*
+ * Variables
+ */
+
+variables		: variables_entry
+			| variables_entry ',' variables
+			;
+
+variables_entry		: VARIABLE '=' real
+			    { set_variable( $1, $3 ); free( $1 ); }
+			;
+
+
+/*
  * Runtime information.
  */
 
@@ -256,7 +272,9 @@ runtime_tbl_entry	: REAL_TIME TIME
 			    { add_user_time( $2 ); }
 			| SYST_TIME TIME
 			    { add_system_time( $2 ); }
-			| MAX_RSS LONG
+			| COMMENT
+			    { add_comment( $1 ); free( $1 ); }
+			| MAX_RSS INTEGER
 			    { add_max_rss( $2 ); }
 			| SOLVER INTEGER INTEGER real real real real INTEGER
 			    { add_mva_solver_info( $2, $3, $4, $5, $6, $7, $8 ); }
@@ -279,11 +297,11 @@ bound_tbl		: bound_tbl_entry ENDLIST
 
 bound_tbl_entry		: identifier real
 			    { add_bound( $1, 0.0, $2 ); free( $1 ); }
-			| identifier TASK_ENTRY_FLAG identifier real
+			| identifier ':' identifier real
 			    { add_bound( $3, 0.0, $4 ); free( $1 ); free( $3 ); }
 /* 			| identifier real real */
 /* 			    { add_bound( $1, $2, $3 ); free( $1 ); } */
-/* 			| identifier TASK_ENTRY_FLAG identifier real real */
+/* 			| identifier ':' identifier real real */
 /* 			    { add_bound( $3, $4, $5 ); free( $1 ); free( $3 ); } */
 			;
 
@@ -306,15 +324,15 @@ waiting_t_tbl		: waiting_t_entry ENDLIST
 			| waiting_t_entry waiting_t_tbl
 			;
 
-waiting_t_entry		: task_identifier TASK_ENTRY_FLAG waiting_t_choice
+waiting_t_entry		: task_identifier ':' waiting_t_choice
 			    {
 				free( task_name );
 				task_name = 0;
 			    }
 			;
 
-waiting_t_choice	: ENDLIST TASK_ENTRY_FLAG waiting_a_tbl
-			| waiting_e_tbl TASK_ENTRY_FLAG waiting_a_tbl
+waiting_t_choice	: ENDLIST ':' waiting_a_tbl
+			| waiting_e_tbl ':' waiting_a_tbl
 			| waiting_e_tbl
 			;
 
@@ -334,7 +352,7 @@ waiting_e_conf_tbl	: waiting_e_conf_entry waiting_e_conf_tbl
     			|
     			;
 
-waiting_e_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+waiting_e_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_waiting_confidence( from_name, to_name, $2, $3 );
 				free( $3 );
@@ -358,7 +376,7 @@ waiting_a_conf_tbl	: waiting_a_conf_entry waiting_a_conf_tbl
     			|
     			;
 
-waiting_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+waiting_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_waiting_confidence( task_name, from_name, to_name, $2, $3 );
 				free( $3 );
@@ -384,14 +402,14 @@ waitvar_t_tbl		: waitvar_t_entry ENDLIST
 			| waitvar_t_entry waitvar_t_tbl
 			;
 
-waitvar_t_entry		: task_identifier TASK_ENTRY_FLAG waitvar_t_choice
+waitvar_t_entry		: task_identifier ':' waitvar_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-waitvar_t_choice	: ENDLIST TASK_ENTRY_FLAG waitvar_a_tbl
-			| waitvar_e_tbl TASK_ENTRY_FLAG waitvar_a_tbl
+waitvar_t_choice	: ENDLIST ':' waitvar_a_tbl
+			| waitvar_e_tbl ':' waitvar_a_tbl
 			| waitvar_e_tbl
 			;
 
@@ -411,7 +429,7 @@ waitvar_e_conf_tbl	: waitvar_e_conf_entry waitvar_e_conf_tbl
     			|
     			;
 
-waitvar_e_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+waitvar_e_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_wait_variance_confidence( from_name, to_name, $2, $3 );
 				free( $3 );
@@ -434,7 +452,7 @@ waitvar_a_conf_tbl	: waitvar_a_conf_entry waitvar_a_conf_tbl
     			|
     			;
 
-waitvar_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+waitvar_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_wait_variance_confidence( task_name, from_name, to_name, $2, $3 );
 				free( $3 );
@@ -460,14 +478,14 @@ snr_waiting_t_tbl	: snr_waiting_t_entry ENDLIST
 			| snr_waiting_t_entry snr_waiting_t_tbl
 			;
 
-snr_waiting_t_entry	: task_identifier TASK_ENTRY_FLAG snr_waiting_t_choice
+snr_waiting_t_entry	: task_identifier ':' snr_waiting_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-snr_waiting_t_choice	: ENDLIST TASK_ENTRY_FLAG snr_waiting_a_tbl
-			| snr_waiting_e_tbl TASK_ENTRY_FLAG snr_waiting_a_tbl
+snr_waiting_t_choice	: ENDLIST ':' snr_waiting_a_tbl
+			| snr_waiting_e_tbl ':' snr_waiting_a_tbl
 			| snr_waiting_e_tbl
 			;
 
@@ -487,7 +505,7 @@ snr_waiting_e_conf_tbl	: snr_waiting_e_conf_entry snr_waiting_e_conf_tbl
     			|
     			;
 
-snr_waiting_e_conf_entry : CONF_INT_FLAG INTEGER float_phase_list
+snr_waiting_e_conf_entry : '%' INTEGER float_phase_list
 			    {
 				add_snr_waiting_confidence( from_name, to_name, $2, $3 );
 				free( $3 );
@@ -510,7 +528,7 @@ snr_waiting_a_conf_tbl	: snr_waiting_a_conf_entry snr_waiting_a_conf_tbl
     			|
     			;
 
-snr_waiting_a_conf_entry : CONF_INT_FLAG INTEGER float_phase_list
+snr_waiting_a_conf_entry : '%' INTEGER float_phase_list
 			    {
 				add_act_snr_waiting_confidence( task_name, from_name, to_name, $2, $3 );
 				free( $3 );
@@ -536,14 +554,14 @@ snr_waitvar_t_tbl	: snr_waitvar_t_entry ENDLIST
 			| snr_waitvar_t_entry snr_waitvar_t_tbl
 			;
 
-snr_waitvar_t_entry	: task_identifier TASK_ENTRY_FLAG snr_waitvar_t_choice
+snr_waitvar_t_entry	: task_identifier ':' snr_waitvar_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-snr_waitvar_t_choice	: ENDLIST TASK_ENTRY_FLAG snr_waitvar_a_tbl
-			| snr_waitvar_e_tbl TASK_ENTRY_FLAG snr_waitvar_a_tbl
+snr_waitvar_t_choice	: ENDLIST ':' snr_waitvar_a_tbl
+			| snr_waitvar_e_tbl ':' snr_waitvar_a_tbl
 			| snr_waitvar_e_tbl
 			;
 
@@ -563,7 +581,7 @@ snr_waitvar_e_conf_tbl	: snr_waitvar_e_conf_entry snr_waitvar_e_conf_tbl
     			|
     			;
 
-snr_waitvar_e_conf_entry : CONF_INT_FLAG INTEGER float_phase_list
+snr_waitvar_e_conf_entry : '%' INTEGER float_phase_list
 			    {
 				add_snr_wait_variance_confidence( from_name, to_name, $2, $3 );
 				free( $3 );
@@ -586,7 +604,7 @@ snr_waitvar_a_conf_tbl	: snr_waitvar_a_conf_entry snr_waitvar_a_conf_tbl
     			|
     			;
 
-snr_waitvar_a_conf_entry : CONF_INT_FLAG INTEGER float_phase_list
+snr_waitvar_a_conf_entry : '%' INTEGER float_phase_list
 			    {
 				add_act_snr_wait_variance_confidence( task_name, from_name, to_name, $2, $3 );
 				free( $3 );
@@ -612,14 +630,14 @@ drop_prob_t_tbl		: drop_prob_t_entry ENDLIST
 			| drop_prob_t_entry drop_prob_t_tbl
 			;
 
-drop_prob_t_entry 	: task_identifier TASK_ENTRY_FLAG drop_prob_t_choice
+drop_prob_t_entry 	: task_identifier ':' drop_prob_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-drop_prob_t_choice 	: ENDLIST TASK_ENTRY_FLAG drop_prob_a_tbl
-			| drop_prob_e_tbl TASK_ENTRY_FLAG drop_prob_a_tbl
+drop_prob_t_choice 	: ENDLIST ':' drop_prob_a_tbl
+			| drop_prob_e_tbl ':' drop_prob_a_tbl
 			| drop_prob_e_tbl
 			;
 
@@ -639,7 +657,7 @@ drop_prob_e_conf_tbl 	: drop_prob_e_conf_entry drop_prob_e_conf_tbl
     			|
     			;
 
-drop_prob_e_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+drop_prob_e_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_drop_probability_confidence( from_name, to_name, $2, $3 );
 				free( $3 );
@@ -661,7 +679,7 @@ drop_prob_a_conf_tbl 	: drop_prob_a_conf_entry drop_prob_a_conf_tbl
     			|
     			;
 
-drop_prob_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+drop_prob_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_drop_probability_confidence( task_name, from_name, to_name, $2, $3 );
 				free( $3 );
@@ -687,7 +705,7 @@ join_t_tbl		: join_t_entry ENDLIST
 			| join_t_entry join_t_tbl
 			;
 
-join_t_entry		: task_identifier TASK_ENTRY_FLAG join_e_tbl
+join_t_entry		: task_identifier ':' join_e_tbl
 			    {
 				free_task_name();
 			    }
@@ -708,7 +726,7 @@ join_conf_tbl		: join_conf_entry join_conf_tbl
     			|
     			;
 
-join_conf_entry 	: CONF_INT_FLAG INTEGER real real
+join_conf_entry 	: '%' INTEGER real real
 			    {
 				add_join_confidence( task_name, from_name, to_name, $2, $3, $4 );
 			    }
@@ -732,13 +750,13 @@ service_t_tbl		: service_t_entry ENDLIST
 			| service_t_entry service_t_tbl
 			;
 
-service_t_entry		: task_identifier TASK_ENTRY_FLAG service_t_choice
+service_t_entry		: task_identifier ':' service_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-service_t_choice	: service_e_tbl TASK_ENTRY_FLAG service_a_tbl
+service_t_choice	: service_e_tbl ':' service_a_tbl
 			| service_e_tbl 
 			;
 
@@ -759,7 +777,7 @@ service_e_conf_tbl	: service_e_conf_entry service_e_conf_tbl
     			|
     			;
 
-service_e_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+service_e_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_service_confidence( to_name, $2, $3 );
 				free( $3 );
@@ -783,7 +801,7 @@ service_a_conf_tbl	: service_a_conf_entry service_a_conf_tbl
     			|
     			;
 
-service_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+service_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_service_confidence( task_name, to_name, $2, $3 );
 				free( $3 );
@@ -808,13 +826,13 @@ variance_t_tbl		: variance_t_entry ENDLIST
 			| variance_t_entry variance_t_tbl
 			;
 
-variance_t_entry	: task_identifier TASK_ENTRY_FLAG variance_t_choice
+variance_t_entry	: task_identifier ':' variance_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-variance_t_choice	: variance_e_tbl TASK_ENTRY_FLAG variance_a_tbl
+variance_t_choice	: variance_e_tbl ':' variance_a_tbl
 			| variance_e_tbl 
 			;
 
@@ -835,7 +853,7 @@ variance_e_conf_tbl	: variance_e_conf_entry variance_e_conf_tbl
     			|
     			;
 
-variance_e_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+variance_e_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_variance_confidence( to_name, $2, $3 );
 				free( $3 );
@@ -859,7 +877,7 @@ variance_a_conf_tbl	: variance_a_conf_entry variance_a_conf_tbl
     			|
     			;
 
-variance_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+variance_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_variance_confidence( task_name, to_name, $2, $3 );
 				free( $3 );
@@ -884,13 +902,13 @@ service_exceeded_t_tbl	: service_exceeded_t_entry ENDLIST
 			| service_exceeded_t_entry service_exceeded_t_tbl
 			;
 
-service_exceeded_t_entry : task_identifier TASK_ENTRY_FLAG service_exceeded_t_choice
+service_exceeded_t_entry : task_identifier ':' service_exceeded_t_choice
 			    {
 				free_task_name();
 			    }
 			;
 
-service_exceeded_t_choice : service_exceeded_e_tbl TASK_ENTRY_FLAG service_exceeded_a_tbl
+service_exceeded_t_choice : service_exceeded_e_tbl ':' service_exceeded_a_tbl
 			| service_exceeded_e_tbl 
 			;
 
@@ -911,7 +929,7 @@ service_exceeded_e_conf_tbl : service_exceeded_e_conf_entry service_exceeded_e_c
     			|
     			;
 
-service_exceeded_e_conf_entry : CONF_INT_FLAG INTEGER float_phase_list
+service_exceeded_e_conf_entry : '%' INTEGER float_phase_list
 			    {
 				add_service_exceeded_confidence( to_name, $2, $3 );
 				free( $3 );
@@ -935,7 +953,7 @@ service_exceeded_a_conf_tbl : service_exceeded_a_conf_entry service_exceeded_a_c
     			|
     			;
 
-service_exceeded_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
+service_exceeded_a_conf_entry 	: '%' INTEGER float_phase_list
 			    {
 				add_act_service_exceeded_confidence( task_name, to_name, $2, $3 );
 				free( $3 );
@@ -946,8 +964,9 @@ service_exceeded_a_conf_entry 	: CONF_INT_FLAG INTEGER float_phase_list
  * Service time distributions.
  */
 
-distribution		: DISTRIBUTION_FLAG entry_identifier phase_identifier real real real real opt_bin_list 
+distribution		: DISTRIBUTION_FLAG identifier phase_identifier real real real real opt_bin_list 
 				{
+				    entry_name = $2;
 				    add_histogram_statistics( entry_name, $3, $4, $5, $6, $7 );		/* Entry/phase */
 				    free_entry_name();
 				    entry_phase = 0;
@@ -980,7 +999,7 @@ act_bin_list		: real real real opt_bin_conf opt_bin_conf
 				}
 			;
 
-opt_bin_conf		: CONF_INT_FLAG INTEGER real
+opt_bin_conf		: '%' INTEGER real
 				{
 				    $$= $3;
 				}
@@ -1005,7 +1024,7 @@ hold_time_t_tbl		: hold_time_t_entry ENDLIST
 			| hold_time_t_entry hold_time_t_tbl
 			;
 
-hold_time_t_entry	: task_identifier TASK_ENTRY_FLAG from_identifier to_identifier real real real hold_time_t_conf_tbl
+hold_time_t_entry	: task_identifier ':' from_identifier to_identifier real real real hold_time_t_conf_tbl
 			    {
 				add_holding_time( $1, $3, $4, $5, $6, $7 );
 				free_task_name();
@@ -1017,7 +1036,7 @@ hold_time_t_conf_tbl	: hold_time_t_conf_entry hold_time_t_conf_tbl
 			|
 			;
 
-hold_time_t_conf_entry 	: CONF_INT_FLAG INTEGER real real real 
+hold_time_t_conf_entry 	: '%' INTEGER real real real 
 			    {
 				add_holding_time_confidence( task_name, from_name, to_name, $2, $3, $4, $5 );
 			    }
@@ -1041,7 +1060,7 @@ rwlock_hold_time_t_tbl	: rwlock_hold_time_t_entry ENDLIST
 rwlock_hold_time_t_entry : reader_hold_time_t_entry writer_hold_time_t_entry
 			;
 
-reader_hold_time_t_entry: task_identifier TASK_ENTRY_FLAG from_identifier to_identifier real real real real real reader_hold_time_t_conf_tbl
+reader_hold_time_t_entry: task_identifier ':' from_identifier to_identifier real real real real real reader_hold_time_t_conf_tbl
 			    {
 				add_reader_holding_time( $1, $3, $4, $5, $6, $7, $8, $9);
 			    }
@@ -1059,7 +1078,7 @@ reader_hold_time_t_conf_tbl	: reader_hold_time_t_conf_entry reader_hold_time_t_c
 			|
 			;
 
-reader_hold_time_t_conf_entry 	: CONF_INT_FLAG INTEGER real real real real real
+reader_hold_time_t_conf_entry 	: '%' INTEGER real real real real real
 			    {
 				add_reader_holding_time_confidence( task_name, from_name, to_name, $2, $3, $4, $5, $6, $7 );
 			    }
@@ -1069,7 +1088,7 @@ writer_hold_time_t_conf_tbl	: writer_hold_time_t_conf_entry writer_hold_time_t_c
 			|
 			;
 
-writer_hold_time_t_conf_entry 	: CONF_INT_FLAG INTEGER real real real real real
+writer_hold_time_t_conf_entry 	: '%' INTEGER real real real real real
 			    {
 				add_writer_holding_time_confidence( task_name, from_name, to_name, $2, $3, $4, $5, $6, $7 );
 			    }
@@ -1089,14 +1108,14 @@ thpt_ut_t_tbl		: thpt_ut_t_tbl thpt_ut_t_entry
 			| thpt_ut_t_entry 
 			;
 
-thpt_ut_t_entry		: task_identifier TASK_ENTRY_FLAG thpt_ut_e_tbl opt_thpt_ut_a_tbl opt_thpt_total 
+thpt_ut_t_entry		: task_identifier ':' thpt_ut_e_tbl opt_thpt_ut_a_tbl opt_thpt_total 
 			    {
 				add_thpt_ut( $1 );
 				free_task_name();
 			    }
 			;
 
-opt_thpt_ut_a_tbl 	: TASK_ENTRY_FLAG thpt_ut_a_tbl 
+opt_thpt_ut_a_tbl 	: ':' thpt_ut_a_tbl 
     			|
 			;
 
@@ -1112,7 +1131,7 @@ thpt_ut_t_conf_tbl	: thpt_ut_t_conf_entry thpt_ut_t_conf_tbl
     			|
     			;
 
-thpt_ut_t_conf_entry 	: CONF_INT_FLAG INTEGER real float_phase_list real
+thpt_ut_t_conf_entry 	: '%' INTEGER real float_phase_list real
 			    {
 				total_thpt_ut_confidence( task_name, $2, $3, $4, $5 );
 				free( $4 );
@@ -1136,7 +1155,7 @@ thpt_ut_e_conf_tbl	: thpt_ut_e_conf_entry thpt_ut_e_conf_tbl
     			|
     			;
 
-thpt_ut_e_conf_entry 	: CONF_INT_FLAG INTEGER real float_phase_list real
+thpt_ut_e_conf_entry 	: '%' INTEGER real float_phase_list real
 			    {
 				add_entry_thpt_ut_confidence( to_name, $2, $3, $4, $5 );
 				free( $4 );
@@ -1160,7 +1179,7 @@ thpt_ut_act_conf_tbl	: thpt_ut_act_conf_entry thpt_ut_act_conf_tbl
     			|
     			;
 
-thpt_ut_act_conf_entry 	: CONF_INT_FLAG INTEGER real float_phase_list
+thpt_ut_act_conf_entry 	: '%' INTEGER real float_phase_list
 			    {
 				add_act_thpt_ut_confidence( task_name, to_name, $2, $3, $4 );
 				free( $4 );
@@ -1188,7 +1207,7 @@ open_arriv_entry	: task_identifier to_identifier real real open_arriv_conf_tbl
 				free( to_name );
 				to_name = 0;
 			    }
-			| task_identifier TASK_ENTRY_FLAG to_identifier real real open_arriv_conf_tbl
+			| task_identifier ':' to_identifier real real open_arriv_conf_tbl
 			    {
 				add_open_arriv( $1, $3, $4, $5 );
 				free_task_name();
@@ -1201,7 +1220,7 @@ open_arriv_conf_tbl	: open_arriv_conf_entry open_arriv_conf_tbl
 			|
 			;
 
-open_arriv_conf_entry	: CONF_INT_FLAG INTEGER real
+open_arriv_conf_entry	: '%' INTEGER real
 			    {
 				add_open_arriv_confidence( task_name, to_name, $2, $3 );
 			    }
@@ -1214,11 +1233,11 @@ open_arriv_conf_entry	: CONF_INT_FLAG INTEGER real
  * The data is deposited in the "proc" data structure.
  */
 
-proc			: proc_group proc
+proc			: processor proc
     			| ENDLIST
 			;
 
-proc_group		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_proc_group_total 
+processor		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_processor_total 
 			    {
 				add_proc( proc_name );
 				free( proc_name );
@@ -1226,7 +1245,7 @@ proc_group		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_proc_group_total
 			    }
 			;
 
-opt_proc_group_total 	: real proc_group_conf_tbl ENDLIST
+opt_processor_total 	: real processor_conf_tbl ENDLIST
 			    {
 				add_total_proc( proc_name, $1 );
 			    }
@@ -1237,25 +1256,15 @@ proc_tbl		: proc_tbl_entry proc_tbl
     			| ENDLIST 
 			;
 
-proc_tbl_entry		: task_identifier proc_task_info proc_task opt_proc_task_total 
+proc_tbl_entry		: task_identifier proc_task_info proc_task opt_proc_task_total opt_group_util
 			    {
-				add_task_proc( task_name, $2, $4 );
+				add_proc_task( task_name, $2 );		/* n_copies (SPEX) */
 				free_task_name();
 			    }
 			;
 
-opt_proc_task_total 	: real proc_task_conf_tbl
-			    {
-				$$ = $1;
-			    }
-			|
-			    {
-				$$ = 0;
-			    }
-			;
-
 proc_task		: proc_entry_tbl
-			| proc_entry_tbl TASK_ENTRY_FLAG proc_activity_tbl 
+			| proc_entry_tbl ':' proc_activity_tbl 
 			;
 
 proc_task_info		: INTEGER INTEGER INTEGER			/* n_entries, priority, {multiplicity} */
@@ -1285,7 +1294,7 @@ proc_entry_conf_tbl	: proc_entry_conf proc_entry_conf_tbl
     			|
     			;
 
-proc_entry_conf    	: CONF_INT_FLAG INTEGER real float_phase_list
+proc_entry_conf    	: '%' INTEGER real float_phase_list
 			    {
 				add_entry_proc_confidence( to_name, $2, $3, $4 );
 				free( $4 );
@@ -1310,7 +1319,7 @@ proc_activity_conf_tbl	: proc_activity_conf proc_activity_conf_tbl
     			|
     			;
 
-proc_activity_conf    : CONF_INT_FLAG INTEGER real float_phase_list
+proc_activity_conf    : '%' INTEGER real float_phase_list
 			    {
 				add_act_proc_confidence( task_name, to_name, $2, $3, $4 );
 				free( $4 );
@@ -1321,17 +1330,46 @@ proc_task_conf_tbl	: proc_task_conf_entry proc_task_conf_tbl
     			|
     			;
 
-proc_task_conf_entry	: CONF_INT_FLAG INTEGER real 
+proc_task_conf_entry	: '%' INTEGER real 
 			    {
 				add_task_proc_confidence( task_name, $2, $3 );
 			    }
     			;
 
-proc_group_conf_tbl	: proc_group_conf_entry proc_group_conf_tbl
+opt_proc_task_total 	: real proc_task_conf_tbl
+			    {
+				add_task_proc( task_name, $1 );
+				$$ = $1;
+			    }
+			|
+			    {
+				$$ = 0;
+			    }
+			;
+
+opt_group_util		: GROUP_FLAG group_identifier real opt_group_util_conf
+			    {
+				add_group_util( group_name, $3 );
+			    }
+			|
+			;
+
+
+opt_group_util_conf	: group_util_conf_entry opt_group_util_conf
+			|
+			;
+
+group_util_conf_entry	: '%' INTEGER real
+			    {
+				add_group_util_conf( group_name, $2, $3 );
+			    }
+			;
+
+processor_conf_tbl	: processor_conf_entry processor_conf_tbl
     			|
     			;
 
-proc_group_conf_entry	: CONF_INT_FLAG INTEGER real 
+processor_conf_entry	: '%' INTEGER real 
 			    {
 				add_total_proc_confidence( proc_name, $2, $3 );
 			    }
@@ -1364,7 +1402,7 @@ overtaking_entry	: from_identifier to_identifier identifier identifier INTEGER f
  */
 
 identifier		: SYMBOL
-				{ $$ = strdup( $1 ); }
+				{ $$ = $1; }
 			| INTEGER
 				{ $$ = make_name( $1 ); }
 			;
@@ -1377,6 +1415,10 @@ task_identifier		: identifier
 				{ task_name = $1; $$ = $1; } 
 			;
 
+group_identifier	: identifier
+				{ group_name = $1; $$ = $1; } 
+			;
+
 from_identifier		: identifier
 				{ from_name = $1; $$ = $1; } 
 			;
@@ -1387,10 +1429,6 @@ to_identifier		: identifier
 
 activity_identifier	: identifier
 				{ activity_name = $1; $$ = $1; } 
-			;
-
-entry_identifier	: identifier
-				{ entry_name = $1; $$ = $1; } 
 			;
 
 phase_identifier	: INTEGER
@@ -1436,7 +1474,7 @@ real			: FLOAT
     			| INTEGER
 				{ $$ = (double)$1; }
 			| INFTY
-				{ $$ = resultinfinity(); }
+				{ $$ = srvn_get_infinity(); }
     			;
 
 
@@ -1501,39 +1539,5 @@ static void
 resulterror( const char * fmt )
 {
     results_error( fmt );
-}
-
-static double
-resultinfinity()
-{
-#if defined(INFINITY)
-    return INFINITY;
-#else
-    union {
-	unsigned char c[8];
-	double f;
-    } x;
-
-#if defined(WORDS_BIGENDIAN)
-    x.c[0] = 0x7f;
-    x.c[1] = 0xf0;
-    x.c[2] = 0x00;
-    x.c[3] = 0x00;
-    x.c[4] = 0x00;
-    x.c[5] = 0x00;
-    x.c[6] = 0x00;
-    x.c[7] = 0x00;
-#else
-    x.c[7] = 0x7f;
-    x.c[6] = 0xf0;
-    x.c[5] = 0x00;
-    x.c[4] = 0x00;
-    x.c[3] = 0x00;
-    x.c[2] = 0x00;
-    x.c[1] = 0x00;
-    x.c[0] = 0x00;
-#endif
-    return x.f;
-#endif
 }
 

@@ -4,7 +4,7 @@
  * Exported goodies.
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.h 11969 2014-04-11 21:19:54Z greg $
+ * $Id: testmva.h 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,7 +36,7 @@ typedef enum {EXACT_SOLVER, LINEARIZER_SOLVER, LINEARIZER2_SOLVER, BARD_SCHWEITZ
 
 int main(int argc, char *argv[]);
 void special_check( ostream&, const MVA&, const unsigned );
-void test( PopVector&, Vector<Server *>&, VectorMath<double>&, VectorMath<unsigned>&, const unsigned );
+void test( Population&, Vector<Server *>&, VectorMath<double>&, VectorMath<unsigned>&, const unsigned );
 bool check( const int, const MVA&, const unsigned );
 
 #endif

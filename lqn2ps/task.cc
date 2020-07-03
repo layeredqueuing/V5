@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/task.cc $
- * 
+ *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 12980 2017-04-05 00:09:25Z greg $
+ * $Id: task.cc 13559 2020-05-26 14:38:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -42,23 +42,18 @@
 #include "activity.h"
 #include "actlist.h"
 #include "share.h"
-#include "cltn.h"
-#include "stack.h"
 #include "processor.h"
 #include "call.h"
 #include "label.h"
 #include "model.h"
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
-set<Task *,ltTask> task;
+std::set<Task *,LT<Task> > Task::__tasks;
 
 bool Task::thinkTimePresent             = false;
 bool Task::holdingTimePresent           = false;
 bool Task::holdingVariancePresent       = false;
-Processor * Task::defaultProcessor	= 0;
+
+const double Task::JLQNDEF_TASK_BOX_SCALING = 1.2;
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
@@ -81,46 +76,23 @@ static ostream& task_scheduling_of_str( ostream& output,  const Task & aTask );
 static inline SRVNTaskManip entries_of( const Task& aTask ) { return SRVNTaskManip( entries_of_str, aTask ); }
 static inline SRVNTaskManip task_scheduling_of( const Task & aTask ) { return SRVNTaskManip( &task_scheduling_of_str, aTask ); }
 
-/* ---------------------- Overloaded Operators ------------------------ */
+/* -------------------------- Constructor ----------------------------- */
 
-ostream& operator<<( ostream& output, const Task& self )
+Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
+    : Entity( dom, __tasks.size()+1 ),
+      _entries(entries),
+      _activities(),
+      _precedences(),
+      _processor(aProc),
+      _share(aShare),
+      _maxPhase(0),
+      _entryWidthInPts(0)
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-    case FORMAT_XML:
-	break;
-    case FORMAT_SRVN:
-    {
-	LQIO::SRVN::TaskInput( output, true, 0 ).print( *dynamic_cast<const LQIO::DOM::Task *>(self.getDOM()) );
-    }
-	break;
-    default:
-	self.draw( output );
-	break;
-    }
-
-    return output;
-}
-
-Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries )
-    : Entity( dom, ::task.size()+1 ),
-      myProcessor(aProc),
-      myShare(aShare),
-      myMaxPhase(0),
-      maxLevel(0),
-      entryWidthPts(0)
-{
-    entryList = entries;
-    setEntryOwner( entryList, this );
+    for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
 
     if ( aProc ) {
 	ProcessorCall * aCall = new ProcessorCall(this,aProc);
-	myCalls << aCall;
+	_calls.push_back(aCall);
 	const_cast<Processor *>(aProc)->addDstCall( aCall );
 	const_cast<Processor *>(aProc)->addTask( this );
     }
@@ -133,10 +105,15 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
 
 Task::~Task()
 {
-    entryList.clearContents();
-    activityList.deleteContents();
-    myCalls.deleteContents();
-    precedenceList.deleteContents();
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	delete *call;
+    }
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	delete *activity;
+    }
+    for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin(); precedence != precedences().end(); ++precedence ) {
+	delete *precedence;
+    }
 }
 
 
@@ -151,7 +128,6 @@ Task::reset()
     thinkTimePresent = false;
     holdingTimePresent = false;
     holdingVariancePresent = false;
-    defaultProcessor = 0;
 }
 
 
@@ -169,7 +145,7 @@ Task::hasPriority() const
 /* ------------------------------ Results ----------------------------- */
 
 double
-Task::throughput() const 
+Task::throughput() const
 {
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getResultThroughput();
 }
@@ -196,7 +172,7 @@ Task::utilization() const
 
 /* --- */
 
-double 
+double
 Task::processorUtilization() const
 {
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getResultProcessorUtilization();
@@ -206,45 +182,57 @@ Task::processorUtilization() const
  * Rename tasks.
  */
 
-void
+Task&
 Task::rename()
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
+    const std::string old_name = name();
+    std::ostringstream new_name;
+    new_name << "t" << elementId();
+    const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setName( new_name.str() );
+    for_each( activities().begin(), activities().end(), Exec<Element>( &Element::rename ) );
 
-    while ( anEntry = nextEntry() ) {
-	anEntry->rename();
-    }
-
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-
-    for ( unsigned i = 1; anActivity = nextActivity(); ++i ) {
-	anActivity->rename();
-    }
-
-    Element::rename();
+    renameFanInOut( old_name, name() );
+    return *this;
 }
 
 
-
-void
+Task&
 Task::squishName()
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
+    const std::string old_name = name();
     Element::squishName();
+    for_each( activities().begin(), activities().end(), Exec<Element>( &Element::squishName ) );
 
-    while ( anEntry = nextEntry() ) {
-	anEntry->squishName();
+    renameFanInOut( old_name, name() );
+    return *this;
+}
+
+
+/* 
+ * fix fan in and outs...  Have to find all references to this task the hard way.
+ */
+    
+void
+Task::renameFanInOut( const std::string& old_name, const std::string& new_name )
+{
+    const LQIO::DOM::Document * document = getDOM()->getDocument();		// Find root
+    const std::map<std::string,LQIO::DOM::Task*>& tasks = document->getTasks();	// Get all tasks for remap
+    for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = tasks.begin(); t != tasks.end(); ++t ) {
+	const LQIO::DOM::Task * task = t->second;
+	renameFanInOut( const_cast<std::map<const std::string,LQIO::DOM::ExternalVariable *>&>(task->getFanIns()), old_name, new_name );
+	renameFanInOut( const_cast<std::map<const std::string,LQIO::DOM::ExternalVariable *>&>(task->getFanOuts()), old_name, new_name );
     }
+}
 
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
 
-    while ( anActivity = nextActivity() ) {
-	anActivity->squishName();
+void
+Task::renameFanInOut( std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_ins_or_outs, const std::string& old_name, const std::string& new_name )
+{
+    std::map<const std::string,LQIO::DOM::ExternalVariable *>::iterator index = fan_ins_or_outs.find( old_name );
+    if ( index != fan_ins_or_outs.end() ) {
+	LQIO::DOM::ExternalVariable * value = index->second;
+	fan_ins_or_outs.erase( index );						// Remove old item.
+	fan_ins_or_outs.insert( std::pair<const std::string,LQIO::DOM::ExternalVariable *>(new_name, value) );
     }
 }
 
@@ -254,36 +242,33 @@ Task::squishName()
  * Aggregate activities to activities and/or activities to phases.  If
  * activities are left after aggregation, we will have to recompute
  * their level because there likely is a lot less of them to draw.
+ * Aggregating to a task merges everything up to an entry.  The actual
+ * aggregation is done by submodel in layer.cc
  */
 
 Task&
 Task::aggregate()
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->aggregate();
-    }
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::aggregate ) );
 
     switch ( Flags::print[AGGREGATION].value.i ) {
     case AGGREGATE_ENTRIES:
-	activityList.deleteContents().chop(activityList.size());
-	aggregateEntries();
-	break;
-
-    case AGGREGATE_ACTIVITIES:
     case AGGREGATE_PHASES:
-	activityList.deleteContents().chop(activityList.size());
+    case AGGREGATE_ACTIVITIES:
+	for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	    delete *activity;
+	}
+	for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin();  precedence != precedences().end(); ++precedence ) {
+	    delete *precedence;
+	}
+	_activities.clear();
+	_layers.clear();
+	_precedences.clear();
 	break;
 
     default:
 	/* Recompute levels. */
-	Sequence<Activity *> nextActivity( activityList );
-	Activity * anActivity;
-	while ( anActivity = nextActivity() ) {
-	    anActivity->resetLevel();
-	}
+	for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::resetLevel ) );
 	generate();
 	break;
     }
@@ -296,10 +281,10 @@ Task::aggregate()
  * Sort entries and activities based on when they were visited.
  */
 
-Task const &
-Task::sort() const
+Task&
+Task::sort()
 {
-    myCalls.sort( Call::compareSrc );
+    ::sort( _calls.begin(), _calls.end(), Call::compareSrc );
     Entity::sort();
     return *this;
 }
@@ -310,11 +295,8 @@ Task::getIndex() const
 {
     double anIndex = MAXDOUBLE;
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anIndex = min( anIndex, anEntry->getIndex() );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	anIndex = min( anIndex, (*entry)->getIndex() );
     }
 
     return anIndex;
@@ -325,33 +307,10 @@ int
 Task::span() const
 {
     if ( Flags::print[LAYERING].value.i == LAYERING_GROUP ) {
-	Cltn<const Entity *> myServers;
-	const int n = servers( myServers );
-	if ( n ) return n;		/* Force those making calls to lower levels right */
+	std::vector<Entity *> myServers;
+	return servers( myServers );		/* Force those making calls to lower levels right */
     }
     return 0;
-}
-
-
-/*
- * Aggregate all entries to this task.
- */
-
-Task&
-Task::aggregateEntries()
-{
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    /* Aggregate calls to task */
-
-    for ( unsigned i = 1; i <= paths().size(); ++i ) {
-	while ( anEntry = nextEntry() ) {
-	    anEntry->aggregateEntries( myPaths[i] );	/* Aggregate based on ref-task chain. */
-	}
-    }
-
-    return *this;
 }
 
 
@@ -362,12 +321,9 @@ Task::aggregateEntries()
  */
 
 unsigned
-Task::setChain( unsigned curr_k, callFunc aFunc  ) const
+Task::setChain( unsigned curr_k, callPredicate aFunc  ) const
 {
     unsigned next_k = curr_k;
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
 
     /*
      * I will have to find all servers to this client (including the
@@ -375,19 +331,16 @@ Task::setChain( unsigned curr_k, callFunc aFunc  ) const
      * Threads will complicate matters, bien sur.
      */
 
-    if ( replicas() > 1 ) {
-	Cltn<const Entity *> allServers;
-	servers( allServers );
+    if ( isReplicated() ) {
+	std::vector<Entity *> servers;
+	this->servers( servers );
 
-	allServers.sort( &Entity::compareCoord );
+	::sort( servers.begin(), servers.end(), &Entity::compareCoord );
 
-	Sequence<const Entity *> nextServer( allServers );
-	const Entity * aServer;
-
-	while ( aServer = nextServer() ) {
-	    if ( !aServer->isSelected() ) continue;
-	    while ( anEntry = nextEntry() ) {
-		next_k = anEntry->setChain( curr_k, next_k, aServer, aFunc );
+	for ( std::vector<Entity *>::const_iterator server = servers.begin(); server != servers.end(); ++server ) {
+	    if ( !(*server)->isSelected() ) continue;
+	    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+		next_k = (*entry)->setChain( curr_k, next_k, (*server), aFunc );
 	    }
 	    curr_k = next_k + 1;
 	    next_k = curr_k;
@@ -395,8 +348,8 @@ Task::setChain( unsigned curr_k, callFunc aFunc  ) const
 
     } else {
 
-	while ( anEntry = nextEntry() ) {
-	    next_k = anEntry->setChain( curr_k, next_k, 0, aFunc );
+	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	    next_k = (*entry)->setChain( curr_k, next_k, 0, aFunc );
 	}
     }
     return next_k;
@@ -410,20 +363,16 @@ Task::setChain( unsigned curr_k, callFunc aFunc  ) const
 Task&
 Task::setServerChain( unsigned k )
 {
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	const ProcessorCall * procCall = dynamic_cast<const ProcessorCall *>(aCall);
-	if ( procCall ) {
-	    const Processor * aProcessor = procCall->dstProcessor();
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	const Processor * aProcessor = dynamic_cast<const Processor *>((*call)->dstEntity());
+	if ( aProcessor ) {
 	    if ( aProcessor->isInteresting() && aProcessor->isSelected() ) {
 		const_cast<Processor *>(aProcessor)->setServerChain( k );
 	    }
 	    continue;
 	}
-	const TaskCall * taskCall = dynamic_cast<const TaskCall *>(aCall);
-	if ( taskCall ) {
-	    const Task * aTask = taskCall->dstTask();
+	const Task * aTask = dynamic_cast<const Task *>((*call)->dstEntity());
+	if ( aTask ) {
 	    if ( aTask->isSelected() ) {
 		const_cast<Task *>(aTask)->setServerChain( k ).setClientClosedChain( k );
 	    }
@@ -444,7 +393,7 @@ Task::setServerChain( unsigned k )
 Task&
 Task::addEntry( Entry * anEntry )
 {
-    entryList << anEntry;
+    _entries.push_back(anEntry);
     return *this;
 }
 
@@ -452,7 +401,10 @@ Task::addEntry( Entry * anEntry )
 Task&
 Task::removeEntry( Entry * anEntry )
 {
-    entryList -= anEntry;
+    std::vector<Entry *>::iterator pos = find_if( _entries.begin(), _entries.end(), EQ<Element>(anEntry) );
+    if ( pos != _entries.end() ) {
+	_entries.erase(pos);
+    }
     return *this;
 }
 
@@ -465,12 +417,8 @@ Task::removeEntry( Entry * anEntry )
 Activity *
 Task::findActivity( const string& name ) const
 {
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity = 0;
-
-    while ( ( anActivity = nextActivity() ) && anActivity->name() != name );
-
-    return anActivity;
+    const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
+    return activity != activities().end() ? *activity : 0;
 }
 
 
@@ -481,7 +429,7 @@ Task::findOrAddActivity( const LQIO::DOM::Activity * activity )
 
     if ( !anActivity ) {
 	anActivity = new Activity( this, activity );
-	activityList << anActivity;
+	_activities.push_back( anActivity );
     }
 
     return anActivity;
@@ -491,15 +439,15 @@ Task::findOrAddActivity( const LQIO::DOM::Activity * activity )
 
 #if defined(REP2FLAT)
 /*
- * Find an existing activity which has the same name as srcActivity.  
+ * Find an existing activity which has the same name as srcActivity.
  */
 
-Activity * 
+Activity *
 Task::findActivity( const Activity& srcActivity, const unsigned replica )
 {
     ostringstream aName;
     aName << srcActivity.name() << "_" << replica;
-    
+
     return findActivity( aName.str() );
 }
 
@@ -508,12 +456,12 @@ Task::findActivity( const Activity& srcActivity, const unsigned replica )
  * Find an existing activity which has the same name as srcActivity.  If the activity does not exist, create one and copy it from the src.
  */
 
-Activity * 
+Activity *
 Task::addActivity( const Activity& srcActivity, const unsigned replica )
 {
     ostringstream aName;
     aName << srcActivity.name() << "_" << replica;
-    
+
     Activity * dstActivity = findActivity( aName.str() );
     if ( dstActivity ) return dstActivity;	// throw error?
 
@@ -522,7 +470,7 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
     dstDOM->setName( aName.str() );
     dom_task->addActivity( dstDOM );
     dstActivity = new Activity( this, dstDOM );
-    activityList << dstActivity;
+    _activities.push_back( dstActivity );
 
     if ( srcActivity.isStartActivity() ) {
 	Entry *dstEntry = Entry::find_replica( srcActivity.rootEntry()->name(), replica );
@@ -531,14 +479,10 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
 	    dstEntry->setStartActivity(dstActivity);
 	}
     }
-    
-    const Cltn<const Entry *> *srcReplyList = srcActivity.replyList();
-    Cltn<const Entry *> * dstReplyList = dstActivity->replyList();
-    if ( srcReplyList ) {
-	for ( unsigned i = 1; i <= srcReplyList->size(); ++i ) {
-	    const Entry * srcEntry = (*srcReplyList)[i];
-	    *dstReplyList << Entry::find_replica( srcEntry->name(), replica );
-	}
+
+    std::vector<Entry *>& dstReplyList = const_cast<std::vector<Entry *>&>(dstActivity->replies());
+    for ( std::vector<Entry *>::const_iterator entry = srcActivity.replies().begin(); entry != srcActivity.replies().end(); ++entry ) {
+	dstReplyList.push_back( Entry::find_replica( (*entry)->name(), replica ) );
     }
 
     dstActivity->expandActivityCalls( srcActivity, replica );
@@ -550,7 +494,10 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
 Task&
 Task::removeActivity( Activity * anActivity )
 {
-    activityList -= anActivity;
+    std::vector<Activity *>::iterator activity = find( _activities.begin(), _activities.end(), anActivity );
+    if ( activity != _activities.end() ) {
+	_activities.erase( activity );
+    }
     return *this;
 }
 
@@ -558,7 +505,7 @@ Task::removeActivity( Activity * anActivity )
 void
 Task::addPrecedence( ActivityList * aPrecedence )
 {
-    precedenceList << aPrecedence;
+    _precedences.push_back( aPrecedence );
 }
 
 
@@ -571,15 +518,12 @@ int
 Task::rootLevel() const
 {
     int level = -1;
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	const requesting_type callType = anEntry->isCalled();
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const requesting_type callType = (*entry)->isCalled();
 	switch ( callType ) {
 
 	case OPEN_ARRIVAL_REQUEST:	/* Root task, but at lower level */
-	    level = 2;
+	    level = Model::SERVER_LEVEL;
 	    break;
 
 	case RENDEZVOUS_REQUEST:	/* Non-root task. 		*/
@@ -601,13 +545,7 @@ Task::rootLevel() const
 bool
 Task::forwardsTo( const Task * aTask ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->forwardsTo( aTask ) ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const Task *>( &Entry::forwardsTo, aTask ) ) != entries().end();
 }
 
 
@@ -618,13 +556,7 @@ Task::forwardsTo( const Task * aTask ) const
 bool
 Task::hasForwardingLevel() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasForwardingLevel() ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasForwardingLevel ) ) != entries().end();
 }
 
 
@@ -635,13 +567,7 @@ Task::hasForwardingLevel() const
 bool
 Task::isForwardingTarget() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->isForwardingTarget() ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isForwardingTarget ) ) != entries().end();
 }
 
 
@@ -652,13 +578,7 @@ Task::isForwardingTarget() const
 bool
 Task::isCalled( const requesting_type callType ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->isCalled() == callType ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const requesting_type>( &Entry::isCalled, callType ) ) != entries().end();
 }
 
 
@@ -669,13 +589,10 @@ Task::isCalled( const requesting_type callType ) const
 double
 Task::openArrivalRate() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
     double sum = 0.0;
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasOpenArrivalRate() ) {
-	    sum += LQIO::DOM::to_double( anEntry->openArrivalRate() );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->hasOpenArrivalRate() ) {
+	    sum += LQIO::DOM::to_double( (*entry)->openArrivalRate() );
 	}
     }
 
@@ -689,22 +606,10 @@ Task::openArrivalRate() const
  */
 
 bool
-Task::hasCalls( const callFunc aFunc ) const
+Task::hasCalls( const callPredicate aFunc ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasCalls( aFunc ) ) {
-	    return true;
-	}
-    }
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	if ( anActivity->hasCalls( aFunc ) ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const callPredicate>( &Entry::hasCalls, aFunc ) ) != entries().end()
+	|| find_if( activities().begin(), activities().end(), Predicate1<Activity,const callPredicate>( &Activity::hasCalls, aFunc ) ) != activities().end();
 }
 
 
@@ -729,17 +634,8 @@ Task::hasOpenArrivals() const
 bool
 Task::hasQueueingTime() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasQueueingTime() ) return true;
-    }
-
-    Sequence<Activity *> nextActivity(activities());
-    const Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	if ( anActivity->hasQueueingTime() ) return true;
-    }
+    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasQueueingTime ) ) != entries().end()
+	|| find_if( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::hasQueueingTime ) ) != activities().end();
     return false;
 }
 
@@ -752,25 +648,9 @@ Task::hasQueueingTime() const
 bool
 Task::isSelectedIndirectly() const
 {
-    if ( Entity::isSelectedIndirectly() || processor()->isSelected() ) {
-	return true;
-    } else {
-	Sequence<Entry *>nextEntry( entries() );
-	Entry *anEntry;
-	while ( anEntry = nextEntry() ) {
-	    if ( anEntry->isSelectedIndirectly() ) {
-		return true;
-	    }
-	}
-	Sequence<Activity *>nextActivity( activities() );
-	Activity *anActivity;
-	while ( anActivity = nextActivity() ) {
-	    if ( anActivity->isSelectedIndirectly() ) {
-		return true;
-	    }
-	}
-    }
-    return false;
+    return Entity::isSelectedIndirectly() || processor()->isSelected()
+	|| find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isSelectedIndirectly ) ) != entries().end()
+	|| find_if( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::isSelectedIndirectly ) ) != activities().end();
 }
 
 
@@ -792,83 +672,153 @@ Task::canConvertToOpenArrivals() const
 bool
 Task::isPureServer() const
 {
-    Cltn<const Entity *> serversCltn;
+    std::vector<Entity *> servers;
 
-    servers( serversCltn );
-    return serversCltn.size() == 0 && processor()->nTasks() == 1;
+    this->servers( servers );
+    return servers.size() == 0 && processor()->nTasks() == 1;
 }
 
 
 
-void
+bool
 Task::check() const
 {
+    bool rc = true;
     const Processor * aProcessor = processor();
+    const std::string& srcName = name();
 
     /* Check prio/scheduling. */
 
     if ( aProcessor && hasPriority() && !aProcessor->hasPriorities() ) {
-	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name().c_str(), aProcessor->name().c_str() );
+	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, srcName.c_str(), aProcessor->name().c_str() );
     }
 
+    /* Check replication */
+
+    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_PARSEABLE ) {
+	io_vars.error_messages[ERR_REPLICATION].severity = LQIO::WARNING_ONLY;
+	io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
+    }
+
+    double srcReplicasValue = 1.0;
+    if ( aProcessor->isReplicated() ) {
+	bool ok = true;
+	double dstReplicasValue = 1.0;
+	const LQIO::DOM::ExternalVariable& dstReplicas = aProcessor->replicas();
+	if ( dstReplicas.wasSet() && dstReplicas.getValue( dstReplicasValue ) && isReplicated() ) {
+	    const LQIO::DOM::ExternalVariable& srcReplicas = replicas();
+	    if ( srcReplicas.wasSet() && srcReplicas.getValue( srcReplicasValue ) ) {
+		const double temp = static_cast<double>(srcReplicasValue) / static_cast<double>(dstReplicasValue);
+		ok = trunc( temp ) == temp;		/* Integer multiple */
+	    }
+	} else {
+	    ok = false;
+	}
+	if ( !ok ) {
+	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
+				  static_cast<int>(srcReplicasValue), srcName.c_str(),
+				  static_cast<int>(dstReplicasValue), aProcessor->name().c_str() );
+	    if ( Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE ) {
+		rc = false;
+	    }
+	}
+    }
+
+    const LQIO::DOM::Document * document = getDOM()->getDocument();		// Find root
+    const std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_outs = dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOuts();
+    for ( std::map<const std::string,LQIO::DOM::ExternalVariable *>::const_iterator dst = fan_outs.begin(); dst != fan_outs.end(); ++dst ) {
+	const std::string& dstName = dst->first;
+	const LQIO::DOM::ExternalVariable * fan_out = dst->second;
+	LQIO::DOM::Task * dstTask = document->getTaskByName( dstName );
+	double fanOutValue = 1.0;
+	const LQIO::DOM::ExternalVariable * fan_in = dstTask->getFanIn( srcName );	/* Opposite direction */
+	const LQIO::DOM::ExternalVariable * dstReplicas = dstTask->getReplicas();
+	double dstReplicasValue = 1.0;
+	double fanInValue  = 1.0;
+	bool ok = true;
+	if ( fan_out->wasSet() && fan_out->getValue( fanOutValue )
+	     && fan_in != NULL && fan_in->wasSet() && fan_in->getValue( fanInValue )
+	     && dstReplicas->wasSet() && dstReplicas->getValue( dstReplicasValue ) ) {
+	    ok = srcReplicasValue * fanOutValue == dstReplicasValue * fanInValue;
+	}
+	if ( !ok ) {
+	    LQIO::solution_error( ERR_REPLICATION, 
+				  static_cast<int>(fanOutValue), srcName.c_str(), static_cast<int>(srcReplicasValue),
+				  static_cast<int>(fanInValue),  dstName.c_str(), static_cast<int>(dstReplicasValue) );
+	    if ( Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE ) {
+		rc = false;
+	    }
+	}
+    }
+    
     /* Check entries */
 
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
 	if ( nEntries() != 2 ) {
-	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name().c_str(), nEntries(), N_SEMAPHORE_ENTRIES );
+	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, srcName.c_str(), nEntries(), N_SEMAPHORE_ENTRIES );
+	    rc = false;
 	}
-	if ( !((entryAt(1)->isSignalEntry() && entryAt(2)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
-	       || (entryAt(1)->isWaitEntry() && entryAt(2)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))
-	       || (entryAt(2)->isSignalEntry() && entryAt(1)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
-	       || (entryAt(2)->isWaitEntry() && entryAt(1)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))) ) {
-	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, name().c_str() );
-	} else if ( entryAt(1)->isCalled() && !entryAt(2)->isCalled() ) {
+	if ( !((entries().at(0)->isSignalEntry() && entries().at(1)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
+	       || (entries().at(0)->isWaitEntry() && entries().at(1)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))
+	       || (entries().at(1)->isSignalEntry() && entries().at(0)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
+	       || (entries().at(1)->isWaitEntry() && entries().at(0)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))) ) {
+	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, srcName.c_str() );
+	    rc = false;
+	} else if ( entries().at(0)->isCalled() && !entries().at(1)->isCalled() ) {
 	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entryAt(2)->name().c_str() );
-	} else if ( !entryAt(1)->isCalled() && entryAt(2)->isCalled() ) {
+	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(1)->name().c_str() );
+	    rc = false;
+	} else if ( !entries().at(0)->isCalled() && entries().at(1)->isCalled() ) {
 	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entryAt(1)->name().c_str() );
+	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(0)->name().c_str() );
+	    rc = false;
 	}
 	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
 
     } else if ( scheduling() == SCHEDULE_RWLOCK ) {
 	if ( nEntries() != N_RWLOCK_ENTRIES ) {
-	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name().c_str(), nEntries(), N_RWLOCK_ENTRIES );
+	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, srcName.c_str(), nEntries(), N_RWLOCK_ENTRIES );
+	    rc = false;
 	}
 
 	const Entry * E[N_RWLOCK_ENTRIES];
 
-	for ( unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){ 
-	    E[i]=0; 
+	for ( unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){
+	    E[i]=0;
 	}
-	
-	for ( unsigned int i=1;i<=N_RWLOCK_ENTRIES;i++){
-	    if ( entryAt(i)->is_r_unlock_Entry() ) {
-		if ( !E[0] ) { 
-		    E[0]=entryAt(i);
+
+	for ( unsigned int i=0;i<N_RWLOCK_ENTRIES;i++){
+	    if ( entries().at(i)->is_r_unlock_Entry() ) {
+		if ( !E[0] ) {
+		    E[0]=entries().at(i);
 		} else { // duplicate entry TYPE error
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
+		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
+		    rc = false;
 		}
-	    } else if (entryAt(i)->is_r_lock_Entry() ) {
-		if ( !E[1] ) { 
-		    E[1]=entryAt(i); 
-		} else { 
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
+	    } else if (entries().at(i)->is_r_lock_Entry() ) {
+		if ( !E[1] ) {
+		    E[1]=entries().at(i);
+		} else {
+		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
+		    rc = false;
 		}
-	    } else if ( entryAt(i)->is_w_unlock_Entry() ) {
-		if ( !E[2] ) { 
-		    E[2]=entryAt(i); 
-		} else { 
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
+	    } else if ( entries().at(i)->is_w_unlock_Entry() ) {
+		if ( !E[2] ) {
+		    E[2]=entries().at(i);
+		} else {
+		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
+		    rc = false;
 		}
-	    } else if ( entryAt(i)->is_w_lock_Entry() ) {
-		if (!E[3]) { 
-		    E[3]=entryAt(i); 
-		} else { 
-		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, name().c_str() );
+	    } else if ( entries().at(i)->is_w_lock_Entry() ) {
+		if (!E[3]) {
+		    E[3]=entries().at(i);
+		} else {
+		    LQIO::solution_error( LQIO::ERR_DUPLICATE_SYMBOL, srcName.c_str() );
+		    rc = false;
 		}
-	    } else { 
-		LQIO::solution_error( LQIO::ERR_NO_RWLOCK, name().c_str() );
+	    } else {
+		LQIO::solution_error( LQIO::ERR_NO_RWLOCK, srcName.c_str() );
+		rc = false;
 	    }
 	}
 
@@ -891,29 +841,22 @@ Task::check() const
 	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
     }
 
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry *anEntry;
-
-    while( anEntry = nextEntry() ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	if ( !isReferenceTask() ) {
-	    if ( !anEntry->hasOpenArrivalRate() && !anEntry->isCalled() ) {
-		LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, anEntry->name().c_str() );
+	    if ( !(*entry)->hasOpenArrivalRate() && !(*entry)->isCalled() ) {
+		LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*entry)->name().c_str() );
 	    }
 	}
-	anEntry->check();
-	myMaxPhase = max( myMaxPhase, anEntry->maxPhase() );
+	rc = (*entry)->check() && rc;
+	_maxPhase = max( _maxPhase, (*entry)->maxPhase() );
     }
 
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
 	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;
     }
 
-    Sequence<Activity *> nextActivity( activities() );
-    const Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->check();
-    }
+    rc = for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;
+    return rc;
 }
 
 
@@ -924,14 +867,12 @@ Task::check() const
  */
 
 unsigned
-Task::referenceTasks( Cltn<const Entity *> &clientsCltn, Element * dst ) const
+Task::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->referenceTasks( clientsCltn, (dst == this) ? anEntry : dst );	/* Map task to entry if this is the dst */
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->referenceTasks( clients, (dst == this) ? (*entry) : dst );	/* Map task to entry if this is the dst */
     }
-    return clientsCltn.size();
+    return clients.size();
 }
 
 
@@ -941,14 +882,12 @@ Task::referenceTasks( Cltn<const Entity *> &clientsCltn, Element * dst ) const
  */
 
 unsigned
-Task::clients( Cltn<const Entity *> &clientsCltn, const callFunc aFunc ) const
+Task::clients( std::vector<Entity *> &clients, const callPredicate aFunc ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->clients( clientsCltn, aFunc );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->clients( clients, aFunc );
     }
-    return clientsCltn.size();
+    return clients.size();
 }
 
 
@@ -960,31 +899,28 @@ Task::clients( Cltn<const Entity *> &clientsCltn, const callFunc aFunc ) const
  */
 
 EntityCall *
-Task::findCall( const Entity * anEntity, const callFunc aFunc ) const
+Task::findCall( const Entity * anEntity, const callPredicate aFunc ) const
 {
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( 	(!dynamic_cast<TaskCall *>(aCall) || dynamic_cast<TaskCall *>(aCall)->dstTask() == anEntity)
-	     && (!aCall->isProcessorCall() || dynamic_cast<ProcessorCall *>(aCall)->dstProcessor() == anEntity)
-	     && (!aFunc || (aCall->*aFunc)() ) ) return aCall;
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	if ( 	(!dynamic_cast<TaskCall *>(*call) || (*call)->dstEntity() == anEntity)
+	     && (!(*call)->isProcessorCall() || (*call)->dstEntity() == anEntity)
+	     && (!aFunc || ((*call)->*aFunc)() ) ) return *call;
     }
 
-    return 0;
+    return NULL;
 }
 
 
 
 EntityCall *
-Task::findOrAddCall( const Task * toTask, const callFunc aFunc )
+Task::findOrAddCall( Task * toTask, const callPredicate aFunc )
 {
     EntityCall * aCall = findCall( toTask, aFunc );
 
     if ( !aCall ) {
 	aCall = new TaskCall( this, toTask );
-	myCalls << aCall;
-	const_cast<Task *>(toTask)->addDstCall( aCall );
+	_calls.push_back( aCall );
+	toTask->addDstCall( aCall );
     }
 
     return aCall;
@@ -993,39 +929,23 @@ Task::findOrAddCall( const Task * toTask, const callFunc aFunc )
 
 
 EntityCall *
-Task::findOrAddFwdCall( const Task * toTask )
-{
-    EntityCall * aCall = findCall( toTask, &GenericCall::isPseudoCall );
-
-    if ( !aCall ) {
-	aCall = new PseudoTaskCall( this, toTask );
-	myCalls << aCall;
-	const_cast<Task *>(toTask)->addDstCall( aCall );
-    }
-
-    return aCall;
-}
-
-
-
-EntityCall *
-Task::findOrAddPseudoCall( const Entity * toEntity )
+Task::findOrAddPseudoCall( Entity * toEntity )
 {
     EntityCall * aCall = findCall( toEntity );
 
     if ( !aCall ) {
-	if ( dynamic_cast<const Processor *>(toEntity) ) {
-	    const Processor * toProcessor = dynamic_cast<const Processor *>(toEntity);
+	if ( dynamic_cast<Processor *>(toEntity) ) {
+	    Processor * toProcessor = dynamic_cast<Processor *>(toEntity);
 	    aCall = new PseudoProcessorCall( this, toProcessor );
-	    const_cast<Processor *>(toProcessor)->addDstCall( aCall );
-	    const_cast<Processor *>(toProcessor)->addTask( this );
+	    toProcessor->addDstCall( aCall );
+	    toProcessor->addTask( this );
 	} else {
-	    const Task * toTask = dynamic_cast<const Task *>(toEntity);
+	    Task * toTask = dynamic_cast<Task *>(toEntity);
 	    aCall = new PseudoTaskCall( this, toTask );
-	    const_cast<Task *>(toTask)->addDstCall( aCall );
+	    toTask->addDstCall( aCall );
 	}
 	aCall->linestyle( Graphic::DASHED_DOTTED );
-	myCalls << aCall;
+	_calls.push_back( aCall );
     }
 
     return aCall;
@@ -1038,66 +958,53 @@ Task::findOrAddPseudoCall( const Entity * toEntity )
  */
 
 unsigned
-Task::servers( Cltn<const Entity *> &serversCltn ) const
+Task::servers( std::vector<Entity *> &servers ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	Sequence<Call *> nextCall( anEntry->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( !aCall->hasForwardingLevel() && aCall->isSelected() ) {
-		serversCltn += aCall->dstTask();
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+	    if ( !(*call)->hasForwardingLevel() && (*call)->isSelected() ) {
+		const Task * task = (*call)->dstTask();;
+		if ( find_if( servers.begin(), servers.end(), EQ<Element>( task ) ) == servers.end() ) {
+		    servers.push_back( const_cast<Task *>(task) );
+		}
 	    }
 	}
     }
 
-    Sequence<Activity *> nextActivity(activities());	/* Bug 623 */
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	Sequence<Call *> nextCall( anActivity->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( !aCall->hasForwarding() && aCall->isSelected() ) {
-		serversCltn += aCall->dstTask();
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
+	    if ( !(*call)->hasForwarding() && (*call)->isSelected() ) {
+		const Task * task = (*call)->dstTask();;
+		if ( find_if( servers.begin(), servers.end(), EQ<Element>( task ) ) == servers.end() ) {
+		    servers.push_back( const_cast<Task *>(task) );
+		}
 	    }
 	}
     }
 
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	const ProcessorCall * processorCall = dynamic_cast<ProcessorCall *>(aCall);
-	if ( !processorCall ) continue;
-	if ( processorCall->dstProcessor()->isSelected() && processorCall->dstProcessor()->isInteresting() ) {
-	    serversCltn += processor();
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	const Processor * processor = dynamic_cast<const Processor *>((*call)->dstEntity());
+	if ( processor && processor->isSelected() && processor->isInteresting() && find_if( servers.begin(), servers.end(), EQ<Element>(processor)) == servers.end() ) {
+	    servers.push_back( const_cast<Processor *>(processor) );
 	}
     }
 
-    return serversCltn.size();
+    return servers.size();
 }
 
 
 
 bool
-Task::isInOpenModel( const Cltn<Entity *>& servers ) const
+Task::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	Sequence<Call *> nextCall( anEntry->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->hasSendNoReply() && servers.find( const_cast<Task *>(aCall->dstTask()) ) ) return true;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+	    if ( (*call)->hasSendNoReply() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
 	}
     }
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	Sequence<Call *> nextCall( anActivity->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->hasSendNoReply() && servers.find( const_cast<Task *>(aCall->dstTask()) ) ) return true;
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
+	    if ( (*call)->hasSendNoReply() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
 	}
     }
     return false;
@@ -1105,40 +1012,28 @@ Task::isInOpenModel( const Cltn<Entity *>& servers ) const
 
 
 bool
-Task::isInClosedModel( const Cltn<Entity *>& servers ) const
+Task::isInClosedModel( const std::vector<Entity *>& servers ) const
 {
-    Sequence<EntityCall *> nextCall( callList() );
-    const EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	const ProcessorCall * procCall = dynamic_cast<const ProcessorCall *>(aCall);
-	if ( procCall ) {
-	    const Processor * aProcessor = procCall->dstProcessor();
-	    if ( aProcessor->isInteresting() && servers.find( const_cast<Processor *>(aProcessor) ) ) return true;
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	const Processor * aProcessor = dynamic_cast<const Processor *>((*call)->dstEntity());
+	if ( aProcessor ) {
+	    if ( aProcessor->isInteresting() && find_if( servers.begin(), servers.end(), EQ<Element>(aProcessor) ) != servers.end() ) return true;
 	    continue;
 	}
-	const TaskCall * taskCall = dynamic_cast<const TaskCall *>(aCall);
-	if ( taskCall ) {
-	    const Task * aTask = taskCall->dstTask();
-	    if ( servers.find( const_cast<Task *>(aTask) ) ) return true;
+	const Task * task = dynamic_cast<const Task *>((*call)->dstEntity());
+	if ( task ) {
+	    if ( find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstEntity()) ) != servers.end() ) return true;
 	}
     }
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	Sequence<Call *> nextCall( anEntry->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->hasRendezvous() && servers.find( const_cast<Task *>(aCall->dstTask()) ) ) return true;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+	    if ( (*call)->hasRendezvous() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
 	}
     }
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	Sequence<Call *> nextCall( anActivity->callList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->hasRendezvous() && servers.find( const_cast<Task *>(aCall->dstTask()) )) return true;
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
+	    if ( (*call)->hasRendezvous() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
 	}
     }
     return false;
@@ -1151,11 +1046,11 @@ Task::isInClosedModel( const Cltn<Entity *>& servers ) const
  * loop and abort.
  */
 
-unsigned
+size_t
 Task::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    unsigned max_depth = max( callStack.size(), level() );
-    const Entry * dstEntry = callStack.top() ? callStack.top()->dstEntry() : 0;
+    size_t max_depth = std::max( callStack.size(), level() );
+    const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : 0;
 
     setLevel( max_depth ).addPath( directPath );
 
@@ -1164,14 +1059,11 @@ Task::findChildren( CallStack& callStack, const unsigned directPath )
 	const_cast<Processor *>(processor())->setLevel( max_depth ).addPath( directPath );
     }
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry *srcEntry;
-
-    while ( srcEntry = nextEntry() ) {
-	max_depth = max( max_depth,
-			 srcEntry->findChildren( callStack,
-						 ((srcEntry == dstEntry) || srcEntry->hasOpenArrivalRate())
-						 ? directPath : 0  ) );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	max_depth = std::max( max_depth,
+			      (*entry)->findChildren( callStack,
+						      (((*entry) == dstEntry) || (*entry)->hasOpenArrivalRate())
+						      ? directPath : 0  ) );
     }
 
     return max_depth;
@@ -1184,19 +1076,9 @@ Task::findChildren( CallStack& callStack, const unsigned directPath )
  */
 
 unsigned
-Task::countArcs( const callFunc aFunc ) const
+Task::countArcs( const callPredicate aFunc ) const
 {
-    unsigned count = 0;
-
-    Sequence<EntityCall *> nextCall( callList() );
-    const EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (!aFunc || (aCall->*aFunc)()) ) {
-	    count += 1;
-	}
-    }
-    return count;
+    return count_if( calls().begin(), calls().end(), GenericCall::PredicateAndSelected( aFunc ) );
 }
 
 
@@ -1206,16 +1088,13 @@ Task::countArcs( const callFunc aFunc ) const
  */
 
 double
-Task::countCalls( const callFunc2 aFunc ) const
+Task::countCalls( const callPredicate2 aFunc ) const
 {
     double count = 0.0;
 
-    Sequence<EntityCall *> nextCall( callList() );
-    const EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() ) {
-	    count += (aCall->*aFunc)() * aCall->fanOut();
+    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	if ( (*call)->isSelected() ) {
+	    count += ((*call)->*aFunc)() * (*call)->fanOut();
 	}
     }
     return count;
@@ -1231,85 +1110,27 @@ Task::countCalls( const callFunc2 aFunc ) const
 unsigned
 Task::countThreads() const
 {
-    if ( hasActivities() ) {
-	unsigned count = 1;
-	Sequence<Activity *> nextActivity(activities());
-	Activity * anActivity;
-
-	while ( anActivity = nextActivity() ) {
-	    AndForkActivityList * aList = dynamic_cast<AndForkActivityList *>(anActivity->outputTo());
-	    if ( aList && aList->size() > 0 ) {
-		count += aList->size();
-	    }
+    unsigned count = 1;
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	AndForkActivityList * aList = dynamic_cast<AndForkActivityList *>((*activity)->outputTo());
+	if ( aList && aList->size() > 0 ) {
+	    count += aList->size();
 	}
-
-	return count;
-    } else {   
-	return 1;
     }
+    return count;
 }
 
 
-Cltn<Activity *>
+std::vector<Activity *>
 Task::repliesTo( Entry * anEntry ) const
 {
-    Cltn<Activity *> aCltn;
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	if ( anActivity->repliesTo( anEntry ) ) {
-	    aCltn += anActivity;
+    std::vector<Activity *> aCltn;
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	if ( (*activity)->repliesTo( anEntry ) ) {
+	    aCltn.push_back( (*activity));
 	}
     }
     return aCltn;
-}
-
-
-
-/*
- * Compute the service time for a client/server in the queueing network.
- */
-
-double
-Task::serviceTimeForQueueingNetwork( const unsigned k, chainTestFunc aFunc ) const
-{
-    double time = 0.0;
-    double sum  = 0.0;
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( (anEntry->*aFunc)( k ) ) {
-	    const double tput = anEntry->throughput() ? anEntry->throughput() : 1.0;
-	    time += tput * anEntry->serviceTimeForQueueingNetwork();
-	    sum  += tput;
-	}
-    }
-
-    /* Take mean time. */
-
-    if ( sum ) {
-	time = time / sum;
-    }
-
-    if ( !isSelected() ) {
-	time += Flags::have_results ? (LQIO::DOM::to_double(copies()) - utilization()) / throughput() : 0.0;
-    }
-
-    return time;
-}
-
-
-
-/*
- * Clients need their slice time.
- */
-
-double
-Task::sliceTimeForQueueingNetwork( const unsigned k, chainTestFunc aFunc ) const
-{
-    return serviceTimeForQueueingNetwork( k, aFunc ) / (countCalls( &GenericCall::sumOfRendezvous ) + 1.);
 }
 
 /*
@@ -1319,33 +1140,13 @@ Task::sliceTimeForQueueingNetwork( const unsigned k, chainTestFunc aFunc ) const
 unsigned
 Task::generate()
 {
-    topologicalSort();
+    unsigned int maxLevel = topologicalSort();
 
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
+    _layers.resize( maxLevel + 1 );
 
-    layers.grow( maxLevel );
-    unsigned unused_level = 0;
-
-    while ( anActivity = nextActivity() ) {
-	unsigned i = anActivity->level();
-	if ( i == 0 || !anActivity->reachable() ) {
-
-	    /* If not reachable (connection error, stick on a layer at the bottom */
-
-	    if ( unused_level == 0 ) {
-		if ( graphical_output() ) {
-		    layers[maxLevel].height( max( layers[maxLevel].height(), anActivity->height() + 20 ) );
-		}
-		maxLevel += 1;
-		layers.grow( 1 );
-		unused_level = maxLevel;
-	    }
-	    anActivity->level( unused_level );
-	    layers[unused_level] << anActivity;
-
-	} else {
-	    layers[i] << anActivity;
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	if ( (*activity)->reachable() ) {
+	    _layers.at((*activity)->level()) += (*activity);
 	}
     }
     return maxLevel;
@@ -1357,27 +1158,24 @@ Task::generate()
  * Toplogical sort for activities.  It also aggregates activities.
  */
 
-unsigned
+size_t
 Task::topologicalSort()
 {
-    maxLevel = 1;
-    Sequence<Entry *>nextEntry( entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	Activity * anActivity = anEntry->startActivity();
+    size_t maxLevel = 0;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	Activity * anActivity = (*entry)->startActivity();
 	if ( !anActivity ) continue;
 
-	const unsigned size = activities().size();
-	Stack<const Activity *> activityStack( size );			// For checking for cycles.
-	Stack<const AndForkActivityList *> forkStack( size );		// For matching forks and joins.
+	std::deque<const Activity *> activityStack;		// For checking for cycles.
+	std::deque<const AndForkActivityList *> forkStack;	// For matching forks and joins.
 	try {
-	    maxLevel = max( maxLevel, anActivity->findActivityChildren( activityStack, forkStack, anEntry, 0, 1, 1.0  ) );
+	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( activityStack, forkStack, (*entry), 0, 1, 1.0  ) );
 	}
-	catch ( activity_cycle& error ) {
-	    maxLevel = max( maxLevel, error.depth()+1 );
+	catch ( const activity_cycle& error ) {
+	    maxLevel = std::max( maxLevel, error.depth()+1 );
 	}
-	catch ( bad_internal_join& error ) {
-	    maxLevel = max( maxLevel, error.depth()+1 );
+	catch ( const bad_internal_join& error ) {
+	    maxLevel = std::max( maxLevel, error.depth()+1 );
 	}
     }
     return maxLevel;
@@ -1394,48 +1192,44 @@ Task::format()
 {
     double aWidth = 0.0;
 
-    entryList.sort( Entry::compare );
+    ::sort( _entries.begin(), _entries.end(), Entry::compare );
 
     /* Compute width of task.  Move entries */
 
-    const double ty = myNode->origin.y() + height();
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    entryWidthPts = 0;
-    while ( anEntry = nextEntry() ) {
-	anEntry->moveTo( entryWidthPts + myNode->origin.x(), ty - anEntry->height() );
-	entryWidthPts += anEntry->width() - adjustForSlope( fabs( anEntry->height() ) );
+    const double ty = myNode->height() + height();
+    _entryWidthInPts = 0;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->moveTo( _entryWidthInPts + myNode->left(), ty - (*entry)->height() );
+	_entryWidthInPts += (*entry)->width() - adjustForSlope( fabs( (*entry)->height() ) );
     }
     if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
-	entryWidthPts += Flags::entry_width * 2;
+	_entryWidthInPts += Flags::entry_width * JLQNDEF_TASK_BOX_SCALING;
     }
 
 
-    if ( layers.size() ) {
-	for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	    layers[i].sort( Activity::compare ).format( 0 );
+    if ( _layers.size() ) {
+	for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	    layer->sort( Activity::compare ).format( 0 );
 	}
 
-	const double x = myNode->origin.x() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4;
+	const double x = myNode->left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4;
 
 	/* Start from bottom and work up.  Reformat will realign the activities */
 
-	double y = 0.0;
-	for ( unsigned i = layers.size(); i > 0; --i ) {
-	    layers[i].moveTo( x, myNode->origin.y() + y );
-	    y += layers[i].height();  /* grow down */
+	double y = myNode->bottom();
+	for ( std::vector<ActivityLayer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	    layer->moveTo( x, y );
+	    y += layer->height();  /* grow down */
 
  	    /* Shift up layer IFF we have to draw stuff below activities */
- 	    if ( layers[i].height() > Flags::entry_height ) {
- 		layers[i].moveBy( 0.0, layers[i].height() - Flags::entry_height );
+ 	    if ( layer->height() > Flags::entry_height ) {
+ 		layer->moveBy( 0.0, layer->height() - Flags::entry_height );
  	    }
 	}
 
 	y += Flags::icon_height;
 	if ( !(queueing_output() && Flags::flatten_submodel) ) {
-	    myNode->extent.y( y );
+	    myNode->setHeight( y );
 	}
 
 	/* Calculate the space needed for the activities */
@@ -1454,9 +1248,7 @@ Task::format()
 
     /* Modify extent  */
 
-    aWidth = max( max( aWidth, entryWidthPts + adjustForSlope( height() ) ), width() );
-
-    myNode->extent.x( aWidth );
+    myNode->setWidth( max( max( aWidth, _entryWidthInPts + adjustForSlope( height() ) ), width() ) );
 
     return *this;
 }
@@ -1469,54 +1261,46 @@ Task::format()
 Task&
 Task::reformat()
 {
-    /* Move entries */
+    ::sort( _entries.begin(), _entries.end(), Entry::compare );
 
-    entryList.sort( Entry::compare );
-
-    const double x = myNode->origin.x() + adjustForSlope( height() );
-    const double y = myNode->origin.y();
-    const double offset = adjustForSlope( (height() - fabs(entryAt(1)->height())));
-    const double fill = max( ((width() - adjustForSlope( height() )) - entryWidthPts) / (nEntries() + 1.0), 0.0 );
-
-    /* Move entries */
-
-    const double ty = y + height();
-    double tx = myNode->origin.x() + offset + fill;
+    const double x = myNode->left() + adjustForSlope( height() );
+    double y = myNode->bottom();
+    const double offset = adjustForSlope( (height() - fabs(entries().front()->height())));
+    const double fill = max( ((width() - adjustForSlope( height() )) - _entryWidthInPts) / (nEntries() + 1.0), 0.0 );
 
     /* Figure out which sides of the entries to draw */
 
     if ( fill == 0.0 ) {
-	const unsigned int n = nEntries();
-	for ( unsigned int i = 1; i <= n; ++i ) {
-	    entryAt(i)->drawLeft  = false;
-	    entryAt(i)->drawRight = ( i != n || Flags::graphical_output_style == JLQNDEF_STYLE );
+	for ( std::vector<Entry *>::const_reverse_iterator entry = entries().rbegin(); entry != entries().rend(); ++entry ) {
+	    (*entry)->drawLeft  = false;
+	    (*entry)->drawRight = ( entry != entries().rbegin() || Flags::graphical_output_style == JLQNDEF_STYLE );
 	}
     }
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->moveTo( tx, ty - anEntry->height() );
-	tx += anEntry->width() - adjustForSlope( fabs( anEntry->height() ) ) + fill;
+    /* Move entries */
+
+    const double ty = y + height();
+    double tx = myNode->left() + offset + fill;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->moveTo( tx, ty - (*entry)->height() );
+	tx += (*entry)->width() - adjustForSlope( fabs( (*entry)->height() ) ) + fill;
     }
 
     /* Move activities */
 
-    if ( layers.size() ) {
+    if ( _layers.size() ) {
 
-	double ty = y;
+	for ( std::vector<ActivityLayer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	    layer->moveTo( x, y );
+	    y += layer->height();  /* grow down */
 
-	for ( unsigned i = layers.size(); i > 0; --i ) {
-	    layers[i].moveTo( x, ty );
-	    ty += layers[i].height();  /* grow down */
-
- 	    if ( layers[i].height() > Flags::entry_height ) {
- 		layers[i].moveBy( 0.0, layers[i].height() - Flags::entry_height );
+ 	    if ( layer->height() > Flags::entry_height ) {
+ 		layer->moveBy( 0.0, layer->height() - Flags::entry_height );
  	    }
 	}
 
-	for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	    layers[i].sort( Activity::compare ).reformat( 0 );
+	for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	    layer->sort( Activity::compare ).reformat( 0 );
 	}
 
 	switch( Flags::activity_justification ) {
@@ -1529,7 +1313,6 @@ Task::reformat()
 	    break;
 	}
     }
-
 
     sort();		/* Reorder arcs */
     moveDst();
@@ -1550,13 +1333,13 @@ Task::justify()
     double left  = MAXDOUBLE;
     double right = 0.0;
 
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	left  = min( left,  layers[i].x() );
-	right = max( right, layers[i].x() + layers[i].width() );
+    for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	left  = min( left,  layer->x() );
+	right = max( right, layer->x() + layer->width() );
     }
 
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].justify( right - left, Flags::activity_justification );
+    for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	layer->justify( right - left, Flags::activity_justification );
     }
 
     return right - left;
@@ -1572,9 +1355,7 @@ Task::justify()
 double
 Task::justifyByEntry()
 {
-    const unsigned MAX_LEVEL = layers.size();
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
+    const unsigned MAX_LEVEL = _layers.size();
     double width = 0;
 
     /*
@@ -1582,49 +1363,51 @@ Task::justifyByEntry()
      * and stick them into the sublayer
      */
 
-    for ( double x = left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4.; anEntry = nextEntry(); x += Flags::print[X_SPACING].value.f ) {
+    double x = left() + adjustForSlope( fabs( height() ) ) + Flags::act_x_spacing / 4.;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	double right = 0.0;
 	double left  = MAXDOUBLE;
-	Activity * startActivity = anEntry->startActivity();
+	Activity * startActivity = (*entry)->startActivity();
 	if ( !startActivity ) continue;
 
 	/* Sublayer will only contain activities reachable from current entry */
 
-	Vector2<ActivityLayer> sublayer;
-	sublayer.grow(MAX_LEVEL);
+	std::vector<ActivityLayer> sublayer(MAX_LEVEL);
 
-	for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	    Activity * anActivity;
-	    Sequence<Activity *> nextActivity( layers[i].activities() );
-	    while ( anActivity = nextActivity() ) {
-		if ( anActivity->reachedFrom() == startActivity ) {
-		    sublayer[i] << anActivity;
+	int i = 0;
+	for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer, ++i ) {
+	    if ( !*layer ) continue;
+	    for ( std::vector<Activity *>::const_iterator activity = layer->activities().begin(); activity != layer->activities().end(); ++activity ) {
+		if ( (*activity)->reachedFrom() == startActivity ) {
+		    sublayer.at(i) += (*activity);
 		}
 	    }
 	}
 
 	/* Now, move all activities for this entry together */
 
-	for ( unsigned i = MAX_LEVEL; i > 0; --i ) {
-	    if ( layers[i].size() == 0 ) continue;
-	    sublayer[i].reformat( 0 );
+	i = _layers.size();
+	for ( std::vector<ActivityLayer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	    i -= 1;
+	    if ( !*layer ) continue;
+	    sublayer.at(i).reformat( 0 );
 	    right = max( right, sublayer[i].x() + sublayer[i].width() );
 	    left  = min( left,  sublayer[i].x() );
 	}
 
 	/* Justify the current "slice", then move it to its column */
 
-	for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
+	for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 	    sublayer[i].justify( right - left, Flags::activity_justification ).moveBy( x, 0 );
 	}
 
 	if ( Flags::activity_justification == ALIGN_JUSTIFY ) {
 	    double shift = 0;
-	    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
+	    for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 		sublayer[i].alignActivities();
 		shift = max( x - sublayer[i].x(), shift );	// If we've moved left too far, we'll have to shift everything.
 	    }
-	    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
+	    for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 		if ( shift > 0 ) {
 		    sublayer[i].moveBy( shift, 0 );
 		}
@@ -1636,6 +1419,7 @@ Task::justifyByEntry()
 
 	x += right;
 	width = x;
+	x += Flags::print[X_SPACING].value.f;
     }
 
     return width - (left() + adjustForSlope( fabs( height() ) ) );
@@ -1650,11 +1434,11 @@ Task::alignActivities()
     double minLeft  = MAXDOUBLE;
     double maxRight = 0;
 
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	if ( !layers[i].size() ) continue;
-	layers[i].alignActivities();
-	minLeft  = min( minLeft, layers[i].x() );
-	maxRight = max( maxRight, layers[i].x() + layers[i].width() );
+    for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	if ( !*layer ) continue;
+	layer->alignActivities();
+	minLeft  = min( minLeft, layer->x() );
+	maxRight = max( maxRight, layer->x() + layer->width() );
 
     }
     return maxRight;
@@ -1670,26 +1454,9 @@ Task::moveBy( const double dx, const double dy )
 {
     myNode->moveBy( dx, dy );
     myLabel->moveBy( dx, dy );
-
-    /* Move entries */
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->moveBy( dx, dy );
-    }
-
-    /* Move activities */
-
-    if ( layers.size() ) {
-	for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	    layers[i].moveBy( dx, dy );
-	}
-	/* Second pass is needed because info from above and below is used. */
-	for ( unsigned i = layers.size(); i >= 1; --i ) {
-	    layers[i].moveBy( 0.0, 0.0 );
-	}
-    }
+    for_each( entries().begin(), entries().end(), ExecXY<Element>( &Entry::moveBy, dx, dy ) );    		/* Move entries */
+    for_each( _layers.begin(), _layers.end(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, dx, dy ) );	/* Move activities */
+    for_each( _layers.rbegin(), _layers.rend(), ExecXY<ActivityLayer>( &ActivityLayer::moveBy, 0, 0 ) );	/* clean up.*/
 
     sort();			/* Reorder arcs */
     moveDst();			/* Move arcs calling me.	      */
@@ -1717,9 +1484,9 @@ Task::moveTo( const double x, const double y )
 	/* Move Label -- do after X extent recalculated */
 
 	if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
-	    myLabel->moveTo( topRight() ).moveBy( -Flags::entry_width, -entryAt(1)->height()/2 );
-	} else if ( layers.size() ) {
-	    myLabel->moveTo( topCenter() ).moveBy( 0, -entryAt(1)->height() - 10 );
+	    myLabel->moveTo( topRight() ).moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * 0.5), -entries().front()->height()/2 );
+	} else if ( _layers.size() ) {
+	    myLabel->moveTo( topCenter() ).moveBy( 0, -entries().front()->height() - 10 );
 	} else {
 	    myLabel->moveTo( bottomCenter() ).moveBy( 0, height() / 5 );
 	}
@@ -1742,9 +1509,9 @@ Task::moveSrc()
 {
     if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
 	Point aPoint = bottomRight();
-	aPoint.moveBy( -Flags::entry_width, 0 );
-	callList()[1]->moveSrc( aPoint );
-    } else if ( callList().size() == 1 && dynamic_cast<ProcessorCall *>(callList()[1]) ) {
+	aPoint.moveBy( -(Flags::entry_width * JLQNDEF_TASK_BOX_SCALING)/2.0, 0 );
+	calls().front()->moveSrc( aPoint );
+    } else if ( calls().size() == 1 && dynamic_cast<ProcessorCall *>(calls().front()) ) {
 	Point aPoint = bottomCenter();
 	double diff = aPoint.x() - processor()->center().x();
 	if ( diff > 0 && fabs( diff ) > width() / 4 ) {
@@ -1752,18 +1519,16 @@ Task::moveSrc()
 	} else if ( diff < 0 && fabs( diff ) > width() / 4 ) {
 	    aPoint.moveBy( width() / 4, 0 );
 	}
-	callList()[1]->moveSrc( aPoint );
+	calls().front()->moveSrc( aPoint );
     } else {
 	const int nFwd = countArcs( &GenericCall::hasForwardingLevel );
-	Sequence<EntityCall *> nextCall( callList() );
 	Point aPoint = bottomLeft();
 	const double delta = width() / static_cast<double>(countArcs() + 1 - nFwd);
-	EntityCall * srcCall;
 
-	while ( srcCall = nextCall() ) {
-	    if ( srcCall->isSelected()  && !srcCall->hasForwardingLevel() ) {
+	for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	    if ( (*call)->isSelected()  && !(*call)->hasForwardingLevel() ) {
 		aPoint.moveBy( delta, 0 );
-		srcCall->moveSrc( aPoint );
+		(*call)->moveSrc( aPoint );
 	    }
 	}
     }
@@ -1779,8 +1544,6 @@ Task::moveSrc()
 Task&
 Task::moveDst()
 {
-    Sequence<GenericCall *> nextRefr( callerList() );
-    GenericCall * dstCall;
     Point aPoint = myNode->topLeft();
 
     if ( Flags::print_forwarding_by_depth ) {
@@ -1788,10 +1551,10 @@ Task::moveDst()
 
 	/* Draw other incomming arcs. */
 
-	while ( dstCall = nextRefr() ) {
-	    if ( dstCall->isSelected() ) {
+	for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
+	    if ( (*call)->isSelected() ) {
 		aPoint.moveBy( delta, 0 );
-		dstCall->moveDst( aPoint );
+		(*call)->moveDst( aPoint );
 	    }
 	}
     } else {
@@ -1807,35 +1570,35 @@ Task::moveDst()
 	/* Draw incomming forwarding arcs first. */
 
 	Point fwdPoint( left(), fy );
-	while ( dstCall = nextRefr() ) {
-	    if ( dstCall->isSelected() && dstCall->hasForwardingLevel() ) {
+	for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
+	    if ( (*call)->isSelected() && (*call)->hasForwardingLevel() ) {
 		aPoint.moveBy( delta, 0 );
-		dstCall->moveDst( aPoint ).movePenultimate( fwdPoint );
+		(*call)->moveDst( aPoint ).movePenultimate( fwdPoint );
 		fwdPoint.moveBy( delta, 0 );
 	    }
 	}
 
-	/* Draw other incomming arcs. */
+	/* Draw other incomming arcs.  Note that secondPoint() and penultimatePoint() don't work here because   */
+	/* Arc should only have two points (so the source/destination may get clobbered)			*/
 
-	while ( dstCall = nextRefr() ) {
-	    if ( dstCall->isSelected() && !dstCall->hasForwardingLevel() ) {
+	for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
+	    if ( (*call)->isSelected() && !(*call)->hasForwardingLevel() ) {
 		aPoint.moveBy( delta, 0 );
-		if ( dstCall->hasForwarding() ) {
-		    dstCall->movePenultimate( aPoint ).moveSecond( aPoint );
+		if ( (*call)->hasForwarding() && (*call)->nPoints() == 4 ) {
+		    (*call)->pointAt(1) = aPoint;
+		    (*call)->pointAt(2) = aPoint;
 		}
-		dstCall->moveDst( aPoint );
+		(*call)->moveDst( aPoint );
 	    }
 	}
 
 	/* Draw outgoing forwarding arcs */
 
 	fwdPoint.moveTo( right(), fy );
-	Sequence<EntityCall *> nextCall( callList() );
-	EntityCall * srcCall;
-	while ( srcCall = nextCall() ) {
-	    if ( srcCall->isSelected() && srcCall->hasForwardingLevel() ) {
+	for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	    if ( (*call)->isSelected() && (*call)->hasForwardingLevel() ) {
 		aPoint.moveBy( delta, 0 );
-		srcCall->moveSrc( aPoint ).moveSecond( fwdPoint );
+		(*call)->moveSrc( aPoint ).moveSecond( fwdPoint );
 		fwdPoint.moveBy( delta, 0 );
 	    }
 	}
@@ -1854,17 +1617,21 @@ Task::moveDst()
 Task&
 Task::moveSrcBy( const double dx, const double dy )
 {
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * srcCall;
-
-    while ( srcCall = nextCall() ) {
-	if ( srcCall->isSelected() ) {
-	    srcCall->moveSrcBy( dx, dy );
-	}
-    }
+    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::moveSrcBy, dx, dy ) );
     return *this;
 }
 
+
+Graphic::colour_type Task::colour() const
+{
+    switch ( Flags::print[COLOUR].value.i ) {
+    case COLOUR_DIFFERENCES:
+	return colourForDifference( throughput() );
+
+    default:
+	return Entity::colour();
+    }
+}
 
 
 /*
@@ -1889,10 +1656,13 @@ Task::label()
 	}
     }
     Entity::label();
+    if ( !queueing_output() ) {
+	myLabel->justification( Flags::label_justification );
+    }
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
 	if ( queueing_output() ) {
 	    if ( !isSelected() ) {
-		const double Z = Flags::have_results ? (LQIO::DOM::to_double(copies()) - utilization()) / throughput() : 0.0;
+		const double Z = Flags::have_results ? (copiesValue() - utilization()) / throughput() : 0.0;
 		if ( Z > 0.0 ) {
 		    myLabel->newLine() << " Z = " << Z;
 		}
@@ -1900,7 +1670,7 @@ Task::label()
 	    labelQueueingNetwork( &Entry::labelQueueingNetworkService );
 	} else {
 	    if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES && Flags::print[PRINT_AGGREGATE].value.b ) {
-		myLabel->newLine() << " [" << print_service_time( *entryAt(1) ) << ']';
+		myLabel->newLine() << " [" << print_service_time( *entries().front() ) << ']';
 	    }
 	    if ( hasThinkTime()  ) {
 		*myLabel << " Z=" << dynamic_cast<ReferenceTask *>(this)->thinkTime();
@@ -1915,7 +1685,7 @@ Task::label()
 	    if ( throughput() == 0.0 && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
 		myLabel->colour( Graphic::RED );
 	    }
-	    *myLabel << begin_math( &Label::lambda ) << "=" << throughput();
+	    *myLabel << begin_math( &Label::lambda ) << "=" << opt_pct(throughput());
 	    print_goop = true;
 	}
 	if ( Flags::print[TASK_UTILIZATION].value.b ) {
@@ -1925,7 +1695,7 @@ Task::label()
 		myLabel->newLine() << begin_math();
 		print_goop = true;
 	    }
-	    *myLabel << _rho() << "=" << utilization();
+	    *myLabel << _rho() << "=" << opt_pct(utilization());
 	    if ( hasBogusUtilization() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
 		myLabel->colour(Graphic::RED);
 	    }
@@ -1935,27 +1705,11 @@ Task::label()
 	}
     }
 
-    /* Now label entries. */
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->label();
-    }
-
-    /* And the outgoing arcs, if any */
-
-    Sequence<EntityCall *> nextCall(myCalls);
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	aCall->label();
-    }
-
-    for ( unsigned i = layers.size(); i > 0; --i ) {
-	layers[i].label();
-    }
-
+    for_each( entries().begin(), entries().end(), Exec<Element>( &Element::label ) );       	/* Now label entries. */
+    for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::label ) );	/* And activities... */
+    for_each( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );   	/* And the outgoing arcs, if any */
+    for_each( precedences().begin(), precedences().end(), Exec<ActivityList>( &ActivityList::label ) );
+    for_each( _layers.rbegin(), _layers.rend(), Exec<ActivityLayer>( &ActivityLayer::label ) );
     return *this;
 }
 
@@ -1965,15 +1719,10 @@ Task::label()
  * Stick labels in for queueing network.
  */
 
-const Task&
-Task::labelQueueingNetwork( entryLabelFunc aFunc ) const
+Task&
+Task::labelQueueingNetwork( entryLabelFunc aFunc )
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	(anEntry->*aFunc)( *myLabel );
-    }
+    for_each( _entries.begin(), _entries.end(), Exec1<Entry,Label&>( aFunc, *myLabel ) );
     return *this;
 }
 
@@ -1987,32 +1736,10 @@ Task&
 Task::scaleBy( const double sx, const double sy )
 {
     Entity::scaleBy( sx, sy );
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->scaleBy( sx, sy );
-    }
-
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	anActivity->scaleBy( sx, sy );
-    }
-
-    Sequence<ActivityList *> nextPrecedence(precedences());
-    ActivityList * aPrecedence;
-    while ( aPrecedence = nextPrecedence() ) {
-	aPrecedence->scaleBy( sx, sy );
-    }
-
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	aCall->scaleBy( sx, sy );
-    }
-
+    for_each( entries().begin(), entries().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    for_each( activities().begin(), activities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    for_each( precedences().begin(), precedences().end(), ExecXY<ActivityList>( &ActivityList::scaleBy, sx, sy ) ) ;
+    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -2026,31 +1753,10 @@ Task&
 Task::depth( const unsigned depth )
 {
     Entity::depth( depth );
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->depth( depth );
-    }
-
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	anActivity->depth( depth );
-    }
-
-    Sequence<ActivityList *> nextPrecedence(precedences());
-    ActivityList * aPrecedence;
-    while ( aPrecedence = nextPrecedence() ) {
-	aPrecedence->depth( depth-1 );
-    }
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	aCall->depth( depth );
-    }
-
+    for_each( entries().begin(), entries().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    for_each( activities().begin(), activities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
+    for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,unsigned int>( &ActivityList::depth, depth ) );
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
     return *this;
 }
 
@@ -2064,143 +1770,114 @@ Task&
 Task::translateY( const double dy )
 {
     Entity::translateY( dy );
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->translateY( dy );
-    }
-
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	anActivity->translateY( dy );
-    }
-
-
-    Sequence<ActivityList *> nextPrecedence(precedences());
-    ActivityList * aPrecedence;
-    while ( aPrecedence = nextPrecedence() ) {
-	aPrecedence->translateY( dy );
-    }
-
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	aCall->translateY( dy );
-    }
-
+    for_each( entries().begin(), entries().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    for_each( activities().begin(), activities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    for_each( precedences().begin(), precedences().end(), Exec1<ActivityList,double>( &ActivityList::translateY, dy ) );
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 
 #if defined(REP2FLAT)
-Task& 
-Task::removeReplication() 
+Task&
+Task::removeReplication()
 {
     Entity::removeReplication();
 
     LQIO::DOM::Task * dom = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
-    for ( std::map<const std::string, unsigned int>::const_iterator fi = dom->getFanIns().begin(); fi != dom->getFanIns().end(); ++fi ) {
-	dom->setFanIn( fi->first, 1 );
+    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fi = dom->getFanIns().begin(); fi != dom->getFanIns().end(); ++fi ) {
+	dom->setFanIn( fi->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
     }
-    for ( std::map<const std::string, unsigned int>::const_iterator fo = dom->getFanOuts().begin(); fo != dom->getFanOuts().end(); ++fo ) {
-	dom->setFanOut( fo->first, 1 );
+    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fo = dom->getFanOuts().begin(); fo != dom->getFanOuts().end(); ++fo ) {
+	dom->setFanOut( fo->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
     }
 
     return *this;
 }
 
 
-Task *
-Task::expandTask( int replica ) const
+Task&
+Task::expandTask()
 {
-    /* Get a pointer to the replicated processor */
+    const unsigned int numTaskReplicas = replicasValue();
+    for ( unsigned int replica = 1; replica <= numTaskReplicas; ++replica ) {
 
-    const Processor *aProcessor = Processor::find_replica( processor()->name(), replica );
+	/* Get a pointer to the replicated processor */
 
-    ostringstream aName;
-    aName << name() << "_" << replica;
-    set<Task *,ltTask>::const_iterator nextTask = find_if( task.begin(), task.end(), eqTaskStr( aName.str() ) );
-    if ( nextTask != task.end() ) {
-	string msg = "Task::expandTask(): cannot add symbol ";
-	msg += aName.str();
-	throw runtime_error( msg );
+	const Processor *aProcessor = Processor::find_replica( processor()->name(), replica );
+
+	ostringstream aName;
+	aName << name() << "_" << replica;
+	std::set<Task *>::const_iterator nextTask = find_if( __tasks.begin(), __tasks.end(), eqTaskStr( aName.str() ) );
+	if ( nextTask != __tasks.end() ) {
+	    string msg = "Task::expandTask(): cannot add symbol ";
+	    msg += aName.str();
+	    throw runtime_error( msg );
+	}
+	Task * aTask = clone( replica, aName.str(), aProcessor, share() );
+	aTask->myPaths = myPaths;		// Bad hack?
+	aTask->setLevel( level() );
+	__tasks.insert( aTask );
+
+	std::vector<LQIO::DOM::Entry *>& dom_entries = const_cast<std::vector<LQIO::DOM::Entry *>&>( dynamic_cast<const LQIO::DOM::Task *>(aTask->getDOM())->getEntryList() );
+	dom_entries.clear();
+	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	    LQIO::DOM::Entry * dom_entry = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM()));
+	    dom_entries.push_back( dom_entry );        /* Add to task. */
+	}
+
+	/* Handle group if necessary */
+
+	if ( hasActivities() ) {
+	    aTask->expandActivities( *this, replica );
+	}
     }
-    Task * aTask = clone( replica, aName.str(), aProcessor, share() );
-    task.insert( aTask );
-
-    const std::vector<LQIO::DOM::Entry *>& dom_entries = dynamic_cast<const LQIO::DOM::Task *>(aTask->getDOM())->getEntryList();
-
-    Sequence<Entry *> nextEntry( aTask->entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	LQIO::DOM::Entry * dom_entry = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(anEntry->getDOM()));
-	const_cast<std::vector<LQIO::DOM::Entry *>*>(&dom_entries)->push_back( dom_entry );        /* Add to task. */
-    }
-
-    /* Handle group if necessary */
-
-    if ( hasActivities() ) {
-	aTask->expandActivities( *this, replica );
-    }
-
-    return aTask;
+    return *this;
 }
 
 
-const Cltn<Entry *>& 
-Task::groupEntries( int replica, Cltn<Entry *>& newEntryList  ) const
+const std::vector<Entry *>&
+Task::groupEntries( int replica, std::vector<Entry *>& newEntryList  ) const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	newEntryList << Entry::find_replica( anEntry->name(), replica );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	newEntryList.push_back( Entry::find_replica( (*entry)->name(), replica ) );
     }
-
     return newEntryList;
 }
 
 
 
 Task&
-Task::expandActivities( const Task& src, int replica ) 
+Task::expandActivities( const Task& src, int replica )
 {
     /* clone the activities */
     LQIO::DOM::Task * task_dom = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
 
-    const Activity *srcActivity;
-    Sequence<Activity *> nextActivity(src.activities());
-    while ( srcActivity = nextActivity() ) {
-	addActivity(*srcActivity, replica);
+    for ( std::vector<Activity *>::const_iterator activity = src.activities().begin(); activity != src.activities().end(); ++activity ) {
+	addActivity(**activity, replica);
     }
 
     /* Now reconnect the precedences.  Do the join list from the task.  We have to connect the fork list. */
 
-    const ActivityList *srcPrecedence;
-    Sequence<ActivityList *> nextPrecedence(src.precedences());
-    while ( srcPrecedence = nextPrecedence() ) {
-	if ( !dynamic_cast<const JoinActivityList *>(srcPrecedence) &&  !dynamic_cast<const AndOrJoinActivityList *>(srcPrecedence) ) continue;
-	
+    for ( std::vector<ActivityList *>::const_iterator precedence = src.precedences().begin(); precedence != src.precedences().end(); ++precedence ) {
+	if ( !dynamic_cast<const JoinActivityList *>((*precedence)) &&  !dynamic_cast<const AndOrJoinActivityList *>((*precedence)) ) continue;
+
 	/* Ok we have the join list. */
 
-	ActivityList * pre_list = srcPrecedence->clone();
+	ActivityList * pre_list = (*precedence)->clone();
 	LQIO::DOM::ActivityList * pre_list_dom = const_cast<LQIO::DOM::ActivityList *>(pre_list->getDOM());
 	task_dom->addActivityList( pre_list_dom );
 
 	/* Now reconnect the activities. A little kludgey because we have a list in one case and not the other. */
 
-	Cltn<Activity *> pre_act_list;
-	if (dynamic_cast<const ForkJoinActivityList *>(srcPrecedence)) {
-	    pre_act_list = dynamic_cast<const ForkJoinActivityList *>(srcPrecedence)->getMyActivityList();
-	} else if (dynamic_cast<const SequentialActivityList *>(srcPrecedence)) {
-	    pre_act_list += dynamic_cast<const SequentialActivityList *>(srcPrecedence)->getMyActivity();
+	std::vector<Activity *> pre_act_list;
+	if (dynamic_cast<const ForkJoinActivityList *>((*precedence))) {
+	    pre_act_list = dynamic_cast<const ForkJoinActivityList *>((*precedence))->getMyActivityList();
+	} else if (dynamic_cast<const SequentialActivityList *>((*precedence))) {
+	    pre_act_list.push_back( dynamic_cast<const SequentialActivityList *>((*precedence))->getMyActivity());
 	}
 
-	Sequence<Activity *> nextActivity(pre_act_list);
-	while ( srcActivity = nextActivity() ) {
-	    Activity * pre_activity = findActivity(*srcActivity, replica);
+	for ( std::vector<Activity *>::const_iterator activity = pre_act_list.begin(); activity != pre_act_list.end(); ++activity ) {
+	    Activity * pre_activity = findActivity(*(*activity), replica);
 	    LQIO::DOM::Activity * pre_activity_dom = const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(pre_activity->getDOM()));
 	    pre_activity->outputTo( pre_list );
 	    pre_activity_dom->outputTo( pre_list_dom );
@@ -2208,7 +1885,7 @@ Task::expandActivities( const Task& src, int replica )
 	    pre_list_dom->add( pre_activity_dom );
 	}
 
-	const ActivityList *dstPrecedence = srcPrecedence->next();
+	const ActivityList *dstPrecedence = (*precedence)->next();
 
 	if ( dstPrecedence ) {
 
@@ -2223,28 +1900,27 @@ Task::expandActivities( const Task& src, int replica )
 
 	    /* Now reconnect the activities. A little kludgey because we have a list in one case and not the other. */
 
-	    Cltn<Activity *> post_act_list;
+	    std::vector<Activity *> post_act_list;
 	    if (dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)) {
 		post_act_list = dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)->getMyActivityList();
 	    } else if (dynamic_cast<const RepeatActivityList *>(dstPrecedence)) {
 		post_act_list = dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivityList();
-		post_act_list += dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity();
+		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
 	    } else if (dynamic_cast<const SequentialActivityList *>(dstPrecedence)) {
-		post_act_list += dynamic_cast<const SequentialActivityList *>(dstPrecedence)->getMyActivity();
+		post_act_list.push_back(dynamic_cast<const SequentialActivityList *>(dstPrecedence)->getMyActivity());
 	    }
 
-	    Sequence<Activity *> nextActivity(post_act_list);
-	    while ( srcActivity = nextActivity() ) {
-		Activity * post_activity = findActivity(*srcActivity, replica);
+	    for ( std::vector<Activity *>::const_iterator activity = post_act_list.begin(); activity != post_act_list.end(); ++activity ) {
+		Activity * post_activity = findActivity(*(*activity), replica);
 		LQIO::DOM::Activity * post_activity_dom = const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(post_activity->getDOM()));
 		post_activity->inputFrom( post_list );
 		post_activity_dom->inputFrom( post_list_dom );
 		post_list->add( post_activity );
-		
+
 		/* A little tricky here.  We need to copy over whatever parameter there was. */
-		
+
 		const LQIO::DOM::ActivityList * dstPrecedenceDOM = dstPrecedence->getDOM();
-		LQIO::DOM::ExternalVariable * parameter = dstPrecedenceDOM->getParameter( dynamic_cast<const LQIO::DOM::Activity *>(srcActivity->getDOM()) );
+		LQIO::DOM::ExternalVariable * parameter = dstPrecedenceDOM->getParameter( dynamic_cast<const LQIO::DOM::Activity *>((*activity)->getDOM()) );
 		post_list_dom->add( post_activity_dom, parameter );
 	    }
 
@@ -2267,6 +1943,92 @@ Task::cloneDOM( const string& aName, LQIO::DOM::Processor * dom_processor ) cons
 
     return dom_task;
 }
+
+
+/*
+ * Rename XXX_1 to XXX and reinsert the task and its dom into their associated arrays.   XXX_2 and up will be discarded.
+ */
+
+Task&
+Task::replicateTask( LQIO::DOM::DocumentObject ** root )
+{
+    unsigned int replica = 0;
+    std::string root_name = baseReplicaName( replica );
+    if ( replica == 1 ) {
+	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
+	std::pair<std::set<Task *>::iterator,bool> rc = __tasks.insert( this );
+	if ( !rc.second ) throw runtime_error( "Duplicate task" );
+	(*root)->setName( root_name );
+	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addTaskEntity( dynamic_cast<LQIO::DOM::Task *>(*root) );	/* Reconnect all of the dom stuff. */
+    } else if ( dynamic_cast<LQIO::DOM::Task *>(*root)->getReplicasValue() < replica ) {
+	dynamic_cast<LQIO::DOM::Task *>(*root)->setReplicasValue( replica );
+	update_mean( *root, &LQIO::DOM::DocumentObject::setResultUtilization, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilization, replica );
+	update_variance( *root, &LQIO::DOM::DocumentObject::setResultUtilizationVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilizationVariance );
+	update_mean( *root, &LQIO::DOM::DocumentObject::setResultThroughput, getDOM(), &LQIO::DOM::DocumentObject::getResultThroughput, replica );
+	update_variance( *root, &LQIO::DOM::DocumentObject::setResultThroughputVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultThroughputVariance );
+	update_mean( *root, &LQIO::DOM::DocumentObject::setResultProcessorUtilization, getDOM(), &LQIO::DOM::DocumentObject::getResultProcessorUtilization, replica );
+	update_variance( *root, &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance );
+    }
+    return *this;
+}
+
+
+Task&
+Task::replicateCall() 
+{
+    unsigned int replica = 0;
+    std::string root_name = baseReplicaName( replica );
+    if ( replica == 1 ) {
+	for_each( activities().begin(), activities().end(), Exec<Activity>( &Activity::replicateCall ) );
+    }
+    return *this;
+}
+
+/*
+ * Called AFTER replicas are set in all NEW model elements.
+ */
+
+/* static */ void
+Task::updateFanInOut()
+{
+    for ( std::set<Task *>::const_iterator src = __tasks.begin(); src != __tasks.end(); ++src ) {
+	const LQIO::DOM::Task * src_dom = dynamic_cast<const LQIO::DOM::Task *>((*src)->getDOM());
+	const std::vector<Entry *>& entries = (*src)->entries();
+	for_each( entries.begin(), entries.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
+	const std::vector<Activity *>& activities = (*src)->activities();
+	for_each( activities.begin(), activities.end(), UpdateFanInOut( *const_cast<LQIO::DOM::Task *>(src_dom)) );
+    }
+}
+
+void Task::UpdateFanInOut::operator()( Entry * entry ) const { updateFanInOut( entry->calls() ); }
+void Task::UpdateFanInOut::operator()( Activity * activity ) const { updateFanInOut( activity->calls() ); }
+
+void 
+Task::UpdateFanInOut::updateFanInOut( const std::vector<Call *>& calls ) const
+{
+    const unsigned src_replicas = _src.getReplicasValue();
+    for ( std::vector<Call *>::const_iterator call = calls.begin(); call != calls.end(); ++call ) {
+	LQIO::DOM::Task& dst = *const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>((*call)->dstTask()->getDOM()));
+	const unsigned dst_replicas = dst.getReplicasValue();
+	if ( dst_replicas > src_replicas ) {
+	    double fan_out = static_cast<double>(dst_replicas) / static_cast<double>(src_replicas);
+	    if ( fan_out == rint( fan_out ) ) {
+		_src.setFanOutValue( dst.getName(), static_cast<unsigned>(fan_out) );
+	    } else {
+		_src.setFanOutValue( dst.getName(), dst_replicas );
+		dst.setFanInValue( _src.getName(), src_replicas );
+	    }
+	} else if ( src_replicas > dst_replicas ) {
+	    double fan_in = static_cast<double>(src_replicas) / static_cast<double>(dst_replicas);
+	    if ( fan_in == rint( fan_in ) ) {
+		dst.setFanInValue( _src.getName(), static_cast<unsigned>(fan_in) );
+	    } else {
+		_src.setFanOutValue( dst.getName(), dst_replicas );
+		dst.setFanInValue( _src.getName(), src_replicas );
+	    }
+	}
+    }
+}
 #endif
 
 /* ------------------------------------------------------------------------ */
@@ -2277,7 +2039,7 @@ Task::cloneDOM( const string& aName, LQIO::DOM::Processor * dom_processor ) cons
  * Draw the SRVN model object.
  */
 
-ostream&
+const Task&
 Task::draw( ostream& output ) const
 {
     ostringstream aComment;
@@ -2302,63 +2064,50 @@ Task::draw( ostream& output ) const
 	myNode->penColour( colour() );
     }
 
-    Point points[4];
+    std::vector<Point> points(4);
     const double dx = adjustForSlope( fabs(height()) );
     points[0] = topLeft().moveBy( dx, 0 );
-    points[1] = bottomLeft();
+    points[1] = topRight();
     points[2] = bottomRight().moveBy( -dx, 0 );
-    points[3] = topRight();
+    points[3] = bottomLeft();
 
     if ( isMultiServer() || isInfinite() || isReplicated() ) {
-	Point copies[4];
+	std::vector<Point> copies = points;
 	const double delta = -2.0 * Model::scaling() * myNode->direction();
-	for ( int i = 0; i < 4; ++i ) {
-	    copies[i] = points[i];
-	    copies[i].moveBy( 2.0 * Model::scaling(), delta );
-	}
+	for_each( copies.begin(), copies.end(), ExecXY<Point>( &Point::moveBy, 2.0 * Model::scaling(), delta ) );
 	const int aDepth = myNode->depth();
 	myNode->depth( aDepth + 1 );
-	myNode->polygon( output, 4, copies );
+	myNode->polygon( output, copies );
 	myNode->depth( aDepth );
     }
-    myNode->polygon( output, 4, points );
+    if ( Flags::graphical_output_style == JLQNDEF_STYLE ) {
+	const double shift = width() - (Flags::entry_width * JLQNDEF_TASK_BOX_SCALING * Model::scaling());
+	points[0].moveBy( shift, 0 );
+	points[3].moveBy( shift, 0 );
+	if ( Flags::print[COLOUR].value.i == COLOUR_OFF ) {
+	    myNode->fillColour( Graphic::GREY_10 );
+	}
+    }
+    myNode->polygon( output, points );
 
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
     if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
-
-	/* Print out entries */
-
-	Sequence<Entry *> nextEntry(entries());
-	Entry * anEntry;
-
-	while ( anEntry = nextEntry() ) {
-	    output << *anEntry;
-	}
-
-	if ( hasActivities() ) {
-	    Sequence<Activity *> nextActivity(activities());
-	    Activity * anActivity;
-
-	    while ( anActivity = nextActivity() ) {
-		output << *anActivity;
-	    }
-	}
-
+	for_each( entries().begin(), entries().end(), ConstExec1<Element,ostream&>( &Element::draw, output ) );
+	for_each( activities().begin(), activities().end(), ConstExec1<Element,ostream&>( &Element::draw, output ) );
+	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,ostream&>( &ActivityList::draw, output ) );
     }
 
-    Sequence<EntityCall *> nextCall( callList() );
-    EntityCall * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() ) {
-	    output << *aCall;
-	}
-    }
+    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,ostream&>( &GenericCall::draw, output ) );
 
-    return output;
+    return *this;
 }
 
+/* ------------------------------------------------------------------------ */
+/*                           Draw the queuieng network                      */
+/* ------------------------------------------------------------------------ */
+
 /*
  * Draw the queueing model object.
  */
@@ -2391,157 +2140,18 @@ Task::drawClient( ostream& output, const bool is_in_open_model, const bool is_in
     output << *myLabel;
     return output;
 }
-
-
-#if defined(QNAP_OUTPUT)
-/*
- * QNAP queueing network.
- */
-
-ostream&
-Task::printQNAPClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const
-{
-    output << indent(0) << "name = " << name() << ";" << endl;
-    if ( is_in_closed_model ) {
-	output << indent(0) << "type = infinite;" << endl;
-	for ( unsigned i = 1; i <= myClientClosedChains.size(); ++i ) {
-	    output << indent(0) << "service" << closed_chain( *this, multi_class, i )
-		   << " = exp(" << sliceTimeForQueueingNetwork( myClientClosedChains[i], &Element::hasClientClosedChain )
-		   << ");" << endl;
-	    output << indent(0) << "init" << closed_chain( *this, multi_class, i ) << " = " << copies() << ";" << endl;
-	}
-    } else if ( is_in_open_model ) {
-	output << indent(0) << "type = source;" << endl;
-    }
-    printQNAPRequests( output, is_in_open_model, is_in_closed_model, multi_class );
-    return output;
-}
-
-
-
-/*
- * QNAP queueing network.
- * Modify me for BUG_182.
- */
-
-ostream&
-Task::printQNAPRequests( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const
-{
-    Sequence<EntityCall *> nextCall( myCalls );
-
-    if ( is_in_closed_model ) {
-	printQNAPRequests( output, nextCall, multi_class, &closed_chain, &GenericCall::sumOfRendezvous );
-    }
-    if ( is_in_open_model ) {
-	printQNAPRequests( output, nextCall, multi_class, &open_chain, &GenericCall::sumOfSendNoReply );
-    }
-    return output;
-}
-
-
-ostream&
-Task::printQNAPRequests( ostream& output, Sequence<EntityCall *> &nextCall,
-			 const bool multi_class, QNAP_Element_func chain_func, callFunc2 call_func ) const
-{
-    bool first = true;
-    EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) {
-	    continue;
-	} else if ( first ) {
-	    output << indent(0) << "transit" << (*chain_func)( *this, multi_class, 1 ) << " = ";
-	    first = false;
-	} else {
-	    output << "," << endl << indent(0) << "    ";		/* Start a new line.  */
-	}
-	output << aCall->dstName();
-	if ( aCall->fanOut() > 1 ) {
-	    output << "(1 step 1 until " << aCall->fanOut() << "), "
-		   << qnap_visits( *aCall )
-		   << "(1 step 1 until " << aCall->fanOut() << ")";
-	} else if ( aCall->isProcessorCall() ) {
-	    output << "," << countCalls( &GenericCall::sumOfRendezvous ) + 1.0;
-	} else {
-	    output << "," << (aCall->*call_func)();
-	}
-    }
-    if ( !first ) {
-	output << ";" << endl;
-    }
-    return output;
-}
-#endif
-
-
-#if defined(PMIF_OUTPUT)
-/*
- * PMIF queueing network.
- */
-
-ostream&
-Task::printPMIFClient( ostream& output ) const
-{
-    output << indent(+1) << "<ClosedWorkload WorkloadName=\"" << closed_chain( *this, true, 1 )
-	   << "\" NumberOfJobs=\"" << copies()
-	   << "\" TimeUnits=\"" << "sec"
-	   << "\" ThinkTime=\"" << sliceTimeForQueueingNetwork( myClientClosedChains[1], &Element::hasClientClosedChain )
-	   << "\" ThinkDevice=\"" << name()
-	   << "\">" << endl;
-    printPMIFRequests( output );
-    output << indent(-1) << "</ClosedWorkload>" << endl;
-    return output;
-}
-
-
-
-/*
- * PMIF queueing network.
- */
-
-ostream&
-Task::printPMIFArcs( ostream& output ) const
-{
-    Sequence<EntityCall *> nextCall( myCalls );
-    EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) continue;
-	output << indent(0) << "<Arc FromNode=\"" << aCall->srcName()
-	       << "\" ToNode=\"" << aCall->dstName() << "\"/>" << endl;
-	output << indent(0) << "<Arc FromNode=\"" << aCall->dstName()
-	       << "\" ToNode=\"" << aCall->srcName() << "\"/>" << endl;
-    }
-    return output;
-}
-
-
-ostream&
-Task::printPMIFRequests( ostream& output ) const
-{
-    const double nCalls = countCalls( &GenericCall::sumOfRendezvous );
-    if ( nCalls == 0.0 ) return output;
-
-    Sequence<EntityCall *> nextCall( myCalls );
-    EntityCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() || !aCall->hasRendezvous() ) continue;
-	output << indent(0) << "<Transit To=\"" << aCall->dstName()
-	       << "\" Probability=\"" << aCall->sumOfRendezvous() / nCalls
-	       << "\"/>" << endl;
-    }
-    return output;
-}
-#endif
 
 /* ------------------------- Reference Tasks -------------------------- */
 
-ReferenceTask::ReferenceTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries )
+ReferenceTask::ReferenceTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
 }
 
+int ReferenceTask::rootLevel() const
+{
+    return Model::CLIENT_LEVEL;
+}
 
 ReferenceTask *
 ReferenceTask::clone( unsigned int replica, const string& aName, const Processor * aProcessor, const Share * aShare ) const
@@ -2550,18 +2160,18 @@ ReferenceTask::clone( unsigned int replica, const string& aName, const Processor
 
 //	.setGroup( aShare->getDOM() );
 
-    Cltn<Entry *> entries;
+    std::vector<Entry *> entries;
     return new ReferenceTask( dom_task, aProcessor, aShare, groupEntries( replica, entries ) );
 }
 
 
 bool
-ReferenceTask::hasThinkTime() const 
+ReferenceTask::hasThinkTime() const
 {
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->hasThinkTime();
 }
 
-LQIO::DOM::ExternalVariable& 
+LQIO::DOM::ExternalVariable&
 ReferenceTask::thinkTime() const
 {
     return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getThinkTime();
@@ -2585,8 +2195,8 @@ ReferenceTask::colour() const
 	break;
 
     default:
-	return Entity::colour();
-    } 
+	return Task::colour();
+    }
 }
 
 
@@ -2596,23 +2206,20 @@ ReferenceTask::colour() const
  * loop and abort.
  */
 
-unsigned
+size_t
 ReferenceTask::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    unsigned max_depth = max( callStack.size(), level() );
+    size_t max_depth = max( callStack.size(), level() );
 
     setLevel( max_depth ).addPath( directPath );
 
     if ( processor() ) {
-	max_depth = max( max_depth + 1, processor()->level() );
+	max_depth = std::max( max_depth + 1, processor()->level() );
 	const_cast<Processor *>(processor())->setLevel( max_depth ).addPath( directPath );
     }
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry *srcEntry;
-
-    while ( srcEntry = nextEntry() ) {
-	max_depth = max( max_depth, srcEntry->findChildren( callStack, directPath ) );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	max_depth = std::max( max_depth, (*entry)->findChildren( callStack, directPath ) );
     }
 
     return max_depth;
@@ -2637,7 +2244,7 @@ Task::canConvertToReferenceTask() const
 
 /* --------------------------- Server Tasks --------------------------- */
 
-ServerTask::ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries )
+ServerTask::ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
 }
@@ -2650,7 +2257,7 @@ ServerTask::clone( unsigned int replica, const string& aName, const Processor * 
 
 //	.setGroup( aShare->getDOM() );
 
-    Cltn<Entry *> entries;
+    std::vector<Entry *> entries;
     return new ServerTask( dom_task, aProcessor, aShare, groupEntries( replica, entries ) );
 }
 
@@ -2679,7 +2286,7 @@ ServerTask::canConvertToReferenceTask() const
 /*+ BUG_164 */
 /* -------------------------- Semaphore Tasks ------------------------- */
 
-SemaphoreTask::SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries )
+SemaphoreTask::SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
 }
@@ -2690,14 +2297,14 @@ SemaphoreTask::clone( unsigned int replica, const string& aName, const Processor
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
-    Cltn<Entry *> entries;
+    std::vector<Entry *> entries;
     return new SemaphoreTask( dom_task, aProcessor, aShare, groupEntries( replica, entries ) );
 }
 
 
 /* -------------------------- RWLOCK Tasks ------------------------- */
 
-RWLockTask::RWLockTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries )
+RWLockTask::RWLockTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
 }
@@ -2708,7 +2315,7 @@ RWLockTask::clone( unsigned int replica, const string& aName, const Processor * 
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
-    Cltn<Entry *> entries;
+    std::vector<Entry *> entries;
     return new RWLockTask( dom_task, aProcessor, aShare, groupEntries( replica, entries ) );
 }
 
@@ -2722,20 +2329,20 @@ RWLockTask::clone( unsigned int replica, const string& aName, const Processor * 
  */
 
 Task *
-Task::create( const LQIO::DOM::Task* domTask, Cltn<Entry *>& entries )
+Task::create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries )
 {
     /* Recover the old parameter information that used to be passed in */
     const char* task_name = domTask->getName().c_str();
     const LQIO::DOM::Group * domGroup = domTask->getGroup();
     const scheduling_type sched_type = domTask->getSchedulingType();
-    
+
     if ( !task_name || strlen( task_name ) == 0 ) abort();
 
     if ( entries.size() == 0 ) {
 	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
 	return 0;
     }
-    if ( find_if( task.begin(), task.end(), eqTaskStr( task_name ) ) != task.end() ) {
+    if ( find_if( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) != __tasks.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
 	return 0;
     }
@@ -2750,7 +2357,7 @@ Task::create( const LQIO::DOM::Task* domTask, Cltn<Entry *>& entries )
     if ( !domGroup && aProcessor->scheduling() == SCHEDULE_CFS ) {
 	LQIO::input_error2( LQIO::ERR_NO_GROUP_SPECIFIED, task_name, processor_name.c_str() );
     } else if ( domGroup ) {
-	set<Share *,ltShare>::const_iterator nextShare = find_if( aProcessor->shares().begin(), aProcessor->shares().end(), eqShareStr( domGroup->getName() ) );
+	std::set<Share *>::const_iterator nextShare = find_if( aProcessor->shares().begin(), aProcessor->shares().end(), EQStr<Share>( domGroup->getName() ) );
 	if ( nextShare == aProcessor->shares().end() ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domGroup->getName().c_str() );
 	} else {
@@ -2781,7 +2388,7 @@ Task::create( const LQIO::DOM::Task* domTask, Cltn<Entry *>& entries )
 	}
 	aTask = new SemaphoreTask( domTask, aProcessor, aShare, entries );
 	break;
-		
+
 	case SCHEDULE_RWLOCK:
 	if ( entries.size() != N_RWLOCK_ENTRIES ) {
 	    ::LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries.size(), N_RWLOCK_ENTRIES );
@@ -2790,31 +2397,23 @@ Task::create( const LQIO::DOM::Task* domTask, Cltn<Entry *>& entries )
 	break;
 
     default:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[(unsigned)sched_type], "task", task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[(unsigned)sched_type].str, "task", task_name );
 	aTask = new ServerTask( domTask, aProcessor, aShare, entries );
 	break;
     }
 
-    task.insert( aTask );
+    __tasks.insert( aTask );
     return aTask;
 }
 
 /* ---------------------------------------------------------------------- */
 
-bool 
-ltTask::operator()(const Task * t1, const Task * t2) const 
-{ 
-    return t1->name() < t2->name(); 
-}
-
 static ostream&
 entries_of_str( ostream& output, const Task& aTask )
 {
-    BackwardsSequence<Entry *> nextEntry( aTask.entries() );
-    const Entry * anEntry;
-    while( anEntry = nextEntry() ) {
-	if ( anEntry->pathTest() ) {
-	    output << " " << anEntry->name();
+    for ( std::vector<Entry *>::const_reverse_iterator entry = aTask.entries().rbegin(); entry != aTask.entries().rend(); ++entry ) {
+	if ( (*entry)->pathTest() ) {
+	    output << " " << (*entry)->name();
 	}
     }
     output << " -1";

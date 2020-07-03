@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_object.cpp 13547 2020-05-21 02:22:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -8,15 +8,17 @@
 
 #include "dom_object.h"
 #include "dom_document.h"
+#include <sstream>
 #include <cassert>
+#include <cmath>
 
 namespace LQIO {
     namespace DOM {
 
 	unsigned long DocumentObject::sequenceNumber = 0;
 
-	DocumentObject::DocumentObject(const Document * document, const char * name, const void * xmlDOMElement ) 
-	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _comment(), _xmlDOMElement(xmlDOMElement) 
+	DocumentObject::DocumentObject(const Document * document, const char * name ) 
+	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _comment()
 	{
 	    assert( document );
 	    sequenceNumber += 1;
@@ -72,7 +74,7 @@ namespace LQIO {
 		throw should_implement( "Processor" );
 	    } else if ( dynamic_cast<const SemaphoreTask *>(this) ) {
 		throw should_implement( "SemaphoreTask" );
-		} else if ( dynamic_cast<const RWLockTask *>(this) ) {
+	    } else if ( dynamic_cast<const RWLockTask *>(this) ) {
 		throw should_implement( "RWLockTask" );
 	    } else if ( dynamic_cast<const Task *>(this) ) {
 		throw should_implement( "Task" );
@@ -81,5 +83,62 @@ namespace LQIO {
 	    }
 	}
 
+	ExternalVariable * DocumentObject::checkIntegerVariable( ExternalVariable * var, int floor_value ) const
+	{
+	    /* Check for a valid variable (if set).  Return the var */
+	    double value = floor_value;
+	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value != rint(value) || value < floor_value ) ) {
+		throw std::domain_error( "invalid integer" );
+	    }
+	    return var;
+	}
+
+	int DocumentObject::getIntegerValue( const ExternalVariable * var, int floor_value ) const
+	{
+	    /* Return a valid integer */
+	    double value = floor_value;
+	    if ( var == NULL ) return floor_value;
+	    if ( var->wasSet() != true ) throw std::domain_error( "not set" );
+	    if ( var->getValue(value) != true ) throw std::domain_error( "not a number" );	/* Sets value for return! */
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value != rint(value) ) throw std::domain_error( "invalid integer" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    return value;
+	}
+
+	ExternalVariable * DocumentObject::checkDoubleVariable( ExternalVariable * var, double floor_value, double ceiling_value ) const
+	{
+	    /* Check for a valid variable (if set).  Return the var */
+	    double value = floor_value;
+	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value < floor_value || (floor_value < ceiling_value && ceiling_value < value) ) ){
+		throw std::domain_error( "invalid double" );
+	    }
+	    return var;
+	}
+
+	double DocumentObject::getDoubleValue( const ExternalVariable * var, double floor_value, double ceiling_value ) const
+	{
+	    /* Return a valid double */
+	    double value = floor_value;
+	    if ( var == NULL ) return floor_value;
+	    if ( var->wasSet() != true ) throw std::domain_error( "not set" );
+	    if ( var->getValue(value) != true ) throw std::domain_error( "not a number" );	/* Sets value for return! */
+	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
+	    if ( value < floor_value ) {
+		std::stringstream ss;
+		ss << value << " < " << floor_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    if ( floor_value < ceiling_value && ceiling_value < value ) {
+		std::stringstream ss;
+		ss << value << " > " << ceiling_value;
+		throw std::domain_error( ss.str() );
+	    }
+	    return value;
+	}
     }
 }

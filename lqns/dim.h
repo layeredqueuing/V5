@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/dim.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/dim.h $
  *
  * Dimensions common to everything, plus some funky inline functions.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: dim.h 13548 2020-05-21 14:27:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -157,6 +157,8 @@ public:
 private:
     string myMsg;
 };
+
+static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
 class Activity;
 class Entry;

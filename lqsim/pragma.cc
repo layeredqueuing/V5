@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 12147 2014-09-29 17:10:36Z greg $
+ * $Id: pragma.cc 13353 2018-06-25 20:27:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -84,9 +84,9 @@ Pragma::operator()( const string& param, const string& value )
 
     std::map<const char *, Pragma::pragma_info, lt_str>::const_iterator p = Pragma::__pragmas.find( param.c_str() );
     if ( p == Pragma::__pragmas.end() ) return false;
-    Pragma::set_pragma_fptr set = p->second._set;
-    if ( !set ) return true;		/* ignored pragma */
-    return (this->*set)( value );
+    pragma_info pragma = p->second;
+    if ( !pragma._set ) return true;		/* ignored pragma */
+    return (this->*pragma._set)( value );
 }
 
 
@@ -111,7 +111,7 @@ Pragma::get_scheduling_model() const
 bool
 Pragma::set_reschedule_on_async_send( const string& value )
 {
-    _reschedule_on_async_send = true_or_false( value );
+    _reschedule_on_async_send = is_true( value );
     return true;
 }
 
@@ -122,16 +122,18 @@ Pragma::get_reschedule_on_async_send() const
 }
 
 bool
-Pragma::set_abort_on_dropped_message( const string& value )
+Pragma::set_abort_on_dropped_message( bool value )
 {
-    _abort_on_dropped_message = true_or_false( value );
+    if ( _abort_on_dropped_message.set ) return false;
+    _abort_on_dropped_message.value = value;
+    _abort_on_dropped_message.set = true;
     return true;
 }
 
 const char * 
 Pragma::get_abort_on_dropped_message() const
 {
-    return _abort_on_dropped_message ? "true" : "false";
+    return _abort_on_dropped_message.value ? "true" : "false";
 }
 
 
@@ -159,7 +161,7 @@ Pragma::get_nice() const
 bool
 Pragma::set_quorum_delayed_calls( const string& value ) 
 {
-    _quorum_delayed_calls = true_or_false( value );
+    _quorum_delayed_calls = is_true( value );
     return true;
 }
 
@@ -182,6 +184,42 @@ Pragma::get_xml_schema() const
     return 0;
 }
 
+
+bool Pragma::set_precision( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_initial_loops( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_initial_delay( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_block_period( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_max_blocks( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_seed_value( const std::string& )
+{
+    return false;
+}
+
+bool Pragma::set_run_time( const std::string& )
+{
+    return false;
+}
+
 void
 Pragma::initialize()
 {
@@ -192,7 +230,15 @@ Pragma::initialize()
     __pragmas["reschedule-on-async-send"] = pragma_info( QUORUM_REPLY,         &Pragma::set_reschedule_on_async_send, &Pragma::get_reschedule_on_async_send, &Pragma::eq_reschedule_on_async_send );
     __pragmas["scheduling"] =               pragma_info( RESCHEDULE_ON_SNR,    &Pragma::set_scheduling_model,         &Pragma::get_scheduling_model,         &Pragma::eq_scheduling_model );
     __pragmas["stop-on-message-loss"] =     pragma_info( STOP_ON_MESSAGE_LOSS, &Pragma::set_abort_on_dropped_message, &Pragma::get_abort_on_dropped_message, &Pragma::eq_abort_on_dropped_message );
-    __pragmas["xml-schema"] =		    pragma_info( XML_SCHEMA,	       &Pragma::set_xml_schema,		      &Pragma::get_xml_schema,		     &Pragma::eq_xml_schema );
+#if 0
+    __pragmas["precision"] = 		    pragma_info( PRECISION,	       &Pragma::set_precision,		      &Pragma::get_precision,		     &Pragma::eq_precision );		/* -A, -C */
+    __pragmas["initial-loops"] = 	    pragma_info( INITIAL_LOOPS,	       &Pragma::set_initial_loops,	      &Pragma::get_initial_loops,	     &Pragma::eq_initial_loops );	/* -C */
+    __pragmas["initial-delay"] = 	    pragma_info( INITIAL_DELAY,	       &Pragma::set_initial_delay,	      &Pragma::get_initial_delay,	     &Pragma::eq_initial_delay );	/* -A, -B */
+    __pragmas["block-period"] = 	    pragma_info( BLOCK_PERIOD,	       &Pragma::set_block_period,	      &Pragma::get_block_period,	     &Pragma::eq_block_period );	/* -A, -B, -C */
+    __pragmas["max-blocks"] = 		    pragma_info( MAX_BLOCKS,	       &Pragma::set_max_blocks,		      &Pragma::get_max_blocks,		     &Pragma::eq_max_blocks );        /* -B, -M */
+    __pragmas["seed-value"] = 		    pragma_info( SEED_VALUE,	       &Pragma::set_seed_value,		      &Pragma::get_seed_value,		     &Pragma::eq_seed_value );
+    __pragmas["run-time"] = 		    pragma_info( RUN_TIME,	       &Pragma::set_run_time,		      &Pragma::get_run_time,		     &Pragma::eq_run_time );		/* -T */
+#endif
 }
 
 
@@ -293,7 +339,7 @@ Pragma::str_to_scheduling_type( const string& s, int default_sched )
  */
 
 bool
-Pragma::true_or_false( const string& s ) const
+Pragma::is_true( const string& s ) const
 {
     return s.compare( "true" ) == 0
 	|| s.compare( "TRUE" )  == 0

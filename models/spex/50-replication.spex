@@ -1,0 +1,27 @@
+# SRVN Model Description File, for file: 50-replication.in
+# $Id$
+# ----------------------------------------------------------------------
+
+$r = [1,2]
+
+G "Simplest model." 1e-05 50 10 0.9 -1
+
+P 2
+  p client f r 4
+  p server f r $r
+-1
+
+T 2
+  t client r client -1 client r 4
+  t server n server -1 server r $r
+  I client server $r 
+-1
+
+E 2
+# ---------- client ----------
+  s client 1 -1
+  y client server 1 -1
+# ---------- server ----------
+  s server 1 -1
+-1
+

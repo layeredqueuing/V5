@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 12230 2015-02-03 20:36:38Z greg $
+ *  $Id: dom_entry.h 13547 2020-05-21 02:22:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -31,14 +31,26 @@ namespace LQIO {
 	    public:
 		Count( test_fn f ) :  _f(f), _count( 0 ) {}
 		
-		void operator()( const LQIO::DOM::Entry * );
-		bool count() const { return _count; }
+		Count& operator()( const LQIO::DOM::Entry * );
+		unsigned int count() const { return _count; }
 
 	    private:
-		test_fn _f;
-		bool _count;
+		const test_fn _f;
+		unsigned int _count;
 	    };
+
+	    template <class Type> class Predicate {
+		typedef bool (Type::*test_fn)() const;
+
+	    public:
+		Predicate<Type>( const test_fn f ) : _f(f) {}
+//		bool operator()( const Type * object ) const { return (object->*_f)(); }
+		bool operator()( const std::pair<unsigned, Type *>& object ) const { return (object.second->*_f)(); }
 	    
+	    private:
+		const test_fn _f;
+	    };
+
 	private:
 	    Entry(const Entry& );
 	    Entry& operator=( const Entry& );
@@ -57,7 +69,7 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Structors] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 	    /* Designated initializer for entries */
-	    Entry(const Document * document, const char * name, const void * element=0 );
+	    Entry(const Document * document, const char * name );
 	    virtual ~Entry();
 
 	    Entry * clone() const;	// Copy constructor is private */
@@ -65,6 +77,8 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	    /* Accessors and Mutators */
+
+	    const char * getTypeName() const { return __typeName; }
 
 	    /* Managing the Times */
 	    void setTask(Task* task);
@@ -74,7 +88,7 @@ namespace LQIO {
 	    bool hasPhase(unsigned phase) const;
 	    void setPhase( unsigned p, Phase * phase );
 	    unsigned getMaximumPhase() const;
-	    bool isStandardEntry() const;
+	    void erasePhase(unsigned phase);
 	    Call* getCallToTarget(const Entry* target, unsigned phase) const;
 
 	    /* Additional Entry Parameters */
@@ -84,7 +98,7 @@ namespace LQIO {
 	    bool hasOpenArrivalRate() const;
 	    void setEntryPriority(ExternalVariable* value);
 	    const ExternalVariable* getEntryPriority() const;
-	    double getEntryPriorityValue();
+	    int getEntryPriorityValue() const;
 	    bool hasEntryPriority() const;
 
 	    bool entrySemaphoreTypeOk(semaphore_entry_type newType);
@@ -95,19 +109,24 @@ namespace LQIO {
 	    void setRWLockFlag(rwlock_entry_type set);
 	    rwlock_entry_type getRWLockFlag() const;
 
+	    bool isDefined() const;
+	    bool isStandardEntry() const;
 	    bool entryTypeOk(EntryType newType);
 	    const EntryType getEntryType() const;
 	    void setEntryType(EntryType newType);
+
 	    virtual bool hasHistogram() const;
 	    virtual bool hasHistogramForPhase( unsigned ) const;
 	    virtual const Histogram* getHistogramForPhase ( unsigned ) const;
 	    virtual void setHistogramForPhase( unsigned, Histogram* );
 	    bool hasMaxServiceTimeExceeded() const;
+	    bool hasMaxServiceTimeExceededForPhase( unsigned ) const;
 
 	    /* Forwarding Probabilities */
 	    void addForwardingCall(Call *);
 	    const std::vector<Call*>& getForwarding() const;
 	    Call* getForwardingToTarget(const Entry* target) const;
+	    bool hasForwarding() const;
 
 	    /* Activity Support */
 	    void setStartActivity(Activity* startActivity);
@@ -142,12 +161,13 @@ namespace LQIO {
 	    Entry& setResultSquaredCoeffVariation(const double resultSquaredCoeffVariation);
 	    double getResultSquaredCoeffVariationVariance() const;
 	    Entry& setResultSquaredCoeffVariationVariance(const double resultSquaredCoeffVariationVariance);
-	    double getResultOpenWaitTime() const;
-	    Entry& setResultOpenWaitTime(const double resultOpenWaitTime);
-	    double getResultOpenWaitTimeVariance() const;
-	    Entry& setResultOpenWaitTimeVariance(const double resultOpenWaitTimeVariance);
+	    double getResultWaitingTime() const;
+	    Entry& setResultWaitingTime(const double resultWaitingTime);
+	    double getResultWaitingTimeVariance() const;
+	    Entry& setResultWaitingTimeVariance(const double resultWaitingTimeVariance);
 
 	    /* Result Information for Phase Service Info */
+	    unsigned int getResultPhaseCount() const;
 	    double getResultPhasePServiceTime( unsigned ) const;
 	    double getResultPhase1ServiceTime() const { return getResultPhasePServiceTime(1); }
 	    double getResultPhase2ServiceTime() const { return getResultPhasePServiceTime(2); }
@@ -212,23 +232,26 @@ namespace LQIO {
 	    Entry& setResultPhase1UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 1, resultPhasePUtilizationVariance ); }
 	    Entry& setResultPhase2UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 2, resultPhasePUtilizationVariance ); }
 	    Entry& setResultPhase3UtilizationVariance(const double resultPhasePUtilizationVariance) { return setResultPhasePUtilizationVariance( 3, resultPhasePUtilizationVariance ); }
+	    double getResultPhase1MaxServiceTimeExceeded() const { return getResultPhasePMaxServiceTimeExceeded(1); }
+	    double getResultPhase2MaxServiceTimeExceeded() const { return getResultPhasePMaxServiceTimeExceeded(2); }
+	    double getResultPhase3MaxServiceTimeExceeded() const { return getResultPhasePMaxServiceTimeExceeded(3); }
 	    double getResultPhasePMaxServiceTimeExceeded(unsigned p) const;
 	    double getResultPhasePMaxServiceTimeExceededVariance(unsigned p) const;
 
-	    /* Actually store the results in the XML */
 	    bool hasResultsForPhase(unsigned phase) const;
 	    bool hasResultsForOpenWait() const;
 	    bool hasResultsForThroughputBound() const;
-	    void resetResultFlags();
 
 	private:
+	    /* Actually store the results in the XML */
 	    Entry& setResultPhaseP( const unsigned p, double * result, double value );
+	    Entry& clearPhaseResults();
 
 	    /* Instance variables */
 
 	    EntryType _type;
 	    std::map<unsigned, Phase*> _phases;
-	    unsigned _maxPhase;
+	    unsigned int _maxPhase;
 	    Task* _task;
 	    std::map<unsigned, Histogram*> _histograms;
 
@@ -243,8 +266,8 @@ namespace LQIO {
 	    Activity* _startActivity;
 
 	    /* Computation Results from LQNS */
-	    double _resultOpenWaitTime;
-	    double _resultOpenWaitTimeVariance;
+	    double _resultWaitingTime;
+	    double _resultWaitingTimeVariance;
 	    double _resultPhasePProcessorWaiting[Phase::MAX_PHASE];
 	    double _resultPhasePProcessorWaitingVariance[Phase::MAX_PHASE];
 	    double _resultPhasePUtilization[Phase::MAX_PHASE];
@@ -264,11 +287,12 @@ namespace LQIO {
 	    double _resultUtilizationVariance;
 	    bool _hasResultsForPhase[Phase::MAX_PHASE], _hasOpenWait, _hasThroughputBound;
 
+	public:
+	    static const char * __typeName;
+
 	};
 
     }
 }
 
 #endif /* __LQIO_DOM_ENTRY_ */
-
-

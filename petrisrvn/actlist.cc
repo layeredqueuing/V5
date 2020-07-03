@@ -16,6 +16,7 @@
 
 #include <setjmp.h>
 #include <cstring>
+#include <algorithm>
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
 #include <lqio/dom_actlist.h>
@@ -114,9 +115,9 @@ ActivityList::remove_netobj()
  */
 
 bool
-ActivityList::join_find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e ) 
+ActivityList::join_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e ) 
 {
-    const Activity * curr_activity = activity_stack.top( );
+    const Activity * curr_activity = activity_stack.back();
     unsigned int j;
     
     /* Find join. -- we need its tokens too! */
@@ -129,7 +130,7 @@ ActivityList::join_find_children( my_stack_t<Activity *>& activity_stack, my_sta
     case ACT_JOIN_LIST:
     case ACT_AND_JOIN_LIST:
     case ACT_OR_JOIN_LIST:
-	find_fork_list( e->task(), activity_stack, activity_stack.depth(), fork_stack );
+	find_fork_list( e->task(), activity_stack, activity_stack.size(), fork_stack );
 	/* Fall through */
     case ACT_LOOP_LIST:
 	this->entry[j] = e;
@@ -244,9 +245,9 @@ bool ActivityList::check_fork_has_join() const
 }
 
 
-void ActivityList::find_fork_list( const Task * curr_task, my_stack_t<Activity *>& activity_stack, int depth, my_stack_t<ActivityList *>& fork_stack )
+void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *>& activity_stack, int depth, std::deque<ActivityList *>& fork_stack )
 {
-    Activity * curr_activity = activity_stack.top( );
+    Activity * curr_activity = activity_stack.back();
 
     for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
 	if ( this->list[i] != curr_activity ) {
@@ -257,7 +258,7 @@ void ActivityList::find_fork_list( const Task * curr_task, my_stack_t<Activity *
 		if ( j >= 0 ) {
 		    if ( !this->set_join_type( JOIN_INTERNAL_FORK_JOIN ) ) {
 			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
-		    } else if ( !this->u.join.fork[i] || fork_stack.find( this->u.join.fork[i] ) >= 0 ) {
+		    } else if ( !this->u.join.fork[i] || std::find( fork_stack.begin(), fork_stack.end(), this->u.join.fork[i] ) != fork_stack.end() ) {
 			ActivityList * fork_list = fork_stack[j];
 			if ( (   fork_list->type() == ACT_AND_FORK_LIST && this->type() == ACT_AND_JOIN_LIST)
 			     || (fork_list->type() == ACT_OR_FORK_LIST && this->type() == ACT_OR_JOIN_LIST) ) {
@@ -279,7 +280,7 @@ void ActivityList::find_fork_list( const Task * curr_task, my_stack_t<Activity *
 				 this->type() == ACT_AND_JOIN_LIST ? "AND" : "OR",
 				 depth, " ",
 				 curr_activity->name(), this->list[i]->name() );
-			for ( k = fork_stack.depth()-1; k >= 0; --k ) {
+			for ( k = fork_stack.size()-1; k >= 0; --k ) {
 			    ActivityList * lp = fork_stack[k];
 			    if ( j == k ) {
 				fprintf( stddbg, "[%s] ", lp->u.fork.prev->list[0]->name() );
@@ -309,7 +310,7 @@ void ActivityList::find_fork_list( const Task * curr_task, my_stack_t<Activity *
  */
 
 bool
-ActivityList::fork_find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e )
+ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e )
 {
     bool has_service_time = false;
     unsigned k;
@@ -325,20 +326,20 @@ ActivityList::fork_find_children( my_stack_t<Activity *>& activity_stack, my_sta
 
     case ACT_OR_FORK_LIST:
     case ACT_AND_FORK_LIST:
-	fork_stack.push( this );
+	fork_stack.push_back( this );
 	for ( k = 0; k < this->n_acts(); ++k ) {
 	    if ( debug_flag ) {
-		Activity * ap = activity_stack.top();
+		Activity * ap = activity_stack.back();
 		fprintf( stddbg, "%sFork: %*s %s -> %s\n",
 			 this->type() == ACT_AND_FORK_LIST ? "AND" : "OR",
-			 activity_stack.depth(), " ",
+			 static_cast<int>(activity_stack.size()), " ",
 			 ap->name(), this->list[k]->name() );
 	    }
 	    if ( this->list[k]->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
 	    }
 	}
-	fork_stack.pop();
+	fork_stack.pop_back();
 	break;
 
 			
@@ -349,7 +350,7 @@ ActivityList::fork_find_children( my_stack_t<Activity *>& activity_stack, my_sta
 	    }
 	}
 	for ( k = 0; k < this->n_acts(); ++k ) {
-	    my_stack_t<ActivityList *> branch_fork_stack;
+	    std::deque<ActivityList *> branch_fork_stack;
 	    this->list[k]->find_children( activity_stack, branch_fork_stack, e );
 	}
 	break;
@@ -363,10 +364,10 @@ ActivityList::fork_find_children( my_stack_t<Activity *>& activity_stack, my_sta
 
 
 int
-ActivityList::backtrack( Activity * activity, my_stack_t<ActivityList *>& fork_stack, Activity * start_activity )
+ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_stack, Activity * start_activity )
 {
     int depth = -1;
-    int j;
+    std::deque<ActivityList *>::const_iterator j;
     ActivityList * fork_list = activity->input();
     ActivityList * join_list = 0;
     
@@ -382,9 +383,9 @@ ActivityList::backtrack( Activity * activity, my_stack_t<ActivityList *>& fork_s
 		fork_list->u.fork.reachable[i] = true;
 	    }
 	}
-	j = fork_stack.find( fork_list );
-	if ( j >= 0 ) {
-	    return j;
+	j = std::find( fork_stack.begin(), fork_stack.end(), fork_list );
+	if ( j != fork_stack.end() ) {
+	    return j - fork_stack.begin();
 	}
 	/* Fall through */
     case ACT_FORK_LIST:
@@ -457,7 +458,7 @@ ActivityList::add_to_join_list( unsigned int i, Activity * an_activity )
  */
 
 double
-ActivityList::join_count_replies( my_stack_t<Activity *>& activity_stack, const Entry * e,
+ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const Entry * e,
 				  const double rate, const unsigned curr_phase, unsigned& next_phase )
 {
     double sum = 0.0;
@@ -499,7 +500,7 @@ ActivityList::join_count_replies( my_stack_t<Activity *>& activity_stack, const 
  */
 
 double
-ActivityList::fork_count_replies( my_stack_t<Activity *>& activity_stack,  const Entry * e,
+ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const Entry * e,
 				  const double rate, unsigned curr_phase, unsigned& next_phase  )
 {
     double sum = 0.0;
@@ -638,15 +639,15 @@ void ActivityList::insert_DOM_results()
 
 
 void
-ActivityList::path_error( int err, const char * task_name, my_stack_t<Activity *>& activity_stack )
+ActivityList::path_error( int err, const char * task_name, std::deque<Activity *>& activity_stack )
 {
     static char buf[BUFSIZ];
     char * buf2 = fork_join_name();
-    Activity * ap = activity_stack.top();
+    Activity * ap = activity_stack.back();
     size_t l = snprintf( buf, BUFSIZ, "%s", ap->name() );
 
     int i;
-    for  ( i = activity_stack.depth()-1; i > 0; --i ) {
+    for  ( i = activity_stack.size()-1; i > 0; --i ) {
 	ap = activity_stack[i-1];
 	l += snprintf( &buf[l], BUFSIZ-l, ", %s", ap->name() );
     }

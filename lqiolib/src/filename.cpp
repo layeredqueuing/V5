@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: filename.cpp 13200 2018-03-05 22:48:55Z greg $
+ * $Id: filename.cpp 13477 2020-02-08 23:14:37Z greg $
  *
  * File name generation.
  *
@@ -23,7 +23,7 @@
 
 namespace LQIO {
 
-    Filename::Filename( const char * base, const char * extension, const char * directory, const char * suffix )
+    Filename::Filename( const std::string& base, const std::string& extension, const std::string& directory, const std::string& suffix )
     {
 	generate( base, extension, directory, suffix );
     }
@@ -31,60 +31,55 @@ namespace LQIO {
 
     Filename::Filename( const Filename& aFilename )
     {
-	aString = aFilename.aString;
+	_filename = aFilename._filename;
     }
 
 
-    const char *
-    Filename::generate( const char * base, const char * extension, const char * directory, const char * suffix )
+    const std::string&
+    Filename::generate( const std::string& base, const std::string& extension, const std::string& directory, const std::string& suffix )
     {
-	const char * p = strrchr( base, '/' );		/* Locate directory	*/
-	const char * q;
-	const bool dir_present = directory && *directory;
+	/* prepend directory */
 
-	if ( dir_present ) {
-	    aString = directory;
-	    aString +=  '/';
-	} else {
-	    aString = "";
-	}
-
-	if ( !p ) {
-	    p = base;
-	} else if ( !dir_present ) {
-	    p += 1;
-	    for ( q = base; q < p; ++q ) {
-		aString += *q;
-	    }
-	}
-
-	q = strrchr( p, '.' );
+	const size_t dir = base.rfind( '/' );		/* Locate directory	*/
 
 	/*
-	 * Check for special cases:
+	 * special cases:
 	 *   No extension:         eg 'foo'     --> foo.out.
 	 *   'dot' file:           eg '.foo'    --> .foo.out
-	 *   input ending in .out: eg 'foo.out' --> foo.out.out
+	 *  // input ending in .out: eg 'foo.out' --> foo.out.out
 	 */
 		
-	if ( !q || p == q ) {
-	    q = p + strlen( p );		/* Move to end of string */
+	size_t dot = base.rfind( '.' );
+	if ( (dir != std::string::npos && dot != std::string::npos && dot <= dir + 1) || dot == 0 ) {
+	    dot = std::string::npos;		/* Dot is in a directory name - ignore, or base is a 'dot' file */
+	} 
+//	if ( directory.size() == 0 && dot != std::string::npos && base.substr( dot + 1 ) == extension ) {
+//	    dot = std::string::npos;		/* Extension of base is the same as extension */
+//	}
+
+	/* Stick in base file name (and directory part if directory.size() == 0 ) */
+
+	if ( dir == std::string::npos || directory.size() == 0  ) {
+	    _filename = base.substr( 0, dot );
+	} else {
+	    _filename = base.substr( dir + 1, dot - (dir + 1) );
+	}
+
+	/* Prepend directory */
+
+	if ( directory.size() > 0 ) {
+	    _filename.insert( 0, "/" );
+	    _filename.insert( 0, directory );
 	} 
 
-	for ( ; p < q; ++p ) {
-	    aString += *p;
-	}
-		
-	if ( suffix && *suffix ) {	/* Usually the iteration count */
-	    aString += suffix;
+	_filename += suffix;	/* Usually the iteration count */
+
+	if ( extension.size() ) {
+	    _filename += '.';
+	    _filename += extension;
 	}
 
-	if ( extension && *extension ) {
-	    aString += '.';
-	    aString += extension;
-	}
-
-	return (*this)();
+	return _filename;
     }
 
 
@@ -93,16 +88,16 @@ namespace LQIO {
     Filename::operator=( const Filename& aFilename )
     {
 	if ( this != &aFilename ) {
-	    aString = aFilename.aString;
+	    _filename = aFilename._filename;
 	}
 	return *this;
     }
 
 
     Filename&
-    Filename::operator=( const char * aFilename )
+    Filename::operator=( const std::string& aFilename )
     {
-	aString = aFilename;
+	_filename = aFilename;
 	return *this;
     }
 
@@ -111,17 +106,17 @@ namespace LQIO {
      * Return the filename.
      */
 
-    const char * 
+    const std::string& 
     Filename::operator()() const
     {
-	return aString.c_str();
+	return _filename;
     }
 
 
     Filename&
     Filename::operator<<( const char * aStr )
     {
-	aString += aStr;
+	_filename += aStr;
 	return *this;
     }
 
@@ -132,7 +127,7 @@ namespace LQIO {
 	char buf[8];
 	sprintf( buf, "%03d", n );
 
-	aString += buf;
+	_filename += buf;
 	return *this;
     }
 
@@ -144,11 +139,11 @@ namespace LQIO {
      */
 
     int
-    Filename::isRegularFile( const char * fileName )
+    Filename::isRegularFile( const std::string& fileName )
     {
 	struct stat statbuf;
 
-	if ( stat( fileName, &statbuf ) != 0 ) {
+	if ( stat( fileName.c_str(), &statbuf ) != 0 ) {
 	    return -1;
 	} else {
 	    return S_ISREG(statbuf.st_mode);
@@ -175,11 +170,11 @@ namespace LQIO {
      */
 
     int
-    Filename::isDirectory( const char * fileName )
+    Filename::isDirectory( const std::string& fileName )
     {
 	struct stat statbuf;
 
-	if ( stat( fileName, &statbuf ) != 0 ) {
+	if ( stat( fileName.c_str(), &statbuf ) != 0 ) {
 	    return -1;
 	} else {
 	    return S_ISDIR(statbuf.st_mode);
@@ -217,16 +212,16 @@ namespace LQIO {
      */
 
     int
-    Filename::mtimeCmp( const char * filename ) 
+    Filename::mtimeCmp( const std::string& filename )
     {
 	struct stat dst;
 	struct stat src;
 
-	if ( stat( filename, &dst ) < 0 ) {
+	if ( stat( filename.c_str(), &dst ) < 0 ) {
 	    std::string err = "Cannot stat: ";
 	    err += filename;
 	    throw std::invalid_argument( err.c_str() );
-	} else if ( stat( (*this)(), &src ) < 0 ) {
+	} else if ( stat( (*this)().c_str(), &src ) < 0 ) {
 	    std::string err = "Cannot stat: ";
 	    err += filename;
 	    throw std::invalid_argument( err.c_str() );
@@ -237,21 +232,21 @@ namespace LQIO {
 
 
     unsigned 
-    Filename::rfind( const string& s ) const
+    Filename::rfind( const std::string& s ) const
     {
-	return aString.rfind( s );
+	return _filename.rfind( s );
     }
 
     unsigned 
-    Filename::find( const string& s ) const
+    Filename::find( const std::string& s ) const
     {
-	return aString.find( s );
+	return _filename.find( s );
     }
 
     Filename& 
     Filename::insert( unsigned pos, const char * s )
     {
-	aString.insert( pos, s );
+	_filename.insert( pos, s );
 	return *this;
     }
 
@@ -260,12 +255,12 @@ namespace LQIO {
      */
 
     void
-    Filename::backup( const char * filename )
+    Filename::backup( const std::string& filename )
     {
 	if ( isRegularFile( filename ) > 0 ) {
-	    string backup = filename;
+	    std::string backup = filename;
 	    backup += "~";
-	    rename( filename, backup.c_str() );
+	    rename( filename.c_str(), backup.c_str() );
 	}
     }
-};
+}

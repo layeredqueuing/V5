@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: message.cc 9962 2010-11-02 12:47:17Z greg $
+ * $Id: message.cc 13353 2018-06-25 20:27:13Z greg $
  */
 
 #include <iostream>
@@ -37,40 +37,8 @@ Message::init( const Entry * ep, tar_t * src )
     time_stamp   = ps_now; /* Tag send time.	*/
     client       = ep;
     reply_port   = -1;
-    intermediate = 0;
-    source       = src;
-    next         = 0;
+    intermediate = NULL;
+    target       = src;
 
     return this;
-}
-
-
-Message * 
-Message::alloc( const Entry * ep, tar_t * src )
-{
-    Entry * dst = src->entry;
-    Task * cp = dst->task();
-    Message * msg = cp->free_messages;
-
-    if ( msg ) {
-	cp->free_messages = msg->next;
-	msg->init( ep, src );
-    }
-    return msg;
-}
-
-void
-Message::free( Message * msg )
-{
-    tar_t * tp = msg->source;
-    Entry * dst = tp->entry;
-    Task * cp = dst->task();
-    double delta = ps_now - msg->time_stamp;
-
-    assert ( msg->reply_port == -1 );
-    ps_record_stat( tp->r_delay.raw, delta );
-    ps_record_stat( tp->r_delay_sqr.raw, square( delta ) );
-
-    msg->next = cp->free_messages;
-    cp->free_messages = msg;
 }

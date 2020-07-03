@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13205 2018-03-06 23:30:13Z greg $
+ * $Id: submodel.cc 13562 2020-05-27 02:01:45Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -100,7 +100,7 @@ operator<<( ostream& output, const Submodel& self )
 Submodel&
 Submodel::number( const unsigned n )
 {
-    myNumber = n;
+    _submodel_number = n;
 
     Sequence<Entity *> nextServer( servers );
     Entity * aServer;
@@ -384,13 +384,16 @@ MVASubmodel::build()
 
     /* --------------------- Create Chains.  ---------------------- */
 
-    n_chains = makeChains();
+    setNChains( makeChains() );
+    if ( nChains() > MAX_CLASSES ) {
+	LQIO::solution_error( ADV_MANY_CLASSES, nChains(), number() );
+    }
 
     /* ------------------- Create the clients. -------------------- */
 
     while ( aClient = nextClient() ) {
 	closedStnNo += 1;
-	closedStation[closedStnNo] = aClient->makeClient( n_chains, number() );
+	closedStation[closedStnNo] = aClient->makeClient( nChains(), number() );
     }
 
     /* ----------------- Create servers for model. ---------------- */
@@ -398,7 +401,7 @@ MVASubmodel::build()
     while ( aServer = nextServer() ) {
 	Server * aStation;
 	if ( aServer->nEntries() == 0 ) continue;	/* Null server. */
-	aStation = aServer->makeServer( n_chains );
+	aStation = aServer->makeServer( nChains() );
 	if ( aServer->isInClosedModel() ) {
 	    n_servers   += 1;
 	    closedStnNo += 1;
@@ -413,9 +416,9 @@ MVASubmodel::build()
     /* ------- Create overlap probabilities and durations. -------- */
 
     if ( ( hasThreads || hasSynchs ) && pragma.getThreads() != NO_THREADS ) {
-	overlapFactor = new VectorMath<double> [n_chains+1];
-	for ( unsigned i = 1; i <= n_chains; ++i ) {
-	    overlapFactor[i].grow( n_chains, 1.0 );
+	overlapFactor = new VectorMath<double> [nChains()+1];
+	for ( unsigned i = 1; i <= nChains(); ++i ) {
+	    overlapFactor[i].grow( nChains(), 1.0 );
 	}
     }
 
@@ -427,7 +430,7 @@ MVASubmodel::build()
 	openModel = new Open( openStation );
     }
 
-    if ( n_chains > 0 && n_servers > 0 && !flags.no_execute ) {
+    if ( nChains() > 0 && n_servers > 0 && !flags.no_execute ) {
 	switch ( pragma.getMVA() ) {
 	case EXACT_MVA:
 	    closedModel = new ExactMVA(          closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
@@ -567,6 +570,8 @@ MVASubmodel::rebuild()
 	    newStation->openIndex = openIndex;
 	    openStation[openIndex] = newStation;	/* ... and in with the new...	*/
 	}
+
+	delete oldStation;
     }
 }
 
@@ -598,7 +603,8 @@ MVASubmodel::makeChains()
 
 	    /* ---------------- Simple case --------------- */
 
-	    myCustomers.grow( threads ); /* N.B. -- Vector class.  Must*/
+	    size_t new_size = myCustomers.size() + threads;
+	    myCustomers.resize( new_size ); /* N.B. -- Vector class.  Must*/
 	    myThinkTime.grow( threads ); /* grow() explicitly.	*/
 	    myPriority.grow( threads );
 
@@ -630,7 +636,8 @@ MVASubmodel::makeChains()
 	    //!!! fanins, modify delta_chains and Entity::fanIn()
 	    //!!! for the entry-to-entry case.
 
-	    myCustomers.grow( sz );   //Expand vectors to accomodate
+	    size_t new_size = myCustomers.size() + sz;
+	    myCustomers.resize( new_size );   //Expand vectors to accomodate
 	    myThinkTime.grow( sz );   //new chains.
 	    myPriority.grow( sz );
 
@@ -1030,13 +1037,15 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		try {
 		    openModel->convert( myCustomers );
 		}
-		catch ( range_error& error ) {
+		catch ( const range_error& error ) {
 		    MVAStats.faults += 1;
 		    if ( pragma.getStopOnMessageLoss() ) {
 			while ( aServer = nextServer() ) {
 			    const Server * aStation = aServer->serverStation();
-			    if ( !isfinite( aStation->R(0) ) ) {
-				LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(0), aServer->name(), aStation->S(0) / aStation->mu() );
+			    for ( unsigned int e = 1; e <= aServer->nEntries(); ++e ) {
+				if ( !isfinite( aStation->R(e,0) ) && aStation->V(e,0) != 0 && aStation->S(e,0) != 0 ) {
+				    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), aServer->entryAt(e)->name(), aStation->mu()/aStation->S(e,0) );
+				}
 			    }
 			}
 			throw exception_handled( "MVA::submodel -- open model overflow" );
@@ -1050,7 +1059,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    try {
 		closedModel->solve();
 	    }
-	    catch ( range_error& error ) {
+	    catch ( const range_error& error ) {
 		throw;
 	    }
 
@@ -1071,12 +1080,14 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		    openModel->solve();
 		}
 	    } 
-	    catch ( range_error& error ) {
+	    catch ( const range_error& error ) {
 		if ( pragma.getStopOnMessageLoss() ) {
 		    while ( aServer = nextServer() ) {
 			const Server * aStation = aServer->serverStation();
-			if ( !isfinite( aStation->R(0) ) ) {
-			    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(0), aServer->name(), aStation->S(0) / aStation->mu() );
+			for ( unsigned int e = 1; e <= aServer->nEntries(); ++e ) {
+			    if ( !isfinite( aStation->R(e,0) ) && aStation->V(e,0) != 0 && aStation->S(e,0) != 0 ) {
+				LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), aServer->entryAt(e)->name(), aStation->mu()/aStation->S(e,0) );
+			    }
 			}
 		    }
 		    throw exception_handled( "MVA::submodel -- open model overflow" );

@@ -7,7 +7,7 @@
 G "ERR_INVALID_PROC_RATE" 1e-05 50 10 0.9 -1
 
 P 2
-  p p1 f R 0
+  p p1 f R -1
   p p2 f
 -1
 

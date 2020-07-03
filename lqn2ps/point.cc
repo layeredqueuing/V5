@@ -1,41 +1,29 @@
 /* point.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: point.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: point.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
-#include "lqn2ps.h"
 #include "point.h"
 #include <cmath>
-
-/* ---------------------- Overloaded Operators ------------------------ */
-
-/*
- * Printing function.
- */
-
-ostream&
-operator<<( ostream& output, const Point& self ) 
-{
-    return self.print( output );
-}
+#include <algorithm>
 
 /*
  * Assign iA to receiver.
  */
 
 Point&
-Point::operator=( const Point &aPoint )
+Point::operator=( const Point &point )
 {
-    if ( this == &aPoint ) return *this;
+    if ( this == &point ) return *this;
 
-    my_x = aPoint.x();
-    my_y = aPoint.y();
+    _x = point.x();
+    _y = point.y();
     return *this;
 }
 
 
-ostream&
-Point::print( ostream& output ) const
+std::ostream&
+Point::print( std::ostream& output ) const
 {
     output << "(" << x() << "," << y() << ")";
     return output;
@@ -57,16 +45,14 @@ Point::rotate( const Point& origin, const double theta )
     moveTo( dx * cosTheta - dy * sinTheta + origin.x(),
 	    dx * sinTheta + dy * cosTheta + origin.y() );
     return *this;
-
-
 }
 
 
 Point&
 Point::min( const double x, const double y )
 {
-    my_x = ::min( my_x, x ); 
-    my_y = ::min( my_y, y ); 
+    _x = std::min( _x, x ); 
+    _y = std::min( _y, y ); 
     return *this;
 }
 
@@ -74,7 +60,7 @@ Point::min( const double x, const double y )
 Point&
 Point::max( const double x, const double y )
 {
-    my_x = ::max( my_x, x ); 
-    my_y = ::max( my_y, y ); 
+    _x = std::max( _x, x ); 
+    _y = std::max( _y, y ); 
     return *this;
 }

@@ -17,12 +17,10 @@
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
 #endif
+#include <string>
 #include "srvndiff.h"
 #include "srvn_results.h"
 #include "symtbl.h"
-
-static double get_time( const char * value );
-
 
 /*
  * Set the appropriate local variables to the general information
@@ -36,7 +34,9 @@ set_general ( int v, double c, int i, int pr, int ph )
     valid_flag = v;
 
     total_tput = 0.0;
+    total_tput_conf = 0.0;
     total_util = 0.0;
+    total_util_conf = 0.0;
     total_processor_util = 0.0;    
     total_copies = 0;
     task_util  = 0.0;
@@ -62,33 +62,37 @@ add_output_pragma( const char *str, int len )
 
 /*ARGSUSED*/
 void
-add_elapsed_time ( const char *value )
+add_elapsed_time ( double time )
 {
-    time_tab[pass].value[REAL_TIME] = get_time( value );
+    time_tab[pass].value[REAL_TIME] = time;
 }
 
 /*
  * Add a time value to the list.
  */
 
-/*ARGSUSED*/
 void
-add_user_time ( const char *value )
+add_user_time ( double time )
 {
-    time_tab[pass].value[USER_TIME] = get_time( value );
+    time_tab[pass].value[USER_TIME] = time;
 }
 
 /*
  * Add a time value to the list.
  */
 
-/*ARGSUSED*/
 void
-add_system_time ( const char *value )
+add_system_time ( double time )
 {
-    time_tab[pass].value[SYST_TIME] = get_time( value );
+    time_tab[pass].value[SYST_TIME] = time;
 }
 
+
+void
+add_comment( const char * comment )
+{
+    comment_tab[pass] = comment;
+}
 
 void 
 add_mva_solver_info( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
@@ -640,12 +644,19 @@ add_entry_thpt_ut ( const char * task, const char *entry, double throughput, dou
 
     entry_tab[pass][entry_id].throughput  = throughput;
     entry_tab[pass][entry_id].utilization = utilization;
+    entry_tab[pass][entry_id].throughput_conf  = tput_conf;
+    entry_tab[pass][entry_id].utilization_conf = util_conf;
     for ( unsigned int p = 0; p < MAX_PHASES; ++p ) {
 	entry_tab[pass][entry_id].phase[p].utilization = phase_util[p];
     }
 
     total_tput += throughput;
     total_util += utilization;
+    
+    total_tput_conf = tput_conf;	/* Save for task total if this is only entry.	*/
+    total_util_conf = util_conf;	/* Save for task total if this is only entry.	*/
+    tput_conf = 0.0;
+    util_conf = 0.0;
 }
 
 /*
@@ -663,6 +674,34 @@ add_entry_thpt_ut_confidence ( const char * entry, int conf_level, double throug
 }
 
 
+/*
+ * Add the utilziation for the group group_name.
+ */
+
+void add_group_util( const char * group_name, double utilization )
+{
+    const unsigned int g = find_or_add_group( group_name );
+    if ( !g ) return;
+
+    group_tab[pass][g].utilization = utilization;
+    group_tab[pass][g].has_results = true;
+}
+
+
+/*
+ * Store confidence interval data for the group.
+ */
+
+void add_group_util_conf( const char * group_name, int conf_level, double utilization )
+{
+    const unsigned int g = find_or_add_group( group_name );
+    if ( !g ) return;
+
+    if ( conf_level == 95 ) {
+	group_tab[pass][g].utilization_conf = utilization;
+    }
+    confidence_intervals_present[pass] = true;
+}
 
 /*
  * Add the throughput and utilization per task to the list.
@@ -677,8 +716,8 @@ add_thpt_ut (const char *task)
 
     task_tab[pass][task_id].has_results	     = true;
     task_tab[pass][task_id].throughput      += total_tput;
-    task_tab[pass][task_id].throughput_conf  = tput_conf;
-    task_tab[pass][task_id].utilization_conf = util_conf;
+    task_tab[pass][task_id].throughput_conf  = total_tput_conf;
+    task_tab[pass][task_id].utilization_conf = total_util_conf;
     task_tab[pass][task_id].utilization     += total_util;
 
     total_tput = 0.0;
@@ -715,13 +754,13 @@ void
 total_thpt_ut_confidence ( const char * task_name, int level, double tput, double * utilization, double tot_util )
 {
     int task_id  = find_or_add_task( task_name );
-    if (( task_id ) && ( level == 95 ))
-    {
+    if (( task_id ) && ( level == 95 )) {
 	for ( unsigned int p = 0; p < phases; ++p ) {
 	    task_tab[pass][task_id].total_utilization_conf[p] = utilization[p];
 	}
-	tput_conf = tput;
-	util_conf = tot_util;
+	/* override entry value */
+	total_tput_conf = tput;
+	total_util_conf = tot_util;
     }
 }
 
@@ -965,22 +1004,3 @@ void add_act_histogram_bin( const char * task, const char * activity, const doub
 void add_act_histogram_statistics( const char * task, const char * activity, const double mean, const double stddev, const double skew, const double kurtosis ) {}
 void add_histogram_bin( const char * entry, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 ) {}
 void add_histogram_statistics( const char * entry, const unsigned phase, const double mean, const double stddev, const double skew, const double kurtosis ) {}
-
-/*
- * Need to parse and extract time value
- */
-
-static double
-get_time( const char * value )
-{
-    long hrs;
-    long mins;
-    long secs;
-    long csecs;
-    
-    sscanf( value, "%ld:%ld:%ld.%ld", &hrs, &mins, &secs, &csecs );
-
-    return (double)hrs * 3600.0 + (double)mins * 60.0 + (double)secs + (double)csecs / 100.0; 
-}
-
-

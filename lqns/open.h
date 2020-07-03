@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/open.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/open.h $
  *
  * Open Network solver.
  *
@@ -7,9 +7,9 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2014-04-10 10:36:42 -0400 (Thu, 10 Apr 2014) $
+ * $Date: 2018-10-23 11:03:40 -0400 (Tue, 23 Oct 2018) $
  *
- * $Id: open.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: open.h 13413 2018-10-23 15:03:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,9 +43,9 @@ public:
 
     ostream& print( ostream& output = cout ) const;
 
-    void solve( const MVA& closedModel, const PopVector& N );	/* Mixed models.	*/
+    void solve( const MVA& closedModel, const Population& N );	/* Mixed models.	*/
     void solve();						/* Open models.		*/
-    void convert( const PopVector& N ) const; 			/* Switcharoo.		*/
+    void convert( const Population& N ) const; 			/* Switcharoo.		*/
     double throughput( const Server& ) const;
     double utilization( const Server& ) const;
     double entryThroughput( const Server&, const unsigned ) const;

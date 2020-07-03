@@ -69,36 +69,48 @@ void Processor::initialize()
 }
 
 
-void Processor::create( LQIO::DOM::Processor * dom )
+void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 {
-    const string& processor_name = dom->getName();
+    const string& processor_name = p.first;
+    LQIO::DOM::Processor * dom = p.second;
     if ( processor_name.size() == 0 ) abort();
 
-    if ( dom->getRateValue() <= 0.0 ) {
-	LQIO::input_error2( LQIO::ERR_INVALID_PROC_RATE, processor_name.c_str(), dom->getRate() );
-    }
-    if ( dom->getReplicas() != 1 ) {
+    if ( dom->getReplicasValue() != 1 ) {
 	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
     }
-    const unsigned int m = dom->getCopiesValue();
-    if ( m == 0 ) {
-	dom->setSchedulingType(SCHEDULE_DELAY);	/* Force processor to infinite server. */
-    } else if ( m > MAX_MULT ) {
-	LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "cpus ", MAX_MULT );
-    }
+
+    const scheduling_type scheduling_flag = dom->getSchedulingType();
 
     if ( pragma.processor_scheduling() != SCHEDULE_FIFO && dom->getSchedulingType() != SCHEDULE_DELAY ) {
 	dom->setSchedulingType( pragma.processor_scheduling() );
     }
 	
-    const scheduling_type scheduling_flag = dom->getSchedulingType();
-    if ( !bit_test( scheduling_flag, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT ) ) {
-	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[scheduling_flag], "processor", processor_name.c_str() );
+    if ( !bit_test( scheduling_flag, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
+	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str, "processor", processor_name.c_str() );
 	dom->setSchedulingType( SCHEDULE_FIFO );
     }
     
     processor.push_back( new Processor( dom ) );
 }
+
+
+/*
+ * Suppress warning for processor scheduling if there is only one thread on this processor.   Processor::create is executed before Task::create and we need 
+ * to know if the task has threads or copies.
+ */
+
+bool
+Processor::check() const
+{
+    if ( scheduling() == SCHEDULE_PS ) {
+	if ( n_tasks() > 1 || _tasks[0]->multiplicity() > 1 || _tasks[0]->n_threads() > 1 ) {
+	    input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling()].str, "processor", name() );
+	    get_dom()->setSchedulingType( SCHEDULE_FIFO );
+	}
+    }
+    return true;
+}
+
 
 /*
  * Find the processor and return it.  
@@ -120,7 +132,16 @@ Processor::find( const std::string& name  )
 
 double Processor::rate() const 
 {
-    return dynamic_cast<LQIO::DOM::Processor *>(get_dom())->getRateValue();
+    if ( dynamic_cast<LQIO::DOM::Processor *>(get_dom())->hasRate() ) {
+	try {
+	    return dynamic_cast<LQIO::DOM::Processor *>(get_dom())->getRateValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    return 1.0;
 }
 
 
@@ -128,11 +149,10 @@ unsigned int Processor::ref_count() const
 {
     unsigned int count = 0;
     for ( vector<Task *>::const_iterator t = _tasks.begin(); t != _tasks.end(); ++t ) {
-	count += (*t)->multiplicity() * (*t)->n_threads();
+	count += (*t)->ref_count() * (*t)->n_threads();
     }
     return count;
 }
-
 
 bool Processor::is_single_place_processor() const
 {
@@ -210,22 +230,17 @@ Processor::transmorgrify( unsigned max_count )
     set_origin( __x_offset, Task::__server_y_offset + 3.0 );
     double x_pos = get_x_pos();
     double y_pos = get_y_pos();
+    const unsigned int copies = multiplicity();		/* Check for validity before is_single_place... */
 
-    if ( is_infinite() ) {
-
-	/* Infinite server -- just create as many processors as tasks. */
-	if ( this->ref_count() ) {
-	    this->PX = create_place( x_pos, y_pos, PROC_LAYER,
-				     this->ref_count(), "P%s", name() );
-	} else {
-	    this->PX = create_place( x_pos, y_pos, PROC_LAYER,
-				     open_model_tokens, "P%s", name() );
-	}
-
-    } else if ( is_single_place_processor() ) {
+    if ( is_single_place_processor() ) {
 		
-	this->PX = create_place( x_pos, y_pos, PROC_LAYER,
-				 this->multiplicity(), "P%s", name() );
+        if ( !simplify_network || is_infinite() ) {
+	    if ( this->ref_count() ) {
+		this->PX = create_place( x_pos, y_pos, PROC_LAYER, ref_count(), "P%s", name() );
+	    } else {
+		this->PX = create_place( x_pos, y_pos, PROC_LAYER, open_model_tokens, "P%s", name() );
+	    }
+	}
 
     } else {
 	unsigned i;			/* Task index.		*/
@@ -235,8 +250,11 @@ Processor::transmorgrify( unsigned max_count )
 
 	/* Regular server. */
 		
-	this->PX = create_place( x_pos, y_pos, PROC_LAYER,
-				 this->multiplicity(), "P%s", name() );
+	if ( copies > MAX_MULT ) {
+	    LQIO::input_error2( LQIO::ERR_TOO_MANY_X, "cpus ", MAX_MULT );
+	}
+
+	this->PX = create_place( x_pos, y_pos, PROC_LAYER, copies, "P%s", name() );
 
 	/* Create Queue state places for each priority (allow for instances of tasks) */
 
@@ -259,7 +277,6 @@ Processor::transmorgrify( unsigned max_count )
 		count += this->_history[j].task->multiplicity() * this->_history[j].task->n_threads();
 	    }
 
-	    this->_proc_queue_count = count;
 	    for ( k = 1; k < count; ++k ) {
 		(void) create_place( x_pos, y_pos + k, FIFO_LAYER, 1,
 				     "P%dSh%s%d", start_prio, name(), k );
@@ -304,6 +321,7 @@ Processor::make_queue( double x_pos, double y_pos, const int priority,
     unsigned p;
 
 		
+    cur_task->set_proc_queue_count( count );	/* for get pmmean */
     for ( vector<Entry *>::const_iterator e = cur_task->entries.begin(); e != cur_task->entries.end(); ++e ) {
 	Entry * cur_entry = *e;
 	for ( p = 1; p <= cur_entry->n_phases(); ++p ) {
@@ -474,12 +492,15 @@ Processor::get_waiting( const Phase& phase )
     }
 
     if ( is_single_place_processor() ) {
-	tokens = get_pmmean( "W%s00", phase.name() );
-	tput   = get_tput( IMMEDIATE, "w%s00", phase.name() );
+        if ( !simplify_network ) { 
+	    tokens = get_pmmean( "W%s00", phase.name() );
+	    tput   = get_tput( IMMEDIATE, "w%s00", phase.name() );
+	}
 
     } else if ( scheduling() != SCHEDULE_RAND ) {
+	unsigned int count = phase.task()->get_proc_queue_count();
 	tokens = get_pmmean( "Preq%s%s00", name(), phase.name() );
-	for ( unsigned int j = 1; j < _proc_queue_count; j++ ) {
+	for ( unsigned int j = 1; j < count; j++ ) {
 	    tokens += get_pmmean( "PI%s%s00%d", name(), phase.name(), j );
 	}
 	if ( this->scheduling() != SCHEDULE_FIFO ) {

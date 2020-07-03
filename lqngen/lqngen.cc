@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 12906 2017-01-26 03:32:30Z greg $
+ * $Id: lqngen.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "lqngen.h"
@@ -11,9 +11,6 @@
 #include <sstream>
 #include <cstring>
 #include <getopt.h>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
@@ -37,25 +34,33 @@ void makeopts( std::string& opts, std::vector<struct option>& longopts, int * );
 #else
 void makeopts( std::string& opts );
 #endif
+static void initialize();
+static void get_pragma( const std::string& );
+static RV::RandomVariable * get_RV( const std::string&, RV::RandomVariable * new_dist, RV::RandomVariable::distribution_t );
+static RV::RandomVariable * get_RV_args( RV::RandomVariable *, const std::string& );
 
 /* Sort on field 5.  Note that 0x400 is [no-] */
 option_type options[] =
 {
-    { 'A',  	 "automatic",		    required_argument,	 	LQNGEN_ONLY,  	"Create a model with ARG layers, clients, processor and ARG**2 tasks." },
-    { 'C', 	 "clients",         	    required_argument,	 	LQNGEN_ONLY,  	"Create exactly ARG client (Reference) tasks." },
-    { 'L', 	 "layers",          	    required_argument,	 	LQNGEN_ONLY,  	"Create exactly ARG layers." },
-    { 'P', 	 "processors",      	    required_argument,	 	LQNGEN_ONLY,  	"Create exactly ARG processors." },
-    { 'T', 	 "tasks",           	    required_argument,	 	LQNGEN_ONLY,  	"Create exactly ARG tasks (excluding reference tasks)." },
+    { 'A',  	 "automatic",		    required_argument,	 	LQNGEN_ONLY,  	"Create a model with exactly ARG layers, clients, processor and ARG**2 tasks." },
+    { 'Q',	 "queueing-model",	    required_argument,		LQNGEN_ONLY,	"Create a model for testing a queueing network with exactly ARG customers." },
+    { 'C', 	 "clients",         	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG (default: constant) client (Reference) tasks." },
+    { 'L', 	 "layers",          	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG (default: constant) layers." },
+    { 'P', 	 "processors",      	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG (default: constant) processors." },
+    { 'G',	 "group",		    required_argument,		LQNGEN_ONLY,    "Set the probability of a processor using Completely Fair Scheduling to ARG." },
+    { 'T', 	 "tasks",           	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG (default: constant) tasks (excluding reference tasks)." },
+    { 'E', 	 "entries",	   	    required_argument,	 	LQNGEN_ONLY,  	"Set the average number of entries per task to ARG." },
     { 'Y', 	 "outgoing-requests",	    required_argument,		LQNGEN_ONLY,	"Create an average of ARG reqeusts from each entry." },
     { 'M', 	 "models",	   	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG different models." },
     { 'N', 	 "experiments",     	    required_argument,	 	BOTH, 		"Create ARG experiments." },
     { 'S', 	 "sensitivity",		    required_argument,	    	LQN2LQX_ONLY,   "Create a factorial experiment with services times of increased/decreased by multiplying by ARG ." },
-    { 'O', 	 "format",          	    required_argument,          BOTH, 		"Set output format to ARG (lqn,xml)." },
+    { 'O', 	 "format",          	    required_argument,          BOTH, 		"Set output format to ARG (lqn,xml,json)." },
     { 'H', 	 "help",            	    no_argument,                BOTH, 		"help!" },
     { 'V',	 "version",		    no_argument,		BOTH,		"Print out the version number." },
     { 'c', 	 "customers",	   	    optional_argument,	 	BOTH,	  	"Set the average number of customers per client to ARG." },
-    { 'e', 	 "entries",	   	    required_argument,	 	LQNGEN_ONLY,  	"Set the average number of entries per task to ARG." },
-    { 'i',	 "infinite-server",	    required_argument,		BOTH,	  	"Set the probability of a task being an infinite server to ARG." },
+    { 'g',       "share",		    optional_argument,		BOTH,		"Set the share for the first group on the processor to ARG." },
+    { 'd',	 "delay-server",	    optional_argument,      	BOTH,	  	"Set the probability of a task being an infinite server to ARG." },
+    { 'i',	 "infinite-server",	    optional_argument,		BOTH,	  	"Set the probability of a task being an infinite server to ARG." },
     { 'p', 	 "processor-multiplicity",  optional_argument,	 	BOTH,	  	"Set the average processor multiplicity to ARG." },
     { 's', 	 "service-time",	    optional_argument,	 	BOTH,	  	"Set the average phase service time to ARG." },
     { 't', 	 "task-multiplicity",	    optional_argument,	 	BOTH,	  	"Set the average task multiplicity to ARG." },
@@ -64,11 +69,13 @@ option_type options[] =
     { '2', 	 "second-phase",	    required_argument,		LQNGEN_ONLY,  	"Set the probability of a second phase for an entry to ARG." },
     { 'o', 	 "output",		    required_argument,          LQN2LQX_ONLY,	"Set the output file name to ARG." },
     { 'v', 	 "verbose",         	    no_argument,                BOTH, 		"Verbose." },
+    { 0x100+'j', "json-output",     	    no_argument,                BOTH,	 	"Output JSON." },
     { 0x100+'x', "xml-output",      	    no_argument,                BOTH, 		"Output XML." },
     { 0x100+'X', "lqx-output",      	    no_argument,                BOTH, 		"Output XML model with LQX." },
     { 0x100+'S', "spex-output",     	    no_argument,                BOTH, 		"Output LQN model with SPEX." },
     { 0x100+'T', "transform",		    no_argument, 		LQNGEN_ONLY, 	"Transform the supplied input model (i.e., run as lqn2lqx)." },
     { 0x100+'4', "seed",            	    required_argument,		BOTH, 		"Seed value for random number generator." },
+    { 0x100+'8', "beta",		    required_argument,		BOTH,		"Set the Beta parameter of the BETA distribution to ARG.  Alpha is set from the mean." },
     { 0x100+'B', "binomial",		    no_argument,		BOTH, 		"Use a BINOMIAL distribution." },
     { 0x100+'C', "constant",		    no_argument,	        BOTH, 		"Use CONSTANT values." },
     { 0x100+'N', "normal",		    required_argument,		BOTH, 		"Use a NORMAL distribution with a standard deviation of ARG." },
@@ -83,6 +90,7 @@ option_type options[] =
     { 0x100+'E', "deterministic",	    no_argument,		LQNGEN_ONLY,	"Assign tasks determinstically, evenly distributed among the layers." },
     { 0x100+'b', "breadth",		    no_argument,		LQNGEN_ONLY,    "Assign processors determinstically from left to right." },
     { 0x100+'d', "depth",		    no_argument,		LQNGEN_ONLY,    "Assign processors determinstically from top down." },
+    { 0X100+'#', "total-customers",	    required_argument,		BOTH,		"Set the total number of customers, regardless of clients, to ARG." },
     { 0x100+'n', "no-variables",	    no_argument,		LQN2LQX_ONLY,   "Do not convert any constants to variables." },
     { 0x100+'o', "no-observation",	    no_argument,		BOTH,		"Do not insert any observation variables or code for SPEX/LQX output." },
     { 0x100+'c', "no-customers",	    no_argument, 		LQN2LQX_ONLY,	"Do not convert the number of customers to a variable." },
@@ -96,11 +104,13 @@ option_type options[] =
     { 0x200+'r', "residence-time",	    no_argument,		BOTH,  		"[Do not] observe entry service (residence) time for SPEX/LQX output." },
     { 0x200+'w', "waiting-time",	    no_argument,		BOTH,  		"[Do not] observe request waiting (queueing) time for SPEX/LQX output." },
     { 0x200+'u', "utilization",	   	    no_argument,		BOTH,  		"[Do not] observe processor utilization for SPEX/LQX output." },
-    { 0x200+'M', "mva-waits",		    no_argument,		BOTH,  		"[Do not] observe the number of calls to wait() for SPEX/LQX output." },
+    { 0x200+'M', "mva-steps",		    no_argument,		BOTH,  		"[Do not] observe the number of calls to step() for SPEX/LQX output." },
+    { 0x200+'W', "mva-waits",		    no_argument,		BOTH,  		"[Do not] observe the number of calls to wait() for SPEX/LQX output." },
     { 0x200+'I', "iterations",		    no_argument,		BOTH,  		"[Do not] observe the number of solver iterations for SPEX/LQX output." },
     { 0x200+'E', "elapsed-time", 	    no_argument,		BOTH,  		"[Do not] observe the solver's ELAPSED time for SPEX/LQX output." },
     { 0x200+'U', "user-cpu-time",	    no_argument,		BOTH,  		"[Do not] observe the solver's USER CPU time for SPEX/LQX output." },
     { 0x200+'S', "system-cpu-time",	    no_argument,		BOTH,  		"[Do not] observe the solver's SYSTEM CPU time for SPEX/LQX output." },
+    { 0x200+'q', "pragma",		    optional_argument,		BOTH,		"Set a pragma for the generated model to ARG." },
     { 0x100+'%', "comment",		    required_argument,        	BOTH, 		"Set the model comment to ARG." },
     { 0x100+'1', "convergence-value",	    required_argument,        	BOTH,		"Set the model convergence value to ARG." },
     { 0x100+'2', "under-relaxation",	    required_argument,        	BOTH, 		"Set the model under-relaxation to ARG." },
@@ -118,16 +128,19 @@ int lqn2lqx( int argc, char *argv[0] );
 static void reset_RV( RV::RandomVariable ** rv, const RV::RandomVariable *, double mean );
 static void severity_action(unsigned severity);
 static void multi( const std::string& );
+static void execute( std::ostream& output, const std::string& file_name );
 static bool check_multiplicity( const RV::RandomVariable * );
 static bool check_argument( const RV::RandomVariable * );
 
-bool fixedModel = true;
+bool queueing_model = false;
 
 bool Flags::verbose = false;
 bool Flags::annotate_input = true;
-output_format_t Flags::output_format  = FORMAT_SRVN;
-bool Flags::lqx_spex_output = false;
+LQIO::DOM::Document::input_format Flags::output_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
+bool Flags::spex_output = false;
+bool Flags::lqx_output = false;
 bool Flags::lqn2lqx = false;
+bool Flags::reset_pragmas = false;
 bool Flags::long_names = false;
 std::vector<bool> Flags::observe(Flags::N_OBSERVATIONS,false);
 std::vector<bool> Flags::convert(Flags::N_PARAMETERS,true);
@@ -136,28 +149,23 @@ unsigned int Flags::number_of_runs = 1;
 unsigned int Flags::number_of_models = 1;
 double Flags::sensitivity = 0;
 
-lqio_params_stats io_vars =
-{
-    /* .n_processors =   */ 0,
-    /* .n_tasks =	 */ 0,
-    /* .n_entries =      */ 0,
-    /* .n_groups =       */ 0,
-    /* .lq_toolname =    */ NULL,
-    /* .lq_version =	 */ VERSION,
-    /* .lq_command_line =*/ NULL,
-    /* .severity_action= */ severity_action,
-    /* .max_error =      */ 0,
-    /* .error_count =    */ LQIO::LSTGBLERRMSG,
-    /* .severity_level = */ LQIO::NO_ERROR,
-    /* .error_messages = */ &LQIO::global_error_messages[0],
-    /* .anError =        */ 0
-};
+lqio_params_stats io_vars( VERSION, severity_action );
 
-static RV::RandomVariable * continuous_default;
-static RV::RandomVariable * discreet_default;
+RV::RandomVariable * continuous_default;
+RV::RandomVariable * discreet_default;
+RV::RandomVariable * constant_default;
+static RV::RandomVariable * number_of_layers;
+static RV::RandomVariable * number_of_clients;
+static RV::RandomVariable * number_of_processors;
+static RV::RandomVariable * number_of_tasks;
+static RV::RandomVariable * total_customers;
+
 static bool some_randomness = false;
-static const char * output_suffix[] = { "xlqn", "lqnx", "json" }; 		/* Match Options::io above */
+static const char * const output_suffix[] = { "xlqn", "xlqn", "lqnx", "json", 0, 0 };
 static std::string output_file_name;
+
+
+std::map<std::string,RV::RandomVariable *> distributions;
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -166,29 +174,10 @@ static std::string output_file_name;
 int
 main( int argc, char *argv[] )
 {
-    srand48( 12345678L );					/* Init now, may be reset with --seed */
-    continuous_default = new RV::Gamma( 0.5, 2.0 );		/* scale,shape. Mean is one E[x] = k x gamma */
-//    discreet_default = new RV::Binomial( 1, 3 );		/* Mean is (arg2 - arg1) / 2 + arg1 */
-    discreet_default = new RV::Poisson( 2, 1 );			/* Mean is (arg1 - arg2) / 2 + arg1 */
+    initialize();
 
-    Generate::__service_time 		    = new RV::Constant( 1.0 );
-    Generate::__think_time 		    = new RV::Constant( 1.0 );
-    Generate::__forwarding_probability      = new RV::Constant( 0.0 );
-    Generate::__rendezvous_rate 	    = new RV::Constant( 1.0 );
-    Generate::__send_no_reply_rate 	    = new RV::Constant( 0.0 );
-    Generate::__customers_per_client 	    = new RV::Constant( 1.0 );
-    Generate::__task_multiplicity 	    = new RV::Constant( 1.0 );
-    Generate::__processor_multiplicity      = new RV::Constant( 1.0 );
-    Generate::__number_of_entries	    = new RV::Constant( 1.0 );
-    Generate::__probability_second_phase    = 0.0;
-    Generate::__probability_infinite_server = 0.0;
-
-    Flags::observe[Flags::PARAMETERS] = true;
-    Flags::observe[Flags::UTILIZATION] = true;
-    Flags::observe[Flags::THROUGHPUT] = true;
-    Flags::observe[Flags::RESIDENCE_TIME] = true;
-    Flags::observe[Flags::QUEUEING_TIME] = true;
-
+    bool customers_set = false;
+    
     io_vars.lq_toolname = strrchr( argv[0], '/' );
     if ( io_vars.lq_toolname ) {
         io_vars.lq_toolname += 1;
@@ -200,7 +189,7 @@ main( int argc, char *argv[] )
 
     if ( strcmp( "lqn2lqx", io_vars.lq_toolname ) == 0 ) {
 	Flags::lqn2lqx = true;
-	Flags::lqx_spex_output = true;
+	Flags::spex_output = true;
 	Flags::annotate_input = false;
     }
     extern char *optarg;
@@ -254,6 +243,13 @@ main( int argc, char *argv[] )
 		Generate::__comment = optarg;
 		break;
 
+	    case 0x100+'#':
+		if ( total_customers ) delete total_customers;		/* out with the old... */
+		total_customers = get_RV( std::string(optarg), discreet_default, RV::RandomVariable::DISCREET );
+		if ( !check_multiplicity( total_customers ) ) throw std::domain_error( "The mean number of clients must be greater than zero." );
+		Flags::override[Flags::CUSTOMERS] = false;		/* Use DOM value as we set that */
+		break;
+		
 	    case 0x100+'1':
 		Generate::__convergence_value = strtod( optarg, &endptr );
 		if ( Generate::__convergence_value <= 0 ) {
@@ -302,24 +298,22 @@ main( int argc, char *argv[] )
 		    if ( arg < 1. ) {
 			throw std::domain_error( "argument is not a positive integer." );
 		    }
+		    const double root_arg = sqrt( arg );
 		    Flags::annotate_input = false;
-		    Generate::__number_of_tasks = static_cast<unsigned>(arg);
-		    RV::RandomVariable * rv = discreet_default->clone();
-		    rv->setMean( sqrt( arg ) );
-//		    cerr << *rv << endl;
-		    Generate::__customers_per_client = rv;
-		    Generate::__number_of_clients    = (*rv)();
-		    Generate::__number_of_layers     = (*rv)();
-		    Generate::__number_of_processors = (*rv)();
+		    reset_RV( &number_of_tasks, constant_default, arg );
+		    reset_RV( &number_of_layers, discreet_default, root_arg );
+		    reset_RV( &number_of_clients, discreet_default, root_arg );
+		    reset_RV( &number_of_processors, discreet_default, root_arg );
 		    Generate::__task_layering =      Generate::RANDOM_LAYERING;
 		    Generate::__processor_layering = Generate::RANDOM_LAYERING;
+		    reset_RV( &Generate::__customers_per_client, discreet_default, root_arg );
 		    reset_RV( &Generate::__task_multiplicity, discreet_default, 1.5 );
 		    reset_RV( &Generate::__processor_multiplicity, discreet_default, 1.5 );
 		    reset_RV( &Generate::__service_time, continuous_default, 1.0 );
 		    reset_RV( &Generate::__rendezvous_rate, continuous_default, 1.0 );
 		    reset_RV( &Generate::__number_of_entries, discreet_default, 1.2 );
 		    reset_RV( &Generate::__think_time, continuous_default, 1.0 );
-		    Generate::__outgoing_requests = (*Generate::__number_of_entries)();
+		    reset_RV( &Generate::__outgoing_requests, continuous_default, Generate::__number_of_entries->getMean() );
 		}
 		break;
 		
@@ -340,10 +334,12 @@ main( int argc, char *argv[] )
 		
 	    case 'c':			/* customers */
 		if ( optarg ) {
-		    reset_RV( &Generate::__customers_per_client, discreet_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__customers_per_client ) delete Generate::__customers_per_client;
+		    Generate::__customers_per_client = get_RV( std::string(optarg), discreet_default, RV::RandomVariable::DISCREET );
 		    if ( !check_multiplicity( Generate::__customers_per_client ) ) throw std::domain_error( "The mean number of clients must be greater than one." );
 		    Flags::override[Flags::CUSTOMERS] = true;
-		} else if ( !Flags::lqn2lqx ) {
+		    customers_set = true;
+		} else if ( Flags::override[Flags::CUSTOMERS] ) {
 		    throw std::domain_error( "option requires an argument" );
 		}
 		Flags::convert[Flags::CUSTOMERS] = true;
@@ -357,8 +353,9 @@ main( int argc, char *argv[] )
 
 	    case 'C':
 		if ( Flags::lqn2lqx ) throw c;
-		Generate::__number_of_clients = strtol( optarg, &endptr, 10 );
-		if ( (int)Generate::__number_of_clients < 1 ) throw std::domain_error( "The number of clients must be greater than zero." );
+		if ( number_of_clients ) delete number_of_clients;
+		number_of_clients = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
+		if ( !check_multiplicity( number_of_clients ) ) throw std::domain_error( "The number of clients must be greater than zero." );
 		break;
 
 	    case 0x100+'C':		/* Constant */
@@ -368,12 +365,16 @@ main( int argc, char *argv[] )
 		discreet_default = new RV::Constant( 1 );
 		break;
 
+	    case 'd':
+		Generate::__probability_delay_server = strtod( optarg, &endptr );
+		break;
+
 	    case 0x100+'d': /* Assign processors deterministically by depth." */
 		if ( Flags::lqn2lqx ) throw c;
 		Generate::__processor_layering = Generate::DEPTH_FIRST_LAYERING;
 		break;
 		
-	    case 'e':
+	    case 'E':
 		if ( Flags::lqn2lqx ) throw c;
 		reset_RV( &Generate::__number_of_entries, discreet_default, strtod( optarg, &endptr ) );
 		if ( dynamic_cast<RV::Constant *>(Generate::__number_of_entries) && floor((*Generate::__number_of_entries)()) != ceil((*Generate::__number_of_entries)()) ) {
@@ -407,9 +408,19 @@ main( int argc, char *argv[] )
 		Generate::__task_layering = Generate::FAT_LAYERING;
 		break;
 
+	    case 'g':
+		Generate::__group_share = strtod( optarg, &endptr );
+		break;
+		
+	    case 'G':
+		if ( Flags::lqn2lqx ) throw c;
+		Generate::__probability_cfs_processor = strtod( optarg, &endptr );
+		break;
+		
 	    case 0x100+'G':
 		if ( continuous_default ) delete continuous_default;
 		continuous_default = new RV::Gamma( 1, strtod( optarg, &endptr ) );
+		some_randomness = true;
 		break;
 
 	    case 'H':
@@ -441,10 +452,15 @@ main( int argc, char *argv[] )
 		Flags::observe[Flags::ITERATIONS] = false;
 		break;
 
+	    case 0x100+'j':
+		Flags::output_format = LQIO::DOM::Document::JSON_INPUT; 
+		break;
+
 	    case 'L':
 		if ( Flags::lqn2lqx ) throw c;
-		Generate::__number_of_layers = strtol( optarg, &endptr, 10 );
-		if ( (int)Generate::__number_of_layers < 1 ) throw std::domain_error( "The number of layers must be greater than zero." );
+		if ( number_of_layers ) delete number_of_layers;
+		number_of_clients = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
+		if ( !check_multiplicity( number_of_layers ) ) throw std::domain_error( "The number of layers must be greater than zero." );
 		break;
 
 	    case 0x100+'L':
@@ -453,6 +469,7 @@ main( int argc, char *argv[] )
 		break;
 		
 	    case 'M':
+		if ( Flags::lqn2lqx ) throw c;
 		Flags::number_of_models = strtol( optarg, &endptr, 10 );	/* Doesn't work with lqn2lqx	*/
 		break;								/* nor does it make sense	*/
 
@@ -461,11 +478,11 @@ main( int argc, char *argv[] )
 		exit( 0 );
 	    
 	    case 0x200+'M':
-		Flags::observe[Flags::MVA_WAITS] = true;
+		Flags::observe[Flags::MVA_STEPS] = true;
 		break;
 
 	    case 0x400+'M':
-		Flags::observe[Flags::MVA_WAITS] = false;
+		Flags::observe[Flags::MVA_STEPS] = false;
 		break;
 
 	    case 0x100+'n':
@@ -476,6 +493,7 @@ main( int argc, char *argv[] )
 	    case 0x100+'N':
 		if ( continuous_default ) delete continuous_default;
 		continuous_default = new RV::Normal( 1, strtod( optarg, &endptr ) );	/* Mean, stddev */
+		some_randomness = true;
 		break;
 
 	    case 'N':
@@ -493,12 +511,17 @@ main( int argc, char *argv[] )
 		
 	    case 'O': {
 		char * old_optarg = optarg;
-		static const char * const strings [] = { "lqn", "xml", 0 };
-		int arg = getsubopt( &optarg, const_cast<char *const *>(strings), &endptr );
+		static const char * const strings[] = { "lqn", "xml", "json", 0 };
+		int arg = getsubopt( &optarg, const_cast<char * const *>(strings), &endptr );
 		switch ( arg ) {
-		case FORMAT_SRVN:
-		case FORMAT_XML:
-		    Flags::output_format = static_cast<output_format_t>(arg);
+		case 0:
+		    Flags::output_format = LQIO::DOM::Document::LQN_INPUT;
+		    break;
+		case 1:
+		    Flags::output_format = LQIO::DOM::Document::XML_INPUT;
+		    break;
+		case 2:
+		    Flags::output_format = LQIO::DOM::Document::JSON_INPUT;
 		    break;
 		default:
 		    ::invalid_argument( c, old_optarg );
@@ -508,10 +531,11 @@ main( int argc, char *argv[] )
 
 	    case 'p':			/* processor-multiplicity */
 		if ( optarg ) {
-		    reset_RV( &Generate::__processor_multiplicity, discreet_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__processor_multiplicity ) delete Generate::__processor_multiplicity;
+		    Generate::__processor_multiplicity = get_RV( std::string( optarg ), discreet_default, RV::RandomVariable::DISCREET );
 		    if ( !check_multiplicity( Generate::__processor_multiplicity ) ) throw std::domain_error( "The mean processor multiplicity must be greater than one." );
 		    Flags::override[Flags::PROCESSOR_MULTIPLICITY] = true;
-		} else if ( !Flags::lqn2lqx ) {
+		} else if ( Flags::override[Flags::PROCESSOR_MULTIPLICITY] ) {
 		    throw std::domain_error( "option requires an argument" );
 		}
 		Flags::convert[Flags::PROCESSOR_MULTIPLICITY] = true;
@@ -525,8 +549,9 @@ main( int argc, char *argv[] )
 
 	    case 'P':
 		if ( Flags::lqn2lqx ) throw c;
-		Generate::__number_of_processors = strtol( optarg, &endptr, 10 );
-		if ( (int)Generate::__number_of_processors < 1 ) throw std::domain_error( "The number of processors must be greater than zero." );
+		if ( number_of_processors ) delete number_of_processors;
+		number_of_processors = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
+		if ( !check_multiplicity( number_of_processors ) ) throw std::domain_error( "The number of processors must be greater than zero." );
 		break;
 
 	    case 0x100+'P':
@@ -534,6 +559,60 @@ main( int argc, char *argv[] )
 		discreet_default = new RV::Poisson( 2, 1 );	/* Mean Offset */
 		break;
 
+	    case 'Q': 
+		if ( Flags::lqn2lqx ) {
+		    throw c;
+		} else {
+		    queueing_model = true;
+		    some_randomness = true;
+
+		    const double high = static_cast<double>(strtol( optarg, &endptr, 10 ));
+		    if ( (endptr != 0 && *endptr != '\0') || trunc(high) != high || high < 2. ) {
+			throw std::domain_error( "The total number of customers must be an integer greater than one." );
+		    }
+		    const double low = ceil( high / 10. );
+		    const double mid = ceil( high / 5. );
+
+		    if ( number_of_clients ) delete number_of_clients;
+		    if ( number_of_layers ) delete number_of_layers;
+		    if ( number_of_tasks ) delete number_of_tasks;
+		    if ( total_customers ) delete total_customers;
+		    if ( Generate::__outgoing_requests ) delete Generate::__outgoing_requests;
+		    if ( Generate::__service_time ) delete Generate::__service_time;
+		    if ( Generate::__think_time ) delete Generate::__think_time;
+		    if ( Generate::__rendezvous_rate ) delete Generate::__rendezvous_rate;
+		    number_of_clients = new RV::Uniform( 1.0, low + 1.0 );
+		    number_of_layers = new RV::Constant( 1.0 );
+		    number_of_tasks = new RV::Uniform( low, mid + 1.0 );
+		    total_customers = new RV::Uniform( low, high + 1.0 );
+		    Generate::__outgoing_requests = new RV::Uniform( 1.0, mid + 1.0 );
+		    Generate::__probability_delay_server = 1.0;		/* Ignore all processors */
+		    Generate::__probability_infinite_server = 0.05;
+		    Generate::__service_time = new RV::Uniform( 0.0, 1.0 );
+		    Generate::__rendezvous_rate = new RV::Uniform( 0.0, 1.0 );
+		    Generate::__think_time = new RV::Constant( 0.0 );
+
+		    Flags::annotate_input = false;
+		    Flags::override[Flags::CUSTOMERS] = false;		/* Use DOM value as we set that */
+		    Generate::__iteration_limit = 1;
+		    Generate::__pragma["prune"] = "true";
+		    Generate::__pragma["variance"] = "no-entry";
+		    Generate::__pragma["severity-level"] = "run-time";	/* Suppress no client service time warnings. */
+		}
+		break;
+		
+	    case 0x200+'q':
+		get_pragma( std::string( optarg ) );
+		break;
+
+	    case 0x400+'q':
+		if ( Flags::lqn2lqx ) throw c;
+		Flags::reset_pragmas = true;
+		if ( optarg != NULL ) {
+		    throw std::domain_error( "option does not take an argument" );
+		}
+		break;
+		
 	    case 0x100+'R':
 		if ( Flags::lqn2lqx ) throw c;
 		Generate::__task_layering = Generate::RANDOM_LAYERING;
@@ -549,10 +628,11 @@ main( int argc, char *argv[] )
 
 	    case 's':			/* service-time */
 		if ( optarg ) {
-		    reset_RV( &Generate::__service_time, continuous_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__service_time ) delete Generate::__service_time;
+		    Generate::__service_time = get_RV( std::string( optarg ), continuous_default, RV::RandomVariable::CONTINUOUS );
 		    if ( !check_argument( Generate::__service_time ) ) throw std::domain_error( "Service time must be greater than zero." );
 		    Flags::override[Flags::SERVICE_TIME] = true;
-		} else if ( !Flags::lqn2lqx ) {
+		} else if ( Flags::override[Flags::SERVICE_TIME] ) {
 		    throw std::domain_error( "option requires an argument" );
 		}
 		Flags::convert[Flags::SERVICE_TIME] = true;
@@ -570,8 +650,7 @@ main( int argc, char *argv[] )
 		break;
 
 	    case 0x100+'S':
-		Flags::lqx_spex_output = true;
-		Flags::output_format = FORMAT_SRVN;
+		Flags::spex_output = true;
 		break;
 
 	    case 0x200+'S':
@@ -584,7 +663,8 @@ main( int argc, char *argv[] )
 
 	    case 't':			/* task-multiplicity */
 		if ( optarg ) {
-		    reset_RV( &Generate::__task_multiplicity, discreet_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__task_multiplicity ) delete Generate::__task_multiplicity;
+		    Generate::__task_multiplicity = get_RV( std::string( optarg ), discreet_default, RV::RandomVariable::DISCREET );
 		    if ( !check_multiplicity( Generate::__task_multiplicity ) ) throw std::domain_error( "The mean task multiplicity must be greater than one." );
 		    Flags::override[Flags::TASK_MULTIPLICITY] = true;
 		} else if ( !Flags::lqn2lqx ) {
@@ -601,13 +681,14 @@ main( int argc, char *argv[] )
 
 	    case 'T':
 		if ( Flags::lqn2lqx ) throw c;
-		Generate::__number_of_tasks = strtol( optarg, &endptr, 10 );
-		if ( (int)Generate::__number_of_tasks < 1 ) throw std::domain_error( "The number of tasks must be greater than zero." );
+		if ( number_of_tasks ) delete number_of_tasks;
+		number_of_tasks = get_RV( std::string( optarg ), constant_default, RV::RandomVariable::DISCREET );
+		if ( !check_multiplicity( number_of_tasks ) ) throw std::domain_error( "The number of tasks must be greater than zero." );
 		break;
 
 	    case 0x100+'T':
 		Flags::lqn2lqx = true;
-		Flags::lqx_spex_output = true;
+		Flags::spex_output = true;
 		Flags::annotate_input = false;
 		break;
 		
@@ -624,6 +705,7 @@ main( int argc, char *argv[] )
 		continuous_default = new RV::Uniform( 0, strtod( optarg, &endptr ) );
 		if ( discreet_default ) delete discreet_default;		/* Arg and spread should be > 1 */
 		discreet_default = new RV::Uniform( 1, strtod( optarg, &endptr ) + 1 );
+		some_randomness = true;
 		break;
 
 	    case 0x200+'U':
@@ -642,13 +724,22 @@ main( int argc, char *argv[] )
 		Flags::observe[Flags::QUEUEING_TIME] = false;
 		break;
 		
+	    case 0x200+'W':
+		Flags::observe[Flags::MVA_WAITS] = true;
+		break;
+
+	    case 0x400+'W':
+		Flags::observe[Flags::MVA_WAITS] = false;
+		break;
+
 	    case 0x100+'x':
-		Flags::output_format = FORMAT_XML;
+		Flags::output_format = LQIO::DOM::Document::XML_INPUT;
 		break;
 
 	    case 0x100+'X':
-		Flags::output_format = FORMAT_XML;
-		Flags::lqx_spex_output  = true;
+		Flags::output_format = LQIO::DOM::Document::XML_INPUT;
+		Flags::spex_output = true;
+		Flags::lqx_output  = true;
 		break;
 
 	    case 'v':
@@ -666,10 +757,11 @@ main( int argc, char *argv[] )
 
 	    case 'y':			/* rendezvous-rate */
 		if ( optarg ) {
-		    reset_RV( &Generate::__rendezvous_rate, continuous_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__rendezvous_rate ) delete Generate::__rendezvous_rate;
+		    Generate::__rendezvous_rate = get_RV( std::string( optarg ), continuous_default, RV::RandomVariable::CONTINUOUS );
 		    if ( !check_argument( Generate::__service_time ) ) throw std::domain_error( "Request rate must be greater than zero." );
 		    Flags::override[Flags::REQUEST_RATE] = true;
-		} else if ( !Flags::lqn2lqx ) {
+		} else if ( Flags::override[Flags::REQUEST_RATE] ) {
 		    throw std::domain_error( "option requires an argument" );
 		}
 		Flags::convert[Flags::REQUEST_RATE] = true;
@@ -683,19 +775,18 @@ main( int argc, char *argv[] )
 
 	    case 'Y':
 		if ( Flags::lqn2lqx ) throw c;
-		Generate::__outgoing_requests = strtod( optarg, &endptr );
-		if ( Generate::__outgoing_requests < 1.0 ) {
-		    ::invalid_argument( c, optarg );				/* Must be > 1.0 because we can't remove. */
-		    exit( 1 );
-		}
+		if ( Generate::__outgoing_requests ) delete Generate::__outgoing_requests;
+		Generate::__outgoing_requests = get_RV( std::string( optarg ), continuous_default, RV::RandomVariable::CONTINUOUS );
+		if ( !check_argument( Generate::__outgoing_requests ) ) throw std::domain_error( "Outgoing requests must be greater than zero." );
 		break;
 		
 	    case 'z':
 		if ( optarg ) {
-		    reset_RV( &Generate::__think_time, continuous_default, strtod( optarg, &endptr ) );
+		    if ( Generate::__think_time ) delete Generate::__think_time;
+		    Generate::__think_time = get_RV( std::string( optarg ), continuous_default, RV::RandomVariable::CONTINUOUS );
 		    if ( !check_argument( Generate::__service_time ) ) throw std::domain_error( "Think time must be greater than zero." );
 		    Flags::override[Flags::THINK_TIME] = true;
-		} else if ( !Flags::lqn2lqx ) {
+		} else if ( Flags::override[Flags::THINK_TIME] ) {
 		    throw std::domain_error( "option requires an argument" );
 		}
 		Flags::convert[Flags::THINK_TIME] = true;
@@ -714,6 +805,11 @@ main( int argc, char *argv[] )
 
 	    if ( endptr != 0 && *endptr != '\0' ) {
 		::invalid_argument( c, optarg );
+		exit( 1 );
+	    }
+
+	    if ( customers_set && (dynamic_cast<const RV::Constant *>(total_customers) == NULL || (*total_customers)() != 0) ) {
+		cerr << io_vars.lq_toolname << ": --customers and --total-customers are mutually exclusive." << endl;
 		exit( 1 );
 	    }
 	}
@@ -751,19 +847,6 @@ main( int argc, char *argv[] )
 static int
 lqngen( int argc, char *argv[0] )
 {
-    if ( Generate::__number_of_layers > Generate::__number_of_tasks ) {
-	if ( Generate::__number_of_tasks == 1 ) {
-	    Generate::__number_of_tasks = Generate::__number_of_layers;
-	} else {
-	    fprintf( stderr, "%s: Too many layers for %d tasks.\n", argv[0], Generate::__number_of_tasks );
-	    exit( 1 );
-	}
-    }
-    if ( Generate::__number_of_processors > Generate::__number_of_tasks ) {
-	fprintf( stderr, "%s: Too many processors for %d tasks (warning only).\n", argv[0], Generate::__number_of_tasks );
-	Generate::__number_of_processors = Generate::__number_of_tasks;
-    }
-
     if ( !some_randomness && Flags::number_of_runs > 1 ) {
 	fprintf( stderr, "%s: Multiple experiment runs, but no randomness in model.  Use any or all of -s, -t, -p, -y to set randomness.\n", argv[0] );
 	exit( 1 );
@@ -771,47 +854,43 @@ lqngen( int argc, char *argv[0] )
 
     /* If multiple experiments, force spex/lqx code */
     if ( Flags::number_of_runs > 1 ) {
-	Flags::lqx_spex_output = true;
+	Flags::spex_output = true;
     }
 
     /* If not spex output, turn off all observations */
-    if ( !Flags::lqx_spex_output ) {
+    if ( !Flags::spex_output ) {
 	std::transform( Flags::observe.begin(), Flags::observe.end(), Flags::observe.begin(), Flags::set_false );
     }
     
-    if ( Generate::__comment.size() == 0 ) {
-	Generate::__comment = io_vars.lq_command_line;
-    }
-
     if ( argc == optind ) {
 	output_file_name = "";
 	
-	LQIO::input_file_name = strdup( "" );
 
 	if ( Flags::number_of_models > 1 ) {
 	    cerr << io_vars.lq_toolname << ": a directory name is required as an argument for the option '--models=" 
 		 << Flags::number_of_models << "." << std::endl;
 	    exit ( 1 );
 	}
-	Generate model( Generate::__number_of_layers, Flags::number_of_runs );
-	cout << model();
+
+	execute( cout, "" );
 
     } else if ( argc == optind + 1 ) {
 
 	if ( Flags::number_of_models <= 1 ) {
 	    ofstream output_file;
 	    output_file_name = argv[optind];
-	    LQIO::Filename::backup( output_file_name.c_str() );
+	    LQIO::Filename::backup( output_file_name );
 	    output_file.open( argv[optind], ios::out );
 	    if ( !output_file ) {
-		cerr << io_vars.lq_toolname << ": Cannot open output file " << output_file_name << " - "
-		     << strerror( errno ) << endl;
+		cerr << io_vars.lq_toolname << ": Cannot open output file " << output_file_name << " - " << strerror( errno ) << endl;
 		exit ( 1 );
 	    }
-	    
-	    LQIO::input_file_name = strdup( output_file_name.c_str() );
-	    Generate model( Generate::__number_of_layers, Flags::number_of_runs );
-	    output_file << model();
+	    if ( Flags::output_format == LQIO::DOM::Document::AUTOMATIC_INPUT ) {
+		Flags::output_format = LQIO::DOM::Document::getInputFormatFromFilename( output_file_name, LQIO::DOM::Document::LQN_INPUT );
+	    }
+
+	    execute( output_file, output_file_name );
+
 	    output_file.close();
 
 	} else {
@@ -839,14 +918,14 @@ lqn2lqx( int argc, char **argv )
     }
 
     if ( optind == argc ) {
-	LQIO::DOM::Document* document = LQIO::DOM::Document::load( "-", LQIO::DOM::Document::AUTOMATIC_INPUT, "", &io_vars, errorCode, false );
+	LQIO::DOM::Document* document = LQIO::DOM::Document::load( "-", LQIO::DOM::Document::AUTOMATIC_INPUT, &io_vars, errorCode, false );
 	if ( document ) {
-	    Generate aModel( document, Flags::number_of_runs );
-	    aModel.reparameterize();
-	    if ( output_file_name == "-" ) {
+	    Generate aModel( document, Flags::output_format, Flags::number_of_runs, (*total_customers)() );
+	    aModel.groupize().reparameterize();
+	    if ( output_file_name.size() == 0 || output_file_name == "-" ) {
 		cout << aModel;
 	    } else {
-		LQIO::Filename::backup( output_file_name.c_str() );
+		LQIO::Filename::backup( output_file_name );
 		
 		std::ofstream output;
 		output.open( output_file_name.c_str(), ios::out|ios::binary );
@@ -864,27 +943,27 @@ lqn2lqx( int argc, char **argv )
 	exit( 1 );
     } else {
 	for ( ;optind < argc; ++optind ) {
-	    LQIO::DOM::Document* document = LQIO::DOM::Document::load( argv[optind], LQIO::DOM::Document::AUTOMATIC_INPUT, "", &io_vars, errorCode, false );
+	    LQIO::DOM::Document* document = LQIO::DOM::Document::load( argv[optind], LQIO::DOM::Document::AUTOMATIC_INPUT, &io_vars, errorCode, false );
 	    if ( !document ) {
 		continue;
 	    }
 
-	    Generate aModel( document, Flags::number_of_runs );
-	    aModel.reparameterize();
+	    Generate aModel( document, Flags::output_format, Flags::number_of_runs, (*total_customers)() );
+	    aModel.groupize().reparameterize();
 	    
 	    if ( output_file_name == "-" ) {
 		cout << aModel;
 	    } else {
 		LQIO::Filename filename;
 		if ( output_file_name.size() ) {
-		    filename = output_file_name.c_str();
+		    filename = output_file_name;
 		} else {
 		    filename.generate( argv[optind], output_suffix[Flags::output_format] );
 		}
 		filename.backup();		/* Overwriting input file. -- back up */
 
 		ofstream output;
-		output.open( filename(), ios::out );
+		output.open( filename().c_str(), ios::out );
 		if ( !output ) {
 		    cerr << io_vars.lq_toolname << ": Cannot open output file " << filename() << " - " << strerror( errno ) << endl;
 		    exit ( 1 );
@@ -895,6 +974,64 @@ lqn2lqx( int argc, char **argv )
 	}
     }
     return 0;
+}
+
+
+/*
+ * Generate multiple experiments.  This DOES not work for lqn2lqx because the
+ * document is clobbered when we run reparameterize().
+ */
+
+static void
+multi( const std::string& dir )
+{
+    struct stat sb;
+    if ( stat ( dir.c_str(), &sb ) < 0 ) {
+	if ( errno != ENOENT ) {
+	    cerr << io_vars.lq_toolname << ": " << strerror( errno ) << endl;
+	    exit ( 1 );
+	} else if ( mkdir( dir.c_str()
+#if !defined(WINNT) && !defined(MSDOS)
+			   ,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH
+#endif
+			) < 0 ) {
+	    cerr << io_vars.lq_toolname << ": " << strerror( errno ) << endl;
+	    exit( 1 );
+	}
+    } else if ( !S_ISDIR( sb.st_mode ) ) {
+	cerr << io_vars.lq_toolname << ": Cannot output multiple files to " << dir << endl;
+	exit( 1 );
+    }
+
+    int w = static_cast<int>(log10( static_cast<double>(Flags::number_of_models) )) + 1;
+
+    for ( unsigned i = 1; i <= Flags::number_of_models; ++i ) {
+	std::ostringstream file_name;
+	file_name << dir << "/case-" << setw( w ) << setfill( '0' ) << i << "." << output_suffix[Flags::output_format];
+	ofstream output_file;
+	output_file.open( file_name.str().c_str(), ios::out );
+
+	if ( !output_file ) {
+	    cerr << io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << endl;
+	    exit ( 1 );
+	}
+
+	execute( output_file, file_name.str() );
+	output_file.close();
+    }
+}
+
+
+static void
+execute( std::ostream& output, const std::string& file_name )
+{
+    LQIO::DOM::Document::__input_file_name = file_name;
+
+    const unsigned int n_tasks = (*number_of_tasks)();
+    const unsigned int n_procs = queueing_model ? n_tasks : (*number_of_processors)();
+    Generate model( Flags::output_format, Flags::number_of_runs, (*number_of_layers)(), (*total_customers)(),
+		    n_procs, (*number_of_clients)(), n_tasks );
+    output << model();
 }
 
 static void
@@ -975,53 +1112,55 @@ makeopts( string& opts )
     }
 }
 #endif
-
-/*
- * Generate multiple experiments.  This DOES not work for lqn2lqx because the
- * document is clobbered when we run reparameterize().
- */
+
 
 static void
-multi( const std::string& dir )
+get_pragma( const std::string& arg )
 {
-    struct stat sb;
-    if ( stat ( dir.c_str(), &sb ) < 0 ) {
-	if ( errno != ENOENT ) {
-	    cerr << io_vars.lq_toolname << ": " << strerror( errno ) << endl;
-	    exit ( 1 );
-	} else if ( mkdir( dir.c_str()
-#if !defined(WINNT) && !defined(MSDOS)
-			   ,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH
-#endif
-			) < 0 ) {
-	    cerr << io_vars.lq_toolname << ": " << strerror( errno ) << endl;
-	    exit( 1 );
-	}
-    } else if ( !S_ISDIR( sb.st_mode ) ) {
-	cerr << io_vars.lq_toolname << ": Cannot output multiple files to " << dir << endl;
-	exit( 1 );
-    }
-
-    int w = static_cast<int>(log10( static_cast<double>(Flags::number_of_models) )) + 1;
-
-    for ( unsigned i = 1; i <= Flags::number_of_models; ++i ) {
-	std::ostringstream file_name;
-	file_name << dir << "/case-" << setw( w ) << setfill( '0' ) << i << "." << output_suffix[Flags::output_format];
-	ofstream output_file;
-	output_file.open( file_name.str().c_str(), ios::out );
-
-	if ( !output_file ) {
-	    cerr << io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << endl;
-	    exit ( 1 );
-	}
-
-	LQIO::input_file_name = strdup( file_name.str().c_str() );
-	Generate aModel( Generate::__number_of_layers, Flags::number_of_runs );
-	output_file << aModel();
-	output_file.close();
+    std::size_t pos = arg.find( "=" );
+    if ( pos != 0 && pos != std::string::npos ) {
+	Generate::__pragma[arg.substr(0,pos)] = arg.substr(pos+1);
+    } else {
+	Generate::__pragma[arg] = "";
     }
 }
 
+
+static RV::RandomVariable *
+get_RV( const std::string& arg, RV::RandomVariable * new_dist, RV::RandomVariable::distribution_t type )
+{
+    const std::size_t sep1 = arg.find( ":" );
+    if ( sep1 != std::string::npos ) {
+	std::string arg1 = arg.substr(0,sep1);
+	/* Check for distribution */
+	std::map<std::string,RV::RandomVariable *>::const_iterator dist = distributions.find( arg1 );
+	if ( dist != distributions.end() ) {
+	    RV::RandomVariable::distribution_t new_type = dist->second->getType();
+	    if ( new_type != RV::RandomVariable::CONSTANT && new_type != RV::RandomVariable::BOTH && new_type != type ) throw std::domain_error( "invalid distribution for random variable" );
+	    std::string arg2 = arg.substr(sep1+1);
+	    return get_RV_args( dist->second->clone(), arg2 );
+	}
+    }
+    /* default case for one or two args */
+    return get_RV_args( new_dist->clone(), arg );
+}
+
+static RV::RandomVariable *
+get_RV_args( RV::RandomVariable * dist, const std::string& arg )
+{
+    if ( dist->getType() != RV::RandomVariable::CONSTANT ) some_randomness = true;
+    const std::size_t sep1 = arg.find( ":" );
+    if ( sep1 != std::string::npos ) {
+	if ( dist->nArgs() != 2 ) throw std::domain_error( "number of arguments" );
+	std::string arg1 = arg.substr(0,sep1);
+	std::string arg2 = arg.substr(sep1+1);
+	dist->setArg( 1, arg1 );
+	dist->setArg( 2, arg2 );
+    } else {
+	dist->setMean( arg );
+    }
+    return dist;
+}
 
 
 /*
@@ -1037,11 +1176,58 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.anError = true;
 	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= 10 ) {
+	if  ( io_vars.error_count >= io_vars.max_error ) {
 	    throw runtime_error( "Too many errors" );
 	}
 	break;
     }
+}
+
+
+
+static void
+initialize()
+{
+    srand48( 12345678L );					/* Init now, may be reset with --seed */
+    continuous_default = new RV::Gamma( 0.5, 2.0 );		/* scale,shape. Mean is one E[x] = k x gamma */
+//    discreet_default = new RV::Binomial( 1, 3 );		/* Mean is (arg2 - arg1) / 2 + arg1 */
+    discreet_default = new RV::Poisson( 2, 1 );			/* Mean is (arg1 - arg2) / 2 + arg1 */
+    constant_default = new RV::Constant( 1 );
+
+    Generate::__service_time 		    = new RV::Constant( 1.0 );
+    Generate::__think_time 		    = new RV::Constant( 1.0 );
+    Generate::__forwarding_probability      = new RV::Constant( 0.0 );
+    Generate::__rendezvous_rate 	    = new RV::Constant( 1.0 );
+    Generate::__send_no_reply_rate 	    = new RV::Constant( 0.0 );
+    Generate::__customers_per_client 	    = new RV::Constant( 1.0 );
+    Generate::__task_multiplicity 	    = new RV::Constant( 1.0 );
+    Generate::__processor_multiplicity      = new RV::Constant( 1.0 );
+    Generate::__number_of_entries	    = new RV::Constant( 1.0 );
+    Generate::__outgoing_requests	    = new RV::Constant( 1.0 );
+    Generate::__probability_second_phase    = 0.0;
+    Generate::__probability_infinite_server = 0.0;
+    number_of_tasks      = new RV::Constant( 1.0 );
+    number_of_clients    = new RV::Constant( 1.0 );
+    number_of_processors = new RV::Constant( 1.0 );
+    number_of_layers	 = new RV::Constant( 1.0 );
+    total_customers	 = new RV::Constant( 0.0 );
+
+    Flags::observe[Flags::PARAMETERS] = true;
+    Flags::observe[Flags::UTILIZATION] = true;
+    Flags::observe[Flags::THROUGHPUT] = true;
+    Flags::observe[Flags::RESIDENCE_TIME] = true;
+    Flags::observe[Flags::QUEUEING_TIME] = true;
+
+    distributions[RV::Exponential::__name]  = new RV::Exponential(1.0);
+    distributions[RV::Pareto::__name]       = new RV::Pareto(1.0);
+    distributions[RV::Uniform::__name] 	    = new RV::Uniform(0.0,1.0);
+    distributions[RV::LogUniform::__name]   = new RV::LogUniform(0.0,1.0);
+    distributions[RV::Constant::__name]     = new RV::Constant(1.0);
+    distributions[RV::Normal::__name]       = new RV::Normal(1.0,1.0);
+    distributions[RV::Gamma::__name]        = new RV::Gamma(1.0,1.0);
+    distributions[RV::Beta::__name]         = new RV::Beta(1.0,1.0);
+    distributions[RV::Poisson::__name]      = new RV::Poisson(2.0,1.0);
+    distributions[RV::Binomial::__name]     = new RV::Binomial(0.0,1.0);
+    distributions[RV::Probability::__name]  = new RV::Probability(0.0);
 }

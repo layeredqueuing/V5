@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: submodel.h 13413 2018-10-23 15:03:40Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -43,7 +43,7 @@ class Submodel {
     friend SubModelManip print_submodel_header( const Submodel & aSubModel, const unsigned long iterations  );
 
 public:
-    Submodel( const unsigned n, const Model * anOwner ) : myNumber(n), myOwner(anOwner), n_chains(0) {}
+    Submodel( const unsigned n, const Model * anOwner ) : _submodel_number(n), myOwner(anOwner), _n_chains(0) {}
     virtual ~Submodel() {}
 
 private:
@@ -57,11 +57,11 @@ public:
     void addClient( Task * aTask ) { clients += aTask; }
     void addServer( Entity * anEntity ) { servers += anEntity; }
 
-    unsigned number() const { return myNumber; }
+    unsigned number() const { return _submodel_number; }
     Submodel& number( const unsigned );
     const Model * owner() const { return myOwner; }
 
-    unsigned nChains() const { return n_chains; }
+    unsigned nChains() const { return _n_chains; }
     unsigned customers( const unsigned i ) const { return myCustomers[i]; }
     double thinkTime( const unsigned i ) const { return myThinkTime[i]; }
     unsigned priority( const unsigned i) const { return myPriority[i]; }
@@ -86,6 +86,9 @@ public:
 
     void debug_stop( const unsigned long, const double ) const;
 
+protected:
+    void setNChains( unsigned int n ) { _n_chains = n; }
+
 private:
     static ostream& submodel_header_str( ostream& output, const Submodel& aSubmodel, const unsigned long iterations );
 
@@ -94,15 +97,15 @@ protected:
     Cltn<Entity *> servers;		/* Table of servers 		*/
 
 private:
-    unsigned myNumber;			/* Submodel number.  Set once.	*/
+    unsigned _submodel_number;		/* Submodel number.  Set once.	*/
     const Model * myOwner;		/* Pointer to layerizer.	*/
+    unsigned _n_chains;			/* Number of chains K		*/
 	
 protected:
     /* MVA Stuff */
 
-    unsigned n_chains;			/* Number of chains K		*/
 
-    PopVector myCustomers;		/* Customers by chain k		*/
+    Population myCustomers;		/* Customers by chain k		*/
     VectorMath<double> myThinkTime;	/* Think time for chain k	*/
     Vector<unsigned> myPriority;	/* Priority for chain k.	*/
 };

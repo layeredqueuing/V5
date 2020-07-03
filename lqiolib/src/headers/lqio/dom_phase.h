@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 10069 2010-12-03 18:58:14Z greg $
+ *  $Id: dom_phase.h 13558 2020-05-26 01:52:40Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -27,6 +27,14 @@ namespace LQIO {
 	    /* The maximum allowable phase number */
 	    static const unsigned int MAX_PHASE = 3;
       
+	    struct eqPhase {
+	        eqPhase( const DOM::Phase * phase ) : _phase(phase) {}
+		bool operator()(const std::pair<unsigned, Phase *>& p ) const { return p.second == _phase; }
+
+	    private:
+		const DOM::Phase * _phase;
+	    };
+
 	public:
       
 	    /* Designated initializer for the call information */
@@ -37,8 +45,9 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
       
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    bool isPresent() const;
-	    bool isNotNull() const;
 	    double getServiceTimeValue() const;
 	    const ExternalVariable* getServiceTime() const;
 	    void setServiceTime(ExternalVariable* serviceTime);
@@ -60,18 +69,23 @@ namespace LQIO {
 	    void setCoeffOfVariationSquaredValue(double value);
 	    bool hasCoeffOfVariationSquared() const;
 	    bool isNonExponential() const;
+	    void setMaxServiceTime(ExternalVariable* serviceTime);
+	    void setMaxServiceTimeValue(double value);
+	    virtual double getMaxServiceTime() const;
+	    virtual bool hasMaxServiceTimeExceeded() const;
 	    virtual bool hasHistogram() const;
 	    virtual const Histogram* getHistogram() const { return _histogram; }
 	    virtual void setHistogram(Histogram* histogram);
-	    virtual bool hasMaxServiceTimeExceeded() const;
-	    virtual double getMaxServiceTime() const;
-	    double getResultMaxServiceTimeExceeded() const;
-	    double getResultMaxServiceTimeExceededVariance() const;
       
 	    /* Managing Phase Calls */
 	    void addCall(Call* call);
+	    void eraseCall( Call * call );
 	    const std::vector<Call*>& getCalls() const;
 	    Call* getCallToTarget(const Entry* target) const;
+	    bool hasRendezvous() const;
+	    bool hasSendNoReply() const;
+	    bool hasResultVarianceWaitingTime() const;
+	    bool hasResultDropProbability() const;
       
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
       
@@ -82,6 +96,7 @@ namespace LQIO {
 	    Phase& setResultServiceTimeVariance(const double resultServiceTimeVariance);
 	    double getResultVarianceServiceTime() const;
 	    Phase& setResultVarianceServiceTime(const double resultVarianceServiceTime);
+	    bool hasResultServiceTimeVariance() const { return _hasResultServiceTimeVariance; }
 	    double getResultVarianceServiceTimeVariance() const;
 	    Phase& setResultVarianceServiceTimeVariance(const double resultVarianceServiceTimeVariance);
 	    double getResultUtilization() const;
@@ -92,6 +107,8 @@ namespace LQIO {
 	    Phase& setResultProcessorWaiting(const double resultProcessorWaiting);
 	    double getResultProcessorWaitingVariance() const;
 	    Phase& setResultProcessorWaitingVariance(const double resultProcessorWaitingVariance);
+	    double getResultMaxServiceTimeExceeded() const;
+	    double getResultMaxServiceTimeExceededVariance() const;
       
 	private:
       
@@ -114,7 +131,11 @@ namespace LQIO {
 	    double _resultUtilizationVariance;
 	    double _resultProcessorWaiting;
 	    double _resultProcessorWaitingVariance;
+	    bool _hasResultServiceTimeVariance;
       
+	public:
+	    static const char * __typeName;
+
 	};
 
     }

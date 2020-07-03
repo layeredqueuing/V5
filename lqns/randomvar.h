@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/randomvar.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/randomvar.h $
  * randomvar.h	-- Greg Franks
  *
  * Copyright the Real-Time and Distributed Systems Group,

@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 13188 2018-03-02 17:44:42Z greg $
+ * $Id: graphic.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include <cassert>
@@ -19,13 +19,32 @@
 static const int DASH_LENGTH	= 4;
 static const int DOT_GAP	= 3;
 
-static void box_to_points( const Point& origin, const Point& extent, Point points[] )
+static void box_to_points( const Point& origin, const Point& extent, std::vector<Point>& points )
 {
+    assert( points.size() > 4 );
     points[0] = origin;
     points[1].moveTo( origin.x(), origin.y() + extent.y() );
     points[2].moveTo( origin.x() + extent.x(), origin.y() + extent.y() );
     points[3].moveTo( origin.x() + extent.x(), origin.y());
     points[4] = origin;
+}
+
+const std::string XMLString::StringManip::nullStr( "" );
+
+ostream&
+XMLString::xml_escape_str( ostream& output, const std::string& s, const std::string& )
+{
+    for ( std::string::const_iterator c = s.begin(); c != s.end(); ++c ) {
+	switch ( *c ) {
+	case '&':
+	    if ( *(c+1) != '#' ) output << "&amp;"; else output << "&"; 
+	    break;	    
+	case '<': output << "&lt;"; break;
+	case '>': output << "&gt;"; break;
+	default:  output << *c; break;
+	}
+    }
+    return output;
 }
 
 /* See http://astronomy.swin.edu.au/~pbourke/colour/colourramp/ for a good way to generate colours */
@@ -41,7 +60,7 @@ Colour::colour_defn Colour::colour_value[] =
     {1.000, 0.000, 1.000},		/* MAGENTA, 	*/
     {0.500, 0.000, 1.000},		/* VIOLET   	*/
     {0.000, 0.000, 1.000},		/* BLUE,    	*/
-    {0.000, 0.500, 1.000},		/* OCEAN,	*/
+    {0.000, 0.434, 1.000},		/* INDIGO,	*/
     {0.000, 1.000, 1.000},		/* CYAN,    	*/
     {0.000, 1.000, 0.500},		/* TURQUOIS	*/
     {0.000, 1.000, 0.000},		/* GREEN,   	*/
@@ -55,23 +74,23 @@ Colour::colour_defn Colour::colour_value[] =
 
 const char * Colour::colour_name[] =
 {
-     "White",			/* TRANSPARENT */
-     "black",			/* DEFAULT_COLOUR */
-     "black",			/* BLACK */
-     "White",			/* WHITE */
-     "Grey",			/* GREY_10 */
-     "Magenta",			/* MAGENTA */
-     "Violet",			/* VIOLET */
-     "Blue",			/* BLUE */
-     "Azure",			/* OCEAN */
-     "Cyan",			/* CYAN */
-     "Turquoise",		/* TURQUOISE */
-     "Green",			/* GREEN */
-     "SpringGreen",		/* SPRINGGREEN - Chartreuse */
-     "Yellow",			/* YELLOW */
-     "Orange",			/* ORANGE */
-     "Red",			/* RED */
-     "Goldenrod"		/* GOLD */
+    "White",			/* TRANSPARENT */
+    "black",			/* DEFAULT_COLOUR */
+    "black",			/* BLACK */
+    "White",			/* WHITE */
+    "Grey",			/* GREY_10 */
+    "Magenta",			/* MAGENTA */
+    "Violet",			/* VIOLET */
+    "Blue",			/* BLUE */
+    "Indigo",			/* INDIGO */
+    "Cyan",			/* CYAN */
+    "Turquoise",		/* TURQUOISE */
+    "Green",			/* GREEN */
+    "SpringGreen",		/* SPRINGGREEN - Chartreuse */
+    "Yellow",			/* YELLOW */
+    "Orange",			/* ORANGE */
+    "Red",			/* RED */
+    "Goldenrod"			/* GOLD */
 };
 
 float
@@ -145,7 +164,7 @@ Graphic::colour_type EMF::last_pen_colour    = Graphic::BLACK;
 Graphic::colour_type EMF::last_fill_colour   = Graphic::BLACK;
 Graphic::colour_type EMF::last_arrow_colour  = Graphic::BLACK;
 justification_type EMF::last_justification   = CENTER_JUSTIFY;
-Graphic::font_type EMF::last_font	     = Graphic::TIMES_ROMAN;
+Graphic::font_type EMF::last_font	     = Graphic::NORMAL_FONT;
 Graphic::linestyle_type EMF::last_line_style = Graphic::SOLID;
 int EMF::last_font_size			     = 0;
 
@@ -167,7 +186,7 @@ EMF::init( ostream& output, const double xmax, const double ymax, const string& 
     last_arrow_colour 	= static_cast<Graphic::colour_type>(-1);
     last_justification  = CENTER_JUSTIFY;
     last_line_style     = Graphic::SOLID;
-    last_font		= Graphic::TIMES_ROMAN;
+    last_font		= Graphic::NORMAL_FONT;
     last_font_size	= 0;
 
     output << start_record( EMR_HEADER, 100+((n+1)/2)*4 ) 		/* Record Type, size (bytes) */
@@ -224,7 +243,7 @@ EMF::init( ostream& output, const double xmax, const double ymax, const string& 
 	   << writel( 0 );		/* hatch */
     output << start_record( EMR_SELECTOBJECT, 12 )
 	   << writel( EMF_HANDLE_BRUSH );
-    output << setfont( Graphic::TIMES_ROMAN );
+    output << setfont( Graphic::NORMAL_FONT );
     return output;
 }
 
@@ -306,10 +325,11 @@ EMF::terminate( ostream& output )
  */
 
 ostream&
-EMF::polyline( ostream& output, const unsigned n_points, const Point points[],
+EMF::polyline( ostream& output, const std::vector<Point>& points,
 	       Graphic::colour_type pen_colour, Graphic::linestyle_type line_style,
 	       Graphic::arrowhead_type arrowhead, double scale ) const
 {
+    const unsigned int n_points = points.size();
     if ( n_points > 1 ) {
 	output << setcolour( pen_colour );
 
@@ -317,10 +337,10 @@ EMF::polyline( ostream& output, const unsigned n_points, const Point points[],
 	case Graphic::DASHED:
 	case Graphic::DOTTED:
 	case Graphic::DASHED_DOTTED:
-	    draw_dashed_line( output, line_style, n_points, points );
+	    draw_dashed_line( output, line_style, points );
 	    break;
 	default:
-	    draw_line( output, EMR_POLYLINE, n_points, points );
+	    draw_line( output, EMR_POLYLINE, points );
 	    break;
 	}
 
@@ -341,11 +361,11 @@ EMF::polyline( ostream& output, const unsigned n_points, const Point points[],
 
 
 ostream&
-EMF::polygon( ostream& output, const unsigned n_points, const Point points[],
+EMF::polygon( ostream& output, const std::vector<Point>& points,
 	      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const
 {
     output << setcolour( pen_colour ) << setfill( fill_colour );
-    return draw_line( output, EMR_POLYGON, n_points, points );
+    return draw_line( output, EMR_POLYGON, points );
 }
 
 
@@ -355,8 +375,9 @@ EMF::polygon( ostream& output, const unsigned n_points, const Point points[],
  */
 
 ostream&
-EMF::draw_line( ostream& output, extended_meta_record emr_type, const unsigned n_points, const Point points[] ) const
+EMF::draw_line( ostream& output, extended_meta_record emr_type, const std::vector<Point>& points ) const
 {
+    const unsigned n_points = points.size();
     if ( n_points == 2 ) {
 	output << moveto( points[0] ) << lineto( points[1] );
     } else {
@@ -378,8 +399,9 @@ EMF::draw_line( ostream& output, extended_meta_record emr_type, const unsigned n
 
 
 ostream&
-EMF::draw_dashed_line( ostream& output, Graphic::linestyle_type line_style, const unsigned n_points, const Point points[] ) const
+EMF::draw_dashed_line( ostream& output, Graphic::linestyle_type line_style, const std::vector<Point>& points ) const
 {
+    const unsigned n_points = points.size();
     double delta[2];
     double residual = 0.0;		/* Nothing left over */
     int stroke = 1;			/* Start with stroke */
@@ -462,7 +484,7 @@ EMF::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
 		Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
     const unsigned n_points = 5;
-    Point points[n_points];
+    std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
 
     output << setcolour( pen_colour ) << setfill( fill_colour );
@@ -470,10 +492,10 @@ EMF::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
     case Graphic::DASHED:
     case Graphic::DOTTED:
     case Graphic::DASHED_DOTTED:
-	draw_dashed_line( output, line_style, n_points, points );
+	draw_dashed_line( output, line_style, points );
 	break;
     default:
-	draw_line( output, EMR_POLYGON, n_points, points );
+	draw_line( output, EMR_POLYGON, points );
 	break;
     }
     return output;
@@ -487,7 +509,7 @@ EMF::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
 
 double
 EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour ) const
+	   justification_type justification, Graphic::colour_type colour, unsigned ) const
 {
     Point origin(0,0);
     Point extent(0,0);
@@ -527,8 +549,7 @@ EMF::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     for ( unsigned int i = 0; i < len_1; i += 2 ) {				/* 76 */
 	output << s[i+1] << s[i];		/* Little endian */
     }
-    /* Pad to long-word */
-    for ( unsigned int i = len_1; i < len_2; i += 1 ) {
+    for ( unsigned int i = len_1; i < len_2; ++i ) {
 	output << '\0';
     }
     return fontsize * EMF_SCALING;
@@ -561,7 +582,7 @@ EMF::arrowHead( ostream& output, const Point& head, const Point& tail, double sc
     const double theta = atan2( tail.y() - head.y(), tail.x() - head.x() );
     const unsigned n_points = 4;
 
-    Point arrow[n_points];
+    std::vector<Point> arrow(n_points);
     arrow[0].moveTo( -6.0, -1.5 );
     arrow[1].moveTo( 0.0 ,  0.0 );
     arrow[2].moveTo( -6.0,  1.5 );
@@ -572,7 +593,7 @@ EMF::arrowHead( ostream& output, const Point& head, const Point& tail, double sc
 	arrow[i].scaleBy( scaling, scaling ).rotate( origin, theta ).moveBy( tail );
     }
 
-    return draw_line( output, EMR_POLYGON, n_points, arrow );
+    return draw_line( output, EMR_POLYGON, arrow );
 }
 
 
@@ -746,7 +767,7 @@ EMF::setfont_str( ostream& output, const Graphic::font_type aFont, const int fon
 	       << writel( 0 )	/* escapement */ 				/* 20 */
 	       << writel( 0 )	/* orientation */				/* 24 */
 	       << writel( 400 )	/* weight */					/* 28 */
-	       << static_cast<char>(aFont==Graphic::TIMES_ITALIC)	/* italic */   /* 32 */
+	       << static_cast<char>(aFont==Graphic::OBLIQUE_FONT) /* italic */  /* 32 */
 	       << static_cast<char>(0)	/* underline */
 	       << static_cast<char>(0)	/* strikeout */
 	       << static_cast<char>(1)	/* charset */
@@ -926,9 +947,9 @@ int Fig::colour_index[] =
     2,		/* GREEN,   */
     35,
     6,		/* YELLOW,  */
-    32,		/* ORANGE,  */
+    36,		/* ORANGE,  */
     4,		/* RED,     */
-    36,		/* GOLD     */
+    37,		/* GOLD     */
 };
 
 int Fig::linestyle_value[] =
@@ -950,9 +971,15 @@ Fig::arrowhead_defn Fig::arrowhead_value[] =
 int Fig::postscript_font_value[] =
 {
     -1,		/* Default */
+#if 1
     0,		/* Times-Roman */
     1,		/* Times-Italic */
     2,		/* Times-Bold */
+#else
+    20,		/* Helvetica-Narrow */
+    21,		/* Helvetica-Narrow Oblique */
+    22,		/* Helvetica-Narrow Bold */
+#endif
     32		/* Symbol */
 };
 
@@ -1077,10 +1104,11 @@ Fig::endCompound( ostream& output ) const
 }
 
 ostream&
-Fig::polyline( ostream& output, const unsigned n_points, const Point points[],
+Fig::polyline( ostream& output, const std::vector<Point>& points,
 	       int sub_type, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth,
 	       Graphic::linestyle_type line_style, Graphic::arrowhead_type arrowhead, double scaling ) const
 {
+    const size_t n_points = points.size();
     init( output, 2, sub_type, pen_colour, fill_colour, line_style, Graphic::DEFAULT_FILL, depth );
     output << " 0"					// int	join_style	(enumeration type)
 	   << " 0";					// int	cap_style	(enumeration type, only used for POLYLINE)
@@ -1142,9 +1170,9 @@ ostream&
 Fig::rectangle( ostream& output, const Point& origin, const Point& extent, Graphic::colour_type pen_colour,
 		Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style ) const
 {
-    Point points[5];
+    std::vector<Point> points(5);
     box_to_points( origin, extent, points );
-    return polyline( output, 5, points, BOX, pen_colour, fill_colour, depth, line_style );
+    return polyline( output, points, BOX, pen_colour, fill_colour, depth, line_style );
 }
 
 
@@ -1152,9 +1180,9 @@ ostream&
 Fig::roundedRectangle( ostream& output, const Point& origin, const Point& extent, Graphic::colour_type pen_colour,
 		       Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style ) const
 {
-    Point points[5];
+    std::vector<Point> points(5);
     box_to_points( origin, extent, points );
-    return polyline( output, 5, points, ARC_BOX, pen_colour, fill_colour, depth, line_style );
+    return polyline( output, points, ARC_BOX, pen_colour, fill_colour, depth, line_style );
 }
 
 
@@ -1181,8 +1209,8 @@ Fig::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
     output << " " << fontsize 	//float	font_size    (font size in points)
 	   << " 0.0000 "	//float	angle	     (radians, the angle of the text)
 	   << flags		//int	font_flags   (bit vector)
-	   << " " << fontsize * FIG_SCALING		//float	height	     (Fig units - ignored)
-	   << " " << s.length() * fontsize * FIG_SCALING	//float	length	     (Fig units - ignored)
+	   << " " << static_cast<unsigned int>(fontsize * FIG_SCALING + 0.5)		//float	height	     (Fig units - ignored)
+	   << " " << static_cast<unsigned int>(s.length() * fontsize * FIG_SCALING + 0.5)	//float	length	     (Fig units - ignored)
 	   << " " << moveto( c )
 	   << s
 	   << "\\001" << endl;
@@ -1209,15 +1237,10 @@ Fig::clearBackground( ostream& output, const Point& anOrigin, const Point& anExt
 {
     if ( background_colour == Graphic::TRANSPARENT ) return output;
 
-    const unsigned N_POINTS = 5;
-    Point points[N_POINTS];
-    for ( unsigned i = 0; i < N_POINTS; ++i ) {
-	points[i] = anOrigin;
-    }
-    points[1].moveBy( anExtent.x(), 0 );
-    points[2].moveBy( anExtent );
-    points[3].moveBy( 0, anExtent.y() );
-    polyline( output, N_POINTS, points, Fig::BOX,
+    const unsigned n_points = 5;
+    std::vector<Point> points(n_points);
+    box_to_points( anOrigin, anExtent, points );
+    polyline( output, points, Fig::BOX,
 	      Graphic::TRANSPARENT,		/* PEN */
 	      background_colour,		/* FILL */
 	      6 );
@@ -1249,8 +1272,8 @@ Fig::moveto( const Point& aPoint )
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */
 
-int GD::pen_value[sizeof(colour_value)/sizeof(colour_defn)];
-int GD::fill_value[sizeof(colour_value)/sizeof(colour_defn)];
+std::vector<int> GD::pen_value(sizeof(colour_value)/sizeof(colour_defn));
+std::vector<int> GD::fill_value(sizeof(colour_value)/sizeof(colour_defn));
 
 /* See http://fontconfig.org/fontconfig-user.html */
 const char * GD::font_value[] =
@@ -1302,6 +1325,9 @@ GD::create( int x, int y )
     if ( im ) abort();		/* ONLY ONE can exist at a time. */
     im = gdImageCreate( x+1, y+1 );
 
+    pen_value[Graphic::TRANSPARENT] = gdTransparent;
+    fill_value[Graphic::TRANSPARENT] = gdTransparent;
+
     pen_value[Graphic::WHITE] = gdImageColorAllocate( im,
 						      to_byte( colour_value[Graphic::WHITE].red ),
 						      to_byte( colour_value[Graphic::WHITE].green ),
@@ -1314,8 +1340,6 @@ GD::create( int x, int y )
     fill_value[Graphic::BLACK] = pen_value[Graphic::BLACK];
     pen_value[Graphic::DEFAULT_COLOUR] = pen_value[Graphic::BLACK];
     fill_value[Graphic::DEFAULT_COLOUR] = pen_value[Graphic::WHITE];
-    pen_value[Graphic::TRANSPARENT] = gdTransparent;
-    fill_value[Graphic::TRANSPARENT] = gdTransparent;
 
     pen_value[Graphic::GREY_10] = gdImageColorAllocate( im,
 						      to_byte( colour_value[Graphic::GREY_10].red ),
@@ -1324,14 +1348,14 @@ GD::create( int x, int y )
     fill_value[Graphic::GREY_10] = pen_value[Graphic::GREY_10];
 
     for ( unsigned i = (unsigned)Graphic::MAGENTA; i <= (unsigned)Graphic::GOLD; ++i ) {
-	pen_value[i] = gdImageColorAllocate( im,
-					     to_byte( colour_value[i].red ),
-					     to_byte( colour_value[i].green ),
-					     to_byte( colour_value[i].blue ) );
-	fill_value[i] = gdImageColorAllocate( im,
-					      to_byte( tint( colour_value[i].red, 0.9 ) ),
-					      to_byte( tint( colour_value[i].green, 0.9 ) ),
-					      to_byte( tint( colour_value[i].blue, 0.9 ) ) );
+	pen_value.at(i) = gdImageColorAllocate( im,
+						to_byte( colour_value[i].red ),
+						to_byte( colour_value[i].green ),
+						to_byte( colour_value[i].blue ) );
+	fill_value.at(i) = gdImageColorAllocate( im,
+						 to_byte( tint( colour_value[i].red, 0.9 ) ),
+						 to_byte( tint( colour_value[i].green, 0.9 ) ),
+						 to_byte( tint( colour_value[i].blue, 0.9 ) ) );
     }
 }
 
@@ -1404,20 +1428,21 @@ GD::outputPNG( ostream& output )
 #endif
 
 GD const&
-GD::polygon( const unsigned n_points, const Point points[], Graphic::colour_type pen_colour,
+GD::polygon( const std::vector<Point>& points, Graphic::colour_type pen_colour,
 	     Graphic::colour_type fill_colour ) const
 {
+    const unsigned int n_points = points.size();
     gdPoint * gd_points = new gdPoint[n_points];
     for ( unsigned i = 0; i < n_points; ++i ) {
 	gd_points[i] = moveto( points[i] );
     }
 
-    gdImageFilledPolygon( im, gd_points, n_points, fill_value[fill_colour] );
+    gdImageFilledPolygon( im, gd_points, n_points, fill_value.at(fill_colour) );
 #if HAVE_GDIMAGESETANTIALIASED
-    gdImageSetAntiAliased( im, pen_value[pen_colour] );
+    gdImageSetAntiAliased( im, pen_value.at(pen_colour) );
     gdImagePolygon( im, gd_points, n_points, gdAntiAliased );
 #else
-    gdImagePolygon( im, gd_points, n_points, pen_value[pen_colour] );
+    gdImagePolygon( im, gd_points, n_points, pen_value.at(pen_colour) );
 #endif
     delete [] gd_points;
     return *this;
@@ -1486,7 +1511,7 @@ GD::circle( const Point& c, const double r, Graphic::colour_type pen_colour,
     const int d = static_cast<int>(r * 2.0);
 #if HAVE_GDIMAGEFILLEDARC
     gdImageFilledArc( im, static_cast<int>(c.x()), static_cast<int>(c.y()), d, d, 0, 360,
-		      fill_value[fill_colour], gdArc );
+		      fill_value.at(fill_colour), gdArc );
 #endif
 #if HAVE_GDIMAGESETANTIALIASED
     gdImageSetAntiAliased( im, pen_value[pen_colour] );
@@ -1503,17 +1528,16 @@ GD const&
 GD::rectangle( const Point& origin, const Point& extent, Graphic::colour_type pen_colour,
 	       Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
-    const unsigned n_points = 5;
-    Point points[n_points];
+    std::vector<Point> points(5);
     box_to_points( origin, extent, points );
     gdPoint p1 = moveto( points[0] );
     gdPoint p2 = moveto( points[2] );
-    gdImageFilledRectangle( im, p1.x, p1.y, p2.x, p2.y, fill_value[fill_colour] );
+    gdImageFilledRectangle( im, p1.x, p1.y, p2.x, p2.y, fill_value.at(fill_colour) );
     switch( line_style ) {
     case Graphic::DASHED:
     case Graphic::DASHED_DOTTED:
     case Graphic::DOTTED:
-	for ( unsigned i = 1; i < n_points; ++i ) {
+	for ( unsigned i = 1; i < points.size(); ++i ) {
 	    drawline( points[i-1], points[i], pen_colour, line_style );
 	}
 	break;
@@ -1642,7 +1666,7 @@ GD::arrowHead( const Point& src, const Point& dst, const double scale,
 	arrow[i] = moveto( aPoint );
     }
 
-    gdImageFilledPolygon( im, arrow, n_points, pen_value[fill_colour] );
+    gdImageFilledPolygon( im, arrow, n_points, pen_value.at(fill_colour) );
 #if HAVE_GDIMAGESETANTIALIASED
     gdImageSetAntiAliased( im, pen_value[pen_colour] );
     gdImagePolygon( im, arrow, n_points, gdAntiAliased );
@@ -1730,10 +1754,11 @@ PostScript::init( ostream& output )
 }
 
 ostream&
-PostScript::polyline( ostream& output, const unsigned n_points, const Point points[],
+PostScript::polyline( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::linestyle_type line_style,
 		      Graphic::arrowhead_type arrowhead, double scale ) const
 {
+    const size_t n_points = points.size();
     output << linestyle( line_style )
 	   << "gsave newpath "
 	   << moveto( points[0] ) << "moveto ";
@@ -1760,9 +1785,10 @@ PostScript::polyline( ostream& output, const unsigned n_points, const Point poin
 
 
 ostream&
-PostScript::polygon( ostream& output, const unsigned n_points, const Point points[],
+PostScript::polygon( ostream& output, const std::vector<Point>& points,
 		     Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const
 {
+    const size_t n_points = points.size();
     output << linestyle( Graphic::SOLID )
 	   << "gsave newpath "
 	   << moveto( points[0] ) << "moveto ";
@@ -1796,7 +1822,7 @@ PostScript::rectangle( ostream& output, const Point& origin, const Point& extent
 		       Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
     const unsigned n_points = 5;
-    Point points[n_points];
+    std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
 
     output << "gsave newpath "
@@ -1820,12 +1846,11 @@ PostScript::roundedRectangle( ostream& output, const Point& origin, const Point&
 			      Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
     const unsigned n_points = 5;
-    const double radius = 12.0;
-    Point points[n_points];
-    Point aPoint;
+    std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
 
-    aPoint = points[0];
+    const double radius = 12.0;
+    Point aPoint = points[0];
     aPoint.moveBy( 0, radius );
     output << "gsave newpath "
 	   << linestyle( line_style )
@@ -1855,7 +1880,7 @@ PostScript::roundedRectangle( ostream& output, const Point& origin, const Point&
 
 double
 PostScript::text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
-		  justification_type justification, Graphic::colour_type colour ) const
+		  justification_type justification, Graphic::colour_type colour, unsigned ) const
 {
     output << "gsave "
 	   << setfont( font ) << endl
@@ -2064,11 +2089,12 @@ SVG::init( ostream& output )
 //                     1150,375" />
 
 ostream&
-SVG::polyline( ostream& output, const unsigned n_points, const Point points[],
+SVG::polyline( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::linestyle_type line_style,
 		      Graphic::arrowhead_type arrowhead, double scale ) const
 {
     /* sodipodi doesn't like polylines of 2 points */
+    const size_t n_points = points.size();
     if ( n_points == 2 ) {
 	output << "<line x1=\"" << points[0].x()
 	       << "\" y1=\"" << points[0].y()
@@ -2111,9 +2137,10 @@ SVG::polyline( ostream& output, const unsigned n_points, const Point points[],
 //                     231,161 321,161" />
 
 ostream&
-SVG::polygon( ostream& output, const unsigned n_points, const Point points[],
+SVG::polygon( ostream& output, const std::vector<Point>& points,
 	      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const
 {
+    const size_t n_points = points.size();
     output << "<polygon "
 	   << setfill( fill_colour )
 	   << stroke( pen_colour )
@@ -2147,7 +2174,7 @@ SVG::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
 		Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
     const unsigned n_points = 5;
-    Point points[n_points];
+    std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
 
     output << "<polygon "
@@ -2169,7 +2196,7 @@ SVG::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
 
 double
 SVG::text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour ) const
+	   justification_type justification, Graphic::colour_type colour, unsigned ) const
 {
     output << "<text x=\"" << static_cast<int>(c.x() + 0.5)
 	   << "\" y=\"" << static_cast<int>(c.y() + 0.5) << "\""
@@ -2177,7 +2204,7 @@ SVG::text( ostream& output, const Point& c, const string& s, Graphic::font_type 
 	   << " fill=\"" << setcolour( colour ) << "\""
 	   << justify( justification )
 	   << ">"
-	   << xml_escape( s.c_str() )
+	   << xml_escape( s )
 	   << "</text>" << endl;
 
     return -fontsize * SVG_SCALING;
@@ -2216,8 +2243,7 @@ SVG::linestyle_str( ostream& output, Graphic::linestyle_type aStyle )
 
     case Graphic::DOTTED:
 	output << " stroke-dasharray=\""
-	       << SVG_SCALING
-	       << DOT_GAP * SVG_SCALING << ","
+	       << DOT_GAP * SVG_SCALING
 	       << "\"";
 	break;
 
@@ -2314,20 +2340,6 @@ SVG::stroke_str( ostream& output, Graphic::colour_type aColour )
  */
 
 ostream&
-SVG::xml_escape_str( ostream& output, const char * s, const char * )
-{
-    for ( ; *s != '\0'; ++s ) {
-	switch ( *s ) {
-	case '&': if ( *(s+1) != '#' ) output << "&amp;"; else output << "&"; break;
-	case '<': output << "&lt;"; break;
-	case '>': output << "&gt;"; break;
-	default:  output << *s; break;
-	}
-    }
-    return output;
-}
-
-ostream&
 SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const double scale,
 		const Graphic::colour_type pen_colour, const Graphic::colour_type fill ) const
 {
@@ -2336,7 +2348,7 @@ SVG::arrowHead( ostream& output, const Point& src, const Point& dst, const doubl
 
     output << "<polygon";
     ios_base::fmtflags flags = output.setf( ios::hex, ios::basefield );
-    output << " fill=\"" << setcolour( pen_colour ) << "\"";
+    output << " fill=\"" << setcolour( fill ) << "\"";
     output.setf( flags );
     output << stroke( pen_colour )
 	   << " points=\"";
@@ -2727,10 +2739,11 @@ SXD::init( ostream& output, const char * object_name,
 
 
 ostream&
-SXD::polyline( ostream& output, const unsigned n_points, const Point points[],
+SXD::polyline( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::linestyle_type line_style,
 		      Graphic::arrowhead_type arrowhead, double scale ) const
 {
+    const size_t n_points = points.size();
     /* OpenOffice doesn't like polylines of 2 points */
     if ( n_points == 2 ) {
 	init( output, "line", pen_colour, Graphic::TRANSPARENT, line_style, arrowhead );
@@ -2741,7 +2754,7 @@ SXD::polyline( ostream& output, const unsigned n_points, const Point points[],
 	       << "svg:y2=\"" << points[1].y() << "cm\"/>" << endl;
     } else {
 	init( output, "polyline", pen_colour, Graphic::TRANSPARENT, line_style, arrowhead );
-	return drawline( output, n_points, points );
+	return drawline( output, points );
     }
     return output;
 }
@@ -2753,21 +2766,21 @@ SXD::polyline( ostream& output, const unsigned n_points, const Point points[],
 //                     231,161 321,161" />
 
 ostream&
-SXD::polygon( ostream& output, const unsigned n_points, const Point points[],
+SXD::polygon( ostream& output, const std::vector<Point>& points,
 	      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const
 {
     init( output, "polygon", pen_colour, fill_colour, Graphic::SOLID, Graphic::NO_ARROW );
-    return drawline( output, n_points, points );
+    return drawline( output, points );
 }
 
 
 ostream&
-SXD::drawline( ostream& output, const unsigned n_points, const Point points[] ) const
+SXD::drawline( ostream& output, const std::vector<Point>& points ) const
 {
-    unsigned i;
+    const size_t n_points = points.size();
     Point origin = points[0];
     Point extent = points[0];
-    for ( i = 1; i < n_points; ++i ) {
+    for ( unsigned int i = 1; i < n_points; ++i ) {
 	origin.min( points[i] );
 	extent.max( points[i] );
     }
@@ -2778,7 +2791,7 @@ SXD::drawline( ostream& output, const unsigned n_points, const Point points[] ) 
 	   << static_cast<int>((extent.x() * 1000) + 0.5) << " "
 	   << static_cast<int>((extent.y() * 1000) + 0.5) << "\"" << endl;
     output << temp_indent( 1 ) << "draw:points=\"";
-    for ( i = 0; i < n_points; ++i ) {
+    for ( unsigned int i = 0; i < n_points; ++i ) {
 	Point aPoint = points[i];
 	aPoint -= origin;
 	output << moveto( aPoint );
@@ -2811,10 +2824,10 @@ SXD::rectangle( ostream& output, const Point& origin, const Point& extent, Graph
 		Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
     const unsigned n_points = 5;
-    Point points[n_points];
+    std::vector<Point> points(n_points);
     box_to_points( origin, extent, points );
     init( output, "polygon", pen_colour, fill_colour, line_style, Graphic::NO_ARROW );
-    return drawline( output, n_points, points );
+    return drawline( output, points );
 }
 
 
@@ -2841,8 +2854,8 @@ SXD::begin_paragraph( ostream& output, const Point& origin, const Point& extent,
 // </draw:text-box>
 
 double
-SXD::text( ostream& output, const string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type colour ) const
+SXD::text( ostream& output, const Point&, const string& s, Graphic::font_type font, int fontsize,
+	   justification_type justification, Graphic::colour_type colour, unsigned ) const
 {
     output << indent( 1 )  << "<text:p text:style-name=\"";
     switch ( justification ) {			/* Alignment of Text within BOX */
@@ -2851,7 +2864,7 @@ SXD::text( ostream& output, const string& s, Graphic::font_type font, int fontsi
     default:  		 output << "P2"; break;
     }
     output << "\">" << endl;
-    output << indent( 0 )  << "<text:span text:style-name=\"T1\">" << s << "</text:span>" << endl;
+    output << indent( 0 )  << "<text:span text:style-name=\"T1\">" << xml_escape( s ) << "</text:span>" << endl;
     output << indent( -1 ) << "</text:p>" << endl;
 
     return 0.0;
@@ -2886,7 +2899,7 @@ SXD::box_str( ostream& output, const Point& origin, const Point& extent )
 }
 
 ostream&
-SXD::draw_layer_str( ostream& output, const char * name, const char * )
+SXD::draw_layer_str( ostream& output, const std::string& name, const std::string& )
 {
     output << indent( 0 )  << "<draw:layer draw:name=\"" << name << "\"";
     return output;
@@ -2901,7 +2914,7 @@ SXD::end_paragraph( ostream& output ) const
 }
 
 ostream&
-SXD::end_style_str( ostream& output, const char *s1, const char *s2 )
+SXD::end_style_str( ostream& output, const std::string&s1, const std::string&s2 )
 {
     output << indent( -1 ) << "</style:style>";
     return output;
@@ -2967,7 +2980,7 @@ SXD::point( ostream& output, const Point& aPoint )
 }
 
 ostream&
-SXD::start_style_str( ostream& output, const char *name, const char *family )
+SXD::start_style_str( ostream& output, const std::string&name, const std::string&family )
 {
     output << indent( +1 )
 	   << "<style:style style:name=\"" << name << "\" "
@@ -3056,22 +3069,22 @@ SXD::moveto( const Point& aPoint )
     return PointManip( point, aPoint );
 }
 
-XMLStringManip
-SXD::draw_layer( const char * name )
+XMLString::StringManip
+SXD::draw_layer( const std::string& name )
 {
-    return XMLStringManip( draw_layer_str, name );
+    return XMLString::StringManip( draw_layer_str, name );
 }
 
-XMLStringManip
+XMLString::StringManip
 SXD::end_style()
 {
-    return XMLStringManip( end_style_str );
+    return XMLString::StringManip( end_style_str );
 }
 
-XMLStringManip
-SXD::start_style( const char * name, const char * family )
+XMLString::StringManip
+SXD::start_style( const std::string& name, const std::string& family )
 {
-    return XMLStringManip( start_style_str, name, family );
+    return XMLString::StringManip( start_style_str, name, family );
 }
 
 #endif
@@ -3086,10 +3099,11 @@ SXD::start_style( const char * name, const char * family )
  */
 
 ostream&
-TeX::polyline( ostream& output, const unsigned n_points, const Point points[],
+TeX::polyline( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::linestyle_type line_style,
 		      Graphic::arrowhead_type arrowhead, double scale ) const
 {
+    const size_t n_points = points.size();
     output << setcolour( pen_colour );
     switch( line_style ) {
     case Graphic::DASHED:
@@ -3124,9 +3138,10 @@ TeX::polyline( ostream& output, const unsigned n_points, const Point points[],
 
 
 ostream&
-TeX::polygon( ostream& output, const unsigned n_points, const Point points[],
+TeX::polygon( ostream& output, const std::vector<Point>& points,
 	      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const
 {
+    const size_t n_points = points.size();
     /* Fill object */
     output  << setfill( fill_colour ) << "\\path";
     for ( unsigned i = 0; i < n_points; ++i ) {
@@ -3162,16 +3177,16 @@ ostream&
 TeX::rectangle( ostream& output, const Point& origin, const Point& extent, Graphic::colour_type pen_colour,
 		Graphic::colour_type fill_colour, Graphic::linestyle_type line_style ) const
 {
-    Point points[5];
+    std::vector<Point> points(5);
     box_to_points( origin, extent, points );
-    polygon( output, 5, points, pen_colour, fill_colour );
+    polygon( output, points, pen_colour, fill_colour );
     return output;
 }
 
 
 double
 TeX::text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
-	   justification_type justification, Graphic::colour_type pen_colour ) const
+	   justification_type justification, Graphic::colour_type pen_colour, unsigned ) const
 {
     output << "\\put" << moveto( c )
 	   << "{\\makebox(0,0)" << justify( justification )

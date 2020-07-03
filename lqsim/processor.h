@@ -9,28 +9,23 @@
 /*
  * Global vars for simulation.
  *
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/processor.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.h $
  *
- * $Id: processor.h 10477 2011-09-12 23:32:33Z greg $
+ * $Id: processor.h 13516 2020-02-27 17:16:20Z greg $
  */
 
 #ifndef	PROCESSOR_H
 #define PROCESSOR_H
 
-#include <set>
 #include <vector>
 #include <string>
 #include <ostream>
 #include <lqio/dom_processor.h>
 #include "result.h"
 
-extern void add_processor( LQIO::DOM::Processor* processor );
-
 class Group;
 class Instance;
 class Task;
-
-using namespace std;
 
 class Processor {
 private:
@@ -44,9 +39,10 @@ protected:
     static Processor * processor_table[MAX_NODES+1];
 
 public:
-    static Processor * find( const char * processor_name );
+    static Processor * find( const std::string& );
     static Processor * find( const int i ) { return processor_table[i]; }
     static void reschedule( Instance * ip );
+    static void add( LQIO::DOM::Processor* );
 
 private:
     Processor( const Processor& );
@@ -55,15 +51,15 @@ private:
 public:
     Processor( LQIO::DOM::Processor * );
     virtual ~Processor() {}
-    virtual bool create();
+    Processor& create();
 
-    LQIO::DOM::Processor * getDOMProcessor() const { return _domProcessor; }
+    LQIO::DOM::Processor * getDOM() const { return _dom; }
 
-    const char * name() const { return _domProcessor->getName().c_str(); }
-    double cpu_rate() const { return _domProcessor->hasRate() ? _domProcessor->getRateValue() : 1.0; }	/* Processor rate.		*/
-    double quantum() const { return _domProcessor->hasQuantum() ? _domProcessor->getQuantumValue() : 0.0; }	/* Time quantum.		*/
-    int replicas() const { return _domProcessor->getReplicas(); } 
-    scheduling_type discipline() const { return _domProcessor->getSchedulingType(); }
+    const char * name() const { return _dom->getName().c_str(); }
+    double cpu_rate() const { return _dom->hasRate() ? _dom->getRateValue() : 1.0; }	/* Processor rate.		*/
+    double quantum() const { return _dom->hasQuantum() ? _dom->getQuantumValue() : 0.0; }	/* Time quantum.		*/
+    int replicas() const { return _dom->hasReplicas() ? _dom->getReplicasValue() : 0.0; } 
+    scheduling_type discipline() const { return _dom->getSchedulingType(); }
     unsigned multiplicity() const;					/* Special access!		*/
 
     long node_id() const { return _node_id; }
@@ -74,7 +70,9 @@ public:
 
     void add_task( Task * );
 
-    void insertDOMResults();
+    virtual Processor& reset_stats() { r_util.reset(); return *this; }
+    virtual Processor& accumulate_data() { r_util.accumulate(); return *this; }
+    virtual Processor& insertDOMResults();
 
 public:
     bool trace_flag;			/* For tracing.			*/
@@ -85,8 +83,8 @@ protected:
     long _node_id;			/* Parasol node id	.	*/
 
 private:
-    LQIO::DOM::Processor * _domProcessor;
-    vector<Task *> _tasks;
+    LQIO::DOM::Processor * _dom;
+    std::vector<Task *> _tasks;
 };
 
 
@@ -102,13 +100,13 @@ class Custom_Processor : public Processor
 	PROC_GENERAL
     } processor_events;
 
-    static void cpu_scheduler_task ( void * );
+    static void cpu_scheduler_task( void * );
 
 public:
     Custom_Processor( LQIO::DOM::Processor * );
     virtual ~Custom_Processor();
 
-    virtual bool create();
+    virtual Custom_Processor& create();
     long scheduler() const { return _scheduler; }
 
 private:
@@ -139,14 +137,14 @@ struct ltProcessor
 
 struct eqProcStr 
 {
-    eqProcStr( const char * s ) : _s(s) {}
-    bool operator()(const Processor * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
+eqProcStr( const std::string& s ) : _s(s) {}
+    bool operator()(const Processor * p1 ) const { return _s == p1->name(); }
 
 private:
-    const char * _s;
+    const std::string _s;
 };
 
-extern set <Processor *, ltProcessor> processor;	/* Processor table.	*/
+extern std::set <Processor *, ltProcessor> processor;	/* Processor table.	*/
 
 
 #endif

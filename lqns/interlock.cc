@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 11969 2014-04-11 21:19:54Z greg $
+ * $Id: interlock.cc 13477 2020-02-08 23:14:37Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -296,7 +296,7 @@ Interlock::findSources()
 
     /* Look for all parent tasks */
 
-    Stack<const Entry *> entryStack( io_vars.n_tasks + 2 );
+    Stack<const Entry *> entryStack( task.size() + 2 );
     Sequence<const Entry *> nextEntry( commonEntry );
     const Entry * anEntry;
     while ( anEntry = nextEntry() ) {

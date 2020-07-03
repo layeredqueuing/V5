@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 11969 2014-04-11 21:19:54Z greg $
+ * $Id: mva.h 13442 2020-02-05 20:45:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,14 +24,14 @@
 #include "prob.h"
 
 class MVA;
-class GeneralPopulationMap;
-class SpecialPopulationMap;
+class FullPopulationMap;
+class PartialPopulationMap;
 
 ostream& operator<<( ostream &, MVA& );
 
 /* -------------------------------------------------------------------- */
 
-class MVA 
+class MVA
 {
     friend class Multi_Server;
     friend class Synch_Server;
@@ -42,10 +42,10 @@ class MVA
     friend bool check( const int solverId, const MVA& solver, const unsigned );
     friend void special_check( ostream&, const MVA&, const unsigned );
 #endif
-	
+
 protected:
     /* Thrown to indicate iteration limits in internal computations.  */
-    class iteration_limit : public runtime_error 
+    class iteration_limit : public runtime_error
     {
     public:
 	explicit iteration_limit( const string& aStr) : runtime_error( aStr ) {}
@@ -94,9 +94,9 @@ protected:
 
 	size_t size() { return maxSize; }
 
-	Type& operator[](const unsigned ix) const { 
-	    assert(ix < maxSize); 
-	    return data[ix]; 
+	Type& operator[](const unsigned ix) const {
+	    assert(ix < maxSize);
+	    return data[ix];
 	}
 
     protected:
@@ -105,11 +105,11 @@ protected:
     };
 
 //Shorthand for [N][m][e][k]
-typedef PopulationData<double ***> N_m_e_k; 
+    typedef PopulationData<double ***> N_m_e_k;
 
 
 public:
-    MVA( Vector<Server *>&, const PopVector &, const VectorMath<double>&,
+    MVA( Vector<Server *>&, const Population &, const VectorMath<double>&,
 	 const Vector<unsigned>&, const VectorMath<double>* );
     virtual ~MVA();
 
@@ -118,49 +118,49 @@ public:
 
     unsigned nChains() const { return K; }
     virtual double filter() const = 0;
-	void setThreadChain(const unsigned k, const unsigned kk){ _isThread[k]=kk;}
-	unsigned getThreadChain(const unsigned k) const { return _isThread[k];}
+    void setThreadChain(const unsigned k, const unsigned kk){ _isThread[k]=kk;}
+    unsigned getThreadChain(const unsigned k) const { return _isThread[k];}
 
     virtual bool isExactMVA() const {return false;}
-    virtual double sumOf_L_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    virtual double sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_SU_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_SQ_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_rU_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_S2U_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_S2U_m( const Server& station, const unsigned e, const PopVector &N, const unsigned j ) const;
-    double sumOf_S2_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_U_m( const Server& station, const PopVector& N, const unsigned j ) const;
-    double sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability& PrOt, const PopVector &N, const unsigned j ) const;
-    double sumOf_U2_m( const Server& station, const unsigned k, const PopVector &N, const unsigned j ) const;
-    double sumOf_U2_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_P( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_SP2( const Server& station, const PopVector &N, const unsigned j ) const;
-    double sumOf_alphaP( const Server& station, const PopVector &N ) const;
-    double PB(  const Server& station, const PopVector &N, const unsigned j ) const;
-    double PB2( const Server& station, const PopVector &N, const unsigned j ) const;
-    virtual Probability priorityInflation( const Server& station, const PopVector &N, const unsigned k ) const = 0;
+    virtual double sumOf_L_m( const Server& station, const Population &N, const unsigned j ) const;
+    virtual double sumOf_SL_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_SU_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_SQ_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_rU_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_S2U_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_S2U_m( const Server& station, const unsigned e, const Population &N, const unsigned j ) const;
+    double sumOf_S2_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_U_m( const Server& station, const Population& N, const unsigned j ) const;
+    double sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability& PrOt, const Population &N, const unsigned j ) const;
+    double sumOf_U2_m( const Server& station, const unsigned k, const Population &N, const unsigned j ) const;
+    double sumOf_U2_m( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_P( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_SP2( const Server& station, const Population &N, const unsigned j ) const;
+    double sumOf_alphaP( const Server& station, const Population &N ) const;
+    double PB(  const Server& station, const Population &N, const unsigned j ) const;
+    double PB2( const Server& station, const Population &N, const unsigned j ) const;
+    virtual Probability priorityInflation( const Server& station, const Population &N, const unsigned k ) const = 0;
     double thinkTime( const unsigned k ) const { return Z[k]; }
     double throughput( const unsigned k ) const;
-    double throughput( const unsigned k, const PopVector& N ) const;
+    double throughput( const unsigned k, const Population& N ) const;
     double throughput( const Server&  ) const;
     double throughput( const Server&, const unsigned k ) const;
     double throughput( const Server&, const unsigned e, const unsigned k ) const;
     double entryThroughput( const Server&, const unsigned ) const;
     double normalizedThroughput( const Server&, const unsigned, const unsigned chainNum ) const;
     double utilization( const Server& station ) const { return utilization( station, NCust ); }
-    double utilization( const Server&, const PopVector& N ) const;
+    double utilization( const Server&, const Population& N ) const;
     double utilization( const Server&, const unsigned k ) const;
-    double utilization( const Server&, const unsigned k, const PopVector& N, const unsigned j ) const;
+    double utilization( const Server&, const unsigned k, const Population& N, const unsigned j ) const;
     double queueLength( const Server& station ) const { return queueLength( station, NCust ); }
-    double queueLength( const Server&, const PopVector& N ) const;
+    double queueLength( const Server&, const Population& N ) const;
     double queueLength( const Server&, const unsigned k ) const;
-    double queueOnly( const Server&, const unsigned k, const PopVector& N, const unsigned j ) const;
+    double queueOnly( const Server&, const unsigned k, const Population& N, const unsigned j ) const;
     double responseTime( const Server&, const unsigned k ) const;
     double responseTime( const unsigned k ) const;
 
-    Positive arrivalRate( const Server&, const unsigned e, const unsigned k, const PopVector& N ) const;
-    double syncDelta( const Server&, const unsigned e, const unsigned k, const PopVector& N ) const;
+    Positive arrivalRate( const Server&, const unsigned e, const unsigned k, const Population& N ) const;
+    double syncDelta( const Server&, const unsigned e, const unsigned k, const Population& N ) const;
 
     ostream& print( ostream& ) const;
 
@@ -173,36 +173,37 @@ public:
 protected:
     void dimension( const size_t );
     bool dimension( PopulationData<double **>&, const size_t );
-    virtual PopulationMap * getPopulationMap() const = 0;
-    virtual unsigned offset( const PopVector& ) const = 0;
-    virtual unsigned offset_e_j( const PopVector&, const unsigned ) const = 0;
+    void setMaxP();
+    virtual const PopulationMap& getMap() const = 0;
+    unsigned offset( const Population& N ) const { return getMap().offset( N ); }
+    unsigned offset_e_j( const Population& N, const unsigned j ) const { return getMap().offset_e_j( N, j ); }
     void clearCount() { waitCount = 0; stepCount = 0; faultCount = 0; }
 
-    double utilization( const unsigned m, const unsigned k, const PopVector& N ) const;
-    double utilization( const unsigned m, const PopVector& N ) const;
+    double utilization( const unsigned m, const unsigned k, const Population& N ) const;
+    double utilization( const unsigned m, const Population& N ) const;
 
-    void step( const PopVector& );
-    void step( const PopVector&, const unsigned );
-    double queueLength( const unsigned, const PopVector& N ) const;
-    double queueLength( const unsigned m, const unsigned k, const PopVector& N ) const;
-    virtual void marginalProbabilities( const unsigned m, const PopVector& N );
-    virtual void marginalProbabilities2( const unsigned m, const PopVector& N );
-	
+    void step( const Population& );
+    void step( const Population&, const unsigned );
+    double queueLength( const unsigned, const Population& N ) const;
+    double queueLength( const unsigned m, const unsigned k, const Population& N ) const;
+    virtual void marginalProbabilities( const unsigned m, const Population& N );
+    virtual void marginalProbabilities2( const unsigned m, const Population& N );
+
 #if	DEBUG_MVA
-    ostream& printL( ostream&, const PopVector& ) const;
+    ostream& printL( ostream&, const Population& ) const;
     ostream& printW( ostream& ) const;
-    ostream& printU( ostream&, const PopVector & N ) const;
-    ostream& printP( ostream&, const PopVector & N ) const;
+    ostream& printU( ostream&, const Population & N ) const;
+    ostream& printP( ostream&, const Population & N ) const;
 #endif
-    ostream& printVectorP( ostream& output, const unsigned m, const PopVector& N ) const;
+    ostream& printVectorP( ostream& output, const unsigned m, const Population& N ) const;
 
 private:
 #if defined(TESTMVA)
     double throughput( const unsigned m, const unsigned k ) const;
 #endif
-    double tau_overlap( const Server&, const unsigned j, const unsigned k, const PopVector& N ) const;
-    double tau( const Server&, const unsigned j, const unsigned k, const PopVector& ) const;
-	
+    double tau_overlap( const Server&, const unsigned j, const unsigned k, const Population& N ) const;
+    double tau( const Server&, const unsigned j, const unsigned k, const Population& ) const;
+
     ostream& printZ( ostream& ) const;
     ostream& printX( ostream& ) const;
     ostream& printPri( ostream& output ) const;
@@ -219,9 +220,9 @@ public:
     static bool debug_U;
     static bool debug_W;
 #endif
-	
+
 protected:
-    const PopVector& NCust;		/* Number of Customers.		*/
+    const Population& NCust;		/* Number of Customers.		*/
     const unsigned M;			/* Number of stations.		*/
     const unsigned K;			/* Number of classes.		*/
     Vector<Server *>& Q;		/* Queue type.  SS/delay.	*/
@@ -243,7 +244,7 @@ protected:
 
 private:
     unsigned nPrio;			/* Number of unique priorities	*/
-    Vector<unsigned> sortedPrio;	/* sorted and uniq priorities	*/ 
+    Vector<unsigned> sortedPrio;	/* sorted and uniq priorities	*/
     unsigned long stepCount;		/* Number of iterations of step	*/
     unsigned long waitCount;		/* Number of calls to wait	*/
     Vector<unsigned> _isThread;
@@ -254,87 +255,105 @@ private:
 
 class ExactMVA : public MVA {
 public:
-    ExactMVA( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
+    ExactMVA( Vector<Server *>&, const Population&, const VectorMath<double>&,
 	      const Vector<unsigned>&, const VectorMath<double>* of = 0 );
 
     void solve();
-    virtual Probability priorityInflation( const Server& station, const PopVector &N, const unsigned k ) const;
+    virtual Probability priorityInflation( const Server& station, const Population &N, const unsigned k ) const;
     virtual double filter() const { return 1.0; }
+    virtual bool isExactMVA() const {return true;}
+private:
+    unsigned offset( const Population& N ) const { return map.offset( N ); }
+    unsigned offset_e_j( const Population& N, const unsigned j ) const { return map.offset_e_j( N, j ); }
 
 protected:
-    PopulationMap * getPopulationMap() const { return (PopulationMap *)&map; }
-    unsigned offset( const PopVector& N ) const { return map.offset( N ); }
-    unsigned offset_e_j( const PopVector& N, const unsigned j ) const { return map.offset_e_j( N, j ); }
+    virtual const PopulationMap& getMap() const { return map; }
 
 private:
-    GeneralPopulationMap map;
+    FullPopulationMap map;
 };
 
 /* -------------------------------------------------------------------- */
 
-class Schweitzer : public MVA {
+class SchweitzerCommon : public MVA {
 public:
-    Schweitzer( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
+    SchweitzerCommon( Vector<Server *>&, const Population&, const VectorMath<double>&,
+		      const Vector<unsigned>&, const VectorMath<double>* of = 0 );
+    virtual ~SchweitzerCommon();
+
+    virtual Probability priorityInflation( const Server& station, const Population &N, const unsigned k ) const;
+    virtual double filter() const { return MOL_multiserver_underrelaxation; };
+
+protected:
+    virtual void reset();
+    void initialize();
+
+    void core( const Population &, const unsigned );
+
+    virtual void estimate_L( const Population & );
+    void estimate_Lm( const unsigned m, const Population & N, const unsigned n ) const;
+    virtual void estimate_P( const Population & ) = 0;
+
+    virtual void marginalProbabilities( const unsigned m, const Population& N );
+    virtual void marginalProbabilities2( const unsigned m, const Population& N );
+
+    virtual double D_mekj( const unsigned, const unsigned, const unsigned, const unsigned ) const { return 0.0; }
+
+protected:
+    const double termination_test;
+    bool initialized;			/* True if initialized.		*/
+    double ***last_L;			/* For local comparison.	*/
+};
+
+
+/* -------------------------------------------------------------------- */
+
+class Schweitzer : public SchweitzerCommon {
+public:
+    Schweitzer( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Schweitzer();
 
-    virtual void reset();
     virtual void solve();
-    virtual Probability priorityInflation( const Server& station, const PopVector &N, const unsigned k ) const;
-    virtual double filter() const { return MOL_multiserver_underrelaxation; };
-	
-protected:
-    void initialize();
-
-    PopulationMap * getPopulationMap() const { return (PopulationMap *)&map; }
-    //TF NOTE: I don't like this conversion but the original code ignored the 
-    //inputs and just used the class variable 'c' so we have to map vs that
-    inline unsigned offset( const PopVector& N ) const { return map.offset_e_c_e_j(c, 0); }
-    inline unsigned offset_e_j( const PopVector& N, const unsigned j ) const { return map.offset_e_c_e_j(c, j); }
-
-    void core( const PopVector & );
-    virtual void estimate_L( const PopVector & );
-    void estimate_Lm( const unsigned m, const PopVector & N, const unsigned n ) const;
-    virtual void estimate_P( const PopVector & );
-    virtual double D_mekj( const unsigned, const unsigned, const unsigned, const unsigned ) const { return 0.0; }
-	
-    virtual void marginalProbabilities( const unsigned m, const PopVector& N );
-    virtual void marginalProbabilities2( const unsigned m, const PopVector& N );
 
 protected:
-    SpecialPopulationMap map;
-    unsigned c;				/* Customer from class c removed*/
-    bool initialized;			/* True if initialized.		*/
+    virtual const PopulationMap& getMap() const { return map; }
 
-private:
-    double ***last_L;			/* For local comparison.	*/
+    virtual void estimate_P( const Population & );
+
+protected:
+    SinglePopulationMap map;
 };
 
 /* -------------------------------------------------------------------- */
 
 class OneStepMVA: public Schweitzer {
 public:
-    OneStepMVA( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
+    OneStepMVA( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual void solve();
 };
 
 /* -------------------------------------------------------------------- */
 
-class Linearizer: public Schweitzer {
+class Linearizer: public SchweitzerCommon {
 public:
-    Linearizer( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
+    Linearizer( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Linearizer();
 
     virtual void reset();
     virtual void solve();
-	
+
 protected:
-    virtual void update_Delta( const PopVector & N );
+    virtual const PopulationMap& getMap() const { return map; }
+    virtual unsigned offset_e_c_e_j( const unsigned c, const unsigned j ) const { return getMap().offset_e_c_e_j( c, j ); }
+
+    virtual void update_Delta( const Population & N );
     double D_mekj( const unsigned m, const unsigned e, const unsigned k, const unsigned j ) const { return D[m][e][k][j]; }
-	
-    ostream& printD( ostream&, const PopVector& ) const;
+    ostream& printD( ostream&, const Population& ) const;
+
+    virtual void estimate_P( const Population & N );
 
     void initialize();
     void save_L();
@@ -345,14 +364,15 @@ protected:
     N_m_e_k saved_U;			/* Saved utilization.		*/
     PopulationData<double **> saved_P;	/* Saved marginal queue.	*/
     double ****D;			/* Delta Fraction of jobs.	*/
-    bool initialized;			/* True if initialized.		*/
+    unsigned c;				/* Customer from class c removed*/
+    PartialPopulationMap map;
 };
 
 /* -------------------------------------------------------------------- */
 
 class OneStepLinearizer: public Linearizer {
 public:
-    OneStepLinearizer( Vector<Server *>&, const PopVector&, const VectorMath<double>&, 
+    OneStepLinearizer( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		       const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual void solve();
 };
@@ -361,15 +381,15 @@ public:
 
 class Linearizer2: public Linearizer {
 public:
-    Linearizer2( Vector<Server *>&, const PopVector&,
+    Linearizer2( Vector<Server *>&, const Population&,
 		 const VectorMath<double>&, const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Linearizer2();
-    virtual double sumOf_L_m( const Server& station, const PopVector &N, const unsigned j ) const;
-    virtual double sumOf_SL_m( const Server&, const PopVector &, const unsigned ) const;
+    virtual double sumOf_L_m( const Server& station, const Population &N, const unsigned j ) const;
+    virtual double sumOf_SL_m( const Server&, const Population &, const unsigned ) const;
 
 protected:
-    void update_Delta( const PopVector & );
-    void estimate_L( const PopVector & );
+    void update_Delta( const Population & );
+    void estimate_L( const Population & );
 
 private:
     PopulationData<double *> Lm;	/* Queue length sum (Fast lin.)	*/

@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test5.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/test5.cc $
  *
  * ??
  *
  * ------------------------------------------------------------------------
- * $Id: test5.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test5.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,12 +15,12 @@
 #include "mva.h"
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned )
 {
     const unsigned classes  = 1;
     const unsigned stations = 4;
     
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     Z.grow(classes);				/* Think times.			*/
     priority.grow(classes);
     Q.grow(stations);				/* Queue type.  SS/delay.	*/

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/entity.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entity.h $
  *
  * Pure virtual class for tasks and processors.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entity.h 13547 2020-05-21 02:22:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -75,18 +75,18 @@ public:
     virtual const Processor * processor() const = 0;
     virtual Entity& processor( Processor * aProcessor ) = 0;
     virtual scheduling_type scheduling() const { return domEntity->getSchedulingType(); }
-    virtual Entity& copies( const unsigned );
     virtual unsigned copies() const;
     virtual Entity& replicas( const unsigned );
-    virtual unsigned replicas() const { return domEntity->getReplicas(); }
+    virtual unsigned replicas() const;
     double population() const { return myPopulation; }
     virtual double variance() const { return myVariance; }
     unsigned submodel() const { return mySubmodel; }
     Entity& setSubmodel( const unsigned submodel ) { mySubmodel = submodel; return *this; }
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return myThinkTime; }
-   virtual Entity& setOverlapFactor( const double ) { return *this; }
+    virtual Entity& setOverlapFactor( const double ) { return *this; }
 
-    virtual unsigned int fanOut( const Entity * ) const;
+    virtual unsigned int fanOut( const Entity * ) const = 0;
+    virtual unsigned int fanIn( const Task * ) const = 0;
 
     double throughput() const;
     double utilization() const;
@@ -97,7 +97,8 @@ public:
     virtual bool hasVariance() const { return attributes.variance; }
     bool hasDeterministicPhases() const { return attributes.deterministic; }
     bool hasSecondPhase() const { return (bool)(myMaxPhase > 1); }
-
+    bool hasOpenArrivals() const;
+    
     virtual unsigned hasClientChain( const unsigned, const unsigned ) const { return 0; }
     unsigned hasServerChain( const unsigned k ) const { return myServerChains.find(k); }
     virtual bool hasActivities() const { return false; }
@@ -135,7 +136,6 @@ public:
     unsigned nEntries() const { return entryList.size(); }
     virtual unsigned nClients() const = 0;
     unsigned clients( Cltn<Task *> & ) const;
-    unsigned fanIn( const Task * ) const;
 
     Entity& addServerChain( const unsigned k ) { myServerChains.append(k); return *this; }
     const ChainVector& serverChains() const { return myServerChains; }

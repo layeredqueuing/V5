@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13204 2018-03-06 22:52:04Z greg $
+ *  $Id: dom_document.cpp 13533 2020-03-12 22:09:07Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,43 +16,51 @@
 #include <cmath>
 #include <algorithm>
 #include "glblerr.h"
-#if HAVE_LIBXERCES_C
-#include "xerces_document.h"
-#elif HAVE_LIBEXPAT
+#if HAVE_LIBEXPAT
 #include "expat_document.h"
 #endif
+#include "json_document.h"
 #include "srvn_input.h"
 #include "srvn_results.h"
 #include "srvn_output.h"
 #include "srvn_spex.h"
 #include "filename.h"
+#include "dom_task.h"
+#include "dom_processor.h"
+#include "dom_entry.h"
+#include "dom_phase.h"
 
 namespace LQIO {
-    const char * input_file_name  = 0;
-    const char * output_file_name = 0;
-
     namespace DOM {
 	lqio_params_stats* Document::io_vars = NULL;
-	Document* currentDocument = NULL;
+	Document* __document = NULL;
 	bool Document::__debugXML = false;
+	bool Document::__debugJSON = false;
+	std::map<const char *, double> Document::__initialValues;
+	std::string Document::__input_file_name = "";
+	const std::string Document::__comment( "" );
+	const char * Document::XComment = "comment";
+	const char * Document::XConvergence = "conv_val";			/* Matches schema. 	*/
+	const char * Document::XIterationLimit = "it_limit";			/* Matched schema.	*/
+	const char * Document::XPrintInterval = "print_int";			/* Matches schema.	*/
+	const char * Document::XUnderrelaxationCoefficient = "underrelax_coeff";/* Matches schema.	*/
+	const char * Document::XSimulationSeedValue = "seed_value";
+	const char * Document::XSimulationNumberOfBlocks = "number_of_blocks";
+	const char * Document::XSimulationBlockTime = "block_time";
+	const char * Document::XSimulationPrecision = "precision";
+	const char * Document::XSimulationWarmUpLoops = "warm_up_loops";
+	const char * Document::XSimulationWarmUpTime = "warm_up_time";
+	const char * Document::XSpexIterationLimit = "spex_it_limit";
+	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
 	Document::Document( lqio_params_stats* ioVars, input_format format ) 
 	    : _processors(), _groups(), _tasks(), _entries(), 
-	      _entities(), _variables(), _nextEntityId(0), _format(format),
-	      _comment(), _comment2(), _convergenceValue(0), _iterationLimit(0), _printInterval(0), _underrelaxationCoefficient(0), 
-	      _defaultConvergenceValue(0.00001),
-	      _seedValue(0), _numberOfBlocks(0), _blockTime(0), _resultPrecision(0), _warmUpLoops(0), _warmUpTime(0),
-	      _xmlDomElement(0),
-	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _loadedPragmas(), 
-	      _maximumPhase(0), _hasResults(false), _hasRendezvous(false), _hasSendNoReply(false), _hasForwarding(false), _hasMaxServiceTime(false), _hasHistogram(false), 
-	      _hasSemaphoreWait(false), _hasReaderWait(false), _hasWriterWait(false),
-	      _entryHasThinkTime(false), 
-	      _entryHasOpenArrivals(false), _entryHasThroughputBound(false), _entryHasOpenWait(false),
-	      _entryHasWaitingTimeVariance(false), _entryHasServiceTimeVariance(false), _entryHasDropProbability(false),
-	      _taskHasAndJoin(false), _taskHasThinkTime(false),
-	      _processorHasRate(false),
-	      _resultValid(false),
-	      _hasConfidenceIntervals(false),
+	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
+	      _format(format), _comment2(), 
+	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _instantiated(false), _loadedPragmas(), 
+	      _maximumPhase(0), _hasResults(false),
+	      _hasRendezvous(NOT_SET), _hasSendNoReply(NOT_SET), _taskHasAndJoin(NOT_SET),		/* Cached valuess */
+	      _resultValid(false), _hasConfidenceIntervals(false), _hasBottleneckStrength(false),
 	      _resultInvocationNumber(0),
 	      _resultConvergenceValue(0.0),
 	      _resultIterations(0),
@@ -63,7 +71,19 @@ namespace LQIO {
 	{
 	    assert( ioVars );			/* Must be set.  See Dom_builder.cpp */
 	    io_vars = ioVars;
-	    currentDocument = this;
+	    __document = this;
+
+	    __initialValues[XConvergence] =                 0.00001;
+	    __initialValues[XIterationLimit] =              50.;
+	    __initialValues[XPrintInterval] =               10.;
+	    __initialValues[XUnderrelaxationCoefficient] =  0.9;
+	    __initialValues[XSimulationSeedValue] =         0;
+	    __initialValues[XSimulationNumberOfBlocks] =    30.;
+	    __initialValues[XSimulationBlockTime] =         50000.;
+	    __initialValues[XSimulationWarmUpLoops] =       500.;
+	    __initialValues[XSimulationWarmUpTime] =        10000.;
+	    __initialValues[XSpexIterationLimit] =          50.;
+	    __initialValues[XSpexUnderrelaxation] =         0.9;
 	}
     
 
@@ -87,49 +107,64 @@ namespace LQIO {
 		delete(groupIter->second);
 	    }
 
-	    io_vars = NULL;
-	    if ( input_file_name ) {
-		free( const_cast<char *>(input_file_name) );
-		input_file_name = 0;
-	    }
-	    if ( output_file_name ) {
-		free( const_cast<char *>(output_file_name) );
-		output_file_name = 0;
-	    }
-#if HAVE_LIBXERCES_C
-	    delete Xerces_Document::__xercesDOM;
-#endif	    
-	    LQIO::DOM::Spex::clear();
+	    __document = NULL;
+	    __input_file_name = "";
+
+	    LQIO::Spex::clear();
 	}
     
-	void Document::setModelParameters(const char* comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
+	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )
 	{
-	    /* Set up initial model parameters */
-	    _comment = std::string(comment);
-	    _convergenceValue = conv_val;
-	    if ( conv_val && conv_val->wasSet() ) {
-		conv_val->getValue( _defaultConvergenceValue );		/* Reset default */
+	    /* Set up initial model parameters, but only if they were not set using SPEX variables */
+
+	    ExternalVariable * var;		// Querk of map<>[].
+	    var = _controlVariables[XComment];
+	    if ( !var ) {
+		_controlVariables[XComment] = new ConstantExternalVariable( comment.c_str() );
 	    }
-	    _iterationLimit   = it_limit;
-	    _printInterval    = print_int;
-	    _underrelaxationCoefficient = underrelax_coeff;
-	    _xmlDomElement    = element;
+	    var = _controlVariables[XConvergence];
+	    if ( !var && conv_val ) {
+		_controlVariables[XConvergence] = conv_val;
+	    }
+	    var = _controlVariables[XIterationLimit];
+	    if ( !var && it_limit ) {
+		_controlVariables[XIterationLimit] = it_limit;
+	    }
+	    var = _controlVariables[XPrintInterval];
+	    if ( !var && print_int ) {
+		_controlVariables[XPrintInterval] = print_int;
+	    }
+	    var = _controlVariables[XUnderrelaxationCoefficient];
+	    if ( !var && underrelax_coeff ) {
+		_controlVariables[XUnderrelaxationCoefficient] = underrelax_coeff;
+	    }
 	}
 
-	const std::string& Document::getModelComment() const 
+	const char * Document::getModelCommentString() const 
 	{
-	    return _comment;
+	    const char * s;
+	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
+	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
+		if ( iter->second->getString( s ) ) return s;
+	    } 
+	    return __comment.c_str();
+	}
+
+	Document& Document::setModelComment( ExternalVariable * comment )
+	{	
+	    _controlVariables[XComment] = comment;
+	    return *this;
+	}
+
+	Document& Document::setModelCommentString( const std::string& comment )
+	{	
+	    _controlVariables[XComment] = new ConstantExternalVariable( comment.c_str() );
+	    return *this;
 	}
 
 	const std::string& Document::getExtraComment() const 
 	{
 	    return _comment2;
-	}
-
-	Document& Document::setModelComment( const std::string& value )
-	{	
-	    _comment = value;
-	    return *this;
 	}
 
 	Document& Document::setExtraComment( const std::string& value )
@@ -138,203 +173,108 @@ namespace LQIO {
 	    return *this;
 	}
 
-	const double Document::getModelConvergenceValue() const
+	Document& Document::setModelConvergence( ExternalVariable * value )
 	{	
-	    double value = _defaultConvergenceValue;
-	    if ( _convergenceValue && _convergenceValue->wasSet() ) {
-		_convergenceValue->getValue(value);
-	    }
-	    return value;
-	}
-
-	Document& Document::setModelConvergenceValue( ExternalVariable * value )
-	{	
-	    _convergenceValue = value;
+	    _controlVariables[XConvergence] = value;
 	    return *this;
-	}
-
-	const unsigned int Document::getModelIterationLimit() const
-	{
-	    double value = 0.0;
-	    if ( _iterationLimit ) {
-		assert(_iterationLimit->getValue(value) == true);
-		assert(value - floor(value) == 0);
-	    } else {
-		value = 50.;
-	    }
-	    return static_cast<int>(value);
 	}
 
 	Document& Document::setModelIterationLimit( ExternalVariable * value ) 
 	{
-	    _iterationLimit = value;
+	    _controlVariables[XIterationLimit] = value;
 	    return *this;
-	}
-
-	const unsigned int Document::getModelPrintInterval() const
-	{
-	    double value = 0.0;
-	    if ( _printInterval && _printInterval->getValue(value) ) {
-		assert(value - floor(value) == 0);
-	    }
-	    return static_cast<int>(value);
 	}
 
 	Document& Document::setModelPrintInterval( ExternalVariable * value ) 
 	{
-	    _printInterval = value;
+	    _controlVariables[XPrintInterval] = value;
 	    return *this;
-	}
-
-	const double Document::getModelUnderrelaxationCoefficient() const
-	{
-	    double value = 0.0;
-	    if ( _underrelaxationCoefficient ) {
-		assert(_underrelaxationCoefficient->getValue(value) == true);
-	    } else {
-		value = 0.9;
-	    }
-	    return value;
 	}
 
 	Document& Document::setModelUnderrelaxationCoefficient( ExternalVariable * value ) 
 	{
-	    _underrelaxationCoefficient = value;
+	    _controlVariables[XUnderrelaxationCoefficient] = value;
 	    return *this;
-	}
-
-	const long Document::getSimulationSeedValue() const
-	{
-	    double value = 0.0;
-	    if ( _seedValue ) {
-		assert(_seedValue->getValue(value) == true);
-	    } 
-	    return static_cast<long>(value);
 	}
 
 	Document& Document::setSimulationSeedValue( ExternalVariable * value )
 	{
-	    _seedValue = value;
+	    _controlVariables[XSimulationSeedValue] = value;
 	    return *this;
-	}
-
-	const long Document::getSimulationNumberOfBlocks( ) const
-	{
-	    double value = 0.0;
-	    if ( _numberOfBlocks ) {
-		assert(_numberOfBlocks->getValue(value) == true);
-	    } 
-	    return static_cast<long>(value);
 	}
 
 	Document& Document::setSimulationNumberOfBlocks( ExternalVariable * value )
 	{
-	    _numberOfBlocks = value;
+	    _controlVariables[XSimulationNumberOfBlocks] = value;
 	    return *this;
-	}
-
-	const double Document::getSimulationBlockTime( ) const
-	{
-	    double value = 0.0;
-	    if ( _blockTime ) {
-		assert(_blockTime->getValue(value) == true);
-	    } 
-	    return value;
 	}
 
 	Document& Document::setSimulationBlockTime( ExternalVariable * value )
 	{
-	    _blockTime = value;
+	    _controlVariables[XSimulationBlockTime] = value;
 	    return *this;
 	}
 
-	const double Document::getSimulationResultPrecision( ) const
+	Document& Document::setSimulationPrecision( ExternalVariable * value )
 	{
-	    double value = 0.0;
-	    if ( _resultPrecision ) {
-		assert(_resultPrecision->getValue(value) == true);
-	    } 
-	    return value;
-	}
-
-	Document& Document::setSimulationResultPrecision( ExternalVariable * value )
-	{
-	    _resultPrecision = value;
+	    _controlVariables[XSimulationPrecision] = value;
 	    return *this;
-	}
-
-	const long  Document::getSimulationWarmUpLoops( ) const
-	{
-	    double value = 0.0;
-	    if ( _warmUpLoops ) {
-		assert(_warmUpLoops->getValue(value) == true);
-	    } 
-	    return static_cast<long>(value);
 	}
 
 	Document& Document::setSimulationWarmUpLoops( ExternalVariable * value )
 	{
-	    _warmUpLoops = value;
+	    _controlVariables[XSimulationWarmUpLoops] = value;
 	    return *this;
-	}
-
-
-	const double Document::getSimulationWarmUpTime( ) const
-	{
-	    double value = 0.0;
-	    if ( _warmUpTime ) {
-		assert(_warmUpTime->getValue(value) == true);
-	    } 
-	    return value;
 	}
 
 	Document& Document::setSimulationWarmUpTime( ExternalVariable * value )
 	{
-	    _warmUpTime = value;
+	    _controlVariables[XSimulationWarmUpTime] = value;
 	    return *this;
-	}
-
-
-	const double Document::getSpexConvergenceIterationLimit() const	
-	{
-	    double value = 0.0;
-	    if ( _spexIterationLimit ) {
-		assert(_spexIterationLimit->getValue(value) == true);
-	    } 
-	    return value;
 	}
 
 	Document& Document::setSpexConvergenceIterationLimit( ExternalVariable * spexIterationLimit )
 	{
-	    _spexIterationLimit = spexIterationLimit;
+	    _controlVariables[XSpexIterationLimit] = spexIterationLimit;
 	    return *this;
-	}
-
-	const double Document::getSpexConvergenceUnderrelaxation() const
-	{
-	    double value = 0.0;
-	    if ( _spexUnderrelaxation ) {
-		assert(_spexUnderrelaxation->getValue(value) == true);
-	    } 
-	    return value;
 	}
 
 	Document& Document::setSpexConvergenceUnderrelaxation( ExternalVariable * spexUnderrelaxation )
 	{
-	    _spexUnderrelaxation = spexUnderrelaxation;
+	    _controlVariables[XSpexUnderrelaxation] = spexUnderrelaxation;
 	    return *this;
+	}
+
+	const double Document::getValue( const char * index ) const
+	{
+	    /* Set to default value if NOT set elsewhere (usually the control program) */
+	    double value = __initialValues[index];
+	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
+	    if ( iter != _controlVariables.end() ) {
+		const ExternalVariable * var = iter->second;
+		if ( var != NULL && var->wasSet() ) {
+		    var->getValue(value);
+		}
+	    }
+	    return value;
+	}
+
+	const ExternalVariable * Document::get( const char * index ) const
+	{
+	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
+	    if ( iter != _controlVariables.end() ) {
+		const ExternalVariable * var = iter->second;
+		if ( var ) {
+		    return iter->second;
+		}
+	    }
+	    return new ConstantExternalVariable( __initialValues[index] );
 	}
 
 	void 
 	Document::setMVAStatistics( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
 	{
-	    _mvaStatistics.submodels = submodels;
-	    _mvaStatistics.core = core;
-	    _mvaStatistics.step = step;
-	    _mvaStatistics.step_squared = step_squared;
-	    _mvaStatistics.wait = wait;
-	    _mvaStatistics.wait_squared = wait_squared;
-	    _mvaStatistics.faults = faults;
+	    _mvaStatistics.set( submodels, core, step, step_squared, wait, wait_squared, faults );
 	}
     
 	unsigned Document::getNextEntityId()
@@ -353,8 +293,9 @@ namespace LQIO {
 	Processor* Document::getProcessorByName(const std::string& name) const
 	{
 	    /* Return the processor by name */
-	    if(_processors.find(name) != _processors.end()) {
-		return const_cast<Document *>(this)->_processors[name];
+	    std::map<std::string, Processor*>::const_iterator processor = _processors.find(name);
+	    if( processor != _processors.end()) {
+		return processor->second;
 	    } else {
 		return NULL;
 	    }
@@ -541,12 +482,47 @@ namespace LQIO {
     
 	void Document::registerExternalSymbolsWithProgram(LQX::Program* program)
 	{
+	    if ( _instantiated ) return;			// Done already.
+	    _instantiated = true;
+	    if ( _variables.size() == 0 && !program ) return;	// NOP.
+
 	    /* Make sure all of the variables are registered in the program */
-	    std::map<std::string, SymbolExternalVariable*>::iterator iter;
-	    for (iter = _variables.begin(); iter != _variables.end(); ++iter) {
-		SymbolExternalVariable* current = iter->second;
+	    std::map<std::string, SymbolExternalVariable*>::iterator sym_iter;
+	    for (sym_iter = _variables.begin(); sym_iter != _variables.end(); ++sym_iter) {
+		SymbolExternalVariable* current = sym_iter->second;
 		current->registerInEnvironment(program);
 	    }
+
+	    /* Instantiate and initialize all control variables.  Program must exist before we can initialize */
+	    SymbolExternalVariable * current = 0;
+	    std::map<const char *,double>::const_iterator init_iter;
+	    for (init_iter = __initialValues.begin(); init_iter != __initialValues.end(); ++init_iter) {
+		const char * name = init_iter->first;		// Create var if necessary
+
+		/* Get value if set */
+		double value = init_iter->second;
+		ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[name]);
+		if ( constant ) {
+		    constant->getValue( value );
+		    delete constant;
+		} 
+		/* Now make it a variable */
+		current = new SymbolExternalVariable(name);
+		current->registerInEnvironment(program);	// This assigns _externalSymbol
+		current->set( value );				// Now set it to the default value
+		_controlVariables[name] = current;
+	    }
+
+	    ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[XComment]);
+	    const char * s = __comment.c_str();
+	    if ( constant ) {
+		constant->getString( s );			// get set value.
+	    }
+	    current = new SymbolExternalVariable(XComment);
+	    current->registerInEnvironment(program);		// This assigns _externalSymbol
+	    current->setString( s );				// Set value.
+	    _controlVariables[XComment] = current;
+	    if ( constant ) delete constant;
 	}
     
 	void Document::addPragma(const std::string& param, const std::string& value )
@@ -562,6 +538,16 @@ namespace LQIO {
 	void Document::clearPragmaList() 
 	{
 	    _loadedPragmas.clear();
+	}
+
+	const std::string Document::getPragma( const std::string& param ) const
+	{
+	    std::map<std::string,std::string>::const_iterator iter = _loadedPragmas.find( param );
+	    if ( iter != _loadedPragmas.end() ) {
+		return iter->second;
+	    } else {
+		return std::string("");
+	    }
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -601,21 +587,21 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& Document::setResultUserTime(clock_t resultUserTime) 
+	Document& Document::setResultUserTime(double resultUserTime) 
 	{ 
 	    _hasResults = true;
 	    _resultUserTime = resultUserTime;
 	    return *this;
 	}
 
-	Document& Document::setResultSysTime(clock_t resultSysTime) 
+	Document& Document::setResultSysTime(double resultSysTime) 
 	{ 
 	    _hasResults = true;
 	    _resultSysTime = resultSysTime;
 	    return *this;
 	}
 
-	Document& Document::setResultElapsedTime(clock_t resultElapsedTime) 
+	Document& Document::setResultElapsedTime(double resultElapsedTime) 
 	{ 
 	    _hasResults = true;
 	    _resultElapsedTime = resultElapsedTime;
@@ -637,64 +623,29 @@ namespace LQIO {
 	    return _hasResults;
 	}
 
-	bool Document::isXMLDOMPresent() const 
+	bool Document::hasRendezvous() const
 	{
-	    return _xmlDomElement != NULL;
-	}
-
-	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-
-	ExternalVariable* 
-	Document::db_build_parameter_variable(const char* input, bool* isSymbol)
-	{
-	    if (input && input[0] == '$') {
-		if (isSymbol) { *isSymbol = true; }
-		return getSymbolExternalVariable(input);
-	    } else {
-		double result = 0.0;
-
-		/* NULL input means a zero */
-		if (input != NULL) {
-		    char* endPtr = NULL;
-		    const char* realEndPtr = input + strlen(input);
-		    result = strtod(input, &endPtr);
-
-		    /* Check if we finished parsing okay */
-		    if (endPtr != realEndPtr) {
-			std::string err = "<double>: \"";
-			err += input;
-			err += "\"";
-			throw std::invalid_argument( err.c_str() );
-		    }
-		}
-
-		/* Return the resulting value */
-		if (isSymbol) { *isSymbol = false; }
-		return new ConstantExternalVariable(result);
+	    /* This is a property of phases and activities, so count_if can't be used here */
+	    if ( _hasRendezvous == NOT_SET ) {
+		_hasRendezvous = (for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasRendezvous ) ).count() != 0 ? SET_TRUE : SET_FALSE);
 	    }
+	    return _hasRendezvous == SET_TRUE;
 	}
-	
-	void 
-	Document::db_check_set_entry(Entry* entry, const string& entry_name, Entry::EntryType requisiteType)
+
+	bool Document::hasSendNoReply() const
 	{
-	    if ( !entry ) {
-		input_error2( ERR_NOT_DEFINED, entry_name.c_str() );
-	    } else if ( requisiteType != Entry::ENTRY_NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
-		input_error2( ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
+	    if ( _hasSendNoReply == NOT_SET ) {
+		_hasSendNoReply = (for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasSendNoReply ) ).count() != 0 ? SET_TRUE : SET_FALSE);
 	    }
+	    return _hasSendNoReply == SET_TRUE;
 	}
 
-	Document&
-	Document::setCallType( const Call::CallType t ) 
+	bool Document::hasForwarding() const
 	{
-	    if ( t == Call::RENDEZVOUS ) _hasRendezvous = true;
-	    if ( t == Call::SEND_NO_REPLY ) _hasSendNoReply = true;
-	    if ( t == Call::FORWARD ) _hasForwarding = true;
-	    return *this;
+	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasForwarding ) ) != _entries.end();
 	}
 
-	bool
-	Document::hasNonExponentialPhase() const
+	bool Document::hasNonExponentialPhase() const
 	{
 	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::isNonExponential ) ).count() != 0;
 	}
@@ -704,6 +655,122 @@ namespace LQIO {
 	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasDeterministicCalls ) ).count() != 0;
 	}
 
+	bool Document::hasMaxServiceTimeExceeded() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) ).count() != 0;
+	}
+
+	bool Document::hasHistogram() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasHistogram ) ).count() != 0;
+	}
+
+	bool Document::entryHasWaitingTimeVariance() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultVarianceWaitingTime ) ).count() != 0;
+	}
+
+	bool Document::entryHasDropProbability() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultDropProbability ) ).count() != 0;
+	}
+
+	bool Document::entryHasServiceTimeVariance() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultServiceTimeVariance ) ).count() != 0;
+	}
+
+	bool Document::processorHasRate() const
+	{
+	    return std::find_if( _processors.begin(), _processors.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Processor>( &LQIO::DOM::Processor::hasRate ) ) != _processors.end();
+	}
+
+	bool Document::taskHasAndJoin() const
+	{
+	    if ( _taskHasAndJoin == NOT_SET ) {
+		_taskHasAndJoin = (std::find_if( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasAndJoinActivityList ) ) != _tasks.end() ? SET_TRUE : SET_FALSE );
+	    }
+	    return _taskHasAndJoin == SET_TRUE;
+	}
+
+	bool Document::taskHasThinkTime() const
+	{
+	    /* This is a property of tasks only */
+	    return std::find_if( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasThinkTime ) ) != _tasks.end();
+	}
+
+	bool Document::hasSemaphoreWait() const
+	{
+	    return std::find_if( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isSemaphoreTask ) != _tasks.end();
+	}
+
+	bool Document::hasRWLockWait() const
+	{
+	    return std::find_if( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isRWLockTask ) != _tasks.end();
+	}
+
+	bool Document::hasThinkTime() const
+	{
+	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasThinkTime ) ).count() != 0;
+	}
+
+	bool Document::hasOpenArrivals() const
+	{
+	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasOpenArrivalRate ) ) != _entries.end();
+	}
+
+	bool Document::entryHasThroughputBound() const 
+	{
+	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForThroughputBound ) ) != _entries.end();
+	}
+
+	bool Document::entryHasOpenWait() const
+	{
+	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForOpenWait ) ) != _entries.end();
+	}
+
+	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
+
+	ExternalVariable* 
+	Document::db_build_parameter_variable(const char* input, bool* isSymbol)
+	{
+	    if (isSymbol) { *isSymbol = false; }
+	    if ( input == NULL ) {
+		/* NULL input means a zero */
+		return new ConstantExternalVariable(0.0);
+	    } else if ( input[0] == '$' ) {
+		if (isSymbol) { *isSymbol = true; }
+		return getSymbolExternalVariable(input);
+	    } else if ( strcmp( input, "@infinity" ) == 0 ) {
+		return new ConstantExternalVariable( srvn_get_infinity() );
+	    } else {
+		double result = 0.0;
+		char* endPtr = NULL;
+		const char* realEndPtr = input + strlen(input);
+		result = strtod(input, &endPtr);
+
+		/* Check if we finished parsing okay */
+		if (endPtr != realEndPtr) {
+		    std::string err = "<double>: \"";
+		    err += input;
+		    err += "\"";
+		    throw std::invalid_argument( err.c_str() );
+		}
+
+		/* Return the resulting value */
+		return new ConstantExternalVariable(result);
+	    }
+	}
+	
+	void 
+	Document::db_check_set_entry(Entry* entry, const std::string& entry_name, Entry::EntryType requisiteType)
+	{
+	    if ( !entry ) {
+		input_error2( ERR_NOT_DEFINED, entry_name.c_str() );
+	    } else if ( requisiteType != Entry::ENTRY_NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
+		input_error2( ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
+	    }
+	}
 
 	/*
 	 * Load document.  Based on the file extension, pick the
@@ -713,28 +780,17 @@ namespace LQIO {
 	 */
 
 	/* static */ Document* 
-	Document::load(const string& input_filename, input_format format, const string& output_filename, lqio_params_stats * ioVars, unsigned& errorCode, bool load_results )
+	Document::load(const std::string& input_filename, input_format format, lqio_params_stats * ioVars, unsigned& errorCode, bool load_results )
 	{
-	    input_file_name = strdup( input_filename.c_str() );
-	    output_file_name = strdup( output_filename.c_str() );
+	    __input_file_name = input_filename;
             ioVars->error_count = 0;                   /* See error.c */
-            ioVars->anError = false;
 
 	    errorCode = 0;
 
 	    /* Figure out input file type based on suffix */
 
 	    if ( format == AUTOMATIC_INPUT ) {
-		const unsigned long pos = input_filename.find_last_of( '.' );
-		if ( pos != string::npos ) {
-		    string suffix = input_filename.substr( pos+1 );
-		    std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
-		    if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" ) {
-			format = LQN_INPUT;		/* Override */
-		    } else {
-			format = XML_INPUT;
-		    }
-		}
+		format = getInputFormatFromFilename( input_filename );
 	    }
 
 	    /* Create a document to store the product */
@@ -743,14 +799,16 @@ namespace LQIO {
 	    /* Read in the model, invoke the builder, and see what happened */
 
 	    bool rc = true;
+	    LQIO::Spex::initialize_control_parameters();
 	    if ( format == LQN_INPUT ) {
-		LQIO::DOM::Spex::initialize_control_parameters();
-		rc = SRVN::load( *document, input_filename, output_filename, errorCode, load_results );
+		rc = SRVN::load( *document, input_filename, errorCode, load_results );
+	    } else if ( format == JSON_INPUT ) {
+		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
 	    } else {
-#if HAVE_LIBXERCES_C
-		rc = Xerces_Document::load( *document, input_filename, ioVars, errorCode );
-#elif HAVE_LIBEXPAT
-		rc = Expat_Document::load( *document, input_filename, output_filename, errorCode, load_results );
+#if HAVE_LIBEXPAT
+		rc = Expat_Document::load( *document, input_filename, errorCode, load_results );
+#else
+		rc = false;
 #endif
 	    }
 	    if ( errorCode != 0 ) {
@@ -759,6 +817,12 @@ namespace LQIO {
 
 	    /* All went well, so return it */
 	    if ( rc ) {
+//		I will have to register functions for LQX here.
+		LQX::Program * program = document->getLQXProgram();
+		if ( program ) {
+		    LQX::Environment * environment = program->getEnvironment();
+//	            environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, aModel));
+		}
 		return document;
 	    } else {
 		delete document;
@@ -771,17 +835,39 @@ namespace LQIO {
 	Document::loadResults(const std::string& directory_name, const std::string& file_name, const std::string& suffix, unsigned& errorCode )
 	{
 	    if ( getInputFormat() == LQN_INPUT ) {
-		LQIO::Filename filename( file_name.c_str(), "p", directory_name.c_str(), suffix.c_str() );
+		LQIO::Filename filename( file_name, "p", directory_name, suffix );
 		return LQIO::SRVN::loadResults( filename() );
 	    } else if ( getInputFormat() == XML_INPUT ) {
-		LQIO::Filename filename( file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
-#if HAVE_LIBXERCES_C
+		LQIO::Filename filename( file_name, "lqxo", directory_name, suffix );
+#if HAVE_LIBEXPAT
+		return Expat_Document::loadResults( *this, filename(), errorCode );
+#else
 		return false;
-#elif HAVE_LIBEXPAT
-		return Expat_Document::loadResults( *this, file_name, errorCode );
 #endif
+	    } else if ( getInputFormat() == JSON_INPUT ) {
+		LQIO::Filename filename( file_name, "lqxo", directory_name, suffix );
+		return false;
 	    } else {
 		return false;
+	    }
+	}
+
+	/* static */ Document::input_format
+	Document::getInputFormatFromFilename( const std::string& filename, const input_format default_format )
+	{
+	    const unsigned long pos = filename.find_last_of( '.' );
+	    if ( pos == std::string::npos ) {
+		return default_format;
+	    } else {
+		std::string suffix = filename.substr( pos+1 );
+		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
+		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
+		    return LQN_INPUT;		/* Override */
+		} else if ( suffix == "json" || suffix == "lqnj" || suffix == "jlqn" || suffix == "lqjo" ) {
+		    return JSON_INPUT;
+		} else {
+		    return XML_INPUT;
+		}
 	    }
 	}
 
@@ -792,15 +878,37 @@ namespace LQIO {
         std::ostream&
 	Document::print( std::ostream& output, const output_format format ) const
 	{
-	    if ( format == TEXT_OUTPUT ) {
+	    switch ( format ) {
+	    case DEFAULT_OUTPUT:
+	    case LQN_OUTPUT: {
 		SRVN::Output srvn( *this, _entities );
 		srvn.print( output );
-	    } else if ( format == PARSEABLE_OUTPUT ) {
+		break;
+	    }
+	    case PARSEABLE_OUTPUT:{
 		SRVN::Parseable srvn( *this, _entities );
 		srvn.print( output );
-	    } else if ( format == RTF_OUTPUT ) {
+		break;		
+	    } 
+	    case RTF_OUTPUT: {
 		SRVN::RTF srvn( *this, _entities );
 		srvn.print( output );
+		break;
+	    }
+	    case XML_OUTPUT: {
+#if HAVE_LIBEXPAT
+		Expat_Document expat( *const_cast<Document *>(this), __input_file_name, false, false );
+		expat.serializeDOM( output );
+#endif
+		break;
+	    }
+	    case JSON_OUTPUT: {
+		Json_Document json( *const_cast<Document *>(this), __input_file_name, false, false );
+		json.serializeDOM( output );
+		break;
+	    }
+	    default:
+		abort();
 	    }
 
 	    return output;
@@ -816,26 +924,13 @@ namespace LQIO {
 		}
 
 		const SymbolExternalVariable* var = var_p->second;
-		output << *var;
+		output << var->getName();
 
-		double value;
-		if ( var->wasSet() && var->getValue( value ) ) {
-		    output << " = " << value;
+		if ( var->wasSet() ) {
+		    output << " = " << *var;
 		}
 	    }
 	    return output;
 	}
-
-	void 
-	Document::serializeDOM( std::ostream & output, bool instantiate ) const
-	{
-#if HAVE_LIBXERCES_C
-	    Xerces_Document::serializeDOM( output, instantiate );
-#elif HAVE_LIBEXPAT
-	    Expat_Document expat( *const_cast<Document *>(this), false, false );
-	    expat.serializeDOM( output, instantiate );
-#endif
-	}
-
     }
 }

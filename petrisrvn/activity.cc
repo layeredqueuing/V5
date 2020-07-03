@@ -15,6 +15,7 @@
  */
 
 #include <cmath>
+#include <algorithm>
 #include <lqio/glblerr.h>
 #include <lqio/error.h>
 #include <lqio/dom_activity.h>
@@ -111,12 +112,12 @@ Activity::transmorgrify( const double x_pos, const double y_pos, const unsigned 
  */
 
 bool
-Activity::find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e )
+Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e )
 {
     bool has_service_time = s() || think_time();
 
     _is_reachable = true;
-    if ( activity_stack.find( this ) >= 0 ) {
+    if ( std::find( activity_stack.begin(), activity_stack.end(), this ) != activity_stack.end() ) {
 	activity_cycle_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, task()->name(), activity_stack );
 	return has_service_time;
     }
@@ -128,11 +129,11 @@ Activity::find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<Acti
     }
     
     if ( _output ) {
-	activity_stack.push( this );
+	activity_stack.push_back( this );
 	if ( _output->join_find_children( activity_stack, fork_stack, e ) ) {
 	    has_service_time = true;
 	}
-	activity_stack.pop();
+	activity_stack.pop_back();
     }
 	  
     return has_service_time;
@@ -140,13 +141,13 @@ Activity::find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<Acti
 
 
 
-void Activity::activity_cycle_error( int err, const char *, my_stack_t<Activity *>& activity_stack )
+void Activity::activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack )
 {
     static char buf[BUFSIZ];
     size_t l = 0;
 
     while ( !activity_stack.empty() ) {
-	Activity * ap = activity_stack.top();
+	Activity * ap = activity_stack.back();
 	l += snprintf( &buf[l], BUFSIZ-l, ", %s", ap->name() );
     }
     LQIO::solution_error( err, name(), buf );
@@ -157,18 +158,18 @@ void Activity::activity_cycle_error( int err, const char *, my_stack_t<Activity 
  */
 
 double
-Activity::count_replies( my_stack_t<Activity *>& activity_stack, const Entry * e,
+Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * e,
 			 const double rate, const unsigned curr_phase, unsigned& next_phase )
 {
     double sum = 0.0;
     next_phase = curr_phase;
     
-    if ( activity_stack.find( this ) < 0 ) {
+    if ( std::find( activity_stack.begin(), activity_stack.end(), this ) == activity_stack.end() ) {
 
 	/* tag phase */
     
-	if ( this->_entry == 0 ) {
-	    this->_entry = e;
+	if ( _entry == 0 ) {
+	    _entry = e;
 	}
     
 	/* Look for reply.  Flag as necessary */
@@ -189,9 +190,9 @@ Activity::count_replies( my_stack_t<Activity *>& activity_stack, const Entry * e
 	}
 
 	if ( _output ) {
-	    activity_stack.push( this );
+	    activity_stack.push_back( this );
 	    sum += _output->join_count_replies( activity_stack, e, rate, next_phase, next_phase );
-	    activity_stack.pop();
+	    activity_stack.pop_back();
 	}
 
     }
@@ -719,12 +720,13 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
     list->list[list->_n_acts++] = this;
     _output = list;
 
-    list->u.join.quorumCount = dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->getQuorumCountValue();
-    if ( list->u.join.quorumCount > 0 ) {
+    if ( dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->hasQuorumCount() ) {
+	list->u.join.quorumCount = dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->getQuorumCountValue();
 	Task * a_task = const_cast<Task *>(task());
 	a_task->set_n_phases( 2 );
+    } else {
+	list->u.join.quorumCount = 0;
     }
-          
     return list;
 }
 

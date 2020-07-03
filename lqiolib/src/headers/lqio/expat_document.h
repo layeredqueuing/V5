@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 13204 2018-03-06 22:52:04Z greg $
+ *  $Id: expat_document.h 13558 2020-05-26 01:52:40Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -12,23 +12,25 @@
 #include <stdexcept>
 #include <cstdarg>
 #include <iostream>
-#include "common_io.h"
-#include "dom_document.h"
-#include "dom_histogram.h"
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif
 #include <expat.h>
+#include "common_io.h"
+#include "dom_document.h"
+#include "dom_histogram.h"
+#include "srvn_spex.h"
 
 namespace LQIO {
     namespace DOM {
 	class Expat_Document;
+	class ExportObservation;
 	
-	typedef void (Expat_Document::*handler_fptr)( DocumentObject *, const XML_Char *, const XML_Char ** );
+	typedef void (Expat_Document::*start_fptr)( DocumentObject *, const XML_Char *, const XML_Char ** );
+	typedef void (Expat_Document::*end_fptr)( DocumentObject *, const XML_Char * );
 	typedef DocumentObject& (DocumentObject::*set_result_fptr)( const double );
 
 	class Expat_Document : private Common_IO {
-	    friend void Document::serializeDOM( std::ostream&, bool instantiate ) const;
 
 	private:
 	    typedef double (DOM::Entry::*doubleEntryFunc)( const unsigned ) const;
@@ -36,11 +38,13 @@ namespace LQIO {
 
 	    struct parse_stack_t
 	    {
-		parse_stack_t(const XML_Char * e, handler_fptr f, DocumentObject * o, DocumentObject * r=0) : element(e), func(f), object(o), extra_object(r) {}
+		parse_stack_t(const XML_Char * e, start_fptr sh, DocumentObject * o, DocumentObject * r=NULL) : element(e), start(sh), end(NULL), object(o), extra_object(r) {}
+		parse_stack_t(const XML_Char * e, start_fptr sh, end_fptr eh, DocumentObject * o ) : element(e), start(sh), end(eh), object(o), extra_object(NULL) {}
 		bool operator==( const XML_Char * ) const;
 
 		const std::basic_string<XML_Char> element;
-		handler_fptr func;
+		start_fptr start;
+		end_fptr end;
 		DocumentObject * object;
 		DocumentObject * extra_object;
 	    };
@@ -53,6 +57,17 @@ namespace LQIO {
 		set_result_fptr variance;
 	    };
 
+	    /*+ SPEX */
+	    struct observation_table_t
+	    {
+		observation_table_t() : key(0), phase(0) {}
+		observation_table_t( int k, int p=0 ) : key(k), phase(p) {}
+		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
+		int key;
+		int phase;
+	    };
+	    /*- SPEX */
+	    
 	    struct precedence_table_t
 	    {
 		bool operator()( const XML_Char * s1, const XML_Char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
@@ -101,17 +116,6 @@ namespace LQIO {
 		friend std::ostream& operator<<(std::ostream & os, const XMLCharDoubleManip& m ) { return m._f(os,m._a,m._v); }
 	    };
 
-	    class XMLCharTimeManip {
-	    public:
-		XMLCharTimeManip( std::ostream& (*f)(std::ostream&, const XML_Char *, const clock_t ), const XML_Char * a, const clock_t v ) : _f(f), _a(a), _v(v) {}
-	    private:
-		std::ostream& (*_f)( std::ostream&, const XML_Char *, const clock_t );
-		const XML_Char * _a;
-		const clock_t _v;
-
-		friend std::ostream& operator<<(std::ostream & os, const XMLCharTimeManip& m ) { return m._f(os,m._a,m._v); }
-	    };
-
 	    class ExternalVariableManip {
 	    public:
 		ExternalVariableManip( std::ostream& (*f)(std::ostream&, const XML_Char *, const ExternalVariable& ), const XML_Char * a, const ExternalVariable& v ) : _f(f), _a(a), _v(v) {}
@@ -149,19 +153,87 @@ namespace LQIO {
 		const ConfidenceIntervals * _c;	/* optional confidence level */
 		friend std::ostream& operator<<(std::ostream & os, const TaskResultsManip& m ) { return m._f(os,m._t,m._a,m._p,m._c); }
 	    };
-
+
+	    struct ExportProcessor {
+		ExportProcessor( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const std::pair<unsigned, Entity *>& e ) const { Processor * p = dynamic_cast<Processor *>(e.second); if ( p ) _self.exportProcessor( _output, *p ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportGroup {
+		ExportGroup( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const Group * g ) const { _self.exportGroup( _output, *g ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportTask {
+		ExportTask( std::ostream& output, const Expat_Document& self, bool not_in_group=false ) : _output( output ), _self( self ), _not_in_group(not_in_group) {}
+		void operator()( const Task * t ) const { if ( !_not_in_group || !t->getGroup() ) _self.exportTask( _output, *t ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+		const bool _not_in_group;
+	    };
+
+	    struct ExportEntry {
+		ExportEntry( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const Entry * e ) const { _self.exportEntry( _output, *e ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportPhase {
+		ExportPhase( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const std::pair<unsigned,Phase *>& p ) const { const Phase * phase = p.second; if ( phase->isPresent() ) _self.exportActivity( _output, *phase, p.first ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportCall {
+		ExportCall( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const Call * c ) const { _self.exportCall( _output, *c ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportActivity {
+		ExportActivity( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const std::pair<std::string,Activity *>& a ) const { _self.exportActivity( _output, *a.second ); }
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
+	    struct ExportPrecedence {
+		ExportPrecedence( std::ostream& output, const Expat_Document& self ) : _output( output ), _self( self ) {}
+		void operator()( const ActivityList *) const;
+	    private:
+		std::ostream& _output;
+		const Expat_Document& _self;
+	    };
+
 	private:
 	    friend class LQIO::DOM::Document;
+	    friend class LQIO::DOM::ExportObservation;
 
-	    Expat_Document( Document&, bool=true, bool=false );
+	    Expat_Document( Document&, const std::string&, bool=true, bool=false );
+
 	public:
 	    virtual ~Expat_Document();
 
 	    bool hasResults() const { return _document.hasResults(); }
+	    bool hasSPEX() const { return _has_spex; /* And not outputing LQX */ }
 
-	    void serializeDOM( std::ostream& output, bool instantiate ) const;
+	    void serializeDOM( std::ostream& output ) const;
 	    
-	    static bool load( Document&, const std::string&, const std::string&, unsigned int & errorCode, const bool load_results );		// Factory.
+	    static bool load( Document&, const std::string&, unsigned int & errorCode, const bool load_results );		// Factory.
 	    static bool loadResults( Document&, const std::string&, unsigned& errorCode );
 
 	private:
@@ -178,7 +250,7 @@ namespace LQIO {
 
 	private:
 	    void initialize();
-	    bool parse( const std::string& );
+	    bool parse();
 	    void input_error( const char * fmt, ... ) const;
 
 	    /* Element handlers called from start() above. */
@@ -186,6 +258,7 @@ namespace LQIO {
 	    void startModelType( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
 	    void startResultGeneral( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
 	    void startMVAInfo( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
+
 	    void startProcessorType( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
 	    void startGroupType( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
 	    void startTaskType( DocumentObject *, const XML_Char * element, const XML_Char ** attributes );
@@ -198,14 +271,27 @@ namespace LQIO {
 	    void startPrecedenceType( DocumentObject * task, const XML_Char * element, const XML_Char ** attributes );
 	    void startActivityListType( DocumentObject * task, const XML_Char * element, const XML_Char ** attributes );
 	    void startReplyActivity( DocumentObject * task, const XML_Char * element, const XML_Char ** attributes );
-	    void startOutputResultType( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
+	    void startOutputResultType( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
+/*+ SPEX */
+	    void startSPEXObservationType( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes );
+	    void endSPEXObservationType( DocumentObject * object, const XML_Char * elelemt );
+/*- SPEX */
 	    void startJoinResultType( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startOutputDistributionType( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startLQX( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
-	    void startNOP( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
+/*+ SPEX */
+	    void startSPEXParameters( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
+	    void endSPEXParameters( DocumentObject * document, const XML_Char * element );
+	    void startSPEXResults( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
+	    void endSPEXResults( DocumentObject * document, const XML_Char * element );
+	    void startSPEXConvergence( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
+	    void endSPEXConvergence( DocumentObject * document, const XML_Char * element );
+/*- SPEX */
+	    void startNOP( DocumentObject * document, const XML_Char * element, const XML_Char ** attributes );
 
 	    /* Methods invoked from element handlers */
 	    DocumentObject * handleModel( DocumentObject * object, const XML_Char ** attributes );
+
 	    Processor * handleProcessor( DocumentObject * object, const XML_Char ** attributes );
 	    DocumentObject * handleGroup( DocumentObject * object, const XML_Char ** attributes );
 	    Task * handleTask( DocumentObject * object, const XML_Char ** attributes );
@@ -219,6 +305,7 @@ namespace LQIO {
 	    Call * handleActivityCall( DocumentObject *, const XML_Char ** attributes, const Call::CallType call_type );
 	    Call * handleEntryCall( DocumentObject *, const XML_Char ** attributes );
 	    Call * handlePhaseCall( DocumentObject *, const XML_Char ** attributes, const Call::CallType call_type );
+	 // DecisionPath * handleDecisionPath( DocumentObject * object, const XML_Char ** attributes );
 	    Histogram * handleHistogram( DocumentObject * object, const XML_Char ** attributes );
 
 	    Histogram * handleQueueLengthDistribution( DocumentObject * object, const XML_Char ** attributes );
@@ -227,30 +314,40 @@ namespace LQIO {
 	    void handleResults95( DocumentObject *, const XML_Char ** attributes );
 	    void handleJoinResults( AndJoinActivityList *, const XML_Char ** attributes );
 	    void handleJoinResults95( AndJoinActivityList *, const XML_Char ** attributes );
+	    void handleSPEXObservation( DocumentObject *, const XML_Char ** attributes, unsigned int = 0 );
+	    void handleSPEXObservation95( DocumentObject *, const XML_Char ** attributes );
 	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 	    Histogram * findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 
 	    bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
-	    const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=0 ) const;
+
+	    LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char ** attributes, const XML_Char * argument, const XML_Char * default_value=NULL ) const;
+	    LQIO::DOM::ExternalVariable * getOptionalAttribute( const XML_Char ** attributes, const XML_Char * argument ) const;
+	    const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=NULL ) const;
 	    const double getDoubleAttribute( const XML_Char ** attributes, const XML_Char * Xconv_val, const double default_value=-1.0 ) const;
 	    const long getLongAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const long default_value=-1 ) const;
 	    const bool getBoolAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const bool default_value=false ) const;
-	    const clock_t getTimeAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int ) const;
+	    const double getTimeAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int ) const;
 	    const scheduling_type getSchedulingAttribute( const XML_Char ** attributes, const scheduling_type ) const;
 
+	    double get_double( const char *, const char * ) const;
+
 	    void exportHeader( std::ostream& output ) const;
+	    void exportSPEXParameters( std::ostream& output ) const;
 	    void exportGeneral( std::ostream& output ) const;
 	    void exportProcessor( std::ostream& output, const Processor & ) const;
 	    void exportGroup( std::ostream& output, const Group & ) const;
 	    void exportTask( std::ostream& output,const Task & ) const;
 	    void exportEntry( std::ostream& output, const Entry & ) const;
-	    void exportActivity( std::ostream& output, const Phase &, const unsigned ) const;
+	    void exportActivity( std::ostream& output, const Phase &, const unsigned=0 ) const;
 	    void exportPrecedence( std::ostream& output, const ActivityList& activity_list ) const;
 	    void exportCall( std::ostream& output, const Call & ) const;
 	    void exportHistogram( std::ostream& output, const Histogram& histogram, const unsigned phase=0 ) const;
+	    void exportObservation( std::ostream& output, const DocumentObject * object ) const;
 	    void exportLQX( std::ostream& output ) const;
+	    void exportSPEXResults( std::ostream& output ) const;
+	    void exportSPEXConvergence( std::ostream& output ) const;
 	    void exportFooter( std::ostream& output ) const;
-
 	    static void init_tables();
 	    static std::ostream& printIndent( std::ostream& output, const int i );
 	    static std::ostream& printStartElement( std::ostream& output, const XML_Char * a, const bool b );
@@ -259,7 +356,7 @@ namespace LQIO {
 	    static std::ostream& printAttribute( std::ostream& output, const XML_Char * a, const double v );
 	    static std::ostream& printAttribute( std::ostream& output, const XML_Char * a, const ExternalVariable& v );
 	    static std::ostream& printComment( std::ostream& output, const std::string& s );
-	    static std::ostream& printTime( std::ostream& output, const XML_Char * a, const clock_t v );
+	    static std::ostream& printTime( std::ostream& output, const XML_Char * a, const double v );
 	    static std::ostream& printEntryPhaseResults( std::ostream& output, const Entry & entry, const XML_Char ** attributes, const doubleEntryFunc func, const ConfidenceIntervals * );
 	    static std::ostream& printTaskPhaseResults( std::ostream& output, const Task & task, const XML_Char ** attributes, const doubleTaskFunc func, const ConfidenceIntervals * );
 
@@ -269,7 +366,7 @@ namespace LQIO {
 	    static StringManip comment( const std::string& s ) { return StringManip( &printComment, s ); }
 	    static ExternalVariableManip attribute( const XML_Char *a, const ExternalVariable& v ) { return ExternalVariableManip( &printAttribute, a, v ); }
 	    static XMLCharDoubleManip attribute( const XML_Char *a, const double v ) { return XMLCharDoubleManip( &printAttribute, a, v ); }
-	    static XMLCharTimeManip time_attribute( const XML_Char *a, const clock_t v ) { return XMLCharTimeManip( &printTime, a, v ); }
+	    static XMLCharDoubleManip time_attribute( const XML_Char *a, const double v ) { return XMLCharDoubleManip( &printTime, a, v ); }
 	    static XMLCharBoolManip start_element( const XML_Char * e, const bool b=true ) { return XMLCharBoolManip( &printStartElement, e, b ); }
 	    static XMLCharBoolManip end_element( const XML_Char * e, const bool b=true ) { return XMLCharBoolManip( &printEndElement, e, b ); }
 	    static XMLCharBoolManip simple_element( const XML_Char * e ) { return XMLCharBoolManip( &printStartElement, e, false ); }
@@ -283,10 +380,18 @@ namespace LQIO {
 	private:
 	    Document& _document;
 	    XML_Parser _parser;
-	    bool _XMLDOMPresent;
+	    const std::string& _input_file_name;
 	    bool _createObjects;
 	    bool _loadResults;
 	    std::stack<parse_stack_t> _stack;
+
+	    /*+ SPEX */
+	    bool _has_spex;			/* True if SPEX present AND not outputting LQX */
+	    std::string _spex_parameters;
+	    std::string _spex_results;
+	    std::string _spex_convergence;
+	    std::set<LQIO::Spex::ObservationInfo,LQIO::Spex::ObservationInfo> _spex_observation;
+	    /*- SPEX */
 
 	    static int __indent;
 
@@ -300,11 +405,14 @@ namespace LQIO {
 	    static std::set<const XML_Char *,attribute_table_t> activity_table;
 	    static std::set<const XML_Char *,attribute_table_t> call_table;
 	    static std::set<const XML_Char *,attribute_table_t> histogram_table;
+
 	    static std::map<const XML_Char,const XML_Char *> escape_table;
 
 	    static std::map<const XML_Char *,ActivityList::ActivityListType,attribute_table_t> precedence_table;
 	    static const XML_Char * precedence_type_table[];
 	    static std::map<const XML_Char *,result_table_t,result_table_t>  result_table;
+	    static std::map<const XML_Char *,observation_table_t,observation_table_t>  observation_table;	/* SPEX */
+	    static std::map<int,const char *> __key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to SPEX attribute name */
 	    static call_type_table_t call_type_table[];
 
 	    static const XML_Char * XMLSchema_instance;
@@ -397,6 +505,7 @@ namespace LQIO {
 	    static const XML_Char *Xresult_general;
 	    static const XML_Char *Xresult_group;
 	    static const XML_Char *Xresult_join_delay;
+	    static const XML_Char *Xresult_observation;
 	    static const XML_Char *Xresult_processor;
 	    static const XML_Char *Xresult_task;
 	    static const XML_Char *Xr_lock;
@@ -427,6 +536,8 @@ namespace LQIO {
 	    static const XML_Char *Xsolver_parameters;
 	    static const XML_Char *Xsource;
 	    static const XML_Char *Xspeed_factor;
+	    static const XML_Char *Xspex_parameters;
+	    static const XML_Char *Xspex_results;
 	    static const XML_Char *Xsquared_coeff_variation;
 	    static const XML_Char *Xstep;
 	    static const XML_Char *Xstep_squared;

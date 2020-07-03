@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 13204 2018-03-06 22:52:04Z greg $
+ * $Id: srvn_results.h 13487 2020-02-11 20:30:20Z greg $
  */
 
 #if	!defined(SRVN_RESULTS_H)
@@ -24,9 +24,8 @@ extern "C" {
 /* A few global variables used by the parser. */
 
 extern int 	resultdebug;		/* If yacc'ed using -t then resultdebug = 1 => debugging output */
-extern unsigned	resultlinenumber;	/* Line number of current parse line in input file */
+extern int	resultlineno;		/* Line number of current parse line in input file */
 extern FILE 	*resultin;		/* File pointer for the input file to the pareser */
-extern const char * parse_file_name;	/* Filename for the parser's input file */
 extern int	result_error_flag;	/* set to 1 if resulterror called.  Must be initialized! */
 extern int	resultlex();		/* Lexical analysis function */
 
@@ -62,13 +61,16 @@ void add_act_wait_variance_confidence(const char * task, const char *to, const c
 void add_act_waiting(const char * task, const char *to, const char *from, double *delay);
 void add_act_waiting_confidence(const char * task, const char *to, const char *from, int conf_level, double *delay);
 void add_bound(const char *entry, double lower, double upper);
+void add_comment( const char *);
 void add_drop_probability(const char *to, const char *from, double *delay);
 void add_drop_probability_confidence(const char *to, const char *from, int conf_level, double *delay);
-void add_elapsed_time(const char *);
+void add_elapsed_time(double);
 void add_entry_proc(const char *entry, double utilization, double *waiting);
 void add_entry_proc_confidence(const char *entry, int conf_level, double utilization, double *waiting);
 void add_entry_thpt_ut(const char *entry, double throughput, double *utilization, double total_util );
 void add_entry_thpt_ut_confidence(const char * entry, int conf_level, double throughput, double * utilization, double total_util );
+void add_group_util( const char * group_name, double utilization );
+void add_group_util_conf( const char * group_name, int conf_level, double utilization );
 void add_histogram_bin( const char * entry, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 );
 void add_histogram_statistics( const char * entry, const unsigned phase, const double mean, const double stddev, const double skew, const double kurtosis );
 void add_holding_time( const char * task, const char * acquire, const char * release, double time, double variance, double utilization );
@@ -80,7 +82,8 @@ void add_open_arriv(const char *task, const char *entry, double arrival, double 
 void add_open_arriv_confidence(const char *task, const char *entry, int conf_level, double value);
 void add_output_pragma(const char *str,int len);
 void add_overtaking ( const char * e1, const char * e2, const char * e3, const char * e4, int p, double *ot );
-void add_proc(const char *processor);
+void add_proc(const char * proc );
+void add_proc_task( const char * task, unsigned int );
 void add_reader_holding_time( const char * task_name, const char * lock, const char * unlock, double blocked_time, double blocked_variance, double hold_time, double hold_variance,double utilization );
 void add_reader_holding_time_confidence( const char * task_name, const char * lock, const char * unlock, int level, double blocked_time, double blocked_variance, double hold_time, double hold_variance, double utilization );
 void add_service(const char *entry, double *time);
@@ -93,14 +96,14 @@ void add_snr_waiting(const char *to, const char *from, double *delay);
 void add_snr_waiting_confidence(const char *to, const char *from, int conf_level, double *delay);
 void add_solver_info(const char *);
 void add_system_info(const char *);
-void add_system_time(const char *);
+void add_system_time(double);
 void add_max_rss(long);
-void add_task_proc(const char *task, int multiplicity, double );
+void add_task_proc(const char *task, double );
 void add_task_proc_confidence(const char *task, int level, double );
 void add_thpt_ut(const char *task);
 void add_total_proc( const char * proc, double );
 void add_total_proc_confidence( const char * proc, int conf_level, double value);
-void add_user_time(const char *);
+void add_user_time(double);
 void add_variance(const char *entry, double *time);
 void add_variance_confidence(const char *entry, int conf_level, double *time);
 void add_wait_variance(const char *to, const char * from, double *delay);
@@ -111,6 +114,7 @@ void add_writer_holding_time( const char * task_name, const char * lock, const c
 void add_writer_holding_time_confidence( const char * task_name, const char * lock, const char * unlock, int level, double blocked_time, double blocked_variance, double hold_time, double hold_variance, double utilization );
 
 void set_general(int v, double c, int i, int pr, int ph);
+void set_variable( const char * variable_name, double value );
 void total_thpt_ut( const char * task_name, double tput, double * utilization, double tot_util );
 void total_thpt_ut_confidence( const char * task_name, int conf_level, double tput, double * utilization, double tot_util );
 

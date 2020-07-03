@@ -38,6 +38,8 @@ namespace LQIO {
 	CommandLine& operator+=( const std::string& s );
 	CommandLine& append( int c, const char * optarg );
 
+	void setLongOpts( const struct option * longopts ) { _longopts = longopts; }
+
 	inline const char * c_str() { return _s.c_str(); }
 
     private:

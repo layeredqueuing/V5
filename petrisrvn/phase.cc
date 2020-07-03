@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <cmath>
+#include <sstream>
 #include <cassert>
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_phase.h>
@@ -101,37 +102,50 @@ unsigned int Phase::entry_id() const
 
 double Phase::s() const
 {
-    const LQIO::DOM::ExternalVariable * var = get_dom()->getServiceTime();
-    double value;
-    if ( var && var->getValue(value) ) {
-	return value;
-    } else {
-	return 0.0;
+    double service_time = 0.0;	
+    if ( get_dom()->hasServiceTime() ) {
+	try {
+	    service_time = get_dom()->getServiceTimeValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", get_dom()->getTypeName(), name(), e.what() );
+	    throw_bad_parameter();
+	}
+	if ( processor() ) {
+	    service_time = service_time / processor()->rate();
+	}
     }
+    return service_time;
 }
 
 
 double Phase::think_time() const
 {
-    const LQIO::DOM::ExternalVariable * var = get_dom()->getThinkTime();
-    double value;
-    if ( var && var->getValue(value) ) {
-	return value;
-    } else {
-	return 0.0;
+    if ( get_dom()->hasThinkTime() ) {
+	try {
+	    return get_dom()->getThinkTimeValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", get_dom()->getTypeName(), name(), e.what() );
+	    throw_bad_parameter();
+	}
     }
+    return 0.0;
 }
 
 
 double Phase::coeff_of_var() const
 {
-    const LQIO::DOM::ExternalVariable * var = get_dom()->getCoeffOfVariationSquared();
-    double value;
-    if ( var && var->getValue(value) ) {
-	return value;
-    } else {
-	return 1.0;		/* Default is one (exponential) */
+    if ( get_dom()->hasCoeffOfVariationSquared() ) {
+	try {
+	    return get_dom()->getCoeffOfVariationSquaredValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", get_dom()->getTypeName(), name(), e.what() );
+	    throw_bad_parameter();
+	}
     }
+    return 1.;
 }
 
 
@@ -156,14 +170,22 @@ short Phase::rpar_y(const Entry* entry) const
 
 double Phase::y(Entry const* entry) const
 {
-    std::map<const Entry *,Call>::const_iterator e = _call.find(entry);
-    return e != _call.end() && e->second.is_rendezvous() ? e->second._dom->getCallMeanValue() : 0.0;
+    const std::map<const Entry *,Call>::const_iterator e = _call.find(entry);
+    if ( e != _call.end() && e->second.is_rendezvous() ) {
+	return e->second.value( this );
+    } else {
+	return 0.;
+    }
 }
 
 double Phase::z(Entry const* entry) const
 {
     std::map<const Entry *,Call>::const_iterator e = _call.find(entry);
-    return e != _call.end() && e->second.is_send_no_reply() ? e->second._dom->getCallMeanValue() : 0.0;
+    if ( e != _call.end() && e->second.is_send_no_reply() ) {
+	return e->second.value( this );
+    } else {
+	return 0.0;
+    }
 }
 
 std::vector<double>* Phase::get_histogram( const Entry * entry ) const
@@ -184,7 +206,7 @@ Phase::service_rate() const
     } else {
 	double sum = 1.0;
 	for ( std::map<const Entry *,Call>::const_iterator e = _call.begin(); e != _call.end(); ++e ) {
-	    sum += e->second._dom->getCallMeanValue();
+	    sum += e->second.value( this );
 	}
 
 	Processor * processor = task()->processor();
@@ -267,30 +289,18 @@ Phase::check()
 //	curr_proc->scheduling = SCHEDULE_FIFO;
     }
 
+    for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
+	const Call& call = c->second;
+	if ( call.is_rendezvous() ) {
+	    ysum += call.value( this );
+	} else if ( call.is_send_no_reply() ) {
+	    zsum += call.value( this );
+	}
+    }
     if ( this->has_stochastic_calls() ) {
 	this->_n_slices = 1;
-	for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
-	    const Call& call = c->second;
-	    if ( call.is_rendezvous() ) {
-		ysum += call._dom->getCallMeanValue();
-	    } else if ( call.is_send_no_reply() ) {
-		zsum += call._dom->getCallMeanValue();
-	    }
-	}
     } else {
-	for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
-	    const Call& call = c->second;
-	    double value = call._dom->getCallMeanValue();
-	    if ( call.is_rendezvous() ) {
-		ysum += value;
-	    } else if ( call.is_send_no_reply() ) {
-		zsum += value;
-	    }
-	    if ( fmod( value, 1.0 ) > 1e-6 ) {
-		solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Entry", entry()->name(), "Phase", this->name(), value, c->first->name() );
-	    }
-	}
-	this->_n_slices = (unsigned)(ysum + zsum + 1.001);
+	this->_n_slices = static_cast<unsigned int>(round(ysum + zsum));
 	if ( n_slices() >= DIMSLICE ) {
 	    input_error2( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
@@ -306,7 +316,7 @@ Phase::compute_offset( const Entry * b ) const
 {
     unsigned int off = 0;
     for ( std::map<const Entry *,Call>::const_iterator e = _call.begin(); e != _call.end() && e->first != b; ++e ) {
-	off += static_cast<unsigned int>( e->second._dom->getCallMeanValue() );
+	off += static_cast<unsigned int>( e->second.value( this ) );
     }
     return off;
 }
@@ -328,17 +338,25 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	const double s_pos = p_pos+s*3;
 	unsigned int n = this->n_stages();
 
+	curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	curr_slice->WX_xpos[m] = X_OFFSET(1+s,0.25);
 	curr_slice->WX_ypos[m] = y_pos;
-	curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
-	curr_slice->SX[m][1] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos, layer_mask, 0, "S%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	if ( !simplify_phase() ) {
+	    curr_slice->WX[m] = move_place_tag( create_place( X_OFFSET(s_pos,  0.25), y_pos, layer_mask, 0, "W%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	} else {
+	    curr_slice->WX[m] = curr_slice->SX[m][1];
+	}
 
 	/* Make places for erland/hyperexponential distributions */
 
 	for ( unsigned int i = 2; i <= n; ++i ) {
 	    curr_slice->SX[m][i] = move_place_tag( create_place( X_OFFSET(s_pos+1,0.25), y_pos+(i-1), layer_mask, 0, "S%d%s%d%d", i, this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
 	}
-	curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	if ( !simplify_phase() || has_calls() ) {
+	    curr_slice->ChX[m] = move_place_tag( create_place( X_OFFSET(s_pos+2,0.25), y_pos, layer_mask, 0, "Ch%s%d%d", this->name(), m, s ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
+	} else {
+	    curr_slice->ChX[m] = curr_slice->SX[m][1];
+	}
     }
 
     if ( this->think_time() > 0.0 ) {
@@ -352,8 +370,7 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 
     this->done_xpos[m] = X_OFFSET(p_pos+this->n_slices()*3,0);
     this->done_ypos[m] = y_pos-0.5;
-    if ( !task()->inservice_flag() || task()->is_client() ) {
-
+    if ( !simplify_phase() || task()->is_client() ) {
 	c_trans = create_trans( this->done_xpos[m], this->done_ypos[m], layer_mask, 1.0, 1, IMMEDIATE, "done%s%d", this->name(), m );
 	create_arc( layer_mask, TO_TRANS, c_trans, this->_slice[this->n_slices()-1].ChX[m] );
 	this->doneX[m] = c_trans;
@@ -363,17 +380,19 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	slice_info_t * curr_slice = &this->_slice[s];
 	const double s_pos = p_pos+s*3;
 
-	c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask,
-				this->_prob_a, 1, IMMEDIATE, "w%s%d%d", this->name(), m, s );
-	if ( this->s() > 0.0 ) {
-	    if ( task()->type() == OPEN_SRC ) {
-		create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
-	    } else {
-		request_processor( c_trans, m, s );
+	if ( !simplify_phase() ) {
+	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask,
+				    this->_prob_a, 1, IMMEDIATE, "w%s%d%d", this->name(), m, s );
+	    if ( this->s() > 0.0 ) {
+	        if ( task()->type() == OPEN_SRC ) {
+		    create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
+		} else {
+		    request_processor( c_trans, m, s );
+		}
 	    }
+	    create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
+	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][1] );
 	}
-	create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->WX[m] );
-	create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->SX[m][1] );
 
 	if ( this->is_hyperexponential() )  {
 	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos + 0.5, layer_mask, 1.0 - this->_prob_a, 1, IMMEDIATE, "w2%s%d%d", this->name(), m, s );
@@ -405,7 +424,11 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 		create_arc( layer_mask, TO_TRANS, c_trans, curr_slice->SX[m][i] );
 	    }
 	}
-	create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
+	if ( !simplify_phase() || has_calls() ) {
+	    create_arc( layer_mask, TO_PLACE, c_trans, curr_slice->ChX[m] );
+	} else {
+	    this->doneX[m] = c_trans;
+	}
 	if ( this->s() > 0.0 && task()->type() != OPEN_SRC ) {
 	    release_processor( c_trans, m, s );
 	}
@@ -435,7 +458,9 @@ Phase::request_processor( struct trans_object * c_trans, const unsigned m, const
 {
     c_trans->layer |= PROC_LAYER;
     if ( processor()->is_single_place_processor() ) {
-	create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
+        if ( processor()->PX ) {
+	    create_arc( PROC_LAYER, TO_TRANS, c_trans, processor()->PX );
+	}
     } else {
 	create_arc( PROC_LAYER, TO_PLACE, c_trans, no_place( "Preq%s%s%d%d", processor()->name(), this->name(), m, s ) );
     }
@@ -459,6 +484,8 @@ void
 Phase::release_processor( struct trans_object * c_trans, const unsigned m, const unsigned s ) const
 {
     c_trans->layer |= PROC_LAYER;
+    if ( !processor()->PX ) return;
+    
     create_arc( PROC_LAYER, TO_PLACE, c_trans, processor()->PX );
     if ( !processor()->is_single_place_processor() ) {
 #if defined(BUG_111)
@@ -509,11 +536,13 @@ Phase::follow_forwarding_path( const unsigned slice_no, Entry * a, double rate )
 	    follow_forwarding_path( slice_no, *b, rate * pr_fwd );
 	}
     }
-    if ( sum == 0.0 ) return;
 
-    const unsigned max_m = task()->n_customers();
-    for ( unsigned int m = 0; m < max_m; ++m ) {
-	a->forwards.push_back( new Forwarding( this, slice_no, m, rate ) );
+    /* add a forwarding call only if we forward. */
+    if ( sum > 0.0 ) {
+	const unsigned max_m = task()->n_customers();
+	for ( unsigned int m = 0; m < max_m; ++m ) {
+	    a->forwards.push_back( new Forwarding( this, slice_no, m, rate ) );
+	}
     }
 }
 
@@ -629,7 +658,9 @@ Phase::get_utilization( unsigned m  )
     assert( 0 < this->n_slices() && this->n_slices() < DIMSLICE );
 
     for ( s = 0; s < this->n_slices(); ++s ) {
-	mean_tokens += get_pmmean( "W%s%d%d", this->name(), m, s );	/* Processor wait.	*/
+        if ( !simplify_phase() ) {
+	    mean_tokens += get_pmmean( "W%s%d%d", this->name(), m, s );	/* Processor wait.	*/
+	}
 	mean_tokens += get_pmmean( "S%s%d%d", this->name(), m, s );	/* Entry service.	*/
 	for ( unsigned int i = 2; i <= n; ++i ) {
 	    mean_tokens += get_pmmean( "S%d%s%d%d", i, this->name(), m, s );	/* Entry service.	*/
@@ -645,7 +676,7 @@ Phase::get_utilization( unsigned m  )
 
     for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
         const Call& call = c->second;
-	if ( call._dom->getCallMeanValue() == 0. ) continue;
+	if ( call.value( this ) == 0. ) continue;
 
 	const Entry* entry = c->first;
 	if ( call.is_rendezvous() ) {
@@ -696,7 +727,7 @@ Phase::get_processor_utilization ( unsigned m )
 	if ( this->s() == 0.0 ) continue;
 
 	if ( h->is_single_place_processor() ) {
-	    mean_tokens += get_pmmean( "S%s%d%d", this->name(), m, s );	/* Entry service.	*/
+	    mean_tokens += get_pmmean( "S%s%d%d", this->name(), m, s );			/* Entry service.	*/
 	    for ( unsigned int i = 2; i <= n; ++i ) {
 		mean_tokens += get_pmmean( "S%d%s%d%d", i, this->name(), m, s );	/* Entry service.	*/
 	    }
@@ -796,8 +827,7 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
      */
 
     for ( std::map<const Entry *,Call>::const_iterator fwd = b->_fwd.begin(); fwd != b->_fwd.end(); ++fwd ) {
-	const LQIO::DOM::Call * call = fwd->second._dom;
-	double pr_fwd = call->getCallMeanValue();
+	double pr_fwd = fwd->second.value( this, 1.0 );
 	if ( pr_fwd > 0.0 ) {
 	    const Entry * d = fwd->first;
 	    mean_tokens += b->phase[1].compute_queueing_delay( const_cast<Call&>(fwd->second), 0, d, d->task()->multiplicity(), src_phase );
@@ -874,6 +904,13 @@ Phase::drop_lambda( unsigned m, const Entry * b, const Phase * src_phase ) const
 	return 0.0;
     }
 }
+
+
+bool
+Phase::simplify_phase() const 
+{ 
+    return simplify_network && (!processor() || (processor()->PX == 0 && !is_hyperexponential() && !task()->inservice_flag()));
+}
 
 bool
 Call::is_rendezvous() const
@@ -888,3 +925,30 @@ Call::is_send_no_reply() const
 {
     return _dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY || _dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY;
 }
+
+double
+Call::value( const Phase * src, double upper_limit ) const
+{
+    double value = 0.;
+    try {
+	value = _dom->getCallMeanValue();
+	if ( !src->has_stochastic_calls() ) {
+	    if ( value != trunc(value) ) throw std::domain_error( "invalid integer" );
+	} else if ( 0 < upper_limit && upper_limit < value ) {
+	    std::stringstream ss;
+	    ss << value << " > " << upper_limit;
+	    throw std::domain_error( ss.str() );
+	}
+    }
+    catch ( const std::domain_error &e ) {
+	const LQIO::DOM::Entry * dst = _dom->getDestinationEntry();
+	if ( src->is_activity() ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", src->task()->name(), _dom->getTypeName(), src->name(), dst->getName().c_str(), e.what() );
+	} else {
+	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", src->entry()->name(), _dom->getTypeName(), src->name(), dst->getName().c_str(), e.what() );
+	}
+	throw_bad_parameter();
+    }
+    return value;
+}
+

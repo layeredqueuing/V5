@@ -15,7 +15,7 @@
 #include "Parser.h"
 #include <sstream>
 #include <string>
-#include <string.h>
+#include <limits>
 #include <ctype.h>
   
 #pragma mark -
@@ -217,6 +217,7 @@ include           BEGIN(incl);
 
  /* Immediate Values */
 
+"infinity"	  { return tokenCodeDouble(LQX::PT_DOUBLE,std::numeric_limits<double>::infinity()); }
 "true"            { return tokenCodeBoolean(LQX::PT_BOOLEAN, true); }
 "false"           { return tokenCodeBoolean(LQX::PT_BOOLEAN, false); }
 \"                { /* " */ BEGIN(ml_string); startOfString = ""; }

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://franks.dnsalias.com/lqn/trunk/lqns/unit-test/testopen.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/testopen.cc $
  *
  * Example from:
  *

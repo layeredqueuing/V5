@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/poptest.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/poptest.cc $
  *
  * Population iterator testor.  See usage().
  * ------------------------------------------------------------------------
  *
- * $Id: poptest.cc 9164 2010-01-28 19:27:03Z greg $
+ * $Id: poptest.cc 13413 2018-10-23 15:03:40Z greg $
  */
 
 #include "testmva.h"
@@ -29,7 +29,7 @@ int main ( int argc, char * argv[] )
 	int c;
 	unsigned m = 1;
 	unsigned j = 1;
-	PopulationIterator * next;
+	Population::Iterator * next;
 	Server * aServer = 0;
 	enum { A_POP, B_POP, GENERAL_POP } type = GENERAL_POP;
 
@@ -74,8 +74,8 @@ int main ( int argc, char * argv[] )
 		usage();
 	}
 
-	PopVector NCust(k);		// Limit.	
-	PopVector N(k);			// Current.
+	Population NCust(k);		// Limit.	
+	Population N(k);			// Current.
 
 	for ( unsigned i = optind; i < argc; ++i ) {
 		NCust[i-optind+1] = atoi( argv[i] );
@@ -94,8 +94,8 @@ int main ( int argc, char * argv[] )
 	    break;
 
 	default:
-		next = new PopulationIterator( NCust );
-		break;
+	    next = new Population::Iterator( NCust );
+	    break;
 	}
 
 	

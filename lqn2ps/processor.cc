@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 13200 2018-03-05 22:48:55Z greg $
+ * $Id: processor.cc 13523 2020-03-03 16:19:29Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -33,14 +33,9 @@
 #include "task.h"
 #include "call.h"
 #include "label.h"
-#include "cltn.h"
 #include "model.h"
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
-set<Processor *,ltProcessor> processor;
+std::set<Processor *,LT<Processor> > Processor::__processors;
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
@@ -60,40 +55,18 @@ private:
 };
 
 static ostream& proc_scheduling_of_str( ostream&, const Processor & aProcessor );
-
 static inline SRVNProcessorManip proc_scheduling_of( const Processor & aProcessor ) { return SRVNProcessorManip( &proc_scheduling_of_str, aProcessor ); }
-
-/* ---------------------- Overloaded Operators ------------------------ */
-
-ostream&
-operator<<( ostream& output, const Processor& self )
-{
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-#endif
-    case FORMAT_SRVN:
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-    case FORMAT_XML:
-	break;
-    default:
-	self.draw( output );
-	break;
-    }
-
-    return output;
-}
 
 /* ------------------------ Constructors etc. ------------------------- */
 
 Processor::Processor( const LQIO::DOM::Processor* aDomObject ) 
-    : Entity( aDomObject, ::processor.size()+1 ),
-      myGroupSelected(false)
+    : Entity( aDomObject, __processors.size()+1 ),
+      _tasks(),
+      _shares(),
+      _groupIsSelected(false)
 { 
     if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE ) {
-	iAmSelected = false;
+	isSelected(false);
     }
 
     const double r = Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height;
@@ -109,7 +82,7 @@ Processor::Processor( const LQIO::DOM::Processor* aDomObject )
 
 Processor::~Processor()
 {
-    taskList.clear();
+    _tasks.clear();
 }
 
 
@@ -118,18 +91,16 @@ Processor::~Processor()
  */
 
 Processor *
-Processor::clone( unsigned int replica ) const
+Processor::clone( const std::string& new_name ) const
 {
-    ostringstream aName;
-    aName << name() << "_" << replica;
-    set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( aName.str().c_str() ) );
-    if ( nextProcessor != ::processor.end() ) {
+    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( new_name ) );
+    if ( nextProcessor != __processors.end() ) {
 	string msg = "Processor::expandProcessor(): cannot add symbol ";
-	msg += aName.str();
+	msg += new_name;
 	throw runtime_error( msg );
     }
     LQIO::DOM::Processor * dom = new LQIO::DOM::Processor( *dynamic_cast<const LQIO::DOM::Processor*>(getDOM()) );
-    dom->setName( aName.str() );
+    dom->setName( new_name );
     const_cast<LQIO::DOM::Document *>(getDOM()->getDocument())->addProcessorEntity( dom );
     
     return new Processor( dom );
@@ -203,14 +174,14 @@ Processor::utilization() const
  * processor.  Reference tasks will sort first.
  */
 
-unsigned
+size_t
 Processor::taskDepth() const
 { 
-    unsigned minLevel = UINT_MAX;
+    size_t minLevel = UINT_MAX;
 
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
-	minLevel = min( minLevel, aTask.level() );
+	minLevel = std::min( minLevel, aTask.level() );
     }
     return minLevel;
 }
@@ -224,12 +195,12 @@ Processor::taskDepth() const
 double
 Processor::meanLevel() const
 {
-    unsigned minLevel = UINT_MAX;
-    unsigned maxLevel = 0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
+    size_t minLevel = UINT_MAX;
+    size_t maxLevel = 0;
+    for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
-	minLevel = min( minLevel, aTask.level() );
-	maxLevel = max( maxLevel, aTask.level() );
+	minLevel = std::min( minLevel, aTask.level() );
+	maxLevel = std::max( maxLevel, aTask.level() );
     }
 
     return (static_cast<double>(maxLevel) + static_cast<double>(minLevel)) / 2.0;
@@ -271,34 +242,6 @@ Processor::isInteresting() const
 }
 
 
-
-/*
- * Return true if this entity is selected.
- * See subclasses for further tests.
- */
-
-bool
-Processor::isSelectedIndirectly() const
-{
-#if 0
-    if ( Entity::isSelectedIndirectly() ) {
-	return true;
-    } else {
-	for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
-	    const Task& aTask = **nextTask;
-	    if ( aTask.isSelected() ) {
-		return true;
-	    } 
-	}
-    }
-    return false;
-#else
-    return Entity::isSelectedIndirectly();
-#endif
-}
-
-
-
 bool
 Processor::clientsCanQueue() const
 {
@@ -306,7 +249,7 @@ Processor::clientsCanQueue() const
     else {
 	const LQIO::DOM::ExternalVariable * m = dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopies();
 	double value;
-	return !m->wasSet() || !m->getValue(value) || nClients() > value;
+	return m == NULL || !m->wasSet() || !m->getValue(value) || nClients() > value;
     }
 }
 
@@ -316,9 +259,9 @@ Processor::clientsCanQueue() const
  */
 
 unsigned
-Processor::referenceTasks( Cltn<const Entity *>& clientCltn, Element * dst ) const
+Processor::referenceTasks( std::vector<Entity *>& clientCltn, Element * dst ) const
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
 	aTask.referenceTasks( clientCltn, dst );
     }
@@ -331,13 +274,14 @@ Processor::referenceTasks( Cltn<const Entity *>& clientCltn, Element * dst ) con
  */
 
 unsigned
-Processor::clients( Cltn<const Entity *>& clientCltn, const callFunc aFunc ) const
+Processor::clients( std::vector<Entity *>& clients, const callPredicate aFunc ) const
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	clientCltn += static_cast<const Entity *>(aTask);
+    for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
+	if ( find_if( clients.begin(), clients.end(), EQ<Element>((*task)) ) == clients.end() ) {
+	    clients.push_back((*task));
+	}
     }
-    return clientCltn.size();
+    return clients.size();
 }
 
 
@@ -349,16 +293,17 @@ unsigned
 Processor::nClients() const
 {
     unsigned sum = 0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	const Task& aTask = **nextTask;
 	if ( aTask.isInfinite() ) {
 	    return UINT_MAX;
 	}
-	if ( aTask.copies().wasSet() ) {
-	    sum += LQIO::DOM::to_double( aTask.copies() ) * aTask.countThreads();
-	} else {
-	    sum += 1;
+	const LQIO::DOM::ExternalVariable * copies = dynamic_cast<const LQIO::DOM::Task *>(aTask.getDOM())->getCopies();
+	double value = 1;
+	if ( copies && copies->wasSet() ) {
+	    copies->getValue(value);
 	}
+	sum += value * aTask.countThreads();
     }
     return sum;
 }
@@ -368,49 +313,16 @@ Processor::nClients() const
 double
 Processor::getIndex() const
 {
-    Cltn<const Entity *> myClients;
-    clients( myClients );
-
-    Sequence<const Entity *> nextClient( myClients );
-    const Entity * aClient;
-
+    std::vector<Entity *> clients;
     double anIndex = MAXDOUBLE;
-    while ( aClient = nextClient() ) {
-	anIndex = min( anIndex, aClient->index() );
+    this->clients( clients );
+
+    for( std::vector<Entity *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+	anIndex = min( anIndex, (*client)->index() );
     }
 
     return anIndex;
 }
-
-
-double
-Processor::serviceTimeForQueueingNetwork( const unsigned k, chainTestFunc aFunc ) const
-{
-    double time = 0.0;
-    double sum  = 0.0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
-	const Task& aTask = **nextTask;
-	Sequence<Entry *> nextEntry(aTask.entries());
-	Entry * anEntry;
-
-	while ( anEntry = nextEntry() ) {
-	    if ( (anEntry->*aFunc)( k ) ) {
-		const double tput = anEntry->throughput() ? anEntry->throughput() : 1.0;
-		time += tput * anEntry->serviceTime();
-		sum  += tput;
-	    }
-	}
-    }
-
-    /* Take mean time. */
-
-    if ( sum ) {
-	time = time / sum;
-    }
-
-    return time;
-}
-
 
 
 /*
@@ -457,15 +369,13 @@ Processor::moveTo( const double x, const double y )
 Processor&
 Processor::moveDst()
 {
-    Sequence<GenericCall *> nextRefr( callerList() );
-    GenericCall * dstCall;
     Point aPoint = center();
 
     /* Draw other incomming arcs. */
 
-    while ( dstCall = nextRefr() ) {
-	const_cast<Entity *>(dstCall->srcTask())->moveBy(0.0,0.0);
-	dstCall->moveDst( aPoint );
+    for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
+	const_cast<Task *>((*call)->srcTask())->moveBy(0.0,0.0);
+	(*call)->moveDst( aPoint );
     }
 
     return *this;
@@ -486,26 +396,6 @@ Processor::colour() const
     switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_SERVER_TYPE:
 	return Graphic::BLUE;
-    case COLOUR_RESULTS:
-	if ( Flags::have_results ) {
-	    const double u = isInfinite() ? 0.0 : utilization() / (LQIO::DOM::to_double(copies()) * LQIO::DOM::to_double(rate()));
-	    if ( u < 0.4 || !Flags::use_colour && u < 0.8 ) {
-		return Graphic::DEFAULT_COLOUR;
-	    } else if ( Flags::use_colour ) {
-		if ( u < 0.5 ) {
-		    return Graphic::BLUE;
-		} else if ( u < 0.6 ) {
-		    return Graphic::GREEN;
-		} else if ( u < 0.8 ) {
-		    return Graphic::ORANGE;
-		} else { 
-		    return Graphic::RED;
-		}
-	    } else {
-		return Graphic::GREY_10;
-	    }
-	}
-	break;
     }
     return Entity::colour();
 }
@@ -519,27 +409,23 @@ Processor&
 Processor::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b && queueing_output() ) {
-	for ( set<Task *,ltTask>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
-	    const Task& aTask = **nextTask;
-	    Sequence<Entry *> nextEntry(aTask.entries());
-	    Entry * anEntry;
-
-	    while ( anEntry = nextEntry() ) {
-		*myLabel << anEntry->name() << " (" << print_number_slices( *anEntry ) << ")";
+	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
+	    const Task * aTask = *nextTask;
+	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+		*myLabel << (*entry)->name() << " (" << print_number_slices( *(*entry) ) << ")";
 		myLabel->newLine();
 	    }
 	    myLabel->newLine();
 	    Entity::label();
-	    while ( anEntry = nextEntry() ) {
-		myLabel->newLine() << anEntry->name() << " [" << print_slice_time( *anEntry ) << "]";
+	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+		myLabel->newLine() << (*entry)->name() << " [" << print_slice_time( *(*entry) ) << "]";
 	    }
 	}
     } else {
-	string s = name();
+	*myLabel << name();
 	if ( scheduling() != SCHEDULE_FIFO && !isInfinite() ) {
-	    s += "*";			/* Not FIFO, so flag as such */
+	    *myLabel << "*";
 	}
-	myLabel->initialize( s );
 	if ( Flags::print[INPUT_PARAMETERS].value.b ) {
 	    bool newline = false;
 	    if ( isMultiServer() ) {
@@ -563,8 +449,8 @@ Processor::label()
 	    }
 	}
     }
-    if ( Flags::have_results && Flags::print[PROCESS_UTIL].value.b ) {
-	myLabel->newLine() << begin_math( &Label::rho ) << "=" << utilization() << end_math();
+    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
+	myLabel->newLine() << begin_math( &Label::rho ) << "=" << opt_pct(utilization()) << end_math();
 	if ( hasBogusUtilization() && Flags::print[COLOUR].value.i != COLOUR_OFF ) {
 	    myLabel->colour(Graphic::RED);
 	}
@@ -575,43 +461,15 @@ Processor::label()
 
 
 /*
- * Add a task to the list of tasks for this processor.
+ * Rename processors
  */
 
 Processor&
-Processor::addTask( Task * aTask )
+Processor::rename()
 {
-    taskList.insert(aTask);
-    return *this;
-}
-
-
-
-Processor&
-Processor::removeTask( Task * aTask )
-{
-    taskList.erase(aTask);
-    return *this;
-}
-
-
-/*
- * Add a share to the list of shares for this processor.
- */
-
-Processor&
-Processor::addShare( Share * aShare )
-{
-    shareList.insert(aShare);
-    return *this;
-}
-
-
-
-Processor&
-Processor::removeShare( Share * aShare )
-{
-    shareList.erase(aShare);
+    std::ostringstream name;
+    name << "p" << elementId();
+    const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setName( name.str() );
     return *this;
 }
 
@@ -623,8 +481,8 @@ Processor::find_replica( const string& processor_name, const unsigned replica )
 {
     ostringstream aName;
     aName << processor_name << "_" << replica;
-    set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( aName.str() ) );
-    if ( nextProcessor == ::processor.end() ) {
+    std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( aName.str() ) );
+    if ( nextProcessor == __processors.end() ) {
 	string msg = "Processor::find_replica: cannot find symbol ";
 	msg += aName.str();
 	throw runtime_error( msg );
@@ -633,13 +491,42 @@ Processor::find_replica( const string& processor_name, const unsigned replica )
 }
 
 
-Processor *
-Processor::expandProcessor( const int replica ) const
+Processor&
+Processor::expandProcessor()
 {
-    Processor *aProcessor = clone( replica );
-    ::processor.insert( aProcessor );
-    return aProcessor;
+    unsigned int numProcReplicas = replicasValue();
+    for ( unsigned int replica = 1; replica <= numProcReplicas; replica++) {
+	ostringstream new_name;
+	new_name << name() << "_" << replica;
+	__processors.insert( clone( new_name.str() ) );
+    }
+    return *this;
 }
+
+
+/*
+ * Rename XXX_1 to XXX and reinsert the processor and its dom into their associated arrays.   XXX_2 and up will be discarded.
+ */
+
+Processor&
+Processor::replicateProcessor( LQIO::DOM::DocumentObject ** root )
+{
+    unsigned int replica = 0;
+    std::string root_name = baseReplicaName( replica );
+    if ( replica == 1 ) {
+	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
+	std::pair<std::set<Processor *>::iterator,bool> rc = __processors.insert( this );
+	if ( !rc.second ) throw runtime_error( "Duplicate processor" );
+	(*root)->setName( root_name );
+	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addProcessorEntity( dynamic_cast<LQIO::DOM::Processor *>(*root) );
+    } else if ( dynamic_cast<LQIO::DOM::Processor *>(*root)->getReplicasValue() < replica ) {
+	dynamic_cast<LQIO::DOM::Processor *>(*root)->setReplicasValue( replica );
+	update_mean( *root, &LQIO::DOM::DocumentObject::setResultUtilization, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilization, replica );
+	update_variance( *root, &LQIO::DOM::DocumentObject::setResultUtilizationVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilizationVariance );
+    }
+    return *this;
+}
+
 #endif
 
 /* ------------------------------------------------------------------------ */
@@ -647,7 +534,7 @@ Processor::expandProcessor( const int replica ) const
 /* ------------------------------------------------------------------------ */
 
 
-ostream&
+const Processor&
 Processor::draw( ostream& output ) const
 {
     ostringstream aComment;
@@ -671,7 +558,7 @@ Processor::draw( ostream& output ) const
 
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
-    return output;
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -686,12 +573,8 @@ Processor::draw( ostream& output ) const
 Processor *
 Processor::find( const string& name )
 {
-    set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( name ) );
-    if ( nextProcessor == ::processor.end() ) {
-	return 0;
-    } else {
-	return *nextProcessor;
-    }
+    std::set<Processor *>::const_iterator processor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( name ) );
+    return processor != __processors.end() ? *processor : 0;
 }
 
 
@@ -700,15 +583,17 @@ Processor::find( const string& name )
  */
 
 Processor * 
-Processor::create( const LQIO::DOM::Processor* domProcessor )
+Processor::create( const std::pair<std::string,LQIO::DOM::Processor *>& p )
 {
-    if ( Processor::find( domProcessor->getName() ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", domProcessor->getName().c_str() );
+    const std::string& name = p.first;
+    const LQIO::DOM::Processor* domProcessor = p.second;
+    if ( Processor::find( name ) ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", name.c_str() );
 	return 0;
     }
 
     Processor * aProcessor = new Processor( domProcessor );
-    ::processor.insert( aProcessor );
+    __processors.insert( aProcessor );
     return aProcessor;
 }
 
@@ -720,7 +605,7 @@ Processor::create( const LQIO::DOM::Processor* domProcessor )
 static ostream&
 proc_scheduling_of_str( ostream& output, const Processor & processor )
 {
-    output << ' ' << scheduling_type_flag[static_cast<unsigned int>(processor.scheduling())];
+    output << ' ' << scheduling_label[static_cast<unsigned int>(processor.scheduling())].str;
     if ( processor.hasQuantum() ) {
 	output << ' ' << processor.quantum();
     }
@@ -731,22 +616,22 @@ proc_scheduling_of_str( ostream& output, const Processor & processor )
  * Compare function for processor layering.
  */
 
-int
+bool
 Processor::compare( const void * n1, const void *n2 )
 {
     if ( Flags::sort == NO_SORT ) {
-	return 0;
+	return false;
     }
     const Processor * p1 = *static_cast<Processor **>(const_cast<void *>(n1));
     const Processor * p2 = *static_cast<Processor **>(const_cast<void *>(n2));
     if ( p1->meanLevel() - p2->meanLevel() != 0.0 ) {
-	return static_cast<int>(copysign( 1.0, p1->meanLevel() - p2->meanLevel()) );
+	return p1->meanLevel() < p2->meanLevel();
     } else if ( p1->taskDepth() - p2->taskDepth() != 0 ) {
-	return p1->taskDepth() - p2->taskDepth();
+	return p1->taskDepth() < p2->taskDepth();
     } else switch ( Flags::sort ) {
-    case REVERSE_SORT: return p2->name() < p1->name();
-    case FORWARD_SORT: return p1->name() > p2->name();
-    default: return 0;
+    case REVERSE_SORT: return p2->name() > p1->name();
+    case FORWARD_SORT: return p1->name() < p2->name();
+    default: return false;
     }
 }
 

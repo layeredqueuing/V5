@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: model.cc 13552 2020-05-22 17:44:53Z greg $
  *
  * Load the SRVN model.
  */
@@ -21,6 +21,7 @@
 #endif
 
 #include "petrisrvn.h"
+#include <algorithm>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -53,14 +54,12 @@
 #include <lqio/srvn_output.h>
 #include <wspnlib/wspn.h>
 #include <wspnlib/global.h>
-#include "stack.h"
 #include "actlist.h"
 #include "task.h"
 #include "entry.h"
 #include "phase.h"
 #include "errmsg.h"
 #include "makeobj.h"
-#include "stack.h"
 #include "model.h"
 #include "processor.h"
 #include "runlqx.h"
@@ -70,14 +69,14 @@
 #if HAVE_SYS_TIMES_H
 typedef struct tms tms_t;
 #else
-typedef clock_t tms_t;
+typedef double tms_t;
 #endif
 
 using namespace std;
 
 bool Model::__forwarding_present;
 bool Model::__open_class_error;
-clock_t Model::__start_time = 0;
+LQIO::DOM::CPUTime Model::__start_time;
 LQIO::DOM::Document::input_format Model::__input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
 
 /* define	UNCONDITIONAL_PROBS */
@@ -139,23 +138,13 @@ Model::~Model()
 LQIO::DOM::Document*
 Model::load( const string& input_filename, const string& output_filename )
 {
-#if HAVE_SYS_TIMES_H
-    tms_t time_buf;
-
-    Model::__start_time = times( &time_buf );
-#else
-    Model::__start_time = time( NULL );
-#endif
+    Model::__start_time.init();
 
     if ( verbose_flag ) {
 	cerr << "Load: " << input_filename << "..." << endl;
     }
 
-    io_vars.n_processors     = 0;
-    io_vars.n_tasks	     = 0;
-    io_vars.n_entries	     = 0;
-    io_vars.anError          = false;
-    io_vars.error_count      = 0;
+    io_vars.reset();
 
     __forwarding_present     = false;
     __open_class_error	     = false;
@@ -167,14 +156,14 @@ Model::load( const string& input_filename, const string& output_filename )
     Entry::__next_entry_id   = 1;
     Activity::actConnections.clear();
     Activity::domToNative.clear();
-    clear_hash_table();
+    netobj_name_table.clear();
 
     /*
      * Read input file and parse it.
      */
 
     unsigned errorCode = 0;
-    return LQIO::DOM::Document::load(input_filename, __input_format, output_filename, &::io_vars, errorCode, false);
+    return LQIO::DOM::Document::load(input_filename, __input_format, &::io_vars, errorCode, false);
 }
 
 
@@ -187,12 +176,11 @@ Model::load( const string& input_filename, const string& output_filename )
 void
 Model::set_comment()
 {
-    const std::string& comment 	= _document->getModelComment();
     struct com_object * buf	= (struct com_object *)malloc( CMMOBJ_SIZE );
+    const char * p = _document->getModelCommentString();
 
     netobj->comment = buf;
 
-    const char * p = comment.c_str();
     buf->line = (char *)0;
     do { 
 	const char * q = p;
@@ -243,15 +231,8 @@ Model::construct()
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 	
-    /* We need to add all of the processors */
-    const std::map<std::string,LQIO::DOM::Processor*>& processorList = _document->getProcessors();
-
-    /* Add all of the processors we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Processor*>::const_iterator h = processorList.begin(); h != processorList.end(); ++h ) {
-	LQIO::DOM::Processor* processor = h->second;
-	DEBUG("[1]: Adding processor (" << processor->getName() << ")" << endl);
-	Processor::create(processor);
-    }
+    const std::map<std::string,LQIO::DOM::Processor*>& procList = _document->getProcessors();
+    for_each( procList.begin(), procList.end(), Processor::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 	
@@ -363,7 +344,7 @@ Model::construct()
     Activity::complete_activity_connections();
 
 
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 
@@ -400,6 +381,9 @@ Model::transform()
 
     build_open_arrivals();
 
+    for ( vector<Processor *>::const_iterator p = ::processor.begin(); p != ::processor.end(); ++p ) {
+	(*p)->check();
+    }
     for ( vector<Entry *>::const_iterator e = ::entry.begin(); e != ::entry.end(); ++e ) {
 	(*e)->check();
     }
@@ -411,7 +395,7 @@ Model::transform()
 	(*t)->build_forwarding_lists();
     }
 
-    if ( io_vars.anError ) return false;
+    if ( io_vars.anError() ) return false;
 
     const unsigned int max_queue_length = set_queue_length();		/* Do after forwarding */
     const unsigned int max_proc_queue_length = Processor::set_queue_length();
@@ -514,7 +498,7 @@ Model::transform()
     groupize();
     shift_rpars( Task::__client_x_offset, Phase::__parameter_y );
 
-    return !io_vars.anError;
+    return !io_vars.anError();
 }
 
 
@@ -571,27 +555,26 @@ Model::solve()
 	return EXCEPTION_EXIT;
     }
 
-    const LQIO::Filename netname( _input_file_name.c_str(), static_cast<const char *>(0), static_cast<const char *>(0), 
-				  _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix.c_str() : static_cast<const char *>(0) );
+    const LQIO::Filename netname( _input_file_name, "", "", _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "" );
 
     if ( reload_net_flag ) {
-	sprintf(edit_file, "%s", netname() );
+	sprintf(edit_file, "%s", netname().c_str() );
     } else {
 	if ( verbose_flag ) {
 	    cerr << "Solve: " << _input_file_name << "..." << endl;
 	}
 
-	save_net_files( io_vars.lq_toolname, netname() );
+	save_net_files( io_vars.lq_toolname, netname().c_str() );
 
 	if ( no_execute_flag ) {
 	    return NORMAL_TERMINATION;
 	} else if ( trace_flag ) {
-	    if ( !solve2( netname(), 2, SOLVE_STEADY_STATE ) ) {	/* output to stderr */
+	    if ( !solve2( netname().c_str(), 2, SOLVE_STEADY_STATE ) ) {	/* output to stderr */
 		rc = EXCEPTION_EXIT;
 	    }
 	} else {
 	    int null_fd = open( "/dev/null", O_RDWR );
-	    if ( !solve2( netname(), null_fd, SOLVE_STEADY_STATE ) ) {
+	    if ( !solve2( netname().c_str(), null_fd, SOLVE_STEADY_STATE ) ) {
 		rc = EXCEPTION_EXIT;
 	    }
 	    close( null_fd );
@@ -606,7 +589,7 @@ Model::solve()
 	 solution_stats_t stats;
 	 if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
 	      || !collect_res( FALSE, (char *)io_vars.lq_toolname ) ) {
-	     (void) fprintf( stderr, "%s: Cannot read results for %s\n", io_vars.lq_toolname, netname() );
+	     (void) fprintf( stderr, "%s: Cannot read results for %s\n", io_vars.lq_toolname, netname().c_str() );
 	     rc = FILEIO_ERROR;
 	 } else {
 	     if ( stats.precision >= 0.01 || __open_class_error ) {
@@ -626,7 +609,7 @@ Model::solve()
     /* Clean up in preparation for another run.	*/
 
     if ( !keep_flag ) {
-	remove_result_files( netname() );
+	remove_result_files( netname().c_str() );
     }
 
     remove_netobj();
@@ -644,10 +627,10 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( has_output_file_name() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+    LQIO::Filename directory_name( has_output_file_name() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
-    if ( access( directory_name(), R_OK|W_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
+    if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
+	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
@@ -1403,10 +1386,16 @@ Model::build_open_arrivals ()
 
 	buf = "OE";
 	buf += dst_entry->name();
-	LQIO::DOM::Entry * pseudo = new LQIO::DOM::Entry( dst_dom->getDocument(), buf.c_str(), NULL );
+	LQIO::DOM::Entry * pseudo = new LQIO::DOM::Entry( dst_dom->getDocument(), buf.c_str() );
 	pseudo->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
 	LQIO::DOM::Phase* phase = pseudo->getPhase(1);
-	phase->setServiceTimeValue( 1.0 / dst_dom->getOpenArrivalRateValue() );
+	try {
+	    phase->setServiceTimeValue( 1.0 / dst_dom->getOpenArrivalRateValue() );
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", dst_entry->name(), e.what() );
+	    throw_bad_parameter();
+	}
 	phase->setName(buf);
 
 	Entry * an_entry = new Entry( pseudo, a_task );
@@ -1503,19 +1492,16 @@ Model::trans_res ()
 		sprintf( name_str, "S%s00", (*e)->start_activity()->name() );
 	    }
 	    if ( name_str[0] ) {
-		char * name = strdup32x( name_str );
-		(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "E%s", "E{#%s};", name );
-		free( name );
+		(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "E%s", "E{#%s};", insert_netobj_name( name_str ).c_str() );
 		Phase::inc_par_offsets();
 	    }
 	}
     }
 
     for ( vector<Processor *>::const_iterator p = ::processor.begin(); p != ::processor.end(); ++p ) {
+        if ( !(*p)->PX ) continue;
 	sprintf( name_str, "P%s", (*p)->name() );
-	char * name = strdup32x( name_str );
-	(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "U%s", "P{#%s=0};", name );
-	free( name );
+	(void) create_res( Phase::__parameter_x, Phase::__parameter_y, "U%s", "P{#%s=0};", insert_netobj_name( name_str ).c_str() );
 	Phase::inc_par_offsets();
     }
 }
@@ -1535,35 +1521,35 @@ Model::print() const
 
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
     bool override = false;
-    if ( has_output_file_name() && LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
+    if ( has_output_file_name() && LQIO::Filename::isRegularFile( _output_file_name ) != 0 ) {
 	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out" );
 	override = filename() == _output_file_name;
     }
 
 
-    if ( override || ((!has_output_file_name() || directory_name.size() > 0 ) && strcmp( LQIO::input_file_name, "-" ) != 0) ) {
+    if ( override || ((!has_output_file_name() || directory_name.size() > 0 ) && _input_file_name != "-" ) ) {
 	ofstream output;
 
-	if ( _document->isXMLDOMPresent() || xml_flag ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directory_name.c_str(), suffix.c_str() );
+	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || xml_flag ) {
+	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name, suffix );
 	    filename.backup();
 	    ofstream output;
-	    output.open( filename(), ios::out );
+	    output.open( filename().c_str(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->serializeDOM( output, true );
+		_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
 	    }
 	    output.close();
 	}
 
 	/* Parseable output. */
 
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || parse_flag ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), "p", directory_name.c_str(), suffix.c_str() );
-	    output.open( filename(), ios::out );
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output && !xml_flag ) || parse_flag ) {
+	    LQIO::Filename filename( _input_file_name, "p", directory_name, suffix );
+	    output.open( filename().c_str(), ios::out );
 	    if ( !output ) {
-		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	    }
@@ -1572,12 +1558,12 @@ Model::print() const
 
 	/* Regular output */
 
-	LQIO::Filename filename( _input_file_name.c_str(), rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
-	output.open( filename(), ios::out );
+	LQIO::Filename filename( _input_file_name, rtf_flag ? "rtf" : "out", directory_name, suffix );
+	output.open( filename().c_str(), ios::out );
 	if ( !output ) {
-	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename(), strerror( errno ) );
+	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else {
-	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( output );
 	    }
@@ -1589,7 +1575,7 @@ Model::print() const
 	if ( parse_flag ) {
 	    _document->print( cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else if ( rtf_flag ) {
-	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( cout );
 	    }
@@ -1599,18 +1585,18 @@ Model::print() const
 
 	/* Do not map filename. */
 
-	LQIO::Filename::backup( _output_file_name.c_str() );
+	LQIO::Filename::backup( _output_file_name );
 
 	ofstream output;
 	output.open( _output_file_name.c_str(), ios::out );
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( xml_flag ) {
-	    _document->serializeDOM( output, true );
+	    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );
 	} else if ( parse_flag ) {
 	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else {
-	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::TEXT_OUTPUT );
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( output );
 	    }
@@ -1638,16 +1624,10 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats )
     buf << "Tangible: " << stats.tangible << ", Vanishing: " << stats.vanishing;
     _document->setExtraComment( buf.str() );
 
-#if HAVE_SYS_TIMES_H
-    tms_t time_buf;
-
-    clock_t stop_time = times( &time_buf );
-    _document->setResultUserTime( time_buf.tms_utime );
-    _document->setResultSysTime( time_buf.tms_stime );
-#else
-    clock_t stop_time = time( NULL );
-#endif
-    _document->setResultElapsedTime(stop_time - __start_time);
+    LQIO::DOM::CPUTime stop_time;
+    stop_time.init();
+    stop_time -= __start_time;
+    stop_time.insertDOMResults( *_document );
 
 #if defined(HAVE_UNAME)
     struct utsname uu;		/* Get system triva. */
@@ -1683,14 +1663,14 @@ string
 Model::createDirectory() const
 {
     string directory_name;
-    if ( has_output_file_name() && LQIO::Filename::isDirectory( _output_file_name.c_str() ) > 0 ) {
+    if ( has_output_file_name() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
 	directory_name = _output_file_name;
     }
 
     if ( _document->getResultInvocationNumber() > 0 ) {
 	if ( directory_name.size() == 0 ) {
 	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( has_output_file_name() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+	    LQIO::Filename filename( has_output_file_name() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 	    directory_name = filename();
 	}
     }
@@ -1720,7 +1700,7 @@ Model::createDirectory() const
 void
 Model::print_inservice_probability( ostream& output ) const
 {
-    std::_Ios_Fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
     output << endl << endl;
     if ( uncondition_flag ) {
 	output << "UNconditioned in-";

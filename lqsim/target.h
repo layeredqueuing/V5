@@ -3,7 +3,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 10463 2011-09-08 03:32:27Z greg $
+ * $Id: target.h 13556 2020-05-25 17:39:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -76,17 +76,18 @@ class Targets {				/* send table struct		*/
 public:
     Targets() {}
     ~Targets() {}
-    void reset_stats();
 
     unsigned size() const { return target.size(); }
 
-    void accumulate();
     void store_target_info( Entry * to_entry, LQIO::DOM::Call* a_call );
     void store_target_info( Entry * to_entry, double );
-    double compute_PDF( const bool normalize, const phase_type type, const char * );
+    double compute_PDF( const LQIO::DOM::DocumentObject * dom, bool normalize );
     tar_t * entry_to_send_to( unsigned int& i, unsigned int& j ) const;
-    FILE * print_raw_stat( FILE * ) const;
-    void insertDOMResults();
+    const Targets& print_raw_stat( FILE * ) const;
+
+    Targets& reset_stats();
+    Targets& accumulate_data();
+    Targets& insertDOMResults();
 
     vector<tar_t> target;		/* target array			*/
 

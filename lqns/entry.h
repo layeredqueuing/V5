@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/entry.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entry.h $
  *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entry.h 13547 2020-05-21 02:22:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,11 +154,11 @@ public:
     unsigned int index() const { return _index; }
     unsigned int entryId() const { return _entryId; }
     phase_type phaseTypeFlag( const unsigned p ) const { return phase[p].phaseTypeFlag(); }
-    double openArrivalRate() const { return hasOpenArrivals() ? myDOMEntry->getOpenArrivalRateValue() : 0; }
+    double openArrivalRate() const;
     double CV_sqr( const unsigned p ) const { return phase[p].CV_sqr(); }
     double computeCV_sqr( const unsigned p ) const { return phase[p].computeCV_sqr(); }
     double computeCV_sqr() const;
-    int priority() const { return myDOMEntry->hasEntryPriority() ? (int)myDOMEntry->getEntryPriorityValue() : 0; }
+    int priority() const;
     bool isCalled( const requesting_type callType );
     requesting_type isCalled() const { return calledFlag; }
     Entry& setEntryInformation( LQIO::DOM::Entry * entryInfo );
@@ -225,8 +225,8 @@ public:
     unsigned maxPhase() const { return myMaxPhase; }
     unsigned concurrentThreads() const;
 
-    virtual double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
-    virtual double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
+    double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
+    double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
     double elapsedTime( const unsigned p ) const { return phase[p].elapsedTime(); }	/* For server service times */
     double waitTime( const unsigned p, int submodel ) const { return phase[p].waitTime(submodel); }
     double getProcWait( const unsigned p, int submodel )  { return phase[p].getProcWait(submodel, 0) ;}	

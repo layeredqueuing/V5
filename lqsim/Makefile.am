@@ -1,5 +1,5 @@
 #
-# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile.am 13353 2018-06-25 20:27:13Z greg $
 #
 #----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config
@@ -8,9 +8,9 @@ SUBDIRS		= regression
 AM_CPPFLAGS	= -I.. -I../lqx/libsrc/headers/ -I../lqiolib/src/headers -I../parasol/include
 bin_PROGRAMS	= lqsim
 lqsim_SOURCES	= activity.cc actlist.cc entry.cc errmsg.cc group.cc histogram.cc instance.cc model.cc lqsim.cc \
-		message.cc pragma.cc processor.cc result.cc runlqx.cc stack.c target.cc task.cc
+		message.cc pragma.cc processor.cc result.cc runlqx.cc target.cc task.cc
 noinst_HEADERS 	= activity.h actlist.h entry.h errmsg.h group.h histogram.h instance.h model.h lqsim.h \
-		message.h pragma.h processor.h result.h runlqx.h stack.h target.h task.h
+		message.h pragma.h processor.h result.h runlqx.h target.h task.h
 EXTRA_DIST	= lqsim.1
 
 lqsim_CXXFLAGS	= -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-switch -Wno-overloaded-virtual

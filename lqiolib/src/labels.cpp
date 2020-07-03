@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: labels.cpp 12246 2015-03-05 21:38:54Z greg $
+ * $Id: labels.cpp 13485 2020-02-10 21:26:41Z greg $
  */
 
 #include "input.h"
@@ -56,44 +56,23 @@ namespace LQIO {
  * Scheduling types.
  */
 
-const char * scheduling_type_str[N_SCHEDULING_TYPES+1] =
+const struct scheduling_label_t scheduling_label[N_SCHEDULING_TYPES] =
 {
-    "CUST",	
-    "DELAY",
-    "FCFS",
-    "HOL",
-    "PPR",
-    "RAND",
-    "PS",
-    "PS-HOL",
-    "PS-PPR",
-    "POLL",
-    "BURST",
-    "UNIFORM",
-    "SEMAPHORE",
-    "CFS",
-    "RWLOCK",
-    0
+
+    { "CUST",         "ref",	   'r' },
+    { "DELAY",        "inf",	   'i' },
+    { "FCFS",         "fcfs",	   'f' },
+    { "HOL",          "hol",	   'h' },
+    { "PPR",          "pri",	   'p' },
+    { "RAND",         "rand",	   'r' },
+    { "PS",           "ps",	   's' },
+    { "PS-HOL",       "ps-hol",    'H' },
+    { "PS-PPR",       "ps-pri",    'P' },	/* Proc */
+    { "POLL",         "poll",	   'P' },	/* Task */
+    { "BURST",        "burst",     'b' },
+    { "UNIFORM",      "uniform",   'u' },
+    { "SEMAPHORE",    "semaphore", 'S' },
+    { "CFS",          "cfs",	   'c' },
+    { "RWLOCK",       "rwlock",    'w' }
 };
 
-const char scheduling_type_flag[N_SCHEDULING_TYPES] = "rifhprsHPPbucw";
-
-const char * schedulingTypeXMLString[N_SCHEDULING_TYPES+1] =
-{
-    "ref",
-    "inf",
-    "fcfs",
-    "hol",
-    "pp",
-    "rand",
-    "ps",
-    "ps-hol",
-    "ps-pp",
-    "poll",
-    "burst",
-    "uniform",
-    "semaphore",
-    "cfs",
-    "rwlock",
-    0
-};

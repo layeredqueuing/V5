@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 11083 2012-07-10 12:30:35Z greg $
+ * $Id: petrisrvn.h 13552 2020-05-22 17:44:53Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -100,6 +100,7 @@ extern bool xml_flag;			/* XML Output desired  ?		*/
 
 extern bool customers_flag;		/* Smash customers together.		*/
 extern bool distinguish_join_customers;	/* Cust at join multi-server are unique	*/ 
+extern bool simplify_network;		/* Delete single place processors	*/
 
 #if 0
 extern bool comm_delay_flag;		/* Communication delays present		*/
@@ -112,5 +113,6 @@ extern unsigned open_model_tokens;	/* Default global open queue max size	*/
 extern FILE * stddbg;			/* debugging output goes here.		*/
 
 static inline bool bit_test( unsigned flag, unsigned bits ) { return ((1 << flag) & bits ) != 0; }
+static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
 
 #endif /* _PETRISRVN_H */

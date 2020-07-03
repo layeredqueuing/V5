@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/randomvar.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/randomvar.cc $
  *
  * Random variable manipulation functions.  There are two types, plain
  * old exponentials, and those represented by a discreet distribution

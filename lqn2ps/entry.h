@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: entry.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,8 +18,9 @@
 
 #include "lqn2ps.h"
 #include <cstring>
+#include <vector>
+#include <set>
 #include "element.h"
-#include "vector.h"
 #include "phase.h"
 #include "call.h"
 #include <lqio/dom_entry.h>
@@ -30,21 +31,11 @@ class Entry;
 class Label;
 class Processor;
 class Task;
-template <class type> class Cltn;
-template <class type> class Stack;
 class SRVNEntryManip;
 
 extern "C" {
     typedef void (* err_func_t)( unsigned err, ... );
 }
-
-/* */
-
-/*
- * Printing functions.
- */
-
-ostream& operator<<( ostream&, const Entry& );
 
 /* -------------------- Nodes in the graph are... --------------------- */
 
@@ -70,28 +61,32 @@ public:
     Entry( const LQIO::DOM::DocumentObject * );
     Entry( const Entry& );
     virtual ~Entry();
-
+    Entry * clone( unsigned int ) const;
+    
     int operator==( const Entry& anEntry ) const;
 
     static void reset();
-    Cltn<Entry *> * link( Cltn<Entry *> * aCltn = 0 );
+
+    const Phase& getPhase( unsigned p ) const;
+    Phase& getPhase( unsigned p );
+
     void addCall( const unsigned int p, LQIO::DOM::Call* domCall );
 	
-    void check() const;
-    unsigned findChildren( CallStack&, const unsigned ) const;
+    bool check() const;
+    size_t findChildren( CallStack&, const unsigned ) const;
     Entry& aggregate();
     const Entry& aggregateEntries( const unsigned ) const;
-    unsigned setChain( unsigned curr_k, unsigned next_k, const Entity * aServer, callFunc aFunc ) const;
-    unsigned referenceTasks( Cltn<const Entity *>&, Element * dst ) const;
-    unsigned clients( Cltn<const Entity *>&, const callFunc = 0 ) const;
+    unsigned setChain( unsigned curr_k, unsigned next_k, const Entity * aServer, callPredicate aFunc );
+    unsigned referenceTasks( std::vector<Entity *>&, Element * dst ) const;
+    unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const;
     virtual Entry& setClientClosedChain( unsigned );
     virtual Entry& setClientOpenChain( unsigned );
     virtual Entry& setServerChain( unsigned );
 
     /* Instance Variable access */
 
-    const Task * owner() const { return myOwner; }
-    Entry& owner( const Task * owner ) { myOwner = owner; return *this; }
+    const Task * owner() const { return _owner; }
+    Entry& owner( const Task * owner ) { _owner = owner; return *this; }
 
     const LQIO::DOM::ExternalVariable & openArrivalRate() const;
     phase_type phaseTypeFlag( const unsigned p ) const;
@@ -124,9 +119,8 @@ public:
     unsigned fanIn( const Entry * toEntry ) const;
     unsigned fanOut( const Entry * toEntry ) const;
     Entry& setStartActivity( Activity * );
-    Activity * startActivity() const { return myActivity; }
-    bool phaseIsPresent( const unsigned p ) const { return isPresent[p]; }
-    Entry& phaseIsPresent( const unsigned phase, const bool yesOrNo );
+    Activity * startActivity() const { return _startActivity; }
+    bool phaseIsPresent( const unsigned p ) const { return _phases.find(p) != _phases.end(); }
 
     /* Result queries */
 
@@ -150,7 +144,8 @@ public:
     /* Queries */
 
     bool isCalled( const requesting_type callType );
-    requesting_type isCalled() const { return calledFlag; }
+    bool isCalled( const requesting_type callType ) const { return _isCalled == callType; }
+    requesting_type isCalled() const { return _isCalled; }
     bool isReferenceTaskEntry() const;
     bool isSelectedIndirectly() const;
 
@@ -162,7 +157,7 @@ public:
     bool hasOpenArrivalRate() const;
     bool hasForwardingLevel() const;
     bool isForwardingTarget() const;
-    bool hasCalls( const callFunc aFunc ) const;
+    bool hasCalls( const callPredicate aFunc ) const;
     bool hasThinkTime() const;
     bool hasDeterministicPhases() const;
     bool hasNonExponentialPhases() const;
@@ -170,13 +165,13 @@ public:
 
     Entry& setPhaseDOM( unsigned phase, const LQIO::DOM::Phase* phaseInfo );
     const LQIO::DOM::Phase * getPhaseDOM( unsigned phase ) const;
-    void addDstCall( GenericCall * aCall ) { myCallers << aCall; }
-    void removeDstCall( GenericCall * aCall) { myCallers -= aCall; }
-    unsigned callerListSize() const { return myCallers.size(); }
-    const Cltn<GenericCall *>& callerList() const { return myCallers; }
-    const Cltn<Call *>& callList() const { return myCalls; }
-    void addActivityReplyArc( Reply * aReply ) { myActivityCallers << aReply; }
-    void deleteActivityReplyArc( Reply * aReply ) { myActivityCallers -= aReply; }
+
+    void addDstCall( GenericCall * aCall ) { _callers.push_back( aCall ); }
+    void removeDstCall( GenericCall * aCall );
+    const std::vector<GenericCall *>& callers() const { return _callers; }
+    const std::vector<Call *>& calls() const { return _calls; }
+    void addActivityReplyArc( Reply * aReply ) { myActivityCallers.push_back(aReply); }
+    void deleteActivityReplyArc( Reply * aReply );
 
     bool isActivityEntry() const;
     bool isStandardEntry() const;
@@ -191,23 +186,18 @@ public:
     bool entryTypeOk( const LQIO::DOM::Entry::EntryType );
     bool entrySemaphoreTypeOk( const semaphore_entry_type );
     bool entryRWLockTypeOk( const rwlock_entry_type );
-    unsigned maxPhase() const { return myMaxPhase; }
-    unsigned numberOfPhases() const;
+    unsigned maxPhase() const { return _maxPhase; }
 
-    unsigned countArcs( const callFunc = 0 ) const;
-    unsigned countCallers( const callFunc = 0 ) const;
+    unsigned countArcs( const callPredicate = 0 ) const;
+    unsigned countCallers( const callPredicate = 0 ) const;
 
     double serviceTimeForSRVNInput() const;
     double serviceTimeForSRVNInput( const unsigned p ) const;
-    double serviceTimeForQueueingNetwork( const unsigned p ) const;
-    double serviceTimeForQueueingNetwork() const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
 
-    const Entry& addThptUtil( double& tput_sum, double &util_sum ) const;
-
     static Entry * find( const string& );
-    static int compare( const void *, const void * );
+    static bool compare( const Entry *, const Entry * );
     virtual double getIndex() const;
     virtual int span() const;
 
@@ -217,57 +207,66 @@ public:
 
     virtual Entry& moveTo( const double x, const double y );
     virtual Entry& label();
-    const Entry& labelQueueingNetworkVisits( Label& ) const;
-    const Entry& labelQueueingNetworkService( Label& ) const;
-    const Entry& labelQueueingNetworkWaiting( Label& ) const;
+    Entry& labelQueueingNetworkVisits( Label& );
+    Entry& labelQueueingNetworkService( Label& );
+    Entry& labelQueueingNetworkWaiting( Label& );
     virtual Entry& scaleBy( const double, const double );
     virtual Entry& translateY( const double );
     virtual Entry& depth( const unsigned );
 
+    virtual Entry& rename();
+
 #if defined(REP2FLAT)
     static Entry * find_replica( const string&, const unsigned );
 
-    Entry * expandEntry( int replica ) const;
-    const Entry& expandCalls() const;
+    Entry& expandEntry();
+    Entry& expandCall();
+    Entry& replicateCall();
+    Entry& replicateEntry( LQIO::DOM::DocumentObject ** );
 #endif
 
     /* Printing */
     
-    virtual ostream& draw( ostream& ) const;
-//    virtual ostream& print( ostream& ) const;
+    virtual const Entry& draw( ostream& ) const;
 
 private:
-    Call * findCall( const Entry * anEntry, const callFunc = 0 ) const;
+    Call * findCall( const Entry * anEntry, const callPredicate = 0 ) const;
     Call * findCall( const Task * aTask ) const;
-    Call * findOrAddCall( const Entry * anEntry, const callFunc = 0 );
+    Call * findOrAddCall( const Entry * anEntry, const callPredicate = 0 );
     ProxyEntryCall * findOrAddFwdCall( const Entry * anEntry );
     Call * findOrAddPseudoCall( const Entry * anEntry );		// For -Lclient
 
-    void addSrcCall( Call * aCall ) { myCalls << aCall; }
+    void addSrcCall( Call * aCall ) { _calls.push_back(aCall); }
     Entry& moveSrc();
     Entry& moveDst();
 
     ostream& printSRVNLine( ostream& output, char code, print_func_ptr func ) const;
 
 public:
+    static std::set<Entry *,LT<Entry> > __entries;
+
     bool drawLeft;
     bool drawRight;
 
 protected:
-    Vector2<Phase> phase;
+    std::map<unsigned,Phase> _phases;
 
 private:
-    const Task * myOwner;
-    unsigned myIndex;
-    unsigned short myMaxPhase;		/* Largest phase index.		*/
-    requesting_type calledFlag;		/* true if entry referenced.	*/
-    Cltn<Call *> myCalls;		/* Who I call.			*/
-    Cltn<GenericCall *> myCallers;	/* Who calls me.		*/
-    Vector<bool> isPresent;		/* True if phase is used.	*/
-    Activity * myActivity;		/* If I have activities.	*/
-    Arc *myActivityCall;		/* Arc to who I call		*/
-    Cltn<Reply *> myActivityCallers;	/* Arcs from who reply to me.	*/
+    const Task * _owner;
+    mutable unsigned int _maxPhase;		/* Largest phase index.		*/
+    requesting_type _isCalled;			/* true if entry referenced.	*/
+    std::vector<Call *> _calls;			/* Who I call.			*/
+    std::vector<GenericCall *> _callers;	/* Who calls me.		*/
+    Activity * _startActivity;			/* If I have activities.	*/
+    Arc *myActivityCall;			/* Arc to who I call		*/
+    std::vector<Reply *> myActivityCallers;	/* Arcs from who reply to me.	*/
 };
+
+/*
+ * Printing functions.
+ */
+
+inline ostream& operator<<( ostream& output, const Entry& self ) { self.draw( output ); return output; }
 
 /* ------------------ Proxy messages for class call. ------------------ */
 
@@ -276,45 +275,8 @@ private:
  * class body due to foward reference problems.  Inlined.
  */
 
-inline const Entry * Call::dstEntry() const { return destination; }
-inline const Task * Call::dstTask() const { return destination->owner(); }
-
-inline double Call::variance() const { return destination->variance(1); }
-inline phase_type Call::phaseTypeFlag() const { return destination->phaseTypeFlag(1); }
-inline const LQIO::DOM::ExternalVariable & Call::serviceTime() const { return destination->serviceTime(1); }
-inline double Call::executionTime() const { return destination->executionTime(1); }
-
-/* --------- Access functions called by parser to store data. --------- */
-
-void setEntryOwner( const Cltn<Entry *> &, const Task * );
-
-/* --------- Access functions called by parser to store data. --------- */
-
-/*
- * Compare to tasks by their name.  Used by the set class to insert items
- */
-
-struct ltEntry
-{
-    bool operator()(const Entry * e1, const Entry * e2) const { return e1->name() < e2->name(); }
-};
-
-
-/*
- * Compare a entry name to a string.  Used by the find_if (and other algorithm type things.
- */
-
-struct eqEntryStr 
-{
-    eqEntryStr( const string & s ) : _s(s) {}
-    bool operator()(const Entry * e1 ) const { return e1->name() == _s; }
-
-private:
-    const string & _s;
-};
-
-extern set<Entry *,ltEntry> entry;
-extern Entry * add_entry( LQIO::DOM::Entry* entry );
+inline const Entry * Call::dstEntry() const { return _destination; }
+inline const Task * Call::dstTask() const { return _destination->owner(); }
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/

@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13200 2018-03-05 22:48:55Z greg $
+ * $Id: runlqx.cc 13550 2020-05-22 11:48:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -66,13 +66,17 @@ namespace SolverInterface
 	    const bool ok = (_aModel->*_solve)();
 	    return LQX::Symbol::encodeBoolean(ok);
 	}
-	catch ( runtime_error & error ) {
-	    cerr << io_vars.lq_toolname << ": runtime error - " << error.what() << endl;
-	    io_vars.anError = true;
+	catch ( const domain_error & error ) {
+	    throw LQX::RuntimeException( error.what() );
+	    io_vars.error_count += 1;
 	}
-	catch ( logic_error& error ) {
-	    cerr << io_vars.lq_toolname << ": logic error - " << error.what() << endl;
-	    io_vars.anError = true;
+	catch ( const runtime_error & error ) {
+	    throw LQX::RuntimeException( error.what() );
+	    io_vars.error_count += 1;
+	}
+	catch ( const logic_error& error ) {
+	    throw LQX::RuntimeException( error.what() );
+	    io_vars.error_count += 1;
 	}
 	return LQX::Symbol::encodeBoolean(false);
     }

@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/test9i.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/test9i.cc $
  *
  * Vary the number of servers.  Test all multi-server models.
  *
  * ------------------------------------------------------------------------
- * $Id: test9i.cc 9164 2010-01-28 19:27:03Z greg $
+ * $Id: test9i.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -32,9 +32,9 @@
 #define ROLIA		3
 #define INFINITE	4
 
-static bool doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special, const unsigned n_servers );
+static bool doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special, const unsigned n_servers );
 static bool run( const unsigned solver_set, const unsigned special );
-static void test( PopVector& N, Vector<Server *>& Q, const unsigned stnType, const unsigned n_servers );
+static void test( Population& N, Vector<Server *>& Q, const unsigned stnType, const unsigned n_servers );
 static bool check( const MVA &model, const unsigned special, const unsigned solver, const unsigned n_servers );
 
 /* -- */
@@ -164,7 +164,7 @@ run( const unsigned solver_set, const unsigned special )
     const unsigned classes  = N_CLASSES;
     const unsigned stations = N_STATIONS;
 
-    PopVector N(classes);
+    Population N(classes);
     VectorMath<double> thinkTime(classes);
     VectorMath<unsigned> priority(classes);
     Vector<Server *> Q(stations);
@@ -210,7 +210,7 @@ run( const unsigned solver_set, const unsigned special )
  */
 
 static bool
-doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMath<double> &thinkTime, const VectorMath<unsigned>& priority,
+doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMath<double> &thinkTime, const VectorMath<unsigned>& priority,
       const unsigned special, const unsigned n_servers )
 {
     bool ok = true;
@@ -270,7 +270,7 @@ doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMat
 }
 
 void
-test( PopVector& N, Vector<Server *>& Q, const unsigned stnType, const unsigned n_servers )
+test( Population& N, Vector<Server *>& Q, const unsigned stnType, const unsigned n_servers )
 {
     const unsigned int classes = N.size();
 
@@ -345,3 +345,14 @@ special_check( ostream& output, const MVA& solver, const unsigned )
 }
 
 
+#include <vector.cc>
+
+template class Vector<double>;
+template class Vector<unsigned int>;
+template class Vector<unsigned long>;
+template class Vector<Server *>;
+template class VectorMath<unsigned int>;
+template class VectorMath<double>;
+template class Vector<Vector<unsigned> >;
+template class Vector<VectorMath<double> >;
+template class Vector<VectorMath<unsigned> >;

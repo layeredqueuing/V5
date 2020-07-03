@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 11971 2014-04-11 21:43:26Z greg $
+ * $Id: multserv.cc 13547 2020-05-21 02:22:16Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -90,7 +90,7 @@ Reiser_Multi_Server::initialize()
  */
 
 void
-Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -112,7 +112,7 @@ Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector&
  */
 
 Positive
-Reiser_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const
+Reiser_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.sumOf_SL_m( *this, N, k ) + S( solver, N ) * solver.sumOf_P( *this, N, k );
 }
@@ -157,7 +157,7 @@ Reiser_Multi_Server::openWait() const
  */
 
 void
-Reiser_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Reiser_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     const Positive queue = Rho() * solver.sumOf_alphaP( *this, N );
 
@@ -255,7 +255,7 @@ Reiser_Multi_Server::printHeading( ostream& output ) const
  */
 
 void
-Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -279,7 +279,7 @@ Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Pop
  */
 
 Positive
-Phased_Reiser_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const
+Phased_Reiser_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return Reiser_Multi_Server::sumOf_SL( solver, N, k ) + solver.sumOf_S2U_m( *this, N, k );
 }
@@ -293,7 +293,7 @@ Phased_Reiser_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, con
  */
 
 void
-Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -314,7 +314,7 @@ Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, co
  */
 
 void
-Markov_Phased_Reiser_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Markov_Phased_Reiser_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     Reiser_Multi_Server::mixedWait( solver, N );
 }
@@ -333,7 +333,7 @@ Markov_Phased_Reiser_Multi_Server::openWait() const
 /* ----------------- Processor Sharing Multi Server ------------------- */
 
 void
-Reiser_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Reiser_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -355,7 +355,7 @@ Reiser_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVect
  */
 
 Positive
-Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const
+Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.sumOf_L_m( *this, N, k ) + solver.sumOf_P( *this, N, k );
 }
@@ -370,7 +370,7 @@ Reiser_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const un
  */
 
 void
-Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const Positive sum = effectiveBacklog( solver, N, k ) + solver.PB( *this, N, k ) * departureTime( solver, N, k );
 
@@ -389,7 +389,7 @@ Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector&
  */
 
 double
-Conway_Multi_Server::effectiveBacklog( const MVA& solver, const PopVector& N, const unsigned k ) const
+Conway_Multi_Server::effectiveBacklog( const MVA& solver, const Population& N, const unsigned k ) const
 {
     Positive sum = 0.0;
 
@@ -415,7 +415,7 @@ Conway_Multi_Server::effectiveBacklog( const MVA& solver, const PopVector& N, co
  */
 
 double
-Conway_Multi_Server::departureTime( const MVA& solver, const PopVector& N, const unsigned k ) const
+Conway_Multi_Server::departureTime( const MVA& solver, const Population& N, const unsigned k ) const
 {
     if ( N[k] == 0 || V(k) == 0.0 ) return 0.0;
 
@@ -431,11 +431,11 @@ Conway_Multi_Server::departureTime( const MVA& solver, const PopVector& N, const
  */
 
 double
-Conway_Multi_Server::sumOf_PS_k( const MVA& solver, const PopVector& N, const unsigned k, PopulationIterator& next ) const
+Conway_Multi_Server::sumOf_PS_k( const MVA& solver, const Population& N, const unsigned k, Population::Iterator& next ) const
 {
     Positive sumOf_C = 0.0;
     Positive sumOf_A = 0.0;
-    PopVector n(K);				// Need to sequence over this.
+    Population n(K);				// Need to sequence over this.
 
     while ( next( n ) ) {
 	assert( n.sum() == mu() );
@@ -453,7 +453,7 @@ Conway_Multi_Server::sumOf_PS_k( const MVA& solver, const PopVector& N, const un
  */
 
 double
-Conway_Multi_Server::A( const MVA& solver, const PopVector& n, const PopVector& N, const unsigned k ) const
+Conway_Multi_Server::A( const MVA& solver, const Population& n, const Population& N, const unsigned k ) const
 {
     if ( mu() > 10.0 ) {
 	double prodOf_F = 0.0;
@@ -493,7 +493,7 @@ Conway_Multi_Server::A( const MVA& solver, const PopVector& n, const PopVector& 
  */
 
 double
-Conway_Multi_Server::meanMinimumService( const PopVector& n ) const
+Conway_Multi_Server::meanMinimumService( const Population& n ) const
 {
     double sum = 0.0;
 
@@ -510,7 +510,7 @@ Conway_Multi_Server::meanMinimumService( const PopVector& n ) const
 
 #if	DEBUG_MVA
 ostream& 
-Conway_Multi_Server::printXE( ostream& output, const unsigned int i, const PopVector& N, const unsigned int k, const double xe, const double q ) const
+Conway_Multi_Server::printXE( ostream& output, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const
 {
     output << "XE_{" << closedIndex << "," << k << "," << i << "}" << N << " = " << xe << ", Q* = " << q << endl;
     return output;
@@ -518,7 +518,7 @@ Conway_Multi_Server::printXE( ostream& output, const unsigned int i, const PopVe
 
 
 ostream& 
-Conway_Multi_Server::printXR( ostream& output, const PopVector& N, const unsigned int k, const double xe, const double pb ) const
+Conway_Multi_Server::printXR( ostream& output, const Population& N, const unsigned int k, const double xe, const double pb ) const
 {
     output << "XR_{" << closedIndex << "," << k << "}" << N << " = " << xe << ", PB = " << pb << endl;
     return output;
@@ -533,7 +533,7 @@ Conway_Multi_Server::printXR( ostream& output, const PopVector& N, const unsigne
  */
 
 void
-Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const Positive sum = effectiveBacklog( solver, N, k ) + solver.PB( *this, N, k ) * departureTime( solver, N, k );
 
@@ -555,7 +555,7 @@ Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Pop
  */
 
 void
-Markov_Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const Positive sum = effectiveBacklog( solver, N, k ) + PBusy( solver, N, k ) * departureTime( solver, N, k );
 
@@ -575,7 +575,7 @@ Markov_Phased_Conway_Multi_Server::wait( const MVA& solver, const unsigned k, co
  */
 
 void
-Markov_Phased_Conway_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Markov_Phased_Conway_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     Reiser_Multi_Server::mixedWait( solver, N );
 }
@@ -601,7 +601,7 @@ Markov_Phased_Conway_Multi_Server::openWait() const
  */
 
 Positive
-Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, const PopVector& N, const unsigned k, const unsigned p_i ) const
+Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, const Population& N, const unsigned k, const unsigned p_i ) const
 {
     if ( N[k] == 0 ) return 0.0;
 
@@ -655,7 +655,7 @@ Markov_Phased_Conway_Multi_Server::meanMinimumOvertaking( const MVA& solver, con
 
 
 Probability
-Markov_Phased_Conway_Multi_Server::PBusy( const MVA& solver, const PopVector& N, const unsigned k ) const
+Markov_Phased_Conway_Multi_Server::PBusy( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.PB( *this, N, k );
 }
@@ -669,7 +669,7 @@ Markov_Phased_Conway_Multi_Server::PBusy( const MVA& solver, const PopVector& N,
  */
 
 void
-Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -686,7 +686,7 @@ Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& 
 	    }
 	}
     }
-    catch ( domain_error &e ) {
+    catch ( const domain_error &e ) {
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    if ( !V(e,k) ) continue;
 	    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
@@ -703,7 +703,7 @@ Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& 
  */
 
 Positive
-Rolia_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const
+Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
     const double s = solver.sumOf_SL_m( *this, N, k );
     if ( !isfinite( s ) ) throw domain_error( "Rolia_Multi_Server::sumOf_SL" );
@@ -728,7 +728,7 @@ Rolia_Multi_Server::filter( const MVA& solver, const double w, const unsigned e,
  */
 
 void
-Rolia_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Rolia_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     /* BUG 70 */
     throw not_implemented( "Rolia_Multi_Server::mixedWait", __FILE__, __LINE__ );
@@ -752,7 +752,7 @@ Rolia_Multi_Server::openWait() const
  */
 
 void
-Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -776,7 +776,7 @@ Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVecto
  */
 
 Positive
-Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const
+Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.PB2( *this, N, k ) * solver.sumOf_L_m( *this, N, k );
 }
@@ -788,7 +788,7 @@ Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const uns
  */
 
 void
-Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -812,7 +812,7 @@ Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopV
  */
 
 Positive
-Phased_Rolia_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const
+Phased_Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.PB2( *this, N, k ) * (solver.sumOf_SL_m( *this, N, k ) + solver.sumOf_S2U_m( *this, N, k )) / mu();
 }
@@ -826,7 +826,7 @@ Phased_Rolia_Multi_Server::sumOf_SL( const MVA& solver, const PopVector& N, cons
  */
 
 void
-Markov_Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -850,7 +850,7 @@ Markov_Phased_Rolia_Multi_Server::wait( const MVA& solver, const unsigned k, con
  */
 
 void
-Markov_Phased_Rolia_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Markov_Phased_Rolia_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     Rolia_Multi_Server::mixedWait( solver, N );
 }
@@ -873,7 +873,7 @@ Markov_Phased_Rolia_Multi_Server::openWait() const
  */
 
 void
-Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -897,7 +897,7 @@ Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const P
  */
 
 Positive
-Phased_Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const
+Phased_Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const
 {
     return solver.PB2( *this, N, k ) * ( solver.sumOf_L_m( *this, N, k ) + solver.sumOf_U2_m( *this, N, k ) );
 }
@@ -911,7 +911,7 @@ Phased_Rolia_PS_Multi_Server::sumOf_L( const MVA& solver, const PopVector& N, co
  */
 
 void
-Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -935,7 +935,7 @@ Markov_Phased_Rolia_PS_Multi_Server::wait( const MVA& solver, const unsigned k, 
  */
 
 void
-Markov_Phased_Rolia_PS_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Markov_Phased_Rolia_PS_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
     Rolia_Multi_Server::mixedWait( solver, N );
 }
@@ -962,9 +962,9 @@ Markov_Phased_Rolia_PS_Multi_Server::openWait() const
  */
 
 void
-Bruell_Multi_Server::setMarginalProbabilitiesSize( const PopVector &N )
+Bruell_Multi_Server::setMarginalProbabilitiesSize( const Population &N )
 {
-    PopulationIteratorOffset next( N, N );
+    Population::IteratorOffset next( N, N );
 
     marginalSize = next.maxOffset();
 }
@@ -976,7 +976,7 @@ Bruell_Multi_Server::setMarginalProbabilitiesSize( const PopVector &N )
  */
 
 double
-Bruell_Multi_Server::muS( const PopVector& N, const unsigned k ) const
+Bruell_Multi_Server::muS( const Population& N, const unsigned k ) const
 {
     return N.sum() * S(k) / mu(N.sum());
 }
@@ -989,7 +989,7 @@ Bruell_Multi_Server::muS( const PopVector& N, const unsigned k ) const
  */
 
 void
-Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const double sum = solver.sumOf_SP2( *this, N, k );
 
@@ -1008,7 +1008,7 @@ Bruell_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector&
 
 
 void
-Schmidt_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Schmidt_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const double sum = solver.sumOf_SP2( *this, N, k );
 
@@ -1027,7 +1027,7 @@ Schmidt_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector
  */
 
 double
-Schmidt_Multi_Server::muS( const PopVector& N, const unsigned k ) const
+Schmidt_Multi_Server::muS( const Population& N, const unsigned k ) const
 {
     double sum = S(k);
     const double V_k = V(k);
@@ -1056,12 +1056,12 @@ const double Suri_Multi_Server::beta  = 0.676;
  */
 
 void
-Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     const double C = mu();
     Positive sum = 1.0;
     if ( N.sum() > C ) {
-	const double rho = solver.utilization( *this ) / C;
+	const double rho = solver.utilization( *this, N ) / C;
 	const double L_m = solver.sumOf_L_m( *this, N, k );
 	sum += L_m * pow( rho, alpha * ( pow( C, beta ) - 1.0 ) ) / C;
     }
@@ -1092,7 +1092,7 @@ Suri_Multi_Server::openWait() const
  */
 
 void
-Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
 }
 
@@ -1102,7 +1102,7 @@ Markov_Phased_Suri_Multi_Server::wait( const MVA& solver, const unsigned k, cons
  */
 
 void
-Markov_Phased_Suri_Multi_Server::mixedWait( const MVA& solver, const PopVector& N ) const
+Markov_Phased_Suri_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 {
 }
 
@@ -1118,8 +1118,8 @@ Markov_Phased_Suri_Multi_Server::openWait() const
 
 /* ---------------------------- Iterators ----------------------------- */
 
-B_Iterator::B_Iterator( const Server& aServer, const PopVector& N, const unsigned k )
-    : PopulationIterator(N), J(static_cast<unsigned>(aServer.mu())), K(N.size()), index(0)
+B_Iterator::B_Iterator( const Server& aServer, const Population& N, const unsigned k )
+    : Population::Iterator(N), J(static_cast<unsigned>(aServer.mu())), K(N.size()), index(0)
 { 
     for ( unsigned i = 1; i <= K; ++i ) {
 	if ( !aServer.V(i) ) {
@@ -1147,7 +1147,7 @@ B_Iterator::initialize( const unsigned j )
  */
 
 int
-B_Iterator::operator()( PopVector& N )
+B_Iterator::operator()( Population& N )
 {
     return step( N, 1, J );	
 }
@@ -1162,7 +1162,7 @@ B_Iterator::operator()( PopVector& N )
  */
 
 int
-B_Iterator::step( PopVector& n, const unsigned k, const unsigned n_k )
+B_Iterator::step( Population& n, const unsigned k, const unsigned n_k )
 {
     /*
      * Update the present value at `k', but ONLY if `k' is greater
@@ -1216,7 +1216,7 @@ B_Iterator::step( PopVector& n, const unsigned k, const unsigned n_k )
  */
 
 int
-A_Iterator::operator()( PopVector& n )
+A_Iterator::operator()( Population& n )
 {
     int rc;
     do {

@@ -18,7 +18,6 @@
 
 #include "phase.h"
 #include <set>
-#include "stack.h"
 #include "actlist.h"
 
 class Task;
@@ -39,12 +38,13 @@ public:
     virtual ~Activity() {}
 
     bool is_specified() const { return _is_specified; }
+    virtual bool is_activity() const { return true; }
     unsigned int n_replies() const { return _replies.size(); }
 
     virtual double check();
 
-    bool find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e );
-    double count_replies( my_stack_t<Activity *>& activity_stack, const Entry * e, const double rate, const unsigned curr_phase, unsigned& next_phase  );
+    bool find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );
+    double count_replies( std::deque<Activity *>& activity_stack, const Entry * e, const double rate, const unsigned curr_phase, unsigned& next_phase  );
     bool replies_to( const Entry * e ) const;
 
     void follow_activity_for_tokens( const Entry * e, unsigned p, const unsigned m,
@@ -56,14 +56,14 @@ public:
     Activity& add_reply_list();
     Activity& add_activity_lists();
 
-    virtual double transmorgrify( const double x_pos, const double y_pos, const unsigned m,
-				  const Entry * e, const double p_pos, const short enabling,
-				  struct place_object * end_place, bool can_reply );
+    double transmorgrify( const double x_pos, const double y_pos, const unsigned m,
+			  const Entry * e, const double p_pos, const short enabling,
+			  struct place_object * end_place, bool can_reply );
 
     virtual double residence_time() const;
     virtual void insert_DOM_results();
 
-    void activity_cycle_error( int err, const char *, my_stack_t<Activity *>& activity_stack );
+    void activity_cycle_error( int err, const char *, std::deque<Activity *>& activity_stack );
     static void complete_activity_connections();
 
 private:

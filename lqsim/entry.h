@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entry.h 13353 2018-06-25 20:27:13Z greg $
  */
 
 #ifndef ENTRY_H
@@ -18,6 +18,7 @@
 /* #include "task.h" */
 #include <string>
 #include <set>
+#include <list>
 #include <lqio/dom_task.h>
 #include <lqio/dom_entry.h>
 #include "model.h"
@@ -26,7 +27,8 @@
 class Task;
 
 class Entry {				/* task entry struct	        */
- 
+    friend class Instance;
+    
 private:
     Entry( const Entry& );
     Entry& operator=( const Entry& );
@@ -41,23 +43,20 @@ public:
     static Entry * find( const char * entry_name );
     static bool find( const char * from_entry_name, Entry *&from_entry, const char * to_entry_name, Entry *&to_entry );
 
-    Entry( LQIO::DOM::Entry* aDomEntry, Task * task );
+    Entry( LQIO::DOM::Entry*, Task * task );
     virtual ~Entry();
 
     Task * task() const { return _task; }
 
-    virtual const char * name() const { return _dom_entry->getName().c_str(); }
-    double open_arrival_rate() const { return _dom_entry->hasOpenArrivalRate() ? _dom_entry->getOpenArrivalRateValue() : 0; }
-    int priority() const { return _dom_entry->hasEntryPriority() ? (int)_dom_entry->getEntryPriorityValue() : 0; }
-    void * entry_element() const { return const_cast<void*>(_dom_entry->getXMLDOMElement()); }
+    virtual const char * name() const { return _dom->getName().c_str(); }
+    unsigned int index() const { return _local_id; }
+    double open_arrival_rate() const { return _dom->hasOpenArrivalRate() ? _dom->getOpenArrivalRateValue() : 0; }
+    int priority() const { return _dom->hasEntryPriority() ? (int)_dom->getEntryPriorityValue() : 0; }
     
-    Entry& set_owner( Task * cp ) { _task = cp; return *this; }
-    Entry& set_index( unsigned int i ) { local_id = i; return *this; }
     Entry& set_reply();
-    virtual Entry& set_service( const unsigned, const double s ) { abort(); return * this; }
 
-    Entry& initialize();
-    double configure();
+    virtual Entry& initialize();
+    virtual double configure();
     void add_call( const unsigned int p, LQIO::DOM::Call* domCall );
 
     virtual bool is_defined() const { return get_DOM()->getEntryType() != LQIO::DOM::Entry::ENTRY_NOT_DEFINED; }
@@ -82,10 +81,12 @@ public:
     bool test_and_set_rwlock( rwlock_entry_type );
 
     Entry& set_DOM( unsigned ph, LQIO::DOM::Phase* phaseInfo );
-    LQIO::DOM::Entry * get_DOM() const { return _dom_entry; }
+    LQIO::DOM::Entry * get_DOM() const { return _dom; }
     Entry& add_forwarding( Entry* toEntry, LQIO::DOM::Call * value );
 
-    void insertDOMResults();
+    Entry& reset_stats();
+    Entry& accumulate_data();
+    virtual Entry& insertDOMResults();
 
     static Entry * add( LQIO::DOM::Entry* domEntry, Task * );
     
@@ -95,22 +96,22 @@ private:
     void print_debug_info();
     
 public:
-    const int entry_id;			/* Global entry id.		*/
-    unsigned int local_id;		/* Offset for this entry.	*/
+    const unsigned int entry_id;	/* Global entry id.		*/
     int port;				/* Parasol port.		*/
-    Activity * activity;		/* Activity list.		*/
-    Activity phase[MAX_PHASES+1];	/* phase info. Dim starts at 1 	*/
-    unsigned active[MAX_PHASES+1];	/* Number of active instances.	*/
+    Activity * _activity;		/* Activity list.		*/
+    std::vector<Activity> _phase;	/* phase info. Dim starts at 1 	*/
+    std::vector<unsigned> _active;	/* Number of active instances.	*/
+    Targets _fwd;			/* forward info		        */
     result_t r_cycle;			/* cycle time for entry.	*/
-    Targets fwd;			/* forward info		        */
 
     static Entry * entry_table[MAX_PORTS+1];
 
 private:
-    LQIO::DOM::Entry* _dom_entry;	/* */
+    const unsigned int _local_id;	/* Local offset (for instance)	*/
+    LQIO::DOM::Entry* _dom;		/* */
     receive_type _recv;			/* flag...			*/
-
     Task * _task;			/* Owner of entry.		*/
+    ActivityList * _join_list;		/* For joins			*/
 };
 
 /*
@@ -120,10 +121,12 @@ private:
 class Pseudo_Entry : public Entry
 {
 public:
-    Pseudo_Entry( const char * name, Task * );
+    Pseudo_Entry( LQIO::DOM::Entry *, Task * );
+
+    virtual Entry& initialize() { return *this; }
+    virtual double configure();
 
     virtual const char * name() const { return _name.c_str(); }
-    virtual Entry& set_service( const unsigned, const double s );
     virtual bool is_defined() const { return true; }
     virtual bool is_regular() const { return true; }
     virtual bool is_activity() const { return false; }
@@ -139,8 +142,10 @@ public:
 
     virtual bool test_and_set( LQIO::DOM::Entry::EntryType ) { return true; }
 
+    virtual Entry& insertDOMResults();
+
 private:
-    const string _name;
+    const std::string _name;
 };
 
 typedef double (*double_func_ptr)( const tar_t * );

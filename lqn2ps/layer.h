@@ -1,113 +1,117 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: layer.h 13477 2020-02-08 23:14:37Z greg $
  */
 
-#ifndef _LEVEL_H
-#define _LEVEL_H
+#ifndef _LQN2PS_LAYER_H
+#define _LQN2PS_LAYER_H
 
 #include "lqn2ps.h"
+#include <vector>
+#include "entity.h"
 #include "point.h"
-#include "cltn.h"
 
-class Entity;
-class Task;
-class Model;
-class Layer;
 class Label;
+class Task;
 class Processor;
-class Call;
-namespace LQIO {
-    namespace DOM {
-	class Document;
-    }
-}
-
-ostream& operator<<( ostream&, const Layer& );
-
-typedef ostream& (Layer::*layerFunc)( ostream& ) const;
-
 
 class Layer
 {
 private:
-    Layer( const Layer& );
+    typedef Task& (Task::*taskFPtr)();
 
+    /*
+     * Position tasks and processors 
+     */
+    
+    class Position
+    {
+    public:
+	Position( taskFPtr f, double y=MAXDOUBLE ) : _f(f), _x(0.0), _y(y), _h(0.0) {}
+	void operator()( Entity * );
+	double x() const { return _x; }
+	double y() const { return _y; }
+	double height() const { return _h; }
+    private:
+	taskFPtr _f;
+	double _x;
+	double _y;
+	double _h;
+    };
+    
 public:
     Layer();
+    Layer( const Layer& );
+    Layer& operator=( const Layer& );
     virtual ~Layer();
 
-    Layer& operator<<( Entity * );
-    Layer& operator+=( Entity * );
-    Layer& operator-=( Entity * );
-    int operator!() const { return myEntities.size() == 0; }	/* Layer is empty! */
-    const Cltn<Entity *>& entities() const { return myEntities; }
-    const Cltn<const Entity *>& clients() const { return myClients; }
+    Layer& append( Entity * );
+    Layer& erase( std::vector<Entity *>::iterator );
+    int operator!() const { return _entities.size() == 0; }	/* Layer is empty! */
+    const std::vector<Entity *>& entities() const { return _entities; }
+    const std::vector<Entity *>& clients() const { return _clients; }
     Layer& number( const unsigned n );
-    unsigned number() const { return myNumber; }
-    unsigned nChains() const { return myChains; }
+    unsigned number() const { return _number; }
+    unsigned nChains() const { return _chains; }
 
-    Layer const& rename() const;
-    Layer const& check() const;
+    bool check() const;
     Layer& prune();
 
-    Layer const& sort( compare_func_ptr ) const;
-    Layer const& format( const double ) const;
-    Layer const& reformat() const;
-    Layer const& label() const;
-    Layer const& scaleBy( const double, const double ) const;
-    Layer const& moveBy( const double, const double ) const;
-    Layer const& moveLabelTo( const double, const double ) const;
-    Layer const& translateY( const double ) const;
-    Layer const& depth( const unsigned ) const;
-    Layer const& fill( const double ) const;
-    Layer const& justify( const double ) const;
-    Layer const& justify( const double, const justification_type ) const;
-    Layer const& align( const double ) const;
-    Layer const& alignEntities() const;
-    Layer const& shift( unsigned index, double amount ) const;
+    Layer& sort( compare_func_ptr );
+    Layer& format( const double );
+    Layer& reformat();
+    Layer& label();
+    Layer& scaleBy( double, double );
+    Layer& moveBy( double, double );
+    Layer& moveLabelTo( double, double );
+    Layer& translateY( double );
+    Layer& depth(  unsigned );
+    Layer& fill( double );
+    Layer& justify( double );
+    Layer& justify( double,  justification_type );
+    Layer& align();
+    Layer& alignEntities();
+    Layer& shift( unsigned index, double amount );
 
-    Layer const& selectSubmodel() const;
-    Layer const& deselectSubmodel() const;
-    Layer const& generateSubmodel() const;
-    Layer const& transmorgrify( LQIO::DOM::Document *, Processor *&, Task *& ) const;			/* BUG_626. */
-    Layer const& generateClientSubmodel() const;
-
+    Layer& selectSubmodel();
+    Layer& deselectSubmodel();
+    Layer& generateSubmodel();
+    Layer& transmorgrify( LQIO::DOM::Document *, Processor *&, Task *& );			/* BUG_626. */
+    Layer& aggregate();
+    
     unsigned int size() const { return entities().size(); }
-    double width() const { return myExtent.x(); }
-    double height() const { return myExtent.y(); }
-    double x() const { return myOrigin.x(); }
-    double y() const { return myOrigin.y(); }
+    double width() const { return _extent.x(); }
+    double height() const { return _extent.y(); }
+    double x() const { return _origin.x(); }
+    double y() const { return _origin.y(); }
     double labelWidth() const;
+
+    unsigned count( const taskPredicate ) const;
+    unsigned count( const callPredicate ) const;
 
     ostream& print( ostream& ) const;
     ostream& printSummary( ostream& ) const;
+    ostream& printSubmodelSummary( ostream& ) const;
     ostream& printSubmodel( ostream& ) const;
     ostream& drawQueueingNetwork( ostream& ) const;
-#if defined(QNAP_OUTPUT)
-    ostream& printQNAP( ostream& ) const;
-#endif
-#if defined(PMIF_OUTPUT)
-    ostream& printPMIF( ostream& ) const;
-#endif
 
 private:
-    double moveTo( double x, const double y, Entity * ) const;
-    Processor * findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const unsigned level ) const;
-    Task * findOrAddSurrogateTask( LQIO::DOM::Document * document, Processor *& processor, Task *& task, Entry * call, const unsigned level ) const;
+    Processor * findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const;
+    Task * findOrAddSurrogateTask( LQIO::DOM::Document * document, Processor *& processor, Task *& task, Entry * call, const size_t level ) const;
     Entry * findOrAddSurrogateEntry( LQIO::DOM::Document * document, Task * task, Entry * call ) const;
     const Layer& resetServerPhaseParameters( LQIO::DOM::Document* document, LQIO::DOM::Phase * ) const;
 
 private:
-    Cltn<Entity *> myEntities;
-    mutable Point myOrigin;
-    mutable Point myExtent;
-    unsigned myNumber;
-    Label * myLabel;
+    std::vector<Entity *> _entities;
+    Point _origin;
+    Point _extent;
+    unsigned _number;
+    Label * _label;
 
-    mutable Cltn<const Entity *> myClients;	/* Only if doing a submodel */
-    mutable unsigned myChains;			/* Only set if doing a submodel */
+    std::vector<Entity *> _clients;		/* Only if doing a submodel */
+    mutable unsigned _chains;			/* Only set if doing a submodel */
 };
 
+inline ostream& operator<<( ostream& output, const Layer& self ) { return self.print( output ); }
 #endif

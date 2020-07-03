@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/syncserv.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/syncserv.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: syncserv.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: syncserv.h 13413 2018-10-23 15:03:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -35,8 +35,8 @@ public:
 	
     virtual Server& setVariance( const unsigned e, const unsigned k, const unsigned p, const double value ) { return *this; } /* NOP */
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "Synch_Server"; }
@@ -51,11 +51,11 @@ private:
 
     virtual short updateD() const { return 0; }			/* For synch server.  	*/
 	
-//	double synchDelay( const MVA&, const unsigned, const PopVector &N ) const;
+//	double synchDelay( const MVA&, const unsigned, const Population &N ) const;
     Positive max( const double, const double ) const;
-    Positive Upsilon( const MVA&, const unsigned e, const PopVector &N, const unsigned k ) const;
-    double alpha( const MVA&, const unsigned, const PopVector &N ) const;
-    Positive gamma( const MVA&, const unsigned e, const PopVector &N, const unsigned k ) const;
+    Positive Upsilon( const MVA&, const unsigned e, const Population &N, const unsigned k ) const;
+    double alpha( const MVA&, const unsigned, const Population &N ) const;
+    Positive gamma( const MVA&, const unsigned e, const Population &N, const unsigned k ) const;
 
 #ifdef NOTDEF
     void addTerm( double&, const double, const double, const unsigned, const double rate[] ) const;

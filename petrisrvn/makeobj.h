@@ -1,5 +1,5 @@
 /*
- * $Id: makeobj.h 10985 2012-06-21 01:00:51Z greg $
+ * $Id: makeobj.h 13477 2020-02-08 23:14:37Z greg $
  *
  * Stochastic RendezVous Network header
  */
@@ -7,6 +7,8 @@
 #if !defined(PETRISRVN_MAKEOBJ_H)
 #define PETRISRVN_MAKEOBJ_H
 
+#include <string>
+#include <map>
 #include <wspnlib/object.h>
 
 void create_arc(LAYER layer, int type, struct trans_object *transition, struct place_object *place);
@@ -26,8 +28,8 @@ struct place_object * no_place( const char *format, ...);
 struct place_object * create_place(double curr_x, double curr_y, LAYER layer, int tokens, const char *format, ...);
 struct place_object * move_place( struct place_object *cur_place, double x_offset, double y_offset );
 struct place_object * move_place_tag( struct place_object *cur_place, double x_offset, double y_offset );
-struct place_object * rename_place( struct place_object *cur_place, const char * format, ... );
-char * strdup32x( const char * aStr );
-void hash_name( char * aStr );
-void clear_hash_table(void);
+const std::string& insert_netobj_name( const std::string& );
+char * find_netobj_name( const std::string& );
+
+extern std::map<std::string,std::string> netobj_name_table;
 #endif

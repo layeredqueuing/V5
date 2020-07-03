@@ -1,15 +1,15 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 12350 2015-12-02 02:55:32Z greg $
+ * $Id: lqn2ps.cc 13547 2020-05-21 02:22:16Z greg $
  */
 
 #include "lqn2ps.h"
-#include <fstream>
-#include <stdexcept>
-#include <cstdlib>
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
+#include <fstream>
+#include <stdexcept>
+#include <cstdlib>
 #include <errno.h>
 #include <cstring>
 #include <sstream>
@@ -26,7 +26,6 @@
 #include "model.h"
 #include "errmsg.h"
 #include "help.h"
-#include "vector.h"
 #include "graphic.h"
 #include "task.h"
 #include "entry.h"
@@ -34,11 +33,12 @@
 #include "activity.h"
 
 extern "C" int LQIO_debug;
+extern "C" int resultdebug;
 
-extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 bool SolverInterface::Solve::solveCallViaLQX = false;/* Flag when a solve() call was made */
 
 static bool setAllResultOptions( const bool yesOrNo );
+static char * parse_file_name = 0;
 
 #if (defined(linux) || defined(__linux__)) && !defined(__USE_XOPEN_EXTENDED)
 extern "C" int getsubopt (char **, char * const *, char **);
@@ -63,8 +63,9 @@ option_type Flags::print[] = {
     { "aggregate",             'A', "objects",             Options::activity,      {AGGREGATE_NONE},    false, "Aggregate sequences,activities,phases,entries,threads,all into parent object." },
     { "border",                'B', "border",              Options::real,          {0},                 false, "Set the border (in points)." },
     { "colour",                'C', "colour",              Options::colouring,     {COLOUR_RESULTS},    false, "Colour output." },
-    { "jlqndef",	       'D', 0,                     0,                      {0},			false, "Use jlqnDef-style icons (rectangles)." },
+    { "diff-file",	       'D', "filename",            0,                      {0},			false, "Load parseable results generated using srvndiff --difference from filename." },
     { "font-size",             'F', "font-size",           Options::integer,       {9},                 false, "Set the font size (from 6 to 36 points)." },
+    { "gnuplot",	       'G', "[var[,var]*]",	   Options::string,	   {0},		        false, "Output GNUPLOT for var (SPEX input only)." },
     { "input-format",	       'I', "format",		   Options::io,		   {FORMAT_UNKNOWN},	false, "Input file format." },
     { "help",                  'H', 0,                     0,                      {0},                 false, "Print help." },
     { "justification",         'J', "object=justification",Options::justification, {DEFAULT_JUSTIFY},   false, "Justification." },
@@ -105,17 +106,21 @@ option_type Flags::print[] = {
     { "variance",              'v', 0,                     0,                      {INIT_FALSE},        true,  "Print execution time variance results." },
     { "waiting",               'w', 0,                     0,                      {INIT_TRUE},         true,  "Print waiting time results." },
     { "service-exceeded",      'x', 0,                     0,                      {INIT_FALSE},        true,  "Print maximum execution time exceeded." },
+    { "comment",	   768+'#', 0,			   0,			   {INIT_FALSE},	true,  "Print model comment." },
     { "verbose",           512+'V', 0,                     0,                      {INIT_FALSE},        false, "Verbose output." },
+    { "ignore-errors",     512+'E', 0,			   0,			   {INIT_FALSE},        false, "Ignore errors during model checking phase." },
     { "task-service-time", 512+'P', 0,                     0,                      {INIT_FALSE},        false, "Print task service times (for --tasks-only)." },
-    { "generate-manual",   512+'M', 0,                     0,                      {INIT_FALSE},        false, "Generate manual suitable for input to man(1)." },
     { "run-lqx",	   512+'l', 0,			   0,			   {INIT_FALSE},	false, "\"Run\" the LQX program instantiating variables and generating model files." },
-    { "reload-lqx",	   512+'R', 0,			   0,			   {INIT_FALSE},	false, "\"Run\" the LQX program reloading results generated earlier." },
+    { "reload-lqx",	   512+'r', 0,			   0,			   {INIT_FALSE},	false, "\"Run\" the LQX program reloading results generated earlier." },
+    { "output-lqx",	   512+'o', 0,			   0,			   {INIT_FALSE},	false, "Convert SPEX to LQX for XML output." },	
     { "include-only",      512+'I', "regexp",              Options::string,        {0},                 false, "Include only objects with name matching <regexp>" },
 
     /* -- below here is not stored in flag_values enumeration -- */
 
     /* Layering shortcuts */
+#if 0
     { "client-layering",   512+'x', 0,                     0,                      {0},                 false, "NEW LAYERING STRATEGEY (EXPERIMENTAL)." },
+#endif
     { "hwsw-layering",     512+'h', 0,                     0,                      {0},                 false, "Use HW/SW layering instead of batched layering." },
     { "srvn-layering",     512+'w', 0,                     0,                      {0},                 false, "Use SRVN layering instead of batched layering." }, 
     { "method-of-layers",  512+'m', 0,                     0,                      {0},                 false, "Use the Method Of Layers instead of batched layering." },
@@ -123,23 +128,32 @@ option_type Flags::print[] = {
     { "flatten",	   512+'f', 0,			   0,			   {0},			false, "Flatten submodel/queueing output by placing clients in one layer." },
     { "no-sort",           512+'s', 0,                     0,                      {0},                 false, "Do not sort objects for output." },
     { "number-layers",     512+'n', 0,                     0,                      {0},                 false, "Print layer numbers." },
-    { "rename",            512+'r', 0,                     0,                      {0},                 false, "Rename all objects." },
+    { "rename",            512+'N', 0,                     0,                      {0},                 false, "Rename all objects." },
     { "tasks-only",        512+'t', 0,                     0,                      {0},                 false, "Print tasks only." },
     /* Miscellaneous */
     { "no-colour",	   512+'C', 0,			   0,			   {0},		        false, "Use grey scale when colouring result." },
     { "no-header",	   512+'H', 0,			   0,			   {0},			false, "Do not output the variable name header on SPEX results." },
     { "surrogates",        768+'z', 0,                     0,                      {0},                 false, "[Don't] Add surrogate tasks for submodel/include-only output." },
+#if defined(REP2FLAT)
+    { "merge-replicas",    512+'R', 0,                     0,                      {0},                 false, "Merge replicas from a flattened model back to a replicated model." },
+#endif
+    { "jlqndef",	   512+'j', 0,                     0,                      {0},			false, "Use jlqnDef-style icons (rectangles)." },
     { "parse-file",        512+'p', "filename",            0,                      {0},                 false, "Load parseable results from filename." },
+    { "print-comment",	   512+'c', 0,			   0,			   {0},			false, "Print the model comment on stdout." },
+    { "print-submodels",   512+'D', 0,                     0,			   {0},			false, "Show submodels." },
+    { "print-summary",	   512+'S', 0,			   0,			   {0},			false, "Print model summary on stdout." },
+    { "debug-json",	   512+'J', 0,			   0,			   {0},			false, "Output debugging information while parsing JSON input." },
     { "debug-lqx",	   512+'L', 0,                     0,                      {0},                 false, "Output debugging information while parsing LQX input." },
     { "debug-srvn",	   512+'Y', 0,                     0,                      {0},                 false, "Output debugging information while parsing SRVN input." },
+    { "debug-p",	   512+'Z', 0,                     0,                      {0},                 false, "Output debugging information while parsing parseable results input." },
     { "debug-xml",         512+'X', 0,                     0,                      {0},                 false, "Output debugging information while parsing XML input." },
-    { "debug-submodels",   512+'S', 0,                     0,			   {0},			false, "Show submodels." },
+    { "debug-formatting",  512+'F', 0,                     0,                      {0},                 false, "Output debugging information while formatting." },
     { "dump-graphviz",	   512+'G', 0,			   0, 			   {0},			false, "Output LQX parse tree in graphviz format." },
+    { "generate-manual",   512+'M', 0,                     0,                      {0},                 false, "Generate manual suitable for input to man(1)." },
     { 0,                         0, 0,                     0,                      {0},                 false, 0 }
 };
 #if HAVE_GETOPT_H
-static void makeopts( string& opts, struct option longopts[] );
-#define N_LONG_OPTS 90			/* Have to guess on this one as -[no]- is generated automatically */
+static void makeopts( string& opts, std::vector<struct option>& );
 #else
 static void makeopts( string& opts );
 #endif
@@ -162,11 +176,11 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     string output_file_name = "";
 
-    sscanf( "$Date: 2015-12-01 21:55:32 -0500 (Tue, 01 Dec 2015) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-05-20 22:22:16 -0400 (Wed, 20 May 2020) $", "%*s %s %*s", copyrightDate );
 
     static string opts = "";
 #if HAVE_GETOPT_H
-    static struct option longopts[N_LONG_OPTS];
+    static std::vector<struct option> longopts;
     makeopts( opts, longopts );
 #else
     makeopts( opts );
@@ -176,7 +190,7 @@ lqn2ps( int argc, char *argv[] )
 	char * endptr = 0;
 
 #if HAVE_GETOPT_LONG
-	const int c = getopt2_long( argc, argv, opts.c_str(), longopts, NULL );
+	const int c = getopt2_long( argc, argv, opts.c_str(), longopts.data(), NULL );
 #else	
 	const int c = getopt2( argc, argv, opts.c_str() );
 #endif
@@ -233,18 +247,42 @@ lqn2ps( int argc, char *argv[] )
 		exit( 1 );
 	    }
 	    Flags::print[COLOUR].value.i = arg;
+	    if ( arg == COLOUR_DIFFERENCES && Flags::print[PRECISION].value.i == 3 ) {
+		Flags::print[PRECISION].value.i = 1;
+	    }
 	    break;
 
-	case 'D':
-	    Flags::graphical_output_style = JLQNDEF_STYLE;
-	    Flags::icon_slope = 0;
-	    Flags::print[Y_SPACING].value.f = 45;
+	case 512+'c':
+	    Flags::print_comment = true;
 	    break;
 
 	case 512+'C':
 	    Flags::use_colour = false;
 	    break;
 
+	case 'D':
+	    Flags::print[COLOUR].value.i = COLOUR_DIFFERENCES;
+	    if ( Flags::print[PRECISION].value.i == 3 ) {
+		Flags::print[PRECISION].value.i = 2;
+	    }
+	    /* Fall through... */
+	case 512+'p':
+	    parse_file_name = optarg;
+	    if ( strcmp( parse_file_name, "-" ) != 0 && access( parse_file_name, R_OK ) != 0 ) {
+		cerr << io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
+		     << strerror( errno ) << endl;
+		exit ( 1 );
+	    }
+	    break;
+	    
+	case (512+'D'):
+	    Flags::print_submodels = true;
+	    break;
+
+	case 512+'E':
+	    Flags::print[IGNORE_ERRORS].value.b = true;
+	    break;
+	    
 	case 'F':
 	    Flags::print[FONT_SIZE].value.i = strtol( optarg, &endptr, 10 );
 	    if ( *endptr != '\0' || Flags::print[FONT_SIZE].value.i < min_fontsize || max_fontsize < Flags::print[FONT_SIZE].value.i ) {
@@ -257,6 +295,16 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::flatten_submodel = true;
 	    break;
 
+	case 512+'F':
+	    Flags::debug = true;
+	    break;
+		
+	case 'G':
+	    Flags::print[RUN_LQX].value.b 	= true;		    /* Reload lqx */
+	    Flags::print[RELOAD_LQX].value.b	= true;
+	    LQIO::Spex::setGnuplotVars( optarg );
+	    break;
+								      
 	case 512+'G':
 	    Flags::print[RUN_LQX].value.b 	= true;		    /* Run lqx */
 	    Flags::dump_graphviz 		= true;
@@ -272,12 +320,14 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 512+'H':
-            LQIO::DOM::Spex::__no_header = true;
+            LQIO::Spex::__no_header = true;
 	    break;
 
 	case 'I':
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::io), &value );
 	    switch ( arg ) {
+	    case FORMAT_JSON:
+	    case FORMAT_LQX:
 	    case FORMAT_XML:
 	    case FORMAT_SRVN:
 		Flags::print[INPUT_FILE_FORMAT].value.i = arg;
@@ -350,6 +400,16 @@ lqn2ps( int argc, char *argv[] )
 	    }
 	    break;
 
+	case 512+'j':
+	    Flags::graphical_output_style = JLQNDEF_STYLE;
+	    Flags::icon_slope = 0;
+	    Flags::print[Y_SPACING].value.f = 45;
+	    break;
+
+	case 512+'J':
+	    LQIO::DOM::Document::__debugJSON = true;
+	    break;
+
 	case 'K':
 	    options = optarg;
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::key), &value );
@@ -401,21 +461,8 @@ lqn2ps( int argc, char *argv[] )
 		    break;
 
 		case LAYERING_BATCH:
-		case LAYERING_CLIENT:
 		    Flags::print[LAYERING].value.i = arg;
 		    break;
-
-#if 0
-		case LAYERING_FOLLOW_CLIENTS:
-		    if ( !value ) {
-			cerr << io_vars.lq_toolname << ": -Lclients requires a regular expression of client tasks as an argument." << endl;
-			exit( 1 );
-		    } else {
-			Flags::client_tasks = static_cast<regex_t *>(malloc( sizeof( regex_t ) ));
-			regexp_check( regcomp( Flags::client_tasks, value, REG_EXTENDED ), Flags::client_tasks );
-		    }
-		    break;
-#endif
 
 #if HAVE_REGEX_T
 		case LAYERING_GROUP:
@@ -450,11 +497,11 @@ lqn2ps( int argc, char *argv[] )
 	    } 
 	    break;
 
-	case (512+'M'):
+	case 512+'M':
 	    man();
 	    exit(0);
 
-	case (512+'m'):
+	case 512+'m':
 	    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 	    Flags::print[LAYERING].value.i = LAYERING_MOL;
 	    break;
@@ -469,6 +516,10 @@ lqn2ps( int argc, char *argv[] )
 
 	case (512+'n'):
 	    Flags::print_layer_number 		= true; 
+	    break;
+
+	case (512+'N'):
+	    Flags::rename_model	 		= true;
 	    break;
 
 	case 'o':
@@ -488,6 +539,11 @@ lqn2ps( int argc, char *argv[] )
 	    setOutputFormat( arg );
 	    break;
 
+	case 512+'o':
+	    Flags::print[OUTPUT_FORMAT].value.i = FORMAT_LQX;
+	    setOutputFormat( arg );
+	    break;
+	    
 	case 'P':
 	    options = optarg;
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::processor), &value );
@@ -498,15 +554,6 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::print[PROCESSORS].value.i = arg;
 	    break;
 	    
-	case 512+'p':
-	    parse_file_name = optarg;
-	    if ( access( parse_file_name, R_OK ) != 0 ) {
-		cerr << io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
-		     << strerror( errno ) << endl;
-		exit ( 1 );
-	    }
-	    break;
-
 	case 512+'P':
 	    pragma( "tasks-only", "" );
 	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
@@ -535,15 +582,15 @@ lqn2ps( int argc, char *argv[] )
 	    }
 	    Flags::print[REPLICATION].value.i = arg;
 	    break;
-#endif
 
 	case 512+'R':
+	    Flags::print[REPLICATION].value.i = REPLICATION_RETURN;
+	    break;
+#endif
+
+	case 512+'r':
 	    Flags::print[RUN_LQX].value.b 	= true;		    /* Reload lqx */
 	    Flags::print[RELOAD_LQX].value.b	= true;
-	    break;
-
-	case (512+'r'):
-	    Flags::rename_model	 		= true;
 	    break;
 
 	case 'S':
@@ -555,15 +602,11 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 	    break;
 
-	case (512+'s'):
+	case 512+'s':
 	    Flags::sort = NO_SORT;
 	    break;
 
-	case (512+'S'):
-	    Flags::debug_submodels = true;
-	    break;
-
-	case (512+'t'):
+	case 512+'t':
 	    pragma( "tasks-only", "" );
 	    break;
 
@@ -571,12 +614,9 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::print[XX_VERSION].value.b = true;
 	    break;
 	
-	case (512+'V'):	/* Always set... :-) */
-	    Flags::print[VERBOSE].value.b = true;
-	    break;
-
-	case 512+'Y':
-	    LQIO_debug = true;
+	case 512+'S':
+	case 512+'V':	/* Always set... :-) */
+	    Flags::print[SUMMARY].value.b = true;
 	    break;
 
 	case 512+'w':
@@ -605,11 +645,6 @@ lqn2ps( int argc, char *argv[] )
 
 	    break;
 
-	case 512+'x':
-	    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
-	    Flags::print[LAYERING].value.i = LAYERING_CLIENT;
-	    break;
-	    
         case 512+'X':
 	    LQIO::DOM::Document::__debugXML = true;
 	    break;
@@ -629,6 +664,10 @@ lqn2ps( int argc, char *argv[] )
 	    }
 	    break;
 
+	case 512+'Y':
+	    LQIO_debug = true;
+	    break;
+
 	case 'Z':	/* Always set... :-) */
 	    if ( !process_pragma( optarg ) ) {
 		exit( 1 );
@@ -643,6 +682,14 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::surrogates = true;
 	    break;
 
+	case 512+'Z':
+	    resultdebug = true;
+	    break;
+
+	case 768+'#':
+	    Flags::print[MODEL_COMMENT].value.b = true;
+	    break;
+	    
 	default:
 	    for ( int i = 0; Flags::print[i].name != 0; ++i ) {
 		if ( !Flags::print[i].arg && c == Flags::print[i].c ) {
@@ -697,15 +744,15 @@ lqn2ps( int argc, char *argv[] )
     }
 #endif
 
-    if ( submodel_output() && Flags::debug_submodels ) {
+    if ( submodel_output() && Flags::print_submodels ) {
 	cerr << io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
 	     << " and --debug-submodels are mutually exclusive." << endl;
-	Flags::debug_submodels = false;
+	Flags::print_submodels = false;
     }
 
     if ( queueing_output() ) {
 	Flags::arrow_scaling *= 0.75;
-	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
+//	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 
 	if ( submodel_output() ) {
 	    cerr << io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
@@ -713,12 +760,9 @@ lqn2ps( int argc, char *argv[] )
 		 << " are mutually exclusive." << endl;
 	    exit( 1 );
 	} else if ( !graphical_output() 
-#if defined(QNAP_OUTPUT)
-		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_QNAP
-#endif
-#if defined(PMIF_OUTPUT)
+		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
-#endif
+		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
 	    ) {
 	    cerr << io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
@@ -729,17 +773,6 @@ lqn2ps( int argc, char *argv[] )
 	    cerr << io_vars.lq_toolname << ": aggregating entries to tasks with " 
 		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output." << endl;
 	}
-#if defined(QNAP_OUTPUT)
-	if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP ) {
-	    Flags::squish_names		= true;
-	}
-#endif
-#if defined(QNAP_OUTPUT)
-    } else if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP ) {
-	cerr << io_vars.lq_toolname << ": -Q<submodel> must be used with the "
-	     <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output format." << endl;
-	exit( 1 );
-#endif
     }
 
 
@@ -760,7 +793,7 @@ lqn2ps( int argc, char *argv[] )
     if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE 
 	 || Flags::print[LAYERING].value.i == LAYERING_PROCESSOR
 	 || Flags::print[LAYERING].value.i == LAYERING_SHARE ) {
-	Flags::print[PROCESS_QUEUEING].value.b = false;
+	Flags::print[PROCESSOR_QUEUEING].value.b = false;
     }
 
     /*
@@ -850,11 +883,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
     Flags::have_results = false;		/* Reset for each run. */
     Flags::instantiate  = false;
 
-    io_vars.n_processors   = 0;
-    io_vars.n_tasks        = 0;
-    io_vars.n_entries      = 0;
-    io_vars.n_groups       = 0;
-    io_vars.anError        = false;
+    io_vars.reset();
 
     ::Task::reset();
     ::Entry::reset();
@@ -863,8 +892,12 @@ process( const string& input_file_name, const string& output_file_name, int mode
 
     LQIO::DOM::Document::input_format input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
     switch ( Flags::print[INPUT_FILE_FORMAT].value.i ) {
+    case FORMAT_LQX:
     case FORMAT_XML:
 	input_format = LQIO::DOM::Document::XML_INPUT;
+	break;
+    case FORMAT_JSON:
+	input_format = LQIO::DOM::Document::JSON_INPUT;
 	break;
     case FORMAT_SRVN:
 	input_format = LQIO::DOM::Document::LQN_INPUT;
@@ -874,17 +907,17 @@ process( const string& input_file_name, const string& output_file_name, int mode
     /* This is a departure from before -- we begin by loading a model.  Load results if possible (except if overridden with a parseable output filename */
 
     unsigned int errorCode;
-    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, "", &io_vars, errorCode, parse_file_name == 0 && Flags::print[RESULTS].value.b );
+    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, &io_vars, errorCode, parse_file_name == 0 && Flags::print[RESULTS].value.b );
     if ( !document ) {
 	cerr << io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
-	io_vars.anError = true;
+	io_vars.error_count += 1;
 	return;
     }
     if ( parse_file_name && Flags::print[RESULTS].value.b ) {
 	try {
 	    Flags::have_results = LQIO::SRVN::loadResults( parse_file_name );
 	} 
-	catch ( runtime_error &error ) {
+	catch ( const runtime_error &error ) {
 	    cerr << io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << endl;
 	    Flags::have_results = false;
 	    if ( output_output() ) return;
@@ -899,52 +932,45 @@ process( const string& input_file_name, const string& output_file_name, int mode
 
     /* Now fold, mutiliate and spindle */
 
+    Model::prepare( document );			/* This creates the various objects 	*/
+    const unsigned n_layers = Model::topologicalSort();
+
     Model * aModel;
     switch ( Flags::print[LAYERING].value.i ) {
     case LAYERING_BATCH:
-	aModel = new Batch_Model( document, input_file_name, output_file_name );
+	aModel = new Batch_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_GROUP:
     case LAYERING_SHARE:		/* ??? */
-	aModel = new BatchGroup_Model( document, input_file_name, output_file_name );
+	aModel = new BatchGroup_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_HWSW:
-	aModel = new HWSW_Model( document, input_file_name, output_file_name );
+	aModel = new HWSW_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_SRVN:
-	aModel = new SRVN_Model( document, input_file_name, output_file_name );
+	aModel = new SRVN_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_PROCESSOR:
-	aModel = new BatchProcessor_Model( document, input_file_name, output_file_name );
+	aModel = new BatchProcessor_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_PROCESSOR_TASK:
     case LAYERING_TASK_PROCESSOR:
-	aModel = new ProcessorTask_Model( document, input_file_name, output_file_name );
+	aModel = new ProcessorTask_Model( document, input_file_name, output_file_name, n_layers );
 	break;
     case LAYERING_SQUASHED:
 	aModel = new Squashed_Model( document, input_file_name, output_file_name );
 	break;
     case LAYERING_MOL:
-	aModel = new MOL_Model( document, input_file_name, output_file_name );
+	aModel = new MOL_Model( document, input_file_name, output_file_name, n_layers );
 	break;
-    case LAYERING_CLIENT:
-	aModel = new StrictClient_Model( document, input_file_name, output_file_name );
-	break;
-
     default:	
 	abort();
     }
 
     aModel->setModelNumber( model_no );
 
-    aModel->prepare();			/* This creates the various objects 	*/
-
     if ( aModel->process() ) {		/* This layerizes and renders the model */
 	LQX::Program * program = 0;
-
-	if ( Flags::print[VERBOSE].value.b ) {
-	    aModel->printSummary( cerr );
-	}
 
 	try {
 	    program = document->getLQXProgram();
@@ -965,7 +991,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	
 		    int status = 0;
 		    FILE * output = 0;
-		    if ( output_file_name.size() > 0 && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name.c_str()) ) {
+		    if ( output_file_name.size() > 0 && output_file_name != "-" && LQIO::Filename::isRegularFile(output_file_name) ) {
 			output = fopen( output_file_name.c_str(), "w" );
 			if ( !output ) {
 			    solution_error( LQIO::ERR_CANT_OPEN_FILE, output_file_name.c_str(), strerror( errno ) );
@@ -1000,48 +1026,50 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	    }
 	}
 #if !(__GNUC__ && __GNUC__ < 3)
-	catch ( ios_base::failure &error ) {
+	catch ( const ios_base::failure &error ) {
 	    cerr << io_vars.lq_toolname << ": " << error.what() << endl;
 	}
 #endif
-	catch ( runtime_error &error ) {
+	catch ( const runtime_error &error ) {
 	    cerr << io_vars.lq_toolname << ": " << error.what() << endl;
 	}
     }
 
-    Model::free();
     delete document;
     delete aModel;
 }
 
 #if HAVE_GETOPT_H
 static void
-makeopts( string& opts, struct option longopts[] ) 
+makeopts( string& opts, std::vector<struct option>& longopts ) 
 {
-    int i = 0, k = 0; 
-    for ( ; Flags::print[i].name || Flags::print[i].c ; ++i ) {
+    unsigned int k = 0;
+    struct option opt;
+    opt.flag = 0;
+    opt.val  = 0;
+    opt.name = 0;
+    opt.has_arg = 0;
+    const unsigned int count = sizeof( Flags::print ) / sizeof( Flags::print[0] );
+    longopts.resize( count * 2, opt );
+    for ( unsigned int i = 0; i < count; ++i, ++k ) {
 	longopts[k].has_arg = (Flags::print[i].arg != 0 ? required_argument : no_argument);
-	longopts[k].flag = 0;
+	longopts[k].name    = Flags::print[i].name;
+	longopts[k].val     = Flags::print[i].c;
 	if ( (Flags::print[i].c & 0xff00) == 0 && islower( Flags::print[i].c ) && Flags::print[i].arg == 0 ) {
 	    /* These are the +/- options */
-	    longopts[k].val = (Flags::print[i].c | 0x0100);		/* + case is > 256 */
-	    longopts[k++].name = Flags::print[i].name;
+	    longopts[k].val |= 0x0100;					/* + case is > 256 */
+	    k += 1;
 	    string name = "no-";					/* - case is no-<name> */
 	    name += Flags::print[i].name;
+	    longopts[k].name = strdup( name.c_str() );			/* Make a copy */
 	    longopts[k].val = Flags::print[i].c;
-	    longopts[k++].name = strdup( name.c_str() );		/* Make a copy */
 	} else if ( (Flags::print[i].c & 0xff00) == 0x0300 ) {
 	    /* These are the +/- options */
-	    longopts[k].val = Flags::print[i].c;			/* + case is > 768 */
-	    longopts[k++].name = Flags::print[i].name;
+	    k += 1;
 	    string name = "no-";					/* - case is no-<name> */
 	    name += Flags::print[i].name;
+	    longopts[k].name = strdup( name.c_str() );			/* Make a copy */
 	    longopts[k].val = (Flags::print[i].c & ~0x0100);		/* Clear the bit */
-	    longopts[k++].name = strdup( name.c_str() );		/* Make a copy */
-	} else {
-	    /* Everything else */
-	    longopts[k].val = Flags::print[i].c;
-	    longopts[k++].name = Flags::print[i].name;
 	}
 
 	if ( (Flags::print[i].c & 0xff00) == 0 ) {
@@ -1050,10 +1078,7 @@ makeopts( string& opts, struct option longopts[] )
 		opts += ':';
 	    }
 	}
-	assert( k < N_LONG_OPTS );
     }
-    longopts[k].val  = 0;
-    longopts[k].name = 0;
 }
 #else
 static void
@@ -1078,10 +1103,12 @@ setOutputFormat( const int i )
     case FORMAT_OUTPUT:
     case FORMAT_PARSEABLE:
     case FORMAT_RTF:
+    case FORMAT_JSON:
+    case FORMAT_LQX:
     case FORMAT_XML:
 	Flags::print[LAYERING].value.i = LAYERING_PROCESSOR;	/* Order by processors */
 	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;  	/* Print all processors. */
-
+	Flags::print[PRECISION].value.i = 7;			/* Increase default precision */
 	Flags::print[INPUT_PARAMETERS].value.b = true;     	/* input parameters. */
 	Flags::print[CONFIDENCE_INTERVALS].value.b = true; 	/* Confidence Intervals */
 	Flags::surrogates = true;				/* Always add surrogates */
@@ -1094,7 +1121,6 @@ setOutputFormat( const int i )
 	break;
 
     case FORMAT_NULL:
-	Flags::print[VERBOSE].value.b = true;
 	break;
 
 #if defined(X11_OUTPUT)

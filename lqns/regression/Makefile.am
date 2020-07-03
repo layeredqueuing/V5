@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile.am 13222 2018-03-09 21:44:12Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -117,3 +117,8 @@ other:	$(OTHER)
 
 repl:	$(REPL)
 	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/lqns-results
+
+summary:	$(OBJS)
+	for i in $(OBJS); do srvndiff -Q --ignore-errors ../../models/regression-xml/lqns-results/$$i $$i > /dev/null; \
+	if test $$? == 0; then result="pass"; else result="fail"; fi; \
+	echo \"$$i\",$$result; done

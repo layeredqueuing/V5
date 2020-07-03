@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: generate.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: generate.h 13477 2020-02-08 23:14:37Z greg $
  *
  */
 
@@ -266,6 +266,7 @@ private:
 	unsigned int count() const { return _n; }
 	
     protected:
+	Accumulate& operator+=( double );
 	Accumulate& operator+=( const LQIO::DOM::ExternalVariable * );
 	Accumulate& operator+=( const Accumulate& );
 	
@@ -287,6 +288,13 @@ private:
 	void operator()( const LQIO::DOM::Task * );
 	void operator()( const vector<LQIO::DOM::Task *>& );
 	void operator()( const LQIO::DOM::Processor * );
+    };
+
+    class AccumulateDelayServer : public Accumulate {
+    public:
+	AccumulateDelayServer() : Accumulate() {}
+	void operator()( const vector<LQIO::DOM::Task *>& );
+	void operator()( const LQIO::DOM::Task * );
     };
 
     class AccumulateServiceTime : public Accumulate {
@@ -317,8 +325,8 @@ public:
     typedef enum { DETERMINISTIC_LAYERING, PYRAMID_LAYERING, FUNNEL_LAYERING, FAT_LAYERING, HOUR_GLASS_LAYERING, DEPTH_FIRST_LAYERING, BREADTH_FIRST_LAYERING, RANDOM_LAYERING, UNIFORM_LAYERING } layering_t;
 
 public:
-    Generate( LQIO::DOM::Document * doc, const unsigned runs );
-    Generate( const unsigned layers, const unsigned runs );
+    Generate( LQIO::DOM::Document * doc, const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned customers );
+    Generate( const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned layers, const unsigned customers, const unsigned processors, const unsigned clients, const unsigned tasks );
     virtual ~Generate();
 
     unsigned long getNumberOfRuns() const { return _runs; }
@@ -352,6 +360,7 @@ private:
     void addSensitivityLQX( get_set_var_fptr f, const ModelVariable::variableValueFunc g );
     void forEach( std::map<std::string,LQIO::DOM::Entry*>::const_iterator e, const std::map<std::string,LQIO::DOM::Entry*>::const_iterator& end, const unsigned int );
     void makeVariables( const ModelVariable::variableValueFunc f );
+    void populate();
 
     static std::ostream& printIndent( std::ostream& output, const int i );
     static std::ostream& printHeader( std::ostream& output, const LQIO::DOM::Document& d, const int i, const string&  );
@@ -363,44 +372,48 @@ private:
     static ProgramManip print_results( const LQIO::DOM::Document& d, const int i, const string& s="" ) { return ProgramManip( &printResults, d, i, s ); }
 
 public:
-    static unsigned int __number_of_clients;
-    static unsigned int __number_of_processors;
-    static unsigned int __number_of_tasks;
-    static unsigned int __number_of_layers;
-    static double __outgoing_requests;
     static layering_t __task_layering;
     static layering_t __processor_layering;
-
-    static RV::RandomVariable * __service_time;
-    static RV::RandomVariable * __think_time;
+    
+    static RV::RandomVariable * __customers_per_client;
     static RV::RandomVariable * __forwarding_probability;
+    static RV::RandomVariable * __number_of_entries;
+    static RV::RandomVariable * __outgoing_requests;
+    static RV::RandomVariable * __processor_multiplicity;
     static RV::RandomVariable * __rendezvous_rate;
     static RV::RandomVariable * __send_no_reply_rate;
-    static RV::RandomVariable * __customers_per_client;
+    static RV::RandomVariable * __service_time;
     static RV::RandomVariable * __task_multiplicity;
-    static RV::RandomVariable * __processor_multiplicity;
-    static RV::Probability      __probability_second_phase;
-    static RV::Probability      __probability_infinite_server;
+    static RV::RandomVariable * __think_time;
     static RV::Probability	__probability_cfs_processor;
+    static RV::Probability      __probability_delay_server;
+    static RV::Probability      __probability_infinite_server;
+    static RV::Probability      __probability_second_phase;
     static RV::Beta             __group_share;
-    static RV::RandomVariable * __number_of_entries;
 
     static std::string __comment;
     static unsigned __iteration_limit;
     static unsigned __print_interval;
     static double __convergence_value;
     static double __underrelaxation;
+    static std::map<std::string,std::string> __pragma;
 
 protected:
     static vector<std::string> __random_variables;		/* LQX variable names */
 
 private:
     LQIO::DOM::Document * _document;
+    const LQIO::DOM::Document::input_format _output_format;
     const unsigned int _runs;
-    const unsigned int _number_of_layers;	/* Number of layers for one model */
+    const unsigned int _number_of_customers;
+    const unsigned int _number_of_layers;		/* Number of layers for one model */
+    const unsigned int _number_of_processors;
+    const unsigned int _number_of_clients;
+    const unsigned int _number_of_tasks;
 
-    vector<unsigned int> _number_of_tasks;	/* set by populateLayers() */
+    vector<unsigned int> _number_of_tasks_for_layer;	/* set by populateLayers() */
 
+    std::string _comment;
     vector<vector<LQIO::DOM::Task *> > _task;
     vector<LQIO::DOM::Entry *> _entry;
     vector<LQIO::DOM::Processor *> _processor;

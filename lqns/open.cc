@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: open.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: open.cc 13547 2020-05-21 02:22:16Z greg $
  *
  * Open Network solver.
  *
@@ -7,7 +7,7 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2014-04-10 10:36:42 -0400 (Thu, 10 Apr 2014) $
+ * $Date: 2020-05-20 22:22:16 -0400 (Wed, 20 May 2020) $
  * ----------------------------------------------------------------------
  * Conventions:
  *    E - (scalar) number of entries for a given station.
@@ -109,7 +109,7 @@ Open::~Open()
  */
 
 void
-Open::convert( const PopVector& N ) const
+Open::convert( const Population& N ) const
 {
     unsigned m_err = 0;
     const unsigned n = N.sum();
@@ -126,11 +126,11 @@ Open::convert( const PopVector& N ) const
 		m_err = m;
 	    }
 	} 
-	catch ( range_error& ) {
+	catch ( const range_error& ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( domain_error& ) {
+	catch ( const domain_error& ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
@@ -147,7 +147,7 @@ Open::convert( const PopVector& N ) const
  */
 
 void
-Open::solve( const MVA& closedModel, const PopVector& N )
+Open::solve( const MVA& closedModel, const Population& N )
 {
     unsigned m_err = 0;
 
@@ -161,11 +161,11 @@ Open::solve( const MVA& closedModel, const PopVector& N )
 		Q[m]->openWait();
 	    }
 	} 
-	catch ( range_error& e ) {
+	catch ( const range_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( domain_error& e ) {
+	catch ( const domain_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
@@ -190,11 +190,11 @@ Open::solve()
 	try {
 	    Q[m]->openWait();
 	} 
-	catch ( range_error& e ) {
+	catch ( const range_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( domain_error& e ) {
+	catch ( const domain_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}

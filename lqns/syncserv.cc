@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: syncserv.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: syncserv.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -68,7 +68,7 @@ Synch_Server::setClientChain( const unsigned e, const unsigned k )
  */
 
 void
-Synch_Server::wait( const MVA& solver, const unsigned k, const PopVector& N ) const
+Synch_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
 	assert( 0 < k && k <= K );
 
@@ -103,7 +103,7 @@ Synch_Server::openWait() const
  */
 
 void
-Synch_Server::mixedWait( const MVA&, const PopVector& ) const
+Synch_Server::mixedWait( const MVA&, const Population& ) const
 {
 	throw should_not_implement( "Synch_Server::mixedWait", __FILE__, __LINE__ );
 }
@@ -116,11 +116,11 @@ Synch_Server::mixedWait( const MVA&, const PopVector& ) const
 
 Positive
 Synch_Server::Upsilon( const MVA& solver, const unsigned e,
-		       const PopVector &N, const unsigned k ) const
+		       const Population &N, const unsigned k ) const
 {
 	if ( N[k] == 0 ) return 0;
 	
-	PopVector Nej = N;
+	Population Nej = N;
 	Nej[k] -= 1;
 	
 	Positive rate[3];
@@ -146,12 +146,12 @@ Synch_Server::Upsilon( const MVA& solver, const unsigned e,
 
 Positive
 Synch_Server::gamma( const MVA& solver, const unsigned e,
-		     const PopVector &N, const unsigned k ) const
+		     const Population &N, const unsigned k ) const
 {
 	if ( N[k] == 0 ) return 0;
 
 	const unsigned m = closedIndex;
-	PopVector Nej    = N;
+	Population Nej    = N;
 	Nej[k] -= 1;
 
 	const unsigned e2 = ( e == 1 ? 2 : 1 );
@@ -183,7 +183,7 @@ Synch_Server::max( const double lambda_1, const double lambda_2 ) const
  */
 
 double
-Synch_Server::alpha( const MVA& solver, const unsigned e, const PopVector &N ) const
+Synch_Server::alpha( const MVA& solver, const unsigned e, const Population &N ) const
 {
 	const unsigned n = N[chainForEntry[e]];
 	if ( n <= 1 ) return 1.0;

@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: srvndiff.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -18,6 +18,7 @@
 
 #include <set>
 #include <map>
+#include <string>
 
 #define	FILE1	0
 #define	FILE2	1
@@ -105,7 +106,9 @@ typedef struct time_info {
 
 struct call_info
 {
-    call_info();
+    call_info() : loss_prob_conf(0.), loss_probability(0.), 
+		  snr_wait_conf(0.), snr_wait_var(0.), snr_wait_var_conf(0.), snr_waiting(0.),
+		  wait_conf(0.), wait_var(0.), wait_var_conf(0.), waiting(0.) {}
 
     double loss_prob_conf;
     double loss_probability;
@@ -121,16 +124,38 @@ struct call_info
 
 struct activity_info
 {
-    activity_info();
+    activity_info() :  exceeded(0.), exceed_conf(0.),
+		       processor_waiting(0.), processor_waiting_conf(0.),
+		       service(0.), serv_conf(0.), 
+		       variance(0.), var_conf(0.),
+		       utilization(0.), utilization_conf(0.),
+		       processor_utilization(0.), processor_utilization_conf(0.) {}
 
-    double exceed_conf;
+    activity_info& operator=( double x )
+	{
+	    exceeded = x;
+	    exceed_conf = x;
+	    processor_waiting = x;
+	    processor_waiting_conf = x;
+	    service = x;
+	    serv_conf = x;
+	    variance = x;
+	    var_conf = x;
+	    utilization = x;
+	    utilization_conf = x;
+	    processor_utilization = x;
+	    processor_utilization_conf = x;
+	    return *this;
+	}
+
     double exceeded;
+    double exceed_conf;
     double processor_waiting;
     double processor_waiting_conf;
-    double serv_conf;
     double service;
-    double var_conf;
+    double serv_conf;
     double variance;
+    double var_conf;
     double utilization;
     double utilization_conf;
     double processor_utilization;
@@ -140,12 +165,20 @@ struct activity_info
 
 struct entry_info
 {
-    entry_info();
+    entry_info() : open_arrivals(false), open_waiting(0.0), open_wait_conf(0.0),
+		   throughput(0.0), throughput_conf(0.0), utilization(0.0), utilization_conf(0.0),
+		   processor_utilization(0.0), processor_utilization_conf(0.0)
+	{
+	    for ( unsigned p = 0; p < MAX_PHASES; ++p ) {
+		phase[p] = 0.0;
+	    }
+	}
 
+    bool open_arrivals;
     double open_waiting;
     double open_wait_conf;
+    std::map<int,call_info> fwd_to;
     activity_info phase[MAX_PHASES];
-    bool open_arrivals;
     double throughput;
     double throughput_conf;
     double utilization;
@@ -173,8 +206,20 @@ struct join_info_t
 
 struct task_info
 {
-    task_info();
-
+    task_info() : semaphore_waiting(0.), semaphore_waiting_conf(0.), semaphore_utilization(0.), semaphore_utilization_conf(0.),
+		  rwlock_reader_waiting(0.), rwlock_reader_holding(0.), rwlock_reader_utilization(0.), rwlock_writer_waiting(0.),
+		  rwlock_writer_holding(0.), rwlock_writer_utilization(0.), rwlock_reader_waiting_conf(0.), rwlock_reader_holding_conf(0.),
+		  rwlock_reader_utilization_conf(0.), rwlock_writer_waiting_conf(0.), rwlock_writer_holding_conf(0.), rwlock_writer_utilization_conf(0.),
+		  throughput(0.), throughput_conf(0.), utilization(0.), utilization_conf(0.),
+		  processor_utilization(0.), processor_utilization_conf(0.),
+		  has_results(false)
+	{
+	    for ( unsigned p = 0; p < MAX_PHASES; ++p ) {
+		total_utilization[p] = 0.0;
+		total_utilization_conf[p] = 0.0;
+	    }
+	}
+    
     double semaphore_waiting;
     double semaphore_waiting_conf;
     double semaphore_utilization;
@@ -206,7 +251,7 @@ struct task_info
 
 struct processor_info
 {
-    processor_info();
+    processor_info() : utilization(0.), utilization_conf(0.), n_tasks(0.), has_results(false) {}
 
     double utilization;
     double utilization_conf;
@@ -217,7 +262,7 @@ struct processor_info
 
 struct group_info
 {
-    group_info();
+    group_info() : utilization(0.), utilization_conf(0.), n_tasks(0.), has_results(false) {}
 
     double utilization;
     double utilization_conf;
@@ -229,8 +274,10 @@ struct group_info
 extern unsigned phases;			/* Number of phases in output	*/
 extern int valid_flag;
 extern double total_util;
+extern double total_util_conf;
 extern double total_processor_util;
 extern double total_tput;
+extern double total_tput_conf;
 extern unsigned total_copies;
 extern double task_util;
 extern double tput_conf;
@@ -243,6 +290,7 @@ extern time_info_type time_tab[MAX_PASS];
 extern double iteration_tab[MAX_PASS];
 extern double mva_wait_tab[MAX_PASS];
 extern bool confidence_intervals_present[MAX_PASS];
+extern std::string comment_tab[MAX_PASS];
 extern std::map<int, processor_info> processor_tab[MAX_PASS];
 extern std::map<int, group_info> group_tab[MAX_PASS];
 extern std::map<int, task_info> task_tab[MAX_PASS];

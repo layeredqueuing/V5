@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: pop.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Population vector functions.
  *
@@ -19,169 +19,115 @@
 #include "pop.h"
 #include "vector.h"
 
-/* ----------------------- Population Maps ---------------------------- */
-
 /*
- * Translate a population vector into an index value
  */
-
-PopulationMap::PopulationMap( const PopVector & maxCust ) 
-    : maxCustSize(maxCust.size()) 
+Population::Population( unsigned int size )
 {
-    stride  = new unsigned[maxCustSize + 1];	//Index of offsets per class
-}
-
-
-PopulationMap::~PopulationMap() 
-{
-    delete [] stride;
-}
-
-
-//Support mapping all combinations from 1->maxEntry for each
-//customer size in the population vector.
-GeneralPopulationMap::GeneralPopulationMap( const PopVector & maxCust ) 
-    : PopulationMap( maxCust )
-{
-    dimension( maxCust );
-}
-
-
-
-/*
- * (Re)set the size of the arrays.  We cannot add dimensions, just customers.
- */
-
-size_t
-GeneralPopulationMap::dimension( const PopVector& maxCust )
-{
-    assert( maxCustSize == maxCust.size() );
-
-    maximumPopulation = 1;
-    for( unsigned j = maxCustSize; j > 0; --j ) {
-	stride[j] = maximumPopulation;
-	maximumPopulation *= (maxCust[j] + 1);
-    }
-    return maximumPopulation;
-}
-
-
-
-unsigned 
-GeneralPopulationMap::offset( const PopVector & N ) const
-{
-    unsigned j = 0;
-    assert(N.size() == maxCustSize);
-    for ( unsigned i = 1; i <= maxCustSize; ++i ) {
-	j += N[i] * stride[i];
-    }
-    return j;
-}
-
-
-
-unsigned 
-GeneralPopulationMap::offset_e_j( const PopVector & N, const unsigned j ) const
-{
-    unsigned i = offset( N );
-
-    assert( N[j] > 0 && i >= stride[j] );
-
-    return i - stride[j];
-}
-
-
-
-//Only support the maximum customer configuration and the 
-//case of one less of each customer in the population.
-SpecialPopulationMap::SpecialPopulationMap( const PopVector & maxCustomers ) 
-    : PopulationMap( maxCustomers ), maxCust( maxCustomers )
-{
-    maximumPopulation = 0;
-    for ( unsigned j = maxCustSize; j > 0; --j ) {
-	stride[j] = maximumPopulation;
-	maximumPopulation += (j + 1);
-    }
-    maximumPopulation += 1;
+    _N.grow( size );
 }
 
 
 /*
- * Reset the size of the arrays.  For Special Populations, this is trivial
+ * Return an "iterator" for the fist population (i.e., [0,0,0,...1]).
  */
 
-size_t
-SpecialPopulationMap::dimension( const PopVector& maxCustomers )
+population_iterator
+Population::begin() const
 {
-    assert( maxCust.size() == maxCustomers.size() );
-
-    maxCust = maxCustomers;
-    return maximumPopulation;
+    return population_iterator( *this, true );
 }
 
+/*
+ * Return an "iterator" for just past the last population (i.e., [n1,n2,n3,...]).
+ */
 
-
-unsigned 
-SpecialPopulationMap::offset( const PopVector & N ) const
+population_iterator
+Population::end() const
 {
-    assert(N.size() == maxCust.size());
-    for ( unsigned i = 1; i <= maxCustSize; ++i ) {
-	switch ( maxCust[i] - N[i] ) {
-	case 0:
-	    break;
-	case 1:
-	    for (unsigned j = i + 1; j <= maxCustSize; ++j ) {
-		if ( maxCust[j] - N[j] ) {
-		    return offset_e_c_e_j( i, j );
-		}
-	    }
-	    return offset_e_c_e_j( i, 0 );
-	case 2:
-	    return offset_e_c_e_j( i, i );
-	default:
-	    throw logic_error( "SpecialPopulationMap::offset" );
-	}
+    return population_iterator( *this, false );
+}
+
+unsigned
+Population::sum() const
+{
+    unsigned sum = 0;
+
+    const size_t n = _N.size();
+    for ( size_t ix = 1; ix <= n; ++ix ) {
+	sum += _N[ix];
     }
-    return offset_e_c_e_j( 0, 0 );
+    return sum;
 }
 
+/* -------------------- Population Iterators -------------------------- */
 
-
-unsigned 
-SpecialPopulationMap::offset_e_j( const PopVector &N, const unsigned j ) const
+/* 
+ * Constructor.  _limit is the "end"
+ */
+population_iterator::population_iterator( const Population& N, bool begin )
+    : _N(N), _end(end(N))
 {
-    for ( unsigned i = 1; i <= maxCustSize; ++i ) {
-	switch ( maxCust[i] - N[i] ) {
-	case 0:
-	    break;
-
-	case 1:
-	    return offset_e_c_e_j( i, j );
-
-	default:
-	    assert(0);
-	}
-    }
-    return offset_e_c_e_j( 0, j );
-}
-
-
-
-unsigned 
-SpecialPopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const 
-{
-    unsigned i;
-	
-    if ( c == 0 && j == 0 ) {
-	i = maximumPopulation - 1;		/* Special case. */
-    } else if ( c < j ) {
-	i = stride[j] + c;
+    if ( begin ) {
+	const size_t k = N.size();
+	_n.resize(k);		/* Init to zero. 		*/
+	_n[k] = 1;		/* One customer in last class 	*/
+	_i = 1;
     } else {
-	i = stride[c] + j;
+	_n = N;
+	_i = _end;
     }
-    assert( i < maximumPopulation );
-    return i;
 }
+
+/* Copy constructor */
+population_iterator::population_iterator( const population_iterator& i )
+    : _N(i._N), _n(i._n), _i(i._i), _end(i._end)
+{
+}
+
+population_iterator&
+population_iterator::operator=( const population_iterator& i )
+{
+    *const_cast<Population*>(&_N) = i._N;
+    _n = i._n;
+    _i = i._i;
+    *const_cast<size_t *>(&_end) = i._end;
+    return *this;
+}
+
+/*
+ * Advance the population by one customer starting from the right (least stride).
+ */
+
+population_iterator&
+population_iterator::operator++() 
+{
+    _i += 1;				/* Advance index (for compare)	*/
+    for ( size_t k = _N.size(); k > 0; --k ) {
+	if ( _n[k] < _N[k] ) {
+	    _n[k] += 1;			/* Add one to current class pop	*/
+	    return *this;
+	} else {
+	    _n[k] = 0;			/* Rest current class pop.	*/
+	}
+    }
+    /* _n should equal [0,...] and so... */
+    assert( _i == _end );		/* wrapped around, so done.	*/
+    return *this;
+}
+
+
+size_t
+population_iterator::end( const Population& N ) const
+{
+    size_t end = 1;
+    size_t n = _N.size();
+    for( unsigned j = n; j > 0; --j ) {
+	end *= (N[j] + 1);
+    }
+    return end;
+}
+
+
 
 /* ---------------------------- Iterators ----------------------------- */
 
@@ -190,7 +136,7 @@ SpecialPopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const
  */
 
 int
-PopulationIterator::operator()( PopVector& N ) 
+Population::Iterator::operator()( Population& N ) 
 {
     return step( N, limit.size() );
 }
@@ -201,7 +147,7 @@ PopulationIterator::operator()( PopVector& N )
  */
 
 int
-PopulationIterator::step( PopVector& N, const unsigned k )
+Population::Iterator::step( Population& N, const unsigned k )
 {
     if ( N[k] < limit[k] ) {
 	N[k] += 1;
@@ -223,11 +169,9 @@ PopulationIterator::step( PopVector& N, const unsigned k )
  * value.
  */
 
-PopulationIteratorOffset::PopulationIteratorOffset( const PopVector& maxCust, const PopVector& aLimit )
-    : PopulationIterator(aLimit), nClasses( maxCust.size() )
+Population::IteratorOffset::IteratorOffset( const Population& maxCust, const Population& aLimit )
+    : Population::Iterator(aLimit), nClasses( maxCust.size() ), stride( maxCust.size() )
 {
-    stride.grow( maxCust.size() );
-	
     assert( aLimit.size() == maxCust.size() );
 	
     unsigned product = 1;
@@ -248,7 +192,7 @@ PopulationIteratorOffset::PopulationIteratorOffset( const PopVector& maxCust, co
  */
 
 int
-PopulationIteratorOffset::offset( const PopVector& N ) const
+Population::IteratorOffset::offset( const Population& N ) const
 {
     unsigned j = 0;
 
@@ -267,7 +211,7 @@ PopulationIteratorOffset::offset( const PopVector& N ) const
  */
 
 unsigned
-PopulationIteratorOffset::offset_e_j( const PopVector &N, const unsigned j ) const
+Population::IteratorOffset::offset_e_j( const Population &N, const unsigned j ) const
 {
     unsigned i = offset( N );
 
@@ -275,3 +219,246 @@ PopulationIteratorOffset::offset_e_j( const PopVector &N, const unsigned j ) con
 
     return i - stride[j];
 }
+
+/* ----------------------- Population Maps ---------------------------- */
+
+/*
+ * Translate a population vector into an index value
+ */
+
+PopulationMap::PopulationMap( const Population & N ) 
+    : NCustSize(N.size()) 
+{
+}
+
+
+PopulationMap::~PopulationMap() 
+{
+}
+
+
+/*
+ * Should not implement for ExactMVA.  assert( c == 0 ) for schweitzer.
+ */
+
+unsigned
+PopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const
+{
+    throw logic_error( "PopulationMap::offset_e_c_e_j" );
+}
+
+//Support mapping all combinations from 1->maxEntry for each
+//customer size in the population vector.
+FullPopulationMap::FullPopulationMap( const Population & N ) 
+    : PopulationMap( N )
+{
+    stride = new unsigned[NCustSize + 1];	//Index of offsets per class
+    dimension( N );
+}
+
+FullPopulationMap::~FullPopulationMap() 
+{
+    delete [] stride;
+}
+
+
+/*
+ * (Re)set the size of the arrays.  We cannot add dimensions, just customers.
+ */
+
+size_t
+FullPopulationMap::dimension( const Population& maxCust )
+{
+    assert( NCustSize == maxCust.size() );
+
+    maximumOffset = 1;
+    for( unsigned j = NCustSize; j > 0; --j ) {
+	stride[j] = maximumOffset;
+	maximumOffset *= (maxCust[j] + 1);
+    }
+    return maximumOffset;
+}
+
+
+
+unsigned 
+FullPopulationMap::offset( const Population & N ) const
+{
+    unsigned j = 0;
+    assert(N.size() == NCustSize);
+    for ( unsigned i = 1; i <= NCustSize; ++i ) {
+	j += N[i] * stride[i];
+    }
+    return j;
+}
+
+
+
+unsigned 
+FullPopulationMap::offset_e_j( const Population & N, const unsigned j ) const
+{
+    unsigned i = offset( N );
+
+    assert( N[j] > 0 && i >= stride[j] );
+
+    return i - stride[j];
+}
+
+//Only support the maximum customer configuration and the 
+//case of one less of each customer in the population.
+PartialPopulationMap::PartialPopulationMap( const Population & N ) 
+    : PopulationMap( N ), NCust( N )
+{
+    stride = new unsigned[NCustSize + 1];	//Index of offsets per class
+    maximumOffset = 0;
+    for ( unsigned j = NCustSize; j > 0; --j ) {
+	stride[j] = maximumOffset;
+	maximumOffset += (j + 1);
+    }
+    maximumOffset += 1;
+}
+
+
+PartialPopulationMap::~PartialPopulationMap() 
+{
+    delete [] stride;
+}
+
+
+/*
+ * Reset the size of the arrays.  For Special Populations, this is trivial
+ */
+
+size_t
+PartialPopulationMap::dimension( const Population& N )
+{
+    assert( NCust.size() == N.size() );
+
+    NCust = N;
+    return maximumOffset;
+}
+
+
+
+unsigned 
+PartialPopulationMap::offset( const Population & N ) const
+{
+    assert(N.size() == NCust.size());
+    for ( unsigned i = 1; i <= NCustSize; ++i ) {
+	switch ( NCust[i] - N[i] ) {
+	case 0:
+	    break;
+	case 1:
+	    for (unsigned j = i + 1; j <= NCustSize; ++j ) {
+		if ( NCust[j] - N[j] ) {
+		    return offset_e_c_e_j( i, j );
+		}
+	    }
+	    return offset_e_c_e_j( i, 0 );
+	case 2:
+	    return offset_e_c_e_j( i, i );
+	default:
+	    throw logic_error( "PartialPopulationMap::offset" );
+	}
+    }
+    return offset_e_c_e_j( 0, 0 );
+}
+
+
+
+unsigned 
+PartialPopulationMap::offset_e_j( const Population &N, const unsigned j ) const
+{
+    for ( unsigned i = 1; i <= NCustSize; ++i ) {
+	switch ( NCust[i] - N[i] ) {
+	case 0:
+	    break;
+
+	case 1:
+	    return offset_e_c_e_j( i, j );
+
+	default:
+	    assert(0);
+	}
+    }
+    return offset_e_c_e_j( 0, j );
+}
+
+
+
+unsigned 
+PartialPopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const 
+{
+    unsigned i;
+	
+    if ( c == 0 && j == 0 ) {
+	i = maximumOffset - 1;		/* Special case - full population. */
+    } else if ( c < j ) {
+	i = stride[j] + c;
+    } else {
+	i = stride[c] + j;
+    }
+    assert( i < maximumOffset );
+    return i;
+}
+
+//Only support the maximum customer configuration and the 
+//case of one less of each customer in the population.
+//Size is the number of dimensions of N, plus 1.
+SinglePopulationMap::SinglePopulationMap( const Population & N ) 
+    : PopulationMap( N ), NCust( N )
+{
+    maximumOffset = NCustSize + 1;
+}
+
+
+SinglePopulationMap::~SinglePopulationMap()
+{
+}
+
+
+/*
+ * Reset the size of the arrays.  For Special Populations, this is trivial
+ */
+
+size_t
+SinglePopulationMap::dimension( const Population& N )
+{
+    assert( N.size() == NCustSize );
+
+    NCust = N;
+    return maximumOffset;
+}
+
+
+
+unsigned 
+SinglePopulationMap::offset( const Population & N ) const
+{
+    assert( N.size() == NCustSize );
+    for ( unsigned j = 1; j <= NCustSize; ++j ) {
+	switch ( NCust[j] - N[j] ) {
+	case 0:
+	    break;
+	case 1:
+	    return offset_e_j( N, j );
+	default:
+	    throw logic_error( "SinglePopulationMap::offset" );
+	}
+    }
+    return maximumOffset - 1;
+}
+
+
+
+unsigned 
+SinglePopulationMap::offset_e_j( const Population &N, const unsigned j ) const
+{
+    if ( j == 0 ) {
+	return maximumOffset - 1;	/* Full population	*/
+    } else {
+	assert( j <= NCustSize );
+	return j - 1;
+    }
+}
+

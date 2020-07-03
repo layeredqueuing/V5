@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_group.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_group.cpp 13543 2020-05-19 17:29:04Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -14,15 +14,17 @@
 namespace LQIO {
     namespace DOM {
     
-	Group::Group(const Document * document, const char * name, Processor* proc, ExternalVariable * share, bool cap, const void * group_element ) 
-	    : DocumentObject(document,name,group_element), _processor(proc), _groupShare(share), _cap(cap), 
+	const char * Group::__typeName = "group";
+
+	Group::Group(const Document * document, const char * name, Processor* proc, ExternalVariable * share, bool cap ) 
+	    : DocumentObject(document,name), _processor(proc), _groupShare(share), _cap(cap), 
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0)
 	      
 	{ 
 	}
     
 	Group::Group(const Group& src ) 
-	    : DocumentObject(src.getDocument(),"",NULL), _processor(NULL), _groupShare(src.getGroupShare()), _cap(src.getCap())
+	    : DocumentObject(src.getDocument(),""), _processor(NULL), _groupShare(src.getGroupShare()), _cap(src.getCap())
 	{ 
 	}
     
@@ -45,9 +47,9 @@ namespace LQIO {
 	double Group::getGroupShareValue() const
 	{
 	    /* Returns the GroupShare of the Group */
-	    double value = 0.0;
-	    if ( !_groupShare || _groupShare->getValue(value) != true || value < 0 ) {
-		throw std::domain_error( "Invalid group share." );
+	    double value = getDoubleValue( getGroupShare(), 0.0 );
+	    if ( value > 1.0 ) {
+		throw std::domain_error( "invalid group share" );
 	    }
 	    return value;
 	}
@@ -61,7 +63,7 @@ namespace LQIO {
 	void Group::setGroupShare( ExternalVariable * groupShare )
 	{
 	    /* Stores the given GroupShare of the Group */ 
-	    _groupShare = groupShare;
+	    _groupShare = checkDoubleVariable( groupShare, 0.0 );
 	}
     
 	void Group::setGroupShareValue(const double value)

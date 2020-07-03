@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13204 2018-03-06 22:52:04Z greg $
+ * $Id: task.cc 13548 2020-05-21 14:27:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -56,7 +56,6 @@ set<Task *,ltTask> task;
 
 Task::Task( LQIO::DOM::Task* domTask, const Processor * aProc, const Group * aGroup, Cltn<Entry *>* entries)
     : Entity( domTask, entries ),
-      myDOMTask(domTask),
       myProcessor(aProc),
       myGroup(aGroup),
       myOverlapFactor(1.0),
@@ -136,7 +135,7 @@ Task::check() const
 
     if ( !schedulingIsOk( validScheduling() ) ) {
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-			      scheduling_type_str[(unsigned)domEntity->getSchedulingType()],
+			      scheduling_label[(unsigned)domEntity->getSchedulingType()].str,
 			      "task",
 			      name() );
 	domEntity->setSchedulingType(defaultScheduling());
@@ -146,6 +145,33 @@ Task::check() const
 	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name(), aProcessor->name() );
     }
 
+    /* Check replication */
+
+    const int srcReplicas = replicas();
+    if ( srcReplicas > 1 ) {
+	const int dstReplicas = processor()->replicas();
+	const double temp = static_cast<double>(srcReplicas) / static_cast<double>(dstReplicas);
+	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
+	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, srcReplicas, name(), dstReplicas, processor()->name() );
+	}
+    }
+
+    const LQIO::DOM::Document * document = domEntity->getDocument();		// Find root
+    const std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_outs = dynamic_cast<const LQIO::DOM::Task *>(domEntity)->getFanOuts();
+    for ( std::map<const std::string,LQIO::DOM::ExternalVariable *>::const_iterator dst = fan_outs.begin(); dst != fan_outs.end(); ++dst ) {
+	const std::string& dstName = dst->first;
+	const int fanOut = to_double( *dst->second );
+	LQIO::DOM::Task * dstTask = document->getTaskByName( dstName );
+	const int fanIn = dstTask->getFanInValue( name() );	/* Opposite direction */
+	const int dstReplicas = dstTask->getReplicasValue();
+	if ( srcReplicas * fanOut != dstReplicas * fanIn ) {
+	    LQIO::solution_error( ERR_REPLICATION, 
+				  static_cast<int>(fanOut), name(), static_cast<int>(srcReplicas),
+				  static_cast<int>(fanIn),  dstName.c_str(), static_cast<int>(dstReplicas) );
+	}
+    }
+    
+    
     /* Check entries */
 
     Sequence<Entry *> nextEntry( entries() );
@@ -209,7 +235,7 @@ Task::configure( const unsigned nSubmodels )
 
     Entity::configure( nSubmodels );
 
-    if ( openArrivalRate() > 0.0 ) {
+    if ( hasOpenArrivals() ) {
 	attributes.open_model = 1;
     }
 
@@ -372,7 +398,7 @@ Task::initInterlock()
     Sequence<Entry *> nextEntry( entries() );
     Entry * anEntry;
 
-    Stack<const Entry *> entryStack( io_vars.n_tasks + 2 );
+    Stack<const Entry *> entryStack( task.size() + 2 );
     while( anEntry = nextEntry() ) {
 	InterlockInfo calls(1.0,1.0);
 
@@ -408,17 +434,46 @@ Task::initThreads()
 int
 Task::priority() const
 {
-    const LQIO::DOM::ExternalVariable * dom_priority = myDOMTask->getPriority();
-    if ( !dom_priority ) return 0;
-    double value;
-    assert( dom_priority->getValue(value) == true);
-    if ( value != rint(value) ) {
-	LQIO::solution_error( LQIO::ERR_POSITIVE_INTEGER_EXPECTED, "priority", value,
-			      "task", name() );
-	value = 0.;
+    try {
+	return getDOM()->getPriorityValue();
     }
-    return static_cast<int>(value);
+    catch ( const std::domain_error &e ) {
+	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 0;
 }
+
+/*
+ * Return the fan-in to this server from...
+ */
+
+unsigned
+Task::fanIn( const Task * aClient ) const
+{
+    try {
+	return getDOM()->getFanInValue( aClient->name() );
+    }
+    catch ( const std::domain_error& e ) {
+	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name(), aClient->name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 1;
+}
+
+unsigned
+Task::fanOut( const Entity * aServer ) const
+{
+    try {
+	return getDOM()->getFanOutValue( aServer->name() );
+    }
+    catch ( const std::domain_error& e ) {
+	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name(), aServer->name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 1;
+}
+
 
 /*
  * Set the processor for this task.  Setting it twice is probably an
@@ -672,7 +727,7 @@ Task::countCallers( Cltn<const Task *> & reject )
     const Entry * anEntry;
 
     while ( anEntry = nextEntry() ) {
-	if ( openArrivalRate() > 0 ) {
+	if ( hasOpenArrivals() ) {
 	    isInOpenModel( true );
 	    if ( isInfinite() ) {
 		sum = get_infinity();
@@ -895,11 +950,11 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
     if ( submodel == 0 || !hasThreads() ) {
 	return Entity::thinkTime();
     } else {
-	const unsigned ix = threadIndex( submodel, k );
-	if ( ix == 1 ) {
+	const Thread * thread = getThread( submodel, k );
+	if ( thread == NULL ) {
 	    return Entity::thinkTime();
 	} else {
-	    return myThreads[ix]->thinkTime();
+	    return thread->thinkTime();
 	}
     }
 }
@@ -1044,53 +1099,20 @@ Task::nThreads() const
  * Return the thread index for chain k.  See Submodel::makeChains().
  */
 
-unsigned
-Task::threadIndex( const unsigned submodel, const unsigned k ) const
+const Thread * 
+Task::getThread( const unsigned submodel, const unsigned k ) const
 {
     if ( k == 0 ) {
-	return 0;
+	return NULL;
     } else if ( nThreads() == 1 ) {
-	return 1;
+	return NULL;
     } else {
 	unsigned ix = myClientChains[submodel].find( k );
 	if ( replicas() > 1 ) {
-	    return (ix - 1) % nThreads() + 1;
-	} else {
-	    return ix;
+	    ix = (ix - 1) % nThreads() + 1;
 	}
+	return myThreads[ix];
     }
-}
-
-
-
-/*
- * Return the waiting time for all submodels except submodel for phase
- * `p'.  If this is an activity entry, we have to return the chain k
- * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
- * clients in a submodel, submodel == aSubmodel.number().
- */
-
-double
-Task::waitExcept( const unsigned ix, const unsigned submodel, const unsigned p ) const
-{
-    return myThreads[ix]->waitExcept( submodel, 0, p );		// k is ignored anyway...
-}
-
-
-
-/*
- * Return the waiting time for all submodels except submodel for phase
- * `p'.  If this is an activity entry, we have to return the chain k
- * component of waiting time.  Note that if submodel == 0, we return
- * the elapsedTime().  For servers in a submodel, submodel == 0; for
- * clients in a submodel, submodel == aSubmodel.number().
- */
-
-double
-Task::waitExceptChain( const unsigned ix, const unsigned submodel, const unsigned k, const unsigned p ) const
-{
-    return myThreads[ix]->waitExceptChain( submodel, k, p );
 }
 
 
@@ -1483,11 +1505,11 @@ Task::insertDOMResults(void) const
     }
 
     /* Place all of the totals into the DOM task itself */
-    myDOMTask->setResultPhaseUtilizations(maxPhase(), resultPhaseData);
-    myDOMTask->setResultUtilization(totalTaskUtil);
-    myDOMTask->setResultThroughput(totalThroughput);
-    myDOMTask->setResultProcessorUtilization(totalProcUtil);
-    myDOMTask->setResultBottleneckStrength(0);
+    getDOM()->setResultPhaseUtilizations(maxPhase(), resultPhaseData);
+    getDOM()->setResultUtilization(totalTaskUtil);
+    getDOM()->setResultThroughput(totalThroughput);
+    getDOM()->setResultProcessorUtilization(totalProcUtil);
+    getDOM()->setResultBottleneckStrength(0);
 }
 
 
@@ -1605,17 +1627,14 @@ ReferenceTask::ReferenceTask( LQIO::DOM::Task* domTask, const Processor * aProc,
 unsigned
 ReferenceTask::copies() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies();
-    if ( !dom_copies ) return 1;
-    double value;
-    assert(dom_copies->getValue(value) == true);
-    if ( isinf( value ) ) {
-	LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, name() );
-	return 1;
-    } else if ( value - floor(value) != 0 ) {
-	throw domain_error( "ReferenceTask::copies" );
+    try {
+	return domEntity->getCopiesValue();
     }
-    return static_cast<unsigned int>(value);
+    catch ( const std::domain_error &e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 1;
 }
 
 
@@ -1632,12 +1651,15 @@ ReferenceTask::recalculateDynamicValues()
 {
     Task::recalculateDynamicValues();
 
-    const LQIO::DOM::ExternalVariable * dom_thinkTime = dynamic_cast<LQIO::DOM::Task *>(domEntity)->getThinkTime();
-    double value = 0.;
-    if ( dom_thinkTime ) {
-	assert(dom_thinkTime->getValue(value) == true);
+    if ( dynamic_cast<LQIO::DOM::Task *>(domEntity)->hasThinkTime() ) {
+	try {
+	    myThinkTime = dynamic_cast<LQIO::DOM::Task *>(domEntity)->getThinkTimeValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name(), e.what() );
+	    throw_bad_parameter();
+	}
     } 
-    myThinkTime = value;
 }
 
 
@@ -1653,7 +1675,7 @@ ReferenceTask::check() const
     if ( nEntries() != 1 ) {
 	LQIO::solution_error( LQIO::WRN_TOO_MANY_ENTRIES_FOR_REF_TASK, name() );
     }
-    if ( myDOMTask->hasQueueLength() ) {
+    if ( getDOM()->hasQueueLength() ) {
 	LQIO::solution_error( LQIO::WRN_QUEUE_LENGTH, name() );
     }
 
@@ -1713,6 +1735,18 @@ ReferenceTask::makeServer( const unsigned )
 
 /* -------------------------- Simple Servers. ------------------------- */
 
+unsigned int 
+ServerTask::queueLength() const
+{
+    try {
+	return getDOM()->getQueueLengthValue();
+    }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 0;
+}
 
 void
 ServerTask::check() const
@@ -1727,7 +1761,7 @@ ServerTask::check() const
     const Entry *anEntry;
 
     while( anEntry = nextEntry() ) {
-	if ( anEntry->openArrivalRate() > 0.0 ) {
+	if ( anEntry->hasOpenArrivals() ) {
 	    Entry::totalOpenArrivals += 1;
 	} else if ( !anEntry->isCalled() ) {
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, anEntry->name() );
@@ -1823,8 +1857,6 @@ ServerTask::validScheduling() const
 Server *
 ServerTask::makeServer( const unsigned nChains )
 {
-    Server * oldStation = myServerStation;
-
     if ( isInfinite() ) {
 
 	/* ---------------- Infinite Servers ---------------- */
@@ -1841,7 +1873,7 @@ ServerTask::makeServer( const unsigned nChains )
 	    switch ( pragma.getMultiserver() ) {
 	    default:
 	    case DEFAULT_MULTISERVER:
-		if ( (copies() < 40 || nChains <= 3) || isInOpenModel() ) {
+		if ( (copies() < 128 && nChains <= 5) || isInOpenModel() ) {
 		    if ( dynamic_cast<Conway_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies() ) return 0;
 		    myServerStation = new Conway_Multi_Server( copies(), nEntries(), nChains, maxPhase());
 		} else {
@@ -2081,8 +2113,6 @@ ServerTask::makeServer( const unsigned nChains )
 	    }
     }
 
-    if ( oldStation ) delete oldStation;
-
     return myServerStation;
 }
 
@@ -2107,7 +2137,7 @@ SemaphoreTask::check() const
 
     io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;
     while( anEntry = nextEntry() ) {
-	if ( anEntry->openArrivalRate() > 0.0 ) {
+	if ( anEntry->hasOpenArrivals() ) {
 	    Entry::totalOpenArrivals += 1;
 	} else if ( !anEntry->isCalled() ) {
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, anEntry->name() );
@@ -2243,7 +2273,7 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
     /* ---------- Client tasks ---------- */
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[static_cast<unsigned>(sched_type)], "task", task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, "task", task_name );
 	/* Fall through */
     case SCHEDULE_CUSTOMER:
 	aTask = new ReferenceTask( domTask, aProcessor, aGroup, entries );
@@ -2270,7 +2300,7 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 	/*- BUG_164 */
 
     default:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_type_str[static_cast<unsigned>(sched_type)], "task", task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, "task", task_name );
 	domTask->setSchedulingType(SCHEDULE_FIFO);
 	aTask = new ServerTask( domTask, aProcessor, aGroup, entries );
 	break;

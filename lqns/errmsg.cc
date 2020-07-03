@@ -1,6 +1,6 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/errmsg.cc $
- * 
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/errmsg.cc $
+ *
  * Error messages.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 11969 2014-04-11 21:19:54Z greg $
+ * $Id: errmsg.cc 13562 2020-05-27 02:01:45Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -33,13 +33,12 @@ struct LQIO::error_message_type local_error_messages[] =
 {
     { LQIO::RUNTIME_ERROR, "Derived population of %g for task \"%s\" is not valid." },                                                  /* ERR_BOGUS_COPIES                     */
     { LQIO::RUNTIME_ERROR, "External synchronization from entry \"%s\" not supported for task \"%s\": backtrace is \"%s\"." },          /* ERR_EXTERNAL_SYNC                    */
-    { LQIO::RUNTIME_ERROR, "Fan-in from task \"%s\" to task \"%s\" are not identical for all calls." },                                 /* ERR_FANIN_MISMATCH                   */
-    { LQIO::RUNTIME_ERROR, "Fan-out from %s \"%s\" (%d * %d replicas) does not match fan-in to %s \"%s\" (%d * %d)." },                 /* ERR_REPLICATION                      */
+    { LQIO::RUNTIME_ERROR, "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." },	/* ERR_REPLICATION_PROCESSOR 	*/
+    { LQIO::RUNTIME_ERROR, "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." },         	/* ERR_REPLICATION              */
+    { LQIO::RUNTIME_ERROR, "Invalid %s for task \"%s\" to task \"%s\": %s." },				                        	/* ERR_INVALID_FANINOUT_PARAMETER	*/
     { LQIO::RUNTIME_ERROR, "Infinite throughput for task \"%s\".  Model specification error." },                                        /* ERR_INFINITE_THROUGHPUT              */
-    { LQIO::RUNTIME_ERROR, "Invalid fan-in of %d: source task \"%s\" is not replicated." },                                             /* ERR_INVALID_FANIN                    */
-    { LQIO::RUNTIME_ERROR, "Invalid fan-out of %d: destination task \"%s\" has only %d replicas." },                                    /* ERR_INVALID_FANOUT                   */
     { LQIO::RUNTIME_ERROR, "No calls from %s \"%s\" to entry \"%s\"." },                                                                /* ERR_NO_CALLS_TO_ENTRY                */
-    { LQIO::RUNTIME_ERROR, "Open arrival rate of %g to task \"%s\" is too high.  Service time is %g." },                                /* ERR_ARRIVAL_RATE                     */
+    { LQIO::RUNTIME_ERROR, "Arrival rate of %g to entry \"%s\" exceeds service rate of %g." },		                                /* ERR_ARRIVAL_RATE                     */
     { LQIO::ADVISORY_ONLY, "Invalid convergence value of %g, using %g." },                                                              /* ADV_CONVERGENCE_VALUE                */
     { LQIO::ADVISORY_ONLY, "Convergence value of %g may be too large -- check results!" },                                              /* ADV_LARGE_CONVERGENCE_VALUE          */
     { LQIO::ADVISORY_ONLY, "Iteration limit of %d is too small, using %d." },                                                           /* ADV_ITERATION_LIMIT                  */
@@ -50,6 +49,7 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::ADVISORY_ONLY, "Submodel %d is empty." },                                                                                   /* ADV_EMPTY_SUBMODEL                   */
     { LQIO::ADVISORY_ONLY, "The utilization of %f at %s \"%s\" with multiplicity %d is too high." },                                    /* ADV_INVALID_UTILIZATION              */
     { LQIO::ADVISORY_ONLY, "Under-relaxation ignored.  %g outside range [0-2), using %g." },                                            /* ADV_UNDERRELAXATION                  */
+    { LQIO::ADVISORY_ONLY, "This model has a large number of clients (%d) in submodel %d, use of '#pragma mva=schweitzer' is advised." },
     { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                        /* WRN_COEFFICIENT_OF_VARIATION         */
     { LQIO::WARNING_ONLY,  "Value specified for %s, %d, is invalid." },                                                                 /* WRN_INVALID_INT_VALUE                */
     { LQIO::WARNING_ONLY,  "Entry \"%s\" on infinite server \"%s\" has %d phases." },							/* WRN_MULTI_PHASE_INFINITE_SERVER	*/
@@ -91,7 +91,6 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.anError = true;
 	io_vars.error_count += 1;
 	if  ( io_vars.error_count >= 10 ) {
 	    throw runtime_error( "Too many errors" );

@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entrythread.cc 13218 2018-03-08 03:53:50Z greg $
  *
  */
 
@@ -86,7 +86,7 @@ Thread::isDescendentOf( const Thread * aThread ) const
  */
 
 double
-Thread::waitExcept( const unsigned submodel, const unsigned k, const unsigned p ) const
+Thread::waitExcept( const unsigned submodel, const unsigned p ) const
 {
     return phase[p].waitExcept( submodel );
 }

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: errmsg.h 13540 2020-05-16 23:56:38Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -33,9 +33,7 @@ extern "C" {
 enum {
     FTL_LAYERIZATION=LQIO::LSTGBLERRMSG+1,
     ERR_ACTIVITY_NOT_REACHABLE,
-    ERR_FANIN_MISMATCH,
-    ERR_INVALID_FANIN,
-    ERR_INVALID_FANOUT,
+    ERR_REPLICATION_PROCESSOR,
     ERR_REPLICATION,
     ERR_NO_CALLS_TO_ENTRY,
     ERR_NO_OBJECTS,

@@ -9,9 +9,9 @@
 /*
  * Input output processing.
  *
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/processor.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: processor.cc 13556 2020-05-25 17:39:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -19,6 +19,7 @@
 #include <parasol.h>
 #include <cassert>
 #include <algorithm>
+#include <sstream>
 #include "lqsim.h"
 #include <cstdlib>
 #include <lqio/input.h>
@@ -62,9 +63,9 @@ int Processor::scheduling_types[N_SCHEDULING_TYPES] =
  */
 
 Processor *
-Processor::find( const char * processor_name  )
+Processor::find( const std::string& processor_name  )
 {
-    if ( !processor_name ) return 0;
+    if ( processor_name.size() == 0 ) return 0;
     set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( processor_name ) );
     if ( nextProcessor == processor.end() ) {
 	return 0;
@@ -78,7 +79,7 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
     : trace_flag(false),
       group(0),
       _node_id(0),
-      _domProcessor( domProcessor )
+      _dom( domProcessor )
 {
 #if HAVE_REGCOMP
     trace_flag = (bool)(processor_match_pattern != 0
@@ -93,10 +94,9 @@ Processor::Processor( LQIO::DOM::Processor* domProcessor )
  * Create a processor
  */
 
-bool
+Processor&
 Processor::create()
 {
-    assert( multiplicity() >= 1 );
     assert( scheduling_types[static_cast<unsigned int>(discipline())] >= 0 );
     _node_id = ps_build_node( name(), multiplicity(), cpu_rate(), quantum(),
 				 scheduling_types[static_cast<unsigned int>(discipline())],
@@ -104,12 +104,11 @@ Processor::create()
 	
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
 	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name() );
-	return false;
     } else {
 	processor_table[_node_id] = this;
 	r_util.init( ps_get_node_stat_index( _node_id ) );
-	return _node_id >= 0;
     }
+    return *this;
 }
 
 
@@ -121,12 +120,17 @@ Processor::create()
 unsigned
 Processor::multiplicity() const
 {
-    const LQIO::DOM::ExternalVariable * dom_copies = _domProcessor->getCopies(); 
-    double value;
-    assert(dom_copies->getValue(value) == true);
-    if ( isinf( value ) ) return 1;
-    assert( value - floor(value) == 0 );
-    return static_cast<unsigned int>(value);
+    unsigned int value = 1;
+    if ( !getDOM()->isInfinite() ) {
+	try {
+	    value = getDOM()->getCopiesValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "processor", e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    return value;
 }
 
 
@@ -134,7 +138,7 @@ Processor::multiplicity() const
 bool 
 Processor::is_infinite() const
 {
-    return _domProcessor->isInfinite();
+    return getDOM()->isInfinite();
 }
 
 
@@ -186,19 +190,17 @@ Custom_Processor::~Custom_Processor()
  * Create a processor
  */
 
-bool
+Custom_Processor&
 Custom_Processor::create()
 {
-    assert( multiplicity() >= 1 );
     _node_id = ps_build_node2( name(), multiplicity(), cpu_rate(), cpu_scheduler_task, SF_PER_NODE|SF_PER_HOST );
 
     if ( _node_id < 0 || MAX_NODES < _node_id ) {
 	LQIO::input_error2( ERR_CANNOT_CREATE_X, "processor", name() );
-	return false;
     } else {
 	processor_table[_node_id] = this;
-	return true;
     }
+    return *this;
 }
 
 
@@ -474,10 +476,10 @@ Processor::add_task( Task * task )
 /*			  Output Functions.				*/
 /*----------------------------------------------------------------------*/
 
-void
+Processor&
 Processor::insertDOMResults()
 {
-    if ( !_domProcessor ) return;
+    if ( !getDOM() ) return *this;
 
     double proc_util_mean = 0.0;
     double proc_util_var  = 0.0;
@@ -488,18 +490,19 @@ Processor::insertDOMResults()
 	
 	for ( vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
 	    Entry * ep = *next_entry;
-	    for ( unsigned p = 1; p <= cp->max_phases; ++p ) {
-		proc_util_mean += ep->phase[p].r_cpu_util.mean();
-		proc_util_var  += ep->phase[p].r_cpu_util.variance();
+	    for ( unsigned p = 0; p < cp->max_phases; ++p ) {
+		proc_util_mean += ep->_phase[p].r_cpu_util.mean();
+		proc_util_var  += ep->_phase[p].r_cpu_util.variance();
 	    }
 	}
 	/* Entry utilization includes activities */
     }
 
-    _domProcessor->setResultUtilization(proc_util_mean);
+    getDOM()->setResultUtilization(proc_util_mean);
     if ( number_blocks > 1 ) {
-	_domProcessor->setResultUtilizationVariance(proc_util_var);
+	getDOM()->setResultUtilizationVariance(proc_util_var);
     }
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -511,7 +514,7 @@ Processor::insertDOMResults()
  */
 
 void
-add_processor ( LQIO::DOM::Processor* domProcessor )
+Processor::add( LQIO::DOM::Processor* domProcessor )
 {
     /* Unroll some of the encapsulated information */
     const char* processor_name = domProcessor->getName().c_str();
@@ -523,7 +526,7 @@ add_processor ( LQIO::DOM::Processor* domProcessor )
 	return;
     }
 
-    if ( domProcessor->getReplicas() != 1 ) {
+    if ( domProcessor->hasReplicas() ) {
 	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name );
     }
 
@@ -532,7 +535,7 @@ add_processor ( LQIO::DOM::Processor* domProcessor )
     switch( scheduling_flag ) {
     case SCHEDULE_DELAY:
 	if ( domProcessor->hasCopies() ) {
-	    input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", processor_name, 0 );
+	    input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", processor_name, domProcessor->getCopiesValue() );
 	    domProcessor->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
 	}
 	/* Fall through */
@@ -540,7 +543,7 @@ add_processor ( LQIO::DOM::Processor* domProcessor )
     case SCHEDULE_HOL:
     case SCHEDULE_PPR:
 	if ( domProcessor->hasQuantum() ) {
-	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_type_str[(unsigned)scheduling_flag] );
+	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 
@@ -549,13 +552,13 @@ add_processor ( LQIO::DOM::Processor* domProcessor )
     case SCHEDULE_PS_PPR:
     case SCHEDULE_CFS:		
 	if ( !domProcessor->hasQuantum() ) {
-	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_type_str[(unsigned)scheduling_flag] );
+	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 
     default:
 	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-		      scheduling_type_str[(unsigned)scheduling_flag],
+		      scheduling_label[(unsigned)scheduling_flag].str,
 		      "processor", processor_name );
 	domProcessor->setSchedulingType( SCHEDULE_FIFO );
 	break;

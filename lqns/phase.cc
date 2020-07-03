@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: phase.cc 13570 2020-05-27 15:10:55Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -107,13 +107,42 @@ NullPhase::addServiceTime( const double t )
 double
 NullPhase::serviceTime() const
 {
-    if (myDOMPhase == NULL) {
-	return myServiceTime;
-    } else if (myDOMPhase->getServiceTime() == NULL) {
-	return 0.0;
-    } else {
+    if ( myDOMPhase == NULL ) return myServiceTime;
+    try {
 	return myDOMPhase->getServiceTimeValue();
     }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", myDOMPhase->getTypeName(), name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 0.0;
+}
+
+
+double
+NullPhase::thinkTime() const
+{
+    try {
+	return myDOMPhase->getThinkTimeValue();
+    }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", myDOMPhase->getTypeName(), name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 0.;
+}
+
+double
+NullPhase::CV_sqr() const
+{
+    try {
+	return myDOMPhase->getCoeffOfVariationSquaredValue();
+    }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", myDOMPhase->getTypeName(), name(), e.what() );
+	throw_bad_parameter();
+    }
+    return 1.;
 }
 
 
@@ -283,7 +312,7 @@ Phase::findChildren( CallStack& callStack, const bool directPath ) const
 
 	    }
 	}
-	catch ( call_cycle& error ) {
+	catch ( const call_cycle& error ) {
 	    if ( directPath && pragma.getCycles() == DISALLOW_CYCLES ) {
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	    }
@@ -404,9 +433,9 @@ Phase::check( const unsigned p ) const
     /* Service time for the entry? */
     if ( serviceTime() == 0 ) {
 	if ( isActivity() ) {
-	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Task", owner()->name(), "activity",  name() );
+	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Task", owner()->name(), myDOMPhase->getTypeName(),  name() );
 	} else {
-	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Entry", entry()->name(), "phase",  p_str );
+	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Entry", entry()->name(), myDOMPhase->getTypeName(),  p_str );
 	}
     }
 
@@ -419,9 +448,9 @@ Phase::check( const unsigned p ) const
 
     if ( phaseTypeFlag() == PHASE_STOCHASTIC && CV_sqr() != 1.0 ) {
 	if ( isActivity() ) {			/* c, phase_flag are incompatible  */
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name(), "activity", name() );
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name(), myDOMPhase->getTypeName(), name() );
 	} else {
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name(), "phase", p_str );
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name(), myDOMPhase->getTypeName(), p_str );
 	}
     }
 }
@@ -917,7 +946,7 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
     under_relax( myWait[submodel], newWait, relax );
 
     if ( oldWait && flags.trace_delta_wait ) {
-	cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel];
+	cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] << endl;
     }
 
     return *this;
@@ -1101,12 +1130,12 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	double nr_factor = 0.0;
 	double newWait = 0.0;
 
-	unsigned chainThreadIx = ownerTask->threadIndex( aSubmodel.number(), k );
+	const Thread * thread = ownerTask->getThread( aSubmodel.number(), k );
 
 	while ( aCall = nextCall() ) {
 	    if ( aCall->submodel() != aSubmodel.number() ) continue;
            
-	    if (chainThreadIx != ownerTask->threadIndex( aSubmodel.number(), aCall->getChain() )  ) {
+	    if ( thread != ownerTask->getThread( aSubmodel.number(), aCall->getChain() ) ) {
 		continue;
 	    }
 	    
@@ -1130,7 +1159,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
  
 	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) { 
    
-	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), processorCall()->getChain() ) ) {
+	    if ( thread == ownerTask->getThread( aSubmodel.number(), processorCall()->getChain() ) ) {
 		double temp=  processorCall()->rendezvousDelay( k );
 		newWait += temp;
 		if ( flags.trace_replication ) {
@@ -1560,44 +1589,41 @@ Phase::initProcessor()
 	
     /* If I don't have an entry, create one */
 	
-    string entry_name( owner()->processor()->name() );
-    entry_name += ':';
-    entry_name += name();
+    if ( getDOM()->hasServiceTime() ) {
+	string entry_name( owner()->processor()->name() );
+	entry_name += ':';
+	entry_name += name();
 	
-    double nCalls = numberOfSlices();
+	double nCalls = numberOfSlices();
 		
-    /* 
-     * [MM] myProcessorEntry used to have an Entry* in front of it, however it is also the name
-     * of an instance variable of phase, which means that it was being shadowed and never set. 
-     * I switched that out, now we have a proper link.
-     */
+	/* 
+	 * [MM] myProcessorEntry used to have an Entry* in front of it, however it is also the name
+	 * of an instance variable of phase, which means that it was being shadowed and never set. 
+	 * I switched that out, now we have a proper link.
+	 */
 
-    const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-    myProcessorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str(), NULL), ::entry.size() + 1, 
-					const_cast<Processor *>( owner()->processor()) );
-    ::entry.insert( myProcessorEntry );
+	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
+	myProcessorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str()), ::entry.size() + 1, 
+					    const_cast<Processor *>( owner()->processor()) );
+	::entry.insert( myProcessorEntry );
 		
-    myProcessorEntry->setServiceTime( serviceTime() / nCalls )
-	.setCV_sqr( CV_sqr() )
-	.setPriority( owner()->priority() );
-    myProcessorEntry->initVariance();
+	myProcessorEntry->setServiceTime( serviceTime() / nCalls )
+	    .setCV_sqr( CV_sqr() )
+	    .setPriority( owner()->priority() );
+	myProcessorEntry->initVariance();
 
-    /* 
-     * We may have to change this at some point.  However, we can't do
-     * priority by class in the analytic solver anyway - only by
-     * chain.
-     */	
+	/* 
+	 * We may have to change this at some point.  However, we can't do
+	 * priority by class in the analytic solver anyway - only by
+	 * chain.
+	 */	
 
-    myProcessorCall = newProcessorCall( myProcessorEntry );
-		
-    if ( serviceTime() == 0.0 && !isPseudo() ) {
-	nCalls = 0;
+	myProcessorCall = newProcessorCall( myProcessorEntry );
+	LQIO::DOM::Call* processorCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
+								NULL, myProcessorEntry->getDOM(), 
+								new LQIO::DOM::ConstantExternalVariable(nCalls));
+	myProcessorCall->rendezvous( processorCallDom );
     }
-
-    LQIO::DOM::Call* processorCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							    NULL, myProcessorEntry->getDOM(), 
-							    new LQIO::DOM::ConstantExternalVariable(nCalls));
-    myProcessorCall->rendezvous( processorCallDom );
 
     /*
      * Now create entries and connect.  Note that the entries are DeviceEntries
@@ -1613,7 +1639,7 @@ Phase::initProcessor()
 	think_entry_name += name();
 
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	myThinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str(), NULL), ::entry.size() + 1, 
+	myThinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str()), ::entry.size() + 1, 
 				       Model::thinkServer );
 	::entry.insert( myThinkEntry );
 		

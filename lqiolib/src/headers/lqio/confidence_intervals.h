@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: confidence_intervals.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: confidence_intervals.h 13477 2020-02-08 23:14:37Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -38,7 +38,6 @@ namespace LQIO {
 	double _t_value;
 	confidence_level_t _level;
 	unsigned int _blocks;
-	bool _is_set;
     };
 }
 

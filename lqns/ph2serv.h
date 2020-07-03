@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/ph2serv.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/ph2serv.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: ph2serv.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: ph2serv.h 13413 2018-10-23 15:03:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -35,7 +35,7 @@ public:
     Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ) {}
     virtual ~Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const = 0;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const = 0;
     virtual void openWait() const;
 
 protected:
@@ -55,7 +55,7 @@ public:
     Rolia_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ), Phased_Server( e,k,p ) { initialize(); }
     virtual ~Rolia_Phased_Server();
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual void initStep( const MVA& );
     virtual double prOt( const unsigned e, const unsigned k, const unsigned ) const { return Gamma[e][k]; }
@@ -86,7 +86,7 @@ public:
     HOL_Rolia_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ), Rolia_Phased_Server(e,k,p) {}
     virtual ~HOL_Rolia_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_Rolia_Phased_Server"; }
@@ -104,7 +104,7 @@ public:
     PR_Rolia_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ), Rolia_Phased_Server(e,k,p) {}
     virtual ~PR_Rolia_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_Rolia_Phased_Server"; }
@@ -125,7 +125,7 @@ public:
     virtual Server& setVariance( const unsigned e, const unsigned k, const unsigned p, const double value ) { return HVFCFS_Server::setVariance(e,k,p,value); }
     virtual double r( const unsigned e, const unsigned k, const unsigned p ) const { return HVFCFS_Server::r(e,k,p); }
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const { HVFCFS_Server::openWait(); }
 
     virtual const char * typeStr() const { return "HVFCFS_Rolia_Phased_Server"; }
@@ -146,7 +146,7 @@ public:
     HOL_HVFCFS_Rolia_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Rolia_Phased_Server(e,k) {}
     virtual ~HOL_HVFCFS_Rolia_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Rolia_Phased_Server"; }
@@ -164,7 +164,7 @@ public:
     PR_HVFCFS_Rolia_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Rolia_Phased_Server(e,k) {}
     virtual ~PR_HVFCFS_Rolia_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Rolia_Phased_Server"; }
@@ -182,14 +182,14 @@ public:
     Simple_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), Rolia_Phased_Server(e,k,p) {}
     virtual ~Simple_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual ostream& printOutput( ostream& output, const unsigned = 0 ) const;
 
     virtual const char * typeStr() const { return "Simple_Phased_Server"; }
 
 protected:
-    Positive sumOf_S2U( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    Positive sumOf_S2U( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 
@@ -204,7 +204,7 @@ public:
     HOL_Simple_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ), Simple_Phased_Server(e,k,p) {}
     virtual ~HOL_Simple_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_Simple_Phased_Server"; }
@@ -222,7 +222,7 @@ public:
     PR_Simple_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server( e,k,p ), Simple_Phased_Server(e,k,p) {}
     virtual ~PR_Simple_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_Simple_Phased_Server"; }
@@ -243,7 +243,7 @@ public:
     virtual Server& setVariance( const unsigned e, const unsigned k, const unsigned p, const double value ) { return HVFCFS_Server::setVariance(e,k,p,value); }
     virtual double r( const unsigned e, const unsigned k, const unsigned p ) const { return HVFCFS_Server::r( e, k, p ); }
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const { HVFCFS_Server::openWait(); }
 
     virtual const char * typeStr() const { return "HVFCFS_Simple_Phased_Server"; }
@@ -264,7 +264,7 @@ public:
     HOL_HVFCFS_Simple_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Simple_Phased_Server(e,k) {}
     virtual ~HOL_HVFCFS_Simple_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Simple_Phased_Server"; }
@@ -280,7 +280,7 @@ public:
     PR_HVFCFS_Simple_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Simple_Phased_Server(e,k) {}
     virtual ~PR_HVFCFS_Simple_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Simple_Phased_Server"; }
@@ -298,7 +298,7 @@ public:
     virtual ~Markov_Phased_Server();
     virtual void clear();
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual Probability *** getPrOt( const unsigned e ) const;
     virtual double prOt( const unsigned e, const unsigned k, const unsigned p ) const { return prOvertake[e][k][0][p]; }
@@ -308,7 +308,7 @@ public:
 protected:
     Positive overtaking( const unsigned k, const unsigned p_i ) const;
     Probability PrOT( const unsigned k, const unsigned p_i ) const;
-    Positive sumOf_S2U( const MVA& solver, const unsigned p_i, const PopVector& N, const unsigned k ) const;
+    Positive sumOf_S2U( const MVA& solver, const unsigned p_i, const Population& N, const unsigned k ) const;
 
     virtual ostream& printInput( ostream&, const unsigned, const unsigned ) const;
     ostream& printOvertaking( ostream&, const unsigned, const unsigned ) const;
@@ -333,7 +333,7 @@ public:
     HOL_Markov_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), Markov_Phased_Server(e,k,p) {}
     virtual ~HOL_Markov_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_Markov_Phased_Server"; }
@@ -351,7 +351,7 @@ public:
     PR_Markov_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), Markov_Phased_Server(e,k,p) {}
     virtual ~PR_Markov_Phased_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_Markov_Phased_Server"; }
@@ -373,7 +373,7 @@ public:
     virtual Server& setVariance( const unsigned e, const unsigned k, const unsigned p, const double value ) { return HVFCFS_Server::setVariance(e,k,p,value); }
     virtual double r( const unsigned e, const unsigned k, const unsigned p ) const { return HVFCFS_Server::r( e, k, p ); }
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const { HVFCFS_Server::openWait(); }
 	
     virtual const char * typeStr() const { return "HVFCFS_Markov_Phased_Server"; }
@@ -393,7 +393,7 @@ public:
     HOL_HVFCFS_Markov_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Markov_Phased_Server(e,k,p) {}
     virtual ~HOL_HVFCFS_Markov_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Markov_Phased_Server"; }
@@ -409,7 +409,7 @@ public:
     PR_HVFCFS_Markov_Phased_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Markov_Phased_Server(e,k,p) {}
     virtual ~PR_HVFCFS_Markov_Phased_Server() {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Markov_Phased_Server"; }

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13204 2018-03-06 22:52:04Z greg $
+ *  $Id: srvn_results.cpp 13487 2020-02-11 20:30:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,6 +16,8 @@
 #include <sys/mman.h>
 #endif
 
+#include <string.h>
+#include <errno.h>
 #include "dom_document.h"
 #include <algorithm>
 #include "dom_processor.h"
@@ -29,8 +31,7 @@
 #include "glblerr.h"
 #include "error.h"
 
-unsigned resultlinenumber;	/* Line number of current parse line in input file */
-const char * parse_file_name;	/* Filename for the parser's input file */
+static const char * results_file_name;	/* Filename for the parser's input file */
 static unsigned int n_phases = 0;
 
 static void results_error2( unsigned err, ... );
@@ -48,51 +49,53 @@ extern "C" {
 /*		 	   Called from xxparse.  			*/
 /*----------------------------------------------------------------------*/
 
-static clock_t time_to_clock_t( const char * time ) 
-{
-    clock_t hrs   = 0;
-    clock_t mins  = 0;
-    clock_t secs  = 0;
-    
-    if ( sscanf( time, "%ld:%ld:%ld", &hrs, &mins, &secs ) > 0 ) {
-	return hrs * 3600 + mins * 60 + secs;
-    } else {
-	return 0;
-    }
-}
-
 void set_general(int v, double c, int i, int pr, int ph)
 {
-    LQIO::DOM::currentDocument->setResultValid( v != 0 )
+    LQIO::DOM::__document->setResultValid( v != 0 )
 	.setResultConvergenceValue( c )
 	.setResultIterations( i );
-    if ( ph < 0 || LQIO::DOM::Phase::MAX_PHASE < ph ) throw runtime_error( "set_general" );
+    if ( ph < 0 || LQIO::DOM::Phase::MAX_PHASE < ph ) throw std::runtime_error( "set_general" );
     n_phases = ph;
 }
 
-void add_elapsed_time( const char * time )
+void set_variable( const char * variable_name, double value )
 {
-    LQIO::DOM::currentDocument->setResultElapsedTime( time_to_clock_t( time ) );
-}
- 
-void add_user_time( const char * time )
-{
-    LQIO::DOM::currentDocument->setResultUserTime( time_to_clock_t( time ) );
+    LQIO::DOM::SymbolExternalVariable* variable = LQIO::DOM::__document->getSymbolExternalVariable( variable_name );    
+    LQX::Program * program = LQIO::DOM::__document->getLQXProgram();
+    if ( variable && program ) {
+	LQIO::DOM::__document->registerExternalSymbolsWithProgram( program );
+	variable->set( value );
+    }
 }
 
-void add_system_time( const char * time )
+void add_comment( const char * comment )
 {
-    LQIO::DOM::currentDocument->setResultSysTime( time_to_clock_t( time ) );
+    LQIO::DOM::__document->setModelComment( new LQIO::DOM::ConstantExternalVariable( comment ) );
+}
+
+void add_elapsed_time( double time )
+{
+    LQIO::DOM::__document->setResultElapsedTime( time );
+}
+ 
+void add_user_time( double time )
+{
+    LQIO::DOM::__document->setResultUserTime( time );
+}
+
+void add_system_time( double time )
+{
+    LQIO::DOM::__document->setResultSysTime( time );
 }
 
 void add_max_rss( long max_rss )
 {
-    LQIO::DOM::currentDocument->setResultMaxRSS( max_rss );
+    LQIO::DOM::__document->setResultMaxRSS( max_rss );
 }
     
 void add_mva_solver_info( const unsigned int submodels, const unsigned long core, const double step, const double step_squared, const double wait, const double wait_squared, const unsigned int faults )
 {
-    LQIO::DOM::currentDocument->setMVAStatistics( submodels, core, step, step_squared, wait, wait_squared, faults );
+    LQIO::DOM::__document->setMVAStatistics( submodels, core, step, step_squared, wait, wait_squared, faults );
 }
 
 /*
@@ -113,7 +116,7 @@ add_output_pragma( const char *str, int len )
 void
 add_proc (const char *processor_name)
 {
-    LQIO::DOM::Processor * processor = LQIO::DOM::currentDocument->getProcessorByName( processor_name );
+    LQIO::DOM::Processor * processor = LQIO::DOM::__document->getProcessorByName( processor_name );
     if ( !processor ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, processor_name );
     } else {
@@ -129,7 +132,7 @@ add_proc (const char *processor_name)
 void
 add_total_proc( const char * processor_name, double value )
 {
-    LQIO::DOM::Processor * processor = LQIO::DOM::currentDocument->getProcessorByName( processor_name );
+    LQIO::DOM::Processor * processor = LQIO::DOM::__document->getProcessorByName( processor_name );
     if ( processor ) {
 	processor->setResultUtilization( value );
     }
@@ -144,9 +147,44 @@ add_total_proc_confidence ( const char * processor_name, int conf_level, double 
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Processor * processor = LQIO::DOM::currentDocument->getProcessorByName( processor_name );
+    LQIO::DOM::Processor * processor = LQIO::DOM::__document->getProcessorByName( processor_name );
     if ( processor ) {
-	processor->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( value, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	processor->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( value, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+										    LQIO::ConfidenceIntervals::CONF_95 ) );
+    }
+}
+
+/* ------------------------------- Group ------------------------------ */
+
+/*
+ * Add the utilziation for the group group_name.
+ */
+
+void
+add_group_util( const char * group_name, double value )
+{
+    LQIO::DOM::Group * group = LQIO::DOM::__document->getGroupByName( group_name );
+    if ( !group ) {
+	results_error2( LQIO::ERR_NOT_DEFINED, group_name );
+    } else {
+	group->setResultUtilization( value );
+    }
+}
+
+
+/*
+ * Store confidence interval data (as variance) for the group.
+ */
+
+void add_group_util_conf( const char * group_name, int conf_level, double value )
+{
+    if ( conf_level != 95) return;
+
+    LQIO::DOM::Group * group = LQIO::DOM::__document->getGroupByName( group_name );
+    if ( !group ) {
+	results_error2( LQIO::ERR_NOT_DEFINED, group_name );
+    } else {
+	group->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( value, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										    LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -160,7 +198,7 @@ add_total_proc_confidence ( const char * processor_name, int conf_level, double 
 void
 add_thpt_ut (const char *task_name)
 {
-    LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( !task ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, task_name );
     } else {
@@ -178,7 +216,7 @@ add_thpt_ut (const char *task_name)
 void
 total_thpt_ut ( const char * task_name, double tput, double * utilization, double tot_util )
 {
-    LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( task ) {
 	task->setResultThroughput( tput )
 	    .setResultUtilization( tot_util )
@@ -196,16 +234,16 @@ void
 total_thpt_ut_confidence ( const char * task_name, int conf_level, double tput, double * utilization, double tot_util )
 {
     if ( conf_level != 95) return;
-    LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( task ) {
-	task->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( tput, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( tput, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									      LQIO::ConfidenceIntervals::CONF_95  ) )
-	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( tot_util, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( tot_util, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									      LQIO::ConfidenceIntervals::CONF_95  ) );
 	/* Do this the hard way */
 	double variance[LQIO::DOM::Phase::MAX_PHASE];
 	for ( unsigned p = 0; p < n_phases; ++p ) {
-	    variance[p] = LQIO::ConfidenceIntervals::invert( utilization[p], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    variance[p] = LQIO::ConfidenceIntervals::invert( utilization[p], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 							     LQIO::ConfidenceIntervals::CONF_95  );
 	}
 	task->setResultPhaseUtilizationVariances( n_phases, variance );
@@ -213,10 +251,28 @@ total_thpt_ut_confidence ( const char * task_name, int conf_level, double tput, 
 }
 
 
+/*
+ * Called when all of the data for a task has been collected.  If there is no
+ * total field, this will total it up.  If copies is set, it overrides the value
+ * (possibily a variable).
+ */
+
 void
-add_task_proc (const char *task_name, int multiplicity, double util )
+add_proc_task (const char *task_name, unsigned int copies )
 {
-    LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
+    if ( copies > 0 ) {
+	task->setCopies( new LQIO::DOM::ConstantExternalVariable( copies ) );		/* Override */
+    }
+    if ( task ) {
+	task->computeResultProcessorUtilization();
+    }
+}
+
+void
+add_task_proc (const char *task_name, double util )
+{
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( task ) {
 	task->setResultProcessorUtilization( util );
     }
@@ -227,9 +283,9 @@ void
 add_task_proc_confidence (const char *task_name, int conf_level, double util )
 {
     if ( conf_level != 95) return;
-    LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( task ) {
-	task->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( util, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( util, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											LQIO::ConfidenceIntervals::CONF_95  ) );
     }
 }
@@ -238,7 +294,7 @@ add_task_proc_confidence (const char *task_name, int conf_level, double util )
 void
 add_holding_time( const char * task_name, const char * acquire, const char * release, double time, double variance, double utilization )
 {
-    LQIO::DOM::SemaphoreTask * task = dynamic_cast<LQIO::DOM::SemaphoreTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::SemaphoreTask * task = dynamic_cast<LQIO::DOM::SemaphoreTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
     if ( task ) {
 	task->setResultHoldingTime( time );
 	task->setResultVarianceHoldingTime( variance );
@@ -250,13 +306,13 @@ void
 add_holding_time_confidence( const char * task_name, const char * acquire, const char * release, int level, double time, double variance, double utilization )
 {
     if ( level != 95) return;
-    LQIO::DOM::SemaphoreTask * task = dynamic_cast<LQIO::DOM::SemaphoreTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::SemaphoreTask * task = dynamic_cast<LQIO::DOM::SemaphoreTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
     if ( task ) {
-	task->setResultHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( time, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( time, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									       LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultVarianceHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultVarianceHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										       LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										      LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -268,7 +324,7 @@ void
 add_reader_holding_time( const char * task_name, const char * lock, const char * unlock, 
 			 double blocked_time, double blocked_variance, double hold_time, double hold_variance,double utilization )
 {
-    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
     if ( task ) {
 	
 	task->setResultReaderBlockedTime( blocked_time );
@@ -284,7 +340,7 @@ void
 add_writer_holding_time( const char * task_name, const char * lock, const char * unlock, 
 			 double blocked_time, double blocked_variance, double hold_time, double hold_variance,double utilization )
 {
-    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
     if ( task ) {
 	
 	task->setResultWriterBlockedTime( blocked_time );
@@ -300,19 +356,19 @@ add_reader_holding_time_confidence( const char * task_name, const char * lock, c
 				    double blocked_time, double blocked_variance, double hold_time, double hold_variance, double utilization )
 {
     if ( level != 95) return;
-    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
 
     if ( task ) {
 
-	task->setResultReaderBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_time, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultReaderBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_time, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultVarianceReaderBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultVarianceReaderBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultReaderHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_time, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultReaderHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_time, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultVarianceReaderHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultVarianceReaderHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultReaderHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultReaderHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											    LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -322,19 +378,19 @@ add_writer_holding_time_confidence( const char * task_name, const char * lock, c
 				    double blocked_time, double blocked_variance, double hold_time, double hold_variance, double utilization )
 {
     if ( level != 95) return;
-    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::currentDocument->getTaskByName( task_name ));
+    LQIO::DOM::RWLockTask * task = dynamic_cast<LQIO::DOM::RWLockTask *>(LQIO::DOM::__document->getTaskByName( task_name ));
 
     if ( task ) {
 
-	task->setResultWriterBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_time, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultWriterBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_time, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultVarianceWriterBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultVarianceWriterBlockedTimeVariance( LQIO::ConfidenceIntervals::invert( blocked_variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultWriterHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_time, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultWriterHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_time, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultVarianceWriterHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultVarianceWriterHoldingTimeVariance( LQIO::ConfidenceIntervals::invert( hold_variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
-	task->setResultWriterHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	task->setResultWriterHoldingUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											    LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -350,7 +406,7 @@ add_writer_holding_time_confidence( const char * task_name, const char * lock, c
 void
 add_bound (const char *entry_name, double lower, double upper )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 
     if ( entry ) {
 	entry->setResultThroughputBound( upper );
@@ -365,7 +421,7 @@ add_bound (const char *entry_name, double lower, double upper )
 void
 add_service (const char *entry_name, double *time)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
 	    if ( entry->hasPhase(p) ) {
@@ -382,12 +438,12 @@ add_service_confidence( const char *entry_name, int conf_level, double * time )
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
 	    if ( entry->hasPhase(p) ) {
 		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		phase->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
 	}
@@ -402,7 +458,7 @@ add_service_confidence( const char *entry_name, int conf_level, double * time )
 void
 add_variance (const char *entry_name, double *time)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
 	    if ( entry->hasPhase(p) ) {
@@ -419,12 +475,12 @@ add_variance_confidence( const char * entry_name, int conf_level, double * time 
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
 	    if ( entry->hasPhase(p) ) {
 		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		phase->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 												LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
 	}
@@ -439,13 +495,13 @@ add_variance_confidence( const char * entry_name, int conf_level, double * time 
 void
 add_service_exceeded (const char *entry_name, double *time)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 void
 add_service_exceeded_confidence( const char * entry_name, int conf_level, double * time )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 
@@ -457,13 +513,13 @@ add_service_exceeded_confidence( const char * entry_name, int conf_level, double
 void
 add_histogram_statistics( const char * entry_name, const unsigned phase, const double mean, const double stddev, const double skew, const double kurtosis )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 void 
 add_histogram_bin( const char * entry_name, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 
@@ -475,7 +531,7 @@ add_histogram_bin( const char * entry_name, const unsigned phase, const double b
 void
 add_entry_thpt_ut (const char *entry_name, double tput, double *util, double total_util )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
 	entry->setResultThroughput( tput )
 	    .setResultUtilization( total_util );
@@ -496,17 +552,19 @@ add_entry_thpt_ut_confidence (const char * entry_name, int conf_level, double tp
 {
     if ( conf_level != 95 ) return;
 
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
-    entry->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( tput, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
-									   LQIO::ConfidenceIntervals::CONF_95 ) )
-	.setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( total_util, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
-									  LQIO::ConfidenceIntervals::CONF_95 ) );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
+    if ( entry ) {
+	entry->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( tput, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+									       LQIO::ConfidenceIntervals::CONF_95 ) )
+	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( total_util, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+									      LQIO::ConfidenceIntervals::CONF_95 ) );
     
-    for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	if ( entry->hasPhase(p) ) {
-	    LQIO::DOM::Phase * phase = entry->getPhase(p);
-	    phase->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( util[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
-										    LQIO::ConfidenceIntervals::CONF_95 ) );
+	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
+	    if ( entry->hasPhase(p) ) {
+		LQIO::DOM::Phase * phase = entry->getPhase(p);
+		phase->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( util[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+											LQIO::ConfidenceIntervals::CONF_95 ) );
+	    }
 	}
     }
 }
@@ -519,10 +577,10 @@ add_entry_thpt_ut_confidence (const char * entry_name, int conf_level, double tp
 void
 add_open_arriv (const char *task, const char *entry_name, double arrival, double waiting)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 
     if ( entry ) {
-	entry->setResultOpenWaitTime( waiting );
+	entry->setResultWaitingTime( waiting );
     }
 }
 
@@ -533,10 +591,10 @@ add_open_arriv_confidence( const char *task, const char *entry_name, int conf_le
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 
     if ( entry ) {
-	entry->setResultOpenWaitTimeVariance( LQIO::ConfidenceIntervals::invert( waiting, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	entry->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( waiting, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										 LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -549,7 +607,7 @@ add_open_arriv_confidence( const char *task, const char *entry_name, int conf_le
 void
 add_entry_proc (const char *entry_name, double utilization, double *waiting)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 
     if ( entry ) {
 	entry->setResultProcessorUtilization( utilization );
@@ -573,15 +631,15 @@ add_entry_proc_confidence( const char *entry_name, int conf_level, double utiliz
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * entry = LQIO::DOM::currentDocument->getEntryByName( entry_name );
+    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 
     if ( entry ) {
-	entry->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	entry->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											 LQIO::ConfidenceIntervals::CONF_95 ) );
 	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
 	    if ( entry->hasPhase(p) ) {
 		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		phase->setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											     LQIO::ConfidenceIntervals::CONF_95 ) );
 	    }
 	}
@@ -597,8 +655,8 @@ add_entry_proc_confidence( const char *entry_name, int conf_level, double utiliz
 void
 add_waiting (const char *from, const char *to, double *delay)
 {
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
@@ -616,14 +674,14 @@ add_waiting_confidence(const char * from, const char * to, int conf_level, doubl
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
 	    LQIO::DOM::Call* call = from_entry->getCallToTarget(to_entry, p);
 	    if (call) {
-		call->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		call->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										       LQIO::ConfidenceIntervals::CONF_95 )  );
 	    }
 	}
@@ -657,8 +715,8 @@ add_snr_waiting_confidence(const char * from, const char * to, int conf_level, d
 void
 add_wait_variance (const char *from, const char *to, double *delay)
 {
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
@@ -681,14 +739,14 @@ add_wait_variance_confidence(const char *from, const char *to, int conf_level, d
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
 	    LQIO::DOM::Call* call = from_entry->getCallToTarget(to_entry, p);
 	    if (call) {
-		call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											       LQIO::ConfidenceIntervals::CONF_95 )  );
 	    }
 	}
@@ -720,8 +778,8 @@ add_snr_wait_variance_confidence (const char *from, const char *to, int conf_lev
 void
 add_drop_probability (const char *from, const char *to, double *prob)
 {
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
@@ -746,14 +804,14 @@ add_drop_probability_confidence(const char *from, const char *to, int conf_level
 {
     if ( conf_level != 95) return;
 
-    LQIO::DOM::Entry * from_entry = LQIO::DOM::currentDocument->getEntryByName( from );
-    LQIO::DOM::Entry * to_entry   = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
 
     if ( from_entry && to_entry ) {
 	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
 	    LQIO::DOM::Call* call = from_entry->getCallToTarget(to_entry, p);
 	    if (call) {
-		call->setResultDropProbabilityVariance( LQIO::ConfidenceIntervals::invert( prob[p-1], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		call->setResultDropProbabilityVariance( LQIO::ConfidenceIntervals::invert( prob[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											   LQIO::ConfidenceIntervals::CONF_95 )  );
 	    }
 	}
@@ -771,7 +829,7 @@ add_overtaking ( const char * e1, const char * e2, const char * e3, const char *
 static LQIO::DOM::Activity *
 srvn_find_activity( const char * task_name, const char * activity_name )
 {
-    const LQIO::DOM::Task * task = LQIO::DOM::currentDocument->getTaskByName( task_name );
+    const LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( !task ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, task_name );
 	return 0;
@@ -802,7 +860,7 @@ add_act_service_confidence (const char * task_name, const char *activity_name, i
 
     LQIO::DOM::Activity * activity = srvn_find_activity( task_name, activity_name );
     if ( activity ) {
-	activity->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	activity->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										   LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -823,7 +881,7 @@ add_act_variance_confidence (const char * task_name, const char *activity_name, 
 
     LQIO::DOM::Activity * activity = srvn_find_activity( task_name, activity_name );
     if ( activity ) {
-	activity->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	activity->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											   LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -845,9 +903,9 @@ add_act_thpt_ut_confidence ( const char * task_name, const char * activity_name,
 
     LQIO::DOM::Activity * activity = srvn_find_activity( task_name, activity_name );
     if ( activity ) {
-	activity->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( throughput, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	activity->setResultThroughputVariance( LQIO::ConfidenceIntervals::invert( throughput, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										  LQIO::ConfidenceIntervals::CONF_95 ) )
-	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									      LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -881,9 +939,9 @@ add_act_proc_confidence ( const char * task_name, const char *activity_name, int
 
     LQIO::DOM::Activity * activity = srvn_find_activity( task_name, activity_name );
     if ( activity ) {
-	activity->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	activity->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										   LQIO::ConfidenceIntervals::CONF_95 ) )
-	    .setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    .setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										   LQIO::ConfidenceIntervals::CONF_95 ) );
     }
 }
@@ -935,7 +993,7 @@ void
 add_act_waiting (const char * task_name, const char *from, const char *to, double *delay)
 {
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
@@ -952,11 +1010,11 @@ add_act_waiting_confidence (const char * task_name, const char *from, const char
     if ( conf_level != 95) return;
 
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
-	    call->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert(delay[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    call->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert(delay[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										  LQIO::ConfidenceIntervals::CONF_95 )  );
 	}
     }
@@ -981,7 +1039,7 @@ void
 add_act_wait_variance (const char * task_name, const char *from, const char * to, double *delay)
 {
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
@@ -997,11 +1055,11 @@ add_act_wait_variance_confidence (const char * task_name, const char *from, cons
     if ( conf_level != 95) return;
 
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
-	    call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert(delay[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert(delay[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											  LQIO::ConfidenceIntervals::CONF_95 )  );
 	}
     }
@@ -1026,7 +1084,7 @@ void
 add_act_drop_probability( const char * task_name, const char *from, const char *to, double *prob )
 {
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
@@ -1042,11 +1100,11 @@ add_act_drop_probability_confidence( const char * task_name, const char *from, c
     if ( conf_level != 95) return;
 
     LQIO::DOM::Activity * from_activity = srvn_find_activity( task_name, from );
-    LQIO::DOM::Entry * to_entry = LQIO::DOM::currentDocument->getEntryByName( to );
+    LQIO::DOM::Entry * to_entry = LQIO::DOM::__document->getEntryByName( to );
     if ( from_activity && to_entry ) {
 	LQIO::DOM::Call * call = from_activity->getCallToTarget( to_entry );
 	if ( call ) {
-	    call->setResultDropProbabilityVariance( LQIO::ConfidenceIntervals::invert(prob[0], LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    call->setResultDropProbabilityVariance( LQIO::ConfidenceIntervals::invert(prob[0], LQIO::DOM::__document->getResultNumberOfBlocks(), 
 										      LQIO::ConfidenceIntervals::CONF_95 )  );
 	}
     }
@@ -1088,9 +1146,9 @@ add_join_confidence(const char * task_name, const char *first, const char *last,
     if ( firstActivity && lastActivity ) {
 	LQIO::DOM::AndJoinActivityList * join_list = dynamic_cast<LQIO::DOM::AndJoinActivityList *>(firstActivity->getOutputToList());
 	if ( join_list == lastActivity->getOutputToList() ) {
-	    join_list->setResultJoinDelay( LQIO::ConfidenceIntervals::invert(mean, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+	    join_list->setResultJoinDelay( LQIO::ConfidenceIntervals::invert(mean, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									     LQIO::ConfidenceIntervals::CONF_95 ) )
-		.setResultVarianceJoinDelay( LQIO::ConfidenceIntervals::invert(variance, LQIO::DOM::currentDocument->getResultNumberOfBlocks(), 
+		.setResultVarianceJoinDelay( LQIO::ConfidenceIntervals::invert(variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									       LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
@@ -1106,16 +1164,22 @@ namespace LQIO {
 	bool
 	loadResults( const std::string& filename )
 	{
-	    if ( ! LQIO::DOM::currentDocument ) {
+	    if ( ! LQIO::DOM::__document ) {
 		return false;
 	    }
-	    resultin = fopen( filename.c_str(), "r" );
-	    if ( resultin != NULL ) {
-		parse_file_name = filename.c_str();
-		resultlinenumber = 1;
+	    if ( filename == "-" ) {
+		resultin = stdin;
+		resultparse();
+	    } else if ( ( resultin = fopen( filename.c_str(), "r" ) ) != NULL ) {
+		results_file_name = filename.c_str();
+		resultlineno = 1;
 #if HAVE_MMAP
 		struct stat statbuf;
 		int resultin_fd = fileno( resultin );
+		if ( fstat( resultin_fd, &statbuf ) != 0 ) {
+		    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << filename << " - " << strerror( errno ) << std::endl;
+		    return false;
+		}
 
 		char * buffer = static_cast<char *>(mmap( 0, statbuf.st_size, PROT_READ, MAP_PRIVATE|MAP_FILE, resultin_fd, 0 ));
 		if ( buffer != MAP_FAILED ) {
@@ -1129,12 +1193,15 @@ namespace LQIO {
 		    resultparse();
 #if HAVE_MMAP
 		}
-#endif		
-		fclose( resultin );
-		return !LQIO::DOM::Document::io_vars->anError;
+#endif
+		if ( resultin ) {
+		    fclose( resultin );
+		}
 	    } else {
+                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open result file " << filename << " - " << strerror( errno ) << std::endl;
 		return false;
 	    }
+	    return !LQIO::DOM::Document::io_vars->anError();
 	}
     }
 }
@@ -1150,7 +1217,7 @@ results_error( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    (void) LQIO::verrprintf( stderr, LQIO::ADVISORY_ONLY, parse_file_name, resultlinenumber, 0, fmt, args );
+    (void) LQIO::verrprintf( stderr, LQIO::ADVISORY_ONLY, results_file_name, resultlineno, 0, fmt, args );
     va_end( args );
 }
 
@@ -1159,7 +1226,7 @@ results_error2( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    LQIO::verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, parse_file_name, resultlinenumber, 0,
+    LQIO::verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, results_file_name, resultlineno, 0,
 		      LQIO::DOM::Document::io_vars->error_messages[err].message, args );
     va_end( args );
 }

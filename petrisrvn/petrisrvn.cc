@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 12350 2015-12-02 02:55:32Z greg $
+ * $Id: petrisrvn.cc 13533 2020-03-12 22:09:07Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -59,8 +59,6 @@
 #include "runlqx.h"		// Coupling here is ugly at the moment
 #include "pragma.h"
 
-extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
-
 static bool copyright_flag	= false; /* Print copyright notice	*/
 
 bool debug_flag                 = false; /* Debugging flag set?         */
@@ -78,6 +76,7 @@ bool xml_flag 			= false; /* XML Output desired ?	*/
 
 bool customers_flag 		= true;	 /* Smash customers together.	*/
 bool distinguish_join_customers = true;	 /* unique cust at join for mult*/
+bool simplify_network		= false; /* Delete single place procs.  */
 					   
 double	x_scaling		= 1.0;	 /* Auto-squish if val == 0.	*/
 unsigned open_model_tokens	= OPEN_MODEL_TOKENS;	/* Default val.	*/
@@ -87,22 +86,7 @@ Pragma saved_pragma;
 
 static const char * net_dir_name	= "nets";
 
-lqio_params_stats io_vars =
-{
-    /* .n_processors =   */ 0,
-    /* .n_tasks =	 */ 0,
-    /* .n_entries =      */ 0,
-    /* .n_groups =       */ 0,
-    /* .lq_toolname =    */ NULL,
-    /* .lq_version =	 */ VERSION,
-    /* .lq_command_line =*/ NULL,
-    /* .severity_action= */ severity_action,
-    /* .max_error =      */ 0,
-    /* .error_count =    */ 0,
-    /* .severity_level = */ LQIO::NO_ERROR,
-    /* .error_messages = */ NULL,
-    /* .anError =        */ 0
-};
+lqio_params_stats io_vars( VERSION, severity_action );
 
 static void my_handler (int);
 
@@ -136,6 +120,7 @@ static const struct option longopts[] =
     { "special",            required_argument,  0, 'z' },
     { "disjoint-customers", no_argument,	0, 256+'d' },
     { "random-queueing",    no_argument,	0, 256+'q' },
+    { "simplify",	    no_argument,	0, 256+'s' },
     { "reload-lqx",	    no_argument,        0, 256+'r' },
     { "restart",	    no_argument,	0, 256+'R' },
     { "no-header",	    no_argument,	0, 256+'h' },
@@ -164,6 +149,7 @@ static const char * opthelp[]  = {
     /* "special"	    */    "Special options.",
     /* "disjoint-customers" */    "Create copies for reference tasks (increases state space).",
     /* "random-queueing"    */    "Use random queueing at all tasks and processors (reduces state space).",
+    /* "simplify"	    */    "Remove redundant parts of the net such as single place processors.", 	
     /* "reload-lqx"	    */    "Run the LQX program, but re-use the results from a previous invocation.",
     /* "restart"	    */    "Reuse existing results where available, but solve any unsolved models.",
     /* "no-header"	    */	  "Do not output the variable name header on SPEX results.",
@@ -271,7 +257,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'h':
-	    LQIO::DOM::Spex::__no_header = true;
+	    LQIO::Spex::__no_header = true;
 	    break;
 
 	case 'H':
@@ -329,6 +315,10 @@ main (int argc, char *argv[])
 	    pragma._task_scheduling = SCHEDULE_RAND;
 	    break;
 
+	case 256+'s':
+	    simplify_network = true;
+	    break;
+
 	case 'r':
 	    rtf_flag = true;
 	    break;
@@ -354,7 +344,7 @@ main (int argc, char *argv[])
 
 	case 'v':
 	    verbose_flag = true;
-	    LQIO::DOM::Spex::__verbose = true;
+	    LQIO::Spex::__verbose = true;
 	    break;
 
 	case 'V':
@@ -434,14 +424,16 @@ main (int argc, char *argv[])
 		default:
 		    (void) fprintf( stderr, "%s: invalid argument to -z -- %s\n", io_vars.lq_toolname, value );
 		    usage();
+		    exit( INVALID_ARGUMENT );
 		}
 	    break;
 
 	default:
 	    usage();
-
+	    exit( INVALID_ARGUMENT );
 	}
     }
+    io_vars.lq_command_line = command_line.c_str();
 
     if ( copyright_flag ) {
 	(void) fprintf( stdout, "\nStochastic Rendezvous Petri Network Analyser, Version %s\n\n", VERSION );
@@ -481,7 +473,7 @@ main (int argc, char *argv[])
     } else {
 	unsigned int file_count = argc - optind;			/* Number of files on cmd line	*/
 
-	if ( output_file.size() && file_count > 1 && !LQIO::Filename::isDirectory( output_file.c_str() ) ) {
+	if ( output_file.size() && file_count > 1 && !LQIO::Filename::isDirectory( output_file ) ) {
 	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", io_vars.lq_toolname );
 	    exit( INVALID_ARGUMENT );
 	}
@@ -508,7 +500,7 @@ main (int argc, char *argv[])
  */
 
 static int
-process( const string& inputFileName, const string& outputFileName )
+process( const std::string& inputFileName, const std::string& outputFileName )
 {
     LQIO::DOM::Document* document = Model::load( inputFileName, outputFileName );
 
@@ -517,13 +509,13 @@ process( const string& inputFileName, const string& outputFileName )
     int status = 0;
 
     /* Make sure we got a document */
-    if (document == NULL || io_vars.anError || !aModel.construct() ) {
-	cerr << io_vars.lq_toolname << ": Input model " << inputFileName << " was not loaded successfully." << endl;
+    if (document == NULL || io_vars.anError() || !aModel.construct() ) {
+	std::cerr << io_vars.lq_toolname << ": Input model " << inputFileName << " was not loaded successfully." << std::endl;
 	return FILEIO_ERROR;
     }
 
-    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::DOM::Spex::__no_header ) {
-        cerr << io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << endl;
+    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
+        std::cerr << io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
 
     pragma.updateDOM( document );	/* Save pragmas */
@@ -549,7 +541,7 @@ process( const string& inputFileName, const string& outputFileName )
 	    LQIO::RegisterBindings(program->getEnvironment(), document);
 
 	    FILE * output = 0;
-	    if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName.c_str()) ) {
+	    if ( outputFileName.size() > 0 && outputFileName != "-" && LQIO::Filename::isRegularFile(outputFileName) ) {
 		output = fopen( outputFileName.c_str(), "w" );
 		if ( !output ) {
 		    LQIO::solution_error( LQIO::ERR_CANT_OPEN_FILE, outputFileName.c_str(), strerror( errno ) );
@@ -583,7 +575,19 @@ process( const string& inputFileName, const string& outputFileName )
 	    LQIO::solution_error( LQIO::ERR_LQX_VARIABLE_RESOLUTION, inputFileName.c_str() );
 	    status = FILEIO_ERROR;
 	} else {
-	    status = aModel.solve();		/* Simply invoke the solver for the current DOM state */
+	    try {
+		status = aModel.solve();		/* Simply invoke the solver for the current DOM state */
+	    }
+	    catch ( const std::runtime_error & error ) {
+		std::cerr << io_vars.lq_toolname << ": runtime error - " << error.what() << std::endl;
+		io_vars.error_count += 1;
+		status = EXCEPTION_EXIT;
+	    }
+	    catch ( const std::logic_error& error ) {
+		std::cerr << io_vars.lq_toolname << ": logic error - " << error.what() << std::endl;
+		io_vars.error_count += 1;
+		status = EXCEPTION_EXIT;
+	    }
 	}
     }
     return status;
@@ -599,7 +603,7 @@ usage (void)
     fprintf( stderr, "Options:\n" );
     const char ** p = opthelp;
     for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
-	string s;
+	std::string s;
 	if ( o->name ) {
 	    s = "--";
 	    s += o->name;
@@ -625,7 +629,7 @@ usage (void)
 	    fputc( *s, stderr );
 	}
     }
-    cerr << ']';
+    std::cerr << ']';
     for ( char * s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
 	    fprintf( stderr, " [-%c", *s );

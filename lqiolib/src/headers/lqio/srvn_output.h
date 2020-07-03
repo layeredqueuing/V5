@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: srvn_output.h 13550 2020-05-22 11:48:05Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -22,7 +22,10 @@
 #include <ostream>
 #include <cassert>
 #include <sys/time.h>
+#include "dom_processor.h"
+#include "dom_task.h"
 #include "dom_phase.h"
+#include "dom_entry.h"
 #include "dom_call.h"
 #include "input.h"
 #include "common_io.h"
@@ -42,8 +45,6 @@ namespace LQIO {
 	class ActivityList;
     }
 
-    using namespace std;
-
     namespace SRVN {
 
 	typedef const DOM::ExternalVariable* (DOM::Activity::*activityFunc)() const;
@@ -51,14 +52,12 @@ namespace LQIO {
 	typedef bool (DOM::Activity::*boolActivityFunc)() const;
 
 	typedef const DOM::ExternalVariable* (DOM::Call::*callFunc)() const;
-	typedef bool (DOM::Call::*boolCallFunc)() const;
 
 	typedef const DOM::ExternalVariable* (DOM::Phase::*phaseFunc)() const;
 	typedef double (DOM::Phase::*doublePhaseFunc)() const;
 	typedef double (DOM::Entry::*doubleEntryPhaseFunc)( const unsigned ) const;
 	typedef const DOM::Histogram* (DOM::Entry::*histogramEntryFunc)( const unsigned ) const;
 	typedef phase_type (DOM::Phase::*phaseTypeFunc)() const;
-//	typedef void (CallInput::*voidCallFunc)( const DOM::Call& ) const;
 
 	typedef const DOM::ExternalVariable* (DOM::Entry::*entryFunc)() const;
 
@@ -66,198 +65,200 @@ namespace LQIO {
 
 	class CallManip {
 	public:
-	    CallManip( ostream& (*f)(ostream&, const DOM::Call& ), const DOM::Call& c ) : _f(f), _c(c) {}
+	    CallManip( std::ostream& (*f)(std::ostream&, const DOM::Call* ), const DOM::Call* c ) : _f(f), _c(c) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Call& );
-	    const DOM::Call& _c;
-	    friend ostream& operator<<(ostream & os, const CallManip& m ) { return m._f(os,m._c); }
+	    std::ostream& (*_f)( std::ostream&, const DOM::Call* );
+	    const DOM::Call* _c;
+	    friend std::ostream& operator<<(std::ostream & os, const CallManip& m ) { return m._f(os,m._c); }
 	};
 
 	class ConfidenceManip {
 	public:
-	    ConfidenceManip( ostream& (*f)(ostream&, const unsigned, const ConfidenceIntervals::confidence_level_t ), const unsigned s, const ConfidenceIntervals::confidence_level_t l  ) : _f(f), _s(s), _l(l) {}
+	    ConfidenceManip( std::ostream& (*f)(std::ostream&, const unsigned, const ConfidenceIntervals::confidence_level_t ), const unsigned s, const ConfidenceIntervals::confidence_level_t l  ) : _f(f), _s(s), _l(l) {}
 	private:
-	    ostream& (*_f)( ostream&, const unsigned, const ConfidenceIntervals::confidence_level_t );
+	    std::ostream& (*_f)( std::ostream&, const unsigned, const ConfidenceIntervals::confidence_level_t );
 	    const unsigned _s;
 	    const ConfidenceIntervals::confidence_level_t _l;
-	    friend ostream& operator<<(ostream & os, const ConfidenceManip& m ) { return m._f(os,m._s,m._l); }
-	};
-
-	class DoubleManip {
-	public:
-	    DoubleManip( ostream& (*f)(ostream&, const double ), const double a ) : _f(f), _a(a) {}
-	private:
-	    ostream& (*_f)( ostream&, const double );
-	    const double _a;
-	    friend ostream& operator<<(ostream & os, const DoubleManip& m ) { return m._f(os,m._a); }
+	    friend std::ostream& operator<<(std::ostream & os, const ConfidenceManip& m ) { return m._f(os,m._s,m._l); }
 	};
 
 	class DoubleDoubleManip {
 	public:
-	    DoubleDoubleManip( ostream& (*f)(ostream&, const double, const double ), const double a, const double b ) : _f(f), _a(a), _b(b) {}
+	    DoubleDoubleManip( std::ostream& (*f)(std::ostream&, const double, const double ), const double a, const double b ) : _f(f), _a(a), _b(b) {}
 	private:
-	    ostream& (*_f)( ostream&, const double, const double );
+	    std::ostream& (*_f)( std::ostream&, const double, const double );
 	    const double _a;
 	    const double _b;
-	    friend ostream& operator<<(ostream & os, const DoubleDoubleManip& m ) { return m._f(os,m._a,m._b); }
+	    friend std::ostream& operator<<(std::ostream & os, const DoubleDoubleManip& m ) { return m._f(os,m._a,m._b); }
 	};
 
 	class EntityManip {
 	public:
-	    EntityManip( ostream& (*f)(ostream&, const DOM::Entity& ), const DOM::Entity& e ) : _f(f), _e(e) {}
+	    EntityManip( std::ostream& (*f)(std::ostream&, const DOM::Entity& ), const DOM::Entity& e ) : _f(f), _e(e) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entity& );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entity& );
 	    const DOM::Entity& _e;
-	    friend ostream& operator<<(ostream & os, const EntityManip& m ) { return m._f(os,m._e); }
+	    friend std::ostream& operator<<(std::ostream & os, const EntityManip& m ) { return m._f(os,m._e); }
 	};
 
 	class EntityNameManip {
 	public:
-	    EntityNameManip( ostream& (*f)(ostream&, const DOM::Entity&, bool& ), const DOM::Entity& e, bool& b ) : _f(f), _e(e), _b(b) {}
+	    EntityNameManip( std::ostream& (*f)(std::ostream&, const DOM::Entity&, bool& ), const DOM::Entity& e, bool& b ) : _f(f), _e(e), _b(b) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entity&, bool& );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entity&, bool& );
 	    const DOM::Entity& _e;
 	    bool& _b;
-	    friend ostream& operator<<(ostream & os, const EntityNameManip& m ) { return m._f(os,m._e,m._b); }
+	    friend std::ostream& operator<<(std::ostream & os, const EntityNameManip& m ) { return m._f(os,m._e,m._b); }
 	};
 
 	class EntryManip {
 	public:
-	    EntryManip( ostream& (*f)(ostream&, const DOM::Entry&, const entryFunc ), const DOM::Entry & e, const entryFunc p ) : _f(f), _e(e), _p(p) {}
+	    EntryManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const entryFunc ), const DOM::Entry & e, const entryFunc p ) : _f(f), _e(e), _p(p) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry&, const entryFunc );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry&, const entryFunc );
 	    const DOM::Entry & _e;
 	    const entryFunc _p;
-	    friend ostream& operator<<(ostream & os, const EntryManip& m ) { return m._f(os,m._e,m._p); }
+	    friend std::ostream& operator<<(std::ostream & os, const EntryManip& m ) { return m._f(os,m._e,m._p); }
 	};
 
 	class EntryNameManip {
 	public:
-	    EntryNameManip( ostream& (*f)(ostream&, const DOM::Entry& ), const DOM::Entry& e ) : _f(f), _e(e) {}
+	    EntryNameManip( std::ostream& (*f)(std::ostream&, const DOM::Entry& ), const DOM::Entry& e ) : _f(f), _e(e) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry& );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry& );
 	    const DOM::Entry& _e;
-	    friend ostream& operator<<(ostream & os, const EntryNameManip& m ) { return m._f(os,m._e); }
+	    friend std::ostream& operator<<(std::ostream & os, const EntryNameManip& m ) { return m._f(os,m._e); }
 	};
 
 	class PhaseManip {
 	public:
-	    PhaseManip( ostream& (*f)(ostream&, const DOM::Entry&, const phaseFunc ), const DOM::Entry & e, const phaseFunc p ) : _f(f), _e(e), _p(p) {}
+	    PhaseManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const phaseFunc ), const DOM::Entry & e, const phaseFunc p ) : _f(f), _e(e), _p(p) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry&, const phaseFunc );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry&, const phaseFunc );
 	    const DOM::Entry & _e;
 	    const phaseFunc _p;
-	    friend ostream& operator<<(ostream & os, const PhaseManip& m ) { return m._f(os,m._e,m._p); }
+	    friend std::ostream& operator<<(std::ostream & os, const PhaseManip& m ) { return m._f(os,m._e,m._p); }
 	};
 
 	class PhaseTypeManip {
 	public:
-	    PhaseTypeManip( ostream& (*f)(ostream&, const DOM::Entry&, const phaseTypeFunc ), const DOM::Entry & e, const phaseTypeFunc p ) : _f(f), _e(e), _p(p) {}
+	    PhaseTypeManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const phaseTypeFunc ), const DOM::Entry & e, const phaseTypeFunc p ) : _f(f), _e(e), _p(p) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry&, const phaseTypeFunc );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry&, const phaseTypeFunc );
 	    const DOM::Entry & _e;
 	    const phaseTypeFunc _p;
-	    friend ostream& operator<<(ostream & os, const PhaseTypeManip& m ) { return m._f(os,m._e,m._p); }
+	    friend std::ostream& operator<<(std::ostream & os, const PhaseTypeManip& m ) { return m._f(os,m._e,m._p); }
 	};
 
 	class ProcessorManip {
 	public:
-	    ProcessorManip( ostream& (*f)(ostream&, const DOM::Processor& ), const DOM::Processor& p ) : _f(f), _p(p) {}
+	    ProcessorManip( std::ostream& (*f)(std::ostream&, const DOM::Processor& ), const DOM::Processor& p ) : _f(f), _p(p) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Processor& );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Processor& );
 	    const DOM::Processor& _p;
-	    friend ostream& operator<<(ostream & os, const ProcessorManip& m ) { return m._f(os,m._p); }
+	    friend std::ostream& operator<<(std::ostream & os, const ProcessorManip& m ) { return m._f(os,m._p); }
 	};
 
 	class ResultsManip {
 	public:
-	    ResultsManip( ostream& (*f)(ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const bool ), const DOM::Entry & e, doublePhaseFunc p, doubleEntryPhaseFunc q=0, const bool pad=false ) : _f(f), _e(e), _p(p), _q(q), _pad(pad) {}
+	    ResultsManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const bool ), const DOM::Entry & e, doublePhaseFunc p, doubleEntryPhaseFunc q=0, const bool pad=false ) : _f(f), _e(e), _p(p), _q(q), _pad(pad) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const bool );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const bool );
 	    const DOM::Entry & _e;
 	    const doublePhaseFunc _p;
 	    const doubleEntryPhaseFunc _q;
 	    const bool _pad;
-	    friend ostream& operator<<(ostream & os, const ResultsManip& m ) { return m._f(os,m._e,m._p,m._q,m._pad); }
+	    friend std::ostream& operator<<(std::ostream & os, const ResultsManip& m ) { return m._f(os,m._e,m._p,m._q,m._pad); }
 	};
 
 	class ResultsConfidenceManip {
 	public:
-	    ResultsConfidenceManip( ostream& (*f)(ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const ConfidenceIntervals*, const bool ), const DOM::Entry & e, const doublePhaseFunc p, const doubleEntryPhaseFunc q, const ConfidenceIntervals* c, const bool pad=false ) : _f(f), _e(e), _p(p), _q(q), _c(c), _pad(pad) {}
+	    ResultsConfidenceManip( std::ostream& (*f)(std::ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const ConfidenceIntervals*, const bool ), const DOM::Entry & e, const doublePhaseFunc p, const doubleEntryPhaseFunc q, const ConfidenceIntervals* c, const bool pad=false ) : _f(f), _e(e), _p(p), _q(q), _c(c), _pad(pad) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const ConfidenceIntervals*, const bool );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Entry&, const doublePhaseFunc, const doubleEntryPhaseFunc, const ConfidenceIntervals*, const bool );
 	    const DOM::Entry & _e;
 	    const doublePhaseFunc _p;
 	    const doubleEntryPhaseFunc _q;
 	    const ConfidenceIntervals* _c;
 	    const bool _pad;
-	    friend ostream& operator<<(ostream & os, const ResultsConfidenceManip& m ) { return m._f(os,m._e,m._p,m._q,m._c,m._pad); }
+	    friend std::ostream& operator<<(std::ostream & os, const ResultsConfidenceManip& m ) { return m._f(os,m._e,m._p,m._q,m._c,m._pad); }
 	};
 
 	class TaskManip {
 	public:
-	    TaskManip( ostream& (*f)(ostream&, const DOM::Task& ), const DOM::Task& t ) : _f(f), _t(t) {}
+	    TaskManip( std::ostream& (*f)(std::ostream&, const DOM::Task& ), const DOM::Task& t ) : _f(f), _t(t) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Task& );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Task& );
 	    const DOM::Task& _t;
-	    friend ostream& operator<<(ostream & os, const TaskManip& m ) { return m._f(os,m._t); }
+	    friend std::ostream& operator<<(std::ostream & os, const TaskManip& m ) { return m._f(os,m._t); }
 	};
 
 	class TaskResultsManip {
 	public:
-	    TaskResultsManip( ostream& (*f)(ostream&, const DOM::Task&, const doubleTaskFunc, const bool ), const DOM::Task & t, const doubleTaskFunc p, const bool pad=false ) : _f(f), _t(t), _p(p), _pad(pad) {}
+	    TaskResultsManip( std::ostream& (*f)(std::ostream&, const DOM::Task&, const doubleTaskFunc, const bool ), const DOM::Task & t, const doubleTaskFunc p, const bool pad=false ) : _f(f), _t(t), _p(p), _pad(pad) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Task&, const doubleTaskFunc, const bool );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Task&, const doubleTaskFunc, const bool );
 	    const DOM::Task & _t;
 	    const doubleTaskFunc _p;
 	    const bool _pad;
-	    friend ostream& operator<<(ostream & os, const TaskResultsManip& m ) { return m._f(os,m._t,m._p,m._pad); }
+	    friend std::ostream& operator<<(std::ostream & os, const TaskResultsManip& m ) { return m._f(os,m._t,m._p,m._pad); }
 	};
 
 	class TaskResultsConfidenceManip {
 	public:
-	    TaskResultsConfidenceManip( ostream& (*f)(ostream&, const DOM::Task&, const doubleTaskFunc, const ConfidenceIntervals*, const bool ), const DOM::Task & t, const doubleTaskFunc p, const ConfidenceIntervals* c, const bool pad=false ) : _f(f), _t(t), _p(p), _c(c), _pad(pad) {}
+	    TaskResultsConfidenceManip( std::ostream& (*f)(std::ostream&, const DOM::Task&, const doubleTaskFunc, const ConfidenceIntervals*, const bool ), const DOM::Task & t, const doubleTaskFunc p, const ConfidenceIntervals* c, const bool pad=false ) : _f(f), _t(t), _p(p), _c(c), _pad(pad) {}
 	private:
-	    ostream& (*_f)( ostream&, const DOM::Task&, const doubleTaskFunc, const ConfidenceIntervals*, const bool );
+	    std::ostream& (*_f)( std::ostream&, const DOM::Task&, const doubleTaskFunc, const ConfidenceIntervals*, const bool );
 	    const DOM::Task & _t;
 	    const doubleTaskFunc _p;
 	    const ConfidenceIntervals* _c;
 	    const bool _pad;
-	    friend ostream& operator<<(ostream & os, const TaskResultsConfidenceManip& m ) { return m._f(os,m._t,m._p,m._c,m._pad); }
-	};
-
-	class TimeManip {
-	public:
-	    TimeManip( ostream& (*f)(ostream&, const clock_t ), const clock_t t ) : _f(f), _t(t) {}
-	private:
-	    ostream& (*_f)( ostream&, const clock_t );
-	    const clock_t _t;
-	    friend ostream& operator<<(ostream & os, const TimeManip& m ) { return m._f(os,m._t); }
+	    friend std::ostream& operator<<(std::ostream & os, const TaskResultsConfidenceManip& m ) { return m._f(os,m._t,m._p,m._c,m._pad); }
 	};
 
 	class UnsignedManip {
 	public:
-	    UnsignedManip( ostream& (*f)(ostream&, const unsigned int ), const unsigned int n ) : _f(f), _n(n) {}
+	    UnsignedManip( std::ostream& (*f)(std::ostream&, const unsigned int ), const unsigned int n ) : _f(f), _n(n) {}
 	private:
-	    ostream& (*_f)( ostream&, const unsigned int );
+	    std::ostream& (*_f)( std::ostream&, const unsigned int );
 	    const unsigned int _n;
-	    friend ostream& operator<<(ostream & os, const UnsignedManip& m ) { return m._f(os,m._n); }
+	    friend std::ostream& operator<<(std::ostream & os, const UnsignedManip& m ) { return m._f(os,m._n); }
 	};
 
+	class IsSetAndGTManip {
+	public:
+	    IsSetAndGTManip( std::ostream& (*f)(std::ostream&, const std::string&, const DOM::ExternalVariable *, double ), const std::string& s, const DOM::ExternalVariable * v, double d ) : _f(f), _s(s), _v(v), _d(d) {}
+	private:
+	    std::ostream& (*_f)( std::ostream&, const std::string&, const DOM::ExternalVariable *, double );
+	    const std::string& _s;
+	    const DOM::ExternalVariable * _v;
+	    double _d;
+	    friend std::ostream& operator<<(std::ostream & os, const IsSetAndGTManip& m ) { return m._f(os,m._s,m._v,m._d); }
+	};
+
+	class ExtvarPrintingManip {
+	public:
+	    ExtvarPrintingManip( std::ostream& (*f)(std::ostream&, const DOM::ExternalVariable *, double ), const DOM::ExternalVariable * v, double d ) : _f(f), _v(v), _d(d) {}
+	private:
+	    std::ostream& (*_f)( std::ostream&, const DOM::ExternalVariable *, double );
+	    const DOM::ExternalVariable * _v;
+	    double _d;
+	    friend std::ostream& operator<<(std::ostream & os, const ExtvarPrintingManip& m ) { return m._f(os,m._v,m._d); }
+	};
 
 	/* ------------------------------------------------------------------------ */
 
 	class Output {
 	public:
-	    Output( const DOM::Document&, const map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true, bool print_variances=true, bool print_histograms=true );
+	    Output( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true, bool print_variances=true, bool print_histograms=true );
 	    virtual ~Output();
-	    virtual ostream& print( ostream& output ) const;
+	    virtual std::ostream& print( std::ostream& output ) const;
 
 	protected:
-	    virtual ostream& printPreamble( ostream& output ) const;
-	    virtual ostream& printInput( ostream& output ) const;
-	    virtual ostream& printResults( ostream& output ) const;
-	    virtual ostream& printPostamble( ostream& output ) const { return output; }
+	    virtual std::ostream& printPreamble( std::ostream& output ) const;
+	    virtual std::ostream& printInput( std::ostream& output ) const;
+	    virtual std::ostream& printResults( std::ostream& output ) const;
+	    virtual std::ostream& printPostamble( std::ostream& output ) const { return output; }
 
 	private:
 	    Output( const Output& );
@@ -265,58 +266,62 @@ namespace LQIO {
 
 	protected:
 	    const DOM::Document& getDOM() const { return _document; }
-	    static ostream& newline( ostream& output );
-	    static ostream& textbf( ostream& output );
-	    static ostream& textrm( ostream& output );
-	    static ostream& textit( ostream& output );
+	    static std::ostream& newline( std::ostream& output );
+	    static std::ostream& textbf( std::ostream& output );
+	    static std::ostream& textrm( std::ostream& output );
+	    static std::ostream& textit( std::ostream& output );
 
 	protected:
 	    const DOM::Document& _document;
-	    const map<unsigned, DOM::Entity *>& _entities;
+	    const std::map<unsigned, DOM::Entity *>& _entities;
 
 	private:
 	    const bool _print_variances;
 	    const bool _print_histograms;
 
 	public:
-	    static UnsignedManip phase_header( const unsigned n );
-	    static DOM::StringManip hold_header( const std::string& s );
-	    static DOM::StringManip rwlock_header( const std::string& s );
-	    static DOM::StringManip call_header( const std::string& s );
+	    static UnsignedManip phase_header( const unsigned n )	  { return SRVN::UnsignedManip( &SRVN::Output::phaseHeader, n ); }
+	    static DOM::StringManip hold_header( const std::string& s )	  { return DOM::StringManip( &SRVN::Output::holdHeader, s ); }
+	    static DOM::StringManip rwlock_header( const std::string& s ) { return DOM::StringManip( &SRVN::Output::rwlockHeader, s ); }
+	    static DOM::StringManip call_header( const std::string& s )   { return DOM::StringManip( &SRVN::Output::callHeader, s ); }
 
 	private:
-	    static DOM::StringManip task_header( const std::string& s );
-	    static DOM::StringManip entry_header( const std::string& s );
-	    static DOM::StringManip activity_header( const std::string& s );
+	    static DOM::StringManip task_header( const std::string& s )     { return DOM::StringManip( &SRVN::Output::taskHeader, s ); }    
+	    static DOM::StringManip entry_header( const std::string& s )    { return DOM::StringManip( &SRVN::Output::entryHeader, s ); }   
+	    static DOM::StringManip activity_header( const std::string& s ) { return DOM::StringManip( &SRVN::Output::activityHeader, s ); }
 
-	    static ostream& callHeader( ostream& output, const std::string& s );
-	    static ostream& taskHeader( ostream& output, const std::string& s );
-	    static ostream& entryHeader( ostream& output, const std::string& s );
-	    static ostream& activityHeader( ostream& output, const std::string& s );
-	    static ostream& phaseHeader( ostream& output, unsigned int n );
-	    static ostream& holdHeader( ostream& output, const std::string& s );
-	    static ostream& rwlockHeader( ostream& output, const std::string& s );
+	    static std::ostream& callHeader( std::ostream& output, const std::string& s );
+	    static std::ostream& taskHeader( std::ostream& output, const std::string& s );
+	    static std::ostream& entryHeader( std::ostream& output, const std::string& s );
+	    static std::ostream& activityHeader( std::ostream& output, const std::string& s );
+	    static std::ostream& phaseHeader( std::ostream& output, unsigned int n );
+	    static std::ostream& holdHeader( std::ostream& output, const std::string& s );
+	    static std::ostream& rwlockHeader( std::ostream& output, const std::string& s );
 	};
 
 	class Parseable : public Output {
 
 	public:
-	    Parseable( const DOM::Document&, const map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
+	    Parseable( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
 	    virtual ~Parseable();
-	    virtual ostream& print( ostream& output ) const;
+	    virtual std::ostream& print( std::ostream& output ) const;
 
 	private:
 	    Parseable( const Parseable& );
 	    Parseable& operator=( const Parseable& );
 
 	protected:
-	    virtual ostream& printPreamble( ostream& output ) const;
-	    virtual ostream& printResults( ostream& output ) const;
+	    virtual std::ostream& printPreamble( std::ostream& output ) const;
+	    virtual std::ostream& printResults( std::ostream& output ) const;
+	    static DOM::StringManip print_comment( const std::string& s )  { return DOM::StringManip( &SRVN::Parseable::printComment, s ); }
+
+	private:
+	    static std::ostream& printComment( std::ostream& output, const std::string& s );
 	};
 
 	class RTF : public Output {
 	public:
-	    RTF( const DOM::Document&, const map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
+	    RTF( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool print_confidence_intervals=true );
 	    virtual ~RTF();
 
 	private:
@@ -324,13 +329,13 @@ namespace LQIO {
 	    RTF& operator=( const RTF& );
 	    
 	protected:
-	    virtual ostream& printPreamble( ostream& output ) const;
-	    virtual ostream& printPostamble( ostream& output ) const;
+	    virtual std::ostream& printPreamble( std::ostream& output ) const;
+	    virtual std::ostream& printPostamble( std::ostream& output ) const;
 	};
 
 	class Input {
 	public:
-	    Input( const DOM::Document&, const map<unsigned, DOM::Entity *>& entities, bool annotate, bool instantiate );
+	    Input( const DOM::Document&, const std::map<unsigned, DOM::Entity *>& entities, bool annotate );
 	    virtual ~Input();
 
 	private:
@@ -338,21 +343,28 @@ namespace LQIO {
 	    Input& operator=( const Input& );
 
 	public:
-	    virtual ostream& print( ostream& output ) const;
-
+	    virtual std::ostream& print( std::ostream& output ) const;
+	    static IsSetAndGTManip is_double_and_gt( const std::string& s, const DOM::ExternalVariable * v, double d )  { return IsSetAndGTManip( &SRVN::Input::doubleAndGreaterThan, s, v, d ); }
+	    static IsSetAndGTManip is_integer_and_gt( const std::string& s, const DOM::ExternalVariable * v, double d ) { return IsSetAndGTManip( &SRVN::Input::integerAndGreaterThan, s, v, d ); }
+	    static ExtvarPrintingManip print_integer_parameter( const DOM::ExternalVariable* v, double d ) { return ExtvarPrintingManip( &SRVN::Input::printIntegerExtvarParameter, v, d ); }
+	    static ExtvarPrintingManip print_double_parameter( const DOM::ExternalVariable* v, double d )  { return ExtvarPrintingManip( &SRVN::Input::printDoubleExtvarParameter, v, d ); }
+	    
 	private:
-	    ostream& printHeader( ostream& output ) const;
-	    ostream& printGeneral( ostream& output ) const;
-	    static bool is_processor( const pair<unsigned, DOM::Entity *>& );
-	    static bool is_task( const pair<unsigned, DOM::Entity *>& );
+	    std::ostream& printHeader( std::ostream& output ) const;
+	    std::ostream& printGeneral( std::ostream& output ) const;
+	    static bool is_processor( const std::pair<unsigned, DOM::Entity *>& );
+	    static bool is_task( const std::pair<unsigned, DOM::Entity *>& );
+	    static std::ostream& doubleAndGreaterThan( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
+	    static std::ostream& integerAndGreaterThan( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
+	    static std::ostream& printIntegerExtvarParameter( std::ostream& output, const DOM::ExternalVariable * v, double d );
+	    static std::ostream& printDoubleExtvarParameter( std::ostream& output, const DOM::ExternalVariable * v, double d );
 
 	protected:
 	    const DOM::Document& _document;
-	    const map<unsigned, DOM::Entity *>& _entities;
+	    const std::map<unsigned, DOM::Entity *>& _entities;
 
 	private:
 	    const bool _annotate;
-	    const bool _instantiate;
 	};
 
 	/* ------------------------------------------------------------------------ */
@@ -363,57 +375,53 @@ namespace LQIO {
 	    friend class RTF;
 
 	public:
-	    ObjectOutput( ostream& output ) : _output(output) {}
+	    ObjectOutput( std::ostream& output ) : _output(output) {}
 	    virtual ~ObjectOutput() {}
 
 	protected:
 	    ObjectOutput& operator=( const ObjectOutput& );
 
-	    static ostream& phaseResults( ostream& output, const DOM::Entry& e, const doublePhaseFunc f, const doubleEntryPhaseFunc g, const bool pad );
-	    static ostream& phaseResultsConfidence( ostream& output, const DOM::Entry & e, const doublePhaseFunc f, const doubleEntryPhaseFunc g, const ConfidenceIntervals * conf, const bool pad );
+	    static std::ostream& phaseResults( std::ostream& output, const DOM::Entry& e, const doublePhaseFunc f, const doubleEntryPhaseFunc g, const bool pad );
+	    static std::ostream& phaseResultsConfidence( std::ostream& output, const DOM::Entry & e, const doublePhaseFunc f, const doubleEntryPhaseFunc g, const ConfidenceIntervals * conf, const bool pad );
 
 	protected:
-	    static EntityNameManip entity_name( const DOM::Entity& anEntity, bool& );
-	    static EntryNameManip entry_name( const DOM::Entry& );
-	    static UnsignedManip activity_separator( const unsigned int offset );
-	    static ConfidenceManip conf_level( const unsigned int, const ConfidenceIntervals::confidence_level_t );
-	    static TimeManip print_time( const clock_t t );
-	    static DoubleManip colour( const double );
+	    static EntityNameManip entity_name( const DOM::Entity& e, bool& b ) { return SRVN::EntityNameManip( &SRVN::ObjectOutput::printEntityName, e, b ); }
+	    static EntryNameManip entry_name( const DOM::Entry& e ) { return SRVN::EntryNameManip( &SRVN::ObjectOutput::printEntryName, e ); }
+	    static UnsignedManip activity_separator( const unsigned int n ) { return SRVN::UnsignedManip( &SRVN::ObjectOutput::activitySeparator, n ); }
+	    static ConfidenceManip conf_level( const unsigned int n, const ConfidenceIntervals::confidence_level_t l ) { return SRVN::ConfidenceManip( &SRVN::ObjectOutput::confLevel,n,l); }
+	    static LQIO::DOM::DoubleManip colour( const double c ) { return LQIO::DOM::DoubleManip( &SRVN::ObjectOutput::textcolour, c ); }
 
-	    static ostream& taskPhaseResults( ostream& output, const DOM::Task & task, const doubleTaskFunc func, const bool pad );
-	    static ostream& task3PhaseResults( ostream& output, const DOM::Task & task, const doubleTaskFunc func, const bool pad );
-	    static ostream& taskPhaseResultsConfidence( ostream& output, const DOM::Task & task, const doubleTaskFunc func, const ConfidenceIntervals * conf, const bool pad );
-	    static ostream& task3PhaseResultsConfidence( ostream& output, const DOM::Task & task, const doubleTaskFunc func, const ConfidenceIntervals * conf, const bool pad );
+	    static std::ostream& taskPhaseResults( std::ostream& output, const DOM::Task & task, const doubleTaskFunc func, const bool pad );
+	    static std::ostream& task3PhaseResults( std::ostream& output, const DOM::Task & task, const doubleTaskFunc func, const bool pad );
+	    static std::ostream& taskPhaseResultsConfidence( std::ostream& output, const DOM::Task & task, const doubleTaskFunc func, const ConfidenceIntervals * conf, const bool pad );
+	    static std::ostream& task3PhaseResultsConfidence( std::ostream& output, const DOM::Task & task, const doubleTaskFunc func, const ConfidenceIntervals * conf, const bool pad );
 
 	protected:
-	    static ostream& printEntityName( ostream& output, const DOM::Entity& entity, bool& print );	/* Print name of parent if print == true */
-	    static ostream& printEntryName( ostream& output, const DOM::Entry& entry );
-	    static ostream& activitySeparator( ostream& output, const unsigned n );
-	    static ostream& confLevel( ostream& output, const unsigned int fill, const ConfidenceIntervals::confidence_level_t level );
-	    static ostream& entryInfo( ostream& output, const DOM::Entry& e, const entryFunc f );
-	    static ostream& phaseInfo( ostream& output, const DOM::Entry& e, const phaseFunc f );
-	    static ostream& phaseTypeInfo( ostream& output, const DOM::Entry& e, const phaseTypeFunc f );
-	    static ostream& entryHistogramInfo( ostream& output, const DOM::Entry& e, const histogramEntryFunc f );
+	    static std::ostream& printEntityName( std::ostream& output, const DOM::Entity& entity, bool& print );	/* Print name of parent if print == true */
+	    static std::ostream& printEntryName( std::ostream& output, const DOM::Entry& entry );
+	    static std::ostream& activitySeparator( std::ostream& output, const unsigned n );
+	    static std::ostream& confLevel( std::ostream& output, const unsigned int fill, const ConfidenceIntervals::confidence_level_t level );
+	    static std::ostream& entryInfo( std::ostream& output, const DOM::Entry& e, const entryFunc f );
+	    static std::ostream& phaseInfo( std::ostream& output, const DOM::Entry& e, const phaseFunc f );
+	    static std::ostream& phaseTypeInfo( std::ostream& output, const DOM::Entry& e, const phaseTypeFunc f );
+	    static std::ostream& entryHistogramInfo( std::ostream& output, const DOM::Entry& e, const histogramEntryFunc f );
 
-	    static ostream& newline( ostream& output ) { if ( __rtf ) { output << "\\"; } output << endl; return output; }
-	    static ostream& textrm( ostream& output ) { if ( __rtf ) { output << "\\f0 "; } return output; }
-	    static ostream& textbf( ostream& output ) { if ( __rtf ) { output << "\\f1 "; } return output; }
-	    static ostream& textit( ostream& output ) { if ( __rtf ) { output << "\\f2 "; } return output; }
-	    static ostream& activityEOF( ostream& output ) { if ( __parseable ) { output << "-1 "; } return output; }
+	    static std::ostream& newline( std::ostream& output ) { if ( __rtf ) { output << "\\"; } output << std::endl; return output; }
+	    static std::ostream& textrm( std::ostream& output ) { if ( __rtf ) { output << "\\f0 "; } return output; }
+	    static std::ostream& textbf( std::ostream& output ) { if ( __rtf ) { output << "\\f1 "; } return output; }
+	    static std::ostream& textit( std::ostream& output ) { if ( __rtf ) { output << "\\f2 "; } return output; }
+	    static std::ostream& activityEOF( std::ostream& output ) { if ( __parseable ) { output << "-1 "; } return output; }
 
 	private:
-	    static ostream& printTime( ostream& output, const clock_t dtime );
-	    static ostream& textcolour( ostream& output, const double );
+	    static std::ostream& textcolour( std::ostream& output, const double );
 
 	public:
 	    static const unsigned int __maxStrLen = 16;		/* Global for print functions */
 	    static const unsigned int __maxDblLen = 12;
 
 	protected:
-	    ostream& _output;
+	    std::ostream& _output;
 
-	    static bool __task_has_think_time;
-	    static bool __task_has_group;
 	    static unsigned int __maxPhase;
 	    static ConfidenceIntervals * __conf95;
 	    static ConfidenceIntervals * __conf99;
@@ -427,23 +435,23 @@ namespace LQIO {
 	    friend class Input;
 
 	public:
-	    ObjectInput( ostream& output, bool instantiate ) : _output(output), _instantiate(instantiate) {}
+	    ObjectInput( std::ostream& output ) : _output(output) {}
 	    virtual ~ObjectInput() {}
 	    
-	    static CallManip number_of_calls( const DOM::Call& call ) { return CallManip( &ObjectInput::printNumberOfCalls, call ); }
-	    static CallManip call_type( const DOM::Call& call ) { return CallManip( &ObjectInput::printCallType, call ); }
+	    static CallManip number_of_calls( const DOM::Call* call ) { return CallManip( &ObjectInput::printNumberOfCalls, call ); }
+	    static CallManip call_type( const DOM::Call* call ) { return CallManip( &ObjectInput::printCallType, call ); }
 
 	private:
 	    ObjectInput& operator=( const ObjectInput& );
 
 	protected:
-	    static ostream& printNumberOfCalls( ostream& output, const DOM::Call& );
-	    static ostream& printCallType( ostream& output, const DOM::Call& );
+	    static std::ostream& printNumberOfCalls( std::ostream& output, const DOM::Call* );
+	    static std::ostream& printCallType( std::ostream& output, const DOM::Call* );
+	    static std::ostream& printObservationVariables( std::ostream& output, const DOM::DocumentObject& );
 	    void printReplyList( const std::vector<DOM::Entry*>& replies ) const;
 
 	protected:
-	    ostream& _output;
-	    const bool _instantiate;
+	    std::ostream& _output;
 
 	    static unsigned int __maxInpLen;			/* for lqn2lqn formatting */
 	    static unsigned int __maxEntLen;			/* Entry name */
@@ -453,7 +461,7 @@ namespace LQIO {
 
 	class DocumentOutput : public ObjectOutput {
 	public:
-	    DocumentOutput( ostream& output ) : ObjectOutput(output) {}
+	    DocumentOutput( std::ostream& output ) : ObjectOutput(output) {}
 	    virtual void operator()( const DOM::Document& ) const;
 	};
 
@@ -461,28 +469,19 @@ namespace LQIO {
 
 	class EntityOutput : public ObjectOutput {
 	public:
-	    EntityOutput( ostream& output ) : ObjectOutput(output) {}
-	    virtual void operator()( const pair<unsigned, DOM::Entity *>& ) const = 0;
+	    EntityOutput( std::ostream& output ) : ObjectOutput(output) {}
 
 	protected:
-	    virtual void printParameters( const DOM::Entity& ) const;
+	    void printCommonParameters( const DOM::Entity& ) const;
 	};
 
 
 	class EntityInput : public ObjectInput {
 	public:
-	    EntityInput( ostream& output, bool instantiate ) : ObjectInput( output, instantiate ) {}
-	    virtual void operator()( const pair<unsigned, DOM::Entity *>& ) const = 0;
+	    EntityInput( std::ostream& output ) : ObjectInput( output ) {}
+	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const = 0;
 
-	    static ostream& print( ostream& output, bool instantiate, const DOM::Entity* e );
-
-	protected:
-	    static EntityManip copies_of( const DOM::Entity & anEntity );
-	    static EntityManip replicas_of( const DOM::Entity & anEntity );
-
-	private:
-	    static ostream& printCopies( ostream& output, const DOM::Entity& e );
-	    static ostream& printReplicas( ostream& output, const DOM::Entity& e );
+	    static std::ostream& print( std::ostream& output, const DOM::Entity* e );
 	};
 
 	/* ------------------------------------------------------------------------ */
@@ -491,14 +490,14 @@ namespace LQIO {
 	protected:
 	    typedef void (ProcessorOutput::*voidProcessorFunc)( const DOM::Processor& ) const;
 
-	    static ResultsManip processor_queueing_time( const DOM::Entry& e );
-	    static ResultsConfidenceManip processor_queueing_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c );
+	    static ResultsManip processor_queueing_time( const DOM::Entry& e ) { return SRVN::ResultsManip( &SRVN::ObjectOutput::phaseResults, e, &DOM::Phase::getResultProcessorWaiting, &DOM::Phase::getResultZero ); }
+	    static ResultsConfidenceManip processor_queueing_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c ) { return SRVN::ResultsConfidenceManip( &SRVN::ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultProcessorWaitingVariance, &DOM::Phase::getResultZero, c, true ); }
 
-	    static ostream& printScheduling( ostream& output, const DOM::Processor& p );
+	    static std::ostream& printScheduling( std::ostream& output, const DOM::Processor& p );
 
 	public:
-	    ProcessorOutput( ostream& output, voidProcessorFunc f ) : EntityOutput(output), _func(f) {}
-	    void operator()( const pair<unsigned,DOM::Entity *>& ) const;
+	    ProcessorOutput( std::ostream& output, voidProcessorFunc f ) : EntityOutput(output), _func(f) {}
+	    void operator()( const std::pair<unsigned,DOM::Entity *>& ) const;
 
 	    void printParameters( const DOM::Processor& ) const;
 	    void printUtilizationAndWaiting( const DOM::Processor& ) const;
@@ -513,15 +512,19 @@ namespace LQIO {
 	protected:
 	    typedef void (ProcessorInput::*voidProcessorFunc)( const DOM::Processor& ) const;
 
-	    static ProcessorManip scheduling_of( const DOM::Processor& p ) { return SRVN::ProcessorManip( &SRVN::ProcessorInput::printScheduling, p ); }
-	    static ProcessorManip rate_of( const DOM::Processor& p ) { return SRVN::ProcessorManip( &SRVN::ProcessorInput::printRate, p ); }
+	    static ProcessorManip copies_of( const DOM::Processor & p )    { return ProcessorManip( &ProcessorInput::printCopies, p ); }  
+	    static ProcessorManip rate_of( const DOM::Processor& p ) 	   { return ProcessorManip( &ProcessorInput::printRate, p ); }
+	    static ProcessorManip replicas_of( const DOM::Processor& p )   { return ProcessorManip( &ProcessorInput::printReplicas, p ); }
+	    static ProcessorManip scheduling_of( const DOM::Processor& p ) { return ProcessorManip( &ProcessorInput::printScheduling, p ); }
 
-	    static ostream& printRate( ostream& output, const DOM::Processor& p );
-	    static ostream& printScheduling( ostream& output, const DOM::Processor& p );
+	    static std::ostream& printCopies( std::ostream& output, const DOM::Processor& p );
+	    static std::ostream& printRate( std::ostream& output, const DOM::Processor& p );
+	    static std::ostream& printReplicas( std::ostream& output, const DOM::Processor& p );
+	    static std::ostream& printScheduling( std::ostream& output, const DOM::Processor& p );
 
 	public:
-	    ProcessorInput( ostream& output, bool instantiate, voidProcessorFunc f ) : EntityInput(output,instantiate), _func(f) {}
-	    void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    ProcessorInput( std::ostream& output, voidProcessorFunc f ) : EntityInput(output), _func(f) {}
+	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	    void print( const DOM::Processor& ) const;
 
@@ -536,8 +539,8 @@ namespace LQIO {
 	    typedef void (GroupOutput::*voidGroupFunc)( const LQIO::DOM::Group& ) const;
 
 	public:
-	    GroupOutput( ostream& output, voidGroupFunc f ) : ObjectOutput(output), _func(f) {}
-	    void operator()( const pair<const string,LQIO::DOM::Group*>& ) const;
+	    GroupOutput( std::ostream& output, voidGroupFunc f ) : ObjectOutput(output), _func(f) {}
+	    void operator()( const std::pair<const std::string,LQIO::DOM::Group*>& ) const;
 
 	    void printParameters( const LQIO::DOM::Group& ) const;
 
@@ -550,8 +553,8 @@ namespace LQIO {
 	    typedef void (GroupInput::*voidGroupFunc)( const LQIO::DOM::Group& ) const;
 
 	public:
-	    GroupInput( ostream& output, bool instantiate, voidGroupFunc f ) : ObjectInput(output,instantiate), _func(f) {}
-	    void operator()( const pair<const string,LQIO::DOM::Group*>& ) const;
+	    GroupInput( std::ostream& output, voidGroupFunc f ) : ObjectInput(output), _func(f) {}
+	    void operator()( const std::pair<const std::string,LQIO::DOM::Group*>& ) const;
 
 	    void printParameters( const LQIO::DOM::Group& ) const;
 	    void print( const DOM::Group& ) const;
@@ -567,18 +570,19 @@ namespace LQIO {
 	    typedef void (TaskOutput::*voidTaskFunc)( const DOM::Task& ) const;
 
 	private:
-	    static ResultsManip entry_utilization( const DOM::Entry& e );
-	    static TaskResultsManip task_utilization( const DOM::Task& t );
-	    static ResultsConfidenceManip entry_utilization_confidence( const DOM::Entry& e, const ConfidenceIntervals * c );
-	    static TaskResultsConfidenceManip task_utilization_confidence( const DOM::Task& t, const ConfidenceIntervals * c );
+	    static ResultsManip entry_utilization( const DOM::Entry& e )   { return ResultsManip( &ObjectOutput::phaseResults, e, &DOM::Phase::getResultUtilization, &DOM::Entry::getResultPhasePUtilization, true ); }
+	    static TaskResultsManip task_utilization( const DOM::Task& t ) { return TaskResultsManip( &ObjectOutput::taskPhaseResults, t, &DOM::Task::getResultPhasePUtilization, true ); }			     
+	    static ResultsConfidenceManip entry_utilization_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )   { return ResultsConfidenceManip( &ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultUtilizationVariance, &DOM::Entry::getResultPhasePUtilizationVariance, c, true ); }
+	    static TaskResultsConfidenceManip task_utilization_confidence( const DOM::Task& t, const ConfidenceIntervals * c ) { return TaskResultsConfidenceManip( &ObjectOutput::taskPhaseResultsConfidence, t, &DOM::Task::getResultPhasePUtilizationVariance, c, true ); }				       
+
 	    static TaskResultsManip holding_time( const DOM::Task& t );
 	    static TaskResultsConfidenceManip holding_time_confidence( const DOM::Task& t, const ConfidenceIntervals * c );
 	    static TaskResultsManip holding_time_variance( const DOM::Task& t );
 	    static TaskResultsConfidenceManip holding_time_variance_confidence( const DOM::Task& t, const ConfidenceIntervals * c );
 
 	public:
-	    TaskOutput( ostream& output, voidTaskFunc f ) : EntityOutput(output), _func(f) {}
-	    void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    TaskOutput( std::ostream& output, voidTaskFunc f ) : EntityOutput(output), _func(f) {}
+	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	    void printParameters( const DOM::Task& ) const;
 	    void printScheduling( const DOM::Task& ) const;
@@ -597,26 +601,28 @@ namespace LQIO {
 	    typedef void (TaskInput::*voidTaskFunc)( const DOM::Task& ) const;
 
 	protected:
-	    static TaskManip scheduling_of( const DOM::Task & t )  { return SRVN::TaskManip( &SRVN::TaskInput::printScheduling, t ); }
-	    static TaskManip copies_of( const DOM::Task & t )      { return SRVN::TaskManip( &SRVN::TaskInput::printCopies, t ); }
-	    static TaskManip entries_of( const DOM::Task& t )      { return SRVN::TaskManip( &SRVN::TaskInput::printEntryList, t ); }
-	    static TaskManip group_of( const DOM::Task& t )        { return SRVN::TaskManip( &SRVN::TaskInput::printGroup, t ); }
-	    static TaskManip priority_of( const DOM::Task& t )     { return SRVN::TaskManip( &SRVN::TaskInput::printPriority, t ); }
-	    static TaskManip queue_length_of( const DOM::Task& t ) { return SRVN::TaskManip( &SRVN::TaskInput::printQueueLength, t ); }
-	    static TaskManip think_time_of( const DOM::Task & t )  { return SRVN::TaskManip( &SRVN::TaskInput::printThinkTime, t ); }
+	    static TaskManip copies_of( const DOM::Task & t )      { return TaskManip( &TaskInput::printCopies, t ); }
+	    static TaskManip entries_of( const DOM::Task& t )      { return TaskManip( &TaskInput::printEntryList, t ); }
+	    static TaskManip group_of( const DOM::Task& t )        { return TaskManip( &TaskInput::printGroup, t ); }
+	    static TaskManip priority_of( const DOM::Task& t )     { return TaskManip( &TaskInput::printPriority, t ); }
+	    static TaskManip queue_length_of( const DOM::Task& t ) { return TaskManip( &TaskInput::printQueueLength, t ); }
+	    static TaskManip replicas_of( const DOM::Task & t )    { return TaskManip( &TaskInput::printReplicas, t ); }
+	    static TaskManip scheduling_of( const DOM::Task & t )  { return TaskManip( &TaskInput::printScheduling, t ); }
+	    static TaskManip think_time_of( const DOM::Task & t )  { return TaskManip( &TaskInput::printThinkTime, t ); }
 
 	private:
-	    static ostream& printCopies( ostream& output, const DOM::Task& t );
-	    static ostream& printEntryList( ostream& output,  const DOM::Task& t );
-	    static ostream& printGroup( ostream& output,  const DOM::Task& t );
-	    static ostream& printPriority( ostream& output,  const DOM::Task& t );
-	    static ostream& printQueueLength( ostream& output,  const DOM::Task& t );
-	    static ostream& printScheduling( ostream& output, const DOM::Task& t );
-	    static ostream& printThinkTime( ostream& output,  const DOM::Task & t );
+	    static std::ostream& printCopies( std::ostream& output, const DOM::Task& t );
+	    static std::ostream& printEntryList( std::ostream& output,  const DOM::Task& t );
+	    static std::ostream& printGroup( std::ostream& output,  const DOM::Task& t );
+	    static std::ostream& printPriority( std::ostream& output,  const DOM::Task& t );
+	    static std::ostream& printQueueLength( std::ostream& output,  const DOM::Task& t );
+	    static std::ostream& printReplicas( std::ostream& output, const DOM::Task& t );
+	    static std::ostream& printScheduling( std::ostream& output, const DOM::Task& t );
+	    static std::ostream& printThinkTime( std::ostream& output,  const DOM::Task & t );
 
 	public:
-	    TaskInput( ostream& output, bool instantiate, voidTaskFunc f ) : EntityInput(output,instantiate), _func(f) {}
-	    void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    TaskInput( std::ostream& output, voidTaskFunc f ) : EntityInput(output), _func(f) {}
+	    void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	    void print( const DOM::Task& ) const;
 	    void printEntryInput( const DOM::Task& ) const;
@@ -634,16 +640,16 @@ namespace LQIO {
 	    typedef void (EntryOutput::*voidActivityFunc)( const DOM::Activity& ) const;
 	    typedef bool (EntryOutput::*testActivityFunc)( const DOM::Activity& ) const;
 
-	    static PhaseManip coefficient_of_variation( const DOM::Entry& e );
-	    static ResultsManip max_service_time( const DOM::Entry& e );
-	    static EntryManip open_arrivals( const DOM::Entry& e );
-	    static PhaseTypeManip phase_type( const DOM::Entry& e );
-	    static PhaseManip service_demand( const DOM::Entry& e );
-	    static PhaseManip think_time( const DOM::Entry& e );
+	    static PhaseManip coefficient_of_variation( const DOM::Entry& e ) { return PhaseManip( &ObjectOutput::phaseInfo, e, &DOM::Phase::getCoeffOfVariationSquared ); }
+	    static ResultsManip max_service_time( const DOM::Entry& e )	      { return ResultsManip( &ObjectOutput::phaseResults, e, &DOM::Phase::getMaxServiceTime ); }	  
+	    static EntryManip open_arrivals( const DOM::Entry& e )	      { return EntryManip( &ObjectOutput::entryInfo, e, &DOM::Entry::getOpenArrivalRate ); }	  
+	    static PhaseTypeManip phase_type( const DOM::Entry& e )	      { return PhaseTypeManip( &ObjectOutput::phaseTypeInfo, e, &DOM::Phase::getPhaseTypeFlag ); }  
+	    static PhaseManip service_demand( const DOM::Entry& e )	      { return PhaseManip( &ObjectOutput::phaseInfo, e, &DOM::Phase::getServiceTime ); }		  
+	    static PhaseManip think_time( const DOM::Entry& e )		      { return PhaseManip( &ObjectOutput::phaseInfo, e, &DOM::Phase::getThinkTime ); }		  
 
 	public:
-	    EntryOutput( ostream& output, const voidEntryFunc ef, const voidActivityFunc af=0, const testActivityFunc tf=0 ) : ObjectOutput(output), _entryFunc(ef), _activityFunc(af), _testFunc(tf) {}
-	    virtual void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    EntryOutput( std::ostream& output, const voidEntryFunc ef, const voidActivityFunc af=0, const testActivityFunc tf=0 ) : ObjectOutput(output), _entryFunc(ef), _activityFunc(af), _testFunc(tf) {}
+	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	    /* Input values */
 
@@ -669,6 +675,7 @@ namespace LQIO {
 	    void printEntryMaxServiceTimeExceeded( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printEntryVarianceServiceTime( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printOpenQueueWait( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
+	    void printForwardingWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 
 	    bool testActivityMaxServiceTimeExceeded( const DOM::Activity &activity ) const;
 	    void printActivityServiceTime( const DOM::Activity &activity ) const;
@@ -676,12 +683,13 @@ namespace LQIO {
 	    void printActivityVarianceServiceTime( const DOM::Activity &activity ) const;
 
 	protected:
-	    static ResultsManip service_time( const DOM::Entry& e );
-	    static ResultsManip service_time_exceeded( const DOM::Entry& e );
-	    static ResultsConfidenceManip service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c );
-	    static ResultsConfidenceManip service_time_exceeded_confidence( const DOM::Entry& e, const ConfidenceIntervals * c );
-	    static ResultsManip variance_service_time( const DOM::Entry& e );
-	    static ResultsConfidenceManip variance_service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c );
+	    static ResultsManip service_time( const DOM::Entry& e )          { return ResultsManip( &ObjectOutput::phaseResults, e, &DOM::Phase::getResultServiceTime, &DOM::Entry::getResultPhasePServiceTime, false ); }
+	    static ResultsManip service_time_exceeded( const DOM::Entry& e ) { return ResultsManip( &ObjectOutput::phaseResults, e, &DOM::Phase::getResultMaxServiceTimeExceeded, 0 ); }							
+	    static ResultsManip variance_service_time( const DOM::Entry& e ) { return ResultsManip( &ObjectOutput::phaseResults, e, &DOM::Phase::getResultVarianceServiceTime, &DOM::Entry::getResultPhasePVarianceServiceTime, true ); }
+
+	    static ResultsConfidenceManip service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )           { return ResultsConfidenceManip( &ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultServiceTimeVariance, &DOM::Entry::getResultPhasePServiceTimeVariance, c); }		    
+	    static ResultsConfidenceManip service_time_exceeded_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )  { return ResultsConfidenceManip( &ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultMaxServiceTimeExceededVariance, 0, c); }						    
+	    static ResultsConfidenceManip variance_service_time_confidence( const DOM::Entry& e, const ConfidenceIntervals * c )  { return ResultsConfidenceManip( &ObjectOutput::phaseResultsConfidence, e, &DOM::Phase::getResultVarianceServiceTimeVariance, &DOM::Entry::getResultPhasePVarianceServiceTimeVariance, c); }
 
 	private:
 	    void printActivity( const DOM::Activity &activity, const activityFunc func ) const;
@@ -699,7 +707,7 @@ namespace LQIO {
 	    typedef void (EntryInput::*voidEntryFunc)( const DOM::Entry& ) const;
 
 	public:
-	    EntryInput( ostream& output, bool instantiate, const voidEntryFunc ef ) : ObjectInput(output,instantiate), _entryFunc(ef) {}
+	    EntryInput( std::ostream& output, const voidEntryFunc ef ) : ObjectInput(output), _entryFunc(ef) {}
 	    virtual void operator()( const DOM::Entry * ) const;
 
 	    void print( const DOM::Entry& e ) const;
@@ -714,11 +722,11 @@ namespace LQIO {
 	protected:
 	    typedef void (PhaseInput::*voidPhaseFunc)( const LQIO::DOM::Phase& ) const;
 
-	    PhaseInput( ostream& output, bool instantiate ) : ObjectInput( output, instantiate ), _func(0) {}
+	    PhaseInput( std::ostream& output ) : ObjectInput( output ), _func(0) {}
 
 	public:
-	    PhaseInput( ostream& output, bool instantiate, voidPhaseFunc f ) : ObjectInput(output,instantiate), _func(f) {}
-	    virtual void operator()( const pair<unsigned,DOM::Phase *>& ) const;
+	    PhaseInput( std::ostream& output, voidPhaseFunc f ) : ObjectInput(output), _func(f) {}
+	    virtual void operator()( const std::pair<unsigned,DOM::Phase *>& ) const;
 
 	    void printCoefficientOfVariation( const DOM::Phase& p ) const;
 	    void printMaxServiceTimeExceeded( const DOM::Phase& ) const;
@@ -736,11 +744,10 @@ namespace LQIO {
 	    typedef void (ActivityInput::*voidActivityFunc)( const LQIO::DOM::Activity& ) const;
 
 	public:
-	    ActivityInput( ostream& output, bool instantiate, voidActivityFunc f ) : PhaseInput(output,instantiate), _func(f) {}
-	    virtual void operator()( const pair<string,DOM::Activity *>& ) const;
+	    ActivityInput( std::ostream& output, voidActivityFunc f ) : PhaseInput(output), _func(f) {}
+	    virtual void operator()( const std::pair<std::string,DOM::Activity *>& ) const;
 
 	    void print( const DOM::Activity& a ) const;
-	    void printCalls( const DOM::Activity& a ) const;
 
 	private:
 	    const voidActivityFunc _func;
@@ -752,7 +759,7 @@ namespace LQIO {
 
 	public:
 
-	    ActivityListInput( ostream& output, bool instantiate, voidActivityListFunc f, const unsigned int n ) : ObjectInput(output,instantiate), _func(f), _size(n), _count(0) {}
+	    ActivityListInput( std::ostream& output, voidActivityListFunc f, const unsigned int n ) : ObjectInput(output), _func(f), _size(n), _count(0) {}
 	    virtual void operator()( const DOM::ActivityList * ) const;
 
 	    void print( const DOM::ActivityList& a ) const;
@@ -770,28 +777,28 @@ namespace LQIO {
 	class CallOutput : public ObjectOutput  {
 
 	protected:
-	    typedef void (CallOutput::*voidCallFunc)( const DOM::Call * call ) const;
 	    typedef void (CallOutput::*callConfFPtr)( const DOM::Call * call, const ConfidenceIntervals* ) const;
 
 	    class CallResultsManip {
 	    public:
-		CallResultsManip( ostream& (*f)(ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* ), const CallOutput & c, const DOM::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l=0 ) : _f(f), _c(c), _p(p), _x(x), _conf(l) {}
+		CallResultsManip( std::ostream& (*f)(std::ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* ), const CallOutput & c, const DOM::ForPhase& p, const callConfFPtr x, const ConfidenceIntervals* l=0 ) : _f(f), _c(c), _p(p), _x(x), _conf(l) {}
 	    private:
-		ostream& (*_f)( ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* );
+		std::ostream& (*_f)( std::ostream&, const CallOutput&, const DOM::ForPhase&, const callConfFPtr, const ConfidenceIntervals* );
 		const CallOutput& _c; 
 		const DOM::ForPhase& _p;
 		const callConfFPtr _x;
 		const ConfidenceIntervals* _conf;
-		friend ostream& operator<<(ostream & os, const CallResultsManip& m ) { return m._f(os,m._c,m._p,m._x,m._conf); }
+		friend std::ostream& operator<<(std::ostream & os, const CallResultsManip& m ) { return m._f(os,m._c,m._p,m._x,m._conf); }
 	    };
 
-	    static CallResultsManip print_calls( const CallOutput&, const DOM::ForPhase&c, const callConfFPtr f, const ConfidenceIntervals* l=0 );
+	    static CallResultsManip print_calls( const CallOutput& c, const DOM::ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l=0 ) { return CallResultsManip( &CallOutput::printCalls, c, p, f, l ); }
 
 	public:
-	    CallOutput( ostream& output, const boolCallFunc t, const callConfFPtr m, const callConfFPtr v=0 ) : ObjectOutput(output), _testFunc(t), _meanFunc(m), _confFunc(v) {}
-	    virtual void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    CallOutput( std::ostream& output, const DOM::Call::boolCallFunc t, const callConfFPtr m=NULL, const callConfFPtr v=NULL ) : ObjectOutput(output), _testFunc(t), _meanFunc(m), _confFunc(v), _count(0) {}
+	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	public:
+	    unsigned int getCount() const { return _count; }
 	    void printCallRate( const DOM::Call * call, const ConfidenceIntervals* ) const;
 	    void printCallWaiting( const DOM::Call * call, const ConfidenceIntervals* ) const;
 	    void printCallWaitingConfidence( const DOM::Call * call, const ConfidenceIntervals* ) const;
@@ -801,14 +808,29 @@ namespace LQIO {
 	    void printDropProbabilityConfidence( const DOM::Call * call, const ConfidenceIntervals* conf ) const;
 
 	private:
-	    static ostream& printCalls( ostream&, const CallOutput&c, const DOM::ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l );
+	    static std::ostream& printCalls( std::ostream&, const CallOutput&c, const DOM::ForPhase& p, const callConfFPtr f, const ConfidenceIntervals* l );
 
 	private:
-	    const boolCallFunc _testFunc;
+	    const DOM::Call::boolCallFunc _testFunc;
 	    const callConfFPtr _meanFunc;
 	    const callConfFPtr _confFunc;
+	    mutable unsigned int _count;
 	};
-
+
+	class ActivityCallInput : public ObjectInput {
+	protected:
+	    typedef void (ActivityCallInput::*voidCallFunc)( const LQIO::DOM::Call * ) const;
+
+	public:
+	    ActivityCallInput( std::ostream& output, voidCallFunc f ) : ObjectInput(output), _func(f) {}
+	    virtual void operator()( const DOM::Call* call ) const { (this->*_func)( call ); }
+
+	    void print( const DOM::Call* call ) const;
+
+	private:
+	    const voidCallFunc _func;
+	};
+	
 	/* ------------------------------------------------------------------------ */
 
 	class HistogramOutput : public ObjectOutput {
@@ -816,8 +838,8 @@ namespace LQIO {
 	    typedef void (HistogramOutput::*histogramFunc)( const DOM::Histogram& ) const;
 
 	public:
-	    HistogramOutput( ostream& output, const histogramFunc func ) : ObjectOutput(output), _func(func) {}
-	    virtual void operator()( const pair<unsigned, DOM::Entity *>& ) const;
+	    HistogramOutput( std::ostream& output, const histogramFunc func ) : ObjectOutput(output), _func(func) {}
+	    virtual void operator()( const std::pair<unsigned, DOM::Entity *>& ) const;
 
 	public:
 	    void printHistogram( const DOM::Histogram& ) const;

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 11963 2014-04-10 14:36:42Z greg $
+# $Id: Makefile.am 13492 2020-02-12 16:59:18Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = confidence_intervals.h \
 	dom_activity.h \
@@ -22,11 +22,14 @@ noinst_HEADERS = confidence_intervals.h \
 	getsbopt.h \
 	glblerr.h \
 	input.h \
+	json_document.h \
 	labels.h \
+	picojson.h \
 	srvn_input.h \
 	srvn_output.h \
 	srvn_results.h \
 	srvn_spex.h \
+	submodel_info.h \
 	expat_document.h \
 	xerces_common.h \
 	xerces_document.h \

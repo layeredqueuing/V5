@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 12550 2016-04-06 22:33:52Z greg $
+ * $Id: help.cc 13533 2020-03-12 22:09:07Z greg $
  */
 
 #include <config.h>
@@ -54,14 +54,15 @@ usage ( const char * optarg )
 		s = "--";
 		s += o->name;
 		switch ( o->val ) {
-		case 'o': s += "=FILE"; break;
+		case 'G': s += "=ARG"; break;
 		case 'H': s += "=[dztP]"; break;
-		case 'd': s += "=<debug>"; break;
 		case 'I': s += "=ARG"; break;
+		case 'P': s += "=<pragma>"; break;
+		case 'd': s += "=<debug>"; break;
 		case 'e': s += "=[adiw]"; break;
+		case 'o': s += "=FILE"; break;
 		case 't': s += "=<trace>"; break;
 		case 'z': s += "=<special>"; break;
-		case 'P': s += "=<pragma>"; break;
 
 		case (256+'c'):
 		case (256+'i'):
@@ -195,6 +196,7 @@ Help::initialize()
     option_table['d']     = &Help::flagDebug;
     option_table['e']     = &Help::flagError;
     option_table['f']	  = &Help::flagFast;
+    option_table['G']     = &Help::flagGnuplot;
     option_table['I'] 	  = &Help::flagInputFormat;
     option_table['n']     = &Help::flagNoExecute;
     option_table['o']     = &Help::flagOutput;
@@ -455,6 +457,14 @@ Help::flagFast( ostream& output, bool verbose ) const
 	   << " "  << emph( *this, "mva" ) << "=" << emph( *this, "one-step" )
 	   << ", " << emph( *this, "layering" ) << "=" << emph( *this, "batched" )
 	   << ", " << emph( *this, "multiserver" ) << "=" << emph( *this, "conway" ) << endl;
+    return output;
+}
+
+ostream&
+Help::flagGnuplot( ostream& output, bool verbose ) const
+{
+    output << "This option is used to generate gnuplot(1) output.  The optional argument is a list of" << endl
+	   << "result variables found in the input file.  This option only works for SPEX input." << endl;
     return output;
 }
 
@@ -1652,7 +1662,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
+    output << __comment << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -1950,7 +1960,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
+	   << __comment << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl

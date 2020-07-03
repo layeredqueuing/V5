@@ -97,6 +97,9 @@ namespace LQX {
     /* Obtaining the name of a type */
     const std::string& getTypeName() const;
     std::string description() const;
+
+    /* Output */
+    std::ostream& print( std::ostream& ) const;
     
   public:
     
@@ -124,6 +127,21 @@ namespace LQX {
   /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
   
   class SymbolTable {
+
+    
+    /* Output a single level of the syntax table */
+
+    class DumpLevel {
+	  
+    public:
+    DumpLevel(std::stringstream& ss) : _level(0), _ss(ss) {}
+      void operator()( const std::map<std::string, SymbolAutoRef >& level );
+
+    private:
+      int _level;
+      std::stringstream& _ss;
+    };
+
   public:
     
     /* Constructor and Destructor */
@@ -146,11 +164,6 @@ namespace LQX {
     
   protected:
     
-    /* Output a single level of the syntax table */
-    void dumpLevel(std::string name, std::stringstream& ss, std::map<std::string, SymbolAutoRef >& level);
-    
-  protected:
-    
     /* Symbol table is non-copyable */
     SymbolTable(const SymbolTable& other);
     SymbolTable& operator=(const SymbolTable& other);
@@ -161,7 +174,9 @@ namespace LQX {
     std::vector< std::map<std::string,SymbolAutoRef > > _stack;
     
   };
-  
+
+  inline std::ostream& operator<<( std::ostream& output, const SymbolAutoRef& symbol ) { return symbol->print(output); }
+
 }
 
 #endif /* __SYMBOL_TABLE_H__ */

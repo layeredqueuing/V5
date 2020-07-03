@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 12973 2017-03-30 00:11:11Z greg $
+ * $Id: mva.cc 13580 2020-05-31 12:07:00Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -178,7 +178,7 @@ ostream& operator<<( ostream& output, MVA& model )
  *	U: Station utilization (Storage allocated by subclass)
  */
 
-MVA::MVA( Vector<Server *>& q, const PopVector& N,
+MVA::MVA( Vector<Server *>& q, const Population& N,
 	  const VectorMath<double>& thinkTime, const Vector<unsigned>& prio,
 	  const VectorMath<double>* of )
     : NCust(N), M(q.size()), K(N.size()), Q(q), Z(thinkTime),
@@ -291,7 +291,8 @@ MVA::dimension( const size_t mapMaxOffset )
     }
 
     dimension( P, mapMaxOffset );
-
+    setMaxP();
+    
     maxOffset = mapMaxOffset;
 }
 
@@ -325,12 +326,20 @@ MVA::dimension( PopulationData<double **>& array, const size_t mapMaxOffset )
 	    }
 	}
     }
+    return rc;
+}
 
+
+/*
+ * Set the maximum dimension of the marginals.  It's NOT done in dimension because we may have to redimension two arrays (P and saved_P); the old value is needed.
+ */
+
+void
+MVA::setMaxP()
+{
     for ( unsigned m = 1; m <= M; ++m ) {
 	maxP[m] = Q[m]->marginalProbabilitiesSize();
     }
-
-    return rc;
 }
 
 
@@ -369,6 +378,8 @@ MVA::reset()
 	    X[n][k] = 0.0;
 	}
     }
+
+    setMaxP();
 }
 
 
@@ -417,7 +428,7 @@ MVA::initialize()
  */
 
 void
-MVA::step( const PopVector& N )
+MVA::step( const Population& N )
 {
     stepCount += 1;
     for ( unsigned m = 1; m <= M; ++m ) {
@@ -439,7 +450,7 @@ MVA::step( const PopVector& N )
  */
 
 void
-MVA::step( const PopVector& N, const unsigned currPri )
+MVA::step( const Population& N, const unsigned currPri )
 {
     unsigned m;			/* Station index.		*/
     unsigned e;			/* Entry index.			*/
@@ -529,7 +540,7 @@ MVA::step( const PopVector& N, const unsigned currPri )
  */
 
 void
-MVA::marginalProbabilities( const unsigned m, const PopVector& N )
+MVA::marginalProbabilities( const unsigned m, const Population& N )
 {
     const unsigned J = static_cast<unsigned>(Q[m]->mu());
     if ( J == 0 ) return;
@@ -583,10 +594,10 @@ MVA::marginalProbabilities( const unsigned m, const PopVector& N )
  */
 
 void
-MVA::marginalProbabilities2( const unsigned m, const PopVector& N )
+MVA::marginalProbabilities2( const unsigned m, const Population& N )
 {
-    PopVector I(K);				// Need to sequence over this.
-    PopulationIteratorOffset next( NCust, N );
+    Population I(K);				// Need to sequence over this.
+    Population::IteratorOffset next( NCust, N );
     unsigned i;
     const unsigned n = offset( N );
 
@@ -622,7 +633,6 @@ MVA::marginalProbabilities2( const unsigned m, const PopVector& N )
 }
 
 
-
 /*
  * Return number of customers regardless of class at queue `m'.
  * Subtract 1 customer from class `j'.  Implemented as part of solver
@@ -633,7 +643,7 @@ MVA::marginalProbabilities2( const unsigned m, const PopVector& N )
  */
 
 double
-MVA::sumOf_L_m( const Server& station, const PopVector &N, const unsigned j ) const
+MVA::sumOf_L_m( const Server& station, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -666,7 +676,7 @@ MVA::sumOf_L_m( const Server& station, const PopVector &N, const unsigned j ) co
  */
 
 double
-MVA::sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) const
+MVA::sumOf_SL_m( const Server& station, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -701,7 +711,7 @@ MVA::sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_SQ_m( const Server& station, const PopVector &N, const unsigned j ) const
+MVA::sumOf_SQ_m( const Server& station, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -735,7 +745,7 @@ MVA::sumOf_SQ_m( const Server& station, const PopVector &N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_SU_m( const Server& station, const PopVector &N, const unsigned j ) const
+MVA::sumOf_SU_m( const Server& station, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -766,7 +776,7 @@ MVA::sumOf_SU_m( const Server& station, const PopVector &N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_rU_m( const Server& station, const PopVector& N, const unsigned j ) const
+MVA::sumOf_rU_m( const Server& station, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -798,7 +808,7 @@ MVA::sumOf_rU_m( const Server& station, const PopVector& N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_S2U_m( const Server& station, const unsigned e, const PopVector& N, const unsigned j ) const
+MVA::sumOf_S2U_m( const Server& station, const unsigned e, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -825,7 +835,7 @@ MVA::sumOf_S2U_m( const Server& station, const unsigned e, const PopVector& N, c
  */
 
 double
-MVA::sumOf_S2U_m( const Server& station, const PopVector& N, const unsigned j ) const
+MVA::sumOf_S2U_m( const Server& station, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -856,7 +866,7 @@ MVA::sumOf_S2U_m( const Server& station, const PopVector& N, const unsigned j ) 
  */
 
 double
-MVA::sumOf_S2_m( const Server& station, const PopVector& N, const unsigned j ) const
+MVA::sumOf_S2_m( const Server& station, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -886,7 +896,7 @@ MVA::sumOf_S2_m( const Server& station, const PopVector& N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_U_m( const Server& station, const PopVector& N, const unsigned j ) const
+MVA::sumOf_U_m( const Server& station, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -916,7 +926,7 @@ MVA::sumOf_U_m( const Server& station, const PopVector& N, const unsigned j ) co
  */
 
 double
-MVA::sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability& PrOt, const PopVector &N, const unsigned j ) const
+MVA::sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability& PrOt, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -950,7 +960,7 @@ MVA::sumOf_USPrOt_m( const Server& station, const unsigned e, const Probability&
  */
 
 double
-MVA::sumOf_U2_m( const Server& station, const unsigned k, const PopVector& N, const unsigned j ) const
+MVA::sumOf_U2_m( const Server& station, const unsigned k, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -978,7 +988,7 @@ MVA::sumOf_U2_m( const Server& station, const unsigned k, const PopVector& N, co
  */
 
 double
-MVA::sumOf_U2_m( const Server& station, const PopVector& N, const unsigned j ) const
+MVA::sumOf_U2_m( const Server& station, const Population& N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -1011,7 +1021,7 @@ MVA::sumOf_U2_m( const Server& station, const PopVector& N, const unsigned j ) c
  */
 
 double
-MVA::sumOf_P( const Server& station, const PopVector &N, const unsigned k ) const
+MVA::sumOf_P( const Server& station, const Population &N, const unsigned k ) const
 {
     assert( 0 < k && k <= K );
     if ( N[k] < 1 ) return 0.0;
@@ -1037,7 +1047,7 @@ MVA::sumOf_P( const Server& station, const PopVector &N, const unsigned k ) cons
  */
 
 double
-MVA::sumOf_SP2( const Server& station, const PopVector &N, const unsigned k ) const
+MVA::sumOf_SP2( const Server& station, const Population &N, const unsigned k ) const
 {
     assert( 0 < k && k <= K );
     if ( N[k] < 1 ) return 0.0;
@@ -1045,8 +1055,8 @@ MVA::sumOf_SP2( const Server& station, const PopVector &N, const unsigned k ) co
     const unsigned m   = station.closedIndex;
     const unsigned Nek = offset_e_j(N,k);
 
-    PopulationIteratorOffset next( NCust, N );
-    PopVector I(K);				// Need to sequence over this.
+    Population::IteratorOffset next( NCust, N );
+    Population I(K);				// Need to sequence over this.
 
     /* Iterate over all populations, excluding P(0). */
 
@@ -1068,7 +1078,7 @@ MVA::sumOf_SP2( const Server& station, const PopVector &N, const unsigned k ) co
  */
 
 double
-MVA::sumOf_alphaP( const Server& station, const PopVector &N ) const
+MVA::sumOf_alphaP( const Server& station, const Population &N ) const
 {
     const unsigned J   = static_cast<unsigned>(station.mu());
     if ( J < 2 ) return 0.0;
@@ -1091,7 +1101,7 @@ MVA::sumOf_alphaP( const Server& station, const PopVector &N ) const
  */
 
 double
-MVA::PB( const Server& station, const PopVector &N, const unsigned k ) const
+MVA::PB( const Server& station, const Population &N, const unsigned k ) const
 {
     assert( 0 < k && k <= K );
 
@@ -1099,7 +1109,7 @@ MVA::PB( const Server& station, const PopVector &N, const unsigned k ) const
 
     const unsigned J = station.marginalProbabilitiesSize();
     const unsigned m = station.closedIndex;
-    const unsigned NeK = getPopulationMap()->offset_e_j(N,k);
+    const unsigned NeK = offset_e_j(N,k);
 
     return P[NeK][m][J];
 }
@@ -1111,7 +1121,7 @@ MVA::PB( const Server& station, const PopVector &N, const unsigned k ) const
  */
 
 double
-MVA::PB2( const Server& station, const PopVector &N, const unsigned k ) const
+MVA::PB2( const Server& station, const Population &N, const unsigned k ) const
 {
     const double U1_m   = min( 1.0, sumOf_U_m( station, N, k ) / station.mu() );
     return power( U1_m, static_cast<unsigned>(station.mu()) );
@@ -1128,7 +1138,7 @@ MVA::throughput( const unsigned k ) const
 
 
 double
-MVA::throughput( const unsigned k, const PopVector& N ) const
+MVA::throughput( const unsigned k, const Population& N ) const
 {
     return X[offset(N)][k];
 }
@@ -1264,7 +1274,7 @@ MVA::normalizedThroughput( const Server& station, const unsigned e,  const unsig
  */
 
 double
-MVA::utilization( const unsigned m, const unsigned k, const PopVector& N ) const
+MVA::utilization( const unsigned m, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
@@ -1286,7 +1296,7 @@ MVA::utilization( const unsigned m, const unsigned k, const PopVector& N ) const
  */
 
 double
-MVA::utilization( const unsigned m, const PopVector& N ) const
+MVA::utilization( const unsigned m, const Population& N ) const
 {
     const unsigned n = offset(N);
     const unsigned E = Q[m]->nEntries();
@@ -1308,9 +1318,9 @@ MVA::utilization( const unsigned m, const PopVector& N ) const
  */
 
 double
-MVA::utilization( const Server& station, const PopVector& N ) const
+MVA::utilization( const Server& station, const Population& N ) const
 {
-    const unsigned m   = station.closedIndex;
+    const unsigned m = station.closedIndex;
     const unsigned n = offset(N);
     const unsigned E = station.nEntries();
 
@@ -1348,7 +1358,7 @@ MVA::utilization( const Server& station, const unsigned k ) const
  */
 
 double
-MVA::utilization( const Server& station, const unsigned k, const PopVector& N, const unsigned j ) const
+MVA::utilization( const Server& station, const unsigned k, const Population& N, const unsigned j ) const
 {
     assert( 0 < k && k <= K && 0 < j && j <= K );
 
@@ -1378,7 +1388,7 @@ MVA::utilization( const Server& station, const unsigned k, const PopVector& N, c
  */
 
 double
-MVA::queueLength( const unsigned m, const PopVector& N ) const
+MVA::queueLength( const unsigned m, const Population& N ) const
 {
     const unsigned E   = Q[m]->nEntries();
     const unsigned n   = offset(N);							/* Hoist */
@@ -1401,7 +1411,7 @@ MVA::queueLength( const unsigned m, const PopVector& N ) const
  */
 
 double
-MVA::queueLength( const unsigned m, const unsigned k, const PopVector& N ) const
+MVA::queueLength( const unsigned m, const unsigned k, const Population& N ) const
 {
     const unsigned E   = Q[m]->nEntries();
     const unsigned n   = offset(N);							/* Hoist */
@@ -1422,7 +1432,7 @@ MVA::queueLength( const unsigned m, const unsigned k, const PopVector& N ) const
  */
 
 double
-MVA::queueLength( const Server& station, const PopVector& N ) const
+MVA::queueLength( const Server& station, const Population& N ) const
 {
     const unsigned m   = station.closedIndex;
     const unsigned E   = station.nEntries();
@@ -1465,7 +1475,7 @@ MVA::queueLength( const Server& station, const unsigned k ) const
  */
 
 double
-MVA::queueOnly( const Server& station, const unsigned k, const PopVector& N, const unsigned j ) const
+MVA::queueOnly( const Server& station, const unsigned k, const Population& N, const unsigned j ) const
 {
     assert( 0 < k && k <= K && 0 < j && j <= K );
 
@@ -1480,9 +1490,9 @@ MVA::queueOnly( const Server& station, const unsigned k, const PopVector& N, con
     for ( unsigned e = 1; e <= E; ++e ) {
 	const double service = station.S(e,k);
 	if ( service == 0.0 ) continue;
-	sum += L[Nej][m][e][k] - U[Nej][m][e][k];
+	sum += max( L[Nej][m][e][k] - U[Nej][m][e][k], 0.);	/* Can't have negative length */
     }
-    return max( 0.0, sum );
+    return sum;
 }
 
 
@@ -1532,7 +1542,7 @@ MVA::responseTime( const unsigned k ) const
  */
 
 Positive
-MVA::arrivalRate( const Server& station, const unsigned e, const unsigned k, const PopVector &N ) const
+MVA::arrivalRate( const Server& station, const unsigned e, const unsigned k, const Population &N ) const
 {
     const unsigned n = offset(N);
     Positive retval;
@@ -1570,7 +1580,7 @@ MVA::arrivalRate( const Server& station, const unsigned e, const unsigned k, con
  */
 
 double
-MVA::syncDelta( const Server& station, const unsigned e, const unsigned k, const PopVector& N ) const
+MVA::syncDelta( const Server& station, const unsigned e, const unsigned k, const Population& N ) const
 {
     if ( N[k] == 0 ) return 0.0;
 
@@ -1607,7 +1617,7 @@ MVA::nrFactor( const Server& station, const unsigned e, const unsigned k ) const
  */
 
 double
-MVA::tau_overlap( const Server& station, const unsigned j, const unsigned k, const PopVector& N ) const
+MVA::tau_overlap( const Server& station, const unsigned j, const unsigned k, const Population& N ) const
 {
     double scaling = 1.0;
 
@@ -1630,7 +1640,7 @@ MVA::tau_overlap( const Server& station, const unsigned j, const unsigned k, con
  */
 
 double
-MVA::tau( const Server& station, const unsigned j, const unsigned k, const PopVector& N ) const
+MVA::tau( const Server& station, const unsigned j, const unsigned k, const Population& N ) const
 {
     const unsigned n = offset(N);						/* Hoist */
     if ( N[j] == 0 || !isfinite( X[n][j] ) || !isfinite( X[n][k] ) ) return 1.0;
@@ -1796,16 +1806,15 @@ MVA::printPri( ostream& output ) const
  */
 
 ostream&
-MVA::printL( ostream& output, const PopVector & N ) const
+MVA::printL( ostream& output, const Population & N ) const
 {
+    const unsigned n = offset(N);
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    for ( unsigned k = 1; k <= K; ++k ) {
 		if ( k > 1 ) output << ", ";
-		output << "L_{" << m << "," << e << "," << k << "}" << N << " = " << L[offset(N)][m][e][k];
-		//output << "L_{" << m << e << k << "}" << N << " = " << L[m][e][k][N];
-		output << endl;
+		output << "L_{" << m << "," << e << "," << k << "}" << N << " = " << L[n][m][e][k];
 	    }
 	    output << endl;
 	}
@@ -1828,8 +1837,8 @@ MVA::printW( ostream& output ) const
 	    for ( unsigned k = 1; k <= K; ++k ) {
 		if ( k > 1 ) output << ", ";
 		output << "W_{" << m << "," << e << "," << k << "} = " << Q[m]->W[e][k][0];
-		output << endl;
 	    }
+	    output << endl;
 	}
     }
     return output;
@@ -1841,17 +1850,17 @@ MVA::printW( ostream& output ) const
  */
 
 ostream&
-MVA::printU( ostream& output, const PopVector& N  ) const
+MVA::printU( ostream& output, const Population& N  ) const
 {
-    const unsigned n = getPopulationMap()->offset(N);
+    const unsigned n = offset(N);
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    for ( unsigned k = 1; k <= K; ++k ) {
 		if ( k > 1 ) output << ", ";
 		output << "U_{" << m << "," << e << "," << k << "}" << N << " = " << U[n][m][e][k];
-		output << endl;
 	    }
+	    output << endl;
 	}
     }
     return output;
@@ -1863,13 +1872,13 @@ MVA::printU( ostream& output, const PopVector& N  ) const
  */
 
 ostream&
-MVA::printP( ostream& output, const PopVector & N ) const
+MVA::printP( ostream& output, const Population & N ) const
 {
-    const unsigned n = getPopulationMap()->offset(N);
+    const unsigned n = offset(N);
     for ( unsigned m = 1; m <= M; ++m ) {
 	if ( Q[m]->vectorProbabilities() ) {
-	    PopVector I(K);			// Need to sequence over this.
-	    PopulationIteratorOffset next( NCust, N );
+	    Population I(K);			// Need to sequence over this.
+	    Population::IteratorOffset next( NCust, N );
 	    unsigned i = 0;
 
 	    do {
@@ -1904,11 +1913,11 @@ MVA::printP( ostream& output, const PopVector & N ) const
  */
 
 ostream&
-MVA::printVectorP( ostream& output, const unsigned m, const PopVector& N ) const
+MVA::printVectorP( ostream& output, const unsigned m, const Population& N ) const
 {
     const int width = output.precision() + 2;
-    PopVector I(K);			// Need to sequence over this.
-    PopulationIteratorOffset next( NCust, N );
+    Population I(K);			// Need to sequence over this.
+    Population::IteratorOffset next( NCust, N );
     unsigned i = 0;
 
     const unsigned n = offset(N);							/* Hoist */
@@ -1949,7 +1958,7 @@ MVA::printVectorP( ostream& output, const unsigned m, const PopVector& N ) const
 
 /* ---------------------------- Exact MVA. ---------------------------- */
 
-ExactMVA::ExactMVA( Vector<Server *>&q, const PopVector& N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+ExactMVA::ExactMVA( Vector<Server *>&q, const Population& N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : MVA( q, N, z, prio, of), map(N)
 {
 }
@@ -1964,16 +1973,14 @@ void
 ExactMVA::solve()
 {
     /* Allocate array space and initialize */
+    reset();
     dimension( map.dimension( NCust ) );
     clearCount();
 
-    PopVector N(K);
-    PopulationIterator next( NCust );
-
     /* Let er rip! */
 
-    while ( next( N ) ) {
-	step( N );
+    for ( population_iterator n = NCust.begin(); n != NCust.end(); ++n ) {
+	step( *n );
     }
 }
 
@@ -1984,7 +1991,7 @@ ExactMVA::solve()
  */
 
 Probability
-ExactMVA::priorityInflation( const Server& station, const PopVector &N, const unsigned j ) const
+ExactMVA::priorityInflation( const Server& station, const Population &N, const unsigned j ) const
 {
     const unsigned m = station.closedIndex;
     const unsigned E = station.nEntries();
@@ -1997,8 +2004,8 @@ ExactMVA::priorityInflation( const Server& station, const PopVector &N, const un
 		if ( N[k] == 0 ) continue;
 		const double L_mk = L[n][m][e][k];
 		const Probability delta = fmod(L_mk,1.0);
-		PopVector N_hi(N);
-		PopVector N_lo(N);
+		Population N_hi(N);
+		Population N_lo(N);
 		N_lo[k] -= (unsigned)floor(L_mk);
 		N_hi[k] -= (unsigned)ceil(L_mk);
 		util += (1.0 - delta) * U[offset(N_lo)][m][e][k] + delta * U[offset(N_hi)][m][e][k];
@@ -2010,19 +2017,9 @@ ExactMVA::priorityInflation( const Server& station, const PopVector &N, const un
 
 /* ------------------------- Bard Schweitzer. ------------------------- */
 
-/*
- * Allocate storage and distribute customers to queues.  All populations
- * are of type SpecialPop since we don't need to go through the entire
- * population space.
- */
-
-Schweitzer::Schweitzer( Vector<Server *>&q, const PopVector & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
-    : MVA( q, N, z, prio, of), map(N), c(0), initialized(false), last_L(0)
+SchweitzerCommon::SchweitzerCommon( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+    : MVA( q, N, z, prio, of), termination_test(1.0 / ( 4000 + 16 * N.sum() )), initialized(false), last_L(0)
 {
-    /* Allocate array space and initialize */
-
-    dimension( map.dimension( NCust ) );		/* Set up L, U, X and P */
-
     last_L = new double ** [M+1];
     last_L[0] = 0;
 
@@ -2041,13 +2038,11 @@ Schweitzer::Schweitzer( Vector<Server *>&q, const PopVector & N, const VectorMat
     }
 }
 
-
-
 /*
  * Free storage.
  */
 
-Schweitzer::~Schweitzer()
+SchweitzerCommon::~SchweitzerCommon()
 {
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
@@ -2061,10 +2056,11 @@ Schweitzer::~Schweitzer()
 
 
 void
-Schweitzer::reset() 
+SchweitzerCommon::reset()
 {
     MVA::reset();
 
+    initialized = false;
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 
@@ -2077,12 +2073,14 @@ Schweitzer::reset()
 }
 
 
+
+
 /*
  * Hairy initilalization for marginal probabilties.
  */
 
 void
-Schweitzer::initialize()
+SchweitzerCommon::initialize()
 {
     unsigned m;
     const unsigned n = offset(NCust);						/* Hoist */
@@ -2231,47 +2229,15 @@ Schweitzer::initialize()
 
 
 /*
- * Solve the model.  This member function is very very complicated.
- */
-
-void
-Schweitzer::solve()
-{
-    map.dimension( NCust );			/* Reset ALL associated arrays */
-    clearCount();
-
-    bool reset = !initialized;
-    reset = dimension( P, map.maxOffset() ) || reset;
-    if ( reset ) {
-	for ( unsigned m = 1; m <= M; ++m ) {
-	    maxP[m] = Q[m]->marginalProbabilitiesSize();
-	}
-	initialize();
-	initialized = true;
-    }
-
-    try {
-	core( NCust );
-    }
-    catch ( MVA::iteration_limit& error ) {
-	faultCount += 1;
-    }
-}
-
-
-
-/*
  * Core solver for Bard Schweitzer and Linearizer.
  */
 
 void
-Schweitzer::core( const PopVector& N )
+SchweitzerCommon::core( const Population& N, const unsigned n )
 {
-    double max_delta;
-    const unsigned sum = NCust.sum();
-    const double termination_test = 1.0 / ( 4000 + 16 * sum );
     unsigned i = 0;
-
+    double max_delta;
+    
 #if DEBUG_MVA
     if ( debug_L || debug_P ) cout << "Initially..." << endl;
     //N.print( cout );
@@ -2282,7 +2248,6 @@ Schweitzer::core( const PopVector& N )
     do {
 	unsigned m;
 
-	const unsigned n = map.offset_e_c_e_j(c, 0);			/* Hoist */
 	for ( m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
 	    for ( unsigned e = 1; e <= E; ++e ) {
@@ -2355,7 +2320,7 @@ Schweitzer::core( const PopVector& N )
  */
 
 void
-Schweitzer::estimate_L( const PopVector & N )
+SchweitzerCommon::estimate_L( const Population & N )
 {
     const unsigned n = offset(N);
     for ( unsigned m = 1; m <= M; ++m ) {
@@ -2370,7 +2335,7 @@ Schweitzer::estimate_L( const PopVector & N )
  */
 
 void
-Schweitzer::estimate_Lm( const unsigned m, const PopVector & N, const unsigned n ) const
+SchweitzerCommon::estimate_Lm( const unsigned m, const Population & N, const unsigned n ) const
 {
     const unsigned E = Q[m]->nEntries();
 
@@ -2387,7 +2352,7 @@ Schweitzer::estimate_Lm( const unsigned m, const PopVector & N, const unsigned n
 		if ( !isfinite( L_n_m_e_k ) ) continue;
 
 		const double F  = L_n_m_e_k / N_k;		/* Eq:9 */
-		const double L_ej = max( (N_k - static_cast<double>( k == j )) * (F + D_mekj(m,e,k,j)), 0 );
+		const double L_ej = max( (N_k - static_cast<double>( k == j )) * (F + D_mekj(m,e,k,j)), 0. );
 
 		L[Nej][m][e][k] = L_ej;
 
@@ -2398,32 +2363,6 @@ Schweitzer::estimate_Lm( const unsigned m, const PopVector & N, const unsigned n
 		} else {
 		    U[Nej][m][e][k] = 0.0;
 		}
-	    }
-	}
-    }
-}
-
-/*
- * Find Marginal Probabilities based on fraction `F' of class `k' jobs at
- * station for population `N'.  This routine corresponds to the
- * "estimate" function in Conway.
- */
-
-void
-Schweitzer::estimate_P( const PopVector & N )
-{
-    const unsigned n = map.offset_e_c_e_j(c,0);				/* Hoist */
-
-    for ( unsigned m = 1; m <= M; ++m ) {
-	if ( P[n][m] == 0 ) continue;
-
-	const unsigned J = Q[m]->marginalProbabilitiesSize();
-	for ( unsigned k = 1; k <= K; ++k ) {
-	    if ( N[k] < 1 ) continue;
-	    const unsigned Nek = map.offset_e_c_e_j(c,k);		/* Hoist */
-
-	    for ( unsigned j = 0; j <= J; ++j ) {
-		P[Nek][m][j] = P[n][m][j];
 	    }
 	}
     }
@@ -2445,7 +2384,7 @@ Schweitzer::estimate_P( const PopVector & N )
  */
 
 void
-Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
+SchweitzerCommon::marginalProbabilities( const unsigned m, const Population& N )
 {
     const unsigned n  = offset(N);					/* Hoist */
 
@@ -2512,10 +2451,10 @@ Schweitzer::marginalProbabilities( const unsigned m, const PopVector& N )
  */
 
 void
-Schweitzer::marginalProbabilities2( const unsigned m, const PopVector& N )
+SchweitzerCommon::marginalProbabilities2( const unsigned m, const Population& N )
 {
-    PopVector I(K);				// Need to sequence over this.
-    PopulationIteratorOffset next( NCust, N );
+    Population I(K);				// Need to sequence over this.
+    Population::IteratorOffset next( NCust, N );
     unsigned    i = 0;
     unsigned    n = offset( N );
 
@@ -2563,13 +2502,12 @@ Schweitzer::marginalProbabilities2( const unsigned m, const PopVector& N )
 
 
 
-
 /*
  * Inflation factor for priority MVA.
  */
 
 Probability
-Schweitzer::priorityInflation( const Server& station, const PopVector &N, const unsigned j ) const
+SchweitzerCommon::priorityInflation( const Server& station, const Population &N, const unsigned j ) const
 {
     const unsigned m = station.closedIndex;
     const unsigned E = station.nEntries();
@@ -2591,13 +2529,88 @@ Schweitzer::priorityInflation( const Server& station, const PopVector &N, const 
     return util;
 }
 
+/* ------------------------- Bard Schweitzer. ------------------------- */
+
+/*
+ * Allocate storage and distribute customers to queues.  All populations
+ * are of type SpecialPop since we don't need to go through the entire
+ * population space.
+ */
+
+Schweitzer::Schweitzer( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+    : SchweitzerCommon( q, N, z, prio, of), map(N)
+{
+    /* Allocate array space and initialize */
+
+    dimension( map.dimension( NCust ) );		/* Set up L, U, X and P */
+}
+
+Schweitzer::~Schweitzer()
+{
+}
+
+
+/*
+ * Find Marginal Probabilities based on fraction `F' of class `k' jobs at
+ * station for population `N'.  This routine corresponds to the
+ * "estimate" function in Conway.
+ */
+
+void
+Schweitzer::estimate_P( const Population & N )
+{
+    const unsigned n = offset_e_j(N,0);				/* Hoist */
+
+    for ( unsigned m = 1; m <= M; ++m ) {
+	if ( P[n][m] == 0 ) continue;
+
+	const unsigned J = Q[m]->marginalProbabilitiesSize();
+	for ( unsigned k = 1; k <= K; ++k ) {
+	    if ( N[k] < 1 ) continue;
+	    const unsigned Nek = offset_e_j(N,k);		/* Hoist */
+
+	    for ( unsigned j = 0; j <= J; ++j ) {
+		P[Nek][m][j] = P[n][m][j];
+	    }
+	}
+    }
+}
+
+
+
+/*
+ * Solve the model.  This member function is very very complicated.
+ */
+
+void
+Schweitzer::solve()
+{
+    map.dimension( NCust );				/* Reset ALL associated arrays */
+    clearCount();
+
+    bool reset = !initialized;
+    reset = dimension( P, getMap().maxOffset() ) || reset;
+    if ( reset ) {
+	setMaxP();
+	initialize();
+	initialized = true;
+    }
+
+    try {
+	core( NCust, offset_e_j( NCust, 0 ) );		/* May not need to do this... */
+    }
+    catch ( const MVA::iteration_limit& error ) {
+	faultCount += 1;
+    }
+}
+
 /* -------------------------- One Step MVA. --------------------------- */
 
 /*
  * Constructor...
  */
 
-OneStepMVA::OneStepMVA( Vector<Server *>&q, const PopVector & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+OneStepMVA::OneStepMVA( Vector<Server *>&q, const Population & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : Schweitzer( q, n, z, prio, of)
 {
 }
@@ -2611,16 +2624,14 @@ OneStepMVA::OneStepMVA( Vector<Server *>&q, const PopVector & n, const VectorMat
 void
 OneStepMVA::solve()
 {
-    map.dimension( NCust );			/* Reset ALL associated arrays */
+    map.dimension( NCust );				/* Reset ALL associated arrays */
     clearCount();
 
     bool reset = !initialized;
-    reset = dimension( P, map.maxOffset() ) || reset;
+    reset = dimension( P, getMap().maxOffset() ) || reset;
 
     if ( reset ) {
-	for ( unsigned m = 1; m <= M; ++m ) {
-	    maxP[m] = Q[m]->marginalProbabilitiesSize();
-	}
+	setMaxP();
 	initialize();
 	initialized = true;
     }
@@ -2637,14 +2648,17 @@ OneStepMVA::solve()
  * Allocate storage for D and F variables.  We also need to save L.
  */
 
-Linearizer::Linearizer( Vector<Server *>&q, const PopVector & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
-    : Schweitzer( q, N, z, prio, of), initialized(false)
+Linearizer::Linearizer( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+    : SchweitzerCommon( q, N, z, prio, of), c(0), map(N)
 {
-    saved_L.dimension(map.maxOffset());
-    saved_U.dimension(map.maxOffset());
-    saved_P.dimension(map.maxOffset());
+    dimension( map.dimension( NCust ) );		/* Set up L, U, X and P */
 
-    for ( unsigned n = 0; n < map.maxOffset(); ++n ) {
+    const size_t max_offset = getMap().maxOffset();
+    saved_L.dimension(max_offset);
+    saved_U.dimension(max_offset);
+    saved_P.dimension(max_offset);
+
+    for ( unsigned n = 0; n < max_offset; ++n ) {
 	saved_L[n] = new double ** [M+1];
 	saved_U[n] = new double ** [M+1];
 	saved_P[n] = new double *[M+1];
@@ -2667,7 +2681,8 @@ Linearizer::Linearizer( Vector<Server *>&q, const PopVector & N, const VectorMat
 	}
     }
 
-    dimension( saved_P, map.maxOffset() );		/* Allocate space for maringals */
+    dimension( saved_P, max_offset );		/* Allocate space for maringals */
+//    setMaxP();				/* Done in SchweitzerCommon     */
 
     D    = new double *** [M+1];
     D[0] = 0;
@@ -2690,6 +2705,7 @@ Linearizer::Linearizer( Vector<Server *>&q, const PopVector & N, const VectorMat
 	    }
 	}
     }
+  
 }
 
 
@@ -2700,7 +2716,8 @@ Linearizer::Linearizer( Vector<Server *>&q, const PopVector & N, const VectorMat
 
 Linearizer::~Linearizer()
 {
-    for ( unsigned n = 0; n < map.maxOffset(); n++) {
+    const size_t max_offset = getMap().maxOffset();
+    for ( unsigned n = 0; n < max_offset; n++) {
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
 	    for ( unsigned e = 1; e <= E; ++e ) {
@@ -2736,9 +2753,10 @@ Linearizer::~Linearizer()
 void
 Linearizer::reset() 
 {
-    Schweitzer::reset();
+    SchweitzerCommon::reset();
 
-    for ( unsigned n = 0; n < map.maxOffset(); ++n ) {
+    const size_t max_offset = getMap().maxOffset();
+    for ( unsigned n = 0; n < max_offset; ++n ) {
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    saved_P[n][m] = 0;
 	    saved_L[n][m][0] = 0;
@@ -2776,7 +2794,7 @@ void
 Linearizer::solve()
 {
     unsigned I;
-    PopVector N;			/* Population vector.		*/
+    Population N;			/* Population vector.		*/
 
     map.dimension( NCust );		/* Reset ALL associated arrays */
     clearCount();
@@ -2784,8 +2802,11 @@ Linearizer::solve()
     /* Initialize */
 
     c = 0;
-
     initialize();
+    
+    estimate_L( NCust );
+    estimate_P( NCust );
+    initialized = true;
 
     for ( I = 1; I <= 2 ; ++I ) {
 
@@ -2799,9 +2820,9 @@ Linearizer::solve()
 
 	    save_L();
 	    try {
-		core( N );
+		core( N, offset_e_c_e_j(c, 0) );	/* Hoist */
 	    }
-	    catch ( MVA::iteration_limit& error ) {
+	    catch ( const MVA::iteration_limit& error ) {
 		/* Ignore iteration problems in lower level models */
 	    }
 	    restore_L();
@@ -2814,9 +2835,9 @@ Linearizer::solve()
 
     c = 0;
     try {
-	core( NCust );
+	core( NCust, offset_e_c_e_j(c, 0) );
     }
-    catch ( MVA::iteration_limit& error ) {
+    catch ( const MVA::iteration_limit& error ) {
 	faultCount += 1;
     }
 }
@@ -2829,13 +2850,12 @@ Linearizer::initialize()
     /* BUG 628 -- Recompute iff marginals change. */
 
     bool reset = !initialized;
-    reset = dimension( P, map.maxOffset() ) || reset;		/* Don't short circuit this!!! */
-    reset = dimension( saved_P, map.maxOffset() ) || reset;
+    const size_t max_offset = getMap().maxOffset();
+    reset = dimension( P, max_offset ) || reset;		/* Don't short circuit this!!! */
+    reset = dimension( saved_P, max_offset ) || reset;
     if ( reset ) {
-	for ( unsigned m = 1; m <= M; ++m ) {
-	    maxP[m] = Q[m]->marginalProbabilitiesSize();
-	}
-	Schweitzer::initialize();
+	setMaxP();
+	SchweitzerCommon::initialize();
 	estimate_L( NCust );
 	estimate_P( NCust );
 	initialized = true;
@@ -2852,7 +2872,7 @@ Linearizer::save_L()
     const unsigned nClasses = NCust.size();
 
     for ( unsigned j = 0; j <= nClasses; ++j) {
-	const unsigned n = map.offset_e_c_e_j( c, j );
+	const unsigned n = offset_e_c_e_j( c, j );
 
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
@@ -2886,7 +2906,7 @@ Linearizer::restore_L()
 
     for ( unsigned j = 1; j <= nClasses; ++j ) {
 	//@ Only restore for N-j entries (see Population::restore)
-	const unsigned n = map.offset_e_c_e_j( c, j );
+	const unsigned n = offset_e_c_e_j( c, j );
 
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned E = Q[m]->nEntries();
@@ -2910,13 +2930,41 @@ Linearizer::restore_L()
 
 
 /*
+ * Find Marginal Probabilities based on fraction `F' of class `k' jobs at
+ * station for population `N'.  This routine corresponds to the
+ * "estimate" function in Conway.
+ */
+
+void
+Linearizer::estimate_P( const Population & N )
+{
+    const unsigned n = offset_e_c_e_j(c,0);				/* Hoist */
+
+    for ( unsigned m = 1; m <= M; ++m ) {
+	if ( P[n][m] == 0 ) continue;
+
+	const unsigned J = Q[m]->marginalProbabilitiesSize();
+	for ( unsigned k = 1; k <= K; ++k ) {
+	    if ( N[k] < 1 ) continue;
+	    const unsigned Nek = offset_e_c_e_j(c,k);		/* Hoist */
+
+	    for ( unsigned j = 0; j <= J; ++j ) {
+		P[Nek][m][j] = P[n][m][j];
+	    }
+	}
+    }
+}
+
+
+
+/*
  * Update fraction of jobs at station.
  */
 
 void
-Linearizer::update_Delta( const PopVector & N )
+Linearizer::update_Delta( const Population & N )
 {
-    const unsigned n = map.offset_e_c_e_j(0, 0);			/* Hoist */
+    const unsigned n = offset_e_c_e_j(0, 0);			/* Hoist */
 
     for ( unsigned m = 1; m <= M; ++m ) {
 	if ( !Q[m]->updateD() ) continue;	/* For synch servers. */
@@ -2924,7 +2972,7 @@ Linearizer::update_Delta( const PopVector & N )
 
 	for ( unsigned j = 1; j <= K; ++j ) {
 	    if ( N[j] < 1 ) continue;
-	    const unsigned Nej = map.offset_e_c_e_j(0, j);		/* Hoist */
+	    const unsigned Nej = offset_e_c_e_j(0, j);		/* Hoist */
 
 	    for ( unsigned e = 1; e <= E; ++e ) {
 		for ( unsigned k = 1; k <= K; ++k ) {
@@ -2939,6 +2987,7 @@ Linearizer::update_Delta( const PopVector & N )
 	    }
 	}
     }
+
 #if DEBUG_MVA
     if ( debug_D ) printD( cout, N );
 #endif
@@ -2951,7 +3000,7 @@ Linearizer::update_Delta( const PopVector & N )
  */
 
 ostream&
-Linearizer::printD( ostream& output, const PopVector & N ) const
+Linearizer::printD( ostream& output, const Population & N ) const
 {
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
@@ -2973,7 +3022,7 @@ Linearizer::printD( ostream& output, const PopVector & N ) const
  * Constructor...
  */
 
-OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const PopVector & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const Population & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : Linearizer( q, n, z, prio, of)
 {
 }
@@ -2987,11 +3036,11 @@ OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const PopVector & n, c
 void
 OneStepLinearizer::solve()
 {
-    PopVector N;		/* Population vector.		*/
+    Population N;			/* Population vector.		*/
 
     /* Initialize */
 
-    map.dimension( NCust );			/* Reset ALL associated arrays */
+    map.dimension( NCust );		/* Reset ALL associated arrays 	*/
     clearCount();
 
     c = 0;
@@ -3047,12 +3096,12 @@ OneStepLinearizer::solve()
  * We save computation time at the cost of more storage.
  */
 
-Linearizer2::Linearizer2( Vector<Server *>&q, const PopVector & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+Linearizer2::Linearizer2( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : Linearizer( q, N, z, prio, of)
 {
-    Lm.dimension(map.maxOffset());
+    Lm.dimension(getMap().maxOffset());
 
-    for ( unsigned n = 0; n < map.maxOffset(); ++n ) {
+    for ( unsigned n = 0; n < getMap().maxOffset(); ++n ) {
 	Lm[n] = new double [M+1];
     }
 
@@ -3091,7 +3140,7 @@ Linearizer2::~Linearizer2()
     }
     delete [] D_k;
 
-    for ( unsigned n = 0; n < map.maxOffset(); ++n ) {
+    for ( unsigned n = 0; n < getMap().maxOffset(); ++n ) {
 	delete [] Lm[n];
     }
 }
@@ -3103,15 +3152,15 @@ Linearizer2::~Linearizer2()
  */
 
 void
-Linearizer2::update_Delta( const PopVector & N )
+Linearizer2::update_Delta( const Population & N )
 {
-    const unsigned n = map.offset_e_c_e_j(0, 0);			/* Hoist */
+    const unsigned n = offset_e_c_e_j(0, 0);			/* Hoist */
 
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 
 	for ( unsigned j = 1; j <= K; ++j ) {
-	    const unsigned Nej = map.offset_e_c_e_j(0, j);		/* Hoist */
+	    const unsigned Nej = offset_e_c_e_j(0, j);		/* Hoist */
 	    for ( unsigned e = 1; e <= E; ++e ) {
 
 		D_k[m][e][j] = 0.0;					/* $$$ */
@@ -3145,16 +3194,16 @@ Linearizer2::update_Delta( const PopVector & N )
  */
 
 void
-Linearizer2::estimate_L( const PopVector & N )
+Linearizer2::estimate_L( const Population & N )
 {
-    const unsigned n = map.offset_e_c_e_j(c, 0);			/* Hoist */
+    const unsigned n = offset_e_c_e_j(c, 0);			/* Hoist */
 
     for ( unsigned m = 1; m <= M; ++m ) {
 	const unsigned E = Q[m]->nEntries();
 
 	for ( unsigned j = 1; j <= K; ++j ) {
 	    if ( N[j] < 1 ) continue;
-	    const unsigned Nej = map.offset_e_c_e_j(c, j);		/* Hoist */
+	    const unsigned Nej = offset_e_c_e_j(c, j);		/* Hoist */
 	    Lm[Nej][m] = 0.0;
 	}
 
@@ -3185,7 +3234,7 @@ Linearizer2::estimate_L( const PopVector & N )
 		 * negative.  Fix it.
 		 */
 
-		const unsigned Nej = map.offset_e_c_e_j(c,j);
+		const unsigned Nej = offset_e_c_e_j(c,j);
 		Lm[Nej][m] += max( 0.0, sum + D_k[m][e][j] - temp );
 	    }
 	}
@@ -3202,7 +3251,7 @@ Linearizer2::estimate_L( const PopVector & N )
  */
 
 double
-Linearizer2::sumOf_L_m( const Server&, const PopVector &N, const unsigned j ) const
+Linearizer2::sumOf_L_m( const Server&, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
@@ -3219,12 +3268,12 @@ Linearizer2::sumOf_L_m( const Server&, const PopVector &N, const unsigned j ) co
  */
 
 double
-Linearizer2::sumOf_SL_m( const Server& station, const PopVector &N, const unsigned j ) const
+Linearizer2::sumOf_SL_m( const Server& station, const Population &N, const unsigned j ) const
 {
     assert( 0 < j && j <= K );
 
     if ( N[j] < 1 ) return 0.0;
-    const unsigned Nej = map.offset_e_c_e_j(c,j);
+    const unsigned Nej = offset_e_c_e_j(c,j);
 
     return Lm[Nej][station.closedIndex];
 }

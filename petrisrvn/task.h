@@ -81,9 +81,12 @@ public:
     unsigned int n_threads() const { return _n_threads; }
     unsigned int n_open_tokens() const { return _open_tokens; }
     unsigned int max_queue_length() const { return _max_queue_length; }
+    unsigned int ref_count() const;
     unsigned max_k() const { return _max_k; }
     Task& set_max_k( unsigned int k ) { _max_k = k; return *this; }
-
+    Task& set_proc_queue_count( unsigned int k ) { _proc_queue_count = k; return *this; }
+    unsigned int get_proc_queue_count() const { return _proc_queue_count; }
+    
     virtual bool is_client() const;
     virtual bool is_server() const;
     bool is_single_place_task() const;
@@ -152,6 +155,7 @@ private:
 #if !defined(BUFFER_BY_ENTRY)
     unsigned _open_tokens;			/* Size of queue		*/
 #endif
+    unsigned _proc_queue_count;			/* Size of queue for processor	*/
     unsigned _requestor_no;
 
 public:

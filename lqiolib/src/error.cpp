@@ -10,7 +10,7 @@
  * Error processing for srvn program.
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: error.cpp 11963 2014-04-10 14:36:42Z greg $
+ * $Id: error.cpp 13477 2020-02-08 23:14:37Z greg $
  *
  */
 #include "error.h"
@@ -45,7 +45,7 @@ namespace LQIO {
 	va_start( args, err );
 	verrprintf( stderr, 
 		    LQIO::DOM::Document::io_vars->error_messages[err].severity, 
-		    LQIO::input_file_name, 0, 0,
+		    LQIO::DOM::Document::__input_file_name.c_str(), 0, 0,
 		    LQIO::DOM::Document::io_vars->error_messages[err].message, 
 		    args );
 	va_end( args );
@@ -73,7 +73,7 @@ namespace LQIO {
     {
 	va_list args;
 	va_start( args, fmt );
-	verrprintf( stderr, RUNTIME_ERROR, LQIO::input_file_name, LQIO_lineno, 0, fmt, args );
+	verrprintf( stderr, RUNTIME_ERROR, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0, fmt, args );
 	va_end( args );
     }
 
@@ -84,7 +84,7 @@ namespace LQIO {
     {
 	va_list args;
 	va_start( args, err );
-	verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, LQIO::input_file_name, LQIO_lineno, 0,
+	verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, LQIO::DOM::Document::__input_file_name.c_str(), LQIO_lineno, 0,
 		    LQIO::DOM::Document::io_vars->error_messages[err].message, args );
 	va_end( args );
     }

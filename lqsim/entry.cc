@@ -12,7 +12,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 12595 2016-06-06 16:54:07Z greg $
+ * $Id: entry.cc 13556 2020-05-25 17:39:26Z greg $
  */
 
 #include <parasol.h>
@@ -31,7 +31,6 @@
 #include "instance.h"
 #include "processor.h"
 #include "model.h"
-#include "stack.h"
 #include "pragma.h"
 
 unsigned int open_arrival_count = 0;
@@ -44,24 +43,28 @@ unsigned int open_arrival_count = 0;
 set <Entry *, ltEntry> entry;			/* Entry table.		*/
 Entry * Entry::entry_table[MAX_PORTS+1];	/* Reverse map		*/
 
-Entry::Entry( LQIO::DOM::Entry* aDomEntry, Task * task )
+Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
     : entry_id(::entry.size() + 1),
-      local_id(-1),
       port(-1),
-      activity(0),
-      _dom_entry(aDomEntry),
+      _activity(NULL),
+      _phase(MAX_PHASES),
+      _active(MAX_PHASES),
+      _fwd(),
+      r_cycle(),
+      _local_id(task->n_entries()),
+      _dom(dom),
       _recv(RECEIVE_NONE),
-      _task(task)
+      _task(task),
+      _join_list(NULL)
 {
     entry_table[entry_id] = this;
 
-    if ( aDomEntry ) {
-	for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	    char * activity_name = new char[strlen( name() ) + 16];
-	    (void) sprintf( activity_name, "Entry %s - Ph %d", name(), p );
-	    phase[p].rename( activity_name );
-	    delete [] activity_name;
-	}
+    for ( unsigned p = 0; p < MAX_PHASES; ++p ) {
+	std::string activity_name = "Entry ";
+	activity_name += this->name();
+	activity_name += " - Ph ";
+	activity_name += "123"[p];
+	_phase[p].rename( activity_name );
     }
 }
 
@@ -79,21 +82,19 @@ Entry::~Entry()
 Entry&
 Entry::initialize()
 {
-    if ( _dom_entry && open_arrival_rate() > 0 && test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) {
-	const double arrival_rate = open_arrival_rate();
-
+    if ( _dom && _dom->hasOpenArrivalRate() && test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY )
+	 && dynamic_cast<Pseudo_Entry *>(this) == NULL ) {	/* Not necessary due to override */
 	char * task_name = new char[strlen( name() ) + 20];
 	(void) sprintf( task_name, "(%s)", name() );
 	Task * cp = new Pseudo_Task( task_name );
 	::task.insert( cp );
 	
-	Entry * from_entry = new Pseudo_Entry( task_name, cp );
+	Entry * from_entry = new Pseudo_Entry( _dom, cp );
 	from_entry->initialize();
 	::entry.insert( from_entry );
 
 	/* Set up entry information for my arrival rate. */
 
-	from_entry->set_service( 1, 1.0 / arrival_rate );
 	from_entry->test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD );
 
 	/* Set up a task to handle it */
@@ -102,7 +103,7 @@ Entry::initialize()
 
 	/* Set up calls per cycle.  1 call is made per cycle */
 
-	from_entry->phase[1].tinfo.store_target_info( this, 1.0 );
+	from_entry->_phase[0].tinfo.store_target_info( this, 1.0 );
 
 	open_arrival_count += 1;
     }
@@ -121,6 +122,8 @@ Entry::configure()
 	print_debug_info();
     }
 		
+    _join_list = NULL;		/* Reset */
+    
     r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name() );
 
     switch ( task()->type() ) {
@@ -153,34 +156,31 @@ Entry::configure()
 
 	/* link phases */
 
-	for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	    Activity * ap = &phase[p];
+	for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    const size_t p = phase - _phase.begin() + 1;
+	    phase->set_phase( p );
+	    phase->set_task( task() );
+	    total_calls += phase->configure();
 
-	    if ( (ap->service() + ap->think_time()) > 0. || ap->tinfo.size() > 0 ) {
+	    if ( phase->has_service_time() || phase->has_think_time() || phase->tinfo.size() > 0 ) {
 		if ( task()->max_phases < p ) {
 		    task()->max_phases = p;
 		}
-	    } else if ( ap->_hist_data ) {
+	    } else if ( phase->_hist_data ) {
 		LQIO::solution_error( WRN_NO_PHASE_FOR_HISTOGRAM, name(), p );
 	    }
 
-	    ap->my_phase = p;
-	    total_calls += ap->configure( task() );
 	}
 			
     } else {
 
-	para_stack_t activity_stack;
-	para_stack_t fork_stack;
+	std::deque<Activity *> activity_stack;
+	std::deque<ActivityList *> fork_stack;
 	unsigned int next_phase = 1;
 	double n_replies;
 	    
-	stack_init( &activity_stack );
-	stack_init( &fork_stack );    
-	activity->find_children( &activity_stack, &fork_stack, this );
-	n_replies = activity->count_replies( &activity_stack, this, 1.0, 1, &next_phase );
-	stack_delete( &activity_stack );
-	stack_delete( &fork_stack );    
+	_activity->find_children( activity_stack, fork_stack, this );
+	n_replies = _activity->count_replies( activity_stack, this, 1.0, 1, &next_phase );
 
 	if ( is_rendezvous() ) {
 	    if ( n_replies == 0 ) {
@@ -194,16 +194,16 @@ Entry::configure()
 	    }
 	}
 
-	for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	    phase[p].configure( task() );	/* for stats .*/
-	    if ( !phase[p]._hist_data && _dom_entry->hasHistogramForPhase( p ) ) {		/* BUG_668 */
-		phase[p]._hist_data = new Histogram( _dom_entry->getHistogramForPhase( p ) );
+	for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    const size_t p = phase - _phase.begin() + 1;
+	    phase->set_task( task() );
+	    phase->configure();	/* for stats .*/
+	    if ( !phase->_hist_data && _dom->hasHistogramForPhase( p ) ) {		/* BUG_668 */
+		phase->_hist_data = new Histogram( _dom->getHistogramForPhase( p ) );
 	    }
 	}
     }
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	active[p] =  0;
-    }
+    _active.assign( MAX_PHASES, 0 );
 	
     if ( (is_signal() || is_wait()) && task()->type() != Task::SEMAPHORE ) {
 	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, task()->name(),
@@ -216,8 +216,7 @@ Entry::configure()
 	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, task()->name(),
 				  (is_r_lock() ? "r_lock" : "r_unlock"),
 				  name() );
-	}
-	else{
+	} else {
 	    LQIO::solution_error( LQIO::ERR_NOT_RWLOCK_TASK, task()->name(),
 				  (is_w_lock() ? "w_lock" : "w_unlock"),
 				  name() );
@@ -227,7 +226,7 @@ Entry::configure()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	fwd.compute_PDF( false, PHASE_STOCHASTIC, name() );
+	_fwd.compute_PDF( get_DOM(), false );
     }
 
     return total_calls;
@@ -294,10 +293,7 @@ Entry::is_w_lock() const
 bool
 Entry::has_lost_messages() const
 {
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	if ( phase[p].has_lost_messages() ) return true;
-    }
-    return false;
+    return find_if( _phase.begin(), _phase.end(), Predicate<Activity>( &Activity::has_lost_messages ) ) != _phase.end();
 }
 
 /*
@@ -347,10 +343,11 @@ Entry::test_and_set_rwlock( rwlock_entry_type rw )
 }
 
 Entry& 
-Entry::set_DOM( unsigned ph, LQIO::DOM::Phase* phaseInfo )
+Entry::set_DOM( unsigned p, LQIO::DOM::Phase* phaseInfo )
 {
     if (phaseInfo == NULL) return *this;
-    phase[ph].set_DOM(phaseInfo);
+    assert( 0 < p && p <= _phase.size() );
+    _phase[p-1].set_DOM(phaseInfo);
     return *this;
 }
 
@@ -364,18 +361,45 @@ Entry::add_forwarding( Entry* to_entry, LQIO::DOM::Call * call )
     if ( task()->is_reference_task() ) {
 	LQIO::input_error2( LQIO::ERR_REF_TASK_FORWARDING, task()->name(), name() );
     } else {
-	fwd.store_target_info( to_entry, call );
+	_fwd.store_target_info( to_entry, call );
     }
     return *this;
 }
 
 
 
-void
+Entry&
+Entry::accumulate_data()
+{
+    r_cycle.accumulate();
+    for_each( _phase.begin(), _phase.end(), Exec<Activity>( &Activity::accumulate_data ) );
+
+    /* Forwarding */
+
+    if ( is_rendezvous() ) {
+	_fwd.accumulate_data();
+    }
+    return *this;
+}
+
+Entry&
+Entry::reset_stats()
+{
+    r_cycle.reset();
+    for_each( _phase.begin(), _phase.end(), Exec<Activity>( &Activity::reset_stats ) );
+
+    /* Forwarding */
+	    
+    if ( is_rendezvous() ) {
+	_fwd.reset_stats();
+    }
+    return *this;
+}
+
+
+Entry&
 Entry::insertDOMResults() 
 {
-    _dom_entry->resetResultFlags();
-
     double sum_cycle          = 0.0;
     double sum_cycle_var      = 0.0;
     double sum_task_util      = 0.0;
@@ -388,29 +412,30 @@ Entry::insertDOMResults()
      */
 	    
     for ( unsigned p = 1; p <= task()->max_phases; ++p ) {
+	Activity * phase = &_phase[p-1];
 	if ( !is_activity() ) { 
-	    if ( phase[p].is_specified() ) {
-		phase[p].insertDOMResults();
+	    if ( phase->is_specified() ) {
+		phase->insertDOMResults();
 	    }
 	} else {
-	    _dom_entry->setResultPhasePServiceTime( p, phase[p].r_cycle.mean() )
-		.setResultPhasePVarianceServiceTime( p, phase[p].r_cycle_sqr.mean() )
-		.setResultPhasePUtilization( p, phase[p].r_util.mean() )
-		.setResultPhasePProcessorWaiting(p,phase[p].r_proc_delay.mean());
+	    _dom->setResultPhasePServiceTime( p, phase->r_cycle.mean() )
+		.setResultPhasePVarianceServiceTime( p, phase->r_cycle_sqr.mean() )
+		.setResultPhasePUtilization( p, phase->r_util.mean() )
+		.setResultPhasePProcessorWaiting(p,phase->r_proc_delay.mean());
 	    if ( number_blocks > 1 ) {
-		_dom_entry->setResultPhasePServiceTimeVariance( p, phase[p].r_cycle.variance() )
-		    .setResultPhasePVarianceServiceTimeVariance( p, phase[p].r_cycle_sqr.variance() )
-		    .setResultPhasePUtilizationVariance( p, phase[p].r_util.variance() )
-		    .setResultPhasePProcessorWaitingVariance(p,phase[p].r_proc_delay.variance());
+		_dom->setResultPhasePServiceTimeVariance( p, phase->r_cycle.variance() )
+		    .setResultPhasePVarianceServiceTimeVariance( p, phase->r_cycle_sqr.variance() )
+		    .setResultPhasePUtilizationVariance( p, phase->r_util.variance() )
+		    .setResultPhasePProcessorWaitingVariance(p,phase->r_proc_delay.variance());
 	    }
 	}
 
-	sum_task_util      += phase[p].r_util.mean();
-	sum_task_util_var  += phase[p].r_util.variance();
-	sum_cycle          += phase[p].r_cycle.mean();
-	sum_cycle_var      += phase[p].r_cycle_sqr.mean();
-	sum_proc_util      += phase[p].r_cpu_util.mean();
-	sum_proc_util_var  += phase[p].r_cpu_util.variance();
+	sum_task_util      += phase->r_util.mean();
+	sum_task_util_var  += phase->r_util.variance();
+	sum_cycle          += phase->r_cycle.mean();
+	sum_cycle_var      += phase->r_cycle_sqr.mean();
+	sum_proc_util      += phase->r_cpu_util.mean();
+	sum_proc_util_var  += phase->r_cpu_util.variance();
     }
 
     /*
@@ -419,16 +444,17 @@ Entry::insertDOMResults()
 	    
     if (is_activity()) {
 	for ( unsigned p = 1; p <= 2; ++p ) {
-	    _dom_entry->setResultPhasePServiceTime( p, phase[p].r_cycle.mean() )
-		.setResultPhasePVarianceServiceTime( p, phase[p].r_cycle_sqr.mean() )
-		.setResultPhasePUtilization( p, phase[p].r_util.mean() );
+	    Activity * phase = &_phase[p-1];
+	    _dom->setResultPhasePServiceTime( p, phase->r_cycle.mean() )
+		.setResultPhasePVarianceServiceTime( p, phase->r_cycle_sqr.mean() )
+		.setResultPhasePUtilization( p, phase->r_util.mean() );
 	    if ( number_blocks > 1 ) {
-		_dom_entry->setResultPhasePServiceTimeVariance( p, phase[p].r_cycle.variance() )
-		    .setResultPhasePVarianceServiceTimeVariance( p, phase[p].r_cycle_sqr.variance() )
-		    .setResultPhasePUtilization( p, phase[p].r_util.variance() );
+		_dom->setResultPhasePServiceTimeVariance( p, phase->r_cycle.variance() )
+		    .setResultPhasePVarianceServiceTimeVariance( p, phase->r_cycle_sqr.variance() )
+		    .setResultPhasePUtilization( p, phase->r_util.variance() );
 	    }
-	    if ( phase[p]._hist_data ) {
-		phase[p]._hist_data->insertDOMResults();
+	    if ( phase->_hist_data ) {
+		phase->_hist_data->insertDOMResults();
 	    }
 	}
     }
@@ -437,22 +463,23 @@ Entry::insertDOMResults()
      * Entry results (regardless of phases/activities)
      */
 
-    _dom_entry->setResultThroughput(throughput())
+    _dom->setResultThroughput(throughput())
 	.setResultUtilization(sum_task_util)
 	.setResultProcessorUtilization(sum_proc_util);
     if ( number_blocks > 1 ) {
-	_dom_entry->setResultThroughputVariance(throughput_variance())
+	_dom->setResultThroughputVariance(throughput_variance())
 	    .setResultUtilizationVariance(sum_task_util_var)
 	    .setResultProcessorUtilizationVariance(sum_proc_util_var);	
     }
 
     if ( sum_cycle > 0.0 ) {
-	_dom_entry->setResultSquaredCoeffVariation(sum_cycle_var/square(sum_cycle));
+	_dom->setResultSquaredCoeffVariation(sum_cycle_var/square(sum_cycle));
     }
 	      
-    fwd.insertDOMResults();
+    _fwd.insertDOMResults();
 
     /* Open arrivals are done in Task::PseudoTask */
+    return *this;
 }
 
 double
@@ -471,23 +498,55 @@ Entry::throughput_variance() const
 /*	 Input processing.  Called from load.cc::prepareModel() 	*/
 /*----------------------------------------------------------------------*/
 
-Pseudo_Entry::Pseudo_Entry( const char * name, Task * task ) 
-    : Entry (0,task), _name(name) 
+/*
+ * A Pseudo entry is used to source requests to open arrivals at real entries.
+ * The DOM for the pseudo entry is the DOM for the actual entry.
+ */
+
+Pseudo_Entry::Pseudo_Entry( LQIO::DOM::Entry * dom, Task * task ) 
+    : Entry (dom,task), _name(task->name()) 
 {
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	char * activity_name = new char[strlen( name ) + 16];
-	(void) sprintf( activity_name, "Entry %s - Ph %d", name, p );
-	phase[p].rename( activity_name );
-	delete [] activity_name;
+}
+
+double
+Pseudo_Entry::configure()
+{
+    assert( get_DOM() && get_DOM()->hasOpenArrivalRate() );
+
+    double arrival_rate = 1.;
+    try {
+	arrival_rate = get_DOM()->getOpenArrivalRateValue();
+	if ( arrival_rate == 0.0 ) throw std::domain_error( "zero" );
     }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "arrival rate", "entry", name(), e.what() );
+	throw_bad_parameter();
+    }
+    _phase[0].set_arrival_rate( 1.0 / arrival_rate );
+
+    return Entry::configure();
 }
 
 
+/*
+ * The Pseudo Entry DOM is the actual entry's DOM.  This code only
+ * sets the open arrival waiting time from the values stored in the
+ * pseudo entry. See Pseudo_Task.
+ */
+
 Entry&
-Pseudo_Entry::set_service( const unsigned p, const double s ) 
-{ 
-    phase[p].set_service(s);
-    return *this; 
+Pseudo_Entry::insertDOMResults()
+{
+    for ( vector<tar_t>::iterator tp = _phase[0].tinfo.target.begin(); tp != _phase[0].tinfo.target.end(); ++tp ) {
+	Entry * ep = tp->entry;
+	LQIO::DOM::Entry * dom = ep->get_DOM();
+	assert( dom == get_DOM() );
+	dom->setResultWaitingTime( tp->mean_delay() );
+	if ( number_blocks > 1 ) {
+	    dom->setResultWaitingTimeVariance( tp->variance_delay() );
+	}
+    }
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -524,7 +583,6 @@ void
 Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
 {
     /* Begin by extracting the from/to DOM entries from the call and their names */
-    assert( get_DOM() == domCall->getSourceEntry() );
     assert( 0 < p && p <= MAX_PHASES );
     const LQIO::DOM::Entry* toDOMEntry = domCall->getDestinationEntry();
 
@@ -543,7 +601,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
     if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS && !to_entry->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) return;
     if ( (domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY || domCall->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY) && !to_entry->test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) return;
 
-    phase[p].tinfo.store_target_info( to_entry, domCall );
+    _phase.at(p-1).tinfo.store_target_info( to_entry, domCall );
 }
 
 /*
@@ -597,11 +655,11 @@ Entry::print_debug_info()
 {
     (void) fprintf( stddbg, "---------- Entry %s ----------\n", name() );
 
-    if ( fwd.size() > 0 ) {
+    if ( _fwd.size() > 0 ) {
 	fprintf( stddbg, "\tfwds:  " );
 	vector<tar_t>::iterator tp;
-	for ( tp = fwd.target.begin(); tp != fwd.target.end(); ++tp ) {
-	    if ( tp != fwd.target.begin() ) {
+	for ( tp = _fwd.target.begin(); tp != _fwd.target.end(); ++tp ) {
+	    if ( tp != _fwd.target.begin() ) {
 		(void) fprintf( stddbg, ", " );
 	    }
 	    tp->print( stddbg );

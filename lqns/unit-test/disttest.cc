@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/disttest.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/disttest.cc $
  *
  * Distribution function tests.
  * ------------------------------------------------------------------------
  *
- * $Id: disttest.cc 9164 2010-01-28 19:27:03Z greg $
+ * $Id: disttest.cc 13413 2018-10-23 15:03:40Z greg $
  */
 
 #include "testmva.h"
@@ -79,3 +79,16 @@ int main ( int argc, char * argv[] )
     
     return 0;
 }
+
+#include <vector.cc>
+
+template class Vector<double>;
+template class Vector<unsigned int>;
+template class Vector<unsigned long>;
+template class Vector<Server *>;
+template class VectorMath<unsigned int>;
+template class VectorMath<double>;
+template class Vector<Vector<unsigned> >;
+template class Vector<VectorMath<double> >;
+template class Vector<VectorMath<unsigned> >;
+

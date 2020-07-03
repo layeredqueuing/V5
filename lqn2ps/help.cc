@@ -1,13 +1,9 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 12550 2016-04-06 22:33:52Z greg $
+ * $Id: help.cc 13533 2020-03-12 22:09:07Z greg $
  */
 
 #include "lqn2ps.h"
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#include <time.h>
-#endif
 #include <cstring>
 
 class HelpManip {
@@ -66,7 +62,7 @@ usage( const bool full_usage )
 	if ( (Flags::print[i].c & 0xff00) != 0 ) {
 	    s = "         --";
 	    if ( (Flags::print[i].c & 0xff00) == 0x0300 ) {
-		s += "[no]-";
+		s += "[no-]";
 	    } 
 	} else if ( Flags::print[i].arg == 0 && islower( Flags::print[i].c ) ) {
 	    s = " -";
@@ -152,7 +148,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
 
-    cout << comm << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
+    cout << comm << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 
@@ -303,7 +299,21 @@ man()
 	    cout << ".TP" << endl 
 		 << "\\fB" << current_arg(i,COLOUR_CHAINS) << "\\fR" << endl
 		 << "Queueing output only: colour each chain differently.";
+	    cout << ".TP" << endl
+		 << "\\fB" << current_arg(i,COLOUR_DIFFERENCES) << "\\fR" << endl
+		 << "Results are displayed as percent differences (found from srvndiff --difference file1 file2) with the colour reflecting" << endl
+		 << "the percentage difference." << endl;
 	    cout << ".RE" << endl;
+	    break;
+
+	case 'D':
+	    cout << "The " << current_option(i) << " is used to load \\fIdifference\\fR data produced by srvndiff.";
+	    cout << endl;
+	    break;
+	    
+	case 'G':
+	    cout << "The " << current_option(i) << " is used to generate gnuplot(1) output.  The arguments to " << current_option(i) << endl
+		 << "are result variables found in the input file.  This option only works for SPEX input." << endl;
 	    break;
 
 	case 'I':
@@ -427,6 +437,12 @@ man()
 		 << "\\fB" << current_arg(i,FORMAT_JPEG) << "\\fR" << endl
 		 << "Generate JPEG (bitmap) output." << endl;
 #endif
+	    cout << ".TP" << endl
+		 << "\\fB" << current_arg(i,FORMAT_LQX) << "\\fR" << endl
+		 << "Generate an XML input file.  If results are available, they are included." << endl
+		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << endl
+		 << "consisting only of the objects selected.  If SPEX is present, it will be converted to LQX." << endl
+		 << "New input files are always \"cleaned up\"." << endl;
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,FORMAT_NULL) << "\\fR" << endl
 		 << "Generate no output except summary statistics about the model or models." << endl;
@@ -586,7 +602,7 @@ man()
 		 << "Rename entries/activities by taking only capital letters, letters following an underscore, or numbers." << endl; 
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,PRAGMA_SUBMODEL_CONTENTS) << "\\fR" << endl
-		 << "Output to terminal the clients and servers of each submodel." << endl;
+		 << "For graphical output, output the submodels (though this only works for a strictly layered model)." << endl;
 	    cout << ".TP" << endl
 		 << "\\fB" << current_arg(i,PRAGMA_TASKS_ONLY) << "\\fR" << endl
 		 << "Draw the model omitting all entries." << endl;
@@ -612,7 +628,7 @@ print_args_str( ostream& output, const option_type &o, const int )
 	    cerr << o.opts[j];
 	} 
 	cerr << ")";
-    } else if ( (o.c & 0xff00) == 0 && islower( o.c ) && o.arg == 0 ) {
+    } else if ( ( (o.c & 0xff00) == 0x0300 || (o.c & 0xff00) == 0 && islower( o.c ) ) && o.arg == 0 ) {
 	cerr << "(" << (o.value.b ? "true" : "false") << ")";
     }
     return output;

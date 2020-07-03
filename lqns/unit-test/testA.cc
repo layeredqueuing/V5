@@ -1,9 +1,9 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://franks.dnsalias.com/lqn/trunk/lqns/unit-test/testA.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/testA.cc $
  *
  * Test case from:
  * ------------------------------------------------------------------------
- * $Id: testA.cc 7862 2008-03-30 21:48:03Z greg $
+ * $Id: testA.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -50,4 +50,16 @@ check( ostream&, const Open& solver, const unsigned )
 #endif
     return ok;
 }
+
+#include <vector.cc>
+
+template class Vector<double>;
+template class Vector<unsigned int>;
+template class Vector<unsigned long>;
+template class Vector<Server *>;
+template class VectorMath<unsigned int>;
+template class VectorMath<double>;
+template class Vector<Vector<unsigned> >;
+template class Vector<VectorMath<double> >;
+template class Vector<VectorMath<unsigned> >;
 

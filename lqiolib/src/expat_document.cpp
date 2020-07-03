@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 13204 2018-03-06 22:52:04Z greg $
+ * $Id: expat_document.cpp 13536 2020-04-03 02:41:17Z greg $
  *
  * Read in XML input files.
  *
@@ -17,10 +17,10 @@
 #include <config.h>
 #endif
 
-#include <stdexcept>
+#include "expat_document.h"
 #include <fstream>
 #include <iomanip>
-#include "expat_document.h"
+#include <algorithm>
 #include <string>
 #include <cstdlib>
 #include <cstdio>
@@ -42,6 +42,7 @@
 #include <strings.h>
 #endif
 
+#include <lqx/SyntaxTree.h>
 #include "dom_object.h"
 #include "dom_histogram.h"
 #include "dom_task.h"
@@ -59,20 +60,25 @@
 #include "dom_task.h"
 #include "dom_actlist.h"
 #include "dom_histogram.h"
+#include "srvn_spex.h"
+
+extern "C" {
+#include "srvn_gram.h"
+    int LQIO_parse_string( int start_token, const char * s );
+}
 
 namespace LQIO {
     namespace DOM {
-        using namespace std;
 
-        bool Expat_Document::__instantiate = false;             // Instantiate external variables iff true.
         int Expat_Document::__indent = 0;
 
         /* ---------------------------------------------------------------- */
         /* DOM input.                                                       */
         /* ---------------------------------------------------------------- */
 
-        Expat_Document::Expat_Document( Document& document, bool createObjects, bool loadResults )
-            : _document( document ), _parser(), _createObjects(createObjects), _loadResults(loadResults)
+        Expat_Document::Expat_Document( Document& document, const std::string& input_file_name, bool createObjects, bool loadResults )
+            : _document( document ), _parser(), _input_file_name(input_file_name), _createObjects(createObjects), _loadResults(loadResults), _stack(),
+	      _has_spex(false), _spex_parameters(), _spex_results(), _spex_convergence(), _spex_observation()
         {
 	    init_tables();
         }
@@ -83,25 +89,36 @@ namespace LQIO {
         }
 
 	bool
-        Expat_Document::load( Document& document, const std::string& input_filename, const std::string& output_filename, unsigned& errorCode, const bool load_results )
+        Expat_Document::load( Document& document, const std::string& input_filename, unsigned& errorCode, const bool load_results )
         {
-	    Expat_Document input( document, true, load_results );
+	    Expat_Document input( document, input_filename, true, load_results );
 
-	    if ( !input.parse( input_filename ) ) {
+	    if ( !input.parse() ) {
 		return false;
 	    } else {
 		const std::string& program_text = document.getLQXProgramText();
 		if ( program_text.size() ) {
+		    LQX::Program* program;
 		    /* If we have an LQX program, then we need to compute */
-		    LQX::Program* program = LQX::Program::loadFromText(input_filename.c_str(), document.getLQXProgramLineNumber(), program_text.c_str());
-		    if (program == NULL) {
+		    if ( Spex::__parameter_list != NULL ) {
+			LQIO::solution_error( LQIO::ERR_LQX_SPEX, input_filename.c_str() );
+			return false;
+		    } else if ( (program = LQX::Program::loadFromText(input_filename.c_str(), document.getLQXProgramLineNumber(), program_text.c_str())) == NULL ) {
 			LQIO::solution_error( LQIO::ERR_LQX_COMPILATION, input_filename.c_str() );
+			return false;
+		    } else {
+			document.setLQXProgram( program );
 		    }
-		    document.setLQXProgram( program );
-		}
-	    }
+		} else {
+		    /*
+		     * Parameters, Results and Convergence call the SRVN parser.  For XML, these variables are set
+		     * so we need to set up the program after the model is loaded.
+		     */
 
-            return true;
+		    spex_set_program( Spex::__parameter_list, Spex::__result_list, Spex::__convergence_list );
+		}
+		return true;
+            }
         }
 
         /*
@@ -111,8 +128,8 @@ namespace LQIO {
         /* static */ bool
         Expat_Document::loadResults( Document& document, const std::string& input_file_name, unsigned& errorCode )
         {
-	    Expat_Document input( document, false, true );
-	    return input.parse( input_file_name );
+	    Expat_Document input( document, input_file_name, false, true );
+	    return input.parse();
         }
 
 
@@ -122,16 +139,16 @@ namespace LQIO {
          */
 
         bool
-        Expat_Document::parse( const std::string& file_name )
+        Expat_Document::parse()
         {
 	    struct stat statbuf;
 	    bool rc = true;
             int input_fd = -1;
 
-            if ( file_name ==  "-" ) {
+            if ( _input_file_name ==  "-" ) {
                 input_fd = fileno( stdin );
-            } else if ( ( input_fd = open( file_name.c_str(), O_RDONLY ) ) < 0 ) {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open input file " << file_name << " - " << strerror( errno ) << std::endl;
+            } else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
+                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
                 return false;
             }
 
@@ -139,20 +156,20 @@ namespace LQIO {
                 std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from terminal is not allowed." << std::endl;
 		return false;
 	    } else if ( fstat( input_fd, &statbuf ) != 0 ) {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << input_file_name << " - " << strerror( errno ) << std::endl;
+                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << _input_file_name << " - " << strerror( errno ) << std::endl;
 		return false;
 #if defined(S_ISSOCK)
 	    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
 #else
 	    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
 #endif
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from " << input_file_name << " is not allowed." << std::endl;
+                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from " << _input_file_name << " is not allowed." << std::endl;
 		return false;
             }
 
             _parser = XML_ParserCreateNS(NULL,'/');     /* Gobble header goop */
             if ( !_parser ) {
-                throw runtime_error("");
+                throw std::runtime_error("Could not allocate memory for Expat.");
             }
 
             XML_SetElementHandler( _parser, start, end );
@@ -186,7 +203,7 @@ namespace LQIO {
 		    do {
 			len = read( input_fd, buffer, BUFFSIZE );
 			if ( static_cast<int>(len) < 0 ) {
-			    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Read error on " << input_file_name << " - " << strerror( errno ) << std::endl;
+			    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 			    rc = false;
 			    break;
 			} else if (!XML_Parse(_parser, buffer, len, len == 0 )) {
@@ -201,23 +218,23 @@ namespace LQIO {
 #endif
 	    }
 	    /* Halt on any error. */
-	    catch ( LQIO::element_error& e ) {
+	    catch ( const LQIO::element_error& e ) {
 		input_error( "Unexpected element <%s> ", e.what() );
 		rc = false;
 	    }
-	    catch ( LQIO::missing_attribute & e ) {
+	    catch ( const LQIO::missing_attribute & e ) {
 		rc = false;
 	    }
-	    catch ( LQIO::unexpected_attribute & e ) {
+	    catch ( const LQIO::unexpected_attribute & e ) {
 		rc = false;
 	    }
-	    catch ( std::invalid_argument & e ) {
+	    catch ( const std::invalid_argument & e ) {
 		rc = false;
 	    }
-	    catch ( LQIO::undefined_symbol & e ) {
+	    catch ( const LQIO::undefined_symbol & e ) {
 		rc = false;
 	    }
-	    catch ( domain_error & e ) {
+	    catch ( const std::domain_error & e ) {
 		input_error( "Domain error: %s ", e.what() );
 		rc = false;
 	    }
@@ -238,7 +255,7 @@ namespace LQIO {
         {
             va_list args;
             va_start( args, fmt );
-            verrprintf( stderr, RUNTIME_ERROR, input_file_name,  XML_GetCurrentLineNumber(_parser), 0, fmt, args );
+            verrprintf( stderr, RUNTIME_ERROR, _input_file_name.c_str(),  XML_GetCurrentLineNumber(_parser), 0, fmt, args );
             va_end( args );
         }
 
@@ -252,35 +269,35 @@ namespace LQIO {
             Expat_Document * document = static_cast<Expat_Document *>(data);
 	    LQIO_lineno = XML_GetCurrentLineNumber(document->_parser);
             if ( Document::__debugXML ) {
-		cerr << setw(4) << LQIO_lineno << ": ";
+		std::cerr << std::setw(4) << LQIO_lineno << ": ";
                 for ( unsigned i = 0; i < document->_stack.size(); ++i ) {
-                    cerr << "  ";
+                    std::cerr << "  ";
                 }
-                cerr << "<" << el;
+                std::cerr << "<" << el;
                 for ( const XML_Char ** attributes = attr; *attributes; attributes += 2 ) {
-                    cerr << " " << *attributes << "=\"" << *(attributes+1) << "\"";
+                    std::cerr << " " << *attributes << "=\"" << *(attributes+1) << "\"";
                 }
-                cerr << ">" << endl;
+                std::cerr << ">" << std::endl;
             }
             try {
                 if ( document->_stack.size() > 0 ) {
 		    const parse_stack_t& top = document->_stack.top();
-		    (document->*top.func)(top.object,el,attr);
+		    (document->*top.start)(top.object,el,attr);
 		}
             }
-	    catch ( duplicate_symbol& e ) {
+	    catch ( const duplicate_symbol& e ) {
 		LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, el, e.what() );
 	    }
-            catch ( LQIO::missing_attribute & e ) {
+            catch ( const LQIO::missing_attribute & e ) {
 		LQIO::input_error2( LQIO::ERR_MISSING_ATTRIBUTE, el, e.what() );
             }
-            catch ( LQIO::unexpected_attribute & e ) {
+            catch ( const LQIO::unexpected_attribute & e ) {
 		LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, el, e.what() );
             }
-            catch ( std::invalid_argument & e ) {
+            catch ( const std::invalid_argument & e ) {
 		LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
             }
-            catch ( LQIO::undefined_symbol & e ) {
+            catch ( const LQIO::undefined_symbol & e ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
             }
         }
@@ -301,16 +318,20 @@ namespace LQIO {
                     extra_object = top.extra_object;
                 }
                 if ( Document::__debugXML ) {
+		    std::cerr << std::setw(4) << LQIO_lineno << ": ";
                     for ( unsigned i = 1; i < document->_stack.size(); ++i ) {
-                        cerr << "  ";
+                        std::cerr << "  ";
                     }
                     if ( top.element.size() ) {
-                        cerr << "</" << top.element << ">" << endl;
+                        std::cerr << "</" << top.element << ">" << std::endl;
                     } else {
-                        cerr << "empty stack" << endl;
+                        std::cerr << "empty stack" << std::endl;
                     }
                 }
-                done = (document->_stack.size() == 1) || (top == el);
+                done = top == el;
+		if ( top.end ) {		/* Run the end handler if necessary */
+		    (document->*top.end)(top.object,el);
+		}
                 document->_stack.pop();
             }
             if ( document->_stack.size() > 0 && extra_object ) {
@@ -344,10 +365,16 @@ namespace LQIO {
             Expat_Document * parser = static_cast<Expat_Document *>(data);
             if ( parser->_stack.size() == 0 ) return;
             const parse_stack_t& top = parser->_stack.top();
-            if ( top.func == &Expat_Document::startLQX ) {
-                string& program = const_cast<string &>(parser->_document.getLQXProgramText());
+            if ( top.start == &Expat_Document::startLQX ) {
+		std::string& program = const_cast<std::string &>(parser->_document.getLQXProgramText());
                 program.append( text, length );
-            }
+            } else if ( top.start == &Expat_Document::startSPEXParameters ) {
+		parser->_spex_parameters.append( text, length );
+	    } else if ( top.start == &Expat_Document::startSPEXResults ) {
+		parser->_spex_results.append( text, length );
+	    } else if ( top.start == &Expat_Document::startSPEXConvergence ) {
+		parser->_spex_convergence.append( text, length );
+	    }
         }
 
 	/*
@@ -385,7 +412,6 @@ namespace LQIO {
                 return XML_STATUS_ERROR;
             }
         }
-
 
         /* ---------------------------------------------------------------- */
         /* Parser functions.                                                */
@@ -431,6 +457,14 @@ namespace LQIO {
                 _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
                 _stack.push( parse_stack_t(element,&Expat_Document::startLQX,object) );
 
+            } else if ( strcasecmp( element, Xspex_parameters ) == 0 ) {
+                _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXParameters,&Expat_Document::endSPEXParameters,object) );
+
+            } else if ( strcasecmp( element, Xspex_results ) == 0 ) {
+                _document.setLQXProgramLineNumber(XML_GetCurrentLineNumber(_parser));
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXResults,&Expat_Document::endSPEXResults,object) );
+
             } else {
                 throw element_error( element );
             }
@@ -450,6 +484,7 @@ namespace LQIO {
         Expat_Document::startResultGeneral( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
         {
             if ( strcasecmp( element, Xresult_general ) == 0 ) {
+		_document.setInstantiated( true );		/* Set true even if we aren't loading results */
                 if ( _loadResults ) {
                     const long iterations = getLongAttribute(attributes,Xiterations);
                     _document.setResultValid( getBoolAttribute(attributes,Xvalid) );
@@ -465,10 +500,16 @@ namespace LQIO {
                     }
                 }
                 _stack.push( parse_stack_t(element,&Expat_Document::startMVAInfo,object) );
+
             } else if ( strcasecmp( element, Xpragma ) == 0 ) {
                 const XML_Char * parameter = getStringAttribute(attributes,Xparam);
                 _document.addPragma(parameter,getStringAttribute(attributes,Xvalue,""));
                 _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		handleSPEXObservation( object, attributes );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,&Expat_Document::endSPEXObservationType,object) );
+		
             } else {
                 throw element_error( element );
             }
@@ -489,6 +530,7 @@ namespace LQIO {
 						getLongAttribute(attributes,Xfaults) );
                 }
                 _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+/* !!! SPEX document observations */
             } else {
                 throw element_error( element );
             }
@@ -516,10 +558,19 @@ namespace LQIO {
 		try {
 		    handleResults( processor, attributes );
 		}
-		catch ( unexpected_attribute& e ) {
+		catch ( const unexpected_attribute& e ) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		}
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,processor) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( processor, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,processor) );
 
             } else if ( strcasecmp( element, Xtask) == 0 ) {
                 Task * task = handleTask( processor, attributes );
@@ -550,10 +601,19 @@ namespace LQIO {
 		try {
 		    handleResults( group, attributes );
 		}
-		catch ( unexpected_attribute& e ) {
+		catch ( const unexpected_attribute& e ) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		}
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,group) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( group, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,group) );
 
             } else if ( strcasecmp( element, Xtask ) == 0 ) {
                 Task * task = handleTask( group, attributes );
@@ -569,6 +629,7 @@ namespace LQIO {
           <xsd:sequence>
           <xsd:element name="result-task" type="OutputResultType" minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="service-time-distribution" type="OutputEntryDistributionType" minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="decision" type="DecisionType" minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="entry" type="EntryType" maxOccurs="unbounded"/>
           <xsd:element name="service" type="ServiceType" minOccurs="0" maxOccurs="unbounded"/>
           <xsd:element name="task-activities" type="TaskActivityGraph" minOccurs="0"/>
@@ -583,10 +644,19 @@ namespace LQIO {
 		try {
 		    handleResults( task, attributes );
 		}
-		catch ( unexpected_attribute& e ) {
+		catch ( const unexpected_attribute& e ) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		}
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,task) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( task, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,task) );
 
             } else if ( strcasecmp( element, Xfanin ) == 0 ) {
                 handleFanIn( task, attributes );
@@ -616,7 +686,6 @@ namespace LQIO {
         }
 
 
-
         /*
           <xsd:complexType name="EntryType">
           <xsd:sequence>
@@ -638,10 +707,19 @@ namespace LQIO {
 		try {
 		    handleResults( entry, attributes );
 		}
-		catch ( unexpected_attribute& e ) {
+		catch ( const unexpected_attribute& e ) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		}
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,entry) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( entry, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,entry) );
 
             } else if ( strcasecmp( element, Xservice_time_distribution ) == 0 ) {
                 Histogram * histogram = handleHistogram( entry, attributes );
@@ -702,10 +780,19 @@ namespace LQIO {
 		try {
 		    handleResults( activity, attributes );
 		}
-		catch ( unexpected_attribute& e ) {
+		catch ( const unexpected_attribute& e ) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		}
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,activity) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( activity, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,activity) );
 
             } else if ( strcasecmp( element, Xservice_time_distribution ) == 0 ) {
                 Histogram * histogram = handleHistogram( activity, attributes );
@@ -747,18 +834,40 @@ namespace LQIO {
 		    try {
 			handleResults( call, attributes );
 		    }
-		    catch ( unexpected_attribute& e ) {
+		    catch ( const unexpected_attribute& e ) {
 			LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		    }
                 }
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,call) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( call, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,call) );
+
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( call, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,call) );
+
 	    } else if ( strcasecmp( element, Xqueue_length_distribution ) == 0 ) {
 		Histogram * histogram = handleQueueLengthDistribution( call, attributes );
 		_stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,histogram) );
+
             } else {
                 throw element_error( element );
             }
         }
+
 
         void
         Expat_Document::startEntryMakingCallType( DocumentObject * call, const XML_Char * element, const XML_Char ** attributes )
@@ -768,14 +877,25 @@ namespace LQIO {
 		    try {
 			handleResults( call, attributes );
 		    }
-		    catch ( unexpected_attribute& e ) {
+		    catch ( const unexpected_attribute& e ) {
 			LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
 		    }
                 }
                 _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,call) );
+
+	    } else if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		try {
+		    handleSPEXObservation( call, attributes );
+		}
+		catch ( const unexpected_attribute& e ) {
+		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, element, *attributes );
+		}
+                _stack.push( parse_stack_t(element,&Expat_Document::startSPEXObservationType,&Expat_Document::endSPEXObservationType,call) );
+
 	    } else if ( strcasecmp( element, Xqueue_length_distribution ) == 0 ) {
 		Histogram * histogram = handleQueueLengthDistribution( call, attributes );
 		_stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,histogram) );
+
             } else {
                 throw element_error( element );
             }
@@ -803,7 +923,6 @@ namespace LQIO {
             } else if ( strcasecmp( element, Xprecedence ) == 0 ) {
                 _stack.push( parse_stack_t(element,&Expat_Document::startPrecedenceType,task) );
             } else if ( strcasecmp( element, Xreply_entry ) == 0 ) {
-		const Document * document = task->getDocument();
                 const XML_Char * entry_name = getStringAttribute( attributes, Xname );
                 Entry * entry = _document.getEntryByName( entry_name );
                 if ( !entry ) {
@@ -847,7 +966,7 @@ namespace LQIO {
                 case ActivityList::AND_JOIN_ACTIVITY_LIST:
                     if ( item->second == ActivityList::AND_JOIN_ACTIVITY_LIST ) {
                         pre_list = new AndJoinActivityList( &_document, dynamic_cast<Task *>(task),
-							    _document.db_build_parameter_variable(getStringAttribute(attributes,Xquorum,"0"),NULL) );
+							    getOptionalAttribute(attributes,Xquorum) );
                     } else {
                         pre_list = new ActivityList( &_document, dynamic_cast<Task *>(task), item->second );
                     }
@@ -985,11 +1104,108 @@ namespace LQIO {
             }
         }
 
+	void
+	Expat_Document::startSPEXObservationType(  DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
+	{
+	    if ( strcasecmp( element, Xresult_conf_95 ) == 0 ) {
+		handleSPEXObservation( object, attributes, 95 );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+
+            } else if ( strcasecmp( element, Xresult_conf_99 ) == 0 ) {
+		handleSPEXObservation( object, attributes, 99 );
+                _stack.push( parse_stack_t(element,&Expat_Document::startNOP,0) );
+
+	    } else {
+		throw element_error( element );
+	    }
+	}
+
+	/*
+	 * Handler called when an </element> is found.  Things like processors and tasks may have 
+	 * spex observation variables gathered up, and since the confidence variables are in a separate 
+	 * element from the regular variables, they cannot be handled until everything in <element> is
+	 * done.
+	 */
+
+	
+	void
+	Expat_Document::endSPEXObservationType( DocumentObject * object, const XML_Char * element )
+	{
+	    if ( strcasecmp( element, Xresult_observation ) == 0 ) {
+		for ( std::set<LQIO::Spex::ObservationInfo>::const_iterator observation = _spex_observation.begin(); observation != _spex_observation.end(); ++observation ) {
+		    if ( object == NULL ) {
+			LQIO::spex.observation( *observation );
+		    } else if ( dynamic_cast<Processor *>(object)
+			 || dynamic_cast<Group *>(object)
+			 || dynamic_cast<Task *>(object)
+			 || dynamic_cast<Entry *>(object) ) {
+			LQIO::spex.observation( object, *observation );
+		    } else if ( dynamic_cast<LQIO::DOM::Activity *>(object) ) {
+			/* Handle before phase because an activity is a phase */
+			LQIO::DOM::Activity * activity = dynamic_cast<Activity *>(object);
+			const LQIO::DOM::Task * task = activity->getTask();
+			LQIO::spex.observation( task, activity, *observation );
+		    } else if ( dynamic_cast<LQIO::DOM::Phase *>(object) ) {
+			/* Map up to entry... Spex oddity */
+			const Phase * phase = dynamic_cast<Phase *>(object);
+			const Entry * entry = phase->getSourceEntry();
+			LQIO::spex.observation( entry, *observation );
+		    } else if ( dynamic_cast<LQIO::DOM::Call *>(object) ) {
+			/* Even more complicated becauses I need to get to the entry to find the call in LQX */
+			const LQIO::DOM::Call * call = dynamic_cast<const LQIO::DOM::Call *>(object);
+			const DocumentObject * source = call->getSourceObject();
+			const LQIO::DOM::Entry * destination = call->getDestinationEntry();
+			if ( dynamic_cast<const LQIO::DOM::Activity *>(source) ) {
+			    const LQIO::DOM::Activity * activity = dynamic_cast<const Activity *>(source);
+			    const LQIO::DOM::Task * task = activity->getTask();
+			    LQIO::spex.observation( task, activity, destination, *observation );
+			} else if ( dynamic_cast<const LQIO::DOM::Phase *>(source) ) {
+			    const LQIO::DOM::Phase * phase = dynamic_cast<const Phase *>(source);
+			    const LQIO::DOM::Entry * entry = phase->getSourceEntry();
+			    LQIO::spex.observation( entry, get_phase( phase ), destination, *observation );
+			} else {
+			    abort(); /* forwarding */
+			}
+		    }
+		}
+		_spex_observation.clear();		/* Reset for another object */
+	    }
+	}
 
         void
         Expat_Document::startLQX( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
         {
             throw element_error( element );             /* Should not get here. */
+        }
+
+	void Expat_Document::startSPEXParameters( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
+        {
+            throw element_error( element );             /* Should not get here. */
+        }
+
+	void Expat_Document::endSPEXParameters( DocumentObject * object, const XML_Char * element )
+        {
+	    LQIO_parse_string( SPEX_PARAMETER, _spex_parameters.c_str() );
+        }
+
+	void Expat_Document::startSPEXResults( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
+        {
+            throw element_error( element );             /* Should not get here. */
+        }
+
+	void Expat_Document::endSPEXResults( DocumentObject * object, const XML_Char * element )
+        {
+	    LQIO_parse_string( SPEX_RESULT, _spex_results.c_str() );
+        }
+
+	void Expat_Document::startSPEXConvergence( DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
+        {
+            throw element_error( element );             /* Should not get here. */
+        }
+
+	void Expat_Document::endSPEXConvergence( DocumentObject * object, const XML_Char * element )
+        {
+	    LQIO_parse_string( SPEX_CONVERGENCE, _spex_convergence.c_str() );
         }
 
         void
@@ -1007,10 +1223,10 @@ namespace LQIO {
 
             if ( _createObjects ) {
                 _document.setModelParameters( getStringAttribute(attributes,Xcomment),
-					      _document.db_build_parameter_variable(getStringAttribute(attributes,Xconv_val,"0.00001"),NULL),
-					      _document.db_build_parameter_variable(getStringAttribute(attributes,Xit_limit,"50"),NULL),
-					      _document.db_build_parameter_variable(getStringAttribute(attributes,Xprint_int,"0"),NULL),
-					      _document.db_build_parameter_variable(getStringAttribute(attributes,Xunderrelax_coeff,"0.9"),NULL),
+					      getVariableAttribute(attributes,Xconv_val,"0.00001"),
+					      getVariableAttribute(attributes,Xit_limit,"50"),
+					      getVariableAttribute(attributes,Xprint_int,"0"),
+					      getVariableAttribute(attributes,Xunderrelax_coeff,"0.9"),
 					      0 );
             }
             return object;
@@ -1040,32 +1256,26 @@ namespace LQIO {
                 const scheduling_type scheduling_flag = getSchedulingAttribute( attributes, SCHEDULE_FIFO );
                 processor = new Processor( &_document, processor_name,
 					   scheduling_flag,
-					   _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
-					   getLongAttribute(attributes,Xreplication,1),
-					   0 );
+					   getOptionalAttribute(attributes,Xmultiplicity),
+					   getOptionalAttribute(attributes,Xreplication) );
                 _document.addProcessorEntity( processor );
-                LQIO::DOM::Document::io_vars->n_processors += 1;
 
-                const XML_Char * quantum = getStringAttribute(attributes,Xquantum,"");
-                if ( strlen(quantum) > 0 ) {
+		processor->setRate( getVariableAttribute(attributes,Xspeed_factor,"1.") );
+
+		LQIO::DOM::ExternalVariable * quantum = getOptionalAttribute(attributes,Xquantum);
+		if ( !is_default_value( quantum, 0. ) ) {
                     if ( scheduling_flag == SCHEDULE_FIFO
                          || scheduling_flag == SCHEDULE_HOL
                          || scheduling_flag == SCHEDULE_PPR
                          || scheduling_flag == SCHEDULE_RAND ) {
-                        input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_type_str[scheduling_flag] );
+                        input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
                     } else {
-                        processor->setQuantum( _document.db_build_parameter_variable(quantum,NULL) );
+                        processor->setQuantum( quantum );
                     }
                 } else if ( scheduling_flag == SCHEDULE_CFS ) {
-                    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_type_str[scheduling_flag] );
+                    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_label[scheduling_flag].str );
                 }
 
-                const XML_Char * rate = getStringAttribute(attributes,Xspeed_factor,"");
-                if ( strlen( rate ) > 0 ) {
-                    processor->setRate( _document.db_build_parameter_variable( rate, NULL ) );
-                } else {
-                    processor->setRate( new ConstantExternalVariable( 1. ) );
-                }
 
             } else if ( !processor) {
                 throw undefined_symbol( processor_name );
@@ -1096,15 +1306,12 @@ namespace LQIO {
 		if ( group ) {
 		    throw duplicate_symbol( group_name );
 		} else {
-		    group  = new Group( &_document, group_name,
-					dynamic_cast<Processor *>(processor),
-					_document.db_build_parameter_variable( getStringAttribute( attributes, Xshare ), NULL ),
-					getBoolAttribute( attributes, Xcap),
-					0 );
+		    group = new Group( &_document, group_name,
+				       dynamic_cast<Processor *>(processor),
+				       getVariableAttribute( attributes, Xshare ),
+				       getBoolAttribute( attributes, Xcap) );
 		    _document.addGroup(group);
 		    dynamic_cast<Processor *>(processor)->addGroup(group);
-
-		    LQIO::DOM::Document::io_vars->n_groups += 1;
 		}
             } else if ( !group ) {
                 throw undefined_symbol( group_name );
@@ -1155,12 +1362,11 @@ namespace LQIO {
 
                 if ( sched_type == SCHEDULE_SEMAPHORE ) {
                     task = new SemaphoreTask( &_document, task_name, entries, processor,
-                                              _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-                                              _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
-                                              _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
-                                              getLongAttribute(attributes,Xreplication,1),
-                                              group,
-                                              0 );
+                                              getOptionalAttribute(attributes,Xqueue_length),
+					      getOptionalAttribute(attributes,Xpriority),
+                                              getOptionalAttribute(attributes,Xmultiplicity),
+                                              getOptionalAttribute(attributes,Xreplication),
+                                              group );
                     if ( strcasecmp( tokens, "0" ) == 0 ) {
                         dynamic_cast<SemaphoreTask *>(task)->setInitialState(SemaphoreTask::INITIALLY_EMPTY);
                     }
@@ -1168,34 +1374,31 @@ namespace LQIO {
 
                 } else if ( sched_type == SCHEDULE_RWLOCK ){
                     task = new RWLockTask( &_document, task_name, entries, processor,
-                                           _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-					   _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
-                                           _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
-                                           getLongAttribute(attributes,Xreplication,1),
-                                           group,
-                                           0 );
+                                           getOptionalAttribute(attributes,Xqueue_length),
+					   getOptionalAttribute(attributes,Xpriority),
+                                           getOptionalAttribute(attributes,Xmultiplicity),
+                                           getOptionalAttribute(attributes,Xreplication),
+                                           group );
 
                     if ( strlen( tokens ) > 0 ) {
                         input_error( "Unexpected attribute <%s> ", Xinitially );
                     }
                 } else {
                     task = new Task( &_document, task_name, sched_type, entries, processor,
-                                     _document.db_build_parameter_variable(getStringAttribute(attributes,Xqueue_length,"0"),NULL),
-				     _document.db_build_parameter_variable(getStringAttribute(attributes,Xpriority,"0"),NULL),
-                                     _document.db_build_parameter_variable(getStringAttribute(attributes,Xmultiplicity,"1"),NULL),
-                                     getLongAttribute(attributes,Xreplication,1),
-                                     group,
-                                     0 );
+                                     getOptionalAttribute(attributes,Xqueue_length),
+				     getOptionalAttribute(attributes,Xpriority),
+                                     getOptionalAttribute(attributes,Xmultiplicity),
+                                     getOptionalAttribute(attributes,Xreplication),
+                                     group );
                     if ( strlen( tokens ) > 0 ) {
                         input_error( "Unexpected attribute <%s> ", Xinitially );
                     }
                 }
 
-		char * end_ptr = 0;
-                const XML_Char * think_time = getStringAttribute(attributes,Xthink_time,"");
-		if ( strtod( think_time, &end_ptr ) != 0.0 || (end_ptr != 0 && *end_ptr != 0) ) {
+		LQIO::DOM::ExternalVariable * think_time = getOptionalAttribute( attributes, Xthink_time );
+		if ( !is_default_value( think_time, 0. ) ) {
                     if ( sched_type == SCHEDULE_CUSTOMER ) {
-                        task->setThinkTime( _document.db_build_parameter_variable(think_time,NULL));
+                        task->setThinkTime( think_time );
 		    } else {
                         LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
                     }
@@ -1205,8 +1408,6 @@ namespace LQIO {
                 _document.addTaskEntity(task);
                 processor->addTask(task);
                 if ( group ) group->addTask(task);
-
-                LQIO::DOM::Document::io_vars->n_tasks += 1;
 
             } else if ( !task ) {
                 throw undefined_symbol( task_name );
@@ -1224,13 +1425,13 @@ namespace LQIO {
         void
         Expat_Document::handleFanIn( DocumentObject * object, const XML_Char ** attributes )
         {
-            const XML_Char * source = 0;
-            unsigned int value = 0;
+            const XML_Char * source = NULL;
+            const XML_Char * value = NULL;
             for ( ; *attributes; attributes += 2 ) {
                 if ( strcasecmp( *attributes, Xsource ) == 0 && !source ) {
                     source = *(attributes+1);
                 } else if ( strcasecmp( *attributes, Xvalue ) == 0 && !value ) {
-                    value = atoi( *(attributes+1) );
+                    value = *(attributes+1);
                 } else {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xfanin, *attributes );
                 }
@@ -1240,7 +1441,7 @@ namespace LQIO {
             } else if ( !value ) {
                 throw missing_attribute( Xvalue );
             } else {
-                dynamic_cast<LQIO::DOM::Task *>(object)->setFanIn( source, value );
+                dynamic_cast<LQIO::DOM::Task *>(object)->setFanIn( source, _document.db_build_parameter_variable(value,NULL) );
             }
         }
 
@@ -1252,13 +1453,13 @@ namespace LQIO {
         void
         Expat_Document::handleFanOut( DocumentObject * object, const XML_Char ** attributes )
         {
-            const XML_Char * destination = 0;
-            unsigned int value = 0;
+            const XML_Char * destination = NULL;
+            const XML_Char * value = NULL;
             for ( ; *attributes; attributes += 2 ) {
                 if ( strcasecmp( *attributes, Xdest ) == 0 && !destination ) {
                     destination = *(attributes+1);
                 } else if ( strcasecmp( *attributes, Xvalue ) == 0 && !value ) {
-                    value = atoi( *(attributes+1) );
+                    value = *(attributes+1);
                 } else {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xfanout, *attributes );
                 }
@@ -1268,7 +1469,7 @@ namespace LQIO {
             } else if ( !value ) {
                 throw missing_attribute( Xvalue );
             } else {
-                dynamic_cast<LQIO::DOM::Task *>(object)->setFanOut( destination, value );
+                dynamic_cast<LQIO::DOM::Task *>(object)->setFanOut( destination, _document.db_build_parameter_variable(value,NULL) );
             }
         }
 
@@ -1296,7 +1497,7 @@ namespace LQIO {
             if ( _createObjects ) {
 
                 if ( !entry ) {
-                    entry = new Entry( &_document, entry_name, 0);
+                    entry = new Entry( &_document, entry_name );
                     _document.addEntry(entry);            /* Add to global table */
 		} else if ( entry->getEntryType() != LQIO::DOM::Entry::ENTRY_NOT_DEFINED ) {
 		    throw duplicate_symbol( entry_name );
@@ -1309,17 +1510,8 @@ namespace LQIO {
 		    entry->setEntryType( Entry::ENTRY_STANDARD_NOT_DEFINED );
 		}
 
-                const XML_Char * priority = getStringAttribute(attributes,Xpriority,"");
-                if ( strlen(priority) > 0 ) {
-                    bool isSymbol = false;
-                    entry->setEntryPriority(_document.db_build_parameter_variable(priority, &isSymbol));
-                }
-
-                const XML_Char * open_arrivals = getStringAttribute(attributes,Xopen_arrival_rate,"");
-                if ( strlen(open_arrivals) > 0 ) {
-                    bool isSymbol = false;
-                    entry->setOpenArrivalRate(_document.db_build_parameter_variable(open_arrivals, &isSymbol));
-                }
+		entry->setEntryPriority( getOptionalAttribute(attributes,Xpriority) );
+		entry->setOpenArrivalRate( getOptionalAttribute(attributes,Xopen_arrival_rate ) );
 
                 const XML_Char * semaphore = getStringAttribute(attributes,Xsemaphore,"");
                 if ( strlen(semaphore) > 0 ) {
@@ -1347,8 +1539,6 @@ namespace LQIO {
                     }
                 }
 
-                LQIO::DOM::Document::io_vars->n_entries += 1;
-
                 const std::vector<Entry *>& entries = dynamic_cast<Task *>(task)->getEntryList();
                 const_cast<std::vector<Entry *>*>(&entries)->push_back( entry );        /* Add to task. */
 
@@ -1366,7 +1556,7 @@ namespace LQIO {
             Phase* phase = 0;
             const long p = getLongAttribute(attributes,Xphase);
             if ( p < 1 || 3 < p ) {
-                throw domain_error( "phase" );
+                throw std::domain_error( "phase" );
             } else {
                 phase = dynamic_cast<Entry *>(entry)->getPhase(p);
                 if (!phase) internal_error( __FILE__, __LINE__, "missing phase." );
@@ -1415,18 +1605,9 @@ namespace LQIO {
         {
 	    checkAttributes( Xactivity, attributes, activity_table );
             if ( _createObjects ) {
-                const XML_Char * demand = getStringAttribute(attributes,Xhost_demand_mean,"");
-                if ( strlen(demand) > 0 ) {
-                    phase->setServiceTime(_document.db_build_parameter_variable(demand, NULL));
-                } /* !!! Perhaps check demand instead !!! */
-                const XML_Char * cvsq = getStringAttribute(attributes,Xhost_demand_cvsq,"");
-                if ( strlen(cvsq) > 0 ) {
-                    phase->setCoeffOfVariationSquared(_document.db_build_parameter_variable(cvsq, NULL));
-                }
-                const XML_Char * think = getStringAttribute(attributes,Xthink_time,"");
-                if ( strlen(think) > 0 ) {
-                    phase->setThinkTime(_document.db_build_parameter_variable(think, NULL));
-                }
+		phase->setServiceTime( getVariableAttribute(attributes,Xhost_demand_mean,"0.0" ) );
+		phase->setCoeffOfVariationSquared( getOptionalAttribute(attributes,Xhost_demand_cvsq) );
+		phase->setThinkTime( getOptionalAttribute(attributes,Xthink_time) );
                 const double max_service = getDoubleAttribute(attributes,Xmax_service_time,0.0);
                 if ( max_service > 0 ) {
                     findOrAddHistogram( phase, LQIO::DOM::Histogram::CONTINUOUS, 0, max_service, max_service );
@@ -1461,7 +1642,7 @@ namespace LQIO {
                     break;
 
                 case ActivityList::OR_FORK_ACTIVITY_LIST:
-                    activity_list->add( activity, _document.db_build_parameter_variable( getStringAttribute( attributes, Xprob ), NULL) );
+                    activity_list->add( activity, getVariableAttribute( attributes, Xprob ) );
                     activity->inputFrom( activity_list );
                     break;
 
@@ -1472,7 +1653,7 @@ namespace LQIO {
                     break;
 
                 case ActivityList::REPEAT_ACTIVITY_LIST:
-                    activity_list->add( activity, _document.db_build_parameter_variable( getStringAttribute( attributes, Xcount ), NULL) );
+                    activity_list->add( activity, getVariableAttribute( attributes, Xcount ) );
                     activity->inputFrom( activity_list );
                     break;
                 }
@@ -1488,34 +1669,24 @@ namespace LQIO {
         Expat_Document::handlePhaseCall( DocumentObject * phase, const XML_Char ** attributes, const Call::CallType call_type )
         {
 	    checkAttributes( call_type == DOM::Call::RENDEZVOUS ? Xsynch_call : Xasynch_call, attributes, call_table );
-            unsigned from_phase = 0;
 
             const XML_Char * dest_entry_name = getStringAttribute(attributes,Xdest);
-            const Entry * from_entry = dynamic_cast<Phase *>(phase)->getSourceEntry();
+	    Phase * from_phase = dynamic_cast<Phase *>(phase);
+            const Entry * from_entry = from_phase->getSourceEntry();
             Entry* to_entry = _document.getEntryByName(dest_entry_name);
 
             if ( !to_entry ) {
                 if ( _createObjects ) {
-                    to_entry = new Entry( &_document, dest_entry_name, 0);         // This differs here.. entry may not exist, so create it anyway then test later. assert(to_entry != NULL);
+                    to_entry = new Entry( &_document, dest_entry_name );         // This differs here.. entry may not exist, so create it anyway then test later. assert(to_entry != NULL);
                     _document.addEntry(to_entry);         /* Add to global table */
                 } else {
                     throw undefined_symbol( dest_entry_name );
                 }
             }
 
-
-            const std::map<unsigned, Phase*>& phases = from_entry->getPhaseList();
-	    assert( phases.size() <= DOM::Phase::MAX_PHASE );
-            for ( std::map<unsigned, Phase*>::const_iterator p = phases.begin(); from_phase == 0 && p != phases.end(); ++p ) {
-                if ( p->second == phase ) from_phase = p->first;
-            }
-            if ( !from_phase ) internal_error( __FILE__, __LINE__, "missing from_phase" );
-
-            Call * call = from_entry->getCallToTarget(to_entry, from_phase );
+            Call * call = from_phase->getCallToTarget(to_entry);
 
             if ( _createObjects ) {
-                const XML_Char * calls = getStringAttribute(attributes,Xcalls_mean);
-
                 /* Make sure that this is a standard entry */
                 if ( !from_entry ) internal_error( __FILE__, __LINE__, "missing from entry" );
                 _document.db_check_set_entry(const_cast<Entry *>(from_entry), from_entry->getName(), Entry::ENTRY_STANDARD);
@@ -1523,13 +1694,12 @@ namespace LQIO {
 
                 /* Push all the times */
 
-                bool isSymbol = false;
-                ExternalVariable* ev_calls = _document.db_build_parameter_variable(calls, &isSymbol);
+		LQIO::DOM::ExternalVariable* calls = getVariableAttribute(attributes,Xcalls_mean);
 
                 /* Check the existence */
                 if (call == NULL) {
-                    call = new Call( &_document, call_type, dynamic_cast<Phase *>(phase), to_entry, ev_calls );
-		    string name = phase->getName();
+                    call = new Call( &_document, call_type, dynamic_cast<Phase *>(phase), to_entry, calls );
+		    std::string name = phase->getName();
 		    name += '_';
 		    name += to_entry->getName();
 		    call->setName(name);
@@ -1541,7 +1711,7 @@ namespace LQIO {
 
                     /* Set the new call type and the new mean */
                     call->setCallType(call_type);
-                    call->setCallMean(ev_calls);
+                    call->setCallMean(calls);
                 }
             }
 
@@ -1561,13 +1731,12 @@ namespace LQIO {
 	    checkAttributes( call_type == DOM::Call::RENDEZVOUS ? Xsynch_call : Xasynch_call, attributes, call_table );
 
             const XML_Char * dest_entry_name = getStringAttribute(attributes,Xdest);
-            const XML_Char * calls = getStringAttribute(attributes,Xcalls_mean);
 
             /* Obtain the entry that we will be adding the phase times to */
             Entry* to_entry = _document.getEntryByName(dest_entry_name);
             if ( !to_entry ) {
                 if ( _createObjects ) {
-                    to_entry = new Entry( &_document, dest_entry_name, 0);         // This differs here.. entry may not exist, so create it anyway then test later. assert(to_entry != NULL);
+                    to_entry = new Entry( &_document, dest_entry_name );         // This differs here.. entry may not exist, so create it anyway then test later. assert(to_entry != NULL);
                     _document.addEntry(to_entry);         /* Add to global table */
                 } else {
                     throw undefined_symbol( dest_entry_name );
@@ -1579,11 +1748,8 @@ namespace LQIO {
                 /* Push all the times */
 
                 if ( !call ) {
-                    bool isSymbol = false;
-                    ExternalVariable* ev_calls = _document.db_build_parameter_variable(calls, &isSymbol);
-
-                    call = new Call( &_document, call_type, dynamic_cast<Activity *>(activity), to_entry, ev_calls );
-		    string name = activity->getName();
+                    call = new Call( &_document, call_type, dynamic_cast<Activity *>(activity), to_entry, getVariableAttribute(attributes,Xcalls_mean) );
+		    std::string name = activity->getName();
 		    name += '_';
 		    name += to_entry->getName();
 		    call->setName(name);
@@ -1603,7 +1769,6 @@ namespace LQIO {
         Expat_Document::handleEntryCall( DocumentObject * entry, const XML_Char ** attributes )
         {
             const XML_Char * dest_entry_name = getStringAttribute(attributes,Xdest);
-            const XML_Char * prob = getStringAttribute(attributes,Xprob);
 
             /* Obtain the entry that we will be adding the phase times to */
             Entry* to_entry = _document.getEntryByName(dest_entry_name);
@@ -1612,17 +1777,16 @@ namespace LQIO {
                     to_entry = new Entry( &_document, dest_entry_name );         // This differs here.. entry may not exist, so create it anyway then test later. assert(to_entry != NULL);
                     _document.addEntry(to_entry);         /* Add to global table */
                 } else {
-                    throw runtime_error( dest_entry_name );
+                    throw std::runtime_error( dest_entry_name );
                 }
             }
 
-            Entry * from_entry = dynamic_cast<Entry *>(entry);
-            Call * call = from_entry->getForwardingToTarget(to_entry);
+	    Entry * from_entry = dynamic_cast<Entry *>(entry);
+	    Call * call = from_entry->getForwardingToTarget(to_entry);
             if ( _createObjects ) {
                 if ( call == NULL ) {
-                    bool isSymbol = false;
-                    call = new Call( &_document, from_entry, to_entry, _document.db_build_parameter_variable(prob, &isSymbol) );
-		    string name = from_entry->getName();
+                    call = new Call( &_document, from_entry, to_entry, getVariableAttribute(attributes,Xprob) );
+		    std::string name = from_entry->getName();
 		    name += '_';
 		    name += to_entry->getName();
 		    call->setName(name);
@@ -1646,7 +1810,7 @@ namespace LQIO {
 	    if ( phase ) {
 		if ( !dynamic_cast<Entry *>(object)) {
 		    LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, Xhistogram_bin, Xphase );
-		    return 0;
+		    return NULL;
 		} else {
 		    return findOrAddHistogram( object, phase, Histogram::CONTINUOUS,	/* Special version for entries. */
 					       getLongAttribute(attributes, Xnumber_bins, 10),
@@ -1697,11 +1861,8 @@ namespace LQIO {
                 std::map<const XML_Char *,result_table_t>::const_iterator item = result_table.find(*attributes);
                 if ( item != result_table.end() ) {
                     set_result_fptr func = item->second.mean;
-                    char * end_ptr = 0;
-		    const double value = strtod( *(attributes+1), &end_ptr );
-                    if ( value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
-			invalid_argument( *attributes, *(attributes+1) );
-		    } else if ( func && _loadResults && value > 0. ) {
+		    const double value = get_double( *attributes, *(attributes+1) );
+		    if ( func && _loadResults && value > 0. ) {
                         (object->*func)( value );
                     }
                 } else {
@@ -1717,11 +1878,8 @@ namespace LQIO {
                 std::map<const XML_Char *,result_table_t>::const_iterator item = result_table.find(*attributes);
                 if ( item != result_table.end() ) {
                     set_result_fptr func = item->second.variance;
-                    char * end_ptr = 0;
-		    const double value = strtod( *(attributes+1), &end_ptr );
-                    if ( value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
-			invalid_argument( *attributes, *(attributes+1) );
-		    } else if ( func && _loadResults && value > 0. ) {
+		    const double value = get_double( *attributes, *(attributes+1) );
+		    if ( func && _loadResults && value > 0. ) {
                         (object->*func)( invert( value ) );      /* Save result as variance */
                     }
                 }
@@ -1742,11 +1900,55 @@ namespace LQIO {
         Expat_Document::handleJoinResults95( AndJoinActivityList * join_list, const XML_Char ** attributes )
         {
             if ( _loadResults ) {
-                join_list->setResultJoinDelay( invert(getDoubleAttribute(attributes,Xjoin_waiting,0.0)) );
-                join_list->setResultVarianceJoinDelay( invert(getDoubleAttribute(attributes,Xjoin_variance,0.0)) );
+                join_list->setResultJoinDelayVariance( invert(getDoubleAttribute(attributes,Xjoin_waiting,0.0)) );
+                join_list->setResultVarianceJoinDelayVariance( invert(getDoubleAttribute(attributes,Xjoin_variance,0.0)) );
             }
         }
 
+	/*
+	 * Stick all observations into _spex_observation in case we need add 95% confidence intervals.
+	 * Observation handling is done by the end handler endSPEXObservation();
+	 */
+	
+	void
+ 	Expat_Document::handleSPEXObservation( DocumentObject * object, const XML_Char ** attributes, unsigned int conf_level )
+	{
+            for ( ; *attributes; attributes += 2 ) {
+                std::map<const XML_Char *,observation_table_t>::const_iterator item = observation_table.find(*attributes);
+                if ( item != observation_table.end() ) {
+		    const int key = item->second.key;
+		    /* Find the phase for the observation */
+		    int p = 0;
+		    if ( dynamic_cast<LQIO::DOM::Phase *>( object ) != NULL && dynamic_cast<LQIO::DOM::Activity *>( object ) == NULL ) {
+			p = get_phase( dynamic_cast<LQIO::DOM::Phase *>( object ) );
+		    } else if ( dynamic_cast<LQIO::DOM::Call *>( object ) != NULL ) {
+			const LQIO::DOM::Call * call = dynamic_cast<const LQIO::DOM::Call *>(object);
+			const DocumentObject * source = call->getSourceObject();
+			if ( dynamic_cast<const LQIO::DOM::Phase *>(source) && dynamic_cast<LQIO::DOM::Activity *>( object ) == NULL ) {
+			    p = get_phase( dynamic_cast<const LQIO::DOM::Phase *>(source) );
+			}
+		    } else {
+			p = item->second.phase;
+		    }
+		    /* Find or create the observation and set necessary fields */
+		    std::pair<std::set<LQIO::Spex::ObservationInfo>::iterator,bool> item = _spex_observation.insert( LQIO::Spex::ObservationInfo( key, p ) );
+		    LQIO::Spex::ObservationInfo& obs = const_cast<LQIO::Spex::ObservationInfo&>(*(item.first));
+		    try {
+			if ( conf_level == 0 ) {
+			    obs.setVariableName( *(attributes+1) );
+			} else {
+			    obs.setConfLevel(conf_level).setConfVariableName( *(attributes+1) );
+			}
+		    }
+		    catch ( const std::invalid_argument& e ) {
+			Common_IO::invalid_argument( *attributes, *(attributes+1) );
+		    }
+
+                } else {
+		    throw unexpected_attribute( *attributes );
+                }
+            }
+	}
 
         Histogram *
         Expat_Document::findOrAddHistogram( DocumentObject * object, Histogram::histogram_t type, unsigned int n_bins, double min, double max )
@@ -1755,10 +1957,10 @@ namespace LQIO {
             if ( _createObjects ) {
                 if ( object->hasHistogram() ) throw duplicate_symbol( object->getName() );
 
-                histogram = new Histogram( &_document, type, n_bins, min, max, 0 );
+                histogram = new Histogram( &_document, type, n_bins, min, max );
                 object->setHistogram( histogram );
             } else if ( !object->hasHistogram() ) {
-		throw runtime_error( object->getName() );
+		throw std::runtime_error( object->getName() );
 	    } else {
 		histogram = const_cast<Histogram *>(object->getHistogram());
             }
@@ -1773,16 +1975,20 @@ namespace LQIO {
             if ( _createObjects ) {
                 if ( object->hasHistogramForPhase( phase ) ) throw duplicate_symbol( object->getName() );
 
-                histogram = new Histogram( &_document, type, n_bins, min, max, 0 );
+                histogram = new Histogram( &_document, type, n_bins, min, max );
                 object->setHistogramForPhase( phase, histogram );
             } else if ( !object->hasHistogramForPhase( phase ) ) {
-		throw runtime_error( object->getName() );
+		throw std::runtime_error( object->getName() );
 	    } else {
 		histogram = const_cast<Histogram *>(object->getHistogramForPhase( phase ));
             }
             return histogram;
 	}
 
+	/* 
+	 * Ensure all attributes for element_name are found in the table.
+	 */
+	
         bool
         Expat_Document::checkAttributes( const XML_Char * element_name, const XML_Char ** attributes, std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const
         {
@@ -1798,6 +2004,43 @@ namespace LQIO {
             }
             return rc;
         }
+
+	/* 
+	 * Return either a constant or a variable by converting attribute.  If the attribute is NOT found
+	 * use the default (if present), or throw missing_attribute.
+	 */
+	
+	LQIO::DOM::ExternalVariable *
+	Expat_Document::getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, const XML_Char * default_value ) const
+	{
+	    const XML_Char * s = default_value;
+            for ( ; *attributes; attributes += 2 ) {
+                if ( strcasecmp( *attributes, attribute ) == 0 ) {
+                    s = *(attributes+1);
+                }
+            }
+	    if ( !s ) {
+                throw missing_attribute( attribute );
+	    } else {
+		return _document.db_build_parameter_variable( s, NULL );
+	    }
+	}
+
+	/* 
+	 * Return either a constant or a variable by converting attribute.  If the attribute is NOT found
+	 * use the default (if present), or throw missing_attribute.
+	 */
+	
+	LQIO::DOM::ExternalVariable *
+	Expat_Document::getOptionalAttribute( const XML_Char **attributes, const XML_Char * attribute ) const
+	{
+            for ( ; *attributes; attributes += 2 ) {
+                if ( strcasecmp( *attributes, attribute ) == 0 ) {
+		    return _document.db_build_parameter_variable( *(attributes+1), NULL );
+		}
+	    }
+	    return NULL;
+	}
 
         const XML_Char *
         Expat_Document::getStringAttribute(const XML_Char ** attributes, const XML_Char * attribute, const XML_Char * default_value ) const
@@ -1819,12 +2062,7 @@ namespace LQIO {
         {
             for ( ; *attributes; attributes += 2 ) {
                 if ( strcasecmp( *attributes, attribute ) == 0 ) {
-                    char * end_ptr = 0;
-                    const double value = strtod( *(attributes+1), &end_ptr );
-                    if ( value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
-			invalid_argument( *attributes, *(attributes+1) );
-		    }
-                    return value;
+                    return get_double( *attributes, *(attributes+1) );
                 }
             }
             if ( default_value >= 0.0 ) {
@@ -1865,28 +2103,20 @@ namespace LQIO {
             return default_value;
         }
 
-        const clock_t
+        const double
         Expat_Document::getTimeAttribute( const XML_Char ** attributes, const XML_Char * attribute ) const
         {
             for ( ; *attributes; attributes += 2 ) {
                 if ( strcasecmp( *attributes, attribute ) == 0 ) {
                     unsigned long hrs   = 0;
                     unsigned long mins  = 0;
-                    unsigned long secs  = 0;
+                    double secs         = 0;
 
-                    sscanf( *(attributes+1), "%ld:%ld:%ld", &hrs, &mins, &secs );
-#if defined(HAVE_SYS_TIME_H)
-#if defined(CLK_TCK)
-		    return (hrs * 3600 + mins * 60 + secs) * CLK_TCK;
-#else
-		    return (hrs * 3600 + mins * 60 + secs) * sysconf(_SC_CLK_TCK);
-#endif
-#else
+                    sscanf( *(attributes+1), "%ld:%ld:%lf", &hrs, &mins, &secs );
                     return hrs * 3600 + mins * 60 + secs;
-#endif
                 }
             }
-            return 0;
+            return 0.;
         }
 
         const scheduling_type
@@ -1904,56 +2134,100 @@ namespace LQIO {
             }
             return default_value;
         }
+
+	double Expat_Document::get_double( const char * attr, const char * val ) const
+	{
+	    char * end_ptr = 0;
+	    const double value = strtod( val, &end_ptr );
+	    if ( value < 0 || ( end_ptr && *end_ptr != '\0' ) ) {
+		invalid_argument( attr, val );
+	    }
+	    return value;
+	}
 
         /* ---------------------------------------------------------------- */
-        /* DOM serialization - write results to XERCES then save.           */
+        /* DOM serialization 						    */
         /* ---------------------------------------------------------------- */
 
-        void
-        Expat_Document::serializeDOM( ostream& output, bool instantiate ) const
-        {
-            __instantiate = instantiate;
+	class ExportObservation {
+	public:
+	    ExportObservation( std::ostream& output, unsigned int conf_level=0 ) : _output( output ), _conf_level(conf_level) {}
+	    void operator()( const std::pair<const DocumentObject *,const Spex::ObservationInfo>& obs ) const { print( obs.second ); }
+	    void operator()( const Spex::ObservationInfo& obs ) const { print( obs ); }
 
-            if ( _document.getResultNumberOfBlocks() > 1 ) {
+	private:
+	    void print( const Spex::ObservationInfo& obs ) const
+		{
+		    const char * attribute = LQIO::DOM::Expat_Document::__key_lqx_function_map.at(obs.getKey());
+		    if ( _conf_level && obs.getConfLevel() == _conf_level ) {
+			_output << LQIO::DOM::Expat_Document::attribute( attribute, obs.getConfVariableName() );
+		    } else {
+			_output << LQIO::DOM::Expat_Document::attribute( attribute, obs.getVariableName() );
+		    }
+		}
+
+	    std::ostream& _output;
+	    const unsigned _conf_level;
+	};
+
+	class HasConfidenceObservation {
+	public:
+	    HasConfidenceObservation( unsigned int conf_level ) : _conf_level(conf_level) {}
+	    bool operator()( const std::pair<const DocumentObject *,const Spex::ObservationInfo>& obs ) const { return obs.second.getConfLevel() == _conf_level; }
+	private:
+	    const unsigned int _conf_level;
+	};
+	
+        void
+        Expat_Document::serializeDOM( std::ostream& output ) const
+        {
+            if ( _document.hasConfidenceIntervals() ) {
                 const_cast<ConfidenceIntervals *>(&_conf_95)->set_blocks( _document.getResultNumberOfBlocks() );
                 const_cast<ConfidenceIntervals *>(&_conf_99)->set_blocks( _document.getResultNumberOfBlocks() );
             }
-
+	    /* Output SPEX if present, otherwise output LQX (also if present) */
+	    const_cast<Expat_Document *>(this)->_has_spex = Spex::numberOfInputVariables() > 0;
+	    
             exportHeader( output );
+	    if ( hasSPEX() && !_document.instantiated() ) {
+		exportSPEXParameters( output );
+	    }
             exportGeneral( output );
 
 	    /* Export in model input order */
 
 	    const std::map<unsigned,Entity *>& entities = _document.getEntities();
-            for ( std::map<unsigned, Entity *>::const_iterator entityIter = entities.begin(); entityIter != entities.end(); ++entityIter) {
-		if ( dynamic_cast<Processor *>(entityIter->second) ) {
-		    exportProcessor( output, *dynamic_cast<Processor *>(entityIter->second) );
-		}
-            }
+	    for_each( entities.begin(), entities.end(), ExportProcessor( output, *this ) );
 
-            if ( !instantiate ) {
-                exportLQX( output );            // If translating, do this, otherwise, don't
+            if ( !_document.instantiated() ) {
+		if ( hasSPEX() ) {
+		    exportSPEXResults( output );
+		    exportSPEXConvergence( output );
+		} else {
+		    exportLQX( output );            // If translating, do this, otherwise, don't
+		}
             }
 
             exportFooter( output );
 	}
 
         void
-        Expat_Document::exportHeader( ostream& output ) const
+        Expat_Document::exportHeader( std::ostream& output ) const
         {
-            Filename base_name( input_file_name );
+            Filename base_name( _input_file_name );
 
-            output << "<?xml version=\"1.0\"?>" << endl;
+            output << "<?xml version=\"1.0\"?>" << std::endl
+		   << "<!-- " << Common_IO::svn_id() << " -->" << std::endl;
 
 	    if ( LQIO::DOM::Document::io_vars->lq_command_line && strlen( LQIO::DOM::Document::io_vars->lq_command_line ) > 0 ) {
 		output << comment( LQIO::DOM::Document::io_vars->lq_command_line );
 	    }
             output << start_element( Xlqn_model ) << attribute( Xname, base_name() )
-                   << " description=\"" << LQIO::DOM::Document::io_vars->lq_toolname << " " << LQIO::DOM::Document::io_vars->lq_version << " solution for model from: " << input_file_name << ".\""
+                   << " description=\"" << LQIO::DOM::Document::io_vars->lq_toolname << " " << LQIO::DOM::Document::io_vars->lq_version << " solution for model from: " << _input_file_name << ".\""
                    << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
 
             const char * p = getenv( "LQN_SCHEMA_DIR" );
-            string schema_path;
+	    std::string schema_path;
             if ( p != 0 ) {
                 schema_path = p;
                 schema_path += "/";
@@ -1977,27 +2251,47 @@ namespace LQIO {
             schema_path += "lqn.xsd";
 
             output << schema_path;
-            output << "\">" << endl;
+            output << "\">" << std::endl;
         }
 
+	void
+	Expat_Document::exportSPEXParameters( std::ostream& output ) const
+	{
+	    const int precision = output.precision(10);
+	    output << start_element( Xspex_parameters ) << ">" /* <![CDATA[" */ << std::endl;
+	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
+	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
+	    for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputVariable( output ) );
+	    output /* << "]]>" << std::endl */ << end_element( Xspex_parameters ) << std::endl;
+	    output.precision(precision);
+	}
+    
         /*
           <result-general conv-val="0" elapsed-time="0.000000:0.000000:0.000000" iterations="2" platform-info="Gregs-MacBook.local Darwin 10.3.0" solver-info="Gregs-MacBook.local Darwin 10.3.0" system-cpu-time="0.000000:0.000000:0.000000" user-cpu-time="0.000000:0.000000:0.000000" valid="YES"/>
         */
 
         void
-        Expat_Document::exportGeneral( ostream& output ) const
+        Expat_Document::exportGeneral( std::ostream& output ) const
         {
-            const bool complex_element = hasResults() || _document.hasPragmas();
+	    const std::vector<Spex::ObservationInfo> doc_vars = Spex::get_document_variables();
+	    const bool complex_element = hasResults() || _document.hasPragmas() || doc_vars.size() > 0;
+
             output << start_element( Xsolver_parameters, complex_element )
-                   << attribute( Xcomment, _document.getModelComment() )
-                   << attribute( Xconv_val, _document.getModelConvergenceValue() )
-                   << attribute( Xit_limit, _document.getModelIterationLimit() )
-                   << attribute( Xunderrelax_coeff, _document.getModelUnderrelaxationCoefficient() )
-                   << attribute( Xprint_int, _document.getModelPrintInterval() );
+                   << attribute( Xcomment, *_document.getModelComment() )
+                   << attribute( Xconv_val, *_document.getModelConvergence() )
+                   << attribute( Xit_limit, *_document.getModelIterationLimit() )
+                   << attribute( Xunderrelax_coeff, *_document.getModelUnderrelaxationCoefficient() )
+                   << attribute( Xprint_int, *_document.getModelPrintInterval() );
             if ( complex_element ) {
-                output << ">" << endl;
+                output << ">" << std::endl;
+		if ( doc_vars.size() > 0 ) {
+                    output << simple_element( Xresult_observation );
+		    for_each( doc_vars.begin(), doc_vars.end(), ExportObservation( output ) );
+		    output << "/>" << std::endl;
+		}
                 if ( hasResults() ) {
-                    const bool has_mva_info = _document.getResultMVASubmodels() > 0;
+		    const MVAStatistics& mva_info = _document.getResultMVAStatistics();
+                    const bool has_mva_info = mva_info.getNumberOfSubmodels() > 0;
                     output << start_element( Xresult_general, has_mva_info )
                            << attribute( Xvalid, _document.getResultValid() ? "YES" : "NO" )
                            << attribute( Xconv_val_result, _document.getResultConvergenceValue() )
@@ -2010,18 +2304,18 @@ namespace LQIO {
 			output << attribute( Xmax_rss, _document.getResultMaxRSS() );
 		    }
                     if ( has_mva_info ) {
-                        output << ">" << endl;
+                        output << ">" << std::endl;
                         output << simple_element( Xmva_info )
-                               << attribute( Xsubmodels, _document.getResultMVASubmodels() )
-                               << attribute( Xcore, static_cast<double>(_document.getResultMVACore()) )
-                               << attribute( Xstep, _document.getResultMVAStep() )
-                               << attribute( Xstep_squared, _document.getResultMVAStepSquared() )
-                               << attribute( Xwait, _document.getResultMVAWait() )
-                               << attribute( Xwait_squared, _document.getResultMVAWaitSquared() )
-                               << attribute( Xfaults, _document.getResultMVAFaults() )
-                               << "/>" << endl;
+                               << attribute( Xsubmodels, mva_info.getNumberOfSubmodels() )
+                               << attribute( Xcore, static_cast<double>(mva_info.getNumberOfCore()) )
+                               << attribute( Xstep, mva_info.getNumberOfStep() )
+                               << attribute( Xstep_squared, mva_info.getNumberOfStepSquared() )
+                               << attribute( Xwait, mva_info.getNumberOfWait() )
+                               << attribute( Xwait_squared, mva_info.getNumberOfWaitSquared() )
+                               << attribute( Xfaults, mva_info.getNumberOfFaults() )
+                               << "/>" << std::endl;
                     }
-                    output << end_element( Xresult_general, has_mva_info ) << endl;
+                    output << end_element( Xresult_general, has_mva_info ) << std::endl;
                 }
                 if ( _document.hasPragmas() ) {
                     const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
@@ -2029,11 +2323,11 @@ namespace LQIO {
                         output << start_element( Xpragma, false )
                                << attribute( Xparam, next_pragma->first )
                                << attribute( Xvalue, next_pragma->second );
-                        output << end_element( Xpragma, false ) << endl;
+                        output << end_element( Xpragma, false ) << std::endl;
                     }
                 }
             }
-            output << end_element( Xsolver_parameters, complex_element ) << endl;
+            output << end_element( Xsolver_parameters, complex_element ) << std::endl;
         }
 
 
@@ -2047,91 +2341,92 @@ namespace LQIO {
          */
 
         void
-        Expat_Document::exportProcessor( ostream& output, const Processor & processor ) const
+        Expat_Document::exportProcessor( std::ostream& output, const Processor & processor ) const
         {
             const std::set<Task*>& task_list = processor.getTaskList();
             if ( !task_list.size() ) return;
 
             const scheduling_type scheduling = processor.getSchedulingType();
             output << start_element( Xprocessor )
-                   << attribute( Xname, processor.getName() )
-                   << attribute( Xscheduling, schedulingTypeXMLString[scheduling] );            // see lqio/labels.c
-
-            if ( processor.isMultiserver() ) {
-                output << attribute( Xmultiplicity, *processor.getCopies() );
+                   << attribute( Xname, processor.getName() );
+	    if ( processor.isInfinite() ) {
+		output << attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );        // see labels.cpp
+		/* All other attributes don't matter for a delay server */
+	    } else {
+		output << attribute( Xscheduling, scheduling_label[scheduling].XML );            // see labels.cpp
+		if ( processor.isMultiserver() ) {
+		    output << attribute( Xmultiplicity, *processor.getCopies() );
+		}
+		if ( processor.hasRate() ) {
+		    output << attribute( Xspeed_factor, *processor.getRate() );
+		}
+		if ( processor.hasQuantumScheduling() ) {
+		    if ( processor.hasQuantum() ) {
+			output << attribute( Xquantum, *processor.getQuantum() );
+		    } else {
+			output << attribute( Xquantum, 0. );
+		    }
+		}
+	    }
+            if ( processor.hasReplicas() ) {
+                output << attribute( Xreplication, *processor.getReplicas() );
             }
-            if ( processor.hasRate() ) {
-                output << attribute( Xspeed_factor, *processor.getRate() );
-            }
-            if ( processor.getReplicas() > 1 ) {
-                output << attribute( Xreplication, processor.getReplicas() );
-            }
-            if ( (scheduling == SCHEDULE_PS
-                  || scheduling == SCHEDULE_PS_HOL
-                  || scheduling == SCHEDULE_PS_PPR
-                  || scheduling == SCHEDULE_CFS)
-                 && processor.hasQuantum() ) {
-                output << attribute( Xquantum, *processor.getQuantum() );
-            }
-            output << ">" << endl;
+            output << ">" << std::endl;
 
 	    if ( processor.getComment().size() > 0 ) {
 		output << comment( processor.getComment() );
 	    }
 
+	    if ( hasSPEX() && !_document.instantiated() ) {
+		exportObservation( output, &processor );
+	    }
             if ( hasResults() ) {
-                if ( _document.getResultNumberOfBlocks() > 1 ) {
-                    output << start_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << ">" << endl;
-                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << endl;
-                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << endl;
-                    output << end_element( Xresult_processor ) << endl;
+                if ( _document.hasConfidenceIntervals() ) {
+                    output << start_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << ">" << std::endl;
+                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << end_element( Xresult_processor ) << std::endl;
                 } else {
-                    output << simple_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << "/>" << endl;
+                    output << simple_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << "/>" << std::endl;
                 }
             }
 
             const std::set<Group*>& group_list = processor.getGroupList();
-            std::set<Group*>::const_iterator next_group;
-            for (next_group = group_list.begin(); next_group != group_list.end(); ++next_group) {
-                exportGroup( output, **next_group );
-            }
+	    for_each( group_list.begin(), group_list.end(), ExportGroup( output, *this ) );
 
-            for ( std::set<Task*>::const_iterator  next_task = task_list.begin(); next_task != task_list.end(); ++next_task) {
-                if ( !(*next_task)->getGroup() ) {
-                    exportTask( output, **next_task );
-                }
-            }
+	    for_each( task_list.begin(), task_list.end(), ExportTask( output, *this, true ) );
 
-            output << end_element( Xprocessor ) << endl;
+            output << end_element( Xprocessor ) << std::endl;
         }
 
 
         void
-        Expat_Document::exportGroup( ostream& output, const Group & group ) const
+        Expat_Document::exportGroup( std::ostream& output, const Group & group ) const
         {
             output << start_element( Xgroup ) << attribute( Xname, group.getName() )
                    << attribute( Xshare, *group.getGroupShare() )
                    << attribute( Xcap, group.getCap() )
-                   << ">" << endl;
+                   << ">" << std::endl;
 
+	    if ( hasSPEX() && !_document.instantiated() ) {
+		exportObservation( output, &group );
+	    }
             if ( hasResults() ) {
-                if ( _document.getResultNumberOfBlocks() > 1 ) {
-                    output << start_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << ">" << endl;
-                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( group.getResultUtilizationVariance() ) ) << "/>" << endl;
-                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( group.getResultUtilizationVariance() ) ) << "/>" << endl;
-                    output << end_element( Xresult_group ) << endl;
+                if ( _document.hasConfidenceIntervals() ) {
+                    output << start_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << ">" << std::endl;
+                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << end_element( Xresult_group ) << std::endl;
                 } else {
-                    output << simple_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << "/>" << endl;
+                    output << simple_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << "/>" << std::endl;
                 }
             }
 
 
             const std::set<Task*>& task_list = group.getTaskList();
-            for ( std::set<Task*>::const_iterator next_task = task_list.begin(); next_task != task_list.end(); ++next_task ) {
-                exportTask( output, **next_task );
-            }
+	    for_each( task_list.begin(), task_list.end(), ExportTask( output, *this ) );
 
-            output << end_element( Xgroup ) << endl;
+            output << end_element( Xgroup ) << std::endl;
         }
 
 
@@ -2147,16 +2442,18 @@ namespace LQIO {
          */
 
         void
-        Expat_Document::exportTask( ostream& output, const Task & task ) const
+        Expat_Document::exportTask( std::ostream& output, const Task & task ) const
         {
+            output << start_element( Xtask ) << attribute( Xname, task.getName() );
+	    if ( task.isInfinite() ) {
+		output << attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );            // see lqio/labels.c
+	    } else { 
+		output << attribute( Xscheduling, scheduling_label[task.getSchedulingType()].XML );            // see lqio/labels.c
+		if ( task.isMultiserver() ) {
+		    output << attribute( Xmultiplicity, *task.getCopies() );
+		}
+	    }
 
-            const scheduling_type scheduling = task.getSchedulingType();
-            output << start_element( Xtask ) << attribute( Xname, task.getName() )
-                   << attribute( Xscheduling, schedulingTypeXMLString[scheduling] );            // see lqio/labels.c
-
-            if ( task.isMultiserver() ) {
-                output << attribute( Xmultiplicity, *task.getCopies() );
-            }
             if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
                 output << attribute( Xthink_time, *task.getThinkTime() );
             }
@@ -2166,25 +2463,28 @@ namespace LQIO {
             if ( task.hasQueueLength() ) {
                 output << attribute( Xqueue_length, *task.getQueueLength() );
             }
-            if ( task.getReplicas() > 1 ) {
-                output << attribute( Xreplication, task.getReplicas() );
+            if ( task.hasReplicas() ) {
+                output << attribute( Xreplication, *task.getReplicas() );
             }
             if ( task.getSchedulingType() == SCHEDULE_SEMAPHORE && dynamic_cast<const SemaphoreTask&>(task).getInitialState() == SemaphoreTask::INITIALLY_EMPTY ) {
                 output << attribute( Xinitially, 0.0 );
             }
 
-            output << ">" << endl;
+            output << ">" << std::endl;
 
 	    if ( task.getComment().size() > 0 ) {
 		output << comment( task.getComment() );
 	    }
 
+	    if ( hasSPEX() && !_document.instantiated() ) {
+		exportObservation( output, &task );
+	    }
             if ( hasResults() ) {
                 if ( task.hasHistogram() ) {
                     exportHistogram( output, *task.getHistogram() );
                 }
 
-                const bool has_confidence = _document.getResultNumberOfBlocks() > 1;
+                const bool has_confidence = _document.hasConfidenceIntervals();
                 output << start_element( Xresult_task, has_confidence )
                        << attribute( Xthroughput, task.getResultThroughput() )
                        << attribute( Xutilization, task.getResultUtilization() )
@@ -2212,7 +2512,7 @@ namespace LQIO {
                 }
 
                 if ( has_confidence ) {
-                    output << ">" << endl;
+                    output << ">" << std::endl;
                     output << simple_element( Xresult_conf_95 )
                            << attribute( Xthroughput, _conf_95( task.getResultThroughputVariance() ) )
                            << attribute( Xutilization, _conf_95( task.getResultUtilizationVariance() ) )
@@ -2236,19 +2536,18 @@ namespace LQIO {
                                << attribute( Xrwlock_writer_utilization, _conf_95(task.getResultWriterHoldingUtilization()) );
                     }
 
-                    output << "/>" << endl;
+                    output << "/>" << std::endl;
 
                     output << simple_element( Xresult_conf_99 )
                            << attribute( Xthroughput, _conf_99( task.getResultThroughputVariance() ) )
-                           << attribute( Xutilization, _conf_99( task.getResultUtilization() ) )
+                           << attribute( Xutilization, _conf_99( task.getResultUtilizationVariance() ) )
                            << task_phase_results( task, XphaseP_utilization, &Task::getResultPhasePUtilizationVariance, &_conf_99 )
                            << attribute( Xproc_utilization, _conf_99(task.getResultProcessorUtilizationVariance() ) );
                     if ( dynamic_cast<const SemaphoreTask *>(&task) ) {
                         output << attribute( Xsemaphore_waiting, _conf_99(task.getResultHoldingTimeVariance()) )
                                << attribute( Xsemaphore_waiting_variance, _conf_99(task.getResultVarianceHoldingTimeVariance()) )
                                << attribute( Xsemaphore_utilization, _conf_99(task.getResultHoldingUtilizationVariance()) );
-                    }
-                    if ( dynamic_cast<const RWLockTask *>(&task) ) {
+                    } else if ( dynamic_cast<const RWLockTask *>(&task) ) {
                         output << attribute( Xrwlock_reader_waiting, _conf_99(task.getResultReaderBlockedTime()) )
                                << attribute( Xrwlock_reader_waiting_variance, _conf_99(task.getResultVarianceReaderBlockedTime()) )
                                << attribute( Xrwlock_reader_holding, _conf_99(task.getResultReaderHoldingTime()) )
@@ -2261,58 +2560,44 @@ namespace LQIO {
                                << attribute( Xrwlock_writer_utilization, _conf_99(task.getResultWriterHoldingUtilization()) );
                     }
 
-                    output << "/>" << endl;
+                    output << "/>" << std::endl;
                 }
 
-                output << end_element( Xresult_task, has_confidence ) << endl;
+                output << end_element( Xresult_task, has_confidence ) << std::endl;
             }
 
 
-            for ( std::map<const std::string, unsigned int>::const_iterator next_fanin = task.getFanIns().begin(); next_fanin != task.getFanIns().end(); ++next_fanin ) {
+            for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanin = task.getFanIns().begin(); next_fanin != task.getFanIns().end(); ++next_fanin ) {
                 const std::string& src = next_fanin->first;
-                const unsigned int value = next_fanin->second;
+                const ExternalVariable * value = next_fanin->second;
                 output << simple_element( Xfanin ) << attribute( Xsource, src )
-                       << attribute( Xvalue, value )
-                       << "/>" << endl;
+                       << attribute( Xvalue, *value )
+                       << "/>" << std::endl;
             }
 
-            for ( std::map<const std::string, unsigned int>::const_iterator next_fanout = task.getFanOuts().begin(); next_fanout != task.getFanOuts().end(); ++next_fanout ) {
+            for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanout = task.getFanOuts().begin(); next_fanout != task.getFanOuts().end(); ++next_fanout ) {
                 const std::string dst = next_fanout->first;
-                const unsigned int value = next_fanout->second;
+                const ExternalVariable * value = next_fanout->second;
                 output << simple_element( Xfanout ) << attribute( Xdest, dst )
-                       << attribute( Xvalue, value )
-                       << "/>" << endl;
+                       << attribute( Xvalue, *value )
+                       << "/>" << std::endl;
             }
 
             const std::vector<Entry *>& entries = task.getEntryList();
-            for ( std::vector<DOM::Entry *>::const_iterator next_entry = entries.begin(); next_entry != entries.end(); ++next_entry ) {
-                exportEntry( output, **next_entry );
-            }
+	    for_each( entries.begin(), entries.end(), ExportEntry( output, *this ) );
 
             const std::map<std::string,DOM::Activity*>& activities = task.getActivities();
             if ( activities.size() > 0 ) {
 
                 /* The activities */
 
-                output << start_element( Xtask_activities ) << ">" << endl;
-                for ( std::map<std::string,DOM::Activity*>::const_iterator next_activity = activities.begin(); next_activity != activities.end(); ++next_activity ) {
-                    exportActivity( output, *(next_activity->second), 0 );
-                }
+                output << start_element( Xtask_activities ) << ">" << std::endl;
+                for_each( activities.begin(), activities.end(), ExportActivity( output, *this ) );
 
                 /* Precedence connections */
 
                 const std::set<ActivityList*>& precedences = task.getActivityLists();
-                for ( std::set<ActivityList*>::const_iterator next_precedence = precedences.begin(); next_precedence != precedences.end(); ++next_precedence ) {
-                    /* look for the 'pre' side.  Do the post side based on the pre-side */
-                    const ActivityList * activity_list = *next_precedence;
-                    if ( activity_list->isForkList() ) continue;
-		    output << start_element( Xprecedence ) << ">" << endl;
-		    exportPrecedence( output, *activity_list );
-		    if ( activity_list->getNext() ) {
-			exportPrecedence( output, *(activity_list->getNext()) );
-		    }
-		    output << end_element( Xprecedence ) << endl;
-                }
+                for_each ( precedences.begin(), precedences.end(), ExportPrecedence( output, *this ) );
 
                 /* Finally handle the list of replies. We find all of the reply entries for the activities, then swap the order. */
                 std::map<const Entry *,std::vector<const Activity *> > entry_reply_list;
@@ -2328,18 +2613,18 @@ namespace LQIO {
 
                 for ( std::map<const Entry *,std::vector<const Activity *> >::const_iterator next_entry = entry_reply_list.begin(); next_entry != entry_reply_list.end(); ++next_entry ) {
                     const Entry * entry = next_entry->first;
-                    output << start_element( Xreply_entry ) << attribute( Xname, entry->getName() ) << ">" << endl;
+                    output << start_element( Xreply_entry ) << attribute( Xname, entry->getName() ) << ">" << std::endl;
                     const std::vector<const Activity *>& activity_list = next_entry->second;
                     for ( std::vector<const Activity *>::const_iterator next_activity = activity_list.begin(); next_activity != activity_list.end(); ++next_activity ) {
-                        output << simple_element( Xreply_activity ) << attribute( Xname, (*next_activity)->getName() ) << "/>" << endl;
+                        output << simple_element( Xreply_activity ) << attribute( Xname, (*next_activity)->getName() ) << "/>" << std::endl;
                     }
-                    output << end_element( Xreply_entry ) << endl;
+                    output << end_element( Xreply_entry ) << std::endl;
                 }
 
-                output << end_element( Xtask_activities ) << endl;
+                output << end_element( Xtask_activities ) << std::endl;
             }
 
-            output << end_element( Xtask ) << endl;
+            output << end_element( Xtask ) << std::endl;
         }
 
 
@@ -2363,9 +2648,9 @@ namespace LQIO {
          */
 
         void
-        Expat_Document::exportEntry( ostream& output, const Entry& entry ) const
+        Expat_Document::exportEntry( std::ostream& output, const Entry& entry ) const
         {
-            const bool complex_element = entry.getStartActivity() == 0  /* Phase1/2 type entry */
+            const bool complex_element = entry.getStartActivity() == 0 		/* Phase1/2 type entry */
                 || entry.getForwarding().size() > 0
 		|| (entry.getStartActivity() && entry.hasHistogram())           /* Activity entry with a histogram */
                 || hasResults();
@@ -2402,12 +2687,15 @@ namespace LQIO {
             }
 
             if ( complex_element ) {
-                output << ">" << endl;
+                output << ">" << std::endl;
 
 		if ( entry.getComment().size() > 0 ) {
 		    output << comment( entry.getComment() );
 		}
 
+		if ( hasSPEX() && !_document.instantiated() ) {
+		    exportObservation( output, &entry );
+		}
                 if ( hasResults() ) {
 		    if ( entry.getStartActivity() && entry.hasHistogram() ) {
 			for ( unsigned p = 1; p <= Phase::MAX_PHASE; ++p ) {
@@ -2417,7 +2705,7 @@ namespace LQIO {
 			}
 		    }
 
-                    const bool has_confidence = _document.getResultNumberOfBlocks() > 1;
+                    const bool has_confidence = _document.hasConfidenceIntervals();
 
                     output << start_element( Xresult_entry, has_confidence )
                            << attribute( Xutilization, entry.getResultUtilization() )
@@ -2428,7 +2716,7 @@ namespace LQIO {
 			output << attribute( Xthroughput_bound, entry.getResultThroughputBound() );
 		    }
                     if ( entry.hasResultsForOpenWait() ) {
-                        output << attribute( Xopen_wait_time, entry.getResultOpenWaitTime() );
+                        output << attribute( Xopen_wait_time, entry.getResultWaitingTime() );
                     }
 
                     /* Results for activity entries. */
@@ -2440,7 +2728,7 @@ namespace LQIO {
                     }
 
                     if ( has_confidence ) {
-                        output << ">" << endl;
+                        output << ">" << std::endl;
 
                         output << simple_element( Xresult_conf_95 )
                                << attribute( Xutilization, _conf_95( entry.getResultUtilizationVariance() ) )
@@ -2448,7 +2736,7 @@ namespace LQIO {
                                << attribute( Xsquared_coeff_variation, _conf_95( entry.getResultSquaredCoeffVariationVariance() ) )
                                << attribute( Xproc_utilization, _conf_95( entry.getResultProcessorUtilizationVariance() ) );
                         if ( entry.hasResultsForOpenWait() ) {
-                            output << attribute( Xopen_wait_time, _conf_95( entry.getResultOpenWaitTimeVariance() ) );
+                            output << attribute( Xopen_wait_time, _conf_95( entry.getResultWaitingTimeVariance() ) );
                         }
 
                         /* Results for activity entries. */
@@ -2458,7 +2746,7 @@ namespace LQIO {
                                    << entry_phase_results( entry, XphaseP_proc_waiting, &Entry::getResultPhasePProcessorWaitingVariance, &_conf_95 )
                                    << entry_phase_results( entry, XphaseP_utilization, &Entry::getResultPhasePUtilizationVariance, &_conf_95 );
                         }
-                        output << "/>" << endl;
+                        output << "/>" << std::endl;
 
                         output << simple_element( Xresult_conf_99 )
                                << attribute( Xutilization, _conf_99( entry.getResultUtilizationVariance() ) )
@@ -2466,7 +2754,7 @@ namespace LQIO {
                                << attribute( Xsquared_coeff_variation, _conf_99( entry.getResultSquaredCoeffVariationVariance() ) )
                                << attribute( Xproc_utilization, _conf_99( entry.getResultProcessorUtilizationVariance() ) );
                         if ( entry.hasResultsForOpenWait() ) {
-                            output << attribute( Xopen_wait_time, _conf_99( entry.getResultOpenWaitTimeVariance() ) );
+                            output << attribute( Xopen_wait_time, _conf_99( entry.getResultWaitingTimeVariance() ) );
                         }
 
                         /* Results for activity entries. */
@@ -2476,33 +2764,25 @@ namespace LQIO {
                                    << entry_phase_results( entry, XphaseP_proc_waiting, &Entry::getResultPhasePProcessorWaitingVariance, &_conf_99 )
                                    << entry_phase_results( entry, XphaseP_utilization, &Entry::getResultPhasePUtilizationVariance, &_conf_99 );
                         }
-                        output << "/>" << endl;
+                        output << "/>" << std::endl;
                     }
 
-                    output << end_element( Xresult_entry, has_confidence ) << endl;
+                    output << end_element( Xresult_entry, has_confidence ) << std::endl;
                 }
 
                 const std::vector<Call*>& forwarding = entry.getForwarding();
-                for ( std::vector<Call*>::const_iterator next_call = forwarding.begin(); next_call != forwarding.end(); ++next_call ) {
-                    exportCall( output, **next_call );
-                }
+                for_each( forwarding.begin(), forwarding.end(), ExportCall( output, *this ) );
 
                 if ( entry.isStandardEntry() ) {
-                    output << start_element( Xentry_phase_activities ) << ">" << endl;
+                    output << start_element( Xentry_phase_activities ) << ">" << std::endl;
 
                     const std::map<unsigned, Phase*>& phases = entry.getPhaseList();
-		    assert( phases.size() <= DOM::Phase::MAX_PHASE );
-                    for ( std::map<unsigned, Phase*>::const_iterator next_phase = phases.begin(); next_phase != phases.end(); ++next_phase ) {
-                        const Phase * phase = next_phase->second;
-                        if ( phase->isNotNull() ) {
-                            exportActivity( output, *phase, next_phase->first );
-                        }
-                    }
-                    output << end_element( Xentry_phase_activities ) << endl;
+                    for_each ( phases.begin(), phases.end(), ExportPhase( output, *this ) );
+                    output << end_element( Xentry_phase_activities ) << std::endl;
                 }
             } /* if ( complex_element ) */
 
-            output << end_element( Xentry, complex_element ) << endl;
+            output << end_element( Xentry, complex_element ) << std::endl;
 
 	    if ( !complex_element && entry.getComment().size() > 0 ) {
 		output << comment( entry.getComment() );
@@ -2529,7 +2809,7 @@ namespace LQIO {
         Expat_Document::exportActivity( std::ostream& output, const Phase &phase, const unsigned p ) const
         {
             const std::vector<Call*>& calls = phase.getCalls();
-            const bool complex_element = calls.size() > 0 || hasResults() || phase.hasHistogram();
+            const bool complex_element = calls.size() > 0 || hasResults() || phase.hasHistogram() || hasSPEX();
             output << start_element( Xactivity, complex_element )
                    << attribute( Xname, phase.getName() );
 
@@ -2552,26 +2832,29 @@ namespace LQIO {
                 output << attribute( Xthink_time,  *phase.getThinkTime() );
             }
             if ( phase.hasMaxServiceTimeExceeded() ) {
-                output << attribute( Xmax_service_time, phase.getHistogram()->getMax() );
+                output << attribute( Xmax_service_time, phase.getMaxServiceTime() );
             }
             if ( phase.hasDeterministicCalls() ) {
                 output << attribute( Xcall_order, XDETERMINISTIC );
             }
 
             if ( complex_element ) {
-                output << ">" << endl;
+                output << ">" << std::endl;
 
 		if ( phase.getComment().size() > 0 ) {
 		    output << comment( phase.getComment() );
 		}
 
+		if ( hasSPEX() && !_document.instantiated() ) {
+		    exportObservation( output, &phase );
+		}
                 if ( hasResults() ) {
 		    const bool has_variance = phase.getResultVarianceServiceTime() > 0.0;
                     if ( phase.hasHistogram() ) {
                         exportHistogram( output, *phase.getHistogram() );
                     }
 
-                    const bool has_confidence = _document.getResultNumberOfBlocks() > 1;
+                    const bool has_confidence = _document.hasConfidenceIntervals();
 
                     output << start_element( Xresult_activity, has_confidence )
                            << attribute( Xproc_waiting, phase.getResultProcessorWaiting() )
@@ -2590,7 +2873,7 @@ namespace LQIO {
                     }
 
                     if ( has_confidence ) {
-                        output << ">" << endl;
+                        output << ">" << std::endl;
                         output << simple_element( Xresult_conf_95 )
                                << attribute( Xproc_waiting, _conf_95( phase.getResultProcessorWaitingVariance() ) )
                                << attribute( Xservice_time, _conf_95( phase.getResultServiceTimeVariance() ) )
@@ -2605,7 +2888,7 @@ namespace LQIO {
                         if ( phase.hasMaxServiceTimeExceeded() ) {
                             output << attribute( Xprob_exceed_max_service_time, _conf_95( phase.getResultMaxServiceTimeExceededVariance() ) );
                         }
-                        output << "/>" << endl;
+                        output << "/>" << std::endl;
 
                         output << simple_element( Xresult_conf_99 )
                                << attribute( Xproc_waiting, _conf_99( phase.getResultProcessorWaitingVariance() ) )
@@ -2621,18 +2904,16 @@ namespace LQIO {
                         if ( phase.hasMaxServiceTimeExceeded() ) {
                             output << attribute( Xprob_exceed_max_service_time, _conf_99( phase.getResultMaxServiceTimeExceededVariance() ) );
                         }
-                        output << "/>" << endl;
+                        output << "/>" << std::endl;
                     }
 
-                    output << end_element( Xresult_activity, has_confidence ) << endl;
+                    output << end_element( Xresult_activity, has_confidence ) << std::endl;
                 }
 
-                for (std::vector<Call*>::const_iterator next_call = calls.begin(); next_call != calls.end(); ++next_call) {
-                    exportCall( output, **next_call );
-                }
+		for_each( calls.begin(), calls.end(), ExportCall( output, *this ) );
             } /* if ( complex_element ) */
 
-            output << end_element( Xactivity, complex_element ) << endl;
+            output << end_element( Xactivity, complex_element ) << std::endl;
 
 	    if ( !complex_element && phase.getComment().size() > 0 ) {
 		output << comment( phase.getComment() );
@@ -2644,32 +2925,44 @@ namespace LQIO {
         const XML_Char * Expat_Document::precedence_type_table[ActivityList::REPEAT_ACTIVITY_LIST+1];
 
         void
-        Expat_Document::exportPrecedence( ostream& output, const ActivityList& activity_list ) const
+        Expat_Document::ExportPrecedence::operator()( const ActivityList * activity_list ) const {
+	    /* look for the 'pre' side.  Do the post side based on the pre-side */
+	    if ( activity_list->isForkList() ) return;
+	    _output << _self.start_element( Xprecedence ) << ">" << std::endl;
+	    _self.exportPrecedence( _output, *activity_list );
+	    if ( activity_list->getNext() ) {
+		_self.exportPrecedence( _output, *(activity_list->getNext()) );
+	    }
+	    _output << _self.end_element( Xprecedence ) << std::endl;
+	}
+
+        void
+        Expat_Document::exportPrecedence( std::ostream& output, const ActivityList& activity_list ) const
         {
             output << start_element( precedence_type_table[activity_list.getListType()] );
             const AndJoinActivityList * join_list = dynamic_cast<const AndJoinActivityList *>(&activity_list);
             if ( join_list && hasResults() ) {
-                output  << ">" << endl;
+                output  << ">" << std::endl;
                 if ( join_list->hasHistogram() ) {
                     exportHistogram( output, *join_list->getHistogram() );
                 }
-                bool has_confidence = _document.getResultNumberOfBlocks() > 1;
+                bool has_confidence = _document.hasConfidenceIntervals();
 
                 output << start_element( Xresult_join_delay, has_confidence )
                        << attribute( Xjoin_waiting, join_list->getResultJoinDelay() )
                        << attribute( Xjoin_variance, join_list->getResultVarianceJoinDelay() );
                 if ( has_confidence ) {
-                    output << ">" << endl;
+                    output << ">" << std::endl;
                     output << simple_element( Xresult_conf_95 )
                            << attribute( Xjoin_waiting, _conf_95( join_list->getResultJoinDelayVariance() ) )
                            << attribute( Xjoin_variance, _conf_95( join_list->getResultVarianceJoinDelayVariance() ) )
-                           << "/>" << endl;
+                           << "/>" << std::endl;
                     output << simple_element( Xresult_conf_99 )
                            << attribute( Xjoin_waiting, _conf_99( join_list->getResultJoinDelayVariance() ) )
                            << attribute( Xjoin_variance, _conf_99( join_list->getResultVarianceJoinDelayVariance() ) )
-                           << "/>" << endl;
+                           << "/>" << std::endl;
                 }
-                output << end_element( Xresult_join_delay, has_confidence ) << endl;
+                output << end_element( Xresult_join_delay, has_confidence ) << std::endl;
             } else if ( activity_list.getListType() == ActivityList::REPEAT_ACTIVITY_LIST ) {
                 const std::vector<const Activity*>& list = activity_list.getList();
                 for ( std::vector<const Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
@@ -2678,9 +2971,9 @@ namespace LQIO {
                         output << attribute( Xend, activity->getName() );
                     }
                 }
-                output  << ">" << endl;
+                output  << ">" << std::endl;
             } else {
-                output  << ">" << endl;
+                output  << ">" << std::endl;
             }
 
             const std::vector<const Activity*>& list = activity_list.getList();
@@ -2710,9 +3003,9 @@ namespace LQIO {
                     break;
 		default: break;
                 }
-                output << "/>" << endl;
+                output << "/>" << std::endl;
             }
-            output << end_element( precedence_type_table[activity_list.getListType()] ) << endl;
+            output << end_element( precedence_type_table[activity_list.getListType()] ) << std::endl;
         }
 
 
@@ -2729,7 +3022,7 @@ namespace LQIO {
         };
 
         void
-        Expat_Document::exportCall( ostream& output, const Call & call ) const
+        Expat_Document::exportCall( std::ostream& output, const Call & call ) const
         {
             const bool complex_type = hasResults() || call.hasHistogram();
             output << start_element( call_type_table[call.getCallType()].element, complex_type )
@@ -2739,10 +3032,13 @@ namespace LQIO {
             }
 
             if ( complex_type ) {
-                output << ">" << endl;
+                output << ">" << std::endl;
 
+		if ( hasSPEX() && !_document.instantiated() ) {
+		    exportObservation( output, &call );
+		}
 		if ( hasResults() ) {
-		    const bool has_confidence = _document.getResultNumberOfBlocks() > 1;
+		    const bool has_confidence = _document.hasConfidenceIntervals();
 		    output << start_element( Xresult_call, has_confidence )
 			   << attribute( Xwaiting, call.getResultWaitingTime() );
 		    if ( call.hasResultVarianceWaitingTime() ) {
@@ -2753,7 +3049,7 @@ namespace LQIO {
 		    }
 
 		    if ( has_confidence ) {
-			output << ">" << endl;
+			output << ">" << std::endl;
 			output << simple_element( Xresult_conf_95 )
 			       << attribute( Xwaiting, _conf_95( call.getResultWaitingTimeVariance() ) );
 			if ( call.hasResultVarianceWaitingTime() ) {
@@ -2762,7 +3058,7 @@ namespace LQIO {
 			if ( call.hasResultDropProbability() ) {
 			    output << attribute( Xloss_probability, _conf_95( call.getResultDropProbabilityVariance() ) );
 			}
-			output << "/>" << endl;
+			output << "/>" << std::endl;
 			output << simple_element( Xresult_conf_99 )
 			       << attribute( Xwaiting, _conf_99( call.getResultWaitingTimeVariance() ) );
 			if ( call.hasResultVarianceWaitingTime() ) {
@@ -2771,9 +3067,9 @@ namespace LQIO {
 			if ( call.hasResultDropProbability() ) {
 			    output << attribute( Xloss_probability, _conf_99( call.getResultDropProbabilityVariance() ) );
 			}
-			output << "/>" << endl;
+			output << "/>" << std::endl;
 		    }
-		    output << end_element( Xresult_call, has_confidence ) << endl;
+		    output << end_element( Xresult_call, has_confidence ) << std::endl;
 		}
 
 		if ( call.hasHistogram() ) {
@@ -2781,13 +3077,13 @@ namespace LQIO {
 		}
             }
 
-            output << end_element( call_type_table[call.getCallType()].element, complex_type ) << endl;
+            output << end_element( call_type_table[call.getCallType()].element, complex_type ) << std::endl;
         }
 
 
 
         void
-        Expat_Document::exportHistogram( ostream& output, const Histogram& histogram, const unsigned phase ) const
+        Expat_Document::exportHistogram( std::ostream& output, const Histogram& histogram, const unsigned phase ) const
         {
             if ( histogram.getBins() == 0 ) return;
 	    const bool complex_type = histogram.hasResults();
@@ -2801,7 +3097,7 @@ namespace LQIO {
 		output << attribute( Xphase, phase );
 	    }
 	    if ( complex_type ) {
-		output << ">" << endl;
+		output << ">" << std::endl;
 		for ( unsigned int i = 0; i < histogram.getBins() + 2; ++i ) {
 		    const XML_Char * bin_name;
 		    if ( i == 0 ) {
@@ -2818,39 +3114,87 @@ namespace LQIO {
 			   << attribute( Xend,   histogram.getBinEnd(i)  )
 			   << attribute( Xprob,  histogram.getBinMean(i) );
 		    const double variance = histogram.getBinVariance(i);
-		    if ( variance > 0 && _document.getResultNumberOfBlocks() > 1 ) {
+		    if ( variance > 0 && _document.hasConfidenceIntervals() ) {
 			output << attribute( Xconf_95, _conf_95( variance ) )
 			       << attribute( Xconf_99, _conf_99( variance ) );
 		    }
-		    output << end_element( bin_name, false ) << endl;
+		    output << end_element( bin_name, false ) << std::endl;
 		}
 	    }
 
-            output << end_element( element_name, complex_type ) << endl;
+            output << end_element( element_name, complex_type ) << std::endl;
         }
 
 
         void
-        Expat_Document::exportLQX( ostream& output ) const
+	Expat_Document::exportObservation( std::ostream& output, const DocumentObject * object ) const
+	{
+	    std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::get_observations().equal_range( object );
+    	    if ( range.first != range.second ) {
+		const bool has_95 = find_if( range.first, range.second, HasConfidenceObservation( 95 ) ) != range.second;
+		const bool has_99 = find_if( range.first, range.second, HasConfidenceObservation( 99 ) ) != range.second;
+		const bool complex_type = has_95 || has_99;
+		output << start_element( Xresult_observation, complex_type );
+		for_each( range.first, range.second, ExportObservation( output ) );
+		if ( complex_type ) {
+		    output << ">" << std::endl;
+		    if ( has_95 ) {
+			output << start_element( Xconf_95, false );
+			for_each( range.first, range.second, ExportObservation( output, 95 ) );
+			output << "/>" << std::endl;
+		    }
+		    if ( has_99 ) {
+			output << start_element( Xconf_99, false );
+			for_each( range.first, range.second, ExportObservation( output, 99 ) );
+			output << "/>" << std::endl;
+		    }
+		}
+		output << end_element( Xresult_observation, complex_type ) << std::endl;
+	    }
+	}
+	
+        void
+        Expat_Document::exportLQX( std::ostream& output ) const
         {
 	    LQX::Program * program = _document.getLQXProgram();
 	    const std::string& program_text = _document.getLQXProgramText();
             if ( program_text.size() > 0 || program != NULL ) {
-                output << start_element( Xlqx ) << "><![CDATA[" << endl;
+		const int precision = output.precision(10);
+                output << start_element( Xlqx ) << "><![CDATA[" << std::endl;
 		if ( program_text.size() > 0 ) {
 		    output << program_text;
 		} else {
 		    program->print( output );
 		}
-		output << "]]>" << endl << end_element( Xlqx ) << endl;
+		output << "]]>" << std::endl << end_element( Xlqx ) << std::endl;
+		output.precision(precision);
 	    }
         }
 
 
+	void
+	Expat_Document::exportSPEXResults( std::ostream& output ) const
+	{
+	    const std::vector<Spex::var_name_and_expr>& results = Spex::get_result_variables();
+	    if ( results.size() > 0 ) {
+		const int precision = output.precision(10);
+		output << start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
+		LQX::SyntaxTreeNode::setVariablePrefix( "$" );
+		for_each( results.begin(), results.end(), Spex::PrintResultVariable( output ) );
+		output /* << "]]>" << std::endl */ << end_element( Xspex_results ) << std::endl;
+		output.precision(precision);
+	    }
+	}
+    
+	void
+	Expat_Document::exportSPEXConvergence( std::ostream& output ) const
+	{
+	}
+    
         void
-        Expat_Document::exportFooter( ostream& output ) const
+        Expat_Document::exportFooter( std::ostream& output ) const
         {
-            output << end_element( Xlqn_model ) << endl;
+            output << end_element( Xlqn_model ) << std::endl;
         }
 
         bool
@@ -2859,15 +3203,14 @@ namespace LQIO {
             return element == str;
         }
 
-
         /*
          * Print out results of the form phase1-utilization="value"* ...
          * If the ConfidenceInvervals object is present, its
          * operator()() function is used.
          */
 
-        /* static */ ostream&
-        Expat_Document::printEntryPhaseResults( ostream& output, const Entry & entry, const XML_Char ** attributes, const doubleEntryFunc func, const ConfidenceIntervals * conf )
+        /* static */ std::ostream&
+        Expat_Document::printEntryPhaseResults( std::ostream& output, const Entry & entry, const XML_Char ** attributes, const doubleEntryFunc func, const ConfidenceIntervals * conf )
         {
             for ( unsigned p = 1; p <= Phase::MAX_PHASE; ++p ) {
                 if ( !entry.hasResultsForPhase(p) ) continue;
@@ -2886,8 +3229,8 @@ namespace LQIO {
          * operator()() function is used.
          */
 
-        /* static */ ostream&
-        Expat_Document::printTaskPhaseResults( ostream& output, const Task & task, const XML_Char ** attributes, const doubleTaskFunc func, const ConfidenceIntervals * conf )
+        /* static */ std::ostream&
+        Expat_Document::printTaskPhaseResults( std::ostream& output, const Task & task, const XML_Char ** attributes, const doubleTaskFunc func, const ConfidenceIntervals * conf )
         {
             for ( unsigned p = 1; p <= task.getResultPhaseCount(); ++p ) {
                 const double value = (task.*func)(p);
@@ -2910,7 +3253,7 @@ namespace LQIO {
             if ( result_table.size() != 0 ) return;		/* Done already */
 
 	    Common_IO::init_tables();
-	
+
             activity_table.insert(Xphase);
             activity_table.insert(Xname);
             activity_table.insert(Xbound_to_entry);
@@ -2935,7 +3278,7 @@ namespace LQIO {
 	    escape_table['\''] = "&apos;";
 	    escape_table['>']  = "&gt;";
 	    escape_table['<']  = "&lt;";
-	    escape_table['"']  = "&qout";
+	    escape_table['"']  = "&qout;";
 
             group_table.insert(Xname);
             group_table.insert(Xcap);
@@ -2956,6 +3299,33 @@ namespace LQIO {
             model_table.insert("lqn-schema-version");
             model_table.insert(Xname);
             model_table.insert(Xxml_debug);
+
+            observation_table[Xelapsed_time] =                   observation_table_t( KEY_ELAPSED_TIME );
+            observation_table[Xiterations] =                     observation_table_t( KEY_ITERATIONS );
+            observation_table[Xphase] =                          observation_table_t();
+            observation_table[XphaseP_proc_waiting[0]] =         observation_table_t( KEY_PROCESSOR_WAITING, 1 );
+            observation_table[XphaseP_proc_waiting[1]] =         observation_table_t( KEY_PROCESSOR_WAITING, 2 );
+            observation_table[XphaseP_proc_waiting[2]] =         observation_table_t( KEY_PROCESSOR_WAITING, 3 );
+            observation_table[XphaseP_service_time[0]] =         observation_table_t( KEY_SERVICE_TIME, 1 );
+            observation_table[XphaseP_service_time[1]] =         observation_table_t( KEY_SERVICE_TIME, 2 );
+            observation_table[XphaseP_service_time[2]] =         observation_table_t( KEY_SERVICE_TIME, 3 );
+            observation_table[XphaseP_service_time_variance[0]]= observation_table_t( KEY_VARIANCE, 1 );
+            observation_table[XphaseP_service_time_variance[1]]= observation_table_t( KEY_VARIANCE, 2 );
+            observation_table[XphaseP_service_time_variance[2]]= observation_table_t( KEY_VARIANCE, 3 );
+            observation_table[XphaseP_utilization[0]] =          observation_table_t( KEY_UTILIZATION, 1 );
+            observation_table[XphaseP_utilization[1]] =          observation_table_t( KEY_UTILIZATION, 2 );
+            observation_table[XphaseP_utilization[2]] =          observation_table_t( KEY_UTILIZATION, 3 );
+            observation_table[Xproc_utilization] =        	 observation_table_t( KEY_PROCESSOR_UTILIZATION );
+            observation_table[Xproc_waiting] =            	 observation_table_t( KEY_PROCESSOR_WAITING );
+            observation_table[Xservice_time] =            	 observation_table_t( KEY_SERVICE_TIME );
+            observation_table[Xservice_time_variance] =          observation_table_t( KEY_VARIANCE );
+            observation_table[Xsystem_cpu_time] =                observation_table_t( KEY_SYSTEM_TIME );
+            observation_table[Xthroughput] =                     observation_table_t( KEY_THROUGHPUT );
+            observation_table[Xthroughput_bound] =               observation_table_t( KEY_THROUGHPUT_BOUND );
+            observation_table[Xuser_cpu_time] =                  observation_table_t( KEY_USER_TIME );
+            observation_table[Xutilization] =                    observation_table_t( KEY_UTILIZATION );
+            observation_table[Xwaiting] =                 	 observation_table_t( KEY_WAITING );
+            observation_table[Xwaiting_variance] =        	 observation_table_t( KEY_WAITING_VARIANCE );
 
             parameter_table.insert(Xcomment);
             parameter_table.insert(Xconv_val);
@@ -2990,37 +3360,35 @@ namespace LQIO {
             result_table[Xjoin_variance] =                  result_table_t( &DocumentObject::setResultVarianceJoinDelay,         &DocumentObject::setResultVarianceJoinDelayVariance );
             result_table[Xjoin_waiting] =                   result_table_t( &DocumentObject::setResultJoinDelay,                 &DocumentObject::setResultJoinDelayVariance );
             result_table[Xloss_probability] =               result_table_t( &DocumentObject::setResultDropProbability,           &DocumentObject::setResultDropProbabilityVariance );
-            result_table[Xopen_wait_time] =                 result_table_t( &DocumentObject::setResultOpenWaitTime,              &DocumentObject::setResultOpenWaitTimeVariance );
+            result_table[Xopen_wait_time] =                 result_table_t( &DocumentObject::setResultWaitingTime,               &DocumentObject::setResultWaitingTimeVariance );
             result_table[XphaseP_proc_waiting[0]] =         result_table_t( &DocumentObject::setResultPhase1ProcessorWaiting,    &DocumentObject::setResultPhase1ProcessorWaitingVariance );
-            result_table[XphaseP_service_time[0]] =         result_table_t( &DocumentObject::setResultPhase1ServiceTime,         &DocumentObject::setResultPhase1ServiceTimeVariance );
-            result_table[XphaseP_service_time_variance[0]]= result_table_t( &DocumentObject::setResultPhase1VarianceServiceTime, &DocumentObject::setResultPhase1VarianceServiceTimeVariance );
-            result_table[XphaseP_utilization[0]] =          result_table_t( &DocumentObject::setResultPhase1Utilization,         &DocumentObject::setResultPhase1UtilizationVariance );
             result_table[XphaseP_proc_waiting[1]] =         result_table_t( &DocumentObject::setResultPhase2ProcessorWaiting,    &DocumentObject::setResultPhase2ProcessorWaitingVariance );
-            result_table[XphaseP_service_time[1]] =         result_table_t( &DocumentObject::setResultPhase2ServiceTime,         &DocumentObject::setResultPhase2ServiceTimeVariance );
-            result_table[XphaseP_service_time_variance[1]]= result_table_t( &DocumentObject::setResultPhase2VarianceServiceTime, &DocumentObject::setResultPhase2VarianceServiceTimeVariance );
-            result_table[XphaseP_utilization[1]] =          result_table_t( &DocumentObject::setResultPhase2Utilization,         &DocumentObject::setResultPhase2UtilizationVariance );
             result_table[XphaseP_proc_waiting[2]] =         result_table_t( &DocumentObject::setResultPhase3ProcessorWaiting,    &DocumentObject::setResultPhase3ProcessorWaitingVariance );
+            result_table[XphaseP_service_time[0]] =         result_table_t( &DocumentObject::setResultPhase1ServiceTime,         &DocumentObject::setResultPhase1ServiceTimeVariance );
+            result_table[XphaseP_service_time[1]] =         result_table_t( &DocumentObject::setResultPhase2ServiceTime,         &DocumentObject::setResultPhase2ServiceTimeVariance );
             result_table[XphaseP_service_time[2]] =         result_table_t( &DocumentObject::setResultPhase3ServiceTime,         &DocumentObject::setResultPhase3ServiceTimeVariance );
+            result_table[XphaseP_service_time_variance[0]]= result_table_t( &DocumentObject::setResultPhase1VarianceServiceTime, &DocumentObject::setResultPhase1VarianceServiceTimeVariance );
+            result_table[XphaseP_service_time_variance[1]]= result_table_t( &DocumentObject::setResultPhase2VarianceServiceTime, &DocumentObject::setResultPhase2VarianceServiceTimeVariance );
             result_table[XphaseP_service_time_variance[2]]= result_table_t( &DocumentObject::setResultPhase3VarianceServiceTime, &DocumentObject::setResultPhase3VarianceServiceTimeVariance );
+            result_table[XphaseP_utilization[0]] =          result_table_t( &DocumentObject::setResultPhase1Utilization,         &DocumentObject::setResultPhase1UtilizationVariance );
+            result_table[XphaseP_utilization[1]] =          result_table_t( &DocumentObject::setResultPhase2Utilization,         &DocumentObject::setResultPhase2UtilizationVariance );
             result_table[XphaseP_utilization[2]] =          result_table_t( &DocumentObject::setResultPhase3Utilization,         &DocumentObject::setResultPhase3UtilizationVariance );
+            result_table[Xprob_exceed_max_service_time] =   result_table_t( 0, 0 );
             result_table[Xproc_utilization] =               result_table_t( &DocumentObject::setResultProcessorUtilization,      &DocumentObject::setResultProcessorUtilizationVariance );
             result_table[Xproc_waiting] =                   result_table_t( &DocumentObject::setResultProcessorWaiting,          &DocumentObject::setResultProcessorWaitingVariance );
-            result_table[Xprob_exceed_max_service_time] =   result_table_t( 0, 0 );
-            result_table[Xsemaphore_waiting] =              result_table_t( &DocumentObject::setResultHoldingTime,               &DocumentObject::setResultHoldingTimeVariance );
-            result_table[Xsemaphore_waiting_variance] =     result_table_t( &DocumentObject::setResultVarianceHoldingTime,       &DocumentObject::setResultVarianceHoldingTimeVariance );
-            result_table[Xsemaphore_utilization] =          result_table_t( &DocumentObject::setResultHoldingUtilization,        &DocumentObject::setResultHoldingUtilizationVariance );
-
-            result_table[Xrwlock_reader_waiting] =          result_table_t( &DocumentObject::setResultReaderBlockedTime,         &DocumentObject::setResultReaderBlockedTimeVariance );
-            result_table[Xrwlock_reader_waiting_variance] = result_table_t( &DocumentObject::setResultVarianceReaderBlockedTime, &DocumentObject::setResultVarianceReaderBlockedTimeVariance );
             result_table[Xrwlock_reader_holding] =          result_table_t( &DocumentObject::setResultReaderHoldingTime,         &DocumentObject::setResultReaderHoldingTimeVariance );
             result_table[Xrwlock_reader_holding_variance] = result_table_t( &DocumentObject::setResultVarianceReaderHoldingTime, &DocumentObject::setResultVarianceReaderHoldingTimeVariance );
             result_table[Xrwlock_reader_utilization] =      result_table_t( &DocumentObject::setResultReaderHoldingUtilization,  &DocumentObject::setResultReaderHoldingUtilizationVariance );
-            result_table[Xrwlock_writer_waiting] =          result_table_t( &DocumentObject::setResultWriterBlockedTime,         &DocumentObject::setResultWriterBlockedTimeVariance );
-            result_table[Xrwlock_writer_waiting_variance] = result_table_t( &DocumentObject::setResultVarianceWriterBlockedTime, &DocumentObject::setResultVarianceWriterBlockedTimeVariance );
+            result_table[Xrwlock_reader_waiting] =          result_table_t( &DocumentObject::setResultReaderBlockedTime,         &DocumentObject::setResultReaderBlockedTimeVariance );
+            result_table[Xrwlock_reader_waiting_variance] = result_table_t( &DocumentObject::setResultVarianceReaderBlockedTime, &DocumentObject::setResultVarianceReaderBlockedTimeVariance );
             result_table[Xrwlock_writer_holding] =          result_table_t( &DocumentObject::setResultWriterHoldingTime,         &DocumentObject::setResultWriterHoldingTimeVariance );
             result_table[Xrwlock_writer_holding_variance] = result_table_t( &DocumentObject::setResultVarianceWriterHoldingTime, &DocumentObject::setResultVarianceWriterHoldingTimeVariance );
             result_table[Xrwlock_writer_utilization] =      result_table_t( &DocumentObject::setResultWriterHoldingUtilization,  &DocumentObject::setResultWriterHoldingUtilizationVariance );
-
+            result_table[Xrwlock_writer_waiting] =          result_table_t( &DocumentObject::setResultWriterBlockedTime,         &DocumentObject::setResultWriterBlockedTimeVariance );
+            result_table[Xrwlock_writer_waiting_variance] = result_table_t( &DocumentObject::setResultVarianceWriterBlockedTime, &DocumentObject::setResultVarianceWriterBlockedTimeVariance );
+            result_table[Xsemaphore_utilization] =          result_table_t( &DocumentObject::setResultHoldingUtilization,        &DocumentObject::setResultHoldingUtilizationVariance );
+            result_table[Xsemaphore_waiting] =              result_table_t( &DocumentObject::setResultHoldingTime,               &DocumentObject::setResultHoldingTimeVariance );
+            result_table[Xsemaphore_waiting_variance] =     result_table_t( &DocumentObject::setResultVarianceHoldingTime,       &DocumentObject::setResultVarianceHoldingTimeVariance );
             result_table[Xservice_time] =                   result_table_t( &DocumentObject::setResultServiceTime,               &DocumentObject::setResultServiceTimeVariance );
             result_table[Xservice_time_variance] =          result_table_t( &DocumentObject::setResultVarianceServiceTime,       &DocumentObject::setResultVarianceServiceTimeVariance );
             result_table[Xsquared_coeff_variation] =        result_table_t( &DocumentObject::setResultSquaredCoeffVariation,     &DocumentObject::setResultSquaredCoeffVariationVariance );
@@ -3039,10 +3407,24 @@ namespace LQIO {
             task_table.insert(Xmultiplicity);
             task_table.insert(Xreplication);
             task_table.insert(Xactivity_graph);                 // ignored.
+
+	    __key_lqx_function_map[KEY_ELAPSED_TIME]		= Xelapsed_time;
+	    __key_lqx_function_map[KEY_ITERATIONS]		= Xiterations;
+	    __key_lqx_function_map[KEY_PROCESSOR_UTILIZATION]	= Xproc_utilization;
+	    __key_lqx_function_map[KEY_PROCESSOR_WAITING]	= Xproc_waiting;
+	    __key_lqx_function_map[KEY_SERVICE_TIME]		= Xservice_time;
+	    __key_lqx_function_map[KEY_SYSTEM_TIME]		= Xsystem_cpu_time;
+	    __key_lqx_function_map[KEY_THROUGHPUT]		= Xthroughput;
+	    __key_lqx_function_map[KEY_THROUGHPUT_BOUND]	= Xthroughput_bound;
+	    __key_lqx_function_map[KEY_USER_TIME]		= Xuser_cpu_time;
+	    __key_lqx_function_map[KEY_UTILIZATION]		= Xutilization;
+	    __key_lqx_function_map[KEY_VARIANCE]		= Xservice_time_variance;
+	    __key_lqx_function_map[KEY_WAITING]			= Xwaiting;
+	    __key_lqx_function_map[KEY_WAITING_VARIANCE]	= Xwaiting_variance;
         };
 
-        ostream&
-        Expat_Document::printIndent( ostream& output, const int i )
+        std::ostream&
+        Expat_Document::printIndent( std::ostream& output, const int i )
         {
             if ( i < 0 ) {
                 if ( __indent + i < 0 ) {
@@ -3052,7 +3434,7 @@ namespace LQIO {
                 }
             }
             if ( __indent != 0 ) {
-                output << setw( __indent * 3 ) << " ";
+                output << std::setw( __indent * 3 ) << " ";
             }
             if ( i > 0 ) {
                 __indent += i;
@@ -3061,15 +3443,15 @@ namespace LQIO {
         }
 
 
-        ostream&
-        Expat_Document::printStartElement( ostream& output, const XML_Char * element, const bool complex_element )
+        std::ostream&
+        Expat_Document::printStartElement( std::ostream& output, const XML_Char * element, const bool complex_element )
         {
             output << indent( complex_element ? 1 : 0  ) << "<" << element;
             return output;
         }
 
-        ostream&
-        Expat_Document::printEndElement( ostream& output, const XML_Char * element, const bool complex_element )
+        std::ostream&
+        Expat_Document::printEndElement( std::ostream& output, const XML_Char * element, const bool complex_element )
         {
             if ( complex_element ) {
                 output << indent( -1 ) << "</" << element << ">";
@@ -3086,8 +3468,8 @@ namespace LQIO {
 	 * escape it.
 	 */
 
-	ostream&
-        Expat_Document::printAttribute( ostream& output, const XML_Char * attribute, const XML_Char * value )
+	std::ostream&
+        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const XML_Char * value )
         {
             output << " " << attribute << "=\"";
 	    for ( ; *value != 0; ++value ) {
@@ -3116,27 +3498,21 @@ namespace LQIO {
             return output;
         }
 
-        ostream&
-        Expat_Document::printAttribute( ostream& output, const XML_Char * attribute, const double value )
+        std::ostream&
+        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const double value )
         {
             output << " " << attribute << "=\"" <<  value << "\"";
             return output;
         }
 
-        ostream&
-        Expat_Document::printAttribute( ostream& output, const XML_Char * attribute, const ExternalVariable& value )
+        std::ostream&
+        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const ExternalVariable& var )
         {
-            output << " " << attribute << "=\"";
-            if ( __instantiate ) {
-                output << to_double( value );
-            } else {
-                output << value;
-            }
-            output << "\"";
+            output << " " << attribute << "=\"" << var << "\"";
             return output;
         }
 
-	ostream&
+	std::ostream&
 	Expat_Document::printComment( std::ostream& output, const std::string& s )
 	{
 	    output << indent(0) << "<!-- ";
@@ -3145,42 +3521,14 @@ namespace LQIO {
 		    output << *p;						/* Strip '--' strings */
 		}
 	    }
-	    output << " -->" << endl;
+	    output << " -->" << std::endl;
 	    return output;
 	}
 
-        ostream&
-        Expat_Document::printTime( ostream& output, const XML_Char * attribute, const clock_t time )
+        std::ostream&
+        Expat_Document::printTime( std::ostream& output, const XML_Char * attribute, const double time )
         {
-#if defined(HAVE_SYS_TIME_H)
-#if defined(CLK_TCK)
-	    const double dtime = static_cast<double>(time) / static_cast<double>(CLK_TCK);
-#else
-	    const double dtime = static_cast<double>(time) / static_cast<double>(sysconf(_SC_CLK_TCK));
-#endif
-	    const double csecs = fmod( dtime * 100.0, 100.0 );
-#else
-	    const double dtime = time;
-	    const double csecs = 0.0;
-#endif
-            const double secs  = fmod( floor( dtime ), 60.0 );
-            const double mins  = fmod( floor( dtime / 60.0 ), 60.0 );
-            const double hrs   = floor( dtime / 3600.0 );
-            const ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
-            const int precision = output.precision(0);
-            output.setf( ios::right, ios::adjustfield );
-
-            output << " " << attribute << "=\"";
-            char fill = output.fill('0');
-            output << setw(2) << hrs
-                   << ':' << setw(2) << mins
-                   << ':' << setw(2) << secs
-                   << '.' << setw(2) << csecs
-                   <<  "\"";
-
-            output.flags(flags);
-            output.precision(precision);
-            output.fill(fill);
+            output << " " << attribute << "=\"" << LQIO::DOM::CPUTime::print( time ) <<  "\"";
             return output;
         }
     }
@@ -3199,7 +3547,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::XGRAPH =                               "GRAPH";
         const XML_Char * Expat_Document::XNONE =                                "NONE";
         const XML_Char * Expat_Document::XPH1PH2 =                              "PH1PH2";
-        const XML_Char * Expat_Document::Xactivity =                            "activity";
+        const XML_Char * Expat_Document::Xactivity =                            LQIO::DOM::Activity::__typeName;
         const XML_Char * Expat_Document::Xactivity_graph =                      "activity-graph";
         const XML_Char * Expat_Document::Xasynch_call =                         "asynch-call";
         const XML_Char * Expat_Document::Xbegin =                               "begin";
@@ -3218,7 +3566,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xdest =                                "dest";
         const XML_Char * Expat_Document::Xelapsed_time =                        "elapsed-time";
         const XML_Char * Expat_Document::Xend =                                 "end";
-        const XML_Char * Expat_Document::Xentry =                               "entry";
+        const XML_Char * Expat_Document::Xentry =                               LQIO::DOM::Entry::__typeName;
         const XML_Char * Expat_Document::Xentry_phase_activities =              "entry-phase-activities";
         const XML_Char * Expat_Document::Xfanin =                               "fan-in";
         const XML_Char * Expat_Document::Xfanout =                              "fan-out";
@@ -3248,7 +3596,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xopen_wait_time =                      "open-wait-time";
         const XML_Char * Expat_Document::Xoverflow_bin =                        "overflow-bin";
         const XML_Char * Expat_Document::Xparam =                               "param";
-        const XML_Char * Expat_Document::Xphase =                               "phase";
+        const XML_Char * Expat_Document::Xphase =                               LQIO::DOM::Phase::__typeName;
         const XML_Char * Expat_Document::XphaseP_proc_waiting[] =             { "phase1-proc-waiting", "phase2-proc-waiting", "phase3-proc-waiting" };
         const XML_Char * Expat_Document::XphaseP_service_time[] =             { "phase1-service-time", "phase2-service-time", "phase3-service-time" };
         const XML_Char * Expat_Document::XphaseP_service_time_variance[] =    { "phase1-service-time-variance", "phase2-service-time-variance", "phase3-service-time-variance" };
@@ -3269,7 +3617,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xprob_exceed_max_service_time =        "prob-exceed-max-service-time";
         const XML_Char * Expat_Document::Xproc_utilization =                    "proc-utilization";
         const XML_Char * Expat_Document::Xproc_waiting =                        "proc-waiting";
-        const XML_Char * Expat_Document::Xprocessor =                           "processor";
+        const XML_Char * Expat_Document::Xprocessor =                           LQIO::DOM::Processor::__typeName;
         const XML_Char * Expat_Document::Xquantum =                             "quantum";
         const XML_Char * Expat_Document::Xqueue_length =                        "queue-length";
         const XML_Char * Expat_Document::Xqueue_length_distribution =           "queue-length-distribution";
@@ -3289,6 +3637,7 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xresult_general =                      "result-general";
         const XML_Char * Expat_Document::Xresult_group =                        "result-group";
         const XML_Char * Expat_Document::Xresult_join_delay =                   "result-join-delay";
+	const XML_Char * Expat_Document::Xresult_observation =                  "result-observe";
         const XML_Char * Expat_Document::Xresult_processor =                    "result-processor";
         const XML_Char * Expat_Document::Xresult_task =                         "result-task";
         const XML_Char * Expat_Document::Xrwlock =                              "rwlock";
@@ -3317,13 +3666,15 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xsolver_parameters =                   "solver-params";
         const XML_Char * Expat_Document::Xsource =                              "source";
         const XML_Char * Expat_Document::Xspeed_factor =                        "speed-factor";
+	const XML_Char * Expat_Document::Xspex_parameters =			"parameters";
+	const XML_Char * Expat_Document::Xspex_results =			"results-collection";
         const XML_Char * Expat_Document::Xsquared_coeff_variation =             "squared-coeff-variation";
         const XML_Char * Expat_Document::Xstep =                                "step";
         const XML_Char * Expat_Document::Xstep_squared =                        "step-squared";
         const XML_Char * Expat_Document::Xsubmodels =                           "submodels";
         const XML_Char * Expat_Document::Xsynch_call =                          "synch-call";
         const XML_Char * Expat_Document::Xsystem_cpu_time =                     "system-cpu-time";
-        const XML_Char * Expat_Document::Xtask =                                "task";
+        const XML_Char * Expat_Document::Xtask =                                LQIO::DOM::Task::__typeName;
         const XML_Char * Expat_Document::Xtask_activities =                     "task-activities";
         const XML_Char * Expat_Document::Xthink_time =                          "think-time";
         const XML_Char * Expat_Document::Xthroughput =                          "throughput";
@@ -3346,14 +3697,17 @@ namespace LQIO {
 	std::map<const XML_Char, const XML_Char *> Expat_Document::escape_table;
         std::map<const XML_Char *,ActivityList::ActivityListType,Expat_Document::attribute_table_t> Expat_Document::precedence_table;
         std::map<const XML_Char *,Expat_Document::result_table_t,Expat_Document::result_table_t>  Expat_Document::result_table;
+        std::map<const XML_Char *,Expat_Document::observation_table_t,Expat_Document::observation_table_t>  Expat_Document::observation_table;	/* SPEX */
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::activity_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::call_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::entry_table;
+
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::group_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::histogram_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::model_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::parameter_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::processor_table;
         std::set<const XML_Char *,Expat_Document::attribute_table_t> Expat_Document::task_table;
+	std::map<int,const char *> Expat_Document::__key_lqx_function_map;	/* Maps srvn_gram.h KEY_XXX to XML attribute name */
     }
 }

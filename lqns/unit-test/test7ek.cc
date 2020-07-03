@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7ek.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test7ek.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Markov Phased server test.  N customers.  2 clients to separate entries.
  * Entry service time varies.
@@ -26,12 +26,12 @@
 
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned s2_ix )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned s2_ix )
 {
     const unsigned classes  = N_CLASSES;
     const unsigned stations = N_STATIONS;
 	
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     Z.grow(classes);			/* Think times.			*/
     priority.grow(classes);
     Q.grow(stations);			/* Queue type.  SS/delay.	*/

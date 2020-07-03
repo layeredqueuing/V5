@@ -1,12 +1,12 @@
 %% -*- mode: latex; mode: outline-minor; fill-column: 108 -*-
 %% Title:  schema
 %%
-%% $HeadURL: svn://192.168.2.10/lqn/trunk-V5/doc/userman/schema.tex $
+%% $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/doc/userman/schema.tex $
 %% Original Author:     Greg Franks <greg@sce.carleton.ca>
 %% Created:             Tue Jul 18 2006
 %%
 %% ----------------------------------------------------------------------
-%% $Id: schema.tex 11987 2014-04-16 20:57:40Z greg $
+%% $Id: schema.tex 13477 2020-02-08 23:14:37Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{XML Grammar}
@@ -36,6 +36,8 @@ Figure~\ref{fig:xml-file-layout}.
 \lstset{language=XML,basicstyle=\ttfamily,numbersep=10pt}
 \begin{lstlisting}[float,caption={XML file layout.},label=fig:xml-file-layout]
 <lqn-model>
+   <parameters>
+   </parameters>
    <solver-params>
       <pragma/>
    </solver-params>
@@ -59,6 +61,8 @@ Figure~\ref{fig:xml-file-layout}.
       <task> ... </task>
    </processor>
    <processor> ... </processor>
+   <results-collection>
+   </results-collection>
 </lqn-model>
 \end{lstlisting}
 

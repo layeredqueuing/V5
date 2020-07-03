@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: errmsg.cc 13542 2020-05-19 15:01:32Z greg $
  *
  * Error messages.
  *
@@ -27,17 +27,15 @@
 
 
 struct LQIO::error_message_type local_error_messages[] = {
-    { LQIO::FATAL_ERROR,   "Layer %d exceeds maximum %d" },                                                                                 /* FTL_LAYERIZATION             */
-    { LQIO::RUNTIME_ERROR, "Activity \"%s\" is not reachable from any entry of task \"%s\"." },                                             /* LQIO::ERR_ACTIVITY_NOT_REACHABLE   */
-    { LQIO::RUNTIME_ERROR, "Fan-in from task \"%s\" to task \"%s\" are not identical for all calls." },                                     /* LQIO::ERR_FANIN_MISMATCH           */
-    { LQIO::RUNTIME_ERROR, "Invalid fan-in of %d: source task \"%s\" is not replicated." },                                                 /* LQIO::ERR_INVALID_FANIN            */
-    { LQIO::RUNTIME_ERROR, "Invalid fan-out of %d: destination task \"%s\" has only %d replicas." },                                        /* LQIO::ERR_INVALID_FANOUT           */
-    { LQIO::RUNTIME_ERROR, "Fan-out from %s \"%s\" (%d * %d replicas) does not match fan-in to %s \"%s\" (%d * %d)." },                     /* LQIO::ERR_REPLICATION              */
-    { LQIO::RUNTIME_ERROR, "No calls from %s \"%s\" to entry \"%s\"." },                                                                    /* LQIO::ERR_NO_CALLS_TO_ENTRY        */
-    { LQIO::RUNTIME_ERROR, "No objects selected to print." },                                                                               /* LQIO::ERR_NO_OBJECTS               */
-    { LQIO::RUNTIME_ERROR, "\"%s\" -- Not implemented." },                                                                                  /* LQIO::ERR_NOT_IMPLEMENTED          */
-    { LQIO::RUNTIME_ERROR, "\"%s\" -- Should not implement." },                                                                             /* LQIO::ERR_SHOULD_NOT_IMPLEMENT     */
-    { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at task \"%s\"." },                                    /* LQIO::WRN_COEFFICIENT_OF_VARIATION */
+    { LQIO::FATAL_ERROR,   "Layer %d exceeds maximum %d" },                                                                   	/* FTL_LAYERIZATION             	*/
+    { LQIO::RUNTIME_ERROR, "Activity \"%s\" is not reachable from any entry of task \"%s\"." },                                 /* LQIO::ERR_ACTIVITY_NOT_REACHABLE     */
+    { LQIO::RUNTIME_ERROR, "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." }, /* ERR_REPLICATION_PROCESSOR */
+    { LQIO::RUNTIME_ERROR, "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." },         /* LQIO::ERR_REPLICATION                */
+    { LQIO::RUNTIME_ERROR, "No calls from %s \"%s\" to entry \"%s\"." },                                                        /* LQIO::ERR_NO_CALLS_TO_ENTRY          */
+    { LQIO::RUNTIME_ERROR, "No objects selected to print." },                                                                   /* LQIO::ERR_NO_OBJECTS                 */
+    { LQIO::RUNTIME_ERROR, "\"%s\" -- Not implemented." },                                                                      /* LQIO::ERR_NOT_IMPLEMENTED            */
+    { LQIO::RUNTIME_ERROR, "\"%s\" -- Should not implement." },                                                                 /* LQIO::ERR_SHOULD_NOT_IMPLEMENT       */
+    { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                /* WRN_COEFFICIENT_OF_VARIATION         */
 };
 
 /*
@@ -79,9 +77,8 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.anError = true;
 	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= 10 ) {
+	if  ( io_vars.error_count >= io_vars.max_error ) {
 	    throw ( runtime_error( "Too many errors" ) );
 	}
 	break;

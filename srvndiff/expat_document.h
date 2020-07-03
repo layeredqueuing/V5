@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: expat_document.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -139,6 +139,7 @@ namespace LQIO {
 	    void startLQX( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 	    void startNOP( const DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes );
 
+	    void handleModel( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );
 	    void handleProcessorResults( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );
 	    void handleGroupResults( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );
 	    void handleTaskResults( const DocumentObject *, const DocumentObject *, const DocumentObject *, const XML_Char ** attributes );

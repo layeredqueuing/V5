@@ -1,14 +1,14 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: activity.cc 13477 2020-02-08 23:14:37Z greg $
  */
-
 
 #include "activity.h"
 #include <cstdlib>
 #include <cstdarg>
 #include <cstring>
 #include <cmath>
+#include <vector>
 #include <algorithm>
 #include <limits.h>
 #if HAVE_VALUES_H
@@ -27,8 +27,6 @@
 #include "model.h"
 #include "actlist.h"
 #include "errmsg.h"
-#include "cltn.h"
-#include "stack.h"
 #include "entry.h"
 #include "label.h"
 #include "call.h"
@@ -37,60 +35,40 @@
 #include "share.h"
 #include "arc.h"
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
 bool Activity::hasJoins = 0;
 std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
 std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
-
-/* ---------------------- Overloaded Operators ------------------------ */
 
-/*
- * Print out service time of entry in standard output format.
- */
-
-ostream&
-operator<<( ostream& output, const Activity& self )
+struct ExecReplyXY
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-    case FORMAT_XML:
-        break;
-    default:
-	self.draw( output );
-	break;
-    }
-    return output;
-}
+    typedef GenericCall& (GenericCall::*funcPtrXY)( double x, double y );
+    ExecReplyXY( funcPtrXY f, double x, double y ) : _f(f), _x(x), _y(y) {};
+    void operator()( const std::pair<Entry *,Reply *>& object ) const { (object.second->*_f)( _x, _y ); }
+private:
+    funcPtrXY _f;
+    double _x;
+    double _y;
+};
 
 /*----------------------------------------------------------------------*/
 /*                    Activities are like phases....                    */
 /*----------------------------------------------------------------------*/
 
 /*
- * Construct and activity.  
+ * Construct and activity.
  */
 
 Activity::Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom )
     : Element( dom, aTask->nActivities()+1 ), Phase(),
-      myTask(aTask),
-      inputFromList(0),
-      outputToList(0),
-      myReplyList(0),
-      myRootEntry(0),
-      myCaller(0),
+      _task(aTask),
+      _inputFrom(NULL),
+      _outputTo(NULL),
+      _replies(),
+      _rootEntry(NULL),
+      _caller(NULL),
       iAmSpecified(false),
-      myLevel(0),
-      myIndex(UINT_MAX),
-      reachableFrom(0)
+      _level(0),
+      _reachableFrom(NULL)
 {
     myNode = Node::newNode( Flags::entry_width - Flags::act_x_spacing / 2., Flags::entry_height );
     myLabel = Label::newLabel();
@@ -102,40 +80,35 @@ Activity::merge( const Activity &src, const double rate )
 {
     /* Aggregate the calls made by the activity to the entry */
 
-    Sequence<Call *> nextCall( src.callList() );
-    Call * srcCall;
-    while ( srcCall = nextCall() ) {
-	Entry * dstEntry = const_cast<Entry *>(srcCall->dstEntry());
+    for ( std::vector<Call *>::const_iterator src_call = src.calls().begin(); src_call != src.calls().end(); ++src_call ) {
+	Entry * dstEntry = const_cast<Entry *>((*src_call)->dstEntry());
 
 	Call * dstCall;
-	if ( srcCall->isPseudoCall() ) {
+	if ( (*src_call)->isPseudoCall() ) {
 	    dstCall = findOrAddFwdCall( dstEntry );
 	} else {
 	    dstCall = findOrAddCall( dstEntry );
 	}
-	dstCall->merge( *srcCall, rate );
+	dstCall->merge( *(*src_call), rate );
 
 	/* Set phase type to stochastic iff we have a non-integral number of calls. */
 
-	if ( phaseTypeFlag() == PHASE_DETERMINISTIC 
+	if ( phaseTypeFlag() == PHASE_DETERMINISTIC
 	     && ( remainder( dstCall->sumOfRendezvous(), 1.0 ) > EPSILON
 		  || remainder( dstCall->sumOfSendNoReply(), 1.0 ) > EPSILON ) ) {
 	    phaseTypeFlag( PHASE_STOCHASTIC );
 	}
 
-	dstEntry->removeDstCall( srcCall );	/* Unlink the activities calls. */
+	dstEntry->removeDstCall( (*src_call) );	/* Unlink the activities calls. */
     }
 
     /* Aggregate the reply lists  */
 
-    if ( src.myReplyList && src.myReplyList->size() != 0 ) {
-	appendReplyList( src );
-    }
+    appendReplyList( src );
 
     /* Aggregate the service time. */
 
-    LQIO::DOM::ExternalVariable& time = *const_cast<LQIO::DOM::ExternalVariable *>(getDOM()->getServiceTime());
-    time += src.serviceTime() * rate;
+    const_cast<LQIO::DOM::Phase *>(getDOM())->setServiceTimeValue(to_double(*getDOM()->getServiceTime()) * rate);
 
     return *this;
 }
@@ -148,13 +121,11 @@ Activity::merge( const Activity &src, const double rate )
 
 Activity::~Activity()
 {
-    replyList( 0 );
-
-    inputFromList = 0;
-    outputToList = 0;
-
-    myCalls.deleteContents();
-
+    _inputFrom = NULL;
+    _outputTo = NULL;
+    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	delete *call;
+    }
     delete myNode;
     delete myLabel;
 }
@@ -171,22 +142,16 @@ Activity::reset()
 
 /* ------------------------ Instance Methods -------------------------- */
 
-/*
- * 
- */
-
 const LQIO::DOM::Phase * 
 Activity::getDOM() const
 { 
     return dynamic_cast<const LQIO::DOM::Phase *>(Element::getDOM()); 
 }
 
-
-
 Activity&
-Activity::resetLevel() 
+Activity::resetLevel()
 {
-    myLevel = 0;
+    _level = 0;
     return *this;
 }
 
@@ -195,7 +160,7 @@ Activity::resetLevel()
  * Can we call this activity?
  */
 
-void
+bool
 Activity::check() const
 {
     if ( !reachable() ) {
@@ -206,12 +171,12 @@ Activity::check() const
 
     /* Terminate lists (for lqn2lqn) */
 
-    if ( myReplyList && myReplyList->size() > 0 && !outputTo() ) {
+    if ( replies().size() > 0 && !outputTo() ) {
 	ActivityList * activity_list = const_cast<Activity *>(this)->outputTo( new JoinActivityList( const_cast<Task *>(owner()), 0 ) );
 	activity_list->add( const_cast<Activity *>(this) );
     }
 
-    Phase::check();
+    return Phase::check();
 }
 
 
@@ -228,8 +193,8 @@ Activity::rendezvous ( const Entry * toEntry )  const
 }
 
 
-Activity& 
-Activity::rendezvous (Entry * toEntry, const LQIO::DOM::Call * value ) 
+Activity&
+Activity::rendezvous (Entry * toEntry, const LQIO::DOM::Call * value )
 {
     if ( value && toEntry->isCalled( RENDEZVOUS_REQUEST ) ) {
 	Model::rendezvousCount[0] += 1;
@@ -253,16 +218,16 @@ Activity::sendNoReply ( const Entry * toEntry ) const
 }
 
 
-Activity& 
+Activity&
 Activity::sendNoReply (Entry * toEntry, const LQIO::DOM::Call * value )
-{ 
+{
     if ( value && toEntry->isCalled( SEND_NO_REPLY_REQUEST ) ) {
 	Model::sendNoReplyCount[0] += 1;
 
 	Call * aCall = findOrAddCall( toEntry );
 	aCall->sendNoReply( 1, value );
     }
-    return *this; 
+    return *this;
 }
 
 
@@ -276,9 +241,9 @@ Activity::forwardingRendezvous( Entry * dstEntry, const double rate )
 {
     ProxyActivityCall * aCall = findOrAddFwdCall( dstEntry );
     LQIO::DOM::Call * dom = new LQIO::DOM::Call( getDOM()->getDocument(),
-						 LQIO::DOM::Call::RENDEZVOUS, 
+						 LQIO::DOM::Call::RENDEZVOUS,
 						 const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(getDOM())),
-						 const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM())), 0,
+						 const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM())),
 						 new LQIO::DOM::ConstantExternalVariable( rendezvous( aCall->dstEntry() ) ) );
     aCall->rendezvous( 1, dom );
     return aCall;
@@ -293,13 +258,13 @@ Activity::forwardingRendezvous( Entry * dstEntry, const double rate )
 ActivityList *
 Activity::inputFrom( ActivityList * aList )
 {
-    if ( inputFromList ) {
+    if ( inputFrom() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name().c_str() );
     } else if ( isStartActivity() ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
     } else {
-	inputFromList = aList;
-    } 
+	_inputFrom = aList;
+    }
     return aList;
 }
 
@@ -312,10 +277,10 @@ Activity::inputFrom( ActivityList * aList )
 ActivityList *
 Activity::outputTo( ActivityList * aList )
 {
-    if ( outputToList ) {
+    if ( outputTo() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name().c_str() );
     } else {
-	outputToList = aList;
+	_outputTo = aList;
     }
     return aList;
 }
@@ -339,27 +304,21 @@ Activity::throughput() const
  */
 
 Activity&
-Activity::replyList( Cltn<const Entry *> * aList )
+Activity::replies( const std::vector<Entry *>& aList )
 {
-    if ( myReplyList ) {
-	/* Delete reply arcs */
-	myReplyArcList.deleteContents();
-	myReplyList->clearContents();
-	delete myReplyList;
+    _replies.clear();
+    /* Delete reply arcs */
+    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
+	delete reply->second;
     }
-    if ( aList && aList->size() && owner()->isReferenceTask() ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_REPLIES, owner()->name().c_str(), (*aList)[1]->name().c_str(), name().c_str() );
+    _replyArcs.clear();
+    if ( aList.size() && owner()->isReferenceTask() ) {
+	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_REPLIES, owner()->name().c_str(), aList.at(0)->name().c_str(), name().c_str() );
     } else {
-	myReplyList = aList;
-	if ( aList ) {
-	    for ( unsigned int i = 1; i <= myReplyList->size(); ++i ) {
-		Entry * anEntry = const_cast<Entry *>((*myReplyList)[i]);
-		Reply * aReply = new Reply( this, anEntry );
-		if ( aReply ) {
-		    myReplyArcList << aReply;
-		}
-	    }
-	} 
+	_replies = aList;
+	for ( std::vector<Entry *>::const_iterator entry = replies().begin(); entry != replies().end(); ++entry ) {
+	    _replyArcs[*entry] = new Reply( this, *entry );
+	}
     }
     return *this;
 }
@@ -367,26 +326,23 @@ Activity::replyList( Cltn<const Entry *> * aList )
 
 
 /*
- * We always have to rebuilt the replyArcList for all replies added from src.
+ * We always have to rebuild the replyArcList for all replies added from src.
  */
 
 Activity&
-Activity::appendReplyList( const Activity& src ) 
+Activity::appendReplyList( const Activity& src )
 {
-    if ( !myReplyList ) {
-	myReplyList = src.myReplyList;
-    } else {
-	*myReplyList += *(src.myReplyList);
-	delete src.myReplyList;
-    }
-    myReplyArcList.deleteContents();
+    if ( src.replies().size() == 0 ) return *this;	// Nop
 
-    for ( unsigned i = 1; i <= myReplyList->size(); ++i ) {
-	Entry * anEntry = const_cast<Entry *>((*myReplyList)[i]);
-	Reply * aReply = new Reply( this, anEntry );
-	if ( aReply ) {
-	    myReplyArcList << aReply;
-	}
+    _replies.insert( _replies.end(), src.replies().begin(), src.replies().end() );
+
+    /* Delete reply arcs */
+    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
+	delete reply->second;
+    }
+    _replyArcs.clear();
+    for ( std::vector<Entry *>::const_iterator entry = replies().begin(); entry != replies().end(); ++entry ) {
+	_replyArcs[*entry] = new Reply( this, *entry );
     }
 
     return *this;
@@ -398,57 +354,47 @@ Activity::appendReplyList( const Activity& src )
 Activity&
 Activity::rootEntry( const Entry * anEntry, const Arc * aCall )
 {
-    myRootEntry = anEntry;
-    myCaller = aCall;
+    _rootEntry = anEntry;
+    _caller = aCall;
     return *this;
 }
 
 
 
 unsigned
-Activity::countArcs( const callFunc aFunc ) const
+Activity::countArcs( const callPredicate predicate ) const
 {
-    unsigned count = 0;
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (!aFunc || (aCall->*aFunc)()) ) {
-	    count += 1;
-	}
-    }
-    return count;
+    return count_if( calls().begin(), calls().end(), GenericCall::PredicateAndSelected( predicate ) );
 }
 
 
 
 
 /*
- * Chase calls looking for cycles and the depth in the call tree.  
+ * Chase calls looking for cycles and the depth in the call tree.
  * The return value reflects the deepest depth in the call tree.
  */
 
-unsigned
-Activity::findChildren( CallStack& callStack, const unsigned directPath, Stack<const Activity *>& activityStack ) const
+size_t
+Activity::findChildren( CallStack& callStack, const unsigned directPath, std::deque<const Activity *>& activityStack ) const
 {
     /* Check for cyles. */
 
-    if ( activityStack.find( this ) ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	throw activity_cycle( this, activityStack );
     }
 
-    activityStack.push( this );
-    reachableFrom = activityStack.bottom();
+    activityStack.push_back( this );
+    _reachableFrom = activityStack.front();
 
-    Sequence<Call *> nextCall( callList() );
-    unsigned max_depth = max( followCalls( owner(), nextCall, callStack, directPath ), callStack.size() );
+    std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator> call(calls().begin(),calls().end());
+    size_t max_depth = std::max( followCalls( call, callStack, directPath ), callStack.size() );
 
-    if ( outputToList ) {
-	max_depth = max( outputToList->findChildren( callStack, directPath, activityStack ), max_depth );
+    if ( outputTo() ) {
+	max_depth = std::max( outputTo()->findChildren( callStack, directPath, activityStack ), max_depth );
     }
 
-    activityStack.pop();
+    activityStack.pop_back();
     return max_depth;
 }
 
@@ -458,16 +404,16 @@ Activity::findChildren( CallStack& callStack, const unsigned directPath, Stack<c
  * and we aggregate serviced times.  Activity aggregation occurs here.
  */
 
-unsigned
-Activity::findActivityChildren( Stack<const Activity *>& activityStack, Stack<const AndForkActivityList *>& forkStack, Entry * srcEntry, const unsigned depth, unsigned p, const double rate ) const
+size_t
+Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * srcEntry, size_t depth, unsigned p, const double rate ) const
 {
     /* Check for cyles. */
-    if ( activityStack.find( this ) ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	throw activity_cycle( this, activityStack );
     }
-    activityStack.push( this );
+    activityStack.push_back( this );
 
-    unsigned max_depth = max( depth+1, level() );
+    size_t max_depth = std::max( depth+1, level() );
     const_cast<Activity *>(this)->level( max_depth );
 
     if ( repliesTo( srcEntry ) ) {
@@ -480,10 +426,10 @@ Activity::findActivityChildren( Stack<const Activity *>& activityStack, Stack<co
 	p = 2;
     }
 
-    if ( outputToList ) {
-	max_depth = max( outputToList->findActivityChildren( activityStack, forkStack, srcEntry, max_depth, p, rate ), max_depth );
-    } 
-    activityStack.pop();
+    if ( outputTo() ) {
+	max_depth = std::max( outputTo()->findActivityChildren( activityStack, forkStack, srcEntry, max_depth, p, rate ), max_depth );
+    }
+    activityStack.pop_back();
 
     return max_depth;
 }
@@ -493,30 +439,30 @@ Activity::findActivityChildren( Stack<const Activity *>& activityStack, Stack<co
  * Search backwards up activity list looking for a match on forkStack
  */
 
-unsigned
-Activity::backtrack( Stack<const AndForkActivityList *>& forkStack ) const
+size_t
+Activity::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
 {
-    if ( inputFromList ) {
-	return inputFromList->backtrack( forkStack );
+    if ( inputFrom() ) {
+	return inputFrom()->backtrack( forkStack );
     } else {
-	return 0;
+	return ~0;
     }
 }
 
 
 
 /*
- * Get my index (used for sorting activities). 
+ * Get my index (used for sorting activities).
  */
 
 double
 Activity::getIndex() const
 {
     double anIndex;
-    if ( myRootEntry ) {
-	anIndex = myRootEntry->index();
-    } else if ( inputFromList ) {
-	anIndex = inputFromList->getIndex();
+    if ( rootEntry() ) {
+	anIndex = rootEntry()->index();
+    } else if ( inputFrom() ) {
+	anIndex = inputFrom()->getIndex();
     } else {
 	anIndex = MAXDOUBLE;
     }
@@ -526,13 +472,13 @@ Activity::getIndex() const
 
 /*
  * Apply aFunc to this activity.  Basically used to call
- * aggregateReplies and aggregateService.  We then follow the graph. 
+ * aggregateReplies and aggregateService.  We then follow the graph.
  */
 
 double
-Activity::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, const aggregateFunc aFunc ) const
+Activity::aggregate( Entry * anEntry, const unsigned curr_p, unsigned& next_p, const double rate, std::deque<const Activity *>& activityStack, const aggregateFunc aFunc )
 {
-    if ( activityStack.find( this ) ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	return 0.0;		// throw CycleErr().
     }
     next_p = curr_p;
@@ -540,40 +486,40 @@ Activity::aggregate( const Entry * anEntry, const unsigned curr_p, unsigned& nex
 	next_p = 2;		/* aFunc may clobber the repliesTo list, so check first. */
     }
     double sum = (this->*aFunc)( anEntry, curr_p, rate );
-    if ( outputToList ) {
-	activityStack.push( this );
-	sum += outputToList->aggregate( anEntry, next_p, next_p, rate, activityStack, aFunc );
-	activityStack.pop();
+    if ( outputTo() ) {
+	activityStack.push_back( this );
+	sum += outputTo()->aggregate( anEntry, next_p, next_p, rate, activityStack, aFunc );
+	activityStack.pop_back();
     }
     return sum;
 }
 
 
 
-unsigned 
-Activity::setChain( Stack<const Activity *>& activityStack, unsigned curr_k, unsigned next_k, 
-		    const Entity * aServer, const callFunc aFunc  )
+unsigned
+Activity::setChain( std::deque<const Activity *>& activityStack, unsigned curr_k, unsigned next_k,
+		    const Entity * aServer, const callPredicate aFunc  )
 {
-    if ( activityStack.find( this ) ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	return next_k;
     }
 
-    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->processor() == aServer) ) ) { 
+    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->processor() == aServer) ) ) {
 	setServerChain( curr_k ).setClientClosedChain( curr_k );		/* Catch case where there are no calls. */
     }
 
     Phase::setChain( curr_k, aServer, aFunc );
 
-    if ( outputToList ) {
-	activityStack.push( this );
-	next_k = outputToList->setChain( activityStack, curr_k, next_k, aServer, aFunc );
-	activityStack.pop();
+    if ( outputTo() ) {
+	activityStack.push_back( this );
+	next_k = outputTo()->setChain( activityStack, curr_k, next_k, aServer, aFunc );
+	activityStack.pop_back();
     }
     return next_k;
 }
 
 
-Activity& 
+Activity&
 Activity::setClientClosedChain( unsigned k )
 {
     Element::setClientClosedChain( k );
@@ -582,15 +528,15 @@ Activity::setClientClosedChain( unsigned k )
 }
 
 
-Activity& 
-Activity::setClientOpenChain( unsigned k ) 
+Activity&
+Activity::setClientOpenChain( unsigned k )
 {
     Element::setClientOpenChain( k );
     return *this;
 }
 
 
-Activity& 
+Activity&
 Activity::setServerChain( unsigned k )
 {
     const_cast<Task *>(owner())->setServerChain( k );
@@ -604,11 +550,11 @@ Activity::setServerChain( unsigned k )
  */
 
 double
-Activity::aggregateReplies( const Entry * anEntry, const unsigned p, const double rate ) const
+Activity::aggregateReplies( Entry * anEntry, const unsigned p, const double rate )
 {
     double sum = 0;
     if ( p > 1 && (hasServiceTime() || hasRendezvous() ) ) {
-	const_cast<Entry *>(anEntry)->phaseIsPresent( p, true );
+	anEntry->getPhase(p);
     }
     if ( repliesTo( anEntry ) ) {
 	if (  anEntry->isCalled() == SEND_NO_REPLY_REQUEST || anEntry->isCalled() == OPEN_ARRIVAL_REQUEST ) {
@@ -633,7 +579,7 @@ Activity::aggregateReplies( const Entry * anEntry, const unsigned p, const doubl
  */
 
 double
-Activity::aggregateService( const Entry * anEntry, const unsigned p, const double rate ) const
+Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate )
 {
     double sum = 0.0;
     if ( repliesTo( anEntry )  ) {
@@ -645,13 +591,15 @@ Activity::aggregateService( const Entry * anEntry, const unsigned p, const doubl
     case AGGREGATE_PHASES:
     case AGGREGATE_ACTIVITIES:
 	const_cast<Entry *>(anEntry)->aggregateService( this, p, rate );
-	int i = repliesTo( anEntry );
-	if ( i > 0 ) {
-	    Reply * aReply = myReplyArcList[i];
-	    const_cast<Entry *>(anEntry)->deleteActivityReplyArc( aReply );
-	    const_cast<Activity *>(this)->myReplyArcList -= aReply;
-	    delete aReply;
-	    *(const_cast<Activity *>(this)->myReplyList) -= anEntry;
+	std::map<Entry *,Reply *>::iterator reply = _replyArcs.find(anEntry);
+	if ( reply != replyArcs().end() ) {
+	    anEntry->deleteActivityReplyArc( reply->second );
+	    _replyArcs.erase( reply );
+	    delete reply->second;
+	    std::vector<Entry *>::iterator entry = find( _replies.begin(), _replies.end(), anEntry );
+	    if ( entry != replies().end() ) {
+		_replies.erase( entry );
+	    }
 	}
 	break;
     }
@@ -670,12 +618,10 @@ Activity::aggregateService( const Entry * anEntry, const unsigned p, const doubl
 Call *
 Activity::findCall( const Entry * anEntry ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( ( aCall = nextCall() ) && (( aCall->isPseudoCall() ) || ( aCall->dstEntry() != anEntry )) );
-
-    return aCall;
+    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	if ( !(*call)->isPseudoCall() && (*call)->dstEntry() == anEntry ) return *call;
+    }
+    return 0;
 }
 
 
@@ -687,12 +633,10 @@ Activity::findCall( const Entry * anEntry ) const
 Call *
 Activity::findFwdCall( const Entry * anEntry ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( ( aCall = nextCall() ) && (( !aCall->isPseudoCall() ) || ( aCall->dstEntry() != anEntry )) );
-
-    return aCall;
+    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	if ( (*call)->isPseudoCall() && (*call)->dstEntry() == anEntry ) return *call;
+    }
+    return 0;
 }
 
 
@@ -738,58 +682,28 @@ Activity::findOrAddFwdCall( Entry * anEntry )
 
 
 
-bool 
-Activity::hasCallsFor( unsigned p ) const
-{
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (aCall->hasRendezvous() || aCall->hasSendNoReply() ) ) return true;
-    }
-    return false;
-}
-
-
 bool
 Activity::hasRendezvous() const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-    
-    while ( aCall = nextCall() ) {
-	if ( aCall->hasRendezvous() ) return true;
-    }
-    return false;
+    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasRendezvous ) ) != calls().end();
 }
 
 bool
 Activity::hasSendNoReply() const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-    
-    while ( aCall = nextCall() ) {
-	if ( aCall->hasSendNoReply() ) return true;
-    }
-    return false;
+    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasSendNoReply ) ) != calls().end();
 }
 
 
-/* 
- * Return the index to the entry if this activity generates a reply to
- * the named entry.  Note that activities that don't reply don't have
- * reply lists, so calling myReplyList->find() directly is a bad idea.
+/*
+ * Return true if this activity generates a reply to
+ * the named entry.
  */
 
-int
+bool
 Activity::repliesTo( const Entry * anEntry ) const
 {
-    if ( myReplyList ) {
-	return myReplyList->find( anEntry );
-    } else {
-	return 0;
-    }
+    return find( replies().begin(), replies().end(), anEntry ) != replies().end();
 }
 
 
@@ -801,14 +715,10 @@ Activity::repliesTo( const Entry * anEntry ) const
 double
 Activity::serviceTimeForSRVNInput() const
 {
-    LQIO::DOM::ExternalVariable& time = *const_cast<LQIO::DOM::ExternalVariable *>(getDOM()->getServiceTime());
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() && aCall->hasRendezvous() ) {
-	    time += aCall->sumOfRendezvous() * (aCall->waiting(1) + aCall->dstEntry()->executionTime(1));
+    double time = to_double(*getDOM()->getServiceTime());
+    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	if ( !(*call)->isSelected() && (*call)->hasRendezvous() ) {
+	    time += (*call)->sumOfRendezvous() * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
 	}
     }
 
@@ -817,25 +727,21 @@ Activity::serviceTimeForSRVNInput() const
     if ( !owner()->processor()->isSelected() ) {
 	time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
     }
-    
-    return LQIO::DOM::to_double(time);
+
+    const_cast<LQIO::DOM::Phase *>(getDOM())->setServiceTimeValue(time);
+    return time;
 }
 
 
 
 /*
- * Return true if any aFunc returns true for any call 
+ * Return true if any aFunc returns true for any call
  */
 
-bool 
-Activity::hasCalls( const callFunc aFunc ) const
+bool
+Activity::hasCalls( const callPredicate predicate ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() && (aCall->*aFunc)() ) return true;
-    }
-    return false;
+    return find_if( calls().begin(), calls().end(), GenericCall::PredicateAndSelected( predicate ) ) != calls().end();
 }
 
 
@@ -851,16 +757,8 @@ Activity::isSelectedIndirectly() const
 	return hasPath( Flags::print[CHAIN].value.i );
     } else if ( owner()->isSelected() ) {
 	return true;
-    } 
-
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() ) return true;
     }
-
-    return false;
+    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) ) != calls().end();
 }
 
 
@@ -875,17 +773,17 @@ bool
 Activity::transmorgrify()
 {
     if ( rootEntry() ) {
-	if ( !outputToList || !outputToList->next() ) {
+	if ( !outputTo() || !outputTo()->next() ) {
 	    const_cast<Entry *>(rootEntry())->aggregateService( this, 1, 1.0 );
 	    const_cast<Task *>(owner())->removeActivity( this );
 	    delete this;
 	    return true;
-	} else if ( outputToList 
+	} else if ( outputTo()
 		    && repliesTo( rootEntry() )
-		    && dynamic_cast<JoinActivityList *>(outputToList)
-		    && dynamic_cast<ForkActivityList *>(outputToList->next()) ) {
-	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(outputToList->next())->myActivity;	
-	    if ( !nextActivity->outputToList || !nextActivity->outputToList->next() ) {
+		    && dynamic_cast<JoinActivityList *>(outputTo())
+		    && dynamic_cast<ForkActivityList *>(outputTo()->next()) ) {
+	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(outputTo()->next())->myActivity;
+	    if ( !nextActivity->outputTo() || !nextActivity->outputTo()->next() ) {
 		const_cast<Entry *>(rootEntry())->aggregateService( this, 1, 1.0 ).aggregateService( nextActivity, 2, 1.0 );
 		const_cast<Task *>(owner())->removeActivity( nextActivity ).removeActivity( this );
 		delete nextActivity;
@@ -904,14 +802,14 @@ Activity::transmorgrify()
  */
 
 Activity&
-Activity::disconnect( Activity* nextActivity ) 
+Activity::disconnect( Activity* nextActivity )
 {
     /* Reconnect lists */
 
-    outputToList = nextActivity->outputToList;
-    nextActivity->outputToList = 0;
-    if ( outputToList ) {
-	outputToList->reconnect( nextActivity, this );
+    outputTo( nextActivity->outputTo() );
+    nextActivity->outputTo( NULL );
+    if ( outputTo() ) {
+	outputTo()->reconnect( nextActivity, this );
     }
 
     const_cast<Task *>(owner())->removeActivity( nextActivity );
@@ -921,10 +819,10 @@ Activity::disconnect( Activity* nextActivity )
 
 
 
-Activity const&
-Activity::sort() const
+Activity&
+Activity::sort()
 {
-    myCalls.sort( &Call::compareSrc );
+    ::sort( _calls.begin(), _calls.end(), &Call::compareSrc );
     return *this;
 }
 
@@ -933,8 +831,8 @@ double
 Activity::height() const
 {
     double h = Element::height();
-    if ( outputToList ) {
-	h += outputToList->height();
+    if ( outputTo() ) {
+	h += outputTo()->height();
     } else {
 	h += ActivityList::interActivitySpace / 2.0;
     }
@@ -942,73 +840,69 @@ Activity::height() const
 }
 
 
-Activity& 
+Activity&
 Activity::moveTo( const double x, const double y )
-{ 
+{
     Element::moveTo( x, y );
     myLabel->moveTo( center() );
 
     sort();
 
-    Sequence<Call *> nextCall( callList() );
-    Call * srcCall;
-    Cltn<Call *> leftCltn;
-    Cltn<Call *> rightCltn;
-    
+    std::vector<Call *> left_side;
+    std::vector<Call *> right_side;
+
     Point srcPoint = bottomCenter();
 
     /* Sort left and right */
 
-    while ( srcCall = nextCall() ) {
-	if ( srcCall->isSelected() ) {
-	    if ( srcCall->pointAt(2).x() < srcPoint.x() ) {
-		leftCltn << srcCall;
+    for ( std::vector<Call *>::const_iterator src_call = calls().begin(); src_call != calls().end(); ++src_call ) {
+	if ( (*src_call)->isSelected() ) {
+	    if ( (*src_call)->pointAt(1).x() < srcPoint.x() ) {
+		left_side.push_back(*src_call);
 	    } else {
-		rightCltn << srcCall;
+		right_side.push_back(*src_call);
 	    }
 	}
     }
 
     /* move leftCltn */
 
-    double delta = width() / (static_cast<double>(1+leftCltn.size()) * 2.0 );
+    double delta = width() / (static_cast<double>(1+left_side.size()) * 2.0 );
     srcPoint = bottomLeft();
-    for ( unsigned int i = 1; i <= leftCltn.size(); ++i ) {
+    for ( std::vector<Call *>::const_iterator call = left_side.begin(); call != left_side.end(); ++call ) {
 	srcPoint.moveBy( delta, 0 );
-	leftCltn[i]->moveSrc( srcPoint );
+	(*call)->moveSrc( srcPoint );
     }
 
     /* move rightCltn */
 
-    delta = width() / (static_cast<double>(1+rightCltn.size()) * 2.0);
+    delta = width() / (static_cast<double>(1+right_side.size()) * 2.0);
     srcPoint = bottomCenter();
-    for ( unsigned int i = 1; i <= rightCltn.size(); ++i ) {
+    for ( std::vector<Call *>::const_iterator call = right_side.begin(); call != right_side.end(); ++call ) {
 	srcPoint.moveBy( delta, 0 );
-	rightCltn[i]->moveSrc( srcPoint );
+	(*call)->moveSrc( srcPoint );
     }
 
-    if ( myCaller ) {
-	const_cast<Arc *>(myCaller)->moveDst( topCenter() );
+    if ( _caller ) {
+	const_cast<Arc *>(_caller)->moveDst( topCenter() );
     }
 
-    if ( outputToList ) {
+    if ( outputTo() ) {
 	/* Always to a JOIN list */
-	outputToList->moveSrcTo( bottomCenter(), this );
+	outputTo()->moveSrcTo( bottomCenter(), this );
     }
-    if ( inputFromList ) {
-	inputFromList->moveDstTo( topCenter(), this );
+    if ( inputFrom() ) {
+	inputFrom()->moveDstTo( topCenter(), this );
     }
 
-    Sequence<Reply *> nextReply( myReplyArcList );
-    Reply * aReply;
-    while ( aReply = nextReply() ) {
+    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ) {
 	Point srcPoint( topCenter() );
-	if ( left() > aReply->dstEntry()->left() ) {
+	if ( left() > reply->second->dstEntry()->left() ) {
 	    srcPoint.moveBy( -width() / 4.0, 0 );
 	} else {
 	    srcPoint.moveBy( width() / 4.0, 0 );
 	}
-	aReply->moveSrc( srcPoint );
+	reply->second->moveSrc( srcPoint );
     }
 
     return *this;
@@ -1016,70 +910,34 @@ Activity::moveTo( const double x, const double y )
 
 
 
-Activity& 
+Activity&
 Activity::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->scaleBy( sx, sy );
-    }
-
-    Sequence<Reply *> nextReply( myReplyArcList );
-    Reply * aReply;
-    while ( aReply = nextReply() ) {
-	aReply->scaleBy( sx, sy );
-    }
-
+    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
+    for_each( replyArcs().begin(), replyArcs().end(), ExecReplyXY( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
 
 
-Activity& 
+Activity&
 Activity::translateY( const double dy )
 {
     Element::translateY( dy );
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->translateY( dy );
-    }
-
-    Sequence<Reply *> nextReply( myReplyArcList );
-    Reply * aReply;
-    while ( aReply = nextReply() ) {
-	aReply->translateY( dy );
-    }
-
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
+    for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 
 
 
-Activity& 
+Activity&
 Activity::depth( const unsigned depth  )
 {
     Element::depth( depth-3 );
-
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->depth( depth-2 );
-    }
-
-    Sequence<Reply *> nextReply( myReplyArcList );
-    Reply * aReply;
-    while ( aReply = nextReply() ) {
-	aReply->depth( depth-1 );
-    }
-
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
+    for_each( replyArcs().begin(), replyArcs().end(), ExecX<GenericCall,std::pair<Entry *,Reply *>,unsigned>( &GenericCall::depth, depth-1 ) );
     return *this;
 }
 
@@ -1092,8 +950,8 @@ Activity::depth( const unsigned depth  )
 double
 Activity::align() const
 {
-    if ( inputFromList ) {
-	return inputFromList->align();
+    if ( inputFrom() ) {
+	return inputFrom()->align();
     } else {
 	return 0.0;
     }
@@ -1105,47 +963,36 @@ Activity::align() const
 Activity&
 Activity::label()
 {
-    myLabel->initialize( name() );
+    *myLabel << name();
     if ( Flags::print[INPUT_PARAMETERS].value.b && hasServiceTime() ) {
 	myLabel->newLine() << '[' << serviceTime()  << ']';
     }
     if ( Flags::have_results ) {
 	if ( Flags::print[SERVICE].value.b ) {
-	    myLabel->newLine() << begin_math() << executionTime() << end_math();
+	    myLabel->newLine() << begin_math() << opt_pct(executionTime()) << end_math();
 	}
 	if ( Flags::print[VARIANCE].value.b ) {
-	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << variance() << end_math();
+	    myLabel->newLine() << begin_math( &Label::sigma ) << "=" << opt_pct(variance()) << end_math();
 	}
     }
 
     /* Now do calls. */
 
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->label();
-    }
-
-    if ( outputToList ) {
-	outputToList->label();
-    }
-    if ( inputFromList ) {
-	inputFromList->label();
-    }
+    for_each ( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );
 
     return *this;
 }
 
 
 
-Graphic::colour_type 
+Graphic::colour_type
 Activity::colour() const
 {
     if ( !reachable() ) {
 	return Graphic::RED;
     } else switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_RESULTS:
+    case COLOUR_DIFFERENCES:
 	return owner()->colour();
     default:
 	return Graphic::DEFAULT_COLOUR;
@@ -1153,39 +1000,46 @@ Activity::colour() const
 }
 
 
+Activity&
+Activity::rename()
+{
+    std::ostringstream name;
+    name << "a" << elementId();
+    const_cast<LQIO::DOM::Phase *>(getDOM())->setName( name.str() );
+    return *this;
+}
+
+
 #if defined(REP2FLAT)
 Activity&
-Activity::expandActivityCalls( const Activity& src, int replica ) 
+Activity::expandActivityCalls( const Activity& src, int replica )
 {
-    Sequence<Call *> nextCall(src.callList());
-    const Call *aCall;
     LQIO::DOM::Activity * dom_activity = const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(getDOM()));
-    while ( aCall = nextCall() ) {
-
-	const unsigned fan_out = aCall->fanOut();
-	const unsigned dst_replicas = aCall->dstEntry()->owner()->replicas();
+    for ( std::vector<Call *>::const_iterator call = src.calls().begin(); call != src.calls().end(); ++call ) {
+	const unsigned fan_out = (*call)->fanOut();
+	const unsigned dst_replicas = (*call)->dstEntry()->owner()->replicasValue();
 	if (fan_out > dst_replicas) {
 	    ostringstream msg;
-	    msg << "Activity::expandActivityCalls(): fanout of activity " << name() 
-		<< " is greater than the number of replicas of the destination Entry'" 
-		<< aCall->dstEntry()->name() << "'";
+	    msg << "Activity::expandActivityCalls(): fanout of activity " << name()
+		<< " is greater than the number of replicas of the destination Entry'"
+		<< (*call)->dstEntry()->name() << "'";
 	    throw runtime_error( msg.str() );
 	}
 
 	LQIO::DOM::Call * dom_call;
 	for (unsigned k = 0; k < fan_out; k++) {
-	    Entry *dstEntry = Entry::find_replica( aCall->dstEntry()->name(), 
+	    Entry *dstEntry = Entry::find_replica( (*call)->dstEntry()->name(),
 						   ((k + (replica - 1) * fan_out) % dst_replicas) + 1 );
 
 	    LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM()));
-	    if ( aCall->hasRendezvous() ) {
-		dom_call = aCall->getDOM(1)->clone();
+	    if ( (*call)->hasRendezvous() ) {
+		dom_call = (*call)->getDOM(1)->clone();
 		dom_call->setDestinationEntry( dst_dom );
 		rendezvous( dstEntry, dom_call );
 		dom_activity->addCall( dom_call );
-		
-	    } else if ( aCall->hasSendNoReply() ) {
-		dom_call = aCall->getDOM(1)->clone();
+
+	    } else if ( (*call)->hasSendNoReply() ) {
+		dom_call = (*call)->getDOM(1)->clone();
 		dom_call->setDestinationEntry( dst_dom );
 		sendNoReply( dstEntry, dom_call );
 		dom_activity->addCall( dom_call );
@@ -1194,15 +1048,31 @@ Activity::expandActivityCalls( const Activity& src, int replica )
     }
     return *this;
 }
+
+
+
+Activity&
+Activity::replicateCall()
+{
+    std::vector<Call *> old_calls = _calls;
+    _calls.clear();
+
+    Phase::replicateCall();		/* Reset DOM calls */
+    
+    Call * root = NULL;
+    for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
+    return *this;
+}
+
 #endif
 
 /* ------------------------------------------------------------------------ */
 /*                                  Output                                 */
 /* ------------------------------------------------------------------------ */
 
-ostream&  
-Activity::draw( ostream & output ) const 
-{ 
+const Activity&
+Activity::draw( ostream & output ) const
+{
     ostringstream aComment;
     aComment << "Activity " << name();
     if ( hasServiceTime() ) {
@@ -1214,27 +1084,14 @@ Activity::draw( ostream & output ) const
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
     myNode->rectangle( output );
 
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() ) {
-	    output << *aCall;
-	}
-    }
+    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,ostream&>( &GenericCall::draw, output ) );
 
     myLabel->backgroundColour( colour() );
     output << *myLabel;
 
-    if ( outputToList && outputToList->next() ) {
-	output << *outputToList;
-    }
-    if ( inputFromList && inputFromList->prev() ) {
-	output << *inputFromList;
-    }
-
     /* Don't draw reply arcs here ... draw from entry (for layering purposes) */
 
-    return output; 
+    return *this;
 }
 
 
@@ -1249,13 +1106,11 @@ ostream&
 Activity::printNameWithReply( ostream& output ) const
 {
     output << name();
-    if ( myReplyList && !owner()->canConvertToOpenArrivals() ) {
+    if ( replies().size() && !owner()->canConvertToOpenArrivals() ) {
 	output << '[';
-	Sequence<const Entry *> nextEntry( *myReplyList );
-	const Entry * anEntry;
-	for  ( int i = 0; anEntry = nextEntry(); ++i ) {
-	    if ( i != 0 ) output << ',';
-	    output << anEntry->name();
+	for ( std::vector<Entry *>::const_iterator entry = replies().begin(); entry != replies().end(); ++entry ) {
+	    if ( entry != replies().begin() ) output << ',';
+	    output << (*entry)->name();
 	}
 	output << ']';
     }
@@ -1266,36 +1121,15 @@ Activity::printNameWithReply( ostream& output ) const
  * Compare entries (for sorting)
  */
 
-int
-Activity::compare( const void * n1, const void *n2 )
+bool
+Activity::compareCoord( const Activity * a1, const Activity * a2 )
 {
-    return Element::compare( *static_cast<Activity **>(const_cast<void *>(n1)), 
-			     *static_cast<Activity **>(const_cast<void *>(n2)) );
-}
-
-
-
-/*
- * Compare entries (for sorting)
- */
-
-int
-Activity::compareCoord( const void * n1, const void *n2 )
-{
-    const Activity * a1 = *static_cast<Activity **>(const_cast<void *>(n1));
-    const Activity * a2 = *static_cast<Activity **>(const_cast<void *>(n2));
-
-    double diff = a1->index() - a2->index();
-    if ( diff != 0 ) {
-	return static_cast<int>(copysign( 1.0, diff ) );
-    } else {
-	return 0;
-    }
+    return a1->index() < a2->index();
 }
 
 /* ------------------------ Exception Handling ------------------------ */
 
-activity_cycle::activity_cycle( const Activity * anActivity, Stack<const Activity *>& activityStack )
+activity_cycle::activity_cycle( const Activity * anActivity, std::deque<const Activity *>& activityStack )
     : path_error( activityStack.size() )
 {
     myMsg = anActivity->name();
@@ -1310,12 +1144,12 @@ activity_cycle::activity_cycle( const Activity * anActivity, Stack<const Activit
 /*                     Functions called by loader.                      */
 /************************************************************************/
 
-Activity* 
+Activity*
 Activity::create( Task* newTask, LQIO::DOM::Activity* activity )
 {
     /* Create a new activity assigned to a given task and set the information DOM entry for it */
     Activity * anActivity = newTask->findOrAddActivity( activity );
-	
+
     /* Find out if we can specify the activity */
     if (activity->isSpecified() == true) {
 	anActivity->isSpecified(true);
@@ -1330,15 +1164,16 @@ Activity::add_calls()
 {
     /* Go over all of the calls specified within this activity and do something similar to store_snr/rnv */
     const LQIO::DOM::Activity* domActivity = dynamic_cast<const LQIO::DOM::Activity *>(getDOM());
-    const std::vector<LQIO::DOM::Call*>& callList = domActivity->getCalls();
+    if ( domActivity == NULL ) return *this;	/* Bizarre */
+    const std::vector<LQIO::DOM::Call*>& calls = domActivity->getCalls();
     std::vector<LQIO::DOM::Call*>::const_iterator iter;
-	
+
     /* This provides us with the DOM Call which we can then take apart */
-    for (iter = callList.begin(); iter != callList.end(); ++iter) {
+    for (iter = calls.begin(); iter != calls.end(); ++iter) {
 	const LQIO::DOM::Call* domCall = *iter;
 	const LQIO::DOM::Entry* toDOMEntry = domCall->getDestinationEntry();
 	Entry* destEntry = Entry::find(toDOMEntry->getName());
-		
+
 	/* Make sure all is well */
 	if (!destEntry) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
@@ -1368,40 +1203,40 @@ Activity::add_reply_list ()
     if (domReplyList.size() == 0 ) {
 	return *this;
     }
-	
+
     /* We must begin by building up an entry list */
-    Cltn<const Entry*>* entryList = new Cltn<const Entry*>();
-	
+    std::vector<Entry*> entryList;
+
     /* Walk over the list and do the equivalent of calling act_add_reply n times */
     std::vector<LQIO::DOM::Entry*>::const_iterator iter;
     for (iter = domReplyList.begin(); iter != domReplyList.end(); ++iter) {
 	LQIO::DOM::Entry* domEntry = const_cast<LQIO::DOM::Entry*>(*iter);
-	const Entry* myEntry = Entry::find(domEntry->getName());
-		
+	Entry* myEntry = Entry::find(domEntry->getName());
+
 	/* Check it out and add it to the list */
 	if (myEntry == NULL) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domEntry->getName().c_str() );
 	} else if (myEntry->owner() != owner()) {
 	    LQIO::input_error2( LQIO::ERR_WRONG_TASK_FOR_ENTRY, domEntry->getName().c_str(), owner()->name().c_str() );
 	} else {
-	    (*entryList) << myEntry;
+	    entryList.push_back( myEntry );
 	}
     }
-	
+
     /* Store the reply list for the activity */
-    replyList(entryList);
+    replies(entryList);
     return *this;
 }
 
 Activity&
 Activity::add_activity_lists()
-{  
+{
     /* Obtain the Task and Activity information DOM records */
     const LQIO::DOM::Activity* domAct = dynamic_cast<const LQIO::DOM::Activity *>(getDOM());
     if (domAct == NULL) { return *this; }
     const Task * task = owner();
-	
-    /* May as well start with the outputToList, this is done with various methods */
+
+    /* May as well start with the _outputTo, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
     ActivityList * localActivityList = NULL;
     if (joinList != NULL && joinList->getProcessed() == false) {
@@ -1412,7 +1247,7 @@ Activity::add_activity_lists()
 	    const LQIO::DOM::Activity* domAct = *iter;
 
 	    /* Add the activity to the appropriate list based on what kind of list we have */
-	    Activity * nextActivity = task->findActivity( domAct->getName().c_str() );
+	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
@@ -1432,14 +1267,14 @@ Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
 	domToNative[joinList] = localActivityList;
 	if (joinList->getNext() != NULL) {
 	    actConnections[joinList] = joinList->getNext();
 	}
     }
-	
+
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = domAct->getInputFromList();
     localActivityList = NULL;
@@ -1449,15 +1284,15 @@ Activity::add_activity_lists()
 	forkList->setProcessed(true);
 	for (iter = list.begin(); iter != list.end(); ++iter) {
 	    const LQIO::DOM::Activity* domAct = *iter;
-	    Activity * nextActivity = task->findActivity( domAct->getName().c_str() );
+	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
 	    }
-			
+
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:	
+	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
 	    case LQIO::DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
@@ -1473,7 +1308,7 @@ Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
 	domToNative[forkList] = localActivityList;
 	if (forkList->getNext() != NULL) {
@@ -1568,7 +1403,7 @@ Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLi
 	activityList = new AndForkActivityList( const_cast<Task *>(owner()), dom_activitylist );
     } else if ( !dynamic_cast<AndForkActivityList *>(activityList) ) {
 	abort();
-    } 
+    }
 
     activityList->add( this );
     inputFrom( activityList );
@@ -1592,8 +1427,8 @@ Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLis
 	activityList = new OrForkActivityList( const_cast<Task *>(owner()), dom_activitylist );
     } else if ( !dynamic_cast<OrForkActivityList *>(activityList) ) {
 	abort();
-    } 
-    
+    }
+
     inputFrom( activityList );
     activityList->add( this );
 
@@ -1611,7 +1446,7 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
     if ( !activity_list ) {
 	activity_list = new RepeatActivityList( const_cast<Task *>(owner()), dom_activitylist );
     } else if ( !dynamic_cast<RepeatActivityList *>(activity_list ) ) {
-	abort();   
+	abort();
     }
 
     activity_list->add( this );
@@ -1621,7 +1456,7 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
 }
 
 
-void 
+void
 Activity::complete_activity_connections ()
 {
     /* We stored all the necessary connections and resolved the list identifiers so finalize */
@@ -1629,22 +1464,8 @@ Activity::complete_activity_connections ()
     for (iter = Activity::actConnections.begin(); iter != Activity::actConnections.end(); ++iter) {
 	ActivityList* src = Activity::domToNative[iter->first];
 	ActivityList* dst = Activity::domToNative[iter->second];
-	assert(src != NULL && dst != NULL);
-	ActivityList::act_connect(src, dst);
+	if ( src != NULL && dst != NULL ) {
+	    ActivityList::act_connect(src, dst);
+	}
     }
-}
-
-ostream& 
-Activity::print_reply_activity_name( ostream& output, const Activity * anActivity )
-{
-    if ( anActivity ) {
-	anActivity->printNameWithReply( output );
-    }
-    return output;
-}
-
-ActivityManip
-reply_activity_name( Activity * anActivity )
-{
-    return ActivityManip( Activity::print_reply_activity_name, anActivity );
 }

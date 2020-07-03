@@ -1,6 +1,5 @@
-
 /*
- * $Id: srvn_gram.y 12980 2017-04-05 00:09:25Z greg $ 
+ * $Id: srvn_gram.y 13556 2020-05-25 17:39:26Z greg $ 
  */
 
 %{
@@ -17,6 +16,7 @@
 static char * make_name( int i );
 static void * curr_task = 0;
 static void * curr_proc = 0;
+static void * curr_group = 0;
 static void * curr_entry = 0;
 static void * dest_entry = 0;
 static void * curr_activity = 0;
@@ -26,12 +26,13 @@ extern int LQIO_lex();
 
 %token <aString>	TEXT END_LIST SYMBOL VARIABLE RANGE_ERR SOLVER
 %token <anInt>		INTEGER
-%token <aFloat>		FLOAT
+%token <aFloat>		FLOAT CONST_INFINITY
 %token			TRANSITION
 
 /*+ spex */
-%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE KEY_ITERATIONS KEY_ELAPSED_TIME KEY_USER_TIME KEY_SYSTEM_TIME 
+%token <anInt>		KEY_UTILIZATION KEY_THROUGHPUT KEY_PROCESSOR_UTILIZATION KEY_SERVICE_TIME KEY_VARIANCE KEY_THROUGHPUT_BOUND KEY_PROCESSOR_WAITING KEY_WAITING KEY_WAITING_VARIANCE KEY_ITERATIONS KEY_ELAPSED_TIME KEY_USER_TIME KEY_SYSTEM_TIME KEY_EXCEEDED_TIME
 %token			TOK_LESS_EQUAL TOK_LOGIC_NOT TOK_LESS_THAN TOK_NOT_EQUALS TOK_GREATER_EQUAL TOK_EQUALS TOK_LOGIC_AND TOK_GREATER_THAN TOK_LOGIC_OR TOK_POWER
+%token			SRVN_INPUT SPEX_PARAMETER SPEX_RESULT SPEX_CONVERGENCE SPEX_EXPRESSION
 /*- spex */
 
 %union {
@@ -47,15 +48,15 @@ extern int LQIO_lex();
     void * aParseTreeList;
 }
 
-%type <aVariable>	quantum cpu_rate think_time_flag act_prob act_count group_share conv_val it_limit print_int underrelax_coeff
-%type <aVariable>	real integer multi_server_flag queue_length_flag task_pri quorum_count rvalue
+%type <aVariable>	quantum act_prob act_count group_share conv_val it_limit print_int underrelax_coeff
+%type <aVariable>	real integer quorum_count rvalue
 %type <domObject>	entry_ref dest_ref activity_def activity_ref task_ref
 %type <schedulingFlag>	proc_sched_flag task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
-%type <anInt>		replication_flag cap_flag hist_bins token_flag
+%type <anInt>		cap_flag hist_bins
 %type <aFloat>		constant 
-%type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix factor 
+%type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix arrayref factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl
 %type <aParseTreeList>	parameter_list expression_list r_decl_list c_decl_list opt_convergence_info
 
@@ -65,9 +66,22 @@ extern int LQIO_lex();
  *	Don't forget to free() it iff not used.
  */
 
-%type <aString>		symbol proc_id entry_id task_id group_id activity_id reply_activity comment group_flag
+%type <aString>		symbol proc_id entry_id task_id group_id activity_id reply_activity comment 
 
 %%
+/*----------------------------------------------------------------------*/
+/* Special code for running parts of the parser.			*/
+/*----------------------------------------------------------------------*/
+
+start			: SRVN_INPUT SRVN_input_file
+/*+ json */
+			| SPEX_PARAMETER parameter_list { spex_set_parameter_list( $2 ); }
+			| SPEX_RESULT r_decl_list 	{ spex_set_result_list( $2 ); }
+			| SPEX_CONVERGENCE c_decl_list	{ spex_set_convergence_list( $2 ); }
+			| SPEX_EXPRESSION expression  	{ spex_set_variable( spex_inline_expression( $2 ) ) ; }
+/*- json */
+			;
+
 /*----------------------------------------------------------------------*/
 /* Input file grammar.							*/
 /*----------------------------------------------------------------------*/
@@ -118,7 +132,8 @@ general_obs		: general_obs_info general_obs
 			;
 
 
-general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAITING, $2 ); }
+general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAITING, $2 ); }		/* %w waits */
+			| KEY_SERVICE_TIME VARIABLE			{ spex_document_observation( KEY_SERVICE_TIME, $2 ); }		/* %s steps */
 			| KEY_ITERATIONS VARIABLE			{ spex_document_observation( KEY_ITERATIONS, $2 ); }
 			| KEY_ELAPSED_TIME VARIABLE			{ spex_document_observation( KEY_ELAPSED_TIME, $2 ); }
 			| KEY_USER_TIME VARIABLE			{ spex_document_observation( KEY_USER_TIME, $2 ); }
@@ -181,14 +196,17 @@ power			: prefix TOK_POWER power			{ $$ = spex_power( $1, $3 ); }
 			| prefix					{ $$ = $1; }
 			;
 
-prefix			: TOK_LOGIC_NOT factor				{ $$ = spex_not( $2 ); }
-			| factor					{ $$ = $1; }
+prefix			: TOK_LOGIC_NOT arrayref			{ $$ = spex_not( $2 ); }
+			| arrayref					{ $$ = $1; }
+			;
+
+arrayref		: arrayref '[' expression ']'			{ $$ = spex_array_reference( $1, $3 ); }
+			| factor
 			;
 
 factor			: '(' expression ')'				{ $$ = $2; }			/* See Parser_pre.ypp: basic_stmt(X) */
 			| rvalue '(' ')'				{ $$ = spex_invoke_function( $1, 0 ); }
 			| rvalue '(' expression_list ')'		{ $$ = spex_invoke_function( $1, $3 ); }
-			| rvalue '[' expression ']'			{ $$ = spex_invoke_function( "array_get", $3 ); }
 			| VARIABLE					{ $$ = spex_get_symbol( $1 ); constant_expression = false; }
 			| constant					{ $$ = spex_get_real( $1 ); }
 			;
@@ -214,9 +232,9 @@ proc_id			: symbol
 			;
 
 			/* 1  2       3               4       5                 6                7 */
-p_decl			: 'p' proc_id proc_sched_flag quantum multi_server_flag replication_flag cpu_rate
-				{ curr_proc = srvn_add_processor( $2, $3, $4, $5, $6, $7 ); (void) free( $2 );	}
-				proc_obs
+p_decl			: 'p' proc_id proc_sched_flag quantum 
+				{ curr_proc = srvn_add_processor( $2, $3, $4 ); (void) free( $2 );	}
+				proc_opts proc_obs
 			| 'd' proc_id proc_id real
 				{ srvn_add_communication_delay( $2, $3, $4 ); }
     			;
@@ -233,20 +251,17 @@ proc_sched_flag 	: 'H'	{ $$ = SCHEDULE_PS_HOL; }		/* Processor Sharing.			*/
     			;
 
 quantum			: real	{ $$ = $1; }
-			| 	{ $$ = srvn_int_constant(0); }
+			| 	{ $$ = NULL; }
     			;
 
-multi_server_flag	: 'i'		{ $$ = 0; }			/* Infinite server.			*/
-			| 'm' integer  	{ $$ = $2; }			/* Multi-server (common queue).		*/
-    			|		{ $$ = srvn_int_constant(1); }	/* Generic server.			*/
-    			;
+proc_opts		: proc_flags proc_opts
+			|
+			;
 
-replication_flag	: 'r' INTEGER	{ $$ = $2; }			/* Replicated-server.			*/
-    			|		{ $$ = 1; }			/* Default is one copy of whatever.	*/
-    			;
-
-cpu_rate		: 'R' real	{ $$ = $2; }
-			|		{ $$ = srvn_int_constant(1); }	/* Default is 1.0.			*/
+proc_flags		: 'i'		{ srvn_set_proc_multiplicity( curr_proc, srvn_real_constant( srvn_get_infinity() ) ); }
+			| 'm' integer  	{ srvn_set_proc_multiplicity( curr_proc, $2 ); }	/* Multi-server (common queue).		*/
+			| 'r' integer	{ srvn_set_proc_replicas( curr_proc, $2 ); }		/* Replicated-server.			*/
+			| 'R' real	{ srvn_set_proc_rate( curr_proc, $2 ); }
 			;
 
 /*+ spex */
@@ -260,7 +275,7 @@ proc_obs		: KEY_UTILIZATION VARIABLE			{ spex_processor_observation( curr_proc, 
 /* ----------------------- group information --------------------------- */
 
 /*
- * The symbol table so far contains only processor labels.  These labels
+* The symbol table so far contains only processor labels.  These labels
  */
 
 group_info		: 'U' ng g_decl_list END_LIST
@@ -277,10 +292,10 @@ g_decl_list		: g_decl_list g_decl
 /*			   1  2        3           4        5    */
 g_decl			: 'g' group_id group_share cap_flag proc_id
 			{
-			    srvn_add_group( $2, $3, $5, $4 );
+			    curr_group = srvn_add_group( $2, $3, $5, $4 );
 			    (void) free($2);
 			    (void) free($5);
-			}
+			} group_obs
 			;
 
 group_id		: symbol					/*  group identifier			*/
@@ -294,6 +309,13 @@ cap_flag 		: 'c'		{ $$ = 1; }			/* with cap   */
 			| 		{ $$ = 0;}
 			;
 
+/*+ spex */
+group_obs		: KEY_UTILIZATION VARIABLE			{ spex_group_observation( curr_group, KEY_UTILIZATION, 0, $2, 0 ); }
+			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE	{ spex_group_observation( curr_group, KEY_UTILIZATION, $2, $3, $4 ); }
+			|
+			;
+
+/*- spex */
 
 /* ----------------------- task information --------------------------- */
 
@@ -313,26 +335,20 @@ t_decl_list		: t_decl_list t_decl
     			| t_decl
     			;
 
-/*			   1  2       3               4          5        6                 7          8       9        10              11 		  12               13 */
-t_decl			: 't' task_id task_sched_flag entry_list END_LIST queue_length_flag token_flag proc_id task_pri think_time_flag multi_server_flag replication_flag group_flag
+/*			   1  2       3               4          5        6        */
+t_decl			: 't' task_id task_sched_flag entry_list END_LIST proc_id 
 				{
-				    curr_task = srvn_add_task( $2, $3, $4, $6, $8, $9, $10, $11, $12, $13 );
+				    curr_task = srvn_add_task( $2, $3, $4, $6 );
 				    (void) free($2);
-				    (void) free($8);
-				    if ( $12 != 0 ) {
-					(void) free($13);
-				    }
-				    if ( $7 ) {
-					srvn_set_tokens( curr_task, $7 );
-				    }
+				    (void) free($6);
 				}
-				task_obs
-			| 'I' task_id task_id INTEGER
+				task_opts task_obs
+			| 'I' task_id task_id integer
 			{
 			    srvn_store_fanin( $2, $3, $4 );
 			    free( $2 ); free( $3 );
 			}
-			| 'O' task_id task_id INTEGER
+			| 'O' task_id task_id integer
 			{
 			    srvn_store_fanout( $2, $3, $4 );
 			    free( $2 ); free( $3 );
@@ -360,28 +376,22 @@ entry_list		: entry_id 		{ $$ = srvn_add_entry( $1, 0 ); (void) free( $1 ); }
 			| entry_list entry_id 	{ $$ = srvn_add_entry( $2, $1 ); (void) free( $2 ); }
     			;
 
-task_pri		: integer	{ $$ = $1; }			/*  task priority (optional)		*/
-			|		{ $$ = 0; }
-    			;
-
 entry_id		: symbol					/*  entry identifier			*/
 			;
 
 
-think_time_flag		: 'z' real	{ $$ = $2; }			/* Think time for a task (optional).	*/
-			|		{ $$ = 0; }
+task_opts		: task_flags task_opts
+			|
 			;
 
-queue_length_flag	: 'q' integer	{ $$ = $2; }
-			|		{ $$ = 0; }
-			;
-
-token_flag		: 'T' INTEGER	{ $$ = $2; }
-			|		{ $$ = 0; }
-			;
-
-group_flag		: 'g' group_id 	{ $$ = $2; }
-			|		{ $$ = 0; }
+task_flags		: integer		{ srvn_set_task_priority( curr_task, $1 ) ; }		/*  task priority (optional)		*/
+			| 'T' INTEGER		{ srvn_set_task_tokens( curr_task, $2 ); }
+			| 'g' group_id 		{ srvn_set_task_group( curr_task, $2 ); free( $2 ); }	/* Group				*/
+			| 'i'			{ srvn_set_task_multiplicity( curr_task, srvn_real_constant( srvn_get_infinity() ) ); }
+			| 'm' integer		{ srvn_set_task_multiplicity( curr_task, $2 ); }	/* task multiplicity (optional)		*/
+			| 'q' integer		{ srvn_set_task_queue_length( curr_task, $2 ); }	/* Queue length (optional).		*/
+			| 'r' integer		{ srvn_set_task_replicas( curr_task, $2 ); }   		/* task replicas			*/
+			| 'z' real 		{ srvn_set_task_think_time( curr_task, $2 ); }		/* Think time for a task (optional).	*/
 			;
 
 /*+ spex */
@@ -424,7 +434,7 @@ entry_decl		: 'a' entry_ref arrival_rate entry_obs
 			| 'f' entry_ref ph_type_flag
 			| 'F' entry_ref dest_ref p_forward call_obs
 			| 'H' entry_ref histogram
-			| 'M' entry_ref max_ph_serv_time
+			| 'M' entry_ref max_ph_serv_time entry_obs
 			| 'p' entry_ref priority
 			| 'R' entry_ref					{ srvn_set_rwlock_flag( $2, RWLOCK_R_LOCK ); }
 			| 'P' entry_ref					{ srvn_set_semaphore_flag( $2, SEMAPHORE_SIGNAL ); }
@@ -524,6 +534,7 @@ entry_obs		: entry_obs_info entry_obs
 										/* Note $1 will be the phase as an integer 1, 2, or 3, if present, otherwise 0 */
 entry_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, 0, $2, 0 ); }
 			| KEY_THROUGHPUT INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_THROUGHPUT, $1, $2, $3, $4 ); }
+			| KEY_THROUGHPUT_BOUND VARIABLE				{ spex_entry_observation( curr_entry, KEY_THROUGHPUT_BOUND, $1,  0,  $2, 0  ); }
 			| KEY_UTILIZATION VARIABLE				{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, 0, $2, 0 ); }
 			| KEY_UTILIZATION INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_UTILIZATION, $1, $2, $3, $4 ); }
 			| KEY_PROCESSOR_UTILIZATION VARIABLE			{ spex_entry_observation( curr_entry, KEY_PROCESSOR_UTILIZATION, $1, 0, $2, 0 ); }
@@ -534,6 +545,9 @@ entry_obs_info		: KEY_THROUGHPUT VARIABLE				{ spex_entry_observation( curr_entr
 			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_SERVICE_TIME, $1, $2, $3, $4 ); }
 			| KEY_VARIANCE VARIABLE					{ spex_entry_observation( curr_entry, KEY_VARIANCE, $1, 0, $2, 0 ); }
 			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_entry_observation( curr_entry, KEY_VARIANCE, $1, $2, $3, $4 ); }
+			| KEY_WAITING VARIABLE					{ spex_entry_observation( curr_entry, KEY_WAITING, $1, 0, $2, 0 ); }
+			| KEY_WAITING INTEGER VARIABLE VARIABLE			{ spex_entry_observation( curr_entry, KEY_WAITING, $1, $2, $3, $4 ); }
+			| KEY_EXCEEDED_TIME VARIABLE				{ spex_entry_observation( curr_entry, KEY_EXCEEDED_TIME, $1, 0, $2, 0 ); }
 			;
 
 call_obs		: call_obs_info call_obs
@@ -662,6 +676,7 @@ activity_obs_info	: KEY_THROUGHPUT VARIABLE				{ spex_activity_observation( curr
 			| KEY_SERVICE_TIME INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_SERVICE_TIME, $2, $3, $4 ); }
 			| KEY_VARIANCE VARIABLE		    			{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, 0, $2, 0 ); }
 			| KEY_VARIANCE INTEGER VARIABLE VARIABLE		{ spex_activity_observation( curr_task, curr_activity, KEY_VARIANCE, $2, $3, $4 ); }
+			| KEY_EXCEEDED_TIME VARIABLE		 		{ spex_activity_observation( curr_task, curr_activity, KEY_EXCEEDED_TIME, 0, $2, 0 ); }
 			;
 
 act_call_obs		: act_call_obs_info act_call_obs
@@ -718,6 +733,7 @@ real			: FLOAT					{ $$ = srvn_real_constant( $1 ); }
 
 constant		: FLOAT					{ $$ = $1; }
 			| INTEGER				{ $$ = (double)( $1 ); }
+			| CONST_INFINITY			{ $$ = srvn_get_infinity(); }
     			;
 
 integer			: INTEGER				{ $$ = srvn_int_constant( $1 ); }

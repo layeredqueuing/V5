@@ -1,5 +1,5 @@
 /*
- * $Id: save.c 11002 2012-06-23 22:44:59Z greg $
+ * $Id: save.c 13477 2020-02-08 23:14:37Z greg $
  *
  * Routines to translate a GSPN internal data structures used by the
  * editor into the definition in file "~/nets/netname.net"
@@ -69,7 +69,7 @@ struct net_object *netobj;			/* pointer to net */
 		for (trans = group->trans; trans != NULL;
 		     trans = trans->next, notr++);
 
-	fprintf(nfp, "f %3d %3d %3d %3d %3d %3d\n", nomp, nopl, norp, notr, nogr, cset_num);
+	fprintf(nfp, "f %3d %3d %3d %3d %3d %3d %3d\n", nomp, nopl, norp, notr, nogr, cset_num, layer_num );
 
 
 	/* write marking parameters */

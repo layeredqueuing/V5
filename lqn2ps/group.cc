@@ -1,9 +1,10 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "group.h"
+#include <algorithm>
 #include <cstring>
 #include <cstdlib>
 #if HAVE_FLOAT_H
@@ -12,6 +13,7 @@
 #if HAVE_VALUES_H
 #include <values.h>
 #endif
+#include "element.h"
 #include "node.h"
 #include "label.h"
 #include "processor.h"
@@ -19,45 +21,17 @@
 #include "share.h"
 #include "model.h"
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
+std::vector<Group *> Group::__groups;
 
-/* ---------------------- Overloaded Operators ------------------------ */
-
-ostream& operator<<( ostream& output, const Group& self )
-{
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_SRVN:
-	break;
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-	break;
-#endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-	break;
-#endif
-    case FORMAT_XML:
-	break;
-    default:
-	self.draw( output );
-	break;
-    }
-
-    return output;
-}
-
-Group::Group( const string& s ) 
-    : myName(s), used(false)
+Group::Group( unsigned int nLayers, const string& s )
+    : _layers(nLayers), myName(s), used(false)
 {
     myNode = Node::newNode( 0, 0 );
     myLabel = Label::newLabel();
 }
 
 
-Group::~Group() 
+Group::~Group()
 {
     delete myNode;
     delete myLabel;
@@ -70,40 +44,35 @@ Group::match( const string& s ) const
 }
 
 
-/* 
+/*
  * Locate all tasks associated with the selected processors.
  */
 
 Group&
-Group::format( const unsigned MAX_LEVEL )
+Group::format()
 {
-    layer.grow(MAX_LEVEL);
-
     if ( !populate() ) return *this;
 
     /* Resort the layers to force tasks making calls right */
 
-    for ( unsigned i = 1; i <= layer.size(); ++i ) {
-	layer[i].sort( Entity::compare );
-    }	
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	layer->sort( (compare_func_ptr)(&Entity::compare) );
+    }
 
     /* Now, move all entities for this processor together */
 
     origin( MAXDOUBLE, MAXDOUBLE ).extent( 0, 0 );
-    for ( unsigned i = MAX_LEVEL; i > 0; --i ) {
-	if ( layer[i].size() == 0 ) continue;
-	layer[i].reformat();
-	originMin( layer[i].x(), layer[i].y() );
-	extentMax( layer[i].x() + layer[i].width(), layer[i].y() + layer[i].height() );
+    for ( std::vector<Layer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	if ( !*layer ) continue;
+	layer->reformat();
+	originMin( layer->x(), layer->y() );
+	extentMax( layer->x() + layer->width(), layer->y() + layer->height() );
     }
     extent( width(), height() - y() );
 
     /* Justify the current "slice", then move it to its column */
 
-    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	layer[i].justify( width() );
-    }
-
+    for_each ( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, width() ) );
     return *this;
 }
 
@@ -114,26 +83,24 @@ Group::populate()
     /* Loop here to go through all processors on a group */
 
     bool empty = true;
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = ::processor.begin(); nextProcessor != ::processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->hasGroup() || !match(aProcessor->name()) ) continue;
-	aProcessor->hasGroup( true );
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	if ( (*processor)->hasGroup() || !match((*processor)->name()) ) continue;
+	(*processor)->hasGroup( true );
 
 	if ( Flags::print[LAYERING].value.i == LAYERING_PROCESSOR ) {
-	    penColour( aProcessor->colour() == Graphic::GREY_10 ? Graphic::BLACK : aProcessor->colour() );
-	    fillColour( aProcessor->colour() );
+	    penColour( (*processor)->colour() == Graphic::GREY_10 ? Graphic::BLACK : (*processor)->colour() );
+	    fillColour( (*processor)->colour() );
 	}
-	if ( aProcessor->isSelected() ) {
-	    layer[aProcessor->level()] << aProcessor;
+	if ( (*processor)->isSelected() ) {
+	    _layers.at((*processor)->level()).append((*processor));
 	    isUsed( true );
 	    empty = false;
 	}
 
-	for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	    Task * aTask = *nextTask;
-	    if ( aTask->processor() == aProcessor && aTask->isSelectedIndirectly() ) {
-		layer[aTask->level()] << aTask;
-		if ( !submodel_output() || !aTask->isSelected() ) {
+	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	    if ( (*task)->processor() == (*processor) && (*task)->isSelectedIndirectly() ) {
+		_layers.at((*task)->level()).append((*task));
+		if ( !submodel_output() || !(*task)->isSelected() ) {
 		    isUsed( true );
 		}
 		empty = false;
@@ -145,28 +112,23 @@ Group::populate()
 }
 
 
+/* 
+ * Now adjust the box (the group) and label 
+ */
 
-Group const&
-Group::resizeBox() const
+Group&
+Group::resizeBox()
 {
-    /* Now adjust the box (the group) and label */
-	
-    Point& anOrigin = myNode->origin;
-    Point& anExtent = myNode->extent;
-
-    anOrigin.moveBy( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 1.2) );
-    anExtent.moveBy( 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 1.2 );
+    myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 1.2), 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 1.2 );
     return *this;
 }
 
 
-Group const& 
+Group const&
 Group::positionLabel() const
 {
-    Point& anOrigin = myNode->origin;
-    Point& anExtent = myNode->extent;
-    myLabel->moveTo( anOrigin.x() + anExtent.x() / 2.0, 
-		     anOrigin.y() + Flags::print[FONT_SIZE].value.i * 0.6 );
+    myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
+		     myNode->bottom() + Flags::print[FONT_SIZE].value.i * 0.6 );
     return *this;
 }
 
@@ -179,61 +141,57 @@ Group::label()
 }
 
 
-Group& 
-Group::origin( const double an_x, const double a_y ) 
-{ 
-    myNode->origin.moveTo( an_x, a_y ); 
-    return *this; 
+Group&
+Group::origin( const double an_x, const double a_y )
+{
+    myNode->moveTo( an_x, a_y );
+    return *this;
 }
 
 
-Group& 
-Group::extent( const double x, const double y ) 
-{ 
-    myNode->extent.moveTo( x, y ); 
-    return *this; 
+Group&
+Group::extent( const double x, const double y )
+{
+    myNode->setWidth( x ).setHeight( y );
+    return *this;
 }
 
 
-Group& 
+Group&
 Group::originMin( const double x, const double y )
 {
-    myNode->origin.min( x, y );
+    myNode->originMin( x, y );
     return *this;
 }
 
 
-Group& 
-Group::extentMax( const double x, const double y )
+Group&
+Group::extentMax( const double w, const double h )
 {
-    myNode->extent.max( x, y );
+    myNode->extentMax( w, h );
     return *this;
 }
 
 
-Group const&
-Group::moveBy( const double dx, const double dy )  const
+Group&
+Group::moveBy( const double dx, const double dy )
 {
     myNode->moveBy( dx, dy );
     myLabel->moveBy( dx, dy );
-
     return *this;
 }
 
-Group const&
-Group::moveGroupBy( const double dx, const double dy ) const
+Group&
+Group::moveGroupBy( const double dx, const double dy )
 {
-    const unsigned MAX_LEVEL = layer.size();
-    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	layer[i].moveBy( dx, dy );
-    }
+    for_each( _layers.begin(), _layers.end(), ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
     moveBy( dx, dy );
     return *this;
 }
 
 
-Group const&
-Group::scaleBy( const double sx, const double sy ) const
+Group&
+Group::scaleBy( const double sx, const double sy )
 {
     myNode->scaleBy( sx, sy );
     myLabel->scaleBy( sx, sy );
@@ -242,8 +200,8 @@ Group::scaleBy( const double sx, const double sy ) const
 
 
 
-Group const&
-Group::translateY( const double dy )  const
+Group&
+Group::translateY( const double dy )
 {
     myNode->translateY( dy );
     myLabel->translateY( dy );
@@ -260,7 +218,8 @@ ostream&
 Group::draw( ostream& output ) const
 {
     if ( isUsed() ) {
-	myNode->penColour( processor()->colour() == Graphic::GREY_10 ? Graphic::BLACK : processor()->colour() ).fillColour( processor()->colour() ).linestyle( linestyle() ).depth( depth() );
+	const colour_type colour = processor() ?  processor()->colour() : Graphic::BLACK;
+	myNode->penColour( colour == Graphic::GREY_10 ? Graphic::BLACK : colour ).fillColour( colour ).linestyle( linestyle() ).depth( depth() + 1 );
 	myLabel->depth( depth() );
 
 	myNode->roundedRectangle( output );
@@ -271,7 +230,7 @@ Group::draw( ostream& output ) const
 }
 
 #if HAVE_REGEX_T
-GroupByRegex::GroupByRegex( const string& s ) 
+GroupByRegex::GroupByRegex( const string& s )
     : Group( s )
 {
     myPattern = static_cast<regex_t *>(malloc( sizeof( regex_t ) ));
@@ -297,8 +256,8 @@ GroupByRegex::match( const string& s ) const
 }
 #endif
 
-GroupByProcessor::GroupByProcessor( const Processor * aProcessor ) 
-  : Group( aProcessor->name() ), myProcessor( aProcessor ) 
+GroupByProcessor::GroupByProcessor( const unsigned nLayers, const Processor * processor )
+  : Group( nLayers, processor->name() ), myProcessor( processor )
 {
 }
 
@@ -318,7 +277,7 @@ GroupByProcessor::label()
 	    *myLabel << " <" << myProcessor->replicas() << ">";
 	}
     }
-    if ( Flags::have_results && Flags::print[PROCESS_UTIL].value.b ) {
+    if ( Flags::have_results && Flags::print[PROCESSOR_UTILIZATION].value.b ) {
 	myLabel->newLine() << begin_math( &Label::mu ) << "=" << myProcessor->utilization() << end_math();
 	if ( !myProcessor->hasBogusUtilization() ) {
 	    myLabel->colour(Graphic::RED);
@@ -328,19 +287,15 @@ GroupByProcessor::label()
 }
 
 
-/* 
- * Now adjust the box (the group) and label 
+/*
+ * Now adjust the box (the group) and label
  */
 
-GroupByProcessor const&
-GroupByProcessor::resizeBox() const
+GroupByProcessor&
+GroupByProcessor::resizeBox()
 {
-    if ( Flags::print[PROCESS_UTIL].value.b && Flags::have_results ) {
-	Point& anOrigin = myNode->origin;
-	Point& anExtent = myNode->extent;
-	
-	anOrigin.moveBy( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 2.2) );
-	anExtent.moveBy( 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 2.2 );
+    if ( Flags::print[PROCESSOR_UTILIZATION].value.b && Flags::have_results ) {
+	myNode->resizeBox( -4.5, -(4.5 + Flags::print[FONT_SIZE].value.i * 2.2), 9.0, 9.0 + Flags::print[FONT_SIZE].value.i * 2.2 );
     } else {
 	Group::resizeBox();
     }
@@ -348,14 +303,12 @@ GroupByProcessor::resizeBox() const
 }
 
 
-GroupByProcessor const& 
+GroupByProcessor const&
 GroupByProcessor::positionLabel() const
 {
-    if ( Flags::print[PROCESS_UTIL].value.b && Flags::have_results ) {
-	Point& anOrigin = myNode->origin;
-	Point& anExtent = myNode->extent;
-	myLabel->moveTo( anOrigin.x() + anExtent.x() / 2.0, 
-			 anOrigin.y() + Flags::print[FONT_SIZE].value.i * 1.4 );
+    if ( Flags::print[PROCESSOR_UTILIZATION].value.b && Flags::have_results ) {
+	myLabel->moveTo( myNode->left() + myNode->width() / 2.0,
+			 myNode->bottom() + Flags::print[FONT_SIZE].value.i * 1.4 );
 
     } else {
 	Group::positionLabel();
@@ -365,7 +318,7 @@ GroupByProcessor::positionLabel() const
 }
 
 
-/* 
+/*
  * Locate all tasks associated with the selected processors.
  */
 
@@ -376,10 +329,10 @@ GroupByShareDefault::populate()
     /* Loop here to go through all shares on a group */
 
     bool empty = true;
-    for ( set<Task *,ltTask>::const_iterator nextTask = processor()->tasks().begin(); nextTask != processor()->tasks().end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = processor()->tasks().begin(); nextTask != processor()->tasks().end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 	if ( !aTask->share() && aTask->isSelectedIndirectly() ) {
-	    layer[aTask->level()] << aTask;
+	    _layers.at(aTask->level()).append(aTask);
 	    empty = false;
 	    isUsed( true );
 	}
@@ -393,39 +346,35 @@ GroupByShareDefault::populate()
 
 
 
-GroupByShareDefault& 
-GroupByShareDefault::format( const unsigned MAX_LEVEL )
+GroupByShareDefault&
+GroupByShareDefault::format()
 {
-    Group::format( MAX_LEVEL );
+    Group::format();
 
     Point oldOrigin(0,0);
     Point oldExtent(0,0);
-    if ( isUsed() ) { 
-	oldOrigin = myNode->origin;
-	oldExtent = myNode->extent;
+    if ( isUsed() ) {
+	oldOrigin = myNode->getOrigin();
+	oldExtent = myNode->getExtent();
     }
-
 
     /* Now go through all groups with this processor and adjust the
      * origin and extent as necessary.  If we have any tasks as part
      * of the default, then we will have set our own bounds. */
 
-    Sequence<Group *> nextGroup( Model::group );
-    Group * aGroup;
-
     origin( MAXDOUBLE, MAXDOUBLE ).extent( 0., 0.);
-    while ( aGroup = nextGroup() ) {
-	if ( !dynamic_cast<GroupByShareGroup *>( aGroup ) || aGroup->processor() != processor() ) continue;
+    for ( std::vector<Group *>::iterator group = Group::__groups.begin(); group != Group::__groups.end(); ++group ) {
+	if ( !dynamic_cast<GroupByShareGroup *>( (*group) ) || (*group)->processor() != processor() ) continue;
 
-	originMin( aGroup->x(), aGroup->y() );
-	extentMax( aGroup->x() + aGroup->width(), aGroup->y() + aGroup->height() );
+	originMin( (*group)->x(), (*group)->y() );
+	extentMax( (*group)->x() + (*group)->width(), (*group)->y() + (*group)->height() );
     }
 
     if ( isUsed() ) {
 	const double newX = width() + + Flags::print[X_SPACING].value.f;
-	const unsigned MAX_LEVEL = layer.size();
-	for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	    layer[i].moveBy( newX, 0 );
+	for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	    if ( !*layer ) continue;
+	    layer->moveBy( newX, 0 );
 	}
 	originMin( newX, oldOrigin.y() );					/* Reset X. */
 	extentMax( newX + oldExtent.x(), oldOrigin.y() + oldExtent.y() );	/* Reset Y. */
@@ -437,7 +386,7 @@ GroupByShareDefault::format( const unsigned MAX_LEVEL )
     return *this;
 }
 
-/* 
+/*
  * Locate all tasks associated with the selected processors.
  */
 
@@ -447,11 +396,11 @@ GroupByShareGroup::populate()
     /* Loop here to go through all shares on a group */
 
     bool empty = true;
-    for ( set<Task *,ltTask>::const_iterator nextTask = processor()->tasks().begin(); nextTask != processor()->tasks().end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = processor()->tasks().begin(); nextTask != processor()->tasks().end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
 	if ( aTask->share() == share() && aTask->isSelectedIndirectly() ) {
-	    layer[aTask->level()] << aTask;
+	    _layers.at(aTask->level()).append(aTask);
 	    if ( !submodel_output() || !aTask->isSelected() ) {
 		isUsed( true );
 	    }
@@ -463,19 +412,19 @@ GroupByShareGroup::populate()
 }
 
 
-/* 
- * Now adjust the box (the group) and label 
+/*
+ * Now adjust the box (the group) and label
  */
 
-GroupByShareGroup const&
-GroupByShareGroup::resizeBox() const
+GroupByShareGroup&
+GroupByShareGroup::resizeBox()
 {
     Group::resizeBox();
     return *this;
 }
 
 
-GroupByShareGroup const& 
+GroupByShareGroup const&
 GroupByShareGroup::positionLabel() const
 {
     Group::positionLabel();
@@ -491,25 +440,25 @@ GroupByShareGroup::label()
 }
 
 
-GroupSquashed::GroupSquashed( const string& s, const Layer& layer1, const Layer& layer2 ) 
-    : Group(s), layer_1(layer1), layer_2(layer2)
+GroupSquashed::GroupSquashed( unsigned int nLayers, const string& s, const Layer& layer1, const Layer& layer2 )
+    : Group(nLayers, s), layer_1(layer1), layer_2(layer2)
 {
     penColour( Graphic::DEFAULT_COLOUR );
     fillColour( Graphic::DEFAULT_COLOUR );
     isUsed( true );
 }
 
-/* 
+/*
  * Look at the stuff in myLevel and myLevel-1 and make a box around
  * it.
  */
 
 GroupSquashed&
-GroupSquashed::format( const unsigned MAX_LEVEL )
+GroupSquashed::format()
 {
     origin( MAXDOUBLE, MAXDOUBLE ).extent( 0, 0 );
     originMin( min( layer_1.x(), layer_2.x() ), min( layer_1.y(), layer_2.y() ) );
-    extentMax( max( layer_1.x() + layer_1.width(), layer_2.x() + layer_2.width() ), 
+    extentMax( max( layer_1.x() + layer_1.width(), layer_2.x() + layer_2.width() ),
 	       max( layer_1.y() + layer_1.height(), layer_2.y() + layer_2.height() ) );
     extent( width(), height() - y() );
     return *this;

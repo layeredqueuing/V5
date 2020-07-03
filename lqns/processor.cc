@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/processor.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/processor.cc $
  * 
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: processor.cc 13568 2020-05-27 14:50:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,9 +40,8 @@ set<Processor *, ltProcessor> processor;
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Processor::Processor( LQIO::DOM::Processor* aDomProcessor )
-    : Entity( (LQIO::DOM::Entity*)aDomProcessor ), 
-      myDOMProcessor(aDomProcessor)
+Processor::Processor( LQIO::DOM::Processor* domProcessor )
+    : Entity( domProcessor )
 {
 }
 	
@@ -60,16 +59,25 @@ Processor::~Processor()
 void 
 Processor::check() const
 {
-    if ( rate() < 0.0 ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PROC_RATE, name(), rate() );
-    }
 
+    /* Check replication */
+
+    Sequence<Task *> nextTask(taskList);
+    Task * aTask;
+    const double proc_replicas = static_cast<double>(this->replicas());
+    while ( aTask = nextTask() ) {
+	double temp = static_cast<double>(aTask->replicas()) / proc_replicas;
+	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
+	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, aTask->replicas(), aTask->name(), proc_replicas, name() );
+	}
+    }
+    
     if ( !schedulingIsOk( validScheduling() ) ) {
 	if ( scheduling() == SCHEDULE_CFS ) {
 	    io_vars.error_messages[LQIO::WRN_SCHEDULING_NOT_SUPPORTED].severity = LQIO::RUNTIME_ERROR;
 	}
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-			      scheduling_type_str[(unsigned)domEntity->getSchedulingType()],
+			      scheduling_label[(unsigned)domEntity->getSchedulingType()].str,
 			      "processor",
 			      name() );
 	domEntity->setSchedulingType(defaultScheduling());
@@ -78,11 +86,11 @@ Processor::check() const
     if ( scheduling() == SCHEDULE_DELAY ) {
 	if ( copies() != 1 ) {
 	    solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", name(), copies() );
-	    myDOMProcessor->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
+	    getDOM()->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
 	}
     } else if ( pragma.getProcessor() != DEFAULT_PROCESSOR && copies() == 1 ) {
 	/* Change scheduling type for uni-processors (usually from FCFS to PS) */
-	myDOMProcessor->setSchedulingType(pragma.getProcessorScheduling());
+	getDOM()->setSchedulingType(pragma.getProcessorScheduling());
     }
 }
 
@@ -150,13 +158,40 @@ Processor::initPopulation()
 double
 Processor::rate() const 
 {
-    if ( myDOMProcessor->hasRate() ) {
-	return myDOMProcessor->getRateValue();
-    } else {
-	return 1.0;
-    }
+    double value = 1.0;
+    if ( getDOM()->hasRate() ) {
+	try {
+	    value = getDOM()->getRateValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name(), e.what() );
+	    throw_bad_parameter();
+	}
+    } 
+    return value;
 }
     
+/*
+ * Return the fan-in to this server from...
+ */
+
+unsigned
+Processor::fanIn( const Task * aClient ) const
+{
+    return aClient->replicas() / replicas();
+}
+
+/*
+ * Processors don't have a fanout ever 
+ */
+
+unsigned
+Processor::fanOut( const Entity * aServer ) const
+{
+    throw should_not_implement( "Entity::fanOut", __FILE__, __LINE__ );
+    return 1;
+}
+
 /*
  * Indicate whether the variance calculation should take place.  NOTE
  * that processors should not have the variance calculation set true,
@@ -210,7 +245,7 @@ Processor::hasPriorities() const
 const Processor *
 Processor::processor() const
 {
-    throw should_not_implement( "Processor::processor()", __FILE__, __LINE__ );
+    throw should_not_implement( "Processor::processor", __FILE__, __LINE__ );
     return 0;
 }
 
@@ -223,7 +258,7 @@ Processor::processor() const
 Entity&
 Processor::processor( Processor * ) 
 {
-    throw should_not_implement( "Processor::processor(Processor *)", __FILE__, __LINE__ );
+    throw should_not_implement( "Processor::processor", __FILE__, __LINE__ );
     return *this;
 }
 
@@ -281,8 +316,6 @@ Processor::validScheduling() const
 Server *
 Processor::makeServer( const unsigned nChains ) 
 {
-    Server * oldStation = myServerStation;
-
     if ( isInfinite() ) {
 
 	/* ---------------- Infinite Servers ---------------- */
@@ -415,8 +448,6 @@ Processor::makeServer( const unsigned nChains )
 	}
     }
 
-    if ( oldStation ) delete oldStation;
-
     return myServerStation;
 }
 
@@ -455,8 +486,8 @@ Processor::insertDOMResults(void) const
 	}
     }
 	
-    if ( myDOMProcessor ) {
-	myDOMProcessor->setResultUtilization(sumOfProcUtil);
+    if ( getDOM() ) {
+	getDOM()->setResultUtilization(sumOfProcUtil);
     }
 }
 
@@ -472,7 +503,7 @@ Processor::print( ostream& output ) const
     output << setw(8) << name()
 	   << " " << setw(9) << processor_type( *this )
 	   << " " << setw(5) << replicas() 
-	   << " " << setw(12) << scheduling_type_str[scheduling()]
+	   << " " << setw(12) << scheduling_label[scheduling()].str
 	   << "  "
 	   << print_info( *this );	    /* Bonus information about stations -- derived by solver */
     output.flags(oldFlags);

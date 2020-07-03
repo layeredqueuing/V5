@@ -1,46 +1,43 @@
 /* -*- c++ -*-
  * actlayer.h	-- Greg Franks
  *
- * $Id: actlayer.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: actlayer.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _ACTLAYER_H
 #define _ACTLAYER_H
 
 #include "point.h"
-#include "cltn.h"
+#include "actlist.h"
+#include "element.h"
 
 class Activity;
 class ActivityLayer;
 
-ostream& operator<<( ostream&, const ActivityLayer& );
-
 class ActivityLayer
 {
-private:
-    ActivityLayer( const ActivityLayer& );
-
 public:
     ActivityLayer() : origin(0,0), extent(0,0) {}
+    ActivityLayer( const ActivityLayer& );
 
-    ActivityLayer& operator<<( Activity * );
+    int operator!() const { return myActivities.size() == 0; }	/* Layer is empty! */
     ActivityLayer& operator+=( Activity * );
-    ActivityLayer const & sort( compare_func_ptr compare ) const;
-    const Cltn<Activity *>& activities() const { return myActivities; }
+    ActivityLayer& sort( compare_func_ptr compare );
+    const std::vector<Activity *>& activities() const { return myActivities; }
     unsigned size() const { return myActivities.size(); }
     bool canMoveBy( const unsigned, const double ) const;
     ActivityLayer& clearContents();
 
-    ActivityLayer const& format( const double ) const;
-    ActivityLayer const& reformat( const double ) const;
-    ActivityLayer const& label() const;
-    ActivityLayer const& scaleBy( const double, const double ) const;
-    ActivityLayer const& moveBy( const double, const double ) const;
-    ActivityLayer const& moveTo( const double, const double ) const;
-    ActivityLayer const& translateY( const double ) const;
-    ActivityLayer const& depth( const unsigned ) const;
-    ActivityLayer const& justify( const double, const justification_type ) const;
-    ActivityLayer const& alignActivities() const;
+    ActivityLayer& format( const double );
+    ActivityLayer& reformat( const double );
+    ActivityLayer& label();
+    ActivityLayer& scaleBy( const double, const double );
+    ActivityLayer& moveBy( const double, const double );
+    ActivityLayer& moveTo( const double, const double );
+    ActivityLayer& translateY( const double );
+    ActivityLayer& depth( const unsigned );
+    ActivityLayer& justify( const double, const justification_type );
+    ActivityLayer& alignActivities();
 
     double x() const { return origin.x(); }
     double y() const { return origin.y(); }
@@ -50,13 +47,14 @@ public:
     ostream& print( ostream& ) const;
 
 private:
-    ActivityLayer const& shift( unsigned index, double amount ) const;
-    ActivityLayer const& crop() const;
+    ActivityLayer& shift( unsigned index, double amount );
+    ActivityLayer& crop();
 
 private:
-    Cltn<Activity *> myActivities;
-    mutable Point origin;
-    mutable Point extent;
+    std::vector<Activity *> myActivities;
+    Point origin;
+    Point extent;
 };
 
+inline ostream& operator<<( ostream& output, const ActivityLayer& self ) { return self.print( output ); }
 #endif

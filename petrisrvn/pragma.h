@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: pragma.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -31,7 +31,9 @@ private:
 	PROCESSOR_SCHEDULING,
 	RESCHEDULE_ON_ASYNC_SEND,
 	STOP_ON_MESSAGE_LOSS,
-	TASK_SCHEDULING
+	TASK_SCHEDULING,
+	XML_SCHEMA,
+	SPEX_HEADER
     } PRAGMA_PARAM;
 
 public:
@@ -63,6 +65,7 @@ public:
     bool eq_reschedule_on_async_send( const Pragma& p ) const { return _reschedule_on_async_send == p._reschedule_on_async_send; }
     bool eq_stop_on_message_loss( const Pragma& p ) const { return _stop_on_message_loss == p._stop_on_message_loss; }
     bool eq_task_scheduling( const Pragma& p ) const { return _task_scheduling == p._task_scheduling; }
+    bool eq_spex_header( const Pragma& p ) const { return true; }
 
     void updateDOM( LQIO::DOM::Document* document ) const;
 
@@ -76,11 +79,13 @@ private:
     bool set_reschedule_on_async_send( const std::string& );
     bool set_stop_on_message_loss( const std::string& );
     bool set_task_scheduling( const std::string& );
+    bool set_spex_header( const std::string& );
 
     const char * get_processor_scheduling() const;
     const char * get_reschedule_on_async_send() const;
     const char * get_stop_on_message_loss() const;
     const char * get_task_scheduling() const;
+    const char * get_spex_header() const;
 
     scheduling_type str_to_scheduling_type( const std::string&, scheduling_type default_sched=SCHEDULE_FIFO); 
     static bool is_true( const std::string& );

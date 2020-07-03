@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqn2lqx 1 "16 December 2015"  "5.9"
-.\" $Id: lqn2lqx.1 12393 2015-12-16 21:52:28Z greg $
+.TH lqn2lqx 1 ""  "5.13"
+.\" $Id: lqn2lqx.1 13479 2020-02-08 23:30:37Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -18,14 +18,15 @@ All constant input parameters are converted to variables initialized with the va
 input file.  Existing variables within the input file are not
 modified.  Note however, that variables initialized in an XML input file with LQX are \fBnot\fP initialized
 in the converted output file because the LQX program must be executed in order to do so.  To convert input formats without the conversion of parameters to
-variables, use \fBlqn2ps\fP(1) with \fB--format\fP=\fIxml\fP( or \fIlqn\fP or 
+variables, use \fBlqn2ps\fP(1) with \fB--format\fP=\fIxml\fP (or \fIlqn\fP or 
 \fIjson\fP).
 .PP
 \fBlqn2lqx\fP reads its input from \fIfilename\fP, specified at the
 command line if present, or from the standard input otherwise.  Output
 for an input file \fIfilename\fP specified on the command line will be
-placed in the file \fIfilename.ext\fP, where \fI.ext\fP is \fIlqnx\fP
-for SPEX conversion and \fIxml\fPfor LQX conversion.
+placed in the file \fIfilename.ext\fP, where \fI.ext\fP is \fIxlqn\fP
+for SPEX conversion, \fIlqnx\fPfor LQX conversion and\fIjson\fP
+for JSON conversion.
 If the output file name is the same as the input file name, 
 the output is written back to the original file name.
 The original file is renamed to \fIfilename.ext~\fP
@@ -46,40 +47,76 @@ Create a factorial expermiment varying all non-reference task service times by a
 \fB\-O\fR, \fB\-\-format=\fIARG\fR
 Set the output file format, \fIARG\fP, to: \fIxml\fP, \fIlqn\fP.
 .TP
-\fB\-c\fR, \fB\-\-customers=\fIARG\fR
-Set the \fImean\fP number of customers at each of the client reference tasks to \fIARG\fP.
+\fB\-H\fR, \fB\-\-help\fR
+Print out a brief help summary and exit.
 .TP
-\fB\-i\fR, \fB\-\-infinite-server=\fIARG\fR
+\fB\-V\fR, \fB\-\-version\fR
+Print the version number of lqn2lqx.
+.TP
+\fB\-c\fR, \fB\-\-customers[=\fIARG]\fR
+Set the \fImean\fP number of customers at each of the client reference tasks to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-customers\fP=\fImean\fP, 
+\fB\-\-customers\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-customers\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
+.TP
+\fB\-g\fR, \fB\-\-share[=\fIARG]\fR
+Set the share of the first group running on the processor to \fIARG\fP.
+The share for a group is based on the Beta distribution.
+.TP
+\fB\-d\fR, \fB\-\-delay-server[=\fIARG]\fR
+Set the probability that a processor is a delay server to \fIARG\fP.
+Tasks are not affected.
+All processors that have constant multiplicities are eligible for conversion to infinite servers.
+Processors whose multiplicity is set using a variable in the input file are never changed.
+.TP
+\fB\-i\fR, \fB\-\-infinite-server[=\fIARG]\fR
 Set the probability that a server task is infinite to \fIARG\fP.
 Processors are not affected.
 All tasks that have constant multiplicities are eligible for conversion to infinite servers.
 Tasks whose multiplicity is set using a variable in the input file are never changed.
 .TP
-\fB\-p\fR, \fB\-\-processor-multiplicity=\fIARG\fR
-Set the \fImean\fP processor multiplicity for each processor to
-\fIARG\fP.  The
-number of copies of each processor is set using the current discreet (or uniform) random number generator.
+\fB\-p\fR, \fB\-\-processor-multiplicity[=\fIARG]\fR
+Set the \fImean\fP processor multiplicity for each processor to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-processor-multiplicity\fP=\fImean\fP, 
+\fB\-\-processor-multiplicity\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-processor-multiplicity\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
 .TP
-\fB\-s\fR, \fB\-\-service-time=\fIARG\fR
-Set the \fImean\fP phase service time to \fIARG\fP.  The mean phase
-service time is set using the current continuous random number generator.
+\fB\-s\fR, \fB\-\-service-time[=\fIARG]\fR
+Set the \fImean\fP phase service time to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-service-time\fP=\fImean\fP, 
+\fB\-\-service-time\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-service-time\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
-\fB\-t\fR, \fB\-\-task-multiplicity=\fIARG\fR
-Set the \fImean\fP task multiplicity for each task to
-\fIARG\fP.  The
-number of copies of each task is set using the current discreet (or uniform) random number generator.
+\fB\-t\fR, \fB\-\-task-multiplicity[=\fIARG]\fR
+Set the \fImean\fP task multiplicity for each task to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-task-multiplicity\fP=\fImean\fP, 
+\fB\-\-task-multiplicity\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-task-multiplicity\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
 Tasks in the input file which are infinite servers may be converted to fixed-rate or multi-servers.
 .TP
-\fB\-y\fR, \fB\-\-request-rate=\fIARG\fR
+\fB\-y\fR, \fB\-\-request-rate[=\fIARG]\fR
 Set the mean rendezous (synchronous call) rate to \fIARG\fP.  
-The mean rendezvous rate is set using the current continuous random number generator.
+\fIARG\fP can be take the form of \fB\-\-request-rate\fP=\fImean\fP, 
+\fB\-\-request-rate\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-request-rate\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
-\fB\-z\fR, \fB\-\-think-time=\fIARG\fR
-Set the mean think time at reference tasks to \fIARG\fP.  
-The mean think time is set using the current continuous random number generator.
-.TP
-\fB\-h\fR, \fB\-\-help\fR
-Print out a brief help summary and exit.
+\fB\-z\fR, \fB\-\-think-time[=\fIARG]\fR
+Set the mean think time at reference tasks to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-think-time\fP=\fImean\fP, 
+\fB\-\-think-time\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default continuous distribution, or \fB\-\-think-time\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBcontinuous\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIgamma\fP distribution is used.
 .TP
 \fB\-o\fR, \fB\-\-output=\fIARG\fR
 Redirect output to the file named \fIARG\fP.  If \fIARG\fP is \fB-\fP,
@@ -87,6 +124,9 @@ output is redirected to \fIstdout\fP.  This option cannot be used with \fB\-\-mo
 .TP
 \fB\-v\fR, \fB\-\-verbose\fR
 Verbose output. List the actual number of Clients, Server Tasks, Processors, Entries and Calls created.
+.TP
+\fB\-\-json-output\fR
+Output the input model in JavaScript Object Notation (JSON).
 .TP
 \fB\-\-xml-output\fR
 Output the input model in eXtensible Markup Language (XML).
@@ -109,10 +149,15 @@ output.
 \fB\-\-seed=\fIARG\fR
 Set the seed value for the random number generator to \fIARG\fP.
 .TP
-\fB\-\-binomial=\fIARG\fR
+\fB\-\-beta=\fIARG\fR
+The BETA distribution is only used for choosing the share of a group when using a processor
+using Completely Fair Scheduling.
+Set the beta argument of the distribution to \fIARG\fP.  The alpha
+argument is set based on the value of the group "share" (set using \fB\-g\fP\fIn\fP).
+.TP
+\fB\-\-binomial\fR
 Use a Binomial distribution for all subsequent options that use a
-discreet random variable generator.  \fIARG\fP is used to offset the
-values produced (typically use one).
+discreet random variable generator.
 .TP
 \fB\-\-constant\fR
 Use \fIconstant\fP values for all subsequent parameters.
@@ -142,6 +187,15 @@ distribution is set to \fIARG\fP although this value will be
 ignored if a mean value is set.  The lower bound for continuous distributions
 is zero.  For discreet distributions, the lower bound is one.  The upper bound
 for either distribution is set to twice the mean plus the lower bound.
+.TP
+\fB\-\-total-customers=\fIARG\fR
+Set the total number of customers to \fIARG\fP.
+\fIARG\fP can be take the form of \fB\-\-total-customers\fP=\fImean\fP, 
+\fB\-\-total-customers\fP=\fIa:b\fP where \fIa\fP and \fIb\fP are parameters
+for the default discreet distribution, or \fB\-\-total-customers\fP=\fIdistribution:a[:b]\fP, where 
+\fIdistribution\fP is a \fBdiscreet\fP distribution, and \fIa[:b]\fP are parameters to the distribution.
+By default, a \fIpoisson\fP distribution is used.
+This option cannot be used with \fB\-\-customers\fP=\fIn\fP.
 .TP
 \fB\-\-no-variables\fR
 Do not convert constant values for customers, processor and task multiplicities, service and think times and request
@@ -198,6 +252,10 @@ Insert LQX code or SPEX observation variables to either observe or not observe p
 Interesting processors are those which might have contention present.
 The default is to observe processor utilization.
 .TP
+\fB\-\-[no-]mva-steps\fR
+Insert LQX code or SPEX observation variables to output the number of calls to step().
+The default is to not insert observation variables.
+.TP
 \fB\-\-[no-]mva-waits\fR
 Insert LQX code or SPEX observation variables to output the number of calls to wait().
 The default is to not insert observation variables.
@@ -217,6 +275,12 @@ The default is to not insert observation variables.
 \fB\-\-[no-]system-cpu-time\fR
 Insert LQX code or SPEX observation variables to output the solver's SYSTEM CPU time.
 The default is to not insert observation variables.
+.TP
+\fB\-\-[no-]pragma[=\fIARG]\fR
+Insert a pragma \fIARG\fP into all translated
+This option can be repeated for multiple pragmas.
+If the pragma was already present in the input file, it is reset to the new value.
+\fB\-\-no\-pragma\fP will remove all existing pragmas.
 .TP
 \fB\-\-comment=\fIARG\fR
 Set the model comment to \fIARG\fP.  By default, the comment is set to

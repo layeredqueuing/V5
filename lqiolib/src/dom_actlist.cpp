@@ -1,20 +1,24 @@
 /*
- *  $Id: dom_actlist.cpp 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_actlist.cpp 13557 2020-05-26 01:28:33Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
  */
 
-#include "dom_document.h"
+#include <cmath>
 #include "dom_actlist.h"
+#include "dom_task.h"
+#include "dom_extvar.h"
 #include "dom_histogram.h"
 
 namespace LQIO {
     namespace DOM {
 
-	ActivityList::ActivityList(const Document * document, const Task * task, ActivityListType type, const void * xmlDOMElement) 
-	    : DocumentObject(document,"",xmlDOMElement),		/* By default, no name :-) */
+	const char * ActivityList::__typeName = "activity_list";
+	
+	ActivityList::ActivityList(const Document * document, const Task * task, ActivityListType type ) 
+	    : DocumentObject(document,""),		/* By default, no name :-) */
 	      _task(task), _list(), _arguments(), _type(type), 
 	      _next(NULL), _prev(NULL),
 	      _processed(false)
@@ -118,19 +122,18 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 
-	AndJoinActivityList::AndJoinActivityList(const Document * document, const Task * task, ExternalVariable * quorum, const void * xmlDOMElement) 
-	    : ActivityList(document,task,AND_JOIN_ACTIVITY_LIST,xmlDOMElement), _quorum(quorum), _histogram(0),
+	AndJoinActivityList::AndJoinActivityList(const Document * document, const Task * task, ExternalVariable * quorum ) 
+	    : ActivityList(document,task,AND_JOIN_ACTIVITY_LIST), _quorum(quorum), _histogram(0),
 	      _resultJoinDelay(0.0),
 	      _resultJoinDelayVariance(0.0),
 	      _hasResultVarianceJoinDelay(false),
 	      _resultVarianceJoinDelay(0.0),
 	      _resultVarianceJoinDelayVariance(0.0)
 	{
-	    const_cast<Document *>(document)->setTaskHasAndJoin(true);
 	}
 
 	AndJoinActivityList::AndJoinActivityList( const AndJoinActivityList& src ) 
-	    : ActivityList(src.getDocument(),src.getTask(),src.getListType(),0), 
+	    : ActivityList(src.getDocument(),src.getTask(),src.getListType()), 
 	      _quorum(src.getQuorumCount()), 
 	      _histogram(0),
 	      _resultJoinDelay(0.0),
@@ -161,16 +164,12 @@ namespace LQIO {
 
 	unsigned AndJoinActivityList::getQuorumCountValue() const
 	{
-	    double value = 0.0;
-	    if ( _quorum ) {
-		assert(_quorum->getValue(value) == true);
-	    }
-	    return static_cast<unsigned int>(value);
+	    return getIntegerValue( getQuorumCount(), 0 );
 	}
 
 	AndJoinActivityList& AndJoinActivityList::setQuorumCount(ExternalVariable * quorum)
 	{
-	    _quorum = quorum;
+	    _quorum = checkIntegerVariable( quorum, 0 );
 	    return *this;
 	}
 
@@ -181,8 +180,7 @@ namespace LQIO {
 
 	bool AndJoinActivityList::hasQuorumCount() const
 	{
-	    double value = 0.0;
-	    return _quorum && (!_quorum->wasSet() || !_quorum->getValue(value) || value > 0);	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( getQuorumCount(), 0. );		// 0 implies no quorum.
 	}
 
 	bool AndJoinActivityList::hasHistogram() const

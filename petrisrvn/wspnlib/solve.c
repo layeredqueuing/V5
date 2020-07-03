@@ -1,5 +1,5 @@
 /*
- *  $Id: solve.c 10972 2012-06-19 01:12:22Z greg $
+ *  $Id: solve.c 13477 2020-02-08 23:14:37Z greg $
  *
  * Solve the petri net "net_name".  The actual work is performed by a subprocess.
  */
@@ -15,6 +15,7 @@
 #include <errno.h>
 #include <stdarg.h>
 #include <string.h>
+#include <glob.h>
 #include "global.h"
 #include "wspn.h"
 
@@ -139,64 +140,30 @@ solve2( const char * net_name, int output_fd, solution_type solver, ... )
 int
 remove_result_files( const char * net_name )
 {
-	char path_name[256];
-	int status;
-	int retval;
-	int child;
-	int maxfds = sysconf( _SC_OPEN_MAX );
-	unsigned i;
-	char * home_dir = getenv( "HOME" );
-	if ( !home_dir ) {
-	    home_dir = ".";
-	}
+    char path_name[MAXPATHLEN];
+    glob_t g;
 
-	if ( !getcwd( pathname, MAXPATHLEN ) ) {
-		(void) fprintf( stderr, "%s: cwd = '%s'\n", toolname, pathname );
-		(void) strcpy( pathname, "." );	/* Punt on error */
-	}
+    snprintf( path_name, MAXPATHLEN, "nets/%s.*", net_name );
 
-	/* First, get rid of all result files from previous run. */
-	
-	child = fork();
-	
-	switch( child ) {
-	case -1:
-		(void) fprintf( stderr, "%s: cannot fork -- ", toolname );
-		perror( (char *)0 );
-		return 0;
- 
-	default:
-		do {
-			retval = wait( &status );
-		} while ( retval != child && ( retval != -1 || errno == EINTR ) );
-
-		if ( retval == -1 ) {
-			(void) fprintf( stderr, "%s: wait error -- ", toolname );
-			perror( (char *)0 );
-			return 0;
-		} else if ( status & 0x003f ) {
-			(void) fprintf( stderr, "%s: petri-net cleanup failed due to signal %d\n", toolname, status & 0x7f );
-			return 0;
-		} else if ( status & 0xff00 ) {
-			(void) fprintf( stderr, "%s: petri-net cleanup failed, exit value %d\n", toolname, status >> 8 & 0xff );
-			return 0;
-		}
+    g.gl_offs = 0;
+    g.gl_pathc = 0;
+    if ( glob( path_name, GLOB_NOSORT, NULL, &g ) != 0 ) {
+	fprintf( stderr, "%s: Cannot glob %s\n", toolname, path_name );
+    } else {
+        unsigned int i;
+	for ( i = 0; i < g.gl_pathc; ++i ) {
+	    const char * p = strrchr( g.gl_pathv[i], '.' );
+	    if ( !p ) continue;		/* ? */
+	    if ( strcmp( p, ".net" ) == 0 || strcmp( p, ".def" ) == 0 ) continue;	/* Don't delete these! */
+	    if ( unlink( g.gl_pathv[i] ) != 0 ) {
+		fprintf( stderr, "%s: Cannot unlink ", toolname );
+		perror( g.gl_pathv[i] );
 		break;
-
-	case 0:
-		for ( i = 3; i < maxfds; ++i ) {	/* close all non-essential descriptors */
-			close( i );
-		}
-		close( 0 );				/* No need for input either. */
-
-		/* See save_proc( item, event ) in "greatspn1.5/greatsrc1.5/command.c" */
-		
-		sprintf( path_name, "nets/%s", net_name );
-		execl( "/bin/bash", "bash", "--norc", "RMNET", path_name, (char *)0 );
-		(void) fprintf( stderr, "%s: Cannot exec %s %s", toolname, "RMNET", path_name );
-		perror( "" );
-		exit( 1 );
-
+	    }
 	}
-	return 1;
+    }
+
+    globfree( &g );
+
+    return 1;
 }

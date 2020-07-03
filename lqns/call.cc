@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 12190 2014-11-07 21:02:30Z greg $
+ * $Id: call.cc 13554 2020-05-24 15:17:29Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -15,6 +15,7 @@
 
 #include "dim.h"
 #include <cmath>
+#include <sstream>
 #include "call.h"
 #include "cltn.h"
 #include "stack.h"
@@ -75,28 +76,6 @@ Call::operator!=( const Call& item ) const
 void
 Call::check() const
 {
-    double value = min( rendezvous(), sendNoReply() );
-    if ( value < 0. ) {
-	if ( isActivityCall() ) {
-	    LQIO::solution_error( LQIO::ERR_NEGATIVE_CALLS_FOR, "Task", srcTask()->name(), "activity",  srcName(), value, dstName() );
-	} else {
-	    LQIO::solution_error( LQIO::ERR_NEGATIVE_CALLS_FOR, "Entry", srcEntry()->name(), "phase",  srcName(), value, dstName()  );
-	}
-    } else if ( srcPhase()->phaseTypeFlag() == PHASE_DETERMINISTIC ) {
-	value = 0.0;
-	if ( ::fmod( rendezvous(), 1.0 ) > 1e-6 ) {
-	    value = rendezvous();
-	} else if ( ::fmod( sendNoReply(), 1.0 ) > 1e-6 ) {
-	    value = sendNoReply();
-	}
-	if ( value != 0.0 ) {
-	    if ( isActivityCall() ) {
-		LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Task", srcTask()->name(), "activity", srcName(), value, dstName() );
-	    } else {
-		LQIO::solution_error( LQIO::ERR_NON_INTEGRAL_CALLS_FOR, "Entry", srcEntry()->name(), "phase", srcName(), value, dstName() );
-	    }
-	}
-    }
 }
 
 
@@ -104,30 +83,67 @@ double
 Call::rendezvous() const
 {
     if ( myCallDOM != NULL && (myCallDOM->getCallType() == LQIO::DOM::Call::RENDEZVOUS || myCallDOM->getCallType() == LQIO::DOM::Call::QUASI_RENDEZVOUS) ) {
-	return myCallDOM->getCallMeanValue();
-    } else {
-	return 0.0;
+	try {
+	    const double value = myCallDOM->getCallMeanValue();
+	    if ( srcPhase()->phaseTypeFlag() == PHASE_DETERMINISTIC && value != std::floor( value ) ) throw std::domain_error( "invalid integer" );
+	    return value;
+	}
+	catch ( const std::domain_error &e ) {
+	    if ( isActivityCall() ) {
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name(), srcPhase()->getDOM()->getTypeName(),
+				      srcPhase()->getDOM()->getName().c_str(), dstName(), e.what() );
+	    } else {
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name(), srcPhase()->getDOM()->getTypeName(),
+				      srcPhase()->getDOM()->getName().c_str(), dstName(), e.what() );
+	    }
+	    throw_bad_parameter();
+	}
     }
+    return 0.0;
 }
 
 double 
 Call::sendNoReply() const
 {
     if ( myCallDOM != NULL && myCallDOM->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
-	return myCallDOM->getCallMeanValue();
-    } else {
-	return 0.0;
+	try {
+	    const double value = myCallDOM->getCallMeanValue();
+	    if ( srcPhase()->phaseTypeFlag() == PHASE_DETERMINISTIC && value != std::floor( value ) ) throw std::domain_error( "invalid integer" );
+	    return value;
+	}
+	catch ( const std::domain_error &e ) {
+	    if ( isActivityCall() ) {
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name(), srcPhase()->getDOM()->getTypeName(), 
+				      srcPhase()->getDOM()->getName().c_str(), dstName(), e.what() );
+	    } else {
+		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name(), srcPhase()->getDOM()->getTypeName(), 
+				      srcPhase()->getDOM()->getName().c_str(), dstName(), e.what() );
+	    }
+	    throw_bad_parameter();
+	}
     }
+    return 0.0;
 }
 
 double 
 Call::forward() const
 {
     if ( myCallDOM != NULL && myCallDOM->getCallType() == LQIO::DOM::Call::FORWARD ) {
-	return myCallDOM->getCallMeanValue();
-    } else {
-	return 0.0;
+	try {
+	    const double value = myCallDOM->getCallMeanValue();
+	    if ( value > 1.0 ) {
+		std::stringstream ss;
+		ss << value << " > " << 1;
+		throw std::domain_error( ss.str() );
+	    }
+	    return value;
+	}
+	catch ( const std::domain_error &e ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, srcEntry()->name(), dstName(), e.what() );
+	    throw_bad_parameter();
+	}
     }
+    return 0.0;
 }
 
 unsigned

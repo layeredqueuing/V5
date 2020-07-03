@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: layer.cc 13535 2020-03-16 17:05:56Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -11,17 +11,16 @@
 #include "lqn2ps.h"
 #include <cstdlib>
 #include <algorithm>
-#include <lqio/error.h>
-#include <lqio/srvn_output.h>
-#include <lqio/dom_document.h>
 #if defined(HAVE_VALUES_H)
 #include <values.h>
 #endif
 #if defined(HAVE_FLOAT_H)
 #include <float.h>
 #endif
+#include <lqio/error.h>
+#include <lqio/srvn_output.h>
+#include <lqio/dom_document.h>
 #include "layer.h"
-#include "cltn.h"
 #include "entity.h"
 #include "task.h"
 #include "processor.h"
@@ -31,94 +30,124 @@
 #include "label.h"
 #include "open.h"
 
-
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
-
 /*----------------------------------------------------------------------*/
 /*                         Helper Functions                             */
 /*----------------------------------------------------------------------*/
 
-/*
- * Print all results.
- */
-
-ostream&
-operator<<( ostream& output, const Layer& self )
+class ResetServerPhaseParameters
 {
-    return self.print( output );
-}
+public:
+    ResetServerPhaseParameters( bool hasResults ) : _hasResults(hasResults) {}
+    void operator()( const std::pair<unsigned,LQIO::DOM::Phase*>& p ) const { reset( p.second ); }
+    void operator()( const Activity * a ) const { reset( const_cast<LQIO::DOM::Phase *>(a->getDOM()) ); }
+
+private:
+    void reset( LQIO::DOM::Phase * phase ) const
+	{
+	    std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
+	    dom_calls.clear();		// Should likely delete... 
+
+	    if ( _hasResults ) {
+		const double mean = phase->getResultServiceTime();
+		phase->setServiceTimeValue( mean );
+		if ( Flags::output_coefficient_of_variation ) {
+		    const double var  = phase->getResultVarianceServiceTime();
+		    phase->setCoeffOfVariationSquaredValue( var / square( mean ) );
+		} else {
+		    phase->setCoeffOfVariationSquared( 0 );		// Nuke value.
+		}
+	    }
+	}
+
+    bool _hasResults;
+};
+    
 
 Layer::Layer()  
-    : myOrigin(0,0), myExtent(0,0), myNumber(0), myLabel(0), myChains(0)
+    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(0), _clients(), _chains(0)
 {
-    myLabel = Label::newLabel();
+    _label = Label::newLabel();
 }
 
+Layer::Layer( const Layer& src )  
+    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(0), _clients(), _chains()
+{
+    _label = Label::newLabel();
+}
 
 Layer::~Layer()  
 {
-    if ( myLabel ) {
-	delete myLabel;
+    delete _label;
+}
+
+Layer&
+Layer::operator=( const Layer& src ) 
+{
+    _entities = src._entities;
+    _origin = src._origin;
+    _extent = src._extent;
+    _number = src._number;
+    delete _label;
+    _label = Label::newLabel();
+    return *this;
+}
+
+double 
+Layer::labelWidth() const
+{
+    return _label->width();
+}
+
+
+Layer&
+Layer::append( Entity * entity )
+{
+    std::vector<Entity *>::iterator pos = find_if( _entities.begin(), _entities.end(), EQ<Element>(entity) );
+    if ( pos == _entities.end() ) {
+	_entities.push_back( entity );
     }
-}
-
-Layer&
-Layer::operator<<( Entity * elem )
-{
-    myEntities << elem;
-    return *this;
-}
-
-
-
-Layer&
-Layer::operator+=( Entity * elem )
-{
-    myEntities += elem;
     return *this;
 }
 
 
 Layer&
-Layer::operator-=( Entity * elem )
+Layer::erase( std::vector<Entity *>::iterator pos )
 {
-    myEntities -= elem;
+    if ( pos != _entities.end() ) {
+	_entities.erase( pos );
+    }
     return *this;
 }
 
-Layer const&
-Layer::rename() const
-{
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->rename();
-    }
-    return *this;
-}
-
-
 Layer& 
 Layer::number( const unsigned n ) 
 { 
-    myNumber = n; 
-
+    _number = n; 
     return *this; 
 }
 
 
 
-Layer const&
+bool
 Layer::check() const
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->check();
-    }
-    return *this;
+    return for_each( entities().begin(), entities().end(), AndPredicate<Entity>( &Entity::check ) ).result();
+}
+
+
+
+unsigned
+Layer::count( const taskPredicate predicate ) const
+{
+    return count_if( entities().begin(), entities().end(), Predicate1<Entity,taskPredicate>( &Entity::test, predicate ) );
+}
+
+
+
+unsigned
+Layer::count( const callPredicate aFunc ) const
+{
+    return for_each( entities().begin(), entities().end(), Entity::CountCallers( aFunc ) ).count();
 }
 
 
@@ -130,14 +159,13 @@ Layer::check() const
 Layer&
 Layer::prune() 
 {
-    for ( unsigned x = myEntities.size(); x > 0; --x ) {
-	Entity * anEntity = myEntities[x];
-	Task * aTask = dynamic_cast<ReferenceTask *>(anEntity);
-	Processor * aProc = dynamic_cast<Processor *>(anEntity);
+    for ( std::vector<Entity *>::iterator entity = _entities.begin(); entity != _entities.end(); ++entity ) {
+	Task * aTask = dynamic_cast<ReferenceTask *>((*entity));
+	Processor * aProc = dynamic_cast<Processor *>((*entity));
 
 	if ( aTask && !aTask->hasCalls( &Call::hasAnyCall ) ) {
 
-	    myEntities -= anEntity;
+	    _entities.erase(entity);
 
 	} else if ( aProc ) {
 
@@ -148,13 +176,12 @@ Layer::prune()
 	     */
 
 	    if ( aProc->nTasks() == 0 ) {
-		myEntities -= anEntity;
+		_entities.erase(entity);
 	    } else {
-		for ( set<Task *,ltTask>::const_iterator nextTask = aProc->tasks().begin(); nextTask != aProc->tasks().end(); ++nextTask ) {
-		    const Task& aTask = **nextTask;
-		    if ( !aTask.isReferenceTask() || aTask.hasCalls( &Call::hasAnyCall ) ) goto found;
+		for ( std::set<Task *>::const_iterator task = aProc->tasks().begin(); task != aProc->tasks().end(); ++task ) {
+		    if ( !(*task)->isReferenceTask() || (*task)->hasCalls( &Call::hasAnyCall ) ) goto found;
 		}
-		myEntities -= anEntity;
+		_entities.erase(entity);
 	    }
 	found:;
 	}
@@ -163,79 +190,43 @@ Layer::prune()
 }
 
 
-const Layer&
-Layer::sort( compare_func_ptr compare ) const
+Layer&
+Layer::sort( compare_func_ptr compare ) 
 {
-    myEntities.sort( compare );
+    ::sort( _entities.begin(), _entities.end(), compare );
     return *this;
 }
 
 
 
-Layer const&
-Layer::format( const double y ) const
+Layer&
+Layer::format( const double y )
 {
-    myOrigin.moveTo( 0., y );
-    myExtent.moveTo( 0., 0. );
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    for ( double x = 0; anEntity = nextEntity(); ) {
-	if ( !anEntity->isSelectedIndirectly() ) continue;
-	Task * aTask = dynamic_cast<Task *>(anEntity);
-	if ( aTask && Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
-	    aTask->format();
-	}
-	x = moveTo( x, y, anEntity );
-    }
+    if ( Flags::debug ) std::cerr << "Layer::format layer " << number() << std::endl;
+    _origin.moveTo( 0.0, y );
+    Position bounds = for_each( entities().begin(), entities().end(), Position( &Task::format, y ) );
+    _extent.moveTo( bounds.x(), bounds.height() );
     return *this;
 }
 
 
-Layer const&
-Layer::reformat() const
+Layer&
+Layer::reformat()
 {
-    myOrigin.moveTo( 0.0, MAXDOUBLE );
-    myExtent.moveTo( 0.0, 0.0 );
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    for ( double x = 0; anEntity = nextEntity(); ) {
-	if ( !anEntity->isSelectedIndirectly() ) continue;
-	Task * aTask = dynamic_cast<Task *>(anEntity);
-	if ( aTask && Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
-	    aTask->reformat();
-	}
-	x = moveTo( x, anEntity->bottom(), anEntity );
-	myOrigin.y( min( myOrigin.y(), anEntity->bottom() ) );
-    }
+    if ( Flags::debug ) std::cerr << "Layer::reformat layer " << number() << std::endl;
+    Position bounds = for_each( entities().begin(), entities().end(), Position( &Task::reformat ) );
+    _origin.moveTo( 0.0, bounds.y() );
+    _extent.moveTo( bounds.x(), bounds.height() );
     return *this;
 }
 
 
-double
-Layer::moveTo( double x, const double y, Entity * anEntity ) const
+Layer&
+Layer::moveBy( const double dx, const double dy )
 {
-    anEntity->moveTo( x, y );
-    x += anEntity->width();
-    myExtent.moveTo( x, max( myExtent.y(), anEntity->height() ) );
-    x += Flags::print[X_SPACING].value.f;
-    return x;
-}
-
-
-
-Layer const&
-Layer::moveBy( const double dx, const double dy )  const
-{
-    myOrigin.moveBy( dx, dy );
-
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->moveBy( dx, dy );
-    }
-    if ( myLabel ) {
-	myLabel->moveBy( dx, dy );
-    }
+    _origin.moveBy( dx, dy );
+    for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::moveBy, dx, dy ) );
+    _label->moveBy( dx, dy );
     return *this;
 }
 
@@ -245,88 +236,66 @@ Layer::moveBy( const double dx, const double dy )  const
  * Move the label to...
  */
 
-Layer const&
-Layer::moveLabelTo( const double xx, const double yy ) const
+Layer&
+Layer::moveLabelTo( const double xx, const double yy )
 {
     if ( Flags::print_layer_number ) {
-	myLabel->justification( LEFT_JUSTIFY ).moveTo( xx, y() + yy );
+	_label->justification( LEFT_JUSTIFY ).moveTo( xx, y() + yy );
     } else if ( submodel_output() ) {
-	myLabel->moveTo( myOrigin.x() + myExtent.x() / 2.0, myOrigin.y() - Flags::print[FONT_SIZE].value.i * 1.2 );
+	_label->moveTo( _origin.x() + _extent.x() / 2.0, _origin.y() - Flags::print[FONT_SIZE].value.i * 1.2 );
     }
     return *this;
 }
 
 
 
-Layer const&
-Layer::scaleBy( const double sx, const double sy ) const
+Layer&
+Layer::scaleBy( const double sx, const double sy )
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while  ( anEntity = nextEntity() ) {
-	anEntity->scaleBy( sx, sy );
-    }
-    myOrigin.scaleBy( sx, sy );
-    myExtent.scaleBy( sx, sy );
-
-    if ( myLabel ) {
-	myLabel->scaleBy( sx, sy );
-    }
+    for_each( entities().begin(), entities().end(), ExecXY<Element>( &Element::scaleBy, sx, sy ) );
+    _origin.scaleBy( sx, sy );
+    _extent.scaleBy( sx, sy );
+    _label->scaleBy( sx, sy );
     return *this;
 }
 
 
 
-Layer const&
-Layer::translateY( const double dy )  const
+Layer&
+Layer::translateY( const double dy )
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->translateY( dy );
-    }
-    myOrigin.y( dy - myOrigin.y() );
-
-    if ( myLabel ) {
-	myLabel->translateY( dy );
-    }
+    for_each( entities().begin(), entities().end(), Exec1<Element,double>( &Element::translateY, dy ) );
+    _origin.y( dy - _origin.y() );
+    _label->translateY( dy );
     return *this;
 }
 
 
 
-Layer const&
-Layer::depth( const unsigned layer ) const
+Layer&
+Layer::depth( const unsigned depth )
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->depth( layer );
-    }
+    for_each( entities().begin(), entities().end(), Exec1<Element,unsigned int>( &Element::depth, depth ) );
     return *this;
 }
 
 
-Layer const&
-Layer::fill( const double maxWidthPts ) const
+Layer&
+Layer::fill( const double maxWidthPts )
 {
-    double width = 0.0;
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	width += anEntity->width();
-    }
-    
+    const double width = for_each( entities().begin(), entities().end(), Sum<Element,double>( &Element::width ) ).sum();
     const double fill = max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
     if ( fill < Flags::print[X_SPACING].value.f ) return *this;		/* Don't bother... */
 
-    myOrigin.x( fill );
-    
-    for ( double x = fill; anEntity = nextEntity(); x += fill ) {
-	const double y = anEntity->bottom();
-	anEntity->moveTo( x, y );
-	x += anEntity->width();
-	myExtent.x( x - fill );
+    _origin.x( fill );
+
+    double x = fill; 
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	const double y = (*entity)->bottom();
+	(*entity)->moveTo( x, y );
+	x += (*entity)->width();
+	_extent.x( x - fill );
+	x += fill;
     }
 
     return *this;
@@ -334,15 +303,15 @@ Layer::fill( const double maxWidthPts ) const
 
 
 
-Layer const&
-Layer::justify( const double width ) const
+Layer&
+Layer::justify( const double width )
 {
     return justify( width, Flags::node_justification );
 }
 
 
-Layer const&
-Layer::justify( const double maxWidthPts, const justification_type justification ) const
+Layer&
+Layer::justify( const double maxWidthPts, const justification_type justification )
 {
     switch ( justification ) {
     case ALIGN_JUSTIFY:
@@ -364,15 +333,13 @@ Layer::justify( const double maxWidthPts, const justification_type justification
 
 
 
-Layer const&
-Layer::align( const double height )  const
+Layer&
+Layer::align()
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	double delta = height - anEntity->height();
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	const double delta = height() - (*entity)->height();
 	if ( delta > 0. ) {
-	    anEntity->moveBy( 0, delta );
+	    (*entity)->moveBy( 0, delta );
 	}
     }
     return *this;
@@ -384,16 +351,20 @@ Layer::align( const double height )  const
  * Align tasks between layers.
  */
 
-const Layer&
-Layer::alignEntities() const
+Layer&
+Layer::alignEntities()
 {
+    ::sort( _entities.begin(), _entities.end(), &Entity::compareCoord );
+    
+    if ( Flags::debug ) std::cerr << "Layer::alignEntities layer " << number() << std::endl;
     /* Move objects right starting from the right side */
-    for ( unsigned int i = size(); i > 0; --i ) {
-	shift( i, myEntities[i]->align() );
+    for ( unsigned int i = size(); i > 0; ) {
+	i -= 1;
+	shift( i, _entities[i]->align() );
     }
     /* Move objects left starting from the left side */
-    for ( unsigned int i = 1; i <= size(); ++i ) {
-	shift( i, myEntities[i]->align() );
+    for ( unsigned int i = 0; i < size(); ++i ) {
+	shift( i, _entities[i]->align() );
     }
 
     return *this;
@@ -405,32 +376,38 @@ Layer::alignEntities() const
  * Move object `i' by `amount' if possible.  The bounding box is recomputed if necessary.
  */
 
-Layer const&
-Layer::shift( unsigned i, double amount ) const
+Layer&
+Layer::shift( unsigned i, double amount )
 {
     if ( amount < 0.0 ) {
 	/* move left if I can */
-	if ( i == 1 ) {
-	    myEntities[i]->moveBy( amount, 0 );
-	    myOrigin.moveBy( amount, 0 );
+	if ( Flags::debug ) std::cerr << "Layer::shift layer " << number() << " shift " << _entities.at(i)->name() << " left from ("
+				      << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")";
+	if ( i == 0 ) {
+	    _entities[i]->moveBy( amount, 0 );
+	    _origin.moveBy( amount, 0 );
 	} else {
-	    myEntities[i]->moveBy( min( max( (myEntities[i-1]->right() + Flags::print[X_SPACING].value.f) - myEntities[i]->left(), amount ), 0 ), 0 );
+	    _entities[i]->moveBy( min( max( (_entities[i-1]->right() + Flags::print[X_SPACING].value.f) - _entities[i]->left(), amount ), 0.0 ), 0 );
 	}
-	myOrigin.x( myEntities[1]->left() );
-	myExtent.x( myEntities[size()]->right() - myEntities[1]->left() );
-	if ( i < size() && myEntities[i]->forwardsTo( dynamic_cast<Task *>(myEntities[i+1]) ) ) {
+	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << endl;
+	_origin.x( _entities.front()->left() );
+	_extent.x( _entities.back()->right() - _entities.front()->left() );
+	if ( i + 1 < size() && _entities[i]->forwardsTo( dynamic_cast<Task *>(_entities[i+1]) ) ) {
 	    shift( i+1, amount );
 	} 
     } else if ( amount > 0.0 ) { 
 	/* move right if I can */
-	if ( i == size() ) {
-	    myEntities[i]->moveBy( amount, 0 );
+	if ( Flags::debug ) std::cerr << "Layer::shift layer " << number() << " shift " << _entities.at(i)->name() << " right from ("
+				      << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")";
+	if ( i + 1 == size() ) {
+	    _entities[i]->moveBy( amount, 0 );
 	} else {
-	    myEntities[i]->moveBy( max( min( myEntities[i+1]->left() - (myEntities[i]->right() + Flags::print[X_SPACING].value.f), amount ), 0 ), 0 );
+	    _entities[i]->moveBy( max( min( _entities[i+1]->left() - (_entities[i]->right() + Flags::print[X_SPACING].value.f), amount ), 0.0 ), 0 );
 	}
-	myOrigin.x( myEntities[1]->left() );
-	myExtent.x( myEntities[size()]->right() - myEntities[1]->left() );
-	if ( i > 1 && myEntities[i-1]->forwardsTo( dynamic_cast<Task *>(myEntities[i]) ) ) {
+	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << endl;
+	_origin.x( _entities.front()->left() );
+	_extent.x( _entities.back()->right() - _entities.front()->left() );
+	if ( i > 0 && _entities[i-1]->forwardsTo( dynamic_cast<Task *>(_entities[i]) ) ) {
 	    shift( i-1, amount );
 	}
     }
@@ -443,16 +420,27 @@ Layer::shift( unsigned i, double amount ) const
  * Label all objects in this layer.
  */
 
-Layer const&
-Layer::label() const
+Layer&
+Layer::label()
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	anEntity->label();
-    }
+    for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
     if ( Flags::print_layer_number ) {
-	myLabel->initialize( "Layer " ) << number();
+	*_label << "Layer " << number();
+    }
+    return *this;
+}
+
+/*
+ * Select all servers in this submodel for printing.
+ */
+
+Layer&
+Layer::selectSubmodel()
+{
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( !(*entity)->isProcessor() || Flags::print[PROCESSORS].value.i != PROCESSOR_NONE ) {
+	    (*entity)->isSelected( true );		/* Enable arc drawing to this entity */
+	}
     }
     return *this;
 }
@@ -462,155 +450,134 @@ Layer::label() const
  * Select all servers in this submodel for printing.
  */
 
-Layer const&
-Layer::selectSubmodel() const
+Layer&
+Layer::deselectSubmodel()
 {
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( !aServer->isProcessor() || Flags::print[PROCESSORS].value.i != PROCESSOR_NONE ) {
-	    aServer->isSelected( true );		/* Enable arc drawing to this entity */
+    for_each( entities().begin(), entities().end(), Exec1<Entity,bool>( &Entity::isSelected, false ) );
+    return *this;
+}
+
+
+Layer&
+Layer::generateSubmodel()
+{
+    if ( _clients.size() > 0 ) return *this;
+
+    _chains = 0;
+
+    /* Find clients */
+
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( (*entity)->isSelected() ) {
+	    (*entity)->clients( _clients );		/* Now find out who calls it */
 	}
     }
+
+    /* Set the chains in the model */
+
+    for ( std::vector<Entity *>::iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	if ( (*client)->isInClosedModel( entities() ) ) {
+	    _chains += 1;
+	    _chains = const_cast<Entity *>(*client)->setChain( _chains, &GenericCall::hasRendezvous );
+	}
+	if ( (*client)->isInOpenModel( entities() ) ) {
+	    _chains += 1;
+	    _chains = const_cast<Entity *>(*client)->setChain( _chains, &GenericCall::hasSendNoReply );
+	}
+    }
+
     return *this;
 }
 
 
 /*
- * Select all servers in this submodel for printing.
+ * !!!
+ * Move all service time for entries up into the task.  However, the
+ * service time is by chain (i.e, the clients of the submodel).
  */
 
-Layer const&
-Layer::deselectSubmodel() const
+Layer&
+Layer::aggregate()
 {
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	aServer->isSelected( false );		/* Enable arc drawing to this entity */
+    _clients.clear();
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	Task * task = dynamic_cast<Task *>(*entity);
+	if ( !task ) continue;
+	const std::vector<Entry *>& entries = task->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    const std::vector<GenericCall *>& calls = (*entry)->callers();
+	    for ( std::vector<GenericCall *>::const_iterator i = calls.begin(); i != calls.end(); ++i ) {
+		Call * call = dynamic_cast<Call *>(*i);
+		if ( !call ) continue;
+		Task * client = const_cast<Task *>(call->srcTask());
+		Task * server = const_cast<Task *>(call->dstTask());
+		if ( find_if( _clients.begin(), _clients.end(), EQ<Element>(client) ) == _clients.end() ) {
+		    _clients.push_back( client );				/* add the client to my clients */
+		}
+		callPredicate predicate = NULL;
+		if ( call->hasForwarding() ) {
+		    predicate = &GenericCall::hasForwarding;
+		} else if ( call->hasSendNoReply() ) {
+		    predicate = &GenericCall::hasSendNoReply;
+		}
+		EntityCall * new_call = client->findOrAddCall( server, predicate );	/* create a call... */
+		TaskCall * task_call = dynamic_cast<TaskCall * >(new_call);
+		if ( task_call != NULL ) {
+		    /* Set rate on call? By phase? */
+		    if ( call->hasForwarding() ) {
+			task_call->taskForward( LQIO::DOM::ConstantExternalVariable( call->forward() ) );
+		    } else if ( call->hasSendNoReply() ) {
+			task_call->sendNoReply( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
+		    } else {
+			task_call->rendezvous( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
+		    }
+		}
+	    }
+	}
     }
     return *this;
 }
-
-
-const Layer&
-Layer::generateSubmodel() const
-{
-    if ( myClients.size() > 0 ) return *this;
-
-    myChains = 0;
-
-    /* Find clients */
-
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( aServer->isSelected() ) {
-	    aServer->clients( myClients );		/* Now find out who calls it */
-	}
-    }
-
-    /* Set the chains in the model */
-
-    Sequence<const Entity *> nextClient(myClients);
-    const Entity * aClient;
-
-    while ( aClient = nextClient() ) {
-	if ( aClient->isInClosedModel( entities() ) ) {
-	    myChains += 1;
-	    myChains = const_cast<Entity *>(aClient)->setChain( myChains, &GenericCall::hasRendezvous );
-	}
-	if ( aClient->isInOpenModel( entities() ) ) {
-	    myChains += 1;
-	    myChains = const_cast<Entity *>(aClient)->setChain( myChains, &GenericCall::hasSendNoReply );
-	}
-    }
-
-    return *this;
-}
-
-
-const Layer&
-Layer::generateClientSubmodel() const
-{
-    myChains = 0;
-
-    /* Find clients */
-
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( aServer->isSelected() ) {
-	    aServer->referenceTasks( myClients, aServer );		/* Now find out who calls it */
-	}
-    }
-
-    /* Set the chains in the model */
-
-    Sequence<const Entity *> nextClient( myClients );
-    const Entity * aClient;
-
-    while ( aClient = nextClient() ) {
-	if ( aClient->isInClosedModel( entities() ) ) {
-	    myChains += 1;
-	    myChains = const_cast<Entity *>(aClient)->setChain( myChains, &GenericCall::hasRendezvous );
-	}
-	if ( aClient->isInOpenModel( entities() ) ) {
-	    myChains += 1;
-	    myChains = const_cast<Entity *>(aClient)->setChain( myChains, &GenericCall::hasSendNoReply );
-	}
-    }
-
-    return *this;
-}
-
 
 /*+ BUG_626 */
-const Layer&
-Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_processor, Task *& surrogate_task ) const
-{
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( !aServer->isSelected() || !aServer->isTask() ) continue;
+/*
+ * Transform a submodel into a full blown LQN that can be solved on
+ * its own.
+ */
 
-	findOrAddSurrogateProcessor( document, surrogate_processor, const_cast<Task *>(dynamic_cast<const Task *>(aServer)), number()+1 );
+Layer&
+Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_processor, Task *& surrogate_task )
+{
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	Task * aTask = dynamic_cast<Task *>(*entity);
+	if ( !(*entity)->isSelected() || !aTask ) continue;
+
+	findOrAddSurrogateProcessor( document, surrogate_processor, aTask, number()+1 );
 
 	/* ---------- Servers ---------- */
 
-	Sequence<Entry *> nextEntry( dynamic_cast<Task *>(aServer)->entries() );
-	const Entry * anEntry;
-	while ( anEntry = nextEntry() ) {
+	const std::vector<Entry *>& entries = aTask->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 
 	    /* These are graphical object calls */
 
-	    Cltn<Call *>& calls = const_cast<Cltn<Call *>& >(anEntry->callList());
-	    calls.clearContents();
+	    std::vector<Call *>& calls = const_cast<std::vector<Call *>& >((*entry)->calls());
+	    calls.clear();
 
 	    /* Forwarded calls? */
 
-	    const LQIO::DOM::Entry * dom_entry = dynamic_cast<const LQIO::DOM::Entry *>(anEntry->getDOM());
+	    const LQIO::DOM::Entry * dom_entry = dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM());
 	    const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
-	    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
-		resetServerPhaseParameters( document, p->second );
-	    }
+	    for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
 	}
 
-	Sequence<Activity *> nextActivity( dynamic_cast<Task *>(aServer)->activities() );
-	const Activity * anActivity;
-	while ( anActivity = nextActivity() ) {
-	    Cltn<Call *>& calls = const_cast<Cltn<Call *>& >( anActivity->callList() );
-	    calls.clearContents();
-
-	    resetServerPhaseParameters( document, const_cast<LQIO::DOM::Phase *>(anActivity->getDOM()) );
-	}
+	const std::vector<Activity *>& activities = aTask->activities();
+	for_each ( activities.begin(), activities.end(), ResetServerPhaseParameters( document->hasResults() ) );
     }
 
     /* ---------- Clients ---------- */
 
-    Sequence<const Entity *> nextClient(myClients);
-    const Entity * aClient;
-    while ( aClient = nextClient() ) {
-	const Task * aTask = dynamic_cast<const Task *>(aClient);
+    for ( std::vector<Entity *>::iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	Task * aTask = dynamic_cast<Task *>(*client);
 	if ( !aTask ) continue;
 
 	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(aTask->getDOM()));
@@ -619,29 +586,24 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 	/* Create a fake processor if necessary */
 
 	if ( !aTask->processor()->isSelected() ) {
-	    findOrAddSurrogateProcessor( document, surrogate_processor, const_cast<Task *>(dynamic_cast<const Task *>(aTask)), number() );
+	    findOrAddSurrogateProcessor( document, surrogate_processor, aTask, number() );
 	}
 
 	/* for all clients, reroute all non-selected calls to surrogate */
 
-	Sequence<Entry *> nextEntry( aTask->entries() );
-	const Entry * anEntry;
-	while ( anEntry = nextEntry() ) {
-	    Sequence<Call *> nextCall( anEntry->callList() );
-	    Call * aCall;
-	    while ( aCall = nextCall() ) {
-		if ( aCall->isSelected() || aCall->dstTask()->isSelectedIndirectly() ) continue;
-		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( aCall->dstEntry()), number() );
+	const std::vector<Entry *>& entries = aTask->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
+		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( (*call)->dstEntry()), number() );
 	    }
 	}
-	Sequence<Activity *> nextActivity( aTask->activities() );
-	const Activity * anActivity;
-	while ( anActivity = nextActivity() ) {
-	    Sequence<Call *> nextCall( anActivity->callList() );
-	    Call * aCall;
-	    while ( aCall = nextCall() ) {
-		if ( aCall->isSelected() || aCall->dstTask()->isSelectedIndirectly() ) continue;
-		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( aCall->dstEntry()), number() );
+
+	const std::vector<Activity *> activities = aTask->activities();
+	for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
+	    for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
+		if ( (*call)->isSelected() || (*call)->dstTask()->isSelectedIndirectly() ) continue;
+		findOrAddSurrogateTask( document, surrogate_processor, surrogate_task, const_cast<Entry *>( (*call)->dstEntry()), number() );
 	    }
 	}
 
@@ -668,17 +630,17 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
  */
 
 Processor *
-Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const unsigned level ) const
+Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const
 {
     LQIO::DOM::Processor * dom_processor = 0;
     if ( !processor ) {
 	/* Need to create a new processor */
-	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY, new LQIO::DOM::ConstantExternalVariable(1), 1, 0 );
+	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY, NULL, NULL );
 	document->addProcessorEntity( dom_processor );
 	processor = new Processor( dom_processor );		/* This is a model object */
 	processor->isSelected( true ).isSurrogate( true ).setLevel( level );
-	const_cast<Layer *>(this)->myEntities << processor;
-	::processor.insert( processor );
+	const_cast<Layer *>(this)->_entities.push_back(processor);
+	Processor::__processors.insert( processor );
     } else {
 	dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
     }
@@ -695,15 +657,13 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 
 	/* Remap processor call */
 //	Point aPoint = processor->center();
-	Cltn<EntityCall *>& task_calls = const_cast<Cltn<EntityCall *>& >(task->callList());
-	Sequence<EntityCall *> nextCall( task_calls );
-	EntityCall * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->isProcessorCall() ) {
-		dynamic_cast<ProcessorCall *>(aCall)->setDstProcessor( processor );
-//		aCall->moveDst( aPoint );
-		old_processor->removeDstCall( aCall );
-		processor->addDstCall( aCall );
+	std::vector<EntityCall *>& task_calls = const_cast<std::vector<EntityCall *>& >(task->calls());
+	for ( std::vector<EntityCall *>::const_iterator call = task_calls.begin(); call != task_calls.end(); ++call ) {
+	    if ( (*call)->isProcessorCall() ) {
+		(*call)->setDstEntity( processor );
+//		(*call)->moveDst( aPoint );
+		old_processor->removeDstCall( (*call) );
+		processor->addDstCall( (*call) );
 	    }
 	}
     }
@@ -712,23 +672,23 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 }
 
 Task *
-Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& processor, Task*& task, Entry * entry, const unsigned level ) const
+Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& processor, Task*& task, Entry * entry, const size_t level ) const
 {
-    LQIO::DOM::Task * dom_task;
+    LQIO::DOM::Task * dom_task = nullptr;
     /* Make sure task exists */
     std::vector<LQIO::DOM::Entry *> dom_entries;
-    Cltn<Entry *> entries;
+    std::vector<Entry *> entries;
     if ( !task ) {
 	findOrAddSurrogateProcessor( document, processor, 0, level+1 );
 	LQIO::DOM::Processor * dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
 	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor, 
-					0, 0, new LQIO::DOM::ConstantExternalVariable(1), 1, 0, 0 );
+					0, 0, NULL, NULL, NULL );
 	document->addTaskEntity( dom_task );
 	dom_processor->addTask( dom_task );
 	task = new ServerTask( dom_task, processor, 0, entries );
 	task->isSelected( true ).isSurrogate( true ).setLevel( level );
-	const_cast<Layer *>(this)->myEntities << task;
-	::task.insert( task );
+	const_cast<Layer *>(this)->_entities.push_back(task);
+	Task::__tasks.insert( task );
     }
 
     /* Now find or create an entry for it. */
@@ -764,49 +724,10 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 
     dom_entry->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );	/* Force type to standard */
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
-    for ( std::map<unsigned, LQIO::DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
-	resetServerPhaseParameters( document, p->second );
-    }
-    
+    for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
     return entry;
 }
-
-
-const Layer& 
-Layer::resetServerPhaseParameters( LQIO::DOM::Document* document, LQIO::DOM::Phase * phase ) const
-{
-    /* Delete all calls to all other servers from the DOM. */
-    
-    std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
-    dom_calls.clear();		// Should likely delete... 
-
-    /* Set service time to residence time from solution */
-
-    if ( document->hasResults() ) {
-	const double mean = phase->getResultServiceTime();
-	phase->setServiceTimeValue( mean );
-	if ( Flags::output_coefficient_of_variation ) {
-	    const double var  = phase->getResultVarianceServiceTime();
-	    phase->setCoeffOfVariationSquaredValue( var / ( mean * mean ) );
-	} else {
-	    phase->setCoeffOfVariationSquared( 0 );		// Nuke value.
-	}
-    }
-    return *this;
-}
-
 /*- BUG_626 */
-
-
-double 
-Layer::labelWidth() const
-{
-    if ( myLabel ) {
-	return myLabel->width();
-    } else {
-	return 0.0;
-    }
-}
 
 /*
  * Print a layer.
@@ -815,17 +736,13 @@ Layer::labelWidth() const
 ostream&
 Layer::print( ostream& output ) const
 {
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	if ( anEntity->isSelectedIndirectly() ) {
-	    output << *anEntity;
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( (*entity)->isSelectedIndirectly() ) {
+	    output << *(*entity);
 	}
     }
 
-    if ( myLabel ) {
-	output << *myLabel;
-    }
+    output << *_label;
 
     return output;
 }
@@ -833,35 +750,48 @@ Layer::print( ostream& output ) const
 
 
 /*
- * Print a layer.
+ * Print a layer.  Ignore Flags::print[OUPTUT_FORMAT]
  */
 
 ostream&
 Layer::printSubmodel( ostream& output ) const
 {
-    output << "---------- Submodel: " << number()-1 << " ----------" << endl;
+    const size_t n_clients = _clients.size();
+    output << "---------- Submodel: " << number() << " ----------" << endl;
 
-    if ( myClients.size() ) {
+    if ( n_clients > 0 ) {
 	output << "Clients: " << endl;
-	Sequence<const Entity *> nextClient(myClients);
-	const Entity * aClient;
-	while ( aClient = nextClient() ) {
-	    output << *aClient;
+	for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	    (*client)->print( output );
 	}
     }
 
     output << "Servers: " << endl;
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( aServer->isSelected() ) {
-	    output << *aServer;
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( (*entity)->isSelected() ) {
+	    (*entity)->print( output );
 	}
     }
 
     return output;
 }
 
+ostream&
+Layer::printSubmodelSummary( ostream& output ) const
+{
+    unsigned int n_clients  = _clients.size();
+    unsigned int n_servers  = entities().size();
+    unsigned int n_multi    = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isMultiServer ) );
+    unsigned int n_infinite = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isInfinite ) );
+    unsigned int n_fixed    = n_servers - (n_multi + n_infinite);
+    if ( n_clients ) output << n_clients << " " << plural( "Client", n_clients ) << (n_servers ? "; " : "");
+    if ( n_servers ) output << n_servers << " " << plural( "Server", n_servers ) << " ("
+			    << n_fixed << " Fixed, "
+			    << n_multi << " Multi, "
+			    << n_infinite << " Infinite)";
+    output << "." << endl;
+    return output;
+}
 
 
 /*
@@ -875,12 +805,10 @@ Layer::printSummary( ostream& output ) const
     unsigned int n_tasks = 0;
     unsigned int n_customers = 0;
 
-    Sequence<Entity *> nextEntity( entities() );
-    Entity * anEntity;
-    while ( anEntity = nextEntity() ) {
-	if ( anEntity->isProcessor() ) {
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( (*entity)->isProcessor() ) {
 	    n_processors += 1;
-	} else if ( anEntity->isReferenceTask() ) {
+	} else if ( (*entity)->isReferenceTask() ) {
 	    n_customers += 1;
 	} else {
 	    n_tasks += 1;
@@ -903,33 +831,29 @@ Layer::printSummary( ostream& output ) const
 ostream&
 Layer::drawQueueingNetwork( ostream& output ) const
 {
-    Sequence<const Entity *> nextClient( myClients );
-    const Entity *aClient;
 
     double max_x = x() + width();
-    while ( aClient = nextClient() ) {
+    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	bool is_in_open_model = false;
 	bool is_in_closed_model = false;
-	if ( aClient->isInClosedModel( entities() ) ) {
+	if ( (*client)->isInClosedModel( entities() ) ) {
 	    is_in_closed_model = true;
 	}
-	if ( aClient->isInOpenModel( entities() ) ) {
+	if ( (*client)->isInOpenModel( entities() ) ) {
 	    is_in_open_model = true;
 	}
-	aClient->drawClient( output, is_in_open_model, is_in_closed_model );
-	max_x = max( max_x, aClient->right() );
+	(*client)->drawClient( output, is_in_open_model, is_in_closed_model );
+	max_x = max( max_x, (*client)->right() );
     }
 
     /* Now draw connections */
 
-    Vector<bool> chain( nChains(), false );	/* for drawing */
-    Cltn<Arc *> clientArc( nChains() );
+    std::vector<bool> chain( nChains()+1, false );	/* for drawing */
+    std::vector<Arc *> clientArc( nChains()+1 );
 
-    Sequence<Entity *> nextServer( entities() );
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	if ( aServer->isSelected() ) {
-	    aServer->drawQueueingNetwork( output, max_x, y(), chain, clientArc );	/* Draw it. */
+    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
+	if ( (*entity)->isSelected() ) {
+	    (*entity)->drawQueueingNetwork( output, max_x, y(), chain, clientArc );	/* Draw it. */
 	}
     }
     for ( unsigned k = 1; k <= nChains(); ++k ) {
@@ -941,216 +865,20 @@ Layer::drawQueueingNetwork( ostream& output ) const
 }
 
 
-
-#if defined(QNAP_OUTPUT)
-/*
- * Print the submodel as a queueing network for QNAP.
- */
-
-ostream&
-Layer::printQNAP( ostream& output ) const
+void Layer::Position::operator()( Entity * entity )
 {
-    const bool multi_class = nChains() > 1;
-    Sequence<const Entity *> nextClient( myClients );
-    Sequence<Entity *> nextServer( entities() );
-    const Entity * aServer;
-    const Entity * aClient;
-
-    /* Stick all useful stations into a single collection */
-
-    Cltn<const Entity *> stations;
-    while ( aServer = nextServer() ) {
-	if ( aServer->isSelected() ) {
-	    stations += aServer;
-	}
+    if ( !entity->isSelectedIndirectly() ) return;
+    if ( _x != 0.0 ) _x += Flags::print[X_SPACING].value.f;
+    Task * aTask = dynamic_cast<Task *>(entity);
+    if ( aTask && Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
+	(aTask->*_f)();
     }
-    while ( aClient = nextClient() ) {
-	if ( aClient->isSelectedIndirectly() ) {
-	    stations += aClient;
-	}
-    }
-
-    Sequence<const Entity *> nextStation( stations );
-    const Entity * aStation;
-
-    set_indent(0);
-    output << indent(+1) << "/declare/" << endl;
-
-    /* Class info */
-
-    if ( multi_class ) {
-	output << indent(0) << "class ";
-	for ( unsigned k = 1; k <= nChains(); ++k ) {
-	    if ( k > 1 ) {
-		output << ", ";
-	    }
-	    output << "k" << k;
-	}
-	output << ";" << endl;
-    }
-
-    /* Dimensions for replicated stations */
-
-    bool first = true;
-    while ( aStation = nextStation() ) {
-	if ( aStation->isReplicated() ) {
-	    if ( first ) {
-		output << indent(0) << "integer i, ";
-		first = false;
-	    } else {
-		output << ", ";
-	    }
-	    output << qnap_replicas( *aStation ) << " = " << aStation->replicas();
-	}
-    }
-    if ( !first ) {
-	output << ";" << endl;
-    }
-
-    first = true;
-    while ( aClient = nextClient() ) {
-	if ( !dynamic_cast<const Task *>(aClient) ) continue;
-	Sequence<EntityCall *> nextCall( dynamic_cast<const Task *>(aClient)->callList() );
-	EntityCall * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->fanOut() > 1 ) {
-		if ( first ) {
-		    output << indent(0) << "real ";
-		    first = false;
-		} else {
-		    output << ", ";
-		}
-		output << qnap_visits( *aCall ) << "(" << aCall->fanOut() << ")"; 
-	    }
-	}
-    }
-    if ( !first ) {
-	output << ";" << endl;
-    }
-
-    /* The stations themselves */
-
-    first = true;
-    output << indent(0) << "queue ";
-    while ( aStation = nextStation() ) {
-	if ( !first ) {
-	    output << ", ";
-	} else {
-	    first = false;
-	}
-	if ( dynamic_cast<const OpenArrivalSource *>(aStation)  ) {
-	    output << "src";
-	}
-	output << aStation->name();
-	if ( aStation->isReplicated() ) {
-	    output << "(" << qnap_replicas( *aStation ) << ")";
-	}
-    }
-    output << indent(-1) << ";" << endl;
-
-    output << "&" << endl << "& ---------- Clients ----------" << endl << "&" << endl;
-
-    while ( aClient = nextClient() ) {
-	const bool is_in_closed_model = aClient->isInClosedModel( entities() );
-	const bool is_in_open_model = aClient->isInOpenModel( entities() );
-
-	output << indent(+1) << "/station/" << endl;
-	aClient->printQNAPClient( output, is_in_open_model, is_in_closed_model, multi_class );
-	output << indent(-1) << endl;
-    }
-
-    output << "&" << endl << "& ---------- Servers ----------" << endl << "&" << endl;
-    while ( aServer = nextServer() ) {
-	if ( !aServer->isSelected() ) continue;
-	output << indent(+1) << "/station/" << endl;
-	aServer->printQNAPServer( output, multi_class );
-	output << indent(-1) << endl;
-    }
-    
-    output << "&" << endl << "&" << endl << "&" << endl;
-
-    if ( multi_class ) {
-	output << indent(+1) << "/control/" << endl;
-	output << indent(0) << "class = all queue;" << endl;
-	output << indent(-1) << endl;
-    }
-    output << indent(+1) << "/exec/" << endl
-	   << indent(+1) << "begin" << endl;
-
-#if 0
-    while ( aClient = nextClient() ) {
-	if ( !dynamic_cast<const Task *>(aClient) ) continue;
-	Sequence<EntityCall *> nextCall( dynamic_cast<const Task *>(aClient)->callList() );
-	EntityCall * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( aCall->fanOut() > 1 ) {
-		output << indent(0) << "for i := (1, step 1 until " << aCall->fanOut() << ") do" << endl;
-		output << indent(0) << "   " << qnap_visits( *aCall ) << "(i) := " << aCall->rendezvous() << ";" << endl;
-	    }
-	}
-    }
-    /* Set service times */
-    while ( aClient = nextClient() ) {
-	output << indent(0) << aClient->name() << ".service:=" << 0.0 << ";" << endl;
-    }
-    while ( aServer = nextServer() ) {
-	output << indent(0) << aServer->name() << ".service:=" << aServer->serviceTime(1) << ";" << endl;
-    }
-#endif
-
-    output << indent(0) << "solve;" << endl;
-    output << indent(-1) << "end;" << endl;
-    output << indent(-1) << "/end/" << endl;
-    return output;
+    if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
+    entity->moveTo( _x, (_f == &Task::reformat ? entity->bottom() : _y) );
+    _x += entity->width();
+    _y = min( _y, entity->bottom() );
+    _h = max( _h, entity->height() );
 }
-#endif
 
 
 
-#if defined(PMIF_OUTPUT)
-/*
- * Print the submodel as a queueing network for QNAP.
- */
-
-ostream&
-Layer::printPMIF( ostream& output ) const
-{
-    Sequence<const Entity *> nextClient( myClients );
-    Sequence<Entity *> nextServer( entities() );
-    const Entity * aServer;
-    const Entity * aClient;
-
-    output << indent(+1) << "<Node>" << endl;
-    while ( aServer = nextServer() ) {
-	aServer->printPMIFServer( output );
-    }
-    while ( aClient = nextClient() ) {
-	aClient->printPMIFServer( output );
-    }
-    output << indent(-1) << "</Node>" << endl;
-
-    /* All arcs (?) */
-
-    while ( aClient = nextClient() ) {
-	aClient->printPMIFArcs( output );
-    }
-
-    /* Workloads  a.k.a. classes */
-
-    output << indent(+1) << "<Workload>" << endl;
-    while ( aClient = nextClient() ) {
-	aClient->printPMIFClient( output );
-    }
-    output << indent(-1) << "</Workload>" << endl;
-
-    /* ServiceRequests */
-
-    output << indent(+1) << "<ServiceRequest>" << endl;
-    while ( aServer = nextServer() ) {
-	aServer->printPMIFReplies( output );
-    }
-    output << indent(-1) << "</ServiceRequest>" << endl;
-
-    return output;
-}
-#endif

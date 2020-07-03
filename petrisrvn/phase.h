@@ -24,6 +24,8 @@
 class Processor;
 class Task;
 class Entry;
+class Phase;
+
 namespace LQIO {
     namespace DOM {
 	class Phase;
@@ -47,6 +49,7 @@ struct Call {
 
     bool is_rendezvous() const;
     bool is_send_no_reply() const;
+    double value( const Phase *, double = 0.0 ) const;
 
     LQIO::DOM::Call * _dom;			/* DOMs for the calls		*/
     short _rpar_y;				/* Rendezvous rate (by phase).	*/
@@ -80,9 +83,11 @@ public:
     double coeff_of_var() const;		/* */
     double think_time() const;			/* Think time.			*/
 
+    bool has_calls() const { return _call.size() > 0; }
     bool has_deterministic_service() const;
     bool has_stochastic_calls() const;
     bool is_hyperexponential() const;
+    virtual bool is_activity() const { return false; }
     int is_erlang() const;
     int n_stages() const;
 
@@ -93,8 +98,8 @@ public:
     Phase& add_call( LQIO::DOM::Call * );
     void build_forwarding_list();
 
-    virtual double transmorgrify( const double x_pos, const double y_pos, const unsigned m,
-				  const LAYER layer_mask, const double p_pos, const short enabling );
+    double transmorgrify( const double x_pos, const double y_pos, const unsigned m,
+			  const LAYER layer_mask, const double p_pos, const short enabling );
     void create_spar();
     void create_ypar( Entry * entry );
     void remove_netobj();
@@ -106,11 +111,11 @@ public:
     double get_processor_utilization ( unsigned m  );
     double compute_queueing_delay( Call& call, const unsigned m, const Entry * b, const unsigned b_n, Phase * src_phase ) const;
     virtual double residence_time() const;
+    double response_time( const Entry * dst ) const;
 
     virtual void insert_DOM_results();
 
     static void inc_par_offsets(void);
-
 
 private:
     void follow_forwarding_path( const unsigned slice_no, Entry * a, double rate );
@@ -123,9 +128,9 @@ private:
     double utilization() const;
     double queueing_time( const Entry * dst ) const;
     double drop_probability( const Entry * dst ) const;
+    double number_of_calls( const LQIO::DOM::Call * ) const;
 
-public:
-    double response_time( const Entry * dst ) const;
+    bool simplify_phase() const;
 
 protected:
     LQIO::DOM::Phase * _dom;

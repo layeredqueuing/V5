@@ -1,6 +1,6 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 12906 2017-01-26 03:32:30Z greg $
+# $Id: lqns.spec 13523 2020-03-03 16:19:29Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
@@ -115,7 +115,7 @@ rm -f lqsim.%{product_man_section}
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqn2fig
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqn2lqn
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqn2out
-%attr( 0755 , root , root ) %{install_prefix}/bin/lqn2sxd
+%attr( 0755 , root , root ) %{install_prefix}/bin/lqn2svg
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqn2xml
 %attr( 0755 , root , root ) %{install_prefix}/bin/lqx
 %dir %attr( - , root , root ) %{install_prefix}/lib
@@ -135,7 +135,7 @@ rm -f lqsim.%{product_man_section}
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2fig.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2lqn.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2out.%{product_man_section}*
-%attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2sxd.%{product_man_section}*
+%attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2svg.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2xml.%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/rep2flat.%{product_man_section}*
 %dir %attr( 0755 , root , root ) %{install_prefix}/%{share_dir}

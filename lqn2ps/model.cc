@@ -1,11 +1,14 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13170 2018-02-27 21:36:27Z greg $
+ * $Id: model.cc 13547 2020-05-21 02:22:16Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
 
 #include "lqn2ps.h"
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
 #include <algorithm>
 #include <fstream>
 #include <cstdio>
@@ -18,10 +21,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <unistd.h>
-#if HAVE_PWD_H
-#include <pwd.h>
-#endif
 #if HAVE_FLOAT_H
 #include <float.h>
 #endif
@@ -33,7 +32,7 @@
 #endif
 #include <lqio/dom_document.h>
 #include <lqio/srvn_output.h>
-#include "stack.h"
+#include <lqio/srvn_spex.h>
 #include "model.h"
 #include "entry.h"
 #include "activity.h"
@@ -50,10 +49,20 @@
 #include "graphic.h"
 #include "label.h"
 #include "runlqx.h"
+
+class CommentManip {
+public:
+    CommentManip( ostream& (*ff)(ostream&, const char *, const LQIO::DOM::ExternalVariable& ), const char * prefix, const LQIO::DOM::ExternalVariable& var )
+	: f(ff), _prefix(prefix), _var(var) {}
+private:
+    ostream& (*f)( ostream&, const char *, const LQIO::DOM::ExternalVariable& );
+    const char * _prefix;
+    const LQIO::DOM::ExternalVariable& _var;
 
-#if !defined(MAXDOUBLE)
-#define MAXDOUBLE FLT_MAX
-#endif
+    friend ostream& operator<<(ostream & os, const CommentManip& m )
+	{ return m.f(os,m._prefix,m._var); }
+};
+
 
 Model * Model::__model = 0;
 
@@ -82,36 +91,36 @@ bool Model::histogramPresent		= false;
 
 Model::Stats Model::stats[Model::N_STATS];
 
-static CommentManip print_comment( const char * aPrefix, const string& aStr );
+static CommentManip print_comment( const char * aPrefix, const LQIO::DOM::ExternalVariable& );
 static DoubleManip to_inches( const double );
 
-Cltn<Group *> Model::group;
-
 const char * Model::XMLSchema_instance = "http://www.w3.org/2001/XMLSchema-instance";
-
+inline void create_pragma( const std::pair<std::string,std::string>&p ) { pragma( p.first, p.second ); }
+
 /*
- * Compare two entities by their submodel. 
+ * Compare two entities by their submodel.
  */
 
 struct lt_submodel
 {
     bool operator()(const Entity * e1, const Entity * e2) const
 	{
-	    return (e1->level() < e2->level()) 
+	    return (e1->level() < e2->level())
 		|| (e1->level() == e2->level() && (!dynamic_cast<const LQIO::DOM::Entity *>(e2->getDOM()) || (dynamic_cast<const LQIO::DOM::Entity *>(e1->getDOM()) && (dynamic_cast<const LQIO::DOM::Entity *>(e1->getDOM())->getId() < dynamic_cast<const LQIO::DOM::Entity *>(e2->getDOM())->getId()))));
 	}
 };
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Model::Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name )
-    : myKey(0),
-      _taskCount(0), 
-      _processorCount(0),
-      _entryCount(0),
+Model::Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int numberOfLayers )
+    : _layers(numberOfLayers+1),
+      _key(NULL),
+      _label(NULL),
+      _total(),
       _document(document),
       _inputFileName( input_file_name ),
       _outputFileName( output_file_name ),
+      _login(),
       _modelNumber(1),
       _scaling(1.0)
 {
@@ -119,17 +128,10 @@ Model::Model( LQIO::DOM::Document * document, const string& input_file_name, con
     /* Check for more than one instance */
 
     if ( graphical_output() && Flags::print[KEY].value.i != 0 ) {
-	myKey = new Key;
+	_key = new Key;
     }
-
-    /* Reset counters */
-
-    openArrivalCount		= 0;
-    forwardingCount		= 0;
-    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	rendezvousCount[p]	= 0;
-	sendNoReplyCount[p] 	= 0;
-	phaseCount[p]		= 0;
+    if ( graphical_output() && Flags::print[MODEL_COMMENT].value.b ) {
+	_label = Label::newLabel();
     }
 
     stats[TOTAL_ENTRIES].name( "Entries" ).accumulate( &Model::nEntries );
@@ -145,7 +147,7 @@ Model::Model( LQIO::DOM::Document * document, const string& input_file_name, con
     stats[RNVS_PER_ENTRY].name( "Rendezvous per Entry" );
     stats[RNV_RATE_PER_CALL].name( "RNV Rate per Call" );
     stats[SERVICE_TIME_PER_PHASE].name( "Service Time per Phase" );
-    stats[SNRS_PER_ENTRY].name( "Send-no-replies per Entry" ); 
+    stats[SNRS_PER_ENTRY].name( "Send-no-replies per Entry" );
     stats[SNR_RATE_PER_CALL].name( "SNR Rate per Call" );
     stats[FORWARDING_PER_ENTRY].name( "Forwarding per Entry" );
     stats[FORWARDING_PROBABILITY_PER_CALL].name( "Forwarding Probabilty per Call" );
@@ -165,118 +167,100 @@ Model::Model( LQIO::DOM::Document * document, const string& input_file_name, con
 
 
 /*
- * Delete the model.
+ * Delete the model including stuff allocated externally.
  */
 
 Model::~Model()
 {
-    opensource.deleteContents().chop( opensource.size() );
-    group.deleteContents().chop( group.size() );
-
-    layers.clear();
-    __model = 0;
-    if ( myKey ) {
-	delete myKey;
+    for ( std::set<Share *>::const_iterator s = Share::__share.begin(); s != Share::__share.end(); ++s ) {
+	delete *s;
     }
+    Share::__share.clear();
+
+    for ( std::set<Task *>::const_iterator t = Task::__tasks.begin(); t != Task::__tasks.end(); ++t ) {
+	delete *t;
+    }
+    Task::__tasks.clear();
+
+    for ( std::set<Processor *>::const_iterator p = Processor::__processors.begin(); p != Processor::__processors.end(); ++p ) {
+	delete *p;
+    }
+    Processor::__processors.clear();
+
+    for ( std::set<Entry *>::const_iterator e = Entry::__entries.begin(); e != Entry::__entries.end(); ++e ) {
+	delete *e;
+    }
+    Entry::__entries.clear();
+
+    for ( std::vector<OpenArrivalSource *>::iterator o = OpenArrivalSource::__source.begin(); o != OpenArrivalSource::__source.end(); ++o ) {
+	delete *o;
+    }
+    OpenArrivalSource::__source.clear();
+
+    for ( std::vector<Group *>::iterator g = Group::__groups.begin(); g != Group::__groups.end(); ++g ) {
+	delete *g;
+    }
+    Group::__groups.clear();
+
+    _layers.clear();
+    if ( _key ) {
+	delete _key;
+    }
+    if ( _label ) {
+	delete _label;
+    }
+
+    __model = 0;
 }
 
 /*
  * Scale "model" by s.
  */
 
-const Model&
-Model::operator*=( const double s ) const
-{ 
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].scaleBy( s, s );
+Model&
+Model::operator*=( const double s )
+{
+    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::scaleBy, s, s ) );
+    if ( _key ) {
+	_key->scaleBy( s, s );
     }
-    if ( myKey ) {
-	myKey->scaleBy( s, s );
-    }
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-    while( aGroup = nextGroup() )  {
-	aGroup->scaleBy( s, s );
-    }
-    myOrigin  *= s;
-    myExtent  *= s;
-    const_cast<Model *>(this)->_scaling *= s;
+    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::scaleBy, s, s ) );
 
-    return *this; 
+    _origin  *= s;
+    _extent  *= s;
+    _scaling  *= s;
+
+    return *this;
 }
 
 
-const Model&
-Model::translateScale( const double s ) const
+Model&
+Model::translateScale( const double s ) 
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].translateY( top() );
+    for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::translateY, top() ) );
+    if ( _key ) {
+	_key->translateY( top() );
     }
-    if ( myKey ) {
-	myKey->translateY( top() );
-    }
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-    while( aGroup = nextGroup() )  {
-	aGroup->translateY( top() );
-    }
+    for_each( Group::__groups.begin(), Group::__groups.end(), Exec1<Group,double>( &Group::translateY, top() ) );
     *this *= s;
 
     return *this;
 }
 
 
-const Model&
-Model::moveBy( const double dx, const double dy ) const
+Model&
+Model::moveBy( const double dx, const double dy ) 
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].moveBy( dx, dy );
+    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, dx, dy ) );
+    if ( _key ) {
+	_key->moveBy( dx, dy );
     }
-    if ( myKey ) {
-	myKey->moveBy( dx, dy );
-    }
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-    while( aGroup = nextGroup() )  {
-	aGroup->moveBy( dx, dy );
-    }
-    myOrigin.moveBy( dx, dy );
+    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, dx, dy ) );
+    _origin.moveBy( dx, dy );
 
     return *this;
 }
 
-
-
-/*
- * Delete stuff allocated externally.
- */
-void
-Model::free()
-{
-    for ( set<Share *,ltShare>::const_iterator nextShare = share.begin(); nextShare != share.end(); ++nextShare ) {
-	Share * aShare = *nextShare;
-	delete aShare;
-    }
-    share.clear();
-
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	delete aTask;
-    }
-    task.clear();
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	delete aProcessor;
-    }
-    processor.clear();
-
-    for ( set<Entry *,ltEntry>::const_iterator nextEntry = entry.begin(); nextEntry != entry.end(); ++nextEntry ) {
-	Entry * aEntry = *nextEntry;
-	delete aEntry;
-    }
-    entry.clear();
-}
 
 
 #if HAVE_REGEX_T
@@ -300,9 +284,8 @@ Model::add_group( const string& s )
 void
 Model::group_by_processor()
 {
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	const Processor * aProcessor = *nextProcessor;
-	group << new GroupByProcessor( aProcessor );
+    for ( set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), (*processor) ) );
     }
 }
 
@@ -315,90 +298,88 @@ Model::group_by_processor()
 void
 Model::group_by_share()
 {
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
+    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->nShares() == 0 ) {
-	    group << new GroupByProcessor( aProcessor );
+	    Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), aProcessor ) );
 	} else {
-	    for ( set<Share *,ltShare>::const_iterator nextShare = aProcessor->shares().begin(); nextShare != aProcessor->shares().end(); ++nextShare ) {
-		Share * aShare = *nextShare;
-		group << new GroupByShareGroup( aProcessor, aShare );
+	    for ( std::set<Share *>::const_iterator share = aProcessor->shares().begin(); share != aProcessor->shares().end(); ++share ) {
+		Group::__groups.push_back( new GroupByShareGroup( __model->nLayers(), aProcessor, *share ) );
 	    }
-	    group << new GroupByShareDefault( aProcessor );
+	    Group::__groups.push_back( new GroupByShareDefault( __model->nLayers(), aProcessor ) );
 	}
     }
 }
 
 
-/* 
+/*
  * Put boxes around submodels.
  */
 
 void
 Model::group_by_submodel()
 {
-    for ( unsigned i = 1; i < layers.size() ;++i ) {
+    for ( unsigned i = SERVER_LEVEL; i < nLayers(); i += 1 ) {
 	ostringstream s;
 	s << "Submodel " << i;
-	Group * aGroup = new GroupSquashed( s.str(), layers[i], layers[i+1] );
-	aGroup->format( layers.size() ).label().resizeBox().positionLabel();
-	group << aGroup;
+	Group * aGroup = new GroupSquashed( nLayers(), s.str(), _layers.at(i-1), _layers.at(i) );
+	aGroup->format().label().resizeBox().positionLabel();
+	Group::__groups.push_back( aGroup );
     }
 }
 
-bool 
-Model::prepare()
+bool
+Model::prepare( const LQIO::DOM::Document * document )
 {
+    /* Reset counters */
+
+    openArrivalCount		= 0;
+    forwardingCount		= 0;
+    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
+	rendezvousCount[p]	= 0;
+	sendNoReplyCount[p] 	= 0;
+	phaseCount[p]		= 0;
+    }
+
     /* We use this to add all calls */
     std::vector<LQIO::DOM::Entry*> allEntries;
-	
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    const map<string,string>& pragmaList = _document->getPragmaList();
-    map<string,string>::const_iterator pragmaIter;
-    for (pragmaIter = pragmaList.begin(); pragmaIter != pragmaList.end(); ++pragmaIter) {
-	pragma( pragmaIter->first, pragmaIter->second );
-    }
-	
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
-	
-    /* We need to add all of the processors */
-    const std::map<std::string,LQIO::DOM::Processor*>& processorList = _document->getProcessors();
 
-    /* Add all of the processors we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Processor*>::const_iterator nextProcessor = processorList.begin(); nextProcessor != processorList.end(); ++nextProcessor ) {
-	Processor::create(nextProcessor->second);
-    }
-	
+    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
+    const std::map<std::string,std::string>& pragmas = document->getPragmaList();
+    for_each( pragmas.begin(), pragmas.end(), create_pragma );
+
+    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
+
+    /* We need to add all of the processors */
+    const std::map<std::string,LQIO::DOM::Processor*>& processors = document->getProcessors();
+    for_each( processors.begin(), processors.end(), Processor::create );
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
-	
-    const std::map<std::string,LQIO::DOM::Group*>& groups = _document->getGroups();
-    std::map<std::string,LQIO::DOM::Group*>::const_iterator groupIter;
-    for (groupIter = groups.begin(); groupIter != groups.end(); ++groupIter) {
-	LQIO::DOM::Group* domGroup = const_cast<LQIO::DOM::Group*>(groupIter->second);
-	Share::create(domGroup);
-    }
-	
+
+    const std::map<std::string,LQIO::DOM::Group*>& groups = document->getGroups();
+    for_each( groups.begin(), groups.end(), Share::create );
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
-	
+
     /* In the DOM, tasks have entries, but here entries need to go first */
     std::vector<Activity*> activityList;
-    const std::map<std::string,LQIO::DOM::Task*>& taskList = _document->getTasks();
-	
+    const std::map<std::string,LQIO::DOM::Task*>& taskList = document->getTasks();
+
     /* Add all of the tasks we will be needing */
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator nextTask = taskList.begin(); nextTask != taskList.end(); ++nextTask ) {
 	LQIO::DOM::Task* task = nextTask->second;
 
 	/* Before we can add a task we have to add all of its entries */
-		
+
 	/* Prepare to iterate over all of the entries */
-	Cltn<Entry*> entryCollection;
+	std::vector<Entry*> entryCollection;
 	std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
-		
+
 	/* Add the entries so we can reverse them */
 	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
 	    allEntries.push_back( *nextEntry );		// Save the DOM entry.
-	    entryCollection << Entry::create( *nextEntry );
+	    entryCollection.push_back( Entry::create( *nextEntry ) );
 	    if ((*nextEntry)->getStartActivity() != NULL) {
 		activityEntries.push_back(*nextEntry);
 	    }
@@ -414,18 +395,18 @@ Model::prepare()
 	    const LQIO::DOM::Activity* activity = iter->second;
 	    activityList.push_back(Activity::create(aTask, const_cast<LQIO::DOM::Activity*>(activity)));
 	}
-		
+
 	/* Set all the start activities */
 	for (nextEntry = activityEntries.begin(); nextEntry != activityEntries.end(); ++nextEntry) {
 	    LQIO::DOM::Entry* theDOMEntry = *nextEntry;
 	    Entry * anEntry = Entry::find( theDOMEntry->getName() );
-	    Activity * anActivity = aTask->findActivity(theDOMEntry->getStartActivity()->getName().c_str());
+	    Activity * anActivity = aTask->findActivity(theDOMEntry->getStartActivity()->getName());
 	    anEntry->setStartActivity( anActivity );
 	}
     }
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 3: Add Calls/Phase Parameters] */
-	
+
     /* Add all of the calls for all phases to the system */
     const unsigned entryCount = allEntries.size();
     for (unsigned i = 0; i < entryCount; ++i) {
@@ -434,7 +415,7 @@ Model::prepare()
 	assert(newEntry != NULL);
 
 	/* Handle open arrivals */
-	
+
 	if ( entry->hasOpenArrivalRate() ) {
 	    newEntry->isCalled( OPEN_ARRIVAL_REQUEST );
 	}
@@ -444,22 +425,22 @@ Model::prepare()
 	    LQIO::DOM::Phase* phase = entry->getPhase(p);
 	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
 	    std::vector<LQIO::DOM::Call*>::const_iterator iter;
-			
+
 	    /* Add all of the calls to the system */
 	    for (iter = originatingCalls.begin(); iter != originatingCalls.end(); ++iter) {
 		LQIO::DOM::Call* call = *iter;
-				
+
 		/* Add the call to the system */
 		newEntry->addCall( p, call );
 	    }
-			
+
 	    /* Set the phase information for the entry */
 	    string phase_name = entry->getName();
 	    phase_name += "_";
 	    phase_name += p + '0';
 	    phase->setName( phase_name );
 	}
-		
+
 	/* Add in all of the P(frwd) calls */
 	const std::vector<LQIO::DOM::Call*>& forwarding = entry->getForwarding();
 	std::vector<LQIO::DOM::Call*>::const_iterator nextFwd;
@@ -468,9 +449,9 @@ Model::prepare()
 	    newEntry->forward(targetEntry, *nextFwd );
 	}
     }
-	
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 4: Add Calls/Lists for Activities] */
-	
+
     /* Go back and add all of the lists and calls now that activities all exist */
     std::vector<Activity*>::iterator actIter;
     for (actIter = activityList.begin(); actIter != activityList.end(); ++actIter) {
@@ -479,17 +460,17 @@ Model::prepare()
 	    .add_reply_list()
 	    .add_activity_lists();
     }
-	
+
     /* Use the generated connections list to finish up */
     Activity::complete_activity_connections();
-	
+
     /* Tell the user that we have finished */
     return true;
 }
 
 
 
-/* 
+/*
  * layerize and format the input file.
  */
 
@@ -498,43 +479,43 @@ Model::process()
 {
 #if defined(REP2FLAT)
     switch ( Flags::print[REPLICATION].value.i ) {
-    case REPLICATION_EXPAND: expandModel(); break;
+    case REPLICATION_EXPAND: expandModel(); /* Fall through to call removeReplication()! */
     case REPLICATION_REMOVE: removeReplication(); break;
+    case REPLICATION_RETURN: returnReplication(); break;
     }
 #endif
 
     if ( !generate() ) return false;
 
-    /* Simplify model if requested -- this rewrites the DOM. We need paths and stuff. */
+    /* Simplify model if requested. */
 
     if ( Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
-	aggregate( *const_cast<LQIO::DOM::Document *>(getDOM()) );
+	for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Entity>( &Entity::aggregate ) );
     }
 
+    /* Assign all tasks to layers. */
+    
     layerize();
-
-    /* Assign numbers to layers. */
-
-    unsigned j = 0;
-    for ( unsigned i = 1; i <= layers.size() ;++i ) {
-	if ( !layers[i] ) continue;
-	j += 1;
-	layers[i].number(j);
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	layer->number(layer - _layers.begin());    /* Assign numbers to layers. */
     }
 
-    if ( Flags::debug_submodels ) {
-	for ( unsigned i = 2; i <= layers.size(); ++i ) {
-	    if ( !layers[i] ) continue;
-	    layers[i].generateSubmodel().printSubmodel( cerr );		/* We normally don't need to generate a submodel, so do it here */
-	}
+    /* Simplify to tasks (for queueing models) */
+
+    if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES ) {
+	for_each( (_layers.begin() + 1), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
     }
 
-    if ( !check() ) return false;
+    if ( Flags::print[SUMMARY].value.b || Flags::print_submodels ) {
+	printSummary( cerr );
+    } 
+
+    if ( !Flags::print[IGNORE_ERRORS].value.b && !check() ) return false;
 
     if ( !Flags::have_results && Flags::print[COLOUR].value.i == COLOUR_RESULTS ) {
 	Flags::print[COLOUR].value.i = COLOUR_OFF;
     }
-    
+
     if ( share_output() ) {
 	group_by_share();
     } else if ( processor_output() ) {
@@ -545,7 +526,7 @@ Model::process()
 #endif
     }
 
-    sort( Entity::compare );
+    sort( (compare_func_ptr)(&Entity::compare) );
     if ( Flags::rename_model ) {
 	rename();
     } else if ( Flags::squish_names ) {
@@ -555,22 +536,17 @@ Model::process()
     Processor * surrogate_processor = 0;
     Task * surrogate_task = 0;
 
-    unsigned int layer_number = 0;
-    unsigned submodel  = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
+    const unsigned submodel = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
     if ( submodel > 0 ) {
-	layer_number = submodel + 1;
-
  	if ( !selectSubmodel( submodel ) ) {
 	    cerr << io_vars.lq_toolname << ": Submodel " << submodel << " is too big." << endl;
 	    return false;
-	} else if ( Flags::print[LAYERING].value.i == LAYERING_CLIENT ) {
- 	    layers[layer_number].generateClientSubmodel();
 	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
- 	    layers[layer_number].generateSubmodel();
+ 	    _layers.at(submodel).generateSubmodel();
 	    if ( Flags::surrogates ) {
-		layers[layer_number].transmorgrify( _document, surrogate_processor, surrogate_task );
-		relayerize( layer_number );
-		layers[layer_number+1].sort( Entity::compare ).format( 0 ).justify( io_vars.n_entries * Flags::entry_width );
+		_layers[submodel].transmorgrify( _document, surrogate_processor, surrogate_task );
+		relayerize(submodel-1);
+		_layers.at(submodel).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
 #if HAVE_REGEX_T
@@ -578,7 +554,8 @@ Model::process()
 
 	/* Call transmorgrify on all layers */
 
-	for ( unsigned i = layers.size() - 1; i >= 2; --i ) {	
+	for ( unsigned i = layers.size(); i > 0; ) {
+	    i -= 1;
 	    layers[i].generateSubmodel();
 	    layers[i].transmorgrify( _document, surrogate_processor, surrogate_task );
 	    relayerize( i );
@@ -595,63 +572,68 @@ Model::process()
     if ( graphical_output() ) {
 	format();
 
-	if ( group.size() == 0 && Flags::print_submodels ) {
+	if ( Group::__groups.size() == 0 && Flags::print_submodels ) {
 	    group_by_submodel();
 	}
 
 	/* Compensate for the arcs on the right */
 
 	if ( (queueing_output() || submodel_output()) && Flags::flatten_submodel  ) {
-	    format( layers[layer_number] );
+	    format( _layers.at(submodel) );
 	}
 
 	if ( queueing_output() ) {
-	
+
 	    /* Compensate for chains */
 
-	    const double delta = Flags::icon_height / 5.0 * layers[layer_number+1].nChains();
-	    myExtent.moveBy( delta, delta );
-	    myOrigin.moveBy( 0, -delta / 2.0 );
+	    const double delta = Flags::icon_height / 5.0 * _layers[submodel-1].nChains();
+	    _extent.moveBy( delta, delta );
+	    _origin.moveBy( 0, -delta / 2.0 );
 	}
 
 	/* Compensate for labels */
 
 	if ( Flags::print_layer_number ) {
-	    myExtent.moveBy( Flags::print[X_SPACING].value.f + layers[layers.size()].labelWidth() + 5, 0 );
-	} 
+	    _extent.moveBy( Flags::print[X_SPACING].value.f + _layers.back().labelWidth() + 5, 0 );
+	}
 
 	/* Compensate for processor/group boxes. */
 
-	Sequence<Group *> nextGroup( group );
-	Group * aGroup;
-
-	while ( aGroup = nextGroup() ) {
-	    double h = aGroup->y() - myOrigin.y();
+	for ( std::vector<Group *>::iterator group = Group::__groups.begin(); group != Group::__groups.end(); ++group ) {
+	    double h = (*group)->y() - _origin.y();
 	    if ( h < 0 ) {
-		myOrigin.moveBy( 0, h );
-		myExtent.moveBy( 0, -h );
+		_origin.moveBy( 0, h );
+		_extent.moveBy( 0, -h );
 	    }
+	}
+
+	/* Add the comment */
+
+	if ( Flags::print[MODEL_COMMENT].value.b ) {
+	    *_label << _document->getModelCommentString();
+	    _extent.moveBy( 0, _label->height() );
+	    _label->moveTo( _origin.x() + (_extent.x() - _label->width()) / 2.0, _extent.y() );
 	}
 
 	/* Move the key iff necessary */
 
-    	if ( myKey ) {
-	    myKey->label().moveTo( myOrigin.x(), myOrigin.y() ); 
+    	if ( _key ) {
+	    _key->label().moveTo( _origin.x(), _origin.y() );
 
 	    switch ( Flags::print[KEY].value.i ) {
-	    case KEY_TOP_LEFT:	    myKey->moveBy( 0, myExtent.y() - myKey->height() ); break;
-	    case KEY_TOP_RIGHT:	    myKey->moveBy( myExtent.x() - myKey->width(), myExtent.y() - myKey->height() ); break;
+	    case KEY_TOP_LEFT:	    _key->moveBy( 0, _extent.y() - _key->height() ); break;
+	    case KEY_TOP_RIGHT:	    _key->moveBy( _extent.x() - _key->width(), _extent.y() - _key->height() ); break;
 	    case KEY_BOTTOM_LEFT:   break;
-	    case KEY_BOTTOM_RIGHT:  myKey->moveBy( myExtent.x() - myKey->width(), 0 ); break;
+	    case KEY_BOTTOM_RIGHT:  _key->moveBy( _extent.x() - _key->width(), 0 ); break;
 	    case KEY_BELOW_LEFT:
-		moveBy( 0, myKey->height() );
-		myOrigin.moveBy( 0, -myKey->height() );
-		myKey->moveBy( 0, -myKey->height() );
-		myExtent.moveBy( 0, myKey->height() );
+		moveBy( 0, _key->height() );
+		_origin.moveBy( 0, -_key->height() );
+		_key->moveBy( 0, -_key->height() );
+		_extent.moveBy( 0, _key->height() );
 		break;
-	    case KEY_ABOVE_LEFT:    
-		myKey->moveBy( 0, myExtent.y() ); 
-		myExtent.moveBy( 0, myKey->height() );
+	    case KEY_ABOVE_LEFT:
+		_key->moveBy( 0, _extent.y() );
+		_extent.moveBy( 0, _key->height() );
 		break;
 	    }
 	}
@@ -674,13 +656,9 @@ Model::store()
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_X11 ) {
 	/* run the event loop */
 	return true;
-    } 
+    }
 #endif
-    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_NULL ) {
-
-//	accumulateStatistics( _inputFileName );
-
-    } else if ( output_output() && !Flags::have_results ) {
+    if ( output_output() && !Flags::have_results ) {
 
 	cerr << io_vars.lq_toolname << ": There are no results to output for " << _inputFileName << endl;
 	return false;
@@ -695,17 +673,17 @@ Model::store()
 	/* Default mapping */
 
 	string directory_name;
-	const char * suffix = "";
+	string suffix = "";
 
-	if ( hasOutputFileName() && LQIO::Filename::isDirectory( _outputFileName.c_str() ) > 0 ) {
+	if ( hasOutputFileName() && LQIO::Filename::isDirectory( _outputFileName ) > 0 ) {
 	    directory_name = _outputFileName;
 	}
 
 	if ( _document->getResultInvocationNumber() > 0 ) {
-	    suffix = SolverInterface::Solve::customSuffix.c_str();
+	    suffix = SolverInterface::Solve::customSuffix;
 	    if ( directory_name.size() == 0 ) {
 		/* We need to create a directory to store output. */
-		LQIO::Filename filename( hasOutputFileName() ? _outputFileName.c_str() : _inputFileName.c_str(), "d" );		/* Get the base file name */
+		LQIO::Filename filename( hasOutputFileName() ? _outputFileName : _inputFileName, "d" );		/* Get the base file name */
 		directory_name = filename();
 		int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
 		if ( rc < 0 ) {
@@ -719,18 +697,16 @@ Model::store()
 		    }
 		}
 	    }
-	} else {
-	    suffix = "";
 	}
 
 	LQIO::Filename filename;
 	string extension = getExtension();
 	if ( !hasOutputFileName() || directory_name.size() > 0 ) {
-	    filename.generate( _inputFileName.c_str(), extension.c_str(), directory_name.c_str(), suffix );
+	    filename.generate( _inputFileName, extension, directory_name, suffix );
 	} else {
-	    filename = _outputFileName.c_str();
+	    filename = _outputFileName;
 	}
-		
+
 	if ( _inputFileName == filename() && input_output() ) {
 #if defined(REP2FLAT)
 	    if ( Flags::print[REPLICATION].value.i == REPLICATION_EXPAND ) {
@@ -740,21 +716,21 @@ Model::store()
 		if ( pos != string::npos ) {
 		    filename.insert( pos, "-flat" );	// change filename.ext to filename-flat.ext
 		} else {
-		    ostringstream msg; 
+		    ostringstream msg;
 		    msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		    throw runtime_error( msg.str() );
 		}
-	    } else if ( partial_output() 
+	    } else if ( partial_output()
 			|| Flags::print[AGGREGATION].value.i != AGGREGATE_NONE
 			|| Flags::print[REPLICATION].value.i != REPLICATION_NOP ) {
-		ostringstream msg; 
+		ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		throw runtime_error( msg.str() );
 	    }
 #else
-	    if ( partial_output() 
+	    if ( partial_output()
 		 || Flags::print[AGGREGATION].value.i != AGGREGATE_NONE ) {
-		ostringstream msg; 
+		ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
 		throw runtime_error( msg.str() );
 	    }
@@ -768,11 +744,11 @@ Model::store()
 #if defined(EMF_OUTPUT)
 	case FORMAT_EMF:
 	    if ( LQIO::Filename::isRegularFile( filename() ) == 0 ) {
-		ostringstream msg; 
+		ostringstream msg;
 		msg << "Cannot open output file " << filename() << " - not a regular file.";
 		throw runtime_error( msg.str() );
 	    } else {
-		output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+		output.open( filename().c_str(), ios::out|ios::binary );	/* NO \r's in output for windoze */
 	    }
 	    break;
 #endif
@@ -786,17 +762,17 @@ Model::store()
 #if HAVE_LIBPNG
 	case FORMAT_PNG:
 #endif
-	    output.open( filename(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+	    output.open( filename().c_str(), ios::out|ios::binary );	/* NO \r's in output for windoze */
 	    break;
 #endif /* HAVE_LIBGD */
 
 	default:
-	    output.open( filename(), ios::out );
+	    output.open( filename().c_str(), ios::out );
 	    break;
 	}
 
 	if ( !output ) {
-	    ostringstream msg; 
+	    ostringstream msg;
 	    msg << "Cannot open output file " << filename() << " - " << strerror( errno );
 	    throw runtime_error( msg.str() );
 	} else {
@@ -804,7 +780,7 @@ Model::store()
 	    output << *this;
 	}
 	output.close();
-    } 
+    }
     return true;
 }
 
@@ -819,15 +795,15 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( hasOutputFileName() ? _outputFileName.c_str() : _inputFileName.c_str(), "d" );		/* Get the base file name */
+    LQIO::Filename directory_name( hasOutputFileName() ? _outputFileName : _inputFileName, "d" );		/* Get the base file name */
 
-    if ( access( directory_name(), R_OK|X_OK ) < 0 ) {
-	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name(), strerror( errno ) );
+    if ( access( directory_name().c_str(), R_OK|X_OK ) < 0 ) {
+	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     }
 
     unsigned int errorCode;
-    if ( !_document->loadResults( directory_name(), _inputFileName, 
+    if ( !_document->loadResults( directory_name(), _inputFileName,
 				  SolverInterface::Solve::customSuffix, errorCode ) ) {
 	throw LQX::RuntimeException( "--reload-lqx can't load results." );
     } else {
@@ -843,7 +819,6 @@ string
 Model::getExtension()
 {
     string extension;
-    const char * p;
 
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
@@ -875,6 +850,9 @@ Model::getExtension()
 	break;
 #endif
 #endif	/* HAVE_LIBGD */
+    case FORMAT_NULL:
+	extension = "txt";
+	break;
     case FORMAT_OUTPUT:
 	extension = "out";
 	break;
@@ -888,15 +866,16 @@ Model::getExtension()
 	extension = "rtf";
 	break;
     case FORMAT_SRVN:
-#ifdef __CORRECT_ISO_CPP_STRING_H_PROTO
-	p = strrchr( const_cast<char *>(_inputFileName.c_str()), '.' );
-#else
-	p = strrchr( _inputFileName.c_str(), '.' );
-#endif
-	if ( p && *(p+1) != '\0' && strcmp( p+1, "lqnx") != 0 && strcmp( p+1, "lqxo" ) != 0 && strcmp( p+1, "xml" ) != 0 ) {
-	    extension = p+1;
-	} else {
-	    extension = "lqn";
+	extension = "lqn";
+	{
+	    std::size_t i = _inputFileName.find_last_of( '.' );
+	    if ( i != std::string::npos ) {
+		std::string ext = _inputFileName.substr( i+1 );
+		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
+		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "json" && ext != "lqxo" && ext != "lqjo" ) {
+		    extension = ext;
+		}
+	    }
 	}
 	break;
 #if defined(SVG_OUTPUT)
@@ -909,25 +888,20 @@ Model::getExtension()
 	abort();
 	break;
 #endif
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-	extension = "qnap";
-	break;
-#endif
-#if defined(TXT_OUTPUT) 
+#if defined(TXT_OUTPUT)
     case FORMAT_TXT:
 	extension = "txt";
 	break;
 #endif
+    case FORMAT_LQX:
     case FORMAT_XML:
-	if ( queueing_output() ) {
-	    extension = "pmif";
-	} else {
-	    extension = "lqnx";
-	}
+	extension = "lqnx";
+	break;
+    case FORMAT_JSON:
+	extension = "json";
 	break;
 
-    default: 
+    default:
 	abort();
 	break;
     }
@@ -942,22 +916,18 @@ Model::getExtension()
 bool
 Model::generate()
 {
-    _numberOfLayers = topologicalSort();
-
     /* At this point we need to do some intelligent thing about sticking tasks/processors into submodels. */
 
-    layers.grow( _numberOfLayers + 1 );		// need an extra layer if submodel output.
-
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
-	if ( aTask->level() == 0 || !aTask->isReachable() ) {
+	if ( !aTask->isReachable() ) {
 	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Task", aTask->name().c_str() );
-	} else if ( aTask->hasActivities() ) { 
+	} else if ( aTask->hasActivities() ) {
 	    aTask->generate();
-	}	
+	}
     }
 
-    return !io_vars.anError;
+    return Flags::print[IGNORE_ERRORS].value.b || !io_vars.anError();
 }
 
 
@@ -971,26 +941,25 @@ Model::generate()
 unsigned
 Model::topologicalSort()
 {
-    CallStack callStack( io_vars.n_tasks + 2 );
-    unsigned max_depth = 0;
+    CallStack callStack;
+    size_t max_depth = 0;
 
-    set<Task *,ltTask>::const_iterator nextTask = task.begin();
-    for ( unsigned i = 1; nextTask != task.end(); ++nextTask, ++i ) {
+    std::set<Task *>::const_iterator nextTask = Task::__tasks.begin();
+    for ( unsigned i = 1; nextTask != Task::__tasks.end(); ++nextTask, ++i ) {
 	Task * aTask = *nextTask;
 	const int initialLevel = aTask->rootLevel();
-	if ( initialLevel > 0 
+	if ( initialLevel != -1
 #if HAVE_REGEX_T
-	     && (Flags::client_tasks == 0 || regexec( Flags::client_tasks, const_cast<char *>(aTask->name().c_str()), 0, 0, 0 ) != REG_NOMATCH ) 
+	     && (Flags::client_tasks == 0 || regexec( Flags::client_tasks, const_cast<char *>(aTask->name().c_str()), 0, 0, 0 ) != REG_NOMATCH )
 #endif
 	     ) {
 
-	    callStack.grow( initialLevel );
-	    try { 
-		max_depth = max( aTask->findChildren( callStack, i ), max_depth );
-		callStack.shrink( initialLevel );
+	    try {
+		callStack.push_back( NULL );
+		max_depth = std::max( aTask->findChildren( callStack, i ), max_depth );
+		callStack.pop_back();
 	    }
-	    catch( call_cycle& error ) {
-		callStack.shrink( error.depth() );
+	    catch( const Call::cycle_error& error ) {
 		max_depth = max( error.depth(), max_depth );
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	    }
@@ -1009,12 +978,12 @@ Model::topologicalSort()
  */
 
 bool
-Model::selectSubmodel( const unsigned submodel ) 
+Model::selectSubmodel( const unsigned submodel )
 {
-    if ( submodel == 0 || submodel >= _numberOfLayers) {
+    if ( submodel == 0 || submodel >= nLayers() ) {
 	return false;
     } else {
-	layers[submodel+1].selectSubmodel();
+	_layers.at(submodel).selectSubmodel();
 	return true;
     }
 }
@@ -1023,80 +992,55 @@ Model::selectSubmodel( const unsigned submodel )
 Model&
 Model::relayerize( const unsigned level )
 {
-    Cltn<Entity *>& entities = const_cast<Cltn<Entity *>& >(layers[level].entities());
-    Entity * anEntity; Sequence<Entity *> nextEntity( entities );
-    while ( anEntity = nextEntity() ) {
-	if ( anEntity->level() > level ) {
-	    layers[level] -= anEntity;
-	    layers[level+1] += anEntity;
+    std::vector<Entity *>& entities = const_cast<std::vector<Entity *>& >(_layers.at(level).entities());
+    for ( std::vector<Entity *>::iterator entity = entities.begin(); entity != entities.end(); ++entity ) {
+	if ( (*entity)->level() > level ) {
+	    _layers[level].erase(entity);
+	    _layers[level+1].append(*entity);
 	}
     }
     return *this;
 }
 
-/* 
+/*
  *
  */
 
 bool
-Model::check()
+Model::check() const
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	if ( !layers[i].size() ) continue;
-
-	layers[i].check();
-    }
-    return !io_vars.anError;
+    return for_each( _layers.begin(), _layers.end(), AndPredicate<Layer>( &Layer::check ) ).result();
 }
 
 
 
-/* 
- * Now count them up. 
+/*
+ * Now count them up.
  */
 
 unsigned
 Model::totalize()
 {
-    /* Assign numbers to layers. */
-
-    unsigned j = 0;
-    for ( unsigned i = 1; i <= layers.size() ;++i ) {
-	if ( !layers[i] ) continue;
-	j += 1;
-	layers[i].number(j);
+    _total = 0;
+    for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	_total += for_each( layer->entities().begin(), layer->entities().end(), Count() );
     }
-
-    const LayerSequence nextEntity( layers );
-    const Entity * anEntity;
-    _taskCount      = 0;
-    _processorCount = 0;
-    _entryCount     = 0;
-
-    while ( anEntity = nextEntity() ) {
-        const Task * aTask = dynamic_cast<const Task *>(anEntity);
-        if ( aTask ) {
-            _taskCount  += 1;
-            _entryCount += aTask->nEntries();
-        } else if ( dynamic_cast<const Processor *>(anEntity) ) {
-            _processorCount += 1;
-        }
-    }
-    return _taskCount + _processorCount;
+    return _total.tasks() + _total.processors();
 }
 
 
-/* 
- * Order tasks intelligently (!) in each layer. Start at the top. 
+/*
+ * Order tasks intelligently (!) in each layer. Start at the top.
  */
 
-Model const&
-Model::sort( compare_func_ptr compare ) const
+Model&
+Model::sort( compare_func_ptr compare )
 {
-    const double width = io_vars.n_entries * Flags::entry_width;		/* A guess... */
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].sort( compare ).format( 0 ).justify( width );
-    }	
+    const double width = Entry::__entries.size() * Flags::entry_width;		/* A guess... */
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	if ( !*layer == 0 ) continue;
+	layer->sort( compare ).format( 0 ).justify( width );
+    }
     return *this;
 }
 
@@ -1109,10 +1053,10 @@ Model::sort( compare_func_ptr compare ) const
 Model&
 Model::rename()
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].rename();
-    }
-
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec<Element>( &Element::rename ) );
+//    for_each( Group::__groups.begin(), Group::__groups.end(), ::Exec<Element>( &Element::rename ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Element>( &Element::rename ) );
+    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec<Element>( &Element::rename ) );
     return *this;
 }
 
@@ -1125,38 +1069,33 @@ Model::rename()
 Model&
 Model::squishNames()
 {
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->squishName();
-    }
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->squishName();
-    }
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec<Element>( &Element::squishName ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Element>( &Element::squishName ) );
+    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec<Element>( &Element::squishName ) );
     return *this;
 }
 
 
 
 /*
- * Format for printing.
+ * Format for printing.  Start from the bottom.
  */
 
-Model const&
-Model::format() const
+Model&
+Model::format()
 {
-    myOrigin.moveTo( MAXDOUBLE, MAXDOUBLE );
-    myExtent.moveTo( 0, 0 );
+    _origin.moveTo( 0., 0. );
+    _extent.moveTo( 0., 0. );
 
     double start_y = 0.0;
 
-    for ( unsigned i = layers.size(); i > 0; --i ) {
-	if ( layers[i].size() == 0 ) continue;
-	layers[i].format( start_y ).label().depth( (layers.size() - (i-1)) * 10 ).sort( Entity::compareCoord );
-	myOrigin.min( layers[i].x(), layers[i].y() );
-	myExtent.max( layers[i].x() + layers[i].width(), layers[i].y() + layers[i].height() );
+    for ( std::vector<Layer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	if ( !*layer ) continue;
+	layer->format( start_y ).label().sort( (compare_func_ptr)(&Entity::compare) ).depth( (nLayers() - layer->number()) * 10 );
+	_origin.min( layer->x(), layer->y() );
+	_extent.max( layer->x() + layer->width(), layer->y() + layer->height() );
 
-	start_y += (layers[i].height() + Flags::print[Y_SPACING].value.f);
+	start_y += (layer->height() + Flags::print[Y_SPACING].value.f);
     }
 
     justify();
@@ -1165,47 +1104,42 @@ Model::format() const
     switch ( Flags::node_justification ) {
     case DEFAULT_JUSTIFY:
     case ALIGN_JUSTIFY:
-	if ( Flags::print[LAYERING].value.i == LAYERING_BATCH 
-	     || Flags::print[LAYERING].value.i == LAYERING_HWSW 
+	if ( Flags::print[LAYERING].value.i == LAYERING_BATCH
+	     || Flags::print[LAYERING].value.i == LAYERING_HWSW
 	     || Flags::print[LAYERING].value.i == LAYERING_MOL ) {
 	    alignEntities();
 	}
 	break;
     }
 
-    for ( unsigned i = layers.size(); i > 0; --i ) {
-	if ( layers[i].size() == 0 ) continue;
-	layers[i].moveLabelTo( right() + Flags::print[X_SPACING].value.f, layers[i].height() / 2.0 );
-
+    for ( std::vector<Layer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	if ( !*layer ) continue;
+	layer->moveLabelTo( right() + Flags::print[X_SPACING].value.f, layer->height() / 2.0 );
     }
-
     return *this;
 }
 
 
 const Model&
-Model::format( Layer& serverLayer ) const
+Model::format( Layer& serverLayer )
 {
-    Sequence<const Entity *> nextClient(serverLayer.clients());
-    const Entity * aClient;
-
     Layer clientLayer;
-    while ( aClient = nextClient() ) {
-	clientLayer << const_cast<Entity *>(aClient);
+    for ( std::vector<Entity *>::const_iterator client = serverLayer.clients().begin(); client != serverLayer.clients().end(); ++client ) {
+	clientLayer.append( const_cast<Entity *>(*client) );
     }
 
     double start_y = serverLayer.y();
-    myOrigin.moveTo( MAXDOUBLE, MAXDOUBLE );
-    myExtent.moveTo( 0, 0 );
+    _origin.moveTo( MAXDOUBLE, MAXDOUBLE );
+    _extent.moveTo( 0, 0 );
 
-    serverLayer.format( start_y ).sort( Entity::compareCoord );
-    myOrigin.min( serverLayer.x(), serverLayer.y() );
-    myExtent.max( serverLayer.x() + serverLayer.width(), serverLayer.y() + serverLayer.height() );
+    serverLayer.format( start_y ).sort( (compare_func_ptr)(Entity::compareCoord) );
+    _origin.min( serverLayer.x(), serverLayer.y() );
+    _extent.max( serverLayer.x() + serverLayer.width(), serverLayer.y() + serverLayer.height() );
     start_y += ( serverLayer.x() + serverLayer.height() + Flags::print[Y_SPACING].value.f);
 
-    clientLayer.format( start_y ).sort( Entity::compareCoord );
-    myOrigin.min( clientLayer.x(), clientLayer.y() );
-    myExtent.max( clientLayer.x() + clientLayer.width(), clientLayer.y() + clientLayer.height() );
+    clientLayer.format( start_y ).sort( (compare_func_ptr)(&Entity::compareCoord) );
+    _origin.min( clientLayer.x(), clientLayer.y() );
+    _extent.max( clientLayer.x() + clientLayer.width(), clientLayer.y() + clientLayer.height() );
 
     clientLayer.justify( right() );
     serverLayer.justify( right() );
@@ -1218,12 +1152,10 @@ Model::format( Layer& serverLayer ) const
  * Justify the layers.
  */
 
-Model const&
-Model::justify() const
+Model&
+Model::justify()
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].justify( right() );
-    }	
+    for_each( _layers.begin(), _layers.end(), Exec1<Layer,double>( &Layer::justify, right() ) );
     return *this;
 }
 
@@ -1233,12 +1165,10 @@ Model::justify() const
  * Align the layers horizontally.
  */
 
-const Model&
-Model::align() const
+Model&
+Model::align()
 {
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].align( layers[i].height() );
-    }	
+    for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::align ) );
     return *this;
 }
 
@@ -1248,23 +1178,25 @@ Model::align() const
  * Align tasks between layers.
  */
 
-const Model&
-Model::alignEntities() const
+Model&
+Model::alignEntities()
 {
-    if ( layers.size() < 2 ) return *this;	/* No point */
-    if ( layers.size() && Flags::print[LAYERING].value.i == LAYERING_BATCH ) {
-	layers[1].fill( right() );
+    if ( _layers.size() < 2 ) return *this;	/* No point */
+
+    double maxRight = 0.0;
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	if ( !*layer ) {
+	    continue;
+	} else if ( layer->number() == CLIENT_LEVEL ) {
+	    layer->fill( right() );
+	} else {
+	    layer->alignEntities();
+	}
+	maxRight = max( maxRight, layer->x() + layer->width() );
     }
 
-    double maxRight = layers[1].x() + layers[1].width();
-    for ( unsigned i = 2; i <= layers.size(); ++i ) {
-	if ( !layers[i].size() ) continue;
-	layers[i].alignEntities();
-	maxRight = max( maxRight, layers[i].x() + layers[i].width() );
-    }
-    
-    myOrigin.x( 0 );
-    myExtent.x( maxRight );
+    _origin.x( 0 );
+    _extent.x( maxRight );
     return *this;
 }
 
@@ -1276,30 +1208,27 @@ Model::alignEntities() const
  * roughly the same, regarless of format.
  */
 
-Model const&
-Model::finalScaleTranslate() const
+Model&
+Model::finalScaleTranslate()
 {
     /*
      * Shift everything to origin.  Makes life easier for EMF and
-     * other formats with clipping rectangles. Add a border.  
+     * other formats with clipping rectangles. Add a border.
      */
 
     const double offset = Flags::print[BORDER].value.f;
     const double x_offset = offset - left();
     const double y_offset = offset - bottom();		/* Shift to origin */
-    myOrigin.moveTo( 0, 0 );
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	layers[i].moveBy( x_offset, y_offset );
+    _origin.moveTo( 0, 0 );
+    for_each( _layers.begin(), _layers.end(), ::ExecXY<Layer>( &Layer::moveBy, x_offset, y_offset ) );
+    if ( _key ) {
+	_key->moveBy( x_offset, y_offset );
     }
-    if ( myKey ) {
-	myKey->moveBy( x_offset, y_offset );
+    if ( _label ) {
+	_label->moveBy( x_offset, y_offset );
     }
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-    while( aGroup = nextGroup() )  {
-	aGroup->moveBy( x_offset, y_offset );
-    }
-    myExtent.moveBy( 2.0 * offset, 2.0 * offset );
+    for_each( Group::__groups.begin(), Group::__groups.end(), ::ExecXY<Group>( &Group::moveBy, x_offset, y_offset ) );
+    _extent.moveBy( 2.0 * offset, 2.0 * offset );
 
     /* Rescale for output format. */
 
@@ -1360,72 +1289,47 @@ Model::finalScaleTranslate() const
 
 
 
-Model const& 
-Model::label() const
+Model&
+Model::label()
 {
     Flags::have_results = Flags::print[RESULTS].value.b && ( _document->getResultIterations() > 0 || _document->getResultConvergenceValue() > 0 );
-     for ( unsigned i = layers.size(); i > 0; --i ) {
- 	if ( layers[i].size() == 0 ) continue;
-	layers[i].label();
-     }
+    for_each( _layers.rbegin(), _layers.rend(), Exec<Layer>( &Layer::label ) );
     return *this;
 }
 
 
 unsigned
-Model::count( const boolTaskFunc aFunc ) const
+Model::count( const taskPredicate aFunc ) const
 {
-    const LayerSequence nextEntity( layers );
-    const Entity * anEntity;
-    unsigned count = 0;
-    while ( anEntity = nextEntity() ) {
-        const Task * aTask = dynamic_cast<const Task *>(anEntity);
-        if ( aTask && aTask->isServerTask() && (aTask->*aFunc)() ) {
-	    count += 1;
-	}
-    }
-    return count;
+    return for_each( _layers.begin(), _layers.end(), ::Count<Layer,taskPredicate>( &Layer::count, aFunc ) ).count();
 }
 
 
 
 unsigned
-Model::count( const callFunc aFunc ) const
+Model::count( const callPredicate aFunc ) const
 {
-    const LayerSequence nextEntity( layers );
-    const Entity * anEntity;
-    unsigned count = 0;
-    while ( anEntity = nextEntity() ) {
-        const Task * aTask = dynamic_cast<const Task *>(anEntity);
-        if ( aTask && aTask->isServerTask() ) {
-	    Sequence<Entry *> nextEntry( aTask->entries() );
-	    const Entry * anEntry;
-	    while ( anEntry = nextEntry() ) {
-		count += anEntry->countCallers( aFunc );
-	    }
-	}
-    }
-    return count;
+    return for_each( _layers.begin(), _layers.end(), ::Count<Layer,callPredicate>( &Layer::count, aFunc ) ).count();
 }
 
 
 
-unsigned 
+unsigned
 Model::nMultiServers() const
 {
     return count( &Task::isMultiServer );
 }
 
 
-unsigned 
+unsigned
 Model::nInfiniteServers() const
 {
     return count( &Task::isInfinite );
 }
 
 
-Model& 
-Model::accumulateStatistics( const string& filename ) 
+Model&
+Model::accumulateStatistics( const string& filename )
 {
     stats[TOTAL_LAYERS].accumulate( this, filename );
     stats[TOTAL_TASKS].accumulate( this, filename );
@@ -1446,20 +1350,10 @@ Model::accumulateTaskStats( const string& filename ) const
 {
     /* Does not count ref. tasks. */
 
-    for ( unsigned i = 1; i <= layers.size(); ++i ) {
-	unsigned nTasks = 0;
-	Sequence<Entity *> nextEntity( layers[i].entities() );
-	const Entity * anEntity;
-
-	while ( anEntity = nextEntity() ) {
-
-	    /* Does not count ref. tasks. */
-
-	    if ( anEntity->isServerTask() ) {
-		nTasks += 1;
-	    }
-	}
-	if ( nTasks ) {	
+    for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	if ( !*layer ) continue;
+	unsigned nTasks = count_if( layer->entities().begin(), layer->entities().end(), Predicate<Entity>( &Entity::isServerTask ) );
+	if ( nTasks ) {
 	    stats[TASKS_PER_LAYER].accumulate( nTasks, filename );
 	}
     }
@@ -1472,64 +1366,57 @@ Model::accumulateTaskStats( const string& filename ) const
 const Model&
 Model::accumulateEntryStats( const string& filename ) const
 {
-    const LayerSequence nextEntity( layers );
-    const Entity * anEntity;
+    for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	for ( std::vector<Entity *>::const_iterator entity = layer->entities().begin(); entity != layer->entities().end(); ++entity ) {
+	    const Task * aTask = dynamic_cast<const Task *>(*entity);
 
-    while ( anEntity = nextEntity() ) {
-        const Task * aTask = dynamic_cast<const Task *>(anEntity);
+	    /* Does not count ref. tasks. */
 
-	/* Does not count ref. tasks. */
-
-        if ( aTask && aTask->isServerTask() ) {
-	    stats[ENTRIES_PER_TASK].accumulate( aTask->nEntries(), filename );
-	    Sequence<Entry *> nextEntry( aTask->entries() );
-	    const Entry * anEntry;
-	    while ( anEntry = nextEntry() ) {
-		if ( anEntry->hasOpenArrivalRate() ) {
-		    stats[OPEN_ARRIVALS_PER_ENTRY].accumulate( 1.0, filename );
-		    stats[OPEN_ARRIVAL_RATE_PER_ENTRY].accumulate( LQIO::DOM::to_double(anEntry->openArrivalRate()), filename );
-		} else {
-		    stats[OPEN_ARRIVALS_PER_ENTRY].accumulate( 0.0, filename );
-		}
-		if ( anEntry->hasForwarding() ) {
-		    stats[FORWARDING_PER_ENTRY].accumulate( 1.0, filename );
-		} else {
-		    stats[FORWARDING_PER_ENTRY].accumulate( 0.0, filename );
-		}
-		stats[RNVS_PER_ENTRY].accumulate( anEntry->countCallers( &GenericCall::hasRendezvous ), filename );
-		stats[SNRS_PER_ENTRY].accumulate( anEntry->countCallers( &GenericCall::hasSendNoReply ), filename );
-		stats[PHASES_PER_ENTRY].accumulate( anEntry->maxPhase(), filename );
-		for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
-		    if ( anEntry->hasServiceTime(p) ) {
-			stats[SERVICE_TIME_PER_PHASE].accumulate( LQIO::DOM::to_double(anEntry->serviceTime( p )), filename );
+	    if ( aTask && aTask->isServerTask() ) {
+		stats[ENTRIES_PER_TASK].accumulate( aTask->nEntries(), filename );
+		for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+		    if ( (*entry)->hasOpenArrivalRate() ) {
+			stats[OPEN_ARRIVALS_PER_ENTRY].accumulate( 1.0, filename );
+			stats[OPEN_ARRIVAL_RATE_PER_ENTRY].accumulate( LQIO::DOM::to_double((*entry)->openArrivalRate()), filename );
+		    } else {
+			stats[OPEN_ARRIVALS_PER_ENTRY].accumulate( 0.0, filename );
 		    }
-		}
-		 
-		/* get rendezvous rates and what have you */
-
-		Sequence<Call *> nextCall( anEntry->callList() );
-		const Call * aCall;
-		while ( aCall = nextCall() ) {
-		    for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
-			if ( aCall->hasRendezvousForPhase(p) ) {
-			    stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double(aCall->rendezvous(p)), filename );
-			} 
-			if ( aCall->hasSendNoReplyForPhase(p) ) {
-			    stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double(aCall->sendNoReply(p)), filename );
+		    if ( (*entry)->hasForwarding() ) {
+			stats[FORWARDING_PER_ENTRY].accumulate( 1.0, filename );
+		    } else {
+			stats[FORWARDING_PER_ENTRY].accumulate( 0.0, filename );
+		    }
+		    stats[RNVS_PER_ENTRY].accumulate( (*entry)->countCallers( &GenericCall::hasRendezvous ), filename );
+		    stats[SNRS_PER_ENTRY].accumulate( (*entry)->countCallers( &GenericCall::hasSendNoReply ), filename );
+		    stats[PHASES_PER_ENTRY].accumulate( (*entry)->maxPhase(), filename );
+		    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+			if ( (*entry)->hasServiceTime(p) ) {
+			    stats[SERVICE_TIME_PER_PHASE].accumulate( LQIO::DOM::to_double((*entry)->serviceTime( p )), filename );
 			}
 		    }
-		    if ( aCall->hasForwarding() ) {
-			stats[FORWARDING_PROBABILITY_PER_CALL].accumulate( LQIO::DOM::to_double(aCall->forward()), filename );
+
+		    /* get rendezvous rates and what have you */
+
+		    for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
+			for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+			    if ( (*call)->hasRendezvousForPhase(p) ) {
+				stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->rendezvous(p)), filename );
+			    }
+			    if ( (*call)->hasSendNoReplyForPhase(p) ) {
+				stats[RNV_RATE_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->sendNoReply(p)), filename );
+			    }
+			}
+			if ( (*call)->hasForwarding() ) {
+			    stats[FORWARDING_PROBABILITY_PER_CALL].accumulate( LQIO::DOM::to_double((*call)->forward()), filename );
+			}
 		    }
 		}
-	    }
 
-	    Sequence<Activity *> nextActivity( aTask->activities() );
-	    const Activity * anActivity;
-
-	    while ( anActivity = nextActivity() ) {
-		if ( anActivity->hasServiceTime() ) {
-		    stats[SERVICE_TIME_PER_PHASE].accumulate( LQIO::DOM::to_double(anActivity->serviceTime()), filename );
+		const std::vector<Activity *> activities = aTask->activities();
+		for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
+		    if ( (*activity)->hasServiceTime() ) {
+			stats[SERVICE_TIME_PER_PHASE].accumulate( LQIO::DOM::to_double((*activity)->serviceTime()), filename );
+		    }
 		}
 	    }
 	}
@@ -1543,11 +1430,14 @@ Model::accumulateEntryStats( const string& filename ) const
  * Print out the model.
  */
 
-ostream& 
+ostream&
 Model::print( ostream& output ) const
 {
-    if ( Flags::print[PRECISION].value.i >= 0 ) {
-	output.precision(Flags::print[PRECISION].value.i);
+    if ( Flags::print_comment && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_TXT) {
+	const char * comment = getDOM()->getModelCommentString();
+	if ( comment && comment[0] != '\0' ) {
+	    cout << _inputFileName << ": " << comment << endl;
+	}
     }
 
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
@@ -1573,6 +1463,9 @@ Model::print( ostream& output ) const
 	printGD( output, &GD::outputJPG );
 	break;
 #endif
+    case FORMAT_JSON:
+	printJSON( output );
+	break;
     case FORMAT_NULL:
 	break;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
@@ -1581,6 +1474,9 @@ Model::print( ostream& output ) const
 	break;
 #endif
     case FORMAT_OUTPUT:
+	if ( Flags::print[PRECISION].value.i >= 0 ) {
+	    output.precision(Flags::print[PRECISION].value.i);
+	}
 	printOutput( output );
 	break;
     case FORMAT_PARSEABLE:
@@ -1589,11 +1485,6 @@ Model::print( ostream& output ) const
     case FORMAT_POSTSCRIPT:
 	printPostScript( output );
 	break;
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-	printLayers( output );
-	break;
-#endif
     case FORMAT_RTF:
 	printRTF( output );
 	break;
@@ -1615,15 +1506,11 @@ Model::print( ostream& output ) const
     case FORMAT_SRVN:
 	printInput( output  );
 	break;
-#if defined(PMIF_OUTPUT)
+    case FORMAT_LQX:
+	LQIO::Spex::clear();		/* removes spex, so LQX will output. */
     case FORMAT_XML:
-	if ( queueing_output() ) {
-	    printPMIF( output );
-	} else {
-	    printXML( output );
-	}
+	printXML( output );
 	break;
-#endif
 #if defined(X11_OUTPUT)
     case FORMAT_X11:
 	printX11( output );
@@ -1638,99 +1525,40 @@ Model::print( ostream& output ) const
 /*                      Major model transmorgrification                     */
 /* ------------------------------------------------------------------------ */
 
-/* static */ void
-Model::aggregate( LQIO::DOM::Document& document ) 
-{
-//    const std::map<std::string,LQIO::DOM::Task *>& tasks = document.getTasks();
-//    for_each( task.begin(), task.end(), Model::Aggregate() );
-    for ( std::set<Task *>::const_iterator tp = task.begin(); tp != task.end(); ++tp ) {
-	Task * task = *tp;
-	task->aggregate();
-    }
-}
-
-#if 0
-#endif
-
 #if defined(REP2FLAT)
 Model&
 Model::expandModel()
 {
     /* Copy arrays */
 
-    set<Processor *,ltProcessor> old_processor( processor );
-    set<Task *,ltTask> old_task( task );
-    set<Entry *,ltEntry> old_entry( entry );
+    std::set<Processor *,LT<Processor> > old_processor( Processor::__processors );
+    std::set<Task *,LT<Task> > old_task( Task::__tasks );
+    std::set<Entry *,LT<Entry> > old_entry( Entry::__entries );
 
     /* Reset old arrays for new entries. */
 
-    entry.clear();
-    task.clear();
-    processor.clear();
+    Entry::__entries.clear();
+    Task::__tasks.clear();
+    Processor::__processors.clear();
     _document->clearAllMaps();
 
-    /* Expand Processors */
+    /* Expand Processors and entries */
 
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = old_processor.begin(); nextProcessor != old_processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-
-	int numProcReplicas = aProcessor->replicas();
-	for (int k = 1; k <= numProcReplicas; k++) {
-	    aProcessor->expandProcessor(k);
-	}
-    }
-
-    /*  Expand entries */
-
-    for ( set<Entry *,ltEntry>::const_iterator nextEntry = old_entry.begin(); nextEntry != old_entry.end(); ++nextEntry ) {
-	Entry * anEntry = *nextEntry;
-	int numEntryReplicas = anEntry->owner()->replicas();
-
-	for (int k = 1; k <= numEntryReplicas; k++) {
-	    anEntry->expandEntry(k);
-	}
-    }
-
-    /* Expand Tasks */
-
-    for ( set<Task *,ltTask>::const_iterator nextTask = old_task.begin(); nextTask != old_task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	int numTaskReplicas = aTask->replicas();
-	if (aTask->processor()->replicas() > aTask->replicas()) {
-	    cout << "\nWARNING:expandTask(): number of processor '" <<
-		aTask->processor()->name();
-	    cout << "'s replicas (" << aTask->processor()->replicas() << ")" << endl;
-	    cout << "is greater than the number of task '" << aTask->name() << "'s replicas (" 
-		 << aTask->replicas() << ")." << endl;
-	    cout << "So some processor replicas will not be used." << endl;
-	}
-	for (int k = 1; k <= numTaskReplicas; k++) {
-	    aTask->expandTask(k);
-	}
-    }
-
-    /* Expand calls */
-
-    for ( set<Entry *,ltEntry>::const_iterator nextEntry = old_entry.begin(); nextEntry != old_entry.end(); ++nextEntry ) {
-	Entry * anEntry = *nextEntry;
-	anEntry->expandCalls();
-    }
+    for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expandProcessor ) );
+    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandEntry ) );
+    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expandTask ) );
+    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCall ) );
 
     /*  Delete all original Entities from the symbol table and collections */
 
-    for ( set<Entry *,ltEntry>::const_iterator nextEntry = old_entry.begin(); nextEntry != old_entry.end(); ++nextEntry ) {
-	Entry * anEntry = *nextEntry;
-	delete anEntry;
+    for ( std::set<Entry *>::const_iterator entry = old_entry.begin(); entry != old_entry.end(); ++entry ) {
+	delete *entry;
     }
-
-    for ( set<Task *,ltTask>::const_iterator nextTask = old_task.begin(); nextTask != old_task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	delete aTask;
+    for ( std::set<Task *>::const_iterator task = old_task.begin(); task != old_task.end(); ++task ) {
+	delete *task;
     }
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = old_processor.begin(); nextProcessor != old_processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	delete aProcessor;
+    for ( set<Processor *>::const_iterator processor = old_processor.begin(); processor != old_processor.end(); ++processor ) {
+	delete *processor;
     }
 
     return *this;
@@ -1738,19 +1566,43 @@ Model::expandModel()
 
 
 
-Model& 
-Model::removeReplication() 
+Model&
+Model::removeReplication()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->removeReplication();
-    }
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Entity>( &Entity::removeReplication ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Exec<Entity>( &Entity::removeReplication ) );
+    return *this;
+}
 
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->removeReplication();
-    }
 
+
+/*
+ * Revert a flattened model to a replicated model.
+ */
+
+Model&
+Model::returnReplication()
+{
+    /* Copy arrays */
+
+    std::set<Processor *,LT<Processor> > old_processor( Processor::__processors );
+    std::set<Task *,LT<Task> > old_task( Task::__tasks );
+    std::set<Entry *,LT<Entry> > old_entry( Entry::__entries );
+
+    /* Reset old arrays for new entries. */
+
+    Entry::__entries.clear();
+    Task::__tasks.clear();
+    Processor::__processors.clear();
+    _document->clearAllMaps();
+
+    LQIO::DOM::DocumentObject * root = NULL;
+    for_each( old_processor.begin(), old_processor.end(), Exec1<Processor,LQIO::DOM::DocumentObject **>( &Processor::replicateProcessor, &root ) );
+    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::replicateCall ) );	/* do before entry */
+    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::replicateCall ) );		/* do before entry */
+    for_each( old_entry.begin(), old_entry.end(), Exec1<Entry,LQIO::DOM::DocumentObject **>( &Entry::replicateEntry, &root ) );
+    for_each( old_task.begin(), old_task.end(), Exec1<Task,LQIO::DOM::DocumentObject **>( &Task::replicateTask, &root ) );
+    Task::updateFanInOut();
     return *this;
 }
 #endif
@@ -1768,7 +1620,7 @@ Model::printEEPIC( ostream & output ) const
 	   << "% Invoked as: " << command_line << ' ' << _inputFileName << endl
 	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << endl
 	   << "\\begin{picture}("
-	   << static_cast<int>(right()+0.5) << "," << static_cast<int>(top() + 0.5) 
+	   << static_cast<int>(right()+0.5) << "," << static_cast<int>(top() + 0.5)
 	   << ")(" << static_cast<int>(bottom()+0.5)
 	   << "," << -static_cast<int>(bottom()+0.5) << ")" << endl;
 
@@ -1780,7 +1632,7 @@ Model::printEEPIC( ostream & output ) const
 
 
 #if defined(EMF_OUTPUT)
-ostream& 
+ostream&
 Model::printEMF( ostream& output ) const
 {
     /* header start */
@@ -1792,7 +1644,7 @@ Model::printEMF( ostream& output ) const
 #endif
 
 
-/* 
+/*
  * See http://www.xfig.org/userman/fig-format.html
  */
 
@@ -1809,7 +1661,8 @@ Model::printFIG( ostream& output ) const
 	   << "-2" << endl;
     output << "# Created By: " << io_vars.lq_toolname << " Version " << VERSION << endl
 	   << "# Invoked as: " << command_line << ' ' << _inputFileName << endl
-	   << print_comment( "# ", getDOM()->getModelComment() ) << endl;
+	   << "# " << LQIO::DOM::Common_IO::svn_id() << endl
+	   << print_comment( "# ", *getDOM()->getModelComment() ) << endl;
     output << "1200 2" << endl;
     Fig::initColours( output );
 
@@ -1820,12 +1673,12 @@ Model::printFIG( ostream& output ) const
 	 || Flags::print[CHAIN].value.i)
 	&& Flags::print_alignment_box ) {
 	Fig alignment;
-	Point point[4];
-	point[0].moveTo( left(), bottom() );
-	point[1].moveTo( left(), top() );
-	point[2].moveTo( right(), top() );
-	point[3].moveTo( right(), bottom() );
-	alignment.polyline( output, 4, point, Fig::POLYGON, Graphic::WHITE, Graphic::TRANSPARENT, (layers.size()+1)*10 );
+	std::vector<Point> points(4);
+	points[0].moveTo( left(), bottom() );
+	points[1].moveTo( left(), top() );
+	points[2].moveTo( right(), top() );
+	points[3].moveTo( right(), bottom() );
+	alignment.polyline( output, points, Fig::POLYGON, Graphic::WHITE, Graphic::TRANSPARENT, (_layers.size()+1)*10 );
     }
 
     printLayers( output );
@@ -1835,7 +1688,7 @@ Model::printFIG( ostream& output ) const
 
 
 #if HAVE_GD_H && HAVE_LIBGD
-ostream& 
+ostream&
 Model::printGD( ostream& output, outputFuncPtr func ) const
 {
     GD::create( static_cast<int>(right()+0.5), static_cast<int>(top()+0.5) );
@@ -1847,15 +1700,15 @@ Model::printGD( ostream& output, outputFuncPtr func ) const
 #endif
 
 
-ostream& 
+ostream&
 Model::printPostScript( ostream& output ) const
 {
-    printPostScriptPrologue( output, _inputFileName, 
+    printPostScriptPrologue( output, _inputFileName,
 			     static_cast<int>(left()+0.5),
 			     static_cast<int>(bottom()+0.5),
 			     static_cast<int>(right()+0.5),
 			     static_cast<int>(top()+0.5) );
-    
+
     output << "save" << endl;
 
     PostScript::init( output );
@@ -1870,7 +1723,7 @@ Model::printPostScript( ostream& output ) const
 
 
 #if defined(SVG_OUTPUT)
-ostream& 
+ostream&
 Model::printSVG( ostream& output ) const
 {
     output << "<?xml version=\"1.0\" standalone=\"no\"?>" << endl
@@ -1886,13 +1739,13 @@ Model::printSVG( ostream& output ) const
     }
     output << " -->" << endl;
 #endif
-    output << "<!-- For: " << get_userid() << " -->" << endl;
+    output << "<!-- For: " << _login << " -->" << endl;
     output << "<!-- Invoked as: " << command_line << ' ' << _inputFileName << " -->" << endl;
     output << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
 	   << right() / (SVG_SCALING * 72.0) << "in\" height=\""
 	   << top() / (SVG_SCALING * 72.0) << "in\" viewBox=\""
-	   << "0 0 " 
-	   << static_cast<int>(right() + 0.5)<< " " 
+	   << "0 0 "
+	   << static_cast<int>(right() + 0.5)<< " "
 	   << static_cast<int>(top() + 0.5) << "\">" << endl;
     output << "<desc>" << getDOM()->getModelComment() << "</desc>" << endl;
 
@@ -1909,7 +1762,7 @@ Model::printSVG( ostream& output ) const
  * Yow!
  */
 
-ostream& 
+ostream&
 Model::printSXD( ostream& output ) const
 {
     output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl
@@ -1936,7 +1789,7 @@ Model::printSXD( ostream& output ) const
 }
 #endif
 #if defined(X11_OUTPUT)
-ostream& 
+ostream&
 Model::printX11( ostream& output ) const
 {
     return output;
@@ -1947,32 +1800,40 @@ Model::printX11( ostream& output ) const
 
 
 /*
- * Change the order of the entitiy list from the order or input to the order we have assigned.
+ * Change the order of the entity list from the order of input to the order we have assigned.
  */
 
-map<unsigned, LQIO::DOM::Entity *>& 
+map<unsigned, LQIO::DOM::Entity *>&
 Model::remapEntities() const
 {
     map<unsigned, LQIO::DOM::Entity *>& entities = const_cast<map<unsigned, LQIO::DOM::Entity *>&>(getDOM()->getEntities());
-    const LayerSequence nextEntity( layers );
-    const Entity * anEntity;
-    
     entities.clear();
-    for ( unsigned i = 1; anEntity = nextEntity(); ++i ) {
-	entities[i] = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(anEntity->getDOM()));	/* Our order, not the dom's */
-    }
+    for_each( _layers.begin(), _layers.end(), Remap( entities ) );
     return entities;
 }
 
+void
+Model::Remap::operator()( const Layer& layer )
+{
+    for_each( layer.entities().begin(), layer.entities().end(), Remap( _entities ) );
+}
 
-/* 
+void
+Model::Remap::operator()( const Entity * entity )
+{
+    const unsigned int i = _entities.size() + 1;
+    _entities[i] = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM()));	/* Our order, not the dom's */
+}
+
+
+/*
  * Output an input file.
  */
 
-ostream& 
+ostream&
 Model::printInput( ostream& output ) const
 {
-    LQIO::SRVN::Input srvn( *getDOM(), remapEntities(), Flags::annotate_input, Flags::print[RUN_LQX].value.b );
+    LQIO::SRVN::Input srvn( *getDOM(), remapEntities(), Flags::annotate_input );
     srvn.print( output );
     return output;
 }
@@ -1982,7 +1843,7 @@ Model::printInput( ostream& output ) const
  * Output an output file.
  */
 
-ostream& 
+ostream&
 Model::printOutput( ostream& output ) const
 {
     LQIO::SRVN::Output srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b, Flags::print[VARIANCE].value.b, Flags::print[HISTOGRAMS].value.b );
@@ -1996,7 +1857,7 @@ Model::printOutput( ostream& output ) const
  * Output an output file.
  */
 
-ostream& 
+ostream&
 Model::printParseable( ostream& output ) const
 {
     LQIO::SRVN::Parseable srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b );
@@ -2010,7 +1871,7 @@ Model::printParseable( ostream& output ) const
  * Output an output file.
  */
 
-ostream& 
+ostream&
 Model::printRTF( ostream& output ) const
 {
     LQIO::SRVN::RTF srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b );
@@ -2025,48 +1886,41 @@ Model::printRTF( ostream& output ) const
  * Dump the layers.
  */
 
-ostream& 
+ostream&
 Model::printTXT( ostream& output ) const
 {
-    printLayers( output );
+    if ( Flags::print_submodels ) {
+	for ( std::vector<Layer>::const_iterator layer = (_layers.begin() + 1); layer != _layers.end(); ++layer ) {
+	    if ( !*layer ) continue;
+	    const_cast<Layer&>(*layer).generateSubmodel().printSubmodel( output );
+	}
+    } else {
+	printLayers( output );
+    }
     return output;
 }
 #endif
-/*
- * Convert to XML output.
- */
-
-void
-Model::printXML( ostream& output ) const
-{
-    remapEntities();		/* Reorder to our order */
-    _document->serializeDOM( output, Flags::print[RUN_LQX].value.b );	/* Don't output LQX code if running. */
-}
 
 
-#if defined(PMIF_OUTPUT)
 /*
  * Convert to XML output.
  */
 
 ostream&
-Model::printPMIF( ostream& output ) const
+Model::printJSON( ostream& output ) const
 {
-    output << "<?xml version=\"1.0\"?>" << endl;
-    output << "<!-- Generated by: " << io_vars.lq_toolname << ", version " << VERSION << " -->" << endl;
-    set_indent(0);
-    output << indent(+1) 
-	   << "<QueueingNetworkModel "
-	   << "xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\""
-	   << "www.perfeng.com/pmif/pmifschema.xsd" << "\">" << endl;
-
-    printLayers( output );
-
-    output << indent(-1)
-	   << "</QueueingNetworkModel>" << endl;
+    _document->print( output, LQIO::DOM::Document::JSON_OUTPUT );	/* Don't output LQX code if running. */
     return output;
 }
-#endif
+
+
+ostream&
+Model::printXML( ostream& output ) const
+{
+    remapEntities();		/* Reorder to our order */
+    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Don't output LQX code if running. */
+    return output;
+}
 
 /*
  * Print out one layer at at time.  Used by most graphical output routines.
@@ -2076,41 +1930,34 @@ ostream&
 Model::printLayers( ostream& output ) const
 {
     if ( queueing_output() ) {
-	const int submodel = Flags::print[QUEUEING_MODEL].value.i + 1;
-	switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if defined(QNAP_OUTPUT)
-	case FORMAT_QNAP: layers[submodel].printQNAP( output ); break;
-#endif
-#if defined(PMIF_OUTPUT)
-	case FORMAT_XML: layers[submodel].printPMIF( output ); break;
-#endif
-	default: layers[submodel].drawQueueingNetwork( output ); break;
-	}
+	const int submodel = Flags::print[QUEUEING_MODEL].value.i;
+	_layers.at(submodel).drawQueueingNetwork( output );
     } else {
-	Sequence<Group *> nextGroup( group );
-	Group * aGroup;
-	while ( aGroup = nextGroup() )  {
-	    if ( aGroup->isPseudoGroup() ) {
-		output << *aGroup;		/* Draw first */
+	for ( std::vector<Group *>::iterator group = Group::__groups.begin(); group != Group::__groups.end(); ++group ) {
+	    if ( (*group)->isPseudoGroup() ) {
+		output << *(*group);		/* Draw first */
 	    }
 	}
-	while ( aGroup = nextGroup() )  {
-	    if ( !aGroup->isPseudoGroup() ) {
-		output << *aGroup;
+	for ( std::vector<Group *>::iterator group = Group::__groups.begin(); group != Group::__groups.end(); ++group ) {
+	    if ( !(*group)->isPseudoGroup() ) {
+		output << *(*group);
 	    }
 	}
 
-	for ( unsigned int i = 1; i <= layers.size(); ++i ) {
-	    if ( !layers[i] ) continue;
+	for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	    if ( !*layer ) continue;
 #if defined(TXT_OUTPUT)
 	    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_TXT ) {
-		output << "---------- Layer " << i << " ----------" << endl;
+		output << "---------- Layer " << layer->number() << " ----------" << endl;
 	    }
 #endif
-	    output << layers[i];
+	    output << *layer;
 	}
-	if ( myKey ) {
-	    output << *myKey;
+	if ( _key ) {
+	    output << *_key;
+	}
+	if ( _label ) {
+	    output << *_label;
 	}
     }
     return output;
@@ -2143,8 +1990,8 @@ Model::printEEPICepilogue( ostream& output )
  */
 
 ostream&
-Model::printPostScriptPrologue( ostream& output, const string& title, 
-				unsigned left, unsigned top, unsigned right, unsigned bottom )
+Model::printPostScriptPrologue( ostream& output, const string& title,
+				unsigned left, unsigned top, unsigned right, unsigned bottom ) const
 {
     output << "%!PS-Adobe-2.0" << endl;
     output << "%%Title: " << title << endl;
@@ -2154,7 +2001,7 @@ Model::printPostScriptPrologue( ostream& output, const string& title,
     time( &tloc );
     output << "%%CreationDate: " << ctime( &tloc );
 #endif
-    output << "%%For: " << get_userid() << endl;
+    output << "%%For: " << _login << endl;
     output << "%%Invoked as: " << command_line << ' ' << title << endl;
     output << "%%Orientation: Portrait" << endl;
     output << "%%Pages: " << maxModelNumber << endl;
@@ -2177,46 +2024,46 @@ Model::printPostScriptPrologue( ostream& output, const string& title,
 #define MKDIR(a1,a2) mkdir( a1, a2 )
 #endif
 
-const Model& 
+const Model&
 Model::printSXD( const char * file_name ) const
 {
     /* Use basename of input file name */
     LQIO::Filename dir_name( file_name, "" );
 
-    if ( MKDIR( dir_name(), S_IRWXU ) < 0 ) {
-	ostringstream msg;	
+    if ( MKDIR( dir_name().c_str(), S_IRWXU ) < 0 ) {
+	ostringstream msg;
 	msg << "Cannot create directory \"" << dir_name() << "\" - " << strerror( errno );
 	throw runtime_error( msg.str() );
     } else {
 	string meta_name = dir_name();
 	meta_name += "/META-INF";
 	if ( MKDIR( meta_name.c_str(), S_IRWXU ) < 0 ) {
-	    ostringstream msg;	
+	    ostringstream msg;
 	    msg << "Cannot create directory \"" << meta_name << "\" - " << strerror( errno );
-	    rmdir( dir_name() );
+	    rmdir( dir_name().c_str() );
 	    throw runtime_error( msg.str() );
 	} else try {
-	    printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
-	    printSXD( file_name, dir_name(), "content.xml", &Model::printSXD );
-	    printSXD( file_name, dir_name(), "meta.xml", &Model::printSXDMeta );
-	    printSXD( file_name, dir_name(), "styles.xml", &Model::printSXDStyles );
-	    printSXD( file_name, dir_name(), "settings.xml", &Model::printSXDSettings );
-	    printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
-	    rmdir( meta_name.c_str() );
-	} 
-	catch ( runtime_error &error ) {
-	    rmdir( meta_name.c_str() );
-	    rmdir( dir_name() );
-	    throw;
-	}
+		printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
+		printSXD( file_name, dir_name(), "content.xml", &Model::printSXD );
+		printSXD( file_name, dir_name(), "meta.xml", &Model::printSXDMeta );
+		printSXD( file_name, dir_name(), "styles.xml", &Model::printSXDStyles );
+		printSXD( file_name, dir_name(), "settings.xml", &Model::printSXDSettings );
+		printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
+		rmdir( meta_name.c_str() );
+	    }
+	    catch ( const runtime_error &error ) {
+		rmdir( meta_name.c_str() );
+		rmdir( dir_name().c_str() );
+		throw;
+	    }
 
-	rmdir( dir_name() );
+	rmdir( dir_name().c_str() );
     }
     return *this;
 }
 
 const Model&
-Model::printSXD( const char * dst_name, const char * dir_name, const char * file_name, const printSXDFunc aFunc ) const
+Model::printSXD( const std::string& dst_name, const std::string& dir_name, const char * file_name, const printSXDFunc aFunc ) const
 {
     string pathname = dir_name;
     pathname += "/";
@@ -2258,6 +2105,10 @@ ostream&
 Model::printSXDMeta( ostream& output ) const
 {
     char buf[32];
+    unsigned int count = 0;
+    for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	count += layer->entities().size();
+    }
 
     output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
     output << "<!DOCTYPE office:document-meta PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << endl;
@@ -2270,18 +2121,16 @@ Model::printSXDMeta( ostream& output ) const
 #endif
     output << "<dc:title>" << _inputFileName << "</dc:title>" << endl;
     output << "<dc:comment>" << getDOM()->getModelComment() << "</dc:comment>" << endl;
-    output << "<dc:creator>" << get_userid() << "</dc:creator>" << endl;
+    output << "<dc:creator>" << _login << "</dc:creator>" << endl;
     output << "<dc:date>" << buf << "</dc:date>" << endl;
     output << "<dc:language>en-US</dc:language>" << endl;
-
-    LayerSequence nextEntity( layers );
 
     output << "<meta:generator>" << io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << endl;
     output << "<meta:creation-date>" << buf << "</meta:creation-date>" << endl;
     output << "<meta:editing-cycles>1</meta:editing-cycles>" << endl;
 #if defined(HAVE_SYS_TIMES_H)
     struct tms run_time;
-    clock_t stop_clock = times( &run_time );
+    double stop_clock = times( &run_time );
     strftime( buf, 32, "PT%MM%SS", localtime( &tloc ) );
     output << "<meta:editing-duration>" << buf << "</meta:editing-duration>" << endl;
 #endif
@@ -2289,7 +2138,7 @@ Model::printSXDMeta( ostream& output ) const
     output << "<meta:user-defined meta:name=\"Info 2\"/>" << endl;
     output << "<meta:user-defined meta:name=\"Info 3\"/>" << endl;
     output << "<meta:user-defined meta:name=\"Info 4\"/>" << endl;
-    output << "<meta:document-statistic meta:object-count=\"" << nextEntity.size() << "\"/>" << endl;
+    output << "<meta:document-statistic meta:object-count=\"" << count << "\"/>" << endl;
     output << "</office:meta>" << endl;
     output << "</office:document-meta>" << endl;
 
@@ -2340,6 +2189,42 @@ Model::printSXDManifest( ostream& output ) const
 }
 #endif
 
+/* ------------------------------------------------------------------------ */
+
+Model::Count&
+Model::Count::operator=( unsigned int value )
+{
+    _tasks = value;
+    _processors = value;
+    _entries = value;
+    _activities = value;
+    return *this;
+}
+
+Model::Count&
+Model::Count::operator+=( const Model::Count& addend )
+{
+    _tasks += addend._tasks;
+    _processors += addend._processors;
+    _entries += addend._entries;
+    _activities += addend._activities;
+    return *this;
+}
+
+Model::Count&
+Model::Count::operator()( const Entity * entity ) 
+{
+    const Task * aTask = dynamic_cast<const Task *>(entity);
+    if ( aTask ) {
+	_tasks      += 1;
+	_entries    += aTask->nEntries();
+	_activities += aTask->nActivities();
+    } else if ( dynamic_cast<const Processor *>(entity) ) {
+	_processors += 1;
+    }
+    return *this;
+}
+
 /*
  *
  */
@@ -2351,24 +2236,18 @@ Model::printStatistics( ostream& output, const char * filename ) const
 	output << filename << ":" << endl;
     }
 
-    unsigned n_activities = 0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	n_activities += aTask->nActivities();
-    }
-    
-    output << "  Layers: " << layers.size() << endl
-	   << "  Tasks: " << nTasks() << endl
-	   << "  Processors: " << nProcessors() << endl
-	   << "  Entries: " << nEntries() << endl
+    output << "  Layers: " << _layers.size() << endl
+	   << "  Tasks: " << _total.tasks() << endl
+	   << "  Processors: " << _total.processors() << endl
+	   << "  Entries: " << _total.entries() << endl
 	   << "  Phases:" << phaseCount[1] << "," << phaseCount[2] << "," << phaseCount[3] << endl;
-    if ( n_activities > 0 ) {
-	output << "  Activites: " << n_activities << endl;
+    if ( _total.activities() > 0 ) {
+	output << "  Activites: " << _total.activities() << endl;
     }
     output << "  Customers: ";
 
     unsigned i = 0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	const Task * aTask = *nextTask;
 	if ( aTask->isReferenceTask() ) {
 	    i += 1;
@@ -2396,7 +2275,7 @@ Model::printStatistics( ostream& output, const char * filename ) const
 
 
 ostream&
-Model::printOverallStatistics( ostream& output ) 
+Model::printOverallStatistics( ostream& output )
 {
     for ( int i = 0; i < N_STATS; ++i ) {
 	if ( stats[i].sum() > 0 ) {
@@ -2414,43 +2293,25 @@ Model::printSummary( ostream& output ) const
 	output << _inputFileName << ":";
     }
     if ( graphical_output() ) {
-	output << "  width=" << to_inches( right() ) << "\", height=" << to_inches( top() ) << "\"";
+	output << "  width=\"" << to_inches( right() ) << "\", height=\"" << to_inches( top() ) << "\"";
     }
     output << endl;
 
-    if ( group.size() == 0 && Flags::print_submodels ) {
-	for ( unsigned int i = 1; i < layers.size(); ++i ) {
-	    cerr << "    " << setw( 2 ) << i << ": ";
-	    unsigned int n_clients = layers[i].size();
-	    unsigned int n_servers = layers[i+1].size();
-	    if ( n_clients ) output << n_clients << " " << plural( "Client", n_clients ) << (n_servers ? ", " : "");
-	    if ( n_servers ) output << n_servers << " " << plural( "Server", n_servers );
-	    output << "." << endl;
+    if ( Group::__groups.size() == 0 && Flags::print_submodels ) {
+	for ( std::vector<Layer>::const_iterator layer = (_layers.begin()+1); layer != _layers.end(); ++layer ) {
+	    if ( !*layer  || layer->number() == 1 ) continue;
+	    output << "    " << setw( 2 ) << layer->number() - 1 << ": ";
+	    const_cast<Layer&>(*layer).generateSubmodel().printSubmodelSummary( output );
 	}
     } else {
-	for ( unsigned int i = 1; i <= layers.size(); ++i ) {
-	    if ( !layers[i] ) continue;
-	    cerr << "    " << setw( 2 ) << i << ": ";
-	    layers[i].printSummary( cerr ) << endl;
+	for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	    if ( !*layer ) continue;
+	    cerr << "    " << setw( 2 ) << layer->number() << ": ";
+	    layer->printSummary( output ) << endl;
 	}
     }
 
     return output;
-}
-
-
-
-const char *
-Model::get_userid()
-{
-#if defined(HAVE_GETUID)
-    struct passwd * passwd = getpwuid(getuid());
-    return passwd->pw_name;
-#elif defined(WINNT)
-    return getenv("USERNAME");
-#else
-    return "";
-#endif
 }
 
 /*----------------------------------------------------------------------*/
@@ -2458,7 +2319,7 @@ Model::get_userid()
 /*----------------------------------------------------------------------*/
 
 
-/* 
+/*
  * Stick tasks and  processors into layers based on their call depth.
  * This corresponds to the batched model used in LQNS.
  */
@@ -2466,25 +2327,23 @@ Model::get_userid()
 Model&
 Batch_Model::layerize()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
-	if ( aTask->level() == 0  || !aTask->pathTest() ) continue;
+	if ( !aTask->pathTest() ) continue;
 
-	layers[aTask->level()] << aTask;
+	_layers.at(aTask->level()).append(aTask);
 
 	/* find who calls me and stick them in too */
-	Sequence<Entry *> nextEntry(aTask->entries());
-	Entry *anEntry;
-	while ( anEntry = nextEntry() ) {
-	    if ( (graphical_output() || queueing_output()) && anEntry->hasOpenArrivalRate() ) {
-		layers[aTask->level()-1] << new OpenArrivalSource(anEntry);
+	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
+		_layers.at(aTask->level()-1).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
 	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
-	    layers[aProcessor->level()] += static_cast<Entity *>(aProcessor);
+	    _layers.at(aProcessor->level()).append( aProcessor );
 	}
     }
 
@@ -2496,7 +2355,7 @@ Batch_Model::layerize()
 /*----------------------------------------------------------------------*/
 
 
-/* 
+/*
  * Stick tasks into the top two layers (the software model);
  * Stick all processors into the bottom layer (the hardware model).
  */
@@ -2504,30 +2363,28 @@ Batch_Model::layerize()
 Model&
 HWSW_Model::layerize()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
-	if ( aTask->level() == 0 || !aTask->pathTest() ) {
+	if ( !aTask->pathTest() ) {
 	    continue;
 	} else if ( aTask->level() > SERVER_LEVEL ) {
 	    aTask->setLevel( SERVER_LEVEL );
 	}
-	    
-	layers[aTask->level()] << aTask;
+
+	_layers.at(aTask->level()).append(aTask);
 
 	/* find who calls me and stick them in too */
-	Sequence<Entry *> nextEntry(aTask->entries());
-	Entry *anEntry;
-	while ( anEntry = nextEntry() ) {
-	    if ( (graphical_output() || queueing_output()) && anEntry->hasOpenArrivalRate() ) {
-		layers[CLIENT_LEVEL] << new OpenArrivalSource(anEntry);
+	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
+		_layers.at(CLIENT_LEVEL).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
 	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
 	    aProcessor->setLevel( PROCESSOR_LEVEL );
-	    layers[PROCESSOR_LEVEL] += static_cast<Entity *>(aProcessor);
+	    _layers.at(PROCESSOR_LEVEL).append( aProcessor );
 	}
     }
 
@@ -2539,7 +2396,7 @@ HWSW_Model::layerize()
 /*----------------------------------------------------------------------*/
 
 
-/* 
+/*
  * Stick tasks into all but the bottom layer (the software model);
  * stick all processors into the bottom layer (the hardware model).
  * This technique corresonds to Rolia's.
@@ -2550,101 +2407,104 @@ MOL_Model::layerize()
 {
     const unsigned PROC_LEVEL = nLayers();
 
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
-	if ( aTask->level() == 0 || !aTask->pathTest() ) continue;
+	if ( !aTask->pathTest() ) continue;
 
-	layers[aTask->level()] << static_cast<Entity *>(aTask);
+	_layers.at(aTask->level()).append(aTask);
 
 	/* find who calls me and stick them in too */
-	Sequence<Entry *> nextEntry(aTask->entries());
-	Entry *anEntry;
-	while ( anEntry = nextEntry() ) {
-	    if ( (graphical_output() || queueing_output()) && anEntry->hasOpenArrivalRate() ) {
-		layers[aTask->level()-1] << new OpenArrivalSource(anEntry);
+	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
+		_layers.at(aTask->level()-1).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
 	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
 	    aProcessor->setLevel( PROC_LEVEL );
-	    layers[PROC_LEVEL] += static_cast<Entity *>(aProcessor);
+	    _layers.at(PROC_LEVEL).append( aProcessor );
 	}
     }
 
     return *this;
 }
 
+/*----------------------------------------------------------------------*/
+/*                            Group Model.                              */
+/*----------------------------------------------------------------------*/
+
+
 /*
  * Each group consists of a set of processors and their tasks.  These
  * are all formatted then justified as needed.
  */
 
-Model const&
-Group_Model::justify() const
+Model&
+Group_Model::justify()
 {
-    const unsigned MAX_LEVEL = layers.size();
-    
-    myOrigin.x( 0 );
+    _origin.x( 0.0 );
 
     /* Now sort by groups */
+    _extent.x( for_each( Group::__groups.begin(), Group::__groups.end(), Justify( _layers.size() ) ).extent() );
 
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-
-    for ( double x = 0.0; aGroup = nextGroup(); x += Flags::print[X_SPACING].value.f )  {
-
-	aGroup->format( MAX_LEVEL ).label().resizeBox().positionLabel();
-
-	/* The next column starts here.  PseudoGroups (for group
-	 * scheduling) are ignored if they have no default tasks */
-
-	if ( !aGroup->isPseudoGroup() ) {
-	    aGroup->moveGroupBy( x, 0.0 );
-	    aGroup->depth( (MAX_LEVEL+1) * 10 );
-	    x += aGroup->width();
-	} else {
-	    x = aGroup->x() + aGroup->width();
-	    aGroup->depth( (MAX_LEVEL+2) * 10 );
-	}
-	myExtent.x( x );
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	layer->moveLabelTo( right(), layer->height() / 2.0 ).sort( (compare_func_ptr)(&Entity::compareCoord) );
     }
-
-    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	layers[i].moveLabelTo( right(), layers[i].height() / 2.0 ).sort( Entity::compareCoord );
-    }
-
     return *this;
 }
+
+
+void
+Group_Model::Justify::operator()( Group * group )
+{
+    group->format().label().resizeBox().positionLabel();
+
+    /* The next column starts here.  PseudoGroups (for group
+     * scheduling) are ignored if they have no default tasks */
+    
+    if ( _x > 0 ) {
+	_x += Flags::print[X_SPACING].value.f;
+    }
+    if ( !group->isPseudoGroup() ) {
+	group->moveGroupBy( _x, 0.0 );
+	group->depth( (_max_level+1) * 10 );
+	_x += group->width();
+    } else {
+	_x = group->x() + group->width();
+	group->depth( (_max_level+2) * 10 );
+    }
+}
 
+/*----------------------------------------------------------------------*/
+/*                    Processors followed by Tasks                      */
+/*----------------------------------------------------------------------*/
+
+
 /*
  * This version of justify moves all of the processors and all of the tasks together.
  */
 
-Model const&
-ProcessorTask_Model::justify() const
+Model&
+ProcessorTask_Model::justify()
 {
-    const unsigned MAX_LEVEL = layers.size();
+    const unsigned MAX_LEVEL = _layers.size();
     double procWidthPts = 0.0;
     double taskWidthPts = 0.0;
 
-    Vector2<Layer> procLayer;
-    Vector2<Layer> taskLayer;
-    procLayer.grow(MAX_LEVEL);
-    taskLayer.grow(MAX_LEVEL);
+    std::vector<Layer> procLayer(MAX_LEVEL);
+    std::vector<Layer> taskLayer(MAX_LEVEL);
 
-    for ( unsigned i = MAX_LEVEL; i > 0; --i ) {
-	if ( layers.size() == 0 ) continue;
+    for ( std::vector<Layer>::reverse_iterator layer = _layers.rbegin(); layer != _layers.rend(); ++layer ) {
+	if ( !*layer ) continue;
+	const unsigned int i = layer->number();
 
-	Sequence<Entity *> nextEntity( layers[i].entities() );
-	Entity * anEntity;
-
-	while ( anEntity = nextEntity() ) {
-	    if ( dynamic_cast<Processor *>(anEntity) ) {
-		procLayer[i] << anEntity;
+	for ( std::vector<Entity *>::const_iterator entity = layer->entities().begin(); entity != layer->entities().end(); ++entity ) {
+	    if ( dynamic_cast<Processor *>((*entity)) ) {
+		procLayer[i].append( *entity );
 	    } else {
-		taskLayer[i] << anEntity;
+		taskLayer[i].append( *entity );
 	    }
 	}
 
@@ -2662,12 +2522,13 @@ ProcessorTask_Model::justify() const
 
     /* Set max width */
 
-    myExtent.x( procWidthPts + Flags::print[X_SPACING].value.f + taskWidthPts );
+    _extent.x( procWidthPts + Flags::print[X_SPACING].value.f + taskWidthPts );
 
     /* Now, move all tasks */
 
-    for ( unsigned i = 1; i <= MAX_LEVEL; ++i ) {
-	if ( layers[i].size() == 0 ) continue;
+    for ( std::vector<Layer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
+	if ( !*layer ) continue;
+	const unsigned int i = layer->number();
 
 	switch ( Flags::node_justification ) {
 	case ALIGN_JUSTIFY:
@@ -2709,7 +2570,12 @@ ProcessorTask_Model::justify2( Layer &procLayer, Layer &taskLayer, const double 
     return *this;
 }
 
-/* 
+/*----------------------------------------------------------------------*/
+/*                             SRVN Model.                              */
+/*----------------------------------------------------------------------*/
+
+
+/*
  * The trick for the SRVN Model is to retain the layering from the
  * topological sorter, but to treat each server as its own submodel.
  * All of the servers are ordered based on their level then entityID.
@@ -2717,17 +2583,17 @@ ProcessorTask_Model::justify2( Layer &procLayer, Layer &taskLayer, const double 
  */
 
 bool
-SRVN_Model::selectSubmodel( const unsigned submodel ) 
+SRVN_Model::selectSubmodel( const unsigned submodel )
 {
     /* Build the list of all servers for this model */
 
     multiset<Entity *,lt_submodel> servers;
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 	if ( aTask->isReferenceTask() || aTask->level() <= 0 ) continue;
 	servers.insert( aTask );
     }
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
+    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->level() <= 0 ) continue;
 	servers.insert( aProcessor );
@@ -2745,129 +2611,64 @@ SRVN_Model::selectSubmodel( const unsigned submodel )
     return false;
 }
 
-/* 
- * The trick for squashed layering is to simply jamb all tasks in
+/*----------------------------------------------------------------------*/
+/*                          Squashed Model.                             */
+/*----------------------------------------------------------------------*/
+
+
+/*
+ * The trick for squashed layering is to simply jam all tasks in
  * layer 1 and all processors in layer 2.
  */
 
 bool
 Squashed_Model::generate()
 {
-    topologicalSort();
-
     /*
      * Now go through and reset the level field on all the objects.
      */
-	   
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+
+    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
-	if ( aTask->hasActivities() ) { 
+	if ( aTask->hasActivities() ) {
 	    aTask->generate();
 	}
-	if ( aTask->level() == 0 ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Task", aTask->name().c_str() );
-	} else if ( aTask->level() > SERVER_LEVEL ) {
-	    aTask->setLevel( SERVER_LEVEL );
+	if ( aTask->level() > CLIENT_LEVEL ) {
+	    aTask->setLevel( CLIENT_LEVEL );
 	}
     }
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
+    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->level() == 0 ) {
 	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Processor", aProcessor->name().c_str() );
 	} else {
-	    aProcessor->setLevel( PROCESSOR_LEVEL );
+	    aProcessor->setLevel( SERVER_LEVEL );
 	}
     }
 
-    layers.grow( PROCESSOR_LEVEL );
+    _layers.resize( SERVER_LEVEL );
 
-    return true;
+    return Flags::print[IGNORE_ERRORS].value.b || !io_vars.anError();
 }
 
-Model const&
-Squashed_Model::justify() const
+Model&
+Squashed_Model::justify()
 {
     Model::justify();
-
-    /* Now sort by groups */
-
-    Sequence<Group *> nextGroup( group );
-    Group * aGroup;
-
-    while ( aGroup = nextGroup() )  {
-	aGroup->format( 0 ).label().resizeBox().positionLabel();
-    }
-
+    for_each( Group::__groups.begin(), Group::__groups.end(), Justify() );
     return *this;
 }
-
-/*----------------------------------------------------------------------*/
-/*                          Strict Client Model.                        */
-/*----------------------------------------------------------------------*/
 
-
-/*----------------------------------------------------------------------*/
-/* Sequences of objects over all the layers.				*/
-/*----------------------------------------------------------------------*/
-
-Model::LayerSequence::LayerSequence( const Vector2<Layer> & layers ) 
-    : myLayers( layers ), layerIndex(1), entityIndex(1)
+void
+Squashed_Model::Justify::operator()( Group * group )
 {
-}
-
-
-
-/*
- * Return the next entity in the list.
- */
-
-Entity *
-Model::LayerSequence::operator()() const
-{
-    while ( layerIndex <= myLayers.size() ) {
-	const Cltn<Entity *>& entities = myLayers[layerIndex].entities();
-	if ( entityIndex <= entities.size() ) {
-	    Entity * anEntity = entities[entityIndex];
-	    entityIndex += 1;
-	    if ( anEntity->isSelectedIndirectly() ) {
-		return anEntity;
-	    }
-	} else {
-	    entityIndex = 1;
-	    layerIndex += 1;
-	}
-    } 
-
-    layerIndex = 1;
-    return 0;
-}
-
-
-/*
- * We sequence over ourself to get size.
- */
-
-unsigned
-Model::LayerSequence::size() const
-{
-    unsigned count = 0;
-    while ( (*this)() ) {
-	count += 1;
-    }
-    return count;
-}
-
-
-const Model::LayerSequence&
-Model::LayerSequence::rewind() const
-{
-    layerIndex = 1;
-    entityIndex = 1;
-    return *this;
+    group->format().label().resizeBox().positionLabel();
 }
 
-Model::Stats::Stats() 
+/* ------------------------------------------------------------------------ */
+
+Model::Stats::Stats()
     : n(0), x(0), x_sqr(0), log_x(0), one_x(0), min(MAXDOUBLE), max(-MAXDOUBLE), myFunc(0)
 {
     min_filename = "";
@@ -2923,7 +2724,7 @@ Model::Stats::print( ostream& output) const
 	const double numerator = x_sqr - ( x * x ) / static_cast<double>(n);
 	if ( numerator > 0.0 ) {
 	    stddev = sqrt( numerator / static_cast<double>( n ) );
-	} 
+	}
     }
     output << "  mean   = " << x / static_cast<double>(n) << endl;
     output << "  geom   = " << exp( log_x / static_cast<double>(n) ) << endl;	/* Geometric mean */
@@ -2933,20 +2734,17 @@ Model::Stats::print( ostream& output) const
     return output;
 }
 
-void 
-Model::Aggregate::operator()( Task * task )
-{
-    task->aggregate();
-}
-
 static ostream&
-print_comment_str( ostream& output, const char * aPrefix, const string & aComment )
+print_comment_str( ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
 {
-    output << aPrefix;
-    for ( unsigned int i = 0; i < aComment.length(); ++i) {
-	output << aComment[i];
-	if ( aComment[i] == '\n' ) {
-	    output << aPrefix;
+    output << prefix;
+    const char * s = 0;
+    if ( var.getString( s ) && s ) {
+	for ( ; *s; ++s ) {
+	    output << *s;
+	    if ( *s == '\n' ) {
+		output << prefix;
+	    }
 	}
     }
     return output;
@@ -2988,13 +2786,13 @@ to_inches_str( ostream& output, const double value )
 
 
 
-static CommentManip print_comment( const char * aPrefix, const string& aStr )
+static CommentManip print_comment( const char * prefix, const LQIO::DOM::ExternalVariable& var )
 {
-    return CommentManip( &print_comment_str, aPrefix, aStr );
+    return CommentManip( &print_comment_str, prefix, var );
 }
 
 
-static DoubleManip 
+static DoubleManip
 to_inches( const double value )
 {
     return DoubleManip( &to_inches_str, value );

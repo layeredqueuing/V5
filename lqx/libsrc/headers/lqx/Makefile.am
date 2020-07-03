@@ -1,4 +1,4 @@
-# $Id: Makefile.am 9224 2010-03-02 18:40:36Z greg $
+# $Id: Makefile.am 13441 2020-02-05 12:46:45Z greg $
 noinst_HEADERS = Array.h \
 	Environment.h \
 	Intrinsics.h \
@@ -12,6 +12,6 @@ noinst_HEADERS = Array.h \
 	RuntimeException.h \
 	RuntimeFlowControl.h \
 	Scanner.h \
-	Strings.h \
+	LQXStrings.h \
 	SymbolTable.h \
 	SyntaxTree.h

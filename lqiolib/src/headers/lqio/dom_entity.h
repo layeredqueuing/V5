@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.h 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_entity.h 13541 2020-05-19 13:21:52Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,7 @@
 
 #include "input.h"
 #include "dom_object.h"
+#include <utility>
 
 namespace LQIO {
     namespace DOM {
@@ -18,23 +19,47 @@ namespace LQIO {
 	class ExternalVariable;
 
 	class Entity : public DocumentObject {
-	public:
-      
-	    /* All known entity types */
-	    typedef enum Type {
-		TYPE_PROCESSOR,
-		TYPE_TASK,
-		TYPE_ACTIVITY
-	    } Type;
-      
+	protected:
+	    template <class Type> struct Sum {
+		typedef double (Type::*fp)();
+		Sum<Type>( fp f ) : _f(f), _sum(0.) {}
+		void operator()( Type * object ) { _sum += (object->*_f)(); }
+		void operator()( const std::pair<std::string,Type *>& object ) { _sum += (object.second->*_f)(); }
+		double sum() const { return _sum; }
+	    private:
+		fp _f;
+		double _sum;
+	    };
+
+	    template <class Type> struct ConstSum {
+		typedef double (Type::*fp)() const;
+		ConstSum<Type>( fp f ) : _f(f), _sum(0.) {}
+		void operator()( const Type * object ) { _sum += (object->*_f)(); }
+		void operator()( const std::pair<std::string,Type *>& object ) { _sum += (object.second->*_f)(); }
+		double sum() const { return _sum; }
+	    private:
+		fp _f;
+		double _sum;
+	    };
+
+	    template <class Type> struct ConstSumP {
+		typedef double (Type::*fp)( unsigned int p ) const;
+		ConstSumP<Type>( fp f, unsigned int p ) : _f(f), _p(p), _sum(0.) {}
+		void operator()( const Type * object ) { _sum += (object->*_f)(_p); }
+		double sum() const { return _sum; }
+	    private:
+		fp _f;
+		const unsigned int _p;
+		double _sum;
+	    };
+
 	public:
       
 	    /* Designated initializers for the SVN DOM Entity type */
 	    Entity(const Document * document, const char * name, 
 		   const scheduling_type schedulingType,
-		   ExternalVariable* copies,
-		   const unsigned int replicas,
-		   const Type type, const void * xmlDOMElement );
+		   ExternalVariable * copies,
+		   ExternalVariable* replicas );
 	    virtual ~Entity();
       
 	    /* Accessors and Mutators */
@@ -47,13 +72,15 @@ namespace LQIO {
 	    const ExternalVariable* getCopies() const;
 	    void setCopies(ExternalVariable* newCopies);
 	    void setCopiesValue(const unsigned int);
-	    const unsigned int getReplicas() const;
-	    void setReplicas(const unsigned int newReplicas);
-	    const Type getType();
+	    bool hasReplicas() const;
+	    const unsigned int getReplicasValue() const;
+	    const ExternalVariable* getReplicas() const;
+	    void setReplicasValue(const unsigned int newReplicas);
+	    void setReplicas(ExternalVariable* newReplicas);
 
 	    const bool isMultiserver() const;
 	    const bool isInfinite() const;
-      
+
 	private:
 	    Entity( const Entity& );
 	    Entity& operator=( const Entity& );
@@ -62,8 +89,7 @@ namespace LQIO {
 	    unsigned int _entityId;
 	    scheduling_type _entitySchedulingType;
 	    ExternalVariable* _copies;
-	    unsigned int _replicas;
-	    const Type _type;
+	    ExternalVariable* _replicas;
       
 	};
     }

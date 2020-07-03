@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 11294 2013-02-13 01:00:35Z greg $
+# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -16,13 +16,17 @@ SANITY=	01-sanity.lqxo \
 	04-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
-	07-sanity.lqxo 
+	07-sanity.lqxo
 INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
-	13-interlock.lqxo 
+	13-interlock.lqxo \
+	14-interlock.lqxo \
 	15-split-interlock.lqxo \
-	16-open-arrival-lqxo
+	16-split-interlock.lqxo \
+	17-external-interlock.lqxo \
+	18-open-arrival.lqxo \
+	19-subchain.lqxo
 MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
@@ -33,7 +37,8 @@ ACT=	40-activities.lqxo \
 	43-activities.lqxo \
 	44-activities.lqxo \
 	45-activities.lqxo \
-	46-activities.lqxo 
+	46-activities.lqxo \
+	47-activities.lqxo
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo 
@@ -56,7 +61,6 @@ OTHER=	90-A01.lqxo \
 OBJS=	$(SANITY) $(INTER) $(MULTI) $(ACT) $(REPL) $(SEMA) $(SIM) $(SYNC) $(FORK) $(OTHER)
 
 SRCS=	$(OBJS:.lqxo=.lqnx)
-SRCS2=	$(OBJS2:.d=.lqnx)
 
 EXTRA_DIST = $(SRCS)
 
@@ -69,7 +73,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff $< ../../models/regression/petri-results/$*.p > $@
+	-srvndiff ../../models/regression/{petri,sim}-results/$*.p $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -QI -S$(EPSILON) -@- . ../../models/regression/petri-results/
@@ -85,6 +89,9 @@ clean-am:
 
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -S$(EPSILON) -Q -@- . ../../models/regression/petri-results
+
+inter:	$(INTER)
+	echo $(INTER) | tr -s " " "\n" | srvndiff -Q -S$(EPSILON) -@- . ../../models/regression/petri-results
 
 multi:	$(MULTI)
 	echo $(MULTI) | tr -s " " "\n" | srvndiff -Q -S$(EPSILON) -@- . ../../models/regression/petri-results

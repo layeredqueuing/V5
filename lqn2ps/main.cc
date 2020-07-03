@@ -1,9 +1,10 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: main.cc 13533 2020-03-12 22:09:07Z greg $
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
@@ -14,7 +15,8 @@
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
-#include "vector.h"
+#include <lqio/dom_object.h>
+#include <lqio/json_document.h>
 #include "layer.h"
 #include "model.h"
 #include "errmsg.h"
@@ -23,22 +25,7 @@ static double DEFAULT_ICON_HEIGHT = 45;	/* multiple of 9 works well with xfig. *
 
 std::string command_line;
 
-lqio_params_stats io_vars =
-{
-    /* .n_processors =   */ 0,
-    /* .n_tasks =	 */ 0,
-    /* .n_entries =      */ 0,
-    /* .n_groups =       */ 0,
-    /* .lq_toolname =    */ NULL,
-    /* .lq_version =	 */ VERSION,
-    /* .lq_command_line =*/ NULL,
-    /* .severity_action= */ severity_action,
-    /* .max_error =      */ 0,
-    /* .error_count =    */ 0,
-    /* .severity_level = */ LQIO::NO_ERROR,
-    /* .error_messages = */ NULL,
-    /* .anError =        */ 0
-};
+lqio_params_stats io_vars( VERSION, severity_action );
 
 bool Flags::annotate_input		= false;
 bool Flags::async_topological_sort      = true;
@@ -51,6 +38,7 @@ bool Flags::instantiate			= false;
 bool Flags::output_coefficient_of_variation = true;
 bool Flags::output_phase_type		= true;
 bool Flags::print_alignment_box		= true;
+bool Flags::print_comment		= false;
 bool Flags::print_forwarding_by_depth	= false;
 bool Flags::print_layer_number  	= false;
 bool Flags::print_submodels     	= false;
@@ -58,8 +46,9 @@ bool Flags::rename_model		= false;
 bool Flags::squish_names		= false;
 bool Flags::surrogates			= false;
 bool Flags::use_colour			= true;
-bool Flags::debug_submodels	        = false;
 bool Flags::dump_graphviz		= false;
+bool Flags::debug			= false;
+
 
 double Flags::act_x_spacing		= 6.0;
 double Flags::arrow_scaling		= 1.0;
@@ -102,6 +91,7 @@ const char * Options::colouring[] =
     "clients",
     "type",
     "chains",
+    "differences",
     0
 };
 
@@ -128,6 +118,8 @@ const char * Options::io[] =
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     "jpeg",
 #endif
+    "json",
+    "lqx",
     "null",
     "out",
     "parseable",
@@ -136,9 +128,6 @@ const char * Options::io[] =
 #endif
     "ps",
     "pstex",
-#if defined(QNAP_OUTPUT)
-    "qnap",
-#endif
     "rtf",
     "lqn",
 #if defined(SVG_OUTPUT)
@@ -190,7 +179,6 @@ const char * Options::layering[] =
     "share",                            /* LAYERING_SHARE           */
     "squashed",                         /* LAYERING_SQUASHED        */
     "method-of-layers",                 /* LAYERING_MOL             */
-    "client",                           /* LAYERING_CLIENT          */
     0                                   /* */
 };                                         
 
@@ -215,7 +203,7 @@ const char * Options::pragma[] = {
     "squish",				/* PRAGMA_SQUISH_ENTRY_NAMES,		*/
     "submodels",			/* PRAGMA_SUBMODEL_CONTENTS,		*/
     "tasks-only",			/* PRAGMA_TASKS_ONLY			*/
-    "xml-schema",			/* PRAGMA_XML_SCHEMA			*/
+    "no-header",			/* PRAGMA_SPEX_HEADER			*/
     0					
 };
 
@@ -405,7 +393,8 @@ pragma( const string& parameter, const string& value )
 	case PRAGMA_RENAME:			Flags::rename_model	 		= get_bool( value, true ); break;
 	case PRAGMA_SQUISH_ENTRY_NAMES:         Flags::squish_names	 		= get_bool( value, true ); break;
 	case PRAGMA_SUBMODEL_CONTENTS:          Flags::print_submodels 			= get_bool( value, true ); break;
-
+	case PRAGMA_SPEX_HEADER:		LQIO::Spex::__no_header			= get_bool( value, true ); break;
+	    
 	case PRAGMA_QUORUM_REPLY:
 	    io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
 	    break;
@@ -476,16 +465,15 @@ get_bool( const std::string& arg, const bool default_value )
 bool
 graphical_output()
 {
-    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_SRVN 
+    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
+	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
+	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_NULL
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_OUTPUT
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE
-	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_RTF
-	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_NULL
+ 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_RTF
+	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_SRVN 
 #if defined(TXT_OUTPUT)
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_TXT
-#endif
-#if defined(QNAP_OUTPUT)
-	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_QNAP
 #endif
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
 	;
@@ -513,6 +501,8 @@ bool
 input_output()
 {
     return Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN 
+	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JSON
+	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_LQX
 	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_XML
 	;
 }
@@ -559,17 +549,37 @@ submodel_output()
     return Flags::print[SUBMODEL].value.i != 0;
 }
 
+bool
+difference_output()
+{
+    return Flags::print[COLOUR].value.i == COLOUR_DIFFERENCES;
+}
+
+#if defined(REP2FLAT)
+void
+update_mean( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get, unsigned int replica )
+{
+    (dst->*set)( ((dst->*get)() * static_cast<double>(replica - 1) + (src->*get)()) / static_cast<double>(replica) );
+}
 
+
+void
+update_variance( LQIO::DOM::DocumentObject * dst, set_function set, const LQIO::DOM::DocumentObject * src, get_function get )
+{
+    (dst->*set)( (dst->*get)() + (src->*get)() );
+}
+#endif
+
 static int current_indent = 1;
 
 int
 set_indent( const unsigned int anInt ) 
 {
     unsigned int old_indent = current_indent;   
-    current_indent = max( anInt, 0 );
+    current_indent = anInt;
     return old_indent;
 }
-
+
 static ostream&
 value_str_str( ostream& output, const char * aStr )
 {
@@ -632,6 +642,17 @@ value_double_str( ostream& output, const double aDouble )
     return output;
 }
 
+static ostream&
+opt_pct_str( ostream& output, const double aDouble )
+{
+    output << aDouble;
+    if ( difference_output() ) {
+	output << "%";
+    }
+    return output;
+}
+
+
 
 static ostream&
 conf_level_str( ostream& output, const int fill, const int level ) 
@@ -639,21 +660,6 @@ conf_level_str( ostream& output, const int fill, const int level )
     ios_base::fmtflags flags = output.setf( ios::right, ios::adjustfield );
     output << setw( fill-4 ) << "+/- " << setw(2) << level << "% ";
     output.flags( flags );
-    return output;
-}
-
-/*
- * Instantiate var if we are running the lqx program.
- */
-
-static ostream&
-instantiate_str( ostream& output, const LQIO::DOM::ExternalVariable& var )
-{
-    if ( Flags::instantiate ) {
-	output << to_double( var );
-    } else {
-	output << var;
-    }
     return output;
 }
 
@@ -697,95 +703,7 @@ Integer2Manip conf_level( const int fill, const int level )
     return Integer2Manip( &conf_level_str, fill, level );
 }
 
-ExtVarManip instantiate( const LQIO::DOM::ExternalVariable& var )
+DoubleManip opt_pct( const double aDouble )
 {
-    return ExtVarManip( instantiate_str, var );
+    return DoubleManip( &opt_pct_str, aDouble );
 }
-
-#if defined(__GNUC__) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-#include "cltn.h"
-#include "stack.h"
-#include "arc.h"
-#include "phase.h"
-#include "call.h"
-#include "share.h"
-#include "entity.h"
-#include "entry.h"
-#include "activity.h"
-#include "actlayer.h"
-#include "actlist.h"
-#include "open.h"
-#include "group.h"
-#include "label.h"
-#include "processor.h"
-#include "task.h"
-#include "vector.h"
-#include "vector.cc"
-#include "cltn.cc"
-#include "stack.cc"
-#include <lqio/dom_call.h>
-
-template class BackwardsSequence<Arc *>;
-template class BackwardsSequence<Entry *>;
-template class BackwardsSequence<Label *>;
-template class BackwardsSequence<Activity *>;
-template class Cltn<Activity *>;
-template class Cltn<ActivityCall *>;
-template class Cltn<ActivityList *>;  
-template class Cltn<Arc *>;
-template class Cltn<Call *>;
-template class Cltn<Share *>;
-template class Cltn<Entity *>;
-template class Cltn<Entity const *>;
-template class Cltn<EntityCall *>;
-template class Cltn<Entry *>;
-template class Cltn<GenericCall *>;
-template class Cltn<Group *>;
-template class Cltn<Label *>;
-template class Cltn<Layer *>;
-template class Cltn<OpenArrival *>;
-template class Cltn<OpenArrivalSource *>;
-template class Cltn<Processor *>;
-template class Cltn<Reply *>;
-template class Cltn<Task *>;
-template class Cltn<const AndForkActivityList *>;
-template class Cltn<const Entry *>;
-template class Cltn<const char *>;
-template class Cltn<ostringstream *>;
-template class Cltn<istringstream *>;
-template class Sequence<Activity *>;
-template class Sequence<ActivityCall *>;
-template class Sequence<ActivityList *>;  
-template class Sequence<Arc *>;
-template class Sequence<Call *>;
-template class Sequence<Share *>;
-template class Sequence<Entity *>;
-template class Sequence<Entity const *>;
-template class Sequence<EntityCall *>;
-template class Sequence<Entry *>;
-template class Sequence<GenericCall *>;
-template class Sequence<Group *>;
-template class Sequence<Label *>;
-template class Sequence<OpenArrival *>;
-template class Sequence<Processor*>;
-template class Sequence<Reply *>;
-template class Sequence<Task *>;
-template class Sequence<const Entry *>;
-template class Sequence<const char *>;
-template class Sequence<istringstream *>;
-template class Stack<const Activity *>;
-template class Stack<const AndForkActivityList *>;
-template class Stack<const Call *>;
-template class Vector2<ActivityLayer>;
-template class Vector2<LQIO::DOM::Call const*>;
-template class Vector2<Layer>;
-template class Vector2<Phase::Histogram::Bin>;
-template class Vector2<Phase>;
-template class Vector2<Point>;
-template class Vector<bool>;
-template class Vector<double>;
-template class Vector<int>;
-template class Vector<unsigned>;
-
-template ostream& operator<<( ostream& output, const Vector<double>& self );
-#endif

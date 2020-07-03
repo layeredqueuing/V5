@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 13188 2018-03-02 17:44:42Z greg $
+# $Id: configure.ac 13559 2020-05-26 14:38:45Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
-AC_INIT(lqn2ps, 5.9.2, greg@sce.carleton.ca)
+AC_INIT(lqn2ps, 5.14, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqn2ps.h])
 AC_CONFIG_HEADERS([config.h])
@@ -41,11 +41,11 @@ AC_PROG_LN_S
 # Checks for libraries.
 #
 AC_CHECK_LIB([m], [sqrt])
-if test "x$enable_shared" != "xno"; then
+if test "x$enable_shared" == "xyes"; then
+   AC_CHECK_LIB([gd], [gdImageCreate])
    AC_CHECK_LIB([z], [gzopen])
    AC_CHECK_LIB([jpeg], [jpeg_write_raw_data])
    AC_CHECK_LIB([png], [png_write_image])
-   AC_CHECK_LIB([gd], [gdMalloc])
    AC_CHECK_LIB([fontconfig], [FcConfigSubstitute])
 fi
 
@@ -54,10 +54,10 @@ fi
 #
 AC_HEADER_STDC
 AC_CHECK_HEADERS([float.h ieeefp.h])
-if test "x$enable_shared" != "xno"; then
+if test "x$enable_shared" = "xyes"; then
    AC_CHECK_HEADERS([gd.h])
 fi
-AC_CHECK_HEADERS([limits.h pwd.h regex.h stdlib.h string.h unistd.h values.h])
+AC_CHECK_HEADERS([limits.h regex.h stdlib.h string.h unistd.h values.h])
 AC_CHECK_HEADERS([getopt.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -70,15 +70,15 @@ AC_TYPE_SIZE_T
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_CHECK_FUNCS([basename ctime getsubopt])
-AC_CHECK_FUNCS([floor pow sqrt])
-if test "x$enable_shared" != "xno"; then
-   AC_CHECK_FUNCS([getuid])
+AC_CHECK_FUNCS([pow sqrt])
+AC_CHECK_FUNCS([getuid])
+if test "x$enable_shared" = "xyes"; then
    AC_CHECK_FUNCS([gdImageFilledArc gdImageGifPtr gdImageSetAntiAliased gdFTUseFontConfig])
 fi
 AC_CHECK_FUNCS([getopt_long])
 AC_CHECK_FUNCS([mkdir rmdir])
 AC_CHECK_FUNCS([regcomp])
-AC_CHECK_FUNCS([strchr strdup strerror strrchr strspn strtol])
+AC_CHECK_FUNCS([strchr strdup strerror strrchr strtol])
 #
 # Final pass for jpeg/png/gd. 
 #

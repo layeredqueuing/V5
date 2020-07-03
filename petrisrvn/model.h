@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 11899 2014-02-21 18:16:38Z greg $
+ * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -22,6 +22,7 @@
 #include <sys/times.h>
 #include <lqio/filename.h>
 #include <lqio/dom_document.h>
+#include <lqio/common_io.h>
 
 namespace LQIO {
     namespace DOM {
@@ -168,15 +169,15 @@ private:
     void build_open_arrivals ();
 
     void print() const;
-    string createDirectory() const;
-    void print_inservice_probability( ostream& output ) const;
-    unsigned print_inservice_cd( ostream& output, const Entry * a, const Entry * b, const Task * j, double tot_tput[], double col_sum[DIMPH+1] ) const;
+    std::string createDirectory() const;
+    void print_inservice_probability( std::ostream& output ) const;
+    unsigned print_inservice_cd( std::ostream& output, const Entry * a, const Entry * b, const Task * j, double tot_tput[], double col_sum[DIMPH+1] ) const;
 
 private:
     LQIO::DOM::Document * _document;
     std::string _input_file_name;
     std::string _output_file_name;
-    static clock_t __start_time;
+    static LQIO::DOM::CPUTime __start_time;
     unsigned int _n_phases;
 
 public:

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/multserv.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/multserv.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: multserv.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: multserv.h 13413 2018-10-23 15:03:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -36,8 +36,8 @@ public:
     Reiser_Multi_Server( const unsigned copies, const unsigned e, const unsigned k, const unsigned p )
 	: Server(e,k,p), J(copies) { initialize(); }
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual double mu() const { return static_cast<double>(J); }
@@ -51,7 +51,7 @@ public:
 
 protected:
     double sumOf_rho( const unsigned n ) const;
-    virtual Positive sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
 
 private:
     void initialize();
@@ -79,12 +79,12 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Phased_Reiser_Multi_Server"; }
 
 protected:
-    virtual Positive sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 
@@ -111,8 +111,8 @@ public:
 	  Reiser_Multi_Server(copies,e,k,p),
 	  Markov_Phased_Server(e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "Markov_Phased_Reiser_Multi_Server"; }
@@ -137,12 +137,12 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Reiser_PS_Multi_Server"; }
 
 protected:
-    virtual Positive sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 
@@ -166,22 +166,22 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 	
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Conway_Multi_Server"; }
 
 protected:
-    double effectiveBacklog( const MVA& solver, const PopVector& N, const unsigned k ) const;
-    double departureTime( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    double effectiveBacklog( const MVA& solver, const Population& N, const unsigned k ) const;
+    double departureTime( const MVA& solver, const Population& N, const unsigned k ) const;
 
 private:
-    double sumOf_PS_k( const MVA& solver, const PopVector& N, const unsigned k, PopulationIterator& next ) const;
-    double meanMinimumService( const PopVector& N ) const;
-    double A( const MVA& solver, const PopVector& n, const PopVector& N, const unsigned k ) const;
+    double sumOf_PS_k( const MVA& solver, const Population& N, const unsigned k, Population::Iterator& next ) const;
+    double meanMinimumService( const Population& N ) const;
+    double A( const MVA& solver, const Population& n, const Population& N, const unsigned k ) const;
 
 #if	DEBUG_MVA
-    ostream& printXE( ostream&, const unsigned int i, const PopVector& N, const unsigned int k, const double xe, const double q ) const;
-    ostream& printXR( ostream&, const PopVector& N, const unsigned int k, const double xr, const double PB ) const;
+    ostream& printXE( ostream&, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const;
+    ostream& printXR( ostream&, const Population& N, const unsigned int k, const double xr, const double PB ) const;
 
 public:
     static bool debug_XE;
@@ -207,7 +207,7 @@ public:
 	: Server(e,k,p),
 	  Conway_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Phased_Conway_Multi_Server"; }
 };
@@ -233,17 +233,17 @@ public:
 	  Conway_Multi_Server(copies,e,k,p),
 	  Markov_Phased_Server(e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "Markov_Phased_Conway_Multi_Server"; }
 
 protected:
-    virtual Probability PBusy( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Probability PBusy( const MVA& solver, const Population& N, const unsigned k ) const;
 
 private:
-    Positive meanMinimumOvertaking( const MVA& solver, const PopVector& N, const unsigned k, const unsigned p ) const;
+    Positive meanMinimumOvertaking( const MVA& solver, const Population& N, const unsigned k, const unsigned p ) const;
 
 private:
     virtual ostream& printInput( ostream& output, const unsigned e, const unsigned k ) const { return Markov_Phased_Server::printInput( output, e, k ); }
@@ -269,8 +269,8 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }	/* No need for marginals	*/
@@ -279,7 +279,7 @@ public:
 
 protected:
     double filter( const MVA&, const double, const unsigned, const unsigned, const unsigned ) const;
-    virtual Positive sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 class Rolia_PS_Multi_Server : public virtual Server, 
@@ -298,12 +298,12 @@ public:
 	: Server(e,k,p),
 	  Rolia_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Rolia_PS_Multi_Server"; }
 
 protected:
-    virtual Positive sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 /* ---------------------- Phased Rolia Multiserver -------------------- */
@@ -324,12 +324,12 @@ public:
 	: Server(e,k,p),
 	  Rolia_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Phased_Rolia_Multi_Server"; }
 
 protected:
-    virtual Positive sumOf_SL( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 class Markov_Phased_Rolia_Multi_Server : public virtual Server, 
@@ -353,8 +353,8 @@ public:
 	  Phased_Rolia_Multi_Server(copies,e,k,p),
 	  Markov_Phased_Server(e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "Markov_Phased_Rolia_Multi_Server"; }
@@ -378,12 +378,12 @@ public:
 	: Server(e,k,p),
 	  Rolia_PS_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Phased_Rolia_PS_Multi_Server"; }
 
 protected:
-    virtual Positive sumOf_L( const MVA& solver, const PopVector& N, const unsigned k ) const;
+    virtual Positive sumOf_L( const MVA& solver, const Population& N, const unsigned k ) const;
 };
 
 /* ---------------------- Phased Rolia Multiserver -------------------- */
@@ -409,8 +409,8 @@ public:
 	  Rolia_PS_Multi_Server(copies,e,k,p),
 	  Markov_Phased_Server(e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "Phased_Rolia_PS_Multi_Server"; }
@@ -436,13 +436,13 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 	
-    virtual void setMarginalProbabilitiesSize( const PopVector &N );
+    virtual void setMarginalProbabilitiesSize( const Population &N );
     virtual unsigned int marginalProbabilitiesSize() const { return marginalSize; }
     virtual int vectorProbabilities() const { return 1; }
 
-    virtual double muS( const PopVector& N, const unsigned k ) const;
+    virtual double muS( const Population& N, const unsigned k ) const;
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Bruell_Multi_Server"; }
 
@@ -471,9 +471,9 @@ public:
 	: Server(e,k,p),
 	  Bruell_Multi_Server(copies,e,k,p) {}
 	
-    virtual double muS( const PopVector& N, const unsigned k ) const;
+    virtual double muS( const Population& N, const unsigned k ) const;
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual const char * typeStr() const { return "Schmidt_Multi_Server"; }
 };
@@ -495,7 +495,7 @@ public:
 
     virtual double mu() const { return static_cast<double>(J); }
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }
 
@@ -521,8 +521,8 @@ public:
     Markov_Phased_Suri_Multi_Server( const unsigned copies, const unsigned e, const unsigned k, const unsigned p )
 	: Server(e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const;
 
 protected:
@@ -549,7 +549,7 @@ public:
 	: Server(e,k,p),
 	  Reiser_Multi_Server(copies,e,k,p) {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_Reiser_Multi_Server"; }
@@ -560,15 +560,15 @@ public:
 /*                              Helper classes.                         */
 /* -------------------------------------------------------------------- */
 
-class B_Iterator : public PopulationIterator 
+class B_Iterator : public Population::Iterator 
 {
 public:
-    B_Iterator( const Server& aServer, const PopVector& N, const unsigned k );
+    B_Iterator( const Server& aServer, const Population& N, const unsigned k );
 
-    virtual int operator()( PopVector& n );
+    virtual int operator()( Population& n );
 
 protected:
-    virtual int step( PopVector& N, const unsigned i, const unsigned n );
+    virtual int step( Population& N, const unsigned i, const unsigned n );
 
 private:
     void initialize( const unsigned );
@@ -582,9 +582,9 @@ protected:
 class A_Iterator : public B_Iterator 
 {
 public:
-    A_Iterator( const Server& aServer, const unsigned i, const PopVector& N, const unsigned k ): B_Iterator(aServer,N,k), class_i(i) {}
+    A_Iterator( const Server& aServer, const unsigned i, const Population& N, const unsigned k ): B_Iterator(aServer,N,k), class_i(i) {}
 
-    virtual int operator()( PopVector& n );
+    virtual int operator()( Population& n );
 
 private:
     const unsigned class_i;			/* index of class with at least 1 cust.	*/

@@ -1,16 +1,12 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 12550 2016-04-06 22:33:52Z greg $
+ * $Id: help.cc 13479 2020-02-08 23:30:37Z greg $
  */
 
 #include "lqngen.h"
 #include "help.h"
 #include <iostream>
 #include <iomanip>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#include <time.h>
-#endif
 #include <cstring>
 #include <getopt.h>
 
@@ -36,6 +32,23 @@ static inline HelpManip emph( const std::string& s )    { return HelpManip( &emp
 static inline HelpManip bf( const std::string& s )      { return HelpManip( &bf_str, s ); }
 static inline HelpManip tt( const std::string& s )      { return HelpManip( &tt_str, s ); }
 
+class HelpManip2 {
+public:
+    HelpManip2( std::ostream& (*f)(std::ostream&, const std::string&, const RV::RandomVariable& ),
+		const std::string& opt, const RV::RandomVariable& rv )
+	: _f(f), _opt(opt), _rv(rv) {}
+private:
+    std::ostream& (*_f)(std::ostream&, const std::string&, const RV::RandomVariable& );
+    const std::string _opt;
+    const RV::RandomVariable& _rv;
+
+    friend std::ostream& operator<<(std::ostream& os, const HelpManip2& m )
+	{ return m._f(os,m._opt,m._rv); }
+};
+
+static std::ostream& boilerplate_str( std::ostream&, const std::string&, const RV::RandomVariable& );
+static inline HelpManip2 boilerplate( const std::string& option, const RV::RandomVariable& rv ) { return HelpManip2( &boilerplate_str, option, rv ); }
+
 class HelpManip3 {
 public:
     HelpManip3( std::ostream& (*f)(std::ostream&, const std::string&, const std::string&, const std::string& ),
@@ -52,6 +65,7 @@ private:
 };
 
 static std::ostream& flag_str( std::ostream&, const std::string& , const std::string& , const std::string& );
+
 static inline HelpManip3 flag( const std::string& b, const std::string& r="", const std::string& e="" ) { return HelpManip3( &flag_str, b, r, e ); }
 
 class FlagManip {
@@ -70,6 +84,16 @@ static std::ostream& is_not_set_str( std::ostream&, const int );
 static inline FlagManip is_not_set( const int i ) { return FlagManip( &is_not_set_str, i ); }
 
 static bool flag_value( int c );
+
+
+static const char * const distribution_type[] = {
+    "discreet",		/* RV::RandomVariable::CONSTANT */
+    "",			/* RV::RandomVariable::BOTH */
+    "continuous",	/* RV::RandomVariable::CONTINUOUS */
+    "discreet",		/* RV::RandomVariable::DISCREET */
+    ""			/* RV::RandomVariable::PROBABILITY */
+};
+
 using namespace std;
 
 void invalid_option( int c ) 
@@ -113,7 +137,7 @@ void invalid_argument( int c, const string& arg, const string& extra )
 
 void help()
 {
-    cerr << "Try '" << io_vars.lq_toolname << " -h" << "' for more information." << endl;
+    cerr << "Try '" << io_vars.lq_toolname << " -H" << "' for more information." << endl;
 }
 
 /*
@@ -171,6 +195,11 @@ usage()
 	}
 	cerr << endl;
     }
+    cerr << endl
+	 << "For most parameter arguments, ARG can be [distribution:]a[:b].  The optional 'distribution'" << endl
+	 << "overrides the current default distribution in use.  The 'a' argument is the mean value except if the" << endl
+	 << "optional distribution is specified and takes two arguments (e.g, uniform:low:high)." << endl
+	 << "If only the 'a' argument is present, then the mean value of the parameter is set using the default distribution." << endl;
     cerr << endl << "Examples:" << endl;
     if ( Flags::lqn2lqx ) {
 	cerr << "To convert an existing model file to SPEX:" << endl
@@ -219,7 +248,7 @@ man()
     cout << comm << " -*- nroff -*-" << endl
 	 << ".TH " << program_name << " 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
-    cout << comm << " $Id: help.cc 12550 2016-04-06 22:33:52Z greg $" << endl
+    cout << comm << " $Id: help.cc 13479 2020-02-08 23:30:37Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 
@@ -247,14 +276,15 @@ man()
 	     << "input file.  Existing variables within the input file are not" << endl
 	     << "modified.  Note however, that variables initialized in an XML input file with LQX are " << bf("not") << " initialized" << endl
 	     << "in the converted output file because the LQX program must be executed in order to do so.  To convert input formats without the conversion of parameters to"  << endl
-	     << "variables, use " << bf( "lqn2ps" ) << "(1) with " << bf( "--format" ) << "=" << emph( "xml" ) << "( or " << emph( "lqn" ) << " or " << endl
+	     << "variables, use " << bf( "lqn2ps" ) << "(1) with " << bf( "--format" ) << "=" << emph( "xml" ) << " (or " << emph( "lqn" ) << " or " << endl
 	     << emph( "json" ) << ")." << endl;
 	cout << ".PP" << endl
 	     << bf( "lqn2lqx" ) << " reads its input from " << emph( "filename" ) << ", specified at the" << endl
 	     << "command line if present, or from the standard input otherwise.  Output" << endl
 	     << "for an input file " << emph( "filename" ) << " specified on the command line will be" << endl
-	     << "placed in the file " << emph( "filename.ext" ) << ", where " << emph( ".ext" ) << " is " << emph( "lqnx" ) << endl
-	     << "for SPEX conversion and " << emph( "xml" ) << "for LQX conversion." << endl
+	     << "placed in the file " << emph( "filename.ext" ) << ", where " << emph( ".ext" ) << " is " << emph( "xlqn" ) << endl
+	     << "for SPEX conversion, " << emph( "lqnx" ) << "for LQX conversion and" << emph( "json" ) << endl
+	     << "for JSON conversion." << endl
 	     << "If the output file name is the same as the input file name, " << endl
 	     << "the output is written back to the original file name." << endl
 	     << "The original file is renamed to " << emph( "filename.ext~" ) << endl
@@ -339,6 +369,12 @@ man()
 		 << "the command line options of the invocation of " << bf( program_name ) << "." << endl;
 	    break;
 
+	case 0x100+'#':
+	    cout << "Set the total number of customers to " << emph( "ARG" ) << "." << endl
+		 << boilerplate( "total-customers", *discreet_default ) << endl
+		 << "This option cannot be used with " << flag( "\\-\\-customers", "=", "n" ) << "." << endl;
+	    break;
+
 	case 'A':
 	    cout << "Create a model with exactly " << emph( "ARG" ) << " tasks.  The number of entries of a task" << endl
 		 << "is a random variable with a mean of 1.2.  This value can be changed using " << flag( "\\-e", "", "n" ) << "." << endl
@@ -360,7 +396,7 @@ man()
 	case 0x100+'b':
 	    cout << "Assign processors deterministically from left to right, i.e., the first group of tasks are assigned processor 1, the next set gets processor 2, etc.." << endl;
 	    break;
-	    
+
 	case 0x100+'B':
 	    cout << "Use a Binomial distribution for all subsequent options that use a" << endl
 		 << "discreet random variable generator." << endl;
@@ -372,8 +408,8 @@ man()
 	    break;
 
 	case 'c':
-	    cout << "Set the " << emph( "mean" ) << " number of customers at each of the client reference tasks to "
-		 << emph( "ARG" ) << "." << endl;
+	    cout << "Set the " << emph( "mean" ) << " number of customers at each of the client reference tasks to " << emph( "ARG" ) << "." << endl
+		 << boilerplate( "customers", *discreet_default ) << endl;
 	    break;
 	    
 	case 0x100+'c':
@@ -383,27 +419,37 @@ man()
 	    break;
 	    
 	case 'C':
-	    cout << "Create " << emph( "ARG" ) << " client " << emph( "(reference)" ) << " tasks.  Use " << bf( "\\-\\-customers" ) << " to" << endl
-		 << "specify the average number of customers (copies) at each client task." << endl;
+	    cout << "Create " << emph( "ARG" ) << " client " << emph( "(reference)" ) << " tasks.  " << endl
+		 << boilerplate( "clients", *constant_default ) << endl
+		 << "Use " << flag( "\\-\\-customers" ) << " to specify the average number of customers (copies) at each client task." << endl;
 	    break;
 
 	case 0x100+'C':
 	    cout << "Use " << emph( "constant" ) << " values for all subsequent parameters." << endl;
 	    break;
 
+	case 'd':	/* */
+	    cout << "Set the probability that a processor is a delay server to " << emph( "ARG" ) << "." << endl
+		 << "Tasks are not affected." << endl;
+	    if ( Flags::lqn2lqx ) {
+		cout << "All processors that have constant multiplicities are eligible for conversion to infinite servers." << endl
+		     << "Processors whose multiplicity is set using a variable in the input file are never changed." << endl;
+	    }
+	    break;
+	    
 	case 0x100+'d':
 	    cout << "Assign processors deterministically from top to bottom, i.e., task 1 gets processor 1, task 2 gets processor 2, etc." << endl;
 	    break;
 	    
-	case 'e':
-	    cout << "Create an average of " << emph( "ARG" ) << " entries on each serving task.   The" << endl
-		 << "number of entries created is set using the current discreet random" << endl
-		 << "number generator.  " << endl;
+	case 'E':
+	    cout << "Create an average of " << emph( "ARG" ) << " entries on each serving task." << endl
+		 << boilerplate( "entries", *discreet_default ) << endl
+		 << "This number must not be less than one." << endl;
 	    break;
 	    
 	case 0x100+'E':	/* Deterministic task layering */
 	    cout << "Deterministically add tasks from top to bottom.  The first task is called by it's immediate client." << endl
-		 << "Any additional entries, (see " << flag( "\\-e" ) << ") can be called by any higher-level task. " << endl;
+		 << "Any additional entries, (see " << flag( "\\-E" ) << ") can be called by any higher-level task. " << endl;
 	    break;
 	    
 	case 0x0200+'E':
@@ -423,6 +469,18 @@ man()
 		 << "Interesting tasks are those which might have contention present."  << endl
 		 << "The default is to " << is_not_set( i ) << "insert observation variables." << endl;
 	    break;
+
+	case 'G':
+	    cout << "Set the probability that a processor is using Completely Fair Scheduling to " << emph( "ARG" ) << endl
+		 << "provided that the processor is not an infinite server and that it provicdes service" << endl
+		 << "to more than one task." << endl
+		 << "See also " << flag( "\\-g" ) << "." << endl;
+	    break;
+	    
+	case 'g':
+	    cout << "Set the share of the first group running on the processor to " << emph( "ARG" ) << "." << endl
+		 << "The share for a group is based on the Beta distribution." << endl;
+	    break;
 	    
 	case 0x100+'G':
 	    cout << "Set the continuous random variable generator to use a Gamma" << endl
@@ -433,7 +491,7 @@ man()
 		 << "distribution."  << endl;
 	    break;
 
-	case 'h':
+	case 'H':
 	    cout << "Print out a brief help summary and exit." << endl;
 	    break;
 
@@ -462,9 +520,14 @@ man()
 		 << "The default is to " << is_not_set( i ) << "insert observation variables." << endl;
 	    break;
 
+	case 0x0100+'j':
+	    cout << "Output the input model in JavaScript Object Notation (JSON)." << endl;
+	    break;
+	    
 	case 'L':
-	    cout << "Create " << emph( "ARG" ) << " layers of server tasks.  The total number of layers" << endl
-		 << "in the model will be " << emph( "ARG+2" ) << " because one layer is used for" << endl
+	    cout << "Create " << emph( "ARG" ) << " layers of server tasks." << endl
+		 << boilerplate( "layers", *constant_default ) << endl
+		 << "The total number of layers in the model will be " << emph( "ARG+2" ) << " because one layer is used for" << endl
 		 << "client tasks, and one layer will be used for one or more processors." << endl;
 	    break;
 
@@ -485,7 +548,7 @@ man()
 	    break;
 
 	case 0x200+'M':
-	    cout << "Insert LQX code or SPEX observation variables to output the number of calls to wait()." << endl
+	    cout << "Insert LQX code or SPEX observation variables to output the number of calls to step()." << endl
 		 << "The default is to " << is_not_set( i ) << "insert observation variables." << endl;
 	    break;
 
@@ -521,9 +584,8 @@ man()
 	    break;
 
 	case 'p':
-	    cout << "Set the " << emph( "mean" ) << " processor multiplicity for each processor to" << endl
-		 << "" << emph( "ARG" ) << ".  The" << endl
-		 << "number of copies of each processor is set using the current discreet (or uniform) random number generator." << endl;
+	    cout << "Set the " << emph( "mean" ) << " processor multiplicity for each processor to " << emph( "ARG" ) << "." << endl
+		 << boilerplate( "processor-multiplicity", *discreet_default ) << endl;
 	    break;
 
 	case 0x100+'p':
@@ -531,8 +593,30 @@ man()
 		 << "Do not convert constant parameters for processor multiplicities to variables." << endl;
 	    break;
 	    
+	case 'Q':
+	    cout << "Generate a model which can be solved by LQNS as a conventional queueing network with a maximum of " << emph( "ARG" ) << " customers." << endl
+		 << "By default, a queuing network similar to experiment 1 of Chandy and Neuse for Linearizer" << endl
+		 << "will be created with 1 to 0.10*ARG classes, 0.10*ARG to 0.20*ARG stations and 0.10*ARG to ARG customers," << endl
+		 << "using a uniform distribution.  Stations will have a 0.05 probability of being a delay queue." << endl
+		 << "Set the number of customers with " << flag( "\\-\\-total-customers" )
+		 << ", the number of customer classes with " << flag( "\\-\\-clients" )
+		 << ", the number of stations with " << flag( "\\-\\-tasks" )
+		 << ", and the average number of stations visited by a client with " << flag( "\\-\\-outgoing-requests" )
+		 << "." << endl;
+	    break;
+	    
+	case 0x200+'q':
+	    cout << "Insert a pragma " << emph( "ARG" ) << " into all " << (Flags::lqn2lqx ? "translated" : "generated files.") << endl
+		 << "This option can be repeated for multiple pragmas." << endl;
+	    if ( Flags::lqn2lqx ) {
+		cout << "If the pragma was already present in the input file, it is reset to the new value." << endl
+		     << flag( "\\-\\-no\\-pragma" ) << " will remove all existing pragmas." << endl;
+	    }
+	    break;
+	    
 	case 'P':
-	    cout << "Create  " << emph( "ARG" ) << " processors in each model file." << endl;
+	    cout << "Create  " << emph( "ARG" ) << " processors in each model file." << endl
+		 << boilerplate( "processor", *constant_default ) << endl;
 	    break;
 
 	case 0x100+'P':
@@ -551,8 +635,8 @@ man()
 	    break;
 
 	case 's':
-	    cout << "Set the " << emph( "mean" ) << " phase service time to " << emph( "ARG" ) << ".  The mean phase" << endl
-		 << "service time is set using the current continuous random number generator." << endl;
+	    cout << "Set the " << emph( "mean" ) << " phase service time to " << emph( "ARG" ) << "."  << endl
+		 << boilerplate( "service-time", *continuous_default ) << endl;
 	    break;
 
 	case 0x100+'s':
@@ -580,9 +664,8 @@ man()
 	    break;
 
 	case 't':
-	    cout << "Set the " << emph( "mean" ) << " task multiplicity for each task to" << endl
-		 << "" << emph( "ARG" ) << ".  The" << endl
-		 << "number of copies of each task is set using the current discreet (or uniform) random number generator." << endl;
+	    cout << "Set the " << emph( "mean" ) << " task multiplicity for each task to " << emph( "ARG" ) << "." << endl
+		 << boilerplate( "task-multiplicity", *discreet_default ) << endl;
 	    if ( Flags::lqn2lqx ) {
 		cout << "Tasks in the input file which are infinite servers may be converted to fixed-rate or multi-servers." << endl;
 	    }
@@ -594,8 +677,9 @@ man()
 	    break;
 	    
 	case 'T':
-	    cout << "Create  " << emph( "ARG" ) << " tasks in each model file.  The number of tasks must" << endl
-		 << "be greater than or equal to the number of layers." << endl;
+	    cout << "Create  " << emph( "ARG" ) << " tasks in each model file." << endl
+		 << boilerplate( "task", *constant_default ) << endl
+		 << "The number of tasks must be greater than or equal to the number of layers." << endl;
 	    break;
 
 	case 0x100+'T':
@@ -627,6 +711,10 @@ man()
 	    cout << "Verbose output. List the actual number of Clients, Server Tasks, Processors, Entries and Calls created." << endl;
 	    break;
 
+	case 'V':
+	    cout << "Print the version number of " << program_name << "." << endl;
+	    break;
+	    
 	case 0x100+'V':
 	    cout << "Create a model with a ``funnel'' shape, that is there are more serving" << endl
 		 << "tasks at the top of the model than at the bottom.  The default is to" << endl
@@ -638,6 +726,11 @@ man()
 		 << "The default is to " << is_not_set( i ) << "observe waiting time." << endl;
 	    break;
 	    
+	case 0x200+'W':
+	    cout << "Insert LQX code or SPEX observation variables to output the number of calls to wait()." << endl
+		 << "The default is to " << is_not_set( i ) << "insert observation variables." << endl;
+	    break;
+
 	case 0x100+'x':
 	    cout << "Output the input model in eXtensible Markup Language (XML)." << endl;
 	    break;
@@ -652,7 +745,7 @@ man()
 
 	case 'y':
 	    cout << "Set the mean rendezous (synchronous call) rate to " << emph( "ARG" ) << ".  " << endl
-		 << "The mean rendezvous rate is set using the current continuous random number generator." << endl;
+		 << boilerplate( "request-rate", *continuous_default ) << endl;
 	    break;
 
 	case 0x100+'y':
@@ -661,14 +754,15 @@ man()
 	    break;
 	    
 	case 'Y':
-	    cout << "Generate an average of " << emph( "ARG" ) << " incomming requests to each entry." << endl
+	    cout << "Generate an average of " << emph( "ARG" ) << " outgoing requests from each entry." << endl
+		 << boilerplate( "outgoing-requests", *continuous_default ) << endl
 		 << "Connections are made at random from a higher level task to a lower level task." << endl
 		 << "So that all tasks are reachable, this number must not be less than one." << endl;
 	    break;
 	    
 	case 'z':
-	    cout << "Set the mean think time at reference tasks to " << emph( "ARG" ) << ".  " << endl
-		 << "The mean think time is set using the current continuous random number generator." << endl;
+	    cout << "Set the mean think time at reference tasks to " << emph( "ARG" ) << "." << endl
+		 << boilerplate( "think-time", *continuous_default ) << endl;
 	    break;
 
 	case 0x100+'z':
@@ -701,6 +795,13 @@ man()
 	    cout << "Set the seed value for the random number generator to " << emph( "ARG" ) << "." << endl;
 	    break;
 
+	case 0x100+'8':
+	    cout << "The BETA distribution is only used for choosing the share of a group when using a processor" << endl
+		 << "using Completely Fair Scheduling."  << endl
+		 << "Set the beta argument of the distribution to " << emph( "ARG" ) << ".  The alpha" << endl
+		 << "argument is set based on the value of the group \"share\" (set using " << flag( "\\-g", "", "n" ) << ")." << endl;
+	    break;
+	    
 	default:	
 	    cerr << "Update help.cc for ";
 	    if ( (options[i].c & 0xff80) == 0 ) {
@@ -774,7 +875,8 @@ static bool flag_value( int i )
     case 0x200+'w': return Flags::observe[Flags::QUEUEING_TIME];
     case 0x200+'E': return Flags::observe[Flags::ELAPSED_TIME];
     case 0x200+'I': return Flags::observe[Flags::ITERATIONS];
-    case 0x200+'M': return Flags::observe[Flags::MVA_WAITS];
+    case 0x200+'M': return Flags::observe[Flags::MVA_STEPS];
+    case 0x200+'W': return Flags::observe[Flags::MVA_WAITS];
     case 0x200+'S': return Flags::observe[Flags::SYSTEM_TIME];
     case 0x200+'U': return Flags::observe[Flags::USER_TIME];
     case 0x200+'i': return Flags::observe[Flags::PARAMETERS];
@@ -811,6 +913,25 @@ example_str( ostream& output, const string& s )
 	   << ".ti 0.75i" << endl
 	   << tt( s ) << endl
 	   << ".sp" << endl;
+    return output;
+}
+
+static ostream&
+boilerplate_str( std::ostream& output, const std::string& opt, const RV::RandomVariable& rv )
+{
+    std::string option( "\\-\\-" );
+    option += opt;
+    output << emph( "ARG" ) << " can be take the form of "; 
+    if ( rv.getType() == RV::RandomVariable::CONSTANT ) {
+	output << flag( option, "=", "n" ) << ",";
+    } else {
+	output << flag( option, "=", "mean" ) << ", " << endl
+	       << flag( option, "=", "a:b" ) << " where " << emph( "a" ) << " and " << emph( "b" ) << " are parameters" << endl
+	       << "for the default " << distribution_type[rv.getType()] << " distribution,";
+    }
+    output << " or " << flag( option, "=", "distribution:a[:b]" ) << ", where " << endl
+	   << emph( "distribution" ) << " is a " << bf( distribution_type[rv.getType()] ) << " distribution, and " << emph( "a[:b]" ) << " are parameters to the distribution." << endl
+	   << "By default, a " << emph( rv.name() ) << " distribution is used.";
     return output;
 }
 

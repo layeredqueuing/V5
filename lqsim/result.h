@@ -1,6 +1,6 @@
 /* result.h	-- Greg Franks
  *
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/result.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/result.h $
  *
  * ------------------------------------------------------------------------
  * $Id: result.h 11463 2013-08-06 16:04:02Z greg $

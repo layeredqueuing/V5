@@ -1,19 +1,19 @@
 /* -*- c++ -*-
  * graphic.h	-- Greg Franks
  *
- * $Id: graphic.h 13170 2018-02-27 21:36:27Z greg $
+ * $Id: graphic.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _GRAPHIC_H
 #define _GRAPHIC_H
 
 #include "lqn2ps.h"
+#include <vector>
 #if HAVE_GD_H
 #include <gd.h>
 #endif
 
 class Label;
-class XMLStringManip;
 class Point;
 class PointManip;
 class BoxManip;
@@ -28,7 +28,7 @@ private:
     ostream& (*f)( ostream&, const unsigned long );
     const unsigned long myLong;
 
-    friend ostream& operator<<(ostream & os, const LongManip& m ) 
+    friend ostream& operator<<(ostream & os, const LongManip& m )
 	{ return m.f(os,m.myLong); }
 };
 
@@ -40,7 +40,7 @@ private:
     ostream& (*f)( ostream&, const unsigned short );
     const unsigned short myShort;
 
-    friend ostream& operator<<(ostream & os, const ShortManip& m ) 
+    friend ostream& operator<<(ostream & os, const ShortManip& m )
 	{ return m.f(os,m.myShort); }
 };
 
@@ -89,52 +89,66 @@ private:
 	{ return m.f( os, m.myRed, m.myGreen, m.myBlue ); }
 };
 
-class XMLStringManip {
+class XMLString
+{
 public:
-    XMLStringManip( ostream& (*ff)(ostream&, const char *, const char * ), const char * s1=0, const char * s2=0 )
-	: f(ff), myS1(s1), myS2(s2) {}
-private:
-    ostream& (*f)( ostream&, const char *, const char * );
-    const char * myS1;
-    const char * myS2;
+    class StringManip {
+    public:
+	StringManip( ostream& (*ff)(ostream&, const std::string&, const std::string& ) )
+	    : f(ff), myS1(nullStr), myS2(nullStr) {}
+	StringManip( ostream& (*ff)(ostream&, const std::string&, const std::string& ), const std::string& s1 )
+	    : f(ff), myS1(s1), myS2(nullStr) {}
+	StringManip( ostream& (*ff)(ostream&, const std::string&, const std::string& ), const std::string& s1, const std::string& s2 )
+	    : f(ff), myS1(s1), myS2(s2) {}
+    private:
+	ostream& (*f)( ostream&, const std::string&, const std::string& );
+	const std::string& myS1;
+	const std::string& myS2;
+	static const std::string nullStr;
 
-    friend ostream& operator<<(ostream & os, const XMLStringManip& m )
-	{ return m.f(os,m.myS1,m.myS2); }
+	friend ostream& operator<<(ostream & os, const StringManip& m )
+	    { return m.f(os,m.myS1,m.myS2); }
+    };
+
+    static StringManip xml_escape( const std::string& s ) { return StringManip( xml_escape_str, s ); }
+
+private:
+    static ostream& xml_escape_str( ostream& output, const std::string&, const std::string& );
 };
 
 
 class Graphic
 {
 public:
-    typedef enum { TRANSPARENT, 
-		   DEFAULT_COLOUR, 
-		   BLACK, 
-		   WHITE, 
-		   GREY_10, 
-		   MAGENTA, 
-		   VIOLET, 
-		   BLUE, 
-		   OCEAN, 
-		   CYAN, 
-		   TURQUOISE, 
-		   GREEN, 
-		   SPRINGGREEN, 
-		   YELLOW, 
-		   ORANGE, 
-		   RED, 
+    typedef enum { TRANSPARENT,
+		   DEFAULT_COLOUR,
+		   BLACK,
+		   WHITE,
+		   GREY_10,
+		   MAGENTA,
+		   VIOLET,
+		   BLUE,
+		   INDIGO,
+		   CYAN,
+		   TURQUOISE,
+		   GREEN,
+		   SPRINGGREEN,
+		   YELLOW,
+		   ORANGE,
+		   RED,
 		   GOLD } colour_type;
     typedef enum { DEFAULT_LINESTYLE, SOLID, DASHED, DOTTED, DASHED_DOTTED } linestyle_type;
     typedef enum { NO_ARROW, CLOSED_ARROW, OPEN_ARROW } arrowhead_type;
     typedef enum { NO_FILL, DEFAULT_FILL, FILL_ZERO, FILL_90, FILL_SOLID, FILL_TINT } fill_type;
-    typedef enum { DEFAULT_FONT, TIMES_ROMAN, TIMES_ITALIC, TIMES_BOLD, SYMBOL_FONT } font_type;
+    typedef enum { DEFAULT_FONT, NORMAL_FONT, OBLIQUE_FONT, BOLD_FONT, SYMBOL_FONT } font_type;
 
 private:
     Graphic( const Graphic& );
     Graphic& operator=( const Graphic& );
 
 public:
-    explicit Graphic( colour_type pen_colour = DEFAULT_COLOUR, colour_type fill_colour = DEFAULT_COLOUR, linestyle_type ls = DEFAULT_LINESTYLE ) 
-	: myPenColour(pen_colour), myFillColour(fill_colour), myFillStyle(FILL_TINT), myLinestyle(ls), myDepth(0) 
+    explicit Graphic( colour_type pen_colour = DEFAULT_COLOUR, colour_type fill_colour = DEFAULT_COLOUR, linestyle_type ls = DEFAULT_LINESTYLE )
+	: myPenColour(pen_colour), myFillColour(fill_colour), myFillStyle(FILL_TINT), myLinestyle(ls), myDepth(0)
 	{}
     virtual ~Graphic() {}
 
@@ -146,8 +160,8 @@ public:
     linestyle_type linestyle() const { return  myLinestyle; }
     Graphic& depth( const unsigned aDepth )  { myDepth = aDepth; return *this; }
     unsigned depth() const { return myDepth; }
-    Graphic& fillstyle( const fill_type fill ) { myFillStyle = fill; return *this; }
-    fill_type fillstyle() const { return myFillStyle; }
+    Graphic& fillStyle( const fill_type fill ) { myFillStyle = fill; return *this; }
+    fill_type fillStyle() const { return myFillStyle; }
 
     static bool intersects( const Point&, const Point&, const Point&, const Point& );
     static bool intersects( const Point&, const Point&, const Point& );
@@ -165,7 +179,7 @@ private:
 class Colour
 {
 public:
-    typedef struct 
+    typedef struct
     {
 	float red;
 	float green;
@@ -265,14 +279,14 @@ public:
     static ostream& terminate( ostream& );
 
 protected:
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points, Graphic::colour_type pen_colour,
 		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1 ) const;
-    ostream& polygon( ostream& output, const unsigned nPoints, const Point points[], 
+    ostream& polygon( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& circle( ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
-    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type justification, Graphic::colour_type colour ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
     static DoubleManip writef( const double );
     static LongManip writel( const unsigned long );
     static ShortManip writes( const unsigned short );
@@ -301,7 +315,7 @@ private:
 		   EMR_SETDIBITSTODEVICE, EMR_STRETCHDIBITS, EMR_EXTCREATEFONTINDIRECTW, EMR_EXTTEXTOUTA, EMR_EXTTEXTOUTW,
 		   EMR_POLYBEZIER16, EMR_POLYGON16, EMR_POLYLINE16, EMR_POLYBEZIERTO16, EMR_POLYLINETO16,
 		   EMR_POLYPOLYLINE16, EMR_POLYPOLYGON16, EMR_POLYDRAW16, EMR_CREATEMONOBRUSH, EMR_CREATEDIBPATTERNBRUSHPT,
-		   EMR_EXTCREATEPEN, EMR_POLYTEXTOUTA, EMR_POLYTEXTOUTW 
+		   EMR_EXTCREATEPEN, EMR_POLYTEXTOUTA, EMR_POLYTEXTOUTW
     } extended_meta_record;
     typedef enum { PS_SOLID=0, PS_DASH=1, PS_DOT=2, PS_DASHDOT=3, PS_DASHDOTDOT=4, PS_NULL=5, PS_INSIDEFRAME=6, PS_USERSTYLE=7 } pen_style;
 
@@ -313,10 +327,10 @@ private:
 
     static string description( const string& );
     static ostream& printUnicode( ostream& output, const string& aString );
-    ostream& draw_line( ostream& output, extended_meta_record, const unsigned nPoints, const Point points[] ) const;
-    ostream& draw_dashed_line( ostream& output, Graphic::linestyle_type line_style, const unsigned nPoints, const Point points[] ) const;
+    ostream& draw_line( ostream& output, extended_meta_record, const std::vector<Point>& ) const;
+    ostream& draw_dashed_line( ostream& output, Graphic::linestyle_type line_style, const std::vector<Point>& ) const;
     static ColourManip setfill( const Graphic::colour_type );
-    static JustificationManip justify( const justification_type ); 
+    static JustificationManip justify( const justification_type );
     static PointManip lineto( const Point& );
     static PointManip moveto( const Point& );
     static PointManip point( const Point& );
@@ -367,26 +381,26 @@ protected:
 
     ostream& startCompound( ostream& output, const Point& origin, const Point& extent ) const;
     ostream& endCompound( ostream& output ) const;
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], 
-		       int sub_type, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, 
-		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points,
+		       int sub_type, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth,
+		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE,
 		       Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1.0 ) const;
-    ostream& circle( ostream& output, const Point& c, const double r, int sub_type, 
+    ostream& circle( ostream& output, const Point& c, const double r, int sub_type,
 		     Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, Graphic::fill_type fill_style=Graphic::DEFAULT_FILL ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& roundedRectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, int depth, Graphic::linestyle_type line_style=Graphic::DEFAULT_LINESTYLE ) const;
-    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type, Graphic::colour_type colour, unsigned flags ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type, Graphic::colour_type colour, unsigned flags=0 ) const;
     ostream& clearBackground( ostream& output, const Point&, const Point&, const Graphic::colour_type ) const;
 
 private:
-    typedef struct 
+    typedef struct
     {
 	int arrow_type;
 	int arrow_style;
     } arrowhead_defn;
 
-    ostream& init( ostream& output, int object_code, int sub_type, 
+    ostream& init( ostream& output, int object_code, int sub_type,
 		   Graphic::colour_type pen_colour, Graphic::colour_type fill_colour,
 		   Graphic::linestyle_type line_style, Graphic::fill_type, int depth ) const;
     static PointManip moveto( const Point& );
@@ -426,7 +440,7 @@ public:
 protected:
     static gdPoint moveto( const Point& );
 
-    GD const & polygon( const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
+    GD const & polygon( const std::vector<Point>& points, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     GD const & drawline( const Point& p1, const Point& p2, Graphic::colour_type pen_colour, Graphic::linestyle_type linestyle ) const;
     GD const & rectangle( const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     GD const & circle( const Point& center, const double d, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
@@ -443,8 +457,8 @@ protected:
 private:
     enum BRECT { LLx, LLy, LRx, LRy, URx, URy, ULx, ULy };
 
-    static int pen_value[];
-    static int fill_value[];
+    static std::vector<int> pen_value;
+    static std::vector<int> fill_value;
     static const char * font_value[];
 };
 #endif
@@ -455,15 +469,15 @@ public:
     static ostream& init( ostream& );
 
 protected:
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points, Graphic::colour_type pen_colour,
 		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1 ) const;
-    ostream& polygon( ostream& output, const unsigned nPoints, const Point points[], 
+    ostream& polygon( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& roundedRectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& circle( ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
-    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type justification, Graphic::colour_type colour ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     ostream& arrowHead( ostream& output, const Point&, const Point&, const double scale,
@@ -475,8 +489,8 @@ private:
     static PointManip moveto( const Point& );
     static FontManip setfont( const Graphic::font_type aFont );
     static LineStyleManip linestyle( const Graphic::linestyle_type );
-    static JustificationManip justify( const justification_type ); 
-    
+    static JustificationManip justify( const justification_type );
+
     static ostream& point( ostream& output, const Point& aPoint );
     static ostream& setfill_str( ostream& output, const Graphic::colour_type );
     static ostream& justify_str( ostream& output, const justification_type );
@@ -488,7 +502,7 @@ private:
 };
 
 #if defined(SVG_OUTPUT)
-class SVG : private Colour
+class SVG : private Colour, private XMLString
 {
     typedef struct
     {
@@ -500,14 +514,14 @@ public:
     static ostream& init( ostream& );
 
 protected:
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points, Graphic::colour_type pen_colour,
 		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1 ) const;
-    ostream& polygon( ostream& output, const unsigned nPoints, const Point points[], 
+    ostream& polygon( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& circle( ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
-    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type justification, Graphic::colour_type colour ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     ostream& arrowHead( ostream& output, const Point&, const Point&, const double scale,
@@ -520,8 +534,7 @@ private:
     static JustificationManip justify( const justification_type justification ) { return JustificationManip( justify_str, justification ); }
     static LineStyleManip linestyle( const Graphic::linestyle_type aStyle ) { return LineStyleManip( SVG::linestyle_str, aStyle ); }
     static PointManip moveto( const Point& aPoint ) { return PointManip( point, aPoint ); }
-    static XMLStringManip xml_escape( const char * s ) { return XMLStringManip( xml_escape_str, s ); }
-    
+
     static ostream& point( ostream& output, const Point& aPoint );
     static ostream& setfill_str( ostream& output, const Graphic::colour_type );
     static ostream& justify_str( ostream& output, const justification_type );
@@ -529,37 +542,36 @@ private:
     static ostream& setcolour_str( ostream& output, const Graphic::colour_type );
     static ostream& setfont_str( ostream& output, const Graphic::font_type aFont, const int fontSize );
     static ostream& stroke_str( ostream& output, const Graphic::colour_type );
-    static ostream& xml_escape_str( ostream& output, const char *, const char * );
     static colour_defn fill_value[];
     static font_defn font_value[];
 };
 #endif
 
 #if defined(SXD_OUTPUT)
-class SXD : private Colour
+class SXD : private Colour, private XMLString
 {
 public:
     static ostream& init( ostream& );
     static ostream& printStyles( ostream& output );
 
 protected:
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points, Graphic::colour_type pen_colour,
 		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1 ) const;
-    ostream& polygon( ostream& output, const unsigned nPoints, const Point points[], 
+    ostream& polygon( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& circle( ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
 
     ostream& begin_paragraph( ostream& output, const Point&, const Point&, const justification_type ) const;
-    double text( ostream& output, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type justification, Graphic::colour_type colour ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
     ostream& end_paragraph( ostream& output ) const;
 
 private:
-    ostream& init( ostream& output, const char * object_name, 
+    ostream& init( ostream& output, const char * object_name,
 		   Graphic::colour_type pen_colour, Graphic::colour_type fill_colour,
 		   Graphic::linestyle_type line_style, Graphic::arrowhead_type=Graphic::NO_ARROW ) const;
-    ostream& drawline( ostream& output, const unsigned n_points, const Point points[] ) const;
+    ostream& drawline( ostream& output, const std::vector<Point>& points ) const;
 
     static ArrowManip arrow_style( const Graphic::arrowhead_type );
     static BoxManip box( const Point&, const Point& );
@@ -567,21 +579,21 @@ private:
     static ColourManip stroke_colour( const Graphic::colour_type );
     static FontManip setfont( const Graphic::font_type aFont );
     static UnsignedManip style_properties( const unsigned int );
-    static JustificationManip justify( const justification_type ); 
+    static JustificationManip justify( const justification_type );
     static PointManip moveto( const Point& );
-    static XMLStringManip draw_layer( const char * );
-    static XMLStringManip end_style();
-    static XMLStringManip start_style( const char *, const char * );
+    static XMLString::StringManip draw_layer( const std::string& );
+    static XMLString::StringManip end_style();
+    static XMLString::StringManip start_style( const std::string&, const std::string& );
 
     static ostream& arrow_style_str( ostream& output, const Graphic::arrowhead_type );
     static ostream& box_str( ostream& output, const Point& origin, const Point& extent );
-    static ostream& draw_layer_str( ostream& output, const char *, const char * );
-    static ostream& end_style_str( ostream& output, const char *, const char * );
+    static ostream& draw_layer_str( ostream& output, const std::string&, const std::string& );
+    static ostream& end_style_str( ostream& output, const std::string&, const std::string& );
     static ostream& setfill_str( ostream& output, const Graphic::colour_type );
     static ostream& justify_str( ostream& output, const justification_type );
     static ostream& point( ostream& output, const Point& aPoint );
     static ostream& setfont_str( ostream& output, const Graphic::font_type aFont, const int fontSize );
-    static ostream& start_style_str( ostream& output, const char *, const char * );
+    static ostream& start_style_str( ostream& output, const std::string&, const std::string& );
     static ostream& stroke_colour_str( ostream& output, const Graphic::colour_type );
     static ostream& style_properties_str( ostream& output, const unsigned int );
 
@@ -595,21 +607,21 @@ private:
 class TeX : private Colour
 {
 protected:
-    ostream& polyline( ostream& output, const unsigned nPoints, const Point points[], Graphic::colour_type pen_colour, 
+    ostream& polyline( ostream& output, const std::vector<Point>& points, Graphic::colour_type pen_colour,
 		       Graphic::linestyle_type linestyle=Graphic::DEFAULT_LINESTYLE, Graphic::arrowhead_type=Graphic::NO_ARROW, double scale=1 ) const;
-    ostream& polygon( ostream& output, const unsigned nPoints, const Point points[], 
+    ostream& polygon( ostream& output, const std::vector<Point>& points,
 		      Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
     ostream& rectangle( ostream& output, const Point&, const Point&, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour, Graphic::linestyle_type=Graphic::DEFAULT_LINESTYLE ) const;
     ostream& circle( ostream& output, const Point& c, const double r, Graphic::colour_type pen_colour, Graphic::colour_type fill_colour ) const;
-    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize, 
-		   justification_type justification, Graphic::colour_type colour ) const;
+    double text( ostream& output, const Point& c, const string& s, Graphic::font_type font, int fontsize,
+		 justification_type justification, Graphic::colour_type colour, unsigned=0 ) const;
 
 private:
     static PointManip moveto( const Point& );
     static ColourManip setcolour( const Graphic::colour_type );
     static ColourManip setfill( const Graphic::colour_type );
     static FontManip setfont( const Graphic::font_type aFont );
-    static JustificationManip justify( const justification_type ); 
+    static JustificationManip justify( const justification_type );
 
     ostream& arrowHead( ostream& output, const Point&, const Point&, const double scale,
 			const Graphic::colour_type, const Graphic::colour_type ) const;
@@ -632,11 +644,11 @@ protected:
     static ColourManip setfill( const Graphic::colour_type );
     static PointManip moveto( const Point& );
     static FontManip setfont( const Graphic::font_type aFont );
-    static JustificationManip justify( const justification_type ); 
+    static JustificationManip justify( const justification_type );
 #endif
-    
+
     ostream& lineStyle( ostream& output, Graphic::linestyle_type style ) const { return output; }
-    ostream& arrowHead( ostream& output, const Point&, const Point&, 
+    ostream& arrowHead( ostream& output, const Point&, const Point&,
 	const Graphic::colour_type, const Graphic::colour_type ) const { return output; }
 
 private:
@@ -651,4 +663,7 @@ private:
 #endif
 };
 #endif
+
+
+Graphic::colour_type error_colour( double delta );
 #endif

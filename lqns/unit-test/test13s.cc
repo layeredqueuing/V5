@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
- * $Id: test13s.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: test13s.cc 13413 2018-10-23 15:03:40Z greg $
  *
- * Rolia Multiserver test.
+ * Suri Multiserver test.
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,7 @@ static double service_time[][N_TESTS] = {
 };
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned ix )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned ix )
 {
 	const unsigned classes  = N_CLASSES;
 	const unsigned stations = N_STATIONS;
@@ -34,7 +34,7 @@ test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<u
 	    exit( 1 );
 	}
 	    
-	NCust.grow(classes);			/* Population vector.		*/
+	NCust.resize(classes);			/* Population vector.		*/
 	Z.grow(classes);			/* Think times.			*/
 	priority.grow(classes);
 	Q.grow(stations);			/* Queue type.  SS/delay.	*/

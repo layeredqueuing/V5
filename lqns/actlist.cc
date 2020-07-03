@@ -1,5 +1,5 @@
 /* actlist.cc   -- Greg Franks Thu Feb 20 1997
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/actlist.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/actlist.cc $
  *
  * Everything you wanted to know about connecting activities, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: actlist.cc 13547 2020-05-21 02:22:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1093,7 +1093,7 @@ AndForkActivityList::findChildren( CallStack& callStack, const bool directPath, 
             max_depth = max( anActivity->findChildren( callStack, directPath, activityStack, forkStack ), max_depth );
         }
     } 
-    catch ( bad_internal_join& error ) {
+    catch ( const bad_internal_join& error ) {
 	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, firstName(), owner()->name(), error.what() );
         max_depth = max( max_depth, error.depth() );
     }

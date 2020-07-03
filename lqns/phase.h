@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/phase.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/phase.h $
  *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: phase.h 13547 2020-05-21 02:22:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -79,14 +79,15 @@ public:
     bool hasThinkTime() const { return myDOMPhase && myDOMPhase->hasThinkTime(); }
     virtual bool isActivity() const { return false; }
 	
+    virtual const char * name() const { return ""; }
+
     NullPhase& setServiceTime( const double t );
     NullPhase& addServiceTime( const double t );
     double serviceTime() const;
-    double thinkTime() const { return (hasThinkTime()) ? myDOMPhase->getThinkTimeValue() : 0; }
+    double thinkTime() const;
+    double CV_sqr() const;
 
     virtual double variance() const { return myVariance; } 		/* Computed variance.		*/
-    double CV_sqr() const { return (myDOMPhase && myDOMPhase->hasCoeffOfVariationSquared()) ? 
-	    myDOMPhase->getCoeffOfVariationSquaredValue() : 1.0; }
     double computeCV_sqr() const;
 
     double waitExcept( const unsigned ) const;

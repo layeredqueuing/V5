@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 12458 2016-02-21 18:48:34Z greg $
+ *  $Id: dom_phase.cpp 13558 2020-05-26 01:52:40Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -12,39 +12,44 @@
 #include "dom_histogram.h"
 #include <cassert>
 #include <algorithm>
+#include <cmath>
 
 namespace LQIO {
     namespace DOM {
 
+	const char * Phase::__typeName = "phase";
+
 	Phase::Phase(const Document * document,Entry* parentEntry) 
-	    : DocumentObject(document,"",NULL), _calls(), _serviceTime(NULL),
+	    : DocumentObject(document,""), _calls(), _serviceTime(NULL),
 	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(parentEntry),
 	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0)
+	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0),
+	      _hasResultServiceTimeVariance(false)
 	{
 	}
 
 	Phase::Phase( const LQIO::DOM::Phase& src ) 
-	    : DocumentObject(src.getDocument(),src.getName().c_str(),NULL),_calls(), _serviceTime(const_cast<LQIO::DOM::ExternalVariable *>(src.getServiceTime())),
+	    : DocumentObject(src.getDocument(),src.getName().c_str()), _calls(), _serviceTime(const_cast<LQIO::DOM::ExternalVariable *>(src.getServiceTime())),
 	      _phaseTypeFlag(src.getPhaseTypeFlag()), _entry(const_cast<LQIO::DOM::Entry*>(src.getSourceEntry())),
 	      _thinkTime(const_cast<LQIO::DOM::ExternalVariable *>(src.getThinkTime())), _coeffOfVariationSq(const_cast<LQIO::DOM::ExternalVariable *>(src.getCoeffOfVariationSquared())), _histogram(NULL),
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
-	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0)
+	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0),
+	      _hasResultServiceTimeVariance(false)
 	{
 	}
 
 	Phase::~Phase()
 	{
 	    /* Go through the list of calls after freeing service time */
-	    std::vector<Call*>::iterator iter;
-	    for (iter = _calls.begin(); iter != _calls.end(); ++iter) {
-		delete(*iter);
+	    for ( std::vector<Call*>::iterator call = _calls.begin(); call != _calls.end(); ++call) {
+		delete *call;
 	    }
+	    _calls.clear();
 	    if ( _histogram ) {
 		delete _histogram;
 	    }
@@ -54,23 +59,12 @@ namespace LQIO {
 
 	bool Phase::isPresent() const 
 	{
-	    return _serviceTime || _thinkTime || _calls.size() > 0;
-	}
-
-	bool Phase::isNotNull() const
-	{
-	    /* Return true if it's a variable or non-zero constant */
 	    return hasServiceTime() || hasThinkTime() || _calls.size() > 0;
 	}
 
 	double Phase::getServiceTimeValue() const
 	{
-	    double value = 0.0;
-	    if ( !_serviceTime || _serviceTime->getValue(value) != true || value < 0 ) {
-		/* LQX may set this negative, so we don't know it's wrong until it's used. */
-		throw std::domain_error( "Invalid service time." );
-	    }
-	    return value;
+	    return getDoubleValue( getServiceTime(), 0.0 );
 	}
 
 	const ExternalVariable* Phase::getServiceTime() const
@@ -86,7 +80,7 @@ namespace LQIO {
 //        printf("WARNING: Overwriting existing ExternalVariable in Phase.\n");
 	    }
 
-	    _serviceTime = serviceTime;
+	    _serviceTime = checkDoubleVariable( serviceTime, 0.0 );
 	}
 
 	void Phase::setServiceTimeValue(double value)
@@ -101,8 +95,7 @@ namespace LQIO {
 
 	bool Phase::hasServiceTime() const
 	{
-	    double value = 0.0;
-	    return _serviceTime && (!_serviceTime->wasSet() || !_serviceTime->getValue(value) || value > 0);	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( getServiceTime(), 0.0 );
 	}
 
 	phase_type Phase::getPhaseTypeFlag() const
@@ -131,12 +124,7 @@ namespace LQIO {
 
 	double Phase::getThinkTimeValue() const
 	{
-	    /* Retun the phase think time */
-	    double value = 0.0;
-	    if ( !_thinkTime || _thinkTime->getValue(value) != true || value < 0 ) {
-		throw std::domain_error( "Invalid think time." );
-	    }
-	    return value;
+	    return getDoubleValue( getThinkTime(), 0. );
 	}
 
 	const ExternalVariable* Phase::getThinkTime() const
@@ -148,7 +136,7 @@ namespace LQIO {
 	void Phase::setThinkTime(ExternalVariable* thinkTime)
 	{
 	    /* Store the new think time */
-	    _thinkTime = thinkTime;
+	    _thinkTime = checkDoubleVariable( thinkTime, 0.0 );
 	}
 
 	void Phase::setThinkTimeValue( double value )
@@ -162,18 +150,29 @@ namespace LQIO {
 
 	bool Phase::hasThinkTime() const
 	{
-	    double value = 0.0;
-	    return _thinkTime && (!_thinkTime->wasSet() || !_thinkTime->getValue(value) || value >= 0);	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( getThinkTime(), 0.0 );
 	}
 
-	double Phase::getCoeffOfVariationSquaredValue() const
+	void Phase::setMaxServiceTime(ExternalVariable* time)
 	{
-	    /* Obtain the value */
-	    double value;
-	    if ( !_coeffOfVariationSq || _coeffOfVariationSq->getValue(value) != true || value < 0 ) {
-		throw std::domain_error( "Invalid coefficient of variation squared." );
+	    /* Weird one as can't be changed dynamically */
+	    double value = 0.0;
+	    /* LQX may set this negative, so we don't know it's wrong until it's used. */
+	    if ( time != NULL && (time->getValue(value) == true && value > 0 )) {
+		setMaxServiceTimeValue( value );
+	    } else {
+		throw std::domain_error( "invalid max service time" );
 	    }
-	    return value;
+
+	}
+	
+	void Phase::setMaxServiceTimeValue(double time)
+	{
+	    if ( _histogram != NULL ) {
+		_histogram->setTimeExceeded( time );
+	    } else {
+		_histogram = new LQIO::DOM::Histogram( getDocument(), LQIO::DOM::Histogram::CONTINUOUS, 0, time, time );
+	    }
 	}
 
 	double Phase::getMaxServiceTime() const
@@ -183,6 +182,15 @@ namespace LQIO {
 	    } else {
 		return 0.0;
 	    }
+	}
+
+	double Phase::getCoeffOfVariationSquaredValue() const
+	{
+	    double value = 1.0;		/* Default is one, but zero allowed */
+	    if ( _coeffOfVariationSq != NULL && ( _coeffOfVariationSq->getValue(value) != true || std::isinf(value) || value < 0.0 ) ) {
+		throw std::domain_error( "invalid external variable" );
+	    }
+	    return value;
 	}
 
 	const ExternalVariable* Phase::getCoeffOfVariationSquared() const
@@ -214,19 +222,20 @@ namespace LQIO {
 	bool Phase::hasCoeffOfVariationSquared() const
 	{
 	    /* Return whether this has been set or not */
-	    return _coeffOfVariationSq != NULL;
+	    double value = 1.0;
+	    return _coeffOfVariationSq && (!_coeffOfVariationSq->wasSet() || !_coeffOfVariationSq->getValue(value) || (std::isfinite(value) && value > 0. && value != 1.));
 	}
 
 	bool Phase::isNonExponential() const
 	{
 	    /* Return true is CV != 1.0 (it must be set) */
-	    double value = 0.0;
+	    double value = 1.0;
 	    return _coeffOfVariationSq != NULL && (!_coeffOfVariationSq->getValue(value) || value != 1.0);
 	}
 
 	bool Phase::hasHistogram() const
 	{ 
-	    return _histogram != 0 && _histogram->getBins() > 0; 
+	    return _histogram != 0 && _histogram->isHistogram();
 	}
 
 	void Phase::setHistogram(Histogram* histogram)
@@ -237,7 +246,7 @@ namespace LQIO {
 
 	bool Phase::hasMaxServiceTimeExceeded() const	
 	{ 
-	    return _histogram && _histogram->isMaxServiceTime(); 
+	    return _histogram && _histogram->isTimeExceeded(); 
 	}
 
 	void Phase::addCall(Call* call)
@@ -246,10 +255,19 @@ namespace LQIO {
 	    _calls.push_back(call);
 	}
 
+	void Phase::eraseCall(Call * call)
+	{
+	    std::vector<Call*>::iterator iter = std::find( _calls.begin(), _calls.end(), call );
+	    if ( iter != _calls.end() ) {
+		_calls.erase( iter );
+	    }
+	}
+	    
+
 	const std::vector<Call*>& Phase::getCalls() const
 	{
 	    /* Return the calls */
-	    return *&_calls;
+	    return _calls;
 	}
 
 	Call* Phase::getCallToTarget(const Entry* entry) const
@@ -260,6 +278,27 @@ namespace LQIO {
 
 	    return NULL;
 	}
+
+	bool Phase::hasRendezvous() const
+	{
+	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasRendezvous ) ) != _calls.end();
+	}
+
+	bool Phase::hasSendNoReply() const
+	{
+	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasSendNoReply ) ) != _calls.end();
+	}
+
+	bool Phase::hasResultVarianceWaitingTime() const 
+	{
+	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultVarianceWaitingTime ) ) != _calls.end();
+	}
+
+	bool Phase::hasResultDropProbability() const
+	{
+	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultDropProbability ) ) != _calls.end();
+	}
+
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -302,7 +341,7 @@ namespace LQIO {
 	{
 	    /* Stores the given ResultVarianceServiceTime of the Phase */
 	    _resultVarianceServiceTime = resultVarianceServiceTime;
-	    const_cast<Document *>(getDocument())->setEntryHasServiceTimeVariance(true);
+	    _hasResultServiceTimeVariance = true;
 	    return *this;
 	}
 
@@ -324,7 +363,7 @@ namespace LQIO {
 
 	double Phase::getResultMaxServiceTimeExceeded() const
 	{
-	    if ( _histogram && _histogram->isMaxServiceTime() ) {
+	    if ( _histogram && _histogram->isTimeExceeded() ) {
 		return _histogram->getBinMean( _histogram->getOverflowIndex() );
 	    } else {
 		return 0;
@@ -333,7 +372,7 @@ namespace LQIO {
 
 	double Phase::getResultMaxServiceTimeExceededVariance() const
 	{
-	    if ( _histogram && _histogram->isMaxServiceTime() ) {
+	    if ( _histogram && _histogram->isTimeExceeded() ) {
 		return _histogram->getBinVariance( _histogram->getOverflowIndex() );
 	    } else {
 		return 0;

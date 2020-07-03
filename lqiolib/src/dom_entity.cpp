@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 13200 2018-03-05 22:48:55Z greg $
+ *  $Id: dom_entity.cpp 13559 2020-05-26 14:38:45Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,12 +16,11 @@ namespace LQIO {
     
 	Entity::Entity(const Document * document, const char * name, 
 		       const scheduling_type schedulingType, ExternalVariable* copies,
-		       const unsigned int replicas, const Type type, const void * xmlDOMElement ) :
-	    DocumentObject(document, name, xmlDOMElement),
+		       ExternalVariable* replicas) :
+	    DocumentObject(document, name),
 	    _entityId(const_cast<Document *>(document)->getNextEntityId()), 
 	    _entitySchedulingType(schedulingType),
-	    _copies(copies), _replicas(replicas),
-	    _type(type)
+	    _copies(copies), _replicas(replicas)
 	{
 	    /* Empty Constructor */
 	}
@@ -57,18 +56,12 @@ namespace LQIO {
     
 	bool Entity::hasCopies() const
 	{
-	    double value = 0.0;
-	    return _copies && (!_copies->wasSet() || !_copies->getValue(value) || (std::isfinite(value) && value > 1));	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( _copies, 1.0 );	    /* Check whether we have it or not */
 	}
 
 	const unsigned int Entity::getCopiesValue() const
 	{
-	    /* Obtain the copies count */
-	    double value;
-	    if ( !_copies || _copies->getValue(value) != true || std::isinf(value) || value - floor(value) != 0 || value <= 0 ) {
-		throw std::domain_error( "invalid copies" );
-	    }
-	    return static_cast<unsigned int>(value);
+	    return getIntegerValue( getCopies(), 1 );
 	}
     
 	const ExternalVariable* Entity::getCopies() const
@@ -87,36 +80,53 @@ namespace LQIO {
 	    }
 	}
     
-	void Entity::setCopies(ExternalVariable* newCopies)
+	void Entity::setCopies( ExternalVariable* var )
 	{
-	    /* Set the number of copies */
-	    _copies = newCopies;
+	    /* Set the number of copies.  Allow infinity (so don't use checkIntegerVariable) */
+	    double value = 1.;
+	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || value != rint(value) || value < 1. ) ) {
+		throw std::domain_error( "invalid integer" );
+	    }
+	    _copies = var;
 	}
     
-	const unsigned int Entity::getReplicas() const
+	bool Entity::hasReplicas() const
+	{
+	    return ExternalVariable::isPresent( getReplicas(), 0.0 );	    /* Check whether we have it or not */
+	}
+
+	const unsigned int Entity::getReplicasValue() const
+	{
+	    /* Return the replica count */
+	    return getIntegerValue( getReplicas(), 1 );
+	}
+    
+	const ExternalVariable* Entity::getReplicas() const
 	{
 	    /* Return the replica count */
 	    return _replicas;
 	}
     
-	void Entity::setReplicas(const unsigned int newReplicas)
+	void Entity::setReplicasValue( const unsigned int value )
+	{
+	    /* Set the number of replicas */
+	    if ( _replicas == NULL ) {
+		_replicas = new ConstantExternalVariable(value);
+	    } else {
+		_replicas->set(value);
+	    }
+	}
+    
+	void Entity::setReplicas(ExternalVariable * newReplicas)
 	{
 	    /* Set the replica count */
 	    _replicas = newReplicas;
 	}
     
-	const Entity::Type Entity::getType()
-	{
-	    /* Return the entity type */
-	    return _type;
-	}
-
 	const bool Entity::isMultiserver() const
 	{
 	    /* Return true if this is (or can be) a multiserver */
-	    double v;
-	    const LQIO::DOM::ExternalVariable * m = getCopies();
-	    return m && (!m->wasSet() || !m->getValue(v) || (std::isfinite(v) && v > 1.0));
+	    return ExternalVariable::isPresent( getCopies(), 1.0 );
 	}
     
 	const bool Entity::isInfinite() const
@@ -129,5 +139,6 @@ namespace LQIO {
 		return m && m->wasSet() && m->getValue(v) && std::isinf(v);
 	    }
 	}
+
     }
 }

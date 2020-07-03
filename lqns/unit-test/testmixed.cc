@@ -1,10 +1,10 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/unit-test/testmixed.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/unit-test/testmixed.cc $
  *
  * Example from:
  *
  * ------------------------------------------------------------------------
- * $Id: testmixed.cc 11894 2014-02-20 19:50:42Z greg $
+ * $Id: testmixed.cc 13413 2018-10-23 15:03:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,14 +21,14 @@
 #include "vector.h"
 #include "fpgoop.h"
 
-static bool doIt( solverId solver, Vector<Server *>& Q, const PopVector & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
+static bool doIt( solverId solver, Vector<Server *>& Q, const Population & NCust, const VectorMath<double>& thinkTime, const VectorMath<unsigned>& priority, const unsigned special );
 static bool run( const unsigned solver_set, const unsigned special );
 
 /* -- */
 
 static int silencio_flag = 0;			/* Don't print results if 1	*/
 static int verbose_flag = 0;			/* Print iteration count if 1	*/
-static int debug_flag = 0;			/* Print station info.		*/
+static int print_flag = 0;			/* Print station info.		*/
 static int nocheck_flag = 0;			/* Don't check if 1.		*/
 
 
@@ -49,7 +49,7 @@ int main (int argc, char *argv[])
     while (( c = getopt( argc, argv, "adelfbsStvn:z:" )) != EOF) {
 	switch( c ) {
 	case 'a':
-	    solver_set = (unsigned)-1;
+	    solver_set = EXACT_SOLVER_BIT|BARD_SCHWEITZER_SOLVER_BIT|LINEARIZER_SOLVER_BIT;
 	    break;
 			
 	case 'b':
@@ -58,9 +58,13 @@ int main (int argc, char *argv[])
 
 
 	case 'd':
-	    debug_flag = 1;
+	    MVA::debug_D = true;
+	    MVA::debug_L = true;
+	    MVA::debug_P = true;
+	    MVA::debug_U = true;
+	    MVA::debug_W = true;
 	    break;
-			    
+	    
 	case 'e':
 	    solver_set |= EXACT_SOLVER_BIT;
 	    break;
@@ -80,6 +84,10 @@ int main (int argc, char *argv[])
 	    }
 	    break;
 			
+	case 'p':
+	    print_flag = 1;
+	    break;
+			    
 	case 's':
 	    silencio_flag = 1;
 	    break;
@@ -135,7 +143,7 @@ run( const unsigned solver_set, const unsigned special )
     bool ok = true;
 
     for ( unsigned i = 0; i <= 3; ++i ) {
-	PopVector N(0);
+	Population N(0);
 	VectorMath<double> Z(0);
 	VectorMath<unsigned> priority(0);
 	Vector<Server *> Q;
@@ -147,7 +155,7 @@ run( const unsigned solver_set, const unsigned special )
 	    return 0;
 	}
 	
-	if ( debug_flag ) {
+	if ( print_flag ) {
 	    for ( unsigned j = 1; j <= Q.size(); ++j ) {
 		cout << *Q[j] << endl;
 	    }
@@ -175,7 +183,7 @@ static const char * names[] =
 };
 
 static bool
-doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMath<double> &Z, const VectorMath<unsigned>& priority,
+doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMath<double> &Z, const VectorMath<unsigned>& priority,
       const unsigned special )
 {
     bool ok = true;
@@ -251,3 +259,16 @@ doIt( solverId solver, Vector<Server *>& Q, const PopVector & N, const VectorMat
     delete closedModel;
     return ok;
 }
+
+#include <vector.cc>
+
+template class Vector<double>;
+template class Vector<unsigned int>;
+template class Vector<unsigned long>;
+template class Vector<Server *>;
+template class VectorMath<unsigned int>;
+template class VectorMath<double>;
+template class Vector<Vector<unsigned> >;
+template class Vector<VectorMath<double> >;
+template class Vector<VectorMath<unsigned> >;
+

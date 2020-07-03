@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/server.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/server.h $
  *
  * Servers for MVA solver.  Subclass as needed.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 11969 2014-04-11 21:19:54Z greg $
+ * $Id: server.h 13413 2018-10-23 15:03:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -80,7 +80,7 @@ public:
     virtual bool hasTau() const { return false; }
 
     double S() const;
-    double S( const MVA& solver, const PopVector& ) const;
+    double S( const MVA& solver, const Population& ) const;
     double S( const unsigned k ) const;
     double S( const unsigned e, const unsigned k ) const { return s[e][k][0]; }
     double S( const unsigned e, const unsigned k, const unsigned p ) const { return s[e][k][p]; }
@@ -89,7 +89,7 @@ public:
     double S_2( const unsigned e, const unsigned k ) const { return s[e][k][0] - s[e][k][1]; }
     double eta( const unsigned e, const unsigned k ) const;
     double etaS( const unsigned e, const unsigned k ) const;
-    virtual double muS( const PopVector&, const unsigned ) const;	/* Schmidt multiserver */
+    virtual double muS( const Population&, const unsigned ) const;	/* Schmidt multiserver */
     double V() const;
     double V( const unsigned k ) const { return v[0][k][0]; }
     double V( const unsigned e, const unsigned k ) const { return v[e][k][0]; }
@@ -105,7 +105,7 @@ public:
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
 
     virtual unsigned int marginalProbabilitiesSize() const { return 0; }
-    virtual void setMarginalProbabilitiesSize( const PopVector& ) { return; }
+    virtual void setMarginalProbabilitiesSize( const Population& ) { return; }
     virtual int vectorProbabilities() const { return 0; }
     virtual int infiniteServer() const { return 0; }
     virtual int priorityServer() const { return 0; }
@@ -114,7 +114,7 @@ public:
 
     /* Computation -- closed */
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const = 0;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const = 0;
     double interlock( const unsigned e, const unsigned k, const double lambda ) const { return ( 1.0 - IL[e][k] ) * lambda; }
 
     /* Computation -- open */
@@ -123,7 +123,7 @@ public:
     Server& operator*=( const double );
     Server& operator/=( const double );
     Server& operator=( const double );
-    virtual void mixedWait( const MVA& solver, const PopVector& N ) const;
+    virtual void mixedWait( const MVA& solver, const Population& N ) const;
     virtual void openWait() const = 0;
     virtual double Rho() const;							// 3.284
 	
@@ -138,7 +138,7 @@ protected:
     void totalVisits( const unsigned e, const unsigned k );
 
     Probability rho() const;
-    double priorityInflation( const MVA&, const PopVector &, const unsigned ) const;
+    double priorityInflation( const MVA&, const Population &, const unsigned ) const;
 
     virtual ostream& printInput( ostream&, const unsigned, const unsigned ) const;
 
@@ -175,8 +175,8 @@ public:
     virtual double mu() const;					/* Capacity function.	*/
     virtual double mu( const unsigned ) const { return mu(); }	/* Capacity function.	*/
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
-    virtual void mixedWait( const MVA& , const PopVector& ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
+    virtual void mixedWait( const MVA& , const Population& ) const;
     virtual void openWait() const;
 	
     virtual double alpha( const unsigned ) const;
@@ -197,7 +197,7 @@ public:
     Client( const unsigned e, const unsigned k, const unsigned p ) : Infinite_Server(e,k,p) {}
     virtual ~Client() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual const char * typeStr() const { return "Client"; }
 };
 
@@ -213,7 +213,7 @@ public:
     PS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p) {}
     virtual ~PS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "PS_Server"; }
@@ -231,7 +231,7 @@ public:
     PR_PS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), PS_Server(e,k,p) {}
     virtual ~PR_PS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual int priorityServer() const { return 1; }
@@ -249,7 +249,7 @@ public:
     HOL_PS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), PS_Server(e,k,p) {}
     virtual ~HOL_PS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual int priorityServer() const { return 1; }
@@ -269,7 +269,7 @@ public:
 
     virtual bool hasTau() const { return true; }
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "FCFS_Server"; }
@@ -287,7 +287,7 @@ public:
     PR_FCFS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), FCFS_Server(e,k,p) {}
     virtual ~PR_FCFS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual int priorityServer() const { return 1; }
@@ -305,7 +305,7 @@ public:
     HOL_FCFS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), FCFS_Server(e,k,p) {}
     virtual ~HOL_FCFS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual int priorityServer() const { return 1; }
@@ -328,7 +328,7 @@ public:
 
     virtual double r( const unsigned, const unsigned, const unsigned=0 ) const;
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
     virtual void openWait() const;
 
     virtual const char * typeStr() const { return "HVFCFS_Server"; }
@@ -357,7 +357,7 @@ public:
     PR_HVFCFS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Server(e,k,p) {}
     virtual ~PR_HVFCFS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "PR_HVFCFS_Server"; }
@@ -376,7 +376,7 @@ public:
     HOL_HVFCFS_Server( const unsigned e, const unsigned k, const unsigned p ) : Server(e,k,p), HVFCFS_Server(e,k,p) {}
     virtual ~HOL_HVFCFS_Server() {}
 
-    virtual void wait( const MVA& solver, const unsigned k, const PopVector & N ) const;
+    virtual void wait( const MVA& solver, const unsigned k, const Population & N ) const;
 
     virtual int priorityServer() const { return 1; }
     virtual const char * typeStr() const { return "HOL_HVFCFS_Server"; }

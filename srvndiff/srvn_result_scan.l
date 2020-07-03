@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 11963 2014-04-10 14:36:42Z greg $
+ * $Id: srvn_result_scan.l 13491 2020-02-12 00:35:17Z greg $
  */
 
 /* 
@@ -27,6 +27,8 @@
 /* extern int atoi(); */
 /* extern double atof(); */
 extern YYSTYPE resultlval;
+static double time_to_double( const char * time );
+static char * dup_strip_text( char * src, int len );
 
 #undef YY_INPUT
 #define YY_INPUT(buf,result,max_size) { \
@@ -38,7 +40,6 @@ extern YYSTYPE resultlval;
 #if	!defined(__cplusplus)
 extern int resultwrap();
 #endif
-
 %}
 
 D	[0-9]
@@ -54,8 +55,10 @@ U	"_"
 ^"#!Real:"		return(REAL_TIME);
 ^"#!User:"		return(USER_TIME);
 ^"#!Sys:"		return(SYST_TIME);
+^"#!MaxRSS:"		return(MAX_RSS);
 
 ^"#!Solver:"		return(SOLVER);
+^"#!Comment:"(.)*	{ resultlval.aString = dup_strip_text( (char *)&resulttext[10], resultleng-10 ); return COMMENT; }
 "#"[^!](.)*             |
 "#!"                    |
 "#"                     ;
@@ -66,6 +69,7 @@ D			return(DISTRIBUTION_FLAG);
 DP			return(DROP_PROBABILITY_FLAG);
 E			return(SERVICE_EXCEEDED_FLAG);
 FQ			return(THPT_UT_FLAG);
+G			return(GROUP_FLAG);
 H			return(HOLD_TIME_FLAG);
 I			return(ITERATION_FLAG);
 J			return(JOIN_FLAG);
@@ -97,8 +101,8 @@ Z			return(SNR_WAITING_FLAG);
 				return(FLOAT);
 			}
 
-{D}+":"{D}{D}":"{D}{D}("."{D}{D})? {
-    				resultlval.aString = (char *)&resulttext[0];
+{D}+":"{D}{D}":"{D}{D}("."{D}{D}*)? {
+				resultlval.aFloat = time_to_double((char *)&resulttext[0]);
 				return(TIME);
 			}
 
@@ -130,8 +134,28 @@ infinity		{
 			}
 
 %%
+static double time_to_double( const char * time ) 
+{
+    unsigned long hrs   = 0;
+    unsigned long mins  = 0;
+    unsigned long secs  = 0;
+    
+    if ( sscanf( time, "%ld:%ld:%ld", &hrs, &mins, &secs ) > 0 ) {
+	return hrs * 3600 + mins * 60 + secs;
+    } else {
+	return 0;
+    }
+}
+
+static char * dup_strip_text( char * s, int len )
+{
+    while ( (*s == ' ' || *s == '\t') && len > 0 ) { ++s; --len; }	/* Skip leading white space */
+    return strdup( s );
+}
+
+
 int
 resultwrap()
 {
-	return 1;
+    return 1;
 }

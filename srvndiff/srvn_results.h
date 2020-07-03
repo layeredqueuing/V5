@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 11337 2013-03-08 23:44:34Z greg $
+ * $Id: srvn_results.h 13491 2020-02-12 00:35:17Z greg $
  */
 
 #if	!defined(SRVN_RESULTS_H)
@@ -61,13 +61,16 @@ void add_act_wait_variance_confidence(const char * task, const char *to, const c
 void add_act_waiting(const char * task, const char *to, const char *from, double *delay);
 void add_act_waiting_confidence(const char * task, const char *to, const char *from, int conf_level, double *delay);
 void add_bound(const char *entry, double lower, double upper);
+void add_comment( const char * );
 void add_drop_probability(const char *to, const char *from, double *delay);
 void add_drop_probability_confidence(const char *to, const char *from, int conf_level, double *delay);
-void add_elapsed_time(const char *);
+void add_elapsed_time(double);
 void add_entry_proc(const char *entry, double utilization, double *waiting);
 void add_entry_proc_confidence(const char *entry, int conf_level, double utilization, double *waiting);
 void add_entry_thpt_ut(const char * task, const char *entry, double throughput, double *utilization, double total_util );
 void add_entry_thpt_ut_confidence(const char * entry, int conf_level, double throughput, double * utilization, double total_util );
+void add_group_util( const char * group_name, double utilization );
+void add_group_util_conf( const char * group_name, int conf_level, double utilization );
 void add_histogram_bin( const char * entry, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 );
 void add_histogram_statistics( const char * entry, const unsigned phase, const double mean, const double stddev, const double skew, const double kurtosis );
 void add_holding_time( const char * task, const char * acquire, const char * release, double time, double, double );
@@ -90,13 +93,13 @@ void add_snr_waiting(const char *to, const char *from, double *delay);
 void add_snr_waiting_confidence(const char *to, const char *from, int conf_level, double *delay);
 void add_solver_info(const char *);
 void add_system_info(const char *);
-void add_system_time(const char *);
+void add_system_time(double);
 void add_task_proc(const char * proc, const char *task, int multiplicity, double );
 void add_task_proc_confidence(const char *task, int level, double );
 void add_thpt_ut(const char *task);
 void add_total_proc( const char * proc, double );
 void add_total_proc_confidence( const char * proc, int conf_level, double value);
-void add_user_time(const char *);
+void add_user_time(double);
 void add_variance(const char *entry, double *time);
 void add_variance_confidence(const char *entry, int conf_level, double *time);
 void add_wait_variance(const char *to, const char * from, double *delay);

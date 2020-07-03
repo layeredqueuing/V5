@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: element.cc 13547 2020-05-21 02:22:16Z greg $
  */
 
 #include "element.h"
@@ -9,18 +9,17 @@
 #include <limits.h>
 #include <lqio/error.h>
 #include "errmsg.h"
-#include "stack.h"
 #include "entry.h"
 #include "task.h"
 #include "label.h"
 #include "processor.h"
 #include "activity.h"
 
-const LQIO::DOM::ConstantExternalVariable Element::ZERO(0);
+const LQIO::DOM::ConstantExternalVariable Element::ZERO(0.);
 
 Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )
     : _documentObject( dom ),
-      myElementId( id ),
+      _elementId( id ),
       myLabel(0),
       myNode(0)
 {
@@ -35,32 +34,11 @@ Element::~Element()
 
 
 
-void
-Element::rename()
-{
-    char new_name[16];
-    if ( dynamic_cast<Activity *>(this) ) {
-	snprintf( new_name, 16, "a%ld", static_cast<unsigned long>(elementId()) );
-    } else if ( dynamic_cast<Entry *>(this) ) {
-	snprintf( new_name, 16, "e%ld", static_cast<unsigned long>(elementId()) );
-    } else if ( dynamic_cast<Task *>(this) ) {
-	snprintf( new_name, 16, "t%ld", static_cast<unsigned long>(elementId()) );
-    } else if ( dynamic_cast<Processor *>(this) ) {
-	snprintf( new_name, 16, "p%ld", static_cast<unsigned long>(elementId()) );
-    } else {
-	abort();
-    }
-    
-    const_cast<LQIO::DOM::DocumentObject *>(_documentObject)->setName( new_name );
-}
-
-
-
 /*
  * Squish the name (hopefully keeping it unique).
  */
 
-void
+Element&
 Element::squishName()
 {
     const unsigned n = elementId();
@@ -71,6 +49,7 @@ Element::squishName()
 	new_name << "_" << n;
 	const_cast<LQIO::DOM::DocumentObject *>(_documentObject)->setName( new_name.str() );
     }
+    return *this;
 }
 
 
@@ -78,10 +57,7 @@ Element::squishName()
 Element&
 Element::addPath( const unsigned aPath ) 
 {
-    if ( aPath && !myPaths.find( aPath ) ) {
-	myPaths.grow(1);
-	myPaths[myPaths.size()] = aPath;
-    }
+    myPaths.insert( aPath );
     return *this;
 }
 
@@ -104,22 +80,20 @@ Element::pathTest() const
  * The return value reflects the deepest depth in the call tree.
  */
 
-unsigned
-Element::followCalls( const Task * parent, Sequence<Call *>& nextCall, CallStack& callStack, const unsigned directPath ) const
+size_t
+Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator> callList, CallStack& callStack, const unsigned directPath ) const
 {
-    unsigned max_depth = callStack.size();
+    size_t max_depth = callStack.size();
     if ( directPath ) {
 	const_cast<Element *>(this)->addPath( directPath );
     }
 
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	const Task * dstTask = aCall->dstTask();
+    for ( std::vector<Call *>::const_iterator call = callList.first; call != callList.second; ++call ) {
+	const Task * dstTask = (*call)->dstTask();
 
 	/* Ignore async calls to tasks that accept rendezvous requests. */
 
-	if ( aCall->hasSendNoReply() && !Flags::async_topological_sort && dstTask->isCalled( RENDEZVOUS_REQUEST ) ) continue;
+	if ( (*call)->hasSendNoReply() && !Flags::async_topological_sort && dstTask->isCalled( RENDEZVOUS_REQUEST ) ) continue;
 
 	try {
 
@@ -129,25 +103,25 @@ Element::followCalls( const Task * parent, Sequence<Call *>& nextCall, CallStack
 	     * short-circuit test with directPath.
 	     */
 
-	    if ( (callStack.find( aCall, directPath != 0 ) == 0 
+	    if ( (callStack.find( (*call), directPath != 0 ) == callStack.end() 
 		  && ( callStack.size() >= dstTask->level() || Flags::exhaustive_toplogical_sort ))
 		 || directPath != 0 ) {						/* always (for forwarding)	*/
 
-		callStack.push( aCall );
-		if ( directPath && aCall->hasForwarding() && partial_output() && Flags::surrogates ) {
+		callStack.push_back( (*call) );
+		if ( directPath && (*call)->hasForwarding() && partial_output() && Flags::surrogates ) {
 		    addForwardingRendezvous( callStack );			/* only necessary when transforming the model. */
 		}
 		max_depth = max( const_cast<Task *>(dstTask)->findChildren( callStack, directPath ), max_depth );
 
-		callStack.pop();
+		callStack.pop_back();
 	    } 
 	}
-	catch ( call_cycle& error ) {
+	catch ( const Call::cycle_error& error ) {
 	    if ( directPath ) {
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	    }
 	}
-	catch ( activity_cycle& error ) {
+	catch ( const activity_cycle& error ) {
 	    if ( directPath ) {
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, name().c_str(), error.what() ); 
 	    }
@@ -172,9 +146,9 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 	const Call * aCall = callStack[i];
 	if ( aCall->hasRendezvous() ) {
 	    rate *= aCall->sumOfRendezvous(); 
-	    Call * psuedo = aCall->addForwardingCall( const_cast<Entry *>(callStack.top()->dstEntry()), rate );
+	    Call * psuedo = const_cast<Call *>(aCall)->addForwardingCall( const_cast<Entry *>(callStack.back()->dstEntry()), rate );
 	    if ( psuedo ) {
-		psuedo->proxy( const_cast<Call *>(callStack.top()) );
+		psuedo->proxy( const_cast<Call *>(callStack.back()) );
 	    }
 	    break;
 	} else if ( aCall->hasSendNoReply() ) {
@@ -196,11 +170,7 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 Element&
 Element::setClientClosedChain( unsigned k )
 {
-    if ( !myClientClosedChains.find( k ) ) {
-	myClientClosedChains.grow(1);
-	myClientClosedChains[myClientClosedChains.size()] = k;
-    }
-
+    myClientClosedChains.insert( k );
     return *this;
 }
 
@@ -212,11 +182,7 @@ Element::setClientClosedChain( unsigned k )
 Element&
 Element::setClientOpenChain( unsigned k )
 {
-    if ( !myClientOpenChains.find( k ) ) {
-	myClientOpenChains.grow(1);
-	myClientOpenChains[myClientOpenChains.size()] = k;
-    }
-
+    myClientOpenChains.insert( k );
     return *this;
 }
 
@@ -228,11 +194,7 @@ Element::setClientOpenChain( unsigned k )
 Element&
 Element::setServerChain( unsigned k )
 {
-    if ( !myServerChains.find( k ) ) {
-	myServerChains.grow(1);
-	myServerChains[myServerChains.size()] = k;
-    }
-
+    myServerChains.insert(k);
     return *this;
 }
 
@@ -244,7 +206,7 @@ Element::setServerChain( unsigned k )
 bool 
 Element::hasServerChain( unsigned k ) const
 {
-    return myServerChains.find( k ) != 0;
+    return myServerChains.find( k ) != myServerChains.end();
 }
 
 
@@ -256,7 +218,7 @@ Element::hasServerChain( unsigned k ) const
 bool 
 Element::hasClientChain( unsigned k ) const
 {
-    return myClientClosedChains.find( k ) != 0 || myClientOpenChains.find( k ) != 0;
+    return myClientClosedChains.find( k ) != myClientClosedChains.end() || myClientOpenChains.find( k ) != myClientOpenChains.end();
 }
 
 
@@ -267,7 +229,7 @@ Element::hasClientChain( unsigned k ) const
 bool 
 Element::hasClientClosedChain( unsigned k ) const
 {
-    return myClientClosedChains.find( k ) != 0;
+    return myClientClosedChains.find( k ) != myClientClosedChains.end();
 }
 
 
@@ -278,38 +240,7 @@ Element::hasClientClosedChain( unsigned k ) const
 bool 
 Element::hasClientOpenChain( unsigned k ) const
 {
-    return myClientOpenChains.find( k ) != 0;
-}
-
-
-unsigned 
-Element::closedChainAt( unsigned i ) const
-{
-    if ( 1 <= i && i <= myClientClosedChains.size() ) {
-	return myClientClosedChains[i];
-    } else {
-	return 0;
-    }
-}
-
-unsigned 
-Element::openChainAt( unsigned i ) const
-{
-    if ( 1 <= i && i <= myClientOpenChains.size() ) {
-	return myClientOpenChains[i];
-    } else {
-	return 0;
-    }
-}
-
-unsigned
-Element::serverChainAt( unsigned i ) const
-{
-    if ( 1 <= i && i <= myServerChains.size() ) {
-	return myServerChains[i];
-    } else {
-	return 0;
-    }
+    return myClientOpenChains.find( k ) != myClientOpenChains.end();
 }
 
 
@@ -320,7 +251,7 @@ Element::serverChainAt( unsigned i ) const
 Element&
 Element::moveBy( const double dx, const double dy )
 {
-    moveTo( myNode->origin.x() + dx, myNode->origin.y() + dy );
+    moveTo( myNode->left() + dx, myNode->bottom() + dy );
     return *this;
 }
 
@@ -349,7 +280,7 @@ Element::translateY( const double dy  )
 Element&
 Element::depth( const unsigned depth  ) 
 {
-    myNode->depth( depth  );
+    myNode->depth( depth );
     myLabel->depth( depth-1 );
     return *this;
 }
@@ -359,25 +290,25 @@ Element::depth( const unsigned depth  )
  * Generic compare functions
  */
 
-int
+bool
 Element::compare( const Element * e1, const Element * e2 )
 {
     if ( Flags::sort == NO_SORT ) {
-	return e1->getDOM()->getSequenceNumber() > e2->getDOM()->getSequenceNumber();
+	return e1->getDOM()->getSequenceNumber() < e2->getDOM()->getSequenceNumber();
     } else if ( e1->getIndex() != e2->getIndex() ) {
-	return static_cast<int>(copysign( 1.0, e1->getIndex() - e2->getIndex() ) );
+	return e1->getIndex() < e2->getIndex();
     } else if ( e1->span() != e2->span() ) {
-	if ( e1->index() > e1->getIndex() ) {
-	    return e1->span() - e2->span();
+	if ( e1->index() >= e1->getIndex() ) {
+	    return e1->span() < e2->span();
 	} else {
-	    return e2->span() - e1->span();
+	    return e2->span() < e1->span();
 	}
     }
 
     switch ( Flags::sort ) {
-    case REVERSE_SORT: return e2->name() < e1->name();
-    case FORWARD_SORT: return e1->name() > e2->name();
-    default: return 0;
+    case REVERSE_SORT: return e2->name() > e1->name();
+    case FORWARD_SORT: return e1->name() < e2->name();
+    default: return false;
     }
 }
 
@@ -387,51 +318,79 @@ Element::adjustForSlope( double y )
 {
     return y * Flags::icon_slope;
 }
-
-#if defined(QNAP_OUTPUT) || defined(PMIF_OUTPUT)
-static ostream&
-server_chain_of_str( ostream& output, const Element& anElement, const bool multi_class, const unsigned i )
+
+Graphic::colour_type Element::colourForUtilization( double utilization ) const
 {
-    if ( multi_class ) {
-	output << "(k" << anElement.serverChainAt(i) << ")";
-    } 
-    return output;
+    if ( Flags::use_colour ) {
+	if ( utilization == 0.0 ) {
+	    return Graphic::DEFAULT_COLOUR;
+	} else if ( utilization < 0.1 ) {
+	    return Graphic::VIOLET;
+	} else if ( utilization < 0.2 ) {
+	    return Graphic::BLUE;
+	} else if ( utilization < 0.3 ) {
+	    return Graphic::INDIGO;
+	} else if ( utilization < 0.4 ) {
+	    return Graphic::CYAN;
+	} else if ( utilization < 0.5 ) {
+	    return Graphic::TURQUOISE;
+	} else if ( utilization < 0.6 ) {
+	    return Graphic::GREEN;
+	} else if ( utilization < 0.7 ) {
+	    return Graphic::SPRINGGREEN;
+	} else if ( utilization < 0.8 ) {
+	    return Graphic::YELLOW;
+	} else if ( utilization < 0.9 ) {
+	    return Graphic::ORANGE;
+	} else { 
+	    return Graphic::RED;
+	}
+    } else if ( utilization >= 0.8 ) {
+	return Graphic::GREY_10;
+    } else {
+	return Graphic::DEFAULT_COLOUR;
+    }
 }
 
-static ostream&
-closed_chain_of_str( ostream& output, const Element& anElement, const bool multi_class, const unsigned i )
+/*
+ * Set colour based on difference (as a percentage).
+ */
+
+Graphic::colour_type Element::colourForDifference( double difference ) const
 {
-    if ( multi_class ) {
-	output << "(k" << anElement.closedChainAt(i) << ")";
-    } 
-    return output;
+    if ( difference == 0.0 ) {
+	return Graphic::DEFAULT_COLOUR;
+    } else if ( difference < 0.7813 ) {
+	return Graphic::BLUE;
+    } else if ( difference < 1.5625 ) {
+	return Graphic::INDIGO;
+    } else if ( difference < 3.125 ) {
+	return Graphic::CYAN;
+    } else if ( difference < 6.25 ) {
+	return Graphic::TURQUOISE;
+    } else if ( difference < 12.5 ) {
+	return Graphic::GREEN;
+    } else if ( difference < 25.0 ) {
+	return Graphic::SPRINGGREEN;
+    } else if ( difference < 50.0 ) {
+	return Graphic::YELLOW;
+    } else if ( difference < 100. ) {
+	return Graphic::ORANGE;
+    } else { 
+	return Graphic::RED;
+    }
 }
 
-static ostream&
-open_chain_of_str( ostream& output, const Element& anElement, const bool multi_class, const unsigned i )
+#if defined(REP2FLAT)
+std::string
+Element::baseReplicaName( unsigned int& replica ) const
 {
-    if ( multi_class ) {
-	output << "(k" << anElement.openChainAt(i) << ")";
-    } 
-    return output;
+    const std::string& name = this->name();
+    size_t pos = name.rfind( '_' );
+    if ( pos == std::string::npos ) throw runtime_error( "Can't find '_'" );
+    char * end_ptr = NULL;
+    replica = strtol( &name[pos+1], &end_ptr, 10 );
+    if ( *end_ptr != '\0' || replica <= 0 ) throw runtime_error( "Can't find replica number" );
+    return name.substr( 0, pos );
 }
-
-QNAPElementManip 
-server_chain( const Element& anElement, const bool multi_class, const unsigned i )
-{
-    return QNAPElementManip( &server_chain_of_str, anElement, multi_class, i );
-}
-
-QNAPElementManip 
-closed_chain( const Element& anElement, const bool multi_class, const unsigned i )
-{
-    return QNAPElementManip( &closed_chain_of_str, anElement, multi_class, i );
-}
-
-QNAPElementManip 
-open_chain( const Element& anElement, const bool multi_class, const unsigned i )
-{
-    return QNAPElementManip( &open_chain_of_str, anElement, multi_class, i );
-}
-
 #endif

@@ -1,8 +1,8 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqsim/instance.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/instance.h $
  * Global vars for simulation.
  *
- * $Id: instance.h 11419 2013-06-10 18:23:13Z greg $
+ * $Id: instance.h 13353 2018-06-25 20:27:13Z greg $
  */
 
 /************************************************************************/
@@ -55,14 +55,15 @@ public:
     int priority() const { return _cp->priority(); }
     virtual const char * type_name() const = 0;
     virtual void run() = 0;
-
+    virtual int parentPort() const{ return -1;}
+    virtual void setParent(int parentPort) {}
     void timeline_trace( const trace_events event, ... );
     
 protected:
     void client_cycle( const double think_time );
     void server_cycle(  Entry *, Message * msg, bool reschedule );
-    void wait_for_message( long& entry_id, Message **msg );
-	void wait_for_message2( long& entry_id, Message **msg );
+    Message * wait_for_message( long& entry_id );
+    Message * wait_for_message2( long& entry_id );
     void run_activities( Entry * ep, Activity * ap, bool reschedule );
 
     void timeline_quit();
@@ -73,8 +74,8 @@ private:
     void execute_activity( Entry * ep, Activity * ap, bool& reschedule );
     bool all_activities_done( const Activity * ap );
     Activity * next_activity( Entry * ep, Activity * ap_in, bool reschedule );
-    void spawn_activities( const long entry_id, activity_list_t * fork_list );
-    void wait_for_threads( activity_list_t * fork_list, double * thread_K_outOf_N_end_compute_time );
+    void spawn_activities( const long entry_id, ActivityList * fork_list );
+    void wait_for_threads( ActivityList * fork_list, double * thread_K_outOf_N_end_compute_time );
     void flush_threads();
     int thread_wait( double time_out, char ** msg, const bool flush, double * thread_end_compute_time );
 
@@ -89,23 +90,24 @@ public:
 
 protected:
     Task * _cp;				/* Pointer to class.	        */
-    double hold_start_time;		/* For semaphores		*/
+    double _hold_start_time;		/* For semaphores		*/
 
 private:
-    Message ** _entry;			/* Msg at local entry i		*/
+    std::vector<Message *> _entry;	/* Msg at local entry i		*/
 
     const long _task_id;		/* Parasol Task id.		*/
     const long _node_id;		/* Parasol Node id.		*/
+    const long _std_port;		/* Main port.			*/
     const long _reply_port;		/* reply port id		*/
     const long _thread_port;		/* Messages from threads.	*/
     long _start_port;			/* Messages to threads.		*/
 
     int active_threads;			/* Threads that are running.	*/
     int idle_threads;			/* Threads that are waiting.	*/
-    double phase_start_time;		/* For activities		*/
+    double _phase_start_time;		/* For activities		*/
     int _current_phase;			/* Phase 			*/
     double lastQuorumEndTime;
-    bool * join_done;			/* */
+    std::vector<bool> _join_done;	/* */
 };
 
 /* 
@@ -158,6 +160,10 @@ public:
 
     virtual const char * type_name() const { return Task::type_strings[Task::SERVER]; }
     void run();
+    int parentPort() const{ return _parent_port;}
+    void setParent(int parentPort) {_parent_port=parentPort; }
+private:
+    int _parent_port;
 };
 
 
@@ -170,8 +176,10 @@ public:
 
     virtual const char * type_name() const;
     void run();
-
+    int parentPort() const{ return _parent_port;}
+    void setParent(int parentPort) {_parent_port=parentPort; }
 private:
+    int _parent_port;
     const unsigned long _max_workers;
 };
 

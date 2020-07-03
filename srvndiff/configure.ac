@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 12595 2016-06-06 16:54:07Z greg $
+# $Id: configure.ac 13477 2020-02-08 23:14:37Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(srvndiff, 5.9.2, greg@sce.carleton.ca)
+AC_INIT(srvndiff, 6.0, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([srvndiff.h])
 AC_CONFIG_HEADERS([config.h])
@@ -46,6 +46,7 @@ AC_HEADER_STDC
 AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
+AC_CHECK_HEADERS([expat.h])
 AC_CHECK_HEADERS([fenv.h]) 
 AC_CHECK_HEADERS([float.h])
 AC_CHECK_HEADERS([getopt.h])
@@ -111,6 +112,8 @@ AC_CHECK_FUNCS([strdup])
 AC_CHECK_FUNCS([strerror])
 AC_CHECK_FUNCS([strrchr])
 AC_CHECK_FUNCS([mmap])
+
+AM_CONDITIONAL([EXPAT], [test "x${ac_cv_lib_expat_XML_ParserCreateNS}" = "xyes"] )
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

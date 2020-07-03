@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/processor.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/processor.h $
  *
  * Processors.
  *
@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: processor.h 13548 2020-05-21 14:27:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -33,10 +33,10 @@ class Server;
 class Processor : public Entity {
 
 public:
-    static void create( LQIO::DOM::Processor* processor );
+    static void create( LQIO::DOM::Processor* );
 
 protected:
-    Processor( LQIO::DOM::Processor* aDomProcessor );
+    Processor( LQIO::DOM::Processor* );
 
 public:
     virtual ~Processor();
@@ -53,6 +53,8 @@ public:
     virtual Entity& processor( Processor * aProcessor );
     virtual const Processor * processor() const;
     virtual double rate() const;
+    virtual unsigned int fanOut( const Entity * ) const;
+    virtual unsigned int fanIn( const Task * ) const;
 
     /* Queries */
 	
@@ -77,7 +79,7 @@ public:
     static Processor * find( const char * processor_name );
 
 protected:
-    LQIO::DOM::Processor* myDOMProcessor;	/* DOM Element to Store Data	*/
+    LQIO::DOM::Processor* getDOM() const { return dynamic_cast<LQIO::DOM::Processor *>(domEntity); }	/* DOM Element to Store Data	*/
 	
 private:
     Cltn<Task *> taskList;			/* List of processor's tasks	*/

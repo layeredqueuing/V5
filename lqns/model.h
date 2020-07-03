@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/model.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/model.h $
  *
  * Layer-ization of model.
  *
@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -65,7 +65,7 @@ public:
     Model& reinitialize();
     unsigned generate( set<Task *,ltTask>::const_iterator& );	/* Create layers.	*/
 
-    void InitializeModel();
+    bool initializeModel();
 
     void updateWait( Entity * ) const;
 

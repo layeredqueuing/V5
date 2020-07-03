@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.cc 13560 2020-05-26 22:04:49Z greg $
  */
 #include <iostream>
 #include <iomanip>
@@ -40,11 +40,19 @@ Group::Group( LQIO::DOM::Group * group, const Processor& processor )
  * Called from Model::create to create ALL groups.  IFF a group has a multiserver, then we re-assign that task to a new sub-group
  */
 
-bool
+Group&
 Group::create() 
 {	
-    double share = _domGroup->getGroupShareValue();
+    double share = 0.;
     double share_sum = 0.0;
+
+    try {
+	share = _domGroup->getGroupShareValue();
+    }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "share", "group", name(), e.what() );
+	throw_bad_parameter();
+    }
 
     if ( _task_list.size() == 0 ) {
 	const set<LQIO::DOM::Task *>& dom_list = _domGroup->getTaskList();
@@ -71,7 +79,7 @@ Group::create()
 		int group_id = ps_build_group( name(), new_share, _processor.node_id(), cap() );
 		if ( group_id < 0 ) {
 		    LQIO::input_error2( ERR_CANNOT_CREATE_X, "group", name() );
-		    return false;
+		    return *this;
 		}
 		cp->set_group_id( group_id );
 		share_sum += new_share;
@@ -84,7 +92,7 @@ Group::create()
     int group_id = ps_build_group( name(), max( 0.0, share - share_sum ), _processor.node_id(), cap() );
     if ( group_id < 0 ) {
 	LQIO::input_error2( ERR_CANNOT_CREATE_X, "group", name() );
-	return false;
+	return *this;
     }
 
     for ( set<Task *>::iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
@@ -95,7 +103,7 @@ Group::create()
 
     r_util.init( VARIABLE, "Group  %-11.11s - Utilization     ", name() );
 
-    return true;
+    return *this;
 }
 
 /*
@@ -164,11 +172,10 @@ Group::insertDOMResults()
     for ( set<Task *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
 	Task * cp = *t;
 	
-	for ( vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
-	    Entry * ep = *next_entry;
-	    for ( unsigned p = 1; p <= cp->max_phases; ++p ) {
-		proc_util_mean += ep->phase[p].r_cpu_util.mean();
-		proc_util_var  += ep->phase[p].r_cpu_util.variance();
+	for ( vector<Entry *>::const_iterator entry = cp->_entry.begin(); entry != cp->_entry.end(); ++entry ) {
+	    for ( std::vector<Activity>::iterator phase = (*entry)->_phase.begin(); phase != (*entry)->_phase.end(); ++phase ) {
+		proc_util_mean += phase->r_cpu_util.mean();
+		proc_util_var  += phase->r_cpu_util.variance();
 	    }
 	}
 	/* Entry utilization includes activities */

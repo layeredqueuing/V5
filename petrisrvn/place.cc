@@ -15,19 +15,19 @@
 
 #include "petrisrvn.h"
 #include "place.h"
+#include "errmsg.h"
 #include <cmath>
+#include <sstream>
 #include <stdexcept>
 #include <lqio/dom_entity.h>
 #include <lqio/dom_extvar.h>
 
 using namespace std;
 
-#if (__GNUC__ < 4 || (__GNUC__ == 4 &&__GNUC_MINOR__ == 0))
 const double Place::SERVER_Y_OFFSET = 3.0;
 const double Place::CLIENT_Y_OFFSET = 0.5;
 const double Place::PLACE_X_OFFSET  = -0.25;
 const double Place::PLACE_Y_OFFSET  = 0.35;
-#endif
 
 const char * Place::name() const
 {
@@ -60,24 +60,31 @@ Place::scheduling_is_ok( const unsigned bits ) const
 unsigned int Place::multiplicity() const
 {
     const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
-    double value;
-    if ( !copies ) return 1;
+    if ( copies == nullptr ) return 1;
+    double value = 1.;
     assert(copies->getValue(value) == true);
     if ( isinf( value ) ) return 1;
-    if ( value - floor(value) != 0 ) {
-	throw domain_error( "Entity::copies" );
+    std::stringstream err;
+    if ( value < 1 ) {
+	err << value << " < " << 1;
+    } else if ( value != floor(value)  ) {
+	err << "invalid integer";
+    }
+    if ( err.str().size() > 0 ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", get_dom()->getTypeName(), name(), err.str().c_str() );
+	throw_bad_parameter();
     }
     return static_cast<unsigned int>(value);
 }
 
 bool Place::is_infinite() const
 {
-    const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
-    double value;
-    if ( copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value )) ) {
+    if ( scheduling() == SCHEDULE_DELAY ) {
 	return true;
-    } else { 
-	return scheduling() == SCHEDULE_DELAY; 
+    } else {
+	const LQIO::DOM::ExternalVariable * copies = get_dom()->getCopies(); 
+	double value;
+	return  copies && (copies->wasSet() && copies->getValue(value) == true && isinf( value ));
     }
 }
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 12230 2015-02-03 20:36:38Z greg $
+ *  $Id: dom_entry.cpp 13547 2020-05-21 02:22:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -11,6 +11,7 @@
 #include "dom_histogram.h"
 #include "glblerr.h"
 #include <cassert>
+#include <cmath>
 #include <stdexcept>
 #include <iostream>
 #include <algorithm>
@@ -18,8 +19,10 @@
 namespace LQIO {
     namespace DOM {
 
-	Entry::Entry(const Document * document, const char * name, const void * xmlDOMElement) 
-	    : DocumentObject(document,name,xmlDOMElement),
+	const char * Entry::__typeName = "entry";
+
+	Entry::Entry(const Document * document, const char * name) 
+	    : DocumentObject(document,name),
 	      _type(Entry::ENTRY_NOT_DEFINED), _phases(), 
 	      _maxPhase(0), _task(NULL), _histograms(),
 	      _openArrivalRate(NULL), _entryPriority(NULL),
@@ -27,37 +30,39 @@ namespace LQIO {
 	      _rwlockType(RWLOCK_NONE),
 	      _forwarding(),
 	      _startActivity(NULL),
+	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
 	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
 	      _resultPhasePVarianceServiceTime(), _resultPhasePVarianceServiceTimeVariance(),
 	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0),
-	      _resultSquaredCoeffVariation(), _resultSquaredCoeffVariationVariance(),
+	      _resultSquaredCoeffVariation(0.0), _resultSquaredCoeffVariationVariance(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultThroughputBound(0.0), 
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
 	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false)
 	{
-	    for ( unsigned p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_resultPhasePProcessorWaiting[p] = 0.0;
-		_resultPhasePProcessorWaitingVariance[p] = 0.0;
-		_resultPhasePServiceTime[p] = 0.0;
-		_resultPhasePServiceTimeVariance[p] = 0.0;
-		_resultPhasePVarianceServiceTime[p] = 0.0;
-		_resultPhasePVarianceServiceTimeVariance[p] = 0.0;
-		_resultPhasePUtilization[p] = 0.0;
-		_resultPhasePUtilizationVariance[p] = 0.0;
-		_hasResultsForPhase[p] = false;
-	    }
+	    clearPhaseResults();
 	}
     
 	Entry::Entry( const Entry& src ) 
-	    : DocumentObject( src.getDocument(), "", 0 ),
+	    : DocumentObject( src.getDocument(), "" ),
 	      _type(src._type), _phases(),
 	      _maxPhase(src._maxPhase), _task(NULL), _histograms(),
 	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority),
 	      _semaphoreType(src._semaphoreType), _rwlockType(src._rwlockType), _forwarding(src._forwarding),
-	      _startActivity(NULL)
+	      _startActivity(NULL),
+	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
+	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
+	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
+	      _resultPhasePVarianceServiceTime(), _resultPhasePVarianceServiceTimeVariance(),
+	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0),
+	      _resultSquaredCoeffVariation(0.0), _resultSquaredCoeffVariationVariance(0.0),
+	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
+	      _resultThroughputBound(0.0), 
+	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
+	      _hasResultsForPhase(),  _hasOpenWait(false), _hasThroughputBound(false)
 	{
+	    clearPhaseResults();
 	}
 
 	Entry::~Entry()
@@ -80,6 +85,22 @@ namespace LQIO {
 	    }
 	}
 
+	Entry& Entry::clearPhaseResults()
+	{
+	    for ( unsigned p = 0; p < Phase::MAX_PHASE; ++p ) {
+		_resultPhasePProcessorWaiting[p] = 0.0;
+		_resultPhasePProcessorWaitingVariance[p] = 0.0;
+		_resultPhasePServiceTime[p] = 0.0;
+		_resultPhasePServiceTimeVariance[p] = 0.0;
+		_resultPhasePVarianceServiceTime[p] = 0.0;
+		_resultPhasePVarianceServiceTimeVariance[p] = 0.0;
+		_resultPhasePUtilization[p] = 0.0;
+		_resultPhasePUtilizationVariance[p] = 0.0;
+		_hasResultsForPhase[p] = false;
+	    }
+	    return *this;
+	}
+	
 	Entry * Entry::clone() const
 	{	
 	    return new Entry( *this );
@@ -121,6 +142,24 @@ namespace LQIO {
 	    }
 	}
 
+	void Entry::erasePhase( unsigned p )
+	{
+	    std::map<unsigned, Phase*>::iterator phase = _phases.find(p);
+	    if ( phase == _phases.end()) throw std::domain_error( "Phase not found" );
+	    delete phase->second;
+
+	    /* Reset the maxPhase */
+	    if ( phase->first == _maxPhase ) {
+		_maxPhase = 0;
+		for ( phase = _phases.begin(); phase != _phases.end(); ++phase ) {
+		    _maxPhase = std::max( phase->first, _maxPhase );
+		}
+	    }
+
+	    /* Erase the item in the map. */
+	    _phases.erase(phase);
+	}
+	
 	void Entry::setPhase( unsigned p, Phase * phase )
 	{
 	    assert(0 < p && p <= Phase::MAX_PHASE);
@@ -133,59 +172,48 @@ namespace LQIO {
 	}
 
     
-	bool Entry::hasPhase(unsigned phase) const
+	bool Entry::hasPhase( unsigned p ) const
 	{
 	    /* Return whether or not this phase exists yet, because getPhase() makes it */
-	    return _phases.find(phase) != _phases.end();
+	    assert( 0 < p && p <= Phase::MAX_PHASE );
+	    return _phases.find(p) != _phases.end();
 	}
     
 	unsigned Entry::getMaximumPhase() const
 	{
-	    /* Return the maximum phase */
 	    return _maxPhase;
 	}
     
-	bool Entry::isStandardEntry() const
-	{
-	    return _type == Entry::ENTRY_STANDARD_NOT_DEFINED || _type == Entry::ENTRY_STANDARD;
-	}
-
 	Call* Entry::getCallToTarget(const Entry* target, unsigned phase) const
 	{
 	    /* Attempt to find the call to the given target */
 	    if (hasPhase(phase)) {
-		const Phase* domPhase = getPhase(phase);
-		return domPhase->getCallToTarget(target);
+		return getPhase(phase)->getCallToTarget(target);
+	    } else {
+		return NULL;
 	    }
-	    return NULL;
 	}
     
 	void Entry::setOpenArrivalRate(ExternalVariable* value)
 	{
 	    /* Store the given open arrival rate */
-	    const_cast<Document *>(getDocument())->setEntryHasOpenArrivals(true);
-	    _openArrivalRate = value;
+	    _openArrivalRate = checkDoubleVariable( value, 0.0 );
 	}
     
 	double Entry::getOpenArrivalRateValue() const
 	{
-	    /* Get the external variable */
-	    double v = 0.0;
-	    if (hasOpenArrivalRate() == false) return v;
-	    _openArrivalRate->getValue(v);
-	    return v;
+	    return getDoubleValue( getOpenArrivalRate(), 0.0 );
 	}
     
 	bool Entry::hasOpenArrivalRate() const
 	{
-	    /* Find out whether a value was set */
-	    return _openArrivalRate != NULL;
+	    return ExternalVariable::isPresent( getOpenArrivalRate(), 0.0 );
 	}
     
 	void Entry::setEntryPriority(ExternalVariable* value)
 	{
 	    /* Store the entry priority */
-	    _entryPriority = value;
+	    _entryPriority = checkIntegerVariable( value, 0 );
 	}
     
 	const ExternalVariable* Entry::getEntryPriority() const
@@ -193,13 +221,9 @@ namespace LQIO {
 	    return _entryPriority;
 	}
 
-	double Entry::getEntryPriorityValue()
+	int Entry::getEntryPriorityValue() const
 	{
-	    /* Get the external variable */
-	    double v = 0.0;
-	    if (hasEntryPriority() == false) return v;
-	    _entryPriority->getValue(v);
-	    return v;
+	    return getIntegerValue( getEntryPriority(), 0 );
 	}
     
 	bool Entry::hasEntryPriority() const
@@ -255,6 +279,19 @@ namespace LQIO {
 	}
     
   
+	bool Entry::isDefined() const
+	{
+	    return _type != Entry::ENTRY_NOT_DEFINED 
+		&& _type != Entry::ENTRY_STANDARD_NOT_DEFINED  
+		&& _type != Entry::ENTRY_ACTIVITY_NOT_DEFINED;
+	}
+
+
+	bool Entry::isStandardEntry() const
+	{
+	    return _type == Entry::ENTRY_STANDARD_NOT_DEFINED || _type == Entry::ENTRY_STANDARD;
+	}
+
 	bool Entry::entryTypeOk(EntryType newType)
 	{
 	    static const char * entry_types [] = { "?", "Ph1Ph2", "None", "Ph1Ph2", "None", "?" };
@@ -286,16 +323,11 @@ namespace LQIO {
     
 	bool Entry::hasHistogram() const 
 	{
-	    for ( std::map<unsigned, Phase*>::const_iterator phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		const Phase* phase = phaseIter->second;
-		if ( phase->hasHistogram() ) return true;
+	    if ( std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasHistogram ) ) != _phases.end() ) {
+		return true;
 	    }
 	    /* Bug 668 - check for histogram at entry level (activity entry) */
-	    for ( std::map<unsigned, Histogram*>::const_iterator histogramIter = _histograms.begin(); histogramIter != _histograms.end(); ++histogramIter) {
-		const Histogram* histogram = histogramIter->second;
-		if ( histogram ) return true;
-	    }
-	    return false;
+	    return std::find_if( _histograms.begin(),  _histograms.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isHistogram ) ) != _histograms.end();
 	}
 
 	bool Entry::hasHistogramForPhase( unsigned p) const
@@ -303,7 +335,8 @@ namespace LQIO {
 	    if ( isStandardEntry() ) {
 		return hasPhase(p) && getPhase(p)->hasHistogram();
 	    } else {
-		return _histograms.find(p) != _histograms.end();
+		std::map<unsigned, Histogram*>::const_iterator i = _histograms.find(p);
+		return i != _histograms.end() && i->second && i->second->isHistogram();
 	    }
 	}
 	    
@@ -315,7 +348,7 @@ namespace LQIO {
 		}
 	    } else {
 		std::map<unsigned, Histogram*>::const_iterator histogram = _histograms.find(p);
-		if ( histogram != _histograms.end() ) {
+		if ( histogram != _histograms.end() && histogram->second->isHistogram() ) {
 		    return histogram->second;
 		}
 	    }
@@ -324,19 +357,30 @@ namespace LQIO {
 
 	void Entry::setHistogramForPhase( unsigned p, Histogram* histogram )
 	{
-	    assert(0 < p && p <= Phase::MAX_PHASE);
 	    if ( isStandardEntry() ) {
 		getPhase(p)->setHistogram( histogram );
 	    } else {
+		assert(0 < p && p <= Phase::MAX_PHASE);
 		_histograms[p] = histogram;
 	    }
 	}
 
 	bool Entry::hasMaxServiceTimeExceeded() const 
+ 	{
+	    if ( std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) ) != _phases.end() ) {
+		return true;
+	    }
+	    return std::find_if( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) ) != _histograms.end();
+ 	}
+
+
+	bool Entry::hasMaxServiceTimeExceededForPhase( unsigned p ) const 
 	{
-	    for ( std::map<unsigned, Phase*>::const_iterator phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		const Phase* phase = phaseIter->second;
-		if ( phase->hasMaxServiceTimeExceeded() ) return true;
+	    if ( isStandardEntry() ) {
+		return hasPhase(p) && getPhase(p)->hasMaxServiceTimeExceeded();
+	    } else {
+		std::map<unsigned, Histogram*>::const_iterator i = _histograms.find(p);
+		return i != _histograms.end() && i->second && i->second->isTimeExceeded();
 	    }
 	    return false;
 	}
@@ -362,6 +406,12 @@ namespace LQIO {
 	    return NULL;
 	}
 
+	bool Entry::hasForwarding() const
+	{
+	    return _forwarding.size() > 0;
+	}
+
+
 	const Activity* Entry::getStartActivity() const
 	{
 	    /* Returns the start activity name of the Entry */
@@ -381,32 +431,17 @@ namespace LQIO {
     
 	const bool Entry::hasThinkTime() const
 	{
-	    std::map<unsigned, Phase*>::const_iterator phaseIter;
-	    for (phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		Phase* phase = phaseIter->second;
-		if ( phase->hasThinkTime() ) return true;
-	    }
-	    return false;
+	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasThinkTime ) ) != _phases.end();
 	}
 
 	const bool Entry::hasDeterministicPhases() const
 	{
-	    std::map<unsigned, Phase*>::const_iterator phaseIter;
-	    for (phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		Phase* phase = phaseIter->second;
-		if ( phase->hasDeterministicCalls() ) return true;
-	    }
-	    return false;
+	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) ) != _phases.end();
 	}
 	    
 	const bool Entry::hasNonExponentialPhases() const
 	{
-	    std::map<unsigned, Phase*>::const_iterator phaseIter;
-	    for (phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		Phase* phase = phaseIter->second;
-		if ( phase->isNonExponential() ) return true;
-	    }
-	    return false;
+	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::isNonExponential ) ) != _phases.end();
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -451,7 +486,6 @@ namespace LQIO {
 	    /* Stores the given ResultThroughputBound of the Entry */ 
 	    _resultThroughputBound = resultThroughputBound;
 	    _hasThroughputBound = true;
-	    const_cast<Document *>(getDocument())->setEntryHasThroughputBound(true);
 	    return *this;
 	}
     
@@ -538,39 +572,37 @@ namespace LQIO {
 	    return *this;
 	}
     
-	double Entry::getResultOpenWaitTime() const
+	double Entry::getResultWaitingTime() const
 	{
-	    /* Returns the ResultOpenWaitTime of the Entry */
-	    return _resultOpenWaitTime;
+	    /* Returns the ResultWaitingTime of the Entry */
+	    return _resultWaitingTime;
 	}
 
-	Entry& Entry::setResultOpenWaitTime(const double resultOpenWaitTime)
+	Entry& Entry::setResultWaitingTime(const double resultWaitingTime)
 	{
-	    if ( resultOpenWaitTime > 0 ) {
+	    if ( resultWaitingTime > 0 ) {
 		if ( !hasOpenArrivalRate() ) throw std::invalid_argument( "Open Wait Time" );
-		/* Stores the given ResultOpenWaitTime of the Entry */ 
-		_resultOpenWaitTime = resultOpenWaitTime;
+		/* Stores the given ResultWaitingTime of the Entry */ 
+		_resultWaitingTime = resultWaitingTime;
 		_hasOpenWait = true;
-		const_cast<Document *>(getDocument())->setEntryHasOpenWait(true);
 	    }
 	    return *this;
 	}
 
-	double Entry::getResultOpenWaitTimeVariance() const
+	double Entry::getResultWaitingTimeVariance() const
 	{
-	    /* Returns the given ResultOpenWaitTime of the Entry */ 
-	    return _resultOpenWaitTimeVariance;
+	    /* Returns the given ResultWaitingTime of the Entry */ 
+	    return _resultWaitingTimeVariance;
 	}
 
-	Entry& Entry::setResultOpenWaitTimeVariance(const double resultOpenWaitTimeVariance)
+	Entry& Entry::setResultWaitingTimeVariance(const double resultWaitingTimeVariance)
 	{
-	    if ( resultOpenWaitTimeVariance > 0 ) {
+	    if ( resultWaitingTimeVariance > 0 ) {
 		if ( !hasOpenArrivalRate() ) throw std::invalid_argument( "Open Wait Time" );
-		/* Stores the given ResultOpenWaitTime of the Entry */ 
-		_resultOpenWaitTimeVariance = resultOpenWaitTimeVariance;
+		/* Stores the given ResultWaitingTime of the Entry */ 
+		_resultWaitingTimeVariance = resultWaitingTimeVariance;
 		_hasOpenWait = true;
 		Document * document = const_cast<Document *>(getDocument());
-		document->setEntryHasOpenWait(true);
 		document->setResultHasConfidenceIntervals(true);
 	    }
 	    return *this;
@@ -594,11 +626,19 @@ namespace LQIO {
 	    return *this;
 	}
 
+	/*
+	 * getPhase() will create a phase if it doesn't exist, since
+	 * this method is NON-const, so only 'create' a phase if
+	 * results are present.  Of course, if the phase does exist,
+	 * we can always nuke the result.
+	 */
+	
 	Entry& Entry::setResultPhasePServiceTime(const unsigned p,const double resultServiceTime)
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultServiceTime( resultServiceTime );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultServiceTime > 0 ) {
+		    getPhase( p )->setResultServiceTime( resultServiceTime );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePServiceTime, resultServiceTime );
 	    }
@@ -620,9 +660,10 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePServiceTimeVariance(const unsigned p, const double resultServiceTimeVariance) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultServiceTimeVariance( resultServiceTimeVariance );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultServiceTimeVariance > 0 ) {
+		    getPhase( p )->setResultServiceTimeVariance( resultServiceTimeVariance );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePServiceTimeVariance, resultServiceTimeVariance );
 	    }
@@ -643,9 +684,10 @@ namespace LQIO {
     
 	Entry& Entry::setResultPhasePVarianceServiceTime(unsigned p, double resultVarianceServiceTime ) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultVarianceServiceTime( resultVarianceServiceTime );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultVarianceServiceTime > 0 ) {
+		    getPhase( p )->setResultVarianceServiceTime( resultVarianceServiceTime );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePVarianceServiceTime, resultVarianceServiceTime );
 	    }
@@ -666,9 +708,10 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePVarianceServiceTimeVariance(unsigned p, double resultVarianceServiceTimeVariance) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultVarianceServiceTimeVariance( resultVarianceServiceTimeVariance );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultVarianceServiceTimeVariance > 0 ) {
+		    getPhase( p )->setResultVarianceServiceTimeVariance( resultVarianceServiceTimeVariance );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePVarianceServiceTimeVariance, resultVarianceServiceTimeVariance );
 	    }
@@ -689,9 +732,10 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePProcessorWaiting(unsigned p, double resultProcessorWaiting ) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultProcessorWaiting( resultProcessorWaiting );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultProcessorWaiting> 0 ) {
+		    getPhase( p )->setResultProcessorWaiting( resultProcessorWaiting );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePProcessorWaiting, resultProcessorWaiting );
 	    }
@@ -712,9 +756,10 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePProcessorWaitingVariance(unsigned p, double resultProcessorWaitingVariance ) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultProcessorWaitingVariance( resultProcessorWaitingVariance );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultProcessorWaitingVariance > 0 ) {
+		    getPhase( p )->setResultProcessorWaitingVariance( resultProcessorWaitingVariance );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePProcessorWaitingVariance, resultProcessorWaitingVariance );
 	    }
@@ -735,9 +780,10 @@ namespace LQIO {
     
 	Entry& Entry::setResultPhasePUtilization( unsigned p, double resultUtilization ) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultUtilization( resultUtilization );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultUtilization > 0 ) {
+		    getPhase( p )->setResultUtilization( resultUtilization );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePUtilization, resultUtilization );
 	    }
@@ -758,9 +804,10 @@ namespace LQIO {
 
 	Entry& Entry::setResultPhasePUtilizationVariance( unsigned p, double resultUtilizationVariance ) 
 	{
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		phase->second->setResultUtilizationVariance( resultUtilizationVariance );
+	    if ( isStandardEntry() ) {
+		if ( hasPhase( p ) || resultUtilizationVariance > 0 ) {
+		    getPhase( p )->setResultUtilizationVariance( resultUtilizationVariance );
+		}
 	    } else {
 		setResultPhaseP( p, _resultPhasePUtilizationVariance, resultUtilizationVariance );
 	    }
@@ -782,25 +829,50 @@ namespace LQIO {
 	double Entry::getResultPhasePMaxServiceTimeExceeded( unsigned p ) const
 	{
 	    /* Returns the ResultPhasePServiceTime of the Entry */
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		return phase->second->getResultMaxServiceTimeExceeded();
+	    if ( isStandardEntry() ) {
+		if ( hasPhase(p) ) {
+		    return getPhase(p)->getResultMaxServiceTimeExceeded();
+		}
 	    } else {
-		return 0;
+		std::map<unsigned, Histogram*>::const_iterator i = _histograms.find(p);
+		if ( i != _histograms.end() ) {
+		    LQIO::DOM::Histogram * histogram = i->second;
+		    if ( histogram->isTimeExceeded() ) {
+			return histogram->getBinMean( histogram->getOverflowIndex() );
+		    }
+		}
 	    }
+	    return 0;
 	}
 
 	double Entry::getResultPhasePMaxServiceTimeExceededVariance( unsigned p ) const
 	{
 	    /* Returns the ResultPhasePServiceTime of the Entry */
-	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
-	    if ( isStandardEntry() && phase != _phases.end() ) {
-		return phase->second->getResultMaxServiceTimeExceededVariance();
+	    if ( isStandardEntry() ) {
+		if ( hasPhase(p) ) {
+		    return getPhase(p)->getResultMaxServiceTimeExceededVariance();
+		}
 	    } else {
-		return 0;
+		std::map<unsigned, Histogram*>::const_iterator i = _histograms.find(p);
+		if ( i != _histograms.end() ) {
+		    LQIO::DOM::Histogram * histogram = i->second;
+		    if ( histogram->isTimeExceeded() ) {
+			return histogram->getBinVariance( histogram->getOverflowIndex() );
+		    }
+		}
 	    }
+	    return 0.;
 	}
 
+	unsigned Entry::getResultPhaseCount() const
+	{
+	    unsigned int maxPhase = 0;
+	    for ( unsigned int p = 1; p <= Phase::MAX_PHASE; ++p) {
+		if ( hasResultsForPhase(p) ) maxPhase = p;
+	    }
+	    return maxPhase;
+	}
+	
 	bool Entry::hasResultsForPhase(unsigned p) const
 	{
 	    assert(0 < p && p <= Phase::MAX_PHASE);
@@ -816,39 +888,14 @@ namespace LQIO {
 	{
 	    return _hasThroughputBound;
 	}
-    
-	void Entry::resetResultFlags()
-	{
-	    /* Zero them back out */
-	    _hasOpenWait = false;
-      
-	    /* Reset the values at the same time */
-	    _resultOpenWaitTime = 0.0;
-	    _resultOpenWaitTimeVariance = 0.0;
-	    for ( unsigned p = 0; p < Phase::MAX_PHASE; ++p ) {
-		_hasResultsForPhase[p] = false;
-		_resultPhasePProcessorWaiting[p] = 0.0;
-		_resultPhasePProcessorWaitingVariance[p] = 0.0;
-		_resultPhasePServiceTime[p] = 0.0;
-		_resultPhasePServiceTimeVariance[p] = 0.0;
-		_resultPhasePVarianceServiceTime[p] = 0.0;
-		_resultPhasePVarianceServiceTimeVariance[p] = 0.0;
-	    }
-	}
-    
-
+ 
 	/* ------------------------------------------------------------------------ */
 
-	void Entry::Count::operator()( const LQIO::DOM::Entry * e ) 
+	Entry::Count& Entry::Count::operator()( const LQIO::DOM::Entry * e ) 
 	{
 	    const std::map<unsigned, Phase*>& phases = e->getPhaseList();
-	    
-	    for ( std::map<unsigned, Phase*>::const_iterator next = phases.begin(); next != phases.end(); ++next) {
-		const Phase* p = next->second;
-		if ( (p->*_f)() ) {
-		    _count += 1;
-		}
-	    }
+	    _count += std::count_if( phases.begin(), phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( _f ) );
+	    return *this;
 	}
     }
 }

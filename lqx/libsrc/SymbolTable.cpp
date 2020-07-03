@@ -13,6 +13,7 @@
 #include "LanguageObject.h"
 
 #include <cassert>
+#include <algorithm>
 #include <sstream>
 #include <iostream>
 #include <iomanip>
@@ -328,29 +329,46 @@ namespace LQX {
   
   std::string Symbol::description() const
   {
+    std::ostringstream ss;
+    if ( getType() == SYM_STRING ) {
+      ss << "\"" << _storedValue.stringValue << "\"";		// Put quotes around the string.
+    } else {
+      print( ss );
+    }
+    return ss.str();
+  }
+
+  std::ostream& Symbol::print( std::ostream& output ) const
+  {
     /* Find out what to say */
     switch (_symbolType) {
-        case SYM_BOOLEAN:
-          return _storedValue.booleanValue ? "true" : "false";
-        case SYM_DOUBLE: {
-          std::stringstream ss;
-          ss << _storedValue.doubleValue;
-          return ss.str();
-        } case SYM_STRING: {
-          std::stringstream ss;
-          ss << "\"" << _storedValue.stringValue << "\"";
-          return ss.str();
-        } case SYM_NULL: {
-          return std::string("(NULL)");
-        } case SYM_OBJECT: {
-          return _storedValue.objectValue->description();
-        } case SYM_UNINITIALIZED: {
-          return std::string("<<uninitialized>>");
-        }
+    case SYM_BOOLEAN:
+      output << (_storedValue.booleanValue ? "true" : "false");
+      break;
+    case SYM_DOUBLE:
+      output << _storedValue.doubleValue;
+      break;
+    case SYM_STRING:
+      output << _storedValue.stringValue;
+      break;
+    case SYM_NULL:
+      output << "(NULL)";
+      break;
+    case SYM_OBJECT:
+      output << _storedValue.objectValue->description();
+      break;
+    case SYM_NEWLINE:
+      output << std::endl;
+      break;
+    case SYM_UNINITIALIZED:
+      output << "<<uninitialized>>";
+      break;
+    default:
+      throw InternalErrorException("Unsupported type passed to print function.");
+      break;
     }
-    
-    /* Return the type */
-    return "<unknown>";
+     
+     return output;
   }
   
   /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -459,42 +477,31 @@ namespace LQX {
     ss << "   +-------------------+-----------------+--------------->" << std::endl;
     
     /* Go through the table and output the values */
-    std::vector< std::map<std::string,SymbolAutoRef > >::reverse_iterator topIter;
-    for (topIter = _stack.rbegin(); topIter != _stack.rend(); ++topIter) {
-      std::stringstream ssn;
-      ssn << ++level;
-      dumpLevel(ssn.str(), ss, *topIter);
-    }
+    for_each( _stack.rbegin(), _stack.rend(), DumpLevel( ss ) );
   }
   
-  void SymbolTable::dumpLevel(std::string name, std::stringstream& ss, std::map<std::string, SymbolAutoRef >& level)
+  void SymbolTable::DumpLevel::operator()( const std::map<std::string, SymbolAutoRef >& level )
   {
+    _level += 1;
+
     /* The iterator used to walk the level */
-    std::map<std::string, SymbolAutoRef >::iterator iter;
+    std::map<std::string, SymbolAutoRef >::const_iterator iter;
     
     /* Output all the variables at the current level */
     for (iter = level.begin(); iter!= level.end(); ++iter) {
-      SymbolAutoRef& symbol = iter->second;
-      std::string symbolValue;
-      
-      /* Print out the human language representation */
-      if (symbol->getType() == Symbol::SYM_BOOLEAN) {
-        symbolValue = std::string(symbol->getBooleanValue() ? "true" : "false");
-      } else if (symbol->getType() == Symbol::SYM_DOUBLE) {
-        std::stringstream ss;
-        ss << symbol->getDoubleValue();
-        symbolValue = ss.str();
-      } else if (symbol->getType() == Symbol::SYM_STRING) {
-        symbolValue = symbol->getStringValue();
-      } else if (symbol->getType() == Symbol::SYM_OBJECT) {
-        symbolValue = symbol->getObjectValue()->description();
+      const SymbolAutoRef& symbol = iter->second;
+      std::stringstream value;
+      try {
+	symbol->print( value );
+      }
+      catch ( const InternalErrorException& e ) {	/* Ignore */
       }
       
       /* Print out the current line for the system */
-      ss << " " << std::setw(03) << std::left << name;
-      ss << " " << std::setw(19) << std::left << iter->first;
-      ss << " " << std::setw(17) << std::left << symbol->getTypeName();
-      ss << " " << std::setw(15) << std::left << symbolValue << std::endl;
+      _ss << " " << std::setw(03) << std::left << _level;
+      _ss << " " << std::setw(19) << std::left << iter->first;
+      _ss << " " << std::setw(17) << std::left << symbol->getTypeName();
+      _ss << " " << std::setw(15) << std::left << value.str() << std::endl;
     }
   }
   

@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: processor.h 13523 2020-03-03 16:19:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -17,45 +17,40 @@
 #define PROCESSOR_H
 
 #include "lqn2ps.h"
-#include <cstring>
-#include "vector.h"
+#include <string>
+#include <set>
 #include "entity.h"
 #include "share.h"
 
-
 class Task;
 class Share;
-class Processor;
-
-ostream& operator<<( ostream&, const Processor& );
 
 class Processor : public Entity {
-public:
-    static ostream& printHeader( ostream& );
-
 public:
     Processor( const LQIO::DOM::Processor* aDomProcessor );
 
     virtual ~Processor();
-    Processor * clone( unsigned int ) const;
+private:
+    Processor * clone( const std::string& ) const;
 
-    static int compare( const void *, const void * );
-    static Processor * find( const string& name );
-    static Processor * create( const LQIO::DOM::Processor* processor );
+public:
+    static bool compare( const void *, const void * );
+    static Processor * find( const std::string& name );
+    static Processor * create( const std::pair<std::string,LQIO::DOM::Processor *>& );
 
     /* Instance Variable access */
 
-    const set<Task *,ltTask>& tasks() const { return taskList; }
-    int nTasks() const { return taskList.size(); }
-    const set<Share *,ltShare>& shares() const { return shareList; }
-    int nShares() const { return shareList.size(); }
+    const std::set<Task *>& tasks() const { return _tasks; }
+    int nTasks() const { return _tasks.size(); }
+    const std::set<Share *,LT<Share> >& shares() const { return _shares; }
+    int nShares() const { return _shares.size(); }
     virtual Entity& processor( const Processor * aProcessor );
     virtual const Processor * processor() const;
     bool hasRate() const;
     LQIO::DOM::ExternalVariable& rate() const;
     bool hasQuantum() const;
     LQIO::DOM::ExternalVariable& quantum() const;
-    unsigned taskDepth() const;
+    size_t taskDepth() const;
     double meanLevel() const;
 	
     virtual double utilization() const;
@@ -66,17 +61,14 @@ public:
     bool isInteresting() const;
     virtual bool isProcessor() const { return true; }
     virtual bool isPureServer() const { return true; }
-    virtual bool isSelectedIndirectly() const;
 
-    bool hasGroup() const { return myGroupSelected; }
-    Processor& hasGroup( const bool yesOrNo ) { myGroupSelected = yesOrNo; return *this; }
+    bool hasGroup() const { return _groupIsSelected; }
+    Processor& hasGroup( const bool yesOrNo ) { _groupIsSelected = yesOrNo; return *this; }
 
     virtual unsigned nClients() const;
-    virtual unsigned referenceTasks( Cltn<const Entity *>&, Element * dst ) const;
-    virtual unsigned clients( Cltn<const Entity *>&, const callFunc = 0 ) const;
-    virtual unsigned servers( Cltn<const Entity *>& ) const { return 0; }	/* Processors don't have servers */
-
-    virtual double serviceTimeForQueueingNetwork( const unsigned k, chainTestFunc ) const;
+    virtual unsigned referenceTasks( std::vector<Entity *>&, Element * dst ) const;
+    virtual unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const;
+    virtual unsigned servers( std::vector<Entity *>& ) const { return 0; }	/* Processors don't have servers */
 
     /* Model Building. */
 
@@ -85,21 +77,28 @@ public:
     virtual Processor& moveBy( const double dx, const double dy );
     virtual Processor& moveTo( const double x, const double y );
     virtual Graphic::colour_type colour() const;
-    virtual Processor& label();
 
-    Processor& addTask( Task * );
-    Processor& removeTask( Task * );
-    Processor& addShare( Share * );
-    Processor& removeShare( Share * );
+    virtual Processor& label();
+    virtual Processor& rename();
+
+    Processor& addTask( Task * task ) { _tasks.insert(task); return *this; }
+    Processor& removeTask( Task * task ) { _tasks.erase(task); return *this; }
+    Processor& addShare( Share * share ) { _shares.insert(share); return *this; }
+    Processor& removeShare( Share * share ) { _shares.erase(share); return *this; }
 
 #if defined(REP2FLAT)
-    static Processor * find_replica( const string&, const unsigned );
-    Processor * expandProcessor( const int extention ) const;
+    static Processor * find_replica( const std::string&, const unsigned );
+    Processor& expandProcessor();
+    Processor& replicateProcessor( LQIO::DOM::DocumentObject ** );
 #endif
 
     /* Printing */
 
-    virtual ostream& draw( ostream& output ) const;
+    virtual const Processor& draw( std::ostream& output ) const;
+
+public:
+    static std::ostream& printHeader( std::ostream& );
+    static std::set<Processor *, LT<Processor> > __processors;
 
 private:
     Processor( const Processor& );
@@ -109,34 +108,10 @@ private:
     bool clientsCanQueue() const;
 
 private:
-    LQIO::DOM::Processor* myDOMProcessor;	/* DOM Element to Store Data	*/
-    set<Task *,ltTask> taskList;
-    set<Share *,ltShare> shareList;
-    bool myGroupSelected;
+    std::set<Task *> _tasks;
+    std::set<Share *, LT<Share> > _shares;
+    bool _groupIsSelected;
 };
 
-/*
- * Compare to processors by their name.  Used by the set class to insert items
- */
-
-struct ltProcessor
-{
-    bool operator()(const Processor * p1, const Processor * p2) const { return p1->name() < p2->name(); }
-};
-
-
-/*
- * Compare a processor name to a string.  Used by the find_if (and other algorithm type things.
- */
-
-struct eqProcStr 
-{
-    eqProcStr( const string & s ) : _s(s) {}
-    bool operator()(const Processor * p1 ) const { return p1->name() == _s; }
-
-private:
-    const string & _s;
-};
-
-extern set<Processor *, ltProcessor> processor;
+inline std::ostream& operator<<( std::ostream& output, const Processor& self ) { self.draw( output ); return output; }
 #endif

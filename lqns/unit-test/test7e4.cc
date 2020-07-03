@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7e4.cc 8841 2009-07-14 14:21:57Z greg $
+ * $Id: test7e4.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Four customers, one server (inService probability test).
  * This version has a phased server.
@@ -27,12 +27,12 @@
 static double initPrOt[N_ENTRIES+1] = { 0.8, 0.6, 0.2, 2.0 / 3.0 };
 
 void
-test( PopVector& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned ncust_ix )
+test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<unsigned>& priority, const unsigned ncust_ix )
 {
     const unsigned classes  = N_CLASSES;
     const unsigned stations = N_STATIONS;
 	
-    NCust.grow(classes);			/* Population vector.		*/
+    NCust.resize(classes);			/* Population vector.		*/
     Z.grow(classes);			/* Think times.			*/
     priority.grow(classes);
     Q.grow(stations);			/* Queue type.  SS/delay.	*/

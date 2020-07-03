@@ -27,7 +27,7 @@
 
 namespace LQX {
 
-  static unsigned long convertToNatural(double rightNumber) throw (IncompatibleTypeException) {
+  static unsigned long convertToNatural(double rightNumber) {
     long integralPart = static_cast<long>(rightNumber);
     double fractionalPart = rightNumber - static_cast<double>(integralPart);
     if (rightNumber < 0 || fractionalPart != 0) {
@@ -752,7 +752,11 @@ namespace LQX {
 	output << (_current->getBooleanValue() ? "true" : "false");
         break;
       case Symbol::SYM_DOUBLE:
-        output << _current->getDoubleValue();
+	if ( std::isinf( _current->getDoubleValue() ) ) {
+	  output << "@infinity";
+	} else {
+	  output << _current->getDoubleValue();
+	}
 	break;
       case Symbol::SYM_STRING:
 	output << "\"" << _current->getStringValue() << "\"";
@@ -1474,8 +1478,8 @@ namespace LQX {
 
 namespace LQX {
 
-  FileOpenStatementNode::FileOpenStatementNode( const std::string& fileHandle, const std::string& filePath, bool write, bool append ) :
-    _fileHandle(fileHandle), _filePath(filePath), _write(write), _append(append)
+  FileOpenStatementNode::FileOpenStatementNode( const std::string& fileHandle, SyntaxTreeNode * object, bool write, bool append ) :
+    _fileHandle(fileHandle), _filePath(object), _write(write), _append(append)
   {
   }
 
@@ -1521,8 +1525,25 @@ namespace LQX {
     else /* read */
       mode = "r";
 
-    if( (output_file = fopen( _filePath.c_str(), mode )) == 0 ) {
-      err << "The file \"" << _filePath << "\" could not be opened for ";
+    /* Resolve the file name */
+    
+    std::string filePath;
+    SymbolAutoRef value = _filePath->invoke(env);
+    switch ( value->getType() ) {
+    case Symbol::SYM_DOUBLE:
+	filePath = std::to_string(value->getDoubleValue());
+	break;
+    case Symbol::SYM_STRING:
+	filePath = value->getStringValue();
+	break;
+    default:
+	err << "A filename of type \"" << value->getTypeName() << "\" is not supported.";
+	throw RuntimeException( err.str().c_str() );
+	break;
+    }
+    
+    if( (output_file = fopen( filePath.c_str(), mode )) == 0 ) {
+      err << "The file \"" << filePath << "\" could not be opened for ";
       if( _write ){
 	if( _append )
 	  err << "appending.";
@@ -1657,7 +1678,6 @@ namespace LQX {
     for ( std::vector<SyntaxTreeNode*>::iterator iter = _arguments->begin(); iter != _arguments->end(); ++iter ) {
       arg = (*iter)->invoke( env );
       if (arg == NULL) throw InternalErrorException( "The first argument produces no value." );
-      args.push_back( arg );
 
       if ( iter == _arguments->begin() ) {
 	switch ( arg->getType() ) {
@@ -1672,8 +1692,11 @@ namespace LQX {
 	  file_pointer_found = true;
 	  break;
 	default:
+	  args.push_back( arg );	/* Run of the mill arg, so push it. */
 	  break;
 	}
+      } else {
+	args.push_back( arg );
       }
     }
 
@@ -1687,9 +1710,8 @@ namespace LQX {
     bool tab_spacing = false;
     int column_width = 10; /* default */
 
-    std::vector<SymbolAutoRef >::iterator iter2;
-    for (iter2 = args.begin(); iter2 != args.end(); ++iter2) {
-      SymbolAutoRef& current = *iter2;
+    for (std::vector<SymbolAutoRef >::iterator iter = args.begin(); iter != args.end(); ++iter) {
+      SymbolAutoRef& current = *iter;
 
       /* if spacing flag was set interpret first argument as spacing string with which to separate all future arguments, if not a string error condition */
       if( _spacing ) {
@@ -1720,35 +1742,7 @@ namespace LQX {
 	ss.setf( std::ios::left );
       }
 
-     switch (current->getType()) {
-      case Symbol::SYM_BOOLEAN:
-	ss << (current->getBooleanValue() ? "true" : "false");
-	break;
-      case Symbol::SYM_DOUBLE:
-	ss << current->getDoubleValue();
-	break;
-      case Symbol::SYM_STRING:
-	ss << current->getStringValue();
-	break;
-      case Symbol::SYM_NULL:
-	ss << "(NULL)";
-	break;
-      case Symbol::SYM_OBJECT:
-	ss << current->getObjectValue()->description();
-	break;
-     case Symbol::SYM_NEWLINE:
-	fprintf( outfile, "%s\n", ss.str().c_str() );
-	ss.str(""); // clear the string
-	break;
-      case Symbol::SYM_UNINITIALIZED:
-	ss << "<<uninitialized>>";
-	break;
-      default:
-	printf( "description: %s\n", current->description().c_str() );
-	throw InternalErrorException( "Unsupported type passed to print function." );
-	break;
-      }
-
+      ss << current;
     }
 
     fprintf( outfile, "%s%s", ss.str().c_str(), _newline ? "\n" : "" );

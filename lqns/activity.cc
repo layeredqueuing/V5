@@ -1,5 +1,5 @@
 /* activity.c	-- Greg Franks Thu Feb 20 1997
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/activity.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/activity.cc $
  * 
  * Everything you wanted to know about an activity, but were afraid to ask.
  *
@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: activity.cc 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -150,7 +150,7 @@ Activity::findChildren( CallStack& callStack, const bool directPath, Stack<const
 	max_depth = max( max_depth, outputToList->findChildren( callStack, directPath, activityStack, forkStack ) );
 	activityStack.pop();
     }
-    assert( max_depth < io_vars.n_tasks + 2 );
+    assert( max_depth < task.size() + 2 );
     return max_depth;
 }
 

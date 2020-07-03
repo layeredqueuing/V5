@@ -41,7 +41,8 @@ private:
 
 public:
     virtual ~Processor() {}
-    static void create( LQIO::DOM::Processor * );
+    static void create( const std::pair<std::string,LQIO::DOM::Processor*>& );
+    bool check() const;
 
     double rate() const;
     Processor& add_task( Task * task ) { _tasks.push_back( task ); return *this; }
@@ -83,7 +84,6 @@ public:
 private:
     std::vector<Task *> _tasks;
     history_t _history[DIME+1];
-    unsigned _proc_queue_count;
 };
 
 /*

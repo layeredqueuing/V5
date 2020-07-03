@@ -1,6 +1,6 @@
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 11308 2013-02-21 21:28:41Z greg $
+# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
@@ -34,7 +34,6 @@ noinst_HEADERS=	activity.h \
 	place.h \
 	pragma.h \
 	processor.h \
-	stack.h \
 	results.h \
 	runlqx.h \
 	task.h

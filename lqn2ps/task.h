@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 12980 2017-04-05 00:09:25Z greg $
+ * $Id: task.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,11 +18,10 @@
 #define TASK_H
 
 #include "lqn2ps.h"
+#include <vector>
 #include <cstring>
 #include "entity.h"
-#include "cltn.h"
 #include "actlayer.h"
-#include "point.h"
 
 class Task;
 class Processor;
@@ -31,50 +30,52 @@ class Call;
 class TaskCall;
 class EntityCall;
 class OpenArrival;
-class ProcessorCall;
 class ActivityList;
-template <class type> class Stack;
-template <class type> class Sequence;
-
-ostream& operator<<( ostream&, const Task& );
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
 class Task : public Entity {
     typedef double (Task::*taskPhaseFunc)( const unsigned ) const;
 
+#if defined(REP2FLAT)
+    class UpdateFanInOut {
+    public:
+	UpdateFanInOut( LQIO::DOM::Task& src ) : _src( src ) {}
+	void operator()( Entry * entry ) const;
+	void operator()( Activity * activity ) const;
+	void updateFanInOut( const std::vector<Call *>& calls ) const;
+    private:
+	LQIO::DOM::Task& _src;
+    };
+#endif
+    
 public:
     static bool thinkTimePresent;
     static bool holdingTimePresent;
     static bool holdingVariancePresent;
     static void reset();
-    static Task* create( const LQIO::DOM::Task* domTask, Cltn<Entry *>& entries );
+    static Task* create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries );
 
 protected:
-    Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries );
+    Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries );
 
 public:
     virtual ~Task();
     virtual Task * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const = 0;
 
-    virtual void rename();
-    virtual void squishName();
-    Task& aggregate();
-
-    virtual Entity& processor( const Processor * aProcessor ) { myProcessor = aProcessor; return *this; }
-    virtual const Processor * processor() const { return myProcessor; }
-    const Share * share() const { return myShare; }
+    virtual Entity& processor( const Processor * aProcessor ) { _processor = aProcessor; return *this; }
+    virtual const Processor * processor() const { return _processor; }
+    const Share * share() const { return _share; }
     bool hasPriority() const;
 
     virtual int rootLevel() const;
-    virtual Task const& sort() const;
+    virtual Task& sort();
     virtual double getIndex() const;
     virtual int span() const;
 
-    const Cltn<Entry *>& entries() const { return entryList; }
+    const std::vector<Entry *>& entries() const { return _entries; }
     Task& addEntry( Entry * );
     Task& removeEntry( Entry * );
-    Entry * entryAt( const unsigned index ) const { return entryList[index]; }
     Activity * findActivity( const string& name ) const;
     Activity * findOrAddActivity( const LQIO::DOM::Activity * );
 #if defined(REP2FLAT)
@@ -83,13 +84,13 @@ public:
 #endif
     Task& removeActivity( Activity * );
     void addPrecedence( ActivityList * );
-    const Cltn<Activity *>& activities() const { return activityList; }
-    const Cltn<ActivityList *>& precedences() const { return precedenceList; }
+    const std::vector<Activity *>& activities() const { return _activities; }
+    const std::vector<ActivityList *>& precedences() const { return _precedences; }
 
-    unsigned nEntries() const { return entryList.size(); }
-    unsigned nActivities() const { return activityList.size(); }
+    unsigned nEntries() const { return _entries.size(); }
+    unsigned nActivities() const { return _activities.size(); }
 
-    virtual unsigned setChain( unsigned, callFunc aFunc ) const;
+    virtual unsigned setChain( unsigned, callPredicate aFunc ) const;
     virtual Task& setServerChain( unsigned );
 
     virtual bool forwardsTo( const Task * aTask ) const;
@@ -108,7 +109,7 @@ public:
     double processorUtilization() const;
 
     bool hasActivities() const { return activities().size() != 0; }
-    virtual bool hasCalls( const callFunc ) const;
+    virtual bool hasCalls( const callPredicate ) const;
     bool hasOpenArrivals() const;
     bool hasQueueingTime() const;
     virtual bool hasHoldingTime() const { return false; }
@@ -121,30 +122,26 @@ public:
     virtual bool canConvertToReferenceTask() const;
     virtual bool canConvertToOpenArrivals() const;
 
-    virtual void check() const;
-    virtual unsigned referenceTasks( Cltn<const Entity *>&, Element * dst ) const;
-    virtual unsigned clients( Cltn<const Entity *>&, const callFunc = 0 ) const;
-    virtual unsigned servers( Cltn<const Entity *>& ) const;
-    unsigned maxPhase() const { return myMaxPhase; }			/* Max phase over all entries	*/
+    virtual bool check() const;
+    virtual unsigned referenceTasks( std::vector<Entity *>&, Element * dst ) const;
+    virtual unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const;
+    virtual unsigned servers( std::vector<Entity *>& ) const;
+    unsigned maxPhase() const { return _maxPhase; }			/* Max phase over all entries	*/
 
-    virtual unsigned findChildren( CallStack&, const unsigned );
+    virtual size_t findChildren( CallStack&, const unsigned );
     unsigned countThreads() const;
-    Cltn<Activity *> repliesTo( Entry * anEntry ) const;
-    const Cltn<EntityCall *>& callList() const { return myCalls; }
-    EntityCall * findOrAddCall( const Task *, const callFunc aFunc );
-    EntityCall * findOrAddFwdCall( const Task * );
-    EntityCall * findOrAddPseudoCall( const Entity * );		// For -Lclient
+    std::vector<Activity *> repliesTo( Entry * anEntry ) const;
+    const std::vector<EntityCall *>& calls() const { return _calls; }
+    EntityCall * findOrAddCall( Task *, const callPredicate aFunc );
+    EntityCall * findOrAddPseudoCall( Entity * );		// For -Lclient
 
-    virtual bool isInOpenModel( const Cltn<Entity *>& servers ) const;
-    virtual bool isInClosedModel( const Cltn<Entity *>& servers  ) const;
-
-    virtual double serviceTimeForQueueingNetwork( const unsigned k, chainTestFunc ) const;
-    double sliceTimeForQueueingNetwork( const unsigned k, chainTestFunc ) const;
+    virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
+    virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
     /* Activities */
     
     unsigned generate();
-    Task& format();
+    virtual Task& format();
     virtual Task& reformat();
     double justify();
     double justifyByEntry();
@@ -158,87 +155,82 @@ public:
     virtual Task& translateY( const double );
     virtual Task& depth( const unsigned );
 
+    virtual Graphic::colour_type colour() const;
+
     virtual Entity& label();
+    virtual Task& rename();
+    virtual Task& squishName();
+    Task& aggregate();
 
 #if defined(REP2FLAT)
     virtual Task& removeReplication();
-    Task * expandTask( int ext ) const;
+    Task& expandTask();
+    Task& replicateCall();
+    Task& replicateTask( LQIO::DOM::DocumentObject ** );
+    static void updateFanInOut();
 #endif
 
     /* Printing */
     
-    virtual ostream& draw( ostream& output ) const;
-//    virtual ostream& print( ostream& output ) const;
-#if defined(PMIF_OUTPUT)
-    virtual ostream& printPMIFClient( ostream& output ) const;
-    virtual ostream& printPMIFArcs( ostream& output ) const;
-#endif
+    virtual const Task& draw( ostream& output ) const;
     ostream& printEntries( ostream& ) const;
     ostream& printActivities( ostream& ) const;
 
     virtual ostream& drawClient( ostream&, const bool is_in_open_model, const bool is_in_closed_model ) const;
-#if defined(QNAP_OUTPUT)
-    virtual ostream& printQNAPClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const;
-#endif
 
 private:
-    unsigned topologicalSort();
-    const Task& labelQueueingNetwork( entryLabelFunc aFunc ) const;
-    unsigned countArcs( const callFunc = 0 ) const;
-    double countCalls( const callFunc2 ) const;
+    size_t topologicalSort();
+    Task& labelQueueingNetwork( entryLabelFunc aFunc );
+    unsigned countArcs( const callPredicate = 0 ) const;
+    double countCalls( const callPredicate2 ) const;
 
-    EntityCall * findCall( const Entity *, const callFunc aFunc = 0 ) const;
+    EntityCall * findCall( const Entity *, const callPredicate aFunc = 0 ) const;
     Task& moveDst();
     Task& moveSrc();
     Task& moveSrcBy( const double dx, const double dy );
 
+    void renameFanInOut( const std::string&, const std::string& );
+    void renameFanInOut( std::map<const std::string,LQIO::DOM::ExternalVariable *>&, const std::string&, const std::string& );
+    
 #if defined(REP2FLAT)
     Task& expandActivities( const Task& src, int replica );
 
 protected:
     LQIO::DOM::Task * cloneDOM( const string& aName, LQIO::DOM::Processor * dom_processor ) const;
-    const Cltn<Entry *>& groupEntries( int replica, Cltn<Entry *>& newEntryList  ) const;
+    const std::vector<Entry *>& groupEntries( int replica, std::vector<Entry *>& newEntryList  ) const;
 
 public:
 #endif
 
-private:
-    Task& aggregateEntries();
-#if defined(QNAP_OUTPUT)
-    ostream& printQNAPRequests( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const;
-    ostream& printQNAPRequests( ostream& output, Sequence<EntityCall *> &nextCall, const bool multi_class, QNAP_Element_func chain_func, callFunc2 call_func ) const;
-#endif
-#if defined(PMIF_OUTPUT)
-    ostream& printPMIFRequests( ostream& output ) const;
-#endif
+    static std::set<Task *,LT<Task> > __tasks;	/* All tasks in model		*/
 
 protected:
-    Cltn<Entry *> entryList;			/* Entries for this entity.	*/
-    Cltn<Activity *> activityList;		/* Activities for this entity.	*/
-    Cltn<ActivityList *> precedenceList;	/* Precendences for this entity	*/
+    std::vector<Entry *> _entries;		/* Entries for this entity.	*/
+    std::vector<Activity *> _activities;	/* Activities for this entity.	*/
+    std::vector<ActivityList *> _precedences;	/* Precendences for this entity	*/
 
 private:
     Task( const Task& );
     Task& operator=( const Task& );
 
 private:
-    static Processor * defaultProcessor;	/* Used when we need a processor */
-    const Processor * myProcessor;		/* proc. allocated to task.  	*/
-    const Share * myShare;			/* share for this task.		*/
-    mutable unsigned short myMaxPhase;		/* Max phase over all entries	*/
-    Cltn<EntityCall *> myCalls;			/* Arc calling processor	*/
+    const Processor * _processor;		/* proc. allocated to task.  	*/
+    const Share * _share;			/* share for this task.		*/
+    mutable unsigned _maxPhase;			/* Max phase over all entries	*/
+    std::vector<EntityCall *> _calls;		/* Arc calling processor	*/
+    std::vector<ActivityLayer> _layers;	
+    double _entryWidthInPts;
 
-    Vector2<ActivityLayer> layers;	
-    unsigned maxLevel;
-    double entryWidthPts;
+    static const double JLQNDEF_TASK_BOX_SCALING;
 };
 
+inline ostream& operator<<( ostream& output, const Task& self ) { self.draw( output ); return output; }
 
 /* ------------------------- Reference Tasks -------------------------- */
 
 class ReferenceTask : public Task {
 public:
-    ReferenceTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& aCltn );
+    ReferenceTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& aCltn );
     virtual ReferenceTask * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const;
 
     virtual double getIndex() const { return index(); }
@@ -250,10 +242,10 @@ public:
 
     virtual bool canConvertToOpenArrivals() const { return false; }
 
-    virtual int rootLevel() const { return 1; }
+    virtual int rootLevel() const;
 
     virtual Graphic::colour_type colour() const;
-    virtual unsigned findChildren( CallStack&, const unsigned );
+    virtual size_t findChildren( CallStack&, const unsigned );
 };
 
 
@@ -261,7 +253,7 @@ public:
 
 class ServerTask : public Task {
 public:
-    ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& aCltn );
+    ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& aCltn );
     virtual ServerTask * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const;
 
     virtual bool isServerTask() const   { return true; }
@@ -272,7 +264,7 @@ public:
 
 class SemaphoreTask : public Task {
 public:
-    SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries );
+    SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries );
     virtual SemaphoreTask * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const;
 
     virtual bool isServerTask() const   { return true; }
@@ -282,7 +274,7 @@ private:
 
 class RWLockTask : public Task {
 public:
-    RWLockTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const Cltn<Entry *>& entries );
+    RWLockTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries );
     virtual RWLockTask * clone( unsigned int, const string& aName, const Processor * aProcessor, const Share * aShare ) const;
 
     virtual bool isServerTask() const   { return true; }
@@ -302,7 +294,4 @@ struct eqTaskStr
 private:
     const string & _s;
 };
-
-extern set<Task *,ltTask> task;
-
 #endif

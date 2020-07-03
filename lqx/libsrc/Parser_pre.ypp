@@ -216,12 +216,15 @@ basic_stmt(X) ::= OBRACKET expr(A) CBRACKET.                                  { 
  */
 
 postfix_stmt(X) ::= file_open_stmt(A).					     { X = A; }
-file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
-  COMMA FILE_WRITE CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), true ); }
-file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
-  COMMA FILE_APPEND CBRACKET.					 	     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), true, true ); }
-file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA STRING(B) 
-  COMMA FILE_READ CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B->getStoredString(), false ); }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA file_name(B) 
+  COMMA FILE_WRITE CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B, true ); }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA file_name(B) 
+  COMMA FILE_APPEND CBRACKET.					 	     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B, true, true ); }
+file_open_stmt(X) ::= FILE_OPEN OBRACKET IDENTIFIER(A) COMMA file_name(B) 
+  COMMA FILE_READ CBRACKET.						     { X = new FileOpenStatementNode( A->getStoredIdentifier(), B, false ); }
+
+file_name(X)	::= IDENTIFIER(A).					     { X = new VariableExpression(A->getStoredIdentifier(), A->getIsExternal()); }
+file_name(X)	::= STRING(A).					     	     { X = new ConstantValueExpression(A->getStoredString()); }
 
 postfix_stmt(X) ::= file_close_stmt(A).					     { X = A; }
 file_close_stmt(X) ::= FILE_CLOSE OBRACKET IDENTIFIER(A) 

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: labels.h 11977 2014-04-14 00:46:01Z greg $
+ * $Id: labels.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #if	!defined(LQIO_LABELS_H)
@@ -30,6 +30,8 @@ namespace LQIO {
     extern const char * service_demand_str;
     extern const char * task_info_str;
     extern const char * think_time_str;
+    extern const char * decision_info_str;
+    extern const char * decision_path_info_str;
 
     /* Labels for output records */
 
@@ -57,6 +59,15 @@ namespace LQIO {
     extern const char * variance_str;
     extern const char * waiting_time_str;
     extern const char * waiting_time_variance_str;
+
+    extern const char * timeout_prob_str;
+    extern const char * timeout_prob_variance_str;
+    extern const char * success_prob_str;
+    extern const char * success_prob_variance_str;
+    extern const char * abort_prob_str;
+    extern const char * abort_prob_variance_str;
+    extern const char * number_of_retries_str;
+    extern const char * number_of_retries_variance_str;
 }
     
 #endif

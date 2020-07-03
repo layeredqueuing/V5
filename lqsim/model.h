@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: model.h 13353 2018-06-25 20:27:13Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -111,7 +111,6 @@ public:
     static unsigned long initial_loops() { return __model->_parameters._initial_loops; }
 
 private:
-    void reset_globals();
     void initialize_globals();
     void reset_stats();
     void accumulate_data();

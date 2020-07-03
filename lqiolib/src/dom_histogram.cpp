@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_histogram.cpp 11090 2012-07-11 12:12:57Z greg $
+ *  $Id: dom_histogram.cpp 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 07/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -14,10 +14,12 @@
 namespace LQIO {
     namespace DOM {
 
-	Histogram::Histogram( const Document * document, histogram_t type, unsigned n_bins, double min, double max, const void * histogram_element ) 
-	    : DocumentObject( document, "", histogram_element ),
-	      _n_bins(n_bins), _min(min), _max(max), _bin_size(0),
-	      _bins(), _histogram_type(type), _has_results(false)
+	const char * Histogram::__typeName = "histogram";
+
+	Histogram::Histogram( const Document * document, histogram_t type, unsigned n_bins, double min, double max ) 
+	    : DocumentObject( document, "" ),
+	      _n_bins(n_bins), _min(min), _max(max), _bin_size(0), _has_results(false),
+	      _histogram_type(type), _bins()
 	{
 	    capacity( n_bins, min, max );
 	}
@@ -97,18 +99,26 @@ namespace LQIO {
 	Histogram& Histogram::setBinMeanVariance( unsigned int ix, double mean, double variance ) 
 	{
 	    _has_results = true;
-	    if ( isMaxServiceTime() ) {
-		const_cast<Document *>(getDocument())->setHasMaxServiceTime(true);
-	    } else {
-		const_cast<Document *>(getDocument())->setHasHistogram(true);
-	    }
-
 	    if ( getOverflowIndex() < ix ) {
 		throw std::range_error( "Histogram::setBinMeanVariance" );
 	    } 
 	    _bins[ix]._mean = mean;
 	    _bins[ix]._variance = variance;
 	    return *this;
+	}
+
+	void Histogram::setTimeExceeded( double time )
+	{
+	    /* Must be of type isTimeExceeded */
+	    if ( !isTimeExceeded() ) throw std::domain_error( "Histogram::setTimeExceeded" );
+	    capacity( 0, time, time );
+	}
+	    
+	double Histogram::getTimeExceeded() const
+	{
+	    /* Must be of type isTimeExceeded */
+	    if ( !isTimeExceeded() ) throw std::domain_error( "Histogram::setTimeExceeded" );
+	    return _max;
 	}
     }
 }

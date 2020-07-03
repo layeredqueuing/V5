@@ -1,34 +1,37 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: open.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <string>
 #include <string.h>
 #include <cmath>
 #include <lqio/error.h>
 #include "open.h"
-#include "cltn.h"
 #include "call.h"
 #include "label.h"
 #include "task.h"
 #include "entry.h"
 
-Cltn<OpenArrivalSource *> opensource;
-
+std::vector<OpenArrivalSource *> OpenArrivalSource::__source;
 
 /* ------------- Open Arrival Pseudo Tasks (for drawing)  ------------- */
 
-OpenArrivalSource::OpenArrivalSource( const Entry * source )
-    : Entity( 0, 0 ), myEntry(source)
+OpenArrivalSource::OpenArrivalSource( Entry * source )
+    : Task( 0, 0, 0, std::vector<Entry *>() )
 {
-    myPaths = myEntry->paths();
-    assert ( myEntry->isCalled() == OPEN_ARRIVAL_REQUEST );
-    OpenArrival * aCall = new OpenArrival(this,myEntry);
-    myCalls << aCall;
-    const_cast<Entry *>(myEntry)->addDstCall( aCall );
-    opensource << this;
+    _entries.push_back(source);		/* Owner of entry is orginal task, not this task */
+    myPaths = source->paths();
+    assert ( source->isCalled() == OPEN_ARRIVAL_REQUEST );
+    OpenArrival * aCall = new OpenArrival(this,source);
+    _calls.push_back( aCall );
+    const_cast<Entry *>(source)->addDstCall( aCall );
+    __source.push_back( this );
+
+    myNode = Node::newNode( Flags::icon_width, Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height );
+    myLabel = Label::newLabel();
 }
 
 
@@ -38,7 +41,9 @@ OpenArrivalSource::OpenArrivalSource( const Entry * source )
 
 OpenArrivalSource::~OpenArrivalSource()
 {
-    myCalls.deleteContents();
+    for ( std::vector<OpenArrival *>::iterator call = _calls.begin(); call != _calls.end(); ++call ) {
+	delete *call;
+    }
 }
 
 /* ------------------------ Instance Methods -------------------------- */
@@ -54,7 +59,7 @@ OpenArrivalSource::isSelectedIndirectly() const
     if ( Entity::isSelectedIndirectly() ) {
 	return true;
     } else {
-	return myEntry->owner()->isSelected();
+	return myEntry().owner()->isSelected();
     }
 }
 
@@ -74,10 +79,13 @@ OpenArrivalSource::processor( const Processor * )
  */
 
 unsigned
-OpenArrivalSource::servers( Cltn<const Entity *> &serversCltn ) const
+OpenArrivalSource::servers( std::vector<Entity *> &servers ) const
 {
-    serversCltn += myEntry->owner();
-    return serversCltn.size();
+    std::vector<Entity *>::iterator pos = find_if( servers.begin(), servers.end(), EQ<Element>(myEntry().owner()) );
+    if ( pos == servers.end() ) {
+	servers.push_back( const_cast<Task *>(myEntry().owner()) );
+    }
+    return servers.size();
 }
 
 
@@ -86,22 +94,16 @@ OpenArrivalSource::servers( Cltn<const Entity *> &serversCltn ) const
  */
 
 bool
-OpenArrivalSource::isInOpenModel( const Cltn<Entity *>& servers ) const
+OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
-    return servers.find( const_cast<Task *>(myEntry->owner()) );
+    return find_if( servers.begin(), servers.begin(), EQ<Element>(myEntry().owner()) ) != servers.end();
 }
 
 
 unsigned 
-OpenArrivalSource::setChain( unsigned k, const callFunc aFunc ) const
+OpenArrivalSource::setChain( unsigned k, const callPredicate aFunc )
 {
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->setChain( k );
-    }
-
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::setChain, k ) );
     return k;
 }
 
@@ -116,12 +118,9 @@ OpenArrivalSource::aggregate()
 {
     switch ( Flags::print[AGGREGATION].value.i ) {
     case AGGREGATE_ENTRIES:
-	Sequence<OpenArrival *> nextCall(myCalls);
-	OpenArrival * aCall;
-
-	while ( aCall = nextCall() ) {
-	    Task * dstTask = const_cast<Task *>(aCall->dstTask());
-	    dstTask->addDstCall( aCall );
+	for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	    Task * dstTask = const_cast<Task *>((*call)->dstTask());
+	    dstTask->addDstCall( (*call) );
 	}
 	break;
     }  	
@@ -149,12 +148,7 @@ OpenArrivalSource::moveTo( const double x, const double y )
 OpenArrivalSource&
 OpenArrivalSource::moveSrc( const Point& aPoint )
 {
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->moveSrc( aPoint );
-    }
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,const Point &>( &GenericCall::moveSrc, aPoint ) );
     return *this;
 }
 
@@ -166,15 +160,8 @@ OpenArrivalSource::moveSrc( const Point& aPoint )
 OpenArrivalSource&
 OpenArrivalSource::scaleBy( const double sx, const double sy )
 {
-    Entity::scaleBy( sx, sy );
-
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->scaleBy( sx, sy );
-    }
-
+    Element::scaleBy( sx, sy );
+    for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -187,15 +174,8 @@ OpenArrivalSource::scaleBy( const double sx, const double sy )
 OpenArrivalSource&
 OpenArrivalSource::depth( const unsigned depth )
 {
-    Entity::depth( depth );
-
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->depth( depth );
-    }
-
+    Element::depth( depth );
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth ) );
     return *this;
 }
 
@@ -208,15 +188,8 @@ OpenArrivalSource::depth( const unsigned depth )
 OpenArrivalSource&
 OpenArrivalSource::translateY( const double dy )
 {
-    Entity::translateY( dy );
-
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->translateY( dy );
-    }
-
+    Element::translateY( dy );
+    for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
 
@@ -225,25 +198,22 @@ OpenArrivalSource::translateY( const double dy )
 OpenArrivalSource&
 OpenArrivalSource::label()
 {
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
+    for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( queueing_output() ) {
 	    bool print_goop = false;
 	    if ( Flags::print[INPUT_PARAMETERS].value.b ) {
-		*myLabel << aCall->dstName() << " (" << aCall->openArrivalRate() << ")";
+		*myLabel << (*call)->dstName() << " (" << (*call)->openArrivalRate() << ")";
 		myLabel->newLine();
 	    }
 	    if ( Flags::have_results && Flags::print[WAITING].value.b ) {
-		*myLabel << aCall->dstName() << "=" << aCall->openWait();
+		*myLabel << (*call)->dstName() << "=" << opt_pct((*call)->openWait());
 		myLabel->newLine();
 	    }
 	    if ( print_goop ) {
 		myLabel->newLine();
 	    }
 	} else {
-	    aCall->label();
+	    (*call)->label();
 	}
     }
     return *this;
@@ -253,18 +223,18 @@ OpenArrivalSource::label()
 Graphic::colour_type 
 OpenArrivalSource::colour() const
 {
-    return myEntry->colour();
+    return myEntry().colour();
 }
 
 
 const string& 
 OpenArrivalSource::name() const
 { 
-  return myEntry->name(); 
+    return myEntry().name(); 
 }
 
 
-ostream&
+const OpenArrivalSource&
 OpenArrivalSource::draw( ostream& output ) const
 {
     string aComment;
@@ -276,13 +246,10 @@ OpenArrivalSource::draw( ostream& output ) const
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
     myNode->circle( output, center(), radius() );
 
-    Sequence<OpenArrival *> nextCall(myCalls);
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	output << *aCall;
+    for ( std::vector<OpenArrival *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	output << **call;
     }
-    return output;
+    return *this;
 }
 
 ostream&
@@ -307,116 +274,3 @@ OpenArrivalSource::drawClient( ostream& output, const bool is_in_open_model, con
     output << *myLabel;
     return output;
 }
-
-
-#if defined(QNAP_OUTPUT)
-/*
- * QNAP queueing network.
- */
-
-ostream&
-OpenArrivalSource::printQNAPClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model, const bool multi_class ) const
-{
-    output << indent(0) << "name = src" << name() << ";" << endl
-	   << indent(0) << "type = source;" << endl
-	   << indent(0) << "service = exp(" << 1.0 / myCalls[1]->sumOfSendNoReply() << ");" << endl;
-    printQNAPRequests( output, multi_class );
-    return output;
-}
-
-
-/*
- * QNAP queueing network.
- */
-
-ostream& 
-OpenArrivalSource::printQNAPRequests( ostream& output, const bool multi_class ) const
-{
-    Sequence<OpenArrival *> nextCall( myCalls );
-    OpenArrival * aCall;
-    
-    bool first = true;
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) {
-	    continue;
-	} else if ( first ) {
-	    output << indent(0) << "transit" << " = ";		/* transitions must be class independant for a source */
-	    first = false;
-	} else {
-	    output << ", ";
-	}
-	output << aCall->dstTask()->name() << "," << 1;		/* Always 1. */
-    }
-    if ( !first ) {
-	output << ";" << endl;
-    }
-    return output;
-}
-#endif
-
-
-#if defined(PMIF_OUTPUT)
-/*
- * PMIF queueing network.
- */
-
-ostream&
-OpenArrivalSource::printPMIFServer( ostream& output ) const
-{
-    output << indent(0) << "<SourceNode Name=\"" << name() << "-src\"/>" << endl;
-    output << indent(0) << "<SinkNode Name=\"" << name() << "-sink\"/>" << endl;
-    return output;
-}
-
-
-ostream&
-OpenArrivalSource::printPMIFClient( ostream& output ) const
-{
-    output << indent(+1) << "<OpenWorkLoad WorkLoadName=\"" << open_chain( *this, true, 1 )
-	   << "\" ArrivalRate=\"" << myCalls[1]->sendNoReply()
-	   << "\" TimeUnits=\"" << "sec" 
-	   << "\" ArrivesAt=\"" << name() << "-src"
-	   << "\" DepartsAt=\"" << name() << "-sink\">" << endl;
-    printPMIFRequests( output );
-    output << indent(-1) << "</OpenWorkLoad>" << endl;
-    return output;
-}
-
-
-/*
- * PMIF queueing network.
- */
-
-ostream& 
-OpenArrivalSource::printPMIFArcs( ostream& output ) const
-{
-    Sequence<OpenArrival *> nextCall( myCalls );
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) continue;
-	output << indent(0) << "<Arc FromNode=\"" << aCall->srcName()
-	       << "-src\" ToNode=\"" << aCall->dstTask()->name() << "\"/>" << endl;
-	output << indent(0) << "<Arc FromNode=\"" << aCall->dstTask()->name()
-	       << "\" ToNode=\"" << aCall->srcName() << "-sink\"/>" << endl;
-    }
-    return output;
-}
-
-
-
-ostream& 
-OpenArrivalSource::printPMIFRequests( ostream& output ) const
-{
-    Sequence<OpenArrival *> nextCall( myCalls );
-    OpenArrival * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) continue;
-	output << indent(0) << "<Transit To=\"" << aCall->dstTask()->name() 
-	       << "\" Probability=\"" << 1.0
-	       << "\"/>" << endl;
-    }
-    return output;
-}
-#endif

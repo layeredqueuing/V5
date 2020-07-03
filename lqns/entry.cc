@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqns/entry.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entry.cc $
  * 
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: entry.cc 13548 2020-05-21 14:27:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -121,6 +121,36 @@ Entry::operator==( const Entry& anEntry ) const
 }
 
 /* ------------------------ Instance Methods -------------------------- */
+
+double Entry::openArrivalRate() const
+{
+    if ( hasOpenArrivals() ) {
+	try {
+	    return myDOMEntry->getOpenArrivalRateValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", name(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    return 0.;
+}
+
+
+int Entry::priority() const
+{
+    if ( myDOMEntry->hasEntryPriority() ) {
+	try {
+	    return myDOMEntry->getEntryPriorityValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "entry", name(), e.what() );
+	    throw_bad_parameter();
+	}
+    }
+    return 0;
+}
+
 
 /*
  * Check entry data.
@@ -241,11 +271,11 @@ Entry::findChildren( CallStack& callStack, const bool directPath ) const
 	try {
 	    max_depth = max( max_depth, myActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
 	}
-	catch ( activity_cycle& error ) {
+	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name(), error.what() );
 	    max_depth = max( max_depth, error.depth() );
 	}
-	catch ( bad_external_join& error ) {
+	catch ( const bad_external_join& error ) {
 	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name(), owner()->name(), error.what() );
 	    max_depth = max( max_depth, error.depth() );
 	}
@@ -768,13 +798,13 @@ double
 Entry::waitExcept( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
     const Task * aTask = dynamic_cast<const Task *>(owner());
-    const unsigned ix = aTask->threadIndex( submodel, k );
+    const Thread * thread = aTask->getThread( submodel, k );
 
-    if ( isStandardEntry() || submodel == 0 || ix <= 1 ) {
+    if ( isStandardEntry() || submodel == 0 || thread == NULL ) {
 	return phase[p].waitExcept( submodel );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return aTask->waitExcept( ix, submodel, p );
+	return thread->waitExcept( submodel, p );
     }
 }
 
@@ -790,13 +820,13 @@ double
 Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
     const Task * aTask = dynamic_cast<const Task *>(owner());
-    const unsigned ix = aTask->threadIndex( submodel, k );
+    const Thread * thread = aTask->getThread( submodel, k );
 
-    if ( isStandardEntry() || ix <= 1 ) {
+    if ( isStandardEntry() || thread == NULL ) {
 	return phase[p].waitExceptChain( submodel, k );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return aTask->waitExceptChain( ix, submodel, k, p );
+	return thread->waitExceptChain( submodel, k, p );
     }
 }
 
@@ -981,7 +1011,6 @@ Entry::insertDOMResults(double *phaseUtils) const
     double totalPhaseUtil = 0.0;
 	
     /* Write the results into the DOM */
-    myDOMEntry->resetResultFlags();
     myDOMEntry->setResultThroughput(throughput())
 	.setResultThroughputBound(throughputBound());
 	
@@ -1014,8 +1043,8 @@ Entry::insertDOMResults(double *phaseUtils) const
     }
 	
     /* Do open arrival rates... */
-    if (openArrivalRate() != 0.0) {
-	myDOMEntry->setResultOpenWaitTime(openWait);
+    if ( hasOpenArrivals() ) {
+	myDOMEntry->setResultWaitingTime(openWait);
     }
 	
 }
@@ -1572,7 +1601,7 @@ DeviceEntry::queueingTime( const unsigned ) const
  */
 
 VirtualEntry::VirtualEntry( const Activity * anActivity ) 
-    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name(), NULL), 0, anActivity->owner()->nEntries() )
+    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name()), 0, anActivity->owner()->nEntries() )
 {
     owner( anActivity->owner() );
 }

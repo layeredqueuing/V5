@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -o../regression-xml/52-replication.lqnx -->
+<lqn-model name="52-replication" description="lqn2xml 6.0 solution for model from: 52-replication.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1"/>
+   <processor name="p1" scheduling="inf">
+      <task name="t1" scheduling="ref">
+         <fan-out dest="t2" value="2"/>
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2" scheduling="ps" quantum="0.2" replication="2">
+      <task name="t2" scheduling="fcfs" replication="2">
+         <entry name="e2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

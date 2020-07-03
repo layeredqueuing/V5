@@ -1,26 +1,20 @@
 /* -*- c++ -*-
  * group.h	-- Greg Franks
  *
- * $Id: group.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _GROUP_H
 #define _GROUP_H
 
 #include "lqn2ps.h"
-#include <cstring>
-#include "point.h"
+#include <string>
 #include "node.h"
 #include "graphic.h"
-#include "vector.h"
 #include "layer.h"
 
-class Group;
 class Processor;
 class Share;
-
-ostream& operator<<( ostream&, const Group& );
-
 
 class Group : public Graphic
 {
@@ -29,26 +23,26 @@ private:
     Group& operator=( const Group& );
 
 public:
-    Group( const string& s );
+    Group( unsigned int, const std::string& s );
     virtual ~Group();
-    virtual bool match( const string& ) const;
-    const string& name() const { return myName; }
+    virtual bool match( const std::string& ) const;
+    const std::string& name() const { return myName; }
 
     Group& origin( const double an_x, const double a_y );
     Group& extent( const double an_x, const double a_y );
     Group& originMin( const double an_x, const double a_y );
     Group& extentMax( const double an_x, const double a_y );
-    virtual Group& format( const unsigned MAX_LEVEL );
+    virtual Group& format();
     virtual Group& label();
-    virtual Group const& scaleBy( const double, const double ) const;
-    Group const& moveBy( const double, const double ) const;
-    Group const& moveGroupBy( const double, const double ) const;
-    Group const& translateY( const double ) const;
-    virtual Group const& resizeBox() const;
+    Group& scaleBy( const double, const double );
+    Group& moveBy( const double, const double );
+    Group& moveGroupBy( const double, const double );
+    Group& translateY( const double );
+    virtual Group& resizeBox();
     virtual Group const& positionLabel() const;
 
-    double width() const { return myNode->extent.x(); }
-    double height() const { return myNode->extent.y(); }
+    double width() const { return myNode->width(); }
+    double height() const { return myNode->height(); }
     double x() const { return myNode->left(); }
     double y() const { return myNode->bottom(); }
 
@@ -57,9 +51,9 @@ public:
 
     /* Printing */
     
-    virtual ostream& draw( ostream& output ) const;
-    virtual ostream& print( ostream& output ) const { return output; }
-    virtual ostream& comment( ostream& output, const string& ) const { return output; }
+    virtual std::ostream& draw( std::ostream& output ) const;
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const { return output; }
 
 protected:
     virtual linestyle_type linestyle() const { return Graphic::DASHED; }
@@ -68,24 +62,29 @@ protected:
 
     virtual bool populate();
 
+public:
+    static std::vector<Group *> __groups;
+
 protected:
     Label * myLabel;
     Node * myNode;
-    Vector2<Layer> layer;
+    std::vector<Layer> _layers;
 
 private:
-    const string myName;
+    const std::string myName;
     bool used;
 };
 
+inline std::ostream& operator<<( std::ostream& output, const Group& self ) { self.draw( output ); return output; }
+
 #if HAVE_REGEX_T
 class GroupByRegex : public Group
 {
 public:
-    GroupByRegex( const string& s );
+    GroupByRegex( const std::string& s );
     virtual ~GroupByRegex();
 
-    virtual bool match( const string& ) const;
+    virtual bool match( const std::string& ) const;
 
 private:
     regex_t * myPattern;
@@ -97,11 +96,11 @@ private:
 class GroupByProcessor : public Group
 {
 public:
-    GroupByProcessor( const Processor * aProcessor );
+    GroupByProcessor( unsigned int, const Processor * aProcessor );
 
     GroupByProcessor& label();
 
-    virtual GroupByProcessor const& resizeBox() const;
+    virtual GroupByProcessor & resizeBox();
     virtual GroupByProcessor const& positionLabel() const;
 
 protected:
@@ -116,7 +115,7 @@ private:
 class GroupByShare : public GroupByProcessor
 {
 public:
-    GroupByShare( const Processor * aProcessor ) : GroupByProcessor( aProcessor ) {}
+    GroupByShare( unsigned int nLayers, const Processor * aProcessor ) : GroupByProcessor( nLayers, aProcessor ) {}
 
 protected:
     virtual bool populate() = 0;
@@ -126,13 +125,13 @@ protected:
 class GroupByShareDefault : public GroupByShare
 {
 public:
-    GroupByShareDefault( const Processor * aProcessor ) : GroupByShare( aProcessor ) {}
+    GroupByShareDefault( unsigned int nLayers, const Processor * aProcessor ) : GroupByShare( nLayers, aProcessor ) {}
 
     virtual bool isPseudoGroup() const { return true; }
 
 protected:
     virtual bool populate();
-    virtual GroupByShareDefault& format( const unsigned MAX_LEVEL );
+    virtual GroupByShareDefault& format();
 
 };
 
@@ -140,9 +139,9 @@ protected:
 class GroupByShareGroup : public GroupByShare
 {
 public:
-    GroupByShareGroup( const Processor * aProcessor, const Share * aShare ) : GroupByShare( aProcessor ), myShare( aShare ) {}
+    GroupByShareGroup( unsigned int nLayers, const Processor * aProcessor, const Share * aShare ) : GroupByShare( nLayers, aProcessor ), myShare( aShare ) {}
 
-    virtual GroupByShareGroup const& resizeBox() const;
+    virtual GroupByShareGroup & resizeBox();
     virtual GroupByShareGroup const& positionLabel() const;
 
 protected:
@@ -159,9 +158,9 @@ private:
 class GroupSquashed : public Group
 {
 public:
-    GroupSquashed( const string& s, const Layer& layer1, const Layer& layer2 );
+    GroupSquashed( unsigned int nLayers, const std::string& s, const Layer& layer1, const Layer& layer2 );
 
-    GroupSquashed& format( const unsigned MAX_LEVEL );
+    GroupSquashed& format();
 
 private:
     const Layer & layer_1;

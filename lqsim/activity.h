@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: activity.h 12147 2014-09-29 17:10:36Z greg $
+ * $Id: activity.h 13547 2020-05-21 02:22:16Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -17,11 +17,11 @@
 
 #include <string>
 #include <map>
+#include <deque>
 #include <lqio/dom_activity.h>
 #include "actlist.h"
 #include "histogram.h"
 #include "target.h"
-#include "stack.h"
 #include "result.h"
 
 class Task;
@@ -34,57 +34,59 @@ namespace LQIO {
 
 typedef double (*distribution_func_ptr)( double, double );
 
-extern int activity_count; // global variable
-
 class Activity {
     friend class Instance;
     
 
 public:
-    Activity( Task * cp=0, LQIO::DOM::Phase * dom_phase=0 );
+    Activity( Task * cp=NULL, LQIO::DOM::Phase * dom=NULL );
     virtual ~Activity();
 
     const char * name() const { return _name.c_str(); }
     Task * task() const { return _task; }			/* pointer to task.	        */
+    unsigned int index() const { return _index; }
+    
+    Activity& set_task( Task * cp ) { _task = cp; return *this; }
+    Activity& set_phase( unsigned int p ) { _phase = p; return *this; }
 
-    double cv_sqr() const { return (_dom_phase && _dom_phase->hasCoeffOfVariationSquared()) ? _dom_phase->getCoeffOfVariationSquaredValue() : 1.0; }
+    double cv_sqr() const { return (_dom && _dom->hasCoeffOfVariationSquared()) ? _dom->getCoeffOfVariationSquaredValue() : 1.0; }
     double service() const;
     double think_time() const { return _think_time; }		/* Need to cache _think_time!!! */
-    phase_type type() const { return _dom_phase ? _dom_phase->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
+    phase_type type() const { return _dom ? _dom->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
 
-    bool is_specified() const { return _dom_phase != 0; } 	/* True if some value set.	*/
-    bool is_activity() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom_phase) != 0; }
-    bool is_phase() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom_phase) == 0; };
+    bool is_specified() const { return _dom != 0; } 	/* True if some value set.	*/
+    bool is_activity() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) != 0; }
+    bool is_reachable() const { return _is_reachable; }			/* True if we can reach it	*/
+    Activity& set_is_start_activity( bool val ) { _is_start_activity = val; return *this; }
+    bool is_start_activity() const { return _is_start_activity; }
+    bool is_phase() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) == 0; };
     bool has_service_time() const { return _scale > 0.; }
+    bool has_think_time() const { return _think_time > 0.; }
     bool has_lost_messages() const;
     
-    void set_cv_sqr( const double c ) { abort(); }
-    void set_phase_type( phase_type t ) { abort(); }		
-    void set_service( const double s );
-    void set_think_time( const double t ) { abort(); }
+    void set_arrival_rate( const double r ) { _arrival_rate = r; }
     double get_slice_time() { return (*distribution_func)( _scale, _shape ); }
     Activity& set_DOM( LQIO::DOM::Phase* phaseInfo );
-    LQIO::DOM::Phase* get_DOM() const { return _dom_phase; }
-    const std::vector<LQIO::DOM::Call*>& get_calls() const { return _dom_phase->getCalls(); }
+    LQIO::DOM::Phase* get_DOM() const { return _dom; }
+    const std::vector<LQIO::DOM::Call*>& get_calls() const { return _dom->getCalls(); }
     
-    Activity& rename( const char * );
-    double configure( Task * cp = 0 );
+    Activity& rename( const std::string& );
+    double configure();
 
-    double count_replies( para_stack_t * activity_stack, const Entry * ep, const double rate, const unsigned int curr_phase, unsigned int * next_phase );
+    double count_replies( std::deque<Activity *>& activity_stack, const Entry * ep, const double rate, const unsigned int curr_phase, unsigned int * next_phase );
 
     Activity& add_calls();
     Activity& add_reply_list();
     Activity& add_activity_lists();
     Activity& act_add_reply( Entry * );
 
-    FILE * print_raw_stat( FILE * output ) const;
+    const Activity& print_raw_stat( FILE * output ) const;
     void print_debug_info();
-    double find_children( para_stack_t * activity_stack, para_stack_t * fork_stack, const Entry * ep );
+    double find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep );
 
-    void reset_stats();
-    void accumulate_data();
-
-    void insertDOMResults();
+    Activity& reset_stats();
+    Activity& accumulate_data();
+    Activity& insertDOMResults();
 
 private:
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
@@ -98,7 +100,7 @@ private:
     const Entry * find_reply( const Entry * ep );
 
 private:
-    LQIO::DOM::Phase* _dom_phase;
+    LQIO::DOM::Phase* _dom;
     
     /*
      * Likely candidates for DOM stuff -- note that anything which is
@@ -106,27 +108,29 @@ private:
      * here.
      */
     const string _name;			/* Name of activity.		*/
-    double _service;			/* service time			*/
+    double _arrival_rate;		/* service time			*/
     double _cv_sqr;			/* cv_sqr			*/
     double _think_time;			/* Cached think time.	        */
     
     Task * _task;			/* Pointer to task class	*/
+    unsigned _phase;			/* Phase number (not needed)	*/
     double _scale;			/* "scale" for slice distrib.	*/
     double _shape;			/* "shape" for slice distrib.	*/
     distribution_func_ptr distribution_func;
+    const unsigned int _index;		/* My index (for joins.)	*/
+    double _prewaiting;			/* Used for calculating the task waiting time variance only. Tao*/ 
+    std::vector<const Entry *> _reply;	/* reply list.			*/
     
+    bool _is_reachable;			/* True if we can reach it	*/
+    bool _is_start_activity;		/* True if I am a start activity*/
+
 public:
-    int index;				/* My index (for joins.)	*/
-    struct activity_list_t *_input;	/* Node which calls me.		*/
-    struct activity_list_t *_output;	/* Node which I call.		*/
+    ActivityList *_input;		/* Node which calls me.		*/
+    ActivityList *_output;		/* Node which I call.		*/
     Targets tinfo;			/* target info			*/
     unsigned _active;			/* Number of active instances.	*/
     unsigned _cpu_active;		/* Number of active instances.	*/
-    unsigned my_phase;			/* True if in phase 2.		*/
-    bool is_reachable;			/* True if we can reach it	*/
-    bool is_start_activity;		/* True if I am a start activity*/
-    double pt_prewaiting;		/* Used for calculating the task waiting time variance only. Tao*/ 
-    Histogram * _hist_data;            	/* Structure which stores histogram data for this activity */
+    Histogram * _hist_data;            	/* histogram data.		*/
     result_t r_util;			/* Phase utilization.	        */
     result_t r_cpu_util;		/* Execution time.		*/
     result_t r_service;			/* Service time.		*/
@@ -138,13 +142,8 @@ public:
     result_t r_cycle_sqr;  		/* Entry cycle time.	        */
     result_t r_afterQuorumThreadWait;	/* start tomari quorum 		*/
 
-    int activity_id;
-
     static std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> actConnections;
     static std::map<LQIO::DOM::ActivityList*, ActivityList *> domToNative;
-
-private:
-    vector<const Entry *> _reply;	/* reply list.			*/
 };
 
 typedef double (*activity_func_ptr)( const Activity * ap );

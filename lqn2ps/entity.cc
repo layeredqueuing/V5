@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 11977 2014-04-14 00:46:01Z greg $
+ * $Id: entity.cc 13536 2020-04-03 02:41:17Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -12,6 +12,7 @@
  */
 
 #include "lqn2ps.h"
+#include <algorithm>
 #include <cstring>
 #include <cassert>
 #include <cmath>
@@ -46,34 +47,12 @@
 ostream&
 operator<<( ostream& output, const Entity& self ) 
 {
-    switch( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
+    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_TXT ) {
 	self.print( output );
-	break;
-#endif
-    case FORMAT_SRVN:
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-	break;
-    default:
+    } else {
 	self.draw( output );
-	break;
     }
-
     return output;
-}
-
-
-/*
- * Comparison function.
- */
-
-int
-operator==( const Entity& a, const Entity& b )
-{
-    return a.name() == b.name();
 }
 
 /* ----------------------- Abstract Superclass. ----------------------- */
@@ -84,21 +63,20 @@ operator==( const Entity& a, const Entity& b )
 
 Entity::Entity( const LQIO::DOM::Entity* domEntity, const size_t id )
     : Element( domEntity, id ),
-      myLevel(0),
-      mySubmodel(0),
-      myIndex(UINT_MAX),
-      iAmSelected(true),
-      iAmASurrogate(false)
+      _callers(),
+      _level(0),
+      _isSelected(true),
+      _isSurrogate(false)
 {
 #if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r ) {
-	iAmSelected = regexec( Flags::print[INCLUDE_ONLY].value.r, const_cast<char *>(name().c_str()), 0, 0, 0 ) != REG_NOMATCH;
+	_isSelected = regexec( Flags::print[INCLUDE_ONLY].value.r, const_cast<char *>(name().c_str()), 0, 0, 0 ) != REG_NOMATCH;
     } else 
 #endif
       if ( submodel_output()
 	 || queueing_output()
 	 || Flags::print[CHAIN].value.i != 0 ) {
-	iAmSelected = false;
+	_isSelected = false;
     }
 }
 
@@ -115,62 +93,37 @@ Entity::~Entity()
 
 
 /*
- * Compare function for normal layering.
+ * Compare function for normal layering.  Return true if e1 < e2.
  */
 
-int
-Entity::compare( const void * n1, const void *n2 )
+bool
+Entity::compare( const Entity * e1, const Entity *e2 )
 {
-    const Entity *e1 = *static_cast<Entity **>(const_cast<void *>(n1));
-    const Entity *e2 = *static_cast<Entity **>(const_cast<void *>(n2));
-
     if ( e1->forwardsTo( dynamic_cast<const Task *>(e2) ) ) {
-	return -1;
+	return true;
     } else if ( e2->forwardsTo( dynamic_cast<const Task *>(e1) ) ) {
-	return 1;
+	return false;
     } else if ( e1->hasForwardingLevel() && !e2->hasForwardingLevel() ) {
-	return -1;
+	return true;
     } else if ( e2->hasForwardingLevel() && !e1->hasForwardingLevel() ) {
-	return 1;
+	return false;
     } else {
 	return Element::compare( e1, e2 );
     }
 }
 
 
-int
-Entity::compareLevel( const void * n1, const void *n2 )
+bool
+Entity::compareLevel( const Entity * e1, const Entity *e2 )
 {
-    const Entity * e1 = *static_cast<Entity **>(const_cast<void *>(n1));
-    const Entity * e2 = *static_cast<Entity **>(const_cast<void *>(n2));
     int diff = static_cast<int>(e1->level()) - static_cast<int>(e2->level());
-    if ( diff != 0 ) {
-	return diff;
+    if ( diff < 0 ) {
+	return true;
     }
-    return static_cast<int>( copysign( 1.0, e1->topCenter().x() - e2->topCenter().x() ) );
-}
-
-
-
-int
-Entity::compareCoord( const void * n1, const void *n2 )
-{
-    const Entity * e1 = *static_cast<Entity **>(const_cast<void *>(n1));
-    const Entity * e2 = *static_cast<Entity **>(const_cast<void *>(n2));
-
-    return static_cast<int>(copysign( 1.0, e1->index() - e2->index() ) );
+    return e1->topCenter().x() - e2->topCenter().x() < 0.0;
 }
 
 /* ------------------------ Instance Methods -------------------------- */
-
-Entity& 
-Entity::setCopies( const unsigned anInt )
-{ 
-    LQIO::DOM::Entity * dom = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(getDOM()));
-    dom->setCopiesValue( anInt );
-    return *this; 
-}
-
 
 const LQIO::DOM::ExternalVariable&
 Entity::copies() const
@@ -178,26 +131,56 @@ Entity::copies() const
     return *dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopies();
 }
 
-unsigned
+unsigned int
+Entity::copiesValue() const
+{
+    return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopiesValue();
+}
+
+const LQIO::DOM::ExternalVariable&
+Entity::replicas() const
+{
+    return *dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getReplicas();
+}
+
+unsigned int
+Entity::replicasValue() const
+{
+    return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getReplicasValue();
+}
+
+const LQIO::DOM::ExternalVariable&
 Entity::fanIn( const Entity * aClient ) const
 {
-    if ( dynamic_cast<const LQIO::DOM::Task *>(getDOM()) ) {
-	return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanIn( aClient->name() );
-    } else {
-	return aClient->replicas() / replicas();
-    }
+    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanIn( aClient->name() );
+}
+
+const LQIO::DOM::ExternalVariable&
+Entity::fanOut( const Entity * aServer ) const
+{
+    return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOut( aServer->name() );
 }
 
 unsigned
-Entity::fanOut( const Entity * aServer ) const
+Entity::fanInValue( const Entity * aClient ) const
 {
-    if ( dynamic_cast<const LQIO::DOM::Task *>(getDOM()) ) {
-	return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOut( aServer->name() );
-    } else {
-	return replicas() / aServer->replicas();
-    }
+    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanInValue( aClient->name() );
 }
 
+unsigned
+Entity::fanOutValue( const Entity * aServer ) const
+{
+    return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOutValue( aServer->name() );
+}
+
+void
+Entity::removeDstCall( GenericCall * aCall)
+{
+    std::vector<GenericCall *>::iterator pos = find_if( _callers.begin(), _callers.end(), EQ<GenericCall>( aCall ) );
+    if ( pos != _callers.end() ) {
+	_callers.erase( pos );
+    }
+}
 
 
 /*
@@ -207,7 +190,7 @@ Entity::fanOut( const Entity * aServer ) const
 bool 
 Entity::isInfinite() const
 { 
-    return scheduling() == SCHEDULE_DELAY;
+    return scheduling() == SCHEDULE_DELAY || dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->isInfinite();
 }
 
 
@@ -217,17 +200,15 @@ Entity::isInfinite() const
 
 bool 
 Entity::isMultiServer() const
-{ 
-    const LQIO::DOM::ExternalVariable * m = dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getCopies();
-    double v;
-    return m && (!m->wasSet() || !m->getValue(v) || v > 1.0);
+{
+    return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->hasCopies();
 }
 
 
-const unsigned 
-Entity::replicas() const
+bool
+Entity::isReplicated() const
 {
-    return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getReplicas();
+    return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->hasReplicas();
 }
 
 
@@ -236,8 +217,6 @@ Entity::scheduling() const
 {
     return dynamic_cast<const LQIO::DOM::Entity *>(getDOM())->getSchedulingType();
 }
-
-//    bool isReplicated() const       { return replicas() > 1; }
 
 /*
  * Return true if this entity is selected.
@@ -263,7 +242,7 @@ Entity::isSelectedIndirectly() const
 bool
 Entity::hasBogusUtilization() const
 {
-    return !isInfinite() && utilization() / LQIO::DOM::to_double( copies() )  > 1.05;
+    return !isInfinite() && utilization() / copiesValue() > 1.05;
 }
 
 /*
@@ -277,10 +256,10 @@ Entity::align() const
 
     /* A server aligns with parent */
 
-    Cltn<const Entity *> myClients;
+    std::vector<Entity *> myClients;
     clients( myClients, &Call::hasAncestorLevel );
     if ( myClients.size() == 1 ) {
-	const Entity * myParent = myClients[1];
+	const Entity * myParent = myClients[0];
 	return myParent->center().x() - center().x();
     }
     return 0.0;
@@ -292,48 +271,11 @@ Entity::align() const
  * Sort entries and activities based on when they were visited.
  */
 
-Entity const &
-Entity::sort() const
+Entity&
+Entity::sort()
 {
-    myCallers.sort( Call::compareDst );
-
+    ::sort( _callers.begin(), _callers.end(), Call::compareDst );
     return *this;
-}
-
-
-/*
- * Set the service time for chain k to s.  If chain k is not found, add it.
- */
-
-Entity& 
-Entity::serviceTime( const unsigned k, const double s )
-{
-    if ( myPaths.size() > myServiceTime.size() ) {
-	myServiceTime.grow( myPaths.size() - myServiceTime.size() );
-    }
-
-    unsigned i = myPaths.find( k );
-    if ( i > 0 ) {
-	myServiceTime[i] = s;
-    }
-
-    return *this;
-}
-
-
-/*
- * Get the service time for chain k.
- */
-
-double
-Entity::serviceTime( const unsigned k ) const
-{
-    unsigned i = myServerChains.find( k );
-    if ( i != 0 ) {
-	return myServiceTime[i];
-    } else {
-	return 0.0;
-    }
 }
 
 
@@ -342,10 +284,18 @@ Entity&
 Entity::removeReplication() 
 { 
     LQIO::DOM::Entity * dom = const_cast<LQIO::DOM::Entity *>(dynamic_cast<const LQIO::DOM::Entity *>(getDOM()));
-    dom->setReplicas(1);
+    dom->setReplicasValue(1);
     return *this; 
 }
 #endif
+
+
+bool
+Entity::test( const taskPredicate predicate ) const
+{
+    const Task * task = dynamic_cast<const Task *>(this);
+    return task && task->isServerTask() && (!predicate || (task->*predicate)());
+}
 
 
 /*
@@ -355,17 +305,18 @@ Entity::removeReplication()
 unsigned
 Entity::countCallers() const
 {
-    unsigned count = 0;
+    return count_if( _callers.begin(), _callers.end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) );
+}
 
-    Sequence<GenericCall *> nextCall( callerList() );
-    const GenericCall * aCall;
 
-    while ( aCall = nextCall() ) {
-	if ( aCall->isSelected() ) {
-	    count += 1;
-	}
+void
+Entity::CountCallers::operator()( const Entity * entity )
+{
+    const Task * aTask = dynamic_cast<const Task *>(entity);
+    if ( aTask && aTask->isServerTask() ) {
+	const std::vector<Entry *> entries = aTask->entries();
+	_count += for_each( entries.begin(), entries.end(), ::Count<Entry,callPredicate>( &Entry::countCallers, _predicate ) ).count();
     }
-    return count;
 }
 
 
@@ -391,42 +342,21 @@ Entity::colour() const
     switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_RESULTS:
 	if ( Flags::have_results ) {
-	    const double u = isInfinite() ? 0.0 : utilization() / LQIO::DOM::to_double(copies());
-	    if ( u < 0.4 || !Flags::use_colour && u < 0.8 ) {
-		return Graphic::DEFAULT_COLOUR;
-	    } else if ( Flags::use_colour ) {
-		if ( u < 0.1 ) {
-		    return Graphic::VIOLET;
-		} else if ( u < 0.2 ) {
-		    return Graphic::BLUE;
-		} else if ( u < 0.3 ) {
-		    return Graphic::OCEAN;
-		} else if ( u < 0.4 ) {
-		    return Graphic::CYAN;
-		} else if ( u < 0.5 ) {
-		    return Graphic::TURQUOISE;
-		} else if ( u < 0.6 ) {
-		    return Graphic::GREEN;
-		} else if ( u < 0.7 ) {
-		    return Graphic::SPRINGGREEN;
-		} else if ( u < 0.8 ) {
-		    return Graphic::YELLOW;
-		} else if ( u < 0.9 ) {
-		    return Graphic::ORANGE;
-		} else { 
-		    return Graphic::RED;
-		}
-	    } else {
-		return Graphic::GREY_10;
-	    }
+	    return colourForUtilization( isInfinite() ? 0.0 : utilization() / copiesValue() );
+	}
+	break;
+
+	if ( Flags::have_results ) {
+    case COLOUR_DIFFERENCES:
+	    return colourForDifference( utilization() );
 	}
 	break;
 
     case COLOUR_CLIENTS:
-	return (Graphic::colour_type)(myPaths.min() % 7 + 3);
+	return (Graphic::colour_type)(*myPaths.begin() % 11 + 5);		// first element is smallest 
 
     case COLOUR_LAYERS:
-	return (Graphic::colour_type)(level() % 7 + 3);
+	return (Graphic::colour_type)(level() % 11 + 5);
     }
     return Graphic::DEFAULT_COLOUR;			// No colour.
 }
@@ -440,7 +370,7 @@ Entity::colour() const
 Entity&
 Entity::label()
 {
-    myLabel->initialize( name() );
+    *myLabel << name();
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
 	if ( isMultiServer() ) {
 	    *myLabel << " {" << copies() << "}";
@@ -459,9 +389,80 @@ Entity::label()
 ostream&
 Entity::print( ostream& output ) const
 {
-    LQIO::SRVN::EntityInput::print( output, true, dynamic_cast<const LQIO::DOM::Entity *>(getDOM()) );
+    LQIO::SRVN::EntityInput::print( output, dynamic_cast<const LQIO::DOM::Entity *>(getDOM()) );
     return output;
 }
+
+
+Graphic::colour_type 
+Entity::chainColour( unsigned int k ) const
+{
+    static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::INDIGO, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
+
+    if ( Flags::print[COLOUR].value.i == COLOUR_CHAINS ) { 
+	return chain_colours[k%12];
+    } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
+	return Graphic::BLACK;
+    } else {
+	return colour();
+    }
+}
+
+
+/*
+ * Print entry service time parameters.
+ */
+
+ostream&
+Entity::printName( ostream& output, const int count ) const
+{
+    if ( count == 0 ) {
+	output << setw( maxStrLen-1 ) << name() << " ";
+    } else {
+	output << setw( maxStrLen ) << " ";
+    }
+    return output;
+}
+
+/* ------------------------------------------------------------------------ */
+/*                           Draw the queuieng network                      */
+/* ------------------------------------------------------------------------ */
+
+/*
+ * Draw the queueing network
+ */
+
+ostream&
+Entity::drawQueueingNetwork( ostream& output, const double max_x, const double max_y, std::vector<bool> &chain, std::vector<Arc *>& lastArc ) const
+{
+    std::vector<Entity *> myClients;
+    clients( myClients );
+    drawServer( output );
+
+    /* find all clients with chains calling me... */
+
+    for ( std::set<unsigned>::const_iterator k = myServerChains.begin(); k != myServerChains.end(); ++k ) {
+
+	/* Draw connections to this server */
+
+	for ( std::vector<Entity *>::iterator client = myClients.begin(); client != myClients.end(); ++client ) {
+	    if ( !(*client)->hasClientChain( *k ) ) continue;
+
+	    stringstream aComment;
+	    aComment << "---------- Chain " << *k << ": " << name() << " -> " <<  (*client)->name() << " ----------";
+	    myNode->comment( output, aComment.str() );
+	    drawServerToClient( output, max_x, max_y, (*client), chain, *k );
+	    
+	    aComment.seekp(17, ios::beg);		// rewind.
+	    aComment << *k << ": " << (*client)->name() << " -> " <<  name() << " ----------";
+	    myNode->comment( output, aComment.str() );
+	    drawClientToServer( output, (*client), chain, *k, lastArc );
+	}
+    }
+
+    return output;
+}
+
 
 
 /*
@@ -504,74 +505,14 @@ Entity::drawServer( ostream& output ) const
 
 
 
-Graphic::colour_type 
-Entity::chainColour( unsigned int k ) const
-{
-    static Graphic::colour_type chain_colours[] = { Graphic::BLACK, Graphic::MAGENTA, Graphic::VIOLET, Graphic::BLUE, Graphic::OCEAN, Graphic::CYAN, Graphic::TURQUOISE, Graphic::GREEN, Graphic::SPRINGGREEN, Graphic::YELLOW, Graphic::ORANGE, Graphic::RED };
-
-    if ( Flags::print[COLOUR].value.i == COLOUR_CHAINS ) { 
-	return chain_colours[k%12];
-    } else if ( colour() == Graphic::GREY_10 || colour() == Graphic::DEFAULT_COLOUR ) {
-	return Graphic::BLACK;
-    } else {
-	return colour();
-    }
-}
-
-
-/*
- * Draw the queueing network
- */
-
-ostream&
-Entity::drawQueueingNetwork( ostream& output, const double max_x, const double max_y, Vector<bool> &chain, Cltn<Arc *>& lastArc ) const
-{
-    Cltn<const Entity *> myClients;
-    if ( Flags::print[LAYERING].value.i == LAYERING_CLIENT ) {
-	referenceTasks( myClients, const_cast<Entity *>(this) );
-    } else { 
-	clients( myClients );
-    }
-    Sequence<const Entity *> nextClient(myClients);
-    const Entity * aClient;
-
-    drawServer( output );
-
-    /* find all clients with chains calling me... */
-
-    for ( unsigned i = 1; i <= myServerChains.size(); ++i ) {
-	unsigned k = myServerChains[i];
-
-	/* Draw connections to this server */
-
-	while ( aClient = nextClient() ) {
-	    if ( !aClient->hasClientChain( k ) ) continue;
-
-	    stringstream aComment;
-	    aComment << "---------- Chain " << k << ": " << name() << " -> " <<  aClient->name() << " ----------";
-	    myNode->comment( output, aComment.str() );
-	    drawServerToClient( output, max_x, max_y, aClient, chain, k, chain.size() );
-	    
-	    aComment.seekp(17, ios::beg);		// rewind.
-	    aComment << k << ": " << aClient->name() << " -> " <<  name() << " ----------";
-	    myNode->comment( output, aComment.str() );
-	    drawClientToServer( output, aClient, chain, k, chain.size(), lastArc );
-	}
-    }
-
-    return output;
-}
-
-
-
 /*
  * From Server to Client
  */
 
 ostream&
-Entity::drawServerToClient( ostream& output, const double max_x, const double min_y, const Entity * aClient, 
-			    Vector<bool> &chain, const unsigned k, const unsigned max_k ) const
+Entity::drawServerToClient( ostream& output, const double max_x, const double min_y, const Entity * aClient, std::vector<bool> &chain, const unsigned k ) const
 {
+    const unsigned int max_k = chain.size() - 1;
     if ( !hasServerChain( k ) ) return output;
 
     Arc * outArc = Arc::newArc( 6 );
@@ -581,52 +522,53 @@ Entity::drawServerToClient( ostream& output, const double max_x, const double mi
 
     if ( aClient->hasClientClosedChain(k) ) {
 	const double offset = radius() / 2.5;
-	double x = bottomCenter().x() - radius() + myServerChains.find(k) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+	double x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
 	double y = min_y - (radius() + offset * (max_k - k)) * direction;
-	(*outArc)[2].moveTo( x, y );
+	outArc->pointAt(1).moveTo( x, y );
 
 	if ( isMultiServer() || isInfinite() ) {
 	    outArc->moveSrc( bottomCenter() );
 	} else {
 	    Point aPoint = bottomCenter().moveBy( 0, radius() * direction );
 	    outArc->moveSrc( x, aPoint.y() );
-	    (*outArc)[1] = outArc->srcIntersectsCircle( aPoint, radius() );
+
+	    outArc->pointAt(0) = outArc->srcIntersectsCircle( aPoint, radius() );
 	}
 
 	Label * aLabel = 0;
 	if ( !chain[k] ) {
 	    outArc->arrowhead( Graphic::CLOSED_ARROW );
 	    x = max_x + offset * (max_k - k);
-	    (*outArc)[3].moveTo( x, y );
+	    outArc->pointAt(2).moveTo( x, y );
 
 	    if ( Flags::flatten_submodel || aClient->isReferenceTask() ) {
 		y = aClient->top() + (radius() + (offset * (max_k - k))) * direction;
 	    } else {
 		y = aClient->top() + (spacing / 4.0 - (offset * (k-1))) * direction;
 	    }
-	    (*outArc)[4].moveTo( x, y );
+	    outArc->pointAt(3).moveTo( x, y );
 	    if ( aClient->myClientOpenChains.size() ) {
 		x = aClient->topCenter().moveBy( aClient->radius() * -3.0, 0 ).x();
 	    } else {
 		x = aClient->topCenter().x();
 	    }
-	    (*outArc)[5].moveTo( x - radius() + aClient->myClientClosedChains.find(k) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() ), y );
+	    outArc->pointAt(4).moveTo( x - radius() + offsetOf( aClient->myClientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() ), y );
 		
 	    y = aClient->bottomCenter().y() + (2.0 * radius()) * direction;
 	    outArc->moveDst( x, y );
 
 	    aLabel = Label::newLabel();
-	    aLabel->moveTo( (*outArc)[5] ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
+	    aLabel->moveTo( outArc->pointAt(4) ).moveBy( 2.0 * offset, 0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
 	    (*aLabel) << k;
 	} else {
 	    outArc->arrowhead( Graphic::NO_ARROW );
 	    Node * aNode = Node::newNode( 0, 0 );
 
-	    aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillstyle( Graphic::FILL_SOLID );
-	    aNode->circle( output, (*outArc)[2], Model::scaling() );
+	    aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::FILL_SOLID );
+	    aNode->circle( output, outArc->pointAt(1), Model::scaling() );
 
 	    delete aNode;
-	    (*outArc)[3] = (*outArc)[4] = (*outArc)[5] = (*outArc)[6] = (*outArc)[2];
+	    outArc->resize(2);
 	}
 	output << *outArc;
 	if ( aLabel ) {
@@ -635,9 +577,9 @@ Entity::drawServerToClient( ostream& output, const double max_x, const double mi
 	}
     } 
     if ( aClient->hasClientOpenChain(k) ) {
-	double x = bottomCenter().x() - radius() + myServerChains.find(k) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+	double x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
 	double y = min_y - radius() * direction;
-	(*outArc)[2].moveTo( x, y );
+	outArc->pointAt(1).moveTo( x, y );
 
 	/* Only if we're a multiserver.. */
 	if ( isMultiServer() || isInfinite() ) {
@@ -645,14 +587,14 @@ Entity::drawServerToClient( ostream& output, const double max_x, const double mi
 	} else {
 	    Point aPoint = bottomCenter().moveBy( 0, radius() * direction );
 	    outArc->moveSrc( x, aPoint.y() );
-	    (*outArc)[1] = outArc->srcIntersectsCircle( aPoint, radius() );
+	    outArc->pointAt(0) = outArc->srcIntersectsCircle( aPoint, radius() );
 	}
 
 	/* From server... */
 	x = bottomCenter().x();
 	y = min_y - (radius() * direction * 3.5);
-	(*outArc)[3].moveTo( x, y );
-	(*outArc)[4] = (*outArc)[5] = (*outArc)[6] = (*outArc)[3];
+	outArc->pointAt(2).moveTo( x, y );
+	outArc->resize(3);
 	output << *outArc;		/* Warning -- print can delete points! */
 	Point aPoint( x, min_y - (radius() * direction * 3.0) );
 	myNode->open_sink( output, aPoint, radius() );
@@ -667,8 +609,7 @@ Entity::drawServerToClient( ostream& output, const double max_x, const double mi
  */
 
 ostream&
-Entity::drawClientToServer( ostream& output, const Entity * aClient, Vector<bool> &chain, const unsigned k, 
-			    const unsigned max_k, Cltn<Arc *>& lastArc ) const
+Entity::drawClientToServer( ostream& output, const Entity * aClient, std::vector<bool> &chain, const unsigned k, std::vector<Arc *>& lastArc ) const
 {
     const unsigned N_POINTS = 5;
     Arc * inArc  = Arc::newArc( N_POINTS );
@@ -682,64 +623,64 @@ Entity::drawClientToServer( ostream& output, const Entity * aClient, Vector<bool
     double y = aClient->bottomCenter().y();
 
     if ( aClient->myClientOpenChains.size() && aClient->myClientClosedChains.size() ) {
-	if ( aClient->myClientOpenChains.find( k ) ) {
+	if ( aClient->myClientOpenChains.find( k ) != aClient->myClientOpenChains.end() ) {
 	    x += aClient->radius() * 1.5;
 	} else {
 	    x -= aClient->radius() * 3.0;
 	}
     }
-    (*inArc)[1].moveTo( x, y );
+    inArc->pointAt(0).moveTo( x, y );
 
     /* Adjust for chains */
 
-    if ( aClient->myClientOpenChains.find( k ) ) {
-	x = x - radius() + aClient->myClientOpenChains.find(k) * 2.0 * radius() / ( 1.0 + aClient->myClientOpenChains.size() );
+    if ( aClient->myClientOpenChains.find( k ) != aClient->myClientOpenChains.end() ) {
+	x = x - radius() + offsetOf( aClient->myClientOpenChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientOpenChains.size() );
     } else {
-	x = x - radius() + aClient->myClientClosedChains.find(k) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() );
+	x = x - radius() + offsetOf( aClient->myClientClosedChains, k ) * 2.0 * radius() / ( 1.0 + aClient->myClientClosedChains.size() );
     }
     y -= static_cast<double>(k+1) * offset * direction;
-    (*inArc)[2].moveTo( x, y );
+    inArc->pointAt(1).moveTo( x, y );
 
-    x = bottomCenter().x() - radius() + myServerChains.find(k) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
-    (*inArc)[3].moveTo( x, y );
+    x = bottomCenter().x() - radius() + offsetOf( myServerChains, k ) * 2.0 * radius() / ( 1.0 + myServerChains.size() );
+    inArc->pointAt(2).moveTo( x, y );
 
     y = bottomCenter().y() + 4.0 * radius() * myNode->direction();
-    (*inArc)[4].moveTo( x, y );
+    inArc->pointAt(3).moveTo( x, y );
 
     Label * aLabel = Label::newLabel();
-    aLabel->moveTo( (*inArc)[3].x(), ((*inArc)[3].y() + (*inArc)[4].y()) / 2.0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
+    aLabel->moveTo( inArc->pointAt(2).x(), (inArc->pointAt(2).y() + inArc->pointAt(3).y()) / 2.0 ).backgroundColour( Graphic::DEFAULT_COLOUR );
     (*aLabel) << k;
 
     if ( isInfinite() ) {
 	x = bottomCenter().x();
 	y = bottomCenter().y() + 2.0 * radius() * myNode->direction();
-	(*inArc)[5].moveTo( x, y );
+	inArc->pointAt(4).moveTo( x, y );
     } else {
-	(*inArc)[5] = (*inArc)[4];
+	inArc->pointAt(4) = inArc->pointAt(3);
     }
 
     /* Frobnicate -- chain already exists, so join this chain to that chain. */
     if ( chain[k] ) {
 	Node * aNode = Node::newNode( 0, 0 );
-	aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillstyle( Graphic::FILL_SOLID );
+	aNode->penColour( chainColour( k ) ).fillColour( chainColour( k ) ).fillStyle( Graphic::FILL_SOLID );
 
-	if ( (*inArc)[3].x() <= (*lastArc[k])[3].x() ) {
-	    (*inArc)[1] = (*inArc)[2];
-	    (*inArc)[2].x((*lastArc[k])[3].x());
-	    (*lastArc[k])[3] = (*inArc)[3];
-	} else if ( (*lastArc[k])[3].x() < (*inArc)[3].x() && (*inArc)[3].x() < (*lastArc[k])[2].x() ) {
-	    (*inArc)[2].x((*inArc)[3].x());
-	    (*inArc)[1] = (*inArc)[2];
-	} else if ( (*inArc)[2].x() < (*lastArc[k])[3].x() ) {
-	    (*inArc)[2] = (*lastArc[k])[3];
-	    (*inArc)[1] = (*inArc)[2];
+	if ( inArc->pointAt(2).x() <= lastArc[k]->pointAt(2).x() ) {
+	    inArc->pointAt(0) = inArc->pointAt(1);
+	    inArc->pointAt(1).x(lastArc[k]->pointAt(2).x());
+	    lastArc[k]->pointAt(2) = inArc->pointAt(2);
+	} else if ( lastArc[k]->pointAt(2).x() < inArc->pointAt(2).x() && inArc->pointAt(2).x() < lastArc[k]->pointAt(1).x() ) {
+	    inArc->pointAt(1).x(inArc->pointAt(2).x());
+	    inArc->pointAt(0) = inArc->pointAt(1);
+	} else if ( inArc->pointAt(1).x() < lastArc[k]->pointAt(2).x() ) {
+	    inArc->pointAt(1) = lastArc[k]->pointAt(2);
+	    inArc->pointAt(0) = inArc->pointAt(1);
 	} else {
-	    (*inArc)[1] = (*inArc)[2];
+	    inArc->pointAt(0) = inArc->pointAt(1);
 	}
-	if ( (*lastArc[k])[3].x() < (*inArc)[3].x() ) {
-	    (*lastArc[k])[3] = (*inArc)[3];
+	if ( lastArc[k]->pointAt(2).x() < inArc->pointAt(2).x() ) {
+	    lastArc[k]->pointAt(2) = inArc->pointAt(2);
 	}
-	aNode->circle( output, (*inArc)[1], Model::scaling() );
+	aNode->circle( output, inArc->pointAt(0), Model::scaling() );
 	delete aNode;
 
     } else {
@@ -761,198 +702,12 @@ Entity::drawClientToServer( ostream& output, const Entity * aClient, Vector<bool
 }
 
 
-
-
-#if defined(QNAP_OUTPUT)
-/*
- * QNAP queueing network.
- */
-
-ostream&
-Entity::printQNAPServer( ostream& output, const bool multi_class ) const
+/* static */ unsigned
+Entity::offsetOf( const std::set<unsigned>& chains, unsigned k )
 {
-    output << indent(0) << "name = " << qnap_name( *this ) << ";" << endl;
-    if ( isMultiServer() ) {
-	output << indent(0) << "type = multiple(" << copies() << ");" << endl;
-    } else if ( isInfinite() ) {
-	output << indent(0) << "type = infinite;" << endl;
+    unsigned int i = 1;
+    for ( std::set<unsigned>::const_iterator j = chains.begin(); j != chains.end() && *j != k; ++j ) {
+	i += 1;
     }
-    switch ( scheduling() ) {
-    case SCHEDULE_FIFO: output << indent(0) << "sched = fifo;" << endl; break;
-    case SCHEDULE_PS:   output << indent(0) << "sched = ps;" << endl; break;
-    case SCHEDULE_PPR:  output << indent(0) << "sched = prior, preempt;" << endl; break;
-    }
-    for ( unsigned i = 1; i <= myServerChains.size(); ++i ) {
-	output << indent(0) << "service" << server_chain( *this, multi_class, i ) 
-	       << " = exp(" << serviceTimeForQueueingNetwork(myServerChains[i],&Element::hasServerChain) 
-	       << ");" << endl;
-    }
-    printQNAPReplies( output, multi_class );
-    return output;
+    return i;
 }
-
-
-/*
- * Generate the "transits" that correspond to the replies.  Open classes go "out."
- */
-
-ostream& 
-Entity::printQNAPReplies( ostream& output, const bool multi_class ) const
-{
-    Sequence<GenericCall *> nextCall( myCallers );
-    GenericCall * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( !aCall->isSelected() ) continue;
-	output << indent(0) << "transit";
-	if ( aCall->hasSendNoReply() ) {
-	    output << open_chain( *aCall->srcTask(), multi_class, 1 ) << " = out;" << endl;
-	} else {
-	    output << closed_chain( *aCall->srcTask(), multi_class, 1 ) << " = " << aCall->srcName() << ",1;" << endl;
-	}
-    } 
-
-    return output;
-}
-#endif
-
-
-#if defined(PMIF_OUTPUT)
-/*
- * PMIF queueing network.
- */
-
-ostream&
-Entity::printPMIFServer( ostream& output ) const
-{
-    output << indent(0) << "<Server Name=\"" << name() 
-	   << "\" Quantity=\"" << copies();
-    output << "\" SchedulingPolicy=\"";
-    if ( isInfinite() ) {
-	output << "IS";
-    } else switch ( scheduling() ) {
-    case SCHEDULE_DELAY: output << "IS"; break;
-    case SCHEDULE_PS:    output << "PS"; break;
-    default:	         output << "FCFS"; break;
-    }
-    output << "\"/>" << endl;
-    return output;
-}
-
-
-ostream&
-Entity::printPMIFReplies( ostream& output ) const
-{
-    Sequence<GenericCall *> nextCall( myCallers );
-    GenericCall * aCall;
-
-    for ( unsigned k = 1; k <= myServerChains.size(); ++k ) {
-	output << indent(+1) << "<DemandServiceRequest WorkloadName=\"" << server_chain( *this, true, 1 )
-	       << "\" ServerID=\"" << name()
-	       << "\" NumberOfVisits=\"" << 1
-	       << "\" ServiceDemand=\"" << serviceTimeForQueueingNetwork(myServerChains[k],&Element::hasServerChain) 
-	       << "\">" << endl;
-	while ( aCall = nextCall() ) {
-	    if ( !aCall->isSelected() || !aCall->srcTask()->hasClientChain(myServerChains[k]) ) {
-		continue;
-	    } else if ( aCall->hasSendNoReply() ) {
-		output << indent(0) << "<Transit To=\"" << aCall->srcName() << "-sink"
-		       << "\" Probability=\"" << 1.0
-		       << "\"/>" << endl;
-	    } else if ( aCall->hasRendezvous() ) {
-		output << indent(0) << "<Transit To=\"" << aCall->srcName() 
-		       << "\" Probability=\"" << 1.0
-		       << "\"/>" << endl;
-	    }
-	}
-	output << indent(-1) << "</DemandServiceRequest>" << endl; 
-   }
-    return output;
-}
-#endif
-
-
-/*
- * Print entry service time parameters.
- */
-
-ostream&
-Entity::printName( ostream& output, const int count ) const
-{
-    if ( count == 0 ) {
-	output << setw( maxStrLen-1 ) << name() << " ";
-    } else {
-	output << setw( maxStrLen ) << " ";
-    }
-    return output;
-}
-
-/* -------------------- SRVN Input File Generation  ------------------- */
-
-static ostream&
-copies_of_str( ostream& output, const Entity& anEntity )
-{
-    if ( anEntity.isMultiServer() ) {
-	output << " m " << instantiate( anEntity.copies() );
-    }
-    return output;
-}
-
-
-
-static ostream&
-replicas_of_str( ostream& output, const Entity& anEntity )
-{
-    if ( anEntity.replicas() > 1 ) {
-	output << " r " << anEntity.replicas();
-    }
-    return output;
-}
-
-#if defined(QNAP_OUTPUT)
-static ostream&
-qnap_name_str( ostream& output, const Entity& anEntity )
-{
-    output << anEntity.name();
-    if ( anEntity.replicas() > 1 ) {
-	output << "( 1 step 1 until " << qnap_replicas( anEntity ) << ")";
-    }
-    return output;
-}
-
-
-static ostream&
-qnap_replicas_str( ostream& output, const Entity& anEntity )
-{
-    output << "n_" << anEntity.name();
-    return output;
-}
-#endif
-
-SRVNEntityManip
-copies_of( const Entity & anEntity )
-{
-    return SRVNEntityManip( &copies_of_str, anEntity );
-}
-
-
-SRVNEntityManip
-replicas_of( const Entity & anEntity )
-{
-    return SRVNEntityManip( &replicas_of_str, anEntity );
-}
-
-
-#if defined(QNAP_OUTPUT)
-SRVNEntityManip 
-qnap_name( const Entity & anEntity )
-{
-    return SRVNEntityManip( &qnap_name_str, anEntity );
-}
-
-SRVNEntityManip 
-qnap_replicas( const Entity & anEntity )
-{
-    return SRVNEntityManip( &qnap_replicas_str, anEntity );
-}
-#endif

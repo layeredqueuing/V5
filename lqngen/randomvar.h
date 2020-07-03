@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: randomvar.h 13200 2018-03-05 22:48:55Z greg $
+ * $Id: randomvar.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,7 +27,7 @@ namespace RV {
     class RandomVariable
     {
     public:
-	typedef enum { DETERMINISTIC, BOTH, CONTINUOUS, DISCREET, PROBABILITY } distribution_t;
+	typedef enum { CONSTANT, BOTH, CONTINUOUS, DISCREET, PROBABILITY } distribution_t;
 
 	RandomVariable( distribution_t type ) : _type(type) {}
 	virtual ~RandomVariable() {}
@@ -38,9 +38,11 @@ namespace RV {
 	virtual const char * name() const = 0;
 	virtual unsigned int nArgs() const = 0;
 	virtual double getArg( unsigned int ) const = 0;
-	virtual RandomVariable& setArg( unsigned int, double ) = 0;
+	virtual RandomVariable& setArg( unsigned int, double ) throw (std::domain_error) = 0;
+	virtual RandomVariable& setArg( unsigned int, const std::string& ) throw (std::domain_error);
 	virtual double getMean() const = 0; 
-	virtual RandomVariable& setMean( double ) = 0;
+	virtual RandomVariable& setMean( double ) throw (std::domain_error) = 0;
+	RandomVariable& setMean( const std::string& ) throw (std::domain_error);
 	virtual distribution_t getType() const { return _type; }
 
     private:
@@ -55,12 +57,15 @@ namespace RV {
 
 	virtual double operator()() const { return  -_a * log( drand48() ); }
 
-	virtual const char * name() const { return "exponential"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 ); return _a; }
-	virtual Exponential& setArg( unsigned int i, double arg ) { assert( i == 1 ); _a = arg; return *this; }
+	virtual Exponential& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 ); _a = arg; return *this; }
 	virtual double getMean() const { return 1.0 / _a; } 
-	virtual Exponential& setMean( double mean ) { _a = 1.0/mean; return *this; }
+	virtual Exponential& setMean( double mean ) throw (std::domain_error) { _a = 1.0/mean; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _a;
@@ -74,12 +79,15 @@ namespace RV {
 
 	virtual double operator()() const { return 1.0 / pow( drand48(), 1.0 / _a ); }
 
-	virtual const char * name() const { return "pareto"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 ); return _a; }
-	virtual Pareto& setArg( unsigned int i, double arg ) { assert( i == 1 ); _a = arg; return *this; }
+	virtual Pareto& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 ); _a = arg; return *this; }
 	virtual double getMean() const { return _a / (_a - 1.0); } 
-	virtual Pareto& setMean( double mean ); 
+	virtual Pareto& setMean( double mean ) throw (std::domain_error); 
+
+    public:
+	static const char * const __name;
 
     private:
 	double _a;
@@ -93,12 +101,15 @@ namespace RV {
 
 	virtual double operator()() const { return _low + (_high - _low) * drand48(); }
 
-	virtual const char * name() const { return "uniform"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return i == 1 ? _low : _high; }
-	virtual Uniform& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
+	virtual Uniform& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
 	virtual double getMean() const { return static_cast<double>(_high - _low) / 2.0; } 
-	virtual Uniform& setMean( double mean ) { _high = (mean - _low) * 2.0 + _low; return *this; }
+	virtual Uniform& setMean( double mean ) throw (std::domain_error) { _high = (mean - _low) * 2.0 + _low; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:	
 	double _low;
@@ -117,12 +128,15 @@ namespace RV {
 		return exp( log_low + (log(_high) - log(_low)) * drand48() ); 
 	    }
 
-	virtual const char * name() const { return "loguniform"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return i == 1 ? _low : _high; }
-	virtual LogUniform& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
+	virtual LogUniform& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
 	virtual double getMean() const { return (_high - _low) / 2.0; } 
-	virtual LogUniform& setMean( double mean ) { _high = (mean - _low) * 2.0 + _low; return *this; }
+	virtual LogUniform& setMean( double mean ) throw (std::domain_error) { _high = (mean - _low) * 2.0 + _low; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _low;
@@ -132,17 +146,20 @@ namespace RV {
     class Constant : public RandomVariable
     {
     public:
-	Constant( double value ) : RandomVariable(DETERMINISTIC), _value(value) {}
+	Constant( double value ) : RandomVariable(CONSTANT), _value(value) {}
 	virtual Constant * clone() const { return new Constant( _value ); }
 
 	virtual double operator()() const { return _value; }
 
-	virtual const char * name() const { return "deterministic"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 ); return _value; }
-	virtual Constant& setArg( unsigned int i, double arg ) { assert( i == 1 ); _value = arg; return *this; }
+	virtual Constant& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 ); _value = arg; return *this; }
 	virtual double getMean() const { return _value; } 
-	virtual Constant& setMean( double mean ) { _value = mean; return *this; }
+	virtual Constant& setMean( double mean ) throw (std::domain_error) { _value = mean; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _value;
@@ -167,12 +184,15 @@ namespace RV {
 		return _mean + _stddev * (sum - 6);
 	    }
 
-	virtual const char * name() const { return "normal"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return i == 1 ? _mean : _stddev; }
-	virtual Normal& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _mean : _stddev) = arg; return *this; }
+	virtual Normal& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _mean : _stddev) = arg; return *this; }
 	virtual double getMean() const { return _mean; } 
-	virtual Normal& setMean( double mean ) { _mean = mean; return *this; }
+	virtual Normal& setMean( double mean ) throw (std::domain_error) { _mean = mean; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _mean;
@@ -188,12 +208,15 @@ namespace RV {
 
 	virtual double operator()() const;
 
-	virtual const char * name() const { return "gamma"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return i == 1 ? _a : _b; }
-	virtual Gamma& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _a : _b) = arg; return *this; }
+	virtual Gamma& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _a : _b) = arg; return *this; }
 	virtual double getMean() const { return _a * _b; } 
-	virtual Gamma& setMean( double mean ) { _a = mean / _b; return *this; }
+	virtual Gamma& setMean( double mean ) throw (std::domain_error) { _a = mean / _b; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _a;
@@ -212,12 +235,15 @@ namespace RV {
 
 	virtual double operator()() const;
 
-	virtual const char * name() const { return "beta"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return i == 1 ? _a : _b; }
-	virtual Beta& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _a : _b) = arg; return *this; }
+	virtual Beta& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _a : _b) = arg; return *this; }
 	virtual double getMean() const { return _a / (_a + _b); } 
-	virtual Beta& setMean( double mean ); 
+	virtual Beta& setMean( double mean ) throw (std::domain_error);
+
+    public:
+	static const char * const __name;
 
     private:
 	double _a;
@@ -249,12 +275,15 @@ namespace RV {
 	    return x - 1;
 	}
 
-	virtual const char * name() const { return "poisson"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return (i == 1 ? _mean : _offset); }
-	virtual Poisson& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _mean : _offset) = arg; return *this; }
+	virtual Poisson& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _mean : _offset) = arg; return *this; }
 	virtual double getMean() const { return _mean; } 
-	virtual Poisson& setMean( double mean ) { _mean = mean - _offset; return *this; }
+	virtual Poisson& setMean( double mean ) throw (std::domain_error) { _mean = mean - _offset; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _mean;
@@ -277,12 +306,15 @@ namespace RV {
 	    return x + _low;
 	}
 
-	virtual const char * name() const { return "binomial"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 2; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 || i == 2 ); return (i == 1 ? _low : _high); }
-	virtual Binomial& setArg( unsigned int i, double arg ) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
+	virtual Binomial& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert( i == 1 || i == 2 ); (i == 1 ? _low : _high) = arg; return *this; }
 	virtual double getMean() const { return (_high - _low) / 2.0; } 
-	virtual Binomial& setMean( double mean ) { _high = ceil( (mean - _low) * 2 ) + _low; return *this; }
+	virtual Binomial& setMean( double mean ) throw (std::domain_error) { _high = ceil( (mean - _low) * 2 ) + _low; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _low;
@@ -299,12 +331,15 @@ namespace RV {
 
 	virtual double operator()() const { return drand48() < _mean ? 1.0 : 0.0; }
 
-	virtual const char * name() const { return "probability"; }
+	virtual const char * name() const { return __name; }
 	virtual unsigned int nArgs() const { return 1; }
 	virtual double getArg( unsigned int i ) const { assert( i == 1 ); return _mean; }
-	virtual Probability& setArg( unsigned int i, double arg ) { assert ( i == 1 ); _mean = arg; return *this; }
+	virtual Probability& setArg( unsigned int i, double arg ) throw (std::domain_error) { assert ( i == 1 ); _mean = arg; return *this; }
 	virtual double getMean() const { return _mean; } 
-	virtual Probability& setMean( double mean );  // { _mean = mean; return *this; }
+	virtual Probability& setMean( double mean ) throw (std::domain_error);  // { _mean = mean; return *this; }
+
+    public:
+	static const char * const __name;
 
     private:
 	double _mean;

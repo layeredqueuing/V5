@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 12980 2017-04-05 00:09:25Z greg $
+ *  $Id: srvn_input.h 13513 2020-02-27 13:18:40Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -15,12 +15,12 @@
 #if defined(__cplusplus)
 extern "C" {
 #endif
-    extern unsigned srvnlinenumber;		/* See input.l, input.y */
+    extern unsigned srvnlinenumber;		/* See srvn_scan.l, srvn_gram.y */
+    extern int srvn_start_token;		/* */
 	
-    void * srvn_add_processor(const char *processor_name, scheduling_type scheduling_flag, void * cpu_quantum, void * n_cpus, int n_replicas, void * cpu_rate );
-    void * srvn_add_task(const char * task_name, const scheduling_type scheduling, const void * entries,
-			 void * queue_length, const char * processor_name, void * priority,
-			 void * think_time, void * n_copies, const int n_replicas, const char * group_name );
+    void * srvn_add_processor(const char *processor_name, scheduling_type scheduling_flag, void * cpu_quantum );
+    void * srvn_add_group(const char *, void *, const char *, int cap );
+    void * srvn_add_task(const char * task_name, const scheduling_type scheduling, const void * entries, const char * processor_name );
     void * srvn_add_entry(const char *, const void *);
     void * srvn_find_task( const char * );
 
@@ -40,7 +40,6 @@ extern "C" {
     void * srvn_act_or_join_list( const void *, void *, void * );
 
     void srvn_add_communication_delay(const char * from_proc, const char * to_proc, void * delay);
-    void srvn_add_group(const char *, void *, const char *, int cap );
     void srvn_add_phase_call( const char * src_entry, int phase, const char * dst_entry, const void * rate, const short );
 
     void * srvn_get_entry( const char * );
@@ -51,11 +50,20 @@ extern "C" {
     void srvn_set_rwlock_flag( void * entry_v, rwlock_entry_type );
     void srvn_set_semaphore_flag( void * entry_v, semaphore_entry_type );
     void srvn_set_start_activity( void * entry_v, const char *);
-    void srvn_set_tokens( void * task_v, unsigned int );
+    void srvn_set_proc_multiplicity( void * proc_v, void * );
+    void srvn_set_proc_rate( void * proc_v, void * );
+    void srvn_set_proc_replicas( void * proc_v, void * );
+    void srvn_set_task_group( void * task_v, const char * );
+    void srvn_set_task_multiplicity( void * task_v, void * );
+    void srvn_set_task_priority( void * task_v, void * );
+    void srvn_set_task_queue_length( void * task_v, void * );
+    void srvn_set_task_replicas( void * task_v, void * );
+    void srvn_set_task_think_time( void * task_v, void * );
+    void srvn_set_task_tokens( void * task_v, int );
     void srvn_store_coeff_of_variation(void * entry_v, unsigned n_phases, ...);
     void srvn_store_entry_priority(void * entry_v, const int arg);
-    void srvn_store_fanin( const char * src_name, const char * dst_name, const int value );
-    void srvn_store_fanout( const char * src_name, const char * dst_name, const int value );
+    void srvn_store_fanin( const char * src_name, const char * dst_name, void * value );
+    void srvn_store_fanout( const char * src_name, const char * dst_name, void * value );
     void srvn_store_lqx_program_text(const char * program_text);
     void srvn_store_open_arrival_rate(void * entry_v, void * arg);
     void srvn_store_phase_service_time(void * entry_v, unsigned n_phases, ... );
@@ -83,9 +91,13 @@ extern "C" {
     void LQIO_error( const char * fmt, ... );
     void srvnwarning( const char * fmt, ... );
 
+
     void * srvn_int_constant( const int );
     void * srvn_real_constant( const double );
     void * srvn_variable( const char * );
+    void * srvn_null_to_inf( void * );			/* Convert NULL to infinity	*/
+
+    double srvn_get_infinity();
 #if defined(__cplusplus)
 }
 
@@ -95,7 +107,7 @@ namespace LQIO {
 	class Document;
     }
     namespace SRVN {
-	bool load(DOM::Document&, const std::string&, const std::string&, unsigned& errorCode, bool);
+	bool load(DOM::Document&, const std::string&, unsigned& errorCode, bool);
     }
 }
 

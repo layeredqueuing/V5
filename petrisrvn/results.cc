@@ -9,7 +9,7 @@
 /************************************************************************/
 
 /*
- * $Id: results.cc 11065 2012-07-06 16:18:06Z greg $
+ * $Id: results.cc 13477 2020-02-08 23:14:37Z greg $
  *
  * Store the results.
  */
@@ -49,10 +49,9 @@ get_pmmean( const char * fmt, ...)
     double value;
 
     va_start( args, fmt );
-    (void) vsprintf( object_name, fmt, args );
+    (void) vsnprintf( object_name, BUFSIZ, fmt, args );
     va_end( args );
-    hash_name( object_name );
-    value = value_pmmean( object_name );
+    value = value_pmmean( find_netobj_name( object_name ) );
     if ( value < 0.0 ) {
 	abort();
     }
@@ -77,10 +76,9 @@ get_pmvariance( const char * fmt, ...)
     double value;
 
     va_start( args, fmt );
-    (void) vsprintf( object_name, fmt, args );
+    (void) vsnprintf( object_name, BUFSIZ, fmt, args );
     va_end( args );
-    hash_name( object_name );
-    value = value_pmvariance( object_name );
+    value = value_pmvariance( find_netobj_name( object_name ) );
 
     if ( debug_flag ) {
 	(void) fprintf( stddbg, "E[%s]=%g\n", object_name, value );
@@ -102,10 +100,9 @@ get_prob( int m, const char * fmt, ...)
     double value;
 
     va_start( args, fmt );
-    (void) vsprintf( object_name, fmt, args );
+    (void) vsnprintf( object_name, BUFSIZ, fmt, args );
     va_end( args );
-    hash_name( object_name );
-    value = value_prob( object_name, m );
+    value = value_prob( find_netobj_name( object_name ), m );
     if ( value < 0.0 ) {
 	abort();
     }
@@ -130,13 +127,12 @@ get_tput( short kind, const char * fmt, ... )
     double value;
 
     va_start( args, fmt );
-    (void) vsprintf( object_name, fmt, args );
+    (void) vsnprintf( object_name, BUFSIZ, fmt, args );
     va_end( args );
-    hash_name( object_name );
     if ( kind == IMMEDIATE ) {
-	value = value_itput( object_name );
+	value = value_itput( find_netobj_name( object_name ) );
     } else {
-	value = value_tput( object_name );
+	value = value_tput( find_netobj_name( object_name ) );
     }
 
     if ( debug_flag ) {

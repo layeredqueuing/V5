@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: runlqx.cc 13553 2020-05-23 01:48:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,7 @@ namespace SolverInterface
     bool Solve::solveCallViaLQX = false;	/* Flag when a solve() call was made */
     bool Solve::implicitSolve = false;
 
-    LQX::SymbolAutoRef Solve::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) throw (LQX::RuntimeException) 
+    LQX::SymbolAutoRef Solve::invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args)
     {
 	solveCallViaLQX = true;
 	if ( !implicitSolve ) {
@@ -54,13 +54,13 @@ namespace SolverInterface
 			
 	/* Tell the world the iteration number */
 	if ( verbose_flag ) {
-	    cerr << "Solving iteration #" << invocationCount << endl;
+	    std::cerr << "Solving iteration #" << invocationCount << std::endl;
 	}
 			
 	/* Make sure all external variables are accounted for */
 	if (!_document->areAllExternalVariablesAssigned()) {
-	    cerr << io_vars.lq_toolname << ": Not all external variables are assigned at time of solve." << endl;
-	    cerr << io_vars.lq_toolname << ": Solve was not invoked." << endl;
+	    std::cerr << io_vars.lq_toolname << ": Not all external variables are assigned at time of solve." << std::endl;
+	    std::cerr << io_vars.lq_toolname << ": Solve was not invoked." << std::endl;
 	    return LQX::Symbol::encodeBoolean(false);
 	}
 			
@@ -70,21 +70,15 @@ namespace SolverInterface
 	/* Run the solver and return its success as a boolean value */
 	try {
 	    assert (_aModel );
-	    std::stringstream ss;
-	    _document->printExternalVariables( ss );
-	    _document->setModelComment( ss.str() );
-
 	    _document->setResultInvocationNumber(invocationCount);
 	    const bool ok = ((_aModel->*_solve)() == NORMAL_TERMINATION);
 	    return LQX::Symbol::encodeBoolean(ok);
 	}
-	catch ( runtime_error & error ) {
-	    cerr << io_vars.lq_toolname << ": runtime error - " << error.what() << endl;
-	    io_vars.anError = true;
+	catch ( const std::runtime_error & error ) {
+	    throw LQX::RuntimeException( error.what() );
 	}
-	catch ( logic_error& error ) {
-	    cerr << io_vars.lq_toolname << ": logic error - " << error.what() << endl;
-	    io_vars.anError = true;
+	catch ( const std::logic_error& error ) {
+	    throw LQX::RuntimeException( error.what() );
 	}
 	return LQX::Symbol::encodeBoolean(false);
     }

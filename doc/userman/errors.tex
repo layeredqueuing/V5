@@ -1,12 +1,12 @@
 %% -*- mode: latex; mode: outline-minor: t; fill-column: 108 -*-
 %% Title:  errors
 %%
-%% $HeadURL: svn://192.168.2.10/lqn/trunk-V5/doc/userman/errors.tex $
+%% $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/doc/userman/errors.tex $
 %% Original Author:     Greg Franks <greg@sce.carleton.ca>
 %% Created:             Tue Jul 18 2006
 %%
 %% ----------------------------------------------------------------------
-%% $Id: errors.tex 11270 2013-01-30 18:38:17Z greg $
+%% $Id: errors.tex 13508 2020-02-26 03:22:06Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Error Messages}
@@ -37,8 +37,7 @@ possible problems with the model which the solver has ignored.
 
 % /* ERR_NO_OBJECTS                      3 */
 
-\item \texttt{Model has no
-  }\emph{(activity$|$entry$|$task$|$processor)}
+\item \texttt{Model has no }\emph{(activity$|$entry$|$task$|$processor)}
 
   This should not happen.
   
@@ -86,8 +85,7 @@ possible problems with the model which the solver has ignored.
     the loop is random, not deterministic}.
 
 % /* ERR_IS_START_ACTIVITY               5 */
-\item \texttt{Activity "}\emph{identifier}\texttt{" is a start
-    activity.}
+\item \texttt{Activity "}\emph{identifier}\texttt{" is a start activity.}
   
   The activity named \emph{identifier} is the first activity in an
   activity graph\indexerror{start activity}.  It cannot be used in a
@@ -95,8 +93,7 @@ possible problems with the model which the solver has ignored.
   (\emph{fork-}list\indexerror{fork-list}).
 
 % /* ERR_DUPLICATE_ACTIVITY_RVALUE       6 */
-\item \texttt{Activity "}\emph{identifier}\texttt{" previously used in
-    a fork." }
+\item \texttt{Activity "}\emph{identifier}\texttt{" previously used in a fork." }
   
   The activity \emph{identifier} has already been used as part of a
   fork expression\indexerror{fork-list}.  Fork lists are on the right
@@ -107,8 +104,7 @@ possible problems with the model which the solver has ignored.
   graph.
 
 % /* ERR_DUPLICATE_ACTIVITY_LVALUE       7 */
-\item \texttt{Activity "}\emph{identifier}\texttt{" previously used in
-    a join." }
+\item \texttt{Activity "}\emph{identifier}\texttt{" previously used in a join." }
   
   The activity \emph{identifier} has already been used as part of a
   join list\indexerror{join-list}.  Join lists are on the left hand
@@ -119,8 +115,7 @@ possible problems with the model which the solver has ignored.
 
 % /* ERR_REPLY_NOT_FOUND               63 */
 \item \texttt{Activity "}\emph{identifier}\texttt{" requests reply for
-    entry "}\emph{identifier}\texttt{" but none
-    pending.}\marginpar{lqsim}
+    entry "}\emph{identifier}\texttt{" but none pending.}\marginpar{lqsim}
   
   The simulator is trying to generate a reply\indexerror{reply} from
   entry \emph{identifier}, but there are no messages queued at the
@@ -140,23 +135,26 @@ possible problems with the model which the solver has ignored.
   Refer to earlier error messages.
 
 % /* ERR_ATTRIBUTE_MISSING               8 */
-\item \texttt{Attribute "}\emph{attribute}\texttt{" is missing from
-    "}\emph{type}\texttt{" element.}
+\item \texttt{Attribute "}\emph{attribute}\texttt{" is missing from "}\emph{type}\texttt{" element.}
 
   The attribute named \emph{attribute} for the \texttt{type}-element
   is missing\indexerror{attribute!missing}.
   
 %  ---- SCHEMA
-\item \texttt{Attribute '}\emph{attribute}\texttt{' is not declared
-    for element '}\emph{element}\texttt{'}
+\item \texttt{Attribute '}\emph{attribute}\texttt{' is not declared for element '}\emph{element}\texttt{'}
   
   The attribute named \emph{attribute} for \emph{element} is not defined in the
   schema.\indexerror{attribute!not declared}.  
 
+% /* ERR_LQX_SPEX			    */
+\item \texttt{"Both LQX and SPEX found in file } \emph{filename}
+  \texttt{.  Use one or the other."}
+
+  XML input allows for the use of LQX or SPEX, but not both at the same time.\indexerror{lqx!spex}\indexerror{spex!lqx}
+  
 % /* ERR_CANNOT_CREATE_X               64 */
-\item \texttt{Cannot create }\emph{(processor$|$processor for
-    task$|$task})\texttt{
-    "}\emph{identifier}\texttt{".}\marginpar{lqsim}
+\item \texttt{Cannot create }\emph{(processor$|$processor for task$|$task})
+  \texttt{"}\emph{identifier}\texttt{".}\marginpar{lqsim}
   
   Parasol\indexerror{Parasol} could not create an object such as a
   task\indexerror{task creation} or
@@ -275,7 +273,7 @@ possible problems with the model which the solver has ignored.
 (result-processor,task)
 
 % /* ERR_OPEN_AND_CLOSED_CLASSES        14 */
-\item \texttt{Entry "}\emph{identifier}\texttt{"  accepts both
+\item \texttt{Entry "}\emph{identifier}\texttt{" accepts both
     rendezvous and send-no-reply messages.}
 
   An entry can either accept synchronous messages (to which it

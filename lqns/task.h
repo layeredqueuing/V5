@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 12980 2017-04-05 00:09:25Z greg $
+ * $Id: task.h 13548 2020-05-21 14:27:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -95,8 +95,10 @@ public:
     const Cltn<Activity *>& activities() const { return myActivityList; }
     virtual Entity& setOverlapFactor( const double of ) { myOverlapFactor = of; return *this; }
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const;
-    void resetReplication();
+    virtual unsigned int fanOut( const Entity * ) const;
+    virtual unsigned int fanIn( const Task * ) const;
 
+    void resetReplication();
     Task& addThread( Thread * aThread ) { myThreads << aThread; return *this; }
 
     /* Queries */
@@ -141,10 +143,8 @@ public:
 
     /* Threads */
 
-    unsigned threadIndex( const unsigned submodel, const unsigned k ) const;
+    const Thread * getThread( const unsigned submodel, const unsigned k ) const;
     void forkOverlapFactor( const Submodel&, VectorMath<double>* ) const;
-    double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
-    double waitExceptChain( const unsigned ix, const unsigned submodel, const unsigned k, const unsigned p ) const;
 
     /* Synchronization */
 
@@ -175,6 +175,8 @@ public:
     virtual ostream& printJoinDelay( ostream& ) const;
 
 protected:
+    LQIO::DOM::Task* getDOM() const { return dynamic_cast<LQIO::DOM::Task *>(domEntity); }
+	
     bool HOL_Scheduling() const;
     bool PPR_Scheduling() const;
 
@@ -191,9 +193,6 @@ private:
 
     void store_activity_service_time ( const char * activity_name, const double service_time ) ;	// quorum.
 
-protected:
-    LQIO::DOM::Task* myDOMTask;		/* Stores all of the data.      */
-	
 private:
     const Processor * myProcessor;	/* proc. allocated to task. 	*/
     const Group * myGroup;		/* Group allocated to task.	*/
@@ -246,7 +245,7 @@ public:
 
     virtual void check() const;
     virtual void configure( const unsigned );
-    virtual unsigned queueLength() const { return myDOMTask->getQueueLengthValue(); }
+    virtual unsigned queueLength() const;
 
     virtual bool hasVariance() const;
     virtual bool hasInfinitePopulation() const;

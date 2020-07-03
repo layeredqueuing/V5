@@ -1,48 +1,47 @@
 /* -*- c++ -*-
  * point.h	-- Greg Franks
  *
- * $Id: point.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: point.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _POINT_H
 #define _POINT_H
 
-#include "lqn2ps.h"
-
-class Point;
-
-ostream& operator<<( ostream&, const Point& );
+#include <iostream>
 
 class Point
 {
 public:
-    Point() : my_x(0), my_y(0) {}
-    Point( double an_x, double a_y ) : my_x(an_x), my_y(a_y) {}
-    Point( const Point &aPoint ) : my_x(aPoint.x()), my_y(aPoint.y()) {}
+    Point() : _x(0), _y(0) {}
+    Point( double x, double y ) : _x(x), _y(y) {}
+    Point( const Point &point ) : _x(point.x()), _y(point.y()) {}
     Point& operator=( const Point& );
-    Point& operator+=( const Point& aPoint ) { my_x += aPoint.x(); my_y += aPoint.y(); return *this; }
-    Point& operator-=( const Point& aPoint ) { my_x -= aPoint.x(); my_y -= aPoint.y(); return *this; }
-    Point& operator*=( const double s ) { my_x *= s; my_y *= s; return *this; }
+    Point& operator+=( const Point& point ) { _x += point.x(); _y += point.y(); return *this; }
+    Point& operator-=( const Point& point ) { _x -= point.x(); _y -= point.y(); return *this; }
+    Point& operator*=( const double s ) { _x *= s; _y *= s; return *this; }
     bool operator==( const Point& p2 ) const { return x() == p2.x() && y() == p2.y(); }
     bool operator!=( const Point& p2 ) const { return x() != p2.x() || y() != p2.y(); }
 
-    Point& moveBy( const Point& aPoint ) { my_x += aPoint.x(); my_y += aPoint.y(); return *this; }
-    Point& moveBy( const double dx, const double dy ) { my_x += dx; my_y += dy; return *this; }
-    Point& moveTo( const double x, const double y ) { my_x = x; my_y = y; return *this; }
-    Point& scaleBy( const double sx, const double sy ) { my_x *= sx; my_y *= sy; return *this; }
+    Point& moveBy( const Point& point ) { _x += point.x(); _y += point.y(); return *this; }
+    Point& moveBy( const double dx, const double dy ) { _x += dx; _y += dy; return *this; }
+    Point& moveTo( const double x, const double y ) { _x = x; _y = y; return *this; }
+    Point& scaleBy( const double sx, const double sy ) { _x *= sx; _y *= sy; return *this; }
+    Point& translateY( const double dy ) { _y = dy - _y; return *this;}
     Point& rotate( const Point& origin, const double theta );
-    double x() const { return my_x; }
-    double y() const { return my_y; }
-    Point& x( const double an_x ) { my_x = an_x; return *this; }
-    Point& y( const double a_y  ) { my_y = a_y;  return *this; }
+    double x() const { return _x; }
+    double y() const { return _y; }
+    Point& x( const double x ) { _x = x; return *this; }
+    Point& y( const double y  ) { _y = y;  return *this; }
     Point& min( const double, const double );
     Point& max( const double, const double );
-    Point& min( const Point& aPoint ) { return min( aPoint.x(), aPoint.y() ); }
-    Point& max( const Point& aPoint ) { return max( aPoint.x(), aPoint.y() ); }
-    ostream& print( ostream& ) const;
+    Point& min( const Point& point ) { return min( point.x(), point.y() ); }
+    Point& max( const Point& point ) { return max( point.x(), point.y() ); }
+    std::ostream& print( std::ostream& ) const;
 
 private:
-    double my_x;
-    double my_y;
+    double _x;
+    double _y;
 };
+
+inline std::ostream& operator<<( std::ostream& output, const Point& self ) { return self.print( output ); }
 #endif

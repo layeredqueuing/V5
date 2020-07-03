@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: phase.h 13477 2020-02-08 23:14:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -16,15 +16,12 @@
 #if	!defined(PHASE_H)
 #define PHASE_H
 
-#include "cltn.h"
-#include "vector.h"
 #include <lqio/input.h>
 
 class Call;
 class Entry;
 class Entity;
 class Task;
-class PhaseManip;
 
 class Phase {
 
@@ -33,11 +30,16 @@ public:
     public:
 	class Bin {
 	public:
-	    double myBegin;    
-	    double myEnd;
-	    double myProb;
-	    double myConf95;
-	    double myConf99;
+	    Bin( double begin, double end, double prob, double conf95, double conf99 )
+	    //		: myBegin(begin), myEnd(end), myProb(prob), myConf95(conf95), myConf99(conf99)
+		{}
+	    
+	private:
+	    // const double myBegin;    
+	    // const double myEnd;
+	    // const double myProb;
+	    // const double myConf95;
+	    // const double myConf99;
 	};
 
 	Histogram();
@@ -45,7 +47,7 @@ public:
 	Phase::Histogram& moments( const double, const double, const double, const double );
 	Phase::Histogram& addBin( const double begin, const double end, const double prob, const double conf95, const double conf99 );
 	bool hasHistogram() const { return myNumBins > 2 && myMax > 0; }
-	bool maxServiceTime() const { return myNumBins == 2 && myMax > 0; }
+	bool hasMaxServiceTime() const { return myNumBins == 2 && myMax > 0; }
 
     private:
 	unsigned myNumBins;		/* Number of bins */
@@ -57,32 +59,40 @@ public:
 	double mySkew;
 	double myKurtosis;
 
-	Vector2<Phase::Histogram::Bin> bins;	/* */
+	std::vector<Phase::Histogram::Bin> bins;	/* */
     };
 
 private:
-    Phase( const Phase& );		/* Copying is verbotten */ 
+    struct SetChain {
+	SetChain( const unsigned k, const Entity * server, callPredicate f ) : _k(k), _server(server), _f(f) {}
+	void operator()( Call * ) const;
+    private:
+	const unsigned _k;
+	const Entity * _server;
+	callPredicate _f;
+    };
 
 public:
     Phase();
     virtual ~Phase();
     Phase& operator=( const Phase& );
+    Phase( const Phase& );		/* Copying is verbotten */ 
 	
     int operator==( const Phase& aPhase ) const { return &aPhase == this; }
 
     /* Initialialization */
 	
     void initCv_sqr( const double );
-    void initialize( Entry * src, const unsigned p );
-    virtual void check() const;
-    const Phase& setChain( const unsigned curr_k, const Entity * aServer, callFunc aFunc ) const;
+    Phase& initialize( Entry * src, const unsigned p );
+    virtual bool check() const;
+    const Phase& setChain( const unsigned curr_k, const Entity * aServer, callPredicate aFunc ) const;
 
     /* Instance variable access */
 	
     Phase& setDOM( const LQIO::DOM::Phase * dom ) { _documentObject = dom; return *this; }
     virtual const LQIO::DOM::Phase * getDOM() const { return _documentObject; }
-    int phase() const { return myPhase; }
-    const Entry * entry() const { return myEntry; }
+    int phase() const { return _phase; }
+    const Entry * entry() const { return _entry; }
     virtual const Task * owner() const;
 
     virtual const string& name() const;
@@ -107,51 +117,69 @@ public:
 
     bool hasQueueingTime() const;
     bool isNonExponential() const;
+    bool isDeterministic() const { return phaseTypeFlag() == PHASE_DETERMINISTIC; }
 
-    bool hasHistogram() const { return myHistogram.hasHistogram(); }
+    bool hasHistogram() const { return _histogram.hasHistogram(); }
     Phase& histogram( const double min, const double max, const unsigned n_bins );
     Phase& moments( const double, const double, const double, const double );
     Phase& histogramBin( const double begin, const double end, const double prob, const double conf95, const double conf99 );
     double maxServiceTime() const;
+    bool hasMaxServiceTime() const { return _histogram.hasMaxServiceTime(); }
 
-    virtual const Cltn<Call *>& callList() const;
+    virtual const std::vector<Call *>& calls() const;
     virtual const Entry * rootEntry() const { return 0; }
 
-    virtual bool hasCallsFor( unsigned p ) const;
-
     virtual double serviceTimeForSRVNInput() const;
-    virtual double serviceTimeForQueueingNetwork() const;
 
-    const Phase& addThptUtil( double &util_sum ) const;
-	
+#if defined(REP2FLAT)
+    virtual Phase& replicatePhase();
+    virtual Phase& replicateCall();
+#endif
+
 protected:
     Phase& recomputeCv_sqr( const Phase * );
 
 protected:
-    Histogram myHistogram;		/* Histogram information	*/
+    Histogram _histogram;		/* Histogram information	*/
 
 private:
     const LQIO::DOM::Phase * _documentObject;
-    Entry *myEntry;
-    unsigned myPhase;
+    Entry *_entry;
+    unsigned _phase;
 };
+
+
+inline ostream& operator<<( ostream& output, const Phase& ) { return output; }
+inline ostream& operator<<( ostream& output, const Phase::Histogram::Bin& ) { return output; }
 
-ostream& operator<<( ostream&, const Phase& );
-ostream& operator<<( ostream&, const Phase::Histogram::Bin& );
-
-/* -------------------------------------------------------------------- */
-/* Funky Formatting functions for inline with <<.			*/
-/* -------------------------------------------------------------------- */
-
-class PhaseManip {
-public:
-    PhaseManip( ostream& (*ff)(ostream&, const Phase * ), const Phase * thePhase )
-	: f(ff), anPhase(thePhase) {}
+template <> struct Predicate<Phase>
+{
+    typedef bool (Phase::*predicate)() const;
+    Predicate<Phase>( const predicate p ) : _p(p) {};
+    bool operator()( const std::pair<unsigned,Phase>& phase ) const { return (phase.second.*_p)(); }
 private:
-    ostream& (*f)( ostream&, const Phase* );
-    const Phase * anPhase;
+    const predicate _p;
+};
 
-    friend ostream& operator<<(ostream & os, const PhaseManip& m ) 
-	{ return m.f(os,m.anPhase); }
+template <class Type2> struct Sum<Phase,Type2>
+{
+    typedef Type2 (Phase::*funcPtr)() const;
+    Sum<Phase,Type2>( funcPtr f ) : _f(f), _sum(0) {}
+    void operator()( const std::pair<unsigned,Phase>& phase ) { _sum += (phase.second.*_f)(); }
+    Type2 sum() const { return _sum; }
+private:
+    funcPtr _f;
+    Type2 _sum;
+};
+
+template <> struct Sum<Phase,LQIO::DOM::ExternalVariable>
+{
+    typedef const LQIO::DOM::ExternalVariable& (Phase::*funcPtr)() const;
+    Sum<Phase,LQIO::DOM::ExternalVariable>( funcPtr f ) : _f(f), _sum(0) {}
+    void operator()( const std::pair<unsigned,Phase>& phase ) { _sum += LQIO::DOM::to_double((phase.second.*_f)()); }
+    double sum() const { return _sum; }
+private:
+    funcPtr _f;
+    double _sum;
 };
 #endif

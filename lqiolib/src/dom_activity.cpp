@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 10673 2012-01-21 00:37:26Z greg $
+ *  $Id: dom_activity.cpp 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -12,9 +12,11 @@
 namespace LQIO {
     namespace DOM {
 
+	const char * Activity::__typeName = "activity";
+	
 	Activity::Activity(const Document * document, const char * name)
 	    : Phase(document,NULL),
-	      _replyList(), _isSpecified(false), _index(0),
+	      _replyList(), _isSpecified(false), _task(NULL),
 	      _outputList(NULL), _inputList(NULL),
 	      _resultCVSquared(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
@@ -25,7 +27,7 @@ namespace LQIO {
 
 	Activity::Activity( const LQIO::DOM::Activity & src )
 	    : Phase( src ),
-	      _replyList(), _isSpecified(src.isSpecified()), _index(src._index),
+	      _replyList(), _isSpecified(src.isSpecified()), _task(src._task),
 	      _outputList(NULL), _inputList(NULL),
 	      _resultCVSquared(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
@@ -56,14 +58,14 @@ namespace LQIO {
 	    _isSpecified = isSpecified;
 	}
 
-	unsigned int Activity::getIndex() const
+	const Task * Activity::getTask() const
 	{
-	    return _index;
+	    return _task;
 	}
 
-	void Activity::setIndex( unsigned int i ) 
+	void Activity::setTask( Task * task ) 
 	{
-	    _index = i;
+	    _task = task;
 	}
 		
 	void Activity::outputTo(ActivityList* outputList)
@@ -149,5 +151,5 @@ namespace LQIO {
 	    _resultProcessorUtilizationVariance = resultProcessorUtilizationVariance;
 	    return *this;
 	}
-    };
-};
+    }
+}

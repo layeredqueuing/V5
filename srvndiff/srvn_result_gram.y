@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_gram.y 11963 2014-04-10 14:36:42Z greg $
+ * $Id: srvn_result_gram.y 13491 2020-02-12 00:35:17Z greg $
  * ----------------------------------------------------------------------
  *
  * This file has been modified such that it uses result rather than yy on its
@@ -38,8 +38,9 @@
 static unsigned 	i;	/* Index into phase list array */
 static unsigned		np;	/* Number of phases in phase list */
 static double		*fl;	/* Phase list array (float list) */
-static char 		*proc_name = 0;	/* Current task name */
-static char 		*task_name = 0;	/* Current task name */
+static char 		*proc_name = 0;		/* Current processor name */
+static char 		*task_name = 0;		/* Current task name */
+static char		*group_name = 0;	/* Current group name */
 static char		*from_name = 0;
 static char 		*to_name = 0;
 static char		*entry_name = 0; 
@@ -58,15 +59,15 @@ static void resulterror( const char * fmt );
 
 %token 		        VALIDITY_FLAG CONV_FLAG ITERATION_FLAG PROC_COUNT_FLAG PHASE_COUNT_FLAG BOUND_FLAG DROP_PROBABILITY_FLAG SERVICE_EXCEEDED_FLAG DISTRIBUTION_FLAG
 %token  		WAITING_FLAG WAITING_VARIANCE_FLAG SNR_WAITING_FLAG SNR_WAITING_VARIANCE_FLAG JOIN_FLAG HOLD_TIME_FLAG RWLOCK_HOLD_TIME_FLAG
-%token                  SERVICE_FLAG VARIANCE_FLAG THPT_UT_FLAG OPEN_ARRIV_FLAG PROC_FLAG OVERTAKING_FLAG ENDLIST
-%token			REAL_TIME USER_TIME SYST_TIME SOLVER
+%token                  SERVICE_FLAG VARIANCE_FLAG THPT_UT_FLAG OPEN_ARRIV_FLAG PROC_FLAG GROUP_FLAG OVERTAKING_FLAG ENDLIST
+%token			REAL_TIME USER_TIME SYST_TIME MAX_RSS SOLVER
 %token <anInt> 		INTEGER 
-%token <aFloat>		FLOAT 
-%token <aString> 	SYMBOL TEXT TIME INFTY 
+%token <aFloat>		FLOAT TIME 
+%token <aString> 	SYMBOL TEXT INFTY COMMENT
 %token <aChar>		CHAR 
 %token			CONF_INT_FLAG TASK_ENTRY_FLAG
 
-%type  <aString>	identifier proc_identifier task_identifier from_identifier to_identifier activity_identifier entry_identifier 
+%type  <aString>	identifier proc_identifier group_identifier task_identifier from_identifier to_identifier activity_identifier entry_identifier 
 
 %type  <aFloatList>	float_phase_list
 %type  <anInt>		validity_rep iteration_rep proc_count_rep phase_count_rep proc_task_info phase_identifier
@@ -252,8 +253,11 @@ runtime_tbl_entry	: REAL_TIME TIME
 			    { add_user_time( $2 ); }
 			| SYST_TIME TIME
 			    { add_system_time( $2 ); }
+			| COMMENT
+			    { add_comment( $1 ); }
 			| SOLVER INTEGER INTEGER real real real real INTEGER
 			    { add_mva_solver_info( $2, $3, $4, $5, $6, $7, $8 ); }
+			| MAX_RSS INTEGER
 			| SOLVER INTEGER INTEGER real real real real  real real real  TIME TIME TIME
 			;
 
@@ -1208,11 +1212,11 @@ open_arriv_conf_entry	: CONF_INT_FLAG INTEGER real
  * The data is deposited in the "proc" data structure.
  */
 
-proc			: proc_group proc
+proc			: processor proc
     			| ENDLIST
 			;
 
-proc_group		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_proc_group_total 
+processor		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_processor_total 
 			    {
 				add_proc( proc_name );
 				free( proc_name );
@@ -1220,7 +1224,7 @@ proc_group		: PROC_FLAG proc_identifier INTEGER proc_tbl opt_proc_group_total
 			    }
 			;
 
-opt_proc_group_total 	: real proc_group_conf_tbl ENDLIST
+opt_processor_total 	: real processor_conf_tbl ENDLIST
 			    {
 				add_total_proc( proc_name, $1 );
 			    }
@@ -1231,20 +1235,10 @@ proc_tbl		: proc_tbl_entry proc_tbl
     			| ENDLIST 
 			;
 
-proc_tbl_entry		: task_identifier proc_task_info proc_task opt_proc_task_total 
+proc_tbl_entry		: task_identifier proc_task_info proc_task opt_proc_task_total opt_group_util
 			    {
 				add_task_proc( proc_name, task_name, $2, $4 );
 				free_task_name();
-			    }
-			;
-
-opt_proc_task_total 	: real proc_task_conf_tbl
-			    {
-				$$ = $1;
-			    }
-			|
-			    {
-				$$ = 0;
 			    }
 			;
 
@@ -1321,11 +1315,39 @@ proc_task_conf_entry	: CONF_INT_FLAG INTEGER real
 			    }
     			;
 
-proc_group_conf_tbl	: proc_group_conf_entry proc_group_conf_tbl
+opt_proc_task_total 	: real proc_task_conf_tbl
+			    {
+				$$ = $1;
+			    }
+			|
+			    {
+				$$ = 0;
+			    }
+			;
+
+opt_group_util		: GROUP_FLAG group_identifier real opt_group_util_conf
+			    {
+				add_group_util( group_name, $3 );
+			    }
+			|
+			;
+
+
+opt_group_util_conf	: group_util_conf_entry opt_group_util_conf
+			|
+			;
+
+group_util_conf_entry	: CONF_INT_FLAG INTEGER real
+			    {
+				add_group_util_conf( group_name, $2, $3 );
+			    }
+			;
+
+processor_conf_tbl	: processor_conf_entry processor_conf_tbl
     			|
     			;
 
-proc_group_conf_entry	: CONF_INT_FLAG INTEGER real 
+processor_conf_entry	: CONF_INT_FLAG INTEGER real 
 			    {
 				add_total_proc_confidence( proc_name, $2, $3 );
 			    }
@@ -1369,6 +1391,10 @@ proc_identifier		: identifier
 
 task_identifier		: identifier
 				{ task_name = $1; $$ = $1; } 
+			;
+
+group_identifier	: identifier
+				{ group_name = $1; $$ = $1; } 
 			;
 
 from_identifier		: identifier

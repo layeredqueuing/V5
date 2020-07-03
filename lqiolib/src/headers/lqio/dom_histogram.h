@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_histogram.h 11963 2014-04-10 14:36:42Z greg $
+ *  $Id: dom_histogram.h 13477 2020-02-08 23:14:37Z greg $
  *
  *  Created by Martin Mroz on 07/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,10 +40,12 @@ namespace LQIO {
 	    };
       
 	    /* Constructor for the basic histogram type */
-	    Histogram(const Document *, histogram_t type, unsigned n_bins, double min, double max, const void * histogram_element=0 );
+	    Histogram(const Document *, histogram_t type, unsigned n_bins, double min, double max );
 	    virtual ~Histogram();
       
 	    /* Accessors and Mutators */
+	    const char * getTypeName() const { return __typeName; }
+
 	    void capacity( unsigned int n_bins, double min, double max );
 	    unsigned int getBins() const { return _n_bins; }
 	    double getMin() const { return _min; }
@@ -55,22 +57,28 @@ namespace LQIO {
 	    double getBinVariance( unsigned int ) const;
 	    histogram_t getHistogramType() const { return _histogram_type; }
 	    Histogram& setBinMeanVariance( unsigned int, double, double=0 );
+	    void setTimeExceeded( double );		/* Must be of type isTimeExceeded */
+	    double getTimeExceeded() const;		/* Must be of type isTimeExceeded */
 
 	    /* Queries */
 	    unsigned int getBinIndex( double ) const;
 	    unsigned int getOverflowIndex() const { return _n_bins + 1; }
 
-	    bool isMaxServiceTime() const { return _bins.size() == 0 && _min == _max; }
+	    bool isTimeExceeded() const { return _n_bins == 0 && _min == _max; }
+	    bool isHistogram() const { return _n_bins > 0; }
 	    bool hasResults() const { return _has_results; }
 
 	private:
-	    unsigned _n_bins;
+	    unsigned int _n_bins;
 	    double _min;
 	    double _max;
 	    double _bin_size;
 	    bool _has_results;
 	    const histogram_t _histogram_type;
 	    std::vector<HistogramBin> _bins;
+
+	public:
+	    static const char * __typeName;
 	};
     }
 }

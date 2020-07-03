@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: node.cc 13477 2020-02-08 23:14:37Z greg $
  */
 
 #include "lqn2ps.h"
@@ -11,7 +11,6 @@
 #include "arc.h"
 
 static string tex_string( const char * s );
-static string html_string( const char * s );
 static string xml_comment( const string& );
 static string unicode_string( const char * s );
 
@@ -55,77 +54,12 @@ Node::newNode( double x, double y )
     case FORMAT_X11:
 	return new NodeX11( 0, 0, x, y );
 #endif
-    case FORMAT_NULL:
-    case FORMAT_SRVN:
-    case FORMAT_OUTPUT:
-    case FORMAT_PARSEABLE:
-    case FORMAT_RTF:
-#if defined(QNAP_OUTPUT)
-    case FORMAT_QNAP:
-#endif
-#if defined(TXT_OUTPUT)
-    case FORMAT_TXT:
-#endif
-    case FORMAT_XML:
-	return new NodeNull( 0, 0, x, y );
     default:
-	abort();
+	return new NodeNull( 0, 0, x, y );
     }
+    abort();
     return 0;
 }
-
-Point
-Node::topLeft() const
-{
-    Point aPoint( origin.x(), origin.y() + extent.y() );
-    return aPoint;
-}
-
-Point
-Node::topRight() const
-{
-    Point aPoint( origin.x() + extent.x(), origin.y() + extent.y() );
-    return aPoint;
-}
-
-
-Point
-Node::bottomLeft() const
-{
-    Point aPoint( origin.x(), origin.y() );
-    return aPoint;
-}
-
-Point
-Node::bottomRight() const
-{
-    Point aPoint( origin.x() + extent.x(), origin.y() );
-    return aPoint;
-}
-
-
-Point
-Node::center() const
-{
-    Point aPoint( origin.x() + extent.x()/2, origin.y() + extent.y()/2);
-    return aPoint;
-}
-
-Point
-Node::bottomCenter() const
-{
-    Point aPoint( origin.x() + extent.x()/2, origin.y());
-    return aPoint;
-}
-
-Point
-Node::topCenter() const
-{
-    Point aPoint( origin.x() + extent.x()/2, origin.y() + extent.y());
-    return aPoint;
-}
-
-
 
 Node&
 Node::scaleBy( const double sx, const double sy )
@@ -144,10 +78,19 @@ Node::translateY( const double dy )
     return *this;
 }
 
+Node&
+Node::resizeBox( const double x, const double y, const double w, const double h )
+{
+    origin.moveBy( x, y );
+    extent.moveBy( w, h );
+    return *this;
+}
+
+
 ostream& 
 Node::draw_queue( ostream& output, const Point& aPoint, const double radius ) const
 {
-    Point points[4];
+    std::vector<Point> points(4);
     points[0] = aPoint;
     points[1] = aPoint;
     points[2] = aPoint;
@@ -156,7 +99,7 @@ Node::draw_queue( ostream& output, const Point& aPoint, const double radius ) co
     points[1].moveBy( -radius, 2 * radius * direction() );
     points[2].moveBy( radius,  2 * radius * direction() );
     points[3].moveBy( radius,  4 * radius * direction() );
-    polyline( output, 4, points );
+    polyline( output, points );
     return output;
 }
 
@@ -167,26 +110,26 @@ Node::multi_server( ostream& output, const Point& centerBottom, const double rad
     const double offset = radius * 14.0 / 9.0;
 
     anArc->penColour( penColour() );
-    (*anArc)[1] = centerBottom;
-    (*anArc)[2] = centerBottom;
-    (*anArc)[3] = centerBottom;
-    (*anArc)[1].moveBy( -offset, radius  * direction());
-    (*anArc)[2].moveBy( 0, 2 * radius  * direction());
-    (*anArc)[3].moveBy( offset, radius  * direction());
+    anArc->pointAt(0) = centerBottom;
+    anArc->pointAt(1) = centerBottom;
+    anArc->pointAt(2) = centerBottom;
+    anArc->pointAt(0).moveBy( -offset, radius  * direction());
+    anArc->pointAt(1).moveBy( 0, 2 * radius  * direction());
+    anArc->pointAt(2).moveBy( offset, radius  * direction());
 
-    circle( output, (*anArc)[1], radius );
-    circle( output, (*anArc)[3], radius );
-    (*anArc)[1] = anArc->srcIntersectsCircle( (*anArc)[1], radius );
-    (*anArc)[3] = anArc->dstIntersectsCircle( (*anArc)[3], radius );
+    circle( output, anArc->pointAt(0), radius );
+    circle( output, anArc->pointAt(2), radius );
+    anArc->pointAt(0) = anArc->srcIntersectsCircle( anArc->pointAt(0), radius );
+    anArc->pointAt(2) = anArc->dstIntersectsCircle( anArc->pointAt(2), radius );
     output << *anArc;
 
-    (*anArc)[1] = centerBottom;
-    (*anArc)[2] = centerBottom;
-    (*anArc)[3] = centerBottom;
-    (*anArc)[1].moveBy( -offset, radius * direction());
-    (*anArc)[3].moveBy( offset, radius * direction());
-    (*anArc)[1] = anArc->srcIntersectsCircle( (*anArc)[1], radius );
-    (*anArc)[3] = anArc->dstIntersectsCircle( (*anArc)[3], radius );
+    anArc->pointAt(0) = centerBottom;
+    anArc->pointAt(1) = centerBottom;
+    anArc->pointAt(2) = centerBottom;
+    anArc->pointAt(0).moveBy( -offset, radius * direction());
+    anArc->pointAt(2).moveBy( offset, radius * direction());
+    anArc->pointAt(0) = anArc->srcIntersectsCircle( anArc->pointAt(0), radius );
+    anArc->pointAt(2) = anArc->dstIntersectsCircle( anArc->pointAt(2), radius );
     output << *anArc;
 
     delete anArc;
@@ -197,7 +140,7 @@ Node::multi_server( ostream& output, const Point& centerBottom, const double rad
 ostream&
 Node::open_source( ostream& output, const Point& centerBottom, const double radius ) const
 {
-    Point points[5];
+    std::vector<Point> points(5);
     const double top = radius * direction() * 2.0;
     const double y1  = radius * direction() * 0.5;
     points[0] = points[1] = points[2] = points[3] = points[4] = centerBottom;
@@ -205,7 +148,7 @@ Node::open_source( ostream& output, const Point& centerBottom, const double radi
     points[1].moveBy( radius, top );
     points[2].moveBy( radius, y1 ); 
     points[4].moveBy( -radius, y1 );
-    polygon( output, 5, points );
+    polygon( output, points );
 
     return output;
 }
@@ -213,7 +156,7 @@ Node::open_source( ostream& output, const Point& centerBottom, const double radi
 ostream&
 Node::open_sink( ostream& output, const Point& centerTop, const double radius ) const
 {
-    Point points[5];
+    std::vector<Point> points(5);
     const double bot = radius * -direction() * 2.0;
     const double y1  = radius * -direction() * 0.5;
     points[0] = points[1] = points[2] = points[3] = points[4] = centerTop;
@@ -222,7 +165,7 @@ Node::open_sink( ostream& output, const Point& centerTop, const double radius ) 
     points[2].moveBy( radius, 0 );
     points[3].moveBy( radius, bot );
     points[4].moveBy( -radius, bot );
-    polygon( output, 5, points );
+    polygon( output, points );
 
     return output;
 }
@@ -233,17 +176,17 @@ Node::open_sink( ostream& output, const Point& centerTop, const double radius ) 
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeEMF::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeEMF::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    EMF::polygon( output, nPoints, points, penColour(), fillColour() );
+    EMF::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodeEMF::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeEMF::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    EMF::polyline( output, nPoints, points, penColour() );
+    EMF::polyline( output, points, penColour() );
     return output;
 }
 
@@ -274,7 +217,7 @@ ostream&
 NodeEMF::text( ostream& output, const Point& c, const char * s ) const
 {
     string aStr = unicode_string( s );
-    EMF::text( output, c, aStr, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -291,17 +234,17 @@ NodeEMF::comment( ostream& output, const string& aString ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeFig::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeFig::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    Fig::polyline( output, nPoints, points, Fig::POLYGON, penColour(), fillColour(), depth() );
+    Fig::polyline( output, points, Fig::POLYGON, penColour(), fillColour(), depth() );
     return output;
 }
 
 
 ostream&
-NodeFig::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeFig::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    Fig::polyline( output, nPoints, points, Fig::POLYLINE, penColour(), Graphic::TRANSPARENT, depth(), linestyle() );
+    Fig::polyline( output, points, Fig::POLYLINE, penColour(), Graphic::TRANSPARENT, depth(), linestyle() );
     return output;
 }
 
@@ -309,7 +252,7 @@ NodeFig::polyline( ostream& output, unsigned nPoints, Point points[] ) const
 ostream&
 NodeFig::circle( ostream& output, const Point& c, const double r ) const
 {
-    Fig::circle( output, c, r, 3, penColour(), fillColour(), depth(), fillstyle() );
+    Fig::circle( output, c, r, 3, penColour(), fillColour(), depth(), fillStyle() );
     return output;
 }
 
@@ -331,7 +274,7 @@ NodeFig::roundedRectangle( ostream& output ) const
 ostream&
 NodeFig::text( ostream& output, const Point& c, const char * s ) const
 {
-    Fig::text( output, c, s, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
+    Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
@@ -349,17 +292,17 @@ NodeFig::comment( ostream& output, const string& aString ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeGD::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeGD::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    GD::polygon( nPoints, points, penColour(), fillColour() );
+    GD::polygon( points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodeGD::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeGD::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    for ( unsigned i = 1; i < nPoints; ++i ) {    
+    for ( unsigned i = 1; i < points.size(); ++i ) {    
 	GD::drawline( points[i-1], points[i], penColour(), linestyle() );
     }
     return output;
@@ -394,7 +337,7 @@ NodeGD::text( ostream& output, const Point& c, const char * s ) const
     Point aPoint( c );
     gdFont * font = GD::getfont();
     aPoint.moveBy( 0, -font->h );
-    GD::text( aPoint, s, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    GD::text( aPoint, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -415,17 +358,17 @@ NodeGD::comment( ostream& output, const string& aString ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodePostScript::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodePostScript::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    PostScript::polygon( output, nPoints, points, penColour(), fillColour() );
+    PostScript::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodePostScript::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodePostScript::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    PostScript::polyline( output, nPoints, points, penColour(), Graphic::linestyle() );
+    PostScript::polyline( output, points, penColour(), Graphic::linestyle() );
     return output;
 }
 
@@ -455,7 +398,7 @@ NodePostScript::roundedRectangle( ostream& output ) const
 ostream&
 NodePostScript::text( ostream& output, const Point& c, const char * s ) const
 {
-    PostScript::text( output, c, s, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -471,7 +414,7 @@ ostream&
 NodePsTeX::text( ostream& output, const Point& c, const char * s ) const
 {
     string aStr = tex_string( s );
-    Fig::text( output, c, aStr, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), 
+    Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), 
 	       Fig::SPECIAL );
     return output;
 }
@@ -482,17 +425,17 @@ NodePsTeX::text( ostream& output, const Point& c, const char * s ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeSVG::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeSVG::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    SVG::polygon( output, nPoints, points, penColour(), fillColour() );
+    SVG::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodeSVG::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeSVG::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    SVG::polyline( output, nPoints, points, penColour(), Graphic::linestyle() );
+    SVG::polyline( output, points, penColour(), Graphic::linestyle() );
     return output;
 }
 
@@ -522,8 +465,7 @@ NodeSVG::roundedRectangle( ostream& output ) const
 ostream&
 NodeSVG::text( ostream& output, const Point& c, const char * s ) const
 {
-    string aStr = html_string( s );
-    SVG::text( output, c, aStr, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -541,17 +483,17 @@ NodeSVG::comment( ostream& output, const string& aString ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeSXD::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeSXD::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    SXD::polygon( output, nPoints, points, penColour(), fillColour() );
+    SXD::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodeSXD::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeSXD::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    SXD::polyline( output, nPoints, points, penColour(), linestyle() );
+    SXD::polyline( output, points, penColour(), linestyle() );
     return output;
 }
 
@@ -586,8 +528,7 @@ NodeSXD::text( ostream& output, const Point& c, const char * s ) const
     boxExtent *= SXD_SCALING;
     boxOrigin.moveBy( 0, -boxExtent.y() / 2.0 );
     SXD::begin_paragraph( output, boxOrigin, boxExtent, CENTER_JUSTIFY );
-    string aStr = html_string( s );		/* Convert funny characters */
-    SXD::text( output, aStr, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    SXD::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     SXD::end_paragraph( output );
     return output;
 }
@@ -605,17 +546,17 @@ NodeSXD::comment( ostream& output, const string& aString ) const
 /* -------------------------------------------------------------------- */
 
 ostream&
-NodeTeX::polygon( ostream& output, unsigned nPoints, Point points[] ) const
+NodeTeX::polygon( ostream& output, const std::vector<Point>& points ) const
 {
-    TeX::polygon( output, nPoints, points, penColour(), fillColour() );
+    TeX::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
 ostream&
-NodeTeX::polyline( ostream& output, unsigned nPoints, Point points[] ) const
+NodeTeX::polyline( ostream& output, const std::vector<Point>& points ) const
 {
-    TeX::polyline( output, nPoints, points, penColour(), linestyle() );
+    TeX::polyline( output, points, penColour(), linestyle() );
     return output;
 }
 
@@ -646,7 +587,7 @@ ostream&
 NodeTeX::text( ostream& output, const Point& c, const char * s ) const
 {
     string aStr = tex_string( s );
-    TeX::text( output, c, aStr, Graphic::TIMES_ROMAN, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
+    TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
@@ -679,28 +620,6 @@ tex_string( const char * s )
 	    continue;
 	}
 	aStr += *s;
-    }
-    return aStr;
-}
-
-/*
- * Convert to safe string.
- */
-
-static string
-html_string( const char * s )
-{
-    string aStr;
-
-    for ( ; *s; ++s ) {
-	switch ( *s ) {
-	case '&':
-	    aStr += "&amp;";
-	    break;
-	default:
-	    aStr += *s;
-	    break;
-	}
     }
     return aStr;
 }

@@ -2,7 +2,7 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile.am 13413 2018-10-23 15:03:40Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA
@@ -75,7 +75,7 @@ testB_SOURCES		= testB.cc testopen.cc $(EXTRA_test_SOURCES)
 poptest_SOURCES		= poptest.cc $(EXTRA_test_SOURCES)
 disttest_SOURCES	= disttest.cc ../randomvar.cc $(EXTRA_test_SOURCES)
 
-run:
+run:	check
 	@for i in $(check_PROGRAMS); do \
 	  if test $$i != "poptest" -a $$i != "disttest"; then \
 	    echo $$i; \
@@ -83,11 +83,19 @@ run:
 	  fi \
 	done
 
-run-all:
+run-all:	check
 	@for i in $(check_PROGRAMS); do \
 	  if test $$i != "poptest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
 	    echo $$i; \
 	    ./$$i -a -s; \
+	  fi \
+	done
+
+run-schweitzer:	check
+	@for i in $(check_PROGRAMS); do \
+	  if test $$i != "poptest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
+	    echo $$i; \
+	    ./$$i -b -s; \
 	  fi \
 	done
 

@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 11969 2014-04-11 21:19:54Z greg $
+ * $Id: label.h 13477 2020-02-08 23:14:37Z greg $
  */
 
 #ifndef _LABEL_H
@@ -21,10 +21,47 @@ class SRVNEntryManip;
 class SRVNCallManip;
 class TaskCallManip;
 
-ostream& operator<<( ostream&, const Label& );
-
 class Label : public Graphic
 {
+public:
+    class Line {
+    public:
+	Line();
+	Line( const Line& src );
+	Line& operator=( const Line& src );
+	Line& operator<<( const LabelStringManip& m);
+	Line& operator<<( const SRVNCallManip& m );
+	Line& operator<<( const SRVNEntryManip& m);
+	Line& operator<<( const TaskCallManip& m );
+	Line& operator<<( const DoubleManip& m );
+	Line& operator<<( const char * s ) { _string << s; return *this; }
+	Line& operator<<( const std::string& s ) { _string << s; return *this; }
+	Line& operator<<( const char c ) { _string << c; return *this; }
+	Line& operator<<( const double d ) { _string << d; return *this; }
+	Line& operator<<( const int i ) { _string << i; return *this; }
+	Line& operator<<( const unsigned int u ) { _string << u; return *this; }
+	size_t width() const { return _string.str().length(); }
+	Line& setFont( const font_type font ) { _font = font; return *this; }
+	Line& setColour( const colour_type colour ) { _colour = colour; return *this; }
+	const std::string getStr() const { return _string.str(); }
+	Graphic::font_type getFont() const { return _font; }
+	Graphic::colour_type getColour() const { return _colour; }
+    private:
+	Graphic::font_type _font;
+	Graphic::colour_type _colour;
+	ostringstream _string;
+    };
+
+protected:
+    class Width {
+    public:
+	Width( size_t w ) : _w(w) {}
+	void operator()( const Line& line ) { _w = max( _w, line.width() ); }
+	size_t width() const { return _w; }
+    private:
+	size_t _w;
+    };
+
 private:
     Label( const Label& );
     Label& operator=( const Label& );
@@ -32,38 +69,37 @@ private:
 public:
     Label();
     explicit Label( const Point& aPoint );
-    virtual ~Label();
 
     static Label * newLabel();
 
-    Label& operator <<( const LabelStringManip& m) { return appendLSM( m ); }
-    Label& operator <<( const SRVNCallManip& m ) { return appendSCM( m ); }
-    Label& operator <<( const SRVNEntryManip& m) { return appendSEM( m ); }
-    Label& operator <<( const TaskCallManip& m ) { return appendSTM( m ); }
-    Label& operator <<( const char * s ) { return appendPC( s ); }
-    Label& operator <<( const char c ) { return appendC( c ); }
-    Label& operator <<( const double d ) { return appendD( d ); }
-    Label& operator <<( const int i ) { return appendI( i ); }
-    Label& operator <<( const string& s ) { return appendS( s ); }
-    Label& operator <<( const unsigned i ) { return appendUI( i ); }
-    Label& operator <<( const LQIO::DOM::ExternalVariable& v ) { return appendV( v ); }
+    Label& operator<<( const LabelStringManip& m) { return appendLSM( m ); }
+    Label& operator<<( const SRVNCallManip& m ) { return appendSCM( m ); }
+    Label& operator<<( const SRVNEntryManip& m) { return appendSEM( m ); }
+    Label& operator<<( const TaskCallManip& m ) { return appendSTM( m ); }
+    Label& operator<<( const DoubleManip& m ) { return appendDM( m ); }
+    Label& operator<<( const char * s ) { return appendPC( s ); }
+    Label& operator<<( const char c ) { return appendC( c ); }
+    Label& operator<<( const double d ) { return appendD( d ); }
+    Label& operator<<( const int i ) { return appendI( i ); }
+    Label& operator<<( const string& s ) { return appendS( s ); }
+    Label& operator<<( const unsigned i ) { return appendUI( i ); }
+    Label& operator<<( const LQIO::DOM::ExternalVariable& v ) { return appendV( v ); }
 
-    virtual Label& moveTo( const double x, const double y ) { origin.moveTo( x, y ); return *this; }
-    virtual Label& moveTo( const Point& aPoint ) { origin.moveTo( aPoint.x(), aPoint.y() ); return *this; }
-    virtual Label& moveBy( const double x, const double y ) { origin.moveBy( x, y ); return *this; }
-    virtual Label& moveBy( const Point& aPoint ) { origin.moveBy( aPoint.x(), aPoint.y() ); return *this; }
+    virtual Label& moveTo( const double x, const double y ) { _origin.moveTo( x, y ); return *this; }
+    virtual Label& moveTo( const Point& aPoint ) { _origin.moveTo( aPoint.x(), aPoint.y() ); return *this; }
+    virtual Label& moveBy( const double x, const double y ) { _origin.moveBy( x, y ); return *this; }
+    virtual Label& moveBy( const Point& aPoint ) { _origin.moveBy( aPoint.x(), aPoint.y() ); return *this; }
     virtual Label& scaleBy( const double, const double );
     virtual Label& translateY( const double );
 
     virtual Label& newLine();
-    Label& initialize( const string& );
 
     Label& font( const font_type );
     Label& colour( const colour_type );
-    Label& backgroundColour( const colour_type aColour ) { myBackgroundColour = aColour; return *this; }
-    colour_type backgroundColour() const { return myBackgroundColour; }
-    Label& justification( const justification_type justify ) { myJustification = justify; return *this; }
-    justification_type justification() const { return myJustification; }
+    Label& backgroundColour( const colour_type aColour ) { _backgroundColour = aColour; return *this; }
+    colour_type backgroundColour() const { return _backgroundColour; }
+    Label& justification( const justification_type justify ) { _justification = justify; return *this; }
+    justification_type justification() const { return _justification; }
 
     virtual double width() const;
     virtual double height() const;
@@ -79,7 +115,7 @@ public:
     virtual Label& times();
     Label& percent();
 
-    virtual ostream& print( ostream& ) const = 0;
+    virtual const Label& draw( ostream& ) const = 0;
     virtual ostream& comment( ostream& output, const string& ) const { return output; }
 
 protected:
@@ -87,31 +123,28 @@ protected:
     virtual Label& appendSCM( const SRVNCallManip& m );
     virtual Label& appendSEM( const SRVNEntryManip& m);
     virtual Label& appendSTM( const TaskCallManip& m );
-    virtual Label& appendPC( const char * s ) { *myStrings.back() << s; return *this; }
-    virtual Label& appendC( const char c ) { *myStrings.back() << c; return *this; }
+    virtual Label& appendDM( const DoubleManip& m );
+    virtual Label& appendPC( const char * s ) { _lines.back() << s; return *this; }
+    virtual Label& appendC( const char c ) { _lines.back() << c; return *this; }
     virtual Label& appendD( const double );
-    virtual Label& appendI( const int i ) { *myStrings.back() << i; return *this; }
-    virtual Label& appendS( const string& s ) { *myStrings.back() << s; return *this; }
-    virtual Label& appendUI( const unsigned i ) { *myStrings.back() << i; return *this; }
+    virtual Label& appendI( const int i ) { _lines.back() << i; return *this; }
+    virtual Label& appendS( const string& s ) { _lines.back() << s; return *this; }
+    virtual Label& appendUI( const unsigned i ) { _lines.back() << i; return *this; }
     virtual Label& appendV( const LQIO::DOM::ExternalVariable& v );
 
-    int size() const { return myStrings.size(); }
+    int size() const { return _lines.size(); }
     const Label& boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) const;
     virtual Point initialPoint() const = 0;
 
-private:
-    Label& clear();
-    void grow( unsigned size );
-
 protected:
-    Point origin;
-    vector<Graphic::font_type> myFont;
-    vector<int> myColour;
-    vector<ostringstream *> myStrings;
-    justification_type myJustification;
-    colour_type myBackgroundColour;
-    bool mathMode;
+    Point _origin;
+    vector<Line> _lines;
+    colour_type _backgroundColour;
+    justification_type _justification;
+    bool _mathMode;
 };
+
+inline ostream& operator<<( ostream& output, const Label& self ) { self.draw( output ); return output; }
 
 #if defined(EMF_OUTPUT)
 class LabelEMF : public Label, private EMF
@@ -126,13 +159,14 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelEMF& draw( ostream& ) const;
 
 protected:
     virtual Label& appendLSM( const LabelStringManip& m);
     virtual Label& appendSCM( const SRVNCallManip& m );
     virtual Label& appendSEM( const SRVNEntryManip& m);
     virtual Label& appendSTM( const TaskCallManip& m );
+    virtual Label& appendDM( const DoubleManip& m );
     virtual Label& appendPC( const char * s );
     virtual Label& appendC( const char c );
     virtual Label& appendD( const double );
@@ -149,7 +183,7 @@ public:
     virtual Label& infty();
     virtual Label& times();
     virtual ostream& comment( ostream& output, const string& ) const;
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelFig& draw( ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -170,7 +204,7 @@ public:
     virtual Label& times();
     virtual Label& appendPC( const char * s );
 
-    virtual ostream& print( ostream& output ) const;
+    virtual const LabelGD& draw( ostream& output ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -180,7 +214,7 @@ protected:
 class LabelNull : public Label
 {
 public:
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual const LabelNull& draw( ostream& output ) const { return *this; }
 
 protected:
     virtual Point initialPoint() const;
@@ -191,7 +225,7 @@ class LabelPostScript : public Label, private PostScript
 public:
     virtual Label& infty();
     virtual Label& times();
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelPostScript& draw( ostream& ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -208,7 +242,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelSVG& draw( ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -227,7 +261,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelSXD& draw( ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -239,7 +273,7 @@ protected:
 class LabelX11 : public Label, private X11
 {
 public:
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual const LabelX11& draw( ostream& output ) const { return output; }
 };
 #endif
 
@@ -263,7 +297,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual ostream& print( ostream& ) const;
+    virtual const LabelTeX& draw( ostream& ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -279,12 +313,52 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual ostream& print( ostream& output ) const;
+    virtual const LabelPsTeX& draw( ostream& output ) const;
 
 protected:
     virtual Point initialPoint() const;
 };
 
+template <class Type1> class DrawText {
+public:
+    typedef double (Type1::*textFPtr)( ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+				       justification_type justification, Graphic::colour_type colour, unsigned flags ) const;
+    DrawText( ostream& output, const Type1& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _output(output), _self(self), _text(text), _point(point), _justification(j), _flags(flags) {}
+    void operator()( const Label::Line& line ) {
+	const std::string& str = line.getStr();
+	if ( str.size() ) {
+	    _point.moveBy( 0, (_self.*_text)( _output, _point, str, line.getFont(), Flags::print[FONT_SIZE].value.i, _justification, line.getColour(), _flags ) );
+	}
+    }
+private:
+    ostream& _output;
+    const Type1& _self;
+    const textFPtr _text;
+    Point _point;
+    const justification_type _justification;
+    const unsigned int _flags;
+};
+
+#if HAVE_GD_H && HAVE_LIBGD
+template<> class DrawText<LabelGD> {
+public:
+    typedef double (LabelGD::*textFPtr)( const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+					 justification_type justification, Graphic::colour_type colour  ) const;
+    DrawText<LabelGD>( ostream&, const LabelGD& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
+    void operator()( const Label::Line& line ) {
+	const std::string& str = line.getStr();
+	if ( str.size() ) {
+	    _point.moveBy( 0, (_self.*_text)( _point, str, line.getFont(), Flags::print[FONT_SIZE].value.i, _justification, line.getColour() ) );
+	}
+    }
+private:
+    const LabelGD& _self;
+    const textFPtr _text;
+    Point _point;
+    const justification_type _justification;
+};
+#endif    
+
 inline Label& newLine( Label& aLabel ) { return aLabel.newLine(); }
 
 typedef Label& (Label::*labelFuncPtr)();

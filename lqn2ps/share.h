@@ -1,9 +1,9 @@
 /* share.h	-- Greg Franks
  *
- * $HeadURL: svn://192.168.2.10/lqn/trunk-V5/lqn2ps/share.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/share.h $
  *
  * ------------------------------------------------------------------------
- * $Id: share.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: share.h 13477 2020-02-08 23:14:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -11,19 +11,15 @@
 #define _CFSGROUP_H
 
 #include "lqn2ps.h"
-#include <cstring>
 #include <lqio/dom_group.h>
 #include <lqio/dom_extvar.h>
-#include "cltn.h"
 
-class Share;
 class Processor;
-
-ostream& operator<<( ostream&, const Share& );
-
 
 class Share
 {
+    friend class Model;
+    
 public:
     Share( const LQIO::DOM::Group* dom, const Processor * aProcessor );
 
@@ -31,44 +27,24 @@ public:
     const string& name() const { return getDOM()->getName(); }
     double share() const { return getDOM()->getGroupShareValue(); }
     bool cap() const { return getDOM()->getCap(); }
-    const Processor * processor() const { return myProcessor; }
+    const Processor * processor() const { return _processor; }
 
     /* Printing */
 
-    ostream& draw( ostream& output ) const;
+    ostream& draw( ostream& output ) const { return output; }
     ostream& print( ostream& output ) const;
 
     static Share * find( const string& );
-    static void create( LQIO::DOM::Group* domGroup );
+    static void create( const std::pair<std::string,LQIO::DOM::Group*>& );
+
 
 private:
     const LQIO::DOM::Group * _documentObject;
-    const Processor * myProcessor;
+    const Processor * _processor;
+
+    static std::set<Share *,LT<Share> > __share;
 };
 
 
-/*
- * Compare to processors by their name.  Used by the set class to insert items
- */
-
-struct ltShare
-{
-    bool operator()(const Share * p1, const Share * p2) const { return p1->name() < p2->name(); }
-};
-
-
-/*
- * Compare a share name to a string.  Used by the find_if (and other algorithm type things.
- */
-
-struct eqShareStr 
-{
-    eqShareStr( const string& s ) : _s(s) {}
-    bool operator()(const Share * p1 ) const { return p1->name() == _s; }
-
-private:
-    const string& _s;
-};
-
-extern set<Share *,ltShare> share;
+inline ostream& operator<<( ostream& output, const Share& self ) { return output; }
 #endif

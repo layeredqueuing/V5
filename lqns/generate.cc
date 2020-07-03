@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 13188 2018-03-02 17:44:42Z greg $
+ * $Id: generate.cc 13413 2018-10-23 15:03:40Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -129,7 +129,7 @@ Generate::print( ostream& output ) const
 
 	output << "    const unsigned n_chains\t= " << K << ";" << endl;
 	output << "    Vector<Server *> station( n_stations);" << endl;
-	output << "    PopVector customers( n_chains );" << endl;
+	output << "    Population customers( n_chains );" << endl;
 	output << "    VectorMath<double> thinkTime( n_chains );" << endl;
 	output << "    VectorMath<unsigned> priority( n_chains );" << endl;
 	output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << endl << endl;

@@ -17,7 +17,7 @@
  * Solve LQN using petrinets.
  */
 
-#include "stack.h"
+#include <deque>
 #include "petrisrvn.h"
 #include "phase.h"
 
@@ -74,21 +74,21 @@ public:
 
     void insert_DOM_results();
 
-    bool join_find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e );
-    bool fork_find_children( my_stack_t<Activity *>& activity_stack, my_stack_t<ActivityList *>& fork_stack, const Entry * e );
-    double fork_count_replies( my_stack_t<Activity *>& activity_stack,  const Entry * e, const double rate, unsigned curr_phase, unsigned& next_phase  );
-    double join_count_replies( my_stack_t<Activity *>& activity_stack,  const Entry * e, const double rate, const unsigned curr_phase, unsigned& next_phase );
+    bool join_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );
+    bool fork_find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * e );
+    double fork_count_replies( std::deque<Activity *>& activity_stack,  const Entry * e, const double rate, unsigned curr_phase, unsigned& next_phase  );
+    double join_count_replies( std::deque<Activity *>& activity_stack,  const Entry * e, const double rate, const unsigned curr_phase, unsigned& next_phase );
     void follow_join_for_tokens( const Entry * e, unsigned p, const unsigned m, Activity * curr_activity,
 				 const bool sum_forks, double scale, Phase::util_fnptr util_func, double mean_tokens[] );
 
     void remove_netobj();
 
 private:
-    void find_fork_list( const Task * curr_task, my_stack_t<Activity *>& activity_stack, int depth, my_stack_t<ActivityList *>& fork_stack );
+    void find_fork_list( const Task * curr_task, std::deque<Activity *>& activity_stack, int depth, std::deque<ActivityList *>& fork_stack );
     bool add_to_join_list( unsigned int i, Activity * an_activity );
-    void path_error( int err, const char * task_name, my_stack_t<Activity *>& activity_stack );
+    void path_error( int err, const char * task_name, std::deque<Activity *>& activity_stack );
     bool set_join_type( join_type_t a_type );
-    int backtrack( Activity * activity, my_stack_t<ActivityList *>& fork_stack, Activity * start_activity ) ;
+    int backtrack( Activity * activity, std::deque<ActivityList *>& fork_stack, Activity * start_activity );
 
     void follow_fork_for_tokens( const Entry * e, unsigned p, const unsigned m, 
 				 const bool sum_forks, const double scale, Phase::util_fnptr util_func, double mean_tokens[] );

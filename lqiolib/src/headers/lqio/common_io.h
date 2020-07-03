@@ -20,6 +20,17 @@
 namespace LQIO {
     namespace DOM {
 	class ExternalVariable;
+	class Document;
+	class Phase;
+
+	class SimpleManip {
+	public:
+	SimpleManip( std::ostream& (*f)(std::ostream& ) ) : _f(f) {}
+	private:
+	    std::ostream& (*_f)( std::ostream& );
+
+	    friend std::ostream& operator<<(std::ostream & os, const SimpleManip& m ) { return m._f(os); }
+	};
 
 	class IntegerManip {
 	public:
@@ -31,13 +42,13 @@ namespace LQIO {
 	    friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) { return m._f(os,m._i); }
 	};
 
-	class SimpleManip {
+	class DoubleManip {
 	public:
-	SimpleManip( std::ostream& (*f)(std::ostream& ) ) : _f(f) {}
+	    DoubleManip( std::ostream& (*f)(std::ostream&, const double ), const double d ) : _f(f), _d(d) {}
 	private:
-	    std::ostream& (*_f)( std::ostream& );
-
-	    friend std::ostream& operator<<(std::ostream & os, const SimpleManip& m ) { return m._f(os); }
+	    std::ostream& (*_f)( std::ostream&, const double );
+	    const double _d;
+	    friend std::ostream& operator<<(std::ostream & os, const DoubleManip& m ) { return m._f(os,m._d); }
 	};
 
 	class StringManip {
@@ -86,18 +97,6 @@ namespace LQIO {
 	    friend std::ostream& operator<<(std::ostream & os, const StringDoubleManip& m ) { return m._f(os,m._name,m._value); }
 	};
 
-	class StringTimeManip {
-	public:
-	StringTimeManip( std::ostream& (*f)(std::ostream&, const std::string& name, clock_t value ), const std::string& name, clock_t value ) : _f(f), _name(name), _value(value) {}
-
-	private:
-	    std::ostream& (*_f)( std::ostream&, const std::string&, clock_t );
-	    const std::string& _name;
-	    const clock_t _value;
-
-	    friend std::ostream& operator<<(std::ostream & os, const StringTimeManip& m ) { return m._f(os,m._name,m._value); }
-	};
-
 	class Common_IO {
 
 	public:
@@ -111,35 +110,90 @@ namespace LQIO {
 
 	public:
 	    static bool is_default_value( const LQIO::DOM::ExternalVariable *, double );
+	    static SimpleManip svn_id() { return SimpleManip( &printSVNId ); }
 
 	protected:
 	    double invert( const double ) const;
 	    static void init_tables();
 	    static void invalid_argument( const std::string& attr, const std::string& arg );
+	    static unsigned int get_phase( const LQIO::DOM::Phase * );
 
 	protected:
 	    const ConfidenceIntervals _conf_95;
 	    const ConfidenceIntervals _conf_99;
 
 	    static std::map<const char *, scheduling_type,Common_IO::Compare> scheduling_table;
+
+	private:
+	    static std::ostream& printSVNId( std::ostream& output ) { output << "$" << "Id" << "$"; return output; }
+	    
 	};
 
 
+	class CPUTime {
+	public:
+	    CPUTime() : _real(0.), _user(0.), _system(0.) {}
+	    CPUTime operator-( const CPUTime& ) const;
+	    CPUTime& operator=( double t ) { _real = t; _user = t; _system = t; return *this; }
+	    CPUTime& operator=( const CPUTime& t ) { _real = t._real; _user = t._user; _system = t._system; return *this; }
+	    CPUTime& operator+=( const CPUTime& t ) { _real += t._real; _user += t._user; _system += t._system; return *this; }
+	    CPUTime& operator-=( const CPUTime& t ) { _real -= t._real; _user -= t._user; _system -= t._system; return *this; }
+    	    
+	    bool init();
+
+	    double getRealTime() const { return _real; }
+	    double getUserTime() const { return _user; }
+	    double getSystemTime() const { return _system; }
+
+	    static DoubleManip print( const double t ) { return DoubleManip( &CPUTime::print, t ); }
+
+	    void insertDOMResults( Document& ) const;
+	    
+	private:
+	    static std::ostream& print( std::ostream& output, const double time );
+
+	private:
+	    double _real;
+	    double _user;
+	    double _system;
+	};
+	
 	class ForPhase {
 	public:
 	    ForPhase();
-	    const DOM::Call*& operator[](const unsigned ix) { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
-	    const DOM::Call* operator[](const unsigned ix) const { assert( ix && ix <= DOM::Phase::MAX_PHASE ); return ia[ix-1]; }
+	    const Call*& operator[](const unsigned ix) { assert( ix && ix <= Phase::MAX_PHASE ); return ia[ix-1]; }
+	    const Call* operator[](const unsigned ix) const { assert( ix && ix <= Phase::MAX_PHASE ); return ia[ix-1]; }
 		
 	    ForPhase& setMaxPhase( const unsigned mp ) { _maxPhase = mp; return *this; }
 	    const unsigned getMaxPhase() const { return _maxPhase; }
-	    ForPhase& setType( const DOM::Call::CallType type ) { _type = type; return *this; }
-	    const DOM::Call::CallType getType() const { return _type; }
+	    ForPhase& setType( const Call::CallType type ) { _type = type; return *this; }
+	    const Call::CallType getType() const { return _type; }
 
 	private:
-	    const DOM::Call * ia[DOM::Phase::MAX_PHASE];
+	    const Call * ia[Phase::MAX_PHASE];
 	    unsigned _maxPhase;
-	    DOM::Call::CallType _type;
+	    Call::CallType _type;
+	};
+
+	/*
+	 * Collects all calls to a given destination by phase.
+	 */
+
+	struct CollectCalls {
+	    CollectCalls( std::map<const Entry *, ForPhase>& calls, Call::boolCallFunc test=0 ) : _calls(calls), _test(test) {}
+	    void operator()( const std::pair<unsigned, Phase*>& p );
+	    
+	private:
+	    std::map<const Entry *, ForPhase>& _calls;
+	    const Call::boolCallFunc _test;
+	};
+
+	class GetLogin {
+	public:
+	    GetLogin() {}
+	    friend std::ostream& operator<<( std::ostream& output, const GetLogin& self ) { return self.print( output ); }
+	private:
+	    std::ostream& print( std::ostream& ) const;
 	};
     }
 }

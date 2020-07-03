@@ -30,7 +30,7 @@ AC_TYPE_SIZE_T
 AC_HEADER_TIME
 AC_CHECK_TYPES([ptrdiff_t])
 AC_CHECK_TYPES([struct sigaltstack])
-AC_CHECK_TYPES([stack_t])
+AC_CHECK_TYPES([stack_t], [], [], [[#include <signal.h>]])
 
 # Checks for library functions.
 AC_FUNC_FORK
