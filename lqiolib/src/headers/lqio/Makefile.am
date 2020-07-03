@@ -22,9 +22,7 @@ noinst_HEADERS = confidence_intervals.h \
 	getsbopt.h \
 	glblerr.h \
 	input.h \
-	json_document.h \
 	labels.h \
-	picojson.h \
 	srvn_input.h \
 	srvn_output.h \
 	srvn_results.h \
