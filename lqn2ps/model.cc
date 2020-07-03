@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: model.cc 13641 2020-07-03 15:59:38Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -872,7 +872,7 @@ Model::getExtension()
 	    if ( i != std::string::npos ) {
 		std::string ext = _inputFileName.substr( i+1 );
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "json" && ext != "lqxo" && ext != "lqjo" ) {
+		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "lqxo" ) {
 		    extension = ext;
 		}
 	    }
@@ -897,10 +897,6 @@ Model::getExtension()
     case FORMAT_XML:
 	extension = "lqnx";
 	break;
-    case FORMAT_JSON:
-	extension = "json";
-	break;
-
     default:
 	abort();
 	break;
@@ -1463,9 +1459,6 @@ Model::print( ostream& output ) const
 	printGD( output, &GD::outputJPG );
 	break;
 #endif
-    case FORMAT_JSON:
-	printJSON( output );
-	break;
     case FORMAT_NULL:
 	break;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
@@ -1900,18 +1893,6 @@ Model::printTXT( ostream& output ) const
     return output;
 }
 #endif
-
-
-/*
- * Convert to XML output.
- */
-
-ostream&
-Model::printJSON( ostream& output ) const
-{
-    _document->print( output, LQIO::DOM::Document::JSON_OUTPUT );	/* Don't output LQX code if running. */
-    return output;
-}
 
 
 ostream&

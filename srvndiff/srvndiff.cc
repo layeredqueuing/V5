@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: srvndiff.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -68,7 +68,6 @@ extern "C" {
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
 #endif
-#include "json_document.h"
 #include "srvndiff.h"
 #include "parseable.h"
 
@@ -458,7 +457,6 @@ static struct {
     { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX.", 0 },
     { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>.", 0 },
     { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input.", 0  },
-    { "debug-json",              512+'j', false, no_argument,       "Output debugging information while parsing JSON input.", 0  },
     { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results.", 0 },
     { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison.", 0 },
     { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results.", 0 },
@@ -1010,10 +1008,6 @@ main (int argc, char * const argv[])
 	    break;
 #endif
 	    
-        case (512+'j'):
-	    LQIO::DOM::Json_Document::__debugJSON = true;
-	    break;
-
 	default:
 	    usage( false );
 	    exit( 1 );
@@ -1022,7 +1016,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-02-08 18:14:37 -0500 (Sat, 08 Feb 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2020-07-03 11:59:38 -0400 (Fri, 03 Jul 2020) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -3602,8 +3596,8 @@ commonize (unsigned n, char *const dirs[])
 		char * q = strrchr( dst, '.' );
 		for ( ; p && q && *p != '.' && *p == *q; ++p, ++q );
 		if ( p && q && *p == '.' && *q == '.'
-		     && ( ( strcmp( p, ".p" ) == 0 && ( strcmp( q, ".lqxo" ) == 0 || strcmp( q, ".xml" ) == 0 || strcmp( q, ".lqjo" ) == 0 || strcmp( q, ".json" ) == 0 ) )
-			  || ( strcmp( q, ".p" ) == 0 && ( strcmp( p, ".lqxo" ) == 0 || strcmp( p, ".xml" ) == 0 || strcmp( p, ".lqjo" ) == 0 || strcmp( p, ".json" ) == 0 ) ) ) ) {
+		     && ( ( strcmp( p, ".p" ) == 0 && ( strcmp( q, ".lqxo" ) == 0 || strcmp( q, ".xml" ) == 0 ) )
+			  || ( strcmp( q, ".p" ) == 0 && ( strcmp( p, ".lqxo" ) == 0 || strcmp( p, ".xml" ) == 0 ) ) ) ) {
 		    result = 0;
 		}
 	    }
@@ -3897,10 +3891,6 @@ static int readInResults(const char *filename)
 		fclose( resultin );
 	    } else {
 		error_code = errno;
-	    }
-	} else if ( p && (strcasecmp( p, ".json" ) == 0 || strcasecmp( p, ".lqjo" ) == 0 ) ) {
-	    if ( !LQIO::DOM::Json_Document::load( filename ) ) {
-		error_code = 1;
 	    }
 #if HAVE_LIBEXPAT
 	} else {

@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: lqn2ps.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #include "lqn2ps.h"
@@ -142,7 +142,6 @@ option_type Flags::print[] = {
     { "print-comment",	   512+'c', 0,			   0,			   {0},			false, "Print the model comment on stdout." },
     { "print-submodels",   512+'D', 0,                     0,			   {0},			false, "Show submodels." },
     { "print-summary",	   512+'S', 0,			   0,			   {0},			false, "Print model summary on stdout." },
-    { "debug-json",	   512+'J', 0,			   0,			   {0},			false, "Output debugging information while parsing JSON input." },
     { "debug-lqx",	   512+'L', 0,                     0,                      {0},                 false, "Output debugging information while parsing LQX input." },
     { "debug-srvn",	   512+'Y', 0,                     0,                      {0},                 false, "Output debugging information while parsing SRVN input." },
     { "debug-p",	   512+'Z', 0,                     0,                      {0},                 false, "Output debugging information while parsing parseable results input." },
@@ -176,7 +175,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     string output_file_name = "";
 
-    sscanf( "$Date: 2020-05-20 22:22:16 -0400 (Wed, 20 May 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-07-03 11:59:38 -0400 (Fri, 03 Jul 2020) $", "%*s %s %*s", copyrightDate );
 
     static string opts = "";
 #if HAVE_GETOPT_H
@@ -326,7 +325,6 @@ lqn2ps( int argc, char *argv[] )
 	case 'I':
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::io), &value );
 	    switch ( arg ) {
-	    case FORMAT_JSON:
 	    case FORMAT_LQX:
 	    case FORMAT_XML:
 	    case FORMAT_SRVN:
@@ -404,10 +402,6 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::graphical_output_style = JLQNDEF_STYLE;
 	    Flags::icon_slope = 0;
 	    Flags::print[Y_SPACING].value.f = 45;
-	    break;
-
-	case 512+'J':
-	    LQIO::DOM::Document::__debugJSON = true;
 	    break;
 
 	case 'K':
@@ -762,7 +756,6 @@ lqn2ps( int argc, char *argv[] )
 	} else if ( !graphical_output() 
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
-		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
 	    ) {
 	    cerr << io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
@@ -895,9 +888,6 @@ process( const string& input_file_name, const string& output_file_name, int mode
     case FORMAT_LQX:
     case FORMAT_XML:
 	input_format = LQIO::DOM::Document::XML_INPUT;
-	break;
-    case FORMAT_JSON:
-	input_format = LQIO::DOM::Document::JSON_INPUT;
 	break;
     case FORMAT_SRVN:
 	input_format = LQIO::DOM::Document::LQN_INPUT;
@@ -1103,7 +1093,6 @@ setOutputFormat( const int i )
     case FORMAT_OUTPUT:
     case FORMAT_PARSEABLE:
     case FORMAT_RTF:
-    case FORMAT_JSON:
     case FORMAT_LQX:
     case FORMAT_XML:
 	Flags::print[LAYERING].value.i = LAYERING_PROCESSOR;	/* Order by processors */

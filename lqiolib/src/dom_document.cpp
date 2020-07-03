@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13533 2020-03-12 22:09:07Z greg $
+ *  $Id: dom_document.cpp 13641 2020-07-03 15:59:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,7 +19,6 @@
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
 #endif
-#include "json_document.h"
 #include "srvn_input.h"
 #include "srvn_results.h"
 #include "srvn_output.h"
@@ -35,7 +34,6 @@ namespace LQIO {
 	lqio_params_stats* Document::io_vars = NULL;
 	Document* __document = NULL;
 	bool Document::__debugXML = false;
-	bool Document::__debugJSON = false;
 	std::map<const char *, double> Document::__initialValues;
 	std::string Document::__input_file_name = "";
 	const std::string Document::__comment( "" );
@@ -802,8 +800,6 @@ namespace LQIO {
 	    LQIO::Spex::initialize_control_parameters();
 	    if ( format == LQN_INPUT ) {
 		rc = SRVN::load( *document, input_filename, errorCode, load_results );
-	    } else if ( format == JSON_INPUT ) {
-		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
 	    } else {
 #if HAVE_LIBEXPAT
 		rc = Expat_Document::load( *document, input_filename, errorCode, load_results );
@@ -844,9 +840,6 @@ namespace LQIO {
 #else
 		return false;
 #endif
-	    } else if ( getInputFormat() == JSON_INPUT ) {
-		LQIO::Filename filename( file_name, "lqxo", directory_name, suffix );
-		return false;
 	    } else {
 		return false;
 	    }
@@ -863,8 +856,6 @@ namespace LQIO {
 		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
 		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
 		    return LQN_INPUT;		/* Override */
-		} else if ( suffix == "json" || suffix == "lqnj" || suffix == "jlqn" || suffix == "lqjo" ) {
-		    return JSON_INPUT;
 		} else {
 		    return XML_INPUT;
 		}
@@ -900,11 +891,6 @@ namespace LQIO {
 		Expat_Document expat( *const_cast<Document *>(this), __input_file_name, false, false );
 		expat.serializeDOM( output );
 #endif
-		break;
-	    }
-	    case JSON_OUTPUT: {
-		Json_Document json( *const_cast<Document *>(this), __input_file_name, false, false );
-		json.serializeDOM( output );
 		break;
 	    }
 	    default:

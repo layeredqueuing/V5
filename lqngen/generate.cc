@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: generate.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #include "lqngen.h"
@@ -24,7 +24,6 @@
 #include <lqio/dom_extvar.h>
 #include <lqio/dom_document.h>
 #include <lqio/srvn_output.h>
-#include <lqio/json_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqx/SyntaxTree.h>
 #include <../lqiolib/src/srvn_gram.h>		/* Derived file */
@@ -606,7 +605,6 @@ Generate::reparameterize()
     switch ( _output_format ) {
     case LQIO::DOM::Document::AUTOMATIC_INPUT:
     case LQIO::DOM::Document::LQN_INPUT:
-    case LQIO::DOM::Document::JSON_INPUT:
 	addSpex( &Generate::makeVariables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
 	break;
 
@@ -1426,9 +1424,6 @@ Generate::print( ostream& output ) const
     }
     case LQIO::DOM::Document::XML_INPUT:
 	_document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Output LQX code if running. */
-	break;
-    case LQIO::DOM::Document::JSON_INPUT:
-	_document->print( output, LQIO::DOM::Document::JSON_OUTPUT );	/* Output LQX code if running. */
 	break;
     }
 

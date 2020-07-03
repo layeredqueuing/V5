@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 13479 2020-02-08 23:30:37Z greg $
+ * $Id: help.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #include "lqngen.h"
@@ -248,7 +248,7 @@ man()
     cout << comm << " -*- nroff -*-" << endl
 	 << ".TH " << program_name << " 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
-    cout << comm << " $Id: help.cc 13479 2020-02-08 23:30:37Z greg $" << endl
+    cout << comm << " $Id: help.cc 13641 2020-07-03 15:59:38Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 
@@ -276,15 +276,14 @@ man()
 	     << "input file.  Existing variables within the input file are not" << endl
 	     << "modified.  Note however, that variables initialized in an XML input file with LQX are " << bf("not") << " initialized" << endl
 	     << "in the converted output file because the LQX program must be executed in order to do so.  To convert input formats without the conversion of parameters to"  << endl
-	     << "variables, use " << bf( "lqn2ps" ) << "(1) with " << bf( "--format" ) << "=" << emph( "xml" ) << " (or " << emph( "lqn" ) << " or " << endl
-	     << emph( "json" ) << ")." << endl;
+	     << "variables, use " << bf( "lqn2ps" ) << "(1) with " << bf( "--format" ) << "=" << emph( "xml" ) << " or " << emph( "lqn" ) 
+	     << ")." << endl;
 	cout << ".PP" << endl
 	     << bf( "lqn2lqx" ) << " reads its input from " << emph( "filename" ) << ", specified at the" << endl
 	     << "command line if present, or from the standard input otherwise.  Output" << endl
 	     << "for an input file " << emph( "filename" ) << " specified on the command line will be" << endl
 	     << "placed in the file " << emph( "filename.ext" ) << ", where " << emph( ".ext" ) << " is " << emph( "xlqn" ) << endl
-	     << "for SPEX conversion, " << emph( "lqnx" ) << "for LQX conversion and" << emph( "json" ) << endl
-	     << "for JSON conversion." << endl
+	     << "for SPEX conversion, and " << emph( "lqnx" ) << "for LQX conversion. "<< endl
 	     << "If the output file name is the same as the input file name, " << endl
 	     << "the output is written back to the original file name." << endl
 	     << "The original file is renamed to " << emph( "filename.ext~" ) << endl
@@ -404,7 +403,7 @@ man()
 	    
 	case 0x200+'a':
 	    cout << "Annotate LQN-type input files with syntax help.  This option has no effect for" << endl
-		 << "XML or JSON output.  The default is to " << is_not_set( i ) << "annotate LQN model files." << endl;
+		 << "XML output.  The default is to " << is_not_set( i ) << "annotate LQN model files." << endl;
 	    break;
 
 	case 'c':
@@ -520,10 +519,6 @@ man()
 		 << "The default is to " << is_not_set( i ) << "insert observation variables." << endl;
 	    break;
 
-	case 0x0100+'j':
-	    cout << "Output the input model in JavaScript Object Notation (JSON)." << endl;
-	    break;
-	    
 	case 'L':
 	    cout << "Create " << emph( "ARG" ) << " layers of server tasks." << endl
 		 << boilerplate( "layers", *constant_default ) << endl

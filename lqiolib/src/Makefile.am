@@ -1,4 +1,4 @@
-# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
+# $Id: Makefile.am 13641 2020-07-03 15:59:38Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -12,7 +12,6 @@ liblqio_la_SOURCES = error.cpp glblerr.cpp \
 	dom_group.cpp dom_histogram.cpp\
 	common_io.cpp commandline.cpp labels.cpp filename.cpp getsbopt.cc \
 	confidence_intervals.cpp \
-	json_document.cpp \
 	srvn_input.cpp srvn_output.cpp srvn_results.cpp srvn_spex.cpp \
 	srvn_gram.y srvn_scan.l srvn_result_gram.y srvn_result_scan.l
 noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
@@ -45,7 +44,6 @@ srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
 	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
 
 srvn_spex.cpp: srvn_gram.h
-json_document.cpp: srvn_gram.h
 srvn_input.cpp: srvn_gram.h
 
 # Files to remove during cleanup

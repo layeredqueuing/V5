@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: lqngen.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #include "lqngen.h"
@@ -54,7 +54,7 @@ option_type options[] =
     { 'M', 	 "models",	   	    required_argument,	 	LQNGEN_ONLY,  	"Create ARG different models." },
     { 'N', 	 "experiments",     	    required_argument,	 	BOTH, 		"Create ARG experiments." },
     { 'S', 	 "sensitivity",		    required_argument,	    	LQN2LQX_ONLY,   "Create a factorial experiment with services times of increased/decreased by multiplying by ARG ." },
-    { 'O', 	 "format",          	    required_argument,          BOTH, 		"Set output format to ARG (lqn,xml,json)." },
+    { 'O', 	 "format",          	    required_argument,          BOTH, 		"Set output format to ARG (lqn,xml)." },
     { 'H', 	 "help",            	    no_argument,                BOTH, 		"help!" },
     { 'V',	 "version",		    no_argument,		BOTH,		"Print out the version number." },
     { 'c', 	 "customers",	   	    optional_argument,	 	BOTH,	  	"Set the average number of customers per client to ARG." },
@@ -69,7 +69,6 @@ option_type options[] =
     { '2', 	 "second-phase",	    required_argument,		LQNGEN_ONLY,  	"Set the probability of a second phase for an entry to ARG." },
     { 'o', 	 "output",		    required_argument,          LQN2LQX_ONLY,	"Set the output file name to ARG." },
     { 'v', 	 "verbose",         	    no_argument,                BOTH, 		"Verbose." },
-    { 0x100+'j', "json-output",     	    no_argument,                BOTH,	 	"Output JSON." },
     { 0x100+'x', "xml-output",      	    no_argument,                BOTH, 		"Output XML." },
     { 0x100+'X', "lqx-output",      	    no_argument,                BOTH, 		"Output XML model with LQX." },
     { 0x100+'S', "spex-output",     	    no_argument,                BOTH, 		"Output LQN model with SPEX." },
@@ -161,7 +160,7 @@ static RV::RandomVariable * number_of_tasks;
 static RV::RandomVariable * total_customers;
 
 static bool some_randomness = false;
-static const char * const output_suffix[] = { "xlqn", "xlqn", "lqnx", "json", 0, 0 };
+static const char * const output_suffix[] = { "xlqn", "xlqn", "lqnx", 0 };
 static std::string output_file_name;
 
 
@@ -452,10 +451,6 @@ main( int argc, char *argv[] )
 		Flags::observe[Flags::ITERATIONS] = false;
 		break;
 
-	    case 0x100+'j':
-		Flags::output_format = LQIO::DOM::Document::JSON_INPUT; 
-		break;
-
 	    case 'L':
 		if ( Flags::lqn2lqx ) throw c;
 		if ( number_of_layers ) delete number_of_layers;
@@ -511,7 +506,7 @@ main( int argc, char *argv[] )
 		
 	    case 'O': {
 		char * old_optarg = optarg;
-		static const char * const strings[] = { "lqn", "xml", "json", 0 };
+		static const char * const strings[] = { "lqn", "xml", 0 };
 		int arg = getsubopt( &optarg, const_cast<char * const *>(strings), &endptr );
 		switch ( arg ) {
 		case 0:
@@ -519,9 +514,6 @@ main( int argc, char *argv[] )
 		    break;
 		case 1:
 		    Flags::output_format = LQIO::DOM::Document::XML_INPUT;
-		    break;
-		case 2:
-		    Flags::output_format = LQIO::DOM::Document::JSON_INPUT;
 		    break;
 		default:
 		    ::invalid_argument( c, old_optarg );

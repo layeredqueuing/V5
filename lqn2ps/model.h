@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: model.h 13641 2020-07-03 15:59:38Z greg $
  */
 
 #ifndef _MODEL_H
@@ -265,7 +265,6 @@ private:
     ostream& printOutput( ostream& output ) const;
     ostream& printParseable( ostream& output ) const;
     ostream& printRTF( ostream& output ) const;
-    ostream& printJSON( ostream& output ) const;
     ostream& printXML( ostream& output ) const;
     ostream& printLayers( ostream& ) const;
 

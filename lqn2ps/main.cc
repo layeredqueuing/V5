@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: main.cc 13641 2020-07-03 15:59:38Z greg $
  */
 
 #include "lqn2ps.h"
@@ -16,7 +16,6 @@
 #include <lqio/getsbopt.h>
 #endif
 #include <lqio/dom_object.h>
-#include <lqio/json_document.h>
 #include "layer.h"
 #include "model.h"
 #include "errmsg.h"
@@ -118,7 +117,6 @@ const char * Options::io[] =
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     "jpeg",
 #endif
-    "json",
     "lqx",
     "null",
     "out",
@@ -393,7 +391,7 @@ pragma( const string& parameter, const string& value )
 	case PRAGMA_RENAME:			Flags::rename_model	 		= get_bool( value, true ); break;
 	case PRAGMA_SQUISH_ENTRY_NAMES:         Flags::squish_names	 		= get_bool( value, true ); break;
 	case PRAGMA_SUBMODEL_CONTENTS:          Flags::print_submodels 			= get_bool( value, true ); break;
-	case PRAGMA_SPEX_HEADER:		LQIO::Spex::__no_header			= get_bool( value, true ); break;
+//	case PRAGMA_SPEX_HEADER:		LQIO::Spex::__no_header			= get_bool( value, true ); break;
 	    
 	case PRAGMA_QUORUM_REPLY:
 	    io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
@@ -465,8 +463,7 @@ get_bool( const std::string& arg, const bool default_value )
 bool
 graphical_output()
 {
-    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
-	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
+    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_NULL
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_OUTPUT
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE
@@ -501,7 +498,6 @@ bool
 input_output()
 {
     return Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN 
-	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JSON
 	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_LQX
 	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_XML
 	;

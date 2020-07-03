@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 13533 2020-03-12 22:09:07Z greg $
+ * $Id: lqn2ps.h 13641 2020-07-03 15:59:38Z greg $
  *
  */
 
@@ -112,7 +112,6 @@ typedef enum {
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     FORMAT_JPEG,
 #endif
-    FORMAT_JSON,
     FORMAT_LQX,
     FORMAT_NULL,
     FORMAT_OUTPUT,
