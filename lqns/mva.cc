@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 13580 2020-05-31 12:07:00Z greg $
+ * $Id: mva.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -132,7 +132,10 @@
 
 
 #include "dim.h"
+#include <iostream>
+#include <iomanip>
 #include <cmath>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cassert>
@@ -142,7 +145,7 @@
 #include "server.h"
 #include "prob.h"
 
-int MVA::boundsLimit = 0;		/* Enable bounds limiting if non-zero */
+int MVA::__bounds_limit = 0;		/* Enable bounds limiting if non-zero */
 double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */
 #if DEBUG_MVA
 bool MVA::debug_D = false;
@@ -188,10 +191,8 @@ MVA::MVA( Vector<Server *>& q, const Population& N,
 {
     assert( M > 0 && K > 0 );
 
-    /* Set index in each station */
-
     for ( unsigned m = 1; m <= M; ++m ) {
-	Q[m]->closedIndex = m;
+	Q[m]->closedIndex = m;					/* Set index in each station */
 	Q[m]->setMarginalProbabilitiesSize( N );
 	maxP[m] = 0;
     }
@@ -253,6 +254,7 @@ MVA::dimension( const size_t mapMaxOffset )
 	    }
 
 	    X[n] = new double [K+1];
+
 	    for ( unsigned k = 1; k <= K; ++k ) {
 		X[n][k] = 0.0;
 	    }
@@ -364,7 +366,7 @@ MVA::reset()
 		    U[n][m][e][k] = 0.0;
 		}
 	    }
-	    
+
 	    if ( P[n][m] ) {
 		const unsigned J = Q[m]->marginalProbabilitiesSize();
 		for ( unsigned j = 0; j <= J; ++j ) {
@@ -393,8 +395,8 @@ MVA::reset()
 void
 MVA::initialize()
 {
-    sortedPrio.grow(K);
-    _isThread.grow(K+1);
+    sortedPrio.resize(K);
+    _isThread.resize(K+1);
 
     for ( unsigned k = 1; k <= K; ++k ) {
 	_isThread[k] = 0;
@@ -434,8 +436,8 @@ MVA::step( const Population& N )
     for ( unsigned m = 1; m <= M; ++m ) {
 	Q[m]->initStep( *this );
     }
-    /* On sorted list do.... */
 
+    /* On sorted list do.... */
     for ( unsigned i = 1; i <= nPrio; ++i ) {
 	step( N, sortedPrio[i] );
     }
@@ -455,7 +457,6 @@ MVA::step( const Population& N, const unsigned currPri )
     unsigned m;			/* Station index.		*/
     unsigned e;			/* Entry index.			*/
     unsigned k;			/* Class index.			*/
-   // cout<<"MVA::step() with population "<<N<<endl;
     for ( m = 1; m <= M; ++m ) {
 	for ( k = 1; k <= K; ++k ) {
 	    if ( priority[k] != currPri ) continue;
@@ -535,105 +536,6 @@ MVA::step( const Population& N, const unsigned currPri )
 
 
 /*
- * Compute marginal probabilities component.  Subclasses assign
- * P(0,N) and may revise PB(N).
- */
-
-void
-MVA::marginalProbabilities( const unsigned m, const Population& N )
-{
-    const unsigned J = static_cast<unsigned>(Q[m]->mu());
-    if ( J == 0 ) return;
-
-    const unsigned n = offset(N);						/* Hoist */
-    double sum_of_P = 0.0;
-
-    for ( unsigned j = 1; j < J; ++j ) {
-
-	double sum = 0.0;
-	for ( unsigned k = 1; k <= K; ++k ) {					/* Eqn 2.4 */
-	    if ( N[k] < 1 ) continue;
-	    const unsigned Nek = offset_e_j(N,k);				/* Hoist */
-	    sum += utilization(m,k,N) * P[Nek][m][j-1];
-	}
-
-	const double temp = sum / j;
-	P[n][m][j] = temp;
-	sum_of_P  += temp;
-    }
-
-    double sum = 0.0;								/* Eqn 2.5 */
-    for ( unsigned k = 1; k <= K; ++k ) {
-	if ( N[k] < 1 ) continue;
-	const unsigned Nek = offset_e_j(N,k);					/* Hoist */
-	sum += utilization(m,k,N) * ( P[Nek][m][J] + P[Nek][m][J-1] );
-    }
-
-    const double temp = sum / Q[m]->mu();
-    P[n][m][J] = temp;				// PB_m(N)
-    sum_of_P  += temp;
-
-    /* KLUDGE -- adjust probabilties if necessary. */
-
-    if ( sum_of_P > 1.0 ) {
-	P[n][m][0] = 0.0;			// P_m(0,N)			   Eqn 2.6
-	const double normalization = 1.0 / sum_of_P;
-	for ( unsigned j = 1; j <= J; ++j ) {
-	    P[n][m][j] *= normalization;		/* Renormalization */
-	}
-    } else {
-	P[n][m][0] = 1.0 - sum_of_P;		// P_m(0,N)			   Eqn 2.6
-    }
-}
-
-
-
-/*
- * Compute marginal probabilities of the type P(I,N) where I and N
- * are vectors.
- */
-
-void
-MVA::marginalProbabilities2( const unsigned m, const Population& N )
-{
-    Population I(K);				// Need to sequence over this.
-    Population::IteratorOffset next( NCust, N );
-    unsigned i;
-    const unsigned n = offset( N );
-
-    double sum = 0.0;
-
-    while ( (i = next( I )) ) {
-
-	double sum1 = 0.0;
-	for ( unsigned k = 1; k <= K; ++k ) {
-	    if ( N[k] < 1 || I[k] < 1 ) continue;
-	    const unsigned Nek = offset_e_j(N,k);
-	    const unsigned Iek = next.offset_e_j(I,k);
-
-	    sum1 += utilization(m,k,N) * P[Nek][m][Iek];
-	}
-	const double temp = sum1 / Q[m]->mu(I.sum());
-
-	P[n][m][i] = temp;
-	sum       += temp;
-    }
-
-    /* Find P(0,N) */
-
-    if ( sum > 1.0 ) {
-	const unsigned maxI = next.maxOffset();
-	P[n][m][0] = 0.0;
-	for ( i = 1; i <= maxI; ++i ) {
-	    P[n][m][i] /= sum;		/* Renormalization */
-	}
-    } else {
-	P[n][m][0] = 1.0 - sum;			// P_m(0,N)			   Eqn 2.6
-    }
-}
-
-
-/*
  * Return number of customers regardless of class at queue `m'.
  * Subtract 1 customer from class `j'.  Implemented as part of solver
  * because Linearizer2 redefines the operation.  Otherwise, it would
@@ -689,11 +591,11 @@ MVA::sumOf_SL_m( const Server& station, const Population &N, const unsigned j ) 
     double sum = 0.0;
     for ( unsigned k = 1; k <= K; ++k ) {
 	if ( station.priorityServer() && priority[k] < priority[j] ) continue;
-	const double scaling = tau_overlap( station, j, k, N );
+	const double scaling = tau_overlap( station, j, k, N );			/* BUG 145 */
 
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    const double s = station.S(e,k);
-	    if ( !isfinite(s) ) return s;						/* Infinitiy */
+	    if ( !isfinite(s) ) return s;					/* Infinitiy */
 	    sum += s * L[Nej][m][e][k] * scaling;
 	}
     }
@@ -728,7 +630,7 @@ MVA::sumOf_SQ_m( const Server& station, const Population &N, const unsigned j ) 
 
 	for ( unsigned e = 1; e <= E; ++e ) {
 	    const double delta = L[Nej][m][e][k] - U[Nej][m][e][k];
-	    if ( delta == 0.0 ) continue;
+	    if ( delta <= 0.0 ) continue;
 	    const double s = station.S(e,k);
 	    if ( !isfinite(s) ) return s;						/* Infinity */
 	    sum += s * delta * scaling;
@@ -1627,7 +1529,7 @@ MVA::tau_overlap( const Server& station, const unsigned j, const unsigned k, con
 
     /* tau correction. */
 
-    if ( station.hasTau() && k != j && boundsLimit > 0 ) {
+    if ( station.hasTau() && k != j && __bounds_limit > 0 ) {
 	scaling *= tau( station, j, k, N );
     }
 
@@ -1663,8 +1565,8 @@ MVA::tau( const Server& station, const unsigned j, const unsigned k, const Popul
 	Lk *= overlapFactor[k][j];
     }
 
-    const double tau = 1.0 / pow( (1.0 + pow( (Lk * lambda_mj) / (lambda_mk * N[j]), (double)boundsLimit ) ),
-				  1.0 / (double)boundsLimit );
+    const double tau = 1.0 / pow( (1.0 + pow( (Lk * lambda_mj) / (lambda_mk * N[j]), (double)__bounds_limit ) ),
+				  1.0 / (double)__bounds_limit );
     return tau;
 }
 
@@ -1973,17 +1875,116 @@ void
 ExactMVA::solve()
 {
     /* Allocate array space and initialize */
-    reset();
+    reset();				/* Reset all vectors to zero. */
     dimension( map.dimension( NCust ) );
     clearCount();
 
     /* Let er rip! */
 
-    for ( population_iterator n = NCust.begin(); n != NCust.end(); ++n ) {
+    for ( PopulationMap::iterator n = map.begin(); n != map.end(); ++n ) {
 	step( *n );
     }
 }
 
+
+
+/*
+ * Compute marginal probabilities component.  Subclasses assign
+ * P(0,N) and may revise PB(N).
+ */
+
+void
+ExactMVA::marginalProbabilities( const unsigned m, const Population& N )
+{
+    const unsigned J = static_cast<unsigned>(Q[m]->mu());
+    if ( J == 0 ) return;
+
+    const unsigned n = offset(N);						/* Hoist */
+    double sum_of_P = 0.0;
+
+    for ( unsigned j = 1; j < J; ++j ) {
+
+	double sum = 0.0;
+	for ( unsigned k = 1; k <= K; ++k ) {					/* Eqn 2.4 */
+	    if ( N[k] < 1 ) continue;
+	    const unsigned Nek = offset_e_j(N,k);				/* Hoist */
+	    sum += utilization(m,k,N) * P[Nek][m][j-1];
+	}
+
+	const double temp = sum / j;
+	P[n][m][j] = temp;
+	sum_of_P  += temp;
+    }
+
+    double sum = 0.0;								/* Eqn 2.5 */
+    for ( unsigned k = 1; k <= K; ++k ) {
+	if ( N[k] < 1 ) continue;
+	const unsigned Nek = offset_e_j(N,k);					/* Hoist */
+	sum += utilization(m,k,N) * ( P[Nek][m][J] + P[Nek][m][J-1] );
+    }
+
+    const double temp = sum / Q[m]->mu();
+    P[n][m][J] = temp;				// PB_m(N)
+    sum_of_P  += temp;
+
+    /* KLUDGE -- adjust probabilties if necessary. */
+
+    if ( sum_of_P > 1.0 ) {
+	P[n][m][0] = 0.0;			// P_m(0,N)			   Eqn 2.6
+	const double normalization = 1.0 / sum_of_P;
+	for ( unsigned j = 1; j <= J; ++j ) {
+	    P[n][m][j] *= normalization;		/* Renormalization */
+	}
+    } else {
+	P[n][m][0] = 1.0 - sum_of_P;		// P_m(0,N)			   Eqn 2.6
+    }
+}
+
+
+
+/*
+ * Compute marginal probabilities of the type P(I,N) where I and N
+ * are vectors.
+ */
+
+void
+ExactMVA::marginalProbabilities2( const unsigned m, const Population& N )
+{
+    Population I(K);				// Need to sequence over this.
+    Population::IteratorOffset next( NCust, N );
+    unsigned i;
+    const unsigned n = offset( N );
+
+    double sum = 0.0;
+
+    while ( (i = next( I )) ) {
+
+	double sum1 = 0.0;
+	for ( unsigned k = 1; k <= K; ++k ) {
+	    if ( N[k] < 1 || I[k] < 1 ) continue;
+	    const unsigned Nek = offset_e_j(N,k);
+	    const unsigned Iek = next.offset_e_j(I,k);
+
+	    sum1 += utilization(m,k,N) * P[Nek][m][Iek];
+	}
+	const double temp = sum1 / Q[m]->mu(I.sum());
+
+	P[n][m][i] = temp;
+	sum       += temp;
+    }
+
+    /* Find P(0,N) */
+
+    if ( sum > 1.0 ) {
+	const unsigned maxI = next.maxOffset();
+	P[n][m][0] = 0.0;
+	for ( i = 1; i <= maxI; ++i ) {
+	    P[n][m][i] /= sum;		/* Renormalization */
+	}
+    } else {
+	P[n][m][0] = 1.0 - sum;			// P_m(0,N)			   Eqn 2.6
+    }
+}
 
 
 /*
@@ -2090,7 +2091,6 @@ SchweitzerCommon::initialize()
 
     double * Dm = new double [K+1];
     double * Lk = new double [M+1];
-
     for ( k = 1; k <= K; ++k ) {
 	Dm[k] = 0.0;
 	for ( m = 1; m <= M; ++m ) {
@@ -2228,6 +2228,7 @@ SchweitzerCommon::initialize()
 }
 
 
+
 /*
  * Core solver for Bard Schweitzer and Linearizer.
  */
@@ -2236,45 +2237,19 @@ void
 SchweitzerCommon::core( const Population& N, const unsigned n )
 {
     unsigned i = 0;
-    double max_delta;
-    
+
 #if DEBUG_MVA
     if ( debug_L || debug_P ) cout << "Initially..." << endl;
-    //N.print( cout );
     if ( debug_L ) printL( cout, N );
     if ( debug_P ) printP( cout, N );
 #endif
 
     do {
-	unsigned m;
-
-	for ( m = 1; m <= M; ++m ) {
-	    const unsigned E = Q[m]->nEntries();
-	    for ( unsigned e = 1; e <= E; ++e ) {
-		for ( unsigned k = 1; k <= K; ++k ) {
-		    last_L[m][e][k] = L[n][m][e][k];
-		}
-	    }
-	}
+	copy_L( n );
 
 	estimate_L( N );
 	estimate_P( N );
 	step( N );
-
-	/* Iteration termination test. */
-
-	max_delta = 0.0;
-	for ( m = 1; m <= M; ++m ) {
-	    const unsigned E = Q[m]->nEntries();
-	    for ( unsigned e = 1; e <= E; ++e ) {
-		for ( unsigned k = 1; k <= K; ++k ) {
-		    if ( N[k] == 0 ) continue;
-
-		    double temp = fabs( L[n][m][e][k] - last_L[m][e][k] ) / N[k];
-		    if ( temp > max_delta ) max_delta = temp;
-		}
-	    }
-	}
 
 	/* Emergency stop... */
 
@@ -2289,7 +2264,7 @@ SchweitzerCommon::core( const Population& N, const unsigned n )
 	    throw MVA::iteration_limit( "Schweitzer::core" );
 	} else if ( i > 50 ) {
 	    /* Underrelax L increasing each iteration. */
-	    for ( m = 1; m <= M; ++m ) {
+	    for ( unsigned m = 1; m <= M; ++m ) {
 		const unsigned E = Q[m]->nEntries();
 		for ( unsigned e = 1; e <= E; ++e ) {
 		    for ( unsigned k = 1; k <= K; ++k ) {
@@ -2301,7 +2276,7 @@ SchweitzerCommon::core( const Population& N, const unsigned n )
 	    }
 	}
 
-    } while ( max_delta >= termination_test );
+    } while ( max_delta_L( n, N ) >= termination_test );
 
 #if DEBUG_MVA
     if ( debug_L ) {
@@ -2423,7 +2398,7 @@ SchweitzerCommon::marginalProbabilities( const unsigned m, const Population& N )
 	    for ( unsigned int j = 1; j <= JJ; ++j ) {
 		P[n][m][j] *= P0;
 	    }
-	} 
+	}
     } else {
 	for ( unsigned int j = 1; j < JJ; ++j ) {
 	    P[n][m][j] = 0.0;
@@ -2498,6 +2473,43 @@ SchweitzerCommon::marginalProbabilities2( const unsigned m, const Population& N 
 	P[n][m][i] *= P0;
     }
 #endif
+}
+
+
+
+void
+SchweitzerCommon::copy_L( const unsigned n ) const
+{
+    for ( unsigned m = 1; m <= M; ++m ) {
+	const unsigned E = Q[m]->nEntries();
+	for ( unsigned e = 1; e <= E; ++e ) {
+	    for ( unsigned k = 1; k <= K; ++k ) {
+		last_L[m][e][k] = L[n][m][e][k];
+	    }
+	}
+    }
+}
+
+
+
+double
+SchweitzerCommon::max_delta_L( const unsigned n, const Population &N ) const
+{
+    /* Iteration termination test. */
+
+    double max_delta = 0.0;
+    for ( unsigned m = 1; m <= M; ++m ) {
+	const unsigned E = Q[m]->nEntries();
+	for ( unsigned e = 1; e <= E; ++e ) {
+	    for ( unsigned k = 1; k <= K; ++k ) {
+		if ( N[k] == 0 ) continue;
+
+		double temp = fabs( L[n][m][e][k] - last_L[m][e][k] ) / N[k];
+		if ( temp > max_delta ) max_delta = temp;
+	    }
+	}
+    }
+    return max_delta;
 }
 
 
@@ -2793,7 +2805,6 @@ Linearizer::reset()
 void
 Linearizer::solve()
 {
-    unsigned I;
     Population N;			/* Population vector.		*/
 
     map.dimension( NCust );		/* Reset ALL associated arrays */
@@ -2808,7 +2819,7 @@ Linearizer::solve()
     estimate_P( NCust );
     initialized = true;
 
-    for ( I = 1; I <= 2 ; ++I ) {
+    for ( unsigned I = 1; I <= 2 ; ++I ) {
 
 	/*
 	 * NB: `c' is an instance variable used by our Lm function.
@@ -2845,7 +2856,7 @@ Linearizer::solve()
 
 
 void
-Linearizer::initialize() 
+Linearizer::initialize()
 {
     /* BUG 628 -- Recompute iff marginals change. */
 
@@ -2976,7 +2987,6 @@ Linearizer::update_Delta( const Population & N )
 
 	    for ( unsigned e = 1; e <= E; ++e ) {
 		for ( unsigned k = 1; k <= K; ++k ) {
-
 		    if ( N[k] > ( k == j ) ) {
 			D[m][e][k][j] = ( L[Nej][m][e][k] / (N[k] - ( k == j )) )
 			    -  ( L[n][m][e][k] / N[k] );
@@ -3277,3 +3287,4 @@ Linearizer2::sumOf_SL_m( const Server& station, const Population &N, const unsig
 
     return Lm[Nej][station.closedIndex];
 }
+

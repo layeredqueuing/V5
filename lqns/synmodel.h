@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * synmodel.h	-- Greg Franks
  *
- * $Id: synmodel.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: synmodel.h 13676 2020-07-10 15:46:20Z greg $
  */
 
 #ifndef _SYNMODEL_H
@@ -17,10 +17,12 @@ public:
     SynchSubmodel( const unsigned, const Model * );
     virtual ~SynchSubmodel();
 	
-    virtual void initClients( const Model& );
-    virtual void initServers( const Model& );
-    virtual void initInterlock();
-    virtual void build();
+    const char * const submodelType() const { return "Synch Submodel"; }
+
+    virtual SynchSubmodel& initClients( const Model& ) { return *this; }
+    virtual SynchSubmodel& initServers( const Model& );
+    virtual SynchSubmodel& initInterlock() { return *this; }
+    virtual SynchSubmodel& build() { return *this; }
 		
     virtual SynchSubmodel& solve( long, MVACount&, const double );
 	

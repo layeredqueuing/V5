@@ -1,8 +1,8 @@
 /* runlqx.h	-- Greg Franks
  *
- * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk/lqns/runlqx.cc $
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13562 2020-05-27 02:01:45Z greg $
+ * $Id: runlqx.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,6 +82,9 @@ namespace SolverInterface
 		throw std::runtime_error( "Unable to initialize model." );
 	    }
 
+	    std::stringstream ss;
+	    _document->printExternalVariables( ss );
+	    _document->setModelCommentString( ss.str() );
 	    _document->setResultInvocationNumber( invocationCount );
 	    ok = (_aModel->*_solve)();
 	}

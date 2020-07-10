@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13487 2020-02-11 20:30:20Z greg $
+ *  $Id: srvn_results.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -261,10 +261,10 @@ void
 add_proc_task (const char *task_name, unsigned int copies )
 {
     LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
-    if ( copies > 0 ) {
-	task->setCopies( new LQIO::DOM::ConstantExternalVariable( copies ) );		/* Override */
-    }
     if ( task ) {
+	if ( copies > 0 ) {
+	    task->setCopies( new LQIO::DOM::ConstantExternalVariable( copies ) );		/* Override */
+	}
 	task->computeResultProcessorUtilization();
     }
 }
@@ -423,11 +423,8 @@ add_service (const char *entry_name, double *time)
 {
     LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultServiceTime( time[p-1] );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePServiceTime( p, time[p-1] );
 	}
     }
 }
@@ -440,12 +437,9 @@ add_service_confidence( const char *entry_name, int conf_level, double * time )
 
     LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
-											LQIO::ConfidenceIntervals::CONF_95 ) );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePServiceTimeVariance( p, LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+											     LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
 }
@@ -460,11 +454,8 @@ add_variance (const char *entry_name, double *time)
 {
     LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultVarianceServiceTime( time[p-1] );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePVarianceServiceTime( p, time[p-1] );
 	}
     }
 }
@@ -477,12 +468,9 @@ add_variance_confidence( const char * entry_name, int conf_level, double * time 
 
     LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
     if ( entry ) {
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultVarianceServiceTimeVariance( LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
-												LQIO::ConfidenceIntervals::CONF_95 ) );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePVarianceServiceTimeVariance( p, LQIO::ConfidenceIntervals::invert( time[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+												     LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
 }
@@ -495,13 +483,13 @@ add_variance_confidence( const char * entry_name, int conf_level, double * time 
 void
 add_service_exceeded (const char *entry_name, double *time)
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
+//    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 void
 add_service_exceeded_confidence( const char * entry_name, int conf_level, double * time )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
+//    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 
@@ -513,13 +501,13 @@ add_service_exceeded_confidence( const char * entry_name, int conf_level, double
 void
 add_histogram_statistics( const char * entry_name, const unsigned phase, const double mean, const double stddev, const double skew, const double kurtosis )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
+//    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 void 
 add_histogram_bin( const char * entry_name, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 )
 {
-    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
+//    LQIO::DOM::Entry * entry = LQIO::DOM::__document->getEntryByName( entry_name );
 }
 
 
@@ -536,11 +524,8 @@ add_entry_thpt_ut (const char *entry_name, double tput, double *util, double tot
 	entry->setResultThroughput( tput )
 	    .setResultUtilization( total_util );
     
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultUtilization( util[p-1] );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePUtilization( p, util[p-1] );
 	}
     }
 }
@@ -559,12 +544,9 @@ add_entry_thpt_ut_confidence (const char * entry_name, int conf_level, double tp
 	    .setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( total_util, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 									      LQIO::ConfidenceIntervals::CONF_95 ) );
     
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultUtilizationVariance( LQIO::ConfidenceIntervals::invert( util[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
-											LQIO::ConfidenceIntervals::CONF_95 ) );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePUtilizationVariance( p, LQIO::ConfidenceIntervals::invert( util[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+											     LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
 }
@@ -611,11 +593,8 @@ add_entry_proc (const char *entry_name, double utilization, double *waiting)
 
     if ( entry ) {
 	entry->setResultProcessorUtilization( utilization );
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultProcessorWaiting( waiting[p-1] );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePProcessorWaiting( p, waiting[p-1] );
 	}
     }
 }
@@ -636,12 +615,9 @@ add_entry_proc_confidence( const char *entry_name, int conf_level, double utiliz
     if ( entry ) {
 	entry->setResultProcessorUtilizationVariance( LQIO::ConfidenceIntervals::invert( utilization, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											 LQIO::ConfidenceIntervals::CONF_95 ) );
-	for ( unsigned p = 1; p <= entry->getMaximumPhase(); ++p ) {
-	    if ( entry->hasPhase(p) ) {
-		LQIO::DOM::Phase * phase = entry->getPhase(p);
-		phase->setResultProcessorWaitingVariance( LQIO::ConfidenceIntervals::invert( waiting[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
-											     LQIO::ConfidenceIntervals::CONF_95 ) );
-	    }
+	for ( unsigned p = 1; p <= LQIO::DOM::Phase::MAX_PHASE; ++p ) {
+	    entry->setResultPhasePProcessorWaitingVariance( p, LQIO::ConfidenceIntervals::invert( waiting[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+												  LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
 }
@@ -1146,10 +1122,10 @@ add_join_confidence(const char * task_name, const char *first, const char *last,
     if ( firstActivity && lastActivity ) {
 	LQIO::DOM::AndJoinActivityList * join_list = dynamic_cast<LQIO::DOM::AndJoinActivityList *>(firstActivity->getOutputToList());
 	if ( join_list == lastActivity->getOutputToList() ) {
-	    join_list->setResultJoinDelay( LQIO::ConfidenceIntervals::invert(mean, LQIO::DOM::__document->getResultNumberOfBlocks(), 
-									     LQIO::ConfidenceIntervals::CONF_95 ) )
-		.setResultVarianceJoinDelay( LQIO::ConfidenceIntervals::invert(variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
-									       LQIO::ConfidenceIntervals::CONF_95 ) );
+	    join_list->setResultJoinDelayVariance( LQIO::ConfidenceIntervals::invert(mean, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+										     LQIO::ConfidenceIntervals::CONF_95 ) )
+		.setResultVarianceJoinDelayVariance( LQIO::ConfidenceIntervals::invert(variance, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+										       LQIO::ConfidenceIntervals::CONF_95 ) );
 	}
     }
 }
@@ -1164,6 +1140,8 @@ namespace LQIO {
 	bool
 	loadResults( const std::string& filename )
 	{
+	    srvn_max_phases = LQIO::DOM::Phase::MAX_PHASE;	/* for phase lists in resultparse() */
+	    
 	    if ( ! LQIO::DOM::__document ) {
 		return false;
 	    }

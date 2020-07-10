@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.h 13541 2020-05-19 13:21:52Z greg $
+ *  $Id: dom_entity.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -53,10 +53,13 @@ namespace LQIO {
 		double _sum;
 	    };
 
+	protected:
+	    Entity(const Entity&);
+
 	public:
       
 	    /* Designated initializers for the SVN DOM Entity type */
-	    Entity(const Document * document, const char * name, 
+	    Entity(const Document * document, const std::string& name, 
 		   const scheduling_type schedulingType,
 		   ExternalVariable * copies,
 		   ExternalVariable* replicas );
@@ -82,7 +85,6 @@ namespace LQIO {
 	    const bool isInfinite() const;
 
 	private:
-	    Entity( const Entity& );
 	    Entity& operator=( const Entity& );
       
 	    /* Instance variables for Entities */

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: dom_task.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -49,7 +49,7 @@ namespace LQIO {
 
 	public:
 	    /* Designated initializer for the Task entity */
-	    Task(const Document * document, const char * name, const scheduling_type scheduling,  
+	    Task(const Document * document, const std::string& name, const scheduling_type scheduling,  
 		 const std::vector<DOM::Entry *>& entryList,
 		 const Processor* processor=NULL, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
 		 ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
@@ -97,16 +97,16 @@ namespace LQIO {
 	    const Processor* getProcessor() const;
 	    void setGroup( Group * );			// Used for cloning only.
 	    const Group* getGroup() const;
-	    virtual void setDecision( Decision *) {}
-	    virtual Decision * getDecision () const {return NULL;}
 
 	    /* Accessors and Mutators for Activities */
 	    Activity* getActivity(const std::string& name) const;
 	    Activity* getActivity(const std::string& name, bool create );
 	    const std::map<std::string,Activity*>& getActivities() const;
 	    void addActivity( Activity * newActivity );
+	    void deleteActivities();
 	    void addActivityList(ActivityList *);
 	    const std::set<ActivityList*>& getActivityLists() const;
+	    void deleteActivityLists();
 	    bool hasAndJoinActivityList() const;
       
       

@@ -10,7 +10,7 @@
  *
  * November, 1994
  *
- * $Id: slice.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: slice.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,14 +19,13 @@
 #define	SLICE_H
 
 #include "dim.h"
+#include <set>
 #include "prob.h"
 
 class Entry;
 class Phase;
 class Slice_Info;
 class Call;
-
-template <class Type> class Cltn;
 
 ostream& operator<<( ostream&, const Slice_Info& );
 
@@ -59,7 +58,7 @@ public:
 	
 	
 private:
-	void getCallInfo( const double, const Cltn<Call *>&, const double, const Entry& );
+    void getCallInfo( const double, const std::set<Call *>&, const double, const Entry& );
 
 	Probability prodOf_b() const { return b / (1.0 - d); }
 	Probability denominator( const double product ) const { return 1.0 - ( b * product + d ); }

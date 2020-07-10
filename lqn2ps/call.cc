@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: call.cc 13675 2020-07-10 15:29:36Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -20,7 +20,9 @@
 #endif
 #include <lqio/input.h>
 #include <lqio/dom_call.h>
+#include <lqio/dom_activity.h>
 #include <lqio/dom_entry.h>
+#include <lqio/dom_task.h>
 #include "call.h"
 #include "arc.h"
 #include "label.h"
@@ -308,6 +310,40 @@ Call::operator==( const Call& item ) const
 }
 
 
+bool
+Call::checkReplication() const
+{
+    bool ok = true;
+    double srcReplicasValue = 1;
+    double dstReplicasValue = 1;
+    if ( srcTask()->isReplicated() ) {
+	const LQIO::DOM::ExternalVariable& srcReplicas = srcTask()->replicas();
+	if ( srcReplicas.wasSet() ) ok = srcReplicas.getValue( srcReplicasValue );
+    }
+    if ( ok && dstTask()->isReplicated() ) {
+	const LQIO::DOM::ExternalVariable& dstReplicas = dstTask()->replicas();
+	if ( dstReplicas.wasSet() ) ok = dstReplicas.getValue( dstReplicasValue );
+    }
+    if ( ok && (srcReplicasValue > 1 || dstReplicasValue > 1 ) ) {
+	const std::string& srcName = srcTask()->name();
+	const std::string& dstName = dstTask()->name();
+	double fanOutValue = 1;
+	double fanInValue = 1;
+	const LQIO::DOM::ExternalVariable * fan_out = dynamic_cast<const LQIO::DOM::Task *>(srcTask()->getDOM())->getFanOut( dstName );
+	if ( fan_out != NULL && fan_out->wasSet() ) fan_out->getValue( fanOutValue );
+	const LQIO::DOM::ExternalVariable * fan_in = dynamic_cast<const LQIO::DOM::Task *>(dstTask()->getDOM())->getFanIn( srcName );
+	if ( fan_in != NULL && fan_in->wasSet() ) fan_in->getValue( fanInValue );
+	if ( srcReplicasValue * fanOutValue != dstReplicasValue * fanInValue ) {
+	    LQIO::solution_error( ERR_REPLICATION, 
+				  static_cast<int>(fanOutValue), srcName.c_str(), static_cast<int>(srcReplicasValue),
+				  static_cast<int>(fanInValue),  dstName.c_str(), static_cast<int>(dstReplicasValue) );
+	    return false;
+	}
+    }
+    return true;
+}
+
+
 unsigned
 Call::fanIn() const
 {
@@ -326,11 +362,11 @@ Call::fanOut() const
  */
 
 Call&
-Call::merge( const Call& src, const double rate )
+Call::merge( Phase & phase, const Call& src, const double rate )
 {
     const size_t n = numberOfPhases();
     for ( size_t p = 1; p <= n; ++p ) {
-	merge( p, src, rate );
+	merge( phase, p, src, rate );
     }
     return *this;
 }
@@ -342,7 +378,7 @@ Call::merge( const Call& src, const double rate )
  */
 
 Call&
-Call::merge( const unsigned int p, const Call& src, const double rate )
+Call::merge( Phase& phase, const unsigned int p, const Call& src, const double rate )
 {
     assert( ( (isPseudoCall() && src.isPseudoCall() ) || (!isPseudoCall() && !src.isPseudoCall() ) ) && ( 1 <= p && p <= numberOfPhases() ) );
 
@@ -352,7 +388,11 @@ Call::merge( const unsigned int p, const Call& src, const double rate )
 	    if ( p > _rendezvous.size() ) {
 		_rendezvous.resize(p);				/* Make it big enough if neccessary */
 	    }
-	    _rendezvous[p-1] = call->clone();			/* Copy call. */
+	    LQIO::DOM::Call * newCall = call->clone();		/* Copy call. */
+	    _rendezvous[p-1] = newCall;
+	    newCall->setSourceObject(const_cast<LQIO::DOM::Phase *>(phase.getDOM()));
+	    newCall->setDestinationEntry(const_cast<LQIO::DOM::Entry *>(call->getDestinationEntry()));
+	    const_cast<LQIO::DOM::Phase *>(phase.getDOM())->addCall( newCall );
 	} else {
 	    rendezvous( p, to_double(rendezvous(p)) + call->getCallMeanValue() * rate );
 	}
@@ -363,7 +403,11 @@ Call::merge( const unsigned int p, const Call& src, const double rate )
 	    if ( p > _sendNoReply.size() ) {
 		_sendNoReply.resize(p);
 	    }
-	    _sendNoReply[p-1] = src._sendNoReply[p-1]->clone();	/* Copy call. */
+	    LQIO::DOM::Call * newCall = call->clone();		/* Copy call. */
+	    _sendNoReply[p-1] = newCall;
+	    newCall->setSourceObject(const_cast<LQIO::DOM::Phase *>(phase.getDOM()));
+	    newCall->setDestinationEntry(const_cast<LQIO::DOM::Entry *>(call->getDestinationEntry()));
+	    const_cast<LQIO::DOM::Phase *>(phase.getDOM())->addCall( newCall );
 	} else {
 	    sendNoReply( p, to_double(sendNoReply(p)) + call->getCallMeanValue() * rate );
 	}
@@ -395,13 +439,17 @@ Call::merge( const unsigned int p, const Call& src, const double rate )
  */
 
 Call&
-Call::aggregatePhases()
+Call::aggregatePhases( LQIO::DOM::Phase& src )
 {
     for ( unsigned p = 1; p < maxPhase(); ++p ) {		// Remember! p[0] is phase 1
 	if ( _rendezvous.at(p) ) {
 	    const LQIO::DOM::Call * call = _rendezvous[p];
-	    if ( !_rendezvous[0] ) {
-		_rendezvous[0] = call->clone();
+	    if ( _rendezvous[0] == nullptr ) {
+		LQIO::DOM::Call * clone = call->clone();		/* copy call to phase 1 */
+		_rendezvous[0] = clone;
+		clone->setSourceObject( const_cast<LQIO::DOM::DocumentObject *>(call->getSourceObject()) );
+		clone->setDestinationEntry( const_cast<LQIO::DOM::Entry *>(call->getDestinationEntry()) );
+		src.addCall( clone );
 	    } else {
 		const double rnv_src = to_double(*call->getCallMean());
 		const_cast<LQIO::DOM::Call *>(_rendezvous[0])->setCallMeanValue(to_double(*_rendezvous[0]->getCallMean()) + rnv_src);
@@ -411,7 +459,11 @@ Call::aggregatePhases()
 	if ( _sendNoReply[p] ) {
 	    const LQIO::DOM::Call * call = _sendNoReply[p];
 	    if ( !_sendNoReply[0] ) {
-		_sendNoReply[0] = call->clone();
+		LQIO::DOM::Call * clone = call->clone();		/* copy call to phase 1 */
+		_rendezvous[0] = clone;
+		clone->setSourceObject( const_cast<LQIO::DOM::DocumentObject *>(call->getSourceObject()) );
+		clone->setDestinationEntry( const_cast<LQIO::DOM::Entry *>(call->getDestinationEntry()) );
+		src.addCall( clone );
 	    } else {
 		double snr_src = to_double(*call->getCallMean());
 		const_cast<LQIO::DOM::Call *>(_sendNoReply[0])->setCallMeanValue(to_double(*_sendNoReply[0]->getCallMean()) + snr_src);
@@ -927,6 +979,29 @@ Call::label()
 
 
 #if defined(REP2FLAT)
+static struct {
+    set_function first;
+    get_function second;
+} call_mean[] = { 
+// static std::pair<set_function,get_function> call_mean[] = {
+    { &LQIO::DOM::DocumentObject::setResultWaitingTime, &LQIO::DOM::DocumentObject::getResultWaitingTime },
+    { &LQIO::DOM::DocumentObject::setResultDropProbability, &LQIO::DOM::DocumentObject::getResultDropProbability },
+    { &LQIO::DOM::DocumentObject::setResultVarianceWaitingTime, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTime },
+    { NULL, NULL }
+};
+
+static struct {
+    set_function first;
+    get_function second;
+} call_variance[] = { 
+//static std::pair<set_function,get_function> call_variance[] = {
+    { &LQIO::DOM::DocumentObject::setResultDropProbabilityVariance, &LQIO::DOM::DocumentObject::getResultDropProbabilityVariance },
+    { &LQIO::DOM::DocumentObject::setResultVarianceWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTimeVariance },
+    { &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance },
+    { NULL, NULL }
+};
+
+
 Call&
 Call::replicateCall( std::vector<Call *>& calls, Call ** root )
 {
@@ -942,15 +1017,9 @@ Call::replicateCall( std::vector<Call *>& calls, Call ** root )
 	    LQIO::DOM::Call * dst = const_cast<LQIO::DOM::Call *>((*root)->getDOM(p));
 	    LQIO::DOM::Call * src = const_cast<LQIO::DOM::Call *>(getDOM(p));
 	    if ( !dst || !src ) continue;
-	    update_mean( dst, &LQIO::DOM::DocumentObject::setResultWaitingTime, src, &LQIO::DOM::DocumentObject::getResultWaitingTime, replica );
-	    update_variance( dst, &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, src, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance );
-	    if ( dst->hasResultVarianceWaitingTime() ) {
-		update_mean( dst, &LQIO::DOM::DocumentObject::setResultVarianceWaitingTime, src, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTime, replica );
-		update_variance( dst, &LQIO::DOM::DocumentObject::setResultVarianceWaitingTimeVariance, src, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTimeVariance );
-	    }
-	    if ( dst->hasResultDropProbability() ) {
-		update_mean( dst, &LQIO::DOM::DocumentObject::setResultDropProbability, src, &LQIO::DOM::DocumentObject::getResultDropProbability, replica );
-		update_variance( dst, &LQIO::DOM::DocumentObject::setResultDropProbabilityVariance, src, &LQIO::DOM::DocumentObject::getResultDropProbabilityVariance );
+	    for ( unsigned int i = 0; call_mean[i].first != NULL; ++i ) {
+		update_mean( dst, call_mean[i].first, src, call_mean[i].second, replica );
+		update_variance( dst, call_variance[i].first, src, call_variance[i].second );
 	    }
 	}
     }
@@ -1045,6 +1114,9 @@ EntryCall::check() const
 	    }
 	}
     }
+
+    if ( !checkReplication() ) rc = false;
+
     return rc;
 }
 
@@ -1185,6 +1257,9 @@ ActivityCall::check() const
 	    rc = false;
 	}
     }
+
+    if ( !checkReplication() ) rc = false;
+    
     return rc;
 }
 
@@ -1257,7 +1332,6 @@ ActivityCall::colour() const
 	return Graphic::RED;
     }
 }
-
 
 
 /*

@@ -4,7 +4,7 @@
  * Lazowska, Ch 6, Page 117
  *
  * ------------------------------------------------------------------------
- * $Id: test0.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test0.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,9 +21,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = 3;
 
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);				/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);				/* Queue type.  SS/delay.	*/
+    Z.resize(classes);				/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);				/* Queue type.  SS/delay.	*/
 
     Q[1] = new FCFS_Server(classes);		/* Client */
     Q[2] = new FCFS_Server(classes);		/* Server */
@@ -46,11 +46,12 @@ special_check( ostream&, const MVA&, const unsigned )
 
 
 
-static double goodL[4][4][2] = {
+static double goodL[5][4][2] = {
     { { 0, 0 }, {0, 0.0976}, {0, 0.3947}, {0, 0.2350} },	/* Exact MVA */
     { { 0, 0 }, {0, 0.0976}, {0, 0.3947}, {0, 0.2350} },	/* Linearizer */
     { { 0, 0 }, {0, 0.0976}, {0, 0.3947}, {0, 0.2350} },	/* Fast Linearize  */
     { { 0, 0 }, {0, 0.0973}, {0, 0.4012}, {0, 0.2359} },	/* Bard Schweitzer */
+    { { 0, 0 }, {0, 0.0976}, {0, 0.3947}, {0, 0.2350} },	/* Experimental */
 };
 
 

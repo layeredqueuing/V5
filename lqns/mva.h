@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 13442 2020-02-05 20:45:59Z greg $
+ * $Id: mva.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -186,8 +186,8 @@ protected:
     void step( const Population&, const unsigned );
     double queueLength( const unsigned, const Population& N ) const;
     double queueLength( const unsigned m, const unsigned k, const Population& N ) const;
-    virtual void marginalProbabilities( const unsigned m, const Population& N );
-    virtual void marginalProbabilities2( const unsigned m, const Population& N );
+    virtual void marginalProbabilities( const unsigned m, const Population& N ) = 0;
+    virtual void marginalProbabilities2( const unsigned m, const Population& N ) = 0;
 
 #if	DEBUG_MVA
     ostream& printL( ostream&, const Population& ) const;
@@ -211,7 +211,7 @@ private:
     void initialize();
 
 public:
-    static int boundsLimit;		/* Enable bounds limiting.	*/
+    static int __bounds_limit;		/* Enable bounds limiting.	*/
     static double MOL_multiserver_underrelaxation;
 #if DEBUG_MVA
     static bool debug_D;
@@ -233,8 +233,8 @@ private:
 protected:
     const Vector<unsigned>& priority; 	/* Priority by chain.		*/
     const VectorMath<double>* overlapFactor;/* Overlap factor (usually 1.)	*/
-    N_m_e_k  L;				/* Queue length.		*/
-    N_m_e_k  U;				/* Station utilization.		*/
+    N_m_e_k L;				/* Queue length.		*/
+    N_m_e_k U;				/* Station utilization.		*/
 
     PopulationData<double **> P;	/* For marginal probabilities.	*/
     PopulationData<double *> X;		/* Throughput per class.	*/
@@ -266,7 +266,10 @@ private:
     unsigned offset( const Population& N ) const { return map.offset( N ); }
     unsigned offset_e_j( const Population& N, const unsigned j ) const { return map.offset_e_j( N, j ); }
 
-protected:
+private:
+    virtual void marginalProbabilities( const unsigned m, const Population& N );
+    virtual void marginalProbabilities2( const unsigned m, const Population& N );
+
     virtual const PopulationMap& getMap() const { return map; }
 
 private:
@@ -292,7 +295,11 @@ protected:
 
     virtual void estimate_L( const Population & );
     void estimate_Lm( const unsigned m, const Population & N, const unsigned n ) const;
-    virtual void estimate_P( const Population & ) = 0;
+    virtual void estimate_P( const Population & N ) = 0;
+
+private:
+    void copy_L( const unsigned n ) const;
+    double max_delta_L( const unsigned n, const Population &N ) const;
 
     virtual void marginalProbabilities( const unsigned m, const Population& N );
     virtual void marginalProbabilities2( const unsigned m, const Population& N );

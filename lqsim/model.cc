@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13577 2020-05-30 02:47:06Z greg $
+ * $Id: model.cc 13675 2020-07-10 15:29:36Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -448,6 +448,8 @@ Model::print( const bool valid, const double confidence, const bool backup )
 	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
 	} else if ( global_rtf_flag ) {
 	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
+	} else {
+	    _document->print( output );
 	}
 	output.close();
     }

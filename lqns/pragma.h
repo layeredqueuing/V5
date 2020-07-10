@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: pragma.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -171,6 +171,7 @@ public:
 public:
     static void initialize();
     static ostream& usage( ostream&  );
+    static void create( const std::pair<std::string,std::string>& p );
 
 private:
     Pragma( const Pragma& );		/* NO copy constructor */
@@ -220,6 +221,14 @@ private:
     const char * getSeverityLevelStr() const;
     bool setSeverityLevelTo( const string& );
 
+    const char * getSpexHeaderStr() const;
+    bool setSpexHeaderTo( const string& );
+    bool eqSpexHeader( const Pragma& p ) const { return true; }
+
+    const char * getPruneStr() const;
+    bool setPruneTo( const string& );
+    bool eqPrune( const Pragma& p ) const { return true; }
+
     static bool is_true( const string& );
 
 public:
@@ -265,7 +274,8 @@ private:
     static std::map<const char *, param_info, lt_str>  __threads_args;
     static std::map<const char *, param_info, lt_str>  __variance_args;
     static std::map<const char *, param_info, lt_str>  __warning_args;
-    static std::map<const char *, param_info, lt_str>  __xml_schema_args;
+    static std::map<const char *, param_info, lt_str>  __spex_header_args;
+    static std::map<const char *, param_info, lt_str>  __prune_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     static std::map<const char *, param_info, lt_str>  __quorum_distribution_args;
     static std::map<const char *, param_info, lt_str>  __quorum_delayed_calls_args;

@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: randomvar.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -471,8 +471,8 @@ DiscretePoints::estimateCDF()
 	/* Special case -- deterministic... */
 
 	if ( t.size() < 1 ) {
-	    t.grow(1 - t.size());
-	    A.grow(1 - A.size());
+	    t.resize(1);
+	    A.resize(1);
 	}
 	t[1] = x;
 	A[1] = 1.0;
@@ -480,8 +480,8 @@ DiscretePoints::estimateCDF()
     }
 
     if ( t.size() < 3 ) {
-	t.grow(3 - t.size());
-	A.grow(3 - A.size());
+	t.resize(3);
+	A.resize(3);
     }
 
     /* Equation 4 */
@@ -1477,8 +1477,8 @@ DiscretePoints&
 DiscretePoints::pointByPointNegate()
 {
     if (t[1] > 0) {
-	A.grow(1); 
-	t.grow(1);
+	A.resize(A.size() + 1); 
+	t.resize(t.size() + 1);
 
 	for ( unsigned j = t.size(); j > 1 ; j-- ) {
 	    A[j] = A[j-1];
@@ -1627,30 +1627,24 @@ DiscreteCDFs::quorumKofN( const unsigned K, const unsigned N )
 }
 
 
-
-void 
-DiscreteCDFs::delCDFs()
-{
-    myCDFsCltn.deleteContents();
-}
-
 DiscretePoints& 
 DiscreteCDFs::addCDF( DiscretePoints& aCDF)
 {
-    DiscretePoints *  newCDF = new DiscretePoints();
-
-    *newCDF = aCDF;
-
-    myCDFsCltn << newCDF; 
-
+    DiscretePoints *  newCDF = new DiscretePoints( aCDF );
+    myCDFsCltn.push_back( newCDF ); 
     return aCDF;
-
 }
 
 
 DiscreteCDFs::~DiscreteCDFs()
 {
-    myCDFsCltn.deleteContents();
+    for ( Vector<DiscretePoints *>::const_iterator cdf = myCDFsCltn.begin(); cdf != myCDFsCltn.begin(); ++cdf ) {
+	delete *cdf;
+    }
+    myCDFsCltn.clear();
 }
 
 /****************************************************************/
+
+#include "vector.cc"
+template class Vector<DiscretePoints *>;

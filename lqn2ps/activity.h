@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: activity.h 13675 2020-07-10 15:29:36Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -93,6 +93,7 @@ public:
     bool isSpecified() const { return iAmSpecified; }
     bool isStartActivity() const { return _rootEntry != NULL; }
     const Activity * reachedFrom() const { return _reachableFrom; }
+    Activity& setReachedFrom( const Activity * reachedFrom ) { _reachableFrom = reachedFrom; return *this; }
 
     virtual double serviceTimeForSRVNInput() const;
     Activity& disconnect( Activity * );
@@ -108,6 +109,7 @@ public:
     
 #if defined(REP2FLAT)
     Activity& expandActivityCalls( const Activity& src, int replica);
+    virtual Activity& replicateActivity( LQIO::DOM::Activity * root, unsigned int replica );
     virtual Activity& replicateCall();
 #endif
 

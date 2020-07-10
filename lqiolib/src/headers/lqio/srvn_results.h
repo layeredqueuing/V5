@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 13487 2020-02-11 20:30:20Z greg $
+ * $Id: srvn_results.h 13675 2020-07-10 15:29:36Z greg $
  */
 
 #if	!defined(SRVN_RESULTS_H)
@@ -23,6 +23,7 @@ extern "C" {
 
 /* A few global variables used by the parser. */
 
+extern unsigned int srvn_max_phases;	/* Number of phases. */
 extern int 	resultdebug;		/* If yacc'ed using -t then resultdebug = 1 => debugging output */
 extern int	resultlineno;		/* Line number of current parse line in input file */
 extern FILE 	*resultin;		/* File pointer for the input file to the pareser */

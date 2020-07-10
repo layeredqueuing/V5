@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 13641 2020-07-03 15:59:38Z greg $
+ * $Id: model.h 13675 2020-07-10 15:29:36Z greg $
  */
 
 #ifndef _MODEL_H

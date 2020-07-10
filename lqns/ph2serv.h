@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: ph2serv.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: ph2serv.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -302,7 +302,6 @@ public:
 
     virtual Probability *** getPrOt( const unsigned e ) const;
     virtual double prOt( const unsigned e, const unsigned k, const unsigned p ) const { return prOvertake[e][k][0][p]; }
-
     virtual const char * typeStr() const { return "Markov_Phased_Server"; }
 
 protected:

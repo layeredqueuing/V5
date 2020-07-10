@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pop.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: pop.h 13675 2020-07-10 15:29:36Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,8 +18,6 @@
 #define	POPULATION_H
 
 #include "vector.h"
-
-class population_iterator;
 
 class Population 
 {
@@ -55,7 +53,7 @@ public:
     class IteratorOffset : public Iterator 
     {
     public:
-	IteratorOffset( const Population& maxCust, const Population& aLimit );
+	IteratorOffset( const Population& maxN, const Population& aLimit );
 	virtual int offset( const Population& ) const;
 	unsigned maxOffset() const { return arraysize; }
 	unsigned offset_e_j( const Population &N, const unsigned j ) const;
@@ -76,13 +74,10 @@ public:
     bool operator!=( const Population& N ) const { return !(_N == N._N); }
 
     size_t size() const { return _N.size(); }
-    void resize( size_t size ) { if ( size > this->size() ) _N.grow( size - this->size() ); }
+    void resize( size_t size ) { _N.resize( size ); }
     void clear() { _N.clear(); }
     std::ostream& print( std::ostream& output ) const { return _N.print( output ); }
 
-    population_iterator begin() const;
-    population_iterator end() const;
-    
     unsigned sum() const;
 
 private:
@@ -95,33 +90,38 @@ inline std::ostream& operator<<( std::ostream& output, const Population& self ) 
 
 /* ------------------------------------------------------------------------ */
     
-class population_iterator {
-public:
-    population_iterator( const Population& N, bool );
-    population_iterator( const population_iterator& i );
-    population_iterator& operator=( const population_iterator& i );
-
-    bool operator!=( const population_iterator& i ) { return _i != i._i; }
-    population_iterator& operator++();	/* Advance population by 1.	*/
-    const Population& operator*() const { return _n; }
-
-private:
-    size_t end( const Population& N ) const;
-
-private:
-    const Population _N;		/* Max population over all K	*/
-    Population _n;			/* Current population		*/
-    size_t _i;				/* index from [0,...,1]		*/
-    const size_t _end;			/* end index.			*/
-};
-
-
 /**
    This class provides the basic mapping that allows a population vector
    to be translated into a single dimension index.  It assumes that the
    population that is being examined is fixed for a particular instance.
 **/
 class PopulationMap {
+public:
+    class iterator {
+    public:
+	iterator( const Population& N );				/* begin */
+	iterator( const Population& N, const Population& limit );	/* end	*/
+	iterator( const iterator& i );
+	virtual ~iterator() {}
+	iterator& operator=( const iterator& i );
+
+	bool operator!=( const iterator& i ) { return _i != i._i; }
+	iterator& operator++();			/* Advance population by 1.	*/
+	const Population& operator*() const { return _n; }
+	const size_t operator()() const { return _i; }
+
+    private:
+	size_t end( const Population& N ) const;
+
+    protected:
+	const Population & _N;			/* Max population over all K	*/
+	Population _n;				/* Current population		*/
+
+    private:
+	size_t _i;				/* index from [0,...,1]		*/
+	const size_t _end;			/* end index.			*/
+    };
+
 public:
     PopulationMap( const Population & N );
     virtual ~PopulationMap();
@@ -136,7 +136,7 @@ public:
     **/
     virtual size_t dimension( const Population & ) = 0;
     /**
-       Return offset for Population N.  
+       Return offset for Population N.
        The offset will be between 1 and maxOffset()
     **/
     virtual unsigned offset( const Population & N ) const = 0;
@@ -147,11 +147,15 @@ public:
     **/
     virtual unsigned offset_e_j( const Population & N, const unsigned j ) const = 0;
     virtual unsigned offset_e_c_e_j( const unsigned c, const unsigned j ) const;
-    size_t maxOffset() const { return maximumOffset; }
-
+    size_t maxOffset() const { return _end; }
+    iterator begin() const;
+    iterator end() const;
+    
 protected:
-    const unsigned NCustSize;
-    size_t maximumOffset;
+    Population _maxN;			/* Max. Number of customers */
+    const unsigned _dimN;
+    size_t _end;
+    Vector<size_t> _stride;
 };
 
 //Support mapping all combinations from 1->maxEntry for each
@@ -166,12 +170,9 @@ public:
 
     unsigned offset( const Population & N ) const;
     unsigned offset_e_j( const Population & N, const unsigned j ) const;
-
-private:
-    unsigned * stride;
 };
 
-//Only support the maximum customer configuration and the 
+//Only support the maximum customer configuration and the
 //case of one less of each customer in the population.
 //This is a triangular array since c <= j.
 class PartialPopulationMap : public PopulationMap
@@ -191,11 +192,6 @@ public:
      * then NO customer is removed from the corresponding class.
      */
     unsigned offset_e_c_e_j( const unsigned c, const unsigned j ) const;
-    unsigned offset_e_j_mc( const Population & N, const unsigned j , const unsigned mc) const;
-
-private:
-    Population NCust;		/* Max. Number of customers */
-    unsigned * stride;
 };
 
 //Only support the maximum customer configuration.
@@ -208,9 +204,5 @@ public:
     
     unsigned offset( const Population & N ) const;
     unsigned offset_e_j( const Population & N, const unsigned j ) const;
-    unsigned offset_e_j_mc( const Population & N, const unsigned j, const unsigned mc) const;
-
-private:
-    Population NCust;
 };
 #endif

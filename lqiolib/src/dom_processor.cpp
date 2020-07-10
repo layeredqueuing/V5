@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 13556 2020-05-25 17:39:26Z greg $
+ *  $Id: dom_processor.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,9 +19,9 @@ namespace LQIO {
 
 	const char * Processor::__typeName = "processor";
 
-	Processor::Processor(const Document * document, const char * processor_name, scheduling_type scheduling_flag,
+	Processor::Processor(const Document * document, const std::string& name, scheduling_type scheduling_flag,
 			     ExternalVariable* n_cpus, ExternalVariable* n_replicas )
-	    : Entity(document, processor_name, scheduling_flag, n_cpus, n_replicas ),
+	    : Entity(document, name, scheduling_flag, n_cpus, n_replicas ),
 	      _processorRate(NULL),
 	      _processorQuantum(NULL),
 	      _taskList(),
@@ -32,8 +32,7 @@ namespace LQIO {
 	}
 
 	Processor::Processor(const Processor& src )
-	    : Entity(src.getDocument(), "", src.getSchedulingType(), const_cast<LQIO::DOM::ExternalVariable*>(src.getCopies()),
-		     const_cast<LQIO::DOM::ExternalVariable*>(src.getReplicas()) ),
+	    : Entity(src),
 	      _processorRate(src.getRate()),
 	      _processorQuantum(src.getQuantum()),
 	      _taskList(),

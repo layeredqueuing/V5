@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13550 2020-05-22 11:48:05Z greg $
+ * $Id: phase.cc 13675 2020-07-10 15:29:36Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -380,20 +380,52 @@ Phase::serviceTimeForSRVNInput() const
 
 
 #if defined(REP2FLAT)
+static struct {
+    set_function first;
+    get_function second;
+} phase_mean[] = { 
+// static std::pair<set_function,get_function> phase_mean[] = {
+    { &LQIO::DOM::DocumentObject::setResultServiceTime, &LQIO::DOM::DocumentObject::getResultServiceTime },
+    { &LQIO::DOM::DocumentObject::setResultVarianceServiceTime, &LQIO::DOM::DocumentObject::getResultVarianceServiceTime },
+    { &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
+    { &LQIO::DOM::DocumentObject::setResultProcessorWaiting, &LQIO::DOM::DocumentObject::getResultProcessorWaiting },
+    { NULL, NULL }
+};
+
+static struct {
+    set_function first;
+    get_function second;
+} phase_variance[] = { 
+//static std::pair<set_function,get_function> phase_variance[] = {
+    { &LQIO::DOM::DocumentObject::setResultServiceTime, &LQIO::DOM::DocumentObject::getResultServiceTimeVariance },
+    { &LQIO::DOM::DocumentObject::setResultVarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultVarianceServiceTimeVariance },
+    { &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
+    { &LQIO::DOM::DocumentObject::setResultProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
+    { NULL, NULL }
+};
+
 /*
- * Strip suffix _<N>
+ * Strip suffix _<N>.  Merge results from replicas 2..N to 1.
  */
 
 Phase&
-Phase::replicatePhase()
+Phase::replicatePhase( LQIO::DOM::Phase * root, unsigned int replica )
 {
-    if ( !getDOM() ) return *this;
-    std::string& name = const_cast<std::string&>(getDOM()->getName());
-    if ( name.size() <= 2 ) return *this;
-    size_t pos = name.rfind( '_' );
-    char * end_ptr = NULL;
-    if ( pos != std::string::npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
-	name = name.substr( 0, pos );
+    if ( root == nullptr || getDOM() == nullptr ) return *this;
+
+    if ( replica == 1 ) {
+	std::string& name = const_cast<std::string&>(getDOM()->getName());
+	if ( name.size() <= 2 ) return *this;
+	size_t pos = name.rfind( '_' );
+	char * end_ptr = NULL;
+	if ( pos != std::string::npos && (strtol( &name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
+	    name = name.substr( 0, pos );
+	}
+    } else {
+	for ( unsigned int i = 0; phase_mean[i].first != NULL; ++i ) {
+	    update_mean( root, phase_mean[i].first, getDOM(), phase_mean[i].second, replica );
+	    update_variance( root, phase_variance[i].first, getDOM(), phase_variance[i].second );
+	}
     }
     return *this;
 }
@@ -410,7 +442,7 @@ Phase::replicateCall()
 	const std::string& dst_name = (*call)->getDestinationEntry()->getName();
 	size_t pos = dst_name.rfind( '_' );
 	char * end_ptr = NULL;
-	if ( pos == std::string::npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr != '\0') ) {
+	if ( pos == std::string::npos || (strtol( &dst_name[pos+1], &end_ptr, 10 ) == 1 && *end_ptr == '\0') ) {
 	    calls.push_back( *call );
 	}
     }

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 13558 2020-05-26 01:52:40Z greg $
+ *  $Id: dom_phase.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,6 +19,20 @@ namespace LQIO {
 
 	const char * Phase::__typeName = "phase";
 
+	/* Dummy Phase */
+	Phase::Phase() 
+	    : DocumentObject(), _serviceTime(NULL),
+	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(nullptr),
+	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
+	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
+	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
+	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
+	      _resultProcessorWaiting(0.0), _resultProcessorWaitingVariance(0.0),
+	      _hasResultServiceTimeVariance(false)
+	{
+	}
+
+	/* Normal constructor */
 	Phase::Phase(const Document * document,Entry* parentEntry) 
 	    : DocumentObject(document,""), _calls(), _serviceTime(NULL),
 	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(parentEntry),

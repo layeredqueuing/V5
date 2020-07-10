@@ -1,32 +1,34 @@
 /*  -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/entry.cc $
- * 
+ *
  * Everything you wanted to know about an entry, but were afraid to ask.
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * November 1994, 
+ * November 1994,
  * January 2005.
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13548 2020-05-21 14:27:18Z greg $
+ * $Id: entry.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "dim.h"
 #include <string>
-#include <stdarg.h>
-#include <string.h>
 #include <cmath>
 #include <algorithm>
+#include <iostream>
+#include <iomanip>
+#include <stdarg.h>
+#include <string.h>
 #include <lqio/error.h>
 #include "errmsg.h"
-#include "cltn.h"
 #include "stack.h"
+#include "model.h"
 #include "entry.h"
 #include "fpgoop.h"
 #include "activity.h"
@@ -43,8 +45,6 @@
 #include "entrythread.h"
 #include "randomvar.h"
 
-set<Entry *, ltEntry> entry;
-
 unsigned Entry::totalOpenArrivals   = 0;
 
 unsigned Entry::max_phases	    = 0;
@@ -55,27 +55,28 @@ const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
 /* ------------------------ Constructors etc. ------------------------- */
 
 
-Entry::Entry( LQIO::DOM::Entry* aDomEntry, const unsigned id, const unsigned index )
-    : openWait(0),
-      myDOMEntry(aDomEntry),
-      nextOpenWait(0),
-      myActivity(0),
-      myMaxPhase(0),
+Entry::Entry( LQIO::DOM::Entry* entryDOM, const unsigned id, const unsigned index )
+    : _entryDOM(entryDOM),
+      _phase(entryDOM && entryDOM->getMaximumPhase() > 0 ? entryDOM->getMaximumPhase() : 1 ),
+      _total(),
+      _nextOpenWait(0.0),			/* copy for delta computation	*/
+      _startActivity(NULL),
       _entryId(id),
       _index(index+1),
-      myType(ENTRY_NOT_DEFINED),
-      mySemaphoreType(aDomEntry ? aDomEntry->getSemaphoreFlag() : SEMAPHORE_NONE),
-      calledFlag(NOT_CALLED),
-      myReplies(0),
-      myThroughput(0.0),
-      myThroughputBound(0.0)
+      _entryType(ENTRY_NOT_DEFINED),
+      _semaphoreType(entryDOM ? entryDOM->getSemaphoreFlag() : SEMAPHORE_NONE),
+      _calledBy(NOT_CALLED),
+      _throughput(0.0),
+      _throughputBound(0.0),
+      _callerList(),
+      _interlock()
 {
-    /* Allocate phases */
-
-    phase.grow(MAX_PHASES);
-
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	phase[p].initialize( this, p );
+    const size_t size = _phase.size();
+    for ( size_t p = 1; p <= size; ++p ) {
+	std::string s;
+	s = "123"[p-1];
+	_phase[p].setEntry( this )
+	    .setName( s );
     }
 }
 
@@ -87,12 +88,6 @@ Entry::Entry( LQIO::DOM::Entry* aDomEntry, const unsigned id, const unsigned ind
 
 Entry::~Entry()
 {
-    /* Zero reverse links */
-	
-    const unsigned n = myCallers.size();
-    for ( unsigned i = 1; i <= n; ++i ) {
-	myCallers[i] = 0;
-    }
 }
 
 
@@ -100,7 +95,7 @@ Entry::~Entry()
 /*
  * Reset globals.
  */
- 
+
 void
 Entry::reset()
 {
@@ -126,10 +121,10 @@ double Entry::openArrivalRate() const
 {
     if ( hasOpenArrivals() ) {
 	try {
-	    return myDOMEntry->getOpenArrivalRateValue();
+	    return getDOM()->getOpenArrivalRateValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", name(), e.what() );
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrival rate", "entry", name().c_str(), e.what() );
 	    throw_bad_parameter();
 	}
     }
@@ -139,12 +134,12 @@ double Entry::openArrivalRate() const
 
 int Entry::priority() const
 {
-    if ( myDOMEntry->hasEntryPriority() ) {
+    if ( getDOM()->hasEntryPriority() ) {
 	try {
-	    return myDOMEntry->getEntryPriorityValue();
+	    return getDOM()->getEntryPriorityValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "entry", name(), e.what() );
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "entry", name().c_str(), e.what() );
 	    throw_bad_parameter();
 	}
     }
@@ -156,38 +151,31 @@ int Entry::priority() const
  * Check entry data.
  */
 
-void
+bool
 Entry::check() const
 {
     if ( isStandardEntry() ) {
-		
-	/* concordance between c, phase_flag */
-		
-	for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	    phase[p].check(p);
-	}
+	for_each ( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
     } else if ( !isActivityEntry() ) {
-	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
+	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
     }
-	
+
     if ( (isSignalEntry() || isWaitEntry()) && owner()->scheduling() != SCHEDULE_SEMAPHORE ) {
-	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name(), (isSignalEntry() ? "signal" : "wait"), name() );
+	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name().c_str(), (isSignalEntry() ? "signal" : "wait"), name().c_str() );
     }
-	
+
     /* Forwarding probabilities o.k.? */
-	
-    Sequence<Call *> nextCall( phase[1].callList() );
-    Call * aCall;
-	
+
     double sum = 0;
-    while ( aCall = nextCall() ) {
-	sum += aCall->forward() * aCall->fanOut();
+    for ( std::set<Call *>::const_iterator call = callList(1).begin(); call != callList(1).end(); ++call ) {
+	sum += (*call)->forward() * (*call)->fanOut();
     }
     if ( sum < 0.0 || 1.0 < sum ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name(), sum );
+	LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name().c_str(), sum );
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
-	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name(), name() );
+	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
     }
+    return !io_vars.anError();
 }
 
 
@@ -198,53 +186,47 @@ Entry::check() const
  * at MAX_PHASES.
  */
 
-void
-Entry::configure( const unsigned nSubmodels, const unsigned max_p )
+Entry&
+Entry::configure( const unsigned nSubmodels )
 {
-    for ( unsigned p = 1; p <= max_p; ++p ) {
-	phase[p].configure( nSubmodels );
-    }
-	
-    total.configure( nSubmodels );
-	
-    const unsigned n_e = entry.size() + 1;
+    for_each ( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
+    _total.configure( nSubmodels );
+
+    const unsigned n_e = Model::__entry.size() + 1;
     if ( n_e != _interlock.size() ) {
 	_interlock.resize( n_e );
     }
-	
+
     if ( isActivityEntry() && !isVirtualEntry() ) {
-		
+
 	/* Check reply type and set max phase. */
-		
-	Stack<const Activity *> activityStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+
+	Stack<const Activity *> activityStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	unsigned next_p = 1;
-	double replies = myActivity->aggregate2( this, 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
-	if ( isCalled() == RENDEZVOUS_REQUEST ) {
+	double replies = _startActivity->aggregate2( this, 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
+	if ( isCalledUsing( RENDEZVOUS_REQUEST ) ) {
 	    if ( replies == 0.0 ) {
 		//tomari: disable to allow a quorum use the default reply which
 		//is after all threads completes exection.
-		//LQIO::solution_error( ERR_REPLY_NOT_GENERATED, name() );	/* BUG 238 */
+		//LQIO::solution_error( ERR_REPLY_NOT_GENERATED, name().c_str() );	/* BUG 238 */
 	    } else if ( fabs( replies - 1.0 ) > EPSILON ) {
-		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name() );
+		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 	    }
 	}
-		
-	myActivity->configure( nSubmodels, maxPhase() );
-		
+
+	_startActivity->configure( nSubmodels );
+
 	/* Compute overall service time for this entry */
-		
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+
+	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push( this );
 	next_p = 1;
-	myActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateServiceTime );
+	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateServiceTime );
 	entryStack.pop();
-		
-	double sum  = 0.0;
-	for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	    sum += phase[p].serviceTime();
-	}
-	total.setServiceTime( sum );
+
+	_total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
     }
+    return *this;
 }
 
 
@@ -263,25 +245,24 @@ Entry::findChildren( CallStack& callStack, const bool directPath ) const
     unsigned max_depth = callStack.size();
 
     if ( isActivityEntry() ) {
-	max_depth = max( max_depth, phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
+	max_depth = max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
 	const unsigned size = dynamic_cast<const Task *>(owner())->activities().size();
 	Stack<const AndForkActivityList *> forkStack( size ); 	// For matching forks/joins.
 	Stack<const Activity *> activityStack( size );		// For checking for cycles.
-	const_cast<Entry *>(this)->myReplies = 0.0;
 	try {
-	    max_depth = max( max_depth, myActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
+	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
 	}
 	catch ( const activity_cycle& error ) {
-	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name(), error.what() );
+	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
 	    max_depth = max( max_depth, error.depth() );
 	}
 	catch ( const bad_external_join& error ) {
-	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name(), owner()->name(), error.what() );
+	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name().c_str(), owner()->name().c_str(), error.what() );
 	    max_depth = max( max_depth, error.depth() );
 	}
     } else {
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    max_depth = max( max_depth, phase[p].findChildren( callStack, directPath ) );
+	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    max_depth = max( max_depth, phase->findChildren( callStack, directPath ) );
 	}
     }
 
@@ -293,17 +274,18 @@ Entry::findChildren( CallStack& callStack, const bool directPath ) const
 /*
  * Type 1 throughput bounds.  Reference task think times will limit throughput
  */
-		
-void
+
+Entry&
 Entry::initThroughputBound()
 {
     const double t = elapsedTime() + owner()->thinkTime();
     if ( t > 0 ) {
-	myThroughputBound = owner()->copies() / t;
+	_throughputBound = owner()->copies() / t;
     } else {
-	myThroughputBound = 0.0;
+	_throughputBound = 0.0;
     }
-    throughput( myThroughputBound );		/* Push bound to entries/phases/activities */
+    setThroughput( _throughputBound );		/* Push bound to entries/phases/activities */
+    return *this;
 }
 
 
@@ -312,12 +294,11 @@ Entry::initThroughputBound()
  * Allocate storage for oldSurgDelay.
  */
 
-void
+Entry&
 Entry::initReplication( const unsigned n_chains )
 {
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	phase[p].initReplication( n_chains );
-    }
+    for_each ( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
+    return *this;
 }
 
 
@@ -325,9 +306,9 @@ Entry::initReplication( const unsigned n_chains )
 Entry&
 Entry::resetInterlock()
 {
-    for ( unsigned i = 0; i < _interlock.size(); ++i ) {
-	_interlock[i].all = 0.;
-	_interlock[i].ph1 = 0.;
+    for ( Vector<InterlockInfo>::iterator i = _interlock.begin(); i != _interlock.end(); ++i ) {
+	i->all = 0.;
+	i->ph1 = 0.;
     }
     return *this;
 }
@@ -375,22 +356,22 @@ Entry::initInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& glo
 
 
 
-Entry& 
+Entry&
 Entry::setEntryInformation( LQIO::DOM::Entry * entryInfo )
 {
     /* Open arrival stuff. */
     if ( hasOpenArrivals() ) {
-	isCalled( OPEN_ARRIVAL_REQUEST );
+	setIsCalledBy( OPEN_ARRIVAL_REQUEST );
     }
     return *this;
 }
 
-Entry& 
-Entry::setDOM( unsigned ph, LQIO::DOM::Phase* phaseInfo )
+Entry&
+Entry::setDOM( unsigned p, LQIO::DOM::Phase* phaseInfo )
 {
     if (phaseInfo == NULL) return *this;
-    setMaxPhase(ph);
-    phase[ph].setDOM(phaseInfo);
+    setMaxPhase(p);
+    _phase[p].setDOM(phaseInfo);
     return *this;
 }
 
@@ -400,19 +381,13 @@ Entry::setDOM( unsigned ph, LQIO::DOM::Phase* phaseInfo )
  */
 
 Entry&
-Entry::addServiceTime( const unsigned ph, const double value )
+Entry::addServiceTime( const unsigned p, const double value )
 {
     if ( value == 0.0 ) return *this;
 
-    setMaxPhase( ph );
-
-    phase[ph].addServiceTime( value );
-	
-    double sum = 0.0;
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	sum += phase[p].serviceTime();
-    }
-    total.setServiceTime( sum );
+    setMaxPhase( p );
+    _phase[p].addServiceTime( value );
+    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
     return *this;
 }
 
@@ -422,73 +397,39 @@ Entry::addServiceTime( const unsigned ph, const double value )
  */
 
 bool
-Entry::isCalled(const requesting_type callType )
+Entry::setIsCalledBy(const requesting_type callType )
 {
-    if ( calledFlag != NOT_CALLED && calledFlag != callType ) {
-	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name() );
+    if ( _calledBy != NOT_CALLED && _calledBy != callType ) {
+	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name().c_str() );
 	return false;
     } else {
-	calledFlag = callType;
+	_calledBy = callType;
 	return true;
     }
 }
 
 
 /*
- * mark whether the phase is present or not.  
+ * mark whether the phase is present or not.
  */
 
 Entry&
 Entry::setMaxPhase( const unsigned ph )
 {
-    myMaxPhase = max( myMaxPhase, ph );
-    max_phases = max( myMaxPhase, max_phases );		/* Set global value.	*/
+    const unsigned int max_phase = maxPhase();
+    if ( max_phase < ph ) {
+	_phase.resize(ph);
+	for ( unsigned int p = max_phase + 1; p <= ph; ++p ) {
+	    std::string s;
+	    s = "0123"[p];
+	    _phase[p].setEntry( this )
+		.setName( s )
+		.configure( _total.myWait.size() );
+	}
+    }
+    max_phases = max( max_phase, max_phases );		/* Set global value.	*/
 
     return *this;
-}
-
-
-
-/*
- * Return 1 if any phase is deterministic.
- */
-
-bool
-Entry::hasDeterministicPhases() const
-{
-    for ( unsigned p = 1; p <= maxPhase(); p++ ) {
-	if ( phaseTypeFlag(p) == PHASE_DETERMINISTIC ) return true;
-    }
-    return false;
-}
-
-
-
-/*
- * Return 1 if any phase is not exponential $(C^2_v \not= 1)$.
- */
-
-bool
-Entry::hasNonExponentialPhases() const
-{
-    for ( unsigned p = 1; p <= maxPhase(); p++ ) {
-	if ( serviceTime(p) > 0 && CV_sqr(p) != 1.0 ) return true;
-    }
-    return false;
-}
-
-
-/*
- * Return 1 if the entry has think time and zero othewise.
- */
-
-bool
-Entry::hasThinkTime() const
-{
-    for ( unsigned p = 1; p <= maxPhase(); p++ ) {
-	if ( phase[p].hasThinkTime() ) return true;
-    }
-    return false;
 }
 
 
@@ -501,10 +442,7 @@ bool
 Entry::hasVariance() const
 {
     if ( isStandardEntry() ) {
-	for ( unsigned p = 1; p <= maxPhase(); p++ ) {
-	    if ( phase[p].hasVariance() ) return true;
-	}
-	return false;
+	return find_if( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::hasVariance ) ) != _phase.end();
     } else {
 	return true;
     }
@@ -520,11 +458,11 @@ Entry::hasVariance() const
 bool
 Entry::entryTypeOk( const entry_type aType )
 {
-    if ( myType == ENTRY_NOT_DEFINED ) {
-	myType = aType;
+    if ( _entryType == ENTRY_NOT_DEFINED ) {
+	_entryType = aType;
 	return true;
     } else {
-	return myType == aType;
+	return _entryType == aType;
     }
 }
 
@@ -538,10 +476,10 @@ Entry::entryTypeOk( const entry_type aType )
 bool
 Entry::entrySemaphoreTypeOk( const semaphore_entry_type aType )
 {
-    if ( mySemaphoreType == SEMAPHORE_NONE ) {
-	mySemaphoreType = aType;
-    } else if ( mySemaphoreType != aType ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
+    if ( _semaphoreType == SEMAPHORE_NONE ) {
+	_semaphoreType = aType;
+    } else if ( _semaphoreType != aType ) {
+	LQIO::input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
 	return false;
     }
     return true;
@@ -557,7 +495,7 @@ Entry::concurrentThreads() const
 {
     if ( !isActivityEntry() ) return 1;
 
-    return myActivity->concurrentThreads( 1 );
+    return _startActivity->concurrentThreads( 1 );
 }
 
 
@@ -571,20 +509,20 @@ Entry::concurrentThreads() const
  */
 
 Entry&
-Entry::throughput( const double value )
+Entry::setThroughput( const double value )
 {
-    myThroughput = value;
+    _throughput = value;
 
     if ( flags.trace_replication || flags.trace_throughput ) {
-	cout <<"Entry::throughput(): Task = "<<this->owner()->name()<<" ,Entry= "<<this->name() 
-	     <<" , Throughput="<<myThroughput << endl;
+	cout <<"Entry::throughput(): Task = "<<this->owner()->name()<<" ,Entry= "<<this->name()
+	     <<" , Throughput="<<_throughput << endl;
     }
 
     if ( isActivityEntry() ) {
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push( this );
 	unsigned next_p;
-	myActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::setThroughput );
+	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::setThroughput );
 	entryStack.pop();
     }
     return *this;
@@ -598,12 +536,12 @@ Entry::throughput( const double value )
  */
 
 Entry&
-Entry::rendezvous( Entry * toEntry, const unsigned p, LQIO::DOM::Call* callDOMInfo )
+Entry::rendezvous( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* callDOMInfo )
 {
     if ( callDOMInfo == NULL ) return *this;
     setMaxPhase( p );
 
-    phase[p].rendezvous( toEntry, callDOMInfo );
+    _phase[p].rendezvous( toEntry, callDOMInfo );
     return *this;
 }
 
@@ -617,12 +555,7 @@ Entry::rendezvous( Entry * toEntry, const unsigned p, LQIO::DOM::Call* callDOMIn
 double
 Entry::rendezvous( const Entry * anEntry ) const
 {
-    double sum = 0.0;
-
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	sum += phase[p].rendezvous( anEntry );
-    }
-    return sum;
+    return for_each( _phase.begin(), _phase.end(), Sum1<Phase,double,const Entry *>( &Phase::rendezvous, anEntry ) ).sum();
 }
 
 
@@ -631,12 +564,13 @@ Entry::rendezvous( const Entry * anEntry ) const
  * Return number of rendezvous to dstTask.  Used by class ijinfo.
  */
 
-void
+const Entry&
 Entry::rendezvous( const Entity *dstTask, VectorMath<double>& calls ) const
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	calls[p] += phase[p].rendezvous( dstTask );
+	calls[p] += _phase[p].rendezvous( dstTask );
     }
+    return *this;
 }
 
 
@@ -647,13 +581,13 @@ Entry::rendezvous( const Entity *dstTask, VectorMath<double>& calls ) const
  */
 
 Entry&
-Entry::sendNoReply( Entry * toEntry, const unsigned p, LQIO::DOM::Call* callDOMInfo )
+Entry::sendNoReply( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* callDOMInfo )
 {
     if ( callDOMInfo == NULL ) return *this;
 
     setMaxPhase( p );
 
-    phase[p].sendNoReply( toEntry, callDOMInfo );
+    _phase[p].sendNoReply( toEntry, callDOMInfo );
     return *this;
 }
 
@@ -667,7 +601,7 @@ Entry::sendNoReply( Entry * toEntry, const unsigned p, LQIO::DOM::Call* callDOMI
 double
 Entry::sendNoReply( const Entry * anEntry ) const
 {
-    return sendNoReply( anEntry, 0 );
+    return for_each( _phase.begin(), _phase.end(), Sum1<Phase,double,const Entry *>( &Phase::sendNoReply, anEntry ) ).sum();
 }
 
 
@@ -680,14 +614,8 @@ Entry::sendNoReply( const Entry * anEntry ) const
 double
 Entry::sumOfSendNoReply( const unsigned p ) const
 {
-    Sequence<Call *> nextCall(phase[p].callList());
-    const Call * toCall;
-
-    double sum = 0.0;
-    while ( toCall = nextCall() ) {
-	sum += toCall->sendNoReply();
-    }
-    return sum;
+    const std::set<Call *>& callList = _phase[p].callList();
+    return for_each( callList.begin(), callList.end(), Sum<Call,double>( &Call::sendNoReply ) ).sum();
 }
 
 
@@ -697,12 +625,12 @@ Entry::sumOfSendNoReply( const unsigned p ) const
  */
 
 Entry&
-Entry::forward( Entry * toEntry, LQIO::DOM::Call* call  )
+Entry::forward( Entry * toEntry, const LQIO::DOM::Call* call  )
 {
     if ( !call ) return *this;
 
     setMaxPhase( 1 );
-    phase[1].forward( toEntry, call );
+    _phase[1].forward( toEntry, call );
     return *this;
 }
 
@@ -718,9 +646,8 @@ Entry::forward( Entry * toEntry, LQIO::DOM::Call* call  )
 Entry&
 Entry::setStartActivity( Activity * anActivity )
 {
-    myActivity = anActivity;
-    anActivity->setRootEntry( this );
-    myMaxPhase = 1;
+    _startActivity = anActivity;
+    anActivity->setEntry( this );
     return *this;
 }
 
@@ -733,12 +660,7 @@ Entry::setStartActivity( Activity * anActivity )
 double
 Entry::processorCalls() const
 {
-    double sum = 0.0;
-
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	sum += processorCalls( p );
-    }
-    return sum;
+    return for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::processorCalls ) ).sum();
 }
 
 
@@ -747,12 +669,11 @@ Entry::processorCalls() const
  * Clear replication variables for this pass.
  */
 
-void
+Entry&
 Entry::resetReplication()
 {
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	phase[p].resetReplication();
-    }
+    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
+    return *this;
 }
 
 
@@ -764,17 +685,12 @@ Entry::resetReplication()
 double
 Entry::computeCV_sqr() const
 {
-    double sum_S = 0.0;
-    double sum_V = 0.0;
-
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	sum_S += elapsedTime(p);
-	sum_V += variance(p);
-    }
+    const double sum_S = for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::elapsedTime ) ).sum();
 
     if ( !isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
+	const double sum_V = for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
 	return sum_V / square(sum_S);
     } else {
 	return 0.0;
@@ -798,13 +714,13 @@ double
 Entry::waitExcept( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
     const Task * aTask = dynamic_cast<const Task *>(owner());
-    const Thread * thread = aTask->getThread( submodel, k );
+    const unsigned ix = aTask->threadIndex( submodel, k );
 
-    if ( isStandardEntry() || submodel == 0 || thread == NULL ) {
-	return phase[p].waitExcept( submodel );			/* Elapsed time is by entry */
+    if ( isStandardEntry() || submodel == 0 || ix <= 1 ) {
+	return _phase[p].waitExcept( submodel );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return thread->waitExcept( submodel, p );
+	return aTask->waitExcept( ix, submodel, p );
     }
 }
 
@@ -820,13 +736,13 @@ double
 Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
     const Task * aTask = dynamic_cast<const Task *>(owner());
-    const Thread * thread = aTask->getThread( submodel, k );
+    const unsigned ix = aTask->threadIndex( submodel, k );
 
-    if ( isStandardEntry() || thread == NULL ) {
-	return phase[p].waitExceptChain( submodel, k );			/* Elapsed time is by entry */
+    if ( isStandardEntry() || ix <= 1 ) {
+	return _phase[p].waitExceptChain( submodel, k );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return thread->waitExceptChain( submodel, k, p );
+	return aTask->waitExceptChain( ix, submodel, k, p );
     }
 }
 
@@ -839,12 +755,7 @@ Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigne
 double
 Entry::utilization() const
 {
-    double sum = 0.0;
-
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	sum += utilization(p);
-    }
-    return sum;
+    return for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::utilization ) ).sum();
 }
 
 
@@ -877,10 +788,10 @@ Entry::sliceTime( const Entry& dst, Slice_Info slice[], double y_xj[] ) const
     slice[0].initialize( owner()->thinkTime() );
 
     /* Accumulate slice information. */
-		
+
     y_xj[0] = 0.0;
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	slice[p].initialize( phase[p], dst );
+	slice[p].initialize( _phase[p], dst );
 	y_xj[p] = slice[p].normalize();
 	y_xj[0] += y_xj[p];
     }
@@ -898,10 +809,10 @@ Entry::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
     unsigned max_depth = entryStack.size();
 
     if ( isActivityEntry() ) {
-	max_depth = max( myActivity->followInterlock( entryStack, globalCalls, 1 ), max_depth );
+	max_depth = max( _startActivity->followInterlock( entryStack, globalCalls, 1 ), max_depth );
     } else {
-	for ( unsigned p = 1; p <= myMaxPhase; ++p ) {
-	    max_depth = max( phase[p].followInterlock( entryStack, globalCalls, p ), max_depth );
+	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
+	    max_depth = max( _phase[p].followInterlock( entryStack, globalCalls, p ), max_depth );
 	}
     }
     return max_depth;
@@ -917,8 +828,8 @@ Entry::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
  */
 
 bool
-Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dstServer, 
-			    Cltn<const Entity *>& interlockedTasks ) const
+Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dstServer,
+			    std::set<const Entity *>& interlockedTasks ) const
 {
     bool found = false;
 
@@ -945,17 +856,17 @@ Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dst
     entryStack.push( this );
     if ( isStandardEntry() ) {
 	for ( unsigned p = 1; p <= last_phase; ++p ) {
-	    if ( phase[p].getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase ) ) {
+	    if ( _phase[p].getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase ) ) {
 		found = true;
 	    }
 	}
     } else if ( isActivityEntry() ) {
-	found = myActivity->getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase );
+	found = _startActivity->getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase );
     }
     entryStack.pop();
 
     if ( found && !headOfPath ) {
-	interlockedTasks += owner();
+	interlockedTasks.insert( owner() );
     }
 
     return found;
@@ -967,7 +878,7 @@ Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dst
  * This is an error!
  */
 
-bool 
+bool
 Entry::isReferenceTaskEntry() const
 {
     return owner() && owner()->isReferenceTask();
@@ -980,7 +891,7 @@ Entry::isReferenceTaskEntry() const
  */
 
 bool
-Entry::isInterlocked( const Entry * dstEntry ) const 
+Entry::isInterlocked( const Entry * dstEntry ) const
 {
     return _interlock[dstEntry->entryId()].all != 0.0;
 }
@@ -994,59 +905,61 @@ Entry::isInterlocked( const Entry * dstEntry ) const
 bool
 Entry::checkDroppedCalls() const
 {
-    bool rc = isfinite( openWait );
-
-    Sequence<Call *> nextCall( callerList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	rc = rc && ( !aCall->hasSendNoReply() || isfinite( aCall->wait() ) );
+    bool rc = isfinite( openWait() );
+    for ( std::set<Call *>::const_iterator call = callerList().begin(); call != callerList().end(); ++call ) {
+	rc = rc && ( !(*call)->hasSendNoReply() || isfinite( (*call)->wait() ) );
     }
     return rc;
 }
 
-void
+const Entry&
 Entry::insertDOMResults(double *phaseUtils) const
 {
     double totalPhaseUtil = 0.0;
-	
+
     /* Write the results into the DOM */
-    myDOMEntry->setResultThroughput(throughput())
+    const double throughput = this->throughput();		/* Used to compute utilization at activity entries */
+    _entryDOM->setResultThroughput(throughput)
 	.setResultThroughputBound(throughputBound());
-	
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	totalPhaseUtil += utilization(p);
-	phaseUtils[p-1] += utilization(p);
-		
-	if ( !isActivityEntry() && phaseIsPresent(p) ) {
-	    phase[p].insertDOMResults();
+
+    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	const double u = phase->utilization();
+	const unsigned p = phase - _phase.begin();
+	totalPhaseUtil += u;
+	phaseUtils[p] += u;
+
+	if ( !isActivityEntry() && phase->isPresent() ) {
+	    phase->insertDOMResults();
 	}
-    }		
-	
+    }
+
     /* Store the utilization and squared coeff of variation */
-    myDOMEntry->setResultUtilization(totalPhaseUtil)
+    _entryDOM->setResultUtilization(totalPhaseUtil)
 	.setResultProcessorUtilization(processorUtilization())
 	.setResultSquaredCoeffVariation(computeCV_sqr());
-	
+
     /* Store activity phase data */
-    if (isActivityEntry()) {	
+    if (isActivityEntry()) {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    myDOMEntry->setResultPhasePServiceTime(p,elapsedTime(p))
-		.setResultPhasePVarianceServiceTime(p,variance(p))
-		.setResultPhasePProcessorWaiting(p,queueingTime(p));
+	    const Phase& phase = _phase[p];
+	    const double service_time = phase.elapsedTime();
+	    _entryDOM->setResultPhasePServiceTime(p,service_time)
+		.setResultPhasePVarianceServiceTime(p,phase.variance())
+		.setResultPhasePProcessorWaiting(p,phase.queueingTime())
+		.setResultPhasePUtilization(p,service_time * throughput);
 	    /*+ BUG 675 */
-	    if ( myDOMEntry->hasHistogramForPhase( p ) ) {
-		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(myDOMEntry->getHistogramForPhase( p )), elapsedTime(p), variance(p) );
+	    if ( _entryDOM->hasHistogramForPhase( p ) || _entryDOM->hasMaxServiceTimeExceededForPhase( p ) ) {
+		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(_entryDOM->getHistogramForPhase( p )), phase.elapsedTime(), phase.variance() );
 	    }
 	    /*- BUG 675 */
 	}
     }
-	
+
     /* Do open arrival rates... */
     if ( hasOpenArrivals() ) {
-	myDOMEntry->setResultWaitingTime(openWait);
+	_entryDOM->setResultWaitingTime(openWait());
     }
-	
+    return *this;
 }
 
 
@@ -1069,8 +982,8 @@ Entry::printSubmodelWait( ostream& output, const unsigned offset ) const
 	    output << " ";
 	}
 	output << " " << setw(1) << p << "  ";
-	for ( unsigned j = 1; j <= phase[p].myWait.size(); ++j ) {
-	    output << setw(8) << phase[p].myWait[j];
+	for ( unsigned j = 1; j <= _phase[p].myWait.size(); ++j ) {
+	    output << setw(8) << _phase[p].myWait[j];
 	}
 	output << endl;
     }
@@ -1079,19 +992,17 @@ Entry::printSubmodelWait( ostream& output, const unsigned offset ) const
 
 /* --------------------------- Dynamic LQX  --------------------------- */
 
-void Entry::recalculateDynamicValues()
+Entry&
+Entry::recalculateDynamicValues()
 {
-    double sum = 0.0;
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	phase[p].recalculateDynamicValues();
-	sum += phase[p].serviceTime();
-    }
-	
-    total.setServiceTime( sum );
+    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
+    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
     sanityCheckParameters();
+    return *this;
 }
 
-void Entry::sanityCheckParameters()
+Entry&
+Entry::sanityCheckParameters()
 {
     /*
      * After we have finished recalculating we need to make sure once again that any of the dynamic
@@ -1102,55 +1013,42 @@ void Entry::sanityCheckParameters()
      *   2. Open Arrival Rate
      *
      */
-	
+
     /* Make sure the open arrival rate is sane for the setup */
-    if ( myDOMEntry && myDOMEntry->hasOpenArrivalRate() ) {
-	if ( this->owner()->isReferenceTask() ) {
-	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, this->owner()->name(), this->name() );
+    if ( _entryDOM && _entryDOM->hasOpenArrivalRate() ) {
+	if ( owner()->isReferenceTask() ) {
+	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, owner()->name().c_str(), name().c_str() );
 	}
     }
-}
-
-/* --------------------------- Task Entries --------------------------- */
-
-/*
- * Set the entry owner to aTask.
- */
-
-Entry&
-TaskEntry::owner( const Entity * aTask )
-{
-    myTask = aTask;
     return *this;
 }
-
+
+/* --------------------------- Task Entries --------------------------- */
 
 /*
  * Initialize processor waiting time, variance and priority
  */
 
-void
+TaskEntry&
 TaskEntry::initProcessor()
 {
     if ( isStandardEntry() ) {
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    phase[p].initProcessor();
-	}
+	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initProcessor ) );
     }
+    return *this;
 }
 
 
 
 /*
- * Set up waiting times for calls to subordinate tasks.  
+ * Set up waiting times for calls to subordinate tasks.
  */
 
-void
+TaskEntry&
 TaskEntry::initWait()
 {
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	phase[p].initWait();
-    }
+    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initWait ) );
+    return *this;
 }
 
 
@@ -1163,24 +1061,24 @@ TaskEntry::initWait()
 double
 TaskEntry::processorCalls( const unsigned p ) const
 {
-    return phase[p].processorCalls();
+    return _phase[p].processorCalls();
 }
 
 
 
 /*
  * Return utilization (not including "other" service).
- * For activity entries, serviceTime() was computed in configure(). 
+ * For activity entries, serviceTime() was computed in configure().
  */
 
 double
 TaskEntry::processorUtilization() const
 {
-    const Processor * aProc = owner()->processor();
+    const Processor * aProc = owner()->getProcessor();
     const double util = isfinite( throughput() ) ? throughput() * serviceTime() : 0.0;
 
     /* Adjust for processor rate */
-	
+
     if ( aProc ) {
 	return util * owner()->replicas() / ( aProc->rate() * aProc->replicas() );
     } else {
@@ -1198,13 +1096,9 @@ double
 TaskEntry::queueingTime( const unsigned p ) const
 {
     if ( isStandardEntry() ) {
-
-	return phase[p].queueingTime();
-
+	return _phase[p].queueingTime();
     } else {
-
 	return 0.0;
-
     }
 }
 
@@ -1214,44 +1108,39 @@ TaskEntry::queueingTime( const unsigned p ) const
  * Compute the variance for this entry.
  */
 
-void
-TaskEntry::computeVariance() 
+TaskEntry&
+TaskEntry::computeVariance()
 {
-    total.myVariance = 0.0;
+    _total.myVariance = 0.0;
     if ( isActivityEntry() ) {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    phase[p].myVariance = 0.0;
+	    _phase[p].myVariance = 0.0;
 	}
 
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push( const_cast<TaskEntry *>(this) );
 	unsigned next_p;
-	myActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateWait );
+	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateWait );
 	entryStack.pop();
-
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    total.myVariance += phase[p].variance();
-	}
+	_total.myVariance += for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
     } else {
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    total.myVariance += phase[p].computeVariance();
-	}
+	_total.myVariance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
     }
-    if ( flags.trace_variance && dynamic_cast<TaskEntry *>(this) ) {
+    if ( flags.trace_variance && dynamic_cast<TaskEntry *>(this) != NULL ) {
 	cout << "Variance(" << name() << ",p) ";
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    cout << ( p == 1 ? " = " : ", " ) << variance(p);
+	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    cout << ( phase == _phase.begin() ? " = " : ", " ) << phase->variance();
 	}
 	cout << endl;
     }
-    
+    return *this;
 }
 
 
 
 /*
  * Calculate total wait for a particular submodel and save.  Return
- * the difference between this pass and the previous.  
+ * the difference between this pass and the previous.
  */
 
 TaskEntry&
@@ -1262,54 +1151,54 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     /* Open arrivals first... */
 
-    if ( nextOpenWait > 0.0 ) {
-	under_relax( openWait, nextOpenWait, relax );
+    if ( _nextOpenWait > 0.0 ) {
+	under_relax( _openWait, _nextOpenWait, relax );
     }
 
     /* Scan calls to other task for matches with submodel. */
-	
-    total.myWait[submodel] = 0.0;
+
+    _total.myWait[submodel] = 0.0;
 
     if ( isActivityEntry() ) {
 
-	for ( unsigned p = 1; p <= 2; ++p ) {
-	    phase[p].myWait[submodel] = 0.0;
+	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    phase->myWait[submodel] = 0.0;
 	}
 
 	if ( flags.trace_activities ) {
 	    cout << "--- AggreateWait for entry " << name() << " ---" << endl;
 	}
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push( this );
 	unsigned next_p;
-	myActivity->aggregate( entryStack, 0, submodel, 1, next_p, &Activity::aggregateWait );
+	_startActivity->aggregate( entryStack, 0, submodel, 1, next_p, &Activity::aggregateWait );
 
-	for ( unsigned p = 1; p <= 2; ++p ) {
-	    total.myWait[submodel] += phase[p].myWait[submodel];
+	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    _total.myWait[submodel] += phase->myWait[submodel];
 	}
 	if ( flags.trace_delta_wait || flags.trace_activities ) {
-	    cout << "--DW--  Entry(with Activities) " << name() 
+	    cout << "--DW--  Entry(with Activities) " << name()
 		 << ", submodel " << submodel << endl;
 	    cout << "        Wait=";
-	    for ( unsigned p = 1; p <= 2; ++p ) {
-		cout << phase[p].myWait[submodel] << " ";
+	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+		cout << phase->myWait[submodel] << " ";
 	    }
 	    cout << endl;
 	}
-	    
+
     } else {
 
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    phase[p].updateWait( aSubmodel, relax );
+	for ( Vector<Phase>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	    phase->updateWait( aSubmodel, relax );
 
-	    if ( !phaseIsPresent(p) && phase[p].myWait[submodel] > 0.0 ) {
+	    if ( !phase->isPresent() && phase->myWait[submodel] > 0.0 ) {
 		throw logic_error( "TaskEntry::updateWait" );
 	    }
 
-	    total.myWait[submodel] += phase[p].myWait[submodel];
+	    _total.myWait[submodel] += phase->myWait[submodel];
 	}
     }
-	
+
     return *this;
 }
 
@@ -1325,19 +1214,14 @@ Entry&
 Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& addend )
 {
     if ( submodel ) {
-	
-	phase[p].myWait[submodel] += addend.mean();
-    }
-    else if  (addend.variance() > 0.0 ) { //two-phase quorum semantics. If the replying activity
-	//is inside the quorum fork-join, then the difference in variance when calculating 
+	_phase[p].myWait[submodel] += addend.mean();
+    } else if  (addend.variance() > 0.0 ) { //two-phase quorum semantics. If the replying activity
+	//is inside the quorum fork-join, then the difference in variance when calculating
 	//phase 2 variance can be negative.
-    
-	phase[p].myVariance += addend.variance();
-   
-	//phase[p].myVariance += addend.variance();
 
+	_phase[p].myVariance += addend.variance();
     }
-	
+
     if (flags.trace_quorum) {
 	cout << "\nEntry::aggregate(): submodel=" << submodel <<", entry " << name() << endl;
 	cout <<" addend.mean()=" << addend.mean() <<", addend.variance()="<<addend.variance()<< endl;
@@ -1350,7 +1234,7 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
 
 /* BUG_1
  * Calculate total wait for a particular submodel and save.  Return
- * the difference between this pass and the previous.  
+ * the difference between this pass and the previous.
  */
 
 double
@@ -1358,24 +1242,16 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 {
     double delta = 0.0;
     if ( isActivityEntry() ) {
+	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
 
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    phase[p].mySurrogateDelay = 0.0;
-	}
-
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push( this );
 	unsigned next_p;
-	myActivity->aggregate( entryStack, 0, aSubmodel.number(), 1, next_p, &Activity::aggregateReplication );
+	_startActivity->aggregate( entryStack, 0, aSubmodel.number(), 1, next_p, &Activity::aggregateReplication );
 
     } else {
-
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    
-	    delta   += phase[p].updateWaitReplication( aSubmodel );
-		 
-	    n_delta += 1;
-	}
+	delta = for_each( _phase.begin(), _phase.end(), ExecSum1<Phase,double,const Submodel&>( &Phase::updateWaitReplication, aSubmodel )).sum();
+	n_delta += _phase.size();
     }
     return delta;
 }
@@ -1389,7 +1265,7 @@ Entry&
 Entry::aggregateReplication( const Vector< VectorMath<double> >& addend )
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	phase[p].mySurrogateDelay += addend[p];
+	_phase[p]._surrogateDelay += addend[p];
     }
     return *this;
 }
@@ -1401,22 +1277,28 @@ Entry::aggregateReplication( const Vector< VectorMath<double> >& addend )
  * See Call::setVisits and Call::saveWait
  */
 
-void
+const Entry&
 Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k ) const
 {
     const double rate = prVisit();
 
-    Stack<const Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() ); 
+    Stack<const Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
     entryStack.push( this );
 
     if ( isActivityEntry() ) {
-	myActivity->callsPerform( entryStack, 0, submodel, k, 1, aFunc, rate );
+	/* since 'rate=prVisit()' is only for call::setvisit;
+	 * for a virtual entry, the throughput of its corresponding activity
+	 * is used to calculation entry throughput not the throughput of its owner task.
+	 * the visit of a call equals rate * rendenzvous() normally;
+	 * therefore, rate has to be set to 1.*/
+	_startActivity->callsPerform( entryStack, 0, submodel, k, 1, aFunc, rate );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    phase[p].callsPerform( entryStack, 0, submodel, k, p, aFunc, rate );
+	    _phase[p].callsPerform( entryStack, 0, submodel, k, p, aFunc, rate );
 	}
     }
     entryStack.pop();
+    return *this;
 }
 
 /* -------------------------- Device Entries -------------------------- */
@@ -1435,25 +1317,26 @@ DeviceEntry::DeviceEntry( LQIO::DOM::Entry* domEntry, const unsigned id, Process
 
 DeviceEntry::~DeviceEntry()
 {
-    LQIO::DOM::Phase* phaseDom = myDOMEntry->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
     const LQIO::DOM::ExternalVariable* serviceTime = phaseDom->getServiceTime();
     if ( serviceTime ) delete const_cast<LQIO::DOM::ExternalVariable *>(serviceTime);
     const LQIO::DOM::ExternalVariable* cv_square   = phaseDom->getCoeffOfVariationSquared();
     if ( cv_square ) delete const_cast<LQIO::DOM::ExternalVariable *>(cv_square);
-    const LQIO::DOM::ExternalVariable* priority    = myDOMEntry->getEntryPriority();
+    const LQIO::DOM::ExternalVariable* priority    = _entryDOM->getEntryPriority();
     if ( priority ) delete const_cast<LQIO::DOM::ExternalVariable *>(priority);
-    delete myDOMEntry;
-    myDOMEntry = 0;
+    delete _entryDOM;
+    _entryDOM = 0;
 }
 
 /*
  * Initialize processor waiting time, variance and priority
  */
 
-void
+DeviceEntry&
 DeviceEntry::initProcessor()
 {
     throw should_not_implement( "DeviceEntry::initProcessor", __FILE__, __LINE__ );
+    return *this;
 }
 
 
@@ -1462,14 +1345,15 @@ DeviceEntry::initProcessor()
  * Initialize savedWait fields.
  */
 
-void
+DeviceEntry&
 DeviceEntry::initWait()
 {
     const unsigned i  = owner()->submodel();
-    const double time = serviceTime(1);
+    const double time = _phase[1].serviceTime();
 
-    phase[1].myWait[i] = time;
-    total.myWait[i] = time;
+    _phase[1].myWait[i] = time;
+    _total.myWait[i] = time;
+    return *this;
 }
 
 
@@ -1478,10 +1362,11 @@ DeviceEntry::initWait()
  * so computeVariance() at the entry level is a NOP.  However, we still need to initialize it.
  */
 
-void
+DeviceEntry&
 DeviceEntry::initVariance()
 {
-    phase[1].initVariance();
+    _phase[1].initVariance();
+    return *this;
 }
 
 
@@ -1489,7 +1374,7 @@ DeviceEntry::initVariance()
  * Set the entry owner to aTask.
  */
 
-Entry&
+DeviceEntry&
 DeviceEntry::owner( const Entity * )
 {
     throw should_not_implement( "DeviceEntry::owner", __FILE__, __LINE__ );
@@ -1504,7 +1389,7 @@ DeviceEntry::owner( const Entity * )
 DeviceEntry&
 DeviceEntry::setServiceTime( const double service_time )
 {
-    LQIO::DOM::Phase* phaseDom = myDOMEntry->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
     phaseDom->setServiceTime(new LQIO::DOM::ConstantExternalVariable(service_time/dynamic_cast<const Processor *>(myProcessor)->rate()));
     setDOM(1, phaseDom );
     return *this;
@@ -1514,7 +1399,7 @@ DeviceEntry::setServiceTime( const double service_time )
 DeviceEntry&
 DeviceEntry::setCV_sqr( const double cv_square )
 {
-    LQIO::DOM::Phase* phaseDom = myDOMEntry->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
     phaseDom->setCoeffOfVariationSquaredValue(cv_square);
     return *this;
 }
@@ -1523,7 +1408,7 @@ DeviceEntry::setCV_sqr( const double cv_square )
 DeviceEntry&
 DeviceEntry::setPriority( const int priority )
 {
-    myDOMEntry->setEntryPriority( new LQIO::DOM::ConstantExternalVariable( priority ) );
+    _entryDOM->setEntryPriority( new LQIO::DOM::ConstantExternalVariable( priority ) );
     return *this;
 }
 
@@ -1600,8 +1485,8 @@ DeviceEntry::queueingTime( const unsigned ) const
  * Create a fake DOM Entry as a place holder.
  */
 
-VirtualEntry::VirtualEntry( const Activity * anActivity ) 
-    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name()), 0, anActivity->owner()->nEntries() )
+VirtualEntry::VirtualEntry( const Activity * anActivity )
+    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name().c_str()), 0, anActivity->owner()->nEntries() )
 {
     owner( anActivity->owner() );
 }
@@ -1613,8 +1498,8 @@ VirtualEntry::VirtualEntry( const Activity * anActivity )
 
 VirtualEntry::~VirtualEntry()
 {
-    delete myDOMEntry;
-    myDOMEntry = 0;
+    delete _entryDOM;
+    _entryDOM = 0;
 }
 
 
@@ -1625,8 +1510,7 @@ VirtualEntry::~VirtualEntry()
 Entry&
 VirtualEntry::setStartActivity( Activity * anActivity )
 {
-    myActivity = anActivity;
-    myMaxPhase = 1;
+    _startActivity = anActivity;
     return *this;
 }
 
@@ -1634,18 +1518,18 @@ static bool
 map_entry_name( const char * entry_name, Entry * & outEntry, bool receiver, const entry_type aType = ENTRY_NOT_DEFINED )
 {
     bool rc = true;
-    outEntry   = Entry::find( entry_name );
-	
+    outEntry = Entry::find( entry_name );
+
     if ( !outEntry ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
 	rc = false;
     } else if ( receiver && outEntry->isReferenceTaskEntry() ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name(), entry_name );
+	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name().c_str(), entry_name );
 	rc = false;
     } else if ( aType != ENTRY_NOT_DEFINED && !outEntry->entryTypeOk( aType ) ) {
 	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name );
     }
-	
+
     return rc;
 }
 
@@ -1659,7 +1543,7 @@ CallInfoItem::CallInfoItem( const Entry * src, const Entry * dst )
     : source( src ), destination( dst )
 {
     if ( src == 0 || dst == 0 ) throw logic_error( "CallInfoItem::CallInfoItem" );
-	
+
     for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	phase[p] = 0;
     }
@@ -1668,17 +1552,7 @@ CallInfoItem::CallInfoItem( const Entry * src, const Entry * dst )
 
 
 /*
- * Clear record.
- */
-
-CallInfoItem::~CallInfoItem()
-{
-    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	phase[p] = 0;
-    }
-}
-
-/*
+ *
  */
 
 bool
@@ -1746,65 +1620,41 @@ CallInfoItem::isProcessorCall() const
  * Create a collection so that the () operator can step over it.
  */
 
-CallInfo::CallInfo( const Entry * anEntry, const unsigned callType )
-    : index(1)
+CallInfo::CallInfo( const Entry& anEntry, const unsigned callType )
+    : _calls()
 {
-    if ( !anEntry->isStandardEntry() ) return;
+    if ( !anEntry.isStandardEntry() ) return;
 
-    for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
-	Sequence<Call *> nextCall( anEntry->callList( p ) );
-	const Call * aCall;
+    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
+	const std::set<Call *>& callList = anEntry.callList( p );
+	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
+	    if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() ) continue;
 
-	while ( aCall = nextCall() ) {
-	    if ( aCall->isProcessorCall() || aCall->dstEntry()->owner()->isProcessor() ) continue;
-
-	    if ( (    (callType & Call::SEND_NO_REPLY_CALL) && aCall->hasSendNoReply() )
-		 || ( (callType & Call::FORWARDED_CALL) && aCall->isForwardedCall() )
-//		 || ( (callType & Call::FORWARDED_CALL) && aCall->hasForwarding() )
-		 || ( (callType & Call::RENDEZVOUS_CALL) && aCall->hasRendezvous() && !aCall->isForwardedCall() ) 
-		 || ( (callType & Call::OVERTAKING_CALL) && aCall->hasOvertaking() && !aCall->isForwardedCall() ) 
+	    if ( (    (callType & Call::SEND_NO_REPLY_CALL) && (*call)->hasSendNoReply() )
+		 || ( (callType & Call::FORWARDED_CALL) && (*call)->isForwardedCall() )
+//		 || ( (callType & Call::FORWARDED_CALL) && (*call)->hasForwarding() )
+		 || ( (callType & Call::RENDEZVOUS_CALL) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
+		 || ( (callType & Call::OVERTAKING_CALL) && (*call)->hasOvertaking() && !(*call)->isForwardedCall() )
 		) {
 
-		Sequence<CallInfoItem *> nextItem( itemCltn );
-		CallInfoItem * item;
-
-		while ( (item = nextItem()) && item->dstEntry() != aCall->dstEntry() ) ;	/* Look for matching dst. */
-
-		if ( !item ) {
-		    item = new CallInfoItem( anEntry, aCall->dstEntry() );		// !change me!
-		    itemCltn << item;
+		std::vector<CallInfoItem>::iterator item = find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
+		if ( item == _calls.end() ) {
+		    _calls.push_back( CallInfoItem( &anEntry, (*call)->dstEntry() ) );
+		    _calls.back().phase[p] = (*call);
 		} else if ( item->phase[p] ) {
-		    if ( item->phase[p]->isForwardedCall() && aCall->hasRendezvous() ) {
-			item->phase[p] = aCall;	/* Drop forward -- keep rnv */
+		    if ( item->phase[p]->isForwardedCall() && (*call)->hasRendezvous() ) {
+			item->phase[p] = (*call);	/* Drop forward -- keep rnv */
 			continue;
-		    } else if ( item->phase[p]->hasRendezvous() && aCall->isForwardedCall() ) {
+		    } else if ( item->phase[p]->hasRendezvous() && (*call)->isForwardedCall() ) {
 			continue;
 		    } else {
 			LQIO::internal_error( __FILE__, __LINE__, "CallInfo::CallInfo" );
 		    }
+		} else {
+		    item->phase[p] = (*call);
 		}
-			
-		item->phase[p] = aCall;
 	    }
 	}
-    }
-}
-
-
-CallInfo::~CallInfo()
-{ 
-    itemCltn.deleteContents(); 
-}
-
-
-CallInfoItem *
-CallInfo::operator()()
-{
-    if ( index <= itemCltn.sz ) {
-	return itemCltn.ia[index++];
-    } else {
-	index = 1;
-	return 0;
     }
 }
 
@@ -1816,45 +1666,45 @@ Entry *
 Entry::create(LQIO::DOM::Entry* domEntry, unsigned int index )
 {
     const char* entry_name = domEntry->getName().c_str();
-	
-    set<Entry *,ltEntry>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( entry_name ) );
-    if ( nextEntry != entry.end() ) {
+
+    std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
+    if ( nextEntry != Model::__entry.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
 	return 0;
     } else {
-	Entry * anEntry = new TaskEntry( domEntry, entry.size() + 1, index );
-	entry.insert( anEntry );
-	
+	Entry * anEntry = new TaskEntry( domEntry, Model::__entry.size() + 1, index );
+	Model::__entry.insert( anEntry );
+
 	/* Make sure that the entry type is set properly for all entries */
 	if (anEntry->entryTypeOk(static_cast<const entry_type>(domEntry->getEntryType())) == false) {
-	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, domEntry->getName().c_str() );
+	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name );
 	}
-		
+
 	/* Set field width for entry names. */
-		
+
 	return anEntry;
     }
 }
 
-void 
-Entry::add_call( const unsigned p, LQIO::DOM::Call* domCall )
+void
+Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
 {
     /* Make sure this is one of the supported call types */
-    if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
+    if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY &&
 	domCall->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
 	domCall->getCallType() != LQIO::DOM::Call::QUASI_RENDEZVOUS) {
 	abort();
     }
-	
+
     LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
     const char* to_entry_name = toDOMEntry->getName().c_str();
 
     /* Internal Entry references */
     Entry * toEntry;
-	
+
     /* Begin by mapping the entry names to their entry types */
     if ( !entryTypeOk(STANDARD_ENTRY) ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name() );
+	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name().c_str() );
     } else if ( map_entry_name( to_entry_name, toEntry, true ) ) {
 	if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
 	    rendezvous( toEntry, p, domCall );
@@ -1869,7 +1719,7 @@ Entry::setForwardingInformation( Entry* toEntry, LQIO::DOM::Call * call )
 {
     /* Do some checks for sanity */
     if ( owner()->isReferenceTask() ) {
-	LQIO::input_error2( LQIO::ERR_REF_TASK_FORWARDING, owner()->name(), name() );
+	LQIO::input_error2( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
     } else if ( forward( toEntry ) > 0.0 ) {
 	LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
     } else {
@@ -1879,57 +1729,30 @@ Entry::setForwardingInformation( Entry* toEntry, LQIO::DOM::Call * call )
 }
 
 
-void 
+void
 set_start_activity (Task* newTask, LQIO::DOM::Entry* theDOMEntry)
 {
-    Activity* activity = newTask->findActivity(theDOMEntry->getStartActivity()->getName().c_str());
+    Activity* activity = newTask->findActivity(theDOMEntry->getStartActivity()->getName());
     Entry* realEntry = NULL;
-	
+
     map_entry_name( theDOMEntry->getName().c_str(), realEntry, false, ACTIVITY_ENTRY );
     realEntry->setStartActivity(activity);
-    activity->setRootEntry(realEntry);
+    activity->setEntry(realEntry);
 }
 
 /* ---------------------------------------------------------------------- */
 
 /*
- * Find the entry and return it.  
+ * Find the entry and return it.
  */
 
 /* static */ Entry *
 Entry::find( const string& entry_name )
 {
-    std::set<Entry *,ltEntry>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( entry_name ) );
-    if ( nextEntry == entry.end() ) {
+    std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
+    if ( nextEntry == Model::__entry.end() ) {
 	return 0;
     } else {
 	return *nextEntry;
     }
 }
-
-
-static ostream&
-entries_of_str( ostream& output, const Cltn<Entry *>& entryList )
-{
-    Sequence<Entry *> nextEntry(entryList);
-    const Entry * anEntry;
-    string aString;
-
-    for ( unsigned i = 0; anEntry = nextEntry(); ++i ) {
-	if ( i > 0 ) {
-	    aString += ", ";
-	}
-	aString += anEntry->name();
-    }
-    output << aString;
-    return output;
-}
-
-
-SRVNEntryListManip
-print_entries( const Cltn<Entry *>& entryList )
-{
-    return SRVNEntryListManip( entries_of_str, entryList );
-}
-
-

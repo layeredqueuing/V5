@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: testmva.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -176,6 +176,9 @@ int main (int argc, char *argv[])
 	solver_set = LINEARIZER_SOLVER_BIT;
     }
 
+
+
+
     if ( optind != argc ) {
 	cerr << "Arg count." << endl;
     }
@@ -220,15 +223,9 @@ run( const unsigned solver_set, const unsigned special )
 	}
     }
 
-    for ( unsigned i = 0; i <= 3; ++i ) {
+    for ( unsigned i = 0; i <= BARD_SCHWEITZER_SOLVER; ++i ) {
 	if ( (1 << i) & solver_set ) {
-	    try {
-		ok = ok && doIt( (solverId)i, Q, N, Z, priority, special );
-	    }
-	    catch ( not_implemented& error ) {
-		cerr << error.what() << endl;
-		ok = false;
-	    }
+	    ok = doIt( (solverId)i, Q, N, Z, priority, special ) && ok;
 	}
     }
 
@@ -250,6 +247,7 @@ static const char * names[] =
     "Linearizer",
     "Fast Linearizer",
     "Bard-Schweitzer",
+    "Experimental",
 };
 
 static bool
@@ -287,6 +285,10 @@ doIt( solverId solver, Vector<Server *>& Q, const Population & N, const VectorMa
     }
     catch ( floating_point_error& error ) {
 	cerr << "floating point error - " << error.what() << endl;
+	ok = false;
+    }
+    catch ( not_implemented& error ) {
+	cerr << error.what() << endl;
 	ok = false;
     }
     catch ( exception_handled& error ) {

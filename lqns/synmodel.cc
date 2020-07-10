@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: synmodel.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -13,7 +13,6 @@
 #include <string.h>
 #include <cmath>
 #include "fpgoop.h"
-#include "cltn.h"
 #include "submodel.h"
 #include "synmodel.h"
 #include "lqns.h"
@@ -32,35 +31,15 @@ SynchSubmodel::~SynchSubmodel()
 {
 }
 	       
-void
-SynchSubmodel::initClients( const Model& )
-{
-}
-
-
-
 /*
  * Prune join paths to find sync points.
  */
 
-void
+SynchSubmodel&
 SynchSubmodel::initServers( const Model& aSolver )
 {
     Submodel::initServers( aSolver );
-}
-
-
-
-void
-SynchSubmodel::initInterlock()
-{
-}
-
-
-
-void
-SynchSubmodel::build()
-{
+    return *this;
 }
 
 
@@ -73,7 +52,7 @@ SynchSubmodel::build()
 SynchSubmodel&
 SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
-    MVAStats.start( nChains(), servers.size() );
+    MVAStats.start( nChains(), _servers.size() );
 
     const bool trace = flags.trace_mva && (flags.trace_submodel == 0 || flags.trace_submodel == number() );
 	
@@ -88,14 +67,11 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		
     /* Delta Wait will re-compute the join delay */
 
-    Sequence<Task *> nextClient( clients );
-    Task * aClient;
-
-    while ( aClient = nextClient() ) {
+    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	if ( !pragma.init_variance_only() ) {
-	    aClient->computeVariance();
+	    (*client)->computeVariance();
 	}
-	aClient->updateWait( *this, relax );
+	(*client)->updateWait( *this, relax );
     }
 	
     MVAStats.accumulate( 0, 0, 0 );
@@ -119,22 +95,17 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 ostream&
 SynchSubmodel::printSyncModel( ostream& output ) const
 {
-    Sequence<Task *> nextClient( clients );
-    Sequence<Entity *> nextServer( servers );
-
     unsigned stnNo = 1;
 
-    Task * aClient;
-    while ( aClient = nextClient() ) {
-	output << "[" << stnNo << "] " << *aClient
-	       << print_client_chains( *aClient, number() ) << endl;
+    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	output << "[" << stnNo << "] " << **client
+	       << Task::print_client_chains( **client, number() ) << endl;
 	stnNo += 1;
     }
 
-    Entity * aServer;
-    while ( aServer = nextServer() ) {
-	output << "[" << stnNo << "] " << *aServer << endl;
-	aServer->printJoinDelay( output );
+    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
+	output << "[" << stnNo << "] " << **server << endl;
+	(*server)->printJoinDelay( output );
 	output << endl;
 	stnNo += 1;
     }
@@ -153,10 +124,8 @@ SynchSubmodel::print( ostream& output ) const
     output << "----------------------- Submodel  " << number() << " -----------------------" << endl
 	   << "Servers: " << endl;
 
-    Sequence<Entity *> nextServer(servers);
-    const Entity * aServer;
-    while ( aServer = nextServer() ) {
-	output << "  " << *aServer;
+    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
+	output << "  " << *(*server);
     }
     output << endl;
     return output;

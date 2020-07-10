@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: interlock.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,8 +18,7 @@
 #define	INTERLOCK_H
 
 #include "dim.h"
-#include "cltn.h"
-
+#include <set>
 class Interlock;
 class InterlockInfo;
 class Entry;
@@ -43,6 +42,32 @@ public:
 /* --------------------------- Interlocker. --------------------------- */
 
 class Interlock {
+private:
+    template <typename Type> static std::set<Type>
+    intersection( const std::set<Type>& set1, const std::set<Type>& set2 )
+	{
+	    std::set<Type> result;
+	    typename std::set<Type>::const_iterator item;
+	    for ( item = set1.begin(); item != set1.end(); ++item ) {
+		if ( set2.find( *item ) != set2.end() )
+		    result.insert( *item );
+	    }
+	    return result;
+	}
+
+    template <typename Type> static std::set<Type>
+    difference( const std::set<Type>& minuend, const std::set<Type>& subtrahend )
+	{
+	    std::set<Type> difference;
+	    typename std::set<Type>::const_iterator item;
+	    for ( item = minuend.begin(); item != minuend.end(); ++item ) {
+		if ( subtrahend.find( *item ) == subtrahend.end() ) {
+		    difference.insert( *item );
+		}
+	    }
+	    return difference;
+	}
+
 
 public:
     Interlock( const Entity * aServer );
@@ -52,7 +77,7 @@ public:
 
     ostream& print( ostream& output ) const;
     double interlockedFlow( const Task& viaTask ) const;
-    
+
     static ostream& printPathTable( ostream& output );
 
 private:
@@ -66,19 +91,21 @@ private:
     void findParentEntries( const Entry&, const Entry& );
 
     bool isBranchPoint( const Entry& srcX, const Entry& entryA, const Entry& srcY, const Entry& entryB ) const;
-    bool getInterlockedTasks( const int headOfPath, const Entry *, Cltn<const Entity *>& interlockedTasks ) const; 
-    unsigned countSources( const Cltn<const Entity *>& );
-	
+    bool getInterlockedTasks( const int headOfPath, const Entry *, std::set<const Entity *>& interlockedTasks ) const; 
+    unsigned countSources( const std::set<const Entity *>& );
+
 private:
-    Cltn<const Entry *> commonEntry;		/* common source entries	*/
-    Cltn<const Entity *> allSourceTasks;	/* Phase 1+ sources.		*/
-    Cltn<const Entity *> ph2SourceTasks;	/* Phase 2+ sources.		*/
+    std::set<const Entry *> commonEntries;	/* common source entries	*/
+    std::set<const Entity *> allSourceTasks;	/* Phase 1+ sources.		*/
+    std::set<const Entity *> ph2SourceTasks;	/* Phase 2+ sources.		*/
     const Entity * myServer;			/* My server.			*/
     unsigned sources;
 };
 
+inline ostream& operator<<( ostream& output, const Interlock& self) { return self.print( output ); }
 
 InterlockInfo& operator+=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo& operator-=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo operator*( const InterlockInfo&, double );
+bool operator>( const InterlockInfo&, double  );
 #endif

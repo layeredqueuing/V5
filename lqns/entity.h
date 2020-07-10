@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13547 2020-05-21 02:22:16Z greg $
+ * $Id: entity.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,10 +18,10 @@
 #define ENTITY_H
 
 #include "dim.h"
+#include <vector>
 #include <lqio/input.h>
 #include <lqio/dom_processor.h>
 #include "vector.h"
-#include "cltn.h"
 #include "prob.h"
 
 class CallStack;
@@ -46,11 +46,41 @@ int operator==( const Entity&, const Entity& );
 /* ----------------------- Abstract Superclass ------------------------ */
 
 class Entity {
-    friend class Model;
     friend class Generate;
 
 public:
-    Entity( LQIO::DOM::Entity* domVersion, Cltn<Entry *>* entries = 0);
+    /*
+     * Compare two entities by their submodel. 
+     */
+
+    struct LT
+    {
+	bool operator()(const Entity * e1, const Entity * e2) const {
+#if 1
+	    return (e1->submodel() < e2->submodel()) 
+		|| (e1->getDOM() && (!e2->getDOM() || e1->getDOM()->getSequenceNumber() < e2->getDOM()->getSequenceNumber() ));
+#else
+	    return (e1->submodel() < e2->submodel())
+		|| e1->isTask() && e2->isProcessor()
+		|| (e1->getDOM() && (!e2->getDOM() || e1->getDOM()->getName() < e2->getDOM()->getName() ));
+#endif
+	}
+    };
+
+
+private:
+    class SRVNManip {
+    public:
+	SRVNManip( ostream& (*f)(ostream&, const Entity & ), const Entity & entity ) : _f(f), _entity(entity) {}
+    private:
+	ostream& (*_f)( ostream&, const Entity& );
+	const Entity & _entity;
+
+	friend ostream& operator<<(ostream & os, const SRVNManip& m ) { return m._f(os,m._entity); }
+    };
+
+public:
+    Entity( LQIO::DOM::Entity* domVersion, const std::vector<Entry *>& entries );
     virtual ~Entity();
 
 private:
@@ -60,7 +90,8 @@ private:
 public:
     /* Initialization */
 
-    virtual void configure( const unsigned );
+    virtual bool check() const = 0;
+    virtual Entity& configure( const unsigned );
     virtual unsigned findChildren( CallStack&, const bool ) const;
     virtual Entity& initWait();
     virtual Entity& initThroughputBound() { return *this; }
@@ -70,18 +101,17 @@ public:
 	
     /* Instance Variable Access */
 	   
+    virtual LQIO::DOM::Entity * getDOM() const { return _dom; }
     virtual int priority() const { return 0; }
     virtual Entity& priority( const int ) { return *this; }
-    virtual const Processor * processor() const = 0;
-    virtual Entity& processor( Processor * aProcessor ) = 0;
-    virtual scheduling_type scheduling() const { return domEntity->getSchedulingType(); }
+    virtual scheduling_type scheduling() const { return getDOM()->getSchedulingType(); }
     virtual unsigned copies() const;
-    virtual Entity& replicas( const unsigned );
     virtual unsigned replicas() const;
     double population() const { return myPopulation; }
     virtual double variance() const { return myVariance; }
-    unsigned submodel() const { return mySubmodel; }
-    Entity& setSubmodel( const unsigned submodel ) { mySubmodel = submodel; return *this; }
+    virtual const Processor * getProcessor() const { return 0; }
+    unsigned submodel() const { return _submodel; }
+    Entity& setSubmodel( const unsigned submodel ) { _submodel = submodel; return *this; }
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return myThinkTime; }
     virtual Entity& setOverlapFactor( const double ) { return *this; }
 
@@ -96,15 +126,15 @@ public:
 
     virtual bool hasVariance() const { return attributes.variance; }
     bool hasDeterministicPhases() const { return attributes.deterministic; }
-    bool hasSecondPhase() const { return (bool)(myMaxPhase > 1); }
+    bool hasSecondPhase() const { return (bool)(_maxPhase > 1); }
     bool hasOpenArrivals() const;
     
     virtual unsigned hasClientChain( const unsigned, const unsigned ) const { return 0; }
-    unsigned hasServerChain( const unsigned k ) const { return myServerChains.find(k); }
+    unsigned hasServerChain( const unsigned k ) const;
     virtual bool hasActivities() const { return false; }
     bool hasThreads() const { return nThreads() > 1 ? true : false; }
     virtual bool hasSynchs() const { return false; }
-	
+
     bool isInOpenModel() const { return attributes.open_model ? true : false; }
     Entity& isInOpenModel( const bool yesOrNo ) { attributes.open_model = yesOrNo; return *this; }
     bool isInClosedModel() const { return attributes.closed_model ? true : false; }
@@ -121,24 +151,30 @@ public:
     virtual bool isReferenceTask() const { return false; }
     virtual bool isProcessor() const     { return false; }
     virtual bool isInfinite() const;
+
+    bool isCalledBy( const Task* ) const;
     bool isMultiServer() const   	 { return copies() > 1; }
 
     bool schedulingIsOk( const unsigned bits ) const;
 
-    const Cltn<Entry *>& entries() const { return entryList; }
+    const std::vector<Entry *>& entries() const { return _entries; }
     Entity& addEntry( Entry * );
-    Cltn<Entry *> * entries( Cltn<Entry *> * entries );
-    Entry * entryAt( const unsigned index ) const { return entryList[index]; }
+    Entry * entryAt( const unsigned index ) const { return _entries.at(index); }
 
-    virtual const char * name() const { return domEntity->getName().c_str(); }
-    unsigned maxPhase() const { return myMaxPhase; }
+    Entity& addTask( const Task * aTask ) { _tasks.insert( aTask ); return *this; }
+    Entity& removeTask( const Task * aTask ) { _tasks.erase( aTask ); return *this; }
+    const std::set<const Task *>& tasks() const { return _tasks; }
 
-    unsigned nEntries() const { return entryList.size(); }
+    virtual const std::string& name() const { return getDOM()->getName(); }
+    unsigned maxPhase() const { return _maxPhase; }
+
+    unsigned nEntries() const { return _entries.size(); }
     virtual unsigned nClients() const = 0;
-    unsigned clients( Cltn<Task *> & ) const;
+    const Entity& clients( std::set<Task *>& ) const;
+    double nCustomers( ) const;
 
-    Entity& addServerChain( const unsigned k ) { myServerChains.append(k); return *this; }
-    const ChainVector& serverChains() const { return myServerChains; }
+    Entity& addServerChain( const unsigned k ) { _serverChains.push_back(k); return *this; }
+    const ChainVector& serverChains() const { return _serverChains; }
     Server * serverStation() const { return myServerStation; }
 
     bool markovOvertaking() const;
@@ -148,10 +184,11 @@ public:
     /* Computation */
 	
     Probability prInterlock( const Task& ) const;
+
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
     void setIdleTime( const double , Submodel * aSubmodel);
     virtual Entity& computeVariance();
-    void setOvertaking( const unsigned, const Cltn<Task *>& );
+    void setOvertaking( const unsigned, const std::set<Task *>& );
     virtual Entity& updateWait( const Submodel&, const double ) { return *this; }	/* NOP */
     virtual double updateWaitReplication( const Submodel&, unsigned& ) { return 0.0; }	/* NOP */
     double deltaUtilization() const;
@@ -160,11 +197,11 @@ public:
     /* In order to integrate LQX's support for model changes we need to have a way  */
     /* of re-calculating what used to be static for all dynamically editable values */
 	
-    virtual void recalculateDynamicValues() {}
+    virtual Entity& recalculateDynamicValues() { return *this; }
 
     /* Sanity Check */
 
-    virtual void sanityCheck() const;
+    virtual const Entity& sanityCheck() const;
 
     /* MVA interface */
 
@@ -179,10 +216,14 @@ public:
     /* Printing */
 
     virtual ostream& print( ostream& ) const = 0;
-    ostream& printServerChains( ostream& output ) const;
-    ostream& printOvertaking( ostream& output ) const;
     virtual ostream& printJoinDelay( ostream& output ) const { return output; }
+    static SRVNManip print_server_chains( const Entity& entity ) { return SRVNManip( output_server_chains, entity ); }
+    static SRVNManip print_info( const Entity& entity ) { return SRVNManip( output_entity_info, entity ); }
 
+private:
+    static ostream& output_server_chains( ostream& output, const Entity& aServer );
+    static ostream& output_entity_info( ostream& output, const Entity& aServer );
+    
 protected:
     virtual unsigned validScheduling() const;
     virtual scheduling_type defaultScheduling() const { return SCHEDULE_FIFO; }
@@ -192,11 +233,13 @@ private:
     void setServiceTime( Server * station, const Entry * anEntry, unsigned k ) const;
 
 public:
-    LQIO::DOM::Entity* domEntity;	/* The DOM Representation	*/
     Interlock * interlock;		/* For interlock calculation.	*/
 
 protected:
-    Cltn<Entry *> entryList;		/* Entries for this entity.	*/
+    LQIO::DOM::Entity* _dom;		/* The DOM Representation	*/
+    std::vector<Entry *> _entries;	/* Entries for this entity.	*/
+    std::set<const Task *> _tasks;	/* Clients of this entity	*/
+    
     double myPopulation;		/* customers when I'm a client	*/
     double myVariance;			/* Computed variance.		*/
     double myThinkTime;			/* Think time.			*/
@@ -213,31 +256,11 @@ protected:
     } attributes;
 
 private:
-    unsigned short myMaxPhase;		/* Max phase over all entries	*/
-    unsigned mySubmodel;		/* My submodel, 0 == ref task.	*/
-    mutable double myLastUtilization;	/* For convergence test.	*/
-
+    unsigned _submodel;			/* My submodel, 0 == ref task.	*/
+    unsigned _maxPhase;			/* Largest phase.		*/
+    mutable double _lastUtilization;	/* For convergence test.	*/
     /* MVA interface */
 
-    ChainVector myServerChains;		/* Chains for this server.	*/
+    ChainVector _serverChains;		/* Chains for this server.	*/
 };
-
-
-
-/* -------------------------------------------------------------------- */
-/* Funky Formatting functions for inline with <<.			*/
-/* -------------------------------------------------------------------- */
-
-class SRVNEntityManip {
-public:
-    SRVNEntityManip( ostream& (*ff)(ostream&, const Entity & ), const Entity & theEntity ) : f(ff), anEntity(theEntity) {}
-private:
-    ostream& (*f)( ostream&, const Entity& );
-    const Entity & anEntity;
-
-    friend ostream& operator<<(ostream & os, const SRVNEntityManip& m ) { return m.f(os,m.anEntity); }
-};
-
-SRVNEntityManip print_server_chains( const Entity & aServer );
-SRVNEntityManip print_info( const Entity& );
 #endif

@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: entry.cc 13675 2020-07-10 15:29:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -204,6 +204,7 @@ Entry::clone( unsigned int replica ) const
     LQIO::DOM::Entry * new_entry_dom  = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(new_entry->getDOM()));
     for ( std::map<unsigned,Phase>::const_iterator i = _phases.begin(); i != _phases.end(); ++i ) {
 	const unsigned int p = i->first;
+	if ( !dynamic_cast<const LQIO::DOM::Entry *>(getDOM())->hasPhase(p) ) continue;
 	Phase& new_phase = new_entry->getPhase(p);
 	LQIO::DOM::Phase * new_phase_dom = new LQIO::DOM::Phase( *i->second.getDOM() );
 	new_phase.setDOM( new_phase_dom );	/* Deep copy */
@@ -1244,8 +1245,8 @@ Entry::aggregateService( const Activity * anActivity, const unsigned p, const do
 	} else {
 	    dstCall = findOrAddCall( dstEntry );
 	}
-	dstCall->merge( p, **call, rate );
-	dstEntry->removeDstCall( *call );	/* Unlink the activity's call. */
+	dstCall->merge( getPhase(p), p, **call, rate );
+//	anActivity->removeDstCall( *call );	/* Unlink the activity's call. */
     }
 
     return *this;
@@ -1287,7 +1288,7 @@ Entry::aggregatePhases()
 
     /* Merge all calls to phase 1 */
     
-    for_each( calls().begin(), calls().end(), Exec<Call>( &Call::aggregatePhases ) );
+    for_each( calls().begin(), calls().end(), Exec1<Call,LQIO::DOM::Phase&>( &Call::aggregatePhases, *phase_1 ) );
 
     /* Delete old stuff */
 
@@ -1434,6 +1435,9 @@ Entry::aggregate()
 	case AGGREGATE_ACTIVITIES:
 	case AGGREGATE_PHASES:
 	case AGGREGATE_ENTRIES:
+	    _startActivity = nullptr;
+	    myActivityCall = nullptr;
+	    const_cast<LQIO::DOM::Entry *>(dom)->setStartActivity( nullptr );
 	    const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
 	    break;
 
@@ -2142,16 +2146,23 @@ Entry::replicateEntry( LQIO::DOM::DocumentObject ** root )
     if ( replica == 1 ) {
 	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
 	std::pair<std::set<Entry *>::iterator,bool> rc = __entries.insert( this );
-	if ( !rc.second ) throw runtime_error( "Duplicate task" );
+	if ( !rc.second ) throw runtime_error( "Duplicate entry" );
 	(*root)->setName( root_name );
 	const_cast<LQIO::DOM::Document *>(dom->getDocument())->addEntry( dom );		    /* Reconnect all of the dom stuff. */
-	for_each( _phases.begin(), _phases.end(), Exec<Phase>( &Phase::replicatePhase ) );
     } else if ( root_name == (*root)->getName() ) {
 	for ( unsigned int i = 0; entry_mean[i].first != NULL; ++i ) {
 	    update_mean( *root, entry_mean[i].first, getDOM(), entry_mean[i].second, replica );
 	    update_variance( *root, entry_variance[i].first, getDOM(), entry_variance[i].second );
 	}
     }
+
+    /* Do phases */
+
+    for ( std::map<unsigned,Phase>::iterator p = _phases.begin(); p != _phases.end(); ++p ) {
+	const LQIO::DOM::Phase * phase = const_cast<const LQIO::DOM::Entry *>(dom)->getPhase(p->first);
+	p->second.replicatePhase( const_cast<LQIO::DOM::Phase *>(phase), replica );
+    }
+
     return *this;
 }
 

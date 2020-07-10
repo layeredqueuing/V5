@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: ph2serv.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: ph2serv.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *
@@ -28,7 +28,6 @@
  *
  * ------------------------------------------------------------------------
  */
-
 //#define	DEBUG
 
 #include "dim.h"
@@ -52,11 +51,10 @@ double
 Phased_Server::residual( const unsigned e, const unsigned k, const unsigned p ) const
 {
     Positive sum_x = r(e,k,p);
-
     for ( unsigned q = p + 1; q <= P; q++ ) {
 	sum_x += S(e,k,q);
     }
-	
+
     return sum_x;
 }
 
@@ -310,7 +308,7 @@ HOL_HVFCFS_Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const
 		    + solver.sumOf_rU_m( *this, N, k )
 		    + overtaking(k)
 		    + solver.sumOf_SU_m( *this, N, k ))
-	/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
+		/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
     if ( sum < 0.0 ) sum = 0.0;
 
     for ( unsigned e = 1; e <= E; ++e ) {
@@ -457,7 +455,7 @@ HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Po
     assert( 0 < k && k <= K );
 
     double sum = solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k )
-	+ overtaking(k) + sumOf_S2U( solver, N, k );
+		+ overtaking(k) + sumOf_S2U( solver, N, k );
     if ( sum < 0.0 ) sum = 0.0;
 
     for ( unsigned e = 1; e <= E; ++e ) {
@@ -485,7 +483,7 @@ HOL_HVFCFS_Simple_Phased_Server::wait( const MVA& solver, const unsigned k, cons
     double sum = (solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k )
 		  + overtaking(k) + sumOf_S2U( solver, N, k )
 		  + solver.sumOf_SU_m( *this, N, k ))
-	/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
+		/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
     if ( sum < 0.0 ) sum = 0.0;
 
     for ( unsigned e = 1; e <= E; ++e ) {
@@ -644,6 +642,7 @@ Markov_Phased_Server::PrOT( const unsigned k, const unsigned p_i ) const
 }
 
 
+
 /*
  * Return overtaking component.  There are two parts.  The
  * S2U term compensates for the fact that the waiting time does not
@@ -687,7 +686,13 @@ Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Populatio
     for ( unsigned e = 1; e <= E; ++e ) {
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    if ( !V(e,k,p) ) continue;
+#if 0
+	    cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
+		 << ", overtaking(k,p)=" << overtaking( k, p )
+		 << ", sumOf_S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << endl;
+#endif
 	    W[e][k][p] = S(e,k,1) + sum + overtaking( k, p ) + sumOf_S2U( solver, p, N, k );
+	    //	cout<<"S(e,k,1)= "<<S(e,k,1) <<" ,sum= "<<sum<<", overtaking( k, p )="<< overtaking( k, p ) <<", sumOf_S2U( solver, p, N, k )="<< sumOf_S2U( solver, p, N, k )<<endl;
 	}
     }
 }
@@ -797,11 +802,22 @@ HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Po
 
     double sum = solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k );
     if ( sum < 0.0 ) sum = 0.0;
+#if 0
+    cout << "m=" << closedIndex << ": N" << N << ", k=" << k
+	 << ", SQ_m=" << solver.sumOf_SQ_m( *this, N, k )
+	 << ", Ru_m=" << solver.sumOf_rU_m( *this, N, k ) << endl;
+#endif
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    if ( !V(e,k,p) ) continue;
+#if 0
+	    cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
+		 << ", OT(k,p)=" << overtaking( k, p )
+		 << ", S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << endl;
+#endif
 	    W[e][k][p] = S(e,k,1) + sum + overtaking( k, p ) + sumOf_S2U( solver, p, N, k );
+	    //cout<<"S(e,k,1)= "<<S(e,k,1) <<" ,sum= "<<sum<<", overtaking( k, p )="<< overtaking( k, p ) <<", sumOf_S2U( solver, p, N, k )="<< sumOf_S2U( solver, p, N, k )<<endl;
 	}
     }
 }

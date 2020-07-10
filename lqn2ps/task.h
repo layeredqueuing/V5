@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: task.h 13675 2020-07-10 15:29:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -166,6 +166,7 @@ public:
     virtual Task& removeReplication();
     Task& expandTask();
     Task& replicateCall();
+    Task& replicateActivity();
     Task& replicateTask( LQIO::DOM::DocumentObject ** );
     static void updateFanInOut();
 #endif

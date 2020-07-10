@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13570 2020-05-27 15:10:55Z greg $
+ * $Id: entity.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -18,12 +18,12 @@
 #include <string>
 #include <sstream>
 #include <cmath>
+#include <algorithm>
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
 #include "errmsg.h"
 #include "vector.h"
-#include "cltn.h"
 #include "fpgoop.h"
 #include "stack.h"
 #include "entity.h"
@@ -42,7 +42,7 @@
 
 /* ---------------------- Overloaded Operators ------------------------ */
 
- /*
+/*
  * Printing function.
  */
 
@@ -71,21 +71,19 @@ operator==( const Entity& a, const Entity& b )
  * Set me up.
  */
 
-Entity::Entity( LQIO::DOM::Entity* domVersion, Cltn<Entry *>* entries )
-    : domEntity(domVersion),
-      interlock(0),
+Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
+    : interlock(nullptr),
+      _dom(dom),
+      _entries(entries),
+      _tasks(),
       myPopulation(1.0),
       myVariance(0.0),
       myThinkTime(0.0),
       myServerStation(0),		/* Reference tasks don't have server stations. */
-      myMaxPhase(1),
-      mySubmodel(0),
-      myLastUtilization(-1.0)		/* Force update 		*/
+      _submodel(0),
+      _maxPhase(1),
+      _lastUtilization(-1.0)		/* Force update 		*/
 {
-    if ( entries != 0 ) {
-	entryList = *entries;
-    }
-
     attributes.initialized      = 0;		/* entity was initialized.	*/
     attributes.closed_model	= 0;		/* Stn in in closed model.     	*/
     attributes.open_model	= 0;		/* Stn is in open model.	*/
@@ -101,12 +99,6 @@ Entity::Entity( LQIO::DOM::Entity* domVersion, Cltn<Entry *>* entries )
 
 Entity::~Entity()
 {
-    /* Release interlocking paths */
-
-    if ( interlock ) {
-	delete interlock;
-    }
-	
     delete myServerStation;
 }
 
@@ -116,26 +108,24 @@ Entity::~Entity()
  * model max phase for this entity.
  */
 
-void
+Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
     if ( nEntries() > 1 && pragma.entry_variance() ) {
 	attributes.variance = true;
     }
-    for ( unsigned i = 1; anEntry = nextEntry(); ++i ) {
-	anEntry->configure( nSubmodels );
-	myMaxPhase = max( myMaxPhase, anEntry->maxPhase() );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->configure( nSubmodels );
+	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
 
-	if ( anEntry->hasDeterministicPhases() ) {
+	if ( (*entry)->hasDeterministicPhases() ) {
 	    attributes.deterministic = true;
 	}
-	if ( anEntry->hasVariance() ) {
+	if ( (*entry)->hasVariance() ) {
 	    attributes.variance = true;
 	}
     }
+    return *this;
 }
 
 
@@ -164,13 +154,7 @@ Entity::findChildren( CallStack& callStack, const bool ) const
 Entity&
 Entity::initWait()
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while( anEntry = nextEntry() ) {
-	anEntry->initWait();
-    }
-
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initWait ) );
     return *this;
 }
 
@@ -185,12 +169,12 @@ unsigned
 Entity::copies() const
 {
     unsigned int value = 1;
-    if ( !domEntity->isInfinite() ) {
+    if ( !getDOM()->isInfinite() ) {
 	try { 
-	    value = domEntity->getCopiesValue();
+	    value = getDOM()->getCopiesValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", domEntity->getTypeName(), name(), e.what() );
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", getDOM()->getTypeName(), name().c_str(), e.what() );
 	    throw_bad_parameter();
 	}
     }
@@ -207,34 +191,28 @@ Entity::replicas() const
 {
     unsigned int value = 1;
     try {
-	value = domEntity->getReplicasValue();
+	value = getDOM()->getReplicasValue();
     }
     catch ( const std::domain_error &e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", domEntity->getTypeName(), name(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "replicas", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return value;
 }
 
 
-/*
- * The default method is to ensure that there is only one copy specified.
- */
-
-Entity&
-Entity::replicas( const unsigned n )
-{
-    if ( n != 1 ) {
-	throw domain_error( "Entity::replicas" );
-    }
-    return *this;
-}
-
-
 bool 
 Entity::isInfinite() const
 {
-    return domEntity->isInfinite();
+    return getDOM()->isInfinite();
+}
+
+
+
+bool
+Entity::isCalledBy( const Task* task ) const
+{
+    return find( tasks().begin(), tasks().end(), task ) != tasks().end();
 }
 
 
@@ -247,7 +225,7 @@ Entity::isInfinite() const
 Entity&
 Entity::addEntry( Entry * anEntry )
 {
-    entryList << anEntry;
+    _entries.push_back( anEntry );
     return *this;
 }
 
@@ -259,15 +237,7 @@ Entity::addEntry( Entry * anEntry )
 double
 Entity::throughput() const
 {		
-    double sum = 0.0;
-
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-	
-    while ( anEntry = nextEntry() ) {
-	sum += anEntry->throughput();
-    }
-    return sum;
+    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::throughput ) ).sum();
 }
 
 
@@ -279,15 +249,7 @@ Entity::throughput() const
 double
 Entity::openArrivalRate() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    double sum = 0.0;
-    while ( anEntry = nextEntry() ) {
-	sum += anEntry->openArrivalRate();
-    }
-
-    return sum;
+    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::openArrivalRate ) ).sum();
 }
 
 
@@ -299,15 +261,7 @@ Entity::openArrivalRate() const
 double
 Entity::utilization() const
 {		
-    double sum = 0.0;
-
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-	
-    while ( anEntry = nextEntry() ) {
-	sum += anEntry->utilization();
-    }
-    return sum;
+    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
 }
 
 
@@ -322,15 +276,19 @@ Entity::saturation() const
     if ( isInfinite() ) { 
 	return 0.0;
     } else {
-	const LQIO::DOM::ExternalVariable * dom_copies = domEntity->getCopies(); 
-	double value;
-	assert(dom_copies->getValue(value) == true);
+	double value = getDOM()->getCopiesValue(); 
 	return utilization() / value;
     }
 }
 
 
-    
+unsigned
+Entity::hasServerChain( const unsigned k ) const
+{
+    return _serverChains.find(k);
+}
+
+
 /*
  * Return the total open arrival rate to this server.
  */
@@ -338,13 +296,7 @@ Entity::saturation() const
 bool
 Entity::hasOpenArrivals() const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-	
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasOpenArrivals() ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasOpenArrivals ) ) != entries().end();
 }
 
 
@@ -353,29 +305,28 @@ Entity::hasOpenArrivals() const
  * Return the number of calling tasks ADDED!
  */
 
-unsigned 
-Entity::clients( Cltn<Task *> & callingTasks ) const
+const Entity&
+Entity::clients( std::set<Task *>& callingTasks ) const
 {
-    unsigned startSize = callingTasks.size();
-
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-	
-    while ( anEntry = nextEntry() ) {
-
-	Sequence<Call *> nextCall( anEntry->callerList() );
-	const Call * aCall;
-	while ( aCall = nextCall() ) {
-	    if ( !aCall->hasForwarding() && aCall->srcTask()->isUsed() ) {
-		callingTasks += const_cast<Task *>(aCall->srcTask());
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const std::set<Call *>& callerList = (*entry)->callerList();
+	for ( std::set<Call *>::const_iterator call = callerList.begin(); call != callerList.end(); ++call ) {
+	    if ( !(*call)->hasForwarding() && (*call)->srcTask()->isUsed() ) {
+		callingTasks.insert(const_cast<Task *>((*call)->srcTask()));
 	    }
 	}
     }
 
-    return callingTasks.size() - startSize;
+    return *this;
 }
 
-
+double 
+Entity::nCustomers() const
+{
+    std::set<Task *> tasks;
+    clients( tasks );
+    return for_each( tasks.begin(), tasks.end(), Sum<Task,double>( &Task::population ) ).sum();
+}
 
 /*
  * Return true if phased server are used.
@@ -425,13 +376,7 @@ Entity::schedulingIsOk( const unsigned bits ) const
 Entity&
 Entity::computeVariance() 
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-    
-    while ( anEntry = nextEntry() ) {
-	anEntry->computeVariance();
-    }
-
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::computeVariance ) );
     return *this;
 }
 
@@ -442,30 +387,13 @@ Entity::computeVariance()
  */
 
 void 
-Entity::setOvertaking( const unsigned submodel, const Cltn<Task *>& clients )
+Entity::setOvertaking( const unsigned submodel, const std::set<Task *>& clients )
 {
-    Sequence<Task *> nextClient( clients );
-    Task * aClient;
-    while ( aClient = nextClient() ) {
-	Overtaking overtaking( aClient, this );
+    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+	Overtaking overtaking( *client, this );
 	overtaking.compute();
     }
 }
-
-
-/*
- * Update utilization for this entity and return
- */
-
-double
-Entity::deltaUtilization() const
-{
-    double delta = utilization() - myLastUtilization;
-    myLastUtilization = utilization();
-    return delta;
-}
-
-
 
 
 /*
@@ -484,7 +412,27 @@ Entity::prInterlock( const Task& aClient ) const
     return pr;
 }
 
-	
+
+
+/*
+ * Update utilization for this entity and return
+ */
+
+double
+Entity::deltaUtilization() const
+{
+    const double thisUtilization = utilization();
+    double delta;
+    if ( isinf( thisUtilization ) && isinf( _lastUtilization ) ) {
+	delta = 0.0;
+    } else {
+	delta = thisUtilization - _lastUtilization;
+    }
+    _lastUtilization = thisUtilization;
+    return delta;
+}
+
+
 
 /*
  * Calculate and set myThinkTime.  Note that population returns the
@@ -519,70 +467,37 @@ Entity::setIdleTime( const double relax,  Submodel * aSubmodel )
  * Note -- make sure all errors are advisories, or no output will be generated.
  */
 
-void
+const Entity&
 Entity::sanityCheck() const
 {
     if ( !isInfinite() && utilization() > copies() * 1.05 ) {
 	LQIO::solution_error( ADV_INVALID_UTILIZATION, utilization(), 
 			      isProcessor() ? "processor" : "task", 
-			      name(), copies() );
+			      name().c_str(), copies() );
     }
+    return *this;
 }
 
+/* -------------------------------------------------------------------- */
+/* Funky Formatting functions for inline with <<.			*/
+/* -------------------------------------------------------------------- */
 
 /*
  * Print chains for this client.
  */
 
-ostream&
-Entity::printServerChains( ostream& output ) const
+/* static */ ostream&
+Entity::output_server_chains( ostream& output, const Entity& aServer ) 
 {
-    output << "Chains:" << myServerChains << endl;
+    output << "Chains:" << aServer.serverChains() << endl;
     return output;
 }
 
-
-ostream&
-Entity::printOvertaking( ostream& output ) const
-{
-    for ( set<Task *,ltTask>::const_iterator nextClient = task.begin(); nextClient != task.end(); ++nextClient ) {
-	const Task * aClient = *nextClient;
-	Overtaking overtaking( aClient, this );
-	output << overtaking;
-    }
-    return output;
-}
-
-static ostream&
-entity_info_str( ostream& output, const Entity& aServer )
+/* static */  ostream&
+Entity::output_entity_info( ostream& output, const Entity& aServer )
 {
     if ( aServer.serverStation() ) {
-	string aString = "(";
-	aString += aServer.serverStation()->typeStr();
-	aString += ")";
-	output << aString;
+	output << "(" << aServer.serverStation()->typeStr() << ")";
     }
     return output;
-}
-
-
-static ostream&
-server_chains_of_str( ostream& output, const Entity& aServer )
-{
-    aServer.printServerChains( output );
-    return output;
-}
-
-
-SRVNEntityManip
-print_server_chains( const Entity& anEntity )
-{
-    return SRVNEntityManip( server_chains_of_str, anEntity);
-}
-
-
-SRVNEntityManip
-print_info( const Entity& anEntity )
-{
-    return SRVNEntityManip( entity_info_str, anEntity );
 }

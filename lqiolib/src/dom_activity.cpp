@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: dom_activity.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -14,7 +14,7 @@ namespace LQIO {
 
 	const char * Activity::__typeName = "activity";
 	
-	Activity::Activity(const Document * document, const char * name)
+	Activity::Activity(const Document * document, const std::string& name)
 	    : Phase(document,NULL),
 	      _replyList(), _isSpecified(false), _task(NULL),
 	      _outputList(NULL), _inputList(NULL),

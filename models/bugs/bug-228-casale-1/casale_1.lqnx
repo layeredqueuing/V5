@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<lqn-model description="test_LQN_2" name="test_LQN_2" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="lqn.xsd">
+   <processor name="P1" scheduling="ps" quantum="0.001">
+      <task name="T1" scheduling="ref"  think-time="0.0001" multiplicity="1">  <!-- reference task T1 -->
+	 <fan-out dest="T2" value="2"/>
+         <entry name="E1" type="Graph" />
+         <task-activities>
+            <activity name="AS1" host-demand-mean="0.0001"  bound-to-entry="E1" />
+            <activity name="AS2" host-demand-mean="0.0001">
+				<synch-call calls-mean="1" dest="E2"/>
+			</activity>
+            <precedence>
+               <pre>
+                  <activity name="AS1"/>
+               </pre>
+               <post>
+                  <activity name="AS2"/>
+               </post>
+            </precedence>               
+			</task-activities>
+      </task>
+   </processor>
+   <processor name="P2" scheduling="ps" quantum="0.001" replication="1">
+      <task name="T2" scheduling="inf" multiplicity="1" replication="2">  
+         <entry name="E2" type="Graph" />
+         <task-activities>
+            <activity name="AS3" host-demand-mean="5.0"  bound-to-entry="E2" />
+            <activity name="AS4" host-demand-mean="1.0" />
+            <precedence>
+               <pre>
+                  <activity name="AS3"/>
+               </pre>
+               <post>
+                  <activity name="AS4"/>
+               </post>
+            </precedence>               
+            <reply-entry name="E2">
+               <reply-activity name="AS4"/>
+            </reply-entry>
+			</task-activities>
+      </task>
+   </processor>
+</lqn-model>

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: vector.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: vector.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Vectors.  Used for scalar types.  See Cltn for other types.  Range
  * checked.  Initialize.  Range from 1..n.
@@ -17,28 +17,14 @@
  * ------------------------------------------------------------------------
  */
 
+#include <algorithm>
 #include "vector.h"
-
-template <class Type> ostream&
-operator<<( ostream& output, const Vector<Type>& self )
-{
-    return self.print( output );
-}
-
-
-template <class Type> ostream&
-operator<<( ostream& output, const VectorMath<Type>& self )
-{
-    return self.print( output );
-}
-
-
 
 /*
  * Assign iA to receiver.
  */
 
-template <class Type> Vector<Type>&
+template <typename Type> Vector<Type>&
 Vector<Type>::operator=( const Vector<Type> &iA )
 {
     if ( this == &iA ) return *this;
@@ -55,7 +41,7 @@ Vector<Type>::operator=( const Vector<Type> &iA )
  * Initialize array to initializer.
  */
 
-template <class Type> Vector<Type>&
+template <typename Type> Vector<Type>&
 Vector<Type>::operator=( const Type& initializer )
 {
     const unsigned n = size();
@@ -70,14 +56,14 @@ Vector<Type>::operator=( const Type& initializer )
  * Release storage.
  */
 
-template <class Type>
+template <typename Type>
 Vector<Type>::~Vector()
 {
     clear();
 }
 
 
-template <class Type> bool 
+template <typename Type> bool 
 Vector<Type>::operator==( const Vector<Type>& arg ) const
 {
     const unsigned n = size();
@@ -91,7 +77,7 @@ Vector<Type>::operator==( const Vector<Type>& arg ) const
  * Release storage.
  */
 
-template <class Type> void
+template <typename Type> void
 Vector<Type>::clear()
 {
     if ( ia ) {
@@ -109,8 +95,8 @@ Vector<Type>::clear()
  * Set receiver to vector.
  */
 
-template <class Type> void
-Vector<Type>::init( const Type *vector, unsigned size )
+template <typename Type> void
+Vector<Type>::init( const Type *vector, size_type size )
 {
     sz = size;
     mx = size;
@@ -118,7 +104,7 @@ Vector<Type>::init( const Type *vector, unsigned size )
     assert( ia != 0 );
     ia -= 1;			/* Offset for 1..n addressing	*/
 
-    for ( unsigned ix = 1; ix <= sz; ++ix ) {
+    for ( size_type ix = 1; ix <= sz; ++ix ) {
 	ia[ix] = vector[ix];
     }
 }
@@ -129,14 +115,14 @@ Vector<Type>::init( const Type *vector, unsigned size )
  * Grow vector.  New elements are set to init.
  */
 
-template <class Type> Vector<Type>&
-Vector<Type>::size( const unsigned amt )
+template <typename Type> void
+Vector<Type>::resize( size_type amt, value_type val )
 {
-    const int diff = amt - size();
-    if ( diff != 0 ) {
-	grow( diff );
+    if ( amt > size() ) {
+	grow( amt - size(), val );
+    } else if ( size() > amt ) {
+	shrink( size() > amt );
     }
-    return *this;
 }
 
 
@@ -145,15 +131,15 @@ Vector<Type>::size( const unsigned amt )
  * Grow vector.  New elements are set to init.
  */
 
-template <class Type> void
-Vector<Type>::grow( const int amt )
+template <typename Type> void
+Vector<Type>::grow( size_type amt, value_type val )
 {
     if ( amt == 0 ) return;		/* No operation.		*/
 	
     Type *oldia = ia;
     const unsigned oldSize = sz;
     const unsigned newSize = (int)(oldSize + amt) >= 0 ? oldSize + amt : 0;
-    const unsigned minSize = min( oldSize, newSize );
+    const unsigned minSize = std::min( oldSize, newSize );
 
     sz = newSize;
     if ( sz > mx ) {
@@ -165,10 +151,42 @@ Vector<Type>::grow( const int amt )
 	for ( unsigned ix = 1; ix <= minSize; ++ix ) {
 	    ia[ix] = oldia[ix];		/* Copy to new array.		*/
 	}
+	for ( unsigned ix = minSize + 1; ix <= newSize; ++ix ) {
+	    ia[ix] = val;
+	}
     }
 
     if ( oldia && oldia != ia ) {
 	oldia += 1;			/* Fix offset before deletion.	*/
+	delete [] oldia;
+    }
+}
+
+
+template <typename Type> void
+Vector<Type>::shrink( size_type amt )
+{
+    assert( amt <= sz );
+    if ( amt == 0 ) return;		/* No operation.		*/
+
+    Type *oldia = ia;
+    unsigned oldSize = sz;
+    sz = oldSize - amt;
+
+    if ( sz ) {
+	ia = new Type[sz];
+	assert ( ia != 0 );
+	ia -= 1;			/* Offset to allow 1..n index	*/
+
+	for ( unsigned ix = 1; ix <= sz; ++ix ) {
+	    ia[ix] = oldia[ix];
+	}
+    } else {
+	ia = 0;
+    }
+
+    if ( oldia ) {
+	oldia += 1;		/* Fix offset before deletion.	*/
 	delete [] oldia;
     }
 }
@@ -179,8 +197,8 @@ Vector<Type>::grow( const int amt )
  * return 0.
  */
 
-template <class Type> unsigned
-Vector<Type>::find( const Type elem ) const
+template <typename Type> unsigned
+Vector<Type>::find( const Type& elem ) const
 {
     for ( unsigned ix = 1; ix <= sz; ++ix ) {
 	if ( elem == ia[ix] ) return ix;
@@ -194,7 +212,7 @@ Vector<Type>::find( const Type elem ) const
  * Insert an element at index.
  */
 
-template <class Type> void
+template <typename Type> void
 Vector<Type>::insert( const unsigned index, const Type& value )
 {
     Type *oldia = ia;
@@ -228,9 +246,19 @@ Vector<Type>::insert( const unsigned index, const Type& value )
     }
 }
 
+template <typename Type> typename Vector<Type>::iterator
+Vector<Type>::erase( Vector<Type>::const_iterator pos )
+{
+    Vector<Type>::iterator dst = const_cast<Vector<Type>::iterator>(pos);
+    for ( Vector<Type>::iterator src = dst + 1; src != end(); ++src, ++dst ) {
+	*dst = *src;
+    }
+    shrink( 1 );
+    return const_cast<Vector<Type>::iterator>(pos) + 1;
+}
 
-template <class Type>
-ostream& Vector<Type>::print( ostream& output ) const
+template <typename Type>
+std::ostream& Vector<Type>::print( std::ostream& output ) const
 {
     output << '(';
     for ( unsigned ix = 1; ix <= sz; ++ix ) {
@@ -241,21 +269,6 @@ ostream& Vector<Type>::print( ostream& output ) const
     return output;
 }
 
-template <class Type> void
-VectorMath<Type>::grow( const int amt, const Type init )
-{
-    const unsigned oldSize = Vector<Type>::size();
-    const unsigned newSize = (int)(oldSize + amt) >= 0 ? oldSize + amt : 0;
-    const unsigned minSize = min( oldSize, newSize );
-
-    Vector<Type>::grow( amt );
-
-    for ( unsigned ix = minSize + 1; ix <= newSize; ++ix ) {
-	Vector<Type>::ia[ix] = init;		/* initialize remainder.	*/
-    }
-}
-
-
 /*
  * Multiply all elements by multiplier.
  */

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13550 2020-05-22 11:48:05Z greg $
+ *  $Id: srvn_output.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1408,7 +1408,7 @@ namespace LQIO {
     {
         const std::set<DOM::Task*>& tasks = processor.getTaskList();
         const std::set<DOM::Group*>& groups = processor.getGroupList();
-        const double rate = processor.getRateValue();
+        const double rate = processor.hasRate() ? processor.getRateValue() : 1.0;
         const double proc_util = !processor.isInfinite() ? processor.getResultUtilization() / (static_cast<double>(processor.getCopiesValue()) * rate): 0;
 
         if ( __parseable ) {
@@ -1479,20 +1479,19 @@ namespace LQIO {
     SRVN::ProcessorOutput::printUtilizationAndWaiting( const DOM::Processor& processor, const std::set<DOM::Task*>& tasks ) const
     {
         const bool is_infinite = processor.isInfinite();
-	double copies = 1.0;
-	if ( !is_infinite ) {
-	    copies = static_cast<double>(processor.getCopiesValue());
-	}
+	const double copies = is_infinite ? 1.0 : static_cast<double>(processor.getCopiesValue());
+	const double rate   = processor.hasRate() ? processor.getRateValue() : 1.0;
+	
         for ( std::set<DOM::Task*>::const_iterator nextTask = tasks.begin(); nextTask != tasks.end(); ++nextTask ) {
             const DOM::Task * task = *nextTask;
             bool print_task_name = true;
             unsigned int item_count = 0;
+	    const unsigned int multiplicity = task->isInfinite() ? 1 : task->getCopiesValue();
 
             const std::vector<DOM::Entry *> & entries = task->getEntryList();
             for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry, ++item_count ) {
                 const DOM::Entry * entry = *nextEntry;
-                const double entry_util = is_infinite ? 0 : entry->getResultProcessorUtilization() / (copies * processor.getRateValue());
-		const unsigned int multiplicity = task->isInfinite() ? 1 : task->getCopiesValue();
+                const double entry_util = is_infinite ? 0 : entry->getResultProcessorUtilization() / (copies * rate);
                 _output << colour( entry_util );
                 if ( __parseable ) {
                     if ( print_task_name ) {
@@ -1559,7 +1558,7 @@ namespace LQIO {
             /* Total for task */
 
             if ( item_count > 1 ) {
-                const double task_util = !processor.isInfinite() ? task->getResultProcessorUtilization() / (copies * processor.getRateValue()): 0;
+                const double task_util = !processor.isInfinite() ? task->getResultProcessorUtilization() / (copies * rate): 0;
                 _output << textit << colour( task_util );
                 _output << setw(__maxStrLen*2+8) << ( __parseable ? " " : "Task Total:" )
                         << setw(__maxDblLen-1) << task->getResultProcessorUtilization() << ' ' << newline;
@@ -2170,7 +2169,7 @@ namespace LQIO {
     SRVN::TaskInput::printThinkTime( ostream& output,  const DOM::Task & task )
     {
         if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
-            output << " z " << Input::print_integer_parameter( task.getThinkTime(), 0 );
+            output << " z " << Input::print_double_parameter( task.getThinkTime(), 0 );
         }
         return output;
     }
@@ -2192,19 +2191,24 @@ namespace LQIO {
         _output << endl << "A " << task.getName() << endl;
         for_each( activities.begin(), activities.end(), ActivityInput( _output, &ActivityInput::print ) );
 
+	const DOM::Activity * deferredReplyActivity = nullptr;		/* Deferred activity for replies */
         const std::set<DOM::ActivityList*>& precedences = task.getActivityLists();
         if ( precedences.size() ) {
             _output << " :" << endl;
-            for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size() ) );
+            deferredReplyActivity = for_each( precedences.begin(), precedences.end(), ActivityListInput( _output, &ActivityListInput::print, precedences.size() ) ).getPendingReplyActivity();
         } else if ( activities.size() ) {
             const std::map<std::string,DOM::Activity*>::const_iterator i = activities.begin();
             const DOM::Activity * activity = i->second;
             if ( activity->getReplyList().size() > 0 ) {
-                _output << " :" << endl << "  " << activity->getName();
-                printReplyList( activity->getReplyList() );
-                _output << endl;
-            }
+		deferredReplyActivity = activity;
+                _output << " :" << endl;
+	    }
         }
+	if ( deferredReplyActivity != nullptr ) {
+	    _output << "  " << deferredReplyActivity->getName();
+	    printReplyList( deferredReplyActivity->getReplyList() );
+	    _output << endl;
+	}
 
         _output << "-1" << endl;
     }
@@ -2629,13 +2633,17 @@ namespace LQIO {
             }
             _output << " " << setw( ObjectInput::__maxEntLen ) << entry.getName()
                     << " " << setw( ObjectInput::__maxEntLen ) << dst->getName();
-	    unsigned int n = 0;
+	    unsigned int n = 1;
             for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p, ++n ) {
-		static const char * const phase[] = { "1", "2", "3" };
+		while ( n < p->first ) {		/* Pad */
+		    _output << number_of_calls( nullptr );
+		    ++n;
+		}
 		try {
 		    _output << number_of_calls( calls_by_phase[p->first] );
 		}
 		catch ( const std::domain_error& e ) {
+		    static const char * const phase[] = { "0", "1", "2", "3" };
 		    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER,
 					  "entry", entry.getName().c_str(),
 					  "phase", phase[n],
@@ -2645,7 +2653,7 @@ namespace LQIO {
 	    }
             _output << " -1";
             if ( !entry.getDocument()->instantiated() ) {
-                for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p) {
+                for (std::map<unsigned, DOM::Phase*>::const_iterator p = phases.begin(); p != phases.end(); ++p ) {
                     const DOM::Call * call = calls_by_phase[p->first];
 		    if ( call ) {
 			printObservationVariables( _output, *call );
@@ -2660,8 +2668,15 @@ namespace LQIO {
     SRVN::PhaseInput::operator()( const std::pair<unsigned,DOM::Phase *>& p ) const
     {
         ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
+
+	/* Pad with default values if phase is missing from list */
+	
+	for ( ; _p < p.first; ++_p ) {
+	    (this->*_func)( LQIO::DOM::Phase() );
+	}
         (this->*_func)( *(p.second) );
         _output.flags(oldFlags);
+	++_p;
     }
 
     void SRVN::PhaseInput::printCoefficientOfVariation( const DOM::Phase& p ) const
@@ -2774,6 +2789,7 @@ namespace LQIO {
         if ( precedence.isForkList() ) return;
 
         _output << " ";
+	_pending_reply_activity = nullptr;
         printPreList( precedence );
         if ( precedence.getNext() ) {
             _output << " -> ";
@@ -2782,7 +2798,7 @@ namespace LQIO {
         } else {
             _count += 1;
         }
-        if ( _count < _size ) {
+        if ( _count < _size || _pending_reply_activity != nullptr ) {
             _output << ";";
         }
         _output << endl;
@@ -2831,6 +2847,9 @@ namespace LQIO {
         const std::vector<const DOM::Activity*>& list = precedence.getList();
         for ( std::vector<const DOM::Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
             const DOM::Activity * activity = *next_activity;
+	    if ( activity->getReplyList().size() > 0 ) {
+		_pending_reply_activity = activity;
+	    }
             switch ( precedence.getListType() ) {
             case DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
                 if ( !first ) {
@@ -3025,7 +3044,7 @@ namespace LQIO {
         if ( call ) {
 	    value = call->getResultDropProbability();
         }
-	_output << value;
+	_output << setw(__maxDblLen) << value;
     }
 
     void

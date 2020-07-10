@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: activity.h 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,6 +21,7 @@
 #include <config.h>
 #include "dim.h"
 #include <string>
+#include <set>
 #include <lqio/dom_activity.h>
 #include "vector.h"
 #include "phase.h"
@@ -42,7 +43,9 @@ class Call;
 class Path;
 
 template <class type> class Stack;
-template <class type> class Cltn;
+
+typedef void (Activity::*AggregateFunc)(Entry *,const unsigned,const unsigned);
+typedef double (Activity::*AggregateFunc2)(const Entry *,const unsigned,const double) const;
 
 /* -------------------------------------------------------------------- */
 /*                               Activity                               */
@@ -68,7 +71,7 @@ class Activity : public Phase
     friend class Task;				/* To access add_... */
 
 public:
-    Activity( const Task * aTask, const char * aName );
+    Activity( const Task * aTask, const std::string& aName );
     virtual ~Activity();
 
 private:
@@ -76,14 +79,14 @@ private:
     Activity& operator=( const Activity& ) { abort(); return *this; }
 
 public:
-    virtual void configure( const unsigned, const unsigned );
+    virtual Activity& configure( const unsigned );
 
     /* Instance Variable access */
 	
     virtual LQIO::DOM::Activity* getDOM() const { return dynamic_cast<LQIO::DOM::Activity*>(Phase::getDOM()); }
 	
-    virtual const Entry * entry() const { return 0; }
-    virtual const char * name() const { return getDOM()->getName().c_str(); }
+    virtual const std::string& name() const { return getDOM()->getName(); }
+    virtual const Entity * owner() const { return myTask; }
 
     bool activityDefined() const;
     ActivityList * inputFrom( ActivityList * aList );
@@ -95,13 +98,10 @@ public:
     Activity& add_reply_list();
     Activity& add_activity_lists();
 
-    Activity& replyList( Cltn<Entry *> * );
-    Cltn<Entry *> * replyList() { return myReplyList; }
+    const std::set<const Entry *>& replyList() { return _replyList; }
 
     virtual Call * findOrAddCall( const Entry *, const queryFunc = 0 );
     virtual Call * findOrAddFwdCall( const Entry * anEntry );
-
-    Activity& setRootEntry( const Entry * anEntry ) { myRootEntry = anEntry; return *this; }
 
     /*Quorum tomari*/
     bool localQuorumDelay() { return myLocalQuorumDelay;}
@@ -109,17 +109,16 @@ public:
 
     /* Queries */
 
-    virtual const Entity * owner() const;
+    virtual bool check() const;
 
-    void clearThroughput() { myThroughput = 0.0; }
+    Activity& clearThroughput() { myThroughput = 0.0; return *this; }
     virtual double throughput() const { return myThroughput; }	/* Throughput results.		*/
     virtual bool repliesTo( const Entry * ) const;
     virtual bool isActivity() const { return true; }
     bool isReachable() const { return iAmReachable; }
     Activity& isSpecified( const bool yesOrNo ) { iAmSpecified = yesOrNo; return *this; }
     bool isSpecified() const { return iAmSpecified; }
-    bool isStartActivity() const { return myRootEntry != 0; }
-
+    bool isStartActivity() const { return entry() != 0; }
     /* Computation */
 
     unsigned countCallList( unsigned ) const;
@@ -170,12 +169,11 @@ public:
     void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
     double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, const AggregateFunc2 ) const;
     virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, Cltn<const Entity *>&, const unsigned ) const;
+    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     unsigned concurrentThreads( unsigned ) const;
-
     /* XML output */
 
-    void insertDOMResults() const;
+    const Activity& insertDOMResults() const;
 	
 protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry );
@@ -186,6 +184,7 @@ private:
     void setThroughput( Entry *, const unsigned submodel, const unsigned p );
     void aggregateServiceTime( Entry *, const unsigned submodel, const unsigned p );
     double aggregateReplies( const Entry * anEntry, const unsigned p, const double rate ) const;
+
 
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_and_join_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
@@ -203,16 +202,14 @@ public:
 #if HAVE_LIBGSL
     DiscretePoints remoteQuorumDelay;   	//tomari quorum
 #endif
-	 
+
 private:
-    string myName;				/* Duh...			*/
-    const Task * myTask;			/*				*/
+    const Entity * myTask;			/*				*/
     ActivityList * inputFromList;		/* Node which calls me		*/
     ActivityList * outputToList;		/* Node which I call.		*/
 	
-    Cltn<Entry *> * myReplyList;		/* Who I generate replies to.	*/
+    std::set<const Entry *> _replyList;		/* Who I generate replies to.	*/
     double myThroughput;			/* My throughput.		*/
-    const Entry * myRootEntry;			/* Set if root activity.	*/
     bool iAmSpecified;				/* Set if defined		*/
     mutable bool iAmReachable;			/* Set if activity is reachable	*/
 	
@@ -223,7 +220,7 @@ private:
 class PsuedoActivity : public Activity
 {
 public:
-    PsuedoActivity( const Task * aTask, const char * aName ) : Activity( aTask, aName ) {}
+    PsuedoActivity( const Task * aTask, const std::string& aName ) : Activity( aTask, aName ) {}
     virtual ~PsuedoActivity() {}
 
     virtual bool isPseudo() const { return true; }	/* Allow Phase::initProcessor to create proc entry. */

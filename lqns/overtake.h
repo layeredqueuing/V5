@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/overtake.h $ -- Greg Franks
  *
- * $Id: overtake.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: overtake.h 13676 2020-07-10 15:46:20Z greg $
  */
 
 #ifndef _OVERTAKE_H
@@ -10,7 +10,6 @@
 #include "dim.h"
 #include <lqio/input.h>
 #include "vector.h"
-#include "cltn.h"
 #include "prob.h"
 #include "slice.h"
 
@@ -29,18 +28,15 @@ private:
 
     class ijInfo {
     public:
-	ijInfo() { configure(); }
+	ijInfo();
 
 	void initialize( const Task * srcTask, const Entity * dstTask );
 	
-	double rendezvous() const { return myRendezvous.sum(); }
-	double rendezvous( const unsigned p ) const { return myRendezvous[p]; }
+	double rendezvous() const { return _rendezvous.sum(); }
+	double rendezvous( const unsigned p ) const { return _rendezvous[p]; }
 
     private:
-	void configure();
-
-    private:
-	VectorMath<double> myRendezvous;
+	VectorMath<double> _rendezvous;
     };
 
 public:

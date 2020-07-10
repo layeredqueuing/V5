@@ -2,7 +2,7 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 13413 2018-10-23 15:03:40Z greg $
+# $Id: Makefile.am 13676 2020-07-10 15:46:20Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA
@@ -24,6 +24,7 @@ check_PROGRAMS  = test0 test0a \
 		  testA \
 		  testB \
 		  poptest \
+		  popitertest \
 		  disttest
 
 EXTRA_test_SOURCES	= ../dim.cc ../fpgoop.cc ../multserv.cc ../mva.cc ../ph2serv.cc ../open.cc ../pop.cc ../prob.cc ../server.cc ../vector.cc 
@@ -73,6 +74,7 @@ test13s_SOURCES		= test13s.cc testmva.cc $(EXTRA_test_SOURCES)
 testA_SOURCES		= testA.cc testopen.cc $(EXTRA_test_SOURCES)
 testB_SOURCES		= testB.cc testopen.cc $(EXTRA_test_SOURCES)
 poptest_SOURCES		= poptest.cc $(EXTRA_test_SOURCES)
+popitertest_SOURCES	= popitertest.cc $(EXTRA_test_SOURCES)
 disttest_SOURCES	= disttest.cc ../randomvar.cc $(EXTRA_test_SOURCES)
 
 run:	check

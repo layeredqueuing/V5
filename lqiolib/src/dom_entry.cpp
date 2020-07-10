@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 13547 2020-05-21 02:22:16Z greg $
+ *  $Id: dom_entry.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,7 +21,7 @@ namespace LQIO {
 
 	const char * Entry::__typeName = "entry";
 
-	Entry::Entry(const Document * document, const char * name) 
+	Entry::Entry(const Document * document, const std::string& name ) 
 	    : DocumentObject(document,name),
 	      _type(Entry::ENTRY_NOT_DEFINED), _phases(), 
 	      _maxPhase(0), _task(NULL), _histograms(),
@@ -45,7 +45,7 @@ namespace LQIO {
 	}
     
 	Entry::Entry( const Entry& src ) 
-	    : DocumentObject( src.getDocument(), "" ),
+	    : DocumentObject( src ),
 	      _type(src._type), _phases(),
 	      _maxPhase(src._maxPhase), _task(NULL), _histograms(),
 	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority),
@@ -146,18 +146,17 @@ namespace LQIO {
 	{
 	    std::map<unsigned, Phase*>::iterator phase = _phases.find(p);
 	    if ( phase == _phases.end()) throw std::domain_error( "Phase not found" );
+
 	    delete phase->second;
+	    _phases.erase(phase);	    /* Erase the item in the map. */
 
 	    /* Reset the maxPhase */
-	    if ( phase->first == _maxPhase ) {
+	    if ( p == _maxPhase ) {
 		_maxPhase = 0;
 		for ( phase = _phases.begin(); phase != _phases.end(); ++phase ) {
 		    _maxPhase = std::max( phase->first, _maxPhase );
 		}
 	    }
-
-	    /* Erase the item in the map. */
-	    _phases.erase(phase);
 	}
 	
 	void Entry::setPhase( unsigned p, Phase * phase )
@@ -421,11 +420,13 @@ namespace LQIO {
 	void Entry::setStartActivity(Activity* startActivity)
 	{
 	    /* Stores the given StartActivity of the Entry */ 
-	    if ( _startActivity ) {
+	    if ( _startActivity && startActivity != nullptr ) {
 		input_error2( ERR_DUPLICATE_START_ACTIVITY, getName().c_str(), startActivity->getName().c_str() );
 	    } else {
 		_startActivity = startActivity;
-		_startActivity->setSourceEntry(this);
+		if ( startActivity != nullptr ) {
+		    _startActivity->setSourceEntry(this);
+		}
 	    }
 	}
     

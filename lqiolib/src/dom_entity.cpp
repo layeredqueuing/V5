@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 13559 2020-05-26 14:38:45Z greg $
+ *  $Id: dom_entity.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -14,7 +14,7 @@
 namespace LQIO {
     namespace DOM {
     
-	Entity::Entity(const Document * document, const char * name, 
+	Entity::Entity(const Document * document, const std::string& name, 
 		       const scheduling_type schedulingType, ExternalVariable* copies,
 		       ExternalVariable* replicas) :
 	    DocumentObject(document, name),
@@ -24,7 +24,15 @@ namespace LQIO {
 	{
 	    /* Empty Constructor */
 	}
-    
+
+	Entity::Entity(const Entity& src ) :
+	    DocumentObject(src),
+	    _entityId(const_cast<Document *>(src.getDocument())->getNextEntityId()), 
+	    _entitySchedulingType(src._entitySchedulingType),
+	    _copies(src._copies), _replicas(src._replicas)
+	{
+	}
+
 	Entity::~Entity()
 	{
 	    /* Empty Destructor */
@@ -56,7 +64,7 @@ namespace LQIO {
     
 	bool Entity::hasCopies() const
 	{
-	    return ExternalVariable::isPresent( _copies, 1.0 );	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( getCopies(), 1 );	    /* Check whether we have it or not */
 	}
 
 	const unsigned int Entity::getCopiesValue() const
@@ -92,7 +100,7 @@ namespace LQIO {
     
 	bool Entity::hasReplicas() const
 	{
-	    return ExternalVariable::isPresent( getReplicas(), 0.0 );	    /* Check whether we have it or not */
+	    return ExternalVariable::isPresent( getReplicas(), 1 );	    /* Check whether we have it or not */
 	}
 
 	const unsigned int Entity::getReplicasValue() const

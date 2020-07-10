@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 13543 2020-05-19 17:29:04Z greg $
+ *  $Id: dom_task.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,7 +21,7 @@ namespace LQIO {
 
 	const char * Task::__typeName = "task";
 
-	Task::Task(const Document * document, const char * task_name, const scheduling_type scheduling, const std::vector<Entry *>& entryList,
+	Task::Task(const Document * document, const std::string& task_name, const scheduling_type scheduling, const std::vector<Entry *>& entryList,
 		   const Processor* processor, ExternalVariable* queue_length, ExternalVariable * priority,
 		   ExternalVariable* n_copies, ExternalVariable* n_replicas, const Group * group )
 	    : Entity(document, task_name, scheduling, n_copies, n_replicas ),
@@ -75,7 +75,8 @@ namespace LQIO {
 
 	Task::~Task()
 	{
-	    /* Should delete precendence items here? */
+	    deleteActivities();
+	    deleteActivityLists();
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -289,7 +290,7 @@ namespace LQIO {
 	    const_cast<Document *>(getDocument())->setMaximumPhase(1);	/* Set max phase for output */
 
 	    /* Create a new one and map it into the list */
-	    Activity* newActivity = new Activity(getDocument(),name.c_str());
+	    Activity* newActivity = new Activity(getDocument(),name);
 	    addActivity( newActivity );
 	    newActivity->setTask( this );
 	    return newActivity;
@@ -300,6 +301,14 @@ namespace LQIO {
 	    return _activities;
 	}
 
+	void Task::deleteActivities()
+	{
+	    for ( std::map<std::string,Activity*>::iterator activity = _activities.begin(); activity != _activities.end(); ++activity ) {
+		delete activity->second;
+	    }
+	    _activities.clear();
+	}
+		
 	void Task::addActivity( Activity * newActivity )
 	{
 	    const std::string& name = newActivity->getName();
@@ -314,6 +323,14 @@ namespace LQIO {
 	const std::set<ActivityList*>& Task::getActivityLists() const
 	{
 	    return _precedences;
+	}
+
+	void Task::deleteActivityLists()
+	{
+	    for ( std::set<ActivityList*>::const_iterator precedence = _precedences.begin(); precedence != _precedences.end(); ++precedence ) {
+		delete *precedence;
+	    }
+	    _precedences.clear();
 	}
 
 	bool Task::hasAndJoinActivityList() const

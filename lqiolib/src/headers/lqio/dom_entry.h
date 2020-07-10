@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 13547 2020-05-21 02:22:16Z greg $
+ *  $Id: dom_entry.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -69,7 +69,7 @@ namespace LQIO {
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Structors] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
 	    /* Designated initializer for entries */
-	    Entry(const Document * document, const char * name );
+	    Entry(const Document * document, const std::string& name );
 	    virtual ~Entry();
 
 	    Entry * clone() const;	// Copy constructor is private */

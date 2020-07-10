@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/processor.cc $
- * 
+ *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13568 2020-05-27 14:50:16Z greg $
+ * $Id: processor.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,11 +22,11 @@
 #include <lqio/labels.h>
 #include <lqio/error.h>
 #include "fpgoop.h"
-#include "cltn.h"
 #include "errmsg.h"
 #include "entry.h"
 #include "entity.h"
 #include "processor.h"
+#include "model.h"
 #include "task.h"
 #include "server.h"
 #include "multserv.h"
@@ -35,63 +35,59 @@
 #include "pragma.h"
 #include "activity.h"
 
-set<Processor *, ltProcessor> processor;
+bool Processor::__prune = false;
 
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Processor::Processor( LQIO::DOM::Processor* domProcessor )
-    : Entity( domProcessor )
+Processor::Processor( LQIO::DOM::Processor* dom )
+    : Entity( dom, std::vector<Entry *>() )
 {
 }
-	
+
+
 /*
  * Destructor...
  */
 
 Processor::~Processor()
 {
-    taskList.clearContents();
 }
 
 /* ------------------------ Instance Methods -------------------------- */
 
-void 
+bool
 Processor::check() const
 {
 
     /* Check replication */
 
-    Sequence<Task *> nextTask(taskList);
-    Task * aTask;
     const double proc_replicas = static_cast<double>(this->replicas());
-    while ( aTask = nextTask() ) {
-	double temp = static_cast<double>(aTask->replicas()) / proc_replicas;
+    for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
+	double temp = static_cast<double>((*task)->replicas()) / proc_replicas;
 	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
-	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, aTask->replicas(), aTask->name(), proc_replicas, name() );
+	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, (*task)->replicas(), (*task)->name().c_str(), proc_replicas, name().c_str() );
 	}
     }
     
     if ( !schedulingIsOk( validScheduling() ) ) {
-	if ( scheduling() == SCHEDULE_CFS ) {
-	    io_vars.error_messages[LQIO::WRN_SCHEDULING_NOT_SUPPORTED].severity = LQIO::RUNTIME_ERROR;
-	}
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-			      scheduling_label[(unsigned)domEntity->getSchedulingType()].str,
+			      scheduling_label[static_cast<unsigned int>(scheduling())].str,
 			      "processor",
-			      name() );
-	domEntity->setSchedulingType(defaultScheduling());
+			      name().c_str() );
+	getDOM()->setSchedulingType(defaultScheduling());
     }
-	
+
     if ( scheduling() == SCHEDULE_DELAY ) {
 	if ( copies() != 1 ) {
-	    solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", name(), copies() );
+	    solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", name().c_str(), copies() );
 	    getDOM()->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
 	}
     } else if ( pragma.getProcessor() != DEFAULT_PROCESSOR && copies() == 1 ) {
 	/* Change scheduling type for uni-processors (usually from FCFS to PS) */
 	getDOM()->setSchedulingType(pragma.getProcessorScheduling());
     }
+    return true;
 }
 
 
@@ -101,29 +97,29 @@ Processor::check() const
  * models when performing the MVA solution.
  */
 
-void
+Processor&
 Processor::configure( const unsigned nSubmodels )
 {
     if ( nEntries() == 0 ) {
-	LQIO::solution_error( LQIO::WRN_NO_TASKS_DEFINED_FOR_PROCESSOR, name() );
-	return;
-    } 
-	
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-
-    anEntry = nextEntry();
-    double minS = anEntry->serviceTime();
-    double maxS = anEntry->serviceTime();
-    while ( anEntry = nextEntry() ) {
-	minS = fmin( minS, anEntry->serviceTime() );
-	maxS = fmax( maxS, anEntry->serviceTime() );
+	if ( isInteresting() || nClients() == 0 ) {
+	    LQIO::solution_error( LQIO::WRN_NO_TASKS_DEFINED_FOR_PROCESSOR, name().c_str() );
+	}
+	return *this;
     }
-    if ( maxS > 0. && minS / maxS < 0.1 
+
+    std::vector<Entry *>::const_iterator entry = entries().begin();
+    double minS = (*entry)->serviceTime();
+    double maxS = (*entry)->serviceTime();
+    for ( ++entry; entry != entries().end(); ++entry ) {
+	minS = min( minS, (*entry)->serviceTime() );
+	maxS = max( maxS, (*entry)->serviceTime() );
+    }
+    if ( maxS > 0. && minS / maxS < 0.1
 	 && !schedulingIsOk( SCHED_PS_BIT|SCHED_PS_HOL_BIT|SCHED_PS_PPR_BIT|SCHED_DELAY_BIT ) ) {
-		LQIO::solution_error( ADV_SERVICE_TIME_RANGE, "processor", name(), minS, maxS );
+	LQIO::solution_error( ADV_SERVICE_TIME_RANGE, "processor", name().c_str(), minS, maxS );
     }
     Entity::configure( nSubmodels );
+    return *this;
 }
 
 
@@ -139,14 +135,12 @@ Processor::initPopulation()
 {
     myPopulation = static_cast<double>(copies());	/* Doesn't matter... */
 
-    Sequence<Task *> nextTask(taskList);
-    Task *aTask;
-    while ( aTask = nextTask() ) {
-	Cltn<const Task *> sources;		/* Cltn of tasks already visited. */
-	if ( aTask->countCallers( sources ) > 0. ) {
+    for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
+	std::set<Task *> sources;		/* Cltn of tasks already visited. */
+	if ( (*task)->countCallers( sources ) > 0. ) {
 	    isInClosedModel( true );
 	}
-	if ( aTask->isInfinite() && aTask->isInOpenModel() ) {
+	if ( (*task)->isInfinite() && (*task)->isInOpenModel() ) {
 	    isInOpenModel( true );
 	}
     }
@@ -154,9 +148,8 @@ Processor::initPopulation()
 }
 
 
-
 double
-Processor::rate() const 
+Processor::rate() const
 {
     double value = 1.0;
     if ( getDOM()->hasRate() ) {
@@ -164,13 +157,15 @@ Processor::rate() const
 	    value = getDOM()->getRateValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name(), e.what() );
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name().c_str(), e.what() );
 	    throw_bad_parameter();
 	}
     } 
     return value;
 }
-    
+
+
+
 /*
  * Return the fan-in to this server from...
  */
@@ -193,6 +188,30 @@ Processor::fanOut( const Entity * aServer ) const
 }
 
 /*
+ * Return true if we want to keep this processor.  Interesting processors
+ * will likely have queues.
+ */
+ 
+bool
+Processor::isInteresting() const
+{
+    if ( !__prune ) {
+	return true;
+    } else if ( isInfinite() ) {
+	return false;
+    } else {
+	unsigned int sum = 0;
+	for ( std::set<const Task *>::const_iterator next = tasks().begin(); next != tasks().end(); ++next ) {
+	    const Task *aTask = *next;
+	    if ( aTask->isInfinite() ) return true;
+	    sum += aTask->copies();
+	}
+	return sum > copies();
+    }
+}
+
+
+/*
  * Indicate whether the variance calculation should take place.  NOTE
  * that processors should not have the variance calculation set true,
  * so hasVariance is set in class Task rather than here.
@@ -201,24 +220,15 @@ Processor::fanOut( const Entity * aServer ) const
 bool
 Processor::hasVariance() const
 {
-    if ( pragma.getVariance() == NO_VARIANCE 
-	 || pragma.getProcessor() != DEFAULT_PROCESSOR 
+    if ( pragma.getVariance() == NO_VARIANCE
+	 || pragma.getProcessor() != DEFAULT_PROCESSOR
 	 || scheduling() == SCHEDULE_PS
-	 || isMultiServer() 
+	 || isMultiServer()
 	 || isInfinite() ) {
 	return false;
+    } else {
+	return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) ) != entries().end();
     }
-	
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasVariance() ) {
-	    return true;
-	}
-    }
-	
-    return false;
 }
 
 
@@ -230,63 +240,11 @@ Processor::hasVariance() const
 bool
 Processor::hasPriorities() const
 {
-    return scheduling() == SCHEDULE_HOL 	       
+    return scheduling() == SCHEDULE_HOL
 	|| scheduling() == SCHEDULE_PPR
 	|| scheduling() == SCHEDULE_PS_HOL
 	|| scheduling() == SCHEDULE_PS_PPR;
 }
-
-
-
-/*
- * Return the processor for this processor???
- */
-
-const Processor *
-Processor::processor() const
-{
-    throw should_not_implement( "Processor::processor", __FILE__, __LINE__ );
-    return 0;
-}
-
-
-
-/*
- * Set the processor for this processor???
- */
-
-Entity&
-Processor::processor( Processor * ) 
-{
-    throw should_not_implement( "Processor::processor", __FILE__, __LINE__ );
-    return *this;
-}
-
-
-/*
- * Add a task to the list of tasks for this processor.
- */
-
-Processor&
-Processor::addTask( Task * aTask )
-{
-    taskList += aTask;
-    return *this;
-}
-
-
-
-/*
- * Remove aTask from the list of tasks for this processor.
- */
-
-Processor&
-Processor::removeTask( Task * aTask )
-{
-    taskList -= aTask;
-    return *this;
-}
-
 
 
 /*
@@ -314,7 +272,7 @@ Processor::validScheduling() const
  */
 
 Server *
-Processor::makeServer( const unsigned nChains ) 
+Processor::makeServer( const unsigned nChains )
 {
     if ( isInfinite() ) {
 
@@ -409,7 +367,7 @@ Processor::makeServer( const unsigned nChains )
 		myServerStation = new FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
-		
+
 	case SCHEDULE_PPR:
 	    if ( hasVariance() ) {
 		if ( dynamic_cast<PR_HVFCFS_Server *>(myServerStation) ) return 0;
@@ -419,7 +377,7 @@ Processor::makeServer( const unsigned nChains )
 		myServerStation = new PR_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
-		
+
 	case SCHEDULE_HOL:
 	    if ( hasVariance() ) {
 		if ( dynamic_cast<HOL_HVFCFS_Server *>(myServerStation) ) return 0;
@@ -429,7 +387,7 @@ Processor::makeServer( const unsigned nChains )
 		myServerStation = new HOL_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
-		
+
 	case SCHEDULE_PS:
 	    if ( dynamic_cast<PS_Server *>(myServerStation) ) return 0;
 	    myServerStation = new PS_Server( nEntries(), nChains, maxPhase() );
@@ -444,7 +402,6 @@ Processor::makeServer( const unsigned nChains )
 	    if ( dynamic_cast<PR_PS_Server *>(myServerStation) ) return 0;
 	    myServerStation = new PR_PS_Server( nEntries(), nChains, maxPhase() );
 	    break;
-
 	}
     }
 
@@ -452,43 +409,26 @@ Processor::makeServer( const unsigned nChains )
 }
 
 
-void 
+const Processor&
 Processor::insertDOMResults(void) const
 {
-    Sequence<Task *> nextTask(taskList);
-    const Task *aTask;
     double sumOfProcUtil = 0.0;
+    for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 
-    while (aTask = nextTask())
-    {
-	Sequence<Entry *> nextEntry( aTask->entries() );
-	const Entry * anEntry;
-
-	while (anEntry = nextEntry())
-        {
-	    double util = anEntry->processorUtilization();
-	    if (anEntry->isStandardEntry())
-            {
-		sumOfProcUtil += util;
+	const std::vector<Entry *>& entries = (*task)->entries();
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	    if ((*entry)->isStandardEntry()) {
+		sumOfProcUtil += (*entry)->processorUtilization();
 	    }
 	}
-
-	if (aTask->hasActivities())
-        {
-	    Sequence<Activity *> nextActivity(aTask->activities());
-	    Activity * anActivity;
-
-	    while (anActivity = nextActivity())
-            {
-		const double util = anActivity->processorUtilization();
-		sumOfProcUtil += util;
-	    }
-	}
+	const std::vector<Activity *>& activities = (*task)->activities();
+	sumOfProcUtil += for_each( activities.begin(), activities.end(), Sum<Activity,double>( &Activity::processorUtilization ) ).sum();
     }
-	
+
     if ( getDOM() ) {
 	getDOM()->setResultUtilization(sumOfProcUtil);
     }
+    return *this;
 }
 
 
@@ -501,8 +441,8 @@ Processor::print( ostream& output ) const
 {
     const ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
     output << setw(8) << name()
-	   << " " << setw(9) << processor_type( *this )
-	   << " " << setw(5) << replicas() 
+	   << " " << setw(9) << print_processor_type()
+	   << " " << setw(5) << replicas()
 	   << " " << setw(12) << scheduling_label[scheduling()].str
 	   << "  "
 	   << print_info( *this );	    /* Bonus information about stations -- derived by solver */
@@ -513,49 +453,40 @@ Processor::print( ostream& output ) const
 /* ----------------------- External functions. ------------------------ */
 
 /*
- * Add a processor to the model.   
+ * Add a processor to the model.
  */
 
-void Processor::create( LQIO::DOM::Processor* domProcessor )
+void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 {
-    /* Unroll some of the encapsulated information */
-    const char* processor_name = domProcessor->getName().c_str();
-	
-    if ( !processor_name || strlen( processor_name ) == 0 ) abort();
+    const std::string& name = p.first;
+    assert( name.size() > 0 );
 
-    if ( Processor::find( processor_name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name );
-	return;
+    if ( Processor::find( name ) ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", name.c_str() );
+    } else {
+	Model::__processor.insert( new Processor( p.second ) );
     }
-
-    Processor * aProcessor;
-
-    aProcessor = new Processor( domProcessor );
-    ::processor.insert( aProcessor );
 }
 
 
 
 /*
- * Find the processor and return it.  
+ * Find the processor and return it.
  */
 
 Processor *
-Processor::find( const char * processor_name )
+Processor::find( const std::string& name )
 {
-    set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( processor_name ) );
-    if ( nextProcessor == ::processor.end() ) {
-	return 0;
-    } else {
-	return *nextProcessor;
-    }
+    std::set<Processor *>::const_iterator processor = find_if( Model::__processor.begin(), Model::__processor.end(), EQStr<Entity>( name ) );
+    return ( processor != Model::__processor.end() ) ? *processor : NULL;
 }
 
-static ostream&
-processor_type_of( ostream& output, const Processor& aProcessor )
+
+/* static */ ostream&
+Processor::output_processor_type( ostream& output, const Processor& aProcessor )
 {
     char buf[12];
-    const unsigned n      = aProcessor.copies();
+    const unsigned n = aProcessor.copies();
 
     if ( aProcessor.scheduling() == SCHEDULE_CUSTOMER ) {
 	sprintf( buf, "ref(%d)", n );
@@ -568,11 +499,4 @@ processor_type_of( ostream& output, const Processor& aProcessor )
     }
     output << buf;
     return output;
-}
-
-
-SRVNProcessorManip
-processor_type( const Processor& aProcessor )
-{
-    return SRVNProcessorManip( processor_type_of, aProcessor );
 }

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: prob.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: prob.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -20,6 +20,8 @@
 #define NOISE 0.00001			/* For probability fixing.	*/
 
 #include "dim.h"
+#include <iostream>
+#include <iomanip>
 
 class Probability {
     friend class Positive;
@@ -36,8 +38,8 @@ public:
     Probability& operator-=( const double );
     Probability& operator*=( const double );
     Probability& operator/=( const double );
-    friend ostream& operator<<( ostream &output, const Probability& arg ) { output << arg.value; return output; }
-    friend istream& operator<<( istream &input, Probability& arg );
+    friend std::ostream& operator<<( std::ostream &output, const Probability& arg ) { output << arg.value; return output; }
+    friend std::istream& operator<<( std::istream &input, Probability& arg );
 
 private:
     double value;
@@ -60,8 +62,8 @@ public:
     Positive& operator-=( const double );
     Positive& operator*=( const double );
     Positive& operator/=( const double );
-    friend ostream& operator<<( ostream &output, const Positive& arg ) { output << arg.value; return output; }
-    friend istream& operator<<( istream &input, Positive& arg );
+    friend std::ostream& operator<<( std::ostream &output, const Positive& arg ) { output << arg.value; return output; }
+    friend std::istream& operator<<( std::istream &input, Positive& arg );
 
 private:
     double value;

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: option.h 13676 2020-07-10 15:46:20Z greg $
  */
 
 #ifndef _OPTION_H
@@ -48,6 +48,7 @@ namespace Options
 	static bool interlock() { return _interlock; }
 //	static bool joins() { return _joins; }
 	static bool layers() { return _layers; };
+	static bool variance() { return _variance; }
 #if HAVE_LIBGSL
 	static bool quorum() { return _quorum; };
 #endif
@@ -61,6 +62,7 @@ namespace Options
 	static void interlock( const char * ) { _interlock = true; }
 //	static void joins( const char * ) { _joins = true; }
 	static void layers( const char * ) { _layers = true; }
+	static void variance( const char * ) { _variance = true; }
 	static void overtaking( const char * );
 #if HAVE_LIBGSL
 	static void quorum( const char * ) { _quorum = true; }
@@ -75,6 +77,7 @@ namespace Options
 	static bool _interlock;
 //	static bool _joins;
 	static bool _layers;			/* -d: Print out debug info.		*/
+	static bool _variance;
 #if HAVE_LIBGSL
 	static bool _quorum;			/* print out local etc.			*/
 #endif
@@ -130,7 +133,6 @@ namespace Options
 	static void underrelaxation( const char * );
 	static void generate_queueing_model( const char * );
 	static void mol_ms_underrelaxation( const char * );
-	static void skip_layer( const char * );
 	static void make_man( const char * );
 	static void make_tex( const char * );
 	static void min_steps( const char * );

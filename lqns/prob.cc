@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: prob.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: prob.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * This class only allows double precision values in the range of 0.0 to
  * 1.0.  Attempts to set instances to values outside this range will

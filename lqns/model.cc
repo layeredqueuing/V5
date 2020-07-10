@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13562 2020-05-27 02:01:45Z greg $
+ * $Id: model.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -36,25 +36,24 @@
 
 
 #include "dim.h"
+#if HAVE_UNISTD_H
+#include <unistd.h>
+#endif
+#include <algorithm>
+#include <iostream>
 #include <fstream>
 #include <cstdlib>
 #include <cmath>
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#endif
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/input.h>
 #include "errmsg.h"
-#include "cltn.h"
 #include "fpgoop.h"
 #include "stack.h"
 #include "model.h"
-#include "entity.h"
-#include "task.h"
 #include "group.h"
 #include "processor.h"
 #include "entry.h"
@@ -62,6 +61,7 @@
 #include "server.h"
 #include "mva.h"
 #include "open.h"
+#include "overtake.h"
 #include "submodel.h"
 #include "synmodel.h"
 #include "lqns.h"
@@ -73,6 +73,7 @@
 #include "activity.h"
 #include "interlock.h"
 #include "actlist.h"
+#include "task.h"
 #include "report.h"
 #include "runlqx.h"
 #include <lqio/srvn_output.h>
@@ -85,18 +86,10 @@ Processor * Model::thinkServer = 0;
 unsigned Model::sync_submodel = 0;
 LQIO::DOM::Document::input_format Model::input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
 
-/*
- * Compare two entities by their submodel. 
- */
-
-struct lt_submodel
-{
-    bool operator()(const Entity * e1, const Entity * e2) const
-	{
-	    return (e1->submodel() < e2->submodel()) 
-		|| (e1->submodel() == e2->submodel() && (!e2->domEntity || (e1->domEntity && (e1->domEntity->getId() < e2->domEntity->getId()))));
-	}
-};
+std::set<Processor *, Model::LT<Entity> > Model::__processor;
+std::set<Group *,Model::LT<Group> > Model::__group;
+std::set<Task *,Model::LT<Entity> > Model::__task;
+std::set<Entry *,Model::LT<Entry> > Model::__entry;
 
 /*----------------------------------------------------------------------*/
 /*                           Factory Methods                            */
@@ -113,7 +106,7 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 
     Activity::actConnections.clear();
     Activity::domToNative.clear();
-    MVA::boundsLimit = pragma.getTau();
+    MVA::__bounds_limit = pragma.getTau();
 
     /*
      * Fold, Mutilate and Spindle before main loop processing in solve.c
@@ -161,8 +154,7 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 
 	try {
 	    if ( check_model ) {
-		set<Task *,ltTask>::const_iterator nextTask = task.begin();
-		aModel->generate( nextTask );
+		aModel->generate();
 		if ( !io_vars.anError() ) {
 		    aModel->setInitialized();
 		} else {
@@ -188,11 +180,9 @@ Model::initializeModel()
     checkModel();
 
     if ( !_model_initialized ) {
-
 	initProcessors();		/* Set Processor Service times.	*/
 
-	set<Task *,ltTask>::const_iterator nextTask = task.begin();
-	this->generate( nextTask );
+	generate();
 
 	_model_initialized = true;
     }
@@ -244,31 +234,17 @@ Model::prepare(const LQIO::DOM::Document* document)
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
     const map<string,string>& pragmaList = document->getPragmaList();
-    for ( map<string,string>::const_iterator pragmaIter = pragmaList.begin(); pragmaIter != pragmaList.end(); ++pragmaIter) {
-	pragma.set( pragmaIter->first, pragmaIter->second );
-    }
+    for_each( pragmaList.begin(), pragmaList.end(), Pragma::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
-    /* We need to add all of the processors */
     const std::map<std::string,LQIO::DOM::Processor *>& procList = document->getProcessors();
-
-    /* Add all of the processors we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Processor *>::const_iterator nextProc = procList.begin(); nextProc != procList.end(); ++nextProc ) {
-	LQIO::DOM::Processor* processor = nextProc->second;
-	DEBUG("[1]: Adding processor (" << processor->name() << ")" << endl);
-	Processor::create(processor);
-    }
+    for_each( procList.begin(), procList.end(), Processor::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
 
-    const std::map<std::string,LQIO::DOM::Group*>& groups = const_cast<LQIO::DOM::Document*>(document)->getGroups();
-    std::map<std::string,LQIO::DOM::Group*>::const_iterator groupIter;
-    for (groupIter = groups.begin(); groupIter != groups.end(); ++groupIter) {
-	LQIO::DOM::Group* domGroup = const_cast<LQIO::DOM::Group*>(groupIter->second);
-	DEBUG("[G]: Adding Group (" << domGroup->getName() << ")" << endl);
-	add_group(domGroup);
-    }
+    const std::map<std::string,LQIO::DOM::Group*>& groups = document->getGroups();
+    for_each( groups.begin(), groups.end(), Group::create );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 
@@ -284,13 +260,12 @@ Model::prepare(const LQIO::DOM::Document* document)
 	DEBUG("[2]: Preparing to add entries for Task (" << task->name() << ")" << endl);
 
 	/* Prepare to iterate over all of the entries */
-	Cltn<Entry*> entryCollection;
-	std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry;
+	std::vector<Entry*> entries;
 	std::vector<LQIO::DOM::Entry*> activityEntries;
 
 	/* Add the entries so we can reverse them */
-	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
-	    entryCollection << Entry::create( *nextEntry, entryCollection.size() );
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
+	    entries.push_back( Entry::create( *nextEntry, entries.size() ) );
 	    if ((*nextEntry)->getStartActivity() != NULL) {
 		activityEntries.push_back(*nextEntry);
 	    }
@@ -299,7 +274,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 	/* Now we can go ahead and add the task */
 	DEBUG("[3]: Adding Task (" << name << ")" << endl);
 
-	Task* newTask = Task::create(task, &entryCollection);
+	Task* newTask = Task::create(task, entries);
 
 	/* Add activities for the task (all of them) */
 	const std::map<std::string,LQIO::DOM::Activity*>& activities = task->getActivities();
@@ -311,7 +286,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 	}
 
 	/* Set all the start activities */
-	for (nextEntry = activityEntries.begin(); nextEntry != activityEntries.end(); ++nextEntry) {
+	for ( std::vector<LQIO::DOM::Entry*>::const_iterator nextEntry = activityEntries.begin(); nextEntry != activityEntries.end(); ++nextEntry) {
 	    LQIO::DOM::Entry* theDOMEntry = *nextEntry;
 	    DEBUG("[3][b]: Setting Start Activity (" << theDOMEntry->getStartActivity()->getName().c_str()
 		  << ") for Entry (" << theDOMEntry->getName().c_str() << ")" << endl);
@@ -338,18 +313,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 	    std::vector<LQIO::DOM::Call*>::const_iterator iter;
 
 	    /* Add all of the calls to the system */
-	    for (iter = originatingCalls.begin(); iter != originatingCalls.end(); ++iter) {
-		LQIO::DOM::Call* call = *iter;
-
-#if defined(DEBUG_MESSAGES)
-		LQIO::DOM::Entry* src = const_cast<LQIO::DOM::Entry*>(call->getSourceEntry());
-		LQIO::DOM::Entry* dst = const_cast<LQIO::DOM::Entry*>(call->getDestinationEntry());
-		DEBUG("[4]: Phase " << call->getPhase() << " Call (" << src->getName() << ") -> (" << dst->getName() << ")" << endl);
-#endif
-
-		/* Add the call to the system */
-		newEntry->add_call( p, call );
-	    }
+	    for_each( originatingCalls.begin(), originatingCalls.end(), Call::Create( newEntry, p ) );
 
 	    /* Set the phase information for the entry */
 	    newEntry->setDOM(p, phase);
@@ -382,6 +346,7 @@ Model::prepare(const LQIO::DOM::Document* document)
 
     /* Tell the user that we have finished */
     DEBUG("[0]: Finished loading the model" << endl << endl);
+
     return true;
 }
 
@@ -396,15 +361,8 @@ void
 Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 {
     setModelParameters(document);
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->recalculateDynamicValues();
-    }
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->recalculateDynamicValues();
-    }
+    for_each( __processor.begin(), __processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+    for_each( __task.begin(), __task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
 }
 
 
@@ -416,64 +374,18 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 bool
 Model::checkModel()
 {
-    /* non-ref entries should receive either RV requests or open arrivals*/
+    for_each( __processor.begin(), __processor.end(), Predicate<Entity>( &Entity::check ) );
+    for_each( __task.begin(), __task.end(), Predicate<Entity>( &Entity::check ) );
 
-    unsigned ref_tasks = 0;
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	aTask->check();
-
-	if ( aTask->isReferenceTask() ) {
-	    ref_tasks += 1;
-	}
-    }
-
+    const unsigned ref_tasks = count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) );
     if ( ref_tasks == 0 && Entry::totalOpenArrivals == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
-    }
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	const Processor * aProcessor = *nextProcessor;
-	aProcessor->check();
     }
 
     return !io_vars.anError();
 }
 
 
-
-/*
- * Delete the model.
- */
-
-void
-Model::dispose()
-{
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	delete aProcessor;
-    }
-    processor.clear();
-
-    for ( set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	const Group * aGroup = *nextGroup;
-	delete aGroup;
-    }
-    group.clear();
-
-    if ( thinkServer ) {
-	delete thinkServer;
-	thinkServer = 0;
-    }
-
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	delete aTask;
-    }
-    task.clear();
-
-    entry.clear();
-}
 
 /*
  *	Called from the parser to set important modelling parameters.
@@ -489,7 +401,7 @@ Model::setModelParameters( const LQIO::DOM::Document* doc )
     }
     if ( !flags.override_iterations ) {
 	int it_limit = doc->getModelIterationLimitValue();
-	if ( it_limit < 5 ) {
+	if ( it_limit < 1 ) {
 	    LQIO::input_error2( ADV_ITERATION_LIMIT, it_limit, iteration_limit );
 	} else {
 	    iteration_limit = it_limit;
@@ -525,7 +437,7 @@ Model::setModelParameters( const LQIO::DOM::Document* doc )
  */
 
 Model::Model( const LQIO::DOM::Document * document, const string& inputFileName, const string& outputFileName )
-    : _converged(false), _iterations(0), _max_depth(1), _step_count(0), _model_initialized(false), _document(document), _input_file_name(inputFileName), _output_file_name(outputFileName)
+    : _converged(false), _iterations(0), _step_count(0), _model_initialized(false), _document(document), _input_file_name(inputFileName), _output_file_name(outputFileName)
 {
     sync_submodel = 0;
 }
@@ -536,8 +448,37 @@ Model::Model( const LQIO::DOM::Document * document, const string& inputFileName,
 
 Model::~Model()
 {
-    _submodels.deleteContents();
+    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
+	delete *submodel;
+    }
+    _submodels.clear();
+
+    for ( std::set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	delete *processor;
+    }
+    __processor.clear();
+
+    for ( std::set<Group *>::const_iterator group = Model::__group.begin(); group != Model::__group.end(); ++group ) {
+	delete *group;
+    }
+    __group.clear();
+
+    if ( thinkServer ) {
+	delete thinkServer;
+	thinkServer = 0;
+    }
+
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	delete *task;
+    }
+    __task.clear();
+
+    for ( std::set<Entry *>::const_iterator entry = __entry.begin(); entry != __entry.end(); ++entry ) {
+	delete *entry;
+    }
+    __entry.clear();
 }
+
 
 
 /*
@@ -554,30 +495,29 @@ Model::~Model()
  */
 
 unsigned
-Model::generate( set<Task *,ltTask>::const_iterator& nextTask )
+Model::generate()
 {
-    _max_depth = assignSubmodel( nextTask );
+    unsigned int max_depth = assignSubmodel();
 
-    _submodels.grow(_max_depth);
+    _submodels.resize(max_depth);
 
-    for ( unsigned i = 1; i <= _max_depth; ++i ) {
+    for ( unsigned int i = 1; i <= max_depth; ++i ) {
 	_submodels[i] = new MVASubmodel(i,this);
     }
-
+    
     /* Add submodel for join delay calculation */
 
     if ( ActivityList::n_forks || ActivityList::n_joins ) {
-	_submodels.grow(1);
-	_max_depth += 1;
-	sync_submodel = _max_depth;
-	_submodels[sync_submodel] = new SynchSubmodel(sync_submodel,this);
+	max_depth += 1;
+	sync_submodel = max_depth;
+	_submodels.push_back(new SynchSubmodel(sync_submodel,this));
     }
 
     /* Build model. */
 
+    _MVAStats.resize(max_depth);	/* MVA statistics by level.	*/
 //    prune();				/* Delete unused stuff. 	*/
     addToSubmodel();			/* Add tasks to layers.		*/
-    MVAStats.grow(_max_depth);		/* MVA statistics by level.	*/
     configure();			/* Dimension arrays and threads	*/
     initialize();			/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
 
@@ -585,33 +525,7 @@ Model::generate( set<Task *,ltTask>::const_iterator& nextTask )
 	printLayers( cout );		/* Print out layers... 		*/
     }
 
-    return _max_depth;
-}
-
-
-
-unsigned
-Model::pruneLayers()
-{
-    unsigned count = 0;
-
-    for ( unsigned i = 1; i <= _max_depth ;++i ) {
-	while ( i <= _max_depth && !(*_submodels[i]) ) {
-	    count += 1;
-	    delete _submodels[i];
-	    for ( unsigned j = i; j < _max_depth; ++j ) {
-		_submodels[j] = _submodels[j+1];
-		_submodels[j]->number( j );
-	    }
-	    _max_depth -= 1;
-	}
-    }
-    _submodels.chop( count );
-
-    if ( sync_submodel ) {
-	sync_submodel -= count;
-    }
-    return count;
+    return max_depth;
 }
 
 
@@ -623,7 +537,7 @@ Model::pruneLayers()
 void
 Model::extendModel()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = __task.begin(); nextTask != __task.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 
 	/* Add a delay server for think times. */
@@ -655,10 +569,7 @@ Model::extendModel()
 void
 Model::initProcessors()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->initProcessor();
-    }
+    for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initProcessor ) );
 }
 
 
@@ -672,16 +583,8 @@ Model::initProcessors()
 void
 Model::configure()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->configure( nSubmodels() );
-    }
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->configure( nSubmodels() );
-    }
-
+    for_each( __task.begin(), __task.end(), Exec1<Entity,unsigned>( &Entity::configure, nSubmodels() ) );
+    for_each( __processor.begin(), __processor.end(), Exec1<Entity,unsigned>( &Entity::configure, nSubmodels() ) );
     if ( thinkServer ) {
 	thinkServer->configure( nSubmodels() );
     }
@@ -698,43 +601,33 @@ Model::configure()
 void
 Model::initialize()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->initInterlock();
+    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initInterlock ) );
+	if ( Options::Debug::interlock() ) {
+	    Interlock::printPathTable( cout );
+	}
     }
 
-    Sequence<Submodel *> nextSubmodel( _submodels );
-    BackwardsSequence<Submodel *> prevSubmodel( _submodels );
-    Submodel * aSubmodel;
+    /* 
+     * Initialize waiting times and populations at servers Done in
+     * reverse order (bottom up) because waits propogate upwards.
+     */
 
-    /* Initialize waiting times and populations at servers
-     * Done in reverse order (bottom up) because waits propogate
-     * upwards. */
-
-    while ( aSubmodel = prevSubmodel() ) {
-	aSubmodel->initServers( *this );
-    }
+    for_each( _submodels.rbegin(), _submodels.rend(), Exec1<Submodel,const Model&>( &Submodel::initServers, *this ) );
 
     /* Initialize waiting times and populations for the reference tasks. */
 
     initClients();
 
-    if ( Options::Debug::interlock() ) {
-	Interlock::printPathTable( cout );
-    }
-
     /* Initialize Interlocking */
 
-    while ( aSubmodel = nextSubmodel() ) {
-	aSubmodel->initInterlock();
+    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::initInterlock ) );
     }
 
-    while ( aSubmodel = nextSubmodel() ) {
-	if ( aSubmodel->number() != flags.skip_submodel ) {
-	    aSubmodel->build();		/* For use by MVA stats/generate*/
-	}
-    }
-
+    /* build stations and customers as needed. */
+    
+    for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::build ) );      	    /* For use by MVA stats/generate*/
 }
 
 
@@ -753,39 +646,28 @@ Model::reinitialize()
      * needs to reset to zero for the convergence test.
      */
 
-
     _iterations = 0;
     _step_count = 0;
-    for ( unsigned i = 1; i <= _max_depth; ++i ) {
-	MVAStats[i].initialize();
-    }
 
-    for ( set<Entry *,ltEntry>::const_iterator nextEntry = entry.begin(); nextEntry != entry.end(); ++nextEntry ) {
-	Entry * anEntry = *nextEntry;
-	anEntry->resetInterlock();
+    for_each( _MVAStats.begin(), _MVAStats.end(), Exec<MVACount>( &MVACount::initialize ) );
+    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+	for_each( __entry.begin(), __entry.end(), Exec<Entry>( &Entry::resetInterlock ) );
     }
 
     /*
      * Reinitialize the MVA stuff
      */
 
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->initInterlock();
-    }
+    for_each( __task.begin(),  __task.end(), Exec<Task>( &Task::initInterlock ) );
 
-    Sequence<Submodel *> nextSubmodel( _submodels );
-    BackwardsSequence<Submodel *> prevSubmodel( _submodels );
-    Submodel * aSubmodel;
 
-    /* Initialize waiting times and populations at servers
-     * Done in reverse order (bottom up) because waits propogate
-     * upwards. */
+    /* 
+     * Initialize waiting times and populations at servers Done in
+     * reverse order (bottom up) because waits propogate upwards.
+     */
 
-    while ( aSubmodel = prevSubmodel() ) {
-	aSubmodel->reinitServers( *this );
-	aSubmodel->reinitClients();
-    }
+    for_each( _submodels.rbegin(), _submodels.rend(), Exec1<Submodel,const Model&>( &Submodel::reinitServers, *this ) );
+    for_each( _submodels.rbegin(), _submodels.rend(), Exec<Submodel>( &Submodel::reinitClients ) );
 
     /* Initialize waiting times and populations for the reference tasks. */
 
@@ -793,15 +675,13 @@ Model::reinitialize()
 
     /* Reinitialize Interlocking */
 
-    while ( aSubmodel = nextSubmodel() ) {
-	aSubmodel->reinitInterlock();
+    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::reinitInterlock ) );
     }
 
-    while ( aSubmodel = nextSubmodel() ) {
-	if ( aSubmodel->number() != flags.skip_submodel ) {
-	    aSubmodel->rebuild();		/* For use by MVA stats/generate*/
-	}
-    }
+    /* Rebuild stations and customers as needed. */
+
+    for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::rebuild ) );
 
     return *this;
 }
@@ -816,15 +696,14 @@ Model::reinitialize()
 void
 Model::initClients()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aClient = *nextTask;
-	if ( aClient->isReferenceTask() ) {
-	    aClient->initWait();
-	    updateWait( aClient );	/* Initialize over all submodels. */
-	    aClient->computeVariance();
-	    aClient->initThroughputBound();
-	    aClient->initPopulation();
-	    aClient->initThreads();
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( (*task)->isReferenceTask() ) {
+	    (*task)->initWait();
+	    updateWait( (*task) );	/* Initialize over all submodels. */
+	    (*task)->computeVariance()
+		.initThroughputBound()
+		.initPopulation()
+		.initThreads();
 	}
     }
 }
@@ -839,14 +718,13 @@ Model::initClients()
 void
 Model::reinitClients()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aClient = *nextTask;
-	if ( aClient->isReferenceTask() ) {
-	    updateWait( aClient );	/* Initialize over all submodels. */
-	    aClient->computeVariance();
-	    aClient->initThroughputBound();
-	    aClient->initPopulation();
-//	    aClient->initThreads();
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( (*task)->isReferenceTask() ) {
+	    updateWait( (*task) );	/* Initialize over all submodels. */
+	    (*task)->computeVariance()
+		.initThroughputBound()
+		.initPopulation();
+//	    (*task)->initThreads();
 	}
     }
 }
@@ -860,7 +738,7 @@ Model::reinitClients()
 bool
 Model::solve()
 {
-    SolverReport report( const_cast<LQIO::DOM::Document *>(_document) );
+    SolverReport report( const_cast<LQIO::DOM::Document *>(_document), _MVAStats );
     setModelParameters( _document );
 
     if ( flags.no_execute || flags.bounds_only ) {
@@ -872,7 +750,7 @@ Model::solve()
 
     _converged = false;
     const double delta = run();
-    report.finish( delta, *this );
+    report.finish( _converged, delta, _iterations );
     sanityCheck();
     if ( !_converged ) {
 	LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, convergence_value );
@@ -897,17 +775,17 @@ Model::solve()
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
 
     bool override = false;
-    if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
-	LQIO::Filename filename( _input_file_name.c_str(), flags.rtf_output ? "rtf" : "out" );
+    if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name ) != 0 ) {
+	LQIO::Filename filename( _input_file_name, flags.rtf_output ? "rtf" : "out" );
 	override = filename() == _output_file_name;
     }
 
     if ( override || ((!hasOutputFileName() || directoryName.size() > 0 ) && _input_file_name != "-" )) {
 	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || flags.xml_output ) {	/* No parseable/json output, so create XML */
-	    LQIO::Filename filename( _input_file_name.c_str(), "lqxo", directoryName.c_str(), suffix.c_str() );
+	    LQIO::Filename filename( _input_file_name, "lqxo", directoryName, suffix );
 	    ofstream output;
 	    filename.backup();
-	    output.open( filename(), ios::out );
+	    output.open( filename().c_str(), ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
@@ -918,10 +796,10 @@ Model::solve()
 
 	/* Parseable output. */
 
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output ) || flags.parseable_output ) {
-	    LQIO::Filename filename( _input_file_name.c_str(), "p", directoryName.c_str(), suffix.c_str() );
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output && !flags.xml_output ) || flags.parseable_output ) {
+	    LQIO::Filename filename( _input_file_name, "p", directoryName, suffix );
 	    ofstream output;
-	    output.open( filename(), ios::out );
+	    output.open( filename().c_str(), ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
@@ -932,10 +810,10 @@ Model::solve()
 
 	/* Regular output */
 
-	LQIO::Filename filename( _input_file_name.c_str(), flags.rtf_output ? "rtf" : "out", directoryName.c_str(), suffix.c_str() );
+	LQIO::Filename filename( _input_file_name, flags.rtf_output ? "rtf" : "out", directoryName, suffix );
 
 	ofstream output;
-	output.open( filename(), ios::out );
+	output.open( filename().c_str(), ios::out );
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else if ( flags.rtf_output ) {
@@ -965,7 +843,7 @@ Model::solve()
 
 	/* Do not map filename. */
 
-	LQIO::Filename::backup( _output_file_name.c_str() );
+	LQIO::Filename::backup( _output_file_name );
 
 	ofstream output;
 	output.open( _output_file_name.c_str(), ios::out );
@@ -1005,7 +883,7 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+    LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
     if ( access( directory_name().c_str(), R_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
@@ -1036,56 +914,17 @@ Model::restart()
     }
 }
 
-/*
- * Solve the submodel.  Return largest delta value encountered.
- */
-
-Model&
-Model::solve( Sequence<Submodel *>& nextSubmodel )
-{
-    Submodel * aSubmodel;
-
-    while ( aSubmodel = nextSubmodel() ) {
-	const unsigned depth = aSubmodel->number();
-	if ( depth == flags.skip_submodel ) continue;
-
-	_step_count += 1;
-
-	aSubmodel->solve( _iterations, MVAStats[depth], relaxation() );
-
-    }
-
-    return *this;
-}
-
 
 
 /*
- * Solve a single sub-model.
- */
-
-Model&
-Model::solveSubmodel( Submodel * aSubmodel )
-{
-    _step_count += 1;
-    aSubmodel->solve( _iterations, MVAStats[aSubmodel->number()], relaxation() );  //REP N-R
-    return *this;
-}
-
-
-
-/*
- * Final waiting time initilization -- updateWait/joinDelay.
+ * Final waiting time initlization -- updateWait/joinDelay.
  */
 
 void
 Model::updateWait( Entity * aTask ) const
 {
-    Submodel * aSubmodel;
-    Sequence<Submodel *> nextSubmodel( _submodels );
-
-    while ( aSubmodel = nextSubmodel() ) {
-	aTask->updateWait( *aSubmodel, 1.0 );
+    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
+	aTask->updateWait( **submodel, 1.0 );
     }
 }
 
@@ -1099,15 +938,8 @@ Model::updateWait( Entity * aTask ) const
 void
 Model::sanityCheck()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->sanityCheck();
-    }
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->sanityCheck();
-    }
+    for_each( __task.begin(), __task.end(), ConstExec<Entity>( &Entity::sanityCheck ) );
+    for_each( __processor.begin(), __processor.end(), ConstExec<Entity>( &Entity::sanityCheck ) );
 }
 
 
@@ -1130,15 +962,9 @@ Model::relaxation() const
 void
 Model::insertDOMResults() const
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->insertDOMResults();
-    }
-
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	const Processor * aProcessor = *nextProcessor;
-	aProcessor->insertDOMResults();
-    }
+    for_each( __task.begin(), __task.end(), ConstExec<Task>( &Task::insertDOMResults ) );
+    for_each( __processor.begin(), __processor.end(), ConstExec<Processor>( &Processor::insertDOMResults ) );
+    for_each( __group.begin(), __group.end(), ConstExec<Group>( &Group::insertDOMResults ) );
 }
 
 
@@ -1149,11 +975,8 @@ Model::insertDOMResults() const
 ostream&
 Model::printLayers( ostream& output ) const
 {
-    Submodel * aSubmodel;
-    Sequence<Submodel *> nextSubmodel( _submodels );
-
-    while ( aSubmodel = nextSubmodel() ) {
-	output << *aSubmodel;
+    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
+	output << **submodel;
     }
     return output;
 }
@@ -1167,7 +990,7 @@ Model::printLayers( ostream& output ) const
 void
 Model::printIntermediate( const double convergence ) const
 {
-    SolverReport report( const_cast<LQIO::DOM::Document *>(_document) );
+    SolverReport report( const_cast<LQIO::DOM::Document *>(_document), _MVAStats );
 
     const string directoryName = createDirectory();
     const string suffix = _document->getResultInvocationNumber() > 0 ? SolverInterface::Solve::customSuffix : "";
@@ -1186,15 +1009,15 @@ Model::printIntermediate( const double convergence ) const
 	extension = "out";
     }
 
-    LQIO::Filename filename( _input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
+    LQIO::Filename filename( _input_file_name, extension, directoryName, suffix );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << _iterations << "~";
 
-    report.finish( convergence, *this );	/* Save results */
+    report.finish( _converged, convergence, _iterations );	/* Save results */
 
     ofstream output;
-    output.open( filename(), ios::out );
+    output.open( filename().c_str(), ios::out );
 
     if ( !output ) return;			/* Ignore errors */
 
@@ -1222,7 +1045,7 @@ Model::printSubmodelWait( ostream& output ) const
     }
     output << endl;
 
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
+    for ( std::set<Task *>::const_iterator nextTask = __task.begin(); nextTask != __task.end(); ++nextTask ) {
 	const Task * aTask = *nextTask;
 	aTask->printSubmodelWait( output );
     }
@@ -1249,15 +1072,20 @@ Model::printOvertaking( ostream& output ) const
     }
     output << endl;
 
-    for ( set<Task *,ltTask>::const_iterator nextServer = task.begin(); nextServer != task.end(); ++nextServer ) {
+    for ( std::set<Task *>::const_iterator nextServer = __task.begin(); nextServer != __task.end(); ++nextServer ) {
 	const Task * aServer = *nextServer;
 	if ( aServer->markovOvertaking() ) {
-	    aServer->printOvertaking( output );
+	    for ( std::set<Task *>::const_iterator nextClient = __task.begin(); nextClient != __task.end(); ++nextClient ) {
+		const Task * aClient = *nextClient;
+		Overtaking overtaking( aClient, aServer );
+		output << overtaking;
+	    }
 	}
     }
     return output;
     output.flags(oldFlags);
 }
+
 
 
 /*
@@ -1268,14 +1096,14 @@ string
 Model::createDirectory() const
 {
     string directoryName;
-    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name.c_str() ) > 0 ) {
+    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
 	directoryName = _output_file_name;
     }
 
     if ( _document->getResultInvocationNumber() > 0 ) {
 	if ( directoryName.size() == 0 ) {
 	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 	    directoryName = filename();
 	}
     }
@@ -1305,21 +1133,20 @@ Model::createDirectory() const
  */
 
 unsigned
-Model::topologicalSort( set<Task *,ltTask>::const_iterator& nextTask )
+Model::topologicalSort()
 {
-    CallStack callStack( task.size() + 2 );
+    CallStack callStack( __task.size() + 2 );
     unsigned max_depth = 0;
 
-    for ( ; nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	const int initialLevel = aTask->rootLevel();
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	const int initialLevel = (*task)->rootLevel();
 	if ( initialLevel >= 0 ) {
 	    callStack.grow( initialLevel );
 	    try {
-		max_depth = max( aTask->findChildren( callStack, true ), max_depth );
+		max_depth = max( (*task)->findChildren( callStack, true ), max_depth );
 		callStack.shrink( initialLevel );
 	    }
-	    catch( call_cycle& error ) {
+	    catch( const call_cycle& error ) {
 		callStack.shrink( error.depth() );
 		max_depth = max( error.depth(), max_depth );
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
@@ -1346,9 +1173,9 @@ Model::topologicalSort( set<Task *,ltTask>::const_iterator& nextTask )
  */
 
 unsigned
-MOL_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask )
+MOL_Model::assignSubmodel( )
 {
-    unsigned max_layers = topologicalSort( nextTask );
+    unsigned max_layers = topologicalSort();
     HWSubmodel = max_layers;
     return max_layers;
 }
@@ -1365,34 +1192,29 @@ MOL_Model::addToSubmodel()
 {
     /* Tasks go in submodels 1 - (_max_depth-1). */
 
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( !aTask->isReferenceTask() ) {
-	    _submodels[aTask->submodel()]->addServer( aTask );
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( !(*task)->isReferenceTask() ) {
+	    _submodels[(*task)->submodel()]->addServer( (*task) );
 	}
-	if ( aTask->hasForks() ) {
-	    _submodels[sync_submodel]->addClient( aTask );
+	if ( (*task)->hasForks() ) {
+	    _submodels[sync_submodel]->addClient( (*task) );
 	}
-	if ( aTask->hasJoins() ) {
-	    _submodels[sync_submodel]->addServer( aTask );
+	if ( (*task)->hasJoins() ) {
+	    _submodels[sync_submodel]->addServer( (*task) );
 	}
     }
 
     /* Processors and other devices go in submodel n */
 
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->setSubmodel( HWSubmodel );		// Force all devices to this level
-	_submodels[HWSubmodel]->addServer( aProcessor );
+    for ( set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	(*processor)->setSubmodel( HWSubmodel );		// Force all devices to this level
+	_submodels[HWSubmodel]->addServer( (*processor) );
     }
 
     if ( thinkServer ) {
 	thinkServer->setSubmodel( HWSubmodel );		// Force all devices to this level
 	_submodels[HWSubmodel]->addServer(thinkServer);
     }
-
-    const unsigned count = pruneLayers();		/* Remove gaps 			*/
-    HWSubmodel -= count;
 }
 
 
@@ -1405,31 +1227,23 @@ MOL_Model::addToSubmodel()
 double
 MOL_Model::run()
 {
+    const bool verbose = flags.trace_convergence || flags.verbose;
+    SolveSubmodel solveSubmodel( *this, verbose );		/* Helper class for iterator */
+
     double delta = 0.0;
-    double count = 0.0;
-
-    Sequence<Submodel *> nextSubmodel( _submodels, HWSubmodel-1 );
-
     do {
 	do {
 	    _iterations += 1;
-	    if ( flags.trace_convergence || flags.verbose ) cerr << "Iteration: " << _iterations << " ";
+	    if ( verbose ) cerr << "Iteration: " << _iterations << " ";
 
-	    solve( nextSubmodel );			/* -- Step 3 -- */
+	    for_each( _submodels.begin(), &_submodels[HWSubmodel], solveSubmodel );
 
-	    delta = 0.0;
-	    count = 0;
-	    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-		const Task * aTask = *nextTask;
-		delta += square( aTask->deltaUtilization() );
-		count += 1;
-	    }
-	    delta = sqrt( delta / count );		/* RMS */
+	    delta = for_each ( __task.begin(), __task.end(), ExecSumSquare<Task,double>( &Task::deltaUtilization ) ).sum();
+	    delta = sqrt( delta / __task.size() );		/* RMS */
 
 	    if ( delta > convergence_value ) {
 		backPropogate();
 	    }
-
 	} while ( delta > convergence_value &&  _iterations < iteration_limit );		/* -- Step 4 -- */
 
 	/* Print intermediate results if necessary */
@@ -1450,18 +1264,13 @@ MOL_Model::run()
 	    printSubmodelWait();
 	}
 
-	delta = 0.0;
-	for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	    Processor * aProcessor = *nextProcessor;
-	    delta += square( aProcessor->deltaUtilization() );
-	    count += 1;
-	}
-	delta = sqrt( delta / count );		/* RMS */
-	if ( flags.trace_convergence || flags.verbose ) cerr << " [" << delta << "]" << endl;
+	delta = for_each ( __processor.begin(), __processor.end(), ExecSumSquare<Processor,double>( &Processor::deltaUtilization ) ).sum();
+	delta = sqrt( delta / __processor.size() );		/* RMS */
+	if ( verbose ) cerr << " [" << delta << "]" << endl;
 
     } while ( ( _iterations < flags.min_steps || delta > convergence_value ) && _iterations < iteration_limit );
 
-    _converged = (delta <= convergence_value);
+    _converged = (delta <= convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
     return delta;
 }
 
@@ -1477,10 +1286,9 @@ MOL_Model::run()
 void
 BackPropogate_MOL_Model::backPropogate()
 {
-    if ( _max_depth < 4 ) return;
-    BackwardsSequence<Submodel *>prevSubmodel( _submodels, 2, sync_submodel ? sync_submodel - 1 : _max_depth - 2 );
-
-    solve( prevSubmodel );
+    if ( nSubmodels() < 4 ) return;
+    const bool verbose = flags.trace_convergence || flags.verbose;
+    for_each ( _submodels.rbegin() + 2, _submodels.rend() - 1, SolveSubmodel( *this, verbose ) );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1494,9 +1302,9 @@ BackPropogate_MOL_Model::backPropogate()
  */
 
 unsigned
-Batch_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
+Batch_Model::assignSubmodel()
 {
-    return topologicalSort( nextTask );
+    return topologicalSort();
 }
 
 
@@ -1509,26 +1317,24 @@ Batch_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
 void
 Batch_Model::addToSubmodel()
 {
-    for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	const int i = aTask->submodel();
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	const int i = (*task)->submodel();
 	if ( i <= 0 ) continue;		/* Ignore - not used */
-	if ( !aTask->isReferenceTask() ) {
-	    _submodels[i]->addServer( aTask );
+	if ( !(*task)->isReferenceTask() ) {
+	    _submodels[i]->addServer( (*task) );
 	}
-	if ( aTask->hasForks() ) {
-	    _submodels[sync_submodel]->addClient( aTask );
+	if ( (*task)->hasForks() ) {
+	    _submodels[sync_submodel]->addClient( (*task) );
 	}
-	if ( aTask->hasJoins() ) { // Answer is always NO for now.
-	    _submodels[sync_submodel]->addServer( aTask );
+	if ( (*task)->hasJoins() ) { // Answer is always NO for now.
+	    _submodels[sync_submodel]->addServer( (*task) );
 	}
     }
 
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	const int i = aProcessor->submodel();
+    for ( set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	const int i = (*processor)->submodel();
 	if ( i <= 0 ) continue;		// Device not used.
-	_submodels[i]->addServer( aProcessor );
+	_submodels[i]->addServer( (*processor) );
     }
 
     if ( thinkServer ) {
@@ -1537,8 +1343,6 @@ Batch_Model::addToSubmodel()
 	    _submodels[i]->addServer( thinkServer );
 	}
     }
-
-    pruneLayers();		/* Remove gaps 			*/
 }
 
 
@@ -1552,30 +1356,20 @@ double
 Batch_Model::run()
 {
     double delta = 0.0;
-
-    Sequence<Submodel *> nextSubmodel( _submodels );
+    const bool verbose = (flags.trace_convergence || flags.verbose) && !(flags.trace_mva || flags.trace_wait);
+    const double count = __task.size() + __processor.size();
 
     do {
 	_iterations += 1;
-	if ( flags.trace_convergence || flags.verbose ) cerr << "Iteration: " << _iterations << " ";
+	if ( verbose ) cerr << "Iteration: " << _iterations << " ";
 
-	solve( nextSubmodel );
+	for_each ( _submodels.begin(), _submodels.end(), SolveSubmodel( *this, verbose ) );
 
 	/* compute convergence for next pass. */
 
-	delta = 0.0;
-	double count = 0;
-	for ( set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	    const Task * aTask = *nextTask;
-	    delta += square( aTask->deltaUtilization() );
-	    count += 1;
-	}
-	for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	    Processor * aProcessor = *nextProcessor;
-	    delta += square( aProcessor->deltaUtilization() );
-	    count += 1;
-	}
-	delta = sqrt( delta / count );		/* RMS */
+	delta =  for_each( __task.begin(), __task.end(), ExecSumSquare<Task,double>( &Task::deltaUtilization ) ).sum();
+	delta += for_each( __processor.begin(), __processor.end(), ExecSumSquare<Processor,double>( &Processor::deltaUtilization ) ).sum();
+	delta =  sqrt( delta / count );		/* RMS */
 
 	if ( delta > convergence_value ) {
 	    backPropogate();
@@ -1591,11 +1385,11 @@ Batch_Model::run()
 
 	if ( flags.trace_mva || flags.trace_wait ) {
 	    cout << endl << "-*- -- -*- " << _iterations << ":   " << delta << " -*- -- -*-" << endl << endl;
-	} else if ( flags.verbose || flags.trace_convergence ) cerr << " [" << delta << "]" << endl;
-
+	} else if ( flags.verbose || flags.trace_convergence ) {
+	    cerr << " [" << delta << "]" << endl;
+	}
     } while ( ( _iterations < flags.min_steps || delta > convergence_value ) && _iterations < iteration_limit );
-
-    _converged = (delta <= convergence_value);
+    _converged = (delta <= convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
     return delta;
 }
 
@@ -1611,10 +1405,9 @@ Batch_Model::run()
 void
 BackPropogate_Batch_Model::backPropogate()
 {
-    if ( _max_depth < 3 ) return;
-    BackwardsSequence<Submodel *>prevSubmodel( _submodels, 2, sync_submodel ? sync_submodel - 1 : _max_depth - 1 );
-
-    solve( prevSubmodel );
+    if ( nSubmodels() < 3 ) return;
+    const bool verbose = (flags.trace_convergence || flags.verbose) && !(flags.trace_mva || flags.trace_wait);
+    for_each ( _submodels.rbegin() + 1, _submodels.rend() - 1, SolveSubmodel( *this, verbose ) );
 }
 
 /*----------------------------------------------------------------------*/
@@ -1629,31 +1422,28 @@ BackPropogate_Batch_Model::backPropogate()
  */
 
 unsigned
-SRVN_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
+SRVN_Model::assignSubmodel()
 {
-    topologicalSort( nextTask );
+    topologicalSort();
 
     /* Build the list of all servers for this model */
 
-    multiset<Entity *,lt_submodel> servers;
-    for ( nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( aTask->isReferenceTask() || aTask->submodel() <= 0 ) continue;
-	servers.insert( aTask );
+    multiset<Entity *,Entity::LT> servers;
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( (*task)->isReferenceTask() || (*task)->submodel() <= 0 ) continue;
+	servers.insert( (*task) );
     }
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->submodel() <= 0 ) continue;
-	servers.insert( aProcessor );
+    for ( set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	if ( (*processor)->submodel() <= 0 ) continue;
+	servers.insert( (*processor) );
     }
     if ( thinkServer && thinkServer->submodel() > 0 ) {
         servers.insert( thinkServer );
     }
 
     unsigned int submodel = 1;
-    for ( multiset<Entity *,lt_submodel>::const_iterator next_server = servers.begin(); next_server != servers.end(); ++next_server, ++submodel ) {
-        Entity * aServer = *next_server;
-	aServer->setSubmodel( submodel );
+    for ( std::multiset<Entity *>::const_iterator server = servers.begin(); server != servers.end(); ++server, ++submodel ) {
+	(*server)->setSubmodel( submodel );
     }
 
     return submodel - 1;		/* Initial submodel is one, so fix this. */ 
@@ -1671,22 +1461,20 @@ SRVN_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
  */
 
 unsigned
-Squashed_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
+Squashed_Model::assignSubmodel()
 {
-    topologicalSort( nextTask );
+    topologicalSort();
 
     /* Build the list of all servers for this model */
 
-    for ( nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( !aTask->isReferenceTask() && aTask->submodel() > 1 ) {
-	    aTask->setSubmodel( 1 );
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( !(*task)->isReferenceTask() && (*task)->submodel() > 1 ) {
+	    (*task)->setSubmodel( 1 );
 	}
     }
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->submodel() > 1 ) {
-	    aProcessor->setSubmodel( 1 );
+    for ( set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	if ( (*processor)->submodel() > 1 ) {
+	    (*processor)->setSubmodel( 1 );
 	}
     }
     if ( thinkServer && thinkServer->submodel() > 0 ) {
@@ -1708,22 +1496,20 @@ Squashed_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
  */
 
 unsigned
-HwSw_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
+HwSw_Model::assignSubmodel()
 {
-    topologicalSort( nextTask );
+    topologicalSort();
 
     /* Build the list of all servers for this model */
 
-    for ( nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( !aTask->isReferenceTask() && aTask->submodel() > 1 ) {
-	    aTask->setSubmodel( 1 );
+    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
+	if ( !(*task)->isReferenceTask() && (*task)->submodel() > 1 ) {
+	    (*task)->setSubmodel( 1 );
 	}
     }
-    for ( set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->submodel() > 1 ) {
-	    aProcessor->setSubmodel( 2 );
+    for ( set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
+	if ( (*processor)->submodel() > 1 ) {
+	    (*processor)->setSubmodel( 2 );
 	}
     }
     if ( thinkServer && thinkServer->submodel() > 0 ) {
@@ -1732,3 +1518,19 @@ HwSw_Model::assignSubmodel( set<Task *,ltTask>::const_iterator& nextTask  )
 
     return 2;
 }
+
+/*
+ * Solve a single sub-model.
+ */
+
+void
+Model::SolveSubmodel::operator()( Submodel * submodel  )
+{
+    const unsigned depth = submodel->number();
+    _self._step_count += 1;
+    if ( _verbose ) cerr << ".";
+    submodel->solve( _self._iterations, _self._MVAStats[depth], _self.relaxation() );  //REP N-R
+}
+
+
+

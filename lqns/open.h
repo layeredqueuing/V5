@@ -7,9 +7,9 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2018-10-23 11:03:40 -0400 (Tue, 23 Oct 2018) $
+ * $Date: 2020-07-10 11:46:20 -0400 (Fri, 10 Jul 2020) $
  *
- * $Id: open.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: open.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */

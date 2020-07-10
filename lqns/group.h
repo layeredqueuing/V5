@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,6 +21,8 @@
 #include <set>
 #include <lqio/dom_group.h>
 #include "entity.h"
+#include "vector.h"
+#include "prob.h"
 
 class Task;
 class Processor;
@@ -30,57 +32,47 @@ class Server;
 class Group;
 class Processor;
 
-ostream& operator<<( ostream&, const Group& );
-
 class Group {
 public:
-    Group( const char * aStr, const Processor * aProcessor, const double aShare, const bool cap );
-//    virtual ~Group();
+
+    Group( LQIO::DOM::Group *, const Processor * aProcessor );
+    virtual ~Group();
+    static void create( const std::pair<std::string,LQIO::DOM::Group*>& );  
+
+    /*  */
+
+    bool check() const;
+
+    Group& addTask( Task * aTask ) { _taskList.insert(aTask); return *this; }
+    Group& removeTask( Task * aTask )  { _taskList.erase(aTask); return *this; }
+    Group& recalculateDynamicValues();
+    void initialize();
+    void reinitialize();
+    Group& reset();
+    Group& initGroupTask();
+
     /* Printing */
 
-    ostream& print( ostream& ) const;
-    const char * name() const { return myName.c_str(); }
+    ostream& print( ostream& output ) const { return output; }
+    const std::string& name() const { return myDOMGroup->getName(); }
 
     /* DOM insertion of results */
 
-    void insertDOMResults(void) const;
+    virtual const Group& insertDOMResults() const;
 
 public:
-    static Group * find( const char * );
+    static Group * find( const std::string& );
 
+    
 private:
-
-    const string myName;
-    const Processor * myProcessor;	
+    LQIO::DOM::Group* myDOMGroup;       /* DOM Element to Store Data	*/
+    std::set<Task *> _taskList;	        /* List of processor's tasks	*/
+    const Processor * _processor;
     const double myShare;		/* group share.		*/
     const bool myCap;
 };
 
+inline ostream& operator<<( ostream& output, const Group& self ) { return self.print( output ); }
 
-/*
- * Compare to processors by their name.  Used by the set class to insert items
- */
-
-struct ltGroup
-{
-    bool operator()(const Group * p1, const Group * p2) const { return strcmp( p1->name(), p2->name() ) < 0; }
-};
-
-
-/*
- * Compare a group name to a string.  Used by the find_if (and other algorithm type things.
- */
-
-struct eqGroupStr 
-{
-    eqGroupStr( const char * s ) : _s(s) {}
-    bool operator()(const Group * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
-
-private:
-    const char * _s;
-};
-
-void add_group (LQIO::DOM::Group* domGroup);
-extern set<Group *, ltGroup> group;
 #endif
 

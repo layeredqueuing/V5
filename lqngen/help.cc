@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 13641 2020-07-03 15:59:38Z greg $
+ * $Id: help.cc 13675 2020-07-10 15:29:36Z greg $
  */
 
 #include "lqngen.h"
@@ -248,7 +248,7 @@ man()
     cout << comm << " -*- nroff -*-" << endl
 	 << ".TH " << program_name << " 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
-    cout << comm << " $Id: help.cc 13641 2020-07-03 15:59:38Z greg $" << endl
+    cout << comm << " $Id: help.cc 13675 2020-07-10 15:29:36Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 

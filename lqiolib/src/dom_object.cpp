@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 13547 2020-05-21 02:22:16Z greg $
+ *  $Id: dom_object.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -17,10 +17,22 @@ namespace LQIO {
 
 	unsigned long DocumentObject::sequenceNumber = 0;
 
-	DocumentObject::DocumentObject(const Document * document, const char * name ) 
+	DocumentObject::DocumentObject() 
+	    : _document(nullptr), _sequenceNumber(0xDEAD0000DEAD0000), _name("null"), _comment()
+	{
+	}
+
+	DocumentObject::DocumentObject(const Document * document, const std::string& name ) 
 	    : _document(document), _sequenceNumber(sequenceNumber), _name(name), _comment()
 	{
 	    assert( document );
+	    sequenceNumber += 1;
+	}
+
+	DocumentObject::DocumentObject(const DocumentObject& src ) 
+	    : _document(src._document), _sequenceNumber(sequenceNumber), _name(), _comment()
+	{
+	    assert( _document );
 	    sequenceNumber += 1;
 	}
 

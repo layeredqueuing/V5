@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: activity.cc 13675 2020-07-10 15:29:36Z greg $
  */
 
 #include "activity.h"
@@ -89,7 +89,7 @@ Activity::merge( const Activity &src, const double rate )
 	} else {
 	    dstCall = findOrAddCall( dstEntry );
 	}
-	dstCall->merge( *(*src_call), rate );
+	dstCall->merge( *this, *(*src_call), rate );
 
 	/* Set phase type to stochastic iff we have a non-integral number of calls. */
 
@@ -142,6 +142,10 @@ Activity::reset()
 
 /* ------------------------ Instance Methods -------------------------- */
 
+/*
+ * _documentObject is in both Phase and Element, so force to Element.  We don't draw phases.
+ */
+
 const LQIO::DOM::Phase * 
 Activity::getDOM() const
 { 
@@ -167,13 +171,6 @@ Activity::check() const
 	LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", name().c_str() );
     } else if ( !hasServiceTime() ) {
 	LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME, name().c_str() );
-    }
-
-    /* Terminate lists (for lqn2lqn) */
-
-    if ( replies().size() > 0 && !outputTo() ) {
-	ActivityList * activity_list = const_cast<Activity *>(this)->outputTo( new JoinActivityList( const_cast<Task *>(owner()), 0 ) );
-	activity_list->add( const_cast<Activity *>(this) );
     }
 
     return Phase::check();
@@ -1034,12 +1031,14 @@ Activity::expandActivityCalls( const Activity& src, int replica )
 	    LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM()));
 	    if ( (*call)->hasRendezvous() ) {
 		dom_call = (*call)->getDOM(1)->clone();
+		dom_call->setSourceObject( const_cast<LQIO::DOM::Phase *>(getDOM()) );
 		dom_call->setDestinationEntry( dst_dom );
 		rendezvous( dstEntry, dom_call );
 		dom_activity->addCall( dom_call );
 
 	    } else if ( (*call)->hasSendNoReply() ) {
 		dom_call = (*call)->getDOM(1)->clone();
+		dom_call->setSourceObject( const_cast<LQIO::DOM::Phase *>(getDOM()) );
 		dom_call->setDestinationEntry( dst_dom );
 		sendNoReply( dstEntry, dom_call );
 		dom_activity->addCall( dom_call );
@@ -1049,6 +1048,49 @@ Activity::expandActivityCalls( const Activity& src, int replica )
     return *this;
 }
 
+
+
+static struct {
+    set_function first;
+    get_function second;
+} activity_mean[] = { 
+// static std::pair<set_function,get_function> activity_mean[] = {
+    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
+    { &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
+    { &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
+    { NULL, NULL }
+};
+
+static struct {
+    set_function first;
+    get_function second;
+} activity_variance[] = { 
+//static std::pair<set_function,get_function> activity_variance[] = {
+    { &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
+    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
+    { NULL, NULL }
+};
+
+
+
+/*
+ * Strip suffix _<N>.  Merge results from replicas 2..N to 1.
+ */
+
+Activity&
+Activity::replicateActivity( LQIO::DOM::Activity * root, unsigned int replica )
+{
+    if ( root == nullptr || getDOM() == nullptr ) return *this;
+
+    replicatePhase( root, replica );	// Super will replicate phase part.
+    if ( replica > 1 ) {
+	for ( unsigned int i = 0; activity_mean[i].first != NULL; ++i ) {
+	    update_mean( root, activity_mean[i].first, getDOM(), activity_mean[i].second, replica );
+	    update_variance( root, activity_variance[i].first, getDOM(), activity_variance[i].second );
+	}
+    }
+    return *this;
+}
 
 
 Activity&

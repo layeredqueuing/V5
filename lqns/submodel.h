@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: submodel.h 13676 2020-07-10 15:46:20Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -15,14 +15,15 @@
 
 
 #include "dim.h"
+#include <set>
 #include <cstdlib>
 #include <lqio/input.h>
-#include "cltn.h"
 #include "vector.h"
 #include "pop.h"
+#include "task.h"
 
 class Call;
-class Entity;
+class Processor;
 class Entry;
 class Model;
 class MVA;
@@ -30,17 +31,23 @@ class MVACount;
 class Open;
 class Server;
 class SubModelManip;
-class Submodel;
-class Task;
-
-
-ostream& operator<<( ostream&, const Submodel& );
-
+class Group;
 
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
 	 
 class Submodel {
-    friend SubModelManip print_submodel_header( const Submodel & aSubModel, const unsigned long iterations  );
+    class SubmodelManip {
+    public:
+	SubmodelManip( ostream& (*ff)(ostream&, const Submodel&, const unsigned long ),
+		       const Submodel& aSubmodel, const unsigned long anInt )
+	    : f(ff), submodel(aSubmodel), arg(anInt) {}
+    private:
+	ostream& (*f)( ostream&, const Submodel&, const unsigned long );
+	const Submodel& submodel;
+	const unsigned long arg;
+
+	friend ostream& operator<<(ostream & os, const SubmodelManip& m ) { return m.f(os,m.submodel,m.arg); }
+    };
 
 public:
     Submodel( const unsigned n, const Model * anOwner ) : _submodel_number(n), myOwner(anOwner), _n_chains(0) {}
@@ -52,11 +59,12 @@ private:
 
 public:
     int operator==( const Submodel& aSubmodel ) const { return &aSubmodel == this; }
-    int operator!() const { return servers.size() + clients.size() == 0; }	/* Submodel is empty! */
+    int operator!() const { return _servers.size() + _clients.size() == 0; }	/* Submodel is empty! */
 
-    void addClient( Task * aTask ) { clients += aTask; }
-    void addServer( Entity * anEntity ) { servers += anEntity; }
+    void addClient( Task * aTask ) { _clients.insert(aTask); }
+    void addServer( Entity * anEntity ) { _servers.insert(anEntity); }
 
+    virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
     Submodel& number( const unsigned );
     const Model * owner() const { return myOwner; }
@@ -66,15 +74,14 @@ public:
     double thinkTime( const unsigned i ) const { return myThinkTime[i]; }
     unsigned priority( const unsigned i) const { return myPriority[i]; }
 
-    virtual void initServers( const Model& );
-    virtual void reinitServers( const Model& ) {}
-    virtual void reinitClients() {}
-    virtual void initWait( Entity * ) const;
-    virtual void initInterlock() {}
-    virtual void reinitInterlock() {}
-    virtual void build() {}
-    virtual void rebuild() {}
-		
+    virtual Submodel& initServers( const Model& );
+    virtual Submodel& reinitServers( const Model& ) { return *this; }
+    virtual Submodel& reinitClients() { return *this; }
+    virtual Submodel& initInterlock() { return *this; }
+    virtual Submodel& reinitInterlock() { return *this; }
+    virtual Submodel& build() { return *this; }
+    virtual Submodel& rebuild() { return *this; }
+
     virtual double nrFactor( const Server *, const unsigned, const unsigned ) const { return 0; }
 
     virtual unsigned n_closedStns() const { return 0; }
@@ -88,13 +95,14 @@ public:
 
 protected:
     void setNChains( unsigned int n ) { _n_chains = n; }
+    SubmodelManip print_submodel_header( const Submodel& aSubModel, const unsigned long iterations  ) { return SubmodelManip( &Submodel::submodel_header_str, aSubModel, iterations ); }
 
 private:
     static ostream& submodel_header_str( ostream& output, const Submodel& aSubmodel, const unsigned long iterations );
 
 protected:
-    Cltn<Task *> clients;		/* Table of clients 		*/
-    Cltn<Entity *> servers;		/* Table of servers 		*/
+    std::set<Task *> _clients;			/* Table of clients 		*/
+    std::set<Entity *,Entity::LT> _servers;	/* Table of servers 		*/
 
 private:
     unsigned _submodel_number;		/* Submodel number.  Set once.	*/
@@ -104,12 +112,12 @@ private:
 protected:
     /* MVA Stuff */
 
-
     Population myCustomers;		/* Customers by chain k		*/
     VectorMath<double> myThinkTime;	/* Think time for chain k	*/
     Vector<unsigned> myPriority;	/* Priority for chain k.	*/
 };
 
+inline ostream& operator<<( ostream& output, const Submodel& self) { return self.print( output ); }
 
 /* ---------------------- Standard MVA Submodel ----------------------- */
 
@@ -121,13 +129,15 @@ public:
     MVASubmodel( const unsigned, const Model * );
     virtual ~MVASubmodel();
 	
-    virtual void initServers( const Model& );
-    virtual void reinitServers( const Model& );
-    virtual void reinitClients();
-    virtual void initInterlock();
-    virtual void reinitInterlock();
-    virtual void build();
-    virtual void rebuild();
+    const char * const submodelType() const { return "Submodel"; }
+
+    virtual MVASubmodel& initServers( const Model& );
+    virtual MVASubmodel& reinitServers( const Model& );
+    virtual MVASubmodel& reinitClients();
+    virtual MVASubmodel& initInterlock();
+    virtual MVASubmodel& reinitInterlock();
+    virtual MVASubmodel& build();
+    virtual MVASubmodel& rebuild();
 		
     virtual unsigned n_closedStns() const { return closedStnNo; }
     virtual unsigned n_openStns() const { return openStnNo; }
@@ -138,8 +148,12 @@ public:
 	
     virtual ostream& print( ostream& ) const;
 
-
 private:
+    bool hasReplication() const { return _hasReplication; }
+    bool hasThreads() const { return _hasThreads; }
+    bool hasSynchs() const { return _hasSynchs; }
+
+protected:
     unsigned makeChains();
     void initClient( Task * );
     void modifyClientServiceTime( Task * aTask );
@@ -147,19 +161,18 @@ private:
     void setServiceTime( Entity *, const Entry *, unsigned ) const;
     void setInterlock( Entity * ) const;
     void generate() const;
-	
     void saveClientResults( Task * );
-    void saveServerResults( Entity * );
+    virtual void saveServerResults( Entity * );
     void saveWait( Entry *, const Server * );
-	void setThreadChain() const ;
+    void setThreadChain() const;
 
     ostream& printClosedModel( ostream& ) const;
     ostream& printOpenModel( ostream& ) const;
 
 private:
-    bool hasReplication;
-    bool hasThreads;			/* True if client has forks.	*/
-    bool hasSynchs;			/* True if server has joins.	*/
+    bool _hasReplication;		/* True if replication present.	*/
+    bool _hasThreads;			/* True if client has forks.	*/
+    bool _hasSynchs;			/* True if server has joins.	*/
 
     /* MVA Stuff */
 	
@@ -175,23 +188,9 @@ private:
     VectorMath<double> * overlapFactor;
 };
 
-	
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
-
-class SubModelManip {
-public:
-    SubModelManip( ostream& (*ff)(ostream&, const Submodel&, const unsigned long ),
-		   const Submodel& aSubmodel, const unsigned long anInt )
-	: f(ff), submodel(aSubmodel), arg(anInt) {}
-private:
-    ostream& (*f)( ostream&, const Submodel&, const unsigned long );
-    const Submodel & submodel;
-    const unsigned long arg;
-
-    friend ostream& operator<<(ostream & os, const SubModelManip& m ) { return m.f(os,m.submodel,m.arg); }
-};
 
 SubModelManip print_submodel_header( const Submodel &, const unsigned long );
 #endif

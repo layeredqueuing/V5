@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 11963 2014-04-10 14:36:42Z greg $ *
+ * $Id: pragma.cc 13676 2020-07-10 15:46:20Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -11,18 +11,18 @@
  * ------------------------------------------------------------------------
  */
 
-#include "dim.h"
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
 #include <lqio/error.h>
+#include <lqio/srvn_spex.h>
 #if !defined(HAVE_GETSUBOPT)
 #include <lqio/getsbopt.h>
 #endif
-#include "help.h"
 #include "pragma.h"
 #include "lqns.h"
+#include "processor.h"
 
 Pragma pragma;
 
@@ -38,7 +38,8 @@ std::map<const char *, Pragma::param_info, lt_str>  Pragma::__processor_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__threads_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__variance_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__warning_args;
-std::map<const char *, Pragma::param_info, lt_str>  Pragma::__xml_schema_args;
+std::map<const char *, Pragma::param_info, lt_str>  Pragma::__spex_header_args;
+std::map<const char *, Pragma::param_info, lt_str>  Pragma::__prune_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__quorum_distribution_args;
 std::map<const char *, Pragma::param_info, lt_str>  Pragma::__quorum_delayed_calls_args;
@@ -98,6 +99,12 @@ Pragma::operator==( const Pragma& p ) const
 }
 
 
+void
+Pragma::create( const std::pair<std::string,std::string>& p )
+{
+    pragma.set( p.first, p.second );
+}
+
 /*
  * we use maps.  They have to be initialized dynamically.  This is a singleton.
  */
@@ -120,13 +127,13 @@ Pragma::initialize()
     __interlock_args["none"] =          param_info( NO_INTERLOCK,         &Help::pragmaInterlockNone );
 
     __pragmas["layering"] =             pragma_info( &Pragma::setLayeringTo, &Pragma::getLayeringStr, &Pragma::eqLayering, &Help::pragmaLayering, &__layering_args );
-    __layering_args["batched"] =        param_info( BATCHED_LAYERS,              &Help::pragmaLayeringBatched );
-    __layering_args["batched-back"] =   param_info( BACKPROPOGATE_LAYERS,        &Help::pragmaLayeringBatchedBack );
-    __layering_args["mol"] =            param_info( METHOD_OF_LAYERS,            &Help::pragmaLayeringMOL );
+    __layering_args["batched"] =        param_info( BATCHED_LAYERS,             &Help::pragmaLayeringBatched );
+    __layering_args["batched-back"] =   param_info( BACKPROPOGATE_LAYERS,       &Help::pragmaLayeringBatchedBack );
+    __layering_args["mol"] =            param_info( METHOD_OF_LAYERS,           &Help::pragmaLayeringMOL );
     __layering_args["mol-back"] =       param_info( BACKPROPOGATE_METHOD_OF_LAYERS, &Help::pragmaLayeringMOLBack );
-    __layering_args["squashed"] =       param_info( SQUASHED_LAYERS,             &Help::pragmaLayeringSquashed );
-    __layering_args["srvn"] =           param_info( SRVN_LAYERS,                 &Help::pragmaLayeringSRVN );
-    __layering_args["hwsw"] =           param_info( HWSW_LAYERS,                 &Help::pragmaLayeringHwSw );
+    __layering_args["squashed"] =       param_info( SQUASHED_LAYERS,            &Help::pragmaLayeringSquashed );
+    __layering_args["srvn"] =           param_info( SRVN_LAYERS,                &Help::pragmaLayeringSRVN );
+    __layering_args["hwsw"] =           param_info( HWSW_LAYERS,                &Help::pragmaLayeringHwSw );
 
     __pragmas["multiserver"] =          pragma_info( &Pragma::setMultiserverTo, &Pragma::getMultiserverStr, &Pragma::eqMultiserver, &Help::pragmaMultiserver, &__multiserver_args );
     __multiserver_args["default"] =     param_info( DEFAULT_MULTISERVER,        &Help::pragmaMultiServerDefault );
@@ -140,12 +147,12 @@ Pragma::initialize()
     __multiserver_args["suri"] =        param_info( SURI_MULTISERVER,           &Help::pragmaMultiServerSuri );
 
     __pragmas["mva"] =                  pragma_info( &Pragma::setMVATo, &Pragma::getMVAStr, &Pragma::eqMVA, &Help::pragmaMVA, &__mva_args );
-    __mva_args["linearizer"] =          param_info( LINEARIZER_MVA,              &Help::pragmaMVALinearizer );
-    __mva_args["exact"] =               param_info( EXACT_MVA,                   &Help::pragmaMVAExact );
-    __mva_args["schweitzer"] =          param_info( SCHWEITZER_MVA,              &Help::pragmaMVASchweitzer );
-    __mva_args["fast"] =                param_info( FAST_MVA,                    &Help::pragmaMVAFast );
-    __mva_args["one-step"] =            param_info( ONESTEP_MVA,                 &Help::pragmaMVAOneStep );
-    __mva_args["one-step-linearizer"] = param_info( ONESTEP_LINEARIZER,          &Help::pragmaMVAOneStepLinearizer );
+    __mva_args["linearizer"] =          param_info( LINEARIZER_MVA,             &Help::pragmaMVALinearizer );
+    __mva_args["exact"] =               param_info( EXACT_MVA,                  &Help::pragmaMVAExact );
+    __mva_args["schweitzer"] =          param_info( SCHWEITZER_MVA,             &Help::pragmaMVASchweitzer );
+    __mva_args["fast"] =                param_info( FAST_MVA,                   &Help::pragmaMVAFast );
+    __mva_args["one-step"] =            param_info( ONESTEP_MVA,                &Help::pragmaMVAOneStep );
+    __mva_args["one-step-linearizer"] = param_info( ONESTEP_LINEARIZER,         &Help::pragmaMVAOneStepLinearizer );
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     __pragmas["quorum-distribution"] =  pragma_info( &Pragma::setQuorumDistributionTo, &Pragma::getQuorumDistributionStr, &Pragma::eqQuorumDistribution, &Help::pragmaQuorumDistribution, __quorum_distribution_args );
@@ -193,6 +200,22 @@ Pragma::initialize()
     __warning_args["warning"] =         param_info( LQIO::WARNING_ONLY,  &Help::pragmaSeverityLevelWarnings );
     __warning_args["advisory"] =        param_info( LQIO::ADVISORY_ONLY, &Help::pragmaSeverityLevelRunTime);
     __warning_args["run-time"] =        param_info( LQIO::RUNTIME_ERROR, &Help::pragmaSeverityLevelRunTime);
+
+    __pragmas["no-header"] = 		pragma_info( &Pragma::setSpexHeaderTo, &Pragma::getSpexHeaderStr, &Pragma::eqSpexHeader, &Help::pragmaSpexHeader, &__spex_header_args );
+    __spex_header_args["false"] = 	param_info( false, &Help::pragmaSpexHeaderFalse );
+    __spex_header_args["true"] =  	param_info( true,  &Help::pragmaSpexHeaderTrue );
+
+    __pragmas["prune"] = 		pragma_info( &Pragma::setPruneTo, &Pragma::getPruneStr, &Pragma::eqPrune, &Help::pragmaPrune, &__prune_args );
+    __prune_args["false"] = 		param_info( false, &Help::pragmaPruneFalse );
+    __prune_args["true"] =  		param_info( true,  &Help::pragmaPruneTrue );
+
+    __pragmas["no-header"] = 		pragma_info( &Pragma::setSpexHeaderTo, &Pragma::getSpexHeaderStr, &Pragma::eqSpexHeader, &Help::pragmaSpexHeader, &__spex_header_args );
+    __spex_header_args["false"] = 	param_info( false, &Help::pragmaSpexHeaderFalse );
+    __spex_header_args["true"] =  	param_info( true,  &Help::pragmaSpexHeaderTrue );
+
+    __pragmas["prune"] = 		pragma_info( &Pragma::setPruneTo, &Pragma::getPruneStr, &Pragma::eqPrune, &Help::pragmaPrune, &__prune_args );
+    __prune_args["false"] = 		param_info( false, &Help::pragmaPruneFalse );
+    __prune_args["true"] =  		param_info( true,  &Help::pragmaPruneTrue );
 }				        
 
 /* ------------------------------------------------------------------------ */
@@ -462,7 +485,7 @@ Pragma::setVarianceTo( const string& aStr )
     if ( p == __variance_args.end() ) return false;
     switch ( static_cast<PRAGMA_VARIANCE>(p->second._i) ) {
     case ENTRY_VARIANCE:
-	_entry_variance = true;
+	_entry_variance = false;
 	break;
 
     case INIT_VARIANCE_ONLY:
@@ -504,6 +527,51 @@ Pragma::setSeverityLevel( const LQIO::severity_t severity_level )
     _severity_level = severity_level;
     return *this;
 }
+
+/* ------------------------------------------------------------------------ */
+
+const char *
+Pragma::getSpexHeaderStr() const
+{
+    std::map<const char *, Pragma::param_info, lt_str>::const_iterator p = find_if( __spex_header_args.begin(), __spex_header_args.end(), eq_pragma_value( true ) );
+    if ( p != __spex_header_args.end() ) return p->first;
+    return 0;
+}
+
+
+bool
+Pragma::setSpexHeaderTo( const string& aStr )
+{
+    std::map<const char *, Pragma::param_info, lt_str>::const_iterator p = __spex_header_args.find( aStr.c_str() );
+    if ( p == __spex_header_args.end() ) return false;
+
+    LQIO::Spex::__no_header = static_cast<bool>(p->second._i);
+    return true;
+}
+
+/* ------------------------------------------------------------------------ */
+
+const char *
+Pragma::getPruneStr() const
+{
+    std::map<const char *, Pragma::param_info, lt_str>::const_iterator p = find_if( __prune_args.begin(), __prune_args.end(), eq_pragma_value( true ) );
+    if ( p != __prune_args.end() ) return p->first;
+    return 0;
+}
+
+
+bool
+Pragma::setPruneTo( const string& aStr )
+{
+    std::map<const char *, Pragma::param_info, lt_str>::const_iterator p = __prune_args.find( aStr.c_str() );
+    if ( p == __prune_args.end() ) return false;
+
+    Processor::__prune = static_cast<bool>(p->second._i);
+    return true;
+}
+/* ------------------------------------------------------------------------ */
+/*									    */
+/* ------------------------------------------------------------------------ */
 
 /*
  * Convert s to scheduling type.

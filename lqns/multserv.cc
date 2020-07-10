@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: multserv.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -116,7 +116,6 @@ Reiser_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const uns
 {
     return solver.sumOf_SL_m( *this, N, k ) + S( solver, N ) * solver.sumOf_P( *this, N, k );
 }
-
 
 
 /*
@@ -274,6 +273,7 @@ Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, const Pop
 }
 
 
+
 /*
  * Common expression.
  */
@@ -309,6 +309,7 @@ Markov_Phased_Reiser_Multi_Server::wait( const MVA& solver, const unsigned k, co
 }
 
 
+
 /*
  * Queue length for Open models.
  */
@@ -318,6 +319,7 @@ Markov_Phased_Reiser_Multi_Server::mixedWait( const MVA& solver, const Populatio
 {
     Reiser_Multi_Server::mixedWait( solver, N );
 }
+
 
 
 /*
@@ -382,8 +384,6 @@ Conway_Multi_Server::wait( const MVA& solver, const unsigned k, const Population
     }
 }
 
-
-
 /*
  * XE term: Eqn (18).
  */
@@ -423,6 +423,7 @@ Conway_Multi_Server::departureTime( const MVA& solver, const Population& N, cons
 
     return  sumOf_PS_k( solver, N, k, nextB );
 }
+
 
 
 /*

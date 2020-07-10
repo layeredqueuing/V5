@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<!-- $Id: 55-replication-flat.lqnx 13675 2020-07-10 15:29:36Z greg $ -->
+<!-- rep2flat -Oxml -->
+<lqn-model name="55-replication" description="rep2flat 5.14 solution for model from: 55-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="fork-join (set1) with replication" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5"/>
+   <processor name="d1_1" scheduling="fcfs">
+      <task name="d1_1" scheduling="fcfs">
+         <entry name="d1_1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d1_2" scheduling="fcfs">
+      <task name="d1_2" scheduling="fcfs">
+         <entry name="d1_2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d1_3" scheduling="fcfs">
+      <task name="d1_3" scheduling="fcfs">
+         <entry name="d1_3" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d1_4" scheduling="fcfs">
+      <task name="d1_4" scheduling="fcfs">
+         <entry name="d1_4" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="d1_1" phase="1" host-demand-mean="0.04"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p1_1" scheduling="fcfs">
+      <task name="t1_1" scheduling="ref">
+         <entry name="e1_1" type="NONE"/>
+         <task-activities>
+            <activity name="a1_1" bound-to-entry="e1_1" host-demand-mean="0.1">
+               <synch-call dest="d1_1" calls-mean="2.5"/>
+               <synch-call dest="d1_2" calls-mean="2.5"/>
+               <synch-call dest="d1_3" calls-mean="2.5"/>
+               <synch-call dest="d1_4" calls-mean="2.5"/>
+            </activity>
+            <activity name="b1_1" host-demand-mean="0.1">
+               <synch-call dest="d1_1" calls-mean="2.5"/>
+               <synch-call dest="d1_2" calls-mean="2.5"/>
+               <synch-call dest="d1_3" calls-mean="2.5"/>
+               <synch-call dest="d1_4" calls-mean="2.5"/>
+            </activity>
+            <activity name="b2_1" host-demand-mean="0.1">
+               <synch-call dest="d1_1" calls-mean="2.5"/>
+               <synch-call dest="d1_2" calls-mean="2.5"/>
+               <synch-call dest="d1_3" calls-mean="2.5"/>
+               <synch-call dest="d1_4" calls-mean="2.5"/>
+            </activity>
+            <activity name="c1_1" host-demand-mean="0"/>
+            <precedence>
+               <pre>
+                  <activity name="a1_1"/>
+               </pre>
+               <post-AND>
+                  <activity name="b1_1"/>
+                  <activity name="b2_1"/>
+               </post-AND>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <activity name="b1_1"/>
+                  <activity name="b2_1"/>
+               </pre-AND>
+               <post>
+                  <activity name="c1_1"/>
+               </post>
+            </precedence>
+         </task-activities>
+      </task>
+   </processor>
+</lqn-model>

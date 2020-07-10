@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13547 2020-05-21 02:22:16Z greg $
+ * $Id: phase.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,21 +18,17 @@
 #define PHASE_H
 
 #include <string>
+#include <set>
 #include <lqio/input.h>
-#include <lqio/dom_call.h>
-#include <lqio/dom_phase.h>
-#include <lqio/dom_extvar.h>
-#include "cltn.h"
 #include "vector.h"
+#include "call.h"
 #include "prob.h"
 
-class Call;
 class ProcessorCall;
 class CallStack;
 class Entry;
 class DeviceEntry;
 class Entity;
-class Model;
 class TaskEntry;
 class Task;
 class Submodel;
@@ -41,6 +37,12 @@ class ActivityList;
 class Activity;
 class InterlockInfo;
 template <class type> class Stack;
+namespace LQIO {
+    namespace DOM {
+	class Phase;
+	class Call;
+    }
+}
 
 class NullPhase {
     friend class Entry;			/* For access to myVariance */
@@ -54,33 +56,30 @@ class NullPhase {
 
 public:
     NullPhase()
-	: myVariance(0.0),
-	  myDOMPhase(NULL),
+	: _name(),
+	  myVariance(0.0),
+	  myWait(),
+	  _phaseDOM(NULL),
 	  myServiceTime(0.0)
 	{}
-	
-    /* Results */
 
-public:
-    NullPhase( const NullPhase& );
-    NullPhase& operator=( const NullPhase& );
     virtual ~NullPhase() {}
 
     int operator==( const NullPhase& aPhase ) const { return &aPhase == this; }
 
     /* Initialialization */
 	
-    virtual void configure( const unsigned, const unsigned = 0 );
+    virtual NullPhase& configure( const unsigned );
     NullPhase& setDOM(LQIO::DOM::Phase* phaseInfo);
-    virtual LQIO::DOM::Phase* getDOM() const { return myDOMPhase; }
+    virtual LQIO::DOM::Phase* getDOM() const { return _phaseDOM; }
+    virtual const std::string& name() const { return _name; }
+    NullPhase& setName( const std::string& name ) { _name = name; return *this; }
 
     /* Instance variable access */
-    virtual bool isPresent() const { return myDOMPhase != 0 && myDOMPhase->isPresent(); }
-    bool hasThinkTime() const { return myDOMPhase && myDOMPhase->hasThinkTime(); }
+    virtual bool isPresent() const { return _phaseDOM != 0 && _phaseDOM->isPresent(); }
+    bool hasThinkTime() const { return _phaseDOM && _phaseDOM->hasThinkTime(); }
     virtual bool isActivity() const { return false; }
 	
-    virtual const char * name() const { return ""; }
-
     NullPhase& setServiceTime( const double t );
     NullPhase& addServiceTime( const double t );
     double serviceTime() const;
@@ -90,23 +89,24 @@ public:
     virtual double variance() const { return myVariance; } 		/* Computed variance.		*/
     double computeCV_sqr() const;
 
-    double waitExcept( const unsigned ) const;
+    virtual double waitExcept( const unsigned ) const;
     double elapsedTime() const { return waitExcept( 0 ); }
     double waitTime(int submodel) { return myWait[submodel];}
 
     virtual ostream& print( ostream& output ) const { return output; }
 	
-    virtual void recalculateDynamicValues() {}
+    virtual NullPhase& recalculateDynamicValues() { return *this; }
 
     static void insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m, const double v );
 
 protected:
-    double myVariance;			/* Set if this is a processor	*/
-    VectorMath<double> myWait;		/* Saved waiting time.		*/
-    LQIO::DOM::Phase* myDOMPhase;
+    std::string _name;			/* Name -- computed dynamically		*/
+    double myVariance;			/* Set if this is a processor		*/
+    VectorMath<double> myWait;		/* Saved waiting time.			*/
+    LQIO::DOM::Phase* _phaseDOM;
 	
 private:
-    double myServiceTime;		/* Initial service time.	*/
+    double myServiceTime;		/* Initial service time.		*/
 };
 
 
@@ -122,66 +122,72 @@ class Phase : public NullPhase {
     friend class AndForkActivityList;	/* For access to mySurrogateDelay 	*/
 
 public:
-    Phase( const char * aName=0 );
+    Phase( const std::string& );
+    Phase();
     virtual ~Phase();
 
     /* Initialialization */
 	
-    virtual void initProcessor();
-    void initReplication( const unsigned );
-    void initWait();
-    void initVariance();
+    virtual Phase& initProcessor();
+    Phase& initReplication( const unsigned );
+    Phase& resetReplication();
+    Phase& initWait();
+    Phase& initVariance();
 
     unsigned findChildren( CallStack&, const bool ) const;
     virtual unsigned followInterlock( Stack<const Entry *> &, const InterlockInfo&, const unsigned  );
     virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
-	
-    void addSrcCall( Call * aCall ) { myCalls << aCall; }
-    void removeSrcCall( Call *aCall ) { myCalls -= aCall; }
-
-    double processorCalls() const;
+    void setInterlockedCall(const unsigned submodel);
+    void addSrcCall( Call * aCall ) { _callList.insert(aCall); }
+    void removeSrcCall( Call *aCall ) { _callList.erase(aCall); }
 
     /* Instance Variable access */
 	
-    phase_type phaseTypeFlag() const { return myDOMPhase ? myDOMPhase->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
-    void resetReplication();
-    virtual const Entry * entry() const = 0;
-    virtual const Entity * owner() const = 0;
-    virtual const char * name() const { return myName.c_str(); }
+    phase_type phaseTypeFlag() const { return _phaseDOM ? _phaseDOM->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
+    Phase& setEntry( const Entry * entry ) { _entry = entry; return *this; }
+    const Entry * entry() const { return _entry; }
+    virtual const Entity * owner() const;
+    Phase& setPrOvertaking( const Probability& pr_ot ) { _prOvertaking = pr_ot; return *this; }
+    const Probability& prOvertaking() const { return _prOvertaking; }
 
+    bool isDeterministic() const { return _phaseDOM ? _phaseDOM->getPhaseTypeFlag() == PHASE_DETERMINISTIC : false; }
+    bool isNonExponential() const { return serviceTime() > 0 && CV_sqr() != 1.0; }
+    
     /* Call lists to/from entries. */
 	
     double rendezvous( const Entity * ) const;
     double rendezvous( const Entry * ) const;
-    Phase& rendezvous( Entry *, LQIO::DOM::Call* callDOMInfo );
+    Phase& rendezvous( Entry *, const LQIO::DOM::Call* callDOMInfo );
     double sendNoReply( const Entry * ) const;
-    Phase& sendNoReply( Entry *, LQIO::DOM::Call* callDOMInfo );
-    Phase& forward( Entry *, LQIO::DOM::Call* callDOMInfo );
+    Phase& sendNoReply( Entry *, const LQIO::DOM::Call* callDOMInfo );
+    Phase& forward( Entry *, const LQIO::DOM::Call* callDOMInfo );
     double forward( const Entry * ) const;
 
-    const Cltn<Call *>& callList() const { return myCalls; }
-    ProcessorCall * processorCall() const { return myProcessorCall; }
+    const std::set<Call *>& callList() const { return _callList; }
 
     /* Calls to processors */
 	
+    ProcessorCall * processorCall() const { return myProcessorCall; }
+    double processorCalls() const;
     double queueingTime() const;
     double processorWait() const;
 	
     /* Queries */
 
-    void check( const unsigned=0 ) const;
+    virtual bool check() const;
     double numberOfSlices() const;
-    virtual double throughput() const = 0;	
+    virtual double throughput() const;
     double utilization() const;
     double processorUtilization() const;
-    bool isUsed() const { return myCalls.size() > 0.0 || serviceTime() > 0.0; }
+    bool isUsed() const { return _callList.size() > 0.0 || serviceTime() > 0.0; }
     bool hasVariance() const;
     virtual bool isPseudo() const { return false; }		// quorum
 
     /* computation */
 	
-    double computeVariance();	 			/* Computed variance.		*/
+    virtual double waitExcept( const unsigned ) const;
     double waitExceptChain( const unsigned, const unsigned k );
+    double computeVariance();	 			/* Computed variance.		*/
     Phase& updateWait( const Submodel&, const double ); 
     double getProcWait( unsigned int submodel, const double relax ); // tomari quorum
     double getTaskWait( unsigned int submodel, const double relax );
@@ -190,13 +196,12 @@ public:
     double getReplicationProcWait( unsigned int submodel, const double relax );
     double getReplicationTaskWait( unsigned int submodel, const double relax ); //tomari quorum
     double getReplicationRendezvous( unsigned int submodel, const double relax );
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, Cltn<const Entity *>&, const unsigned ) const;
-	
+    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+
     /* recalculation of dynamic values */
 	
-    virtual void recalculateDynamicValues();
-	
-    virtual void insertDOMResults() const; 
+    virtual Phase& recalculateDynamicValues();
+    virtual const Phase& insertDOMResults() const; 
 
 protected:
     Call * findCall( const Entry * anEntry, const queryFunc = 0 ) const;
@@ -205,7 +210,7 @@ protected:
     virtual Call * findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall );
 
     double processorVariance() const;
-    virtual ProcessorCall * newProcessorCall( Entry * procEntry ) = 0;
+    virtual ProcessorCall * newProcessorCall( Entry * procEntry );
 
 private:
     Phase const& addForwardingRendezvous( CallStack& callStack ) const;
@@ -218,8 +223,8 @@ private:
     double random_phase() const;
 	
 protected:
-    string myName;			/* Name -- computed dynamically		*/	
-    Cltn<Call *> myCalls;               /* Who I call.                          */
+    const Entry * _entry;		/* Root for activity			*/
+    std::set<Call *> _callList;         /* Who I call.                          */
     ProcessorCall * myProcessorCall;    /* Link to processor.                   */
     ProcessorCall * myThinkCall;	/* Link to processor.                   */
 
@@ -227,30 +232,9 @@ private:
     DeviceEntry * myProcessorEntry;     /*                                      */
     DeviceEntry * myThinkEntry;         /*                                      */
 
-private:
-    VectorMath<double> mySurrogateDelay;/* Saved old surrogate delay. REP N-R	*/
-    bool iWasChanged;			/* True if reinit is required		*/
+    VectorMath<double> _surrogateDelay;	/* Saved old surrogate delay. REP N-R	*/
+    Probability _prOvertaking;
 };
 
-
-
-class GenericPhase : public Phase {
-
-public:
-    GenericPhase();
-
-    virtual const Entry * entry() const { return myEntry; }
-    virtual const Entity * owner() const;
-
-    void initialize( Entry *, const int n );
-    virtual double throughput() const;
-
-protected:
-    virtual ProcessorCall * newProcessorCall( Entry * procEntry );
-
-private:
-    Entry * myEntry;
-};
-
-ostream& operator<<( ostream&, const Phase& );
+inline ostream& operator<<( ostream& output, const Phase& self ) { self.print( output ); return output; }
 #endif

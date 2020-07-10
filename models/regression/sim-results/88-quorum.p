@@ -1,6 +1,6 @@
 # lqn2ps 6.0
 # lqn2ps -Oparseable -o88-quorum.p ../../regression-xml/sim-results/88-quorum.lqxo
-# $Id$
+# $Id: 88-quorum.p 13675 2020-07-10 15:29:36Z greg $
 V y
 C 0.943901
 I 4

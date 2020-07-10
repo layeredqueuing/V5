@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 13559 2020-05-26 14:38:45Z greg $
+# $Id: configure.ac 13676 2020-07-10 15:46:20Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(lqns, 5.14, greg@sce.carleton.ca)
+AC_INIT(lqns, 5.15, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([dim.h])
 AC_CONFIG_HEADERS([config.h])
@@ -57,7 +57,7 @@ AM_CONDITIONAL([QUORUM], [test ${ac_cv_lib_gsl_gsl_cdf_gamma_P} = "yes"] )
 #
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
-AC_CHECK_HEADERS([fenv.h float.h getopt.h ieeefp.h limits.h unistd.h values.h sys/resource.h sys/times.h sys/time.h sys/utsname.h])
+AC_CHECK_HEADERS([fenv.h float.h getopt.h ieeefp.h limits.h unistd.h values.h sys/resource.h sys/utsname.h])
 # ----------------------------------------------------------------------
 # Checks for typedefs, structures, and compiler characteristics.
 #

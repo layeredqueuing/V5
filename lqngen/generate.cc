@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 13641 2020-07-03 15:59:38Z greg $
+ * $Id: generate.cc 13675 2020-07-10 15:29:36Z greg $
  */
 
 #include "lqngen.h"

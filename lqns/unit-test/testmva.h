@@ -4,7 +4,7 @@
  * Exported goodies.
  *
  * ------------------------------------------------------------------------
- * $Id: testmva.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: testmva.h 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,12 +25,12 @@ class MVA;
 #define	MAX_N1	9
 #define	MAX_N2	2
 
-typedef enum {EXACT_SOLVER, LINEARIZER_SOLVER, LINEARIZER2_SOLVER, BARD_SCHWEITZER_SOLVER} solverId;
+typedef enum {EXACT_SOLVER, LINEARIZER_SOLVER, LINEARIZER2_SOLVER, BARD_SCHWEITZER_SOLVER } solverId;
 
-#define	EXACT_SOLVER_BIT		0x1
-#define	LINEARIZER_SOLVER_BIT		0x2
-#define	LINEARIZER2_SOLVER_BIT		0x4
-#define	BARD_SCHWEITZER_SOLVER_BIT	0x8
+#define	EXACT_SOLVER_BIT		0x01
+#define	LINEARIZER_SOLVER_BIT		0x02
+#define	LINEARIZER2_SOLVER_BIT		0x04
+#define	BARD_SCHWEITZER_SOLVER_BIT	0x08
 
 /* linearizer.c */
 

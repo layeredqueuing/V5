@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile 13675 2020-07-10 15:29:36Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -37,6 +37,8 @@ DST =	01-sanity.p \
 	50-replication.p \
 	51-replication.p \
 	52-replication.p \
+	55-replication.p \
+	56-replication.p \
 	60-semaphore.p \
 	61-semaphore.p \
 	62-semaphore.p \
@@ -81,3 +83,30 @@ diff:
 .files:	
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
+
+50-replication.p:	50-replication.in
+	rep2flat 50-replication.in
+	$(SRVN) $(OPTS) -p 50-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 50-replication-flat.in
+
+51-replication.p:	51-replication.in
+	rep2flat 51-replication.in
+	$(SRVN) $(OPTS) -p 51-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 51-replication-flat.in
+
+52-replication.p:	52-replication.in
+	rep2flat 52-replication.in
+	$(SRVN) $(OPTS) -p 52-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 52-replication-flat.in
+
+55-replication.p:	55-replication.in
+	rep2flat 55-replication.in
+	$(SRVN) $(OPTS) -p 55-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 55-replication-flat.in
+
+56-replication.p:	56-replication.in
+	rep2flat 56-replication.in
+	$(SRVN) $(OPTS) -p 56-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 56-replication-flat.in
+
+repl:	50-replication.p 51-replication.p 52-replication.p 55-replication.p 56-replication.p 

@@ -8,7 +8,7 @@
  * January, 2005
  *
  *
- * $Id: entrythread.h 13218 2018-03-08 03:53:50Z greg $
+ * $Id: entrythread.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -32,8 +32,8 @@ public:
 	: VirtualEntry( anActivity ), DiscretePoints( 0.0, 0.0 ),
 	  myThinkTime(0.0), myStartTimeVariance(0.0), myFork(aFork), myJoinDelay(0.0) {}
 
-    virtual void configure( const unsigned, const unsigned = 0 );
-    void check() const;
+    virtual Thread& configure( const unsigned );
+    bool check() const;
 
     /* Instance variable access */
 
@@ -56,8 +56,8 @@ public:
 
     double thinkTime() const { return myThinkTime; }
     Thread& estimateCDF();
-    double waitExcept( const unsigned, const unsigned ) const;	/* For client service times */
-    double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
+    virtual double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
+    virtual double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
 
 private:
     double myThinkTime;

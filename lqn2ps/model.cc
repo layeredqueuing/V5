@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13641 2020-07-03 15:59:38Z greg $
+ * $Id: model.cc 13675 2020-07-10 15:29:36Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -477,6 +477,8 @@ Model::prepare( const LQIO::DOM::Document * document )
 bool
 Model::process()
 {
+    if ( !check() ) return false;
+
 #if defined(REP2FLAT)
     switch ( Flags::print[REPLICATION].value.i ) {
     case REPLICATION_EXPAND: expandModel(); /* Fall through to call removeReplication()! */
@@ -509,8 +511,6 @@ Model::process()
     if ( Flags::print[SUMMARY].value.b || Flags::print_submodels ) {
 	printSummary( cerr );
     } 
-
-    if ( !Flags::print[IGNORE_ERRORS].value.b && !check() ) return false;
 
     if ( !Flags::have_results && Flags::print[COLOUR].value.i == COLOUR_RESULTS ) {
 	Flags::print[COLOUR].value.i = COLOUR_OFF;
@@ -1005,7 +1005,9 @@ Model::relayerize( const unsigned level )
 bool
 Model::check() const
 {
-    return for_each( _layers.begin(), _layers.end(), AndPredicate<Layer>( &Layer::check ) ).result();
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), Predicate<Entity>( &Entity::check ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Entity>( &Entity::check ) );
+    return !io_vars.anError();
 }
 
 
@@ -1592,7 +1594,7 @@ Model::returnReplication()
     LQIO::DOM::DocumentObject * root = NULL;
     for_each( old_processor.begin(), old_processor.end(), Exec1<Processor,LQIO::DOM::DocumentObject **>( &Processor::replicateProcessor, &root ) );
     for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::replicateCall ) );	/* do before entry */
-    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::replicateCall ) );		/* do before entry */
+    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::replicateCall ) );		/* do before task */
     for_each( old_entry.begin(), old_entry.end(), Exec1<Entry,LQIO::DOM::DocumentObject **>( &Entry::replicateEntry, &root ) );
     for_each( old_task.begin(), old_task.end(), Exec1<Task,LQIO::DOM::DocumentObject **>( &Task::replicateTask, &root ) );
     Task::updateFanInOut();

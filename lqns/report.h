@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: report.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,26 +19,21 @@
 
 #include <config.h>
 #include "dim.h"
-#if defined(HAVE_SYS_TYPES_H)
-#include <sys/types.h>
-#endif
-#if defined(HAVE_SYS_TIMES_H)
-#include <sys/times.h>
-#endif
-#include <time.h>
-#include <lqio/dom_document.h>
+#include <lqio/common_io.h>
 #include "vector.h"
 
 #if	defined(MSDOS)
-#define	clock_t time_t 
+#define	double time_t 
 #endif
 
-class SolverReport;
-class MVACount;
-class Model;
+namespace LQIO {
+    namespace DOM {
+	class Document;
+    }
+}
 
-ostream& operator<<( ostream& output, const MVACount& self );
-ostream& operator<<( ostream& output, const SolverReport& self );
+class MVACount;
+
 int operator==( const MVACount&, const MVACount& );	// For Vector.cc
 
 /* ------------------------- Status Reporting. ------------------------ */
@@ -58,7 +53,7 @@ public:
     MVACount& operator+=( const MVACount& );		/* For totalling	*/
     MVACount& accumulate( const unsigned long, const unsigned long, const unsigned long );	/* For adding to record	*/
     MVACount& start( const unsigned, const unsigned );	/* Start timing		*/
-    MVACount& initialize();					/* Reset counters	*/
+    MVACount& initialize();				/* Reset counters	*/
     ostream& print( ostream& ) const;
 	
 private:
@@ -71,12 +66,8 @@ private:
     double wait_sqr;			/* wait()'s			*/
     unsigned long faults;		/* MVA failures.		*/
 
-    clock_t start_clock;		/* Time run begins		*/
-    clock_t sum_clock;
-#if defined(HAVE_SYS_TIMES_H)
-    struct tms start_times;
-    struct tms sum_times;
-#endif
+    LQIO::DOM::CPUTime _start_time;       
+    LQIO::DOM::CPUTime _total_time;
 };
 
 
@@ -87,12 +78,12 @@ private:
     SolverReport& operator=( const SolverReport& );
 
 public:
-    SolverReport( LQIO::DOM::Document * document=0 );
+    SolverReport( LQIO::DOM::Document *, const Vector<MVACount>& );
 
     void start();
-    SolverReport& finish( const double convergence, const Model& );
+    SolverReport& finish( bool valid, const double convergence, unsigned long );
     ostream& print( ostream& ) const;
-    void insertDOMResults() const;
+    const SolverReport& insertDOMResults() const;
 
     double stepCount() const { return total.step; }
     double waitCount() const { return total.wait; } 
@@ -100,29 +91,17 @@ public:
 
 private:
     LQIO::DOM::Document * _document;
-    short _valid;			/* valid solution.		*/
+    bool _valid;			/* valid solution.		*/
     unsigned long _iterations;		/* Number of major loops.	*/
     double _convergenceValue;		/* Convergence test value.	*/
 
-#if defined(HAVE_SYS_TIMES_H)
-    struct tms _start_times;
-    struct tms _delta_times;
-#endif
-    clock_t _start_clock;
-    clock_t _delta_clock;
+    LQIO::DOM::CPUTime _start_time;
+    LQIO::DOM::CPUTime _delta_time;
 
-    Vector<MVACount> MVAStats;
+    const Vector<MVACount>& MVAStats;
     MVACount total;
 };
 
-class TimeManip {
-public:
-    TimeManip( ostream& (*ff)( ostream&, const clock_t ), const clock_t aTime )
-	: f(ff), theTime(aTime) {}
-private:
-    ostream& (*f)( ostream&, const clock_t );
-    const clock_t theTime;
-
-    friend ostream& operator<<(ostream & os, const TimeManip& m ) { return m.f(os,m.theTime); }
-};
+inline ostream& operator<<( ostream& output, const MVACount& self ) { return self.print( output ); }
+inline ostream& operator<<( ostream& output, const SolverReport& self ) { return self.print( output ); }
 #endif

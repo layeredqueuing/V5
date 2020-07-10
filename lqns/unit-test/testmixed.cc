@@ -4,7 +4,7 @@
  * Example from:
  *
  * ------------------------------------------------------------------------
- * $Id: testmixed.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: testmixed.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,7 +46,7 @@ int main (int argc, char *argv[])
 	
     set_fp_abort();
 
-    while (( c = getopt( argc, argv, "adelfbsStvn:z:" )) != EOF) {
+    while (( c = getopt( argc, argv, "adelfbsStvn:xz:" )) != EOF) {
 	switch( c ) {
 	case 'a':
 	    solver_set = EXACT_SOLVER_BIT|BARD_SCHWEITZER_SOLVER_BIT|LINEARIZER_SOLVER_BIT;
@@ -142,7 +142,7 @@ run( const unsigned solver_set, const unsigned special )
 {
     bool ok = true;
 
-    for ( unsigned i = 0; i <= 3; ++i ) {
+    for ( unsigned i = 0; i <= BARD_SCHWEITZER_SOLVER; ++i ) {
 	Population N(0);
 	VectorMath<double> Z(0);
 	VectorMath<unsigned> priority(0);
@@ -180,6 +180,7 @@ static const char * names[] =
     "Linearizer",
     "Fast Linearizer",
     "Bard-Schweitzer",
+    "experimental",
 };
 
 static bool

@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 13546 2020-05-20 15:47:59Z greg $
+ *  $Id: dom_object.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -35,7 +35,9 @@ namespace LQIO {
 	    };
 
 	protected:
-	    DocumentObject(const Document * document, const char * );
+	    DocumentObject();
+	    DocumentObject(const Document * document, const std::string& name );
+	    DocumentObject(const DocumentObject& );
 
 	public:
 	    virtual ~DocumentObject();

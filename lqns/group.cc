@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://localhost/lqn/trunk/lqns/proc.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/group.cc $
  * 
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: group.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,74 +21,99 @@
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_group.h>
-#include "cltn.h"
 #include "errmsg.h"
 #include "group.h"
 #include "processor.h"
+#include "model.h"
 
-class Group;
-
-set<Group *,ltGroup> group;
-
-/* ---------------------- Overloaded Operators ------------------------ */
-
-ostream&
-operator<<( ostream& output, const Group& self )
-{
-    self.print( output );
-    return output;
-}
-
 /* ------------------------ Constructors etc. ------------------------- */
 
-Group::Group( const char * aStr, const Processor * aProcessor, const double share, const bool cap )
-    : myName(aStr), myProcessor(aProcessor), myShare(share), myCap(cap)
+Group::Group( LQIO::DOM::Group* aDomGroup, const Processor * aProcessor )
+    : myDOMGroup(aDomGroup), _taskList(), _processor(aProcessor), myShare(0.0), myCap(false)
 { 
+    initialize();
 }
 
-ostream& 
-Group::print( ostream& output ) const
+Group::~Group()
 {
-    return output;
 }
 
+/*
+ * Check that the group share is within range.
+ */
+
+bool
+Group::check() const
+{
+    return true;
+}
+
+void 
+Group::initialize()
+{
+    /* Do not set share here.
+     * in case lqx has yet to set a value to the group share.
+     */
+
+}
+
+
+Group&
+Group::recalculateDynamicValues()
+{
+    /* read gorup share from lqx;  */
+    initialize();
+    return *this;
+}
+
+const Group&
+Group::insertDOMResults() const
+{
+//    myDOMGroup->setResultUtilization( getGroupUtil() );
+    return *this;
+}
 
 /* ----------------------- External functions. ------------------------ */
 
 
 Group *
-Group::find( const char * group_name )
+Group::find( const std::string& group_name )
 {
-    set<Group *,ltGroup>::const_iterator nextGroup = find_if( group.begin(), group.end(), eqGroupStr( group_name ) );
-    if ( nextGroup == group.end() ) {
+    std::set<Group *>::const_iterator nextGroup = find_if( Model::__group.begin(), Model::__group.end(), EQStr<Group>( group_name ) );
+    if ( nextGroup == Model::__group.end() ) {
 	return 0;
     } else {
 	return *nextGroup;
     }
 }
 
+/*
+ * Add a group to the model.   
+ */
+
 void 
-add_group(LQIO::DOM::Group* domGroup)
+Group::create( const std::pair<std::string,LQIO::DOM::Group*>& p )
 {
+    LQIO::DOM::Group* domGroup = p.second;
+    const std::string& group_name = p.first;
+    
     /* Extract variables from the DOM */
-    int cap = domGroup->getCap();
-    double group_share = domGroup->getGroupShareValue();
-    std::string group_name = domGroup->getName().c_str();
-    const Processor* aProcessor = Processor::find(domGroup->getProcessor()->getName().c_str());
+    Processor* aProcessor = Processor::find(domGroup->getProcessor()->getName().c_str());
     if (aProcessor == NULL) { return; }
 	
     /* Check that no group was added with the existing name */
-    if ( find_if( group.begin(), group.end(), eqGroupStr( group_name.c_str() ) ) != group.end() ) {
+    if ( find_if( Model::__group.begin(), Model::__group.end(), EQStr<Group>( group_name ) ) != Model::__group.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name.c_str() );
 	return;
     } 
-	
-    /* Check that the group share is within range */
-    if ( group_share <= 0.0 || 1.0 < group_share ) {
-	LQIO::input_error2( LQIO::ERR_INVALID_SHARE, group_name.c_str(), group_share );
-    }
-	
+       	
     /* Generate a new group with the parameters and add it to the list */
-    Group * aGroup = new Group( group_name.c_str(), aProcessor, group_share, cap  );
-    group.insert( aGroup );
+    // <<<<<<< .mine
+    Group * aGroup = new Group( domGroup, aProcessor );
+
+    aProcessor->addGroup(  aGroup );
+    Model::__group.insert( aGroup );
+
+    /* Generate a new group with the parameters and add it to the list */
+    Model::__group.insert( new Group( domGroup, aProcessor ) );
 }

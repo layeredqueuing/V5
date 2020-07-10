@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 13218 2018-03-08 03:53:50Z greg $
+ * $Id: entrythread.cc 13676 2020-07-10 15:46:20Z greg $
  *
  */
 
@@ -24,11 +24,12 @@ double min( const Thread& a, const Thread& b )
 /* Thread -- ...							*/
 /*----------------------------------------------------------------------*/
 
-void
-Thread::configure( const unsigned nSubmodels, const unsigned max_p )
+Thread&
+Thread::configure( const unsigned nSubmodels )
 {
-    Entry::configure( nSubmodels, max_p );
-    myStartTime.grow( nSubmodels );
+    Entry::configure( nSubmodels );
+    myStartTime.resize( nSubmodels );
+    return *this;
 }
 
 
@@ -36,10 +37,10 @@ Thread::configure( const unsigned nSubmodels, const unsigned max_p )
  * Check the forks-versus joins.
  */
 
-void
+bool
 Thread::check() const
 {
-    myFork->check();
+    return myFork->check();
 }
 
 
@@ -86,9 +87,9 @@ Thread::isDescendentOf( const Thread * aThread ) const
  */
 
 double
-Thread::waitExcept( const unsigned submodel, const unsigned p ) const
+Thread::waitExcept( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
-    return phase[p].waitExcept( submodel );
+    return _phase[p].waitExcept( submodel );
 }
 
 
@@ -100,7 +101,7 @@ Thread::waitExcept( const unsigned submodel, const unsigned p ) const
 double
 Thread::waitExceptChain( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
-    return phase[p].waitExceptChain( submodel, k );
+    return _phase[p].waitExceptChain( submodel, k );
 }
 
 

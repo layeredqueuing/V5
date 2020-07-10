@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13222 2018-03-09 21:44:12Z greg $
+# $Id: Makefile.am 13676 2020-07-10 15:46:20Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -22,7 +22,7 @@ INTER=	10-interlock.lqxo \
 MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
-	23-multiserver.lqxo 
+	23-multiserver.lqxo
 ACT=	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -79,7 +79,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff $< ../../models/regression/lqns-results/$*.p > $@
+	-srvndiff ../../models/regression/{petri,lqns}-results/$*.p $< > $@
 
 check:	$(OBJS)
 	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q -S0.001 -@- . ../../models/regression/lqns-results
@@ -102,6 +102,9 @@ distclean:	clean
 
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/lqns-results
+
+interlock:	$(INTER)
+	echo $(INTER) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/lqns-results
 
 multi:	$(MULTI)
 	echo $(MULTI) | tr -s " " "\n" | srvndiff -Q -@- -S0.01 . ../../models/regression/lqns-results

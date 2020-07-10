@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 13558 2020-05-26 01:52:40Z greg $
+ *  $Id: dom_phase.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -38,6 +38,7 @@ namespace LQIO {
 	public:
       
 	    /* Designated initializer for the call information */
+	    Phase();
 	    Phase(const Document * document, Entry* parentEntry);
 	    Phase(const LQIO::DOM::Phase& );
 	    virtual ~Phase();

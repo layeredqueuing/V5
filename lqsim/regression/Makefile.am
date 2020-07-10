@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 12234 2015-02-04 15:54:28Z greg $
+# $Id: Makefile.am 13675 2020-07-10 15:29:36Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqsim
@@ -32,8 +32,11 @@ ACT=	40-activities.lqxo \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo 
-REPL=	50-replication.lqxo \
-	51-replication.lqxo 
+REPL=	50-replication-flat.lqxo \
+	51-replication-flat.lqxo \
+	52-replication-flat.lqxo \
+	55-replication-flat.lqxo \
+	56-replication-flat.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
@@ -116,6 +119,9 @@ act:	$(ACT)
 
 fork:	$(FORK)
 	echo $(FORK) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/sim-results
+
+repl:	$(REPL)
+	echo $(REPL) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/repl-results
 
 sim:	$(SIM)
 	echo $(SIM) | tr -s " " "\n" | srvndiff -Q -@- -S0.02 . ../../models/regression/sim-results

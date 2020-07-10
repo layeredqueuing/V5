@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.h 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: dom_activity.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -23,8 +23,8 @@ namespace LQIO {
 	public:
       
 	    /* Constructors and Destructors */
-	    Activity( const Document * document, const char * name );
-	    Activity( const LQIO::DOM::Activity& );
+	    Activity( const Document * document, const std::string& name );
+	    Activity( const Activity& );
 	    virtual ~Activity();
       
 	    /* Basic Activity Accessors and Mutators */

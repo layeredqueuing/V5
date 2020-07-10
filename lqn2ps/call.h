@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 13523 2020-03-03 16:19:29Z greg $
+ * $Id: call.h 13675 2020-07-10 15:29:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -53,7 +53,7 @@ public:
     GenericCall();
     virtual ~GenericCall();
 
-    virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const { return 0; }
+    virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const { return nullptr; }
 
     virtual const string& srcName() const = 0;
     virtual const string& dstName() const = 0;
@@ -168,11 +168,12 @@ public:
     virtual ~Call();
     static void reset();
     virtual bool check() const = 0;
+    bool checkReplication() const;
 
     int operator==( const Call& item ) const;
     int operator!=( const Call& item ) const { return !(*this == item); }
-    Call& merge( const Call& src, const double );
-    Call& merge( const unsigned int p, const Call& src, const double );
+    Call& merge( Phase& phase, const Call& src, const double );
+    Call& merge( Phase& phase, const unsigned int p, const Call& src, const double );
     
     /* Instance Variable access */
 
@@ -233,7 +234,7 @@ public:
     /* Other */
 
     double srcVisits( const unsigned, const unsigned, const unsigned = 0 ) const;
-    Call& aggregatePhases();
+    Call& aggregatePhases( LQIO::DOM::Phase& );
 
     virtual Graphic::colour_type colour() const;
 
@@ -242,7 +243,7 @@ public:
     virtual ostream& print( ostream& ) const;
 
 #if defined(REP2FLAT)
-    Call& replicateCall( std::vector<Call *>&, Call ** );
+    virtual Call& replicateCall( std::vector<Call *>&, Call ** );
 #endif
 
 protected:

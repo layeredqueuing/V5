@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_gram.y 13487 2020-02-11 20:30:20Z greg $
+ * $Id: srvn_result_gram.y 13675 2020-07-10 15:29:36Z greg $
  * ----------------------------------------------------------------------
  *
  * This file has been modified such that it uses result rather than yy on its
@@ -34,7 +34,7 @@
 #endif
 #include "srvn_results.h"
 
- 
+unsigned int srvn_max_phases;	/* Allocate this amount for results */
 static unsigned 	i;	/* Index into phase list array */
 static unsigned		np;	/* Number of phases in phase list */
 static double		*fl;	/* Phase list array (float list) */
@@ -1437,7 +1437,7 @@ phase_identifier	: INTEGER
 
 /*
  * All the phase list that are comprised of floating point values
- * are handled by these rules.
+ * are handled by these rules.  Unused values are zeroed.
  */
 
 float_phase_list	: 	{ np = 0; }
@@ -1449,7 +1449,7 @@ float_list		: real ENDLIST
 				{ 	/* We're on the last list element */
 					i = np;
 					np += 1;
-					fl = (double *)malloc( (size_t)(np * sizeof( double )) );
+					fl = (double *)calloc( (size_t)srvn_max_phases, sizeof( double) );
 					fl[i] = $1;
 				}
 			| real
@@ -1463,7 +1463,7 @@ float_list		: real ENDLIST
 				{ 	/* OOPS -- NaN or Inf or whatever... Barf. */
 					i = np;
 					np += 1;
-					fl = (double *)malloc( (size_t)(np * sizeof( double )) );
+					fl = (double *)calloc( (size_t)srvn_max_phases, sizeof( double ) );
 					fl[i] = 0.0;
 				}
 			;

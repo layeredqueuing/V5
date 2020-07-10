@@ -8,7 +8,7 @@
  *
  * January, 2005
  *
- * $Id: randomvar.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: randomvar.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,7 +18,6 @@
 
 #include "vector.h"
 #include "prob.h"
-#include "cltn.h"
 #include <string>
 	  
 class Exponential;
@@ -99,12 +98,10 @@ public:
     DiscretePoints * quorumKofN( const unsigned k, const unsigned n );
     DiscretePoints * quorumKofNRecursive(DiscretePoints*** MemoizingTable, unsigned k, unsigned n);
 
-    void delCDFs();
-
     DiscretePoints& addCDF( DiscretePoints&);
 
 private:
-    Cltn<DiscretePoints *>  myCDFsCltn; 
+    Vector<DiscretePoints *>  myCDFsCltn; 
 };
 
 /* -------------------------------------------------------------------- */

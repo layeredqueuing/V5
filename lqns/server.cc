@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id: server.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: server.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -18,7 +18,7 @@
  *     number =    2,
  *     pages =     "126--134",
  *     month =     feb
- *		   
+ *
  * Open class:
  *     author =    "Lavenberg, Stephen S. and Sauer, Charles H.",
  *     title =     "Analytical Results for Queueing Models",
@@ -48,6 +48,7 @@
 #include "fpgoop.h"
 #include "prob.h"
 
+//#define		DEBUG
 /* ----------------------- Helper Functions --------------------------- */
 
 /*
@@ -143,11 +144,9 @@ Server::~Server()
 	delete [] v[0][k];
     }
     delete [] v[0];
-
     delete [] W;
     delete [] v;
     delete [] s;
-
     delete [] IL;
 }
 
@@ -312,7 +311,6 @@ Server::S() const
 }
 
 
-
 /*
  * Mean service time (adjusted by throughput).
  */
@@ -338,7 +336,7 @@ Server::S( const MVA& solver, const Population& N ) const
 	return 0;
     } else if ( sumOfV > 0.0 ) {
 	return sumOfS / sumOfV;
-    } else { 
+    } else {
 	return S();
     }
 }
@@ -439,7 +437,6 @@ Server::muS( const Population&, const unsigned ) const
     throw should_not_implement( "Server::muS", __FILE__, __LINE__ );
     return 0.0;
 }
-
 
 
 /*
@@ -597,10 +594,9 @@ Server::mixedWait( const MVA& solver, const Population& N ) const
  * rho, [lavenberg] eqn. 3.280
  */
 
-
 Probability
 Server::rho() const
-{ 
+{
     Probability u( Rho() / mu() );
     return u;
 }	
@@ -634,7 +630,7 @@ Server::alpha( const unsigned n ) const
     const double den = power( 1.0 - u, n + 1 );
     if ( den == 0.0 ) {
 	throw range_error( "Server::alpha" );
-    } 
+    }
     return 1.0 / den;
 }
 
@@ -737,9 +733,8 @@ Server::print( ostream& output ) const
 ostream&
 Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 {
-    unsigned p;
     unsigned maxP = 1;
-    for ( p = 1; p <= MAX_PHASES; ++p ) {
+    for ( unsigned int p = 1; p <= MAX_PHASES; ++p ) {
 	if ( V(e,k,p) > 0 ) {
 	    maxP = p;
 	}
@@ -749,7 +744,7 @@ Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 	output << ",p_i";
     }
     output << ") = ";
-    for ( p = 1; p <= maxP; ++p ) {
+    for ( unsigned int p = 1; p <= maxP; ++p ) {
 	if ( p > 1 ) output << ", ";
 	output << V(e,k,p);
     }
@@ -760,18 +755,20 @@ Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 	output << ",p_j";
     }
     output << ") = ";
-    for ( p = 1; p <= P; ++p ) {
+    for ( unsigned int p = 1; p <= P; ++p ) {
 	if ( p > 1 ) output << ", ";
 	output << S(e,k,p);
     }
-
     output << endl;
+
     return output;
 }
+
+
 
 /* --------------------- Generic Infinite Server ---------------------- */
 
-/* 
+/*
  * Capacity function.	For a delay server, the capacity is infinite.
  * We are assuming IEEE arithmetic here.
  */
@@ -788,7 +785,7 @@ Infinite_Server::mu() const
  * Waiting time expression for an infinite server with phases.
  */
 
-void 
+void
 Infinite_Server::wait( const MVA&, const unsigned k, const Population & ) const
 {
     assert( k <= K );
@@ -850,7 +847,7 @@ Infinite_Server::alpha( const unsigned ) const
  * Waiting time expression for an infinite server with NO phases.
  */
 
-void 
+void
 Client::wait( const MVA&, const unsigned k, const Population & ) const
 {
     assert( k <= K );
@@ -872,14 +869,13 @@ Client::wait( const MVA&, const unsigned k, const Population & ) const
  * Waiting time expression for PS server.  No phases and one entry.
  * Same results as PF FIFO...
  */
-
 void
 PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
-
-    const Positive sum = 1.0 + solver.sumOf_L_m( *this, N, k );
 	
+    const Positive sum = 1.0 + solver.sumOf_L_m( *this, N, k );
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
@@ -926,7 +922,7 @@ PR_PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) c
 	    W[e][k][p] *= inflation;
 	}
     }
-};
+}
 
 
 
@@ -953,7 +949,7 @@ HOL_PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) 
     assert( 0 < k && k <= K );
 
     const Positive sum = (solver.sumOf_SL_m( *this, N, k ) + solver.sumOf_SU_m( *this, N, k ))
-	/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
+		/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -962,7 +958,7 @@ HOL_PS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) 
 	    W[e][k][p] = S(e,k) + sum;						/* Eq:1 */
 	}
     }
-};
+}
 
 
 
@@ -989,16 +985,16 @@ FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) co
     assert( 0 < k && k <= K );
 
     const Positive sum = solver.sumOf_SL_m( *this, N, k );
-	
+
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    W[e][k][p] = S(e,k) + sum;						/* Eq:1 */
 	}
+
     }
 }
-
 
 
 /*
@@ -1037,7 +1033,7 @@ PR_FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N )
 	    W[e][k][p] *= inflation;
 	}
     }
-};
+}
 
 
 
@@ -1064,7 +1060,7 @@ HOL_FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N 
     assert( 0 < k && k <= K );
 
     const Positive sum = (solver.sumOf_SL_m( *this, N, k ) + solver.sumOf_SU_m( *this, N, k ))
-	/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
+		/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -1073,7 +1069,7 @@ HOL_FCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N 
 	    W[e][k][p] = S(e,k) + sum;						/* Eq:1 */
 	}
     }
-};
+}
 
 
 
@@ -1115,7 +1111,6 @@ void
 HVFCFS_Server::initialize()
 {
     myVariance = new double ** [E+1];
-
     myVariance[0] = 0;
     for ( unsigned e = 1; e <= E; ++e ) {
 		
@@ -1201,23 +1196,23 @@ HVFCFS_Server::r( const unsigned e, const unsigned k, const unsigned p ) const
  * service time and mean residual life.
  */
 
+
+
 void
 HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) const
 {
     assert( 0 < k && k <= K );
 
-    double sum = solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k );
-    if ( sum < 0.0 ) sum = 0.0;
-
+    const double sum = max( solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k ), 0.0 );
+ 	 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
 
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	    W[e][k][p] = S(e,k) + sum;
+	    W[e][k][p] = S(e,k) + sum;						// Eq:1
 	}
     }
 }
-
 
 
 /*
@@ -1300,13 +1295,13 @@ PR_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N
 	    W[e][k][p] *= inflation;
 	}
     }
-};
+}
 
 /* -------------- HOL Priority High Variation FIFO Server ------------- */
 
 /*
  * Waiting time expression for FIFO servers with high variabilty in
- * service times.  
+ * service times.
  */
 
 void
@@ -1316,7 +1311,7 @@ HOL_HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& 
 
     Positive sum = (solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k )
 		    + solver.sumOf_SU_m( *this, N, k ))
-	/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
+		/ ( 1.0 - solver.priorityInflation( *this, N, k ) );
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;

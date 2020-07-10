@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13559 2020-05-26 14:38:45Z greg $
+ * $Id: task.cc 13675 2020-07-10 15:29:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -261,6 +261,8 @@ Task::aggregate()
 	for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin();  precedence != precedences().end(); ++precedence ) {
 	    delete *precedence;
 	}
+	const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()))->deleteActivities();
+	const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()))->deleteActivityLists();
 	_activities.clear();
 	_layers.clear();
 	_precedences.clear();
@@ -459,30 +461,45 @@ Task::findActivity( const Activity& srcActivity, const unsigned replica )
 Activity *
 Task::addActivity( const Activity& srcActivity, const unsigned replica )
 {
-    ostringstream aName;
-    aName << srcActivity.name() << "_" << replica;
+    ostringstream srcName;
+    srcName << srcActivity.name() << "_" << replica;
 
-    Activity * dstActivity = findActivity( aName.str() );
+    Activity * dstActivity = findActivity( srcName.str() );
     if ( dstActivity ) return dstActivity;	// throw error?
 
     LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
     LQIO::DOM::Activity * dstDOM = new LQIO::DOM::Activity( *(dynamic_cast<const LQIO::DOM::Activity *>(srcActivity.getDOM())) );
-    dstDOM->setName( aName.str() );
+    dstDOM->setName( srcName.str() );
     dom_task->addActivity( dstDOM );
     dstActivity = new Activity( this, dstDOM );
     _activities.push_back( dstActivity );
 
+    /* Clone instance variables */
+    
+    dstActivity->isSpecified( srcActivity.isSpecified() );
+    if ( srcActivity.reachable() ) {
+	ostringstream aName;
+	aName << srcActivity.reachedFrom()->name() << "_" << replica;
+	Activity * anActivity = findActivity( aName.str() );
+	dstActivity->setReachedFrom( anActivity );
+    }
+
     if ( srcActivity.isStartActivity() ) {
 	Entry *dstEntry = Entry::find_replica( srcActivity.rootEntry()->name(), replica );
+	dstActivity->rootEntry( dstEntry, nullptr );
 	const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM()))->setStartActivity( dstDOM );
 	if (dstEntry->entryTypeOk(LQIO::DOM::Entry::ENTRY_ACTIVITY)) {
 	    dstEntry->setStartActivity(dstActivity);
 	}
     }
 
+    /* Clone reply list */
+
     std::vector<Entry *>& dstReplyList = const_cast<std::vector<Entry *>&>(dstActivity->replies());
     for ( std::vector<Entry *>::const_iterator entry = srcActivity.replies().begin(); entry != srcActivity.replies().end(); ++entry ) {
-	dstReplyList.push_back( Entry::find_replica( (*entry)->name(), replica ) );
+	Entry * dstEntry = Entry::find_replica( (*entry)->name(), replica );
+	dstReplyList.push_back( dstEntry );
+	dstDOM->getReplyList().push_back(const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM())));	/* Need dom for entry, the push that */
     }
 
     dstActivity->expandActivityCalls( srcActivity, replica );
@@ -724,33 +741,6 @@ Task::check() const
 	}
     }
 
-    const LQIO::DOM::Document * document = getDOM()->getDocument();		// Find root
-    const std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_outs = dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getFanOuts();
-    for ( std::map<const std::string,LQIO::DOM::ExternalVariable *>::const_iterator dst = fan_outs.begin(); dst != fan_outs.end(); ++dst ) {
-	const std::string& dstName = dst->first;
-	const LQIO::DOM::ExternalVariable * fan_out = dst->second;
-	LQIO::DOM::Task * dstTask = document->getTaskByName( dstName );
-	double fanOutValue = 1.0;
-	const LQIO::DOM::ExternalVariable * fan_in = dstTask->getFanIn( srcName );	/* Opposite direction */
-	const LQIO::DOM::ExternalVariable * dstReplicas = dstTask->getReplicas();
-	double dstReplicasValue = 1.0;
-	double fanInValue  = 1.0;
-	bool ok = true;
-	if ( fan_out->wasSet() && fan_out->getValue( fanOutValue )
-	     && fan_in != NULL && fan_in->wasSet() && fan_in->getValue( fanInValue )
-	     && dstReplicas->wasSet() && dstReplicas->getValue( dstReplicasValue ) ) {
-	    ok = srcReplicasValue * fanOutValue == dstReplicasValue * fanInValue;
-	}
-	if ( !ok ) {
-	    LQIO::solution_error( ERR_REPLICATION, 
-				  static_cast<int>(fanOutValue), srcName.c_str(), static_cast<int>(srcReplicasValue),
-				  static_cast<int>(fanInValue),  dstName.c_str(), static_cast<int>(dstReplicasValue) );
-	    if ( Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE ) {
-		rc = false;
-	    }
-	}
-    }
-    
     /* Check entries */
 
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
@@ -1799,11 +1789,14 @@ Task&
 Task::expandTask()
 {
     const unsigned int numTaskReplicas = replicasValue();
+    const unsigned int procFanOut = numTaskReplicas / processor()->replicasValue();
+
     for ( unsigned int replica = 1; replica <= numTaskReplicas; ++replica ) {
 
 	/* Get a pointer to the replicated processor */
 
-	const Processor *aProcessor = Processor::find_replica( processor()->name(), replica );
+	const unsigned int proc_replica = static_cast<unsigned int>(static_cast<double>(replica-1) / static_cast<double>(procFanOut)) + 1;
+	const Processor *aProcessor = Processor::find_replica( processor()->name(), proc_replica );
 
 	ostringstream aName;
 	aName << name() << "_" << replica;
@@ -1859,13 +1852,16 @@ Task::expandActivities( const Task& src, int replica )
     /* Now reconnect the precedences.  Do the join list from the task.  We have to connect the fork list. */
 
     for ( std::vector<ActivityList *>::const_iterator precedence = src.precedences().begin(); precedence != src.precedences().end(); ++precedence ) {
-	if ( !dynamic_cast<const JoinActivityList *>((*precedence)) &&  !dynamic_cast<const AndOrJoinActivityList *>((*precedence)) ) continue;
+	if ( !dynamic_cast<const JoinActivityList *>((*precedence))  && !dynamic_cast<const AndOrJoinActivityList *>((*precedence)) ) continue;
 
 	/* Ok we have the join list. */
 
 	ActivityList * pre_list = (*precedence)->clone();
+	pre_list->setOwner( this );
+	addPrecedence( pre_list );
 	LQIO::DOM::ActivityList * pre_list_dom = const_cast<LQIO::DOM::ActivityList *>(pre_list->getDOM());
 	task_dom->addActivityList( pre_list_dom );
+	pre_list_dom->setTask( task_dom );
 
 	/* Now reconnect the activities. A little kludgey because we have a list in one case and not the other. */
 
@@ -1882,7 +1878,7 @@ Task::expandActivities( const Task& src, int replica )
 	    pre_activity->outputTo( pre_list );
 	    pre_activity_dom->outputTo( pre_list_dom );
 	    pre_list->add( pre_activity );
-	    pre_list_dom->add( pre_activity_dom );
+	    if ( pre_list_dom != nullptr ) pre_list_dom->add( pre_activity_dom );
 	}
 
 	const ActivityList *dstPrecedence = (*precedence)->next();
@@ -1892,7 +1888,10 @@ Task::expandActivities( const Task& src, int replica )
 	    /* Here is the fork list */
 
 	    ActivityList * post_list = dstPrecedence->clone();
+	    post_list->setOwner( this );
+	    addPrecedence( post_list );
 	    LQIO::DOM::ActivityList * post_list_dom = const_cast<LQIO::DOM::ActivityList *>(post_list->getDOM());
+	    post_list_dom->setTask( task_dom );
 	    task_dom->addActivityList( post_list_dom );
 	    ActivityList::act_connect( pre_list, post_list );
 	    pre_list_dom->setNext( post_list_dom );
@@ -1905,7 +1904,7 @@ Task::expandActivities( const Task& src, int replica )
 		post_act_list = dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)->getMyActivityList();
 	    } else if (dynamic_cast<const RepeatActivityList *>(dstPrecedence)) {
 		post_act_list = dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivityList();
-		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
+//		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
 	    } else if (dynamic_cast<const SequentialActivityList *>(dstPrecedence)) {
 		post_act_list.push_back(dynamic_cast<const SequentialActivityList *>(dstPrecedence)->getMyActivity());
 	    }
@@ -1945,6 +1944,29 @@ Task::cloneDOM( const string& aName, LQIO::DOM::Processor * dom_processor ) cons
 }
 
 
+static struct {
+    set_function first;
+    get_function second;
+} task_mean[] = { 
+// static std::pair<set_function,get_function> task_mean[] = {
+    { &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
+    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
+    { &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
+    { NULL, NULL }
+};
+
+static struct {
+    set_function first;
+    get_function second;
+} task_variance[] = { 
+//static std::pair<set_function,get_function> task_variance[] = {
+    { &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance },
+    { &LQIO::DOM::DocumentObject::setResultThroughputVariance, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
+    { &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
+    { NULL, NULL }
+};
+
+
 /*
  * Rename XXX_1 to XXX and reinsert the task and its dom into their associated arrays.   XXX_2 and up will be discarded.
  */
@@ -1954,20 +1976,37 @@ Task::replicateTask( LQIO::DOM::DocumentObject ** root )
 {
     unsigned int replica = 0;
     std::string root_name = baseReplicaName( replica );
+    LQIO::DOM::Task * task = dynamic_cast<LQIO::DOM::Task *>(*root);
     if ( replica == 1 ) {
 	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
+	task = dynamic_cast<LQIO::DOM::Task *>(*root);
 	std::pair<std::set<Task *>::iterator,bool> rc = __tasks.insert( this );
 	if ( !rc.second ) throw runtime_error( "Duplicate task" );
-	(*root)->setName( root_name );
-	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addTaskEntity( dynamic_cast<LQIO::DOM::Task *>(*root) );	/* Reconnect all of the dom stuff. */
-    } else if ( dynamic_cast<LQIO::DOM::Task *>(*root)->getReplicasValue() < replica ) {
-	dynamic_cast<LQIO::DOM::Task *>(*root)->setReplicasValue( replica );
-	update_mean( *root, &LQIO::DOM::DocumentObject::setResultUtilization, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilization, replica );
-	update_variance( *root, &LQIO::DOM::DocumentObject::setResultUtilizationVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultUtilizationVariance );
-	update_mean( *root, &LQIO::DOM::DocumentObject::setResultThroughput, getDOM(), &LQIO::DOM::DocumentObject::getResultThroughput, replica );
-	update_variance( *root, &LQIO::DOM::DocumentObject::setResultThroughputVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultThroughputVariance );
-	update_mean( *root, &LQIO::DOM::DocumentObject::setResultProcessorUtilization, getDOM(), &LQIO::DOM::DocumentObject::getResultProcessorUtilization, replica );
-	update_variance( *root, &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, getDOM(), &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance );
+	task->setName( root_name );
+	const_cast<LQIO::DOM::Processor *>(task->getProcessor())->addTask( task );		/* Add back (for XML output) */
+	/* Group too?? */
+	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addTaskEntity( task );	/* Reconnect all of the dom stuff. */
+    } else if ( task->getReplicasValue() < replica ) {
+	task->setReplicasValue( replica );
+	for ( unsigned int i = 0; task_mean[i].first != NULL; ++i ) {
+	    update_mean( task, task_mean[i].first, getDOM(), task_mean[i].second, replica );
+	    update_variance( task, task_variance[i].first, getDOM(), task_variance[i].second );
+	}
+    }
+
+    for ( std::vector<Activity *>::const_iterator a = activities().begin(); a != activities().end(); ++a ) {
+	const LQIO::DOM::Activity * src = dynamic_cast<const LQIO::DOM::Activity *>((*a)->getDOM());		/* The replica 1, 2,... dom */
+
+	/* 
+	 * Strip the _n from the replica name.  After pass 1 (replica==1), the "roots" activity
+	 * won't have the _n either, so it can be found 
+	 */
+	
+	std::string& name = const_cast<std::string&>(src->getName());
+	size_t pos = name.rfind( '_' );
+	name = name.substr( 0, pos );
+	LQIO::DOM::Activity * activity = const_cast<const LQIO::DOM::Task *>(task)->getActivity(name);
+	(*a)->replicateActivity( activity, replica );
     }
     return *this;
 }

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13570 2020-05-27 15:10:55Z greg $
+ * $Id: phase.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -15,6 +15,7 @@
 
 #include "dim.h"
 #include <cmath>
+#include <algorithm>
 #include <cstdlib>
 #include <lqio/input.h>
 #include <lqio/error.h>
@@ -22,7 +23,6 @@
 #include "fpgoop.h"
 #include "model.h"
 #include "phase.h"
-#include "cltn.h"
 #include "stack.h"
 #include "vector.h"
 #include "entry.h"
@@ -37,52 +37,35 @@
 #include "variance.h"
 #include "submodel.h"
 #include "errmsg.h"
+#include "option.h"
+
 
 
 /* ---------------------- Overloaded Operators ------------------------ */
-
-ostream& operator<<( ostream& output, const Phase& self )
-{
-    self.print( output );
-    return output;
-}
-
-
-NullPhase::NullPhase( const NullPhase& ) 
-{
-    abort();
-}
-
-
-NullPhase& NullPhase::operator=( const NullPhase& ) 
-{
-    abort();
-    return *this;
-}
-
 
 /*
  * Allocate array space for submodels
  */
 
-void
-NullPhase::configure( const unsigned n, const unsigned )
+NullPhase&
+NullPhase::configure( const unsigned n )
 {
-    myWait.grow( n );
+    myWait.resize( n );
+    return *this;
 }
 
 
 NullPhase& 
 NullPhase::setDOM(LQIO::DOM::Phase* phaseInfo)
 {
-    myDOMPhase = phaseInfo;
+    _phaseDOM = phaseInfo;
     return *this;
 }
 
 NullPhase& 
 NullPhase::setServiceTime( const double t ) 
 {
-    if (myDOMPhase != NULL) {
+    if (getDOM() != NULL) {
 	abort();
     } else {
 	myServiceTime = t; 
@@ -95,7 +78,7 @@ NullPhase::setServiceTime( const double t )
 NullPhase& 
 NullPhase::addServiceTime( const double t ) 
 { 
-    if (myDOMPhase != NULL) {
+    if (getDOM() != NULL) {
 	abort();
     } else {
 	myServiceTime += t; 
@@ -107,26 +90,25 @@ NullPhase::addServiceTime( const double t )
 double
 NullPhase::serviceTime() const
 {
-    if ( myDOMPhase == NULL ) return myServiceTime;
+    if ( getDOM() == NULL ) return myServiceTime;
     try {
-	return myDOMPhase->getServiceTimeValue();
+	return getDOM()->getServiceTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", myDOMPhase->getTypeName(), name(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0.0;
 }
 
-
 double
 NullPhase::thinkTime() const
 {
     try {
-	return myDOMPhase->getThinkTimeValue();
+	return getDOM()->getThinkTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", myDOMPhase->getTypeName(), name(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0.;
@@ -135,12 +117,14 @@ NullPhase::thinkTime() const
 double
 NullPhase::CV_sqr() const
 {
-    try {
-	return myDOMPhase->getCoeffOfVariationSquaredValue();
-    }
-    catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", myDOMPhase->getTypeName(), name(), e.what() );
-	throw_bad_parameter();
+    if ( getDOM() ) {
+	try {
+	    return getDOM()->getCoeffOfVariationSquaredValue();
+	}
+	catch ( const std::domain_error& e ) {
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CVsqr", getDOM()->getTypeName(), name().c_str(), e.what() );
+	    throw_bad_parameter();
+	}
     }
     return 1.;
 }
@@ -173,8 +157,8 @@ NullPhase::waitExcept( const unsigned submodel ) const
 	if ( i != submodel ) {
 	    sum += myWait[i];
 	    if (myWait[i] < 0 && flags.trace_quorum) { 
-		cout << "\nNullPhase::waitExcept(submodel=" << submodel << 
-		    "): submodel number "<<i<<" has less than zero wait. sum of waits=" << sum << endl;
+		cout << "\nNullPhase::waitExcept(submodel=" << submodel
+		     << "): submodel number "<<i<<" has less than zero wait. sum of waits=" << sum << endl;
 	    }
 	}
     }
@@ -226,16 +210,28 @@ NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m,
  * Constructor.
  */
 
-Phase::Phase( const char * aName )
-    : myProcessorCall(0),
-      myThinkCall(0),
-      myProcessorEntry(0),
-      myThinkEntry(0),
-      iWasChanged(false)	        /* True if reinit required      */
+Phase::Phase( const std::string& name )
+    : NullPhase(),
+      _entry(NULL),
+      myProcessorCall(NULL),
+      myThinkCall(NULL),
+      myProcessorEntry(NULL),
+      myThinkEntry(NULL),
+      _prOvertaking(0.)
 {
-    if ( aName ) {
-	myName = aName;
-    }      
+    setName( name );
+}
+
+
+Phase::Phase()
+    : NullPhase(),
+      _entry(NULL),
+      myProcessorCall(NULL),
+      myThinkCall(NULL),
+      myProcessorEntry(NULL),
+      myThinkEntry(NULL),
+      _prOvertaking(0.)
+{
 }
 
 
@@ -246,30 +242,18 @@ Phase::Phase( const char * aName )
 Phase::~Phase()
 {
     if ( myProcessorCall ) {
-	LQIO::DOM::Call* callDOM = myProcessorCall->getCallDOM();
+	const LQIO::DOM::Call* callDOM = myProcessorCall->getDOM();
 	if ( callDOM ) delete callDOM;
-	delete myProcessorCall;
-	myProcessorCall = 0;
-    }
-    if ( myProcessorEntry ) {
-	delete myProcessorEntry;
-	myProcessorEntry = 0;
     }
     if ( myThinkCall ) {
-	myCalls -= myThinkCall;	/* Remove so deleteContents doesn't try */
-	LQIO::DOM::Call* callDOM = myThinkCall->getCallDOM();
+	const LQIO::DOM::Call* callDOM = myThinkCall->getDOM();
 	if ( callDOM ) delete callDOM;
-	delete myThinkCall;
-	myThinkCall = 0;
-    }
-    if ( myThinkEntry ) {
-	delete myThinkEntry;
-	myThinkEntry = 0;
     }
 
     /* Release forward links */
-	
-    myCalls.deleteContents();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	delete *call;
+    }
 }
 
 
@@ -285,13 +269,10 @@ Phase::findChildren( CallStack& callStack, const bool directPath ) const
 {
     unsigned max_depth = callStack.size();
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->isForwardedCall() ) continue;
 
-    while ( aCall = nextCall() ) {
-	if ( aCall->isForwardedCall() ) continue;
-
-	const Entity * dstTask = aCall->dstTask();
+	const Entity * dstTask = (*call)->dstTask();
 	try {
 
 	    /* 
@@ -300,11 +281,11 @@ Phase::findChildren( CallStack& callStack, const bool directPath ) const
 	     * short-circuit test with directPath.
 	     */
 
-	    if (( callStack.find( aCall, directPath ) == 0 && callStack.size() >= dstTask->submodel() )
+	    if (( callStack.find( (*call), directPath ) == 0 && callStack.size() >= dstTask->submodel() )
 		|| directPath ) {					/* Always (for forwarding)	*/
 
-		callStack.push( aCall );
-		if ( aCall->hasForwarding() && directPath ) {
+		callStack.push( (*call) );
+		if ( (*call)->hasForwarding() && directPath ) {
 		    addForwardingRendezvous( callStack );
 		} 
 		max_depth = max( dstTask->findChildren( callStack, directPath ), max_depth );
@@ -359,17 +340,15 @@ Phase::addForwardingRendezvous( CallStack& callStack ) const
 
 
 /*
- * Grow mySurrogateDelay array as neccesary.  Initialize to zero.  Used
+ * Grow _surrogateDelay array as neccesary.  Initialize to zero.  Used
  * by Newton Raphson step.
  */
  
-void
+Phase&
 Phase::initReplication( const unsigned maxSize )
 {
-    const unsigned size = mySurrogateDelay.size();
-    if ( size < maxSize ) {
-	mySurrogateDelay.grow( maxSize - size );
-    }
+    _surrogateDelay.resize( maxSize );
+    return *this;
 }
 
 
@@ -378,19 +357,14 @@ Phase::initReplication( const unsigned maxSize )
  * Initialize waiting time from lower level servers.
  */
 
-void
+Phase&
 Phase::initWait()
 {
-    Sequence<Call *> nextCall(callList());
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->initWait();
-    }
-
+    for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
     if ( myProcessorCall ) {
 	myProcessorCall->initWait();
     }
+    return *this;
 }
 
 
@@ -400,10 +374,11 @@ Phase::initWait()
  * for device entries.
  */
 
-void
+Phase&
 Phase::initVariance() 
 { 
-    myVariance = CV_sqr() * square( serviceTime() ); 
+    myVariance = CV_sqr() * square( serviceTime() );
+    return *this;
 }
 
 
@@ -411,10 +386,11 @@ Phase::initVariance()
  * Clear replication variables.
  */
 
-void
+Phase&
 Phase::resetReplication()
 {
-    mySurrogateDelay = 0;
+    _surrogateDelay = 0.;
+    return *this;
 }
 
 
@@ -422,39 +398,39 @@ Phase::resetReplication()
  * Make sure deterministic phases are correct.
  */
 
-void
-Phase::check( const unsigned p ) const
+bool
+Phase::check() const
 {
-    if ( !isPresent() ) return;
-    char p_str[2];
-    p_str[0] = p + '0';
-    p_str[1] = '\0';
+    if ( !isPresent() ) return true;
 
     /* Service time for the entry? */
     if ( serviceTime() == 0 ) {
 	if ( isActivity() ) {
-	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Task", owner()->name(), myDOMPhase->getTypeName(),  name() );
+	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Task", owner()->name().c_str(), getDOM()->getTypeName(),  name().c_str() );
 	} else {
-	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Entry", entry()->name(), myDOMPhase->getTypeName(),  p_str );
+	    LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Entry", entry()->name().c_str(), getDOM()->getTypeName(),  name().c_str() );
 	}
     }
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	aCall->check();
-    }
+    for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
 
     if ( phaseTypeFlag() == PHASE_STOCHASTIC && CV_sqr() != 1.0 ) {
 	if ( isActivity() ) {			/* c, phase_flag are incompatible  */
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name(), myDOMPhase->getTypeName(), name() );
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	} else {
-	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name(), myDOMPhase->getTypeName(), p_str );
+	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Entry", entry()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	}
     }
+    return true;
 }
 
+
+
+const Entity *
+Phase::owner() const
+{
+    return _entry ? _entry->owner() : NULL;
+}
 
 
 /*
@@ -476,16 +452,13 @@ Phase::hasVariance() const
 void
 Phase::callsPerform( Stack<const Entry *>& entryStack, const AndForkActivityList *, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->submodel() == submodel ) {
-	    (aCall->*aFunc)( k, p, rate );
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->submodel() == submodel ) {
+	    ((*call)->*aFunc)( k, p, rate );
 	}
     }
     
-    aCall = processorCall();
+    Call * aCall = processorCall();
     if ( aCall ) {
 	if ( aCall->submodel() == submodel ) {
 	    (aCall->*aFunc)( k, p, rate );
@@ -503,14 +476,10 @@ Phase::callsPerform( Stack<const Entry *>& entryStack, const AndForkActivityList
 Call *
 Phase::findCall( const Entry * anEntry, const queryFunc aFunc ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	if ( aCall->dstEntry() == anEntry && !aCall->isForwardedCall() && (!aFunc || (aCall->*aFunc)()) ) return aCall;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->dstEntry() == anEntry && !(*call)->isForwardedCall() && (!aFunc || ((*call)->*aFunc)()) ) return (*call);
     }
-
-    return aCall;
+    return 0;
 }
 
 
@@ -523,12 +492,10 @@ Phase::findCall( const Entry * anEntry, const queryFunc aFunc ) const
 Call *
 Phase::findFwdCall( const Entry * anEntry ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-
-    while ( ( aCall = nextCall() ) && ( aCall->dstEntry() != anEntry || !aCall->isForwardedCall() ) );
-
-    return aCall;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end() ; ++call ) {
+	if ( (*call)->dstEntry() == anEntry && (*call)->isForwardedCall() ) return *call;
+    }
+    return 0;
 }
 
 
@@ -576,14 +543,10 @@ Phase::findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall )
 double
 Phase::rendezvous( const Entity * aTask ) const
 {
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
     double sum = 0.0;
-    while ( aCall = nextCall() ) {
-	if ( aCall->dstTask() != aTask ) continue;
-
-	sum += aCall->rendezvous() * aCall->fanOut();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->dstTask() != aTask ) continue;
+	sum += (*call)->rendezvous() * (*call)->fanOut();
     }
     return sum;
 }
@@ -596,15 +559,21 @@ Phase::rendezvous( const Entity * aTask ) const
  */
 
 Phase&
-Phase::rendezvous( Entry * toEntry, LQIO::DOM::Call* callDOMInfo )
+Phase::rendezvous( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOMInfo != NULL && toEntry->isCalled( RENDEZVOUS_REQUEST ) ) {
-	if ( owner() ) {
-	    const_cast<Entity *>(owner())->isPureServer( false );
+    if ( callDOM != NULL && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
+	if ( client != nullptr ) {
+	    client->isPureServer( false );
 	}
 		
 	Call * aCall = findOrAddCall( toEntry, &Call::hasRendezvousOrNone  );
-	aCall->rendezvous( callDOMInfo );
+	aCall->rendezvous( callDOM );
+
+	Task * server = const_cast<Task *>(dynamic_cast<const Task *>(toEntry->owner()));
+	if ( server != nullptr && client != nullptr ) {
+	    server->addTask(client);
+	}
     }
 
     return *this;
@@ -637,12 +606,9 @@ Phase::rendezvous( const Entry * anEntry ) const
 double
 Phase::sumOfRendezvous() const
 {
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
     double sum = 0.0;
-    while ( aCall = nextCall() ) {
-	sum += aCall->rendezvous() * aCall->fanOut();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	sum += (*call)->rendezvous() * (*call)->fanOut();
     }
     return sum;
 }
@@ -655,15 +621,21 @@ Phase::sumOfRendezvous() const
  */
 
 Phase&
-Phase::sendNoReply( Entry * toEntry, LQIO::DOM::Call* callDOMInfo )
+Phase::sendNoReply( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOMInfo != NULL && toEntry->isCalled( SEND_NO_REPLY_REQUEST ) ) {
-	if ( owner() ) {
-	    const_cast<Entity *>(owner())->isPureServer( false );
+    if ( callDOM != NULL && toEntry->setIsCalledBy( SEND_NO_REPLY_REQUEST ) ) {
+	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
+	if ( client != nullptr ) {
+	    client->isPureServer( false );
 	}
 
 	Call * aCall = findOrAddCall( toEntry, &Call::hasSendNoReplyOrNone );
-	aCall->sendNoReply( callDOMInfo );
+	aCall->sendNoReply( callDOM );
+
+	Task * server = const_cast<Task *>(dynamic_cast<const Task *>(toEntry->owner()));
+	if ( server != nullptr && client != nullptr ) {
+	    server->addTask(client);
+	}
     }
 	
     return *this;
@@ -697,14 +669,14 @@ Phase&
 Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 {
     const Entry * toEntry = fwdCall->dstEntry();
-    if ( value > 0.0 && const_cast<Entry *>(toEntry)->isCalled( RENDEZVOUS_REQUEST ) ) {
+    if ( value > 0.0 && const_cast<Entry *>(toEntry)->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
 	if ( owner() ) {
 	    const_cast<Entity *>(owner())->isPureServer( false );
 	}
 	Call * aCall = findOrAddFwdCall( toEntry, fwdCall );
 	LQIO::DOM::Phase* aDOM = getDOM();
 	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::RENDEZVOUS,
-							       myDOMPhase, toEntry->getDOM(), 
+							       getDOM(), toEntry->getDOM(), 
 							       new LQIO::DOM::ConstantExternalVariable(value));
 	aCall->rendezvous(rendezvousCall);
     }
@@ -714,42 +686,25 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 
 
 /*
- * Return the sum of all calls from the receiver.
- * Forwarded calls are not counted because they
- * are pseudo calls from this entry.
- */
-
-double
-Phase::numberOfSlices() const
-{
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    double sum = 1.0;
-    while ( aCall = nextCall() ) {
-	if ( aCall->isForwardedCall() ) continue;
-
-	sum += aCall->rendezvous() * aCall->fanOut();
-    }
-    return sum;
-}
-
-
-
-/*
  * Store forwarding probability in call list.
  */
 
 Phase&
-Phase::forward( Entry * toEntry, LQIO::DOM::Call* callDOMInfo )
+Phase::forward( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOMInfo != NULL && toEntry->isCalled( RENDEZVOUS_REQUEST ) ) {
-	if ( owner() ) {
-	    const_cast<Entity *>(owner())->isPureServer( false );
+    if ( callDOM != NULL && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
+	if ( client != nullptr ) {
+	    client->isPureServer( false );
 	}
 
 	Call * aCall = findOrAddCall( toEntry, &Call::hasForwardingOrNone );
-	aCall->forward( callDOMInfo );
+	aCall->forward( callDOM );
+
+	Task * server = const_cast<Task *>(dynamic_cast<const Task *>(toEntry->owner()));
+	if ( server != nullptr && client != nullptr ) {
+	    server->addTask(client);
+	}
     }
 
     return *this;
@@ -775,6 +730,44 @@ Phase::forward( const Entry * toEntry ) const
 
 
 
+ProcessorCall *
+Phase::newProcessorCall( Entry * procEntry )
+{
+    return new ProcessorCall( this, procEntry );
+}
+
+
+/*
+ * Return the sum of all calls from the receiver.
+ * Forwarded calls are not counted because they
+ * are pseudo calls from this entry.
+ */
+
+double
+Phase::numberOfSlices() const
+{
+    double sum = 1.0;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->isForwardedCall() ) continue;
+
+	sum += (*call)->rendezvous() * (*call)->fanOut();
+    }
+    return sum;
+}
+
+/* ------------------------------------------------------------------------ */
+
+
+/*
+ * Return throughut for phase.
+ */
+
+double
+Phase::throughput() const
+{
+    return _entry ? _entry->throughput() : 0.0;
+}
+
 
 /*
  * Return utilization for phase.  
@@ -783,8 +776,9 @@ Phase::forward( const Entry * toEntry ) const
 double
 Phase::utilization() const
 {
-    if ( isfinite( throughput() ) ) {
-	return throughput() * elapsedTime();
+    const double f = throughput();
+    if ( isfinite( f ) && f > 0.0 ) {
+	return f * elapsedTime();
     } else {
 	return 0.0;
     }
@@ -854,6 +848,19 @@ Phase::processorUtilization() const
 }
 
 
+/*
+ * Compute waiting (and it we have pruned the processor, add it back.
+ */
+
+double
+Phase::waitExcept( const unsigned submodel ) const
+{
+    double wait = NullPhase::waitExcept( submodel );
+    if ( owner()->getProcessor() && !owner()->getProcessor()->isInteresting() ) {
+	wait += serviceTime();		/* Add my processor's service time */
+    }
+    return wait;
+}
 
 /*
  * Return waiting time.  Normally, we exclude all of chain k, but with
@@ -865,8 +872,8 @@ double
 Phase::waitExceptChain( const unsigned submodel, const unsigned k )
 {
 	
-    if ( k <= mySurrogateDelay.size()) {
-	return mySurrogateDelay[k] + waitExcept( submodel );
+    if ( k <= _surrogateDelay.size()) {
+	return _surrogateDelay[k] + waitExcept( submodel );
     } else {
 	return waitExcept( submodel );
     }
@@ -915,15 +922,13 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
 	
     /* Sum up waits to all other tasks in this submodel */
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->submodel() == submodel ) {
-	    newWait += aCall->rendezvousDelay();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->submodel() == submodel ) {
+	    newWait += (*call)->rendezvousDelay();
 
 	    if ( oldWait && flags.trace_delta_wait ) {
-		cout << "        to entry " << aCall->dstName() << " wait="
-		     << aCall->rendezvousDelay()
+		cout << "        to entry " << (*call)->dstName() << " wait="
+		     << (*call)->rendezvousDelay()
 		     << endl;
 	    }
 	}
@@ -946,7 +951,7 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
     under_relax( myWait[submodel], newWait, relax );
 
     if ( oldWait && flags.trace_delta_wait ) {
-	cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] << endl;
+      cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] <<endl;
     }
 
     return *this;
@@ -967,12 +972,12 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
 	int k= processorCall()->getChain();
 	//procWait += waitExceptChain( submodel, k );	
 	if ( processorCall()->dstTask()->hasServerChain(k) ) {
-	    // newWait +=  mySurrogateDelay[k];
+	    // newWait +=  _surrogateDelay[k];
 
 	    if (flags.trace_quorum) {
 		
 		cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
-		     << ", mySurrogateDelay[" <<k<<"]="<<mySurrogateDelay[k] << endl;
+		     << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << endl;
 		fflush(stdout);
 	    }
 	}
@@ -991,20 +996,14 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
 
 }
 
+/* 
+ * Sum up waits to all other tasks in this submodel 
+ */
+
 double
 Phase::getReplicationTaskWait( unsigned int submodel, const double relax ) 
 {
-    double newWait   = 0.0;
-
-    /* Sum up waits to all other tasks in this submodel */
-
-    Call * aCall;
-    Sequence<Call *> nextCall( callList() );
-    while ( aCall = nextCall() ) {
-	newWait += aCall->wait();
-    }
-
-    return newWait;
+    return for_each( callList().begin(), callList().end(), Sum<Call,double>( &Call::wait ) ).sum();
 }
 
 
@@ -1012,12 +1011,9 @@ double
 Phase::getReplicationRendezvous( unsigned int submodel, const double relax ) //tomari : quorum
 {
     double totalRendezvous   = 0.0;
-	 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->submodel() == submodel ) {
-	    totalRendezvous += aCall->rendezvous() * aCall->fanOut();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->submodel() == submodel ) {
+	    totalRendezvous += (*call)->rendezvous() * (*call)->fanOut();
 	}
     }
 
@@ -1055,22 +1051,17 @@ Phase::getTaskWait( unsigned int submodel, const double relax ) //tomari : quoru
     double newWait   = 0.0;
     double totalRendezvous = 0;
 
-    Sequence<Call *> xCall( callList() );
-    const Call * aCall;
-    while ( aCall = xCall() ) {
-	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
-	    totalRendezvous += aCall->rendezvous();
-
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
+	    totalRendezvous += (*call)->rendezvous();
 	}
     }
 
     /* Sum up waits to all other tasks in this submodel */
 
-    Sequence<Call *> nextCall( callList() );
-    while ( aCall = nextCall() ) {
-	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
-	    newWait += aCall->wait() * (aCall->rendezvous() /totalRendezvous);
-
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
+	    newWait += (*call)->wait() * ((*call)->rendezvous() /totalRendezvous);
 	}
     }
 
@@ -1083,12 +1074,9 @@ Phase::getRendezvous( unsigned int submodel, const double relax ) //tomari : quo
 {
     double totalRendezvous   = 0.0;
 	 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( aCall->hasRendezvous() && aCall->submodel() == submodel ) {
-	    totalRendezvous += aCall->rendezvous();
-
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
+	    totalRendezvous += (*call)->rendezvous();
 	}
     }
 
@@ -1111,55 +1099,49 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
     // of this phase...
     
     if ( flags.trace_replication ) {
-	cout <<"\nPhase::updateWaitReplication()........Current phase is " << name();
+	cout <<"\nPhase::updateWaitReplication()........Current phase is " << entry()->name() << ":" << name();
 	cout <<" ..............." <<endl; 
     }
-    const ChainVector& aChain = const_cast<Task *>(dynamic_cast<const Task *>(owner()))->clientChains(aSubmodel.number());
-    Sequence<Call *> nextCall( callList() );
+    const Task * ownerTask = dynamic_cast<const Task *>(owner());
+    const ChainVector& aChain = ownerTask->clientChains(aSubmodel.number());
 
     for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
 	const unsigned k = aChain[ix];
 
 	//cout <<"\n***Start processing master chain k = " << k << " *****" << endl;
 
-	const Task * ownerTask = dynamic_cast<const Task *>(owner());
-
-	bool include = false;
-	Call * aCall;
 	bool proc_mod = false;
 	double nr_factor = 0.0;
 	double newWait = 0.0;
 
-	const Thread * thread = ownerTask->getThread( aSubmodel.number(), k );
+	unsigned chainThreadIx = ownerTask->threadIndex( aSubmodel.number(), k );
 
-	while ( aCall = nextCall() ) {
-	    if ( aCall->submodel() != aSubmodel.number() ) continue;
+	for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	    if ( (*call)->submodel() != aSubmodel.number() ) continue;
            
-	    if ( thread != ownerTask->getThread( aSubmodel.number(), aCall->getChain() ) ) {
+	    if (chainThreadIx != ownerTask->threadIndex( aSubmodel.number(), (*call)->getChain() )  ) {
 		continue;
 	    }
 	    
-	    const double temp = aCall->rendezvousDelay( k );
-	    if ( aCall->dstTask()->hasServerChain(k) ) {
-		include = true;
-             
-		nr_factor = aCall->nrFactor( aSubmodel, k );
+	    const double temp = (*call)->rendezvousDelay( k );
+	    if ( (*call)->dstTask()->hasServerChain(k) ) {
+		nr_factor = (*call)->nrFactor( aSubmodel, k );
 	    }
 	    if ( flags.trace_replication ) {
-		cout << "\nCallChainNum=" << aCall->getChain() << ",Src=" << aCall->srcName() << ",Dst=" << aCall->dstName() << ",Wait=" << temp << endl;
+		cout << "\nCallChainNum=" << (*call)->getChain() << ",Src=" << (*call)->srcName() << ",Dst=" << (*call)->dstName() << ",Wait=" << temp << endl;
 	    }
 	    newWait += temp;
  
 	    //Take note if there are zero visits to task.
 
-	    if ( aCall->rendezvousDelay() > 0 ) {
+	    if ( (*call)->rendezvousDelay() > 0 ) {
 		proc_mod = true;
 	    } 
 	}
  
 	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) { 
    
-	    if ( thread == ownerTask->getThread( aSubmodel.number(), processorCall()->getChain() ) ) {
+	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), processorCall()->getChain() ) ) {
 		double temp=  processorCall()->rendezvousDelay( k );
 		newWait += temp;
 		if ( flags.trace_replication ) {
@@ -1167,7 +1149,6 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 			 << ",Wait=" << temp << endl;
 		}
 		if ( processorCall()->dstTask()->hasServerChain(k) ) {
-		    include = true;
 		    nr_factor = processorCall()->nrFactor( aSubmodel, k );
 		}
 	    }   
@@ -1175,22 +1156,20 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	
 	//REP NEWTON-RAPHSON (if NR selected)
 
-	if ( include ) { 
-	    newWait = (newWait + mySurrogateDelay[k] * nr_factor) / (1.0 + nr_factor);
+	if ( nr_factor != 0.0 ) { 
+	    newWait = (newWait + _surrogateDelay[k] * nr_factor) / (1.0 + nr_factor);
 	} else {
 	    newWait = 0; 
 	}
 
-	delta = max( delta, square( (mySurrogateDelay[k] - newWait) * throughput() ) );
-	under_relax( mySurrogateDelay[k], newWait, 1.0 );
+	delta = max( delta, square( (_surrogateDelay[k] - newWait) * throughput() ) );
+	under_relax( _surrogateDelay[k], newWait, 1.0 );
 	
 	if ( flags.trace_replication ) {
-
-	    cout <<"\nMySurrogateDelay of current master chain " <<k<< " =" << mySurrogateDelay[k]<< endl;
-	
-	    cout << name() << ": waitExceptChain(submodel=" << aSubmodel.number() << ",k=" << k << ") = " << newWait
-		 << ", nr_factor = " << nr_factor 
-		 << "\n, waitExcept(submodel=" << aSubmodel.number() << ") = " << waitExcept( aSubmodel.number() ) << endl;
+	    cout << endl << "SurrogateDelay of current master chain " << k << " =" << _surrogateDelay[k] << endl
+		 << name() << ": waitExceptChain(submodel=" << aSubmodel.number() << ",k=" << k << ") = " << newWait
+		 << ", nr_factor = " << nr_factor << endl
+		 << ", waitExcept(submodel=" << aSubmodel.number() << ") = " << waitExcept( aSubmodel.number() ) << endl;
 	}
     }
     return delta;
@@ -1211,11 +1190,8 @@ Phase::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
 	
     /* Store in path list */
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	max_depth = max( aCall->followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	max_depth = max( (*call)->followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
     }
 
     if ( processorCall() ) {
@@ -1238,15 +1214,12 @@ Phase::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
 
 bool
 Phase::getInterlockedTasks( Stack<const Entry *>& stack, const Entity * myServer, 
-			    Cltn<const Entity *>& interlockedTasks, const unsigned ) const
+			    std::set<const Entity *>& interlockedTasks, const unsigned ) const
 {
     bool found = false;
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
-	const Entry * dstEntry = aCall->dstEntry();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	const Entry * dstEntry = (*call)->dstEntry();
 	if ( !stack.find( dstEntry ) && dstEntry->getInterlockedTasks( stack, myServer, interlockedTasks ) ) {
 	    found = true;
 	}
@@ -1261,27 +1234,28 @@ Phase::getInterlockedTasks( Stack<const Entry *>& stack, const Entity * myServer
 }
 
 
-void
+const Phase&
 Phase::insertDOMResults() const
 {
-    myDOMPhase->setResultServiceTime(elapsedTime())
+    const double procwaiting = queueingTime();
+
+    getDOM()->setResultServiceTime(elapsedTime())
 	.setResultVarianceServiceTime(variance())
 	.setResultUtilization(utilization())
-	.setResultProcessorWaiting(queueingTime());
+	.setResultProcessorWaiting(procwaiting);
 
     /*+ BUG 675 */
-    if ( myDOMPhase->hasHistogram() ) {
-	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(myDOMPhase->getHistogram()), elapsedTime(), variance() );
+    if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
+	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), elapsedTime(), variance() );
     }
     /*- BUG 675 */
 
-    Sequence<Call *> nextCall( callList() );
-    Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( !aCall->hasForwarding() ) {
-	    aCall->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasForwarding() ) {
+	    (*call)->insertDOMResults();		/* Forwarded calls are done by their proxys (ForwardCall) */
 	}
     }
+    return *this;
 }
 
 
@@ -1290,22 +1264,22 @@ Phase::insertDOMResults() const
  * through the hoops if the value changes.
  */
 
-void 
+Phase&
 Phase::recalculateDynamicValues()
 {	
-    if ( !myProcessorEntry ) return;
+    if ( !myProcessorEntry ) return *this;
 	
     const bool phase_is_present = serviceTime() > 0 || isPseudo();
     const double nCalls = phase_is_present ? numberOfSlices() : 0.0;
     const double newSliceTime = phase_is_present ? serviceTime() / nCalls : 0.0;
-    const double oldSliceTime = myProcessorEntry->serviceTime(1);
+    const double oldSliceTime = myProcessorEntry->serviceTimeForPhase(1);
     if ( oldSliceTime != newSliceTime || flags.full_reinitialize ) {
 	myProcessorEntry->setServiceTime(newSliceTime).setCV_sqr(CV_sqr());
 
 	myProcessorEntry->initVariance();	// Reset variance.
 	myProcessorEntry->initWait();		// Reset values in wait[].
 		
-	LQIO::DOM::Call* callDOM = myProcessorCall->getCallDOM();
+	const LQIO::DOM::Call* callDOM = myProcessorCall->getDOM();
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
 	if ( callDOM ) delete callDOM;
 	myProcessorCall->rendezvous( new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
@@ -1318,7 +1292,7 @@ Phase::recalculateDynamicValues()
 
     if ( hasThinkTime() ) {
 	const double newThinkTime = thinkTime();
-	const double oldThinkTime = myThinkEntry->serviceTime(1);
+	const double oldThinkTime = myThinkEntry->serviceTimeForPhase(1);
 	if ( oldThinkTime != newThinkTime || flags.full_reinitialize ) {
 	    myThinkEntry->setServiceTime(newThinkTime);
 	    myThinkEntry->initVariance();	// Reset variance.
@@ -1329,6 +1303,7 @@ Phase::recalculateDynamicValues()
 	    myThinkCall->setWait( newThinkTime );
 	}
     }
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -1402,34 +1377,32 @@ Phase::stochastic_phase() const
     Positive sumOfVariance = proc_var;
 
     /* over all calls made in this phase */
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( !aCall->hasRendezvous() ) continue;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasRendezvous() ) continue;
 
 	/* Formula for a random sum: add terms due to one call */
 
 	/* first extract the properties of the delay for one call instance*/
-	const double blocking_mean = aCall->wait(); //includes service ph 1
-	// + Positive( aCall->dstEntry()->elapsedTime(1) ); 
+	const double blocking_mean = (*call)->wait(); //includes service ph 1
+	// + Positive( (*call)->dstEntry()->elapsedTime(1) ); 
 	/* mean delay for one of these calls */
 	if ( !isfinite( blocking_mean ) ) {
 	    return blocking_mean;
 	}
 
-	const double blocking_var = aCall->variance();		/* BUG_655 */
+	const double blocking_var = (*call)->variance();		/* BUG_655 */
 	if ( !isfinite( blocking_var ) ) {
 	    return blocking_var;
 	}
 	// this includes variance due to service
-	// + square (Positive( aCall->dstEntry()->elapsedTime(1) )) * Positive( aCall->dstEntry()->computeCV_sqr(1) ); 
+	// + square (Positive( (*call)->dstEntry()->elapsedTime(1) )) * Positive( (*call)->dstEntry()->computeCV_sqr(1) ); 
 	/*  variance of one of these calls */
  
 	/* then add up; the sum accounts for no of calls and fanout  */
 	//accumulate mean sum
-	const unsigned int fan_out = aCall->fanOut();
-	double calls_var = aCall->rendezvous() * fan_out * (aCall->rendezvous() * fan_out + 1 );  //var of no of calls if geometric
-	sumOfVariance += aCall->rendezvous() * fan_out * (blocking_var + proc_var) 
+	const unsigned int fan_out = (*call)->fanOut();
+	double calls_var = (*call)->rendezvous() * fan_out * ((*call)->rendezvous() * fan_out + 1 );  //var of no of calls if geometric
+	sumOfVariance += (*call)->rendezvous() * fan_out * (blocking_var + proc_var) 
 	    + calls_var * square(proc_wait + blocking_mean ); //accumulate variance sum
     }
 
@@ -1473,20 +1446,18 @@ Phase::mol_phase() const
      */
     SeriesParallel SP_Model;
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	if ( !aCall->hasRendezvous() ) continue;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasRendezvous() ) continue;
 
 
-	Probability prVisit = aCall->rendezvous() / sumOfRNV;
-	for ( unsigned i = 1; i <= aCall->fanOut(); ++i ) {
+	Probability prVisit = (*call)->rendezvous() / sumOfRNV;
+	for ( unsigned i = 1; i <= (*call)->fanOut(); ++i ) {
 #ifdef NOTDEF
-	    SP_Model.addStage( prVisit, aCall->wait(), Positive( aCall->CV_sqr() ) );
+	    SP_Model.addStage( prVisit, (*call)->wait(), Positive( (*call)->CV_sqr() ) );
 #else
 	    /* Use variance of phase, not of phase+arc */
-	    SP_Model.addStage( prVisit, aCall->wait(), 
-			       Positive( aCall->dstEntry()->computeCV_sqr(1) ) );
+	    SP_Model.addStage( prVisit, (*call)->wait(), 
+			       Positive( (*call)->dstEntry()->computeCV_sqr(1) ) );
 #endif
 	}
     }
@@ -1503,6 +1474,9 @@ Phase::mol_phase() const
 	+ v * ( 1.0 - v ) * square(SP_Model.S());
     variance = var_iter / q + ( 1.0 - q ) / square( q ) * square( r_iter );
 
+    if ( Options::Debug::variance() ) {
+	cout << name() << " MOL var: q=" << q << ", r_iter=" << r_iter << ", Proc Var=" << processorVariance() << ", SP Var=" << SP_Model.variance() << ", var_iter=" << var_iter << ", variance=" << variance << endl;
+    }
     return variance;
 }
 
@@ -1518,13 +1492,10 @@ Phase::deterministic_phase() const
 {
     Positive variance = 0;
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-	
-    while ( aCall = nextCall() ) {
-	const double var = aCall->variance();
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	const double var = (*call)->variance();
 	if ( isfinite( var ) ) {
-	    variance += aCall->fanOut() * aCall->rendezvous() * var;
+	    variance += (*call)->fanOut() * (*call)->rendezvous() * var;
 	}
     }
 
@@ -1554,18 +1525,15 @@ Phase::random_phase() const
 	return processorVariance();
     }
 
-    Sequence<Call *> nextCall( callList() );
-    const Call * aCall;
-	
-    while ( aCall = nextCall() ) {
-	if ( !aCall->hasRendezvous() ) continue;
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	if ( !(*call)->hasRendezvous() ) continue;
 
 #ifdef NOTDEF
-	var_x += aCall->fanOut() * aCall->rendezvous() * (aCall->dstEntry()->computeCV_sqr(1) * square(aCall->wait()));
+	var_x += (*call)->fanOut() * (*call)->rendezvous() * ((*call)->dstEntry()->computeCV_sqr(1) * square((*call)->wait()));
 #else
-	var_x += aCall->fanOut() * aCall->rendezvous() * aCall->variance();
+	var_x += (*call)->fanOut() * (*call)->rendezvous() * (*call)->variance();
 #endif
-	sum_x += aCall->rendezvousDelay();
+	sum_x += (*call)->rendezvousDelay();
     }
 
     var_x  += processorCalls() * processorVariance();
@@ -1581,31 +1549,27 @@ Phase::random_phase() const
  * Do this during initialization, rather than construction as we
  * don't know how many slices exist until the entire model is loaded.
  */
-	
-void
+       
+Phase&
 Phase::initProcessor()
 {	
-    if ( !owner()->processor() || myProcessorEntry ) return;
-	
-    /* If I don't have an entry, create one */
+    if ( myProcessorEntry || getDOM() == NULL ) return *this;
+    const Processor * processor = owner()->getProcessor();
+    if ( !processor ) return *this;
+    
+    /* If I don't have an entry on the processor, create one provided that the processor is interesting */
 	
     if ( getDOM()->hasServiceTime() ) {
-	string entry_name( owner()->processor()->name() );
+	string entry_name( owner()->name() );
 	entry_name += ':';
 	entry_name += name();
 	
 	double nCalls = numberOfSlices();
 		
-	/* 
-	 * [MM] myProcessorEntry used to have an Entry* in front of it, however it is also the name
-	 * of an instance variable of phase, which means that it was being shadowed and never set. 
-	 * I switched that out, now we have a proper link.
-	 */
-
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	myProcessorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str()), ::entry.size() + 1, 
-					    const_cast<Processor *>( owner()->processor()) );
-	::entry.insert( myProcessorEntry );
+	myProcessorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str()), Model::__entry.size() + 1, 
+					    const_cast<Processor *>( processor ) );
+	Model::__entry.insert( myProcessorEntry );
 		
 	myProcessorEntry->setServiceTime( serviceTime() / nCalls )
 	    .setCV_sqr( CV_sqr() )
@@ -1626,11 +1590,9 @@ Phase::initProcessor()
     }
 
     /*
-     * Now create entries and connect.  Note that the entries are DeviceEntries
-     * rather than TaskEntries (so that DeltaWait and friends don't get confused).
-     * DeviceEntries do not have processors, nor do they call anyone.
+     * If the entry has think time, connect it to the delay server.
      */
-
+    
     if ( hasThinkTime() ) {
 			
 	string think_entry_name;
@@ -1639,9 +1601,9 @@ Phase::initProcessor()
 	think_entry_name += name();
 
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	myThinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str()), ::entry.size() + 1, 
+	myThinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str()), Model::__entry.size() + 1, 
 				       Model::thinkServer );
-	::entry.insert( myThinkEntry );
+	Model::__entry.insert( myThinkEntry );
 		
 	myThinkEntry->setServiceTime(thinkTime()).setCV_sqr(1.0);
 	myThinkEntry->initVariance();
@@ -1654,61 +1616,6 @@ Phase::initProcessor()
 	myThinkCall->rendezvous( thinkCallDom );
 	addSrcCall( myThinkCall );
     }
-}
-
-/* ------------------------------------------------------------------------ */
-GenericPhase::GenericPhase()
-    : myEntry(0)
-{
-}
 
-
-
-
-/*
- * Set source entry and phase.
- */
-
-void
-GenericPhase::initialize( Entry * src, const int p )
-{
-    myEntry = src;
-
-    myName = src->name();
-    if ( 0 < p && p <= MAX_PHASES ) {
-	myName += ':';
-	myName += (p + '0');
-    } else {
-	abort();
-    }
-}
-
-
-
-ProcessorCall *
-GenericPhase::newProcessorCall( Entry * procEntry )
-{
-    return new ProcessorCall( this, procEntry );
-}
-
-
-/*
- * Return the task of this phase.  Overridden by class activity.
- */
-
-const Entity *
-GenericPhase::owner() const
-{
-    return myEntry->owner();
-}
-
-
-/*
- * Return throughut for phase.
- */
-
-double
-GenericPhase::throughput() const
-{
-    return myEntry->throughput();
+    return *this;
 }

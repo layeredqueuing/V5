@@ -1,6 +1,6 @@
 # lqsim 6.0
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=48-activities.p 48-activities.in
-# $Id$
+# $Id: 48-activities.p 13675 2020-07-10 15:29:36Z greg $
 V y
 C 0.651479
 I 4

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 13557 2020-05-26 01:28:33Z greg $
+ *  $Id: dom_actlist.cpp 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -23,7 +23,9 @@ namespace LQIO {
 	      _next(NULL), _prev(NULL),
 	      _processed(false)
 	{
-	    const_cast<Task *>(task)->addActivityList(this);
+	    if ( task != nullptr ) {
+		const_cast<Task *>(task)->addActivityList(this);
+	    }
 	}
 
 	ActivityList::~ActivityList()

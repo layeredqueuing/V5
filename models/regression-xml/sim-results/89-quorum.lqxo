@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: 89-quorum.lqxo 13675 2020-07-10 15:29:36Z greg $ -->
 <!-- lqsim -confidence=1.0,1000 -seed=1049217653 -->
 <lqn-model name="89-quorum" description="lqsim 6.0 solution for model from: 89-quorum.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="quorum model (meets assumptions)" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">

@@ -4,7 +4,7 @@
  * Multiserver test.  Conway / de Souza e Silva and Muntz waiting time.
  *
  * ------------------------------------------------------------------------
- * $Id: test9d.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test9d.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,9 +40,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = N_STATIONS;
 	
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);			/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);			/* Queue type.  SS/delay.	*/
+    Z.resize(classes);			/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);			/* Queue type.  SS/delay.	*/
 
     NCust[1] = 5;
     NCust[2] = 2;

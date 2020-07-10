@@ -4,7 +4,7 @@
  * Lazowska, Ch 7, Page 131
  * 
  * ------------------------------------------------------------------------
- * $Id: test2.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test2.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,9 +24,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = N_STATIONS;
 
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);				/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);				/* Queue type.  SS/delay.	*/
+    Z.resize(classes);				/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);				/* Queue type.  SS/delay.	*/
 
     NCust[1] = 10;	Z[1] = 0.0;		/* Batch */
     NCust[2] = 25;	Z[2] = 30.0;		/* Interactive */
@@ -47,13 +47,14 @@ void special_check( ostream&, const MVA&, const unsigned )
 
 
 
-static double goodL[4][N_STATIONS+1][N_CLASSES+1] =
+static double goodL[5][N_STATIONS+1][N_CLASSES+1] =
 {
     /* station   1                    2 */
-    { { 0,0,0 }, { 0,9.717 ,0.8496 }, { 0,0.2827,2.0900 } },		/* Exact MVA */
-    { { 0,0,0 }, { 0,9.721 ,0.8515 }, { 0,0.2792,2.055  } },		/* Linearizer */
-    { { 0,0,0 }, { 0,9.712 ,0.8515 }, { 0,0.2792,2.055  } },		/* Fast Linearizer */
-    { { 0,0,0 }, { 0,9.7047,0.8385 }, { 0,0.2953,2.303  } }		/* Bard Schweitzer */
+    { { 0,0,0 }, { 0,9.717 ,0.8496 }, { 0,0.2827,2.090 } },		/* Exact MVA */
+    { { 0,0,0 }, { 0,9.721 ,0.8515 }, { 0,0.2792,2.055 } },		/* Linearizer */
+    { { 0,0,0 }, { 0,9.721 ,0.8515 }, { 0,0.2792,2.055 } },		/* Fast Linearizer */
+    { { 0,0,0 }, { 0,9.7047,0.8385 }, { 0,0.2953,2.303 } },		/* Bard Schweitzer */
+    { { 0,0,0 }, { 0,9.761 ,0.8496 }, { 0,0.2841,2.086 } },		/* Experimental */
 };
 
 bool

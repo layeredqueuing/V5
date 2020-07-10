@@ -4,7 +4,7 @@
  * Menasce, chapter 13, q 4.
  *
  * ------------------------------------------------------------------------
- * $Id: test0a.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test0a.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,9 +22,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned entries = 2;
 
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);				/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);				/* Queue type.  SS/delay.	*/
+    Z.resize(classes);				/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);				/* Queue type.  SS/delay.	*/
 
     Q[1] = new FCFS_Server(entries,classes);	/* CPU */
     Q[2] = new FCFS_Server(entries,classes);	/* Disk1 */
@@ -59,11 +59,12 @@ special_check( ostream&, const MVA&, const unsigned )
 
 
 
-static double goodL[4][4][2] = {
+static double goodL[5][4][2] = {
     { { 0, 0 }, {0, 1.3177}, {0, 0.2280}, {0, 0.0000} },	/* Exact MVA */
     { { 0, 0 }, {0, 1.3177}, {0, 0.2280}, {0, 0.0000} },	/* Linearizer */
-    { { 0, 0 }, {0, 1.3177}, {0, 0.2280}, {0, 0.0000} },	/* Fast Linearize  */
+    { { 0, 0 }, {0, 1.3177}, {0, 0.2280}, {0, 0.0000} },	/* Fast Linearizer  */
     { { 0, 0 }, {0, 1.3642}, {0, 0.2279}, {0, 0.0000} },	/* Bard Schweitzer */
+    { { 0, 0 }, {0, 1.3177}, {0, 0.2280}, {0, 0.0000} },	/* Experimental  */
 };
 
 

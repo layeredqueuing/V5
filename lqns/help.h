@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13533 2020-03-12 22:09:07Z greg $
+ * $Id: help.h 13676 2020-07-10 15:46:20Z greg $
  */
 
 #ifndef _HELP_H
@@ -158,11 +158,12 @@ public:
     ostream& debugForks( ostream & output, bool verbose ) const;
     ostream& debugInterlock( ostream & output, bool verbose ) const;
     ostream& debugJoins( ostream & output, bool verbose ) const;
+    ostream& debugLQX( ostream & output, bool verbose ) const;
     ostream& debugLayers( ostream & output, bool verbose ) const;
     ostream& debugOvertaking( ostream & output, bool verbose ) const;
     ostream& debugQuorum( ostream & output, bool verbose ) const;
+    ostream& debugVariance( ostream & output, bool verbose ) const;
     ostream& debugXML( ostream & output, bool verbose ) const;
-    ostream& debugLQX( ostream & output, bool verbose ) const;
 
     ostream& traceActivities( ostream & output, bool verbose ) const;
     ostream& traceConvergence( ostream & output, bool verbose ) const;
@@ -215,6 +216,8 @@ public:
     ostream& pragmaThreads( ostream& output, bool verbose ) const;
     ostream& pragmaVariance( ostream& output, bool verbose ) const;
     ostream& pragmaSeverityLevel( ostream& output, bool verbose ) const;
+    ostream& pragmaSpexHeader( ostream& output, bool verbose ) const;
+    ostream& pragmaPrune( ostream& output, bool verbose ) const;
 
     ostream& pragmaCyclesAllow( ostream& output, bool verbose ) const;
     ostream& pragmaCyclesDisallow( ostream& output, bool verbose ) const;
@@ -277,6 +280,12 @@ public:
 
     ostream& pragmaSeverityLevelWarnings( ostream& output, bool verbose ) const;
     ostream& pragmaSeverityLevelRunTime( ostream& output, bool verbose ) const;
+
+    ostream& pragmaSpexHeaderFalse( ostream& output, bool verbose ) const;
+    ostream& pragmaSpexHeaderTrue( ostream& output, bool verbose ) const;
+
+    ostream& pragmaPruneFalse( ostream& output, bool verbose ) const;
+    ostream& pragmaPruneTrue( ostream& output, bool verbose ) const;
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     ostream& pragmaQuorumDistributionDefault( ostream& output, bool verbose ) const;

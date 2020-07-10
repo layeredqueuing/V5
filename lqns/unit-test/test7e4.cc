@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test7e4.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test7e4.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Four customers, one server (inService probability test).
  * This version has a phased server.
@@ -33,9 +33,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = N_STATIONS;
 	
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);			/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);			/* Queue type.  SS/delay.	*/
+    Z.resize(classes);			/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);			/* Queue type.  SS/delay.	*/
 
     NCust[1] = 1;	Z[1] = 0.0;
     NCust[2] = 1;	Z[2] = 0.0;

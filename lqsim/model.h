@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: model.h 13675 2020-07-10 15:29:36Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -64,12 +64,12 @@ public:
     struct simulation_parameters {
 	static const double DEFAULT_TIME;
 
-    simulation_parameters() : _seed(0),
-	    _run_time(0),
+    simulation_parameters() : _seed(123456),
+	    _run_time(50000),
 	    _precision(0),
 	    _max_blocks(1),
 	    _initial_delay(0),
-	    _block_period(0),
+	    _block_period(50000),
 	    _initial_loops(0)
 	    {}
 

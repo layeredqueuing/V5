@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 13550 2020-05-22 11:48:05Z greg $
+ * $Id: srvn_output.h 13675 2020-07-10 15:29:36Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -725,10 +725,10 @@ namespace LQIO {
 	    PhaseInput( std::ostream& output ) : ObjectInput( output ), _func(0) {}
 
 	public:
-	    PhaseInput( std::ostream& output, voidPhaseFunc f ) : ObjectInput(output), _func(f) {}
+	    PhaseInput( std::ostream& output, voidPhaseFunc f ) : ObjectInput(output), _func(f), _p(1) {}
 	    virtual void operator()( const std::pair<unsigned,DOM::Phase *>& ) const;
 
-	    void printCoefficientOfVariation( const DOM::Phase& p ) const;
+	    void printCoefficientOfVariation( const DOM::Phase& ) const;
 	    void printMaxServiceTimeExceeded( const DOM::Phase& ) const;
 	    void printPhaseFlag( const DOM::Phase& ) const; 
 	    void printServiceTime( const DOM::Phase& ) const;
@@ -737,6 +737,7 @@ namespace LQIO {
 
 	private:
 	    const voidPhaseFunc _func;
+	    mutable unsigned int _p;
 	};
 
 	class ActivityInput : public PhaseInput {
@@ -759,10 +760,11 @@ namespace LQIO {
 
 	public:
 
-	    ActivityListInput( std::ostream& output, voidActivityListFunc f, const unsigned int n ) : ObjectInput(output), _func(f), _size(n), _count(0) {}
+	    ActivityListInput( std::ostream& output, voidActivityListFunc f, const unsigned int n ) : ObjectInput(output), _func(f), _size(n), _count(0), _pending_reply_activity(nullptr) {}
 	    virtual void operator()( const DOM::ActivityList * ) const;
 
 	    void print( const DOM::ActivityList& a ) const;
+	    const DOM::Activity * getPendingReplyActivity() const { return _pending_reply_activity; }
 
 	private:
 	    void printPreList( const DOM::ActivityList& precedence ) const;
@@ -772,6 +774,7 @@ namespace LQIO {
 	    const voidActivityListFunc _func;
 	    const unsigned int _size;
 	    mutable unsigned int _count;
+	    mutable const DOM::Activity * _pending_reply_activity;	/* In case we have to tack on an extra list item */
 	};
 
 	class CallOutput : public ObjectOutput  {

@@ -13,7 +13,7 @@
  *     month =    feb
  *
  * ------------------------------------------------------------------------
- * $Id: test1.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test1.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -30,9 +30,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = 2;
 
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);				/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);				/* Queue type.  SS/delay.	*/
+    Z.resize(classes);				/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);				/* Queue type.  SS/delay.	*/
 
     NCust[1] = 8;	NCust[2] = 1;
     Z[1] = 0.0;	Z[2] = 0.0;
@@ -54,11 +54,12 @@ special_check( ostream&, const MVA&, const unsigned )
 
 
 
-static double goodL[4][3][3] = {
+static double goodL[5][3][3] = {
     { { 0, 0, 0 }, { 0, 5.227, 0 }, { 0, 2.773, 1 } },		// Exact MVA
     { { 0, 0, 0 }, { 0, 5.231, 0 }, { 0, 2.769, 1 } },		// Linearizer
     { { 0, 0, 0 }, { 0, 5.231, 0 }, { 0, 2.769, 1 } },		// Fast Linearizer
     { { 0, 0, 0 }, { 0, 5.108, 0 }, { 0, 2.892, 1 } },		// Bard Schweitzer
+    { { 0, 0, 0 }, { 0, 5.231, 0 }, { 0, 2.769, 1 } },		// Experimental
 };
 
 bool

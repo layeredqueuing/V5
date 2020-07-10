@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13480 2020-02-09 02:43:27Z greg $
+ * $Id: actlist.cc 13675 2020-07-10 15:29:36Z greg $
  */
 
 
@@ -72,7 +72,9 @@ bool ActivityList::first = true;
 ActivityList::ActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist )
     : myOwner(owner), myDOM(dom_activitylist) 
 {
-    const_cast<Task *>(owner)->addPrecedence(this);
+    if ( owner ) {
+	const_cast<Task *>(owner)->addPrecedence(this);
+    }
 }
 
 ActivityList::~ActivityList()
@@ -81,8 +83,9 @@ ActivityList::~ActivityList()
 
 
 ActivityList&
-ActivityList::reconnect( Activity *curr, Activity *next )
+ActivityList::setOwner( const Task * owner ) 
 {
+    myOwner = owner;
     return *this;
 }
 
@@ -240,7 +243,7 @@ ForkActivityList *
 ForkActivityList::clone() const
 {
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new ForkActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) );
+    return new ForkActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) );
 }
 
 
@@ -380,7 +383,7 @@ JoinActivityList *
 JoinActivityList::clone() const
 {
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new JoinActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+    return new JoinActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
 }
 
 
@@ -676,7 +679,7 @@ OrForkActivityList *
 OrForkActivityList::clone() const
 {
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new OrForkActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+    return new OrForkActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
 }
 
 size_t
@@ -801,7 +804,7 @@ OrJoinActivityList *
 OrJoinActivityList::clone() const 
 { 
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new OrJoinActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+    return new OrJoinActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
 } 
 
 
@@ -1051,7 +1054,7 @@ AndForkActivityList *
 AndForkActivityList::clone() const 
 { 
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new AndForkActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+    return new AndForkActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
 } 
 
 
@@ -1375,7 +1378,7 @@ AndJoinActivityList::~AndJoinActivityList()
 AndJoinActivityList * 
 AndJoinActivityList::clone() const
 {
-    AndJoinActivityList * newList = new AndJoinActivityList( owner(), new LQIO::DOM::AndJoinActivityList( *dynamic_cast<const LQIO::DOM::AndJoinActivityList *>(getDOM()) ) );
+    AndJoinActivityList * newList = new AndJoinActivityList( nullptr, new LQIO::DOM::AndJoinActivityList( *dynamic_cast<const LQIO::DOM::AndJoinActivityList *>(getDOM()) ) );
     newList->quorumCount( quorumCount() );
     return newList;
 }
@@ -1599,7 +1602,7 @@ RepeatActivityList *
 RepeatActivityList::clone() const 
 { 
     const LQIO::DOM::ActivityList& src = *getDOM();
-    return new RepeatActivityList( owner(), new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
+    return new RepeatActivityList( nullptr, new LQIO::DOM::ActivityList( src.getDocument(), 0, src.getListType() ) ); 
 } 
 
 

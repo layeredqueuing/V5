@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13548 2020-05-21 14:27:18Z greg $
+ * $Id: task.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
-#include "cltn.h"
 #include "stack.h"
 #include "fpgoop.h"
 #include "errmsg.h"
@@ -39,14 +38,13 @@
 #include "processor.h"
 #include "group.h"
 #include "lqns.h"
+#include "model.h"
 #include "pragma.h"
 #include "call.h"
 #include "submodel.h"
 #include "interlock.h"
 #include "entrythread.h"
 #include <iostream>
-
-set<Task *,ltTask> task;
 
 /* ------------------------ Constructors etc. ------------------------- */
 
@@ -54,25 +52,19 @@ set<Task *,ltTask> task;
  * Create a task.
  */
 
-Task::Task( LQIO::DOM::Task* domTask, const Processor * aProc, const Group * aGroup, Cltn<Entry *>* entries)
-    : Entity( domTask, entries ),
-      myProcessor(aProc),
-      myGroup(aGroup),
-      myOverlapFactor(1.0),
-      maxThreads(1)
+Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries)
+    : Entity( dom, entries ),
+      _processor(aProc),
+      _group(aGroup),
+      _maxThreads(1),
+      _activities(),
+      _precedences(),
+      _overlapFactor(1.0),
+      _threads(1),
+      _clientChains(),
+      _clientStation()
 {
-    if ( entries ) {
-	Sequence<Entry *> nextEntry( *entries );
-	Entry * anEntry;
-	while ( anEntry = nextEntry() ) {
-	    anEntry->owner(this);
-	}
-    }
-
-    myThreads.grow( 1 );
-
-    myThreads[1] = 0;		// Initialize root thread.
-
+    for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
 }
 
 
@@ -82,12 +74,15 @@ Task::Task( LQIO::DOM::Task* domTask, const Processor * aProc, const Group * aGr
 
 Task::~Task()
 {
-    myProcessor = 0;			/* Nop - destructor problems.	*/
-
-    myClientStation.deleteContents();
-    myPrecedence.deleteContents();
-    myActivityList.deleteContents();
-    entryList.deleteContents();		/* Deletes processor calls */
+    for ( Vector<Server *>::const_iterator station = _clientStation.begin(); station != _clientStation.begin(); ++station ) {
+	delete *station;
+    }
+    for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin(); precedence != precedences().end(); ++precedence ) {
+	delete *precedence;
+    }
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	delete *activity;
+    }
 }
 
 
@@ -106,18 +101,15 @@ Task::reset()
 bool
 Task::hasThinkTime() const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->hasThinkTime() ) return true;
-    }
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	if ( anActivity->hasThinkTime() ) return true;
-    }
+    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) ) != entries().end()
+	|| find_if( activities().begin(), activities().end(), Predicate<Activity>( &Activity::hasThinkTime ) ) != activities().end();
+}
 
-    return false;
+
+unsigned
+Task::hasClientChain( const unsigned submodel, const unsigned k ) const
+{
+    return _clientChains[submodel].find(k);
 }
 
 
@@ -125,92 +117,55 @@ Task::hasThinkTime() const
  *
  */
 
-void
+bool
 Task::check() const
 {
-    const Processor * aProcessor = processor();
     bool hasActivityEntry = false;
 
     /* Check prio/scheduling. */
 
     if ( !schedulingIsOk( validScheduling() ) ) {
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
-			      scheduling_label[(unsigned)domEntity->getSchedulingType()].str,
+			      scheduling_label[(unsigned)scheduling()].str,
 			      "task",
-			      name() );
-	domEntity->setSchedulingType(defaultScheduling());
+			      name().c_str() );
+	getDOM()->setSchedulingType(defaultScheduling());
     }
 	
-    if ( aProcessor && priority() != 0 && !aProcessor->hasPriorities() ) {
-	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name(), aProcessor->name() );
+    if ( hasProcessor() && priority() != 0 && !getProcessor()->hasPriorities() ) {
+	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name().c_str(), getProcessor()->name().c_str() );
     }
 
     /* Check replication */
 
     const int srcReplicas = replicas();
     if ( srcReplicas > 1 ) {
-	const int dstReplicas = processor()->replicas();
+	const int dstReplicas = getProcessor()->replicas();
 	const double temp = static_cast<double>(srcReplicas) / static_cast<double>(dstReplicas);
 	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
-	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, srcReplicas, name(), dstReplicas, processor()->name() );
+	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, srcReplicas, name().c_str(), dstReplicas, getProcessor()->name().c_str() );
 	}
     }
 
-    const LQIO::DOM::Document * document = domEntity->getDocument();		// Find root
-    const std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_outs = dynamic_cast<const LQIO::DOM::Task *>(domEntity)->getFanOuts();
-    for ( std::map<const std::string,LQIO::DOM::ExternalVariable *>::const_iterator dst = fan_outs.begin(); dst != fan_outs.end(); ++dst ) {
-	const std::string& dstName = dst->first;
-	const int fanOut = to_double( *dst->second );
-	LQIO::DOM::Task * dstTask = document->getTaskByName( dstName );
-	const int fanIn = dstTask->getFanInValue( name() );	/* Opposite direction */
-	const int dstReplicas = dstTask->getReplicasValue();
-	if ( srcReplicas * fanOut != dstReplicas * fanIn ) {
-	    LQIO::solution_error( ERR_REPLICATION, 
-				  static_cast<int>(fanOut), name(), static_cast<int>(srcReplicas),
-				  static_cast<int>(fanIn),  dstName.c_str(), static_cast<int>(dstReplicas) );
-	}
-    }
-    
-    
     /* Check entries */
 
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry *anEntry;
-
-    while( anEntry = nextEntry() ) {
-	anEntry->check();
-	if ( anEntry->isActivityEntry() ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->check();
+	if ( (*entry)->isActivityEntry() ) {
 	    hasActivityEntry = true;
 	}
-	if ( anEntry->maxPhase() > 1 && isInfinite() ) {
-	    LQIO::solution_error( WRN_MULTI_PHASE_INFINITE_SERVER, anEntry->name(), name(), anEntry->maxPhase() );
+	if ( (*entry)->maxPhase() > 1 && isInfinite() ) {
+	    LQIO::solution_error( WRN_MULTI_PHASE_INFINITE_SERVER, (*entry)->name().c_str(), name().c_str(), (*entry)->maxPhase() );
 	}
     }
 
-    if ( hasActivities() ) {
-	if ( hasActivityEntry ) {
-
-	    Sequence<Activity *> nextActivity( activities() );
-	    const Activity * anActivity;
-
-	    while ( anActivity = nextActivity() ) {
-		if ( !anActivity->isSpecified() ) {
-		    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), anActivity->name() );
-		} else {
-		    anActivity->check();
-		}
-	    }
-	} else {
-	    LQIO::solution_error( LQIO::ERR_NO_START_ACTIVITIES, name() );
-	}
-
-	Sequence<ActivityList *> nextActivityList(myPrecedence);
-	ActivityList * anActivityList;
-
-	while ( anActivityList = nextActivityList() ) {
-	    anActivityList->check();
-	}
+    if ( hasActivities() && !hasActivityEntry ) {
+	LQIO::solution_error( LQIO::ERR_NO_START_ACTIVITIES, name().c_str() );
+    } else {
+	for_each( activities().begin(), activities().end(), Predicate<Phase>( &Phase::check ) );
+	for_each( precedences().begin(), precedences().end(), Predicate<ActivityList>( &ActivityList::check ) );
     }
+    return true;
 }
 
 
@@ -219,19 +174,16 @@ Task::check() const
  * models when performing the MVA solution.
  */
 
-void
+Task&
 Task::configure( const unsigned nSubmodels )
 {
     if ( nEntries() == 0 ) {
-	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name() );
-	return;
+	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name().c_str() );
+	return *this;
     }
 
-    myClientChains.grow( nSubmodels );	/* Prepare chain vectors	*/
-    myClientStation.grow( nSubmodels );	/* Prepare client cltn		*/
-    for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	myClientStation[i] = 0;
-    }
+    _clientChains.resize( nSubmodels );		/* Prepare chain vectors	*/
+    _clientStation.resize( nSubmodels, 0 );	/* Prepare client cltn		*/
 
     Entity::configure( nSubmodels );
 
@@ -241,9 +193,8 @@ Task::configure( const unsigned nSubmodels )
 
     /* Configure the threads... */
 
-    for ( unsigned i = 2; i <= myThreads.size(); ++i ) {
-	myThreads[i]->check();
-    }
+    for_each( _threads.begin() + 1, _threads.end(), Predicate<Thread>( &Thread::check ) );
+    return *this;
 }
 
 
@@ -264,11 +215,8 @@ Task::findChildren( CallStack& callStack, const bool directPath ) const
 
     /* Chase calls from srcTask. */
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry *anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	max_depth = max( max_depth, anEntry->findChildren( callStack, directPath && (anEntry == dstEntry) ) );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	max_depth = max( max_depth, (*entry)->findChildren( callStack, directPath && ((*entry) == dstEntry) ) );
     }
 
     return max_depth;
@@ -280,22 +228,12 @@ Task::findChildren( CallStack& callStack, const bool directPath ) const
  * Initialize the processor for all entries and activities.
  */
 
-void
+Task&
 Task::initProcessor()
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->initProcessor();
-    }
-
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->initProcessor();
-    }
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initProcessor ) );
+    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initProcessor ) );
+    return *this;
 }
 
 
@@ -309,15 +247,8 @@ Task::initProcessor()
 Task&
 Task::initWait()
 {
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->initWait();
-    }
-
+    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initWait ) );
     Entity::initWait();
-
     return *this;
 }
 
@@ -330,12 +261,11 @@ Task::initWait()
 Task&
 Task::initPopulation()
 {
-    Cltn<const Task *> sources;		/* Cltn of tasks already visited. */
-
+    std::set<Task *> sources;		/* Cltn of tasks already visited. */
     myPopulation = countCallers( sources );
 
     if ( isInClosedModel() && ( myPopulation == 0 || !isfinite( myPopulation ) ) ) {
-	LQIO::solution_error( ERR_BOGUS_COPIES, myPopulation, name() );
+	LQIO::solution_error( ERR_BOGUS_COPIES, myPopulation, name().c_str() );
     }
     return *this;
 }
@@ -349,11 +279,7 @@ Task::initPopulation()
 Task&
 Task::initThroughputBound()
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->initThroughputBound();
-    }
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initThroughputBound ) );
     return *this;
 }
 
@@ -370,19 +296,8 @@ Task::initThroughputBound()
 Task&
 Task::initReplication( const unsigned n_chains )
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-
-    while( anEntry = nextEntry() ) {
-	anEntry->initReplication( n_chains );
-    }
-
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->initReplication( n_chains );
-    }
+    for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned int>( &Entry::initReplication, n_chains ) );
+    for_each( activities().begin(), activities().end(), Exec1<Phase,unsigned int>( &Phase::initReplication, n_chains ) );
     return *this;
 }
 
@@ -395,14 +310,12 @@ Task::initReplication( const unsigned n_chains )
 Task&
 Task::initInterlock()
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
+    if ( pragma.getInterlock() == NO_INTERLOCK ) return *this;
 
-    Stack<const Entry *> entryStack( task.size() + 2 );
-    while( anEntry = nextEntry() ) {
+    Stack<const Entry *> entryStack( Model::__task.size() + 2 );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	InterlockInfo calls(1.0,1.0);
-
-	anEntry->initInterlock( entryStack, calls );
+	(*entry)->initInterlock( entryStack, calls );
     }
     return *this;
 }
@@ -416,16 +329,13 @@ Task::initInterlock()
 Task&
 Task::initThreads()
 {
-    maxThreads = 1;
+    _maxThreads = 1;
     if ( hasThreads() ) {
-	Sequence<Entry *> nextEntry( entries() );
-	Entry * anEntry;
-
-	while ( anEntry = nextEntry() ) {
-	    maxThreads = max( anEntry->concurrentThreads(), maxThreads );
+	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	    _maxThreads = max( (*entry)->concurrentThreads(), _maxThreads );
 	}
     }
-    if ( maxThreads > nThreads() ) throw logic_error( "Task::initThreads" );
+    if ( _maxThreads > nThreads() ) throw logic_error( "Task::initThreads" );
     return *this;
 }
 
@@ -438,7 +348,7 @@ Task::priority() const
 	return getDOM()->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name(), e.what() );
+	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0;
@@ -455,7 +365,7 @@ Task::fanIn( const Task * aClient ) const
 	return getDOM()->getFanInValue( aClient->name() );
     }
     catch ( const std::domain_error& e ) {
-	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name(), aClient->name(), e.what() );
+	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name().c_str(), aClient->name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 1;
@@ -468,7 +378,7 @@ Task::fanOut( const Entity * aServer ) const
 	return getDOM()->getFanOutValue( aServer->name() );
     }
     catch ( const std::domain_error& e ) {
-	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name(), aServer->name(), e.what() );
+	LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name().c_str(), aServer->name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 1;
@@ -476,40 +386,14 @@ Task::fanOut( const Entity * aServer ) const
 
 
 /*
- * Set the processor for this task.  Setting it twice is probably an
- * error...  We can also remove processors.
- */
-
-Entity&
-Task::processor( Processor * aProcessor )
-{
-    if ( !aProcessor && myProcessor ) {
-	aProcessor = const_cast<Processor *>(myProcessor);
-	aProcessor->removeTask( this );
-	myProcessor = 0;
-    } else if ( aProcessor != myProcessor ) {
-	if ( myProcessor != 0 ) throw logic_error( "Task::processor" );
-	myProcessor = aProcessor;
-	aProcessor->addTask( this );
-    }
-    return *this;
-}
-
-
-
-/*
  * Locate the destination anEntry in the list of destinations.
  */
 
 Activity *
-Task::findActivity( const char * name ) const
+Task::findActivity( const std::string& name ) const
 {
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity = 0;
-
-    while ( ( anActivity = nextActivity() ) && strcmp( anActivity->name(), name ) != 0 );
-
-    return anActivity;
+    const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
+    return activity != activities().end() ? *activity : 0;
 }
 
 
@@ -519,13 +403,13 @@ Task::findActivity( const char * name ) const
  */
 
 Activity *
-Task::findOrAddActivity( const char * name )
+Task::findOrAddActivity( const std::string& name )
 {
     Activity * anActivity = findActivity( name );
 
     if ( !anActivity ) {
 	anActivity = new Activity( this, name );
-	myActivityList << anActivity;
+	_activities.push_back( anActivity );
     }
 
     return anActivity;
@@ -538,13 +422,13 @@ Task::findOrAddActivity( const char * name )
  */
 
 Activity *
-Task::findOrAddPsuedoActivity( const char * name )
+Task::findOrAddPsuedoActivity( const std::string& name )
 {
     Activity * anActivity = findActivity( name );
 
     if ( !anActivity ) {
 	anActivity = new PsuedoActivity( this, name );
-	myActivityList << anActivity;
+	_activities.push_back( anActivity );
     }
 
     return anActivity;
@@ -555,7 +439,7 @@ Task::findOrAddPsuedoActivity( const char * name )
 void
 Task::addPrecedence( ActivityList * aPrecedence )
 {
-    myPrecedence << aPrecedence;
+    _precedences.push_back( aPrecedence );
 }
 
 /*
@@ -565,19 +449,8 @@ Task::addPrecedence( ActivityList * aPrecedence )
 void
 Task::resetReplication()
 {
-    Sequence<Activity *> nextActivity(activities());
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->resetReplication();
-    }
-
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->resetReplication();
-    }
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::resetReplication ) );
+    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::resetReplication ) );
 }
 
 
@@ -589,13 +462,7 @@ Task::resetReplication()
 bool
 Task::isCalled() const
 {
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->isCalled() ) return true;
-    }
-    return false;
+    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::isCalled ) ) != entries().end();
 }
 
 
@@ -609,22 +476,11 @@ int
 Task::rootLevel() const
 {
     int level = -1;
-    Sequence<Entry *> nextEntry(entries());
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	const requesting_type callType = anEntry->isCalled();
-	switch ( callType ) {
-	case RENDEZVOUS_REQUEST:
-	case SEND_NO_REPLY_REQUEST:
-	    return -1;	/* Non-root task. 		*/
-
-	case OPEN_ARRIVAL_REQUEST:
-	    level = 1;	/* Root task, but at lower level */
-	    break;		/*  */
-
-	case NOT_CALLED:
-	    break;		/* No operation.		*/
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->isCalledUsing( RENDEZVOUS_REQUEST ) || (*entry)->isCalledUsing( SEND_NO_REPLY_REQUEST ) ) {
+	    return -1;		/* Non root task */
+	} else if ( (*entry)->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
+	    level = 1;		/* Root task, but move to lower level */
 	}
     }
     return level;
@@ -639,8 +495,7 @@ Task::rootLevel() const
 unsigned
 Task::nClients() const
 {
-    Cltn<Task *> callingTasks;
-
+    std::set<Task *> callingTasks;
     clients( callingTasks );
 
     return callingTasks.size();
@@ -649,57 +504,41 @@ Task::nClients() const
 
 
 /*
- * Count number of Serving tasks(!) and return.
- * May have to take current partition into account.
- */
-
-unsigned
-Task::nServers() const
-{
-    Cltn<Entity *> calledTasks;
-
-    return servers( calledTasks );
-}
-
-
-/*
- * Store all tasks and processors called by this task in `calledTasks'.
- */
-
-unsigned
-Task::servers( Cltn<Entity *> & calledTasks ) const
-{
-    TaskCallList nextCall( this );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	Entity * anEntity = const_cast<Entity *>(aCall->dstTask());
-	calledTasks += anEntity;
-    }
-
-    return calledTasks.size();
-}
-
-
-
-/*
- * Store all tasks and processors called by this task in `calledTasks'
+ * Store all tasks and processors called by this task in `serverList'
  * that are also found in includeOnly.
  */
 
-unsigned
-Task::servers(	Cltn<Entity *> & calledTasks, const Cltn<Entity *> & includeOnly ) const
+std::set<Entity *,Entity::LT>
+Task::servers( const std::set<Entity *,Entity::LT>& includeOnly ) const
 {
-    TaskCallList nextCall( this );
-    const Call * aCall;
-    while ( aCall = nextCall() ) {
-	Entity * anEntity = const_cast<Entity *>(aCall->dstTask());
-
-	if ( includeOnly.find( anEntity ) ) {
-	    calledTasks += anEntity;
+    std::set<Entity *,Entity::LT> serverList;
+    Entity * entity = const_cast<Processor *>(getProcessor());
+    if ( includeOnly.find( entity ) != includeOnly.end() ) {
+	serverList.insert( entity );
+    }
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->isActivityEntry() ) continue;
+	for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+	    const std::set<Call *>& callList = (*entry)->callList( p );
+	    for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
+		entity = const_cast<Entity *>((*call)->dstTask());
+		if ( includeOnly.find( entity ) != includeOnly.end() ) {
+		    serverList.insert( entity );
+		}
+	    }
 	}
     }
 
-    return calledTasks.size();
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	const std::set<Call *>& callList = (*activity)->callList( );
+	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
+	    entity = const_cast<Entity *>((*call)->dstTask());
+	    if ( includeOnly.find( entity ) != includeOnly.end() ) {
+		serverList.insert( entity );
+	    }
+	}
+    }
+    return serverList;
 }
 
 
@@ -719,56 +558,50 @@ Task::servers(	Cltn<Entity *> & calledTasks, const Cltn<Entity *> & includeOnly 
  */
 
 double
-Task::countCallers( Cltn<const Task *> & reject )
+Task::countCallers( std::set<Task *>& reject ) const
 {
     double sum = 0;
 
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	if ( hasOpenArrivals() ) {
-	    isInOpenModel( true );
+	    const_cast<Task *>(this)->isInOpenModel( true );
 	    if ( isInfinite() ) {
 		sum = get_infinity();
 	    }
 	}
 
-	Sequence<Call *> nextCall( anEntry->callerList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    Task * aTask = const_cast<Task *>(aCall->srcTask());
+	const std::set<Call *>& callerList = (*entry)->callerList();
+	for ( std::set<Call *>::const_iterator call = callerList.begin(); call != callerList.end(); ++call ) {
+	    Task * aTask = const_cast<Task *>((*call)->srcTask());
 
-	    if ( aCall->hasRendezvous() ) {
+	    if ( (*call)->hasRendezvous() ) {
 
-		if ( reject.find( aTask ) ) continue;
-		reject << aTask;
-
+		std::pair<std::set<Task *>::const_iterator,bool> rc = reject.insert(aTask);
+		if ( rc.second == false ) continue;		/* exits already */
+		
 		double delta = 0.0;
 		if ( aTask->isInfinite() ) {
 		    delta = aTask->countCallers( reject );
-		    if ( isfinite( delta ) && delta > 0 ) {
-			isInClosedModel( true );
-			aTask->isInClosedModel( true );
-		    } else {
-			isInOpenModel( true );
+		    if ( aTask->isInOpenModel() ) {
+			const_cast<Task *>(this)->isInOpenModel( true );	/* Inherit from caller */
+		    }
+		    if ( aTask->isInClosedModel() ) {
+			const_cast<Task *>(this)->isInClosedModel( true  );	/* Inherit from caller */
 		    }
 		} else if ( aTask->isMultiServer() ) {
 		    delta = aTask->countCallers( reject );
-		    isInClosedModel( true );
-		    aTask->isInClosedModel( true );
+		    const_cast<Task *>(this)->isInClosedModel( true );
 		} else {
 		    delta = static_cast<double>(aTask->copies());
-		    isInClosedModel( true );
-		    aTask->isInClosedModel( true );
+		    const_cast<Task *>(this)->isInClosedModel( true );
 		}
 		if ( isfinite( sum ) ) {
 		    sum += delta * static_cast<double>(fanIn( aTask ));
 		}
 
-	    } else if ( aCall->hasSendNoReply() ) {
+	    } else if ( (*call)->hasSendNoReply() ) {
 
-		isInOpenModel( true );
+		const_cast<Task *>(this)->isInOpenModel( true );
 
 	    }
 	}
@@ -782,6 +615,16 @@ Task::countCallers( Cltn<const Task *> & reject )
     return sum;
 }
 
+
+/*
+ * Used by groups.
+ */
+
+double
+Task::processorUtilization() const
+{
+    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::processorUtilization ) ).sum();
+}
 
 
 /*
@@ -808,24 +651,18 @@ Task::PPR_Scheduling() const
 {
     if ( scheduling() == SCHEDULE_PPR ) return true;
 
-    const Processor * aProcessor = processor();
-
-    if ( !aProcessor || aProcessor->scheduling() != SCHEDULE_PPR ) return false;
+    if ( !hasProcessor() || getProcessor()->scheduling() != SCHEDULE_PPR ) return false;
 
     /*
      * Look for all sourcing tasks.
      */
 
-    Cltn<const Task *> sources;
+    std::set<const Task *> sources;
 
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	Sequence<Call *> nextCall( anEntry->callerList() );
-	Call * aCall;
-	while ( aCall = nextCall() ) {
-	    sources += aCall->srcTask();
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const std::set<Call *>& callerList = (*entry)->callerList();
+	for ( std::set<Call *>::const_iterator call = callerList.begin(); call != callerList.end(); ++call ) {
+	    sources.insert( (*call)->srcTask() );
 	}
     }
 
@@ -834,10 +671,8 @@ Task::PPR_Scheduling() const
      * use FIFO
      */
 
-    Sequence<const Task *> nextTask( sources );
-    const Task * aTask;
-    while ( aTask = nextTask() ) {
-	if ( aTask->processor() != aProcessor ) return false;
+    for ( std::set<const Task *>::const_iterator task = sources.begin(); task != sources.end(); ++task ) {
+	if ( (*task)->getProcessor() != getProcessor() ) return false;
     }
     return true;
 }
@@ -858,7 +693,7 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
 
     Server * aStation = new Client( nEntries(), n_chains, maxPhase() );
 
-    myClientStation[submodel] = aStation;
+    _clientStation[submodel] = aStation;
     return aStation;
 }
 
@@ -870,22 +705,20 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
  */
 
 
-void
+const Task&
 Task::sanityCheck() const
 {
     Entity::sanityCheck();
 
     bool rc = true;
 
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	rc = rc && anEntry->checkDroppedCalls();
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	rc = rc && (*entry)->checkDroppedCalls();
     }
     if ( !rc ) {
-	LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, name() );
+	LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, name().c_str() );
     }
+    return *this;
 }
 
 
@@ -897,22 +730,18 @@ Task::sanityCheck() const
 const Task&
 Task::callsPerform( callFunc aFunc, const unsigned submodel ) const
 {
-    const ChainVector& aChain = myClientChains[submodel];
-
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
+    const ChainVector& aChain = _clientChains[submodel];
 
     unsigned ix = 1;
     while ( ix <= aChain.size() ) {
 	unsigned k = aChain[ix++];
 
-	while ( anEntry = nextEntry() ) {
-	    anEntry->callsPerform( aFunc, submodel, k );
+	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	    (*entry)->callsPerform( aFunc, submodel, k );
 	}
-	for ( unsigned j = 2; j <= myThreads.size(); ++j ) {
+	for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
 	    k = aChain[ix++];
-	    myThreads[j]->callsPerform( aFunc, submodel, k );
-
+	    (*thread)->callsPerform( aFunc, submodel, k );
 	}
     }
     return *this;
@@ -927,19 +756,14 @@ Task::callsPerform( callFunc aFunc, const unsigned submodel ) const
 const Task&
 Task::openCallsPerform( callFunc aFunc, const unsigned submodel ) const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	anEntry->callsPerform( aFunc, submodel );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->callsPerform( aFunc, submodel );
     }
-    for ( unsigned j = 2; j <= myThreads.size(); ++j ) {
-	myThreads[j]->callsPerform( aFunc, submodel );
+    for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
+	(*thread)->callsPerform( aFunc, submodel );
     }
     return *this;
 }
-
-
 
 /*
  * Return idle time.  Compensate for threads.
@@ -950,11 +774,11 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
     if ( submodel == 0 || !hasThreads() ) {
 	return Entity::thinkTime();
     } else {
-	const Thread * thread = getThread( submodel, k );
-	if ( thread == NULL ) {
+	const unsigned ix = threadIndex( submodel, k );
+	if ( ix == 1 ) {
 	    return Entity::thinkTime();
 	} else {
-	    return thread->thinkTime();
+	    return _threads[ix]->thinkTime();
 	}
     }
 }
@@ -966,13 +790,7 @@ Task::computeVariance()
 {
     /* compute variance at activities before the entries because the entries aggregate the values. */
 
-    Sequence<Activity *> nextActivity( activities() );
-    Activity * anActivity;
-
-    while ( anActivity = nextActivity() ) {
-	anActivity->computeVariance();
-    }
-
+    for_each( activities().begin(), activities().end(), ExecSum<Phase,double>( &Phase::computeVariance ) );
     Entity::computeVariance();
     return *this;
 }
@@ -988,28 +806,15 @@ Task::updateWait( const Submodel& aSubmodel, const double relax )
 {
     /* Do updateWait for each activity first. */
 
-    if ( hasActivities() ) {
-	Sequence<Activity *> nextActivity( activities() );
-	Activity * anActivity;
-
-	while ( anActivity = nextActivity() ) {
-	    anActivity->updateWait( aSubmodel, relax );
-	}
-    }
+    for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->updateWait( aSubmodel, relax );
-    }
+    for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, aSubmodel, relax ) );
 
     /* Now recompute thread idle times */
 
-    for ( unsigned i = 2; i <= myThreads.size(); ++i ) {
-	myThreads[i]->setIdleTime( relax );
-    }
+    for_each( _threads.begin() + 1, _threads.end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
 
     return *this;
 }
@@ -1023,26 +828,18 @@ Task::updateWait( const Submodel& aSubmodel, const double relax )
 double
 Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
 {
-    double delta = 0.0;
-
     /* Do updateWait for each activity first. */
 
-    if ( hasActivities() ) {
-	Sequence<Activity *> nextActivity( activities() );
-	Activity * anActivity;
-
-	while ( anActivity = nextActivity() ) {
-	    delta   += anActivity->updateWaitReplication( aSubmodel );
-	    n_delta += 1;
-	}
+    double delta = 0;
+    for( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	delta += (*activity)->updateWaitReplication( aSubmodel );
     }
+    n_delta += activities().size();
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	delta += anEntry->updateWaitReplication( aSubmodel, n_delta );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	delta += (*entry)->updateWaitReplication( aSubmodel, n_delta );
     }
 
     return delta;
@@ -1056,14 +853,11 @@ Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
  * dynamically editable values
  */
 
-void
+Task&
 Task::recalculateDynamicValues()
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->recalculateDynamicValues();
-    }
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::recalculateDynamicValues ) );
+    return *this;
 }
 
 
@@ -1071,10 +865,6 @@ double
 Task::bottleneckStrength() const
 {
     /* find out who I call */
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-    }
     return 0;
 }
 
@@ -1090,7 +880,7 @@ Task::bottleneckStrength() const
 unsigned
 Task::nThreads() const
 {
-    return max( 1, myThreads.size() );
+    return std::max( (size_t)1, _threads.size() );
 }
 
 
@@ -1099,20 +889,53 @@ Task::nThreads() const
  * Return the thread index for chain k.  See Submodel::makeChains().
  */
 
-const Thread * 
-Task::getThread( const unsigned submodel, const unsigned k ) const
+unsigned
+Task::threadIndex( const unsigned submodel, const unsigned k ) const
 {
     if ( k == 0 ) {
-	return NULL;
+	return 0;
     } else if ( nThreads() == 1 ) {
-	return NULL;
+	return 1;
     } else {
-	unsigned ix = myClientChains[submodel].find( k );
+	unsigned ix = _clientChains[submodel].find( k );
 	if ( replicas() > 1 ) {
-	    ix = (ix - 1) % nThreads() + 1;
+	    return (ix - 1) % nThreads() + 1;
+	} else {
+	    return ix;
 	}
-	return myThreads[ix];
     }
+}
+
+
+
+/*
+ * Return the waiting time for all submodels except submodel for phase
+ * `p'.  If this is an activity entry, we have to return the chain k
+ * component of waiting time.  Note that if submodel == 0, we return
+ * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * clients in a submodel, submodel == aSubmodel.number().
+ */
+
+double
+Task::waitExcept( const unsigned ix, const unsigned submodel, const unsigned p ) const
+{
+    return _threads[ix]->waitExcept( submodel, 0, p );		// k is ignored anyway...
+}
+
+
+
+/*
+ * Return the waiting time for all submodels except submodel for phase
+ * `p'.  If this is an activity entry, we have to return the chain k
+ * component of waiting time.  Note that if submodel == 0, we return
+ * the elapsedTime().  For servers in a submodel, submodel == 0; for
+ * clients in a submodel, submodel == aSubmodel.number().
+ */
+
+double
+Task::waitExceptChain( const unsigned ix, const unsigned submodel, const unsigned k, const unsigned p ) const
+{
+    return _threads[ix]->waitExceptChain( submodel, k, p );
 }
 
 
@@ -1125,7 +948,7 @@ Task::getThread( const unsigned submodel, const unsigned k ) const
 void
 Task::forkOverlapFactor( const Submodel& aSubmodel, VectorMath<double>* of ) const
 {
-    const ChainVector& chain( myClientChains[aSubmodel.number()] );
+    const ChainVector& chain( _clientChains[aSubmodel.number()] );
     const unsigned n = chain.size();
 
     for ( unsigned i = 1; i <= n; ++i ) {
@@ -1159,8 +982,8 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 	return 1.0;
 
     } else if ( i == 1 || j == 1 || i == j
-		|| myThreads[i]->isAncestorOf( myThreads[j] )
-		|| myThreads[i]->isDescendentOf( myThreads[j] ) ) {
+		|| _threads[i]->isAncestorOf( _threads[j] )
+		|| _threads[i]->isDescendentOf( _threads[j] ) ) {
 
 	/*
 	 * Thread 1 is special (i.e., the thread of the
@@ -1181,23 +1004,23 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 
 	/* Constant propogation */
 
-	const double x_i = myThreads[i]->estimateCDF().mean();
-	const double x_j = myThreads[j]->estimateCDF().mean();
+	const double x_i = _threads[i]->estimateCDF().mean();
+	const double x_j = _threads[j]->estimateCDF().mean();
 
 	/* ---- Overlap probabilities ---- */
 
 	if ( x_i == 0.0 || x_j == 0.0 ) {		/* Degeneate case */
 	    pr = 0.0;
 
-	} else if ( myThreads[i]->isSiblingOf(  myThreads[j] ) ) {
+	} else if ( _threads[i]->isSiblingOf(  _threads[j] ) ) {
 	    pr = 1.0;
 
 	} else {					/* Partial overlap */
 
-	    const Exponential start_i = myThreads[i]->startTime();
-	    const Exponential start_j = myThreads[j]->startTime();
-	    const Exponential end_i   = start_i + *myThreads[i];
-	    const Exponential end_j   = start_j + *myThreads[j];
+	    const Exponential start_i = _threads[i]->startTime();
+	    const Exponential start_j = _threads[j]->startTime();
+	    const Exponential end_i   = start_i + *_threads[i];
+	    const Exponential end_j   = start_j + *_threads[j];
 
 	    pr = ( 1.0 - ( Pr_A_lt_B( end_j, start_i ) +
 			   Pr_A_lt_B( end_i, start_j ) ) );	/* Eqn 6, (8) */
@@ -1207,10 +1030,10 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 
 	    /* ---- Overlap interval ---- */
 
-	    double d_ij = min( *myThreads[i], *myThreads[j] );
+	    double d_ij = min( *_threads[i], *_threads[j] );
 
-	    if ( pragma.getThreads() != MAK_LUNDSTROM_THREADS && myThreads[i]->elapsedTime() != 0 ) {
-		d_ij = d_ij *  (myThreads[j]->elapsedTime() / myThreads[i]->elapsedTime());			// tomari quorum BUG 257
+	    if ( pragma.getThreads() != MAK_LUNDSTROM_THREADS && _threads[i]->elapsedTime() != 0 ) {
+		d_ij = d_ij *  (_threads[j]->elapsedTime() / _threads[i]->elapsedTime());			// tomari quorum BUG 257
 	    }
 
 	    /* ---- Final overal factor ---- */
@@ -1218,8 +1041,8 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 	    theta = pr * d_ij / x_i;
 
 	    if ( pragma.getThreads() == HYPER_THREADS ) {
-		theta *= (myThreads[j]->elapsedTime() / myThreads[i]->elapsedTime());
-		const double inflation = myThreads[j]->elapsedTime() * throughput();
+		theta *= (_threads[j]->elapsedTime() / _threads[i]->elapsedTime());
+		const double inflation = _threads[j]->elapsedTime() * throughput();
 		if ( inflation ) {
 		    theta /= inflation;
 		}
@@ -1236,7 +1059,7 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 	}
     }
 
-    return theta * myOverlapFactor;	/* Scale to parent value */
+    return theta * _overlapFactor;	/* Scale to parent value */
 }
 
 /*----------------------------------------------------------------------*/
@@ -1246,7 +1069,7 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 bool
 Task::hasForks() const
 {
-    return myThreads.size() > 1;
+    return _threads.size() > 1;
 }
 
 
@@ -1292,7 +1115,7 @@ int
 Task::expandQuorumGraph()
 {
     int anError = false;
-    Cltn<ActivityList *> joinLists;
+    Vector<ActivityList *> joinLists;
     Activity * localQuorumDelayActivity;
     Activity * finalActivity;
     Activity * anActivity;
@@ -1321,11 +1144,11 @@ Task::expandQuorumGraph()
 	    //check that there is no replying activity inside he quorum
 	    //fork-join list since we cannot solve for a quorum with a
 	    //two-phase semantics.
-////////////////////////////////////////
-	    Cltn<Activity *>   cltnQuorumJoinActivities = dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)->getMyActivityList();
+
+	    Vector<Activity *> cltnQuorumJoinActivities = dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)->getMyActivityList();
 	    Sequence<Activity *> nextQuorumJoinActivity(cltnQuorumJoinActivities);
 	    while (anActivity=nextQuorumJoinActivity()) {
-		Cltn<Entry *> * aQuorumReplyList = anActivity->replyList();
+		Vector<Entry *> * aQuorumReplyList = anActivity->replyList();
 		if (aQuorumReplyList) {
 		    cout <<"\nTask::expandQuorumGraph(): Error detected in input file.";
 		    cout <<" A quorum join list cannot have a replying activity." << endl;
@@ -1357,7 +1180,7 @@ Task::expandQuorumGraph()
 	    sprintf( finalActivityName, "final_%d", quorumListNumber);
 	    finalActivity =  findOrAddPsuedoActivity(finalActivityName);
 
-	    Cltn<Activity *> cltnJoinActivities;
+	    Vector<Activity *> cltnJoinActivities;
 	    if ( dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)) {
 		cltnJoinActivities = dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)->getMyActivityList();
 	    }
@@ -1377,7 +1200,7 @@ Task::expandQuorumGraph()
 	    orgForkList =quorumAndJoinList->next();
 
 	    if (orgForkList) {
-		Cltn<Activity *> cltnForkActivities;
+		Vector<Activity *> cltnForkActivities;
 		if ( dynamic_cast<ForkJoinActivityList *>(orgForkList)) {
 		    cltnForkActivities = dynamic_cast<ForkJoinActivityList *>(orgForkList)->getMyActivityList();
 		} else if ( dynamic_cast<SequentialActivityList *>(orgForkList)) {
@@ -1426,19 +1249,14 @@ Task::store_activity_service_time ( const char * activity_name, const double ser
 unsigned
 Task::countCallList( unsigned callType ) const
 {
-    Sequence<Entry *> nextEntry(entries());
-    const Entry * anEntry;
-
     unsigned count = 0;
-    while ( anEntry = nextEntry() ) {
-	CallInfo callList( anEntry, callType );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	CallInfo callList( **entry, callType );
 	count += callList.size();
     }
 
-    Sequence<Activity *> nextActivity(activities());
-    const Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	count += anActivity->countCallList( callType );
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	count += (*activity)->countCallList( callType );
     }
     return count;
 }
@@ -1457,11 +1275,9 @@ Task::countJoinList() const
 }
 
 
-void
+const Task&
 Task::insertDOMResults(void) const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    Entry *anEntry;
     double totalTaskUtil   = 0.0;
     double totalThroughput = 0.0;
     double totalProcUtil   = 0.0;
@@ -1474,27 +1290,18 @@ Task::insertDOMResults(void) const
     }
 
     if (hasActivities()) {
-	Sequence<Activity *> nextActivity(activities());
-	Activity *anActivity;
-
-	while (anActivity = nextActivity()) {
-	    anActivity->insertDOMResults();
-	}
-
-	Sequence<ActivityList *> nextActivityList(myPrecedence);
-	ActivityList * anActivityList;
-
-	while ( anActivityList = nextActivityList() ) {
-	    anActivityList->insertDOMResults();
-	}
+	for_each( activities().begin(), activities().end(), ConstExec<Phase>( &Phase::insertDOMResults ) );
+	for_each( precedences().begin(), precedences().end(), ConstExec<ActivityList>( &ActivityList::insertDOMResults ) );
     }
 
-    for ( int count = 0; anEntry = nextEntry(); ++count ) {
-	anEntry->computeVariance();
-	anEntry->insertDOMResults(&totalPhaseUtils[0]);
+    unsigned int count = 0;
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->computeVariance();
+	(*entry)->insertDOMResults(&totalPhaseUtils[0]);
 
-	totalProcUtil += anEntry->processorUtilization();
-	totalThroughput += anEntry->throughput();
+	totalProcUtil += (*entry)->processorUtilization();
+	totalThroughput += (*entry)->throughput();
+	count += 1;
     }
 
     /* Store totals */
@@ -1510,6 +1317,7 @@ Task::insertDOMResults(void) const
     getDOM()->setResultThroughput(totalThroughput);
     getDOM()->setResultProcessorUtilization(totalProcUtil);
     getDOM()->setResultBottleneckStrength(0);
+    return *this;
 }
 
 
@@ -1522,14 +1330,11 @@ Task::insertDOMResults(void) const
 ostream&
 Task::printSubmodelWait( ostream& output ) const
 {
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->printSubmodelWait( output, 0 );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	(*entry)->printSubmodelWait( output, 0 );
     }
-
-    for ( unsigned i = 2; i <= myThreads.size(); ++i ) {
-	myThreads[i]->printSubmodelWait( output, 2 );
+    for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
+	(*thread)->printSubmodelWait( output, 2 );
     }
     return output;
 }
@@ -1542,7 +1347,7 @@ Task::printSubmodelWait( ostream& output ) const
 ostream&
 Task::printClientChains( ostream& output, const unsigned submodel ) const
 {
-    output << "Chains:" << myClientChains[submodel] << endl;
+    output << "Chains:" << _clientChains[submodel] << endl;
     return output;
 }
 
@@ -1566,21 +1371,15 @@ Task::printOverlapTable( ostream& output, const ChainVector& chain, const Vector
     output.setf( ios::left, ios::adjustfield );
 
     /* Overlap table.  */
-    // if (myThreads[4]->name() ) {
 
-//cout << "NAME IS : " << myThreads[4]->name() << endl;
-    //}
     output << "-- Fork Overlap Table -- " << endl << name() << endl << setw(6) << " ";
     for ( i = 2; i <= n ; ++i ) {
-
-	output << setw(6) << myThreads[i]->name();
+	output << setw(6) << _threads[i]->name();
     }
     output << endl;
 
-
-
     for ( i = 2; i <= n; ++i ) {
-	output << setw(6) << myThreads[i]->name();
+	output << setw(6) << _threads[i]->name();
 	for ( j = 1; j <= n; ++j ) {
 	    output << setw(6) << of[chain[i]][chain[j]];
 	}
@@ -1618,8 +1417,8 @@ Task::printJoinDelay( ostream& output ) const
 
 /* ------------------------- Reference Tasks. ------------------------- */
 
-ReferenceTask::ReferenceTask( LQIO::DOM::Task* domTask, const Processor * aProc, const Group * aGroup, Cltn<Entry *> *aCltn )
-    : Task( domTask, aProc, aGroup, aCltn )
+ReferenceTask::ReferenceTask( LQIO::DOM::Task* domTask, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries )
+    : Task( domTask, aProc, aGroup, entries )
 {
 }
 
@@ -1628,10 +1427,10 @@ unsigned
 ReferenceTask::copies() const
 {
     try {
-	return domEntity->getCopiesValue();
+	return getDOM()->getCopiesValue();
     }
     catch ( const std::domain_error &e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", name(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 1;
@@ -1646,20 +1445,19 @@ ReferenceTask::copies() const
  * dynamically editable values
  */
 
-void
+ReferenceTask&
 ReferenceTask::recalculateDynamicValues()
 {
     Task::recalculateDynamicValues();
 
-    if ( dynamic_cast<LQIO::DOM::Task *>(domEntity)->hasThinkTime() ) {
-	try {
-	    myThinkTime = dynamic_cast<LQIO::DOM::Task *>(domEntity)->getThinkTimeValue();
-	}
-	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name(), e.what() );
-	    throw_bad_parameter();
-	}
-    } 
+    try {
+	myThinkTime = dynamic_cast<LQIO::DOM::Task *>(getDOM())->getThinkTimeValue();
+    }
+    catch ( const std::domain_error& e ) {
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name().c_str(), e.what() );
+	throw_bad_parameter();
+    }
+    return *this;
 }
 
 
@@ -1667,26 +1465,24 @@ ReferenceTask::recalculateDynamicValues()
  * Valid reference task?
  */
 
-void
+bool
 ReferenceTask::check() const
 {
     Task::check();
 
     if ( nEntries() != 1 ) {
-	LQIO::solution_error( LQIO::WRN_TOO_MANY_ENTRIES_FOR_REF_TASK, name() );
+	LQIO::solution_error( LQIO::WRN_TOO_MANY_ENTRIES_FOR_REF_TASK, name().c_str() );
     }
     if ( getDOM()->hasQueueLength() ) {
-	LQIO::solution_error( LQIO::WRN_QUEUE_LENGTH, name() );
+	LQIO::solution_error( LQIO::WRN_QUEUE_LENGTH, name().c_str() );
     }
 
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry *anEntry;
-
-    while( anEntry = nextEntry() ) {
-	if ( anEntry->isCalled()  ) {
-	    LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name(), anEntry->name() );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->isCalled()  ) {
+	    LQIO::solution_error( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, name().c_str(), (*entry)->name().c_str() );
 	}
     }
+    return true;
 }
 
 
@@ -1695,7 +1491,7 @@ ReferenceTask::check() const
  */
 
 double
-ReferenceTask::countCallers( Cltn<const Task *> &reject )
+ReferenceTask::countCallers( std::set<Task *>& ) const
 {
     return static_cast<double>(copies());
 }
@@ -1711,11 +1507,8 @@ ReferenceTask::findChildren( CallStack& callStack, const bool ) const
 
     /* Chase calls from srcTask. */
 
-    Sequence<Entry *> nextEntry(entries());
-    Entry *anEntry;
-
-    while ( anEntry = nextEntry() ) {
-	max_depth = max( max_depth, anEntry->findChildren( callStack, true ) );
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	max_depth = max( max_depth, (*entry)->findChildren( callStack, true ) );
     }
 
     return max_depth;
@@ -1742,31 +1535,29 @@ ServerTask::queueLength() const
 	return getDOM()->getQueueLengthValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", name(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0;
 }
 
-void
+bool
 ServerTask::check() const
 {
     Task::check();
 
     if ( scheduling() == SCHEDULE_DELAY && copies() != 1 ) {
-	LQIO::solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", name(), copies() );
+	LQIO::solution_error( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", name().c_str(), copies() );
     }
 
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry *anEntry;
-
-    while( anEntry = nextEntry() ) {
-	if ( anEntry->hasOpenArrivals() ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->hasOpenArrivals() ) {
 	    Entry::totalOpenArrivals += 1;
-	} else if ( !anEntry->isCalled() ) {
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, anEntry->name() );
+	} else if ( !(*entry)->isCalled() ) {
+	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*entry)->name().c_str() );
 	}
     }
+    return true;
 }
 
 
@@ -1776,17 +1567,17 @@ ServerTask::check() const
  * multiplicity is ignore otherwise.
  */
 
-void
+ServerTask&
 ServerTask::configure( const unsigned nSubmodels )
 {
     Task::configure( nSubmodels );
 
     /* Tag this task as special if necessary. */
 
-    const Processor * aProcessor = processor();
-    if ( isInfinite() && aProcessor->isInfinite() ) {
+    if ( isInfinite() && getProcessor()->isInfinite() ) {
 	isPureDelay( true );
     }
+    return *this;
 }
 
 
@@ -2118,7 +1909,7 @@ ServerTask::makeServer( const unsigned nChains )
 
 /* ------------------------- Semaphore Servers. ----------------------- */
 
-void
+bool
 SemaphoreTask::check() const
 {
     if ( nEntries() == 2 ) {
@@ -2126,98 +1917,35 @@ SemaphoreTask::check() const
 	       || (entryAt(1)->isWaitEntry() && entryAt(2)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))
 	       || (entryAt(2)->isSignalEntry() && entryAt(1)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
 	       || (entryAt(2)->isWaitEntry() && entryAt(1)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))) ) {
-	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, name() );
+	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, name().c_str() );
 	}
     } else {
-	LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name(), nEntries(), N_SEMAPHORE_ENTRIES );
+	LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name().c_str(), nEntries(), N_SEMAPHORE_ENTRIES );
     }
-
-    Sequence<Entry *> nextEntry( entries() );
-    const Entry *anEntry;
 
     io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;
-    while( anEntry = nextEntry() ) {
-	if ( anEntry->hasOpenArrivals() ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	if ( (*entry)->hasOpenArrivals() ) {
 	    Entry::totalOpenArrivals += 1;
-	} else if ( !anEntry->isCalled() ) {
-	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, anEntry->name() );
+	} else if ( !(*entry)->isCalled() ) {
+	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*entry)->name().c_str() );
 	}
     }
+    return true;
 }
 
 
-void
+SemaphoreTask&
 SemaphoreTask::configure( const unsigned )
 {
     throw not_implemented( "SemaphoreTask::configure", __FILE__, __LINE__ );
+    return *this;
 }
 
 Server *
 SemaphoreTask::makeServer( const unsigned )
 {
     throw not_implemented( "SemaphoreTask::configure", __FILE__, __LINE__ );
-}
-
-/*----------------------------------------------------------------------*/
-/*               A Sequence of all calls from this task                 */
-/*----------------------------------------------------------------------*/
-
-/*
- * Locate all calls generated by aTask regardless of phase.
- * Create a collection so that the () operator can step over it.
- */
-
-TaskCallList::TaskCallList( const Task * aTask )
-    : index(1)
-{
-    Sequence<Entry *> nextEntry( aTask->entries() );
-    const Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	if ( anEntry->isActivityEntry() ) continue;
-	for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
-	    callCltn += anEntry->callList(p);
-	    if ( anEntry->processorCall( p ) ) {
-		callCltn += anEntry->processorCall( p );
-	    }
-	}
-    }
-
-    Sequence<Activity *> nextActivity( aTask->activities() );
-    Activity * anActivity;
-    while ( anActivity = nextActivity() ) {
-	callCltn += anActivity->callList();
-	if ( anActivity->processorCall() ) {
-	    callCltn += anActivity->processorCall();
-	}
-    }
-}
-
-
-
-/*
- * De-reference calls prior to callCltn destruction (may not be
- * necessary, but why take chances?
- */
-
-TaskCallList::~TaskCallList()
-{
-    callCltn.clearContents();
-}
-
-
-/*
- * Return next item in callCltn at each call.
- */
-
-Call *
-TaskCallList::operator()()
-{
-    if ( index <= callCltn.sz ) {
-	return callCltn.ia[index++];
-    } else {
-	index = 1;
-	return 0;
-    }
 }
 
 /* ----------------------- External functions. ------------------------ */
@@ -2227,7 +1955,7 @@ TaskCallList::operator()()
  */
 
 Task*
-Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
+Task::create( LQIO::DOM::Task* domTask, const std::vector<Entry *>& entries )
 {
     /* Recover the old parameter information that used to be passed in */
     const char* task_name = domTask->getName().c_str();
@@ -2236,10 +1964,10 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 
     if ( !task_name || strlen( task_name ) == 0 ) abort();
 
-    if ( !entries ) {
+    if ( entries.size() == 0 ) {
 	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
 	return NULL;
-    } else if ( find_if( task.begin(), task.end(), eq_task_name( task_name ) ) != task.end() ) {
+    } else if ( find_if( Model::__task.begin(), Model::__task.end(), EQStr<Task>( task_name ) ) != Model::__task.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
 	return NULL;
     }
@@ -2258,7 +1986,7 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 
     Group * aGroup = 0;
     if ( group ) {
-	aGroup = Group::find( group->getName().c_str() );
+	aGroup = Group::find( group->getName() );
 	if ( !aGroup ) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group->getName().c_str() );
 	}
@@ -2270,7 +1998,7 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 
     switch ( sched_type ) {
 
-    /* ---------- Client tasks ---------- */
+	/* ---------- Client tasks ---------- */
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
 	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, "task", task_name );
@@ -2279,7 +2007,7 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 	aTask = new ReferenceTask( domTask, aProcessor, aGroup, entries );
 	break;
 
-    /* ---------- Generic Server tasks ---------- */
+	/* ---------- Generic Server tasks ---------- */
     case SCHEDULE_DELAY:
     case SCHEDULE_FIFO:
     case SCHEDULE_PPR:
@@ -2290,11 +2018,11 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 	/* ---------- Special Cases ---------- */
 	/*+ BUG_164 */
     case SCHEDULE_SEMAPHORE:
-	if ( entries->size() != N_SEMAPHORE_ENTRIES ) {
-	    LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries->size(), N_SEMAPHORE_ENTRIES );
+	if ( entries.size() != N_SEMAPHORE_ENTRIES ) {
+	    LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries.size(), N_SEMAPHORE_ENTRIES );
 	}
 	LQIO::input_error2( LQIO::ERR_NOT_SUPPORTED, "Semaphore tasks" );
-	//	aTask = new SemaphoreTask( task_name, n_copies, replications, aProcessor, aGroup, entries, priority );
+	//	aTask = new SemaphoreTask( task_name, n_copies, replications, aProcessor, entries, priority );
 	//	break;
 	/* fall through for now */
 	/*- BUG_164 */
@@ -2306,16 +2034,12 @@ Task::create( LQIO::DOM::Task* domTask, Cltn<Entry *> * entries )
 	break;
     }
 
-    task.insert( aTask );		/* Insert into map */
+    Model::__task.insert( aTask );		/* Insert into map */
     aProcessor->addTask( aTask );
-
+    if ( aGroup ) {
+	aGroup->addTask( aTask );
+    }
     return aTask;
-}
-
-bool
-ltTask::operator()(const Task * t1, const Task * t2) const
-{
-    return strcmp( t1->name(), t2->name() ) < 0;
 }
 
 /*----------------------------------------------------------------------*/
@@ -2332,16 +2056,16 @@ Task::print( ostream& output ) const
     ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
 
     output << setw(8) << name() 
-	   << " " << setw(9) << task_type(*this) 
+	   << " " << setw(9) << print_task_type() 
 	   << " " << setw(5) << replicas() 
-	   << " " << setw(8) << (myProcessor ? myProcessor->name() : "--") 
+	   << " " << setw(8) << (hasProcessor() ? getProcessor()->name() : "--") 
 	   << " " << setw(3) << priority();
     if ( isReferenceTask() && thinkTime() > 0.0 ) {
 	output << " " << thinkTime();
     }
-    output << " " << print_entries( entries() );
+    output << " " << print_entries();
     if ( activities().size() > 0 ) {
-	output << " : " << print_activities( *this );
+	output << " : " << print_activities();
     }
 
     /* Bonus information about stations -- derived by solver */
@@ -2355,43 +2079,43 @@ Task::print( ostream& output ) const
     return output;
 }
 
-/* ---------------------------------------------------------------------- */
+/* -------------------------------------------------------------------- */
+/* Funky Formatting functions for inline with <<.			*/
+/* -------------------------------------------------------------------- */
 
-bool
-eq_task_name::operator()( const Task * t ) const
+/* static */ ostream&
+Task::output_activities( ostream& output, const Task& aTask )
 {
-    return strcmp( t->name(), _s ) == 0;
-}
-
-static ostream&
-activities_of_str( ostream& output, const Task& aTask )
-{
-    Sequence<Activity *> nextActivity(aTask.activities());
-    const Activity * anActivity;
-    string aString;
-
-    for ( unsigned i = 0; anActivity = nextActivity(); ++i ) {
-	if ( i > 0 ) {
-	    aString += ", ";
+    const std::vector<Activity *>& activities = aTask.activities();
+    for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
+	if ( activity != activities.begin() ) {
+	    output << ", ";
 	}
-	aString += anActivity->name();
+	output << (*activity)->name();
     }
-    output << aString;
     return output;
 }
 
-SRVNTaskManip
-print_activities( const Task& aTask )
+
+/* static */ ostream&
+Task::output_entries( ostream& output, const Task& aTask )
 {
-    return SRVNTaskManip( activities_of_str, aTask );
+    const std::vector<Entry *>& entries = aTask.entries();
+    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	if ( entry != entries.begin() ) {
+	    output << ", ";
+	}
+	output << (*entry)->name();
+    }
+    return output;
 }
 
 
-static ostream&
-task_type_of( ostream& output, const Task& aTask )
+ostream&
+Task::output_task_type( ostream& output, const Task& aTask )
 {
     char buf[12];
-    const unsigned n      = aTask.copies();
+    const unsigned n = aTask.copies();
 
     if ( aTask.scheduling() == SCHEDULE_CUSTOMER ) {
 	sprintf( buf, "ref(%d)", n );
@@ -2404,25 +2128,4 @@ task_type_of( ostream& output, const Task& aTask )
     }
     output << buf;
     return output;
-}
-
-static ostream&
-client_chains_of_str( ostream& output, const Task& aClient, const unsigned aSubmodel )
-{
-    aClient.printClientChains( output, aSubmodel );
-    return output;
-}
-
-
-SRVNTaskIntManip
-print_client_chains( const Task& aTask, const unsigned aSubmodel )
-{
-    return SRVNTaskIntManip( client_chains_of_str, aTask, aSubmodel );
-}
-
-
-SRVNTaskManip
-task_type( const Task& aTask )
-{
-    return SRVNTaskManip( task_type_of, aTask );
 }

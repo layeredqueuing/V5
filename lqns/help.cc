@@ -1,16 +1,12 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: help.cc 13676 2020-07-10 15:46:20Z greg $
  */
 
 #include <config.h>
 #include "dim.h"
 #include <ctype.h>
 #include <cstdlib>
-#if HAVE_UNISTD_H
-#include <unistd.h>
-#include <time.h>
-#endif
 #include <lqio/error.h>
 #include <lqio/dom_document.h>
 #include "lqns.h"
@@ -83,33 +79,25 @@ usage ( const char * optarg )
 	    cerr << setw(28) << s << *p << endl;
 	}
 #else
-	const char * s;
-	cerr << " [-";
-	for ( s = opts; *s; ++s ) {
-	    if ( *(s+1) == ':' ) {
-		++s;
-	    } else {
-		cerr.put( *s );
-	    }
-	}
-	cerr << ']';
-
-	for ( s = opts; *s; ++s ) {
-	    if ( *(s+1) == ':' ) {
-		cerr << " [-" << *s;
-		switch ( *s ) {
-		default:  cerr << "file"; break;
-		case 'd': cerr << "<debug>"; break;
-		case 'e': cerr << "adiw"; break;
-		case 't': cerr << "<trace>"; break;
-		case 'z': cerr << "<special>"; break;
-		case 'P': cerr << "<pragma>"; break;
+	for ( const char * o = opts; *o && *p; ++o, ++p ) {
+	    string s;
+	    s = "-";
+	    s += *o;
+	    if ( *(o+1) == ':' ) {
+		switch ( *o ) {
+		default:  s += "<file>"; break;
+		case 'H': s += "[dztP]"; break;
+		case 'd': s += "<debug>"; break;
+		case 'e': s += "[adiw]"; break;
+		case 't': s += "<trace>"; break;
+		case 'z': s += "<special>"; break;
+		case 'P': s += "<pragma>"; break;
 		}
-		cerr << ']';
-		++s;
+		++o;	/* Skip ':' */
 	    }
+	    cerr.setf( ios::left, ios::adjustfield );
+	    cerr << setw(14) << s << *p << endl;
 	}
-	cerr << " [file ...]" << endl;
 #endif
     } else {
 	switch ( optarg[0] ) {
@@ -191,35 +179,36 @@ Help::initialize()
 
     if ( option_table.size() > 0 ) return;
 
+    option_table['I'] 	  = &Help::flagInputFormat;
+    option_table['P']     = &Help::flagPragmas;
+    option_table['V']     = &Help::flagVersion;
     option_table['a']     = &Help::flagAdvisory;
     option_table['b']     = &Help::flagBound;
+    option_table['c']     = &Help::flagConvergence;
     option_table['d']     = &Help::flagDebug;
     option_table['e']     = &Help::flagError;
     option_table['f']	  = &Help::flagFast;
     option_table['G']     = &Help::flagGnuplot;
     option_table['I'] 	  = &Help::flagInputFormat;
+    option_table['i']     = &Help::flagIterationLimit;
     option_table['n']     = &Help::flagNoExecute;
     option_table['o']     = &Help::flagOutput;
     option_table['p']     = &Help::flagParseable;
-    option_table['P']     = &Help::flagPragmas;
     option_table['r']	  = &Help::flagRTF;
     option_table['t']     = &Help::flagTrace;
+    option_table['u']     = &Help::flagUnderrelaxation;
     option_table['v']     = &Help::flagVerbose;
-    option_table['V']     = &Help::flagVersion;
     option_table['w']     = &Help::flagWarning;
     option_table['x']     = &Help::flagXML;
     option_table['z']     = &Help::flagSpecial;
-    option_table[256+'c'] = &Help::flagConvergence;
     option_table[256+'e'] = &Help::flagExactMVA;
     option_table[256+'h'] = &Help::flagHwSwLayering;
-    option_table[256+'i'] = &Help::flagIterationLimit;
     option_table[256+'l'] = &Help::flagLoose;
     option_table[256+'m'] = &Help::flagMethoOfLayers;
-    option_table[256+'p'] = &Help::flagProcessorSharing;
     option_table[256+'o'] = &Help::flagStopOnMessageLoss;
+    option_table[256+'p'] = &Help::flagProcessorSharing;
     option_table[256+'s'] = &Help::flagSchweitzerMVA;
     option_table[256+'t'] = &Help::flagTraceMVA;
-    option_table[256+'u'] = &Help::flagUnderrelaxation;
     option_table[256+'z'] = &Help::flagSquashedLayering;
     option_table[256+'v'] = &Help::flagNoVariance;
     option_table[512+'h'] = &Help::flagNoHeader;
@@ -779,6 +768,13 @@ Help::debugLayers( ostream & output, bool verbose ) const
 }
 
 ostream&
+Help::debugLQX( ostream & output, bool verbose ) const
+{
+    output << "Print out the actions the LQX parser while reading an LQX program." << endl;
+    return output;
+}
+
+ostream&
 Help::debugOvertaking( ostream & output, bool verbose ) const
 {
     output << "Print the overtaking probabilities in the output file." << endl;
@@ -793,16 +789,16 @@ Help::debugQuorum( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::debugXML( ostream & output, bool verbose ) const
+Help::debugVariance( ostream & output, bool verbose ) const
 {
-    output << "Print out the actions of the Expat parser while reading XML input." << endl;
+    output << "Print out variance calculation." << endl;
     return output;
 }
 
 ostream&
-Help::debugLQX( ostream & output, bool verbose ) const
+Help::debugXML( ostream & output, bool verbose ) const
 {
-    output << "Print out the actions the LQX parser while reading an LQX program." << endl;
+    output << "Print out the actions of the Expat parser while reading XML input." << endl;
     return output;
 }
 
@@ -1004,13 +1000,6 @@ Help::specialMolMSUnderrelaxation( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::speicalSkipLayer( ostream & output, bool verbose ) const
-{
-    output << "Ignore submodel " << emph( *this, "arg" ) << " during solution." << endl;
-    return output;
-}
-
-ostream&
 Help::specialMakeMan( ostream & output, bool verbose ) const
 {
     output << "Output this manual page.  " << endl;
@@ -1051,7 +1040,7 @@ Help::specialIgnoreOverhangingThreads( ostream & output, bool verbose ) const
 ostream&
 Help::specialFullReinitialize( ostream & output, bool verbose ) const
 {
-    output << "For multiple runs, reinitialize all processors." << endl;
+    output << "For multiple runs, reinitialize all service times at processors." << endl;
     return output;
 }
 
@@ -1189,6 +1178,24 @@ ostream&
 Help::pragmaSeverityLevel( ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable warning messages." << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaSpexHeader( ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable the header line of SPEX output." << endl
+	   << emph( *this, "Arg" ) << " must be one of: " << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaPrune( ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to prune \"useless\" processors when solving the model.  Useless" << endl
+	   << "processors are any processor which will always have a queue length of zero (i.e., delay servers" << endl
+	   << "and processors with only one task, etc.)" << endl
+	   << emph( *this, "Arg" ) << " must be one of: " << endl;
     return output;
 }
 
@@ -1551,6 +1558,34 @@ Help::pragmaSeverityLevelRunTime( ostream& output, bool verbose ) const
     return output;
 }
 
+ostream& 
+Help::pragmaSpexHeaderFalse( ostream& output, bool verbose ) const
+{
+    output << "Do not output a header line (the output can then be fed into gnuplot easily)." << endl;
+    return output;
+}
+
+ostream& 
+Help::pragmaSpexHeaderTrue( ostream& output, bool verbose ) const
+{
+    output << "Output a header line consisting of the names of all of the variables used in the Result section on the input file." << endl;
+    return output;
+}
+
+ostream& 
+Help::pragmaPruneFalse( ostream& output, bool verbose ) const
+{
+    output << "Solve model with all processors present." << endl;
+    return output;
+}
+
+ostream& 
+Help::pragmaPruneTrue( ostream& output, bool verbose ) const
+{
+    output << "Solve model without including \"useless\" processors." << endl;
+    return output;
+}
+
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
 ostream&
 Help::pragmaQuorumDistributionDefault( ostream& output, bool verbose ) const
@@ -1662,7 +1697,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
+    output << __comment << " $Id: help.cc 13676 2020-07-10 15:46:20Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -1960,7 +1995,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
+	   << __comment << " $Id: help.cc 13676 2020-07-10 15:46:20Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl

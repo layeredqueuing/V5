@@ -1,5 +1,5 @@
 /* overtake.C	-- Greg Franks Mon Mar 17 1997
- * $Id: overtake.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: overtake.cc 13676 2020-07-10 15:46:20Z greg $
  * 
  * Overtaking calculation.  See also slice.[Ch].
  * See
@@ -19,8 +19,8 @@
 
 
 #include "dim.h"
+#include <algorithm>
 #include "overtake.h"
-#include "cltn.h"
 #include "call.h"
 #include "entry.h"
 #include "entity.h"
@@ -66,62 +66,51 @@ Overtaking::clearOvertakingStates( const unsigned max_phases, Probability PrOTSt
 void
 Overtaking::compute( const PrintHelper * print_func )
 {
-    Sequence<Entry *> nextA( _client->entries() );
-    const Entry * entA;
-
-    while ( entA = nextA() ) {
-	const Entry * entB;
-		
-	Sequence<Entry *> nextB(_server->entries());
-	while ( entB = nextB() ) {
+    for ( std::vector<Entry *>::const_iterator entA = _client->entries().begin(); entA != _client->entries().end(); ++entA ) {
+	for ( std::vector<Entry *>::const_iterator entB = _server->entries().begin(); entB != _server->entries().end(); ++entB ) {
 	    Slice_Info ab_info[MAX_PHASES+1];
 	    double y_aj[MAX_PHASES+1];
 
 	    /* ---------------------- Set up ab_info  --------------------- */
 	
-	    entA->sliceTime( *entB, ab_info, y_aj );		// Set ab_info.
+	    (*entA)->sliceTime( *(*entB), ab_info, y_aj );		// Set ab_info.
 
 	    if ( y_aj[0] == 0.0 ) break;
 	
 	    if ( flags.trace_overtaking ) {
-		printSlice( cout, *entA, *entB, ab_info );
+		printSlice( cout, *(*entA), *(*entB), ab_info );
 	    }
 
 	    /* --------------- Set overtaking probabilities. -------------- */
 
-	    Sequence<Entry *> nextD( _server->entries() );
-	    const Entry * entD;
-	    while ( entD = nextD() ) {
+	    for ( std::vector<Entry *>::const_iterator entD = _server->entries().begin(); entD != _server->entries().end(); ++entD ) {
 		unsigned j;
 		
 		/* -------- Solve Markov Chain for overtaking. -------- */
 		
-		for ( j = 0; j <= entD->maxPhase(); ++j ) {
-		    const double x_j = ( j == 0 ) ? 0.0 : entD->elapsedTime(j);	// server is NEVER idle!
+		for ( j = 0; j <= (*entD)->maxPhase(); ++j ) {
+		    const double x_j = ( j == 0 ) ? 0.0 : (*entD)->elapsedTimeForPhase(j);	// server is NEVER idle!
 			
-		    for ( unsigned i = 0; i < entA->maxPhase(); ++i ) {
+		    for ( unsigned i = 0; i < (*entA)->maxPhase(); ++i ) {
 			ab_info[i].setRates( x_j, Probability(1.0) );
 		    }
-		    ab_info[entA->maxPhase()].setRates( x_j, entA->prVisit() );
+		    ab_info[(*entA)->maxPhase()].setRates( x_j, (*entA)->prVisit() );
 			
-		    Slice_Info::prOvertakingStates( ab_info, entA->maxPhase(),
+		    Slice_Info::prOvertakingStates( ab_info, (*entA)->maxPhase(),
 						    PrOtState[j] );
 
 		    if ( flags.trace_overtaking ) {
 			Slice_Info::printOvertakingStates( cout, j, x_j,
-							   entA->maxPhase(),
+							   (*entA)->maxPhase(),
 							   PrOtState[j] );
 		    }
 		}
-		for ( j = entD->maxPhase()+1; j <= MAX_PHASES; ++j ) {
-		    clearOvertakingStates( entA->maxPhase(), PrOtState[j] );
+		for ( j = (*entD)->maxPhase()+1; j <= MAX_PHASES; ++j ) {
+		    clearOvertakingStates( (*entA)->maxPhase(), PrOtState[j] );
 		}
 		
-		Sequence<Entry *> nextC( _client->entries() );
-		const Entry * entC;
-
-		while ( entC = nextC() ) {
-		    computeOvertaking( *entA, *entB, *entC, *entD, y_aj, ab_info, print_func );
+		for ( std::vector<Entry *>::const_iterator entC = _client->entries().begin(); entC != _client->entries().end(); ++entC ) {
+		    computeOvertaking( **entA, **entB, **entC, **entD, y_aj, ab_info, print_func );
 		}
 	    }
 	}
@@ -333,14 +322,16 @@ Overtaking::printStart( ostream& output,
     return output;
 }
 
+/* ------------------------------------------------------------------------ */
+
+
 /*
  * Grow the array.
  */
 
-void
-Overtaking::ijInfo::configure()
+Overtaking::ijInfo::ijInfo() :
+    _rendezvous( Entry::max_phases )
 {
-    myRendezvous.grow( Entry::max_phases );
 }
 	
 
@@ -352,11 +343,7 @@ Overtaking::ijInfo::configure()
 void
 Overtaking::ijInfo::initialize( const Task * srcTask, const Entity * dstTask )
 {
-    myRendezvous = 0.0;
-	
-    Sequence<Entry *> nextEntry( srcTask->entries() );
-    const Entry * anEntry;
-    while ( anEntry = nextEntry() ) {
-	anEntry->rendezvous( dstTask, myRendezvous );
-    }
+    _rendezvous = 0.0;
+    const std::vector<Entry *>& entries = srcTask->entries();
+    for_each( entries.begin(), entries.end(), ConstExec2<Entry,const Entity *,VectorMath<double>&>( &Entry::rendezvous, dstTask, _rendezvous ) );
 }

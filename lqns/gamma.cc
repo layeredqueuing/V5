@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 11183 2012-10-30 23:05:25Z greg $
+ * $Id: gamma.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Gamma distribution.
  *

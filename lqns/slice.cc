@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: slice.cc 11963 2014-04-10 14:36:42Z greg $
+ * $Id: slice.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Everything you wanted to know about a slice, but were afraid to ask.
  *
@@ -90,21 +90,18 @@ Slice_Info::accumulate( const double multiplier, const Phase& src, const Entry& 
  */
 
 void
-Slice_Info::getCallInfo( const double scale, const Cltn<Call *>& callList, const double throughput, const Entry& dst )
+Slice_Info::getCallInfo( const double scale, const std::set<Call *>& callList, const double throughput, const Entry& dst )
 {
-    Sequence<Call *> nextCall( callList );
-    const Call * aCall;
-
-    while ( aCall = nextCall() ) {
+    for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
 		
-	const double y_adp = scale * aCall->rendezvous();
+	const double y_adp = scale * (*call)->rendezvous();
 	if ( y_adp == 0 ) continue;
 			
 	/* Ratio for per phase flows */
 
-	const Entry& entD = *(aCall->dstEntry());
+	const Entry& entD = *((*call)->dstEntry());
 			
-	if ( aCall->dstTask() == dst.owner() ) {
+	if ( (*call)->dstTask() == dst.owner() ) {
 	    lambda_ij += throughput * y_adp;
 	    y_ij      += y_adp;
 	    if ( dst == entD ) {
@@ -113,17 +110,17 @@ Slice_Info::getCallInfo( const double scale, const Cltn<Call *>& callList, const
 
 	    /* Visits to ``other'' replicas are not overtaking events. */
 			
-	    if ( aCall->fanOut() > 1 ) {
-		const double n_other = aCall->fanOut() - 1.0;
+	    if ( (*call)->fanOut() > 1 ) {
+		const double n_other = (*call)->fanOut() - 1.0;
 		lambda_ik += throughput * y_adp * n_other;
 		y_ik      += y_adp * n_other;
-		t_k	  += scale * aCall->rendezvousDelay() * n_other / aCall->fanOut();
+		t_k	  += scale * (*call)->rendezvousDelay() * n_other / (*call)->fanOut();
 	    }
 			
 	} else {
-	    lambda_ik += throughput * y_adp * aCall->fanOut();
-	    y_ik      += y_adp * aCall->fanOut();
-	    t_k	  += scale * aCall->rendezvousDelay();
+	    lambda_ik += throughput * y_adp * (*call)->fanOut();
+	    y_ik      += y_adp * (*call)->fanOut();
+	    t_k	      += scale * (*call)->rendezvousDelay();
 	}
     }
 }
@@ -275,7 +272,7 @@ Slice_Info::prStartStates( Slice_Info rate[], const Entry& entC, const Entry& en
     /* Have to further adjust starting probabilities. */
 
     for ( unsigned j = 2; j <= entD.maxPhase(); ++j ) {
-	const double x_j = entD.elapsedTime(j);
+	const double x_j = entD.elapsedTimeForPhase(j);
 			
 	for ( i = 0; i < entC.maxPhase(); ++i ) {
 	    rate[i].setRates( x_j, Probability(1.0) );

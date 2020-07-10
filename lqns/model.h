@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: model.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,8 +18,12 @@
 #define	LAYERIZE_H
 
 #include "dim.h"
-#include "cltn.h"
+#include <set>
+#include "vector.h"
+#include "entity.h"
+#include "group.h"
 #include "report.h"
+#include <lqio/dom_document.h>
 
 class Call;
 class Entity;
@@ -29,19 +33,32 @@ class MVA;
 class Processor;
 class Server;
 class Submodel;
-class Task;
-namespace LQIO {
-    namespace DOM {
-	class Document;
-    }
-}
-
-//ostream& operator<<( ostream&, const Model& );
+class Group;
 
 /* ----------------------- Abstract Superclass. ----------------------- */
 
 class Model {
-    friend class SolverReport;
+protected:
+
+    class SolveSubmodel {
+    public:
+	SolveSubmodel( Model& self, bool verbose ) : _self(self), _verbose(verbose) {}
+
+	void operator()( Submodel * );
+
+    private:
+	Model& _self;
+	const bool _verbose;
+    };
+
+    /*
+     * Compare to tasks by their name.  Used by the set class to insert items
+     */
+
+    template <class Type> struct LT
+    {
+	bool operator()(const Type * a, const Type * b) const { return a->name() < b->name(); }
+    };
 
 public:
     static LQIO::DOM::Document* load( const string& inputFileName, const string& outputFileName );
@@ -49,7 +66,6 @@ public:
     static bool prepare( const LQIO::DOM::Document* document );
     static void recalculateDynamicValues( const LQIO::DOM::Document* document );
     static void setModelParameters( const LQIO::DOM::Document* doc );
-    static void dispose();
 
 public:
     virtual ~Model();
@@ -63,8 +79,8 @@ private:
 
 public:
     Model& reinitialize();
-    unsigned generate( set<Task *,ltTask>::const_iterator& );	/* Create layers.	*/
-
+    unsigned generate();	/* Create layers.	*/
+    unsigned nSubmodels() const { return _submodels.size(); }
     bool initializeModel();
 
     void updateWait( Entity * ) const;
@@ -83,10 +99,9 @@ public:
     ostream& printSubmodelWait( ostream& output = cout ) const;
 
 protected:
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& ) = 0;
-    static unsigned topologicalSort( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel() = 0;
+    static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
-    unsigned pruneLayers();
     void initialize();
     void initClients();
     void reinitClients();
@@ -94,20 +109,16 @@ protected:
     virtual void backPropogate() {}
 
     virtual double run() = 0;			/* Solve Model.		*/
-    Model& solve( Sequence<Submodel *>& );
-    Model& solveSubmodel( Submodel * );
 
     void printIntermediate( const double ) const;
 	
 private:
-    static void resetCounts();
     static bool checkModel();
     static void extendModel();
     static void initProcessors();
     void configure();
     void setInitialized() { _model_initialized = true; }
 
-    unsigned nSubmodels() const { return _submodels.size(); }
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
     string createDirectory() const;
 
@@ -122,13 +133,16 @@ public:
     static double underrelaxation;
     static unsigned print_interval;
     static LQIO::DOM::Document::input_format input_format;
-
+    static std::set<Processor *, LT<Entity> > __processor;
+    static std::set<Group *, LT<Group> > __group;
+    static std::set<Task *,LT<Entity> > __task;
+    static std::set<Entry *,LT<Entry> > __entry;
+    
 protected:
-    Cltn<Submodel *> _submodels;
+    Vector<Submodel *> _submodels;
     bool _converged;			/* True if converged.		*/
     unsigned long _iterations;		/* Number of Model iterations.	*/
-    unsigned _max_depth;		/* Deepest extent in model.	*/
-    Vector<MVACount> MVAStats;		/* MVA statistics by level.	*/
+    Vector<MVACount> _MVAStats;		/* MVA statistics by level.	*/
 
 private:
     unsigned long _step_count;		/* Number of solveLayers	*/
@@ -147,7 +161,7 @@ class MOL_Model : public Model {
 protected:
     MOL_Model( const LQIO::DOM::Document * document, const string& inputFileName, const string& outputFileName ) : Model( document, inputFileName, outputFileName ), HWSubmodel(0) {}
 
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
 
     virtual double run();
@@ -177,7 +191,7 @@ class Batch_Model :  public Model {
 protected:
     Batch_Model( const LQIO::DOM::Document * document, const string& inputFileName, const string& outputFileName ) : Model( document, inputFileName, outputFileName ) {}
 
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
     virtual double run();
 };
@@ -204,7 +218,7 @@ protected:
 	: Batch_Model( document, inputFileName, outputFileName )
 	{}
 
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel();
 };
 
 /* -------------------- Squashed Partition Model ---------------------- */
@@ -217,7 +231,7 @@ protected:
 	: Batch_Model( document, inputFileName, outputFileName )
 	{}
 
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel();
 };
 
 /* ---------------------- HwSw Partition Model ------------------------ */
@@ -230,6 +244,6 @@ protected:
 	: Batch_Model( document, inputFileName, outputFileName )
 	{}
 
-    virtual unsigned assignSubmodel( set<Task *,ltTask>::const_iterator& );
+    virtual unsigned assignSubmodel();
 };
 #endif

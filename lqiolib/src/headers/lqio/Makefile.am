@@ -1,4 +1,4 @@
-# $Id: Makefile.am 13492 2020-02-12 16:59:18Z greg $
+# $Id: Makefile.am 13673 2020-07-10 15:12:09Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = confidence_intervals.h \
 	dom_activity.h \

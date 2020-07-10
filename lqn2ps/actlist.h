@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: actlist.h 13675 2020-07-10 15:29:36Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -71,6 +71,7 @@ public:
     virtual unsigned size() const = 0;
 
     const Task * owner() const { return myOwner; }
+    ActivityList& setOwner( const Task * owner );
     virtual ActivityList& resetLevel() { return *this; }
     const LQIO::DOM::ActivityList * getDOM() const { return myDOM; }
 
@@ -82,7 +83,7 @@ public:
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc ) = 0;
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const = 0;
     virtual double getIndex() const = 0;
-    virtual ActivityList& reconnect( Activity *, Activity * );
+    virtual ActivityList& reconnect( Activity *, Activity * ) { return *this; }
     virtual ActivityList& sort( compare_func_ptr compare ) { return *this; }
 
     virtual double height() const { return interActivitySpace; }

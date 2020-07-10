@@ -7,7 +7,7 @@
  *
  *
  * ------------------------------------------------------------------------
- * $Id: test3c.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test3c.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,9 +36,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
     const unsigned stations = 6;
 
     NCust.resize(classes);			/* Population vector.		*/
-    Z.grow(classes);			/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);			/* Queue type.  SS/delay.	*/
+    Z.resize(classes);			/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);			/* Queue type.  SS/delay.	*/
 
     Q[1] = new FCFS_Server(classes);	/* Disk1 */
     Q[2] = new FCFS_Server(classes);	/* Disk2 */

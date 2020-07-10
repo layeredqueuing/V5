@@ -9,43 +9,71 @@ double  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/g
  *
  * November, 1994
  *
- * $Id: generate.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: generate.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #include "dim.h"
-#include <lqio/input.h>
-#include "cltn.h"
-#include "vector.h"
+#include <string>
 
 class Entity;
 class Task;
 class MVASubmodel;
-
-ostream &printInterlock( ostream& output, const Entity& anEntity, const MVASubmodel& );
-
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
 
 class Generate {
+
+    class ArgsManip {
+    public:
+	ArgsManip( std::ostream& (*f)(std::ostream&, const unsigned, const unsigned, const unsigned ), const unsigned e, const unsigned k, const unsigned p ) :
+	    _f(f), _e(e), _k(k), _p(p) {}
+
+    private:
+	std::ostream& (*_f)( std::ostream&, const unsigned, const unsigned, const unsigned );
+	const unsigned _e;
+	const unsigned _k;
+	const unsigned _p;
+
+	friend std::ostream& operator<<(std::ostream & os, const ArgsManip& m ) { return m._f(os,m._e,m._k,m._p); }
+    };
+
+    class StnManip {
+    public:
+	StnManip( std::ostream& (*f)(std::ostream&, const Entity& ), const Entity& s ) : _f(f), _stn(s) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const Entity& );
+	const Entity& _stn;
+
+	friend std::ostream& operator<<(std::ostream & os, const StnManip& m ) { return m._f(os,m._stn); }
+    };
+    
 public:
     static void print( const MVASubmodel& );
     static void makefile( const unsigned );
 
 private:
     Generate( const MVASubmodel& );
-    ostream& print( ostream& ) const;
-    ostream& printClientStation( ostream& output, const Task& aClient ) const;
-    ostream& printServerStation( ostream& output, const Entity& aServer ) const;
-    ostream& printInterlock( ostream& output, const Entity& aServer ) const;
+    std::ostream& print( std::ostream& ) const;
+    std::ostream& printClientStation( std::ostream& output, const Task& aClient ) const;
+    std::ostream& printServerStation( std::ostream& output, const Entity& aServer ) const;
+    std::ostream& printInterlock( std::ostream& output, const Entity& aServer ) const;
+
+    static ArgsManip station_args( const unsigned e, const unsigned k, const unsigned p ) { return ArgsManip( &print_station_args, e, k, p ); }
+    static ArgsManip overtaking_args( const unsigned e, const unsigned k, const unsigned p ) { return ArgsManip( &print_overtaking_args, e, k, p ); }
+    static StnManip station_name( const Entity& entity ) { return StnManip( &print_station_name, entity ); }
+
+    static ostream& print_station_name( ostream& output, const Entity& anEntity );
+    static ostream& print_station_args( ostream& output, const unsigned e, const unsigned k, const unsigned p );
+    static ostream& print_overtaking_args( ostream& output, const unsigned e, const unsigned k, const unsigned p );
 
 public:
-    static const char * file_name;
+    static std::string file_name;
 
 private:
-    const MVASubmodel& mySubModel;
+    const MVASubmodel& _submodel;
     const unsigned K;			/* Number of chains */
 };

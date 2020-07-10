@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 13523 2020-03-03 16:19:29Z greg $
+ * $Id: processor.cc 13675 2020-07-10 15:29:36Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -518,6 +518,7 @@ Processor::replicateProcessor( LQIO::DOM::DocumentObject ** root )
 	std::pair<std::set<Processor *>::iterator,bool> rc = __processors.insert( this );
 	if ( !rc.second ) throw runtime_error( "Duplicate processor" );
 	(*root)->setName( root_name );
+	const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>((*root)))->clearTaskList();
 	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addProcessorEntity( dynamic_cast<LQIO::DOM::Processor *>(*root) );
     } else if ( dynamic_cast<LQIO::DOM::Processor *>(*root)->getReplicasValue() < replica ) {
 	dynamic_cast<LQIO::DOM::Processor *>(*root)->setReplicasValue( replica );

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: lqns.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -35,6 +35,7 @@ extern struct FLAGS {
     unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
     unsigned verbose:1;				/* -v: Be chatty.			*/
     unsigned xml_output:1;			/* -x: Ouptut XML output		*/
+    unsigned debug_spex:1;			/* --debug-spex: Ouptut LQX		*/
     
     unsigned average_variance:1;		/* Use average variance values.		*/
 
@@ -54,6 +55,7 @@ extern struct FLAGS {
     unsigned trace_convergence:1;		/* Print out convergence values.	*/
     unsigned trace_throughput:1;
     unsigned trace_quorum:1;
+    unsigned trace_customers:1;			/* Print out the real number of customers and maximum number of customers*/
 	
     unsigned print_overtaking:1;		/* Print out overtaking values.		*/
 
@@ -68,7 +70,6 @@ extern struct FLAGS {
     unsigned restart:1;				/* Restart reusing valid results.	*/
 	
     unsigned long single_step;			/* Stop after each major iteration	*/
-    unsigned int skip_submodel;			/* Don't solve this level.		*/
     unsigned int min_steps;			/* Minimum number of iterations.	*/
 } flags;
 

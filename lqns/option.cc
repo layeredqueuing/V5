@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13032 2017-05-23 20:59:43Z greg $
+ * $Id: option.cc 13676 2020-07-10 15:46:20Z greg $
  */
 
 #include <config.h>
@@ -20,10 +20,8 @@
 #include "mva.h"
 #include "pragma.h"
 
-extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
-
 std::map<const char *, Options::Debug, lt_str> Options::Debug::__table;
-const char ** Options::Debug::__options;
+const char ** Options::Debug::__options = NULL;
 
 //bool Options::Debug::_activities= false;
 //bool Options::Debug::_calls	= false;
@@ -31,6 +29,7 @@ bool Options::Debug::_forks	= false;
 bool Options::Debug::_interlock	= false;
 //bool Options::Debug::_joins	= false;
 bool Options::Debug::_layers	= false;
+bool Options::Debug::_variance  = false;
 #if HAVE_LIBGSL
 bool Options::Debug::_quorum	= false;
 #endif
@@ -80,6 +79,7 @@ Options::Debug::initialize()
 //    __table["joins"] =      Debug( &Debug::joins,       &Help::debugJoins );
     __table["layers"] =     Debug( &Debug::layers,      &Help::debugLayers );
     __table["overtaking"] = Debug( &Debug::overtaking,  &Help::debugOvertaking );
+    __table["variance"] =   Debug( &Debug::variance,    &Help::debugVariance );
 #if HAVE_LIBGSL
     __table["quorum"] =     Debug( &Debug::quorum,      &Help::debugQuorum );
 #endif
@@ -107,7 +107,7 @@ Options::Debug::exec( const int ix, const char * arg )
 }
 
 std::map<const char *, Options::Trace, lt_str> Options::Trace::__table;
-const char ** Options::Trace::__options;
+const char ** Options::Trace::__options = NULL;
 
 
 void
@@ -254,7 +254,7 @@ Options::Trace::exec( const int ix, const char * arg )
 }
 
 std::map<const char *, Options::Special, lt_str> Options::Special::__table;
-const char ** Options::Special::__options;
+const char ** Options::Special::__options = NULL;
 
 
 void
@@ -340,17 +340,6 @@ Options::Special::mol_ms_underrelaxation( const char * arg )
 }
 
 void
-Options::Special::skip_layer( const char * arg )
-{
-    if ( !arg ) {
-	cerr << io_vars.lq_toolname << ": no submodel supplied to -zskip." << endl;
-    } else if ( (flags.skip_submodel = atoi( arg )) <= 0 ) {
-	cerr << io_vars.lq_toolname << ": skip=" << arg << " is invalid, choose non-negative integer." << endl;
-	(void) exit( INVALID_ARGUMENT );
-    }
-}
-
-void
 Options::Special::make_man( const char * arg )
 {
     HelpTroff man;
@@ -420,15 +409,14 @@ Options::Special::initialize()
 {
     if ( __table.size() ) return;
 
-    __table["iteration-limit"] 		  = Special( &Special::iteration_limit, 	   true,  &Help::specialIterationLimit );
+//    __table["iteration-limit"] 		  = Special( &Special::iteration_limit, 	   true,  &Help::specialIterationLimit );
     __table["print-interval"] 		  = Special( &Special::print_interval,    	   true,  &Help::specialPrintInterval );
     __table["overtaking"] 		  = Special( &Special::overtaking,        	   false, &Help::specialOvertaking );
-    __table["convergence-value"] 	  = Special( &Special::convergence_value,          true,  &Help::specialConvergenceValue );
+//    __table["convergence-value"] 	  = Special( &Special::convergence_value,          true,  &Help::specialConvergenceValue );
     __table["single-step"] 		  = Special( &Special::single_step,		   false, &Help::specialSingleStep );
-    __table["underrelaxation"] 		  = Special( &Special::underrelaxation,	           true,  &Help::specialUnderrelaxation );
+//    __table["underrelaxation"] 		  = Special( &Special::underrelaxation,	           true,  &Help::specialUnderrelaxation );
     __table["generate"] 	          = Special( &Special::generate_queueing_model,    true,  &Help::specialGenerateQueueingModel );
     __table["mol-ms-underrelaxation"] 	  = Special( &Special::mol_ms_underrelaxation,     true,  &Help::specialMolMSUnderrelaxation );
-    __table["skip-layer"] 		  = Special( &Special::skip_layer,		   true,  &Help::speicalSkipLayer );
     __table["man"]	 		  = Special( &Special::make_man,		   true,  &Help::specialMakeMan );
     __table["tex"] 			  = Special( &Special::make_tex,		   true,  &Help::specialMakeTex );
     __table["min-steps"] 		  = Special( &Special::min_steps,                  true,  &Help::specialMinSteps );

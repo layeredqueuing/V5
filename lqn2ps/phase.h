@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: phase.h 13675 2020-07-10 15:29:36Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -132,7 +132,7 @@ public:
     virtual double serviceTimeForSRVNInput() const;
 
 #if defined(REP2FLAT)
-    virtual Phase& replicatePhase();
+    virtual Phase& replicatePhase( LQIO::DOM::Phase * root, unsigned int replica );
     virtual Phase& replicateCall();
 #endif
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 13413 2018-10-23 15:03:40Z greg $
+ * $Id: server.h 13676 2020-07-10 15:46:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -37,7 +37,7 @@ ostream& operator<<( ostream&, const Server& );
  * are auto-dimensioned by constructors.
  */
 
-class Server 
+class Server
 {
 public:
     /* Initialization */

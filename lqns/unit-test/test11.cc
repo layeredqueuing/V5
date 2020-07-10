@@ -4,7 +4,7 @@
  * Priority MVA Test case from:
  *
  * ------------------------------------------------------------------------
- * $Id: test11.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test11.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,9 +20,9 @@ void test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, Vector
     const unsigned stations = 2;
 
     NCust.resize(classes);		/* Population vector.		*/
-    Z.grow(classes);			/* Think times.			*/
-    priority.grow(classes);
-    Q.grow(stations);			/* Queue type.  SS/delay.	*/
+    Z.resize(classes);			/* Think times.			*/
+    priority.resize(classes);
+    Q.resize(stations);			/* Queue type.  SS/delay.	*/
 
     NCust[1] = 3;	NCust[2] = 3;
     Z[1] = 0.0;	Z[2] = 0.0;

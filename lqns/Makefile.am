@@ -1,19 +1,19 @@
 # 
-# $Id: Makefile.am 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile.am 13676 2020-07-10 15:46:20Z greg $
 #
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
-SUBDIRS		= unit-test regression
+SUBDIRS		= unit-test regression 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers/
 bin_PROGRAMS 	= lqns
-lqns_SOURCES	= activity.cc actlist.cc call.cc cltn.cc dim.cc entity.cc entry.cc \
+lqns_SOURCES	= activity.cc actlist.cc call.cc dim.cc entity.cc entry.cc \
 		  entrythread.cc errmsg.cc fpgoop.cc gamma.cc generate.cc group.cc help.cc interlock.cc \
 		  model.cc multserv.cc mva.cc open.cc option.cc overtake.cc ph2serv.cc \
 		  phase.cc pop.cc pragma.cc prob.cc processor.cc randomvar.cc report.cc runlqx.cc \
 		  server.cc slice.cc lqns.cc stack.cc submodel.cc  \
-		  synmodel.cc task.cc variance.cc vector.cc
-noinst_HEADERS	= activity.h actlist.h call.h cltn.h dim.h entity.h entry.h entrythread.h \
+		  synmodel.cc task.cc variance.cc 
+noinst_HEADERS	= activity.h actlist.h call.h dim.h entity.h entry.h entrythread.h \
 		  errmsg.h fpgoop.h gamma.h generate.h group.h help.h interlock.h model.h \
 		  multserv.h mva.h open.h option.h overtake.h ph2serv.h phase.h pop.h pragma.h \
 		  prob.h processor.h randomvar.h report.h server.h slice.h lqns.h runlqx.h stack.h \

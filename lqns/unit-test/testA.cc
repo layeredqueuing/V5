@@ -3,7 +3,7 @@
  *
  * Test case from:
  * ------------------------------------------------------------------------
- * $Id: testA.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: testA.cc 13676 2020-07-10 15:46:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,7 +15,7 @@
 void test( Vector<Server *>& Q, const unsigned )
 {
     const unsigned stations = 2;
-    Q.grow(stations);		/* Queue type.  SS/delay.	*/
+    Q.resize(stations);		/* Queue type.  SS/delay.	*/
 
     Q[1] = new FCFS_Server(0);
     Q[2] = new FCFS_Server(0);

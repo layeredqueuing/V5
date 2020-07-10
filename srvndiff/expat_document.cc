@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 13488 2020-02-11 21:02:57Z greg $
+ * $Id: expat_document.cc 13673 2020-07-10 15:12:09Z greg $
  *
  * Read in XML input files.
  *
@@ -464,8 +464,7 @@ namespace LQIO {
 	Expat_Document::startResultGeneral( const DocumentObject * object, const XML_Char * element, const XML_Char ** attributes )
 	{
 	    if ( strcasecmp( element, Xresult_general ) == 0 ) {
-		long iterations = 50;
-		getLongAttribute(attributes,Xiterations);
+		long iterations = getLongAttribute(attributes,Xiterations);
 		if ( iterations > 1 ) {
 		    _conf_95.set_t_value( iterations );
 		}

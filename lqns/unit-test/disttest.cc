@@ -4,7 +4,7 @@
  * Distribution function tests.
  * ------------------------------------------------------------------------
  *
- * $Id: disttest.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: disttest.cc 13676 2020-07-10 15:46:20Z greg $
  */
 
 #include "testmva.h"
@@ -13,7 +13,6 @@
 #include <unistd.h>
 #include "randomvar.h"
 #include "vector.h"
-#include "cltn.h"
 
 char * myName;
 

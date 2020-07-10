@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.h 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: dom_processor.h 13675 2020-07-10 15:29:36Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -24,7 +24,7 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializers for the SVN DOM Entity type */
-	    Processor(const Document *document, const char * processor_name, scheduling_type scheduling_flag,
+	    Processor(const Document *document, const std::string& name, scheduling_type scheduling_flag,
 		      ExternalVariable* n_cpus=NULL, ExternalVariable* n_replicas=NULL );
 	    Processor( const Processor& );
 	    virtual ~Processor();
@@ -55,6 +55,7 @@ namespace LQIO {
 	    void addGroup(Group* group);
 	    const std::set<Task*>& getTaskList() const { return _taskList; }
 	    const std::set<Group*>& getGroupList() const { return _groupList; }
+	    void clearTaskList() { _taskList.clear(); }
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: test13e.cc 13413 2018-10-23 15:03:40Z greg $
+ * $Id: test13e.cc 13676 2020-07-10 15:46:20Z greg $
  *
  * Rolia Multiserver test.
  * ------------------------------------------------------------------------
@@ -35,9 +35,9 @@ test( Population& NCust, Vector<Server *>& Q, VectorMath<double>& Z, VectorMath<
 	}
 	    
 	NCust.resize(classes);			/* Population vector.		*/
-	Z.grow(classes);			/* Think times.			*/
-	priority.grow(classes);
-	Q.grow(stations);			/* Queue type.  SS/delay.	*/
+	Z.resize(classes);			/* Think times.			*/
+	priority.resize(classes);
+	Q.resize(stations);			/* Queue type.  SS/delay.	*/
 
 	NCust[1] = 8;
 	
