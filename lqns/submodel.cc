@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: submodel.cc 13685 2020-07-14 02:53:54Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -1011,8 +1011,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	/* ---------- Set wait and think times for next pass. --------- */
 
 	if (flags.trace_throughput || flags.trace_idle_time) {
-
-	    cout <<"\nMVASubmodel::solve( ) .... completed solving the MVA model.......\n" << endl;
+	    cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << endl;
 	}
 
 
@@ -1098,7 +1097,6 @@ MVASubmodel::saveClientResults( Task * aClient )
 
     const Server * aStation = aClient->clientStation( number() );
     const ChainVector& myChain( aClient->clientChains(number()));
-    for_each( aClient->activities().begin(), aClient->activities().end(), Exec<Activity>( &Activity::clearThroughput ) );
 
     for ( std::vector<Entry *>::const_iterator entry = aClient->entries().begin(); entry != aClient->entries().end(); ++entry ) {
 	/*Positive*/ double lambda = 0; // to get rid of the exception
@@ -1113,7 +1111,7 @@ MVASubmodel::saveClientResults( Task * aClient )
 	     * multiservers.
 	     */
 
-	    lambda = closedModel->normalizedThroughput( *aStation, (*entry)->index(), myChain[1] ) * aClient->population() ;
+	    lambda = closedModel->normalizedThroughput( *aStation, (*entry)->index(), myChain[1] ) * aClient->population();
 	} else {
 	    lambda = closedModel->throughput( *aStation, (*entry)->index(), myChain[1] );
 	}
@@ -1129,11 +1127,6 @@ void
 MVASubmodel::saveServerResults( Entity * aServer )
 {
     const Server * aStation = aServer->serverStation();
-
-    if ( dynamic_cast<Task *>(aServer) ) {
-	const std::vector<Activity *>& activities = dynamic_cast<Task *>(aServer)->activities();
-	for_each( activities.begin(), activities.end(), Exec<Activity>( &Activity::clearThroughput ) );
-    }
 
     for ( std::vector<Entry *>::const_iterator entry = aServer->entries().begin(); entry != aServer->entries().end(); ++entry ) {
 	const unsigned e = (*entry)->index();

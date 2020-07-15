@@ -1,3 +1,8 @@
+2020-07-10  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqx, lqiolib, lqns, lqngen, lqn2ps, lqsim, ...
+	- Backport V6 (deprecate Cltn from lqns, replace with STL).
+
 2015-12-01  Greg Franks  <greg@merlin.sce.carleton.ca>
 
 	* lqx, lqiolib, lqngen.
@@ -464,4 +469,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 12342 2015-12-01 17:50:09Z greg $
+$Id: ChangeLog 13678 2020-07-10 16:01:59Z greg $

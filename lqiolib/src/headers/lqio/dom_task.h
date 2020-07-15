@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_task.h 13681 2020-07-12 13:38:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -103,8 +103,10 @@ namespace LQIO {
 	    Activity* getActivity(const std::string& name, bool create );
 	    const std::map<std::string,Activity*>& getActivities() const;
 	    void addActivity( Activity * newActivity );
+	    Activity * removeActivity( Activity * );
 	    void deleteActivities();
 	    void addActivityList(ActivityList *);
+	    ActivityList * removeActivityList( ActivityList * );
 	    const std::set<ActivityList*>& getActivityLists() const;
 	    void deleteActivityLists();
 	    bool hasAndJoinActivityList() const;

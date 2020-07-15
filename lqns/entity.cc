@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: entity.cc 13685 2020-07-14 02:53:54Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -111,7 +111,7 @@ Entity::~Entity()
 Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    if ( nEntries() > 1 && pragma.entry_variance() ) {
+    if ( pragma.getVariance() != NO_VARIANCE && nEntries() > 1 && pragma.entry_variance() ) {
 	attributes.variance = true;
     }
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
@@ -121,7 +121,7 @@ Entity::configure( const unsigned nSubmodels )
 	if ( (*entry)->hasDeterministicPhases() ) {
 	    attributes.deterministic = true;
 	}
-	if ( (*entry)->hasVariance() ) {
+	if ( pragma.getVariance() != NO_VARIANCE && (*entry)->hasVariance() ) {
 	    attributes.variance = true;
 	}
     }

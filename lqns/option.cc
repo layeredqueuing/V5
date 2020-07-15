@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: option.cc 13685 2020-07-14 02:53:54Z greg $
  */
 
 #include <config.h>
@@ -219,7 +219,7 @@ Options::Trace::initialize()
     __table["delta_wait"] =  Trace( &Trace::delta_wait        , false, &Help::traceDeltaWait );
 //  __table["entry"] =       Trace( &Trace::entry             , false, &Help::traceEntry );
     __table["forks"] =	     Trace( &Trace::forks             , false, &Help::traceForks );
-    __table["idle_time"] =   Trace( &Trace::idle_time         , false, &Help::traceIdleTime );
+    __table["idle-time"] =   Trace( &Trace::idle_time         , false, &Help::traceIdleTime );
     __table["interlock"] =   Trace( &Trace::interlock         , false, &Help::traceInterlock );
     __table["joins"] =	     Trace( &Trace::joins             , false, &Help::traceJoins );
     __table["mva"] =	     Trace( &Trace::mva               , true,  &Help::traceMva );

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: activity.cc 13684 2020-07-13 15:41:25Z greg $
  */
 
 #include "activity.h"
@@ -24,6 +24,7 @@
 #include <lqio/dom_entry.h>
 #include <lqio/dom_call.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/dom_task.h>
 #include "model.h"
 #include "actlist.h"
 #include "errmsg.h"
@@ -170,7 +171,7 @@ Activity::check() const
     if ( !reachable() ) {
 	LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", name().c_str() );
     } else if ( !hasServiceTime() ) {
-	LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME, name().c_str() );
+	LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, owner()->getDOM()->getTypeName(), owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
     }
 
     return Phase::check();
@@ -256,9 +257,9 @@ ActivityList *
 Activity::inputFrom( ActivityList * aList )
 {
     if ( inputFrom() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
     } else if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
     } else {
 	_inputFrom = aList;
     }
@@ -274,8 +275,8 @@ Activity::inputFrom( ActivityList * aList )
 ActivityList *
 Activity::outputTo( ActivityList * aList )
 {
-    if ( outputTo() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name().c_str() );
+    if ( outputTo() && aList != nullptr ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
     } else {
 	_outputTo = aList;
     }
@@ -606,6 +607,91 @@ Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate
 
 
 
+/*
+ * Called by entry to transform a sequence of activities into a single activity.
+ */
+
+void
+Activity::transmorgrify( std::deque<const Activity *>& activityStack, const double rate )
+{
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) return;
+    activityStack.push_back( this );
+
+    ActivityList * joinList = outputTo();
+    LQIO::DOM::Activity * currDOM = const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(getDOM()));
+    LQIO::DOM::Task * taskDOM = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(owner()->getDOM()));
+
+    while ( joinList != nullptr && joinList->next() != nullptr ) {
+	if ( dynamic_cast<ForkActivityList *>(joinList->next()) ) {	/* Sequence... */
+
+	    ForkActivityList * forkList = dynamic_cast<ForkActivityList *>(joinList->next());
+	    const LQIO::DOM::ActivityList * forkDOM = forkList->getDOM();
+	    Activity * nextActivity = forkList->getMyActivity();
+	    const LQIO::DOM::Activity * nextDOM = forkDOM->getList().front();
+
+	    /* Update values */
+	    
+	    Phase::merge( *currDOM, *nextDOM, rate );
+
+	    /* do calls */
+
+	    for ( std::vector<Call *>::const_iterator call = nextActivity->calls().begin(); call != nextActivity->calls().end(); ++call ) {
+		Entry * dstEntry = const_cast<Entry *>((*call)->dstEntry());
+
+		/* Aggregate the calls made by the activity to the entry */
+
+		Call * dstCall;
+		if ( (*call)->isPseudoCall() ) {
+		    dstCall = findOrAddFwdCall( dstEntry );
+		} else {
+		    dstCall = findOrAddCall( dstEntry );
+		}
+		dstCall->merge( *this, **call, rate );
+		//	anActivity->removeDstCall( *call );	/* Unlink the activity's call. */
+	    }
+	    
+	    /* Replies */
+
+	    const std::vector<Entry *>& nextReplies = nextActivity->replies();
+	    if ( nextReplies.size() > 0 ) {
+		_replies.insert( _replies.end(), nextReplies.begin(), nextReplies.end() );
+		std::vector<LQIO::DOM::Entry *>& currRepliesDOM = currDOM->getReplyList();
+		const std::vector<LQIO::DOM::Entry *>& nextRepliesDOM = nextDOM->getReplyList();
+		currRepliesDOM.insert( currRepliesDOM.end(), nextRepliesDOM.begin(), nextRepliesDOM.end() );
+	    }
+		
+	    /* reconnect lists */
+	    
+	    taskDOM->removeActivityList( currDOM->getOutputToList()->getNext() );	/* Fork List */
+	    taskDOM->removeActivityList( currDOM->getOutputToList() );			/* Join List */
+	    joinList = dynamic_cast<ForkActivityList *>(joinList->next())->getMyActivity()->outputTo();
+	    currDOM->outputTo( nullptr );
+	    currDOM->outputTo( const_cast<LQIO::DOM::ActivityList *>(nextDOM->getOutputToList()));
+	    outputTo( nullptr );
+	    outputTo( joinList );
+	    taskDOM->removeActivity( const_cast<LQIO::DOM::Activity *>(nextDOM) );
+	    const_cast<Task *>(owner())->removeActivity( this );
+	    
+	    /* if replyto(), recurse... !!! */
+
+	    if ( replies().size() > 0 ) {
+		break;
+	    }
+	    
+	} else if ( dynamic_cast<OrForkActivityList *>(outputTo()->next()) ) {
+	    /* or fork - merge. !!! */
+	    abort();
+	} else if ( dynamic_cast<AndForkActivityList *>(outputTo()->next()) ) {
+	    /* and fork - recurse !!! */
+	    abort();
+	} else {
+	    abort();
+	}
+    }
+}
+
+
+
 
 
 /*
@@ -756,40 +842,6 @@ Activity::isSelectedIndirectly() const
 	return true;
     }
     return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) ) != calls().end();
-}
-
-
-
-
-/*
- * Called by entry to transform a sequence of activities into a standard entry.
- * Returns true iff possible.
- */
-
-bool
-Activity::transmorgrify()
-{
-    if ( rootEntry() ) {
-	if ( !outputTo() || !outputTo()->next() ) {
-	    const_cast<Entry *>(rootEntry())->aggregateService( this, 1, 1.0 );
-	    const_cast<Task *>(owner())->removeActivity( this );
-	    delete this;
-	    return true;
-	} else if ( outputTo()
-		    && repliesTo( rootEntry() )
-		    && dynamic_cast<JoinActivityList *>(outputTo())
-		    && dynamic_cast<ForkActivityList *>(outputTo()->next()) ) {
-	    Activity * nextActivity = dynamic_cast<ForkActivityList *>(outputTo()->next())->myActivity;
-	    if ( !nextActivity->outputTo() || !nextActivity->outputTo()->next() ) {
-		const_cast<Entry *>(rootEntry())->aggregateService( this, 1, 1.0 ).aggregateService( nextActivity, 2, 1.0 );
-		const_cast<Task *>(owner())->removeActivity( nextActivity ).removeActivity( this );
-		delete nextActivity;
-		delete this;
-		return true;
-	    }
-	}
-    }
-    return false;
 }
 
 
@@ -1439,7 +1491,7 @@ ActivityList *
 Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-        LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+        LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new AndForkActivityList( const_cast<Task *>(owner()), dom_activitylist );
@@ -1463,7 +1515,7 @@ ActivityList *
 Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new OrForkActivityList( const_cast<Task *>(owner()), dom_activitylist );

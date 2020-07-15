@@ -1,47 +1,50 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqns -Pvariance=mol,threads=mak 93-simple-ucm.lqnx -->
-<lqn-model name="93-simple-ucm" description="lqns 5.3 solution for model from: 93-simple-ucm.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id$ -->
+<!-- lqns -pragma=variance=mol,threads=mak -->
+<lqn-model name="93-simple-ucm" description="lqns 5.15 solution for model from: 93-simple-ucm.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <result-general valid="YES" conv-val="7.14017e-06" iterations="9" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:00.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:01.00">
-         <mva-info submodels="4" core="36" step="261" step-squared="2355" wait="20525" wait-squared="4.76623e+07" faults="0"/>
+      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-Retina-iMac.local Darwin 19.5.0" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.000">
+         <mva-info submodels="4" core="8" step="58" step-squared="542" wait="4784" wait-squared="1.29922e+07" faults="0"/>
       </result-general>
+      <pragma param="threads" value="mak"/>
+      <pragma param="variance" value="mol"/>
    </solver-params>
    <processor name="P_Infinite" scheduling="inf">
       <result-processor utilization="1"/>
       <task name="RefTask1" scheduling="ref">
          <result-task throughput="0.1" utilization="1" phase1-utilization="1" proc-utilization="1"/>
          <entry name="RefTask1_RefE" type="NONE">
-            <result-entry utilization="1" throughput="0.1" squared-coeff-variation="1" proc-utilization="1" phase1-service-time="10"/>
+            <result-entry utilization="1" throughput="0.1" squared-coeff-variation="1" proc-utilization="1" throughput-bound="0.1" phase1-service-time="10" phase1-service-time-variance="100" phase1-utilization="1"/>
          </entry>
          <task-activities>
             <activity name="RefTask1_A1_AsyncCall" bound-to-entry="RefTask1_RefE" host-demand-mean="10">
-               <result-activity proc-waiting="0" service-time="10" service-time-variance="100" utilization="1"/>
+               <result-activity proc-waiting="0" service-time="10" utilization="1" service-time-variance="100" throughput="0.1" proc-utilization="1"/>
                <asynch-call dest="t1_E1" calls-mean="1">
-                  <result-call waiting="8.17762" waiting-variance="0"/>
+                  <result-call waiting="5.60417"/>
                </asynch-call>
             </activity>
          </task-activities>
       </task>
    </processor>
    <processor name="p1" scheduling="fcfs">
-      <result-processor utilization="0.400003"/>
+      <result-processor utilization="0.4"/>
       <task name="t1" scheduling="fcfs">
-         <result-task throughput="0.1" utilization="0.400005" phase1-utilization="0.400005" proc-utilization="0.15"/>
+         <result-task throughput="0.1" utilization="0.4" phase1-utilization="0.4" proc-utilization="0.15"/>
          <entry name="t1_E1" type="NONE">
-            <result-entry utilization="0.400005" throughput="0.1" squared-coeff-variation="2.13292" proc-utilization="0.15" phase1-service-time="4.00005"/>
+            <result-entry utilization="0.4" throughput="0.1" squared-coeff-variation="0.203125" proc-utilization="0.15" throughput-bound="0.25" phase1-service-time="4" phase1-service-time-variance="3.25" phase1-utilization="0.4"/>
          </entry>
          <task-activities>
             <activity name="a1_h8_SyncCall" bound-to-entry="t1_E1" host-demand-mean="1.5" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="6.09898e-06" service-time="4.00005" service-time-variance="34.1275" utilization="0.400005"/>
+               <result-activity proc-waiting="0" service-time="4" utilization="0.4" service-time-variance="3.25" throughput="0.1" proc-utilization="0.15"/>
                <synch-call dest="t2_E1" calls-mean="1">
-                  <result-call waiting="2.04453e-05" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
             </activity>
-            <activity name="t1_A1" host-demand-mean="0" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+            <activity name="t1_A1" host-demand-mean="0">
+               <result-activity proc-waiting="0" service-time="0" utilization="0" throughput="0.1" proc-utilization="0"/>
             </activity>
-            <activity name="t1_A2_" host-demand-mean="0" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+            <activity name="t1_A2_" host-demand-mean="0">
+               <result-activity proc-waiting="0" service-time="0" utilization="0" throughput="0.1" proc-utilization="0"/>
             </activity>
             <precedence>
                <pre>
@@ -62,19 +65,19 @@
          </task-activities>
       </task>
       <task name="t2" scheduling="fcfs">
-         <result-task throughput="0.100001" utilization="0.250004" phase1-utilization="0.250004" proc-utilization="0.150002"/>
+         <result-task throughput="0.1" utilization="0.25" phase1-utilization="0.25" proc-utilization="0.15"/>
          <entry name="t2_E1" type="NONE">
-            <result-entry utilization="0.250004" throughput="0.100001" squared-coeff-variation="1.40002" proc-utilization="0.150002" phase1-service-time="2.50001"/>
+            <result-entry utilization="0.25" throughput="0.1" squared-coeff-variation="0.34" proc-utilization="0.15" throughput-bound="0.4" phase1-service-time="2.5" phase1-service-time-variance="2.125" phase1-utilization="0.25"/>
          </entry>
          <task-activities>
             <activity name="a2_h6_SyncCall" bound-to-entry="t2_E1" host-demand-mean="1.5" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="3.4277e-06" service-time="2.50001" service-time-variance="8.75018" utilization="0.250004"/>
+               <result-activity proc-waiting="0" service-time="2.5" utilization="0.25" service-time-variance="2.125" throughput="0.1" proc-utilization="0.15"/>
                <synch-call dest="t3_E1" calls-mean="1">
-                  <result-call waiting="3.10253e-06" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
             </activity>
-            <activity name="t2_A1_SendReply" host-demand-mean="0" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="0" service-time="0" service-time-variance="0" utilization="0"/>
+            <activity name="t2_A1_SendReply" host-demand-mean="0">
+               <result-activity proc-waiting="0" service-time="0" utilization="0" throughput="0.1" proc-utilization="0"/>
             </activity>
             <precedence>
                <pre>
@@ -90,13 +93,13 @@
          </task-activities>
       </task>
       <task name="t3" scheduling="fcfs">
-         <result-task throughput="0.100002" utilization="0.100002" phase1-utilization="0.100002" proc-utilization="0.100002"/>
+         <result-task throughput="0.1" utilization="0.1" phase1-utilization="0.1" proc-utilization="0.1"/>
          <entry name="t3_E1" type="NONE">
-            <result-entry utilization="0.100002" throughput="0.100002" squared-coeff-variation="0.999997" proc-utilization="0.100002" phase1-service-time="1"/>
+            <result-entry utilization="0.1" throughput="0.1" squared-coeff-variation="1" proc-utilization="0.1" throughput-bound="1" phase1-service-time="1" phase1-service-time-variance="1" phase1-utilization="0.1"/>
          </entry>
          <task-activities>
-            <activity name="a4_h5_SendReply" bound-to-entry="t3_E1" host-demand-mean="1" call-order="DETERMINISTIC">
-               <result-activity proc-waiting="1.33563e-06" service-time="1" service-time-variance="1" utilization="0.100002"/>
+            <activity name="a4_h5_SendReply" bound-to-entry="t3_E1" host-demand-mean="1">
+               <result-activity proc-waiting="0" service-time="1" utilization="0.1" service-time-variance="1" throughput="0.1" proc-utilization="0.1"/>
             </activity>
             <reply-entry name="t3_E1">
                <reply-activity name="a4_h5_SendReply"/>

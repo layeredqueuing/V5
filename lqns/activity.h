@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: activity.h 13685 2020-07-14 02:53:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -111,7 +111,6 @@ public:
 
     virtual bool check() const;
 
-    Activity& clearThroughput() { myThroughput = 0.0; return *this; }
     virtual double throughput() const { return myThroughput; }	/* Throughput results.		*/
     virtual bool repliesTo( const Entry * ) const;
     virtual bool isActivity() const { return true; }

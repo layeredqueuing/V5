@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: entry.cc 13685 2020-07-14 02:53:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -514,8 +514,8 @@ Entry::setThroughput( const double value )
     _throughput = value;
 
     if ( flags.trace_replication || flags.trace_throughput ) {
-	cout <<"Entry::throughput(): Task = "<<this->owner()->name()<<" ,Entry= "<<this->name()
-	     <<" , Throughput="<<_throughput << endl;
+	cout << " Entry::throughput(): Task=" << this->owner()->name() << ", Entry=" << this->name()
+	     << ", Throughput=" << _throughput << endl;
     }
 
     if ( isActivityEntry() ) {

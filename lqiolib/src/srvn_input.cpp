@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13554 2020-05-24 15:17:29Z greg $
+ *  $Id: srvn_input.cpp 13683 2020-07-13 14:25:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -959,7 +959,7 @@ namespace LQIO {
 
 	    /* Configure the activity */
 	    if (activity->isStartActivity()) {
-		input_error2( ERR_IS_START_ACTIVITY, activity->getName().c_str() );
+		input_error2( ERR_IS_START_ACTIVITY, activity->getTask()->getName().c_str(), activity->getName().c_str() );
 	    } else {
 		if (!activityList) {
 		    activityList = new ActivityList(LQIO::DOM::__document,domTask,ActivityList::AND_FORK_ACTIVITY_LIST);
@@ -1038,7 +1038,7 @@ namespace LQIO {
 		input_error2( ERR_INVALID_PROBABILITY, probability );
 	    } else {
 		if (activity->isStartActivity()) {
-		    input_error2( ERR_IS_START_ACTIVITY, activity->getName().c_str() );
+		    input_error2( ERR_IS_START_ACTIVITY, activity->getTask()->getName().c_str(), activity->getName().c_str() );
 		} else {
 		    if (activityList == NULL) {
 			activityList = new ActivityList(LQIO::DOM::__document,domTask,ActivityList::OR_FORK_ACTIVITY_LIST);

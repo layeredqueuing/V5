@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 13556 2020-05-25 17:39:26Z greg $
+ * $Id: activity.cc 13683 2020-07-13 14:25:00Z greg $
  */
 
 #include <parasol.h>
@@ -594,7 +594,7 @@ Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
     ActivityList * list = 0;
 
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ACT_JOIN_LIST, 0, dom_activitylist );
 	list->u.join.quorumCount = 0;
@@ -613,7 +613,7 @@ ActivityList *
 Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
 	return input_list;
     } 
 
@@ -647,7 +647,7 @@ Activity::act_or_join_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     ActivityList * list = input_list;
 
     if ( _output ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ACT_OR_JOIN_LIST, input_list, dom_activitylist );
 	_output = list;
@@ -663,9 +663,9 @@ Activity::act_fork_item( LQIO::DOM::ActivityList * dom_activitylist)
     ActivityList * list = 0;
 
     if ( _is_start_activity ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ACT_FORK_LIST, 0, dom_activitylist );
 	_input = list;
@@ -685,9 +685,9 @@ Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList
     ActivityList * list = input_list;
 
     if ( _is_start_activity ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ACT_AND_FORK_LIST, input_list, dom_activitylist );
 	_input = list;
@@ -716,9 +716,9 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     ActivityList * list = input_list;
 
     if ( _is_start_activity ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
 	unsigned i;
 	double sum = 0.0;
@@ -748,9 +748,9 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
     ActivityList * list = input_list;
 	  
     if ( _is_start_activity ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, task()->name(), name() );
     } else if ( _input ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
 	list = realloc_list( ACT_LOOP_LIST, input_list, dom_activitylist );
 	_input = list;

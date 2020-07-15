@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_activity.cpp 13683 2020-07-13 14:25:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -70,8 +70,8 @@ namespace LQIO {
 		
 	void Activity::outputTo(ActivityList* outputList)
 	{
-	    if (_outputList != NULL) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getName().c_str() );
+	    if (_outputList != NULL && outputList != NULL) {
+		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getTask()->getName().c_str(), getName().c_str() );
 	    } else {
 		_outputList = outputList;
 	    }
@@ -79,10 +79,10 @@ namespace LQIO {
 
 	void Activity::inputFrom(ActivityList* inputList)
 	{
-	    if (_inputList != NULL) {
-		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getName().c_str() );
+	    if (_inputList != NULL && inputList != NULL) {
+		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getTask()->getName().c_str(), getName().c_str() );
 	    } else if ( isStartActivity() ) {
-		input_error2( ERR_IS_START_ACTIVITY, getName().c_str() );
+		input_error2( ERR_IS_START_ACTIVITY, getTask()->getName().c_str(), getName().c_str() );
 	    } else {
 		_inputList = inputList;
 	    }

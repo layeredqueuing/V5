@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: phase.cc 13684 2020-07-13 15:41:25Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -342,6 +342,23 @@ Phase::isNonExponential() const
 	return false;
     }
 }
+
+
+/*
+ * merge values from src to dst.
+ */
+
+void
+Phase::merge( LQIO::DOM::Phase& dst, const LQIO::DOM::Phase& src, double rate )
+{
+    dst.setServiceTimeValue( dst.getServiceTimeValue() + src.getServiceTimeValue() * rate );
+    if ( (src.hasStochasticCalls() && dst.hasDeterministicCalls()) || (src.hasDeterministicCalls() && dst.hasStochasticCalls()) ) {
+//	LQIO::solution_error( WRN_MIXED_PHASE_TYPE, ... );
+    } else if ( src.hasDeterministicCalls() ) {
+	dst.setPhaseTypeFlag( PHASE_DETERMINISTIC );
+    }
+}
+
 
 
 /*

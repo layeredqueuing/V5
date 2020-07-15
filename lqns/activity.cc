@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: activity.cc 13685 2020-07-14 02:53:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -307,9 +307,9 @@ ActivityList *
 Activity::inputFrom( ActivityList * aList )
 {
     if ( inputFromList ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
     } else if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
     } else {
 	inputFromList = aList;
     } 
@@ -326,7 +326,7 @@ ActivityList *
 Activity::outputTo( ActivityList * aList )
 {
     if ( outputToList ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
     } else {
 	outputToList = aList;
     }
@@ -853,7 +853,7 @@ Activity::aggregateReplication( Entry * anEntry, const unsigned submodel, const 
 void
 Activity::setThroughput( Entry * anEntry, const unsigned, const unsigned ) 
 {
-    myThroughput += anEntry->throughput();
+    myThroughput = anEntry->throughput();
 }
 
 
@@ -978,7 +978,7 @@ ActivityList *
 Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-        LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+        LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new AndForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
@@ -1002,7 +1002,7 @@ ActivityList *
 Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist )
 {
     if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, name().c_str() );
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
 	return activityList;
     } else if ( !activityList ) {
 	activityList = new OrForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );

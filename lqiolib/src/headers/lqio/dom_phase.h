@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_phase.h 13684 2020-07-13 15:41:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -56,7 +56,8 @@ namespace LQIO {
 	    bool hasServiceTime() const;
 	    phase_type getPhaseTypeFlag() const;
 	    void setPhaseTypeFlag(const phase_type phaseTypeFlag);
-	    bool hasDeterministicCalls() const { return _phaseTypeFlag == PHASE_DETERMINISTIC; }
+	    bool hasDeterministicCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == PHASE_DETERMINISTIC; }
+	    bool hasStochasticCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == PHASE_STOCHASTIC; }
 	    const Entry* getSourceEntry() const;
 	    void setSourceEntry(Entry* entry);
 	    double getThinkTimeValue() const;

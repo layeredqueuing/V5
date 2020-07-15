@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_task.cpp 13681 2020-07-12 13:38:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -315,11 +315,34 @@ namespace LQIO {
 	    _activities[name] = newActivity;
 	}
 
+	Activity * Task::removeActivity( Activity * activity )
+	{
+	    const std::string& name = activity->getName();
+	    std::map<std::string,Activity*>::iterator i = _activities.find(name);
+	    if ( i != _activities.end() ) {
+		_activities.erase(i);
+		return activity;
+	    } else {
+		return nullptr;
+	    }
+	}
+	
 	void Task::addActivityList(ActivityList * activityList)
 	{
 	    _precedences.insert(activityList);
 	}
 
+	ActivityList * Task::removeActivityList(ActivityList * activityList)
+	{
+	    std::set<ActivityList *>::iterator i = _precedences.find(activityList);
+	    if ( i != _precedences.end() ) {
+		_precedences.erase(i);
+		return activityList;
+	    } else {
+		return nullptr;
+	    }
+	}
+	
 	const std::set<ActivityList*>& Task::getActivityLists() const
 	{
 	    return _precedences;

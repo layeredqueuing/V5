@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: srvn_output.cpp 13685 2020-07-14 02:53:54Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2340,8 +2340,8 @@ namespace LQIO {
     {
         _output << setw(__maxStrLen) << " " << setw(__maxStrLen-1) << activity.getName() << " ";
         switch (activity.getPhaseTypeFlag()) {
-        case PHASE_DETERMINISTIC: _output << setw(__maxDblLen) << "determin";
-        case PHASE_STOCHASTIC:    _output << setw(__maxDblLen) << "stochastic";
+        case PHASE_DETERMINISTIC: _output << setw(__maxDblLen) << "determin"; break;
+        case PHASE_STOCHASTIC:    _output << setw(__maxDblLen) << "stochastic"; break;
         }
         _output << newline;
     }

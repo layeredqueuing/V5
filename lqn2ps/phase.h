@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: phase.h 13684 2020-07-13 15:41:25Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -129,6 +129,7 @@ public:
     virtual const std::vector<Call *>& calls() const;
     virtual const Entry * rootEntry() const { return 0; }
 
+    static void merge( LQIO::DOM::Phase&, const LQIO::DOM::Phase&, double rate );
     virtual double serviceTimeForSRVNInput() const;
 
 #if defined(REP2FLAT)

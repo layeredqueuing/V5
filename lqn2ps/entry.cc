@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: entry.cc 13684 2020-07-13 15:41:25Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1226,13 +1226,7 @@ Entry::aggregateService( const Activity * anActivity, const unsigned p, const do
     phase->setResultProcessorWaiting( entry->getResultPhasePProcessorWaiting(p) );
     phase->setResultProcessorWaitingVariance( entry->getResultPhasePProcessorWaitingVariance(p) );
     
-    double time = 0.0;
-    const LQIO::DOM::ExternalVariable * service = phase->getServiceTime();
-    if ( service ) {
-	service->getValue( time );
-    }
-    time += to_double(anActivity->serviceTime()) * rate;
-    const_cast<LQIO::DOM::Phase *>(phase)->setServiceTimeValue( time );
+    Phase::merge( *phase, *anActivity->getDOM(), rate );
 
     for ( std::vector<Call *>::const_iterator call = anActivity->calls().begin(); call != anActivity->calls().end(); ++call ) {
 	Entry * dstEntry = const_cast<Entry *>((*call)->dstEntry());
@@ -1429,12 +1423,12 @@ Entry::aggregate()
 
 	std::deque<const Activity *> activityStack;
 	unsigned next_p = 1;
-	startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
 
 	switch ( Flags::print[AGGREGATION].value.i ) {
 	case AGGREGATE_ACTIVITIES:
 	case AGGREGATE_PHASES:
 	case AGGREGATE_ENTRIES:
+	    startActivity()->aggregate( this, 1, next_p, 1.0, activityStack, &Activity::aggregateService );
 	    _startActivity = nullptr;
 	    myActivityCall = nullptr;
 	    const_cast<LQIO::DOM::Entry *>(dom)->setStartActivity( nullptr );
@@ -1443,9 +1437,7 @@ Entry::aggregate()
 
 	case AGGREGATE_SEQUENCES:
 	case AGGREGATE_THREADS:
-	    if ( startActivity()->transmorgrify() ) {
-		const_cast<LQIO::DOM::Entry *>(dom)->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
-	    }
+	    startActivity()->transmorgrify( activityStack, 1.0 );
 	    break;
 
 	default:

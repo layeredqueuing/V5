@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: activity.h 13684 2020-07-13 15:41:25Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -97,13 +97,13 @@ public:
 
     virtual double serviceTimeForSRVNInput() const;
     Activity& disconnect( Activity * );
-    bool transmorgrify();
 
     Activity& sort();
     static bool compareCoord( const Activity *, const Activity * );
 
     double aggregateReplies( Entry * anEntry, const unsigned p, const double rate );
     double aggregateService( Entry * anEntry, const unsigned p, const double rate );
+    void transmorgrify( std::deque<const Activity *>& activityStack, const double rate );
 
     virtual Activity& rename();
     
