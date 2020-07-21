@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: task.h 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,7 +27,6 @@
 
 class Activity;
 class ActivityList;
-class CallStack;
 class Entry;
 class Format;
 class Processor;
@@ -91,7 +90,7 @@ public:
     static void reset();
     virtual bool check() const;
     virtual Task& configure( const unsigned );
-    virtual unsigned findChildren( CallStack&, const bool ) const;
+    virtual unsigned findChildren( Call::stack&, const bool ) const;
     Task& initProcessor();
     virtual Task& initWait();
     virtual Task& initPopulation();
@@ -252,7 +251,7 @@ public:
     
     virtual bool check() const;
     virtual ReferenceTask& recalculateDynamicValues();
-    virtual unsigned findChildren( CallStack&, const bool ) const;
+    virtual unsigned findChildren( Call::stack&, const bool ) const;
     virtual double countCallers( std::set<Task *>& reject ) const;
 
     virtual bool isReferenceTask() const { return true; }

@@ -1,22 +1,26 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqns -Pvariance=mol,threads=mak 43-activities.lqnx -->
-<lqn-model name="43-activities" description="lqns 5.3 solution for model from: 43-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id$ -->
+<!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
+<lqn-model name="43-activities" description="lqns 5.15 solution for model from: 43-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Activities with AND fork-join - reply on branch." conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <result-general valid="YES" conv-val="9.57222e-07" iterations="25" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:02.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:02.00">
-         <mva-info submodels="3" core="75" step="824" step-squared="19698" wait="115377" wait-squared="6.04614e+08" faults="0"/>
+      <result-general valid="YES" conv-val="7.36526e-07" iterations="23" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.029" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.029">
+         <mva-info submodels="3" core="69" step="742" step-squared="17470" wait="102303" wait-squared="5.38843e+08" faults="0"/>
       </result-general>
+      <pragma param="severity-level" value="warning"/>
+      <pragma param="threads" value="mak"/>
+      <pragma param="variance" value="mol"/>
    </solver-params>
    <processor name="client" scheduling="inf">
-      <result-processor utilization="0.857547"/>
+      <result-processor utilization="0.843571"/>
       <task name="client" scheduling="ref" multiplicity="2">
-         <result-task throughput="0.857547" utilization="2" phase1-utilization="2" proc-utilization="0.857547"/>
+         <result-task throughput="0.843571" utilization="2" phase1-utilization="2" proc-utilization="0.843571"/>
          <entry name="client" type="PH1PH2">
-            <result-entry utilization="2" throughput="0.857547" squared-coeff-variation="1.59822" proc-utilization="0.857547"/>
+            <result-entry utilization="2" throughput="0.843571" squared-coeff-variation="1.61294" proc-utilization="0.843571" throughput-bound="1.08108"/>
             <entry-phase-activities>
                <activity name="client_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="2.33223" service-time-variance="8.69321" utilization="2"/>
+                  <result-activity proc-waiting="0" service-time="2.37087" utilization="2" service-time-variance="9.06641"/>
                   <synch-call dest="server" calls-mean="1">
-                     <result-call waiting="0.35468" waiting-variance="0"/>
+                     <result-call waiting="0.22994"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>
@@ -24,24 +28,24 @@
       </task>
    </processor>
    <processor name="server" scheduling="fcfs" multiplicity="2">
-      <result-processor utilization="1.28632"/>
+      <result-processor utilization="1.26536"/>
       <task name="server" scheduling="fcfs" multiplicity="2">
-         <result-task throughput="0.857547" utilization="1.52325" phase1-utilization="0.838298" phase2-utilization="0.68495" proc-utilization="1.28632"/>
+         <result-task throughput="0.843571" utilization="1.47542" phase1-utilization="0.962458" phase2-utilization="0.512961" proc-utilization="1.26536"/>
          <entry name="server" type="NONE">
-            <result-entry utilization="1.52325" throughput="0.857547" squared-coeff-variation="0.21879" proc-utilization="1.28632" phase1-service-time="0.977554" phase2-service-time="0.798732"/>
+            <result-entry utilization="1.47542" throughput="0.843571" squared-coeff-variation="0.285689" proc-utilization="1.26536" throughput-bound="1.55844" phase1-service-time="1.14093" phase2-service-time="0.608083" phase1-service-time-variance="0.465104" phase2-service-time-variance="0.408834" phase1-utilization="0.962458" phase2-utilization="0.512961"/>
          </entry>
          <task-activities>
             <activity name="fork1" host-demand-mean="0.4">
-               <result-activity proc-waiting="0.161219" service-time="0.561219" service-time-variance="0.185992" utilization="0.481272"/>
+               <result-activity proc-waiting="0.152341" service-time="0.552341" utilization="0.465939" service-time-variance="0.183208" throughput="0.843571" proc-utilization="0.337428"/>
             </activity>
             <activity name="fork2" host-demand-mean="0.6">
-               <result-activity proc-waiting="0.141301" service-time="0.741301" service-time-variance="0.379966" utilization="0.6357"/>
+               <result-activity proc-waiting="0.133572" service-time="0.733572" utilization="0.61882" service-time-variance="0.377841" throughput="0.843571" proc-utilization="0.506143"/>
             </activity>
             <activity name="join" host-demand-mean="0.25">
-               <result-activity proc-waiting="0.166335" service-time="0.416335" service-time-variance="0.0901674" utilization="0.357027"/>
+               <result-activity proc-waiting="0.157362" service-time="0.407362" utilization="0.343638" service-time-variance="0.0872627" throughput="0.843571" proc-utilization="0.210893"/>
             </activity>
             <activity name="server" bound-to-entry="server" host-demand-mean="0.25">
-               <result-activity proc-waiting="0.166335" service-time="0.416335" service-time-variance="0.0901674" utilization="0.357027"/>
+               <result-activity proc-waiting="0.157362" service-time="0.407362" utilization="0.343638" service-time-variance="0.0872627" throughput="0.843571" proc-utilization="0.210893"/>
             </activity>
             <precedence>
                <pre>
@@ -54,7 +58,7 @@
             </precedence>
             <precedence>
                <pre-AND>
-                  <result-join-delay join-waiting="0.943616" join-variance="0.323998"/>
+                  <result-join-delay join-waiting="0.934293" join-variance="0.321572"/>
                   <activity name="fork1"/>
                   <activity name="fork2"/>
                </pre-AND>

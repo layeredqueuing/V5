@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: submodel.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -947,7 +947,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 			    const Server * aStation = (*server)->serverStation();
 			    for ( unsigned int e = 1; e <= (*server)->nEntries(); ++e ) {
 				if ( !isfinite( aStation->R(e,0) ) && aStation->V(e,0) != 0 && aStation->S(e,0) != 0 ) {
-				    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), (*server)->entryAt(e)->name().c_str(), aStation->mu()/aStation->S(e,0) );
+				    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), (*server)->entryAt(e-1)->name().c_str(), aStation->mu()/aStation->S(e,0) );
 				}
 			    }
 			}

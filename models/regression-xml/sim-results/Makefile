@@ -1,11 +1,12 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13675 2020-07-10 15:29:36Z greg $
+# $Id: Makefile 13705 2020-07-20 21:46:53Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
-OPTS=	-C1.0,1000 -S1049217653 -x
+OPTS=	-C1.0,1000 -x
+SEED=	-S1049217653 
 #OPTS=	-B3,10000,1000 -M -S1049217653
 
 SANITY=	01-sanity.lqxo \
@@ -69,7 +70,8 @@ DST =	$(SANITY) \
 	91-cs3-1.lqxo \
 	92-open.lqxo \
 	93-simple-ucm.lqxo \
-	95-async-inf.lqxo
+	95-async-inf.lqxo \
+	94-5101-a2-q2b1.lqxo 
 
 SRC = $(DST:.lqxo=.lqnx)
 
@@ -78,7 +80,7 @@ SRC = $(DST:.lqxo=.lqnx)
 .PHONY:	.files
 
 .lqnx.lqxo:
-	$(SRVN) $(OPTS) -o $*.lqxo $<
+	$(SRVN) $(OPTS) $(SEED) -o $*.lqxo $<
 
 all:	$(DST) .files
 
@@ -122,5 +124,8 @@ diff:
 
 56-replication.lqxo:	56-replication-flat.lqxo
 	lqn2ps -Oxml -o$*.lqxo --merge-replicas 56-replication-flat.lqxo
+
+94-5101-a2-q2b1.lqxo: 	94-5101-a2-q2b1.lqnx
+	$(SRVN) -C1.0,10000 $(SEED) -xo $*.lqxo $<
 
 repl:	50-replication.lqxo 51-replication.lqxo 52-replication.lqxo 55-replication.lqxo 56-replication.lqxo 

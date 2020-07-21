@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: processor.cc 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,9 +62,9 @@ Processor::check() const
 
     /* Check replication */
 
-    const double proc_replicas = static_cast<double>(this->replicas());
+    const unsigned int proc_replicas = this->replicas();
     for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-	double temp = static_cast<double>((*task)->replicas()) / proc_replicas;
+	double temp = static_cast<double>((*task)->replicas()) / static_cast<double>(proc_replicas);
 	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, (*task)->replicas(), (*task)->name().c_str(), proc_replicas, name().c_str() );
 	}

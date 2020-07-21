@@ -1,11 +1,12 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13675 2020-07-10 15:29:36Z greg $
+# $Id: Makefile 13705 2020-07-20 21:46:53Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
-OPTS=	-C1.0,1000 -S1049217653
+SEED=	-S1049217653
+OPTS=	-C1.0,1000 
 
 DST =	01-sanity.p \
 	02-sanity.p \
@@ -64,7 +65,8 @@ DST =	01-sanity.p \
 	90-B07.p \
 	91-cs3-1.p \
 	92-open.p \
-	93-simple-ucm.p 
+	93-simple-ucm.p \
+	94-5101-a2-q2b1.p 
 
 SRC = $(DST:.p=.in)
 
@@ -73,7 +75,7 @@ SRC = $(DST:.p=.in)
 .PHONY:	.files
 
 .in.p:
-	$(SRVN) $(OPTS) -p -o $*.p $<
+	$(SRVN) $(OPTS) $(SEED) -p -o $*.p $<
 
 all:	$(DST) .files
 
@@ -86,27 +88,30 @@ diff:
 
 50-replication.p:	50-replication.in
 	rep2flat 50-replication.in
-	$(SRVN) $(OPTS) -p 50-replication-flat.in
+	$(SRVN) $(OPTS) $(SEED) -p 50-replication-flat.in
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 50-replication-flat.in
 
 51-replication.p:	51-replication.in
 	rep2flat 51-replication.in
-	$(SRVN) $(OPTS) -p 51-replication-flat.in
+	$(SRVN) $(OPTS) $(SEED) -p 51-replication-flat.in
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 51-replication-flat.in
 
 52-replication.p:	52-replication.in
 	rep2flat 52-replication.in
-	$(SRVN) $(OPTS) -p 52-replication-flat.in
+	$(SRVN) $(OPTS) $(SEED) -p 52-replication-flat.in
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 52-replication-flat.in
 
 55-replication.p:	55-replication.in
 	rep2flat 55-replication.in
-	$(SRVN) $(OPTS) -p 55-replication-flat.in
+	$(SRVN) $(OPTS) $(SEED) -p 55-replication-flat.in
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 55-replication-flat.in
 
 56-replication.p:	56-replication.in
 	rep2flat 56-replication.in
-	$(SRVN) $(OPTS) -p 56-replication-flat.in
+	$(SRVN) $(OPTS) $(SEED) -p 56-replication-flat.in
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 56-replication-flat.in
+
+94-5101-a2-q2b1.p: 	94-5101-a2-q2b1.in
+	$(SRVN) -C1.0,10000 $(SEED) -o $*.p $<
 
 repl:	50-replication.p 51-replication.p 52-replication.p 55-replication.p 56-replication.p 

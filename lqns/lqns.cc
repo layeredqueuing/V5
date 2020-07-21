@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: lqns.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Command line processing.
  *
@@ -193,7 +193,7 @@ int main (int argc, char *argv[])
     io_vars.lq_toolname = basename( argv[0] );
     command_line = io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-07-13 22:53:54 -0400 (Mon, 13 Jul 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-07-20 17:46:53 -0400 (Mon, 20 Jul 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -767,8 +767,6 @@ under_relax( double& old_value, const double new_value, const double relax )
 #include "interlock.h"
 #include "actlist.h"
 #include "entrythread.h"
-#include "stack.h"
-#include "stack.cc"
 #endif
 #if !defined(TESTMVA) || defined(TESTDIST)
 #include "randomvar.h"
@@ -783,13 +781,6 @@ template class Vector<Entry *>;
 template class Vector<Submodel *>;
 template class Vector<Thread *>;
 template class Vector<const AndForkActivityList*>;
-template class Stack<Entry *>;
-template class Stack<Phase *>;
-template class Stack<const Call *>;
-template class Stack<const Activity *>;
-template class Stack<const AndForkActivityList *>;
-template class Stack<const Entity *>;
-template class Stack<const Entry *>;
 template class Vector<Exponential>;
 template class Vector<Phase>;
 template class Vector<InterlockInfo>;

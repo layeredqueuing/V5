@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: phase.h 13705 2020-07-20 21:46:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,7 +25,6 @@
 #include "prob.h"
 
 class ProcessorCall;
-class CallStack;
 class Entry;
 class DeviceEntry;
 class Entity;
@@ -36,7 +35,6 @@ class AndForkActivityList;
 class ActivityList;
 class Activity;
 class InterlockInfo;
-template <class type> class Stack;
 namespace LQIO {
     namespace DOM {
 	class Phase;
@@ -134,9 +132,9 @@ public:
     Phase& initWait();
     Phase& initVariance();
 
-    unsigned findChildren( CallStack&, const bool ) const;
-    virtual unsigned followInterlock( Stack<const Entry *> &, const InterlockInfo&, const unsigned  );
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    unsigned findChildren( Call::stack&, const bool ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *> &, const InterlockInfo&, const unsigned  );
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     void setInterlockedCall(const unsigned submodel);
     void addSrcCall( Call * aCall ) { _callList.insert(aCall); }
     void removeSrcCall( Call *aCall ) { _callList.erase(aCall); }
@@ -196,7 +194,7 @@ public:
     double getReplicationProcWait( unsigned int submodel, const double relax );
     double getReplicationTaskWait( unsigned int submodel, const double relax ); //tomari quorum
     double getReplicationRendezvous( unsigned int submodel, const double relax );
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
 
     /* recalculation of dynamic values */
 	
@@ -213,7 +211,7 @@ protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry );
 
 private:
-    Phase const& addForwardingRendezvous( CallStack& callStack ) const;
+    Phase const& addForwardingRendezvous( Call::stack& callStack ) const;
     Phase& forwardedRendezvous( const Call * fwdCall, const double value );
     double sumOfRendezvous() const;
     double nrFactor( const Call * aCall, const Submodel& aSubmodel ) const;

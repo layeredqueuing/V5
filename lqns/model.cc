@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: model.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -52,7 +52,6 @@
 #include <lqio/input.h>
 #include "errmsg.h"
 #include "fpgoop.h"
-#include "stack.h"
 #include "model.h"
 #include "group.h"
 #include "processor.h"
@@ -1127,36 +1126,41 @@ Model::createDirectory() const
 }
 
 /*
- * Sort tasks into layers.  Start from reference tasks only and tasks
- * with open arrivals.  If a task has open arrivals, start from level
+ * Sort tasks into layers.  Start from reference tasks and tasks
+ * with open arrivals only.  If a task has open arrivals, start from level
  * 1 so that it is treated as a server.
  */
 
 unsigned
 Model::topologicalSort()
 {
-    CallStack callStack( __task.size() + 2 );
+    Call::stack callStack;
     unsigned max_depth = 0;
 
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	const int initialLevel = (*task)->rootLevel();
-	if ( initialLevel >= 0 ) {
-	    callStack.grow( initialLevel );
-	    try {
-		max_depth = max( (*task)->findChildren( callStack, true ), max_depth );
-		callStack.shrink( initialLevel );
+	if ( initialLevel < 0 ) continue;	/* Only do reference tasks or those with open arrivals */
+	    
+	NullCall null_call;			/* Open arrivals start at 1 */
+	if ( initialLevel > 0 ) {
+	    callStack.push_back(&null_call);	/* Place holder */
+	}
+	try {
+	    max_depth = max( (*task)->findChildren( callStack, true ), max_depth );
+	}
+	catch( const Call::call_cycle& error ) {
+	    std::string msg;
+	    for ( Call::stack::const_reverse_iterator i = callStack.rbegin(); i != callStack.rend(); ++i ) {
+		if ( !(*i)->getDOM() ) continue;
+		if ( i != callStack.rbegin() ) msg += ", ";
+		msg += (*i)->dstName();
 	    }
-	    catch( const call_cycle& error ) {
-		callStack.shrink( error.depth() );
-		max_depth = max( error.depth(), max_depth );
-		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
-	    }
-	    assert ( callStack.size() == 0 );
+	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
 	}
     }
 
     if ( io_vars.anError() ) {
-	throw exception_handled( "Model::topologicalSort" );	//
+	throw exception_handled( "Model::topologicalSort" );
     }
     return max_depth;
 }

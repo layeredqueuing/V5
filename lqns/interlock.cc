@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: interlock.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -19,7 +19,6 @@
 #include "interlock.h"
 #include "task.h"
 #include "entry.h"
-#include "stack.h"
 #include "option.h"
 #include "model.h"
 
@@ -266,7 +265,7 @@ Interlock::findSources()
 
     /* Look for all parent tasks */
 
-    Stack<const Entry *> entryStack( Model::__task.size() + 2 );
+    std::deque<const Entry *> entryStack;
     for ( std::set<const Entry *>::const_iterator entry = commonEntries.begin(); entry != commonEntries.end(); ++entry ) {
 	const Entity * aTask = (*entry)->owner();
 

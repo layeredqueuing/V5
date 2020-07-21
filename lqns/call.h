@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: call.h 13705 2020-07-20 21:46:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -22,7 +22,7 @@
 #include <cstdlib>
 #include <lqio/input.h>
 #include <lqio/dom_call.h>
-#include "stack.h"
+#include <deque>
 #include "prob.h"
 
 
@@ -38,8 +38,6 @@ class InterlockInfo;
 class PathNode;
 class Server;
 class Task;
-template <class type> class Stack;
-template <class type> class Sequence;
 
 typedef void (Call::*callFunc)( const unsigned, const unsigned, const double );
 typedef bool (Call::*queryFunc)() const;
@@ -60,6 +58,34 @@ public:
 	const unsigned _p;
     };
     
+    
+    struct Find {
+	Find( const Call * call, const bool direct_path ) : _call(call), _direct_path(direct_path), _broken(false) {}
+
+	bool operator()( const Call * ) const;
+	
+    private:
+	const Call * _call;
+	const bool _direct_path;
+	mutable bool _broken;
+    };
+	
+    class stack : public std::deque<const Call *>
+    {
+    public:
+	stack() : std::deque<const Call *>() {}
+
+	unsigned depth() const;
+    };
+
+    class call_cycle
+    {
+    public:
+	call_cycle() {}
+	virtual ~call_cycle() throw() {}
+    };
+
+
     typedef enum { RENDEZVOUS_CALL=0x01, SEND_NO_REPLY_CALL=0x02, FORWARDED_CALL=0x04, OVERTAKING_CALL=0x08 } call_type;
 
     Call( const Phase * fromPhase, const Entry * toEntry );
@@ -104,6 +130,7 @@ public:
     bool hasRendezvousOrNone() const { return !hasSendNoReply() && !hasForwarding(); }
     bool hasSendNoReplyOrNone() const { return !hasRendezvous() && !hasForwarding(); }
     bool hasForwardingOrNone() const { return !hasRendezvous() && !hasSendNoReply(); }
+    bool hasNoForwarding() const { return dstEntry() == nullptr || hasRendezvous() || hasSendNoReply(); }		/* Special case for topological sort */
 
     virtual const Entry * srcEntry() const;
     virtual const std::string& srcName() const;
@@ -126,7 +153,7 @@ public:
 
     double variance() const;
     double CV_sqr() const;
-    unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
 
     /* MVA interface */
 
@@ -164,6 +191,15 @@ private:
     unsigned chainNumber;
 };
 
+
+/* -------------------------------------------------------------------- */
+
+class NullCall : public Call {
+public:
+    NullCall() : Call(nullptr,nullptr) {}
+
+    virtual NullCall& initWait() { return *this; }
+};
 
 /* -------------------------------------------------------------------- */
 
@@ -224,26 +260,5 @@ public:
     virtual const Entry * srcEntry() const;
     virtual const std::string& srcName() const;
     virtual const Task * srcTask() const;
-};
-
-/* -------------- Special class to handle call stacks. ---------------- */
-
-class CallStack : public Stack<const Call *>
-{
-public:
-    CallStack( const unsigned size = 0 ) : Stack<const Call *>( size ) {}
-
-    unsigned find( const Call *, const bool ) const;
-    unsigned size() const;
-    unsigned size2() const;
-};
-
-/* ------------------------ Exception Handling ------------------------ */
-
-class call_cycle : public path_error
-{
-public:
-    call_cycle( const Call *, const CallStack& );
-    virtual ~call_cycle() throw() {}
 };
 #endif

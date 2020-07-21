@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: entity.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -25,7 +25,6 @@
 #include "errmsg.h"
 #include "vector.h"
 #include "fpgoop.h"
-#include "stack.h"
 #include "entity.h"
 #include "lqns.h"
 #include "errmsg.h"
@@ -137,9 +136,9 @@ Entity::configure( const unsigned nSubmodels )
  */
 
 unsigned
-Entity::findChildren( CallStack& callStack, const bool ) const
+Entity::findChildren( Call::stack& callStack, const bool ) const
 {
-    unsigned max_depth = max( submodel(), callStack.size() );
+    unsigned max_depth = max( submodel(), callStack.depth() );
 
     const_cast<Entity *>(this)->setSubmodel( max_depth );
     return max_depth;

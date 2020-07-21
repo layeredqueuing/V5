@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: task.cc 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,6 @@
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
-#include "stack.h"
 #include "fpgoop.h"
 #include "errmsg.h"
 #include "task.h"
@@ -208,10 +207,10 @@ Task::configure( const unsigned nSubmodels )
  */
 
 unsigned
-Task::findChildren( CallStack& callStack, const bool directPath ) const
+Task::findChildren( Call::stack& callStack, const bool directPath ) const 
 {
     unsigned max_depth = Entity::findChildren( callStack, directPath );
-    const Entry * dstEntry = callStack.top() ? callStack.top()->dstEntry() : 0;
+    const Entry * dstEntry = callStack.back()->dstEntry();
 
     /* Chase calls from srcTask. */
 
@@ -312,7 +311,7 @@ Task::initInterlock()
 {
     if ( pragma.getInterlock() == NO_INTERLOCK ) return *this;
 
-    Stack<const Entry *> entryStack( Model::__task.size() + 2 );
+    std::deque<const Entry *> entryStack;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	InterlockInfo calls(1.0,1.0);
 	(*entry)->initInterlock( entryStack, calls );
@@ -1501,7 +1500,7 @@ ReferenceTask::countCallers( std::set<Task *>& ) const
  */
 
 unsigned
-ReferenceTask::findChildren( CallStack& callStack, const bool ) const
+ReferenceTask::findChildren( Call::stack& callStack, const bool ) const
 {
     unsigned max_depth = Entity::findChildren( callStack, true );
 

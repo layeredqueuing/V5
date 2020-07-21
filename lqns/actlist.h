@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: actlist.h 13705 2020-07-20 21:46:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,11 +21,11 @@
 #include "dim.h"
 #include <lqio/dom_activity.h>
 #include <string>
+#include <stack>
 #include "vector.h"
 #include "prob.h"
 #include "activity.h"
 
-class CallStack;
 class Entry;
 class Entity;
 class ActivityList;
@@ -46,14 +46,14 @@ template <class type> class VectorMath;
 class bad_internal_join : public path_error 
 {
 public:
-    bad_internal_join( const Stack<const Activity *>& );
+    bad_internal_join( const std::deque<const Activity *>& );
     virtual ~bad_internal_join() throw() {}
 };
 
 class bad_external_join : public path_error 
 {
 public:
-    bad_external_join( const Stack<const Activity *>& );
+    bad_external_join( const std::deque<const Activity *>& );
     virtual ~bad_external_join() throw() {}
 };
 
@@ -96,13 +96,14 @@ public:
 	
     /* Computation */
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>& ) const = 0;
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const = 0;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const = 0;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc ) = 0;
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const = 0;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const = 0;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const = 0;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const = 0;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const = 0;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const = 0;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& ) = 0;
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const = 0;
+//    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const = 0;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const = 0;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
 
     virtual const std::string& firstName() const;
@@ -121,7 +122,7 @@ protected:
     virtual ActivityList& next( ActivityList * );	/* Link to fork list 		*/
     virtual ActivityList& prev( ActivityList * );	/* Link to Join list		*/
 
-    void initEntry( Entry *, const Entry *, const unsigned, AggregateFunc, const double = 1.0 ) const;
+    void initEntry( Entry *, const Entry *, const Activity::Collect& ) const;
 
 private:
     const Task * myOwner;
@@ -159,13 +160,13 @@ public:
     virtual activity_type myType() const { return SEQUENCE; }
     virtual ActivityList * prev() const { return prevLink; }	/* Link to fork list 		*/
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -186,13 +187,13 @@ public:
     virtual activity_type myType() const { return SEQUENCE; }
     virtual ActivityList * next() const { return nextLink; }	/* Link to Join list		*/
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -223,13 +224,13 @@ public:
     ForkJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist ) : ActivityList( owner, dom_activitylist) {}
     virtual ~ForkJoinActivityList();
     virtual bool operator==( const ActivityList& item ) const;
-    const Vector<Activity *>& getMyActivityList() const { return myActivityList; }
+    const std::vector<Activity *>& getMyActivityList() const { return _activityList; }
     virtual ForkJoinActivityList& add( Activity * anActivity );
     virtual const std::string& firstName() const;
     virtual const std::string& lastName() const;
 
 protected:
-    Vector<Activity *> myActivityList;
+    std::vector<Activity *> _activityList;
 };
 
 
@@ -240,7 +241,7 @@ class AndOrForkActivityList : public ForkJoinActivityList
     friend class Task;
 	
 public:
-    AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList *  );
+    AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList * );
     virtual ~AndOrForkActivityList();
     virtual void configure( const unsigned );
 	
@@ -248,20 +249,18 @@ public:
 
     virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
 
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
 
     virtual double prBranch( const Activity * ) const = 0;
 
 protected:
     virtual AndOrForkActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
-    Entry * aggregateToEntry( const unsigned i, Stack<Entry *>&entryStack, const AndForkActivityList * forkList,
-			      const unsigned submodel, const unsigned p, unsigned& next_p, AggregateFunc aFunc );
+    Entry * collectToEntry( const unsigned i, std::deque<Entry *>&, Activity::Collect& );
 
+protected:    
+    std::vector<Entry *> _entryList;
     
-protected:
-    Vector<Entry *> myEntries;
-
 private:
     ActivityList * prevLink;
 };
@@ -278,11 +277,11 @@ public:
     virtual activity_type myType() const { return OR_FORK; }
     virtual bool check() const;
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
     virtual double prBranch( const Activity * ) const;
@@ -307,11 +306,11 @@ public:
 
     bool isDescendentOf( const AndForkActivityList * ) const;
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
     virtual const AndForkActivityList& insertDOMResults() const;
@@ -344,11 +343,11 @@ private:
 class AndOrJoinActivityList : public ForkJoinActivityList
 {
 public:
-    AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList *  );
+    AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * );
     virtual void configure( const unsigned );
 	
     virtual ActivityList * next() const { return nextLink; }	/* Link to fork list		*/
-    virtual unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
+    virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
 
 protected:
     virtual AndOrJoinActivityList& next( ActivityList * aList ) { nextLink = aList; return *this; }
@@ -370,16 +369,19 @@ public:
 	
     virtual activity_type myType() const { return OR_JOIN; }
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
     virtual const char * typeStr() const { return "|"; }
+
+private:
+    mutable std::map<const Activity *,double> _rateBranch;
 };
 
 /* -------------------------------------------------------------------- */
@@ -392,7 +394,7 @@ public:
     AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
     virtual AndJoinActivityList& add( Activity * anActivity );
 
-    virtual unsigned size() const { return myActivityList.size(); }
+    virtual unsigned size() const { return _activityList.size(); }
     void quorumListNum( unsigned quorumListNum) {myQuorumListNum = quorumListNum; }
     int quorumListNum() const { return myQuorumListNum; }  
     void quorumCount ( unsigned quorumCount) { myQuorumCount = quorumCount; }
@@ -406,12 +408,12 @@ public:
     bool joinType( const join_type );
     bool hasQuorum() const { return 0 < quorumCount() && quorumCount() < size(); }
 	
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 private:
@@ -420,8 +422,8 @@ private:
 
 private:
     mutable join_type myJoinType;		/* Barrier synch point.	*/
-    mutable Vector<const AndForkActivityList *> myForkList;
-    mutable Vector<const Activity *> mySrcList;
+    mutable std::vector<const AndForkActivityList *> _forkList;
+    mutable std::vector<const Activity *> _srcList;
     mutable unsigned myQuorumCount;
     unsigned  myQuorumListNum;
 };
@@ -441,12 +443,12 @@ public:
 
     virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
 
-    virtual unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>&  ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
@@ -458,8 +460,8 @@ private:
 
 private:
     ActivityList * prevLink;
-    Vector<Activity *> myActivityList;
-    Vector<Entry *> myEntries;
+    std::vector<Activity *> _activityList;
+    std::vector<Entry *> _entryList;
 };
 
 /* Used by model.cc */

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: call.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -17,7 +17,6 @@
 #include <cmath>
 #include <sstream>
 #include "call.h"
-#include "stack.h"
 #include "entry.h"
 #include "entity.h"
 #include "task.h"
@@ -53,7 +52,9 @@ Call::Call( const Phase * fromPhase, const Entry * toEntry )
       destination(toEntry), 
       _dom(nullptr)
 {
-    const_cast<Entry *>(destination)->addDstCall( this );	/* Set reverse link	*/
+    if ( toEntry != nullptr ) {
+	const_cast<Entry *>(destination)->addDstCall( this );	/* Set reverse link	*/
+    }
 }
 
 
@@ -375,7 +376,7 @@ Call::CV_sqr() const
  */
 
 unsigned
-Call::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+Call::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
 {
     unsigned max_depth = entryStack.size();
 
@@ -709,73 +710,30 @@ ActProcCall::srcTask() const
  * We are looking for matching tasks for calls.
  */
 
-/*
- * We are looking for matching tasks for calls.
- */
-
-unsigned
-CallStack::find( const Call * dstCall, const bool direct_path ) const
+bool 
+Call::Find::operator()( const Call * call ) const
 {
-    const Task * dstTask = dynamic_cast<const Task *>(dstCall->dstTask());
-    const Entry * dstEntry = dstCall->dstEntry();
-    const unsigned sz = Stack<const Call *>::size();
-    bool broken = false;
-    for ( unsigned j = sz; j > 0; --j ) {
-	const Call * aCall = (*this)[j];
-	if ( !aCall ) continue;
-	if ( aCall->hasSendNoReply() ) broken = true;		/* Cycle broken - async call */
-	if ( aCall->dstTask() == dstTask ) {
-	    if ( aCall->hasRendezvous() && dstCall->hasRendezvous() && !broken ) {
-		throw call_cycle( dstCall, *this );		/* Dead lock */
-	    } if ( aCall->dstEntry() == dstEntry && direct_path ) {
-		throw call_cycle( dstCall, *this );		/* Livelock */
-	    } else {
-		return j;
-	    }
+    if ( call == nullptr || call->getDOM() == nullptr ) return false;
+
+    if ( call->hasSendNoReply() ) _broken = true;		/* Cycle broken - async call */
+    if ( call->dstTask() == _call->dstTask() ) {
+	if ( call->hasRendezvous() && _call->hasRendezvous() && !_broken ) {
+	    throw call_cycle();		/* Dead lock */
+	} else if ( call->dstEntry() == _call->dstEntry() && _direct_path ) {
+	    throw call_cycle();		/* Livelock */
+	} else {
+	    return true;
 	}
     }
-    return 0;
+    return false;
 }
-
 
 /*
  * We may skip back over forwarded calls when computing the size.
  */
 
 unsigned
-CallStack::size() const
+Call::stack::depth() const	
 {
-    const unsigned sz = Stack<const Call *>::size();
-    unsigned k = 0;
-    for ( unsigned j = 1; j <= sz; ++j ) {
-	const Call * aCall = (*this)[j];
-	if ( !aCall || aCall->hasRendezvous() || aCall->hasSendNoReply() ) {
-	    k += 1;
-	}
-    }
-    return k;
-}
-
-
-/*
- * Return size of stack, regarless of model printing type.
- */
-
-unsigned
-CallStack::size2() const
-{
-    return Stack<const Call *>::size();
-}
-
-/* ------------------------ Exception Handling ------------------------ */
-
-call_cycle::call_cycle( const Call * aCall, const CallStack& callStack )
-    : path_error( callStack.size() )
-{
-    myMsg = aCall->dstName();
-    for ( unsigned i = callStack.size(); i > 0; --i ) {
-	if ( !callStack[i] ) continue;
-	myMsg += ", ";
-	myMsg += callStack[i]->dstName();
-    }
+    return count_if( begin(), end(), Predicate<Call>( &Call::hasNoForwarding ) );
 }

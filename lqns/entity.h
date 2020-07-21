@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: entity.h 13705 2020-07-20 21:46:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -23,8 +23,8 @@
 #include <lqio/dom_processor.h>
 #include "vector.h"
 #include "prob.h"
+#include "call.h"
 
-class CallStack;
 class Entity;
 class Entry;
 class Processor;
@@ -34,7 +34,6 @@ class Task;
 class Model;
 class Server;
 class Submodel;
-template <class type> class Stack;
 
 typedef Vector<unsigned> ChainVector;
 
@@ -92,7 +91,7 @@ public:
 
     virtual bool check() const = 0;
     virtual Entity& configure( const unsigned );
-    virtual unsigned findChildren( CallStack&, const bool ) const;
+    virtual unsigned findChildren( Call::stack&, const bool ) const;
     virtual Entity& initWait();
     virtual Entity& initThroughputBound() { return *this; }
     virtual Entity& initPopulation() = 0;

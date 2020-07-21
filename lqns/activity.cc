@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: activity.cc 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -26,7 +26,6 @@
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
 #include "errmsg.h"
-#include "stack.h"
 #include "actlist.h"
 #include "activity.h"
 #include "task.h"
@@ -41,6 +40,19 @@
 
 std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
 std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
+
+Activity::Exec&
+Activity::Exec::operator=( const Activity::Exec& src )
+{
+    _e = src._e;
+    _f = src._f;
+    _p = src._p;
+    _replyAllowed = src._replyAllowed;
+    _rate = src._rate;
+    _sum = src._sum;
+    return *this;
+}
+
 
 /*----------------------------------------------------------------------*/
 /*                    Activities are like phases....                    */
@@ -138,19 +150,19 @@ Activity::countCallList( unsigned callType ) const
  */
 
 unsigned
-Activity::findChildren( CallStack& callStack, const bool directPath, Stack<const Activity *>& activityStack, Stack<const AndForkActivityList *>& forkStack ) const
+Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack ) const
 {
     iAmReachable = true;
 
-    if ( activityStack.find( this ) ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	throw activity_cycle( this, activityStack );
     }
 
     unsigned max_depth = Phase::findChildren( callStack, directPath );
     if ( outputToList ) {
-	activityStack.push( this );
+	activityStack.push_back( this );
 	max_depth = max( max_depth, outputToList->findChildren( callStack, directPath, activityStack, forkStack ) );
-	activityStack.pop();
+	activityStack.pop_back();
     }
     return max_depth;
 }
@@ -161,13 +173,13 @@ Activity::findChildren( CallStack& callStack, const bool directPath, Stack<const
  * Search backwards up activity list looking for a match on forkStack
  */
 
-unsigned
-Activity::backtrack( Stack<const AndForkActivityList *>& forkStack ) const
+std::deque<const AndForkActivityList *>::const_iterator
+Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack ) const
 {
     if ( inputFromList ) {
 	return inputFromList->backtrack( forkStack );
     } else {
-	return 0;
+	return forkStack.end();
     }
 }
 
@@ -178,14 +190,10 @@ Activity::backtrack( Stack<const AndForkActivityList *>& forkStack ) const
  */
 
 unsigned
-Activity::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
+Activity::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
 {
-    const Entry * parent = entryStack.top();
     unsigned nextPhase = callingPhase;
-
-    /* Check for duplicate replies. */
-
-    if ( repliesTo( parent ) ) {
+    if ( repliesTo( entryStack.back() ) ) {
 	nextPhase = 2;
     }
 
@@ -208,38 +216,38 @@ Activity::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo
  * Follow the activitylist and continue.
  */
 
-void
-Activity::aggregate( Stack<Entry *>& entryStack, const AndForkActivityList * forkList, const unsigned submodel, const unsigned p, unsigned& next_p, AggregateFunc aFunc )
+Activity::Collect&
+Activity::collect( std::deque<Entry *>& entryStack, Activity::Collect& data ) 
 {
-    (this->*aFunc)( entryStack.top(), submodel, p );
+    Function f = data.collect();
+    (this->*f)( entryStack.back(), data );
     
-    next_p = p;
-    if ( repliesTo( entryStack.bottom() ) ) {
-	next_p = 2;
+    if ( repliesTo( entryStack.front() ) ) {
+	data.setPhase(2);
     }
     if ( outputToList ) {
-	outputToList->aggregate( entryStack, forkList, submodel, next_p, next_p, aFunc );
+	outputToList->collect( entryStack, data );
     }
+    return data;
 }
 
 
-double
-Activity::aggregate2( const Entry * anEntry, const unsigned p, unsigned& next_p, const double rate, Stack<const Activity *>& activityStack, const AggregateFunc2 aFunc ) const
+Activity::Exec&
+Activity::exec( std::deque<const Activity *>& stack, Activity::Exec& data) const
 {
-    if ( activityStack.find( this ) ) {
-	return 0.0;		// throw CycleErr().
+    if ( std::find( stack.begin(), stack.end(), this ) != stack.end() ) {
+	return data;
     }
-    double sum = (this->*aFunc)( anEntry, p, rate );
-    next_p = p;
-    if ( repliesTo( anEntry ) ) {
-	next_p = 2;
+    Predicate f = data.exec();
+    if ( (this->*f)( data ) ) {
+	data += data.rate();
     }
     if ( outputToList ) {
-	activityStack.push( this );
-	sum += outputToList->aggregate2( anEntry, next_p, next_p, rate, activityStack, aFunc );
-	activityStack.pop();
+	stack.push_back( this );
+	outputToList->exec( stack, data );
+	stack.pop_back();
     }
-    return sum;
+    return data;
 }
 
 
@@ -249,16 +257,16 @@ Activity::aggregate2( const Entry * anEntry, const unsigned p, unsigned& next_p,
  */
 
 void
-Activity::callsPerform( Stack<const Entry *>& entryStack, const AndForkActivityList * forkList, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
+Activity::callsPerform( const Entry * entry, const AndForkActivityList * forkList, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
 {
-    Phase::callsPerform( entryStack, 0, submodel, k, p, aFunc, rate );
+    Phase::callsPerform( entry, 0, submodel, k, p, aFunc, rate );
 
     unsigned next_phase = p;
-    if ( repliesTo( entryStack.bottom() ) ) {
+    if ( repliesTo( entry ) ) {
 	next_phase = 2;
     }
     if ( outputToList ) {
-	outputToList->callsPerform( entryStack, forkList, submodel, k, next_phase, aFunc, rate );
+	outputToList->callsPerform( entry, forkList, submodel, k, next_phase, aFunc, rate );
     }
 }
 
@@ -372,10 +380,10 @@ Activity::repliesTo( const Entry * anEntry ) const
  */
 
 bool
-Activity::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * myServer, 
+Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
 			       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
 {
-    const Entry * parent = entryStack.top();
+    const Entry * parent = entryStack.back();
     bool found = Phase::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
 
     if ( ( !repliesTo( parent ) || last_phase > 1 ) && outputToList ) {
@@ -781,38 +789,42 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
     return !anError;
 }
 
-/* ------------------------- Printing Functions ------------------------- */
-
+/* --------------------------- List processing -------------------------- */
 /*
- *  For XML output
+ * Return the number of replies generated by this activity for this entry.
  */
 
-const Activity&
-Activity::insertDOMResults() const
+bool
+Activity::checkReplies( Activity::Exec& data ) const
 {
-    Phase::insertDOMResults();
-    LQIO::DOM::Activity* domActivity = getDOM();
-
-    domActivity->setResultSquaredCoeffVariation(CV_sqr())
-	.setResultThroughput(throughput())
-	.setResultProcessorUtilization(processorUtilization());
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	LQIO::DOM::Call* domCall = const_cast<LQIO::DOM::Call*>((*call)->getDOM());
-	domCall->setResultWaitingTime((*call)->queueingTime());
+    const Entry * anEntry = data.entry();
+    if ( repliesTo( anEntry ) ) {
+	if (  anEntry->isCalledUsing( SEND_NO_REPLY_REQUEST ) || anEntry->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
+	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+	} else if ( !data.canReply() || data.rate() != 1 ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+	} else if ( data.phase() > 1 ) {
+	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+	} 
+	data.setPhase(2);
+	return true;
+    } else if ( data.phase() > 1 ) {
+	const_cast<Entry *>(anEntry)->setMaxPhase( data.phase() );
     }
-    return *this;
+    return false;
 }
-
+
 /*
  * If submodel != 0, then we have the mean time for the submodel.
  * Overwise, we have the variance.
  */
 
 void
-Activity::aggregateWait( Entry * anEntry, const unsigned submodel, const unsigned p )
+Activity::collectWait( Entry * anEntry, const Activity::Collect& data )
 {
-    if ( submodel ) {
+    const unsigned int submodel = data.submodel();
+    const unsigned int p = data.phase();
+    if ( submodel > 0 ) {
 	anEntry->_phase[p].myWait[submodel] += myWait[submodel];
 	if ( flags.trace_activities ) {
 	    cout << "Activity " << name() << " aggregate to ";
@@ -834,8 +846,10 @@ Activity::aggregateWait( Entry * anEntry, const unsigned submodel, const unsigne
  */
 
 void
-Activity::aggregateReplication( Entry * anEntry, const unsigned submodel, const unsigned p )
+Activity::collectReplication( Entry * anEntry, const Activity::Collect& data )
 {
+    const unsigned int submodel = data.submodel();
+    const unsigned int p = data.phase();
     assert( submodel > 0 );
 
     anEntry->_phase[p]._surrogateDelay += _surrogateDelay;
@@ -847,51 +861,48 @@ Activity::aggregateReplication( Entry * anEntry, const unsigned submodel, const 
 
 
 /*
- * Set our throughput by chasing back to all entries that call me.
- */
-
-void
-Activity::setThroughput( Entry * anEntry, const unsigned, const unsigned ) 
-{
-    myThroughput = anEntry->throughput();
-}
-
-
-
-/*
  * Add the service time from this activity to anEntry.
  * Access the instance variables directly because of side effects with setServicetime().
  */
 
 void
-Activity::aggregateServiceTime( Entry * anEntry, const unsigned submodel, const unsigned p )
+Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data )
 {
-    anEntry->addServiceTime( p, serviceTime() );
+    anEntry->addServiceTime( data.phase(), serviceTime() );
 }
 
 
 /*
- * Return the number of replies generated by this activity for this entry.
+ * Set our throughput by chasing back to all entries that call me.
  */
 
-double
-Activity::aggregateReplies( const Entry * anEntry, const unsigned p, const double rate ) const
+void
+Activity::setThroughput( Entry * anEntry, const Activity::Collect& ) 
 {
-    double sum = 0;
-    if ( repliesTo( anEntry ) ) {
-	if (  anEntry->isCalledUsing( SEND_NO_REPLY_REQUEST ) || anEntry->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
-	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
-	} else if ( rate <= 0 ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
-	} else if ( p > 1 ) {
-	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
-	} else {
-	    sum = rate;
-	}
-    } else if ( p > 1 ) {
-	const_cast<Entry *>(anEntry)->setMaxPhase( p );
+    myThroughput = anEntry->throughput();
+}
+
+/* ------------------------- Printing Functions ------------------------- */
+
+/*
+ *  For XML output
+ */
+
+const Activity&
+Activity::insertDOMResults() const
+{
+    Phase::insertDOMResults();
+    LQIO::DOM::Activity* domActivity = getDOM();
+
+    domActivity->setResultSquaredCoeffVariation(CV_sqr())
+	.setResultThroughput(throughput())
+	.setResultProcessorUtilization(processorUtilization());
+
+    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
+	LQIO::DOM::Call* domCall = const_cast<LQIO::DOM::Call*>((*call)->getDOM());
+	domCall->setResultWaitingTime((*call)->queueingTime());
     }
-    return sum;
+    return *this;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -1038,14 +1049,14 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
 
 /* ------------------------ Exception Handling ------------------------ */
 
-activity_cycle::activity_cycle( const Activity * anActivity, Stack<const Activity *>& activityStack )
+activity_cycle::activity_cycle( const Activity * anActivity, const std::deque<const Activity *>& activityStack )
     : path_error( activityStack.size() )
 {
     myMsg = anActivity->name();
-    for ( unsigned i = activityStack.size(); i > 0; --i ) {
+    for ( std::deque<const Activity *>::const_reverse_iterator i = activityStack.rbegin(); i != activityStack.rend(); ++i ) {
 	myMsg += ", ";
-	myMsg += activityStack[i]->name();
-	if ( activityStack[i] == anActivity ) break;
+	myMsg += (*i)->name();
+	if ( (*i) == anActivity ) break;
     }
 }
 

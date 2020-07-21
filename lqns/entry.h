@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: entry.h 13705 2020-07-20 21:46:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,6 +24,7 @@
 #include <lqio/dom_entry.h>
 #include <set>
 #include <vector>
+#include <deque>
 #include "prob.h"
 #include "call.h"
 #include "vector.h"
@@ -145,13 +146,13 @@ private:
 public:
     bool check() const;
     virtual Entry& configure( const unsigned );
-    unsigned findChildren( CallStack&, const bool ) const;
+    unsigned findChildren( Call::stack&, const bool ) const;
     virtual Entry& initProcessor() = 0;
     virtual Entry& initWait() = 0;
     Entry& initThroughputBound();
     Entry& initReplication( const unsigned );	// REPL
     Entry& resetInterlock();
-    unsigned initInterlock( Stack<const Entry *>& stack, const InterlockInfo& globalCalls );
+    unsigned initInterlock( std::deque<const Entry *>& stack, const InterlockInfo& globalCalls );
 
     /* Instance Variable access */
 
@@ -254,9 +255,9 @@ public:
     virtual double updateWaitReplication( const Submodel&, unsigned& ) = 0;
     virtual Entry& saveOpenWait( const double aWait ) = 0;
 
-    unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo& );
+    unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo& );
     void followForwarding( Phase *, const Entry *, const double, Stack<const Entity *>& ) const;
-    bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>& ) const;
+    bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>& ) const;
     Entry& aggregate( const unsigned, const unsigned p, const Exponential& );
     Entry& aggregateReplication( const Vector< VectorMath<double> >& );
 

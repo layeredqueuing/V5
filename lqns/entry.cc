@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: entry.cc 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,7 +27,6 @@
 #include <string.h>
 #include <lqio/error.h>
 #include "errmsg.h"
-#include "stack.h"
 #include "model.h"
 #include "entry.h"
 #include "fpgoop.h"
@@ -200,16 +199,16 @@ Entry::configure( const unsigned nSubmodels )
     if ( isActivityEntry() && !isVirtualEntry() ) {
 
 	/* Check reply type and set max phase. */
-
-	Stack<const Activity *> activityStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	unsigned next_p = 1;
-	double replies = _startActivity->aggregate2( this, 1, next_p, 1.0, activityStack, &Activity::aggregateReplies );
+	std::deque<const Activity *> stack; // (dynamic_cast<const Task *>(owner())->activities().size());
+	Activity::Exec data( this, &Activity::checkReplies );
+	_startActivity->exec( stack, data );
+	const double replies = data.sum();
 	if ( isCalledUsing( RENDEZVOUS_REQUEST ) ) {
 	    if ( replies == 0.0 ) {
 		//tomari: disable to allow a quorum use the default reply which
 		//is after all threads completes exection.
 		//LQIO::solution_error( ERR_REPLY_NOT_GENERATED, name().c_str() );	/* BUG 238 */
-	    } else if ( fabs( replies - 1.0 ) > EPSILON ) {
+	    } else if ( fabs( fmod( replies, 1.0 ) ) > EPSILON ) {
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 	    }
 	}
@@ -218,11 +217,11 @@ Entry::configure( const unsigned nSubmodels )
 
 	/* Compute overall service time for this entry */
 
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	entryStack.push( this );
-	next_p = 1;
-	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateServiceTime );
-	entryStack.pop();
+	std::deque<Entry *> entryStack;;
+	entryStack.push_back( this );
+	Activity::Collect collect( 0, &Activity::collectServiceTime );
+	_startActivity->collect( entryStack, collect );
+	entryStack.pop_back();
 
 	_total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
     }
@@ -240,15 +239,14 @@ Entry::configure( const unsigned nSubmodels )
  */
 
 unsigned
-Entry::findChildren( CallStack& callStack, const bool directPath ) const
+Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 {
-    unsigned max_depth = callStack.size();
+    unsigned max_depth = callStack.depth();
 
     if ( isActivityEntry() ) {
 	max_depth = max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
-	const unsigned size = dynamic_cast<const Task *>(owner())->activities().size();
-	Stack<const AndForkActivityList *> forkStack( size ); 	// For matching forks/joins.
-	Stack<const Activity *> activityStack( size );		// For checking for cycles.
+	std::deque<const AndForkActivityList *> forkStack; 	// For matching forks/joins.
+	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
 	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
 	}
@@ -322,7 +320,7 @@ Entry::resetInterlock()
  */
 
 unsigned
-Entry::initInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& globalCalls )
+Entry::initInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls )
 {
     /*
      * Check for cycles in graph.  Return if found.  Cycle catching
@@ -330,15 +328,15 @@ Entry::initInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& glo
      * intelligent to compute the final prob. of following the arc.
      */
 
-    if ( entryStack.find( this ) ) {
+    if ( std::find( entryStack.begin(), entryStack.end(), this ) != entryStack.end() ) {
 	return entryStack.size() + 1;
     }
 
-    entryStack.push( this );
+    entryStack.push_back( this );
 
     /* Update interlock table */
 
-    const Entry * rootEntry = entryStack.bottom();
+    const Entry * rootEntry = entryStack.front();
 
     if ( rootEntry == this ) {
 	_interlock[rootEntry->entryId()] = globalCalls;
@@ -349,7 +347,7 @@ Entry::initInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& glo
 
     const unsigned max_depth = followInterlock( entryStack, globalCalls );
 
-    entryStack.pop();
+    entryStack.pop_back();
     return max_depth;
 }
 
@@ -519,11 +517,11 @@ Entry::setThroughput( const double value )
     }
 
     if ( isActivityEntry() ) {
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	entryStack.push( this );
-	unsigned next_p;
-	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::setThroughput );
-	entryStack.pop();
+	std::deque<Entry *> entryStack;
+	entryStack.push_back( this );
+	Activity::Collect collect( 0, &Activity::setThroughput );
+	_startActivity->collect( entryStack, collect );
+	entryStack.pop_back();
     }
     return *this;
 }
@@ -804,7 +802,7 @@ Entry::sliceTime( const Entry& dst, Slice_Info slice[], double y_xj[] ) const
  */
 
 unsigned
-Entry::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& globalCalls )
+Entry::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls )
 {
     unsigned max_depth = entryStack.size();
 
@@ -828,7 +826,7 @@ Entry::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
  */
 
 bool
-Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dstServer,
+Entry::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * dstServer,
 			    std::set<const Entity *>& interlockedTasks ) const
 {
     bool found = false;
@@ -853,7 +851,7 @@ Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dst
     const bool headOfPath = entryStack.size() == 0;
     const unsigned last_phase = headOfPath ? maxPhase() : 1;
 
-    entryStack.push( this );
+    entryStack.push_back( this );
     if ( isStandardEntry() ) {
 	for ( unsigned p = 1; p <= last_phase; ++p ) {
 	    if ( _phase[p].getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase ) ) {
@@ -863,7 +861,7 @@ Entry::getInterlockedTasks( Stack<const Entry *>& entryStack, const Entity * dst
     } else if ( isActivityEntry() ) {
 	found = _startActivity->getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase );
     }
-    entryStack.pop();
+    entryStack.pop_back();
 
     if ( found && !headOfPath ) {
 	interlockedTasks.insert( owner() );
@@ -1117,11 +1115,11 @@ TaskEntry::computeVariance()
 	    _phase[p].myVariance = 0.0;
 	}
 
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	entryStack.push( const_cast<TaskEntry *>(this) );
-	unsigned next_p;
-	_startActivity->aggregate( entryStack, 0, 0, 1, next_p, &Activity::aggregateWait );
-	entryStack.pop();
+	std::deque<Entry *> entryStack; //( dynamic_cast<const Task *>(owner())->activities().size() );
+	entryStack.push_back( this );
+	Activity::Collect collect( 0, &Activity::collectWait );
+	_startActivity->collect( entryStack, collect );
+	entryStack.pop_back();
 	_total.myVariance += for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
     } else {
 	_total.myVariance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
@@ -1168,10 +1166,11 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	if ( flags.trace_activities ) {
 	    cout << "--- AggreateWait for entry " << name() << " ---" << endl;
 	}
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	entryStack.push( this );
-	unsigned next_p;
-	_startActivity->aggregate( entryStack, 0, submodel, 1, next_p, &Activity::aggregateWait );
+	std::deque<Entry *> entryStack;
+	entryStack.push_back( this );
+	Activity::Collect collect( submodel, &Activity::collectWait );
+	_startActivity->collect( entryStack, collect );
+	entryStack.pop_back();
 
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 	    _total.myWait[submodel] += phase->myWait[submodel];
@@ -1244,10 +1243,11 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
     if ( isActivityEntry() ) {
 	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
 
-	Stack<Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-	entryStack.push( this );
-	unsigned next_p;
-	_startActivity->aggregate( entryStack, 0, aSubmodel.number(), 1, next_p, &Activity::aggregateReplication );
+	std::deque<Entry *> entryStack;
+	entryStack.push_back( this );
+	Activity::Collect collect( aSubmodel.number(), &Activity::collectReplication );
+	_startActivity->collect( entryStack, collect );
+	entryStack.pop_back();
 
     } else {
 	delta = for_each( _phase.begin(), _phase.end(), ExecSum1<Phase,double,const Submodel&>( &Phase::updateWaitReplication, aSubmodel )).sum();
@@ -1282,22 +1282,18 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
 {
     const double rate = prVisit();
 
-    Stack<const Entry *> entryStack( dynamic_cast<const Task *>(owner())->activities().size() );
-    entryStack.push( this );
-
     if ( isActivityEntry() ) {
 	/* since 'rate=prVisit()' is only for call::setvisit;
 	 * for a virtual entry, the throughput of its corresponding activity
 	 * is used to calculation entry throughput not the throughput of its owner task.
 	 * the visit of a call equals rate * rendenzvous() normally;
 	 * therefore, rate has to be set to 1.*/
-	_startActivity->callsPerform( entryStack, 0, submodel, k, 1, aFunc, rate );
+	_startActivity->callsPerform( this, 0, submodel, k, 1, aFunc, rate );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].callsPerform( entryStack, 0, submodel, k, p, aFunc, rate );
+	    _phase[p].callsPerform( this, 0, submodel, k, p, aFunc, rate );
 	}
     }
-    entryStack.pop();
     return *this;
 }
 

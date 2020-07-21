@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: model.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -477,6 +477,7 @@ Model::prepare( const LQIO::DOM::Document * document )
 bool
 Model::process()
 {
+    if ( !generate() ) return false;
     if ( !check() ) return false;
 
 #if defined(REP2FLAT)
@@ -486,8 +487,6 @@ Model::process()
     case REPLICATION_RETURN: returnReplication(); break;
     }
 #endif
-
-    if ( !generate() ) return false;
 
     /* Simplify model if requested. */
 

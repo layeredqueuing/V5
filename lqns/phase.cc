@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: phase.cc 13705 2020-07-20 21:46:53Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -23,7 +23,6 @@
 #include "fpgoop.h"
 #include "model.h"
 #include "phase.h"
-#include "stack.h"
 #include "vector.h"
 #include "entry.h"
 #include "entity.h"
@@ -265,9 +264,10 @@ Phase::~Phase()
  */
 
 unsigned
-Phase::findChildren( CallStack& callStack, const bool directPath ) const
+Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 {
-    unsigned max_depth = callStack.size();
+    const unsigned depth = callStack.depth();
+    unsigned max_depth = depth;
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	if ( (*call)->isForwardedCall() ) continue;
@@ -281,29 +281,35 @@ Phase::findChildren( CallStack& callStack, const bool directPath ) const
 	     * short-circuit test with directPath.
 	     */
 
-	    if (( callStack.find( (*call), directPath ) == 0 && callStack.size() >= dstTask->submodel() )
+	    if (( find_if( callStack.begin(), callStack.end(), Call::Find(*call, directPath) ) == callStack.end() && depth >= dstTask->submodel() )
 		|| directPath ) {					/* Always (for forwarding)	*/
 
-		callStack.push( (*call) );
+		callStack.push_back( (*call) );
 		if ( (*call)->hasForwarding() && directPath ) {
 		    addForwardingRendezvous( callStack );
 		} 
 		max_depth = max( dstTask->findChildren( callStack, directPath ), max_depth );
-		callStack.pop();
+		callStack.pop_back();
 
 	    }
 	}
-	catch ( const call_cycle& error ) {
+	catch ( const Call::call_cycle& error ) {
 	    if ( directPath && pragma.getCycles() == DISALLOW_CYCLES ) {
-		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
+		std::string msg;
+		for ( Call::stack::const_reverse_iterator i = callStack.rbegin(); i != callStack.rend(); ++i ) {
+		    if ( (*i)->getDOM() == nullptr ) continue;
+		    if ( i != callStack.rbegin() ) msg += ", ";
+		    msg += (*i)->dstName();
+		}
+		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
 	    }
 	}
     }
     if ( processorCall() ) {
-	callStack.push( processorCall() );
+	callStack.push_back( processorCall() );
 	const Entity * child = processorCall()->dstTask();
 	max_depth = max( child->findChildren( callStack, directPath ), max_depth );
-	callStack.pop();
+	callStack.pop_back();
     }
     return max_depth;
 }
@@ -318,19 +324,18 @@ Phase::findChildren( CallStack& callStack, const bool directPath ) const
  */
 
 Phase const& 
-Phase::addForwardingRendezvous( CallStack& callStack ) const
+Phase::addForwardingRendezvous( Call::stack& callStack ) const
 {
     double rate     = 1.0;
-    for ( unsigned i = callStack.size2(); i > 0 && callStack[i]; --i ) {
-	const Call * aCall = callStack[i];
-	if ( aCall->hasRendezvous() ) {
-	    rate   *= aCall->rendezvous();
-	    const_cast<Phase *>(aCall->srcPhase())->forwardedRendezvous( callStack.top(), rate );
+    for ( Call::stack::reverse_iterator call = callStack.rbegin(); call != callStack.rend(); ++call ) {
+	if ( (*call)->hasRendezvous() ) {
+	    rate *= (*call)->rendezvous();
+	    const_cast<Phase *>((*call)->srcPhase())->forwardedRendezvous( callStack.back(), rate );
 	    break;
-	} else if ( aCall->hasSendNoReply() ) {
+	} else if ( (*call)->hasSendNoReply() ) {
 	    break;
-	} else if ( aCall->hasForwarding() ) {
-	    rate   *= aCall->forward();
+	} else if ( (*call)->hasForwarding() ) {
+	    rate *= (*call)->forward();
 	} else {
 	    abort();
 	}
@@ -450,7 +455,7 @@ Phase::hasVariance() const
  */
 
 void
-Phase::callsPerform( Stack<const Entry *>& entryStack, const AndForkActivityList *, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
+Phase::callsPerform( const Entry * entry, const AndForkActivityList *, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
 {
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	if ( (*call)->submodel() == submodel ) {
@@ -1184,7 +1189,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
  */
 
 unsigned
-Phase::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
+Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
 {
     unsigned max_depth = entryStack.size();
 	
@@ -1213,20 +1218,20 @@ Phase::followInterlock( Stack<const Entry *>& entryStack, const InterlockInfo& g
  */
 
 bool
-Phase::getInterlockedTasks( Stack<const Entry *>& stack, const Entity * myServer, 
+Phase::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
 			    std::set<const Entity *>& interlockedTasks, const unsigned ) const
 {
     bool found = false;
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	const Entry * dstEntry = (*call)->dstEntry();
-	if ( !stack.find( dstEntry ) && dstEntry->getInterlockedTasks( stack, myServer, interlockedTasks ) ) {
+	if ( std::find( entryStack.begin(), entryStack.end(), dstEntry ) == entryStack.end() && dstEntry->getInterlockedTasks( entryStack, myServer, interlockedTasks ) ) {
 	    found = true;
 	}
     }
 
     if ( processorCall() ) {
-	if ( processorCall()->dstEntry()->getInterlockedTasks( stack, myServer, interlockedTasks ) ) {
+	if ( processorCall()->dstEntry()->getInterlockedTasks( entryStack, myServer, interlockedTasks ) ) {
 	    found = true;
 	}
     }

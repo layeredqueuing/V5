@@ -1,130 +1,78 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqns -Pvariance=mol,threads=mak 85-fork.lqnx -->
-<lqn-model name="85-fork" description="lqns 5.3 solution for model from: 85-fork.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id$ -->
+<!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
+<lqn-model name="85-fork" description="lqns 5.15 solution for model from: 85-fork.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="fork-join" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <result-general valid="YES" conv-val="8.67933e-07" iterations="13" platform-info="Gregs-MacBook.local Darwin 10.7.0" user-cpu-time="00:00:02.00" system-cpu-time="00:00:00.00" elapsed-time="00:00:02.00">
-         <mva-info submodels="3" core="39" step="435" step-squared="9283" wait="283256" wait-squared="9.32374e+09" faults="0"/>
+      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.006" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.006">
+         <mva-info submodels="3" core="6" step="112" step-squared="4170" wait="125854" wait-squared="7.72988e+09" faults="0"/>
       </result-general>
+      <pragma param="severity-level" value="warning"/>
+      <pragma param="threads" value="mak"/>
+      <pragma param="variance" value="mol"/>
    </solver-params>
-   <processor name="d1" scheduling="fcfs">
-      <result-processor utilization="0.153849"/>
-      <task name="d1" scheduling="fcfs">
-         <result-task throughput="3.84621" utilization="0.153849" phase1-utilization="0.153849" proc-utilization="0.153849"/>
-         <entry name="d1" type="PH1PH2">
-            <result-entry utilization="0.153849" throughput="3.84621" squared-coeff-variation="1" proc-utilization="0.153849"/>
-            <entry-phase-activities>
-               <activity name="d1_ph1" phase="1" host-demand-mean="0.04">
-                  <result-activity proc-waiting="0" service-time="0.04" service-time-variance="0.0016" utilization="0.153849"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="d2" scheduling="fcfs">
-      <result-processor utilization="0.153849"/>
-      <task name="d2" scheduling="fcfs">
-         <result-task throughput="3.84622" utilization="0.153849" phase1-utilization="0.153849" proc-utilization="0.153849"/>
-         <entry name="d2" type="PH1PH2">
-            <result-entry utilization="0.153849" throughput="3.84622" squared-coeff-variation="1" proc-utilization="0.153849"/>
-            <entry-phase-activities>
-               <activity name="d2_ph1" phase="1" host-demand-mean="0.04">
-                  <result-activity proc-waiting="0" service-time="0.04" service-time-variance="0.0016" utilization="0.153849"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="d3" scheduling="fcfs">
-      <result-processor utilization="0.153849"/>
-      <task name="d3" scheduling="fcfs">
-         <result-task throughput="3.84622" utilization="0.153849" phase1-utilization="0.153849" proc-utilization="0.153849"/>
-         <entry name="d3" type="PH1PH2">
-            <result-entry utilization="0.153849" throughput="3.84622" squared-coeff-variation="1" proc-utilization="0.153849"/>
-            <entry-phase-activities>
-               <activity name="d3_ph1" phase="1" host-demand-mean="0.04">
-                  <result-activity proc-waiting="0" service-time="0.04" service-time-variance="0.0016" utilization="0.153849"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="d4" scheduling="fcfs">
-      <result-processor utilization="0.153849"/>
-      <task name="d4" scheduling="fcfs">
-         <result-task throughput="3.84622" utilization="0.153849" phase1-utilization="0.153849" proc-utilization="0.153849"/>
-         <entry name="d4" type="PH1PH2">
-            <result-entry utilization="0.153849" throughput="3.84622" squared-coeff-variation="1" proc-utilization="0.153849"/>
-            <entry-phase-activities>
-               <activity name="d4_ph1" phase="1" host-demand-mean="0.04">
-                  <result-activity proc-waiting="0" service-time="0.04" service-time-variance="0.0016" utilization="0.153849"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
    <processor name="p1" scheduling="fcfs">
-      <result-processor utilization="0.35898"/>
+      <result-processor utilization="0.434541"/>
       <task name="t1" scheduling="ref">
-         <result-task throughput="0.512828" utilization="1" phase1-utilization="1" proc-utilization="0.35898"/>
+         <result-task throughput="0.620772" utilization="1" phase1-utilization="1" proc-utilization="0.434541"/>
          <entry name="e1" type="NONE">
-            <result-entry utilization="1" throughput="0.512828" squared-coeff-variation="0.207492" proc-utilization="0.35898" phase1-service-time="1.94997"/>
+            <result-entry utilization="1" throughput="0.620772" squared-coeff-variation="0.201765" proc-utilization="0.434541" throughput-bound="0.620772" phase1-service-time="1.6109" phase1-service-time-variance="0.523578" phase1-utilization="1"/>
          </entry>
          <task-activities>
             <activity name="a1" bound-to-entry="e1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0" service-time="0.3" service-time-variance="0.107333" utilization="0.153848"/>
+               <result-activity proc-waiting="0" service-time="0.3" utilization="0.186232" service-time-variance="0.107333" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
             </activity>
             <activity name="b1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.05" service-time="0.449999" service-time-variance="0.243832" utilization="0.230772"/>
+               <result-activity proc-waiting="0.0489277" service-time="0.449396" utilization="0.278973" service-time-variance="0.107333" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="0.0399996" waiting-variance="0"/>
+                  <result-call waiting="0.0391416"/>
                </synch-call>
             </activity>
             <activity name="b2" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.000208999" service-time="0.200388" service-time-variance="0.0493191" utilization="0.102765"/>
+               <result-activity proc-waiting="0.000294303" service-time="0.20058" utilization="0.124514" service-time-variance="0.0491429" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="7.16568e-05" waiting-variance="0"/>
+                  <result-call waiting="0.000100904"/>
                </synch-call>
             </activity>
             <activity name="c1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.0940293" service-time="0.455592" service-time-variance="0.235592" utilization="0.23364"/>
+               <result-activity proc-waiting="0.0941969" service-time="0.449533" utilization="0.279057" service-time-variance="0.107333" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0.024625" waiting-variance="0"/>
+                  <result-call waiting="0.0238655"/>
                </synch-call>
             </activity>
             <activity name="c2" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.00157821" service-time="0.204284" service-time-variance="0.0512859" utilization="0.104762"/>
+               <result-activity proc-waiting="0.00268296" service-time="0.207841" utilization="0.129022" service-time-variance="0.0491429" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0.0010822" waiting-variance="0"/>
+                  <result-call waiting="0.00183974"/>
                </synch-call>
             </activity>
             <activity name="d1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0" service-time="0.3" service-time-variance="0.107333" utilization="0.153848"/>
+               <result-activity proc-waiting="0" service-time="0.3" utilization="0.186232" service-time-variance="0.107333" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
             </activity>
             <activity name="e1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.05" service-time="0.35" service-time-variance="0.138167" utilization="0.17949"/>
+               <result-activity proc-waiting="0.0489277" service-time="0.3498" utilization="0.217146" service-time-variance="0.107333" throughput="0.620772" proc-utilization="0.0620772"/>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0" waiting-variance="0"/>
+                  <result-call waiting="0"/>
                </synch-call>
             </activity>
             <precedence>
@@ -147,7 +95,7 @@
             </precedence>
             <precedence>
                <pre-AND>
-                  <result-join-delay join-waiting="0.54463" join-variance="0.199889"/>
+                  <result-join-delay join-waiting="0.398765" join-variance="0.0977875"/>
                   <activity name="c1"/>
                   <activity name="d1"/>
                </pre-AND>
@@ -157,7 +105,7 @@
             </precedence>
             <precedence>
                <pre-AND>
-                  <result-join-delay join-waiting="1.34997" join-variance="0.5743"/>
+                  <result-join-delay join-waiting="1.0109" join-variance="0.301797"/>
                   <activity name="c2"/>
                   <activity name="b2"/>
                </pre-AND>
@@ -166,6 +114,62 @@
                </post>
             </precedence>
          </task-activities>
+      </task>
+   </processor>
+   <processor name="d2" scheduling="fcfs">
+      <result-processor utilization="0.186232"/>
+      <task name="d2" scheduling="fcfs">
+         <result-task throughput="4.65579" utilization="0.186232" phase1-utilization="0.186232" proc-utilization="0.186232"/>
+         <entry name="d2" type="PH1PH2">
+            <result-entry utilization="0.186232" throughput="4.65579" squared-coeff-variation="1" proc-utilization="0.186232" throughput-bound="25"/>
+            <entry-phase-activities>
+               <activity name="d2_ph1" phase="1" host-demand-mean="0.04">
+                  <result-activity proc-waiting="0" service-time="0.04" utilization="0.186232" service-time-variance="0.0016"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d3" scheduling="fcfs">
+      <result-processor utilization="0.186232"/>
+      <task name="d3" scheduling="fcfs">
+         <result-task throughput="4.65579" utilization="0.186232" phase1-utilization="0.186232" proc-utilization="0.186232"/>
+         <entry name="d3" type="PH1PH2">
+            <result-entry utilization="0.186232" throughput="4.65579" squared-coeff-variation="1" proc-utilization="0.186232" throughput-bound="25"/>
+            <entry-phase-activities>
+               <activity name="d3_ph1" phase="1" host-demand-mean="0.04">
+                  <result-activity proc-waiting="0" service-time="0.04" utilization="0.186232" service-time-variance="0.0016"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d4" scheduling="fcfs">
+      <result-processor utilization="0.186232"/>
+      <task name="d4" scheduling="fcfs">
+         <result-task throughput="4.65579" utilization="0.186232" phase1-utilization="0.186232" proc-utilization="0.186232"/>
+         <entry name="d4" type="PH1PH2">
+            <result-entry utilization="0.186232" throughput="4.65579" squared-coeff-variation="1" proc-utilization="0.186232" throughput-bound="25"/>
+            <entry-phase-activities>
+               <activity name="d4_ph1" phase="1" host-demand-mean="0.04">
+                  <result-activity proc-waiting="0" service-time="0.04" utilization="0.186232" service-time-variance="0.0016"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="d1" scheduling="fcfs">
+      <result-processor utilization="0.186232"/>
+      <task name="d1" scheduling="fcfs">
+         <result-task throughput="4.65579" utilization="0.186232" phase1-utilization="0.186232" proc-utilization="0.186232"/>
+         <entry name="d1" type="PH1PH2">
+            <result-entry utilization="0.186232" throughput="4.65579" squared-coeff-variation="1" proc-utilization="0.186232" throughput-bound="25"/>
+            <entry-phase-activities>
+               <activity name="d1_ph1" phase="1" host-demand-mean="0.04">
+                  <result-activity proc-waiting="0" service-time="0.04" utilization="0.186232" service-time-variance="0.0016"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
       </task>
    </processor>
 </lqn-model>

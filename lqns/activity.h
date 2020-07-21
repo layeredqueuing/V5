@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13685 2020-07-14 02:53:54Z greg $
+ * $Id: activity.h 13705 2020-07-20 21:46:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,8 +22,9 @@
 #include "dim.h"
 #include <string>
 #include <set>
+#include <deque>
+#include <stack>
 #include <lqio/dom_activity.h>
-#include "vector.h"
 #include "phase.h"
 #if HAVE_LIBGSL
 #include "randomvar.h"
@@ -45,8 +46,6 @@ class Path;
 template <class type> class Stack;
 
 typedef void (Activity::*AggregateFunc)(Entry *,const unsigned,const unsigned);
-typedef double (Activity::*AggregateFunc2)(const Entry *,const unsigned,const double) const;
-
 /* -------------------------------------------------------------------- */
 /*                               Activity                               */
 /* -------------------------------------------------------------------- */
@@ -69,6 +68,63 @@ class Activity : public Phase
     friend class AndOrJoinActivityList;
     friend void add_activity_lists ( Task* task, Activity* activity );
     friend class Task;				/* To access add_... */
+
+    /*
+     * Helper class for exec.
+     */
+
+public:
+    class Exec;
+    class Collect;
+    
+    typedef bool (Activity::*Predicate)( Exec& ) const;
+    typedef void (Activity::*Function)( Entry *, const Collect& );
+    
+    class Exec {
+    public:
+	Exec() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
+	Exec( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
+
+	Exec& operator=( const Exec& src );
+	Exec& operator=( double value ) { _sum = value; return *this; }
+	Exec& operator+=( double addend ) { _sum += addend; return *this; }
+	double sum() const { return _sum; }
+	double phase() const { return _p; }
+	void setPhase( unsigned int p ) { _p = p; }
+	bool canReply() const { return _replyAllowed; }
+	void setReplyAllowed( bool arg ) { _replyAllowed = arg; }
+	double rate() const { return _rate; }
+	void setRate( double rate ) { _rate = rate; }
+	const Entry* entry() const { return _e; }
+	const Predicate exec() const { return _f; }
+
+    private:
+	const Entry* _e;
+	Predicate _f;
+	unsigned int _p;
+	bool _replyAllowed;
+	double _rate;
+	double _sum;
+    };
+
+    class Collect {
+    public:
+	Collect() : _f(nullptr), _submodel(0), _p(0), _rate(1) {}
+	Collect( unsigned int submodel, Function f ) : _f(f), _submodel(submodel), _p(1), _rate(1) {}
+
+	Function collect() const { return _f; }
+	unsigned int submodel() const { return _submodel; }
+	unsigned int phase() const { return _p; }
+	double rate() const { return _rate; }
+	void setRate( double rate ) { _rate = rate; }
+	void setPhase( unsigned int p ) { _p = p; }
+	
+    private:
+	Function _f;
+	unsigned int _submodel;
+	unsigned int _p;
+	double _rate;
+    };
 
 public:
     Activity( const Task * aTask, const std::string& aName );
@@ -118,6 +174,7 @@ public:
     Activity& isSpecified( const bool yesOrNo ) { iAmSpecified = yesOrNo; return *this; }
     bool isSpecified() const { return iAmSpecified; }
     bool isStartActivity() const { return entry() != 0; }
+
     /* Computation */
 
     unsigned countCallList( unsigned ) const;
@@ -162,13 +219,13 @@ public:
 
     /* Thread manipulation */
 
-    unsigned findChildren( CallStack&, const bool, Stack<const Activity *>&, Stack<const AndForkActivityList *>& ) const;
-    unsigned backtrack( Stack<const AndForkActivityList *>& ) const;
-    virtual unsigned followInterlock( Stack<const Entry *>&, const InterlockInfo&, const unsigned );
-    void aggregate( Stack<Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, unsigned&, AggregateFunc );
-    double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, const AggregateFunc2 ) const;
-    virtual void callsPerform( Stack<const Entry *>&, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
-    virtual bool getInterlockedTasks( Stack<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
+    std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned );
+    Collect& collect( std::deque<Entry *>&, Collect& );
+    Exec& exec( std::deque<const Activity *>&, Exec& ) const;
+    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     unsigned concurrentThreads( unsigned ) const;
     /* XML output */
 
@@ -178,12 +235,11 @@ protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry );
 
 private:
-    void aggregateWait( Entry *, const unsigned submodel, const unsigned p );
-    void aggregateReplication( Entry *, const unsigned submodel, const unsigned p );
-    void setThroughput( Entry *, const unsigned submodel, const unsigned p );
-    void aggregateServiceTime( Entry *, const unsigned submodel, const unsigned p );
-    double aggregateReplies( const Entry * anEntry, const unsigned p, const double rate ) const;
-
+    bool checkReplies( Activity::Exec& data ) const;
+    void collectWait( Entry *, const Activity::Collect& );
+    void collectReplication( Entry *, const Activity::Collect& );
+    void collectServiceTime( Entry *, const Activity::Collect& );
+    void setThroughput( Entry *, const Activity::Collect& );
 
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_and_join_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
@@ -228,7 +284,7 @@ public:
 class activity_cycle : public path_error 
 {
 public:
-    activity_cycle( const Activity *, Stack<const Activity *>& );
+    activity_cycle( const Activity *, const std::deque<const Activity *>& );
     virtual ~activity_cycle() throw() {}
 };
 
