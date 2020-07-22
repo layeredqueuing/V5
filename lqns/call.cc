@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: call.cc 13706 2020-07-22 15:03:23Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -16,6 +16,7 @@
 #include "dim.h"
 #include <cmath>
 #include <sstream>
+#include <algorithm>
 #include "call.h"
 #include "entry.h"
 #include "entity.h"
@@ -735,5 +736,5 @@ Call::Find::operator()( const Call * call ) const
 unsigned
 Call::stack::depth() const	
 {
-    return count_if( begin(), end(), Predicate<Call>( &Call::hasNoForwarding ) );
+    return std::count_if( begin(), end(), Predicate<Call>( &Call::hasNoForwarding ) );
 }
