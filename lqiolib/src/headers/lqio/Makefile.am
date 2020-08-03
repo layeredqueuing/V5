@@ -1,6 +1,8 @@
-# $Id: Makefile.am 13673 2020-07-10 15:12:09Z greg $
+# $Id: Makefile.am 13717 2020-08-03 00:04:28Z greg $
 # ------------------------------------------------------------------------
-noinst_HEADERS = confidence_intervals.h \
+noinst_HEADERS = commandline.h \
+	common_io.h \
+	confidence_intervals.h \
 	dom_activity.h \
 	dom_actlist.h \
 	dom_bindings.h \
@@ -13,11 +15,11 @@ noinst_HEADERS = confidence_intervals.h \
 	dom_histogram.h \
 	dom_object.h \
 	dom_phase.h \
+	dom_pragma.h \
 	dom_processor.h \
 	dom_task.h \
-	common_io.h \
-	commandline.h \
 	error.h \
+	expat_document.h \
 	filename.h \
 	getsbopt.h \
 	glblerr.h \
@@ -28,7 +30,6 @@ noinst_HEADERS = confidence_intervals.h \
 	srvn_results.h \
 	srvn_spex.h \
 	submodel_info.h \
-	expat_document.h \
 	xerces_common.h \
 	xerces_document.h \
 	xerces_write.h

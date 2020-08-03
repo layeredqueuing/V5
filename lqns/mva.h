@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: mva.h 13719 2020-08-03 13:32:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@
 #define	MVA_H
 /* undef DEBUG_MVA 1 */
 
+#include <vector>
 #include "pop.h"
 #include "vector.h"
 #include "server.h"
@@ -58,54 +59,8 @@ protected:
      * function that works on population vectors.
      */
 
-    template <class Type>
-    class PopulationData {
-    public:
-	PopulationData() : maxSize(0), data(0) {}
-	~PopulationData() {
-	    if(maxSize != 0) {
-		delete [] data;
-	    }
-	}
-
-	void dimension( size_t size ) {
-	    const size_t oldSize = maxSize;
-
-	    if ( maxSize == size ) return;	/* NOP */
-	    maxSize = size;
-
-	    Type * oldArray = data;
-	    if(maxSize != 0) {
-		data = new Type [maxSize];
-		for ( size_t i = 0; i < oldSize; ++i ) {
-		    data[i] = oldArray[i];
-		}
-		for ( size_t i = oldSize; i < maxSize; ++i ) {
-		    data[i] = 0;
-		}
-	    } else {
-		data = 0;
-	    }
-
-	    if ( oldArray ) {
-		delete [] oldArray;
-	    }
-	}
-
-	size_t size() { return maxSize; }
-
-	Type& operator[](const unsigned ix) const {
-	    assert(ix < maxSize);
-	    return data[ix];
-	}
-
-    protected:
-	unsigned maxSize;
-	Type * data;
-    };
-
 //Shorthand for [N][m][e][k]
-    typedef PopulationData<double ***> N_m_e_k;
+    typedef std::vector<double ***> N_m_e_k;
 
 
 public:
@@ -172,7 +127,7 @@ public:
 
 protected:
     void dimension( const size_t );
-    bool dimension( PopulationData<double **>&, const size_t );
+    bool dimension( std::vector<double **>&, const size_t );
     void setMaxP();
     virtual const PopulationMap& getMap() const = 0;
     unsigned offset( const Population& N ) const { return getMap().offset( N ); }
@@ -216,9 +171,11 @@ public:
 #if DEBUG_MVA
     static bool debug_D;
     static bool debug_L;
+    static bool debug_N;
     static bool debug_P;
     static bool debug_U;
     static bool debug_W;
+    static bool debug_X;
 #endif
 
 protected:
@@ -236,8 +193,8 @@ protected:
     N_m_e_k L;				/* Queue length.		*/
     N_m_e_k U;				/* Station utilization.		*/
 
-    PopulationData<double **> P;	/* For marginal probabilities.	*/
-    PopulationData<double *> X;		/* Throughput per class.	*/
+    std::vector<double **> P;		/* For marginal probabilities.	*/
+    std::vector<double *> X;		/* Throughput per class.	*/
 
     unsigned long faultCount;		/* Number of times sc. fails	*/
     Vector<size_t> maxP;		/* Dimension of P[][][J]	*/
@@ -369,7 +326,7 @@ protected:
 protected:
     N_m_e_k saved_L;			/* Saved queue length.		*/
     N_m_e_k saved_U;			/* Saved utilization.		*/
-    PopulationData<double **> saved_P;	/* Saved marginal queue.	*/
+    std::vector<double **> saved_P;	/* Saved marginal queue.	*/
     double ****D;			/* Delta Fraction of jobs.	*/
     unsigned c;				/* Customer from class c removed*/
     PartialPopulationMap map;
@@ -399,7 +356,7 @@ protected:
     void estimate_L( const Population & );
 
 private:
-    PopulationData<double *> Lm;	/* Queue length sum (Fast lin.)	*/
+    std::vector<double *> Lm;		/* Queue length sum (Fast lin.)	*/
     double ***D_k;			/* Sum over k.			*/
 };
 #endif

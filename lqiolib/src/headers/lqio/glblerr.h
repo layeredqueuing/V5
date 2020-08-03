@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 13683 2020-07-13 14:25:00Z greg $
+ * $Id: glblerr.h 13717 2020-08-03 00:04:28Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,

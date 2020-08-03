@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: pop.cc 13719 2020-08-03 13:32:07Z greg $
  *
  * Population vector functions.
  *
@@ -264,17 +264,18 @@ FullPopulationMap::~FullPopulationMap()
  * (Re)set the size of the arrays.  We cannot add dimensions, just customers.
  */
 
-size_t
+const PopulationMap&
 FullPopulationMap::dimension( const Population& maxCust )
 {
     assert( _dimN == maxCust.size() );
 
+    _maxN = maxCust;
     _end = 1;
     for( unsigned j = _dimN; j > 0; --j ) {
 	_stride[j] = _end;
 	_end *= (maxCust[j] + 1);
     }
-    return _end;
+    return *this;
 }
 
 
@@ -327,13 +328,13 @@ PartialPopulationMap::~PartialPopulationMap()
  * Reset the size of the arrays.  For Special Populations, this is trivial
  */
 
-size_t
+const PopulationMap&
 PartialPopulationMap::dimension( const Population& N )
 {
     assert( _maxN.size() == N.size() );
 
     _maxN = N;
-    return _end;
+    return *this;
 }
 
 
@@ -419,13 +420,13 @@ SinglePopulationMap::~SinglePopulationMap()
  * Reset the size of the arrays.  For Special Populations, this is trivial
  */
 
-size_t
+const PopulationMap&
 SinglePopulationMap::dimension( const Population& N )
 {
     assert( N.size() == _dimN );
 
     _maxN = N;
-    return _end;
+    return *this;
 }
 
 

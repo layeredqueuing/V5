@@ -653,6 +653,7 @@ namespace LQX {
         result = leftNumber * rightNumber;
         break;
       case DIVIDE:
+	if ( rightNumber == 0 ) throw InternalErrorException("Division by zero");
         result = leftNumber / rightNumber;
         break;
       case POWER:

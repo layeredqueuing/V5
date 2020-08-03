@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: xerces_document.h 13204 2018-03-06 22:52:04Z greg $
+ *  $Id: xerces_document.h 13717 2020-08-03 00:04:28Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */

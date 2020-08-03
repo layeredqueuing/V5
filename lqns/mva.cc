@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: mva.cc 13719 2020-08-03 13:32:07Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -130,6 +130,7 @@
  * ------------------------------------------------------------------------
  */
 
+//#define DEBUG_MVA	true
 
 #include "dim.h"
 #include <iostream>
@@ -150,9 +151,11 @@ double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */
 #if DEBUG_MVA
 bool MVA::debug_D = false;
 bool MVA::debug_L = false;
+bool MVA::debug_N = true;
 bool MVA::debug_P = false;
 bool MVA::debug_U = false;
-bool MVA::debug_W = false;
+bool MVA::debug_W = true;
+bool MVA::debug_X = true;
 #endif
 
 /* ----------------------- Helper Functions --------------------------- */
@@ -224,10 +227,10 @@ MVA::dimension( const size_t mapMaxOffset )
 
 	/* If array got bigger, add more space */
 
-	L.dimension(mapMaxOffset);
-	U.dimension(mapMaxOffset);
-	P.dimension(mapMaxOffset);
-	X.dimension(mapMaxOffset);
+	L.resize(mapMaxOffset);
+	U.resize(mapMaxOffset);
+	P.resize(mapMaxOffset);
+	X.resize(mapMaxOffset);
 
 	for ( unsigned n = maxOffset; n < mapMaxOffset; ++n) {
 	    L[n] = new double ** [M+1];
@@ -286,10 +289,10 @@ MVA::dimension( const size_t mapMaxOffset )
 
 	}
 
-	L.dimension(mapMaxOffset);
-	U.dimension(mapMaxOffset);
-	X.dimension(mapMaxOffset);
-	P.dimension(mapMaxOffset);
+	L.resize(mapMaxOffset);
+	U.resize(mapMaxOffset);
+	X.resize(mapMaxOffset);
+	P.resize(mapMaxOffset);
     }
 
     dimension( P, mapMaxOffset );
@@ -307,7 +310,7 @@ MVA::dimension( const size_t mapMaxOffset )
  */
 
 bool
-MVA::dimension( PopulationData<double **>& array, const size_t mapMaxOffset )
+MVA::dimension( std::vector<double **>& array, const size_t mapMaxOffset )
 {
     bool rc = false;
     for ( unsigned n = 0; n < mapMaxOffset; ++n ) {
@@ -466,6 +469,7 @@ MVA::step( const Population& N, const unsigned currPri )
     }
 
 #if DEBUG_MVA
+    if ( debug_N ) cout << N << std::endl;
     if ( debug_W ) printW( cout );
 #endif
 
@@ -526,6 +530,7 @@ MVA::step( const Population& N, const unsigned currPri )
 #if DEBUG_MVA
     if ( debug_U ) printU( cout, N );
     if ( debug_P ) printP( cout, N );
+    if ( debug_X ) printX( cout );
 #endif
 
     if ( !check_fp_ok() ) {
@@ -1876,7 +1881,7 @@ ExactMVA::solve()
 {
     /* Allocate array space and initialize */
     reset();				/* Reset all vectors to zero. */
-    dimension( map.dimension( NCust ) );
+    dimension( map.dimension( NCust ).maxOffset() );
     clearCount();
 
     /* Let er rip! */
@@ -2554,7 +2559,7 @@ Schweitzer::Schweitzer( Vector<Server *>&q, const Population & N, const VectorMa
 {
     /* Allocate array space and initialize */
 
-    dimension( map.dimension( NCust ) );		/* Set up L, U, X and P */
+    dimension( map.dimension( NCust ).maxOffset() );		/* Set up L, U, X and P */
 }
 
 Schweitzer::~Schweitzer()
@@ -2663,12 +2668,12 @@ OneStepMVA::solve()
 Linearizer::Linearizer( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : SchweitzerCommon( q, N, z, prio, of), c(0), map(N)
 {
-    dimension( map.dimension( NCust ) );		/* Set up L, U, X and P */
+    dimension( map.dimension( NCust ).maxOffset() );		/* Set up L, U, X and P */
 
     const size_t max_offset = getMap().maxOffset();
-    saved_L.dimension(max_offset);
-    saved_U.dimension(max_offset);
-    saved_P.dimension(max_offset);
+    saved_L.resize(max_offset);
+    saved_U.resize(max_offset);
+    saved_P.resize(max_offset);
 
     for ( unsigned n = 0; n < max_offset; ++n ) {
 	saved_L[n] = new double ** [M+1];
@@ -3109,7 +3114,7 @@ OneStepLinearizer::solve()
 Linearizer2::Linearizer2( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : Linearizer( q, N, z, prio, of)
 {
-    Lm.dimension(getMap().maxOffset());
+    Lm.resize(getMap().maxOffset());
 
     for ( unsigned n = 0; n < getMap().maxOffset(); ++n ) {
 	Lm[n] = new double [M+1];

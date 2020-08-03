@@ -1,4 +1,4 @@
-# $Id: Makefile.am 13641 2020-07-03 15:59:38Z greg $
+# $Id: Makefile.am 13717 2020-08-03 00:04:28Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -6,14 +6,37 @@
 # This project uses Libtool to generate a product
 SUBDIRS = headers/lqio
 lib_LTLIBRARIES = liblqio.la
-liblqio_la_SOURCES = error.cpp glblerr.cpp \
-	dom_bindings.cpp dom_document.cpp dom_entity.cpp dom_entry.cpp dom_processor.cpp \
-	dom_task.cpp dom_activity.cpp dom_actlist.cpp dom_call.cpp dom_extvar.cpp dom_object.cpp dom_phase.cpp \
-	dom_group.cpp dom_histogram.cpp\
-	common_io.cpp commandline.cpp labels.cpp filename.cpp getsbopt.cc \
+liblqio_la_SOURCES = commandline.cpp \
+	common_io.cpp \
 	confidence_intervals.cpp \
-	srvn_input.cpp srvn_output.cpp srvn_results.cpp srvn_spex.cpp \
-	srvn_gram.y srvn_scan.l srvn_result_gram.y srvn_result_scan.l
+	dom_activity.cpp \
+	dom_actlist.cpp \
+	dom_bindings.cpp \
+	dom_call.cpp \
+	dom_document.cpp \
+	dom_entity.cpp \
+	dom_entry.cpp \
+	dom_extvar.cpp \
+	dom_group.cpp \
+	dom_histogram.cpp \
+	dom_object.cpp \
+	dom_phase.cpp \
+	dom_pragma.cpp \
+	dom_processor.cpp \
+	dom_task.cpp \
+	error.cpp \
+	filename.cpp \
+	getsbopt.cc \
+	glblerr.cpp \
+	labels.cpp \
+	srvn_input.cpp \
+	srvn_output.cpp \
+	srvn_results.cpp \
+	srvn_spex.cpp \
+	srvn_scan.l \
+	srvn_gram.y \
+	srvn_result_scan.l \
+	srvn_result_gram.y
 noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
 
 #liblqio_la_LIBADD = ../../lqx/libsrc/liblqx.la 

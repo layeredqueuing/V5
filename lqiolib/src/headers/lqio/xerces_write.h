@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: xerces_write.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: xerces_write.h 13717 2020-08-03 00:04:28Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pop.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: pop.h 13719 2020-08-03 13:32:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -134,7 +134,7 @@ public:
     /**
        Reset the size of the arrays.
     **/
-    virtual size_t dimension( const Population & ) = 0;
+    virtual const PopulationMap& dimension( const Population & ) = 0;
     /**
        Return offset for Population N.
        The offset will be between 1 and maxOffset()
@@ -166,7 +166,7 @@ public:
     FullPopulationMap( const Population & N );
     virtual ~FullPopulationMap();
 
-    size_t dimension( const Population & );
+    const PopulationMap& dimension( const Population & );
 
     unsigned offset( const Population & N ) const;
     unsigned offset_e_j( const Population & N, const unsigned j ) const;
@@ -181,7 +181,7 @@ public:
     PartialPopulationMap( const Population & );
     virtual ~PartialPopulationMap();
 
-    size_t dimension( const Population & );
+    const PopulationMap& dimension( const Population & );
 
     unsigned offset( const Population & N ) const;
     unsigned offset_e_j( const Population & N, const unsigned j ) const;
@@ -200,7 +200,7 @@ class SinglePopulationMap : public PopulationMap
 public:
     SinglePopulationMap( const Population & );
     virtual ~SinglePopulationMap();
-    size_t dimension( const Population & );
+    const PopulationMap& dimension( const Population & );
     
     unsigned offset( const Population & N ) const;
     unsigned offset_e_j( const Population & N, const unsigned j ) const;
