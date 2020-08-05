@@ -1,5 +1,5 @@
 a/* -*- c++ -*-
- * $Id: xerces_document.cpp 13204 2018-03-06 22:52:04Z greg $
+ * $Id: xerces_document.cpp 13727 2020-08-04 14:06:18Z greg $
  *
  * Read in XML input files.
  *
@@ -222,7 +222,7 @@ namespace LQIO {
 			document.setLQXProgram( program );
 		    }
 		} else {
-		    Document::io_vars->anError = true;
+		    Document::io_vars.anError = true;
 		}
 	    }
 	    catch (const XMLException& e) {
@@ -253,10 +253,10 @@ namespace LQIO {
 		LQIO::solution_error( LQIO::ERR_PARSE_ERROR, e.what() );
 	    }
 	    catch (...) {
-		Document::io_vars->anError = true;
+		Document::io_vars.anError = true;
 		throw;
 	    }
-	    return Document::io_vars->anError == false;
+	    return Document::io_vars.anError == false;
 	}
 
 
@@ -493,7 +493,7 @@ namespace LQIO {
 	    }
 
 	    _document.addProcessorEntity( processor );
-	    Document::io_vars->n_processors += 1;
+	    Document::io_vars.n_processors += 1;
 	
 	    /* handle groups, tasks, or results */
 
@@ -580,7 +580,7 @@ namespace LQIO {
 		_document.addGroup(group);
 		processor->addGroup(group);
 
-		Document::io_vars->n_groups += 1;
+		Document::io_vars.n_groups += 1;
 	    }
 
 	    const DOMNodeList *nodeList = group_element->getChildNodes();
@@ -710,7 +710,7 @@ namespace LQIO {
 	    processor->addTask(task);
 	    if ( group ) group->addTask(task);
 
-	    Document::io_vars->n_tasks += 1;
+	    Document::io_vars.n_tasks += 1;
 
 	    const DOMNodeList *nodeList	    	= task_element->getChildNodes();
 	    const unsigned int nodeListLength	= nodeList->getLength();
@@ -916,7 +916,7 @@ namespace LQIO {
 	    }
 
 
-	    Document::io_vars->n_entries += 1;
+	    Document::io_vars.n_entries += 1;
 
 	    /* Now do its children. */
 

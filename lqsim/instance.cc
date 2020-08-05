@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 13577 2020-05-30 02:47:06Z greg $
+ * $Id: instance.cc 13732 2020-08-05 14:56:42Z greg $
  */
 
 /*
@@ -88,8 +88,8 @@ Instance::start( void * )
 	object_tab[ps_myself]->run();
     } 
     catch ( const std::runtime_error& e ) {
-	fprintf( stderr, "%s: task \"%s\": runtime error: %s\n", io_vars.lq_toolname, object_tab[ps_myself]->name(), e.what() );
-	io_vars.error_count += 1;
+	fprintf( stderr, "%s: task \"%s\": runtime error: %s\n", LQIO::io_vars.toolname(), object_tab[ps_myself]->name(), e.what() );
+	LQIO::io_vars.error_count += 1;
 	deferred_exception = true;
 	ps_suspend( ps_myself );
     }
@@ -195,7 +195,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	  after all activities have been executed, then send a reply to the 
 	  calling task or client. In a quorum, the last activity in the activity 
 	  graph is not necessarily the last one will complete execution.*/
-	if ( pragma.quorum_delayed_calls() && msg && _current_phase == 0 ) {
+	if ( Pragma::__pragmas->quorum_delayed_calls() && msg && _current_phase == 0 ) {
 #if defined(debug_quorum_flag)
 	    printf("\ndefault reply port at end of task: msg->reply_port=%d", 
 		   msg->reply_port);
@@ -1399,7 +1399,7 @@ Instance::execute_activity( Entry * ep, Activity * ap, bool& reschedule )
 
 	    } else {
 		tp->send_asynchronous( ep, _cp->priority() );
-		if ( pragma.reschedule_on_async_send() ) {
+		if ( Pragma::__pragmas->reschedule_on_async_send() ) {
 		    Processor::reschedule( this );
 		}
 	    }

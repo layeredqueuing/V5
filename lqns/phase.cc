@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: phase.cc 13725 2020-08-04 03:58:02Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -294,7 +294,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	    }
 	}
 	catch ( const Call::call_cycle& error ) {
-	    if ( directPath && pragma.getCycles() == DISALLOW_CYCLES ) {
+	    if ( directPath && !Pragma::allowCycles() ) {
 		std::string msg;
 		for ( Call::stack::const_reverse_iterator i = callStack.rbegin(); i != callStack.rend(); ++i ) {
 		    if ( (*i)->getDOM() == nullptr ) continue;
@@ -1324,9 +1324,9 @@ Phase::computeVariance()
 {
     if ( !isfinite( elapsedTime() ) ) {
 	myVariance = elapsedTime();
-    } else switch ( pragma.getVariance() ) {
+    } else switch ( Pragma::variance() ) {
 
-	case MOL_VARIANCE:
+	case Pragma::MOL_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
 		myVariance =  mol_phase();
 		break;
@@ -1335,7 +1335,7 @@ Phase::computeVariance()
 	    }
 	    break;
 
-	case STOCHASTIC_VARIANCE:
+	case Pragma::STOCHASTIC_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
 		myVariance =  stochastic_phase();
 		break;
@@ -1344,7 +1344,7 @@ Phase::computeVariance()
 	    }
 	    break;
 		
-	case DEFAULT_VARIANCE:
+	case Pragma::DEFAULT_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
 		myVariance =  stochastic_phase();
 	    } else {

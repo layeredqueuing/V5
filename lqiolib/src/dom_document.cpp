@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_document.cpp 13727 2020-08-04 14:06:18Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -24,14 +24,12 @@
 #include "srvn_output.h"
 #include "srvn_spex.h"
 #include "filename.h"
-#include "dom_task.h"
 #include "dom_processor.h"
-#include "dom_entry.h"
-#include "dom_phase.h"
 
 namespace LQIO {
+    lqio_params_stats io_vars(VERSION,nullptr);
+    
     namespace DOM {
-	lqio_params_stats* Document::io_vars = NULL;
 	Document* __document = NULL;
 	bool Document::__debugXML = false;
 	std::map<const char *, double> Document::__initialValues;
@@ -51,11 +49,11 @@ namespace LQIO {
 	const char * Document::XSpexIterationLimit = "spex_it_limit";
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
-	Document::Document( lqio_params_stats* ioVars, input_format format ) 
+	Document::Document( input_format format ) 
 	    : _processors(), _groups(), _tasks(), _entries(), 
 	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
 	      _format(format), _comment2(), 
-	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _instantiated(false), _loadedPragmas(), 
+	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
 	      _hasRendezvous(NOT_SET), _hasSendNoReply(NOT_SET), _taskHasAndJoin(NOT_SET),		/* Cached valuess */
 	      _resultValid(false), _hasConfidenceIntervals(false), _hasBottleneckStrength(false),
@@ -67,8 +65,6 @@ namespace LQIO {
 	      _resultElapsedTime(0),
 	      _resultMaxRSS(0)
 	{
-	    assert( ioVars );			/* Must be set.  See Dom_builder.cpp */
-	    io_vars = ioVars;
 	    __document = this;
 
 	    __initialValues[XConvergence] =                 0.00001;
@@ -525,27 +521,27 @@ namespace LQIO {
     
 	void Document::addPragma(const std::string& param, const std::string& value )
 	{
-	    _loadedPragmas[param] = value;
+	    _pragmas.insert( param, value );
 	}
-    
+
+	void Document::mergePragmas(const std::map<std::string,std::string>& list )
+	{
+	    _pragmas.merge( list );
+	}
+	
 	const std::map<std::string,std::string>& Document::getPragmaList() const
 	{
-	    return _loadedPragmas;
+	    return _pragmas.getList();
 	}
 
 	void Document::clearPragmaList() 
 	{
-	    _loadedPragmas.clear();
+	    _pragmas.clear();
 	}
 
 	const std::string Document::getPragma( const std::string& param ) const
 	{
-	    std::map<std::string,std::string>::const_iterator iter = _loadedPragmas.find( param );
-	    if ( iter != _loadedPragmas.end() ) {
-		return iter->second;
-	    } else {
-		return std::string("");
-	    }
+	    return _pragmas.get( param );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -778,10 +774,10 @@ namespace LQIO {
 	 */
 
 	/* static */ Document* 
-	Document::load(const std::string& input_filename, input_format format, lqio_params_stats * ioVars, unsigned& errorCode, bool load_results )
+	Document::load(const std::string& input_filename, input_format format, unsigned& errorCode, bool load_results )
 	{
 	    __input_file_name = input_filename;
-            ioVars->error_count = 0;                   /* See error.c */
+            io_vars.reset();                   /* See error.c */
 
 	    errorCode = 0;
 
@@ -792,7 +788,7 @@ namespace LQIO {
 	    }
 
 	    /* Create a document to store the product */
-	    Document * document = new Document( ioVars, format );
+	    Document * document = new Document( format );
 	
 	    /* Read in the model, invoke the builder, and see what happened */
 
@@ -816,7 +812,7 @@ namespace LQIO {
 //		I will have to register functions for LQX here.
 		LQX::Program * program = document->getLQXProgram();
 		if ( program ) {
-		    LQX::Environment * environment = program->getEnvironment();
+//		    LQX::Environment * environment = program->getEnvironment();
 //	            environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, aModel));
 		}
 		return document;
@@ -919,4 +915,17 @@ namespace LQIO {
 	    return output;
 	}
     }
+
+    lqio_params_stats::lqio_params_stats( const char * version, void (*action)(unsigned) ) :
+	lq_toolname(),
+	lq_version(version),
+	lq_command_line(),
+	severity_action(action),
+	max_error(10),
+	error_count(0),
+	severity_level(LQIO::NO_ERROR),
+	error_messages(global_error_messages)
+    {
+    }
+    
 }

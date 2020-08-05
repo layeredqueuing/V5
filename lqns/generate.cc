@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: generate.cc 13727 2020-08-04 14:06:18Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -191,7 +191,7 @@ Generate::print( ostream& output ) const
 	if ( MVA::__bounds_limit ) {
 	    output << "    " << "MVA::boundsLimit = " << MVA::__bounds_limit << ";" << endl;
 	}
-	output << "    " << solvers[pragma.getMVA()];
+	output << "    " << solvers[Pragma::mva()];
 	output << " model( station, customers, thinkTime, priority";
 	if ( _submodel.overlapFactor ) {
 	    output << ", overlapFactor";
@@ -300,7 +300,7 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
 			   << "," << aStation->S( e, k, p ) << ")";
 		    if ( aServer.hasVariance()
 			 && ( aServer.isTask()
-			      || ( aServer.isProcessor() && pragma.getProcessor() == DEFAULT_PROCESSOR)) ) {
+			      || ( aServer.isProcessor() && Pragma::defaultProcessorScheduling() )) ) {
 			output << ".setVariance("
 			       << station_args( e, k, p )
 			       << "," << (*entry)->varianceForPhase(p) << ")";
@@ -342,7 +342,7 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
 
     }
 
-    if ( pragma.getInterlock() == THROUGHPUT_INTERLOCK ) {
+    if ( Pragma::interlock() ) {
 	printInterlock( output, aServer );
     }
 
@@ -398,7 +398,7 @@ Generate::print( const MVASubmodel& aSubModel )
     output.open( fileName.str().c_str(), ios::out );
 
     if ( !output ) {
-	cerr << io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << endl;
     } else {
 	Generate aCModel( aSubModel );
 	aCModel.print( output );
@@ -419,7 +419,7 @@ Generate::makefile( const unsigned nSubmodels )
     output.open( fileName.c_str(), ios::out );
 
     if ( !output ) {
-	cerr << io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << endl;
 	return;
     }
 

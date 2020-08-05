@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: lqn2ps.h 13727 2020-08-04 14:06:18Z greg $
  *
  */
 
@@ -59,7 +59,6 @@ namespace LQIO {
     };
 };
 
-extern lqio_params_stats io_vars;
 extern std::string command_line;
 
 const unsigned int MAX_PHASES	    = 3;	/* Number of Phases.		*/

@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: errmsg.cc 13727 2020-08-04 14:06:18Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -74,8 +74,8 @@ init_errmsg()
     for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
 	error_messages[i] = local_error_messages[j];
     }
-    io_vars.error_messages = &error_messages[0];
-    io_vars.max_error = LSTLCLERRMSG;
+    LQIO::io_vars.error_messages = &error_messages[0];
+    LQIO::io_vars.max_error = LSTLCLERRMSG;
 }
 
 /*
@@ -91,8 +91,8 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= io_vars.max_error ) {
+	LQIO::io_vars.error_count += 1;
+	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
 	    throw runtime_error( "Too many errors" );
 	}
 	break;

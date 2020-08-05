@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: actlist.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1854,7 +1854,7 @@ AndJoinActivityList::check() const
     for ( unsigned j = 1; j < _activityList.size(); ++j ) {
         if ( _forkList[0] != _forkList[j] ) {
             ForkJoinName aName( *this );
-	    io_vars.error_messages[LQIO::ERR_JOIN_PATH_MISMATCH].severity = LQIO::WARNING_ONLY;
+	    LQIO::io_vars.error_messages[LQIO::ERR_JOIN_PATH_MISMATCH].severity = LQIO::WARNING_ONLY;
             LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, aName(), owner()->name().c_str() );
             return false;
         }

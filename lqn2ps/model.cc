@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: model.cc 13727 2020-08-04 14:06:18Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -538,7 +538,7 @@ Model::process()
     const unsigned submodel = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
     if ( submodel > 0 ) {
  	if ( !selectSubmodel( submodel ) ) {
-	    cerr << io_vars.lq_toolname << ": Submodel " << submodel << " is too big." << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": Submodel " << submodel << " is too big." << endl;
 	    return false;
 	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
  	    _layers.at(submodel).generateSubmodel();
@@ -558,7 +558,7 @@ Model::process()
 	    layers[i].generateSubmodel();
 	    layers[i].transmorgrify( _document, surrogate_processor, surrogate_task );
 	    relayerize( i );
-	    layers[i+1].sort( Entity::compare ).format( 0 ).justify( io_vars.n_entries * Flags::entry_width );
+	    layers[i+1].sort( Entity::compare ).format( 0 ).justify( LQIO::io_vars.n_entries * Flags::entry_width );
 	}
 #endif
     }
@@ -659,7 +659,7 @@ Model::store()
 #endif
     if ( output_output() && !Flags::have_results ) {
 
-	cerr << io_vars.lq_toolname << ": There are no results to output for " << _inputFileName << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": There are no results to output for " << _inputFileName << endl;
 	return false;
 
     } else if ( _outputFileName == "-" ) {
@@ -922,7 +922,7 @@ Model::generate()
 	}
     }
 
-    return Flags::print[IGNORE_ERRORS].value.b || !io_vars.anError();
+    return Flags::print[IGNORE_ERRORS].value.b || !LQIO::io_vars.anError();
 }
 
 
@@ -1006,7 +1006,7 @@ Model::check() const
 {
     for_each( Processor::__processors.begin(), Processor::__processors.end(), Predicate<Entity>( &Entity::check ) );
     for_each( Task::__tasks.begin(), Task::__tasks.end(), Predicate<Entity>( &Entity::check ) );
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -1610,7 +1610,7 @@ Model::returnReplication()
 ostream&
 Model::printEEPIC( ostream & output ) const
 {
-    output << "% Created By: " << io_vars.lq_toolname << " Version " << VERSION << endl
+    output << "% Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl
 	   << "% Invoked as: " << command_line << ' ' << _inputFileName << endl
 	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << endl
 	   << "\\begin{picture}("
@@ -1653,7 +1653,7 @@ Model::printFIG( ostream& output ) const
 	   << "75.00" << endl
 	   << "Single" << endl
 	   << "-2" << endl;
-    output << "# Created By: " << io_vars.lq_toolname << " Version " << VERSION << endl
+    output << "# Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl
 	   << "# Invoked as: " << command_line << ' ' << _inputFileName << endl
 	   << "# " << LQIO::DOM::Common_IO::svn_id() << endl
 	   << print_comment( "# ", *getDOM()->getModelComment() ) << endl;
@@ -1724,7 +1724,7 @@ Model::printSVG( ostream& output ) const
 	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\"" << endl
 	   << "\"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << endl;
     output << "<!-- Title: " << _inputFileName << " -->" << endl;
-    output << "<!-- Creator: " << io_vars.lq_toolname << " Version " << VERSION << " -->" << endl;
+    output << "<!-- Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << " -->" << endl;
 #if defined(HAVE_CTIME)
     output << "<!-- ";
     time_t clock = time( (time_t *)0 );
@@ -1977,7 +1977,7 @@ Model::printPostScriptPrologue( ostream& output, const string& title,
 {
     output << "%!PS-Adobe-2.0" << endl;
     output << "%%Title: " << title << endl;
-    output << "%%Creator: " << io_vars.lq_toolname << " Version " << VERSION << endl;
+    output << "%%Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl;
 #if defined(HAVE_CTIME)
     time_t tloc;
     time( &tloc );
@@ -2107,7 +2107,7 @@ Model::printSXDMeta( ostream& output ) const
     output << "<dc:date>" << buf << "</dc:date>" << endl;
     output << "<dc:language>en-US</dc:language>" << endl;
 
-    output << "<meta:generator>" << io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << endl;
+    output << "<meta:generator>" << LQIO::io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << endl;
     output << "<meta:creation-date>" << buf << "</meta:creation-date>" << endl;
     output << "<meta:editing-cycles>1</meta:editing-cycles>" << endl;
 #if defined(HAVE_SYS_TIMES_H)
@@ -2631,7 +2631,7 @@ Squashed_Model::generate()
 
     _layers.resize( SERVER_LEVEL );
 
-    return Flags::print[IGNORE_ERRORS].value.b || !io_vars.anError();
+    return Flags::print[IGNORE_ERRORS].value.b || !LQIO::io_vars.anError();
 }
 
 Model&

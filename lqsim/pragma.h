@@ -3,7 +3,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: pragma.h 13735 2020-08-05 15:54:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,101 +28,53 @@ struct lt_str
 class Pragma
 {
 private:
-    typedef enum { 
-	NICE,
-	PROCESSOR_SCHEDULING,
-	QUORUM_REPLY,	
-	RESCHEDULE_ON_SNR, 
-	STOP_ON_MESSAGE_LOSS,
-	SPEX_HEADER,
-	PRECISION,
-	INITIAL_LOOPS,
-	INITIAL_DELAY,
-	BLOCK_PERIOD,
-	MAX_BLOCKS,
-	SEED_VALUE,
-	RUN_TIME
-    } PRAGMA_PARAM;
+    Pragma();
 
 public:
-    typedef bool (Pragma::*set_pragma_fptr)( const std::string& );
-    typedef const char * (Pragma::*get_pragma_fptr)() const;
-    typedef bool (Pragma::*eq_pragma_fptr)( const Pragma& ) const;
+    typedef bool (Pragma::*fptr)( const std::string& );
 
-    struct pragma_info {
-	pragma_info() : _p(NICE), _set(0), _get(0), _eq(0) {}
-	pragma_info( PRAGMA_PARAM p, set_pragma_fptr f, get_pragma_fptr g, eq_pragma_fptr e ) : _p(p), _set(f), _get(g), _eq(e) {}
-
-	PRAGMA_PARAM _p;
-	set_pragma_fptr _set;
-	get_pragma_fptr _get;
-	eq_pragma_fptr _eq;
-    };
-    
-    Pragma();
-    Pragma& operator=( const Pragma& );
-    bool operator()( const std::string&, const std::string& );
-    void operator()( const char * );
-
-    bool set_abort_on_dropped_message( bool );
-    bool abort_on_dropped_message() const { return _abort_on_dropped_message.value; }
+    static void set( const std::map<std::string,std::string>& list );
+    bool abort_on_dropped_message() const { return _abort_on_dropped_message; }
+    bool get_spex_header() const { return _spex_header; }
     int quorum_delayed_calls() const { return _quorum_delayed_calls; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     int scheduling_model() const { return _scheduling_model; }
-
-    bool eq_abort_on_dropped_message( const Pragma& p ) const { return _abort_on_dropped_message.value == p._abort_on_dropped_message.value; }
-    bool eq_nice( const Pragma& p ) const { return true; }
-    bool eq_quorum_delayed_calls( const Pragma& p ) const { return _quorum_delayed_calls == p._quorum_delayed_calls; }
-    bool eq_reschedule_on_async_send( const Pragma& p ) const { return _reschedule_on_async_send == p._reschedule_on_async_send; }
-    bool eq_scheduling_model( const Pragma& p ) const { return _scheduling_model == p._scheduling_model; }
-    bool eq_xml_schema( const Pragma& p ) const { return true; }
-    
-    void updateDOM( LQIO::DOM::Document* document ) const;
+    LQIO::severity_t get_severity_level() { return _severity_level; }
 
     static void initialize();
-    static void usage();
+    static void usage( std::ostream& output );
 
 private:
     Pragma( const Pragma& );		/* No copy constructor */
 
-    bool set_abort_on_dropped_message( const std::string& value ) { return set_abort_on_dropped_message( is_true( value ) ); }
+    bool set_abort_on_dropped_message( const std::string& );
+    bool set_block_period( const std::string& );
+    bool set_initial_delay( const std::string& );
+    bool set_initial_loops( const std::string& );
+    bool set_max_blocks( const std::string& );
     bool set_nice( const std::string& );
+    bool set_precision( const std::string& );
     bool set_quorum_delayed_calls( const std::string& );
     bool set_reschedule_on_async_send( const std::string& );
-    bool set_scheduling_model( const std::string& );
-    bool set_xml_schema( const std::string& );
-    bool set_precision( const std::string& );
-    bool set_initial_loops( const std::string& );
-    bool set_initial_delay( const std::string& );
-    bool set_block_period( const std::string& );
-    bool set_max_blocks( const std::string& );
-    bool set_seed_value( const std::string& );
     bool set_run_time( const std::string& );
-
-    const char * get_abort_on_dropped_message() const;
-    const char * get_nice() const;
-    const char * get_quorum_delayed_calls() const;
-    const char * get_reschedule_on_async_send() const;
-    const char * get_scheduling_model() const;
-    const char * get_xml_schema() const;
-
-    int str_to_scheduling_type( const std::string&, int default_sched );
-    bool is_true( const std::string& ) const;
+    bool set_scheduling_model( const std::string& );
+    bool set_seed_value( const std::string& );
+    bool set_severity_level(const std::string& );
+    bool is_true( const string& s ) const;
 
 private:
-    struct abort_on_dropped_message {
-	abort_on_dropped_message( bool v ) : value( v ), set(false) {}
-	bool value;
-	bool set;
-    } _abort_on_dropped_message;
-    std::string _nice_value;
+    bool _abort_on_dropped_message;
+    int _nice_value;
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;
     int _scheduling_model;
+    bool _spex_header;
+    LQIO::severity_t _severity_level;
+
+public:
+    static Pragma * __pragmas;
 
 private:
-    static std::map<const char *, pragma_info, lt_str> __pragmas;
+    static std::map<std::string,Pragma::fptr> __set_pragma;
 };
-
-extern Pragma pragma;
 #endif

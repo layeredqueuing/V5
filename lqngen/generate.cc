@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: generate.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include "lqngen.h"
@@ -98,7 +98,7 @@ Generate::Generate( const LQIO::DOM::Document::input_format output_format, const
     : _document(0), _output_format(output_format), _runs(runs), _number_of_customers(customers), _number_of_layers(layers), 
       _number_of_processors(min(processors,tasks)), _number_of_clients(clients), _number_of_tasks(max(layers,tasks))
 {
-    _document = new LQIO::DOM::Document( &io_vars, LQIO::DOM::Document::AUTOMATIC_INPUT );		// For XML output.
+    _document = new LQIO::DOM::Document( LQIO::DOM::Document::AUTOMATIC_INPUT );		// For XML output.
     _number_of_tasks_for_layer.resize( _number_of_layers + 1 );
     _task.resize( _number_of_layers + 1 );
     if ( Flags::spex_output ) {

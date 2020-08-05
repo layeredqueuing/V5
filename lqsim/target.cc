@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 13577 2020-05-30 02:47:06Z greg $
+ * $Id: target.cc 13732 2020-08-05 14:56:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -92,7 +92,7 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	}
     } else {
 	ps_record_stat( r_loss_prob.raw, 1 );
-	if ( pragma.abort_on_dropped_message() ) {
+	if ( Pragma::__pragmas->abort_on_dropped_message() ) {
 	    LQIO::solution_error( FTL_MSG_POOL_EMPTY, src->name(), entry->name() );
 	} else {
 	    messages_lost = true;

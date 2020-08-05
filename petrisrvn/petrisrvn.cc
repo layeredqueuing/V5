@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: petrisrvn.cc 13727 2020-08-04 14:06:18Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -38,6 +38,7 @@
 #if HAVE_GETOPT_H
 #include <getopt.h>
 #endif
+#include <libgen.h>
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
@@ -85,8 +86,6 @@ Pragma pragma;
 Pragma saved_pragma;
 
 static const char * net_dir_name	= "nets";
-
-lqio_params_stats io_vars( VERSION, severity_action );
 
 static void my_handler (int);
 
@@ -201,13 +200,8 @@ main (int argc, char *argv[])
 
     int global_error_flag  = 0; 	/* Error detected anywhere??	*/
 
-    io_vars.lq_toolname = strrchr( argv[0], '/' );
-    if ( io_vars.lq_toolname ) {
-	io_vars.lq_toolname += 1;
-    } else {
-	io_vars.lq_toolname = argv[0];
-    }
-    command_line = io_vars.lq_toolname;
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    command_line = LQIO::io_vars.lq_toolname;
 
     stddbg   = stdout;
 
@@ -270,7 +264,7 @@ main (int argc, char *argv[])
 	    } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
 		Model::__input_format = LQIO::DOM::Document::LQN_INPUT;
 	    } else {
-		fprintf( stderr, "%s: invalid argument to -I -- %s\n", io_vars.lq_toolname, optarg );
+		fprintf( stderr, "%s: invalid argument to -I -- %s\n", LQIO::io_vars.toolname(), optarg );
 	    }
 	    break;
 
@@ -283,7 +277,7 @@ main (int argc, char *argv[])
 	    if ( strcmp( optarg, "-" ) == 0 ) {
 		stddbg = stdout;
 	    } else if ( !(stddbg = fopen( optarg, "w" )) ) {
-		(void) fprintf( stderr, "%s: cannot open ", io_vars.lq_toolname );
+		(void) fprintf( stderr, "%s: cannot open ", LQIO::io_vars.toolname() );
 		perror( optarg );
 		(void) exit( FILEIO_ERROR );
 	    }
@@ -304,7 +298,7 @@ main (int argc, char *argv[])
 
 	case 'P':
 	    if ( !pragma( optarg ) ) {
-		(void) fprintf( stderr, "%s: invalid argument to --pragma: %s\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid argument to --pragma: %s\n", LQIO::io_vars.toolname(), optarg );
 		Pragma::usage();
 		exit( INVALID_ARGUMENT );
 	    }
@@ -352,7 +346,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 'w':
-	    io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
 	    break;
 
 	case 'x':
@@ -372,7 +366,7 @@ main (int argc, char *argv[])
 		    if ( errcode ) {
 			char buf[BUFSIZ];
 			regerror( errcode, inservice_match_pattern, buf, BUFSIZ );
-			fprintf( stderr, "%s: %s\n", io_vars.lq_toolname, buf );
+			fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), buf );
 			exit( INVALID_ARGUMENT );
 		    }
 		    break;
@@ -381,7 +375,7 @@ main (int argc, char *argv[])
 		case GLOBAL_DELAY:
 		    if ( !value || sscanf( value, "%lg", &inter_proc_delay ) != 1 || inter_proc_delay < 0.0 ) {
 			(void) fprintf( stderr, "%s: global-delay=%s is invalid, choose value > 0\n",
-					io_vars.lq_toolname, value ? value : "" );
+					LQIO::io_vars.toolname(), value ? value : "" );
 			(void) exit( INVALID_ARGUMENT );
 		    } else {
 			comm_delay_flag = true;
@@ -398,7 +392,7 @@ main (int argc, char *argv[])
 			x_scaling = 1.0;
 		    } else if ( sscanf( value, "%lg", &x_scaling ) != 1 || x_scaling < 0 ) {
 			(void) fprintf( stderr, "%s: x_scaling=%s is invalid, choose value > 0\n",
-					io_vars.lq_toolname, value ? value : "" );
+					LQIO::io_vars.toolname(), value ? value : "" );
 			(void) exit( INVALID_ARGUMENT );
 		    }
 		    break;
@@ -408,7 +402,7 @@ main (int argc, char *argv[])
 			open_model_tokens = 3;
 		    } else if ( sscanf( value, "%d", &open_model_tokens ) != 1 || open_model_tokens > OPEN_MODEL_TOKENS*2 ) {
 			(void) fprintf( stderr, "%s: default-open-queue-max=%s is invalid, choose value < %d\n",
-					io_vars.lq_toolname, value ? value : "", OPEN_MODEL_TOKENS*2 );
+					LQIO::io_vars.toolname(), value ? value : "", OPEN_MODEL_TOKENS*2 );
 			(void) exit( INVALID_ARGUMENT );
 		    }
 		    break;
@@ -422,7 +416,7 @@ main (int argc, char *argv[])
 		    break;
 
 		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -z -- %s\n", io_vars.lq_toolname, value );
+		    (void) fprintf( stderr, "%s: invalid argument to -z -- %s\n", LQIO::io_vars.toolname(), value );
 		    usage();
 		    exit( INVALID_ARGUMENT );
 		}
@@ -433,7 +427,7 @@ main (int argc, char *argv[])
 	    exit( INVALID_ARGUMENT );
 	}
     }
-    io_vars.lq_command_line = command_line.c_str();
+    LQIO::io_vars.lq_command_line = command_line.c_str();
 
     if ( copyright_flag ) {
 	(void) fprintf( stdout, "\nStochastic Rendezvous Petri Network Analyser, Version %s\n\n", VERSION );
@@ -445,8 +439,8 @@ main (int argc, char *argv[])
     /* Quick check.  -zin-service requires that the customers are differentiated. */
 
     if ( ( inservice_match_pattern ) && customers_flag ) {
-	if ( io_vars.severity_level <= LQIO::WARNING_ONLY ) {
-	    (void) fprintf( stdout, "%s: -zin-service or -zin-queue is incompatible with multiple customer clients\n", io_vars.lq_toolname );
+	if ( LQIO::io_vars.severity_level <= LQIO::WARNING_ONLY ) {
+	    (void) fprintf( stdout, "%s: -zin-service or -zin-queue is incompatible with multiple customer clients\n", LQIO::io_vars.toolname() );
 	    (void) fprintf( stdout, "\t-zcustomers assumed\n" );
 	}
 	customers_flag = false;
@@ -474,7 +468,7 @@ main (int argc, char *argv[])
 	unsigned int file_count = argc - optind;			/* Number of files on cmd line	*/
 
 	if ( output_file.size() && file_count > 1 && !LQIO::Filename::isDirectory( output_file ) ) {
-	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", io_vars.lq_toolname );
+	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", LQIO::io_vars.toolname() );
 	    exit( INVALID_ARGUMENT );
 	}
 
@@ -509,13 +503,13 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     int status = 0;
 
     /* Make sure we got a document */
-    if (document == NULL || io_vars.anError() || !aModel.construct() ) {
-	std::cerr << io_vars.lq_toolname << ": Input model " << inputFileName << " was not loaded successfully." << std::endl;
+    if (document == NULL || LQIO::io_vars.anError() || !aModel.construct() ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": Input model " << inputFileName << " was not loaded successfully." << std::endl;
 	return FILEIO_ERROR;
     }
 
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
-        std::cerr << io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
+        std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
 
     pragma.updateDOM( document );	/* Save pragmas */
@@ -579,13 +573,13 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 		status = aModel.solve();		/* Simply invoke the solver for the current DOM state */
 	    }
 	    catch ( const std::runtime_error & error ) {
-		std::cerr << io_vars.lq_toolname << ": runtime error - " << error.what() << std::endl;
-		io_vars.error_count += 1;
+		std::cerr << LQIO::io_vars.lq_toolname << ": runtime error - " << error.what() << std::endl;
+		LQIO::io_vars.error_count += 1;
 		status = EXCEPTION_EXIT;
 	    }
 	    catch ( const std::logic_error& error ) {
-		std::cerr << io_vars.lq_toolname << ": logic error - " << error.what() << std::endl;
-		io_vars.error_count += 1;
+		std::cerr << LQIO::io_vars.lq_toolname << ": logic error - " << error.what() << std::endl;
+		LQIO::io_vars.error_count += 1;
 		status = EXCEPTION_EXIT;
 	    }
 	}
@@ -596,7 +590,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 static void 
 usage (void)
 {
-    (void) fprintf( stderr, "Usage: %s ", io_vars.lq_toolname);
+    (void) fprintf( stderr, "Usage: %s ", LQIO::io_vars.toolname());
 
 #if HAVE_GETOPT_LONG
     fprintf( stderr, " [option] [file ...]\n\n" );

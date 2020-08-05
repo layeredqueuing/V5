@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 13536 2020-04-03 02:41:17Z greg $
+ * $Id: expat_document.cpp 13729 2020-08-04 20:20:16Z greg $
  *
  * Read in XML input files.
  *
@@ -148,22 +148,22 @@ namespace LQIO {
             if ( _input_file_name ==  "-" ) {
                 input_fd = fileno( stdin );
             } else if ( ( input_fd = open( _input_file_name.c_str(), O_RDONLY ) ) < 0 ) {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
+                std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << _input_file_name << " - " << strerror( errno ) << std::endl;
                 return false;
             }
 
             if ( isatty( input_fd ) ) {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from terminal is not allowed." << std::endl;
+                std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
 		return false;
 	    } else if ( fstat( input_fd, &statbuf ) != 0 ) {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << _input_file_name << " - " << strerror( errno ) << std::endl;
+                std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << _input_file_name << " - " << strerror( errno ) << std::endl;
 		return false;
 #if defined(S_ISSOCK)
 	    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
 #else
 	    } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
 #endif
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from " << _input_file_name << " is not allowed." << std::endl;
+                std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << _input_file_name << " is not allowed." << std::endl;
 		return false;
             }
 
@@ -203,7 +203,7 @@ namespace LQIO {
 		    do {
 			len = read( input_fd, buffer, BUFFSIZE );
 			if ( static_cast<int>(len) < 0 ) {
-			    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
+			    std::cerr << LQIO::io_vars.lq_toolname << ": Read error on " << _input_file_name << " - " << strerror( errno ) << std::endl;
 			    rc = false;
 			    break;
 			} else if (!XML_Parse(_parser, buffer, len, len == 0 )) {
@@ -487,6 +487,7 @@ namespace LQIO {
 		_document.setInstantiated( true );		/* Set true even if we aren't loading results */
                 if ( _loadResults ) {
                     const long iterations = getLongAttribute(attributes,Xiterations);
+		    _document.setResultSolverInformation( getStringAttribute(attributes,Xsolver_info,"") );
                     _document.setResultValid( getBoolAttribute(attributes,Xvalid) );
                     _document.setResultConvergenceValue( getDoubleAttribute(attributes,Xconv_val_result) );
                     _document.setResultIterations( iterations );
@@ -2219,11 +2220,11 @@ namespace LQIO {
             output << "<?xml version=\"1.0\"?>" << std::endl
 		   << "<!-- " << Common_IO::svn_id() << " -->" << std::endl;
 
-	    if ( LQIO::DOM::Document::io_vars->lq_command_line && strlen( LQIO::DOM::Document::io_vars->lq_command_line ) > 0 ) {
-		output << comment( LQIO::DOM::Document::io_vars->lq_command_line );
+	    if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
+		output << comment( LQIO::io_vars.lq_command_line );
 	    }
             output << start_element( Xlqn_model ) << attribute( Xname, base_name() )
-                   << " description=\"" << LQIO::DOM::Document::io_vars->lq_toolname << " " << LQIO::DOM::Document::io_vars->lq_version << " solution for model from: " << _input_file_name << ".\""
+                   << " description=\"" << LQIO::io_vars.lq_toolname << " " << io_vars.lq_version << " solution for model from: " << _input_file_name << ".\""
                    << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
 
             const char * p = getenv( "LQN_SCHEMA_DIR" );
@@ -2293,6 +2294,7 @@ namespace LQIO {
 		    const MVAStatistics& mva_info = _document.getResultMVAStatistics();
                     const bool has_mva_info = mva_info.getNumberOfSubmodels() > 0;
                     output << start_element( Xresult_general, has_mva_info )
+			   << attribute( Xsolver_info, _document.getResultSolverInformation() )
                            << attribute( Xvalid, _document.getResultValid() ? "YES" : "NO" )
                            << attribute( Xconv_val_result, _document.getResultConvergenceValue() )
                            << attribute( Xiterations, _document.getResultIterations() )

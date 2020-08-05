@@ -2,9 +2,8 @@
 <!-- Invoked as: lqn2xml -o91-cs3-1.lqnx 91-cs3-1.in -->
 <!-- Fri May 29 10:46:31 2009 -->
 
-<lqn-model name="91-cs3-1" description="$Id: 91-cs3-1.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="#pragma tda=fcfs #pragma variance=none TDA test #1" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9">
-      <pragma param="tda" value="fcfs"/>
+<lqn-model name="91-cs3-1" description="$Id: 91-cs3-1.lqnx 13729 2020-08-04 20:20:16Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="TDA test #1" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9">
       <pragma param="variance" value="none"/>
    </solver-params>
    <processor name="client1Proc" scheduling="fcfs">

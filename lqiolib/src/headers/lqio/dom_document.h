@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_document.h 13727 2020-08-04 14:06:18Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,6 +19,7 @@
 #include "dom_actlist.h"
 #include "dom_call.h"
 #include "dom_extvar.h"
+#include "dom_pragma.h"
 #include "submodel_info.h"
 
 struct lqio_params_stats;
@@ -46,7 +47,7 @@ namespace LQIO {
 	    /* Constructors and Destructors */
 
 	public:
-	    Document( lqio_params_stats*, input_format );
+	    Document( input_format );
 	    virtual ~Document();
 
 	    input_format getInputFormat() const { return _format; }
@@ -99,6 +100,7 @@ namespace LQIO {
 	    
 	    /* LQX Pragma Support */
 	    void addPragma(const std::string&,const std::string&);
+	    void mergePragmas(const std::map<std::string,std::string>&);
 	    const std::map<std::string,std::string>& getPragmaList() const;
 	    bool hasPragmas() const { return getPragmaList().size() > 0; }
 	    const std::string getPragma( const std::string& ) const;
@@ -216,7 +218,7 @@ namespace LQIO {
 
 	    /* I/O */
 	    static input_format getInputFormatFromFilename( const std::string&, const input_format=AUTOMATIC_INPUT );
-	    static Document* load(const std::string&, input_format format, lqio_params_stats*, unsigned& errorCode, bool load_results );
+	    static Document* load(const std::string&, input_format format, unsigned& errorCode, bool load_results );
 	    virtual bool loadResults( const std::string&, const std::string&, const std::string&, unsigned& errorCode );
 	    std::ostream& print( std::ostream& ouptut, const output_format format=LQN_OUTPUT ) const;
 	    std::ostream& printExternalVariables( std::ostream& ouptut ) const;
@@ -225,7 +227,6 @@ namespace LQIO {
 
 	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType = DOM::Entry::ENTRY_NOT_DEFINED );
 	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
-	    static lqio_params_stats* io_vars;
 	    static std::string __input_file_name;
 	    static bool __debugXML;
 	    static bool __debugJSON;
@@ -279,7 +280,7 @@ namespace LQIO {
 	    bool _instantiated;
 
 	    /* Pragmas loaded by the scanner */
-	    std::map<std::string,std::string> _loadedPragmas;
+	    Pragma _pragmas;
 
 	    /* Various flags used by printing */
 

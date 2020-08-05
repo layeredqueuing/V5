@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: entity.cc 13725 2020-08-04 03:58:02Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -110,7 +110,7 @@ Entity::~Entity()
 Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    if ( pragma.getVariance() != NO_VARIANCE && nEntries() > 1 && pragma.entry_variance() ) {
+    if ( !Pragma::variance(Pragma::NO_VARIANCE) && nEntries() > 1 && Pragma::entry_variance() ) {
 	attributes.variance = true;
     }
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
@@ -120,7 +120,7 @@ Entity::configure( const unsigned nSubmodels )
 	if ( (*entry)->hasDeterministicPhases() ) {
 	    attributes.deterministic = true;
 	}
-	if ( pragma.getVariance() != NO_VARIANCE && (*entry)->hasVariance() ) {
+	if ( !Pragma::variance(Pragma::NO_VARIANCE) && (*entry)->hasVariance() ) {
 	    attributes.variance = true;
 	}
     }
@@ -336,7 +336,7 @@ Entity::markovOvertaking() const
 {
     return (bool)( hasSecondPhase()
 		   && !isInfinite()
-		   && pragma.getOvertaking() == MARKOV_OVERTAKING);
+		   && Pragma::overtaking( Pragma::MARKOV_OVERTAKING ) );
 }
 
 

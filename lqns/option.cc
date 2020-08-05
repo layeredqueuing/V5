@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13685 2020-07-14 02:53:54Z greg $
+ * $Id: option.cc 13728 2020-08-04 16:28:38Z greg $
  */
 
 #include <config.h>
@@ -162,7 +162,7 @@ Options::Trace::mva( const char *arg )
     } else if ( 0 < ( temp = (unsigned)strtol( arg, 0, 10 ) ) && temp < 100 ) {
 	flags.trace_submodel = temp;
     } else {
-	cerr << io_vars.lq_toolname << " -tmva=" << arg << " is invalid." << endl;
+	cerr << LQIO::io_vars.lq_toolname << " -tmva=" << arg << " is invalid." << endl;
     }
 }
 
@@ -261,7 +261,7 @@ void
 Options::Special::iteration_limit( const char * arg )
 {
     if ( !arg || (Model::iteration_limit = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
-	cerr << io_vars.lq_toolname << "iteration-limit=" << arg << " is invalid, choose non-negative integer." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << arg << " is invalid, choose non-negative integer." << endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
 	flags.override_iterations = true;
@@ -272,7 +272,7 @@ void
 Options::Special::print_interval( const char * arg )
 {
     if ( !arg || (Model::print_interval = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
-	cerr << io_vars.lq_toolname << "print-interval=" << arg << " is invalid, choose non-negative integer." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "print-interval=" << arg << " is invalid, choose non-negative integer." << endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
 	flags.override_print_interval = true;
@@ -289,7 +289,7 @@ void
 Options::Special::convergence_value( const char * arg )
 {
     if ( !arg || (Model::convergence_value = strtod( arg, 0 )) == 0 ) {
-	cerr << io_vars.lq_toolname << "convergence=" << arg << " is invalid, choose non-negative real." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "convergence=" << arg << " is invalid, choose non-negative real." << endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
 	flags.override_convergence = true;
@@ -302,7 +302,7 @@ Options::Special::single_step( const char * arg )
     if ( !arg ) {
 	flags.single_step = true;
     } else if ( (flags.single_step = atol( arg )) <= 0 ) {
-	cerr << io_vars.lq_toolname << ": step=" << arg << " is invalid, choose non-negative integer." << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": step=" << arg << " is invalid, choose non-negative integer." << endl;
 	(void) exit( INVALID_ARGUMENT );
     }
 }
@@ -311,7 +311,7 @@ void
 Options::Special::underrelaxation( const char * arg )
 {
     if ( !arg || (Model::underrelaxation = strtod( arg, 0 )) <= 0.0 || 2.0 < Model::underrelaxation ) {
-	cerr << io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose a value between 0.0 and 2.0." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose a value between 0.0 and 2.0." << endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
 	flags.override_underrelaxation = true;
@@ -322,7 +322,7 @@ void
 Options::Special::generate_queueing_model( const char * arg )
 {
     if ( !arg ) {
-	cerr << io_vars.lq_toolname << "generate: missing filename argument.." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "generate: missing filename argument.." << endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
 	flags.generate = true;
@@ -334,7 +334,7 @@ void
 Options::Special::mol_ms_underrelaxation( const char * arg )
 {
     if ( !arg || (MVA::MOL_multiserver_underrelaxation = strtod( arg, 0 )) <= 0.0 || 1.0 < MVA::MOL_multiserver_underrelaxation ) {
-	cerr << io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose real between 0.0 and 1.0." << endl;
+	cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose real between 0.0 and 1.0." << endl;
 	(void) exit( INVALID_ARGUMENT );
     }
 }
@@ -385,9 +385,9 @@ void
 Options::Special::min_steps( const char * arg )
 {
     if ( !arg ) {
-	cerr << io_vars.lq_toolname << ": no value supplied to -zmin-steps." << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": no value supplied to -zmin-steps." << endl;
     } else if ( (flags.min_steps = atoi( arg )) < 1 ) {
-	cerr << io_vars.lq_toolname << ": min-steps=" << arg << " is invalid, choose value greater than 1." << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": min-steps=" << arg << " is invalid, choose value greater than 1." << endl;
 	(void) exit( INVALID_ARGUMENT );
     }
 }
@@ -409,12 +409,12 @@ Options::Special::initialize()
 {
     if ( __table.size() ) return;
 
-//    __table["iteration-limit"] 		  = Special( &Special::iteration_limit, 	   true,  &Help::specialIterationLimit );
+    __table["iteration-limit"] 		  = Special( &Special::iteration_limit, 	   true,  &Help::specialIterationLimit );
     __table["print-interval"] 		  = Special( &Special::print_interval,    	   true,  &Help::specialPrintInterval );
     __table["overtaking"] 		  = Special( &Special::overtaking,        	   false, &Help::specialOvertaking );
-//    __table["convergence-value"] 	  = Special( &Special::convergence_value,          true,  &Help::specialConvergenceValue );
+    __table["convergence-value"] 	  = Special( &Special::convergence_value,          true,  &Help::specialConvergenceValue );
     __table["single-step"] 		  = Special( &Special::single_step,		   false, &Help::specialSingleStep );
-//    __table["underrelaxation"] 		  = Special( &Special::underrelaxation,	           true,  &Help::specialUnderrelaxation );
+    __table["underrelaxation"] 		  = Special( &Special::underrelaxation,	           true,  &Help::specialUnderrelaxation );
     __table["generate"] 	          = Special( &Special::generate_queueing_model,    true,  &Help::specialGenerateQueueingModel );
     __table["mol-ms-underrelaxation"] 	  = Special( &Special::mol_ms_underrelaxation,     true,  &Help::specialMolMSUnderrelaxation );
     __table["man"]	 		  = Special( &Special::make_man,		   true,  &Help::specialMakeMan );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: model.cc 13735 2020-08-05 15:54:22Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -76,6 +76,7 @@
 #include "report.h"
 #include "runlqx.h"
 #include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
 
 double Model::convergence_value = 0.00001;
 unsigned Model::iteration_limit = 50;;
@@ -105,46 +106,46 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 
     Activity::actConnections.clear();
     Activity::domToNative.clear();
-    MVA::__bounds_limit = pragma.getTau();
+    MVA::__bounds_limit = Pragma::tau();
 
     /*
      * Fold, Mutilate and Spindle before main loop processing in solve.c
      * disable model checking and expansion at this stage with LQX programs
      */
 
-    if ( io_vars.anError() == false && (check_model == false || checkModel() ) ) {
+    if ( LQIO::io_vars.anError() == false && (check_model == false || checkModel() ) ) {
 
 	extendModel();			/* Do this before initProcessors() */
 
 	if( check_model )
 	    initProcessors();		/* Set Processor Service times.	*/
 
-	switch ( pragma.getLayering() ) {
-	case BATCHED_LAYERS:
+	switch ( Pragma::layering() ) {
+	case Pragma::BATCHED_LAYERS: 
 	    aModel = new Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case BACKPROPOGATE_LAYERS:
+	case Pragma::BACKPROPOGATE_LAYERS:
 	    aModel = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case METHOD_OF_LAYERS:
+	case Pragma::METHOD_OF_LAYERS:
 	    aModel = new MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case BACKPROPOGATE_METHOD_OF_LAYERS:
+	case Pragma::BACKPROPOGATE_METHOD_OF_LAYERS:
 	    aModel = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case SRVN_LAYERS:
+	case Pragma::SRVN_LAYERS:
 	    aModel = new SRVN_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case SQUASHED_LAYERS:
+	case Pragma::SQUASHED_LAYERS:
 	    aModel = new Squashed_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case HWSW_LAYERS:
+	case Pragma::HWSW_LAYERS:
 	    aModel = new HwSw_Model( document, inputFileName, outputFileName );
 	    break;
 	}
@@ -154,7 +155,7 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 	try {
 	    if ( check_model ) {
 		aModel->generate();
-		if ( !io_vars.anError() ) {
+		if ( !LQIO::io_vars.anError() ) {
 		    aModel->setInitialized();
 		} else {
 		    delete aModel;
@@ -185,7 +186,7 @@ Model::initializeModel()
 
 	_model_initialized = true;
     }
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -205,7 +206,7 @@ Model::load( const string& input_filename, const string& output_filename )
 	set_fp_abort();
     }
 
-    io_vars.reset();
+    LQIO::io_vars.reset();
     Entry::reset();
     Task::reset();
     ActivityList::reset();
@@ -217,7 +218,7 @@ Model::load( const string& input_filename, const string& output_filename )
     unsigned errorCode = 0;
 
     /* Attempt to load in the document from the filename/ptr and configured io_vars */
-    return LQIO::DOM::Document::load(input_filename, input_format, &::io_vars, errorCode, false);
+    return LQIO::DOM::Document::load(input_filename, input_format, errorCode, false);
 }
 
 
@@ -231,9 +232,9 @@ Model::prepare(const LQIO::DOM::Document* document)
     /* Tell the user that we are starting to load up */
     DEBUG(endl << "[0]: Beginning model load, setting parameters." << endl);
 
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    const map<string,string>& pragmaList = document->getPragmaList();
-    for_each( pragmaList.begin(), pragmaList.end(), Pragma::create );
+    Pragma::set( document->getPragmaList() );
+    LQIO::io_vars.severity_level = Pragma::severityLevel();
+    LQIO::Spex::__no_header = !Pragma::spexHeader();
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
@@ -381,7 +382,7 @@ Model::checkModel()
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -600,7 +601,7 @@ Model::configure()
 void
 Model::initialize()
 {
-    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+    if ( Pragma::interlock() ) {
 	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initInterlock ) );
 	if ( Options::Debug::interlock() ) {
 	    Interlock::printPathTable( cout );
@@ -620,7 +621,7 @@ Model::initialize()
 
     /* Initialize Interlocking */
 
-    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+    if ( Pragma::interlock() ) {
 	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::initInterlock ) );
     }
 
@@ -649,7 +650,7 @@ Model::reinitialize()
     _step_count = 0;
 
     for_each( _MVAStats.begin(), _MVAStats.end(), Exec<MVACount>( &MVACount::initialize ) );
-    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+    if ( Pragma::interlock() ) {
 	for_each( __entry.begin(), __entry.end(), Exec<Entry>( &Entry::resetInterlock ) );
     }
 
@@ -674,7 +675,7 @@ Model::reinitialize()
 
     /* Reinitialize Interlocking */
 
-    if ( pragma.getInterlock() != NO_INTERLOCK ) {
+    if ( Pragma::interlock() ) {
 	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::reinitInterlock ) );
     }
 
@@ -1159,7 +1160,7 @@ Model::topologicalSort()
 	}
     }
 
-    if ( io_vars.anError() ) {
+    if ( LQIO::io_vars.anError() ) {
 	throw exception_handled( "Model::topologicalSort" );
     }
     return max_depth;

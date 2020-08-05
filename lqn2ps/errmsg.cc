@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 13684 2020-07-13 15:41:25Z greg $
+ * $Id: errmsg.cc 13727 2020-08-04 14:06:18Z greg $
  *
  * Error messages.
  *
@@ -55,14 +55,14 @@ init_errmsg()
     for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
 	error_messages[i] = local_error_messages[j];
     }
-    io_vars.error_messages = error_messages;
-    io_vars.max_error = LSTLCLERRMSG;
+    LQIO::io_vars.error_messages = error_messages;
+    LQIO::io_vars.max_error = LSTLCLERRMSG;
 
     /* Adjust priority */
 
-    io_vars.error_messages[LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH].severity = LQIO::WARNING_ONLY;
-    io_vars.error_messages[LQIO::ERR_CYCLE_IN_CALL_GRAPH].severity = LQIO::WARNING_ONLY;
-    io_vars.error_messages[LQIO::ERR_MISSING_OR_BRANCH].severity = LQIO::WARNING_ONLY;
+    LQIO::io_vars.error_messages[LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH].severity = LQIO::WARNING_ONLY;
+    LQIO::io_vars.error_messages[LQIO::ERR_CYCLE_IN_CALL_GRAPH].severity = LQIO::WARNING_ONLY;
+    LQIO::io_vars.error_messages[LQIO::ERR_MISSING_OR_BRANCH].severity = LQIO::WARNING_ONLY;
 }
 
 /*
@@ -78,8 +78,8 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= io_vars.max_error ) {
+	LQIO::io_vars.error_count += 1;
+	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
 	    throw ( runtime_error( "Too many errors" ) );
 	}
 	break;

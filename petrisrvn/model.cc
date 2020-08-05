@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13552 2020-05-22 17:44:53Z greg $
+ * $Id: model.cc 13727 2020-08-04 14:06:18Z greg $
  *
  * Load the SRVN model.
  */
@@ -144,7 +144,7 @@ Model::load( const string& input_filename, const string& output_filename )
 	cerr << "Load: " << input_filename << "..." << endl;
     }
 
-    io_vars.reset();
+    LQIO::io_vars.reset();
 
     __forwarding_present     = false;
     __open_class_error	     = false;
@@ -163,7 +163,7 @@ Model::load( const string& input_filename, const string& output_filename )
      */
 
     unsigned errorCode = 0;
-    return LQIO::DOM::Document::load(input_filename, __input_format, &::io_vars, errorCode, false);
+    return LQIO::DOM::Document::load(input_filename, __input_format, errorCode, false);
 }
 
 
@@ -344,7 +344,7 @@ Model::construct()
     Activity::complete_activity_connections();
 
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -395,13 +395,13 @@ Model::transform()
 	(*t)->build_forwarding_lists();
     }
 
-    if ( io_vars.anError() ) return false;
+    if ( LQIO::io_vars.anError() ) return false;
 
     const unsigned int max_queue_length = set_queue_length();		/* Do after forwarding */
     const unsigned int max_proc_queue_length = Processor::set_queue_length();
 
     if ( !init_net() ) {
-	cerr << io_vars.lq_toolname << ": Cannot initialize net " << _input_file_name << "!" << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": Cannot initialize net " << _input_file_name << "!" << endl;
 	exit( EXCEPTION_EXIT );
     }
 
@@ -498,7 +498,7 @@ Model::transform()
     groupize();
     shift_rpars( Task::__client_x_offset, Phase::__parameter_y );
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -551,7 +551,7 @@ Model::solve()
 
     initialize();
     if ( !transform() ) {
-	cerr << io_vars.lq_toolname << ": Input model " << _input_file_name << " was not transformed successfully." << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": Input model " << _input_file_name << " was not transformed successfully." << endl;
 	return EXCEPTION_EXIT;
     }
 
@@ -564,7 +564,7 @@ Model::solve()
 	    cerr << "Solve: " << _input_file_name << "..." << endl;
 	}
 
-	save_net_files( io_vars.lq_toolname, netname().c_str() );
+	save_net_files( LQIO::io_vars.toolname(), netname().c_str() );
 
 	if ( no_execute_flag ) {
 	    return NORMAL_TERMINATION;
@@ -588,8 +588,8 @@ Model::solve()
     if ( rc == NORMAL_TERMINATION ) {
 	 solution_stats_t stats;
 	 if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
-	      || !collect_res( FALSE, (char *)io_vars.lq_toolname ) ) {
-	     (void) fprintf( stderr, "%s: Cannot read results for %s\n", io_vars.lq_toolname, netname().c_str() );
+	      || !collect_res( FALSE, LQIO::io_vars.toolname() ) ) {
+	     (void) fprintf( stderr, "%s: Cannot read results for %s\n", LQIO::io_vars.toolname(), netname().c_str() );
 	     rc = FILEIO_ERROR;
 	 } else {
 	     if ( stats.precision >= 0.01 || __open_class_error ) {
@@ -1638,7 +1638,7 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats )
     _document->setResultPlatformInformation( buf.str() );
 #endif
     buf.seekp(0);
-    buf << io_vars.lq_toolname << " " << VERSION;
+    buf << LQIO::io_vars.lq_toolname << " " << VERSION;
     _document->setResultSolverInformation( buf.str() );
 
     for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {

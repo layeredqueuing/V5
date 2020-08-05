@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: report.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -338,7 +338,7 @@ SolverReport::insertDOMResults() const
     buf += uu.release;
     _document->setResultPlatformInformation(buf);
 #endif
-    buf = io_vars.lq_toolname;
+    buf = LQIO::io_vars.lq_toolname;
     buf += " ";
     buf += VERSION;
     _document->setResultSolverInformation(buf);

@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 13577 2020-05-30 02:47:06Z greg $
+ * $Id: lqsim.cc 13735 2020-08-05 15:54:22Z greg $
  */
 
 
@@ -19,6 +19,7 @@
 #include <cstring>
 #include <time.h>
 #include <errno.h>
+#include <libgen.h>
 #include <sys/time.h>
 #include <sys/stat.h>
 #include <stdexcept>
@@ -49,7 +50,7 @@
 #include <lqio/commandline.h>
 #include <lqio/dom_bindings.h>
 #include <lqio/srvn_spex.h>
-#include "pragma.h"
+#include <lqio/dom_pragma.h>
 #include "errmsg.h"
 #include "model.h"
 #include "runlqx.h"		// Coupling here is ugly at the moment
@@ -70,8 +71,6 @@ typedef	int fp_bit_type;
 #define FP_CLEAR	0		/* If this works like solaris... */
 #endif
 
-
-lqio_params_stats io_vars( VERSION, severity_action );
 
 #define MAX_BLOCKS	30
 #define	INITIAL_LOOPS	500
@@ -284,8 +283,7 @@ static struct {
     { 0, 0 }
 };
 
-Pragma pragma;
-Pragma saved_pragma;
+static LQIO::DOM::Pragma pragmas;
 
 extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
@@ -326,14 +324,11 @@ main( int argc, char * argv[] )
 
     /* Set the program name and revision numbers.			*/
 
-    io_vars.lq_toolname = strrchr( argv[0], '/' );
-    if ( io_vars.lq_toolname ) {
-	io_vars.lq_toolname += 1;
-    } else {
-	io_vars.lq_toolname = argv[0];
-    }
-    command_line = io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-05-29 22:47:06 -0400 (Fri, 29 May 2020) $", "%*s %s %*s", copyright_date );
+
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+
+    command_line = LQIO::io_vars.lq_toolname;
+    (void) sscanf( "$Date: 2020-08-05 11:54:22 -0400 (Wed, 05 Aug 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     init_errmsg();
@@ -351,7 +346,7 @@ main( int argc, char * argv[] )
 
     matherr_disposition = REPORT_MATHERR;
 	
-    pragma( getenv( "LQSIM_PRAGMAS" ) );
+    pragmas.insert( getenv( "LQSIM_PRAGMAS" ) );
 
     /* Process all the command line arguments.  			*/
 	
@@ -373,7 +368,7 @@ main( int argc, char * argv[] )
 	    case 2: parameters._initial_delay = 0.0; break;
 	    case 3: break;
 	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
 		command_line_error = true;
 		break;
 	    }
@@ -387,7 +382,7 @@ main( int argc, char * argv[] )
 	    case 2: parameters._initial_delay = 0.0; break;
 	    case 3: break;
 	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
 		command_line_error = true;
 		break;
 	    }
@@ -401,7 +396,7 @@ main( int argc, char * argv[] )
 	    case 2: parameters._run_time = Model::simulation_parameters::DEFAULT_TIME * 1e6; break;		/* Default time is 1e10 */
 	    case 3: break;
 	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
 		command_line_error = true;
 		break;
 	    }
@@ -445,7 +440,7 @@ main( int argc, char * argv[] )
 	    break;
 
 	case 256+'h':
-	    LQIO::Spex::__no_header = true;
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
 	    break;
 
 	case 'I':
@@ -454,7 +449,7 @@ main( int argc, char * argv[] )
 	    } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
 		Model::input_format = LQIO::DOM::Document::LQN_INPUT;
 	    } else {
-		fprintf( stderr, "%s: invalid argument to -I -- %s\n", io_vars.lq_toolname, optarg );
+		fprintf( stderr, "%s: invalid argument to -I -- %s\n", LQIO::io_vars.toolname(), optarg );
 	    }
 	    break;
 
@@ -466,7 +461,7 @@ main( int argc, char * argv[] )
 	    char * endptr;
 	    parameters._max_blocks = strtol( optarg, &endptr, 10 );
 	    if ( parameters._max_blocks <= 2 || *endptr != '\0' ) {
-		(void) fprintf( stderr, "%s: invalid argument to --max-blocks - %s\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid argument to --max-blocks - %s\n", LQIO::io_vars.toolname(), optarg );
 		exit( FILEIO_ERROR );
 	    }
 	    break;
@@ -476,7 +471,7 @@ main( int argc, char * argv[] )
 	    if ( strcmp( optarg, "-" ) == 0 ) {
 		stddbg = stdout;
 	    } else if ( !(stddbg = fopen( optarg, "w" )) ) {
-		(void) fprintf( stderr, "%s: cannot open ", io_vars.lq_toolname );
+		(void) fprintf( stderr, "%s: cannot open ", LQIO::io_vars.toolname() );
 		perror( optarg );
 		exit( FILEIO_ERROR );
 	    }
@@ -491,7 +486,7 @@ main( int argc, char * argv[] )
 	    break;
 
 	case 256+'o':
-	    pragma.set_abort_on_dropped_message(false);
+            pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
 	    break;
 
 	case 'p':
@@ -499,13 +494,16 @@ main( int argc, char * argv[] )
 	    break;
 
 	case 'P':
-	    pragma( optarg );
+	    if ( !pragmas.insert( optarg ) ) {
+                Pragma::usage( cerr );
+                exit( INVALID_ARGUMENT );
+            }
 	    break;
 			    
 	case 256+'p':
 	    if ( !value || sscanf( value, "%d", &print_interval ) != 1 || print_interval < 0 ) {
 		(void) fprintf( stderr, "%s: print-interval=%s is invalid, choose integer > 0\n",
-				io_vars.lq_toolname, value ? value : "" );
+				LQIO::io_vars.toolname(), value ? value : "" );
 		(void) exit( INVALID_ARGUMENT );
 	    } else {
 		override_print_int = true;
@@ -530,7 +528,7 @@ main( int argc, char * argv[] )
 
 	case 'S':
 	    if ( sscanf( optarg, "%ld", &parameters._seed ) != 1 ) {
-		(void) fprintf( stderr, "%s: invalid seed value -- %s.\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid seed value -- %s.\n", LQIO::io_vars.toolname(), optarg );
 		command_line_error = true;
 	    }
 	    break;
@@ -542,7 +540,7 @@ main( int argc, char * argv[] )
 			
 	case 'T':
 	    if ( sscanf( optarg, "%lf", &parameters._run_time ) != 1 || parameters._run_time <= 0.0 ) {
-		(void) fprintf( stderr, "%s: invalid simulation runtime -- %s.\n", io_vars.lq_toolname, optarg );
+		(void) fprintf( stderr, "%s: invalid simulation runtime -- %s.\n", LQIO::io_vars.toolname(), optarg );
 		command_line_error = true;
 	    }
 	    parameters._block_period = ( parameters._run_time - parameters._initial_delay ) / parameters._max_blocks;
@@ -581,7 +579,7 @@ main( int argc, char * argv[] )
 		    break;
 				
 		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -t -- %s\n", io_vars.lq_toolname, value );
+		    (void) fprintf( stderr, "%s: invalid argument to -t -- %s\n", LQIO::io_vars.toolname(), value );
 		    command_line_error = true;
 		    break;
 		}
@@ -600,7 +598,7 @@ main( int argc, char * argv[] )
 	    break;
 	    
 	case 'w':
-	    io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
 	    break;
 			
 	case 'x':
@@ -614,7 +612,7 @@ main( int argc, char * argv[] )
 	case 256+'z':
 	    if ( !optarg || sscanf( optarg, "%lg", &inter_proc_delay ) != 1 || inter_proc_delay < 0.0 ) {
 		(void) fprintf( stderr, "%s: global-delay=%s is invalid, choose value > 0\n",
-				io_vars.lq_toolname, optarg ? optarg : "" );
+				LQIO::io_vars.toolname(), optarg ? optarg : "" );
 		(void) exit( INVALID_ARGUMENT );
 	    }
 	    break;
@@ -624,7 +622,7 @@ main( int argc, char * argv[] )
 	    break;
 	}
     }
-    io_vars.lq_command_line = command_line.c_str();
+    LQIO::io_vars.lq_command_line = command_line.c_str();
 
     if ( command_line_error ) {
 	usage();
@@ -633,13 +631,13 @@ main( int argc, char * argv[] )
 
     if ( parameters._run_time < parameters._initial_delay ) {
 	(void) fprintf( stderr, "%s: Run time of %G is smaller than initial delay of %G!\n",
-			io_vars.lq_toolname,
+			LQIO::io_vars.toolname(),
 			parameters._run_time, parameters._initial_delay );
 	exit( INVALID_ARGUMENT );
     }
 
     if ( reload_flag && restart_flag ) {
-	(void) fprintf( stderr, "%s: --reload-lqx and --restart are mutually exclusive: --restart assumed.\n", io_vars.lq_toolname );
+	(void) fprintf( stderr, "%s: --reload-lqx and --restart are mutually exclusive: --restart assumed.\n", LQIO::io_vars.toolname() );
 	reload_flag = false;
     }
 	
@@ -665,13 +663,13 @@ main( int argc, char * argv[] )
 	    global_error_flag |= process( "-", output_file, parameters );
 	}
 	catch ( const runtime_error &e ) {
-	    fprintf( stderr, "%s: %s\n", io_vars.lq_toolname, e.what() );
+	    fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
 	    global_error_flag = true;
 	}
 
 #if defined(DEBUG) || defined(WINNT)
     } else if ( argc - optind > 1 ) {
-	(void) fprintf( stderr, "%s: Too many input files specified -- only one can be specified with this version.\n", io_vars.lq_toolname );
+	(void) fprintf( stderr, "%s: Too many input files specified -- only one can be specified with this version.\n", LQIO::io_vars.toolname() );
 	exit( INVALID_ARGUMENT );
 #endif
 
@@ -680,10 +678,9 @@ main( int argc, char * argv[] )
 	int file_count = argc - optind;
 		
 	if ( output_file.size() > 0  && file_count > 1 && LQIO::Filename::isDirectory( output_file.c_str() ) == 0 ) {
-	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", io_vars.lq_toolname );
+	    (void) fprintf( stderr, "%s: Too many input files specified with -o <file> option.\n", LQIO::io_vars.toolname() );
 	    exit( INVALID_ARGUMENT );
 	}
-	saved_pragma = pragma;
 	for ( ; optind < argc; ++optind ) {
 
 	    if ( file_count > 1 ) {
@@ -693,13 +690,9 @@ main( int argc, char * argv[] )
 		global_error_flag |= process( argv[optind], output_file, parameters );
 	    }
 	    catch ( const runtime_error &e ) {
-		fprintf( stderr, "%s: %s\n", io_vars.lq_toolname, e.what() );
+		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
 		global_error_flag = true;
 	    }
-
-	    /* Clean up in preparation for another run.	*/
-
-	    pragma = saved_pragma;
 	}
     }
 
@@ -710,7 +703,7 @@ main( int argc, char * argv[] )
 static void
 usage(void)
 {
-    fprintf( stderr, "Usage: %s", io_vars.lq_toolname );
+    fprintf( stderr, "Usage: %s", LQIO::io_vars.toolname() );
 
     fprintf( stderr, " [option] [file ...]\n\n" );
     fprintf( stderr, "Options:\n" );
@@ -799,19 +792,18 @@ process( const string& input_file, const string& output_file, const Model::simul
     LQIO::DOM::Document* document = Model::load( input_file, output_file );
 
     Model aModel( document, input_file, output_file, parameters );
+    document->mergePragmas( pragmas.getList() );       /* Save pragmas */
 
     int status = 0;
 
     /* Make sure we got a document */
-    if ( document == NULL || io_vars.anError() || !aModel.construct() ) {
+    if ( document == NULL || LQIO::io_vars.anError() || !aModel.construct() ) {
 	return INVALID_INPUT;
     }
 
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
-        cerr << io_vars.lq_toolname << ": --no-header is ignored for " << input_file << "." << endl;
+        cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << input_file << "." << endl;
     }
-
-    pragma.updateDOM( document );	/* Save pragmas */
 
     /* We can simply run if there's no control program */
 
@@ -963,7 +955,7 @@ my_malloc( size_t size )
 #if defined(HAVE_GETRUSAGE)
 	struct rusage r;
 #endif
-	(void) fprintf( stderr, "%s: Out of memory!\n", io_vars.lq_toolname );
+	(void) fprintf( stderr, "%s: Out of memory!\n", LQIO::io_vars.toolname() );
 #if defined(HAVE_GETRUSAGE)
 	getrusage( RUSAGE_SELF, &r );
 	(void) fprintf( stderr, "\tmaxrss=%ld, idrss=%ld\n", r.ru_maxrss, r.ru_idrss );
@@ -982,7 +974,7 @@ my_realloc( void * ptr, size_t size )
 #if defined(HAVE_GETRUSAGE)
 	struct rusage r;
 #endif
-	(void) fprintf( stderr, "%s: Out of memory!\n", io_vars.lq_toolname );
+	(void) fprintf( stderr, "%s: Out of memory!\n", LQIO::io_vars.toolname() );
 #if defined(HAVE_GETRUSAGE)
 	getrusage( RUSAGE_SELF, &r );
 	(void) fprintf( stderr, "\tmaxrss=%ld, idrss=%ld\n", r.ru_maxrss, r.ru_idrss );
@@ -1001,7 +993,7 @@ regexec_check( int errcode, regex_t *r )
     if ( errcode ) {
 	char buf[BUFSIZ];
 	regerror( errcode, r, buf, BUFSIZ );
-	fprintf( stderr, "%s: %s\n", io_vars.lq_toolname, buf );
+	fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), buf );
 	exit( INVALID_ARGUMENT );
 	return false;
     } else {

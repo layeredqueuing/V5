@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13683 2020-07-13 14:25:00Z greg $
+ *  $Id: srvn_input.cpp 13727 2020-08-04 14:06:18Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1089,7 +1089,6 @@ namespace LQIO {
 	    return activityList;
 	}
     }
-    extern lqio_params_stats* io_vars;
 }
 
 
@@ -1098,24 +1097,24 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
     if ( input_filename == "-" ) {
 	LQIO_in = stdin;
     } else if (!( LQIO_in = fopen( input_filename.c_str(), "r" ) ) ) {
-	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open input file " << input_filename << " - " << strerror( errno ) << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open input file " << input_filename << " - " << strerror( errno ) << std::endl;
 	return 0;
     } 
     int LQIO_in_fd = fileno( LQIO_in );
 
     struct stat statbuf;
     if ( isatty( LQIO_in_fd ) ) {
-	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from terminal is not allowed." << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Input from terminal is not allowed." << std::endl;
 	return 0;
     } else if ( fstat( LQIO_in_fd, &statbuf ) != 0 ) {
-	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << input_filename << " - " << strerror( errno ) << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << input_filename << " - " << strerror( errno ) << std::endl;
 	return false;
 #if defined(S_ISSOCK)
     } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) && !S_ISSOCK(statbuf.st_mode) ) {
 #else
     } else if ( !S_ISREG(statbuf.st_mode) && !S_ISFIFO(statbuf.st_mode) ) {
 #endif
-	std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Input from " << input_filename << " is not allowed." << std::endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Input from " << input_filename << " is not allowed." << std::endl;
 	return false;
     } 
 
@@ -1130,11 +1129,11 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	    errorCode = LQIO_parse();
 	}
 	catch ( const std::domain_error& e ) {
-	    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": " << e.what() << "." << std::endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}
 	catch ( const std::runtime_error& e ) {
-	    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": " << e.what() << "." << std::endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}
 	LQIO__delete_buffer( yybuf );
@@ -1147,19 +1146,19 @@ bool LQIO::SRVN::load(LQIO::DOM::Document& document, const std::string& input_fi
 	    errorCode = LQIO_parse();
 	}
 	catch ( const std::runtime_error& e ) {
-	    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": " << e.what() << "." << std::endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << e.what() << "." << std::endl;
 	    errorCode = 1;
 	}
 #if HAVE_MMAP
     }
 #endif
-    if ( LQIO::DOM::Document::io_vars->anError() ) {
+    if ( LQIO::io_vars.anError() ) {
 	errorCode = 1;
     } else if ( load_results && input_filename != "-" ) {
 	LQIO::Filename parse_name( input_filename, "p" );
 	try {
 	    if ( parse_name.mtimeCmp( input_filename ) < 0 ) {
-		std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
+		std::cerr << LQIO::io_vars.lq_toolname << ": input file " << input_filename << " is more recent than " << parse_name() 
 			  << " -- results ignored. " << std::endl;
 	    } else {
 		LQIO::SRVN::loadResults( parse_name() );

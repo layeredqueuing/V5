@@ -61,8 +61,8 @@ init_errmsg()
     for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
 	error_messages[i] = local_error_messages[j];
     }
-    io_vars.error_messages = &error_messages[0];
-    io_vars.max_error = LSTLCLERRMSG;
+    LQIO::io_vars.error_messages = &error_messages[0];
+    LQIO::io_vars.max_error = LSTLCLERRMSG;
 }
 
 /*
@@ -78,8 +78,8 @@ severity_action (unsigned severity)
 	break;
 
     case LQIO::RUNTIME_ERROR:
-	io_vars.error_count += 1;
-	if  ( io_vars.error_count >= 10 ) {
+	LQIO::io_vars.error_count += 1;
+	if  ( LQIO::io_vars.error_count >= 10 ) {
 	    throw ( std::runtime_error( "Too many errors" ) );
 	}
 	break;

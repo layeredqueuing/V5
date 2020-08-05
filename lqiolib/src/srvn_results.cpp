@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: srvn_results.cpp 13727 2020-08-04 14:06:18Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -1155,7 +1155,7 @@ namespace LQIO {
 		struct stat statbuf;
 		int resultin_fd = fileno( resultin );
 		if ( fstat( resultin_fd, &statbuf ) != 0 ) {
-		    std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot stat " << filename << " - " << strerror( errno ) << std::endl;
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot stat " << filename << " - " << strerror( errno ) << std::endl;
 		    return false;
 		}
 
@@ -1176,10 +1176,10 @@ namespace LQIO {
 		    fclose( resultin );
 		}
 	    } else {
-                std::cerr << LQIO::DOM::Document::io_vars->lq_toolname << ": Cannot open result file " << filename << " - " << strerror( errno ) << std::endl;
+                std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open result file " << filename << " - " << strerror( errno ) << std::endl;
 		return false;
 	    }
-	    return !LQIO::DOM::Document::io_vars->anError();
+	    return !LQIO::io_vars.anError();
 	}
     }
 }
@@ -1204,7 +1204,7 @@ results_error2( unsigned err, ... )
 {
     va_list args;
     va_start( args, err );
-    LQIO::verrprintf( stderr, LQIO::DOM::Document::io_vars->error_messages[err].severity, results_file_name, resultlineno, 0,
-		      LQIO::DOM::Document::io_vars->error_messages[err].message, args );
+    LQIO::verrprintf( stderr, LQIO::io_vars.error_messages[err].severity, results_file_name, resultlineno, 0,
+		      LQIO::io_vars.error_messages[err].message, args );
     va_end( args );
 }

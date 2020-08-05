@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: main.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include "lqn2ps.h"
@@ -12,6 +12,7 @@
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
+#include <libgen.h>
 #if !HAVE_GETSUBOPT
 #include <lqio/getsbopt.h>
 #endif
@@ -23,8 +24,6 @@
 static double DEFAULT_ICON_HEIGHT = 45;	/* multiple of 9 works well with xfig. */
 
 std::string command_line;
-
-lqio_params_stats io_vars( VERSION, severity_action );
 
 bool Flags::annotate_input		= false;
 bool Flags::async_topological_sort      = true;
@@ -255,20 +254,15 @@ main(int argc, char *argv[])
     Flags::print[X_SPACING].value.f = DEFAULT_X_SPACING;
     Flags::print[Y_SPACING].value.f = DEFAULT_Y_SPACING;
 
-    io_vars.lq_toolname = strrchr( argv[0], '/' );
-    if ( io_vars.lq_toolname ) {
-	io_vars.lq_toolname += 1;
-    } else {
-	io_vars.lq_toolname = argv[0];
-    }
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
 
-    command_line += io_vars.lq_toolname;
+    command_line += LQIO::io_vars.lq_toolname;
 
     init_errmsg();
 
     /* If we are invoked as lqn2xxx or rep2flat, then enable other options. */
 
-    const char * p = strrchr( io_vars.lq_toolname, '2' );
+    const char * p = strrchr( LQIO::io_vars.toolname(), '2' );
     if ( p ) {
 	p += 1;
 	for ( int j = 0; Options::io[j]; ++j ) {
@@ -284,7 +278,7 @@ main(int argc, char *argv[])
 	    goto found1;
 	}
 #endif
-	cerr << io_vars.lq_toolname << ": command not found." << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": command not found." << endl;
 	exit( 1 );
     found1: ;
     }
@@ -394,7 +388,7 @@ pragma( const string& parameter, const string& value )
 //	case PRAGMA_SPEX_HEADER:		LQIO::Spex::__no_header			= get_bool( value, true ); break;
 	    
 	case PRAGMA_QUORUM_REPLY:
-	    io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
+	    LQIO::io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
 	    break;
 
 	case PRAGMA_TASKS_ONLY:
@@ -420,7 +414,7 @@ pragma( const string& parameter, const string& value )
 		} 
 	    }
 	    if ( Flags::sort == INVALID_SORT ) {
-		cerr << io_vars.lq_toolname << ": Invalid argument to 'sort=' :" << value << endl; 
+		cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to 'sort=' :" << value << endl; 
 		return false;
 	    }
 	    break;
@@ -436,7 +430,7 @@ pragma( const string& parameter, const string& value )
 #endif
 
 	default:
-	    cerr << io_vars.lq_toolname << ": Unknown pragma: \"" << parameter;
+	    cerr << LQIO::io_vars.lq_toolname << ": Unknown pragma: \"" << parameter;
 	    if ( value.size() ) {
 		cerr << "\"=\"" << value;
 	    }

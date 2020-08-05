@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 13556 2020-05-25 17:39:26Z greg $
+ * $Id: processor.cc 13732 2020-08-05 14:56:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -151,7 +151,7 @@ void
 Processor::reschedule( Instance * ip )
 {
     ps_my_schedule_time = ps_now;
-    if ( (pragma.scheduling_model() & SCHEDULE_NATURAL) == 0 ) { 
+    if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) { 
 	Custom_Processor * pp = dynamic_cast<Custom_Processor *>(find(ps_my_node));
 	if ( pp ) {
 	    ps_send( pp->scheduler(), SN_PREEMPT, "", ip->task_id() );
@@ -458,7 +458,7 @@ bool
 Processor::derive_utilization() const { 
     return discipline() != SCHEDULE_FIFO
 	&& discipline() != SCHEDULE_DELAY
-	&& (pragma.scheduling_model() & SCHEDULE_CUSTOM) == 0; 
+	&& (Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM) == 0; 
 }
 
 
@@ -565,7 +565,7 @@ Processor::add( LQIO::DOM::Processor* domProcessor )
     }
 
     Processor * aProcessor = 0;
-    if ( pragma.scheduling_model() & SCHEDULE_CUSTOM ) {
+    if ( Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM ) {
 	aProcessor = new Custom_Processor( domProcessor );
     } else {
 	aProcessor = new Processor( domProcessor );

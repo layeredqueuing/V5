@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: entry.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -174,7 +174,7 @@ Entry::check() const
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
 	LQIO::solution_error( LQIO::ERR_REF_TASK_FORWARDING, owner()->name().c_str(), name().c_str() );
     }
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 

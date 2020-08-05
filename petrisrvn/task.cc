@@ -336,7 +336,7 @@ Task::check()
 	}
     }
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 /* Priority for this task.	*/

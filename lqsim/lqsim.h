@@ -13,7 +13,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id: lqsim.h 13577 2020-05-30 02:47:06Z greg $
+ * $Id: lqsim.h 13732 2020-08-05 14:56:42Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -79,13 +79,10 @@ extern char * histogram_output_file;	/* File name for histogram data	*/
     
 void * my_malloc( size_t size );
 void * my_realloc( void * ptr, size_t size );
-void print_pragmas( FILE * output );
 void report_matherr( FILE * output );
 
 extern int nice_value;
 extern bool deferred_exception;		/* Fault detected in thread	*/
-
-extern lqio_params_stats io_vars;
 
 extern unsigned link_tab[MAX_NODES];	/* Link table.			*/
 

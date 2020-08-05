@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: lqns.cc 13735 2020-08-05 15:54:22Z greg $
  *
  * Command line processing.
  *
@@ -30,6 +30,7 @@
 #include <lqio/commandline.h>
 #include <lqio/dom_bindings.h>
 #include <lqio/srvn_spex.h>
+#include <lqio/dom_pragma.h>
 #if !defined(HAVE_GETSUBOPT)
 #include <lqio/getsbopt.h>
 #endif
@@ -49,14 +50,12 @@ static bool print_lqx = false;
 
 extern void init_errmsg(void);
 
-lqio_params_stats io_vars( VERSION, severity_action );
-
 static char copyrightDate[20];
 
 /* -- */
 
 struct FLAGS flags;
-static Pragma old_pragma;
+static LQIO::DOM::Pragma pragmas;
 
 #if HAVE_GETOPT_LONG
 const struct option longopts[] =
@@ -67,7 +66,7 @@ const struct option longopts[] =
     { "convergence",          required_argument, 0, 'c' },
     { "debug",                required_argument, 0, 'd' },
     { "error",                required_argument, 0, 'e' },
-    { "fast",                 no_argument,       0, 'f' },
+    { LQIO::DOM::Pragma::_fast_, no_argument,       0, 'f' },
     { "gnuplot",	      optional_argument, 0, 'G' },
     { "help",                 optional_argument, 0, 'H' },
     { "huge",		      no_argument,	 0, 'h' },
@@ -102,7 +101,7 @@ const struct option longopts[] =
     { "no-variance",          no_argument,       0, 256+'v' },
     { "reload-lqx",           no_argument,       0, 512+'r' },
     { "restart",	      no_argument,	 0, 512+'R' },
-    { "no-header",            no_argument,       0, 512+'h' },
+    { "no-header", 	      no_argument,       0, 512+'h' },
     { "reset-mva", 	      no_argument,       0, 256+'r' },
     { "trace-mva",            no_argument,       0, 256+'t' },
     { "debug-lqx",            no_argument,       0, 512+'l' },
@@ -167,7 +166,6 @@ const char * opthelp[]  = {
 
 static int process ( const string&, const string& );
 static void init_flags ();
-static bool get_pragma ( const char * );
 
 #if (defined(linux) || defined(__linux__)) && !defined(__USE_XOPEN_EXTENDED)
 extern "C" int getsubopt (char **, char * const *, char **);
@@ -190,17 +188,17 @@ int main (int argc, char *argv[])
 
     char * options;
 
-    io_vars.lq_toolname = basename( argv[0] );
-    command_line = io_vars.lq_toolname;
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-07-20 17:46:53 -0400 (Mon, 20 Jul 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-08-05 11:54:22 -0400 (Wed, 05 Aug 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
     init_flags();
     init_errmsg();
 
-    get_pragma( getenv( "LQNS_PRAGMAS" ) );
+    pragmas.insert( getenv( "LQNS_PRAGMAS" ) );
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
@@ -214,7 +212,7 @@ int main (int argc, char *argv[])
 
         switch ( c ) {
         case 'a':
-            pragma.setSeverityLevel( LQIO::RUNTIME_ERROR );
+            pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_run_time_);
             break;
 
         case 'b':
@@ -226,7 +224,7 @@ int main (int argc, char *argv[])
 
         case 'c':
             if ( !optarg || (Model::convergence_value = strtod( optarg, 0 )) == 0 ) {
-                cerr << io_vars.lq_toolname << "convergence=" << optarg << " is invalid, choose a non-negative real." << endl;
+                cerr << LQIO::io_vars.lq_toolname << "convergence=" << optarg << " is invalid, choose a non-negative real." << endl;
                 (void) exit( INVALID_ARGUMENT );
             } else {
                 flags.override_convergence = true;
@@ -262,25 +260,25 @@ int main (int argc, char *argv[])
                 break;
 
             default:
-                cerr << io_vars.lq_toolname << ": invalid argument to -e -- " << optarg << endl;
+                cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -e -- " << optarg << endl;
                 break;
             }
             break;
 
         case 256+'e':
-            pragma.setMVA(EXACT_MVA);
+            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_exact_);
             break;
 
         case 'f':
-            pragma.setLayering(BATCHED_LAYERS);
-            pragma.setMVA(ONESTEP_LINEARIZER);
-            pragma.setMultiserver(CONWAY_MULTISERVER);
+            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_batched_);
+            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_linearizer_);
+            pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_conway_);
             break;
 
 	case 'h':
-	    pragma.setInterlock(NO_INTERLOCK);
-            pragma.setMVA(ONESTEP_MVA);
-            pragma.setMultiserver(ROLIA_MULTISERVER);
+	    pragmas.insert(LQIO::DOM::Pragma::_interlocking_,LQIO::DOM::Pragma::_no_);
+            pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);
+            pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_rolia_);
 	    break;
 	    
         case 'H':
@@ -288,11 +286,11 @@ int main (int argc, char *argv[])
             exit(0);
 
         case 256+'h':
-            pragma.setLayering(HWSW_LAYERS);
+            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_hwsw_);
             break;
 
         case 512+'h':
-            LQIO::Spex::__no_header = true;
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
             break;
 
         case 'I':
@@ -301,13 +299,13 @@ int main (int argc, char *argv[])
             } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
                 Model::input_format = LQIO::DOM::Document::LQN_INPUT;
             } else {
-                cerr << io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << endl;
+                cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << endl;
             }
             break;
 
         case 'i':
             if ( !optarg || (Model::iteration_limit = (unsigned)strtol( optarg, 0, 10 )) == 0 ) {
-                cerr << io_vars.lq_toolname << "iteration-limit=" << optarg << " is invalid, choose a non-negative integer." << endl;
+                cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << optarg << " is invalid, choose a non-negative integer." << endl;
                 (void) exit( INVALID_ARGUMENT );
             } else {
                 flags.override_iterations = true;
@@ -315,7 +313,7 @@ int main (int argc, char *argv[])
             break;
 
         case 256+'l':
-            pragma.setLayering(SRVN_LAYERS);
+            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_srvn_);
             break;
 
         case (512+'l'):
@@ -323,7 +321,7 @@ int main (int argc, char *argv[])
             break;
 
         case 256+'m':
-            pragma.setLayering(METHOD_OF_LAYERS);
+            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_mol_);
             break;
 
         case 'n':
@@ -335,7 +333,7 @@ int main (int argc, char *argv[])
             break;
 
         case 256+'o':
-            pragma.setStopOnMessageLoss(false);
+            pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
             break;
 
         case 'p':
@@ -343,14 +341,14 @@ int main (int argc, char *argv[])
             break;
 
         case 'P':       /* Pragma processing... */
-            if ( !get_pragma( optarg ) ) {
+	    if ( !pragmas.insert( optarg ) ) {
                 Pragma::usage( cerr );
                 exit( INVALID_ARGUMENT );
             }
             break;
 
         case 256+'p':
-            pragma.setProcessor(PROCESSOR_PS);
+            pragmas.insert( LQIO::DOM::Pragma::_processor_scheduling_, scheduling_label[SCHEDULE_PS].XML );
             break;
 
         case 256+'q': //tomari quorum options
@@ -374,7 +372,7 @@ int main (int argc, char *argv[])
 	    break;
 
         case 256+'s':
-            pragma.setMVA(SCHWEITZER_MVA);
+            pragmas.insert( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_schweitzer_ );
             break;
 
 	case 512+'s':
@@ -397,7 +395,7 @@ int main (int argc, char *argv[])
 
         case 'u':
             if ( !optarg || (Model::underrelaxation = strtod( optarg, 0 )) <= 0.0 || 2.0 < Model::underrelaxation ) {
-                cerr << io_vars.lq_toolname << "underrelaxation=" << optarg << " is invalid, choose a value between 0.0 and 2.0." << endl;
+                cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << optarg << " is invalid, choose a value between 0.0 and 2.0." << endl;
                 (void) exit( INVALID_ARGUMENT );
             } else {
                 flags.override_underrelaxation = true;
@@ -417,11 +415,11 @@ int main (int argc, char *argv[])
             break;
 
         case (256+'v'):
-            pragma.setVariance(NO_VARIANCE);
+            pragmas.insert(LQIO::DOM::Pragma::_variance_, LQIO::DOM::Pragma::_none_);
             break;
 
         case 'w':
-            pragma.setSeverityLevel( LQIO::ADVISORY_ONLY );
+            pragmas.insert(LQIO::DOM::Pragma::_severity_level_,LQIO::DOM::Pragma::_advisory_);
             break;
 
         case 'x':
@@ -447,7 +445,7 @@ int main (int argc, char *argv[])
             break;
 
         case (256+'z'):
-            pragma.setLayering(SQUASHED_LAYERS);
+            pragmas.insert(LQIO::DOM::Pragma::_layering_,LQIO::DOM::Pragma::_squashed_);
             break;
 
         default:
@@ -455,14 +453,14 @@ int main (int argc, char *argv[])
             break;
         }
     }
-    io_vars.lq_command_line = command_line.c_str();
+    LQIO::io_vars.lq_command_line = command_line.c_str();
 
     if ( flags.generate && flags.no_execute ) {
-        cerr << io_vars.lq_toolname << ": -n is incompatible with -zgenerate.  -zgenerate ignored." << endl;
+        cerr << LQIO::io_vars.lq_toolname << ": -n is incompatible with -zgenerate.  -zgenerate ignored." << endl;
     }
 
     if ( flags.reload_only && flags.restart ) {
-	cerr << io_vars.lq_toolname << ": --reload-lqx and --restart are mutually exclusive: --restart assumed."  << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": --reload-lqx and --restart are mutually exclusive: --restart assumed."  << endl;
 	flags.reload_only = false;
     }
 
@@ -486,25 +484,22 @@ int main (int argc, char *argv[])
 
         if ( file_count > 1 ) {
             if ( outputFileName != "" ) {
-                cerr << io_vars.lq_toolname << ": Too many input files specified with the option: -o"
+                cerr << LQIO::io_vars.lq_toolname << ": Too many input files specified with the option: -o"
                      << outputFileName
                      << endl;
                 exit( INVALID_ARGUMENT );
             }
             if ( Generate::file_name.size() ) {
-                cerr << io_vars.lq_toolname << ": Too many input files specified with the option: -zgenerate="
+                cerr << LQIO::io_vars.lq_toolname << ": Too many input files specified with the option: -zgenerate="
                      << Generate::file_name
                      << endl;
                 exit( INVALID_ARGUMENT );
             }
         }
 
-        old_pragma = pragma;
-
         for ( ; optind < argc; ++optind ) {
             if ( file_count > 1 ) {
                 cout << argv[optind] << ':' << endl;
-                pragma = old_pragma;
             }
             global_error_flag |= process( argv[optind], outputFileName );
         }
@@ -529,16 +524,15 @@ process ( const string& inputFileName, const string& outputFileName )
 
     /* This is a departure from before -- we begin by loading a model */
     LQIO::DOM::Document* document = Model::load(inputFileName,outputFileName);
+    document->mergePragmas( pragmas.getList() );       /* Save pragmas */
 
     /* Make sure we got a document */
-    if (document == NULL || io_vars.anError() || Model::prepare(document) == false) {
+    if (document == NULL || LQIO::io_vars.anError() || Model::prepare(document) == false) {
         return INVALID_INPUT;
     }
 
-    pragma.updateDOM( document );       /* Save pragmas */
-
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
-        cerr << io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << endl;
+        cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << endl;
     }
 
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
@@ -628,7 +622,7 @@ process ( const string& inputFileName, const string& outputFileName )
 	rc = INVALID_INPUT;
     }
     catch ( const floating_point_error& e ) {
-	cerr << io_vars.lq_toolname << ": floating point error - " << e.what() << endl;
+	cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << e.what() << endl;
 	rc = INVALID_OUTPUT;
     }
     catch ( const exception_handled& e ) {
@@ -695,40 +689,6 @@ void init_flags()
 }
 
 
-
-/*
- * Process pragmas from aStr.  Set up for magical processing.
- */
-
-static bool
-get_pragma( const char * p )
-{
-    if ( !p ) return false;
-
-    bool rc = true;
-    do {
-        while ( isspace( *p ) ) ++p;            /* Skip leading whitespace. */
-        string param;
-        string value;
-        while ( *p && !isspace( *p ) && *p != '=' && *p != ',' ) {
-            param += *p++;                      /* get parameter */
-        }
-        while ( isspace( *p ) ) ++p;
-        if ( *p == '=' ) {
-            ++p;
-            while ( isspace( *p ) ) ++p;
-            while ( *p && !isspace( *p ) && *p != ',' ) {
-                value += *p++;
-            }
-        }
-        while ( isspace( *p ) ) ++p;
-        if ( !pragma.set( param, value ) ) {
-            cerr << io_vars.lq_toolname << ": Invalid pragma -- " << param << "=" << value << endl;
-            rc = false;
-        }
-    } while ( *p++ == ',' );
-    return rc;
-}
 
 
 #if !defined(TESTMVA)

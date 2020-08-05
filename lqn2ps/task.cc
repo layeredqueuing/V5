@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: task.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -713,8 +713,8 @@ Task::check() const
     /* Check replication */
 
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_PARSEABLE ) {
-	io_vars.error_messages[ERR_REPLICATION].severity = LQIO::WARNING_ONLY;
-	io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
+	LQIO::io_vars.error_messages[ERR_REPLICATION].severity = LQIO::WARNING_ONLY;
+	LQIO::io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
     }
 
     double srcReplicasValue = 1.0;
@@ -755,15 +755,15 @@ Task::check() const
 	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, srcName.c_str() );
 	    rc = false;
 	} else if ( entries().at(0)->isCalled() && !entries().at(1)->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(1)->name().c_str() );
 	    rc = false;
 	} else if ( !entries().at(0)->isCalled() && entries().at(1)->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, entries().at(0)->name().c_str() );
 	    rc = false;
 	}
-	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
+	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
 
     } else if ( scheduling() == SCHEDULE_RWLOCK ) {
 	if ( nEntries() != N_RWLOCK_ENTRIES ) {
@@ -815,20 +815,20 @@ Task::check() const
 	/* Make sure both or neither entry is called */
 
 	if ( E[0]->isCalled() && !E[1]->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[1]->name().c_str() );
 	} else if ( !E[0]->isCalled() && E[1]->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[0]->name().c_str() );
 	}
 	if ( E[2]->isCalled() && !E[3]->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[3]->name().c_str() );
 	} else if ( !E[2]->isCalled() && E[3]->isCalled() ) {
-	    io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
+	    LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::RUNTIME_ERROR; /* WARNING_ONLY; */
 	    LQIO::solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, E[2]->name().c_str() );
 	}
-	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
+	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;		/* Revert to normal */
     }
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
@@ -842,7 +842,7 @@ Task::check() const
     }
 
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
-	io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;
+	LQIO::io_vars.error_messages[LQIO::WRN_NO_REQUESTS_TO_ENTRY].severity = LQIO::WARNING_ONLY;
     }
 
     rc = for_each( activities().begin(), activities().end(), AndPredicate<Activity>( &Activity::check ) ).result() && rc;

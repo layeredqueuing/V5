@@ -1,6 +1,6 @@
 /* graphic.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: graphic.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: graphic.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include <cassert>
@@ -256,7 +256,7 @@ EMF::init( ostream& output, const double xmax, const double ymax, const string& 
 string
 EMF::description( const string& command_line )
 {
-    string aString = io_vars.lq_toolname;
+    string aString = LQIO::io_vars.lq_toolname;
     aString += " ";
     aString += VERSION;
     aString += '\0';		/* Record separator */

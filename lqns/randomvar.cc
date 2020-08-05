@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: randomvar.cc 13725 2020-08-04 03:58:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -560,7 +560,7 @@ DiscretePoints::max( const DiscretePoints& arg )
     if ( t.size() == 0 ) {
 	*this = arg;		/* First argument.  It is, by definition, the max. */
 #if !defined(TESTDIST)
-    } else if ( pragma.exponential_paths() ) {
+    } else if ( Pragma::exponential_paths() ) {
 	Exponential::max( arg );
 #endif
     } else {
@@ -662,7 +662,7 @@ DiscretePoints::min( const DiscretePoints& arg )
     if ( t.size() == 0 ) {
 	*this = arg;		/* First argument.  It is, by definition, the min. */
 #if !defined(TESTDIST)    
-    } else if ( pragma.exponential_paths() ) {
+    } else if ( Pragma::exponential_paths() ) {
 	Exponential::min( arg );
 #endif
     } else {
@@ -1565,7 +1565,7 @@ DiscretePoints *
 DiscreteCDFs::quorumKofN( const unsigned K, const unsigned N )
 {
 #if !defined(TESTDIST)    
-    if (pragma.exponential_paths()) {
+    if (Pragma::exponential_paths()) {
 	throw not_implemented( "DiscreteCDFs::quorumKofN", __FILE__, __LINE__ );
     }
 #endif

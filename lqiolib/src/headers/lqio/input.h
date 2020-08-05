@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: input.h 13727 2020-08-04 14:06:18Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -69,27 +69,36 @@ typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOC
 #include "error.h"
 #include <string>
 
-namespace LQIO { struct error_message_type; };
-typedef struct LQIO::error_message_type ErrorMessageType;
+namespace LQIO {
+    typedef struct LQIO::error_message_type ErrorMessageType;
 	
-typedef struct lqio_params_stats
-{
-    lqio_params_stats( const char * version, void (*action)(unsigned) ) : lq_toolname(NULL), lq_version(version), lq_command_line(NULL),
-	severity_action(action), max_error(10), error_count(0), severity_level(LQIO::NO_ERROR), error_messages(NULL) {}
-    void reset() { error_count = 0; }
-    bool anError() const { return error_count > 0; }
+    typedef struct lqio_params_stats
+    {
+	lqio_params_stats( const char * version, void (*action)(unsigned) );
+	void reset() { error_count = 0; }
+	bool anError() const { return error_count > 0; }
+	const char * toolname() const { return lq_toolname.c_str(); }
+	void init( const std::string& version, const std::string& toolname, void (*sa)(unsigned) )
+	    {
+		lq_version = version;
+		lq_toolname = toolname;
+		severity_action = sa;
+	    }
 	
-    const char* lq_toolname;                    /* I:Name of tool for messages    */
-    const char* lq_version;			/* I: version number		  */
-    const char* lq_command_line;		/* I:Command line		  */
-    void (*severity_action)(unsigned severity); /* I:Severity action              */
+	std::string lq_toolname;                /* I:Name of tool for messages    */
+	std::string lq_version;			/* I: version number	          */
+	std::string lq_command_line;		/* I:Command line		  */
+	void (*severity_action)(unsigned);	/* I:Severity action              */
 	
-    unsigned max_error;				/* I:Maximum error ID number      */
-    unsigned error_count;			/* IO:Number of errors            */
-    LQIO::severity_t severity_level;            /* I:Messages < severity_level ignored. */
+	unsigned max_error;			/* I:Maximum error ID number      */
+	mutable unsigned error_count;		/* IO:Number of errors            */
+	LQIO::severity_t severity_level;        /* I:Messages < severity_level ignored. */
 	
-    ErrorMessageType* error_messages;		/* IO:Error Messages */
-} lqio_params_stats;
+	ErrorMessageType* error_messages;	/* IO:Error Messages */
+    } lqio_params_stats;
+
+    extern lqio_params_stats io_vars;
+}
 
 extern int LQIO_lineno;				/* Input line number -- can't use namespace because it's used with C */
 

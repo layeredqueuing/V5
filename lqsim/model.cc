@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: model.cc 13735 2020-08-05 15:54:22Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -55,6 +55,7 @@
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
 #include "runlqx.h"
 #include "errmsg.h"
 #include "model.h"
@@ -146,12 +147,12 @@ Model::~Model()
 LQIO::DOM::Document* 
 Model::load( const string& input_filename, const string& output_filename )
 {
-    io_vars.reset();
+    LQIO::io_vars.reset();
 
     /* This is a departure from before -- we begin by loading a model */
 
     unsigned errorCode = 0;
-    return  LQIO::DOM::Document::load( input_filename, input_format, &io_vars, errorCode, false );
+    return  LQIO::DOM::Document::load( input_filename, input_format, errorCode, false );
 }
 
 
@@ -163,13 +164,10 @@ Model::construct()
     if ( !override_print_int ) {
 	print_interval = _document->getModelPrintIntervalValue();
     }
-	
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    const map<string,string>& pragmaList = _document->getPragmaList();
-    map<string,string>::const_iterator pragmaIter;
-    for (pragmaIter = pragmaList.begin(); pragmaIter != pragmaList.end(); ++pragmaIter) {
-	pragma( pragmaIter->first, pragmaIter->second );
-    }
+    Pragma::set( _document->getPragmaList() );
+    LQIO::io_vars.severity_level = Pragma::__pragmas->get_severity_level();
+    LQIO::Spex::__no_header = !Pragma::__pragmas->get_spex_header();
+    
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 	
@@ -310,7 +308,7 @@ Model::construct()
     /* Tell the user that we have finished */
     DEBUG("[0]: Finished loading the model" << endl << endl);
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 
@@ -337,11 +335,11 @@ Model::create()
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
-    if ( io_vars.anError() ) return false;		/* Early termination */
+    if ( LQIO::io_vars.anError() ) return false;		/* Early termination */
 
     if ( _parameters._block_period < max_service * 100 && !no_execute_flag ) {
 	(void) fprintf( stderr, "%s: ***ERROR*** Simulation duration is too small!\n\tThe largest service time period is %G\n\tIncrease the run time to %G\n",
-			io_vars.lq_toolname,
+			LQIO::io_vars.toolname(),
 			max_service,
 			max_service * 100 );
 	if ( !debug_flag ) {
@@ -603,7 +601,7 @@ Model::insertDOMResults( const bool valid, const double confidence )
     buf += uu.release;
     _document->setResultPlatformInformation(buf);
 #endif
-    buf = io_vars.lq_toolname;
+    buf = LQIO::io_vars.lq_toolname;
     buf += " ";
     buf += VERSION;
     _document->setResultSolverInformation(buf);
@@ -715,7 +713,7 @@ Model::start()
     if ( deferred_exception ) {
 	throw_bad_parameter();
     }
-    return io_vars.anError() == 0;
+    return LQIO::io_vars.anError() == 0;
 }
 
 

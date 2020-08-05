@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13548 2020-05-21 14:27:18Z greg $
+ * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -59,13 +59,13 @@ namespace SolverInterface
 	/* Make sure all external variables are accounted for */
 	const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	if ( undefined.size() > 0) {
-	    std::cerr << io_vars.lq_toolname << ": The following external variables were not assigned at time of solve: ";
+	    std::cerr << LQIO::io_vars.lq_toolname << ": The following external variables were not assigned at time of solve: ";
 	    for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
 		if ( var != undefined.begin() ) std::cerr << ", ";
 		std::cerr << *var << std::endl;
 	    }
 	    std::cerr << std::endl;
-	    io_vars.error_count += 1;
+	    LQIO::io_vars.error_count += 1;
 	    return LQX::Symbol::encodeBoolean(false);
 	}
 			

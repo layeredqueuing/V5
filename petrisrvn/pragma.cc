@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: pragma.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -98,7 +98,7 @@ Pragma::set_processor_scheduling( const string& value )
 	return true;
     }
     catch ( const invalid_argument& arg ) {
-	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", io_vars.lq_toolname, arg.what() );
+	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", LQIO::io_vars.toolname(), arg.what() );
 	_processor_scheduling = SCHEDULE_FIFO;
 	return false;
     }
@@ -146,7 +146,7 @@ Pragma::set_task_scheduling( const string& value )
 	return true;
     }
     catch ( const invalid_argument& arg ) {
-	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", io_vars.lq_toolname, arg.what() );
+	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", LQIO::io_vars.toolname(), arg.what() );
 	_task_scheduling = SCHEDULE_FIFO;
 	return false;
     }

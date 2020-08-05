@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: help.h 13729 2020-08-04 20:20:16Z greg $
  */
 
 #ifndef _HELP_H
@@ -47,7 +47,27 @@ private:
 };
 
 class Help
-{
+{    
+public:
+    typedef ostream& (Help::*help_fptr)( ostream&, bool ) const;
+
+    struct parameter_info {
+	parameter_info() : _help(nullptr), _default(false) {}
+	parameter_info( Help::help_fptr h, bool d=false) : _help(h), _default(d) {}
+	Help::help_fptr _help;
+	bool _default;
+    };
+    typedef std::map<std::string,parameter_info> parameter_map_t;
+    
+    struct pragma_info {
+	pragma_info() : _help(nullptr), _value(nullptr) {}
+	pragma_info( Help::help_fptr h, std::map<std::string,parameter_info>* v=nullptr ) : _help(h), _value(v) {}
+	Help::help_fptr _help;
+	const parameter_map_t* _value;
+    };
+
+    typedef std::map<std::string,Help::pragma_info> pragma_map_t;
+
 public:
     static void initialize();
 
@@ -73,8 +93,6 @@ protected:
     static ostream& __tr_( ostream& output, const Help& h, const char * s ) { return h.tr_( output, s ); }
 
 public:
-    typedef ostream& (Help::*help_fptr)( ostream&, bool ) const;
-    
     Help();
     virtual ~Help() {}
 
@@ -107,7 +125,7 @@ protected:
     virtual ostream& increase_indent( ostream& output ) const = 0;
     virtual ostream& decrease_indent( ostream& output ) const = 0;
     virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt) const = 0;
-    virtual ostream& print_pragma( ostream&, const char * name, const void * params ) const = 0;
+    virtual ostream& print_pragma( ostream&, const std::string& ) const = 0;
     virtual ostream& table_header( ostream& ) const = 0;
     virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const = 0;
     virtual ostream& table_footer( ostream& ) const = 0;
@@ -304,6 +322,29 @@ public:
     ostream& pragmaIdleTimeJoindelay( ostream& output, bool verbose ) const;
     ostream& pragmaIdleTimeRootentry( ostream& output, bool verbose ) const;
 #endif
+
+protected:
+    static pragma_map_t __pragmas;
+    
+private:
+    static parameter_map_t  __cycles_args;
+    static parameter_map_t  __stop_on_message_loss_args;
+    static parameter_map_t  __interlock_args;
+    static parameter_map_t  __layering_args;
+    static parameter_map_t  __multiserver_args;
+    static parameter_map_t  __mva_args;
+    static parameter_map_t  __overtaking_args;
+    static parameter_map_t  __processor_args;
+    static parameter_map_t  __threads_args;
+    static parameter_map_t  __variance_args;
+    static parameter_map_t  __warning_args;
+    static parameter_map_t  __spex_header_args;
+    static parameter_map_t  __prune_args;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    static parameter_map_t  __quorum_distribution_args;
+    static parameter_map_t  __quorum_delayed_calls_args;
+    static parameter_map_t  __idle_time_args;
+#endif
 };
 
 class HelpTroff : public Help
@@ -328,7 +369,7 @@ protected:
     virtual ostream& increase_indent( ostream& output ) const;
     virtual ostream& decrease_indent( ostream& output ) const;
     virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt ) const;
-    virtual ostream& print_pragma( ostream&, const char * name, const void * params ) const;
+    virtual ostream& print_pragma( ostream&, const std::string& ) const;
     virtual ostream& table_header( ostream& ) const;
     virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const;
     virtual ostream& table_footer( ostream& ) const;
@@ -363,7 +404,7 @@ protected:
     virtual ostream& increase_indent( ostream& output ) const;
     virtual ostream& decrease_indent( ostream& output ) const;
     virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt) const;
-    virtual ostream& print_pragma( ostream&, const char * name, const void * params ) const;
+    virtual ostream& print_pragma( ostream&, const std::string& ) const;
     virtual ostream& table_header( ostream& ) const;
     virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const;
     virtual ostream& table_footer( ostream& ) const;
@@ -400,7 +441,7 @@ protected:
     virtual ostream& increase_indent( ostream& output ) const { return output; }
     virtual ostream& decrease_indent( ostream& output ) const { return output; }
     virtual ostream& print_option( ostream& output, const char * name, const Options::Option& opt) const;
-    virtual ostream& print_pragma( ostream& output, const char * name, const void * params ) const;
+    virtual ostream& print_pragma( ostream& output, const std::string& ) const;
     virtual ostream& table_header( ostream& output ) const { return output; }
     virtual ostream& table_row( ostream& output , const char *, const char *, const char * ix=0 ) const { return output; }
     virtual ostream& table_footer( ostream& output ) const { return output; }

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: lqns.h 13727 2020-08-04 14:06:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -73,7 +73,6 @@ extern struct FLAGS {
     unsigned int min_steps;			/* Minimum number of iterations.	*/
 } flags;
 
-extern lqio_params_stats io_vars;
 extern const char opts[];
 #if HAVE_GETOPT_LONG
 extern const struct option longopts[];

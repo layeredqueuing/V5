@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: lqn2ps.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include "lqn2ps.h"
@@ -175,7 +175,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     string output_file_name = "";
 
-    sscanf( "$Date: 2020-07-10 11:29:36 -0400 (Fri, 10 Jul 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-08-04 10:06:18 -0400 (Tue, 04 Aug 2020) $", "%*s %s %*s", copyrightDate );
 
     static string opts = "";
 #if HAVE_GETOPT_H
@@ -268,7 +268,7 @@ lqn2ps( int argc, char *argv[] )
 	case 512+'p':
 	    parse_file_name = optarg;
 	    if ( strcmp( parse_file_name, "-" ) != 0 && access( parse_file_name, R_OK ) != 0 ) {
-		cerr << io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
+		cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
 		     << strerror( errno ) << endl;
 		exit ( 1 );
 	    }
@@ -371,7 +371,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ABOVE_JUSTIFY ) {
 			Flags::node_justification = justify; 
 		    } else {
-			cerr << io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
 			exit( 1 );
 		    }
 		    break;   
@@ -379,7 +379,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ALIGN_JUSTIFY ) {
 			Flags::label_justification = justify; 
 		    } else {
-			cerr << io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
 			exit( 1 );
 		    }
 		    break;
@@ -387,7 +387,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ABOVE_JUSTIFY ) {
 			Flags::activity_justification = justify; 
 		    } else {
-			cerr << io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
 			exit( 1 );
 		    }
 		    break;
@@ -619,7 +619,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 'W':
-	    io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
 	    break;
 
 	case 'X':
@@ -704,7 +704,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	}
     }
-    io_vars.lq_command_line = command_line.c_str();
+    LQIO::io_vars.lq_command_line = command_line.c_str();
 
     if ( Flags::print[XX_VERSION].value.b ) {
 	cout << "Layered Queueing Network file conversion program, Version " << VERSION << endl << endl;
@@ -716,14 +716,14 @@ lqn2ps( int argc, char *argv[] )
     /* Check for sensible combinations of options. */
 
     if ( Flags::annotate_input && !input_output() ) {
-	cerr << io_vars.lq_toolname << ": -Z " << Options::pragma[PRAGMA_ANNOTATE] 
+	cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::pragma[PRAGMA_ANNOTATE] 
 	     << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i]
 	     << " output are mutually exclusive." << endl;
 	Flags::annotate_input = false;
     }
 
     if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES && !(graphical_output() || queueing_output()) ) {
-	cerr << io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_TASKS_ONLY] 
+	cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_TASKS_ONLY] 
 	     << " and " <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
 	     << " output are mutually exclusive." << endl;
 	exit( 1 );
@@ -731,7 +731,7 @@ lqn2ps( int argc, char *argv[] )
 
 #if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r && submodel_output() ) {
-	cerr << io_vars.lq_toolname << ": -I<regexp> "
+	cerr << LQIO::io_vars.lq_toolname << ": -I<regexp> "
 	     << "and -S" <<  Flags::print[SUBMODEL].value.i 
 	     << " are mutually exclusive." << endl;
 	exit( 1 );
@@ -739,7 +739,7 @@ lqn2ps( int argc, char *argv[] )
 #endif
 
     if ( submodel_output() && Flags::print_submodels ) {
-	cerr << io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
+	cerr << LQIO::io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
 	     << " and --debug-submodels are mutually exclusive." << endl;
 	Flags::print_submodels = false;
     }
@@ -749,7 +749,7 @@ lqn2ps( int argc, char *argv[] )
 //	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 
 	if ( submodel_output() ) {
-	    cerr << io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
+	    cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << "and -S" <<  Flags::print[SUBMODEL].value.i 
 		 << " are mutually exclusive." << endl;
 	    exit( 1 );
@@ -757,13 +757,13 @@ lqn2ps( int argc, char *argv[] )
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
 	    ) {
-	    cerr << io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
+	    cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
 		 << " output are mutually exclusive." << endl;
 	    exit( 1 );
 	} else if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES && !graphical_output() ) {
 	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
-	    cerr << io_vars.lq_toolname << ": aggregating entries to tasks with " 
+	    cerr << LQIO::io_vars.lq_toolname << ": aggregating entries to tasks with " 
 		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output." << endl;
 	}
     }
@@ -774,12 +774,12 @@ lqn2ps( int argc, char *argv[] )
     }
 
     if ( Flags::flatten_submodel && !(submodel_output() || queueing_output()) ) {
-	cerr << io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_FLATTEN_SUBMODEL]
+	cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_FLATTEN_SUBMODEL]
 	     << " can only be used with either -Q<n> -S<n>." << endl;
     }
 
     if ( submodel_output() && Flags::print[LAYERING].value.i == LAYERING_SQUASHED ) {
-	cerr << io_vars.lq_toolname << ": -L" << Options::layering[LAYERING_SQUASHED]
+	cerr << LQIO::io_vars.lq_toolname << ": -L" << Options::layering[LAYERING_SQUASHED]
 	     << " can only be used with full models." << endl;
     }
 
@@ -825,7 +825,7 @@ lqn2ps( int argc, char *argv[] )
 #if defined(EMF_OUTPUT)
 	case FORMAT_EMF:
 	    if ( LQIO::Filename::isRegularFile( fileno( stdout ) ) == 0 ) {
-		cerr << io_vars.lq_toolname << ": Cannot write " 
+		cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
 		     << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
 		     << " to stdout - stdout is not a regular file."  << endl;
 		exit( 1 );
@@ -834,7 +834,7 @@ lqn2ps( int argc, char *argv[] )
 #endif
 #if defined(SXD_OUTPUT)
 	case FORMAT_SXD:
-	    cerr << io_vars.lq_toolname << ": Cannot write " 
+	    cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
 		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
 		 << " to stdout."  << endl;
 	    exit( 1 );
@@ -876,7 +876,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
     Flags::have_results = false;		/* Reset for each run. */
     Flags::instantiate  = false;
 
-    io_vars.reset();
+    LQIO::io_vars.reset();
 
     ::Task::reset();
     ::Entry::reset();
@@ -897,10 +897,10 @@ process( const string& input_file_name, const string& output_file_name, int mode
     /* This is a departure from before -- we begin by loading a model.  Load results if possible (except if overridden with a parseable output filename */
 
     unsigned int errorCode;
-    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, &io_vars, errorCode, parse_file_name == 0 && Flags::print[RESULTS].value.b );
+    LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, errorCode, parse_file_name == 0 && Flags::print[RESULTS].value.b );
     if ( !document ) {
-	cerr << io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
-	io_vars.error_count += 1;
+	cerr << LQIO::io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
+	LQIO::io_vars.error_count += 1;
 	return;
     }
     if ( parse_file_name && Flags::print[RESULTS].value.b ) {
@@ -908,12 +908,12 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	    Flags::have_results = LQIO::SRVN::loadResults( parse_file_name );
 	} 
 	catch ( const runtime_error &error ) {
-	    cerr << io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << endl;
 	    Flags::have_results = false;
 	    if ( output_output() ) return;
 	}
 	if ( !Flags::have_results ) {
-	    cerr << io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << strerror( errno ) << "." << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << strerror( errno ) << "." << endl;
 	    if ( output_output() ) return;
 	}
     } else {
@@ -1017,11 +1017,11 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	}
 #if !(__GNUC__ && __GNUC__ < 3)
 	catch ( const ios_base::failure &error ) {
-	    cerr << io_vars.lq_toolname << ": " << error.what() << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << endl;
 	}
 #endif
 	catch ( const runtime_error &error ) {
-	    cerr << io_vars.lq_toolname << ": " << error.what() << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << endl;
 	}
     }
 

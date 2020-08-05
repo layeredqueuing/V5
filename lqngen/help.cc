@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: help.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include "lqngen.h"
@@ -98,7 +98,7 @@ using namespace std;
 
 void invalid_option( int c ) 
 {
-    cerr << io_vars.lq_toolname << ": Invalid option '";
+    cerr << LQIO::io_vars.lq_toolname << ": Invalid option '";
     if ( (c & 0xff80) == 0 ) {
 	cerr << "-" << static_cast<char>(c);
     } else {
@@ -115,7 +115,7 @@ void invalid_option( int c )
 
 void invalid_argument( int c, const string& arg, const string& extra )
 {
-    cerr << io_vars.lq_toolname << ": Invalid argument to '";
+    cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to '";
     if ( (c & 0xff80) == 0 ) {
 	cerr << "-" << static_cast<char>(c) << "' -- '" << arg;
     } else {
@@ -137,7 +137,7 @@ void invalid_argument( int c, const string& arg, const string& extra )
 
 void help()
 {
-    cerr << "Try '" << io_vars.lq_toolname << " -H" << "' for more information." << endl;
+    cerr << "Try '" << LQIO::io_vars.lq_toolname << " -H" << "' for more information." << endl;
 }
 
 /*
@@ -248,7 +248,7 @@ man()
     cout << comm << " -*- nroff -*-" << endl
 	 << ".TH " << program_name << " 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
-    cout << comm << " $Id: help.cc 13675 2020-07-10 15:29:36Z greg $" << endl
+    cout << comm << " $Id: help.cc 13727 2020-08-04 14:06:18Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 

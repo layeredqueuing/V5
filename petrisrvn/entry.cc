@@ -288,7 +288,7 @@ Entry::check (void)
 	}
     }
 
-    return !io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
 
 

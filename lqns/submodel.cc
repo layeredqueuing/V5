@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: submodel.cc 13725 2020-08-04 03:58:02Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -287,7 +287,7 @@ MVASubmodel::build()
 {
     /* BUG 144 */
     if ( _servers.size() == 0 ) {
-	if ( pragma.getCycles() == DISALLOW_CYCLES ) {
+	if ( !Pragma::allowCycles()  ) {
 	    LQIO::solution_error( ADV_EMPTY_SUBMODEL, number() );
 	}
 	return *this;
@@ -366,7 +366,7 @@ MVASubmodel::build()
 
     /* ------- Create overlap probabilities and durations. -------- */
 
-    if ( ( hasThreads() || hasSynchs() ) && pragma.getThreads() != NO_THREADS ) {
+    if ( ( hasThreads() || hasSynchs() ) && !Pragma::threads(Pragma::NO_THREADS) ) {
 	overlapFactor = new VectorMath<double> [nChains()+1];
 	for ( unsigned i = 1; i <= nChains(); ++i ) {
 	    overlapFactor[i].resize( nChains(), 1.0 );
@@ -382,23 +382,23 @@ MVASubmodel::build()
     }
 
     if ( nChains() > 0 && n_servers > 0 ) {
-	switch ( pragma.getMVA() ) {
-	case EXACT_MVA:
+	switch ( Pragma::mva() ) {
+	case Pragma::EXACT_MVA:
 	    closedModel = new ExactMVA(          closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
-	case SCHWEITZER_MVA:
+	case Pragma::SCHWEITZER_MVA:
 	    closedModel = new Schweitzer(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
-	case LINEARIZER_MVA:
+	case Pragma::LINEARIZER_MVA:
 	    closedModel = new Linearizer(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
-	case FAST_MVA:
+	case Pragma::FAST_MVA:
 	    closedModel = new Linearizer2(       closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
-	case ONESTEP_MVA:
+	case Pragma::ONESTEP_MVA:
 	    closedModel = new OneStepMVA(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
-	case ONESTEP_LINEARIZER:
+	case Pragma::ONESTEP_LINEARIZER:
 	    closedModel = new OneStepLinearizer( closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
 	    break;
 	}
@@ -751,7 +751,7 @@ MVASubmodel::initServer( Entity * aServer )
 
     if ( !aStation ) return;
 
-    if ( !pragma.init_variance_only() ) {
+    if ( !Pragma::init_variance_only() ) {
 	aServer->computeVariance();
     }
 
@@ -789,7 +789,7 @@ MVASubmodel::initServer( Entity * aServer )
 
     /* Set interlock */
 
-    if ( aServer->isInClosedModel() && pragma.getInterlock() == THROUGHPUT_INTERLOCK ) {
+    if ( aServer->isInClosedModel() && Pragma::interlock() ) {
 	setInterlock( aServer );
     }
 }
@@ -876,7 +876,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	initClient( (*client) );
-	if ( (*client)->hasThreads() && pragma.getThreads() != NO_THREADS ) {
+	if ( (*client)->hasThreads() && !Pragma::threads(Pragma::NO_THREADS) ) {
 	    (*client)->forkOverlapFactor( *this, overlapFactor );
 	}
 
@@ -890,7 +890,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	initServer( (*server) );
-	if ( (*server)->hasSynchs() && pragma.getThreads() != NO_THREADS ) {
+	if ( (*server)->hasSynchs() && !Pragma::threads(Pragma::NO_THREADS) ) {
 	    (*server)->joinOverlapFactor( *this, overlapFactor );
 	}
     }
@@ -942,7 +942,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 		catch ( const range_error& error ) {
 		    MVAStats.faults += 1;
-		    if ( pragma.getStopOnMessageLoss() ) {
+		    if ( Pragma::stopOnMessageLoss() ) {
 			for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 			    const Server * aStation = (*server)->serverStation();
 			    for ( unsigned int e = 1; e <= (*server)->nEntries(); ++e ) {
@@ -984,7 +984,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 	    } 
 	    catch ( const range_error& error ) {
-		if ( pragma.getStopOnMessageLoss() ) {
+		if ( Pragma::stopOnMessageLoss() ) {
 		    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 			const Server * aStation = (*server)->serverStation();
 			for ( unsigned int e = 1; e <= (*server)->nEntries(); ++e ) {

@@ -1,9 +1,11 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: help.cc 13729 2020-08-04 20:20:16Z greg $
  */
 
 #include <config.h>
+#include <iostream>
+#include <iomanip>
 #include "dim.h"
 #include <ctype.h>
 #include <cstdlib>
@@ -25,6 +27,27 @@ private:
     friend ostream& operator<<(ostream & os, const HelpManip& m )
 	{ return m.f(os,m._c); }
 };
+
+Help::pragma_map_t Help::__pragmas;
+Help::parameter_map_t  Help::__cycles_args;
+Help::parameter_map_t  Help::__stop_on_message_loss_args;
+Help::parameter_map_t  Help::__interlock_args;
+Help::parameter_map_t  Help::__layering_args;
+Help::parameter_map_t  Help::__multiserver_args;
+Help::parameter_map_t  Help::__mva_args;
+Help::parameter_map_t  Help::__overtaking_args;
+Help::parameter_map_t  Help::__processor_args;
+Help::parameter_map_t  Help::__threads_args;
+Help::parameter_map_t  Help::__variance_args;
+Help::parameter_map_t  Help::__warning_args;
+Help::parameter_map_t  Help::__spex_header_args;
+Help::parameter_map_t  Help::__prune_args;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+Help::parameter_map_t  Help::__quorum_distribution_args;
+Help::parameter_map_t  Help::__quorum_delayed_calls_args;
+Help::parameter_map_t  Help::__idle_time_args;
+#endif
+
 
 /* -------------------------------------------------------------------- */
 /* Help/Usage info.							*/
@@ -38,7 +61,7 @@ void
 usage ( const char * optarg )
 {
     if ( !optarg ) {
-	cerr << "Usage: " << io_vars.lq_toolname;
+	cerr << "Usage: " << LQIO::io_vars.lq_toolname;
 
 	cerr << " [option] [file ...]" << endl << endl;
 	cerr << "Options" << endl;
@@ -155,7 +178,7 @@ usage( const char c )
 void
 usage( const char c, const char * s )
 {
-    cerr << io_vars.lq_toolname << " -" << c << ": invalid argument -- " << s << endl;
+    cerr << LQIO::io_vars.lq_toolname << " -" << c << ": invalid argument -- " << s << endl;
     usage( c );
 }
 
@@ -220,7 +243,102 @@ Help::initialize()
     Options::Debug::initialize();
     Options::Trace::initialize();
     Options::Special::initialize();
-    Pragma::initialize();
+
+    __pragmas["cycles"] =               pragma_info( &Help::pragmaCycles, &__cycles_args );
+    __cycles_args["yes"] =            	parameter_info(&Help::pragmaCyclesAllow);
+    __cycles_args["no"] = 		parameter_info(&Help::pragmaCyclesDisallow,true);
+
+    __pragmas["stop-on-message-loss"] = pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args );
+    __stop_on_message_loss_args["yes"]= parameter_info(&Help::pragmaStopOnMessageLossFalse);
+    __stop_on_message_loss_args["no"] = parameter_info(&Help::pragmaStopOnMessageLossTrue,true);
+
+    __pragmas["interlocking"] =         pragma_info( &Help::pragmaInterlock, &__interlock_args );
+    __interlock_args["yes"] =		parameter_info(&Help::pragmaInterlockThroughput,true);
+    __interlock_args["no"] =          	parameter_info(&Help::pragmaInterlockNone);
+
+    __pragmas["layering"] =             pragma_info( &Help::pragmaLayering, &__layering_args );
+    __layering_args["batched"] =        parameter_info(&Help::pragmaLayeringBatched,true);
+    __layering_args["batched-back"] =   parameter_info(&Help::pragmaLayeringBatchedBack);
+    __layering_args["mol"] =            parameter_info(&Help::pragmaLayeringMOL);
+    __layering_args["mol-back"] =       parameter_info(&Help::pragmaLayeringMOLBack);
+    __layering_args["squashed"] =       parameter_info(&Help::pragmaLayeringSquashed);
+    __layering_args["srvn"] =           parameter_info(&Help::pragmaLayeringSRVN);
+    __layering_args["hwsw"] =           parameter_info(&Help::pragmaLayeringHwSw);
+
+    __pragmas["multiserver"] =          pragma_info( &Help::pragmaMultiserver, &__multiserver_args );
+    __multiserver_args["default"] =     parameter_info(&Help::pragmaMultiServerDefault);
+    __multiserver_args["conway"] =      parameter_info(&Help::pragmaMultiServerConway);
+    __multiserver_args["reiser"]  =     parameter_info(&Help::pragmaMultiServerReiser);
+    __multiserver_args["reiser-ps"] =   parameter_info(&Help::pragmaMultiServerReiserPS);
+    __multiserver_args["rolia"] =       parameter_info(&Help::pragmaMultiServerRolia);
+    __multiserver_args["rolia-ps"] =    parameter_info(&Help::pragmaMultiServerRoliaPS);
+    __multiserver_args["bruell"] =      parameter_info(&Help::pragmaMultiServerBruell);
+    __multiserver_args["schmidt"] =     parameter_info(&Help::pragmaMultiServerSchmidt);
+    __multiserver_args["suri"] =        parameter_info(&Help::pragmaMultiServerSuri);
+
+    __pragmas["mva"] =                  pragma_info( &Help::pragmaMVA, &__mva_args );
+    __mva_args["linearizer"] =          parameter_info(&Help::pragmaMVALinearizer,true);
+    __mva_args["exact"] =               parameter_info(&Help::pragmaMVAExact);
+    __mva_args["schweitzer"] =          parameter_info(&Help::pragmaMVASchweitzer);
+    __mva_args["fast"] =                parameter_info(&Help::pragmaMVAFast);
+    __mva_args["one-step"] =            parameter_info(&Help::pragmaMVAOneStep);
+    __mva_args["one-step-linearizer"] = parameter_info(&Help::pragmaMVAOneStepLinearizer);
+
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    __pragmas["quorum-distribution"] =  pragma_info( &Help::pragmaQuorumDistribution, __quorum_distribution_args );
+    __pragmas["quorum-delayed-calls"] = pragma_info( &Help::pragmaQuorumDelayedCalls, __quorum_delayed_calls_args );
+    __pragmas["idletime"] =             pragma_info( &Help::pragmaIdleTime, __idle_time_args );
+#endif
+
+    __pragmas["overtaking"] =           pragma_info( &Help::pragmaOvertaking, &__overtaking_args );
+    __overtaking_args["markov"] =       parameter_info(&Help::pragmaOvertakingMarkov,true);
+    __overtaking_args["rolia"] =        parameter_info(&Help::pragmaOvertakingRolia);
+    __overtaking_args["simple"] =       parameter_info(&Help::pragmaOvertakingSimple);
+    __overtaking_args["special"] =      parameter_info(&Help::pragmaOvertakingSpecial);
+    __overtaking_args["none"] =         parameter_info(&Help::pragmaOvertakingNone);
+
+    __pragmas["processor-scheduling"] = pragma_info( &Help::pragmaProcessor, &__processor_args );
+    __processor_args["default"] =       parameter_info(&Help::pragmaProcessorDefault);
+    __processor_args["fcfs"] =          parameter_info(&Help::pragmaProcessorFCFS);
+    __processor_args["hol"] =           parameter_info(&Help::pragmaProcessorHOL);
+    __processor_args["ppr"] =           parameter_info(&Help::pragmaProcessorPPR);
+    __processor_args["ps"] =            parameter_info(&Help::pragmaProcessorPS);
+
+#if RESCHEDULE
+    __pragmas["reschedule-on-async-send"] = pragma_info( &Pragma::eqReschedule, &Help::pragmaReschedule );
+#else
+    __pragmas["reschedule-on-async-send"] = pragma_info();
+#endif
+    __pragmas["tau"] =                  pragma_info( &Help::pragmaTau );
+
+    __pragmas["threads"] =              pragma_info( &Help::pragmaThreads, &__threads_args );
+    __threads_args["hyper"] =           parameter_info(&Help::pragmaThreadsHyper,true);
+    __threads_args["mak"] =             parameter_info(&Help::pragmaThreadsMak);
+    __threads_args["none"] =            parameter_info(&Help::pragmaThreadsNone);
+    __threads_args["exponential"] =     parameter_info(&Help::pragmaThreadsExponential);
+
+    __pragmas["variance"] =             pragma_info( &Help::pragmaVariance, &__variance_args );
+    __variance_args["default"] =        parameter_info(&Help::pragmaVarianceDefault);
+    __variance_args["none"] =           parameter_info(&Help::pragmaVarianceNone);
+    __variance_args["stochastic"] =     parameter_info(&Help::pragmaVarianceStochastic,true);
+    __variance_args["mol"] =            parameter_info(&Help::pragmaVarianceMol);
+    __variance_args["no-entry"] =       parameter_info(&Help::pragmaVarianceNoEntry);
+    __variance_args["init-only"] =      parameter_info(&Help::pragmaVarianceInitOnly);
+
+    __pragmas["severity-level"] =       pragma_info( &Help::pragmaSeverityLevel, &__warning_args );
+    __warning_args["all"] =             parameter_info(&Help::pragmaSeverityLevelWarnings);
+    __warning_args["warning"] =         parameter_info(&Help::pragmaSeverityLevelWarnings);
+    __warning_args["advisory"] =        parameter_info(&Help::pragmaSeverityLevelRunTime);
+    __warning_args["run-time"] =        parameter_info(&Help::pragmaSeverityLevelRunTime);
+
+    __pragmas["no-header"] = 		pragma_info( &Help::pragmaSpexHeader, &__spex_header_args );
+    __spex_header_args["false"] = 	parameter_info(&Help::pragmaSpexHeaderFalse,true);
+    __spex_header_args["true"] =  	parameter_info(&Help::pragmaSpexHeaderTrue);
+
+    __pragmas["prune"] = 		pragma_info( &Help::pragmaPrune, &__prune_args );
+    __prune_args["false"] = 		parameter_info(&Help::pragmaPruneFalse,true);
+    __prune_args["true"] =  		parameter_info(&Help::pragmaPruneTrue);
+    
 }
 
 
@@ -232,6 +350,7 @@ Help::initialize()
 ostream&
 Help::print( ostream& output ) const
 {
+    Pragma::initialize();
     preamble( output );
     output << bold( *this, "Lqns" ) << " reads its input from " << filename( *this, "filename" ) << ", specified at the" << endl
 	   << "command line if present, or from the standard input otherwise.  By" << endl
@@ -287,15 +406,14 @@ Help::print( ostream& output ) const
 	   << "environment variable or in the input file are ignored as they might be" << endl
 	   << "used by other solvers." << endl;
 
-    std::map<const char *, Pragma::pragma_info, lt_str>::const_iterator next_pragma;
-    dl_begin( output );
     
-    const std::map<const char *, Pragma::pragma_info, lt_str>& pragmas = Pragma::getPragmas();
-    for ( next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma  ) {
-	print_pragma( output, next_pragma->first, (void *)(&next_pragma->second) );
+    dl_begin( output );
+    const std::map<std::string, Pragma::fptr>& pragmas = Pragma::getPragmas();
+    for ( std::map<std::string, Pragma::fptr>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma  ) {
+	print_pragma( output, pragma->first );
     }
     dl_end( output );
-
+    
     section( output, "STOPPING CRITERIA", "Stopping Criteria" );
     label( output, "sec:lqns-stopping-criteria" );
     output << bold( *this, "Lqns" ) << " computes the model results by iterating through a set of" << endl
@@ -1697,7 +1815,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 13676 2020-07-10 15:46:20Z greg $" << endl
+    output << __comment << " $Id: help.cc 13729 2020-08-04 20:20:16Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -1899,33 +2017,32 @@ HelpTroff::print_option( ostream& output, const char * name, const Options::Opti
 }
 
 ostream&
-HelpTroff::print_pragma( ostream& output, const char * name, const void * vp ) const
+HelpTroff::print_pragma( ostream& output, const std::string& name ) const
 {
-    const Pragma::pragma_info * p = static_cast<const Pragma::pragma_info *>(vp);
-    if ( !p->_help ) return output;
-
-    Help::help_fptr h = 0;
-    const char * default_param = 0;
+    const pragma_map_t::const_iterator pragma = __pragmas.find( name );
+    if ( pragma == __pragmas.end() ) return output;
+    
+    const parameter_map_t* value = pragma->second._value;
+    std::string default_param;
 
     output << ".TP" << endl
 	   << "\\fB" << name << "\\fR=\\fIarg";
     /* Enumeration */
     output << "\\fR" << endl;
-    (this->*(p->_help))( output,true );
+    (this->*(pragma->second._help))( output, true );
     /* Comment */
-    if ( p->_value && p->_value->size() > 1 ) {
+    if ( value && value->size() > 1 ) {
+	Help::help_fptr h = nullptr;
 	output << ".RS" << endl;
-	std::map<const char *, Pragma::param_info, lt_str>::const_iterator arg;
-	std::map<const char *, Pragma::param_info, lt_str> * arg_list = p->_value;
-	for ( arg = arg_list->begin(); arg != arg_list->end(); ++arg ) {
-	    if ( strcasecmp( arg->first, "default" ) == 0 ) {
-		h = arg->second._h;
+	for ( parameter_map_t::const_iterator arg = value->begin(); arg != value->end(); ++arg ) {
+	    if ( arg->first == "default" ) {
+		h = arg->second._help;
 		continue;
 	    } else {
 		output << ".TP" << endl;
 		output << "\\fB" << arg->first << "\\fP" << endl;
-		(this->*(arg->second._h))( output, true );
-		if ( arg->second._i == 0 ) {
+		(this->*(arg->second._help))( output, true );
+		if ( arg->second._default == true ) {
 		    default_param = arg->first;
 		}
 	    }
@@ -1933,7 +2050,7 @@ HelpTroff::print_pragma( ostream& output, const char * name, const void * vp ) c
 	output << ".LP" << endl;
 	if ( h ) {
 	    (this->*h)( output, true ) << endl;
-	} else if ( default_param ) {
+	} else if ( default_param.size() > 0 ) {
 	    output << "The default is " << default_param << "." << endl;
 	}
 	output << ".RE" << endl;
@@ -1995,7 +2112,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 13676 2020-07-10 15:46:20Z greg $" << endl
+	   << __comment << " $Id: help.cc 13729 2020-08-04 20:20:16Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl
@@ -2181,29 +2298,28 @@ HelpLaTeX::print_option( ostream& output, const char * name, const Options::Opti
 }
 
 ostream&
-HelpLaTeX::print_pragma( ostream& output, const char * name, const void * vp ) const
+HelpLaTeX::print_pragma( ostream& output, const std::string& name ) const
 {
-    const Pragma::pragma_info * p = static_cast<const Pragma::pragma_info *>(vp);
-    if ( !p->_help ) return output;
+    const std::map<std::string,Help::pragma_info>::const_iterator pragma = __pragmas.find( name );
+    if ( pragma == __pragmas.end() ) return output;
+    
+    const parameter_map_t* value = pragma->second._value;
+    std::string default_param;
 
-    Help::help_fptr h = 0;
-    const char * default_param = 0;
-
-    output << "\\item[\\optarg{" << tr_( *this, name ) << "}{=\\emph{arg}}]~\\\\" << endl;
-    (this->*(p->_help))( output, true );
+    output << "\\item[\\optarg{" << tr_( *this, name.c_str() ) << "}{=\\emph{arg}}]~\\\\" << endl;
+    (this->*(pragma->second._help))( output, true );
     /* Comment */
-    if ( p->_value && p->_value->size() > 1 ) {
-	std::map<const char *, Pragma::param_info, lt_str>::const_iterator arg;
-	std::map<const char *, Pragma::param_info, lt_str> * a = p->_value;
+    if ( value && value->size() > 1 ) {
+	Help::help_fptr h = nullptr;
 	dl_begin( output );
-	for ( arg = a->begin(); arg != a->end(); ++arg ) {
-	    if ( strcasecmp( arg->first, "default" ) == 0 ) {
-		h = arg->second._h;
+	for ( parameter_map_t::const_iterator arg = value->begin(); arg != value->end(); ++arg ) {
+	    if ( arg->first == "default" ) {
+		h = arg->second._help;
 		continue;
 	    } else {
-		output << "\\item[\\optarg{" << tr_( *this, arg->first ) << "}{}]" << endl;
-		(this->*(arg->second._h))( output, true );
-		if ( arg->second._i == 0 ) {
+		output << "\\item[\\optarg{" << tr_( *this, arg->first.c_str() ) << "}{}]" << endl;
+		(this->*(arg->second._help))( output, true );
+		if ( arg->second._default == true ) {
 		    default_param = arg->first;
 		}
 	    }
@@ -2211,7 +2327,7 @@ HelpLaTeX::print_pragma( ostream& output, const char * name, const void * vp ) c
 	dl_end( output );
 	if ( h ) {
 	    (this->*h)( output, true ) << endl;
-	} else if ( default_param ) {
+	} else if ( default_param.size() > 0 ) {
 	    output << "The default is " << default_param << "." << endl;
 	}
     }
@@ -2289,7 +2405,7 @@ HelpPlain::print_option( ostream& output, const char * name, const Options::Opti
 }
 
 ostream&
-HelpPlain::print_pragma( ostream& output, const char * name, const void * vp ) const
+HelpPlain::print_pragma( ostream& output, const std::string& ) const
 {
     return output;
 }

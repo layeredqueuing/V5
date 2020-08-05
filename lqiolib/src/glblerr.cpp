@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 13683 2020-07-13 14:25:00Z greg $
+ * $Id: glblerr.cpp 13722 2020-08-03 17:13:10Z greg $
  *
  * Error messages common to solvers.
  *
@@ -114,6 +114,8 @@ namespace LQIO {
 	{ WARNING_ONLY,  "Invalid phase, %d, specified for SPEX result \"%%%s\" for entry \"%s\"." },				    /* WRN_INVALID_SPEX_RESULT_PHASE	    */
         { WARNING_ONLY,  "Processor \"%s\" using \"%s\" scheduling has a non-zero quantum specified." },                            /* WRN_QUANTUM_SCHEDULING               */
         { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
+	{ WARNING_ONLY,  "Pragma \"%s\" is not recognized." },									    /* WRN_PRAGMA_UNKNOWN		    */
+	{ WARNING_ONLY,  "Pragma \"%s\": invalid argument \"%s\"." },								    /* WRN_PRAGMA_ARGUMENT_INVALID	    */
         { WARNING_ONLY,  "Parameter is specified multiple times." },                                                                /* WRN_MULTIPLE_SPECIFICATION           */
         { WARNING_ONLY,  "%s \"%s\" %s \"%s\" has no service time specified." },                                                    /* WRN_NO_SERVICE_TIME_FOR              */
         { WARNING_ONLY,  "Group \"%s\" specified for processor \"%s\" which is not running fair share scheduling." },               /* WRN_NON_CFS_PR0CESSOR                */

@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -78,7 +78,7 @@ namespace SolverInterface
 			
 	    /* Run the solver and return its success as a boolean value */
 	    assert( _aModel );
-	    if ( io_vars.anError() == true || !_aModel->initializeModel() ) {
+	    if ( LQIO::io_vars.anError() == true || !_aModel->initializeModel() ) {
 		throw std::runtime_error( "Unable to initialize model." );
 	    }
 
@@ -95,12 +95,12 @@ namespace SolverInterface
 	    throw LQX::RuntimeException( error.what() );
 	}
 	catch ( const floating_point_error& error ) {
-	    cerr << io_vars.lq_toolname << ": floating point error - " << error.what() << endl;
-	    io_vars.error_count += 1;
+	    cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << endl;
+	    LQIO::io_vars.error_count += 1;
 	    ok = false;
 	}
 	catch ( const exception_handled& error ) {
-	    io_vars.error_count += 1;
+	    LQIO::io_vars.error_count += 1;
 	    ok = false;
 	}
 	return LQX::Symbol::encodeBoolean(ok);

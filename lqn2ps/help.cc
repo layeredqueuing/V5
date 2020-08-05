@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 13533 2020-03-12 22:09:07Z greg $
+ * $Id: help.cc 13727 2020-08-04 14:06:18Z greg $
  */
 
 #include "lqn2ps.h"
@@ -34,7 +34,7 @@ static HelpManip print_args( unsigned int i );
 void 
 usage( const bool full_usage ) 
 {
-    cerr << "Usage: " << io_vars.lq_toolname << " [OPTION]... [FILE]..." << endl;
+    cerr << "Usage: " << LQIO::io_vars.lq_toolname << " [OPTION]... [FILE]..." << endl;
     cerr << "Options:" << endl;
     if ( !full_usage ) {
 	cerr << "[(+|-)";
@@ -116,12 +116,12 @@ invalid_option( char c, char * optarg )
 #if HAVE_GETOPT_LONG
     for ( unsigned int i = 0; i < N_FLAG_VALUES; ++i ) {
 	if ( Flags::print[i].c == c ) {
-    	    cerr << io_vars.lq_toolname << ": Invalid argument to --" << Flags::print[i].name << ", ARG=" << optarg << endl;
+    	    cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to --" << Flags::print[i].name << ", ARG=" << optarg << endl;
 	    cerr << "    " << print_args( i ) << endl;
 	}
     }
 #else
-    cerr << io_vars.lq_toolname << ": Invalid argument to -" << static_cast<char>(c & 0x7f) << optarg << endl;
+    cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to -" << static_cast<char>(c & 0x7f) << optarg << endl;
 #endif
 }
 
@@ -148,7 +148,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << endl;
 
 
-    cout << comm << " $Id: help.cc 13533 2020-03-12 22:09:07Z greg $" << endl
+    cout << comm << " $Id: help.cc 13727 2020-08-04 14:06:18Z greg $" << endl
 	 << comm << endl
 	 << comm << " --------------------------------" << endl;
 

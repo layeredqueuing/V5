@@ -12,7 +12,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 13556 2020-05-25 17:39:26Z greg $
+ * $Id: entry.cc 13732 2020-08-05 14:56:42Z greg $
  */
 
 #include <parasol.h>
@@ -186,7 +186,7 @@ Entry::configure()
 	    if ( n_replies == 0 ) {
 		/* tomari: disable to allow a quorum use the default reply which
 		   is after all threads complete exection. */
-		if ( !pragma.quorum_delayed_calls() ) {	/* Quorum reply (BUG_311)	*/
+		if ( !Pragma::__pragmas->quorum_delayed_calls() ) {	/* Quorum reply (BUG_311)	*/
 		    LQIO::solution_error( LQIO::ERR_REPLY_NOT_GENERATED, name() );
 		}
 	    } else if ( fabs( n_replies - 1.0 ) > EPSILON) {

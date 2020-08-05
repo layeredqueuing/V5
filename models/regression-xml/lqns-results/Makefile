@@ -1,11 +1,11 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13190 2018-03-03 04:18:19Z greg $
+# $Id: Makefile 13729 2020-08-04 20:20:16Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
-OPTS=	-Pvariance=mol,threads=mak
+OPTS=	-Pvariance=mol,threads=hyper
 
 SRCS =	01-sanity.lqnx \
 	02-sanity.lqnx \

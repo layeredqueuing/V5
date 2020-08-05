@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13550 2020-05-22 11:48:05Z greg $
+ * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -51,8 +51,8 @@ namespace SolverInterface
 			
 	/* Make sure all external variables are accounted for */
 	if (!_document->areAllExternalVariablesAssigned()) {
-	    cerr << io_vars.lq_toolname << ": Not all external variables are assigned at time of solve." << endl;
-	    cerr << io_vars.lq_toolname << ": Solve was not invoked." << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": Not all external variables are assigned at time of solve." << endl;
+	    cerr << LQIO::io_vars.lq_toolname << ": Solve was not invoked." << endl;
 	    return LQX::Symbol::encodeBoolean(false);
 	}
 			
@@ -68,15 +68,15 @@ namespace SolverInterface
 	}
 	catch ( const domain_error & error ) {
 	    throw LQX::RuntimeException( error.what() );
-	    io_vars.error_count += 1;
+	    LQIO::io_vars.error_count += 1;
 	}
 	catch ( const runtime_error & error ) {
 	    throw LQX::RuntimeException( error.what() );
-	    io_vars.error_count += 1;
+	    LQIO::io_vars.error_count += 1;
 	}
 	catch ( const logic_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
-	    io_vars.error_count += 1;
+	    LQIO::io_vars.error_count += 1;
 	}
 	return LQX::Symbol::encodeBoolean(false);
     }
