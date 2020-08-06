@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 13727 2020-08-04 14:06:18Z greg $
+ * $Id: input.h 13742 2020-08-06 14:53:34Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -67,6 +67,7 @@ typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOC
 	
 #if defined(__cplusplus)
 #include "error.h"
+#include <vector>
 #include <string>
 
 namespace LQIO {
@@ -78,12 +79,7 @@ namespace LQIO {
 	void reset() { error_count = 0; }
 	bool anError() const { return error_count > 0; }
 	const char * toolname() const { return lq_toolname.c_str(); }
-	void init( const std::string& version, const std::string& toolname, void (*sa)(unsigned) )
-	    {
-		lq_version = version;
-		lq_toolname = toolname;
-		severity_action = sa;
-	    }
+	void init( const std::string& version, const std::string& toolname, void (*sa)(unsigned), ErrorMessageType * local=nullptr, size_t size=0 );
 	
 	std::string lq_toolname;                /* I:Name of tool for messages    */
 	std::string lq_version;			/* I: version number	          */
@@ -94,7 +90,7 @@ namespace LQIO {
 	mutable unsigned error_count;		/* IO:Number of errors            */
 	LQIO::severity_t severity_level;        /* I:Messages < severity_level ignored. */
 	
-	ErrorMessageType* error_messages;	/* IO:Error Messages */
+	std::vector<ErrorMessageType> error_messages;	/* IO:Error Messages */
     } lqio_params_stats;
 
     extern lqio_params_stats io_vars;

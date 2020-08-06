@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13727 2020-08-04 14:06:18Z greg $
+ *  $Id: dom_document.cpp 13742 2020-08-06 14:53:34Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -924,8 +924,19 @@ namespace LQIO {
 	max_error(10),
 	error_count(0),
 	severity_level(LQIO::NO_ERROR),
-	error_messages(global_error_messages)
+	error_messages()
     {
+	error_messages.insert( error_messages.begin(), global_error_messages, global_error_messages+LSTGBLERRMSG+1 );
     }
-    
+
+    void lqio_params_stats::init( const std::string& version, const std::string& toolname, void (*sa)(unsigned), ErrorMessageType * local_error_messages, size_t size )
+    {
+	lq_version = version;
+	lq_toolname = toolname;
+	severity_action = sa;
+	if ( local_error_messages != nullptr ) {
+	    error_messages.insert( error_messages.end(), local_error_messages, local_error_messages+size+1 );
+	}
+	LQIO::io_vars.max_error = error_messages.size();
+    }
 }

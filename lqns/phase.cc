@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: phase.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -17,6 +17,7 @@
 #include <cmath>
 #include <algorithm>
 #include <cstdlib>
+#include <sstream>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_histogram.h>
@@ -783,7 +784,8 @@ Phase::utilization() const
 {
     const double f = throughput();
     if ( isfinite( f ) && f > 0.0 ) {
-	return f * elapsedTime();
+	const double t = elapsedTime();
+	return f * t;
     } else {
 	return 0.0;
     }

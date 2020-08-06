@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13735 2020-08-05 15:54:22Z greg $
+ * $Id: lqns.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Command line processing.
  *
@@ -47,8 +47,6 @@
 
 extern "C" int LQIO_debug;
 static bool print_lqx = false;
-
-extern void init_errmsg(void);
 
 static char copyrightDate[20];
 
@@ -188,15 +186,14 @@ int main (int argc, char *argv[])
 
     char * options;
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-08-05 11:54:22 -0400 (Wed, 05 Aug 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-08-06 10:53:34 -0400 (Thu, 06 Aug 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
     init_flags();
-    init_errmsg();
 
     pragmas.insert( getenv( "LQNS_PRAGMAS" ) );
 
@@ -618,12 +615,16 @@ process ( const string& inputFileName, const string& outputFileName )
     catch ( const std::domain_error& e ) {
 	rc = INVALID_INPUT;
     }
-    catch ( const std::runtime_error& e ) {
-	rc = INVALID_INPUT;
+    catch ( const range_error& e ) {
+	cerr << LQIO::io_vars.lq_toolname << ": range error - " << e.what() << endl;
+	rc = INVALID_OUTPUT;
     }
     catch ( const floating_point_error& e ) {
 	cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << e.what() << endl;
 	rc = INVALID_OUTPUT;
+    }
+    catch ( const std::runtime_error& e ) {
+	rc = INVALID_INPUT;
     }
     catch ( const exception_handled& e ) {
 	rc = INVALID_OUTPUT;

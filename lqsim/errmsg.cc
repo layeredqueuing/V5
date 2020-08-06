@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $id$
+ * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
  */
 
 #include <cstdio>
@@ -43,27 +43,6 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::WARNING_ONLY,  "Priority specified (%d) is outside of range (%d,%d). (Value has been adjusted to %d)." },           /* WRN_INVALID_PRIORITY             */
     { LQIO::NO_ERROR, 0 }
 };
-
-/*
- * Copy over common error messages and set max_error.
- */
-
-struct LQIO::error_message_type error_messages[LSTLCLERRMSG+1];
-
-void
-init_errmsg()
-{
-    unsigned i, j;
-
-    for ( i = 1; i <= LQIO::LSTGBLERRMSG; ++i ) {
-	error_messages[i] = LQIO::global_error_messages[i];
-    }
-    for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
-	error_messages[i] = local_error_messages[j];
-    }
-    LQIO::io_vars.error_messages = &error_messages[0];
-    LQIO::io_vars.max_error = LSTLCLERRMSG;
-}
 
 /*
  * What to do based on the severity of the error.

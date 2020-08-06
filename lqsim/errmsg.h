@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.h 10461 2011-09-07 15:36:51Z greg $
+ * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
  */
 
 #include <lqio/glblerr.h>
@@ -36,4 +36,4 @@ enum {
     LSTLCLERRMSG=WRN_INVALID_PRIORITY
 };
 
-extern void init_errmsg(void);
+extern struct LQIO::error_message_type local_error_messages[];

@@ -8,7 +8,7 @@
  */
 
 /*
- * $Id: errmsg.h 11106 2012-08-17 10:25:36Z greg $
+ * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
  */
 
 #include <lqio/glblerr.h>
@@ -32,4 +32,4 @@ enum {
     LSTLCLERRMSG=ADV_ERLANG_N
 };
 
-void init_errmsg( void );
+extern struct LQIO::error_message_type local_error_messages[];

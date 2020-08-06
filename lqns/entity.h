@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: entity.h 13741 2020-08-06 04:19:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -185,7 +185,8 @@ public:
     Probability prInterlock( const Task& ) const;
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
-    void setIdleTime( const double , Submodel * aSubmodel);
+    void setIdleTime( const double );
+    Entity& computeUtilization();
     virtual Entity& computeVariance();
     void setOvertaking( const unsigned, const std::set<Task *>& );
     virtual Entity& updateWait( const Submodel&, const double ) { return *this; }	/* NOP */
@@ -257,6 +258,7 @@ protected:
 private:
     unsigned _submodel;			/* My submodel, 0 == ref task.	*/
     unsigned _maxPhase;			/* Largest phase.		*/
+    double _utilization;		/* Utilization			*/
     mutable double _lastUtilization;	/* For convergence test.	*/
     /* MVA interface */
 

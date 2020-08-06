@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: petrisrvn.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -200,7 +200,7 @@ main (int argc, char *argv[])
 
     int global_error_flag  = 0; 	/* Error detected anywhere??	*/
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
     stddbg   = stdout;
@@ -209,10 +209,6 @@ main (int argc, char *argv[])
     inter_proc_delay = 0.0;
     comm_delay_flag  = false;
 #endif
-
-    /* Set the maximum error value */
-
-    init_errmsg();
 
 #if defined(HAVE_FENV_H) && defined(HAVE_FEENABLEEXCEPT)
     feenableexcept( FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW );

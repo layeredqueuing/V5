@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 13673 2020-07-10 15:12:09Z greg $
+ * $Id: expat_document.cc 13740 2020-08-06 04:04:43Z greg $
  *
  * Read in XML input files.
  *
@@ -627,7 +627,8 @@ namespace LQIO {
 		_stack.push( parse_stack_t(element,&Expat_Document::startOutputDistributionType,entry) );
 
 	    } else if ( strcasecmp( element, Xforwarding ) == 0 ) {
-		_stack.push( parse_stack_t(element,&Expat_Document::startEntryMakingCallType,entry) );
+		const XML_Char * dest = getStringAttribute( attributes, Xdest );
+		_stack.push( parse_stack_t(element,&Expat_Document::startEntryMakingCallType,entry,XNil,dest,&Expat_Document::handleEntryFwdCallResults) );
 
 	    } else if ( strcasecmp( element, Xentry_phase_activities ) == 0 ) {
 		_stack.push( parse_stack_t(element,&Expat_Document::startPhaseActivities,entry) );
@@ -737,7 +738,14 @@ namespace LQIO {
 	{
 	    if ( strcasecmp( element, Xresult_call ) == 0 ) {
 		const parse_stack_t& top = _stack.top();
-		_stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,call,XNil,XNil,top.result) );
+		if ( top.result ) {
+		    const XML_Char * entry = top.object.c_str();
+		    const XML_Char * dest = top.dest.c_str();
+		    (this->*top.result)( entry, XNil, dest, attributes );		/* task may be entry, in which case activity is phase.  result function figures this out. */
+		    _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,call,XNil,dest,top.result) );
+		} else {
+		    _stack.push( parse_stack_t(element,&Expat_Document::startOutputResultType,call) );
+		}
 	    } else {
 		throw element_error( element );
 	    }

@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: main.cc 13742 2020-08-06 14:53:34Z greg $
  */
 
 #include "lqn2ps.h"
@@ -254,11 +254,9 @@ main(int argc, char *argv[])
     Flags::print[X_SPACING].value.f = DEFAULT_X_SPACING;
     Flags::print[Y_SPACING].value.f = DEFAULT_Y_SPACING;
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line += LQIO::io_vars.lq_toolname;
-
-    init_errmsg();
 
     /* If we are invoked as lqn2xxx or rep2flat, then enable other options. */
 

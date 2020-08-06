@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: submodel.cc 13741 2020-08-06 04:19:44Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -1023,15 +1023,18 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		.openCallsPerform( &Call::saveOpen, number() );
 	    /* Other results (only useful for references tasks. */
 
-	    if ( closedModel ) {
-		saveClientResults( (*client) );
+	    if ( (*client)->isReferenceTask() && !(*client)->isCalled() ) {
+		if ( closedModel ) {
+		    saveClientResults( (*client) );
+		}
+		(*client)->computeUtilization();
 	    }
 	}
 
 
 	for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	    saveServerResults( (*server) );
-	    (*server)->setIdleTime( relax, this );
+	    (*server)->computeUtilization().setIdleTime( relax );
 	}
 
 	/* --- Compute and save new values for entry service times. --- */
@@ -1093,8 +1096,6 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 void
 MVASubmodel::saveClientResults( Task * aClient )
 {
-    if ( aClient->isCalled() || !aClient->isReferenceTask() ) return;
-
     const Server * aStation = aClient->clientStation( number() );
     const ChainVector& myChain( aClient->clientChains(number()));
 

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13735 2020-08-05 15:54:22Z greg $
+ * $Id: model.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -754,6 +754,9 @@ Model::solve()
     sanityCheck();
     if ( !_converged ) {
 	LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, convergence_value );
+    }
+    if ( report.faultCount() ) {
+	LQIO::solution_error( ADV_MVA_FAULTS, report.faultCount() );
     }
     if ( flags.ignore_overhanging_threads ) {
 	LQIO::solution_error( ADV_NO_OVERHANG );

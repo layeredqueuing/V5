@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Error messages.
  *
@@ -38,32 +38,6 @@ struct LQIO::error_message_type local_error_messages[] = {
     { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                /* WRN_COEFFICIENT_OF_VARIATION         */
     { LQIO::WARNING_ONLY,  "Mixed phase type detected during merge: source %s \"%s\", destination %s \"%s\"." },		/* WRN_MIXED_PHASE_TYPE			*/
 };
-
-/*
- * Copy over common error messages and set max_error.
- */
-
-struct LQIO::error_message_type error_messages[LSTLCLERRMSG+1];
-
-void
-init_errmsg()
-{
-    unsigned i, j;
-    for ( i = 1; i <= LQIO::LSTGBLERRMSG; ++i ) {
-	error_messages[i] = LQIO::global_error_messages[i];
-    }
-    for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
-	error_messages[i] = local_error_messages[j];
-    }
-    LQIO::io_vars.error_messages = error_messages;
-    LQIO::io_vars.max_error = LSTLCLERRMSG;
-
-    /* Adjust priority */
-
-    LQIO::io_vars.error_messages[LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH].severity = LQIO::WARNING_ONLY;
-    LQIO::io_vars.error_messages[LQIO::ERR_CYCLE_IN_CALL_GRAPH].severity = LQIO::WARNING_ONLY;
-    LQIO::io_vars.error_messages[LQIO::ERR_MISSING_OR_BRANCH].severity = LQIO::WARNING_ONLY;
-}
 
 /*
  * What to do based on the severity of the error.

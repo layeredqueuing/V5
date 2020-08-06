@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: entity.cc 13742 2020-08-06 14:53:34Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -38,6 +38,9 @@
 #include "ph2serv.h"
 #include "overtake.h"
 #include "submodel.h"
+
+
+#define DEFERRED_UTULIZATION	false
 
 /* ---------------------- Overloaded Operators ------------------------ */
 
@@ -81,6 +84,7 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       myServerStation(0),		/* Reference tasks don't have server stations. */
       _submodel(0),
       _maxPhase(1),
+      _utilization(0),
       _lastUtilization(-1.0)		/* Force update 		*/
 {
     attributes.initialized      = 0;		/* entity was initialized.	*/
@@ -260,7 +264,15 @@ Entity::openArrivalRate() const
 double
 Entity::utilization() const
 {		
-    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
+#if !DEFERRED_UTILIZATION
+    const_cast<Entity *>(this)->_utilization = for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
+    if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
+	std::ostringstream err;
+	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
+	throw std::range_error( err.str() );
+    }
+#endif
+    return _utilization;
 }
 
 
@@ -368,6 +380,20 @@ Entity::schedulingIsOk( const unsigned bits ) const
 
 
 
+Entity&
+Entity::computeUtilization()
+{
+#if DEFERRED_UTILIZATION
+    _utilization = for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
+    if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
+	std::ostringstream err;
+	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
+	throw std::range_error( err.str() );
+    }
+#endif
+    return *this;
+}
+
 /*
  * Calculate and set variance for entire entity.
  */
@@ -442,7 +468,7 @@ Entity::deltaUtilization() const
 
 
 void
-Entity::setIdleTime( const double relax,  Submodel * aSubmodel ) 
+Entity::setIdleTime( const double relax ) 
 {
     double z;
 
@@ -471,7 +497,7 @@ Entity::sanityCheck() const
 {
     if ( !isInfinite() && utilization() > copies() * 1.05 ) {
 	LQIO::solution_error( ADV_INVALID_UTILIZATION, utilization(), 
-			      isProcessor() ? "processor" : "task", 
+			      getDOM()->getTypeName(),
 			      name().c_str(), copies() );
     }
     return *this;

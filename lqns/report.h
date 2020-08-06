@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: report.h 13742 2020-08-06 14:53:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -88,12 +88,14 @@ public:
     double stepCount() const { return total.step; }
     double waitCount() const { return total.wait; } 
     unsigned long iterations() const { return _iterations; }
-
+    unsigned long faultCount() const { return _faultCount; }
+	    
 private:
     LQIO::DOM::Document * _document;
     bool _valid;			/* valid solution.		*/
     unsigned long _iterations;		/* Number of major loops.	*/
     double _convergenceValue;		/* Convergence test value.	*/
+    unsigned long _faultCount;		/* Number of MVA faults.	*/
 
     LQIO::DOM::CPUTime _start_time;
     LQIO::DOM::CPUTime _delta_time;

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 13735 2020-08-05 15:54:22Z greg $
+ * $Id: dom_pragma.h 13739 2020-08-05 22:36:51Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -111,6 +111,7 @@ namespace LQIO {
 	    static const char * _squashed_;
 	    static const char * _srvn_;
 	    static const char * _stochastic_;
+	    static const char * _stop_on_bogus_utilization_;
 	    static const char * _stop_on_message_loss_;
 	    static const char * _suri_;
 	    static const char * _task_scheduling_;

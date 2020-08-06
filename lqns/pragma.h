@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 13735 2020-08-05 15:54:22Z greg $
+ * $Id: pragma.h 13739 2020-08-05 22:36:51Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -123,6 +123,12 @@ public:
 	    return __cache->_stop_on_message_loss;
 	}
 
+    static double stopOnBogusUtilization()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_stop_on_bogus_utilization;
+	}
+
     static double tau()
 	{
 	    assert( __cache != nullptr );
@@ -175,6 +181,7 @@ private:
     void setProcessorScheduling(const std::string&);
     void setSeverityLevel(const std::string&);
     void setSpexHeader(const std::string&);
+    void setStopOnBogusUtilization(const std::string&);
     void setStopOnMessageLoss(const std::string&);
     void setTau(const std::string&);
     void setThreads(const std::string&);
@@ -214,6 +221,7 @@ private:
     bool _default_processor_scheduling;
     scheduling_type _processor_scheduling;
     bool _spex_header;
+    double _stop_on_bogus_utilization;
     bool _stop_on_message_loss;
     unsigned  _tau;
     pragma_threads _threads;

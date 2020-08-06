@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -43,12 +43,14 @@ enum {
     ADV_LARGE_CONVERGENCE_VALUE,
     ADV_ITERATION_LIMIT,
     ADV_SOLVER_ITERATION_LIMIT,
+    ADV_INVALID,
     ADV_NO_OVERHANG,
     ADV_REPLICATION_ITERATION_LIMIT,
     ADV_SERVICE_TIME_RANGE,
     ADV_EMPTY_SUBMODEL,
     ADV_INVALID_UTILIZATION,
     ADV_UNDERRELAXATION,
+    ADV_MVA_FAULTS,
     ADV_MANY_CLASSES,
     WRN_COEFFICIENT_OF_VARIATION,
     WRN_INVALID_INT_VALUE,
@@ -56,4 +58,6 @@ enum {
     WRN_NO_REQUESTS_MADE,
     LSTLCLERRMSG=WRN_NO_REQUESTS_MADE
 };
+
+extern struct LQIO::error_message_type local_error_messages[];
 #endif

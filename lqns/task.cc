@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: task.cc 13742 2020-08-06 14:53:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1524,6 +1524,22 @@ ReferenceTask::makeServer( const unsigned )
     throw should_not_implement( "ReferenceTask::makeServer", __FILE__, __LINE__ );
     return 0;
 }
+
+
+/*
+ * Check utilization.  It's too hard to do if there's think time because it should be < 1 
+ */
+
+const Task&
+ReferenceTask::sanityCheck() const
+{
+    const double u = utilization() / copies();
+    if ( (!(hasThinkTime() || thinkTime() > 0.) && u < 0.99) || 1.01 < u ) {
+	LQIO::solution_error( ADV_INVALID, name().c_str(), utilization(), copies() );
+    }
+    return *this;
+}
+
 
 /* -------------------------- Simple Servers. ------------------------- */
 

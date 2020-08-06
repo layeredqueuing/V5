@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: report.cc 13742 2020-08-06 14:53:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -217,7 +217,7 @@ MVACount::accumulate( const unsigned long iterations, const unsigned long inflat
 }
 
 SolverReport::SolverReport( LQIO::DOM::Document * document, const Vector<MVACount>& stats )
-    : _document(document), _valid(false), _iterations(0), _convergenceValue(0.0), 
+    : _document(document), _valid(false), _iterations(0), _convergenceValue(0.0), _faultCount(0),
       _start_time(), _delta_time(), MVAStats(stats), total()
 {
     start();
@@ -256,7 +256,10 @@ SolverReport::finish( bool valid, const double convergence, unsigned long iterat
     for ( unsigned i = 1; i <= MVAStats.size(); ++i ) {
 	total += MVAStats[i];
     }
-    if ( total.faults > 0 ) _valid = 0;
+    _faultCount = total.faults;
+    if ( _faultCount > 0 ) {
+	_valid = false;
+    }
 	
     return *this;
 }

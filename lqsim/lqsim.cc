@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 13735 2020-08-05 15:54:22Z greg $
+ * $Id: lqsim.cc 13742 2020-08-06 14:53:34Z greg $
  */
 
 
@@ -325,13 +325,11 @@ main( int argc, char * argv[] )
     /* Set the program name and revision numbers.			*/
 
 
-    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action );
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-08-05 11:54:22 -0400 (Wed, 05 Aug 2020) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2020-08-06 10:53:34 -0400 (Thu, 06 Aug 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
-
-    init_errmsg();
 
     /* Stuff set from the input file.				*/
 	

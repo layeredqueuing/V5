@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -43,6 +43,7 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::ADVISORY_ONLY, "Convergence value of %g may be too large -- check results!" },                                              /* ADV_LARGE_CONVERGENCE_VALUE          */
     { LQIO::ADVISORY_ONLY, "Iteration limit of %d is too small, using %d." },                                                           /* ADV_ITERATION_LIMIT                  */
     { LQIO::ADVISORY_ONLY, "Model failed to converge after %d iterations (convergence test is %g, limit is %g)." },                     /* ADV_SOLVER_ITERATION_LIMIT           */
+    { LQIO::ADVISORY_ONLY, "Model results are invalid (Reference task \"%s\" utilization of \"%g\" is not equal to copies \"%d\")." },	/* ADV_INVALID 				*/
     { LQIO::ADVISORY_ONLY, "Overhanging threads are ignored." },                                                                        /* ADV_NO_OVERHANG                      */
     { LQIO::ADVISORY_ONLY, "Replicated Submodel %d failed to converge after %d iterations (convergence test is %g, limit is %g)." },    /* ADV_REPLICATION_ITERATION_LIMIT      */
     { LQIO::ADVISORY_ONLY, "Service times for %s \"%s\" have a range of %g - %g. Results may not be valid." },                          /* ADV_SERVICE_TIME_RANGE               */
@@ -50,33 +51,13 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::ADVISORY_ONLY, "The utilization of %f at %s \"%s\" with multiplicity %d is too high." },                                    /* ADV_INVALID_UTILIZATION              */
     { LQIO::ADVISORY_ONLY, "Under-relaxation ignored.  %g outside range [0-2), using %g." },                                            /* ADV_UNDERRELAXATION                  */
     { LQIO::ADVISORY_ONLY, "This model has a large number of clients (%d) in submodel %d, use of '#pragma mva=schweitzer' is advised." },
+    { LQIO::ADVISORY_ONLY, "The MVA solver reported %d convergence faults during solution." },						/* ADV_MVA_FAULTS			*/
     { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                        /* WRN_COEFFICIENT_OF_VARIATION         */
     { LQIO::WARNING_ONLY,  "Value specified for %s, %d, is invalid." },                                                                 /* WRN_INVALID_INT_VALUE                */
     { LQIO::WARNING_ONLY,  "Entry \"%s\" on infinite server \"%s\" has %d phases." },							/* WRN_MULTI_PHASE_INFINITE_SERVER	*/
     { LQIO::WARNING_ONLY,  "No requests made from \"%s\" to \"%s\"." },                                                                 /* WRN_NO_REQUESTS_MADE                 */
     { LQIO::NO_ERROR, 0 }
 };
-
-/*
- * Copy over common error messages and set max_error.
- */
-
-struct LQIO::error_message_type error_messages[LSTLCLERRMSG+1];
-
-void
-init_errmsg()
-{
-    unsigned i, j;
-
-    for ( i = 1; i <= LQIO::LSTGBLERRMSG; ++i ) {
-	error_messages[i] = LQIO::global_error_messages[i];
-    }
-    for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
-	error_messages[i] = local_error_messages[j];
-    }
-    LQIO::io_vars.error_messages = &error_messages[0];
-    LQIO::io_vars.max_error = LSTLCLERRMSG;
-}
 
 /*
  * What to do based on the severity of the error.

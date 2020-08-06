@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 13738 2020-08-05 19:24:59Z greg $
+ *  $Id: dom_pragma.cpp 13739 2020-08-05 22:36:51Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,6 +40,7 @@ namespace LQIO {
 	    __pragmas[Pragma::_precision_] = 	    nullptr;		/* lqsim */
 	    __pragmas[Pragma::_run_time_] = 	    nullptr;		/* lqsim */
 	    __pragmas[Pragma::_seed_value_] = 	    nullptr;		/* lqsim */
+	    __pragmas[Pragma::_stop_on_bogus_utilization_] = nullptr;	/* lqns */
 	    __pragmas[Pragma::_tau_] =              nullptr;		/* lqns */
 	    __pragmas[Pragma::_underrelaxation_] =  nullptr;		/* lqns */
 
@@ -328,6 +329,7 @@ namespace LQIO {
 	const char * Pragma::_squashed_ =			"squashed";
 	const char * Pragma::_srvn_ =				"srvn";
 	const char * Pragma::_stochastic_ =			"stochastic";
+	const char * Pragma::_stop_on_bogus_utilization_ =	"stop-on-bogus-utilization";
 	const char * Pragma::_stop_on_message_loss_ =		"stop-on-message-loss";
 	const char * Pragma::_suri_ =				"suri";
 	const char * Pragma::_task_scheduling_ =		"task-scheduling";

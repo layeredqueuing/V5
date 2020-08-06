@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: task.h 13742 2020-08-06 14:53:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -261,6 +261,8 @@ public:
 
     Server * makeServer( const unsigned );
 
+    virtual const Task& sanityCheck() const;
+    
 protected:
     virtual scheduling_type defaultScheduling() const { return SCHEDULE_CUSTOMER; }
 };

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 13735 2020-08-05 15:54:22Z greg $ *
+ * $Id: pragma.cc 13739 2020-08-05 22:36:51Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -36,6 +36,7 @@ Pragma::Pragma() :
     _default_processor_scheduling(true),
     _processor_scheduling(SCHEDULE_PS),
     _spex_header(true),
+    _stop_on_bogus_utilization(0),
     _stop_on_message_loss(true),
     _tau(8),
     _threads(HYPER_THREADS),
@@ -64,6 +65,7 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_overtaking_] = &Pragma::setOvertaking;
     __set_pragma[LQIO::DOM::Pragma::_processor_scheduling_] = &Pragma::setProcessorScheduling;
     __set_pragma[LQIO::DOM::Pragma::_severity_level_] = &Pragma::setSeverityLevel;
+    __set_pragma[LQIO::DOM::Pragma::_stop_on_bogus_utilization_] = &Pragma::setStopOnBogusUtilization;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] = &Pragma::setStopOnMessageLoss;
     __set_pragma[LQIO::DOM::Pragma::_tau_] = &Pragma::setTau;
     __set_pragma[LQIO::DOM::Pragma::_threads_] = &Pragma::setThreads;
@@ -211,6 +213,13 @@ void Pragma::setSeverityLevel(const std::string& value)
     } else {
 	_severity_level = LQIO::NO_ERROR;
     }
+}
+
+void Pragma::setStopOnBogusUtilization(const std::string& value)
+{
+    char * endptr = nullptr;
+    _stop_on_bogus_utilization = std::strtod( value.c_str(), &endptr );
+    if ( (_stop_on_bogus_utilization < 1 && _stop_on_bogus_utilization != 0) || *endptr != '\0' ) throw std::domain_error( "Invalid stop_on_bogus_utilization" );
 }
 
 void Pragma::setStopOnMessageLoss(const std::string& value)

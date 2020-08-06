@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13727 2020-08-04 14:06:18Z greg $
+ *  $Id: srvn_output.cpp 13742 2020-08-06 14:53:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1328,7 +1328,7 @@ namespace LQIO {
                     << "    MVA Wait(): " << setw(ObjectOutput::__maxDblLen) << mva_info.getNumberOfWait() << newline;
 //                                     mva_info.getNumberOfWaitSquared() <<
             if ( mva_info.getNumberOfFaults() ) {
-                _output << "*** Faults ***" << mva_info.getNumberOfFaults() << newline;
+                _output << "    *** Faults *** " << mva_info.getNumberOfFaults() << newline;
             }
         }
     }

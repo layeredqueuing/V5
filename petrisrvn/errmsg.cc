@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: errmsg.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
  */
 
 #include "petrisrvn.h"
@@ -38,26 +38,6 @@ struct LQIO::error_message_type local_error_messages[] =
     { LQIO::ADVISORY_ONLY, "Using Erlang %d distribution for Entry \"%s\"."},                                                                     /* ADV_ERLANG_N                         */
     { LQIO::NO_ERROR, 0 }
 };
-
-/*
- * Copy over common error messages and set max_error.
- */
-
-struct LQIO::error_message_type error_messages[LSTLCLERRMSG+1];
-
-void
-init_errmsg()
-{
-    unsigned i, j;
-    for ( i = 1; i <= LQIO::LSTGBLERRMSG; ++i ) {
-	error_messages[i] = LQIO::global_error_messages[i];
-    }
-    for ( j = 0; i <= LSTLCLERRMSG; ++i, ++j ) {
-	error_messages[i] = local_error_messages[j];
-    }
-    LQIO::io_vars.error_messages = &error_messages[0];
-    LQIO::io_vars.max_error = LSTLCLERRMSG;
-}
 
 /*
  * What to do based on the severity of the error.

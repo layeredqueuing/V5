@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 13684 2020-07-13 15:41:25Z greg $
+ * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -44,4 +44,5 @@ enum {
     LSTLCLERRMSG=WRN_MIXED_PHASE_TYPE
 };
 
+extern struct LQIO::error_message_type local_error_messages[];
 #endif

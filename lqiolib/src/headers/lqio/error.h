@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: error.h 13742 2020-08-06 14:53:34Z greg $
  */
 
 #if	!defined(SRVNIO_LIB_ERROR_H)
@@ -191,7 +191,6 @@ namespace LQIO {
      */
 
 
-    void init_errmsg();
     void solution_error ( unsigned err, ... );
     void internal_error ( const char * filename, const unsigned lineno, const char *, ... );
     void input_error (const char * fmt, ...);

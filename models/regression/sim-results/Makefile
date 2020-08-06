@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13705 2020-07-20 21:46:53Z greg $
+# $Id: Makefile 13742 2020-08-06 14:53:34Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -112,6 +112,6 @@ diff:
 	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 56-replication-flat.in
 
 94-5101-a2-q2b1.p: 	94-5101-a2-q2b1.in
-	$(SRVN) -C1.0,10000 $(SEED) -o $*.p $<
+	$(SRVN) -C1.0,10000 $(SEED) -po $*.p $<
 
 repl:	50-replication.p 51-replication.p 52-replication.p 55-replication.p 56-replication.p 
