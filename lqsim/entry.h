@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: entry.h 13751 2020-08-10 02:27:53Z greg $
  */
 
 #ifndef ENTRY_H
@@ -29,6 +29,18 @@ class Task;
 class Entry {				/* task entry struct	        */
     friend class Instance;
     
+    struct Collect
+    {
+	typedef double (Activity::*fptr)( Entry::Collect& ) const;
+
+	Collect( const Entry * e, fptr f ) : _e(e), rate(1.), phase(1), can_reply(true), _f(f) {};
+	const Entry * _e;
+	double rate;
+	unsigned int phase;
+	bool can_reply;
+	fptr _f;
+    };
+	
 private:
     Entry( const Entry& );
     Entry& operator=( const Entry& );
@@ -88,11 +100,14 @@ public:
     Entry& accumulate_data();
     virtual Entry& insertDOMResults();
 
+    Entry& compute_minimum_service_time();
+
     static Entry * add( LQIO::DOM::Entry* domEntry, Task * );
     
 private:
     double throughput() const;
     double throughput_variance() const;
+    double minimum_service_time() const;
     void print_debug_info();
     
 public:
@@ -103,6 +118,7 @@ public:
     std::vector<unsigned> _active;	/* Number of active instances.	*/
     Targets _fwd;			/* forward info		        */
     result_t r_cycle;			/* cycle time for entry.	*/
+    mutable std::vector<double> _minimum_service_time;	/* Computed. 	*/
 
     static Entry * entry_table[MAX_PORTS+1];
 

@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 13732 2020-08-05 14:56:42Z greg $
+ * $Id: pragma.cc 13749 2020-08-09 14:07:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,6 +15,7 @@
 #include <lqio/getsbopt.h>
 #endif
 #include "pragma.h"
+#include <lqio/glblerr.h>
 
 Pragma * Pragma::__pragmas = nullptr;
 std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
@@ -24,7 +25,15 @@ Pragma::Pragma() :
     _quorum_delayed_calls(false),	/* Quorum reply (BUG_311)	*/
     _reschedule_on_async_send(false),	/* force schedule after snr.	*/
     _scheduling_model(SCHEDULE_SLICE),
-    _severity_level(LQIO::NO_ERROR)
+    _severity_level(LQIO::NO_ERROR),
+    _block_period(0.0),
+    _number_of_blocks(0),
+    _max_blocks(0),
+    _precision(0),
+    _run_time(0),
+    _seed_value(0),
+    _initial_loops(0),
+    _initial_delay(0)
 {
 }
 
@@ -97,7 +106,7 @@ Pragma::set_nice( const std::string& value )
     char * endptr = nullptr;
     _nice_value = std::strtol( value.c_str(), &endptr, 10 );
     if ( _nice_value < 0 || 20 < _nice_value || *endptr != '\0' ) {
-	(void) fprintf( stderr, "%s: #pragma nice=%s is invalid.\n", LQIO::io_vars.toolname(), value.c_str() );
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_nice_, value.c_str() );
 	_nice_value = 20;
 	return false;
     } 
@@ -111,39 +120,81 @@ Pragma::set_quorum_delayed_calls( const string& value )
     return true;
 }
 
-bool Pragma::set_precision( const std::string& )
+bool Pragma::set_block_period( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _block_period = std::strtod( value.c_str(), &endptr );
+    if ( _block_period < 0.001 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_block_period_, value.c_str() );
+	return false;
+    }
+    return true;
 }
 
-bool Pragma::set_initial_loops( const std::string& )
+bool Pragma::set_initial_loops( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _initial_loops = std::strtol( value.c_str(), &endptr, 10 );
+    if ( _initial_loops < 0 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_initial_loops_, value.c_str() );
+	return false;
+    }	
+    return true;
 }
 
-bool Pragma::set_initial_delay( const std::string& )
+bool Pragma::set_initial_delay( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _initial_delay = std::strtol( value.c_str(), &endptr, 10 );
+    if ( _initial_delay < 0 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_initial_delay_, value.c_str() );
+	return false;
+    }	
+    return true;
 }
 
-bool Pragma::set_block_period( const std::string& )
+bool Pragma::set_max_blocks( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _max_blocks = std::strtol( value.c_str(), &endptr, 10 );
+    if ( _max_blocks < 0 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_max_blocks_, value.c_str() );
+	return false;
+    }	
+    return true;
 }
 
-bool Pragma::set_max_blocks( const std::string& )
+bool Pragma::set_precision( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _precision = std::strtod( value.c_str(), &endptr );
+    if ( _precision < 0.001 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_precision_, value.c_str() );
+	return false;
+    }
+    return true;
 }
 
-bool Pragma::set_seed_value( const std::string& )
+bool Pragma::set_seed_value( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _seed_value = std::strtod( value.c_str(), &endptr );
+    if ( _seed_value < 0.001 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_seed_value_, value.c_str() );
+	return false;
+    }
+    return true;
 }
 
-bool Pragma::set_run_time( const std::string& )
+bool Pragma::set_run_time( const std::string& value )
 {
-    return false;
+    char * endptr = nullptr;
+    _run_time = std::strtod( value.c_str(), &endptr );
+    if ( _run_time < 0.001 ) {
+	LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, LQIO::DOM::Pragma::_run_time_, value.c_str() );
+	return false;
+    }
+    return true;
 }
 
 void
@@ -158,15 +209,13 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_severity_level_] =		&Pragma::set_severity_level;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] =	&Pragma::set_abort_on_dropped_message;
 
-#if 0
-    __set_pragma[LQIO::DOM::Pragma::_precision_] = 	        &Pragma::set_precision;
-    __set_pragma[LQIO::DOM::Pragma::_initial_loops_] = 	        &Pragma::set_initial_loops;
-    __set_pragma[LQIO::DOM::Pragma::_initial_delay_] = 	        &Pragma::set_initial_delay;
     __set_pragma[LQIO::DOM::Pragma::_block_period_] = 	        &Pragma::set_block_period;
+    __set_pragma[LQIO::DOM::Pragma::_initial_delay_] = 	        &Pragma::set_initial_delay;
+    __set_pragma[LQIO::DOM::Pragma::_initial_loops_] = 	        &Pragma::set_initial_loops;
     __set_pragma[LQIO::DOM::Pragma::_max_blocks_] = 		&Pragma::set_max_blocks;
-    __set_pragma[LQIO::DOM::Pragma::_seed_value_] = 		&Pragma::set_seed_value;
+    __set_pragma[LQIO::DOM::Pragma::_precision_] = 	        &Pragma::set_precision;
     __set_pragma[LQIO::DOM::Pragma::_run_time_] = 		&Pragma::set_run_time;
-#endif
+    __set_pragma[LQIO::DOM::Pragma::_seed_value_] = 		&Pragma::set_seed_value;
 }
 
 

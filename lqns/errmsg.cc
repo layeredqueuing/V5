@@ -5,14 +5,14 @@
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
- * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+20 * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
  * Novemeber 1990.
  * August 1991.
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: errmsg.cc 13758 2020-08-10 17:58:47Z greg $
  * ----------------------------------------------------------------------
  */
 

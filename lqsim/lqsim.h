@@ -13,7 +13,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id: lqsim.h 13732 2020-08-05 14:56:42Z greg $
+ * $Id: lqsim.h 13750 2020-08-09 14:44:00Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -214,6 +214,18 @@ template <class Type1, class Type2 > struct ExecSum
 {
     typedef Type2 (Type1::*funcPtr)();
     ExecSum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {};
+    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
+    void operator()( Type1& object ) { _sum += (object.*_f)(); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type2 _sum;
+};
+    
+template <class Type1, class Type2 > struct ConstExecSum
+{
+    typedef Type2 (Type1::*funcPtr)() const;
+    ConstExecSum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {};
     void operator()( Type1 * object ) { _sum += (object->*_f)(); }
     void operator()( Type1& object ) { _sum += (object.*_f)(); }
     Type2 sum() const { return _sum; }

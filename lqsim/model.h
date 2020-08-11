@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: model.h 13749 2020-08-09 14:07:06Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -62,6 +62,8 @@ class Model {
 
 public:
     struct simulation_parameters {
+	friend class Model;
+	
 	static const double DEFAULT_TIME;
 
     simulation_parameters() : _seed(123456),
@@ -73,15 +75,23 @@ public:
 	    _initial_loops(0)
 	    {}
 
-	void get_parameters_from( LQIO::DOM::Document& );
+	void set( const std::map<std::string,std::string>& );
 
-	long _seed;
+    private:
+	bool set( unsigned long& parameter, const std::map<std::string,std::string>& pragmas, const char * value );
+	bool set( double& parameter, const std::map<std::string,std::string>& pragmas, const char * value );
+
+    private:
+	static const unsigned long MAX_BLOCKS	= 30;
+	static const unsigned long INITIAL_LOOPS	= 500;
+
+	unsigned long _seed;
 	double _run_time;
 	double _precision;
-	unsigned int _max_blocks;
+	unsigned long _max_blocks;
 	double _initial_delay;
 	double _block_period;
-	int _initial_loops;
+	unsigned long _initial_loops;
     };
 
 
@@ -90,7 +100,7 @@ private:
     Model& operator=( const Model& );
 
 public:
-    Model( LQIO::DOM::Document* document, const string&, const string&, const Model::simulation_parameters& );
+    Model( LQIO::DOM::Document* document, const string&, const string& );
     virtual ~Model();
     
     bool operator!() const { return _document == 0; }

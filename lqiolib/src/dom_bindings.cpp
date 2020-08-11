@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 13499 2020-02-24 01:57:22Z greg $
+ *  $Id: dom_bindings.cpp 13749 2020-08-09 14:07:06Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -839,12 +839,6 @@ namespace LQIO {
 		__attributeTable[DOM::Document::XIterationLimit]	    	= attribute_table_t( &DOM::Document::getModelIterationLimit );
 		__attributeTable[DOM::Document::XUnderrelaxationCoefficient]	= attribute_table_t( &DOM::Document::getModelUnderrelaxationCoefficient );
 		__attributeTable[DOM::Document::XPrintInterval]			= attribute_table_t( &DOM::Document::getModelPrintInterval );
-		__attributeTable[DOM::Document::XSimulationSeedValue]		= attribute_table_t( &DOM::Document::getSimulationSeed );
-		__attributeTable[DOM::Document::XSimulationNumberOfBlocks]	= attribute_table_t( &DOM::Document::getSimulationNumberOfBlocks );
-		__attributeTable[DOM::Document::XSimulationBlockTime]		= attribute_table_t( &DOM::Document::getSimulationBlockTime );
-		__attributeTable[DOM::Document::XSimulationPrecision]		= attribute_table_t( &DOM::Document::getSimulationPrecision );
-		__attributeTable[DOM::Document::XSimulationWarmUpLoops]		= attribute_table_t( &DOM::Document::getSimulationWarmUpLoops );
-		__attributeTable[DOM::Document::XSimulationWarmUpTime]		= attribute_table_t( &DOM::Document::getSimulationWarmUpTime );
 		__attributeTable[DOM::Document::XSpexIterationLimit]		= attribute_table_t( &DOM::Document::getSpexConvergenceIterationLimit );
 		__attributeTable[DOM::Document::XSpexUnderrelaxation]		= attribute_table_t( &DOM::Document::getSpexConvergenceUnderrelaxation );
 	    }

@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: actlist.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: actlist.h 13751 2020-08-10 02:27:53Z greg $
  */
 
 #ifndef ACTLIST_H
@@ -23,11 +23,6 @@ class Activity;
 class Histogram;
 class Task;
 class Activity;
-namespace LQIO {
-    namespace DOM {
-	class ActivityList;
-    }
-}
 
 typedef enum list_type
 {
@@ -49,6 +44,18 @@ typedef enum join_type
 
 struct ActivityList {
     
+    struct Collect
+    {
+	typedef double (Activity::*fptr)( ActivityList::Collect& ) const;
+
+	Collect( const Entry * e, fptr f ) : _e(e), rate(1.), phase(1), can_reply(true), _f(f) {};
+	const Entry * _e;
+	double rate;
+	unsigned int phase;
+	bool can_reply;
+	fptr _f;
+    };
+	
     list_type type;
     union {
 	struct {
@@ -91,8 +98,8 @@ struct ActivityList {
 void print_activity_connectivity( FILE *, Activity * );
 double fork_find_children( ActivityList * input, std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep );
 double join_find_children( ActivityList * input, std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep );
-double fork_count_replies( ActivityList * input, std::deque<Activity *>& activity_stack, const Entry * ep, const double rate, const unsigned int my_phase, unsigned int * next_phase );
-double join_count_replies( ActivityList * input, std::deque<Activity *>& activity_stack, const Entry * ep, const double rate, const unsigned int my_phase, unsigned int * next_phase );
+double fork_collect( ActivityList * input, std::deque<Activity *>& activity_stack, ActivityList::Collect& data );
+double join_collect( ActivityList * input, std::deque<Activity *>& activity_stack, ActivityList::Collect& data );
 void join_check( ActivityList * join_list );
 
 /* Used by load.cc */

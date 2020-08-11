@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 13727 2020-08-04 14:06:18Z greg $
+ *  $Id: dom_document.h 13749 2020-08-09 14:07:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -126,24 +126,6 @@ namespace LQIO {
 	    const ExternalVariable * getModelUnderrelaxationCoefficient() const { return get( XUnderrelaxationCoefficient); }
 	    const double getModelUnderrelaxationCoefficientValue() const { return getValue( XUnderrelaxationCoefficient); }
 	    Document& setModelUnderrelaxationCoefficient( ExternalVariable * );
-	    const ExternalVariable * getSimulationSeed() const { return get( XSimulationSeedValue ); }
-	    const long getSimulationSeedValue() const { return static_cast<const long>(getValue( XSimulationSeedValue)  ); }
-	    Document& setSimulationSeedValue( ExternalVariable * );
-	    const ExternalVariable * getSimulationNumberOfBlocks() const { return get( XSimulationNumberOfBlocks ); }
-	    const long getSimulationNumberOfBlocksValue() const { return static_cast<long>(getValue( XSimulationNumberOfBlocks )); }
-	    Document& setSimulationNumberOfBlocks( ExternalVariable * );
-	    const ExternalVariable * getSimulationBlockTime() const { return get( XSimulationBlockTime ); }
-	    const double getSimulationBlockTimeValue() const { return getValue( XSimulationBlockTime ); }
-	    Document& setSimulationBlockTime( ExternalVariable * );
-	    const ExternalVariable * getSimulationPrecision() const { return get( XSimulationPrecision ); }
-	    const double getSimulationPrecisionValue() const { return getValue( XSimulationPrecision ); };
-	    Document& setSimulationPrecision( ExternalVariable * );
-	    const ExternalVariable * getSimulationWarmUpTime() const { return get( XSimulationWarmUpTime ); }
-	    const double getSimulationWarmUpTimeValue() const { return getValue( XSimulationWarmUpTime ); }
-	    Document& setSimulationWarmUpTime( ExternalVariable * );
-	    const ExternalVariable * getSimulationWarmUpLoops() const { return get( XSimulationWarmUpLoops ); }
-	    const long getSimulationWarmUpLoopsValue() const { return static_cast<const long>(getValue( XSimulationWarmUpLoops )); }
-	    Document& setSimulationWarmUpLoops( ExternalVariable * );
 	    const ExternalVariable * getSpexConvergenceIterationLimit() const { return get( XSpexIterationLimit ); }
 	    const double getSpexConvergenceIterationLimitValue() const { return getValue( XSpexIterationLimit ); }
 	    Document& setSpexConvergenceIterationLimit( ExternalVariable * );
@@ -243,12 +225,6 @@ namespace LQIO {
 	    static const char * XIterationLimit;
 	    static const char * XPrintInterval;
 	    static const char * XUnderrelaxationCoefficient;
-	    static const char * XSimulationSeedValue;
-	    static const char * XSimulationNumberOfBlocks;
-	    static const char * XSimulationBlockTime;
-	    static const char * XSimulationPrecision;
-	    static const char * XSimulationWarmUpLoops;
-	    static const char * XSimulationWarmUpTime;
 	    static const char * XSpexIterationLimit;
 	    static const char * XSpexUnderrelaxation;
 

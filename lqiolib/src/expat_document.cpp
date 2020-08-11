@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 13729 2020-08-04 20:20:16Z greg $
+ * $Id: expat_document.cpp 13751 2020-08-10 02:27:53Z greg $
  *
  * Read in XML input files.
  *
@@ -2285,6 +2285,15 @@ namespace LQIO {
                    << attribute( Xprint_int, *_document.getModelPrintInterval() );
             if ( complex_element ) {
                 output << ">" << std::endl;
+                if ( _document.hasPragmas() ) {
+                    const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
+                    for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
+                        output << start_element( Xpragma, false )
+                               << attribute( Xparam, next_pragma->first )
+                               << attribute( Xvalue, next_pragma->second );
+                        output << end_element( Xpragma, false ) << std::endl;
+                    }
+                }
 		if ( doc_vars.size() > 0 ) {
                     output << simple_element( Xresult_observation );
 		    for_each( doc_vars.begin(), doc_vars.end(), ExportObservation( output ) );
@@ -2318,15 +2327,6 @@ namespace LQIO {
                                << "/>" << std::endl;
                     }
                     output << end_element( Xresult_general, has_mva_info ) << std::endl;
-                }
-                if ( _document.hasPragmas() ) {
-                    const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
-                    for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
-                        output << start_element( Xpragma, false )
-                               << attribute( Xparam, next_pragma->first )
-                               << attribute( Xvalue, next_pragma->second );
-                        output << end_element( Xpragma, false ) << std::endl;
-                    }
                 }
             }
             output << end_element( Xsolver_parameters, complex_element ) << std::endl;

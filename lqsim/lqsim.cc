@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: lqsim.cc 13749 2020-08-09 14:07:06Z greg $
  */
 
 
@@ -70,10 +70,6 @@ typedef	int fp_bit_type;
 #define	FP_X_DZ		FP_X_DX		/* Redefined by GNU...		*/
 #define FP_CLEAR	0		/* If this works like solaris... */
 #endif
-
-
-#define MAX_BLOCKS	30
-#define	INITIAL_LOOPS	500
 
 /*----------------------------------------------------------------------*/
 /* Global variables.							*/
@@ -289,7 +285,7 @@ extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 
 static void usage(void);
-static int process( const string& input_file, const string& output_file, const Model::simulation_parameters& );
+static int process( const string& input_file, const string& output_file );
 #if HAVE_REGCOMP
 static void trace_event_list ( char * );
 static bool regexec_check( int errcode, regex_t *r );
@@ -303,8 +299,6 @@ static void set_fp_abort();
 int
 main( int argc, char * argv[] )
 {   				
-    Model::simulation_parameters parameters;
-
     int global_error_flag	= 0;
     string output_file		= "";		/* Command line filename?   	*/
 	
@@ -315,7 +309,6 @@ main( int argc, char * argv[] )
     char * value;
     extern int optind;
 
-    bool command_line_error = false;
 #if HAVE_GETOPT_LONG
     LQIO::CommandLine command_line( opts, longopts );
 #else
@@ -328,7 +321,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-08-06 10:53:34 -0400 (Thu, 06 Aug 2020) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2020-08-09 10:07:06 -0400 (Sun, 09 Aug 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -358,281 +351,258 @@ main( int argc, char * argv[] )
 	
 	command_line.append( c, optarg );
 
-	switch ( c ) {
+	try { 
+	    char * token;
+	    switch ( c ) {
 
-	case 'A':		/* Auto blocking	*/
-	    switch( sscanf( optarg, "%lf,%lf,%lf", &parameters._block_period, &parameters._precision, &parameters._initial_delay ) ) {
-	    case 1: parameters._precision = 1.0; 
-	    case 2: parameters._initial_delay = 0.0; break;
-	    case 3: break;
-	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
-		command_line_error = true;
+	    case 'A':		/* Auto blocking	*/
+		token = strtok( optarg, "," );
+		pragmas.insert(LQIO::DOM::Pragma::_block_period_, token );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_precision_ );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_initial_delay_, token );
 		break;
-	    }
-	    if ( parameters._max_blocks == 1 ) parameters._max_blocks = MAX_BLOCKS;
-	    parameters._run_time = parameters._initial_delay + parameters._max_blocks * parameters._block_period;
-	    break;
 			
-	case 'B':
-	    switch( sscanf( optarg, "%d,%lf,%lf", &parameters._max_blocks, &parameters._block_period, &parameters._initial_delay ) ) {
-	    case 1: parameters._block_period = Model::simulation_parameters::DEFAULT_TIME;
-	    case 2: parameters._initial_delay = 0.0; break;
-	    case 3: break;
-	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
-		command_line_error = true;
+	    case 'B':
+		token = strtok( optarg, "," );
+		pragmas.insert(LQIO::DOM::Pragma::_max_blocks_, token );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_block_period_, token );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_initial_delay_, token );
 		break;
-	    }
-	    if ( parameters._max_blocks == 1 ) parameters._max_blocks = 5;
-	    parameters._run_time = parameters._initial_delay + parameters._max_blocks * parameters._block_period;
-	    break;
 			
-	case 'C':
-	    switch( sscanf( optarg, "%lf,%d,%lf", &parameters._precision, &parameters._initial_loops, &parameters._run_time ) ) {
-	    case 1: parameters._initial_loops = static_cast<int>(INITIAL_LOOPS / parameters._precision); 
-	    case 2: parameters._run_time = Model::simulation_parameters::DEFAULT_TIME * 1e6; break;		/* Default time is 1e10 */
-	    case 3: break;
-	    default:
-		(void) fprintf( stderr, "%s: invalid block argument -- %s\n", LQIO::io_vars.toolname(), optarg );
-		command_line_error = true;
+	    case 'C':
+		token = strtok( optarg, "," );
+		pragmas.insert(LQIO::DOM::Pragma::_precision_, token );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_initial_loops_, token );
+		token = strtok(nullptr, "," );
+		if ( token == nullptr ) break;
+		pragmas.insert(LQIO::DOM::Pragma::_run_time_, token );
 		break;
-	    }
-	    parameters._max_blocks = MAX_BLOCKS;
-	    parameters._initial_delay = parameters._run_time / parameters._max_blocks;
-	    parameters._block_period = parameters._initial_delay;
-	    break;
 	    
-	case 'd':
-	    debug_flag    = true;
-	    raw_stat_flag = true;
-	    break;
+	    case 'd':
+		debug_flag    = true;
+		raw_stat_flag = true;
+		break;
 	 
-	case 'e':			/* Error handling.	*/
-	    switch ( optarg[0] ) {
-	    case 'a':
-		set_fp_abort();
-		matherr_disposition = ABORT_MATHERR;
-		break;
-
-	    case 'i':
-		matherr_disposition = IGNORE_MATHERR;
-		break;
-				
-	    case 'w':
-		matherr_disposition = REPORT_MATHERR;
-		break;
-	    }
-	    break;
-			
-	case 'G':
-	    LQIO::Spex::setGnuplotVars( optarg );
-	    break;
-	    
-	case 'H':
-	    usage();
-	    exit(0);
-
-	case 'h':
-	    histogram_output_file = optarg;
-	    break;
-
-	case 256+'h':
-	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
-	    break;
-
-	case 'I':
-	    if ( strcasecmp( optarg, "xml" ) == 0 ) {
-		Model::input_format = LQIO::DOM::Document::XML_INPUT;
-	    } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-		Model::input_format = LQIO::DOM::Document::LQN_INPUT;
-	    } else {
-		fprintf( stderr, "%s: invalid argument to -I -- %s\n", LQIO::io_vars.toolname(), optarg );
-	    }
-	    break;
-
-	case (256+'l'):
-	    ModLangParserTrace(stderr, "lqx:");
-	    break;
-
-	case 'M': {
-	    char * endptr;
-	    parameters._max_blocks = strtol( optarg, &endptr, 10 );
-	    if ( parameters._max_blocks <= 2 || *endptr != '\0' ) {
-		(void) fprintf( stderr, "%s: invalid argument to --max-blocks - %s\n", LQIO::io_vars.toolname(), optarg );
-		exit( FILEIO_ERROR );
-	    }
-	    break;
-	}
-
-	case 'm':
-	    if ( strcmp( optarg, "-" ) == 0 ) {
-		stddbg = stdout;
-	    } else if ( !(stddbg = fopen( optarg, "w" )) ) {
-		(void) fprintf( stderr, "%s: cannot open ", LQIO::io_vars.toolname() );
-		perror( optarg );
-		exit( FILEIO_ERROR );
-	    }
-	    break;
-			
-	case 'n':
-	    no_execute_flag = true;
-	    break;
-			
-	case 'o':
-	    output_file = optarg;
-	    break;
-
-	case 256+'o':
-            pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
-	    break;
-
-	case 'p':
-	    global_parse_flag = true;
-	    break;
-
-	case 'P':
-	    if ( !pragmas.insert( optarg ) ) {
-                Pragma::usage( cerr );
-                exit( INVALID_ARGUMENT );
-            }
-	    break;
-			    
-	case 256+'p':
-	    if ( !value || sscanf( value, "%d", &print_interval ) != 1 || print_interval < 0 ) {
-		(void) fprintf( stderr, "%s: print-interval=%s is invalid, choose integer > 0\n",
-				LQIO::io_vars.toolname(), value ? value : "" );
-		(void) exit( INVALID_ARGUMENT );
-	    } else {
-		override_print_int = true;
-	    }
-	    break;
-				
-	case 'r':
-	    global_rtf_flag = true;
-	    break;
-
-	case 256+'r':
-	    reload_flag = true;
-	    break;
-
-	case 'R':
-	    raw_stat_flag = true;
-	    break;
-			
-	case 256+'R':
-	    restart_flag = true;
-	    break;
-
-	case 'S':
-	    if ( sscanf( optarg, "%ld", &parameters._seed ) != 1 ) {
-		(void) fprintf( stderr, "%s: invalid seed value -- %s.\n", LQIO::io_vars.toolname(), optarg );
-		command_line_error = true;
-	    }
-	    break;
-
-	case 's':
-	    debug_interactive_stepping = true;
-	    fprintf(stdout, "\ndebug interactive stepping option is turned on\n" ) ; 
-	    break;
-			
-	case 'T':
-	    if ( sscanf( optarg, "%lf", &parameters._run_time ) != 1 || parameters._run_time <= 0.0 ) {
-		(void) fprintf( stderr, "%s: invalid simulation runtime -- %s.\n", LQIO::io_vars.toolname(), optarg );
-		command_line_error = true;
-	    }
-	    parameters._block_period = ( parameters._run_time - parameters._initial_delay ) / parameters._max_blocks;
-	    break;
-
-	case 't':
-	    options = optarg;
-	    while ( *options ) switch( getsubopt( &options, const_cast<char * const *>(trace_opts), &value ) ) {
-		case DRIVER:
-		    trace_driver = 1;
+	    case 'e':			/* Error handling.	*/
+		switch ( optarg[0] ) {
+		case 'a':
+		    set_fp_abort();
+		    matherr_disposition = ABORT_MATHERR;
 		    break;
+
+		case 'i':
+		    matherr_disposition = IGNORE_MATHERR;
+		    break;
+				
+		case 'w':
+		    matherr_disposition = REPORT_MATHERR;
+		    break;
+
+		default:
+		    throw std::invalid_argument( optarg );
+		}
+		break;
+			
+	    case 'G':
+		LQIO::Spex::setGnuplotVars( optarg );
+		break;
+	    
+	    case 'H':
+		usage();
+		exit(0);
+
+	    case 'h':
+		histogram_output_file = optarg;
+		break;
+
+	    case 256+'h':
+		pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
+		break;
+
+	    case 'I':
+		if ( strcasecmp( optarg, "xml" ) == 0 ) {
+		    Model::input_format = LQIO::DOM::Document::XML_INPUT;
+		} else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
+		    Model::input_format = LQIO::DOM::Document::LQN_INPUT;
+		} else {
+		    throw std::invalid_argument( optarg );
+		}
+		break;
+
+	    case (256+'l'):
+		ModLangParserTrace(stderr, "lqx:");
+		break;
+
+	    case 'M': {
+		pragmas.insert(LQIO::DOM::Pragma::_max_blocks_, optarg);
+		break;
+	    }
+
+	    case 'm':
+		if ( strcmp( optarg, "-" ) == 0 ) {
+		    stddbg = stdout;
+		} else if ( !(stddbg = fopen( optarg, "w" )) ) {
+		    (void) fprintf( stderr, "%s: cannot open ", LQIO::io_vars.toolname() );
+		    perror( optarg );
+		    exit( FILEIO_ERROR );
+		}
+		break;
+			
+	    case 'n':
+		no_execute_flag = true;
+		break;
+			
+	    case 'o':
+		output_file = optarg;
+		break;
+
+	    case 256+'o':
+		pragmas.insert(LQIO::DOM::Pragma::_stop_on_message_loss_,LQIO::DOM::Pragma::_no_);
+		break;
+
+	    case 'p':
+		global_parse_flag = true;
+		break;
+
+	    case 'P':
+		if ( !pragmas.insert( optarg ) ) {
+		    Pragma::usage( cerr );
+		    exit( INVALID_ARGUMENT );
+		}
+		break;
+			    
+	    case 256+'p':
+		print_interval = strtol( optarg, &value, 10 );
+		if ( print_interval < 0 || *value != '\0' ) {
+		    throw std::invalid_argument( optarg );
+		} else {
+		    override_print_int = true;
+		}
+		break;
+				
+	    case 'r':
+		global_rtf_flag = true;
+		break;
+
+	    case 256+'r':
+		reload_flag = true;
+		break;
+
+	    case 'R':
+		raw_stat_flag = true;
+		break;
+			
+	    case 256+'R':
+		restart_flag = true;
+		break;
+
+	    case 'S':
+		pragmas.insert(LQIO::DOM::Pragma::_seed_value_,optarg);
+		break;
+
+	    case 's':
+		debug_interactive_stepping = true;
+		fprintf(stdout, "\ndebug interactive stepping option is turned on\n" ) ; 
+		break;
+			
+	    case 'T':
+		pragmas.insert(LQIO::DOM::Pragma::_run_time_,optarg);
+		break;
+
+	    case 't':
+		options = optarg;
+		while ( *options ) switch( getsubopt( &options, const_cast<char * const *>(trace_opts), &value ) ) {
+		    case DRIVER:
+			trace_driver = 1;
+			break;
 
 #if HAVE_REGCOMP
-		case PROCESSOR:
-		    processor_match_pattern = (regex_t *)my_malloc( sizeof( regex_t ) );
-		    regexec_check( regcomp( processor_match_pattern, value ? value : ".*", REG_EXTENDED ), processor_match_pattern );
-		    break;
+		    case PROCESSOR:
+			processor_match_pattern = (regex_t *)my_malloc( sizeof( regex_t ) );
+			regexec_check( regcomp( processor_match_pattern, value ? value : ".*", REG_EXTENDED ), processor_match_pattern );
+			break;
 
 				
-		case TASK:
-		    task_match_pattern = (regex_t *)my_malloc( sizeof( regex_t ) );
-		    regexec_check( regcomp( task_match_pattern, value ? value : ".*", REG_EXTENDED ), task_match_pattern );
-		    break;
+		    case TASK:
+			task_match_pattern = (regex_t *)my_malloc( sizeof( regex_t ) );
+			regexec_check( regcomp( task_match_pattern, value ? value : ".*", REG_EXTENDED ), task_match_pattern );
+			break;
 
-		case EVENTS:
-		    trace_event_list( value );
-		    break;
+		    case EVENTS:
+			trace_event_list( value );
+			break;
 #endif
 
-		case TIMELINE:
-		    timeline_flag = true;
-		    break;
+		    case TIMELINE:
+			timeline_flag = true;
+			break;
 
-		case MSGBUF:
-		    trace_msgbuf_flag = true;
-		    break;
+		    case MSGBUF:
+			trace_msgbuf_flag = true;
+			break;
 				
-		default:
-		    (void) fprintf( stderr, "%s: invalid argument to -t -- %s\n", LQIO::io_vars.toolname(), value );
-		    command_line_error = true;
-		    break;
-		}
-	    break;
+		    default:
+			throw std::invalid_argument( optarg );
+			break;
+		    }
+		break;
 			
-	case 'v':
-	    verbose_flag = true;
-	    LQIO::Spex::__verbose = true;
-	    break;
+	    case 'v':
+		verbose_flag = true;
+		LQIO::Spex::__verbose = true;
+		break;
 			
-	case 'V':
-	    (void) fprintf( stdout, "\nStochastic Rendezvous Network Simulator, Version %s\n\n", VERSION );
-	    (void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
-	    (void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
-	    (void) fprintf( stdout, "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6\n\n");
-	    break;
+	    case 'V':
+		(void) fprintf( stdout, "\nStochastic Rendezvous Network Simulator, Version %s\n\n", VERSION );
+		(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
+		(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
+		(void) fprintf( stdout, "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6\n\n");
+		break;
 	    
-	case 'w':
-	    LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
-	    break;
+	    case 'w':
+		LQIO::io_vars.severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
+		break;
 			
-	case 'x':
-	    global_xml_flag = true;
-	    break;
+	    case 'x':
+		global_xml_flag = true;
+		break;
 
-        case (256+'x'):
-	    LQIO::DOM::Document::__debugXML = true;
-	    break;
+	    case (256+'x'):
+		LQIO::DOM::Document::__debugXML = true;
+		break;
 
-	case 256+'z':
-	    if ( !optarg || sscanf( optarg, "%lg", &inter_proc_delay ) != 1 || inter_proc_delay < 0.0 ) {
-		(void) fprintf( stderr, "%s: global-delay=%s is invalid, choose value > 0\n",
-				LQIO::io_vars.toolname(), optarg ? optarg : "" );
-		(void) exit( INVALID_ARGUMENT );
+	    case 256+'z':
+		inter_proc_delay = strtod( optarg, &value );
+		if ( inter_proc_delay < 0. || *value != '\0' ) throw std::invalid_argument( optarg );
+		break;
+
+	    default:
+		
+		break;
 	    }
-	    break;
-
-	default:
-	    command_line_error = true;
-	    break;
+	}
+	catch ( const std::invalid_argument& e ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": option --" << longopts[optind].name  << ": invalid argument";
+	    if ( e.what() ) {
+		std::cerr << " -- '"  << e.what();
+	    }
+	    std::cerr << "'." << std::endl;
+	    usage();
+	    exit( INVALID_ARGUMENT );
 	}
     }
+
     LQIO::io_vars.lq_command_line = command_line.c_str();
-
-    if ( command_line_error ) {
-	usage();
-	exit( INVALID_ARGUMENT );
-    }
-
-    if ( parameters._run_time < parameters._initial_delay ) {
-	(void) fprintf( stderr, "%s: Run time of %G is smaller than initial delay of %G!\n",
-			LQIO::io_vars.toolname(),
-			parameters._run_time, parameters._initial_delay );
-	exit( INVALID_ARGUMENT );
-    }
 
     if ( reload_flag && restart_flag ) {
 	(void) fprintf( stderr, "%s: --reload-lqx and --restart are mutually exclusive: --restart assumed.\n", LQIO::io_vars.toolname() );
@@ -658,7 +628,7 @@ main( int argc, char * argv[] )
 	}
 	
 	try {
-	    global_error_flag |= process( "-", output_file, parameters );
+	    global_error_flag |= process( "-", output_file );
 	}
 	catch ( const runtime_error &e ) {
 	    fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
@@ -685,7 +655,7 @@ main( int argc, char * argv[] )
 		(void) printf( "%s:\n", argv[optind] );
 	    }
 	    try {
-		global_error_flag |= process( argv[optind], output_file, parameters );
+		global_error_flag |= process( argv[optind], output_file );
 	    }
 	    catch ( const runtime_error &e ) {
 		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
@@ -785,11 +755,11 @@ usage(void)
 
 /*ARGSUSED*/
 static int
-process( const string& input_file, const string& output_file, const Model::simulation_parameters& parameters )	 
+process( const string& input_file, const string& output_file )	 
 {
     LQIO::DOM::Document* document = Model::load( input_file, output_file );
 
-    Model aModel( document, input_file, output_file, parameters );
+    Model aModel( document, input_file, output_file );
     document->mergePragmas( pragmas.getList() );       /* Save pragmas */
 
     int status = 0;
@@ -797,10 +767,6 @@ process( const string& input_file, const string& output_file, const Model::simul
     /* Make sure we got a document */
     if ( document == NULL || LQIO::io_vars.anError() || !aModel.construct() ) {
 	return INVALID_INPUT;
-    }
-
-    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
-        cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << input_file << "." << endl;
     }
 
     /* We can simply run if there's no control program */

@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: lqngen.cc 13749 2020-08-09 14:07:06Z greg $
  */
 
 #include "lqngen.h"
@@ -800,7 +800,7 @@ main( int argc, char *argv[] )
 	    }
 	}
 
-	catch ( std::domain_error err ) {
+	catch ( const std::domain_error& err ) {
 	    if ( !optarg ) {
 		cerr << LQIO::io_vars.lq_toolname << ": " << err.what() << " -- '"  << longopts.at(optind).name << "'." << endl;
 		help();

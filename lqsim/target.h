@@ -3,7 +3,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 13556 2020-05-25 17:39:26Z greg $
+ * $Id: target.h 13750 2020-08-09 14:44:00Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,6 +37,7 @@ public:
     bool dropped_messages() const;
     double mean_delay() const;		/* Result values 		*/
     double variance_delay() const;
+    double compute_minimum_service_time() const;
 
     void configure();
 

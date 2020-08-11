@@ -12,7 +12,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 13732 2020-08-05 14:56:42Z greg $
+ * $Id: entry.cc 13751 2020-08-10 02:27:53Z greg $
  */
 
 #include <parasol.h>
@@ -51,6 +51,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
       _active(MAX_PHASES),
       _fwd(),
       r_cycle(),
+      _minimum_service_time(MAX_PHASES),
       _local_id(task->n_entries()),
       _dom(dom),
       _recv(RECEIVE_NONE),
@@ -65,6 +66,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
 	activity_name += " - Ph ";
 	activity_name += "123"[p];
 	_phase[p].rename( activity_name );
+	_minimum_service_time[p] = 0.0;
     }
 }
 
@@ -176,11 +178,11 @@ Entry::configure()
 
 	std::deque<Activity *> activity_stack;
 	std::deque<ActivityList *> fork_stack;
-	unsigned int next_phase = 1;
 	double n_replies;
 	    
 	_activity->find_children( activity_stack, fork_stack, this );
-	n_replies = _activity->count_replies( activity_stack, this, 1.0, 1, &next_phase );
+	ActivityList::Collect data( this, &Activity::count_replies );
+	n_replies = _activity->collect( activity_stack, data );
 
 	if ( is_rendezvous() ) {
 	    if ( n_replies == 0 ) {
@@ -203,6 +205,7 @@ Entry::configure()
 	    }
 	}
     }
+
     _active.assign( MAX_PHASES, 0 );
 	
     if ( (is_signal() || is_wait()) && task()->type() != Task::SEMAPHORE ) {
@@ -410,7 +413,12 @@ Entry::insertDOMResults()
     /*
      * Entry results
      */
-	    
+
+    double t = minimum_service_time();
+    if ( t > 0. ) {
+	_dom->setResultThroughputBound( 1.0 / t );
+    }
+
     for ( unsigned p = 1; p <= task()->max_phases; ++p ) {
 	Activity * phase = &_phase[p-1];
 	if ( !is_activity() ) { 
@@ -482,6 +490,38 @@ Entry::insertDOMResults()
     return *this;
 }
 
+
+/*
+ * Minimum service time for an entry is the time bewtween the receive and reply (phase 1).
+ * For Reference tasks, it's the total time.
+ */
+
+Entry& 
+Entry::compute_minimum_service_time()
+{
+    if ( minimum_service_time() == 0. ) {
+	if ( is_regular() ) {
+	    for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+		const size_t p = phase - _phase.begin();
+		_minimum_service_time[p] = phase->compute_minimum_service_time();
+	    }
+	} else {
+	    std::deque<Activity *> activity_stack;
+	    ActivityList::Collect data( this, &Activity::compute_minimum_service_time );
+	    _activity->collect( activity_stack, data );
+	}
+	if ( debug_flag ) {
+	    (void) fprintf( stderr, "Entry %s: minimum service time=", name() );
+	    for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
+		if ( i != _minimum_service_time.begin() ) (void) fputc( ',', stderr );
+		(void) fprintf( stderr, "%g", *i );
+	    }
+	    (void) fputc( '\n', stderr );
+	}
+    }
+    return *this;
+}
+
 double
 Entry::throughput() const
 {
@@ -493,6 +533,18 @@ Entry::throughput_variance() const
 {
     return r_cycle.variance_count() / square(Model::block_period());
 }
+
+
+double
+Entry::minimum_service_time() const
+{
+    double sum = 0.;
+    for ( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
+	sum += *i;
+    }
+    return sum;
+}
+
 
 /*----------------------------------------------------------------------*/
 /*	 Input processing.  Called from load.cc::prepareModel() 	*/

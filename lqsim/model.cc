@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13735 2020-08-05 15:54:22Z greg $
+ * $Id: model.cc 13751 2020-08-10 02:27:53Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -24,6 +24,8 @@
 #include "lqsim.h"
 #include <algorithm>
 #include <fstream>
+#include <sstream>
+#include <cstdlib>
 #include <parasol.h>
 #include <para_internals.h>
 #include <stdarg.h>
@@ -91,9 +93,8 @@ bool deferred_exception = false;	/* domain error detected during run.. throw aft
  * Initialize input parser parameters.
  */
 
-Model::Model( LQIO::DOM::Document* document, const string& input_file_name, const string& output_file_name, 
-	      const simulation_parameters& parameters ) 
-    : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _parameters(parameters)
+Model::Model( LQIO::DOM::Document* document, const string& input_file_name, const string& output_file_name ) 
+    : _document(document), _input_file_name(input_file_name), _output_file_name(output_file_name), _parameters()
 {
     __model = this;
 
@@ -165,8 +166,8 @@ Model::construct()
 	print_interval = _document->getModelPrintIntervalValue();
     }
     Pragma::set( _document->getPragmaList() );
-    LQIO::io_vars.severity_level = Pragma::__pragmas->get_severity_level();
-    LQIO::Spex::__no_header = !Pragma::__pragmas->get_spex_header();
+    LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
+    LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
     
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
@@ -330,6 +331,7 @@ Model::create()
     for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::create ) );
     for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::create ) );
     for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::create ) );
+    for_each( ::entry.begin(), ::entry.end(), Exec<Entry>( &Entry::compute_minimum_service_time ) );
 
     if ( count_if( ::task.begin(), ::task.end(), Predicate<Task>( &Task::is_reference_task ) ) == 0 && open_arrival_count == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
@@ -683,13 +685,7 @@ Model::start()
 {
     int simulation_flags= 0x00;
     
-#if defined(HAVE_SYS_TIMES_H)
-    _start_clock = times( &_start_times );
-#else
-    _start_clock = time( 0 );
-#endif
-
-    _parameters.get_parameters_from( *_document );
+    _parameters.set( _document->getPragmaList() );
 
     if (debug_interactive_stepping) {
 	simulation_flags = RPF_STEP; 	/* tomari quorum */
@@ -699,6 +695,12 @@ Model::start()
     } else {
 	simulation_flags = simulation_flags | RPF_WARNING;
     }
+
+#if defined(HAVE_SYS_TIMES_H)
+    _start_clock = times( &_start_times );
+#else
+    _start_clock = time( 0 );
+#endif
 
     deferred_exception = false;
     ps_run_parasol( _parameters._run_time+1.0, _parameters._seed, simulation_flags );	/* Calls ps_genesis */
@@ -1020,41 +1022,92 @@ ps_genesis (void *)
     ps_suspend( ps_myself );
 }
 
-void Model::simulation_parameters::get_parameters_from( LQIO::DOM::Document& document )
+/* 
+ * set the simulation run time parameters.  
+ * Full auto will derive based on service times of tasks.
+ */
+
+void Model::simulation_parameters::set( const std::map<std::string,std::string>& pragmas )
 {
-    /* Set control parameters from command line, otherwise take from DOM. */
-
-    if ( _seed == 0 ) {			/* Not set at command line... Try the document. */
-	_seed = document.getSimulationSeedValue();
-    }
-    if ( _seed == 0 ) {			/* Not set... Randomize. */
+    if ( !set( _seed, pragmas, LQIO::DOM::Pragma::_seed_value_ ) ) {
+	/* Not set... Randomize. */
 	_seed = (long)time( (time_t *)0 );
-	document.setSimulationSeedValue( new LQIO::DOM::ConstantExternalVariable( _seed ) );		/* Set value for output */
+	std::stringstream value;
+	value << _seed;
+	__model->_document->addPragma(LQIO::DOM::Pragma::_seed_value_,value.str());	/* set value in DOM */
+
     }
-    if ( _run_time == 0 ) {
-	if ( _precision == 0 ) {		/* Not set at command line... Try the document. */
-	    _precision = document.getSimulationPrecisionValue();
-	}
-	if ( _block_period == 0 ) {
-	    _block_period = document.getSimulationBlockTimeValue();
+    if ( set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
+	_max_blocks = 1;
+    } else {
+
+
+	if ( set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
+	    /* -C */
+	    if ( !set( _initial_loops, pragmas, LQIO::DOM::Pragma::_initial_loops_ ) ) {
+		_initial_loops = static_cast<unsigned long>(INITIAL_LOOPS / _precision);
+	    }
+	    if ( !set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
+		_run_time = DEFAULT_TIME * 1e6;		/* Default time is 1e10 */
+	    }
+	    _max_blocks = MAX_BLOCKS;
+	    _initial_delay = _run_time / _max_blocks;
+	    _block_period = _initial_delay;
+	
+	} else if ( set( _max_blocks, pragmas, LQIO::DOM::Pragma::_max_blocks_ ) ) {
+	    /* -B */
+	    if ( !set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
+		_block_period = DEFAULT_TIME;
+	    }
+	    set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
+
+	} else if ( set( _block_period, pragmas, LQIO::DOM::Pragma::_block_period_ ) ) {
+	    /* -A */
+	    if ( !set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
+		_precision = 1.0;
+	    }
+	    set( _initial_delay, pragmas, LQIO::DOM::Pragma::_initial_delay_ );
+
+	} else {
+	    /* full auto */
 	}
 
-	if ( _initial_delay == 0. ) {
-	    _initial_delay = document.getSimulationWarmUpTimeValue();
-	}
-	if ( _initial_loops == 0 ) {
-	    _initial_loops = document.getSimulationWarmUpLoopsValue();
-	}
-	if ( _max_blocks == 0 ) {
-	    _max_blocks = document.getSimulationNumberOfBlocksValue();
-	}
-
-	if ( _max_blocks < 1 ) {
-	    _max_blocks = 1;
-	}
-	if ( _block_period == 0. ) {
-	    _block_period = DEFAULT_TIME;
-	}
 	_run_time = _initial_delay + _max_blocks * _block_period;
+    }
+}
+
+
+bool Model::simulation_parameters::set( double& parameter, const std::map<std::string,std::string>& pragmas, const char * value )
+{
+    std::map<std::string,std::string>::const_iterator i = pragmas.find( value );
+    if ( i != pragmas.end() ) {
+	char * endptr = nullptr;
+	parameter = std::strtod( i->second.c_str(), &endptr );
+	if ( *endptr != '\0' ) {
+	    std::stringstream err;
+	    err << value << "=" << i->second;
+	    throw std::invalid_argument(err.str());
+	}
+	return true;
+    } else {
+	return false;
+    }
+}
+
+
+bool Model::simulation_parameters::set( unsigned long& parameter, const std::map<std::string,std::string>& pragmas, const char * value )
+{
+    std::map<std::string,std::string>::const_iterator i = pragmas.find( value );
+    if ( i != pragmas.end() ) {
+	char * endptr = nullptr;
+	parameter = std::strtol( i->second.c_str(), &endptr, 10 );
+	if ( *endptr != '\0' ) {
+	    std::stringstream err;
+	    err << value << "=" << i->second;
+	    throw std::invalid_argument(err.str());
+	}
+	return true;
+    } else {
+	return false;
     }
 }

@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 13732 2020-08-05 14:56:42Z greg $
+ * $Id: target.cc 13751 2020-08-10 02:27:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -137,6 +137,24 @@ tar_t::variance_delay() const
 	return Model::get_infinity();
     } else {
 	return r_delay.variance();
+    }
+}
+
+
+/*
+ * return phase 1 service time.
+ */
+
+double
+tar_t::compute_minimum_service_time() const
+{
+    if ( reply() ) {
+	if ( entry->_minimum_service_time[0] == 0. ) {
+	    entry->compute_minimum_service_time();
+	}
+	return calls() * entry->_minimum_service_time[0];
+    } else {
+	return 0.0;
     }
 }
 

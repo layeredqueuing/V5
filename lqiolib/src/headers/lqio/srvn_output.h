@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: srvn_output.h 13747 2020-08-07 02:45:55Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -55,6 +55,7 @@ namespace LQIO {
 
 	typedef const DOM::ExternalVariable* (DOM::Phase::*phaseFunc)() const;
 	typedef double (DOM::Phase::*doublePhaseFunc)() const;
+	typedef double (DOM::Call::*doubleCallFunc)() const;
 	typedef double (DOM::Entry::*doubleEntryPhaseFunc)( const unsigned ) const;
 	typedef const DOM::Histogram* (DOM::Entry::*histogramEntryFunc)( const unsigned ) const;
 	typedef phase_type (DOM::Phase::*phaseTypeFunc)() const;
@@ -274,9 +275,9 @@ namespace LQIO {
 	protected:
 	    const DOM::Document& _document;
 	    const std::map<unsigned, DOM::Entity *>& _entities;
+	    const bool _print_variances;
 
 	private:
-	    const bool _print_variances;
 	    const bool _print_histograms;
 
 	public:
@@ -635,6 +636,17 @@ namespace LQIO {
 	/* ------------------------------------------------------------------------ */
 
 	class EntryOutput : public ObjectOutput {
+	    public:
+	    class CountForwarding {
+	    public:
+		CountForwarding() : _count(0) {}
+		virtual void operator()( const std::pair<unsigned, DOM::Entity *>& );
+		
+		unsigned int getCount() const { return _count; }
+	    private:
+		unsigned int _count;
+	    };
+	    
 	protected:
 	    typedef void (EntryOutput::*voidEntryFunc)( const DOM::Entry&, const DOM::Entity&, bool& ) const;
 	    typedef void (EntryOutput::*voidActivityFunc)( const DOM::Activity& ) const;
@@ -676,7 +688,10 @@ namespace LQIO {
 	    void printEntryVarianceServiceTime( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printOpenQueueWait( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 	    void printForwardingWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
+	    void printForwardingVarianceWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const;
 
+	    bool nullActivityTest( const DOM::Activity &activity ) const { return false; }	/* Ignore activities (forwarding) 	*/
+	    void nullActivityFunc( const DOM::Activity &activity ) const { }			/* Force separator (forwarding) 	*/
 	    bool testActivityMaxServiceTimeExceeded( const DOM::Activity &activity ) const;
 	    void printActivityServiceTime( const DOM::Activity &activity ) const;
 	    void printActivityMaxServiceTimeExceeded( const DOM::Activity &activity ) const;
@@ -695,6 +710,7 @@ namespace LQIO {
 	    void printActivity( const DOM::Activity &activity, const activityFunc func ) const;
 	    void activityResults( const DOM::Activity &activity, const doubleActivityFunc mean, const doubleActivityFunc var ) const;
 	    bool testForActivityResults( const DOM::Activity &activity, boolActivityFunc tf ) const;
+	    void commonPrintForwarding( const DOM::Entry &entry, const DOM::Entity &entity, bool& print, doubleCallFunc, doubleCallFunc ) const;
 
 	private:
 	    const voidEntryFunc _entryFunc;

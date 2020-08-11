@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 13740 2020-08-06 04:04:43Z greg $
+ * $Id: expat_document.cc 13758 2020-08-10 17:58:47Z greg $
  *
  * Read in XML input files.
  *
@@ -473,6 +473,9 @@ namespace LQIO {
 			     iterations,
 			     0,			// Processors -- obsolete
 			     1 );		// Phases -- obsolete?
+		add_elapsed_time( getTimeAttribute(attributes,Xelapsed_time) );
+		add_system_time( getTimeAttribute(attributes,Xsystem_cpu_time) );
+		add_user_time( getTimeAttribute(attributes,Xuser_cpu_time) );
 		_stack.push( parse_stack_t(element,&Expat_Document::startMVAInfo,object) );
 
 	    } else if ( strcasecmp( element, Xpragma ) == 0 ) {

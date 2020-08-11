@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13742 2020-08-06 14:53:34Z greg $
+ *  $Id: srvn_output.cpp 13749 2020-08-09 14:07:06Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -267,15 +267,14 @@ namespace LQIO {
 
         /* print mean number of Rendezvous */
 
-        if ( getDOM().hasRendezvous() ) {
+        if ( getDOM().hasRendezvous() || getDOM().hasForwarding() ) {
             output << call_header( rendezvous_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallRate ) );
-        }
-
-        if ( getDOM().hasForwarding() > 0 ) {
-            output << call_header( forwarding_probability_str ) << setw(ObjectOutput::__maxDblLen) << "Prob" << newline;
-            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwarding ) );
-        }
+	    if ( getDOM().hasForwarding() ) {
+		output << call_header( forwarding_probability_str ) << setw(ObjectOutput::__maxDblLen) << "Prob" << newline;
+		for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwarding ) );
+	    }
+	}
 
         if ( getDOM().hasSendNoReply() ) {
             output << call_header( send_no_reply_rate_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
@@ -324,24 +323,34 @@ namespace LQIO {
         if ( getDOM().hasRendezvous() ) {
             output << call_header( waiting_time_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-            if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
-                output << call_header( waiting_time_variance_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
-                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
-            }
         }
 	if ( getDOM().hasForwarding() ) {
-            for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingWaiting ) );
+	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingWaiting ) );
 	}
+	
         if ( getDOM().hasSendNoReply() ) {
             output << call_header( snr_waiting_time_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-            if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
-                output << call_header( snr_waiting_time_variance_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
-                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
-            }
         }
 
-        /* Drop probabilities. */
+	/* Waiting time variances */
+
+	if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
+	    if ( getDOM().hasRendezvous() ) {
+		output << call_header( waiting_time_variance_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
+		for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
+	    }
+	    if ( getDOM().hasForwarding() ) {
+		for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingVarianceWaiting ) );
+	    }
+
+	    if ( getDOM().hasRendezvous() ) {
+		output << call_header( snr_waiting_time_variance_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
+		for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
+	    }
+	}
+
+	/* Drop probabilities. */
 
         if ( getDOM().entryHasDropProbability() ) {
             output << call_header( loss_probability_str ) << phase_header( ObjectOutput::__maxPhase ) << newline;
@@ -535,7 +544,8 @@ namespace LQIO {
         if ( entry.getStartActivity() ) {
             if ( !entry_func ) return output;
             for ( unsigned int p = 1; p <= __maxPhase; ++p ) {
-                output << setw(__maxDblLen-1) << (entry.*entry_func)(p) << ' ';
+		if ( p > 1 ) output  << ' ';
+                output << setw(__maxDblLen-1) << (entry.*entry_func)(p);
             }
             np = __maxPhase;
         } else {
@@ -547,7 +557,7 @@ namespace LQIO {
         }
         if ( pad || __parseable ) {
             for ( unsigned p = np; p < __maxPhase; ++p ) {
-                output << setw(__maxDblLen) << (__parseable ? "0 " : " ");
+                output << setw(__maxDblLen) << (__parseable ? "0" : " ");
             }
         }
         output << activityEOF;
@@ -784,29 +794,37 @@ namespace LQIO {
 
         /* Waiting times */
 
-        if ( getDOM().hasRendezvous() ) {
-	    unsigned int count = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous ) ).getCount();
-            output << "W " << count << endl;
-            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-            output << "-1" << endl << endl;
+	const unsigned int count_w = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous ) ).getCount()
+	    + for_each( _entities.begin(), _entities.end(), EntryOutput::CountForwarding() ).getCount();
+	const unsigned int count_z = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply ) ).getCount();
 
-            if ( getDOM().entryHasWaitingTimeVariance() ) {
-                output << "VARW " << count << endl;
-                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
-                output << "-1" << endl << endl;
-            }
+        if ( count_w > 0 ) {
+            output << "W " << count_w << endl;
+            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
+	    /* Ignore activities, but force end-of-list with NullActivity____ */
+	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingWaiting, &EntryOutput::nullActivityFunc, &EntryOutput::nullActivityTest ) );
+            output << "-1" << endl << endl;
         }
-        if ( getDOM().hasSendNoReply() ) {
-	    unsigned int count = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply ) ).getCount();
-            output << "Z " << count << endl;
+        if ( count_z > 0 ) {
+            output << "Z " << count_z << endl;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
             output << "-1" << endl << endl;
-            if ( getDOM().entryHasWaitingTimeVariance() ) {
-                output << "VARZ " << count << endl;
+        }
+
+	if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
+	    if ( count_w > 0 ) {
+                output << "VARW " << count_w << endl;
+                for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
+		for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingVarianceWaiting, &EntryOutput::nullActivityFunc, &EntryOutput::nullActivityTest ) );
+                output << "-1" << endl << endl;
+            }
+	
+            if ( count_z > 0 ) {
+                output << "VARZ " << count_z << endl;
                 for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
                 output << "-1" << endl << endl;
             }
-        }
+	}
 
         /* Drop probabilities. */
 
@@ -1288,9 +1306,6 @@ namespace LQIO {
         _output << newline
                 << "Convergence test value: " << document.getResultConvergenceValue() << newline
                 << "Number of iterations:   " << document.getResultIterations() << newline;
-        if ( document.getSimulationSeedValue() != 0 ) {
-            _output << "Seed Value:             " << document.getSimulationSeedValue() << newline;
-        }
         if ( document.getExtraComment().length() > 0 ) {
             _output << "Other:                  " << document.getExtraComment() << newline;
         }
@@ -2256,6 +2271,17 @@ namespace LQIO {
         _output.flags(oldFlags);
     }
 
+    void SRVN::EntryOutput::CountForwarding::operator()( const std::pair<unsigned, DOM::Entity *>& ep ) 
+    {
+        const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+        if ( !task ) return;
+
+        const std::vector<DOM::Entry *>& entries = task->getEntryList();
+        for ( std::vector<DOM::Entry *>::const_iterator nextEntry = entries.begin(); nextEntry != entries.end(); ++nextEntry ) {
+	    _count += (*nextEntry)->getForwarding().size();
+	}
+    }
+
     /* ---------- Entry parameters ---------- */
 
     void
@@ -2309,8 +2335,7 @@ namespace LQIO {
 	    _output << entity_name( entity, print_task_name )
 		    << entry_name( entry )
 		    << entry_name( *dest )
-		    << setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. )
-		    << newline;
+		    << setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. );
 	}
     }
 
@@ -2451,25 +2476,52 @@ namespace LQIO {
     void
     SRVN::EntryOutput::printForwardingWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
     {
+	commonPrintForwarding( entry, entity, print, &DOM::Call::getResultWaitingTime, &DOM::Call::getResultWaitingTimeVariance );
+    }
+    
+    void
+    SRVN::EntryOutput::printForwardingVarianceWaiting( const DOM::Entry &entry, const DOM::Entity &entity, bool& print ) const
+    {
+	commonPrintForwarding( entry, entity, print, &DOM::Call::getResultVarianceWaitingTime, &DOM::Call::getResultVarianceWaitingTimeVariance );
+    }
+	
+    void
+    SRVN::EntryOutput::commonPrintForwarding( const DOM::Entry &entry, const DOM::Entity &entity, bool& print, doubleCallFunc get_result, doubleCallFunc get_variance ) const
+    {
 	const std::vector<DOM::Call *>& forwarding = entry.getForwarding();
 	for ( std::vector<DOM::Call *>::const_iterator call = forwarding.begin(); call != forwarding.end(); ++call ) {
 	    _output << entity_name( entity, print )
 		    << entry_name( entry )
 		    << entry_name( *(*call)->getDestinationEntry() )
-		    << setw(__maxDblLen) << (*call)->getResultWaitingTime()
-		    << newline;
+		    << setw(__maxDblLen-1) << ((*call)->*get_result)() << " ";
+	    if ( __parseable ) {
+		for ( unsigned int p = 2; p <= __maxPhase; ++p ) {
+		    _output << setw(__maxDblLen) << 0.;		/* Pad */
+		}
+	    }
+	    _output << activityEOF << newline;
 	    if ( __conf95 ) {
 		_output << conf_level( __maxStrLen * 3, ConfidenceIntervals::CONF_95 )
-			<< setw(__maxDblLen) << (*__conf95)((*call)->getResultWaitingTimeVariance()) << newline;
+			<< setw(__maxDblLen-1) << (*__conf95)(((*call)->*get_variance)()) << " ";
+		if ( __parseable ) {
+		    for ( unsigned int p = 2; p <= __maxPhase; ++p ) {
+			_output << setw(__maxDblLen) << 0.;		/* Pad */
+		    }
+		}
+		_output << activityEOF << newline;
 	    }
 	    if ( __conf99 ) {
 		_output << conf_level( __maxStrLen * 3, ConfidenceIntervals::CONF_99 )
-			<< setw(__maxDblLen) << (*__conf99)((*call)->getResultWaitingTimeVariance()) << newline;
+			<< setw(__maxDblLen-1) << (*__conf99)(((*call)->*get_variance)()) << " ";
+		if ( __parseable ) {
+		    for ( unsigned int p = 2; p <= __maxPhase; ++p ) {
+			_output << setw(__maxDblLen) << 0.;		/* Pad */
+		    }
+		}
+		_output << activityEOF << newline;
 	    }
-	    
 	}
     }
-    
 
     /* ---------- Activity Results ---------- */
 
@@ -3063,7 +3115,7 @@ namespace LQIO {
         for ( unsigned p = 1; p <= phases.getMaxPhase(); ++p ) {
             output << setw(__maxDblLen-1);
             (info.*func)( phases[p], conf );
-            output << " ";
+	    output << " ";
         }
         output << activityEOF;
         return output;

@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 13369 2018-07-20 18:17:42Z greg $
+ * $Id: actlist.cc 13751 2020-08-10 02:27:53Z greg $
  */
 
 #include <sstream>
@@ -359,8 +359,7 @@ join_backtrack( ActivityList * join_list, std::deque<ActivityList *>& fork_stack
  */
 
 double
-join_count_replies( ActivityList * join_list, std::deque<Activity *>& activity_stack, const Entry * ep,
-		    const double rate, const unsigned int curr_phase, unsigned int *next_phase  )
+join_collect( ActivityList * join_list, std::deque<Activity *>& activity_stack, ActivityList::Collect& data )
 {
     double sum = 0.0;
 
@@ -368,14 +367,14 @@ join_count_replies( ActivityList * join_list, std::deque<Activity *>& activity_s
     case ACT_AND_JOIN_LIST:
 	/* If it is a sync point... */
 	if ( join_list->u.join.join_type == JOIN_SYNCHRONIZATION && join_list->u.join.next ) {
-	    sum = fork_count_replies( join_list->u.join.next, activity_stack, ep, rate, curr_phase, next_phase );
+	    sum = fork_collect( join_list->u.join.next, activity_stack, data );
 	}
 	break;
 
     case ACT_JOIN_LIST:
     case ACT_OR_JOIN_LIST:
 	if ( join_list->u.join.next ) {
-	    sum = fork_count_replies( join_list->u.join.next, activity_stack, ep, rate, curr_phase, next_phase );
+	    sum = fork_collect( join_list->u.join.next, activity_stack, data );
 	}
 	break;
 
@@ -394,75 +393,70 @@ join_count_replies( ActivityList * join_list, std::deque<Activity *>& activity_s
  */
 
 double
-fork_count_replies( ActivityList * fork_list, std::deque<Activity *>& activity_stack, const Entry * ep,
-		    const double rate, const unsigned int curr_phase, unsigned int * next_phase  )
+fork_collect( ActivityList * fork_list, std::deque<Activity *>& activity_stack, ActivityList::Collect& data )
 {
     double sum = 0.0;
     unsigned i;
-    unsigned int branch_phase;
+    unsigned int next_phase = data.phase;
     ActivityList * join_list;
-    double branch_rate = rate;
-
-    *next_phase = curr_phase;
 
     switch ( fork_list->type ) {
     case ACT_AND_FORK_LIST:
 	join_list = fork_list->u.fork.join;
-	if ( join_list && join_list->u.join.quorumCount != 0 ) {
-	    branch_rate = 0.0;	/* Don't allow reply here */
-	}
 	for ( i = 0; i < fork_list->na; ++i ) {
-	    branch_phase = curr_phase;
-	    sum += fork_list->list[i]->count_replies( activity_stack, ep, branch_rate, curr_phase, &branch_phase );
-	    *next_phase = i_max( *next_phase, branch_phase );
+	    ActivityList::Collect branch(data);
+	    branch.can_reply =  !join_list || join_list->u.join.quorumCount == 0;
+	    sum += fork_list->list[i]->collect( activity_stack, data );
+	    next_phase = i_max( next_phase, branch.phase );
 	}
+	data.phase = next_phase;
 
 	/* Now follow the activities after the join */
 
 	if ( join_list && join_list->u.join.next ) {
-	    sum += fork_count_replies( join_list->u.join.next, activity_stack, ep, rate, *next_phase, next_phase );
+	    sum += fork_collect( join_list->u.join.next, activity_stack, data );
 	} else {
 	    /* Flushing */
-	    Task * cp = ep->task();
-	    if ( cp->max_phases < *next_phase ) {
-		cp->max_phases = *next_phase;
+	    Task * cp = data._e->task();
+	    if ( cp->max_phases < next_phase ) {
+		cp->max_phases = next_phase;
 	    }
 	}
 	break;
 
     case ACT_FORK_LIST:
 	for ( i = 0; i < fork_list->na; ++i ) {
-	    branch_phase = curr_phase;
-	    sum += fork_list->list[i]->count_replies( activity_stack, ep,
-				  rate, curr_phase, &branch_phase );
-	    *next_phase = i_max( *next_phase, branch_phase );
+	    ActivityList::Collect branch(data);
+	    sum += fork_list->list[i]->collect( activity_stack, branch );
+	    next_phase = i_max( next_phase, branch.phase );
 	}
+	data.phase = next_phase;
 	break;
 
     case ACT_OR_FORK_LIST:
 	for ( i = 0; i < fork_list->na; ++i ) {
-	    branch_phase = curr_phase;
-	    sum += fork_list->list[i]->count_replies( activity_stack, ep,
-				  rate * fork_list->u.fork.prob[i], curr_phase, &branch_phase );
-	    *next_phase = i_max( *next_phase, branch_phase );
+	    ActivityList::Collect branch(data);
+	    branch.rate = data.rate * fork_list->u.fork.prob[i];
+	    sum += fork_list->list[i]->collect( activity_stack, branch );
+	    next_phase = i_max( next_phase, branch.phase );
 	}
+	data.phase = next_phase;
 	break;
 
     case ACT_LOOP_LIST:
-	if ( fork_list->u.loop.endlist ) {
-	    branch_phase = curr_phase;
-	    sum += fork_list->u.loop.endlist->count_replies( activity_stack, ep, rate, curr_phase, &branch_phase );
-	    *next_phase = i_max( *next_phase, branch_phase );
-	}
-
 	/*
 	 * For the branches, set rate = 0, because we want to force an error.
 	 * Ignore phase information because it isn't valid
 	 */
 
 	for ( i = 0; i < fork_list->na; ++i ) {
-	    branch_phase = curr_phase;
-	    fork_list->list[i]->count_replies( activity_stack, ep, 0.0, curr_phase, &branch_phase );
+	    ActivityList::Collect branch(data);
+	    branch.can_reply = false;
+	    sum += fork_list->list[i]->collect( activity_stack, data );
+	}
+
+	if ( fork_list->u.loop.endlist ) {
+	    sum += fork_list->u.loop.endlist->collect( activity_stack, data );
 	}
 	break;
 

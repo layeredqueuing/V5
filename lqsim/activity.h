@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: activity.h 13547 2020-05-21 02:22:16Z greg $
+ * $Id: activity.h 13751 2020-08-10 02:27:53Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -26,11 +26,6 @@
 
 class Task;
 class Entry;
-namespace LQIO {
-    namespace DOM {
-	class ActivityList;
-    };
-};
 
 typedef double (*distribution_func_ptr)( double, double );
 
@@ -73,7 +68,8 @@ public:
     Activity& rename( const std::string& );
     double configure();
 
-    double count_replies( std::deque<Activity *>& activity_stack, const Entry * ep, const double rate, const unsigned int curr_phase, unsigned int * next_phase );
+    double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& );
+    double count_replies( ActivityList::Collect& data ) const;
 
     Activity& add_calls();
     Activity& add_reply_list();
@@ -83,6 +79,9 @@ public:
     const Activity& print_raw_stat( FILE * output ) const;
     void print_debug_info();
     double find_children( std::deque<Activity *>& activity_stack, std::deque<ActivityList *>& fork_stack, const Entry * ep );
+
+    double compute_minimum_service_time() const;
+    double compute_minimum_service_time( ActivityList::Collect& data ) const;
 
     Activity& reset_stats();
     Activity& accumulate_data();
@@ -97,7 +96,7 @@ private:
     ActivityList * act_or_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_loop_list( ActivityList * activity_list, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * realloc_list ( const list_type type, const ActivityList * input_list,  LQIO::DOM::ActivityList * dom_activitylist );
-    const Entry * find_reply( const Entry * ep );
+    const Entry * find_reply( const Entry * ep ) const;
 
 private:
     LQIO::DOM::Phase* _dom;

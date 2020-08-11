@@ -1,3 +1,9 @@
+* Bugs fixed in 5.16
+220 	lqns 		V5: lqns regression failures.
+224 	lqns 		Backport V6 changes to V5.
+236 	lqiolib 	lqns: floating point error - Floating point exception: mva.cc 532: Divide by zero, Inexact result
+235 	lqns 		Infeasible multiserver solutions with Exact MVA 
+
 * Bugs fixed in 5.15
 230     lqns            Error in the Phase 2 calculations 
 167     lqns            setThreadChain does not handle replication properly. 

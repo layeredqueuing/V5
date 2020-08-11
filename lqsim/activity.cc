@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 13683 2020-07-13 14:25:00Z greg $
+ * $Id: activity.cc 13751 2020-08-10 02:27:53Z greg $
  */
 
 #include <parasol.h>
@@ -26,9 +26,9 @@
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
 #include "model.h"
+#include "entry.h"
 #include "activity.h"
 #include "task.h"
-#include "entry.h"
 #include "errmsg.h"
 #include "message.h"
 #include "processor.h"
@@ -238,43 +238,75 @@ Activity::find_children( std::deque<Activity *>& activity_stack, std::deque<Acti
 
 
 double
-Activity::count_replies( std::deque<Activity *>& activity_stack, const Entry * ep,
-	       const double rate, const unsigned int curr_phase, unsigned int * next_phase )
+Activity::collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& data )
 {
     double sum = 0;
-    *next_phase = curr_phase;
 
     if ( std::find( activity_stack.begin(), activity_stack.end(), this ) == activity_stack.end() ) {
-	Task * cp = ep->task();
-	_phase = curr_phase;
+	_phase = data.phase;
 	_is_reachable = true;
 	
-	/* look at reply list and look for a match */
+	sum = (this->*data._f)( data );
 
-	if ( find_reply( ep ) ) {
-	    if ( curr_phase >= 2 ) {
-		LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, cp->name(), name(), ep->name() );
-	    } else if ( rate <= 0 ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_REPLY, cp->name(), name(), ep->name() );
-	    } else if ( ep->is_send_no_reply() ) {
-		LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, cp->name(), name(), ep->name() );
-	    } else {
-		*next_phase = 2;
-		sum = rate;
-	    }
-	} else if ( curr_phase > 1 ) {
-	    if ( cp->max_phases < curr_phase ) {
-		cp->max_phases = curr_phase;
-	    }
+	if ( find_reply( data._e ) ) {
+	    data.phase = 2;
 	}
 
 	if ( _output ) {
 	    activity_stack.push_back( this );
-	    sum += join_count_replies( _output, activity_stack, ep, rate, *next_phase, next_phase );
+	    sum += join_collect( _output, activity_stack, data );
 	    activity_stack.pop_back();
 	}
     }
     return sum;
+}
+
+
+/* look at reply list and look for a match */
+
+double Activity::count_replies( ActivityList::Collect& data ) const
+{
+    Task * cp = data._e->task();
+    const Entry * ep = data._e;
+    if ( find_reply( ep ) ) {
+	if ( data.phase >= 2 ) {
+	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, cp->name(), name(), ep->name() );
+	} else if ( !data.can_reply || data.rate == 0 || data.rate > 1.0 ) {
+	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, cp->name(), name(), ep->name() );
+	} else if ( ep->is_send_no_reply() ) {
+	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, cp->name(), name(), ep->name() );
+	} else {
+	    return data.rate;
+	}
+    } else if ( cp->max_phases < data.phase ) {
+	cp->max_phases = data.phase;
+    }
+    return 0;
+}
+
+
+/*
+ * Find the minimum service time for this activity (this method is also used for phases).
+ */
+
+double
+Activity::compute_minimum_service_time() const
+{
+    double sum = for_each( tinfo.target.begin(), tinfo.target.end(), ConstExecSum<const tar_t,double>( &tar_t::compute_minimum_service_time ) ).sum();
+    return service() + sum;
+}
+    
+
+/*
+ * Find the minimum service time for this activity.  For non-reference tasks, it's phase one only.
+ */
+
+double
+Activity::compute_minimum_service_time( ActivityList::Collect& data ) const
+{
+    double time = compute_minimum_service_time();
+    data._e->_minimum_service_time[data.phase-1] += time;
+    return time;
 }
 
 
@@ -919,7 +951,7 @@ find_or_create_activity ( const void * task, const char * activity_name )
  */
 
 const Entry * 
-Activity::find_reply( const Entry * ep )
+Activity::find_reply( const Entry * ep ) const
 {
     for ( vector<const Entry *>::const_iterator rp = _reply.begin(); rp != _reply.end(); ++rp ) {
 	if ( (*rp) == ep ) return ep;

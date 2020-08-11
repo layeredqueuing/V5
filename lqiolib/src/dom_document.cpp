@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13742 2020-08-06 14:53:34Z greg $
+ *  $Id: dom_document.cpp 13749 2020-08-09 14:07:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,12 +40,6 @@ namespace LQIO {
 	const char * Document::XIterationLimit = "it_limit";			/* Matched schema.	*/
 	const char * Document::XPrintInterval = "print_int";			/* Matches schema.	*/
 	const char * Document::XUnderrelaxationCoefficient = "underrelax_coeff";/* Matches schema.	*/
-	const char * Document::XSimulationSeedValue = "seed_value";
-	const char * Document::XSimulationNumberOfBlocks = "number_of_blocks";
-	const char * Document::XSimulationBlockTime = "block_time";
-	const char * Document::XSimulationPrecision = "precision";
-	const char * Document::XSimulationWarmUpLoops = "warm_up_loops";
-	const char * Document::XSimulationWarmUpTime = "warm_up_time";
 	const char * Document::XSpexIterationLimit = "spex_it_limit";
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
@@ -71,11 +65,6 @@ namespace LQIO {
 	    __initialValues[XIterationLimit] =              50.;
 	    __initialValues[XPrintInterval] =               10.;
 	    __initialValues[XUnderrelaxationCoefficient] =  0.9;
-	    __initialValues[XSimulationSeedValue] =         0;
-	    __initialValues[XSimulationNumberOfBlocks] =    30.;
-	    __initialValues[XSimulationBlockTime] =         50000.;
-	    __initialValues[XSimulationWarmUpLoops] =       500.;
-	    __initialValues[XSimulationWarmUpTime] =        10000.;
 	    __initialValues[XSpexIterationLimit] =          50.;
 	    __initialValues[XSpexUnderrelaxation] =         0.9;
 	}
@@ -188,42 +177,6 @@ namespace LQIO {
 	Document& Document::setModelUnderrelaxationCoefficient( ExternalVariable * value ) 
 	{
 	    _controlVariables[XUnderrelaxationCoefficient] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationSeedValue( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationSeedValue] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationNumberOfBlocks( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationNumberOfBlocks] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationBlockTime( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationBlockTime] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationPrecision( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationPrecision] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationWarmUpLoops( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationWarmUpLoops] = value;
-	    return *this;
-	}
-
-	Document& Document::setSimulationWarmUpTime( ExternalVariable * value )
-	{
-	    _controlVariables[XSimulationWarmUpTime] = value;
 	    return *this;
 	}
 

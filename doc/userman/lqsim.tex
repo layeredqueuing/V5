@@ -7,7 +7,7 @@
 %%
 %%
 %% ----------------------------------------------------------------------
-%% $Id: lqsim.tex 10278 2011-04-29 02:51:46Z greg $
+%% $Id: lqsim.tex 13754 2020-08-10 13:29:33Z greg $
 %% ----------------------------------------------------------------------
 
 \chapter{Invoking the Simulator ``lqsim''}
@@ -245,7 +245,40 @@ will stop the solver.  Invalid pragmas defined in the environment
 variable or in the input\index{pragma!invalid!input file} file are
 ignored as they might be used by other solvers.
 \begin{description}
-\item[\optarg{scheduling}{=enum}]~\\
+% \item[\optarg{messages}{\emph{=n}}]~\\
+%   Set the number of message buffers\index{message!buffers} to $n$.
+%   The default is 1000.
+
+\item[\optarg{block-period}{=real}]~\\
+  Set the block period to \emph{real}.  This value is used in conjuction with \emph{max-blocks} or
+  \emph{precision}.
+\item[\optarg{initial-delay}{=real}]~\\
+  Set the initial warmup period to \emph{real}.
+\item[\optarg{initial-loops}{=real}]~\\
+  Run reference tasks \emph{int} times before recording data.
+\item[\optarg{max-blocks}{=int}]~\\
+  Set the maximum number of blocks to \emph{int}.  \emph{Int} must be no more than 30.
+\item[\optarg{precision}{=real}]~\\
+  Set the precision of the simulation results, based on the confidence intervals of the utilizations of all
+  of the tasks and processors, to \emph{real}.
+\item[\optarg{run-time}{=real}]~\\
+  Set the run-time of the simulations to \emph{real}.  If used by itself, the simulation will use one block
+  and not report confidence intervals.
+\item[\optarg{seed-value}{=int}]~\\
+  Set the seed for the random number generator to \emph{int}
+\item[\optarg{nice}{=int}]~\\
+  Set the ``nice'' value (i.e, lower the priority) when runninng the simulation.
+\item[\optarg{severity-level}{=enum}]~\\
+  Suppress messages with a severity-level lower than \emph{enum}. \emph{Enum} is any one of
+  the following:
+  \begin{description}
+  \item[all] Show all messages.
+  \item[warning-only] Suppress warnings.
+  \item[advisory] Suppress warnings and advisorys.
+  \item[runtime-error] Suppress runtime errors, warnings and advisorys.
+  \end{description}
+  The default is to report all messages.
+\item[\optarg{scheduling-model}{=enum}]~\\
   This pragma is used to select the scheduler used for
   processors\index{processor!scheduling}.  \emph{Enum} is any one of
   the following:
@@ -269,9 +302,15 @@ ignored as they might be used by other solvers.
   \item[custom-natural] Use the custom scheduler; don't reschedule
     after the end of each phase or activity.
   \end{description}
-\item[\optarg{messages}{\emph{=n}}]~\\
-  Set the number of message buffers\index{message!buffers} to $n$.
-  The default is 1000.
+\item[\optarg{reschedule-on-async-send}{\emph{=bool}}]~\\
+  In models with send-no-reply\index{send-no-reply} messages, the
+  simulator does not reschedule the processor after an asynchronous
+  message is sent (unlike the case with synchronous messages).  The
+  meanings of \emph{bool} are:
+  \begin{description}
+  \item[true] reschedule after each asynchronous message.
+  \item[false] reschedule after each asynchronous message.
+  \end{description}
 \item[\optarg{stop-on-message-loss}{\emph{=bool}}] ~\\
   This pragma is used to control the operation of the solver when the
   arrival rate\index{arrival rate} exceeds the service rate of a
@@ -284,15 +323,6 @@ ignored as they might be used by other solvers.
     overflows\index{overflow}, its waiting times is reported as
     infinite\index{infinity}.
   \item[true] Stop if messages are lost.
-  \end{description}
-\item[\optarg{reschedule-on-async-send}{\emph{=bool}}]~\\
-  In models with send-no-reply\index{send-no-reply} messages, the
-  simulator does not reschedule the processor after an asynchronous
-  message is sent (unlike the case with synchronous messages).  The
-  meanings of \emph{bool} are:
-  \begin{description}
-  \item[true] reschedule after each asynchronous message.
-  \item[false] reschedule after each asynchronous message.
   \end{description}
 \end{description}
 

@@ -3,7 +3,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 13735 2020-08-05 15:54:22Z greg $
+ * $Id: pragma.h 13749 2020-08-09 14:07:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -34,12 +34,20 @@ public:
     typedef bool (Pragma::*fptr)( const std::string& );
 
     static void set( const std::map<std::string,std::string>& list );
+
     bool abort_on_dropped_message() const { return _abort_on_dropped_message; }
-    bool get_spex_header() const { return _spex_header; }
+    double block_period() const { return _block_period; }
+    double initial_delay() const { return _initial_delay; }
+    unsigned int initial_loops() const { return _initial_loops; }
+    int nice() const { return _nice_value; }
+    unsigned int number_of_blocks() const { return _number_of_blocks; }
+    double precision() const { return _precision; }
     int quorum_delayed_calls() const { return _quorum_delayed_calls; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     int scheduling_model() const { return _scheduling_model; }
-    LQIO::severity_t get_severity_level() { return _severity_level; }
+    double seed_value() const { return _seed_value; }
+    LQIO::severity_t severity_level() { return _severity_level; }
+    bool spex_header() const { return _spex_header; }
 
     static void initialize();
     static void usage( std::ostream& output );
@@ -60,6 +68,7 @@ private:
     bool set_scheduling_model( const std::string& );
     bool set_seed_value( const std::string& );
     bool set_severity_level(const std::string& );
+
     bool is_true( const string& s ) const;
 
 private:
@@ -70,6 +79,16 @@ private:
     int _scheduling_model;
     bool _spex_header;
     LQIO::severity_t _severity_level;
+
+    double _block_period;
+    unsigned int _number_of_blocks;
+    unsigned int _max_blocks;
+    double _precision;
+    double _run_time;
+    double _seed_value;
+    unsigned int _initial_loops;
+    double _initial_delay;
+    
 
 public:
     static Pragma * __pragmas;

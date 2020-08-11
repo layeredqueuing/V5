@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 13534 2020-03-13 15:35:02Z greg $
+ *  $Id: srvn_spex.cpp 13749 2020-08-09 14:07:06Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -47,16 +47,11 @@ namespace LQIO {
 
 	__control_parameters["$convergence_iters"] 		= attribute_table_t( DOM::Document::XSpexIterationLimit );
 	__control_parameters["$convergence_under_relax"]	= attribute_table_t( DOM::Document::XSpexUnderrelaxation );
-	__control_parameters["$block_time"]        		= attribute_table_t( DOM::Document::XSimulationBlockTime );
 	__control_parameters[__convergence_limit_str] 		= attribute_table_t( &DOM::Document::setModelConvergence );
 	__control_parameters["$iteration_limit"]   		= attribute_table_t( &DOM::Document::setModelIterationLimit );
 	__control_parameters["$model_comment"]     		= attribute_table_t( DOM::Document::XComment );
-	__control_parameters["$number_of_blocks"]  		= attribute_table_t( DOM::Document::XSimulationNumberOfBlocks );
 	__control_parameters["$print_interval"]    		= attribute_table_t( &DOM::Document::setModelPrintInterval );
-	__control_parameters["$result_precision"]  		= attribute_table_t( DOM::Document::XSimulationPrecision );
-	__control_parameters["$seed_value"]        		= attribute_table_t( DOM::Document::XSimulationSeedValue );
 	__control_parameters["$underrelaxation"]   		= attribute_table_t( &DOM::Document::setModelUnderrelaxationCoefficient );
-	__control_parameters["$warm_up_loops"]     		= attribute_table_t( DOM::Document::XSimulationWarmUpLoops );
 
 	/* This should map srvn_scan.l */
 

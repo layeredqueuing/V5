@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: errmsg.h 13758 2020-08-10 17:58:47Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -50,8 +50,8 @@ enum {
     ADV_EMPTY_SUBMODEL,
     ADV_INVALID_UTILIZATION,
     ADV_UNDERRELAXATION,
-    ADV_MVA_FAULTS,
     ADV_MANY_CLASSES,
+    ADV_MVA_FAULTS,
     WRN_COEFFICIENT_OF_VARIATION,
     WRN_INVALID_INT_VALUE,
     WRN_MULTI_PHASE_INFINITE_SERVER,
