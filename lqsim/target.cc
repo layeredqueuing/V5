@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 13751 2020-08-10 02:27:53Z greg $
+ * $Id: target.cc 13761 2020-08-12 02:14:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -263,14 +263,13 @@ Targets::alloc_target_info( Entry * to_entry )
  */
 
 double
-Targets::compute_PDF ( const LQIO::DOM::DocumentObject * dom, bool normalize )
+Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
 {
     double sum	= 0.0;
     const char * srcName = (dom != nullptr) ? dom->getName().c_str() : "-";
     _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : PHASE_STOCHASTIC;
     
-    vector<tar_t>::iterator tp;
-    for ( tp = target.begin(); tp != target.end(); ++tp ) {
+    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
 	const char * dstName = tp->entry->name();
 	try {
 	    tp->configure();
@@ -296,15 +295,12 @@ Targets::compute_PDF ( const LQIO::DOM::DocumentObject * dom, bool normalize )
 	sum += tp->calls();
 	tp->_tprob = sum;
 
-	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
-	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
-	tp->r_loss_prob.init( SAMPLE, "Loss %-11.11s %-11.11s          ", srcName, dstName );
     }
 
     if ( _type != PHASE_DETERMINISTIC ) {
 	if ( normalize ) {
 	    sum += 1.0;
-	    for ( tp = target.begin(); tp != target.end(); ++tp ) {
+	    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
 		tp->_tprob /= sum;
 	    }
 	} else if ( sum > 1. ) {
@@ -315,6 +311,18 @@ Targets::compute_PDF ( const LQIO::DOM::DocumentObject * dom, bool normalize )
     return sum;
 }
 
+
+void
+Targets::initialize( const char * srcName )
+{
+    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
+	const char * dstName = tp->entry->name();
+    
+	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
+	tp->r_delay_sqr.init( SAMPLE, "Wait %-11.11s %-11.11s          ", srcName, dstName );
+	tp->r_loss_prob.init( SAMPLE, "Loss %-11.11s %-11.11s          ", srcName, dstName );
+    }
+}
 
 
 /*

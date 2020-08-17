@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: actlist.h 13751 2020-08-10 02:27:53Z greg $
+ * $Id: actlist.h 13761 2020-08-12 02:14:55Z greg $
  */
 
 #ifndef ACTLIST_H
@@ -88,7 +88,8 @@ struct ActivityList {
     LQIO::DOM::ActivityList* _dom_actlist;
 
     void free();
-    struct ActivityList& configure();
+    ActivityList& configure();
+    ActivityList& initialize();
 
     bool is_join_list() const;
     bool is_fork_list() const;

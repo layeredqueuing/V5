@@ -314,18 +314,6 @@ srn_open_arrivals::run (void)
 {
     timeline_trace( TASK_CREATED );
 
-    if ( Model::initial_loops() > 0 ) {
-	for ( unsigned int i = 0; i < Model::initial_loops(); ++i ) {
-	    server_cycle( _cp->_entry[0], 0, false );
-	}
-	client_init_count -= 1;
-	if ( client_init_count == 0 ) {
-	    /* Recompute blocking statistics */
-	    Model::set_block_period( ps_now * 100 );
-	    ps_awaken( Model::genesis_task_id() );
-	}
-    }
-
     /* ---------------------- Main loop --------------------------- */
 
     for ( ;; ) {				/* Start Client Cycle	*/
@@ -368,19 +356,6 @@ srn_client::run()
     timeline_trace( TASK_CREATED );
 
     const double think_time = dynamic_cast<Reference_Task *>(_cp)->think_time();
-
-    if ( Model::initial_loops() > 0 ) {
-	unsigned limit = static_cast<int>(static_cast<double>(Model::initial_loops()) / _cp->multiplicity());
-	for ( unsigned i = 0; i < limit; ++i ) {
-	    client_cycle( think_time );
-	}
-	client_init_count -= 1;
-	if ( client_init_count == 0 ) {
-	    /* Recompute blocking statistics */
-	    Model::set_block_period( ps_now * 100 );
-	    ps_awaken( Model::genesis_task_id() );
-	}
-    }
 
     /* ---------------------- Main loop --------------------------- */
 

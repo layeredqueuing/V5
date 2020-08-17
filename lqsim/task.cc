@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 13556 2020-05-25 17:39:26Z greg $
+ * $Id: task.cc 13762 2020-08-12 02:24:33Z greg $
  */
 
 #include <iostream>
@@ -143,6 +143,30 @@ Task::~Task()
  */
 
 Task&
+Task::configure()
+{
+    /* I need the instance variable "task" set from this point on. */
+
+    double total_calls = for_each( _activity.begin(), _activity.end(), ExecSum<Activity,double>( &Activity::configure ) ).sum();
+    for_each( _act_list.begin(), _act_list.end(), Exec<ActivityList>( &ActivityList::configure ) );
+    total_calls += for_each( _entry.begin(), _entry.end(), ExecSum<Entry,double>( &Entry::configure ) ).sum();
+
+    if ( total_calls == 0 && is_reference_task() ) { 
+	LQIO::solution_error( LQIO::WRN_NO_SENDS_FROM_REF_TASK, name() );
+    }
+
+    for ( vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
+	if ( !(*ap)->is_reachable() ) {
+	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name() );
+	} else if ( !(*ap)->is_specified() ) {
+	    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), (*ap)->name() );
+	}
+    }
+    return *this;
+}
+
+
+Task&
 Task::create()
 {
     /* JOIN Stuff -- All entries are free. */
@@ -164,27 +188,7 @@ Task::create()
     /* Compute PDF for all activities for each task. */
 
     create_instance();
-
-    /* I need the instance variable "task" set from this point on. */
-
-    double total_calls = for_each( _activity.begin(), _activity.end(), ExecSum<Activity,double>( &Activity::configure ) ).sum();
-
-    for_each( _act_list.begin(), _act_list.end(), Exec<ActivityList>( &ActivityList::configure ) );
-
-    total_calls += for_each( _entry.begin(), _entry.end(), ExecSum<Entry,double>( &Entry::configure ) ).sum();
-
-    if ( total_calls == 0 && is_reference_task() ) { 
-	LQIO::solution_error( LQIO::WRN_NO_SENDS_FROM_REF_TASK, name() );
-    }
-
-    for ( vector<Activity *>::const_iterator ap = _activity.begin(); ap != _activity.end(); ++ap ) {
-	if ( !(*ap)->is_reachable() ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", (*ap)->name() );
-	} else if ( !(*ap)->is_specified() ) {
-	    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), (*ap)->name() );
-	}
-    }
-
+    initialize();
 
     /* Create "links" where necessary. */
 
@@ -194,6 +198,16 @@ Task::create()
 	alloc_pool();
     }
 
+    return *this;
+}
+
+
+Task&
+Task::initialize()
+{
+    for_each( _activity.begin(), _activity.end(), Exec<Activity>( &Activity::initialize ) );
+    for_each( _act_list.begin(), _act_list.end(), Exec<ActivityList>( &ActivityList::initialize ) );
+    for_each( _entry.begin(), _entry.end(), Exec<Entry>( &Entry::initialize ) );
 
     /*
      * Allocate statistics for joins.  We do it here because we
@@ -823,7 +837,6 @@ Server_Task::std_port() const
 void
 Server_Task::set_synchronization_server() 
 {
-    assert( type() == SERVER && _task );		/* we must be a server and must have run. */
     _sync_server = true;
 }
 

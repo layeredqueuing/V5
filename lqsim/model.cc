@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13751 2020-08-10 02:27:53Z greg $
+ * $Id: model.cc 13761 2020-08-12 02:14:55Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -318,7 +318,10 @@ Model::construct()
  * Construct all of the parasol tasks instances and then start them
  * up.  Some construction is needed after the simulation has
  * initialized and started simply because we need run-time
- * info. Called from ps_genesis.
+ * info. Called from ps_genesis() by ps_run_parasol().
+ * Model::create() will call Task::initialize() which will call
+ * XXX::initialize(). XXX:configure() is called from ::start() which
+ * is called before ps_run_parasol().
  */
 
 bool
@@ -331,7 +334,6 @@ Model::create()
     for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::create ) );
     for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::create ) );
     for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::create ) );
-    for_each( ::entry.begin(), ::entry.end(), Exec<Entry>( &Entry::compute_minimum_service_time ) );
 
     if ( count_if( ::task.begin(), ::task.end(), Predicate<Task>( &Task::is_reference_task ) ) == 0 && open_arrival_count == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
@@ -685,7 +687,15 @@ Model::start()
 {
     int simulation_flags= 0x00;
     
-    _parameters.set( _document->getPragmaList() );
+    /* This will compute the minimum service time for each entry.  Note thate XXX::initialize() is called
+     * through Model::run() */
+    
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::configure ) );
+    const double client_cycle_time = for_each( ::entry.begin(), ::entry.end(), ExecSum<Entry,double>( &Entry::compute_minimum_service_time ) ).sum();
+    
+    /* Which we can use here... */
+    
+    _parameters.set( _document->getPragmaList(), client_cycle_time );
 
     if (debug_interactive_stepping) {
 	simulation_flags = RPF_STEP; 	/* tomari quorum */
@@ -810,15 +820,6 @@ Model::run( int task_id )
 		}
 		ps_sleep( _parameters._initial_delay );
 		if ( deferred_exception ) throw std::runtime_error( "terminating" );
-		
-		if ( initial_loops() > 0 ) {
-		    if ( verbose_flag ) {
-			(void) fprintf( stderr, "(%g)", ps_now );
-		    }
-		    if ( client_init_count > 0 ) {
-			LQIO::solution_error( ERR_INIT_DELAY, _parameters._initial_delay, client_init_count );
-		    }
-		}
 	    }
 
 	    /*
@@ -1027,7 +1028,7 @@ ps_genesis (void *)
  * Full auto will derive based on service times of tasks.
  */
 
-void Model::simulation_parameters::set( const std::map<std::string,std::string>& pragmas )
+void Model::simulation_parameters::set( const std::map<std::string,std::string>& pragmas, double minimum_cycle_time )
 {
     if ( !set( _seed, pragmas, LQIO::DOM::Pragma::_seed_value_ ) ) {
 	/* Not set... Randomize. */
@@ -1039,20 +1040,21 @@ void Model::simulation_parameters::set( const std::map<std::string,std::string>&
     }
     if ( set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
 	_max_blocks = 1;
+
     } else {
-
-
+	unsigned long initial_loops = 0;
 	if ( set( _precision, pragmas, LQIO::DOM::Pragma::_precision_ ) ) {
 	    /* -C */
-	    if ( !set( _initial_loops, pragmas, LQIO::DOM::Pragma::_initial_loops_ ) ) {
-		_initial_loops = static_cast<unsigned long>(INITIAL_LOOPS / _precision);
-	    }
-	    if ( !set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
-		_run_time = DEFAULT_TIME * 1e6;		/* Default time is 1e10 */
-	    }
 	    _max_blocks = MAX_BLOCKS;
-	    _initial_delay = _run_time / _max_blocks;
-	    _block_period = _initial_delay;
+	    if ( !set( initial_loops, pragmas, LQIO::DOM::Pragma::_initial_loops_ ) ) {
+		initial_loops = static_cast<unsigned long>(INITIAL_LOOPS / _precision);
+	    }
+	    _initial_delay = minimum_cycle_time * initial_loops * 2;
+	    if ( !set( _run_time, pragmas, LQIO::DOM::Pragma::_run_time_ ) ) {
+		_block_period = _initial_delay * 100;
+	    } else {
+		_block_period = (_run_time - _initial_delay) / _max_blocks;
+	    }
 	
 	} else if ( set( _max_blocks, pragmas, LQIO::DOM::Pragma::_max_blocks_ ) ) {
 	    /* -B */

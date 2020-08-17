@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 13751 2020-08-10 02:27:53Z greg $
+ * $Id: entry.h 13761 2020-08-12 02:14:55Z greg $
  */
 
 #ifndef ENTRY_H
@@ -67,8 +67,9 @@ public:
     
     Entry& set_reply();
 
-    virtual Entry& initialize();
     virtual double configure();
+    Entry& initialize();
+    
     void add_call( const unsigned int p, LQIO::DOM::Call* domCall );
 
     virtual bool is_defined() const { return get_DOM()->getEntryType() != LQIO::DOM::Entry::ENTRY_NOT_DEFINED; }
@@ -100,11 +101,12 @@ public:
     Entry& accumulate_data();
     virtual Entry& insertDOMResults();
 
-    Entry& compute_minimum_service_time();
+    double compute_minimum_service_time();
 
     static Entry * add( LQIO::DOM::Entry* domEntry, Task * );
     
 private:
+    Entry& add_open_arrival_task();
     double throughput() const;
     double throughput_variance() const;
     double minimum_service_time() const;
@@ -139,7 +141,6 @@ class Pseudo_Entry : public Entry
 public:
     Pseudo_Entry( LQIO::DOM::Entry *, Task * );
 
-    virtual Entry& initialize() { return *this; }
     virtual double configure();
 
     virtual const char * name() const { return _name.c_str(); }

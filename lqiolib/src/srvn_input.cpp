@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13727 2020-08-04 14:06:18Z greg $
+ *  $Id: srvn_input.cpp 13761 2020-08-12 02:14:55Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -569,6 +569,7 @@ srvn_set_task_group( void * task_v, const char * group_name )
 	return;
     }
     group->addTask(task);
+    task->setGroup(group);
 }
 
 

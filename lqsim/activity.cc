@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 13751 2020-08-10 02:27:53Z greg $
+ * $Id: activity.cc 13761 2020-08-12 02:14:55Z greg $
  */
 
 #include <parasol.h>
@@ -131,10 +131,15 @@ Activity::service() const
     return 0.;
 }
 
+
+/*
+ * Before Parasol start (but after recalculateDynamic).
+ */
+
 double
 Activity::configure()
 {
-    const double n_calls = tinfo.compute_PDF( _dom, (bool)(type() == PHASE_STOCHASTIC) );
+    const double n_calls = tinfo.configure( _dom, (bool)(type() == PHASE_STOCHASTIC) );
     double slice;
     
     _active = 0;
@@ -153,17 +158,6 @@ Activity::configure()
 	}
     }
 
-    r_util.init( VARIABLE, "%30.30s Utilization", name() );
-    r_cpu_util.init( VARIABLE, "%30.30s Execution  ", name() );
-    r_service.init( SAMPLE,   "%30.30s Service    ", name() );
-    r_slices.init( SAMPLE,   "%30.30s Slices     ", name() );
-    r_sends.init( SAMPLE,   "%30.30s Sends      ", name() );
-    r_proc_delay.init( SAMPLE,   "%30.30s Proc delay ", name() );
-    r_proc_delay_sqr.init( SAMPLE,   "%30.30s Pr dly Sqr ", name() );
-    r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name() );
-    r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name() );
-    r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
-	
     if ( type() == PHASE_DETERMINISTIC ) {
 	slice = service() / (n_calls + 1);	/* Spread calls evenly */
     } else if ( n_calls > 0.0 ) {
@@ -211,6 +205,29 @@ Activity::configure()
     }
 
     return n_calls;
+}
+
+
+/*
+ * After parasol start.
+ */
+
+Activity&
+Activity::initialize()
+{
+    r_util.init( VARIABLE, "%30.30s Utilization", name() );
+    r_cpu_util.init( VARIABLE, "%30.30s Execution  ", name() );
+    r_service.init( SAMPLE,   "%30.30s Service    ", name() );
+    r_slices.init( SAMPLE,   "%30.30s Slices     ", name() );
+    r_sends.init( SAMPLE,   "%30.30s Sends      ", name() );
+    r_proc_delay.init( SAMPLE,   "%30.30s Proc delay ", name() );
+    r_proc_delay_sqr.init( SAMPLE,   "%30.30s Pr dly Sqr ", name() );
+    r_cycle.init( SAMPLE,   "%30.30s Cycle Time ", name() );
+    r_cycle_sqr.init( SAMPLE,   "%30.30s Cycle Sqred", name() );
+    r_afterQuorumThreadWait.init( SAMPLE,   "%30.30s afterQuorumThreadWait Raw Data", name() );	/* tomari quorum */
+
+    tinfo.initialize( name() );
+    return *this;
 }
 
 

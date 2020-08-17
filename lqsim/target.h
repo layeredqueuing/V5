@@ -3,7 +3,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 13750 2020-08-09 14:44:00Z greg $
+ * $Id: target.h 13761 2020-08-12 02:14:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,7 +82,8 @@ public:
 
     void store_target_info( Entry * to_entry, LQIO::DOM::Call* a_call );
     void store_target_info( Entry * to_entry, double );
-    double compute_PDF( const LQIO::DOM::DocumentObject * dom, bool normalize );
+    double configure( const LQIO::DOM::DocumentObject * dom, bool normalize );
+    void initialize( const char * );
     tar_t * entry_to_send_to( unsigned int& i, unsigned int& j ) const;
     const Targets& print_raw_stat( FILE * ) const;
 

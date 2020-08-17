@@ -12,7 +12,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 13751 2020-08-10 02:27:53Z greg $
+ * $Id: entry.cc 13761 2020-08-12 02:14:55Z greg $
  */
 
 #include <parasol.h>
@@ -76,78 +76,12 @@ Entry::~Entry()
 }
 
 /*
- * Initialization code done BEFORE the simulation starts.  Store the
- * open arrival rate for entry.  This act is accomplished by setting
- * up a fake task to generate open arrivals.
- */
-
-Entry&
-Entry::initialize()
-{
-    if ( _dom && _dom->hasOpenArrivalRate() && test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY )
-	 && dynamic_cast<Pseudo_Entry *>(this) == NULL ) {	/* Not necessary due to override */
-	char * task_name = new char[strlen( name() ) + 20];
-	(void) sprintf( task_name, "(%s)", name() );
-	Task * cp = new Pseudo_Task( task_name );
-	::task.insert( cp );
-	
-	Entry * from_entry = new Pseudo_Entry( _dom, cp );
-	from_entry->initialize();
-	::entry.insert( from_entry );
-
-	/* Set up entry information for my arrival rate. */
-
-	from_entry->test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD );
-
-	/* Set up a task to handle it */
-
-	cp->_entry.push_back( from_entry );
-
-	/* Set up calls per cycle.  1 call is made per cycle */
-
-	from_entry->_phase[0].tinfo.store_target_info( this, 1.0 );
-
-	open_arrival_count += 1;
-    }
-
-    return *this;
-}
-
-/*
  * Initialization code for entries done AFTER the simulation starts.
  */
 
 double
 Entry::configure()
 {
-    if ( debug_flag ) {
-	print_debug_info();
-    }
-		
-    _join_list = NULL;		/* Reset */
-    
-    r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name() );
-
-    switch ( task()->type() ) {
-    case Task::CLIENT:
-	port = -1;
-	break;
-
-    case Task::SEMAPHORE:
-	if ( is_signal() ) {
-	    port = dynamic_cast<const Semaphore_Task *>(task())->signal_task()->std_port();
-	} else if ( is_wait() ) {
-	    port = task()->std_port();
-	} else {
-	    port = -1;
-	}
-	break;
-
-    default:
-	port = task()->std_port();
-	break;
-    }
-		
     if ( !is_defined() ) {
 	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name() );
 	get_DOM()->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
@@ -229,10 +163,56 @@ Entry::configure()
     /* forwarding component */
 			
     if ( is_rendezvous() ) {
-	_fwd.compute_PDF( get_DOM(), false );
+	_fwd.configure( get_DOM(), false );
     }
 
     return total_calls;
+}
+
+
+Entry&
+Entry::initialize()
+{
+    if ( debug_flag ) {
+	print_debug_info();
+    }
+		
+    _join_list = NULL;		/* Reset */
+    
+    r_cycle.init( SAMPLE, "Entry %-11.11s  - Cycle Time      ", name() );
+
+    switch ( task()->type() ) {
+    case Task::CLIENT:
+	port = -1;
+	break;
+
+    case Task::SEMAPHORE:
+	if ( is_signal() ) {
+	    port = dynamic_cast<const Semaphore_Task *>(task())->signal_task()->std_port();
+	} else if ( is_wait() ) {
+	    port = task()->std_port();
+	} else {
+	    port = -1;
+	}
+	break;
+
+    default:
+	port = task()->std_port();
+	break;
+    }
+
+    for ( std::vector<Activity>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
+	phase->initialize();
+    }
+    
+    /* forwarding component */
+			
+    if ( is_rendezvous() ) {
+	_fwd.initialize( name() );
+    }
+
+		
+    return *this;
 }
 
 
@@ -496,7 +476,7 @@ Entry::insertDOMResults()
  * For Reference tasks, it's the total time.
  */
 
-Entry& 
+double
 Entry::compute_minimum_service_time()
 {
     if ( minimum_service_time() == 0. ) {
@@ -519,8 +499,16 @@ Entry::compute_minimum_service_time()
 	    (void) fputc( '\n', stderr );
 	}
     }
-    return *this;
+
+    double sum = 0.0;
+    if ( task()->type() == Task::CLIENT || open_arrival_rate() != 0. ) {
+	for( std::vector<double>::const_iterator i = _minimum_service_time.begin(); i != _minimum_service_time.end(); ++i ) {
+	    sum += *i;
+	}
+    }
+    return sum;
 }
+
 
 double
 Entry::throughput() const
@@ -623,11 +611,51 @@ Entry::add( LQIO::DOM::Entry* domEntry, Task * task )
 	} else {
 	    ep = new Entry( domEntry, task );
 	    ::entry.insert( ep );
-	    ep->initialize();
+	    ep->add_open_arrival_task();
 	}
     }
     return ep;
 }
+
+
+/*
+ * Initialization code done BEFORE the simulation starts.  Store the
+ * open arrival rate for entry.  This act is accomplished by setting
+ * up a fake task to generate open arrivals.
+ */
+
+Entry&
+Entry::add_open_arrival_task()
+{
+    if ( !_dom || !_dom->hasOpenArrivalRate() || !test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) || dynamic_cast<Pseudo_Entry *>(this) != NULL ) return *this;
+
+    char * task_name = new char[strlen( name() ) + 20];
+    (void) sprintf( task_name, "(%s)", name() );
+    Task * cp = new Pseudo_Task( task_name );
+    ::task.insert( cp );
+	
+    Entry * from_entry = new Pseudo_Entry( _dom, cp );
+    from_entry->initialize();
+    ::entry.insert( from_entry );
+
+    /* Set up entry information for my arrival rate. */
+
+    from_entry->test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD );
+
+    /* Set up a task to handle it */
+
+    cp->_entry.push_back( from_entry );
+
+    /* Set up calls per cycle.  1 call is made per cycle */
+
+    from_entry->_phase[0].tinfo.store_target_info( this, 1.0 );
+
+    open_arrival_count += 1;
+
+    return *this;
+}
+
+
 
 
 

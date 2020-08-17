@@ -71,19 +71,18 @@ public:
 	    _precision(0),
 	    _max_blocks(1),
 	    _initial_delay(0),
-	    _block_period(50000),
-	    _initial_loops(0)
+	    _block_period(50000)
 	    {}
 
-	void set( const std::map<std::string,std::string>& );
+	void set( const std::map<std::string,std::string>&, double );
 
     private:
 	bool set( unsigned long& parameter, const std::map<std::string,std::string>& pragmas, const char * value );
 	bool set( double& parameter, const std::map<std::string,std::string>& pragmas, const char * value );
 
     private:
-	static const unsigned long MAX_BLOCKS	= 30;
-	static const unsigned long INITIAL_LOOPS	= 500;
+	static const unsigned long MAX_BLOCKS	    = 30;
+	static const unsigned long INITIAL_LOOPS    = 100;
 
 	unsigned long _seed;
 	double _run_time;
@@ -91,7 +90,6 @@ public:
 	unsigned long _max_blocks;
 	double _initial_delay;
 	double _block_period;
-	unsigned long _initial_loops;
     };
 
 
@@ -118,7 +116,6 @@ public:
     static int genesis_task_id() { return __genesis_task_id; }
     static double block_period() { return __model->_parameters._block_period; }
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
-    static unsigned long initial_loops() { return __model->_parameters._initial_loops; }
 
 private:
     void initialize_globals();

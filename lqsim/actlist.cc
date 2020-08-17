@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 13751 2020-08-10 02:27:53Z greg $
+ * $Id: actlist.cc 13761 2020-08-12 02:14:55Z greg $
  */
 
 #include <sstream>
@@ -105,6 +105,13 @@ ActivityList::configure()
     return *this;
 }
 
+
+
+ActivityList&
+ActivityList::initialize()
+{
+    return *this;
+}
 
 
 bool

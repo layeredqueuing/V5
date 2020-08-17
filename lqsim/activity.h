@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: activity.h 13751 2020-08-10 02:27:53Z greg $
+ * $Id: activity.h 13761 2020-08-12 02:14:55Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -67,6 +67,7 @@ public:
     
     Activity& rename( const std::string& );
     double configure();
+    Activity& initialize();
 
     double collect( std::deque<Activity *>& activity_stack, ActivityList::Collect& );
     double count_replies( ActivityList::Collect& data ) const;

@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: task.h 13761 2020-08-12 02:14:55Z greg $
  */
 
 /************************************************************************/
@@ -124,7 +124,9 @@ public:
     void add_fork( ActivityList * list ) { _forks.push_back( list ); }
     void add_join( ActivityList * list ) { _joins.push_back( list ); }
 
+    virtual Task& configure();		/* Called after recalulateDynamicVariables but before create */
     virtual Task& create();
+    Task& initialize();			/* Called after create() and start()	*/
     virtual bool start() = 0;
     virtual Task& kill() = 0;
 
