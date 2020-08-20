@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqngen -format=xml -clients=2 -tasks=1 -constant -customers=2 -->
+<lqn-model name="" description="lqngen 5.17 solution for model from: ." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <parameters>
+$c_c0 = 3
+$c_c1 = 2
+$m_t0 = [1,2,3,5,@infinity]
+   </parameters>
+   <solver-params comment="Layers: 1, Customers: 2, Clients: 2, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="multiserver" value="conway"/>
+      <pragma param="force-multiserver" value="all"/>
+   </solver-params>
+   <processor name="c0" scheduling="inf">
+      <task name="c0" scheduling="ref" multiplicity="$c_c0">
+         <result-observe throughput="$f_c0"/>
+         <entry name="c0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="c0_1" phase="1" host-demand-mean="3">
+                  <synch-call dest="e0" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="c1" scheduling="inf">
+      <task name="c1" scheduling="ref" multiplicity="$c_c1">
+         <result-observe throughput="$f_c1"/>
+         <entry name="c1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="c1_1" phase="1" host-demand-mean="3">
+                  <synch-call dest="e1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p0" scheduling="ps" quantum="0.1">
+      <result-observe utilization="$p_p0"/>
+      <task name="t0" scheduling="fcfs" multiplicity="$m_t0">
+         <result-observe utilization="$u_t0"/>
+         <entry name="e0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e0_1" phase="1" host-demand-mean="0.666666"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="e1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1.5"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <results-collection>
+$m_t0
+$f_c0
+$f_c1
+$p_p0
+$u_t0
+   </results-collection>
+</lqn-model>

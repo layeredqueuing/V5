@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 13761 2020-08-12 02:14:55Z greg $
+ * $Id: entry.h 13763 2020-08-17 15:09:50Z greg $
  */
 
 #ifndef ENTRY_H

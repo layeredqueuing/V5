@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 13751 2020-08-10 02:27:53Z greg $
+ * $Id: expat_document.cpp 13764 2020-08-17 19:50:05Z greg $
  *
  * Read in XML input files.
  *
@@ -3026,7 +3026,7 @@ namespace LQIO {
         void
         Expat_Document::exportCall( std::ostream& output, const Call & call ) const
         {
-            const bool complex_type = hasResults() || call.hasHistogram();
+            const bool complex_type = hasResults() || call.hasHistogram() || hasSPEX();
             output << start_element( call_type_table[call.getCallType()].element, complex_type )
                    << attribute( Xdest, call.getDestinationEntry()->getName() );
             if ( call.getCallMean() ) {
@@ -3179,9 +3179,11 @@ namespace LQIO {
 	{
 	    const std::vector<Spex::var_name_and_expr>& results = Spex::get_result_variables();
 	    if ( results.size() > 0 ) {
+		const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
 		const int precision = output.precision(10);
 		output << start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
 		LQX::SyntaxTreeNode::setVariablePrefix( "$" );
+		for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputArrayVariable( output ) );
 		for_each( results.begin(), results.end(), Spex::PrintResultVariable( output ) );
 		output /* << "]]>" << std::endl */ << end_element( Xspex_results ) << std::endl;
 		output.precision(precision);

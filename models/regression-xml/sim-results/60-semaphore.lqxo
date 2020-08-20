@@ -1,41 +1,45 @@
 <?xml version="1.0"?>
-<!-- lt-lqsim -confidence=1.0,1000 -seed=1049217653 -->
-<lqn-model name="60-semaphore" description="lt-lqsim 5.8 solution for model from: 60-semaphore.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 60-semaphore.lqxo 13766 2020-08-18 02:54:45Z greg $ -->
+<!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=60-semaphore.lqxo -->
+<lqn-model name="60-semaphore" description="lqsim 5.16 solution for model from: 60-semaphore.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Semaphore called from a sequence of phases." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <result-general valid="YES" conv-val="0.725037" iterations="3" platform-info="localhost.localdomain Linux 2.6.32-431.29.2.el6.x86_64" user-cpu-time="00:00:02.70" system-cpu-time="00:00:00.05" elapsed-time="00:00:04.44"/>
+      <pragma param="initial-loops" value="1000"/>
+      <pragma param="precision" value="1.0"/>
+      <pragma param="seed-value" value="1049217653"/>
+      <result-general solver-info="lqsim 5.16" valid="YES" conv-val="0.598222" iterations="3" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 0:44:16.000" system-cpu-time=" 0:17:26.000" elapsed-time=" 1:01:44.000"/>
    </solver-params>
    <processor name="customer" scheduling="fcfs">
-      <result-processor utilization="0.307524">
-         <result-conf-95 utilization="0.00270533"/>
-         <result-conf-99 utilization="0.00623991"/>
+      <result-processor utilization="0.307605">
+         <result-conf-95 utilization="0.000626175"/>
+         <result-conf-99 utilization="0.00144429"/>
       </result-processor>
       <task name="customer" scheduling="ref" multiplicity="3">
-         <result-task throughput="0.307651" utilization="3" phase1-utilization="2.47056" phase2-utilization="0.52944" proc-utilization="0.307524">
-            <result-conf-95 throughput="0.00211416" utilization="0" phase1-utilization="0.00279437" phase2-utilization="0.00279437" proc-utilization="0.00270533"/>
-            <result-conf-99 throughput="0.00487638" utilization="17.1906" phase1-utilization="0.00644531" phase2-utilization="0.00644531" proc-utilization="0.00623991"/>
+         <result-task throughput="0.307657" utilization="3" phase1-utilization="2.47047" phase2-utilization="0.529531" proc-utilization="0.307605">
+            <result-conf-95 throughput="0.00114209" utilization="0" phase1-utilization="0.00113964" phase2-utilization="0.00113964" proc-utilization="0.000626175"/>
+            <result-conf-99 throughput="0.00263426" utilization="0" phase1-utilization="0.00262862" phase2-utilization="0.00262862" proc-utilization="0.00144429"/>
          </result-task>
          <entry name="customer" type="PH1PH2">
-            <result-entry utilization="3" throughput="0.307651" squared-coeff-variation="0.0491062" proc-utilization="0.307524">
-               <result-conf-95 utilization="0.00395184" throughput="0.00211416" squared-coeff-variation="0" proc-utilization="0.00270533"/>
-               <result-conf-99 utilization="0.00911504" throughput="0.00487638" squared-coeff-variation="0" proc-utilization="0.00623991"/>
+            <result-entry utilization="3" throughput="0.307657" squared-coeff-variation="0.0490946" proc-utilization="0.307605" throughput-bound="0.27027">
+               <result-conf-95 utilization="0.00161169" throughput="0.00114209" squared-coeff-variation="0" proc-utilization="0.000626175"/>
+               <result-conf-99 utilization="0.00371742" throughput="0.00263426" squared-coeff-variation="0" proc-utilization="0.00144429"/>
             </result-entry>
             <entry-phase-activities>
                <activity name="customer_1" phase="1" host-demand-mean="0.5" call-order="DETERMINISTIC">
-                  <result-activity proc-waiting="0.0392409" service-time="8.03043" utilization="2.47056" service-time-variance="3.9103">
-                     <result-conf-95 proc-waiting="0.00253464" service-time="0.0590691" utilization="0.00279437" service-time-variance="0.0550389"/>
-                     <result-conf-99 proc-waiting="0.00584622" service-time="0.136245" utilization="0.00644531" service-time-variance="0.126949"/>
+                  <result-activity proc-waiting="0.0392507" service-time="8.02995" utilization="2.47047" service-time-variance="3.90948">
+                     <result-conf-95 proc-waiting="0.000356798" service-time="0.0327058" utilization="0.00113964" service-time-variance="0.0806135"/>
+                     <result-conf-99 proc-waiting="0.000822965" service-time="0.0754368" utilization="0.00262862" service-time-variance="0.185937"/>
                   </result-activity>
                   <synch-call dest="app_wait" calls-mean="1">
-                     <result-call waiting="4.2407" waiting-variance="2.44557">
-                        <result-conf-95 waiting="0.0379989" waiting-variance="0.0281391"/>
-                        <result-conf-99 waiting="0.0876457" waiting-variance="0.0649036"/>
+                     <result-call waiting="4.24008" waiting-variance="2.44228">
+                        <result-conf-95 waiting="0.0203462" waiting-variance="0.0402888"/>
+                        <result-conf-99 waiting="0.0469291" waiting-variance="0.0929273"/>
                      </result-call>
                   </synch-call>
                </activity>
                <activity name="customer_2" phase="2" host-demand-mean="0.5" call-order="DETERMINISTIC">
-                  <result-activity proc-waiting="0.0100353" service-time="1.72091" utilization="0.52944" service-time-variance="0.759146">
-                     <result-conf-95 proc-waiting="0.00130149" service-time="0.0118865" utilization="0.00279437" service-time-variance="0.0427084"/>
-                     <result-conf-99 proc-waiting="0.00300192" service-time="0.0274166" utilization="0.00644531" service-time-variance="0.0985082"/>
+                  <result-activity proc-waiting="0.00992943" service-time="1.72117" utilization="0.529531" service-time-variance="0.758647">
+                     <result-conf-95 proc-waiting="0.00102865" service-time="0.00440997" utilization="0.00113964" service-time-variance="0.0166623"/>
+                     <result-conf-99 proc-waiting="0.00237261" service-time="0.0101717" utilization="0.00262862" service-time-variance="0.0384321"/>
                   </result-activity>
                   <synch-call dest="app_signal" calls-mean="1">
                      <result-call waiting="0" waiting-variance="0">
@@ -49,30 +53,30 @@
       </task>
    </processor>
    <processor name="server" scheduling="fcfs">
-      <result-processor utilization="0.922898">
-         <result-conf-95 utilization="0.00263518"/>
-         <result-conf-99 utilization="0.00607812"/>
+      <result-processor utilization="0.923041">
+         <result-conf-95 utilization="0.00304283"/>
+         <result-conf-99 utilization="0.00701837"/>
       </result-processor>
       <task name="app_wait" scheduling="fcfs">
-         <result-task throughput="0.307651" utilization="1" phase1-utilization="1" proc-utilization="0.30796">
-            <result-conf-95 throughput="0.0021079" utilization="0" proc-utilization="0.00208654"/>
-            <result-conf-99 throughput="0.00486193" utilization="9.925" proc-utilization="0.00481266"/>
+         <result-task throughput="0.307657" utilization="1" phase1-utilization="1" proc-utilization="0.30787">
+            <result-conf-95 throughput="0.00114658" utilization="0" proc-utilization="0.0020603"/>
+            <result-conf-99 throughput="0.00264462" utilization="0" proc-utilization="0.00475215"/>
          </result-task>
          <entry name="app_wait" type="PH1PH2">
-            <result-entry utilization="1" throughput="0.307651" squared-coeff-variation="0.147961" proc-utilization="0.30796">
-               <result-conf-95 utilization="0" throughput="0.0021079" squared-coeff-variation="0" proc-utilization="0.00208654"/>
-               <result-conf-99 utilization="0" throughput="0.00486193" squared-coeff-variation="0" proc-utilization="0.00481266"/>
+            <result-entry utilization="1" throughput="0.307657" squared-coeff-variation="0.147942" proc-utilization="0.30787" throughput-bound="0.588235">
+               <result-conf-95 utilization="0" throughput="0.00114658" squared-coeff-variation="0" proc-utilization="0.0020603"/>
+               <result-conf-99 utilization="0" throughput="0.00264462" squared-coeff-variation="0" proc-utilization="0.00475215"/>
             </result-entry>
             <entry-phase-activities>
                <activity name="app_wait_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
-                  <result-activity proc-waiting="0" service-time="3.25045" utilization="1" service-time-variance="1.56327">
-                     <result-conf-95 proc-waiting="0" service-time="0.0222523" utilization="0" service-time-variance="0.0541789"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.0513257" utilization="0" service-time-variance="0.124965"/>
+                  <result-activity proc-waiting="0" service-time="3.25037" utilization="1" service-time-variance="1.563">
+                     <result-conf-95 proc-waiting="0" service-time="0.012084" utilization="0" service-time-variance="0.0262395"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0278721" utilization="0" service-time-variance="0.0605223"/>
                   </result-activity>
                   <synch-call dest="wait" calls-mean="1">
-                     <result-call waiting="1.55041" waiting-variance="0.717242">
-                        <result-conf-95 waiting="0.0125988" waiting-variance="0.0360551"/>
-                        <result-conf-99 waiting="0.0290596" waiting-variance="0.0831621"/>
+                     <result-call waiting="1.54992" waiting-variance="0.715664">
+                        <result-conf-95 waiting="0.0107631" waiting-variance="0.0208414"/>
+                        <result-conf-99 waiting="0.0248255" waiting-variance="0.0480712"/>
                      </result-call>
                   </synch-call>
                </activity>
@@ -80,25 +84,25 @@
          </entry>
       </task>
       <task name="app_signal" scheduling="fcfs">
-         <result-task throughput="0.307651" utilization="0.372666" phase1-utilization="0.372666" proc-utilization="0.307633">
-            <result-conf-95 throughput="0.00211416" utilization="0.000676593" phase1-utilization="0.000676593" proc-utilization="0.00112935"/>
-            <result-conf-99 throughput="0.00487638" utilization="6.05885" phase1-utilization="0.00156058" proc-utilization="0.00260487"/>
+         <result-task throughput="0.307657" utilization="0.372773" phase1-utilization="0.372773" proc-utilization="0.307599">
+            <result-conf-95 throughput="0.00114209" utilization="0.000657668" phase1-utilization="0.000657668" proc-utilization="0.000891359"/>
+            <result-conf-99 throughput="0.00263426" utilization="0.00151693" phase1-utilization="0.00151693" proc-utilization="0.00205595"/>
          </result-task>
          <entry name="app_signal" type="PH1PH2">
-            <result-entry utilization="0.372666" throughput="0.307651" squared-coeff-variation="0.454226" proc-utilization="0.307633">
-               <result-conf-95 utilization="0.000676593" throughput="0.00211416" squared-coeff-variation="0" proc-utilization="0.00112935"/>
-               <result-conf-99 utilization="0.00156058" throughput="0.00487638" squared-coeff-variation="0" proc-utilization="0.00260487"/>
+            <result-entry utilization="0.372773" throughput="0.307657" squared-coeff-variation="0.453888" proc-utilization="0.307599" throughput-bound="1">
+               <result-conf-95 utilization="0.000657668" throughput="0.00114209" squared-coeff-variation="0" proc-utilization="0.000891359"/>
+               <result-conf-99 utilization="0.00151693" throughput="0.00263426" squared-coeff-variation="0" proc-utilization="0.00205595"/>
             </result-entry>
             <entry-phase-activities>
                <activity name="app_signal_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
-                  <result-activity proc-waiting="0.211385" service-time="1.21133" utilization="0.372666" service-time-variance="0.666494">
-                     <result-conf-95 proc-waiting="0.00406406" service-time="0.00998808" utilization="0.000676593" service-time-variance="0.0348037"/>
-                     <result-conf-99 proc-waiting="0.00937387" service-time="0.0230378" utilization="0.00156058" service-time-variance="0.0802759"/>
+                  <result-activity proc-waiting="0.211839" service-time="1.21165" utilization="0.372773" service-time-variance="0.666352">
+                     <result-conf-95 proc-waiting="0.00412104" service-time="0.00250793" utilization="0.000657668" service-time-variance="0.0105733"/>
+                     <result-conf-99 proc-waiting="0.00950531" service-time="0.00578463" utilization="0.00151693" service-time-variance="0.0243877"/>
                   </result-activity>
                   <asynch-call dest="signal" calls-mean="1">
-                     <result-call waiting="0.800468" waiting-variance="0.340063" loss-probability="0">
-                        <result-conf-95 waiting="0.00604611" waiting-variance="0.0108743" loss-probability="0"/>
-                        <result-conf-99 waiting="0.0139455" waiting-variance="0.0250819" loss-probability="0"/>
+                     <result-call waiting="0.799893" waiting-variance="0.339961" loss-probability="0">
+                        <result-conf-95 waiting="0.00576157" waiting-variance="0.00666167" loss-probability="0"/>
+                        <result-conf-99 waiting="0.0132892" waiting-variance="0.0153653" loss-probability="0"/>
                      </result-call>
                   </asynch-call>
                </activity>
@@ -107,46 +111,46 @@
       </task>
       <task name="semaphore" scheduling="semaphore">
          <service-time-distribution number-bins="10" min="0" max="10">
-            <histogram-bin begin="0" end="1" prob="0.0045841" conf-95="0.0821107" conf-99="0.189391"/>
-            <histogram-bin begin="1" end="2" prob="0.136678" conf-95="0.172232" conf-99="0.397259"/>
-            <histogram-bin begin="2" end="3" prob="0.333143" conf-95="0.223994" conf-99="0.516649"/>
-            <histogram-bin begin="3" end="4" prob="0.286667" conf-95="0.142372" conf-99="0.328386"/>
-            <histogram-bin begin="4" end="5" prob="0.149931" conf-95="0.167705" conf-99="0.386816"/>
-            <histogram-bin begin="5" end="6" prob="0.0599571" conf-95="0.100852" conf-99="0.232617"/>
-            <histogram-bin begin="6" end="7" prob="0.0201152" conf-95="0.0543259" conf-99="0.125304"/>
-            <histogram-bin begin="7" end="8" prob="0.00657006" conf-95="0.0758903" conf-99="0.175043"/>
-            <histogram-bin begin="8" end="9" prob="0.0016924" conf-95="0.0473872" conf-99="0.1093"/>
-            <histogram-bin begin="9" end="10" prob="0.000499899" conf-95="0.0230139" conf-99="0.0530824"/>
-            <overflow-bin begin="10" end="0" prob="0.000162177" conf-95="0.0323558" conf-99="0.0746297"/>
+            <histogram-bin begin="0" end="1" prob="0.00449781" conf-95="0.0626485" conf-99="0.144501"/>
+            <histogram-bin begin="1" end="2" prob="0.136085" conf-95="0.113631" conf-99="0.262093"/>
+            <histogram-bin begin="2" end="3" prob="0.333662" conf-95="0.172855" conf-99="0.398696"/>
+            <histogram-bin begin="3" end="4" prob="0.286456" conf-95="0.103625" conf-99="0.239015"/>
+            <histogram-bin begin="4" end="5" prob="0.150484" conf-95="0.0967021" conf-99="0.223046"/>
+            <histogram-bin begin="5" end="6" prob="0.059896" conf-95="0.0748005" conf-99="0.17253"/>
+            <histogram-bin begin="6" end="7" prob="0.0201686" conf-95="0.0742265" conf-99="0.171206"/>
+            <histogram-bin begin="7" end="8" prob="0.00626662" conf-95="0.0775391" conf-99="0.178846"/>
+            <histogram-bin begin="8" end="9" prob="0.00178329" conf-95="0.031096" conf-99="0.0717239"/>
+            <histogram-bin begin="9" end="10" prob="0.000532917" conf-95="0.0297855" conf-99="0.0687011"/>
+            <overflow-bin begin="10" end="0" prob="0.000168387" conf-95="0.019669" conf-99="0.0453673"/>
          </service-time-distribution>
-         <result-task throughput="0.307651" utilization="0.461319" phase1-utilization="0.461319" proc-utilization="0.307305" semaphore-waiting="3.25045" semaphore-waiting-variance="1.51882" semaphore-utilization="1">
-            <result-conf-95 throughput="0.0029808" utilization="0.00209158" phase1-utilization="0.00152667" proc-utilization="0.00114678" semaphore-waiting="0.0223152" semaphore-waiting-variance="0.0433739" semaphore-utilization="0"/>
-            <result-conf-99 throughput="0.0068753" utilization="6.7411" phase1-utilization="0.00352131" proc-utilization="0.00264508" semaphore-waiting="0.0514707" semaphore-waiting-variance="0.100043" semaphore-utilization="0"/>
+         <result-task throughput="0.307657" utilization="0.46138" phase1-utilization="0.46138" proc-utilization="0.307572" semaphore-waiting="3.25037" semaphore-waiting-variance="1.51701" semaphore-utilization="1">
+            <result-conf-95 throughput="0.00161901" utilization="0.00219107" phase1-utilization="0.0021634" proc-utilization="0.00205413" semaphore-waiting="0.012074" semaphore-waiting-variance="0.0274381" semaphore-utilization="0"/>
+            <result-conf-99 throughput="0.0037343" utilization="0.00505377" phase1-utilization="0.00498994" proc-utilization="0.0047379" semaphore-waiting="0.0278489" semaphore-waiting-variance="0.0632869" semaphore-utilization="0"/>
          </result-task>
          <entry name="signal" type="PH1PH2" semaphore="signal">
-            <result-entry utilization="0.246265" throughput="0.307652" squared-coeff-variation="0.530727" proc-utilization="0.0922511">
-               <result-conf-95 utilization="0.00131149" throughput="0.0021076" squared-coeff-variation="0" proc-utilization="0.000839277"/>
-               <result-conf-99 utilization="0.00302499" throughput="0.00486124" squared-coeff-variation="0" proc-utilization="0.00193582"/>
+            <result-entry utilization="0.246092" throughput="0.307657" squared-coeff-variation="0.531332" proc-utilization="0.0922846" throughput-bound="3.33333">
+               <result-conf-95 utilization="0.000861646" throughput="0.00114209" squared-coeff-variation="0" proc-utilization="0.000530637"/>
+               <result-conf-99 utilization="0.00198741" throughput="0.00263426" squared-coeff-variation="0" proc-utilization="0.00122393"/>
             </result-entry>
             <entry-phase-activities>
                <activity name="signal_1" phase="1" host-demand-mean="0.3">
-                  <result-activity proc-waiting="0.500614" service-time="0.800468" utilization="0.246265" service-time-variance="0.340063">
-                     <result-conf-95 proc-waiting="0.00553423" service-time="0.00604611" utilization="0.00131149" service-time-variance="0.0108743"/>
-                     <result-conf-99 proc-waiting="0.0127649" service-time="0.0139455" utilization="0.00302499" service-time-variance="0.0250819"/>
+                  <result-activity proc-waiting="0.499933" service-time="0.799893" utilization="0.246092" service-time-variance="0.339961">
+                     <result-conf-95 proc-waiting="0.00445997" service-time="0.00576157" utilization="0.000861646" service-time-variance="0.00666167"/>
+                     <result-conf-99 proc-waiting="0.0102871" service-time="0.0132892" utilization="0.00198741" service-time-variance="0.0153653"/>
                   </result-activity>
                </activity>
             </entry-phase-activities>
          </entry>
          <entry name="wait" type="PH1PH2" semaphore="wait">
-            <result-entry utilization="0.215054" throughput="0.307651" squared-coeff-variation="0.994941" proc-utilization="0.215054">
-               <result-conf-95 utilization="0.000781486" throughput="0.0021079" squared-coeff-variation="0" proc-utilization="0.000781486"/>
-               <result-conf-99 utilization="0.00180252" throughput="0.00486193" squared-coeff-variation="0" proc-utilization="0.00180252"/>
+            <result-entry utilization="0.215288" throughput="0.307657" squared-coeff-variation="0.996074" proc-utilization="0.215288" throughput-bound="1.42857">
+               <result-conf-95 utilization="0.0019844" throughput="0.00114754" squared-coeff-variation="0" proc-utilization="0.0019844"/>
+               <result-conf-99 utilization="0.00457709" throughput="0.00264683" squared-coeff-variation="0" proc-utilization="0.00457709"/>
             </result-entry>
             <entry-phase-activities>
                <activity name="wait_1" phase="1" host-demand-mean="0.7">
-                  <result-activity proc-waiting="0" service-time="0.699018" utilization="0.215054" service-time-variance="0.486155">
-                     <result-conf-95 proc-waiting="0" service-time="0.00463316" utilization="0.000781486" service-time-variance="0.0149071"/>
-                     <result-conf-99 proc-waiting="0" service-time="0.0106865" utilization="0.00180252" service-time-variance="0.0343837"/>
+                  <result-activity proc-waiting="0" service-time="0.699765" utilization="0.215288" service-time-variance="0.487749">
+                     <result-conf-95 proc-waiting="0" service-time="0.00682546" utilization="0.0019844" service-time-variance="0.0140003"/>
+                     <result-conf-99 proc-waiting="0" service-time="0.0157431" utilization="0.00457709" service-time-variance="0.032292"/>
                   </result-activity>
                </activity>
             </entry-phase-activities>

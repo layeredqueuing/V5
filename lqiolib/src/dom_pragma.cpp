@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 13739 2020-08-05 22:36:51Z greg $
+ *  $Id: dom_pragma.cpp 13764 2020-08-17 19:50:05Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,15 +54,22 @@ namespace LQIO {
 	    true_false_arg.insert(Pragma::_no_);
 	    __pragmas[Pragma::_cycles_] = &true_false_arg;			/* lqns */
 	    __pragmas[Pragma::_interlocking_] = &true_false_arg;		/* lqns */
-	    __pragmas[Pragma::_spex_header_] = &true_false_arg;
 	    __pragmas[Pragma::_prune_] = &true_false_arg;			/* lqns */
 	    __pragmas[Pragma::_quorum_delayed_calls_] = &true_false_arg;
 	    __pragmas[Pragma::_quorum_reply_] =	&true_false_arg;		/* lqsim */
 	    __pragmas[Pragma::_reschedule_on_async_send_] = &true_false_arg;
+	    __pragmas[Pragma::_spex_header_] = &true_false_arg;
 	    __pragmas[Pragma::_stop_on_message_loss_] = &true_false_arg;
 	    
 	    /* string */
 	    	
+	    static std::set<std::string> force_multiserver_args;		/* lqns */
+	    force_multiserver_args.insert(Pragma::_none_);
+	    force_multiserver_args.insert(Pragma::_processors_);
+	    force_multiserver_args.insert(Pragma::_tasks_);
+	    force_multiserver_args.insert(Pragma::_all_);
+	    __pragmas[Pragma::_force_multiserver_] = &force_multiserver_args;	
+	    
 	    static std::set<std::string> layering_args;		/* lqns */
 	    layering_args.insert(Pragma::_batched_);
 	    layering_args.insert(Pragma::_batched_back_);
@@ -284,6 +291,7 @@ namespace LQIO {
 	const char * Pragma::_exponential_ =			"exponential";
 	const char * Pragma::_false_ =				"false";
 	const char * Pragma::_fast_ =				"fast";
+	const char * Pragma::_force_multiserver_ =		"force-multiserver";
 	const char * Pragma::_hwsw_ =				"hwsw";
 	const char * Pragma::_hyper_ =				"hyper";
 	const char * Pragma::_idle_time_ =			"idle-time";
@@ -309,6 +317,7 @@ namespace LQIO {
 	const char * Pragma::_overtaking_ =			"overtaking";
 	const char * Pragma::_precision_ =			"precision";
 	const char * Pragma::_processor_scheduling_ =		"processor-scheduling";
+	const char * Pragma::_processors_ =			"processors";
 	const char * Pragma::_prune_ =				"prune";
 	const char * Pragma::_quorum_delayed_calls_ =		"quorum-delayed-calls";
 	const char * Pragma::_quorum_reply_ =			"quorum-reply";
@@ -333,6 +342,7 @@ namespace LQIO {
 	const char * Pragma::_stop_on_message_loss_ =		"stop-on-message-loss";
 	const char * Pragma::_suri_ =				"suri";
 	const char * Pragma::_task_scheduling_ =		"task-scheduling";
+	const char * Pragma::_tasks_ =				"tasks";
 	const char * Pragma::_tau_ =				"tau";
 	const char * Pragma::_threads_ =			"threads";
 	const char * Pragma::_true_ =				"true";

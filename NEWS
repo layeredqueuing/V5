@@ -1,3 +1,10 @@
+* Bugs fixed in 5.17
+238 	srvndiff 	XML results for forwarding delay are not saved. 
+239 	lqsim 		Split configure(). 
+240 	lqiolib 	Group handling for .lqn files borked. 
+241 	lqiolib 	65-buffer.in:18: error: syntax error.
+
+
 * Bugs fixed in 5.16
 220 	lqns 		V5: lqns regression failures.
 224 	lqns 		Backport V6 changes to V5.

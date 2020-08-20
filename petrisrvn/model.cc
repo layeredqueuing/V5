@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
  *
  * Load the SRVN model.
  */
@@ -287,7 +287,7 @@ Model::construct()
     for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator nextEntry = allEntries.begin(); nextEntry != allEntries.end(); ++nextEntry ) {
 	LQIO::DOM::Entry* entry = nextEntry->second;
 	Entry* newEntry = Entry::find(entry->getName());
-	assert(newEntry != NULL);
+	if ( newEntry == nullptr ) continue;
 
 	/* Go over all of the entry's phases and add the calls */
 	for (unsigned p = 1; p <= entry->getMaximumPhase(); ++p) {

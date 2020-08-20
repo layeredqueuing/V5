@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: generate.cc 13764 2020-08-17 19:50:05Z greg $
  */
 
 #include "lqngen.h"
@@ -609,7 +609,9 @@ Generate::reparameterize()
 	break;
 
     case LQIO::DOM::Document::XML_INPUT:
-	if ( Flags::sensitivity > 0.0 ) {
+	if ( Flags::spex_output ) {
+	    addSpex( &Generate::makeVariables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
+	} else if ( Flags::sensitivity > 0.0 ) {
 	    addSensitivityLQX( &Generate::makeVariables, &ModelVariable::lqx_sensitivity );
 	} else {
 	    addLQX( &Generate::makeVariables, getNumberOfRuns() > 1 ? &ModelVariable::lqx_random : &ModelVariable::lqx_scalar );

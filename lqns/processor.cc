@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: processor.cc 13779 2020-08-20 01:37:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -73,7 +73,7 @@ Processor::check() const
     if ( !schedulingIsOk( validScheduling() ) ) {
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
 			      scheduling_label[static_cast<unsigned int>(scheduling())].str,
-			      "processor",
+			      getDOM()->getTypeName(),
 			      name().c_str() );
 	getDOM()->setSchedulingType(defaultScheduling());
     }
@@ -116,9 +116,13 @@ Processor::configure( const unsigned nSubmodels )
     }
     if ( maxS > 0. && minS / maxS < 0.1
 	 && !schedulingIsOk( SCHED_PS_BIT|SCHED_PS_HOL_BIT|SCHED_PS_PPR_BIT|SCHED_DELAY_BIT ) ) {
-	LQIO::solution_error( ADV_SERVICE_TIME_RANGE, "processor", name().c_str(), minS, maxS );
+	LQIO::solution_error( ADV_SERVICE_TIME_RANGE, getDOM()->getTypeName(), name().c_str(), minS, maxS );
     }
     Entity::configure( nSubmodels );
+    if ( Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
+	attributes.variance = false;
+    }
+    
     return *this;
 }
 
@@ -157,7 +161,7 @@ Processor::rate() const
 	    value = getDOM()->getRateValue();
 	}
 	catch ( const std::domain_error& e ) {
-	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", name().c_str(), e.what() );
+	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", getDOM()->getTypeName(), name().c_str(), e.what() );
 	    throw_bad_parameter();
 	}
     } 
@@ -281,7 +285,7 @@ Processor::makeServer( const unsigned nChains )
 	if ( dynamic_cast<Infinite_Server *>(myServerStation) ) return 0;
 	myServerStation = new Infinite_Server( nEntries(), nChains, maxPhase() );
 
-    } else if ( isMultiServer() ) {
+    } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
 
 	/* ---------------- Multi Servers ---------------- */
 

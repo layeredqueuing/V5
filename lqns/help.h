@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13729 2020-08-04 20:20:16Z greg $
+ * $Id: help.h 13764 2020-08-17 19:50:05Z greg $
  */
 
 #ifndef _HELP_H
@@ -21,7 +21,6 @@ void usage( const char );
 void usage( const char c, const char * s );
 
 class Help;
-struct pragma_info;
 
 class StringManip {
 public:
@@ -216,6 +215,7 @@ public:
 
     ostream& pragmaCycles( ostream& output, bool verbose ) const;
     ostream& pragmaStopOnMessageLoss( ostream& output, bool verbose ) const;
+    ostream& pragmaForceMultiserver( ostream& output, bool verbose ) const;
     ostream& pragmaInterlock( ostream& output, bool verbose ) const;
     ostream& pragmaLayering( ostream& output, bool verbose ) const;
     ostream& pragmaMultiserver( ostream& output, bool verbose ) const;
@@ -239,6 +239,11 @@ public:
 
     ostream& pragmaCyclesAllow( ostream& output, bool verbose ) const;
     ostream& pragmaCyclesDisallow( ostream& output, bool verbose ) const;
+
+    ostream& pragmaForceMultiserverNone( ostream& output, bool verbose ) const;
+    ostream& pragmaForceMultiserverProcessors( ostream& output, bool verbose ) const;
+    ostream& pragmaForceMultiserverTasks( ostream& output, bool verbose ) const;
+    ostream& pragmaForceMultiserverAll( ostream& output, bool verbose ) const;
 
     ostream& pragmaStopOnMessageLossFalse( ostream& output, bool verbose ) const;
     ostream& pragmaStopOnMessageLossTrue( ostream& output, bool verbose ) const;
@@ -328,18 +333,19 @@ protected:
     
 private:
     static parameter_map_t  __cycles_args;
-    static parameter_map_t  __stop_on_message_loss_args;
+    static parameter_map_t  __force_multiserver_args;
     static parameter_map_t  __interlock_args;
     static parameter_map_t  __layering_args;
     static parameter_map_t  __multiserver_args;
     static parameter_map_t  __mva_args;
     static parameter_map_t  __overtaking_args;
     static parameter_map_t  __processor_args;
+    static parameter_map_t  __prune_args;
+    static parameter_map_t  __spex_header_args;
+    static parameter_map_t  __stop_on_message_loss_args;
     static parameter_map_t  __threads_args;
     static parameter_map_t  __variance_args;
     static parameter_map_t  __warning_args;
-    static parameter_map_t  __spex_header_args;
-    static parameter_map_t  __prune_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     static parameter_map_t  __quorum_distribution_args;
     static parameter_map_t  __quorum_delayed_calls_args;

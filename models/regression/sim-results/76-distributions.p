@@ -1,197 +1,230 @@
-# lqsim 5.2
-# lqsim -C1.0,1000 -S1049217653 -p -o76-distributions.p 76-distributions.in
+# lqsim 5.16
+# lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=76-distributions.p 76-distributions.in
+# $Id: 76-distributions.p 13764 2020-08-17 19:50:05Z greg $
 V y
-C 0.975066
-I 7
+C 0.480477
+I 3
 PP 4
 NP 1
-#!User:  0:00:00.00
-#!Sys:   0:00:00.00
-#!Real:  0:00:00.00
 
-W 0
+#!Comment: Distribution tests.
+#!User:  5:28:49.000
+#!Sys:   2:08:36.000
+#!Real:  7:42:39.000
+
+B 8
+constant_client:constant_client 0.333333    
+constant_server:constant_server 1           
+gamma_client   :gamma_client    0.333333    
+gamma_server   :gamma_server    1           
+exponential_client:exponential_client 0.333333    
+exponential_server:exponential_server 1           
+hyperexponential_client:hyperexponential_client 0.333333    
+hyperexponential_server:hyperexponential_server 1           
+-1
+
+W 4
 constant_client:constant_client constant_server 0           -1 
                                             %95 0           -1 
                                             %99 0           -1 
-  -1 
-exponential_client:exponential_client exponential_server 0           -1 
-                                            %95 0           -1 
-                                            %99 0           -1 
-  -1 
+                -1 
 gamma_client   :gamma_client    gamma_server    0           -1 
                                             %95 0           -1 
                                             %99 0           -1 
-  -1 
+                -1 
+exponential_client:exponential_client exponential_server 0           -1 
+                                            %95 0           -1 
+                                            %99 0           -1 
+                -1 
 hyperexponential_client:hyperexponential_client hyperexponential_server 0           -1 
                                             %95 0           -1 
                                             %99 0           -1 
-  -1 
+                -1 
+-1
+
+VARW 4
+constant_client:constant_client constant_server 0            -1 
+                                            %95 0            -1 
+                                            %99 0            -1 
+                -1 
+gamma_client   :gamma_client    gamma_server    0            -1 
+                                            %95 0            -1 
+                                            %99 0            -1 
+                -1 
+exponential_client:exponential_client exponential_server 0            -1 
+                                            %95 0            -1 
+                                            %99 0            -1 
+                -1 
+hyperexponential_client:hyperexponential_client hyperexponential_server 0            -1 
+                                            %95 0            -1 
+                                            %99 0            -1 
+                -1 
 -1
 
 X 8
-constant_client:constant_client 2.99863     -1 
-                            %95 0.0242473   -1 
-                            %99 0.0367326   -1 
-  -1 
-constant_server:constant_server 1           -1 
-                            %95 0           -1 
-                            %99 0           -1 
-  -1 
-exponential_client:exponential_client 2.99099     -1 
-                            %95 0.0234749   -1 
-                            %99 0.0355625   -1 
-  -1 
-exponential_server:exponential_server 1.00005     -1 
-                            %95 0.00520467  -1 
-                            %99 0.00788463  -1 
-  -1 
-gamma_client   :gamma_client    3.00105     -1 
-                            %95 0.0196893   -1 
-                            %99 0.0298277   -1 
-  -1 
-gamma_server   :gamma_server    0.999645    -1 
-                            %95 0.00261973  -1 
-                            %99 0.00396867  -1 
-  -1 
-hyperexponential_client:hyperexponential_client 2.99653     -1 
-                            %95 0.0464298   -1 
-                            %99 0.0703372   -1 
-  -1 
-hyperexponential_server:hyperexponential_server 0.998916    -1 
-                            %95 0.0148656   -1 
-                            %99 0.0225201   -1 
-  -1 
+constant_client:constant_client 2.9989      -1 
+                            %95 0.00710557  -1 
+                            %99 0.0163892   -1 
+                -1 
+constant_server:constant_server 1.00002     -1 
+                            %95 0.00466714  -1 
+                            %99 0.0107649   -1 
+                -1 
+gamma_client   :gamma_client    2.99783     -1 
+                            %95 0.00734297  -1 
+                            %99 0.0169368   -1 
+                -1 
+gamma_server   :gamma_server    1.00006     -1 
+                            %95 0.00115514  -1 
+                            %99 0.00266436  -1 
+                -1 
+exponential_client:exponential_client 2.99622     -1 
+                            %95 0.0158082   -1 
+                            %99 0.0364621   -1 
+                -1 
+exponential_server:exponential_server 0.999344    -1 
+                            %95 0.00252031  -1 
+                            %99 0.00581318  -1 
+                -1 
+hyperexponential_client:hyperexponential_client 2.99767     -1 
+                            %95 0.0260103   -1 
+                            %99 0.0599936   -1 
+                -1 
+hyperexponential_server:hyperexponential_server 0.999043    -1 
+                            %95 0.00635574  -1 
+                            %99 0.0146597   -1 
+                -1 
 -1
 
 VAR 8
-constant_client:constant_client 10.7073     -1 
-                            %95 0.220339    -1 
-                            %99 0.333795    -1 
-  -1 
-constant_server:constant_server 0           -1 
-                            %95 0           -1 
-                            %99 0           -1 
-  -1 
-exponential_client:exponential_client 12.9364     -1 
-                            %95 0.219398    -1 
-                            %99 0.33237     -1 
-  -1 
-exponential_server:exponential_server 0.998207    -1 
-                            %95 0.0142901   -1 
-                            %99 0.0216483   -1 
-  -1 
-gamma_client   :gamma_client    11.2694     -1 
-                            %95 0.124979    -1 
-                            %99 0.189333    -1 
-  -1 
-gamma_server   :gamma_server    0.249739    -1 
-                            %95 0.00276864  -1 
-                            %99 0.00419426  -1 
-  -1 
-hyperexponential_client:hyperexponential_client 31.6616     -1 
-                            %95 1.38285     -1 
-                            %99 2.09491     -1 
-  -1 
-hyperexponential_server:hyperexponential_server 8.98629     -1 
-                            %95 0.449629    -1 
-                            %99 0.681151    -1 
-  -1 
+constant_client:constant_client 13.0102     -1 
+                            %95 0.127657    -1 
+                            %99 0.294444    -1 
+                -1 
+constant_server:constant_server 1.00169     -1 
+                            %95 0.0095103   -1 
+                            %99 0.0219358   -1 
+                -1 
+gamma_client   :gamma_client    11.2317     -1 
+                            %95 0.0176805   -1 
+                            %99 0.0407805   -1 
+                -1 
+gamma_server   :gamma_server    0.250163    -1 
+                            %95 0.000965061 -1 
+                            %99 0.00222594  -1 
+                -1 
+exponential_client:exponential_client 12.9324     -1 
+                            %95 0.219137    -1 
+                            %99 0.505445    -1 
+                -1 
+exponential_server:exponential_server 0.997758    -1 
+                            %95 0.00941322  -1 
+                            %99 0.0217119   -1 
+                -1 
+hyperexponential_client:hyperexponential_client 31.6163     -1 
+                            %95 0.794058    -1 
+                            %99 1.83152     -1 
+                -1 
+hyperexponential_server:hyperexponential_server 9.0061      -1 
+                            %95 0.278544    -1 
+                            %99 0.642471    -1 
+                -1 
 -1
 
 FQ 8
-constant_client:constant_client 0.333489    1           -1 1          
-                            %95 0.00270059  0           -1 0          
-                            %99 0.00409116  0           -1 0          
-  -1 
-constant_server:constant_server 0.666628    0.666628    -1 0.666628   
-                            %95 0.000675385 0.000675509 -1 0.000675509
-                            %99 0.00102315  0.00102334  -1 0.00102334 
-  -1 
-exponential_client:exponential_client 0.33434     1           -1 1          
-                            %95 0.00261888  0           -1 0          
-                            %99 0.00396739  0           -1 0          
-  -1 
-exponential_server:exponential_server 0.666645    0.666679    -1 0.666679   
-                            %95 0.00215186  0.00161822  -1 0.00161822 
-                            %99 0.00325989  0.00245147  -1 0.00245147 
-  -1 
-gamma_client   :gamma_client    0.333218    1           -1 1          
-                            %95 0.00218353  0           -1 0          
-                            %99 0.00330786  0           -1 0          
-  -1 
-gamma_server   :gamma_server    0.666851    0.666614    -1 0.666614   
-                            %95 0.00164145  0.000523072 -1 0.000523072
-                            %99 0.00248666  0.000792411 -1 0.000792411
-  -1 
-hyperexponential_client:hyperexponential_client 0.333732    1           -1 1          
-                            %95 0.00517041  0           -1 0          
-                            %99 0.00783274  0           -1 0          
-  -1 
-hyperexponential_server:hyperexponential_server 0.666489    0.665754    -1 0.665754   
-                            %95 0.0064008   0.00456517  -1 0.00456517 
-                            %99 0.00969668  0.00691586  -1 0.00691586 
-  -1 
+constant_client:constant_client 0.333456    1           -1 1
+                            %95 0.000795644 0           -1 0
+                            %99 0.00183518  0           -1 0
+                -1 
+constant_server:constant_server 0.666642    0.666656    -1 0.666656
+                            %95 0.00188604  0.00152134  -1 0.00152134
+                            %99 0.00435021  0.00350903  -1 0.00350903
+                -1 
+gamma_client   :gamma_client    0.333575    1           -1 1
+                            %95 0.00081399  0           -1 0
+                            %99 0.00187749  0           -1 0
+                -1 
+gamma_server   :gamma_server    0.666668    0.666706    -1 0.666706
+                            %95 0.000550581 0.000383755 -1 0.000383755
+                            %99 0.00126993  0.000885143 -1 0.000885143
+                -1 
+exponential_client:exponential_client 0.333754    1           -1 1
+                            %95 0.00175967  0           -1 0
+                            %99 0.00405872  0           -1 0
+                -1 
+exponential_server:exponential_server 0.666979    0.666541    -1 0.666541
+                            %95 0.000320039 0.00166132  -1 0.00166132
+                            %99 0.000738181 0.00383189  -1 0.00383189
+                -1 
+hyperexponential_client:hyperexponential_client 0.333593    1           -1 1
+                            %95 0.00289804  0           -1 0
+                            %99 0.00668443  0           -1 0
+                -1 
+hyperexponential_server:hyperexponential_server 0.667378    0.666739    -1 0.666739
+                            %95 0.00463966  0.00283714  -1 0.00283714
+                            %99 0.0107015   0.00654395  -1 0.00654395
+                -1 
 -1
 
 P constant 2
-constant_client 1  0 1  constant_client 0.333372    0           -1 
-                                    %95 0.000675509 0           -1 
-                                    %99 0.00102334  0           -1 
+constant_client 1  0 1  constant_client 0.333344    0           -1 
+                                    %95 0.00152134  0           -1 
+                                    %99 0.00350903  0           -1 
                         -1 
-constant_server 1  0 1  constant_server 0.666628    0           -1 
-                                    %95 0.000675509 0           -1 
-                                    %99 0.00102334  0           -1 
+constant_server 1  0 1  constant_server 0.666656    0           -1 
+                                    %95 0.00152134  0           -1 
+                                    %99 0.00350903  0           -1 
                         -1 
-  -1 
-                                        1           
-                                    %95 0.000955314 
-                                    %99 0.00144722  
-  -1 
+                -1 
+                                        1
+                                    %95 0.00215151
+                                    %99 0.00496251
+-1 
 
 P exponential 2
-exponential_client 1  0 1  exponential_client 0.333321    0           -1 
-                                    %95 0.00161822  0           -1 
-                                    %99 0.00245147  0           -1 
+exponential_client 1  0 1  exponential_client 0.333459    0           -1 
+                                    %95 0.00166132  0           -1 
+                                    %99 0.00383189  0           -1 
                         -1 
-exponential_server 1  0 1  exponential_server 0.666679    0           -1 
-                                    %95 0.00161822  0           -1 
-                                    %99 0.00245147  0           -1 
+exponential_server 1  0 1  exponential_server 0.666541    0           -1 
+                                    %95 0.00166132  0           -1 
+                                    %99 0.00383189  0           -1 
                         -1 
-  -1 
-                                        1           
-                                    %95 0.00228851  
-                                    %99 0.00346691  
-  -1 
+                -1 
+                                        1
+                                    %95 0.00234946
+                                    %99 0.00541911
+-1 
 
 P gamma 2
-gamma_client    1  0 1  gamma_client    0.333386    0           -1 
-                                    %95 0.000523072 0           -1 
-                                    %99 0.000792411 0           -1 
+gamma_client    1  0 1  gamma_client    0.333294    0           -1 
+                                    %95 0.000383755 0           -1 
+                                    %99 0.000885143 0           -1 
                         -1 
-gamma_server    1  0 1  gamma_server    0.666614    0           -1 
-                                    %95 0.000523072 0           -1 
-                                    %99 0.000792411 0           -1 
+gamma_server    1  0 1  gamma_server    0.666706    0           -1 
+                                    %95 0.000383755 0           -1 
+                                    %99 0.000885143 0           -1 
                         -1 
-  -1 
-                                        1           
-                                    %95 0.000739736 
-                                    %99 0.00112064  
-  -1 
+                -1 
+                                        1
+                                    %95 0.000542712
+                                    %99 0.00125178
+-1 
 
 P hyperexponential 2
-hyperexponential_client 1  0 1  hyperexponential_client 0.334246    0           -1 
-                                    %95 0.00456517  0           -1 
-                                    %99 0.00691586  0           -1 
+hyperexponential_client 1  0 1  hyperexponential_client 0.333261    0           -1 
+                                    %95 0.00283714  0           -1 
+                                    %99 0.00654395  0           -1 
                         -1 
-hyperexponential_server 1  0 1  hyperexponential_server 0.665754    0           -1 
-                                    %95 0.00456517  0           -1 
-                                    %99 0.00691586  0           -1 
+hyperexponential_server 1  0 1  hyperexponential_server 0.666739    0           -1 
+                                    %95 0.00283714  0           -1 
+                                    %99 0.00654395  0           -1 
                         -1 
-  -1 
-                                        1           
-                                    %95 0.00645613  
-                                    %99 0.0097805   
-  -1 
+                -1 
+                                        1
+                                    %95 0.00401232
+                                    %99 0.00925455
+-1 
 
 -1
 

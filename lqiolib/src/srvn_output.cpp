@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13749 2020-08-09 14:07:06Z greg $
+ *  $Id: srvn_output.cpp 13770 2020-08-18 15:29:15Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -796,30 +796,28 @@ namespace LQIO {
 
 	const unsigned int count_w = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous ) ).getCount()
 	    + for_each( _entities.begin(), _entities.end(), EntryOutput::CountForwarding() ).getCount();
-	const unsigned int count_z = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply ) ).getCount();
-
         if ( count_w > 0 ) {
             output << "W " << count_w << endl;
             for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
 	    /* Ignore activities, but force end-of-list with NullActivity____ */
 	    for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingWaiting, &EntryOutput::nullActivityFunc, &EntryOutput::nullActivityTest ) );
             output << "-1" << endl << endl;
-        }
-        if ( count_z > 0 ) {
-            output << "Z " << count_z << endl;
-            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
-            output << "-1" << endl << endl;
-        }
 
-	if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
-	    if ( count_w > 0 ) {
+	    if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
                 output << "VARW " << count_w << endl;
                 for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasRendezvous, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
 		for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingVarianceWaiting, &EntryOutput::nullActivityFunc, &EntryOutput::nullActivityTest ) );
                 output << "-1" << endl << endl;
             }
-	
-            if ( count_z > 0 ) {
+        }
+
+	const unsigned int count_z = for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply ) ).getCount();
+        if ( count_z > 0 ) {
+            output << "Z " << count_z << endl;
+            for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallWaiting, &CallOutput::printCallWaitingConfidence ) );
+            output << "-1" << endl << endl;
+
+	    if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
                 output << "VARZ " << count_z << endl;
                 for_each( _entities.begin(), _entities.end(), CallOutput( output, &DOM::Call::hasSendNoReply, &CallOutput::printCallVarianceWaiting, &CallOutput::printCallVarianceWaitingConfidence ) );
                 output << "-1" << endl << endl;

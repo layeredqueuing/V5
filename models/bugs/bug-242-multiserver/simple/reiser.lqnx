@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqngen -spex-output -xml-output -->
+<lqn-model name="" description="lqngen 5.16 solution for model from: ." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <parameters>
+$c_c0 = 5
+$m_p0 = 1
+$m_t0 = [1,2,3,5,@infinity]
+$s_c0_1 = 1
+$s_e0_1 = 1
+$y_c0_1_e0 = 1
+   </parameters>
+   <solver-params comment="Layers: 1, Customers: 0, Clients: 1, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
+      <pragma param="multiserver" value="reiser"/>
+      <pragma param="force-multiserver" value="all"/>
+      <pragma param="mva" value="exact"/>
+   </solver-params>
+   <processor name="c0" scheduling="inf">
+      <task name="c0" scheduling="ref" multiplicity="$c_c0">
+         <result-observe throughput="$f_c0"/>
+         <entry name="c0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="c0_1" phase="1" host-demand-mean="$s_c0_1">
+                  <result-observe service-time="$r_c0_1"/>
+                  <synch-call dest="e0" calls-mean="$y_c0_1_e0">
+		    <result-observe waiting="$w_c0_1_e0"/>
+		  </synch-call>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p0" scheduling="ps" multiplicity="$m_p0" quantum="0.1">
+      <result-observe utilization="$p_p0"/>
+      <task name="t0" scheduling="fcfs" multiplicity="$m_t0">
+         <result-observe utilization="$u_t0"/>
+         <entry name="e0" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e0_1" phase="1" host-demand-mean="$s_e0_1">
+                  <result-observe service-time="$r_e0_1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <results-collection>
+$m_t0
+$f_c0
+$p_p0
+$u_t0
+$r_c0_1
+$w_c0_1_e0
+$r_e0_1
+   </results-collection>
+</lqn-model>

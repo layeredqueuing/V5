@@ -1,3 +1,9 @@
+2020-08-18  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqns
+	- Add #pragma force-multiserver to lqn solver to force use of
+	  multiserver for fixed rate servers.
+
 2020-08-09  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
 
 	* lqsim, lqiolib
@@ -474,4 +480,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 13752 2020-08-10 02:52:44Z greg $
+$Id: ChangeLog 13773 2020-08-18 19:29:51Z greg $

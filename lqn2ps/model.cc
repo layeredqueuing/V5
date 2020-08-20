@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -412,7 +412,7 @@ Model::prepare( const LQIO::DOM::Document * document )
     for (unsigned i = 0; i < entryCount; ++i) {
 	LQIO::DOM::Entry* entry = allEntries[i];
 	Entry* newEntry = Entry::find(entry->getName());
-	assert(newEntry != NULL);
+	if ( newEntry == nullptr ) continue;
 
 	/* Handle open arrivals */
 

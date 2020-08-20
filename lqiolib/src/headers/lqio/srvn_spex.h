@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: srvn_spex.h 13764 2020-08-17 19:50:05Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -144,6 +144,15 @@ namespace LQIO {
 	    std::ostream& _output;
 	};
 
+	class PrintInputArrayVariable {
+	public:
+	    PrintInputArrayVariable( std::ostream& output ) : _output( output ) {};
+	    void operator()( const var_name_and_expr& var ) const { _output << Spex::print_input_variable( var ) << std::endl; }
+	private:
+	    std::ostream& _output;
+	};
+	
+
 	class PrintResultVariable {
 	public:
 	    PrintResultVariable( std::ostream& output, unsigned int indent=0 ) : _output( output ), _indent(indent) {};
@@ -194,6 +203,9 @@ namespace LQIO {
 	    LQX::SyntaxTreeNode * init(const std::string&) const;
 	    LQX::SyntaxTreeNode * test(const std::string&) const;
 	    LQX::SyntaxTreeNode * step(const std::string&) const;
+	    double getInit() const { return _init; }
+	    double getTest() const { return _test; }
+	    double getStep() const { return _step; }
 	    std::ostream& print( std::ostream& output ) const;
 
 	private:
@@ -257,6 +269,7 @@ namespace LQIO {
 	
 	static std::ostream& printResultVariables( std::ostream& output );
 	static VariableManip print_input_variable( const var_name_and_expr& var ) { return VariableManip( printInputVariable, var ); }
+	static VariableManip print_input_array_variable( const var_name_and_expr& var ) { return VariableManip( printInputArrayVariable, var ); }
 	static VariableManip print_result_variable( const var_name_and_expr& var ) { return VariableManip( printResultVariable, var ); }
 
 	LQX::SyntaxTreeNode * observation( const ObservationInfo& obs );
@@ -292,6 +305,7 @@ namespace LQIO {
 	
 	static ObservationInfo * findObservation( const std::string& );		/* Find the observation matching string */
 	static std::ostream& printInputVariable( std::ostream& output, const var_name_and_expr& var );
+	static std::ostream& printInputArrayVariable( std::ostream& output, const var_name_and_expr& var );
 	static std::ostream& printResultVariable( std::ostream& output, const var_name_and_expr& var );
 
 	static std::vector<var_name_and_expr>::const_iterator find( std::vector<var_name_and_expr>::const_iterator, std::vector<var_name_and_expr>::const_iterator, const std::string& );

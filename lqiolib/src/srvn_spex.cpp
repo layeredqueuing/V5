@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 13749 2020-08-09 14:07:06Z greg $
+ *  $Id: srvn_spex.cpp 13764 2020-08-17 19:50:05Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -715,6 +715,16 @@ namespace LQIO {
 		output << iter_var->second << ", ";
 	    }
 	    output << var.first << " = " << *(var.second);
+	}
+	return output;
+    }
+
+    std::ostream&
+    Spex::printInputArrayVariable( std::ostream& output, const Spex::var_name_and_expr& var )
+    {
+	std::map<std::string,Spex::ComprehensionInfo>::const_iterator comp = __comprehensions.find(var.first);
+	if ( comp != __comprehensions.end() && comp->second.getStep() > 0. ) {
+	    output << var.first;
 	}
 	return output;
     }

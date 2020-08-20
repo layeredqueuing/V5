@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -302,7 +302,7 @@ Model::prepare(const LQIO::DOM::Document* document)
     for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator nextEntry = allEntries.begin(); nextEntry != allEntries.end(); ++nextEntry ) {
 	LQIO::DOM::Entry* entry = nextEntry->second;
 	Entry* newEntry = Entry::find(entry->getName());
-	assert(newEntry != NULL);
+	if ( newEntry == nullptr ) continue;
 
 	newEntry->setEntryInformation( entry );
 

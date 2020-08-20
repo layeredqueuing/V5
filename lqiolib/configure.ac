@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 12554 2016-04-08 20:28:43Z greg $
+# $Id: configure.ac 13767 2020-08-18 13:38:47Z greg $
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.58)
-AC_INIT(liblqio, 0.2.0, martinmroz@gmail.com)
+AC_INIT(liblqio, 0.3.0, martinmroz@gmail.com)
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_MACRO_DIR([../config])
 AM_INIT_AUTOMAKE

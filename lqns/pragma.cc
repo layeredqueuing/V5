@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 13739 2020-08-05 22:36:51Z greg $ *
+ * $Id: pragma.cc 13764 2020-08-17 19:50:05Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -33,17 +33,17 @@ Pragma::Pragma() :
     _multiserver(DEFAULT_MULTISERVER),
     _mva(LINEARIZER_MVA),
     _overtaking(MARKOV_OVERTAKING),
-    _default_processor_scheduling(true),
     _processor_scheduling(SCHEDULE_PS),
+    _severity_level(LQIO::NO_ERROR),
     _spex_header(true),
     _stop_on_bogus_utilization(0),
     _stop_on_message_loss(true),
     _tau(8),
     _threads(HYPER_THREADS),
     _variance(DEFAULT_VARIANCE),
+    _default_processor_scheduling(true),
     _init_variance_only(false),
-    _entry_variance(true),
-    _severity_level(LQIO::NO_ERROR)
+    _entry_variance(true)
 {
 }
 
@@ -58,6 +58,7 @@ Pragma::initialize()
     if ( __set_pragma.size() != 0 ) return;
 
     __set_pragma[LQIO::DOM::Pragma::_cycles_] = &Pragma::setAllowCycles;
+    __set_pragma[LQIO::DOM::Pragma::_force_multiserver_] = &Pragma::setForceMultiserver;
     __set_pragma[LQIO::DOM::Pragma::_interlocking_] = &Pragma::setInterlock;
     __set_pragma[LQIO::DOM::Pragma::_layering_] = &Pragma::setLayering;
     __set_pragma[LQIO::DOM::Pragma::_multiserver_] = &Pragma::setMultiserver;
@@ -65,12 +66,12 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_overtaking_] = &Pragma::setOvertaking;
     __set_pragma[LQIO::DOM::Pragma::_processor_scheduling_] = &Pragma::setProcessorScheduling;
     __set_pragma[LQIO::DOM::Pragma::_severity_level_] = &Pragma::setSeverityLevel;
+    __set_pragma[LQIO::DOM::Pragma::_spex_header_] = &Pragma::setSpexHeader;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_bogus_utilization_] = &Pragma::setStopOnBogusUtilization;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] = &Pragma::setStopOnMessageLoss;
     __set_pragma[LQIO::DOM::Pragma::_tau_] = &Pragma::setTau;
     __set_pragma[LQIO::DOM::Pragma::_threads_] = &Pragma::setThreads;
     __set_pragma[LQIO::DOM::Pragma::_variance_] = &Pragma::setVariance;
-    __set_pragma[LQIO::DOM::Pragma::_spex_header_] = &Pragma::setSpexHeader;
 }
     
 void
@@ -95,6 +96,19 @@ Pragma::set( const std::map<std::string,std::string>& list )
 void Pragma::setAllowCycles(const std::string& value)
 {
     _allow_cycles = isTrue(value);
+}
+
+void Pragma::setForceMultiserver(const std::string& value)
+{
+    if ( value == LQIO::DOM::Pragma::_all_ ) {
+	_force_multiserver = FORCE_ALL;
+    } else if ( value == LQIO::DOM::Pragma::_tasks_ ) {
+	_force_multiserver = FORCE_TASKS;
+    } else if ( value == LQIO::DOM::Pragma::_processors_ ) {
+	_force_multiserver = FORCE_PROCESSORS;
+    } else {
+	_force_multiserver = FORCE_NONE;
+    }
 }
 
 void Pragma::setInterlock(const std::string& value)

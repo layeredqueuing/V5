@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 13739 2020-08-05 22:36:51Z greg $
+ * $Id: dom_pragma.h 13764 2020-08-17 19:50:05Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -66,6 +66,7 @@ namespace LQIO {
 	    static const char * _exponential_;
 	    static const char * _false_;
 	    static const char * _fast_;
+	    static const char * _force_multiserver_;
 	    static const char * _hwsw_;
 	    static const char * _hyper_;
 	    static const char * _idle_time_;
@@ -91,6 +92,7 @@ namespace LQIO {
 	    static const char * _overtaking_;
 	    static const char * _precision_;
 	    static const char * _processor_scheduling_;
+	    static const char * _processors_;
 	    static const char * _prune_;
 	    static const char * _quorum_delayed_calls_;
 	    static const char * _quorum_reply_;
@@ -115,6 +117,7 @@ namespace LQIO {
 	    static const char * _stop_on_message_loss_;
 	    static const char * _suri_;
 	    static const char * _task_scheduling_;
+	    static const char * _tasks_;
 	    static const char * _tau_;
 	    static const char * _threads_;
 	    static const char * _true_;

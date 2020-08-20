@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 13749 2020-08-09 14:07:06Z greg $
+ * $Id: lqngen.cc 13764 2020-08-17 19:50:05Z greg $
  */
 
 #include "lqngen.h"
@@ -637,6 +637,7 @@ main( int argc, char *argv[] )
 
 	    case 0x100+'S':
 		Flags::spex_output = true;
+		Flags::lqx_output = false;
 		break;
 
 	    case 0x200+'S':

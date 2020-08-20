@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: task.cc 13779 2020-08-20 01:37:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -126,7 +126,7 @@ Task::check() const
     if ( !schedulingIsOk( validScheduling() ) ) {
 	LQIO::solution_error( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
 			      scheduling_label[(unsigned)scheduling()].str,
-			      "task",
+			      getDOM()->getTypeName(),
 			      name().c_str() );
 	getDOM()->setSchedulingType(defaultScheduling());
     }
@@ -187,7 +187,10 @@ Task::configure( const unsigned nSubmodels )
     Entity::configure( nSubmodels );
 
     if ( hasOpenArrivals() ) {
-	attributes.open_model = 1;
+	attributes.open_model = true;
+    }
+    if ( Pragma::forceMultiserver( Pragma::FORCE_TASKS ) ) {
+	attributes.variance = false;
     }
 
     /* Configure the threads... */
@@ -347,7 +350,7 @@ Task::priority() const
 	return getDOM()->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name().c_str(), e.what() );
+	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0;
@@ -1429,7 +1432,7 @@ ReferenceTask::copies() const
 	return getDOM()->getCopiesValue();
     }
     catch ( const std::domain_error &e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", "task", name().c_str(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "multiplicity", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 1;
@@ -1453,7 +1456,7 @@ ReferenceTask::recalculateDynamicValues()
 	myThinkTime = dynamic_cast<LQIO::DOM::Task *>(getDOM())->getThinkTimeValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name().c_str(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return *this;
@@ -1550,7 +1553,7 @@ ServerTask::queueLength() const
 	return getDOM()->getQueueLengthValue();
     }
     catch ( const std::domain_error& e ) {
-	solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", "task", name().c_str(), e.what() );
+	solution_error( LQIO::ERR_INVALID_PARAMETER, "queue length", getDOM()->getTypeName(), name().c_str(), e.what() );
 	throw_bad_parameter();
     }
     return 0;
@@ -1670,7 +1673,7 @@ ServerTask::makeServer( const unsigned nChains )
 	if ( dynamic_cast<Infinite_Server *>(myServerStation) ) return 0;
 	myServerStation = new Infinite_Server( nEntries(), nChains, maxPhase() );
 
-    } else if ( isMultiServer() ) {
+    } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::FORCE_TASKS ) ) {
 
 	/* ---------------- Multi Servers ---------------- */
 
@@ -2016,7 +2019,7 @@ Task::create( LQIO::DOM::Task* domTask, const std::vector<Entry *>& entries )
 	/* ---------- Client tasks ---------- */
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, "task", task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, domTask->getTypeName(), task_name );
 	/* Fall through */
     case SCHEDULE_CUSTOMER:
 	aTask = new ReferenceTask( domTask, aProcessor, aGroup, entries );
@@ -2043,7 +2046,7 @@ Task::create( LQIO::DOM::Task* domTask, const std::vector<Entry *>& entries )
 	/*- BUG_164 */
 
     default:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, "task", task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, domTask->getTypeName(), task_name );
 	domTask->setSchedulingType(SCHEDULE_FIFO);
 	aTask = new ServerTask( domTask, aProcessor, aGroup, entries );
 	break;

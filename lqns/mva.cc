@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 13719 2020-08-03 13:32:07Z greg $
+ * $Id: mva.cc 13775 2020-08-19 18:40:23Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -2433,7 +2433,7 @@ SchweitzerCommon::marginalProbabilities( const unsigned m, const Population& N )
 void
 SchweitzerCommon::marginalProbabilities2( const unsigned m, const Population& N )
 {
-    Population I(K);				// Need to sequence over this.
+    Population I(N);				// Need to sequence over this.
     Population::IteratorOffset next( NCust, N );
     unsigned    i = 0;
     unsigned    n = offset( N );

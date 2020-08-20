@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 13739 2020-08-05 22:36:51Z greg $
+ * $Id: pragma.h 13764 2020-08-17 19:50:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -37,6 +37,7 @@ public:
     typedef enum { MARKOV_OVERTAKING, ROLIA_OVERTAKING, SIMPLE_OVERTAKING, SPECIAL_OVERTAKING, NO_OVERTAKING } pragma_overtaking;
     typedef enum { DEFAULT_VARIANCE, NO_VARIANCE, STOCHASTIC_VARIANCE, MOL_VARIANCE } pragma_variance;
     typedef enum { MAK_LUNDSTROM_THREADS, HYPER_THREADS, NO_THREADS } pragma_threads;
+    typedef enum { FORCE_NONE=0x00, FORCE_PROCESSORS=0x01, FORCE_TASKS=0x02, FORCE_ALL=0x03 } pragma_force_multiserver;
 
 private:
     Pragma();
@@ -58,6 +59,12 @@ public:
 	    return __cache->_exponential_paths;
 	}
 
+    static bool forceMultiserver( pragma_force_multiserver arg )
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_force_multiserver & arg != 0x00;
+	}
+    
     static bool interlock()
 	{
 	    assert( __cache != nullptr );
@@ -173,6 +180,7 @@ public:
 private:
     void setAllowCycles(const std::string&);
     void setExponential_paths(const std::string&);
+    void setForceMultiserver(const std::string&);
     void setInterlock(const std::string&);
     void setLayering(const std::string&);
     void setMultiserver(const std::string&);
@@ -213,22 +221,24 @@ public:
 private:
     bool _allow_cycles;
     bool _exponential_paths;
+    pragma_force_multiserver _force_multiserver;
     bool _interlock;
     pragma_layering  _layering;
     pragma_multiserver _multiserver;
     pragma_mva _mva;
     pragma_overtaking _overtaking;
-    bool _default_processor_scheduling;
     scheduling_type _processor_scheduling;
+    LQIO::severity_t _severity_level;
     bool _spex_header;
     double _stop_on_bogus_utilization;
     bool _stop_on_message_loss;
     unsigned  _tau;
     pragma_threads _threads;
     pragma_variance _variance;
+    /* bonus */
+    bool _default_processor_scheduling;
     bool _init_variance_only;
     bool _entry_variance;
-    LQIO::severity_t _severity_level;
     
     /* --- */
     

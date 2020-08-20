@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 13761 2020-08-12 02:14:55Z greg $
+ * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -244,7 +244,7 @@ Model::construct()
     for ( std::map<std::string,LQIO::DOM::Entry*>::const_iterator nextEntry = allEntries.begin(); nextEntry != allEntries.end(); ++nextEntry ) {
 	LQIO::DOM::Entry* entry = nextEntry->second;
 	Entry* newEntry = Entry::find(entry->getName().c_str());
-	assert(newEntry != NULL);
+	if ( newEntry == nullptr ) continue;
 
 //	newEntry->setEntryInformation( entry );
 

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 13729 2020-08-04 20:20:16Z greg $
+ * $Id: help.cc 13764 2020-08-17 19:50:05Z greg $
  */
 
 #include <config.h>
@@ -29,19 +29,21 @@ private:
 };
 
 Help::pragma_map_t Help::__pragmas;
+
 Help::parameter_map_t  Help::__cycles_args;
-Help::parameter_map_t  Help::__stop_on_message_loss_args;
+Help::parameter_map_t  Help::__force_multiserver_args;
 Help::parameter_map_t  Help::__interlock_args;
 Help::parameter_map_t  Help::__layering_args;
 Help::parameter_map_t  Help::__multiserver_args;
 Help::parameter_map_t  Help::__mva_args;
 Help::parameter_map_t  Help::__overtaking_args;
 Help::parameter_map_t  Help::__processor_args;
+Help::parameter_map_t  Help::__prune_args;
+Help::parameter_map_t  Help::__spex_header_args;
+Help::parameter_map_t  Help::__stop_on_message_loss_args;
 Help::parameter_map_t  Help::__threads_args;
 Help::parameter_map_t  Help::__variance_args;
 Help::parameter_map_t  Help::__warning_args;
-Help::parameter_map_t  Help::__spex_header_args;
-Help::parameter_map_t  Help::__prune_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
 Help::parameter_map_t  Help::__quorum_distribution_args;
 Help::parameter_map_t  Help::__quorum_delayed_calls_args;
@@ -244,101 +246,106 @@ Help::initialize()
     Options::Trace::initialize();
     Options::Special::initialize();
 
-    __pragmas["cycles"] =               pragma_info( &Help::pragmaCycles, &__cycles_args );
-    __cycles_args["yes"] =            	parameter_info(&Help::pragmaCyclesAllow);
-    __cycles_args["no"] = 		parameter_info(&Help::pragmaCyclesDisallow,true);
+    __pragmas[LQIO::DOM::Pragma::_cycles_] =		    pragma_info( &Help::pragmaCycles, &__cycles_args );
+    __cycles_args[LQIO::DOM::Pragma::_yes_] =		    parameter_info(&Help::pragmaCyclesAllow);
+    __cycles_args[LQIO::DOM::Pragma::_no_] =		    parameter_info(&Help::pragmaCyclesDisallow,true);
 
-    __pragmas["stop-on-message-loss"] = pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args );
-    __stop_on_message_loss_args["yes"]= parameter_info(&Help::pragmaStopOnMessageLossFalse);
-    __stop_on_message_loss_args["no"] = parameter_info(&Help::pragmaStopOnMessageLossTrue,true);
+    __pragmas[LQIO::DOM::Pragma::_stop_on_message_loss_] =  pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args );
+    __stop_on_message_loss_args[LQIO::DOM::Pragma::_yes_]=  parameter_info(&Help::pragmaStopOnMessageLossFalse);
+    __stop_on_message_loss_args[LQIO::DOM::Pragma::_no_] =  parameter_info(&Help::pragmaStopOnMessageLossTrue,true);
 
-    __pragmas["interlocking"] =         pragma_info( &Help::pragmaInterlock, &__interlock_args );
-    __interlock_args["yes"] =		parameter_info(&Help::pragmaInterlockThroughput,true);
-    __interlock_args["no"] =          	parameter_info(&Help::pragmaInterlockNone);
+    __pragmas[LQIO::DOM::Pragma::_force_multiserver_] =	    pragma_info( &Help::pragmaForceMultiserver, &__force_multiserver_args );
+    __force_multiserver_args[LQIO::DOM::Pragma::_none_] =    parameter_info(&Help::pragmaForceMultiserverNone,true);
+    __force_multiserver_args[LQIO::DOM::Pragma::_processors_] = parameter_info(&Help::pragmaForceMultiserverProcessors);
+    __force_multiserver_args[LQIO::DOM::Pragma::_tasks_] =  parameter_info(&Help::pragmaForceMultiserverTasks);
+    __force_multiserver_args[LQIO::DOM::Pragma::_all_] =    parameter_info(&Help::pragmaForceMultiserverAll);
 
-    __pragmas["layering"] =             pragma_info( &Help::pragmaLayering, &__layering_args );
-    __layering_args["batched"] =        parameter_info(&Help::pragmaLayeringBatched,true);
-    __layering_args["batched-back"] =   parameter_info(&Help::pragmaLayeringBatchedBack);
-    __layering_args["mol"] =            parameter_info(&Help::pragmaLayeringMOL);
-    __layering_args["mol-back"] =       parameter_info(&Help::pragmaLayeringMOLBack);
-    __layering_args["squashed"] =       parameter_info(&Help::pragmaLayeringSquashed);
-    __layering_args["srvn"] =           parameter_info(&Help::pragmaLayeringSRVN);
-    __layering_args["hwsw"] =           parameter_info(&Help::pragmaLayeringHwSw);
+    __pragmas[LQIO::DOM::Pragma::_interlocking_] =	    pragma_info( &Help::pragmaInterlock, &__interlock_args );
+    __interlock_args[LQIO::DOM::Pragma::_yes_] =	    parameter_info(&Help::pragmaInterlockThroughput,true);
+    __interlock_args[LQIO::DOM::Pragma::_no_] =		    parameter_info(&Help::pragmaInterlockNone);
 
-    __pragmas["multiserver"] =          pragma_info( &Help::pragmaMultiserver, &__multiserver_args );
-    __multiserver_args["default"] =     parameter_info(&Help::pragmaMultiServerDefault);
-    __multiserver_args["conway"] =      parameter_info(&Help::pragmaMultiServerConway);
-    __multiserver_args["reiser"]  =     parameter_info(&Help::pragmaMultiServerReiser);
-    __multiserver_args["reiser-ps"] =   parameter_info(&Help::pragmaMultiServerReiserPS);
-    __multiserver_args["rolia"] =       parameter_info(&Help::pragmaMultiServerRolia);
-    __multiserver_args["rolia-ps"] =    parameter_info(&Help::pragmaMultiServerRoliaPS);
-    __multiserver_args["bruell"] =      parameter_info(&Help::pragmaMultiServerBruell);
-    __multiserver_args["schmidt"] =     parameter_info(&Help::pragmaMultiServerSchmidt);
-    __multiserver_args["suri"] =        parameter_info(&Help::pragmaMultiServerSuri);
+    __pragmas[LQIO::DOM::Pragma::_layering_] =		    pragma_info( &Help::pragmaLayering, &__layering_args );
+    __layering_args[LQIO::DOM::Pragma::_batched_] =	    parameter_info(&Help::pragmaLayeringBatched,true);
+    __layering_args[LQIO::DOM::Pragma::_batched_back_] =    parameter_info(&Help::pragmaLayeringBatchedBack);
+    __layering_args[LQIO::DOM::Pragma::_mol_] =		    parameter_info(&Help::pragmaLayeringMOL);
+    __layering_args[LQIO::DOM::Pragma::_mol_back_] =	    parameter_info(&Help::pragmaLayeringMOLBack);
+    __layering_args[LQIO::DOM::Pragma::_squashed_] =	    parameter_info(&Help::pragmaLayeringSquashed);
+    __layering_args[LQIO::DOM::Pragma::_srvn_] =	    parameter_info(&Help::pragmaLayeringSRVN);
+    __layering_args[LQIO::DOM::Pragma::_hwsw_] =	    parameter_info(&Help::pragmaLayeringHwSw);
 
-    __pragmas["mva"] =                  pragma_info( &Help::pragmaMVA, &__mva_args );
-    __mva_args["linearizer"] =          parameter_info(&Help::pragmaMVALinearizer,true);
-    __mva_args["exact"] =               parameter_info(&Help::pragmaMVAExact);
-    __mva_args["schweitzer"] =          parameter_info(&Help::pragmaMVASchweitzer);
-    __mva_args["fast"] =                parameter_info(&Help::pragmaMVAFast);
-    __mva_args["one-step"] =            parameter_info(&Help::pragmaMVAOneStep);
-    __mva_args["one-step-linearizer"] = parameter_info(&Help::pragmaMVAOneStepLinearizer);
+    __pragmas[LQIO::DOM::Pragma::_multiserver_] =	    pragma_info( &Help::pragmaMultiserver, &__multiserver_args );
+    __multiserver_args[LQIO::DOM::Pragma::_default_] =	    parameter_info(&Help::pragmaMultiServerDefault);
+    __multiserver_args[LQIO::DOM::Pragma::_conway_] =	    parameter_info(&Help::pragmaMultiServerConway);
+    __multiserver_args[LQIO::DOM::Pragma::_reiser_]  =	    parameter_info(&Help::pragmaMultiServerReiser);
+    __multiserver_args[LQIO::DOM::Pragma::_reiser_ps_] =    parameter_info(&Help::pragmaMultiServerReiserPS);
+    __multiserver_args[LQIO::DOM::Pragma::_rolia_] =	    parameter_info(&Help::pragmaMultiServerRolia);
+    __multiserver_args[LQIO::DOM::Pragma::_rolia_ps_] =	    parameter_info(&Help::pragmaMultiServerRoliaPS);
+    __multiserver_args[LQIO::DOM::Pragma::_bruell_] =	    parameter_info(&Help::pragmaMultiServerBruell);
+    __multiserver_args[LQIO::DOM::Pragma::_schmidt_] =	    parameter_info(&Help::pragmaMultiServerSchmidt);
+    __multiserver_args[LQIO::DOM::Pragma::_suri_] =	    parameter_info(&Help::pragmaMultiServerSuri);
+
+    __pragmas[LQIO::DOM::Pragma::_mva_] =		    pragma_info( &Help::pragmaMVA, &__mva_args );
+    __mva_args[LQIO::DOM::Pragma::_linearizer_] =	    parameter_info(&Help::pragmaMVALinearizer,true);
+    __mva_args[LQIO::DOM::Pragma::_exact_] =		    parameter_info(&Help::pragmaMVAExact);
+    __mva_args[LQIO::DOM::Pragma::_schweitzer_] =	    parameter_info(&Help::pragmaMVASchweitzer);
+    __mva_args[LQIO::DOM::Pragma::_fast_] =		    parameter_info(&Help::pragmaMVAFast);
+    __mva_args[LQIO::DOM::Pragma::_one_step_] =		    parameter_info(&Help::pragmaMVAOneStep);
+    __mva_args[LQIO::DOM::Pragma::_one_step_linearizer_] =  parameter_info(&Help::pragmaMVAOneStepLinearizer);
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    __pragmas["quorum-distribution"] =  pragma_info( &Help::pragmaQuorumDistribution, __quorum_distribution_args );
-    __pragmas["quorum-delayed-calls"] = pragma_info( &Help::pragmaQuorumDelayedCalls, __quorum_delayed_calls_args );
-    __pragmas["idletime"] =             pragma_info( &Help::pragmaIdleTime, __idle_time_args );
+    __pragmas["quorum-distribution"] =	pragma_info( &Help::pragmaQuorumDistribution, __quorum_distribution_args );
+    __pragmas[LQIO::DOM::Pragma::_quorum_delayed_calls_] = pragma_info( &Help::pragmaQuorumDelayedCalls, __quorum_delayed_calls_args );
+    __pragmas["idletime"] =		pragma_info( &Help::pragmaIdleTime, __idle_time_args );
 #endif
 
-    __pragmas["overtaking"] =           pragma_info( &Help::pragmaOvertaking, &__overtaking_args );
-    __overtaking_args["markov"] =       parameter_info(&Help::pragmaOvertakingMarkov,true);
-    __overtaking_args["rolia"] =        parameter_info(&Help::pragmaOvertakingRolia);
-    __overtaking_args["simple"] =       parameter_info(&Help::pragmaOvertakingSimple);
-    __overtaking_args["special"] =      parameter_info(&Help::pragmaOvertakingSpecial);
-    __overtaking_args["none"] =         parameter_info(&Help::pragmaOvertakingNone);
+    __pragmas[LQIO::DOM::Pragma::_overtaking_] =	    pragma_info( &Help::pragmaOvertaking, &__overtaking_args );
+    __overtaking_args[LQIO::DOM::Pragma::_markov_] =	    parameter_info(&Help::pragmaOvertakingMarkov,true);
+    __overtaking_args[LQIO::DOM::Pragma::_rolia_] =	    parameter_info(&Help::pragmaOvertakingRolia);
+    __overtaking_args[LQIO::DOM::Pragma::_simple_] =	    parameter_info(&Help::pragmaOvertakingSimple);
+    __overtaking_args[LQIO::DOM::Pragma::_special_] =	    parameter_info(&Help::pragmaOvertakingSpecial);
+    __overtaking_args[LQIO::DOM::Pragma::_none_] =	    parameter_info(&Help::pragmaOvertakingNone);
 
-    __pragmas["processor-scheduling"] = pragma_info( &Help::pragmaProcessor, &__processor_args );
-    __processor_args["default"] =       parameter_info(&Help::pragmaProcessorDefault);
-    __processor_args["fcfs"] =          parameter_info(&Help::pragmaProcessorFCFS);
-    __processor_args["hol"] =           parameter_info(&Help::pragmaProcessorHOL);
-    __processor_args["ppr"] =           parameter_info(&Help::pragmaProcessorPPR);
-    __processor_args["ps"] =            parameter_info(&Help::pragmaProcessorPS);
+    __pragmas[LQIO::DOM::Pragma::_processor_scheduling_] =  pragma_info( &Help::pragmaProcessor, &__processor_args );
+    __processor_args[LQIO::DOM::Pragma::_default_] =	    parameter_info(&Help::pragmaProcessorDefault);
+    __processor_args["fcfs"] =				    parameter_info(&Help::pragmaProcessorFCFS);
+    __processor_args["hol"] =				    parameter_info(&Help::pragmaProcessorHOL);
+    __processor_args["ppr"] =				    parameter_info(&Help::pragmaProcessorPPR);
+    __processor_args["ps"] =				    parameter_info(&Help::pragmaProcessorPS);
 
 #if RESCHEDULE
-    __pragmas["reschedule-on-async-send"] = pragma_info( &Pragma::eqReschedule, &Help::pragmaReschedule );
+    __pragmas[LQIO::DOM::Pragma::_reschedule_on_async_send_] = pragma_info( &Pragma::eqReschedule, &Help::pragmaReschedule );
 #else
-    __pragmas["reschedule-on-async-send"] = pragma_info();
+    __pragmas[LQIO::DOM::Pragma::_reschedule_on_async_send_] = pragma_info();
 #endif
-    __pragmas["tau"] =                  pragma_info( &Help::pragmaTau );
+    __pragmas[LQIO::DOM::Pragma::_tau_] =		    pragma_info( &Help::pragmaTau );
 
-    __pragmas["threads"] =              pragma_info( &Help::pragmaThreads, &__threads_args );
-    __threads_args["hyper"] =           parameter_info(&Help::pragmaThreadsHyper,true);
-    __threads_args["mak"] =             parameter_info(&Help::pragmaThreadsMak);
-    __threads_args["none"] =            parameter_info(&Help::pragmaThreadsNone);
-    __threads_args["exponential"] =     parameter_info(&Help::pragmaThreadsExponential);
+    __pragmas[LQIO::DOM::Pragma::_threads_] =		    pragma_info( &Help::pragmaThreads, &__threads_args );
+    __threads_args[LQIO::DOM::Pragma::_hyper_] =	    parameter_info(&Help::pragmaThreadsHyper,true);
+    __threads_args[LQIO::DOM::Pragma::_mak_] =		    parameter_info(&Help::pragmaThreadsMak);
+    __threads_args[LQIO::DOM::Pragma::_none_] =		    parameter_info(&Help::pragmaThreadsNone);
+    __threads_args[LQIO::DOM::Pragma::_exponential_] =	    parameter_info(&Help::pragmaThreadsExponential);
 
-    __pragmas["variance"] =             pragma_info( &Help::pragmaVariance, &__variance_args );
-    __variance_args["default"] =        parameter_info(&Help::pragmaVarianceDefault);
-    __variance_args["none"] =           parameter_info(&Help::pragmaVarianceNone);
-    __variance_args["stochastic"] =     parameter_info(&Help::pragmaVarianceStochastic,true);
-    __variance_args["mol"] =            parameter_info(&Help::pragmaVarianceMol);
-    __variance_args["no-entry"] =       parameter_info(&Help::pragmaVarianceNoEntry);
-    __variance_args["init-only"] =      parameter_info(&Help::pragmaVarianceInitOnly);
+    __pragmas[LQIO::DOM::Pragma::_variance_] =		    pragma_info( &Help::pragmaVariance, &__variance_args );
+    __variance_args[LQIO::DOM::Pragma::_default_] =	    parameter_info(&Help::pragmaVarianceDefault);
+    __variance_args[LQIO::DOM::Pragma::_none_] =	    parameter_info(&Help::pragmaVarianceNone);
+    __variance_args[LQIO::DOM::Pragma::_stochastic_] =	    parameter_info(&Help::pragmaVarianceStochastic,true);
+    __variance_args[LQIO::DOM::Pragma::_mol_] =		    parameter_info(&Help::pragmaVarianceMol);
+    __variance_args[LQIO::DOM::Pragma::_no_entry_] =	    parameter_info(&Help::pragmaVarianceNoEntry);
+    __variance_args[LQIO::DOM::Pragma::_init_only_] =	    parameter_info(&Help::pragmaVarianceInitOnly);
 
-    __pragmas["severity-level"] =       pragma_info( &Help::pragmaSeverityLevel, &__warning_args );
-    __warning_args["all"] =             parameter_info(&Help::pragmaSeverityLevelWarnings);
-    __warning_args["warning"] =         parameter_info(&Help::pragmaSeverityLevelWarnings);
-    __warning_args["advisory"] =        parameter_info(&Help::pragmaSeverityLevelRunTime);
-    __warning_args["run-time"] =        parameter_info(&Help::pragmaSeverityLevelRunTime);
+    __pragmas[LQIO::DOM::Pragma::_severity_level_] =	    pragma_info( &Help::pragmaSeverityLevel, &__warning_args );
+    __warning_args[LQIO::DOM::Pragma::_all_] =		    parameter_info(&Help::pragmaSeverityLevelWarnings);
+    __warning_args[LQIO::DOM::Pragma::_warning_] =	    parameter_info(&Help::pragmaSeverityLevelWarnings);
+    __warning_args[LQIO::DOM::Pragma::_advisory_] =	    parameter_info(&Help::pragmaSeverityLevelRunTime);
+    __warning_args[LQIO::DOM::Pragma::_run_time_] =	    parameter_info(&Help::pragmaSeverityLevelRunTime);
 
-    __pragmas["no-header"] = 		pragma_info( &Help::pragmaSpexHeader, &__spex_header_args );
-    __spex_header_args["false"] = 	parameter_info(&Help::pragmaSpexHeaderFalse,true);
-    __spex_header_args["true"] =  	parameter_info(&Help::pragmaSpexHeaderTrue);
+    __pragmas[LQIO::DOM::Pragma::_spex_header_] =	    pragma_info( &Help::pragmaSpexHeader, &__spex_header_args );
+    __spex_header_args[LQIO::DOM::Pragma::_false_] =	    parameter_info(&Help::pragmaSpexHeaderFalse,true);
+    __spex_header_args[LQIO::DOM::Pragma::_true_] =	    parameter_info(&Help::pragmaSpexHeaderTrue);
 
-    __pragmas["prune"] = 		pragma_info( &Help::pragmaPrune, &__prune_args );
-    __prune_args["false"] = 		parameter_info(&Help::pragmaPruneFalse,true);
-    __prune_args["true"] =  		parameter_info(&Help::pragmaPruneTrue);
-    
+    __pragmas[LQIO::DOM::Pragma::_prune_] =		    pragma_info( &Help::pragmaPrune, &__prune_args );
+    __prune_args[LQIO::DOM::Pragma::_false_] =		    parameter_info(&Help::pragmaPruneFalse,true);
+    __prune_args[LQIO::DOM::Pragma::_true_] =		    parameter_info(&Help::pragmaPruneTrue);
 }
 
 
@@ -406,14 +413,14 @@ Help::print( ostream& output ) const
 	   << "environment variable or in the input file are ignored as they might be" << endl
 	   << "used by other solvers." << endl;
 
-    
+
     dl_begin( output );
     const std::map<std::string, Pragma::fptr>& pragmas = Pragma::getPragmas();
     for ( std::map<std::string, Pragma::fptr>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma  ) {
 	print_pragma( output, pragma->first );
     }
     dl_end( output );
-    
+
     section( output, "STOPPING CRITERIA", "Stopping Criteria" );
     label( output, "sec:lqns-stopping-criteria" );
     output << bold( *this, "Lqns" ) << " computes the model results by iterating through a set of" << endl
@@ -459,15 +466,15 @@ Help::print( ostream& output ) const
     table_header( output );
     table_row( output, "Phases", "3", "phase!maximum" );
     table_row( output, "Scheduling", "FIFO, HOL, PPR", "scheduling" );
-    table_row( output, "Open arrivals", "yes", "open arrival" );
+    table_row( output, "Open arrivals", LQIO::DOM::Pragma::_yes_, "open arrival" );
     table_row( output, "Phase type", "stochastic, deterministic", "phase!type" );
-    table_row( output, "Think Time", "yes", "think time" );
-    table_row( output, "Coefficient of variation", "yes", "coefficient of variation" );
-    table_row( output, "Interprocessor-delay", "yes", "interprocessor delay" );
-    table_row( output, "Asynchronous connections", "yes", "asynchronous connections" );
-    table_row( output, "Forwarding", "yes", "forwarding" );
-    table_row( output, "Multi-servers", "yes", "multi-server" );
-    table_row( output, "Infinite-servers", "yes", "infinite server" );
+    table_row( output, "Think Time", LQIO::DOM::Pragma::_yes_, "think time" );
+    table_row( output, "Coefficient of variation", LQIO::DOM::Pragma::_yes_, "coefficient of variation" );
+    table_row( output, "Interprocessor-delay", LQIO::DOM::Pragma::_yes_, "interprocessor delay" );
+    table_row( output, "Asynchronous connections", LQIO::DOM::Pragma::_yes_, "asynchronous connections" );
+    table_row( output, "Forwarding", LQIO::DOM::Pragma::_yes_, "forwarding" );
+    table_row( output, "Multi-servers", LQIO::DOM::Pragma::_yes_, "multi-server" );
+    table_row( output, "Infinite-servers", LQIO::DOM::Pragma::_yes_, "infinite server" );
     table_row( output, "Max Entries", "1000", "entry!maximum" );
     table_row( output, "Max Tasks", "1000", "task!maximum" );
     table_row( output, "Max Processors", "1000", "processor!maximum" );
@@ -551,7 +558,7 @@ Help::flagError( ostream& output, bool verbose ) const
 	   << "Underflow and inexact result exceptions are always ignored." << endl;
     pp( output );
     output << "In some instances, infinities " << ix( *this, "infinity" ) << ix( *this, "floating point!infinity" ) << " will be propogated within the solver.  Please refer to the" << endl
-	   << bold( *this, "stop-on-message-loss" ) << " pragma below." << endl;
+	   << bold( *this, LQIO::DOM::Pragma::_stop_on_message_loss_ ) << " pragma below." << endl;
     decrease_indent( output );
     return output;
 }
@@ -561,9 +568,9 @@ Help::flagFast( ostream& output, bool verbose ) const
 {
     output << "This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA."  << endl
 	   << "It is equivalent to setting " << bold( *this, "pragma" ) 
-	   << " "  << emph( *this, "mva" ) << "=" << emph( *this, "one-step" )
-	   << ", " << emph( *this, "layering" ) << "=" << emph( *this, "batched" )
-	   << ", " << emph( *this, "multiserver" ) << "=" << emph( *this, "conway" ) << endl;
+	   << " "  << emph( *this, LQIO::DOM::Pragma::_mva_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_one_step_ )
+	   << ", " << emph( *this, LQIO::DOM::Pragma::_layering_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_batched_ )
+	   << ", " << emph( *this, LQIO::DOM::Pragma::_multiserver_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_conway_ ) << endl;
     return output;
 }
 
@@ -733,7 +740,7 @@ Help::flagConvergence( ostream& output, bool verbose ) const
 ostream&
 Help::flagUnderrelaxation( ostream& output, bool verbose ) const
 {
-    help_fptr f = Options::Special::__table["underrelaxation"].help();
+    help_fptr f = Options::Special::__table[LQIO::DOM::Pragma::_underrelaxation_].help();
     (this->*f)(output,verbose);
     return output;
 }
@@ -1172,10 +1179,10 @@ Help::pragmaCycles( ostream& output, bool verbose ) const
 }
 
 ostream&
-Help::pragmaStopOnMessageLoss( ostream& output, bool verbose ) const
+Help::pragmaForceMultiserver( ostream& output, bool verbose ) const
 {
-    output << "This pragma is used to control the operation of the solver when the" << endl
-	   << "arrival rate" << ix( *this, "arrival rate" ) << " exceeds the service rate of a server." << endl
+    output << "This pragma is used to force the use of a multiserver" << ix(*this, "multiserver!force" ) << endl
+	   << "instead of a fixed-rate server whenever the multiplicity of a server is one." << endl
 	   << emph( *this, "Arg" ) << " must be one of: " << endl;
     return output;
 }
@@ -1244,7 +1251,7 @@ Help::pragmaIdleTime( ostream& output, bool verbose ) const
 ostream&
 Help::pragmaOvertaking( ostream& output, bool verbose ) const
 {
-    output << "This pragma is usesd to choose the overtaking" << ix( *this, "overtaking" ) << " approximation." << endl
+    output << "This pragma is usesd to choose the overtaking" << ix( *this, LQIO::DOM::Pragma::_overtaking_ ) << " approximation." << endl
 	   << emph( *this, "Arg" ) << " must be one of: " << endl;
     return output;
 }
@@ -1268,6 +1275,15 @@ Help::pragmaReschedule( ostream& output, bool verbose ) const
 #endif
 
 ostream&
+Help::pragmaStopOnMessageLoss( ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to control the operation of the solver when the" << endl
+	   << "arrival rate" << ix( *this, "arrival rate" ) << " exceeds the service rate of a server." << endl
+	   << emph( *this, "Arg" ) << " must be one of: " << endl;
+    return output;
+}
+
+ostream&
 Help::pragmaTau( ostream& output, bool verbose ) const
 {
     output << "Set the tau adjustment factor to " << emph( *this, "arg" ) << "." << endl
@@ -1287,7 +1303,7 @@ Help::pragmaThreads( ostream& output, bool verbose ) const
 ostream&
 Help::pragmaVariance( ostream& output, bool verbose ) const
 {
-    output << "This pragma is used to choose the variance" << ix( *this, "variance" ) << " calculation used by the solver." << endl;
+    output << "This pragma is used to choose the variance" << ix( *this, LQIO::DOM::Pragma::_variance_ ) << " calculation used by the solver." << endl;
     return output;
 }
 
@@ -1328,6 +1344,40 @@ ostream&
 Help::pragmaCyclesDisallow( ostream& output, bool verbose ) const
 {
     output << "Disallow cycles in the call graph." << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaForceMultiserverNone( ostream& output, bool verbose ) const
+{
+    output << "Use fixed-rate servers whenever a server multiplicity is one (1)." << endl
+	   << "Note that fixed-rate" << ix( *this, "server!fixed-rate!variance" ) << "servers with variance" << endl
+	   << "may have results that differ from fixed-rate servers that don't and that the" << endl
+	   << "multiserver servers never take variance into consideration." << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaForceMultiserverProcessors( ostream& output, bool verbose ) const
+{
+    output << "Always use a multiserver solution for non-delay processors even if the number of servers is one (1)." << endl
+	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaForceMultiserverTasks( ostream& output, bool verbose ) const
+{
+    output << "Always use a multiserver solution for non-delay server tasks even if the number of servers is one (1)." << endl
+	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << endl;
+    return output;
+}
+
+ostream&
+Help::pragmaForceMultiserverAll( ostream& output, bool verbose ) const
+{
+    output << "Always use a multiserver solution for non-delay servers (tasks and processors) even if the number of servers is one (1)." << endl
+	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << endl;
     return output;
 }
 
@@ -1400,7 +1450,7 @@ ostream&
 Help::pragmaLayeringSRVN( ostream& output, bool verbose ) const
 {
     output << "SRVN layers" << ix( *this, "srvn layers" ) << ix( *this, "layering!srvn" ) << " -- solve layers composed of only one server." << endl
-	   << "This method of solution is comparable to the technique used by the " << bold( *this, "srvn" ) << " solver.  See also " << flag( *this, "P" ) << emph( *this, "mva" ) << "." << endl;
+	   << "This method of solution is comparable to the technique used by the " << bold( *this, LQIO::DOM::Pragma::_srvn_ ) << " solver.  See also " << flag( *this, "P" ) << emph( *this, LQIO::DOM::Pragma::_mva_ ) << "." << endl;
     return output;
 }
 
@@ -1408,7 +1458,7 @@ ostream&
 Help::pragmaLayeringSquashed( ostream& output, bool verbose ) const
 {
     output << "Squashed layers" << ix( *this, "squashed layers" ) << ix( *this, "layering!squashed" ) << " -- All the tasks and processors are placed into one submodel." << endl
-	   << "Solution speed may suffer because this method generates the most number of chains in the MVA solution.  See also " << flag( *this, "P" ) << emph( *this, "mva" ) << "." << endl;
+	   << "Solution speed may suffer because this method generates the most number of chains in the MVA solution.  See also " << flag( *this, "P" ) << emph( *this, LQIO::DOM::Pragma::_mva_ ) << "." << endl;
     return output;
 }
 
@@ -1506,7 +1556,7 @@ Help::pragmaMVAFast( ostream& output, bool verbose ) const
 ostream&
 Help::pragmaMVAOneStep( ostream& output, bool verbose ) const
 {
-    output << "Perform one step of Bard Schweitzer approximate MVA for each iteration of a submodel.  The default is to perform Bard Schweitzer approximate MVA until convergence for each submodel.  This option, combined with " << flag( *this, "P" ) << emph( *this, "layering=srvn") << " most closely approximates the solution technique used by the " << bold( *this, "srvn" ) << " solver." <<endl;
+    output << "Perform one step of Bard Schweitzer approximate MVA for each iteration of a submodel.  The default is to perform Bard Schweitzer approximate MVA until convergence for each submodel.  This option, combined with " << flag( *this, "P" ) << emph( *this, "layering=srvn") << " most closely approximates the solution technique used by the " << bold( *this, LQIO::DOM::Pragma::_srvn_ ) << " solver." <<endl;
     return output;
 }
 
@@ -1815,7 +1865,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 13729 2020-08-04 20:20:16Z greg $" << endl
+    output << __comment << " $Id: help.cc 13764 2020-08-17 19:50:05Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -2021,7 +2071,7 @@ HelpTroff::print_pragma( ostream& output, const std::string& name ) const
 {
     const pragma_map_t::const_iterator pragma = __pragmas.find( name );
     if ( pragma == __pragmas.end() ) return output;
-    
+
     const parameter_map_t* value = pragma->second._value;
     std::string default_param;
 
@@ -2035,7 +2085,7 @@ HelpTroff::print_pragma( ostream& output, const std::string& name ) const
 	Help::help_fptr h = nullptr;
 	output << ".RS" << endl;
 	for ( parameter_map_t::const_iterator arg = value->begin(); arg != value->end(); ++arg ) {
-	    if ( arg->first == "default" ) {
+	    if ( arg->first == LQIO::DOM::Pragma::_default_ ) {
 		h = arg->second._help;
 		continue;
 	    } else {
@@ -2112,7 +2162,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 13729 2020-08-04 20:20:16Z greg $" << endl
+	   << __comment << " $Id: help.cc 13764 2020-08-17 19:50:05Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl
@@ -2302,7 +2352,7 @@ HelpLaTeX::print_pragma( ostream& output, const std::string& name ) const
 {
     const std::map<std::string,Help::pragma_info>::const_iterator pragma = __pragmas.find( name );
     if ( pragma == __pragmas.end() ) return output;
-    
+
     const parameter_map_t* value = pragma->second._value;
     std::string default_param;
 
@@ -2313,7 +2363,7 @@ HelpLaTeX::print_pragma( ostream& output, const std::string& name ) const
 	Help::help_fptr h = nullptr;
 	dl_begin( output );
 	for ( parameter_map_t::const_iterator arg = value->begin(); arg != value->end(); ++arg ) {
-	    if ( arg->first == "default" ) {
+	    if ( arg->first == LQIO::DOM::Pragma::_default_ ) {
 		h = arg->second._help;
 		continue;
 	    } else {

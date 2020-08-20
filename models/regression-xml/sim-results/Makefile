@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13705 2020-07-20 21:46:53Z greg $
+# $Id: Makefile 13766 2020-08-18 02:54:45Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -16,7 +16,6 @@ SANITY=	01-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
 	07-sanity.lqxo \
-	08-sanity.lqxo \
 	09-sanity.lqxo
 DST =	$(SANITY) \
 	10-interlock.lqxo \
