@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13779 2020-08-20 01:37:32Z greg $
+ * $Id: processor.cc 13786 2020-08-22 16:50:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -120,7 +120,7 @@ Processor::configure( const unsigned nSubmodels )
     }
     Entity::configure( nSubmodels );
     if ( Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
-	attributes.variance = false;
+	attributes.variance = 0;
     }
     
     return *this;

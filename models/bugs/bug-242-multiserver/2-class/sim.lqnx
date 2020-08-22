@@ -5,12 +5,14 @@
    <parameters>
 $c_c0 = 3
 $c_c1 = 2
-$m_t0 = [1,2,3,5,@infinity]
+$m_t0 = [1,2,3,4,5,6,@infinity]
    </parameters>
    <solver-params comment="Layers: 1, Customers: 2, Clients: 2, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
    <processor name="c0" scheduling="inf">
       <task name="c0" scheduling="ref" multiplicity="$c_c0">
-         <result-observe throughput="$f_c0"/>
+         <result-observe throughput="$f_c0">
+	   <result-conf-95 throughput="$f_c0_95"/>
+         </result-observe>
          <entry name="c0" type="PH1PH2">
             <entry-phase-activities>
                <activity name="c0_1" phase="1" host-demand-mean="3">
@@ -22,7 +24,9 @@ $m_t0 = [1,2,3,5,@infinity]
    </processor>
    <processor name="c1" scheduling="inf">
       <task name="c1" scheduling="ref" multiplicity="$c_c1">
-         <result-observe throughput="$f_c1"/>
+         <result-observe throughput="$f_c1">
+           <result-conf-95 throughput="$f_c1_95"/>
+	 </result-observe>
          <entry name="c1" type="PH1PH2">
             <entry-phase-activities>
                <activity name="c1_1" phase="1" host-demand-mean="3">
@@ -33,9 +37,13 @@ $m_t0 = [1,2,3,5,@infinity]
       </task>
    </processor>
    <processor name="p0" scheduling="ps" quantum="0.1">
-      <result-observe utilization="$p_p0"/>
+      <result-observe utilization="$p_p0">
+	<result-conf-95 utilization="$p_p0_95"/>
+      </result-observe>
       <task name="t0" scheduling="fcfs" multiplicity="$m_t0">
-         <result-observe utilization="$u_t0"/>
+        <result-observe utilization="$u_t0">
+	  <result-conf-95 utilization="$u_t0_95"/>
+	</result-observe>
          <entry name="e0" type="PH1PH2">
             <entry-phase-activities>
                <activity name="e0_1" phase="1" host-demand-mean="0.666666"/>
@@ -54,5 +62,9 @@ $f_c0
 $f_c1
 $p_p0
 $u_t0
+$f_c0_95
+$f_c1_95
+$p_p0_95
+$u_t0_95
    </results-collection>
 </lqn-model>

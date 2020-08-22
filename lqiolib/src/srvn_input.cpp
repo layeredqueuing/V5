@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13761 2020-08-12 02:14:55Z greg $
+ *  $Id: srvn_input.cpp 13783 2020-08-21 16:05:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -579,7 +579,7 @@ srvn_set_task_multiplicity( void * task_v, void * copies )
     LQIO::DOM::Task * task = static_cast<LQIO::DOM::Task *>(task_v);
     if ( task == nullptr || copies == nullptr ) return;
     if ( schedule_customer( task->getSchedulingType() ) && is_infinity( static_cast<LQIO::DOM::ExternalVariable *>(copies) ) ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, "Task", task->getName().c_str() );
+	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task->getName().c_str() );
     } else {
 	task->setCopies( static_cast<LQIO::DOM::ExternalVariable *>(copies) );
     }

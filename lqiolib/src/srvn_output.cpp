@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13770 2020-08-18 15:29:15Z greg $
+ *  $Id: srvn_output.cpp 13787 2020-08-22 17:19:29Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,

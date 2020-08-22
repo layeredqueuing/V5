@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13779 2020-08-20 01:37:32Z greg $
+ * $Id: task.cc 13786 2020-08-22 16:50:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -187,10 +187,10 @@ Task::configure( const unsigned nSubmodels )
     Entity::configure( nSubmodels );
 
     if ( hasOpenArrivals() ) {
-	attributes.open_model = true;
+	attributes.open_model = 1;
     }
     if ( Pragma::forceMultiserver( Pragma::FORCE_TASKS ) ) {
-	attributes.variance = false;
+	attributes.variance = 0;
     }
 
     /* Configure the threads... */

@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 13781 2020-08-20 12:46:26Z greg $
+ * $Id: lqsim.cc 13787 2020-08-22 17:19:29Z greg $
  */
 
 
@@ -321,7 +321,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-08-20 08:46:26 -0400 (Thu, 20 Aug 2020) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2020-08-22 13:19:29 -0400 (Sat, 22 Aug 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -761,11 +761,10 @@ process( const string& input_file, const string& output_file )
     Model aModel( document, input_file, output_file );
 
     /* Make sure we got a document */
-    if ( document == NULL || LQIO::io_vars.anError() || !aModel.construct() ) {
-	return INVALID_INPUT;
-    }
+    if ( document == NULL || LQIO::io_vars.anError() ) return INVALID_INPUT;
 
     document->mergePragmas( pragmas.getList() );       /* Save pragmas */
+    if( !aModel.construct() ) return INVALID_INPUT;
 
     int status = 0;
 

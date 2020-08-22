@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: multserv.cc 13784 2020-08-21 21:41:25Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -129,7 +129,9 @@ Reiser_Multi_Server::openWait() const
     double dem;
     double w;
 
-    if ( J < 50 ) {
+    if ( rho() >= 1.0 ) {
+	w = get_infinity();
+    } else if ( J < 50 ) {
 	num = rho() * power( J * rho(), J - 1 );
 	dem = factorial( J ) *  A() * square( 1.0 - rho() );
 	w = S(0) * ( 1.0 + num / dem );
@@ -176,7 +178,9 @@ Reiser_Multi_Server::mixedWait( const MVA& solver, const Population& N ) const
 double
 Reiser_Multi_Server::alpha( const unsigned n ) const
 {
-    if ( n < J - 1 ) {
+    if ( rho() >= 1.0 ) {
+	throw range_error( "Reiser_Multi_Server::alpha" );
+    } else if ( n < J - 1 ) {
 	return mu() / ( mu( J - 1 ) * power( 1.0 - rho(), n + 1 ) ) + sumOf_rho( n );
     } else {
 	return Server::alpha( n );
@@ -201,7 +205,9 @@ Reiser_Multi_Server::A() const
 	sum     += product;
     }
 
-    sum += product * rho_J / ( static_cast<double>(J) * ( 1.0 - rho() ));
+    if ( 1.0 - rho() > 0. ) {
+	sum += product * rho_J / ( static_cast<double>(J) * ( 1.0 - rho() ));
+    }
 
     return sum;
 }

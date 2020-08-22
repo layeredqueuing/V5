@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13727 2020-08-04 14:06:18Z greg $
+ *  $Id: srvn_results.cpp 13783 2020-08-21 16:05:30Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -254,7 +254,7 @@ total_thpt_ut_confidence ( const char * task_name, int conf_level, double tput, 
 /*
  * Called when all of the data for a task has been collected.  If there is no
  * total field, this will total it up.  If copies is set, it overrides the value
- * (possibily a variable).
+ * (possibily a variable) unless the value is infinity (see bug 246).
  */
 
 void
@@ -262,7 +262,7 @@ add_proc_task (const char *task_name, unsigned int copies )
 {
     LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( task ) {
-	if ( copies > 0 ) {
+	if ( copies > 0 && !task->isInfinite() ) {
 	    task->setCopies( new LQIO::DOM::ConstantExternalVariable( copies ) );		/* Override */
 	}
 	task->computeResultProcessorUtilization();

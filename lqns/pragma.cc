@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 13764 2020-08-17 19:50:05Z greg $ *
+ * $Id: pragma.cc 13787 2020-08-22 17:19:29Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -28,6 +28,7 @@ std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
 Pragma::Pragma() :
     _allow_cycles(false),
     _exponential_paths(false),
+    _force_multiserver(FORCE_NONE),
     _interlock(true),
     _layering(BATCHED_LAYERS),
     _multiserver(DEFAULT_MULTISERVER),

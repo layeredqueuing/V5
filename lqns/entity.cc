@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: entity.cc 13786 2020-08-22 16:50:37Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -93,7 +93,7 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
     attributes.deterministic    = 0;		/* an entry has det. phase.	*/
     attributes.pure_delay       = 0;		/* Special task of some form.	*/
     attributes.pure_server	= 1;		/* Can use FCFS schedulging.	*/
-    attributes.variance         = false;	/* */
+    attributes.variance         = 0;		/* */
 }
 
 /*
@@ -115,17 +115,17 @@ Entity&
 Entity::configure( const unsigned nSubmodels )
 {
     if ( !Pragma::variance(Pragma::NO_VARIANCE) && nEntries() > 1 && Pragma::entry_variance() ) {
-	attributes.variance = true;
+	attributes.variance = 1;
     }
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	(*entry)->configure( nSubmodels );
 	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
 
 	if ( (*entry)->hasDeterministicPhases() ) {
-	    attributes.deterministic = true;
+	    attributes.deterministic = 1;
 	}
 	if ( !Pragma::variance(Pragma::NO_VARIANCE) && (*entry)->hasVariance() ) {
-	    attributes.variance = true;
+	    attributes.variance = 1;
 	}
     }
     return *this;

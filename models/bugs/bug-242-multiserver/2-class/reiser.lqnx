@@ -5,7 +5,7 @@
    <parameters>
 $c_c0 = 3
 $c_c1 = 2
-$m_t0 = [1,2,3,5,@infinity]
+$m_t0 = [1,2,3,4,5,6,@infinity]
    </parameters>
    <solver-params comment="Layers: 1, Customers: 2, Clients: 2, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="multiserver" value="reiser"/>

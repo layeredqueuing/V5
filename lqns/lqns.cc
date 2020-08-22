@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13781 2020-08-20 12:46:26Z greg $
+ * $Id: lqns.cc 13787 2020-08-22 17:19:29Z greg $
  *
  * Command line processing.
  *
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-08-20 08:46:26 -0400 (Thu, 20 Aug 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-08-22 13:19:29 -0400 (Sat, 22 Aug 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -522,11 +522,12 @@ process ( const string& inputFileName, const string& outputFileName )
     LQIO::DOM::Document* document = Model::load(inputFileName,outputFileName);
 
     /* Make sure we got a document */
-    if (document == NULL || LQIO::io_vars.anError() || Model::prepare(document) == false) {
-        return INVALID_INPUT;
-    }
 
-    document->mergePragmas( pragmas.getList() );       /* Save pragmas */
+    if ( document == NULL || LQIO::io_vars.anError() ) return INVALID_INPUT;
+
+    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
+    if ( Model::prepare(document) == false ) return INVALID_INPUT;
+        
 
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
         cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << endl;
