@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: 93-simple-ucm.lqxo 13791 2020-08-23 01:43:45Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=mak -->
 <lqn-model name="93-simple-ucm" description="lqns 5.15 solution for model from: 93-simple-ucm.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="5">

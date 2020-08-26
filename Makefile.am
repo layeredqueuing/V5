@@ -1,10 +1,10 @@
 # -*- Makefile -*-
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13447 2020-02-05 22:35:23Z greg $
+# $Id: Makefile.am 13795 2020-08-25 16:45:34Z greg $
 # ------------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I config
 SUBDIRS = lqx lqiolib parasol lqns lqsim srvndiff lqn2ps lqngen doc xml dist
-EXTRA_DIST = README NEWS ChangeLog AUTHORS COPYING config/xercesc.m4
+EXTRA_DIST = README NEWS ChangeLog AUTHORS COPYING 
 RPMDIR = @RPMDIR@
 
 distclean-local:

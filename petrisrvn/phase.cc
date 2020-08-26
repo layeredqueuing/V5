@@ -300,7 +300,7 @@ Phase::check()
     if ( this->has_stochastic_calls() ) {
 	this->_n_slices = 1;
     } else {
-	this->_n_slices = static_cast<unsigned int>(round(ysum + zsum));
+	this->_n_slices = static_cast<unsigned int>(round(ysum + zsum)) + 1;
 	if ( n_slices() >= DIMSLICE ) {
 	    input_error2( LQIO::ERR_TOO_MANY_X, "slices ", DIMSLICE );
 	}
@@ -622,8 +622,8 @@ Phase::insert_DOM_results()
     _dom->setResultServiceTime( residence_time() )
 	.setResultUtilization( utilization() );
 
-    for ( std::map<const Entry *,Call>::const_iterator c = _call.begin(); c != _call.end(); ++c ) {
-	const Call& call = c->second;
+    for ( std::map<const Entry *,Call>::iterator c = _call.begin(); c != _call.end(); ++c ) {
+	Call& call = c->second;
 	const Entry * entry = c->first;
 	if ( call.is_rendezvous() ) {
 	    const_cast<Call&>(call)._dom->setResultWaitingTime( queueing_time( entry ) );
@@ -757,14 +757,6 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     double mean_tokens  = 0.0;
     double queue_tokens = 0.0;	/* Queue_Tokens.		*/
 
-    /* Drop probabiltity */
-
-    std::map<const Entry *,Call>::iterator src = src_phase->_call.find(b);
-    if ( src != src_phase->_call.end() && tput > 0 && (call._dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY
-						       || call._dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY ) ) {
-	src->second._dp = drop_lambda( m, b, src_phase ) / tput;
-    }
-
     if ( this->has_stochastic_calls() ) {	/*+ BUG 47 */
 	n_s = 1;
     } else {
@@ -808,14 +800,34 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     }
 #endif
 
-    if ( src != src_phase->_call.end() ) {
-        if ( tput == 0.0 ) {
-	    src->second._w = 0.0;
-	} else {
-	    src->second._w = queue_tokens / tput;
+    if ( tput > 0.0 ) {
+	std::map<const Entry *,Call>::iterator src = src_phase->_call.find(b);
+	if ( src != src_phase->_call.end() ) {
+
+	    /* direct call: this == src_phase */
+
+	    call._w = queue_tokens / tput;
+
+	    /* Drop probabiltity */
+
+	    if ( call._dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY
+		 || call._dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY ) {
+		call._dp = drop_lambda( m, b, src_phase ) / tput;
+	    }
+
+	} else  {
+
+	    /* Forwarding (recursive call) */
+
+	    for ( std::map<const Entry *,Call>::const_iterator fwd = entry()->_fwd.begin(); fwd != entry()->_fwd.end(); ++fwd ) {
+		if ( &fwd->second == &call ) {
+		    call._w = queue_tokens / tput;
+		    break;
+		}
+	    }
 	}
     }
-
+	
     if ( debug_flag ) {
 	(void) fprintf( stddbg, "Pr{I%s->%s*}=%g,\ttput{req%s->%s}=%g\n",
 			this->name(), b->name(), queue_tokens,
@@ -823,7 +835,7 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
     }
 
     /*
-     * If we have forwarding, add their components to the royal mess.
+     * If we have forwarding, add their components to the royal mess.  Recursive call will update call._w.
      */
 
     for ( std::map<const Entry *,Call>::const_iterator fwd = b->_fwd.begin(); fwd != b->_fwd.end(); ++fwd ) {

@@ -531,6 +531,20 @@ Entry::insert_DOM_results()
 	    phase[p].insert_DOM_results();
 	}
     }
+
+    /* Store forwarding data */
+    for ( std::map<const Entry *,Call>::iterator f = _fwd.begin(); f != _fwd.end(); ++f ) {
+	Call& call = f->second;
+	const Entry * entry = f->first;
+	call._dom->setResultWaitingTime( queueing_time( entry ) );
+    }
+}
+
+
+double Entry::queueing_time( const Entry * entry ) const
+{
+    std::map<const Entry *,Call>::const_iterator e = _fwd.find(entry);
+    return ( e != _fwd.end() ) ? e->second._w : 0.;
 }
 
 /*

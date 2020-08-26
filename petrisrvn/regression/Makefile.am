@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
+# $Id: Makefile.am 13796 2020-08-26 18:00:44Z greg $
 # ------------------------------------------------------------------------
 
 
@@ -16,17 +16,13 @@ SANITY=	01-sanity.lqxo \
 	04-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
-	07-sanity.lqxo
+	07-sanity.lqxo 
 INTER=	10-interlock.lqxo \
 	11-interlock.lqxo \
 	12-interlock.lqxo \
-	13-interlock.lqxo \
-	14-interlock.lqxo \
+	13-interlock.lqxo 
 	15-split-interlock.lqxo \
-	16-split-interlock.lqxo \
-	17-external-interlock.lqxo \
-	18-open-arrival.lqxo \
-	19-subchain.lqxo
+	16-open-arrival-lqxo
 MULTI=	20-multiserver.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
@@ -37,8 +33,7 @@ ACT=	40-activities.lqxo \
 	43-activities.lqxo \
 	44-activities.lqxo \
 	45-activities.lqxo \
-	46-activities.lqxo \
-	47-activities.lqxo
+	46-activities.lqxo 
 SEMA =  60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo 

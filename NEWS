@@ -1,3 +1,12 @@
+* Bugs fixed in 5.17.1
+245 	lqns 		uncaught exception of type subclass_responsibility: Server::setVariance: server.cc 246: Subclass responsibility. 
+247 	lqns 		Variance calculation changed for no apparent reason. 
+188 	lqns 		Model with open arrivals fails to solve. 
+194 	lqns 		Floating point error while solving model using LQNS 
+243 	lqns 		Bruell and Schmidt multiserver fail in the population code. 
+244 	lqiolib 	Assertion failed: (newEntry != NULL), function prepare, file model.cc, line 305. 
+246 	lqn2xxx 	Loading results from a .p file whacks infinite servers. 
+
 * Bugs fixed in 5.17
 238 	srvndiff 	XML results for forwarding delay are not saved. 
 239 	lqsim 		Split configure(). 

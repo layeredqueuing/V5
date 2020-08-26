@@ -2,11 +2,12 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13729 2020-08-04 20:20:16Z greg $
+# $Id: Makefile.am 13795 2020-08-25 16:45:34Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
-OPTS=	-Pvariance=mol,threads=hyper -w 
+OPTS=	-Pvariance=mol,threads=hyper -w
+DIFFOPTS= -Q -S0.001 
 
 SANITY=	01-sanity.lqxo \
 	02-sanity.lqxo \
@@ -56,6 +57,10 @@ OTHER=	90-A01.lqxo \
 	93-simple-ucm.lqxo \
 	94-5101-a2-q2b1.lqxo
 
+VAR=	90-A01-novar.lqxo \
+	90-A01-stoch.lqxo 
+
+
 # Can't do: $(SYNC)  Should omit $(SIM) to, as the results aren't meaningful.
 OBJS=	$(SANITY) $(INTER) $(MULTI) $(ACT) $(REPL) $(FORK) $(OTHER)
 if QUORUM
@@ -72,7 +77,7 @@ SUFFIXES = .diff .d .lqxo .lqnx
 
 .lqnx.lqxo:
 	$(SRVN) $(OPTS) $<
-	@srvndiff -Q -S0.001 $@ ../../models/regression/lqns-results/$*.p
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
 
 
 .lqnx.d:
@@ -81,24 +86,32 @@ SUFFIXES = .diff .d .lqxo .lqnx
 .lqxo.diff:
 	-srvndiff ../../models/regression/{petri,lqns}-results/$*.p $< > $@
 
-check:	$(OBJS)
-	echo $(OBJS) | tr -s " " "\n" | srvndiff -Q -S0.001 -@- . ../../models/regression/lqns-results
+all:
+
+check:	$(OBJS) $(VAR)
+	echo $(OBJS) $(VAR) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results
 
 check-syntax:
 	$(MAKE) OPTS=-n check
 
 check-verbose:
-	FILES=`echo $(OBJS) | tr -s " " "\n" | srvndiff -Q -S0.001 -@- . ../../models/regression/lqns-results`; \
+	FILES=`echo $(OBJS) | tr -s " " "\n" | srvndiff $(DIFFOPTS) -@- . ../../models/regression/lqns-results`; \
 	for i in $$FILES; do j=`echo $$i | sed -e's/lqxo/p/'`; srvndiff -A +t ../../models/regression/lqns-results/$$j $$i; done
-
-all:
 
 clean:
 	@-rm -f *.lqxo *.out *.diff
 	@-rm -rf $(OBJS2)
 
 distclean:	clean 
-	-rm -f Makefile
+	@-rm -f Makefile
+
+90-A01-novar.lqxo: 90-A01.lqnx
+	$(SRVN) -Pvariance=none -a -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/90-A01-novar.p 
+
+90-A01-stoch.lqxo: 90-A01.lqnx
+	$(SRVN) -Pvariance=stochastic -a -xo$@ $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/90-A01-stoch.p
 
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/lqns-results
@@ -125,3 +138,6 @@ summary:	$(OBJS)
 	for i in $(OBJS); do srvndiff -Q --ignore-errors ../../models/regression-xml/lqns-results/$$i $$i > /dev/null; \
 	if test $$? == 0; then result="pass"; else result="fail"; fi; \
 	echo \"$$i\",$$result; done
+
+94-5101-a2-q2b1.diff: 94-5101-a2-q2b1.lqxo
+	-srvndiff ../../models/regression/{sim,lqns}-results/$*.p $< > $@

@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: 52-replication.lqxo 13791 2020-08-23 01:43:45Z greg $ -->
 <!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
 <lqn-model name="52-replication" description="lqns 5.14 solution for model from: 52-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">

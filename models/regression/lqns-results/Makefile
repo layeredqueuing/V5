@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13729 2020-08-04 20:20:16Z greg $
+# $Id: Makefile 13791 2020-08-23 01:43:45Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns 
@@ -48,6 +48,8 @@ DST =	01-sanity.p \
 	88-quorum.p \
 	89-quorum.p \
 	90-A01.p \
+	90-A01-novar.p \
+	90-A01-stoch.p \
 	90-B07.p \
 	91-cs3-1.p \
 	92-open.p \
@@ -63,11 +65,19 @@ SRC = $(DST:.p=.in)
 .in.p:
 	$(SRVN) $(OPTS) -p  $<
 
+.files:	
+	@-rm .files
+	for i in $(DST); do echo $$i >> .files; done
+
+
 all:	$(DST) .files
 
 diff:
 	srvndiff -@.files ../petri-results ../sim-results .
 
-.files:	
-	@-rm .files
-	for i in $(DST); do echo $$i >> .files; done
+90-A01-novar.p:	90-A01.in
+	$(SRVN) -Pvariance=none -p -o$@ $<
+
+90-A01-stoch.p: 90-A01.in
+	$(SRVN) -Pvariance=stochastic -p -o$@ $<
+

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13787 2020-08-22 17:19:29Z greg $
+ *  $Id: srvn_output.cpp 13795 2020-08-25 16:45:34Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2333,7 +2333,8 @@ namespace LQIO {
 	    _output << entity_name( entity, print_task_name )
 		    << entry_name( entry )
 		    << entry_name( *dest )
-		    << setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. );
+		    << setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. )
+		    << newline;
 	}
     }
 

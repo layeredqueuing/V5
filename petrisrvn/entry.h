@@ -103,6 +103,7 @@ public:
     void insert_DOM_results();
     
     double task_utilization( unsigned p );
+    double queueing_time( const Entry * entry ) const;
     bool check_open_result();
 
 

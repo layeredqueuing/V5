@@ -1,6 +1,6 @@
-# lqns 5.15
-# lqns --pragma=variance=mol,threads=mak --parseable 94-5101-a2-q2b1.in
-# $Id: 94-5101-a2-q2b1.p 13705 2020-07-20 21:46:53Z greg $
+# lqns 5.17
+# lqns --pragma=variance=mol,threads=hyper --parseable 94-5101-a2-q2b1.in
+# $Id: 94-5101-a2-q2b1.p 13793 2020-08-24 15:45:01Z greg $
 V y
 C 7.02981e-06
 I 34
@@ -8,9 +8,9 @@ PP 5
 NP 1
 
 #!Comment: \n	Experiment name: q2b1\n	SRVN description file: web-server.in\n	Comment: ''\n\n	Declared variables:\n	n_users = 225\n\n	Controlled parameters:\n	[9]  n_users  = 225\n
-#!User:  0:00:00.013
+#!User:  0:00:00.033
 #!Sys:   0:00:00.000
-#!Real:  0:00:00.013
+#!Real:  0:00:00.033
 #!Solver: 5 170 1963 59701 701871 5.80608e+10 0
 
 B 9
@@ -25,7 +25,7 @@ DB             :DB_Read         0.0247525
 DB_Disk        :DB_Disk         0.2         
 -1
 
-W 8
+W 9
 User           :User            Protocol        447.514     -1 
                 -1 
 WebServer      :WebServer       CGI_Update      161.291     -1 
@@ -37,6 +37,8 @@ CGI            :CGI_Update      DB_Update       54.0241     -1
                 -1 
 DB             :DB_Read         DB_Disk         0           -1 
                 DB_Update       DB_Disk         0           -1 
+                -1 
+Protocol       :Protocol        WebServer       3.84025     -1 
                 -1 
 -1
 
