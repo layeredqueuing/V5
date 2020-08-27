@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 13749 2020-08-09 14:07:06Z greg $
+ * $Id: pragma.cc 13799 2020-08-27 01:12:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,6 +24,7 @@ Pragma::Pragma() :
     _abort_on_dropped_message(true),  /* halt on dropped msgs.	*/
     _quorum_delayed_calls(false),	/* Quorum reply (BUG_311)	*/
     _reschedule_on_async_send(false),	/* force schedule after snr.	*/
+    _spex_header(true),
     _scheduling_model(SCHEDULE_SLICE),
     _severity_level(LQIO::NO_ERROR),
     _block_period(0.0),

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 13795 2020-08-25 16:45:34Z greg $
+ *  $Id: srvn_output.cpp 13806 2020-08-27 18:05:17Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -407,7 +407,7 @@ namespace LQIO {
 
         /* Open arrival wait times */
 
-        if ( getDOM().entryHasOpenWait() ) {
+        if ( getDOM().hasOpenArrivals() ) {
             output << task_header( open_wait_str ) << setw(ObjectOutput::__maxDblLen) << "Lambda" << setw(ObjectOutput::__maxDblLen) << "Waiting time" << newline;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
         }
@@ -880,8 +880,11 @@ namespace LQIO {
         for_each( _entities.begin(), _entities.end(), TaskOutput( output, &TaskOutput::printThroughputAndUtilization ) );
         output << "-1"  << endl << endl;
 
+	/* Open Arrivals */
+	
         if ( getDOM().entryHasOpenWait() ) {
-            output << "R " << 0 << endl;
+	    unsigned int count = count_if( _entities.begin(), _entities.end(), Predicate( &DOM::Entry::hasOpenArrivalRate ) );
+            output << "R " << count << endl;
             for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printOpenQueueWait ) );
             output << "-1"  << endl << endl;
         }
@@ -3289,4 +3292,16 @@ namespace LQIO {
         }
         _output << newline;
     }
+
+    bool
+    SRVN::Predicate::operator()( const std::pair<unsigned int,DOM::Entity *>& ep ) const
+    {
+	const DOM::Task * task = dynamic_cast<const DOM::Task *>(ep.second);
+	if ( task == nullptr ) return false;
+
+	const std::vector<DOM::Entry *> & entries = task->getEntryList();
+	
+	return std::count_if( entries.begin(), entries.end(), DOM::DocumentObject::Predicate<DOM::Entry>( _f ) );
+    }
+
 }

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: petrisrvn.cc 13799 2020-08-27 01:12:59Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -82,17 +82,14 @@ bool simplify_network		= false; /* Delete single place procs.  */
 double	x_scaling		= 1.0;	 /* Auto-squish if val == 0.	*/
 unsigned open_model_tokens	= OPEN_MODEL_TOKENS;	/* Default val.	*/
 
-Pragma pragma;
-Pragma saved_pragma;
-
 static const char * net_dir_name	= "nets";
-
 static void my_handler (int);
+
+static LQIO::DOM::Pragma pragmas;
 
 /*
  * Command options.
  */
-
 
 static const char * opts = "dHI:jkm:no:pP:rRtvVwxz:";
 
@@ -217,7 +214,7 @@ main (int argc, char *argv[])
 #endif
     signal(SIGFPE, my_handler);
 
-//    get_pragma( getenv( "PETRISRVN_PRAGMAS" ) );
+    pragmas.insert( getenv( "PETRISRVN_PRAGMAS" ) );
 
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
@@ -293,16 +290,15 @@ main (int argc, char *argv[])
 	    break;
 
 	case 'P':
-	    if ( !pragma( optarg ) ) {
-		(void) fprintf( stderr, "%s: invalid argument to --pragma: %s\n", LQIO::io_vars.toolname(), optarg );
-		Pragma::usage();
+	    if ( !pragmas.insert( optarg ) ) {
+		Pragma::usage( std::cerr );
 		exit( INVALID_ARGUMENT );
 	    }
 	    break;
 
 	case 256+'q':
-	    pragma._processor_scheduling = SCHEDULE_RAND;
-	    pragma._task_scheduling = SCHEDULE_RAND;
+	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_,scheduling_label[SCHEDULE_RAND].XML);
+	    pragmas.insert(LQIO::DOM::Pragma::_task_scheduling_,scheduling_label[SCHEDULE_RAND].XML);
 	    break;
 
 	case 256+'s':
@@ -468,7 +464,6 @@ main (int argc, char *argv[])
 	    exit( INVALID_ARGUMENT );
 	}
 
-	saved_pragma = pragma;
 	for ( ; optind < argc; ++optind ) {
 
 	    if ( file_count > 1 ) {
@@ -476,7 +471,6 @@ main (int argc, char *argv[])
 	    }
 
 	    global_error_flag |= process( argv[optind], output_file );
-	    pragma = saved_pragma;
 	}
 
     }
@@ -499,16 +493,14 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     int status = 0;
 
     /* Make sure we got a document */
-    if (document == NULL || LQIO::io_vars.anError() || !aModel.construct() ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": Input model " << inputFileName << " was not loaded successfully." << std::endl;
-	return FILEIO_ERROR;
-    }
+    if ( document == NULL || LQIO::io_vars.anError() ) return FILEIO_ERROR;
+    document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
+
+    if ( !aModel.construct() ) return FILEIO_ERROR;
 
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
         std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
-
-    pragma.updateDOM( document );	/* Save pragmas */
 
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
 

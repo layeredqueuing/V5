@@ -806,13 +806,14 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 
 	    /* direct call: this == src_phase */
 
-	    call._w = queue_tokens / tput;
+	    src->second._w = queue_tokens / tput;
+//	    call._w = queue_tokens / tput;	/* Can't do this because of pseudo calls (open arrivals) */
 
 	    /* Drop probabiltity */
 
 	    if ( call._dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY
 		 || call._dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY ) {
-		call._dp = drop_lambda( m, b, src_phase ) / tput;
+		src->second._dp = drop_lambda( m, b, src_phase ) / tput;
 	    }
 
 	} else  {

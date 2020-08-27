@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
+ * $Id: model.cc 13799 2020-08-27 01:12:59Z greg $
  *
  * Load the SRVN model.
  */
@@ -52,6 +52,7 @@
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
 #include <wspnlib/wspn.h>
 #include <wspnlib/global.h>
 #include "actlist.h"
@@ -222,12 +223,8 @@ Model::construct()
 	cerr << "Create: " << _input_file_name << "..." << endl;
     }
 
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    const map<string,string>& pragmaList = _document->getPragmaList();
-    map<string,string>::const_iterator pragmaIter;
-    for (pragmaIter = pragmaList.begin(); pragmaIter != pragmaList.end(); ++pragmaIter) {
-	pragma( pragmaIter->first, pragmaIter->second );
-    }
+    Pragma::set( _document->getPragmaList() );
+    LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 	
@@ -436,7 +433,7 @@ Model::transform()
      * Compute offsets.
      */
 
-    if ( pragma.task_scheduling() == SCHEDULE_RAND ) {
+    if ( Pragma::__pragmas->task_scheduling() == SCHEDULE_RAND ) {
 	Task::__queue_y_offset  = -3.;
     } else {
 	Task::__queue_y_offset  = -static_cast<double>(max_queue_length+2);

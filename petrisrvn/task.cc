@@ -153,6 +153,7 @@ Task::create( LQIO::DOM::Task * dom )
 	LQIO::input_error2( ERR_REPLICATION, "task", task_name.c_str() );
     }
 
+
     Processor * processor = Processor::find( dom->getProcessor()->getName() );
     if ( !processor ) {
 	input_error2( LQIO::ERR_NOT_DEFINED, dom->getProcessor()->getName().c_str() );
@@ -163,33 +164,42 @@ Task::create( LQIO::DOM::Task * dom )
 	LQIO::input_error2( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, task_name.c_str(), processor->name() );
     }
 
-    Task * task = 0;
+    /* Override scheduling */
 
-    const scheduling_type sched_type = dom->getSchedulingType();
+    scheduling_type sched_type = dom->getSchedulingType();
+    if ( !bit_test( sched_type, SCHED_BURST_BIT|SCHED_UNIFORM_BIT|SCHED_CUSTOMER_BIT|SCHED_DELAY_BIT|SCHED_SEMAPHORE_BIT) ) {
+	if ( dom->isInfinite() ) {
+	    sched_type = SCHEDULE_DELAY;
+	    dom->setSchedulingType( sched_type );
+	} else if ( !Pragma::__pragmas->default_task_scheduling() ) {
+	    sched_type = Pragma::__pragmas->task_scheduling();
+	    dom->setSchedulingType( sched_type );
+	}
+    }
+
+    Task * task = nullptr;
 
     switch ( sched_type ) {
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, "task", task_name.c_str() );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, dom->getTypeName(), task_name.c_str() );
 	/* fall through */
     case SCHEDULE_CUSTOMER:
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
+	}
+	if ( dom->isInfinite() ) {
+	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name.c_str() );
 	}
 	task = new Task( dom, REF_TASK, processor );
 	break;
 	
     case SCHEDULE_PPR:
     case SCHEDULE_HOL:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, "task", task_name.c_str() );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[sched_type].str, dom->getTypeName(), task_name.c_str() );
 	/* fall through */
     case SCHEDULE_FIFO:
     default:
-        /* Override scheduling */
-
-        if ( pragma.task_scheduling() != SCHEDULE_FIFO ) {
-	    dom->setSchedulingType( pragma.task_scheduling() );
-	}
 	if ( dom->hasThinkTime() ) {
 	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
 	}
@@ -203,7 +213,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->hasQueueLength() ) {
 	    LQIO::input_error2( LQIO::WRN_QUEUE_LENGTH, task_name.c_str() );
 	}
-	if ( dom->getCopiesValue() != 1 ) {
+	if ( dom->isMultiserver() ) {
 	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), dom->getCopiesValue() );
 	}	
 	task = new Task( dom, INF_SERV, processor );
@@ -347,7 +357,7 @@ int Task::priority() const
 	value = dynamic_cast<LQIO::DOM::Task *>(get_dom())->getPriorityValue();
     }
     catch ( const std::domain_error &e ) {
-	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", "task", name(), e.what() );
+	LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "priority", get_dom()->getTypeName(), name(), e.what() );
     }
     return value;
 }
@@ -359,7 +369,7 @@ double Task::think_time() const
 	    return dynamic_cast<LQIO::DOM::Task *>(get_dom())->getThinkTimeValue();
 	}
 	catch ( const std::domain_error &e ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", "task", name(), e.what() );
+	    LQIO::solution_error( LQIO::ERR_INVALID_PARAMETER, "think time", get_dom()->getTypeName(), name(), e.what() );
 	}
     }
     return 0.;

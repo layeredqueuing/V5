@@ -79,14 +79,14 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
     }
 
-    const scheduling_type scheduling_flag = dom->getSchedulingType();
 
-    if ( pragma.processor_scheduling() != SCHEDULE_FIFO && dom->getSchedulingType() != SCHEDULE_DELAY ) {
-	dom->setSchedulingType( pragma.processor_scheduling() );
+    if ( dom->getSchedulingType() != SCHEDULE_DELAY && !Pragma::__pragmas->default_processor_scheduling() ) {
+	dom->setSchedulingType( Pragma::__pragmas->processor_scheduling() );
     }
 	
+    const scheduling_type scheduling_flag = dom->getSchedulingType();
     if ( !bit_test( scheduling_flag, SCHED_PPR_BIT|SCHED_HOL_BIT|SCHED_FIFO_BIT|SCHED_DELAY_BIT|SCHED_RAND_BIT|SCHED_PS_BIT ) ) {
-	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str, "processor", processor_name.c_str() );
+	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[scheduling_flag].str, dom->getTypeName(), processor_name.c_str() );
 	dom->setSchedulingType( SCHEDULE_FIFO );
     }
     

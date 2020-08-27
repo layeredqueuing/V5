@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 13747 2020-08-07 02:45:55Z greg $
+ * $Id: srvn_output.h 13806 2020-08-27 18:05:17Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -245,6 +245,17 @@ namespace LQIO {
 	    const DOM::ExternalVariable * _v;
 	    double _d;
 	    friend std::ostream& operator<<(std::ostream & os, const ExtvarPrintingManip& m ) { return m._f(os,m._v,m._d); }
+	};
+
+	class Predicate {
+	public:
+	    typedef bool (DOM::Entry::*test)() const;
+	    Predicate( test f ) : _f(f) {}
+
+	    bool operator()( const std::pair<unsigned int,DOM::Entity *>& ) const;
+
+	private:
+	    const test _f;
 	};
 
 	/* ------------------------------------------------------------------------ */

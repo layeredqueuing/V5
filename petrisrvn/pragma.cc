@@ -1,13 +1,13 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
- * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: pragma.cc 13799 2020-08-27 01:12:59Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "petrisrvn.h"
 #include "pragma.h"
+#include <iomanip>
 #include <cstdlib>
 #include <cstring>
 #include <ctype.h>
@@ -19,170 +19,103 @@
 #include <lqio/input.h>
 #include <lqio/expat_document.h>
 
-using namespace std;
-
-std::map<const char *, Pragma::pragma_info, lt_str> Pragma::__pragmas;
+Pragma * Pragma::__pragmas = nullptr;
+std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
 
 #define N_SCHEDULING_MODELS	4
 
 Pragma::Pragma()
     : _processor_scheduling(SCHEDULE_FIFO),
       _reschedule_on_async_send(false),
+      _spex_header(true),
       _stop_on_message_loss(false),
-      _task_scheduling(SCHEDULE_FIFO)
+      _task_scheduling(SCHEDULE_FIFO),
+      _default_processor_scheduling(true),
+      _default_task_scheduling(true)
 {
 }
 
-Pragma&
-Pragma::operator=( const Pragma& src )
-{
-    _processor_scheduling = src._processor_scheduling;
-    _reschedule_on_async_send = src._reschedule_on_async_send;
-    _stop_on_message_loss = src._stop_on_message_loss;
-    _task_scheduling = src._task_scheduling;
-    return *this;
-}
-
-bool
-Pragma::operator()( const char * p )
-{
-    if ( !p ) return false;
-
-    bool rc = true;
-    do {
-	while ( isspace( *p ) ) ++p;		/* Skip leading whitespace. */
-	string param;
-	string value;
-	while ( *p && !isspace( *p ) && *p != '=' && *p != ',' ) {
-	    param += *p++;			/* get parameter */
-	}
-	while ( isspace( *p ) ) ++p;
-	if ( *p == '=' ) {
-	    ++p;
-	    while ( isspace( *p ) ) ++p;
-	    while ( *p && !isspace( *p ) && *p != ',' ) {
-		value += *p++;
-	    }
-	}
-	while ( isspace( *p ) ) ++p;
-	if ( ! (*this)( param, value ) ) rc = false;
-    } while ( *p++ == ',' );
-    return rc;
-}
-
-
-/*
- * Process the pragma string.  The string is automagically freed.
- */
-
-bool
-Pragma::operator()( const string& param, const string& value )
+void
+Pragma::set( const std::map<std::string,std::string>& list )
 {
     initialize();
+    
+    if ( __pragmas != nullptr ) delete __pragmas;
+    __pragmas = new Pragma();
 
-    std::map<const char *, Pragma::pragma_info, lt_str>::const_iterator p = Pragma::__pragmas.find( param.c_str() );
-    if ( p == Pragma::__pragmas.end() ) return false;
-    Pragma::set_pragma_fptr set = p->second._set;
-    if ( !set ) return true;		/* ignored pragma */
-    return (this->*set)( value );
+    for ( std::map<std::string,std::string>::const_iterator i = list.begin(); i != list.end(); ++i ) {
+	const std::string& param = i->first;
+	const std::map<std::string,fptr>::const_iterator j = __set_pragma.find(param);
+	if ( j != __set_pragma.end() ) {
+	    fptr f = j->second;
+	    (__pragmas->*f)(i->second);
+	}
+    }
 }
 
 /* ------------------------------------------------------------------------ */
-/* ------------------------------------------------------------------------ */
 
 bool
-Pragma::set_processor_scheduling( const string& value )
+Pragma::set_processor_scheduling( const std::string& value )
 {
     try {
-	_processor_scheduling = str_to_scheduling_type( value, SCHEDULE_FIFO );
+	_processor_scheduling = str_to_scheduling_type( value );
+	_default_processor_scheduling = false;
 	return true;
     }
-    catch ( const invalid_argument& arg ) {
+    catch ( const std::invalid_argument& arg ) {
 	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", LQIO::io_vars.toolname(), arg.what() );
 	_processor_scheduling = SCHEDULE_FIFO;
 	return false;
     }
 }
 
-const char *
-Pragma::get_processor_scheduling() const
-{
-    return scheduling_label[_processor_scheduling].XML;
-}
-
-
 bool
-Pragma::set_reschedule_on_async_send( const string& value )
+Pragma::set_reschedule_on_async_send( const std::string& value )
 {
     _reschedule_on_async_send = is_true( value );
     return true;
 }
 
-const char *
-Pragma::get_reschedule_on_async_send() const
-{
-    return _reschedule_on_async_send ? "true" : "false";
-}
-
 bool
-Pragma::set_stop_on_message_loss( const string& value )
+Pragma::set_stop_on_message_loss( const std::string& value )
 {
     _stop_on_message_loss = is_true( value );
     return true;
 }
 
-const char * 
-Pragma::get_stop_on_message_loss() const
-{
-    return _stop_on_message_loss ? "true" : "false";
-}
-
-
 bool
-Pragma::set_task_scheduling( const string& value )
+Pragma::set_task_scheduling( const std::string& value )
 {
     try {
-	_task_scheduling = str_to_scheduling_type( value, SCHEDULE_FIFO );
+	_task_scheduling = str_to_scheduling_type( value );
+	_default_task_scheduling = false;
 	return true;
     }
-    catch ( const invalid_argument& arg ) {
+    catch ( const std::invalid_argument& arg ) {
 	(void) fprintf( stderr, "%s: #Pragma scheduling=%s is not supported, \"FIFO\" assumed\n", LQIO::io_vars.toolname(), arg.what() );
 	_task_scheduling = SCHEDULE_FIFO;
 	return false;
     }
 }
 
-const char *
-Pragma::get_task_scheduling() const
-{
-    return scheduling_label[_task_scheduling].XML;
-}
-
-
 bool
 Pragma::set_spex_header( const std::string& value )
 {
-    LQIO::Spex::__no_header = is_true( value );
+    _spex_header = is_true( value );
     return true;
 }
-
-const char *
-Pragma::get_spex_header() const
-{
-    return LQIO::Spex::__no_header ? "true" : "false";
-}
-
 
 void
 Pragma::initialize()
 {
-    if ( __pragmas.size() > 0 ) return;
+    if ( __set_pragma.size() > 0 ) return;
 
-    __pragmas["processor-scheduling"] =	      pragma_info( PROCESSOR_SCHEDULING,       &Pragma::set_processor_scheduling,	&Pragma::get_processor_scheduling,	 &Pragma::eq_processor_scheduling );
-    __pragmas["reschedule-on-async-send"] =   pragma_info( RESCHEDULE_ON_ASYNC_SEND,   &Pragma::set_reschedule_on_async_send,	&Pragma::get_reschedule_on_async_send,	 &Pragma::eq_reschedule_on_async_send );
-    __pragmas["stop-on-message-loss"] =	      pragma_info( STOP_ON_MESSAGE_LOSS,       &Pragma::set_stop_on_message_loss,	&Pragma::get_stop_on_message_loss,	 &Pragma::eq_stop_on_message_loss );
-    __pragmas["task-scheduling"] =	      pragma_info( TASK_SCHEDULING,	       &Pragma::set_task_scheduling,		&Pragma::get_task_scheduling,		 &Pragma::eq_task_scheduling );
-    __pragmas["no-header"] =		      pragma_info( SPEX_HEADER,		       &Pragma::set_spex_header,		&Pragma::get_spex_header,		 &Pragma::eq_spex_header );
+    __set_pragma[LQIO::DOM::Pragma::_processor_scheduling_] =	&Pragma::set_processor_scheduling;
+    __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_]=&Pragma::set_reschedule_on_async_send;
+    __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] =	&Pragma::set_stop_on_message_loss;
+    __set_pragma[LQIO::DOM::Pragma::_task_scheduling_] =	&Pragma::set_task_scheduling;
+    __set_pragma[LQIO::DOM::Pragma::_spex_header_] = 		&Pragma::set_spex_header;
 }
 
 
@@ -192,58 +125,31 @@ Pragma::initialize()
  */
 
 void
-Pragma::usage(void)
+Pragma::usage( std::ostream& output )
 {
-    (void) fprintf( stderr, "Valid pragmas:\n" );
-
-    for ( std::map<const char *, Pragma::pragma_info>::const_iterator p = Pragma::__pragmas.begin(); p != Pragma::__pragmas.end(); ++p  ) {
-
-	(void) fprintf( stderr, "\t%12s = ", p->first );
-	switch ( p->second._p ) {
-	case TASK_SCHEDULING:
-	case PROCESSOR_SCHEDULING:
-	    (void) fprintf( stderr, "{fcfs,rand,...}" );
-	    break;
-
-	case STOP_ON_MESSAGE_LOSS:
-	case RESCHEDULE_ON_ASYNC_SEND:
-	case XML_SCHEMA:
-	case SPEX_HEADER:
-	    (void) fprintf( stderr, "{true,false}" );
-	    break;
-	}
-	(void) fprintf( stderr, "\n" );
-    }
-}
-
-
-
-/*
- * Update the DOM to current state. 
- */
-
-void
-Pragma::updateDOM( LQIO::DOM::Document* document ) const
-{
-    Pragma pragma_default;
-
     initialize();
 
-    // Reset DOM __pragmass 
-    document->clearPragmaList();
+    output << "Valid pragmas:" << std::endl;
+    std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 
-    /* General cases */
-    std::map<const char *, Pragma::pragma_info, lt_str>::const_iterator param;
-    for ( param = Pragma::__pragmas.begin(); param != Pragma::__pragmas.end(); ++param  ) {
-	const pragma_info& value = param->second;
-	if ( !value._eq || (this->*(value._eq))( pragma_default ) ) continue;		// No change 
+    for ( std::map<std::string, Pragma::fptr>::const_iterator p = Pragma::__set_pragma.begin(); p != Pragma::__set_pragma.end(); ++p  ) {
+	output << "\t" << std::setw(20) << p->first;
+	const std::set<std::string>* args = LQIO::DOM::Pragma::getValues( p->first );
+	if ( args && args->size() > 1 ) {
+	    output << " = {";
 
-	const char * p = (this->*(value._get))();
-	if ( p ) {
-	    document->addPragma( param->first, p );
+	    for ( std::set<std::string>::const_iterator q = args->begin(); q != args->end(); ++q ) {
+		if ( q != args->begin() ) output << ",";
+		output << *q;
+	    }
+	    output << "}" << std::endl;
+	} else {
+	    output << " = <arg>" << std::endl;
 	}
     }
+    output.setf( flags );
 }
+
 
 
 /*
@@ -251,18 +157,14 @@ Pragma::updateDOM( LQIO::DOM::Document* document ) const
  */
 
 scheduling_type
-Pragma::str_to_scheduling_type( const string& s, scheduling_type default_sched )
+Pragma::str_to_scheduling_type( const std::string& s )
 {
-    if ( s.size() == 0 ) {
-	return default_sched;
-    } else {
-	for ( unsigned i = 0; i < N_SCHEDULING_TYPES; ++i ) {
-	    if ( s.compare( ::scheduling_label[i].XML ) == 0 ) {
-		return static_cast<scheduling_type>(i);
-	    }
+    for ( unsigned i = 0; i < N_SCHEDULING_TYPES; ++i ) {
+	if ( s.compare( ::scheduling_label[i].XML ) == 0 ) {
+	    return static_cast<scheduling_type>(i);
 	}
     }
-    throw invalid_argument(s);
+    throw std::invalid_argument(s);
 }
 
 
@@ -272,7 +174,7 @@ Pragma::str_to_scheduling_type( const string& s, scheduling_type default_sched )
  */
 
 bool
-Pragma::is_true( const string& s ) 
+Pragma::is_true( const std::string& s ) 
 {
     return s.compare( "true" ) == 0
 	|| s.compare( "TRUE" ) == 0

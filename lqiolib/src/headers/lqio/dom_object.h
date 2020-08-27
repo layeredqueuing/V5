@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_object.h 13806 2020-08-27 18:05:17Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -18,10 +18,9 @@ namespace LQIO {
 	class ExternalVariable;
 
 	class DocumentObject {
-
-	protected:
 	    friend class Document;		/* To access DocumentObject::Predicate */
 
+	public:
 	    template <class Type> class Predicate {
 		typedef bool (Type::*test_fn)() const;
 
