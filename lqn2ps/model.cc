@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
+ * $Id: model.cc 13813 2020-09-14 13:21:08Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -535,17 +535,18 @@ Model::process()
     Processor * surrogate_processor = 0;
     Task * surrogate_task = 0;
 
-    const unsigned submodel = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
-    if ( submodel > 0 ) {
- 	if ( !selectSubmodel( submodel ) ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": Submodel " << submodel << " is too big." << endl;
+    const unsigned layer = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
+    if ( layer > 0 ) {
+	/* Submodel 1 is layer 2 */
+ 	if ( !selectSubmodel( layer+1 ) ) {
+	    cerr << LQIO::io_vars.lq_toolname << ": Submodel " << layer << " is too big." << endl;
 	    return false;
 	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
- 	    _layers.at(submodel).generateSubmodel();
+ 	    _layers.at(layer+1).generateSubmodel();
 	    if ( Flags::surrogates ) {
-		_layers[submodel].transmorgrify( _document, surrogate_processor, surrogate_task );
-		relayerize(submodel-1);
-		_layers.at(submodel).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
+		_layers[layer+1].transmorgrify( _document, surrogate_processor, surrogate_task );
+		relayerize(layer);
+		_layers.at(layer+1).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
 #if HAVE_REGEX_T
@@ -553,12 +554,11 @@ Model::process()
 
 	/* Call transmorgrify on all layers */
 
-	for ( unsigned i = layers.size(); i > 0; ) {
-	    i -= 1;
-	    layers[i].generateSubmodel();
-	    layers[i].transmorgrify( _document, surrogate_processor, surrogate_task );
-	    relayerize( i );
-	    layers[i+1].sort( Entity::compare ).format( 0 ).justify( LQIO::io_vars.n_entries * Flags::entry_width );
+	for ( unsigned i = layers.size(); i > 0; --i ) {
+	    layers[i-1].generateSubmodel();
+	    layers[i-1].transmorgrify( _document, surrogate_processor, surrogate_task );
+	    relayerize( i-1 );
+	    layers[i].sort( Entity::compare ).format( 0 ).justify( LQIO::io_vars.n_entries * Flags::entry_width );
 	}
 #endif
     }
@@ -578,14 +578,14 @@ Model::process()
 	/* Compensate for the arcs on the right */
 
 	if ( (queueing_output() || submodel_output()) && Flags::flatten_submodel  ) {
-	    format( _layers.at(submodel) );
+	    format( _layers.at(layer+1) );
 	}
 
 	if ( queueing_output() ) {
 
 	    /* Compensate for chains */
 
-	    const double delta = Flags::icon_height / 5.0 * _layers[submodel-1].nChains();
+	    const double delta = Flags::icon_height / 5.0 * _layers[layer].nChains();
 	    _extent.moveBy( delta, delta );
 	    _origin.moveBy( 0, -delta / 2.0 );
 	}

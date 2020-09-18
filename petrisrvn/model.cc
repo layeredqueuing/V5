@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13799 2020-08-27 01:12:59Z greg $
+ * $Id: model.cc 13808 2020-09-08 21:16:53Z greg $
  *
  * Load the SRVN model.
  */
@@ -345,6 +345,22 @@ Model::construct()
 }
 
 
+/*
+ * Dynamic Updates / Late Finalization
+ * In order to integrate LQX's support for model changes we need to
+ * have a way of re-calculating what used to be static for all
+ * dynamically editable values
+ */
+
+void
+Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
+{
+//    setModelParameters(document);
+//    for_each( __processor.begin(), __processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+//    for_each( __task.begin(), __task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+}
+
+
 void Model::initialize() 
 {
     Model::__forwarding_present = false;
@@ -672,9 +688,9 @@ Model::make_queues()
 	double y_pos	= (*t)->get_y_pos();                                 
 	unsigned ne	= (*t)->n_entries();                             
 	double idle_x;
-	unsigned k 	= 0;		/* Queue Kounter		*/
-	queue_fnptr queue_func;		/* Local version.	*/
-	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || bit_test( (*t)->type(), INF_SERV_BIT|SEMAPHORE_BIT);
+	unsigned k 	= 0;			/* Queue Kounter	*/
+	queue_fnptr queue_func;			/* Local version.	*/
+	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || bit_test( (*t)->type(), SEMAPHORE_BIT || (*t)->is_infinite() );
 
 	/* Override if dest is a join function. */
 		

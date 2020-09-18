@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 13764 2020-08-17 19:50:05Z greg $
+ * $Id: help.cc 13815 2020-09-14 16:30:47Z greg $
  */
 
 #include <config.h>
@@ -896,6 +896,13 @@ ostream&
 Help::debugLQX( ostream & output, bool verbose ) const
 {
     output << "Print out the actions the LQX parser while reading an LQX program." << endl;
+    return output;
+}
+
+ostream&
+Help::debugMVA( ostream & output, bool verbose ) const
+{
+    output << "Print out oodles of information while the MVA solver is running.  The MVA solver must be compiled with DEBUG_MVA for this option to have effect." << endl;
     return output;
 }
 
@@ -1865,7 +1872,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 13764 2020-08-17 19:50:05Z greg $" << endl
+    output << __comment << " $Id: help.cc 13815 2020-09-14 16:30:47Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -2162,7 +2169,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 13764 2020-08-17 19:50:05Z greg $" << endl
+	   << __comment << " $Id: help.cc 13815 2020-09-14 16:30:47Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl

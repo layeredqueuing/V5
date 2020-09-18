@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13728 2020-08-04 16:28:38Z greg $
+ * $Id: option.cc 13815 2020-09-14 16:30:47Z greg $
  */
 
 #include <config.h>
@@ -49,6 +49,20 @@ Options::Debug::all( const char * )
 }
 
 void
+Options::Debug::mva( const char * )
+{
+#if DEBUG_MVA
+    MVA::debug_D = false;			/* Linearizer */
+    MVA::debug_L = true;			/* Queue Length */
+    MVA::debug_N = false;			/* Customers */
+    MVA::debug_P = false;			/* Marginal Probability */
+    MVA::debug_U = false;			/* Utilization */
+    MVA::debug_W = true;			/* Waiting Time */
+    MVA::debug_X = false;			/* Throughput */
+#endif
+}
+
+void
 Options::Debug::overtaking( const char * )
 {
     flags.print_overtaking = true;
@@ -78,6 +92,9 @@ Options::Debug::initialize()
     __table["interlock"] =  Debug( &Debug::interlock,   &Help::debugInterlock );
 //    __table["joins"] =      Debug( &Debug::joins,       &Help::debugJoins );
     __table["layers"] =     Debug( &Debug::layers,      &Help::debugLayers );
+#if DEBUG_MVA
+    __table["mva"] =	    Debug( &Debug::mva,		&Help::debugMVA );
+#endif
     __table["overtaking"] = Debug( &Debug::overtaking,  &Help::debugOvertaking );
     __table["variance"] =   Debug( &Debug::variance,    &Help::debugVariance );
 #if HAVE_LIBGSL

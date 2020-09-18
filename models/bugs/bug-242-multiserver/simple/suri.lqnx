@@ -13,7 +13,7 @@ $y_c0_1_e0 = 1
    <solver-params comment="Layers: 1, Customers: 0, Clients: 1, Tasks: 1, (Delay: 0), Processors: 1" conv_val="1e-05" it_limit="100" underrelax_coeff="0.5" print_int="10">
       <pragma param="multiserver" value="suri"/>
       <pragma param="force-multiserver" value="all"/>
-      <pragma param="mva" value="schweitzer"/>
+      <pragma param="mva" value="exact"/>
    </solver-params>
    <processor name="c0" scheduling="inf">
       <task name="c0" scheduling="ref" multiplicity="$c_c0">

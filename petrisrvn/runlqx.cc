@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: runlqx.cc 13808 2020-09-08 21:16:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -57,19 +57,27 @@ namespace SolverInterface
 	    std::cerr << "Solving iteration #" << invocationCount << std::endl;
 	}
 			
-	/* Make sure all external variables are accounted for */
-	if (!_document->areAllExternalVariablesAssigned()) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Not all external variables are assigned at time of solve." << std::endl;
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Solve was not invoked." << std::endl;
-	    return LQX::Symbol::encodeBoolean(false);
-	}
-			
-	/* Recalculate dynamic values */
-	//recalculateDynamicValues();
-			
-	/* Run the solver and return its success as a boolean value */
 	try {
+	/* Make sure all external variables are accounted for */
+	    const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
+	    if ( undefined.size() > 0) {
+		std::string msg = "The following external variables were not assigned at time of solve: ";
+		for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
+		    if ( var != undefined.begin() ) msg += ", ";
+		    msg += *var;
+		}
+		throw std::runtime_error( msg );
+	    } 
+			
+	    /* Recalculate dynamic values */
+	    Model::recalculateDynamicValues( _document );
+			
+	    /* Run the solver and return its success as a boolean value */
 	    assert (_aModel );
+
+	    std::stringstream ss;
+	    _document->printExternalVariables( ss );
+	    _document->setModelCommentString( ss.str() );
 	    _document->setResultInvocationNumber(invocationCount);
 	    const bool ok = ((_aModel->*_solve)() == NORMAL_TERMINATION);
 	    return LQX::Symbol::encodeBoolean(ok);

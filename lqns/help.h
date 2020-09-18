@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13764 2020-08-17 19:50:05Z greg $
+ * $Id: help.h 13815 2020-09-14 16:30:47Z greg $
  */
 
 #ifndef _HELP_H
@@ -176,6 +176,7 @@ public:
     ostream& debugInterlock( ostream & output, bool verbose ) const;
     ostream& debugJoins( ostream & output, bool verbose ) const;
     ostream& debugLQX( ostream & output, bool verbose ) const;
+    ostream& debugMVA( ostream & output, bool verbose ) const;
     ostream& debugLayers( ostream & output, bool verbose ) const;
     ostream& debugOvertaking( ostream & output, bool verbose ) const;
     ostream& debugQuorum( ostream & output, bool verbose ) const;

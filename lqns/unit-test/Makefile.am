@@ -2,7 +2,7 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 13676 2020-07-10 15:46:20Z greg $
+# $Id: Makefile.am 13815 2020-09-14 16:30:47Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA
@@ -79,7 +79,7 @@ disttest_SOURCES	= disttest.cc ../randomvar.cc $(EXTRA_test_SOURCES)
 
 run:	check
 	@for i in $(check_PROGRAMS); do \
-	  if test $$i != "poptest" -a $$i != "disttest"; then \
+	  if test $$i != "poptest" -a $$i != "popitertest" -a $$i != "disttest"; then \
 	    echo $$i; \
 	    ./$$i -s; \
 	  fi \
@@ -87,7 +87,7 @@ run:	check
 
 run-all:	check
 	@for i in $(check_PROGRAMS); do \
-	  if test $$i != "poptest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
+	  if test $$i != "poptest" -a -a $$i != "popitertest" $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
 	    echo $$i; \
 	    ./$$i -a -s; \
 	  fi \
@@ -95,7 +95,7 @@ run-all:	check
 
 run-schweitzer:	check
 	@for i in $(check_PROGRAMS); do \
-	  if test $$i != "poptest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
+	  if test $$i != "poptest" -a $$i != "popitertest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
 	    echo $$i; \
 	    ./$$i -b -s; \
 	  fi \

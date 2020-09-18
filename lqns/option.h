@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: option.h 13815 2020-09-14 16:30:47Z greg $
  */
 
 #ifndef _OPTION_H
@@ -62,6 +62,7 @@ namespace Options
 	static void interlock( const char * ) { _interlock = true; }
 //	static void joins( const char * ) { _joins = true; }
 	static void layers( const char * ) { _layers = true; }
+	static void mva( const char * );
 	static void variance( const char * ) { _variance = true; }
 	static void overtaking( const char * );
 #if HAVE_LIBGSL

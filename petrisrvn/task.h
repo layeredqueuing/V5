@@ -25,14 +25,12 @@
 
 typedef enum {
     SERVER,
-    INF_SERV,
     REF_TASK,
     OPEN_SRC,
     SEMAPHORE
 } task_type;
 
 #define SERVER_BIT	(1<<SERVER)
-#define INF_SERV_BIT	(1<<INF_SERV)
 #define REF_TASK_BIT	(1<<REF_TASK)
 #define OPEN_SRC_BIT	(1<<OPEN_SRC)
 #define SEMAPHORE_BIT	(1<<SEMAPHORE)

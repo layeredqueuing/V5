@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 13775 2020-08-19 18:40:23Z greg $
+ * $Id: mva.cc 13815 2020-09-14 16:30:47Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -151,11 +151,11 @@ double MVA::MOL_multiserver_underrelaxation = 0.5;	/* For MOL Multiservers */
 #if DEBUG_MVA
 bool MVA::debug_D = false;
 bool MVA::debug_L = false;
-bool MVA::debug_N = true;
+bool MVA::debug_N = false;
 bool MVA::debug_P = false;
 bool MVA::debug_U = false;
-bool MVA::debug_W = true;
-bool MVA::debug_X = true;
+bool MVA::debug_W = false;
+bool MVA::debug_X = false;
 #endif
 
 /* ----------------------- Helper Functions --------------------------- */

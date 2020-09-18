@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: model.h 13808 2020-09-08 21:16:53Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -71,8 +71,9 @@ public:
 
     unsigned int n_phases() const { return _n_phases; }
     
-    void initialize();
     bool construct();
+    static void recalculateDynamicValues( const LQIO::DOM::Document* );
+    void initialize();
 
     int solve();
     int restart();

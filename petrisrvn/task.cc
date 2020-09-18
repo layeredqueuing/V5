@@ -216,7 +216,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->isMultiserver() ) {
 	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), dom->getCopiesValue() );
 	}	
-	task = new Task( dom, INF_SERV, processor );
+	task = new Task( dom, SERVER, processor );
 	break;
 
     case SCHEDULE_SEMAPHORE:
@@ -378,7 +378,7 @@ double Task::think_time() const
 
 bool Task::is_server() const
 {
-    return bit_test( type(), SERVER_BIT|INF_SERV_BIT|SEMAPHORE_BIT );
+    return bit_test( type(), SERVER_BIT|SEMAPHORE_BIT );
 }
 
 bool Task::is_client() const
@@ -531,13 +531,13 @@ unsigned int Task::set_queue_length()
 
 	/* Count open arrivals at entries. */
 
-	if ( (*e)->requests() == SEND_NO_REPLY_REQUEST && type() != INF_SERV ) {
+	if ( (*e)->requests() == SEND_NO_REPLY_REQUEST && !is_infinite() ) {
 #if defined(BUFFER_BY_ENTRY)
 	    length += open_model_tokens;
 #else
 	    if ( !open_model ) {
 		open_model = true;
-		if ( _sync_server || has_random_queueing() || bit_test( type(), INF_SERV_BIT|SEMAPHORE_BIT) ) {
+		if ( _sync_server || has_random_queueing() || bit_test( type(), SEMAPHORE_BIT) || is_infinite() ) {
 		    length += 1;
 		} else {
 		    length += _open_tokens;
@@ -637,11 +637,11 @@ Task::transmorgrify()
 
     if ( is_single_place_task()
 	 || type() == OPEN_SRC
-	 || (type() == INF_SERV && this->n_threads() == 1) ) {
+	 || (is_infinite() && this->n_threads() == 1) ) {
 		
 	next_x = create_instance( x_pos, y_pos, 0, INFINITE_SERVER );
 		
-    } else if ( type() == INF_SERV ) {
+    } else if ( is_infinite() ) {
 	unsigned m;		/* Multiserver index.	*/
 
 	for ( m = 0; m < max_queue_length(); ++m ) {
@@ -682,10 +682,10 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 
     unsigned customers;
 
-    if ( is_single_place_task() || type() == OPEN_SRC ) {
-	customers = this->multiplicity();
-    } else if ( type() == INF_SERV ) {
+    if ( is_infinite() ) {
 	customers = open_model_tokens;
+    } else if ( is_single_place_task() || type() == OPEN_SRC ) {
+	customers = this->multiplicity();
     } else {
 	customers = 1;
     }
@@ -805,7 +805,7 @@ Task::get_results( unsigned m )
 {
     if ( is_single_place_task() ) {
 	_utilization[m] = multiplicity() - get_pmmean( "T%s%d", name(), m );
-    } else if ( type() != INF_SERV ) {
+    } else if ( !is_infinite() ) {
 	_utilization[m] = 1.0 - get_pmmean( "T%s%d", name(), m );
     } else {
 	_utilization[m] = open_model_tokens - get_pmmean( "T%s%d", name(), m );
