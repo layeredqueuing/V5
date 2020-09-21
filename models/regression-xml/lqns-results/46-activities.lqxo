@@ -1,21 +1,20 @@
 <?xml version="1.0"?>
-<!-- $Id: 46-activities.lqxo 13791 2020-08-23 01:43:45Z greg $ -->
-<!-- lqns -pragma=variance=mol,threads=mak -no-warnings -->
-<lqn-model name="46-activities" description="lqns 5.15 solution for model from: 46-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 46-activities.lqxo 13840 2020-09-21 14:44:18Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="46-activities" description="lqns 5.17 solution for model from: 46-activities.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Table 1, Set 5" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <result-general valid="YES" conv-val="0" iterations="2" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.003" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.003">
-         <mva-info submodels="3" core="6" step="77" step-squared="1629" wait="42112" wait-squared="5.36422e+08" faults="0"/>
-      </result-general>
-      <pragma param="severity-level" value="warning"/>
-      <pragma param="threads" value="mak"/>
+      <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
+      <result-general solver-info="lqns 5.17" valid="YES" conv-val="0" iterations="2" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.003" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.003">
+         <mva-info submodels="3" core="6" step="66" step-squared="1162" wait="30904" wait-squared="2.81038e+08" faults="0"/>
+      </result-general>
    </solver-params>
    <processor name="p1" scheduling="fcfs">
       <result-processor utilization="0.230821"/>
       <task name="t1" scheduling="ref">
          <result-task throughput="0.814663" utilization="1" phase1-utilization="1" proc-utilization="0.230821"/>
          <entry name="e1" type="NONE">
-            <result-entry utilization="1" throughput="0.814663" squared-coeff-variation="0.61321" proc-utilization="0.230821" throughput-bound="0.814663" phase1-service-time="1.2275" phase1-service-time-variance="0.923959" phase1-utilization="1"/>
+            <result-entry utilization="1" throughput="0.814663" squared-coeff-variation="0.621139" proc-utilization="0.230821" throughput-bound="0.814663" phase1-service-time="1.2275" phase1-service-time-variance="0.935906" phase1-utilization="1"/>
          </entry>
          <task-activities>
             <activity name="a1" bound-to-entry="e1" host-demand-mean="0.1">
@@ -34,33 +33,33 @@
                </synch-call>
             </activity>
             <activity name="b1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.0669936" service-time="0.8274" utilization="0.674053" service-time-variance="0.283455" throughput="0.814663" proc-utilization="0.0814663"/>
+               <result-activity proc-waiting="0.0421161" service-time="0.689522" utilization="0.561729" service-time-variance="0.283455" throughput="0.814663" proc-utilization="0.0814663"/>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0.0267975"/>
+                  <result-call waiting="0.0168464"/>
                </synch-call>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0.0267975"/>
+                  <result-call waiting="0.0168464"/>
                </synch-call>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="0.0267975"/>
+                  <result-call waiting="0.0168464"/>
                </synch-call>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0.0267975"/>
+                  <result-call waiting="0.0168464"/>
                </synch-call>
             </activity>
             <activity name="b2" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.0117861" service-time="0.560185" utilization="0.228181" service-time-variance="0.283455" throughput="0.407332" proc-utilization="0.0407332"/>
+               <result-activity proc-waiting="0.0116367" service-time="0.552365" utilization="0.224996" service-time-variance="0.283455" throughput="0.407332" proc-utilization="0.0407332"/>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0.00471444"/>
+                  <result-call waiting="0.00465466"/>
                </synch-call>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0.00471444"/>
+                  <result-call waiting="0.00465466"/>
                </synch-call>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="0.00471444"/>
+                  <result-call waiting="0.00465466"/>
                </synch-call>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0.00471444"/>
+                  <result-call waiting="0.00465466"/>
                </synch-call>
             </activity>
             <activity name="b2a" host-demand-mean="0">
@@ -70,18 +69,18 @@
                <result-activity proc-waiting="0" service-time="0" utilization="0" throughput="0.814663" proc-utilization="0"/>
             </activity>
             <activity name="b3" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.00277778" service-time="0.514801" utilization="0.139795" service-time-variance="0.283455" throughput="0.271552" proc-utilization="0.0271552"/>
+               <result-activity proc-waiting="0.00374164" service-time="0.516837" utilization="0.140348" service-time-variance="0.283455" throughput="0.271552" proc-utilization="0.0271552"/>
                <synch-call dest="d1" calls-mean="2.5">
-                  <result-call waiting="0.00111111"/>
+                  <result-call waiting="0.00149666"/>
                </synch-call>
                <synch-call dest="d2" calls-mean="2.5">
-                  <result-call waiting="0.00111111"/>
+                  <result-call waiting="0.00149666"/>
                </synch-call>
                <synch-call dest="d3" calls-mean="2.5">
-                  <result-call waiting="0.00111111"/>
+                  <result-call waiting="0.00149666"/>
                </synch-call>
                <synch-call dest="d4" calls-mean="2.5">
-                  <result-call waiting="0.00111111"/>
+                  <result-call waiting="0.00149666"/>
                </synch-call>
             </activity>
             <activity name="b3a" host-demand-mean="0">

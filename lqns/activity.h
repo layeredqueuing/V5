@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: activity.h 13839 2020-09-19 21:58:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -74,20 +74,20 @@ class Activity : public Phase
      */
 
 public:
-    class Exec;
+    class Test;
     class Collect;
     
-    typedef bool (Activity::*Predicate)( Exec& ) const;
-    typedef void (Activity::*Function)( Entry *, const Collect& );
+    typedef bool (Activity::*Predicate)( Test& ) const;
+    typedef void (Activity::*Function)( Entry *, const Collect& ) const;
     
-    class Exec {
+    class Test {
     public:
-	Exec() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
-	Exec( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
+	Test() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
+	Test( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
 
-	Exec& operator=( const Exec& src );
-	Exec& operator=( double value ) { _sum = value; return *this; }
-	Exec& operator+=( double addend ) { _sum += addend; return *this; }
+	Test& operator=( const Test& src );
+	Test& operator=( double value ) { _sum = value; return *this; }
+	Test& operator+=( double addend ) { _sum += addend; return *this; }
 	double sum() const { return _sum; }
 	double phase() const { return _p; }
 	void setPhase( unsigned int p ) { _p = p; }
@@ -96,7 +96,7 @@ public:
 	double rate() const { return _rate; }
 	void setRate( double rate ) { _rate = rate; }
 	const Entry* entry() const { return _e; }
-	const Predicate exec() const { return _f; }
+	const Predicate test() const { return _f; }
 
     private:
 	const Entry* _e;
@@ -142,12 +142,12 @@ public:
     virtual LQIO::DOM::Activity* getDOM() const { return dynamic_cast<LQIO::DOM::Activity*>(Phase::getDOM()); }
 	
     virtual const std::string& name() const { return getDOM()->getName(); }
-    virtual const Entity * owner() const { return myTask; }
+    virtual const Entity * owner() const { return _task; }
 
     bool activityDefined() const;
     ActivityList * inputFrom( ActivityList * aList );
     ActivityList * outputTo( ActivityList * aList ); 
-    ActivityList * outputTo() { return outputToList;}
+    ActivityList * outputTo() { return _outputTo;}
     Activity& resetInputOutputLists();
 
     Activity& add_calls();
@@ -167,12 +167,12 @@ public:
 
     virtual bool check() const;
 
-    virtual double throughput() const { return myThroughput; }	/* Throughput results.		*/
+    virtual double throughput() const { return _throughput; }	/* Throughput results.		*/
     virtual bool repliesTo( const Entry * ) const;
     virtual bool isActivity() const { return true; }
-    bool isReachable() const { return iAmReachable; }
-    Activity& isSpecified( const bool yesOrNo ) { iAmSpecified = yesOrNo; return *this; }
-    bool isSpecified() const { return iAmSpecified; }
+    bool isReachable() const { return _reachable; }
+    Activity& isSpecified( const bool yesOrNo ) { _specified = yesOrNo; return *this; }
+    bool isSpecified() const { return _specified; }
     bool isStartActivity() const { return entry() != 0; }
 
     /* Computation */
@@ -222,8 +222,8 @@ public:
     unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned );
-    Collect& collect( std::deque<Entry *>&, Collect& );
-    Exec& exec( std::deque<const Activity *>&, Exec& ) const;
+    Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
+    Test& test( std::deque<const Activity *>&, Test& ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     unsigned concurrentThreads( unsigned ) const;
@@ -235,11 +235,11 @@ protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry );
 
 private:
-    bool checkReplies( Activity::Exec& data ) const;
-    void collectWait( Entry *, const Activity::Collect& );
-    void collectReplication( Entry *, const Activity::Collect& );
-    void collectServiceTime( Entry *, const Activity::Collect& );
-    void setThroughput( Entry *, const Activity::Collect& );
+    bool checkReplies( Activity::Test& data ) const;
+    void collectWait( Entry *, const Activity::Collect& ) const;
+    void collectReplication( Entry *, const Activity::Collect& ) const;
+    void collectServiceTime( Entry *, const Activity::Collect& ) const;
+    void setThroughput( Entry *, const Activity::Collect& ) const;
 
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_and_join_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
@@ -259,15 +259,16 @@ public:
 #endif
 
 private:
-    const Entity * myTask;			/*				*/
-    ActivityList * inputFromList;		/* Node which calls me		*/
-    ActivityList * outputToList;		/* Node which I call.		*/
+    const Entity * _task;			/*				*/
+    ActivityList * _inputFrom;			/* Node which calls me		*/
+    ActivityList * _outputTo;			/* Node which I call.		*/
 	
     std::set<const Entry *> _replyList;		/* Who I generate replies to.	*/
-    double myThroughput;			/* My throughput.		*/
-    bool iAmSpecified;				/* Set if defined		*/
-    mutable bool iAmReachable;			/* Set if activity is reachable	*/
-	
+    double _rate;
+    bool _specified;				/* Set if defined		*/
+    mutable bool _reachable;			/* Set if activity is reachable	*/
+
+    double _throughput;				/* My throughput.		*/
     bool myLocalQuorumDelay;
 };
 

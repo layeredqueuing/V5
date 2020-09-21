@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13795 2020-08-25 16:45:34Z greg $
+# $Id: Makefile.am 13840 2020-09-21 14:44:18Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -84,7 +84,10 @@ SUFFIXES = .diff .d .lqxo .lqnx
 	$(SRVN) $(OPTS) $<
 
 .lqxo.diff:
-	-srvndiff ../../models/regression/{petri,lqns}-results/$*.p $< > $@
+	-if test -f ../../models/regression/petri-results/$*.p; \
+	then srvndiff -IC ../../models/regression/{petri,sim,lqns}-results/$*.p $< > $@; \
+	else srvndiff -IC ../../models/regression/{sim,lqns}-results/$*.p $< > $@; \
+	fi
 
 all:
 
@@ -113,6 +116,11 @@ distclean:	clean
 	$(SRVN) -Pvariance=stochastic -a -xo$@ $<
 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/90-A01-stoch.p
 
+94-5101-a2-q2b1.lqxo: 94-5101-a2-q2b1.lqnx
+	$(SRVN) $(OPTS) -a $<
+	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
+
+
 sanity:	$(SANITY)
 	echo $(SANITY) | tr -s " " "\n" | srvndiff -Q -@- . ../../models/regression/lqns-results
 
@@ -138,6 +146,3 @@ summary:	$(OBJS)
 	for i in $(OBJS); do srvndiff -Q --ignore-errors ../../models/regression-xml/lqns-results/$$i $$i > /dev/null; \
 	if test $$? == 0; then result="pass"; else result="fail"; fi; \
 	echo \"$$i\",$$result; done
-
-94-5101-a2-q2b1.diff: 94-5101-a2-q2b1.lqxo
-	-srvndiff ../../models/regression/{sim,lqns}-results/$*.p $< > $@

@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13806 2020-08-27 18:05:17Z greg $
+# $Id: Makefile 13840 2020-09-21 14:44:18Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqns
@@ -25,7 +25,6 @@ DSTS =	01-sanity.lqxo \
 	21-multiserver.lqxo \
 	22-multiserver.lqxo \
 	23-multiserver.lqxo \
-	24-multiserver.lqxo \
 	40-activities.lqxo \
 	41-activities.lqxo \
 	42-activities.lqxo \
@@ -33,7 +32,6 @@ DSTS =	01-sanity.lqxo \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo \
-	47-activities.lqxo \
 	48-activities.lqxo \
 	50-replication.lqxo \
 	51-replication.lqxo \

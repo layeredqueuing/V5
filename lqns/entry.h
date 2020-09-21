@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: entry.h 13840 2020-09-21 14:44:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -29,6 +29,7 @@
 #include "call.h"
 #include "vector.h"
 #include "phase.h"
+#include "activity.h"
 #include "interlock.h"
 
 namespace LQIO {
@@ -174,7 +175,6 @@ public:
     double serviceTimeForPhase( const unsigned int p ) const { return _phase[p].serviceTime(); }
     double serviceTime() const { return _total.serviceTime(); }
     double throughput() const { return _throughput; }
-    Entry& setThroughput( const double );
     double throughputBound() const { return _throughputBound; }
     Entry& rendezvous( Entry *, const unsigned, const LQIO::DOM::Call* callDOMInfo );
     double rendezvous( const Entry * ) const;
@@ -254,10 +254,13 @@ public:
     virtual Entry& updateWait( const Submodel&, const double ) = 0;
     virtual double updateWaitReplication( const Submodel&, unsigned& ) = 0;
     virtual Entry& saveOpenWait( const double aWait ) = 0;
+    void saveThroughput( double );
 
     unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo& );
     void followForwarding( Phase *, const Entry *, const double, Stack<const Entity *>& ) const;
     bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>& ) const;
+
+    void set( const Entry * src, const Activity::Collect& );
     Entry& aggregate( const unsigned, const unsigned p, const Exponential& );
     Entry& aggregateReplication( const Vector< VectorMath<double> >& );
 
@@ -285,6 +288,10 @@ public:
 
 protected:
     Entry& setMaxPhase( const unsigned phase );
+
+private:
+    void setThroughput( const double throughput ) { _throughput = throughput; }
+
 
 protected:
     LQIO::DOM::Entry* _entryDOM;	

@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: actlist.cc 13840 2020-09-21 14:44:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,8 +62,8 @@ private:
 /* -------------------------------------------------------------------- */
 
 
-ActivityList::ActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : myOwner(owner), myDOMActivityList(dom_activitylist) 
+ActivityList::ActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : _task(owner), _dom(dom)
 {
     owner->addPrecedence(this);
 }
@@ -151,40 +151,6 @@ ActivityList::firstName() const
 {
     throw should_not_implement( "ActivityList::lastName", __FILE__, __LINE__ );
 }
-
-
-
-
-/*
- * Common code for aggregation: reset entry information.
- */
-
-void
-ActivityList::initEntry( Entry *dstEntry, const Entry * srcEntry, const Activity::Collect& data ) const
-{
-    const Activity::Function f = data.collect();
-    const unsigned int submodel = data.submodel();
-    
-    if ( f == &Activity::collectServiceTime ) {
-        dstEntry->setMaxPhase( max( dstEntry->maxPhase(), srcEntry->maxPhase() ) );
-    } else if ( f == &Activity::setThroughput ) {
-        dstEntry->setThroughput( srcEntry->throughput() * data.rate() );
-    } else if ( f == &Activity::collectWait ) {
-        for ( unsigned p = 1; p <= dstEntry->maxPhase(); ++p ) {
-            if ( submodel == 0 ) {
-                dstEntry->_phase[p].myVariance = 0.0;
-            } else {
-                dstEntry->_phase[p].myWait[submodel] = 0.0;
-            }
-        }
-    } else if ( f == &Activity::collectReplication ) {
-        for ( unsigned p = 1; p <= dstEntry->maxPhase(); ++p ) {
-            dstEntry->_phase[p]._surrogateDelay.resize( srcEntry->_phase[p]._surrogateDelay.size() );
-            dstEntry->_phase[p].resetReplication();
-        }
-    }
-
-}
 
 /* -------------------------------------------------------------------- */
 /*                       Simple Activity Lists                          */
@@ -195,7 +161,7 @@ SequentialActivityList::operator==( const ActivityList& operand ) const
 {
     const SequentialActivityList * anOperand = dynamic_cast<const SequentialActivityList *>(&operand);
     if ( anOperand ) {
-        return anOperand->myActivity == myActivity;
+        return anOperand->_activity == _activity;
     }
     return false;
 }
@@ -204,7 +170,7 @@ SequentialActivityList::operator==( const ActivityList& operand ) const
 SequentialActivityList&
 SequentialActivityList::add( Activity * anActivity )
 {
-    myActivity = anActivity;
+    _activity = anActivity;
     return *this;
 }
 
@@ -219,7 +185,7 @@ SequentialActivityList::add( Activity * anActivity )
 const std::string&
 SequentialActivityList::firstName() const
 {
-    return myActivity->name();
+    return _activity->name();
 }
 
 
@@ -230,16 +196,16 @@ SequentialActivityList::firstName() const
 const std::string&
 SequentialActivityList::lastName() const
 {
-    return myActivity->name();
+    return _activity->name();
 }
 
 /* -------------------------------------------------------------------- */
 /*                       Simple Forks (rvalues)                         */
 /* -------------------------------------------------------------------- */
 
-ForkActivityList::ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : SequentialActivityList( owner, dom_activitylist ),
-      prevLink(0)
+ForkActivityList::ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : SequentialActivityList( owner, dom ),
+      _prev(nullptr)
 {
 }
 
@@ -251,8 +217,8 @@ ForkActivityList::ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_
 void
 ForkActivityList::configure( const unsigned n )
 {
-    if ( myActivity ) {
-        myActivity->configure( n );
+    if ( _activity ) {
+        _activity->configure( n );
     }
 }
 
@@ -267,8 +233,8 @@ ForkActivityList::configure( const unsigned n )
 unsigned
 ForkActivityList::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack ) const
 {
-    if ( myActivity ) {
-        return myActivity->findChildren( callStack, directPath, activityStack, forkStack );
+    if ( _activity ) {
+        return _activity->findChildren( callStack, directPath, activityStack, forkStack );
     } else {
         return callStack.depth();
     }
@@ -299,8 +265,8 @@ ForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& fork
 unsigned
 ForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
 {
-    if ( myActivity ) {
-        return myActivity->followInterlock( entryStack, globalCalls, callingPhase );
+    if ( _activity ) {
+        return _activity->followInterlock( entryStack, globalCalls, callingPhase );
     } else {
         return entryStack.size();
     }
@@ -312,11 +278,11 @@ ForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, const 
  * Follow the path backwards.  Used to set path lists for joins.
  */
 
-Activity::Collect& 
-ForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+Activity::Collect&
+ForkActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
-    if ( myActivity ) {
-        return myActivity->collect( entryStack, data );
+    if ( _activity ) {
+        return _activity->collect( activityStack, entryStack, data );
     } else {
 	return data;
     }
@@ -327,11 +293,11 @@ ForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& d
  * Return the sum of aFunc.
  */
 
-const Activity::Exec&
-ForkActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+ForkActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
-    if ( myActivity ) {
-        return myActivity->exec( stack, data );
+    if ( _activity ) {
+        return _activity->test( stack, data );
     } else {
         return data;
     }
@@ -352,8 +318,8 @@ bool
 ForkActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
                                        std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
 {
-    if ( myActivity ) {
-        return myActivity->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
+    if ( _activity ) {
+        return _activity->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
     } else {
         return false;
     }
@@ -369,8 +335,8 @@ ForkActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, co
 void
 ForkActivityList::callsPerform( const Entry * entry, const AndForkActivityList * forkList, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
 {
-    if ( myActivity ) {
-        myActivity->callsPerform( entry, forkList, submodel, k, p, aFunc, rate );
+    if ( _activity ) {
+        _activity->callsPerform( entry, forkList, submodel, k, p, aFunc, rate );
     }
 }
 
@@ -383,8 +349,8 @@ ForkActivityList::callsPerform( const Entry * entry, const AndForkActivityList *
 unsigned
 ForkActivityList::concurrentThreads( unsigned n ) const
 {
-    if ( myActivity ) {
-        return myActivity->concurrentThreads( n );
+    if ( _activity ) {
+        return _activity->concurrentThreads( n );
     } else {
         return n;
     }
@@ -394,9 +360,9 @@ ForkActivityList::concurrentThreads( unsigned n ) const
 /*                      Simple Joins (lvalues)                          */
 /* -------------------------------------------------------------------- */
 
-JoinActivityList::JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : SequentialActivityList( owner, dom_activitylist ),
-      nextLink(0)
+JoinActivityList::JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : SequentialActivityList( owner, dom ),
+      _next(nullptr)
 {
 }
 
@@ -440,8 +406,8 @@ JoinActivityList::findChildren( Call::stack& callStack, const bool directPath, s
 std::deque<const AndForkActivityList *>::const_iterator
 JoinActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack ) const
 {
-    if ( myActivity ) {
-        return myActivity->backtrack( forkStack );
+    if ( _activity ) {
+        return _activity->backtrack( forkStack );
     } else {
         return forkStack.end();
     }
@@ -523,10 +489,10 @@ JoinActivityList::concurrentThreads( unsigned n ) const
  */
 
 Activity::Collect&
-JoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+JoinActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
     if ( next() ) {
-        return next()->collect( entryStack, data );
+        return next()->collect( activityStack, entryStack, data );
     } else {
 	return data;
     }
@@ -537,11 +503,11 @@ JoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& d
  * Return the sum of aFunc.
  */
 
-const Activity::Exec&
-JoinActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+JoinActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
     if ( next() ) {
-        return next()->exec( stack, data );
+        return next()->test( stack, data );
     } else {
         return data;
     }
@@ -634,9 +600,9 @@ ForkJoinActivityList::lastName() const
 /*          Activity Lists that fork -- abstract superclass             */
 /* -------------------------------------------------------------------- */
 
-AndOrForkActivityList::AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : ForkJoinActivityList( owner, dom_activitylist ),
-      prevLink(0)
+AndOrForkActivityList::AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : ForkJoinActivityList( owner, dom ),
+      _prev(nullptr)
 {
 }
 
@@ -726,21 +692,17 @@ AndOrForkActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStac
  */
 
 Entry *
-AndOrForkActivityList::collectToEntry( const unsigned i, std::deque<Entry *>&entryStack, Activity::Collect& data )
+AndOrForkActivityList::collectToEntry( const Activity * activity, Entry * entry, std::deque<const Activity *>& activityStack, std::deque<Entry *>&entryStack, Activity::Collect& branch )
 {
-    Activity * anActivity = _activityList.at(i);
-    Entry * anEntry = _entryList.at(i);
-    const Entry * currEntry = entryStack.back();
-    Activity::Collect branch(data);
-    branch.setRate( prBranch(anActivity) );
-    initEntry( anEntry, currEntry, branch );
+    branch.setRate( branch.rate() * prBranch(activity) );
 
-    entryStack.push_back( anEntry );
-    anActivity->collect( entryStack, branch );
+    entry->set( entryStack.back(), branch );
+
+    entryStack.push_back( entry );
+    activity->collect( activityStack, entryStack, branch );
     entryStack.pop_back();
 
-    data.setPhase(branch.phase());
-    return anEntry;
+    return entry;
 }
 
 /* -------------------------------------------------------------------- */
@@ -840,7 +802,7 @@ OrForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& fo
  */
 
 Activity::Collect&
-OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
     const unsigned int n = _activityList.size();
     const unsigned int submodel = data.submodel();
@@ -855,7 +817,7 @@ OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
 
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
-            Entry * anEntry = collectToEntry( i, entryStack, branch );
+            Entry * anEntry = collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
 
             term[i].resize( currEntry->maxPhase() );
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -884,7 +846,7 @@ OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
 
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
-            Entry * anEntry = collectToEntry( i, entryStack, branch );
+            Entry * anEntry = collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 VectorMath<double>& term = anEntry->_phase[p]._surrogateDelay;
@@ -899,7 +861,7 @@ OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
 
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
-            Entry * anEntry = collectToEntry( i, entryStack, branch );
+            Entry * anEntry = collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 sum[p] += prBranch(_activityList[i]) * anEntry->_phase[p].serviceTime();
@@ -912,7 +874,7 @@ OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
     } else {
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
-            collectToEntry( i, entryStack, branch );
+            collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
         }
     }
     return data;
@@ -924,14 +886,14 @@ OrForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
  * Return the sum of aFunc.
  */
 
-const Activity::Exec&
-OrForkActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+OrForkActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
     for ( std::vector<Activity *>::const_iterator activity = _activityList.begin(); activity != _activityList.end(); ++activity ) {
-	Activity::Exec branch(data);
+	Activity::Test branch(data);
 	branch.setReplyAllowed(false);
 	branch.setRate( data.rate() * prBranch(*activity) );
-	branch = (*activity)->exec( stack, branch );		/* only want the last one. */
+	branch = (*activity)->test( stack, branch );		/* only want the last one. */
 	data = branch.sum();
     }
     return data;
@@ -977,8 +939,8 @@ OrForkActivityList::concurrentThreads( unsigned n ) const
 /* -------------------------------------------------------------------- */
 
 
-AndForkActivityList::AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist  )
-    : AndOrForkActivityList( owner, dom_activitylist ),
+AndForkActivityList::AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom  )
+    : AndOrForkActivityList( owner, dom ),
       myParent(0),
       myJoinList(0),
       myJoinDelay(0.0),
@@ -1000,7 +962,7 @@ AndForkActivityList&
 AndForkActivityList::add( Activity * anActivity )
 {
     AndOrForkActivityList::add( anActivity );
-    
+
     Thread * aThread = new Thread( anActivity, this );
     assert( aThread->entryTypeOk(ACTIVITY_ENTRY) );
     aThread->setStartActivity( anActivity );
@@ -1076,7 +1038,7 @@ AndForkActivityList::findChildren( Call::stack& callStack, const bool directPath
             }
             max_depth = max( (*activity)->findChildren( callStack, directPath, activityStack, forkStack ), max_depth );
         }
-    } 
+    }
     catch ( const bad_internal_join& error ) {
 	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, firstName().c_str(), owner()->name().c_str(), error.what() );
         max_depth = max( max_depth, error.depth() );
@@ -1124,15 +1086,14 @@ AndForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& f
  */
 
 Activity::Collect&
-AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
     const unsigned int submodel = data.submodel();
     const unsigned n = _activityList.size();
     Entry * currEntry = entryStack.back();
-    const unsigned int curr_phase = data.phase();
-    unsigned next_phase = curr_phase;
+    unsigned phase = data.phase();
     Activity::Function f = data.collect();
-    
+
     if (flags.trace_quorum) {
         cout <<"\nAndForkActivityList::collect()...the start --------------- : submodel = " << submodel <<  endl;
     }
@@ -1171,8 +1132,8 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
 
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch( data );
-            Thread * anEntry = dynamic_cast<Thread *>(collectToEntry( i, entryStack, branch ));
-            next_phase = max( next_phase, branch.phase() );
+            Thread * anEntry = dynamic_cast<Thread *>(collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch ));
+            phase = max( phase, branch.phase() );
 
             Vector<Exponential> term( currEntry->maxPhase() );
 
@@ -1201,11 +1162,11 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
                 // tomari: first possible update for Quorum.
 
                 _activityList[i]->estimateQuorumJoinCDFs(sumTotal, quorumCDFs,
-                                                          localCDFs, remoteCDFs,
-                                                          isThereQuorumDelayedThreads,
-                                                          isQuorumDelayedThreadsActive,
-                                                          totalParallelLocal,
-                                                          totalSequentialLocal);
+							 localCDFs, remoteCDFs,
+							 isThereQuorumDelayedThreads,
+							 isQuorumDelayedThreadsActive,
+							 totalParallelLocal,
+							 totalSequentialLocal);
 
             } else if ( submodel == Model::sync_submodel ) {
 
@@ -1229,11 +1190,11 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
 
                 // tomari: second possible update for Quorum
                 _activityList[i]->estimateQuorumJoinCDFs(sumTotal, quorumCDFs,
-                                                          localCDFs, remoteCDFs,
-                                                          isThereQuorumDelayedThreads,
-                                                          isQuorumDelayedThreadsActive,
-                                                          totalParallelLocal,
-                                                          totalSequentialLocal);
+							 localCDFs, remoteCDFs,
+							 isThereQuorumDelayedThreads,
+							 isQuorumDelayedThreadsActive,
+							 totalParallelLocal,
+							 totalSequentialLocal);
 
             } else {
 
@@ -1248,8 +1209,8 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
 
             /* Phase change for this branch, so record the time it occurs. */
 
-            if ( next_phase != curr_phase ) {
-                phase_one = term[curr_phase];
+            if ( phase != data.phase() ) {
+                phase_one = term[data.phase()];
             }
         }
 
@@ -1263,11 +1224,11 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
         if ( submodel == 0 ) {
             myJoinDelay = join->mean();
             /* Update Variance for parent. */
-            if ( next_phase != curr_phase ) {
-                currEntry->aggregate( submodel, curr_phase, phase_one );
+            if ( phase != data.phase() ) {
+                currEntry->aggregate( submodel, data.phase(), phase_one );
                 (*join) -= phase_one;
             }
-            currEntry->aggregate( submodel, next_phase, *join );
+            currEntry->aggregate( submodel, phase, *join );
         } else if ( submodel == Model::sync_submodel ) {
             if (flags.trace_quorum) {
                 cout << "\nmyJoinDelay " << join->mean() << endl;
@@ -1282,26 +1243,26 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
                 } else {
                     cout << " actual entry ";
                 }
-                cout << currEntry->name() << ", submodel " << submodel << ", phase " << curr_phase << " wait: " << endl;
+                cout << currEntry->name() << ", submodel " << submodel << ", phase " << data.phase() << " wait: " << endl;
             }
 
             /* Update quorumJoin delay for parent.  Set variance for this fork/join.  */
 
-            if ( next_phase != curr_phase ) {
+            if ( phase != data.phase() ) {
                 if ( flags.trace_activities ) {
-                    cout << *join << ", phase " << next_phase << " wait: ";
+                    cout << *join << ", phase " << phase << " wait: ";
                 }
 
                 /* we've encountered a phase change, so try to estimate the phases.  */
 
-                currEntry->aggregate( submodel, curr_phase, phase_one );
+                currEntry->aggregate( submodel, data.phase(), phase_one );
                 (*join) -= phase_one;
             }
 
             if ( flags.trace_activities ) {
                 cout << *join << endl;
             }
-            currEntry->aggregate( submodel, next_phase, *join );
+            currEntry->aggregate( submodel, phase, *join );
         }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
@@ -1329,12 +1290,12 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
         VectorMath<double> sum( currEntry->maxPhase() );
         for ( unsigned i = 0; i < n; ++i ) {
 	    Activity::Collect branch(data);
-            Entry * anEntry = collectToEntry( i, entryStack, branch );
+            Entry * anEntry = collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
+            phase = max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 sum[p] += anEntry->_phase[p].serviceTime();
             }
-            next_phase = max( next_phase, branch.phase() );
         }
         for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
             currEntry->addServiceTime( p, sum[p] );
@@ -1343,15 +1304,18 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
     } else {
 
         for ( unsigned i = 0; i < n; ++i ) {
-            collectToEntry( i, entryStack, data );
+	    Activity::Collect branch(data);
+            collectToEntry( _activityList[i], _entryList[i], activityStack, entryStack, branch );
+            phase = max( phase, branch.phase() );
         }
     }
-    data.setPhase( next_phase );
-    
+
+    data.setPhase( phase );
+
     /* Now follow the activities after the quorumJoin */
 
     if ( myJoinList && myJoinList->next() ) {
-        myJoinList->next()->collect( entryStack, data );
+        myJoinList->next()->collect( activityStack, entryStack, data );
     }
 
     if (flags.trace_quorum) {
@@ -1361,7 +1325,7 @@ AndForkActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
 }
 
 
-//Get the CDF of the joint dsitribution for a K out of N quorum
+//Get the CDF of the joint distribution for a K out of N quorum
 
 DiscretePoints *
 AndForkActivityList::calcQuorumKofN( const unsigned submodel,
@@ -1540,14 +1504,14 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
  * Return the sum of aFunc.
  */
 
-const Activity::Exec&
-AndForkActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+AndForkActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
     double sum = 0.0;
     for ( std::vector<Activity *>::const_iterator activity = _activityList.begin(); activity != _activityList.end(); ++activity ) {
-	Activity::Exec branch( data );
+	Activity::Test branch( data );
 	branch.setReplyAllowed(!myJoinList || !myJoinList->hasQuorum());		/* Disallow replies quorum on branches */
-	branch = (*activity)->exec( stack, branch );
+	branch = (*activity)->test( stack, branch );
         sum += branch.sum();
 	if ( branch.phase() > data.phase() ) {
 	    data.setPhase(branch.phase());
@@ -1618,10 +1582,10 @@ AndForkActivityList::insertDOMResults(void) const
 /*                    And Or Join Activity Lists                        */
 /* -------------------------------------------------------------------- */
 
-AndOrJoinActivityList::AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : ForkJoinActivityList( owner, dom_activitylist ),
+AndOrJoinActivityList::AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : ForkJoinActivityList( owner, dom ),
       visits(0),
-      nextLink(0)
+      _next(nullptr)
 {
 }
 
@@ -1749,10 +1713,18 @@ OrJoinActivityList::callsPerform( const Entry * entry, const AndForkActivityList
  */
 
 Activity::Collect&
-OrJoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+OrJoinActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
-    if ( next() ) {
-        return next()->collect( entryStack, data );
+    assert( _rateBranch.size() == _activityList.size() );
+    if ( next() && activityStack.back() == _activityList.back() ) {
+	double sum = std::for_each( _rateBranch.begin(), _rateBranch.end(),
+				    SumDouble<std::pair<const Activity *,double> >() ).sum();
+	Entry * entry = entryStack.back();
+	entryStack.pop_back();
+	data.setRate(sum);
+        next()->collect( activityStack, entryStack, data );
+	entryStack.push_back(entry);
+	return data;
     } else {
 	return data;
     }
@@ -1764,18 +1736,16 @@ OrJoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
  * Return the sum of aFunc.
  */
 
-const Activity::Exec&
-OrJoinActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data )  const
+const Activity::Test&
+OrJoinActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data )  const
 {
-    if ( _rateBranch.find( stack.back() ) == _rateBranch.end() ) {
-	_rateBranch.insert( std::pair<const Activity *,double>( stack.back(), data.rate() ) );
-    }
+    _rateBranch.insert( std::pair<const Activity *,double>( stack.back(), data.rate() ) );
     if ( next() && stack.back() == _activityList.back() ) {
 	double sum = std::for_each( _rateBranch.begin(), _rateBranch.end(),
 				    SumDouble<std::pair<const Activity *,double> >() ).sum();
 	data.setReplyAllowed(sum == 1.0);
 	data.setRate(sum);
-        return next()->exec( stack, data );
+        return next()->test( stack, data );
     } else {
         return data;
     }
@@ -1804,10 +1774,10 @@ OrJoinActivityList::concurrentThreads( unsigned n ) const
 /*                     And Join Activity Lists                          */
 /* -------------------------------------------------------------------- */
 
-AndJoinActivityList::AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : AndOrJoinActivityList( owner, dom_activitylist ),
+AndJoinActivityList::AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : AndOrJoinActivityList( owner, dom ),
       myJoinType(JOIN_NOT_DEFINED),
-      myQuorumCount(dom_activitylist ? dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom_activitylist)->getQuorumCountValue() : 0),
+      myQuorumCount(dom ? dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom)->getQuorumCountValue() : 0),
       myQuorumListNum(0)
 {
     n_joins += 1;
@@ -2009,10 +1979,10 @@ AndJoinActivityList::callsPerform( const Entry * entry, const AndForkActivityLis
  */
 
 Activity::Collect&
-AndJoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+AndJoinActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
     if ( isSynchPoint() && next() ) {
-        return next()->collect( entryStack, data );
+        return next()->collect( activityStack, entryStack, data );
     } else {
 	return data;
     }
@@ -2025,11 +1995,11 @@ AndJoinActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect
  * Otherwise, press on.
  */
 
-const Activity::Exec&
-AndJoinActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+AndJoinActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
     if ( next() && (isSynchPoint() || stack.back() == _activityList.back()) ) {
-        return next()->exec( stack, data );
+        return next()->test( stack, data );
     } else {
         return data;
     }
@@ -2055,8 +2025,8 @@ AndJoinActivityList::concurrentThreads( unsigned n ) const
 /*                           Repetition node.                           */
 /*----------------------------------------------------------------------*/
 
-RepeatActivityList::RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist )
-    : ForkActivityList( owner, dom_activitylist ), prevLink(0)
+RepeatActivityList::RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
+    : ForkActivityList( owner, dom ), _prev(nullptr)
 {
 }
 
@@ -2110,16 +2080,30 @@ RepeatActivityList::add( Activity * anActivity )
         /* End of list */
         ForkActivityList::add( anActivity );
 
-    } 
+    }
 
     return *this;
 }
 
 
-double 
+double
 RepeatActivityList::rateBranch( const Activity * anActivity ) const
 {
     return getDOM()->getParameterValue(anActivity->getDOM());
+}
+
+
+Entry *
+RepeatActivityList::collectToEntry( const Activity * activity, Entry * entry, std::deque<const Activity *>& activityStack, std::deque<Entry *>&entryStack, Activity::Collect& branch )
+{
+    branch.setRate( branch.rate() * rateBranch(activity) );
+
+    entry->set( entryStack.back(), branch );
+
+    entryStack.push_back( entry );
+    activity->collect( activityStack, entryStack, branch );
+    entryStack.pop_back();
+    return entry;
 }
 
 
@@ -2205,41 +2189,34 @@ RepeatActivityList::callsPerform( const Entry * entry, const AndForkActivityList
 }
 
 
-
 /*
  * Recursively aggregate using 'aFunc' along all branches of the or, storing
  * the results of the aggregation in the virtual entry assigned to each branch.
  */
 
 Activity::Collect&
-RepeatActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect& data )
+RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data )
 {
-    ForkActivityList::collect( entryStack, data );
+    ForkActivityList::collect( activityStack, entryStack, data );
 
     const unsigned int submodel = data.submodel();
     const unsigned int n = _activityList.size();
     Entry * currEntry = entryStack.back();
-    const unsigned int curr_phase = data.phase();
     Activity::Function f = data.collect();
 
     for ( unsigned i = 0; i < n; ++i ) {
 	Activity * anActivity = _activityList.at(i);
 	Activity::Collect branch(data);
-	branch.setRate( data.rate() * rateBranch(anActivity) );
-        initEntry( _entryList[i], currEntry, branch );
-
-        entryStack.push_back( _entryList[i] );
-        anActivity->collect( entryStack, branch );
-        entryStack.pop_back();
+	Entry * anEntry = collectToEntry( anActivity, _entryList[i], activityStack, entryStack, branch );
 
         if ( f == &Activity::collectWait ) {
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 Exponential term;
                 Exponential sum;
                 if ( submodel == 0 ) {
-                    term.init( _entryList[i]->_phase[p].elapsedTime(), _entryList[i]->_phase[p].variance() );
+                    term.init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
                 } else {
-                    term.mean( _entryList[i]->_phase[p].myWait[submodel] );
+                    term.mean( anEntry->_phase[p].myWait[submodel] );
                 }
                 sum = rateBranch(anActivity) * term + varianceTerm( term );
                 currEntry->aggregate( submodel, p, sum );
@@ -2248,13 +2225,13 @@ RepeatActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
         } else if ( f == &Activity::collectReplication ) {
             Vector< VectorMath<double> > sum(currEntry->maxPhase());
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                sum[p] = _entryList[i]->_phase[p]._surrogateDelay;
+                sum[p] = anEntry->_phase[p]._surrogateDelay;
                 sum[p] *= rateBranch(anActivity);
             }
             currEntry->aggregateReplication( sum );
 
         } else if ( f == &Activity::collectServiceTime ) {
-	    currEntry->addServiceTime( curr_phase, rateBranch(anActivity) * _entryList[i]->_phase[curr_phase].serviceTime() );
+	    currEntry->addServiceTime( data.phase(), rateBranch(anActivity) * anEntry->_phase[data.phase()].serviceTime() );
         }
     }
     return data;
@@ -2266,16 +2243,16 @@ RepeatActivityList::collect( std::deque<Entry *>& entryStack, Activity::Collect&
  * Rate is set to zero for branches so that we don't count replies.
  */
 
-const Activity::Exec&
-RepeatActivityList::exec( std::deque<const Activity *>& stack, Activity::Exec& data ) const
+const Activity::Test&
+RepeatActivityList::test( std::deque<const Activity *>& stack, Activity::Test& data ) const
 {
-    data = ForkActivityList::exec( stack, data );
+    data = ForkActivityList::test( stack, data );
 
     for ( std::vector<Activity *>::const_iterator activity = _activityList.begin(); activity != _activityList.end(); ++activity ) {
-	Activity::Exec branch = data;
+	Activity::Test branch = data;
 	data.setReplyAllowed(false);
 	branch.setRate( data.rate() * rateBranch(*activity) );
-	branch = (*activity)->exec( stack, branch );
+	branch = (*activity)->test( stack, branch );
 	data += branch.sum();
     }
     return data;

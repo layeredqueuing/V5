@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: activity.cc 13839 2020-09-19 21:58:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,8 +41,8 @@
 std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
 std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
 
-Activity::Exec&
-Activity::Exec::operator=( const Activity::Exec& src )
+Activity::Test&
+Activity::Test::operator=( const Activity::Test& src )
 {
     _e = src._e;
     _f = src._f;
@@ -62,15 +62,16 @@ Activity::Exec::operator=( const Activity::Exec& src )
  * Construct and activity.  Duplicate name.
  */
 
-Activity::Activity( const Task * aTask, const std::string& aName )
+Activity::Activity( const Task * task, const std::string& aName )
     : Phase( aName ),
-      myTask(aTask),
-      inputFromList(0),
-      outputToList(0),
+      _task(task),			/* Owner */
+      _inputFrom(nullptr),
+      _outputTo(nullptr),
       _replyList(),
-      myThroughput(0),
-      iAmSpecified(false),
-      iAmReachable(false),
+      _rate(0.),			/* computed call rate. */
+      _specified(false),
+      _reachable(false),
+      _throughput(0.),			/* result */
       myLocalQuorumDelay(false)
 {
 }
@@ -84,8 +85,8 @@ Activity::Activity( const Task * aTask, const std::string& aName )
 Activity::~Activity()
 {
     _replyList.clear();
-    inputFromList = 0;
-    outputToList = 0;
+    _inputFrom = nullptr;
+    _outputTo = nullptr;
 
 }
 
@@ -100,8 +101,8 @@ Activity&
 Activity::configure( const unsigned n )
 {
     Phase::configure( n );
-    if ( outputToList ) {
-	outputToList->configure( n );
+    if ( _outputTo ) {
+	_outputTo->configure( n );
     }
     return *this;
 }
@@ -152,16 +153,16 @@ Activity::countCallList( unsigned callType ) const
 unsigned
 Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack ) const
 {
-    iAmReachable = true;
+    _reachable = true;
 
     if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	throw activity_cycle( this, activityStack );
     }
 
     unsigned max_depth = Phase::findChildren( callStack, directPath );
-    if ( outputToList ) {
+    if ( _outputTo ) {
 	activityStack.push_back( this );
-	max_depth = max( max_depth, outputToList->findChildren( callStack, directPath, activityStack, forkStack ) );
+	max_depth = max( max_depth, _outputTo->findChildren( callStack, directPath, activityStack, forkStack ) );
 	activityStack.pop_back();
     }
     return max_depth;
@@ -176,8 +177,8 @@ Activity::findChildren( Call::stack& callStack, const bool directPath, std::dequ
 std::deque<const AndForkActivityList *>::const_iterator
 Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack ) const
 {
-    if ( inputFromList ) {
-	return inputFromList->backtrack( forkStack );
+    if ( _inputFrom ) {
+	return _inputFrom->backtrack( forkStack );
     } else {
 	return forkStack.end();
     }
@@ -203,8 +204,8 @@ Activity::followInterlock( std::deque<const Entry *>& entryStack, const Interloc
 
     /* Now follow the activity path. */
 	
-    if ( outputToList ) {
-	max_depth = max( outputToList->followInterlock( entryStack, globalCalls, nextPhase ), max_depth );
+    if ( _outputTo ) {
+	max_depth = max( _outputTo->followInterlock( entryStack, globalCalls, nextPhase ), max_depth );
     }
     return max_depth;
 }
@@ -217,35 +218,40 @@ Activity::followInterlock( std::deque<const Entry *>& entryStack, const Interloc
  */
 
 Activity::Collect&
-Activity::collect( std::deque<Entry *>& entryStack, Activity::Collect& data ) 
+Activity::collect( std::deque<const Activity *>& activityStack, std::deque<Entry *>& entryStack, Activity::Collect& data ) const
 {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
+	return data;
+    }
     Function f = data.collect();
     (this->*f)( entryStack.back(), data );
     
     if ( repliesTo( entryStack.front() ) ) {
 	data.setPhase(2);
     }
-    if ( outputToList ) {
-	outputToList->collect( entryStack, data );
+    if ( _outputTo ) {
+	activityStack.push_back( this );
+	_outputTo->collect( activityStack, entryStack, data );
+	activityStack.pop_back();
     }
     return data;
 }
 
 
-Activity::Exec&
-Activity::exec( std::deque<const Activity *>& stack, Activity::Exec& data) const
+Activity::Test&
+Activity::test( std::deque<const Activity *>& activityStack, Activity::Test& data) const
 {
-    if ( std::find( stack.begin(), stack.end(), this ) != stack.end() ) {
+    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	return data;
     }
-    Predicate f = data.exec();
+    Predicate f = data.test();
     if ( (this->*f)( data ) ) {
 	data += data.rate();
     }
-    if ( outputToList ) {
-	stack.push_back( this );
-	outputToList->exec( stack, data );
-	stack.pop_back();
+    if ( _outputTo ) {
+	activityStack.push_back( this );
+	_outputTo->test( activityStack, data );
+	activityStack.pop_back();
     }
     return data;
 }
@@ -265,8 +271,8 @@ Activity::callsPerform( const Entry * entry, const AndForkActivityList * forkLis
     if ( repliesTo( entry ) ) {
 	next_phase = 2;
     }
-    if ( outputToList ) {
-	outputToList->callsPerform( entry, forkList, submodel, k, next_phase, aFunc, rate );
+    if ( _outputTo ) {
+	_outputTo->callsPerform( entry, forkList, submodel, k, next_phase, aFunc, rate );
     }
 }
 
@@ -314,12 +320,12 @@ Activity::findOrAddCall( const Entry * anEntry, const queryFunc aFunc )
 ActivityList *
 Activity::inputFrom( ActivityList * aList )
 {
-    if ( inputFromList ) {
+    if ( _inputFrom ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
     } else if ( isStartActivity() ) {
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
     } else {
-	inputFromList = aList;
+	_inputFrom = aList;
     } 
     return aList;
 }
@@ -333,10 +339,10 @@ Activity::inputFrom( ActivityList * aList )
 ActivityList *
 Activity::outputTo( ActivityList * aList )
 {
-    if ( outputToList ) {
+    if ( _outputTo ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
     } else {
-	outputToList = aList;
+	_outputTo = aList;
     }
     return aList;
 }
@@ -350,8 +356,8 @@ Activity::outputTo( ActivityList * aList )
 Activity& 
 Activity::resetInputOutputLists()
 {
-    outputToList = 0;
-    inputFromList = 0;
+    _outputTo = nullptr;
+    _inputFrom = nullptr;
     
     return *this;
 }
@@ -386,8 +392,8 @@ Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Enti
     const Entry * parent = entryStack.back();
     bool found = Phase::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
 
-    if ( ( !repliesTo( parent ) || last_phase > 1 ) && outputToList ) {
-	if ( outputToList->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
+    if ( ( !repliesTo( parent ) || last_phase > 1 ) && _outputTo ) {
+	if ( _outputTo->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
 	    found = true;
 	}
     }
@@ -398,8 +404,8 @@ Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Enti
 unsigned
 Activity::concurrentThreads( unsigned n ) const
 {
-    if ( outputToList ) {
-	return outputToList->concurrentThreads( n );	
+    if ( _outputTo ) {
+	return _outputTo->concurrentThreads( n );	
     } else {
 	return n;
     }
@@ -795,7 +801,7 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
  */
 
 bool
-Activity::checkReplies( Activity::Exec& data ) const
+Activity::checkReplies( Activity::Test& data ) const
 {
     const Entry * anEntry = data.entry();
     if ( repliesTo( anEntry ) ) {
@@ -820,7 +826,7 @@ Activity::checkReplies( Activity::Exec& data ) const
  */
 
 void
-Activity::collectWait( Entry * anEntry, const Activity::Collect& data )
+Activity::collectWait( Entry * anEntry, const Activity::Collect& data ) const
 {
     const unsigned int submodel = data.submodel();
     const unsigned int p = data.phase();
@@ -846,7 +852,7 @@ Activity::collectWait( Entry * anEntry, const Activity::Collect& data )
  */
 
 void
-Activity::collectReplication( Entry * anEntry, const Activity::Collect& data )
+Activity::collectReplication( Entry * anEntry, const Activity::Collect& data ) const
 {
     const unsigned int submodel = data.submodel();
     const unsigned int p = data.phase();
@@ -866,7 +872,7 @@ Activity::collectReplication( Entry * anEntry, const Activity::Collect& data )
  */
 
 void
-Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data )
+Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data ) const
 {
     anEntry->addServiceTime( data.phase(), serviceTime() );
 }
@@ -877,9 +883,9 @@ Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data )
  */
 
 void
-Activity::setThroughput( Entry * anEntry, const Activity::Collect& ) 
+Activity::setThroughput( Entry * anEntry, const Activity::Collect& ) const
 {
-    myThroughput = anEntry->throughput();
+    const_cast<Activity *>(this)->_throughput = anEntry->throughput();
 }
 
 /* ------------------------- Printing Functions ------------------------- */
@@ -1169,7 +1175,7 @@ Activity::add_activity_lists()
     if (domAct == NULL) { return *this; }
     const Task * task = dynamic_cast<const Task *>(owner());
 	
-    /* May as well start with the outputToList, this is done with various methods */
+    /* May as well start with the outputTo, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
     ActivityList * localActivityList = NULL;
     if (joinList != NULL && joinList->getProcessed() == false) {

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: actlist.h 13840 2020-09-21 14:44:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -89,8 +89,8 @@ public:
     virtual ActivityList& add( Activity * anActivity ) = 0;
     virtual bool check() const { return true; }
 
-    const Task * owner() const { return myOwner; }
-    const LQIO::DOM::ActivityList * getDOM() const { return myDOMActivityList; }
+    const Task * owner() const { return _task; }
+    const LQIO::DOM::ActivityList * getDOM() const { return _dom; }
     virtual ActivityList * next() const;	/* Link to fork list 		*/
     virtual ActivityList * prev() const;	/* Link to Join list		*/
 	
@@ -99,9 +99,8 @@ public:
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const = 0;
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const = 0;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const = 0;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& ) = 0;
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const = 0;
-//    virtual double aggregate2( const Entry *, const unsigned, unsigned&, const double, Stack<const Activity *>&, AggregateFunc2 ) const = 0;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& ) = 0;
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const = 0;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const = 0;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
@@ -125,8 +124,8 @@ protected:
     void initEntry( Entry *, const Entry *, const Activity::Collect& ) const;
 
 private:
-    const Task * myOwner;
-    const LQIO::DOM::ActivityList * myDOMActivityList;
+    const Task * _task;
+    const LQIO::DOM::ActivityList * _dom;
 };
 
 /* ==================================================================== */
@@ -134,19 +133,19 @@ private:
 class SequentialActivityList : public ActivityList
 {
 public:
-    SequentialActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist ) : ActivityList( owner, dom_activitylist), myActivity(0) {}
+    SequentialActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : ActivityList( owner, dom), _activity(nullptr) {}
     virtual bool operator==( const ActivityList& item ) const;
     virtual SequentialActivityList& add( Activity * anActivity );
     virtual const std::string& firstName() const;
     virtual const std::string& lastName() const;
 
-    Activity * getMyActivity() {return myActivity;} 
+    Activity * getMyActivity() {return _activity;} 
 
 protected:
     virtual const char * typeStr() const { return "+"; }
 
 protected:
-    Activity * myActivity;
+    Activity * _activity;
 };
 
 /* -------------------------------------------------------------------- */
@@ -154,26 +153,26 @@ protected:
 class ForkActivityList : public SequentialActivityList
 {
 public:
-    ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
+    ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual void configure( const unsigned );
 	
     virtual activity_type myType() const { return SEQUENCE; }
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to fork list 		*/
+    virtual ActivityList * prev() const { return _prev; }	/* Link to fork list 		*/
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
-    virtual ForkActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
+    virtual ForkActivityList& prev( ActivityList * aList) { _prev = aList; return *this; }
 
 private:
-    ActivityList * prevLink;
+    ActivityList * _prev;
 };
 
 /* -------------------------------------------------------------------- */
@@ -181,26 +180,26 @@ private:
 class JoinActivityList : public SequentialActivityList
 {
 public:
-    JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
+    JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual void configure( const unsigned );
 	
     virtual activity_type myType() const { return SEQUENCE; }
-    virtual ActivityList * next() const { return nextLink; }	/* Link to Join list		*/
+    virtual ActivityList * next() const { return _next; }	/* Link to Join list		*/
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
-    virtual ActivityList& next( ActivityList * aList ) { nextLink = aList; return *this; }	/* Link to Join list		*/
+    virtual ActivityList& next( ActivityList * aList ) { _next = aList; return *this; }	/* Link to Join list		*/
 
 private:
-    ActivityList *nextLink;
+    ActivityList *_next;
 };
 
 /* ==================================================================== */
@@ -221,7 +220,7 @@ public:
     friend class ForkJoinActivityList::ForkJoinName;
 
 public:
-    ForkJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist ) : ActivityList( owner, dom_activitylist) {}
+    ForkJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : ActivityList( owner, dom) {}
     virtual ~ForkJoinActivityList();
     virtual bool operator==( const ActivityList& item ) const;
     const std::vector<Activity *>& getMyActivityList() const { return _activityList; }
@@ -247,7 +246,7 @@ public:
 	
     virtual AndOrForkActivityList& add( Activity * anActivity );
 
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
+    virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
 
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
@@ -255,14 +254,14 @@ public:
     virtual double prBranch( const Activity * ) const = 0;
 
 protected:
-    virtual AndOrForkActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
-    Entry * collectToEntry( const unsigned i, std::deque<Entry *>&, Activity::Collect& );
+    virtual AndOrForkActivityList& prev( ActivityList * aList) { _prev = aList; return *this; }
+    Entry * collectToEntry( const Activity *, Entry *, std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
 
 protected:    
     std::vector<Entry *> _entryList;
     
 private:
-    ActivityList * prevLink;
+    ActivityList * _prev;
 };
 
 
@@ -271,7 +270,7 @@ private:
 class OrForkActivityList : public AndOrForkActivityList
 {
 public:
-    OrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist ) : AndOrForkActivityList( owner, dom_activitylist ) {}
+    OrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrForkActivityList( owner, dom ) {}
 	
     virtual OrForkActivityList& add( Activity * anActivity );
     virtual activity_type myType() const { return OR_FORK; }
@@ -279,8 +278,8 @@ public:
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -297,7 +296,7 @@ class AndForkActivityList : public AndOrForkActivityList
     friend class AndJoinActivityList;
     
 public:
-    AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
+    AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
 	
     virtual AndForkActivityList& add( Activity * anActivity );
     virtual double prBranch( const Activity * ) const { return 1.0; }
@@ -308,8 +307,8 @@ public:
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -346,17 +345,17 @@ public:
     AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * );
     virtual void configure( const unsigned );
 	
-    virtual ActivityList * next() const { return nextLink; }	/* Link to fork list		*/
+    virtual ActivityList * next() const { return _next; }	/* Link to fork list		*/
     virtual std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
 
 protected:
-    virtual AndOrJoinActivityList& next( ActivityList * aList ) { nextLink = aList; return *this; }
+    virtual AndOrJoinActivityList& next( ActivityList * aList ) { _next = aList; return *this; }
 
 protected:
     mutable unsigned visits;
 
 private:
-    ActivityList *nextLink;
+    ActivityList *_next;
 };
 
 
@@ -365,15 +364,15 @@ private:
 class OrJoinActivityList : public AndOrJoinActivityList
 {
 public:
-    OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist ) : AndOrJoinActivityList( owner, dom_activitylist ) {}
+    OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrJoinActivityList( owner, dom ) {}
 	
     virtual activity_type myType() const { return OR_JOIN; }
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -391,7 +390,7 @@ class AndJoinActivityList : public AndOrJoinActivityList
 public:
     typedef enum { JOIN_NOT_DEFINED, INTERNAL_FORK_JOIN, SYNCHRONIZATION_POINT } join_type;
 
-    AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
+    AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual AndJoinActivityList& add( Activity * anActivity );
 
     virtual unsigned size() const { return _activityList.size(); }
@@ -411,8 +410,8 @@ public:
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -434,32 +433,33 @@ private:
 class RepeatActivityList : public ForkActivityList
 {
 public:
-    RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
+    RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ~RepeatActivityList();
     virtual void configure( const unsigned );
     virtual RepeatActivityList& add( Activity * anActivity );
 	
     virtual activity_type myType() const { return REPEAT; }
 
-    virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
+    virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
 
     virtual unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual Activity::Collect& collect( std::deque<Entry *>&, Activity::Collect& );
-    virtual const Activity::Exec& exec( std::deque<const Activity *>&, Activity::Exec& ) const;
+    virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
+    virtual const Activity::Test& test( std::deque<const Activity *>&, Activity::Test& ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
 protected:
     virtual const char * typeStr() const { return "*"; }
-    virtual RepeatActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
+    virtual RepeatActivityList& prev( ActivityList * aList) { _prev = aList; return *this; }
 
 private:
+    Entry * collectToEntry( const Activity *, Entry *, std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     double rateBranch( const Activity * ) const;
 
 private:
-    ActivityList * prevLink;
+    ActivityList * _prev;
     std::vector<Activity *> _activityList;
     std::vector<Entry *> _entryList;
 };

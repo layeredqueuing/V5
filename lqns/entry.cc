@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: entry.cc 13840 2020-09-21 14:44:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -30,7 +30,6 @@
 #include "model.h"
 #include "entry.h"
 #include "fpgoop.h"
-#include "activity.h"
 #include "actlist.h"
 #include "call.h"
 #include "task.h"
@@ -199,10 +198,9 @@ Entry::configure( const unsigned nSubmodels )
     if ( isActivityEntry() && !isVirtualEntry() ) {
 
 	/* Check reply type and set max phase. */
-	std::deque<const Activity *> stack; // (dynamic_cast<const Task *>(owner())->activities().size());
-	Activity::Exec data( this, &Activity::checkReplies );
-	_startActivity->exec( stack, data );
-	const double replies = data.sum();
+	std::deque<const Activity *> activityStack; // (dynamic_cast<const Task *>(owner())->activities().size());
+	Activity::Test data( this, &Activity::checkReplies );
+	const double replies = _startActivity->test( activityStack, data ).sum();
 	if ( isCalledUsing( RENDEZVOUS_REQUEST ) ) {
 	    if ( replies == 0.0 ) {
 		//tomari: disable to allow a quorum use the default reply which
@@ -212,15 +210,16 @@ Entry::configure( const unsigned nSubmodels )
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 	    }
 	}
+	assert( activityStack.size() == 0 );
 
 	_startActivity->configure( nSubmodels );
 
 	/* Compute overall service time for this entry */
 
-	std::deque<Entry *> entryStack;;
+	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
 	Activity::Collect collect( 0, &Activity::collectServiceTime );
-	_startActivity->collect( entryStack, collect );
+	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
 	_total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
@@ -506,10 +505,10 @@ Entry::concurrentThreads() const
  * Ergo, we have to push the entry's index to the activities.
  */
 
-Entry&
-Entry::setThroughput( const double value )
+void
+Entry::saveThroughput( const double value )
 {
-    _throughput = value;
+    setThroughput( value );
 
     if ( flags.trace_replication || flags.trace_throughput ) {
 	cout << " Entry::throughput(): Task=" << this->owner()->name() << ", Entry=" << this->name()
@@ -517,13 +516,13 @@ Entry::setThroughput( const double value )
     }
 
     if ( isActivityEntry() ) {
+	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
 	Activity::Collect collect( 0, &Activity::setThroughput );
-	_startActivity->collect( entryStack, collect );
+	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
     }
-    return *this;
 }
 
 
@@ -1115,10 +1114,11 @@ TaskEntry::computeVariance()
 	    _phase[p].myVariance = 0.0;
 	}
 
+	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack; //( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push_back( this );
 	Activity::Collect collect( 0, &Activity::collectWait );
-	_startActivity->collect( entryStack, collect );
+	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 	_total.myVariance += for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
     } else {
@@ -1135,6 +1135,36 @@ TaskEntry::computeVariance()
 }
 
 
+
+/*
+ * Common code for aggregation: reset entry information.
+ */
+
+void
+Entry::set( const Entry * src, const Activity::Collect& data )
+{
+    const Activity::Function f = data.collect();
+    const unsigned int submodel = data.submodel();
+
+    if ( f == &Activity::collectServiceTime ) {
+        setMaxPhase( max( maxPhase(), src->maxPhase() ) );
+    } else if ( f == &Activity::setThroughput ) {
+        setThroughput( src->throughput() * data.rate() );
+    } else if ( f == &Activity::collectWait ) {
+        for ( unsigned p = 1; p <= maxPhase(); ++p ) {
+            if ( submodel == 0 ) {
+                _phase[p].myVariance = 0.0;
+            } else {
+                _phase[p].myWait[submodel] = 0.0;
+            }
+        }
+    } else if ( f == &Activity::collectReplication ) {
+        for ( unsigned p = 1; p <= maxPhase(); ++p ) {
+            _phase[p]._surrogateDelay.resize( src->_phase[p]._surrogateDelay.size() );
+            _phase[p].resetReplication();
+        }
+    }
+}
 
 /*
  * Calculate total wait for a particular submodel and save.  Return
@@ -1166,10 +1196,11 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	if ( flags.trace_activities ) {
 	    cout << "--- AggreateWait for entry " << name() << " ---" << endl;
 	}
+	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
 	Activity::Collect collect( submodel, &Activity::collectWait );
-	_startActivity->collect( entryStack, collect );
+	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
@@ -1243,10 +1274,11 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
     if ( isActivityEntry() ) {
 	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
 
+	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
 	Activity::Collect collect( aSubmodel.number(), &Activity::collectReplication );
-	_startActivity->collect( entryStack, collect );
+	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
     } else {

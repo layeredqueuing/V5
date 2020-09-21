@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13741 2020-08-06 04:19:44Z greg $
+ * $Id: submodel.cc 13840 2020-09-21 14:44:18Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -1116,7 +1116,7 @@ MVASubmodel::saveClientResults( Task * aClient )
 	} else {
 	    lambda = closedModel->throughput( *aStation, (*entry)->index(), myChain[1] );
 	}
-	(*entry)->setThroughput( lambda );
+	(*entry)->saveThroughput( lambda );
     }
 }
 
@@ -1148,7 +1148,7 @@ MVASubmodel::saveServerResults( Entity * aServer )
 		break;
 	    }
 	}
-	(*entry)->setThroughput( lambda );
+	(*entry)->saveThroughput( lambda );
 	(*entry)->saveOpenWait( aStation->R( e, 0 ) );
     }
 }
