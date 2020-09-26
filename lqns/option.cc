@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13815 2020-09-14 16:30:47Z greg $
+ * $Id: option.cc 13854 2020-09-24 13:34:24Z greg $
  */
 
 #include <config.h>
@@ -164,6 +164,12 @@ Options::Trace::interlock( const char *arg )
 }
 
 void
+Options::Trace::intermediate( const char *arg )
+{
+    flags.trace_intermediate = true;
+}
+
+void
 Options::Trace::joins( const char *arg )
 {
     flags.trace_joins = true;
@@ -184,16 +190,16 @@ Options::Trace::mva( const char *arg )
 }
 
 void
+Options::Trace::quorum( const char *arg )
+{
+    flags.trace_quorum = true;
+}
+
+void
 Options::Trace::overtaking( const char *arg )
 {
     flags.trace_overtaking = true;
     flags.print_overtaking = true;
-}
-
-void
-Options::Trace::intermediate( const char *arg )
-{
-    flags.trace_intermediate = true;
 }
 
 void
@@ -203,27 +209,28 @@ Options::Trace::replication( const char *arg )
 }
 
 void
-Options::Trace::variance( const char *arg )
-{
-    flags.trace_variance = true;
-}
-
-void
-Options::Trace::wait( const char *arg )
-{
-    flags.trace_wait = true;
-}
-
-void
 Options::Trace::throughput( const char *arg )
 {
     flags.trace_throughput = true;
 }
 
 void
-Options::Trace::quorum( const char *arg )
+Options::Trace::variance( const char *arg )
 {
-    flags.trace_quorum = true;
+    flags.trace_variance = true;
+}
+
+void
+Options::Trace::virtual_entry( const char *arg )
+{
+    flags.trace_virtual_entry = true;
+    flags.trace_wait = true;
+}
+
+void
+Options::Trace::wait( const char *arg )
+{
+    flags.trace_wait = true;
 }
 
 /* static */ void
@@ -234,21 +241,21 @@ Options::Trace::initialize()
     __table["activities"] =  Trace( &Trace::activities        , false, &Help::traceActivities );
     __table["convergence"] = Trace( &Trace::convergence       , true,  &Help::traceConvergence );
     __table["delta_wait"] =  Trace( &Trace::delta_wait        , false, &Help::traceDeltaWait );
-//  __table["entry"] =       Trace( &Trace::entry             , false, &Help::traceEntry );
     __table["forks"] =	     Trace( &Trace::forks             , false, &Help::traceForks );
     __table["idle-time"] =   Trace( &Trace::idle_time         , false, &Help::traceIdleTime );
     __table["interlock"] =   Trace( &Trace::interlock         , false, &Help::traceInterlock );
+    __table["intermediate"] =Trace( &Trace::intermediate      , false, &Help::traceIntermediate );
     __table["joins"] =	     Trace( &Trace::joins             , false, &Help::traceJoins );
     __table["mva"] =	     Trace( &Trace::mva               , true,  &Help::traceMva );
     __table["overtaking"] =  Trace( &Trace::overtaking        , false, &Help::traceOvertaking );
-    __table["intermediate"] =Trace( &Trace::intermediate      , false, &Help::traceIntermediate );
-//  __table["processor"] =   Trace( &Trace::processor         , true,  &Help::traceProcessor );
-    __table["replication"] = Trace( &Trace::replication       , false, &Help::traceReplication );
-//  __table["task"] =        Trace( &Trace::task              , true,  &Help::traceTask );
-    __table["variance"] =    Trace( &Trace::variance          , false, &Help::traceVariance );
-    __table["wait"] =	     Trace( &Trace::wait              , false, &Help::traceWait );
-    __table["throughput"] =  Trace( &Trace::throughput        , false, &Help::traceThroughput );
     __table["quorum"] =      Trace( &Trace::quorum            , false, &Help::traceQuorum );
+    __table["replication"] = Trace( &Trace::replication       , false, &Help::traceReplication );
+    __table["throughput"] =  Trace( &Trace::throughput        , false, &Help::traceThroughput );
+    __table["variance"] =    Trace( &Trace::variance          , false, &Help::traceVariance );
+    __table["virtual-entry"]=Trace( &Trace::virtual_entry     , false, &Help::traceVirtualEntry );
+    __table["wait"] =	     Trace( &Trace::wait              , false, &Help::traceWait );
+//  __table["processor"] =   Trace( &Trace::processor         , true,  &Help::traceProcessor );
+//  __table["task"] =        Trace( &Trace::task              , true,  &Help::traceTask );
 
     __options = new const char * [__table.size()+1];
     std::map<const char *, Options::Trace>::const_iterator next_opt;

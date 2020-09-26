@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 13787 2020-08-22 17:19:29Z greg $ *
+ * $Id: pragma.cc 13878 2020-09-26 02:30:34Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -40,7 +40,7 @@ Pragma::Pragma() :
     _stop_on_bogus_utilization(0),
     _stop_on_message_loss(true),
     _tau(8),
-    _threads(HYPER_THREADS),
+    _threads(MAK_LUNDSTROM_THREADS),
     _variance(DEFAULT_VARIANCE),
     _default_processor_scheduling(true),
     _init_variance_only(false),

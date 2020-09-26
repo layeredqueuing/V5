@@ -1,1 +1,0 @@
-./configure --target="i386-mingw32msvc"

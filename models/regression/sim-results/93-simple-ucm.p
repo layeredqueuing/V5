@@ -1,15 +1,15 @@
-# lqsim 5.16
+# lqsim 5.17
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=93-simple-ucm.p 93-simple-ucm.in
-# $Id: 93-simple-ucm.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 93-simple-ucm.p 13873 2020-09-25 16:05:52Z greg $
 V y
 C 0.639135
 I 4
 PP 2
 NP 1
 
-#!User:  0:38:08.000
-#!Sys:   0:14:18.000
-#!Real:  0:53:06.000
+#!User:  0:33:03.000
+#!Sys:   0:14:12.000
+#!Real:  0:47:19.000
 
 B 4
 RefTask1       :RefTask1_RefE   0.1         
@@ -33,15 +33,6 @@ t2             :-1
                 -1 
 -1
 
-Z 1
-RefTask1       :-1
-               :
-                RefTask1_A1_AsyncCall t1_E1           5.6031      -1 
-                                            %95 0.0520328   -1 
-                                            %99 0.0955133   -1 
-                -1 
--1
-
 VARW 2
 t1             :-1
                :
@@ -54,6 +45,15 @@ t2             :-1
                 a2_h6_SyncCall  t3_E1           0            -1 
                                             %95 0            -1 
                                             %99 0            -1 
+                -1 
+-1
+
+Z 1
+RefTask1       :-1
+               :
+                RefTask1_A1_AsyncCall t1_E1           5.6031      -1 
+                                            %95 0.0520328   -1 
+                                            %99 0.0955133   -1 
                 -1 
 -1
 

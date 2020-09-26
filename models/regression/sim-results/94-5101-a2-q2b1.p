@@ -1,6 +1,6 @@
 # lqsim 5.16
 # lqsim --confidence=1.0,10000 --seed=1049217653 --parseable --output=94-5101-a2-q2b1.p 94-5101-a2-q2b1.in
-# $Id$
+# $Id: 94-5101-a2-q2b1.p 13868 2020-09-25 15:23:33Z greg $
 V y
 C 1.19367
 I 30

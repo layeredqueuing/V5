@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13808 2020-09-08 21:16:53Z greg $
+ * $Id: model.cc 13875 2020-09-25 20:02:38Z greg $
  *
  * Load the SRVN model.
  */
@@ -690,7 +690,7 @@ Model::make_queues()
 	double idle_x;
 	unsigned k 	= 0;			/* Queue Kounter	*/
 	queue_fnptr queue_func;			/* Local version.	*/
-	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || bit_test( (*t)->type(), SEMAPHORE_BIT || (*t)->is_infinite() );
+	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || bit_test( (*t)->type(), SEMAPHORE_BIT ) || (*t)->is_infinite();
 
 	/* Override if dest is a join function. */
 		

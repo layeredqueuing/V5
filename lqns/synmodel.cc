@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: synmodel.cc 13857 2020-09-24 20:40:08Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -58,7 +58,6 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	
     if ( trace ) {
 	cout << print_submodel_header( *this, iterations ) << endl;
-	printSyncModel( cout );
     }
 
     if ( flags.trace_delta_wait ) {
@@ -74,6 +73,10 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	(*client)->updateWait( *this, relax );
     }
 	
+    if ( trace ) {
+	printSyncModel( cout );
+    }
+
     MVAStats.accumulate( 0, 0, 0 );
 
     if ( flags.single_step ) {
@@ -97,17 +100,17 @@ SynchSubmodel::printSyncModel( ostream& output ) const
 {
     unsigned stnNo = 1;
 
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	output << "[" << stnNo << "] " << **client
-	       << Task::print_client_chains( **client, number() ) << endl;
-	stnNo += 1;
+    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client, ++stnNo ) {
+	output << stnNo << ": " << **client
+	       << " " << Task::print_client_chains( **client, number() ) << endl;
+	(*client)->printJoinDelay( output );
+	output << endl;
     }
 
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	output << "[" << stnNo << "] " << **server << endl;
+    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server, ++stnNo ) {
+	output << stnNo << ": " << **server << endl;
 	(*server)->printJoinDelay( output );
 	output << endl;
-	stnNo += 1;
     }
     return output;
 }

@@ -1,6 +1,6 @@
 # petrisrvn 6.0
 # petrisrvn --parseable --output=48-activities.out 48-activities.in
-# $Id$
+# $Id: 48-activities.p 13867 2020-09-25 15:10:41Z greg $
 V y
 C 0
 I 0

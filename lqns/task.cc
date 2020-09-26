@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13786 2020-08-22 16:50:37Z greg $
+ * $Id: task.cc 13880 2020-09-26 12:57:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -61,7 +61,10 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
       _overlapFactor(1.0),
       _threads(1),
       _clientChains(),
-      _clientStation()
+      _clientStation(),
+      _has_fork(false),
+      _has_sync(false),
+      _no_syncs(true)
 {
     for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
 }
@@ -168,6 +171,20 @@ Task::check() const
 }
 
 
+
+/*
+ * Check reachability for all activities.  This has to be done after findChildren.  
+ * Activity::isNotReachable will output an error message if an activity is NOT reachable (and return true so 
+ * that count_if will return the number of unreachable activities.
+ */
+
+bool 
+Task::checkReachability() const
+{
+    return count_if( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) ) == 0;
+}
+
+
 /*
  * Denote whether this station belongs to the open, closed, or mixed
  * models when performing the MVA solution.
@@ -184,6 +201,10 @@ Task::configure( const unsigned nSubmodels )
     _clientChains.resize( nSubmodels );		/* Prepare chain vectors	*/
     _clientStation.resize( nSubmodels, 0 );	/* Prepare client cltn		*/
 
+    if ( hasActivities() ) {
+	for_each( activities().begin(), activities().end(), Exec1<Activity,unsigned>( &Activity::configure, nSubmodels ) );
+	for_each( _precedences.begin(), _precedences.end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
+    }
     Entity::configure( nSubmodels );
 
     if ( hasOpenArrivals() ) {
@@ -196,6 +217,7 @@ Task::configure( const unsigned nSubmodels )
     /* Configure the threads... */
 
     for_each( _threads.begin() + 1, _threads.end(), Predicate<Thread>( &Thread::check ) );
+
     return *this;
 }
 
@@ -334,7 +356,8 @@ Task::initThreads()
     _maxThreads = 1;
     if ( hasThreads() ) {
 	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	    _maxThreads = max( (*entry)->concurrentThreads(), _maxThreads );
+	    unsigned old = (*entry)->concurrentThreads();
+	    _maxThreads = max( old, _maxThreads );
 	}
     }
     if ( _maxThreads > nThreads() ) throw logic_error( "Task::initThreads" );
@@ -1071,7 +1094,13 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 bool
 Task::hasForks() const
 {
-    return _threads.size() > 1;
+    if ( _has_fork ) return true;	       /* cached copy		*/
+    if ( _no_syncs == false ) return false;
+    /* Do it the hard way */
+    _has_fork = std::count_if( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) ) > 0;
+    _has_sync = std::count_if( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) ) > 0;
+    _no_syncs = false;
+    return _has_fork;
 }
 
 
@@ -1080,7 +1109,7 @@ Task::hasForks() const
  */
 
 bool
-Task::hasSynchs() const
+Task::hasSyncs() const
 {
     return false;
 }
@@ -1126,8 +1155,8 @@ Task::expandQuorumGraph()
 
     //Get Join Lists
     Sequence<Activity *> nextActivity(activities());
-    for (  ; (anActivity = nextActivity()) && (anActivity->outputTo());   ) {
-	joinLists.findOrAdd(anActivity->outputTo());
+    for (  ; (anActivity = nextActivity()) && (anActivity->nextJoin());   ) {
+	joinLists.findOrAdd(anActivity->nextJoin());
     }
     // cout <<"\njoinLists.size () = " << joinLists.size() << endl;
     Sequence<ActivityList *> nextList(joinLists);
@@ -1248,35 +1277,6 @@ Task::store_activity_service_time ( const char * activity_name, const double ser
  * Count up the number of calls made by this task (regardless of phase).
  */
 
-unsigned
-Task::countCallList( unsigned callType ) const
-{
-    unsigned count = 0;
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	CallInfo callList( **entry, callType );
-	count += callList.size();
-    }
-
-    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	count += (*activity)->countCallList( callType );
-    }
-    return count;
-}
-
-
-
-/*
- * Count up the number of calls made by this task (regardless of phase).
- */
-
-unsigned
-Task::countJoinList() const
-{
-//    #warning fix me!
-    return 0;
-}
-
-
 const Task&
 Task::insertDOMResults(void) const
 {
@@ -1332,11 +1332,11 @@ Task::insertDOMResults(void) const
 ostream&
 Task::printSubmodelWait( ostream& output ) const
 {
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	(*entry)->printSubmodelWait( output, 0 );
-    }
-    for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
-	(*thread)->printSubmodelWait( output, 2 );
+    for_each ( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+    if ( flags.trace_virtual_entry ) {
+	for_each ( _precedences.begin(), _precedences.end(), ConstPrint1<ActivityList,unsigned>( &ActivityList::printSubmodelWait, output, 2 ) );
+    } else {
+	for_each ( _threads.begin(), _threads.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
     }
     return output;
 }
@@ -1403,17 +1403,7 @@ Task::printOverlapTable( ostream& output, const ChainVector& chain, const Vector
 ostream&
 Task::printJoinDelay( ostream& output ) const
 {
-//#warning fix me!
-#if 0
-    Sequence<AndJoinActivityList *> nextJoin( myJoin );
-    AndJoinActivityList * aJoin;
-
-    while ( aJoin = nextJoin() ) {
-	aJoin->printDelay( output );
-	output << endl;
-    }
-#endif
-
+    for_each( _precedences.begin(), _precedences.end(), ConstPrint<ActivityList>(&ActivityList::printJoinDelay, output ) );
     return output;
 }
 

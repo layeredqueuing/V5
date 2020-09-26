@@ -1,6 +1,6 @@
-# lqsim 5.16
+# lqsim 5.17
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=16-split-interlock.p 16-split-interlock.in
-# $Id: 16-split-interlock.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 16-split-interlock.p 13868 2020-09-25 15:23:33Z greg $
 V y
 C 0.542248
 I 3
@@ -8,9 +8,8 @@ PP 2
 NP 2
 
 #!Comment: Split interlock with second phase (BUG 697)
-#!User:  0:26:06.000
-#!Sys:   0:10:09.000
-#!Real:  0:36:52.000
+#!User:  0:03:59.000
+#!Real:  0:04:00.000
 
 B 3
 c0             :c0              0.111111    

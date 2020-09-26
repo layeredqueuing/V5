@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: phase.h 13845 2020-09-22 01:34:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -120,6 +120,28 @@ class Phase : public NullPhase {
     friend class AndForkActivityList;	/* For access to mySurrogateDelay 	*/
 
 public:
+    class CallExec {
+    public:
+	CallExec( const Entry * e, unsigned submodel, unsigned k, unsigned p, callFunc f, double rate ) : _e(e), _submodel(submodel), _k(k), _p(p), _f(f), _rate(rate) {}
+	CallExec( const CallExec& src, double rate, unsigned p ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(p), _f(src._f), _rate(rate) {}		// Set rate and phase.
+	CallExec( const CallExec& src, double scale ) : _e(src._e), _submodel(src._submodel), _k(src._k), _p(src._p), _f(src._f), _rate(src._rate * scale) {}	// Set rate.
+
+	const Entry * entry() const { return _e; }
+	double getRate() const { return _rate; }
+	unsigned getPhase() const { return _p; }
+
+	void operator()( Call * object ) const { if (object->submodel() == _submodel) (object->*_f)( _k, _p, _rate ); }
+
+    private:
+	const Entry * _e;
+	const unsigned _submodel;
+	const unsigned _k;
+	const unsigned _p;
+	const callFunc _f;
+	const double _rate;
+    };
+    
+public:
     Phase( const std::string& );
     Phase();
     virtual ~Phase();
@@ -134,7 +156,7 @@ public:
 
     unsigned findChildren( Call::stack&, const bool ) const;
     virtual unsigned followInterlock( std::deque<const Entry *> &, const InterlockInfo&, const unsigned  );
-    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    virtual void callsPerform( const CallExec& ) const;
     void setInterlockedCall(const unsigned submodel);
     void addSrcCall( Call * aCall ) { _callList.insert(aCall); }
     void removeSrcCall( Call *aCall ) { _callList.erase(aCall); }
@@ -174,6 +196,7 @@ public:
 
     virtual bool check() const;
     double numberOfSlices() const;
+    double numberOfSubmodels() const { return myWait.size(); }
     virtual double throughput() const;
     double utilization() const;
     double processorUtilization() const;

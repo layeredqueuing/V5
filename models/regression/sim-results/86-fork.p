@@ -1,6 +1,6 @@
-# lqsim 5.16
+# lqsim 5.17
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=86-fork.p 86-fork.in
-# $Id: 86-fork.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 86-fork.p 13868 2020-09-25 15:23:33Z greg $
 V y
 C 0.220179
 I 3
@@ -8,9 +8,8 @@ PP 5
 NP 1
 
 #!Comment: fork-join
-#!User:  6:24:06.000
-#!Sys:   2:31:10.000
-#!Real:  9:01:10.000
+#!User:  0:48:53.000
+#!Real:  0:49:04.000
 
 B 5
 t1             :e1              0.555556    

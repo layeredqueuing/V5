@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id: 51-replication.lqxo 13766 2020-08-18 02:54:45Z greg $ -->
+<!-- $Id: 51-replication.lqxo 13872 2020-09-25 15:57:09Z greg $ -->
 <!-- lqn2ps -Oxml -o51-replication.lqxo -merge-replicas -->
-<lqn-model name="51-replication-flat" description="lqn2ps 5.16 solution for model from: 51-replication-flat.lqxo." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="51-replication-flat" description="lqn2ps 5.17 solution for model from: 51-replication-flat.lqxo." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="" conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10">
       <pragma param="initial-loops" value="1000"/>
       <pragma param="precision" value="1.0"/>
       <pragma param="seed-value" value="1049217653"/>
-      <result-general solver-info="lqsim 5.16" valid="YES" conv-val="0.297721" iterations="3" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time="148:38:13.000" system-cpu-time="57:21:48.000" elapsed-time="206:17:24.000"/>
+      <result-general solver-info="lqsim 5.17" valid="YES" conv-val="0.297721" iterations="3" platform-info="merlin-pc.sce.carleton.ca Linux 5.0.16-100.fc28.x86_64" user-cpu-time="23:06:22.000" system-cpu-time=" 0:00:06.000" elapsed-time="23:11:11.000"/>
    </solver-params>
    <processor name="A1" scheduling="fcfs" replication="2">
       <result-processor utilization="0.0134759">

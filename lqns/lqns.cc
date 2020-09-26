@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13787 2020-08-22 17:19:29Z greg $
+ * $Id: lqns.cc 13854 2020-09-24 13:34:24Z greg $
  *
  * Command line processing.
  *
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-08-22 13:19:29 -0400 (Sat, 22 Aug 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-09-24 09:34:24 -0400 (Thu, 24 Sep 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -656,23 +656,24 @@ void init_flags()
     flags.xml_output            = false;
     flags.generate              = false;
     flags.reset_mva		= false;
+    flags.print_overtaking      = false;
+    flags.single_step           = false;
 
     flags.trace_activities      = false;
     flags.trace_convergence     = false;
+    flags.trace_customers	= false;
     flags.trace_delta_wait      = false;
     flags.trace_forks           = false;
     flags.trace_idle_time       = false;
     flags.trace_interlock       = false;
+    flags.trace_intermediate    = false;
     flags.trace_joins           = false;
     flags.trace_mva             = false;
     flags.trace_overtaking      = false;
-    flags.trace_intermediate    = false;
-    flags.trace_wait            = false;
     flags.trace_replication     = false;
-	flags.trace_customers	= 0;
+    flags.trace_virtual_entry   = false;
+    flags.trace_wait            = false;
 
-    flags.print_overtaking      = false;
-    flags.single_step           = false;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     flags.min_steps             = 7;            /* Default of 2 steps. */
 #else

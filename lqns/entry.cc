@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13840 2020-09-21 14:44:18Z greg $
+ * $Id: entry.cc 13877 2020-09-26 02:15:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -181,7 +181,7 @@ Entry::check() const
 /*
  * Allocate storage for savedWait.  NOTE:  the output file parsing
  * routines cannot deal with variable sized arrays, so fix these
- * at MAX_PHASES.
+ * at MAX_PHASES.  Configure for activities is done in Task::configure.
  */
 
 Entry&
@@ -199,8 +199,8 @@ Entry::configure( const unsigned nSubmodels )
 
 	/* Check reply type and set max phase. */
 	std::deque<const Activity *> activityStack; // (dynamic_cast<const Task *>(owner())->activities().size());
-	Activity::Test data( this, &Activity::checkReplies );
-	const double replies = _startActivity->test( activityStack, data ).sum();
+	Activity::Count_If data( this, &Activity::checkReplies );
+	const double replies = _startActivity->count_if( activityStack, data ).sum();
 	if ( isCalledUsing( RENDEZVOUS_REQUEST ) ) {
 	    if ( replies == 0.0 ) {
 		//tomari: disable to allow a quorum use the default reply which
@@ -211,23 +211,10 @@ Entry::configure( const unsigned nSubmodels )
 	    }
 	}
 	assert( activityStack.size() == 0 );
-
-	_startActivity->configure( nSubmodels );
-
-	/* Compute overall service time for this entry */
-
-	std::deque<Entry *> entryStack;
-	entryStack.push_back( this );
-	Activity::Collect collect( 0, &Activity::collectServiceTime );
-	_startActivity->collect( activityStack, entryStack, collect );
-	entryStack.pop_back();
-
-	_total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
     }
+    initServiceTime();
     return *this;
 }
-
-
 
 
 /*
@@ -244,18 +231,16 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 
     if ( isActivityEntry() ) {
 	max_depth = max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
-	std::deque<const AndForkActivityList *> forkStack; 	// For matching forks/joins.
+	std::deque<const AndOrForkActivityList *> forkStack; 	// For matching forks/joins.
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
 	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
 	}
 	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
-	    max_depth = max( max_depth, error.depth() );
 	}
 	catch ( const bad_external_join& error ) {
 	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name().c_str(), owner()->name().c_str(), error.what() );
-	    max_depth = max( max_depth, error.depth() );
 	}
     } else {
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
@@ -285,6 +270,29 @@ Entry::initThroughputBound()
     return *this;
 }
 
+
+
+/* 
+ * Compute overall service time for this entry 
+ */
+
+Entry&
+Entry::initServiceTime()
+{
+    if ( isActivityEntry() && !isVirtualEntry() ) {
+
+	std::deque<const Activity *> activityStack;
+	std::deque<Entry *> entryStack;
+	entryStack.push_back( this );
+	Activity::Collect collect( 0, &Activity::collectServiceTime );
+	_startActivity->collect( activityStack, entryStack, collect );
+	entryStack.pop_back();
+    }
+
+    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
+    return *this;
+}
+    
 
 
 /*
@@ -966,7 +974,7 @@ Entry::insertDOMResults(double *phaseUtils) const
  */
 
 ostream&
-Entry::printSubmodelWait( ostream& output, const unsigned offset ) const
+Entry::printSubmodelWait( ostream& output, unsigned offset ) const
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	if ( offset ) {
@@ -1320,10 +1328,10 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
 	 * is used to calculation entry throughput not the throughput of its owner task.
 	 * the visit of a call equals rate * rendenzvous() normally;
 	 * therefore, rate has to be set to 1.*/
-	_startActivity->callsPerform( this, 0, submodel, k, 1, aFunc, rate );
+	_startActivity->callsPerform( Phase::CallExec( this, submodel, k, 1, aFunc, rate ) );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].callsPerform( this, 0, submodel, k, p, aFunc, rate );
+	    _phase[p].callsPerform( Phase::CallExec( this, submodel, k, p, aFunc, rate ) );
 	}
     }
     return *this;

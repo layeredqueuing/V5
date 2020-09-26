@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: dim.h 13857 2020-09-24 20:40:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -242,6 +242,31 @@ private:
     Type2 _x;
     Type3 _y;
 };
+
+template <class Type1> struct ConstPrint
+{
+    typedef std::ostream& (Type1::*funcPtr)( std::ostream& ) const;
+    ConstPrint<Type1>( const funcPtr f, std::ostream& o ) : _f(f), _o(o) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _o ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _o ); }
+private:
+    const funcPtr _f;
+    std::ostream& _o;
+};
+
+
+template <class Type1, class Type2> struct ConstPrint1
+{
+    typedef std::ostream& (Type1::*funcPtr)( std::ostream&, Type2 ) const;
+    ConstPrint1<Type1,Type2>( const funcPtr f, std::ostream& o, Type2 x ) : _f(f), _o(o), _x(x) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _o, _x ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _o, _x ); }
+private:
+    const funcPtr _f;
+    std::ostream& _o;
+    const Type2 _x;
+};
+
 
 template <class Type> struct EQ
 {

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: model.h 13842 2020-09-21 19:11:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -79,12 +79,11 @@ private:
 
 public:
     Model& reinitialize();
-    unsigned generate();	/* Create layers.	*/
-    unsigned nSubmodels() const { return _submodels.size(); }
     bool initializeModel();
 
     void updateWait( Entity * ) const;
 
+    unsigned nSubmodels() const { return _submodels.size(); }
     unsigned syncModelNumber() const { return sync_submodel; }
 
     bool solve();
@@ -105,6 +104,7 @@ protected:
     void initialize();
     void initClients();
     void reinitClients();
+
     double relaxation() const;
     virtual void backPropogate() {}
 
@@ -114,6 +114,7 @@ protected:
 	
 private:
     static bool checkModel();
+    bool generate();	/* Create layers.	*/
     static void extendModel();
     static void initProcessors();
     void configure();

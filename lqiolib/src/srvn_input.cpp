@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13783 2020-08-21 16:05:30Z greg $
+ *  $Id: srvn_input.cpp 13842 2020-09-21 19:11:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -641,6 +641,7 @@ srvn_set_task_tokens( void * task_v, int tokens )
 void *
 srvn_find_activity( void * task, const char * name )
 {
+    if ( !task ) return NULL;
     LQIO::DOM::Activity * activity = static_cast<LQIO::DOM::Task *>(task)->getActivity(name, false);
     if ( !activity ) {
 	input_error2( LQIO::ERR_NOT_DEFINED, name );
@@ -655,6 +656,7 @@ srvn_find_activity( void * task, const char * name )
 void *
 srvn_get_activity( void * task, const char * name )
 {
+    if ( !task ) return NULL;
     return static_cast<LQIO::DOM::Task *>(task)->getActivity(name, true);
 }
 
@@ -682,7 +684,7 @@ void  *
 srvn_store_activity_rnv_data ( void * activity, void * dst_entry_v, void * calls ) 
 {
     LQIO::DOM::Entry* dst_entry = static_cast<LQIO::DOM::Entry *>(dst_entry_v);
-    if ( !activity || !dst_entry ) return 0;
+    if ( !activity || !dst_entry ) return NULL;
     LQIO::DOM::Document::db_check_set_entry(dst_entry, dst_entry->getName());
     
     LQIO::DOM::Call* call = new LQIO::DOM::Call(LQIO::DOM::__document, LQIO::DOM::Call::RENDEZVOUS, static_cast<LQIO::DOM::Activity *>(activity), dst_entry,
@@ -694,6 +696,7 @@ srvn_store_activity_rnv_data ( void * activity, void * dst_entry_v, void * calls
 void 
 srvn_store_activity_service_time ( void * activity, void * service_time ) 
 {
+    if ( !activity ) return;
     static_cast<LQIO::DOM::Activity *>(activity)->setServiceTime(static_cast<LQIO::DOM::ExternalVariable *>(service_time));
     static_cast<LQIO::DOM::Activity *>(activity)->setIsSpecified(true);
 }
@@ -714,18 +717,21 @@ srvn_store_activity_snr_data ( void * activity, void * dst_entry_v, void * calls
 void 
 srvn_store_activity_think_time ( void * activity, void * think_time )
 {
+    if ( !activity ) return;
     static_cast<LQIO::DOM::Activity *>(activity)->setThinkTime(static_cast<LQIO::DOM::ExternalVariable *>(think_time));
 }
 
 void 
 srvn_set_activity_histogram ( void * activity, const double min, const double max, const int n_bins )
 {
+    if ( !activity ) return;
     static_cast<LQIO::DOM::Activity *>(activity)->setHistogram(new LQIO::DOM::Histogram( LQIO::DOM::__document, LQIO::DOM::Histogram::CONTINUOUS, n_bins, min, max ));
 }
 
 void 
 srvn_set_activity_phase_type_flag ( void * activity, const int flag ) 
 {
+    if ( !activity ) return;
     static_cast<LQIO::DOM::Activity *>(activity)->setPhaseTypeFlag(static_cast<const phase_type>(flag));
 }
 
@@ -769,6 +775,7 @@ srvn_act_add_reply ( const void * task, const void * entry, void * entry_list )
 void * 
 srvn_act_and_fork_list ( const void * aTask, void * activity, void * pActivityList )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_and_fork_list( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 
 					 static_cast<LQIO::DOM::ActivityList *>(pActivityList), 0 );
 }
@@ -776,6 +783,7 @@ srvn_act_and_fork_list ( const void * aTask, void * activity, void * pActivityLi
 void * 
 srvn_act_and_join_list ( const void * aTask, void * activity, void * pActivityList, void * quorum_count )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_and_join_list( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 
 					 static_cast<LQIO::DOM::ActivityList *>(pActivityList), 
 					 static_cast<LQIO::DOM::ExternalVariable *>(quorum_count), 0 );
@@ -784,18 +792,21 @@ srvn_act_and_join_list ( const void * aTask, void * activity, void * pActivityLi
 void * 
 srvn_act_fork_item ( const void * aTask, void * activity )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_fork_item( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 0 );
 }
 
 void * 
 srvn_act_join_item ( const void * aTask, void * activity )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_join_item( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 0 );
 }
 
 void * 
 srvn_act_or_fork_list ( const void * aTask, void * probability, void * activity, void * pActivityList)
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_or_fork_list( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 
 					static_cast<LQIO::DOM::ActivityList *>(pActivityList), 
 					static_cast<LQIO::DOM::ExternalVariable *>(probability), 0 );
@@ -804,6 +815,7 @@ srvn_act_or_fork_list ( const void * aTask, void * probability, void * activity,
 void * 
 srvn_act_or_join_list ( const void * aTask, void * activity, void * pActivityList )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_or_join_list( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 
 					      static_cast<LQIO::DOM::ActivityList *>(pActivityList), 0 );
 }
@@ -811,6 +823,7 @@ srvn_act_or_join_list ( const void * aTask, void * activity, void * pActivityLis
 void * 
 srvn_act_loop_list ( const void * aTask, void * count, void * activity, void * pActivityList )
 {
+    if ( !aTask || !activity ) return NULL;
     return LQIO::DOM::act_loop_list( static_cast<const LQIO::DOM::Task *>(aTask), static_cast<LQIO::DOM::Activity *>(activity), 
 				     static_cast<LQIO::DOM::ActivityList *>(pActivityList), 
 				     static_cast<LQIO::DOM::ExternalVariable *>(count), 0 );
@@ -820,8 +833,7 @@ void
 srvn_act_add_reply_list ( const void * aTask, void * activity, void * entry_list )
 {
     /* Obtain references to the task and the activity from the parameter data */
-    const LQIO::DOM::Task* domTask = static_cast<const LQIO::DOM::Task *>(aTask);
-    if ( !domTask || !activity ) return;
+    if ( !activity ) return;
     std::vector<LQIO::DOM::Entry*>* local_list = static_cast<std::vector<LQIO::DOM::Entry*>*>(entry_list);
     if ( local_list ) {
 	static_cast<LQIO::DOM::Activity *>(activity)->getReplyList() = *local_list;

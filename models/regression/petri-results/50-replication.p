@@ -1,78 +1,50 @@
-# petrisrvn 4.3
-# petrisrvn -M -p -o50-replication.out  50-replication.in
+# lqn2ps 5.17
+# lqn2ps -Oparseable -o50-replication.p -merge-replicas -parse-file=50-replication-flat.p 50-replication-flat.in
+# $Id: 50-replication.p 13867 2020-09-25 15:10:41Z greg $
 V y
-C 3.4288e-06
-I 25
-PP 6
+C 3.42884e-06
+I 0
+PP 2
 NP 1
-#!User:  0:00:00.11
-#!Sys:   0:00:00.09
-#!Real:  0:00:01.06
 
-W 4
-client_1 : client_1 server_1 0.500001 -1
-  -1
-client_2 : client_2 server_2 0.500001 -1
-  -1
-client_3 : client_3 server_1 0.500001 -1
-  -1
-client_4 : client_4 server_2 0.500001 -1
-  -1
+#!Comment: Simplest model.
+#!Real:  0:00:01.000
+
+W 1
+client         :client          server          0.500001    -1 
+                -1 
 -1
 
-
-X 6
-client_1 : client_1 2.500000 -1
-  -1
-client_2 : client_2 2.500000 -1
-  -1
-client_3 : client_3 2.500000 -1
-  -1
-client_4 : client_4 2.500000 -1
-  -1
-server_1 : server_1 1.000001 -1
-  -1
-server_2 : server_2 1.000001 -1
-  -1
+X 2
+client         :client          2.5         -1 
+                -1 
+server         :server          1           -1 
+                -1 
 -1
 
-FQ 6
-client_1 : client_1 0.400000 1.000000 -1 1.000000
--1
-client_2 : client_2 0.400000 1.000000 -1 1.000000
--1
-client_3 : client_3 0.400000 1.000000 -1 1.000000
--1
-client_4 : client_4 0.400000 1.000000 -1 1.000000
--1
-server_1 : server_1 0.800000 0.800000 -1 0.800000
--1
-server_2 : server_2 0.800000 0.800000 -1 0.800000
--1
+VAR 2
+client         :client          0           -1 
+                -1 
+server         :server          0           -1 
+                -1 
 -1
 
-P client_1 1
-client_1 1 0 1 client_1 0.400000 0.000000 -1 -1
+FQ 2
+client         :client          0.4         1           -1 1
+                -1 
+server         :server          0.8         0.8         -1 0.8
+                -1 
 -1
 
-P client_2 1
-client_2 1 0 1 client_2 0.400000 0.000000 -1 -1
--1
+P client 1
+client          1  0 1  client          0.4         0           -1 
+                        -1 
+-1 
 
-P client_3 1
-client_3 1 0 1 client_3 0.400000 0.000000 -1 -1
--1
+P server 1
+server          1  0 1  server          0.8         0           -1 
+                        -1 
+-1 
 
-P client_4 1
-client_4 1 0 1 client_4 0.400000 0.000000 -1 -1
--1
-
-P server_1 1
-server_1 1 0 1 server_1 0.800000 0.000000 -1 -1
--1
-
-P server_2 1
-server_2 1 0 1 server_2 0.800000 0.000000 -1 -1
--1
 -1
 

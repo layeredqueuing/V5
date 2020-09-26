@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 13815 2020-09-14 16:30:47Z greg $
+ * $Id: help.cc 13854 2020-09-24 13:34:24Z greg $
  */
 
 #include <config.h>
@@ -982,6 +982,16 @@ Help::traceInterlock( ostream & output, bool verbose ) const
 }
 
 ostream&
+Help::traceIntermediate( ostream & output, bool verbose ) const
+{
+    output << "Print out intermediate solutions at the print interval specified in the model." << endl;
+    if ( verbose ) {
+	output << "The print interval field in the input is ignored otherwise." << endl;
+    }
+    return output;
+}
+
+ostream&
 Help::traceJoins( ostream & output, bool verbose ) const
 {
     output << "Print out computed join delay and join overlap table prior to submodel solution." << endl;
@@ -1006,12 +1016,9 @@ Help::traceOvertaking( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::traceIntermediate( ostream & output, bool verbose ) const
+Help::traceQuorum( ostream & output, bool verbose ) const
 {
-    output << "Print out intermediate solutions at the print interval specified in the model." << endl;
-    if ( verbose ) {
-	output << "The print interval field in the input is ignored otherwise." << endl;
-    }
+    output << "Print quorum traces." << endl;
     return output;
 }
 
@@ -1023,20 +1030,6 @@ Help::traceReplication( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::traceVariance( ostream & output, bool verbose ) const
-{
-    output << "Print out the variances calculated after each submodel is solved." << endl;
-    return output;
-}
-
-ostream&
-Help::traceWait( ostream & output, bool verbose ) const
-{
-    output << "Print waiting time for each rendezvous in the model after it has been computed." << endl;
-    return output;
-}
-
-ostream&
 Help::traceThroughput( ostream & output, bool verbose ) const
 {
     output << "Print throughput's values." << endl;
@@ -1044,9 +1037,23 @@ Help::traceThroughput( ostream & output, bool verbose ) const
 }
 
 ostream&
-Help::traceQuorum( ostream & output, bool verbose ) const
+Help::traceVariance( ostream & output, bool verbose ) const
 {
-    output << "Print quorum traces." << endl;
+    output << "Print out the variances calculated after each submodel is solved." << endl;
+    return output;
+}
+
+ostream&
+Help::traceVirtualEntry( ostream & output, bool verbose ) const
+{
+    output << "Print waiting time for each rendezvous in the model after it has been computed; include virtual entries." << endl;
+    return output;
+}
+
+ostream&
+Help::traceWait( ostream & output, bool verbose ) const
+{
+    output << "Print waiting time for each rendezvous in the model after it has been computed." << endl;
     return output;
 }
 
@@ -1872,7 +1879,7 @@ HelpTroff::preamble( ostream& output ) const
     output << __comment << " t -*- nroff -*-" << endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << endl;
 
-    output << __comment << " $Id: help.cc 13815 2020-09-14 16:30:47Z greg $" << endl
+    output << __comment << " $Id: help.cc 13854 2020-09-24 13:34:24Z greg $" << endl
 	   << __comment << endl
 	   << __comment << " --------------------------------" << endl;
 
@@ -2169,7 +2176,7 @@ HelpLaTeX::preamble( ostream& output ) const
 	   << __comment << " Created:             " << date << endl
 	   << __comment << "" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl
-	   << __comment << " $Id: help.cc 13815 2020-09-14 16:30:47Z greg $" << endl
+	   << __comment << " $Id: help.cc 13854 2020-09-24 13:34:24Z greg $" << endl
 	   << __comment << " ----------------------------------------------------------------------" << endl << endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << endl

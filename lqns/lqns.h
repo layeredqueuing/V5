@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 13727 2020-08-04 14:06:18Z greg $
+ * $Id: lqns.h 13854 2020-09-24 13:34:24Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -40,22 +40,23 @@ extern struct FLAGS {
     unsigned average_variance:1;		/* Use average variance values.		*/
 
     unsigned trace_activities:1;		/* Print out activity stuff.		*/
+    unsigned trace_convergence:1;		/* Print out convergence values.	*/
+    unsigned trace_customers:1;			/* Print out the real number of customers and maximum number of customers*/
     unsigned trace_delta_wait:1;		/* Print out deltaWait computation.	*/
     unsigned trace_forks:1;			/* Print out fork stuff.		*/
     unsigned trace_idle_time:1;			/* Print out idle times.		*/
     unsigned trace_interlock:1;			/* Print out interlocking.		*/
+    unsigned trace_intermediate:1;		/* Print out intermediate solutions.	*/
     unsigned trace_joins:1;			/* Print out join stuff.		*/
     unsigned trace_mva:1;			/* Print out MVA solutions.		*/
     unsigned trace_overtaking:1;		/* Print out overtaking calc.		*/
-    unsigned trace_intermediate:1;		/* Print out intermediate solutions.	*/
-    unsigned trace_wait:1;			/* Print out wait after each major loop	*/
-    unsigned trace_replication:1;		/* Print out replication stuff.		*/
-    unsigned trace_variance:1;			/* Print out variance solutions.	*/
-    unsigned trace_submodel:1;			/* Submodel to trace.			*/
-    unsigned trace_convergence:1;		/* Print out convergence values.	*/
-    unsigned trace_throughput:1;
     unsigned trace_quorum:1;
-    unsigned trace_customers:1;			/* Print out the real number of customers and maximum number of customers*/
+    unsigned trace_replication:1;		/* Print out replication stuff.		*/
+    unsigned trace_submodel:1;			/* Submodel to trace.			*/
+    unsigned trace_throughput:1;
+    unsigned trace_variance:1;			/* Print out variance solutions.	*/
+    unsigned trace_virtual_entry:1;		/* Print out wait after each major loop	*/
+    unsigned trace_wait:1;			/* Print out wait after each major loop	*/
 	
     unsigned print_overtaking:1;		/* Print out overtaking values.		*/
 

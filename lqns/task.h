@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: task.h 13857 2020-09-24 20:40:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -89,6 +89,7 @@ public:
 
     static void reset();
     virtual bool check() const;
+    bool checkReachability() const;
     virtual Task& configure( const unsigned );
     virtual unsigned findChildren( Call::stack&, const bool ) const;
     Task& initProcessor();
@@ -132,10 +133,9 @@ public:
     virtual bool hasActivities() const { return _activities.size() != 0 ? true : false; }
     bool hasThinkTime() const;
     bool hasForks() const;
-    bool hasJoins() const { return false; } // Fix me... 
+    bool hasSyncs() const;
     double  processorUtilization() const;
 
-    virtual bool hasSynchs() const;
     virtual unsigned hasClientChain( const unsigned submodel, const unsigned k ) const;
 
     virtual unsigned nClients() const;		// # Calling tasks
@@ -188,10 +188,6 @@ public:
 
     /* Printing */
     ostream& print( ostream& output ) const;
-
-    unsigned countCallList( unsigned ) const;
-    unsigned countJoinList() const;
-
     ostream& printSubmodelWait( ostream& output ) const;
     ostream& printClientChains( ostream& output, const unsigned ) const;
     ostream& printOverlapTable( ostream& output, const ChainVector&, const VectorMath<double>* ) const;
@@ -239,6 +235,10 @@ private:
     Vector<Thread *> _threads;	 	/* My Threads.			*/
     Vector<ChainVector> _clientChains;	/* Client chains by submodel	*/
     Vector<Server *> _clientStation;	/* Clients by submodel.		*/
+
+    mutable bool _has_fork;	/* Cached			*/
+    mutable bool _has_sync;
+    mutable bool _no_syncs;
 };
 
 /* ------------------------- Reference Tasks -------------------------- */

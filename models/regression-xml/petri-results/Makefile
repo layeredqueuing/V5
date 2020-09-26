@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13190 2018-03-03 04:18:19Z greg $
+# $Id: Makefile 13875 2020-09-25 20:02:38Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -32,12 +32,16 @@ DST=	$(SANITY) \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo \
+	47-activities.lqxo \
+	48-activities.lqxo \
+	50-replication.lqxo \
 	52-replication.lqxo \
 	60-semaphore.lqxo \
 	61-semaphore.lqxo \
 	62-semaphore.lqxo \
 	63-sync.lqxo \
 	70-priority.lqxo \
+	77-semaphore.lqxo \
 	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \
@@ -72,3 +76,16 @@ diff:
 .files:	
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
+
+50-replication-flat.lqnx:	50-replication.lqnx
+	rep2flat -Oxml $<
+
+50-replication.lqxo:	50-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 50-replication-flat.lqxo
+
+52-replication-flat.lqnx:	52-replication.lqnx
+	rep2flat -Oxml $<
+
+52-replication.lqxo:	52-replication-flat.lqxo
+	lqn2ps -Oxml -o$*.lqxo --merge-replicas 52-replication-flat.lqxo
+

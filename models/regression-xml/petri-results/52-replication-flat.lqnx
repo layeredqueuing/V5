@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!-- $Id: 52-replication-flat.lqnx 13870 2020-09-25 15:37:52Z greg $ -->
+<!-- rep2flat -Oxml -->
+<lqn-model name="52-replication" description="rep2flat 5.17 solution for model from: 52-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1"/>
+   <processor name="p1_1" scheduling="inf">
+      <task name="t1_1" scheduling="ref">
+         <entry name="e1_1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e1_1" phase="1" host-demand-mean="1">
+                  <synch-call dest="e2_1" calls-mean="1"/>
+                  <synch-call dest="e2_2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2_1" scheduling="ps" quantum="0.2">
+      <task name="t2_1" scheduling="fcfs">
+         <entry name="e2_1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="p2_2" scheduling="ps" quantum="0.2">
+      <task name="t2_2" scheduling="fcfs">
+         <entry name="e2_2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="e2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

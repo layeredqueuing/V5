@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.h 13722 2020-08-03 17:13:10Z greg $
+ * $Id: glblerr.h 13877 2020-09-26 02:15:28Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -84,7 +84,6 @@ namespace LQIO {
         ERR_NOT_SEMAPHORE_TASK,
         ERR_NOT_RWLOCK_TASK,
         ERR_TOO_MANY_X,
-        ERR_JOIN_PATH_MISMATCH,
         ERR_MISSING_OR_BRANCH,
         ERR_PARSE_ERROR,
 	ERR_DUPLICATE_X_LIST,
@@ -108,11 +107,13 @@ namespace LQIO {
 	ERR_NO_ENTRIES_DEFINED_FOR_TASK,
 	ERR_IS_START_ACTIVITY,
         ERR_ACTIVITY_NOT_SPECIFIED,
+	ERR_ACTIVITY_NOT_REACHABLE,
         ERR_DUPLICATE_REPLY,
         ERR_INVALID_REPLY,
         ERR_DUPLICATE_ACTIVITY_RVALUE,
         ERR_DUPLICATE_ACTIVITY_LVALUE,
         ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY,
+        ERR_JOIN_PATH_MISMATCH,
 	ERR_NO_TASK_FOR_ENTRY,
         ADV_MESSAGES_DROPPED,
         ADV_LQX_IMPLICIT_SOLVE,

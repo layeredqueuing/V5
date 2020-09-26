@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13839 2020-09-19 21:58:03Z greg $
+ * $Id: activity.cc 13877 2020-09-26 02:15:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,8 +41,8 @@
 std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
 std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
 
-Activity::Test&
-Activity::Test::operator=( const Activity::Test& src )
+Activity::Count_If&
+Activity::Count_If::operator=( const Activity::Count_If& src )
 {
     _e = src._e;
     _f = src._f;
@@ -65,8 +65,8 @@ Activity::Test::operator=( const Activity::Test& src )
 Activity::Activity( const Task * task, const std::string& aName )
     : Phase( aName ),
       _task(task),			/* Owner */
-      _inputFrom(nullptr),
-      _outputTo(nullptr),
+      _prevFork(nullptr),
+      _nextJoin(nullptr),
       _replyList(),
       _rate(0.),			/* computed call rate. */
       _specified(false),
@@ -85,8 +85,8 @@ Activity::Activity( const Task * task, const std::string& aName )
 Activity::~Activity()
 {
     _replyList.clear();
-    _inputFrom = nullptr;
-    _outputTo = nullptr;
+    _prevFork = nullptr;
+    _nextJoin = nullptr;
 
 }
 
@@ -101,11 +101,13 @@ Activity&
 Activity::configure( const unsigned n )
 {
     Phase::configure( n );
-    if ( _outputTo ) {
-	_outputTo->configure( n );
-    }
     return *this;
 }
+
+
+/*
+ * Done before findChildren.
+ */
 
 bool 
 Activity::check() const
@@ -119,6 +121,19 @@ Activity::check() const
 }
 
 
+/*
+ * Done after findChildren.  Rerutns true (for count_if).
+ */
+
+bool
+Activity::isNotReachable() const
+{
+    if ( isReachable() ) return false;
+    LQIO::solution_error( LQIO::ERR_ACTIVITY_NOT_REACHABLE, owner()->name().c_str(), name().c_str() );
+    return true;
+}
+
+
 ProcessorCall *
 Activity::newProcessorCall( Entry * procEntry )
 {
@@ -126,32 +141,77 @@ Activity::newProcessorCall( Entry * procEntry )
 }
 
 
+/*
+ * Fork list (RValue)
+ */
 
-unsigned
-Activity::countCallList( unsigned callType ) const
+ActivityList *
+Activity::prevFork( ActivityList * aList )
 {
-    unsigned count = 0;
+    if ( _prevFork ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
+    } else if ( isStartActivity() ) {
+	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
+    } else {
+	_prevFork = aList;
+    } 
+    return aList;
+}
 
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( ( (*call)->hasRendezvous() && (callType & Call::RENDEZVOUS_CALL) )
-	     || ((*call)->hasSendNoReply() && (callType & Call::SEND_NO_REPLY_CALL))
-	     || ((*call)->isForwardedCall() && (callType & Call::FORWARDED_CALL)) ) {
-	    count += 1;
-	}
+
+
+/* 
+ * Join list (LValue)
+ */
+
+ActivityList *
+Activity::nextJoin( ActivityList * aList )
+{
+    if ( _nextJoin ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
+    } else {
+	_nextJoin = aList;
     }
-    return count;
+    return aList;
 }
 
 
 
 /*
+ * Clear the input and output lists as this activity is being reconnected as part of the quorum calculation.
+ */
+
+Activity& 
+Activity::resetInputOutputLists()
+{
+    _nextJoin = nullptr;
+    _prevFork = nullptr;
+    
+    return *this;
+}
+
+
+/*
+ * Set phase for this activity
+ */
+	
+bool
+Activity::repliesTo( const Entry * anEntry ) const
+{
+    return _replyList.find( anEntry ) != _replyList.end();
+}
+
+/* --------------------- Activity List Processing --------------------- */
+
+/*
  * Recursively find all children and grand children from `this'.  As
  * we descend down, we bump the depth.  If our path's cross, we have a
- * loop and abort.
+ * loop and abort.  This method is called by the topological sorter
+ * and is used to find fork-join pairs.
  */
 
 unsigned
-Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack ) const
+Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack ) const
 {
     _reachable = true;
 
@@ -160,30 +220,20 @@ Activity::findChildren( Call::stack& callStack, const bool directPath, std::dequ
     }
 
     unsigned max_depth = Phase::findChildren( callStack, directPath );
-    if ( _outputTo ) {
+    if ( nextJoin() ) {
 	activityStack.push_back( this );
-	max_depth = max( max_depth, _outputTo->findChildren( callStack, directPath, activityStack, forkStack ) );
+	max_depth = max( max_depth, nextJoin()->findChildren( callStack, directPath, activityStack, forkStack ) );
 	activityStack.pop_back();
     }
     return max_depth;
 }
 
 
-
-/*
- * Search backwards up activity list looking for a match on forkStack
- */
-
-std::deque<const AndForkActivityList *>::const_iterator
-Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack ) const
+const AndOrForkActivityList * 
+Activity::backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const
 {
-    if ( _inputFrom ) {
-	return _inputFrom->backtrack( forkStack );
-    } else {
-	return forkStack.end();
-    }
+    return prevFork() != nullptr ? prevFork()->backtrack( forkStack ) : nullptr;
 }
-
 
 
 /*
@@ -204,10 +254,47 @@ Activity::followInterlock( std::deque<const Entry *>& entryStack, const Interloc
 
     /* Now follow the activity path. */
 	
-    if ( _outputTo ) {
-	max_depth = max( _outputTo->followInterlock( entryStack, globalCalls, nextPhase ), max_depth );
+    if ( _nextJoin ) {
+	max_depth = max( _nextJoin->followInterlock( entryStack, globalCalls, nextPhase ), max_depth );
     }
     return max_depth;
+}
+
+
+
+/*
+ * Recursively search from this entry to any entry on myServer.  When
+ * we pop back up the call stack we add all calling tasks for each arc
+ * which calls myServer.  The task adder will ignore duplicates.
+ *
+ * Note: we can't short circuit the search because there may be interlocking
+ * on multiple branches.
+ */
+
+bool
+Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
+			       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+{
+    const Entry * parent = entryStack.back();
+    bool found = Phase::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
+
+    if ( ( !repliesTo( parent ) || last_phase > 1 ) && _nextJoin ) {
+	if ( _nextJoin->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
+	    found = true;
+	}
+    }
+    return found;
+}
+
+
+unsigned
+Activity::concurrentThreads( unsigned n ) const
+{
+    if ( _nextJoin ) {
+	return _nextJoin->concurrentThreads( n );	
+    } else {
+	return n;
+    }
 }
 
 
@@ -229,28 +316,28 @@ Activity::collect( std::deque<const Activity *>& activityStack, std::deque<Entry
     if ( repliesTo( entryStack.front() ) ) {
 	data.setPhase(2);
     }
-    if ( _outputTo ) {
+    if ( _nextJoin ) {
 	activityStack.push_back( this );
-	_outputTo->collect( activityStack, entryStack, data );
+	_nextJoin->collect( activityStack, entryStack, data );
 	activityStack.pop_back();
     }
     return data;
 }
 
 
-Activity::Test&
-Activity::test( std::deque<const Activity *>& activityStack, Activity::Test& data) const
+Activity::Count_If&
+Activity::count_if( std::deque<const Activity *>& activityStack, Activity::Count_If& data) const
 {
     if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
 	return data;
     }
-    Predicate f = data.test();
+    Predicate f = data.count_if();
     if ( (this->*f)( data ) ) {
 	data += data.rate();
     }
-    if ( _outputTo ) {
+    if ( _nextJoin ) {
 	activityStack.push_back( this );
-	_outputTo->test( activityStack, data );
+	_nextJoin->count_if( activityStack, data );
 	activityStack.pop_back();
     }
     return data;
@@ -263,16 +350,16 @@ Activity::test( std::deque<const Activity *>& activityStack, Activity::Test& dat
  */
 
 void
-Activity::callsPerform( const Entry * entry, const AndForkActivityList * forkList, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
+Activity::callsPerform( const CallExec& exec ) const
 {
-    Phase::callsPerform( entry, 0, submodel, k, p, aFunc, rate );
+    Phase::callsPerform( exec );
 
-    unsigned next_phase = p;
-    if ( repliesTo( entry ) ) {
-	next_phase = 2;
-    }
-    if ( _outputTo ) {
-	_outputTo->callsPerform( entry, forkList, submodel, k, next_phase, aFunc, rate );
+    if ( _nextJoin ) {
+	if ( repliesTo( exec.entry() ) ) {
+	    _nextJoin->callsPerform( Phase::CallExec( exec, exec.getRate(), 2 ) );
+	} else {
+	    _nextJoin->callsPerform( exec );
+	}
     }
 }
 
@@ -309,106 +396,6 @@ Activity::findOrAddCall( const Entry * anEntry, const queryFunc aFunc )
 	aCall = new ActivityCall( this, anEntry );
     }
     return aCall;
-}
-
-
-
-/*
- * Fork list (RValue)
- */
-
-ActivityList *
-Activity::inputFrom( ActivityList * aList )
-{
-    if ( _inputFrom ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, owner()->name().c_str(), name().c_str() );
-    } else if ( isStartActivity() ) {
-	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
-    } else {
-	_inputFrom = aList;
-    } 
-    return aList;
-}
-
-
-
-/* 
- * Join list (LValue)
- */
-
-ActivityList *
-Activity::outputTo( ActivityList * aList )
-{
-    if ( _outputTo ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, owner()->name().c_str(), name().c_str() );
-    } else {
-	_outputTo = aList;
-    }
-    return aList;
-}
-
-
-
-/*
- * Clear the input and output lists as this activity is being reconnected as part of the quorum calculation.
- */
-
-Activity& 
-Activity::resetInputOutputLists()
-{
-    _outputTo = nullptr;
-    _inputFrom = nullptr;
-    
-    return *this;
-}
-
-
-/*
- * Set phase for this activity
- */
-	
-bool
-Activity::repliesTo( const Entry * anEntry ) const
-{
-    return _replyList.find( anEntry ) != _replyList.end();
-}
-
-
-
-/*
- * Recursively search from this entry to any entry on myServer.
- * When we pop back up the call stack we add all calling tasks
- * for each arc which calls myServer.  The task adder
- * will ignore duplicates.
- *
- * Note: we can't short circuit the search because there may be interlocking
- * on multiple branches.
- */
-
-bool
-Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
-			       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
-{
-    const Entry * parent = entryStack.back();
-    bool found = Phase::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
-
-    if ( ( !repliesTo( parent ) || last_phase > 1 ) && _outputTo ) {
-	if ( _outputTo->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-	    found = true;
-	}
-    }
-    return found;
-}
-
-
-unsigned
-Activity::concurrentThreads( unsigned n ) const
-{
-    if ( _outputTo ) {
-	return _outputTo->concurrentThreads( n );	
-    } else {
-	return n;
-    }
 }
 
 /* ----------------------- Quourm calculation ------------------------- */
@@ -801,7 +788,7 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
  */
 
 bool
-Activity::checkReplies( Activity::Test& data ) const
+Activity::checkReplies( Activity::Count_If& data ) const
 {
     const Entry * anEntry = data.entry();
     if ( repliesTo( anEntry ) ) {
@@ -922,7 +909,7 @@ Activity::insertDOMResults() const
 ActivityList *
 Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
 {
-    ActivityList * activity_list = outputTo( new JoinActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist ) );
+    ActivityList * activity_list = nextJoin( new JoinActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist ) );
     activity_list->add( this );
     return activity_list;
 }
@@ -939,7 +926,7 @@ Activity::act_and_join_list ( ActivityList * activityList, LQIO::DOM::ActivityLi
     } else if ( !dynamic_cast<AndJoinActivityList *>(activityList) ) {
 	abort();		// Wrong list type -- quoi?
     }
-    outputTo( activityList );
+    nextJoin( activityList );
     activityList->add( this );
 
 #if !defined(HAVE_GSL_GSL_MATH_H)       // QUORUM
@@ -964,7 +951,7 @@ Activity::act_or_join_list ( ActivityList * activityList, LQIO::DOM::ActivityLis
     } else if ( !dynamic_cast<OrJoinActivityList *>(activityList) ) {
 	abort();
     }
-    outputTo( activityList );
+    nextJoin( activityList );
     activityList->add( this );
     return activityList;
 }
@@ -980,7 +967,7 @@ Activity::act_or_join_list ( ActivityList * activityList, LQIO::DOM::ActivityLis
 ActivityList *
 Activity::act_fork_item( LQIO::DOM::ActivityList * dom_activitylist )
 {
-    ActivityList * activityList = inputFrom( new ForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist ) );
+    ActivityList * activityList = prevFork( new ForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist ) );
     activityList->add( this );
     return activityList;
 }
@@ -1004,7 +991,7 @@ Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLi
     } 
 
     activityList->add( this );
-    inputFrom( activityList );
+    prevFork( activityList );
 
     return activityList;
 }
@@ -1027,7 +1014,7 @@ Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLis
 	abort();
     } 
     
-    inputFrom( activityList );
+    prevFork( activityList );
     activityList->add( this );
 
     return activityList;
@@ -1048,7 +1035,7 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
     }
 
     activity_list->add( this );
-    inputFrom( activity_list );
+    prevFork( activity_list );
 
     return activity_list;
 }
@@ -1175,7 +1162,7 @@ Activity::add_activity_lists()
     if (domAct == NULL) { return *this; }
     const Task * task = dynamic_cast<const Task *>(owner());
 	
-    /* May as well start with the outputTo, this is done with various methods */
+    /* May as well start with the nextJoin, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
     ActivityList * localActivityList = NULL;
     if (joinList != NULL && joinList->getProcessed() == false) {

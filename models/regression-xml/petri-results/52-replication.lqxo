@@ -1,52 +1,36 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
-<!-- lqn2xml -o52-replication.lqxo -parse-file=../../regression/petri-results/52-replication.p -->
-<lqn-model name="52-replication" description="lqn2xml 6.0 solution for model from: 52-replication.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 52-replication.lqxo 13870 2020-09-25 15:37:52Z greg $ -->
+<!-- lqn2ps -Oxml -o52-replication.lqxo -merge-replicas -->
+<lqn-model name="52-replication-flat" description="lqn2ps 5.17 solution for model from: 52-replication-flat.lqxo." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">
-      <result-general valid="YES" conv-val="2.98023e-08" iterations="0" platform-info="" user-cpu-time=" 0:00:00.000" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:01.000"/>
+      <result-general solver-info="petrisrvn 5.17carleton.ca Linux 5.0.16-100.fc28.x86_64" valid="YES" conv-val="2.98023e-08" iterations="0" platform-info="merlin-pc.sce.carleton.ca Linux 5.0.16-100.fc28.x86_64" user-cpu-time=" 0:00:00.057" system-cpu-time=" 0:00:00.051" elapsed-time=" 0:00:00.907"/>
    </solver-params>
    <processor name="p1" scheduling="inf">
       <result-processor utilization="0.333333"/>
       <task name="t1" scheduling="ref">
          <result-task throughput="0.333333" utilization="1" phase1-utilization="1" proc-utilization="0.333333"/>
+         <fan-out dest="t2" value="2"/>
          <entry name="e1" type="PH1PH2">
             <result-entry utilization="1" throughput="0.333333" squared-coeff-variation="0" proc-utilization="0.333333"/>
             <entry-phase-activities>
                <activity name="e1_1" phase="1" host-demand-mean="1">
                   <result-activity proc-waiting="0" service-time="3" utilization="1"/>
-                  <synch-call dest="e2_1" calls-mean="1">
-                     <result-call waiting="0"/>
-                  </synch-call>
-                  <synch-call dest="e2_2" calls-mean="1">
-                     <result-call waiting="0"/>
+                  <synch-call dest="e2" calls-mean="1">
+                     <result-call waiting="0" waiting-variance="0" loss-probability="0"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>
          </entry>
       </task>
    </processor>
-   <processor name="p2_1" scheduling="ps" quantum="0.2">
+   <processor name="p2" scheduling="ps" quantum="0.2" replication="2">
       <result-processor utilization="0.333333"/>
-      <task name="t2_1" scheduling="fcfs">
+      <task name="t2" scheduling="fcfs" replication="2">
          <result-task throughput="0.333333" utilization="0.333333" phase1-utilization="0.333333" proc-utilization="0.333333"/>
-         <entry name="e2_1" type="PH1PH2">
+         <entry name="e2" type="PH1PH2">
             <result-entry utilization="0.333333" throughput="0.333333" squared-coeff-variation="0" proc-utilization="0.333333"/>
             <entry-phase-activities>
-               <activity name="e2_1_1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="1" utilization="0.333333"/>
-               </activity>
-            </entry-phase-activities>
-         </entry>
-      </task>
-   </processor>
-   <processor name="p2_2" scheduling="ps" quantum="0.2">
-      <result-processor utilization="0.333333"/>
-      <task name="t2_2" scheduling="fcfs">
-         <result-task throughput="0.333333" utilization="0.333333" phase1-utilization="0.333333" proc-utilization="0.333333"/>
-         <entry name="e2_2" type="PH1PH2">
-            <result-entry utilization="0.333333" throughput="0.333333" squared-coeff-variation="0" proc-utilization="0.333333"/>
-            <entry-phase-activities>
-               <activity name="e2_2_1" phase="1" host-demand-mean="1">
+               <activity name="e2_1" phase="1" host-demand-mean="1">
                   <result-activity proc-waiting="0" service-time="1" utilization="0.333333"/>
                </activity>
             </entry-phase-activities>

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 13815 2020-09-14 16:30:47Z greg $
+ * $Id: option.h 13854 2020-09-24 13:34:24Z greg $
  */
 
 #ifndef _OPTION_H
@@ -102,15 +102,16 @@ namespace Options
 	static void forks( const char * );
 	static void idle_time( const char * );
 	static void interlock( const char * );
+	static void intermediate( const char * );
 	static void joins( const char * );
 	static void mva( const char * );
 	static void overtaking( const char * );
-	static void intermediate( const char * );
-	static void replication( const char * );
-	static void variance( const char * );
-	static void wait( const char * );
-	static void throughput( const char * );
 	static void quorum( const char * );
+	static void replication( const char * );
+	static void throughput( const char * );
+	static void variance( const char * );
+	static void virtual_entry( const char * );
+	static void wait( const char * );
     };
 
 

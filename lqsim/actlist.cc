@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 13761 2020-08-12 02:14:55Z greg $
+ * $Id: actlist.cc 13877 2020-09-26 02:15:28Z greg $
  */
 
 #include <sstream>
@@ -495,7 +495,7 @@ join_check( ActivityList * join_list )
 	    if ( join_list->u.join.next->list[0] ) {
 		dst = join_list->u.join.next->list[0]->name();
 	    }
-	    LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, src, dst );
+	    LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, "task", dst, src );
 	}
     }
 }

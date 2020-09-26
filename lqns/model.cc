@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13779 2020-08-20 01:37:32Z greg $
+ * $Id: model.cc 13880 2020-09-26 12:57:24Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -14,9 +14,12 @@
  *
  * Users create and solve models in three steps:
  * 1) Call the appropriate constructor.
- * 2) Call generate().  Generate calls addToSubmodel() to add server stations
- *    to the basic model then calls initialize() to set up the station
- *    parameters.
+ * 2) Call generate().  Generate calls 
+ *    a) topologicalSort() to sort to visit all nodes and sort into layers.  Activitly
+ *       lists checked and are set up during the sorting process.
+      b) addToSubmodel() to add server stations to the basic model.
+ *    c) configure to dimension arrays.
+ *    d) initialize() to set up the station parameters.
  * 3) Call solve().
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -154,18 +157,17 @@ Model::createModel( const LQIO::DOM::Document * document, const string& inputFil
 
 	try {
 	    if ( check_model ) {
-		aModel->generate();
-		if ( !LQIO::io_vars.anError() ) {
+		if ( aModel->generate() ) {
 		    aModel->setInitialized();
 		} else {
 		    delete aModel;
-		    aModel = 0;
+		    aModel = nullptr;
 		}
 	    }
 	}
 	catch ( const exception_handled& e ) {
 	    delete aModel;
-	    aModel = 0;
+	    aModel = nullptr;
 	}
     }
     return aModel;
@@ -182,9 +184,9 @@ Model::initializeModel()
     if ( !_model_initialized ) {
 	initProcessors();		/* Set Processor Service times.	*/
 
-	generate();
-
-	_model_initialized = true;
+	if ( generate() ) {
+	    setInitialized();
+	}
     }
     return !LQIO::io_vars.anError();
 }
@@ -209,7 +211,6 @@ Model::load( const string& input_filename, const string& output_filename )
     LQIO::io_vars.reset();
     Entry::reset();
     Task::reset();
-    ActivityList::reset();
 
     /*
      * Read input file and parse it.
@@ -494,7 +495,7 @@ Model::~Model()
  * not 0 to n-1.
  */
 
-unsigned
+bool
 Model::generate()
 {
     unsigned int max_depth = assignSubmodel();
@@ -507,7 +508,7 @@ Model::generate()
     
     /* Add submodel for join delay calculation */
 
-    if ( ActivityList::n_forks || ActivityList::n_joins ) {
+    if ( std::count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) > 0 ) {
 	max_depth += 1;
 	sync_submodel = max_depth;
 	_submodels.push_back(new SynchSubmodel(sync_submodel,this));
@@ -525,7 +526,7 @@ Model::generate()
 	printLayers( cout );		/* Print out layers... 		*/
     }
 
-    return max_depth;
+    return  !LQIO::io_vars.anError();
 }
 
 
@@ -978,9 +979,7 @@ Model::insertDOMResults() const
 ostream&
 Model::printLayers( ostream& output ) const
 {
-    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
-	output << **submodel;
-    }
+    for_each( _submodels.begin(), _submodels.end(), ConstPrint<Submodel>( &Submodel::print, output ) );
     return output;
 }
 
@@ -1163,6 +1162,10 @@ Model::topologicalSort()
 	}
     }
 
+    /* Check activities for reachability */
+
+    for_each( __task.begin(), __task.end(), Predicate<Task>( &Task::checkReachability ) );
+
     if ( LQIO::io_vars.anError() ) {
 	throw exception_handled( "Model::topologicalSort" );
     }
@@ -1207,7 +1210,7 @@ MOL_Model::addToSubmodel()
 	if ( (*task)->hasForks() ) {
 	    _submodels[sync_submodel]->addClient( (*task) );
 	}
-	if ( (*task)->hasJoins() ) {
+	if ( (*task)->hasSyncs() ) {
 	    _submodels[sync_submodel]->addServer( (*task) );
 	}
     }
@@ -1327,14 +1330,13 @@ Batch_Model::addToSubmodel()
 {
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	const int i = (*task)->submodel();
-	if ( i <= 0 ) continue;		/* Ignore - not used */
 	if ( !(*task)->isReferenceTask() ) {
 	    _submodels[i]->addServer( (*task) );
 	}
 	if ( (*task)->hasForks() ) {
 	    _submodels[sync_submodel]->addClient( (*task) );
 	}
-	if ( (*task)->hasJoins() ) { // Answer is always NO for now.
+	if ( (*task)->hasSyncs() ) { // Answer is always NO for now.
 	    _submodels[sync_submodel]->addServer( (*task) );
 	}
     }
@@ -1539,6 +1541,3 @@ Model::SolveSubmodel::operator()( Submodel * submodel  )
     if ( _verbose ) cerr << ".";
     submodel->solve( _self._iterations, _self._MVAStats[depth], _self.relaxation() );  //REP N-R
 }
-
-
-

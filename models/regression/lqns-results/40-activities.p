@@ -1,17 +1,17 @@
-# lqns 5.15
+# lqns 5.17
 # lqns --pragma=variance=mol,threads=mak --parseable 40-activities.in
-# $Id: 40-activities.p 13705 2020-07-20 21:46:53Z greg $
+# $Id: 40-activities.p 13878 2020-09-26 02:30:34Z greg $
 V y
-C 3.97164e-06
-I 12
+C 6.25398e-06
+I 7
 PP 2
 NP 1
 
 #!Comment: Activities with AND fork/join.
-#!User:  0:00:00.003
+#!User:  0:00:00.002
 #!Sys:   0:00:00.000
-#!Real:  0:00:00.003
-#!Solver: 3 36 274 4832 27927 1.11365e+08 0
+#!Real:  0:00:00.002
+#!Solver: 3 21 132 1572 8841 1.2101e+07 0
 
 B 2
 client         :client          0.47619     
@@ -26,77 +26,77 @@ client         :-1
 -1
 
 J 0
-server         :fork1           fork2           1.10947     0.446985   
+server         :fork1           fork2           0.836245    0.301691   
 -1 
 -1
 
 X 2
-client         :client          2.60948     -1 
+client         :client          2.33624    -1 
                 -1
 :
-                client          2.60948     -1 
+                client          2.33624     -1 
                 -1 
-server         :server          1.60947     -1 
+server         :server          1.33624    -1 
                 -1
 :
-                fork1           0.473104    -1 
-                fork2           0.996654    -1 
+                fork1           0.466325    -1 
+                fork2           0.640971    -1 
                 join            0.25        -1 
                 server          0.25        -1 
                 -1 
 -1
 
 VAR 2
-client         :client          6.5275      -1 
+client         :client          6.5275     -1 
                 -1
 :
                 client          6.5275      -1 
                 -1 
-server         :server          0.571985    -1 
+server         :server          0.426691   -1 
                 -1
 :
-                fork1           0.165344    -1 
-                fork2           0.517335    -1 
+                fork1           0.164399    -1 
+                fork2           0.361679    -1 
                 join            0.0625      -1 
                 server          0.0625      -1 
                 -1 
 -1
 
 FQ 2
-client         :client          0.383219    1           -1 1
+client         :client          0.428037    0.999999   -1 0.999999
                 -1
 :
-                client          0.383219    1           -1 
+                client          0.428037    0.999999    -1 
                 -1 
-server         :server          0.383219    0.616778    -1 0.616778
+server         :server          0.428037    0.571962   -1 0.571962
                 -1
 :
-                fork1           0.383219    0.181302    -1 
-                fork2           0.383219    0.381937    -1 
-                join            0.383219    0.0958047   -1 
-                server          0.383219    0.0958047   -1 
+                fork1           0.428037    0.199604    -1 
+                fork2           0.428037    0.274359    -1 
+                join            0.428037    0.107009    -1 
+                server          0.428037    0.107009    -1 
                 -1 
 -1
 
 P client 1
-client          1  0 1  client          0.383219    0           -1 
+client          1  0 1  client          0.428037    0          -1 
 -1
                        :
-                        client          0.383219    0           -1 
+                        client          0.428037    0           -1 
                         -1 
-                                        0.383219    
+                                        0.428037    
 -1 
 
 P server 1
-server          1  0 1  server          0.574828    0           -1 
+server          1  0 1  server          0.642055    0          -1 
 -1
                        :
-                        fork1           0.153287    0.0731013   -1 
-                        fork2           0.229931    0.396654    -1 
-                        join            0.0958047   0           -1 
-                        server          0.0958047   0           -1 
+                        fork1           0.171215    0.0663253   -1 
+                        fork2           0.256822    0.0409707   -1 
+                        join            0.107009    0           -1 
+                        server          0.107009    0           -1 
                         -1 
-                                        0.574828    
+                                        0.642055    
 -1 
 
 -1

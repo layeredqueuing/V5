@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13188 2018-03-02 17:44:42Z greg $
+# $Id: Makefile 13865 2020-09-25 15:00:41Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -31,7 +31,9 @@ DST =	01-sanity.p \
 	44-activities.p \
 	45-activities.p \
 	46-activities.p \
+	47-activities.p \
 	48-activities.p \
+	50-replication.p \
 	52-replication.p \
 	60-semaphore.p \
 	61-semaphore.p \
@@ -70,3 +72,14 @@ diff:
 .files:	
 	@-rm .files
 	for i in $(DST); do echo $$i >> .files; done
+
+50-replication.p:	50-replication.in
+	rep2flat 50-replication.in
+	$(SRVN) $(OPTS) -p 50-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 50-replication-flat.in
+
+52-replication.p:	52-replication.in
+	rep2flat 52-replication.in
+	$(SRVN) $(OPTS) -p 52-replication-flat.in
+	lqn2ps -Oparseable -o$*.p --merge-replicas --parse-file=$*-flat.p 52-replication-flat.in
+

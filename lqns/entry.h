@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13840 2020-09-21 14:44:18Z greg $
+ * $Id: entry.h 13857 2020-09-24 20:40:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -151,6 +151,7 @@ public:
     virtual Entry& initProcessor() = 0;
     virtual Entry& initWait() = 0;
     Entry& initThroughputBound();
+    Entry& initServiceTime();
     Entry& initReplication( const unsigned );	// REPL
     Entry& resetInterlock();
     unsigned initInterlock( std::deque<const Entry *>& stack, const InterlockInfo& globalCalls );
@@ -284,7 +285,7 @@ public:
 
     /* Printing */
 
-    ostream& printSubmodelWait( ostream& output, const unsigned offset ) const;
+    std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
 
 protected:
     Entry& setMaxPhase( const unsigned phase );

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13839 2020-09-19 21:58:03Z greg $
+ * $Id: activity.h 13877 2020-09-26 02:15:28Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,6 +36,7 @@ class DiscreteCDFs;
 class Entry;
 class ActivityList;
 class AndForkActivityList;
+class AndOrForkActivityList;
 
 class Task;
 class Format;
@@ -56,16 +57,6 @@ typedef void (Activity::*AggregateFunc)(Entry *,const unsigned,const unsigned);
 
 class Activity : public Phase
 {
-    friend class Entry;				/* To access aggregate functions */
-    friend class TaskEntry;			/* To access aggregate functions */
-    friend class ActivityList;			/* To access aggregate functions */
-    friend class OrForkActivityList;		/* To access aggregate functions */
-    friend class AndForkActivityList;		/* To access aggregate functions */
-    friend class RepeatActivityList;		/* To access aggregate functions */
-    friend class ForkActivityList;
-    friend class JoinActivityList;
-    friend class AndOrForkActivityList;
-    friend class AndOrJoinActivityList;
     friend void add_activity_lists ( Task* task, Activity* activity );
     friend class Task;				/* To access add_... */
 
@@ -74,29 +65,29 @@ class Activity : public Phase
      */
 
 public:
-    class Test;
+    class Count_If;
     class Collect;
     
-    typedef bool (Activity::*Predicate)( Test& ) const;
+    typedef bool (Activity::*Predicate)( Count_If& ) const;
     typedef void (Activity::*Function)( Entry *, const Collect& ) const;
     
-    class Test {
+    class Count_If {
     public:
-	Test() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
-	Test( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
+	Count_If() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
+	Count_If( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
 
-	Test& operator=( const Test& src );
-	Test& operator=( double value ) { _sum = value; return *this; }
-	Test& operator+=( double addend ) { _sum += addend; return *this; }
+	Count_If& operator=( const Count_If& src );
+	Count_If& operator=( double value ) { _sum = value; return *this; }
+	Count_If& operator+=( double addend ) { _sum += addend; return *this; }
 	double sum() const { return _sum; }
-	double phase() const { return _p; }
+	unsigned int phase() const { return _p; }
 	void setPhase( unsigned int p ) { _p = p; }
 	bool canReply() const { return _replyAllowed; }
 	void setReplyAllowed( bool arg ) { _replyAllowed = arg; }
 	double rate() const { return _rate; }
 	void setRate( double rate ) { _rate = rate; }
 	const Entry* entry() const { return _e; }
-	const Predicate test() const { return _f; }
+	const Predicate count_if() const { return _f; }
 
     private:
 	const Entry* _e;
@@ -145,9 +136,10 @@ public:
     virtual const Entity * owner() const { return _task; }
 
     bool activityDefined() const;
-    ActivityList * inputFrom( ActivityList * aList );
-    ActivityList * outputTo( ActivityList * aList ); 
-    ActivityList * outputTo() { return _outputTo;}
+    ActivityList * prevFork( ActivityList * aList );
+    ActivityList * prevFork() const { return _prevFork; }
+    ActivityList * nextJoin( ActivityList * aList ); 
+    ActivityList * nextJoin() const { return _nextJoin; }
     Activity& resetInputOutputLists();
 
     Activity& add_calls();
@@ -171,13 +163,19 @@ public:
     virtual bool repliesTo( const Entry * ) const;
     virtual bool isActivity() const { return true; }
     bool isReachable() const { return _reachable; }
+    bool isNotReachable() const;
     Activity& isSpecified( const bool yesOrNo ) { _specified = yesOrNo; return *this; }
     bool isSpecified() const { return _specified; }
     bool isStartActivity() const { return entry() != 0; }
 
     /* Computation */
 
-    unsigned countCallList( unsigned ) const;
+    bool checkReplies( Activity::Count_If& data ) const;
+    void collectWait( Entry *, const Activity::Collect& ) const;
+    void collectReplication( Entry *, const Activity::Collect& ) const;
+    void collectServiceTime( Entry *, const Activity::Collect& ) const;
+    void setThroughput( Entry *, const Activity::Collect& ) const;
+
 
     bool estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 				 DiscreteCDFs & quorumCDFs,DiscreteCDFs & localCDFs,
@@ -219,12 +217,12 @@ public:
 
     /* Thread manipulation */
 
-    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndForkActivityList *>& ) const;
-    std::deque<const AndForkActivityList *>::const_iterator backtrack( const std::deque<const AndForkActivityList *>& ) const;
+    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
+    const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned );
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
-    Test& test( std::deque<const Activity *>&, Test& ) const;
-    virtual void callsPerform( const Entry *, const AndForkActivityList *, const unsigned, const unsigned, const unsigned, callFunc, const double ) const;
+    Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;
+    virtual void callsPerform( const CallExec& ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
     unsigned concurrentThreads( unsigned ) const;
     /* XML output */
@@ -235,12 +233,6 @@ protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry );
 
 private:
-    bool checkReplies( Activity::Test& data ) const;
-    void collectWait( Entry *, const Activity::Collect& ) const;
-    void collectReplication( Entry *, const Activity::Collect& ) const;
-    void collectServiceTime( Entry *, const Activity::Collect& ) const;
-    void setThroughput( Entry *, const Activity::Collect& ) const;
-
     ActivityList * act_join_item( LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_and_join_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_or_join_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
@@ -260,8 +252,8 @@ public:
 
 private:
     const Entity * _task;			/*				*/
-    ActivityList * _inputFrom;			/* Node which calls me		*/
-    ActivityList * _outputTo;			/* Node which I call.		*/
+    ActivityList * _prevFork;			/* Fork list which calls me	*/
+    ActivityList * _nextJoin;			/* Join which I call.		*/
 	
     std::set<const Entry *> _replyList;		/* Who I generate replies to.	*/
     double _rate;

@@ -1,1 +1,0 @@
-./configure '--prefix=/home/greg' 'CC=icc' 'CXX=icc' '--without-xerces' '--cache-file=config.cache'

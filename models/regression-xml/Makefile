@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 # $Header$
 # ------------------------------------------------------------------------
-# $Id: Makefile 11963 2014-04-10 14:36:42Z greg $
+# $Id: Makefile 13871 2020-09-25 15:49:17Z greg $
 # ------------------------------------------------------------------------
 
 SUBDIRS = lqns-results  sim-results    
@@ -12,7 +12,7 @@ DST=
 .PHONY:	.files 
 
 diff:	.files
-	srvndiff -IA +t -@.files sim-results lqns-results 
+	srvndiff -IA -S10. -T +tw -@.files petri-results sim-results lqns-results 
 
 all:	all-recursive 
 
@@ -38,9 +38,13 @@ $(RECURSIVE_TARGETS):
 all-am:
 
 clean:
-	-rm -f .files .sync-files .fork-files
+	-rm -f .files*
 
 .files:	
-	@-rm .files
-	for i in $(DST); do echo $$i >> .files; done
-
+	@-rm -f .files
+	@(cd lqns-results; ls [0-9][0-9]-*.lqxo) > .files-1
+	@(cd sim-results; ls [0-9][0-9]-*.lqxo) > .files-2
+	@comm -12 .files-1 .files-2 > .files-3
+	@(cd petri-results; ls [0-9][0-9]-*.lqxo) > .files-2
+	@comm -12 .files-2 .files-3 > .files
+	@rm .files-1 .files-2 .files-3

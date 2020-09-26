@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13766 2020-08-18 02:54:45Z greg $
+# $Id: Makefile 13875 2020-09-25 20:02:38Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -16,6 +16,7 @@ SANITY=	01-sanity.lqxo \
 	05-sanity.lqxo \
 	06-sanity.lqxo \
 	07-sanity.lqxo \
+	08-sanity.lqxo \
 	09-sanity.lqxo
 DST =	$(SANITY) \
 	10-interlock.lqxo \
@@ -35,6 +36,8 @@ DST =	$(SANITY) \
 	44-activities.lqxo \
 	45-activities.lqxo \
 	46-activities.lqxo \
+	47-activities.lqxo \
+	48-activities.lqxo \
 	50-replication.lqxo \
 	51-replication.lqxo \
 	52-replication.lqxo \
@@ -55,6 +58,7 @@ DST =	$(SANITY) \
 	72-fair.lqxo \
 	75-distributions.lqxo \
 	76-distributions.lqxo \
+	77-semaphore.lqxo \
 	80-sync.lqxo \
 	81-sync.lqxo \
 	82-sync.lqxo \

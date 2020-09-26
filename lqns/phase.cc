@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: phase.cc 13845 2020-09-22 01:34:08Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -456,19 +456,13 @@ Phase::hasVariance() const
  */
 
 void
-Phase::callsPerform( const Entry * entry, const AndForkActivityList *, const unsigned submodel, const unsigned k, const unsigned p, callFunc aFunc, const double rate ) const
+Phase::callsPerform( const CallExec& exec ) const
 {
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->submodel() == submodel ) {
-	    ((*call)->*aFunc)( k, p, rate );
-	}
-    }
+    for_each( callList().begin(), callList().end(), exec );
     
     Call * aCall = processorCall();
     if ( aCall ) {
-	if ( aCall->submodel() == submodel ) {
-	    (aCall->*aFunc)( k, p, rate );
-	}
+	exec( aCall );
     }
 }
 

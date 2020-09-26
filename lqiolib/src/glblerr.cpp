@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 13722 2020-08-03 17:13:10Z greg $
+ * $Id: glblerr.cpp 13877 2020-09-26 02:15:28Z greg $
  *
  * Error messages common to solvers.
  *
@@ -69,7 +69,6 @@ namespace LQIO {
         { RUNTIME_ERROR, "Non-semaphore task \"%s\" cannot have a %s for entry \"%s\"." },                                          /* ERR_NOT_SEMAPHORE_TASK               */
         { RUNTIME_ERROR, "Non-rwlock task \"%s\" cannot have a %s for entry \"%s\"." },                                             /* ERR_NOT_RWLOCK_TASK                  */
         { RUNTIME_ERROR, "Number of %s is outside of program limits of (1,%d)." },                                                  /* ERR_TOO_MANY_X                       */
-        { RUNTIME_ERROR, "Number of paths found to AND-Join \"%s\" for Task \"%s\" does not match fork list." },                    /* ERR_JOIN_PATH_MISMATCH               */
         { RUNTIME_ERROR, "OR branch probabilities for OR-Fork \"%s\" for task \"%s\" do not sum to 1.0; sum is %4.2f." },           /* ERR_MISSING_OR_BRANCH                */
         { RUNTIME_ERROR, "Parse error. %s." },                                                                                      /* ERR_PARSE_ERROR                      */
 	{ RUNTIME_ERROR, "Precedence \"%s\" list previously defined." },							    /* ERR_DUPLICATE_X_LIST		    */
@@ -93,11 +92,13 @@ namespace LQIO {
         { RUNTIME_ERROR, "Task \"%s\" has no entries." },                                                                           /* ERR_NO_ENTRIES_DEFINED_FOR_TASK      */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" is a start activity." },                                                     /* ERR_IS_START_ACTIVITY                */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" is not specified."},                                                         /* ERR_ACTIVITY_NOT_SPECIFIED           */
+        { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" is not reachable."},                                                         /* ERR_ACTIVITY_NOT_REACHABLE           */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" makes a duplicate reply for entry \"%s\"." },                                /* ERR_DUPLICATE_REPLY                  */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" makes invalid reply for entry \"%s\"." },                                    /* ERR_INVALID_REPLY                    */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in a fork." },                                               /* ERR_DUPLICATE_ACTIVITY_RVALUE        */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" previously used in a join." },                                               /* ERR_DUPLICATE_ACTIVITY_LVALUE        */
         { RUNTIME_ERROR, "Task \"%s\", activity \"%s\" replies to entry \"%s\" which does not accept rendezvous requests." },       /* ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY    */
+        { RUNTIME_ERROR, "Task \"%s\", join \"%s\" does not match fork \"%s\"." },				                    /* ERR_JOIN_PATH_MISMATCH               */
 	{ RUNTIME_ERROR, "Task for entry \"%s\" has not been defined." },							    /* ERR_NO_TASK_FOR_ENTRY		    */
         { ADVISORY_ONLY, "Messages dropped at task \"%s\" for open-class queues." },                                                /* ADV_MESSAGES_DROPPED                 */
         { ADVISORY_ONLY, "No solve() call found in the lqx program in file: %s.  solve() was invoked implicitly." },                /* ADV_LQX_IMPLICIT_SOLVE               */

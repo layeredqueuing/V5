@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13742 2020-08-06 14:53:34Z greg $
+# $Id: Makefile 13851 2020-09-24 12:32:57Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	lqsim
@@ -34,6 +34,7 @@ DST =	01-sanity.p \
 	44-activities.p \
 	45-activities.p \
 	46-activities.p \
+	47-activities.p \
 	48-activities.p \
 	50-replication.p \
 	51-replication.p \

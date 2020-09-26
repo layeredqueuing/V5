@@ -1,6 +1,6 @@
-# lqsim 5.16
+# lqsim 5.17
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=08-sanity.p 08-sanity.in
-# $Id: 08-sanity.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 08-sanity.p 13868 2020-09-25 15:23:33Z greg $
 V y
 C 0.907417
 I 3
@@ -8,9 +8,8 @@ PP 1
 NP 1
 
 #!Comment: Simplest model with an open arrival.
-#!User:  0:39:35.000
-#!Sys:   0:15:20.000
-#!Real:  0:56:40.000
+#!User:  0:05:41.000
+#!Real:  0:05:42.000
 
 B 3
 t1             :e1              0.5         
@@ -77,7 +76,7 @@ t2             :e2              0.300411    0.299948    -1 0.299948
                             %99 0.000778312 0.00956894  -1 0.00761475
 -1
 
-R 0
+R 1
 t2             :e3              0.39985     3.68989    
                             %95             0.0873773  
                             %99             0.201538   

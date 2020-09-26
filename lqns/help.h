@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13815 2020-09-14 16:30:47Z greg $
+ * $Id: help.h 13854 2020-09-24 13:34:24Z greg $
  */
 
 #ifndef _HELP_H
@@ -189,15 +189,16 @@ public:
     ostream& traceForks( ostream & output, bool verbose ) const;
     ostream& traceIdleTime( ostream & output, bool verbose ) const;
     ostream& traceInterlock( ostream & output, bool verbose ) const;
+    ostream& traceIntermediate( ostream & output, bool verbose ) const;
     ostream& traceJoins( ostream & output, bool verbose ) const;
     ostream& traceMva( ostream & output, bool verbose ) const;
     ostream& traceOvertaking( ostream & output, bool verbose ) const;
-    ostream& traceIntermediate( ostream & output, bool verbose ) const;
-    ostream& traceReplication( ostream & output, bool verbose ) const;
-    ostream& traceVariance( ostream & output, bool verbose ) const;
-    ostream& traceWait( ostream & output, bool verbose ) const;
-    ostream& traceThroughput( ostream & output, bool verbose ) const;
     ostream& traceQuorum( ostream & output, bool verbose ) const;
+    ostream& traceReplication( ostream & output, bool verbose ) const;
+    ostream& traceThroughput( ostream & output, bool verbose ) const;
+    ostream& traceVariance( ostream & output, bool verbose ) const;
+    ostream& traceVirtualEntry( ostream & output, bool verbose ) const;
+    ostream& traceWait( ostream & output, bool verbose ) const;
 
     ostream& specialIterationLimit( ostream & output, bool verbose ) const;
     ostream& specialPrintInterval( ostream & output, bool verbose ) const;

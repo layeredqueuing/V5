@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqn2xml -o77-semaphore.lqnx -->
+<lqn-model name="../regression/77-semaphore" description="lqn2xml 5.17 solution for model from: ../regression/77-semaphore.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Semaphore test case." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>
+   <processor name="client" scheduling="inf">
+      <task name="client1" scheduling="ref">
+         <entry name="client1" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="client1_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="server1" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="client2" scheduling="ref">
+         <entry name="client2" type="PH1PH2">
+            <entry-phase-activities>
+               <activity name="client2_1" phase="1" host-demand-mean="1" call-order="DETERMINISTIC">
+                  <synch-call dest="server2" calls-mean="1"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+   <processor name="server" scheduling="fcfs">
+      <task name="server" scheduling="semaphore">
+         <entry name="server1" type="PH1PH2" semaphore="wait">
+            <entry-phase-activities>
+               <activity name="server1_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+         <entry name="server2" type="PH1PH2" semaphore="signal">
+            <entry-phase-activities>
+               <activity name="server2_1" phase="1" host-demand-mean="1"/>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>
