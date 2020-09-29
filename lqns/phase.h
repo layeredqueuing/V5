@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13845 2020-09-22 01:34:08Z greg $
+ * $Id: phase.h 13895 2020-09-29 14:13:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -155,7 +155,7 @@ public:
     Phase& initVariance();
 
     unsigned findChildren( Call::stack&, const bool ) const;
-    virtual unsigned followInterlock( std::deque<const Entry *> &, const InterlockInfo&, const unsigned  );
+    virtual unsigned followInterlock( std::deque<const Entry *> &, const InterlockInfo&, const unsigned  ) const;
     virtual void callsPerform( const CallExec& ) const;
     void setInterlockedCall(const unsigned submodel);
     void addSrcCall( Call * aCall ) { _callList.insert(aCall); }

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 13486 2020-02-10 22:21:45Z greg $
+ * $Id: srvn_result_scan.l 13888 2020-09-29 01:01:12Z greg $
  */
 %option noyywrap yylineno
 
@@ -46,7 +46,6 @@ S	[:%=,]
 ^"#!User:"		return(USER_TIME);
 ^"#!Sys:"		return(SYST_TIME);
 ^"#!MaxRSS":		return(MAX_RSS);
-
 ^"#!Solver:"		return(SOLVER);
 ^"#!Comment:"(.)*	{ resultlval.aString = dup_strip_text( (char *)&resulttext[10], resultleng-10 ); return COMMENT; }
 "#"[^!](.)*             |
@@ -58,6 +57,7 @@ C			return(CONV_FLAG);
 D			return(DISTRIBUTION_FLAG);
 DP			return(DROP_PROBABILITY_FLAG);
 E			return(SERVICE_EXCEEDED_FLAG);
+F			return(FWD_WAITING_FLAG);
 FQ			return(THPT_UT_FLAG);
 G			return(GROUP_FLAG);
 H			return(HOLD_TIME_FLAG);
@@ -71,6 +71,7 @@ PP			return(PROC_COUNT_FLAG);
 R			return(OPEN_ARRIV_FLAG);
 V			return(VALIDITY_FLAG);
 VAR			return(VARIANCE_FLAG);
+VARF			return(FWD_WAITING_VARIANCE_FLAG);
 VARW			return(WAITING_VARIANCE_FLAG);
 VARZ			return(SNR_WAITING_VARIANCE_FLAG);
 W			return(WAITING_FLAG);

@@ -1,6 +1,10 @@
+2020-09-27  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
+
+	* NEWS: Refactored activity list handling
+
 2020-08-22  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
 
-	* NEWS: 
+	* NEWS: Bug fixes.
 
 2020-08-18  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
@@ -484,4 +488,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 13807 2020-08-27 23:50:16Z greg $
+$Id: ChangeLog 13884 2020-09-27 17:20:42Z greg $

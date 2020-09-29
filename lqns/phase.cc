@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13845 2020-09-22 01:34:08Z greg $
+ * $Id: phase.cc 13895 2020-09-29 14:13:22Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1185,7 +1185,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
  */
 
 unsigned
-Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
+Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
 {
     unsigned max_depth = entryStack.size();
 	

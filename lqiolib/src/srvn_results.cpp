@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13783 2020-08-21 16:05:30Z greg $
+ *  $Id: srvn_results.cpp 13887 2020-09-28 22:04:18Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -665,6 +665,35 @@ add_waiting_confidence(const char * from, const char * to, int conf_level, doubl
 }
 
 
+void add_fwd_waiting(const char *to, const char *from, double delay)
+{
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
+
+    if ( from_entry && to_entry ) {
+	LQIO::DOM::Call* call = from_entry->getForwardingToTarget(to_entry);
+	if ( call ) {
+	    call->setResultWaitingTime( delay );
+	}
+    }
+}
+
+
+void add_fwd_waiting_confidence(const char *to, const char *from, int conf_level, double delay)
+{
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
+
+    if ( from_entry && to_entry ) {
+	LQIO::DOM::Call* call = from_entry->getForwardingToTarget(to_entry);
+	if ( call ) {
+		call->setResultWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay, LQIO::DOM::__document->getResultNumberOfBlocks(), 
+										       LQIO::ConfidenceIntervals::CONF_95 )  );
+	}
+    }
+}
+
+
 /*
  * Just store it like above...  the .in file will generate the proper arc type.
  */
@@ -723,6 +752,38 @@ add_wait_variance_confidence(const char *from, const char *to, int conf_level, d
 	    LQIO::DOM::Call* call = from_entry->getCallToTarget(to_entry, p);
 	    if (call) {
 		call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay[p-1], LQIO::DOM::__document->getResultNumberOfBlocks(), 
+											       LQIO::ConfidenceIntervals::CONF_95 )  );
+	    }
+	}
+    }
+}
+
+
+void add_fwd_wait_variance(const char *to, const char * from, double delay)
+{
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
+
+    if ( from_entry && to_entry ) {
+	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
+	    LQIO::DOM::Call* call = from_entry->getForwardingToTarget(to_entry);
+	    if (call) {
+		call->setResultVarianceWaitingTime( delay );
+	    }
+	}
+    }
+}
+
+void add_fwd_wait_variance_confidence(const char *to, const char * from, int conf_level, double delay)
+{
+    LQIO::DOM::Entry * from_entry = LQIO::DOM::__document->getEntryByName( from );
+    LQIO::DOM::Entry * to_entry   = LQIO::DOM::__document->getEntryByName( to );
+
+    if ( from_entry && to_entry ) {
+	for ( unsigned p = 1; p <= from_entry->getMaximumPhase(); ++p ) {
+	    LQIO::DOM::Call* call = from_entry->getForwardingToTarget(to_entry);
+	    if (call) {
+		call->setResultVarianceWaitingTimeVariance( LQIO::ConfidenceIntervals::invert( delay, LQIO::DOM::__document->getResultNumberOfBlocks(), 
 											       LQIO::ConfidenceIntervals::CONF_95 )  );
 	    }
 	}

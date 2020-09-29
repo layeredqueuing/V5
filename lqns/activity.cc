@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13877 2020-09-26 02:15:28Z greg $
+ * $Id: activity.cc 13895 2020-09-29 14:13:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -241,7 +241,7 @@ Activity::backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) cons
  */
 
 unsigned
-Activity::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase )
+Activity::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
 {
     unsigned nextPhase = callingPhase;
     if ( repliesTo( entryStack.back() ) ) {

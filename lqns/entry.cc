@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13877 2020-09-26 02:15:28Z greg $
+ * $Id: entry.cc 13896 2020-09-29 14:22:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1132,7 +1132,7 @@ TaskEntry::computeVariance()
     } else {
 	_total.myVariance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
     }
-    if ( flags.trace_variance && dynamic_cast<TaskEntry *>(this) != NULL ) {
+    if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	cout << "Variance(" << name() << ",p) ";
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 	    cout << ( phase == _phase.begin() ? " = " : ", " ) << phase->variance();

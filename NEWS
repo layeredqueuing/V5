@@ -1,3 +1,8 @@
+* Bugs fixed in 5.18
+243 	lqns 	 	Bruell and Schmidt multiserver fail in the population code. 	2
+252 	lqns 	 	Aggregation with nested loop on branch is faulty. 	
+253 	lqns 	 	Regression -- 86-fork 
+
 * Bugs fixed in 5.17.1
 245 	lqns 		uncaught exception of type subclass_responsibility: Server::setVariance: server.cc 246: Subclass responsibility. 
 247 	lqns 		Variance calculation changed for no apparent reason. 

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13842 2020-09-21 19:11:01Z greg $
+ *  $Id: srvn_input.cpp 13891 2020-09-29 02:22:42Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -396,7 +396,12 @@ srvn_store_prob_forward_data ( void * from_entry_v, void * to_entry_v, void * pr
 {
     LQIO::DOM::Entry* from_entry = static_cast<LQIO::DOM::Entry *>(from_entry_v);
     LQIO::DOM::Entry* to_entry = static_cast<LQIO::DOM::Entry *>(to_entry_v);
-    if ( from_entry == NULL || to_entry == NULL) return;
+    if ( from_entry == NULL || to_entry == NULL) {
+	return;
+    } else if ( from_entry == to_entry ) {
+        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, from_entry->getName().c_str(), to_entry->getName().c_str() );
+	return;
+    }
 
     LQIO::DOM::Document::db_check_set_entry(from_entry, from_entry->getName());
     LQIO::DOM::Document::db_check_set_entry(to_entry, to_entry->getName());

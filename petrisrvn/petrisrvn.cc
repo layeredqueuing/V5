@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 13799 2020-08-27 01:12:59Z greg $
+ * $Id: petrisrvn.cc 13897 2020-09-29 15:15:25Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -115,6 +115,7 @@ static const struct option longopts[] =
     { "xml",                no_argument,        0, 'x' },
     { "special",            required_argument,  0, 'z' },
     { "disjoint-customers", no_argument,	0, 256+'d' },
+    { "random-processors",  no_argument,	0, 256+'p' },
     { "random-queueing",    no_argument,	0, 256+'q' },
     { "simplify",	    no_argument,	0, 256+'s' },
     { "reload-lqx",	    no_argument,        0, 256+'r' },
@@ -144,6 +145,7 @@ static const char * opthelp[]  = {
     /* "xml"		    */    "Output results in XML format.",
     /* "special"	    */    "Special options.",
     /* "disjoint-customers" */    "Create copies for reference tasks (increases state space).",
+    /* "random-processors"  */	  "Use random queueing at all processors (reduces state space).",
     /* "random-queueing"    */    "Use random queueing at all tasks and processors (reduces state space).",
     /* "simplify"	    */    "Remove redundant parts of the net such as single place processors.", 	
     /* "reload-lqx"	    */    "Run the LQX program, but re-use the results from a previous invocation.",
@@ -296,6 +298,10 @@ main (int argc, char *argv[])
 	    }
 	    break;
 
+	case 256+'p':
+	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_,scheduling_label[SCHEDULE_RAND].XML);
+	    break;
+	    
 	case 256+'q':
 	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_,scheduling_label[SCHEDULE_RAND].XML);
 	    pragmas.insert(LQIO::DOM::Pragma::_task_scheduling_,scheduling_label[SCHEDULE_RAND].XML);

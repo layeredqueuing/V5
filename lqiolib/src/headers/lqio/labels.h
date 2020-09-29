@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: labels.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: labels.h 13887 2020-09-28 22:04:18Z greg $
  */
 
 #if	!defined(LQIO_LABELS_H)
@@ -35,39 +35,39 @@ namespace LQIO {
 
     /* Labels for output records */
 
+    extern const char * abort_prob_str;
+    extern const char * abort_prob_variance_str;
+    extern const char * fwd_waiting_time_str;
+    extern const char * fwd_waiting_time_variance_str;
     extern const char * histogram_str;
     extern const char * join_delay_str;
     extern const char * loss_probability_str;
     extern const char * mean_life_time_str;
+    extern const char * number_of_retries_str;
+    extern const char * number_of_retries_variance_str;
     extern const char * open_wait_str;
     extern const char * overtaking_prob_str;
-    extern const char * semaphore_hold_time_str;
-    extern const char * semaphore_hold_variance_str;
     extern const char * rwlock_hold_time_str;
     extern const char * rwlock_reader_hold_time_str;
     extern const char * rwlock_reader_hold_variance_str;
     extern const char * rwlock_writer_hold_time_str;
     extern const char * rwlock_writer_hold_variance_str;
-
+    extern const char * semaphore_hold_time_str;
+    extern const char * semaphore_hold_variance_str;
     extern const char * service_time_exceeded_str;
     extern const char * service_time_str;
     extern const char * snr_waiting_time_str;
     extern const char * snr_waiting_time_variance_str;
+    extern const char * success_prob_str;
+    extern const char * success_prob_variance_str;
     extern const char * throughput_bounds_str;
     extern const char * throughput_str;
+    extern const char * timeout_prob_str;
+    extern const char * timeout_prob_variance_str;
     extern const char * utilization_str;
     extern const char * variance_str;
     extern const char * waiting_time_str;
     extern const char * waiting_time_variance_str;
-
-    extern const char * timeout_prob_str;
-    extern const char * timeout_prob_variance_str;
-    extern const char * success_prob_str;
-    extern const char * success_prob_variance_str;
-    extern const char * abort_prob_str;
-    extern const char * abort_prob_variance_str;
-    extern const char * number_of_retries_str;
-    extern const char * number_of_retries_variance_str;
 }
     
 #endif

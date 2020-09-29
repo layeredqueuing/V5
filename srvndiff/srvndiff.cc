@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 13761 2020-08-12 02:14:55Z greg $
+ * $Id: srvndiff.cc 13889 2020-09-29 02:02:32Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -119,6 +119,8 @@ typedef void (*output_func_ptr)( FILE *, unsigned, double, double );
 typedef double (stats_buf::*stat_func_ptr)() const;
 typedef void (*entry_waiting_func)( const result_str_t result, const unsigned passes,
 				    unsigned i, unsigned k, unsigned p, std::vector<stats_buf>*, ... );
+typedef void (*forwarding_waiting_func)( const result_str_t result, const unsigned passes,
+					 unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 typedef void (*activity_waiting_func)( const result_str_t result, const unsigned passes,
 				       unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 #if HAVE_REGEX_H && HAVE_REGCOMP
@@ -162,13 +164,14 @@ static bool check_act_snrw( unsigned i, unsigned j, unsigned k );
 static bool check_act_wait( unsigned i, unsigned j, unsigned k );
 static bool check_cvsq( unsigned i, unsigned j );
 static bool check_entp( unsigned i, unsigned j );
+static bool check_fwdw( unsigned i, unsigned j, unsigned k );
+static bool check_grup( unsigned i, unsigned j );
 static bool check_hold( unsigned i, unsigned j );
-static bool check_rwlock_hold( unsigned i, unsigned j );
 static bool check_join( unsigned i, unsigned j, unsigned k );
 static bool check_open( unsigned i, unsigned j );
 static bool check_ovtk( unsigned i, unsigned j, unsigned k, unsigned p_i, unsigned p_j );
 static bool check_proc( unsigned i, unsigned j );
-static bool check_grup( unsigned i, unsigned j );
+static bool check_rwlock_hold( unsigned i, unsigned j );
 static bool check_serv( unsigned i, unsigned j, unsigned p );
 static bool check_snrw( unsigned i, unsigned j, unsigned k, unsigned p );
 static bool check_tput( unsigned i, unsigned j );
@@ -180,13 +183,15 @@ static bool check_wait( unsigned i, unsigned j, unsigned k, unsigned p );
  */
 
 result_str_tab_t result_str[(int)P_LIMIT] = {
-    /* Heading,       entry row format,			activity row format,		width,		 functions */
+    /* Heading,                              entry row format,	       activity row format,	width,		 functions */
     /* P_CV_SQUARE,    */   { "CV Square",   "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_cvsq), 0,                                        reinterpret_cast<check_func_ptr>(check_cvsq), 0 },
     /* P_DROP,         */   { "Drop Prob",   "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_drop), reinterpret_cast<func_ptr>(get_act_drop), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
     /* P_ENTRY_PROC,   */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_enpr), 0,                                        0,                                            0 },
     /* P_ENTRY_TPUT,   */   { "Throughput",  "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_entp), 0,                                        reinterpret_cast<check_func_ptr>(check_entp), 0 },
     /* P_ENTRY_UTIL,   */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_enut), 0,                                        0,                                            0 },
     /* P_EXCEEDED,     */   { "Exceeded",    "%-16.15s %2d  ",         "%-16.15s     ",         21, reinterpret_cast<func_ptr>(get_exce), reinterpret_cast<func_ptr>(get_act_exce), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
+    /* P_FWD_WAITING   */   { "Fwd Waiting", "%-16.15s%-16.15s     ",  0,                       37, reinterpret_cast<func_ptr>(get_fwdw), 0,                                        reinterpret_cast<check_func_ptr>(check_fwdw), 0 },
+    /* P_FWD_WAIT_VAR  */   { "Fwd Wt Var.", "%-16.15s%-16.15s     ",  0,                       37, reinterpret_cast<func_ptr>(get_fwdv), 0,                                        reinterpret_cast<check_func_ptr>(check_fwdw), 0 },
     /* P_GROUP_UTIL,   */   { "Group Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_gutl), 0,                                        reinterpret_cast<check_func_ptr>(check_grup), 0 },
     /* P_ITERATIONS,   */   { "Iterations",  "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_iter), 0,                                        0,                                            0 },
     /* P_JOIN,         */   { "Join Delay",  0,                        "%-16.15s%-16.15s",      32, 0,                                    reinterpret_cast<func_ptr>(get_join),     0,                                            reinterpret_cast<check_func_ptr>(check_join) },
@@ -509,13 +514,16 @@ static void print_sub_heading( const result_str_t result, const unsigned passes,
 static void print_runtime( const result_str_t result, const char * file_name, const unsigned passes, const unsigned );
 static void print_iteration( const result_str_t result, const char * file_name, const unsigned passes, const unsigned );
 static void print_entry_waiting( const result_str_t result, const char * file_name, const unsigned passes );
+static void print_forwarding_waiting( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_entry_overtaking ( const result_str_t result, const char * file_name, const unsigned passes, const unsigned n );
 static unsigned entry_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, entry_waiting_func func );
+static unsigned forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, forwarding_waiting_func func );
 static unsigned activity_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, activity_waiting_func func );
 static unsigned entry_overtaking( const result_str_t result, const unsigned passes, std::vector<stats_buf>&, entry_waiting_func func );
 static void print_activity( const result_str_t, const unsigned passes, unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 static void print_activity_join ( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_entry( const result_str_t, const unsigned passes, unsigned i, unsigned k, unsigned p, std::vector<stats_buf>*, ... );
+static void print_entry_2( const result_str_t, const unsigned passes, unsigned i, unsigned k, std::vector<stats_buf>*, ... );
 static void print_entry_activity( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* );
 static void print_entry_result( const result_str_t result, const char * file_name, const unsigned passes );
 static void print_phase_result( const result_str_t result, const char * file_name, const unsigned passes );
@@ -1020,7 +1028,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-08-11 22:14:55 -0400 (Tue, 11 Aug 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2020-09-28 22:02:32 -0400 (Mon, 28 Sep 2020) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1804,6 +1812,12 @@ print ( unsigned passes, char * const names[] )
     }
 
     /* Waiting */
+    
+    if ( print_waiting ) {
+	print_forwarding_waiting( P_FWD_WAITING, file_name.c_str(), passes );
+    }
+    
+    /* Waiting */
 
     if ( print_snr_waiting ) {
 	print_entry_waiting( P_SNR_WAITING, file_name.c_str(), passes );
@@ -2033,16 +2047,16 @@ print_sub_heading ( const result_str_t result, const unsigned passes, const bool
 
     for ( unsigned int j = 0; j < passes; ++j ) {
 	if ( !print_error_only ) {
-	    (void) fprintf( output, separator_format );
+	    (void) fprintf( output, "%s", separator_format );
 	    (void) fprintf( output, "%*s", result_width, result_str[(int)result].string );
 	    if ( confidence_intervals_present[j] && conf_flag ) {
-		(void) fprintf( output, separator_format );
+		(void) fprintf( output, "%s", separator_format );
 		(void) fprintf( output, "%*s", confidence_width,
 				print_conf_as_percent ? "95% +/-%" : "95% +/-" );
 	    }
 	}
 	if ( j != 0 && passes >= 2 && !print_results_only ) {
-	    (void) fprintf( output, separator_format );
+	    (void) fprintf( output, "%s", separator_format );
 	    if ( result != P_RUNTIME ) {
 		(void) fprintf( output, "%*s", error_width, "%error" );
 	    } else {
@@ -2171,6 +2185,66 @@ activity_waiting( const result_str_t result, const unsigned passes,
 }
 
 
+
+/*
+ * Print out data for entry waiting type fields.
+ */
+
+static void
+print_forwarding_waiting ( const result_str_t result, const char * file_name, const unsigned passes )
+{
+    int count = 0;
+    std::vector<stats_buf> rms(passes);
+
+    /* Entries */
+
+    if ( forwarding_waiting( result, passes, rms, 0 ) ) {
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       " );
+	forwarding_waiting( result, passes, rms, print_entry_2 );
+	count += 1;
+	if ( print_latex && !print_rms_error_only ) {
+	    (void) fprintf( output, "\\hline\n" );
+	}
+    }
+
+    if ( count > 0 ) {
+	print_rms_error( file_name, result, rms, passes, print_confidence_intervals );
+    }
+}
+
+
+
+/*
+ * common code to count and print number of records.
+ */
+
+static unsigned
+forwarding_waiting( const result_str_t result, const unsigned passes, std::vector<stats_buf>& rms, forwarding_waiting_func func )
+{
+    unsigned count = 0;
+    for ( std::map<int,entry_info>::const_iterator i = entry_tab[FILE1].begin(); i != entry_tab[FILE1].end(); ++i ) {
+	const entry_info& ip = i->second;
+	const std::map<int,call_info>& to = ip.fwd_to;
+	for ( std::map<int,call_info>::const_iterator k = to.begin(); k != to.end(); ++k ) {
+	    unsigned j;
+
+	    /* Skip entries with all zeros as not interesting */
+
+	    for ( j = 0; j < passes; ++j ) {
+		if ( (*result_str[(int)result].check_func)( i->first, j, k->first ) ) break;
+	    }
+	    if ( j == passes ) continue;
+	    count += 1;
+
+	    if ( func ) {
+		(*func)( result, passes, i->first, k->first, &rms,
+			 find_symbol_pos( i->first, ST_ENTRY ),
+			 find_symbol_pos( k->first, ST_ENTRY ) );
+	    }
+	}
+    }
+    return count;
+}
 
 
 
@@ -2485,7 +2559,7 @@ print_runtime ( const result_str_t result, const char * file_name, const unsigne
 		    diff = 0.0;
 		}
 		if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
-		    (void) fprintf( output, separator_format );
+		    (void) fprintf( output, "%s", separator_format );
 		    (void) fprintf( output, error_format, diff );
 		}
 	    }
@@ -2525,7 +2599,7 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
 	(*result_str[(int)result].func)( value, 0, j, 0 );
 
 	if ( !print_error_only && !print_rms_error_only ) {
-	    (void) fprintf( output, separator_format );
+	    (void) fprintf( output, "%s", separator_format );
 	    (void) fprintf( output, result_format, value[j] );
 	}
 
@@ -2538,7 +2612,7 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
 		diff = 0.0;
 	    }
 	    if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
-		(void) fprintf( output, separator_format );
+		(void) fprintf( output, "%s", separator_format );
 		(void) fprintf( output, error_format, diff );
 	    }
 	}
@@ -2605,6 +2679,45 @@ print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsi
  */
 
 static void
+print_entry_2 ( const result_str_t result, const unsigned passes, unsigned i, unsigned k, 
+	      std::vector<stats_buf>* delta, ... )
+{
+    unsigned j;
+    double value[MAX_PASS];
+    double conf_value[MAX_PASS];
+    va_list args;
+
+    va_start( args, delta );
+    if ( !print_rms_error_only ) {
+	(void) vfprintf( output, result_str[(int)result].format, args );
+    }
+    va_end( args );
+
+    for ( j = 0; j < passes; ++j ) {
+	value[j]      = 0.0;
+	conf_value[j] = 0.0;
+	(*result_str[(int)result].func)( value, conf_value, i, j, k );
+
+	print_entry_activity( value, conf_value, passes, j, delta );
+    }
+
+    if ( !print_rms_error_only ) {
+	if ( print_latex ) {
+	    (void) fprintf( output, " \\\\" );
+	}
+	(void) fputc( '\n', output );
+    }
+}
+
+
+
+
+/*
+ * Print a line.  Format information is stored in the result_str array which is
+ * indexed by result.
+ */
+
+static void
 print_activity ( const result_str_t result, const unsigned passes, unsigned i, unsigned k,
 		 std::vector<stats_buf>* delta, ... )
 {
@@ -2645,11 +2758,11 @@ static void
 print_entry_activity( double value[], double conf_value[], const unsigned passes, const unsigned j, std::vector<stats_buf>* delta )
 {
     if ( !print_error_only && !print_rms_error_only ) {
-	(void) fprintf( output, separator_format );
+	(void) fprintf( output, "%s", separator_format );
 	(void) fprintf( output, result_format, value[j] );
 
 	if ( confidence_intervals_present[j] && print_confidence_intervals ) {
-	    (void) fprintf( output, separator_format );
+	    (void) fprintf( output, "%s", separator_format );
 	    double x = conf_value[j];
 	    if ( print_conf_as_percent && value[j] ) {
 		x = conf_value[j] * 100.0 / value[j];
@@ -2681,7 +2794,7 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 	}
 	(*delta)[j].update( error, ok );
 	if ( passes >= 2 && !print_rms_error_only && !print_results_only ) {
-	    (void) fprintf( output, separator_format );
+	    (void) fprintf( output, "%s", separator_format );
 	    (void) fprintf( output, error_format, relative_error( error, value[FILE1] ) );
 	    if ( confidence_intervals_present[0] || confidence_intervals_present[j] ) {
 		(void) fprintf( output, "%s", ok ? "*" : " " );
@@ -2725,7 +2838,7 @@ print_rms_error ( const char * file_name, const result_str_t result, const std::
 
 	for ( unsigned j = 0; j < passes; ++j ) {
 	    if ( !(print_error_only || print_totals_only)) {
-		(void) fprintf( output, separator_format );
+		(void) fprintf( output, "%s", separator_format );
 		if ( j != 0 ) {
 		    (void) fprintf( output, result_format, rms[j] );
 		} else {
@@ -2733,7 +2846,7 @@ print_rms_error ( const char * file_name, const result_str_t result, const std::
 		}
 
 		if ( confidence_intervals_present[j] && print_conf ) {
-		    (void) fprintf( output, separator_format );
+		    (void) fprintf( output, "%s", separator_format );
 		    (void) fprintf( output, "%*c", confidence_width, ' ' );
 		}
 	    }
@@ -2748,7 +2861,7 @@ print_rms_error ( const char * file_name, const result_str_t result, const std::
 		total[ABS_ERROR][(int)result][j].update( relative_error( stats[j].mean_abs(), denom ), ok );
 
 		if ( !print_totals_only ) {
-		    (void) fprintf( output, separator_format );
+		    (void) fprintf( output, "%s", separator_format );
 		    if ( rms[0] > 0.0 ) {
 			(void) fprintf( output, error_format, rms_err );
 		    } else {
@@ -2892,7 +3005,7 @@ print_total_statistics ( const std::vector<stats_buf>& results, const unsigned s
 static void
 error_print_func( FILE * output, unsigned j, double value, double delta )
 {
-    (void) fprintf( output, separator_format );
+    (void) fprintf( output, "%s", separator_format );
     (void) fprintf( output, error_format, value );
 }
 
@@ -2909,13 +3022,13 @@ time_print_func( FILE * output, unsigned j, double value, double delta )
     double mins   = fmod( floor( value / 60.0 ), 60.0 );
     double hrs    = floor( value / 3600.0 );
 
-    (void) fprintf( output, separator_format );
+    (void) fprintf( output, "%s", separator_format );
 
     (void) sprintf( buf, "%2.0f:%02.0f:%02.0f.%02.0f", hrs, mins, secs, csecs );
     (void) fprintf( output, "%*.*s", result_width, result_width, buf );
 
     if ( j > 0 ) {
-	(void) fprintf( output, separator_format );
+	(void) fprintf( output, "%s", separator_format );
 /* 	(void) fprintf( output, error_format, delta ); */
 	(void) fprintf( output, "%*.*s", error_width, error_width, " " );
     }
@@ -3000,6 +3113,33 @@ get_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned 
     }
 }
 
+
+void
+get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+{
+    std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
+    if ( fwd_k != entry_tab[j][i].fwd_to.end() ) {
+	value[j]      = fwd_k->second.waiting;
+	conf_value[j] = fwd_k->second.wait_conf;
+    } else {
+	value[j]      = 0.0;
+	conf_value[j] = 0.0;
+    }
+}
+
+
+void
+get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k )
+{
+    std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
+    if ( fwd_k != entry_tab[j][i].fwd_to.end() ) {
+	value[j]      = fwd_k->second.wait_var;
+	conf_value[j] = fwd_k->second.wait_var_conf;
+    } else {
+	value[j]      = 0.0;
+	conf_value[j] = 0.0;
+    }
+}
 
 /*ARGSUSED*/
 void
@@ -3432,6 +3572,13 @@ check_wait( unsigned i, unsigned j, unsigned k, unsigned p )
 {
     std::map<int,call_info>::const_iterator p_k = entry_tab[j][i].phase[p].to.find(k);
     return p_k != entry_tab[j][i].phase[p].to.end() && p_k->second.waiting > 0.0;
+}
+
+static bool
+check_fwdw( unsigned i, unsigned j, unsigned k )
+{
+    std::map<int,call_info>::const_iterator fwd_k = entry_tab[j][i].fwd_to.find(k);
+    return fwd_k != entry_tab[j][i].fwd_to.end() && fwd_k->second.waiting > 0.0;
 }
 
 static bool

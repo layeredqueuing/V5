@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_results.h 13717 2020-08-03 00:04:28Z greg $
+ * $Id: srvn_results.h 13887 2020-09-28 22:04:18Z greg $
  */
 
 #if	!defined(SRVN_RESULTS_H)
@@ -70,6 +70,10 @@ void add_entry_proc(const char *entry, double utilization, double *waiting);
 void add_entry_proc_confidence(const char *entry, int conf_level, double utilization, double *waiting);
 void add_entry_thpt_ut(const char *entry, double throughput, double *utilization, double total_util );
 void add_entry_thpt_ut_confidence(const char * entry, int conf_level, double throughput, double * utilization, double total_util );
+void add_fwd_wait_variance(const char *to, const char * from, double delay);
+void add_fwd_wait_variance_confidence(const char *to, const char * from, int conf_level, double delay);
+void add_fwd_waiting(const char *to, const char *from, double delay);
+void add_fwd_waiting_confidence(const char *to, const char *from, int conf_level, double delay);
 void add_group_util( const char * group_name, double utilization );
 void add_group_util_conf( const char * group_name, int conf_level, double utilization );
 void add_histogram_bin( const char * entry, const unsigned phase, const double begin, const double end, const double prob, const double conf95, const double conf99 );

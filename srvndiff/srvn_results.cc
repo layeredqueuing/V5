@@ -169,6 +169,48 @@ add_act_waiting_confidence( const char * task, const char *from, const char *to,
     }
 }
 
+void add_fwd_wait_variance(const char *from, const char * to, double delay)
+{
+    unsigned from_entry = find_or_add_entry( from );
+    unsigned to_entry   = find_or_add_entry( to );
+
+    if ( from_entry && to_entry ) {
+	entry_tab[pass][from_entry].fwd_to[to_entry].wait_var = delay;
+    }
+}
+
+void add_fwd_wait_variance_confidence(const char *from, const char * to, int conf_level, double delay)
+{
+    unsigned from_entry = find_or_add_entry( from );
+    unsigned to_entry   = find_or_add_entry( to );
+
+    if ( from_entry && to_entry && conf_level == 95) {
+	entry_tab[pass][from_entry].fwd_to[to_entry].wait_var_conf = delay;
+	confidence_intervals_present[pass] = true;
+    }
+}
+
+void add_fwd_waiting(const char *from, const char *to, double delay)
+{
+    unsigned from_entry = find_or_add_entry( from );
+    unsigned to_entry   = find_or_add_entry( to );
+
+    if ( from_entry && to_entry ) {
+	entry_tab[pass][from_entry].fwd_to[to_entry].waiting = delay;
+    }
+}
+
+void add_fwd_waiting_confidence(const char *from, const char *to, int conf_level, double delay)
+{
+    unsigned from_entry = find_or_add_entry( from );
+    unsigned to_entry   = find_or_add_entry( to );
+
+    if ( from_entry && to_entry && conf_level == 95) {
+	entry_tab[pass][from_entry].fwd_to[to_entry].wait_conf = delay;
+	confidence_intervals_present[pass] = true;
+    }
+}
+
 /*
  * Add a waiting time datum to the list of waiting times.
  */

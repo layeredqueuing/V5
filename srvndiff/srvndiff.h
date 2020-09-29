@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: srvndiff.h 13889 2020-09-29 02:02:32Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -40,6 +40,8 @@ typedef enum {
     P_ENTRY_TPUT,
     P_ENTRY_UTIL,
     P_EXCEEDED,
+    P_FWD_WAITING,
+    P_FWD_WAIT_VAR,
     P_GROUP_UTIL,
     P_ITERATIONS,
     P_JOIN,
@@ -313,9 +315,9 @@ unsigned int find_or_add_entry( const char * name );
 unsigned int find_or_add_activity( const char * task, const char * name );
 
 void get_act_drop( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
+void get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_act_pwat( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_act_serv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
-void get_act_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_act_snrv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_act_snrw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_act_vari( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
@@ -327,6 +329,8 @@ void get_enpr( double value[], double conf_value[], unsigned i, unsigned j, unsi
 void get_entp( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 void get_enut( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 void get_exce( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
+void get_fwdv( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
+void get_fwdw( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );
 void get_gutl( double value[], double conf_value[], unsigned i, unsigned j, unsigned k, unsigned p );
 void get_iter( double value[], double junk[],       unsigned j, unsigned p );
 void get_join( double value[], double conf_value[], unsigned i, unsigned j, unsigned k );

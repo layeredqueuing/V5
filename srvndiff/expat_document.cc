@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 13758 2020-08-10 17:58:47Z greg $
+ * $Id: expat_document.cc 13889 2020-09-29 02:02:32Z greg $
  *
  * Read in XML input files.
  *
@@ -1078,7 +1078,7 @@ namespace LQIO {
 	    const unsigned int d = find_or_add_entry( dest );
 	    if ( !e || !d ) return;		/* Bogus entry. */
 
-	    call_info & call = entry_tab[pass][e].phase[0].to[d];
+	    call_info & call = entry_tab[pass][e].fwd_to[d];
 	    call.waiting  = getDoubleAttribute( attributes, Xwaiting, 0.0 );
 	    call.wait_var = getDoubleAttribute( attributes, Xwaiting_variance, 0.0 );
 	}
@@ -1249,7 +1249,7 @@ namespace LQIO {
 	    const unsigned int d = find_or_add_entry( dest );
 	    if ( !e || !d ) return;		/* Bogus entry. */
 
-	    call_info & call = entry_tab[pass][e].phase[0].to[d];
+	    call_info & call = entry_tab[pass][e].fwd_to[d];
 	    call.wait_conf     = getDoubleAttribute( attributes, Xwaiting, 0.0 );
 	    call.wait_var_conf = getDoubleAttribute( attributes, Xwaiting_variance, 0.0 );
 	}
@@ -1444,7 +1444,6 @@ namespace LQIO {
             confidence_result_table[&Expat_Document::handlePhaseSNRCallResults]     = &Expat_Document::handlePhaseSNRCallConfResults;
             confidence_result_table[&Expat_Document::handleActivitySNRCallResults]  = &Expat_Document::handleActivitySNRCallConfResults;
             confidence_result_table[&Expat_Document::handleJoinResults]             = &Expat_Document::handleJoinConfResults;
-
 	}
     }
 }

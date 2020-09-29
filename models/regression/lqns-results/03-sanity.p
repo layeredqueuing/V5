@@ -1,6 +1,6 @@
 # lqns 5.16
 # lqns --pragma=variance=mol,threads=hyper --parseable 03-sanity.in
-# $Id: 03-sanity.p 13747 2020-08-07 02:45:55Z greg $
+# $Id: 03-sanity.p 13894 2020-09-29 10:50:35Z greg $
 V y
 C 8.4299e-06
 I 18
@@ -20,12 +20,15 @@ t2             :e2              2
 t3             :e3              1           
 -1
 
-W 3
+W 1
 t0             :e0              e1              0.88636     0.88636     -1 
                 -1 
-t1             :e1              e2              0.0296654   0           -1 
+-1
+
+F 2
+t1             :e1              e2              0.0296654   
                 -1 
-t2             :e2              e3              0.216673    0           -1 
+t2             :e2              e3              0.216673    
                 -1 
 -1
 
