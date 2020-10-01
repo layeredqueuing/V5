@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13895 2020-09-29 14:13:22Z greg $
+ * $Id: activity.cc 13905 2020-10-01 11:32:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -229,10 +229,10 @@ Activity::findChildren( Call::stack& callStack, const bool directPath, std::dequ
 }
 
 
-const AndOrForkActivityList * 
-Activity::backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const
+void
+Activity::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const
 {
-    return prevFork() != nullptr ? prevFork()->backtrack( forkStack ) : nullptr;
+    if ( prevFork() != nullptr ) prevFork()->backtrack( forkStack, forkSet );
 }
 
 

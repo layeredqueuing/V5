@@ -1,70 +1,70 @@
-# lqns 5.17
-# lqns --pragma=variance=mol,threads=mak --parseable 48-activities.in
-# $Id: 48-activities.p 13878 2020-09-26 02:30:34Z greg $
+# lqns 5.18
+# lqns --pragma=variance=mol,threads=hyper --parseable 48-activities.in
+# $Id: 48-activities.p 13905 2020-10-01 11:32:09Z greg $
 V y
-C 6.1881e-06
-I 10
+C 4.43442e-06
+I 13
 PP 1
 NP 1
 
 #!Comment: Activities with AND fork/join.
-#!User:  0:00:00.002
+#!User:  0:00:00.004
 #!Sys:   0:00:00.000
-#!Real:  0:00:00.002
-#!Solver: 2 20 138 2112 12672 2.3792e+07 0
+#!Real:  0:00:00.004
+#!Solver: 2 26 193 3323 19938 5.20305e+07 0
 
 B 1
 client         :client          0.779221    
 -1
 
 J 0
-client         :fork1           fork2           0.887093    0.305907   
+client         :fork1           fork2           1.11352     0.444281   
 -1 
 -1
 
 X 1
-client         :client          1.38709    -1 
+client         :client          1.61352    -1 
                 -1
 :
                 client          0.25        -1 
-                fork1           0.529577    -1 
-                fork2           0.676683    -1 
+                fork1           0.486778    -1 
+                fork2           0.995584    -1 
                 join            0.25        -1 
                 -1 
 -1
 
 VAR 1
-client         :client          0.430907   -1 
+client         :client          0.569281   -1 
                 -1
 :
                 client          0.0625      -1 
-                fork1           0.17679     -1 
-                fork2           0.36588     -1 
+                fork1           0.16753     -1 
+                fork2           0.516487    -1 
                 join            0.0625      -1 
                 -1 
 -1
 
 FQ 1
-client         :client          0.720933    1          -1 1
+client         :client          0.619763    0.999998   -1 0.999998
                 -1
 :
-                client          0.720933    0.180233    -1 
-                fork1           0.720933    0.38179     -1 
-                fork2           0.720933    0.487843    -1 
-                join            0.720933    0.180233    -1 
+                client          0.619763    0.154941    -1 
+                fork1           0.619763    0.301687    -1 
+                fork2           0.619763    0.617027    -1 
+                join            0.619763    0.154941    -1 
                 -1 
 -1
 
 P client 1
-client          1  0 1  client          1.0814      0          -1 
+client          1  0 1  client          0.929645    0          -1 
 -1
                        :
-                        client          0.180233    0           -1 
-                        fork1           0.288373    0.129578    -1 
-                        fork2           0.43256     0.0766828   -1 
-                        join            0.180233    0           -1 
+                        client          0.154941    0           -1 
+                        fork1           0.247905    0.0867771   -1 
+                        fork2           0.371858    0.395584    -1 
+                        join            0.154941    0           -1 
                         -1 
-                                        1.0814      
+                                        0.929645    
 -1 
 
 -1

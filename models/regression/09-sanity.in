@@ -2,68 +2,32 @@
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/regression/09-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id: 09-sanity.in 8982 2009-09-23 03:36:13Z greg $
+# $Id: 09-sanity.in 13899 2020-09-30 13:07:24Z greg $
 # ------------------------------------------------------------------------
 
-G "Most Common features." 	# Model comment 
-1e-05			# Convergence test value.
-50			# Maximum number of iterations.
-10			# Print intermediate results (see manual pages)
-0.9			# Model under-relaxation ( 0.0 < x <= 1.0)
--1
+G "Most Common features." 1e-05 50 10 0.9 -1
 
 P 2
-# SYNTAX: p ProcessorName SchedDiscipline [multiplicity, default = 1]
-#   ProcessorName is any string, globally unique among processorss.
-#   SchedDiscipline = f fifo
-#                   | r random
-#                   | p premptive
-#                   | h hol (or non-pre-empt)
-#                   | s proc-sharing 
-#   multiplicity = m value (multiprocessor)
-#                | i (infinite)
-  p client f i
+  p client i
   p server f m 2
 -1
 
 T 3
-# SYNTAX: t TaskName RefFlag EntryList -1 ProcessorName [priority] [multiplicity]
-#   TaskName is any string, globally unique among tasks.
-#   RefFlag = r (reference or user task)
-#           | n (other) 
-#   multiplicity = m value (multithreaded)
-#                | i (infinite)
   t client r client -1 client m 3
-  t server1 n entry1 -1 server m 2
-  t server2 n entry2 entry3 -1 server
+  t server1 f entry1 -1 server m 2
+  t server2 f entry2 entry3 -1 server
 -1
 
 E 4
-# SYNTAX-FORM-A: Token EntryName Value1 [Value2] [Value3] -1
-#   EntryName is a string, globally unique over all entries 
-#   Values are for phase 1, 2 and 3 (phase 1 is before the reply) 
-#   Token indicate the significance of the Value: 
-#       s - HostServiceDemand for EntryName 
-#       c - HostServiceCoefficientofVariation
-#       f - PhaseTypeFlag
-# SYNTAX-FORM-B: Token FromEntry ToEntry Value1 [Value2] [Value3] -1
-#   Token indicate the Value Definitions: 
-#       y - SynchronousCalls (no. of rendezvous) 
-#       F - ProbForwarding (forward to ToEntry rather than replying) 
-#       z - AsynchronousCalls (no. of send-no-reply messages) 
 # ---------- client ----------
-  s client 1 -1
-  y client entry1 1 -1
+  s client 1   -1
+  y client entry1 1   -1
 # ---------- server1 ----------
   s entry1 0.5 0.5 -1
-  y entry1 entry2 0.2 0.0 -1
-  z entry1 entry3 0.0 0.3 -1
   F entry1 entry2 0.5 -1
+  y entry1 entry2 0.2 0   -1
+  z entry1 entry3 0   0.3 -1
 # ---------- server2 ----------
   s entry2 0.2 -1
   s entry3 0.3 -1
 -1
-  
-
-  
-

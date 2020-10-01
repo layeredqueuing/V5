@@ -1,25 +1,25 @@
 <?xml version="1.0"?>
-<!-- $Id: 87-fork.lqxo 13878 2020-09-26 02:30:34Z greg $ -->
-<!-- lqns -pragma=variance=mol,threads=mak -->
-<lqn-model name="87-fork" description="lqns 5.17 solution for model from: 87-fork.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 87-fork.lqxo 13905 2020-10-01 11:32:09Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -->
+<lqn-model name="87-fork" description="lqns 5.18 solution for model from: 87-fork.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="fork-join" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
-      <pragma param="threads" value="mak"/>
+      <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="lqns 5.17" valid="YES" conv-val="1.59792e-07" iterations="8" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 0:00:00.002" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.002">
-         <mva-info submodels="3" core="24" step="133" step-squared="1289" wait="7035" wait-squared="5.91499e+06" faults="0"/>
+      <result-general solver-info="lqns 5.18" valid="YES" conv-val="2.25483e-07" iterations="10" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 0:00:00.004" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.005">
+         <mva-info submodels="3" core="30" step="173" step-squared="1847" wait="10200" wait-squared="1.28881e+07" faults="0"/>
       </result-general>
    </solver-params>
    <processor name="p1" scheduling="inf">
-      <result-processor utilization="0.81838"/>
+      <result-processor utilization="0.809516"/>
       <task name="t1" scheduling="ref">
-         <result-task throughput="0.81838" utilization="1" phase1-utilization="1" proc-utilization="0.81838"/>
+         <result-task throughput="0.809516" utilization="1" phase1-utilization="1" proc-utilization="0.809516"/>
          <entry name="e1" type="PH1PH2">
-            <result-entry utilization="1" throughput="0.81838" squared-coeff-variation="1.06597" proc-utilization="0.81838" throughput-bound="0.833333"/>
+            <result-entry utilization="1" throughput="0.809516" squared-coeff-variation="1.07257" proc-utilization="0.809516" throughput-bound="0.833333"/>
             <entry-phase-activities>
                <activity name="e1_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="1.22193" utilization="1" service-time-variance="1.5916"/>
+                  <result-activity proc-waiting="0" service-time="1.23531" utilization="1" service-time-variance="1.63672"/>
                   <synch-call dest="e2" calls-mean="1">
-                     <result-call waiting="0.0157509"/>
+                     <result-call waiting="0.0266789"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>
@@ -27,24 +27,24 @@
       </task>
    </processor>
    <processor name="p2" scheduling="fcfs">
-      <result-processor utilization="0.327352"/>
+      <result-processor utilization="0.323806"/>
       <task name="t2" scheduling="fcfs">
-         <result-task throughput="0.81838" utilization="0.277577" phase1-utilization="0.168729" phase2-utilization="0.108848" proc-utilization="0.327352"/>
+         <result-task throughput="0.809516" utilization="0.331971" phase1-utilization="0.168887" phase2-utilization="0.163083" proc-utilization="0.323806"/>
          <entry name="e2" type="NONE">
-            <result-entry utilization="0.277577" throughput="0.81838" squared-coeff-variation="0.330661" proc-utilization="0.327352" throughput-bound="3.04276" phase1-service-time="0.206175" phase2-service-time="0.133004" phase1-service-time-variance="0.0200381" phase2-service-time-variance="0.0180018" phase1-utilization="0.168729" phase2-utilization="0.108848"/>
+            <result-entry utilization="0.331971" throughput="0.809516" squared-coeff-variation="0.259238" proc-utilization="0.323806" throughput-bound="3.04276" phase1-service-time="0.208628" phase2-service-time="0.201458" phase1-service-time-variance="0.0200744" phase2-service-time-variance="0.0235216" phase1-utilization="0.168887" phase2-utilization="0.163083"/>
          </entry>
          <task-activities>
             <activity name="a1" bound-to-entry="e2" host-demand-mean="0.1">
-               <result-activity proc-waiting="0" service-time="0.1" utilization="0.081838" service-time-variance="0.01" throughput="0.81838" proc-utilization="0.081838"/>
+               <result-activity proc-waiting="0" service-time="0.1" utilization="0.0809516" service-time-variance="0.01" throughput="0.809516" proc-utilization="0.0809516"/>
             </activity>
             <activity name="b1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.00614183" service-time="0.106142" utilization="0.0868644" service-time-variance="0.0100377" throughput="0.81838" proc-utilization="0.081838"/>
+               <result-activity proc-waiting="0.05" service-time="0.15" utilization="0.121427" service-time-variance="0.0125" throughput="0.809516" proc-utilization="0.0809516"/>
             </activity>
             <activity name="b2" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.00617477" service-time="0.106175" utilization="0.0868913" service-time-variance="0.0100381" throughput="0.81838" proc-utilization="0.081838"/>
+               <result-activity proc-waiting="0.0086276" service-time="0.108628" utilization="0.0879358" service-time-variance="0.0100744" throughput="0.809516" proc-utilization="0.0809516"/>
             </activity>
             <activity name="c1" host-demand-mean="0.1">
-               <result-activity proc-waiting="0.00614183" service-time="0.106142" utilization="0.0868644" service-time-variance="0.0100377" throughput="0.81838" proc-utilization="0.081838"/>
+               <result-activity proc-waiting="0.05" service-time="0.15" utilization="0.121427" service-time-variance="0.0125" throughput="0.809516" proc-utilization="0.0809516"/>
             </activity>
             <precedence>
                <pre>

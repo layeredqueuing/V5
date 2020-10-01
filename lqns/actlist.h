@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13895 2020-09-29 14:13:22Z greg $
+ * $Id: actlist.h 13905 2020-10-01 11:32:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,7 +28,6 @@
 
 class Entry;
 class Entity;
-class ActivityList;
 class InterlockInfo;
 class Task;
 class ForkJoinActivityList;
@@ -65,8 +64,6 @@ class ActivityList
     friend void act_connect ( ActivityList * src, ActivityList * dst );
 
 public:
-    typedef enum { SEQUENCE, REPEAT, AND_FORK, AND_JOIN, AND_SYNCH, OR_FORK, OR_JOIN } activity_type;
-
     ActivityList( Task * owner, LQIO::DOM::ActivityList * dom_activitylist );
 
 private:
@@ -82,7 +79,6 @@ public:
 
     /* Instance Variable Access */
 	
-    virtual activity_type myType() const = 0;
     virtual ActivityList& add( Activity * anActivity ) = 0;
     virtual bool check() const { return true; }
 
@@ -104,7 +100,7 @@ public:
     virtual void callsPerform( const Phase::CallExec& ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
 
-    virtual const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const = 0;
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const = 0;
 
     /* Printing */
 	
@@ -149,11 +145,10 @@ class ForkActivityList : public SequentialActivityList
 public:
     ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
 	
-    virtual activity_type myType() const { return SEQUENCE; }
     virtual ActivityList * prev() const { return _prev; }	/* Link to fork list 		*/
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
-    virtual const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const { return prev()->backtrack( forkStack ); }
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const { prev()->backtrack( forkStack, forkList ); }
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
@@ -175,11 +170,10 @@ class JoinActivityList : public SequentialActivityList
 public:
     JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
 	
-    virtual activity_type myType() const { return SEQUENCE; }
     virtual ActivityList * next() const { return _next; }	/* Link to Join list		*/
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
-    virtual const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const { return getActivity()->backtrack( forkStack ); }
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const { getActivity()->backtrack( forkStack, forkList ); }
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
@@ -218,8 +212,8 @@ private:
 
 class AndOrForkActivityList : public ForkJoinActivityList
 {
-    friend class Task;
-	
+    friend class AndOrJoinActivityList;
+    
 public:
     AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList * );
     virtual ~AndOrForkActivityList();
@@ -230,17 +224,15 @@ public:
     ActivityList * getNextFork() const;
 
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
-    virtual const AndOrJoinActivityList * joinList() const;
-    bool insertIntoJoinList( const Activity *, const AndOrJoinActivityList * );
+    virtual const AndOrJoinActivityList * joinList() const { return _joinList; }
 
     virtual bool check() const;
     
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
-    virtual const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const;
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
 
-    bool find( const Activity * activity ) const { return _joinList.find( activity ) != _joinList.end(); }
     virtual double prBranch( const Activity * ) const = 0;
 
     virtual std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
@@ -249,12 +241,15 @@ protected:
     virtual AndOrForkActivityList& prev( ActivityList * aList) { _prev = aList; return *this; }
     Entry * collectToEntry( const Activity *, Entry *, std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
 
+private:
+    void setJoinList( const AndOrJoinActivityList * joinList ) { _joinList = joinList; }
+
 protected:    
     std::vector<Entry *> _entryList;
     mutable const AndForkActivityList * _parentForkList;
     
 private:
-    std::map<const Activity *,const AndOrJoinActivityList *> _joinList;
+    const AndOrJoinActivityList * _joinList;
     ActivityList * _prev;
 };
 
@@ -267,7 +262,6 @@ public:
     OrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrForkActivityList( owner, dom ) {}
 	
     virtual OrForkActivityList& add( Activity * anActivity );
-    virtual activity_type myType() const { return OR_FORK; }
     virtual bool check() const;
 
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
@@ -289,7 +283,6 @@ public:
     AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
 	
     virtual AndForkActivityList& add( Activity * anActivity );
-    virtual activity_type myType() const { return AND_FORK; }
     virtual bool isFork() const { return true; }
 
     virtual double prBranch( const Activity * ) const { return 1.0; }
@@ -336,14 +329,19 @@ public:
     AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * );
 	
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
-    virtual const AndOrForkActivityList * backtrack( std::deque<const AndOrForkActivityList *>& forkStack ) const;
+    virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const;
 
     virtual ActivityList * next() const { return _next; }	/* Link to fork list		*/
+    const AndOrForkActivityList * forkList() const { return _forkList; }
 
 protected:
     virtual AndOrJoinActivityList& next( ActivityList * aList ) { _next = aList; return *this; }
 
 private:
+    void setForkList( const AndOrForkActivityList * forkList ) { _forkList = forkList; }
+
+private:
+    const AndOrForkActivityList * _forkList;
     ActivityList *_next;
 };
 
@@ -355,8 +353,6 @@ class OrJoinActivityList : public AndOrJoinActivityList
 public:
     OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrJoinActivityList( owner, dom ) {}
 	
-    virtual activity_type myType() const { return OR_JOIN; }
-
     /* Most operations are done by the OrForkActivityList by following the next after all branches have been done */
 
     virtual unsigned followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo&, const unsigned ) const { return entryStack.size(); } /* NOP */
@@ -378,7 +374,6 @@ public:
     typedef enum { JOIN_NOT_DEFINED, INTERNAL_FORK_JOIN, SYNCHRONIZATION_POINT } join_type;
 
     AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
-    virtual activity_type myType() const { return AND_JOIN; }
 
     virtual bool check() const;
     
@@ -418,8 +413,6 @@ public:
     virtual RepeatActivityList& configure( const unsigned );
     virtual RepeatActivityList& add( Activity * anActivity );
 	
-    virtual activity_type myType() const { return REPEAT; }
-
     virtual ActivityList * prev() const { return _prev; }	/* Link to join list 		*/
     const std::vector<const Activity *>& activityList() const { return _activityList; }
 
