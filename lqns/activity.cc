@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13905 2020-10-01 11:32:09Z greg $
+ * $Id: activity.cc 13908 2020-10-01 20:29:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -211,7 +211,7 @@ Activity::repliesTo( const Entry * anEntry ) const
  */
 
 unsigned
-Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack ) const
+Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
 {
     _reachable = true;
 
@@ -222,7 +222,7 @@ Activity::findChildren( Call::stack& callStack, const bool directPath, std::dequ
     unsigned max_depth = Phase::findChildren( callStack, directPath );
     if ( nextJoin() ) {
 	activityStack.push_back( this );
-	max_depth = max( max_depth, nextJoin()->findChildren( callStack, directPath, activityStack, forkStack ) );
+	max_depth = max( max_depth, nextJoin()->findChildren( callStack, directPath, activityStack, forkStack, rate ) );
 	activityStack.pop_back();
     }
     return max_depth;

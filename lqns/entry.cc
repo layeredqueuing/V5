@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13896 2020-09-29 14:22:14Z greg $
+ * $Id: entry.cc 13908 2020-10-01 20:29:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -234,7 +234,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	std::deque<const AndOrForkActivityList *> forkStack; 	// For matching forks/joins.
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
-	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack ) );
+	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack, 1.0 ) );
 	}
 	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );

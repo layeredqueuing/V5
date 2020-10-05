@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13905 2020-10-01 11:32:09Z greg $
+ * $Id: activity.h 13908 2020-10-01 20:29:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -217,7 +217,7 @@ public:
 
     /* Thread manipulation */
 
-    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>& ) const;
+    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
     void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const;
     virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
