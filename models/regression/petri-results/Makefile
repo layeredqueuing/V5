@@ -1,7 +1,7 @@
 # Makefile for 
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13865 2020-09-25 15:00:41Z greg $
+# $Id: Makefile 13923 2020-10-07 14:29:28Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	petrisrvn
@@ -14,6 +14,7 @@ DST =	01-sanity.p \
 	06-sanity.p \
 	07-sanity.p \
 	08-sanity.p \
+	09-sanity.p \
 	10-interlock.p \
 	11-interlock.p \
 	12-interlock.p \

@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvndiff.h 13889 2020-09-29 02:02:32Z greg $
+ * $Id: srvndiff.h 13917 2020-10-06 14:27:14Z greg $
  */
 
 #if	!defined(SRVNDIFF_H)
@@ -79,9 +79,9 @@ typedef bool (*check_func_ptr)( unsigned, unsigned, ... );
 
 typedef struct {
     const char * string;
-    const char * format;		/* row format for entries. */
-    const char * act_format;		/* row format for activities (same width as format). */
-    unsigned format_width;		/* width of formatted string. */
+    const char ** format;		/* row format for entries. */
+    const char ** act_format;		/* row format for activities (same width as format). */
+    unsigned *format_width;		/* width of formatted string. */
     func_ptr func;			/* statistic fetching function */
     func_ptr act_func;
     check_func_ptr check_func;		/* Row present function */

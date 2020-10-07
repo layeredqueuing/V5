@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 13901 2020-09-30 21:12:23Z greg $
+ * $Id: srvndiff.cc 13917 2020-10-06 14:27:14Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -148,6 +148,7 @@ unsigned resultlinenumber;	/* Line number of current parse line in input file */
 
 unsigned phases;			/* Number of phases in output	*/
 int valid_flag;
+bool compact_flag = false;
 double total_util;
 double total_util_conf;
 double total_processor_util;
@@ -182,45 +183,60 @@ static bool check_wait( unsigned i, unsigned j, unsigned k, unsigned p );
  * Cast functions to common type for initializing table.  
  */
 
+static const char * fmt_e	= "%-16.16s";
+static const char * fmt_e_p	= "%-16.16s %2d  ";
+static const char * fmt_e_e	= "%-16.15s%-16.15s     ";
+static const char * fmt_e_e_p	= "%-16.15s%-16.15s %2d  ";
+static const char * fmt_t_a	= "%-16.15s%-16.15s     ";
+static const char * fmt_a	= "%-16.15s     ";
+static const char * fmt_j	= "%-16.15s%-16.15s";
+static const char * fmt_o	= "%-16.15s%-16.15s%2d%2d ";
+static unsigned int width_e	= 16;
+static unsigned int width_e_p	= 16+5;
+static unsigned int width_e_e_p	= 16*2+5;
+static unsigned int width_j	= 16*2;
+
+/* Using pointers for entry-fmt, act-fmt and width makes it easy to change the values on the fly. */
+
 result_str_tab_t result_str[(int)P_LIMIT] = {
-    /* Heading,                              entry row format,	       activity row format,	width,		 functions */
-    /* P_CV_SQUARE,    */   { "CV Square",   "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_cvsq), 0,                                        reinterpret_cast<check_func_ptr>(check_cvsq), 0 },
-    /* P_DROP,         */   { "Drop Prob",   "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_drop), reinterpret_cast<func_ptr>(get_act_drop), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_ENTRY_PROC,   */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_enpr), 0,                                        0,                                            0 },
-    /* P_ENTRY_TPUT,   */   { "Throughput",  "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_entp), 0,                                        reinterpret_cast<check_func_ptr>(check_entp), 0 },
-    /* P_ENTRY_UTIL,   */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_enut), 0,                                        0,                                            0 },
-    /* P_EXCEEDED,     */   { "Exceeded",    "%-16.15s %2d  ",         "%-16.15s     ",         21, reinterpret_cast<func_ptr>(get_exce), reinterpret_cast<func_ptr>(get_act_exce), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_FWD_WAITING   */   { "Fwd Waiting", "%-16.15s%-16.15s     ",  0,                       37, reinterpret_cast<func_ptr>(get_fwdw), 0,                                        reinterpret_cast<check_func_ptr>(check_fwdw), 0 },
-    /* P_FWD_WAIT_VAR  */   { "Fwd Wt Var.", "%-16.15s%-16.15s     ",  0,                       37, reinterpret_cast<func_ptr>(get_fwdv), 0,                                        reinterpret_cast<check_func_ptr>(check_fwdw), 0 },
-    /* P_GROUP_UTIL,   */   { "Group Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_gutl), 0,                                        reinterpret_cast<check_func_ptr>(check_grup), 0 },
-    /* P_ITERATIONS,   */   { "Iterations",  "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_iter), 0,                                        0,                                            0 },
-    /* P_JOIN,         */   { "Join Delay",  0,                        "%-16.15s%-16.15s",      32, 0,                                    reinterpret_cast<func_ptr>(get_join),     0,                                            reinterpret_cast<check_func_ptr>(check_join) },
-    /* P_JOIN_VAR,     */   { "Join Var.",   0,                        "%-16.15s%-16.15s",      32, 0,                                    reinterpret_cast<func_ptr>(get_jvar),     0,                                            reinterpret_cast<check_func_ptr>(check_join) },
-    /* P_MVA_WAITS,    */   { "MVA waits",   "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_mvaw), 0,                                        0,                                            0 },
-    /* P_OPEN_WAIT,    */   { "Open Wait",   "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_open), 0,                                        reinterpret_cast<check_func_ptr>(check_open), 0 },
-    /* P_OVERTAKING,   */   { "Overtaking",  "%-16.15s%-16.15s%2d%2d ",0,                       37, reinterpret_cast<func_ptr>(get_ovtk), 0,                                        reinterpret_cast<check_func_ptr>(check_ovtk), 0 },
-    /* P_PHASE_UTIL    */   { "Phase Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_phut), 0,                                        reinterpret_cast<check_func_ptr>(check_proc), 0 },
-    /* P_PROCESSOR_UTIL*/   { "Proc. Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_putl), 0,                                        reinterpret_cast<check_func_ptr>(check_proc), 0 },
-    /* P_PROCESSOR_WAIT*/   { "Proc. Wait.", "%-16.15s %2d  ",         "%-16.15s     ",         21, reinterpret_cast<func_ptr>(get_pwat), reinterpret_cast<func_ptr>(get_act_pwat), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_RUNTIME,      */   { "Runtime",     "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_runt), 0,                                        0,                                            0 },
-    /* P_RWLOCK_READER_HOLD,*/  {"Reader blocked", "%-16.16s",         0,                       16, reinterpret_cast<func_ptr>(get_rpht), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_RWLOCK_READER_UTIL,*/  {"Reader Util",    "%-16.16s",         0,                       16, reinterpret_cast<func_ptr>(get_rput), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_RWLOCK_READER_WAIT,*/  {"Reader Hold",    "%-16.16s",         0,                       16, reinterpret_cast<func_ptr>(get_rpwt), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_RWLOCK_WRITER_HOLD,*/  {"Writer blocked", "%-16.16s",         0,                       16, reinterpret_cast<func_ptr>(get_wpht), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_RWLOCK_WRITER_UTIL,*/  {"Writer Util",    "%-16.16s",         0,                       16, reinterpret_cast<func_ptr>(get_wput), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_RWLOCK_WRITER_WAIT,*/  {"Writer Hold",     "%-16.16s",        0,                       16, reinterpret_cast<func_ptr>(get_wpwt), 0,                                        reinterpret_cast<check_func_ptr>(check_rwlock_hold), 0 },
-    /* P_SEMAPHORE_UTIL*/   { "Sema. Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_sput), 0,                                        reinterpret_cast<check_func_ptr>(check_hold), 0 },
-    /* P_SEMAPHORE_WAIT*/   { "Sema. Wait.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_spwt), 0,                                        reinterpret_cast<check_func_ptr>(check_hold), 0 },
-    /* P_SERVICE,      */   { "Service",     "%-16.15s %2d  ",         "%-16.15s     ",         21, reinterpret_cast<func_ptr>(get_serv), reinterpret_cast<func_ptr>(get_act_serv), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_SNR_WAITING,  */   { "SNR Waiting", "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_snrw), reinterpret_cast<func_ptr>(get_act_snrw), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_SNR_WAIT_VAR, */   { "SNR Wt Var.", "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_snrv), reinterpret_cast<func_ptr>(get_act_snrv), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
-    /* P_TASK_PROC_UTIL*/   { "Proc. Util.", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_tpru), 0,                                        reinterpret_cast<check_func_ptr>(check_proc), 0 },
-    /* P_TASK_UTIL     */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_tutl), 0,                                        reinterpret_cast<check_func_ptr>(check_proc), 0 },
-    /* P_THROUGHPUT,   */   { "Throughput",  "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_tput), 0,                                        reinterpret_cast<check_func_ptr>(check_tput), 0 },
-    /* P_UTILIZATION,  */   { "Utilization", "%-16.16s",               0,                       16, reinterpret_cast<func_ptr>(get_util), 0,                                        reinterpret_cast<check_func_ptr>(check_tput), 0 },
-    /* P_VARIANCE,     */   { "Variance",    "%-16.15s %2d  ",         "%-16.15s     ",         21, reinterpret_cast<func_ptr>(get_vari), reinterpret_cast<func_ptr>(get_act_vari), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
-    /* P_WAITING,      */   { "Waiting",     "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_wait), reinterpret_cast<func_ptr>(get_act_wait), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
-    /* P_WAIT_VAR,     */   { "Wait Var.",   "%-16.15s%-16.15s %2d  ", "%-16.15s%-16.15s     ", 37, reinterpret_cast<func_ptr>(get_wvar), reinterpret_cast<func_ptr>(get_act_wvar), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
+    /*                            Heading,          entry-fmt   act-fmt   width,	entry-get,                            activity-get,                             entry-check,                                  activity-check */
+    /* P_CV_SQUARE,    */       { "CV Square",      &fmt_e,	nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_cvsq), nullptr,                                  reinterpret_cast<check_func_ptr>(check_cvsq), nullptr },
+    /* P_DROP,         */       { "Drop Prob",      &fmt_e_e_p,	&fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_drop), reinterpret_cast<func_ptr>(get_act_drop), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
+    /* P_ENTRY_PROC,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_enpr), nullptr,                                  nullptr,                                      nullptr },
+    /* P_ENTRY_TPUT,   */       { "Throughput",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_entp), nullptr,                                  reinterpret_cast<check_func_ptr>(check_entp), nullptr },
+    /* P_ENTRY_UTIL,   */       { "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_enut), nullptr,                                  nullptr,                                      nullptr },
+    /* P_EXCEEDED,     */       { "Exceeded",       &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_exce), reinterpret_cast<func_ptr>(get_act_exce), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
+    /* P_FWD_WAITING   */       { "Fwd Waiting",    &fmt_e_e,   nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_fwdw), nullptr,                                  reinterpret_cast<check_func_ptr>(check_fwdw), nullptr },
+    /* P_FWD_WAIT_VAR  */       { "Fwd Wt Var.",    &fmt_e_e,   nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_fwdv), nullptr,                                  reinterpret_cast<check_func_ptr>(check_fwdw), nullptr },
+    /* P_GROUP_UTIL,   */       { "Group Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_gutl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_grup), nullptr },
+    /* P_ITERATIONS,   */       { "Iterations",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_iter), nullptr,                                  nullptr,                                      nullptr },
+    /* P_JOIN,         */       { "Join Delay",     nullptr,    &fmt_j,   &width_j, 	nullptr,                              reinterpret_cast<func_ptr>(get_join),     nullptr,                                      reinterpret_cast<check_func_ptr>(check_join) },
+    /* P_JOIN_VAR,     */       { "Join Var.",      nullptr,    &fmt_j,   &width_j, 	nullptr,                              reinterpret_cast<func_ptr>(get_jvar),     nullptr,                                      reinterpret_cast<check_func_ptr>(check_join) },
+    /* P_MVA_WAITS,    */       { "MVA waits",      &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_mvaw), nullptr,                                  nullptr,                                      nullptr },
+    /* P_OPEN_WAIT,    */       { "Open Wait",      &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_open), nullptr,                                  reinterpret_cast<check_func_ptr>(check_open), nullptr },
+    /* P_OVERTAKING,   */       { "Overtaking",     &fmt_o,     nullptr,  &width_e_e_p, reinterpret_cast<func_ptr>(get_ovtk), nullptr,                                  reinterpret_cast<check_func_ptr>(check_ovtk), nullptr },
+    /* P_PHASE_UTIL    */       { "Phase Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_phut), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
+    /* P_PROCESSOR_UTIL*/       { "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_putl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
+    /* P_PROCESSOR_WAIT*/       { "Proc. Wait.",    &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_pwat), reinterpret_cast<func_ptr>(get_act_pwat), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
+    /* P_RUNTIME,      */      	{ "Runtime",        &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_runt), nullptr,                                  nullptr,                                      nullptr },
+    /* P_RWLOCK_READER_HOLD,*/  { "Reader blocked", &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rpht), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_RWLOCK_READER_UTIL,*/  { "Reader Util",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_RWLOCK_READER_WAIT,*/  { "Reader Hold",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_rpwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_RWLOCK_WRITER_HOLD,*/  { "Writer blocked", &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wpht), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_RWLOCK_WRITER_UTIL,*/  { "Writer Util",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_RWLOCK_WRITER_WAIT,*/  { "Writer Hold",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_wpwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_rwlock_hold), nullptr },
+    /* P_SEMAPHORE_UTIL*/   	{ "Sema. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_sput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_hold), nullptr },
+    /* P_SEMAPHORE_WAIT*/   	{ "Sema. Wait.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_spwt), nullptr,                                  reinterpret_cast<check_func_ptr>(check_hold), nullptr },
+    /* P_SERVICE,      */   	{ "Service",        &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_serv), reinterpret_cast<func_ptr>(get_act_serv), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
+    /* P_SNR_WAITING,  */   	{ "SNR Waiting",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_snrw), reinterpret_cast<func_ptr>(get_act_snrw), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
+    /* P_SNR_WAIT_VAR, */   	{ "SNR Wt Var.",    &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_snrv), reinterpret_cast<func_ptr>(get_act_snrv), reinterpret_cast<check_func_ptr>(check_snrw), reinterpret_cast<check_func_ptr>(check_act_snrw) },
+    /* P_TASK_PROC_UTIL*/   	{ "Proc. Util.",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tpru), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
+    /* P_TASK_UTIL     */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tutl), nullptr,                                  reinterpret_cast<check_func_ptr>(check_proc), nullptr },
+    /* P_THROUGHPUT,   */   	{ "Throughput",     &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_tput), nullptr,                                  reinterpret_cast<check_func_ptr>(check_tput), nullptr },
+    /* P_UTILIZATION,  */   	{ "Utilization",    &fmt_e,     nullptr,  &width_e, 	reinterpret_cast<func_ptr>(get_util), nullptr,                                  reinterpret_cast<check_func_ptr>(check_tput), nullptr },
+    /* P_VARIANCE,     */   	{ "Variance",       &fmt_e_p,   &fmt_a,   &width_e_p, 	reinterpret_cast<func_ptr>(get_vari), reinterpret_cast<func_ptr>(get_act_vari), reinterpret_cast<check_func_ptr>(check_serv), reinterpret_cast<check_func_ptr>(check_act_serv) },
+    /* P_WAITING,      */   	{ "Waiting",        &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_wait), reinterpret_cast<func_ptr>(get_act_wait), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
+    /* P_WAIT_VAR,     */   	{ "Wait Var.",      &fmt_e_e_p, &fmt_t_a, &width_e_e_p, reinterpret_cast<func_ptr>(get_wvar), reinterpret_cast<func_ptr>(get_act_wvar), reinterpret_cast<check_func_ptr>(check_wait), reinterpret_cast<check_func_ptr>(check_act_wait) },
 };
 
 
@@ -312,6 +328,7 @@ static const char * error_format 	= "%6.1lf";
 static int error_width		= 6;
 static const char * separator_format	= " ";
 static int separator_width	= 1;
+static const char * rms_format		= "%-*s %-12.11s%-12.11s";
 
 static const char * aggregate_opts[] = {
 #define	AGGR_TASK	0
@@ -412,33 +429,33 @@ static struct {
     const char * description;
     const bool * value;
 } flag_info[] = {
-    { "files",                       '@', false, required_argument, "List of files for input.", 0 },
-    { "results",                     'A', true,  no_argument,       "Print all/no results.", 0 },
+    { "files",                       '@', false, required_argument, "List of files for input.", nullptr },
+    { "results",                     'A', true,  no_argument,       "Print all/no results.", nullptr },
     { "no-confidence-intervals",     'C', false, no_argument, 	    "Print confidence intervals.", &print_confidence_intervals },
 #if DIFFERENCE_MODE
-    { "difference",                  'D', false, no_argument,       "Output absolute difference between two files in parseable output format.", 0 },
+    { "difference",                  'D', false, no_argument,       "Output absolute difference between two files in parseable output format.", nullptr },
 #endif
     { "errors",                      'E', true,  no_argument,       "Print errors (or results) only.", &print_error_only },
-    { "select-files",                'F', false, required_argument, "Select files for comparison.", 0 },
-    { "help",                        'H', false, no_argument,       "Print help.", 0 },
+    { "select-files",                'F', false, required_argument, "Select files for comparison.", nullptr },
+    { "help",                        'H', false, no_argument,       "Print help.", nullptr },
     { "ignore-errors",               'I', false, no_argument,       "Ignore invalid input file errors.", &ignore_invalid_result_error },
-    { "file-label",                  'L', false, required_argument, "File label.", 0 },
+    { "file-label",                  'L', false, required_argument, "File label.", nullptr },
     { "mean-absolute-errors",        'M', false, no_argument,       "Print mean absolute values errors.", &print_error_absolute_value },
     { "normalize-utilization",       'P', false, no_argument,       "Normalize processor utiliation.", &normalize_processor_util },
     { "quiet",                       'Q', false, no_argument,       "Quiet - print only if differences found.", &print_quiet },
     { "rms-errors",                  'R', false, no_argument,       "Print RMS errors only.", &print_rms_error_only },
-    { "error-threshold",             'S', false, required_argument, "Set error threShold for output to N.n.", 0 },
+    { "error-threshold",             'S', false, required_argument, "Set error threShold for output to N.n.", nullptr },
     { "total-rms-errors",            'T', false, no_argument,       "Print total RMS errors.", &print_total_rms_error },
     { "totals-only",                 'U', false, no_argument,       "Print totals only.", &print_totals_only },
     { "version",                     'V', false, no_argument,       "Print tool Version.", &print_copyright },
     { "rwlock-utilization",	     'W', true,  no_argument,       "Print rwlock utilization.", &print_rwlock_util },
-    { "exclude",                     'X', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task, processor, or entry.", 0 },
-    { "aggregate",                   'a', false, required_argument, "Aggregate results for <obj> using <regex>.  Object is either task or processor.", 0 },
+    { "exclude",                     'X', false, required_argument, "Exclude <obj> with <regex> from results.  Object can be task, processor, or entry.", nullptr },
+    { "aggregate",                   'a', false, required_argument, "Aggregate results for <obj> using <regex>.  Object is either task or processor.", nullptr },
     { "processor-waiting",           'b', true,  no_argument,       "Print processor waiting times.", &print_processor_waiting },
     { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results.", &print_cv_square },
     { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance.", &print_snr_waiting_variance },
     { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput.", &print_entry_throughput }, 
-    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format.", 0 },
+    { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format.", nullptr },
     { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations.", &print_group_util },
     { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization.", &print_sema_util },
     { "iterations",                  'i', true,  no_argument,       "Print solver iterations.", &print_iterations },
@@ -446,7 +463,7 @@ static struct {
     { "join-delay-variance",         'k', true,  no_argument,       "Print join join delay variances.", &print_join_variance },
     { "loss-probability",            'l', true,  no_argument,       "Print message Loss probability.", &print_loss_probability },
     { "mva-wait",		     'm', true,  no_argument,	    "Print the number of times the MVA wait() function was called.", &print_mva_waits },
-    { "output",                      'o', false, required_argument, "Redirect output to ARG.", 0 },
+    { "output",                      'o', false, required_argument, "Redirect output to ARG.", nullptr },
     { "processor-utilization",       'p', true,  no_argument,       "Print processor utilization results.", &print_processor_util },
     { "queue-length",                'q', true,  no_argument,       "Print queue length for open arrival results.", &print_open_wait },
     { "run-times",                   'r', true,  no_argument,       "Print solver Run times.", &print_runtimes },
@@ -458,14 +475,15 @@ static struct {
     { "service-time-exceeded",       'x', true,  no_argument,       "Print max service time exceeded.", &print_exceeded },
     { "waiting-time-variances",      'y', true,  no_argument,       "Print waiting time variance results.", &print_waiting_variance },
     { "asynch-send-waits",           'z', true,  no_argument,       "Print send-no-reply waiting time results.", &print_snr_waiting },
-    { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field.", 0 },
-    { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX.", 0 },
-    { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>.", 0 },
-    { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input.", 0  },
-    { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results.", 0 },
-    { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison.", 0 },
-    { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results.", 0 },
-    { "verbose",                 512+'v', false, no_argument,       "Verbose output (direct differences to stderr).", 0 },
+    { "compact",		 512+'C', false, no_argument,	    "Use a more compact format for output.", nullptr },
+    { "print-comment",		 512+'c', false, no_argument,	    "Print model comment field.", nullptr },
+    { "latex",			 512+'l', false, no_argument,	    "Format output for LaTeX.", nullptr },
+    { "heading",		 512+'h', false, required_argument, "Set column heading <col> to <string>.", nullptr },
+    { "debug-xml",               512+'x', false, no_argument,       "Output debugging information while parsing XML input.", nullptr },
+    { "debug-srvn",		 512+'s', false, no_argument,	    "Output debugging information while parsing SRVN results.", nullptr },
+    { "no-replication",		 512+'r', false, no_argument,       "Strip replicas from \"flattend\" model from comparison.", nullptr },
+    { "no-warnings",		 512+'w', false, no_argument,       "Ignore warnings when parsing results.", nullptr },
+    { "verbose",                 512+'v', false, no_argument,       "Verbose output (direct differences to stderr).", nullptr },
     { 0, 0, 0, 0, 0, 0 }
 };
 
@@ -496,6 +514,7 @@ static unsigned n_exclude[MAX_AGGREGATE];
  */
 
 static void usage( const bool full_usage = true );
+static void compact_format();
 static bool format_ok( const char * value, int choice, int * size );
 static FILE *my_fopen(const char *filename, const char *mode);
 static void compare_directories(unsigned n, char * const dirs[]);
@@ -981,6 +1000,11 @@ main (int argc, char * const argv[])
 	    print_copyright = true;
 	    break;
 
+	case (512+'C'):
+	    compact_flag = true;
+	    compact_format();
+	    break;
+	    
 	case (512+'c'):
 	    print_comment = true;
 	    break;
@@ -1028,7 +1052,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-09-30 17:12:23 -0400 (Wed, 30 Sep 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2020-10-06 10:27:14 -0400 (Tue, 06 Oct 2020) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1252,6 +1276,67 @@ format_ok ( const char * value, int choice, int * size )
 	*size = len;
 	return true;
     }
+}
+
+
+static void
+compact_format()
+{
+    fmt_e	= "%-8.8s";
+    fmt_e_p	= "%-8.8s %2d  ";
+    fmt_e_e	= "%-8.7s%-8.7s     ";
+    fmt_e_e_p	= "%-8.7s%-8.7s %2d  ";
+    fmt_t_a	= "%-8.7s%-8.7s     ";
+    fmt_a	= "%-8.7s     ";
+    fmt_j	= "%-8.7s%-8.7s";
+    fmt_o	= "%-8.7s%-8.7s%2d%2d ";
+    result_format = "%8.3lg";
+    result_width  = 8;
+    confidence_format = "%7.1lg";
+    confidence_width  = 7;
+    rms_format	= "%-*s %-8.7s%-8.7s";
+    width_e	= 8;
+    width_e_p	= 8+5;
+    width_e_e_p	= 8*2+5;
+    width_j	= 8*2;
+
+    result_str[P_CV_SQUARE].string = 	"CV Sqr";
+    result_str[P_DROP].string = 	"Pr Drop";
+    result_str[P_ENTRY_PROC].string =	"Util";
+    result_str[P_ENTRY_TPUT].string = 	"TPut";
+    result_str[P_ENTRY_UTIL].string =	"Util";
+    result_str[P_EXCEEDED].string =	"Pr Excd";
+    result_str[P_FWD_WAITING].string =	"Fwd Wt";
+    result_str[P_FWD_WAIT_VAR].string =	"Fwd WV";
+    result_str[P_GROUP_UTIL].string = 	"Util";
+    result_str[P_ITERATIONS].string = 	"Iters";
+    result_str[P_JOIN].string =		"Join Dl";
+    result_str[P_JOIN_VAR].string =	"Join DV";
+    result_str[P_MVA_WAITS].string = 	"MVA Wt";
+    result_str[P_OPEN_WAIT].string = 	"Open Wt";
+    result_str[P_OVERTAKING].string =	"Ovrtkg";
+    result_str[P_PHASE_UTIL].string = 	"Util";
+    result_str[P_PROCESSOR_UTIL].string="Util";
+    result_str[P_PROCESSOR_WAIT].string="Proc Wt";
+    result_str[P_RUNTIME].string = 	"Runtime";	
+    result_str[P_RWLOCK_READER_HOLD].string = "Rdr Bl";
+    result_str[P_RWLOCK_READER_UTIL].string = "Rdr Ut";
+    result_str[P_RWLOCK_READER_WAIT].string = "Rdr Ho";
+    result_str[P_RWLOCK_WRITER_HOLD].string = "Wtr Bl";
+    result_str[P_RWLOCK_WRITER_UTIL].string = "Wtr Ut";
+    result_str[P_RWLOCK_WRITER_WAIT].string = "Wtr Ho";
+    result_str[P_SEMAPHORE_UTIL].string="Sema Ut";
+    result_str[P_SEMAPHORE_WAIT].string="Sema Wt";
+    result_str[P_SERVICE].string =	"Service";
+    result_str[P_SNR_WAITING].string =	"SNR Wt";
+    result_str[P_SNR_WAIT_VAR].string =	"SNR WV";
+    result_str[P_TASK_PROC_UTIL].string="Util";
+    result_str[P_TASK_UTILIZATION].string="Util";
+    result_str[P_THROUGHPUT].string =	"Tput";
+    result_str[P_UTILIZATION].string =	"Util";
+    result_str[P_VARIANCE].string =	"Varianc";
+    result_str[P_WAITING].string =	"RNV Wt";
+    result_str[P_WAIT_VAR].string =	"RNV WV";
 }
 
 /*
@@ -2094,7 +2179,11 @@ print_entry_waiting ( const result_str_t result, const char * file_name, const u
     /* Entries */
 
     if ( entry_waiting( result, passes, rms, 0 ) ) {
-	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       Phase" );
+	if ( compact_flag ) {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "From    To Entry  Ph" );
+	} else {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       Phase" );
+	}
 	entry_waiting( result, passes, rms, print_entry );
 	count += 1;
 	if ( print_latex && !print_rms_error_only ) {
@@ -2110,7 +2199,11 @@ print_entry_waiting ( const result_str_t result, const char * file_name, const u
 		(void) fputc( '\n', output );
 	    }
 	}
-	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Task:Act   To Entry             " );
+	if ( compact_flag ) {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "TaskAct To Entry     " );
+	} else {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Task:Act   To Entry             " );
+	}
 	activity_waiting( result, passes, rms, print_activity );
 	count += 1;
     }
@@ -2205,7 +2298,11 @@ print_forwarding_waiting ( const result_str_t result, const char * file_name, co
     /* Entries */
 
     if ( forwarding_waiting( result, passes, rms, 0 ) ) {
-	print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       " );
+	if ( compact_flag ) {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "From    To Entry" );
+	} else {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 32+5, header, "From Entry      To Entry       " );
+	} 
 	forwarding_waiting( result, passes, rms, print_entry_2 );
 	count += 1;
 	if ( print_latex && !print_rms_error_only ) {
@@ -2321,7 +2418,7 @@ entry_overtaking( const result_str_t result, const unsigned passes,
 
 		    if ( func ) {
 			if ( !print_rms_error_only ) {
-			    (void) fprintf( output, result_str[(int)result].format,
+			    (void) fprintf( output, *result_str[(int)result].format,
 					    find_symbol_pos( i->first, ST_ENTRY ),
 					    find_symbol_pos( k->first, ST_ENTRY ),
 					    p_j + 1,
@@ -2387,7 +2484,11 @@ print_phase_result ( const result_str_t result, const char * file_name, const un
 {
     std::vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Entry           Phase" );
+    if ( compact_flag ) {
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 8+5, header, "Entry   Phase" );
+    } else {
+	print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Entry           Phase" );
+    }
 
     for ( std::map<int,entry_info>::const_iterator i = entry_tab[FILE1].begin(); i != entry_tab[FILE1].end(); ++i ) {
         unsigned p;
@@ -2413,7 +2514,11 @@ print_phase_result ( const result_str_t result, const char * file_name, const un
 	if ( !print_rms_error_only ) {
 	    (void) fputc( '\n', output );
 	}
-	print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Task:Activity        " );
+	if ( compact_flag ) {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "TaskAct     " );
+	} else {
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16+5, header, "Task:Activity        " );
+	}
 
 	for ( std::map<int,activity_info>::const_iterator i = activity_tab[FILE1].begin(); i != activity_tab[FILE1].end(); ++i ) {
 	    unsigned j;
@@ -2452,7 +2557,7 @@ print_task_result ( const result_str_t result, const char * file_name, const uns
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
-	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Task" );
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, (compact_flag ? 8 : 16), header, "Task" );
 	    first_record = false;
 	}
 
@@ -2481,7 +2586,7 @@ print_entry_result ( const result_str_t result, const char * file_name, const un
 	}
 	if ( j == passes ) continue;
 	if ( first_record ) {
-	    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Entry" );
+	    print_sub_heading( result, passes, print_confidence_intervals, file_name, (compact_flag ? 8 : 16), header, "Entry" );
 	    first_record = false;
 	}
 
@@ -2502,7 +2607,7 @@ print_group ( const result_str_t result, const char * file_name, const unsigned 
 {
     std::vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Group" );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, (compact_flag ? 8 : 16), header, "Group" );
 
     for ( std::map<int,group_info>::const_iterator i = group_tab[FILE1].begin(); i != group_tab[FILE1].end(); ++i ) {
 	print_entry( result, passes, i->first, 0, 0, &rms, find_symbol_pos( i->first, ST_GROUP ) );
@@ -2520,7 +2625,7 @@ print_processor ( const result_str_t result, const char * file_name, const unsig
 {
     std::vector<stats_buf> rms(passes);
 
-    print_sub_heading( result, passes, print_confidence_intervals, file_name, 16, header, "Processor" );
+    print_sub_heading( result, passes, print_confidence_intervals, file_name, (compact_flag ? 8 : 16), header, "Processor" );
 
     for ( std::map<int,processor_info>::const_iterator i = processor_tab[FILE1].begin(); i != processor_tab[FILE1].end(); ++i ) {
 	print_entry( result, passes, i->first, 0, 0, &rms, find_symbol_pos( i->first, ST_PROCESSOR ) );
@@ -2539,14 +2644,14 @@ print_runtime ( const result_str_t result, const char * file_name, const unsigne
 {
     unsigned p;
 
-    print_sub_heading( result, passes, false, file_name, 16, header, "Statistic" );
+    print_sub_heading( result, passes, false, file_name, (compact_flag ? 8 : 16), header, "Statistic" );
 
     for ( p = 0; p <= 2; ++p ) {
 	unsigned j;
 	double value[MAX_PASS];
 
 	if ( !print_rms_error_only ) {
-	    (void) fprintf( output, result_str[(int)result].format, time_str[p] );
+	    (void) fprintf( output, *result_str[(int)result].format, time_str[p] );
 	}
 
 	for ( j = 0; j < passes; ++j ) {
@@ -2596,9 +2701,9 @@ print_iteration ( const result_str_t result, const char * file_name, const unsig
     unsigned j;
     double value[MAX_PASS];
 
-    print_sub_heading( result, passes, false, file_name, 16, header, " " );
+    print_sub_heading( result, passes, false, file_name, (compact_flag ? 8 : 16), header, " " );
     if ( !print_rms_error_only ) {
-	(void) fprintf( output, result_str[(int)result].format, " " );
+	(void) fprintf( output, *result_str[(int)result].format, " " );
     }
 
     for ( j = 0; j < passes; ++j ) {
@@ -2656,7 +2761,7 @@ print_entry ( const result_str_t result, const unsigned passes, unsigned i, unsi
 
     va_start( args, delta );
     if ( !print_rms_error_only ) {
-	(void) vfprintf( output, result_str[(int)result].format, args );
+	(void) vfprintf( output, *result_str[(int)result].format, args );
     }
     va_end( args );
 
@@ -2695,7 +2800,7 @@ print_entry_2 ( const result_str_t result, const unsigned passes, unsigned i, un
 
     va_start( args, delta );
     if ( !print_rms_error_only ) {
-	(void) vfprintf( output, result_str[(int)result].format, args );
+	(void) vfprintf( output, *result_str[(int)result].format, args );
     }
     va_end( args );
 
@@ -2734,7 +2839,7 @@ print_activity ( const result_str_t result, const unsigned passes, unsigned i, u
 
     va_start( args, delta );
     if ( !print_rms_error_only ) {
-	(void) vfprintf( output, result_str[(int)result].act_format, args );
+	(void) vfprintf( output, *result_str[(int)result].act_format, args );
     }
     va_end( args );
 
@@ -2835,10 +2940,9 @@ print_rms_error ( const char * file_name, const result_str_t result, const std::
 
 	if ( !print_totals_only ) {
 	    if ( print_rms_error_only ) {
-		(void) fprintf( output, "%-*s %-12.11s%-12.11s", file_name_width-1,
-				file_name, result_str[(int)result].string, "RMS error" );
+		(void) fprintf( output, rms_format, file_name_width, file_name, result_str[(int)result].string, "RMS error" );
 	    } else {
-		(void) fprintf( output, "%-*s", result_str[(int)result].format_width, "RMS error" );
+		(void) fprintf( output, "%-*.*s", *result_str[(int)result].format_width, *result_str[(int)result].format_width, "RMS error" );
 	    }
 	}
 
@@ -2986,8 +3090,7 @@ print_total_statistics ( const std::vector<stats_buf>& results, const unsigned s
 	double result[MAX_PASS];
 	if ( !((1 << i) & print_bit) ) continue;
 
-	(void) fprintf( output, "%-*s%-12s%-12.12s", file_name_width, statistic[i].str,
-			cat_string, type_str );
+	(void) fprintf( output, rms_format, file_name_width, statistic[i].str, cat_string, type_str );
 
 	for ( unsigned j = start; j < passes; ++j ) {
 	    double delta = 0.0;
