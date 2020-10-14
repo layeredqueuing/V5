@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: task.cc 13925 2020-10-14 13:50:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1867,7 +1867,7 @@ Task::expandActivities( const Task& src, int replica )
 
 	std::vector<Activity *> pre_act_list;
 	if (dynamic_cast<const ForkJoinActivityList *>((*precedence))) {
-	    pre_act_list = dynamic_cast<const ForkJoinActivityList *>((*precedence))->getMyActivityList();
+	    pre_act_list = dynamic_cast<const ForkJoinActivityList *>((*precedence))->activityList();
 	} else if (dynamic_cast<const SequentialActivityList *>((*precedence))) {
 	    pre_act_list.push_back( dynamic_cast<const SequentialActivityList *>((*precedence))->getMyActivity());
 	}
@@ -1901,9 +1901,9 @@ Task::expandActivities( const Task& src, int replica )
 
 	    std::vector<Activity *> post_act_list;
 	    if (dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)) {
-		post_act_list = dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)->getMyActivityList();
+		post_act_list = dynamic_cast<const ForkJoinActivityList *>(dstPrecedence)->activityList();
 	    } else if (dynamic_cast<const RepeatActivityList *>(dstPrecedence)) {
-		post_act_list = dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivityList();
+		post_act_list = dynamic_cast<const RepeatActivityList *>(dstPrecedence)->activityList();
 //		post_act_list.push_back(dynamic_cast<const RepeatActivityList *>(dstPrecedence)->getMyActivity());
 	    } else if (dynamic_cast<const SequentialActivityList *>(dstPrecedence)) {
 		post_act_list.push_back(dynamic_cast<const SequentialActivityList *>(dstPrecedence)->getMyActivity());

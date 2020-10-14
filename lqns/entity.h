@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13741 2020-08-06 04:19:44Z greg $
+ * $Id: entity.h 13927 2020-10-14 14:17:23Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -153,6 +153,7 @@ public:
 
     bool isCalledBy( const Task* ) const;
     bool isMultiServer() const   	 { return copies() > 1; }
+    bool isReplicated() const		 { return replicas() > 1; }
 
     bool schedulingIsOk( const unsigned bits ) const;
 

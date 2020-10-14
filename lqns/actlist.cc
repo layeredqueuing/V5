@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13912 2020-10-02 12:46:57Z greg $
+ * $Id: actlist.cc 13927 2020-10-14 14:17:23Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -932,8 +932,7 @@ AndForkActivityList::findChildren( Call::stack& callStack, bool directPath, std:
 void
 AndOrForkActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const
 {
-    const std::deque<const AndOrForkActivityList *>::const_iterator offset = std::find( forkStack.begin(), forkStack.end(), this );
-    if ( offset != forkStack.end() ) forkList.insert( this );
+    if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkList.insert( this );
     prev()->backtrack( forkStack, forkList );
 }
 
@@ -1568,9 +1567,7 @@ AndOrJoinActivityList::findChildren( Call::stack& callStack, bool directPath, st
 void
 AndOrJoinActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const
 {
-    for ( std::vector<const Activity *>::const_iterator a = activityList().begin(); a != activityList().end(); ++a ) {
-	(*a)->backtrack( forkStack, forkList );		// Will create a union of all reachable matches
-    }
+    for_each ( activityList().begin(), activityList().end(), ConstExec2<Activity,const std::deque<const AndOrForkActivityList *>&,std::set<const AndOrForkActivityList *>&>( &Activity::backtrack, forkStack, forkList ) );
 }
 
 /* -------------------------------------------------------------------- */

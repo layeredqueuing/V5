@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13905 2020-10-01 11:32:09Z greg $
+# $Id: Makefile.am 13927 2020-10-14 14:17:23Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -123,9 +123,9 @@ clean:
 distclean:	clean 
 	@-rm -f Makefile
 
-48-activities.lqxo: 48-activities.lqnx
-	$(SRVN) $(OPTS) -a $<
-	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
+# 48-activities.lqxo: 48-activities.lqnx
+# 	$(SRVN) $(OPTS) -a $<
+# 	@srvndiff $(DIFFOPTS) $@ ../../models/regression/lqns-results/$*.p
 
 90-A01-novar.lqxo: 90-A01.lqnx
 	$(SRVN) -Pvariance=none -a -xo$@ $<

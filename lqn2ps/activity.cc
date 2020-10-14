@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 13684 2020-07-13 15:41:25Z greg $
+ * $Id: activity.cc 13925 2020-10-14 13:50:34Z greg $
  */
 
 #include "activity.h"
@@ -437,14 +437,11 @@ Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std
  * Search backwards up activity list looking for a match on forkStack
  */
 
-size_t
-Activity::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
+const Activity&
+Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
 {
-    if ( inputFrom() ) {
-	return inputFrom()->backtrack( forkStack );
-    } else {
-	return ~0;
-    }
+    if ( inputFrom() ) inputFrom()->backtrack( forkStack, forkSet );
+    return *this;
 }
 
 

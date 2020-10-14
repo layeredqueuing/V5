@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: actlist.cc 13925 2020-10-14 13:50:34Z greg $
  */
 
 
@@ -271,22 +271,6 @@ ForkActivityList::findActivityChildren( std::deque<const Activity *>& activitySt
 
 
 /*
- * Search backwards up activity list looking for a match on forkStack
- */
-
-size_t
-ForkActivityList::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
-{
-    if ( prev() ) {
-	return prev()->backtrack( forkStack );
-    } else {
-	return ~0;
-    }
-}
-
-
-
-/*
  * Return the sum of aFunc.
  */
 
@@ -410,23 +394,6 @@ JoinActivityList::findActivityChildren( std::deque<const Activity *>& activitySt
 }
 
 
-
-/*
- * Search backwards up activity list looking for a match on forkStack
- */
-
-size_t
-JoinActivityList::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
-{
-    if ( myActivity ) {
-	return myActivity->backtrack( forkStack );
-    } else {
-	return ~0;
-    }
-}
-
-
-
 /*
  * Return the sum of aFunc.  When aggregating service time, collapse
  * strings of sequential activities.
@@ -545,7 +512,7 @@ ForkJoinActivityList::ForkJoinActivityList( const Task * owner, const LQIO::DOM:
 ForkJoinActivityList::~ForkJoinActivityList()
 {
     delete myNode;
-    myActivityList.clear();
+    _activityList.clear();
     for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
 	delete arc->second;
     }
@@ -559,7 +526,7 @@ ForkJoinActivityList::~ForkJoinActivityList()
 ForkJoinActivityList&
 ForkJoinActivityList::add( Activity * anActivity )
 {
-    myActivityList.push_back( anActivity );
+    _activityList.push_back( anActivity );
     myArcList[anActivity] = Arc::newArc();
     return *this;
 }
@@ -597,16 +564,16 @@ ForkJoinActivityList::depth( unsigned depth )
 Point
 ForkJoinActivityList::findSrcPoint() const
 {
-    Point p1( myActivityList.front()->topCenter() );
-    Point p2( myActivityList.back()->topCenter() );
+    Point p1( activityList().front()->topCenter() );
+    Point p2( activityList().back()->topCenter() );
     return Point( (p1.x() + p2.x()) / 2.0, p1.y() + height() );
 }
 
 Point
 ForkJoinActivityList::findDstPoint() const
 {
-    Point p1( myActivityList.front()->bottomCenter() );
-    Point p2( myActivityList.back()->bottomCenter() );
+    Point p1( activityList().front()->bottomCenter() );
+    Point p2( activityList().back()->bottomCenter() );
     return Point( (p1.x() + p2.x()) / 2, p1.y() - height() );
 }
 
@@ -635,7 +602,7 @@ ForkJoinActivityList::draw( ostream& output ) const
 
 ForkJoinActivityList& ForkJoinActivityList::sort( compare_func_ptr compare )
 {
-    ::sort( myActivityList.begin(), myActivityList.end(), compare );
+    ::sort( _activityList.begin(), _activityList.end(), compare );
     return *this;
 }
 
@@ -647,8 +614,8 @@ ForkJoinActivityList& ForkJoinActivityList::sort( compare_func_ptr compare )
 
 ForkJoinActivityList::ForkJoinName::ForkJoinName( const ForkJoinActivityList& aList )
 {
-    for ( std::vector<Activity *>::const_reverse_iterator activity = aList.myActivityList.rbegin(); activity != aList.myActivityList.rend(); ++activity ) {
-	if ( activity != aList.myActivityList.rbegin() ) {
+    for ( std::vector<Activity *>::const_reverse_iterator activity = aList.activityList().rbegin(); activity != aList.activityList().rend(); ++activity ) {
+	if ( activity != aList.activityList().rbegin() ) {
 	    aString += ' ';
 	    aString += aList.typeStr();
 	    aString += ' ';
@@ -686,7 +653,7 @@ size_t
 AndOrForkActivityList::findChildren( CallStack& callStack, const unsigned directPath, std::deque<const Activity *>& activityStack ) const
 {
     size_t nextLevel = callStack.size();
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	nextLevel = max( (*activity)->findChildren( callStack, directPath, activityStack ), nextLevel );
     } 
     return nextLevel;
@@ -752,8 +719,8 @@ AndOrForkActivityList::moveDstTo( const Point& dst, Activity * anActivity )
     const std::map<Activity *,Arc *>::const_iterator arc = myArcList.find( anActivity );
 
     if ( arc != myArcList.end() && prev() ) {
-	const Point p1( myActivityList.front()->topCenter() );
-	const Point p2( myActivityList.back()->topCenter() );
+	const Point p1( activityList().front()->topCenter() );
+	const Point p2( activityList().back()->topCenter() );
 	// std::cerr << "AndOrForkActivityList::moveDstTo( "
 	// 	  << (p1.x() + p2.x()) / 2. - radius() << ", "
 	// 	  << prev()->findSrcPoint().y() << ")" << std::endl;
@@ -845,7 +812,7 @@ OrForkActivityList::findActivityChildren( std::deque<const Activity *>& activity
 {
     size_t nextLevel = depth;
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
 	/* sum += prBranch(i); */
     } 
@@ -856,22 +823,6 @@ OrForkActivityList::findActivityChildren( std::deque<const Activity *>& activity
     // }
 
     return nextLevel;
-}
-
-
-
-/*
- * Search backwards up activity list looking for a match on forkStack
- */
-
-size_t
-OrForkActivityList::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
-{
-    if ( prev() ) {
-	return prev()->backtrack( forkStack );
-    } else {
-	return ~0;
-    }
 }
 
 
@@ -889,7 +840,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
     double sum = 0.0;
     next_p = curr_p;
     bool ignore = false;
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	unsigned branch_p = curr_p;
 	double prob = 0.0;
 	const LQIO::DOM::ExternalVariable& pr_branch = prBranch(*activity);
@@ -911,7 +862,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
      * and the join, and the lists are the same size.
      */
 
-    ActivityList * joinList = myActivityList.front()->outputTo();
+    ActivityList * joinList = activityList().front()->outputTo();
 
     if ( aFunc == &Activity::aggregateService
 	 && joinList->size() == size()
@@ -920,7 +871,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	 && dynamic_cast<ForkActivityList *>(joinList->next())
 	 && !dynamic_cast<RepeatActivityList *>(joinList->next()) ) {
 
-	for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin() + 1; activity != myActivityList.end(); ++activity ) {
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin() + 1; activity != activityList().end(); ++activity ) {
 	    if ( !dynamic_cast<OrJoinActivityList *>((*activity)->outputTo()) || (*activity)->outputTo() != joinList ) {
 		return sum;
 	    }
@@ -932,7 +883,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 
 	Activity * nextActivity = dynamic_cast<ForkActivityList *>(joinList->next())->myActivity;
 	size_t currLevel = 0;
-	for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    currLevel = std::max( currLevel, (*activity)->level() );
 	    double prob;
 	    const LQIO::DOM::ExternalVariable& pr_branch = prBranch(*activity);
@@ -955,7 +906,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	 * myActivityList 
 	 */
 
-	for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    const_cast<Task *>(nextActivity->owner())->removeActivity( (*activity) );
 	}
     }
@@ -967,7 +918,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 unsigned
 OrForkActivityList::setChain( std::deque<const Activity *>& activityStack, unsigned curr_k, unsigned next_k, const Entity * aServer, const callPredicate aFunc ) const
 {
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	next_k = (*activity)->setChain( activityStack, curr_k, next_k, aServer, aFunc );
     } 
     return next_k;
@@ -998,7 +949,7 @@ OrForkActivityList&
 OrForkActivityList::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
-	for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    *(myLabelList[*activity]) << prBranch( *activity );
 	}
     }
@@ -1075,7 +1026,7 @@ AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activit
     size_t nextLevel = depth;
 
     forkStack.push_back( this );
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
     } 
     forkStack.pop_back();
@@ -1088,17 +1039,11 @@ AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activit
  * Search backwards up activity list looking for a match on forkStack
  */
 
-size_t
-AndForkActivityList::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
+void
+AndForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
 {
-    std::deque<const AndForkActivityList *>::const_iterator i = std::find( forkStack.begin(), forkStack.end(), this );
-    if ( i != forkStack.end() ) {
-	return i - forkStack.begin();
-    } else if ( prev() ) {
-	return prev()->backtrack( forkStack );
-    } else {
-	return ~0;
-    }
+    if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkSet.insert( this );
+    prev()->backtrack( forkStack, forkSet );
 }
 
 
@@ -1112,7 +1057,7 @@ AndForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned
 {
     double sum = 0.0;
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	unsigned branch_p = curr_p;
 	sum += (*activity)->aggregate( anEntry, curr_p, branch_p, rate, activityStack, aFunc );
 	next_p = max( next_p, branch_p );
@@ -1136,7 +1081,7 @@ AndForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned
 unsigned
 AndForkActivityList::setChain( std::deque<const Activity *>& activityStack, unsigned curr_k, unsigned next_k, const Entity * aServer, const callPredicate aFunc ) const
 {
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	next_k += 1;
 	next_k = (*activity)->setChain( activityStack, next_k, next_k, aServer, aFunc );
     } 
@@ -1176,17 +1121,10 @@ AndOrJoinActivityList::findChildren( CallStack& callStack, const unsigned direct
  * Search backwards up activity list looking for a match on forkStack
  */
 
-size_t
-AndOrJoinActivityList::backtrack( std::deque<const AndForkActivityList *>& forkStack ) const
+void
+AndOrJoinActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
 {
-    size_t depth = ~0;
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
-	const size_t path_depth = (*activity)->backtrack( forkStack );
-	if ( path_depth != static_cast<size_t>(~0) && (depth == static_cast<size_t>(~0) || path_depth < depth) ) {
-	    depth = path_depth;
-	}
-    }
-    return depth;
+    for_each ( activityList().begin(), activityList().end(), ConstExec2<Activity,const std::deque<const AndForkActivityList *>&,std::set<const AndForkActivityList *>&>( &Activity::backtrack, forkStack, forkSet ) );
 }
 
 
@@ -1195,7 +1133,7 @@ double
 AndOrJoinActivityList::getIndex() const
 {
     double anIndex = MAXDOUBLE;
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	anIndex = min( anIndex, (*activity)->index() );
     }
     return anIndex;
@@ -1207,8 +1145,8 @@ AndOrJoinActivityList&
 AndOrJoinActivityList::reconnect( Activity * curr, Activity * next )
 {
     ActivityList::reconnect( curr, next );
-    std::vector<Activity *>::iterator activity = ::find( myActivityList.begin(), myActivityList.end(), curr );
-    if ( activity != myActivityList.end() ) {
+    std::vector<Activity *>::iterator activity = std::find( _activityList.begin(), _activityList.end(), curr );
+    if ( activity != activityList().end() ) {
 	*activity = next;
     }
     return *this;
@@ -1253,8 +1191,8 @@ AndOrJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
     const std::map<Activity *,Arc *>::const_iterator arc = myArcList.find( anActivity );
 
     if ( arc != myArcList.end() && next() ) {
-	const Point p1( myActivityList.front()->topCenter() );
-	const Point p2( myActivityList.back()->topCenter() );
+	const Point p1( activityList().front()->topCenter() );
+	const Point p2( activityList().back()->topCenter() );
 	myNode->moveTo( (p1.x() + p2.x()) / 2. - radius(), next()->findSrcPoint().y() );
 	const Point dst = myNode->center(); // 
 
@@ -1448,17 +1386,39 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 
     /* Look for the fork on the fork stack */
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
-	if ( (*activity) == activityStack.back() ) continue;
-	const size_t j = (*activity)->backtrack( forkStack );
-	if ( j < forkStack.size() ) {
-	    const std::map<Activity *,AndForkActivityList *>::iterator f = myForkList.find(*activity);
-	    if ( !const_cast<AndJoinActivityList *>(this)->joinType( INTERNAL_FORK_JOIN  ) ) {
-		throw bad_internal_join( activityStack );
-	    } else if ( f == myForkList.end() || std::find( forkStack.begin(), forkStack.end(), f->second ) != forkStack.end() ) {
-		AndForkActivityList * aFork = const_cast<AndForkActivityList *>(forkStack[j]);
-		aFork->myJoinList = this;		/* Random choice :-) */
-		myForkList[*activity] = aFork;
+    if ( forkList() == nullptr ) {
+	std::set<const AndForkActivityList *> resultSet(forkStack.begin(),forkStack.end());
+
+	/* Go up all of the branches looking for forks found on forkStack */
+
+	for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	    if ( *activity == activityStack.back() ) continue;		/* No need -- this is resultSet */
+	
+	    /* Find all forks from this activity that match anything in forkStack */
+	
+	    std::set<const AndForkActivityList *> branchSet;
+	    (*activity)->backtrack( forkStack, branchSet );			/* find fork lists on this branch */
+
+	    /* Find intersection of branches */
+	
+	    std::set<const AndForkActivityList *> intersection;
+	    std::set_intersection( branchSet.begin(), branchSet.end(),
+				   resultSet.begin(), resultSet.end(),
+				   std::inserter( intersection, intersection.end() ) );
+	    resultSet = intersection;
+	}
+
+	/* Result should be all forks that match on all branches.  Take the one closest to top-of-stack */
+
+	if ( resultSet.size() > 0 ) {
+	    for ( std::deque<const AndForkActivityList *>::const_reverse_iterator fork_list = forkStack.rbegin(); fork_list != forkStack.rend() && forkList() == nullptr; ++fork_list ) {
+		if ( resultSet.find( *fork_list ) == resultSet.end() ) continue;
+	    
+		if ( !const_cast<AndJoinActivityList *>(this)->joinType( INTERNAL_FORK_JOIN  ) ) {
+		    throw bad_internal_join( activityStack );
+		}
+		const_cast<AndForkActivityList *>(*fork_list)->myJoinList = this;		/* Random choice :-) */
+		const_cast<AndJoinActivityList *>(this)->_forkList = *fork_list;
 	    }
 	} else if ( !const_cast<AndJoinActivityList *>(this)->joinType( SYNCHRONIZATION_POINT ) ) {
 	    throw bad_internal_join( activityStack );
@@ -1632,7 +1592,7 @@ RepeatActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 {
     double sum = ForkActivityList::aggregate( anEntry, curr_p, next_p, rate, activityStack, aFunc );
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	unsigned branch_p = curr_p;
 	double mult = 1.0;
 	const LQIO::DOM::ExternalVariable * var = rateBranch(*activity);
@@ -1652,7 +1612,7 @@ RepeatActivityList::setChain( std::deque<const Activity *>& activityStack, unsig
 {
     next_k = ForkActivityList::setChain( activityStack, curr_k, next_k, aServer, aFunc );
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	next_k = (*activity)->setChain( activityStack, curr_k, next_k, aServer, aFunc );
     }
 
@@ -1672,7 +1632,7 @@ RepeatActivityList::add( Activity * anActivity )
     if ( dom ) {
 //	const LQIO::DOM::ExternalVariable * arg = getDOM()->getParameter(dom);
 
-	myActivityList.push_back(anActivity);
+	_activityList.push_back(anActivity);
 
 	Label * aLabel = Label::newLabel();
 	if ( aLabel ) {
@@ -1706,7 +1666,7 @@ RepeatActivityList::rateBranch( const Activity * anActivity ) const
 unsigned 
 RepeatActivityList::size() const
 {
-    return ForkActivityList::size() + myActivityList.size();
+    return ForkActivityList::size() + activityList().size();
 }
 
 
@@ -1716,7 +1676,7 @@ RepeatActivityList::findChildren( CallStack& callStack, const unsigned directPat
 {
     size_t nextLevel = ForkActivityList::findChildren( callStack, directPath, activityStack );
 
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	nextLevel = std::max( (*activity)->findChildren( callStack, directPath, activityStack ), nextLevel );
     } 
     return nextLevel;
@@ -1727,7 +1687,7 @@ size_t
 RepeatActivityList::findActivityChildren( std::deque<const Activity *>& activityStack, std::deque<const AndForkActivityList *>& forkStack, Entry * anEntry, size_t depth, const unsigned p, const double rate ) const
 {
     size_t nextLevel = ForkActivityList::findActivityChildren( activityStack, forkStack, anEntry, depth, p, rate );
-    for ( std::vector<Activity *>::const_iterator activity = myActivityList.begin(); activity != myActivityList.end(); ++activity ) {
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	std::deque<const AndForkActivityList *> branchForkStack; 	// For matching forks/joins.
 	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, branchForkStack, anEntry, depth, 
 								 p, /* rateBranch(i) * */ rate ), nextLevel );
@@ -1749,7 +1709,7 @@ RepeatActivityList::scaleBy( const double sx, const double sy )
     myArc->scaleBy( sx, sy );
     for_each( myArcList.begin(), myArcList.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
     for_each( myLabelList.begin(), myLabelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
-    if ( myActivityList.size() ) {
+    if ( activityList().size() ) {
 	myNode->scaleBy( sx, sy );
     }
     return *this;
@@ -1763,7 +1723,7 @@ RepeatActivityList::translateY( const double dy )
     myArc->translateY( dy );
     for_each( myArcList.begin(), myArcList.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
     for_each( myLabelList.begin(), myLabelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
-    if ( myActivityList.size() ) {
+    if ( activityList().size() ) {
 	myNode->translateY( dy );
     }
     return *this;
@@ -1777,7 +1737,7 @@ RepeatActivityList::depth( unsigned depth )
     myArc->depth( depth );
     for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
     for_each( myLabelList.begin(), myLabelList.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
-    if ( myActivityList.size() ) {
+    if ( activityList().size() ) {
 	myNode->depth( depth );
     }
     return *this;
@@ -1787,12 +1747,12 @@ RepeatActivityList::depth( unsigned depth )
 Point
 RepeatActivityList::findSrcPoint() const
 {
-    if ( myActivityList.size() > 1 ) {
-	Point p1( myActivityList.front()->topCenter() );
-	Point p2( myActivityList.back()->topCenter() );
+    if ( activityList().size() > 1 ) {
+	Point p1( activityList().front()->topCenter() );
+	Point p2( activityList().back()->topCenter() );
 	return Point( (p1.x() + p2.x()) / 2.0, p1.y() + height() );
-    } else if ( myActivityList.size() == 1 ) {
-	Point p2( myActivityList.at(0)->topCenter() );
+    } else if ( activityList().size() == 1 ) {
+	Point p2( activityList().at(0)->topCenter() );
 	if ( myActivity ) {
 	    Point p1( myActivity->topCenter() );
 	    return Point( (p1.x() + p2.x()) / 2.0, p1.y() + height() );
