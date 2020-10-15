@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13895 2020-09-29 14:13:22Z greg $
+ * $Id: phase.cc 13930 2020-10-15 19:20:12Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1214,23 +1214,17 @@ Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockIn
  */
 
 bool
-Phase::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
-			    std::set<const Entity *>& interlockedTasks, const unsigned ) const
+Phase::getInterlockedTasks( Interlock::Collect& path ) const
 {
     bool found = false;
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	const Entry * dstEntry = (*call)->dstEntry();
-	if ( std::find( entryStack.begin(), entryStack.end(), dstEntry ) == entryStack.end() && dstEntry->getInterlockedTasks( entryStack, myServer, interlockedTasks ) ) {
-	    found = true;
-	}
+	if ( !path.hasEntry( dstEntry ) && dstEntry->getInterlockedTasks( path ) ) found = true;
     }
 
-    if ( processorCall() ) {
-	if ( processorCall()->dstEntry()->getInterlockedTasks( entryStack, myServer, interlockedTasks ) ) {
-	    found = true;
-	}
-    }
+    if ( processorCall() && processorCall()->dstEntry()->getInterlockedTasks( path ) ) found = true;
+
     return found;
 }
 

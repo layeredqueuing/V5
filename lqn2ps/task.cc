@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13925 2020-10-14 13:50:34Z greg $
+ * $Id: task.cc 13929 2020-10-14 15:25:44Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1162,9 +1162,6 @@ Task::topologicalSort()
 	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( activityStack, forkStack, (*entry), 0, 1, 1.0  ) );
 	}
 	catch ( const activity_cycle& error ) {
-	    maxLevel = std::max( maxLevel, error.depth()+1 );
-	}
-	catch ( const bad_internal_join& error ) {
 	    maxLevel = std::max( maxLevel, error.depth()+1 );
 	}
     }

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13927 2020-10-14 14:17:23Z greg $
+ * $Id: activity.h 13930 2020-10-15 19:20:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -223,7 +223,7 @@ public:
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
     Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;
     virtual void callsPerform( const CallExec& ) const;
-    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual bool getInterlockedTasks( Interlock::Collect& path ) const;
     unsigned concurrentThreads( unsigned ) const;
     /* XML output */
 

@@ -107,6 +107,7 @@ option_type Flags::print[] = {
     { "waiting",               'w', 0,                     0,                      {INIT_TRUE},         true,  "Print waiting time results." },
     { "service-exceeded",      'x', 0,                     0,                      {INIT_FALSE},        true,  "Print maximum execution time exceeded." },
     { "comment",	   768+'#', 0,			   0,			   {INIT_FALSE},	true,  "Print model comment." },
+    { "solver-info",	   768+'!', 0,                     0,			   {INIT_FALSE},	true,  "Print solver information." },
     { "verbose",           512+'V', 0,                     0,                      {INIT_FALSE},        false, "Verbose output." },
     { "ignore-errors",     512+'E', 0,			   0,			   {INIT_FALSE},        false, "Ignore errors during model checking phase." },
     { "task-service-time", 512+'P', 0,                     0,                      {INIT_FALSE},        false, "Print task service times (for --tasks-only)." },
@@ -682,6 +683,10 @@ lqn2ps( int argc, char *argv[] )
 
 	case 768+'#':
 	    Flags::print[MODEL_COMMENT].value.b = true;
+	    break;
+	    
+	case 768+'!':
+	    Flags::print[SOLVER_INFO].value.b = true;
 	    break;
 	    
 	default:

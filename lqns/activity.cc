@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13927 2020-10-14 14:17:23Z greg $
+ * $Id: activity.cc 13933 2020-10-15 20:14:58Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -273,17 +273,10 @@ Activity::followInterlock( std::deque<const Entry *>& entryStack, const Interloc
  */
 
 bool
-Activity::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer, 
-			       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+Activity::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    const Entry * parent = entryStack.back();
-    bool found = Phase::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
-
-    if ( ( !repliesTo( parent ) || last_phase > 1 ) && _nextJoin ) {
-	if ( _nextJoin->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-	    found = true;
-	}
-    }
+    bool found = Phase::getInterlockedTasks( path );
+    if ( ( !repliesTo( path.back() ) || path.allowPhase2() ) && _nextJoin && _nextJoin->getInterlockedTasks( path ) ) found = true;
     return found;
 }
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13895 2020-09-29 14:13:22Z greg $
+ * $Id: phase.h 13930 2020-10-15 19:20:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -23,6 +23,7 @@
 #include "vector.h"
 #include "call.h"
 #include "prob.h"
+#include "interlock.h"
 
 class ProcessorCall;
 class Entry;
@@ -34,7 +35,7 @@ class Submodel;
 class AndForkActivityList;
 class ActivityList;
 class Activity;
-class InterlockInfo;
+
 namespace LQIO {
     namespace DOM {
 	class Phase;
@@ -217,7 +218,7 @@ public:
     double getReplicationProcWait( unsigned int submodel, const double relax );
     double getReplicationTaskWait( unsigned int submodel, const double relax ); //tomari quorum
     double getReplicationRendezvous( unsigned int submodel, const double relax );
-    virtual bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>&, const unsigned ) const;
+    virtual bool getInterlockedTasks( Interlock::Collect& path ) const;
 
     /* recalculation of dynamic values */
 	

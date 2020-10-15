@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13705 2020-07-20 21:46:53Z greg $
+ * $Id: interlock.cc 13931 2020-10-15 19:41:08Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -242,12 +242,9 @@ Interlock::pruneInterlock()
 
 	const std::set<const Entry *>& dst_entries = dst->interlock->commonEntries;
 	for ( std::set<const Entry *>::const_iterator entry = dst_entries.begin(); entry != dst_entries.end(); ++entry ) {
-	    if ( commonEntries.find( *entry ) != commonEntries.end() ) {
-		prune.insert( *entry );
-	    }
+	    commonEntries.erase( *entry );		// Nop if not found
 	}
     }
-    commonEntries = difference<const Entry *>( commonEntries, prune );
 }
 
 
@@ -265,7 +262,6 @@ Interlock::findSources()
 
     /* Look for all parent tasks */
 
-    std::deque<const Entry *> entryStack;
     for ( std::set<const Entry *>::const_iterator entry = commonEntries.begin(); entry != commonEntries.end(); ++entry ) {
 	const Entity * aTask = (*entry)->owner();
 
@@ -279,7 +275,8 @@ Interlock::findSources()
 
 	/* Locate all tasks on interlocked paths. */
 
-	(*entry)->getInterlockedTasks( entryStack, myServer, interlockedTasks );
+	Collect data( myServer, interlockedTasks );
+	(*entry)->getInterlockedTasks( data );
     }
 
     /*
@@ -302,8 +299,17 @@ Interlock::findSources()
     }
 #endif
 
-    allSourceTasks = difference<const Entity *>( allSourceTasks, interlockedTasks );
-    ph2SourceTasks = intersection<const Entity *>( ph2SourceTasks, interlockedTasks );
+    std::set<const Entity *> difference;
+    std::set_difference( allSourceTasks.begin(), allSourceTasks.end(),
+			 interlockedTasks.begin(), interlockedTasks.end(),
+			 std::inserter( difference, difference.end() ) );
+    allSourceTasks = difference;
+
+    std::set<const Entity *> intersection;
+    std::set_intersection( ph2SourceTasks.begin(), ph2SourceTasks.end(),
+			   interlockedTasks.begin(), interlockedTasks.end(),
+			   std::inserter( intersection, intersection.end() ) );
+    ph2SourceTasks = intersection;
 
 #ifdef	DEBUG_INTERLOCK
     if ( Options::Debug::interlock() ) {

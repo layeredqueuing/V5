@@ -85,6 +85,8 @@ public:
     Label& operator<<( const unsigned i ) { return appendUI( i ); }
     Label& operator<<( const LQIO::DOM::ExternalVariable& v ) { return appendV( v ); }
 
+    int size() const { return _lines.size(); }
+
     virtual Label& moveTo( const double x, const double y ) { _origin.moveTo( x, y ); return *this; }
     virtual Label& moveTo( const Point& aPoint ) { _origin.moveTo( aPoint.x(), aPoint.y() ); return *this; }
     virtual Label& moveBy( const double x, const double y ) { _origin.moveBy( x, y ); return *this; }
@@ -132,7 +134,6 @@ protected:
     virtual Label& appendUI( const unsigned i ) { _lines.back() << i; return *this; }
     virtual Label& appendV( const LQIO::DOM::ExternalVariable& v );
 
-    int size() const { return _lines.size(); }
     const Label& boundingBox( Point& boxOrigin, Point& boxExtent, const double scaling ) const;
     virtual Point initialPoint() const = 0;
 

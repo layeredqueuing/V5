@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: interlock.h 13933 2020-10-15 20:14:58Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,6 +19,8 @@
 
 #include "dim.h"
 #include <set>
+#include <deque>
+
 class Interlock;
 class InterlockInfo;
 class Entry;
@@ -35,39 +37,43 @@ public:
     InterlockInfo& operator=( const InterlockInfo& );
     bool operator==( const InterlockInfo& ) const;
 
-    float all;	/* Calls from all phases at root.	*/
+    float all;	/* Calls from all phases at root.	*/	
     float ph1;	/* Calls from phase 1 only at root.	*/
 };
 
 /* --------------------------- Interlocker. --------------------------- */
 
 class Interlock {
-private:
-    template <typename Type> static std::set<Type>
-    intersection( const std::set<Type>& set1, const std::set<Type>& set2 )
-	{
-	    std::set<Type> result;
-	    typename std::set<Type>::const_iterator item;
-	    for ( item = set1.begin(); item != set1.end(); ++item ) {
-		if ( set2.find( *item ) != set2.end() )
-		    result.insert( *item );
-	    }
-	    return result;
-	}
 
-    template <typename Type> static std::set<Type>
-    difference( const std::set<Type>& minuend, const std::set<Type>& subtrahend )
-	{
-	    std::set<Type> difference;
-	    typename std::set<Type>::const_iterator item;
-	    for ( item = minuend.begin(); item != minuend.end(); ++item ) {
-		if ( subtrahend.find( *item ) == subtrahend.end() ) {
-		    difference.insert( *item );
-		}
-	    }
-	    return difference;
-	}
+public:
+    class Collect {
+    public:
+	Collect( const Entity * server, std::set<const Entity *>& interlockedTasks )
+	    : _server(server),
+	      _entryStack(),
+	      _interlockedTasks( interlockedTasks )
+	    {}
 
+    private:
+	Collect( const Collect& ); // = delete;
+	Collect& operator=( const Collect& ); // = delete;
+
+    public:
+	const Entity * server() const { return _server; }
+	bool headOfPath() const { return _entryStack.size() == 0; }
+	bool allowPhase2() const { return _entryStack.size() == 1; }		/* Allow from the top-of-path entry only */
+
+	void push_back( const Entry * entry ) { _entryStack.push_back( entry ); }
+	void pop_back() { _entryStack.pop_back(); }
+	const Entry * back() const { return _entryStack.back(); }
+	std::pair<std::set<const Entity *>::const_iterator,bool> insert( const Entity * entity ) { return _interlockedTasks.insert( entity ); }
+	bool hasEntry( const Entry * entry ) const { return std::find( _entryStack.begin(), _entryStack.end(), entry ) != _entryStack.end(); }
+	
+    public:
+	const Entity * _server;				/* In */
+	std::deque<const Entry *> _entryStack;		/* local */
+	std::set<const Entity *>& _interlockedTasks;	/* Out */
+    };
 
 public:
     Interlock( const Entity * aServer );

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13908 2020-10-01 20:29:21Z greg $
+ * $Id: entry.cc 13933 2020-10-15 20:14:58Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -833,12 +833,11 @@ Entry::followInterlock( std::deque<const Entry *>& entryStack, const InterlockIn
  */
 
 bool
-Entry::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * dstServer,
-			    std::set<const Entity *>& interlockedTasks ) const
+Entry::getInterlockedTasks( Interlock::Collect& path ) const
 {
     bool found = false;
 
-    if ( dstServer == owner() ) {
+    if ( path.server() == owner() ) {
 
 	/*
 	 * Special case -- we have hit the end of the line.
@@ -855,23 +854,21 @@ Entry::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity 
      * then any call o.k, otherwise, only phase 1 allowed.
      */
 
-    const bool headOfPath = entryStack.size() == 0;
-    const unsigned last_phase = headOfPath ? maxPhase() : 1;
+    const bool headOfPath = path.headOfPath();
+    const unsigned int max_phase = headOfPath ? maxPhase() : 1;
 
-    entryStack.push_back( this );
+    path.push_back( this );
     if ( isStandardEntry() ) {
-	for ( unsigned p = 1; p <= last_phase; ++p ) {
-	    if ( _phase[p].getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase ) ) {
-		found = true;
-	    }
+	for ( unsigned p = 1; p <= max_phase; ++p ) {
+	    if ( _phase[p].getInterlockedTasks( path ) ) found = true;
 	}
     } else if ( isActivityEntry() ) {
-	found = _startActivity->getInterlockedTasks( entryStack, dstServer, interlockedTasks, last_phase );
+	found = _startActivity->getInterlockedTasks( path );
     }
-    entryStack.pop_back();
-
+    path.pop_back();
+    
     if ( found && !headOfPath ) {
-	interlockedTasks.insert( owner() );
+	path.insert( owner() );
     }
 
     return found;

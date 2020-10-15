@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13927 2020-10-14 14:17:23Z greg $
+ * $Id: actlist.cc 13930 2020-10-15 19:20:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -212,14 +212,9 @@ ForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count
  */
 
 bool
-ForkActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
-                                       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+ForkActivityList::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    if ( getActivity() ) {
-        return getActivity()->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
-    } else {
-        return false;
-    }
+    return getActivity() != nullptr && getActivity()->getInterlockedTasks( path );
 }
 
 
@@ -308,14 +303,9 @@ JoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, const 
  */
 
 bool
-JoinActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
-                                       std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+JoinActivityList::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    if ( next() ) {
-        return next()->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
-    } else {
-        return false;
-    }
+    return next() != nullptr && next()->getInterlockedTasks( path );
 }
 
 
@@ -562,21 +552,11 @@ AndOrForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, c
  */
 
 bool
-AndOrForkActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
-                                            std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+AndOrForkActivityList::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    bool found = false;
+    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::Collect&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    if ( hasNextFork() && getNextFork()->getInterlockedTasks( path ) ) found = true;
 
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        if ( (*activity)->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-            found = true;
-        }
-    }
-
-    if ( hasNextFork() && getNextFork()->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-	found = true;
-    }
-    
     return found;
 }
 
@@ -644,10 +624,7 @@ OrForkActivityList::check() const
 {
     AndOrForkActivityList::check();
 
-    double sum = 0.;
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	sum += prBranch(*activity);
-    }
+    double sum = for_each ( activityList().begin(), activityList().end(), Sum( this ) ).sum();
     if ( fabs( 1.0 - sum ) > EPSILON ) {
         LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, getName().c_str(), owner()->name().c_str(), sum );
 	return false;
@@ -1643,13 +1620,9 @@ AndJoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, con
  */
 
 bool
-AndJoinActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
-                                          std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+AndJoinActivityList::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    if ( next() && isSync() ) {
-	return next()->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase );
-    }
-    return false;
+    return next() != nullptr && isSync() && next()->getInterlockedTasks( path );
 }
 
 
@@ -1853,19 +1826,10 @@ RepeatActivityList::followInterlock( std::deque<const Entry *>& entryStack, cons
  */
 
 bool
-RepeatActivityList::getInterlockedTasks( std::deque<const Entry *>& entryStack, const Entity * myServer,
-                                         std::set<const Entity *>& interlockedTasks, const unsigned last_phase ) const
+RepeatActivityList::getInterlockedTasks( Interlock::Collect& path ) const
 {
-    bool found = false;
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        if ( (*activity)->getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-            found = true;
-        }
-    }
-
-    if ( ForkActivityList::getInterlockedTasks( entryStack, myServer, interlockedTasks, last_phase ) ) {
-	found = true;
-    }
+    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::Collect&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    if ( ForkActivityList::getInterlockedTasks( path ) ) found = true;
 
     return found;
 }

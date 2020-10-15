@@ -130,7 +130,7 @@ Model::Model( LQIO::DOM::Document * document, const string& input_file_name, con
     if ( graphical_output() && Flags::print[KEY].value.i != 0 ) {
 	_key = new Key;
     }
-    if ( graphical_output() && Flags::print[MODEL_COMMENT].value.b ) {
+    if ( graphical_output() && (Flags::print[MODEL_COMMENT].value.b || Flags::print[SOLVER_INFO].value.b) ) {
 	_label = Label::newLabel();
     }
 
@@ -606,13 +606,21 @@ Model::process()
 	    }
 	}
 
-	/* Add the comment */
+	/* Add the solver information and-or comment */
 
-	if ( Flags::print[MODEL_COMMENT].value.b ) {
-	    *_label << _document->getModelCommentString();
-	    _extent.moveBy( 0, _label->height() );
-	    _label->moveTo( _origin.x() + (_extent.x() - _label->width()) / 2.0, _extent.y() );
+	if ( Flags::print[SOLVER_INFO].value.b ) {
+	    *_label << _document->getResultSolverInformation();
 	}
+	if ( Flags::print[MODEL_COMMENT].value.b ) {
+	    if ( _label->size() > 0 ) _label->newLine();
+	    *_label << _document->getModelCommentString();
+	}
+	if ( _label != nullptr && _label->size() ) {
+	    _extent.moveBy( 0, _label->height() );
+//	    _label->moveTo( _origin.x() + (_extent.x() - _label->width()) / 2.0, _extent.y() );
+	    _label->moveTo( _origin.x(), _extent.y() );
+	}
+	     
 
 	/* Move the key iff necessary */
 

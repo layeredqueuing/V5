@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13925 2020-10-14 13:50:34Z greg $
+ * $Id: actlist.cc 13929 2020-10-14 15:25:44Z greg $
  */
 
 
@@ -612,24 +612,19 @@ ForkJoinActivityList& ForkJoinActivityList::sort( compare_func_ptr compare )
  * Construct a list name.
  */
 
-ForkJoinActivityList::ForkJoinName::ForkJoinName( const ForkJoinActivityList& aList )
+std::string 
+ForkJoinActivityList::getName() const
 {
-    for ( std::vector<Activity *>::const_reverse_iterator activity = aList.activityList().rbegin(); activity != aList.activityList().rend(); ++activity ) {
-	if ( activity != aList.activityList().rbegin() ) {
-	    aString += ' ';
-	    aString += aList.typeStr();
-	    aString += ' ';
+    std::string name;
+    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	if ( activity != activityList().begin() ) {
+	    name += ' ';
+	    name += typeStr();
+	    name += ' ';
 	}
-	aString += (*activity)->name();
+	name += (*activity)->name();
     }
-    aString += '\0'; 	/* null terminate */
-}
-
-
-const char * 
-ForkJoinActivityList::ForkJoinName::operator()()
-{
-    return aString.c_str();
+    return name;
 }
 
 /* -------------------------------------------------------------------- */
@@ -1026,9 +1021,14 @@ AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activit
     size_t nextLevel = depth;
 
     forkStack.push_back( this );
-    for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
-    } 
+    try { 
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	    nextLevel = std::max( (*activity)->findActivityChildren( activityStack, forkStack, anEntry, depth, p, /* prBranch(i) * */ rate ), nextLevel );
+	}
+    }
+    catch ( const bad_internal_join& error ) {
+	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, owner()->name().c_str(), error.what(), getName().c_str() );
+    }
     forkStack.pop_back();
     return nextLevel;
 }
@@ -1415,13 +1415,13 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 		if ( resultSet.find( *fork_list ) == resultSet.end() ) continue;
 	    
 		if ( !const_cast<AndJoinActivityList *>(this)->joinType( INTERNAL_FORK_JOIN  ) ) {
-		    throw bad_internal_join( activityStack );
+		    throw bad_internal_join( *this );
 		}
 		const_cast<AndForkActivityList *>(*fork_list)->myJoinList = this;		/* Random choice :-) */
 		const_cast<AndJoinActivityList *>(this)->_forkList = *fork_list;
 	    }
 	} else if ( !const_cast<AndJoinActivityList *>(this)->joinType( SYNCHRONIZATION_POINT ) ) {
-	    throw bad_internal_join( activityStack );
+	    throw bad_internal_join( *this );
 	}
     }
 
@@ -1835,15 +1835,9 @@ RepeatActivityList::draw( ostream& output ) const
 
 /* ------------------------ Exception Handling ------------------------ */
 
-bad_internal_join::bad_internal_join( const std::deque<const Activity *>& activityStack )
-    : path_error( activityStack.size() )
+bad_internal_join::bad_internal_join( const ForkJoinActivityList& list )
+    : std::runtime_error( list.getName().c_str() )
 {
-    const Activity * anActivity = activityStack.back();
-    myMsg = anActivity->name();
-    for ( unsigned i = activityStack.size() - 1; i > 0; --i ) {
-        myMsg += ", ";
-        myMsg += activityStack[i]->name();
-    }
 }
 
 /* ---------------------------------------------------------------------- */

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 13925 2020-10-14 13:50:34Z greg $
+ * $Id: actlist.h 13929 2020-10-14 15:25:44Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -31,10 +31,10 @@ typedef ostream& (Activity::*printFunc)( ostream& ) const;
 
 ostream& operator<<( ostream&, const ActivityList& );
 
-class bad_internal_join : public path_error 
+class bad_internal_join : public std::runtime_error
 {
 public:
-    bad_internal_join( const std::deque<const Activity *>& );
+    bad_internal_join( const ForkJoinActivityList& );
 };
 
 /* -------------------------------------------------------------------- */
@@ -233,19 +233,6 @@ private:
 class ForkJoinActivityList : public ActivityList
 {
 public:
-    class ForkJoinName
-    {
-    public:
-	ForkJoinName( const ForkJoinActivityList& );
-	const char * operator()();
-
-    private:
-	string aString;
-    };
-	
-    friend class ForkJoinActivityList::ForkJoinName;
-
-public:
     ForkJoinActivityList( const Task * owner, const LQIO::DOM::ActivityList* );
     virtual ~ForkJoinActivityList();
     
@@ -254,6 +241,7 @@ public:
     virtual ForkJoinActivityList& sort( compare_func_ptr compare );
 
     virtual unsigned size() const { return _activityList.size(); }
+    std::string getName() const;
 	
     virtual Point srcPoint() const = 0;
     virtual Point dstPoint() const = 0;

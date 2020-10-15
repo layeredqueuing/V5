@@ -300,6 +300,7 @@ typedef enum
     WAITING              ,
     SERVICE_EXCEEDED     ,
     MODEL_COMMENT        ,
+    SOLVER_INFO		 ,
     SUMMARY              ,
     IGNORE_ERRORS	 ,
     PRINT_AGGREGATE	 ,

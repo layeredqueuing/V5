@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13857 2020-09-24 20:40:08Z greg $
+ * $Id: entry.h 13930 2020-10-15 19:20:12Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -259,7 +259,7 @@ public:
 
     unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo& );
     void followForwarding( Phase *, const Entry *, const double, Stack<const Entity *>& ) const;
-    bool getInterlockedTasks( std::deque<const Entry *>&, const Entity *, std::set<const Entity *>& ) const;
+    bool getInterlockedTasks( Interlock::Collect& ) const;
 
     void set( const Entry * src, const Activity::Collect& );
     Entry& aggregate( const unsigned, const unsigned p, const Exponential& );
