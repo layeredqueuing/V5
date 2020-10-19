@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13933 2020-10-15 20:14:58Z greg $
+ * $Id: entry.cc 13952 2020-10-19 15:00:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,6 +21,7 @@
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <iostream>
 #include <iomanip>
 #include <stdarg.h>
@@ -243,9 +244,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name().c_str(), owner()->name().c_str(), error.what() );
 	}
     } else {
-	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    max_depth = max( max_depth, phase->findChildren( callStack, directPath ) );
-	}
+	max_depth = std::accumulate( _phase.begin(), _phase.end(), 0, max_two_args<Phase,Call::stack&,bool>( &Phase::findChildren, callStack, directPath ) );
     }
 
     return max_depth;
@@ -289,7 +288,7 @@ Entry::initServiceTime()
 	entryStack.pop_back();
     }
 
-    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
     return *this;
 }
     
@@ -311,10 +310,7 @@ Entry::initReplication( const unsigned n_chains )
 Entry&
 Entry::resetInterlock()
 {
-    for ( Vector<InterlockInfo>::iterator i = _interlock.begin(); i != _interlock.end(); ++i ) {
-	i->all = 0.;
-	i->ph1 = 0.;
-    }
+    for_each ( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
     return *this;
 }
 
@@ -326,36 +322,41 @@ Entry::resetInterlock()
  * phase are used.  Otherwise, only phase 1 calls are used.
  */
 
-unsigned
-Entry::initInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls )
+Entry&
+Entry::initInterlock()		/* Called from task -- initialized calls */
+{
+    Interlock::CollectTable calls;
+    initInterlock( calls );
+    return *this;
+}
+
+Entry&
+Entry::initInterlock( Interlock::CollectTable& path ) 
 {
     /*
      * Check for cycles in graph.  Return if found.  Cycle catching
      * is done by the other version.  Someday, we might make this more
      * intelligent to compute the final prob. of following the arc.
      */
+    if ( path.has_entry( this ) ) return *this;
 
-    if ( std::find( entryStack.begin(), entryStack.end(), this ) != entryStack.end() ) {
-	return entryStack.size() + 1;
-    }
-
-    entryStack.push_back( this );
+    path.push_back( this );
 
     /* Update interlock table */
 
-    const Entry * rootEntry = entryStack.front();
+    const Entry * rootEntry = path.front();
 
     if ( rootEntry == this ) {
-	_interlock[rootEntry->entryId()] = globalCalls;
+	_interlock[rootEntry->entryId()] = path.calls();
     } else {
-	const_cast<Entry *>(rootEntry)->_interlock[entryId()] += globalCalls;
-	_interlock[rootEntry->entryId()] -= globalCalls;
+	const_cast<Entry *>(rootEntry)->_interlock[entryId()] += path.calls();
+	_interlock[rootEntry->entryId()] -= path.calls();
     }
 
-    const unsigned max_depth = followInterlock( entryStack, globalCalls );
+    followInterlock( path );
 
-    entryStack.pop_back();
-    return max_depth;
+    path.pop_back();
+    return *this;
 }
 
 
@@ -392,7 +393,7 @@ Entry::addServiceTime( const unsigned p, const double value )
 
     setMaxPhase( p );
     _phase[p].addServiceTime( value );
-    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
     return *this;
 }
 
@@ -513,7 +514,7 @@ Entry::concurrentThreads() const
  * Ergo, we have to push the entry's index to the activities.
  */
 
-void
+Entry&
 Entry::saveThroughput( const double value )
 {
     setThroughput( value );
@@ -531,6 +532,7 @@ Entry::saveThroughput( const double value )
 	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
     }
+    return *this;
 }
 
 
@@ -560,7 +562,7 @@ Entry::rendezvous( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* cal
 double
 Entry::rendezvous( const Entry * anEntry ) const
 {
-    return for_each( _phase.begin(), _phase.end(), Sum1<Phase,double,const Entry *>( &Phase::rendezvous, anEntry ) ).sum();
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::rendezvous, anEntry ) );
 }
 
 
@@ -606,7 +608,7 @@ Entry::sendNoReply( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* ca
 double
 Entry::sendNoReply( const Entry * anEntry ) const
 {
-    return for_each( _phase.begin(), _phase.end(), Sum1<Phase,double,const Entry *>( &Phase::sendNoReply, anEntry ) ).sum();
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::sendNoReply, anEntry ) );
 }
 
 
@@ -620,7 +622,7 @@ double
 Entry::sumOfSendNoReply( const unsigned p ) const
 {
     const std::set<Call *>& callList = _phase[p].callList();
-    return for_each( callList.begin(), callList.end(), Sum<Call,double>( &Call::sendNoReply ) ).sum();
+    return std::accumulate( callList.begin(), callList.end(), 0., add_using<Call>( &Call::sendNoReply ) );
 }
 
 
@@ -665,7 +667,7 @@ Entry::setStartActivity( Activity * anActivity )
 double
 Entry::processorCalls() const
 {
-    return for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::processorCalls ) ).sum();
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::processorCalls ) );
 }
 
 
@@ -690,12 +692,12 @@ Entry::resetReplication()
 double
 Entry::computeCV_sqr() const
 {
-    const double sum_S = for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::elapsedTime ) ).sum();
+    const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::elapsedTime ) );
 
     if ( !isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
-	const double sum_V = for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
+	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
 	return sum_V / square(sum_S);
     } else {
 	return 0.0;
@@ -760,7 +762,7 @@ Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigne
 double
 Entry::utilization() const
 {
-    return for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::utilization ) ).sum();
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::utilization ) );
 }
 
 
@@ -808,19 +810,18 @@ Entry::sliceTime( const Entry& dst, Slice_Info slice[], double y_xj[] ) const
  * join points.
  */
 
-unsigned
-Entry::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls )
+const Entry&
+Entry::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned max_depth = entryStack.size();
-
     if ( isActivityEntry() ) {
-	max_depth = max( _startActivity->followInterlock( entryStack, globalCalls, 1 ), max_depth );
+	_startActivity->followInterlock( path );
     } else {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    max_depth = max( _phase[p].followInterlock( entryStack, globalCalls, p ), max_depth );
+	    Interlock::CollectTable branch( path, p > 1 );
+	    _phase[p].followInterlock( branch );
 	}
     }
-    return max_depth;
+    return *this;
 }
 
 
@@ -833,7 +834,7 @@ Entry::followInterlock( std::deque<const Entry *>& entryStack, const InterlockIn
  */
 
 bool
-Entry::getInterlockedTasks( Interlock::Collect& path ) const
+Entry::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     bool found = false;
 
@@ -998,7 +999,7 @@ Entry&
 Entry::recalculateDynamicValues()
 {
     for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
-    _total.setServiceTime( for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::serviceTime ) ).sum() );
+    _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
     sanityCheckParameters();
     return *this;
 }
@@ -1125,7 +1126,7 @@ TaskEntry::computeVariance()
 	Activity::Collect collect( 0, &Activity::collectWait );
 	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
-	_total.myVariance += for_each( _phase.begin(), _phase.end(), Sum<Phase,double>( &Phase::variance ) ).sum();
+	_total.myVariance += std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
     } else {
 	_total.myVariance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
     }

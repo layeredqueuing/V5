@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13930 2020-10-15 19:20:12Z greg $
+ * $Id: actlist.h 13949 2020-10-18 16:02:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,7 +28,7 @@
 
 class Entry;
 class Entity;
-class InterlockInfo;
+struct InterlockInfo;
 class Task;
 class ForkJoinActivityList;
 class AndOrJoinActivityList;
@@ -93,10 +93,10 @@ public:
     /* Computation */
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const = 0;
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const = 0;
+    virtual void followInterlock( Interlock::CollectTable& ) const = 0;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& ) = 0;
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const = 0;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const = 0;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const = 0;
     virtual void callsPerform( const Phase::CallExec& ) const = 0;
     virtual unsigned concurrentThreads( unsigned ) const = 0;
 
@@ -149,10 +149,10 @@ public:
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
     virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const { prev()->backtrack( forkStack, forkList ); }
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
     virtual void callsPerform( const Phase::CallExec& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -174,10 +174,10 @@ public:
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
     virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const { getActivity()->backtrack( forkStack, forkList ); }
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
     virtual void callsPerform( const Phase::CallExec& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 
@@ -192,6 +192,15 @@ private:
 
 class ForkJoinActivityList : public ActivityList
 {
+private:
+    /* Used to concatentate activity list names into a string */
+    struct fold {
+	fold( const std::string& op ) : _op(op) {}
+	std::string operator()( const std::string& s1, const Activity * a2 ) const { return s1 + " " + _op + " " + a2->name(); }
+    private:
+	const std::string _op;
+    };
+
 public:
     ForkJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : ActivityList( owner, dom) {}
     virtual ~ForkJoinActivityList();
@@ -241,8 +250,8 @@ public:
     
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
     virtual void backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const;
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const;
+    virtual void followInterlock( Interlock::CollectTable& ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
 
     virtual double prBranch( const Activity * ) const = 0;
 
@@ -364,6 +373,9 @@ private:
 
 class OrJoinActivityList : public AndOrJoinActivityList
 {
+private:
+    struct add_rate { double operator()( const double l, const std::pair<const Activity *,double>& r ) { return l + r.second; } };
+    
 public:
     OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrJoinActivityList( owner, dom ), _rateList() {}
 	
@@ -371,8 +383,8 @@ public:
 
     /* Most operations are done by the OrForkActivityList by following the next after all branches have been done */
 
-    virtual unsigned followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo&, const unsigned ) const { return entryStack.size(); } /* NOP */
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const { return false; }	/* NOP */
+    virtual void followInterlock( Interlock::CollectTable& path ) const {} 	/* NOP */
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const { return false; }	/* NOP */
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& data ) { return data; }			/* NOP */
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& data ) const { return data; }			/* NOP */
     virtual void callsPerform( const Phase::CallExec& ) const {}		/* NOP - done by fork */
@@ -408,8 +420,8 @@ public:
     bool joinType( const join_type );
     bool hasQuorum() const { return 0 < quorumCount() && quorumCount() < activityList().size(); }
 	
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const;
+    virtual void followInterlock( Interlock::CollectTable& ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
     virtual void callsPerform( const Phase::CallExec& ) const;
@@ -439,10 +451,10 @@ public:
     const std::vector<const Activity *>& activityList() const { return _activityList; }
 
     virtual unsigned findChildren( Call::stack&, bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual void followInterlock( Interlock::CollectTable& ) const;
     virtual Activity::Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Activity::Collect& );
     virtual const Activity::Count_If& count_if( std::deque<const Activity *>&, Activity::Count_If& ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& ) const;
     virtual void callsPerform( const Phase::CallExec& ) const;
     virtual unsigned concurrentThreads( unsigned ) const;
 

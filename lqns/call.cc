@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13706 2020-07-22 15:03:23Z greg $
+ * $Id: call.cc 13952 2020-10-19 15:00:24Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -376,23 +376,16 @@ Call::CV_sqr() const
  * Follow the call to its destination.
  */
 
-unsigned
-Call::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+const Call&
+Call::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned max_depth = entryStack.size();
-
     /* Mark current */
 
-    if ( ( entryStack.size() == 1 || callingPhase == 1 ) && ( rendezvous() > 0.0 ) ) {
-
-	InterlockInfo next = globalCalls * rendezvous();
-	if ( callingPhase != 1 ) {
-	    next.ph1 = 0.0;
-	}
-
-	max_depth = max( const_cast<Entry *>(dstEntry())->initInterlock( entryStack, next ), max_depth );
+    if ( rendezvous() > 0.0 && !path.prune() ) {
+	Interlock::CollectTable branch( path, path.calls() * rendezvous() );
+	const_cast<Entry *>(dstEntry())->initInterlock( branch );
     }
-    return max_depth;
+    return *this;
 }
 
 

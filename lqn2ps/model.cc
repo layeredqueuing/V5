@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13813 2020-09-14 13:21:08Z greg $
+ * $Id: model.cc 13936 2020-10-16 14:31:26Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -617,8 +617,7 @@ Model::process()
 	}
 	if ( _label != nullptr && _label->size() ) {
 	    _extent.moveBy( 0, _label->height() );
-//	    _label->moveTo( _origin.x() + (_extent.x() - _label->width()) / 2.0, _extent.y() );
-	    _label->moveTo( _origin.x(), _extent.y() );
+	    _label->moveTo( _origin.x() + _extent.x()/2 , _extent.y() );
 	}
 	     
 

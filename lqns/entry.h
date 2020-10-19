@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13930 2020-10-15 19:20:12Z greg $
+ * $Id: entry.h 13950 2020-10-19 01:45:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,7 +154,8 @@ public:
     Entry& initServiceTime();
     Entry& initReplication( const unsigned );	// REPL
     Entry& resetInterlock();
-    unsigned initInterlock( std::deque<const Entry *>& stack, const InterlockInfo& globalCalls );
+    Entry& initInterlock();
+    Entry& initInterlock( Interlock::CollectTable& path );
 
     /* Instance Variable access */
 
@@ -255,11 +256,11 @@ public:
     virtual Entry& updateWait( const Submodel&, const double ) = 0;
     virtual double updateWaitReplication( const Submodel&, unsigned& ) = 0;
     virtual Entry& saveOpenWait( const double aWait ) = 0;
-    void saveThroughput( double );
+    Entry& saveThroughput( double );
 
-    unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo& );
+    const Entry& followInterlock( Interlock::CollectTable& ) const;
     void followForwarding( Phase *, const Entry *, const double, Stack<const Entity *>& ) const;
-    bool getInterlockedTasks( Interlock::Collect& ) const;
+    bool getInterlockedTasks( Interlock::CollectTasks& ) const;
 
     void set( const Entry * src, const Activity::Collect& );
     Entry& aggregate( const unsigned, const unsigned p, const Exponential& );

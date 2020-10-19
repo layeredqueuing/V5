@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13930 2020-10-15 19:20:12Z greg $
+ * $Id: phase.h 13949 2020-10-18 16:02:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -156,7 +156,7 @@ public:
     Phase& initVariance();
 
     unsigned findChildren( Call::stack&, const bool ) const;
-    virtual unsigned followInterlock( std::deque<const Entry *> &, const InterlockInfo&, const unsigned  ) const;
+    virtual const Phase& followInterlock( Interlock::CollectTable&  ) const;
     virtual void callsPerform( const CallExec& ) const;
     void setInterlockedCall(const unsigned submodel);
     void addSrcCall( Call * aCall ) { _callList.insert(aCall); }
@@ -218,7 +218,7 @@ public:
     double getReplicationProcWait( unsigned int submodel, const double relax );
     double getReplicationTaskWait( unsigned int submodel, const double relax ); //tomari quorum
     double getReplicationRendezvous( unsigned int submodel, const double relax );
-    virtual bool getInterlockedTasks( Interlock::Collect& path ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
 
     /* recalculation of dynamic values */
 	

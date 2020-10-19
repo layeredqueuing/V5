@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13930 2020-10-15 19:20:12Z greg $
+ * $Id: actlist.cc 13949 2020-10-18 16:02:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -159,14 +159,10 @@ ForkActivityList::findChildren( Call::stack& callStack, bool directPath, std::de
  * Generate interlocking table.
  */
 
-unsigned
-ForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+void
+ForkActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    if ( getActivity() ) {
-        return getActivity()->followInterlock( entryStack, globalCalls, callingPhase );
-    } else {
-        return entryStack.size();
-    }
+    if ( getActivity() ) getActivity()->followInterlock( path );
 }
 
 
@@ -212,7 +208,7 @@ ForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count
  */
 
 bool
-ForkActivityList::getInterlockedTasks( Interlock::Collect& path ) const
+ForkActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     return getActivity() != nullptr && getActivity()->getInterlockedTasks( path );
 }
@@ -281,14 +277,10 @@ JoinActivityList::findChildren( Call::stack& callStack, bool directPath, std::de
  * Link activity.
  */
 
-unsigned
-JoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+void
+JoinActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    if ( next() ) {
-        return next()->followInterlock( entryStack, globalCalls, callingPhase );
-    } else {
-        return entryStack.size();
-    }
+    if ( next() ) return next()->followInterlock( path );
 }
 
 
@@ -303,7 +295,7 @@ JoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, const 
  */
 
 bool
-JoinActivityList::getInterlockedTasks( Interlock::Collect& path ) const
+JoinActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     return next() != nullptr && next()->getInterlockedTasks( path );
 }
@@ -411,16 +403,7 @@ ForkJoinActivityList::add( Activity * anActivity )
 std::string
 ForkJoinActivityList::getName() const
 {
-    std::string name;
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        if ( activity != activityList().begin() ) {
-            name += " ";
-            name += typeStr();
-            name += " ";
-        }
-        name += (*activity)->name();
-    }
-    return name;
+    return std::accumulate( std::next( activityList().begin() ), activityList().end(), activityList().front()->name(), fold( typeStr() ) );
 }
 
 /* -------------------------------------------------------------------- */
@@ -523,20 +506,14 @@ AndOrForkActivityList::findChildren( Call::stack& callStack, bool directPath, st
  * Link activity.  Current path ends here.
  */
 
-unsigned
-AndOrForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+void
+AndOrForkActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned max_depth = entryStack.size();
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        const InterlockInfo newCalls = globalCalls * prBranch(*activity);
-        max_depth = max( (*activity)->followInterlock( entryStack, newCalls, callingPhase ), max_depth );
+	Interlock::CollectTable branch( path, path.calls() * prBranch(*activity) );
+        (*activity)->followInterlock( branch );
     }
-
-    if ( hasNextFork() ) {
-	max_depth = max( getNextFork()->followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
-    }
-
-    return max_depth;
+    if ( hasNextFork() ) getNextFork()->followInterlock( path );
 }
 
 
@@ -552,9 +529,9 @@ AndOrForkActivityList::followInterlock( std::deque<const Entry *>& entryStack, c
  */
 
 bool
-AndOrForkActivityList::getInterlockedTasks( Interlock::Collect& path ) const
+AndOrForkActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::Collect&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::CollectTasks&>( &Activity::getInterlockedTasks, path ) ) > 0;
     if ( hasNextFork() && getNextFork()->getInterlockedTasks( path ) ) found = true;
 
     return found;
@@ -805,13 +782,7 @@ OrForkActivityList::callsPerform( const Phase::CallExec& exec ) const
 unsigned
 OrForkActivityList::concurrentThreads( unsigned n ) const
 {
-    const unsigned m = n;
-
-    /* Now search down lists */
-    
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        n = max( (*activity)->concurrentThreads( m ), n );
-    }
+    n = std::accumulate( activityList().begin(), activityList().end(), n, max_using_arg<Activity,const unsigned int>( &Activity::concurrentThreads, n ) );
 
     if ( hasNextFork() ) {
         return getNextFork()->concurrentThreads( n );
@@ -1403,7 +1374,7 @@ AndForkActivityList::callsPerform( const Phase::CallExec& exec ) const
 unsigned
 AndForkActivityList::concurrentThreads( unsigned n ) const
 {
-    unsigned m = for_each( activityList().begin(), activityList().end(), Sum1<Activity,unsigned,unsigned>( &Activity::concurrentThreads, 1 ) ).sum();
+    unsigned m = std::accumulate( activityList().begin(), activityList().end(), 0, unsigned_add_using_arg<Activity,unsigned>( &Activity::concurrentThreads, 1 ) );
     n = max( n, m - 1 );
 
     if ( hasNextFork() ) {
@@ -1555,9 +1526,7 @@ bool
 OrJoinActivityList::updateRate( const Activity * activity, double rate )
 {
     _rateList.insert( std::pair<const Activity *,double>( activity, rate ) );
-    _rate = 0;
-    for ( std::map<const Activity *,double>::const_iterator i = _rateList.begin(); i != _rateList.end(); ++i ) _rate += i->second;
-//    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0. );
+    _rate = std::accumulate( _rateList.begin(), _rateList.end(), 0., add_rate() );
     return true;
 }
 
@@ -1598,13 +1567,10 @@ AndJoinActivityList::check() const
  * Follow the path.  We don't care about other paths.
  */
 
-unsigned
-AndJoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+void
+AndJoinActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    if ( next() && isSync() ) {
-	return next()->followInterlock( entryStack, globalCalls, callingPhase );
-    }
-    return entryStack.size();
+    if ( next() && isSync() ) next()->followInterlock( path );
 }
 
 
@@ -1620,7 +1586,7 @@ AndJoinActivityList::followInterlock( std::deque<const Entry *>& entryStack, con
  */
 
 bool
-AndJoinActivityList::getInterlockedTasks( Interlock::Collect& path ) const
+AndJoinActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     return next() != nullptr && isSync() && next()->getInterlockedTasks( path );
 }
@@ -1800,17 +1766,14 @@ RepeatActivityList::findChildren( Call::stack& callStack, bool directPath, std::
  * Link activity.
  */
 
-unsigned
-RepeatActivityList::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+void
+RepeatActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned max_depth = entryStack.size();
-
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        const InterlockInfo newCalls = globalCalls * rateBranch(*activity);
-        max_depth = max( (*activity)->followInterlock( entryStack, newCalls, callingPhase ), max_depth );
+	Interlock::CollectTable branch( path, path.calls() * rateBranch(*activity) );
+        (*activity)->followInterlock( branch );
     }
-
-    return max( ForkActivityList::followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
+    ForkActivityList::followInterlock( path );
 }
 
 
@@ -1826,9 +1789,9 @@ RepeatActivityList::followInterlock( std::deque<const Entry *>& entryStack, cons
  */
 
 bool
-RepeatActivityList::getInterlockedTasks( Interlock::Collect& path ) const
+RepeatActivityList::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::Collect&>( &Activity::getInterlockedTasks, path ) ) > 0;
+    bool found = std::count_if( activityList().begin(), activityList().end(), Predicate1<Activity,Interlock::CollectTasks&>( &Activity::getInterlockedTasks, path ) ) > 0;
     if ( ForkActivityList::getInterlockedTasks( path ) ) found = true;
 
     return found;
@@ -1933,10 +1896,7 @@ RepeatActivityList::count_if( std::deque<const Activity *>& stack, Activity::Cou
 unsigned
 RepeatActivityList::concurrentThreads( unsigned n ) const
 {
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-        n = max( n, (*activity)->concurrentThreads( n ) );
-    }
-
+    n = std::accumulate( activityList().begin(), activityList().end(), n, max_using_arg<Activity,const unsigned int>( &Activity::concurrentThreads, n ) );
     return ForkActivityList::concurrentThreads( n );
 }
 

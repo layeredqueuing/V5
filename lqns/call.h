@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 13705 2020-07-20 21:46:53Z greg $
+ * $Id: call.h 13949 2020-10-18 16:02:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -24,6 +24,7 @@
 #include <lqio/dom_call.h>
 #include <deque>
 #include "prob.h"
+#include "interlock.h"
 
 
 class Entry;
@@ -34,7 +35,7 @@ class Submodel;
 class Phase;
 class Path;
 class EntryPath;
-class InterlockInfo;
+struct InterlockInfo;
 class PathNode;
 class Server;
 class Task;
@@ -153,7 +154,7 @@ public:
 
     double variance() const;
     double CV_sqr() const;
-    unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    const Call& followInterlock( Interlock::CollectTable& ) const;
 
     /* MVA interface */
 

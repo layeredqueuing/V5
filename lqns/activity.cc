@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13933 2020-10-15 20:14:58Z greg $
+ * $Id: activity.cc 13952 2020-10-19 15:00:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -238,27 +238,18 @@ Activity::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack,
 
 
 /*
- * Follow the path.  New threads are created as needed.
+ * Follow the calls from the activity and whomever it calls.
  */
 
-unsigned
-Activity::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+const Activity&
+Activity::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned nextPhase = callingPhase;
-    if ( repliesTo( entryStack.back() ) ) {
-	nextPhase = 2;
-    }
-
-    /* Follow arcs of activity. */
-
-    unsigned max_depth = Phase::followInterlock( entryStack, globalCalls, callingPhase );
-
-    /* Now follow the activity path. */
-	
+    Phase::followInterlock( path );		/* Follow calls from the activity. */
     if ( _nextJoin ) {
-	max_depth = max( _nextJoin->followInterlock( entryStack, globalCalls, nextPhase ), max_depth );
+	Interlock::CollectTable branch( path, repliesTo( path.back() ) );
+	_nextJoin->followInterlock( branch );    /* Now follow the activity path. */
     }
-    return max_depth;
+    return *this;
 }
 
 
@@ -273,10 +264,10 @@ Activity::followInterlock( std::deque<const Entry *>& entryStack, const Interloc
  */
 
 bool
-Activity::getInterlockedTasks( Interlock::Collect& path ) const
+Activity::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     bool found = Phase::getInterlockedTasks( path );
-    if ( ( !repliesTo( path.back() ) || path.allowPhase2() ) && _nextJoin && _nextJoin->getInterlockedTasks( path ) ) found = true;
+    if ( ( !repliesTo( path.back() ) || !path.prune() ) && _nextJoin && _nextJoin->getInterlockedTasks( path ) ) found = true;
     return found;
 }
 

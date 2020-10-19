@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 13933 2020-10-15 20:14:58Z greg $
+ * $Id: interlock.h 13952 2020-10-19 15:00:24Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,21 +21,16 @@
 #include <set>
 #include <deque>
 
-class Interlock;
-class InterlockInfo;
 class Entry;
 class Entity;
 class Task;
 
-ostream& operator<<( ostream&, const Interlock& );
-ostream& operator<<( ostream&, const InterlockInfo& );
-
-class InterlockInfo 
+struct InterlockInfo 
 {
-public:
     InterlockInfo( float a = 0.0, float p = 0.0 ) : all(a), ph1(p) {}
     InterlockInfo& operator=( const InterlockInfo& );
     bool operator==( const InterlockInfo& ) const;
+    InterlockInfo& reset() { all = 0.; ph1 = 0.; return *this; }
 
     float all;	/* Calls from all phases at root.	*/	
     float ph1;	/* Calls from phase 1 only at root.	*/
@@ -46,33 +41,62 @@ public:
 class Interlock {
 
 public:
-    class Collect {
+    class CollectTasks {
     public:
-	Collect( const Entity * server, std::set<const Entity *>& interlockedTasks )
+	CollectTasks( const Entity * server, std::set<const Entity *>& interlockedTasks )
 	    : _server(server),
 	      _entryStack(),
 	      _interlockedTasks( interlockedTasks )
 	    {}
 
     private:
-	Collect( const Collect& ); // = delete;
-	Collect& operator=( const Collect& ); // = delete;
+	CollectTasks( const CollectTasks& ); // = delete;
+	CollectTasks& operator=( const CollectTasks& ); // = delete;
 
     public:
 	const Entity * server() const { return _server; }
 	bool headOfPath() const { return _entryStack.size() == 0; }
-	bool allowPhase2() const { return _entryStack.size() == 1; }		/* Allow from the top-of-path entry only */
+	bool prune() const { return _entryStack.size() > 1; }		/* Allow from the top-of-path entry only */
 
 	void push_back( const Entry * entry ) { _entryStack.push_back( entry ); }
 	void pop_back() { _entryStack.pop_back(); }
 	const Entry * back() const { return _entryStack.back(); }
 	std::pair<std::set<const Entity *>::const_iterator,bool> insert( const Entity * entity ) { return _interlockedTasks.insert( entity ); }
-	bool hasEntry( const Entry * entry ) const { return std::find( _entryStack.begin(), _entryStack.end(), entry ) != _entryStack.end(); }
+	bool has_entry( const Entry * entry ) const;
 	
-    public:
+    private:
 	const Entity * _server;				/* In */
 	std::deque<const Entry *> _entryStack;		/* local */
 	std::set<const Entity *>& _interlockedTasks;	/* Out */
+    };
+
+    class CollectTable {
+    public:
+	CollectTable() : _entryStack(), _phase2(false), _calls(1.0,1.0) {}
+	CollectTable( const CollectTable& src, bool phase2 ) : _entryStack(src._entryStack), _phase2(phase2), _calls(src._calls) {}
+	CollectTable( const CollectTable& src, const InterlockInfo& calls ) : _entryStack(src._entryStack), _phase2(src._phase2), _calls(calls)
+	    {
+		if ( _phase2 ) _calls.ph1 = 0.0;
+	    }
+
+    private:
+	CollectTable( const CollectTable& ); // = delete
+	CollectTable& operator=( const CollectTable& ); // = delete
+
+    public:
+	bool prune() const { return _entryStack.size() > 1 && _phase2; }
+	InterlockInfo& calls() { return _calls; }
+	
+	void push_back( const Entry * entry ) { _entryStack.push_back( entry ); }
+	void pop_back() { _entryStack.pop_back(); }
+	const Entry * front() const { return _entryStack.front(); }
+	const Entry * back() const { return _entryStack.back(); }
+	bool has_entry( const Entry * entry ) const;
+
+    private:
+	std::deque<const Entry *> _entryStack;		/* local */
+	bool _phase2;					/* local */
+	InterlockInfo _calls;				/* out */
     };
 
 public:
@@ -113,5 +137,8 @@ inline ostream& operator<<( ostream& output, const Interlock& self) { return sel
 InterlockInfo& operator+=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo& operator-=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo operator*( const InterlockInfo&, double );
+
+ostream& operator<<( ostream&, const Interlock& );
+ostream& operator<<( ostream&, const InterlockInfo& );
 bool operator>( const InterlockInfo&, double  );
 #endif

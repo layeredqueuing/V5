@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13930 2020-10-15 19:20:12Z greg $
+ * $Id: activity.h 13949 2020-10-18 16:02:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -219,11 +219,11 @@ public:
 
     unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
     const Activity& backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const;
-    virtual unsigned followInterlock( std::deque<const Entry *>&, const InterlockInfo&, const unsigned ) const;
+    virtual const Activity& followInterlock( Interlock::CollectTable& ) const;
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
     Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;
     virtual void callsPerform( const CallExec& ) const;
-    virtual bool getInterlockedTasks( Interlock::Collect& path ) const;
+    virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
     unsigned concurrentThreads( unsigned ) const;
     /* XML output */
 

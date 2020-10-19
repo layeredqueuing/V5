@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13930 2020-10-15 19:20:12Z greg $
+ * $Id: phase.cc 13950 2020-10-19 01:45:22Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -16,6 +16,7 @@
 #include "dim.h"
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <cstdlib>
 #include <sstream>
 #include <lqio/input.h>
@@ -892,6 +893,7 @@ Phase::nrFactor( const Call * aCall, const Submodel& aSubmodel ) const
 	
     Task * aTask = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
     const ChainVector& aChain = aTask->clientChains( submodel );
+#warning should this be +=?
     for ( unsigned ix = 1; ix <= aChain.size(); ++ix, ++count ) {
 	nr_factor = aCall->nrFactor( aSubmodel, aChain[ix] );
     }
@@ -1004,7 +1006,7 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
 double
 Phase::getReplicationTaskWait( unsigned int submodel, const double relax ) 
 {
-    return for_each( callList().begin(), callList().end(), Sum<Call,double>( &Call::wait ) ).sum();
+    return std::accumulate( callList().begin(), callList().end(), 0., add_using<Call>( &Call::wait ) );
 }
 
 
@@ -1184,22 +1186,15 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
  * join.
  */
 
-unsigned
-Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockInfo& globalCalls, const unsigned callingPhase ) const
+const Phase&
+Phase::followInterlock( Interlock::CollectTable& path ) const
 {
-    unsigned max_depth = entryStack.size();
-	
-    /* Store in path list */
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	max_depth = max( (*call)->followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
-    }
+    for_each( callList().begin(), callList().end(), ConstExec1<Call,Interlock::CollectTable&>( &Call::followInterlock, path ) );
 
     if ( processorCall() ) {
-	max_depth = max( processorCall()->followInterlock( entryStack, globalCalls, callingPhase ), max_depth );
+	processorCall()->followInterlock( path );
     }
-    return max_depth;
-
+    return *this;
 }
 
 
@@ -1214,13 +1209,13 @@ Phase::followInterlock( std::deque<const Entry *>& entryStack, const InterlockIn
  */
 
 bool
-Phase::getInterlockedTasks( Interlock::Collect& path ) const
+Phase::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
     bool found = false;
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	const Entry * dstEntry = (*call)->dstEntry();
-	if ( !path.hasEntry( dstEntry ) && dstEntry->getInterlockedTasks( path ) ) found = true;
+	if ( !path.has_entry( dstEntry ) && dstEntry->getInterlockedTasks( path ) ) found = true;
     }
 
     if ( processorCall() && processorCall()->dstEntry()->getInterlockedTasks( path ) ) found = true;

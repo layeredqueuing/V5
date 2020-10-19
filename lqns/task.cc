@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13880 2020-09-26 12:57:24Z greg $
+ * $Id: task.cc 13950 2020-10-19 01:45:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <string.h>
 #include <lqio/error.h>
 #include <lqio/input.h>
@@ -335,12 +336,7 @@ Task&
 Task::initInterlock()
 {
     if ( !Pragma::interlock() ) return *this;
-
-    std::deque<const Entry *> entryStack;
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	InterlockInfo calls(1.0,1.0);
-	(*entry)->initInterlock( entryStack, calls );
-    }
+    for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::initInterlock ) );
     return *this;
 }
 
@@ -355,10 +351,7 @@ Task::initThreads()
 {
     _maxThreads = 1;
     if ( hasThreads() ) {
-	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	    unsigned old = (*entry)->concurrentThreads();
-	    _maxThreads = max( old, _maxThreads );
-	}
+	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, max_using<Entry>( &Entry::concurrentThreads ) );
     }
     if ( _maxThreads > nThreads() ) throw logic_error( "Task::initThreads" );
     return *this;
@@ -648,7 +641,7 @@ Task::countCallers( std::set<Task *>& reject ) const
 double
 Task::processorUtilization() const
 {
-    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::processorUtilization ) ).sum();
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::processorUtilization ) );
 }
 
 
@@ -735,12 +728,7 @@ Task::sanityCheck() const
 {
     Entity::sanityCheck();
 
-    bool rc = true;
-
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	rc = rc && (*entry)->checkDroppedCalls();
-    }
-    if ( !rc ) {
+    if ( !std::all_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::checkDroppedCalls ) ) ) {
 	LQIO::solution_error( LQIO::ADV_MESSAGES_DROPPED, name().c_str() );
     }
     return *this;
@@ -764,7 +752,7 @@ Task::callsPerform( callFunc aFunc, const unsigned submodel ) const
 	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	    (*entry)->callsPerform( aFunc, submodel, k );
 	}
-	for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
+	for ( Vector<Thread *>::const_iterator thread = std::next(_threads.begin()); thread != _threads.end(); ++thread ) {
 	    k = aChain[ix++];
 	    (*thread)->callsPerform( aFunc, submodel, k );
 	}
@@ -784,7 +772,7 @@ Task::openCallsPerform( callFunc aFunc, const unsigned submodel ) const
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	(*entry)->callsPerform( aFunc, submodel );
     }
-    for ( Vector<Thread *>::const_iterator thread = _threads.begin() + 1; thread != _threads.end(); ++thread ) {
+    for ( Vector<Thread *>::const_iterator thread = std::next(_threads.begin()); thread != _threads.end(); ++thread ) {
 	(*thread)->callsPerform( aFunc, submodel );
     }
     return *this;
@@ -855,17 +843,12 @@ Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
 {
     /* Do updateWait for each activity first. */
 
-    double delta = 0;
-    for( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	delta += (*activity)->updateWaitReplication( aSubmodel );
-    }
+    double delta = for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, aSubmodel ) ).sum();
     n_delta += activities().size();
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	delta += (*entry)->updateWaitReplication( aSubmodel, n_delta );
-    }
+    delta += for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, aSubmodel, n_delta ) ).sum();
 
     return delta;
 }
@@ -1155,7 +1138,7 @@ Task::expandQuorumGraph()
 
     //Get Join Lists
     Sequence<Activity *> nextActivity(activities());
-    for (  ; (anActivity = nextActivity()) && (anActivity->nextJoin());   ) {
+    while ( anActivity = nextActivity()) && (anActivity->nextJoin() ) {
 	joinLists.findOrAdd(anActivity->nextJoin());
     }
     // cout <<"\njoinLists.size () = " << joinLists.size() << endl;
@@ -1499,11 +1482,7 @@ ReferenceTask::findChildren( Call::stack& callStack, const bool ) const
 
     /* Chase calls from srcTask. */
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	max_depth = max( max_depth, (*entry)->findChildren( callStack, true ) );
-    }
-
-    return max_depth;
+    return std::accumulate( entries().begin(), entries().end(), max_depth, max_two_args<Entry,Call::stack&,bool>( &Entry::findChildren, callStack, true ) );
 }
 
 
@@ -1532,7 +1511,6 @@ ReferenceTask::sanityCheck() const
     }
     return *this;
 }
-
 
 /* -------------------------- Simple Servers. ------------------------- */
 

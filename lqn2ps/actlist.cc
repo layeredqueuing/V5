@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13929 2020-10-14 15:25:44Z greg $
+ * $Id: actlist.cc 13938 2020-10-16 18:17:40Z greg $
  */
 
 
@@ -1391,7 +1391,7 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 
 	/* Go up all of the branches looking for forks found on forkStack */
 
-	for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	    if ( *activity == activityStack.back() ) continue;		/* No need -- this is resultSet */
 	
 	    /* Find all forks from this activity that match anything in forkStack */

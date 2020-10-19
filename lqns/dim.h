@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 13857 2020-09-24 20:40:08Z greg $
+ * $Id: dim.h 13950 2020-10-19 01:45:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -22,6 +22,7 @@
 #endif
 
 #include <cassert>
+#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <cstring>
@@ -220,6 +221,20 @@ private:
     Type2 _sum;
 };
     
+template <class Type1, class Type2, class Type3, class Type4 > struct ExecSum2
+{
+    typedef Type2 (Type1::*funcPtr)( Type3, Type4 );
+    ExecSum2<Type1,Type2,Type3,Type4>( funcPtr f, Type3 arg1, Type4 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2), _sum(0.) {}
+    void operator()( Type1 * object ) { _sum += (object->*_f)( _arg1, _arg2 ); }
+    void operator()( Type1& object ) { _sum += (object.*_f)( _arg1, _arg2 ); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type3 _arg1;
+    Type4 _arg2;
+    Type2 _sum;
+};
+    
 template <class Type1, class Type2> struct ConstExec1
 {
     typedef const Type1& (Type1::*funcPtr)( Type2 ) const;
@@ -305,29 +320,68 @@ private:
     Type2 _arg;
 };
 
-template <class Type1, class Type2> struct Sum
+template <class Type1> struct add_using
 {
-    typedef Type2 (Type1::*funcPtr)() const;
-    Sum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0) {}
-    void operator()( const Type1 * object ) { _sum += (object->*_f)(); }
-    void operator()( const Type1& object ) { _sum += (object.*_f)(); }
-    Type2 sum() const { return _sum; }
+    typedef double (Type1::*funcPtr)() const;
+    add_using<Type1>( funcPtr f ) : _f(f) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(); }
 private:
-    funcPtr _f;
-    Type2 _sum;
+    const funcPtr _f;
 };
-	
-template <class Type1, class Type2, class Type3> struct Sum1
+
+template <class Type1, class Type2> struct add_using_arg
 {
-    typedef Type2 (Type1::*funcPtr)( Type3 ) const;
-    Sum1<Type1,Type2,Type3>( funcPtr f, Type3 arg ) : _f(f), _arg(arg),  _sum(0) {}
-    void operator()( const Type1 * object ) { _sum += (object->*_f)(_arg); }
-    void operator()( const Type1& object ) { _sum += (object.*_f)(_arg); }
-    Type2 sum() const { return _sum; }
+    typedef double (Type1::*funcPtr)( Type2 ) const;
+    add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg); }
 private:
-    funcPtr _f;
-    Type3 _arg;
-    Type2 _sum;
+    const funcPtr _f;
+    Type2 _arg;
 };
-	
+
+template <class Type1> struct max_using
+{
+    typedef unsigned int (Type1::*funcPtr)() const;
+    max_using<Type1>( funcPtr f ) : _f(f) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)() ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)() ); }
+private:
+    const funcPtr _f;
+};
+
+template <class Type1, class Type2> struct max_using_arg
+{
+    typedef unsigned int (Type1::*funcPtr)( Type2 ) const;
+    max_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg) ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg) ); }
+private:
+    const funcPtr _f;
+    Type2 _arg;
+};
+
+template <class Type1, class Type2, class Type3 > struct max_two_args
+{
+    typedef unsigned int (Type1::*funcPtr)( Type2, Type3 ) const;
+    max_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg1,_arg2) ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg1,_arg2) ); }
+private:
+    const funcPtr _f;
+    Type2 _arg1;
+    Type3 _arg2;
+};
+
+template <class Type1, class Type2> struct unsigned_add_using_arg
+{
+    typedef unsigned (Type1::*funcPtr)( Type2 ) const;
+    unsigned_add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    unsigned operator()( unsigned l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
+    unsigned operator()( unsigned l, const Type1& r ) const { return l + (r.*_f)(_arg); }
+private:
+    const funcPtr _f;
+    Type2 _arg;
+};
 #endif

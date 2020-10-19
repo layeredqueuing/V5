@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13931 2020-10-15 19:41:08Z greg $
+ * $Id: interlock.cc 13949 2020-10-18 16:02:42Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -14,13 +14,17 @@
 
 #include <algorithm>
 #include <cmath>
-#include "lqns.h"
 #include <algorithm>
+#include <numeric>
+#include "lqns.h"
 #include "interlock.h"
 #include "task.h"
 #include "entry.h"
 #include "option.h"
 #include "model.h"
+
+bool Interlock::CollectTasks::has_entry(const Entry * entry ) const { return std::find( _entryStack.begin(), _entryStack.end(), entry ) != _entryStack.end(); }
+bool Interlock::CollectTable::has_entry(const Entry * entry ) const { return std::find( _entryStack.begin(), _entryStack.end(), entry ) != _entryStack.end(); }
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
@@ -275,7 +279,7 @@ Interlock::findSources()
 
 	/* Locate all tasks on interlocked paths. */
 
-	Collect data( myServer, interlockedTasks );
+	CollectTasks data( myServer, interlockedTasks );
 	(*entry)->getInterlockedTasks( data );
     }
 
@@ -398,7 +402,7 @@ Interlock::isBranchPoint( const Entry& srcX, const Entry& entryA, const Entry& s
 	for ( std::vector<CallInfoItem>::const_iterator yyf = nextY.begin(); yyf != nextY.end(); ++yyf ) {
 	    const Entry * dstF = yyf->dstEntry();
 
-	    if ( dstF->_interlock[b].all > 0.0 && dstE->owner() != dstF->owner() ) return 1;
+	    if ( dstF->_interlock[b].all > 0.0 && dstE->owner() != dstF->owner() ) return true;
 	}
     }
 
@@ -441,7 +445,7 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
      * properly for infinite servers.
      */
 
-    unsigned n = for_each( allSourceTasks.begin(), allSourceTasks.end(), Sum<const Entity,double>( &Entity::population ) ).sum();
+    unsigned n = std::accumulate( allSourceTasks.begin(), allSourceTasks.end(), 0., add_using<const Entity>( &Entity::population ) );
 
     /*
      * Add in phase 2 sources of tasks that are on the interlock

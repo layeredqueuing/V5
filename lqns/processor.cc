@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13786 2020-08-22 16:50:37Z greg $
+ * $Id: processor.cc 13943 2020-10-16 22:00:45Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,6 +18,7 @@
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
@@ -426,7 +427,7 @@ Processor::insertDOMResults(void) const
 	    }
 	}
 	const std::vector<Activity *>& activities = (*task)->activities();
-	sumOfProcUtil += for_each( activities.begin(), activities.end(), Sum<Activity,double>( &Activity::processorUtilization ) ).sum();
+	sumOfProcUtil += std::accumulate( activities.begin(), activities.end(), 0., add_using<Activity>( &Activity::processorUtilization ) );
     }
 
     if ( getDOM() ) {

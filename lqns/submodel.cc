@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13840 2020-09-21 14:44:18Z greg $
+ * $Id: submodel.cc 13946 2020-10-17 03:19:14Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -1033,7 +1033,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 
 	for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	    saveServerResults( (*server) );
+	    saveServerResults( *server );
 	    (*server)->computeUtilization().setIdleTime( relax );
 	}
 
@@ -1148,8 +1148,8 @@ MVASubmodel::saveServerResults( Entity * aServer )
 		break;
 	    }
 	}
-	(*entry)->saveThroughput( lambda );
-	(*entry)->saveOpenWait( aStation->R( e, 0 ) );
+	(*entry)->saveThroughput( lambda )
+	    .saveOpenWait( aStation->R( e, 0 ) );
     }
 }
 

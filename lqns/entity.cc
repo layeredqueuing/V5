@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13786 2020-08-22 16:50:37Z greg $
+ * $Id: entity.cc 13943 2020-10-16 22:00:45Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -19,6 +19,7 @@
 #include <sstream>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
@@ -240,7 +241,7 @@ Entity::addEntry( Entry * anEntry )
 double
 Entity::throughput() const
 {		
-    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::throughput ) ).sum();
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::throughput ) );
 }
 
 
@@ -252,7 +253,7 @@ Entity::throughput() const
 double
 Entity::openArrivalRate() const
 {
-    return for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::openArrivalRate ) ).sum();
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::openArrivalRate ) );
 }
 
 
@@ -265,7 +266,7 @@ double
 Entity::utilization() const
 {		
 #if !DEFERRED_UTILIZATION
-    const_cast<Entity *>(this)->_utilization = for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
+    const_cast<Entity *>(this)->_utilization = std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
     if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
 	std::ostringstream err;
 	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
@@ -336,7 +337,7 @@ Entity::nCustomers() const
 {
     std::set<Task *> tasks;
     clients( tasks );
-    return for_each( tasks.begin(), tasks.end(), Sum<Task,double>( &Task::population ) ).sum();
+    return std::accumulate( tasks.begin(), tasks.end(), 0., add_using<Task>( &Task::population ) );
 }
 
 /*
@@ -384,7 +385,7 @@ Entity&
 Entity::computeUtilization()
 {
 #if DEFERRED_UTILIZATION
-    _utilization = for_each( entries().begin(), entries().end(), Sum<Entry,double>( &Entry::utilization ) ).sum();
+    _utilization = std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
     if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
 	std::ostringstream err;
 	err << name() << " utilization=" << _utilization << " exceeds multiplicity=" << copies();
