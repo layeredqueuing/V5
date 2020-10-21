@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13949 2020-10-18 16:02:42Z greg $
+ * $Id: actlist.cc 13980 2020-10-21 19:00:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -144,12 +144,12 @@ ForkActivityList::ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom 
  */
 
 unsigned
-ForkActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+ForkActivityList::findChildren( Activity::Children& path ) const
 {
     if ( getActivity() ) {
-        return getActivity()->findChildren( callStack, directPath, activityStack, forkStack, rate );
+        return getActivity()->findChildren( path );
     } else {
-        return callStack.depth();
+        return path.depth();
     }
 }
 
@@ -262,12 +262,12 @@ JoinActivityList::JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom 
  */
 
 unsigned
-JoinActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+JoinActivityList::findChildren( Activity::Children& path ) const
 {
     if ( next() ) {
-        return next()->findChildren( callStack, directPath, activityStack, forkStack, rate );
+        return next()->findChildren( path );
     } else {
-        return callStack.depth();
+        return path.depth();
     }
 }
 
@@ -474,29 +474,20 @@ AndOrForkActivityList::check() const
 
 
 unsigned
-AndOrForkActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+AndOrForkActivityList::findChildren( Activity::Children& path ) const
 {
-    forkStack.push_back( this );
+    path.push_fork( this );
 
     /* Now search down lists */
 
     unsigned int max_depth = 0;
     try {
-	for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-            if ( Options::Debug::forks() ) {
-		if ( dynamic_cast<const AndForkActivityList *>(this) ) std::cerr << "And Fork: ";
-		else if ( dynamic_cast<const OrForkActivityList *>(this) ) std::cerr << "Or Fork:  ";
-		else abort();
-		std::cerr << setw( activityStack.size() ) << " " << activityStack.back()->name()
-			  << " -> " << (*activity)->name() << endl;
-            }
-            max_depth = max( (*activity)->findChildren( callStack, directPath, activityStack, forkStack, rate * prBranch( *activity ) ), max_depth );
-        }
+	max_depth = std::accumulate( activityList().begin(), activityList().end(), max_depth, find_children( *this, path ) );
     }
     catch ( const bad_internal_join& error ) {
 	LQIO::solution_error( LQIO::ERR_JOIN_PATH_MISMATCH, owner()->name().c_str(), error.what(), getName().c_str() );
     }
-    forkStack.pop_back();
+    path.pop_fork();
     return max_depth;
 }
 
@@ -509,10 +500,7 @@ AndOrForkActivityList::findChildren( Call::stack& callStack, bool directPath, st
 void
 AndOrForkActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	Interlock::CollectTable branch( path, path.calls() * prBranch(*activity) );
-        (*activity)->followInterlock( branch );
-    }
+    std::for_each( activityList().begin(), activityList().end(), follow_interlock( *this, path ) );
     if ( hasNextFork() ) getNextFork()->followInterlock( path );
 }
 
@@ -558,11 +546,29 @@ AndOrForkActivityList::collectToEntry( const Activity * activity, Entry * entry,
 }
 
 
+
 std::ostream&
 AndOrForkActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
     for_each( _entryList.begin(), _entryList.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, offset ) );
     return output;
+}
+
+
+
+unsigned
+AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity * arg2 ) const
+{
+    if ( Options::Debug::forks() ) {
+	if ( dynamic_cast<const AndForkActivityList *>(&_self) ) std::cerr << "And Fork: ";
+	else if ( dynamic_cast<const OrForkActivityList *>(&_self) ) std::cerr << "Or Fork:  ";
+	else abort();
+	const std::deque<const Activity *>& activityStack = _path.getActivityStack();
+	std::cerr << setw( activityStack.size() ) << " " << activityStack.back()->name()
+		  << " -> " << arg2->name() << endl;
+    }
+    Activity::Children path( _path, _self.prBranch( arg2 ) );
+    return std::max( arg1, arg2->findChildren(path) );
 }
 
 /* -------------------------------------------------------------------- */
@@ -601,7 +607,7 @@ OrForkActivityList::check() const
 {
     AndOrForkActivityList::check();
 
-    double sum = for_each ( activityList().begin(), activityList().end(), Sum( this ) ).sum();
+    const double sum = std::accumulate( activityList().begin(), activityList().end(), 0.0, add_prBranch( this ) );
     if ( fabs( 1.0 - sum ) > EPSILON ) {
         LQIO::solution_error( LQIO::ERR_MISSING_OR_BRANCH, getName().c_str(), owner()->name().c_str(), sum );
 	return false;
@@ -712,7 +718,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 
     /* Now follow the activities after the join */
 
-    assert( phase == data.phase() );		/* Phase change should not occur on branch */
+//    assert( phase == data.phase() );		/* Phase change should not occur on branch */
 
     if ( hasNextFork() ) {
 	data.setRate( data.rate() * joinList()->getNextRate() );	/* May not be 1. */
@@ -738,10 +744,10 @@ OrForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Cou
 	branch.setReplyAllowed(false);
 	branch.setRate( data.rate() * prBranch(*activity) );
 	branch = (*activity)->count_if( stack, branch );		/* only want the last one. */
-	sum += branch.sum();
+	sum += branch.sum() - data.sum();				/* only accumulate difference */
 	phase = std::max( phase, branch.phase() );
     }
-    assert( phase == data.phase() );
+//    assert( phase == data.phase() );
 
     /* Now follow the activities after the join */
 
@@ -862,14 +868,15 @@ AndForkActivityList::isDescendentOf( const AndForkActivityList * aParent ) const
  */
 
 unsigned
-AndForkActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+AndForkActivityList::findChildren( Activity::Children& path ) const
 {
     _parentForkList = nullptr;
+    const std::deque<const AndOrForkActivityList *>& forkStack = path.getForkStack();
     for ( std::deque<const AndOrForkActivityList *>::const_reverse_iterator forkList = forkStack.rbegin(); forkList != forkStack.rend() && !_parentForkList; ++forkList ) {
-	if ( dynamic_cast<const AndForkActivityList *>(*forkList) != nullptr ) _parentForkList = dynamic_cast<const AndForkActivityList *>(*forkList);
+    	if ( dynamic_cast<const AndForkActivityList *>(*forkList) != nullptr ) _parentForkList = dynamic_cast<const AndForkActivityList *>(*forkList);
     }
 
-    return AndOrForkActivityList::findChildren( callStack, directPath, activityStack, forkStack, rate );
+    return AndOrForkActivityList::findChildren( path );
 }
 
 
@@ -878,10 +885,10 @@ AndForkActivityList::findChildren( Call::stack& callStack, bool directPath, std:
  */
 
 void
-AndOrForkActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const
+AndOrForkActivityList::backtrack( Activity::Backtrack& data ) const
 {
-    if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkList.insert( this );
-    prev()->backtrack( forkStack, forkList );
+    data.insert_fork( this );
+    prev()->backtrack( data );
 }
 
 
@@ -1029,9 +1036,13 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
             /* Phase change for this branch, so record the time it occurs. */
 
             if ( phase != data.phase() ) {
-                phase_one = term[data.phase()];
-            }
-        }
+		if ( currEntry->maxPhase() == 1 && phase != data.phase() ) {
+		    phase = 1;		/* kick it back because there is no second phase BUG 259 */
+		} else {
+		    phase_one = term[data.phase()];
+		}
+	    }
+	}
 
         //to disable accounting for sequential execution in the quorum delayed threads,
         //set probQuorumDelaySeqExecution to zero.
@@ -1081,7 +1092,8 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
             if ( flags.trace_activities ) {
                 cout << *join << endl;
             }
-            currEntry->aggregate( submodel, phase, *join );
+
+	    currEntry->aggregate( submodel, phase, *join );
         }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
@@ -1332,9 +1344,9 @@ AndForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Co
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	Activity::Count_If branch( data );
 	const AndJoinActivityList * joinList = dynamic_cast<const AndJoinActivityList *>(this->joinList());
-	branch.setReplyAllowed(!joinList || !joinList->hasQuorum());		/* Disallow replies quorum on branches */
+	branch.setReplyAllowed(!joinList || !joinList->hasQuorum());	/* Disallow replies quorum on branches */
 	branch = (*activity)->count_if( stack, branch );
-        sum += branch.sum();
+        sum += branch.sum() - data.sum();				/* only accumulate difference */
 	phase = max( phase, branch.phase() );
     }
 
@@ -1437,22 +1449,25 @@ AndOrJoinActivityList::AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityL
  */
 
 unsigned
-AndOrJoinActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 {
-    const_cast<AndOrJoinActivityList *>(this)->updateRate( activityStack.back(), rate );
+    const_cast<AndOrJoinActivityList *>(this)->updateRate( path.top_activity(), path.getRate() );
 
     if ( forkList() == nullptr ) {
+	std::deque<const AndOrForkActivityList *>& forkStack = path.getForkStack();
 	std::set<const AndOrForkActivityList *> resultSet(forkStack.begin(),forkStack.end());
 
 	/* Go up all of the branches looking for forks found on forkStack */
 
 	for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    if ( *activity == activityStack.back() ) continue;		/* No need -- this is resultSet */
+	    if ( *activity == path.top_activity() ) continue;		/* No need -- this is resultSet */
 	
 	    /* Find all forks from this activity that match anything in forkStack */
 	
 	    std::set<const AndOrForkActivityList *> branchSet;
-	    (*activity)->backtrack( forkStack, branchSet );			/* find fork lists on this branch */
+	    Activity::Backtrack data( path.getActivityStack(), forkStack, branchSet );
+	    (*activity)->backtrack( data );			/* find fork lists on this branch */
+
 
 	    /* Find intersection of branches */
 	
@@ -1486,7 +1501,7 @@ AndOrJoinActivityList::findChildren( Call::stack& callStack, bool directPath, st
 		    if ( dynamic_cast<const AndJoinActivityList *>(this) ) std::cerr << "And ";
 		    else if ( dynamic_cast<const OrJoinActivityList *>(this) ) std::cerr << "Or ";
 		    else abort();
-		    std::cerr << setw( activityStack.size() ) << "Join: " << getName() << " -> Fork: " << (*fork_list)->getName() << std::endl;
+		    std::cerr << setw( path.getActivityStack().size() ) << "Join: " << getName() << " -> Fork: " << (*fork_list)->getName() << std::endl;
 		}
 		const_cast<AndOrForkActivityList *>(*fork_list)->setJoinList( this );
 		const_cast<AndOrJoinActivityList *>(this)->setForkList( *fork_list );	       	/* Will break loop */
@@ -1501,9 +1516,9 @@ AndOrJoinActivityList::findChildren( Call::stack& callStack, bool directPath, st
     /* Carry on */
     
     if ( next() ) {
-        return next()->findChildren( callStack, directPath, activityStack, forkStack, rate );
+        return next()->findChildren( path );
     }
-    return callStack.depth();
+    return path.depth();
 }
 
 
@@ -1513,9 +1528,14 @@ AndOrJoinActivityList::findChildren( Call::stack& callStack, bool directPath, st
  */
 
 void
-AndOrJoinActivityList::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkList ) const
+AndOrJoinActivityList::backtrack( Activity::Backtrack& data ) const
 {
-    for_each ( activityList().begin(), activityList().end(), ConstExec2<Activity,const std::deque<const AndOrForkActivityList *>&,std::set<const AndOrForkActivityList *>&>( &Activity::backtrack, forkStack, forkList ) );
+    if ( data.find_join( this ) ) {
+	const std::deque<const Activity *>& activityStack = data.getActivityStack();
+	throw activity_cycle( activityStack.back(), activityStack );
+    }
+    data.insert_join( this );
+    for_each ( activityList().begin(), activityList().end(), ConstExec1<Activity,Activity::Backtrack&>( &Activity::backtrack, data ) );
 }
 
 /* -------------------------------------------------------------------- */
@@ -1748,18 +1768,10 @@ RepeatActivityList::collectToEntry( const Activity * activity, Entry * entry, st
  */
 
 unsigned
-RepeatActivityList::findChildren( Call::stack& callStack, bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+RepeatActivityList::findChildren( Activity::Children& path ) const
 {
-    unsigned max_depth = ForkActivityList::findChildren( callStack, directPath, activityStack, forkStack, rate );
-
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	std::deque<const AndOrForkActivityList *> branchForkStack;    // For matching forks/joins.
-        max_depth = max( (*activity)->findChildren( callStack, directPath, activityStack, branchForkStack, rate * rateBranch( *activity ) ), max_depth );
-    }
-
-    return max_depth;
+    return std::accumulate( activityList().begin(), activityList().end(), ForkActivityList::findChildren( path ), find_children( *this, path ) );
 }
-
 
 
 /*
@@ -1769,10 +1781,7 @@ RepeatActivityList::findChildren( Call::stack& callStack, bool directPath, std::
 void
 RepeatActivityList::followInterlock( Interlock::CollectTable& path ) const
 {
-    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	Interlock::CollectTable branch( path, path.calls() * rateBranch(*activity) );
-        (*activity)->followInterlock( branch );
-    }
+    std::for_each( activityList().begin(), activityList().end(), follow_interlock( *this, path ) );
     ForkActivityList::followInterlock( path );
 }
 
@@ -1874,16 +1883,14 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 const Activity::Count_If&
 RepeatActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count_If& data ) const
 {
-    data = ForkActivityList::count_if( stack, data );
-
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	Activity::Count_If branch = data;
-	data.setReplyAllowed(false);
+	branch.setReplyAllowed(false);
 	branch.setRate( data.rate() * rateBranch(*activity) );
 	branch = (*activity)->count_if( stack, branch );
-	data += branch.sum();
+	data += branch.sum() - data.sum();				/* only accumulate difference */
     }
-    return data;
+    return ForkActivityList::count_if( stack, data );
 }
 
 

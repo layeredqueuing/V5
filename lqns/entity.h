@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13968 2020-10-20 12:52:34Z greg $
+ * $Id: entity.h 13975 2020-10-20 19:37:55Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -174,7 +174,8 @@ public:
     virtual unsigned nClients() const = 0;
     const Entity& clients( std::set<Task *>& ) const;
     double nCustomers( ) const;
-
+    const std::set<const Entry *>& commonEntries() const { return _interlock.commonEntries(); }
+    
     Entity& addServerChain( const unsigned k ) { _serverChains.push_back(k); return *this; }
     const ChainVector& serverChains() const { return _serverChains; }
     Server * serverStation() const { return myServerStation; }
@@ -204,6 +205,7 @@ public:
     /* Sanity Check */
 
     virtual const Entity& sanityCheck() const;
+    virtual bool openModelInfinity() const;
 
     /* MVA interface */
 
@@ -238,8 +240,7 @@ private:
     void setServiceTime( const Entry * anEntry, unsigned k ) const;
     void setInterlock( Submodel& ) const;
 
-public:
-    Interlock _interlock;		/* For interlock calculation.	*/
+private:
 
 protected:
     LQIO::DOM::Entity* _dom;		/* The DOM Representation	*/
@@ -262,6 +263,7 @@ protected:
     } attributes;
 
 private:
+    Interlock _interlock;		/* For interlock calculation.	*/
     unsigned _submodel;			/* My submodel, 0 == ref task.	*/
     unsigned _maxPhase;			/* Largest phase.		*/
     double _utilization;		/* Utilization			*/

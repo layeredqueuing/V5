@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 13968 2020-10-20 12:52:34Z greg $
+ * $Id: interlock.h 13980 2020-10-21 19:00:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -86,6 +86,7 @@ public:
     public:
 	bool prune() const { return _entryStack.size() > 1 && _phase2; }
 	InterlockInfo& calls() { return _calls; }
+	const InterlockInfo& calls() const { return _calls; }
 	
 	void push_back( const Entry * entry ) { _entryStack.push_back( entry ); }
 	void pop_back() { _entryStack.pop_back(); }
@@ -107,6 +108,7 @@ public:
 
     ostream& print( ostream& output ) const;
     double interlockedFlow( const Task& viaTask ) const;
+    const std::set<const Entry *>& commonEntries() const { return _commonEntries; }
 
     static ostream& printPathTable( ostream& output );
 
@@ -125,11 +127,11 @@ private:
     unsigned countSources( const std::set<const Entity *>& );
 
 private:
-    std::set<const Entry *> commonEntries;	/* common source entries	*/
-    std::set<const Entity *> allSourceTasks;	/* Phase 1+ sources.		*/
-    std::set<const Entity *> ph2SourceTasks;	/* Phase 2+ sources.		*/
+    std::set<const Entry *> _commonEntries;	/* common source entries	*/
+    std::set<const Entity *> _allSourceTasks;	/* Phase 1+ sources.		*/
+    std::set<const Entity *> _ph2SourceTasks;	/* Phase 2+ sources.		*/
     const Entity& _server;			/* My server.			*/
-    unsigned sources;
+    unsigned _sources;
 };
 
 inline ostream& operator<<( ostream& output, const Interlock& self) { return self.print( output ); }

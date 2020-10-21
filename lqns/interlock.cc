@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13968 2020-10-20 12:52:34Z greg $
+ * $Id: interlock.cc 13973 2020-10-20 15:22:22Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -54,11 +54,11 @@ StringNManip trunc( const std::string&, const unsigned );
  */
 
 Interlock::Interlock( const Entity& aServer ) 
-    : commonEntries(),
-      allSourceTasks(),
-      ph2SourceTasks(),
+    : _commonEntries(),
+      _allSourceTasks(),
+      _ph2SourceTasks(),
       _server(aServer), 
-      sources(0)
+      _sources(0)
 {
 }
 
@@ -66,9 +66,9 @@ Interlock::Interlock( const Entity& aServer )
 
 Interlock::~Interlock()
 {
-    commonEntries.clear();
-    allSourceTasks.clear();
-    ph2SourceTasks.clear();
+    _commonEntries.clear();
+    _allSourceTasks.clear();
+    _ph2SourceTasks.clear();
 }
 
 
@@ -162,7 +162,7 @@ Interlock::findParentEntries( const Entry& srcA, const Entry& srcC )
 		    }
 
 		    if ( isBranchPoint( *(*srcX), entryA, *(*srcY), entryC ) ) {
-			commonEntries.insert(*srcX);
+			_commonEntries.insert(*srcX);
 			if ( Options::Debug::interlock() ) {
 			    cout << "* ";
 			}
@@ -190,24 +190,24 @@ Interlock::findParentEntries( const Entry& srcA, const Entry& srcC )
 double
 Interlock::interlockedFlow( const Task& viaTask ) const
 {
-    if ( sources == 0 ) return 0.0;
+    if ( _sources == 0 ) return 0.0;
 
     /* Find all flow from the common parent list to viaTask. */
 
     double sum = 0.0;
-    for ( std::set<const Entry *>::const_iterator srcE = commonEntries.begin(); srcE != commonEntries.end(); ++srcE ) {
+    for ( std::set<const Entry *>::const_iterator srcE = _commonEntries.begin(); srcE != _commonEntries.end(); ++srcE ) {
 	for ( std::vector<Entry *>::const_iterator dstA = viaTask.entries().begin(); dstA != viaTask.entries().end(); ++dstA ) {
 	    const Entity * srcTask = (*srcE)->owner();
 	    const unsigned a = (*dstA)->entryId();
 
-	    if ( (*srcE)->_interlock[a].all > 0.0 && (*srcE)->maxPhase() == 1 && allSourceTasks.find( srcTask ) != allSourceTasks.end() ) {
+	    if ( (*srcE)->_interlock[a].all > 0.0 && (*srcE)->maxPhase() == 1 && _allSourceTasks.find( srcTask ) != _allSourceTasks.end() ) {
 		sum += (*srcE)->throughput() * (*srcE)->_interlock[a].all;
-	    } else if ((*srcE)->_interlock[a].ph1 > 0.0 && (*srcE)->maxPhase() > 1 && allSourceTasks.find( srcTask )  != allSourceTasks.end() ){
+	    } else if ((*srcE)->_interlock[a].ph1 > 0.0 && (*srcE)->maxPhase() > 1 && _allSourceTasks.find( srcTask )  != _allSourceTasks.end() ){
 		sum += (*srcE)->throughput() * (*srcE)->_interlock[a].ph1;	
 	    }
 		
 	    const double ph2 = (*srcE)->_interlock[a].all - (*srcE)->_interlock[a].ph1;
-	    if ( ph2 > 0.0 && ph2SourceTasks.find( srcTask ) != ph2SourceTasks.end() ) {
+	    if ( ph2 > 0.0 && _ph2SourceTasks.find( srcTask ) != _ph2SourceTasks.end() ) {
 		sum += (*srcE)->throughput() * ph2;
 	    }
 	    if ( flags.trace_interlock ) {
@@ -221,9 +221,9 @@ Interlock::interlockedFlow( const Task& viaTask ) const
 
     if ( flags.trace_interlock ) {
 	cout << "Interlock sum=" << sum << ", viaTask: " << viaTask.throughput() 
-	     << ", threads=" << viaTask.concurrentThreads()  << ", sources=" << sources << endl;
+	     << ", threads=" << viaTask.concurrentThreads()  << ", sources=" << _sources << endl;
     }
-    return min( sum, viaTask.throughput() ) / (viaTask.throughput() * viaTask.concurrentThreads() * sources );
+    return min( sum, viaTask.throughput() ) / (viaTask.throughput() * viaTask.concurrentThreads() * _sources );
 }
 
 
@@ -239,11 +239,11 @@ Interlock::pruneInterlock()
     /* For all tasks in common entry... subtract off their common entries */
 
     std::set<const Entry *> prune;
-    for ( std::set<const Entry *>::const_iterator i = commonEntries.begin(); i != commonEntries.end(); ++i ) {
+    for ( std::set<const Entry *>::const_iterator i = _commonEntries.begin(); i != _commonEntries.end(); ++i ) {
 	const Entity * dst = (*i)->owner();
-	const std::set<const Entry *>& dst_entries = dst->_interlock.commonEntries;
+	const std::set<const Entry *>& dst_entries = dst->commonEntries();
 	for ( std::set<const Entry *>::const_iterator entry = dst_entries.begin(); entry != dst_entries.end(); ++entry ) {
-	    commonEntries.erase( *entry );		// Nop if not found
+	    _commonEntries.erase( *entry );		// Nop if not found
 	}
     }
 }
@@ -263,15 +263,15 @@ Interlock::findSources()
 
     /* Look for all parent tasks */
 
-    for ( std::set<const Entry *>::const_iterator entry = commonEntries.begin(); entry != commonEntries.end(); ++entry ) {
+    for ( std::set<const Entry *>::const_iterator entry = _commonEntries.begin(); entry != _commonEntries.end(); ++entry ) {
 	const Entity * aTask = (*entry)->owner();
 
 	/* Add tasks corresponding to branch point entries */
 
-	allSourceTasks.insert( aTask );
+	_allSourceTasks.insert( aTask );
 
 	if ( (*entry)->maxPhase() > 1 ) {
-	    ph2SourceTasks.insert( aTask );
+	    _ph2SourceTasks.insert( aTask );
 	}
 
 	/* Locate all tasks on interlocked paths. */
@@ -289,7 +289,7 @@ Interlock::findSources()
 #ifdef	DEBUG_INTERLOCK
     if ( Options::Debug::interlock() ) {
 	cout <<         "    All Sourcing Tasks: ";
-	for ( std::set<const Entity *>::const_iterator task = allSourceTasks.begin(); task != allSourceTasks.end(); ++task ) {
+	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
 	    cout << (*task)->name() << " ";
 	}
 	cout << endl << "    Interlocked Tasks:  ";
@@ -301,25 +301,25 @@ Interlock::findSources()
 #endif
 
     std::set<const Entity *> difference;
-    std::set_difference( allSourceTasks.begin(), allSourceTasks.end(),
+    std::set_difference( _allSourceTasks.begin(), _allSourceTasks.end(),
 			 interlockedTasks.begin(), interlockedTasks.end(),
 			 std::inserter( difference, difference.end() ) );
-    allSourceTasks = difference;
+    _allSourceTasks = difference;
 
     std::set<const Entity *> intersection;
-    std::set_intersection( ph2SourceTasks.begin(), ph2SourceTasks.end(),
+    std::set_intersection( _ph2SourceTasks.begin(), _ph2SourceTasks.end(),
 			   interlockedTasks.begin(), interlockedTasks.end(),
 			   std::inserter( intersection, intersection.end() ) );
-    ph2SourceTasks = intersection;
+    _ph2SourceTasks = intersection;
 
 #ifdef	DEBUG_INTERLOCK
     if ( Options::Debug::interlock() ) {
 	cout <<         "    Common Parent Tasks (all): ";
-	for ( std::set<const Entity *>::const_iterator task = allSourceTasks.begin(); task != allSourceTasks.end(); ++task ) {
+	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
 	    cout << (*task)->name() << " ";
 	}
 	cout << endl << "    Common Parent Tasks (Ph2): ";
-	for ( std::set<const Entity *>::const_iterator task = ph2SourceTasks.begin(); task != ph2SourceTasks.end(); ++task ) {
+	for ( std::set<const Entity *>::const_iterator task = _ph2SourceTasks.begin(); task != _ph2SourceTasks.end(); ++task ) {
 	    cout << (*task)->name() << " ";
 	}
 	cout << endl;
@@ -329,7 +329,7 @@ Interlock::findSources()
     /* Now count up the instances on each task in sourceTasks */
     /* And add on all other sources */
 
-    sources = countSources( interlockedTasks );
+    _sources = countSources( interlockedTasks );
 
     /* Useful trivia. */
 
@@ -338,7 +338,7 @@ Interlock::findSources()
 	    cout << (*task)->name() << " ";
 	}
 	cout << endl << "    Sourcing Tasks:    ";
-	for ( std::set<const Entity *>::const_iterator task = allSourceTasks.begin(); task != allSourceTasks.end(); ++task ) {
+	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
 	    cout << (*task)->name() << " ";
 	}
 	cout << endl << endl;
@@ -430,7 +430,7 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
 
 		const Task * parentTask = (*call)->srcTask();
 		if ( interlockedTasks.find( parentTask ) == interlockedTasks.end() ) {
-		    allSourceTasks.insert( parentTask );
+		    _allSourceTasks.insert( parentTask );
 		}
 	    }
 	}
@@ -442,7 +442,7 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
      * properly for infinite servers.
      */
 
-    unsigned n = std::accumulate( allSourceTasks.begin(), allSourceTasks.end(), 0., add_using<const Entity>( &Entity::population ) );
+    unsigned n = std::accumulate( _allSourceTasks.begin(), _allSourceTasks.end(), 0., add_using<const Entity>( &Entity::population ) );
 
     /*
      * Add in phase 2 sources of tasks that are on the interlock
@@ -482,9 +482,9 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
 ostream&
 Interlock::print( ostream& output ) const
 {
-    output << _server.name() << ": Sources=" << sources << ", entries: " ;
+    output << _server.name() << ": Sources=" << _sources << ", entries: " ;
 
-    for ( std::set<const Entry *>::const_iterator srcE = commonEntries.begin(); srcE != commonEntries.end(); ++srcE ) {
+    for ( std::set<const Entry *>::const_iterator srcE = _commonEntries.begin(); srcE != _commonEntries.end(); ++srcE ) {
 	output << (*srcE)->name() << " ";
     }
 

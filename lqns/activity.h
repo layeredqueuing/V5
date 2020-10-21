@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13949 2020-10-18 16:02:42Z greg $
+ * $Id: activity.h 13980 2020-10-21 19:00:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,6 +37,7 @@ class Entry;
 class ActivityList;
 class AndForkActivityList;
 class AndOrForkActivityList;
+class AndOrJoinActivityList;
 
 class Task;
 class Format;
@@ -47,6 +48,7 @@ class Path;
 template <class type> class Stack;
 
 typedef void (Activity::*AggregateFunc)(Entry *,const unsigned,const unsigned);
+
 /* -------------------------------------------------------------------- */
 /*                               Activity                               */
 /* -------------------------------------------------------------------- */
@@ -71,6 +73,25 @@ public:
     typedef bool (Activity::*Predicate)( Count_If& ) const;
     typedef void (Activity::*Function)( Entry *, const Collect& ) const;
     
+    class Backtrack
+    {
+    public:
+	Backtrack( const std::deque<const Activity *>& activityStack, const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) :
+	    _activityStack(activityStack), _forkStack(forkStack), _forkSet(forkSet), _joinSet() {}
+
+	const std::deque<const Activity *>& getActivityStack() const { return _activityStack; }	// For error handling only.
+	bool find_fork( const AndOrForkActivityList * fork ) const { return std::find( _forkSet.begin(), _forkSet.end(), fork ) != _forkSet.end(); }
+	bool find_join( const AndOrJoinActivityList * join ) const { return std::find( _joinSet.begin(), _joinSet.end(), join ) != _joinSet.end(); }
+	void insert_fork( const AndOrForkActivityList * fork ) { if ( std::find( _forkStack.begin(), _forkStack.end(), fork ) != _forkStack.end() ) _forkSet.insert( fork ); }
+	void insert_join( const AndOrJoinActivityList * join ) { _joinSet.insert( join ); }
+	
+    private:
+	const std::deque<const Activity *>& _activityStack;
+	const std::deque<const AndOrForkActivityList *>& _forkStack;
+	std::set<const AndOrForkActivityList *>& _forkSet;
+	std::set<const AndOrJoinActivityList *> _joinSet;
+    };
+
     class Count_If {
     public:
 	Count_If() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
@@ -117,6 +138,37 @@ public:
 	double _rate;
     };
 
+    class Children {
+    public:
+	Children( Call::stack& callStack, bool directPath ) : _callStack(callStack), _directPath(directPath), _activityStack(), _forkStack(), _rate(1.) {}
+	Children( const Children& src, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _activityStack(src._activityStack), _forkStack(src._forkStack), _rate(src._rate * rate) {}
+	Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) : _callStack(src._callStack), _directPath(src._directPath), _activityStack(src._activityStack), _forkStack(forkStack), _rate(src._rate * rate) {}
+
+	Call::stack& getCallStack() { return _callStack; }
+	unsigned depth() const { return _callStack.depth(); }
+	
+	bool isDirectPath() const { return _directPath; }
+	const std::deque<const Activity *>& getActivityStack() const { return _activityStack; }
+	std::deque<const AndOrForkActivityList *>& getForkStack() { return _forkStack; }
+
+	double getRate() const { return _rate; }
+
+	bool find( const Activity * activity ) const { return std::find( _activityStack.begin(), _activityStack.end(), activity ) != _activityStack.end(); }
+	void push_activity( const Activity * activity ) { _activityStack.push_back( activity ); }
+	void pop_activity() { _activityStack.pop_back(); }
+	const Activity * top_activity() const { return _activityStack.back(); }
+	void push_fork( const AndOrForkActivityList * fork_list ) { _forkStack.push_back( fork_list ); }
+	void pop_fork() { _forkStack.pop_back(); }
+	const AndOrForkActivityList * top_fork() { return _forkStack.back(); }
+
+    private:
+	Call::stack& _callStack;
+	bool _directPath;
+	std::deque<const Activity *> _activityStack;		// For checking for cycles.
+	std::deque<const AndOrForkActivityList *> _forkStack; 	// For matching forks/joins.
+	double _rate;
+    };
+    
 public:
     Activity( const Task * aTask, const std::string& aName );
     virtual ~Activity();
@@ -217,8 +269,8 @@ public:
 
     /* Thread manipulation */
 
-    unsigned findChildren( Call::stack&, const bool, std::deque<const Activity *>&, std::deque<const AndOrForkActivityList *>&, double ) const;
-    const Activity& backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const;
+    unsigned findChildren( Children& ) const;
+    const Activity& backtrack( Backtrack& data ) const;
     virtual const Activity& followInterlock( Interlock::CollectTable& ) const;
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
     Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;

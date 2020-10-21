@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 13925 2020-10-14 13:50:34Z greg $
+ * $Id: activity.cc 13979 2020-10-21 17:58:03Z greg $
  */
 
 #include "activity.h"
@@ -438,9 +438,9 @@ Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std
  */
 
 const Activity&
-Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
+Activity::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
 {
-    if ( inputFrom() ) inputFrom()->backtrack( forkStack, forkSet );
+    if ( inputFrom() ) inputFrom()->backtrack( forkStack, forkSet, joinSet );
     return *this;
 }
 
@@ -1224,10 +1224,9 @@ activity_cycle::activity_cycle( const Activity * anActivity, std::deque<const Ac
     : path_error( activityStack.size() )
 {
     myMsg = anActivity->name();
-    for ( unsigned i = activityStack.size(); i > 0; --i ) {
+    for ( std::deque<const Activity *>::reverse_iterator i = activityStack.rbegin(); i != activityStack.rend(); ++i ) {
 	myMsg += ", ";
-	myMsg += activityStack[i]->name();
-	if ( activityStack[i] == anActivity ) break;
+	myMsg += (*i)->name();
     }
 }
 

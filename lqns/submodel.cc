@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13968 2020-10-20 12:52:34Z greg $
+ * $Id: submodel.cc 13975 2020-10-20 19:37:55Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -739,15 +739,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 		catch ( const range_error& error ) {
 		    MVAStats.faults += 1;
-		    if ( Pragma::stopOnMessageLoss() ) {
-			for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-			    const Server * aStation = (*server)->serverStation();
-			    for ( unsigned int e = 1; e <= (*server)->nEntries(); ++e ) {
-				if ( !isfinite( aStation->R(e,0) ) && aStation->V(e,0) != 0 && aStation->S(e,0) != 0 ) {
-				    LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), (*server)->entryAt(e-1)->name().c_str(), aStation->mu()/aStation->S(e,0) );
-				}
-			    }
-			}
+		    if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
 			throw exception_handled( "MVA::submodel -- open model overflow" );
 		    }
 		}
@@ -781,15 +773,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 	    } 
 	    catch ( const range_error& error ) {
-		if ( Pragma::stopOnMessageLoss() ) {
-		    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-			const Server * aStation = (*server)->serverStation();
-			for ( unsigned int e = 1; e <= (*server)->nEntries(); ++e ) {
-			    if ( !isfinite( aStation->R(e,0) ) && aStation->V(e,0) != 0 && aStation->S(e,0) != 0 ) {
-				LQIO::solution_error( ERR_ARRIVAL_RATE, aStation->V(e,0), (*server)->entryAt(e)->name().c_str(), aStation->mu()/aStation->S(e,0) );
-			    }
-			}
-		    }
+		if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
 		    throw exception_handled( "MVA::submodel -- open model overflow" );
 		}
 	    }

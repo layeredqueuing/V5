@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13938 2020-10-16 18:17:40Z greg $
+ * $Id: actlist.cc 13979 2020-10-21 17:58:03Z greg $
  */
 
 
@@ -1040,10 +1040,10 @@ AndForkActivityList::findActivityChildren( std::deque<const Activity *>& activit
  */
 
 void
-AndForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
+AndForkActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
 {
     if ( std::find( forkStack.begin(), forkStack.end(), this ) != forkStack.end() ) forkSet.insert( this );
-    prev()->backtrack( forkStack, forkSet );
+    prev()->backtrack( forkStack, forkSet, joinSet );
 }
 
 
@@ -1122,9 +1122,11 @@ AndOrJoinActivityList::findChildren( CallStack& callStack, const unsigned direct
  */
 
 void
-AndOrJoinActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet ) const
+AndOrJoinActivityList::backtrack( const std::deque<const AndForkActivityList *>& forkStack, std::set<const AndForkActivityList *>& forkSet, std::set<const AndOrJoinActivityList *>& joinSet ) const
 {
-    for_each ( activityList().begin(), activityList().end(), ConstExec2<Activity,const std::deque<const AndForkActivityList *>&,std::set<const AndForkActivityList *>&>( &Activity::backtrack, forkStack, forkSet ) );
+    if ( std::find( joinSet.begin(), joinSet.end(), this ) != joinSet.end() ) return;	/* cycle in graph */
+    joinSet.insert( this );
+    for_each ( activityList().begin(), activityList().end(), ConstExec3<Activity,const std::deque<const AndForkActivityList *>&,std::set<const AndForkActivityList *>&,std::set<const AndOrJoinActivityList *>&>( &Activity::backtrack, forkStack, forkSet, joinSet ) );
 }
 
 
@@ -1397,7 +1399,8 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 	    /* Find all forks from this activity that match anything in forkStack */
 	
 	    std::set<const AndForkActivityList *> branchSet;
-	    (*activity)->backtrack( forkStack, branchSet );			/* find fork lists on this branch */
+	    std::set<const AndOrJoinActivityList *> joinSet;
+	    (*activity)->backtrack( forkStack, branchSet, joinSet );			/* find fork lists on this branch */
 
 	    /* Find intersection of branches */
 	

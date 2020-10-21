@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13968 2020-10-20 12:52:34Z greg $
+ * $Id: entity.cc 13975 2020-10-20 19:37:55Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -75,14 +75,14 @@ operator==( const Entity& a, const Entity& b )
  */
 
 Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
-    : _interlock( *this ),
-      _dom(dom),
+    : _dom(dom),
       _entries(entries),
       _tasks(),
       myPopulation(1.0),
       myVariance(0.0),
       myThinkTime(0.0),
       myServerStation(0),		/* Reference tasks don't have server stations. */
+      _interlock( *this ),
       _submodel(0),
       _maxPhase(1),
       _utilization(0),
@@ -496,6 +496,25 @@ Entity::sanityCheck() const
 			      name().c_str(), copies() );
     }
     return *this;
+}
+
+
+/*
+ * Return true if any entry overflows in open model solution.
+ */
+
+bool
+Entity::openModelInfinity() const
+{
+    bool rc = false;
+    const Server * station = serverStation();
+    for ( unsigned int e = 1; e <= nEntries(); ++e ) {
+	if ( !isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
+	    LQIO::solution_error( ERR_ARRIVAL_RATE, station->V(e,0), entryAt(e-1)->name().c_str(), station->mu()/station->S(e,0) );
+	    rc = true;
+	}
+    }
+    return rc;
 }
 
 Entity&

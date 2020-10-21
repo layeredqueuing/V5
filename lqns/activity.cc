@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13952 2020-10-19 15:00:24Z greg $
+ * $Id: activity.cc 13980 2020-10-21 19:00:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -211,28 +211,28 @@ Activity::repliesTo( const Entry * anEntry ) const
  */
 
 unsigned
-Activity::findChildren( Call::stack& callStack, const bool directPath, std::deque<const Activity *>& activityStack, std::deque<const AndOrForkActivityList *>& forkStack, double rate ) const
+Activity::findChildren( Children& path ) const
 {
     _reachable = true;
 
-    if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
-	throw activity_cycle( this, activityStack );
+    if ( path.find( this ) ) {
+	throw activity_cycle( this, path.getActivityStack() );
     }
 
-    unsigned max_depth = Phase::findChildren( callStack, directPath );
+    unsigned max_depth = Phase::findChildren( path.getCallStack(), path.isDirectPath() );
     if ( nextJoin() ) {
-	activityStack.push_back( this );
-	max_depth = max( max_depth, nextJoin()->findChildren( callStack, directPath, activityStack, forkStack, rate ) );
-	activityStack.pop_back();
+	path.push_activity( this );
+	max_depth = max( max_depth, nextJoin()->findChildren( path ) );
+	path.pop_activity();
     }
     return max_depth;
 }
 
 
 const Activity&
-Activity::backtrack( const std::deque<const AndOrForkActivityList *>& forkStack, std::set<const AndOrForkActivityList *>& forkSet ) const
+Activity::backtrack( Backtrack& data ) const
 {
-    if ( prevFork() != nullptr ) prevFork()->backtrack( forkStack, forkSet );
+    if ( prevFork() != nullptr ) prevFork()->backtrack( data );
     return *this;
 }
 

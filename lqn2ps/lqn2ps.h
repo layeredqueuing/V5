@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 13936 2020-10-16 14:31:26Z greg $
+ * $Id: lqn2ps.h 13979 2020-10-21 17:58:03Z greg $
  *
  */
 
@@ -673,6 +673,20 @@ private:
     const funcPtr _f;
     Type2 _x;
     Type3 _y;
+};
+
+
+template <class Type1, class Type2, class Type3, class Type4> struct ConstExec3
+{
+    typedef const Type1& (Type1::*funcPtr)( Type2 x, Type3 y, Type4 z ) const;
+    ConstExec3<Type1,Type2,Type3,Type4>( const funcPtr f, Type2 x, Type3 y, Type4 z ) : _f(f), _x(x), _y(y), _z(z) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _x, _y, _z ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _x, _y, _z ); }
+private:
+    const funcPtr _f;
+    Type2 _x;
+    Type3 _y;
+    Type4 _z;
 };
 
 

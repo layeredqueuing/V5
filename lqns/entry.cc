@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13970 2020-10-20 13:49:37Z greg $
+ * $Id: entry.cc 13980 2020-10-21 19:00:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -207,7 +207,7 @@ Entry::configure( const unsigned nSubmodels )
 		//tomari: disable to allow a quorum use the default reply which
 		//is after all threads completes exection.
 		//LQIO::solution_error( ERR_REPLY_NOT_GENERATED, name().c_str() );	/* BUG 238 */
-	    } else if ( fabs( fmod( replies, 1.0 ) ) > EPSILON ) {
+	    } else if ( replies < 1.0 - EPSILON || 1.0 + EPSILON < replies ) {
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 	    }
 	}
@@ -235,7 +235,8 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	std::deque<const AndOrForkActivityList *> forkStack; 	// For matching forks/joins.
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
-	    max_depth = max( max_depth, _startActivity->findChildren( callStack, directPath, activityStack, forkStack, 1.0 ) );
+	    Activity::Children path( callStack, directPath );
+	    max_depth = max( max_depth, _startActivity->findChildren( path ) );
 	}
 	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
@@ -1251,16 +1252,21 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
 {
     if ( submodel ) {
 	_phase[p].myWait[submodel] += addend.mean();
-    } else if  (addend.variance() > 0.0 ) { //two-phase quorum semantics. If the replying activity
-	//is inside the quorum fork-join, then the difference in variance when calculating
-	//phase 2 variance can be negative.
+
+    } else if (addend.variance() > 0.0 ) {
+
+	/*
+	 * two-phase quorum semantics. If the replying activity is
+	 * inside the quorum fork-join, then the difference in
+	 * variance when calculating phase 2 variance can be negative.
+	 */
 
 	_phase[p].myVariance += addend.variance();
     }
 
     if (flags.trace_quorum) {
-	cout << "\nEntry::aggregate(): submodel=" << submodel <<", entry " << name() << endl;
-	cout <<" addend.mean()=" << addend.mean() <<", addend.variance()="<<addend.variance()<< endl;
+	cout << std::endl << "Entry::aggregate(): submodel=" << submodel <<", entry " << name() << endl;
+	cout <<"    addend.mean()=" << addend.mean() <<", addend.variance()="<<addend.variance()<< endl;
     }
 
     return *this;

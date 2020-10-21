@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 13925 2020-10-14 13:50:34Z greg $
+ * $Id: activity.h 13979 2020-10-21 17:58:03Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -14,6 +14,7 @@
 class Activity;
 class ActivityList;
 class AndForkActivityList;
+class AndOrJoinActivityList;
 class Arc;
 class Reply;
 class EntryActivityCall;
@@ -51,7 +52,7 @@ public:
     Activity& resetLevel();
     size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
     size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, unsigned, const double ) const;
-    const Activity& backtrack( const std::deque<const AndForkActivityList *>&, std::set<const AndForkActivityList *>& ) const;
+    const Activity& backtrack( const std::deque<const AndForkActivityList *>&, std::set<const AndForkActivityList *>&, std::set<const AndOrJoinActivityList *>& ) const;
     double aggregate( Entry * anEntry, const unsigned curr_p, unsigned &next_p, const double rate, std::deque<const Activity *>& activityStack, const aggregateFunc aFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc  );
     virtual Activity& setClientClosedChain( unsigned );
