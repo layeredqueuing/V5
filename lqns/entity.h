@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13927 2020-10-14 14:17:23Z greg $
+ * $Id: entity.h 13968 2020-10-20 12:52:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -34,6 +34,7 @@ class Task;
 class Model;
 class Server;
 class Submodel;
+class MVASubmodel;
 
 typedef Vector<unsigned> ChainVector;
 
@@ -93,6 +94,7 @@ public:
     virtual Entity& configure( const unsigned );
     virtual unsigned findChildren( Call::stack&, const bool ) const;
     virtual Entity& initWait();
+    Entity& initInterlock();
     virtual Entity& initThroughputBound() { return *this; }
     virtual Entity& initPopulation() = 0;
     virtual Entity& initJoinDelay() { return *this; }
@@ -189,7 +191,6 @@ public:
     void setIdleTime( const double );
     Entity& computeUtilization();
     virtual Entity& computeVariance();
-    void setOvertaking( const unsigned, const std::set<Task *>& );
     virtual Entity& updateWait( const Submodel&, const double ) { return *this; }	/* NOP */
     virtual double updateWaitReplication( const Submodel&, unsigned& ) { return 0.0; }	/* NOP */
     double deltaUtilization() const;
@@ -206,13 +207,16 @@ public:
 
     /* MVA interface */
 
+    Entity& clear();
     virtual Server * makeServer( const unsigned ) = 0;
+    Entity& initServer( Submodel& );
+    Entity& saveServerResults( const MVASubmodel&, double );
 
     /* Threads */
 	
     virtual unsigned nThreads() const { return 1; }		/* Return the number of threads. */
     virtual unsigned concurrentThreads() const { return 1; }	/* Return the number of threads. */
-    virtual void joinOverlapFactor( const Submodel&, VectorMath<double>* ) const {};	/* NOP? */
+    virtual void joinOverlapFactor( const Submodel& ) const {};	/* NOP? */
 	
     /* Printing */
 
@@ -231,10 +235,11 @@ protected:
     double computeIdleTime( const unsigned, const double ) const;
 	
 private:
-    void setServiceTime( Server * station, const Entry * anEntry, unsigned k ) const;
+    void setServiceTime( const Entry * anEntry, unsigned k ) const;
+    void setInterlock( Submodel& ) const;
 
 public:
-    Interlock * interlock;		/* For interlock calculation.	*/
+    Interlock _interlock;		/* For interlock calculation.	*/
 
 protected:
     LQIO::DOM::Entity* _dom;		/* The DOM Representation	*/

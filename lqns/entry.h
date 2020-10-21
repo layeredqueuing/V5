@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13950 2020-10-19 01:45:22Z greg $
+ * $Id: entry.h 13970 2020-10-20 13:49:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,7 +154,7 @@ public:
     Entry& initServiceTime();
     Entry& initReplication( const unsigned );	// REPL
     Entry& resetInterlock();
-    Entry& initInterlock();
+    Entry& createInterlock();
     Entry& initInterlock( Interlock::CollectTable& path );
 
     /* Instance Variable access */

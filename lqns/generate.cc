@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: generate.cc 13954 2020-10-19 17:22:27Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -133,17 +133,17 @@ Generate::print( ostream& output ) const
 
     /* Overlap factor */
 
-    if ( _submodel.overlapFactor ) {
+    if ( _submodel._overlapFactor ) {
 	output << "    /* Overlap Factor */" << endl << endl;
-	output << "    VectorMath<double> * overlapFactor = new VectorMath<double> [n_chains+1];" << endl;
+	output << "    VectorMath<double> * _overlapFactor = new VectorMath<double> [n_chains+1];" << endl;
 	output << "    for ( unsigned i = 1; i <= n_chains; ++i ) {" << endl;
-	output << "        overlapFactor[i].grow( n_chains, 1.0 );" << endl;
+	output << "        _overlapFactor[i].grow( n_chains, 1.0 );" << endl;
 	output << "    }" << endl;
 	for ( unsigned i = 1; i <= K; ++i ) {
 	    for ( unsigned j = 1; j <= K; ++j ) {
-		if ( _submodel.overlapFactor[i][j] ) {
-		    output << "    overlapFactor[" << i << "][" << j << "] = " 
-			   << _submodel.overlapFactor[i][j] << ";" << endl;
+		if ( _submodel._overlapFactor[i][j] ) {
+		    output << "    _overlapFactor[" << i << "][" << j << "] = " 
+			   << _submodel._overlapFactor[i][j] << ";" << endl;
 		}
 	    }
 	}
@@ -193,17 +193,17 @@ Generate::print( ostream& output ) const
 	}
 	output << "    " << solvers[Pragma::mva()];
 	output << " model( station, customers, thinkTime, priority";
-	if ( _submodel.overlapFactor ) {
-	    output << ", overlapFactor";
+	if ( _submodel._overlapFactor ) {
+	    output << ", _overlapFactor";
 	}
 	output << " );" << endl;
 	output << "    model.solve();" << endl;
 	output << "    cout << model << endl;" << endl;
 
 
-	if ( _submodel.overlapFactor ) {
+	if ( _submodel._overlapFactor ) {
 	    output << endl
-		   << "    delete [] overlapFactor;" << endl;
+		   << "    delete [] _overlapFactor;" << endl;
 	}
     }
 

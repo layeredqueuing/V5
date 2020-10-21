@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: submodel.h 13968 2020-10-20 12:52:34Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -36,6 +36,7 @@ class Group;
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
 	 
 class Submodel {
+
     class SubmodelManip {
     public:
 	SubmodelManip( ostream& (*ff)(ostream&, const Submodel&, const unsigned long ),
@@ -64,21 +65,23 @@ public:
     void addClient( Task * aTask ) { _clients.insert(aTask); }
     void addServer( Entity * anEntity ) { _servers.insert(anEntity); }
 
+    const std::set<Task *>& getClients() const { return _clients; }			/* Table of clients 		*/
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
     Submodel& number( const unsigned );
     const Model * owner() const { return myOwner; }
 
+    virtual VectorMath<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }
-    unsigned customers( const unsigned i ) const { return myCustomers[i]; }
-    double thinkTime( const unsigned i ) const { return myThinkTime[i]; }
-    unsigned priority( const unsigned i) const { return myPriority[i]; }
+    unsigned customers( const unsigned i ) const { return _customers[i]; }
+    double thinkTime( const unsigned i ) const { return _thinkTime[i]; }
+    void setThinkTime( unsigned int i, double thinkTime ) { _thinkTime[i] = thinkTime; }
+    unsigned priority( const unsigned i) const { return _priority[i]; }
 
     virtual Submodel& initServers( const Model& );
     virtual Submodel& reinitServers( const Model& ) { return *this; }
     virtual Submodel& reinitClients() { return *this; }
     virtual Submodel& initInterlock() { return *this; }
-    virtual Submodel& reinitInterlock() { return *this; }
     virtual Submodel& build() { return *this; }
     virtual Submodel& rebuild() { return *this; }
 
@@ -112,9 +115,9 @@ private:
 protected:
     /* MVA Stuff */
 
-    Population myCustomers;		/* Customers by chain k		*/
-    VectorMath<double> myThinkTime;	/* Think time for chain k	*/
-    Vector<unsigned> myPriority;	/* Priority for chain k.	*/
+    Population _customers;		/* Customers by chain k		*/
+    VectorMath<double> _thinkTime;	/* Think time for chain k	*/
+    Vector<unsigned> _priority;		/* Priority for chain k.	*/
 };
 
 inline ostream& operator<<( ostream& output, const Submodel& self) { return self.print( output ); }
@@ -124,6 +127,8 @@ inline ostream& operator<<( ostream& output, const Submodel& self) { return self
 
 class MVASubmodel : public Submodel {
     friend class Generate;
+    friend class Entity;		/* closedModel */
+    friend class Task;			/* closedModel */
 
 public:
     MVASubmodel( const unsigned, const Model * );
@@ -135,12 +140,12 @@ public:
     virtual MVASubmodel& reinitServers( const Model& );
     virtual MVASubmodel& reinitClients();
     virtual MVASubmodel& initInterlock();
-    virtual MVASubmodel& reinitInterlock();
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();
 		
     virtual unsigned n_closedStns() const { return closedStnNo; }
     virtual unsigned n_openStns() const { return openStnNo; }
+    virtual VectorMath<double> * getOverlapFactor() const { return _overlapFactor; } 
 
     virtual double nrFactor( const Server *, const unsigned e, const unsigned k ) const;
 
@@ -155,14 +160,7 @@ private:
 
 protected:
     unsigned makeChains();
-    void initClient( Task * );
-    void modifyClientServiceTime( Task * aTask );
-    void initServer( Entity * );
-    void setServiceTime( Entity *, const Entry *, unsigned ) const;
-    void setInterlock( Entity * ) const;
     void generate() const;
-    void saveClientResults( Task * );
-    virtual void saveServerResults( Entity * );
     void saveWait( Entry *, const Server * );
     void setThreadChain() const;
 
@@ -185,7 +183,7 @@ private:
 
     /* Fork-Join stuff. */
 	
-    VectorMath<double> * overlapFactor;
+    VectorMath<double> * _overlapFactor;
 };
 
 /* -------------------------------------------------------------------- */

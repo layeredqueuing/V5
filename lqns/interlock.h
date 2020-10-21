@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 13952 2020-10-19 15:00:24Z greg $
+ * $Id: interlock.h 13968 2020-10-20 12:52:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,7 +43,7 @@ class Interlock {
 public:
     class CollectTasks {
     public:
-	CollectTasks( const Entity * server, std::set<const Entity *>& interlockedTasks )
+	CollectTasks( const Entity& server, std::set<const Entity *>& interlockedTasks )
 	    : _server(server),
 	      _entryStack(),
 	      _interlockedTasks( interlockedTasks )
@@ -54,7 +54,7 @@ public:
 	CollectTasks& operator=( const CollectTasks& ); // = delete;
 
     public:
-	const Entity * server() const { return _server; }
+	const Entity * server() const { return &_server; }
 	bool headOfPath() const { return _entryStack.size() == 0; }
 	bool prune() const { return _entryStack.size() > 1; }		/* Allow from the top-of-path entry only */
 
@@ -65,7 +65,7 @@ public:
 	bool has_entry( const Entry * entry ) const;
 	
     private:
-	const Entity * _server;				/* In */
+	const Entity& _server;				/* In */
 	std::deque<const Entry *> _entryStack;		/* local */
 	std::set<const Entity *>& _interlockedTasks;	/* Out */
     };
@@ -100,7 +100,7 @@ public:
     };
 
 public:
-    Interlock( const Entity * aServer );
+    Interlock( const Entity& aServer );
     virtual ~Interlock();
 
     void initialize();
@@ -128,7 +128,7 @@ private:
     std::set<const Entry *> commonEntries;	/* common source entries	*/
     std::set<const Entity *> allSourceTasks;	/* Phase 1+ sources.		*/
     std::set<const Entity *> ph2SourceTasks;	/* Phase 2+ sources.		*/
-    const Entity * myServer;			/* My server.			*/
+    const Entity& _server;			/* My server.			*/
     unsigned sources;
 };
 

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13952 2020-10-19 15:00:24Z greg $
+ * $Id: entry.cc 13970 2020-10-20 13:49:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -323,7 +323,7 @@ Entry::resetInterlock()
  */
 
 Entry&
-Entry::initInterlock()		/* Called from task -- initialized calls */
+Entry::createInterlock()		/* Called from task -- initialized calls */
 {
     Interlock::CollectTable calls;
     initInterlock( calls );

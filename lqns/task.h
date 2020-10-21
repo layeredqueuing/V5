@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13857 2020-09-24 20:40:08Z greg $
+ * $Id: task.h 13970 2020-10-20 13:49:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -96,7 +96,7 @@ public:
     virtual Task& initWait();
     virtual Task& initPopulation();
     virtual Task& initThroughputBound();
-    Task& initInterlock();
+    Task& createInterlock();
     virtual Task& initThreads();
 
     void findParents();
@@ -152,26 +152,30 @@ public:
 
     virtual int rootLevel() const;
     Server * makeClient( const unsigned, const unsigned  );
+    Task& initClient( Submodel& );
+    Task& modifyClientServiceTime( const MVASubmodel& );
+    Task& saveClientResults( const MVASubmodel& );
     const Task& callsPerform( callFunc, const unsigned submodel ) const;
     const Task& openCallsPerform( callFunc, const unsigned submodel ) const;
 
     /* Computation */
 	
+    virtual Task& recalculateDynamicValues();
     virtual Task& computeVariance();
     virtual Task& updateWait( const Submodel&, const double );
     virtual double updateWaitReplication( const Submodel&, unsigned& );
-    virtual Task& recalculateDynamicValues();
+    Task& computeOvertaking( Entity * );
 
     /* Threads */
 
     unsigned threadIndex( const unsigned submodel, const unsigned k ) const;
-    void forkOverlapFactor( const Submodel&, VectorMath<double>* ) const;
+    void forkOverlapFactor( const Submodel& ) const;
     double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
     double waitExceptChain( const unsigned ix, const unsigned submodel, const unsigned k, const unsigned p ) const;
 
     /* Synchronization */
 
-    virtual void joinOverlapFactor( const Submodel&, VectorMath<double>* ) const;
+    virtual void joinOverlapFactor( const Submodel& ) const;
 	
     /* Quorum */
 

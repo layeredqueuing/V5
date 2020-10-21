@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 13950 2020-10-19 01:45:22Z greg $
+ * $Id: dim.h 13956 2020-10-19 18:32:11Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -339,6 +339,18 @@ template <class Type1, class Type2> struct add_using_arg
 private:
     const funcPtr _f;
     Type2 _arg;
+};
+
+template <class Type1, class Type2, class Type3> struct add_two_args
+{
+    typedef double (Type1::*funcPtr)( Type2, Type3 ) const;
+    add_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg1,_arg2); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg1,_arg2); }
+private:
+    const funcPtr _f;
+    Type2 _arg1;
+    Type3 _arg2;
 };
 
 template <class Type1> struct max_using

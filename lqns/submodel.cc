@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13946 2020-10-17 03:19:14Z greg $
+ * $Id: submodel.cc 13968 2020-10-20 12:52:34Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -176,7 +176,7 @@ MVASubmodel::MVASubmodel( const unsigned n, const Model * anOwner )
       openStation(0),
       closedModel(0),
       openModel(0),
-      overlapFactor(0)
+      _overlapFactor(0)
 {
 }
 
@@ -196,8 +196,8 @@ MVASubmodel::~MVASubmodel()
     }
     closedStation.clear();
     openStation.clear();
-    if ( overlapFactor ) {
-	delete [] overlapFactor;
+    if ( _overlapFactor ) {
+	delete [] _overlapFactor;
     }
 }
 
@@ -256,24 +256,7 @@ MVASubmodel::reinitServers( const Model& aModel )
 MVASubmodel&
 MVASubmodel::initInterlock()
 {
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	(*server)->interlock = new Interlock( *server );
-    }
-    return *this;
-}
-
-
-
-/*
- * Go through all servers and set up path tables.
- */
-
-MVASubmodel&
-MVASubmodel::reinitInterlock()
-{
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	(*server)->interlock->initialize();
-    }
+    for_each ( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::initInterlock ) );
     return *this;
 }
 
@@ -367,9 +350,9 @@ MVASubmodel::build()
     /* ------- Create overlap probabilities and durations. -------- */
 
     if ( ( hasThreads() || hasSynchs() ) && !Pragma::threads(Pragma::NO_THREADS) ) {
-	overlapFactor = new VectorMath<double> [nChains()+1];
+	_overlapFactor = new VectorMath<double> [nChains()+1];
 	for ( unsigned i = 1; i <= nChains(); ++i ) {
-	    overlapFactor[i].resize( nChains(), 1.0 );
+	    _overlapFactor[i].resize( nChains(), 1.0 );
 	}
     }
 
@@ -384,22 +367,22 @@ MVASubmodel::build()
     if ( nChains() > 0 && n_servers > 0 ) {
 	switch ( Pragma::mva() ) {
 	case Pragma::EXACT_MVA:
-	    closedModel = new ExactMVA(          closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new ExactMVA(          closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::SCHWEITZER_MVA:
-	    closedModel = new Schweitzer(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new Schweitzer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::LINEARIZER_MVA:
-	    closedModel = new Linearizer(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new Linearizer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::FAST_MVA:
-	    closedModel = new Linearizer2(       closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new Linearizer2(       closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::ONESTEP_MVA:
-	    closedModel = new OneStepMVA(        closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new OneStepMVA(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::ONESTEP_LINEARIZER:
-	    closedModel = new OneStepLinearizer( closedStation, myCustomers, myThinkTime, myPriority, overlapFactor );
+	    closedModel = new OneStepLinearizer( closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	}
     }
@@ -458,11 +441,11 @@ MVASubmodel::rebuild()
 		k += 1;				// Add one chain.
 
 		if ( isfinite( (*client)->population() ) ) {
-		    myCustomers[k] = static_cast<unsigned>((*client)->population());
+		    _customers[k] = static_cast<unsigned>((*client)->population());
 		} else {
-		    myCustomers[k] = 0;
+		    _customers[k] = 0;
 		}
-		myPriority[k]  = (*client)->priority();
+		_priority[k]  = (*client)->priority();
 	    }
 
 	} else {
@@ -483,9 +466,9 @@ MVASubmodel::rebuild()
 		    k += 1;
 
 		    if ( isfinite( (*client)->population() ) ) {
-			myCustomers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn(*client);
+			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn(*client);
 		    } else {
-			myCustomers[k] = 0;
+			_customers[k] = 0;
 		    }
 		}
 	    }
@@ -503,7 +486,7 @@ MVASubmodel::rebuild()
  	Server * newStation = (*server)->makeServer( nChains() );	/* Returns NULL on no change	*/
 	if ( !newStation )  continue;			/* Out with the old...		*/
 
-	newStation->setMarginalProbabilitiesSize( myCustomers );
+	newStation->setMarginalProbabilitiesSize( _customers );
 
 	if ( closedIndex ) {
 	    newStation->closedIndex = closedIndex;
@@ -542,21 +525,21 @@ MVASubmodel::makeChains()
 
 	    /* ---------------- Simple case --------------- */
 
-	    size_t new_size = myCustomers.size() + threads;
-	    myCustomers.resize( new_size ); /* N.B. -- Vector class.  Must*/
-	    myThinkTime.resize( new_size ); /* grow() explicitly.	*/
-	    myPriority.resize( new_size );
+	    size_t new_size = _customers.size() + threads;
+	    _customers.resize( new_size ); /* N.B. -- Vector class.  Must*/
+	    _thinkTime.resize( new_size ); /* grow() explicitly.	*/
+	    _priority.resize( new_size );
 
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
 
 		(*client)->addClientChain( number(), k );	// Set my chain number.
 		if ( isfinite( (*client)->population() ) ) {
-		    myCustomers[k] = static_cast<unsigned>((*client)->population());
+		    _customers[k] = static_cast<unsigned>((*client)->population());
 		} else {
-		    myCustomers[k] = 0;
+		    _customers[k] = 0;
 		}
-		myPriority[k]  = (*client)->priority();
+		_priority[k]  = (*client)->priority();
 
 		/* add chain to all servers of this client */
 
@@ -573,10 +556,10 @@ MVASubmodel::makeChains()
 	    //!!! fanins, modify delta_chains and Entity::fanIn()
 	    //!!! for the entry-to-entry case.
 
-	    size_t new_size = myCustomers.size() + sz;
-	    myCustomers.resize( new_size );   //Expand vectors to accomodate
-	    myThinkTime.resize( new_size );   //new chains.
-	    myPriority.resize( new_size );
+	    size_t new_size = _customers.size() + sz;
+	    _customers.resize( new_size );   //Expand vectors to accomodate
+	    _thinkTime.resize( new_size );   //new chains.
+	    _priority.resize( new_size );
 
 	    /*
 	     * Do all the chains for to a server at once.  This makes
@@ -589,11 +572,11 @@ MVASubmodel::makeChains()
 
 		    (*client)->addClientChain( number(), k );
 		    (*server)->addServerChain( k );
-		    myPriority[k]  = (*client)->priority();
+		    _priority[k]  = (*client)->priority();
 		    if ( isfinite( (*client)->population() ) ) {
-			myCustomers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
+			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
 		    } else {
-			myCustomers[k] = 0;
+			_customers[k] = 0;
 		    }
 		}
 	    }
@@ -604,35 +587,6 @@ MVASubmodel::makeChains()
 }
 
 //REPL changes
-
-
-/*
- * Set service time and visits to clients.
- */
-
-void
-MVASubmodel::initClient( Task * aClient )
-{
-    const ChainVector& aChain = aClient->clientChains( number() );
-    Server * aStation = aClient->clientStation( number() );
-
-    for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	const unsigned k = aChain[ix];
-
-	for ( std::vector<Entry *>::const_iterator entry = aClient->entries().begin(); entry != aClient->entries().end(); ++entry ) {
-	    const unsigned e = (*entry)->index();
-
-	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-		const double s = (*entry)->waitExcept( number(), k, p );
-		aStation->setService( e, k, p, s );
-	    }
-	    aStation->setVisits( e, k, 1, (*entry)->prVisit() );	// As client, called-by phase does not matter.
-	}
-
-	/* Set idle times for stations. */
-	myThinkTime[k] = aClient->thinkTime( number(), k );
-    }
-}
 
 
 MVASubmodel&
@@ -653,11 +607,11 @@ MVASubmodel::reinitClients()
 		k += 1;				// Add one chain.
 
 		if ( isfinite( (*client)->population() ) ) {
-		    myCustomers[k] = static_cast<unsigned>((*client)->population());
+		    _customers[k] = static_cast<unsigned>((*client)->population());
 		} else {
-		    myCustomers[k] = 0;
+		    _customers[k] = 0;
 		}
-		myPriority[k]  = (*client)->priority();
+		_priority[k] = (*client)->priority();
 	    }
 
 	} else {
@@ -670,46 +624,17 @@ MVASubmodel::reinitClients()
 		for ( unsigned i = 1; i <= threads; ++i ) {
 		    k += 1;
 
-		    myPriority[k]  = (*client)->priority();
+		    _priority[k] = (*client)->priority();
 		    if ( isfinite( (*client)->population() ) ) {
-			myCustomers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
+			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
 		    } else {
-			myCustomers[k] = 0;
+			_customers[k] = 0;
 		    }
 		}
 	    }
 	}
     }
     return *this;
-}
-
-/*
- * If I am replicated and I have multiple chains, I have to add on the
- * waiting time made to all other tasks in my partition but NOT in my
- * chain too.  This step must be performed after BOTH the clients and
- * servers have been created so that all of the chain information is
- * avaiable at all stations.  Chain information is initialized in
- * makeChains.  Submodel information is initialized in initServer.
- */
-
-//++ REPL changes
-
-void
-MVASubmodel::modifyClientServiceTime( Task * aClient )
-{
-    Server * aStation = aClient->clientStation( number() );
-
-    for ( std::vector<Entry *>::const_iterator entry = aClient->entries().begin(); entry != aClient->entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-
-	const ChainVector& aChain = aClient->clientChains( number() );
-	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	    const unsigned k = aChain[ix];
-	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-		aStation->setService( e, k, p, (*entry)->waitExceptChain( number(), k, p ) );
-	    }
-	}
-    }
 }
 
 
@@ -737,112 +662,6 @@ MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned
 
 //-- REP N-R
 
-
-
-/*
- * Initialize the service and visit parameters for a server.  Also set myChains to
- * all chains that visit this server.
- */
-
-void
-MVASubmodel::initServer( Entity * aServer )
-{
-    Server * aStation = aServer->serverStation();
-
-    if ( !aStation ) return;
-
-    if ( !Pragma::init_variance_only() ) {
-	aServer->computeVariance();
-    }
-
-    const ChainVector& aChain = aServer->serverChains();
-    const std::vector<Entry *>& server_entries = aServer->entries();
-    for ( std::vector<Entry *>::const_iterator entry = server_entries.begin(); entry != server_entries.end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-	const double openArrivalRate = (*entry)->openArrivalRate();
-
-	if ( openArrivalRate > 0.0 ) {
-	    aStation->setVisits( e, 0, 1, openArrivalRate );	// Chain 0 reserved for open class.
-	}
-
-	/* -- Set service time for entries with visits only. -- */
-
-	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	    setServiceTime( aServer, (*entry), aChain[ix] );
-	}
-
-	/*
-	 * Open arrivals and other open models use chain zero which are special
-	 * and won't work in the above loop anyway)
-	 */
-
-	if ( aServer->isInOpenModel() ) {
-	    setServiceTime( aServer, (*entry), 0 );
-	}
-
-    }
-    /* Overtaking -- compute for MARKOV overtaking only. */
-
-    if ( aServer->markovOvertaking() ) {
-	aServer->setOvertaking( number(), _clients );
-    }
-
-    /* Set interlock */
-
-    if ( aServer->isInClosedModel() && Pragma::interlock() ) {
-	setInterlock( aServer );
-    }
-}
-
-
-
-/*
- * Set the service time for my station.
- */
-
-void
-MVASubmodel::setServiceTime( Entity * aServer, const Entry * anEntry, unsigned k ) const
-{
-    const unsigned e = anEntry->index();
-    Server * aStation = aServer->serverStation();
-
-    if ( aStation->V( e, k ) == 0 ) return;
-
-    for ( unsigned p = 1; p <= anEntry->maxPhase(); ++p ) {
-	aStation->setService( e, k, p, anEntry->elapsedTimeForPhase(p) );
-
-	if ( aServer->hasVariance() ) {
-	    aStation->setVariance( e, k, p, anEntry->varianceForPhase(p) );
-	}
-    }
-}
-
-
-
-void
-MVASubmodel::setInterlock( Entity * aServer ) const
-{
-    Server * aStation = aServer->serverStation();
-
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	if ( (*client)->throughput() == 0.0 ) continue;
-
-	const Probability PrIL = aServer->prInterlock( *(*client) );
-	if ( PrIL == 0.0 ) continue;
-
-	const ChainVector& aChain = (*client)->clientChains( number() );
-
-	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	    const unsigned k = aChain[ix];
-	    if ( aServer->hasServerChain(k) ) {
-		for ( std::vector<Entry *>::const_iterator entry = aServer->entries().begin(); entry != aServer->entries().end(); ++entry ) {
-		    aStation->setInterlock( (*entry)->index(), k, PrIL );
-		}
-	    }
-	}
-    }
-}
-
 /*----------------------------------------------------------------------*/
 /*                          Solve the model.                            */
 /*----------------------------------------------------------------------*/
@@ -852,6 +671,7 @@ MVASubmodel::setInterlock( Entity * aServer ) const
  * solutions.  NOTE: Layers of tasks are passed as sequences.  Be sure to
  * always step through the entire sequence, or rewind the list.
  */
+
 MVASubmodel&
 MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
@@ -868,32 +688,12 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	cout << print_submodel_header( *this, iterations ) << endl;
     }
 
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	(*server)->serverStation()->clear();	/* Clear visit ratios and what have you */
-    }
 
-    /* ------------------- Create the clients. -------------------- */
+    /* ----------------- initialize the stations ------------------ */
 
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	initClient( (*client) );
-	if ( (*client)->hasThreads() && !Pragma::threads(Pragma::NO_THREADS) ) {
-	    (*client)->forkOverlapFactor( *this, overlapFactor );
-	}
-
-	/* Set visit ratios to all servers for this client */
-	/* This will also set arrival rates for open class from sendNoReply */
-
-	(*client)->callsPerform( &Call::setVisits, number() ).openCallsPerform( &Call::setLambda, number() );
-    }
-
-    /* ----------------- Create servers for model. ---------------- */
-
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	initServer( (*server) );
-	if ( (*server)->hasSynchs() && !Pragma::threads(Pragma::NO_THREADS) ) {
-	    (*server)->joinOverlapFactor( *this, overlapFactor );
-	}
-    }
+    for_each ( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::clear ) );	/* Clear visit ratios and what have you */
+    for_each ( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClient, *this ) );
+    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServer, *this ) );
 
     /* ------------------- Replication Iteration ------------------- */
 
@@ -906,16 +706,13 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	if ( hasReplication() ) {
 
 	    if ( flags.trace_mva  ) {
-		cout << "\nCurrent master iteration ="<< iterations<<endl;
-		cout <<"Replication Iteration Number (submodel=" <<number() <<") = " <<iter ;
-		cout << "\ndeltaRep=" << deltaRep;
-		cout << ", convergence_value=" << Model::convergence_value<< endl;
+		cout << std::endl << "Current master iteration = " << iterations << std::endl
+		     << "  Replication Iteration Number (submodel=" <<number() <<") = " << iter << std::endl
+		     << "  deltaRep = " << deltaRep << ", convergence_value = " << Model::convergence_value << std::endl;
 
 	    }
 
-	    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-		modifyClientServiceTime( *client );
-	    }
+	    for_each ( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::modifyClientServiceTime, *this ) );
 	}
 
 	//REP N-R
@@ -938,7 +735,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		 */
 
 		try {
-		    openModel->convert( myCustomers );
+		    openModel->convert( _customers );
 		}
 		catch ( const range_error& error ) {
 		    MVAStats.faults += 1;
@@ -978,7 +775,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	    try {
 		if ( closedModel ) {
-		    openModel->solve( *closedModel, myCustomers );	/* Calculate L[0] queue lengths. */
+		    openModel->solve( *closedModel, _customers );	/* Calculate L[0] queue lengths. */
 		} else {
 		    openModel->solve();
 		}
@@ -1014,28 +811,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << endl;
 	}
 
-
-	for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-
-	    /* Get and save the waiting time results for all servers to this client */
-
-	    (*client)->callsPerform( &Call::saveWait, number() )
-		.openCallsPerform( &Call::saveOpen, number() );
-	    /* Other results (only useful for references tasks. */
-
-	    if ( (*client)->isReferenceTask() && !(*client)->isCalled() ) {
-		if ( closedModel ) {
-		    saveClientResults( (*client) );
-		}
-		(*client)->computeUtilization();
-	    }
-	}
-
-
-	for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	    saveServerResults( *server );
-	    (*server)->computeUtilization().setIdleTime( relax );
-	}
+	for_each ( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::saveClientResults, *this ) );
+	for_each ( _servers.begin(), _servers.end(), Exec2<Entity,const MVASubmodel&,double>( &Entity::saveServerResults, *this, relax ) );
 
 	/* --- Compute and save new values for entry service times. --- */
 
@@ -1048,9 +825,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	deltaRep = 0.0;
 	if ( hasReplication() ) {
 	    unsigned n_deltaRep = 0;
-	    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-		deltaRep += (*client)->updateWaitReplication( *this, n_deltaRep );
-	    }
+	    deltaRep = std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, n_deltaRep ) ).sum();
 	    if ( n_deltaRep ) {
 		deltaRep = sqrt( deltaRep / n_deltaRep );	/* Take RMS value over all phases */
 	    }
@@ -1062,9 +837,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* Update waits for everyone else. */
 
-	for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	    (*client)->updateWait( *this, relax );
-	}
+	for_each ( _clients.begin(), _clients.end(), Exec2<Task,const Submodel&,double>( &Task::updateWait,  *this, relax ) );
 
 	if ( !check_fp_ok() ) {
 	    throw floating_point_error( __FILE__, __LINE__ );
@@ -1081,78 +854,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     return *this;
 }
-
-
-
-/*----------------------------------------------------------------------*/
-/*                          Save Results                                */
-/*----------------------------------------------------------------------*/
-
-/*
- * Save throughput and utilization for all reference tasks.
- * These values are computed for servers only when they act as servers.
- */
-
-void
-MVASubmodel::saveClientResults( Task * aClient )
-{
-    const Server * aStation = aClient->clientStation( number() );
-    const ChainVector& myChain( aClient->clientChains(number()));
-
-    for ( std::vector<Entry *>::const_iterator entry = aClient->entries().begin(); entry != aClient->entries().end(); ++entry ) {
-	/*Positive*/ double lambda = 0; // to get rid of the exception
-	//when I set the service time of an activity "Reply" to zero
-	//the throughput will be infinity when using the Gamma distribution.
-
-	if ( hasReplication() ) {
-
-	    /*
-	     * Get throughput PER CUSTOMER because replication
-	     * monkeys with the population levels.  Fix for
-	     * multiservers.
-	     */
-
-	    lambda = closedModel->normalizedThroughput( *aStation, (*entry)->index(), myChain[1] ) * aClient->population();
-	} else {
-	    lambda = closedModel->throughput( *aStation, (*entry)->index(), myChain[1] );
-	}
-	(*entry)->saveThroughput( lambda );
-    }
-}
-
-
-/*
- * Save server results.  Servers only occur in one submodel.
- */
-void
-MVASubmodel::saveServerResults( Entity * aServer )
-{
-    const Server * aStation = aServer->serverStation();
-
-    for ( std::vector<Entry *>::const_iterator entry = aServer->entries().begin(); entry != aServer->entries().end(); ++entry ) {
-	const unsigned e = (*entry)->index();
-	double lambda = 0.0;
-
-	if ( aServer->isInOpenModel() && openModel ) {
-	    lambda = openModel->entryThroughput( *aStation, e );		/* BUG_168 */
-	}
-
-	if ( aServer->isInClosedModel() && closedModel ) {
-	    const double tput = closedModel->entryThroughput( *aStation, e );
-	    if ( isfinite( tput ) ) {
-		lambda += tput;
-	    } else if ( tput < 0.0 ) {
-		throw domain_error( "MVASubmodel::saveServerResults" );
-	    } else {
-		lambda = tput;
-		break;
-	    }
-	}
-	(*entry)->saveThroughput( lambda )
-	    .saveOpenWait( aStation->R( e, 0 ) );
-    }
-}
-
+
 /*----------------------------------------------------------------------*/
 /* Printing functions.							*/
 /*----------------------------------------------------------------------*/
@@ -1165,7 +867,7 @@ ostream&
 MVASubmodel::print( ostream& output ) const
 {
     output << "----------------------- Submodel  " << number() << " -----------------------" << endl
-	   << "Customers: " <<  myCustomers << endl
+	   << "Customers: " <<  _customers << endl
 	   << "Clients: " << endl;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {

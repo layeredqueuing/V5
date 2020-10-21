@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13949 2020-10-18 16:02:42Z greg $
+ * $Id: interlock.cc 13968 2020-10-20 12:52:34Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -53,14 +53,13 @@ StringNManip trunc( const std::string&, const unsigned );
  * instances.
  */
 
-Interlock::Interlock( const Entity * aServer ) 
+Interlock::Interlock( const Entity& aServer ) 
     : commonEntries(),
       allSourceTasks(),
       ph2SourceTasks(),
-      myServer(aServer), 
+      _server(aServer), 
       sources(0)
 {
-    initialize();
 }
 
 
@@ -76,7 +75,7 @@ Interlock::~Interlock()
 void
 Interlock::initialize()
 {
-    if ( !myServer->isInfinite() ) {
+    if ( !_server.isInfinite() ) {
 	findInterlock();
 	pruneInterlock();
 	findSources();
@@ -93,13 +92,13 @@ void
 Interlock::findInterlock()
 {
     if ( Options::Debug::interlock() ) {
-	cout << "Interlock for server: " << myServer->name() << endl;
+	cout << "Interlock for server: " << _server.name() << endl;
     }
 
     /* Locate all callers to myServer */
 
     std::set<Task *> myClients;
-    myServer->clients( myClients );
+    _server.clients( myClients );
 
     for ( std::set<Task *>::const_iterator clientA = myClients.begin(); clientA != myClients.end(); ++clientA ) {
 	if ( !(*clientA)->isUsed() ) continue;		/* Ignore this task - not used. */
@@ -114,7 +113,7 @@ Interlock::findInterlock()
 
 		    /* Check that both entries call me. */
 
-		    for ( std::vector<Entry *>::const_iterator entry = myServer->entries().begin(); entry != myServer->entries().end(); ++entry ) {
+		    for ( std::vector<Entry *>::const_iterator entry = _server.entries().begin(); entry != _server.entries().end(); ++entry ) {
 			if ( (*entryA)->isInterlocked( (*entry) ) ) foundAB = true;
 			if ( (*entryC)->isInterlocked( (*entry) ) ) foundCD = true;
 		    }
@@ -242,9 +241,7 @@ Interlock::pruneInterlock()
     std::set<const Entry *> prune;
     for ( std::set<const Entry *>::const_iterator i = commonEntries.begin(); i != commonEntries.end(); ++i ) {
 	const Entity * dst = (*i)->owner();
-	if ( !dst->interlock ) continue;
-
-	const std::set<const Entry *>& dst_entries = dst->interlock->commonEntries;
+	const std::set<const Entry *>& dst_entries = dst->_interlock.commonEntries;
 	for ( std::set<const Entry *>::const_iterator entry = dst_entries.begin(); entry != dst_entries.end(); ++entry ) {
 	    commonEntries.erase( *entry );		// Nop if not found
 	}
@@ -279,7 +276,7 @@ Interlock::findSources()
 
 	/* Locate all tasks on interlocked paths. */
 
-	CollectTasks data( myServer, interlockedTasks );
+	CollectTasks data( _server, interlockedTasks );
 	(*entry)->getInterlockedTasks( data );
     }
 
@@ -455,7 +452,7 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
      * interlock attends to this case).
      */
 
-    const std::vector<Entry *>& dst_entries = myServer->entries();
+    const std::vector<Entry *>& dst_entries = _server.entries();
     for ( std::set<const Entity *>::const_iterator task = interlockedTasks.begin(); task != interlockedTasks.end(); ++task ) {
 	const std::vector<Entry *>& src_entries = (*task)->entries();
 	for ( std::vector<Entry *>::const_iterator srcEntry = src_entries.begin(); srcEntry != src_entries.end(); ++srcEntry ) {
@@ -485,7 +482,7 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
 ostream&
 Interlock::print( ostream& output ) const
 {
-    output << myServer->name() << ": Sources=" << sources << ", entries: " ;
+    output << _server.name() << ": Sources=" << sources << ", entries: " ;
 
     for ( std::set<const Entry *>::const_iterator srcE = commonEntries.begin(); srcE != commonEntries.end(); ++srcE ) {
 	output << (*srcE)->name() << " ";

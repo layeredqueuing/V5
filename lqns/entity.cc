@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13943 2020-10-16 22:00:45Z greg $
+ * $Id: entity.cc 13968 2020-10-20 12:52:34Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -37,8 +37,8 @@
 #include "variance.h"
 #include "server.h"
 #include "ph2serv.h"
-#include "overtake.h"
 #include "submodel.h"
+#include "mva.h"
 
 
 #define DEFERRED_UTULIZATION	false
@@ -75,7 +75,7 @@ operator==( const Entity& a, const Entity& b )
  */
 
 Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
-    : interlock(nullptr),
+    : _interlock( *this ),
       _dom(dom),
       _entries(entries),
       _tasks(),
@@ -159,6 +159,14 @@ Entity&
 Entity::initWait()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initWait ) );
+    return *this;
+}
+
+
+Entity&
+Entity::initInterlock()
+{
+    _interlock.initialize();
     return *this;
 }
 
@@ -409,27 +417,13 @@ Entity::computeVariance()
 
 
 /*
- * Set overtaking for this server for clients.
- */
-
-void 
-Entity::setOvertaking( const unsigned submodel, const std::set<Task *>& clients )
-{
-    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
-	Overtaking overtaking( *client, this );
-	overtaking.compute();
-    }
-}
-
-
-/*
  * Return in probability of interlocking.
  */
 
 Probability
 Entity::prInterlock( const Task& aClient ) const
 {
-    const Probability pr = interlock->interlockedFlow( aClient ) / population();
+    const Probability pr = _interlock.interlockedFlow( aClient ) / population();
     if ( flags.trace_interlock ) {
 	cout << "Interlock: " 
 	     << aClient.name() << "(" << aClient.population() << ") -> " 
@@ -501,6 +495,161 @@ Entity::sanityCheck() const
 			      getDOM()->getTypeName(),
 			      name().c_str(), copies() );
     }
+    return *this;
+}
+
+Entity&
+Entity::clear()
+{
+    serverStation()->clear();
+    return *this;
+}
+
+
+/*
+ * Initialize the service and visit parameters for a server.  Also set myChains to
+ * all chains that visit this server.
+ */
+
+Entity&
+Entity::initServer( Submodel& submodel )
+{
+    Server * station = serverStation();
+    if ( !station ) return *this;
+
+    if ( !Pragma::init_variance_only() ) {
+	computeVariance();
+    }
+
+    const ChainVector& aChain = serverChains();
+    const std::vector<Entry *>& server_entries = entries();
+    for ( std::vector<Entry *>::const_iterator entry = server_entries.begin(); entry != server_entries.end(); ++entry ) {
+	const unsigned e = (*entry)->index();
+	const double openArrivalRate = (*entry)->openArrivalRate();
+
+	if ( openArrivalRate > 0.0 ) {
+	    station->setVisits( e, 0, 1, openArrivalRate );	// Chain 0 reserved for open class.
+	}
+
+	/* -- Set service time for entries with visits only. -- */
+
+	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
+	    setServiceTime( (*entry), aChain[ix] );
+	}
+
+	/*
+	 * Open arrivals and other open models use chain zero which are special
+	 * and won't work in the above loop anyway)
+	 */
+
+	if ( isInOpenModel() ) {
+	    setServiceTime( (*entry), 0 );
+	}
+
+    }
+    /* Overtaking -- compute for MARKOV overtaking only. */
+
+    if ( markovOvertaking() ) {
+	const std::set<Task *>& clients = submodel.getClients();
+	for_each( clients.begin(), clients.end(), Exec1<Task,Entity*>( &Task::computeOvertaking, this ) );
+    }
+
+    /* Set interlock */
+
+    if ( isInClosedModel() && Pragma::interlock() ) {
+	setInterlock( submodel );
+    }
+
+    if ( hasSynchs() && !Pragma::threads(Pragma::NO_THREADS) ) {
+	joinOverlapFactor( submodel );
+    }
+    
+    return *this;
+}
+
+
+/*
+ * Set the service time for my station.
+ */
+
+void
+Entity::setServiceTime( const Entry * entry, unsigned k ) const
+{
+    Server * station = serverStation();
+    const unsigned e = entry->index();
+
+    if ( station->V( e, k ) == 0 ) return;
+
+    for ( unsigned p = 1; p <= entry->maxPhase(); ++p ) {
+	station->setService( e, k, p, entry->elapsedTimeForPhase(p) );
+
+	if ( hasVariance() ) {
+	    station->setVariance( e, k, p, entry->varianceForPhase(p) );
+	}
+    }
+}
+
+void
+Entity::setInterlock( Submodel& submodel ) const
+{
+    Server * station = serverStation();
+    const std::set<Task *>& clients = submodel.getClients();
+
+    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+	if ( (*client)->throughput() == 0.0 ) continue;
+
+	const Probability PrIL = prInterlock( *(*client) );
+	if ( PrIL == 0.0 ) continue;
+
+	const ChainVector& chain = (*client)->clientChains( submodel.number() );
+
+	for ( unsigned ix = 1; ix <= chain.size(); ++ix ) {
+	    const unsigned k = chain[ix];
+	    if ( hasServerChain(k) ) {
+		for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+		    station->setInterlock( (*entry)->index(), k, PrIL );
+		}
+	    }
+	}
+    }
+}
+
+
+/*
+ * Save server results.  Servers only occur in one submodel.
+ */
+
+Entity&
+Entity::saveServerResults( const MVASubmodel& submodel, double relax )
+{
+    const Server * station = serverStation();
+
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const unsigned e = (*entry)->index();
+	double lambda = 0.0;
+
+	if ( isInOpenModel() && submodel.openModel ) {
+	    lambda = submodel.openModel->entryThroughput( *station, e );		/* BUG_168 */
+	}
+
+	if ( isInClosedModel() && submodel.closedModel ) {
+	    const double tput = submodel.closedModel->entryThroughput( *station, e );
+	    if ( isfinite( tput ) ) {
+		lambda += tput;
+	    } else if ( tput < 0.0 ) {
+		throw domain_error( "MVASubmodel::saveServerResults" );
+	    } else {
+		lambda = tput;
+		break;
+	    }
+	}
+	(*entry)->saveThroughput( lambda )
+	    .saveOpenWait( station->R( e, 0 ) );
+    }
+
+    computeUtilization();
+    setIdleTime( relax );
+
     return *this;
 }
 

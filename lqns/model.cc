@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13880 2020-09-26 12:57:24Z greg $
+ * $Id: model.cc 13970 2020-10-20 13:49:37Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -603,7 +603,7 @@ void
 Model::initialize()
 {
     if ( Pragma::interlock() ) {
-	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initInterlock ) );
+	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::createInterlock ) );
 	if ( Options::Debug::interlock() ) {
 	    Interlock::printPathTable( cout );
 	}
@@ -659,7 +659,7 @@ Model::reinitialize()
      * Reinitialize the MVA stuff
      */
 
-    for_each( __task.begin(),  __task.end(), Exec<Task>( &Task::initInterlock ) );
+    for_each( __task.begin(),  __task.end(), Exec<Task>( &Task::createInterlock ) );
 
 
     /* 
@@ -677,7 +677,7 @@ Model::reinitialize()
     /* Reinitialize Interlocking */
 
     if ( Pragma::interlock() ) {
-	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::reinitInterlock ) );
+	for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::initInterlock ) );
     }
 
     /* Rebuild stations and customers as needed. */

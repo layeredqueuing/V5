@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13950 2020-10-19 01:45:22Z greg $
+ * $Id: task.cc 13970 2020-10-20 13:49:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -35,6 +35,7 @@
 #include "server.h"
 #include "ph2serv.h"
 #include "multserv.h"
+#include "mva.h"
 #include "processor.h"
 #include "group.h"
 #include "lqns.h"
@@ -43,6 +44,7 @@
 #include "call.h"
 #include "submodel.h"
 #include "interlock.h"
+#include "overtake.h"
 #include "entrythread.h"
 #include <iostream>
 
@@ -333,10 +335,10 @@ Task::initReplication( const unsigned n_chains )
  */
 
 Task&
-Task::initInterlock()
+Task::createInterlock()
 {
     if ( !Pragma::interlock() ) return *this;
-    for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::initInterlock ) );
+    for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::createInterlock ) );
     return *this;
 }
 
@@ -716,6 +718,121 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
 }
 
 
+/*
+ * Called from submodel to initialize client
+ */
+
+Task&
+Task::initClient( Submodel& submodel )
+{
+    const unsigned int n = submodel.number();
+    const ChainVector& chains = clientChains( n );
+    Server * station = clientStation( n );
+
+    for ( unsigned ix = 1; ix <= chains.size(); ++ix ) {
+	const unsigned k = chains[ix];
+
+	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	    const unsigned e = (*entry)->index();
+
+	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+		const double s = (*entry)->waitExcept( n, k, p );
+		station->setService( e, k, p, s );
+	    }
+	    station->setVisits( e, k, 1, (*entry)->prVisit() );	// As client, called-by phase does not matter.
+	}
+
+	/* Set idle times for stations. */
+	submodel.setThinkTime( k, thinkTime( n, k ) );
+    }
+
+    if ( hasThreads() && !Pragma::threads(Pragma::NO_THREADS) ) {
+	forkOverlapFactor( submodel );
+    }
+
+    /* Set visit ratios to all servers for this client */
+    /* This will also set arrival rates for open class from sendNoReply */
+
+    callsPerform( &Call::setVisits, n ).openCallsPerform( &Call::setLambda, n );
+    return *this;
+}
+
+
+
+/*
+ * If I am replicated and I have multiple chains, I have to add on the
+ * waiting time made to all other tasks in my partition but NOT in my
+ * chain too.  This step must be performed after BOTH the clients and
+ * servers have been created so that all of the chain information is
+ * available at all stations.  Chain information is initialized in
+ * makeChains.  Submodel information is initialized in initServer.
+ */
+
+//++ REPL changes
+
+Task&
+Task::modifyClientServiceTime( const MVASubmodel& submodel )
+{
+    const unsigned int n = submodel.number();
+    Server * station = clientStation( n );
+    const ChainVector& chain = clientChains( n );
+
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const unsigned e = (*entry)->index();
+
+	for ( unsigned ix = 1; ix <= chain.size(); ++ix ) {
+	    const unsigned k = chain[ix];
+	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
+		station->setService( e, k, p, (*entry)->waitExceptChain( n, k, p ) );
+	    }
+	}
+    }
+    return *this;
+}
+
+
+
+
+/* Get and save the waiting time results for all servers to this client */
+
+Task&
+Task::saveClientResults( const MVASubmodel& submodel )
+{
+    const unsigned int n = submodel.number();
+
+    callsPerform( &Call::saveWait, n );
+    openCallsPerform( &Call::saveOpen, n );
+
+    /* Other results (only useful for references tasks. */
+
+    if ( isReferenceTask() && !isCalled() ) {
+	if ( submodel.closedModel ) {
+	    const Server * station = clientStation( n );
+	    const ChainVector& chains = clientChains(n);
+
+	    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+		double lambda = 0;
+
+		if ( submodel.hasReplication() ) {
+
+		    /*
+		     * Get throughput PER CUSTOMER because replication
+		     * monkeys with the population levels.  Fix for
+		     * multiservers.
+		     */
+
+		    lambda = submodel.closedModel->normalizedThroughput( *station, (*entry)->index(), chains[1] ) * population();
+		} else {
+		    lambda = submodel.closedModel->throughput( *station, (*entry)->index(), chains[1] );
+		}
+		(*entry)->saveThroughput( lambda );
+	    }
+	}
+	computeUtilization();
+    }
+    return *this;
+}
+
 
 
 /*
@@ -798,16 +915,32 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 
 
 
+/*
+ * Compute variance at activities before the entries because the
+ * entries aggregate the values.
+ */
+
 Task&
 Task::computeVariance()
 {
-    /* compute variance at activities before the entries because the entries aggregate the values. */
-
     for_each( activities().begin(), activities().end(), ExecSum<Phase,double>( &Phase::computeVariance ) );
     Entity::computeVariance();
     return *this;
 }
 
+
+
+/*
+ * Compute overtaking from this client to server.
+ */
+
+Task&
+Task::computeOvertaking( Entity * server )
+{
+    Overtaking overtaking( this, server );
+    overtaking.compute();
+    return *this;
+}
 
 
 /*
@@ -954,9 +1087,10 @@ Task::waitExceptChain( const unsigned ix, const unsigned submodel, const unsigne
  */
 
 void
-Task::forkOverlapFactor( const Submodel& aSubmodel, VectorMath<double>* of ) const
+Task::forkOverlapFactor( const Submodel& submodel ) const
 {
-    const ChainVector& chain( _clientChains[aSubmodel.number()] );
+    VectorMath<double>* of = submodel.getOverlapFactor();
+    const ChainVector& chain( _clientChains[submodel.number()] );
     const unsigned n = chain.size();
 
     for ( unsigned i = 1; i <= n; ++i ) {
@@ -1105,7 +1239,7 @@ Task::hasSyncs() const
  */
 
 void
-Task::joinOverlapFactor( const Submodel& aSubmodel, VectorMath<double>* of ) const
+Task::joinOverlapFactor( const Submodel& aSubmodel ) const
 {
 #if 0
     Sequence<AndJoinActivityList *> nextJoin( myJoin );
