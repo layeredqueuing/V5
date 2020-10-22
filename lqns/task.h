@@ -10,25 +10,21 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13970 2020-10-20 13:49:37Z greg $
+ * $Id: task.h 13982 2020-10-21 21:22:08Z greg $
  * ------------------------------------------------------------------------
  */
 
 #if	!defined(TASK_H)
 #define TASK_H
 
-#include <config.h>
-#include <cstring>
 #include <lqio/dom_task.h>
 #include "dim.h"
 #include "entity.h"
-#include "prob.h"
 #include "call.h"
 
 class Activity;
 class ActivityList;
 class Entry;
-class Format;
 class Processor;
 class Server;
 class Submodel;

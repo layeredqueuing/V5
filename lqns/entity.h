@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13975 2020-10-20 19:37:55Z greg $
+ * $Id: entity.h 13982 2020-10-21 21:22:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,7 +28,6 @@
 class Entity;
 class Entry;
 class Processor;
-class Format;
 class Interlock;
 class Task;
 class Model;

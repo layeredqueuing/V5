@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: slice.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: slice.cc 13982 2020-10-21 21:22:08Z greg $
  *
  * Everything you wanted to know about a slice, but were afraid to ask.
  *
@@ -14,12 +14,10 @@
 
 #include "dim.h"
 #include <cmath>
-#include "fpgoop.h"
 #include "slice.h"
 #include "prob.h"
 #include "lqns.h"
 #include "entry.h"
-#include "activity.h"
 #include "call.h"
 
 

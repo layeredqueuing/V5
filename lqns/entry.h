@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13970 2020-10-20 13:49:37Z greg $
+ * $Id: entry.h 13985 2020-10-21 21:45:55Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,20 +17,18 @@
 #if	!defined(ENTRY_H)
 #define ENTRY_H
 
-#include <config.h>
 #include "dim.h"
-#include <cstdlib>
 #include <lqio/input.h>
 #include <lqio/dom_entry.h>
 #include <set>
 #include <vector>
-#include <deque>
 #include "prob.h"
 #include "call.h"
 #include "vector.h"
 #include "phase.h"
 #include "activity.h"
 #include "interlock.h"
+#include "slice.h"
 
 namespace LQIO {
     namespace DOM {
@@ -44,15 +42,10 @@ class Call;
 class Entity;
 class Entry;
 class Exponential;
-class Format;
 class Model;
 class Processor;
-class ProcessorEntry;
-class Slice_Info;
 class Submodel;
 class Task;
-
-template <class type> class Stack;
 
 typedef enum { ENTRY_NOT_DEFINED, STANDARD_ENTRY, ACTIVITY_ENTRY, DEVICE_ENTRY } entry_type;
 typedef enum { NOT_CALLED, RENDEZVOUS_REQUEST, SEND_NO_REPLY_REQUEST, OPEN_ARRIVAL_REQUEST } requesting_type;
@@ -259,7 +252,6 @@ public:
     Entry& saveThroughput( double );
 
     const Entry& followInterlock( Interlock::CollectTable& ) const;
-    void followForwarding( Phase *, const Entry *, const double, Stack<const Entity *>& ) const;
     bool getInterlockedTasks( Interlock::CollectTasks& ) const;
 
     void set( const Entry * src, const Activity::Collect& );

@@ -1,5 +1,5 @@
 /* overtake.C	-- Greg Franks Mon Mar 17 1997
- * $Id: overtake.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: overtake.cc 13982 2020-10-21 21:22:08Z greg $
  * 
  * Overtaking calculation.  See also slice.[Ch].
  * See
@@ -21,9 +21,7 @@
 #include "dim.h"
 #include <algorithm>
 #include "overtake.h"
-#include "call.h"
 #include "entry.h"
-#include "entity.h"
 #include "task.h"
 #include "lqns.h"
 #include "server.h"

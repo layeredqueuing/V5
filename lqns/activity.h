@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13980 2020-10-21 19:00:53Z greg $
+ * $Id: activity.h 13985 2020-10-21 21:45:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,12 +40,8 @@ class AndOrForkActivityList;
 class AndOrJoinActivityList;
 
 class Task;
-class Format;
 class ActivityCall;
 class Call;
-class Path;
-
-template <class type> class Stack;
 
 typedef void (Activity::*AggregateFunc)(Entry *,const unsigned,const unsigned);
 

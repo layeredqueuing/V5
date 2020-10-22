@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: report.h 13982 2020-10-21 21:22:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,14 +17,9 @@
 #if	!defined(SOLVERREPORT_H)
 #define	SOLVERREPORT_H
 
-#include <config.h>
 #include "dim.h"
 #include <lqio/common_io.h>
 #include "vector.h"
-
-#if	defined(MSDOS)
-#define	double time_t 
-#endif
 
 namespace LQIO {
     namespace DOM {

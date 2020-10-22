@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: group.h 13982 2020-10-21 21:22:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,13 +21,10 @@
 #include <set>
 #include <lqio/dom_group.h>
 #include "entity.h"
-#include "vector.h"
-#include "prob.h"
 
 class Task;
 class Processor;
 class DeviceEntry;
-class Format;
 class Server;
 class Group;
 class Processor;

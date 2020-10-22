@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13952 2020-10-19 15:00:24Z greg $
+ * $Id: call.cc 13982 2020-10-21 21:22:08Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -19,7 +19,6 @@
 #include <algorithm>
 #include "call.h"
 #include "entry.h"
-#include "entity.h"
 #include "task.h"
 #include "submodel.h"
 #include "server.h"

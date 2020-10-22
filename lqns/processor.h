@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: processor.h 13982 2020-10-21 21:22:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,7 +21,6 @@
 #include "dim.h"
 #include <lqio/dom_processor.h>
 #include <set>
-#include <cstring>
 #include <string>
 #include "entity.h"
 

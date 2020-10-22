@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13980 2020-10-21 19:00:53Z greg $
+ * $Id: entry.cc 13985 2020-10-21 21:45:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -40,7 +40,6 @@
 #include "prob.h"
 #include "variance.h"
 #include "pragma.h"
-#include "slice.h"
 #include "entrythread.h"
 #include "randomvar.h"
 

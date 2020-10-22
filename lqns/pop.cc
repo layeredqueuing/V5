@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 13719 2020-08-03 13:32:07Z greg $
+ * $Id: pop.cc 13982 2020-10-21 21:22:08Z greg $
  *
  * Population vector functions.
  *
@@ -15,8 +15,6 @@
 
 #include "dim.h"
 #include <algorithm>
-#include <cstdlib>
-#include <string.h>
 #include "pop.h"
 #include "vector.h"
 

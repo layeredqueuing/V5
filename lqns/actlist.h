@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13980 2020-10-21 19:00:53Z greg $
+ * $Id: actlist.h 13985 2020-10-21 21:45:55Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,9 +21,6 @@
 #include "dim.h"
 #include <lqio/dom_activity.h>
 #include <string>
-#include <stack>
-#include "vector.h"
-#include "prob.h"
 #include "activity.h"
 
 class Entry;
@@ -35,11 +32,6 @@ class AndOrJoinActivityList;
 class DiscretePoints;
 class DiscreteCDFs;
  
-template <class type> class Stack;
-template <class type> class Vector;
-template <class type> class VectorMath;
-
-
 class bad_internal_join : public std::runtime_error
 {
 public:

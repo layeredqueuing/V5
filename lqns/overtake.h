@@ -1,14 +1,13 @@
 /*  -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/overtake.h $ -- Greg Franks
  *
- * $Id: overtake.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: overtake.h 13982 2020-10-21 21:22:08Z greg $
  */
 
 #ifndef _OVERTAKE_H
 #define _OVERTAKE_H
 
 #include "dim.h"
-#include <lqio/input.h>
 #include "vector.h"
 #include "prob.h"
 #include "slice.h"
@@ -16,7 +15,6 @@
 class Entry;
 class Task;
 class Entity;
-class Submodel;
 
 class Overtaking
 {

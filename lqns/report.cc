@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: report.cc 13982 2020-10-21 21:22:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,7 +18,6 @@
 #include "dim.h"
 #include <config.h>
 #include <iomanip>
-#include <sstream>
 #include <limits.h>
 #if HAVE_SYS_RESOURCE_H
 #include <sys/resource.h>
