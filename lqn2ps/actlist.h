@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 13979 2020-10-21 17:58:03Z greg $
+ * $Id: actlist.h 13996 2020-10-24 22:01:20Z greg $
  */
 
 #ifndef _ACTLIST_H

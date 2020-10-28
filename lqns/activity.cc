@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 13980 2020-10-21 19:00:53Z greg $
+ * $Id: activity.cc 14005 2020-10-26 12:39:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -19,7 +19,7 @@
 #include "dim.h"
 #include <stdarg.h>
 #include <algorithm>
-#include <cstdlib>
+#include <numeric>
 #include <string.h>
 #include <cmath>
 #include <lqio/input.h>
@@ -68,7 +68,6 @@ Activity::Activity( const Task * task, const std::string& aName )
       _prevFork(nullptr),
       _nextJoin(nullptr),
       _replyList(),
-      _rate(0.),			/* computed call rate. */
       _specified(false),
       _reachable(false),
       _throughput(0.),			/* result */
@@ -196,9 +195,9 @@ Activity::resetInputOutputLists()
  */
 	
 bool
-Activity::repliesTo( const Entry * anEntry ) const
+Activity::repliesTo( const Entry * entry ) const
 {
-    return _replyList.find( anEntry ) != _replyList.end();
+    return _replyList.find( entry ) != _replyList.end();
 }
 
 /* --------------------- Activity List Processing --------------------- */
@@ -350,17 +349,17 @@ Activity::callsPerform( const CallExec& exec ) const
 
 
 /*
- * Return index of destination anEntry.  If it is not found in the list
+ * Return index of destination entry.  If it is not found in the list
  * add it.
  */
 
 Call *
-Activity::findOrAddFwdCall( const Entry * anEntry )
+Activity::findOrAddFwdCall( const Entry * entry )
 {
-    Call * aCall = findFwdCall( anEntry );
+    Call * aCall = findFwdCall( entry );
 
     if ( !aCall ) {
-	aCall = new ActivityForwardedCall( this, anEntry );
+	aCall = new ActivityForwardedCall( this, entry );
     }
     return aCall;
 }
@@ -368,17 +367,17 @@ Activity::findOrAddFwdCall( const Entry * anEntry )
 
 
 /*
- * Return index of destination anEntry.  If it is not found in the list
+ * Return index of destination entry.  If it is not found in the list
  * add it.
  */
 
 Call *
-Activity::findOrAddCall( const Entry * anEntry, const queryFunc aFunc )
+Activity::findOrAddCall( const Entry * entry, const queryFunc aFunc )
 {
-    Call * aCall = findCall( anEntry, aFunc );
+    Call * aCall = findCall( entry, aFunc );
 
     if ( !aCall ) {
-	aCall = new ActivityCall( this, anEntry );
+	aCall = new ActivityCall( this, entry );
     }
     return aCall;
 }
@@ -775,19 +774,19 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
 bool
 Activity::checkReplies( Activity::Count_If& data ) const
 {
-    const Entry * anEntry = data.entry();
-    if ( repliesTo( anEntry ) ) {
-	if (  anEntry->isCalledUsing( SEND_NO_REPLY_REQUEST ) || anEntry->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
-	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+    const Entry * entry = data.entry();
+    if ( repliesTo( entry ) ) {
+	if (  entry->isCalledUsing( SEND_NO_REPLY_REQUEST ) || entry->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
+	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
 	} else if ( !data.canReply() || data.rate() != 1 ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
 	} else if ( data.phase() > 1 ) {
-	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), anEntry->name().c_str() );
+	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
 	} 
 	data.setPhase(2);
 	return true;
     } else if ( data.phase() > 1 ) {
-	const_cast<Entry *>(anEntry)->setMaxPhase( data.phase() );
+	const_cast<Entry *>(entry)->setMaxPhase( data.phase() );
     }
     return false;
 }
@@ -798,24 +797,24 @@ Activity::checkReplies( Activity::Count_If& data ) const
  */
 
 void
-Activity::collectWait( Entry * anEntry, const Activity::Collect& data ) const
+Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
 {
     const unsigned int submodel = data.submodel();
     const unsigned int p = data.phase();
     if ( submodel > 0 ) {
-	anEntry->_phase[p].myWait[submodel] += myWait[submodel];
+	entry->_phase[p].myWait[submodel] += myWait[submodel];
 	if ( flags.trace_activities ) {
 	    cout << "Activity " << name() << " aggregate to ";
-	    if ( dynamic_cast<VirtualEntry *>(anEntry) ) {
+	    if ( dynamic_cast<VirtualEntry *>(entry) ) {
 		cout << " virtual entry ";
 	    } else {
 		cout << " actual entry  ";
 	    }
-	    cout << anEntry->name() << ", submodel " << submodel << ", phase " << p 
+	    cout << entry->name() << ", submodel " << submodel << ", phase " << p 
 		 << ": wait " << myWait[submodel] << endl;
 	}
     } else {
-	anEntry->_phase[p].myVariance += variance();
+	entry->_phase[p].myVariance += variance();
     }
 }
 
@@ -824,13 +823,13 @@ Activity::collectWait( Entry * anEntry, const Activity::Collect& data ) const
  */
 
 void
-Activity::collectReplication( Entry * anEntry, const Activity::Collect& data ) const
+Activity::collectReplication( Entry * entry, const Activity::Collect& data ) const
 {
     const unsigned int submodel = data.submodel();
     const unsigned int p = data.phase();
     assert( submodel > 0 );
 
-    anEntry->_phase[p]._surrogateDelay += _surrogateDelay;
+    entry->_phase[p]._surrogateDelay += _surrogateDelay;
     if ( flags.trace_replication ) {
 	cout << "\nActivity of (submodel ="<<submodel<< " )  " << name()<<" SurrogateDelay = " << _surrogateDelay << endl;
     }
@@ -839,14 +838,14 @@ Activity::collectReplication( Entry * anEntry, const Activity::Collect& data ) c
 
 
 /*
- * Add the service time from this activity to anEntry.
+ * Add the service time from this activity to entry.
  * Access the instance variables directly because of side effects with setServicetime().
  */
 
 void
-Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data ) const
+Activity::collectServiceTime( Entry * entry, const Activity::Collect& data ) const
 {
-    anEntry->addServiceTime( data.phase(), serviceTime() );
+    entry->addServiceTime( data.phase(), serviceTime() );
 }
 
 
@@ -855,9 +854,9 @@ Activity::collectServiceTime( Entry * anEntry, const Activity::Collect& data ) c
  */
 
 void
-Activity::setThroughput( Entry * anEntry, const Activity::Collect& ) const
+Activity::setThroughput( Entry * entry, const Activity::Collect& ) const
 {
-    const_cast<Activity *>(this)->_throughput = anEntry->throughput();
+    const_cast<Activity *>(this)->_throughput = entry->throughput();
 }
 
 /* ------------------------- Printing Functions ------------------------- */
@@ -1027,15 +1026,10 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
 
 /* ------------------------ Exception Handling ------------------------ */
 
-activity_cycle::activity_cycle( const Activity * anActivity, const std::deque<const Activity *>& activityStack )
+activity_cycle::activity_cycle( const Activity * activity, const std::deque<const Activity *>& activityStack )
     : path_error( activityStack.size() )
 {
-    myMsg = anActivity->name();
-    for ( std::deque<const Activity *>::const_reverse_iterator i = activityStack.rbegin(); i != activityStack.rend(); ++i ) {
-	myMsg += ", ";
-	myMsg += (*i)->name();
-	if ( (*i) == anActivity ) break;
-    }
+    _msg = std::accumulate( activityStack.rbegin(), activityStack.rend(), activity->name(), fold );
 }
 
 /************************************************************************/
@@ -1049,15 +1043,15 @@ activity_cycle::activity_cycle( const Activity * anActivity, const std::deque<co
 
 
 void
-store_activity_service_time ( void * aTask, const char * activity_name, const double service_time ) 
+store_activity_service_time ( void * task, const char * activity_name, const double service_time ) 
 {
-    if ( !aTask ) return;
-    Activity * anActivity = static_cast<Task *>(aTask)->findOrAddActivity( activity_name );
-    anActivity->isSpecified( true );
-    if ( anActivity->serviceTime() ) {
+    if ( !task ) return;
+    Activity * activity = static_cast<Task *>(task)->findOrAddActivity( activity_name );
+    activity->isSpecified( true );
+    if ( activity->serviceTime() ) {
 	LQIO::input_error2( LQIO::WRN_MULTIPLE_SPECIFICATION );
     }
-    anActivity->setServiceTime( service_time );
+    activity->setServiceTime( service_time );
 }
 
 
@@ -1065,18 +1059,18 @@ store_activity_service_time ( void * aTask, const char * activity_name, const do
 /*                     Functions called by loader.                      */
 /************************************************************************/
 
-Activity* add_activity( Task* newTask, LQIO::DOM::Activity* activity )
+Activity* add_activity( Task* newTask, LQIO::DOM::Activity* activity_dom )
 {
     /* Create a new activity assigned to a given task and set the information DOM entry for it */
-    Activity * anActivity = newTask->findOrAddActivity( activity->getName() );
-    anActivity->setDOM(activity);
+    Activity * activity = newTask->findOrAddActivity( activity_dom->getName() );
+    activity->setDOM(activity_dom);
 	
     /* Find out if we can specify the activity */
-    if (activity->isSpecified() == true) {
-	anActivity->isSpecified(true);
+    if (activity_dom->isSpecified() == true) {
+	activity->isSpecified(true);
     }
 	
-    return anActivity;
+    return activity;
 }
 
 
@@ -1158,7 +1152,7 @@ Activity::add_activity_lists()
 	    const LQIO::DOM::Activity* domAct = *iter;
 
 	    /* Add the activity to the appropriate list based on what kind of list we have */
-	    Activity * nextActivity = task->findActivity( domAct->getName().c_str() );
+	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
@@ -1195,7 +1189,7 @@ Activity::add_activity_lists()
 	forkList->setProcessed(true);
 	for (iter = list.begin(); iter != list.end(); ++iter) {
 	    const LQIO::DOM::Activity* domAct = *iter;
-	    Activity * nextActivity = task->findActivity( domAct->getName().c_str() );
+	    Activity * nextActivity = task->findActivity( domAct->getName() );
 	    if ( !nextActivity ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;

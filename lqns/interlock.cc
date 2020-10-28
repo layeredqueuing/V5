@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 13973 2020-10-20 15:22:22Z greg $
+ * $Id: interlock.cc 13996 2020-10-24 22:01:20Z greg $
  *
  * Call-chain/interlock finder.
  *

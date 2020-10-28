@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: slice.cc 13982 2020-10-21 21:22:08Z greg $
+ * $Id: slice.cc 13996 2020-10-24 22:01:20Z greg $
  *
  * Everything you wanted to know about a slice, but were afraid to ask.
  *

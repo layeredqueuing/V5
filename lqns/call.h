@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 13982 2020-10-21 21:22:08Z greg $
+ * $Id: call.h 13996 2020-10-24 22:01:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -69,6 +69,11 @@ public:
 	mutable bool _broken;
     };
 	
+    class Perform {
+	Perform();
+    };
+
+    
     class stack : public std::deque<const Call *>
     {
     public:

@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 13982 2020-10-21 21:22:08Z greg $
+ * $Id: task.h 14009 2020-10-26 16:44:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -148,7 +148,7 @@ public:
 
     virtual int rootLevel() const;
     Server * makeClient( const unsigned, const unsigned  );
-    Task& initClient( Submodel& );
+    Task& initClientStation( Submodel& );
     Task& modifyClientServiceTime( const MVASubmodel& );
     Task& saveClientResults( const MVASubmodel& );
     const Task& callsPerform( callFunc, const unsigned submodel ) const;
@@ -249,6 +249,9 @@ public:
 
     virtual unsigned copies() const;
     
+    virtual ReferenceTask& initClient( const Vector<Submodel *>& );
+    virtual ReferenceTask& reinitClient( const Vector<Submodel *>& );
+
     virtual bool check() const;
     virtual ReferenceTask& recalculateDynamicValues();
     virtual unsigned findChildren( Call::stack&, const bool ) const;

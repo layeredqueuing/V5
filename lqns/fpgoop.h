@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: fpgoop.h 13996 2020-10-24 22:01:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -53,7 +53,7 @@ public:
     virtual const char * what() const throw();
 
 private:
-    string myMsg;
+    string _msg;
 };
 
 typedef enum { FP_IGNORE, FP_REPORT, FP_DEFERRED_ABORT, FP_IMMEDIATE_ABORT } fp_exeception_reporting;

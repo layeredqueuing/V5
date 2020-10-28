@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 13715 2020-08-02 20:33:09Z greg $
+ * $Id: fpgoop.cc 13996 2020-10-24 22:01:20Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -115,20 +115,20 @@ floating_point_error::floating_point_error( const char * file, const unsigned li
     char temp[10];
     sprintf( temp, "%d", line );
 
-    myMsg = "Floating point exception";
-    myMsg += ": ";
-    myMsg += file;
-    myMsg += " ";
-    myMsg += temp;
-    myMsg += ": ";
+    _msg = "Floating point exception";
+    _msg += ": ";
+    _msg += file;
+    _msg += " ";
+    _msg += temp;
+    _msg += ": ";
 
     unsigned count = 0;
     for ( unsigned i = 0; fp_op_str[i].str; ++i ) {
 	if ( flags & fp_op_str[i].bit ) {
 	    if ( count > 0 ) {
-		myMsg += ", ";
+		_msg += ", ";
 	    }
-	    myMsg += fp_op_str[i].str;
+	    _msg += fp_op_str[i].str;
 	    count += 1;
 	}
     }
@@ -137,7 +137,7 @@ floating_point_error::floating_point_error( const char * file, const unsigned li
 const char * 
 floating_point_error::what() const throw()
 {
-    return myMsg.c_str();
+    return _msg.c_str();
 }
 
 /*

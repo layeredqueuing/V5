@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 13982 2020-10-21 21:22:08Z greg $
+ * $Id: group.h 14001 2020-10-25 17:25:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -32,7 +32,7 @@ class Processor;
 class Group {
 public:
 
-    Group( LQIO::DOM::Group *, const Processor * aProcessor );
+    Group( LQIO::DOM::Group *, const Processor * );
     virtual ~Group();
     static void create( const std::pair<std::string,LQIO::DOM::Group*>& );  
 
@@ -40,8 +40,8 @@ public:
 
     bool check() const;
 
-    Group& addTask( Task * aTask ) { _taskList.insert(aTask); return *this; }
-    Group& removeTask( Task * aTask )  { _taskList.erase(aTask); return *this; }
+    Group& addTask( Task * task ) { _taskList.insert(task); return *this; }
+    Group& removeTask( Task * task )  { _taskList.erase(task); return *this; }
     Group& recalculateDynamicValues();
     void initialize();
     void reinitialize();
@@ -51,7 +51,7 @@ public:
     /* Printing */
 
     ostream& print( ostream& output ) const { return output; }
-    const std::string& name() const { return myDOMGroup->getName(); }
+    const std::string& name() const { return _dom->getName(); }
 
     /* DOM insertion of results */
 
@@ -62,11 +62,11 @@ public:
 
     
 private:
-    LQIO::DOM::Group* myDOMGroup;       /* DOM Element to Store Data	*/
+    LQIO::DOM::Group* _dom; 		/* DOM Element to Store Data	*/
     std::set<Task *> _taskList;	        /* List of processor's tasks	*/
     const Processor * _processor;
-    const double myShare;		/* group share.		*/
-    const bool myCap;
+    const double _share;		/* group share.		*/
+    const bool _cap;
 };
 
 inline ostream& operator<<( ostream& output, const Group& self ) { return self.print( output ); }

@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 13968 2020-10-20 12:52:34Z greg $
+ * $Id: submodel.h 14012 2020-10-26 16:59:41Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -80,7 +80,6 @@ public:
 
     virtual Submodel& initServers( const Model& );
     virtual Submodel& reinitServers( const Model& ) { return *this; }
-    virtual Submodel& reinitClients() { return *this; }
     virtual Submodel& initInterlock() { return *this; }
     virtual Submodel& build() { return *this; }
     virtual Submodel& rebuild() { return *this; }
@@ -138,7 +137,6 @@ public:
 
     virtual MVASubmodel& initServers( const Model& );
     virtual MVASubmodel& reinitServers( const Model& );
-    virtual MVASubmodel& reinitClients();
     virtual MVASubmodel& initInterlock();
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();

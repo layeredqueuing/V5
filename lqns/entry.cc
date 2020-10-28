@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13985 2020-10-21 21:45:55Z greg $
+ * $Id: entry.cc 14001 2020-10-25 17:25:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -53,16 +53,16 @@ const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
 /* ------------------------ Constructors etc. ------------------------- */
 
 
-Entry::Entry( LQIO::DOM::Entry* entryDOM, const unsigned id, const unsigned index )
-    : _entryDOM(entryDOM),
-      _phase(entryDOM && entryDOM->getMaximumPhase() > 0 ? entryDOM->getMaximumPhase() : 1 ),
+Entry::Entry( LQIO::DOM::Entry* dom, const unsigned id, const unsigned index )
+    : _dom(dom),
+      _phase(dom && dom->getMaximumPhase() > 0 ? dom->getMaximumPhase() : 1 ),
       _total(),
       _nextOpenWait(0.0),			/* copy for delta computation	*/
       _startActivity(NULL),
       _entryId(id),
       _index(index+1),
       _entryType(ENTRY_NOT_DEFINED),
-      _semaphoreType(entryDOM ? entryDOM->getSemaphoreFlag() : SEMAPHORE_NONE),
+      _semaphoreType(dom ? dom->getSemaphoreFlag() : SEMAPHORE_NONE),
       _calledBy(NOT_CALLED),
       _throughput(0.0),
       _throughputBound(0.0),
@@ -108,9 +108,9 @@ Entry::reset()
  */
 
 int
-Entry::operator==( const Entry& anEntry ) const
+Entry::operator==( const Entry& entry ) const
 {
-    return entryId() == anEntry.entryId();
+    return entryId() == entry.entryId();
 }
 
 /* ------------------------ Instance Methods -------------------------- */
@@ -560,9 +560,9 @@ Entry::rendezvous( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* cal
  */
 
 double
-Entry::rendezvous( const Entry * anEntry ) const
+Entry::rendezvous( const Entry * entry ) const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::rendezvous, anEntry ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::rendezvous, entry ) );
 }
 
 
@@ -606,9 +606,9 @@ Entry::sendNoReply( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* ca
  */
 
 double
-Entry::sendNoReply( const Entry * anEntry ) const
+Entry::sendNoReply( const Entry * entry ) const
 {
-    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::sendNoReply, anEntry ) );
+    return std::accumulate( _phase.begin(), _phase.end(), 0., add_using_arg<Phase,const Entry *>( &Phase::sendNoReply, entry ) );
 }
 
 
@@ -720,14 +720,14 @@ Entry::computeCV_sqr() const
 double
 Entry::waitExcept( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
-    const Task * aTask = dynamic_cast<const Task *>(owner());
-    const unsigned ix = aTask->threadIndex( submodel, k );
+    const Task * task = dynamic_cast<const Task *>(owner());
+    const unsigned ix = task->threadIndex( submodel, k );
 
     if ( isStandardEntry() || submodel == 0 || ix <= 1 ) {
 	return _phase[p].waitExcept( submodel );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return aTask->waitExcept( ix, submodel, p );
+	return task->waitExcept( ix, submodel, p );
     }
 }
 
@@ -742,14 +742,14 @@ Entry::waitExcept( const unsigned submodel, const unsigned k, const unsigned p )
 double
 Entry::waitExceptChain( const unsigned submodel, const unsigned k, const unsigned p ) const
 {
-    const Task * aTask = dynamic_cast<const Task *>(owner());
-    const unsigned ix = aTask->threadIndex( submodel, k );
+    const Task * task = dynamic_cast<const Task *>(owner());
+    const unsigned ix = task->threadIndex( submodel, k );
 
     if ( isStandardEntry() || ix <= 1 ) {
 	return _phase[p].waitExceptChain( submodel, k );			/* Elapsed time is by entry */
     } else {
 	//To handle the case of a main thread of control with no fork join.
-	return aTask->waitExceptChain( ix, submodel, k, p );
+	return task->waitExceptChain( ix, submodel, k, p );
     }
 }
 
@@ -922,7 +922,7 @@ Entry::insertDOMResults(double *phaseUtils) const
 
     /* Write the results into the DOM */
     const double throughput = this->throughput();		/* Used to compute utilization at activity entries */
-    _entryDOM->setResultThroughput(throughput)
+    _dom->setResultThroughput(throughput)
 	.setResultThroughputBound(throughputBound());
 
     for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
@@ -937,7 +937,7 @@ Entry::insertDOMResults(double *phaseUtils) const
     }
 
     /* Store the utilization and squared coeff of variation */
-    _entryDOM->setResultUtilization(totalPhaseUtil)
+    _dom->setResultUtilization(totalPhaseUtil)
 	.setResultProcessorUtilization(processorUtilization())
 	.setResultSquaredCoeffVariation(computeCV_sqr());
 
@@ -946,13 +946,13 @@ Entry::insertDOMResults(double *phaseUtils) const
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	    const Phase& phase = _phase[p];
 	    const double service_time = phase.elapsedTime();
-	    _entryDOM->setResultPhasePServiceTime(p,service_time)
+	    _dom->setResultPhasePServiceTime(p,service_time)
 		.setResultPhasePVarianceServiceTime(p,phase.variance())
 		.setResultPhasePProcessorWaiting(p,phase.queueingTime())
 		.setResultPhasePUtilization(p,service_time * throughput);
 	    /*+ BUG 675 */
-	    if ( _entryDOM->hasHistogramForPhase( p ) || _entryDOM->hasMaxServiceTimeExceededForPhase( p ) ) {
-		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(_entryDOM->getHistogramForPhase( p )), phase.elapsedTime(), phase.variance() );
+	    if ( _dom->hasHistogramForPhase( p ) || _dom->hasMaxServiceTimeExceededForPhase( p ) ) {
+		NullPhase::insertDOMHistogram( const_cast<LQIO::DOM::Histogram*>(_dom->getHistogramForPhase( p )), phase.elapsedTime(), phase.variance() );
 	    }
 	    /*- BUG 675 */
 	}
@@ -960,7 +960,7 @@ Entry::insertDOMResults(double *phaseUtils) const
 
     /* Do open arrival rates... */
     if ( hasOpenArrivals() ) {
-	_entryDOM->setResultWaitingTime(openWait());
+	_dom->setResultWaitingTime(openWait());
     }
     return *this;
 }
@@ -1018,7 +1018,7 @@ Entry::sanityCheckParameters()
      */
 
     /* Make sure the open arrival rate is sane for the setup */
-    if ( _entryDOM && _entryDOM->hasOpenArrivalRate() ) {
+    if ( _dom && _dom->hasOpenArrivalRate() ) {
 	if ( owner()->isReferenceTask() ) {
 	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_OPEN_ARRIVALS, owner()->name().c_str(), name().c_str() );
 	}
@@ -1346,8 +1346,8 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
  * Make a processor Entry.
  */
 
-DeviceEntry::DeviceEntry( LQIO::DOM::Entry* domEntry, const unsigned id, Processor * aProc )
-    : Entry(domEntry,id,aProc->nEntries()), myProcessor(aProc)
+DeviceEntry::DeviceEntry( LQIO::DOM::Entry* dom, const unsigned id, Processor * aProc )
+    : Entry(dom,id,aProc->nEntries()), myProcessor(aProc)
 {
     aProc->addEntry( this );
 }
@@ -1356,15 +1356,15 @@ DeviceEntry::DeviceEntry( LQIO::DOM::Entry* domEntry, const unsigned id, Process
 
 DeviceEntry::~DeviceEntry()
 {
-    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
     const LQIO::DOM::ExternalVariable* serviceTime = phaseDom->getServiceTime();
     if ( serviceTime ) delete const_cast<LQIO::DOM::ExternalVariable *>(serviceTime);
     const LQIO::DOM::ExternalVariable* cv_square   = phaseDom->getCoeffOfVariationSquared();
     if ( cv_square ) delete const_cast<LQIO::DOM::ExternalVariable *>(cv_square);
-    const LQIO::DOM::ExternalVariable* priority    = _entryDOM->getEntryPriority();
+    const LQIO::DOM::ExternalVariable* priority    = _dom->getEntryPriority();
     if ( priority ) delete const_cast<LQIO::DOM::ExternalVariable *>(priority);
-    delete _entryDOM;
-    _entryDOM = 0;
+    delete _dom;
+    _dom = 0;
 }
 
 /*
@@ -1410,7 +1410,7 @@ DeviceEntry::initVariance()
 
 
 /*
- * Set the entry owner to aTask.
+ * Set the entry owner to task.
  */
 
 DeviceEntry&
@@ -1428,7 +1428,7 @@ DeviceEntry::owner( const Entity * )
 DeviceEntry&
 DeviceEntry::setServiceTime( const double service_time )
 {
-    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
     phaseDom->setServiceTime(new LQIO::DOM::ConstantExternalVariable(service_time/dynamic_cast<const Processor *>(myProcessor)->rate()));
     setDOM(1, phaseDom );
     return *this;
@@ -1438,7 +1438,7 @@ DeviceEntry::setServiceTime( const double service_time )
 DeviceEntry&
 DeviceEntry::setCV_sqr( const double cv_square )
 {
-    LQIO::DOM::Phase* phaseDom = _entryDOM->getPhase(1);
+    LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
     phaseDom->setCoeffOfVariationSquaredValue(cv_square);
     return *this;
 }
@@ -1447,7 +1447,7 @@ DeviceEntry::setCV_sqr( const double cv_square )
 DeviceEntry&
 DeviceEntry::setPriority( const int priority )
 {
-    _entryDOM->setEntryPriority( new LQIO::DOM::ConstantExternalVariable( priority ) );
+    _dom->setEntryPriority( new LQIO::DOM::ConstantExternalVariable( priority ) );
     return *this;
 }
 
@@ -1537,8 +1537,8 @@ VirtualEntry::VirtualEntry( const Activity * anActivity )
 
 VirtualEntry::~VirtualEntry()
 {
-    delete _entryDOM;
-    _entryDOM = 0;
+    delete _dom;
+    _dom = 0;
 }
 
 
@@ -1655,17 +1655,17 @@ CallInfoItem::isProcessorCall() const
 
 
 /*
- * Locate all calls generated by anEntry regardless of phase.
+ * Locate all calls generated by entry regardless of phase.
  * Create a collection so that the () operator can step over it.
  */
 
-CallInfo::CallInfo( const Entry& anEntry, const unsigned callType )
+CallInfo::CallInfo( const Entry& entry, const unsigned callType )
     : _calls()
 {
-    if ( !anEntry.isStandardEntry() ) return;
+    if ( !entry.isStandardEntry() ) return;
 
-    for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
-	const std::set<Call *>& callList = anEntry.callList( p );
+    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
+	const std::set<Call *>& callList = entry.callList( p );
 	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
 	    if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() ) continue;
 
@@ -1678,7 +1678,7 @@ CallInfo::CallInfo( const Entry& anEntry, const unsigned callType )
 
 		std::vector<CallInfoItem>::iterator item = find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
 		if ( item == _calls.end() ) {
-		    _calls.push_back( CallInfoItem( &anEntry, (*call)->dstEntry() ) );
+		    _calls.push_back( CallInfoItem( &entry, (*call)->dstEntry() ) );
 		    _calls.back().phase[p] = (*call);
 		} else if ( item->phase[p] ) {
 		    if ( item->phase[p]->isForwardedCall() && (*call)->hasRendezvous() ) {
@@ -1702,26 +1702,26 @@ CallInfo::CallInfo( const Entry& anEntry, const unsigned callType )
 /*----------------------------------------------------------------------*/
 
 Entry *
-Entry::create(LQIO::DOM::Entry* domEntry, unsigned int index )
+Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 {
-    const char* entry_name = domEntry->getName().c_str();
+    const char* entry_name = dom->getName().c_str();
 
     std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
     if ( nextEntry != Model::__entry.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
 	return 0;
     } else {
-	Entry * anEntry = new TaskEntry( domEntry, Model::__entry.size() + 1, index );
-	Model::__entry.insert( anEntry );
+	Entry * entry = new TaskEntry( dom, Model::__entry.size() + 1, index );
+	Model::__entry.insert( entry );
 
 	/* Make sure that the entry type is set properly for all entries */
-	if (anEntry->entryTypeOk(static_cast<const entry_type>(domEntry->getEntryType())) == false) {
+	if (entry->entryTypeOk(static_cast<const entry_type>(dom->getEntryType())) == false) {
 	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name );
 	}
 
 	/* Set field width for entry names. */
 
-	return anEntry;
+	return entry;
     }
 }
 

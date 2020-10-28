@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: group.cc 14005 2020-10-26 12:39:52Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,8 +28,8 @@
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Group::Group( LQIO::DOM::Group* aDomGroup, const Processor * aProcessor )
-    : myDOMGroup(aDomGroup), _taskList(), _processor(aProcessor), myShare(0.0), myCap(false)
+Group::Group( LQIO::DOM::Group* dom, const Processor * processor )
+    : _dom(dom), _taskList(), _processor(processor), _share(0.0), _cap(false)
 { 
     initialize();
 }
@@ -69,7 +69,7 @@ Group::recalculateDynamicValues()
 const Group&
 Group::insertDOMResults() const
 {
-//    myDOMGroup->setResultUtilization( getGroupUtil() );
+//    _dom->setResultUtilization( getGroupUtil() );
     return *this;
 }
 
@@ -94,12 +94,12 @@ Group::find( const std::string& group_name )
 void 
 Group::create( const std::pair<std::string,LQIO::DOM::Group*>& p )
 {
-    LQIO::DOM::Group* domGroup = p.second;
+    LQIO::DOM::Group* group_dom = p.second;
     const std::string& group_name = p.first;
     
     /* Extract variables from the DOM */
-    Processor* aProcessor = Processor::find(domGroup->getProcessor()->getName().c_str());
-    if (aProcessor == NULL) { return; }
+    Processor* processor = Processor::find(group_dom->getProcessor()->getName());
+    if (processor == nullptr) { return; }
 	
     /* Check that no group was added with the existing name */
     if ( find_if( Model::__group.begin(), Model::__group.end(), EQStr<Group>( group_name ) ) != Model::__group.end() ) {
@@ -109,11 +109,11 @@ Group::create( const std::pair<std::string,LQIO::DOM::Group*>& p )
        	
     /* Generate a new group with the parameters and add it to the list */
     // <<<<<<< .mine
-    Group * aGroup = new Group( domGroup, aProcessor );
+    Group * group = new Group( group_dom, processor );
 
-    aProcessor->addGroup(  aGroup );
-    Model::__group.insert( aGroup );
+    processor->addGroup(  group );
+    Model::__group.insert( group );
 
     /* Generate a new group with the parameters and add it to the list */
-    Model::__group.insert( new Group( domGroup, aProcessor ) );
+    Model::__group.insert( new Group( group_dom, processor ) );
 }

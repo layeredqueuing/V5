@@ -9,19 +9,17 @@
  *
  * November, 1994
  *
- * $Id: model.h 13842 2020-09-21 19:11:01Z greg $
+ * $Id: model.h 14017 2020-10-26 19:58:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if	!defined(LAYERIZE_H)
-#define	LAYERIZE_H
+#if	!defined(LQNS_MODEL_H)
+#define	LQNS_MODEL_H
 
 #include "dim.h"
 #include <set>
 #include "vector.h"
-#include "entity.h"
-#include "group.h"
 #include "report.h"
 #include <lqio/dom_document.h>
 
@@ -33,6 +31,7 @@ class MVA;
 class Processor;
 class Server;
 class Submodel;
+class Task;
 class Group;
 
 /* ----------------------- Abstract Superclass. ----------------------- */
@@ -49,15 +48,6 @@ protected:
     private:
 	Model& _self;
 	const bool _verbose;
-    };
-
-    /*
-     * Compare to tasks by their name.  Used by the set class to insert items
-     */
-
-    template <class Type> struct LT
-    {
-	bool operator()(const Type * a, const Type * b) const { return a->name() < b->name(); }
     };
 
 public:
@@ -81,10 +71,9 @@ public:
     Model& reinitialize();
     bool initializeModel();
 
-    void updateWait( Entity * ) const;
-
     unsigned nSubmodels() const { return _submodels.size(); }
     unsigned syncModelNumber() const { return sync_submodel; }
+    const Vector<Submodel *>& getSubmodels() const { return _submodels; }
 
     bool solve();
     bool reload();
@@ -134,10 +123,10 @@ public:
     static double underrelaxation;
     static unsigned print_interval;
     static LQIO::DOM::Document::input_format input_format;
-    static std::set<Processor *, LT<Entity> > __processor;
-    static std::set<Group *, LT<Group> > __group;
-    static std::set<Task *,LT<Entity> > __task;
-    static std::set<Entry *,LT<Entry> > __entry;
+    static std::set<Processor *> __processor;
+    static std::set<Group *> __group;
+    static std::set<Task *> __task;
+    static std::set<Entry *> __entry;
     
 protected:
     Vector<Submodel *> _submodels;

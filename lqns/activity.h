@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 13985 2020-10-21 21:45:55Z greg $
+ * $Id: activity.h 14017 2020-10-26 19:58:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,8 +22,10 @@
 #include "dim.h"
 #include <string>
 #include <set>
+#include <map>
 #include <deque>
 #include <stack>
+#include <numeric>
 #include <lqio/dom_activity.h>
 #include "phase.h"
 #if HAVE_LIBGSL
@@ -304,7 +306,6 @@ private:
     ActivityList * _nextJoin;			/* Join which I call.		*/
 	
     std::set<const Entry *> _replyList;		/* Who I generate replies to.	*/
-    double _rate;
     bool _specified;				/* Set if defined		*/
     mutable bool _reachable;			/* Set if activity is reachable	*/
 
@@ -327,6 +328,9 @@ class activity_cycle : public path_error
 public:
     activity_cycle( const Activity *, const std::deque<const Activity *>& );
     virtual ~activity_cycle() throw() {}
+
+private:
+    static std::string fold( const std::string& s1, const Activity * a2 ) { return s1 + "," + a2->name(); }
 };
 
 Activity * add_activity( Task* newTask, LQIO::DOM::Activity* activity );

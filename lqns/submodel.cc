@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 13975 2020-10-20 19:37:55Z greg $
+ * $Id: submodel.cc 14017 2020-10-26 19:58:09Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -52,28 +52,29 @@
 #include <cstdlib>
 #include <string.h>
 #include <cmath>
-#include "lqns.h"
-#include "errmsg.h"
-#include "fpgoop.h"
-#include "vector.h"
-#include "prob.h"
-#include "submodel.h"
-#include "entry.h"
-#include "entity.h"
 #include "activity.h"
 #include "call.h"
+#include "entity.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "fpgoop.h"
 #include "generate.h"
+#include "group.h"
+#include "interlock.h"
+#include "lqns.h"
+#include "model.h"
 #include "mva.h"
 #include "open.h"
+#include "option.h"
 #include "overtake.h"
 #include "pragma.h"
+#include "prob.h"
 #include "processor.h"
 #include "report.h"
 #include "server.h"
+#include "submodel.h"
 #include "task.h"
-#include "model.h"
-#include "interlock.h"
-#include "option.h"
+#include "vector.h"
 
 #define	QL_INTERLOCK
 
@@ -211,18 +212,10 @@ MVASubmodel::~MVASubmodel()
  */
 
 MVASubmodel&
-MVASubmodel::initServers( const Model& aModel )
+MVASubmodel::initServers( const Model& model )
 {
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	(*server)->initWait();
-	aModel.updateWait( (*server) );
-	(*server)->computeVariance()
-	    .initThroughputBound()
-	    .initPopulation()
-	    .initThreads()
-	    .initialized(true);
-    }
-    Submodel::initServers( aModel );
+    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initServer, model.getSubmodels() ) );
+    Submodel::initServers( model );
     return *this;
 }
 
@@ -233,17 +226,9 @@ MVASubmodel::initServers( const Model& aModel )
  */
 
 MVASubmodel&
-MVASubmodel::reinitServers( const Model& aModel )
+MVASubmodel::reinitServers( const Model& model )
 {
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	aModel.updateWait( (*server) );
-	(*server)->computeVariance()
-	    .initThroughputBound()
-	    .initPopulation();
-//	aServer->initThreads();
-//	aServer->initialized(true);
-    }
-//    Submodel::initServers( aModel );
+    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitServer, model.getSubmodels() ) );
     return *this;
 }
 
@@ -586,59 +571,8 @@ MVASubmodel::makeChains()
     return k;
 }
 
+
 //REPL changes
-
-
-MVASubmodel&
-MVASubmodel::reinitClients()
-{
-    unsigned k = 0;			/* Chain number.		*/
-
-    /* --- Set think times, customers and chains for this pass. --- */
-
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	const unsigned threads = (*client)->nThreads();
-
-	if ( (*client)->replicas() <= 1 ) {
-
-	    /* ---------------- Simple case --------------- */
-
-	    for ( unsigned i = 1; i <= threads; ++i ) {
-		k += 1;				// Add one chain.
-
-		if ( isfinite( (*client)->population() ) ) {
-		    _customers[k] = static_cast<unsigned>((*client)->population());
-		} else {
-		    _customers[k] = 0;
-		}
-		_priority[k] = (*client)->priority();
-	    }
-
-	} else {
-	    const std::set<Entity *,Entity::LT> clientsServers = (*client)->servers( _servers );	/* Get all servers for this client	*/
-
-	    //REPL changes
-	    /* --------------- Complex case --------------- */
-
-	    for ( std::set<Entity *>::const_iterator server = clientsServers.begin(); server != clientsServers.end(); ++server ) {
-		for ( unsigned i = 1; i <= threads; ++i ) {
-		    k += 1;
-
-		    _priority[k] = (*client)->priority();
-		    if ( isfinite( (*client)->population() ) ) {
-			_customers[k] = static_cast<unsigned>((*client)->population()) * (*server)->fanIn((*client));
-		    } else {
-			_customers[k] = 0;
-		    }
-		}
-	    }
-	}
-    }
-    return *this;
-}
-
-
-
 /*
  * Query the closed model to determine the factor needed for
  * Newton Raphson stuff.
@@ -659,9 +593,8 @@ MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned
 	return s;
     }
 }
-
 //-- REP N-R
-
+
 /*----------------------------------------------------------------------*/
 /*                          Solve the model.                            */
 /*----------------------------------------------------------------------*/
@@ -692,8 +625,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     /* ----------------- initialize the stations ------------------ */
 
     for_each ( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::clear ) );	/* Clear visit ratios and what have you */
-    for_each ( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClient, *this ) );
-    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServer, *this ) );
+    for_each ( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClientStation, *this ) );
+    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServerStation, *this ) );
 
     /* ------------------- Replication Iteration ------------------- */
 

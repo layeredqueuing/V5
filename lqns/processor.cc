@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 13943 2020-10-16 22:00:45Z greg $
+ * $Id: processor.cc 14003 2020-10-26 12:28:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -138,7 +138,7 @@ Processor::configure( const unsigned nSubmodels )
 Processor&
 Processor::initPopulation()
 {
-    myPopulation = static_cast<double>(copies());	/* Doesn't matter... */
+    _population = static_cast<double>(copies());	/* Doesn't matter... */
 
     for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 	std::set<Task *> sources;		/* Cltn of tasks already visited. */
@@ -283,8 +283,8 @@ Processor::makeServer( const unsigned nChains )
 
 	/* ---------------- Infinite Servers ---------------- */
 
-	if ( dynamic_cast<Infinite_Server *>(myServerStation) ) return 0;
-	myServerStation = new Infinite_Server( nEntries(), nChains, maxPhase() );
+	if ( dynamic_cast<Infinite_Server *>(_station) ) return 0;
+	_station = new Infinite_Server( nEntries(), nChains, maxPhase() );
 
     } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
 
@@ -299,14 +299,14 @@ Processor::makeServer( const unsigned nChains )
 	    case Pragma::REISER_MULTISERVER:
 	    case Pragma::REISER_PS_MULTISERVER:
 	    case Pragma::SCHMIDT_MULTISERVER:
-		if ( dynamic_cast<Reiser_PS_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::ROLIA_PS_MULTISERVER:
 	    case Pragma::ROLIA_MULTISERVER:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(myServerStation) ) return 0;
-		myServerStation = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return 0;
+		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 	    }
 
@@ -316,47 +316,47 @@ Processor::makeServer( const unsigned nChains )
 	    default:
 	    case Pragma::DEFAULT_MULTISERVER:
 		if ( copies() < 20 && nChains <= 5 ) {
-		    if ( dynamic_cast<Conway_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		    myServerStation = new Conway_Multi_Server( copies(), nEntries(), nChains );
+		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		} else {
-		    if ( dynamic_cast<Rolia_Multi_Server *>(myServerStation) ) return 0;
-		    myServerStation = new Rolia_Multi_Server(  copies(), nEntries(), nChains );
+		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return 0;
+		    _station = new Rolia_Multi_Server(  copies(), nEntries(), nChains );
 		}
 		break;
 
 	    case Pragma::CONWAY_MULTISERVER:
-		if ( dynamic_cast<Conway_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Conway_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::REISER_MULTISERVER:
-		if ( dynamic_cast<Reiser_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Reiser_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Reiser_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::REISER_PS_MULTISERVER:
-		if ( dynamic_cast<Reiser_PS_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::ROLIA_MULTISERVER:
-		if ( dynamic_cast<Rolia_Multi_Server *>(myServerStation) ) return 0;
-		myServerStation = new Rolia_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return 0;
+		_station = new Rolia_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::ROLIA_PS_MULTISERVER:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(myServerStation) ) return 0;
-		myServerStation = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return 0;
+		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::BRUELL_MULTISERVER:
-		if ( dynamic_cast<Bruell_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Bruell_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Bruell_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Bruell_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::SCHMIDT_MULTISERVER:
-		if ( dynamic_cast<Schmidt_Multi_Server *>(myServerStation) && myServerStation->marginalProbabilitiesSize() == copies()) return 0;
-		myServerStation = new Schmidt_Multi_Server( copies(), nEntries(), nChains );
+		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		_station = new Schmidt_Multi_Server( copies(), nEntries(), nChains );
 		break;
 	    }
 	}
@@ -365,52 +365,52 @@ Processor::makeServer( const unsigned nChains )
 	default:
 	case SCHEDULE_FIFO:
 	    if ( hasVariance() ) {
-		if ( dynamic_cast<HVFCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new HVFCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<HVFCFS_Server *>(_station) ) return 0;
+		_station = new HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else {
-		if ( dynamic_cast<FCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new FCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<FCFS_Server *>(_station) ) return 0;
+		_station = new FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
 
 	case SCHEDULE_PPR:
 	    if ( hasVariance() ) {
-		if ( dynamic_cast<PR_HVFCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new PR_HVFCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<PR_HVFCFS_Server *>(_station) ) return 0;
+		_station = new PR_HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else {
-		if ( dynamic_cast<PR_FCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new PR_FCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<PR_FCFS_Server *>(_station) ) return 0;
+		_station = new PR_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
 
 	case SCHEDULE_HOL:
 	    if ( hasVariance() ) {
-		if ( dynamic_cast<HOL_HVFCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new HOL_HVFCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<HOL_HVFCFS_Server *>(_station) ) return 0;
+		_station = new HOL_HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else {
-		if ( dynamic_cast<HOL_FCFS_Server *>(myServerStation) ) return 0;
-		myServerStation = new HOL_FCFS_Server( nEntries(), nChains, maxPhase() );
+		if ( dynamic_cast<HOL_FCFS_Server *>(_station) ) return 0;
+		_station = new HOL_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	    break;
 
 	case SCHEDULE_PS:
-	    if ( dynamic_cast<PS_Server *>(myServerStation) ) return 0;
-	    myServerStation = new PS_Server( nEntries(), nChains, maxPhase() );
+	    if ( dynamic_cast<PS_Server *>(_station) ) return 0;
+	    _station = new PS_Server( nEntries(), nChains, maxPhase() );
 	    break;
 
 	case SCHEDULE_PS_HOL:
-	    if ( dynamic_cast<HOL_PS_Server *>(myServerStation) ) return 0;
-	    myServerStation = new HOL_PS_Server( nEntries(), nChains, maxPhase() );
+	    if ( dynamic_cast<HOL_PS_Server *>(_station) ) return 0;
+	    _station = new HOL_PS_Server( nEntries(), nChains, maxPhase() );
 	    break;
 
 	case SCHEDULE_PS_PPR:
-	    if ( dynamic_cast<PR_PS_Server *>(myServerStation) ) return 0;
-	    myServerStation = new PR_PS_Server( nEntries(), nChains, maxPhase() );
+	    if ( dynamic_cast<PR_PS_Server *>(_station) ) return 0;
+	    _station = new PR_PS_Server( nEntries(), nChains, maxPhase() );
 	    break;
 	}
     }
 
-    return myServerStation;
+    return _station;
 }
 
 

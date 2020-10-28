@@ -1,7 +1,10 @@
 * Bugs fixed in 5.18
-243 	lqns 	 	Bruell and Schmidt multiserver fail in the population code. 	2
+243 	lqns 	 	Bruell and Schmidt multiserver fail in the population code. 
 252 	lqns 	 	Aggregation with nested loop on branch is faulty. 	
 253 	lqns 	 	Regression -- 86-fork 
+251 	lqns 		Compute the "rate" value for an activity during configure and store it. 
+255 	srvndiff 	EXC_BAD_ACCESS libsystem_platform.dylib`_platform_strlen + 18 	
+256 	lqns 		Split or-fork causes phase change (abort) 
 
 * Bugs fixed in 5.17.1
 245 	lqns 		uncaught exception of type subclass_responsibility: Server::setVariance: server.cc 246: Subclass responsibility. 

@@ -1,6 +1,6 @@
 # lqsim 5.16
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=03-sanity.p 03-sanity.in
-# $Id: 03-sanity.p 13894 2020-09-29 10:50:35Z greg $
+# $Id: 03-sanity.p 13996 2020-10-24 22:01:20Z greg $
 V y
 C 0.98654
 I 3

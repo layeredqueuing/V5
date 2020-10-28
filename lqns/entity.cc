@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 13975 2020-10-20 19:37:55Z greg $
+ * $Id: entity.cc 14009 2020-10-26 16:44:30Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -78,10 +78,10 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
     : _dom(dom),
       _entries(entries),
       _tasks(),
-      myPopulation(1.0),
-      myVariance(0.0),
-      myThinkTime(0.0),
-      myServerStation(0),		/* Reference tasks don't have server stations. */
+      _population(1.0),
+      _variance(0.0),
+      _thinkTime(0.0),
+      _station(nullptr),		/* Reference tasks don't have server stations. */
       _interlock( *this ),
       _submodel(0),
       _maxPhase(1),
@@ -103,7 +103,7 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
 
 Entity::~Entity()
 {
-    delete myServerStation;
+    delete _station;
 }
 
 
@@ -169,6 +169,41 @@ Entity::initInterlock()
     _interlock.initialize();
     return *this;
 }
+
+
+
+/*
+ * Initialize server's waiting times and populations (called after recalculate dynamic variables)
+ */
+
+Entity&
+Entity::initServer( const Vector<Submodel *>& submodels )
+{
+    initWait();
+    updateAllWaits( submodels );
+    computeVariance();
+    initThroughputBound();
+    initPopulation();
+    initThreads();
+    initialized(true);
+    return *this;
+}
+
+
+/*
+ * Initialize server's waiting times and populations (called after recalculate dynamic variables)
+ */
+
+Entity&
+Entity::reinitServer( const Vector<Submodel *>& submodels )
+{
+    updateAllWaits( submodels );
+    computeVariance();
+    initThroughputBound();
+    initPopulation();
+    return *this;
+}
+
 
 
 
@@ -389,6 +424,21 @@ Entity::schedulingIsOk( const unsigned bits ) const
 
 
 
+/*
+ * Upated the waiting time over all submodels.
+ */
+
+Entity&
+Entity::updateAllWaits( const Vector<Submodel *>& submodels )
+{
+    for ( Vector<Submodel *>::const_iterator submodel = submodels.begin(); submodel != submodels.end(); ++submodel ) {
+	updateWait( **submodel, 1.0 );
+    }
+    return *this;
+}
+
+
+
 Entity&
 Entity::computeUtilization()
 {
@@ -455,7 +505,7 @@ Entity::deltaUtilization() const
 
 
 /*
- * Calculate and set myThinkTime.  Note that population returns the
+ * Calculate and set think time.  Note that population returns the
  * maximum number of customers possible at a station.  It is used,
  * rather than copies, because some multi-servers may have more
  * threads specified than can possibly be active.
@@ -477,7 +527,7 @@ Entity::setIdleTime( const double relax )
     if ( flags.trace_idle_time ) {
 	cout << "\nEntity::setIdleTime():" << name() << "   Idle Time:  " << z << endl;
     }
-    under_relax( myThinkTime, z, relax );
+    under_relax( _thinkTime, z, relax );
 }
 
 
@@ -531,7 +581,7 @@ Entity::clear()
  */
 
 Entity&
-Entity::initServer( Submodel& submodel )
+Entity::initServerStation( Submodel& submodel )
 {
     Server * station = serverStation();
     if ( !station ) return *this;

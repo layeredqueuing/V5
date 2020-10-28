@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13979 2020-10-21 17:58:03Z greg $
+ * $Id: actlist.cc 13996 2020-10-24 22:01:20Z greg $
  */
 
 

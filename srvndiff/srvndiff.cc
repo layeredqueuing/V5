@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 13917 2020-10-06 14:27:14Z greg $
+ * $Id: srvndiff.cc 13996 2020-10-24 22:01:20Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -1052,7 +1052,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-10-06 10:27:14 -0400 (Tue, 06 Oct 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2020-10-24 18:01:20 -0400 (Sat, 24 Oct 2020) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );

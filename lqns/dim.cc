@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: dim.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: dim.cc 13996 2020-10-24 22:01:20Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -143,13 +143,13 @@ class_error::class_error( const string& aStr, const char * file, const unsigned 
     char temp[10];
     sprintf( temp, "%d", line );
 
-    myMsg = aStr;
-    myMsg += ": ";
-    myMsg += file;
-    myMsg += " ";
-    myMsg += temp;
-    myMsg += ": ";
-    myMsg += anError;
+    _msg = aStr;
+    _msg += ": ";
+    _msg += file;
+    _msg += " ";
+    _msg += temp;
+    _msg += ": ";
+    _msg += anError;
 }
 
 
@@ -160,7 +160,7 @@ class_error::~class_error() throw()
 const char * 
 class_error::what() const throw()
 {
-    return myMsg.c_str();
+    return _msg.c_str();
 }
 
 
@@ -171,12 +171,12 @@ path_error::~path_error() throw()
 const char * 
 path_error::what() const throw()
 {
-    return myMsg.c_str();
+    return _msg.c_str();
 }
 
 
 const char * 
 exception_handled::what() const throw()
 {
-    return myMsg.c_str();
+    return _msg.c_str();
 }

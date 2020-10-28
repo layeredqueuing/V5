@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 13970 2020-10-20 13:49:37Z greg $
+ * $Id: model.cc 14017 2020-10-26 19:58:09Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -89,10 +89,10 @@ Processor * Model::thinkServer = 0;
 unsigned Model::sync_submodel = 0;
 LQIO::DOM::Document::input_format Model::input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
 
-std::set<Processor *, Model::LT<Entity> > Model::__processor;
-std::set<Group *,Model::LT<Group> > Model::__group;
-std::set<Task *,Model::LT<Entity> > Model::__task;
-std::set<Entry *,Model::LT<Entry> > Model::__entry;
+std::set<Processor *> Model::__processor;
+std::set<Group *> Model::__group;
+std::set<Task *> Model::__task;
+std::set<Entry *> Model::__entry;
 
 /*----------------------------------------------------------------------*/
 /*                           Factory Methods                            */
@@ -661,14 +661,12 @@ Model::reinitialize()
 
     for_each( __task.begin(),  __task.end(), Exec<Task>( &Task::createInterlock ) );
 
-
     /* 
      * Initialize waiting times and populations at servers Done in
      * reverse order (bottom up) because waits propogate upwards.
      */
 
     for_each( _submodels.rbegin(), _submodels.rend(), Exec1<Submodel,const Model&>( &Submodel::reinitServers, *this ) );
-    for_each( _submodels.rbegin(), _submodels.rend(), Exec<Submodel>( &Submodel::reinitClients ) );
 
     /* Initialize waiting times and populations for the reference tasks. */
 
@@ -697,16 +695,7 @@ Model::reinitialize()
 void
 Model::initClients()
 {
-    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
-	if ( (*task)->isReferenceTask() ) {
-	    (*task)->initWait();
-	    updateWait( (*task) );	/* Initialize over all submodels. */
-	    (*task)->computeVariance()
-		.initThroughputBound()
-		.initPopulation()
-		.initThreads();
-	}
-    }
+    for_each ( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initClient, getSubmodels() ) );
 }
 
 
@@ -719,15 +708,7 @@ Model::initClients()
 void
 Model::reinitClients()
 {
-    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
-	if ( (*task)->isReferenceTask() ) {
-	    updateWait( (*task) );	/* Initialize over all submodels. */
-	    (*task)->computeVariance()
-		.initThroughputBound()
-		.initPopulation();
-//	    (*task)->initThreads();
-	}
-    }
+    for_each ( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitClient, getSubmodels() ) );
 }
 
 
@@ -917,21 +898,6 @@ Model::restart()
 	return solve();
     }
 }
-
-
-
-/*
- * Final waiting time initlization -- updateWait/joinDelay.
- */
-
-void
-Model::updateWait( Entity * aTask ) const
-{
-    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
-	aTask->updateWait( **submodel, 1.0 );
-    }
-}
-
 
 
 

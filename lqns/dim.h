@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 13956 2020-10-19 18:32:11Z greg $
+ * $Id: dim.h 13996 2020-10-24 22:01:20Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -77,7 +77,7 @@ public:
     virtual const char* what() const throw();
 
 private:
-    string myMsg;
+    string _msg;
 };
 
 
@@ -108,25 +108,25 @@ public:
 
 class path_error : public exception {
 public:
-    explicit path_error( const unsigned depth=0 ) : myDepth(depth) {}
+    explicit path_error( const unsigned depth=0 ) : _depth(depth) {}
     virtual ~path_error() throw() = 0;
     virtual const char * what() const throw();
-    unsigned depth() const { return myDepth; }
+    unsigned depth() const { return _depth; }
 
 protected:
-    string myMsg;
-    const unsigned myDepth;
+    string _msg;
+    const unsigned _depth;
 };
 
 class exception_handled : public exception 
 {
 public:
-    explicit exception_handled( const string& aStr ) : exception(), myMsg(aStr) {}
+    explicit exception_handled( const string& aStr ) : exception(), _msg(aStr) {}
     virtual ~exception_handled() throw() {}
     virtual const char * what() const throw();
 
 private:
-    string myMsg;
+    string _msg;
 };
 
 static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }

@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 13979 2020-10-21 17:58:03Z greg $
+ * $Id: activity.h 13996 2020-10-24 22:01:20Z greg $
  */
 
 #ifndef _ACTIVITY_H

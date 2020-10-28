@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 13985 2020-10-21 21:45:55Z greg $
+ * $Id: entry.h 14001 2020-10-25 17:25:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -46,6 +46,7 @@ class Model;
 class Processor;
 class Submodel;
 class Task;
+typedef Vector<unsigned> ChainVector;
 
 typedef enum { ENTRY_NOT_DEFINED, STANDARD_ENTRY, ACTIVITY_ENTRY, DEVICE_ENTRY } entry_type;
 typedef enum { NOT_CALLED, RENDEZVOUS_REQUEST, SEND_NO_REPLY_REQUEST, OPEN_ARRIVAL_REQUEST } requesting_type;
@@ -112,6 +113,44 @@ class Entry
     friend class OrForkActivityList;	/* To access phase[].wait */
     friend class AndForkActivityList;	/* To access phase[].wait */
     friend class RepeatActivityList;	/* To access phase[].wait */
+
+public:
+    class CallExec {
+    public:
+	CallExec( callFunc f, unsigned submodel, unsigned k=0 ) : _f(f), _submodel(submodel), _k(k)  {}
+	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _k ); }
+	
+	const callFunc f() const { return _f; }
+	unsigned submodel() const { return _submodel; }
+	unsigned k() const { return _k; }
+
+    private:
+	const callFunc _f;
+	const unsigned _submodel;
+	const unsigned _k;
+    };
+
+
+    /*
+     * Used to run f over all entries (and threads).  Each thread has it's own chain.
+     */
+    
+    class CallExecWithChain {
+    public:
+	CallExecWithChain( callFunc f, unsigned submodel, const ChainVector& chains, unsigned int i ) : _f(f), _submodel(submodel), _chains(chains), _i(i)  {}
+	void operator()( Entry * object ) const { object->callsPerform( _f, _submodel, _chains[_i] ); _i += 1; }
+	
+	const callFunc f() const { return _f; }
+	unsigned submodel() const { return _submodel; }
+	unsigned int index() const { return _i; }
+
+    private:
+	const callFunc _f;
+	const unsigned _submodel;
+	const ChainVector& _chains;
+	mutable unsigned int _i;
+    };
+
 
 public:
     static bool joinsPresent;
@@ -184,7 +223,7 @@ public:
     double processorCalls() const; 
     bool phaseIsPresent( const unsigned p ) const { return _phase[p].isPresent(); }
     virtual double openWait() const { return 0.; }
-    LQIO::DOM::Entry* getDOM() const { return _entryDOM; }
+    LQIO::DOM::Entry* getDOM() const { return _dom; }
     Entry& resetReplication();
 	
     void addDstCall( Call * aCall ) { _callerList.insert(aCall); }
@@ -196,7 +235,7 @@ public:
 
     /* Queries */
 
-    const std::string& name() const { return _entryDOM->getName(); }
+    const std::string& name() const { return getDOM()->getName(); }
     virtual const Entity * owner() const = 0;
     virtual Entry& owner( const Entity * ) = 0;
 	
@@ -210,12 +249,12 @@ public:
     bool isInterlocked( const Entry * ) const;
     bool isReferenceTaskEntry() const;
 	
-    bool hasDeterministicPhases() const { return _entryDOM->hasDeterministicPhases(); }
-    bool hasNonExponentialPhases() const { return _entryDOM->hasNonExponentialPhases(); }
-    bool hasThinkTime() const { return _entryDOM->hasThinkTime(); }
+    bool hasDeterministicPhases() const { return getDOM()->hasDeterministicPhases(); }
+    bool hasNonExponentialPhases() const { return getDOM()->hasNonExponentialPhases(); }
+    bool hasThinkTime() const { return getDOM()->hasThinkTime(); }
     bool hasVariance() const;
     bool hasStartActivity() const { return _startActivity != 0; }
-    bool hasOpenArrivals() const { return _entryDOM->hasOpenArrivalRate(); }
+    bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
 		
     bool entryTypeOk( const entry_type );
     bool entrySemaphoreTypeOk( const semaphore_entry_type aType );
@@ -258,7 +297,7 @@ public:
     Entry& aggregate( const unsigned, const unsigned p, const Exponential& );
     Entry& aggregateReplication( const Vector< VectorMath<double> >& );
 
-    const Entry& callsPerform( callFunc, const unsigned, const unsigned k = 0 ) const;
+    const Entry& callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k ) const;
 
     /* Dynamic Updates / Late Finalization */
     /* In order to integrate LQX's support for model changes we need to have a way  */
@@ -288,7 +327,7 @@ private:
 
 
 protected:
-    LQIO::DOM::Entry* _entryDOM;	
+    LQIO::DOM::Entry* _dom;	
     Vector<Phase> _phase;
     NullPhase _total;
     double _nextOpenWait;			/* copy for delta computation	*/

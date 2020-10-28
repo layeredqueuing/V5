@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 13982 2020-10-21 21:22:08Z greg $
+ * $Id: entity.h 14009 2020-10-26 16:44:30Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -98,6 +98,10 @@ public:
     virtual Entity& initPopulation() = 0;
     virtual Entity& initJoinDelay() { return *this; }
     virtual Entity& initThreads() { return *this; }
+    virtual Entity& initClient( const Vector<Submodel *>& ) { return *this; }
+    virtual Entity& reinitClient( const Vector<Submodel *>& ) { return *this; }
+    virtual Entity& initServer( const Vector<Submodel *>& );
+    virtual Entity& reinitServer( const Vector<Submodel *>& );
 	
     /* Instance Variable Access */
 	   
@@ -107,12 +111,12 @@ public:
     virtual scheduling_type scheduling() const { return getDOM()->getSchedulingType(); }
     virtual unsigned copies() const;
     virtual unsigned replicas() const;
-    double population() const { return myPopulation; }
-    virtual double variance() const { return myVariance; }
+    double population() const { return _population; }
+    virtual double variance() const { return _variance; }
     virtual const Processor * getProcessor() const { return 0; }
     unsigned submodel() const { return _submodel; }
     Entity& setSubmodel( const unsigned submodel ) { _submodel = submodel; return *this; }
-    virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return myThinkTime; }
+    virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return _thinkTime; }
     virtual Entity& setOverlapFactor( const double ) { return *this; }
 
     virtual unsigned int fanOut( const Entity * ) const = 0;
@@ -177,7 +181,7 @@ public:
     
     Entity& addServerChain( const unsigned k ) { _serverChains.push_back(k); return *this; }
     const ChainVector& serverChains() const { return _serverChains; }
-    Server * serverStation() const { return myServerStation; }
+    Server * serverStation() const { return _station; }
 
     bool markovOvertaking() const;
 
@@ -188,6 +192,8 @@ public:
     Probability prInterlock( const Task& ) const;
 
     virtual double prOt( const unsigned, const unsigned, const unsigned ) const { return 0.0; }
+
+    Entity& updateAllWaits( const Vector<Submodel *>& );
     void setIdleTime( const double );
     Entity& computeUtilization();
     virtual Entity& computeVariance();
@@ -210,7 +216,7 @@ public:
 
     Entity& clear();
     virtual Server * makeServer( const unsigned ) = 0;
-    Entity& initServer( Submodel& );
+    Entity& initServerStation( Submodel& );
     Entity& saveServerResults( const MVASubmodel&, double );
 
     /* Threads */
@@ -246,10 +252,10 @@ protected:
     std::vector<Entry *> _entries;	/* Entries for this entity.	*/
     std::set<const Task *> _tasks;	/* Clients of this entity	*/
     
-    double myPopulation;		/* customers when I'm a client	*/
-    double myVariance;			/* Computed variance.		*/
-    double myThinkTime;			/* Think time.			*/
-    Server * myServerStation;		/* Servers by submodel.		*/
+    double _population;			/* customers when I'm a client	*/
+    double _variance;			/* Computed variance.		*/
+    double _thinkTime;			/* Think time.			*/
+    Server * _station;			/* Servers by submodel.		*/
 
     struct {
 	unsigned initialized:1;		/* Task was initialized.	*/
