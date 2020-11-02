@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 13854 2020-09-24 13:34:24Z greg $
+ * $Id: option.cc 14026 2020-10-28 14:28:13Z greg $
  */
 
 #include <config.h>
@@ -77,7 +77,7 @@ Options::Debug::xml( const char * )
 void
 Options::Debug::lqx( const char * )
 {
-    ModLangParserTrace(stderr, "lqx:");
+    LQIO::DOM::Document::lqx_parser_trace(stderr);
 }
 
 /* static */ void

@@ -3,7 +3,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 13749 2020-08-09 14:07:06Z greg $
+ * $Id: pragma.h 14026 2020-10-28 14:28:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -77,8 +77,8 @@ private:
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;
     int _scheduling_model;
-    bool _spex_header;
     LQIO::severity_t _severity_level;
+    bool _spex_header;
 
     double _block_period;
     unsigned int _number_of_blocks;

@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 13732 2020-08-05 14:56:42Z greg $
+ * $Id: processor.cc 14026 2020-10-28 14:28:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -154,7 +154,8 @@ Processor::reschedule( Instance * ip )
     if ( (Pragma::__pragmas->scheduling_model() & SCHEDULE_NATURAL) == 0 ) { 
 	Custom_Processor * pp = dynamic_cast<Custom_Processor *>(find(ps_my_node));
 	if ( pp ) {
-	    ps_send( pp->scheduler(), SN_PREEMPT, "", ip->task_id() );
+	    static char nullstr[] = "";		/* C++ 11 */
+	    ps_send( pp->scheduler(), SN_PREEMPT, nullstr, ip->task_id() );
 	} else {
 	    ps_sleep(0);
 	}

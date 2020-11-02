@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqngen.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: lqngen.h 14026 2020-10-28 14:28:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,7 +24,7 @@
 #include "randomvar.h"
 
 
-extern lqio_params_stats io_vars;
+extern LQIO::lqio_params_stats io_vars;
 
 const unsigned int MAX_PHASES	    = 3;	/* Number of Phases.		*/
 

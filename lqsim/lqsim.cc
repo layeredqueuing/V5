@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 13787 2020-08-22 17:19:29Z greg $
+ * $Id: lqsim.cc 14026 2020-10-28 14:28:13Z greg $
  */
 
 
@@ -281,9 +281,6 @@ static struct {
 
 static LQIO::DOM::Pragma pragmas;
 
-extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
-
-
 static void usage(void);
 static int process( const string& input_file, const string& output_file );
 #if HAVE_REGCOMP
@@ -321,7 +318,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-08-22 13:19:29 -0400 (Sat, 22 Aug 2020) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2020-10-28 10:28:13 -0400 (Wed, 28 Oct 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -440,7 +437,7 @@ main( int argc, char * argv[] )
 		break;
 
 	    case (256+'l'):
-		ModLangParserTrace(stderr, "lqx:");
+		LQIO::DOM::Document::lqx_parser_trace(stderr);
 		break;
 
 	    case 'M': {

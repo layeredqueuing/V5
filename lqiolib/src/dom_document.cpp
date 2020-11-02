@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 13749 2020-08-09 14:07:06Z greg $
+ *  $Id: dom_document.cpp 14026 2020-10-28 14:28:13Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -25,6 +25,8 @@
 #include "srvn_spex.h"
 #include "filename.h"
 #include "dom_processor.h"
+
+extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 namespace LQIO {
     lqio_params_stats io_vars(VERSION,nullptr);
@@ -717,6 +719,13 @@ namespace LQIO {
 	    } else if ( requisiteType != Entry::ENTRY_NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
 		input_error2( ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
 	    }
+	}
+
+	void
+	Document::lqx_parser_trace( FILE * file )
+	{
+	    static char prompt[] = "lqx:";		/* Work around C++11 warnings */
+	    ModLangParserTrace( file, prompt );
 	}
 
 	/*

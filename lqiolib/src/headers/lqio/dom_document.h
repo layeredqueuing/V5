@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 13749 2020-08-09 14:07:06Z greg $
+ *  $Id: dom_document.h 14026 2020-10-28 14:28:13Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,9 +21,6 @@
 #include "dom_extvar.h"
 #include "dom_pragma.h"
 #include "submodel_info.h"
-
-struct lqio_params_stats;
-extern void ModLangParserTrace(FILE *TraceFILE, char *zTracePrompt);
 
 namespace LQX {
     class Program;
@@ -138,7 +135,7 @@ namespace LQIO {
 	    const unsigned getNumberOfTasks() const { return _tasks.size(); }
 	    const unsigned getNumberOfEntries() const { return _entries.size(); }
 	    const unsigned getNumberOfGroups() const { return _groups.size(); }
-	    Document& setMaximumPhase( unsigned p ) { _maximumPhase = max( _maximumPhase, p ); return *this; }
+	    Document& setMaximumPhase( unsigned p ) { _maximumPhase = p > _maximumPhase ? p : _maximumPhase; return *this; }
 	    unsigned getMaximumPhase() const { return _maximumPhase; }
 
 	    /* Results */
@@ -209,12 +206,12 @@ namespace LQIO {
 
 	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType = DOM::Entry::ENTRY_NOT_DEFINED );
 	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
+	    static void lqx_parser_trace( FILE * );
 	    static std::string __input_file_name;
 	    static bool __debugXML;
 	    static bool __debugJSON;
 
 	private:
-	    unsigned max( const unsigned i, const unsigned j ) { return i > j ? i : j; }
 	    const double getValue( const char * ) const;
 	    const ExternalVariable * get( const char * ) const;
 

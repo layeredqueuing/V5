@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 13854 2020-09-24 13:34:24Z greg $
+ * $Id: lqns.cc 14026 2020-10-28 14:28:13Z greg $
  *
  * Command line processing.
  *
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-09-24 09:34:24 -0400 (Thu, 24 Sep 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-10-28 10:28:13 -0400 (Wed, 28 Oct 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -314,7 +314,7 @@ int main (int argc, char *argv[])
             break;
 
         case (512+'l'):
-            ModLangParserTrace(stderr, "lqx:");
+	    LQIO::DOM::Document::lqx_parser_trace(stderr);
             break;
 
         case 256+'m':

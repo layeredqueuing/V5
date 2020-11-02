@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: lqn2ps.cc 14026 2020-10-28 14:28:13Z greg $
  */
 
 #include "lqn2ps.h"
@@ -176,7 +176,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     string output_file_name = "";
 
-    sscanf( "$Date: 2020-10-24 18:01:20 -0400 (Sat, 24 Oct 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-10-28 10:28:13 -0400 (Wed, 28 Oct 2020) $", "%*s %s %*s", copyrightDate );
 
     static string opts = "";
 #if HAVE_GETOPT_H
@@ -481,7 +481,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 512+'L':
-	    ModLangParserTrace(stderr, "lqx:");			    /* Debug Lqx */
+	    LQIO::DOM::Document::lqx_parser_trace(stderr);
 	    break;
 
 	case 'M':
