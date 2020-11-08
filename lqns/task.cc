@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14009 2020-10-26 16:44:30Z greg $
+ * $Id: task.cc 14036 2020-11-04 18:30:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -839,8 +839,7 @@ Task::saveClientResults( const MVASubmodel& submodel )
  * Check results for sanity.
  */
 
-
-const Task&
+const Entity&
 Task::sanityCheck() const
 {
     Entity::sanityCheck();

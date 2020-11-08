@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14009 2020-10-26 16:44:30Z greg $
+ * $Id: task.h 14036 2020-11-04 18:30:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -181,7 +181,7 @@ public:
 
     /* Sanity Check */
 
-    virtual const Task& sanityCheck() const;
+    virtual const Entity& sanityCheck() const;
 
     /* XML output */
     virtual const Task& insertDOMResults() const;

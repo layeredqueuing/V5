@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14003 2020-10-26 12:28:13Z greg $
+ * $Id: processor.cc 14036 2020-11-04 18:30:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,19 +22,22 @@
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
-#include "fpgoop.h"
-#include "errmsg.h"
-#include "entry.h"
-#include "entity.h"
-#include "processor.h"
-#include "model.h"
-#include "task.h"
-#include "server.h"
-#include "multserv.h"
-#include "call.h"
-#include "lqns.h"
-#include "pragma.h"
 #include "activity.h"
+#include "call.h"
+#include "entity.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "fpgoop.h"
+#include "lqns.h"
+#include "model.h"
+#include "multserv.h"
+#include "mva.h"
+#include "open.h"
+#include "pragma.h"
+#include "processor.h"
+#include "server.h"
+#include "submodel.h"
+#include "task.h"
 
 bool Processor::__prune = false;
 
@@ -411,6 +414,54 @@ Processor::makeServer( const unsigned nChains )
     }
 
     return _station;
+}
+
+
+/*
+ * Check results for sanity.
+ */
+
+const Entity&
+Processor::sanityCheck() const
+{
+    Entity::sanityCheck();
+    if ( utilization() != _utilization ) {
+#if 0
+	std::cerr << "Utilization mismatch: derived=" << utilization()
+		  << ", MVA=" << _utilization << std::endl;
+#endif
+    }
+    return *this;
+}
+
+
+Entity&
+Processor::saveServerResults( const MVASubmodel& submodel, double relax )
+{
+    Entity::saveServerResults( submodel, relax );
+
+    const Server * station = serverStation();
+    const std::set<Task *>& clients = submodel.getClients();
+    const unsigned int n = submodel.number();
+
+    _utilization = 0.0;
+    for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+	const ChainVector& chain = (*client)->clientChains( n );
+
+	if ( submodel.closedModel != nullptr ) {
+	    for ( unsigned ix = 1; ix <= chain.size(); ++ix ) {
+		const unsigned k = chain[ix];
+		if ( hasServerChain(k) ) {
+		    _utilization += submodel.closedModel->utilization( *station, k );
+		}
+	    }
+	}
+	if ( submodel.openModel ) {
+	    _utilization += submodel.openModel->utilization( *station );
+	}
+    }
+    
+    return *this;
 }
 
 

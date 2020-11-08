@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14017 2020-10-26 19:58:09Z greg $
+ * $Id: model.cc 14052 2020-11-08 03:04:43Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -503,7 +503,7 @@ Model::generate()
     _submodels.resize(max_depth);
 
     for ( unsigned int i = 1; i <= max_depth; ++i ) {
-	_submodels[i] = new MVASubmodel(i,this);
+	_submodels[i] = new MVASubmodel(i);
     }
     
     /* Add submodel for join delay calculation */
@@ -511,7 +511,7 @@ Model::generate()
     if ( std::count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) > 0 ) {
 	max_depth += 1;
 	sync_submodel = max_depth;
-	_submodels.push_back(new SynchSubmodel(sync_submodel,this));
+	_submodels.push_back(new SynchSubmodel(sync_submodel));
     }
 
     /* Build model. */

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * synmodel.h	-- Greg Franks
  *
- * $Id: synmodel.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: synmodel.h 14052 2020-11-08 03:04:43Z greg $
  */
 
 #ifndef _SYNMODEL_H
@@ -14,7 +14,7 @@
 class SynchSubmodel : public Submodel
 {
 public:
-    SynchSubmodel( const unsigned, const Model * );
+    SynchSubmodel( const unsigned n ) : Submodel( n ) {}
     virtual ~SynchSubmodel();
 	
     const char * const submodelType() const { return "Synch Submodel"; }
@@ -31,5 +31,4 @@ public:
 private:
     ostream& printSyncModel( ostream& output ) const;
 };
-
 #endif

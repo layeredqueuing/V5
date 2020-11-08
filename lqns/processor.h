@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: processor.h 14036 2020-11-04 18:30:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -72,12 +72,15 @@ public:
     bool hasPriorities() const;
     virtual unsigned validScheduling() const;
 
+    virtual const Entity& sanityCheck() const;
+
     /* Model Building. */
 
     Processor& addGroup( Group * aGroup ) { _groups.insert( aGroup ); return *this; }
     const std::set<Group *>& groups() const { return _groups; }
 
     Server * makeServer( const unsigned nChains );
+    virtual Entity& saveServerResults( const MVASubmodel&, double );
 
     /* DOM insertion of results */
 
@@ -95,8 +98,10 @@ public:
     static bool __prune;
 
 private:
-    std::set<Task *> _tasks;			/* List of processor's tasks	*/
-    std::set<Group *> _groups;			/* List of processor's Group	*/
+    std::set<Task *> _tasks;		/* List of processor's tasks	*/
+    std::set<Group *> _groups;		/* List of processor's Group	*/
+
+    double _utilization;		/* Processor Utilization	*/
 };
 
 

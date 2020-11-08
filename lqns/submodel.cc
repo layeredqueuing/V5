@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14017 2020-10-26 19:58:09Z greg $
+ * $Id: submodel.cc 14052 2020-11-08 03:04:43Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -166,18 +166,16 @@ Submodel::submodel_header_str( ostream& output, const Submodel& aSubmodel, const
  * Create a new MVA submodel.
  */
 
-MVASubmodel::MVASubmodel( const unsigned n, const Model * anOwner )
-    : Submodel(n,anOwner),
+MVASubmodel::MVASubmodel( const unsigned n )
+    : Submodel(n),
       _hasReplication(false),
       _hasThreads(false),
       _hasSynchs(false),
-      closedStnNo(0),
-      openStnNo(0),
-      closedStation(0),
-      openStation(0),
-      closedModel(0),
-      openModel(0),
-      _overlapFactor(0)
+      closedStation(),
+      openStation(),
+      closedModel(nullptr),
+      openModel(nullptr),
+      _overlapFactor()
 {
 }
 
@@ -262,44 +260,22 @@ MVASubmodel::build()
     }
 
     const unsigned n_stations  = _clients.size() + _servers.size();
-    unsigned n_servers         = 0;
+    unsigned closedStnNo       = 0;
+    unsigned openStnNo	       = 0;
 
-    closedStnNo	= 0;
-    openStnNo   = 0;
 
     /* ------------------- Count the stations. -------------------- */
 
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	closedStnNo += 1;
-	if ( (*client)->replicas() > 1 ) {
-	    _hasReplication = true;
-	}
-	if ( (*client)->hasThreads() ) {
-	    _hasThreads = true;
-	}
-    }
+    _hasReplication = std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) )
+	|| std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) );
+    _hasThreads = std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::hasThreads ) );
+    _hasSynchs = std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::hasSynchs ) );
 
-    for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	if ( (*server)->nEntries() == 0 ) continue;	/* Null server. */
-	if ( (*server)->replicas() > 1 ) {
-	    _hasReplication = true;
-	}
-	if ( (*server)->hasSynchs() ) {
-	    _hasSynchs = true;
-	}
-	if ( (*server)->isInClosedModel() ) {
-	    closedStnNo += 1;
-	}
-	if ( (*server)->isInOpenModel() ) {
-	    openStnNo += 1;
-	}
-    }
-
+    closedStnNo = _clients.size() + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) );
+    openStnNo   = std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInOpenModel ) );
+    
     closedStation.resize(closedStnNo);
     openStation.resize(openStnNo);
-
-    closedStnNo	= 0;
-    openStnNo   = 0;
 
     /* --------------------- Create Chains.  ---------------------- */
 
@@ -310,6 +286,7 @@ MVASubmodel::build()
 
     /* ------------------- Create the clients. -------------------- */
 
+    closedStnNo	= 0;
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	closedStnNo += 1;
 	closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
@@ -317,12 +294,12 @@ MVASubmodel::build()
 
     /* ----------------- Create servers for model. ---------------- */
 
+    openStnNo   = 0;
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	Server * aStation;
 	if ( (*server)->nEntries() == 0 ) continue;	/* Null server. */
 	aStation = (*server)->makeServer( nChains() );
 	if ( (*server)->isInClosedModel() ) {
-	    n_servers   += 1;
 	    closedStnNo += 1;
 	    closedStation[closedStnNo] = aStation;
 	}
@@ -345,11 +322,11 @@ MVASubmodel::build()
 
     assert ( closedStnNo <= n_stations && openStnNo <= n_stations );
 
-    if ( openStnNo > 0 && !flags.no_execute ) {
+    if ( n_openStns() > 0 && !flags.no_execute ) {
 	openModel = new Open( openStation );
     }
 
-    if ( nChains() > 0 && n_servers > 0 ) {
+    if ( nChains() > 0 && n_closedStns() > 0 ) {
 	switch ( Pragma::mva() ) {
 	case Pragma::EXACT_MVA:
 	    closedModel = new ExactMVA(          closedStation, _customers, _thinkTime, _priority, _overlapFactor );

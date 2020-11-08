@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14012 2020-10-26 16:59:41Z greg $
+ * $Id: submodel.h 14052 2020-11-08 03:04:43Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -51,7 +51,7 @@ class Submodel {
     };
 
 public:
-    Submodel( const unsigned n, const Model * anOwner ) : _submodel_number(n), myOwner(anOwner), _n_chains(0) {}
+    Submodel( const unsigned n ) : _submodel_number(n), _n_chains(0) {}
     virtual ~Submodel() {}
 
 private:
@@ -69,14 +69,13 @@ public:
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
     Submodel& number( const unsigned );
-    const Model * owner() const { return myOwner; }
 
     virtual VectorMath<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }
     unsigned customers( const unsigned i ) const { return _customers[i]; }
     double thinkTime( const unsigned i ) const { return _thinkTime[i]; }
     void setThinkTime( unsigned int i, double thinkTime ) { _thinkTime[i] = thinkTime; }
-    unsigned priority( const unsigned i) const { return _priority[i]; }
+    unsigned priority( const unsigned i ) const { return _priority[i]; }
 
     virtual Submodel& initServers( const Model& );
     virtual Submodel& reinitServers( const Model& ) { return *this; }
@@ -108,7 +107,6 @@ protected:
 
 private:
     unsigned _submodel_number;		/* Submodel number.  Set once.	*/
-    const Model * myOwner;		/* Pointer to layerizer.	*/
     unsigned _n_chains;			/* Number of chains K		*/
 	
 protected:
@@ -128,9 +126,10 @@ class MVASubmodel : public Submodel {
     friend class Generate;
     friend class Entity;		/* closedModel */
     friend class Task;			/* closedModel */
+    friend class Processor;		/* closedModel */
 
 public:
-    MVASubmodel( const unsigned, const Model * );
+    MVASubmodel( const unsigned );
     virtual ~MVASubmodel();
 	
     const char * const submodelType() const { return "Submodel"; }
@@ -141,8 +140,8 @@ public:
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();
 		
-    virtual unsigned n_closedStns() const { return closedStnNo; }
-    virtual unsigned n_openStns() const { return openStnNo; }
+    virtual unsigned n_closedStns() const { return closedStation.size(); }
+    virtual unsigned n_openStns() const { return openStation.size(); }
     virtual VectorMath<double> * getOverlapFactor() const { return _overlapFactor; } 
 
     virtual double nrFactor( const Server *, const unsigned e, const unsigned k ) const;
@@ -172,8 +171,6 @@ private:
 
     /* MVA Stuff */
 	
-    unsigned closedStnNo;
-    unsigned openStnNo;
     Vector<Server *> closedStation;
     Vector<Server *> openStation;
     MVA * closedModel;

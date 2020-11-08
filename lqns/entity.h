@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14009 2020-10-26 16:44:30Z greg $
+ * $Id: entity.h 14036 2020-11-04 18:30:24Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -217,7 +217,7 @@ public:
     Entity& clear();
     virtual Server * makeServer( const unsigned ) = 0;
     Entity& initServerStation( Submodel& );
-    Entity& saveServerResults( const MVASubmodel&, double );
+    virtual Entity& saveServerResults( const MVASubmodel&, double );
 
     /* Threads */
 	
