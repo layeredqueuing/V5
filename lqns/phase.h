@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: phase.h 14068 2020-11-10 13:48:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -90,7 +90,7 @@ public:
 
     virtual double waitExcept( const unsigned ) const;
     double elapsedTime() const { return waitExcept( 0 ); }
-    double waitTime(int submodel) { return myWait[submodel];}
+    double waitingTime( unsigned int submodel ) const { return myWait[submodel];}
 
     virtual ostream& print( ostream& output ) const { return output; }
 	
@@ -119,6 +119,23 @@ class Phase : public NullPhase {
     friend class RepeatActivityList;	/* For access to mySurrogateDelay 	*/
     friend class OrForkActivityList;	/* For access to mySurrogateDelay 	*/
     friend class AndForkActivityList;	/* For access to mySurrogateDelay 	*/
+
+private:
+    struct add_weighted_wait {
+	add_weighted_wait( unsigned int submodel, double total ) : _submodel(submodel), _total(total) {}
+	double operator()( double sum, const Call * call ) const { return call->submodel() == _submodel ? sum + call->wait() * call->rendezvous() / _total: sum; }
+    private:
+	const unsigned int _submodel;
+	const double _total;
+    };
+
+    struct get_interlocked_tasks {
+	get_interlocked_tasks( Interlock::CollectTasks& path ) : _path(path) {}
+	bool operator()( bool rc, const Call * call ) const;
+    private:
+	Interlock::CollectTasks& _path;
+    };
+
 
 public:
     class CallExec {

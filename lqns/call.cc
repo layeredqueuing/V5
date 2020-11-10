@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: call.cc 14054 2020-11-09 03:19:30Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -48,9 +48,10 @@ Call::Create::operator()( const LQIO::DOM::Call * call )
 
 Call::Call( const Phase * fromPhase, const Entry * toEntry )
     : source(fromPhase),
-      myWait(0.0),
+      _wait(0.0),
       destination(toEntry), 
-      _dom(nullptr)
+      _dom(nullptr),
+      _chainNumber(0)
 {
     if ( toEntry != nullptr ) {
 	const_cast<Entry *>(destination)->addDstCall( this );	/* Set reverse link	*/
@@ -302,8 +303,8 @@ double
 Call::queueingTime() const
 {
     if ( hasRendezvous() ) {
-	if ( isinf( myWait ) ) return myWait;
-	const double q = myWait - elapsedTime();
+	if ( isinf( _wait ) ) return _wait;
+	const double q = _wait - elapsedTime();
 	if ( q <= 0.000001 ) {
 	    return 0.0;
 	} else if ( q * elapsedTime() > 0. && (q/elapsedTime()) <= 0.0001 ) {
@@ -312,7 +313,7 @@ Call::queueingTime() const
 	    return q;
 	}
     } else if ( hasSendNoReply() ) {
-	return myWait;
+	return _wait;
     } else {
 	return 0.0;
     }
@@ -412,7 +413,7 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
     const Entity * aServer = dstTask();
     if ( aServer->hasServerChain( k )  ){
 
-	chainNumber = k;
+	_chainNumber = k;
 
 	if ( flags.trace_replication ) {
 	    cout <<"\nCall::setChain, k=" << k<< "  " ;
@@ -421,11 +422,8 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
     }
 }
 
-//tomari
-unsigned Call::getChain() const
-{
-    return chainNumber;
-}
+
+
 
 /*
  * Set the open arrival rate to the destination's station.
@@ -451,7 +449,7 @@ Call::setLambda( const unsigned, const unsigned p, const double rate )
 void
 Call::clearWait( const unsigned k, const unsigned p, const double )
 {
-    myWait = 0.0;
+    _wait = 0.0;
 }
 
 
@@ -469,7 +467,7 @@ Call::saveOpen( const unsigned, const unsigned p, const double )
     const Server * aStation = dstTask()->serverStation();
 
     if ( aStation->V( e, 0, p ) > 0.0 ) {
-	myWait = aStation->W[e][0][p];
+	_wait = aStation->W[e][0][p];
     }
 }
 
@@ -490,7 +488,7 @@ Call::saveWait( const unsigned k, const unsigned p, const double )
     const Server * aStation = aServer->serverStation();
 
     if ( aStation->V( e, k, p ) > 0.0 ) {
-	myWait = aStation->W[e][k][p];
+	_wait = aStation->W[e][k][p];
     }
 }
 
@@ -517,7 +515,7 @@ TaskCall::TaskCall( const Phase * fromPhase, const Entry * toEntry )
 TaskCall&
 TaskCall::initWait()
 {
-    myWait = elapsedTime();			/* Initialize arc wait. 	*/
+    _wait = elapsedTime();			/* Initialize arc wait. 	*/
     return *this;
 }
 
@@ -574,7 +572,7 @@ ProcessorCall::ProcessorCall( const Phase * fromPhase, const Entry * toEntry )
 ProcessorCall&
 ProcessorCall::initWait()
 {
-    myWait = dstEntry()->serviceTimeForPhase(1);		/* Initialize arc wait. 	*/
+    _wait = dstEntry()->serviceTimeForPhase(1);		/* Initialize arc wait. 	*/
     return *this;
 }
 
@@ -582,7 +580,7 @@ ProcessorCall::initWait()
 void
 ProcessorCall::setWait(double newWait)
 {
-    myWait = newWait;
+    _wait = newWait;
 }
 
 

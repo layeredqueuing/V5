@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14052 2020-11-08 03:04:43Z greg $
+ * $Id: submodel.h 14060 2020-11-09 16:27:02Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -157,9 +157,7 @@ private:
 
 protected:
     unsigned makeChains();
-    void generate() const;
     void saveWait( Entry *, const Server * );
-    void setThreadChain() const;
 
     ostream& printClosedModel( ostream& ) const;
     ostream& printOpenModel( ostream& ) const;

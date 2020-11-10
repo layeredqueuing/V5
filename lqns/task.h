@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14036 2020-11-04 18:30:24Z greg $
+ * $Id: task.h 14054 2020-11-09 03:19:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -153,6 +153,7 @@ public:
     Task& saveClientResults( const MVASubmodel& );
     const Task& callsPerform( callFunc, const unsigned submodel ) const;
     const Task& openCallsPerform( callFunc, const unsigned submodel ) const;
+    const Task& setChain( const MVASubmodel& submodel ) const;
 
     /* Computation */
 	

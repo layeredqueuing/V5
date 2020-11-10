@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14001 2020-10-25 17:25:35Z greg $
+ * $Id: entry.h 14068 2020-11-10 13:48:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -151,6 +151,21 @@ public:
 	mutable unsigned int _i;
     };
 
+protected:
+    struct clear_wait {
+	clear_wait( unsigned int submodel ) : _submodel(submodel) {}
+	void operator()( const Phase& phase ) const { phase.myWait[_submodel] = 0.0; }
+    private:
+	const unsigned int _submodel;
+    };
+
+    struct add_wait {
+	add_wait( unsigned int submodel ) : _submodel(submodel) {}
+	double operator()( double sum, const Phase& phase ) const { return sum + phase.myWait[_submodel]; }
+    private:
+	const unsigned int _submodel;
+    };
+
 
 public:
     static bool joinsPresent;
@@ -163,6 +178,8 @@ public:
     static void reset();
     static Entry * find( const string& entry_name );
     static Entry * create( LQIO::DOM::Entry* domEntry, unsigned int );
+    static bool max_phase( const Entry * e1, const Entry * e2 ) { return e1->maxPhase() < e2->maxPhase(); }
+
 	
 protected:
     /* Instance creation */
@@ -253,7 +270,7 @@ public:
     bool hasNonExponentialPhases() const { return getDOM()->hasNonExponentialPhases(); }
     bool hasThinkTime() const { return getDOM()->hasThinkTime(); }
     bool hasVariance() const;
-    bool hasStartActivity() const { return _startActivity != 0; }
+    bool hasStartActivity() const { return _startActivity != nullptr; }
     bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
 		
     bool entryTypeOk( const entry_type );
@@ -263,7 +280,7 @@ public:
 
     double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
     double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
-    double waitTime( int submodel )  { return _total.waitTime(submodel); }
+    double waitTime( unsigned int submodel ) { return _total.myWait[submodel]; }
     double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait(submodel, 0) ;}	
 
     double elapsedTime() const { return _total.elapsedTime(); }			/* Found through deltaWait  */

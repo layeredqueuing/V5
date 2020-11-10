@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14001 2020-10-25 17:25:35Z greg $
+ * $Id: entry.cc 14068 2020-11-10 13:48:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -161,13 +161,13 @@ Entry::check() const
     if ( (isSignalEntry() || isWaitEntry()) && owner()->scheduling() != SCHEDULE_SEMAPHORE ) {
 	LQIO::solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, owner()->name().c_str(), (isSignalEntry() ? "signal" : "wait"), name().c_str() );
     }
+    if ( maxPhase() > 1 && owner()->isInfinite() ) {
+	LQIO::solution_error( WRN_MULTI_PHASE_INFINITE_SERVER, name().c_str(), owner()->name().c_str(), maxPhase() );
+    }
 
     /* Forwarding probabilities o.k.? */
 
-    double sum = 0;
-    for ( std::set<Call *>::const_iterator call = callList(1).begin(); call != callList(1).end(); ++call ) {
-	sum += (*call)->forward() * (*call)->fanOut();
-    }
+    double sum = std::accumulate( callList(1).begin(), callList(1).end(), 0.0, Call::add_forwarding );
     if ( sum < 0.0 || 1.0 < sum ) {
 	LQIO::solution_error( LQIO::ERR_INVALID_FORWARDING_PROBABILITY, name().c_str(), sum );
     } else if ( sum != 0.0 && owner()->isReferenceTask() ) {
@@ -1191,13 +1191,9 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     /* Scan calls to other task for matches with submodel. */
 
-    _total.myWait[submodel] = 0.0;
-
     if ( isActivityEntry() ) {
 
-	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    phase->myWait[submodel] = 0.0;
-	}
+	std::for_each( _phase.begin(), _phase.end(), clear_wait(submodel) );
 
 	if ( flags.trace_activities ) {
 	    cout << "--- AggreateWait for entry " << name() << " ---" << endl;
@@ -1209,9 +1205,6 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
 
-	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    _total.myWait[submodel] += phase->myWait[submodel];
-	}
 	if ( flags.trace_delta_wait || flags.trace_activities ) {
 	    cout << "--DW--  Entry(with Activities) " << name()
 		 << ", submodel " << submodel << endl;
@@ -1224,16 +1217,11 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     } else {
 
-	for ( Vector<Phase>::iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    phase->updateWait( aSubmodel, relax );
+	std::for_each( _phase.begin(), _phase.end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
 
-	    if ( !phase->isPresent() && phase->myWait[submodel] > 0.0 ) {
-		throw logic_error( "TaskEntry::updateWait" );
-	    }
-
-	    _total.myWait[submodel] += phase->myWait[submodel];
-	}
     }
+
+    _total.myWait[submodel] = std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) );
 
     return *this;
 }
@@ -1252,7 +1240,7 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
     if ( submodel ) {
 	_phase[p].myWait[submodel] += addend.mean();
 
-    } else if (addend.variance() > 0.0 ) {
+    } else if ( addend.variance() > 0.0 ) {
 
 	/*
 	 * two-phase quorum semantics. If the replying activity is

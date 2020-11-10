@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: call.h 14068 2020-11-10 13:48:50Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -89,6 +89,52 @@ public:
 	virtual ~call_cycle() throw() {}
     };
 
+    static double add_rendezvous( double sum, const Call * call ) { return sum + call->rendezvous() * call->fanOut(); }
+    static double add_rendezvous_no_fwd( double sum, const Call * call ) { return !call->isForwardedCall() ? sum + call->rendezvous() * call->fanOut() : sum; }
+    static double add_forwarding( double sum, const Call * call ) { return sum + call->forward() * call->fanOut(); }
+
+    struct find_call {
+	find_call( const Entry * e, const queryFunc f ) : _e(e), _f(f) {}
+	bool operator()( const Call * call ) const { return call->dstEntry() == _e && !call->isForwardedCall() && (!_f || (call->*_f)()); }
+    private:
+	const Entry * _e;
+	const queryFunc _f;
+    };
+    
+    struct find_fwd_call {
+	find_fwd_call( const Entry * e ) : _e(e) {}
+	bool operator()( const Call * call ) const { return call->dstEntry() == _e && call->isForwardedCall(); }
+    private:
+	const Entry * _e;
+    };
+    
+    struct add_replicated_rendezvous {
+	add_replicated_rendezvous( unsigned int submodel ) : _submodel(submodel) {}
+	double operator()( double sum, const Call * call ) { return call->submodel() == _submodel ? sum + call->rendezvous() * call->fanOut() : sum; }
+    private:
+	const unsigned int _submodel;
+    };
+
+    struct add_rendezvous_to {
+	add_rendezvous_to( const Entity * task ) : _task(task) {}
+	double operator()( double sum, const Call * call ) const { return call->dstTask() == _task ? sum + call->rendezvous() * call->fanOut() : sum; }
+    private:
+	const Entity * _task;
+    };
+
+    struct add_submodel_rendezvous {
+	add_submodel_rendezvous( unsigned int submodel ) : _submodel(submodel) {}
+	double operator()( double sum, const Call * call ) const { return call->submodel() == _submodel ? sum + call->rendezvous() : sum; }
+    private:
+	const unsigned int _submodel;
+    };
+
+    struct add_wait {
+	add_wait( unsigned int submodel ) : _submodel(submodel) {}
+	double operator()( double sum, const Call * call ) const { return call->submodel() == _submodel ? sum + call->rendezvousDelay() : sum; }
+    private:
+	const unsigned int _submodel;
+    };
 
     typedef enum { RENDEZVOUS_CALL=0x01, SEND_NO_REPLY_CALL=0x02, FORWARDED_CALL=0x04, OVERTAKING_CALL=0x08 } call_type;
 
@@ -147,7 +193,7 @@ public:
 
     double rendezvousDelay() const;
     double rendezvousDelay( const unsigned k );
-    double wait() const { return myWait; }
+    double wait() const { return _wait; }
     double elapsedTime() const;
     double queueingTime() const;
     virtual const Call& insertDOMResults() const;
@@ -161,8 +207,8 @@ public:
 
     /* MVA interface */
 
-    unsigned getChain() const;
     void setChain( const unsigned k, const unsigned p, const double rate );
+    unsigned getChain() const { return _chainNumber; } //tomari
 
     void setVisits( const unsigned k, const unsigned p, const double rate );
     virtual void setLambda( const unsigned k, const unsigned p, const double rate );
@@ -183,8 +229,7 @@ public:
 
 protected:
     const Phase* source;		/* Calling entry.		*/
-    double myWait;			/* Waiting time.		*/
-    double myQueueLength;
+    double _wait;			/* Waiting time.		*/
 
 private:
     const Entry* destination;		/* to whom I am referring to	*/
@@ -192,7 +237,7 @@ private:
     /* Input */
     const LQIO::DOM::Call* _dom;
 
-    unsigned chainNumber;
+    unsigned _chainNumber;
 };
 
 

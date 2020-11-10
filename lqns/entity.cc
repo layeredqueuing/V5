@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14009 2020-10-26 16:44:30Z greg $
+ * $Id: entity.cc 14068 2020-11-10 13:48:50Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -109,26 +109,18 @@ Entity::~Entity()
 
 
 /*
- * model max phase for this entity.
+ * Set the max phase for this entity.
  */
 
 Entity&
 Entity::configure( const unsigned nSubmodels )
 {
-    if ( !Pragma::variance(Pragma::NO_VARIANCE) && nEntries() > 1 && Pragma::entry_variance() ) {
-	attributes.variance = 1;
-    }
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	(*entry)->configure( nSubmodels );
-	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
-
-	if ( (*entry)->hasDeterministicPhases() ) {
-	    attributes.deterministic = 1;
-	}
-	if ( !Pragma::variance(Pragma::NO_VARIANCE) && (*entry)->hasVariance() ) {
-	    attributes.variance = 1;
-	}
-    }
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, nSubmodels ) );
+    if ( std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasDeterministicPhases ) ) ) attributes.deterministic = 1;
+    if ( !Pragma::variance(Pragma::NO_VARIANCE)
+	 && ((nEntries() > 1 && Pragma::entry_variance())
+	     || std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) )) ) attributes.variance = 1;
+    _maxPhase = (*std::max_element( entries().begin(), entries().end(), Entry::max_phase ))->maxPhase();
     return *this;
 }
 
@@ -431,9 +423,7 @@ Entity::schedulingIsOk( const unsigned bits ) const
 Entity&
 Entity::updateAllWaits( const Vector<Submodel *>& submodels )
 {
-    for ( Vector<Submodel *>::const_iterator submodel = submodels.begin(); submodel != submodels.end(); ++submodel ) {
-	updateWait( **submodel, 1.0 );
-    }
+    std::for_each( submodels.begin(), submodels.end(), update_wait( *this ) );
     return *this;
 }
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14036 2020-11-04 18:30:24Z greg $
+ * $Id: entity.h 14061 2020-11-10 02:54:39Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -66,6 +66,12 @@ public:
 	}
     };
 
+    struct update_wait {
+	update_wait( Entity& entity ) : _entity(entity) {}
+	void operator()( const Submodel* submodel ) { _entity.updateWait( *submodel, 1.0 ); }
+    private:
+	Entity& _entity;
+    };
 
 private:
     class SRVNManip {

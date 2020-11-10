@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14036 2020-11-04 18:30:24Z greg $
+ * $Id: task.cc 14068 2020-11-10 13:48:50Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -125,8 +125,8 @@ Task::hasClientChain( const unsigned submodel, const unsigned k ) const
 bool
 Task::check() const
 {
-    bool hasActivityEntry = false;
-
+    bool rc = true;
+    
     /* Check prio/scheduling. */
 
     if ( !schedulingIsOk( validScheduling() ) ) {
@@ -154,23 +154,14 @@ Task::check() const
 
     /* Check entries */
 
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	(*entry)->check();
-	if ( (*entry)->isActivityEntry() ) {
-	    hasActivityEntry = true;
-	}
-	if ( (*entry)->maxPhase() > 1 && isInfinite() ) {
-	    LQIO::solution_error( WRN_MULTI_PHASE_INFINITE_SERVER, (*entry)->name().c_str(), name().c_str(), (*entry)->maxPhase() );
-	}
-    }
-
-    if ( hasActivities() && !hasActivityEntry ) {
+    rc = std::all_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::check ) ) && rc;
+    if ( hasActivities() && std::none_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::isActivityEntry ) ) ) {
 	LQIO::solution_error( LQIO::ERR_NO_START_ACTIVITIES, name().c_str() );
     } else {
-	for_each( activities().begin(), activities().end(), Predicate<Phase>( &Phase::check ) );
-	for_each( precedences().begin(), precedences().end(), Predicate<ActivityList>( &ActivityList::check ) );
+	rc = std::all_of( activities().begin(), activities().end(), Predicate<Phase>( &Phase::check ) ) && rc;
+	rc = std::all_of( precedences().begin(), precedences().end(), Predicate<ActivityList>( &ActivityList::check ) ) && rc;
     }
-    return true;
+    return rc;
 }
 
 
@@ -757,6 +748,22 @@ Task::initClientStation( Submodel& submodel )
     return *this;
 }
 
+
+
+const Task&
+Task::setChain( const MVASubmodel& submodel ) const
+{
+    callsPerform(&Call::setChain, submodel.number());
+    if ( nThreads() > 1 ) {
+	const ChainVector& chain = clientChains( submodel.number() );
+	const unsigned k1 = chain[1];
+	for ( unsigned ix = 2; ix <= chain.size(); ++ix ) {
+	    const unsigned k = chain[ix];
+	    submodel.closedModel->setThreadChain(k, k1);
+	}
+    }
+    return *this;
+}
 
 
 /*

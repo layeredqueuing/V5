@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14052 2020-11-08 03:04:43Z greg $
+ * $Id: submodel.cc 14054 2020-11-09 03:19:30Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -349,33 +349,13 @@ MVASubmodel::build()
 	}
     }
 
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	(*client)->callsPerform(&Call::setChain, number());
-	if ( (*client)->replicas() > 1 ) {
-	    unsigned n_delta = 0;
-	    (*client)->updateWaitReplication( *this, n_delta );
-	}
-	if ( (*client)->nThreads() > 1 ) {
-	    setThreadChain();
-	}
+    std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,const MVASubmodel&>( &Task::setChain, *this ) );
+    if ( hasReplication() ) {
+	unsigned not_used = 0;
+	std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, not_used ) );
     }
 
     return *this;
-}
-
-
-
-void
-MVASubmodel::setThreadChain() const
-{
-    for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	const ChainVector& aChain = (*client)->clientChains( number() );
-	const unsigned kk = aChain[1];
-	for ( unsigned ix = 2; ix <= aChain.size(); ++ix ) {
-	    const unsigned k = aChain[ix];
-	    closedModel->setThreadChain(k, kk);
-	}
-    }
 }
 
 

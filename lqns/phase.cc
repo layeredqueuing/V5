@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14017 2020-10-26 19:58:09Z greg $
+ * $Id: phase.cc 14068 2020-11-10 13:48:50Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -478,10 +478,8 @@ Phase::callsPerform( const CallExec& exec ) const
 Call *
 Phase::findCall( const Entry * anEntry, const queryFunc aFunc ) const
 {
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->dstEntry() == anEntry && !(*call)->isForwardedCall() && (!aFunc || ((*call)->*aFunc)()) ) return (*call);
-    }
-    return 0;
+    std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_call( anEntry, aFunc ) );
+    return call != callList().end() ?  *call : nullptr;
 }
 
 
@@ -494,10 +492,8 @@ Phase::findCall( const Entry * anEntry, const queryFunc aFunc ) const
 Call *
 Phase::findFwdCall( const Entry * anEntry ) const
 {
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end() ; ++call ) {
-	if ( (*call)->dstEntry() == anEntry && (*call)->isForwardedCall() ) return *call;
-    }
-    return 0;
+    std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_fwd_call( anEntry ) );
+    return call != callList().end() ?  *call : nullptr;
 }
 
 
@@ -510,13 +506,12 @@ Phase::findFwdCall( const Entry * anEntry ) const
 Call *
 Phase::findOrAddCall( const Entry * anEntry, const queryFunc aFunc  )
 {
-    Call * aCall = findCall( anEntry, aFunc );
-
-    if ( !aCall ) {
-	aCall = new TaskCall( this, anEntry );
+    std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_call( anEntry, aFunc ) );
+    if ( call == callList().end() ) {
+	return new TaskCall( this, anEntry );
+    } else {
+	return *call;
     }
-
-    return aCall;
 }
 
 
@@ -528,13 +523,12 @@ Phase::findOrAddCall( const Entry * anEntry, const queryFunc aFunc  )
 Call *
 Phase::findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall )
 {
-    Call * aCall = findFwdCall( anEntry );
-
-    if ( !aCall ) {
-	aCall = new ForwardedCall( this, anEntry, fwdCall );
+    std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_fwd_call( anEntry ) );
+    if ( call == callList().end() ) {
+	return new ForwardedCall( this, anEntry, fwdCall );
+    } else {
+	return *call;
     }
-
-    return aCall;
 }
 
 
@@ -543,14 +537,9 @@ Phase::findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall )
  */
 
 double
-Phase::rendezvous( const Entity * aTask ) const
+Phase::rendezvous( const Entity * task ) const
 {
-    double sum = 0.0;
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->dstTask() != aTask ) continue;
-	sum += (*call)->rendezvous() * (*call)->fanOut();
-    }
-    return sum;
+    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_rendezvous_to( task ) );
 }
 
 
@@ -608,11 +597,7 @@ Phase::rendezvous( const Entry * anEntry ) const
 double
 Phase::sumOfRendezvous() const
 {
-    double sum = 0.0;
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	sum += (*call)->rendezvous() * (*call)->fanOut();
-    }
-    return sum;
+    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_rendezvous );
 }
 
 
@@ -740,21 +725,15 @@ Phase::newProcessorCall( Entry * procEntry )
 
 
 /*
- * Return the sum of all calls from the receiver.
- * Forwarded calls are not counted because they
- * are pseudo calls from this entry.
+ * Return the sum of all calls from the receiver.  Forwarded calls are
+ * not counted because they are pseudo calls from this entry.  Note
+ * that there is ALWAYS one slice.
  */
 
 double
 Phase::numberOfSlices() const
 {
-    double sum = 1.0;
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->isForwardedCall() ) continue;
-
-	sum += (*call)->rendezvous() * (*call)->fanOut();
-    }
-    return sum;
+    return std::accumulate( callList().begin(), callList().end(), 1.0, Call::add_rendezvous_no_fwd );
 }
 
 /* ------------------------------------------------------------------------ */
@@ -918,36 +897,15 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
 {
     const unsigned submodel = aSubmodel.number();
     const double oldWait    = myWait[submodel];
-    double newWait   = 0.0;
 
-    if ( oldWait && flags.trace_delta_wait ) {
-	cout << "Phase::updateWait(" << submodel << "," << relax << ") for " << name() << endl;
-    }
-	
     /* Sum up waits to all other tasks in this submodel */
 
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->submodel() == submodel ) {
-	    newWait += (*call)->rendezvousDelay();
-
-	    if ( oldWait && flags.trace_delta_wait ) {
-		cout << "        to entry " << (*call)->dstName() << " wait="
-		     << (*call)->rendezvousDelay()
-		     << endl;
-	    }
-	}
-    }
+    double newWait = std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( submodel ) );
 
     /* Tack on processor delay if necessary */
 
     if ( processorCall() && processorCall()->submodel() == submodel ) {
 	newWait += processorCall()->rendezvousDelay();
-			
-	if ( oldWait && flags.trace_delta_wait ) {
-	    cout << "        to processor " << processorCall()->dstName() << " wait="
-		 << processorCall()->rendezvousDelay()
-		 << endl;
-	}
     }
 
     /* Now update waiting values */
@@ -955,7 +913,8 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
     under_relax( myWait[submodel], newWait, relax );
 
     if ( oldWait && flags.trace_delta_wait ) {
-      cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] <<endl;
+	cout << "Phase::updateWait(" << submodel << "," << relax << ") for " << name() << endl;
+	cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] <<endl;
     }
 
     return *this;
@@ -967,38 +926,32 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
 double
 Phase::getReplicationProcWait( unsigned int submodel, const double relax ) 
 {
-   
     double newWait   = 0.0;
 
     if ( processorCall() && processorCall()->submodel() == submodel ) {
-		
 
-	int k= processorCall()->getChain();
+	int k = processorCall()->getChain();
 	//procWait += waitExceptChain( submodel, k );	
 	if ( processorCall()->dstTask()->hasServerChain(k) ) {
 	    // newWait +=  _surrogateDelay[k];
 
 	    if (flags.trace_quorum) {
-		
 		cout << "\nPhase::getReplicationProcWait(): Call " << this->name() << ", Submodel=" <<  processorCall()->submodel() 
 		     << ", _surrogateDelay[" <<k<<"]="<<_surrogateDelay[k] << endl;
 		fflush(stdout);
 	    }
 	}
 
-
 	newWait += processorCall()->wait();// * processorCall()->fanOut();
-			
     }
 
     /* Now update waiting values */
-
     // under_relax( myWait[submodel], newWait, relax );
-
    
     return newWait;
-
 }
+
+
 
 /* 
  * Sum up waits to all other tasks in this submodel 
@@ -1014,14 +967,7 @@ Phase::getReplicationTaskWait( unsigned int submodel, const double relax )
 double 
 Phase::getReplicationRendezvous( unsigned int submodel, const double relax ) //tomari : quorum
 {
-    double totalRendezvous   = 0.0;
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->submodel() == submodel ) {
-	    totalRendezvous += (*call)->rendezvous() * (*call)->fanOut();
-	}
-    }
-
-    return totalRendezvous;
+    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_replicated_rendezvous( submodel ) );
 }
 
 
@@ -1052,39 +998,15 @@ Phase::getProcWait( unsigned int submodel, const double relax ) //tomari : quoru
 double
 Phase::getTaskWait( unsigned int submodel, const double relax ) //tomari : quorum
 {
-    double newWait   = 0.0;
-    double totalRendezvous = 0;
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
-	    totalRendezvous += (*call)->rendezvous();
-	}
-    }
-
-    /* Sum up waits to all other tasks in this submodel */
-
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
-	    newWait += (*call)->wait() * ((*call)->rendezvous() /totalRendezvous);
-	}
-    }
-
-    return newWait;
+    const double totalRendezvous = std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
+    return std::accumulate( callList().begin(), callList().end(), 0.0, add_weighted_wait( submodel, totalRendezvous ) );
 }
 
 
 double 
 Phase::getRendezvous( unsigned int submodel, const double relax ) //tomari : quorum
 {
-    double totalRendezvous   = 0.0;
-	 
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	if ( (*call)->hasRendezvous() && (*call)->submodel() == submodel ) {
-	    totalRendezvous += (*call)->rendezvous();
-	}
-    }
-
-    return totalRendezvous;
+    return std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_submodel_rendezvous( submodel ) );
 }
 
 
@@ -1212,34 +1134,30 @@ Phase::followInterlock( Interlock::CollectTable& path ) const
 bool
 Phase::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = false;
+    bool found = std::accumulate( callList().begin(), callList().end(), false, get_interlocked_tasks( path ) );
+    return ( processorCall() && processorCall()->dstEntry()->getInterlockedTasks( path ) ) || found;	/* don't short circuit! */
+}
 
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	const Entry * dstEntry = (*call)->dstEntry();
-	if ( !path.has_entry( dstEntry ) && dstEntry->getInterlockedTasks( path ) ) found = true;
-    }
 
-    if ( processorCall() && processorCall()->dstEntry()->getInterlockedTasks( path ) ) found = true;
-
-    return found;
+bool
+Phase::get_interlocked_tasks::operator()( bool found, const Call * call ) const
+{
+    const Entry * entry = call->dstEntry();
+    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
 }
 
 
 const Phase&
 Phase::insertDOMResults() const
 {
-    const double procwaiting = queueingTime();
-
     getDOM()->setResultServiceTime(elapsedTime())
 	.setResultVarianceServiceTime(variance())
 	.setResultUtilization(utilization())
-	.setResultProcessorWaiting(procwaiting);
+	.setResultProcessorWaiting(queueingTime());
 
-    /*+ BUG 675 */
     if ( getDOM()->hasHistogram() || getDOM()->hasMaxServiceTimeExceeded() ) {
 	insertDOMHistogram( const_cast<LQIO::DOM::Histogram *>(getDOM()->getHistogram()), elapsedTime(), variance() );
     }
-    /*- BUG 675 */
 
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	if ( !(*call)->hasForwarding() ) {
@@ -1266,7 +1184,6 @@ Phase::recalculateDynamicValues()
     const double oldSliceTime = myProcessorEntry->serviceTimeForPhase(1);
     if ( oldSliceTime != newSliceTime || flags.full_reinitialize ) {
 	myProcessorEntry->setServiceTime(newSliceTime).setCV_sqr(CV_sqr());
-
 	myProcessorEntry->initVariance();	// Reset variance.
 	myProcessorEntry->initWait();		// Reset values in wait[].
 		
