@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: actlist.h 14079 2020-11-11 14:46:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -191,7 +191,7 @@ private:
 	fold( const std::string& op ) : _op(op) {}
 	std::string operator()( const std::string& s1, const Activity * a2 ) const { return s1 + " " + _op + " " + a2->name(); }
     private:
-	const std::string _op;
+	const std::string& _op;
     };
 
 public:

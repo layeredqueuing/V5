@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14068 2020-11-10 13:48:50Z greg $
+ * $Id: task.cc 14079 2020-11-11 14:46:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -106,8 +106,8 @@ Task::reset()
 bool
 Task::hasThinkTime() const
 {
-    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) ) != entries().end()
-	|| find_if( activities().begin(), activities().end(), Predicate<Activity>( &Activity::hasThinkTime ) ) != activities().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) ) 
+	|| std::any_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::hasThinkTime ) );
 }
 
 
@@ -228,17 +228,16 @@ Task::configure( const unsigned nSubmodels )
 unsigned
 Task::findChildren( Call::stack& callStack, const bool directPath ) const 
 {
-    unsigned max_depth = Entity::findChildren( callStack, directPath );
-    const Entry * dstEntry = callStack.back()->dstEntry();
-
-    /* Chase calls from srcTask. */
-
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	max_depth = max( max_depth, (*entry)->findChildren( callStack, directPath && ((*entry) == dstEntry) ) );
-    }
-
-    return max_depth;
+    return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, directPath ), find_max_depth( callStack, directPath ) );
 }
+
+
+unsigned int
+Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
+{
+    return std::max( depth, entry->findChildren( _callStack, _directPath && entry == _dstEntry) );
+}
+
 
 
 
@@ -404,7 +403,7 @@ Activity *
 Task::findActivity( const std::string& name ) const
 {
     const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
-    return activity != activities().end() ? *activity : 0;
+    return activity != activities().end() ? *activity : nullptr;
 }
 
 
@@ -473,7 +472,7 @@ Task::resetReplication()
 bool
 Task::isCalled() const
 {
-    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::isCalled ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::isCalled ) );
 }
 
 
@@ -483,15 +482,15 @@ Task::isCalled() const
  * call graph.  Returns -1 otherwise.  Used by the topological sorter.
  */
 
-int
+Task::root_level_t
 Task::rootLevel() const
 {
-    int level = -1;
+    root_level_t level = IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	if ( (*entry)->isCalledUsing( RENDEZVOUS_REQUEST ) || (*entry)->isCalledUsing( SEND_NO_REPLY_REQUEST ) ) {
-	    return -1;		/* Non root task */
+	    return IS_NON_REFERENCE;	/* Non root task */
 	} else if ( (*entry)->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
-	    level = 1;		/* Root task, but move to lower level */
+	    level = HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
 	}
     }
     return level;
@@ -1210,8 +1209,8 @@ Task::hasForks() const
     if ( _has_fork ) return true;	       /* cached copy		*/
     if ( _no_syncs == false ) return false;
     /* Do it the hard way */
-    _has_fork = std::count_if( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) ) > 0;
-    _has_sync = std::count_if( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) ) > 0;
+    _has_fork = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) );
+    _has_sync = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) );
     _no_syncs = false;
     return _has_fork;
 }
@@ -1645,13 +1644,14 @@ ReferenceTask::countCallers( std::set<Task *>& ) const
 unsigned
 ReferenceTask::findChildren( Call::stack& callStack, const bool ) const
 {
-    unsigned max_depth = Entity::findChildren( callStack, true );
-
-    /* Chase calls from srcTask. */
-
-    return std::accumulate( entries().begin(), entries().end(), max_depth, max_two_args<Entry,Call::stack&,bool>( &Entry::findChildren, callStack, true ) );
+    return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, true ), find_max_depth( callStack ) );
 }
 
+unsigned int
+ReferenceTask::find_max_depth::operator()( unsigned int depth, const Entry * entry )
+{
+    return std::max( depth, entry->findChildren( _callStack, true ) );
+}
 
 /*
  * Reference tasks cannot be servers by definition.

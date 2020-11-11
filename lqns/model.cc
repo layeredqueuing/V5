@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14052 2020-11-08 03:04:43Z greg $
+ * $Id: model.cc 14079 2020-11-11 14:46:07Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -351,6 +351,8 @@ Model::prepare(const LQIO::DOM::Document* document)
     return true;
 }
 
+
+
 /*
  * Dynamic Updates / Late Finalization
  * In order to integrate LQX's support for model changes we need to
@@ -362,8 +364,9 @@ void
 Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 {
     setModelParameters(document);
-    for_each( __processor.begin(), __processor.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
-    for_each( __task.begin(), __task.end(), Exec<Entity>( &Entity::recalculateDynamicValues ) );
+    for_each( __processor.begin(), __processor.end(), Exec<Processor>( &Processor::recalculateDynamicValues ) );
+    for_each( __group.begin(), __group.end(), Exec<Group>( &Group::recalculateDynamicValues ) );
+    for_each( __task.begin(), __task.end(), Exec<Task>( &Task::recalculateDynamicValues ) );
 }
 
 
@@ -375,15 +378,15 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 bool
 Model::checkModel()
 {
-    for_each( __processor.begin(), __processor.end(), Predicate<Entity>( &Entity::check ) );
-    for_each( __task.begin(), __task.end(), Predicate<Entity>( &Entity::check ) );
+    bool rc = true;
+    rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
+    rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;
 
-    const unsigned ref_tasks = count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) );
-    if ( ref_tasks == 0 && Entry::totalOpenArrivals == 0 ) {
+    if ( std::count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) ) == 0 && Entry::totalOpenArrivals == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
-    return !LQIO::io_vars.anError();
+    return rc && !LQIO::io_vars.anError();
 }
 
 
@@ -1105,32 +1108,30 @@ Model::topologicalSort()
 {
     Call::stack callStack;
     unsigned max_depth = 0;
+    static const NullCall null_call;				/* Place holder */
 
+    /* Only do reference tasks or those with open arrivals */
+    
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
-	const int initialLevel = (*task)->rootLevel();
-	if ( initialLevel < 0 ) continue;	/* Only do reference tasks or those with open arrivals */
-	    
-	NullCall null_call;			/* Open arrivals start at 1 */
-	if ( initialLevel > 0 ) {
-	    callStack.push_back(&null_call);	/* Place holder */
+	switch ( (*task)->rootLevel() ) {
+	case Task::IS_NON_REFERENCE: continue;
+	case Task::HAS_OPEN_ARRIVALS: callStack.push_back(&null_call); break;	/* Open arrivals start at 1 */
+	default: break;
 	}
 	try {
 	    max_depth = max( (*task)->findChildren( callStack, true ), max_depth );
 	}
 	catch( const Call::call_cycle& error ) {
-	    std::string msg;
-	    for ( Call::stack::const_reverse_iterator i = callStack.rbegin(); i != callStack.rend(); ++i ) {
-		if ( !(*i)->getDOM() ) continue;
-		if ( i != callStack.rbegin() ) msg += ", ";
-		msg += (*i)->dstName();
-	    }
+	    std::string msg = std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), &Call::stack::fold );
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
 	}
     }
 
     /* Check activities for reachability */
 
-    for_each( __task.begin(), __task.end(), Predicate<Task>( &Task::checkReachability ) );
+    std::for_each( __task.begin(), __task.end(), Predicate<Task>( &Task::checkReachability ) );
+
+    /* Stop the process here and now on any error. */
 
     if ( LQIO::io_vars.anError() ) {
 	throw exception_handled( "Model::topologicalSort" );
@@ -1503,7 +1504,7 @@ void
 Model::SolveSubmodel::operator()( Submodel * submodel  )
 {
     const unsigned depth = submodel->number();
-    _self._step_count += 1;
+    _model._step_count += 1;
     if ( _verbose ) cerr << ".";
-    submodel->solve( _self._iterations, _self._MVAStats[depth], _self.relaxation() );  //REP N-R
+    submodel->solve( _model._iterations, _model._MVAStats[depth], _model.relaxation() );  //REP N-R
 }

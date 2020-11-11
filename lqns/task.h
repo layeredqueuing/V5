@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14054 2020-11-09 03:19:30Z greg $
+ * $Id: task.h 14079 2020-11-11 14:46:07Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -49,7 +49,22 @@ public:
 	}
     };
 
+#if __cplusplus >= 201103L
+    enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
+#else
+    typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
+#endif
+
 private:
+    struct find_max_depth {
+	find_max_depth( Call::stack& callStack, bool directPath ) : _callStack(callStack), _directPath(directPath), _dstEntry(callStack.back()->dstEntry()) {}
+	unsigned int operator()( unsigned int depth, const Entry * entry );
+    private:
+	Call::stack& _callStack;
+	const bool _directPath;
+	const Entry * _dstEntry;
+    };
+    
     class SRVNManip {
     public:
 	SRVNManip( ostream& (*f)(ostream&, const Task & ), const Task & task ) : _f(f), _task(task) {}
@@ -146,7 +161,7 @@ public:
 
     /* Model Building. */
 
-    virtual int rootLevel() const;
+    virtual root_level_t rootLevel() const;
     Server * makeClient( const unsigned, const unsigned  );
     Task& initClientStation( Submodel& );
     Task& modifyClientServiceTime( const MVASubmodel& );
@@ -245,6 +260,15 @@ private:
 /* ------------------------- Reference Tasks -------------------------- */
 
 class ReferenceTask : public Task {
+private:
+    struct find_max_depth {
+	find_max_depth( Call::stack& callStack ) : _callStack(callStack) {}
+	unsigned int operator()( unsigned int depth, const Entry * entry );
+    private:
+	Call::stack& _callStack;
+    };
+    
+    
 public:
     ReferenceTask( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries );
 
@@ -261,7 +285,7 @@ public:
     virtual bool isReferenceTask() const { return true; }
     virtual bool hasVariance() const { return false; }
     virtual bool isUsed() const { return true; }
-    virtual int rootLevel() const { return 0; }
+    virtual root_level_t rootLevel() const { return IS_REFERENCE; }
 
     Server * makeServer( const unsigned );
 

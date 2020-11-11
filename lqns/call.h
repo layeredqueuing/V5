@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14068 2020-11-10 13:48:50Z greg $
+ * $Id: call.h 14079 2020-11-11 14:46:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -73,13 +73,14 @@ public:
 	Perform();
     };
 
-    
     class stack : public std::deque<const Call *>
     {
     public:
-	stack() : std::deque<const Call *>() {}
 
+	stack() : std::deque<const Call *>() {}
 	unsigned depth() const;
+
+	static std::string fold( const std::string& s, const Call * call ) { return call->getDOM() != nullptr ? s + "," + call->srcName() : s; }
     };
 
     class call_cycle

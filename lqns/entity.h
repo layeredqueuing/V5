@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14061 2020-11-10 02:54:39Z greg $
+ * $Id: entity.h 14073 2020-11-10 14:59:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -211,8 +211,6 @@ public:
     /* In order to integrate LQX's support for model changes we need to have a way  */
     /* of re-calculating what used to be static for all dynamically editable values */
 	
-    virtual Entity& recalculateDynamicValues() { return *this; }
-
     /* Sanity Check */
 
     virtual const Entity& sanityCheck() const;

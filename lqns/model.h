@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14017 2020-10-26 19:58:09Z greg $
+ * $Id: model.h 14079 2020-11-11 14:46:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -41,12 +41,10 @@ protected:
 
     class SolveSubmodel {
     public:
-	SolveSubmodel( Model& self, bool verbose ) : _self(self), _verbose(verbose) {}
-
+	SolveSubmodel( Model& model, bool verbose ) : _model(model), _verbose(verbose) {}
 	void operator()( Submodel * );
-
     private:
-	Model& _self;
+	Model& _model;
 	const bool _verbose;
     };
 

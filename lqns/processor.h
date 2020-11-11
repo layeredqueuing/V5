@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14036 2020-11-04 18:30:24Z greg $
+ * $Id: processor.h 14073 2020-11-10 14:59:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,6 +55,7 @@ public:
     virtual bool check() const;
     virtual Processor& configure( const unsigned );
     virtual Processor& initPopulation();
+    virtual Processor& recalculateDynamicValues() { return *this; }
 
     /* Instance Variable access */
 
