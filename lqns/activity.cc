@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14005 2020-10-26 12:39:52Z greg $
+ * $Id: activity.cc 14081 2020-11-11 18:56:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -802,7 +802,7 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
     const unsigned int submodel = data.submodel();
     const unsigned int p = data.phase();
     if ( submodel > 0 ) {
-	entry->_phase[p].myWait[submodel] += myWait[submodel];
+	entry->_phase[p]._wait[submodel] += _wait[submodel];
 	if ( flags.trace_activities ) {
 	    cout << "Activity " << name() << " aggregate to ";
 	    if ( dynamic_cast<VirtualEntry *>(entry) ) {
@@ -811,10 +811,10 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
 		cout << " actual entry  ";
 	    }
 	    cout << entry->name() << ", submodel " << submodel << ", phase " << p 
-		 << ": wait " << myWait[submodel] << endl;
+		 << ": wait " << _wait[submodel] << endl;
 	}
     } else {
-	entry->_phase[p].myVariance += variance();
+	entry->_phase[p]._variance += variance();
     }
 }
 

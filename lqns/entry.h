@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14068 2020-11-10 13:48:50Z greg $
+ * $Id: entry.h 14081 2020-11-11 18:56:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,14 +154,14 @@ public:
 protected:
     struct clear_wait {
 	clear_wait( unsigned int submodel ) : _submodel(submodel) {}
-	void operator()( const Phase& phase ) const { phase.myWait[_submodel] = 0.0; }
+	void operator()( const Phase& phase ) const { phase._wait[_submodel] = 0.0; }
     private:
 	const unsigned int _submodel;
     };
 
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
-	double operator()( double sum, const Phase& phase ) const { return sum + phase.myWait[_submodel]; }
+	double operator()( double sum, const Phase& phase ) const { return sum + phase._wait[_submodel]; }
     private:
 	const unsigned int _submodel;
     };
@@ -280,7 +280,7 @@ public:
 
     double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
     double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
-    double waitTime( unsigned int submodel ) { return _total.myWait[submodel]; }
+    double waitTime( unsigned int submodel ) { return _total._wait[submodel]; }
     double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait(submodel, 0) ;}	
 
     double elapsedTime() const { return _total.elapsedTime(); }			/* Found through deltaWait  */

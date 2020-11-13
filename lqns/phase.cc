@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14068 2020-11-10 13:48:50Z greg $
+ * $Id: phase.cc 14083 2020-11-11 19:30:49Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -52,25 +52,25 @@
 NullPhase&
 NullPhase::configure( const unsigned n )
 {
-    myWait.resize( n );
+    _wait.resize( n );
     return *this;
 }
 
 
 NullPhase& 
-NullPhase::setDOM(LQIO::DOM::Phase* phaseInfo)
+NullPhase::setDOM(LQIO::DOM::Phase* dom)
 {
-    _phaseDOM = phaseInfo;
+    _dom = dom;
     return *this;
 }
 
 NullPhase& 
 NullPhase::setServiceTime( const double t ) 
 {
-    if (getDOM() != NULL) {
+    if (getDOM() != nullptr) {
 	abort();
     } else {
-	myServiceTime = t; 
+	_serviceTime = t; 
     }
 	
     return *this; 
@@ -80,10 +80,10 @@ NullPhase::setServiceTime( const double t )
 NullPhase& 
 NullPhase::addServiceTime( const double t ) 
 { 
-    if (getDOM() != NULL) {
+    if (getDOM() != nullptr) {
 	abort();
     } else {
-	myServiceTime += t; 
+	_serviceTime += t; 
     }
 	
     return *this; 
@@ -92,7 +92,7 @@ NullPhase::addServiceTime( const double t )
 double
 NullPhase::serviceTime() const
 {
-    if ( getDOM() == NULL ) return myServiceTime;
+    if ( getDOM() == nullptr ) return _serviceTime;
     try {
 	return getDOM()->getServiceTimeValue();
     }
@@ -152,13 +152,13 @@ NullPhase::computeCV_sqr() const
 double
 NullPhase::waitExcept( const unsigned submodel ) const
 {
-    const unsigned n = myWait.size();
+    const unsigned n = _wait.size();
  
     double sum = 0.0;
     for ( unsigned i = 1; i <= n; ++i ) {
 	if ( i != submodel ) {
-	    sum += myWait[i];
-	    if (myWait[i] < 0 && flags.trace_quorum) { 
+	    sum += _wait[i];
+	    if (_wait[i] < 0 && flags.trace_quorum) { 
 		cout << "\nNullPhase::waitExcept(submodel=" << submodel
 		     << "): submodel number "<<i<<" has less than zero wait. sum of waits=" << sum << endl;
 	    }
@@ -214,24 +214,24 @@ NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m,
 
 Phase::Phase( const std::string& name )
     : NullPhase(),
-      _entry(NULL),
-      myProcessorCall(NULL),
-      myThinkCall(NULL),
-      myProcessorEntry(NULL),
-      myThinkEntry(NULL),
+      _entry(nullptr),
+      _processorCall(nullptr),
+      _thinkCall(nullptr),
+      _processorEntry(nullptr),
+      _thinkEntry(nullptr),
       _prOvertaking(0.)
 {
-    setName( name );
+    setName(name);
 }
 
 
 Phase::Phase()
     : NullPhase(),
-      _entry(NULL),
-      myProcessorCall(NULL),
-      myThinkCall(NULL),
-      myProcessorEntry(NULL),
-      myThinkEntry(NULL),
+      _entry(nullptr),
+      _processorCall(nullptr),
+      _thinkCall(nullptr),
+      _processorEntry(nullptr),
+      _thinkEntry(nullptr),
       _prOvertaking(0.)
 {
 }
@@ -243,12 +243,12 @@ Phase::Phase()
 
 Phase::~Phase()
 {
-    if ( myProcessorCall ) {
-	const LQIO::DOM::Call* callDOM = myProcessorCall->getDOM();
+    if ( _processorCall ) {
+	const LQIO::DOM::Call* callDOM = _processorCall->getDOM();
 	if ( callDOM ) delete callDOM;
     }
-    if ( myThinkCall ) {
-	const LQIO::DOM::Call* callDOM = myThinkCall->getDOM();
+    if ( _thinkCall ) {
+	const LQIO::DOM::Call* callDOM = _thinkCall->getDOM();
 	if ( callDOM ) delete callDOM;
     }
 
@@ -298,12 +298,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	}
 	catch ( const Call::call_cycle& error ) {
 	    if ( directPath && !Pragma::allowCycles() ) {
-		std::string msg;
-		for ( Call::stack::const_reverse_iterator i = callStack.rbegin(); i != callStack.rend(); ++i ) {
-		    if ( (*i)->getDOM() == nullptr ) continue;
-		    if ( i != callStack.rbegin() ) msg += ", ";
-		    msg += (*i)->dstName();
-		}
+		std::string msg = std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), &Call::stack::fold );
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, msg.c_str() );
 	    }
 	}
@@ -369,8 +364,8 @@ Phase&
 Phase::initWait()
 {
     for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
-    if ( myProcessorCall ) {
-	myProcessorCall->initWait();
+    if ( _processorCall ) {
+	_processorCall->initWait();
     }
     return *this;
 }
@@ -385,7 +380,7 @@ Phase::initWait()
 Phase&
 Phase::initVariance() 
 { 
-    myVariance = CV_sqr() * square( serviceTime() );
+    _variance = CV_sqr() * square( serviceTime() );
     return *this;
 }
 
@@ -437,7 +432,7 @@ Phase::check() const
 const Entity *
 Phase::owner() const
 {
-    return _entry ? _entry->owner() : NULL;
+    return _entry ? _entry->owner() : nullptr;
 }
 
 
@@ -552,7 +547,7 @@ Phase::rendezvous( const Entity * task ) const
 Phase&
 Phase::rendezvous( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != NULL && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -610,7 +605,7 @@ Phase::sumOfRendezvous() const
 Phase&
 Phase::sendNoReply( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != NULL && toEntry->setIsCalledBy( SEND_NO_REPLY_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( SEND_NO_REPLY_REQUEST ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -679,7 +674,7 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 Phase&
 Phase::forward( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != NULL && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -896,7 +891,7 @@ Phase&
 Phase::updateWait( const Submodel& aSubmodel, const double relax ) 
 {
     const unsigned submodel = aSubmodel.number();
-    const double oldWait    = myWait[submodel];
+    const double oldWait    = _wait[submodel];
 
     /* Sum up waits to all other tasks in this submodel */
 
@@ -910,11 +905,11 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
 
     /* Now update waiting values */
 
-    under_relax( myWait[submodel], newWait, relax );
+    under_relax( _wait[submodel], newWait, relax );
 
     if ( oldWait && flags.trace_delta_wait ) {
 	cout << "Phase::updateWait(" << submodel << "," << relax << ") for " << name() << endl;
-	cout << "        Sum of wait=" << newWait << ", myWait[" << submodel << "]=" << myWait[submodel] <<endl;
+	cout << "        Sum of wait=" << newWait << ", _wait[" << submodel << "]=" << _wait[submodel] <<endl;
     }
 
     return *this;
@@ -946,7 +941,7 @@ Phase::getReplicationProcWait( unsigned int submodel, const double relax )
     }
 
     /* Now update waiting values */
-    // under_relax( myWait[submodel], newWait, relax );
+    // under_relax( _wait[submodel], newWait, relax );
    
     return newWait;
 }
@@ -1176,39 +1171,39 @@ Phase::insertDOMResults() const
 Phase&
 Phase::recalculateDynamicValues()
 {	
-    if ( !myProcessorEntry ) return *this;
+    if ( !_processorEntry ) return *this;
 	
     const bool phase_is_present = serviceTime() > 0 || isPseudo();
     const double nCalls = phase_is_present ? numberOfSlices() : 0.0;
     const double newSliceTime = phase_is_present ? serviceTime() / nCalls : 0.0;
-    const double oldSliceTime = myProcessorEntry->serviceTimeForPhase(1);
+    const double oldSliceTime = _processorEntry->serviceTimeForPhase(1);
     if ( oldSliceTime != newSliceTime || flags.full_reinitialize ) {
-	myProcessorEntry->setServiceTime(newSliceTime).setCV_sqr(CV_sqr());
-	myProcessorEntry->initVariance();	// Reset variance.
-	myProcessorEntry->initWait();		// Reset values in wait[].
+	_processorEntry->setServiceTime(newSliceTime).setCV_sqr(CV_sqr());
+	_processorEntry->initVariance();	// Reset variance.
+	_processorEntry->initWait();		// Reset values in wait[].
 		
-	const LQIO::DOM::Call* callDOM = myProcessorCall->getDOM();
+	const LQIO::DOM::Call* callDOM = _processorCall->getDOM();
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
 	if ( callDOM ) delete callDOM;
-	myProcessorCall->rendezvous( new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							 NULL, myProcessorEntry->getDOM(), new LQIO::DOM::ConstantExternalVariable(nCalls)) );
+	_processorCall->rendezvous( new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
+							 nullptr, _processorEntry->getDOM(), new LQIO::DOM::ConstantExternalVariable(nCalls)) );
 	/* Recompute dynamic values. */
 		
-	const double newWait = oldSliceTime > 0.0 ? myProcessorCall->wait() * newSliceTime / oldSliceTime : newSliceTime;
-	myProcessorCall->setWait( newWait );		/* extrapolate value */
+	const double newWait = oldSliceTime > 0.0 ? _processorCall->wait() * newSliceTime / oldSliceTime : newSliceTime;
+	_processorCall->setWait( newWait );		/* extrapolate value */
     }
 
     if ( hasThinkTime() ) {
 	const double newThinkTime = thinkTime();
-	const double oldThinkTime = myThinkEntry->serviceTimeForPhase(1);
+	const double oldThinkTime = _thinkEntry->serviceTimeForPhase(1);
 	if ( oldThinkTime != newThinkTime || flags.full_reinitialize ) {
-	    myThinkEntry->setServiceTime(newThinkTime);
-	    myThinkEntry->initVariance();	// Reset variance.
-	    myThinkEntry->initWait();		// Reset values in wait[].
+	    _thinkEntry->setServiceTime(newThinkTime);
+	    _thinkEntry->initVariance();	// Reset variance.
+	    _thinkEntry->initWait();		// Reset values in wait[].
 		
 	    /* Recompute dynamic values. */
 		
-	    myThinkCall->setWait( newThinkTime );
+	    _thinkCall->setWait( newThinkTime );
 	}
     }
     return *this;
@@ -1226,41 +1221,41 @@ double
 Phase::computeVariance() 
 {
     if ( !isfinite( elapsedTime() ) ) {
-	myVariance = elapsedTime();
+	_variance = elapsedTime();
     } else switch ( Pragma::variance() ) {
 
 	case Pragma::MOL_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
-		myVariance =  mol_phase();
+		_variance =  mol_phase();
 		break;
 	    } else {
-		myVariance =  deterministic_phase();
+		_variance =  deterministic_phase();
 	    }
 	    break;
 
 	case Pragma::STOCHASTIC_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
-		myVariance =  stochastic_phase();
+		_variance =  stochastic_phase();
 		break;
 	    } else {
-		myVariance =  deterministic_phase();
+		_variance =  deterministic_phase();
 	    }
 	    break;
 		
 	case Pragma::DEFAULT_VARIANCE:
 	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
-		myVariance =  stochastic_phase();
+		_variance =  stochastic_phase();
 	    } else {
-		myVariance =  deterministic_phase();
+		_variance =  deterministic_phase();
 	    }
 	    break;
 
 	default:
-	    myVariance =  square( elapsedTime() );
+	    _variance =  square( elapsedTime() );
 	    break;
 	}
 
-    return myVariance;
+    return _variance;
 }
 
 
@@ -1461,7 +1456,7 @@ Phase::random_phase() const
 Phase&
 Phase::initProcessor()
 {	
-    if ( myProcessorEntry || getDOM() == NULL ) return *this;
+    if ( _processorEntry || getDOM() == nullptr ) return *this;
     const Processor * processor = owner()->getProcessor();
     if ( !processor ) return *this;
     
@@ -1475,14 +1470,14 @@ Phase::initProcessor()
 	double nCalls = numberOfSlices();
 		
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	myProcessorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str()), Model::__entry.size() + 1, 
+	_processorEntry = new DeviceEntry( new LQIO::DOM::Entry(aDocument, entry_name.c_str()), Model::__entry.size() + 1, 
 					    const_cast<Processor *>( processor ) );
-	Model::__entry.insert( myProcessorEntry );
+	Model::__entry.insert( _processorEntry );
 		
-	myProcessorEntry->setServiceTime( serviceTime() / nCalls )
+	_processorEntry->setServiceTime( serviceTime() / nCalls )
 	    .setCV_sqr( CV_sqr() )
 	    .setPriority( owner()->priority() );
-	myProcessorEntry->initVariance();
+	_processorEntry->initVariance();
 
 	/* 
 	 * We may have to change this at some point.  However, we can't do
@@ -1490,11 +1485,11 @@ Phase::initProcessor()
 	 * chain.
 	 */	
 
-	myProcessorCall = newProcessorCall( myProcessorEntry );
+	_processorCall = newProcessorCall( _processorEntry );
 	LQIO::DOM::Call* processorCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-								NULL, myProcessorEntry->getDOM(), 
+								nullptr, _processorEntry->getDOM(), 
 								new LQIO::DOM::ConstantExternalVariable(nCalls));
-	myProcessorCall->rendezvous( processorCallDom );
+	_processorCall->rendezvous( processorCallDom );
     }
 
     /*
@@ -1509,20 +1504,20 @@ Phase::initProcessor()
 	think_entry_name += name();
 
 	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	myThinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str()), Model::__entry.size() + 1, 
+	_thinkEntry = new DeviceEntry(new LQIO::DOM::Entry(aDocument, think_entry_name.c_str()), Model::__entry.size() + 1, 
 				       Model::thinkServer );
-	Model::__entry.insert( myThinkEntry );
+	Model::__entry.insert( _thinkEntry );
 		
-	myThinkEntry->setServiceTime(thinkTime()).setCV_sqr(1.0);
-	myThinkEntry->initVariance();
+	_thinkEntry->setServiceTime(thinkTime()).setCV_sqr(1.0);
+	_thinkEntry->initVariance();
 
-	myThinkCall = newProcessorCall( myThinkEntry );
+	_thinkCall = newProcessorCall( _thinkEntry );
 	LQIO::DOM::Call* thinkCallDom = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							    NULL, myThinkEntry->getDOM(), 
+							    nullptr, _thinkEntry->getDOM(), 
 							    new LQIO::DOM::ConstantExternalVariable(1));
 
-	myThinkCall->rendezvous( thinkCallDom );
-	addSrcCall( myThinkCall );
+	_thinkCall->rendezvous( thinkCallDom );
+	addSrcCall( _thinkCall );
     }
 
     return *this;

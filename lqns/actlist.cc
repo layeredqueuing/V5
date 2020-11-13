@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: actlist.cc 14081 2020-11-11 18:56:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -661,7 +661,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
                         sum[p] += varianceTerm( prBranch(activity), term[i][p], prBranch(activityList().at(j)), term[j][p] );
                     }
                 } else {
-                    term[i][p].mean( anEntry->_phase[p].myWait[submodel] );
+                    term[i][p].mean( anEntry->_phase[p]._wait[submodel] );
                 }
                 sum[p] += prBranch(activity) * term[i][p];
             }
@@ -940,7 +940,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         if ( submodel != 0 ) {
             time = currEntry->getStartTime();
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                time += currEntry->_phase[p].myWait[submodel]; /* Pick off time for this pass. - (since day 1!) */
+                time += currEntry->_phase[p]._wait[submodel]; /* Pick off time for this pass. - (since day 1!) */
             }
         } else {
             time = currEntry->getStartTimeVariance();
@@ -973,12 +973,12 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 DiscretePoints sumLocal;
                 DiscretePoints sumRemote;
 
-                anEntry->_total.myVariance = 0.0;
+                anEntry->_total._variance = 0.0;
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total.myVariance += anEntry->_phase[p].variance();
+                    anEntry->_total._variance += anEntry->_phase[p].variance();
                     if (flags.trace_quorum) {
                         cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].elapsedTime() << endl;
-                        cout << "anEntry->phase[p="<<p<<"].myWait[submodel=1]=" << anEntry->_phase[p].myWait[1] << endl;
+                        cout << "anEntry->phase[p="<<p<<"]._wait[submodel=1]=" << anEntry->_phase[p]._wait[1] << endl;
                         cout << "anEntry->Entry::variance(p="<<p<<"]="<< anEntry->_phase[p].variance() << endl;
                     }
 
@@ -1002,12 +1002,12 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 DiscretePoints sumLocal;
                 DiscretePoints sumRemote;
 
-                anEntry->_total.myWait[submodel] = 0.0;
+                anEntry->_total._wait[submodel] = 0.0;
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total.myWait[submodel] += anEntry->_phase[p].myWait[submodel];
+                    anEntry->_total._wait[submodel] += anEntry->_phase[p]._wait[submodel];
                     if (flags.trace_quorum) {
                         cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].elapsedTime() << endl;
-//                        cout << "anEntry->phase[curr_p="<<curr_p<<"].myWait[submodel="<<2<<"]=" << anEntry->_phase[curr_p].myWait[2] << endl;
+//                        cout << "anEntry->phase[curr_p="<<curr_p<<"]._wait[submodel="<<2<<"]=" << anEntry->_phase[curr_p]._wait[2] << endl;
                     }
 
                     term[p].init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
@@ -1026,10 +1026,10 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 
                 /* Updating the waiting time for this submodel */
 
-                anEntry->_total.myWait[submodel] = 0.0;
+                anEntry->_total._wait[submodel] = 0.0;
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total.myWait[submodel] += anEntry->_phase[p].myWait[submodel];
-                    term[p].init( anEntry->_phase[p].myWait[submodel], anEntry->_phase[p].variance() );
+                    anEntry->_total._wait[submodel] += anEntry->_phase[p]._wait[submodel];
+                    term[p].init( anEntry->_phase[p]._wait[submodel], anEntry->_phase[p].variance() );
                 }
             }
 
@@ -1292,15 +1292,15 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
             localQuorumDelayActivity->setServiceTime( service_time );
 	    procEntry->setServiceTime( service_time  / localQuorumDelayActivity->numberOfSlices() )
 		.setCV_sqr( ((1-probQuorumDelaySeqExecution) * localDiffJoin.variance())/square(service_time) );
-            procEntry->_phase[1].myWait[orgSubmodel] = (1-probQuorumDelaySeqExecution) * localDiffJoin.mean() ;
+            procEntry->_phase[1]._wait[orgSubmodel] = (1-probQuorumDelaySeqExecution) * localDiffJoin.mean() ;
         } else {
             localQuorumDelayActivity->setServiceTime(0);
 	    procEntry->setServiceTime( 0. ).setCV_sqr( 1. );
-            procEntry->_phase[1].myWait[orgSubmodel] = 0.;
+            procEntry->_phase[1]._wait[orgSubmodel] = 0.;
         }
 
         if (flags.trace_quorum) {
-            cout <<" procEntry->_phase[1].myWait[orgSubmodel="<<orgSubmodel<<"]="<< procEntry->_phase[1].myWait[orgSubmodel] << endl;
+            cout <<" procEntry->_phase[1]._wait[orgSubmodel="<<orgSubmodel<<"]="<< procEntry->_phase[1]._wait[orgSubmodel] << endl;
         }
 
         if (!flags.ignore_overhanging_threads) {
@@ -1848,7 +1848,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
                 if ( submodel == 0 ) {
                     term.init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
                 } else {
-                    term.mean( anEntry->_phase[p].myWait[submodel] );
+                    term.mean( anEntry->_phase[p]._wait[submodel] );
                 }
                 sum = rateBranch(anActivity) * term + varianceTerm( term );
                 currEntry->aggregate( submodel, p, sum );

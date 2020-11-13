@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14068 2020-11-10 13:48:50Z greg $
+ * $Id: entry.cc 14081 2020-11-11 18:56:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -430,7 +430,7 @@ Entry::setMaxPhase( const unsigned ph )
 	    s = "0123"[p];
 	    _phase[p].setEntry( this )
 		.setName( s )
-		.configure( _total.myWait.size() );
+		.configure( _total._wait.size() );
 	}
     }
     max_phases = max( max_phase, max_phases );		/* Set global value.	*/
@@ -985,8 +985,8 @@ Entry::printSubmodelWait( ostream& output, unsigned offset ) const
 	    output << " ";
 	}
 	output << " " << setw(1) << p << "  ";
-	for ( unsigned j = 1; j <= _phase[p].myWait.size(); ++j ) {
-	    output << setw(8) << _phase[p].myWait[j];
+	for ( unsigned j = 1; j <= _phase[p]._wait.size(); ++j ) {
+	    output << setw(8) << _phase[p]._wait[j];
 	}
 	output << endl;
     }
@@ -1114,10 +1114,10 @@ TaskEntry::queueingTime( const unsigned p ) const
 TaskEntry&
 TaskEntry::computeVariance()
 {
-    _total.myVariance = 0.0;
+    _total._variance = 0.0;
     if ( isActivityEntry() ) {
 	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p].myVariance = 0.0;
+	    _phase[p]._variance = 0.0;
 	}
 
 	std::deque<const Activity *> activityStack;
@@ -1126,9 +1126,9 @@ TaskEntry::computeVariance()
 	Activity::Collect collect( 0, &Activity::collectWait );
 	_startActivity->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
-	_total.myVariance += std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
+	_total._variance += std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
     } else {
-	_total.myVariance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
+	_total._variance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
     }
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	cout << "Variance(" << name() << ",p) ";
@@ -1159,9 +1159,9 @@ Entry::set( const Entry * src, const Activity::Collect& data )
     } else if ( f == &Activity::collectWait ) {
         for ( unsigned p = 1; p <= maxPhase(); ++p ) {
             if ( submodel == 0 ) {
-                _phase[p].myVariance = 0.0;
+                _phase[p]._variance = 0.0;
             } else {
-                _phase[p].myWait[submodel] = 0.0;
+                _phase[p]._wait[submodel] = 0.0;
             }
         }
     } else if ( f == &Activity::collectReplication ) {
@@ -1210,7 +1210,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 		 << ", submodel " << submodel << endl;
 	    cout << "        Wait=";
 	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-		cout << phase->myWait[submodel] << " ";
+		cout << phase->_wait[submodel] << " ";
 	    }
 	    cout << endl;
 	}
@@ -1221,7 +1221,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     }
 
-    _total.myWait[submodel] = std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) );
+    _total._wait[submodel] = std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) );
 
     return *this;
 }
@@ -1238,7 +1238,7 @@ Entry&
 Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& addend )
 {
     if ( submodel ) {
-	_phase[p].myWait[submodel] += addend.mean();
+	_phase[p]._wait[submodel] += addend.mean();
 
     } else if ( addend.variance() > 0.0 ) {
 
@@ -1248,7 +1248,7 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
 	 * variance when calculating phase 2 variance can be negative.
 	 */
 
-	_phase[p].myVariance += addend.variance();
+	_phase[p]._variance += addend.variance();
     }
 
     if (flags.trace_quorum) {
@@ -1378,8 +1378,8 @@ DeviceEntry::initWait()
     const unsigned i  = owner()->submodel();
     const double time = _phase[1].serviceTime();
 
-    _phase[1].myWait[i] = time;
-    _total.myWait[i] = time;
+    _phase[1]._wait[i] = time;
+    _total._wait[i] = time;
     return *this;
 }
 

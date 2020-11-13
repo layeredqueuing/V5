@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14068 2020-11-10 13:48:50Z greg $
+ * $Id: phase.h 14081 2020-11-11 18:56:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -56,10 +56,10 @@ class NullPhase {
 public:
     NullPhase()
 	: _name(),
-	  myVariance(0.0),
-	  myWait(),
-	  _phaseDOM(NULL),
-	  myServiceTime(0.0)
+	  _variance(0.0),
+	  _wait(),
+	  _dom(nullptr),
+	  _serviceTime(0.0)
 	{}
 
     virtual ~NullPhase() {}
@@ -70,13 +70,13 @@ public:
 	
     virtual NullPhase& configure( const unsigned );
     NullPhase& setDOM(LQIO::DOM::Phase* phaseInfo);
-    virtual LQIO::DOM::Phase* getDOM() const { return _phaseDOM; }
+    virtual LQIO::DOM::Phase* getDOM() const { return _dom; }
     virtual const std::string& name() const { return _name; }
     NullPhase& setName( const std::string& name ) { _name = name; return *this; }
 
     /* Instance variable access */
-    virtual bool isPresent() const { return _phaseDOM != 0 && _phaseDOM->isPresent(); }
-    bool hasThinkTime() const { return _phaseDOM && _phaseDOM->hasThinkTime(); }
+    virtual bool isPresent() const { return _dom != 0 && _dom->isPresent(); }
+    bool hasThinkTime() const { return _dom && _dom->hasThinkTime(); }
     virtual bool isActivity() const { return false; }
 	
     NullPhase& setServiceTime( const double t );
@@ -85,12 +85,12 @@ public:
     double thinkTime() const;
     double CV_sqr() const;
 
-    virtual double variance() const { return myVariance; } 		/* Computed variance.		*/
+    virtual double variance() const { return _variance; } 		/* Computed variance.		*/
     double computeCV_sqr() const;
 
     virtual double waitExcept( const unsigned ) const;
     double elapsedTime() const { return waitExcept( 0 ); }
-    double waitingTime( unsigned int submodel ) const { return myWait[submodel];}
+    double waitingTime( unsigned int submodel ) const { return _wait[submodel];}
 
     virtual ostream& print( ostream& output ) const { return output; }
 	
@@ -100,12 +100,12 @@ public:
 
 protected:
     std::string _name;			/* Name -- computed dynamically		*/
-    double myVariance;			/* Set if this is a processor		*/
-    VectorMath<double> myWait;		/* Saved waiting time.			*/
-    LQIO::DOM::Phase* _phaseDOM;
+    double _variance;			/* Set if this is a processor		*/
+    VectorMath<double> _wait;		/* Saved waiting time.			*/
+    LQIO::DOM::Phase* _dom;
 	
 private:
-    double myServiceTime;		/* Initial service time.		*/
+    double _serviceTime;		/* Initial service time.		*/
 };
 
 
@@ -181,14 +181,14 @@ public:
 
     /* Instance Variable access */
 	
-    phase_type phaseTypeFlag() const { return _phaseDOM ? _phaseDOM->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
+    phase_type phaseTypeFlag() const { return _dom ? _dom->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
     Phase& setEntry( const Entry * entry ) { _entry = entry; return *this; }
     const Entry * entry() const { return _entry; }
     virtual const Entity * owner() const;
     Phase& setPrOvertaking( const Probability& pr_ot ) { _prOvertaking = pr_ot; return *this; }
     const Probability& prOvertaking() const { return _prOvertaking; }
 
-    bool isDeterministic() const { return _phaseDOM ? _phaseDOM->getPhaseTypeFlag() == PHASE_DETERMINISTIC : false; }
+    bool isDeterministic() const { return _dom ? _dom->getPhaseTypeFlag() == PHASE_DETERMINISTIC : false; }
     bool isNonExponential() const { return serviceTime() > 0 && CV_sqr() != 1.0; }
     
     /* Call lists to/from entries. */
@@ -205,7 +205,7 @@ public:
 
     /* Calls to processors */
 	
-    ProcessorCall * processorCall() const { return myProcessorCall; }
+    ProcessorCall * processorCall() const { return _processorCall; }
     double processorCalls() const;
     double queueingTime() const;
     double processorWait() const;
@@ -214,7 +214,7 @@ public:
 
     virtual bool check() const;
     double numberOfSlices() const;
-    double numberOfSubmodels() const { return myWait.size(); }
+    double numberOfSubmodels() const { return _wait.size(); }
     virtual double throughput() const;
     double utilization() const;
     double processorUtilization() const;
@@ -264,12 +264,12 @@ private:
 protected:
     const Entry * _entry;		/* Root for activity			*/
     std::set<Call *> _callList;         /* Who I call.                          */
-    ProcessorCall * myProcessorCall;    /* Link to processor.                   */
-    ProcessorCall * myThinkCall;	/* Link to processor.                   */
+    ProcessorCall * _processorCall;    	/* Link to processor.                   */
+    ProcessorCall * _thinkCall;		/* Link to processor.                   */
 
 private:
-    DeviceEntry * myProcessorEntry;     /*                                      */
-    DeviceEntry * myThinkEntry;         /*                                      */
+    DeviceEntry * _processorEntry;      /*                                      */
+    DeviceEntry * _thinkEntry;          /*                                      */
 
     VectorMath<double> _surrogateDelay;	/* Saved old surrogate delay. REP N-R	*/
     Probability _prOvertaking;
