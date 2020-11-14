@@ -39,7 +39,6 @@ config.cache
 config.h
 config.h.in
 config.status
-configure
 install-sh
 lemon
 libtool

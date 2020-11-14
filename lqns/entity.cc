@@ -343,7 +343,7 @@ Entity::hasServerChain( const unsigned k ) const
 bool
 Entity::hasOpenArrivals() const
 {
-    return find_if( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasOpenArrivals ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasOpenArrivals ) );
 }
 
 
@@ -357,11 +357,7 @@ Entity::clients( std::set<Task *>& callingTasks ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const std::set<Call *>& callerList = (*entry)->callerList();
-	for ( std::set<Call *>::const_iterator call = callerList.begin(); call != callerList.end(); ++call ) {
-	    if ( !(*call)->hasForwarding() && (*call)->srcTask()->isUsed() ) {
-		callingTasks.insert(const_cast<Task *>((*call)->srcTask()));
-	    }
-	}
+	callingTasks = std::accumulate( callerList.begin(), callerList.end(), callingTasks, Call::add_client );
     }
 
     return *this;

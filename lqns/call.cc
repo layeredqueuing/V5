@@ -36,6 +36,16 @@ Call::Create::operator()( const LQIO::DOM::Call * call )
 {
     _src->add_call( _p, call );
 }
+
+
+std::set<Task *>& Call::add_client( std::set<Task *>& clients, const Call * call )
+{
+    if ( !call->hasForwarding() && call->srcTask()->isUsed() ) {
+	clients.insert(const_cast<Task *>(call->srcTask()));
+    }
+    return clients;
+}
+
 
 /*----------------------------------------------------------------------*/
 /*                            Generic  Calls                            */
