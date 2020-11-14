@@ -506,7 +506,7 @@ unsigned
 Task::nClients() const
 {
     std::set<Task *> callingTasks;
-    clients( callingTasks );
+    getClients( callingTasks );
 
     return callingTasks.size();
 }

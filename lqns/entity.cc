@@ -353,21 +353,21 @@ Entity::hasOpenArrivals() const
  */
 
 const Entity&
-Entity::clients( std::set<Task *>& callingTasks ) const
+Entity::getClients( std::set<Task *>& clients ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const std::set<Call *>& callerList = (*entry)->callerList();
-	callingTasks = std::accumulate( callerList.begin(), callerList.end(), callingTasks, Call::add_client );
+	clients = std::accumulate( callerList.begin(), callerList.end(), clients, Call::add_client );
     }
-
     return *this;
 }
+
 
 double 
 Entity::nCustomers() const
 {
     std::set<Task *> tasks;
-    clients( tasks );
+    getClients( tasks );
     return std::accumulate( tasks.begin(), tasks.end(), 0., add_using<Task>( &Task::population ) );
 }
 

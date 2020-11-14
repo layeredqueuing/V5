@@ -105,7 +105,7 @@ Submodel::number( const unsigned n )
 Submodel&
 Submodel::initServers( const Model& )
 {
-    for_each( _servers.begin(), _servers.end(), ConstExec1<Entity,std::set<Task *>&>( &Entity::clients, _clients ) );
+    for_each( _servers.begin(), _servers.end(), ConstExec1<Entity,std::set<Task *>&>( &Entity::getClients, _clients ) );
     return *this;
 }
 

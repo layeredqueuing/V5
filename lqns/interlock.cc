@@ -97,13 +97,13 @@ Interlock::findInterlock()
 
     /* Locate all callers to myServer */
 
-    std::set<Task *> myClients;
-    _server.clients( myClients );
+    std::set<Task *> clients;
+    _server.getClients( clients );
 
-    for ( std::set<Task *>::const_iterator clientA = myClients.begin(); clientA != myClients.end(); ++clientA ) {
+    for ( std::set<Task *>::const_iterator clientA = clients.begin(); clientA != clients.end(); ++clientA ) {
 	if ( !(*clientA)->isUsed() ) continue;		/* Ignore this task - not used. */
 
-	for ( std::set<Task *>::const_iterator clientC = myClients.begin(); clientC != myClients.end(); ++clientC ) {
+	for ( std::set<Task *>::const_iterator clientC = clients.begin(); clientC != clients.end(); ++clientC ) {
 	    if ( (*clientA) == (*clientC) || !(*clientC)->isUsed() ) continue;
 
 	    for ( std::vector<Entry *>::const_iterator entryA = (*clientA)->entries().begin(); entryA != (*clientA)->entries().end(); ++entryA ) {
