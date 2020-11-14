@@ -1,5 +1,7 @@
 #!/bin/sh
+mkdir -p config
 find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in \) -print | xargs rm -rf 
+aclocal -I config
 (cd lqx; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd lqiolib; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd parasol; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
@@ -11,7 +13,6 @@ find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in
 (cd petrisrvn; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
 (cd doc; aclocal -I ../config; automake -a -c; autoconf; automake) 
 #(cd lqneditor; aclocal -I ../config; automake -a -c --foreign; autoheader; autoconf; automake --foreign)
-aclocal -I config
 automake -a -c
 autoheader
 autoconf
