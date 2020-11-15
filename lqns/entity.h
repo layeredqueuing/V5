@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14073 2020-11-10 14:59:35Z greg $
+ * $Id: entity.h 14095 2020-11-15 13:51:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -72,6 +72,8 @@ public:
     private:
 	Entity& _entity;
     };
+
+    static std::set<Task *>& add_clients( std::set<Task *>& clients, const Entity * entity ) { return entity->getClients( clients ); }
 
 private:
     class SRVNManip {
@@ -181,7 +183,7 @@ public:
 
     unsigned nEntries() const { return _entries.size(); }
     virtual unsigned nClients() const = 0;
-    const Entity& getClients( std::set<Task *>& ) const;
+    std::set<Task *>& getClients( std::set<Task *>& ) const;
     double nCustomers( ) const;
     const std::set<const Entry *>& commonEntries() const { return _interlock.commonEntries(); }
     

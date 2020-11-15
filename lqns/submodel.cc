@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14054 2020-11-09 03:19:30Z greg $
+ * $Id: submodel.cc 14095 2020-11-15 13:51:34Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -105,7 +105,7 @@ Submodel::number( const unsigned n )
 Submodel&
 Submodel::initServers( const Model& )
 {
-    for_each( _servers.begin(), _servers.end(), ConstExec1<Entity,std::set<Task *>&>( &Entity::getClients, _clients ) );
+    _clients = std::accumulate( _servers.begin(), _servers.end(), _clients, Entity::add_clients );
     return *this;
 }
 

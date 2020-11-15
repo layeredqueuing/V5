@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14081 2020-11-11 18:56:16Z greg $
+ * $Id: entry.h 14095 2020-11-15 13:51:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -151,6 +151,14 @@ public:
 	mutable unsigned int _i;
     };
 
+
+    struct get_clients {
+	get_clients( std::set<Task *>& clients ) : _clients(clients) {}
+	void operator()( const Entry * entry ) const;
+    private:
+	std::set<Task *>& _clients;
+    };
+
 protected:
     struct clear_wait {
 	clear_wait( unsigned int submodel ) : _submodel(submodel) {}
@@ -179,7 +187,6 @@ public:
     static Entry * find( const string& entry_name );
     static Entry * create( LQIO::DOM::Entry* domEntry, unsigned int );
     static bool max_phase( const Entry * e1, const Entry * e2 ) { return e1->maxPhase() < e2->maxPhase(); }
-
 	
 protected:
     /* Instance creation */

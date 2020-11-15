@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14081 2020-11-11 18:56:16Z greg $
+ * $Id: entry.cc 14095 2020-11-15 13:51:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -448,7 +448,7 @@ bool
 Entry::hasVariance() const
 {
     if ( isStandardEntry() ) {
-	return find_if( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::hasVariance ) ) != _phase.end();
+	return std::any_of( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::hasVariance ) );
     } else {
 	return true;
     }
@@ -1766,7 +1766,7 @@ set_start_activity (Task* newTask, LQIO::DOM::Entry* theDOMEntry)
     realEntry->setStartActivity(activity);
     activity->setEntry(realEntry);
 }
-
+
 /* ---------------------------------------------------------------------- */
 
 /*
@@ -1782,4 +1782,11 @@ Entry::find( const string& entry_name )
     } else {
 	return *nextEntry;
     }
+}
+
+
+void
+Entry::get_clients::operator()( const Entry * entry ) const
+{
+    _clients = std::accumulate( entry->callerList().begin(), entry->callerList().end(), _clients, Call::add_client );
 }

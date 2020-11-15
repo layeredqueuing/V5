@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14068 2020-11-10 13:48:50Z greg $
+ * $Id: entity.cc 14095 2020-11-15 13:51:34Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -251,7 +251,7 @@ Entity::isInfinite() const
 bool
 Entity::isCalledBy( const Task* task ) const
 {
-    return find( tasks().begin(), tasks().end(), task ) != tasks().end();
+    return std::find( tasks().begin(), tasks().end(), task ) != tasks().end();
 }
 
 
@@ -349,26 +349,22 @@ Entity::hasOpenArrivals() const
 
 /*
  * Find all tasks that call this task and add them to the argument.
- * Return the number of calling tasks ADDED!
  */
 
-const Entity&
+std::set<Task *>& 
 Entity::getClients( std::set<Task *>& clients ) const
 {
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	const std::set<Call *>& callerList = (*entry)->callerList();
-	clients = std::accumulate( callerList.begin(), callerList.end(), clients, Call::add_client );
-    }
-    return *this;
+    std::for_each ( entries().begin(), entries().end(), Entry::get_clients( clients ) );
+    return clients;
 }
 
 
 double 
 Entity::nCustomers() const
 {
-    std::set<Task *> tasks;
-    getClients( tasks );
-    return std::accumulate( tasks.begin(), tasks.end(), 0., add_using<Task>( &Task::population ) );
+    std::set<Task *> clients;
+    getClients( clients );
+    return std::accumulate( clients.begin(), clients.end(), 0., add_using<Task>( &Task::population ) );
 }
 
 /*
