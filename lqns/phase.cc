@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14083 2020-11-11 19:30:49Z greg $
+ * $Id: phase.cc 14099 2020-11-15 15:49:03Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1521,4 +1521,16 @@ Phase::initProcessor()
     }
 
     return *this;
+}
+
+void
+Phase::get_servers::operator()( const Phase& phase ) const		// For phases
+{
+    _servers = std::accumulate( phase.callList().begin(), phase.callList().end(), _servers, Call::add_server );
+}
+
+void
+Phase::get_servers::operator()( const Phase* phase ) const		// For activities
+{
+    _servers = std::accumulate( phase->callList().begin(), phase->callList().end(), _servers, Call::add_server );
 }

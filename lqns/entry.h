@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14095 2020-11-15 13:51:34Z greg $
+ * $Id: entry.h 14099 2020-11-15 15:49:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -159,6 +159,13 @@ public:
 	std::set<Task *>& _clients;
     };
 
+    struct get_servers {
+	get_servers( std::set<Entity *>& servers ) : _servers(servers) {}
+	void operator()( const Entry * entry ) const;
+    private:
+	std::set<Entity *>& _servers;
+    };
+
 protected:
     struct clear_wait {
 	clear_wait( unsigned int submodel ) : _submodel(submodel) {}
@@ -284,6 +291,7 @@ public:
     bool entrySemaphoreTypeOk( const semaphore_entry_type aType );
     unsigned maxPhase() const { return _phase.size(); }
     unsigned concurrentThreads() const;
+    std::set<Entity *>& getServers( const std::set<Entity *>& ) const;	// Called tasks/processors
 
     double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
     double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R

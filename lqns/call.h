@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14092 2020-11-15 11:55:13Z greg $
+ * $Id: call.h 14099 2020-11-15 15:49:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -94,6 +94,7 @@ public:
     static double add_rendezvous_no_fwd( double sum, const Call * call ) { return !call->isForwardedCall() ? sum + call->rendezvous() * call->fanOut() : sum; }
     static double add_forwarding( double sum, const Call * call ) { return sum + call->forward() * call->fanOut(); }
     static std::set<Task *>& add_client( std::set<Task *>&, const Call * );
+    static std::set<Entity *>& add_server( std::set<Entity *>&, const Call * );
 
     struct find_call {
 	find_call( const Entry * e, const queryFunc f ) : _e(e), _f(f) {}

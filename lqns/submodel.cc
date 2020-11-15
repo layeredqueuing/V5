@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14095 2020-11-15 13:51:34Z greg $
+ * $Id: submodel.cc 14099 2020-11-15 15:49:03Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -372,7 +372,7 @@ MVASubmodel::rebuild()
     /* ----- Set think times, customers and chains for this pass. ----- */
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	const std::set<Entity *,Entity::LT> clientsServers = (*client)->servers( _servers );	/* Get all servers for this client	*/
+	const std::set<Entity *> clientsServers = (*client)->getServers( _servers );	/* Get all servers for this client	*/
 	const unsigned threads = (*client)->nThreads();
 
 	if ( (*client)->replicas() <= 1 ) {
@@ -460,7 +460,7 @@ MVASubmodel::makeChains()
     /* --- Set think times, customers and chains for this pass. --- */
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	const std::set<Entity *,Entity::LT> clientsServers = (*client)->servers( _servers );	/* Get all servers for this client	*/
+	const std::set<Entity *> clientsServers = (*client)->getServers( _servers );	/* Get all servers for this client	*/
 	const unsigned threads = (*client)->nThreads();
 
 	if ( (*client)->replicas() <= 1 ) {

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14095 2020-11-15 13:51:34Z greg $
+ * $Id: entity.h 14099 2020-11-15 15:49:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -51,20 +51,6 @@ public:
     /*
      * Compare two entities by their submodel. 
      */
-
-    struct LT
-    {
-	bool operator()(const Entity * e1, const Entity * e2) const {
-#if 1
-	    return (e1->submodel() < e2->submodel()) 
-		|| (e1->getDOM() && (!e2->getDOM() || e1->getDOM()->getSequenceNumber() < e2->getDOM()->getSequenceNumber() ));
-#else
-	    return (e1->submodel() < e2->submodel())
-		|| e1->isTask() && e2->isProcessor()
-		|| (e1->getDOM() && (!e2->getDOM() || e1->getDOM()->getName() < e2->getDOM()->getName() ));
-#endif
-	}
-    };
 
     struct update_wait {
 	update_wait( Entity& entity ) : _entity(entity) {}

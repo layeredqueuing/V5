@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14092 2020-11-15 11:55:13Z greg $
+ * $Id: call.cc 14099 2020-11-15 15:49:03Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -46,6 +46,11 @@ std::set<Task *>& Call::add_client( std::set<Task *>& clients, const Call * call
     return clients;
 }
 
+std::set<Entity *>& Call::add_server( std::set<Entity *>& servers, const Call * call )
+{
+    servers.insert(const_cast<Entity *>(call->dstTask()));
+    return servers;
+}
 
 /*----------------------------------------------------------------------*/
 /*                            Generic  Calls                            */

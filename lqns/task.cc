@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14079 2020-11-11 14:46:07Z greg $
+ * $Id: task.cc 14099 2020-11-15 15:49:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -167,15 +167,15 @@ Task::check() const
 
 
 /*
- * Check reachability for all activities.  This has to be done after findChildren.  
- * Activity::isNotReachable will output an error message if an activity is NOT reachable (and return true so 
- * that count_if will return the number of unreachable activities.
+ * Check reachability for all activities.  This has to be done after
+ * findChildren.  Activity::isNotReachable will output an error
+ * message if an activity is NOT reachable (and return true).
  */
 
 bool 
 Task::checkReachability() const
 {
-    return count_if( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) ) == 0;
+    return std::none_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) );
 }
 
 
@@ -514,41 +514,22 @@ Task::nClients() const
 
 
 /*
- * Store all tasks and processors called by this task in `serverList'
- * that are also found in includeOnly.
+ * Return all tasks and processors called by this task that are also
+ * found in includeOnly.
  */
 
-std::set<Entity *,Entity::LT>
-Task::servers( const std::set<Entity *,Entity::LT>& includeOnly ) const
+std::set<Entity *>
+Task::getServers( const std::set<Entity *>& includeOnly ) const
 {
-    std::set<Entity *,Entity::LT> serverList;
-    Entity * entity = const_cast<Processor *>(getProcessor());
-    if ( includeOnly.find( entity ) != includeOnly.end() ) {
-	serverList.insert( entity );
-    }
-    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->isActivityEntry() ) continue;
-	for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-	    const std::set<Call *>& callList = (*entry)->callList( p );
-	    for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
-		entity = const_cast<Entity *>((*call)->dstTask());
-		if ( includeOnly.find( entity ) != includeOnly.end() ) {
-		    serverList.insert( entity );
-		}
-	    }
-	}
-    }
+    std::set<Entity *> servers;
+    servers.insert( const_cast<Processor *>(getProcessor()) );
+    std::for_each( entries().begin(), entries().end(), Entry::get_servers( servers ) );
+    std::for_each( activities().begin(), activities().end(), Phase::get_servers( servers ) );
 
-    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	const std::set<Call *>& callList = (*activity)->callList( );
-	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
-	    entity = const_cast<Entity *>((*call)->dstTask());
-	    if ( includeOnly.find( entity ) != includeOnly.end() ) {
-		serverList.insert( entity );
-	    }
-	}
-    }
-    return serverList;
+    std::set<Entity *> result;
+    std::set_intersection( servers.begin(), servers.end(), includeOnly.begin(), includeOnly.end(), std::inserter( result, result.begin() ) );
+
+    return result;
 }
 
 

@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14079 2020-11-11 14:46:07Z greg $
+ * $Id: task.h 14099 2020-11-15 15:49:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -153,7 +153,7 @@ public:
     virtual unsigned nThreads() const;
     virtual unsigned concurrentThreads() const { return _maxThreads; }
 	
-    std::set<Entity *,Entity::LT> servers( const std::set<Entity *,Entity::LT>& ) const;	// Called tasks/processors
+    std::set<Entity *> getServers( const std::set<Entity *>& ) const;	// Called tasks/processors
 	
     Task& addClientChain( const unsigned submodel, const unsigned k ) { _clientChains[submodel].push_back(k); return *this; }
     const ChainVector& clientChains( const unsigned submodel ) const { return _clientChains[submodel]; }
