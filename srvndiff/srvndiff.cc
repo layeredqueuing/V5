@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: srvndiff.cc 14120 2020-11-24 15:03:14Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -82,6 +82,7 @@ extern int finite( double );
 #endif
 
 extern "C" int resultdebug;
+extern "C" int resultlineno;	/* Line number of current parse line in input file */
 
 #define	LINE_WIDTH	1024
 
@@ -139,8 +140,6 @@ static const char * time_str[] = {
     "Elapsed"
 };
 
-/* dragged in from srvniolib/error.c */
-unsigned resultlinenumber;	/* Line number of current parse line in input file */
 
 /*
  * Globals needed for parsing output file.
@@ -1052,7 +1051,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-10-24 18:01:20 -0400 (Sat, 24 Oct 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2020-11-24 10:03:14 -0500 (Tue, 24 Nov 2020) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1790,7 +1789,7 @@ process_file (const char *filename, unsigned pass_no)
     /* Set globals... */
 
     result_error_flag = 0;
-    resultlinenumber = 1;
+    resultlineno = 1;
     pass   = pass_no;
 
     /* Open file and parse. */
@@ -4142,7 +4141,7 @@ static int readInResults(const char *filename)
 	 */
 
 	const char * p = strrchr( filename, '.' );
-	resultlinenumber = 1;
+	resultlineno = 1;
 	if ( p && strcasecmp( p, ".p" ) == 0 ) {
 	    resultin = my_fopen( filename, "r" );
 	    if ( resultin ) {
@@ -4169,7 +4168,7 @@ results_warning( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    verrprintf( stdout, LQIO::WARNING_ONLY, input_file_name, resultlinenumber, 0, fmt, args );
+    verrprintf( stdout, LQIO::WARNING_ONLY, input_file_name, resultlineno, 0, fmt, args );
     va_end( args );
     return 0;
 }
@@ -4180,7 +4179,7 @@ results_error( const char * fmt, ... )
 {
     va_list args;
     va_start( args, fmt );
-    verrprintf( stdout, LQIO::WARNING_ONLY, input_file_name, resultlinenumber, 0, fmt, args );
+    verrprintf( stdout, LQIO::WARNING_ONLY, input_file_name, resultlineno, 0, fmt, args );
     va_end( args );
 }
 

@@ -1,6 +1,6 @@
-# lqsim 5.16
+# lqsim 5.19
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=61-semaphore.p 61-semaphore.in
-# $Id: 61-semaphore.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 61-semaphore.p 14123 2020-11-24 15:20:57Z greg $
 V y
 C 0.700198
 I 3
@@ -8,9 +8,9 @@ PP 2
 NP 2
 
 #!Comment: Semaphore called using a second phase rendezvous
-#!User:  0:35:55.000
-#!Sys:   0:13:57.000
-#!Real:  0:50:25.000
+#!User:  0:31:51.000
+#!Sys:   0:14:56.000
+#!Real:  0:47:40.000
 
 B 5
 customer       :customer        0.384615    
@@ -34,13 +34,6 @@ app_wait       :app_wait        app_signal      0           0           -1
                 -1 
 -1
 
-Z 1
-app_signal     :app_signal      signal          0.798282    0           -1 
-                                            %95 0.00498037  0           -1 
-                                            %99 0.0114874   0           -1 
-                -1 
--1
-
 VARW 3
 customer       :customer        app_wait        4.28748      0            -1 
                                             %95 0.14971      0            -1 
@@ -52,6 +45,13 @@ app_wait       :app_wait        app_signal      0            0            -1
                 app_wait        wait            0            0            -1 
                                             %95 0            0            -1 
                                             %99 0            0            -1 
+                -1 
+-1
+
+Z 1
+app_signal     :app_signal      signal          0.798282    0           -1 
+                                            %95 0.00498037  0           -1 
+                                            %99 0.0114874   0           -1 
                 -1 
 -1
 

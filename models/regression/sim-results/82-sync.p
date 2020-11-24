@@ -1,6 +1,6 @@
-# lqsim 5.16
+# lqsim 5.19
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=82-sync.p 82-sync.in
-# $Id: 82-sync.p 13764 2020-08-17 19:50:05Z greg $
+# $Id: 82-sync.p 14123 2020-11-24 15:20:57Z greg $
 V y
 C 0.633367
 I 3
@@ -8,9 +8,9 @@ PP 2
 NP 1
 
 #!Comment: Synchronization with fork-join on one branch.
-#!User:  1:14:24.000
-#!Sys:   0:28:15.000
-#!Real:  1:43:35.000
+#!User:  1:02:04.000
+#!Sys:   0:28:01.000
+#!Real:  1:32:12.000
 
 B 4
 t1             :e1              0.666667    

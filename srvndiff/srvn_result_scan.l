@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_result_scan.l 13996 2020-10-24 22:01:20Z greg $
+ * $Id: srvn_result_scan.l 14120 2020-11-24 15:03:14Z greg $
  */
 %option noyywrap yylineno
 
@@ -19,14 +19,16 @@
 #include "srvn_result_gram.h"
 
 extern YYSTYPE resultlval;
-static double time_to_double( const char * time );
-static char * dup_strip_text( char * src, int len );
 
 #if	defined(__cplusplus)
 #define	INPUT	resultinput
 #else
 #define	INPUT	input
 #endif
+
+static double time_to_double( const char * time );
+static char * dup_strip_text( char * src, int len );
+
 %}
 
 D	[0-9]

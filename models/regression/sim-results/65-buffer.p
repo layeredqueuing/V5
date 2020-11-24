@@ -1,6 +1,6 @@
 # lqsim 5.16
 # lqsim --confidence=1.0,1000 --seed=1049217653 --parseable --output=65-buffer.p 65-buffer.in
-# $Id: 65-buffer.p 13765 2020-08-17 22:26:31Z greg $
+# $Id: 65-buffer.p 14122 2020-11-24 15:09:06Z greg $
 V y
 C 0.549543
 I 3
@@ -32,17 +32,6 @@ source         :source          full_wait       0.263299    0           -1
                 -1 
 -1
 
-Z 2
-sink           :sink            full_signal     0           0.0998811   -1 
-                                            %95 0           0.000451655 -1 
-                                            %99 0           0.00104176  -1 
-                -1 
-source         :source          empty_signal    0           0.100087    -1 
-                                            %95 0           0.000825341 -1 
-                                            %99 0           0.00190367  -1 
-                -1 
--1
-
 VARW 2
 sink           :sink            empty_wait      0.985282     0            -1 
                                             %95 0.0158382    0            -1 
@@ -51,6 +40,17 @@ sink           :sink            empty_wait      0.985282     0            -1
 source         :source          full_wait       0.222346     0            -1 
                                             %95 0.00490631   0            -1 
                                             %99 0.0113166    0            -1 
+                -1 
+-1
+
+Z 2
+sink           :sink            full_signal     0           0.0998811   -1 
+                                            %95 0           0.000451655 -1 
+                                            %99 0           0.00104176  -1 
+                -1 
+source         :source          empty_signal    0           0.100087    -1 
+                                            %95 0           0.000825341 -1 
+                                            %99 0           0.00190367  -1 
                 -1 
 -1
 

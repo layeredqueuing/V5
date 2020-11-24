@@ -22,6 +22,7 @@
 *.out
 *.pdf
 *.ps
+*.svg
 *.toc
 *~
 .DS_Store

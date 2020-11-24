@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id: 61-semaphore.lqxo 13766 2020-08-18 02:54:45Z greg $ -->
+<!-- $Id: 61-semaphore.lqxo 14123 2020-11-24 15:20:57Z greg $ -->
 <!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=61-semaphore.lqxo -->
-<lqn-model name="61-semaphore" description="lqsim 5.16 solution for model from: 61-semaphore.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="61-semaphore" description="lqsim 5.19 solution for model from: 61-semaphore.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Semaphore called using a second phase rendezvous" conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="initial-loops" value="1000"/>
       <pragma param="precision" value="1.0"/>
       <pragma param="seed-value" value="1049217653"/>
-      <result-general solver-info="lqsim 5.16" valid="YES" conv-val="0.911889" iterations="3" platform-info="Gregs-MacBookPro-2.local Darwin 19.6.0" user-cpu-time=" 0:32:32.000" system-cpu-time=" 0:12:42.000" elapsed-time=" 0:45:15.000"/>
+      <result-general solver-info="lqsim 5.19" valid="YES" conv-val="0.911889" iterations="3" platform-info="merlin.sce.carleton.ca Darwin 19.6.0" user-cpu-time=" 0:29:08.000" system-cpu-time=" 0:13:00.000" elapsed-time=" 0:42:53.000"/>
    </solver-params>
    <processor name="customer" scheduling="fcfs">
       <result-processor utilization="0.333907">
