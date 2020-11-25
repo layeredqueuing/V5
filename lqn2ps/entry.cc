@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14136 2020-11-25 18:27:35Z greg $
+ * $Id: entry.cc 14139 2020-11-25 18:38:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -890,7 +890,7 @@ Entry::Cv_sqr() const
 {
     const double t = executionTime();
 
-    if ( !isfinite( t ) ) {
+    if ( !std::isfinite( t ) ) {
 	return t;
     } else if ( t > 0.0 ) {
 	return variance() / square(t);

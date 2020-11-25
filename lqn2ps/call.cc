@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: call.cc 14139 2020-11-25 18:38:03Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -776,7 +776,7 @@ Call::hasInfiniteWait() const
 { 
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	const LQIO::DOM::Call * dom = getDOM(p);
-	if ( dom && !isfinite( dom->getResultWaitingTime() ) )  return true;
+	if ( dom && !std::isfinite( dom->getResultWaitingTime() ) )  return true;
     }
     return false;
 }
@@ -2000,7 +2000,7 @@ OpenArrival::label()
 	 && Flags::have_results 
 	 && Flags::print[OPEN_WAIT].value.b ) {
 	if ( print ) myLabel->newLine();
-	Graphic::colour_type c = isfinite( _destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
+	Graphic::colour_type c = std::isfinite( _destination->openWait() ) ? Graphic::DEFAULT_COLOUR : Graphic::RED;
 	myLabel->colour(c) << begin_math() << _destination->openWait() << end_math();
 	print = true;
     }
