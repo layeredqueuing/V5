@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 13684 2020-07-13 15:41:25Z greg $
+ * $Id: phase.cc 14134 2020-11-25 18:12:05Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -84,7 +84,7 @@ Phase::initialize( Entry * src, const unsigned p )
 }
 
 /* --------------------- Instance Variable access --------------------- */
-const string& 
+const std::string& 
 Phase::name() const
 {
     return getDOM()->getName();

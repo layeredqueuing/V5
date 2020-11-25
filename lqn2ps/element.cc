@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 13547 2020-05-21 02:22:16Z greg $
+ * $Id: element.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 #include "element.h"
@@ -42,9 +42,9 @@ Element&
 Element::squishName()
 {
     const unsigned n = elementId();
-    const string& old_name = name();
+    const std::string& old_name = name();
     if ( old_name.size() > 5 ) {
-	ostringstream new_name;
+	std::ostringstream new_name;
 	new_name << old_name.substr(0,5);
 	new_name << "_" << n;
 	const_cast<LQIO::DOM::DocumentObject *>(_documentObject)->setName( new_name.str() );
@@ -111,7 +111,7 @@ Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<
 		if ( directPath && (*call)->hasForwarding() && partial_output() && Flags::surrogates ) {
 		    addForwardingRendezvous( callStack );			/* only necessary when transforming the model. */
 		}
-		max_depth = max( const_cast<Task *>(dstTask)->findChildren( callStack, directPath ), max_depth );
+		max_depth = std::max( const_cast<Task *>(dstTask)->findChildren( callStack, directPath ), max_depth );
 
 		callStack.pop_back();
 	    } 
@@ -386,11 +386,15 @@ std::string
 Element::baseReplicaName( unsigned int& replica ) const
 {
     const std::string& name = this->name();
-    size_t pos = name.rfind( '_' );
-    if ( pos == std::string::npos ) throw runtime_error( "Can't find '_'" );
-    char * end_ptr = NULL;
-    replica = strtol( &name[pos+1], &end_ptr, 10 );
-    if ( *end_ptr != '\0' || replica <= 0 ) throw runtime_error( "Can't find replica number" );
-    return name.substr( 0, pos );
+    const size_t pos = name.rfind( '_' );
+    if ( pos == std::string::npos ) {
+	replica = 1;
+	return name;
+    } else { 
+	char * end_ptr = NULL;
+	replica = strtol( &name[pos+1], &end_ptr, 10 );
+	if ( *end_ptr != '\0' || replica <= 0 ) throw std::runtime_error( "Can't find replica number" );
+	return name.substr( 0, pos );
+    }
 }
 #endif

@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 14026 2020-10-28 14:28:13Z greg $
+ * $Id: lqn2ps.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 #include "lqn2ps.h"
@@ -153,14 +153,14 @@ option_type Flags::print[] = {
     { 0,                         0, 0,                     0,                      {0},                 false, 0 }
 };
 #if HAVE_GETOPT_H
-static void makeopts( string& opts, std::vector<struct option>& );
+static void makeopts( std::string& opts, std::vector<struct option>& );
 #else
-static void makeopts( string& opts );
+static void makeopts( std::string& opts );
 #endif
 
 
 static char copyrightDate[20];
-static void process( const string& inputFileName,  const string& output_file_name, int model_no );
+static void process( const std::string& inputFileName,  const std::string& output_file_name, int model_no );
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -174,11 +174,11 @@ lqn2ps( int argc, char *argv[] )
     char * options;
     char * value;
     int arg;
-    string output_file_name = "";
+    std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-10-28 10:28:13 -0400 (Wed, 28 Oct 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-11-25 13:12:05 -0500 (Wed, 25 Nov 2020) $", "%*s %s %*s", copyrightDate );
 
-    static string opts = "";
+    static std::string opts = "";
 #if HAVE_GETOPT_H
     static std::vector<struct option> longopts;
     makeopts( opts, longopts );
@@ -269,8 +269,8 @@ lqn2ps( int argc, char *argv[] )
 	case 512+'p':
 	    parse_file_name = optarg;
 	    if ( strcmp( parse_file_name, "-" ) != 0 && access( parse_file_name, R_OK ) != 0 ) {
-		cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
-		     << strerror( errno ) << endl;
+		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open parseable output file " << parse_file_name << " - "  
+		     << strerror( errno ) << std::endl;
 		exit ( 1 );
 	    }
 	    break;
@@ -372,7 +372,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ABOVE_JUSTIFY ) {
 			Flags::node_justification = justify; 
 		    } else {
-			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
 			exit( 1 );
 		    }
 		    break;   
@@ -380,7 +380,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ALIGN_JUSTIFY ) {
 			Flags::label_justification = justify; 
 		    } else {
-			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
 			exit( 1 );
 		    }
 		    break;
@@ -388,7 +388,7 @@ lqn2ps( int argc, char *argv[] )
 		    if ( justify != ABOVE_JUSTIFY ) {
 			Flags::activity_justification = justify; 
 		    } else {
-			cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << endl;
+			std::cerr << LQIO::io_vars.lq_toolname << ": -J" << optarg << "is invalid." << std::endl;
 			exit( 1 );
 		    }
 		    break;
@@ -712,40 +712,40 @@ lqn2ps( int argc, char *argv[] )
     LQIO::io_vars.lq_command_line = command_line.c_str();
 
     if ( Flags::print[XX_VERSION].value.b ) {
-	cout << "Layered Queueing Network file conversion program, Version " << VERSION << endl << endl;
-	cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << endl;
-	cout << "  Department of Systems and Computer Engineering," << endl;
-	cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << endl << endl;
+	std::cout << "Layered Queueing Network file conversion program, Version " << VERSION << std::endl << std::endl;
+	std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
+	std::cout << "  Department of Systems and Computer Engineering," << std::endl;
+	std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
     }
 	
     /* Check for sensible combinations of options. */
 
     if ( Flags::annotate_input && !input_output() ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::pragma[PRAGMA_ANNOTATE] 
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::pragma[PRAGMA_ANNOTATE] 
 	     << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i]
-	     << " output are mutually exclusive." << endl;
+	     << " output are mutually exclusive." << std::endl;
 	Flags::annotate_input = false;
     }
 
     if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES && !(graphical_output() || queueing_output()) ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_TASKS_ONLY] 
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_TASKS_ONLY] 
 	     << " and " <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
-	     << " output are mutually exclusive." << endl;
+	     << " output are mutually exclusive." << std::endl;
 	exit( 1 );
     }
 
 #if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r && submodel_output() ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -I<regexp> "
+	std::cerr << LQIO::io_vars.lq_toolname << ": -I<regexp> "
 	     << "and -S" <<  Flags::print[SUBMODEL].value.i 
-	     << " are mutually exclusive." << endl;
+	     << " are mutually exclusive." << std::endl;
 	exit( 1 );
     }
 #endif
 
     if ( submodel_output() && Flags::print_submodels ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
-	     << " and --debug-submodels are mutually exclusive." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
+	     << " and --debug-submodels are mutually exclusive." << std::endl;
 	Flags::print_submodels = false;
     }
 
@@ -754,22 +754,22 @@ lqn2ps( int argc, char *argv[] )
 //	Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 
 	if ( submodel_output() ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
+	    std::cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << "and -S" <<  Flags::print[SUBMODEL].value.i 
-		 << " are mutually exclusive." << endl;
+		 << " are mutually exclusive." << std::endl;
 	    exit( 1 );
 	} else if ( !graphical_output() 
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
 	    ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
+	    std::cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
-		 << " output are mutually exclusive." << endl;
+		 << " output are mutually exclusive." << std::endl;
 	    exit( 1 );
 	} else if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES && !graphical_output() ) {
 	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
-	    cerr << LQIO::io_vars.lq_toolname << ": aggregating entries to tasks with " 
-		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output." << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": aggregating entries to tasks with " 
+		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output." << std::endl;
 	}
     }
 
@@ -779,13 +779,13 @@ lqn2ps( int argc, char *argv[] )
     }
 
     if ( Flags::flatten_submodel && !(submodel_output() || queueing_output()) ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_FLATTEN_SUBMODEL]
-	     << " can only be used with either -Q<n> -S<n>." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_FLATTEN_SUBMODEL]
+	     << " can only be used with either -Q<n> -S<n>." << std::endl;
     }
 
     if ( submodel_output() && Flags::print[LAYERING].value.i == LAYERING_SQUASHED ) {
-	cerr << LQIO::io_vars.lq_toolname << ": -L" << Options::layering[LAYERING_SQUASHED]
-	     << " can only be used with full models." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": -L" << Options::layering[LAYERING_SQUASHED]
+	     << " can only be used with full models." << std::endl;
     }
 
     if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE 
@@ -830,18 +830,18 @@ lqn2ps( int argc, char *argv[] )
 #if defined(EMF_OUTPUT)
 	case FORMAT_EMF:
 	    if ( LQIO::Filename::isRegularFile( fileno( stdout ) ) == 0 ) {
-		cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
+		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
 		     << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
-		     << " to stdout - stdout is not a regular file."  << endl;
+		     << " to stdout - stdout is not a regular file."  << std::endl;
 		exit( 1 );
 	    }
 	    break;
 #endif
 #if defined(SXD_OUTPUT)
 	case FORMAT_SXD:
-	    cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot write " 
 		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
-		 << " to stdout."  << endl;
+		 << " to stdout."  << std::endl;
 	    exit( 1 );
 	    break;
 #endif
@@ -876,7 +876,7 @@ lqn2ps( int argc, char *argv[] )
  */
 
 static void
-process( const string& input_file_name, const string& output_file_name, int model_no )
+process( const std::string& input_file_name, const std::string& output_file_name, int model_no )
 {
     Flags::have_results = false;		/* Reset for each run. */
     Flags::instantiate  = false;
@@ -904,7 +904,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
     unsigned int errorCode;
     LQIO::DOM::Document* document = LQIO::DOM::Document::load( input_file_name, input_format, errorCode, parse_file_name == 0 && Flags::print[RESULTS].value.b );
     if ( !document ) {
-	cerr << LQIO::io_vars.lq_toolname << ": Input model was not loaded successfully." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Input model was not loaded successfully." << std::endl;
 	LQIO::io_vars.error_count += 1;
 	return;
     }
@@ -912,13 +912,13 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	try {
 	    Flags::have_results = LQIO::SRVN::loadResults( parse_file_name );
 	} 
-	catch ( const runtime_error &error ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << endl;
+	catch ( const std::runtime_error &error ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << error.what() << "." << std::endl;
 	    Flags::have_results = false;
 	    if ( output_output() ) return;
 	}
 	if ( !Flags::have_results ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << strerror( errno ) << "." << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot load results file " << parse_file_name << " - " << strerror( errno ) << "." << std::endl;
 	    if ( output_output() ) return;
 	}
     } else {
@@ -1021,12 +1021,12 @@ process( const string& input_file_name, const string& output_file_name, int mode
 	    }
 	}
 #if !(__GNUC__ && __GNUC__ < 3)
-	catch ( const ios_base::failure &error ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << endl;
+	catch ( const std::ios_base::failure &error ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
 	}
 #endif
-	catch ( const runtime_error &error ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << endl;
+	catch ( const std::runtime_error &error ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
 	}
     }
 
@@ -1036,7 +1036,7 @@ process( const string& input_file_name, const string& output_file_name, int mode
 
 #if HAVE_GETOPT_H
 static void
-makeopts( string& opts, std::vector<struct option>& longopts ) 
+makeopts( std::string& opts, std::vector<struct option>& longopts ) 
 {
     unsigned int k = 0;
     struct option opt;
@@ -1054,14 +1054,14 @@ makeopts( string& opts, std::vector<struct option>& longopts )
 	    /* These are the +/- options */
 	    longopts[k].val |= 0x0100;					/* + case is > 256 */
 	    k += 1;
-	    string name = "no-";					/* - case is no-<name> */
+	    std::string name = "no-";					/* - case is no-<name> */
 	    name += Flags::print[i].name;
 	    longopts[k].name = strdup( name.c_str() );			/* Make a copy */
 	    longopts[k].val = Flags::print[i].c;
 	} else if ( (Flags::print[i].c & 0xff00) == 0x0300 ) {
 	    /* These are the +/- options */
 	    k += 1;
-	    string name = "no-";					/* - case is no-<name> */
+	    std::string name = "no-";					/* - case is no-<name> */
 	    name += Flags::print[i].name;
 	    longopts[k].name = strdup( name.c_str() );			/* Make a copy */
 	    longopts[k].val = (Flags::print[i].c & ~0x0100);		/* Clear the bit */

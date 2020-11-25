@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: model.cc 14134 2020-11-25 18:12:05Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -52,14 +52,14 @@
 
 class CommentManip {
 public:
-    CommentManip( ostream& (*ff)(ostream&, const char *, const LQIO::DOM::ExternalVariable& ), const char * prefix, const LQIO::DOM::ExternalVariable& var )
+    CommentManip( std::ostream& (*ff)(std::ostream&, const char *, const LQIO::DOM::ExternalVariable& ), const char * prefix, const LQIO::DOM::ExternalVariable& var )
 	: f(ff), _prefix(prefix), _var(var) {}
 private:
-    ostream& (*f)( ostream&, const char *, const LQIO::DOM::ExternalVariable& );
+    std::ostream& (*f)( std::ostream&, const char *, const LQIO::DOM::ExternalVariable& );
     const char * _prefix;
     const LQIO::DOM::ExternalVariable& _var;
 
-    friend ostream& operator<<(ostream & os, const CommentManip& m )
+    friend std::ostream& operator<<(std::ostream & os, const CommentManip& m )
 	{ return m.f(os,m._prefix,m._var); }
 };
 
@@ -112,10 +112,10 @@ struct lt_submodel
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Model::Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int numberOfLayers )
+Model::Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int numberOfLayers )
     : _layers(numberOfLayers+1),
-      _key(NULL),
-      _label(NULL),
+      _key(nullptr),
+      _label(nullptr),
       _total(),
       _document(document),
       _inputFileName( input_file_name ),
@@ -269,7 +269,7 @@ Model::moveBy( const double dx, const double dy )
  */
 
 void
-Model::add_group( const string& s )
+Model::add_group( const std::string& s )
 {
     group << new GroupByRegex( s );
 }
@@ -284,7 +284,7 @@ Model::add_group( const string& s )
 void
 Model::group_by_processor()
 {
-    for ( set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
 	Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), (*processor) ) );
     }
 }
@@ -298,7 +298,7 @@ Model::group_by_processor()
 void
 Model::group_by_share()
 {
-    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
+    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->nShares() == 0 ) {
 	    Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), aProcessor ) );
@@ -320,7 +320,7 @@ void
 Model::group_by_submodel()
 {
     for ( unsigned i = SERVER_LEVEL; i < nLayers(); i += 1 ) {
-	ostringstream s;
+	std::ostringstream s;
 	s << "Submodel " << i;
 	Group * aGroup = new GroupSquashed( nLayers(), s.str(), _layers.at(i-1), _layers.at(i) );
 	aGroup->format().label().resizeBox().positionLabel();
@@ -380,7 +380,7 @@ Model::prepare( const LQIO::DOM::Document * document )
 	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
 	    allEntries.push_back( *nextEntry );		// Save the DOM entry.
 	    entryCollection.push_back( Entry::create( *nextEntry ) );
-	    if ((*nextEntry)->getStartActivity() != NULL) {
+	    if ((*nextEntry)->getStartActivity() != nullptr) {
 		activityEntries.push_back(*nextEntry);
 	    }
 	}
@@ -435,7 +435,7 @@ Model::prepare( const LQIO::DOM::Document * document )
 	    }
 
 	    /* Set the phase information for the entry */
-	    string phase_name = entry->getName();
+	    std::string phase_name = entry->getName();
 	    phase_name += "_";
 	    phase_name += p + '0';
 	    phase->setName( phase_name );
@@ -508,7 +508,7 @@ Model::process()
     }
 
     if ( Flags::print[SUMMARY].value.b || Flags::print_submodels ) {
-	printSummary( cerr );
+	printSummary( std::cerr );
     } 
 
     if ( !Flags::have_results && Flags::print[COLOUR].value.i == COLOUR_RESULTS ) {
@@ -539,7 +539,7 @@ Model::process()
     if ( layer > 0 ) {
 	/* Submodel 1 is layer 2 */
  	if ( !selectSubmodel( layer+1 ) ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": Submodel " << layer << " is too big." << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Submodel " << layer << " is too big." << std::endl;
 	    return false;
 	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
  	    _layers.at(layer+1).generateSubmodel();
@@ -666,20 +666,20 @@ Model::store()
 #endif
     if ( output_output() && !Flags::have_results ) {
 
-	cerr << LQIO::io_vars.lq_toolname << ": There are no results to output for " << _inputFileName << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": There are no results to output for " << _inputFileName << std::endl;
 	return false;
 
     } else if ( _outputFileName == "-" ) {
 
-	cout.exceptions( ios::failbit | ios::badbit );
-	cout << *this;
+	std::cout.exceptions( std::ios::failbit | std::ios::badbit );
+	std::cout << *this;
 
     } else {
 
 	/* Default mapping */
 
-	string directory_name;
-	string suffix = "";
+	std::string directory_name;
+	std::string suffix = "";
 
 	if ( hasOutputFileName() && LQIO::Filename::isDirectory( _outputFileName ) > 0 ) {
 	    directory_name = _outputFileName;
@@ -706,7 +706,7 @@ Model::store()
 	}
 
 	LQIO::Filename filename;
-	string extension = getExtension();
+	std::string extension = getExtension();
 	if ( !hasOutputFileName() || directory_name.size() > 0 ) {
 	    filename.generate( _inputFileName, extension, directory_name, suffix );
 	} else {
@@ -716,22 +716,22 @@ Model::store()
 	if ( _inputFileName == filename() && input_output() ) {
 #if defined(REP2FLAT)
 	    if ( Flags::print[REPLICATION].value.i == REPLICATION_EXPAND ) {
-		string ext = ".";		// look for .ext
+		std::string ext = ".";		// look for .ext
 		ext += extension;
 		const size_t pos = filename.rfind( ext );
-		if ( pos != string::npos ) {
+		if ( pos != std::string::npos ) {
 		    filename.insert( pos, "-flat" );	// change filename.ext to filename-flat.ext
 		} else {
-		    ostringstream msg;
+		    std::ostringstream msg;
 		    msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
-		    throw runtime_error( msg.str() );
+		    throw std::runtime_error( msg.str() );
 		}
 	    } else if ( partial_output()
 			|| Flags::print[AGGREGATION].value.i != AGGREGATE_NONE
 			|| Flags::print[REPLICATION].value.i != REPLICATION_NOP ) {
-		ostringstream msg;
+		std::ostringstream msg;
 		msg << "Cannot overwrite input file " << filename() << " with a subset of original model.";
-		throw runtime_error( msg.str() );
+		throw std::runtime_error( msg.str() );
 	    }
 #else
 	    if ( partial_output()
@@ -745,16 +745,16 @@ Model::store()
 
 	filename.backup();
 
-	ofstream output;
+	std::ofstream output;
 	switch( Flags::print[OUTPUT_FORMAT].value.i ) {
 #if defined(EMF_OUTPUT)
 	case FORMAT_EMF:
 	    if ( LQIO::Filename::isRegularFile( filename() ) == 0 ) {
-		ostringstream msg;
+		std::ostringstream msg;
 		msg << "Cannot open output file " << filename() << " - not a regular file.";
-		throw runtime_error( msg.str() );
+		throw std::runtime_error( msg.str() );
 	    } else {
-		output.open( filename().c_str(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+		output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
 	    }
 	    break;
 #endif
@@ -768,21 +768,21 @@ Model::store()
 #if HAVE_LIBPNG
 	case FORMAT_PNG:
 #endif
-	    output.open( filename().c_str(), ios::out|ios::binary );	/* NO \r's in output for windoze */
+	    output.open( filename().c_str(), std::ios::out|std::ios::binary );	/* NO \r's in output for windoze */
 	    break;
 #endif /* HAVE_LIBGD */
 
 	default:
-	    output.open( filename().c_str(), ios::out );
+	    output.open( filename().c_str(), std::ios::out );
 	    break;
 	}
 
 	if ( !output ) {
-	    ostringstream msg;
+	    std::ostringstream msg;
 	    msg << "Cannot open output file " << filename() << " - " << strerror( errno );
-	    throw runtime_error( msg.str() );
+	    throw std::runtime_error( msg.str() );
 	} else {
-	    output.exceptions ( ios::failbit | ios::badbit );
+	    output.exceptions ( std::ios::failbit | std::ios::badbit );
 	    output << *this;
 	}
 	output.close();
@@ -821,10 +821,10 @@ Model::reload()
 
 
 
-string
+std::string
 Model::getExtension()
 {
-    string extension;
+    std::string extension;
 
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
@@ -957,12 +957,12 @@ Model::topologicalSort()
 	     ) {
 
 	    try {
-		callStack.push_back( NULL );
+		callStack.push_back( nullptr );
 		max_depth = std::max( aTask->findChildren( callStack, i ), max_depth );
 		callStack.pop_back();
 	    }
 	    catch( const Call::cycle_error& error ) {
-		max_depth = max( error.depth(), max_depth );
+		max_depth = std::max( error.depth(), max_depth );
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	    }
 
@@ -1196,7 +1196,7 @@ Model::alignEntities()
 	} else {
 	    layer->alignEntities();
 	}
-	maxRight = max( maxRight, layer->x() + layer->width() );
+	maxRight = std::max( maxRight, layer->x() + layer->width() );
     }
 
     _origin.x( 0 );
@@ -1333,7 +1333,7 @@ Model::nInfiniteServers() const
 
 
 Model&
-Model::accumulateStatistics( const string& filename )
+Model::accumulateStatistics( const std::string& filename )
 {
     stats[TOTAL_LAYERS].accumulate( this, filename );
     stats[TOTAL_TASKS].accumulate( this, filename );
@@ -1350,7 +1350,7 @@ Model::accumulateStatistics( const string& filename )
 
 
 const Model&
-Model::accumulateTaskStats( const string& filename ) const
+Model::accumulateTaskStats( const std::string& filename ) const
 {
     /* Does not count ref. tasks. */
 
@@ -1368,7 +1368,7 @@ Model::accumulateTaskStats( const string& filename ) const
 
 
 const Model&
-Model::accumulateEntryStats( const string& filename ) const
+Model::accumulateEntryStats( const std::string& filename ) const
 {
     for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	for ( std::vector<Entity *>::const_iterator entity = layer->entities().begin(); entity != layer->entities().end(); ++entity ) {
@@ -1434,13 +1434,13 @@ Model::accumulateEntryStats( const string& filename ) const
  * Print out the model.
  */
 
-ostream&
-Model::print( ostream& output ) const
+std::ostream&
+Model::print( std::ostream& output ) const
 {
     if ( Flags::print_comment && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_TXT) {
 	const char * comment = getDOM()->getModelCommentString();
 	if ( comment && comment[0] != '\0' ) {
-	    cout << _inputFileName << ": " << comment << endl;
+	    std::cout << _inputFileName << ": " << comment << std::endl;
 	}
     }
 
@@ -1558,7 +1558,7 @@ Model::expandModel()
     for ( std::set<Task *>::const_iterator task = old_task.begin(); task != old_task.end(); ++task ) {
 	delete *task;
     }
-    for ( set<Processor *>::const_iterator processor = old_processor.begin(); processor != old_processor.end(); ++processor ) {
+    for ( std::set<Processor *>::const_iterator processor = old_processor.begin(); processor != old_processor.end(); ++processor ) {
 	delete *processor;
     }
 
@@ -1597,7 +1597,7 @@ Model::returnReplication()
     Processor::__processors.clear();
     _document->clearAllMaps();
 
-    LQIO::DOM::DocumentObject * root = NULL;
+    LQIO::DOM::DocumentObject * root = nullptr;
     for_each( old_processor.begin(), old_processor.end(), Exec1<Processor,LQIO::DOM::DocumentObject **>( &Processor::replicateProcessor, &root ) );
     for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::replicateCall ) );	/* do before entry */
     for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::replicateCall ) );		/* do before task */
@@ -1614,27 +1614,27 @@ Model::returnReplication()
  * Print all the layers.
  */
 
-ostream&
-Model::printEEPIC( ostream & output ) const
+std::ostream&
+Model::printEEPIC( std::ostream & output ) const
 {
-    output << "% Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl
-	   << "% Invoked as: " << command_line << ' ' << _inputFileName << endl
-	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << endl
+    output << "% Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl
+	   << "% Invoked as: " << command_line << ' ' << _inputFileName << std::endl
+	   << "\\setlength{\\unitlength}{" << 1.0/EEPIC_SCALING << "pt}" << std::endl
 	   << "\\begin{picture}("
 	   << static_cast<int>(right()+0.5) << "," << static_cast<int>(top() + 0.5)
 	   << ")(" << static_cast<int>(bottom()+0.5)
-	   << "," << -static_cast<int>(bottom()+0.5) << ")" << endl;
+	   << "," << -static_cast<int>(bottom()+0.5) << ")" << std::endl;
 
     printLayers( output );
 
-    output << "\\end{picture}" << endl;
+    output << "\\end{picture}" << std::endl;
     return output;
 }
 
 
 #if defined(EMF_OUTPUT)
-ostream&
-Model::printEMF( ostream& output ) const
+std::ostream&
+Model::printEMF( std::ostream& output ) const
 {
     /* header start */
     EMF::init( output, right(), top(), command_line );
@@ -1649,22 +1649,22 @@ Model::printEMF( ostream& output ) const
  * See http://www.xfig.org/userman/fig-format.html
  */
 
-ostream&
-Model::printFIG( ostream& output ) const
+std::ostream&
+Model::printFIG( std::ostream& output ) const
 {
-    output << "#FIG 3.2" << endl
-	   << "Portrait" << endl
-	   << "Center" << endl
-	   << "Inches" << endl
-	   << "Letter" << endl
-	   << "75.00" << endl
-	   << "Single" << endl
-	   << "-2" << endl;
-    output << "# Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl
-	   << "# Invoked as: " << command_line << ' ' << _inputFileName << endl
-	   << "# " << LQIO::DOM::Common_IO::svn_id() << endl
-	   << print_comment( "# ", *getDOM()->getModelComment() ) << endl;
-    output << "1200 2" << endl;
+    output << "#FIG 3.2" << std::endl
+	   << "Portrait" << std::endl
+	   << "Center" << std::endl
+	   << "Inches" << std::endl
+	   << "Letter" << std::endl
+	   << "75.00" << std::endl
+	   << "Single" << std::endl
+	   << "-2" << std::endl;
+    output << "# Created By: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl
+	   << "# Invoked as: " << command_line << ' ' << _inputFileName << std::endl
+	   << "# " << LQIO::DOM::Common_IO::svn_id() << std::endl
+	   << print_comment( "# ", *getDOM()->getModelComment() ) << std::endl;
+    output << "1200 2" << std::endl;
     Fig::initColours( output );
 
     /* alignment markers */
@@ -1689,8 +1689,8 @@ Model::printFIG( ostream& output ) const
 
 
 #if HAVE_GD_H && HAVE_LIBGD
-ostream&
-Model::printGD( ostream& output, outputFuncPtr func ) const
+std::ostream&
+Model::printGD( std::ostream& output, outputFuncPtr func ) const
 {
     GD::create( static_cast<int>(right()+0.5), static_cast<int>(top()+0.5) );
     printLayers( output );
@@ -1701,8 +1701,8 @@ Model::printGD( ostream& output, outputFuncPtr func ) const
 #endif
 
 
-ostream&
-Model::printPostScript( ostream& output ) const
+std::ostream&
+Model::printPostScript( std::ostream& output ) const
 {
     printPostScriptPrologue( output, _inputFileName,
 			     static_cast<int>(left()+0.5),
@@ -1710,48 +1710,48 @@ Model::printPostScript( ostream& output ) const
 			     static_cast<int>(right()+0.5),
 			     static_cast<int>(top()+0.5) );
 
-    output << "save" << endl;
+    output << "save" << std::endl;
 
     PostScript::init( output );
 
     printLayers( output );
 
-    output << "showpage" << endl;
-    output << "restore" << endl;
+    output << "showpage" << std::endl;
+    output << "restore" << std::endl;
     return output;
 }
 
 
 
 #if defined(SVG_OUTPUT)
-ostream&
-Model::printSVG( ostream& output ) const
+std::ostream&
+Model::printSVG( std::ostream& output ) const
 {
-    output << "<?xml version=\"1.0\" standalone=\"no\"?>" << endl
-	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\"" << endl
-	   << "\"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << endl;
-    output << "<!-- Title: " << _inputFileName << " -->" << endl;
-    output << "<!-- Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << " -->" << endl;
+    output << "<?xml version=\"1.0\" standalone=\"no\"?>" << std::endl
+	   << "<!DOCTYPE svg PUBLIC \"-//W3C//DTD SVG 20000303 Stylable//EN\"" << std::endl
+	   << "\"http://www.w3.org/TR/2000/03/WD-SVG-20000303/DTD/svg-20000303-stylable.dtd\">" << std::endl;
+    output << "<!-- Title: " << _inputFileName << " -->" << std::endl;
+    output << "<!-- Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << " -->" << std::endl;
 #if defined(HAVE_CTIME)
     output << "<!-- ";
     time_t clock = time( (time_t *)0 );
     for ( char * s = ctime( &clock ); *s && *s != '\n'; ++s ) {
 	output << *s;
     }
-    output << " -->" << endl;
+    output << " -->" << std::endl;
 #endif
-    output << "<!-- For: " << _login << " -->" << endl;
-    output << "<!-- Invoked as: " << command_line << ' ' << _inputFileName << " -->" << endl;
+    output << "<!-- For: " << _login << " -->" << std::endl;
+    output << "<!-- Invoked as: " << command_line << ' ' << _inputFileName << " -->" << std::endl;
     output << "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\""
 	   << right() / (SVG_SCALING * 72.0) << "in\" height=\""
 	   << top() / (SVG_SCALING * 72.0) << "in\" viewBox=\""
 	   << "0 0 "
 	   << static_cast<int>(right() + 0.5)<< " "
-	   << static_cast<int>(top() + 0.5) << "\">" << endl;
-    output << "<desc>" << getDOM()->getModelComment() << "</desc>" << endl;
+	   << static_cast<int>(top() + 0.5) << "\">" << std::endl;
+    output << "<desc>" << getDOM()->getModelComment() << "</desc>" << std::endl;
 
     printLayers( output );
-    output << "</svg>" << endl;
+    output << "</svg>" << std::endl;
     return output;
 }
 #endif
@@ -1763,35 +1763,35 @@ Model::printSVG( ostream& output ) const
  * Yow!
  */
 
-ostream&
-Model::printSXD( ostream& output ) const
+std::ostream&
+Model::printSXD( std::ostream& output ) const
 {
-    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl
-	   << "<!DOCTYPE office:document-content PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << endl;
+    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl
+	   << "<!DOCTYPE office:document-content PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << std::endl;
 
     set_indent(0);
-    output << indent( +1 ) << "<office:document-content xmlns:office=\"http://openoffice.org/2000/office\" xmlns:style=\"http://openoffice.org/2000/style\" xmlns:text=\"http://openoffice.org/2000/text\" xmlns:table=\"http://openoffice.org/2000/table\" xmlns:draw=\"http://openoffice.org/2000/drawing\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:number=\"http://openoffice.org/2000/datastyle\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:svg=\"http://www.w3.org/2000/svg\" xmlns:chart=\"http://openoffice.org/2000/chart\" xmlns:dr3d=\"http://openoffice.org/2000/dr3d\" xmlns:math=\"http://www.w3.org/1998/Math/MathML\" xmlns:form=\"http://openoffice.org/2000/form\" xmlns:script=\"http://openoffice.org/2000/script\" office:class=\"drawing\" office:version=\"1.0\">" << endl;
-    output << indent( 0 )  << "<office:script/>" << endl;
+    output << indent( +1 ) << "<office:document-content xmlns:office=\"http://openoffice.org/2000/office\" xmlns:style=\"http://openoffice.org/2000/style\" xmlns:text=\"http://openoffice.org/2000/text\" xmlns:table=\"http://openoffice.org/2000/table\" xmlns:draw=\"http://openoffice.org/2000/drawing\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:number=\"http://openoffice.org/2000/datastyle\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:svg=\"http://www.w3.org/2000/svg\" xmlns:chart=\"http://openoffice.org/2000/chart\" xmlns:dr3d=\"http://openoffice.org/2000/dr3d\" xmlns:math=\"http://www.w3.org/1998/Math/MathML\" xmlns:form=\"http://openoffice.org/2000/form\" xmlns:script=\"http://openoffice.org/2000/script\" office:class=\"drawing\" office:version=\"1.0\">" << std::endl;
+    output << indent( 0 )  << "<office:script/>" << std::endl;
 
     SXD::init( output );
 
-    output << indent( +1 ) << "<office:body>" << endl;
+    output << indent( +1 ) << "<office:body>" << std::endl;
     output << indent( +1 ) << "<draw:page draw:name=\""
 	   << _inputFileName
-	   << "\" draw:style-name=\"dp1\" draw:master-page-name=\"Default\">" << endl;
+	   << "\" draw:style-name=\"dp1\" draw:master-page-name=\"Default\">" << std::endl;
 
     printLayers( output );
 
-    output << indent( -1 ) << "</draw:page>" << endl;
-    output << indent( -1 ) << "</office:body>" << endl;
-    output << indent( -1 ) << "</office:document-content>" << endl;
+    output << indent( -1 ) << "</draw:page>" << std::endl;
+    output << indent( -1 ) << "</office:body>" << std::endl;
+    output << indent( -1 ) << "</office:document-content>" << std::endl;
 
     return output;
 }
 #endif
 #if defined(X11_OUTPUT)
-ostream&
-Model::printX11( ostream& output ) const
+std::ostream&
+Model::printX11( std::ostream& output ) const
 {
     return output;
 }
@@ -1804,10 +1804,10 @@ Model::printX11( ostream& output ) const
  * Change the order of the entity list from the order of input to the order we have assigned.
  */
 
-map<unsigned, LQIO::DOM::Entity *>&
+std::map<unsigned, LQIO::DOM::Entity *>&
 Model::remapEntities() const
 {
-    map<unsigned, LQIO::DOM::Entity *>& entities = const_cast<map<unsigned, LQIO::DOM::Entity *>&>(getDOM()->getEntities());
+    std::map<unsigned, LQIO::DOM::Entity *>& entities = const_cast<std::map<unsigned, LQIO::DOM::Entity *>&>(getDOM()->getEntities());
     entities.clear();
     for_each( _layers.begin(), _layers.end(), Remap( entities ) );
     return entities;
@@ -1831,8 +1831,8 @@ Model::Remap::operator()( const Entity * entity )
  * Output an input file.
  */
 
-ostream&
-Model::printInput( ostream& output ) const
+std::ostream&
+Model::printInput( std::ostream& output ) const
 {
     LQIO::SRVN::Input srvn( *getDOM(), remapEntities(), Flags::annotate_input );
     srvn.print( output );
@@ -1844,8 +1844,8 @@ Model::printInput( ostream& output ) const
  * Output an output file.
  */
 
-ostream&
-Model::printOutput( ostream& output ) const
+std::ostream&
+Model::printOutput( std::ostream& output ) const
 {
     LQIO::SRVN::Output srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b, Flags::print[VARIANCE].value.b, Flags::print[HISTOGRAMS].value.b );
     srvn.print( output );
@@ -1858,8 +1858,8 @@ Model::printOutput( ostream& output ) const
  * Output an output file.
  */
 
-ostream&
-Model::printParseable( ostream& output ) const
+std::ostream&
+Model::printParseable( std::ostream& output ) const
 {
     LQIO::SRVN::Parseable srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b );
     srvn.print( output );
@@ -1872,8 +1872,8 @@ Model::printParseable( ostream& output ) const
  * Output an output file.
  */
 
-ostream&
-Model::printRTF( ostream& output ) const
+std::ostream&
+Model::printRTF( std::ostream& output ) const
 {
     LQIO::SRVN::RTF srvn( *getDOM(), remapEntities(), Flags::print[CONFIDENCE_INTERVALS].value.b );
     srvn.print( output );
@@ -1887,8 +1887,8 @@ Model::printRTF( ostream& output ) const
  * Dump the layers.
  */
 
-ostream&
-Model::printTXT( ostream& output ) const
+std::ostream&
+Model::printTXT( std::ostream& output ) const
 {
     if ( Flags::print_submodels ) {
 	for ( std::vector<Layer>::const_iterator layer = (_layers.begin() + 1); layer != _layers.end(); ++layer ) {
@@ -1903,8 +1903,8 @@ Model::printTXT( ostream& output ) const
 #endif
 
 
-ostream&
-Model::printXML( ostream& output ) const
+std::ostream&
+Model::printXML( std::ostream& output ) const
 {
     remapEntities();		/* Reorder to our order */
     _document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Don't output LQX code if running. */
@@ -1915,8 +1915,8 @@ Model::printXML( ostream& output ) const
  * Print out one layer at at time.  Used by most graphical output routines.
  */
 
-ostream&
-Model::printLayers( ostream& output ) const
+std::ostream&
+Model::printLayers( std::ostream& output ) const
 {
     if ( queueing_output() ) {
 	const int submodel = Flags::print[QUEUEING_MODEL].value.i;
@@ -1937,7 +1937,7 @@ Model::printLayers( ostream& output ) const
 	    if ( !*layer ) continue;
 #if defined(TXT_OUTPUT)
 	    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_TXT ) {
-		output << "---------- Layer " << layer->number() << " ----------" << endl;
+		output << "---------- Layer " << layer->number() << " ----------" << std::endl;
 	    }
 #endif
 	    output << *layer;
@@ -1954,20 +1954,20 @@ Model::printLayers( ostream& output ) const
 
 
 
-ostream&
-Model::printEEPICprologue( ostream& output )
+std::ostream&
+Model::printEEPICprologue( std::ostream& output )
 {
-    output << "\\documentclass{article}" << endl;
-    output << "\\usepackage{epic,eepic}" << endl;
-    output << "\\usepackage[usenames]{color}" << endl;
-    output << "\\begin{document}" << endl;
+    output << "\\documentclass{article}" << std::endl;
+    output << "\\usepackage{epic,eepic}" << std::endl;
+    output << "\\usepackage[usenames]{color}" << std::endl;
+    output << "\\begin{document}" << std::endl;
     return output;
 }
 
-ostream&
-Model::printEEPICepilogue( ostream& output )
+std::ostream&
+Model::printEEPICepilogue( std::ostream& output )
 {
-    output << "\\end{document}" << endl;
+    output << "\\end{document}" << std::endl;
     return output;
 }
 
@@ -1978,28 +1978,28 @@ Model::printEEPICepilogue( ostream& output )
  * pstops '4:0@.5(0in,5.5in)+1@.5(4.5in,5.5in)+2@.5(0in,0in)+3@.5(4.5in,0in)' multi.ps > new.ps
  */
 
-ostream&
-Model::printPostScriptPrologue( ostream& output, const string& title,
+std::ostream&
+Model::printPostScriptPrologue( std::ostream& output, const std::string& title,
 				unsigned left, unsigned top, unsigned right, unsigned bottom ) const
 {
-    output << "%!PS-Adobe-2.0" << endl;
-    output << "%%Title: " << title << endl;
-    output << "%%Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << endl;
+    output << "%!PS-Adobe-2.0" << std::endl;
+    output << "%%Title: " << title << std::endl;
+    output << "%%Creator: " << LQIO::io_vars.lq_toolname << " Version " << VERSION << std::endl;
 #if defined(HAVE_CTIME)
     time_t tloc;
     time( &tloc );
     output << "%%CreationDate: " << ctime( &tloc );
 #endif
-    output << "%%For: " << _login << endl;
-    output << "%%Invoked as: " << command_line << ' ' << title << endl;
-    output << "%%Orientation: Portrait" << endl;
-    output << "%%Pages: " << maxModelNumber << endl;
-    output << "%%BoundingBox: " << left << ' ' << top << ' ' << right << ' ' << bottom << endl;
-    output << "%%BeginSetup" << endl;
-    output << "%%IncludeFeature: *PageSize Letter" << endl;
-    output << "%%EndSetup" << endl;
-    output << "%%Magnification: 0.7500" << endl;
-    output << "%%EndComments" << endl;
+    output << "%%For: " << _login << std::endl;
+    output << "%%Invoked as: " << command_line << ' ' << title << std::endl;
+    output << "%%Orientation: Portrait" << std::endl;
+    output << "%%Pages: " << maxModelNumber << std::endl;
+    output << "%%BoundingBox: " << left << ' ' << top << ' ' << right << ' ' << bottom << std::endl;
+    output << "%%BeginSetup" << std::endl;
+    output << "%%IncludeFeature: *PageSize Letter" << std::endl;
+    output << "%%EndSetup" << std::endl;
+    output << "%%Magnification: 0.7500" << std::endl;
+    output << "%%EndComments" << std::endl;
     return output;
 }
 
@@ -2020,17 +2020,17 @@ Model::printSXD( const char * file_name ) const
     LQIO::Filename dir_name( file_name, "" );
 
     if ( MKDIR( dir_name().c_str(), S_IRWXU ) < 0 ) {
-	ostringstream msg;
+	std::ostringstream msg;
 	msg << "Cannot create directory \"" << dir_name() << "\" - " << strerror( errno );
-	throw runtime_error( msg.str() );
+	throw std::runtime_error( msg.str() );
     } else {
-	string meta_name = dir_name();
+	std::string meta_name = dir_name();
 	meta_name += "/META-INF";
 	if ( MKDIR( meta_name.c_str(), S_IRWXU ) < 0 ) {
-	    ostringstream msg;
+	    std::ostringstream msg;
 	    msg << "Cannot create directory \"" << meta_name << "\" - " << strerror( errno );
 	    rmdir( dir_name().c_str() );
-	    throw runtime_error( msg.str() );
+	    throw std::runtime_error( msg.str() );
 	} else try {
 		printSXD( file_name, dir_name(), "META-INF/manifest.xml", &Model::printSXDManifest );
 		printSXD( file_name, dir_name(), "content.xml", &Model::printSXD );
@@ -2040,7 +2040,7 @@ Model::printSXD( const char * file_name ) const
 		printSXD( file_name, dir_name(), "mimetype", &Model::printSXDMimeType );
 		rmdir( meta_name.c_str() );
 	    }
-	    catch ( const runtime_error &error ) {
+	    catch ( const std::runtime_error &error ) {
 		rmdir( meta_name.c_str() );
 		rmdir( dir_name().c_str() );
 		throw;
@@ -2054,35 +2054,35 @@ Model::printSXD( const char * file_name ) const
 const Model&
 Model::printSXD( const std::string& dst_name, const std::string& dir_name, const char * file_name, const printSXDFunc aFunc ) const
 {
-    string pathname = dir_name;
+    std::string pathname = dir_name;
     pathname += "/";
     pathname += file_name;
 
-    ofstream output;
-    output.open( pathname.c_str(), ios::out );
+    std::ofstream output;
+    output.open( pathname.c_str(), std::ios::out );
     if ( !output ) {
-	ostringstream msg;
+	std::ostringstream msg;
 	msg << "Cannot open output file \"" << pathname << "\" - " << strerror( errno );
-	throw runtime_error( msg.str() );
+	throw std::runtime_error( msg.str() );
     } else {
 	/* Write out all other XML goop needed */
 	(this->*aFunc)( output );
 	output.close();
 
 #if !defined(WINNT)
-	ostringstream command;
+	std::ostringstream command;
 	command << "cd " << dir_name << "; zip -r ../" << dst_name << " " << file_name;
 	int rc = system( command.str().c_str() );
 	unlink( pathname.c_str() );	/* Delete now. */
 	if ( rc != 0 ) {
-	    ostringstream msg;
+	    std::ostringstream msg;
 	    msg << "Cannot execute \"" << command.str() << "\" - ";
 	    if ( rc < 0 ) {
 		msg << strerror( errno );
 	    } else {
-		msg << "status=0x" << hex << rc;
+		msg << "status=0x" << std::hex << rc;
 	    }
-	    throw runtime_error( msg.str() );
+	    throw std::runtime_error( msg.str() );
 	}
 #endif
     }
@@ -2090,8 +2090,8 @@ Model::printSXD( const std::string& dst_name, const std::string& dir_name, const
 }
 
 
-ostream&
-Model::printSXDMeta( ostream& output ) const
+std::ostream&
+Model::printSXDMeta( std::ostream& output ) const
 {
     char buf[32];
     unsigned int count = 0;
@@ -2099,81 +2099,81 @@ Model::printSXDMeta( ostream& output ) const
 	count += layer->entities().size();
     }
 
-    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-    output << "<!DOCTYPE office:document-meta PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << endl;
-    output << "<office:document-meta xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:meta=\"http://openoffice.org/2000/meta\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << endl;
-    output << "<office:meta>" << endl;
+    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    output << "<!DOCTYPE office:document-meta PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << std::endl;
+    output << "<office:document-meta xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:dc=\"http://purl.org/dc/elements/1.1/\" xmlns:meta=\"http://openoffice.org/2000/meta\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << std::endl;
+    output << "<office:meta>" << std::endl;
 #if defined(HAVE_CTIME)
     time_t tloc;
     time( &tloc );
     strftime( buf, 32, "%Y-%m-%dT%T", localtime( &tloc ) );
 #endif
-    output << "<dc:title>" << _inputFileName << "</dc:title>" << endl;
-    output << "<dc:comment>" << getDOM()->getModelComment() << "</dc:comment>" << endl;
-    output << "<dc:creator>" << _login << "</dc:creator>" << endl;
-    output << "<dc:date>" << buf << "</dc:date>" << endl;
-    output << "<dc:language>en-US</dc:language>" << endl;
+    output << "<dc:title>" << _inputFileName << "</dc:title>" << std::endl;
+    output << "<dc:comment>" << getDOM()->getModelComment() << "</dc:comment>" << std::endl;
+    output << "<dc:creator>" << _login << "</dc:creator>" << std::endl;
+    output << "<dc:date>" << buf << "</dc:date>" << std::endl;
+    output << "<dc:language>en-US</dc:language>" << std::endl;
 
-    output << "<meta:generator>" << LQIO::io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << endl;
-    output << "<meta:creation-date>" << buf << "</meta:creation-date>" << endl;
-    output << "<meta:editing-cycles>1</meta:editing-cycles>" << endl;
+    output << "<meta:generator>" << LQIO::io_vars.lq_toolname << " Version " << VERSION << "</meta:generator>" << std::endl;
+    output << "<meta:creation-date>" << buf << "</meta:creation-date>" << std::endl;
+    output << "<meta:editing-cycles>1</meta:editing-cycles>" << std::endl;
 #if defined(HAVE_SYS_TIMES_H)
     struct tms run_time;
     double stop_clock = times( &run_time );
     strftime( buf, 32, "PT%MM%SS", localtime( &tloc ) );
-    output << "<meta:editing-duration>" << buf << "</meta:editing-duration>" << endl;
+    output << "<meta:editing-duration>" << buf << "</meta:editing-duration>" << std::endl;
 #endif
-    output << "<meta:user-defined meta:name=\"Info 1\">" << command_line << "</meta:user-defined>" << endl;
-    output << "<meta:user-defined meta:name=\"Info 2\"/>" << endl;
-    output << "<meta:user-defined meta:name=\"Info 3\"/>" << endl;
-    output << "<meta:user-defined meta:name=\"Info 4\"/>" << endl;
-    output << "<meta:document-statistic meta:object-count=\"" << count << "\"/>" << endl;
-    output << "</office:meta>" << endl;
-    output << "</office:document-meta>" << endl;
+    output << "<meta:user-defined meta:name=\"Info 1\">" << command_line << "</meta:user-defined>" << std::endl;
+    output << "<meta:user-defined meta:name=\"Info 2\"/>" << std::endl;
+    output << "<meta:user-defined meta:name=\"Info 3\"/>" << std::endl;
+    output << "<meta:user-defined meta:name=\"Info 4\"/>" << std::endl;
+    output << "<meta:document-statistic meta:object-count=\"" << count << "\"/>" << std::endl;
+    output << "</office:meta>" << std::endl;
+    output << "</office:document-meta>" << std::endl;
 
     return output;
 }
 
-ostream&
-Model::printSXDMimeType( ostream& output ) const
+std::ostream&
+Model::printSXDMimeType( std::ostream& output ) const
 {
-    output << "application/vnd.sun.xml.draw" << endl;
+    output << "application/vnd.sun.xml.draw" << std::endl;
     return output;
 }
 
-ostream&
-Model::printSXDSettings( ostream& output ) const
+std::ostream&
+Model::printSXDSettings( std::ostream& output ) const
 {
     set_indent(0);
-    output << indent( 0 ) << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-    output << indent( 0 ) << "<!DOCTYPE office:document-settings PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << endl;
-    output << indent( 1 ) << "<office:document-settings xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:config=\"http://openoffice.org/2001/config\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << endl;
-    output << indent( 1 ) << "<office:settings>" << endl;
-    output << indent( -1 ) << "</office:settings>" << endl;
-    output << indent( -1 ) << "</office:document-settings>" << endl;
+    output << indent( 0 ) << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    output << indent( 0 ) << "<!DOCTYPE office:document-settings PUBLIC \"-//OpenOffice.org//DTD OfficeDocument 1.0//EN\" \"office.dtd\">" << std::endl;
+    output << indent( 1 ) << "<office:document-settings xmlns:office=\"http://openoffice.org/2000/office\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" xmlns:presentation=\"http://openoffice.org/2000/presentation\" xmlns:config=\"http://openoffice.org/2001/config\" xmlns:fo=\"http://www.w3.org/1999/XSL/Format\" office:version=\"1.0\">" << std::endl;
+    output << indent( 1 ) << "<office:settings>" << std::endl;
+    output << indent( -1 ) << "</office:settings>" << std::endl;
+    output << indent( -1 ) << "</office:document-settings>" << std::endl;
     return output;
 }
 
-ostream&
-Model::printSXDStyles( ostream& output ) const
+std::ostream&
+Model::printSXDStyles( std::ostream& output ) const
 {
     set_indent(0);
     return SXD::printStyles( output );
 }
 
-ostream&
-Model::printSXDManifest( ostream& output ) const
+std::ostream&
+Model::printSXDManifest( std::ostream& output ) const
 {
-    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << endl;
-    output << "<!DOCTYPE manifest:manifest PUBLIC \"-//OpenOffice.org//DTD Manifest 1.0//EN\" \"Manifest.dtd\">" << endl;
-    output << "<manifest:manifest xmlns:manifest=\"http://openoffice.org/2001/manifest\">" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"application/vnd.sun.xml.draw\" manifest:full-path=\"/\"/>" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"\" manifest:full-path=\"Pictures/\"/>" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"content.xml\"/>" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"styles.xml\"/>" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"meta.xml\"/>" << endl;
-    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"settings.xml\"/>" << endl;
-    output << "</manifest:manifest>" << endl;
+    output << "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" << std::endl;
+    output << "<!DOCTYPE manifest:manifest PUBLIC \"-//OpenOffice.org//DTD Manifest 1.0//EN\" \"Manifest.dtd\">" << std::endl;
+    output << "<manifest:manifest xmlns:manifest=\"http://openoffice.org/2001/manifest\">" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"application/vnd.sun.xml.draw\" manifest:full-path=\"/\"/>" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"\" manifest:full-path=\"Pictures/\"/>" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"content.xml\"/>" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"styles.xml\"/>" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"meta.xml\"/>" << std::endl;
+    output << "<manifest:file-entry manifest:media-type=\"text/xml\" manifest:full-path=\"settings.xml\"/>" << std::endl;
+    output << "</manifest:manifest>" << std::endl;
     return output;
 }
 #endif
@@ -2218,20 +2218,20 @@ Model::Count::operator()( const Entity * entity )
  *
  */
 
-ostream&
-Model::printStatistics( ostream& output, const char * filename ) const
+std::ostream&
+Model::printStatistics( std::ostream& output, const char * filename ) const
 {
     if ( filename ) {
-	output << filename << ":" << endl;
+	output << filename << ":" << std::endl;
     }
 
-    output << "  Layers: " << _layers.size() << endl
-	   << "  Tasks: " << _total.tasks() << endl
-	   << "  Processors: " << _total.processors() << endl
-	   << "  Entries: " << _total.entries() << endl
-	   << "  Phases:" << phaseCount[1] << "," << phaseCount[2] << "," << phaseCount[3] << endl;
+    output << "  Layers: " << _layers.size() << std::endl
+	   << "  Tasks: " << _total.tasks() << std::endl
+	   << "  Processors: " << _total.processors() << std::endl
+	   << "  Entries: " << _total.entries() << std::endl
+	   << "  Phases:" << phaseCount[1] << "," << phaseCount[2] << "," << phaseCount[3] << std::endl;
     if ( _total.activities() > 0 ) {
-	output << "  Activites: " << _total.activities() << endl;
+	output << "  Activites: " << _total.activities() << std::endl;
     }
     output << "  Customers: ";
 
@@ -2246,37 +2246,37 @@ Model::printStatistics( ostream& output, const char * filename ) const
 	    output << aTask->copies();
 	}
     }
-    output << endl;
+    output << std::endl;
     if ( openArrivalCount > 0 ) {
-	output << "  Open Arrivals: " << openArrivalCount << endl;
+	output << "  Open Arrivals: " << openArrivalCount << std::endl;
     }
     if ( rendezvousCount[0] ) {
-	output << "  Rendezvous: " << rendezvousCount[1] << "," << rendezvousCount[2] << "," << rendezvousCount[3] << endl;
+	output << "  Rendezvous: " << rendezvousCount[1] << "," << rendezvousCount[2] << "," << rendezvousCount[3] << std::endl;
     }
     if ( sendNoReplyCount[0] ) {
-	output << "  Send-no-reply: " << sendNoReplyCount[1] << "," << sendNoReplyCount[2] << "," << sendNoReplyCount[3] << endl;
+	output << "  Send-no-reply: " << sendNoReplyCount[1] << "," << sendNoReplyCount[2] << "," << sendNoReplyCount[3] << std::endl;
     }
     if ( forwardingCount ) {
-	output << "  Forwarding: " << forwardingCount << endl;
+	output << "  Forwarding: " << forwardingCount << std::endl;
     }
     return output;
 }
 
 
-ostream&
-Model::printOverallStatistics( ostream& output )
+std::ostream&
+Model::printOverallStatistics( std::ostream& output )
 {
     for ( int i = 0; i < N_STATS; ++i ) {
 	if ( stats[i].sum() > 0 ) {
-	    output << stats[i] << endl;
+	    output << stats[i] << std::endl;
 	}
     }
     return output;
 }
 
 
-ostream&
-Model::printSummary( ostream& output ) const
+std::ostream&
+Model::printSummary( std::ostream& output ) const
 {
     if ( _inputFileName.size() ) {
 	output << _inputFileName << ":";
@@ -2284,19 +2284,19 @@ Model::printSummary( ostream& output ) const
     if ( graphical_output() ) {
 	output << "  width=\"" << to_inches( right() ) << "\", height=\"" << to_inches( top() ) << "\"";
     }
-    output << endl;
+    output << std::endl;
 
     if ( Group::__groups.size() == 0 && Flags::print_submodels ) {
 	for ( std::vector<Layer>::const_iterator layer = (_layers.begin()+1); layer != _layers.end(); ++layer ) {
 	    if ( !*layer  || layer->number() == 1 ) continue;
-	    output << "    " << setw( 2 ) << layer->number() - 1 << ": ";
+	    output << "    " << std::setw( 2 ) << layer->number() - 1 << ": ";
 	    const_cast<Layer&>(*layer).generateSubmodel().printSubmodelSummary( output );
 	}
     } else {
 	for ( std::vector<Layer>::const_iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	    if ( !*layer ) continue;
-	    cerr << "    " << setw( 2 ) << layer->number() << ": ";
-	    layer->printSummary( output ) << endl;
+	    std::cerr << "    " << std::setw( 2 ) << layer->number() << ": ";
+	    layer->printSummary( output ) << std::endl;
 	}
     }
 
@@ -2500,12 +2500,12 @@ ProcessorTask_Model::justify()
 	/* Move all processors in a given layer together */
 	if ( procLayer[i].size() ) {
 	    procLayer[i].reformat();
-	    procWidthPts = max( procWidthPts, procLayer[i].x() + procLayer[i].width() );
+	    procWidthPts = std::max( procWidthPts, procLayer[i].x() + procLayer[i].width() );
 	}
 	/* Move all tasks in a given layer together */
 	if ( taskLayer[i].size() ) {
 	    taskLayer[i].reformat();
-	    taskWidthPts = max( taskWidthPts, taskLayer[i].x() + taskLayer[i].width() );
+	    taskWidthPts = std::max( taskWidthPts, taskLayer[i].x() + taskLayer[i].width() );
 	}
     }
 
@@ -2576,20 +2576,20 @@ SRVN_Model::selectSubmodel( const unsigned submodel )
 {
     /* Build the list of all servers for this model */
 
-    multiset<Entity *,lt_submodel> servers;
+    std::multiset<Entity *,lt_submodel> servers;
     for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
 	Task * aTask = *nextTask;
 	if ( aTask->isReferenceTask() || aTask->level() <= 0 ) continue;
 	servers.insert( aTask );
     }
-    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
+    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->level() <= 0 ) continue;
 	servers.insert( aProcessor );
     }
 
     unsigned int s = 1;
-    for ( multiset<Entity *,lt_submodel>::const_iterator next_server = servers.begin(); next_server != servers.end(); ++next_server, ++s ) {
+    for ( std::multiset<Entity *,lt_submodel>::const_iterator next_server = servers.begin(); next_server != servers.end(); ++next_server, ++s ) {
         Entity * aServer = *next_server;
 	if ( s == submodel ) {
 	    aServer->isSelected( true );
@@ -2627,7 +2627,7 @@ Squashed_Model::generate()
 	    aTask->setLevel( CLIENT_LEVEL );
 	}
     }
-    for ( set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
+    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
 	Processor * aProcessor = *nextProcessor;
 	if ( aProcessor->level() == 0 ) {
 	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Processor", aProcessor->name().c_str() );
@@ -2667,7 +2667,7 @@ Model::Stats::Stats()
 
 
 Model::Stats&
-Model::Stats::accumulate( double value, const string& filename )
+Model::Stats::accumulate( double value, const std::string& filename )
 {
     n += 1;
     x += value;
@@ -2677,14 +2677,14 @@ Model::Stats::accumulate( double value, const string& filename )
     if ( value < min ) {
 	min = value;
 	min_filename = filename;
-    } else if ( value == min && min_filename.find( filename ) == string::npos ) {
+    } else if ( value == min && min_filename.find( filename ) == std::string::npos ) {
 	min_filename += ", ";
 	min_filename += filename;
     }
     if ( value > max ) {
 	max = value;
 	max_filename = filename;
-    } else if ( value == max && max_filename.find( filename ) == string::npos ) {
+    } else if ( value == max && max_filename.find( filename ) == std::string::npos ) {
 	max_filename += ", ";
 	max_filename += filename;
     }
@@ -2693,7 +2693,7 @@ Model::Stats::accumulate( double value, const string& filename )
 
 
 Model::Stats&
-Model::Stats::accumulate( const Model * aModel, const string& filename )
+Model::Stats::accumulate( const Model * aModel, const std::string& filename )
 {
     assert( aModel && myFunc );
     return accumulate( static_cast<double>((aModel->*myFunc)()), filename );
@@ -2704,10 +2704,10 @@ Model::Stats::accumulate( const Model * aModel, const string& filename )
  * Compute population standard deviation.
  */
 
-ostream&
-Model::Stats::print( ostream& output) const
+std::ostream&
+Model::Stats::print( std::ostream& output) const
 {
-    output << myName << ":" << endl;
+    output << myName << ":" << std::endl;
     double stddev = 0.0;
     if ( n > 1 ) {
 	const double numerator = x_sqr - ( x * x ) / static_cast<double>(n);
@@ -2715,16 +2715,16 @@ Model::Stats::print( ostream& output) const
 	    stddev = sqrt( numerator / static_cast<double>( n ) );
 	}
     }
-    output << "  mean   = " << x / static_cast<double>(n) << endl;
-    output << "  geom   = " << exp( log_x / static_cast<double>(n) ) << endl;	/* Geometric mean */
-    output << "  stddev = " << stddev << endl;
-    output << "  max    = " << max << " (" << max_filename << ")" << endl;
-    output << "  min    = " << min << " (" << min_filename << ")" << endl;
+    output << "  mean   = " << x / static_cast<double>(n) << std::endl;
+    output << "  geom   = " << exp( log_x / static_cast<double>(n) ) << std::endl;	/* Geometric mean */
+    output << "  stddev = " << stddev << std::endl;
+    output << "  max    = " << max << " (" << max_filename << ")" << std::endl;
+    output << "  min    = " << min << " (" << min_filename << ")" << std::endl;
     return output;
 }
 
-static ostream&
-print_comment_str( ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
+static std::ostream&
+print_comment_str( std::ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
 {
     output << prefix;
     const char * s = 0;
@@ -2739,8 +2739,8 @@ print_comment_str( ostream& output, const char * prefix, const LQIO::DOM::Extern
     return output;
 }
 
-static ostream&
-to_inches_str( ostream& output, const double value )
+static std::ostream&
+to_inches_str( std::ostream& output, const double value )
 {
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_FIG:

@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  * 
- * $Id: label.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: label.cc 14136 2020-11-25 18:27:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -25,14 +25,14 @@
 
 class LabelStringManip {
 public:
-    LabelStringManip( ostream& (*ff)(ostream&, const char * ), 
+    LabelStringManip( std::ostream& (*ff)(std::ostream&, const char * ), 
 		      const char * aStr  )
 	: f(ff), myStr(aStr) {}
 private:
-    ostream& (*f)( ostream&, const char * );
+    std::ostream& (*f)( std::ostream&, const char * );
     const char * myStr;
 
-    friend ostream& operator<<(ostream & os, const LabelStringManip& m )
+    friend std::ostream& operator<<(std::ostream & os, const LabelStringManip& m )
 	{ return m.f(os,m.myStr); }
 };
 
@@ -95,7 +95,7 @@ Label::newLabel()
 	return new LabelNull();
     }
     abort();
-    return 0;
+    return nullptr;
 }
 
 Label::Label() 
@@ -237,7 +237,7 @@ Label::appendV( const LQIO::DOM::ExternalVariable& v )
     if ( Flags::instantiate ) {
 	appendD( to_double( v ) );
     } else {
-	stringstream s;		/* For Unicode - We need to expand the string */
+	std::stringstream s;		/* For Unicode - We need to expand the string */
 	s << v;
 	appendS( s.str() );
     }
@@ -453,7 +453,7 @@ LabelEMF::appendPC( const char * s )
  */
 
 Label&
-LabelEMF::appendS( const string& s )
+LabelEMF::appendS( const std::string& s )
 {
     for ( unsigned i = 0; i < s.size(); ++i ) {
 	_lines.back() << static_cast<char>(0x00) << s[i];
@@ -475,7 +475,7 @@ LabelEMF::appendD( const double aDouble )
 	}
 	infty();
     } else {
-	ostringstream s;
+	std::ostringstream s;
 	s << aDouble;
 	appendS( s.str() );
     }
@@ -490,7 +490,7 @@ LabelEMF::appendD( const double aDouble )
 Label& 
 LabelEMF::appendI( const int anInt )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << anInt;
     appendS( s.str() );
     return *this; 
@@ -504,7 +504,7 @@ LabelEMF::appendI( const int anInt )
 Label& 
 LabelEMF::appendUI( const unsigned anInt )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << anInt;
     appendS( s.str() );
     return *this; 
@@ -514,7 +514,7 @@ LabelEMF::appendUI( const unsigned anInt )
 Label&
 LabelEMF::appendLSM( const LabelStringManip& aManip )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << aManip;
     appendS( s.str() );
     return *this;
@@ -524,7 +524,7 @@ LabelEMF::appendLSM( const LabelStringManip& aManip )
 Label&
 LabelEMF::appendSEM( const SRVNEntryManip& aManip )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << aManip;
     appendS( s.str() );
     return *this;
@@ -534,7 +534,7 @@ LabelEMF::appendSEM( const SRVNEntryManip& aManip )
 Label&
 LabelEMF::appendSCM( const SRVNCallManip& aManip )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << aManip;
     appendS( s.str() );
     return *this;
@@ -544,7 +544,7 @@ LabelEMF::appendSCM( const SRVNCallManip& aManip )
 Label&
 LabelEMF::appendSTM( const TaskCallManip& aManip )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << aManip;
     appendS( s.str() );
     return *this;
@@ -554,7 +554,7 @@ LabelEMF::appendSTM( const TaskCallManip& aManip )
 Label&
 LabelEMF::appendDM( const DoubleManip& aManip )
 {
-    ostringstream s;
+    std::ostringstream s;
     s << aManip;
     appendS( s.str() );
     return *this;
@@ -562,7 +562,7 @@ LabelEMF::appendDM( const DoubleManip& aManip )
 
 
 const LabelEMF&
-LabelEMF::draw( ostream& output ) const
+LabelEMF::draw( std::ostream& output ) const
 {
     Point boxOrigin;
     Point boxExtent;
@@ -639,16 +639,16 @@ LabelFig::appendPC( const char * s )
 }
 
 
-ostream&
-LabelFig::comment( ostream& output, const string& aString ) const
+std::ostream&
+LabelFig::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "# " << aString << endl;
+    output << "# " << aString << std::endl;
     return output;
 }
 
 
 const LabelFig&
-LabelFig::draw( ostream& output ) const
+LabelFig::draw( std::ostream& output ) const
 {
     Point boxOrigin;
     Point boxExtent;		/* A guess... width is half of height */
@@ -800,7 +800,7 @@ LabelGD::appendPC( const char * s )
 
 
 const LabelGD&
-LabelGD::draw( ostream& output ) const
+LabelGD::draw( std::ostream& output ) const
 {
     for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelGD>( output, *this, &LabelGD::text, initialPoint(), justification() ) );
     return *this;
@@ -874,7 +874,7 @@ LabelPostScript::times()
  */
 
 const LabelPostScript&
-LabelPostScript::draw( ostream& output ) const
+LabelPostScript::draw( std::ostream& output ) const
 {
     for_each( _lines.begin(), _lines.end(), DrawText<LabelPostScript>( output, *this, &LabelPostScript::text, initialPoint(), justification() ) );
     return *this;
@@ -972,7 +972,7 @@ LabelSVG::appendPC( const char * s )
 
 
 const LabelSVG&
-LabelSVG::draw( ostream& output ) const
+LabelSVG::draw( std::ostream& output ) const
 {
     for_each( _lines.rbegin(), _lines.rend(), DrawText<LabelSVG>( output, *this, &LabelSVG::text, initialPoint(), justification() ) );
     return *this;
@@ -1070,7 +1070,7 @@ LabelSXD::appendPC( const char * s )
 
 
 const LabelSXD&
-LabelSXD::draw( ostream& output ) const
+LabelSXD::draw( std::ostream& output ) const
 {
     Point boxOrigin;
     Point boxExtent;
@@ -1216,7 +1216,7 @@ LabelTeX::times()
 }
 
 const LabelTeX&
-LabelTeX::draw( ostream& output ) const
+LabelTeX::draw( std::ostream& output ) const
 {
     for_each( _lines.begin(), _lines.end(), DrawText<LabelTeX>( output, *this, &LabelTeX::text, initialPoint(), justification() ) );
     return *this;
@@ -1299,7 +1299,7 @@ LabelPsTeX::times()
 }
 
 const LabelPsTeX&
-LabelPsTeX::draw( ostream& output ) const
+LabelPsTeX::draw( std::ostream& output ) const
 {
     Point boxOrigin;
     Point boxExtent;		/* A guess... width is half of height */

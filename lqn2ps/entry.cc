@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 13684 2020-07-13 15:41:25Z greg $
+ * $Id: entry.cc 14136 2020-11-25 18:27:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -190,13 +190,13 @@ Entry::~Entry()
 Entry *
 Entry::clone( unsigned int replica ) const 
 {
-    ostringstream aName;
+    std::ostringstream aName;
     aName << name() << "_" << replica;
     std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str().c_str() ) );
     if ( nextEntry != __entries.end() ) {
-	string msg = "Entry::expandEntry(): cannot add symbol ";
+	std::string msg = "Entry::expandEntry(): cannot add symbol ";
 	msg += aName.str();
-	throw runtime_error( msg );
+	throw std::runtime_error( msg );
     }
 
     Entry * new_entry = new Entry( *this );
@@ -626,7 +626,7 @@ Entry::forwardingRendezvous( Entry * toEntry, const unsigned p, const double val
 	}
 	return aCall;
     } else {
-	return 0;
+	return nullptr;
     }
 }
 
@@ -664,13 +664,13 @@ Entry::executionTime( const unsigned p ) const
 {
     if ( isStandardEntry() ) {
 	const std::map<unsigned,Phase>::const_iterator i = _phases.find(p);
-	if ( i == _phases.end() ) return 0;
+	if ( i == _phases.end() ) return 0.;
 	const Phase& phase = i->second;
 	return phase.executionTime();
     } else if ( getDOM() ) {
 	return dynamic_cast<const LQIO::DOM::Entry *>(getDOM())->getResultPhasePServiceTime(p);
     } else {
-	return 0;
+	return 0.;
     }
 }
 
@@ -1308,13 +1308,13 @@ size_t
 Entry::findChildren( CallStack& callStack, const unsigned directPath ) const
 {
     std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator> list(calls().begin(),calls().end());
-    size_t max_depth = max( followCalls( list, callStack, directPath ), callStack.size() );
+    size_t max_depth = std::max( followCalls( list, callStack, directPath ), callStack.size() );
 
     Activity * anActivity = startActivity();
     if ( anActivity ) {
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
-	    max_depth = max( anActivity->findChildren( callStack, directPath, activityStack ), max_depth );
+	    max_depth = std::max( anActivity->findChildren( callStack, directPath, activityStack ), max_depth );
 	}
 	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
@@ -1350,16 +1350,16 @@ Entry::check() const
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 		rc = false;
 	    }
-	    _maxPhase = max( _maxPhase, next_p );
-	    max_phases = max( _maxPhase, max_phases );		/* Set global value.	*/
+	    _maxPhase = std::max( _maxPhase, next_p );
+	    max_phases = std::max( _maxPhase, max_phases );		/* Set global value.	*/
 	}
 
     } else {
 	bool hasServiceTime = false;
 	for ( std::map<unsigned,Phase>::const_iterator p = _phases.begin(); p != _phases.end(); ++p ) {
 	    const Phase& phase = p->second;
-	    _maxPhase = max( _maxPhase, p->first );
-	    max_phases = max( _maxPhase, max_phases );		/* Set global value.	*/
+	    _maxPhase = std::max( _maxPhase, p->first );
+	    max_phases = std::max( _maxPhase, max_phases );		/* Set global value.	*/
 	    rc = phase.check() && rc;
 	    hasServiceTime = hasServiceTime || phase.hasServiceTime();
 	}
@@ -1594,7 +1594,7 @@ Entry::getIndex() const
 
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	if ( !(*call)->isPseudoCall() ) {
-	    anIndex = min( anIndex, (*call)->srcIndex() );
+	    anIndex = std::min( anIndex, (*call)->srcIndex() );
 	}
     }
 
@@ -1613,7 +1613,7 @@ Entry::span() const
     unsigned int mySpan = 0;
     const int myLevel = owner()->level();
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
-	mySpan = max( mySpan, myLevel - (*call)->srcLevel() );
+	mySpan = std::max( mySpan, myLevel - (*call)->srcLevel() );
     }
     return mySpan;
 }
@@ -1668,7 +1668,7 @@ Entry::moveTo( const double x, const double y )
     if ( myActivityCall ) {
 	myActivityCall->moveSrc( bottomCenter() );
 
-	::sort( myActivityCallers.begin(), myActivityCallers.end(), Call::compareDst );
+	std::sort( myActivityCallers.begin(), myActivityCallers.end(), Call::compareDst );
 
 	std::vector<Reply *> left_side;
 	std::vector<Reply *> right_side;
@@ -1745,7 +1745,7 @@ Entry::moveSrc()
 Entry&
 Entry::moveDst()
 {
-    ::sort( _callers.begin(), _callers.end(), Call::compareDst );
+    std::sort( _callers.begin(), _callers.end(), Call::compareDst );
     Point aPoint = myNode->topLeft();
 
     if ( Flags::print_forwarding_by_depth ) {
@@ -1996,15 +1996,15 @@ Entry::rename()
 
 #if defined(REP2FLAT)
 Entry *
-Entry::find_replica( const string& entry_name, const unsigned replica ) 
+Entry::find_replica( const std::string& entry_name, const unsigned replica ) 
 {
-    ostringstream aName;
+    std::ostringstream aName;
     aName << entry_name << "_" << replica;
     std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str() ) );
     if ( nextEntry == __entries.end() ) {
-	string msg = "Entry::find_replica: cannot find symbol ";
+	std::string msg = "Entry::find_replica: cannot find symbol ";
 	msg += aName.str();
-	throw runtime_error( msg );
+	throw std::runtime_error( msg );
     }
     return *nextEntry;
 }
@@ -2032,13 +2032,13 @@ Entry::expandCall()
 	for ( unsigned src_replica = 1; src_replica <= num_replicas; src_replica++) {
 
 	    if ( (*call)->fanOut() > (*call)->dstEntry()->owner()->replicasValue() ) {
-		ostringstream msg;
+		std::ostringstream msg;
 		msg << "Entry::expandCalls(): fanout of entry " << name()
 		    << " is greater than the number of replicas of the destination Entry'" << (*call)->dstEntry()->name() << "'";
-		throw runtime_error( msg.str() );
+		throw std::runtime_error( msg.str() );
 	    }
 
-	    ostringstream srcName;
+	    std::ostringstream srcName;
 	    Entry *srcEntry = find_replica( name(), src_replica );
 	    LQIO::DOM::Entry * src_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(srcEntry->getDOM()));
 
@@ -2138,7 +2138,7 @@ Entry::replicateEntry( LQIO::DOM::DocumentObject ** root )
     if ( replica == 1 ) {
 	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
 	std::pair<std::set<Entry *>::iterator,bool> rc = __entries.insert( this );
-	if ( !rc.second ) throw runtime_error( "Duplicate entry" );
+	if ( !rc.second ) throw std::runtime_error( "Duplicate entry" );
 	(*root)->setName( root_name );
 	const_cast<LQIO::DOM::Document *>(dom->getDocument())->addEntry( dom );		    /* Reconnect all of the dom stuff. */
     } else if ( root_name == (*root)->getName() ) {
@@ -2187,9 +2187,9 @@ Entry::replicateCall()
  */
 
 const Entry&
-Entry::draw( ostream& output ) const
+Entry::draw( std::ostream& output ) const
 {
-    ostringstream aComment;
+    std::ostringstream aComment;
     aComment << "Entry " << name();
     if ( _startActivity ) {
 	aComment << " A " << _startActivity->name();
@@ -2272,7 +2272,7 @@ Entry::draw( ostream& output ) const
 
     /* Draw reply arcs here for PostScript layering */
 
-    for_each( myActivityCallers.begin(), myActivityCallers.end(), ConstExec1<GenericCall,ostream&>(&GenericCall::draw, output) );
+    for_each( myActivityCallers.begin(), myActivityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
     return *this;
 }
 
@@ -2329,10 +2329,10 @@ Entry::compare( const Entry * e1, const Entry * e2 )
 /*----------------------------------------------------------------------*/
 
 Entry *
-Entry::find( const string& name )
+Entry::find( const std::string& name )
 {
     std::set<Entry *>::const_iterator entry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( name ) );
-    return entry != __entries.end() ? *entry : 0;
+    return entry != __entries.end() ? *entry : nullptr;
 }
 
 
@@ -2343,10 +2343,10 @@ Entry::find( const string& name )
 Entry *
 Entry::create( LQIO::DOM::Entry* domEntry )
 {
-    const string& entry_name = domEntry->getName();
+    const std::string& entry_name = domEntry->getName();
     if ( Entry::find( entry_name ) ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name.c_str() );
-	return 0;
+	return nullptr;
     } else {
 	Entry * anEntry = new Entry( domEntry );
 	assert( anEntry != 0 );
@@ -2359,8 +2359,8 @@ Entry::create( LQIO::DOM::Entry* domEntry )
 /*		 	    Output formatting.   			*/
 /*----------------------------------------------------------------------*/
 
-static ostream&
-format( ostream& output, int p ) {
+static std::ostream&
+format( std::ostream& output, int p ) {
     switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_SRVN:
 	if ( p != 1 ) {
@@ -2371,7 +2371,7 @@ format( ostream& output, int p ) {
     case FORMAT_OUTPUT:
     case FORMAT_PARSEABLE:
     case FORMAT_RTF:
-	output << setw( maxDblLen );
+	output << std::setw( maxDblLen );
 	break;
 
     default:
@@ -2397,8 +2397,8 @@ execution_time_of_label( Label& aLabel, const Entry& anEntry )
 }
 
 
-static ostream&
-queueing_time_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+queueing_time_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
 	format( output, p ) << opt_pct(anEntry.queueingTime(p));
@@ -2407,8 +2407,8 @@ queueing_time_of_str( ostream& output, const Entry& anEntry )
 }
 
 
-static ostream&
-service_time_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+service_time_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
 	format( output, p );
@@ -2422,8 +2422,8 @@ service_time_of_str( ostream& output, const Entry& anEntry )
 }
 
 
-static ostream&
-think_time_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+think_time_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= Entry::max_phases; ++p ) {
 	format( output, p );
@@ -2436,8 +2436,8 @@ think_time_of_str( ostream& output, const Entry& anEntry )
     return output;
 }
 
-static ostream&
-variance_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+variance_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
 	format( output, p ) << opt_pct(anEntry.variance(p));
@@ -2446,8 +2446,8 @@ variance_of_str( ostream& output, const Entry& anEntry )
 }
 
 
-static ostream&
-slice_time_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+slice_time_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
 	format( output, p ) << anEntry.sliceTime(p);
@@ -2455,8 +2455,8 @@ slice_time_of_str( ostream& output, const Entry& anEntry )
     return output;
 }
 
-static ostream&
-number_slices_of_str( ostream& output, const Entry& anEntry )
+static std::ostream&
+number_slices_of_str( std::ostream& output, const Entry& anEntry )
 {
     for ( unsigned p = 1; p <= anEntry.maxPhase(); ++p ) {
 	format( output, p ) << anEntry.numberSlices(p);

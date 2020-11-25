@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: call.cc 14134 2020-11-25 18:12:05Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -170,11 +170,11 @@ GenericCall::depth( const unsigned curDepth )
 
 
 const GenericCall&
-GenericCall::draw( ostream& output ) const
+GenericCall::draw( std::ostream& output ) const
 {
     if ( !isSelected() ) return *this;
     
-    ostringstream aComment;
+    std::ostringstream aComment;
     aComment << "Call "
 	     << srcName() << " " 
 	     << dstName();
@@ -199,7 +199,7 @@ GenericCall::draw( ostream& output ) const
 }
 
 
-ostream& GenericCall::dump( ostream& output ) const
+std::ostream& GenericCall::dump( std::ostream& output ) const
 {
     const unsigned int n = nPoints();
     for ( unsigned int i = 0; i < n; ++i ) {
@@ -814,7 +814,7 @@ Call::isLoopBack() const
  * Return the name of the destination entry.
  */
 
-const string&
+const std::string&
 Call::dstName() const
 {
     return dstEntry()->name();
@@ -1027,8 +1027,8 @@ Call::replicateCall( std::vector<Call *>& calls, Call ** root )
 }
 #endif
 
-ostream&
-Call::print( ostream& output ) const
+std::ostream&
+Call::print( std::ostream& output ) const
 {
     if ( isPseudoCall() ) return output;
 
@@ -1046,13 +1046,13 @@ Call::print( ostream& output ) const
 
 
 
-ostream&
-Call::printSRVNLine( ostream& output, char code, print_func_ptr func ) const
+std::ostream&
+Call::printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const
 {
     output << "  " << code << " " 
 	   << srcName() << " " 
 	   << dstName() << " " 
-	   << (*func)( *this ) << " -1" << endl;
+	   << (*func)( *this ) << " -1" << std::endl;
     return output;
 }
 
@@ -1126,7 +1126,7 @@ EntryCall::check() const
  * Return the name of the source entry.
  */
 
-const string& 
+const std::string& 
 EntryCall::srcName() const
 {
     return srcEntry()->name();
@@ -1269,7 +1269,7 @@ ActivityCall::check() const
  * Return the name of the source entry.
  */
 
-const string& 
+const std::string& 
 ActivityCall::srcName() const
 {
     return srcActivity()->name();
@@ -1338,15 +1338,15 @@ ActivityCall::colour() const
  * Don't print the -1.
  */
 
-ostream&
-ActivityCall::printSRVNLine( ostream& output, char code, print_func_ptr func ) const
+std::ostream&
+ActivityCall::printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const
 {
     if ( isPseudoCall() ) return output;
 
     output << "  " << code << " " 
 	   << srcName() << " " 
 	   << dstName() << " " 
-	   << (*func)( *this ) << endl;
+	   << (*func)( *this ) << std::endl;
     return output;
 }
 
@@ -1382,13 +1382,13 @@ Reply::colour() const
 
 /* ------------------ Calls to entities from tasks. ------------------- */
 
-const string& 
+const std::string& 
 EntityCall::srcName() const
 {
     return srcTask()->name();
 }
 
-const string &
+const std::string &
 EntityCall::dstName() const
 {
     return dstEntity()->name();
@@ -1854,14 +1854,14 @@ OpenArrival::srcTask() const
 
 
 
-const string&
+const std::string&
 OpenArrival::srcName() const
 {
     return srcTask()->name();
 }
 
 
-const string&
+const std::string&
 OpenArrival::dstName() const
 {
     return _destination->name();
@@ -2078,8 +2078,8 @@ CallStack::size2() const
 /*                      Functions for manipulators                      */
 /*----------------------------------------------------------------------*/
 
-static ostream&
-format_prologue( ostream& output, const Call& aCall, int p )
+static std::ostream&
+format_prologue( std::ostream& output, const Call& aCall, int p )
 {
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
@@ -2094,7 +2094,7 @@ format_prologue( ostream& output, const Call& aCall, int p )
     case FORMAT_OUTPUT:
     case FORMAT_PARSEABLE:
     case FORMAT_RTF:
-	output << setw( maxDblLen );
+	output << std::setw( maxDblLen );
 	break;
     case FORMAT_POSTSCRIPT:
     case FORMAT_FIG:
@@ -2112,8 +2112,8 @@ format_prologue( ostream& output, const Call& aCall, int p )
     return output;
 }
 
-static ostream&
-format_epilogue( ostream& output, const Call& aCall, int p )
+static std::ostream&
+format_epilogue( std::ostream& output, const Call& aCall, int p )
 {
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
@@ -2133,8 +2133,8 @@ format_epilogue( ostream& output, const Call& aCall, int p )
     return output;
 }
 
-static ostream&
-rendezvous_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+rendezvous_of_str( std::ostream& output, const Call& aCall )
 {
     for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
 	format_prologue( output, aCall, p );
@@ -2145,8 +2145,8 @@ rendezvous_of_str( ostream& output, const Call& aCall )
 }
 
 
-static ostream&
-sendnoreply_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+sendnoreply_of_str( std::ostream& output, const Call& aCall )
 {
     for ( unsigned p = 1; p <= aCall.maxPhase(); ++p ) {
 	format_prologue( output, aCall, p );
@@ -2157,24 +2157,24 @@ sendnoreply_of_str( ostream& output, const Call& aCall )
 }
 
 
-static ostream&
-forwarding_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+forwarding_of_str( std::ostream& output, const Call& aCall )
 {
     output << aCall.forward();
     return output;
 }
 
 
-static ostream&
-fanin_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+fanin_of_str( std::ostream& output, const Call& aCall )
 {
     output << aCall.fanIn();
     return output;
 }
 
 
-static ostream&
-fanout_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+fanout_of_str( std::ostream& output, const Call& aCall )
 {
     output  << aCall.fanOut();
     return output;
@@ -2210,8 +2210,8 @@ drop_probability_of_str( Label& aLabel, const Call& aCall )
 
 
 
-static ostream&
-calls_of_str( ostream& output, const Call& aCall )
+static std::ostream&
+calls_of_str( std::ostream& output, const Call& aCall )
 {
 
     if ( aCall.hasRendezvous() ) {

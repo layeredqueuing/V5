@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: task.cc 14136 2020-11-25 18:27:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -61,17 +61,17 @@ const double Task::JLQNDEF_TASK_BOX_SCALING = 1.2;
 
 class SRVNTaskManip {
 public:
-    SRVNTaskManip( ostream& (*ff)(ostream&, const Task & ), const Task & theTask ) : f(ff), aTask(theTask) {}
+    SRVNTaskManip( std::ostream& (*ff)(std::ostream&, const Task & ), const Task & theTask ) : f(ff), aTask(theTask) {}
 private:
-    ostream& (*f)( ostream&, const Task& );
+    std::ostream& (*f)( std::ostream&, const Task& );
     const Task & aTask;
 
-    friend ostream& operator<<(ostream & os, const SRVNTaskManip& m ) { return m.f(os,m.aTask); }
+    friend std::ostream& operator<<(std::ostream & os, const SRVNTaskManip& m ) { return m.f(os,m.aTask); }
 };
 
 
-static ostream& entries_of_str( ostream& output,  const Task& aTask );
-static ostream& task_scheduling_of_str( ostream& output,  const Task & aTask );
+static std::ostream& entries_of_str( std::ostream& output,  const Task& aTask );
+static std::ostream& task_scheduling_of_str( std::ostream& output,  const Task & aTask );
 
 static inline SRVNTaskManip entries_of( const Task& aTask ) { return SRVNTaskManip( entries_of_str, aTask ); }
 static inline SRVNTaskManip task_scheduling_of( const Task & aTask ) { return SRVNTaskManip( &task_scheduling_of_str, aTask ); }
@@ -286,7 +286,7 @@ Task::aggregate()
 Task&
 Task::sort()
 {
-    ::sort( _calls.begin(), _calls.end(), Call::compareSrc );
+    std::sort( _calls.begin(), _calls.end(), Call::compareSrc );
     Entity::sort();
     return *this;
 }
@@ -298,7 +298,7 @@ Task::getIndex() const
     double anIndex = MAXDOUBLE;
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	anIndex = min( anIndex, (*entry)->getIndex() );
+	anIndex = std::min( anIndex, (*entry)->getIndex() );
     }
 
     return anIndex;
@@ -337,7 +337,7 @@ Task::setChain( unsigned curr_k, callPredicate aFunc  ) const
 	std::vector<Entity *> servers;
 	this->servers( servers );
 
-	::sort( servers.begin(), servers.end(), &Entity::compareCoord );
+	std::sort( servers.begin(), servers.end(), &Entity::compareCoord );
 
 	for ( std::vector<Entity *>::const_iterator server = servers.begin(); server != servers.end(); ++server ) {
 	    if ( !(*server)->isSelected() ) continue;
@@ -417,7 +417,7 @@ Task::removeEntry( Entry * anEntry )
  */
 
 Activity *
-Task::findActivity( const string& name ) const
+Task::findActivity( const std::string& name ) const
 {
     const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
     return activity != activities().end() ? *activity : 0;
@@ -447,7 +447,7 @@ Task::findOrAddActivity( const LQIO::DOM::Activity * activity )
 Activity *
 Task::findActivity( const Activity& srcActivity, const unsigned replica )
 {
-    ostringstream aName;
+    std::ostringstream aName;
     aName << srcActivity.name() << "_" << replica;
 
     return findActivity( aName.str() );
@@ -461,7 +461,7 @@ Task::findActivity( const Activity& srcActivity, const unsigned replica )
 Activity *
 Task::addActivity( const Activity& srcActivity, const unsigned replica )
 {
-    ostringstream srcName;
+    std::ostringstream srcName;
     srcName << srcActivity.name() << "_" << replica;
 
     Activity * dstActivity = findActivity( srcName.str() );
@@ -478,7 +478,7 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
     
     dstActivity->isSpecified( srcActivity.isSpecified() );
     if ( srcActivity.reachable() ) {
-	ostringstream aName;
+	std::ostringstream aName;
 	aName << srcActivity.reachedFrom()->name() << "_" << replica;
 	Activity * anActivity = findActivity( aName.str() );
 	dstActivity->setReachedFrom( anActivity );
@@ -838,7 +838,7 @@ Task::check() const
 	    }
 	}
 	rc = (*entry)->check() && rc;
-	_maxPhase = max( _maxPhase, (*entry)->maxPhase() );
+	_maxPhase = std::max( _maxPhase, (*entry)->maxPhase() );
     }
 
     if ( scheduling() == SCHEDULE_SEMAPHORE ) {
@@ -1045,7 +1045,7 @@ Task::findChildren( CallStack& callStack, const unsigned directPath )
     setLevel( max_depth ).addPath( directPath );
 
     if ( processor() ) {
-	max_depth = max( max_depth + 1, processor()->level() );
+	max_depth = std::max( max_depth + 1, processor()->level() );
 	const_cast<Processor *>(processor())->setLevel( max_depth ).addPath( directPath );
     }
 
@@ -1179,7 +1179,7 @@ Task::format()
 {
     double aWidth = 0.0;
 
-    ::sort( _entries.begin(), _entries.end(), Entry::compare );
+    std::sort( _entries.begin(), _entries.end(), Entry::compare );
 
     /* Compute width of task.  Move entries */
 
@@ -1235,7 +1235,7 @@ Task::format()
 
     /* Modify extent  */
 
-    myNode->setWidth( max( max( aWidth, _entryWidthInPts + adjustForSlope( height() ) ), width() ) );
+    myNode->setWidth( std::max( std::max( aWidth, _entryWidthInPts + adjustForSlope( height() ) ), width() ) );
 
     return *this;
 }
@@ -1248,12 +1248,12 @@ Task::format()
 Task&
 Task::reformat()
 {
-    ::sort( _entries.begin(), _entries.end(), Entry::compare );
+    std::sort( _entries.begin(), _entries.end(), Entry::compare );
 
     const double x = myNode->left() + adjustForSlope( height() );
     double y = myNode->bottom();
     const double offset = adjustForSlope( (height() - fabs(entries().front()->height())));
-    const double fill = max( ((width() - adjustForSlope( height() )) - _entryWidthInPts) / (nEntries() + 1.0), 0.0 );
+    const double fill = std::max( ((width() - adjustForSlope( height() )) - _entryWidthInPts) / (nEntries() + 1.0), 0.0 );
 
     /* Figure out which sides of the entries to draw */
 
@@ -1321,8 +1321,8 @@ Task::justify()
     double right = 0.0;
 
     for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
-	left  = min( left,  layer->x() );
-	right = max( right, layer->x() + layer->width() );
+	left  = std::min( left,  layer->x() );
+	right = std::max( right, layer->x() + layer->width() );
     }
 
     for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
@@ -1378,8 +1378,8 @@ Task::justifyByEntry()
 	    i -= 1;
 	    if ( !*layer ) continue;
 	    sublayer.at(i).reformat( 0 );
-	    right = max( right, sublayer[i].x() + sublayer[i].width() );
-	    left  = min( left,  sublayer[i].x() );
+	    right = std::max( right, sublayer[i].x() + sublayer[i].width() );
+	    left  = std::min( left,  sublayer[i].x() );
 	}
 
 	/* Justify the current "slice", then move it to its column */
@@ -1392,13 +1392,13 @@ Task::justifyByEntry()
 	    double shift = 0;
 	    for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 		sublayer[i].alignActivities();
-		shift = max( x - sublayer[i].x(), shift );	// If we've moved left too far, we'll have to shift everything.
+		shift = std::max( x - sublayer[i].x(), shift );	// If we've moved left too far, we'll have to shift everything.
 	    }
 	    for ( unsigned i = 0; i < MAX_LEVEL; ++i ) {
 		if ( shift > 0 ) {
 		    sublayer[i].moveBy( shift, 0 );
 		}
-		right = max( right, sublayer[i].x() + sublayer[i].width() - x );	// Don't forget to subtract x!
+		right = std::max( right, sublayer[i].x() + sublayer[i].width() - x );	// Don't forget to subtract x!
 	    }
 	}
 
@@ -1424,8 +1424,8 @@ Task::alignActivities()
     for ( std::vector<ActivityLayer>::iterator layer = _layers.begin(); layer != _layers.end(); ++layer ) {
 	if ( !*layer ) continue;
 	layer->alignActivities();
-	minLeft  = min( minLeft, layer->x() );
-	maxRight = max( maxRight, layer->x() + layer->width() );
+	minLeft  = std::min( minLeft, layer->x() );
+	maxRight = std::max( maxRight, layer->x() + layer->width() );
 
     }
     return maxRight;
@@ -1795,13 +1795,13 @@ Task::expandTask()
 	const unsigned int proc_replica = static_cast<unsigned int>(static_cast<double>(replica-1) / static_cast<double>(procFanOut)) + 1;
 	const Processor *aProcessor = Processor::find_replica( processor()->name(), proc_replica );
 
-	ostringstream aName;
+	std::ostringstream aName;
 	aName << name() << "_" << replica;
 	std::set<Task *>::const_iterator nextTask = find_if( __tasks.begin(), __tasks.end(), eqTaskStr( aName.str() ) );
 	if ( nextTask != __tasks.end() ) {
-	    string msg = "Task::expandTask(): cannot add symbol ";
+	    std::string msg = "Task::expandTask(): cannot add symbol ";
 	    msg += aName.str();
-	    throw runtime_error( msg );
+	    throw std::runtime_error( msg );
 	}
 	Task * aTask = clone( replica, aName.str(), aProcessor, share() );
 	aTask->myPaths = myPaths;		// Bad hack?
@@ -1928,7 +1928,7 @@ Task::expandActivities( const Task& src, int replica )
 
 
 LQIO::DOM::Task *
-Task::cloneDOM( const string& aName, LQIO::DOM::Processor * dom_processor ) const
+Task::cloneDOM( const std::string& aName, LQIO::DOM::Processor * dom_processor ) const
 {
     LQIO::DOM::Task * dom_task = new LQIO::DOM::Task( *dynamic_cast<const LQIO::DOM::Task*>(getDOM()) );
 
@@ -1978,7 +1978,7 @@ Task::replicateTask( LQIO::DOM::DocumentObject ** root )
 	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
 	task = dynamic_cast<LQIO::DOM::Task *>(*root);
 	std::pair<std::set<Task *>::iterator,bool> rc = __tasks.insert( this );
-	if ( !rc.second ) throw runtime_error( "Duplicate task" );
+	if ( !rc.second ) throw std::runtime_error( "Duplicate task" );
 	task->setName( root_name );
 	const_cast<LQIO::DOM::Processor *>(task->getProcessor())->addTask( task );		/* Add back (for XML output) */
 	/* Group too?? */
@@ -2076,9 +2076,9 @@ Task::UpdateFanInOut::updateFanInOut( const std::vector<Call *>& calls ) const
  */
 
 const Task&
-Task::draw( ostream& output ) const
+Task::draw( std::ostream& output ) const
 {
-    ostringstream aComment;
+    std::ostringstream aComment;
     aComment << "Task " << name()
 	     << task_scheduling_of( *this )
 	     << entries_of( *this );
@@ -2130,12 +2130,12 @@ Task::draw( ostream& output ) const
     output << *myLabel;
 
     if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
-	for_each( entries().begin(), entries().end(), ConstExec1<Element,ostream&>( &Element::draw, output ) );
-	for_each( activities().begin(), activities().end(), ConstExec1<Element,ostream&>( &Element::draw, output ) );
-	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,ostream&>( &ActivityList::draw, output ) );
+	for_each( entries().begin(), entries().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
+	for_each( activities().begin(), activities().end(), ConstExec1<Element,std::ostream&>( &Element::draw, output ) );
+	for_each( precedences().begin(), precedences().end(), ConstExec1<ActivityList,std::ostream&>( &ActivityList::draw, output ) );
     }
 
-    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,ostream&>( &GenericCall::draw, output ) );
+    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
 
     return *this;
 }
@@ -2148,10 +2148,10 @@ Task::draw( ostream& output ) const
  * Draw the queueing model object.
  */
 
-ostream&
-Task::drawClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
+std::ostream&
+Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
 {
-    string aComment;
+    std::string aComment;
     aComment += "========== ";
     aComment += name();
     aComment += " ==========";
@@ -2190,7 +2190,7 @@ int ReferenceTask::rootLevel() const
 }
 
 ReferenceTask *
-ReferenceTask::clone( unsigned int replica, const string& aName, const Processor * aProcessor, const Share * aShare ) const
+ReferenceTask::clone( unsigned int replica, const std::string& aName, const Processor * aProcessor, const Share * aShare ) const
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
@@ -2245,7 +2245,7 @@ ReferenceTask::colour() const
 size_t
 ReferenceTask::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    size_t max_depth = max( callStack.size(), level() );
+    size_t max_depth = std::max( callStack.size(), level() );
 
     setLevel( max_depth ).addPath( directPath );
 
@@ -2287,7 +2287,7 @@ ServerTask::ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, con
 
 
 ServerTask*
-ServerTask::clone( unsigned int replica, const string& aName, const Processor * aProcessor, const Share * aShare ) const
+ServerTask::clone( unsigned int replica, const std::string& aName, const Processor * aProcessor, const Share * aShare ) const
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
@@ -2329,7 +2329,7 @@ SemaphoreTask::SemaphoreTask( const LQIO::DOM::Task* dom, const Processor * aPro
 
 
 SemaphoreTask*
-SemaphoreTask::clone( unsigned int replica, const string& aName, const Processor * aProcessor, const Share * aShare ) const
+SemaphoreTask::clone( unsigned int replica, const std::string& aName, const Processor * aProcessor, const Share * aShare ) const
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
@@ -2347,7 +2347,7 @@ RWLockTask::RWLockTask( const LQIO::DOM::Task* dom, const Processor * aProc, con
 
 
 RWLockTask*
-RWLockTask::clone( unsigned int replica, const string& aName, const Processor * aProcessor, const Share * aShare ) const
+RWLockTask::clone( unsigned int replica, const std::string& aName, const Processor * aProcessor, const Share * aShare ) const
 {
     LQIO::DOM::Task * dom_task = cloneDOM( aName, const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(aProcessor->getDOM()) ) );
 
@@ -2376,14 +2376,14 @@ Task::create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries )
 
     if ( entries.size() == 0 ) {
 	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
-	return 0;
+	return nullptr;
     }
     if ( find_if( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) != __tasks.end() ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
-	return 0;
+	return nullptr;
     }
 
-    const string& processor_name = domTask->getProcessor()->getName();
+    const std::string& processor_name = domTask->getProcessor()->getName();
     Processor * aProcessor = Processor::find( processor_name );
     if ( !aProcessor ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
@@ -2444,8 +2444,8 @@ Task::create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries )
 
 /* ---------------------------------------------------------------------- */
 
-static ostream&
-entries_of_str( ostream& output, const Task& aTask )
+static std::ostream&
+entries_of_str( std::ostream& output, const Task& aTask )
 {
     for ( std::vector<Entry *>::const_reverse_iterator entry = aTask.entries().rbegin(); entry != aTask.entries().rend(); ++entry ) {
 	if ( (*entry)->pathTest() ) {
@@ -2460,8 +2460,8 @@ entries_of_str( ostream& output, const Task& aTask )
  * Print out of scheduling flag field.  See ../lqio input.h
  */
 
-static ostream&
-task_scheduling_of_str( ostream& output, const Task & aTask )
+static std::ostream&
+task_scheduling_of_str( std::ostream& output, const Task & aTask )
 {
     output << ' ';
     switch ( aTask.scheduling() ) {

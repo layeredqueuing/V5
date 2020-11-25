@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 13684 2020-07-13 15:41:25Z greg $
+ * $Id: phase.h 14134 2020-11-25 18:12:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -95,7 +95,7 @@ public:
     const Entry * entry() const { return _entry; }
     virtual const Task * owner() const;
 
-    virtual const string& name() const;
+    virtual const std::string& name() const;
 
     Phase& phaseTypeFlag( phase_type aType );
     phase_type phaseTypeFlag() const;
@@ -150,8 +150,8 @@ private:
 };
 
 
-inline ostream& operator<<( ostream& output, const Phase& ) { return output; }
-inline ostream& operator<<( ostream& output, const Phase::Histogram::Bin& ) { return output; }
+inline std::ostream& operator<<( std::ostream& output, const Phase& ) { return output; }
+inline std::ostream& operator<<( std::ostream& output, const Phase::Histogram::Bin& ) { return output; }
 
 template <> struct Predicate<Phase>
 {

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 13742 2020-08-06 14:53:34Z greg $
+ * $Id: errmsg.cc 14134 2020-11-25 18:12:05Z greg $
  *
  * Error messages.
  *
@@ -54,7 +54,7 @@ severity_action (unsigned severity)
     case LQIO::RUNTIME_ERROR:
 	LQIO::io_vars.error_count += 1;
 	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
-	    throw ( runtime_error( "Too many errors" ) );
+	    throw ( std::runtime_error( "Too many errors" ) );
 	}
 	break;
     }

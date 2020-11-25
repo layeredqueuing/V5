@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: actlist.cc 14136 2020-11-25 18:27:35Z greg $
  */
 
 
@@ -53,12 +53,12 @@ private:
 
 class ActivityListManip {
 public:
-    ActivityListManip( ostream& (*ff)( ostream& ) )
+    ActivityListManip( std::ostream& (*ff)( std::ostream& ) )
 	: f(ff) {}
 private:
-    ostream& (*f)( ostream& );
+    std::ostream& (*f)( std::ostream& );
 
-    friend ostream& operator<<(ostream & os, const ActivityListManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const ActivityListManip& m ) 
 	{ return m.f(os); }
 };
 
@@ -99,7 +99,7 @@ ActivityList*
 ActivityList::next() const
 {
     throw should_not_implement( "ActivityList::next", __FILE__, __LINE__ );
-    return 0;
+    return nullptr;
 }
 
 
@@ -111,7 +111,7 @@ ActivityList*
 ActivityList::prev() const
 {
     throw should_not_implement( "ActivityList::prev", __FILE__, __LINE__ );
-    return 0;
+    return nullptr;
 }
 
 
@@ -219,7 +219,7 @@ SequentialActivityList::findDstPoint() const
 
 
 const SequentialActivityList&
-SequentialActivityList::draw( ostream& output ) const
+SequentialActivityList::draw( std::ostream& output ) const
 {
     if ( myActivity && myArc->srcPoint() != myArc->secondPoint() ) {
 	myArc->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() );
@@ -586,7 +586,7 @@ ForkJoinActivityList::radius() const
 
 
 const ForkJoinActivityList& 
-ForkJoinActivityList::draw( ostream& output ) const
+ForkJoinActivityList::draw( std::ostream& output ) const
 {
     const Graphic::colour_type pen_colour = colour() == Graphic::GREY_10 ? Graphic::BLACK : colour();
     for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::colour_type>( &Graphic::penColour, pen_colour ) );
@@ -602,7 +602,7 @@ ForkJoinActivityList::draw( ostream& output ) const
 
 ForkJoinActivityList& ForkJoinActivityList::sort( compare_func_ptr compare )
 {
-    ::sort( _activityList.begin(), _activityList.end(), compare );
+    std::sort( _activityList.begin(), _activityList.end(), compare );
     return *this;
 }
 
@@ -649,7 +649,7 @@ AndOrForkActivityList::findChildren( CallStack& callStack, const unsigned direct
 {
     size_t nextLevel = callStack.size();
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	nextLevel = max( (*activity)->findChildren( callStack, directPath, activityStack ), nextLevel );
+	nextLevel = std::max( (*activity)->findChildren( callStack, directPath, activityStack ), nextLevel );
     } 
     return nextLevel;
 }
@@ -745,10 +745,10 @@ AndOrForkActivityList::align() const
 }
 
 const AndOrForkActivityList&
-AndOrForkActivityList::draw( ostream& output ) const
+AndOrForkActivityList::draw( std::ostream& output ) const
 {
     ForkJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,ostream&>( &Arc::draw, output ) );
+    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     return *this;
 }
 
@@ -845,7 +845,7 @@ OrForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned&
 	    ignore = true;
 	}
 	sum += (*activity)->aggregate( anEntry, curr_p, branch_p, rate * prob, activityStack, aFunc );
-	next_p = max( next_p, branch_p );
+	next_p = std::max( next_p, branch_p );
     }
     if ( ignore ) {
 	sum = 1.0;
@@ -982,11 +982,11 @@ OrForkActivityList::moveDstTo( const Point& dst, Activity * anActivity )
 
 
 const OrForkActivityList&
-OrForkActivityList::draw( ostream& output ) const
+OrForkActivityList::draw( std::ostream& output ) const
 {
     AndOrForkActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,ostream&>( &Arc::draw, output ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,ostream&>( &Label::draw, output ) );
+    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
     return *this;
 }
 
@@ -1060,7 +1060,7 @@ AndForkActivityList::aggregate( Entry * anEntry, const unsigned curr_p, unsigned
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	unsigned branch_p = curr_p;
 	sum += (*activity)->aggregate( anEntry, curr_p, branch_p, rate, activityStack, aFunc );
-	next_p = max( next_p, branch_p );
+	next_p = std::max( next_p, branch_p );
     } 
 
     /* Now follow the activities after the join */
@@ -1136,7 +1136,7 @@ AndOrJoinActivityList::getIndex() const
 {
     double anIndex = MAXDOUBLE;
     for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	anIndex = min( anIndex, (*activity)->index() );
+	anIndex = std::min( anIndex, (*activity)->index() );
     }
     return anIndex;
 }
@@ -1225,10 +1225,10 @@ AndOrJoinActivityList::moveDstTo( const Point& dst, Activity * )
 } 
 
 const AndOrJoinActivityList&
-AndOrJoinActivityList::draw( ostream& output ) const
+AndOrJoinActivityList::draw( std::ostream& output ) const
 {
     ForkJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,ostream&>( &Arc::draw, output ) );
+    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     return *this;
 }
 
@@ -1528,10 +1528,10 @@ AndJoinActivityList::label()
 
 
 const AndJoinActivityList&
-AndJoinActivityList::draw( ostream& output ) const
+AndJoinActivityList::draw( std::ostream& output ) const
 {
     AndOrJoinActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,ostream&>( &Arc::draw, output ) );
+    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
     output << *myLabel;
     return *this;
 }
@@ -1818,14 +1818,14 @@ RepeatActivityList::radius() const
 
 
 const RepeatActivityList&
-RepeatActivityList::draw( ostream& output ) const
+RepeatActivityList::draw( std::ostream& output ) const
 {
     const Graphic::colour_type pen_colour = colour() == Graphic::GREY_10 ? Graphic::BLACK : colour();
     for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,Graphic::colour_type>( &Graphic::penColour, pen_colour ) );
 
     ForkActivityList::draw( output );
-    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,ostream&>( &Arc::draw, output ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,ostream&>( &Label::draw, output ) );
+    for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
+    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
 
     const Point ctr( myNode->center() );
     myNode->penColour( pen_colour ).fillColour( colour() );
@@ -1861,8 +1861,8 @@ ActivityList::act_connect( ActivityList * src, ActivityList * dst )
 }
 
 
-ostream&
-ActivityList::newline( ostream& output )
+std::ostream&
+ActivityList::newline( std::ostream& output )
 {
     if ( first ) {
 	output << ':';
@@ -1870,7 +1870,7 @@ ActivityList::newline( ostream& output )
 	output << ';';
     }
     first = false;
-    output << endl << "  ";
+    output << std::endl << "  ";
     return output;
 }
 

@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: label.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _LABEL_H
@@ -49,14 +49,14 @@ public:
     private:
 	Graphic::font_type _font;
 	Graphic::colour_type _colour;
-	ostringstream _string;
+	std::ostringstream _string;
     };
 
 protected:
     class Width {
     public:
 	Width( size_t w ) : _w(w) {}
-	void operator()( const Line& line ) { _w = max( _w, line.width() ); }
+	void operator()( const Line& line ) { _w = std::max( _w, line.width() ); }
 	size_t width() const { return _w; }
     private:
 	size_t _w;
@@ -81,7 +81,7 @@ public:
     Label& operator<<( const char c ) { return appendC( c ); }
     Label& operator<<( const double d ) { return appendD( d ); }
     Label& operator<<( const int i ) { return appendI( i ); }
-    Label& operator<<( const string& s ) { return appendS( s ); }
+    Label& operator<<( const std::string& s ) { return appendS( s ); }
     Label& operator<<( const unsigned i ) { return appendUI( i ); }
     Label& operator<<( const LQIO::DOM::ExternalVariable& v ) { return appendV( v ); }
 
@@ -117,8 +117,8 @@ public:
     virtual Label& times();
     Label& percent();
 
-    virtual const Label& draw( ostream& ) const = 0;
-    virtual ostream& comment( ostream& output, const string& ) const { return output; }
+    virtual const Label& draw( std::ostream& ) const = 0;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const { return output; }
 
 protected:
     virtual Label& appendLSM( const LabelStringManip& m);
@@ -130,7 +130,7 @@ protected:
     virtual Label& appendC( const char c ) { _lines.back() << c; return *this; }
     virtual Label& appendD( const double );
     virtual Label& appendI( const int i ) { _lines.back() << i; return *this; }
-    virtual Label& appendS( const string& s ) { _lines.back() << s; return *this; }
+    virtual Label& appendS( const std::string& s ) { _lines.back() << s; return *this; }
     virtual Label& appendUI( const unsigned i ) { _lines.back() << i; return *this; }
     virtual Label& appendV( const LQIO::DOM::ExternalVariable& v );
 
@@ -139,13 +139,13 @@ protected:
 
 protected:
     Point _origin;
-    vector<Line> _lines;
+    std::vector<Line> _lines;
     colour_type _backgroundColour;
     justification_type _justification;
     bool _mathMode;
 };
 
-inline ostream& operator<<( ostream& output, const Label& self ) { self.draw( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const Label& self ) { self.draw( output ); return output; }
 
 #if defined(EMF_OUTPUT)
 class LabelEMF : public Label, private EMF
@@ -160,7 +160,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual const LabelEMF& draw( ostream& ) const;
+    virtual const LabelEMF& draw( std::ostream& ) const;
 
 protected:
     virtual Label& appendLSM( const LabelStringManip& m);
@@ -172,7 +172,7 @@ protected:
     virtual Label& appendC( const char c );
     virtual Label& appendD( const double );
     virtual Label& appendI( const int i );
-    virtual Label& appendS( const string& s );
+    virtual Label& appendS( const std::string& s );
     virtual Label& appendUI( const unsigned i );
     virtual Point initialPoint() const;
 };
@@ -183,8 +183,8 @@ class LabelFig : public Label, private Fig
 public:
     virtual Label& infty();
     virtual Label& times();
-    virtual ostream& comment( ostream& output, const string& ) const;
-    virtual const LabelFig& draw( ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
+    virtual const LabelFig& draw( std::ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -205,7 +205,7 @@ public:
     virtual Label& times();
     virtual Label& appendPC( const char * s );
 
-    virtual const LabelGD& draw( ostream& output ) const;
+    virtual const LabelGD& draw( std::ostream& output ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -215,7 +215,7 @@ protected:
 class LabelNull : public Label
 {
 public:
-    virtual const LabelNull& draw( ostream& output ) const { return *this; }
+    virtual const LabelNull& draw( std::ostream& output ) const { return *this; }
 
 protected:
     virtual Point initialPoint() const;
@@ -226,7 +226,7 @@ class LabelPostScript : public Label, private PostScript
 public:
     virtual Label& infty();
     virtual Label& times();
-    virtual const LabelPostScript& draw( ostream& ) const;
+    virtual const LabelPostScript& draw( std::ostream& ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -243,7 +243,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual const LabelSVG& draw( ostream& ) const;
+    virtual const LabelSVG& draw( std::ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -262,7 +262,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual const LabelSXD& draw( ostream& ) const;
+    virtual const LabelSXD& draw( std::ostream& ) const;
 
 protected:
     virtual Label& appendPC( const char * s );
@@ -274,7 +274,7 @@ protected:
 class LabelX11 : public Label, private X11
 {
 public:
-    virtual const LabelX11& draw( ostream& output ) const { return output; }
+    virtual const LabelX11& draw( std::ostream& output ) const { return output; }
 };
 #endif
 
@@ -298,7 +298,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual const LabelTeX& draw( ostream& ) const;
+    virtual const LabelTeX& draw( std::ostream& ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -314,7 +314,7 @@ public:
     virtual Label& rho();
     virtual Label& sigma();
     virtual Label& times();
-    virtual const LabelPsTeX& draw( ostream& output ) const;
+    virtual const LabelPsTeX& draw( std::ostream& output ) const;
 
 protected:
     virtual Point initialPoint() const;
@@ -322,9 +322,9 @@ protected:
 
 template <class Type1> class DrawText {
 public:
-    typedef double (Type1::*textFPtr)( ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
+    typedef double (Type1::*textFPtr)( std::ostream& output, const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
 				       justification_type justification, Graphic::colour_type colour, unsigned flags ) const;
-    DrawText( ostream& output, const Type1& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _output(output), _self(self), _text(text), _point(point), _justification(j), _flags(flags) {}
+    DrawText( std::ostream& output, const Type1& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _output(output), _self(self), _text(text), _point(point), _justification(j), _flags(flags) {}
     void operator()( const Label::Line& line ) {
 	const std::string& str = line.getStr();
 	if ( str.size() ) {
@@ -332,7 +332,7 @@ public:
 	}
     }
 private:
-    ostream& _output;
+    std::ostream& _output;
     const Type1& _self;
     const textFPtr _text;
     Point _point;
@@ -345,7 +345,7 @@ template<> class DrawText<LabelGD> {
 public:
     typedef double (LabelGD::*textFPtr)( const Point& c, const std::string& s, Graphic::font_type font, int fontsize,
 					 justification_type justification, Graphic::colour_type colour  ) const;
-    DrawText<LabelGD>( ostream&, const LabelGD& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
+    DrawText<LabelGD>( std::ostream&, const LabelGD& self, const textFPtr text, Point point, const justification_type j, unsigned flags=0 ) : _self(self), _text(text), _point(point), _justification(j) {}
     void operator()( const Label::Line& line ) {
 	const std::string& str = line.getStr();
 	if ( str.size() ) {

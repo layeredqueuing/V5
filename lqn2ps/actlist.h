@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: actlist.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -28,9 +28,9 @@ class Node;
 class Entity;
 class Arc;
 
-typedef ostream& (Activity::*printFunc)( ostream& ) const;
+typedef std::ostream& (Activity::*printFunc)( std::ostream& ) const;
 
-ostream& operator<<( ostream&, const ActivityList& );
+std::ostream& operator<<( std::ostream&, const ActivityList& );
 
 class bad_internal_join : public std::runtime_error
 {
@@ -102,9 +102,9 @@ public:
 
     /* Printing */
 
-    virtual const ActivityList& draw( ostream& ) const = 0;
+    virtual const ActivityList& draw( std::ostream& ) const = 0;
 
-    static ostream& newline( ostream& output );
+    static std::ostream& newline( std::ostream& output );
     static bool first;			/* True if we haven't printed 	*/
     static const int interActivitySpace = 20;
 
@@ -124,7 +124,7 @@ private:
     const LQIO::DOM::ActivityList * myDOM;
 };
 
-inline ostream&  operator<<( ostream& output, const ActivityList& self ) { self.draw( output ); return output; }
+inline std::ostream&  operator<<( std::ostream& output, const ActivityList& self ) { self.draw( output ); return output; }
 
 /* ==================================================================== */
 
@@ -148,7 +148,7 @@ public:
     virtual SequentialActivityList& translateY( const double );
     virtual SequentialActivityList& depth( const unsigned );
 
-    virtual const SequentialActivityList& draw( ostream& ) const;
+    virtual const SequentialActivityList& draw( std::ostream& ) const;
 
 protected:
     virtual const char * typeStr() const { return "+"; }
@@ -252,7 +252,7 @@ public:
     virtual ForkJoinActivityList& depth( const unsigned );
 
     double radius() const;
-    virtual const ForkJoinActivityList& draw( ostream& ) const;
+    virtual const ForkJoinActivityList& draw( std::ostream& ) const;
 
 protected:
     virtual Point findSrcPoint() const;
@@ -283,7 +283,7 @@ public:
     virtual AndOrForkActivityList& moveSrcTo( const Point& aPoint, Activity * );
     virtual AndOrForkActivityList& moveDstTo( const Point& aPoint, Activity * );
     virtual double align() const;
-    virtual const AndOrForkActivityList& draw( ostream& ) const;
+    virtual const AndOrForkActivityList& draw( std::ostream& ) const;
 
 protected:
     virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
@@ -316,7 +316,7 @@ public:
     virtual OrForkActivityList& translateY( const double );
     virtual OrForkActivityList& label();
 
-    virtual const OrForkActivityList& draw( ostream& ) const;
+    virtual const OrForkActivityList& draw( std::ostream& ) const;
 
     LQIO::DOM::ExternalVariable& prBranch( const Activity * ) const;
     double sum() const;
@@ -384,7 +384,7 @@ public:
 
     /* Printing */
 
-    virtual const AndOrJoinActivityList& draw( ostream& ) const;
+    virtual const AndOrJoinActivityList& draw( std::ostream& ) const;
  
     virtual ActivityList * next() const { return nextLink; }	/* Link to fork list		*/
     virtual AndOrJoinActivityList& next( ActivityList * aList ) { nextLink = aList; return *this; }
@@ -453,7 +453,7 @@ public:
 
     virtual activity_type myType() const { return AND_JOIN; }
 
-    virtual const AndJoinActivityList& draw( ostream& output ) const;
+    virtual const AndJoinActivityList& draw( std::ostream& output ) const;
 
 protected:
     virtual const char * typeStr() const;
@@ -464,7 +464,7 @@ private:
 
 private:
     Label * myLabel;
-    string myTypeStr;
+    std::string myTypeStr;
     bool joinType( const join_type );
     mutable join_type myJoinType;		/* Barrier synch point.	*/
     const AndForkActivityList * _forkList;
@@ -508,7 +508,7 @@ public:
 
     /* Printing */
 
-    virtual const RepeatActivityList& draw( ostream& ) const;
+    virtual const RepeatActivityList& draw( std::ostream& ) const;
 
 protected:
     virtual const char * typeStr() const { return "*"; }

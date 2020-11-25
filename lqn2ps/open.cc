@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: open.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 #include "lqn2ps.h"
@@ -227,7 +227,7 @@ OpenArrivalSource::colour() const
 }
 
 
-const string& 
+const std::string& 
 OpenArrivalSource::name() const
 { 
     return myEntry().name(); 
@@ -235,9 +235,9 @@ OpenArrivalSource::name() const
 
 
 const OpenArrivalSource&
-OpenArrivalSource::draw( ostream& output ) const
+OpenArrivalSource::draw( std::ostream& output ) const
 {
-    string aComment;
+    std::string aComment;
     aComment += "========== Open Arrival Source ";
     aComment += name();
     aComment += " ==========";
@@ -252,8 +252,8 @@ OpenArrivalSource::draw( ostream& output ) const
     return *this;
 }
 
-ostream&
-OpenArrivalSource::print( ostream& output ) const
+std::ostream&
+OpenArrivalSource::print( std::ostream& output ) const
 {
     throw should_not_implement( "OpenArrivalSource::print", __FILE__, __LINE__ );
     return output;
@@ -264,8 +264,8 @@ OpenArrivalSource::print( ostream& output ) const
  * Draw the queueing model object.
  */
 
-ostream&
-OpenArrivalSource::drawClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
+std::ostream&
+OpenArrivalSource::drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const
 {
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
     myNode->open_source( output, bottomCenter(), Entity::radius() );

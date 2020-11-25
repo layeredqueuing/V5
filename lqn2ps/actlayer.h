@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlayer.h	-- Greg Franks
  *
- * $Id: actlayer.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: actlayer.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _ACTLAYER_H
@@ -44,7 +44,7 @@ public:
     double width() const { return extent.x(); }
     double height() const { return extent.y(); }
     ActivityLayer& height( double y ) { extent.y( y ); return *this; }
-    ostream& print( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
 
 private:
     ActivityLayer& shift( unsigned index, double amount );
@@ -56,5 +56,5 @@ private:
     Point extent;
 };
 
-inline ostream& operator<<( ostream& output, const ActivityLayer& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const ActivityLayer& self ) { return self.print( output ); }
 #endif

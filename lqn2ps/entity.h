@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: entity.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -110,13 +110,13 @@ public:
 
     virtual Entity& label();
 
-    ostream& print( ostream& output ) const;
+    std::ostream& print( std::ostream& output ) const;
 
-    ostream& drawQueueingNetwork( ostream&, const double, const double, std::vector<bool>&, std::vector<Arc *>& ) const;
-    virtual ostream& drawClient( ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const { return output; }
-    virtual ostream& drawServer( ostream& ) const;
+    std::ostream& drawQueueingNetwork( std::ostream&, const double, const double, std::vector<bool>&, std::vector<Arc *>& ) const;
+    virtual std::ostream& drawClient( std::ostream& output, const bool is_in_open_model, const bool is_in_closed_model ) const { return output; }
+    virtual std::ostream& drawServer( std::ostream& ) const;
 
-    virtual ostream& printName( ostream& output, const int = 0 ) const;
+    virtual std::ostream& printName( std::ostream& output, const int = 0 ) const;
 
 protected:
     double radius() const;
@@ -124,8 +124,8 @@ protected:
 
 private:
     Graphic::colour_type chainColour( unsigned int ) const;
-    ostream& drawServerToClient( ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;
-    ostream& drawClientToServer( ostream&, const Entity *, std::vector<bool> &, const unsigned, std::vector<Arc *>& lastArc ) const;
+    std::ostream& drawServerToClient( std::ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;
+    std::ostream& drawClientToServer( std::ostream&, const Entity *, std::vector<bool> &, const unsigned, std::vector<Arc *>& lastArc ) const;
 
     static unsigned offsetOf( const std::set<unsigned>&, unsigned );
 
@@ -136,5 +136,5 @@ private:
     bool _isSurrogate;			/* Flag for formatting.		*/
 };
 
-ostream& operator<<( ostream& output, const Entity& self );
+std::ostream& operator<<( std::ostream& output, const Entity& self );
 #endif

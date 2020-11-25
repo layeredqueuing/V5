@@ -2,7 +2,7 @@
  *
  * Layering logic for activities.
  *
- * $Id: actlayer.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: actlayer.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 
@@ -52,7 +52,7 @@ ActivityLayer::clearContents()
 ActivityLayer&
 ActivityLayer::sort( compare_func_ptr compare ) 
 {
-    ::sort( myActivities.begin(), myActivities.end(), compare );
+    std::sort( myActivities.begin(), myActivities.end(), compare );
 
     /* Resort incoming lists */
 
@@ -80,7 +80,7 @@ ActivityLayer::format( const double y )
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	(*activity)->moveTo( x, y );
 	x += (*activity)->width();
-	extent.moveTo( x, max( extent.y(), (*activity)->height() ) );
+	extent.moveTo( x, std::max( extent.y(), (*activity)->height() ) );
 	x += Flags::act_x_spacing;
     }
     return *this;
@@ -96,7 +96,7 @@ ActivityLayer::reformat( const double )
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	(*activity)->moveTo( x, (*activity)->bottom() );
 	x += (*activity)->width();
-	extent.moveTo( x, max( extent.y(), (*activity)->height() ) );
+	extent.moveTo( x, std::max( extent.y(), (*activity)->height() ) );
 	x += Flags::act_x_spacing;
     }
     return *this;
@@ -192,7 +192,7 @@ ActivityLayer::justify( const double maxWidthPts, const justification_type justi
 ActivityLayer&
 ActivityLayer::alignActivities()
 {
-    ::sort( myActivities.begin(), myActivities.end(), &Activity::compareCoord );
+    std::sort( myActivities.begin(), myActivities.end(), &Activity::compareCoord );
     const unsigned n = size();
 
     /* Move objects right starting from the right side */
@@ -219,7 +219,7 @@ ActivityLayer::shift( unsigned i, double amount )
 	/* move left if I can */
 	while ( i > 0 && myActivities[i-1]->inputFrom() == myActivities[i]->inputFrom() ) --i;	/* Search for left */
 	if ( i > 0 ) {
-	    amount = min( max( (myActivities[i-1]->right() + Flags::act_x_spacing) - myActivities[i]->left(), amount ), 0.0 );
+	    amount = std::min( std::max( (myActivities[i-1]->right() + Flags::act_x_spacing) - myActivities[i]->left(), amount ), 0.0 );
 	}
 	for ( j = i; j < n && myActivities[j]->inputFrom() == myActivities[i]->inputFrom(); ++j ) {
 	    myActivities[j]->moveBy( amount, 0 );
@@ -239,7 +239,7 @@ ActivityLayer::shift( unsigned i, double amount )
 	i += 1;
 	while ( i < n && myActivities[i]->inputFrom() == myActivities[i-1]->inputFrom() ) ++i;	/* Search for right */
 	if ( i < n ) {
-	    amount = max( min( myActivities[i]->left() - (myActivities[i]->right() + Flags::act_x_spacing), amount ), 0.0 );
+	    amount = std::max( std::min( myActivities[i]->left() - (myActivities[i]->right() + Flags::act_x_spacing), amount ), 0.0 );
 	} 
 	for ( j = i; j > 0 && myActivities[j-1]->inputFrom() == myActivities[i-1]->inputFrom(); ) {
 	    j -= 1;
@@ -267,8 +267,8 @@ ActivityLayer::crop()
     double left  = MAXDOUBLE;
     double right = 0.;
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	left  = min( left, (*activity)->left() );
-	right = max( right, (*activity)->right() );
+	left  = std::min( left, (*activity)->left() );
+	right = std::max( right, (*activity)->right() );
     }	
     origin.x( left );
     extent.x( right - left );
@@ -276,8 +276,8 @@ ActivityLayer::crop()
 }
 
 
-ostream&
-ActivityLayer::print( ostream& output ) const
+std::ostream&
+ActivityLayer::print( std::ostream& output ) const
 {
     return output;
 }

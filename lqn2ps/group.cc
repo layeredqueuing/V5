@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: group.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 #include "group.h"
@@ -23,7 +23,7 @@
 
 std::vector<Group *> Group::__groups;
 
-Group::Group( unsigned int nLayers, const string& s )
+Group::Group( unsigned int nLayers, const std::string& s )
     : _layers(nLayers), myName(s), used(false)
 {
     myNode = Node::newNode( 0, 0 );
@@ -38,7 +38,7 @@ Group::~Group()
 }
 
 bool
-Group::match( const string& s ) const
+Group::match( const std::string& s ) const
 {
     return myName == s;
 }
@@ -214,8 +214,8 @@ Group::translateY( const double dy )
  * Draw a box with the name of the group in it.
  */
 
-ostream&
-Group::draw( ostream& output ) const
+std::ostream&
+Group::draw( std::ostream& output ) const
 {
     if ( isUsed() ) {
 	const colour_type colour = processor() ?  processor()->colour() : Graphic::BLACK;
@@ -230,7 +230,7 @@ Group::draw( ostream& output ) const
 }
 
 #if HAVE_REGEX_T
-GroupByRegex::GroupByRegex( const string& s )
+GroupByRegex::GroupByRegex( const std::string& s )
     : Group( s )
 {
     myPattern = static_cast<regex_t *>(malloc( sizeof( regex_t ) ));
@@ -250,7 +250,7 @@ GroupByRegex::~GroupByRegex()
 
 
 bool
-GroupByRegex::match( const string& s ) const
+GroupByRegex::match( const std::string& s ) const
 {
     return regexec( myPattern, const_cast<char *>(s.c_str()), 0, 0, 0 ) != REG_NOMATCH;
 }
@@ -440,7 +440,7 @@ GroupByShareGroup::label()
 }
 
 
-GroupSquashed::GroupSquashed( unsigned int nLayers, const string& s, const Layer& layer1, const Layer& layer2 )
+GroupSquashed::GroupSquashed( unsigned int nLayers, const std::string& s, const Layer& layer1, const Layer& layer2 )
     : Group(nLayers, s), layer_1(layer1), layer_2(layer2)
 {
     penColour( Graphic::DEFAULT_COLOUR );
@@ -457,9 +457,9 @@ GroupSquashed&
 GroupSquashed::format()
 {
     origin( MAXDOUBLE, MAXDOUBLE ).extent( 0, 0 );
-    originMin( min( layer_1.x(), layer_2.x() ), min( layer_1.y(), layer_2.y() ) );
-    extentMax( max( layer_1.x() + layer_1.width(), layer_2.x() + layer_2.width() ),
-	       max( layer_1.y() + layer_1.height(), layer_2.y() + layer_2.height() ) );
+    originMin( std::min( layer_1.x(), layer_2.x() ), std::min( layer_1.y(), layer_2.y() ) );
+    extentMax( std::max( layer_1.x() + layer_1.width(), layer_2.x() + layer_2.width() ),
+	       std::max( layer_1.y() + layer_1.height(), layer_2.y() + layer_2.height() ) );
     extent( width(), height() - y() );
     return *this;
 }

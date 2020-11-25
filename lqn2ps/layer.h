@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: layer.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -90,11 +90,11 @@ public:
     unsigned count( const taskPredicate ) const;
     unsigned count( const callPredicate ) const;
 
-    ostream& print( ostream& ) const;
-    ostream& printSummary( ostream& ) const;
-    ostream& printSubmodelSummary( ostream& ) const;
-    ostream& printSubmodel( ostream& ) const;
-    ostream& drawQueueingNetwork( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
+    std::ostream& printSummary( std::ostream& ) const;
+    std::ostream& printSubmodelSummary( std::ostream& ) const;
+    std::ostream& printSubmodel( std::ostream& ) const;
+    std::ostream& drawQueueingNetwork( std::ostream& ) const;
 
 private:
     Processor * findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const;
@@ -113,5 +113,5 @@ private:
     mutable unsigned _chains;			/* Only set if doing a submodel */
 };
 
-inline ostream& operator<<( ostream& output, const Layer& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Layer& self ) { return self.print( output ); }
 #endif

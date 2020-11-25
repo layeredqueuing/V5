@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * element.h	-- Greg Franks
  *
- * $Id: key.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: key.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef SRVN2EEPIC_KEY_H
@@ -15,7 +15,7 @@ class Arc;
 class Label;
 class Key;
 
-ostream& operator<<( ostream&, const Key& );
+std::ostream& operator<<( std::ostream&, const Key& );
 
 class Key 
 {
@@ -38,7 +38,7 @@ public:
 
     Key& label();
 
-    ostream& print( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
 
 private:
     Point origin;

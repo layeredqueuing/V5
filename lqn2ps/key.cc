@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: key.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: key.cc 14134 2020-11-25 18:12:05Z greg $
  */
 
 #include "key.h"
@@ -16,8 +16,8 @@
  * Print all results.
  */
 
-ostream&
-operator<<( ostream& output, const Key& self )
+std::ostream&
+operator<<( std::ostream& output, const Key& self )
 {
     return self.print( output );
 }
@@ -51,7 +51,7 @@ Key::label()
 	Label * label = Label::newLabel();
 	label->justification( LEFT_JUSTIFY );
 	*label << "Synchronous request";
-	maxWidth = max( maxWidth, label->width() );
+	maxWidth = std::max( maxWidth, label->width() );
 	myLabels[label] = arc;
 	i += 1;
     }
@@ -61,7 +61,7 @@ Key::label()
 	Label * label = Label::newLabel();
 	label->justification( LEFT_JUSTIFY );
 	*label << "Asynchronous request";
-	maxWidth = max( maxWidth, label->width() );
+	maxWidth = std::max( maxWidth, label->width() );
 	myLabels[label] = arc;
 	i += 1;
     }
@@ -71,7 +71,7 @@ Key::label()
 	Label * label = Label::newLabel();
 	label->justification( LEFT_JUSTIFY );
 	*label << "Forwarded request";
-	maxWidth = max( maxWidth, label->width() );
+	maxWidth = std::max( maxWidth, label->width() );
 	myLabels[label] = arc;
 	i += 1;
     }
@@ -142,8 +142,8 @@ Key::translateY( const double y )
  * Print a layer.
  */
 
-ostream&
-Key::print( ostream& output ) const
+std::ostream&
+Key::print( std::ostream& output ) const
 {
     for ( std::map<Label *,Arc *>::const_iterator label = myLabels.begin(); label != myLabels.end(); ++label ) {
 	output << *label->first;

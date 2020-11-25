@@ -1,7 +1,7 @@
 /* -*- c++ -*-  
  * node.h	-- Greg Franks
  *
- * $Id: node.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: node.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _NODE_H
@@ -51,17 +51,17 @@ public:
     Node& resizeBox( const double x, const double y, const double w, const double h );
 
     virtual int direction() const { return 1; }
-    virtual ostream& polygon( ostream&, const std::vector<Point>& points ) const = 0;
-    virtual ostream& polyline( ostream&, const std::vector<Point>& points ) const = 0;
-    virtual ostream& circle( ostream& output, const Point&, const double radius ) const = 0;
-    virtual ostream& rectangle( ostream& output ) const = 0;
-    virtual ostream& roundedRectangle( ostream& output ) const = 0;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const = 0;
+    virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const = 0;
+    virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const = 0;
+    virtual std::ostream& circle( std::ostream& output, const Point&, const double radius ) const = 0;
+    virtual std::ostream& rectangle( std::ostream& output ) const = 0;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const = 0;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const = 0;
 
-    ostream& multi_server( ostream& output, const Point&, const double radius ) const;
-    ostream& open_source( ostream& output, const Point&, const double ) const;
-    ostream& open_sink( ostream& output, const Point&, const double ) const;
-    ostream& draw_queue( ostream& output, const Point&, const double ) const;
+    std::ostream& multi_server( std::ostream& output, const Point&, const double radius ) const;
+    std::ostream& open_source( std::ostream& output, const Point&, const double ) const;
+    std::ostream& open_sink( std::ostream& output, const Point&, const double ) const;
+    std::ostream& draw_queue( std::ostream& output, const Point&, const double ) const;
 
 protected:
     Point origin;
@@ -73,13 +73,13 @@ class NodeEMF : public Node, private EMF
 {
 public:
     NodeEMF(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
     virtual int direction() const { return -1; }
 };
 #endif
@@ -88,13 +88,13 @@ class NodeFig : public Node, protected Fig
 {
 public:
     NodeFig(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius  ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
     virtual int direction() const { return -1; }
 };
 
@@ -102,33 +102,33 @@ class NodePostScript : public Node, private PostScript
 {
 public:
     NodePostScript(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius  ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
 class NodeNull : public Node 
 {
 public:
     NodeNull(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const { return output; }
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const { return output; }
-    virtual ostream& circle( ostream& output, const Point& center, const double radius  ) const { return output; }
-    virtual ostream& rectangle( ostream& output ) const { return output; }
-    virtual ostream& roundedRectangle( ostream& output ) const  { return output; }
-    virtual ostream& text( ostream& output, const Point&, const char * ) const { return output; }
-    virtual ostream& comment( ostream& output, const string& ) const { return output; }
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const { return output; }
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const { return output; }
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const { return output; }
+    virtual std::ostream& rectangle( std::ostream& output ) const { return output; }
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const  { return output; }
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const { return output; }
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const { return output; }
 };
 
 class NodePsTeX : public NodeFig
 {
 public:
     NodePsTeX(double x1, double y1, double x2, double y2 ) : NodeFig(x1,y1,x2,y2) {}
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
 };
 
 #if defined(SVG_OUTPUT)
@@ -136,13 +136,13 @@ class NodeSVG : public Node, private SVG
 {
 public:
     NodeSVG(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
     virtual int direction() const { return -1; }
 };
 #endif
@@ -153,13 +153,13 @@ class NodeSXD : public Node, private SXD
 public:
     NodeSXD(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
     virtual int direction() const { return -1; }
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -167,13 +167,13 @@ class NodeTeX : public Node, private TeX
 {
 public:
     NodeTeX(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream&, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius  ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream&, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
 #if defined(X11_OUTPUT)
@@ -181,13 +181,13 @@ class NodeX11 : public Node, private X11
 {
 public:
     NodeX11(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const { return output; }
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const { return output; }
-    virtual ostream& circle( ostream& output, const Point& center, const double radius  ) const{ return output; }
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const { return output; }
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const { return output; }
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const { return output; }
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius  ) const{ return output; }
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const { return output; }
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -196,13 +196,13 @@ class NodeGD : public Node, private GD
 {
 public:
     NodeGD(double x1, double y1, double x2, double y2 ) : Node(x1,y1,x2,y2) {}
-    virtual ostream& polygon( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& polyline( ostream& output, const std::vector<Point>& points ) const;
-    virtual ostream& circle( ostream& output, const Point& center, const double radius ) const;
-    virtual ostream& rectangle( ostream& output ) const;
-    virtual ostream& roundedRectangle( ostream& output ) const;
-    virtual ostream& text( ostream& output, const Point&, const char * ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& polygon( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& polyline( std::ostream& output, const std::vector<Point>& points ) const;
+    virtual std::ostream& circle( std::ostream& output, const Point& center, const double radius ) const;
+    virtual std::ostream& rectangle( std::ostream& output ) const;
+    virtual std::ostream& roundedRectangle( std::ostream& output ) const;
+    virtual std::ostream& text( std::ostream& output, const Point&, const char * ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
     virtual int direction() const { return -1; }
 };
 #endif

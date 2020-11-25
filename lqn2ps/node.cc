@@ -1,6 +1,6 @@
 /* node.cc	-- Greg Franks Wed Jan 29 2003
  *
- * $Id: node.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: node.cc 14136 2020-11-25 18:27:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -10,9 +10,9 @@
 #include "node.h"
 #include "arc.h"
 
-static string tex_string( const char * s );
-static string xml_comment( const string& );
-static string unicode_string( const char * s );
+static std::string tex_string( const char * s );
+static std::string xml_comment( const std::string& );
+static std::string unicode_string( const char * s );
 
 Node *
 Node::newNode( double x, double y )
@@ -58,7 +58,7 @@ Node::newNode( double x, double y )
 	return new NodeNull( 0, 0, x, y );
     }
     abort();
-    return 0;
+    return nullptr;
 }
 
 Node&
@@ -87,8 +87,8 @@ Node::resizeBox( const double x, const double y, const double w, const double h 
 }
 
 
-ostream& 
-Node::draw_queue( ostream& output, const Point& aPoint, const double radius ) const
+std::ostream& 
+Node::draw_queue( std::ostream& output, const Point& aPoint, const double radius ) const
 {
     std::vector<Point> points(4);
     points[0] = aPoint;
@@ -103,8 +103,8 @@ Node::draw_queue( ostream& output, const Point& aPoint, const double radius ) co
     return output;
 }
 
-ostream&
-Node::multi_server( ostream& output, const Point& centerBottom, const double radius ) const
+std::ostream&
+Node::multi_server( std::ostream& output, const Point& centerBottom, const double radius ) const
 {
     Arc * anArc = Arc::newArc( 3, Graphic::NO_ARROW );
     const double offset = radius * 14.0 / 9.0;
@@ -137,8 +137,8 @@ Node::multi_server( ostream& output, const Point& centerBottom, const double rad
 }
 
 
-ostream&
-Node::open_source( ostream& output, const Point& centerBottom, const double radius ) const
+std::ostream&
+Node::open_source( std::ostream& output, const Point& centerBottom, const double radius ) const
 {
     std::vector<Point> points(5);
     const double top = radius * direction() * 2.0;
@@ -153,8 +153,8 @@ Node::open_source( ostream& output, const Point& centerBottom, const double radi
     return output;
 }
 
-ostream&
-Node::open_sink( ostream& output, const Point& centerTop, const double radius ) const
+std::ostream&
+Node::open_sink( std::ostream& output, const Point& centerTop, const double radius ) const
 {
     std::vector<Point> points(5);
     const double bot = radius * -direction() * 2.0;
@@ -175,54 +175,54 @@ Node::open_sink( ostream& output, const Point& centerTop, const double radius ) 
 /* Windows Enhanced Meta File output					*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeEMF::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeEMF::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     EMF::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeEMF::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeEMF::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     EMF::polyline( output, points, penColour() );
     return output;
 }
 
 
-ostream&
-NodeEMF::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeEMF::circle( std::ostream& output, const Point& c, const double r ) const
 {
     EMF::circle( output, c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeEMF::rectangle( ostream& output ) const
+std::ostream&
+NodeEMF::rectangle( std::ostream& output ) const
 {
     EMF::rectangle( output, origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeEMF::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeEMF::roundedRectangle( std::ostream& output ) const
 {
     EMF::rectangle( output, origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeEMF::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeEMF::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    string aStr = unicode_string( s );
+    std::string aStr = unicode_string( s );
     EMF::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
-ostream& 
-NodeEMF::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeEMF::comment( std::ostream& output, const std::string& aString ) const
 {
     /* Binary file format.  No operation. */
     return output;
@@ -233,56 +233,56 @@ NodeEMF::comment( ostream& output, const string& aString ) const
 /* XFIG output								*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeFig::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeFig::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     Fig::polyline( output, points, Fig::POLYGON, penColour(), fillColour(), depth() );
     return output;
 }
 
 
-ostream&
-NodeFig::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeFig::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     Fig::polyline( output, points, Fig::POLYLINE, penColour(), Graphic::TRANSPARENT, depth(), linestyle() );
     return output;
 }
 
 
-ostream&
-NodeFig::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeFig::circle( std::ostream& output, const Point& c, const double r ) const
 {
     Fig::circle( output, c, r, 3, penColour(), fillColour(), depth(), fillStyle() );
     return output;
 }
 
 
-ostream&
-NodeFig::rectangle( ostream& output ) const
+std::ostream&
+NodeFig::rectangle( std::ostream& output ) const
 {
     Fig::rectangle( output, origin, extent, penColour(), fillColour(), depth(), linestyle() );
     return output;
 }
 
-ostream&
-NodeFig::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeFig::roundedRectangle( std::ostream& output ) const
 {
     Fig::roundedRectangle( output, origin, extent, penColour(), Graphic::TRANSPARENT, depth(), linestyle() );
     return output;
 }
 
-ostream&
-NodeFig::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeFig::text( std::ostream& output, const Point& c, const char * s ) const
 {
     Fig::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), Fig::POSTSCRIPT );
     return output;
 }
 
 
-ostream& 
-NodeFig::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeFig::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "# " << aString << endl;
+    output << "# " << aString << std::endl;
     return output;
 }
 
@@ -291,16 +291,16 @@ NodeFig::comment( ostream& output, const string& aString ) const
 /* GD (Jpeg, PNG, GIF ) output						*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeGD::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeGD::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     GD::polygon( points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeGD::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeGD::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     for ( unsigned i = 1; i < points.size(); ++i ) {    
 	GD::drawline( points[i-1], points[i], penColour(), linestyle() );
@@ -309,30 +309,30 @@ NodeGD::polyline( ostream& output, const std::vector<Point>& points ) const
 }
 
 
-ostream&
-NodeGD::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeGD::circle( std::ostream& output, const Point& c, const double r ) const
 {
     GD::circle( c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeGD::rectangle( ostream& output ) const
+std::ostream&
+NodeGD::rectangle( std::ostream& output ) const
 {
     GD::rectangle( origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeGD::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeGD::roundedRectangle( std::ostream& output ) const
 {
     GD::rectangle( origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeGD::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeGD::text( std::ostream& output, const Point& c, const char * s ) const
 {
     Point aPoint( c );
     gdFont * font = GD::getfont();
@@ -346,8 +346,8 @@ NodeGD::text( ostream& output, const Point& c, const char * s ) const
  * One can't put comments into PNG/JPEG output. :-)
  */
 
-ostream& 
-NodeGD::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeGD::comment( std::ostream& output, const std::string& aString ) const
 {
     return output;
 }
@@ -357,63 +357,63 @@ NodeGD::comment( ostream& output, const string& aString ) const
 /* PostScript output							*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodePostScript::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodePostScript::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     PostScript::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodePostScript::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodePostScript::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     PostScript::polyline( output, points, penColour(), Graphic::linestyle() );
     return output;
 }
 
 
-ostream&
-NodePostScript::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodePostScript::circle( std::ostream& output, const Point& c, const double r ) const
 {
     PostScript::circle( output, c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodePostScript::rectangle( ostream& output ) const
+std::ostream&
+NodePostScript::rectangle( std::ostream& output ) const
 {
     PostScript::rectangle( output, origin, extent, penColour(), fillColour(), Graphic::linestyle() );
     return output;
 }
 
-ostream&
-NodePostScript::roundedRectangle( ostream& output ) const
+std::ostream&
+NodePostScript::roundedRectangle( std::ostream& output ) const
 {
     PostScript::roundedRectangle( output, origin, extent, penColour(), Graphic::TRANSPARENT, Graphic::linestyle() );
     return output;
 }
 
-ostream&
-NodePostScript::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodePostScript::text( std::ostream& output, const Point& c, const char * s ) const
 {
     PostScript::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
 
-ostream& 
-NodePostScript::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodePostScript::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "% " << aString << endl;
+    output << "% " << aString << std::endl;
     return output;
 }
 
-ostream&
-NodePsTeX::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodePsTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    string aStr = tex_string( s );
+    std::string aStr = tex_string( s );
     Fig::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour(), 
 	       Fig::SPECIAL );
     return output;
@@ -424,55 +424,55 @@ NodePsTeX::text( ostream& output, const Point& c, const char * s ) const
 /* Scalable Vector Grahpics Ouptut					*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeSVG::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeSVG::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     SVG::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeSVG::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeSVG::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     SVG::polyline( output, points, penColour(), Graphic::linestyle() );
     return output;
 }
 
 
-ostream&
-NodeSVG::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeSVG::circle( std::ostream& output, const Point& c, const double r ) const
 {
     SVG::circle( output, c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeSVG::rectangle( ostream& output ) const
+std::ostream&
+NodeSVG::rectangle( std::ostream& output ) const
 {
     SVG::rectangle( output, origin, extent, penColour(), fillColour(), Graphic::linestyle() );
     return output;
 }
 
-ostream&
-NodeSVG::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeSVG::roundedRectangle( std::ostream& output ) const
 {
     SVG::rectangle( output, origin, extent, penColour(), fillColour(), Graphic::linestyle() );
     return output;
 }
 
-ostream&
-NodeSVG::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeSVG::text( std::ostream& output, const Point& c, const char * s ) const
 {
     SVG::text( output, c, s, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
-ostream& 
-NodeSVG::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeSVG::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "<!-- " << xml_comment( aString ) << " -->" << endl;
+    output << "<!-- " << xml_comment( aString ) << " -->" << std::endl;
     return output;
 }
 #endif
@@ -482,46 +482,46 @@ NodeSVG::comment( ostream& output, const string& aString ) const
 /* Open(Star)Office output						*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeSXD::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeSXD::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     SXD::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeSXD::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeSXD::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     SXD::polyline( output, points, penColour(), linestyle() );
     return output;
 }
 
 
-ostream&
-NodeSXD::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeSXD::circle( std::ostream& output, const Point& c, const double r ) const
 {
     SXD::circle( output, c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeSXD::rectangle( ostream& output ) const
+std::ostream&
+NodeSXD::rectangle( std::ostream& output ) const
 {
     SXD::rectangle( output, origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeSXD::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeSXD::roundedRectangle( std::ostream& output ) const
 {
     SXD::rectangle( output, origin, extent, penColour(), fillColour(), Graphic::linestyle() );
     return output;
 }
 
-ostream&
-NodeSXD::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeSXD::text( std::ostream& output, const Point& c, const char * s ) const
 {
     Point boxOrigin = c;
     Point boxExtent( strlen(s) / 2.4, Flags::print[FONT_SIZE].value.i );		/* A guess... width is half of height */
@@ -533,10 +533,10 @@ NodeSXD::text( ostream& output, const Point& c, const char * s ) const
     return output;
 }
 
-ostream& 
-NodeSXD::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeSXD::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "<!-- " << xml_comment( aString ) << " -->" << endl;
+    output << "<!-- " << xml_comment( aString ) << " -->" << std::endl;
     return output;
 }
 #endif
@@ -545,56 +545,56 @@ NodeSXD::comment( ostream& output, const string& aString ) const
 /* EEPIC output								*/
 /* -------------------------------------------------------------------- */
 
-ostream&
-NodeTeX::polygon( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeTeX::polygon( std::ostream& output, const std::vector<Point>& points ) const
 {
     TeX::polygon( output, points, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeTeX::polyline( ostream& output, const std::vector<Point>& points ) const
+std::ostream&
+NodeTeX::polyline( std::ostream& output, const std::vector<Point>& points ) const
 {
     TeX::polyline( output, points, penColour(), linestyle() );
     return output;
 }
 
 
-ostream&
-NodeTeX::circle( ostream& output, const Point& c, const double r ) const
+std::ostream&
+NodeTeX::circle( std::ostream& output, const Point& c, const double r ) const
 {
     TeX::circle( output, c, r, penColour(), fillColour() );
     return output;
 }
 
 
-ostream&
-NodeTeX::rectangle( ostream& output ) const
+std::ostream&
+NodeTeX::rectangle( std::ostream& output ) const
 {
     TeX::rectangle( output, origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeTeX::roundedRectangle( ostream& output ) const
+std::ostream&
+NodeTeX::roundedRectangle( std::ostream& output ) const
 {
     TeX::rectangle( output, origin, extent, penColour(), fillColour(), linestyle() );
     return output;
 }
 
-ostream&
-NodeTeX::text( ostream& output, const Point& c, const char * s ) const
+std::ostream&
+NodeTeX::text( std::ostream& output, const Point& c, const char * s ) const
 {
-    string aStr = tex_string( s );
+    std::string aStr = tex_string( s );
     TeX::text( output, c, aStr, Graphic::NORMAL_FONT, Flags::print[FONT_SIZE].value.i, CENTER_JUSTIFY, penColour() );
     return output;
 }
 
-ostream& 
-NodeTeX::comment( ostream& output, const string& aString ) const
+std::ostream& 
+NodeTeX::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "% " << aString << endl;
+    output << "% " << aString << std::endl;
     return output;
 }
 
@@ -602,10 +602,10 @@ NodeTeX::comment( ostream& output, const string& aString ) const
  * Convert to safe string.
  */
 
-static string
+static std::string
 tex_string( const char * s )
 {
-    string aStr;
+    std::string aStr;
 
     for ( ; *s; ++s ) {
 	switch ( *s ) {
@@ -625,10 +625,10 @@ tex_string( const char * s )
 }
 
 
-static string
+static std::string
 unicode_string( const char * s )
 {
-    string aStr;
+    std::string aStr;
 
     for ( ; *s; ++s ) {
 	aStr += '\0';	/* High Byte */
@@ -640,13 +640,13 @@ unicode_string( const char * s )
 
 
 /*
- * XML doesn't like the string -- in comments. 
+ * XML doesn't like the std::string -- in comments. 
  */
 
-static string
-xml_comment( const string& src )
+static std::string
+xml_comment( const std::string& src )
 {
-    string dst = src;
+    std::string dst = src;
     for ( unsigned i = 1; i < dst.length(); ++i ) {
 	if ( dst[i-1] == dst[i] && dst[i-1] == '-' ) {
 	    dst[i-1] = '~';				/* BUG 588 */

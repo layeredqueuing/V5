@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 13535 2020-03-16 17:05:56Z greg $
+ * $Id: layer.cc 14134 2020-11-25 18:12:05Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -193,7 +193,7 @@ Layer::prune()
 Layer&
 Layer::sort( compare_func_ptr compare ) 
 {
-    ::sort( _entities.begin(), _entities.end(), compare );
+    std::sort( _entities.begin(), _entities.end(), compare );
     return *this;
 }
 
@@ -284,7 +284,7 @@ Layer&
 Layer::fill( const double maxWidthPts )
 {
     const double width = for_each( entities().begin(), entities().end(), Sum<Element,double>( &Element::width ) ).sum();
-    const double fill = max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
+    const double fill = std::max( 0.0, (maxWidthPts - width) / static_cast<double>(entities().size() + 1) );
     if ( fill < Flags::print[X_SPACING].value.f ) return *this;		/* Don't bother... */
 
     _origin.x( fill );
@@ -354,7 +354,7 @@ Layer::align()
 Layer&
 Layer::alignEntities()
 {
-    ::sort( _entities.begin(), _entities.end(), &Entity::compareCoord );
+    std::sort( _entities.begin(), _entities.end(), &Entity::compareCoord );
     
     if ( Flags::debug ) std::cerr << "Layer::alignEntities layer " << number() << std::endl;
     /* Move objects right starting from the right side */
@@ -387,9 +387,9 @@ Layer::shift( unsigned i, double amount )
 	    _entities[i]->moveBy( amount, 0 );
 	    _origin.moveBy( amount, 0 );
 	} else {
-	    _entities[i]->moveBy( min( max( (_entities[i-1]->right() + Flags::print[X_SPACING].value.f) - _entities[i]->left(), amount ), 0.0 ), 0 );
+	    _entities[i]->moveBy( std::min( std::max( (_entities[i-1]->right() + Flags::print[X_SPACING].value.f) - _entities[i]->left(), amount ), 0.0 ), 0 );
 	}
-	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << endl;
+	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << std::endl;
 	_origin.x( _entities.front()->left() );
 	_extent.x( _entities.back()->right() - _entities.front()->left() );
 	if ( i + 1 < size() && _entities[i]->forwardsTo( dynamic_cast<Task *>(_entities[i+1]) ) ) {
@@ -402,9 +402,9 @@ Layer::shift( unsigned i, double amount )
 	if ( i + 1 == size() ) {
 	    _entities[i]->moveBy( amount, 0 );
 	} else {
-	    _entities[i]->moveBy( max( min( _entities[i+1]->left() - (_entities[i]->right() + Flags::print[X_SPACING].value.f), amount ), 0.0 ), 0 );
+	    _entities[i]->moveBy( std::max( std::min( _entities[i+1]->left() - (_entities[i]->right() + Flags::print[X_SPACING].value.f), amount ), 0.0 ), 0 );
 	}
-	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << endl;
+	if ( Flags::debug ) std::cerr << " to (" << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")" << std::endl;
 	_origin.x( _entities.front()->left() );
 	_extent.x( _entities.back()->right() - _entities.front()->left() );
 	if ( i > 0 && _entities[i-1]->forwardsTo( dynamic_cast<Task *>(_entities[i]) ) ) {
@@ -733,8 +733,8 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
  * Print a layer.
  */
 
-ostream&
-Layer::print( ostream& output ) const
+std::ostream&
+Layer::print( std::ostream& output ) const
 {
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
 	if ( (*entity)->isSelectedIndirectly() ) {
@@ -753,20 +753,20 @@ Layer::print( ostream& output ) const
  * Print a layer.  Ignore Flags::print[OUPTUT_FORMAT]
  */
 
-ostream&
-Layer::printSubmodel( ostream& output ) const
+std::ostream&
+Layer::printSubmodel( std::ostream& output ) const
 {
     const size_t n_clients = _clients.size();
-    output << "---------- Submodel: " << number() << " ----------" << endl;
+    output << "---------- Submodel: " << number() << " ----------" << std::endl;
 
     if ( n_clients > 0 ) {
-	output << "Clients: " << endl;
+	output << "Clients: " << std::endl;
 	for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	    (*client)->print( output );
 	}
     }
 
-    output << "Servers: " << endl;
+    output << "Servers: " << std::endl;
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
 	if ( (*entity)->isSelected() ) {
 	    (*entity)->print( output );
@@ -776,8 +776,8 @@ Layer::printSubmodel( ostream& output ) const
     return output;
 }
 
-ostream&
-Layer::printSubmodelSummary( ostream& output ) const
+std::ostream&
+Layer::printSubmodelSummary( std::ostream& output ) const
 {
     unsigned int n_clients  = _clients.size();
     unsigned int n_servers  = entities().size();
@@ -789,7 +789,7 @@ Layer::printSubmodelSummary( ostream& output ) const
 			    << n_fixed << " Fixed, "
 			    << n_multi << " Multi, "
 			    << n_infinite << " Infinite)";
-    output << "." << endl;
+    output << "." << std::endl;
     return output;
 }
 
@@ -798,8 +798,8 @@ Layer::printSubmodelSummary( ostream& output ) const
  * Print a layer.
  */
 
-ostream&
-Layer::printSummary( ostream& output ) const
+std::ostream&
+Layer::printSummary( std::ostream& output ) const
 {
     unsigned int n_processors = 0;
     unsigned int n_tasks = 0;
@@ -828,8 +828,8 @@ Layer::printSummary( ostream& output ) const
  * Draw the submodel as a queueing network.
  */
 
-ostream&
-Layer::drawQueueingNetwork( ostream& output ) const
+std::ostream&
+Layer::drawQueueingNetwork( std::ostream& output ) const
 {
 
     double max_x = x() + width();
@@ -843,7 +843,7 @@ Layer::drawQueueingNetwork( ostream& output ) const
 	    is_in_open_model = true;
 	}
 	(*client)->drawClient( output, is_in_open_model, is_in_closed_model );
-	max_x = max( max_x, (*client)->right() );
+	max_x = std::max( max_x, (*client)->right() );
     }
 
     /* Now draw connections */
@@ -876,8 +876,8 @@ void Layer::Position::operator()( Entity * entity )
     if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
     entity->moveTo( _x, (_f == &Task::reformat ? entity->bottom() : _y) );
     _x += entity->width();
-    _y = min( _y, entity->bottom() );
-    _h = max( _h, entity->height() );
+    _y = std::min( _y, entity->bottom() );
+    _h = std::max( _h, entity->height() );
 }
 
 

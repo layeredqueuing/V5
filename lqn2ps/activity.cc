@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: activity.cc 14136 2020-11-25 18:27:35Z greg $
  */
 
 #include "activity.h"
@@ -701,7 +701,7 @@ Activity::findCall( const Entry * anEntry ) const
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( !(*call)->isPseudoCall() && (*call)->dstEntry() == anEntry ) return *call;
     }
-    return 0;
+    return nullptr;
 }
 
 
@@ -716,7 +716,7 @@ Activity::findFwdCall( const Entry * anEntry ) const
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( (*call)->isPseudoCall() && (*call)->dstEntry() == anEntry ) return *call;
     }
-    return 0;
+    return nullptr;
 }
 
 
@@ -868,7 +868,7 @@ Activity::disconnect( Activity* nextActivity )
 Activity&
 Activity::sort()
 {
-    ::sort( _calls.begin(), _calls.end(), &Call::compareSrc );
+    std::sort( _calls.begin(), _calls.end(), &Call::compareSrc );
     return *this;
 }
 
@@ -1065,11 +1065,11 @@ Activity::expandActivityCalls( const Activity& src, int replica )
 	const unsigned fan_out = (*call)->fanOut();
 	const unsigned dst_replicas = (*call)->dstEntry()->owner()->replicasValue();
 	if (fan_out > dst_replicas) {
-	    ostringstream msg;
+	    std::ostringstream msg;
 	    msg << "Activity::expandActivityCalls(): fanout of activity " << name()
 		<< " is greater than the number of replicas of the destination Entry'"
 		<< (*call)->dstEntry()->name() << "'";
-	    throw runtime_error( msg.str() );
+	    throw std::runtime_error( msg.str() );
 	}
 
 	LQIO::DOM::Call * dom_call;
@@ -1162,9 +1162,9 @@ Activity::replicateCall()
 /* ------------------------------------------------------------------------ */
 
 const Activity&
-Activity::draw( ostream & output ) const
+Activity::draw( std::ostream & output ) const
 {
-    ostringstream aComment;
+    std::ostringstream aComment;
     aComment << "Activity " << name();
     if ( hasServiceTime() ) {
 	aComment << " s [" << serviceTime() << "]";
@@ -1175,7 +1175,7 @@ Activity::draw( ostream & output ) const
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
     myNode->rectangle( output );
 
-    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,ostream&>( &GenericCall::draw, output ) );
+    for_each( calls().begin(), calls().end(), ConstExec1<GenericCall,std::ostream&>( &GenericCall::draw, output ) );
 
     myLabel->backgroundColour( colour() );
     output << *myLabel;
@@ -1193,8 +1193,8 @@ Activity::draw( ostream & output ) const
  * open arrivals.
  */
 
-ostream&
-Activity::printNameWithReply( ostream& output ) const
+std::ostream&
+Activity::printNameWithReply( std::ostream& output ) const
 {
     output << name();
     if ( replies().size() && !owner()->canConvertToOpenArrivals() ) {

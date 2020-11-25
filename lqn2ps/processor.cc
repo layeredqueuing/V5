@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 13675 2020-07-10 15:29:36Z greg $
+ * $Id: processor.cc 14136 2020-11-25 18:27:35Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -43,18 +43,18 @@ std::set<Processor *,LT<Processor> > Processor::__processors;
 
 class SRVNProcessorManip {
 public:
-    SRVNProcessorManip( ostream& (*ff)(ostream&, const Processor & ), const Processor & theProcessor ) 
+    SRVNProcessorManip( std::ostream& (*ff)(std::ostream&, const Processor & ), const Processor & theProcessor ) 
 	: f(ff), anProcessor(theProcessor) {}
 
 private:
-    ostream& (*f)( ostream&, const Processor& );
+    std::ostream& (*f)( std::ostream&, const Processor& );
     const Processor & anProcessor;
 
-    friend ostream& operator<<(ostream & os, const SRVNProcessorManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const SRVNProcessorManip& m ) 
 	{ return m.f(os,m.anProcessor); }
 };
 
-static ostream& proc_scheduling_of_str( ostream&, const Processor & aProcessor );
+static std::ostream& proc_scheduling_of_str( std::ostream&, const Processor & aProcessor );
 static inline SRVNProcessorManip proc_scheduling_of( const Processor & aProcessor ) { return SRVNProcessorManip( &proc_scheduling_of_str, aProcessor ); }
 
 /* ------------------------ Constructors etc. ------------------------- */
@@ -95,9 +95,9 @@ Processor::clone( const std::string& new_name ) const
 {
     std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( new_name ) );
     if ( nextProcessor != __processors.end() ) {
-	string msg = "Processor::expandProcessor(): cannot add symbol ";
+	std::string msg = "Processor::expandProcessor(): cannot add symbol ";
 	msg += new_name;
-	throw runtime_error( msg );
+	throw std::runtime_error( msg );
     }
     LQIO::DOM::Processor * dom = new LQIO::DOM::Processor( *dynamic_cast<const LQIO::DOM::Processor*>(getDOM()) );
     dom->setName( new_name );
@@ -116,7 +116,7 @@ const Processor *
 Processor::processor() const
 {
     throw should_not_implement( "Processor::processor()", __FILE__, __LINE__ );
-    return 0;
+    return nullptr;
 }
 
 
@@ -318,7 +318,7 @@ Processor::getIndex() const
     this->clients( clients );
 
     for( std::vector<Entity *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
-	anIndex = min( anIndex, (*client)->index() );
+	anIndex = std::min( anIndex, (*client)->index() );
     }
 
     return anIndex;
@@ -477,15 +477,15 @@ Processor::rename()
 
 #if defined(REP2FLAT)
 Processor *
-Processor::find_replica( const string& processor_name, const unsigned replica )
+Processor::find_replica( const std::string& processor_name, const unsigned replica )
 {
-    ostringstream aName;
+    std::ostringstream aName;
     aName << processor_name << "_" << replica;
     std::set<Processor *>::const_iterator nextProcessor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( aName.str() ) );
     if ( nextProcessor == __processors.end() ) {
-	string msg = "Processor::find_replica: cannot find symbol ";
+	std::string msg = "Processor::find_replica: cannot find symbol ";
 	msg += aName.str();
-	throw runtime_error( msg );
+	throw std::runtime_error( msg );
     }
     return *nextProcessor;
 }
@@ -496,7 +496,7 @@ Processor::expandProcessor()
 {
     unsigned int numProcReplicas = replicasValue();
     for ( unsigned int replica = 1; replica <= numProcReplicas; replica++) {
-	ostringstream new_name;
+	std::ostringstream new_name;
 	new_name << name() << "_" << replica;
 	__processors.insert( clone( new_name.str() ) );
     }
@@ -516,7 +516,7 @@ Processor::replicateProcessor( LQIO::DOM::DocumentObject ** root )
     if ( replica == 1 ) {
 	*root = const_cast<LQIO::DOM::DocumentObject *>(getDOM());
 	std::pair<std::set<Processor *>::iterator,bool> rc = __processors.insert( this );
-	if ( !rc.second ) throw runtime_error( "Duplicate processor" );
+	if ( !rc.second ) throw std::runtime_error( "Duplicate processor" );
 	(*root)->setName( root_name );
 	const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>((*root)))->clearTaskList();
 	const_cast<LQIO::DOM::Document *>((*root)->getDocument())->addProcessorEntity( dynamic_cast<LQIO::DOM::Processor *>(*root) );
@@ -536,9 +536,9 @@ Processor::replicateProcessor( LQIO::DOM::DocumentObject ** root )
 
 
 const Processor&
-Processor::draw( ostream& output ) const
+Processor::draw( std::ostream& output ) const
 {
-    ostringstream aComment;
+    std::ostringstream aComment;
     aComment << "Processor "
 	     << name() 
 	     << proc_scheduling_of( *this );
@@ -572,7 +572,7 @@ Processor::draw( ostream& output ) const
  */
 
 Processor *
-Processor::find( const string& name )
+Processor::find( const std::string& name )
 {
     std::set<Processor *>::const_iterator processor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( name ) );
     return processor != __processors.end() ? *processor : 0;
@@ -590,7 +590,7 @@ Processor::create( const std::pair<std::string,LQIO::DOM::Processor *>& p )
     const LQIO::DOM::Processor* domProcessor = p.second;
     if ( Processor::find( name ) ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", name.c_str() );
-	return 0;
+	return nullptr;
     }
 
     Processor * aProcessor = new Processor( domProcessor );
@@ -603,8 +603,8 @@ Processor::create( const std::pair<std::string,LQIO::DOM::Processor *>& p )
  * print out the processor scheduling type (and quantum).
  */
 
-static ostream&
-proc_scheduling_of_str( ostream& output, const Processor & processor )
+static std::ostream&
+proc_scheduling_of_str( std::ostream& output, const Processor & processor )
 {
     output << ' ' << scheduling_label[static_cast<unsigned int>(processor.scheduling())].str;
     if ( processor.hasQuantum() ) {

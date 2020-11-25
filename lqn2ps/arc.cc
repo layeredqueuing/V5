@@ -1,6 +1,6 @@
 /* arc.cc	-- Greg Franks Thu Jan 30 2003
  *
- * $Id: arc.cc 13477 2020-02-08 23:14:37Z greg $
+ * $Id: arc.cc 14136 2020-11-25 18:27:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -54,7 +54,7 @@ Arc::newArc( const unsigned size, const arrowhead_type arrow )
 	return new ArcNull( size, arrow );
     }
     abort();
-    return 0;
+    return nullptr;
 }
 
 
@@ -288,7 +288,7 @@ Arc::removeDuplicates() const
 
 #if defined(EMF_OUTPUT)
 const ArcEMF&
-ArcEMF::draw( ostream& output ) const
+ArcEMF::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -298,8 +298,8 @@ ArcEMF::draw( ostream& output ) const
 }
 
 
-ostream& 
-ArcEMF::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcEMF::comment( std::ostream& output, const std::string& aString ) const
 {
     /* Binary file format.  No operation. */
     return output;
@@ -307,7 +307,7 @@ ArcEMF::comment( ostream& output, const string& aString ) const
 #endif
 
 const ArcFig&
-ArcFig::draw( ostream& output ) const
+ArcFig::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -318,16 +318,16 @@ ArcFig::draw( ostream& output ) const
 
 
 
-ostream& 
-ArcFig::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcFig::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "# " << aString << endl;
+    output << "# " << aString << std::endl;
     return output;
 }
 
 #if HAVE_GD_H && HAVE_LIBGD
 const ArcGD&
-ArcGD::draw( ostream& output ) const
+ArcGD::draw( std::ostream& output ) const
 {
     const unsigned int j = nPoints();
     if ( j < 2 ) return *this;
@@ -357,15 +357,15 @@ ArcGD::draw( ostream& output ) const
  * One can't put comments into PNG/JPEG output. :-)
  */
 
-ostream& 
-ArcGD::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcGD::comment( std::ostream& output, const std::string& aString ) const
 {
     return output;
 }
 #endif
 
 const ArcPostScript&
-ArcPostScript::draw( ostream& output ) const
+ArcPostScript::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -375,16 +375,16 @@ ArcPostScript::draw( ostream& output ) const
 }
 
 
-ostream& 
-ArcPostScript::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcPostScript::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "% " << aString << endl;
+    output << "% " << aString << std::endl;
     return output;
 }
 
 #if defined(SVG_OUTPUT)
 const ArcSVG&
-ArcSVG::draw( ostream& output ) const
+ArcSVG::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -394,17 +394,17 @@ ArcSVG::draw( ostream& output ) const
 }
 
 
-ostream& 
-ArcSVG::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcSVG::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "<!-- " << aString << " -->" << endl;
+    output << "<!-- " << aString << " -->" << std::endl;
     return output;
 }
 #endif
 
 #if defined(SXD_OUTPUT)
 const ArcSXD&
-ArcSXD::draw( ostream& output ) const
+ArcSXD::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -414,16 +414,16 @@ ArcSXD::draw( ostream& output ) const
 }
 
 
-ostream& 
-ArcSXD::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcSXD::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "<!-- " << aString << " -->" << endl;
+    output << "<!-- " << aString << " -->" << std::endl;
     return output;
 }
 #endif
 
 const ArcTeX&
-ArcTeX::draw( ostream& output ) const
+ArcTeX::draw( std::ostream& output ) const
 {
     std::vector<Point> points = removeDuplicates();
     if ( points.size() > 0 ) {
@@ -433,9 +433,9 @@ ArcTeX::draw( ostream& output ) const
 }
 
 
-ostream& 
-ArcTeX::comment( ostream& output, const string& aString ) const
+std::ostream& 
+ArcTeX::comment( std::ostream& output, const std::string& aString ) const
 {
-    output << "% " << aString << endl;
+    output << "% " << aString << std::endl;
     return output;
 }

@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: call.h 14134 2020-11-25 18:12:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,8 +55,8 @@ public:
 
     virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const { return nullptr; }
 
-    virtual const string& srcName() const = 0;
-    virtual const string& dstName() const = 0;
+    virtual const std::string& srcName() const = 0;
+    virtual const std::string& dstName() const = 0;
     virtual unsigned srcLevel() const;
     virtual unsigned dstLevel() const = 0;
     virtual const Task * srcTask() const = 0;
@@ -108,9 +108,9 @@ public:
     virtual GenericCall& depth( const unsigned );
     virtual GenericCall& label() = 0;
 
-    const GenericCall& draw( ostream& ) const;
-    virtual ostream& print( ostream& ) const = 0;
-    ostream& dump( ostream& ) const;
+    const GenericCall& draw( std::ostream& ) const;
+    virtual std::ostream& print( std::ostream& ) const = 0;
+    std::ostream& dump( std::ostream& ) const;
 
     static bool compareDst( const GenericCall *, const GenericCall * );
     static bool compareSrc( const GenericCall *, const GenericCall * );
@@ -120,7 +120,7 @@ protected:
     Arc * myArc;
 };
 
-inline ostream& operator<<( ostream& output, const GenericCall& self ) { self.draw( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const GenericCall& self ) { self.draw( output ); return output; }
 
 /* ------------------- Arcs between entries are... -------------------- */
 
@@ -210,7 +210,7 @@ public:
     /* Queries */
 	
     virtual unsigned maxPhase() const = 0;
-    const string & dstName() const;
+    const std::string & dstName() const;
     virtual double dstIndex() const;
     virtual unsigned dstLevel() const;
 
@@ -240,7 +240,7 @@ public:
 
     virtual Call& moveDst( const Point& aPoint );
     virtual Call& label();
-    virtual ostream& print( ostream& ) const;
+    virtual std::ostream& print( std::ostream& ) const;
 
 #if defined(REP2FLAT)
     virtual Call& replicateCall( std::vector<Call *>&, Call ** );
@@ -248,7 +248,7 @@ public:
 
 protected:
     Call& setArcType();
-    virtual ostream& printSRVNLine( ostream& output, char code, print_func_ptr func ) const;
+    virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
 
 private:
     size_t numberOfPhases() const { return _rendezvous.size(); }
@@ -271,7 +271,7 @@ public:
     virtual bool check() const;
 
     const Entry * srcEntry() const { return source; }
-    virtual const string & srcName() const;
+    virtual const std::string & srcName() const;
     virtual const Task * srcTask() const;
     virtual double srcIndex() const;
     virtual EntryCall& setChain( const unsigned );
@@ -319,7 +319,7 @@ public:
     virtual bool check() const;
 
     const Activity * srcActivity() const { return source; }
-    virtual const string & srcName() const;
+    virtual const std::string & srcName() const;
     virtual const Task * srcTask() const;
     virtual double srcIndex() const;
     virtual ActivityCall& setChain( const unsigned );
@@ -332,7 +332,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
 protected:
-    virtual ostream& printSRVNLine( ostream& output, char code, print_func_ptr func ) const;
+    virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
 
 private:
     const Activity* source;		/* Calling entry.		*/
@@ -368,12 +368,12 @@ class EntityCall : public GenericCall {
 public:
     EntityCall( const Task * fromTask, const Entity * toEntity ) : GenericCall(), _srcTask(fromTask), _dstEntity(toEntity) {}
 
-    virtual const string & srcName() const;
+    virtual const std::string & srcName() const;
     virtual const Task * srcTask() const { return _srcTask; }
 
     EntityCall& setDstEntity( const Entity * entity ) { _dstEntity = entity; return *this; }
     const Entity * dstEntity() const { return _dstEntity; }
-    virtual const string & dstName() const;
+    virtual const std::string & dstName() const;
     virtual unsigned dstLevel() const;
     virtual double dstIndex() const;
 
@@ -419,7 +419,7 @@ public:
     virtual TaskCall& moveSrc( const Point& aPoint );
     virtual TaskCall& moveSrcBy( const double, const double );
     virtual TaskCall& label();
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
 
 private:
     LQIO::DOM::ConstantExternalVariable _rendezvous;
@@ -475,7 +475,7 @@ public:
     virtual ProcessorCall& moveSrcBy( const double, const double );
     virtual ProcessorCall& moveDst( const Point& aPoint );
     virtual ProcessorCall& label();
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
 };
 
 
@@ -498,9 +498,9 @@ public:
     int operator==( const OpenArrival& item ) const;
     int operator!=( const OpenArrival& item ) const { return !(*this == item); }
 
-    virtual const string & srcName() const;
+    virtual const std::string & srcName() const;
     virtual const Task * srcTask() const;
-    virtual const string & dstName() const;
+    virtual const std::string & dstName() const;
     const Task * dstTask() const;
     virtual double srcIndex() const;
     virtual double dstIndex() const;
@@ -523,7 +523,7 @@ public:
 
     virtual OpenArrival& moveDst( const Point& aPoint );
     virtual OpenArrival& label();
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
 
 private:
     const OpenArrivalSource * source;
@@ -543,39 +543,39 @@ public:
 
 class SRVNCallManip {
 public:
-    SRVNCallManip( ostream& (*ff)(ostream&, const Call & ), const Call & aCall  )
+    SRVNCallManip( std::ostream& (*ff)(std::ostream&, const Call & ), const Call & aCall  )
 	: f(ff), myCall(aCall) {}
 private:
-    ostream& (*f)( ostream&, const Call & );
+    std::ostream& (*f)( std::ostream&, const Call & );
     const Call & myCall;
 
-    friend ostream& operator<<(ostream & os, const SRVNCallManip& m )
+    friend std::ostream& operator<<(std::ostream & os, const SRVNCallManip& m )
 	{ return m.f(os,m.myCall); }
 };
 
 
 class TaskCallManip {
 public:
-    TaskCallManip( ostream& (*ff)(ostream&, const TaskCall & ), const TaskCall & aCall  )
+    TaskCallManip( std::ostream& (*ff)(std::ostream&, const TaskCall & ), const TaskCall & aCall  )
 	: f(ff), myCall(aCall) {}
 private:
-    ostream& (*f)( ostream&, const TaskCall & );
+    std::ostream& (*f)( std::ostream&, const TaskCall & );
     const TaskCall & myCall;
 
-    friend ostream& operator<<(ostream & os, const TaskCallManip& m )
+    friend std::ostream& operator<<(std::ostream & os, const TaskCallManip& m )
 	{ return m.f(os,m.myCall); }
 };
 
 
 class EntityCallManip {
 public:
-    EntityCallManip( ostream& (*ff)(ostream&, const EntityCall & ), const EntityCall & aCall  )
+    EntityCallManip( std::ostream& (*ff)(std::ostream&, const EntityCall & ), const EntityCall & aCall  )
 	: f(ff), myCall(aCall) {}
 private:
-    ostream& (*f)( ostream&, const EntityCall & );
+    std::ostream& (*f)( std::ostream&, const EntityCall & );
     const EntityCall & myCall;
 
-    friend ostream& operator<<(ostream & os, const EntityCallManip& m )
+    friend std::ostream& operator<<(std::ostream & os, const EntityCallManip& m )
 	{ return m.f(os,m.myCall); }
 };
 

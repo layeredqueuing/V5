@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: entry.h 14134 2020-11-25 18:12:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -42,7 +42,7 @@ extern "C" {
 class Entry : public Element {
     friend class Call;
     friend class Task;
-    friend ostream& histogram_of_str( ostream& output, const Entry& anEntry );
+    friend std::ostream& histogram_of_str( std::ostream& output, const Entry& anEntry );
     typedef SRVNEntryManip (* print_func_ptr)( const Entry& );
 	
 public:
@@ -196,7 +196,7 @@ public:
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
 
-    static Entry * find( const string& );
+    static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );
     virtual double getIndex() const;
     virtual int span() const;
@@ -217,7 +217,7 @@ public:
     virtual Entry& rename();
 
 #if defined(REP2FLAT)
-    static Entry * find_replica( const string&, const unsigned );
+    static Entry * find_replica( const std::string&, const unsigned );
 
     Entry& expandEntry();
     Entry& expandCall();
@@ -227,7 +227,7 @@ public:
 
     /* Printing */
     
-    virtual const Entry& draw( ostream& ) const;
+    virtual const Entry& draw( std::ostream& ) const;
 
 private:
     Call * findCall( const Entry * anEntry, const callPredicate = 0 ) const;
@@ -240,7 +240,7 @@ private:
     Entry& moveSrc();
     Entry& moveDst();
 
-    ostream& printSRVNLine( ostream& output, char code, print_func_ptr func ) const;
+    std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
 
 public:
     static std::set<Entry *,LT<Entry> > __entries;
@@ -266,7 +266,7 @@ private:
  * Printing functions.
  */
 
-inline ostream& operator<<( ostream& output, const Entry& self ) { self.draw( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const Entry& self ) { self.draw( output ); return output; }
 
 /* ------------------ Proxy messages for class call. ------------------ */
 
@@ -284,13 +284,13 @@ inline const Task * Call::dstTask() const { return _destination->owner(); }
 
 class SRVNEntryManip {
 public:
-    SRVNEntryManip( ostream& (*ff)(ostream&, const Entry & ), const Entry & theEntry )
+    SRVNEntryManip( std::ostream& (*ff)(std::ostream&, const Entry & ), const Entry & theEntry )
 	: f(ff), anEntry(theEntry) {}
 private:
-    ostream& (*f)( ostream&, const Entry& );
+    std::ostream& (*f)( std::ostream&, const Entry& );
     const Entry & anEntry;
 
-    friend ostream& operator<<(ostream & os, const SRVNEntryManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const SRVNEntryManip& m ) 
 	{ return m.f(os,m.anEntry); }
 };
 

@@ -3,7 +3,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/share.h $
  *
  * ------------------------------------------------------------------------
- * $Id: share.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: share.h 14134 2020-11-25 18:12:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,17 +24,17 @@ public:
     Share( const LQIO::DOM::Group* dom, const Processor * aProcessor );
 
     const LQIO::DOM::Group * getDOM() const { return _documentObject; }
-    const string& name() const { return getDOM()->getName(); }
+    const std::string& name() const { return getDOM()->getName(); }
     double share() const { return getDOM()->getGroupShareValue(); }
     bool cap() const { return getDOM()->getCap(); }
     const Processor * processor() const { return _processor; }
 
     /* Printing */
 
-    ostream& draw( ostream& output ) const { return output; }
-    ostream& print( ostream& output ) const;
+    std::ostream& draw( std::ostream& output ) const { return output; }
+    std::ostream& print( std::ostream& output ) const;
 
-    static Share * find( const string& );
+    static Share * find( const std::string& );
     static void create( const std::pair<std::string,LQIO::DOM::Group*>& );
 
 
@@ -46,5 +46,5 @@ private:
 };
 
 
-inline ostream& operator<<( ostream& output, const Share& self ) { return output; }
+inline std::ostream& operator<<( std::ostream& output, const Share& self ) { return output; }
 #endif

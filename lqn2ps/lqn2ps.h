@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: lqn2ps.h 14134 2020-11-25 18:12:05Z greg $
  *
  */
 
@@ -40,8 +40,6 @@
 #if !defined(MAXDOUBLE)
 #define MAXDOUBLE FLT_MAX
 #endif
-
-using namespace std;
 
 namespace LQIO {
     namespace DOM {
@@ -83,7 +81,7 @@ const unsigned N_SEMAPHORE_ENTRIES  = 2;
 const unsigned N_RWLOCK_ENTRIES		= 4;
 const double EPSILON = 0.000001;
 
-extern string command_line;
+extern std::string command_line;
 
 typedef enum {
     AGGREGATE_NONE,
@@ -373,22 +371,22 @@ struct Options
 
 /* ------------------------------------------------------------------------ */
 
-class class_error : public exception 
+class class_error : public std::exception 
 {
 public:
-    class_error( const string& aStr, const char * file, const unsigned line, const char * anError );
+    class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError );
     virtual ~class_error() throw() = 0;
     virtual const char* what() const throw();
 
 private:
-    string myMsg;
+    std::string myMsg;
 };
 
 
 class subclass_responsibility : public class_error 
 {
 public:
-    subclass_responsibility( const string& aStr, const char * file, const unsigned line )
+    subclass_responsibility( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Subclass responsibility." ) {}
     virtual ~subclass_responsibility() throw() {}
 };
@@ -396,7 +394,7 @@ public:
 class not_implemented  : public class_error 
 {
 public:
-    not_implemented( const string& aStr, const char * file, const unsigned line )
+    not_implemented( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Not implemented." ) {}
     virtual ~not_implemented() throw() {}
 };
@@ -405,12 +403,12 @@ public:
 class should_not_implement  : public class_error 
 {
 public:
-    should_not_implement( const string& aStr, const char * file, const unsigned line )
+    should_not_implement( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Should not implement." ) {}
     virtual ~should_not_implement() throw() {}
 };
 
-class path_error : public exception {
+class path_error : public std::exception {
 public:
     explicit path_error( const size_t depth=0 ) : _depth(depth) {}
     virtual ~path_error() throw() {} 
@@ -426,123 +424,123 @@ protected:
 
 class StringManip {
 public:
-    StringManip( ostream& (*ff)(ostream&, const char * ), const char * aStr )
+    StringManip( std::ostream& (*ff)(std::ostream&, const char * ), const char * aStr )
 	: f(ff), myStr(aStr) {}
 private:
-    ostream& (*f)( ostream&, const char * );
+    std::ostream& (*f)( std::ostream&, const char * );
     const char * myStr;
 
-    friend ostream& operator<<(ostream & os, const StringManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) 
 	{ return m.f(os,m.myStr); }
 };
 
 class StringManip2 {
 public:
-    StringManip2( ostream& (*ff)(ostream&, const string& ), const string& aStr )
+    StringManip2( std::ostream& (*ff)(std::ostream&, const std::string& ), const std::string& aStr )
 	: f(ff), myStr(aStr) {}
 private:
-    ostream& (*f)( ostream&, const string& );
-    const string& myStr;
+    std::ostream& (*f)( std::ostream&, const std::string& );
+    const std::string& myStr;
 
-    friend ostream& operator<<(ostream & os, const StringManip2& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringManip2& m ) 
 	{ return m.f(os,m.myStr); }
 };
 
 class StringPlural {
 public:
-    StringPlural( ostream& (*ff)(ostream&, const string&, const unsigned ), const string& aStr, const unsigned anInt )
+    StringPlural( std::ostream& (*ff)(std::ostream&, const std::string&, const unsigned ), const std::string& aStr, const unsigned anInt )
 	: f(ff), myStr(aStr), myInt(anInt) {}
 private:
-    ostream& (*f)( ostream&, const string&, const unsigned );
-    const string& myStr;
+    std::ostream& (*f)( std::ostream&, const std::string&, const unsigned );
+    const std::string& myStr;
     const unsigned myInt;
 
-    friend ostream& operator<<(ostream & os, const StringPlural& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const StringPlural& m ) 
 	{ return m.f(os,m.myStr,m.myInt); }
 };
 
 class IntegerManip {
 public:
-    IntegerManip( ostream& (*ff)(ostream&, const int ), const int anInt )
+    IntegerManip( std::ostream& (*ff)(std::ostream&, const int ), const int anInt )
 	: f(ff), myInt(anInt) {}
 private:
-    ostream& (*f)( ostream&, const int );
+    std::ostream& (*f)( std::ostream&, const int );
     const int myInt;
 
-    friend ostream& operator<<(ostream & os, const IntegerManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const IntegerManip& m ) 
 	{ return m.f(os,m.myInt); }
 };
 
 class UnsignedManip {
 public:
-    UnsignedManip( ostream& (*ff)(ostream&, const unsigned int ), const unsigned int anInt )
+    UnsignedManip( std::ostream& (*ff)(std::ostream&, const unsigned int ), const unsigned int anInt )
 	: f(ff), myInt(anInt) {}
 private:
-    ostream& (*f)( ostream&, const unsigned int );
+    std::ostream& (*f)( std::ostream&, const unsigned int );
     const unsigned int myInt;
 
-    friend ostream& operator<<(ostream & os, const UnsignedManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const UnsignedManip& m ) 
 	{ return m.f(os,m.myInt); }
 };
 
 class BooleanManip {
 public:
-    BooleanManip( ostream& (*ff)(ostream&, const bool ), const bool aBool )
+    BooleanManip( std::ostream& (*ff)(std::ostream&, const bool ), const bool aBool )
 	: f(ff), myBool(aBool) {}
 private:
-    ostream& (*f)( ostream&, const bool );
+    std::ostream& (*f)( std::ostream&, const bool );
     const bool myBool;
 
-    friend ostream& operator<<(ostream & os, const BooleanManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const BooleanManip& m ) 
 	{ return m.f(os,m.myBool); }
 };
 
 class DoubleManip {
 public:
-    DoubleManip( ostream& (*ff)(ostream&, const double ), const double aDouble )
+    DoubleManip( std::ostream& (*ff)(std::ostream&, const double ), const double aDouble )
 	: f(ff), myDouble(aDouble) {}
 private:
-    ostream& (*f)( ostream&, const double );
+    std::ostream& (*f)( std::ostream&, const double );
     const double myDouble;
 
-    friend ostream& operator<<(ostream & os, const DoubleManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const DoubleManip& m ) 
 	{ return m.f(os,m.myDouble); }
 };
 
 class Integer2Manip {
 public:
-    Integer2Manip( ostream& (*ff)(ostream&, const int, const int ), const int int1, const int int2 )
+    Integer2Manip( std::ostream& (*ff)(std::ostream&, const int, const int ), const int int1, const int int2 )
 	: f(ff), myInt1(int1), myInt2(int2) {}
 private:
-    ostream& (*f)( ostream&, const int, const int );
+    std::ostream& (*f)( std::ostream&, const int, const int );
     const int myInt1;
     const int myInt2;
 
-    friend ostream& operator<<(ostream & os, const Integer2Manip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const Integer2Manip& m ) 
 	{ return m.f(os,m.myInt1,m.myInt2); }
 };
 
 class TimeManip {
 public:
-    TimeManip( ostream& (*ff)(ostream&, const double ), const double aTime )
+    TimeManip( std::ostream& (*ff)(std::ostream&, const double ), const double aTime )
 	: f(ff), myTime(aTime) {}
 private:
-    ostream& (*f)( ostream&, const double );
+    std::ostream& (*f)( std::ostream&, const double );
     const double myTime;
 
-    friend ostream& operator<<(ostream & os, const TimeManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const TimeManip& m ) 
 	{ return m.f(os,m.myTime); }
 };
 
 class ExtVarManip {
 public:
-    ExtVarManip( ostream& (*ff)(ostream&, const LQIO::DOM::ExternalVariable& ), const LQIO::DOM::ExternalVariable& aVar )
+    ExtVarManip( std::ostream& (*ff)(std::ostream&, const LQIO::DOM::ExternalVariable& ), const LQIO::DOM::ExternalVariable& aVar )
 	: f(ff), myVar(aVar) {}
 private:
-    ostream& (*f)( ostream&, const LQIO::DOM::ExternalVariable& );
+    std::ostream& (*f)( std::ostream&, const LQIO::DOM::ExternalVariable& );
     const LQIO::DOM::ExternalVariable& myVar;
 
-    friend ostream& operator<<(ostream & os, const ExtVarManip& m ) 
+    friend std::ostream& operator<<(std::ostream & os, const ExtVarManip& m ) 
 	{ return m.f(os,m.myVar); }
 };
 
@@ -563,10 +561,10 @@ class Phase;
 
 typedef bool (GenericCall::*callPredicate)() const;
 typedef bool (Task::*taskPredicate)() const;
-typedef ostream& (Entry::*entryFunc)( ostream& ) const;
-typedef ostream& (Activity::*activityFunc)( ostream& ) const;
-typedef ostream& (Entry::*entryCountFunc)( ostream&, int& ) const;
-typedef ostream& (Activity::*activityCountFunc)( ostream&, int& ) const;
+typedef std::ostream& (Entry::*entryFunc)( std::ostream& ) const;
+typedef std::ostream& (Activity::*activityFunc)( std::ostream& ) const;
+typedef std::ostream& (Entry::*entryCountFunc)( std::ostream&, int& ) const;
+typedef std::ostream& (Activity::*activityCountFunc)( std::ostream&, int& ) const;
 typedef double (Activity::*aggregateFunc)( Entry *, const unsigned, const double );
 typedef double (GenericCall::*callPredicate2)() const;
 typedef Entry& (Entry::*entryLabelFunc)( Label& );
@@ -597,7 +595,7 @@ bool pragma( const std::string&, const std::string& );
 IntegerManip indent( const int anInt );
 IntegerManip temp_indent( const int anInt );
 Integer2Manip conf_level( const int, const int );
-StringPlural plural( const string& s, const unsigned i );
+StringPlural plural( const std::string& s, const unsigned i );
 DoubleManip opt_pct( const double aDouble );
 
 /* ------------------------------------------------------------------------ */

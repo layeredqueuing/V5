@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 13675 2020-07-10 15:29:36Z greg $
+ * $Id: model.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _MODEL_H
@@ -37,7 +37,7 @@ extern void add_group( LQIO::DOM::Group* group );
 
 class Model
 {
-    typedef ostream& (*outputFuncPtr)( ostream& );
+    typedef std::ostream& (*outputFuncPtr)( std::ostream& );
 
     /* Statistics collected.  Output is ordered by the order here. */
 
@@ -99,7 +99,7 @@ private:
 
 protected:
     typedef unsigned (Model::*modelFunc)() const;
-    typedef ostream& (Model::*printSXDFunc)( ostream& ) const;
+    typedef std::ostream& (Model::*printSXDFunc)( std::ostream& ) const;
 
     struct Remap {
 	Remap( std::map<unsigned, LQIO::DOM::Entity *>& entities ) : _entities(entities) {}
@@ -113,17 +113,17 @@ protected:
     {
     public:
 	Stats();
-	ostream& operator<<( ostream& output ) const { return print( output ); }
+	std::ostream& operator<<( std::ostream& output ) const { return print( output ); }
 
-	Stats & accumulate( double value, const string& );
-	Stats & accumulate( const Model *, const string& );
+	Stats & accumulate( double value, const std::string& );
+	Stats & accumulate( const Model *, const std::string& );
 	Stats & accumulate( const modelFunc aFunc ) { myFunc = aFunc; return *this; }
-	Stats & name( const string& aName ) { myName = aName; return *this; }
+	Stats & name( const std::string& aName ) { myName = aName; return *this; }
 	double sum() const { return x; }
-	ostream& print( ostream& ) const;
+	std::ostream& print( std::ostream& ) const;
 
     private:
-	string myName;
+	std::string myName;
 	unsigned n;
 	double x;
 	double x_sqr;
@@ -131,21 +131,21 @@ protected:
 	double one_x;
 	double min;
 	double max;
-	string min_filename;
-	string max_filename;
+	std::string min_filename;
+	std::string max_filename;
 	modelFunc myFunc;
     };
 
-    friend ostream& operator<<( ostream& output, const Model::Stats& self ) { return self.print( output ); }
+    friend std::ostream& operator<<( std::ostream& output, const Model::Stats& self ) { return self.print( output ); }
 
 public:
-    Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers );
+    Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers );
 
     virtual ~Model();
     static bool prepare( const LQIO::DOM::Document * document );
     static unsigned topologicalSort();
 #if HAVE_REGEX_T
-    static void add_group( const string& );
+    static void add_group( const std::string& );
 #endif
 
 private:
@@ -163,19 +163,19 @@ public:
     bool reload();
     static double scaling() { return __model->_scaling; }
 
-    Model& accumulateStatistics( const string& fileName );
+    Model& accumulateStatistics( const std::string& fileName );
 
-    ostream& print( ostream& ) const;
-    ostream& printStatistics( ostream&, const char * = 0 ) const;
-    ostream& printSummary( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
+    std::ostream& printStatistics( std::ostream&, const char * = 0 ) const;
+    std::ostream& printSummary( std::ostream& ) const;
 #if defined(SXD_OUTPUT)
     Model const& printSXD( const char * ) const;
 #endif
 
-    static ostream& printEEPICprologue( ostream& output );
-    static ostream& printEEPICepilogue( ostream& output );
-    ostream& printPostScriptPrologue( ostream& output, const string&, unsigned left=0, unsigned top=0, unsigned right=612, unsigned bottom=792 ) const;
-    static ostream& printOverallStatistics( ostream& );
+    static std::ostream& printEEPICprologue( std::ostream& output );
+    static std::ostream& printEEPICepilogue( std::ostream& output );
+    std::ostream& printPostScriptPrologue( std::ostream& output, const std::string&, unsigned left=0, unsigned top=0, unsigned right=612, unsigned bottom=792 ) const;
+    static std::ostream& printOverallStatistics( std::ostream& );
 
 protected:
     virtual bool generate();
@@ -229,44 +229,44 @@ private:
     unsigned nMultiServers() const;
     unsigned nInfiniteServers() const;
 
-    string getExtension();
-    Model const& accumulateTaskStats( const string& ) const;	/* Does not count ref. tasks. */
-    Model const& accumulateEntryStats( const string& ) const;	/* Does not count ref. tasks. */
-    map<unsigned, LQIO::DOM::Entity *>& remapEntities() const;
+    std::string getExtension();
+    Model const& accumulateTaskStats( const std::string& ) const;	/* Does not count ref. tasks. */
+    Model const& accumulateEntryStats( const std::string& ) const;	/* Does not count ref. tasks. */
+    std::map<unsigned, LQIO::DOM::Entity *>& remapEntities() const;
 
-    ostream& printEEPIC( ostream& output ) const;
+    std::ostream& printEEPIC( std::ostream& output ) const;
 #if defined(EMF_OUTPUT)
-    ostream& printEMF( ostream& output ) const;
+    std::ostream& printEMF( std::ostream& output ) const;
 #endif
-    ostream& printFIG( ostream& output ) const;
+    std::ostream& printFIG( std::ostream& output ) const;
 #if HAVE_LIBGD
-    ostream& printGD( ostream& output, outputFuncPtr func ) const;
+    std::ostream& printGD( std::ostream& output, outputFuncPtr func ) const;
 #endif
-    ostream& printPostScript( ostream& output ) const;
+    std::ostream& printPostScript( std::ostream& output ) const;
 #if defined(SVG_OUTPUT)
-    ostream& printSVG( ostream& output ) const;
+    std::ostream& printSVG( std::ostream& output ) const;
 #endif
 #if defined(SXD_OUTPUT)
     const Model& printSXD( const std::string&, const std::string&, const char *, const printSXDFunc ) const;
-    ostream& printSXD( ostream& output ) const;
-    ostream& printSXDMeta( ostream& output ) const;
-    ostream& printSXDMimeType( ostream& output ) const;
-    ostream& printSXDSettings( ostream& output ) const;
-    ostream& printSXDStyles( ostream& output ) const;
-    ostream& printSXDManifest( ostream& output ) const;
+    std::ostream& printSXD( std::ostream& output ) const;
+    std::ostream& printSXDMeta( std::ostream& output ) const;
+    std::ostream& printSXDMimeType( std::ostream& output ) const;
+    std::ostream& printSXDSettings( std::ostream& output ) const;
+    std::ostream& printSXDStyles( std::ostream& output ) const;
+    std::ostream& printSXDManifest( std::ostream& output ) const;
 #endif
 #if defined(TXT_OUTPUT)
-    ostream& printTXT( ostream& output ) const;
+    std::ostream& printTXT( std::ostream& output ) const;
 #endif
 #if defined(X11_OUTPUT)
-    ostream& printX11( ostream& output ) const;
+    std::ostream& printX11( std::ostream& output ) const;
 #endif
-    ostream& printInput( ostream& output ) const;
-    ostream& printOutput( ostream& output ) const;
-    ostream& printParseable( ostream& output ) const;
-    ostream& printRTF( ostream& output ) const;
-    ostream& printXML( ostream& output ) const;
-    ostream& printLayers( ostream& ) const;
+    std::ostream& printInput( std::ostream& output ) const;
+    std::ostream& printOutput( std::ostream& output ) const;
+    std::ostream& printParseable( std::ostream& output ) const;
+    std::ostream& printRTF( std::ostream& output ) const;
+    std::ostream& printXML( std::ostream& output ) const;
+    std::ostream& printLayers( std::ostream& ) const;
 
     static const char * get_userid();
 
@@ -291,8 +291,8 @@ private:
     static Model * __model;
 
     LQIO::DOM::Document * _document;
-    const string _inputFileName;
-    const string _outputFileName;
+    const std::string _inputFileName;
+    const std::string _outputFileName;
     const LQIO::DOM::GetLogin _login;
 
     unsigned int _modelNumber;
@@ -306,7 +306,7 @@ private:
 class Batch_Model : virtual public Model
 {
 public:
-    Batch_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    Batch_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
@@ -316,7 +316,7 @@ protected:
 class ProcessorTask_Model : virtual public Model, public Batch_Model
 {
 public:
-    ProcessorTask_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    ProcessorTask_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
@@ -332,7 +332,7 @@ private:
 class HWSW_Model : public Model
 {
 public:
-    HWSW_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    HWSW_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
@@ -344,7 +344,7 @@ protected:
 class MOL_Model : public Model
 {
 public:
-    MOL_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    MOL_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
@@ -365,7 +365,7 @@ class Group_Model : virtual public Model
     };
     
 public:
-    Group_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    Group_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
 protected:
@@ -376,7 +376,7 @@ protected:
 class BatchProcessor_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 public:
-    BatchProcessor_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    BatchProcessor_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
 	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
@@ -389,7 +389,7 @@ protected:
 class BatchGroup_Model : virtual public Model, public Batch_Model, public Group_Model
 {
 public:
-    BatchGroup_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    BatchGroup_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ),
 	Group_Model( document, input_file_name, output_file_name, number_of_layers ) {}
@@ -404,7 +404,7 @@ protected:
 class SRVN_Model : virtual public Model, public Batch_Model
 {
 public:
-    SRVN_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name, unsigned int number_of_layers ) :
+    SRVN_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name, unsigned int number_of_layers ) :
 	Model( document, input_file_name, output_file_name, number_of_layers ),
 	Batch_Model( document, input_file_name, output_file_name, number_of_layers ) {}
 
@@ -421,7 +421,7 @@ class Squashed_Model : virtual public Model, public Batch_Model
     };
     
 public:
-    Squashed_Model( LQIO::DOM::Document * document, const string& input_file_name, const string& output_file_name ) :
+    Squashed_Model( LQIO::DOM::Document * document, const std::string& input_file_name, const std::string& output_file_name ) :
 	Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ),
 	Batch_Model( document, input_file_name, output_file_name, PROCESSOR_LEVEL ) {}
 
@@ -429,5 +429,5 @@ public:
     virtual Model& justify();
 };
 
-inline ostream& operator<<( ostream& output, const Model& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Model& self ) { return self.print( output ); }
 #endif

@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: activity.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -46,7 +46,7 @@ public:
     Activity& merge( const Activity&, const double=1.0 );
 
     virtual const Task * owner() const { return _task; }
-    virtual const string& name() const { return Element::name(); }
+    virtual const std::string& name() const { return Element::name(); }
     Activity& level( const size_t level ) { _level = level; return *this; }
     size_t level() const { return _level; }
     Activity& resetLevel();
@@ -126,7 +126,7 @@ public:
 
     virtual Graphic::colour_type colour() const;
 
-    virtual const Activity& draw(ostream &) const;
+    virtual const Activity& draw(std::ostream &) const;
 
 protected:
     Call * findCall( const Entry * anEntry ) const;
@@ -149,8 +149,8 @@ private:
     ActivityList * act_or_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_loop_list( ActivityList * activity_list, LQIO::DOM::ActivityList * dom_activitylist );
 
-    ostream& printName( ostream& output, int& ) const;
-    ostream& printNameWithReply( ostream& ) const;
+    std::ostream& printName( std::ostream& output, int& ) const;
+    std::ostream& printNameWithReply( std::ostream& ) const;
 
 public:
     static void complete_activity_connections();
@@ -173,7 +173,7 @@ private:
     mutable const Activity * _reachableFrom;	/* Set if activity is reachable	*/
 };
 
-inline ostream& operator<<( ostream& output, const Activity& self ) { self.draw( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const Activity& self ) { self.draw( output ); return output; }
 
 class activity_cycle : public path_error 
 {

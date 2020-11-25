@@ -1,7 +1,7 @@
 /* -*- c++ -*- 
  * arc.h	-- Greg Franks
  *
- * $Id: arc.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: arc.h 14134 2020-11-25 18:12:05Z greg $
  */
 
 #ifndef _ARC_H
@@ -60,7 +60,7 @@ public:
     arrowhead_type arrowhead() const { return myArrowhead; }
     double arrowScaling() const;
 
-    virtual const Arc& draw( ostream& ) const = 0;
+    virtual const Arc& draw( std::ostream& ) const = 0;
 
 protected:
     std::vector<Point> removeDuplicates() const;
@@ -72,7 +72,7 @@ protected:
     arrowhead_type myArrowhead;
 };
 
-inline ostream& operator<<( ostream& output, const Arc& self ) { self.draw( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const Arc& self ) { self.draw( output ); return output; }
 
 
 #if defined(EMF_OUTPUT)
@@ -80,8 +80,8 @@ class ArcEMF : public Arc, private EMF
 {
 public:
     ArcEMF( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual const ArcEMF& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcEMF& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -91,8 +91,8 @@ public:
     ArcFig( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return -1; }
 
-    virtual const ArcFig& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcFig& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
 #if HAVE_GD_H && HAVE_LIBGD
@@ -102,8 +102,8 @@ public:
     ArcGD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return -1; }
 
-    virtual const ArcGD& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcGD& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -113,16 +113,16 @@ public:
     ArcNull( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
     virtual int direction() const { return 1; }
 
-    virtual const ArcNull& draw( ostream& output ) const { return *this; }
-    virtual ostream& comment( ostream& output, const string& ) const { return output; }
+    virtual const ArcNull& draw( std::ostream& output ) const { return *this; }
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const { return output; }
 };
 
 class ArcPostScript : public Arc, private PostScript
 {
 public:
     ArcPostScript( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual const ArcPostScript& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcPostScript& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
 #if defined(SVG_OUTPUT)
@@ -130,8 +130,8 @@ class ArcSVG : public Arc, private SVG
 {
 public:
     ArcSVG( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual const ArcSVG& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcSVG& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -140,8 +140,8 @@ class ArcSXD : public Arc, private SXD
 {
 public:
     ArcSXD( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual const ArcSXD& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcSXD& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 
@@ -149,8 +149,8 @@ class ArcTeX : public Arc, private TeX
 {
 public:
     ArcTeX( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual const ArcTeX& draw( ostream& ) const;
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual const ArcTeX& draw( std::ostream& ) const;
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 
 #if defined(X11_OUTPUT)
@@ -158,8 +158,8 @@ class ArcX11 : public Arc, private X11
 {
 public:
     ArcX11( const unsigned size, const arrowhead_type anArrowHead ) : Arc(size,anArrowHead) {}
-    virtual ostream& print( ostream& output ) const { return output; }
-    virtual ostream& comment( ostream& output, const string& ) const;
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
+    virtual std::ostream& comment( std::ostream& output, const std::string& ) const;
 };
 #endif
 #endif
