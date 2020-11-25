@@ -1604,11 +1604,7 @@ CallInfoItem::hasSendNoReply() const
 bool
 CallInfoItem::hasForwarding() const
 {
-    if ( phase[1] && phase[1]->hasForwarding() ) {
-	return true;
-    } else {
-	return false;
-    }
+    return phase[1] && phase[1]->hasForwarding();
 }
 
 
