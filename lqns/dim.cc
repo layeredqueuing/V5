@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: dim.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: dim.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -22,7 +22,6 @@
 #include "fpgoop.h"
 
 extern double convergence_value;		/* value to converge to.	*/
-using namespace std;
 
 /*
  * return factorial.  Cache results.
@@ -57,7 +56,7 @@ log_factorial( const unsigned n )
 {
     static double a[101];	/* Automatically initialized to zero! */
 	
-    if ( n == 0 ) throw domain_error( "log_factorial(0)" );
+    if ( n == 0 ) throw std::domain_error( "log_factorial(0)" );
     if ( n == 1 ) return 0.0;
     if ( n <= 100 ) {
 	if ( a[n] == 0 ) {
@@ -122,8 +121,8 @@ choose( unsigned i, unsigned j )
     if ( j == 0 || i == j ) return 1;
 	
     double product;
-    const unsigned int a = max( j, i - j );
-    const unsigned int b = min( j, i - j );
+    const unsigned int a = std::max( j, i - j );
+    const unsigned int b = std::min( j, i - j );
 	
     for ( product = 1.0; i > a; --i ) {
 	product *= i;
@@ -137,7 +136,7 @@ choose( unsigned i, unsigned j )
  * Print out the error message.
  */
 
-class_error::class_error( const string& aStr, const char * file, const unsigned line, const char * anError )
+class_error::class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError )
     : exception()
 {
     char temp[10];

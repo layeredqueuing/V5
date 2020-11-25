@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: dim.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -26,8 +26,6 @@
 #include <stdexcept>
 #include <string>
 #include <cstring>
-
-using namespace std;
 
 #define MAX_CLASSES     200                     /* Max classes (clients)        */
 #define MAX_PHASES      3                       /* Number of Phases.            */
@@ -69,22 +67,22 @@ double choose( unsigned i, unsigned j );
 
 void under_relax( double& old_value, const double new_value, const double relax );
 
-class class_error : public exception 
+class class_error : public std::exception 
 {
 public:
-    class_error( const string& aStr, const char * file, const unsigned line, const char * anError );
+    class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError );
     virtual ~class_error() throw() = 0;
     virtual const char* what() const throw();
 
 private:
-    string _msg;
+    std::string _msg;
 };
 
 
 class subclass_responsibility : public class_error 
 {
 public:
-    subclass_responsibility( const string& aStr, const char * file, const unsigned line )
+    subclass_responsibility( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Subclass responsibility." ) {}
     virtual ~subclass_responsibility() throw() {}
 };
@@ -92,7 +90,7 @@ public:
 class not_implemented  : public class_error 
 {
 public:
-    not_implemented( const string& aStr, const char * file, const unsigned line )
+    not_implemented( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Not implemented." ) {}
     virtual ~not_implemented() throw() {}
 };
@@ -101,12 +99,12 @@ public:
 class should_not_implement  : public class_error 
 {
 public:
-    should_not_implement( const string& aStr, const char * file, const unsigned line )
+    should_not_implement( const std::string& aStr, const char * file, const unsigned line )
 	: class_error( aStr, file, line, "Should not implement." ) {}
     virtual ~should_not_implement() throw() {}
 };
 
-class path_error : public exception {
+class path_error : public std::exception {
 public:
     explicit path_error( const unsigned depth=0 ) : _depth(depth) {}
     virtual ~path_error() throw() = 0;
@@ -114,19 +112,19 @@ public:
     unsigned depth() const { return _depth; }
 
 protected:
-    string _msg;
+    std::string _msg;
     const unsigned _depth;
 };
 
-class exception_handled : public exception 
+class exception_handled : public std::exception 
 {
 public:
-    explicit exception_handled( const string& aStr ) : exception(), _msg(aStr) {}
+    explicit exception_handled( const std::string& aStr ) : std::exception(), _msg(aStr) {}
     virtual ~exception_handled() throw() {}
     virtual const char * what() const throw();
 
 private:
-    string _msg;
+    std::string _msg;
 };
 
 static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }

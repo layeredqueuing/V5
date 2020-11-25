@@ -1,5 +1,5 @@
 /* overtake.C	-- Greg Franks Mon Mar 17 1997
- * $Id: overtake.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: overtake.cc 14140 2020-11-25 20:24:15Z greg $
  * 
  * Overtaking calculation.  See also slice.[Ch].
  * See
@@ -76,7 +76,7 @@ Overtaking::compute( const PrintHelper * print_func )
 	    if ( y_aj[0] == 0.0 ) break;
 	
 	    if ( flags.trace_overtaking ) {
-		printSlice( cout, *(*entA), *(*entB), ab_info );
+		printSlice( std::cout, *(*entA), *(*entB), ab_info );
 	    }
 
 	    /* --------------- Set overtaking probabilities. -------------- */
@@ -98,7 +98,7 @@ Overtaking::compute( const PrintHelper * print_func )
 						    PrOtState[j] );
 
 		    if ( flags.trace_overtaking ) {
-			Slice_Info::printOvertakingStates( cout, j, x_j,
+			Slice_Info::printOvertakingStates( std::cout, j, x_j,
 							   (*entA)->maxPhase(),
 							   PrOtState[j] );
 		    }
@@ -152,7 +152,7 @@ Overtaking::computeOvertaking( const Entry& entA, const Entry& entB, const Entry
     }
 	
     if ( flags.trace_overtaking ) {
-	printStart( cout, entA, entB, entC, entD, nextProb );
+	printStart( std::cout, entA, entB, entC, entD, nextProb );
     }
 
     /* -------------------- overtaking -------------------- */
@@ -229,11 +229,11 @@ Overtaking::computeOvertaking( const Entry& entA, const Entry& entB, const Entry
 	if ( print_func ) {
 	    (*print_func)( entA, entB, entC, entD, j, prOt );
 	} else if ( flags.trace_overtaking ) {
-	    cout << "OT: " << entA.name() << ' ' << entB.name() << ' ' << entC.name() << ' ' << entD.name() << ' ' << j << ' ';
+	    std::cout << "OT: " << entA.name() << ' ' << entB.name() << ' ' << entC.name() << ' ' << entD.name() << ' ' << j << ' ';
 	    for ( i = 1; i <= entA.maxPhase(); ++i ) {
-		cout << prOt[i] << ' ';
+		std::cout << prOt[i] << ' ';
 	    }
-	    cout << endl;
+	    std::cout << std::endl;
 	}
     }
 }
@@ -243,8 +243,8 @@ Overtaking::computeOvertaking( const Entry& entA, const Entry& entB, const Entry
  * is exorbitant, recompute them based on the last solution.
  */
 
-ostream&
-Overtaking::print( ostream& output ) 
+std::ostream&
+Overtaking::print( std::ostream& output ) 
 {
     const PrintHelper print( output );
     compute( &print );
@@ -269,19 +269,19 @@ Overtaking::PrintHelper::operator()( const Entry& entA, const Entry& entB, const
     if ( sum == 0 ) return;
 	
     if ( j == 2 ) {
-	_output << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entA.name() << " "
-		<< setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entB.name() << " " 
-		<< setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entC.name() << " "
-		<< setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entD.name() << " ";
+	_output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entA.name() << " "
+		<< std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entB.name() << " " 
+		<< std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entC.name() << " "
+		<< std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << entD.name() << " ";
     } else {
-	_output << setw(LQIO::SRVN::ObjectOutput::__maxStrLen*4) << " ";
+	_output << std::setw(LQIO::SRVN::ObjectOutput::__maxStrLen*4) << " ";
     }
     _output << " " << j << "  ";
 	
     for ( i = 1; i <= Entry::max_phases; ++i ) {
-	_output << setw(LQIO::SRVN::ObjectOutput::__maxDblLen-1) << pr[i] << " ";
+	_output << std::setw(LQIO::SRVN::ObjectOutput::__maxDblLen-1) << pr[i] << " ";
     }
-    _output << "OT" << endl;
+    _output << "OT" << std::endl;
 }
 
 
@@ -290,10 +290,10 @@ Overtaking::PrintHelper::operator()( const Entry& entA, const Entry& entB, const
  * Debugging function.
  */
 
-ostream&
-Overtaking::printSlice( ostream& output, const Entry& src, const Entry& dst, const Slice_Info phase_info[] ) const
+std::ostream&
+Overtaking::printSlice( std::ostream& output, const Entry& src, const Entry& dst, const Slice_Info phase_info[] ) const
 {
-    output << src.name() << " -> " << dst.name() << endl;
+    output << src.name() << " -> " << dst.name() << std::endl;
 	
     for ( unsigned p = 1; p <= src.maxPhase(); ++p ) {
 	output << "  p=" << p << ": " << phase_info[p];
@@ -306,16 +306,16 @@ Overtaking::printSlice( ostream& output, const Entry& src, const Entry& dst, con
  * Print Starting probability.
  */
 
-ostream&
-Overtaking::printStart( ostream& output,
+std::ostream&
+Overtaking::printStart( std::ostream& output,
 			const Entry& entA, const Entry& entB, const Entry& entC, const Entry& entD,
 			const Probability pr[] ) const
 {
     output << "Pr{Start( " << entA.name() << ", " << entB.name() << ", " << entC.name() << ", " << entD.name() << " )} = ";
     for ( unsigned i = 1; i <= entA.maxPhase(); ++i ) {
-//	output << setw( ostream::maxDblLen-1 ) << pr[i] << " ";
+//	output << std::setw( std::ostream::maxDblLen-1 ) << pr[i] << " ";
     }
-    output << endl;
+    output << std::endl;
 
     return output;
 }

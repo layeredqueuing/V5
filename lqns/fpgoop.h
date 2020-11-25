@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: fpgoop.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -45,7 +45,7 @@ double get_infinity();
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
 
-class floating_point_error : public exception {
+class floating_point_error : public std::exception {
 public:
     floating_point_error( const char * f, const unsigned l );
 
@@ -53,7 +53,7 @@ public:
     virtual const char * what() const throw();
 
 private:
-    string _msg;
+    std::string _msg;
 };
 
 typedef enum { FP_IGNORE, FP_REPORT, FP_DEFERRED_ABORT, FP_IMMEDIATE_ABORT } fp_exeception_reporting;

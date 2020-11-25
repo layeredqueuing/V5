@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14099 2020-11-15 15:49:03Z greg $
+ * $Id: entity.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -37,7 +37,7 @@ class MVASubmodel;
 
 typedef Vector<unsigned> ChainVector;
 
-ostream& operator<<( ostream&, const Entity& );
+std::ostream& operator<<( std::ostream&, const Entity& );
 int operator==( const Entity&, const Entity& );
 
 #define TYPE_STR_BUFSIZ	20
@@ -64,12 +64,12 @@ public:
 private:
     class SRVNManip {
     public:
-	SRVNManip( ostream& (*f)(ostream&, const Entity & ), const Entity & entity ) : _f(f), _entity(entity) {}
+	SRVNManip( std::ostream& (*f)(std::ostream&, const Entity & ), const Entity & entity ) : _f(f), _entity(entity) {}
     private:
-	ostream& (*_f)( ostream&, const Entity& );
+	std::ostream& (*_f)( std::ostream&, const Entity& );
 	const Entity & _entity;
 
-	friend ostream& operator<<(ostream & os, const SRVNManip& m ) { return m._f(os,m._entity); }
+	friend std::ostream& operator<<(std::ostream & os, const SRVNManip& m ) { return m._f(os,m._entity); }
     };
 
 public:
@@ -219,14 +219,14 @@ public:
 	
     /* Printing */
 
-    virtual ostream& print( ostream& ) const = 0;
-    virtual ostream& printJoinDelay( ostream& output ) const { return output; }
+    virtual std::ostream& print( std::ostream& ) const = 0;
+    virtual std::ostream& printJoinDelay( std::ostream& output ) const { return output; }
     static SRVNManip print_server_chains( const Entity& entity ) { return SRVNManip( output_server_chains, entity ); }
     static SRVNManip print_info( const Entity& entity ) { return SRVNManip( output_entity_info, entity ); }
 
 private:
-    static ostream& output_server_chains( ostream& output, const Entity& aServer );
-    static ostream& output_entity_info( ostream& output, const Entity& aServer );
+    static std::ostream& output_server_chains( std::ostream& output, const Entity& aServer );
+    static std::ostream& output_entity_info( std::ostream& output, const Entity& aServer );
     
 protected:
     virtual unsigned validScheduling() const;

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: multserv.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: multserv.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -41,11 +41,11 @@ public:
     virtual void openWait() const;
 
     virtual double mu() const { return static_cast<double>(J); }
-    virtual double mu( const unsigned n ) const { return static_cast<double>(min( n, J )); }
+    virtual double mu( const unsigned n ) const { return static_cast<double>(std::min( n, J )); }
     virtual double alpha( const unsigned n ) const;
 
     virtual const char * typeStr() const { return "Reiser_Multi_Server"; }
-    virtual ostream& printHeading( ostream& output = cout ) const;
+    virtual std::ostream& printHeading( std::ostream& output = std::cout ) const;
 
     virtual unsigned int marginalProbabilitiesSize() const { return J; }
 
@@ -180,8 +180,8 @@ private:
     double A( const MVA& solver, const Population& n, const Population& N, const unsigned k ) const;
 
 #if	DEBUG_MVA
-    ostream& printXE( ostream&, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const;
-    ostream& printXR( ostream&, const Population& N, const unsigned int k, const double xr, const double PB ) const;
+    std::ostream& printXE( std::ostream&, const unsigned int i, const Population& N, const unsigned int k, const double xe, const double q ) const;
+    std::ostream& printXR( std::ostream&, const Population& N, const unsigned int k, const double xr, const double PB ) const;
 
 public:
     static bool debug_XE;
@@ -246,7 +246,7 @@ private:
     Positive meanMinimumOvertaking( const MVA& solver, const Population& N, const unsigned k, const unsigned p ) const;
 
 private:
-    virtual ostream& printInput( ostream& output, const unsigned e, const unsigned k ) const { return Markov_Phased_Server::printInput( output, e, k ); }
+    virtual std::ostream& printInput( std::ostream& output, const unsigned e, const unsigned k ) const { return Markov_Phased_Server::printInput( output, e, k ); }
 };
 
 /*----------------------------------------------------------------------*/

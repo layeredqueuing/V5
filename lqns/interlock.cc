@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 14092 2020-11-15 11:55:13Z greg $
+ * $Id: interlock.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -32,13 +32,13 @@ bool Interlock::CollectTable::has_entry(const Entry * entry ) const { return std
 
 class StringNManip {
 public:
-    StringNManip( ostream& (*ff)(ostream&, const std::string&, const unsigned ), const std::string& s, const unsigned n ) : f(ff), _s(s), _n(n) {}
+    StringNManip( std::ostream& (*ff)(std::ostream&, const std::string&, const unsigned ), const std::string& s, const unsigned n ) : f(ff), _s(s), _n(n) {}
 private:
-    ostream& (*f)( ostream&, const std::string&, const unsigned );
+    std::ostream& (*f)( std::ostream&, const std::string&, const unsigned );
     const std::string& _s;
     const unsigned int _n;
 
-    friend ostream& operator<<(ostream & os, const StringNManip& m ) { return m.f(os,m._s,m._n); }
+    friend std::ostream& operator<<(std::ostream & os, const StringNManip& m ) { return m.f(os,m._s,m._n); }
 };
 
 StringNManip trunc( const std::string&, const unsigned );
@@ -92,7 +92,7 @@ void
 Interlock::findInterlock()
 {
     if ( Options::Debug::interlock() ) {
-	cout << "Interlock for server: " << _server.name() << endl;
+	std::cout << "Interlock for server: " << _server.name() << std::endl;
     }
 
     /* Locate all callers to myServer */
@@ -142,7 +142,7 @@ Interlock::findParentEntries( const Entry& srcA, const Entry& srcC )
     const unsigned c = entryC.entryId();
 
     if ( Options::Debug::interlock() ) {
-	cout << "  Common parents for entries " << srcA.name() << " and " << srcC.name() << ": ";
+	std::cout << "  Common parents for entries " << srcA.name() << " and " << srcC.name() << ": ";
     }
 
     /* Figure 6 in interlock paper. */
@@ -158,16 +158,16 @@ Interlock::findParentEntries( const Entry& srcA, const Entry& srcC )
 		    /* Prune here (branch point?) */
 
 		    if ( Options::Debug::interlock() ) {
-			cout << (*srcX)->name();
+			std::cout << (*srcX)->name();
 		    }
 
 		    if ( isBranchPoint( *(*srcX), entryA, *(*srcY), entryC ) ) {
 			_commonEntries.insert(*srcX);
 			if ( Options::Debug::interlock() ) {
-			    cout << "* ";
+			    std::cout << "* ";
 			}
 		    } else if ( Options::Debug::interlock() ) {
-			cout << " ";
+			std::cout << " ";
 		    }
 		}
 	    }
@@ -175,7 +175,7 @@ Interlock::findParentEntries( const Entry& srcA, const Entry& srcC )
     }
 
     if ( Options::Debug::interlock() ) {
-	cout << endl;
+	std::cout << std::endl;
     }
 }
 
@@ -211,19 +211,19 @@ Interlock::interlockedFlow( const Task& viaTask ) const
 		sum += (*srcE)->throughput() * ph2;
 	    }
 	    if ( flags.trace_interlock ) {
-		cout << "  Interlock E=" << (*srcE)->name() << " A=" << (*dstA)->name() 
+		std::cout << "  Interlock E=" << (*srcE)->name() << " A=" << (*dstA)->name() 
 		     << " Throughput=" << (*srcE)->throughput() 
 		     << ", interlock[" << a << "]={" << (*srcE)->_interlock[a].all << "," << ph2
-		     << "}, sum=" << sum << endl;
+		     << "}, sum=" << sum << std::endl;
 	    }
 	}
     }
 
     if ( flags.trace_interlock ) {
-	cout << "Interlock sum=" << sum << ", viaTask: " << viaTask.throughput() 
-	     << ", threads=" << viaTask.concurrentThreads()  << ", sources=" << _sources << endl;
+	std::cout << "Interlock sum=" << sum << ", viaTask: " << viaTask.throughput() 
+	     << ", threads=" << viaTask.concurrentThreads()  << ", sources=" << _sources << std::endl;
     }
-    return min( sum, viaTask.throughput() ) / (viaTask.throughput() * viaTask.concurrentThreads() * _sources );
+    return std::min( sum, viaTask.throughput() ) / (viaTask.throughput() * viaTask.concurrentThreads() * _sources );
 }
 
 
@@ -288,15 +288,15 @@ Interlock::findSources()
 
 #ifdef	DEBUG_INTERLOCK
     if ( Options::Debug::interlock() ) {
-	cout <<         "    All Sourcing Tasks: ";
+	std::cout <<         "    All Sourcing Tasks: ";
 	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl << "    Interlocked Tasks:  ";
+	std::cout << std::endl << "    Interlocked Tasks:  ";
 	for ( std::set<const Entity *>::const_iterator task = interlockedTasks.begin(); task != interlockedTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl;
+	std::cout << std::endl;
     }
 #endif
 
@@ -314,15 +314,15 @@ Interlock::findSources()
 
 #ifdef	DEBUG_INTERLOCK
     if ( Options::Debug::interlock() ) {
-	cout <<         "    Common Parent Tasks (all): ";
+	std::cout <<         "    Common Parent Tasks (all): ";
 	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl << "    Common Parent Tasks (Ph2): ";
+	std::cout << std::endl << "    Common Parent Tasks (Ph2): ";
 	for ( std::set<const Entity *>::const_iterator task = _ph2SourceTasks.begin(); task != _ph2SourceTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl;
+	std::cout << std::endl;
     }
 #endif
 
@@ -335,13 +335,13 @@ Interlock::findSources()
 
     if ( Options::Debug::interlock() ) {
 	for ( std::set<const Entity *>::const_iterator task = interlockedTasks.begin(); task != interlockedTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl << "    Sourcing Tasks:    ";
+	std::cout << std::endl << "    Sourcing Tasks:    ";
 	for ( std::set<const Entity *>::const_iterator task = _allSourceTasks.begin(); task != _allSourceTasks.end(); ++task ) {
-	    cout << (*task)->name() << " ";
+	    std::cout << (*task)->name() << " ";
 	}
-	cout << endl << endl;
+	std::cout << std::endl << std::endl;
     }
 }
 
@@ -371,11 +371,11 @@ Interlock::isBranchPoint( const Entry& srcX, const Entry& entryA, const Entry& s
 
 #ifdef	NOTDEF
     if ( Options::Debug::interlock() ) {
-	cout << "  isBranchPoint: " << srcX.name() << (char *)(srcX.isProcessorEntry() ? "*, " : ", ")
+	std::cout << "  isBranchPoint: " << srcX.name() << (char *)(srcX.isProcessorEntry() ? "*, " : ", ")
 	     << entryA.name() << (char *)(entryA.isProcessorEntry() ? "*, " : ", ")
 	     << srcY.name() << (char *)(srcY.isProcessorEntry() ? "*, " : ", ")
 	     << entryB.name() << (char *)(entryB.isProcessorEntry() ? "*, " : ", ")
-	     << endl;
+	     << std::endl;
     }
 #endif
 
@@ -479,8 +479,8 @@ Interlock::countSources( const std::set<const Entity *>& interlockedTasks )
  * Print path information.
  */
 
-ostream&
-Interlock::print( ostream& output ) const
+std::ostream&
+Interlock::print( std::ostream& output ) const
 {
     output << _server.name() << ": Sources=" << _sources << ", entries: " ;
 
@@ -495,14 +495,14 @@ Interlock::print( ostream& output ) const
  * Print out path table.
  */
 
-ostream&
-Interlock::printPathTable( ostream& output )
+std::ostream&
+Interlock::printPathTable( std::ostream& output )
 {
     std::set<Entry *>::const_iterator srcEntry;
     std::set<Entry *>::const_iterator dstEntry;
     static const unsigned int columns = 5;
 
-    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+    std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
     output << "src\\dst   ";
     unsigned i;
     unsigned j;
@@ -513,7 +513,7 @@ Interlock::printPathTable( ostream& output )
 	    output << ' ';
 	}
     }
-    output << endl;
+    output << std::endl;
 
     for ( i = 0, srcEntry = Model::__entry.begin(); srcEntry != Model::__entry.end(); ++srcEntry, ++i ) {
 	const Entry * src = *srcEntry;
@@ -526,23 +526,23 @@ Interlock::printPathTable( ostream& output )
 		    output << '+';
 		}
 	    }
-	    output << endl;
+	    output << std::endl;
 	}
 
 	output << trunc( src->name(), 10 );
 	for ( j = 1, dstEntry = Model::__entry.begin(); dstEntry != Model::__entry.end(); ++dstEntry, ++j ) {
-	    output.setf( ios::right, ios::adjustfield );
-	    output << setw(4) << src->_interlock[(*dstEntry)->entryId()].all << ",";
-	    output.setf( ios::left, ios::adjustfield );
-	    output << setw(4) << src->_interlock[(*dstEntry)->entryId()].ph1 << " ";
+	    output.setf( std::ios::right, std::ios::adjustfield );
+	    output << std::setw(4) << src->_interlock[(*dstEntry)->entryId()].all << ",";
+	    output.setf( std::ios::left, std::ios::adjustfield );
+	    output << std::setw(4) << src->_interlock[(*dstEntry)->entryId()].ph1 << " ";
 	    if ( j % columns == 0 ) {
 		output << '|';
 	    }
 	}
-	output << endl;
+	output << std::endl;
     }
     output.flags(oldFlags);
-    output << endl;
+    output << std::endl;
 
     return output;
 }
@@ -553,10 +553,10 @@ InterlockInfo::operator==( const InterlockInfo& arg ) const
     return all == arg.all && ph1 == arg.ph1;
 }
 
-ostream&
-operator<<( ostream& output, const InterlockInfo& self )
+std::ostream&
+operator<<( std::ostream& output, const InterlockInfo& self )
 {
-    output << self.all << self.ph1 << endl;
+    output << self.all << self.ph1 << std::endl;
     return output;
 }
 
@@ -612,13 +612,13 @@ operator>( const InterlockInfo& lhs, double rhs )
     return ((lhs.all>rhs) || (lhs.ph1>rhs));
 }
 
-static ostream& trunc_str( ostream& output, const std::string& s, const unsigned n ) 
+static std::ostream& trunc_str( std::ostream& output, const std::string& s, const unsigned n ) 
 {
     if ( s.size() > n ) {
 	output.write( s.c_str(), n );
     } else {
-	ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
-	output << setw(n) << setfill( ' ' ) << s;
+	std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
+	output << std::setw(n) << std::setfill( ' ' ) << s;
 	output.flags(oldFlags);
     }
     return output;

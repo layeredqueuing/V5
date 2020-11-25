@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14095 2020-11-15 13:51:34Z greg $
+ * $Id: entity.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -49,8 +49,8 @@
  * Printing function.
  */
 
-ostream&
-operator<<( ostream& output, const Entity& self )
+std::ostream&
+operator<<( std::ostream& output, const Entity& self )
 {
     self.print( output );
     return output;
@@ -135,7 +135,7 @@ Entity::configure( const unsigned nSubmodels )
 unsigned
 Entity::findChildren( Call::stack& callStack, const bool ) const
 {
-    unsigned max_depth = max( submodel(), callStack.depth() );
+    unsigned max_depth = std::max( submodel(), callStack.depth() );
 
     const_cast<Entity *>(this)->setSubmodel( max_depth );
     return max_depth;
@@ -457,9 +457,9 @@ Entity::prInterlock( const Task& aClient ) const
 {
     const Probability pr = _interlock.interlockedFlow( aClient ) / population();
     if ( flags.trace_interlock ) {
-	cout << "Interlock: " 
+	std::cout << "Interlock: " 
 	     << aClient.name() << "(" << aClient.population() << ") -> " 
-	     << name()         << "(" << population()         << ")  = " << pr << endl;
+	     << name()         << "(" << population()         << ")  = " << pr << std::endl;
     }
     return pr;
 }
@@ -507,7 +507,7 @@ Entity::setIdleTime( const double relax )
 	z = get_infinity();	/* INFINITY */
     }
     if ( flags.trace_idle_time ) {
-	cout << "\nEntity::setIdleTime():" << name() << "   Idle Time:  " << z << endl;
+	std::cout << "\nEntity::setIdleTime():" << name() << "   Idle Time:  " << z << std::endl;
     }
     under_relax( _thinkTime, z, relax );
 }
@@ -688,7 +688,7 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 	    if ( isfinite( tput ) ) {
 		lambda += tput;
 	    } else if ( tput < 0.0 ) {
-		throw domain_error( "MVASubmodel::saveServerResults" );
+		throw std::domain_error( "MVASubmodel::saveServerResults" );
 	    } else {
 		lambda = tput;
 		break;
@@ -712,15 +712,15 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
  * Print chains for this client.
  */
 
-/* static */ ostream&
-Entity::output_server_chains( ostream& output, const Entity& aServer ) 
+/* static */ std::ostream&
+Entity::output_server_chains( std::ostream& output, const Entity& aServer ) 
 {
-    output << "Chains:" << aServer.serverChains() << endl;
+    output << "Chains:" << aServer.serverChains() << std::endl;
     return output;
 }
 
-/* static */  ostream&
-Entity::output_entity_info( ostream& output, const Entity& aServer )
+/* static */  std::ostream&
+Entity::output_entity_info( std::ostream& output, const Entity& aServer )
 {
     if ( aServer.serverStation() ) {
 	output << "(" << aServer.serverStation()->typeStr() << ")";

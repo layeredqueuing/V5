@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: runlqx.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,9 +55,9 @@ namespace SolverInterface
 			
 	/* Tell the world the iteration number */
 	if ( flags.trace_mva ) {
-	    cout << "\fSolving iteration #" << invocationCount << endl;
+	    std::cout << "\fSolving iteration #" << invocationCount << std::endl;
 	} else if ( flags.verbose ) {
-	    cerr << "Solving iteration #" << invocationCount << "..." << endl;
+	    std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
 	}
 			
 	/* Make sure all external variables are accounted for */
@@ -88,14 +88,14 @@ namespace SolverInterface
 	    _document->setResultInvocationNumber( invocationCount );
 	    ok = (_aModel->*_solve)();
 	}
-	catch ( const runtime_error& error ) {
+	catch ( const std::runtime_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
-	catch ( const logic_error& error ) {
+	catch ( const std::logic_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
 	catch ( const floating_point_error& error ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
 	    LQIO::io_vars.error_count += 1;
 	    ok = false;
 	}

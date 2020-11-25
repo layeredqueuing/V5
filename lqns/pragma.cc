@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 13996 2020-10-24 22:01:20Z greg $ *
+ * $Id: pragma.cc 14140 2020-11-25 20:24:15Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -289,18 +289,18 @@ bool Pragma::isTrue(const std::string& value )
  * Print out available pragmas.
  */
 
-ostream&
-Pragma::usage( ostream& output )
+std::ostream&
+Pragma::usage( std::ostream& output )
 {
     Pragma::initialize();
     
-    output << "Valid pragmas: " << endl;
-    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
+    output << "Valid pragmas: " << std::endl;
+    std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 
     for ( std::map<std::string,Pragma::fptr>::const_iterator i = __set_pragma.begin(); i != __set_pragma.end(); ++i ) {
 	output << "\t" << std::setw(20) << i->first;
 	if ( i->first == LQIO::DOM::Pragma::_tau_ ) {
-	    output << " = <int>" << endl;
+	    output << " = <int>" << std::endl;
 	} else {
 	    const std::set<std::string>* args = LQIO::DOM::Pragma::getValues( i->first );
 	    if ( args && args->size() > 1 ) {
@@ -310,9 +310,9 @@ Pragma::usage( ostream& output )
 		    if ( q != args->begin() ) output << ",";
 		    output << *q;
 		}
-		output << "}" << endl;
+		output << "}" << std::endl;
 	    } else {
-		output << " = <arg>" << endl;
+		output << " = <arg>" << std::endl;
 	    }
 	}
     }

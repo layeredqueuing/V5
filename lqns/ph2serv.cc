@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: ph2serv.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: ph2serv.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *
@@ -200,8 +200,8 @@ Rolia_Phased_Server::wait( const MVA& solver, const unsigned k, const Population
  * Print extra information out about this station.
  */
 
-ostream&
-Rolia_Phased_Server::printOutput( ostream& output, const unsigned i ) const
+std::ostream&
+Rolia_Phased_Server::printOutput( std::ostream& output, const unsigned i ) const
 {
     int width = output.precision() + 2;
 	
@@ -213,10 +213,10 @@ Rolia_Phased_Server::printOutput( ostream& output, const unsigned i ) const
 	}
 		
 	for ( unsigned k = 1; k <= K; ++k ) {
-	    output << "Gamma_" << e << k << " = " << setw(width) << Gamma[e][k];
+	    output << "Gamma_" << e << k << " = " << std::setw(width) << Gamma[e][k];
 	    if ( k < K ) output << ", ";
 	}
-	output << endl;
+	output << std::endl;
     }
     return output;
 }
@@ -394,8 +394,8 @@ Simple_Phased_Server::wait( const MVA& solver, const unsigned k, const Populatio
  * Print extra information out about this station.
  */
 
-ostream&
-Simple_Phased_Server::printOutput( ostream& output, const unsigned i ) const
+std::ostream&
+Simple_Phased_Server::printOutput( std::ostream& output, const unsigned i ) const
 {
     return Phased_Server::printOutput( output, i );
 }
@@ -687,9 +687,9 @@ Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Populatio
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    if ( !V(e,k,p) ) continue;
 #if 0
-	    cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
+	    std::cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
 		 << ", overtaking(k,p)=" << overtaking( k, p )
-		 << ", sumOf_S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << endl;
+		 << ", sumOf_S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << std::endl;
 #endif
 	    W[e][k][p] = S(e,k,1) + sum + overtaking( k, p ) + sumOf_S2U( solver, p, N, k );
 	    //	cout<<"S(e,k,1)= "<<S(e,k,1) <<" ,sum= "<<sum<<", overtaking( k, p )="<< overtaking( k, p ) <<", sumOf_S2U( solver, p, N, k )="<< sumOf_S2U( solver, p, N, k )<<endl;
@@ -703,8 +703,8 @@ Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Populatio
  * Print information about this station.
  */
 
-ostream&
-Markov_Phased_Server::printInput( ostream& output, const unsigned e, const unsigned k  ) const
+std::ostream&
+Markov_Phased_Server::printInput( std::ostream& output, const unsigned e, const unsigned k  ) const
 {
     Server::printInput( output, e, k );
     printOvertaking( output, e, k );
@@ -717,8 +717,8 @@ Markov_Phased_Server::printInput( ostream& output, const unsigned e, const unsig
  * Print overtaking information.
  */
 
-ostream&
-Markov_Phased_Server::printOvertaking( ostream& output, const unsigned e, const unsigned k  ) const
+std::ostream&
+Markov_Phased_Server::printOvertaking( std::ostream& output, const unsigned e, const unsigned k  ) const
 {
     if ( k == 0 ) return output;	/* No overtaking for open class. */
 	
@@ -727,7 +727,7 @@ Markov_Phased_Server::printOvertaking( ostream& output, const unsigned e, const 
 	for ( unsigned p_i = 1; p_i <= MAX_PHASES; ++p_i ) {
 	    output << prOvertake[e][k][p_i][p_j] << ", ";
 	}
-	output << '[' << prOvertake[e][k][0][p_j] << ']' << endl;
+	output << '[' << prOvertake[e][k][0][p_j] << ']' << std::endl;
     }
     return output;
 }
@@ -803,18 +803,18 @@ HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Po
     double sum = solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k );
     if ( sum < 0.0 ) sum = 0.0;
 #if 0
-    cout << "m=" << closedIndex << ": N" << N << ", k=" << k
+    std::cout << "m=" << closedIndex << ": N" << N << ", k=" << k
 	 << ", SQ_m=" << solver.sumOf_SQ_m( *this, N, k )
-	 << ", Ru_m=" << solver.sumOf_rU_m( *this, N, k ) << endl;
+	 << ", Ru_m=" << solver.sumOf_rU_m( *this, N, k ) << std::endl;
 #endif
 
     for ( unsigned e = 1; e <= E; ++e ) {
 	for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	    if ( !V(e,k,p) ) continue;
 #if 0
-	    cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
+	    std::cout << closedIndex << ": S(" << e << "," << k << "," << p << ")=" << S(e,k,p)
 		 << ", OT(k,p)=" << overtaking( k, p )
-		 << ", S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << endl;
+		 << ", S2U(p,N,k)=" << sumOf_S2U( solver, p, N, k ) << std::endl;
 #endif
 	    W[e][k][p] = S(e,k,1) + sum + overtaking( k, p ) + sumOf_S2U( solver, p, N, k );
 	    //cout<<"S(e,k,1)= "<<S(e,k,1) <<" ,sum= "<<sum<<", overtaking( k, p )="<< overtaking( k, p ) <<", sumOf_S2U( solver, p, N, k )="<< sumOf_S2U( solver, p, N, k )<<endl;
@@ -828,8 +828,8 @@ HVFCFS_Markov_Phased_Server::wait( const MVA& solver, const unsigned k, const Po
  * Print input.
  */
 
-ostream&
-HVFCFS_Markov_Phased_Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
+std::ostream&
+HVFCFS_Markov_Phased_Server::printInput( std::ostream& output, const unsigned e, const unsigned k ) const
 {
     HVFCFS_Server::printInput( output, e, k );
     printOvertaking( output, e, k );

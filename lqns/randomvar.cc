@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 13725 2020-08-04 03:58:02Z greg $
+ * $Id: randomvar.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -45,8 +45,8 @@ static double ab_term( const Erlang& a, const Erlang& b, const int offset );
  * Print out service time of entry in standard output format.
  */
 
-ostream& 
-operator<<( ostream& output, const Exponential& self )
+std::ostream& 
+operator<<( std::ostream& output, const Exponential& self )
 {
     self.print( output );
     return output;
@@ -344,8 +344,8 @@ Exponential::erlang() const
  * Print Mean and variances.
  */
 
-ostream&
-Exponential::print( ostream& output ) const
+std::ostream&
+Exponential::print( std::ostream& output ) const
 {
     output << typeStr() 
 	   << " Mean:     " << mean()
@@ -530,12 +530,12 @@ DiscretePoints::estimateCDF()
     double errorInVariance = 100 * (tempVariance - variance() ) / tempVariance;
 
     if (errorInMean > 4.0 || errorInVariance > 0.4) {
-	cout << "\nDiscretePoints::estimateCDF(): using THEEEPOINT ESTIMATION: BIG WARNING:" << endl;
-	cout << "Perecntage of error in the mean of the estimated threads =" <<
-	    errorInMean << "%." << endl;
-	cout << "Perecntage of error in the variance of the estimated threads =" 
-	     <<errorInVariance << "%." << endl;
-	cout <<"This might lead to a significant error in the final results" << endl;
+	std::cout << "\nDiscretePoints::estimateCDF(): using THEEEPOINT ESTIMATION: BIG WARNING:" << std::endl;
+	std::cout << "Perecntage of error in the mean of the estimated threads =" <<
+	    errorInMean << "%." << std::endl;
+	std::cout << "Perecntage of error in the variance of the estimated threads =" 
+	     <<errorInVariance << "%." << std::endl;
+	std::cout <<"This might lead to a significant error in the final results" << std::endl;
     }
 
     ////end tomari quorum
@@ -842,9 +842,9 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
 {
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) { 
-	cout <<"\nOriginals for closedFormDetPoints: mean= " << mean() 
-	     << ", variance=" << variance() << endl;
-	cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
+	std::cout <<"\nOriginals for closedFormDetPoints: mean= " << mean() 
+	     << ", variance=" << variance() << std::endl;
+	std::cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
 	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<<endl;
     }
 #endif
@@ -888,12 +888,12 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
     for (time = 0.0 ,  index =1;  time <= maxSamplingTime 
 	     /*&& cdfValue <= chebyshevProb */; time = time + stepSize) {
 
-	// cout <<"Threshold = " << threshold << endl;
+	// std::cout <<"Threshold = " << threshold << std::endl;
 	cdfValue =   closedFormDet(time, avgNumCallsToLowerLevelTasks, 
 				   level1Mean /(avgNumCallsToLowerLevelTasks +1), level2Mean);
 
 	if (cdfValue > 1 || cdfValue < 0) {
-	    cout <<"ERROR............time="<<time<<", cdfValue is =" <<cdfValue << endl;
+	    std::cout <<"ERROR............time="<<time<<", cdfValue is =" <<cdfValue << std::endl;
 	    continue;
 	}
 
@@ -902,8 +902,8 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
 	    tempMean = tempMean + (cdfValue - previousCdfValue) * (time);
 	    tempSum = tempSum + (cdfValue - previousCdfValue) * (time * time);
 
-	    // cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
-	    // cout << "time="<< time<<", cdfValue=" << cdfValue << endl;
+	    // std::cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
+	    // std::cout << "time="<< time<<", cdfValue=" << cdfValue << std::endl;
 
 	    ti.insert(index, time); 
 	    Ai.insert(index, cdfValue );
@@ -917,25 +917,25 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
 
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) {
-	cout <<"Maximum number of sampling points before  = " << maxSamplingTime / stepSize;
-	cout <<", Actual number of sampling points= " << index << endl;
+	std::cout <<"Maximum number of sampling points before  = " << maxSamplingTime / stepSize;
+	std::cout <<", Actual number of sampling points= " << index << std::endl;
 
 	//Calculate the variance.
 	double tempVariance = tempSum - tempMean * tempMean;
-	cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
-	     << tempMean << endl;
-	cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
-	cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
-	     << " = " << tempVariance << endl;
+	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
+	     << tempMean << std::endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
+	     << " = " << tempVariance << std::endl;
     }
 #endif
 
     if (fabs(errorInMean) > 4.0) {
-	cout << "\nDiscretePoints::closedFormDetPoints(): BIG WARNING:" << endl;
-	cout << "Perecntage of error in the mean of the estimated threads =" 
-	     <<errorInMean << "%." << endl;
-	cout <<"This might lead to a significant error in the final results" << endl;
-	cout <<"You might need to increase chebyshevProb or decrease stepSize" << endl;
+	std::cout << "\nDiscretePoints::closedFormDetPoints(): BIG WARNING:" << std::endl;
+	std::cout << "Perecntage of error in the mean of the estimated threads =" 
+	     <<errorInMean << "%." << std::endl;
+	std::cout <<"This might lead to a significant error in the final results" << std::endl;
+	std::cout <<"You might need to increase chebyshevProb or decrease stepSize" << std::endl;
     }
 
     setCDF(ti, Ai);
@@ -956,9 +956,9 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 {
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) { 
-	cout <<"\nOriginals for closedFormGeoPoints: mean= " << mean() 
-	     << ", variance=" << variance() << endl;
-	cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
+	std::cout <<"\nOriginals for closedFormGeoPoints: mean= " << mean() 
+	     << ", variance=" << variance() << std::endl;
+	std::cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
 	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<<endl;
     }
 #endif
@@ -972,8 +972,8 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 
 #if !defined(TESTDIST)    
 	if (flags.trace_quorum) {
-	    cout <<"\nDiscretePoints::closedFormGeoPoints(): ERROR REPORTED:" << endl;
-	    cout <<"avgNumCallsToLowerLevelTasks == 0.0" << endl;
+	    std::cout <<"\nDiscretePoints::closedFormGeoPoints(): ERROR REPORTED:" << std::endl;
+	    std::cout <<"avgNumCallsToLowerLevelTasks == 0.0" << std::endl;
 	}  
 #endif
 	return *this; 
@@ -1022,8 +1022,8 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 	    tempMean = tempMean + (cdfValue - previousCdfValue) * (time);
 	    tempSum = tempSum + (cdfValue - previousCdfValue) * (time * time);
 
-	    //  cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
-	    // cout << " ,cdfValue=" << cdfValue;
+	    //  std::cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
+	    // std::cout << " ,cdfValue=" << cdfValue;
 
 	    ti.insert(index, time); 
 	    Ai.insert(index, cdfValue );
@@ -1037,25 +1037,25 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) {
-	cout <<"Maximum number of sampling points before  = " << maxSamplingTime / stepSize;
-	cout <<", Actual number of sampling points= " << index << endl;
+	std::cout <<"Maximum number of sampling points before  = " << maxSamplingTime / stepSize;
+	std::cout <<", Actual number of sampling points= " << index << std::endl;
 
 	//Calculate the variance.
 	double tempVariance = tempSum - tempMean * tempMean;
-	cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
-	     << tempMean << endl;
-	cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
-	cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
-	     << " = " << tempVariance << endl;
+	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
+	     << tempMean << std::endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
+	     << " = " << tempVariance << std::endl;
     }
 #endif
 
     if (fabs(errorInMean) > 4.0) {
-	cout << "\nDiscretePoints::closedFormGeoPoints(): BIG WARNING:" << endl;
-	cout << "Perecntage of error in the mean of the estimated threads =" 
-	     <<errorInMean << "%." << endl;
-	cout <<"This might lead to a significant error in the final results" << endl;
-	cout <<"You might need to increase chebyshevProb or decrease stepSize" << endl;
+	std::cout << "\nDiscretePoints::closedFormGeoPoints(): BIG WARNING:" << std::endl;
+	std::cout << "Perecntage of error in the mean of the estimated threads =" 
+	     <<errorInMean << "%." << std::endl;
+	std::cout <<"This might lead to a significant error in the final results" << std::endl;
+	std::cout <<"You might need to increase chebyshevProb or decrease stepSize" << std::endl;
     }
 
     setCDF(ti, Ai);
@@ -1096,7 +1096,7 @@ DiscretePoints::calcGammaPoints()
 {
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) {
-	cout <<"Originals for gamma: mean= " << mean() << ", variance=" << variance() << endl;
+	std::cout <<"Originals for gamma: mean= " << mean() << ", variance=" << variance() << std::endl;
     }
 #endif
     assert(mean() >= 0  && variance() >=0 );
@@ -1113,17 +1113,17 @@ DiscretePoints::calcGammaPoints()
 #if !defined(TESTDIST)    
 	if (flags.trace_quorum) {
 	    meanVar();
-	    cout <<"after calling meanVar: mean=" << mean() 
-		 <<" , variance = " << variance() << endl;
+	    std::cout <<"after calling meanVar: mean=" << mean() 
+		 <<" , variance = " << variance() << std::endl;
 	}
 #endif
 	return *this; 
     } else if (mean() ==0) {
 	//for submodel==0, especially in initialization the mean will be zero and variance
 	//will be greater than zero.
-	//  cout <<"\nDiscretePoints::calcGammaPoints(): ERROR REPORTED: variance=" << variance()
-	//  <<" , mean = " << mean() << endl;
-	//  cout <<"mean cannot be zero while variance is not zero" << endl;
+	//  std::cout <<"\nDiscretePoints::calcGammaPoints(): ERROR REPORTED: variance=" << variance()
+	//  <<" , mean = " << mean() << std::endl;
+	//  std::cout <<"mean cannot be zero while variance is not zero" << std::endl;
 	return *this; 
 	//assert(0);
     }
@@ -1158,8 +1158,8 @@ DiscretePoints::calcGammaPoints()
 	    tempMean = tempMean + (cdfValue - previousCdfValue) * (time);
 	    tempSum = tempSum + (cdfValue - previousCdfValue) * (time * time);
 
-	    //  cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
-	    // cout << " ,cdfValue=" << cdfValue;
+	    //  std::cout << "\nThread#" << i<< " ,N=" << N1 <<" ,K=" << K1 << " ,Time = " << time ;
+	    // std::cout << " ,cdfValue=" << cdfValue;
 
 	    ti.insert(index, time); 
 	    Ai.insert(index, cdfValue );
@@ -1176,22 +1176,22 @@ DiscretePoints::calcGammaPoints()
 
 #if !defined(TESTDIST)    
     if (flags.trace_quorum) {
-	cout <<"Maximum number of Gamma sampling points before = " << maxSamplingTime / stepSize;
-	cout <<", Actual number of sampling points =" << index << endl;
-	cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
-	     << tempMean << endl;
-	cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
-	cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()<< " = " 
-	     << tempVariance << endl;
-	cout <<"final: cdfValue - previousCdfValue= " <<  cdfValue - previousCdfValue << endl;
+	std::cout <<"Maximum number of Gamma sampling points before = " << maxSamplingTime / stepSize;
+	std::cout <<", Actual number of sampling points =" << index << std::endl;
+	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
+	     << tempMean << std::endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()<< " = " 
+	     << tempVariance << std::endl;
+	std::cout <<"final: cdfValue - previousCdfValue= " <<  cdfValue - previousCdfValue << std::endl;
     }
 #endif
     if (fabs(errorInMean) > 4.0) {
-	cout << "\nDiscretePoints::calcGammaPoints(): BIG WARNING:" << endl;
-	cout << "Perecntage of error in the mean of the estimated threads =" 
-	     <<errorInMean << "%." << endl;
-	cout <<"This might lead to a significant error in the final results" << endl;
-	cout <<"You might need to increase chebyshevProb or decrease stepSize" << endl;
+	std::cout << "\nDiscretePoints::calcGammaPoints(): BIG WARNING:" << std::endl;
+	std::cout << "Perecntage of error in the mean of the estimated threads =" 
+	     <<errorInMean << "%." << std::endl;
+	std::cout <<"This might lead to a significant error in the final results" << std::endl;
+	std::cout <<"You might need to increase chebyshevProb or decrease stepSize" << std::endl;
     }
 
     setCDF(ti, Ai);
@@ -1217,7 +1217,7 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
     if (thetaC==0 && thetaS > 0) {
 	//thetaC==thetaS, this is a gamma or Erlang distribution.
 
-	// cout <<"thetaC==0 && thetaS > 	0"<< endl;
+	// std::cout <<"thetaC==0 && thetaS > 	0"<< std::endl;
 	double shape = k;   //shape is also called alpha
 	//(using Tao's notation) or k (using Wikipedia's notation)
 	double scale = thetaS;//scale is 1/beta or theta (in Wikipedia's notation)
@@ -1225,7 +1225,7 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	return gsl_cdf_gamma_P(time, shape, scale);
     } else if (thetaS==0 && thetaC > 0) {
 	//thetaC==thetaS, this is a gamma or Erlang distribution.
-	// cout << "thetaS==0 && thetaC > 0" << endl;
+	// std::cout << "thetaS==0 && thetaC > 0" << std::endl;
 	double shape = k +1;   //shape is also called alpha
 	//(using Tao's notation) or k (using Wikipedia's notation)
 	double scale = thetaC;//scale is 1/beta or theta (in Wikipedia's notation)
@@ -1234,7 +1234,7 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
     }
     if (thetaC==0 && thetaS == 0) {
 	//thetaC==thetaS, this is a gamma or Erlang distribution.
-	// cout << "thetaC==0 && thetaS == 0" << endl;
+	// std::cout << "thetaC==0 && thetaS == 0" << std::endl;
 	//may be at initialization
 	return 1.0;
     }
@@ -1244,7 +1244,7 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	constant =   pow((c*c -1 ), static_cast<double>(k)) * b /
 	    (factorial(k) * pow(2.0,static_cast<double>(k+1)) * thetaC);
 
-	//cout <<"thetaC > thetaS, time=" <<time<< endl;
+	//std::cout <<"thetaC > thetaS, time=" <<time<< std::endl;
 	A1plusA2 = 0;
 	double part1 =0;
 	double part3 =0;
@@ -1256,17 +1256,17 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	    for (int j=0; j<=k-i; j++) {
 		part2 +=  (j%2?-1:1) * pow((time/b), static_cast<double>(k-i-j)) /
 		    (((j+1)%2?-1:1) * pow((c-1), static_cast<double>(j+1)) *factorial(k-i-j));
-		//   cout <<"inside: part2=" << part2 << endl;
+		//   std::cout <<"inside: part2=" << part2 << std::endl;
 	    }
 	    part1 += part2 * ((i%2?-1:1) * factorial(k-1+i)) /
 		(factorial(i) * pow(2.0, static_cast<double>(i)));
-	    //  cout <<"inside: part1=" << part1 << endl;
+	    //  std::cout <<"inside: part1=" << part1 << std::endl;
 	}
 
 	part1 = part1 * 2* k* exp((time/b)*(1-c));
 
-	//cout <<"1. part1=" << part1 <<", part2=" << part2 << ", time="<< time<<
-	//  ", k="<< k<< endl;
+	//std::cout <<"1. part1=" << part1 <<", part2=" << part2 << ", time="<< time<<
+	//  ", k="<< k<< std::endl;
 
 	part3 = 0;
 	for (int i=1; i<=k; i++) {
@@ -1274,11 +1274,11 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	    for (int j=0; j<=k-i; j++) {
 		part4 += pow(time/b, static_cast<double>(k-i-j)) /
 		    (pow((1+c), static_cast<double>(j+1)) *factorial(k-i-j));
-		//   cout <<"inside: part4=" << part4 << endl;
+		//   std::cout <<"inside: part4=" << part4 << std::endl;
 	    }
 	    part3 += part4 * factorial(k-1+i) /
 		(factorial(i-1) * pow(2.0, static_cast<double>(i)) );
-	    // cout <<"inside: part3=" << part3 << endl;
+	    // std::cout <<"inside: part3=" << part3 << std::endl;
 	}
 
 	part3 = part3 * (k%2?-1:1) * 2* exp(-1.0*(time/b)*(1+c));
@@ -1303,30 +1303,30 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	  part6 *=((k+1)%2?-1:1)* 2.0;
 	
 	  // double capitalC= (part5 + part6 )   ;
-	  cout << "capitalC= (part5 + part6 )=" << (part5 + part6 ) << endl;
+	  std::cout << "capitalC= (part5 + part6 )=" << (part5 + part6 ) << std::endl;
 	*/
 
 
 	double capitalC= 1.0/constant;
 
-	//cout << "capitalC= 1/constant=" << 1.0/constant << endl;
+	//std::cout << "capitalC= 1/constant=" << 1.0/constant << std::endl;
 
 	A1plusA2 = part1 + part3;
 	cdfValue = constant * (A1plusA2 + capitalC);
 
-	//  cout <<"time=" << time << ", cdfValue=" << cdfValue << endl;
+	//  std::cout <<"time=" << time << ", cdfValue=" << cdfValue << std::endl;
 
 	if (cdfValue < 0 || cdfValue > 1) {
-	    cout <<"DETAILED ERROR: cdfValue=" << cdfValue << ", time=" << time <<
-		", constant=" << constant<< endl;
-	    cout <<"3. part1=" << part1 << ", part3=" << part3
-		 <<", A1plusA2=" << A1plusA2 << ", capitalC=" << capitalC << endl;
+	    std::cout <<"DETAILED ERROR: cdfValue=" << cdfValue << ", time=" << time <<
+		", constant=" << constant<< std::endl;
+	    std::cout <<"3. part1=" << part1 << ", part3=" << part3
+		 <<", A1plusA2=" << A1plusA2 << ", capitalC=" << capitalC << std::endl;
 	}
     } else if (thetaC < thetaS) {
 	constant =   pow((c*c -1 ), static_cast<double>(k)) * b /
 	    (factorial(k) * pow(2.0,static_cast<double>(k+1)) * thetaC);
 
-	//  cout <<"DiscretePoints::closedFormDet(): thetaC < thetaS, time=" <<time<< endl;
+	//  std::cout <<"DiscretePoints::closedFormDet(): thetaC < thetaS, time=" <<time<< std::endl;
 	A1minusA2 = 0;
 	double part1 =0;
 	double part3 =0;
@@ -1337,17 +1337,17 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	    for (int j=0; j<=k-i; j++) {
 		part2 +=  (j%2?-1:1) * pow((time/b), static_cast<double>(k-i-j)) /
 		    (((j+1)%2?-1:1) * pow((c-1), static_cast<double>(j+1)) *factorial(k-i-j));
-		//   cout <<"inside: part2=" << part2 << endl;
+		//   std::cout <<"inside: part2=" << part2 << std::endl;
 	    }
 	    part1 += part2 * ((i%2?-1:1) * factorial(k-1+i)) /
 		(factorial(i-1) * pow(2.0, static_cast<double>(i)));
-	    //  cout <<"inside: part1=" << part1 << endl;
+	    //  std::cout <<"inside: part1=" << part1 << std::endl;
 	}
 
 	part1 = part1 * -1 * 2* exp((time/b)*(1-c));
 
-	//cout <<"1. part1=" << part1 <<", part2=" << part2 << ", time="<< time<<
-	//  ", k="<< k<< endl;
+	//std::cout <<"1. part1=" << part1 <<", part2=" << part2 << ", time="<< time<<
+	//  ", k="<< k<< std::endl;
 
 	part3 = 0;
 	for (int i=0; i<=k; i++) {
@@ -1355,11 +1355,11 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	    for (int j=0; j<=k-i; j++) {
 		part4 += pow(time/b, static_cast<double>(k-i-j)) /
 		    (pow((1+c), static_cast<double>(j+1)) *factorial(k-i-j));
-		//   cout <<"inside: part4=" << part4 << endl;
+		//   std::cout <<"inside: part4=" << part4 << std::endl;
 	    }
 	    part3 += part4 * factorial(k-1+i) /
 		(factorial(i) * pow(2.0, static_cast<double>(i)) );
-	    // cout <<"inside: part3=" << part3 << endl;
+	    // std::cout <<"inside: part3=" << part3 << std::endl;
 	}
 
 	part3 = part3 * (k%2?-1:1) * 2* k* exp(-1.0*(time/b)*(1+c));
@@ -1386,26 +1386,26 @@ DiscretePoints::closedFormDet(double time, double avgNumCallsToLowerLevelTasks ,
 	  part6= part6 * pow(-1.0,k) * 2* k;
 	
 	  capitalC=part5 + part6;
-	  //cout << "capitalC=part5 + part6=" << part5 + part6 << endl;
+	  //std::cout << "capitalC=part5 + part6=" << part5 + part6 << std::endl;
 	  */
 
 	///////////////////////////
 	capitalC= 1.0/constant;
-	//cout <<"capitalC= 1.0/constant= " << 1.0/constant<< endl;
+	//std::cout <<"capitalC= 1.0/constant= " << 1.0/constant<< std::endl;
 
 	A1minusA2 = part1 - part3;
 	cdfValue = constant * (A1minusA2 + capitalC);
 
-	//  cout <<"\ntime=" << time << ", cdfValue=" << cdfValue <<  
-	//	", constant=" << constant<< endl;
-	//	cout <<"3. part1=" << part1 << ", part3=" << part3 << endl;
-	//   cout << "A1minusA2=" << A1minusA2 <<", capitalC=" << capitalC << endl;
+	//  std::cout <<"\ntime=" << time << ", cdfValue=" << cdfValue <<  
+	//	", constant=" << constant<< std::endl;
+	//	std::cout <<"3. part1=" << part1 << ", part3=" << part3 << std::endl;
+	//   std::cout << "A1minusA2=" << A1minusA2 <<", capitalC=" << capitalC << std::endl;
 
 	if (cdfValue < 0 || cdfValue > 1) {
-	    cout <<"DETAILED ERROR: cdfValue=" << cdfValue << ", time=" << time <<
-		", constant=" << constant<< endl;
-	    cout <<"3. part1=" << part1 << ", part3=" << part3
-		 << ", A1minusA2=" << A1minusA2 <<", capitalC=" << capitalC << endl;
+	    std::cout <<"DETAILED ERROR: cdfValue=" << cdfValue << ", time=" << time <<
+		", constant=" << constant<< std::endl;
+	    std::cout <<"3. part1=" << part1 << ", part3=" << part3
+		 << ", A1minusA2=" << A1minusA2 <<", capitalC=" << capitalC << std::endl;
 	}
     } else {
 	//thetaC==thetaS, this is a gamma or an Erlang distribution.
@@ -1463,7 +1463,7 @@ DiscretePoints::gammaCDF ( double time, double mean, double variance   )
 DiscretePoints&
 DiscretePoints::gammaMeanVar()
 {
-    cout <<"\n  DiscretePoints::gammaMeanVar(): Error " <<  "Implement me before calling me" << endl;
+    std::cout <<"\n  DiscretePoints::gammaMeanVar(): Error " <<  "Implement me before calling me" << std::endl;
 
     return *this;
 }
@@ -1519,11 +1519,11 @@ DiscretePoints::negate( const DiscretePoints& arg )
 }
 
 
-ostream&
-DiscretePoints::print( ostream& output ) const
+std::ostream&
+DiscretePoints::print( std::ostream& output ) const
 {
-    output << "t: " << t << endl
-	   << "A: " << A << endl;
+    output << "t: " << t << std::endl
+	   << "A: " << A << std::endl;
     return Exponential::print( output );
 }
 
@@ -1585,10 +1585,10 @@ DiscreteCDFs::quorumKofN( const unsigned K, const unsigned N )
 
 #if !defined(TESTDIST)    
 	    if (flags.trace_quorum) {
-		cout << "\nDiscreteCDFs::quorumKofN(): myCDFsCltn.size() =" 
-		     << myCDFsCltn.size() << endl;
-		cout <<"myCDFsCltn["<<h<<"]->mean()=" << myCDFsCltn[h]->mean()
-		     <<", Variance=" <<myCDFsCltn[h]->variance() << endl; 
+		std::cout << "\nDiscreteCDFs::quorumKofN(): myCDFsCltn.size() =" 
+		     << myCDFsCltn.size() << std::endl;
+		std::cout <<"myCDFsCltn["<<h<<"]->mean()=" << myCDFsCltn[h]->mean()
+		     <<", Variance=" <<myCDFsCltn[h]->variance() << std::endl; 
 
 	    }
 #endif

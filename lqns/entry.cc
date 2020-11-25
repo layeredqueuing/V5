@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: entry.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -153,7 +153,7 @@ bool
 Entry::check() const
 {
     if ( isStandardEntry() ) {
-	for_each ( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
+	std::for_each ( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
     } else if ( !isActivityEntry() ) {
 	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
     }
@@ -187,7 +187,7 @@ Entry::check() const
 Entry&
 Entry::configure( const unsigned nSubmodels )
 {
-    for_each ( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
+    std::for_each ( _phase.begin(), _phase.end(), Exec1<NullPhase,const unsigned>( &NullPhase::configure, nSubmodels ) );
     _total.configure( nSubmodels );
 
     const unsigned n_e = Model::__entry.size() + 1;
@@ -230,12 +230,12 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
     unsigned max_depth = callStack.depth();
 
     if ( isActivityEntry() ) {
-	max_depth = max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
+	max_depth = std::max( max_depth, _phase[1].findChildren( callStack, directPath ) );    /* Always check because we may have forwarding */
 	std::deque<const AndOrForkActivityList *> forkStack; 	// For matching forks/joins.
 	std::deque<const Activity *> activityStack;		// For checking for cycles.
 	try {
 	    Activity::Children path( callStack, directPath );
-	    max_depth = max( max_depth, _startActivity->findChildren( path ) );
+	    max_depth = std::max( max_depth, _startActivity->findChildren( path ) );
 	}
 	catch ( const activity_cycle& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
@@ -301,7 +301,7 @@ Entry::initServiceTime()
 Entry&
 Entry::initReplication( const unsigned n_chains )
 {
-    for_each ( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
+    std::for_each ( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
     return *this;
 }
 
@@ -310,7 +310,7 @@ Entry::initReplication( const unsigned n_chains )
 Entry&
 Entry::resetInterlock()
 {
-    for_each ( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
+    std::for_each ( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
     return *this;
 }
 
@@ -433,7 +433,7 @@ Entry::setMaxPhase( const unsigned ph )
 		.configure( _total._wait.size() );
 	}
     }
-    max_phases = max( max_phase, max_phases );		/* Set global value.	*/
+    max_phases = std::max( max_phase, max_phases );		/* Set global value.	*/
 
     return *this;
 }
@@ -519,8 +519,8 @@ Entry::saveThroughput( const double value )
     setThroughput( value );
 
     if ( flags.trace_replication || flags.trace_throughput ) {
-	cout << " Entry::throughput(): Task=" << this->owner()->name() << ", Entry=" << this->name()
-	     << ", Throughput=" << _throughput << endl;
+	std::cout << " Entry::throughput(): Task=" << this->owner()->name() << ", Entry=" << this->name()
+	     << ", Throughput=" << _throughput << std::endl;
     }
 
     if ( isActivityEntry() ) {
@@ -678,7 +678,7 @@ Entry::processorCalls() const
 Entry&
 Entry::resetReplication()
 {
-    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
     return *this;
 }
 
@@ -970,24 +970,24 @@ Entry::insertDOMResults(double *phaseUtils) const
  * Debug...
  */
 
-ostream&
-Entry::printSubmodelWait( ostream& output, unsigned offset ) const
+std::ostream&
+Entry::printSubmodelWait( std::ostream& output, unsigned offset ) const
 {
     for ( unsigned p = 1; p <= maxPhase(); ++p ) {
 	if ( offset ) {
-	    output << setw( offset ) << " ";
+	    output << std::setw( offset ) << " ";
 	}
-	output << setw(8-offset) ;
+	output << std::setw(8-offset) ;
 	if ( p == 1 ) {
 	    output << name();
 	} else {
 	    output << " ";
 	}
-	output << " " << setw(1) << p << "  ";
+	output << " " << std::setw(1) << p << "  ";
 	for ( unsigned j = 1; j <= _phase[p]._wait.size(); ++j ) {
-	    output << setw(8) << _phase[p]._wait[j];
+	    output << std::setw(8) << _phase[p]._wait[j];
 	}
-	output << endl;
+	output << std::endl;
     }
     return output;
 }
@@ -997,7 +997,7 @@ Entry::printSubmodelWait( ostream& output, unsigned offset ) const
 Entry&
 Entry::recalculateDynamicValues()
 {
-    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::recalculateDynamicValues ) );
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
     sanityCheckParameters();
     return *this;
@@ -1035,7 +1035,7 @@ TaskEntry&
 TaskEntry::initProcessor()
 {
     if ( isStandardEntry() ) {
-	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initProcessor ) );
+	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initProcessor ) );
     }
     return *this;
 }
@@ -1049,7 +1049,7 @@ TaskEntry::initProcessor()
 TaskEntry&
 TaskEntry::initWait()
 {
-    for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initWait ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::initWait ) );
     return *this;
 }
 
@@ -1127,14 +1127,14 @@ TaskEntry::computeVariance()
 	entryStack.pop_back();
 	_total._variance += std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
     } else {
-	_total._variance += for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
+	_total._variance += std::for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
     }
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
-	cout << "Variance(" << name() << ",p) ";
+	std::cout << "Variance(" << name() << ",p) ";
 	for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-	    cout << ( phase == _phase.begin() ? " = " : ", " ) << phase->variance();
+	    std::cout << ( phase == _phase.begin() ? " = " : ", " ) << phase->variance();
 	}
-	cout << endl;
+	std::cout << std::endl;
     }
     return *this;
 }
@@ -1152,7 +1152,7 @@ Entry::set( const Entry * src, const Activity::Collect& data )
     const unsigned int submodel = data.submodel();
 
     if ( f == &Activity::collectServiceTime ) {
-        setMaxPhase( max( maxPhase(), src->maxPhase() ) );
+        setMaxPhase( std::max( maxPhase(), src->maxPhase() ) );
     } else if ( f == &Activity::setThroughput ) {
         setThroughput( src->throughput() * data.rate() );
     } else if ( f == &Activity::collectWait ) {
@@ -1180,7 +1180,7 @@ TaskEntry&
 TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 {
     const unsigned submodel = aSubmodel.number();
-    if ( submodel == 0 ) throw logic_error( "TaskEntry::updateWait" );
+    if ( submodel == 0 ) throw std::logic_error( "TaskEntry::updateWait" );
 
     /* Open arrivals first... */
 
@@ -1195,7 +1195,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	std::for_each( _phase.begin(), _phase.end(), clear_wait(submodel) );
 
 	if ( flags.trace_activities ) {
-	    cout << "--- AggreateWait for entry " << name() << " ---" << endl;
+	    std::cout << "--- AggreateWait for entry " << name() << " ---" << std::endl;
 	}
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
@@ -1205,13 +1205,13 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 	entryStack.pop_back();
 
 	if ( flags.trace_delta_wait || flags.trace_activities ) {
-	    cout << "--DW--  Entry(with Activities) " << name()
-		 << ", submodel " << submodel << endl;
-	    cout << "        Wait=";
+	    std::cout << "--DW--  Entry(with Activities) " << name()
+		 << ", submodel " << submodel << std::endl;
+	    std::cout << "        Wait=";
 	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
-		cout << phase->_wait[submodel] << " ";
+		std::cout << phase->_wait[submodel] << " ";
 	    }
-	    cout << endl;
+	    std::cout << std::endl;
 	}
 
     } else {
@@ -1251,8 +1251,8 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
     }
 
     if (flags.trace_quorum) {
-	cout << std::endl << "Entry::aggregate(): submodel=" << submodel <<", entry " << name() << endl;
-	cout <<"    addend.mean()=" << addend.mean() <<", addend.variance()="<<addend.variance()<< endl;
+	std::cout << std::endl << "Entry::aggregate(): submodel=" << submodel <<", entry " << name() << std::endl;
+	std::cout <<"    addend.mean()=" << addend.mean() <<", addend.variance()="<<addend.variance()<< std::endl;
     }
 
     return *this;
@@ -1270,7 +1270,7 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 {
     double delta = 0.0;
     if ( isActivityEntry() ) {
-	for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
+	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::resetReplication ) );
 
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
@@ -1280,7 +1280,7 @@ TaskEntry::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta 
 	entryStack.pop_back();
 
     } else {
-	delta = for_each( _phase.begin(), _phase.end(), ExecSum1<Phase,double,const Submodel&>( &Phase::updateWaitReplication, aSubmodel )).sum();
+	delta = std::for_each( _phase.begin(), _phase.end(), ExecSum1<Phase,double,const Submodel&>( &Phase::updateWaitReplication, aSubmodel )).sum();
 	n_delta += _phase.size();
     }
     return delta;
@@ -1568,7 +1568,7 @@ map_entry_name( const char * entry_name, Entry * & outEntry, bool receiver, cons
 CallInfoItem::CallInfoItem( const Entry * src, const Entry * dst )
     : source( src ), destination( dst )
 {
-    if ( src == 0 || dst == 0 ) throw logic_error( "CallInfoItem::CallInfoItem" );
+    if ( src == 0 || dst == 0 ) throw std::logic_error( "CallInfoItem::CallInfoItem" );
 
     for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
 	phase[p] = 0;
@@ -1769,11 +1769,11 @@ set_start_activity (Task* newTask, LQIO::DOM::Entry* theDOMEntry)
  */
 
 /* static */ Entry *
-Entry::find( const string& entry_name )
+Entry::find( const std::string& entry_name )
 {
     std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
     if ( nextEntry == Model::__entry.end() ) {
-	return 0;
+	return nullptr;
     } else {
 	return *nextEntry;
     }

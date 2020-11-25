@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: open.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: open.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Open Network solver.
  *
@@ -7,7 +7,7 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2020-07-10 11:46:20 -0400 (Fri, 10 Jul 2020) $
+ * $Date: 2020-11-25 15:24:15 -0500 (Wed, 25 Nov 2020) $
  * ----------------------------------------------------------------------
  * Conventions:
  *    E - (scalar) number of entries for a given station.
@@ -66,8 +66,8 @@
  * Print all results.
  */
 
-ostream&
-operator<<( ostream& output, Open& model )
+std::ostream&
+operator<<( std::ostream& output, Open& model )
 {
     return model.print( output );
 }
@@ -126,18 +126,18 @@ Open::convert( const Population& N ) const
 		m_err = m;
 	    }
 	} 
-	catch ( const range_error& ) {
+	catch ( const std::range_error& ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( const domain_error& ) {
+	catch ( const std::domain_error& ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
     }
 
     if ( m_err != 0 ) {
-	throw range_error( "Open::convert" );
+	throw std::range_error( "Open::convert" );
     }
 }
 
@@ -161,18 +161,18 @@ Open::solve( const MVA& closedModel, const Population& N )
 		Q[m]->openWait();
 	    }
 	} 
-	catch ( const range_error& e ) {
+	catch ( const std::range_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( const domain_error& e ) {
+	catch ( const std::domain_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
     }
 
     if ( m_err != 0 ) {
-	throw range_error( "Open::solve" );
+	throw std::range_error( "Open::solve" );
     }
 }
 
@@ -190,18 +190,18 @@ Open::solve()
 	try {
 	    Q[m]->openWait();
 	} 
-	catch ( const range_error& e ) {
+	catch ( const std::range_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
-	catch ( const domain_error& e ) {
+	catch ( const std::domain_error& e ) {
 	    *Q[m] = get_infinity();
 	    m_err = m;
 	}
     }
 
     if ( m_err != 0 ) {
-	throw range_error( "Open::solve" );
+	throw std::range_error( "Open::solve" );
     }
 }
 
@@ -257,8 +257,8 @@ Open::entryUtilization( const Server& aStation, const unsigned e ) const
  * Print throughput and utilization for all stations.
  */
 
-ostream&
-Open::print( ostream& output ) const
+std::ostream&
+Open::print( std::ostream& output ) const
 {
     int width = output.precision() + 2;
 
@@ -277,9 +277,9 @@ Open::print( ostream& output ) const
 		output << "   ";
 	    }
 			
-	    output << "W_0" << e << " = " << setw(width) << W;
-	    output << ", U_0" << e << " = " << setw(width) << entryUtilization( *Q[m], e );
-	    output << endl;
+	    output << "W_0" << e << " = " << std::setw(width) << W;
+	    output << ", U_0" << e << " = " << std::setw(width) << entryUtilization( *Q[m], e );
+	    output << std::endl;
 	}
     }
     return output;

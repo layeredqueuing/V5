@@ -10,7 +10,7 @@
  *
  * November, 1994
  *
- * $Id: slice.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: slice.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -41,14 +41,14 @@ public:
     double Y_ij() const  { return y_ij; }
     double calls() const { return y_ab; }
 
-    ostream& print( ostream& = cout ) const;
+    std::ostream& print( std::ostream& = std::cout ) const;
 
     static void prOvertakingStates( Slice_Info rate[], const unsigned max_phases,
 				    Probability PrOTState[MAX_PHASES+1][MAX_PHASES+1][2]);
     static void prStartStates( Slice_Info rate[], const Entry& entC, const Entry& entD,
 			       Probability PrStart[]);
 
-    static ostream& printOvertakingStates( ostream& output, const unsigned j, const double x,
+    static std::ostream& printOvertakingStates( std::ostream& output, const unsigned j, const double x,
 					   const unsigned max_phases,
 					   Probability PrOTState[MAX_PHASES+1][MAX_PHASES+1][2] );
 
@@ -79,5 +79,5 @@ private:
 
 };
 
-ostream& operator<<( ostream&, const Slice_Info& );
+std::ostream& operator<<( std::ostream&, const Slice_Info& );
 #endif

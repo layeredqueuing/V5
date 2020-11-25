@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: report.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -89,8 +89,8 @@ MVACount::initialize()
  * Print a header for the statisical stuff.
  */
 
-ostream&
-MVACount::printHeader( ostream& output, int faulty )
+std::ostream&
+MVACount::printHeader( std::ostream& output, int faulty )
 {
     output << "  n   k srv     step()       mean     stddev     wait()       mean     stddev    ";
 #if defined(HAVE_SYS_TIMES_H)
@@ -123,20 +123,20 @@ MVACount::start( const unsigned a_k, const unsigned a_s )
  * Print out a record.
  */
 
-ostream&
-MVACount::print( ostream& output ) const
+std::ostream&
+MVACount::print( std::ostream& output ) const
 {
     const unsigned precision = output.precision(5);
-    ios_base::fmtflags flags = output.setf( ios::right, ios::adjustfield );
-    output << setw(4)  << _n << " " 
-	   << setw(3)  << _k << " "
-	   << setw(3)  << _s << " "
-	   << setw(10) << step << " " 
-	   << setw(10) << mean( _n, step ) << " "
-	   << setw(10) << stddev( _n, step, step_sqr ) << " "
-	   << setw(10) << wait << " " 
-	   << setw(10) << mean( _n, wait ) << " "
-	   << setw(10) << stddev( _n, wait, wait_sqr ) << " ";
+    std::ios_base::fmtflags flags = output.setf( std::ios::right, std::ios::adjustfield );
+    output << std::setw(4)  << _n << " " 
+	   << std::setw(3)  << _k << " "
+	   << std::setw(3)  << _s << " "
+	   << std::setw(10) << step << " " 
+	   << std::setw(10) << mean( _n, step ) << " "
+	   << std::setw(10) << stddev( _n, step, step_sqr ) << " "
+	   << std::setw(10) << wait << " " 
+	   << std::setw(10) << mean( _n, wait ) << " "
+	   << std::setw(10) << stddev( _n, wait, wait_sqr ) << " ";
 
 #if	defined(HAVE_SYS_TIMES_H)
     output << LQIO::DOM::CPUTime::print( _total_time.getUserTime() ) << " " 
@@ -145,7 +145,7 @@ MVACount::print( ostream& output ) const
     output << LQIO::DOM::CPUTime::print( _total_time.getRealTime() ) << " ";
 
     if ( faults ) {
-	output << " ***" << setw(3)  << faults;
+	output << " ***" << std::setw(3)  << faults;
     }
 
     output.precision(precision);
@@ -270,46 +270,46 @@ SolverReport::finish( bool valid, const double convergence, unsigned long iterat
  * Print the solver report on output.
  */
 
-ostream&
-SolverReport::print( ostream& output ) const
+std::ostream&
+SolverReport::print( std::ostream& output ) const
 {
-    output << "Convergence test value: " << _convergenceValue << endl;
-    output << "Number of iterations:   " << _iterations << endl << endl;
+    output << "Convergence test value: " << _convergenceValue << std::endl;
+    output << "Number of iterations:   " << _iterations << std::endl << std::endl;
 
-    output << "MVA solver information: " << endl;
+    output << "MVA solver information: " << std::endl;
     output << "Submdl";
 
-    MVACount::printHeader( output, total.faults ) << endl;
+    MVACount::printHeader( output, total.faults ) << std::endl;
 
     for ( unsigned i = 1; i <= MVAStats.size(); ++i ) {
-	output << setw(3) << i << "  " << MVAStats[i] << endl;
+	output << std::setw(3) << i << "  " << MVAStats[i] << std::endl;
     }
-    output << "Total" << total << endl;
+    output << "Total" << total << std::endl;
 
-    output << endl;
+    output << std::endl;
 #if HAVE_SYS_UTSNAME_H
     struct utsname uu;		/* Get system triva. */
     uname( &uu );
 
-    output << "    " << uu.nodename << " " << uu.sysname << " " << uu.release << endl;
+    output << "    " << uu.nodename << " " << uu.sysname << " " << uu.release << std::endl;
 #endif
 #if HAVE_SYS_RESOURCE_H && HAVE_GETRUSAGE
     struct rusage r_usage;
     if ( getrusage( RUSAGE_SELF, &r_usage ) == 0 ) {
 	if ( r_usage.ru_maxrss > 0 ) {
-	    output << "    Max RSS (kB): " << r_usage.ru_maxrss << endl;
-	    output << "         shared:  " << r_usage.ru_ixrss << endl;
-	    output << "         data:    " << r_usage.ru_idrss << endl;
-	    output << "         stack:   " << r_usage.ru_isrss << endl;
-	    output << "    MAJFLT:       " << r_usage.ru_majflt << endl;
-	    output << "    MINFLT:       " << r_usage.ru_minflt << endl;
+	    output << "    Max RSS (kB): " << r_usage.ru_maxrss << std::endl;
+	    output << "         shared:  " << r_usage.ru_ixrss << std::endl;
+	    output << "         data:    " << r_usage.ru_idrss << std::endl;
+	    output << "         stack:   " << r_usage.ru_isrss << std::endl;
+	    output << "    MAJFLT:       " << r_usage.ru_majflt << std::endl;
+	    output << "    MINFLT:       " << r_usage.ru_minflt << std::endl;
 	}
     }
 #endif
-    output << "    Real:    " << LQIO::DOM::CPUTime::print( _delta_time.getRealTime() ) << endl;
+    output << "    Real:    " << LQIO::DOM::CPUTime::print( _delta_time.getRealTime() ) << std::endl;
 #if defined(HAVE_SYS_TIMES_H)
-    output << "    User:    " << LQIO::DOM::CPUTime::print( _delta_time.getUserTime() ) << endl;
-    output << "    System:  " << LQIO::DOM::CPUTime::print( _delta_time.getSystemTime() ) << endl;
+    output << "    User:    " << LQIO::DOM::CPUTime::print( _delta_time.getUserTime() ) << std::endl;
+    output << "    System:  " << LQIO::DOM::CPUTime::print( _delta_time.getSystemTime() ) << std::endl;
 #endif
 
     return output;
@@ -327,7 +327,7 @@ SolverReport::insertDOMResults() const
 	.setResultIterations(_iterations)
 	.setMVAStatistics(MVAStats.size(),total._n,total.step,total.step_sqr,total.wait,total.wait_sqr,total.faults);
 
-    string buf;
+    std::string buf;
 
 #if defined(HAVE_SYS_UTSNAME_H)
     struct utsname uu;		/* Get system triva. */

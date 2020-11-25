@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14095 2020-11-15 13:51:34Z greg $
+ * $Id: processor.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -115,8 +115,8 @@ Processor::configure( const unsigned nSubmodels )
     double minS = (*entry)->serviceTime();
     double maxS = (*entry)->serviceTime();
     for ( ++entry; entry != entries().end(); ++entry ) {
-	minS = min( minS, (*entry)->serviceTime() );
-	maxS = max( maxS, (*entry)->serviceTime() );
+	minS = std::min( minS, (*entry)->serviceTime() );
+	maxS = std::max( maxS, (*entry)->serviceTime() );
     }
     if ( maxS > 0. && minS / maxS < 0.1
 	 && !schedulingIsOk( SCHED_PS_BIT|SCHED_PS_HOL_BIT|SCHED_PS_PPR_BIT|SCHED_DELAY_BIT ) ) {
@@ -492,14 +492,14 @@ Processor::insertDOMResults(void) const
  * Print out info for this processor.
  */
 
-ostream&
-Processor::print( ostream& output ) const
+std::ostream&
+Processor::print( std::ostream& output ) const
 {
-    const ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
-    output << setw(8) << name()
-	   << " " << setw(9) << print_processor_type()
-	   << " " << setw(5) << replicas()
-	   << " " << setw(12) << scheduling_label[scheduling()].str
+    const std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
+    output << std::setw(8) << name()
+	   << " " << std::setw(9) << print_processor_type()
+	   << " " << std::setw(5) << replicas()
+	   << " " << std::setw(12) << scheduling_label[scheduling()].str
 	   << "  "
 	   << print_info( *this );	    /* Bonus information about stations -- derived by solver */
     output.flags(oldFlags);
@@ -538,8 +538,8 @@ Processor::find( const std::string& name )
 }
 
 
-/* static */ ostream&
-Processor::output_processor_type( ostream& output, const Processor& aProcessor )
+/* static */ std::ostream&
+Processor::output_processor_type( std::ostream& output, const Processor& aProcessor )
 {
     char buf[12];
     const unsigned n = aProcessor.copies();

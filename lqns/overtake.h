@@ -1,7 +1,7 @@
 /*  -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/overtake.h $ -- Greg Franks
  *
- * $Id: overtake.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: overtake.h 14140 2020-11-25 20:24:15Z greg $
  */
 
 #ifndef _OVERTAKE_H
@@ -40,27 +40,27 @@ private:
 public:
     class PrintHelper {
     public:
-	PrintHelper( ostream& output ) : _output( output ) {}
+	PrintHelper( std::ostream& output ) : _output( output ) {}
 	void operator()( const Entry& entA, const Entry& entB, const Entry& entC, const Entry& entD, const unsigned j, const Probability pr[] ) const;
 
     private:
-	ostream& _output;
+	std::ostream& _output;
     };
 
 public:
     Overtaking( const Task* client, const Entity* server );
 
     void compute( const PrintHelper * = 0 );
-    ostream& print( ostream& );
+    std::ostream& print( std::ostream& );
 	
 private:
     void clearOvertakingStates(const unsigned max_phases, Probability PrOTState[MAX_PHASES+1][MAX_PHASES+1][2]);
     void computeOvertaking( const Entry& entA, const Entry& entB, const Entry& entC, const Entry& entD,
 			    double y_aj[MAX_PHASES+1], Slice_Info ab_info[], const PrintHelper * ) const;
 
-    ostream& printSlice( ostream& output, const Entry& src, const Entry& dst, const Slice_Info phase_info[] ) const;
+    std::ostream& printSlice( std::ostream& output, const Entry& src, const Entry& dst, const Slice_Info phase_info[] ) const;
 	
-    ostream& printStart( ostream& output,
+    std::ostream& printStart( std::ostream& output,
 			 const Entry& entA, const Entry& entB, const Entry& entC, const Entry& entD,
 			 const Probability pr[] ) const;
 
@@ -73,6 +73,6 @@ private:
     Probability PrOtState[MAX_PHASES+1][MAX_PHASES+1][MAX_PHASES+1][2];
 };
 
-inline ostream& operator<<( ostream& output, Overtaking& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, Overtaking& self ) { return self.print( output ); }
 
 #endif

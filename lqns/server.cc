@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- * $Id: server.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: server.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -55,8 +55,8 @@
  * Print all results.
  */
 
-ostream&
-operator<<( ostream& output, const Server& self )
+std::ostream&
+operator<<( std::ostream& output, const Server& self )
 {
     return self.print( output );
 }
@@ -74,10 +74,10 @@ Server::initialize()
     unsigned e, k;
 	
     if ( E == 0 ) {
-	throw out_of_range( "Server::initialize -- entries" );
+	throw std::out_of_range( "Server::initialize -- entries" );
     }
     if ( P == 0 || MAX_PHASES < P ) {
-	throw out_of_range( "Server::initialize -- phases" );
+	throw std::out_of_range( "Server::initialize -- phases" );
     }
 
     W = new double ** [E+1];
@@ -629,7 +629,7 @@ Server::alpha( const unsigned n ) const
     const double u = rho();
     const double den = power( 1.0 - u, n + 1 );
     if ( den == 0.0 ) {
-	throw range_error( "Server::alpha" );
+	throw std::range_error( "Server::alpha" );
     }
     return 1.0 / den;
 }
@@ -710,11 +710,11 @@ Server::operator=( const double alpha )
  * Print information about this station.
  */
 
-ostream&
-Server::print( ostream& output ) const
+std::ostream&
+Server::print( std::ostream& output ) const
 {
     output << typeStr();
-    printHeading( output ) << ":" << endl;
+    printHeading( output ) << ":" << std::endl;
     for ( unsigned e = 1; e <= E; ++e ) {
 	for ( unsigned k = 0; k <= K; ++k ) {
 	    if ( S(e,k) == 0.0 && V(e,k) == 0.0 ) continue;
@@ -730,8 +730,8 @@ Server::print( ostream& output ) const
  * Print out data for this entry and class.
  */
 
-ostream&
-Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
+std::ostream&
+Server::printInput( std::ostream& output, const unsigned e, const unsigned k ) const
 {
     unsigned maxP = 1;
     for ( unsigned int p = 1; p <= MAX_PHASES; ++p ) {
@@ -748,7 +748,7 @@ Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 	if ( p > 1 ) output << ", ";
 	output << V(e,k,p);
     }
-    output << endl;
+    output << std::endl;
 
     output << "  S(e=" << e << ",k=" << k;
     if ( P > 1 ) {
@@ -759,7 +759,7 @@ Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
 	if ( p > 1 ) output << ", ";
 	output << S(e,k,p);
     }
-    output << endl;
+    output << std::endl;
 
     return output;
 }
@@ -1203,7 +1203,7 @@ HVFCFS_Server::wait( const MVA& solver, const unsigned k, const Population& N ) 
 {
     assert( 0 < k && k <= K );
 
-    const double sum = max( solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k ), 0.0 );
+    const double sum = std::max( solver.sumOf_SQ_m( *this, N, k ) + solver.sumOf_rU_m( *this, N, k ), 0.0 );
  	 
     for ( unsigned e = 1; e <= E; ++e ) {
 	if ( !V(e,k) ) continue;
@@ -1255,8 +1255,8 @@ HVFCFS_Server::openWait() const
  * Print out data for this entry and class.
  */
 
-ostream&
-HVFCFS_Server::printInput( ostream& output, const unsigned e, const unsigned k ) const
+std::ostream&
+HVFCFS_Server::printInput( std::ostream& output, const unsigned e, const unsigned k ) const
 {
     Server::printInput( output, e, k );
 
@@ -1272,7 +1272,7 @@ HVFCFS_Server::printInput( ostream& output, const unsigned e, const unsigned k )
 	if ( p > 1 ) output << ", ";
 	output << myVariance[e][k][p];
     }
-    output << endl;
+    output << std::endl;
     return output;
 }
 

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14081 2020-11-11 18:56:16Z greg $
+ * $Id: activity.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -221,7 +221,7 @@ Activity::findChildren( Children& path ) const
     unsigned max_depth = Phase::findChildren( path.getCallStack(), path.isDirectPath() );
     if ( nextJoin() ) {
 	path.push_activity( this );
-	max_depth = max( max_depth, nextJoin()->findChildren( path ) );
+	max_depth = std::max( max_depth, nextJoin()->findChildren( path ) );
 	path.pop_activity();
     }
     return max_depth;
@@ -397,8 +397,8 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 				  double &totalSequentialLocal)
 {    
     if (flags.trace_quorum) {
-        cout <<"\n..............start Activity::estimateQuorumJoinCDFs ():";
-	cout <<" currActivity is " << name() << endl;
+        std::cout <<"\n..............start Activity::estimateQuorumJoinCDFs ():";
+	std::cout <<" currActivity is " << name() << std::endl;
     }
 
     bool anError = false;
@@ -493,15 +493,15 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 #endif
 
     if (flags.trace_quorum) {
-        cout <<"\nsumTotal.mean= " << sumTotal.mean() <<" ,Variance="<<sumTotal.variance() << endl;
-        cout <<"sumLocal.mean= " << sumLocal.mean() <<" ,Variance="<<sumLocal.variance() << endl;
-        cout <<"sumRemote.mean= " << sumRemote.mean() <<" ,Variance="<<sumRemote.variance() << endl;
+        std::cout <<"\nsumTotal.mean= " << sumTotal.mean() <<" ,Variance="<<sumTotal.variance() << std::endl;
+        std::cout <<"sumLocal.mean= " << sumLocal.mean() <<" ,Variance="<<sumLocal.variance() << std::endl;
+        std::cout <<"sumRemote.mean= " << sumRemote.mean() <<" ,Variance="<<sumRemote.variance() << std::endl;
 #if HAVE_LIBGSL
-        cout <<"remoteQuorumDelay.mean= " << remoteQuorumDelay.mean() 
-	     <<" ,Variance="<<remoteQuorumDelay.variance() << endl;
+        std::cout <<"remoteQuorumDelay.mean= " << remoteQuorumDelay.mean() 
+	     <<" ,Variance="<<remoteQuorumDelay.variance() << std::endl;
 #endif
 
-        cout <<".........................end Activity::estimateQuorumJoinCDFs ()" << endl;
+        std::cout <<".........................end Activity::estimateQuorumJoinCDFs ()" << std::endl;
     }
     return !anError;
 }
@@ -520,7 +520,7 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
     bool anError = false;
 
     if (flags.trace_quorum) {
-	cout <<"\nThreepoint fitting for quorum is used." << endl; 
+	std::cout <<"\nThreepoint fitting for quorum is used." << std::endl; 
     }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
@@ -552,9 +552,9 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
 	    sumRemote.variance(level2Variance ) ;
 	} else {
 	    if (level2Variance < 0 && flags.trace_quorum) {
-		cout <<"Activity::estimateQuorumJoinCDFs(): Warning1:" << endl;
-		cout <<"variance is less than zero. sumRemote.variance=" <<level2Variance << endl;
-		cout <<"If this happens outside initialization, it might be problematic." << endl; 
+		std::cout <<"Activity::estimateQuorumJoinCDFs(): Warning1:" << std::endl;
+		std::cout <<"variance is less than zero. sumRemote.variance=" <<level2Variance << std::endl;
+		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl; 
 	    }
 	    sumRemote.variance(0);
 	}
@@ -590,7 +590,7 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
     bool anError = false; 
 
     if (flags.trace_quorum) {
-	cout <<"\nGamma fitting for quorum is used." << endl; 
+	std::cout <<"\nGamma fitting for quorum is used." << std::endl; 
     }
     if ( isThereQuorumDelayedThreads && 
 	 pragma.getQuorumDelayedCalls() == KEEP_ALL_QUORUM_DELAYED_CALLS ) {
@@ -617,10 +617,10 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 	    sumRemote.variance(level2Variance ) ;
 	} else {
 	    if (level2Variance < 0 && flags.trace_quorum) {
-		cout <<"Activity::estimateQuorumJoinCDFs(): Warning2:" << endl;
-		cout <<"variance is less than zero. sumRemote.variance=" 
-		     <<level2Variance << endl;
-		cout <<"If this happens outside initialization, it might be problematic." << endl; 
+		std::cout <<"Activity::estimateQuorumJoinCDFs(): Warning2:" << std::endl;
+		std::cout <<"variance is less than zero. sumRemote.variance=" 
+		     <<level2Variance << std::endl;
+		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl; 
 	    }
 	    sumRemote.variance(0);
 	}
@@ -654,7 +654,7 @@ Activity::estimateClosedFormDetQuorumCDF(double level1Mean,
     bool anError = false;
 
     if (flags.trace_quorum) {
-	cout <<"\nClosed-form for deterministic fitting for quorum is used." << endl; 
+	std::cout <<"\nClosed-form for deterministic fitting for quorum is used." << std::endl; 
     }
 
 
@@ -690,7 +690,7 @@ Activity::estimateClosedFormGeoQuorumCDF(double level1Mean,
     bool anError = false;
 
     if (flags.trace_quorum) {
-	cout <<"\nClosed-form for geometric fitting for quorum is used. " << endl;
+	std::cout <<"\nClosed-form for geometric fitting for quorum is used. " << std::endl;
     }
 
     if (isThereQuorumDelayedThreads 
@@ -726,41 +726,41 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
     int currentSubmodel = owner()->submodel(); 
     currentSubmodel++; //As a client the actual submodel is submodel++.
     if (flags.trace_quorum) {
-	cout <<"myActivityList[i]->owner()->submodel()=" << currentSubmodel<< endl;
+	std::cout <<"myActivityList[i]->owner()->submodel()=" << currentSubmodel<< std::endl;
     }        
 
     if (owner()->replicas() > 1) {
 	level1Mean = getReplicationProcWait(currentSubmodel,relax) ;
-	// cout <<"\ngetReplicationProcWait=" << 
-	//getReplicationProcWait(currentSubmodel,relax) << endl ;
+	// std::cout <<"\ngetReplicationProcWait=" << 
+	//getReplicationProcWait(currentSubmodel,relax) << std::endl ;
     } else {
 	level1Mean = getProcWait( currentSubmodel,relax);
     }
     if (flags.trace_quorum) {
-	cout <<  "level1Mean=" <<  level1Mean << endl;
+	std::cout <<  "level1Mean=" <<  level1Mean << std::endl;
     }
 
     if (owner()->replicas() > 1) {
 	level2Mean =  getReplicationTaskWait(currentSubmodel,relax);
-	// cout <<"\ngetReplicationTaskWait=" << 
-	//getReplicationTaskWait(currentSubmodel,relax) << endl ;
+	// std::cout <<"\ngetReplicationTaskWait=" << 
+	//getReplicationTaskWait(currentSubmodel,relax) << std::endl ;
     } else {
 	level2Mean = getTaskWait(currentSubmodel, relax);
     }
     if (flags.trace_quorum) {
-	cout <<  "level2Mean=" <<  level2Mean << endl;
+	std::cout <<  "level2Mean=" <<  level2Mean << std::endl;
     }
 
     if (owner()->replicas() > 1) {
 	avgNumCallsToLevel2Tasks =getReplicationRendezvous(currentSubmodel,relax);
-	//cout <<"\ngetReplicationRendezvous=" << 
-	//getReplicationRendezvous(currentSubmodel,relax) << endl ;
+	//std::cout <<"\ngetReplicationRendezvous=" << 
+	//getReplicationRendezvous(currentSubmodel,relax) << std::endl ;
     } else {
 	avgNumCallsToLevel2Tasks = getRendezvous(currentSubmodel, relax);
     }
 
     if (flags.trace_quorum) {
-	cout << "Task rendevous = " <<  avgNumCallsToLevel2Tasks << endl;
+	std::cout << "Task rendevous = " <<  avgNumCallsToLevel2Tasks << std::endl;
     }
 
     return !anError;
@@ -804,14 +804,14 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
     if ( submodel > 0 ) {
 	entry->_phase[p]._wait[submodel] += _wait[submodel];
 	if ( flags.trace_activities ) {
-	    cout << "Activity " << name() << " aggregate to ";
+	    std::cout << "Activity " << name() << " aggregate to ";
 	    if ( dynamic_cast<VirtualEntry *>(entry) ) {
-		cout << " virtual entry ";
+		std::cout << " virtual entry ";
 	    } else {
-		cout << " actual entry  ";
+		std::cout << " actual entry  ";
 	    }
-	    cout << entry->name() << ", submodel " << submodel << ", phase " << p 
-		 << ": wait " << _wait[submodel] << endl;
+	    std::cout << entry->name() << ", submodel " << submodel << ", phase " << p 
+		 << ": wait " << _wait[submodel] << std::endl;
 	}
     } else {
 	entry->_phase[p]._variance += variance();
@@ -831,7 +831,7 @@ Activity::collectReplication( Entry * entry, const Activity::Collect& data ) con
 
     entry->_phase[p]._surrogateDelay += _surrogateDelay;
     if ( flags.trace_replication ) {
-	cout << "\nActivity of (submodel ="<<submodel<< " )  " << name()<<" SurrogateDelay = " << _surrogateDelay << endl;
+	std::cout << "\nActivity of (submodel ="<<submodel<< " )  " << name()<<" SurrogateDelay = " << _surrogateDelay << std::endl;
     }
 
 }

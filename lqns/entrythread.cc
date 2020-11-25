@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: entrythread.cc 14140 2020-11-25 20:24:15Z greg $
  *
  */
 
@@ -151,12 +151,12 @@ Thread::setIdleTime( const double relax )
     }
 
     if ( flags.trace_idle_time || flags.trace_throughput  ) {
-	cout <<"\nThread::setIdleTime(): " << name() << endl ;
-	cout <<"utilization=" << utilization();
-	cout <<", population=" << owner()->population();
-	cout <<", calculated (root Entry) throughput= " << throughput();
-	cout <<", \njoinDelayThroughput= " << joinDelayThroughput << endl;
-	cout << "Idle Time: " << z << endl;
+	std::cout <<"\nThread::setIdleTime(): " << name() << std::endl ;
+	std::cout <<"utilization=" << utilization();
+	std::cout <<", population=" << owner()->population();
+	std::cout <<", calculated (root Entry) throughput= " << throughput();
+	std::cout <<", \njoinDelayThroughput= " << joinDelayThroughput << std::endl;
+	std::cout << "Idle Time: " << z << std::endl;
     }
     under_relax( myThinkTime, z, relax );
     return *this;
@@ -174,7 +174,7 @@ Thread::startTime( const unsigned submodel, const double value )
     if ( submodel != 0 ) {
 	myStartTime[submodel] = value;
 	if (flags.trace_throughput || flags.trace_idle_time) {
-	    cout <<"Thread::startTime():Thread " << name() << ", myStartTime[submodel="<<submodel<<"]=" << value << endl;
+	    std::cout <<"Thread::startTime():Thread " << name() << ", myStartTime[submodel="<<submodel<<"]=" << value << std::endl;
 	}
     } else {
 	myStartTimeVariance = value;

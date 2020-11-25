@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14099 2020-11-15 15:49:03Z greg $
+ * $Id: call.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -298,7 +298,7 @@ double
 Call::elapsedTime() const
 {
     if (flags.trace_quorum) {
-	cout <<"\nCall::elapsedTime(): call " << this->srcName() << " to " << dstEntry()->name() << endl;
+	std::cout <<"\nCall::elapsedTime(): call " << this->srcName() << " to " << dstEntry()->name() << std::endl;
     }
 
     if ( hasRendezvous() ) {
@@ -431,8 +431,8 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
 	_chainNumber = k;
 
 	if ( flags.trace_replication ) {
-	    cout <<"\nCall::setChain, k=" << k<< "  " ;
-	    cout <<",call from "<< srcName() << " To " << dstName()<<endl;
+	    std::cout <<"\nCall::setChain, k=" << k<< "  " ;
+	    std::cout <<",call from "<< srcName() << " To " << dstName()<< std::endl;
 	}
     }
 }
@@ -681,9 +681,9 @@ ActProcCall::ActProcCall( const Phase * fromPhase, const Entry * toEntry )
 const Entry *
 ActProcCall::srcEntry() const
 {
-    cout<<"ActProcCall:"<<srcName()<<endl;
+    std::cout<<"ActProcCall:"<<srcName()<<std::endl;
     throw should_not_implement( "ActProcCall::srcEntry", __FILE__, __LINE__ );
-    return 0;
+    return nullptr;
 }
 
 

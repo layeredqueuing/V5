@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14081 2020-11-11 18:56:16Z greg $
+ * $Id: actlist.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -564,8 +564,8 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
 	else if ( dynamic_cast<const OrForkActivityList *>(&_self) ) std::cerr << "Or Fork:  ";
 	else abort();
 	const std::deque<const Activity *>& activityStack = _path.getActivityStack();
-	std::cerr << setw( activityStack.size() ) << " " << activityStack.back()->name()
-		  << " -> " << arg2->name() << endl;
+	std::cerr << std::setw( activityStack.size() ) << " " << activityStack.back()->name()
+		  << " -> " << arg2->name() << std::endl;
     }
     Activity::Children path( _path, _self.prBranch( arg2 ) );
     return std::max( arg1, arg2->findChildren(path) );
@@ -649,7 +649,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
             Entry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
 
             term[i].resize( currEntry->maxPhase() );
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -680,7 +680,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
             Entry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 VectorMath<double>& term = anEntry->_phase[p]._surrogateDelay;
@@ -697,7 +697,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
             Entry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 sum[p] += prBranch(activity) * anEntry->_phase[p].serviceTime();
@@ -712,7 +712,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
             collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
         }
     }
 
@@ -919,7 +919,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
     Activity::Function f = data.collect();
 
     if (flags.trace_quorum) {
-        cout <<"\nAndForkActivityList::collect()...the start --------------- : submodel = " << submodel <<  endl;
+        std::cout <<"\nAndForkActivityList::collect()...the start --------------- : submodel = " << submodel <<  std::endl;
     }
 
     // Start tomari: Quorum
@@ -959,7 +959,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 	    Activity::Collect branch( data );
 	    const Activity * activity = activityList().at(i);
             Thread * anEntry = dynamic_cast<Thread *>(collectToEntry( activity, _entryList[i], activityStack, entryStack, branch ));
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
 
             Vector<Exponential> term( currEntry->maxPhase() );
 
@@ -977,9 +977,9 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                     anEntry->_total._variance += anEntry->_phase[p].variance();
                     if (flags.trace_quorum) {
-                        cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].elapsedTime() << endl;
-                        cout << "anEntry->phase[p="<<p<<"]._wait[submodel=1]=" << anEntry->_phase[p]._wait[1] << endl;
-                        cout << "anEntry->Entry::variance(p="<<p<<"]="<< anEntry->_phase[p].variance() << endl;
+                        std::cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].elapsedTime() << std::endl;
+                        std::cout << "anEntry->phase[p="<<p<<"]._wait[submodel=1]=" << anEntry->_phase[p]._wait[1] << std::endl;
+                        std::cout << "anEntry->Entry::variance(p="<<p<<"]="<< anEntry->_phase[p].variance() << std::endl;
                     }
 
                     term[p].init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
@@ -1006,8 +1006,8 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                     anEntry->_total._wait[submodel] += anEntry->_phase[p]._wait[submodel];
                     if (flags.trace_quorum) {
-                        cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].elapsedTime() << endl;
-//                        cout << "anEntry->phase[curr_p="<<curr_p<<"]._wait[submodel="<<2<<"]=" << anEntry->_phase[curr_p]._wait[2] << endl;
+                        std::cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].elapsedTime() << std::endl;
+//                        std::cout << "anEntry->phase[curr_p="<<curr_p<<"]._wait[submodel="<<2<<"]=" << anEntry->_phase[curr_p]._wait[2] << std::endl;
                     }
 
                     term[p].init( anEntry->_phase[p].elapsedTime(), anEntry->_phase[p].variance() );
@@ -1061,26 +1061,26 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
             currEntry->aggregate( submodel, phase, *join );
         } else if ( submodel == Model::sync_submodel ) {
             if (flags.trace_quorum) {
-                cout << "\n_joinDelay " << join->mean() << endl;
-                cout << "_joinVariance " << join->variance() << endl;
+                std::cout << "\n_joinDelay " << join->mean() << std::endl;
+                std::cout << "_joinVariance " << join->variance() << std::endl;
             }
 
             _joinVariance = join->variance();
             if ( flags.trace_activities ) {
-                cout << "Join delay aggregate to ";
+                std::cout << "Join delay aggregate to ";
                 if ( dynamic_cast<VirtualEntry *>(currEntry) ) {
-                    cout << " virtual entry ";
+                    std::cout << " virtual entry ";
                 } else {
-                    cout << " actual entry ";
+                    std::cout << " actual entry ";
                 }
-                cout << currEntry->name() << ", submodel " << submodel << ", phase " << data.phase() << " wait: " << endl;
+                std::cout << currEntry->name() << ", submodel " << submodel << ", phase " << data.phase() << " wait: " << std::endl;
             }
 
             /* Update quorumJoin delay for parent.  Set variance for this fork/join.  */
 
             if ( phase != data.phase() ) {
                 if ( flags.trace_activities ) {
-                    cout << *join << ", phase " << phase << " wait: ";
+                    std::cout << *join << ", phase " << phase << " wait: ";
                 }
 
                 /* we've encountered a phase change, so try to estimate the phases.  */
@@ -1090,7 +1090,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
             }
 
             if ( flags.trace_activities ) {
-                cout << *join << endl;
+                std::cout << *join << std::endl;
             }
 
 	    currEntry->aggregate( submodel, phase, *join );
@@ -1123,7 +1123,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 	    Activity::Collect branch(data);
 	    const Activity * activity = activityList().at(i);
             Entry * anEntry = collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
 
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 sum[p] += anEntry->_phase[p].serviceTime();
@@ -1139,7 +1139,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 	    Activity::Collect branch(data);
 	    const Activity * activity = activityList().at(i);
             collectToEntry( activity, _entryList[i], activityStack, entryStack, branch );
-            phase = max( phase, branch.phase() );
+            phase = std::max( phase, branch.phase() );
         }
     }
 
@@ -1151,7 +1151,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
     }
 
     if (flags.trace_quorum) {
-        cout <<"AndForkActivityList::collect()...the end --------------- : submodel = " << submodel <<  endl;
+        std::cout <<"AndForkActivityList::collect()...the end --------------- : submodel = " << submodel << std::endl;
     }
     return data;
 }
@@ -1168,7 +1168,7 @@ AndForkActivityList::calcQuorumKofN( const unsigned submodel,
     DiscretePoints * join;
 
     if (flags.trace_quorum) {
-        cout << "\nAndForkActivityList::calcQuorumKofN(): submodel=" <<submodel<< endl;
+        std::cout << "\nAndForkActivityList::calcQuorumKofN(): submodel=" <<submodel<< std::endl;
     }
     const AndJoinActivityList * joinList = dynamic_cast<const AndJoinActivityList *>(this->joinList());
     if ( joinList ) {
@@ -1179,19 +1179,19 @@ AndForkActivityList::calcQuorumKofN( const unsigned submodel,
         if ( isQuorumDelayedThreadsActive) {
             join = quorumCDFs.quorumKofN( joinList->quorumCount() + 1, n + 1 );
             if (flags.trace_quorum) {
-                cout << "quorum (AndJoin) of " <<joinList->quorumCount() + 1
-                     << " out of " << n + 1 << endl;
+                std::cout << "quorum (AndJoin) of " <<joinList->quorumCount() + 1
+                     << " out of " << n + 1 << std::endl;
             }
         } else {
             join = quorumCDFs.quorumKofN(joinList->quorumCount(),n );
             if (flags.trace_quorum) {
-                cout <<"quorum of " <<joinList->quorumCount() << " out of " << n << endl;
+                std::cout <<"quorum of " <<joinList->quorumCount() << " out of " << n << std::endl;
             }
         }
 
         if (flags.trace_quorum) {
-            cout <<"quorumJoin mean=" <<join->mean()
-                 << ", Variance=" << join->variance() << endl;
+            std::cout <<"quorumJoin mean=" <<join->mean()
+                 << ", Variance=" << join->variance() << std::endl;
         }
     } else {
         /* BUG 327 */
@@ -1220,7 +1220,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
                                                           double probQuorumDelaySeqExecution )
 {
     if (flags.trace_quorum) {
-        cout <<"\n'''''''''''start saveQuorumDelayedThreadsServiceTime'''''''''''''''''''''''" << endl;
+        std::cout <<"\n'''''''''''start saveQuorumDelayedThreadsServiceTime'''''''''''''''''''''''" << std::endl;
     }
     const unsigned n = activityList().size();
     bool anError= false;
@@ -1237,12 +1237,12 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     localDiffJoin.variance(abs(localAndJoin->variance() + localQuorumJoin->variance() ));
 
     if (flags.trace_quorum) {
-        cout << "localAndJoin->mean() = " << localAndJoin->mean() <<
-            ", Variance = " << localAndJoin->variance() << endl; ;
-        cout << "localQuorumJoin->mean() = " << localQuorumJoin->mean() <<
-            ", Variance = " << localQuorumJoin->variance() << endl;
-        cout << "localDiffJoin.mean() = " << localDiffJoin.mean() <<
-            ", Variance = " << localDiffJoin.variance() << endl;
+        std::cout << "localAndJoin->mean() = " << localAndJoin->mean() <<
+            ", Variance = " << localAndJoin->variance() << std::endl; ;
+        std::cout << "localQuorumJoin->mean() = " << localQuorumJoin->mean() <<
+            ", Variance = " << localQuorumJoin->variance() << std::endl;
+        std::cout << "localDiffJoin.mean() = " << localDiffJoin.mean() <<
+            ", Variance = " << localDiffJoin.variance() << std::endl;
     }
     delete localAndJoin;
     delete localQuorumJoin;
@@ -1254,12 +1254,12 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     remoteDiffJoin.variance(abs(remoteAndJoin->variance() + remoteQuorumJoin->variance()) );
 
     if (flags.trace_quorum) {
-        cout << "\nremoteAndJoin->mean() = " << remoteAndJoin->mean() <<
-            ", Variance = " << remoteAndJoin->variance() << endl; ;
-        cout << "remoteQuorumJoin->mean() = " << remoteQuorumJoin->mean() <<
-            ", Variance = " << remoteQuorumJoin->variance() << endl;
-        cout << "remoteDiffJoin.mean() = " << remoteDiffJoin.mean() <<
-            ", Variance = " << remoteDiffJoin.variance() << endl;
+        std::cout << "\nremoteAndJoin->mean() = " << remoteAndJoin->mean() <<
+            ", Variance = " << remoteAndJoin->variance() << std::endl; ;
+        std::cout << "remoteQuorumJoin->mean() = " << remoteQuorumJoin->mean() <<
+            ", Variance = " << remoteQuorumJoin->variance() << std::endl;
+        std::cout << "remoteDiffJoin.mean() = " << remoteDiffJoin.mean() <<
+            ", Variance = " << remoteDiffJoin.variance() << std::endl;
     }
     delete remoteAndJoin;
     delete remoteQuorumJoin;
@@ -1270,12 +1270,12 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     quorumDiffJoin.variance(abs(quorumAndJoin->variance() + quorumJoin.variance() ));
 
     if (flags.trace_quorum) {
-        cout << "\nquorumAndJoin->mean() = " << quorumAndJoin->mean() <<
-            ", Variance = " << quorumAndJoin->variance() << endl;
-        cout << "quorumJoin.mean() = " << quorumJoin.mean() <<
-            ", Variance = " << quorumJoin.variance() << endl;
-        cout << "quorumDiffJoin.mean() = " << quorumDiffJoin.mean() <<
-            ", Variance = " << quorumDiffJoin.variance() << endl;
+        std::cout << "\nquorumAndJoin->mean() = " << quorumAndJoin->mean() <<
+            ", Variance = " << quorumAndJoin->variance() << std::endl;
+        std::cout << "quorumJoin.mean() = " << quorumJoin.mean() <<
+            ", Variance = " << quorumJoin.variance() << std::endl;
+        std::cout << "quorumDiffJoin.mean() = " << quorumDiffJoin.mean() <<
+            ", Variance = " << quorumDiffJoin.variance() << std::endl;
     }
     delete quorumAndJoin;
 
@@ -1300,7 +1300,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
         }
 
         if (flags.trace_quorum) {
-            cout <<" procEntry->_phase[1]._wait[orgSubmodel="<<orgSubmodel<<"]="<< procEntry->_phase[1]._wait[orgSubmodel] << endl;
+            std::cout <<" procEntry->_phase[1]._wait[orgSubmodel="<<orgSubmodel<<"]="<< procEntry->_phase[1]._wait[orgSubmodel] << std::endl;
         }
 
         if (!flags.ignore_overhanging_threads) {
@@ -1313,10 +1313,10 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
             localQuorumDelayActivity->remoteQuorumDelay.variance(0);
         }
         if (flags.trace_quorum) {
-            cout <<"orgSubmodel="<<orgSubmodel<< endl;
-            cout << "0. localQuorumDelayActivity->remoteQuorumDelay: mean =" << localQuorumDelayActivity->remoteQuorumDelay.mean()
-                 << ", Variance=" << localQuorumDelayActivity->remoteQuorumDelay.variance() << endl;
-            cout <<"probQuorumDelaySeqExecution=" <<probQuorumDelaySeqExecution << endl;
+            std::cout <<"orgSubmodel="<<orgSubmodel<< std::endl;
+            std::cout << "0. localQuorumDelayActivity->remoteQuorumDelay: mean =" << localQuorumDelayActivity->remoteQuorumDelay.mean()
+                 << ", Variance=" << localQuorumDelayActivity->remoteQuorumDelay.variance() << std::endl;
+            std::cout <<"probQuorumDelaySeqExecution=" <<probQuorumDelaySeqExecution << std::endl;
         }
 
     } else {
@@ -1325,7 +1325,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     }
 
     if (flags.trace_quorum) {
-        cout <<"\n'''''''''''end saveQuorumDelayedThreadsServiceTime'''''''''''''''''''''''" << endl;
+        std::cout <<"\n'''''''''''end saveQuorumDelayedThreadsServiceTime'''''''''''''''''''''''" << std::endl;
     }
 
     return !anError;
@@ -1347,7 +1347,7 @@ AndForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Co
 	branch.setReplyAllowed(!joinList || !joinList->hasQuorum());	/* Disallow replies quorum on branches */
 	branch = (*activity)->count_if( stack, branch );
         sum += branch.sum() - data.sum();				/* only accumulate difference */
-	phase = max( phase, branch.phase() );
+	phase = std::max( phase, branch.phase() );
     }
 
     /* Now follow the activities after the join */
@@ -1387,7 +1387,7 @@ unsigned
 AndForkActivityList::concurrentThreads( unsigned n ) const
 {
     unsigned m = std::accumulate( activityList().begin(), activityList().end(), 0, unsigned_add_using_arg<Activity,unsigned>( &Activity::concurrentThreads, 1 ) );
-    n = max( n, m - 1 );
+    n = std::max( n, m - 1 );
 
     if ( hasNextFork() ) {
         return getNextFork()->concurrentThreads( n );
@@ -1501,7 +1501,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 		    if ( dynamic_cast<const AndJoinActivityList *>(this) ) std::cerr << "And ";
 		    else if ( dynamic_cast<const OrJoinActivityList *>(this) ) std::cerr << "Or ";
 		    else abort();
-		    std::cerr << setw( path.getActivityStack().size() ) << "Join: " << getName() << " -> Fork: " << (*fork_list)->getName() << std::endl;
+		    std::cerr << std::setw( path.getActivityStack().size() ) << "Join: " << getName() << " -> Fork: " << (*fork_list)->getName() << std::endl;
 		}
 		const_cast<AndOrForkActivityList *>(*fork_list)->setJoinList( this );
 		const_cast<AndOrJoinActivityList *>(this)->setForkList( *fork_list );	       	/* Will break loop */

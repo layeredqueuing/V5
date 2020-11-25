@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * synmodel.h	-- Greg Franks
  *
- * $Id: synmodel.h 14052 2020-11-08 03:04:43Z greg $
+ * $Id: synmodel.h 14140 2020-11-25 20:24:15Z greg $
  */
 
 #ifndef _SYNMODEL_H
@@ -26,9 +26,9 @@ public:
 		
     virtual SynchSubmodel& solve( long, MVACount&, const double );
 	
-    virtual ostream& print( ostream& ) const;
+    virtual std::ostream& print( std::ostream& ) const;
 
 private:
-    ostream& printSyncModel( ostream& output ) const;
+    std::ostream& printSyncModel( std::ostream& output ) const;
 };
 #endif

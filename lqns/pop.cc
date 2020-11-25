@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pop.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: pop.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Population vector functions.
  *
@@ -167,7 +167,7 @@ PopulationMap::end() const
 unsigned
 PopulationMap::offset_e_c_e_j( const unsigned c, const unsigned j ) const
 {
-    throw logic_error( "PopulationMap::offset_e_c_e_j" );
+    throw std::logic_error( "PopulationMap::offset_e_c_e_j" );
 }
 
 /* -------------------- Population Iterators -------------------------- */
@@ -355,7 +355,7 @@ PartialPopulationMap::offset( const Population & N ) const
 	case 2:
 	    return offset_e_c_e_j( i, i );
 	default:
-	    throw logic_error( "PartialPopulationMap::offset" );
+	    throw std::logic_error( "PartialPopulationMap::offset" );
 	}
     }
     return offset_e_c_e_j( 0, 0 );
@@ -440,7 +440,7 @@ SinglePopulationMap::offset( const Population & N ) const
 	case 1:
 	    return offset_e_j( N, j );
 	default:
-	    throw logic_error( "SinglePopulationMap::offset" );
+	    throw std::logic_error( "SinglePopulationMap::offset" );
 	}
     }
     return _end - 1;

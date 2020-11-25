@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14099 2020-11-15 15:49:03Z greg $
+ * $Id: submodel.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -117,13 +117,13 @@ Submodel::initServers( const Model& )
 void
 Submodel::debug_stop( const unsigned long iterations, const double delta ) const
 {
-    if ( !cin.eof() && iterations >= flags.single_step ) {
-	cerr << "**** Submodel " << number() << " **** Delta = " << delta << ", Continue [yna]? ";
-	cerr.flush();
+    if ( !std::cin.eof() && iterations >= flags.single_step ) {
+	std::cerr << "**** Submodel " << number() << " **** Delta = " << delta << ", Continue [yna]? ";
+	std::cerr.flush();
 
 	char c;
 
-	cin >> c;
+	std::cin >> c;
 
 	switch ( c ) {
 	case '\n':
@@ -132,7 +132,7 @@ Submodel::debug_stop( const unsigned long iterations, const double delta ) const
 
 	case 'n':
 	case 'N':
-	    throw runtime_error( "Submodel::debug_stop" );
+	    throw std::runtime_error( "Submodel::debug_stop" );
 	    break;
 
 	case 'a':
@@ -140,15 +140,15 @@ Submodel::debug_stop( const unsigned long iterations, const double delta ) const
 	    break;
 
 	default:
-	    cin.ignore( 100, '\n' );
+	    std::cin.ignore( 100, '\n' );
 	    break;
 	}
     }
 }
 
 
-ostream&
-Submodel::submodel_header_str( ostream& output, const Submodel& aSubmodel, const unsigned long iterations )
+std::ostream&
+Submodel::submodel_header_str( std::ostream& output, const Submodel& aSubmodel, const unsigned long iterations )
 {
     output << "========== Iteration " << iterations << ", "
 	   << aSubmodel.submodelType() << " " << aSubmodel.number() << ": "
@@ -566,7 +566,7 @@ MVASubmodel&
 MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
     if ( _servers.size() == 0 ) return *this;
-    if ( flags.verbose ) cerr << '.';
+    if ( flags.verbose ) std::cerr << '.';
 
     const bool trace = flags.trace_mva && (flags.trace_submodel == 0 || flags.trace_submodel == number() );
 
@@ -575,7 +575,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     unsigned iter       = 0; //REP N-R
 
     if ( trace || Options::Debug::variance() ) {
-	cout << print_submodel_header( *this, iterations ) << endl;
+	std::cout << print_submodel_header( *this, iterations ) << std::endl;
     }
 
 
@@ -596,7 +596,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	if ( hasReplication() ) {
 
 	    if ( flags.trace_mva  ) {
-		cout << std::endl << "Current master iteration = " << iterations << std::endl
+		std::cout << std::endl << "Current master iteration = " << iterations << std::endl
 		     << "  Replication Iteration Number (submodel=" <<number() <<") = " << iter << std::endl
 		     << "  deltaRep = " << deltaRep << ", convergence_value = " << Model::convergence_value << std::endl;
 
@@ -617,7 +617,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	    if ( openModel ) {
 		if ( trace ) {
-		    printOpenModel( cout );
+		    printOpenModel( std::cout );
 		}
 
 		/*
@@ -627,7 +627,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		try {
 		    openModel->convert( _customers );
 		}
-		catch ( const range_error& error ) {
+		catch ( const std::range_error& error ) {
 		    MVAStats.faults += 1;
 		    if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
 			throw exception_handled( "MVA::submodel -- open model overflow" );
@@ -636,12 +636,12 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    }
 
 	    if ( trace ) {
-		printClosedModel( cout );
+		printClosedModel( std::cout );
 	    }
 	    try {
 		closedModel->solve();
 	    }
-	    catch ( const range_error& error ) {
+	    catch ( const std::range_error& error ) {
 		throw;
 	    }
 
@@ -652,7 +652,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	if ( openModel ) {
 	    if ( trace && !closedModel ) {
-		printOpenModel( cout );
+		printOpenModel( std::cout );
 	    }
 
 	    try {
@@ -662,27 +662,27 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		    openModel->solve();
 		}
 	    } 
-	    catch ( const range_error& error ) {
+	    catch ( const std::range_error& error ) {
 		if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
 		    throw exception_handled( "MVA::submodel -- open model overflow" );
 		}
 	    }
 
 	    if ( trace ) {
-		cout << *openModel << endl << endl;
+		std::cout << *openModel << std::endl << std::endl;
 	    }
 	}
 
 	if ( closedModel && trace ) {
-	    ios_base::fmtflags oldFlags = cout.setf( ios::right, ios::adjustfield );
-	    cout << *closedModel << endl << endl;
-	    cout.flags( oldFlags );
+	    std::ios_base::fmtflags oldFlags = std::cout.setf( std::ios::right, std::ios::adjustfield );
+	    std::cout << *closedModel << std::endl << std::endl;
+	    std::cout.flags( oldFlags );
 	}
 
 	/* ---------- Set wait and think times for next pass. --------- */
 
 	if (flags.trace_throughput || flags.trace_idle_time) {
-	    cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << endl;
+	    std::cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << std::endl;
 	}
 
 	for_each ( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::saveClientResults, *this ) );
@@ -691,7 +691,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	/* --- Compute and save new values for entry service times. --- */
 
 	if ( flags.trace_delta_wait ) {
-	    cout << "------ updateWait for submodel " << number() << ", iteration " << iterations << " ------" << endl;
+	    std::cout << "------ updateWait for submodel " << number() << ", iteration " << iterations << " ------" << std::endl;
 	}
 
 	/* Update waits for replication */
@@ -737,22 +737,22 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
  * Print out a submodel.
  */
 
-ostream&
-MVASubmodel::print( ostream& output ) const
+std::ostream&
+MVASubmodel::print( std::ostream& output ) const
 {
-    output << "----------------------- Submodel  " << number() << " -----------------------" << endl
-	   << "Customers: " <<  _customers << endl
-	   << "Clients: " << endl;
+    output << "----------------------- Submodel  " << number() << " -----------------------" << std::endl
+	   << "Customers: " <<  _customers << std::endl
+	   << "Clients: " << std::endl;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	output << setw(2) << "  " << *(*client) << endl;
+	output << std::setw(2) << "  " << *(*client) << std::endl;
     }
-    output << endl << "Servers: " << endl;
+    output << std::endl << "Servers: " << std::endl;
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	output << setw(2) << "  " << **server << endl;
+	output << std::setw(2) << "  " << **server << std::endl;
     }
-    output << endl;
+    output << std::endl;
     return output;
 }
 
@@ -762,23 +762,23 @@ MVASubmodel::print( ostream& output ) const
  * Print stations of closed model.
  */
 
-ostream&
-MVASubmodel::printClosedModel( ostream& output ) const
+std::ostream&
+MVASubmodel::printClosedModel( std::ostream& output ) const
 {
     unsigned stnNo = 1;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	output << "[closed=" << stnNo << "] " << **client << endl
+	output << "[closed=" << stnNo << "] " << **client << std::endl
 	       << Task::print_client_chains( **client, number() )
-	       << *(*client)->clientStation( number() ) << endl;
+	       << *(*client)->clientStation( number() ) << std::endl;
 	stnNo += 1;
     }
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	if ( (*server)->isInClosedModel() ) {
-	    output << "[closed=" << stnNo << "] " << **server << endl
+	    output << "[closed=" << stnNo << "] " << **server << std::endl
 		   << Entity::print_server_chains( **server )
-		   << *(*server)->serverStation() << endl;
+		   << *(*server)->serverStation() << std::endl;
 	    (*server)->serverStation()->printOutput( output, stnNo );
 	    stnNo += 1;
 	}
@@ -792,14 +792,14 @@ MVASubmodel::printClosedModel( ostream& output ) const
  * Print stations of open model.
  */
 
-ostream&
-MVASubmodel::printOpenModel( ostream& output ) const
+std::ostream&
+MVASubmodel::printOpenModel( std::ostream& output ) const
 {
     unsigned stnNo = 1;
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	if ( (*server)->isInOpenModel() ) {
-	    output << "[open=" << stnNo << "] " << **server << endl
-		   << *(*server)->serverStation() << endl;
+	    output << "[open=" << stnNo << "] " << **server << std::endl
+		   << *(*server)->serverStation() << std::endl;
 	    stnNo += 1;
 	}
     }

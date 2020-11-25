@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: slice.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: slice.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Everything you wanted to know about a slice, but were afraid to ask.
  *
@@ -28,8 +28,8 @@
  * Print out service time of entry in standard output format.
  */
 
-ostream&
-operator<<( ostream& output, const Slice_Info& self )
+std::ostream&
+operator<<( std::ostream& output, const Slice_Info& self )
 {
     return self.print( output );
 }
@@ -58,7 +58,7 @@ Slice_Info::initialize( const Phase& aPhase, const Entry& dst )
 {
     nSlices = aPhase.numberOfSlices();
     service = nSlices * aPhase.processorWait();
-    if ( nSlices < 1 ) throw logic_error( "Slice_Info::initialize" );
+    if ( nSlices < 1 ) throw std::logic_error( "Slice_Info::initialize" );
 
     getCallInfo( 1.0, aPhase.callList(), aPhase.entry()->throughput(), dst );
 }
@@ -203,19 +203,19 @@ Slice_Info::setRates( const double xj, const Probability& prA )
  * Print out slice info.
  */
 
-ostream&
-Slice_Info::print( ostream& output ) const
+std::ostream&
+Slice_Info::print( std::ostream& output ) const
 {
     int width = output.precision() + 2;
 
-    output << "  slice=" << setw(width) << (nSlices == 0.0 ? 0.0 : service / nSlices)
-	   << ", y_ij=" << setw(3) << y_ij
-	   << ", y_ab=" << setw(width) << y_ab
-	   << ", y_ik=" << setw(3) << y_ik
-	   << ", t_k=" << setw(width) << t_k
-	   << ", lambda_ij=" << setw(width) << lambda_ij
-	   << ", lambda_ik=" << setw(width) << lambda_ik
-	   << endl;
+    output << "  slice=" << std::setw(width) << (nSlices == 0.0 ? 0.0 : service / nSlices)
+	   << ", y_ij=" << std::setw(3) << y_ij
+	   << ", y_ab=" << std::setw(width) << y_ab
+	   << ", y_ik=" << std::setw(3) << y_ik
+	   << ", t_k=" << std::setw(width) << t_k
+	   << ", lambda_ij=" << std::setw(width) << lambda_ij
+	   << ", lambda_ik=" << std::setw(width) << lambda_ik
+	   << std::endl;
 
     return output;
 }
@@ -295,8 +295,8 @@ Slice_Info::prStartStates( Slice_Info rate[], const Entry& entC, const Entry& en
  * Debugging...
  */
 	
-ostream&
-Slice_Info::printOvertakingStates(ostream& output, const unsigned j, const double x,
+std::ostream&
+Slice_Info::printOvertakingStates(std::ostream& output, const unsigned j, const double x,
 				  const unsigned max_phases,
 				  Probability PrOTState[MAX_PHASES+1][MAX_PHASES+1][2]) 
 {
@@ -304,27 +304,27 @@ Slice_Info::printOvertakingStates(ostream& output, const unsigned j, const doubl
     unsigned r;
     int width = output.precision() + 2;
 	
-    output << "x_j(" << j << ")= " << x << endl;
+    output << "x_j(" << j << ")= " << x << std::endl;
 
     for ( i = 0; i <= max_phases; ++i ) {
 	for ( r = 0; r <= max_phases; ++r ) {
 	    output << "  P(" << i << j << "4|" << r << j << "0)="
-		   << setw(width) << PrOTState[i][r][0];
+		   << std::setw(width) << PrOTState[i][r][0];
 	    if ( r != max_phases ) { 
 		output << ", ";
 	    }
 	}
-	output << endl;
+	output << std::endl;
     }
 
     for ( i = 0; i <= max_phases; ++i ) {
 	for ( r = 0; r <= max_phases; ++r ) {
 	    output << "  P(" << i+1 << j << "0|" << r << j << "0)="
-		   << setw(width) << PrOTState[i][r][1];
+		   << std::setw(width) << PrOTState[i][r][1];
 	    if ( r != max_phases ) { 
 		output << ", ";
 	    } else {
-		output << endl;
+		output << std::endl;
 	    }
 	}
     }

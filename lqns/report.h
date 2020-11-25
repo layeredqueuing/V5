@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: report.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -40,7 +40,7 @@ class MVACount {
     friend int operator==( const MVACount& a, const MVACount& b );
 
 public:
-    static ostream& printHeader( ostream&, int );
+    static std::ostream& printHeader( std::ostream&, int );
 
 public:
     MVACount() { initialize(); }
@@ -49,7 +49,7 @@ public:
     MVACount& accumulate( const unsigned long, const unsigned long, const unsigned long );	/* For adding to record	*/
     MVACount& start( const unsigned, const unsigned );	/* Start timing		*/
     MVACount& initialize();				/* Reset counters	*/
-    ostream& print( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
 	
 private:
     unsigned _n;			/* number of times called	*/
@@ -77,7 +77,7 @@ public:
 
     void start();
     SolverReport& finish( bool valid, const double convergence, unsigned long );
-    ostream& print( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
     const SolverReport& insertDOMResults() const;
 
     double stepCount() const { return total.step; }
@@ -99,6 +99,6 @@ private:
     MVACount total;
 };
 
-inline ostream& operator<<( ostream& output, const MVACount& self ) { return self.print( output ); }
-inline ostream& operator<<( ostream& output, const SolverReport& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const MVACount& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const SolverReport& self ) { return self.print( output ); }
 #endif

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 13996 2020-10-24 22:01:20Z greg $
+ * $Id: interlock.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -106,11 +106,11 @@ public:
 
     void initialize();
 
-    ostream& print( ostream& output ) const;
+    std::ostream& print( std::ostream& output ) const;
     double interlockedFlow( const Task& viaTask ) const;
     const std::set<const Entry *>& commonEntries() const { return _commonEntries; }
 
-    static ostream& printPathTable( ostream& output );
+    static std::ostream& printPathTable( std::ostream& output );
 
 private:
     Interlock( const Interlock& );
@@ -134,13 +134,13 @@ private:
     unsigned _sources;
 };
 
-inline ostream& operator<<( ostream& output, const Interlock& self) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Interlock& self) { return self.print( output ); }
 
 InterlockInfo& operator+=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo& operator-=( InterlockInfo&, const InterlockInfo& );
 InterlockInfo operator*( const InterlockInfo&, double );
 
-ostream& operator<<( ostream&, const Interlock& );
-ostream& operator<<( ostream&, const InterlockInfo& );
+std::ostream& operator<<( std::ostream&, const Interlock& );
+std::ostream& operator<<( std::ostream&, const InterlockInfo& );
 bool operator>( const InterlockInfo&, double  );
 #endif

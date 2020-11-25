@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 13764 2020-08-17 19:50:05Z greg $
+ * $Id: pragma.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -215,7 +215,7 @@ private:
 public:
     static void set( const std::map<std::string,std::string>& );
     static void initialize();
-    static ostream& usage( ostream&  );
+    static std::ostream& usage( std::ostream&  );
     static const std::map<std::string,Pragma::fptr>& getPragmas() { return __set_pragma; }
     
 private:

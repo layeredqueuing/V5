@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 14001 2020-10-25 17:25:35Z greg $
+ * $Id: group.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -50,7 +50,7 @@ public:
 
     /* Printing */
 
-    ostream& print( ostream& output ) const { return output; }
+    std::ostream& print( std::ostream& output ) const { return output; }
     const std::string& name() const { return _dom->getName(); }
 
     /* DOM insertion of results */
@@ -69,7 +69,7 @@ private:
     const bool _cap;
 };
 
-inline ostream& operator<<( ostream& output, const Group& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Group& self ) { return self.print( output ); }
 
 #endif
 

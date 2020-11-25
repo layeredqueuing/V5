@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: generate.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -78,46 +78,46 @@ Generate::Generate( const MVASubmodel& aSubModel )
  * same file over and over again.  Use -zstep to extract an intermediate model.
  */
 
-ostream& 
-Generate::print( ostream& output ) const
+std::ostream& 
+Generate::print( std::ostream& output ) const
 {
     for ( int i = 0; myIncludes[i]; ++i ) {
-	output << "#include " << myIncludes[i] << endl;
+	output << "#include " << myIncludes[i] << std::endl;
     }
 	
-    output << endl << "int main ( int, char *[] )" << endl << "{" << endl;
+    output << std::endl << "int main ( int, char *[] )" << std::endl << "{" << std::endl;
 
     if ( _submodel.n_openStns() ) {
-	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << endl;
-	output << "    Vector<Server *> open_station(n_open_stations);" << endl;
+	output << "    const unsigned n_open_stations\t= " << _submodel.n_openStns() << ";" << std::endl;
+	output << "    Vector<Server *> open_station(n_open_stations);" << std::endl;
     }
     if ( _submodel.n_closedStns() ) {
-	output << "    const unsigned n_stations\t= " << _submodel.n_closedStns() << ";" << endl;
+	output << "    const unsigned n_stations\t= " << _submodel.n_closedStns() << ";" << std::endl;
 
-	output << "    const unsigned n_chains\t= " << K << ";" << endl;
-	output << "    Vector<Server *> station( n_stations);" << endl;
-	output << "    Population customers( n_chains );" << endl;
-	output << "    VectorMath<double> thinkTime( n_chains );" << endl;
-	output << "    VectorMath<unsigned> priority( n_chains );" << endl;
-	output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << endl << endl;
+	output << "    const unsigned n_chains\t= " << K << ";" << std::endl;
+	output << "    Vector<Server *> station( n_stations);" << std::endl;
+	output << "    Population customers( n_chains );" << std::endl;
+	output << "    VectorMath<double> thinkTime( n_chains );" << std::endl;
+	output << "    VectorMath<unsigned> priority( n_chains );" << std::endl;
+	output << "    Probability *** prOt;\t\t//Overtaking Probabilities" << std::endl << std::endl;
     }
 	
     /* Chains */
 
     if ( K > 0 ) {
-	output << "    /* Chains */" << endl << endl;
+	output << "    /* Chains */" << std::endl << std::endl;
 
 	for ( unsigned i = 1; i <= K; ++i ) {
-	    output << "    customers[" << i << "] = " << _submodel.customers(i) << ";" << endl;
-	    output << "    thinkTime[" << i << "] = " << _submodel.thinkTime(i) << ";" << endl;
-	    output << "    priority[" << i << "]  = " << _submodel.priority(i)  << ";" << endl;
+	    output << "    customers[" << i << "] = " << _submodel.customers(i) << ";" << std::endl;
+	    output << "    thinkTime[" << i << "] = " << _submodel.thinkTime(i) << ";" << std::endl;
+	    output << "    priority[" << i << "]  = " << _submodel.priority(i)  << ";" << std::endl;
 	}
-	output << endl;
+	output << std::endl;
     }
 
     /* Clients */
 
-    output << "    /* Clients */" << endl << endl;
+    output << "    /* Clients */" << std::endl << std::endl;
 
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	printClientStation( output, *(*client) );
@@ -125,7 +125,7 @@ Generate::print( ostream& output ) const
 
     /* Servers */
 	
-    output << endl << "    /* Servers */" << endl << endl;
+    output << std::endl << "    /* Servers */" << std::endl << std::endl;
 
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
 	printServerStation( output, *(*server) );
@@ -134,82 +134,82 @@ Generate::print( ostream& output ) const
     /* Overlap factor */
 
     if ( _submodel._overlapFactor ) {
-	output << "    /* Overlap Factor */" << endl << endl;
-	output << "    VectorMath<double> * _overlapFactor = new VectorMath<double> [n_chains+1];" << endl;
-	output << "    for ( unsigned i = 1; i <= n_chains; ++i ) {" << endl;
-	output << "        _overlapFactor[i].grow( n_chains, 1.0 );" << endl;
-	output << "    }" << endl;
+	output << "    /* Overlap Factor */" << std::endl << std::endl;
+	output << "    VectorMath<double> * _overlapFactor = new VectorMath<double> [n_chains+1];" << std::endl;
+	output << "    for ( unsigned i = 1; i <= n_chains; ++i ) {" << std::endl;
+	output << "        _overlapFactor[i].grow( n_chains, 1.0 );" << std::endl;
+	output << "    }" << std::endl;
 	for ( unsigned i = 1; i <= K; ++i ) {
 	    for ( unsigned j = 1; j <= K; ++j ) {
 		if ( _submodel._overlapFactor[i][j] ) {
 		    output << "    _overlapFactor[" << i << "][" << j << "] = " 
-			   << _submodel._overlapFactor[i][j] << ";" << endl;
+			   << _submodel._overlapFactor[i][j] << ";" << std::endl;
 		}
 	    }
 	}
-	output << endl;
+	output << std::endl;
     }
 
     /* Symbolic names for array references. */
 
-    output << endl << "    /* Station names */" << endl << endl;
+    output << std::endl << "    /* Station names */" << std::endl << std::endl;
 	
     unsigned closedStnNo = 0;
     unsigned openStnNo 	 = 0;
 
-    output << "    cout << \"Clients:\" << endl;" << endl;
+    output << "    cout << \"Clients:\" << std::endl;" << std::endl;
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	++closedStnNo;
 	output << "    station[" << closedStnNo << "]\t= " << station_name( *(*client) ) << ";";
- 	output << "\tcout << \"" << closedStnNo << ": " << *(*client) << "\" << endl;" << endl;
+ 	output << "\tcout << \"" << closedStnNo << ": " << *(*client) << "\" << std::endl;" << std::endl;
     }
-    output << "    cout << endl << \"Servers:\" << endl;" << endl;
+    output << "    cout << std::endl << \"Servers:\" << std::endl;" << std::endl;
     for ( std::set<Entity *>::const_iterator server = _submodel._servers.begin(); server != _submodel._servers.end(); ++server ) {
 	if ( (*server)->isInClosedModel() ) {
 	    ++closedStnNo;
 	    output << "    station[" << closedStnNo << "]\t= " << station_name( *(*server) ) << ";";
-	    output << "\tcout << \"" << closedStnNo << ": " << *(*server) << "\" << endl;" << endl;
+	    output << "\tcout << \"" << closedStnNo << ": " << *(*server) << "\" << std::endl;" << std::endl;
 	}
 	if ( (*server)->isInOpenModel() ) {
 	    ++openStnNo;
-	    output << "    open_station[" << openStnNo << "]\t= " << station_name( *(*server) ) << ";" << endl;
+	    output << "    open_station[" << openStnNo << "]\t= " << station_name( *(*server) ) << ";" << std::endl;
 	}
     }
-    output << "    cout << endl;" << endl;
-    output << endl;
+    output << "    cout << std::endl;" << std::endl;
+    output << std::endl;
 
     /* Solver */
 	
-    output << endl << "    /* Solution */" << endl << endl;
+    output << std::endl << "    /* Solution */" << std::endl << std::endl;
 
     if ( openStnNo > 0 ) {
-	output << "    Open open( n_open_stations, open_station );" << endl;
-	output << "    open.solve();" << endl;
-	output << "    cout << open << endl;" << endl;
+	output << "    Open open( n_open_stations, open_station );" << std::endl;
+	output << "    open.solve();" << std::endl;
+	output << "    cout << open << std::endl;" << std::endl;
     } 
     if ( closedStnNo > 0 ) {
 	if ( MVA::__bounds_limit ) {
-	    output << "    " << "MVA::boundsLimit = " << MVA::__bounds_limit << ";" << endl;
+	    output << "    " << "MVA::boundsLimit = " << MVA::__bounds_limit << ";" << std::endl;
 	}
 	output << "    " << solvers[Pragma::mva()];
 	output << " model( station, customers, thinkTime, priority";
 	if ( _submodel._overlapFactor ) {
 	    output << ", _overlapFactor";
 	}
-	output << " );" << endl;
-	output << "    model.solve();" << endl;
-	output << "    cout << model << endl;" << endl;
+	output << " );" << std::endl;
+	output << "    model.solve();" << std::endl;
+	output << "    cout << model << std::endl;" << std::endl;
 
 
 	if ( _submodel._overlapFactor ) {
-	    output << endl
-		   << "    delete [] _overlapFactor;" << endl;
+	    output << std::endl
+		   << "    delete [] _overlapFactor;" << std::endl;
 	}
     }
 
     /* Epilogue */
 	
-    output << "    return 0;" << endl << "}" << endl;
+    output << "    return 0;" << std::endl << "}" << std::endl;
 
     return output;
 }
@@ -219,19 +219,19 @@ Generate::print( ostream& output ) const
  * Print out station parameters.
  */
 
-ostream &
-Generate::printClientStation( ostream& output, const Task& aClient ) const
+std::ostream &
+Generate::printClientStation( std::ostream& output, const Task& aClient ) const
 {
     const Server * const aStation = aClient.clientStation(_submodel.number());
     const unsigned P = aClient.maxPhase();
     const unsigned E = aClient.nEntries();
 
-    output << "    /* " << aClient << " */" << endl;
+    output << "    /* " << aClient << " */" << std::endl;
 
     /* Create the station */
 	
     output << "    Server * " << station_name( aClient ) << " = new " << aStation->typeStr() 
-	   << '(' << station_args( E, K, P ) << ");" << endl;
+	   << '(' << station_args( E, K, P ) << ");" << std::endl;
 
     for ( std::vector<Entry *>::const_iterator entry = aClient.entries().begin(); entry != aClient.entries().end(); ++entry ) {
 	const unsigned e = (*entry)->index();
@@ -250,16 +250,16 @@ Generate::printClientStation( ostream& output, const Task& aClient ) const
 			       << station_args( e, k, q ) 
 			       << "," << aStation->V( e, k, q ) << ")";
 		    }
-		    output << ";" << endl;
+		    output << ";" << std::endl;
 		}
 	    }
 	}
 	if ( !hasService ) {
 	    output << "    /* No service time for station "
-		   << station_name( aClient ) << " */" << endl;
+		   << station_name( aClient ) << " */" << std::endl;
 	}
     }
-    output << endl;
+    output << std::endl;
 
     return output;
 }
@@ -270,14 +270,14 @@ Generate::printClientStation( ostream& output, const Task& aClient ) const
  * Print out station parameters.
  */
 
-ostream &
-Generate::printServerStation( ostream& output, const Entity& aServer ) const
+std::ostream &
+Generate::printServerStation( std::ostream& output, const Entity& aServer ) const
 {
     const Server * const aStation = aServer.serverStation();
     const unsigned P = aServer.maxPhase();
     const unsigned E = aServer.nEntries();
 
-    output << "    /* " << aServer << " */" << endl;
+    output << "    /* " << aServer << " */" << std::endl;
 
     /* Create the station */
 	
@@ -285,7 +285,7 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
     if ( aServer.isMultiServer() ) {
 	output << aServer.copies() << ',';
     }
-    output << station_args( E, K, P ) << ");" << endl;
+    output << station_args( E, K, P ) << ");" << std::endl;
 
     for ( std::vector<Entry *>::const_iterator entry = aServer.entries().begin(); entry != aServer.entries().end(); ++entry ) {
 	const unsigned e = (*entry)->index();
@@ -311,13 +311,13 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
 			       << station_args( e, k, q )
 			       << "," << aStation->V( e, k, q ) << ")";
 		    }
-		    output << ";" << endl;
+		    output << ";" << std::endl;
 		}
 	    }
 	}
 	if ( !hasService ) {
 	    output << "    /* No service time for station "
-		   << station_name( aServer ) << " */" << endl;
+		   << station_name( aServer ) << " */" << std::endl;
 	}
 
 		
@@ -327,14 +327,14 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
 	    Probability *** prOt = aStation->getPrOt( e );
 
 	    output << "    prOt = " << station_name( aServer ) << "->getPrOt("
-		   << e << ");" << endl;
+		   << e << ");" << std::endl;
 			
 	    for( unsigned int k = 1; k <= K; ++k ) {
 		for ( unsigned p = 0; p <= Entry::max_phases; ++p ) {	// Total probability!
 		    for ( unsigned q = 1; q <= P; ++q ) {
 			if ( prOt[k][p][q] == 0.0 ) continue;
 			output << "    prOt" << overtaking_args( k, p, q )
-			       << " = " << prOt[k][p][q] << ";" << endl;
+			       << " = " << prOt[k][p][q] << ";" << std::endl;
 		    }
 		}
 	    }
@@ -346,7 +346,7 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
 	printInterlock( output, aServer );
     }
 
-    output << endl;
+    output << std::endl;
 
     return output;
 }
@@ -357,8 +357,8 @@ Generate::printServerStation( ostream& output, const Entity& aServer ) const
  * Print out interlocking info.
  */
 
-ostream &
-Generate::printInterlock( ostream& output, const Entity& aServer ) const
+std::ostream &
+Generate::printInterlock( std::ostream& output, const Entity& aServer ) const
 {
     for ( std::set<Task *>::const_iterator client = _submodel._clients.begin(); client != _submodel._clients.end(); ++client ) {
 	if ( (*client)->throughput() == 0.0 ) continue;
@@ -373,7 +373,7 @@ Generate::printInterlock( ostream& output, const Entity& aServer ) const
 		    output << "    " << station_name( aServer ) << "->setInterlock("
 			   << (*entry)->index() << "," 
 			   << k << ","
-			   << PrIL << ");" << endl;
+			   << PrIL << ");" << std::endl;
 		}
 	    }
 	}
@@ -390,15 +390,15 @@ Generate::printInterlock( ostream& output, const Entity& aServer ) const
 void
 Generate::print( const MVASubmodel& aSubModel ) 
 {
-    ostringstream fileName;
+    std::ostringstream fileName;
 
     fileName << file_name << "-" << aSubModel.number() << ".cc";
 
-    ofstream output;
-    output.open( fileName.str().c_str(), ios::out );
+    std::ofstream output;
+    output.open( fileName.str().c_str(), std::ios::out );
 
     if ( !output ) {
-	cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName.str() << " - " << strerror( errno ) << std::endl;
     } else {
 	Generate aCModel( aSubModel );
 	aCModel.print( output );
@@ -412,75 +412,75 @@ Generate::print( const MVASubmodel& aSubModel )
 void
 Generate::makefile( const unsigned nSubmodels )
 {
-    string fileName = file_name;
+    std::string fileName = file_name;
     fileName += ".mk";
 	
-    ofstream output;
-    output.open( fileName.c_str(), ios::out );
+    std::ofstream output;
+    output.open( fileName.c_str(), std::ios::out );
 
     if ( !output ) {
-	cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << fileName << " - " << strerror( errno ) << std::endl;
 	return;
     }
 
-    string defines = "-DTESTMVA -DHAVE_BOOL -DHAVE_STD=1 -DHAVE_NAMESPACES=1";
+    std::string defines = "-DTESTMVA -DHAVE_BOOL -DHAVE_STD=1 -DHAVE_NAMESPACES=1";
 #if HAVE_IEEEFP_H
     defines += " -DHAVE_IEEEFP_H=1";
 #endif
 
-    output << "LQNDIR=$(HOME)/Interlock_merge_LQN/lqn/interlock-merge" << endl
-	   << "CC = gcc" << endl
-	   << "CXX = g++" << endl
-	   << "CFLAGS = -g" << endl
-	   << "CXXFLAGS = -g" << endl
-	   << "CPPFLAGS = " << defines << " -I. -I$(LQNDIR)" << endl
-	   << "OBJS = dim.o fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o vector.o" << endl
-	   << "SRCS = dim.cc fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc vector.cc" << endl
-	   << "INCS = dim.h fpgoop.h multserv.h mva.h open.h ph2serv.h pop.h prob.h server.h vector.h" << endl;
+    output << "LQNDIR=$(HOME)/Interlock_merge_LQN/lqn/interlock-merge" << std::endl
+	   << "CC = gcc" << std::endl
+	   << "CXX = g++" << std::endl
+	   << "CFLAGS = -g" << std::endl
+	   << "CXXFLAGS = -g" << std::endl
+	   << "CPPFLAGS = " << defines << " -I. -I$(LQNDIR)" << std::endl
+	   << "OBJS = dim.o fpgoop.o multserv.o  mva.o  open.o  ph2serv.o  pop.o  prob.o  server.o vector.o" << std::endl
+	   << "SRCS = dim.cc fpgoop.cc multserv.cc mva.cc open.cc ph2serv.cc pop.cc prob.cc server.cc vector.cc" << std::endl
+	   << "INCS = dim.h fpgoop.h multserv.h mva.h open.h ph2serv.h pop.h prob.h server.h vector.h" << std::endl;
 
-    output << endl
+    output << std::endl
 	   << "all:\t";
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
 	output << file_name << "-" << i << " ";
     }
-    output << endl;
+    output << std::endl;
 
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	ostringstream fileName;
+	std::ostringstream fileName;
 	fileName << file_name << "-" << i;
-	output << endl
-	       << fileName.str() << ":\t$(INCS) $(SRCS) $(OBJS) " << fileName.str() << ".o" << endl
-	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << endl;
+	output << std::endl
+	       << fileName.str() << ":\t$(INCS) $(SRCS) $(OBJS) " << fileName.str() << ".o" << std::endl
+	       << "\t$(CXX) $(CXXFLAGS) -I. -o " << fileName.str() << " $(OBJS) " << fileName.str() << ".o -lm" << std::endl;
     }
 
-    output << endl
-	   << "clean:" << endl
+    output << std::endl
+	   << "clean:" << std::endl
 	   << "\trm -f $(OBJS) *~";
     for ( unsigned i = 1; i <= nSubmodels; ++i ) {
-	ostringstream fileName;
+	std::ostringstream fileName;
 	fileName << file_name << "-" << i;
 	output << " " << fileName.str() << " " << fileName.str() << ".o";
     }
-    output << endl;
+    output << std::endl;
 
-    output << endl
-	   << "really-clean:\tclean" << endl
-	   << "\tfor i in $(SRCS) $(INCS); do \\" << endl
-	   << "\t  if test -L $$i; then \\" << endl
-	   << "\t    rm $$i; \\" << endl
-	   << "\t  fi \\" << endl
-	   << "\tdone" << endl;
+    output << std::endl
+	   << "really-clean:\tclean" << std::endl
+	   << "\tfor i in $(SRCS) $(INCS); do \\" << std::endl
+	   << "\t  if test -L $$i; then \\" << std::endl
+	   << "\t    rm $$i; \\" << std::endl
+	   << "\t  fi \\" << std::endl
+	   << "\tdone" << std::endl;
 
-    output << endl
-	   << "$(SRCS):" << endl
-	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << endl;
+    output << std::endl
+	   << "$(SRCS):" << std::endl
+	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << std::endl;
 
-    output << endl
-	   << "$(INCS):" << endl
-	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << endl;
+    output << std::endl
+	   << "$(INCS):" << std::endl
+	   << "\t@if test ! -f $@; then ln -s $(LQNDIR)/lqns/$@ .; fi" << std::endl;
 
-    output << endl
-	   << "dim.cc:\tvector.cc vector.h server.h" << endl;
+    output << std::endl
+	   << "dim.cc:\tvector.cc vector.h server.h" << std::endl;
     
 }
 
@@ -490,8 +490,8 @@ Generate::makefile( const unsigned nSubmodels )
  * Manufacture a station name.
  */
 
-/* static */ ostream&
-Generate::print_station_name( ostream& output, const Entity& anEntity )
+/* static */ std::ostream&
+Generate::print_station_name( std::ostream& output, const Entity& anEntity )
 {
     if ( anEntity.isTask() ) {
 	output << "t_";
@@ -507,14 +507,14 @@ Generate::print_station_name( ostream& output, const Entity& anEntity )
  */
 
 /* static */ std::ostream&
-Generate::print_station_args( ostream& output, const unsigned e, const unsigned k, const unsigned p )
+Generate::print_station_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
 {
     output << e << "," << k << "," << p;
     return output; 
 }
 
 /* static */ std::ostream&
-Generate::print_overtaking_args( ostream& output, const unsigned e, const unsigned k, const unsigned p )
+Generate::print_overtaking_args( std::ostream& output, const unsigned e, const unsigned k, const unsigned p )
 {
     output << "[" << e << "][" << k << "][" << p << "]";
     return output; 

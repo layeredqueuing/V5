@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14099 2020-11-15 15:49:03Z greg $
+ * $Id: task.h 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -67,24 +67,24 @@ private:
     
     class SRVNManip {
     public:
-	SRVNManip( ostream& (*f)(ostream&, const Task & ), const Task & task ) : _f(f), _task(task) {}
+	SRVNManip( std::ostream& (*f)(std::ostream&, const Task & ), const Task & task ) : _f(f), _task(task) {}
     private:
-	ostream& (*_f)( ostream&, const Task& );
+	std::ostream& (*_f)( std::ostream&, const Task& );
 	const Task & _task;
 
-	friend ostream& operator<<(ostream & os, const SRVNManip& m ) { return m._f(os,m._task); }
+	friend std::ostream& operator<<(std::ostream & os, const SRVNManip& m ) { return m._f(os,m._task); }
     };
 
     class SRVNIntManip {
     public:
-	SRVNIntManip( ostream& (*f)(ostream&, const Task &, const unsigned ),
+	SRVNIntManip( std::ostream& (*f)(std::ostream&, const Task &, const unsigned ),
 			  const Task & task, const unsigned n ) : _f(f), _task(task), _n(n) {}
     private:
-	ostream& (*_f)( ostream&, const Task&, const unsigned );
+	std::ostream& (*_f)( std::ostream&, const Task&, const unsigned );
 	const Task & _task;
 	const unsigned _n;
 
-	friend ostream& operator<<(ostream & os, const SRVNIntManip& m ) { return m._f(os,m._task,m._n); }
+	friend std::ostream& operator<<(std::ostream & os, const SRVNIntManip& m ) { return m._f(os,m._task,m._n); }
     };
     
 public:
@@ -203,11 +203,11 @@ public:
     virtual const Task& insertDOMResults() const;
 
     /* Printing */
-    ostream& print( ostream& output ) const;
-    ostream& printSubmodelWait( ostream& output ) const;
-    ostream& printClientChains( ostream& output, const unsigned ) const;
-    ostream& printOverlapTable( ostream& output, const ChainVector&, const VectorMath<double>* ) const;
-    virtual ostream& printJoinDelay( ostream& ) const;
+    std::ostream& print( std::ostream& output ) const;
+    std::ostream& printSubmodelWait( std::ostream& output ) const;
+    std::ostream& printClientChains( std::ostream& output, const unsigned ) const;
+    std::ostream& printOverlapTable( std::ostream& output, const ChainVector&, const VectorMath<double>* ) const;
+    virtual std::ostream& printJoinDelay( std::ostream& ) const;
     static SRVNIntManip print_client_chains( const Task & aTask, const unsigned aSubmodel ) { return SRVNIntManip( output_client_chains, aTask, aSubmodel ); }
 
 private:
@@ -215,10 +215,10 @@ private:
     SRVNManip print_entries() const { return SRVNManip( output_entries, *this ); }
     SRVNManip print_task_type() const { return SRVNManip( output_task_type, *this ); }
 
-    static ostream& output_activities( ostream& output, const Task& );
-    static ostream& output_entries( ostream& output, const Task& );
-    static ostream& output_task_type( ostream& output, const Task& );
-    static ostream& output_client_chains( ostream& output, const Task& aClient, const unsigned aSubmodel ) { aClient.printClientChains( output, aSubmodel ); return output; }
+    static std::ostream& output_activities( std::ostream& output, const Task& );
+    static std::ostream& output_entries( std::ostream& output, const Task& );
+    static std::ostream& output_task_type( std::ostream& output, const Task& );
+    static std::ostream& output_client_chains( std::ostream& output, const Task& aClient, const unsigned aSubmodel ) { aClient.printClientChains( output, aSubmodel ); return output; }
 
 protected:
     bool HOL_Scheduling() const;

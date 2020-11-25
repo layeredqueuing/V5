@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 13676 2020-07-10 15:46:20Z greg $
+ * $Id: server.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -26,7 +26,7 @@ class MVA;
 class Server;
 class Chain;
 
-ostream& operator<<( ostream&, const Server& );
+std::ostream& operator<<( std::ostream&, const Server& );
 
 /* ----------------------- Abstract Superclass. ----------------------- */
 
@@ -129,9 +129,9 @@ public:
 	
     /* Printing */
 
-    virtual ostream& print( ostream& output = cout ) const;
-    virtual ostream& printHeading( ostream& output = cout ) const { return output; }
-    virtual ostream& printOutput( ostream& output, const unsigned = 0 ) const { return output; }
+    virtual std::ostream& print( std::ostream& output = std::cout ) const;
+    virtual std::ostream& printHeading( std::ostream& output = std::cout ) const { return output; }
+    virtual std::ostream& printOutput( std::ostream& output, const unsigned = 0 ) const { return output; }
 
 protected:
     void setAndTotal( double *item, const unsigned phase, const double value );
@@ -140,7 +140,7 @@ protected:
     Probability rho() const;
     double priorityInflation( const MVA&, const Population &, const unsigned ) const;
 
-    virtual ostream& printInput( ostream&, const unsigned, const unsigned ) const;
+    virtual std::ostream& printInput( std::ostream&, const unsigned, const unsigned ) const;
 
 private:
     void initialize();
@@ -334,7 +334,7 @@ public:
     virtual const char * typeStr() const { return "HVFCFS_Server"; }
 
 protected:
-    virtual ostream& printInput( ostream&, const unsigned, const unsigned ) const;
+    virtual std::ostream& printInput( std::ostream&, const unsigned, const unsigned ) const;
 
 private:
     void initialize();

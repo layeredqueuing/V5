@@ -1,6 +1,6 @@
 /*  -*- c++ -*-
  * synmodel.C	-- Greg Franks Fri Aug  7 1998
- * $Id: synmodel.cc 14052 2020-11-08 03:04:43Z greg $
+ * $Id: synmodel.cc 14140 2020-11-25 20:24:15Z greg $
  *
  * Special submodel to handle synchronization.  These delays are added into
  * the waiting time arrays in the usual fashion (I hope...)
@@ -51,11 +51,11 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     const bool trace = flags.trace_mva && (flags.trace_submodel == 0 || flags.trace_submodel == number() );
 	
     if ( trace ) {
-	cout << print_submodel_header( *this, iterations ) << endl;
+	std::cout << print_submodel_header( *this, iterations ) << std::endl;
     }
 
     if ( flags.trace_delta_wait ) {
-	cout << "------ updateWait for submodel " << number() << ", iteration " << iterations << " ------" << endl;
+	std::cout << "------ updateWait for submodel " << number() << ", iteration " << iterations << " ------" << std::endl;
     }
 		
     /* Delta Wait will re-compute the join delay, normal clients don't care about variance, but join delay needs it. */
@@ -66,7 +66,7 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     for_each ( _clients.begin(), _clients.end(), Exec2<Task,const Submodel&,double>( &Task::updateWait, *this, relax ) );
 	
     if ( trace ) {
-	printSyncModel( cout );
+	printSyncModel( std::cout );
     }
 
     MVAStats.accumulate( 0, 0, 0 );
@@ -87,22 +87,22 @@ SynchSubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
  * tracing -- print out sync model.
  */
 
-ostream&
-SynchSubmodel::printSyncModel( ostream& output ) const
+std::ostream&
+SynchSubmodel::printSyncModel( std::ostream& output ) const
 {
     unsigned stnNo = 1;
 
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client, ++stnNo ) {
 	output << stnNo << ": " << **client
-	       << " " << Task::print_client_chains( **client, number() ) << endl;
+	       << " " << Task::print_client_chains( **client, number() ) << std::endl;
 	(*client)->printJoinDelay( output );
-	output << endl;
+	output << std::endl;
     }
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server, ++stnNo ) {
-	output << stnNo << ": " << **server << endl;
+	output << stnNo << ": " << **server << std::endl;
 	(*server)->printJoinDelay( output );
-	output << endl;
+	output << std::endl;
     }
     return output;
 }
@@ -113,15 +113,15 @@ SynchSubmodel::printSyncModel( ostream& output ) const
  * Debugging -- print out sync model.
  */
 
-ostream&
-SynchSubmodel::print( ostream& output ) const
+std::ostream&
+SynchSubmodel::print( std::ostream& output ) const
 {
-    output << "----------------------- Submodel  " << number() << " -----------------------" << endl
-	   << "Servers: " << endl;
+    output << "----------------------- Submodel  " << number() << " -----------------------" << std::endl
+	   << "Servers: " << std::endl;
 
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	output << "  " << *(*server);
     }
-    output << endl;
+    output << std::endl;
     return output;
 }

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14099 2020-11-15 15:49:03Z greg $
+ * $Id: phase.h 14140 2020-11-25 20:24:15Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -92,7 +92,7 @@ public:
     double elapsedTime() const { return waitExcept( 0 ); }
     double waitingTime( unsigned int submodel ) const { return _wait[submodel];}
 
-    virtual ostream& print( ostream& output ) const { return output; }
+    virtual std::ostream& print( std::ostream& output ) const { return output; }
 	
     virtual NullPhase& recalculateDynamicValues() { return *this; }
 
@@ -284,5 +284,5 @@ private:
     Probability _prOvertaking;
 };
 
-inline ostream& operator<<( ostream& output, const Phase& self ) { self.print( output ); return output; }
+inline std::ostream& operator<<( std::ostream& output, const Phase& self ) { self.print( output ); return output; }
 #endif

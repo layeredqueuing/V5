@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14099 2020-11-15 15:49:03Z greg $
+ * $Id: task.cc 14140 2020-11-25 20:24:15Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,7 +46,7 @@
 #include "interlock.h"
 #include "overtake.h"
 #include "entrythread.h"
-#include <iostream>
+#include <ostream>
 
 /* ------------------------ Constructors etc. ------------------------- */
 
@@ -210,7 +210,7 @@ Task::configure( const unsigned nSubmodels )
 
     /* Configure the threads... */
 
-    for_each( _threads.begin() + 1, _threads.end(), Predicate<Thread>( &Thread::check ) );
+    std::for_each( _threads.begin() + 1, _threads.end(), Predicate<Thread>( &Thread::check ) );
 
     return *this;
 }
@@ -248,8 +248,8 @@ Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
 Task&
 Task::initProcessor()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initProcessor ) );
-    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initProcessor ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initProcessor ) );
+    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initProcessor ) );
     return *this;
 }
 
@@ -264,7 +264,7 @@ Task::initProcessor()
 Task&
 Task::initWait()
 {
-    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initWait ) );
+    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::initWait ) );
     Entity::initWait();
     return *this;
 }
@@ -296,7 +296,7 @@ Task::initPopulation()
 Task&
 Task::initThroughputBound()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initThroughputBound ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initThroughputBound ) );
     return *this;
 }
 
@@ -313,8 +313,8 @@ Task::initThroughputBound()
 Task&
 Task::initReplication( const unsigned n_chains )
 {
-    for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned int>( &Entry::initReplication, n_chains ) );
-    for_each( activities().begin(), activities().end(), Exec1<Phase,unsigned int>( &Phase::initReplication, n_chains ) );
+    std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned int>( &Entry::initReplication, n_chains ) );
+    std::for_each( activities().begin(), activities().end(), Exec1<Phase,unsigned int>( &Phase::initReplication, n_chains ) );
     return *this;
 }
 
@@ -328,7 +328,7 @@ Task&
 Task::createInterlock()
 {
     if ( !Pragma::interlock() ) return *this;
-    for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::createInterlock ) );
+    std::for_each ( entries().begin(), entries().end(), Exec<Entry>( &Entry::createInterlock ) );
     return *this;
 }
 
@@ -345,7 +345,7 @@ Task::initThreads()
     if ( hasThreads() ) {
 	_maxThreads = std::accumulate( entries().begin(), entries().end(), 0, max_using<Entry>( &Entry::concurrentThreads ) );
     }
-    if ( _maxThreads > nThreads() ) throw logic_error( "Task::initThreads" );
+    if ( _maxThreads > nThreads() ) throw std::logic_error( "Task::initThreads" );
     return *this;
 }
 
@@ -459,8 +459,8 @@ Task::addPrecedence( ActivityList * aPrecedence )
 void
 Task::resetReplication()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::resetReplication ) );
-    for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::resetReplication ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::resetReplication ) );
+    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::resetReplication ) );
 }
 
 
@@ -851,8 +851,8 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
     unsigned i = 1;
 
     while ( i <= chains.size() ) {
-	for_each( entries().begin(), entries().end(), Entry::CallExec( f, submodel, chains[i] ) );		// regular entries
-	i = for_each( std::next(_threads.begin()), _threads.end(), Entry::CallExecWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
+	std::for_each( entries().begin(), entries().end(), Entry::CallExec( f, submodel, chains[i] ) );		// regular entries
+	i = std::for_each( std::next(_threads.begin()), _threads.end(), Entry::CallExecWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
     }
     return *this;
 }
@@ -866,8 +866,8 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
 const Task&
 Task::openCallsPerform( callFunc f, const unsigned submodel ) const
 {
-    for_each ( entries().begin(), entries().end(), Entry::CallExec( f, submodel ) );
-    for_each ( std::next(_threads.begin()), _threads.end(), Entry::CallExec( f, submodel ) );
+    std::for_each ( entries().begin(), entries().end(), Entry::CallExec( f, submodel ) );
+    std::for_each ( std::next(_threads.begin()), _threads.end(), Entry::CallExec( f, submodel ) );
     return *this;
 }
 
@@ -899,7 +899,7 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 Task&
 Task::computeVariance()
 {
-    for_each( activities().begin(), activities().end(), ExecSum<Phase,double>( &Phase::computeVariance ) );
+    std::for_each( activities().begin(), activities().end(), ExecSum<Phase,double>( &Phase::computeVariance ) );
     Entity::computeVariance();
     return *this;
 }
@@ -928,15 +928,15 @@ Task::updateWait( const Submodel& aSubmodel, const double relax )
 {
     /* Do updateWait for each activity first. */
 
-    for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
+    std::for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, aSubmodel, relax ) );
+    std::for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, aSubmodel, relax ) );
 
     /* Now recompute thread idle times */
 
-    for_each( _threads.begin() + 1, _threads.end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
+    std::for_each( _threads.begin() + 1, _threads.end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
 
     return *this;
 }
@@ -952,12 +952,12 @@ Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
 {
     /* Do updateWait for each activity first. */
 
-    double delta = for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, aSubmodel ) ).sum();
+    double delta = std::for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, aSubmodel ) ).sum();
     n_delta += activities().size();
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    delta += for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, aSubmodel, n_delta ) ).sum();
+    delta += std::for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, aSubmodel, n_delta ) ).sum();
 
     return delta;
 }
@@ -973,7 +973,7 @@ Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
 Task&
 Task::recalculateDynamicValues()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::recalculateDynamicValues ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::recalculateDynamicValues ) );
     return *this;
 }
 
@@ -1076,7 +1076,7 @@ Task::forkOverlapFactor( const Submodel& submodel ) const
     }
 
     if ( flags.trace_forks ) {
-	printOverlapTable( cout, chain, of );
+	printOverlapTable( std::cout, chain, of );
     }
 }
 
@@ -1385,8 +1385,8 @@ Task::insertDOMResults(void) const
     }
 
     if (hasActivities()) {
-	for_each( activities().begin(), activities().end(), ConstExec<Phase>( &Phase::insertDOMResults ) );
-	for_each( precedences().begin(), precedences().end(), ConstExec<ActivityList>( &ActivityList::insertDOMResults ) );
+	std::for_each( activities().begin(), activities().end(), ConstExec<Phase>( &Phase::insertDOMResults ) );
+	std::for_each( precedences().begin(), precedences().end(), ConstExec<ActivityList>( &ActivityList::insertDOMResults ) );
     }
 
     unsigned int count = 0;
@@ -1422,14 +1422,14 @@ Task::insertDOMResults(void) const
  * Debug - print out waiting by submodel.
  */
 
-ostream&
-Task::printSubmodelWait( ostream& output ) const
+std::ostream&
+Task::printSubmodelWait( std::ostream& output ) const
 {
-    for_each ( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+    std::for_each ( entries().begin(), entries().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
     if ( flags.trace_virtual_entry ) {
-	for_each ( _precedences.begin(), _precedences.end(), ConstPrint1<ActivityList,unsigned>( &ActivityList::printSubmodelWait, output, 2 ) );
+	std::for_each ( _precedences.begin(), _precedences.end(), ConstPrint1<ActivityList,unsigned>( &ActivityList::printSubmodelWait, output, 2 ) );
     } else {
-	for_each ( _threads.begin(), _threads.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+	std::for_each ( _threads.begin(), _threads.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
     }
     return output;
 }
@@ -1439,10 +1439,10 @@ Task::printSubmodelWait( ostream& output ) const
  * Print chains for this client.
  */
 
-ostream&
-Task::printClientChains( ostream& output, const unsigned submodel ) const
+std::ostream&
+Task::printClientChains( std::ostream& output, const unsigned submodel ) const
 {
-    output << "Chains:" << _clientChains[submodel] << endl;
+    output << "Chains:" << _clientChains[submodel] << std::endl;
     return output;
 }
 
@@ -1451,8 +1451,8 @@ Task::printClientChains( ostream& output, const unsigned submodel ) const
  * Tracing: Print out the overlap table.
  */
 
-ostream&
-Task::printOverlapTable( ostream& output, const ChainVector& chain, const VectorMath<double>* of ) const
+std::ostream&
+Task::printOverlapTable( std::ostream& output, const ChainVector& chain, const VectorMath<double>* of ) const
 {
 
     //To handle the case of a main thread of control with no fork join.
@@ -1462,25 +1462,25 @@ Task::printOverlapTable( ostream& output, const ChainVector& chain, const Vector
     unsigned i;
     unsigned j;
     int precision = output.precision(3);
-    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
-    output.setf( ios::left, ios::adjustfield );
+    std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
+    output.setf( std::ios::left, std::ios::adjustfield );
 
     /* Overlap table.  */
 
-    output << "-- Fork Overlap Table -- " << endl << name() << endl << setw(6) << " ";
+    output << "-- Fork Overlap Table -- " << std::endl << name() << std::endl << std::setw(6) << " ";
     for ( i = 2; i <= n ; ++i ) {
-	output << setw(6) << _threads[i]->name();
+	output << std::setw(6) << _threads[i]->name();
     }
-    output << endl;
+    output << std::endl;
 
     for ( i = 2; i <= n; ++i ) {
-	output << setw(6) << _threads[i]->name();
+	output << std::setw(6) << _threads[i]->name();
 	for ( j = 1; j <= n; ++j ) {
-	    output << setw(6) << of[chain[i]][chain[j]];
+	    output << std::setw(6) << of[chain[i]][chain[j]];
 	}
-	output << endl;
+	output << std::endl;
     }
-    output << endl << endl;
+    output << std::endl << std::endl;
 
     output.flags( flags );
     output.precision( precision );
@@ -1493,10 +1493,10 @@ Task::printOverlapTable( ostream& output, const ChainVector& chain, const Vector
  * Tracing -- Print out the joins delays.
  */
 
-ostream&
-Task::printJoinDelay( ostream& output ) const
+std::ostream&
+Task::printJoinDelay( std::ostream& output ) const
 {
-    for_each( _precedences.begin(), _precedences.end(), ConstPrint<ActivityList>(&ActivityList::printJoinDelay, output ) );
+    std::for_each( _precedences.begin(), _precedences.end(), ConstPrint<ActivityList>(&ActivityList::printJoinDelay, output ) );
     return output;
 }
 
@@ -2184,16 +2184,16 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
  * Generic printer.
  */
 
-ostream&
-Task::print( ostream& output ) const
+std::ostream&
+Task::print( std::ostream& output ) const
 {
-    ios_base::fmtflags oldFlags = output.setf( ios::left, ios::adjustfield );
+    std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
 
-    output << setw(8) << name() 
-	   << " " << setw(9) << print_task_type() 
-	   << " " << setw(5) << replicas() 
-	   << " " << setw(8) << (hasProcessor() ? getProcessor()->name() : "--") 
-	   << " " << setw(3) << priority();
+    output << std::setw(8) << name() 
+	   << " " << std::setw(9) << print_task_type() 
+	   << " " << std::setw(5) << replicas() 
+	   << " " << std::setw(8) << (hasProcessor() ? getProcessor()->name() : "--") 
+	   << " " << std::setw(3) << priority();
     if ( isReferenceTask() && thinkTime() > 0.0 ) {
 	output << " " << thinkTime();
     }
@@ -2217,8 +2217,8 @@ Task::print( ostream& output ) const
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
 
-/* static */ ostream&
-Task::output_activities( ostream& output, const Task& task )
+/* static */ std::ostream&
+Task::output_activities( std::ostream& output, const Task& task )
 {
     const std::vector<Activity *>& activities = task.activities();
     for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
@@ -2231,8 +2231,8 @@ Task::output_activities( ostream& output, const Task& task )
 }
 
 
-/* static */ ostream&
-Task::output_entries( ostream& output, const Task& task )
+/* static */ std::ostream&
+Task::output_entries( std::ostream& output, const Task& task )
 {
     const std::vector<Entry *>& entries = task.entries();
     for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
@@ -2245,8 +2245,8 @@ Task::output_entries( ostream& output, const Task& task )
 }
 
 
-ostream&
-Task::output_task_type( ostream& output, const Task& task )
+std::ostream&
+Task::output_task_type( std::ostream& output, const Task& task )
 {
     char buf[12];
     const unsigned n = task.copies();

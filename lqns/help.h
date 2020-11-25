@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 13854 2020-09-24 13:34:24Z greg $
+ * $Id: help.h 14140 2020-11-25 20:24:15Z greg $
  */
 
 #ifndef _HELP_H
@@ -24,31 +24,31 @@ class Help;
 
 class StringManip {
 public:
-    StringManip( ostream& (*ff)(ostream&, const Help&, const char * ), const Help& h, const char * s ) : f(ff), _h(h), _s(s) {}
+    StringManip( std::ostream& (*ff)(std::ostream&, const Help&, const char * ), const Help& h, const char * s ) : f(ff), _h(h), _s(s) {}
 private:
-    ostream& (*f)( ostream&, const Help&, const char * );
+    std::ostream& (*f)( std::ostream&, const Help&, const char * );
     const Help & _h;
     const char * _s;
 
-    friend ostream& operator<<(ostream & os, const StringManip& m ) { return m.f(os,m._h,m._s); }
+    friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) { return m.f(os,m._h,m._s); }
 };
 
 class StringStringManip {
 public:
-    StringStringManip( ostream& (*ff)(ostream&, const Help&, const char *, const char * ), const Help& h, const char * s1, const char * s2 ) : f(ff), _h(h), _s1(s1), _s2(s2) {}
+    StringStringManip( std::ostream& (*ff)(std::ostream&, const Help&, const char *, const char * ), const Help& h, const char * s1, const char * s2 ) : f(ff), _h(h), _s1(s1), _s2(s2) {}
 private:
-    ostream& (*f)( ostream&, const Help&, const char *, const char * );
+    std::ostream& (*f)( std::ostream&, const Help&, const char *, const char * );
     const Help & _h;
     const char * _s1;
     const char * _s2;
 
-    friend ostream& operator<<(ostream & os, const StringStringManip& m ) { return m.f(os,m._h,m._s1,m._s2); }
+    friend std::ostream& operator<<(std::ostream & os, const StringStringManip& m ) { return m.f(os,m._h,m._s1,m._s2); }
 };
 
 class Help
 {    
 public:
-    typedef ostream& (Help::*help_fptr)( ostream&, bool ) const;
+    typedef std::ostream& (Help::*help_fptr)( std::ostream&, bool ) const;
 
     struct parameter_info {
 	parameter_info() : _help(nullptr), _default(false) {}
@@ -81,253 +81,253 @@ private:
     Help( const Help& );
     Help& operator=( const Help& );
     
-    static ostream& __textbf( ostream& output, const Help & h, const char * s ) { return h.textbf( output, s ); }
-    static ostream& __textit( ostream& output, const Help & h, const char * s ) { return h.textit( output, s ); }
-    static ostream& __flag( ostream& output, const Help & h, const char * s ) { return h.flag( output, s ); }
-    static ostream& __ix( ostream& output, const Help & h, const char * s ) { return h.ix( output, s ); }
-    static ostream& __cite( ostream& output, const Help & h, const char * s ) { return h.cite( output, s ); }
-    static ostream& __filename( ostream& output, const Help & h, const char * s1, const char * s2 ) { return h.filename( output, s1, s2 ); }
+    static std::ostream& __textbf( std::ostream& output, const Help & h, const char * s ) { return h.textbf( output, s ); }
+    static std::ostream& __textit( std::ostream& output, const Help & h, const char * s ) { return h.textit( output, s ); }
+    static std::ostream& __flag( std::ostream& output, const Help & h, const char * s ) { return h.flag( output, s ); }
+    static std::ostream& __ix( std::ostream& output, const Help & h, const char * s ) { return h.ix( output, s ); }
+    static std::ostream& __cite( std::ostream& output, const Help & h, const char * s ) { return h.cite( output, s ); }
+    static std::ostream& __filename( std::ostream& output, const Help & h, const char * s1, const char * s2 ) { return h.filename( output, s1, s2 ); }
 
 protected:
-    static ostream& __tr_( ostream& output, const Help& h, const char * s ) { return h.tr_( output, s ); }
+    static std::ostream& __tr_( std::ostream& output, const Help& h, const char * s ) { return h.tr_( output, s ); }
 
 public:
     Help();
     virtual ~Help() {}
 
-    ostream& print( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
 
 protected:
    static std::map<const int,help_fptr,lt_int> option_table;
 
 
 protected:
-    virtual ostream& preamble( ostream& output ) const = 0;
-    virtual ostream& see_also( ostream& output ) const = 0;
-    virtual ostream& textbf( ostream& output, const char * s ) const = 0;
-    virtual ostream& textit( ostream& output, const char * s ) const = 0;
-    virtual ostream& tr_( ostream& output, const char * ) const { return output; }
-    virtual ostream& filename( ostream& output, const char * s1, const char * s2 ) const = 0;
-    virtual ostream& pp( ostream& ouptut ) const = 0;
-    virtual ostream& br( ostream& ouptut ) const = 0;
-    virtual ostream& ol_begin( ostream& output ) const = 0;
-    virtual ostream& ol_end( ostream& output ) const = 0;
-    virtual ostream& dl_begin( ostream& output ) const = 0;
-    virtual ostream& dl_end( ostream& output ) const = 0;
-    virtual ostream& li( ostream& output, const char * = 0 ) const = 0;
-    virtual ostream& flag( ostream& output, const char * s ) const = 0;
-    virtual ostream& ix( ostream& output, const char * s ) const { return output; }
-    virtual ostream& cite( ostream& output, const char * s ) const { return output; }
-    virtual ostream& section( ostream& output, const char * s, const char * ) const = 0;
-    virtual ostream& label( ostream& output, const char * s ) const = 0;
-    virtual ostream& longopt( ostream& output, const struct option *o ) const = 0;
-    virtual ostream& increase_indent( ostream& output ) const = 0;
-    virtual ostream& decrease_indent( ostream& output ) const = 0;
-    virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt) const = 0;
-    virtual ostream& print_pragma( ostream&, const std::string& ) const = 0;
-    virtual ostream& table_header( ostream& ) const = 0;
-    virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const = 0;
-    virtual ostream& table_footer( ostream& ) const = 0;
-    virtual ostream& trailer( ostream& output ) const { return output; }
+    virtual std::ostream& preamble( std::ostream& output ) const = 0;
+    virtual std::ostream& see_also( std::ostream& output ) const = 0;
+    virtual std::ostream& textbf( std::ostream& output, const char * s ) const = 0;
+    virtual std::ostream& textit( std::ostream& output, const char * s ) const = 0;
+    virtual std::ostream& tr_( std::ostream& output, const char * ) const { return output; }
+    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const = 0;
+    virtual std::ostream& pp( std::ostream& ouptut ) const = 0;
+    virtual std::ostream& br( std::ostream& ouptut ) const = 0;
+    virtual std::ostream& ol_begin( std::ostream& output ) const = 0;
+    virtual std::ostream& ol_end( std::ostream& output ) const = 0;
+    virtual std::ostream& dl_begin( std::ostream& output ) const = 0;
+    virtual std::ostream& dl_end( std::ostream& output ) const = 0;
+    virtual std::ostream& li( std::ostream& output, const char * = 0 ) const = 0;
+    virtual std::ostream& flag( std::ostream& output, const char * s ) const = 0;
+    virtual std::ostream& ix( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& cite( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& section( std::ostream& output, const char * s, const char * ) const = 0;
+    virtual std::ostream& label( std::ostream& output, const char * s ) const = 0;
+    virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const = 0;
+    virtual std::ostream& increase_indent( std::ostream& output ) const = 0;
+    virtual std::ostream& decrease_indent( std::ostream& output ) const = 0;
+    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt) const = 0;
+    virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const = 0;
+    virtual std::ostream& table_header( std::ostream& ) const = 0;
+    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const = 0;
+    virtual std::ostream& table_footer( std::ostream& ) const = 0;
+    virtual std::ostream& trailer( std::ostream& output ) const { return output; }
 
 private:
-    ostream& flagAdvisory( ostream& output, bool verbose ) const;
-    ostream& flagBound( ostream& output, bool verbose ) const;
-    ostream& flagDebug( ostream& output, bool verbose ) const;
-    ostream& flagError( ostream& output, bool verbose ) const;
-    ostream& flagGnuplot( ostream& output, bool verbose ) const;
-    ostream& flagFast( ostream& output, bool verbose ) const;
-    ostream& flagInputFormat( ostream& output, bool verbose ) const;
-    ostream& flagNoExecute( ostream& output, bool verbose ) const;
-    ostream& flagOutput( ostream& output, bool verbose ) const;
-    ostream& flagParseable( ostream& output, bool verbose ) const;
-    ostream& flagPragmas( ostream& output, bool verbose ) const;
-    ostream& flagRTF( ostream& output, bool verbose ) const;
-    ostream& flagTrace( ostream& output, bool verbose ) const;
-    ostream& flagVerbose( ostream& output, bool verbose ) const;
-    ostream& flagVersion( ostream& output, bool verbose ) const;
-    ostream& flagWarning( ostream& output, bool verbose ) const;
-    ostream& flagXML( ostream& output, bool verbose ) const;
-    ostream& flagSpecial( ostream& output, bool verbose ) const;
-    ostream& flagConvergence( ostream& output, bool verbose ) const;
-    ostream& flagUnderrelaxation( ostream& output, bool verbose ) const;
-    ostream& flagIterationLimit( ostream& output, bool verbose ) const;
-    ostream& flagExactMVA( ostream& output, bool verbose ) const;
-    ostream& flagSchweitzerMVA( ostream& output, bool verbose ) const;
-    ostream& flagHwSwLayering( ostream& output, bool verbose ) const;
-    ostream& flagLoose( ostream& output, bool verbose ) const;
-    ostream& flagStopOnMessageLoss( ostream& output, bool verbose ) const;
-    ostream& flagTraceMVA( ostream& output, bool verbose ) const;
-    ostream& flagNoVariance( ostream& output, bool verbose ) const;
-    ostream& flagNoHeader( ostream& output, bool verbose ) const;
-    ostream& flagReloadLQX( ostream& output, bool verbose ) const;
-    ostream& flagRestartLQX( ostream& output, bool verbose ) const;
-    ostream& flagDebugLQX( ostream& output, bool verbose ) const;
-    ostream& flagDebugXML( ostream& output, bool verbose ) const;
-    ostream& flagMethoOfLayers( ostream& output, bool verbose ) const;
-    ostream& flagProcessorSharing( ostream& output, bool verbose ) const;
-    ostream& flagSquashedLayering( ostream& output, bool verbose ) const;
+    std::ostream& flagAdvisory( std::ostream& output, bool verbose ) const;
+    std::ostream& flagBound( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebug( std::ostream& output, bool verbose ) const;
+    std::ostream& flagError( std::ostream& output, bool verbose ) const;
+    std::ostream& flagGnuplot( std::ostream& output, bool verbose ) const;
+    std::ostream& flagFast( std::ostream& output, bool verbose ) const;
+    std::ostream& flagInputFormat( std::ostream& output, bool verbose ) const;
+    std::ostream& flagNoExecute( std::ostream& output, bool verbose ) const;
+    std::ostream& flagOutput( std::ostream& output, bool verbose ) const;
+    std::ostream& flagParseable( std::ostream& output, bool verbose ) const;
+    std::ostream& flagPragmas( std::ostream& output, bool verbose ) const;
+    std::ostream& flagRTF( std::ostream& output, bool verbose ) const;
+    std::ostream& flagTrace( std::ostream& output, bool verbose ) const;
+    std::ostream& flagVerbose( std::ostream& output, bool verbose ) const;
+    std::ostream& flagVersion( std::ostream& output, bool verbose ) const;
+    std::ostream& flagWarning( std::ostream& output, bool verbose ) const;
+    std::ostream& flagXML( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSpecial( std::ostream& output, bool verbose ) const;
+    std::ostream& flagConvergence( std::ostream& output, bool verbose ) const;
+    std::ostream& flagUnderrelaxation( std::ostream& output, bool verbose ) const;
+    std::ostream& flagIterationLimit( std::ostream& output, bool verbose ) const;
+    std::ostream& flagExactMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSchweitzerMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagHwSwLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& flagLoose( std::ostream& output, bool verbose ) const;
+    std::ostream& flagStopOnMessageLoss( std::ostream& output, bool verbose ) const;
+    std::ostream& flagTraceMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagNoVariance( std::ostream& output, bool verbose ) const;
+    std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
+    std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugXML( std::ostream& output, bool verbose ) const;
+    std::ostream& flagMethoOfLayers( std::ostream& output, bool verbose ) const;
+    std::ostream& flagProcessorSharing( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSquashedLayering( std::ostream& output, bool verbose ) const;
 
 public:
-    ostream& debugAll( ostream & output, bool verbose ) const;
-    ostream& debugActivities( ostream & output, bool verbose ) const;
-    ostream& debugCalls( ostream & output, bool verbose ) const;
-    ostream& debugForks( ostream & output, bool verbose ) const;
-    ostream& debugInterlock( ostream & output, bool verbose ) const;
-    ostream& debugJoins( ostream & output, bool verbose ) const;
-    ostream& debugLQX( ostream & output, bool verbose ) const;
-    ostream& debugMVA( ostream & output, bool verbose ) const;
-    ostream& debugLayers( ostream & output, bool verbose ) const;
-    ostream& debugOvertaking( ostream & output, bool verbose ) const;
-    ostream& debugQuorum( ostream & output, bool verbose ) const;
-    ostream& debugVariance( ostream & output, bool verbose ) const;
-    ostream& debugXML( ostream & output, bool verbose ) const;
+    std::ostream& debugAll( std::ostream & output, bool verbose ) const;
+    std::ostream& debugActivities( std::ostream & output, bool verbose ) const;
+    std::ostream& debugCalls( std::ostream & output, bool verbose ) const;
+    std::ostream& debugForks( std::ostream & output, bool verbose ) const;
+    std::ostream& debugInterlock( std::ostream & output, bool verbose ) const;
+    std::ostream& debugJoins( std::ostream & output, bool verbose ) const;
+    std::ostream& debugLQX( std::ostream & output, bool verbose ) const;
+    std::ostream& debugMVA( std::ostream & output, bool verbose ) const;
+    std::ostream& debugLayers( std::ostream & output, bool verbose ) const;
+    std::ostream& debugOvertaking( std::ostream & output, bool verbose ) const;
+    std::ostream& debugQuorum( std::ostream & output, bool verbose ) const;
+    std::ostream& debugVariance( std::ostream & output, bool verbose ) const;
+    std::ostream& debugXML( std::ostream & output, bool verbose ) const;
 
-    ostream& traceActivities( ostream & output, bool verbose ) const;
-    ostream& traceConvergence( ostream & output, bool verbose ) const;
-    ostream& traceDeltaWait( ostream & output, bool verbose ) const;
-    ostream& traceForks( ostream & output, bool verbose ) const;
-    ostream& traceIdleTime( ostream & output, bool verbose ) const;
-    ostream& traceInterlock( ostream & output, bool verbose ) const;
-    ostream& traceIntermediate( ostream & output, bool verbose ) const;
-    ostream& traceJoins( ostream & output, bool verbose ) const;
-    ostream& traceMva( ostream & output, bool verbose ) const;
-    ostream& traceOvertaking( ostream & output, bool verbose ) const;
-    ostream& traceQuorum( ostream & output, bool verbose ) const;
-    ostream& traceReplication( ostream & output, bool verbose ) const;
-    ostream& traceThroughput( ostream & output, bool verbose ) const;
-    ostream& traceVariance( ostream & output, bool verbose ) const;
-    ostream& traceVirtualEntry( ostream & output, bool verbose ) const;
-    ostream& traceWait( ostream & output, bool verbose ) const;
+    std::ostream& traceActivities( std::ostream & output, bool verbose ) const;
+    std::ostream& traceConvergence( std::ostream & output, bool verbose ) const;
+    std::ostream& traceDeltaWait( std::ostream & output, bool verbose ) const;
+    std::ostream& traceForks( std::ostream & output, bool verbose ) const;
+    std::ostream& traceIdleTime( std::ostream & output, bool verbose ) const;
+    std::ostream& traceInterlock( std::ostream & output, bool verbose ) const;
+    std::ostream& traceIntermediate( std::ostream & output, bool verbose ) const;
+    std::ostream& traceJoins( std::ostream & output, bool verbose ) const;
+    std::ostream& traceMva( std::ostream & output, bool verbose ) const;
+    std::ostream& traceOvertaking( std::ostream & output, bool verbose ) const;
+    std::ostream& traceQuorum( std::ostream & output, bool verbose ) const;
+    std::ostream& traceReplication( std::ostream & output, bool verbose ) const;
+    std::ostream& traceThroughput( std::ostream & output, bool verbose ) const;
+    std::ostream& traceVariance( std::ostream & output, bool verbose ) const;
+    std::ostream& traceVirtualEntry( std::ostream & output, bool verbose ) const;
+    std::ostream& traceWait( std::ostream & output, bool verbose ) const;
 
-    ostream& specialIterationLimit( ostream & output, bool verbose ) const;
-    ostream& specialPrintInterval( ostream & output, bool verbose ) const;
-    ostream& specialOvertaking( ostream & output, bool verbose ) const;
-    ostream& specialConvergenceValue( ostream & output, bool verbose ) const;
-    ostream& specialSingleStep( ostream & output, bool verbose ) const;
-    ostream& specialUnderrelaxation( ostream & output, bool verbose ) const;
-    ostream& specialGenerateQueueingModel( ostream & output, bool verbose ) const;
-    ostream& specialMolMSUnderrelaxation( ostream & output, bool verbose ) const;
-    ostream& speicalSkipLayer( ostream & output, bool verbose ) const;
-    ostream& specialMakeMan( ostream & output, bool verbose ) const;
-    ostream& specialMakeTex( ostream & output, bool verbose ) const;
-    ostream& specialMinSteps( ostream & output, bool verbose ) const;
-    ostream& specialIgnoreOverhangingThreads( ostream & output, bool verbose ) const;
-    ostream& specialFullReinitialize( ostream & output, bool verbose ) const;
+    std::ostream& specialIterationLimit( std::ostream & output, bool verbose ) const;
+    std::ostream& specialPrintInterval( std::ostream & output, bool verbose ) const;
+    std::ostream& specialOvertaking( std::ostream & output, bool verbose ) const;
+    std::ostream& specialConvergenceValue( std::ostream & output, bool verbose ) const;
+    std::ostream& specialSingleStep( std::ostream & output, bool verbose ) const;
+    std::ostream& specialUnderrelaxation( std::ostream & output, bool verbose ) const;
+    std::ostream& specialGenerateQueueingModel( std::ostream & output, bool verbose ) const;
+    std::ostream& specialMolMSUnderrelaxation( std::ostream & output, bool verbose ) const;
+    std::ostream& speicalSkipLayer( std::ostream & output, bool verbose ) const;
+    std::ostream& specialMakeMan( std::ostream & output, bool verbose ) const;
+    std::ostream& specialMakeTex( std::ostream & output, bool verbose ) const;
+    std::ostream& specialMinSteps( std::ostream & output, bool verbose ) const;
+    std::ostream& specialIgnoreOverhangingThreads( std::ostream & output, bool verbose ) const;
+    std::ostream& specialFullReinitialize( std::ostream & output, bool verbose ) const;
 
-    ostream& pragmaCycles( ostream& output, bool verbose ) const;
-    ostream& pragmaStopOnMessageLoss( ostream& output, bool verbose ) const;
-    ostream& pragmaForceMultiserver( ostream& output, bool verbose ) const;
-    ostream& pragmaInterlock( ostream& output, bool verbose ) const;
-    ostream& pragmaLayering( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiserver( ostream& output, bool verbose ) const;
-    ostream& pragmaMVA( ostream& output, bool verbose ) const;
+    std::ostream& pragmaCycles( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceMultiserver( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaInterlock( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiserver( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVA( std::ostream& output, bool verbose ) const;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    ostream& pragmaQuorumDistribution( ostream& output, bool verbose ) const;
-    ostream& pragmaQuorumDelayedCalls( ostream& output, bool verbose ) const;
-    ostream& pragmaIdleTime( ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistribution( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDelayedCalls( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaIdleTime( std::ostream& output, bool verbose ) const;
 #endif
-    ostream& pragmaOvertaking( ostream& output, bool verbose ) const;
-    ostream& pragmaProcessor( ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertaking( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessor( std::ostream& output, bool verbose ) const;
 #if RESCHEDULE
-    ostream& pragmaReschedule( ostream& output, bool verbose ) const;
+    std::ostream& pragmaReschedule( std::ostream& output, bool verbose ) const;
 #endif
-    ostream& pragmaTau( ostream& output, bool verbose ) const;
-    ostream& pragmaThreads( ostream& output, bool verbose ) const;
-    ostream& pragmaVariance( ostream& output, bool verbose ) const;
-    ostream& pragmaSeverityLevel( ostream& output, bool verbose ) const;
-    ostream& pragmaSpexHeader( ostream& output, bool verbose ) const;
-    ostream& pragmaPrune( ostream& output, bool verbose ) const;
+    std::ostream& pragmaTau( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreads( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVariance( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSeverityLevel( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexHeader( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaPrune( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaCyclesAllow( ostream& output, bool verbose ) const;
-    ostream& pragmaCyclesDisallow( ostream& output, bool verbose ) const;
+    std::ostream& pragmaCyclesAllow( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaCyclesDisallow( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaForceMultiserverNone( ostream& output, bool verbose ) const;
-    ostream& pragmaForceMultiserverProcessors( ostream& output, bool verbose ) const;
-    ostream& pragmaForceMultiserverTasks( ostream& output, bool verbose ) const;
-    ostream& pragmaForceMultiserverAll( ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceMultiserverNone( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceMultiserverProcessors( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceMultiserverTasks( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceMultiserverAll( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaStopOnMessageLossFalse( ostream& output, bool verbose ) const;
-    ostream& pragmaStopOnMessageLossTrue( ostream& output, bool verbose ) const;
+    std::ostream& pragmaStopOnMessageLossFalse( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaStopOnMessageLossTrue( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaInterlockThroughput( ostream& output, bool verbose ) const;
-    ostream& pragmaInterlockNone( ostream& output, bool verbose ) const;
+    std::ostream& pragmaInterlockThroughput( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaInterlockNone( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaLayeringBatched( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringBatchedBack( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringHwSw( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringMOL( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringMOLBack( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringSquashed( ostream& output, bool verbose ) const;
-    ostream& pragmaLayeringSRVN( ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringBatched( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringBatchedBack( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringHwSw( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringMOL( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringMOLBack( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringSquashed( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaLayeringSRVN( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaMultiServerDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerConway( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerReiser( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerReiserPS( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerRolia( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerRoliaPS( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerBruell( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerSchmidt( ostream& output, bool verbose ) const;
-    ostream& pragmaMultiServerSuri( ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerConway( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerReiser( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerReiserPS( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerRolia( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerRoliaPS( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerBruell( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerSchmidt( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiServerSuri( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaMVALinearizer( ostream& output, bool verbose ) const;
-    ostream& pragmaMVAExact( ostream& output, bool verbose ) const;
-    ostream& pragmaMVASchweitzer( ostream& output, bool verbose ) const;
-    ostream& pragmaMVAFast( ostream& output, bool verbose ) const;
-    ostream& pragmaMVAOneStep( ostream& output, bool verbose ) const;
-    ostream& pragmaMVAOneStepLinearizer( ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVALinearizer( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVAExact( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVASchweitzer( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVAFast( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVAOneStep( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaMVAOneStepLinearizer( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaOvertakingMarkov( ostream& output, bool verbose ) const;
-    ostream& pragmaOvertakingRolia( ostream& output, bool verbose ) const;
-    ostream& pragmaOvertakingSimple( ostream& output, bool verbose ) const;
-    ostream& pragmaOvertakingSpecial( ostream& output, bool verbose ) const;
-    ostream& pragmaOvertakingNone( ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertakingMarkov( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertakingRolia( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertakingSimple( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertakingSpecial( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaOvertakingNone( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaProcessorDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaProcessorFCFS( ostream& output, bool verbose ) const;
-    ostream& pragmaProcessorHOL( ostream& output, bool verbose ) const;
-    ostream& pragmaProcessorPPR( ostream& output, bool verbose ) const;
-    ostream& pragmaProcessorPS( ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessorDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessorFCFS( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessorHOL( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessorPPR( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaProcessorPS( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaThreadsNone( ostream& output, bool verbose ) const;
-    ostream& pragmaThreadsMak( ostream& output, bool verbose ) const;
-    ostream& pragmaThreadsHyper( ostream& output, bool verbose ) const;
-    ostream& pragmaThreadsExponential( ostream& output, bool verbose ) const;
-    ostream& pragmaThreadsDefault( ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreadsNone( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreadsMak( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreadsHyper( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreadsExponential( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaThreadsDefault( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaVarianceDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaVarianceNone( ostream& output, bool verbose ) const;
-    ostream& pragmaVarianceStochastic( ostream& output, bool verbose ) const;
-    ostream& pragmaVarianceMol( ostream& output, bool verbose ) const;
-    ostream& pragmaVarianceNoEntry( ostream& output, bool verbose ) const;
-    ostream& pragmaVarianceInitOnly( ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceNone( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceStochastic( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceMol( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceNoEntry( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaVarianceInitOnly( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaSeverityLevelWarnings( ostream& output, bool verbose ) const;
-    ostream& pragmaSeverityLevelRunTime( ostream& output, bool verbose ) const;
+    std::ostream& pragmaSeverityLevelWarnings( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSeverityLevelRunTime( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaSpexHeaderFalse( ostream& output, bool verbose ) const;
-    ostream& pragmaSpexHeaderTrue( ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexHeaderFalse( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaSpexHeaderTrue( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaPruneFalse( ostream& output, bool verbose ) const;
-    ostream& pragmaPruneTrue( ostream& output, bool verbose ) const;
+    std::ostream& pragmaPruneFalse( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaPruneTrue( std::ostream& output, bool verbose ) const;
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    ostream& pragmaQuorumDistributionDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaQuorumDistributionThreepoint( ostream& output, bool verbose ) const;
-    ostream& pragmaQuorumDistributionGamma( ostream& output, bool verbose ) const;
-    ostream& pragmaQuorumDistributionClosedFormGeo( ostream& output, bool verbose ) const;
-    ostream& pragmaQuorumDistributionClosedformDet( ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistributionDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistributionThreepoint( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistributionGamma( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistributionClosedFormGeo( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaQuorumDistributionClosedformDet( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaMultiThreadsDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaDelayedThreadsKeepAll( ostream& output, bool verbose ) const;
-    ostream& pragmaDelayedThreadsAbortAll( ostream& output, bool verbose ) const;
-    ostream& pragmaDelayedThreadsAbortLocalOnly( ostream& output, bool verbose ) const;
-    ostream& pragmaDelayedThreadsAbortRemoteOnly( ostream& output, bool verbose ) const;
+    std::ostream& pragmaMultiThreadsDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaDelayedThreadsKeepAll( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaDelayedThreadsAbortAll( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaDelayedThreadsAbortLocalOnly( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaDelayedThreadsAbortRemoteOnly( std::ostream& output, bool verbose ) const;
 
-    ostream& pragmaIdleTimeDefault( ostream& output, bool verbose ) const;
-    ostream& pragmaIdleTimeJoindelay( ostream& output, bool verbose ) const;
-    ostream& pragmaIdleTimeRootentry( ostream& output, bool verbose ) const;
+    std::ostream& pragmaIdleTimeDefault( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaIdleTimeJoindelay( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaIdleTimeRootentry( std::ostream& output, bool verbose ) const;
 #endif
 
 protected:
@@ -358,29 +358,29 @@ private:
 class HelpTroff : public Help
 {
 protected:
-    virtual ostream& preamble( ostream& output ) const;
-    virtual ostream& see_also( ostream& output ) const;
-    virtual ostream& textbf( ostream& output, const char * s ) const;
-    virtual ostream& textit( ostream& output, const char * s ) const;
-    virtual ostream& filename( ostream& output, const char * s1, const char * s2 ) const;
-    virtual ostream& pp( ostream& ouptut ) const;
-    virtual ostream& br( ostream& ouptut ) const;
-    virtual ostream& ol_begin( ostream& output ) const;
-    virtual ostream& ol_end( ostream& output ) const;
-    virtual ostream& dl_begin( ostream& output ) const;
-    virtual ostream& dl_end( ostream& output ) const;
-    virtual ostream& li( ostream& output, const char * s = 0 ) const;
-    virtual ostream& section( ostream& output, const char * s1, const char * s2 ) const;
-    virtual ostream& label( ostream& output, const char * s ) const;
-    virtual ostream& flag( ostream& output, const char * s ) const;
-    virtual ostream& longopt( ostream& output, const struct option *o ) const;
-    virtual ostream& increase_indent( ostream& output ) const;
-    virtual ostream& decrease_indent( ostream& output ) const;
-    virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt ) const;
-    virtual ostream& print_pragma( ostream&, const std::string& ) const;
-    virtual ostream& table_header( ostream& ) const;
-    virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const;
-    virtual ostream& table_footer( ostream& ) const;
+    virtual std::ostream& preamble( std::ostream& output ) const;
+    virtual std::ostream& see_also( std::ostream& output ) const;
+    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
+    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
+    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& pp( std::ostream& ouptut ) const;
+    virtual std::ostream& br( std::ostream& ouptut ) const;
+    virtual std::ostream& ol_begin( std::ostream& output ) const;
+    virtual std::ostream& ol_end( std::ostream& output ) const;
+    virtual std::ostream& dl_begin( std::ostream& output ) const;
+    virtual std::ostream& dl_end( std::ostream& output ) const;
+    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const;
+    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& label( std::ostream& output, const char * s ) const;
+    virtual std::ostream& flag( std::ostream& output, const char * s ) const;
+    virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const;
+    virtual std::ostream& increase_indent( std::ostream& output ) const;
+    virtual std::ostream& decrease_indent( std::ostream& output ) const;
+    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt ) const;
+    virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const;
+    virtual std::ostream& table_header( std::ostream& ) const;
+    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const;
+    virtual std::ostream& table_footer( std::ostream& ) const;
 
 private:
     static const char * __comment;
@@ -390,33 +390,33 @@ private:
 class HelpLaTeX : public Help
 {
 protected:
-    virtual ostream& preamble( ostream& output ) const;
-    virtual ostream& see_also( ostream& output ) const { return output; }
-    virtual ostream& textbf( ostream& output, const char * s ) const;
-    virtual ostream& textit( ostream& output, const char * s ) const;
-    virtual ostream& tr_( ostream& output, const char * ) const;
-    virtual ostream& filename( ostream& output, const char * s1, const char * s2 ) const;
-    virtual ostream& pp( ostream& ouptut ) const;
-    virtual ostream& br( ostream& ouptut ) const;
-    virtual ostream& ol_begin( ostream& output ) const;
-    virtual ostream& ol_end( ostream& output ) const;
-    virtual ostream& dl_begin( ostream& output ) const;
-    virtual ostream& dl_end( ostream& output ) const;
-    virtual ostream& li( ostream& output, const char * s = 0 ) const;
-    virtual ostream& section( ostream& output, const char * s1, const char * s2 ) const;
-    virtual ostream& label( ostream& output, const char * s ) const;
-    virtual ostream& flag( ostream& output, const char * s ) const;
-    virtual ostream& ix( ostream& output, const char * s ) const;
-    virtual ostream& cite( ostream& output, const char * s ) const;
-    virtual ostream& longopt( ostream& output, const struct option *o ) const;
-    virtual ostream& increase_indent( ostream& output ) const;
-    virtual ostream& decrease_indent( ostream& output ) const;
-    virtual ostream& print_option( ostream&, const char * name, const Options::Option& opt) const;
-    virtual ostream& print_pragma( ostream&, const std::string& ) const;
-    virtual ostream& table_header( ostream& ) const;
-    virtual ostream& table_row( ostream&, const char *, const char *, const char * ix=0 ) const;
-    virtual ostream& table_footer( ostream& ) const;
-    virtual ostream& trailer( ostream& output ) const;
+    virtual std::ostream& preamble( std::ostream& output ) const;
+    virtual std::ostream& see_also( std::ostream& output ) const { return output; }
+    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
+    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
+    virtual std::ostream& tr_( std::ostream& output, const char * ) const;
+    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& pp( std::ostream& ouptut ) const;
+    virtual std::ostream& br( std::ostream& ouptut ) const;
+    virtual std::ostream& ol_begin( std::ostream& output ) const;
+    virtual std::ostream& ol_end( std::ostream& output ) const;
+    virtual std::ostream& dl_begin( std::ostream& output ) const;
+    virtual std::ostream& dl_end( std::ostream& output ) const;
+    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const;
+    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& label( std::ostream& output, const char * s ) const;
+    virtual std::ostream& flag( std::ostream& output, const char * s ) const;
+    virtual std::ostream& ix( std::ostream& output, const char * s ) const;
+    virtual std::ostream& cite( std::ostream& output, const char * s ) const;
+    virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const;
+    virtual std::ostream& increase_indent( std::ostream& output ) const;
+    virtual std::ostream& decrease_indent( std::ostream& output ) const;
+    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt) const;
+    virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const;
+    virtual std::ostream& table_header( std::ostream& ) const;
+    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const;
+    virtual std::ostream& table_footer( std::ostream& ) const;
+    virtual std::ostream& trailer( std::ostream& output ) const;
 
     StringManip tr_( const Help& h, const char * s ) const { return StringManip( &Help::__tr_, h, s ); }
 
@@ -427,41 +427,41 @@ private:
 class HelpPlain : public Help
 {
 protected:
-    virtual ostream& preamble( ostream& output ) const { return output; }
-    virtual ostream& see_also( ostream& output ) const { return output; }
-    virtual ostream& textbf( ostream& output, const char * s ) const;
-    virtual ostream& textit( ostream& output, const char * s ) const;
-    virtual ostream& tr_( ostream& output, const char * ) const { return output; }
-    virtual ostream& filename( ostream& output, const char * s1, const char * s2 ) const;
-    virtual ostream& pp( ostream& output ) const { return output; }
-    virtual ostream& br( ostream& output ) const { return output; }
-    virtual ostream& ol_begin( ostream& output ) const { return output; }
-    virtual ostream& ol_end( ostream& output ) const { return output; }
-    virtual ostream& dl_begin( ostream& output ) const { return output; }
-    virtual ostream& dl_end( ostream& output ) const { return output; }
-    virtual ostream& li( ostream& output, const char * s = 0 ) const { return output; }
-    virtual ostream& section( ostream& output, const char * s1, const char * s2 ) const { return output; }
-    virtual ostream& label( ostream& output, const char * s ) const { return output; }
-    virtual ostream& flag( ostream& output, const char * s ) const { return output; }
-    virtual ostream& ix( ostream& output, const char * s ) const { return output; }
-    virtual ostream& cite( ostream& output, const char * s ) const { return output; }
-    virtual ostream& longopt( ostream& output, const struct option *o ) const { return output; }
-    virtual ostream& increase_indent( ostream& output ) const { return output; }
-    virtual ostream& decrease_indent( ostream& output ) const { return output; }
-    virtual ostream& print_option( ostream& output, const char * name, const Options::Option& opt) const;
-    virtual ostream& print_pragma( ostream& output, const std::string& ) const;
-    virtual ostream& table_header( ostream& output ) const { return output; }
-    virtual ostream& table_row( ostream& output , const char *, const char *, const char * ix=0 ) const { return output; }
-    virtual ostream& table_footer( ostream& output ) const { return output; }
-    virtual ostream& trailer( ostream& output ) const { return output; }
+    virtual std::ostream& preamble( std::ostream& output ) const { return output; }
+    virtual std::ostream& see_also( std::ostream& output ) const { return output; }
+    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
+    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
+    virtual std::ostream& tr_( std::ostream& output, const char * ) const { return output; }
+    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& pp( std::ostream& output ) const { return output; }
+    virtual std::ostream& br( std::ostream& output ) const { return output; }
+    virtual std::ostream& ol_begin( std::ostream& output ) const { return output; }
+    virtual std::ostream& ol_end( std::ostream& output ) const { return output; }
+    virtual std::ostream& dl_begin( std::ostream& output ) const { return output; }
+    virtual std::ostream& dl_end( std::ostream& output ) const { return output; }
+    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const { return output; }
+    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const { return output; }
+    virtual std::ostream& label( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& flag( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& ix( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& cite( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const { return output; }
+    virtual std::ostream& increase_indent( std::ostream& output ) const { return output; }
+    virtual std::ostream& decrease_indent( std::ostream& output ) const { return output; }
+    virtual std::ostream& print_option( std::ostream& output, const char * name, const Options::Option& opt) const;
+    virtual std::ostream& print_pragma( std::ostream& output, const std::string& ) const;
+    virtual std::ostream& table_header( std::ostream& output ) const { return output; }
+    virtual std::ostream& table_row( std::ostream& output , const char *, const char *, const char * ix=0 ) const { return output; }
+    virtual std::ostream& table_footer( std::ostream& output ) const { return output; }
+    virtual std::ostream& trailer( std::ostream& output ) const { return output; }
 
     StringManip tr_( const Help& h, const char * s ) const { return StringManip( &Help::__tr_, h, s ); }
 
 public:
-    static void print_special( ostream& output );
-    static void print_debug( ostream& output );
-    static void print_trace( ostream& output );
+    static void print_special( std::ostream& output );
+    static void print_debug( std::ostream& output );
+    static void print_trace( std::ostream& output );
 };
 
-inline ostream& operator<<( ostream& output, const Help& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Help& self ) { return self.print( output ); }
 #endif
