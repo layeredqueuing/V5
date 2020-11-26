@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 14146 2020-11-26 21:53:48Z greg $
+ *  $Id: dom_task.cpp 14148 2020-11-26 22:03:07Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -80,6 +80,12 @@ namespace LQIO {
 	    if ( _priority != nullptr ) delete _priority;
 	    if ( _queueLength != nullptr ) delete _queueLength;
 	    if ( _thinkTime != nullptr ) delete _thinkTime;
+	    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fan_out = _fanOut.begin(); fan_out != _fanOut.end(); ++fan_out ) {
+		delete fan_out->second;
+	    }
+	    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fan_in = _fanIn.begin(); fan_in != _fanIn.end(); ++fan_in ) {
+		delete fan_in->second;
+	    }
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
