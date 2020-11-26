@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: call.h 14142 2020-11-26 16:40:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -127,10 +127,14 @@ inline std::ostream& operator<<( std::ostream& output, const GenericCall& self )
 class Call : public GenericCall
 {
 public:
-    class cycle_error : public path_error 
+    class cycle_error : public std::runtime_error
     {
     public:
-	cycle_error( const Call *, const CallStack& );
+	cycle_error( const CallStack& );
+	size_t depth() const { return _depth; }
+    private:
+	static std::string fold( const std::string& s1, const Call * c2 );
+	const size_t _depth;
     };
 
 private:

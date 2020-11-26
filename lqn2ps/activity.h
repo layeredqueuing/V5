@@ -1,6 +1,6 @@
 /* -*- c++ -*-  activity.h	-- Greg Franks
  *
- * $Id: activity.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: activity.h 14142 2020-11-26 16:40:03Z greg $
  */
 
 #ifndef _ACTIVITY_H
@@ -28,6 +28,17 @@ class Activity : public Element,
 {
 public:
     friend class ActivityLayer;		/* For align activities? 	*/
+
+    class cycle_error : public std::runtime_error
+    {
+    public:
+	cycle_error( std::deque<const Activity *>& );
+	size_t depth() const { return _depth; }
+    private:
+	static std::string fold( const std::string& s1, const Activity * a2 );
+	const size_t _depth;
+    };
+    
 
     static bool hasJoins;		/* Joins present in results.	*/
     static Activity* create( Task* newTask, LQIO::DOM::Activity* activity );
@@ -174,10 +185,4 @@ private:
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Activity& self ) { self.draw( output ); return output; }
-
-class activity_cycle : public path_error 
-{
-public:
-    activity_cycle( const Activity *, std::deque<const Activity *>& );
-};
 #endif

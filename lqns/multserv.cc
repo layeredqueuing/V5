@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: multserv.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: multserv.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * Server definitions for Multiserver MVA.
  * From
@@ -713,7 +713,7 @@ Positive
 Rolia_Multi_Server::sumOf_SL( const MVA& solver, const Population& N, const unsigned k ) const
 {
     const double s = solver.sumOf_SL_m( *this, N, k );
-    if ( !isfinite( s ) ) throw std::domain_error( "Rolia_Multi_Server::sumOf_SL" );
+    if ( !std::isfinite( s ) ) throw std::domain_error( "Rolia_Multi_Server::sumOf_SL" );
     return solver.PB2( *this, N, k ) * s  / mu();
 }
 

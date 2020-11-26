@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: main.cc 14142 2020-11-26 16:40:03Z greg $
  */
 
 #include "lqn2ps.h"
@@ -9,6 +9,7 @@
 #include <cstring>
 #include <cmath>
 #include <cstring>
+#include <sstream>
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
@@ -288,19 +289,9 @@ main(int argc, char *argv[])
  * construct the error message.
  */
 
-class_error::class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError )
-    : exception()
+class_error::class_error( const std::string& method, const char * file, const unsigned line, const std::string& error )
+    : logic_error( message( method, file, line, error ) )
 {
-    char temp[10];
-    sprintf( temp, "%d", line );
-
-    myMsg = aStr;
-    myMsg += ": ";
-    myMsg += file;
-    myMsg += " ";
-    myMsg += temp;
-    myMsg += ": ";
-    myMsg += anError;
 }
 
 
@@ -308,17 +299,12 @@ class_error::~class_error() throw()
 {
 }
 
-const char * 
-class_error::what() const throw()
+std::string
+class_error::message( const std::string& method, const char * file, const unsigned line, const std::string& error )
 {
-    return myMsg.c_str();
-}
-
-
-const char * 
-path_error::what() const throw()
-{
-    return myMsg.c_str();
+    std::ostringstream ss;
+    ss << method << ": " << file << " " << line << ": " << error;
+    return ss.str();
 }
 
 #if HAVE_REGEX_T

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: entity.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -541,7 +541,7 @@ Entity::openModelInfinity() const
     bool rc = false;
     const Server * station = serverStation();
     for ( unsigned int e = 1; e <= nEntries(); ++e ) {
-	if ( !isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
+	if ( !std::isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
 	    LQIO::solution_error( ERR_ARRIVAL_RATE, station->V(e,0), entryAt(e-1)->name().c_str(), station->mu()/station->S(e,0) );
 	    rc = true;
 	}
@@ -685,7 +685,7 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 
 	if ( isInClosedModel() && submodel.closedModel ) {
 	    const double tput = submodel.closedModel->entryThroughput( *station, e );
-	    if ( isfinite( tput ) ) {
+	    if ( std::isfinite( tput ) ) {
 		lambda += tput;
 	    } else if ( tput < 0.0 ) {
 		throw std::domain_error( "MVASubmodel::saveServerResults" );

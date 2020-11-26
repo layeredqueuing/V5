@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14136 2020-11-25 18:27:35Z greg $
+ * $Id: task.cc 14142 2020-11-26 16:40:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -531,16 +531,16 @@ Task::addPrecedence( ActivityList * aPrecedence )
  * call graph.  Returns -1 otherwise.  Used by the topological sorter.
  */
 
-int
+Task::root_level_t
 Task::rootLevel() const
 {
-    int level = -1;
+    root_level_t level = IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const requesting_type callType = (*entry)->isCalled();
 	switch ( callType ) {
 
 	case OPEN_ARRIVAL_REQUEST:	/* Root task, but at lower level */
-	    level = Model::SERVER_LEVEL;
+	    level = HAS_OPEN_ARRIVALS;
 	    break;
 
 	case RENDEZVOUS_REQUEST:	/* Non-root task. 		*/
@@ -1040,7 +1040,7 @@ size_t
 Task::findChildren( CallStack& callStack, const unsigned directPath )
 {
     size_t max_depth = std::max( callStack.size(), level() );
-    const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : 0;
+    const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
 
     setLevel( max_depth ).addPath( directPath );
 
@@ -1161,7 +1161,7 @@ Task::topologicalSort()
 	try {
 	    maxLevel = std::max( maxLevel, anActivity->findActivityChildren( activityStack, forkStack, (*entry), 0, 1, 1.0  ) );
 	}
-	catch ( const activity_cycle& error ) {
+	catch ( const Activity::cycle_error& error ) {
 	    maxLevel = std::max( maxLevel, error.depth()+1 );
 	}
     }
@@ -2182,11 +2182,6 @@ Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool 
 ReferenceTask::ReferenceTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
-}
-
-int ReferenceTask::rootLevel() const
-{
-    return Model::CLIENT_LEVEL;
 }
 
 ReferenceTask *

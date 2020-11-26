@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14139 2020-11-25 18:38:03Z greg $
+ * $Id: entry.cc 14142 2020-11-26 16:40:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1316,7 +1316,7 @@ Entry::findChildren( CallStack& callStack, const unsigned directPath ) const
 	try {
 	    max_depth = std::max( anActivity->findChildren( callStack, directPath, activityStack ), max_depth );
 	}
-	catch ( const activity_cycle& error ) {
+	catch ( const Activity::cycle_error& error ) {
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
 	    max_depth = std::max( max_depth, error.depth() );
 	}

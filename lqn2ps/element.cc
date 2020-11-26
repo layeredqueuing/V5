@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: element.cc 14142 2020-11-26 16:40:03Z greg $
  */
 
 #include "element.h"
@@ -81,11 +81,11 @@ Element::pathTest() const
  */
 
 size_t
-Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator> callList, CallStack& callStack, const unsigned directPath ) const
+Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<Call *>::const_iterator> callList, CallStack& callStack, const unsigned path ) const
 {
     size_t max_depth = callStack.size();
-    if ( directPath ) {
-	const_cast<Element *>(this)->addPath( directPath );
+    if ( path != 0 ) {
+	const_cast<Element *>(this)->addPath( path );
     }
 
     for ( std::vector<Call *>::const_iterator call = callList.first; call != callList.second; ++call ) {
@@ -100,30 +100,25 @@ Element::followCalls( std::pair<std::vector<Call *>::const_iterator,std::vector<
 	    /* 
 	     * Chase the call if there is no loop, and if following the path results in pushing
 	     * tasks down.  Open class requests can loop up.  Always check the stack because of the
-	     * short-circuit test with directPath.
+	     * short-circuit test with path.
 	     */
 
-	    if ( (callStack.find( (*call), directPath != 0 ) == callStack.end() 
+	    if ( (callStack.find( (*call), path != 0 ) == callStack.end() 
 		  && ( callStack.size() >= dstTask->level() || Flags::exhaustive_toplogical_sort ))
-		 || directPath != 0 ) {						/* always (for forwarding)	*/
+		 || path != 0 ) {						/* always (for forwarding)	*/
 
 		callStack.push_back( (*call) );
-		if ( directPath && (*call)->hasForwarding() && partial_output() && Flags::surrogates ) {
+		if ( path != 0 && (*call)->hasForwarding() && partial_output() && Flags::surrogates ) {
 		    addForwardingRendezvous( callStack );			/* only necessary when transforming the model. */
 		}
-		max_depth = std::max( const_cast<Task *>(dstTask)->findChildren( callStack, directPath ), max_depth );
+		max_depth = std::max( const_cast<Task *>(dstTask)->findChildren( callStack, path ), max_depth );
 
 		callStack.pop_back();
 	    } 
 	}
 	catch ( const Call::cycle_error& error ) {
-	    if ( directPath ) {
+	    if ( path != 0 ) {
 		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
-	    }
-	}
-	catch ( const activity_cycle& error ) {
-	    if ( directPath ) {
-		LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, name().c_str(), error.what() ); 
 	    }
 	}
     }

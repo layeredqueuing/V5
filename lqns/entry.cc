@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: entry.cc 14145 2020-11-26 21:52:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -693,7 +693,7 @@ Entry::computeCV_sqr() const
 {
     const double sum_S = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::elapsedTime ) );
 
-    if ( !isfinite( sum_S ) ) {
+    if ( !std::isfinite( sum_S ) ) {
 	return sum_S;
     } else if ( sum_S > 0.0 ) {
 	const double sum_V = std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
@@ -1077,7 +1077,7 @@ double
 TaskEntry::processorUtilization() const
 {
     const Processor * aProc = owner()->getProcessor();
-    const double util = isfinite( throughput() ) ? throughput() * serviceTime() : 0.0;
+    const double util = std::isfinite( throughput() ) ? throughput() * serviceTime() : 0.0;
 
     /* Adjust for processor rate */
 
@@ -1343,15 +1343,6 @@ DeviceEntry::DeviceEntry( LQIO::DOM::Entry* dom, const unsigned id, Processor * 
 
 DeviceEntry::~DeviceEntry()
 {
-    LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
-    const LQIO::DOM::ExternalVariable* serviceTime = phaseDom->getServiceTime();
-    if ( serviceTime ) delete const_cast<LQIO::DOM::ExternalVariable *>(serviceTime);
-    const LQIO::DOM::ExternalVariable* cv_square   = phaseDom->getCoeffOfVariationSquared();
-    if ( cv_square ) delete const_cast<LQIO::DOM::ExternalVariable *>(cv_square);
-    const LQIO::DOM::ExternalVariable* priority    = _dom->getEntryPriority();
-    if ( priority ) delete const_cast<LQIO::DOM::ExternalVariable *>(priority);
-    delete _dom;
-    _dom = 0;
 }
 
 /*

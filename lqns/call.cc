@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: call.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -318,7 +318,7 @@ double
 Call::queueingTime() const
 {
     if ( hasRendezvous() ) {
-	if ( isinf( _wait ) ) return _wait;
+	if ( std::isinf( _wait ) ) return _wait;
 	const double q = _wait - elapsedTime();
 	if ( q <= 0.000001 ) {
 	    return 0.0;

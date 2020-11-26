@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: actlist.cc 14145 2020-11-26 21:52:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -655,7 +655,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
                 if ( submodel == 0 ) {
 		    const double s =  anEntry->_phase[p].elapsedTime();
-		    if ( !isfinite( s ) ) continue;			/* Ignore bogus branches */
+		    if ( !std::isfinite( s ) ) continue;			/* Ignore bogus branches */
                     term[i][p].init( s, anEntry->_phase[p].variance() );
                     for ( unsigned j = 0; j < i; ++j ) {
                         sum[p] += varianceTerm( prBranch(activity), term[i][p], prBranch(activityList().at(j)), term[j][p] );

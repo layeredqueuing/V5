@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_task.h 14146 2020-11-26 21:53:48Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -17,7 +17,7 @@
 
 namespace LQIO {
     namespace DOM {
-    
+
 	class Activity;
 	class ActivityList;
 	class ExternalVariable;
@@ -49,22 +49,22 @@ namespace LQIO {
 
 	public:
 	    /* Designated initializer for the Task entity */
-	    Task(const Document * document, const std::string& name, const scheduling_type scheduling,  
+	    Task(const Document * document, const std::string& name, const scheduling_type scheduling,
 		 const std::vector<DOM::Entry *>& entryList,
-		 const Processor* processor=NULL, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-		 ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
-		 const Group * group=NULL );
+		 const Processor* processor=nullptr, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
+		 ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+		 const Group * group=nullptr );
 
 	    Task( const Task& );
 	    virtual ~Task();
-      
+
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	    /* Accessors and Mutators */
 	    const char * getTypeName() const { return __typeName; }
 
 	    const std::vector<Entry*>& getEntryList() const;
-      
+
 	    /* Variable Accessors and Mutators */
 	    unsigned int getQueueLengthValue() const;
 	    ExternalVariable * getQueueLength() const;
@@ -91,7 +91,7 @@ namespace LQIO {
 	    ExternalVariable * getFanIn( const std::string& ) const;
 	    unsigned int getFanInValue( const std::string& ) const;
 	    const std::map<const std::string,ExternalVariable *>& getFanIns() const;
-      
+
 	    /* Access to the "constant" elements */
 	    void setProcessor( Processor * );		// Used for cloning only.
 	    const Processor* getProcessor() const;
@@ -110,10 +110,10 @@ namespace LQIO {
 	    const std::set<ActivityList*>& getActivityLists() const;
 	    void deleteActivityLists();
 	    bool hasAndJoinActivityList() const;
-      
-      
+
+
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
-      
+
 	    /* Storing the Result Parameters */
 	    unsigned getResultPhaseCount() const;
 	    double getResultPhasePUtilization( const unsigned ) const;
@@ -154,9 +154,9 @@ namespace LQIO {
 
 	private:
 	    Task& operator=( const Task& );
-      
+
 	private:
-      
+
 	    /* Input Variables from the Document */
 	    std::vector<Entry*> _entryList;
 	    ExternalVariable * _queueLength;
@@ -164,7 +164,7 @@ namespace LQIO {
 	    ExternalVariable * _priority;
 	    ExternalVariable * _thinkTime;
 	    Group * _group;
-  	  
+  	
 	    /* Variables for Activities */
 	    std::map<std::string,Activity*> _activities;
 	    std::set<ActivityList *> _precedences;
@@ -172,7 +172,7 @@ namespace LQIO {
 	    /* Variables for replication */
 	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanOut;
 	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanIn;
-  	  
+  	
 	    /* Computation Results from LQNS */
 	    unsigned int _resultPhaseCount;
 	    double _resultPhaseUtilizations[Phase::MAX_PHASE];
@@ -196,12 +196,13 @@ namespace LQIO {
 		INITIALLY_EMPTY,
 		INITIALLY_FULL
 	    } InitialStateType;
-      
-	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-			  const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-			  ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
-			  const Group * group=NULL );
+
+	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList,
+			  const Processor* processor, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
+			  ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+			  const Group * group=nullptr );
 	    SemaphoreTask( const SemaphoreTask& );
+	    virtual ~SemaphoreTask();
 
 	    const InitialStateType getInitialState() const;
 	    void setInitialState(InitialStateType);
@@ -240,11 +241,11 @@ namespace LQIO {
 
 	class RWLockTask : public Task {
 	public:
-	    
-	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList, 
-		       const Processor* processor, ExternalVariable* queue_length=NULL, ExternalVariable * priority=NULL, 
-		       ExternalVariable* n_copies=NULL, ExternalVariable* n_replicas=NULL,
-		       const Group * group=NULL );
+	
+	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList,
+		       const Processor* processor, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
+		       ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+		       const Group * group=nullptr );
 	    //  n_copies is the number of concurrent readers
 
 	    RWLockTask( const RWLockTask& );
@@ -266,7 +267,7 @@ namespace LQIO {
 	    virtual double getResultVarianceWriterHoldingTimeVariance() const { return _resultVarianceWriterHoldingTimeVariance; }
 	    virtual RWLockTask& setResultVarianceReaderHoldingTimeVariance( const double resultVarianceReaderHoldingTimeVariance) { _resultVarianceReaderHoldingTimeVariance = resultVarianceReaderHoldingTimeVariance; return *this; }
 	    virtual RWLockTask& setResultVarianceWriterHoldingTimeVariance( const double resultVarianceWriterHoldingTimeVariance) { _resultVarianceWriterHoldingTimeVariance = resultVarianceWriterHoldingTimeVariance; return *this; }
-	    
+	
 	    /* rwlock holding time utilization */
 	    virtual double getResultReaderHoldingUtilization() const { return _resultReaderHoldingUtilization; }
 	    virtual RWLockTask& setResultReaderHoldingUtilization( const double resultReaderHoldingUtilization ) { _resultReaderHoldingUtilization = resultReaderHoldingUtilization; return *this; }

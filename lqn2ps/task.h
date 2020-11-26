@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: task.h 14142 2020-11-26 16:40:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -50,6 +50,8 @@ class Task : public Entity {
 #endif
     
 public:
+    typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
+
     static bool thinkTimePresent;
     static bool holdingTimePresent;
     static bool holdingVariancePresent;
@@ -68,7 +70,7 @@ public:
     const Share * share() const { return _share; }
     bool hasPriority() const;
 
-    virtual int rootLevel() const;
+    virtual root_level_t rootLevel() const;
     virtual Task& sort();
     virtual double getIndex() const;
     virtual int span() const;
@@ -243,7 +245,7 @@ public:
 
     virtual bool canConvertToOpenArrivals() const { return false; }
 
-    virtual int rootLevel() const;
+    virtual root_level_t rootLevel() const { return IS_REFERENCE; }
 
     virtual Graphic::colour_type colour() const;
     virtual size_t findChildren( CallStack&, const unsigned );

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14139 2020-11-25 18:38:03Z greg $
+ * $Id: call.cc 14142 2020-11-26 16:40:03Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -12,6 +12,7 @@
 
 #include "lqn2ps.h"
 #include <algorithm>
+#include <numeric>
 #include <cassert>
 #include <cstdlib>
 #include <cmath>
@@ -1058,14 +1059,19 @@ Call::printSRVNLine( std::ostream& output, char code, print_func_ptr func ) cons
 
 /* ------------------------ Exception Handling ------------------------ */
 
-Call::cycle_error::cycle_error( const Call * aCall, const CallStack& callStack )
-    : path_error( callStack.size() )
+Call::cycle_error::cycle_error( const CallStack& callStack )
+    : std::runtime_error( std::accumulate( callStack.rbegin(), callStack.rend(), callStack.back()->dstName(), Call::cycle_error::fold ) ),
+      _depth(callStack.size())
 {
-    myMsg = aCall->dstName();
-    for ( unsigned i = callStack.size(); i > 0; --i ) {
-	if ( !callStack[i] ) continue;
-	myMsg += ", ";
-	myMsg += callStack[i]->dstName();
+}
+
+std::string
+Call::cycle_error::fold( const std::string& s1, const Call * c2 )
+{
+    if ( c2 != nullptr ) {		/* Top of stack may be null */
+	return s1 + ", " + c2->srcName();
+    } else {
+	return s1;
     }
 }
 
@@ -2029,9 +2035,9 @@ CallStack::find( const Call * dstCall, const bool direct_path )
 
 	if ( (*call)->dstEntry() == dstEntry ) {		/* Cycle detected. */
 	    if ( (*call)->hasRendezvous() && dstCall->hasRendezvous() && !broken ) {
-		throw Call::cycle_error( dstCall, *this );		/* Dead lock */
+		throw Call::cycle_error( *this );		/* Dead lock */
 	    } if ( (*call)->dstEntry() == dstEntry && direct_path ) {
-		throw Call::cycle_error( dstCall, *this );		/* Live lock */
+		throw Call::cycle_error( *this );		/* Live lock */
 	    } else {
 		return (call+1).base();
 	    }

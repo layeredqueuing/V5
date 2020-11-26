@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: prob.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: prob.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * This class only allows double precision values in the range of 0.0 to
  * 1.0.  Attempts to set instances to values outside this range will
@@ -78,7 +78,7 @@ Probability::operator/=( const double arg )
 double 
 Probability::check( const double arg ) const
 {
-    if ( !isfinite(arg) || arg < 0.0 || (1.0 + NOISE) < arg ) {
+    if ( !std::isfinite(arg) || arg < 0.0 || (1.0 + NOISE) < arg ) {
 	throw std::domain_error( "Probability::check" );
     } else if ( 1.0 < arg ) {
 	return 1.0;    /* A little noise -- truncate. */
@@ -125,7 +125,7 @@ Positive::operator/=( const double arg )
 double 
 Positive::check( const double arg ) const
 {
-    if ( !isfinite(arg) || arg < 0.0 ) {
+    if ( !std::isfinite(arg) || arg < 0.0 ) {
 	throw std::domain_error( "Positive::check" );
     }
     return arg;

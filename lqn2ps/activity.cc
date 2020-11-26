@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14136 2020-11-25 18:27:35Z greg $
+ * $Id: activity.cc 14142 2020-11-26 16:40:03Z greg $
  */
 
 #include "activity.h"
@@ -10,6 +10,7 @@
 #include <cmath>
 #include <vector>
 #include <algorithm>
+#include <numeric>
 #include <limits.h>
 #if HAVE_VALUES_H
 #include <values.h>
@@ -379,7 +380,7 @@ Activity::findChildren( CallStack& callStack, const unsigned directPath, std::de
     /* Check for cyles. */
 
     if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
-	throw activity_cycle( this, activityStack );
+	throw cycle_error( activityStack );
     }
 
     activityStack.push_back( this );
@@ -407,7 +408,7 @@ Activity::findActivityChildren( std::deque<const Activity *>& activityStack, std
 {
     /* Check for cyles. */
     if ( std::find( activityStack.begin(), activityStack.end(), this ) != activityStack.end() ) {
-	throw activity_cycle( this, activityStack );
+	throw cycle_error( activityStack );
     }
     activityStack.push_back( this );
 
@@ -1220,14 +1221,16 @@ Activity::compareCoord( const Activity * a1, const Activity * a2 )
 
 /* ------------------------ Exception Handling ------------------------ */
 
-activity_cycle::activity_cycle( const Activity * anActivity, std::deque<const Activity *>& activityStack )
-    : path_error( activityStack.size() )
+Activity::cycle_error::cycle_error( std::deque<const Activity *>& activityStack )
+    : std::runtime_error( std::accumulate( std::next( activityStack.rbegin() ), activityStack.rend(), activityStack.back()->name(), fold  ) ),
+      _depth( activityStack.size() )
 {
-    myMsg = anActivity->name();
-    for ( std::deque<const Activity *>::reverse_iterator i = activityStack.rbegin(); i != activityStack.rend(); ++i ) {
-	myMsg += ", ";
-	myMsg += (*i)->name();
-    }
+}
+
+std::string
+Activity::cycle_error::fold( const std::string& s1, const Activity * a2 )
+{
+    return s1 + ", " + a2->name();
 }
 
 /************************************************************************/

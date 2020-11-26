@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: lqns.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * Command line processing.
  *
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-11-25 15:24:15 -0500 (Wed, 25 Nov 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-11-26 16:52:21 -0500 (Thu, 26 Nov 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -702,7 +702,7 @@ void init_flags()
 void
 under_relax( double& old_value, const double new_value, const double relax ) 
 {
-    if ( isfinite( new_value ) && isfinite( old_value ) ) {
+    if ( std::isfinite( new_value ) && std::isfinite( old_value ) ) {
 	old_value = new_value * relax + old_value * (1.0 - relax);
     } else {
 	old_value = new_value;

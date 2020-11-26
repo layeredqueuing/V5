@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: open.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: open.cc 14145 2020-11-26 21:52:21Z greg $
  *
  * Open Network solver.
  *
@@ -7,7 +7,7 @@
  * Department of Systems and Computer Engineering,
  * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
  *
- * $Date: 2020-11-25 15:24:15 -0500 (Wed, 25 Nov 2020) $
+ * $Date: 2020-11-26 16:52:21 -0500 (Thu, 26 Nov 2020) $
  * ----------------------------------------------------------------------
  * Conventions:
  *    E - (scalar) number of entries for a given station.
@@ -119,7 +119,7 @@ Open::convert( const Population& N ) const
 	try {
 	    const double num = Q[m]->alpha( n - 1 );
 	    const double den = Q[m]->alpha( n );
-	    if ( isfinite( num ) && isfinite( den ) ) {
+	    if ( std::isfinite( num ) && std::isfinite( den ) ) {
 		*Q[m] *= (den / num);
 	    } else {
 		*Q[m] = get_infinity();
@@ -227,7 +227,7 @@ Open::entryThroughput( const Server& aStation, const unsigned e ) const
 	return 0;
     } else if ( aStation.Rho() < aStation.mu() ) {
 	return aStation.V( e, 0 );
-    } else if ( !isfinite(aStation.mu()) && !isfinite(aStation.S( e, 0 )) ) {
+    } else if ( !std::isfinite(aStation.mu()) && !std::isfinite(aStation.S( e, 0 )) ) {
 	return aStation.V( e, 0 );		/* BUG_566 Infinite Server */
     } else {
 	return aStation.V( e, 0 ) * aStation.mu() / aStation.Rho();	/* Server overloaded.  Scale back throughput */

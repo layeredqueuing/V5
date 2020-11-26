@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 13681 2020-07-12 13:38:00Z greg $
+ *  $Id: dom_task.cpp 14146 2020-11-26 21:53:48Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -77,6 +77,9 @@ namespace LQIO {
 	{
 	    deleteActivities();
 	    deleteActivityLists();
+	    if ( _priority != nullptr ) delete _priority;
+	    if ( _queueLength != nullptr ) delete _queueLength;
+	    if ( _thinkTime != nullptr ) delete _thinkTime;
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -591,8 +594,14 @@ namespace LQIO {
 	      _resultVarianceHoldingTime(0.),
 	      _resultVarianceHoldingTimeVariance(0.),
 	      _resultHoldingUtilization(0.),
-	      _resultHoldingUtilizationVariance(0.)
+	      _resultHoldingUtilizationVariance(0.),
+	      _histogram(nullptr)
 	{
+	}
+
+	SemaphoreTask::~SemaphoreTask()
+	{
+	    if ( _histogram != nullptr ) delete _histogram;
 	}
 
 	void SemaphoreTask::setInitialState(InitialStateType state)

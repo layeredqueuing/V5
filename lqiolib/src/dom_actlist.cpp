@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_actlist.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_actlist.cpp 14146 2020-11-26 21:53:48Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -148,9 +148,8 @@ namespace LQIO {
 	
 	AndJoinActivityList::~AndJoinActivityList()
 	{
-	    if ( _histogram ) {
-		delete _histogram;
-	    }
+	    if ( _histogram != nullptr ) delete _histogram;
+	    if ( _quorum != nullptr ) delete _quorum;
 	}
 
 	AndJoinActivityList& AndJoinActivityList::setQuorumCountValue(const unsigned value)

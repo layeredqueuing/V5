@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_entry.cpp 14146 2020-11-26 21:53:48Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -68,21 +68,17 @@ namespace LQIO {
 	Entry::~Entry()
 	{
 	    /* Destroy our owned phase information */
-	    std::map<unsigned, Phase*>::iterator phaseIter;
-	    for (phaseIter = _phases.begin(); phaseIter != _phases.end(); ++phaseIter) {
-		Phase* phase = phaseIter->second;
-		delete phase;
+	    for ( std::map<unsigned, Phase*>::iterator phase = _phases.begin(); phase != _phases.end(); ++phase) {
+		delete phase->second;
 	    }
-	    std::vector<Call *>::iterator forwardingIter;
-	    for (forwardingIter = _forwarding.begin(); forwardingIter != _forwarding.end(); ++forwardingIter) {
-		delete *forwardingIter;
+	    for ( std::vector<Call *>::iterator forwarding = _forwarding.begin(); forwarding != _forwarding.end(); ++forwarding) {
+		delete *forwarding;
 	    }
-
-	    std::map<unsigned, Histogram*>::iterator histogramIter;
-	    for (histogramIter = _histograms.begin(); histogramIter != _histograms.end(); ++histogramIter) {
-		Histogram* histogram = histogramIter->second;
-		delete histogram;
+	    for ( std::map<unsigned, Histogram*>::iterator histogram = _histograms.begin(); histogram != _histograms.end(); ++histogram) {
+		delete histogram->second;
 	    }
+	    if ( _openArrivalRate != nullptr ) delete _openArrivalRate;
+	    if ( _entryPriority != nullptr ) delete _entryPriority;
 	}
 
 	Entry& Entry::clearPhaseResults()

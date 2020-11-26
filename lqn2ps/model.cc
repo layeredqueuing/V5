@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: model.cc 14142 2020-11-26 16:40:03Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -298,15 +298,14 @@ Model::group_by_processor()
 void
 Model::group_by_share()
 {
-    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->nShares() == 0 ) {
-	    Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), aProcessor ) );
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	if ( (*processor)->nShares() == 0 ) {
+	    Group::__groups.push_back( new GroupByProcessor( __model->nLayers(), (*processor) ) );
 	} else {
-	    for ( std::set<Share *>::const_iterator share = aProcessor->shares().begin(); share != aProcessor->shares().end(); ++share ) {
-		Group::__groups.push_back( new GroupByShareGroup( __model->nLayers(), aProcessor, *share ) );
+	    for ( std::set<Share *>::const_iterator share = (*processor)->shares().begin(); share != (*processor)->shares().end(); ++share ) {
+		Group::__groups.push_back( new GroupByShareGroup( __model->nLayers(), (*processor), *share ) );
 	    }
-	    Group::__groups.push_back( new GroupByShareDefault( __model->nLayers(), aProcessor ) );
+	    Group::__groups.push_back( new GroupByShareDefault( __model->nLayers(), (*processor) ) );
 	}
     }
 }
@@ -920,12 +919,11 @@ Model::generate()
 {
     /* At this point we need to do some intelligent thing about sticking tasks/processors into submodels. */
 
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( !aTask->isReachable() ) {
-	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Task", aTask->name().c_str() );
-	} else if ( aTask->hasActivities() ) {
-	    aTask->generate();
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( !(*task)->isReachable() ) {
+	    LQIO::solution_error( LQIO::WRN_NOT_USED, "Task", (*task)->name().c_str() );
+	} else if ( (*task)->hasActivities() ) {
+	    (*task)->generate();
 	}
     }
 
@@ -946,28 +944,27 @@ Model::topologicalSort()
     CallStack callStack;
     size_t max_depth = 0;
 
-    std::set<Task *>::const_iterator nextTask = Task::__tasks.begin();
-    for ( unsigned i = 1; nextTask != Task::__tasks.end(); ++nextTask, ++i ) {
-	Task * aTask = *nextTask;
-	const int initialLevel = aTask->rootLevel();
-	if ( initialLevel != -1
+    unsigned int i = 1;			/* Client path number */
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->rootLevel() == Task::IS_NON_REFERENCE 
+
 #if HAVE_REGEX_T
-	     && (Flags::client_tasks == 0 || regexec( Flags::client_tasks, const_cast<char *>(aTask->name().c_str()), 0, 0, 0 ) != REG_NOMATCH )
+	     || (Flags::client_tasks != nullptr && regexec( Flags::client_tasks, const_cast<char *>((*task)->name().c_str()), 0, 0, 0 ) == REG_NOMATCH )
 #endif
-	     ) {
+	    ) continue;
 
-	    try {
-		callStack.push_back( nullptr );
-		max_depth = std::max( aTask->findChildren( callStack, i ), max_depth );
-		callStack.pop_back();
-	    }
-	    catch( const Call::cycle_error& error ) {
-		max_depth = std::max( error.depth(), max_depth );
-		LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
-	    }
-
-	    assert ( callStack.size() == 0 );
+	try {
+	    callStack.push_back( nullptr );
+	    max_depth = std::max( (*task)->findChildren( callStack, i ), max_depth );
+	    callStack.pop_back();
 	}
+	catch( const Call::cycle_error& error ) {
+	    max_depth = std::max( error.depth(), max_depth );
+	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
+	}
+
+	assert ( callStack.size() == 0 );
+	i += 1;
     }
 
     return max_depth;
@@ -2236,14 +2233,13 @@ Model::printStatistics( std::ostream& output, const char * filename ) const
     output << "  Customers: ";
 
     unsigned i = 0;
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	if ( aTask->isReferenceTask() ) {
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->isReferenceTask() ) {
 	    i += 1;
 	    if ( i > 1 ) {
 		output << ",";
 	    }
-	    output << aTask->copies();
+	    output << (*task)->copies();
 	}
     }
     output << std::endl;
@@ -2316,21 +2312,19 @@ Model::printSummary( std::ostream& output ) const
 Model&
 Batch_Model::layerize()
 {
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( !(*task)->pathTest() ) continue;
 
-	if ( !aTask->pathTest() ) continue;
-
-	_layers.at(aTask->level()).append(aTask);
+	_layers.at((*task)->level()).append((*task));
 
 	/* find who calls me and stick them in too */
-	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = (*task)->entries().begin(); entry != (*task)->entries().end(); ++entry ) {
 	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
-		_layers.at(aTask->level()-1).append( new OpenArrivalSource(*entry) );
+		_layers.at((*task)->level()-1).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
+	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
 	    _layers.at(aProcessor->level()).append( aProcessor );
 	}
@@ -2352,25 +2346,23 @@ Batch_Model::layerize()
 Model&
 HWSW_Model::layerize()
 {
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-
-	if ( !aTask->pathTest() ) {
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( !(*task)->pathTest() ) {
 	    continue;
-	} else if ( aTask->level() > SERVER_LEVEL ) {
-	    aTask->setLevel( SERVER_LEVEL );
+	} else if ( (*task)->level() > SERVER_LEVEL ) {
+	    (*task)->setLevel( SERVER_LEVEL );
 	}
 
-	_layers.at(aTask->level()).append(aTask);
+	_layers.at((*task)->level()).append((*task));
 
 	/* find who calls me and stick them in too */
-	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = (*task)->entries().begin(); entry != (*task)->entries().end(); ++entry ) {
 	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
 		_layers.at(CLIENT_LEVEL).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
+	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
 	    aProcessor->setLevel( PROCESSOR_LEVEL );
 	    _layers.at(PROCESSOR_LEVEL).append( aProcessor );
@@ -2396,21 +2388,19 @@ MOL_Model::layerize()
 {
     const unsigned PROC_LEVEL = nLayers();
 
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( !(*task)->pathTest() ) continue;
 
-	if ( !aTask->pathTest() ) continue;
-
-	_layers.at(aTask->level()).append(aTask);
+	_layers.at((*task)->level()).append((*task));
 
 	/* find who calls me and stick them in too */
-	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = (*task)->entries().begin(); entry != (*task)->entries().end(); ++entry ) {
 	    if ( (graphical_output() || queueing_output()) && (*entry)->hasOpenArrivalRate() ) {
-		_layers.at(aTask->level()-1).append( new OpenArrivalSource(*entry) );
+		_layers.at((*task)->level()-1).append( new OpenArrivalSource(*entry) );
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>(aTask->processor());
+	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
 	if ( aProcessor && aProcessor->isInteresting() ) {
 	    aProcessor->setLevel( PROC_LEVEL );
 	    _layers.at(PROC_LEVEL).append( aProcessor );
@@ -2577,22 +2567,19 @@ SRVN_Model::selectSubmodel( const unsigned submodel )
     /* Build the list of all servers for this model */
 
     std::multiset<Entity *,lt_submodel> servers;
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	if ( aTask->isReferenceTask() || aTask->level() <= 0 ) continue;
-	servers.insert( aTask );
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->isReferenceTask() || (*task)->level() <= 0 ) continue;
+	servers.insert( *task );
     }
-    for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	if ( aProcessor->level() <= 0 ) continue;
-	servers.insert( aProcessor );
+    for ( std::set<Processor *>::const_iterator processor = Processor::__processors.begin(); processor != Processor::__processors.end(); ++processor ) {
+	if ( (*processor)->level() <= 0 ) continue;
+	servers.insert( *processor );
     }
 
     unsigned int s = 1;
-    for ( std::multiset<Entity *,lt_submodel>::const_iterator next_server = servers.begin(); next_server != servers.end(); ++next_server, ++s ) {
-        Entity * aServer = *next_server;
+    for ( std::multiset<Entity *,lt_submodel>::const_iterator server = servers.begin(); server != servers.end(); ++server, ++s ) {
 	if ( s == submodel ) {
-	    aServer->isSelected( true );
+	    (*server)->isSelected( true );
 	    return true;
 	}
     }
@@ -2617,14 +2604,12 @@ Squashed_Model::generate()
      * Now go through and reset the level field on all the objects.
      */
 
-    for ( std::set<Task *>::const_iterator nextTask = Task::__tasks.begin(); nextTask != Task::__tasks.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-
-	if ( aTask->hasActivities() ) {
-	    aTask->generate();
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->hasActivities() ) {
+	    (*task)->generate();
 	}
-	if ( aTask->level() > CLIENT_LEVEL ) {
-	    aTask->setLevel( CLIENT_LEVEL );
+	if ( (*task)->level() > CLIENT_LEVEL ) {
+	    (*task)->setLevel( CLIENT_LEVEL );
 	}
     }
     for ( std::set<Processor *>::const_iterator nextProcessor = Processor::__processors.begin(); nextProcessor != Processor::__processors.end(); ++nextProcessor ) {
