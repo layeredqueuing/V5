@@ -503,7 +503,7 @@ Model::process()
     /* Simplify to tasks (for queueing models) */
 
     if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES ) {
-	for_each( (_layers.begin() + 1), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
+	for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
     }
 
     if ( Flags::print[SUMMARY].value.b || Flags::print_submodels ) {
@@ -536,16 +536,15 @@ Model::process()
 
     const unsigned layer = Flags::print[QUEUEING_MODEL].value.i | Flags::print[SUBMODEL].value.i;
     if ( layer > 0 ) {
-	/* Submodel 1 is layer 2 */
- 	if ( !selectSubmodel( layer+1 ) ) {
+ 	if ( !selectSubmodel( layer ) ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": Submodel " << layer << " is too big." << std::endl;
 	    return false;
 	} else if ( Flags::print[LAYERING].value.i != LAYERING_SRVN ) {
- 	    _layers.at(layer+1).generateSubmodel();
+ 	    _layers.at(layer).generateSubmodel();
 	    if ( Flags::surrogates ) {
-		_layers[layer+1].transmorgrify( _document, surrogate_processor, surrogate_task );
-		relayerize(layer);
-		_layers.at(layer+1).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
+		_layers[layer].transmorgrify( _document, surrogate_processor, surrogate_task );
+		relayerize(layer-1);
+		_layers.at(layer).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
 #if HAVE_REGEX_T
@@ -577,7 +576,7 @@ Model::process()
 	/* Compensate for the arcs on the right */
 
 	if ( (queueing_output() || submodel_output()) && Flags::flatten_submodel  ) {
-	    format( _layers.at(layer+1) );
+	    format( _layers.at(layer) );
 	}
 
 	if ( queueing_output() ) {
@@ -941,7 +940,6 @@ Model::generate()
 unsigned
 Model::topologicalSort()
 {
-    CallStack callStack;
     size_t max_depth = 0;
 
     unsigned int i = 1;			/* Client path number */
@@ -954,16 +952,15 @@ Model::topologicalSort()
 	    ) continue;
 
 	try {
-	    callStack.push_back( nullptr );
+	    CallStack callStack;
+	    if ( (*task)->rootLevel() == Task::HAS_OPEN_ARRIVALS ) callStack.push_back( nullptr );
 	    max_depth = std::max( (*task)->findChildren( callStack, i ), max_depth );
-	    callStack.pop_back();
 	}
 	catch( const Call::cycle_error& error ) {
 	    max_depth = std::max( error.depth(), max_depth );
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_CALL_GRAPH, error.what() );
 	}
 
-	assert ( callStack.size() == 0 );
 	i += 1;
     }
 

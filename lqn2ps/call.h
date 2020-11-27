@@ -542,7 +542,6 @@ class CallStack : public std::deque<const Call *>
 public:
     std::deque<const Call *>::const_iterator find( const Call *, const bool );
     size_t size() const;
-    size_t size2() const;
 };
 
 class SRVNCallManip {

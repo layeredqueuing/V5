@@ -2068,17 +2068,6 @@ CallStack::size() const
 	return k;
     }
 }
-
-
-/* 
- * Return size of stack, regarless of model printing type.
- */
-
-size_t
-CallStack::size2() const
-{
-    return std::deque<const Call *>::size();
-}
 
 /*----------------------------------------------------------------------*/
 /*                      Functions for manipulators                      */

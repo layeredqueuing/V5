@@ -137,19 +137,18 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 {
     double rate = 1.0;
 
-    for ( unsigned i = callStack.size2(); i > 0 && callStack[i]; --i ) {
-	const Call * aCall = callStack[i];
-	if ( aCall->hasRendezvous() ) {
-	    rate *= aCall->sumOfRendezvous(); 
-	    Call * psuedo = const_cast<Call *>(aCall)->addForwardingCall( const_cast<Entry *>(callStack.back()->dstEntry()), rate );
+    for ( CallStack::const_reverse_iterator call = callStack.rbegin(); call != callStack.rend(); ++call ) {
+	if ( (*call)->hasRendezvous() ) {
+	    rate *= (*call)->sumOfRendezvous(); 
+	    Call * psuedo = const_cast<Call *>((*call))->addForwardingCall( const_cast<Entry *>(callStack.back()->dstEntry()), rate );
 	    if ( psuedo ) {
 		psuedo->proxy( const_cast<Call *>(callStack.back()) );
 	    }
 	    break;
-	} else if ( aCall->hasSendNoReply() ) {
+	} else if ( (*call)->hasSendNoReply() ) {
 	    break;
-	} else if ( aCall->hasForwarding() ) {
-	    rate *= LQIO::DOM::to_double( aCall->forward() );
+	} else if ( (*call)->hasForwarding() ) {
+	    rate *= LQIO::DOM::to_double( (*call)->forward() );
 	} else {
 	    abort();
 	}
