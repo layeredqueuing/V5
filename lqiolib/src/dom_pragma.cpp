@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 13764 2020-08-17 19:50:05Z greg $
+ *  $Id: dom_pragma.cpp 14151 2020-11-27 18:51:12Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,6 +10,7 @@
 #include <config.h>
 #endif
 #include <ctype.h>
+#include <cstdlib>
 #include <algorithm>
 #include "dom_pragma.h"
 #include "labels.h"

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 13762 2020-08-12 02:24:33Z greg $
+ * $Id: task.cc 14154 2020-11-30 21:26:43Z greg $
  */
 
 #include <iostream>
@@ -93,7 +93,7 @@ Task::Task( const task_type type, LQIO::DOM::Task* dom, Processor * processor, G
       _hold_active(0),
       trace_flag(false),
       max_phases(1),
-      _hist_data(0),
+      _hist_data(nullptr),
       r_cycle(),
       r_util(),
       r_group_util(),

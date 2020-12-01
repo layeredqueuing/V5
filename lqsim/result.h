@@ -3,7 +3,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/result.h $
  *
  * ------------------------------------------------------------------------
- * $Id: result.h 11463 2013-08-06 16:04:02Z greg $
+ * $Id: result.h 14154 2020-11-30 21:26:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,6 +15,7 @@ extern unsigned number_blocks;	/* For block statistics. 	*/
 /* Can't be class (because constructors NOT allowed in actlist union */
 
 struct result_t {
+//    result_t() : raw(0), _sum(0), _sum_sqr(0), _count(0), _count_sqr(0), _avg_count(0), _n(0), _type(0) {}
     void init( int type, const char * format, ... );
     void init( const long stat_id );
     double accumulate();

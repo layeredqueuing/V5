@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -9,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 13763 2020-08-17 15:09:50Z greg $
+ * $Id: model.h 14154 2020-11-30 21:26:43Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -92,6 +93,12 @@ public:
 	double _block_period;
     };
 
+    struct simulation_status {
+	simulation_status() : _valid(false), _confidence(0.) {}
+	bool _valid;
+	double _confidence;
+    };
+
 
 private:
     Model( const Model& );
@@ -121,14 +128,14 @@ private:
     void initialize_globals();
     void reset_stats();
     void accumulate_data();
-    void insertDOMResults( const bool valid, const double confidence );
+    void insertDOMResults();
 
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "="; }
     
     bool create();		/* Step 2 */
 
-    void print( const bool valid, const double confidence, const bool backup );
-    void print_intermediate( const bool valid, const double confidence );
+    void print();
+    void print_intermediate();
     void print_raw_stats( FILE * output ) const;
     string createDirectory() const;
     
@@ -145,6 +152,7 @@ private:
     struct tms _start_times;
 #endif
     simulation_parameters _parameters;
+    double _confidence;
     static int __genesis_task_id;
     static Model * __model;
 

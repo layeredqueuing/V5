@@ -7,9 +7,10 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14026 2020-10-28 14:28:13Z greg $
+ * $Id: lqsim.cc 14154 2020-11-30 21:26:43Z greg $
  */
 
+#define STACK_TESTING
 
 #include "lqsim.h"
 #include <cstdlib>
@@ -87,6 +88,7 @@ bool trace_msgbuf_flag        = false;	/* Observe msg buffer operation	*/
 bool reload_flag	      = false;	/* Reload results from LQX run.	*/
 bool restart_flag	      = false;	/* Re-run any missing results	*/
 bool override_print_int       = false;	/* Override input file.		*/
+bool check_stacks	      = false;	/* Enable parasol stack check.	*/
 
 bool debug_interactive_stepping = false;
 
@@ -147,6 +149,9 @@ static const struct option longopts[] =
     { "no-header",	  no_argument,	     0, 256+'h' },
     { "debug-lqx",        no_argument,       0, 256+'l' },
     { "debug-xml",        no_argument,       0, 256+'x' },
+#if defined(STACK_TESTING)
+    { "check-stacks",	  no_argument,	     0, 256+'s' },
+#endif
     { 0, 0, 0, 0 }
 };
 #endif
@@ -182,6 +187,9 @@ static const char * opthelp[]  = {
     /* no-header	*/    "Do not output the variable name header on SPEX results.",
     /* "debug-lqx"	*/    "Output debugging information while parsing LQX input.",
     /* "debug-xml"	*/    "Output debugging information while parsing XML input.",
+#if defined(STACK_TESTING)
+    /* check-stacks	*/    "Check stack size after simulation run.",
+#endif
     0
 };
 
@@ -318,7 +326,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2020-10-28 10:28:13 -0400 (Wed, 28 Oct 2020) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2020-11-30 16:26:43 -0500 (Mon, 30 Nov 2020) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -459,6 +467,15 @@ main( int argc, char * argv[] )
 		no_execute_flag = true;
 		break;
 			
+	    case 'N':
+		nice_value = strtol( optarg, &value, 10 );
+		if ( nice_value < -20 || 20 <= nice_value || *value != '\0' ) {
+		    throw std::invalid_argument( optarg );
+		} else {
+		    override_print_int = true;
+		}
+		break;
+		
 	    case 'o':
 		output_file = optarg;
 		break;
@@ -512,6 +529,12 @@ main( int argc, char * argv[] )
 		fprintf(stdout, "\ndebug interactive stepping option is turned on\n" ) ; 
 		break;
 			
+#if defined(STACK_TESTING)
+	    case 256+'s':
+		check_stacks = true;
+		break;
+#endif
+
 	    case 'T':
 		pragmas.insert(LQIO::DOM::Pragma::_run_time_,optarg);
 		break;

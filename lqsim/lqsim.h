@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -13,7 +14,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id: lqsim.h 13750 2020-08-09 14:44:00Z greg $
+ * $Id: lqsim.h 14154 2020-11-30 21:26:43Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -65,6 +66,7 @@ extern bool override_print_int;     	/* Override input file.		*/
 extern bool reload_flag;		/* Reload results from LQX run.	*/
 extern bool restart_flag;		/* Restart and mussing run 	*/
 extern bool quorum_delayed_calls;	/* Quorum reply (BUG_311)	*/
+extern bool check_stacks;		/* Test for stack overrun	*/
 extern int print_interval;		/* Value set by input file.	*/
     
 extern unsigned long watched_events;	/* Observe these events.	*/
