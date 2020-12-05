@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: layer.cc 14170 2020-12-05 03:18:42Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -511,7 +511,7 @@ Layer::aggregate()
 		if ( !call ) continue;
 		Task * client = const_cast<Task *>(call->srcTask());
 		Task * server = const_cast<Task *>(call->dstTask());
-		if ( find_if( _clients.begin(), _clients.end(), EQ<Element>(client) ) == _clients.end() ) {
+		if ( std::none_of( _clients.begin(), _clients.end(), EQ<Element>(client) ) ) {
 		    _clients.push_back( client );				/* add the client to my clients */
 		}
 		callPredicate predicate = NULL;
@@ -522,15 +522,15 @@ Layer::aggregate()
 		}
 		EntityCall * new_call = client->findOrAddCall( server, predicate );	/* create a call... */
 		TaskCall * task_call = dynamic_cast<TaskCall * >(new_call);
-		if ( task_call != NULL ) {
-		    /* Set rate on call? By phase? */
-		    if ( call->hasForwarding() ) {
-			task_call->taskForward( LQIO::DOM::ConstantExternalVariable( call->forward() ) );
-		    } else if ( call->hasSendNoReply() ) {
-			task_call->sendNoReply( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
-		    } else {
-			task_call->rendezvous( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
-		    }
+		if ( task_call == NULL ) continue;
+
+		/* Set rate on call? By phase? */
+		if ( call->hasForwarding() ) {
+		    task_call->taskForward( LQIO::DOM::ConstantExternalVariable( call->forward() ) );
+		} else if ( call->hasSendNoReply() ) {
+		    task_call->sendNoReply( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
+		} else {
+		    task_call->rendezvous( LQIO::DOM::ConstantExternalVariable( 1.0 ) );	/* Set value to force type. */
 		}
 	    }
 	}

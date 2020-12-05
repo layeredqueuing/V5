@@ -124,6 +124,7 @@ namespace LQIO {
 
 	    /* Forwarding Probabilities */
 	    void addForwardingCall(Call *);
+	    void eraseForwardingCall(Call *);
 	    const std::vector<Call*>& getForwarding() const;
 	    Call* getForwardingToTarget(const Entry* target) const;
 	    bool hasForwarding() const;

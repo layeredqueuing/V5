@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14136 2020-11-25 18:27:35Z greg $
+ * $Id: processor.cc 14170 2020-12-05 03:18:42Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -277,7 +277,7 @@ unsigned
 Processor::clients( std::vector<Entity *>& clients, const callPredicate aFunc ) const
 {
     for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
-	if ( find_if( clients.begin(), clients.end(), EQ<Element>((*task)) ) == clients.end() ) {
+	if ( std::none_of( clients.begin(), clients.end(), EQ<Element>((*task)) ) ) {
 	    clients.push_back((*task));
 	}
     }
@@ -575,7 +575,7 @@ Processor *
 Processor::find( const std::string& name )
 {
     std::set<Processor *>::const_iterator processor = find_if( __processors.begin(), __processors.end(), EQStr<Processor>( name ) );
-    return processor != __processors.end() ? *processor : 0;
+    return processor != __processors.end() ? *processor : nullptr;
 }
 
 

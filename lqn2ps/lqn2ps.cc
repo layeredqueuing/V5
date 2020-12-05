@@ -132,6 +132,7 @@ option_type Flags::print[] = {
     { "rename",            512+'N', 0,                     0,                      {0},                 false, "Rename all objects." },
     { "tasks-only",        512+'t', 0,                     0,                      {0},                 false, "Print tasks only." },
     /* Miscellaneous */
+    { "no-activities",	   512+'A', 0,			   0,			   {0},			false, "Don't print activities." },
     { "no-colour",	   512+'C', 0,			   0,			   {0},		        false, "Use grey scale when colouring result." },
     { "no-header",	   512+'H', 0,			   0,			   {0},			false, "Do not output the variable name header on SPEX results." },
     { "surrogates",        768+'z', 0,                     0,                      {0},                 false, "[Don't] Add surrogate tasks for submodel/include-only output." },
@@ -229,6 +230,11 @@ lqn2ps( int argc, char *argv[] )
 		exit( 1 );
 	    }
 	    Flags::print[AGGREGATION].value.i = arg;
+	    break;
+	    
+	case 512+'A':;
+	    Flags::print[AGGREGATION].value.i = AGGREGATE_ACTIVITIES;
+	    Flags::print[PRINT_AGGREGATE].value.b = true;
 	    break;
 	    
 	case 'B':
@@ -550,7 +556,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 512+'P':
-	    pragma( "tasks-only", "" );
+//	    pragma( "tasks-only", "" );
 	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
 	    Flags::print[PRINT_AGGREGATE].value.b = true;
 	    break;

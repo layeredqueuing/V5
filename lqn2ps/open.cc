@@ -1,6 +1,6 @@
 /* open.cc	-- Greg Franks Tue Feb 18 2003
  *
- * $Id: open.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: open.cc 14170 2020-12-05 03:18:42Z greg $
  */
 
 #include "lqn2ps.h"
@@ -96,7 +96,7 @@ OpenArrivalSource::servers( std::vector<Entity *> &servers ) const
 bool
 OpenArrivalSource::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
-    return find_if( servers.begin(), servers.begin(), EQ<Element>(myEntry().owner()) ) != servers.end();
+    return std::any_of( servers.begin(), servers.begin(), EQ<Element>(myEntry().owner()) );
 }
 
 

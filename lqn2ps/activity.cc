@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14142 2020-11-26 16:40:03Z greg $
+ * $Id: activity.cc 14170 2020-12-05 03:18:42Z greg $
  */
 
 #include "activity.h"
@@ -323,7 +323,6 @@ Activity::replies( const std::vector<Entry *>& aList )
 }
 
 
-
 /*
  * We always have to rebuild the replyArcList for all replies added from src.
  */
@@ -590,8 +589,8 @@ Activity::aggregateService( Entry * anEntry, const unsigned p, const double rate
 	std::map<Entry *,Reply *>::iterator reply = _replyArcs.find(anEntry);
 	if ( reply != replyArcs().end() ) {
 	    anEntry->deleteActivityReplyArc( reply->second );
-	    _replyArcs.erase( reply );
 	    delete reply->second;
+	    _replyArcs.erase( reply );
 	    std::vector<Entry *>::iterator entry = find( _replies.begin(), _replies.end(), anEntry );
 	    if ( entry != replies().end() ) {
 		_replies.erase( entry );
@@ -766,13 +765,13 @@ Activity::findOrAddFwdCall( Entry * anEntry )
 bool
 Activity::hasRendezvous() const
 {
-    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasRendezvous ) ) != calls().end();
+    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasRendezvous ) );
 }
 
 bool
 Activity::hasSendNoReply() const
 {
-    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasSendNoReply ) ) != calls().end();
+    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::hasSendNoReply ) );
 }
 
 
@@ -822,7 +821,7 @@ Activity::serviceTimeForSRVNInput() const
 bool
 Activity::hasCalls( const callPredicate predicate ) const
 {
-    return find_if( calls().begin(), calls().end(), GenericCall::PredicateAndSelected( predicate ) ) != calls().end();
+    return std::any_of( calls().begin(), calls().end(), GenericCall::PredicateAndSelected( predicate ) );
 }
 
 
@@ -839,7 +838,7 @@ Activity::isSelectedIndirectly() const
     } else if ( owner()->isSelected() ) {
 	return true;
     }
-    return find_if( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) ) != calls().end();
+    return std::any_of( calls().begin(), calls().end(), ::Predicate<GenericCall>( &GenericCall::isSelected ) );
 }
 
 

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14142 2020-11-26 16:40:03Z greg $
+ * $Id: task.cc 14170 2020-12-05 03:18:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -420,7 +420,7 @@ Activity *
 Task::findActivity( const std::string& name ) const
 {
     const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
-    return activity != activities().end() ? *activity : 0;
+    return activity != activities().end() ? *activity : nullptr;
 }
 
 
@@ -562,7 +562,7 @@ Task::rootLevel() const
 bool
 Task::forwardsTo( const Task * aTask ) const
 {
-    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const Task *>( &Entry::forwardsTo, aTask ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const Task *>( &Entry::forwardsTo, aTask ) );
 }
 
 
@@ -573,7 +573,7 @@ Task::forwardsTo( const Task * aTask ) const
 bool
 Task::hasForwardingLevel() const
 {
-    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasForwardingLevel ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasForwardingLevel ) );
 }
 
 
@@ -584,7 +584,7 @@ Task::hasForwardingLevel() const
 bool
 Task::isForwardingTarget() const
 {
-    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isForwardingTarget ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isForwardingTarget ) );
 }
 
 
@@ -595,7 +595,7 @@ Task::isForwardingTarget() const
 bool
 Task::isCalled( const requesting_type callType ) const
 {
-    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const requesting_type>( &Entry::isCalled, callType ) ) != entries().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const requesting_type>( &Entry::isCalled, callType ) );
 }
 
 
@@ -625,8 +625,8 @@ Task::openArrivalRate() const
 bool
 Task::hasCalls( const callPredicate aFunc ) const
 {
-    return find_if( entries().begin(), entries().end(), Predicate1<Entry,const callPredicate>( &Entry::hasCalls, aFunc ) ) != entries().end()
-	|| find_if( activities().begin(), activities().end(), Predicate1<Activity,const callPredicate>( &Activity::hasCalls, aFunc ) ) != activities().end();
+    return std::any_of( entries().begin(), entries().end(), Predicate1<Entry,const callPredicate>( &Entry::hasCalls, aFunc ) )
+	|| std::any_of( activities().begin(), activities().end(), Predicate1<Activity,const callPredicate>( &Activity::hasCalls, aFunc ) );
 }
 
 
@@ -651,8 +651,8 @@ Task::hasOpenArrivals() const
 bool
 Task::hasQueueingTime() const
 {
-    return find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasQueueingTime ) ) != entries().end()
-	|| find_if( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::hasQueueingTime ) ) != activities().end();
+    return std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::hasQueueingTime ) )
+	|| std::any_of( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::hasQueueingTime ) );
     return false;
 }
 
@@ -666,8 +666,8 @@ bool
 Task::isSelectedIndirectly() const
 {
     return Entity::isSelectedIndirectly() || processor()->isSelected()
-	|| find_if( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isSelectedIndirectly ) ) != entries().end()
-	|| find_if( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::isSelectedIndirectly ) ) != activities().end();
+	|| std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isSelectedIndirectly ) )
+	|| std::any_of( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::isSelectedIndirectly ) );
 }
 
 
@@ -954,7 +954,7 @@ Task::servers( std::vector<Entity *> &servers ) const
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
 	    if ( !(*call)->hasForwardingLevel() && (*call)->isSelected() ) {
 		const Task * task = (*call)->dstTask();;
-		if ( find_if( servers.begin(), servers.end(), EQ<Element>( task ) ) == servers.end() ) {
+		if ( std::none_of( servers.begin(), servers.end(), EQ<Element>( task ) ) ) {
 		    servers.push_back( const_cast<Task *>(task) );
 		}
 	    }
@@ -965,7 +965,7 @@ Task::servers( std::vector<Entity *> &servers ) const
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
 	    if ( !(*call)->hasForwarding() && (*call)->isSelected() ) {
 		const Task * task = (*call)->dstTask();;
-		if ( find_if( servers.begin(), servers.end(), EQ<Element>( task ) ) == servers.end() ) {
+		if ( std::none_of( servers.begin(), servers.end(), EQ<Element>( task ) ) ) {
 		    servers.push_back( const_cast<Task *>(task) );
 		}
 	    }
@@ -974,7 +974,7 @@ Task::servers( std::vector<Entity *> &servers ) const
 
     for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	const Processor * processor = dynamic_cast<const Processor *>((*call)->dstEntity());
-	if ( processor && processor->isSelected() && processor->isInteresting() && find_if( servers.begin(), servers.end(), EQ<Element>(processor)) == servers.end() ) {
+	if ( processor && processor->isSelected() && processor->isInteresting() && std::none_of( servers.begin(), servers.end(), EQ<Element>(processor)) ) {
 	    servers.push_back( const_cast<Processor *>(processor) );
 	}
     }
@@ -989,12 +989,12 @@ Task::isInOpenModel( const std::vector<Entity *>& servers ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
-	    if ( (*call)->hasSendNoReply() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
+	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
 	}
     }
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
-	    if ( (*call)->hasSendNoReply() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
+	    if ( (*call)->hasSendNoReply() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
 	}
     }
     return false;
@@ -1007,23 +1007,23 @@ Task::isInClosedModel( const std::vector<Entity *>& servers ) const
     for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	const Processor * aProcessor = dynamic_cast<const Processor *>((*call)->dstEntity());
 	if ( aProcessor ) {
-	    if ( aProcessor->isInteresting() && find_if( servers.begin(), servers.end(), EQ<Element>(aProcessor) ) != servers.end() ) return true;
+	    if ( aProcessor->isInteresting() && std::any_of( servers.begin(), servers.end(), EQ<Element>(aProcessor) ) ) return true;
 	    continue;
 	}
 	const Task * task = dynamic_cast<const Task *>((*call)->dstEntity());
 	if ( task ) {
-	    if ( find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstEntity()) ) != servers.end() ) return true;
+	    if ( std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstEntity()) ) ) return true;
 	}
     }
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	for ( std::vector<Call *>::const_iterator call = (*entry)->calls().begin(); call != (*entry)->calls().end(); ++call ) {
-	    if ( (*call)->hasRendezvous() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
+	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
 	}
     }
     for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
 	for ( std::vector<Call *>::const_iterator call = (*activity)->calls().begin(); call != (*activity)->calls().end(); ++call ) {
-	    if ( (*call)->hasRendezvous() && find_if( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) != servers.end() ) return true;
+	    if ( (*call)->hasRendezvous() && std::any_of( servers.begin(), servers.end(), EQ<Element>((*call)->dstTask()) ) ) return true;
 	}
     }
     return false;
@@ -2373,7 +2373,7 @@ Task::create( const LQIO::DOM::Task* domTask, std::vector<Entry *>& entries )
 	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
 	return nullptr;
     }
-    if ( find_if( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) != __tasks.end() ) {
+    if ( std::any_of( __tasks.begin(), __tasks.end(), eqTaskStr( task_name ) ) ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
 	return nullptr;
     }

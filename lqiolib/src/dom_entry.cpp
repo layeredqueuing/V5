@@ -386,6 +386,14 @@ namespace LQIO {
 	    _forwarding.push_back(call);
 	}
     
+	void Entry::eraseForwardingCall(Call * call)
+	{
+	    std::vector<Call*>::iterator iter = std::find( _forwarding.begin(), _forwarding.end(), call );
+	    if ( iter != _forwarding.end() ) {
+		_forwarding.erase( iter );
+	    }
+	}
+	
 	const std::vector<Call *>& Entry::getForwarding() const
 	{
 	    /* Return a const ref to the map */

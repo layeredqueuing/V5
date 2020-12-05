@@ -397,7 +397,6 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
 	} else {
 	    rendezvous( p, to_double(rendezvous(p)) + call->getCallMeanValue() * rate );
 	}
-	deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
     } else if ( src.hasSendNoReplyForPhase(1) ) {
 	const LQIO::DOM::Call * call = src._sendNoReply[0];	/* Phases go from 1-3, vector goes from 0-2. */
 	if ( !hasSendNoReplyForPhase(p) ) {
@@ -412,8 +411,8 @@ Call::merge( Phase& phase, const unsigned int p, const Call& src, const double r
 	} else {
 	    sendNoReply( p, to_double(sendNoReply(p)) + call->getCallMeanValue() * rate );
 	}
-	deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
     }
+
     /* Forwarding? */
 
     if ( (hasRendezvous() || hasForwarding()) && hasSendNoReply() ) {
@@ -455,7 +454,6 @@ Call::aggregatePhases( LQIO::DOM::Phase& src )
 		const double rnv_src = to_double(*call->getCallMean());
 		const_cast<LQIO::DOM::Call *>(_rendezvous[0])->setCallMeanValue(to_double(*_rendezvous[0]->getCallMean()) + rnv_src);
 	    }
-	    deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
 	}
 	if ( _sendNoReply[p] ) {
 	    const LQIO::DOM::Call * call = _sendNoReply[p];
@@ -469,7 +467,6 @@ Call::aggregatePhases( LQIO::DOM::Phase& src )
 		double snr_src = to_double(*call->getCallMean());
 		const_cast<LQIO::DOM::Call *>(_sendNoReply[0])->setCallMeanValue(to_double(*_sendNoReply[0]->getCallMean()) + snr_src);
 	    }
-	    deleteCall( const_cast<LQIO::DOM::Call *>( call ) );
 	}
     }
 
@@ -477,21 +474,6 @@ Call::aggregatePhases( LQIO::DOM::Phase& src )
     return *this;
 }
 
-
-/* 
- * Remove reference from source phase and delete the call.
- */
-
-Call&
-Call::deleteCall( LQIO::DOM::Call * call )
-{
-    const LQIO::DOM::Phase * phase = dynamic_cast<const LQIO::DOM::Phase *>(call->getSourceObject());
-    if ( phase ) {
-	const_cast<LQIO::DOM::Phase *>(phase)->eraseCall( const_cast<LQIO::DOM::Call*>(call) );
-    }
-    delete call;
-    return *this;
-}
 
 
 /*

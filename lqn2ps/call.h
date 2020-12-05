@@ -256,7 +256,6 @@ protected:
 
 private:
     size_t numberOfPhases() const { return _rendezvous.size(); }
-    Call& deleteCall( LQIO::DOM::Call * call );
     
 private:
     /* Input */
