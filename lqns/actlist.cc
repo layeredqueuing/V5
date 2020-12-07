@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: actlist.cc 14174 2020-12-07 16:59:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -933,7 +933,8 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         bool isQuorumDelayedThreadsActive = false;
         double totalParallelLocal = 0;
         double totalSequentialLocal = 0;
-
+	double probQuorumDelaySeqExecution = 0;
+	
         /* Calculate start time */
 
         double time = 0.0;
@@ -1044,7 +1045,12 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 	    }
 	}
 
-        //to disable accounting for sequential execution in the quorum delayed threads,
+	if (totalParallelLocal+ totalSequentialLocal > 0) {
+	    probQuorumDelaySeqExecution = totalParallelLocal/
+		(totalParallelLocal+ totalSequentialLocal);
+	}
+
+	//to disable accounting for sequential execution in the quorum delayed threads,
         //set probQuorumDelaySeqExecution to zero.
         //0probQuorumDelaySeqExecution = 0;
         DiscretePoints * join = calcQuorumKofN( submodel, isQuorumDelayedThreadsActive, quorumCDFs );
@@ -1097,15 +1103,10 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-        if ( joinList && joinList->hasQuorum()
-	     if (totalParallelLocal+ totalSequentialLocal > 0) {
-		 double probQuorumDelaySeqExecution = totalParallelLocal/
-		     (totalParallelLocal+ totalSequentialLocal);
-	     }
-
+        if ( dynamic_cast<const AndJoinActivityList *>(_joinList) && dynamic_cast<const AndJoinActivityList *>(_joinList)->hasQuorum()
              && submodel == Model::sync_submodel
-             && !flags.disable_expanding_quorum_tree /*!pragmaQuorumDistribution.count_if(DISABLE_EXPANDING_QUORUM)*/
-             && pragma.getQuorumDelayedCalls() == KEEP_ALL_QUORUM_DELAYED_CALLS ) {
+             && !flags.disable_expanding_quorum_tree /*!pragmaQuorumDistribution.test(DISABLE_EXPANDING_QUORUM)*/
+             && Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS ) {
             saveQuorumDelayedThreadsServiceTime(entryStack,*join,quorumCDFs,
                                                 localCDFs,remoteCDFs,
                                                 probQuorumDelaySeqExecution);
@@ -1212,7 +1213,7 @@ AndForkActivityList::calcQuorumKofN( const unsigned submodel,
 
 #if HAVE_LIBGSL
 bool
-AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryStack,
+AndForkActivityList::saveQuorumDelayedThreadsServiceTime( std::deque<Entry *>& entryStack,
                                                           DiscretePoints & quorumJoin,
                                                           DiscreteCDFs & quorumCDFs,
                                                           DiscreteCDFs & localCDFs,
@@ -1230,7 +1231,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     unsigned orgSubmodel = currEntry->owner()->submodel();
     orgSubmodel++;
 
-    DiscretePoints * localQuorumJoin = localCDFs.quorumKofN(joinList->quorumCount(),n );
+    DiscretePoints * localQuorumJoin = localCDFs.quorumKofN(dynamic_cast<const AndJoinActivityList *>(joinList())->quorumCount(),n );
     DiscretePoints * localAndJoin = localCDFs.quorumKofN( n, n );
     DiscretePoints localDiffJoin;
     localDiffJoin.mean( abs(localAndJoin->mean() -localQuorumJoin->mean()));
@@ -1247,7 +1248,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     delete localAndJoin;
     delete localQuorumJoin;
 
-    DiscretePoints * remoteQuorumJoin = remoteCDFs.quorumKofN(joinList->quorumCount(),n );
+    DiscretePoints * remoteQuorumJoin = remoteCDFs.quorumKofN(dynamic_cast<const AndJoinActivityList *>(joinList())->quorumCount(),n );
     DiscretePoints * remoteAndJoin = remoteCDFs.quorumKofN(n,n );
     DiscretePoints remoteDiffJoin;
     remoteDiffJoin.mean(abs(remoteAndJoin->mean() -remoteQuorumJoin->mean()));
@@ -1280,7 +1281,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
     delete quorumAndJoin;
 
     char localQuorumDelayActivityName[32];
-    sprintf( localQuorumDelayActivityName, "localQmDelay_%d", joinList->quorumListNum() );
+    sprintf( localQuorumDelayActivityName, "localQmDelay_%d", dynamic_cast<const AndJoinActivityList *>(joinList())->quorumListNum() );
     localQuorumDelayActivity = owner()->findActivity(localQuorumDelayActivityName);
 
     if (localQuorumDelayActivity != NULL) {
@@ -1320,7 +1321,7 @@ AndForkActivityList::saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryS
         }
 
     } else {
-	throw logic_error( "AndForkActivityList::saveQuorumDelayedThreadsServiceTime" );
+	throw std::logic_error( "AndForkActivityList::saveQuorumDelayedThreadsServiceTime" );
         anError = true;
     }
 

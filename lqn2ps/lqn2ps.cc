@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: lqn2ps.cc 14178 2020-12-07 21:16:43Z greg $
  */
 
 #include "lqn2ps.h"
@@ -177,7 +177,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-11-25 13:12:05 -0500 (Wed, 25 Nov 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-07 16:16:43 -0500 (Mon, 07 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H

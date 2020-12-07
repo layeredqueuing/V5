@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 14017 2020-10-26 19:58:09Z greg $
+ * $Id: activity.h 14174 2020-12-07 16:59:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -196,7 +196,7 @@ public:
     Activity& add_reply_list();
     Activity& add_activity_lists();
 
-    const std::set<const Entry *>& replyList() { return _replyList; }
+    const std::set<const Entry *>& replyList() const { return _replyList; }
 
     virtual Call * findOrAddCall( const Entry *, const queryFunc = 0 );
     virtual Call * findOrAddFwdCall( const Entry * anEntry );

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: help.cc 14174 2020-12-07 16:59:53Z greg $
  */
 
 #include <config.h>
@@ -37,6 +37,9 @@ Help::parameter_map_t  Help::__layering_args;
 Help::parameter_map_t  Help::__multiserver_args;
 Help::parameter_map_t  Help::__mva_args;
 Help::parameter_map_t  Help::__overtaking_args;
+#if RESCHEDULE
+Help::parameter_map_t  Help::__reschedule_args;
+#endif
 Help::parameter_map_t  Help::__processor_args;
 Help::parameter_map_t  Help::__prune_args;
 Help::parameter_map_t  Help::__spex_header_args;
@@ -293,9 +296,9 @@ Help::initialize()
     __mva_args[LQIO::DOM::Pragma::_one_step_linearizer_] =  parameter_info(&Help::pragmaMVAOneStepLinearizer);
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    __pragmas["quorum-distribution"] =	pragma_info( &Help::pragmaQuorumDistribution, __quorum_distribution_args );
-    __pragmas[LQIO::DOM::Pragma::_quorum_delayed_calls_] = pragma_info( &Help::pragmaQuorumDelayedCalls, __quorum_delayed_calls_args );
-    __pragmas["idletime"] =		pragma_info( &Help::pragmaIdleTime, __idle_time_args );
+    __pragmas["quorum-distribution"] =			    pragma_info( &Help::pragmaQuorumDistribution, &__quorum_distribution_args );
+    __pragmas[LQIO::DOM::Pragma::_quorum_delayed_calls_] =  pragma_info( &Help::pragmaQuorumDelayedCalls, &__quorum_delayed_calls_args );
+    __pragmas["idletime"] =				    pragma_info( &Help::pragmaIdleTime, &__idle_time_args );
 #endif
 
     __pragmas[LQIO::DOM::Pragma::_overtaking_] =	    pragma_info( &Help::pragmaOvertaking, &__overtaking_args );
@@ -313,9 +316,9 @@ Help::initialize()
     __processor_args["ps"] =				    parameter_info(&Help::pragmaProcessorPS);
 
 #if RESCHEDULE
-    __pragmas[LQIO::DOM::Pragma::_reschedule_on_async_send_] = pragma_info( &Pragma::eqReschedule, &Help::pragmaReschedule );
-#else
-    __pragmas[LQIO::DOM::Pragma::_reschedule_on_async_send_] = pragma_info();
+    __pragmas[LQIO::DOM::Pragma::_reschedule_on_async_send_] = pragma_info( &Help::pragmaReschedule, &__reschedule_args );
+    __reschedule_args[LQIO::DOM::Pragma::_false_] =	    parameter_info(&Help::pragmaRescheduleFalse,true);
+    __reschedule_args[LQIO::DOM::Pragma::_true_] =	    parameter_info(&Help::pragmaRescheduleTrue);
 #endif
     __pragmas[LQIO::DOM::Pragma::_tau_] =		    pragma_info( &Help::pragmaTau );
 
@@ -1286,6 +1289,21 @@ Help::pragmaReschedule( std::ostream& output, bool verbose ) const
 	   << "this behaviour." << std::endl;
     return output;
 }
+
+std::ostream&
+Help::pragmaRescheduleTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Reschedule after an asynchronous send." << std::endl;
+    return output;
+}
+
+
+std::ostream&
+Help::pragmaRescheduleFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Don't reschedule after an asynchronous send." << std::endl;
+    return output;
+}
 #endif
 
 std::ostream&
@@ -1805,13 +1823,6 @@ Help::pragmaQuorumDistributionClosedformDet( std::ostream& output, bool verbose 
 }
 
 std::ostream&
-Help::pragmaMultiServerDefault( std::ostream& output, bool verbose ) const
-{
-    output <<  "use default quorum delayed calls settings" << std::endl;
-    return output;
-}
-
-std::ostream&
 Help::pragmaDelayedThreadsKeepAll( std::ostream& output, bool verbose ) const
 {
     output <<  "keep both delayed local calls and delayed remote calls running after the quorum join." << std::endl;
@@ -1879,7 +1890,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14140 2020-11-25 20:24:15Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14174 2020-12-07 16:59:53Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2176,7 +2187,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14140 2020-11-25 20:24:15Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14174 2020-12-07 16:59:53Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

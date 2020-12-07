@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: pragma.h 14174 2020-12-07 16:59:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -36,6 +36,15 @@ public:
     typedef enum { DEFAULT_MULTISERVER, CONWAY_MULTISERVER, REISER_MULTISERVER, REISER_PS_MULTISERVER, ROLIA_MULTISERVER, ROLIA_PS_MULTISERVER, BRUELL_MULTISERVER, SCHMIDT_MULTISERVER, SURI_MULTISERVER } pragma_multiserver;
     typedef enum { MARKOV_OVERTAKING, ROLIA_OVERTAKING, SIMPLE_OVERTAKING, SPECIAL_OVERTAKING, NO_OVERTAKING } pragma_overtaking;
     typedef enum { DEFAULT_VARIANCE, NO_VARIANCE, STOCHASTIC_VARIANCE, MOL_VARIANCE } pragma_variance;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    typedef enum { DEFAULT_QUORUM_DISTRIBUTION, THREEPOINT_QUORUM_DISTRIBUTION,
+	GAMMA_QUORUM_DISTRIBUTION, CLOSEDFORM_GEOMETRIC_QUORUM_DISTRIBUTION,
+	CLOSEDFORM_DETRMINISTIC_QUORUM_DISTRIBUTION } pragma_quorum_distribution;
+    typedef enum { DEFAULT_QUORUM_DELAYED_CALLS,KEEP_ALL_QUORUM_DELAYED_CALLS,
+	ABORT_ALL_QUORUM_DELAYED_CALLS, ABORT_LOCAL_ONLY_QUORUM_DELAYED_CALLS,
+	ABORT_REMOTE_ONLY_QUORUM_DELAYED_CALLS } pragma_quorum_delayed_calls;
+    typedef enum { DEFAULT_IDLETIME, JOINDELAY_IDLETIME, ROOTENTRY_IDLETIME } pragma_quorum_idletime;
+#endif
     typedef enum { MAK_LUNDSTROM_THREADS, HYPER_THREADS, NO_THREADS } pragma_threads;
     typedef enum { FORCE_NONE=0x00, FORCE_PROCESSORS=0x01, FORCE_TASKS=0x02, FORCE_ALL=0x03 } pragma_force_multiserver;
 
@@ -112,6 +121,32 @@ public:
 	    return __cache->_processor_scheduling;
 	}
     
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    static pragma_quorum_distribution getQuorumDistribution()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_quorumDistribution;
+	}
+    
+    static pragma_quorum_delayed_calls getQuorumDelayedCalls()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_quorumDelayedCalls;
+	}
+    static pragma_quorum_idletime getQuorumIdleTime()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_quorumIdleTime;
+	}
+#endif
+#if RESCHEDULE
+    static bool getRescheduleOnAsyncSend()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_reschedule_on_async_send;
+	}
+#endif
+
     static LQIO::severity_t severityLevel()
 	{
 	    assert( __cache != nullptr );
@@ -187,6 +222,14 @@ private:
     void setMva(const std::string&);
     void setOvertaking(const std::string&);
     void setProcessorScheduling(const std::string&);
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    void setQuorumDistribution(const std::string&);
+    void setQuorumDelayedCalls(const std::string&);
+    void setQuorumIdleTime(const std::string&);
+#endif
+#if RESCHEDULE
+    void setRescheduleOnAsyncSend(const std::string&);
+#endif
     void setSeverityLevel(const std::string&);
     void setSpexHeader(const std::string&);
     void setStopOnBogusUtilization(const std::string&);
@@ -195,22 +238,7 @@ private:
     void setThreads(const std::string&);
     void setVariance(const std::string&);
     
-
     static bool isTrue(const std::string&);
-
-#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-/// start tomari quorum
-
-    PRAGMA_QUORUM_DISTRIBUTION getQuorumDistribution() const { return _quorumDistribution; }
-    PRAGMA_QUORUM_DELAYED_CALLS getQuorumDelayedCalls() const { return _quorumDelayedCalls; }
-    PRAGMA_IDLETIME getIdleTime() const { return _idletime; }
-//// end tomari quorum idle time
-#endif
-
-
-#if RESCHEDULE
-    PRAGMA_RESCHEDULE  getReschedule() const { return _reschedule; }
-#endif
 
 public:
     static void set( const std::map<std::string,std::string>& );
@@ -228,6 +256,14 @@ private:
     pragma_mva _mva;
     pragma_overtaking _overtaking;
     scheduling_type _processor_scheduling;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    pragma_quorum_distribution _quorumDistribution; 
+    pragma_quorum_delayed_calls _quorumDelayedCalls;
+    pragma_quorum_idletime _quorumIdleTime;           
+#endif
+#if RESCHEDULE
+    bool _reschedule_on_async_send;
+#endif
     LQIO::severity_t _severity_level;
     bool _spex_header;
     double _stop_on_bogus_utilization;
@@ -241,18 +277,11 @@ private:
     bool _entry_variance;
     
     /* --- */
-    
-
- #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    PRAGMA_QUORUM_DISTRIBUTION  _quorumDistribution;
-    PRAGMA_QUORUM_DELAYED_CALLS  _quorumDelayedCalls;
-    PRAGMA_IDLETIME  _idletime;
-#endif
-#if RESCHEDULE
-    PRAGMA_RESCHEDULE   _reschedule;
-#endif
 
     static Pragma * __cache;
     static std::map<std::string,Pragma::fptr> __set_pragma;
 };
 #endif
+
+
+

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 13764 2020-08-17 19:50:05Z greg $
+ * $Id: dom_pragma.h 14178 2020-12-07 21:16:43Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -50,6 +50,9 @@ namespace LQIO {
 	    std::map<std::string,std::string> _loadedPragmas;
 
 	public:
+	    static const char * _abort_all_;		// Quorum
+	    static const char * _abort_local_;		// Quorum
+	    static const char * _abort_remote_;		// Quorum
 	    static const char * _advisory_;
 	    static const char * _all_;
 	    static const char * _batched_;
@@ -62,11 +65,14 @@ namespace LQIO {
 	    static const char * _cycles_;
 	    static const char * _default_;
 	    static const char * _default_natural_;
+	    static const char * _deterministic_;	// Quorum
 	    static const char * _exact_;
 	    static const char * _exponential_;
 	    static const char * _false_;
 	    static const char * _fast_;
 	    static const char * _force_multiserver_;
+	    static const char * _gamma_;		// Quorum
+	    static const char * _geometric_;		// Quorum
 	    static const char * _hwsw_;
 	    static const char * _hyper_;
 	    static const char * _idle_time_;
@@ -76,6 +82,8 @@ namespace LQIO {
 	    static const char * _interlocking_;
 	    static const char * _layering_;
 	    static const char * _linearizer_;
+	    static const char * _join_delay_;		// Quorum
+	    static const char * _keep_all_;		// Quorum
 	    static const char * _mak_;
 	    static const char * _markov_;
 	    static const char * _max_blocks_;
@@ -94,8 +102,10 @@ namespace LQIO {
 	    static const char * _processor_scheduling_;
 	    static const char * _processors_;
 	    static const char * _prune_;
-	    static const char * _quorum_delayed_calls_;
-	    static const char * _quorum_reply_;
+	    static const char * _quorum_delayed_calls_;	// Quroum
+	    static const char * _quorum_distribution_;	// Quroum
+	    static const char * _quorum_idle_time_;	// Qurom
+	    static const char * _quorum_reply_;		// Quroum
 	    static const char * _reiser_;
 	    static const char * _reiser_ps_;
 	    static const char * _reschedule_on_async_send_;
@@ -120,6 +130,7 @@ namespace LQIO {
 	    static const char * _tasks_;
 	    static const char * _tau_;
 	    static const char * _threads_;
+	    static const char * _threepoint_;		// Quorum
 	    static const char * _true_;
 	    static const char * _underrelaxation_;
 	    static const char * _variance_;

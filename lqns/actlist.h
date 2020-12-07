@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 14079 2020-11-11 14:46:07Z greg $
+ * $Id: actlist.h 14174 2020-12-07 16:59:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -276,9 +276,9 @@ private:
 protected:    
     std::vector<Entry *> _entryList;
     mutable const AndForkActivityList * _parentForkList;
+    const AndOrJoinActivityList * _joinList;
     
 private:
-    const AndOrJoinActivityList * _joinList;
     ActivityList * _prev;
 };
 
@@ -334,7 +334,7 @@ protected:
 
 private:
 #if HAVE_LIBGSL
-    bool saveQuorumDelayedThreadsServiceTime( Stack<Entry *>& entryStack,
+    bool saveQuorumDelayedThreadsServiceTime( std::deque<Entry *>& entryStack,
 					      DiscretePoints & quorumJoin,DiscreteCDFs & quorumCDFs,
 					      DiscreteCDFs & localCDFs,DiscreteCDFs & remoteCDFs,
 					      double probQuorumDelaySeqExecution) ;

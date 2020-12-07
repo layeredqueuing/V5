@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: task.cc 14178 2020-12-07 21:16:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1242,29 +1242,23 @@ int
 Task::expandQuorumGraph()
 {
     int anError = false;
-    Vector<ActivityList *> joinLists;
+    std::set<ActivityList *> joinLists;
     Activity * localQuorumDelayActivity;
     Activity * finalActivity;
-    Activity * anActivity;
-    ActivityList * nextJoinList;
     int quorumListNumber = 0;
 
     //Get Join Lists
-    Sequence<Activity *> nextActivity(activities());
-    while ( anActivity = nextActivity()) && (anActivity->nextJoin() ) {
-	joinLists.findOrAdd(anActivity->nextJoin());
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end() && (*activity)->nextJoin() ; ++activity ) {
+	joinLists.insert((*activity)->nextJoin());
     }
     // cout <<"\njoinLists.size () = " << joinLists.size() << endl;
-    Sequence<ActivityList *> nextList(joinLists);
 
-    while (nextJoinList = nextList() ) {
+    for ( std::set<ActivityList *>::const_iterator join_list = joinLists.begin(); join_list != joinLists.end(); ++join_list ) {
+	AndJoinActivityList *  quorumAndJoinList = dynamic_cast<AndJoinActivityList *>(*join_list);
+	if (!quorumAndJoinList) { continue; }
+
 	AndForkActivityList *  newAndForkList = NULL;
 	AndJoinActivityList *  newAndJoinList = NULL;
-	AndJoinActivityList *  quorumAndJoinList = NULL;
-	ActivityList * orgForkList = NULL;
-
-	quorumAndJoinList = dynamic_cast<AndJoinActivityList *>(nextJoinList);
-	if (!quorumAndJoinList) { continue; }
 
         if ( quorumAndJoinList->hasQuorum() ) {
 
@@ -1272,14 +1266,13 @@ Task::expandQuorumGraph()
 	    //fork-join list since we cannot solve for a quorum with a
 	    //two-phase semantics.
 
-	    Vector<Activity *> cltnQuorumJoinActivities = dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)->getMyActivityList();
-	    Sequence<Activity *> nextQuorumJoinActivity(cltnQuorumJoinActivities);
-	    while (anActivity=nextQuorumJoinActivity()) {
-		Vector<Entry *> * aQuorumReplyList = anActivity->replyList();
-		if (aQuorumReplyList) {
-		    cout <<"\nTask::expandQuorumGraph(): Error detected in input file.";
-		    cout <<" A quorum join list cannot have a replying activity." << endl;
-		    cout << "This is not implemented. No output will be generated." << endl;
+	    const std::vector<const Activity *>& cltnQuorumJoinActivities = quorumAndJoinList->activityList();
+	    for ( std::vector<const Activity *>::const_iterator activity = cltnQuorumJoinActivities.begin(); activity != cltnQuorumJoinActivities.end(); ++activity ) {
+		const std::set<const Entry *>& aQuorumReplyList = (*activity)->replyList();
+		if (!aQuorumReplyList.empty()) {
+		    std::cout <<"\nTask::expandQuorumGraph(): Error detected in input file.";
+		    std::cout <<" A quorum join list cannot have a replying activity." << std::endl;
+		    std::cout << "This is not implemented. No output will be generated." << std::endl;
 		    exit(0);
 		}
 		//act_add_reply_list ( this, finalActivityName, aReplyList );
@@ -1300,32 +1293,31 @@ Task::expandQuorumGraph()
 		sprintf( remoteQuorumDelayName, "remoteQmDelay_%d", quorumListNumber);
 		localQuorumDelayActivity->remoteQuorumDelay.nameSet(remoteQuorumDelayName);
 	    } else {
-		cout <<"\nTask::expandQuorumGraph(): Error, could not create localQuorumDelay activity" << endl;
+		std::cout <<"\nTask::expandQuorumGraph(): Error, could not create localQuorumDelay activity" << std::endl;
 		abort();
 	    }
 	    char finalActivityName[32];
 	    sprintf( finalActivityName, "final_%d", quorumListNumber);
 	    finalActivity =  findOrAddPsuedoActivity(finalActivityName);
 
-	    Vector<Activity *> cltnJoinActivities;
-	    if ( dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)) {
-		cltnJoinActivities = dynamic_cast<ForkJoinActivityList *>(quorumAndJoinList)->getMyActivityList();
-	    }
-
 	    //to force the local delay (sumTotal of localQuorumDelayActivity) to use a gamma distribution fitting.
 	    //localQuorumDelayActivity->phaseTypeFlag(PHASE_DETERMINISTIC);
 
 	    localQuorumDelayActivity->localQuorumDelay(true);
 
-	    store_activity_service_time ( localQuorumDelayActivity->name(), 0 );
-	    store_activity_service_time ( finalActivityName, 0 );
+	    localQuorumDelayActivity->setServiceTime(0.);
+//	    store_activity_service_time ( localQuorumDelayActivity->name(), 0 );
+	    finalActivity->setServiceTime(0.);
+//	    store_activity_service_time ( finalActivityName, 0 );
 
 	    newAndJoinList = dynamic_cast<AndJoinActivityList *>(localQuorumDelayActivity->act_and_join_list( newAndJoinList, 0 ));
-	    if ( newAndJoinList == NULL ) throw logic_error( "Task::expandQuorumGraph" );
+	    if ( newAndJoinList == NULL ) throw std::logic_error( "Task::expandQuorumGraph" );
 	    newAndForkList= dynamic_cast<AndForkActivityList *> (localQuorumDelayActivity->act_and_fork_list( newAndForkList, 0 ));
-	    if ( newAndForkList == NULL ) throw logic_error( "Task::expandQuorumGraph" );
-	    orgForkList =quorumAndJoinList->next();
+	    if ( newAndForkList == NULL ) throw std::logic_error( "Task::expandQuorumGraph" );
 
+#if 0
+#warning dead code and probably broken... graph changes
+	    ActivityList * orgForkList = quorumAndJoinList->next();
 	    if (orgForkList) {
 		Vector<Activity *> cltnForkActivities;
 		if ( dynamic_cast<ForkJoinActivityList *>(orgForkList)) {
@@ -1347,6 +1339,7 @@ Task::expandQuorumGraph()
 		    act_connect ( newAndJoinList, finalAndForkList );
 		}
 	    }
+#endif
 	}
     }
     return !anError;

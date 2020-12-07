@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14140 2020-11-25 20:24:15Z greg $ *
+ * $Id: pragma.cc 14178 2020-12-07 21:16:43Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -35,6 +35,14 @@ Pragma::Pragma() :
     _mva(LINEARIZER_MVA),
     _overtaking(MARKOV_OVERTAKING),
     _processor_scheduling(SCHEDULE_PS),
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    _quorumDistribution(DEFAULT_QUORUM_DISTRIBUTION),
+    _quorumDelayedCalls(DEFAULT_QUORUM_DELAYED_CALLS),
+    _quorumIdleTime(DEFAULT_IDLETIME),
+#endif
+#if RESCHEDULE
+    _reschedule_on_async_send(false),
+#endif
     _severity_level(LQIO::NO_ERROR),
     _spex_header(true),
     _stop_on_bogus_utilization(0),
@@ -66,6 +74,14 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_mva_] = &Pragma::setMva;
     __set_pragma[LQIO::DOM::Pragma::_overtaking_] = &Pragma::setOvertaking;
     __set_pragma[LQIO::DOM::Pragma::_processor_scheduling_] = &Pragma::setProcessorScheduling;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    __set_pragma[LQIO::DOM::Pragma::_quorum_distribution_] = &Pragma::setQuorumDistribution;
+    __set_pragma[LQIO::DOM::Pragma::_quorum_delayed_calls_] = &Pragma::setQuorumDelayedCalls;
+    __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_] = &Pragma::setQuorumIdleTime;
+#endif
+#if RESCHEDULE
+    __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_] = &Pragma::setRescheduleOnAsyncSend;
+#endif
     __set_pragma[LQIO::DOM::Pragma::_severity_level_] = &Pragma::setSeverityLevel;
     __set_pragma[LQIO::DOM::Pragma::_spex_header_] = &Pragma::setSpexHeader;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_bogus_utilization_] = &Pragma::setStopOnBogusUtilization;
@@ -74,12 +90,12 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_threads_] = &Pragma::setThreads;
     __set_pragma[LQIO::DOM::Pragma::_variance_] = &Pragma::setVariance;
 }
-    
+
 void
 Pragma::set( const std::map<std::string,std::string>& list )
 {
     initialize();
-    
+
     if ( __cache != nullptr ) delete __cache;
     __cache = new Pragma();
 
@@ -212,6 +228,13 @@ void Pragma::setProcessorScheduling(const std::string& value)
     }
 }
 
+#if RESCHEDULE
+void Pragma::setRescheduleOnAsyncSend(const std::string& value)
+{
+    _reschedule_on_async_send = isTrue(value);
+}
+#endif
+
 void Pragma::setSpexHeader(const std::string& value)
 {
     _spex_header = isTrue( value );
@@ -254,7 +277,7 @@ void Pragma::setThreads(const std::string& value)
     if ( value == LQIO::DOM::Pragma::_exponential_ ) {
 	_exponential_paths = true;
     } else if ( value == LQIO::DOM::Pragma::_hyper_ ) {
-	_threads = HYPER_THREADS; 
+	_threads = HYPER_THREADS;
     } else if ( value == LQIO::DOM::Pragma::_mak_ ) {
 	_threads = MAK_LUNDSTROM_THREADS;
     } else {
@@ -293,7 +316,7 @@ std::ostream&
 Pragma::usage( std::ostream& output )
 {
     Pragma::initialize();
-    
+
     output << "Valid pragmas: " << std::endl;
     std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 

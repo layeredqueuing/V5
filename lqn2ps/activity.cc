@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14170 2020-12-05 03:18:42Z greg $
+ * $Id: activity.cc 14178 2020-12-07 21:16:43Z greg $
  */
 
 #include "activity.h"

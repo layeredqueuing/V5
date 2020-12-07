@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: model.cc 14174 2020-12-07 16:59:53Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -526,7 +526,7 @@ Model::generate()
     initialize();			/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
 
     if ( Options::Debug::layers() ) {
-	printLayers( std::cout );		/* Print out layers... 		*/
+	printLayers( std::cout );	/* Print out layers... 		*/
     }
 
     return  !LQIO::io_vars.anError();
@@ -554,7 +554,7 @@ Model::extendModel()
 	}
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-	if ( pragma.getQuorumDelayedCalls() == KEEP_ALL_QUORUM_DELAYED_CALLS &&
+	if ( Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS &&
 	     aTask->hasForks() && !flags.disable_expanding_quorum_tree ) {
 	    aTask->expandQuorumGraph();
 	}

@@ -11,7 +11,7 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: randomvar.cc 14174 2020-12-07 16:59:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -845,7 +845,7 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
 	std::cout <<"\nOriginals for closedFormDetPoints: mean= " << mean() 
 	     << ", variance=" << variance() << std::endl;
 	std::cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
-	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<<endl;
+	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<< std::endl;
     }
 #endif
 
@@ -924,7 +924,7 @@ DiscretePoints::closedFormDetPoints(double avgNumCallsToLowerLevelTasks,double l
 	double tempVariance = tempSum - tempMean * tempMean;
 	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
 	     << tempMean << std::endl;
-	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." << std::endl;
 	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
 	     << " = " << tempVariance << std::endl;
     }
@@ -959,7 +959,7 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 	std::cout <<"\nOriginals for closedFormGeoPoints: mean= " << mean() 
 	     << ", variance=" << variance() << std::endl;
 	std::cout <<" level1Mean= " << level1Mean << ", level2Mean=" << 
-	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<<endl;
+	    level2Mean << ", avgNumCallsToLowerLevelTasks="<<avgNumCallsToLowerLevelTasks<< std::endl;
     }
 #endif
     VectorMath<double> ti;
@@ -1044,7 +1044,7 @@ DiscretePoints::closedFormGeoPoints( double avgNumCallsToLowerLevelTasks,double 
 	double tempVariance = tempSum - tempMean * tempMean;
 	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
 	     << tempMean << std::endl;
-	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." << std::endl;
 	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()
 	     << " = " << tempVariance << std::endl;
     }
@@ -1180,7 +1180,7 @@ DiscretePoints::calcGammaPoints()
 	std::cout <<", Actual number of sampling points =" << index << std::endl;
 	std::cout <<"Evaluated, after sampling, tempMean for Thread# " <<getNumber()<< " = " 
 	     << tempMean << std::endl;
-	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." <<endl;
+	std::cout <<"Percentage of error in mean value =" << errorInMean <<"%." << std::endl;
 	std::cout <<"Evaluated, after sampling, tempVariance for Thread# " << getNumber()<< " = " 
 	     << tempVariance << std::endl;
 	std::cout <<"final: cdfValue - previousCdfValue= " <<  cdfValue - previousCdfValue << std::endl;
