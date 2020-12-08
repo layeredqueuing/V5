@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14178 2020-12-07 21:16:43Z greg $ *
+ * $Id: pragma.cc 14187 2020-12-08 14:29:28Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -77,7 +77,7 @@ Pragma::initialize()
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     __set_pragma[LQIO::DOM::Pragma::_quorum_distribution_] = &Pragma::setQuorumDistribution;
     __set_pragma[LQIO::DOM::Pragma::_quorum_delayed_calls_] = &Pragma::setQuorumDelayedCalls;
-    __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_] = &Pragma::setQuorumIdleTime;
+    __set_pragma[LQIO::DOM::Pragma::_quorum_idle_time_] = &Pragma::setQuorumIdleTime;
 #endif
 #if RESCHEDULE
     __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_] = &Pragma::setRescheduleOnAsyncSend;
@@ -199,9 +199,9 @@ void Pragma::setOvertaking(const std::string& value)
 	_overtaking = MARKOV_OVERTAKING;
     } else if ( value == LQIO::DOM::Pragma::_rolia_ ) {
 	_overtaking = ROLIA_OVERTAKING;
-    } else if ( value == LQIO::DOM::Pragma::_rolia_ ) {
+    } else if ( value == LQIO::DOM::Pragma::_simple_ ) {
 	_overtaking = SIMPLE_OVERTAKING;
-    } else if ( value == LQIO::DOM::Pragma::_rolia_ ) {
+    } else if ( value == LQIO::DOM::Pragma::_special_ ) {
 	_overtaking = SPECIAL_OVERTAKING;
     } else {
 	_overtaking = NO_OVERTAKING;

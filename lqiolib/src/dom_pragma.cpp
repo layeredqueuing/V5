@@ -33,7 +33,6 @@ namespace LQIO {
 	    /* Number */
 	    
 	    __pragmas[Pragma::_block_period_] =     nullptr;		/* lqsim */
-	    __pragmas[Pragma::_idle_time_] =        nullptr;		/* lqns */
 	    __pragmas[Pragma::_initial_delay_] =    nullptr;		/* lqsim */
 	    __pragmas[Pragma::_initial_loops_] =    nullptr;		/* lqsim */
 	    __pragmas[Pragma::_max_blocks_] = 	    nullptr;		/* lqsim */
@@ -313,7 +312,6 @@ namespace LQIO {
 	const char * Pragma::_geometric_ = 			"geometric";		// Quorum
 	const char * Pragma::_hwsw_ =				"hwsw";
 	const char * Pragma::_hyper_ =				"hyper";
-	const char * Pragma::_idle_time_ =			"idle-time";
 	const char * Pragma::_init_only_ =			"init-only";
 	const char * Pragma::_initial_delay_ =			"initial-delay";
 	const char * Pragma::_initial_loops_ =			"initial-loops";

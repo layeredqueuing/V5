@@ -75,7 +75,6 @@ namespace LQIO {
 	    static const char * _geometric_;		// Quorum
 	    static const char * _hwsw_;
 	    static const char * _hyper_;
-	    static const char * _idle_time_;
 	    static const char * _init_only_;
 	    static const char * _initial_delay_;
 	    static const char * _initial_loops_;
