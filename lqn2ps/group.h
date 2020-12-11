@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * group.h	-- Greg Franks
  *
- * $Id: group.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: group.h 14192 2020-12-09 20:18:06Z greg $
  */
 
 #ifndef _GROUP_H
@@ -77,21 +77,17 @@ private:
 
 inline std::ostream& operator<<( std::ostream& output, const Group& self ) { self.draw( output ); return output; }
 
-#if HAVE_REGEX_T
 class GroupByRegex : public Group
 {
 public:
-    GroupByRegex( const std::string& s );
+    GroupByRegex( unsigned int, const std::string& s );
     virtual ~GroupByRegex();
 
     virtual bool match( const std::string& ) const;
 
 private:
-    regex_t * myPattern;
-    int myErrorCode;
-
+    std::regex _pattern;
 };
-#endif
 
 class GroupByProcessor : public Group
 {

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: entity.h 14208 2020-12-11 20:44:05Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -43,8 +43,6 @@ public:
 
     /* Instance Variable Access */
 	   
-    virtual const Processor * processor() const = 0;
-    virtual Entity& processor( const Processor * aProcessor ) = 0;
     const LQIO::DOM::ExternalVariable& copies() const;
     unsigned int copiesValue() const;
     const LQIO::DOM::ExternalVariable& replicas() const;

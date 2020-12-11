@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: model.cc 14209 2020-12-11 21:48:29Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -33,22 +33,23 @@
 #include <lqio/dom_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
-#include "model.h"
-#include "entry.h"
 #include "activity.h"
 #include "actlist.h"
-#include "task.h"
 #include "call.h"
-#include "share.h"
-#include "open.h"
-#include "group.h"
-#include "processor.h"
-#include "layer.h"
-#include "key.h"
+#include "entry.h"
 #include "errmsg.h"
 #include "graphic.h"
+#include "group.h"
+#include "key.h"
 #include "label.h"
+#include "layer.h"
+#include "model.h"
+#include "open.h"
+#include "pragma.h"
+#include "processor.h"
 #include "runlqx.h"
+#include "share.h"
+#include "task.h"
 
 class CommentManip {
 public:
@@ -65,6 +66,7 @@ private:
 
 
 Model * Model::__model = 0;
+std::vector<Task *> Model::__zombies;
 
 unsigned Model::iteration_limit   = 50;
 unsigned Model::print_interval    = 10;
@@ -95,7 +97,6 @@ static CommentManip print_comment( const char * aPrefix, const LQIO::DOM::Extern
 static DoubleManip to_inches( const double );
 
 const char * Model::XMLSchema_instance = "http://www.w3.org/2001/XMLSchema-instance";
-inline void create_pragma( const std::pair<std::string,std::string>&p ) { pragma( p.first, p.second ); }
 
 /*
  * Compare two entities by their submodel.
@@ -263,7 +264,6 @@ Model::moveBy( const double dx, const double dy )
 
 
 
-#if HAVE_REGEX_T
 /*
  * Add a group to the group list.
  */
@@ -271,9 +271,8 @@ Model::moveBy( const double dx, const double dy )
 void
 Model::add_group( const std::string& s )
 {
-    group << new GroupByRegex( s );
+    Group::__groups.push_back(new GroupByRegex( __model->nLayers(), s ));
 }
-#endif
 
 
 /*
@@ -344,8 +343,7 @@ Model::prepare( const LQIO::DOM::Document * document )
     std::vector<LQIO::DOM::Entry*> allEntries;
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    const std::map<std::string,std::string>& pragmas = document->getPragmaList();
-    for_each( pragmas.begin(), pragmas.end(), create_pragma );
+    Pragma::set( document->getPragmaList() );
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
@@ -518,10 +516,8 @@ Model::process()
 	group_by_share();
     } else if ( processor_output() ) {
 	group_by_processor();
-#if HAVE_REGEX_T
-    } else if ( group.size() ) {
+    } else if ( Group::__groups.size() ) {
 	Model::add_group( ".*" );		    /* Tack on default rule */
-#endif
     }
 
     sort( (compare_func_ptr)(&Entity::compare) );
@@ -547,18 +543,16 @@ Model::process()
 		_layers.at(layer).sort( (compare_func_ptr)(&Entity::compare) ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	    }
 	}
-#if HAVE_REGEX_T
     } else if ( Flags::print[INCLUDE_ONLY].value.r && Flags::surrogates ) {
 
 	/* Call transmorgrify on all layers */
-
-	for ( unsigned i = layers.size(); i > 0; --i ) {
-	    layers[i-1].generateSubmodel();
-	    layers[i-1].transmorgrify( _document, surrogate_processor, surrogate_task );
+	
+	for ( unsigned i = _layers.size(); i > 0; --i ) {
+	    _layers[i-1].generateSubmodel();
+	    _layers[i-1].transmorgrify( _document, surrogate_processor, surrogate_task );
 	    relayerize( i-1 );
-	    layers[i].sort( Entity::compare ).format( 0 ).justify( LQIO::io_vars.n_entries * Flags::entry_width );
+	    _layers[i].sort( Element::compare ).format( 0 ).justify( Entry::__entries.size() * Flags::entry_width );
 	}
-#endif
     }
 
     if ( !totalize() ) {
@@ -909,6 +903,25 @@ Model::getExtension()
 }
 
 
+#if BUG_270
+/*
+ * Transform the model by removing infinite servers.
+ */
+
+/* static */ bool
+Model::prune()
+{
+    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	if ( (*task)->isInfinite() ) {
+	    (*task)->linkToClients();
+	    __zombies.push_back((*task));
+	}
+    }
+    
+    return Flags::print[IGNORE_ERRORS].value.b || !LQIO::io_vars.anError();
+}
+#endif
+
 /*
  * Sort tasks into layers.
  */
@@ -945,11 +958,7 @@ Model::topologicalSort()
     unsigned int i = 1;			/* Client path number */
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
 	if ( (*task)->rootLevel() == Task::IS_NON_REFERENCE 
-
-#if HAVE_REGEX_T
-	     || (Flags::client_tasks != nullptr && regexec( Flags::client_tasks, const_cast<char *>((*task)->name().c_str()), 0, 0, 0 ) == REG_NOMATCH )
-#endif
-	    ) continue;
+	     || (Flags::client_tasks != nullptr && regex_match( (*task)->name(), *Flags::client_tasks ) ) ) continue;
 
 	try {
 	    CallStack callStack;
@@ -2296,6 +2305,140 @@ Model::printSummary( std::ostream& output ) const
     return output;
 }
 
+/* ------------------------------------------------------------------------ */
+
+Model::Stats::Stats()
+    : n(0), x(0), x_sqr(0), log_x(0), one_x(0), min(MAXDOUBLE), max(-MAXDOUBLE), f(nullptr)
+{
+    min_filename = "";
+    max_filename = "";
+}
+
+
+
+Model::Stats&
+Model::Stats::accumulate( double value, const std::string& filename )
+{
+    n += 1;
+    x += value;
+    x_sqr += value * value;
+    log_x += log( value );
+    one_x += 1.0 / value;
+    if ( value < min ) {
+	min = value;
+	min_filename = filename;
+    } else if ( value == min && min_filename.find( filename ) == std::string::npos ) {
+	min_filename += ", ";
+	min_filename += filename;
+    }
+    if ( value > max ) {
+	max = value;
+	max_filename = filename;
+    } else if ( value == max && max_filename.find( filename ) == std::string::npos ) {
+	max_filename += ", ";
+	max_filename += filename;
+    }
+    return *this;
+}
+
+
+Model::Stats&
+Model::Stats::accumulate( const Model * aModel, const std::string& filename )
+{
+    assert( aModel && f );
+    return accumulate( static_cast<double>((aModel->*f)()), filename );
+}
+
+
+/*
+ * Compute population standard deviation.
+ */
+
+std::ostream&
+Model::Stats::print( std::ostream& output) const
+{
+    output << _name << ":" << std::endl;
+    double stddev = 0.0;
+    if ( n > 1 ) {
+	const double numerator = x_sqr - ( x * x ) / static_cast<double>(n);
+	if ( numerator > 0.0 ) {
+	    stddev = sqrt( numerator / static_cast<double>( n ) );
+	}
+    }
+    output << "  mean   = " << x / static_cast<double>(n) << std::endl;
+    output << "  geom   = " << exp( log_x / static_cast<double>(n) ) << std::endl;	/* Geometric mean */
+    output << "  stddev = " << stddev << std::endl;
+    output << "  max    = " << max << " (" << max_filename << ")" << std::endl;
+    output << "  min    = " << min << " (" << min_filename << ")" << std::endl;
+    return output;
+}
+
+
+
+static std::ostream&
+print_comment_str( std::ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
+{
+    output << prefix;
+    const char * s = 0;
+    if ( var.getString( s ) && s ) {
+	for ( ; *s; ++s ) {
+	    output << *s;
+	    if ( *s == '\n' ) {
+		output << prefix;
+	    }
+	}
+    }
+    return output;
+}
+
+static std::ostream&
+to_inches_str( std::ostream& output, const double value )
+{
+    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
+    case FORMAT_FIG:
+    case FORMAT_PSTEX:
+	output << value / (FIG_SCALING * PTS_PER_INCH);
+	break;
+
+    case FORMAT_EEPIC:
+	output << value / (EEPIC_SCALING * PTS_PER_INCH);
+	break;
+#if defined(EMF_OUTPUT)
+    case FORMAT_EMF:
+	output << value / (EMF_SCALING * PTS_PER_INCH);
+	break;
+#endif
+#if defined(SVG_OUTPUT)
+    case FORMAT_SVG:
+	output << value / (SVG_SCALING * PTS_PER_INCH);
+	break;
+#endif
+#if defined(SXD_OUTPUT)
+    case FORMAT_SXD:
+	output << value / (SXD_SCALING * PTS_PER_INCH);
+	break;
+#endif
+    default:
+	output << value / PTS_PER_INCH;
+	break;
+    }
+    return output;
+}
+
+
+
+static CommentManip print_comment( const char * prefix, const LQIO::DOM::ExternalVariable& var )
+{
+    return CommentManip( &print_comment_str, prefix, var );
+}
+
+
+static DoubleManip
+to_inches( const double value )
+{
+    return DoubleManip( &to_inches_str, value );
+}
+
 /*----------------------------------------------------------------------*/
 /*                             Batch Model.                             */
 /*----------------------------------------------------------------------*/
@@ -2321,9 +2464,10 @@ Batch_Model::layerize()
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
-	if ( aProcessor && aProcessor->isInteresting() ) {
-	    _layers.at(aProcessor->level()).append( aProcessor );
+	for ( std::set<const Processor *>::const_iterator processor = (*task)->processors().begin(); processor != (*task)->processors().end(); ++processor ) {
+	    if ( (*processor)->isInteresting() ) {
+		_layers.at((*processor)->level()).append( const_cast<Processor *>(*processor) );
+	    }
 	}
     }
 
@@ -2359,10 +2503,11 @@ HWSW_Model::layerize()
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
-	if ( aProcessor && aProcessor->isInteresting() ) {
-	    aProcessor->setLevel( PROCESSOR_LEVEL );
-	    _layers.at(PROCESSOR_LEVEL).append( aProcessor );
+	for ( std::set<const Processor *>::const_iterator processor = (*task)->processors().begin(); processor != (*task)->processors().end(); ++processor ) {
+	    if ( (*processor)->isInteresting() ) {
+		const_cast<Processor *>(*processor)->setLevel( PROCESSOR_LEVEL );
+		_layers.at(PROCESSOR_LEVEL).append( const_cast<Processor *>(*processor) );
+	    }
 	}
     }
 
@@ -2397,10 +2542,11 @@ MOL_Model::layerize()
 	    }
 	}
 
-	Processor * aProcessor = const_cast<Processor *>((*task)->processor());
-	if ( aProcessor && aProcessor->isInteresting() ) {
-	    aProcessor->setLevel( PROC_LEVEL );
-	    _layers.at(PROC_LEVEL).append( aProcessor );
+	for ( std::set<const Processor *>::const_iterator processor = (*task)->processors().begin(); processor != (*task)->processors().end(); ++processor ) {
+	    if ( (*processor)->isInteresting() ) {
+		const_cast<Processor *>(*processor)->setLevel( PROC_LEVEL );
+		_layers.at(PROC_LEVEL).append( const_cast<Processor *>(*processor) );
+	    }
 	}
     }
 
@@ -2636,135 +2782,5 @@ Squashed_Model::Justify::operator()( Group * group )
 {
     group->format().label().resizeBox().positionLabel();
 }
-
-/* ------------------------------------------------------------------------ */
-
-Model::Stats::Stats()
-    : n(0), x(0), x_sqr(0), log_x(0), one_x(0), min(MAXDOUBLE), max(-MAXDOUBLE), myFunc(0)
-{
-    min_filename = "";
-    max_filename = "";
-}
 
 
-
-Model::Stats&
-Model::Stats::accumulate( double value, const std::string& filename )
-{
-    n += 1;
-    x += value;
-    x_sqr += value * value;
-    log_x += log( value );
-    one_x += 1.0 / value;
-    if ( value < min ) {
-	min = value;
-	min_filename = filename;
-    } else if ( value == min && min_filename.find( filename ) == std::string::npos ) {
-	min_filename += ", ";
-	min_filename += filename;
-    }
-    if ( value > max ) {
-	max = value;
-	max_filename = filename;
-    } else if ( value == max && max_filename.find( filename ) == std::string::npos ) {
-	max_filename += ", ";
-	max_filename += filename;
-    }
-    return *this;
-}
-
-
-Model::Stats&
-Model::Stats::accumulate( const Model * aModel, const std::string& filename )
-{
-    assert( aModel && myFunc );
-    return accumulate( static_cast<double>((aModel->*myFunc)()), filename );
-}
-
-
-/*
- * Compute population standard deviation.
- */
-
-std::ostream&
-Model::Stats::print( std::ostream& output) const
-{
-    output << myName << ":" << std::endl;
-    double stddev = 0.0;
-    if ( n > 1 ) {
-	const double numerator = x_sqr - ( x * x ) / static_cast<double>(n);
-	if ( numerator > 0.0 ) {
-	    stddev = sqrt( numerator / static_cast<double>( n ) );
-	}
-    }
-    output << "  mean   = " << x / static_cast<double>(n) << std::endl;
-    output << "  geom   = " << exp( log_x / static_cast<double>(n) ) << std::endl;	/* Geometric mean */
-    output << "  stddev = " << stddev << std::endl;
-    output << "  max    = " << max << " (" << max_filename << ")" << std::endl;
-    output << "  min    = " << min << " (" << min_filename << ")" << std::endl;
-    return output;
-}
-
-static std::ostream&
-print_comment_str( std::ostream& output, const char * prefix, const LQIO::DOM::ExternalVariable& var )
-{
-    output << prefix;
-    const char * s = 0;
-    if ( var.getString( s ) && s ) {
-	for ( ; *s; ++s ) {
-	    output << *s;
-	    if ( *s == '\n' ) {
-		output << prefix;
-	    }
-	}
-    }
-    return output;
-}
-
-static std::ostream&
-to_inches_str( std::ostream& output, const double value )
-{
-    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
-    case FORMAT_FIG:
-    case FORMAT_PSTEX:
-	output << value / (FIG_SCALING * PTS_PER_INCH);
-	break;
-
-    case FORMAT_EEPIC:
-	output << value / (EEPIC_SCALING * PTS_PER_INCH);
-	break;
-#if defined(EMF_OUTPUT)
-    case FORMAT_EMF:
-	output << value / (EMF_SCALING * PTS_PER_INCH);
-	break;
-#endif
-#if defined(SVG_OUTPUT)
-    case FORMAT_SVG:
-	output << value / (SVG_SCALING * PTS_PER_INCH);
-	break;
-#endif
-#if defined(SXD_OUTPUT)
-    case FORMAT_SXD:
-	output << value / (SXD_SCALING * PTS_PER_INCH);
-	break;
-#endif
-    default:
-	output << value / PTS_PER_INCH;
-	break;
-    }
-    return output;
-}
-
-
-
-static CommentManip print_comment( const char * prefix, const LQIO::DOM::ExternalVariable& var )
-{
-    return CommentManip( &print_comment_str, prefix, var );
-}
-
-
-static DoubleManip
-to_inches( const double value )
-{
-    return DoubleManip( &to_inches_str, value );
-}

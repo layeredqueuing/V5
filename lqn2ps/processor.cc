@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14170 2020-12-05 03:18:42Z greg $
+ * $Id: processor.cc 14208 2020-12-11 20:44:05Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -107,30 +107,6 @@ Processor::clone( const std::string& new_name ) const
 }
 
 /* ------------------------ Instance Methods -------------------------- */
-
-/*
- * Return the processor for this processor???
- */
-
-const Processor *
-Processor::processor() const
-{
-    throw should_not_implement( "Processor::processor()", __FILE__, __LINE__ );
-    return nullptr;
-}
-
-
-
-/*
- * Set the processor for this processor???
- */
-
-Entity&
-Processor::processor( const Processor * ) 
-{
-    throw should_not_implement( "Processor::processor(Processor *)", __FILE__, __LINE__ );
-    return *this;
-}
 
 bool
 Processor::hasRate() const

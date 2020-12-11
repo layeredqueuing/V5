@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14142 2020-11-26 16:40:03Z greg $
+ * $Id: main.cc 14209 2020-12-11 21:48:29Z greg $
  */
 
 #include "lqn2ps.h"
@@ -18,6 +18,7 @@
 #include <lqio/getsbopt.h>
 #endif
 #include <lqio/dom_object.h>
+#include <lqio/dom_pragma.h>
 #include "layer.h"
 #include "model.h"
 #include "errmsg.h"
@@ -30,6 +31,8 @@ bool Flags::annotate_input		= false;
 bool Flags::async_topological_sort      = true;
 bool Flags::clear_label_background 	= false;
 bool Flags::convert_to_reference_task	= true; 
+bool Flags::debug			= false;
+bool Flags::dump_graphviz		= false;
 bool Flags::exhaustive_toplogical_sort	= false;
 bool Flags::flatten_submodel		= false;
 bool Flags::have_results		= false;
@@ -41,12 +44,11 @@ bool Flags::print_comment		= false;
 bool Flags::print_forwarding_by_depth	= false;
 bool Flags::print_layer_number  	= false;
 bool Flags::print_submodels     	= false;
+bool Flags::prune			= false;
 bool Flags::rename_model		= false;
 bool Flags::squish_names		= false;
 bool Flags::surrogates			= false;
 bool Flags::use_colour			= true;
-bool Flags::dump_graphviz		= false;
-bool Flags::debug			= false;
 
 
 double Flags::act_x_spacing		= 6.0;
@@ -56,9 +58,7 @@ double Flags::entry_width              	= DEFAULT_ICON_HEIGHT;		/* 45 */
 double Flags::icon_height               = DEFAULT_ICON_HEIGHT;
 double Flags::icon_width               	= DEFAULT_ICON_HEIGHT * 1.6;	/* 72 */
 
-#if HAVE_REGEX_T
-regex_t * Flags::client_tasks		= 0;
-#endif
+std::regex * Flags::client_tasks	= nullptr;
 
 sort_type Flags::sort	 		= FORWARD_SORT;
 
@@ -167,41 +167,42 @@ const char * Options::key[] =
 
 const char * Options::layering[] = 
 {
-    "batch",                            /* LAYERING_BATCH           */
+    LQIO::DOM::Pragma::_batched_,       /* LAYERING_BATCH           */
     "group",                            /* LAYERING_GROUP           */
-    "hwsw",                             /* LAYERING_HWSW            */
-    "srvn",                             /* LAYERING_SPAN            */
+    LQIO::DOM::Pragma::_hwsw_,          /* LAYERING_HWSW            */
+    LQIO::DOM::Pragma::_mol_,           /* LAYERING_MOL             */
     "processor",                        /* LAYERING_PROCESSOR       */
     "processor-task",                   /* LAYERING_PROCESSOR_TASK  */
-    "task-processor",                   /* LAYERING_TASK_PROCESSOR  */
     "share",                            /* LAYERING_SHARE           */
-    "squashed",                         /* LAYERING_SQUASHED        */
-    "method-of-layers",                 /* LAYERING_MOL             */
-    0                                   /* */
+    LQIO::DOM::Pragma::_squashed_,      /* LAYERING_SQUASHED        */
+    LQIO::DOM::Pragma::_srvn_,          /* LAYERING_SRVN            */
+    "task-processor",                   /* LAYERING_TASK_PROCESSOR  */
+    nullptr                             /* */
 };                                         
 
 
-const char * Options::pragma[] = {
-    "annotate",				/* PRAGMA_ANNOTATE,                     */
-    "arrow-scaling",			/* PRAGMA_ARROW_SCALING,		*/
-    "clear-label-background", 		/* PRAGMA_CLEAR_LABEL_BACKGROUND,	*/
-    "exhaustive-topological-sort",	/* PRAGMA_EXHAUSTIVE_TOPOLOGICAL_SORT,	*/
-    "flatten",				/* PRAGMA_FLATTEN_SUBMODEL,		*/
-    "forwarding",			/* PRAGMA_FORWARDING_DEPTH,		*/
-    "group",				/* PRAGMA_GROUP,			*/
-    "layer-number",			/* PRAGMA_LAYER_NUMBER,			*/
-    "no-alignment-box",			/* PRAGMA_NO_ALIGNMENT_BOX,		*/
-    "no-async",				/* PRAGMA_NO_ASYNC_TOPOLOGICAL_SORT	*/
-    "no-cv-sqr",			/* PRAGMA_NO_CV_SQR,			*/
-    "no-phase-type",			/* PRAGMA_NO_PHASE_TYPE,		*/
-    "no-reference-task-conversion",	/* PRAGMA_NO_REF_TASK_CONVERSION,	*/
-    "quorum-reply",			/* PRAGMA_QUORUM_REPLY,			*/
-    "rename",				/* PRAGMA_RENAME			*/
-    "sort",				/* PRAGMA_SORT,				*/
-    "squish",				/* PRAGMA_SQUISH_ENTRY_NAMES,		*/
-    "submodels",			/* PRAGMA_SUBMODEL_CONTENTS,		*/
-    "tasks-only",			/* PRAGMA_TASKS_ONLY			*/
-    "no-header",			/* PRAGMA_SPEX_HEADER			*/
+const char * Options::special[] = {
+    "annotate",				/* SPECIAL_ANNOTATE,                    */
+    "arrow-scaling",			/* SPECIAL_ARROW_SCALING,		*/
+    "clear-label-background", 		/* SPECIAL_CLEAR_LABEL_BACKGROUND,	*/
+    "exhaustive-topological-sort",	/* SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT,	*/
+    "flatten",				/* SPECIAL_FLATTEN_SUBMODEL,		*/
+    "forwarding",			/* SPECIAL_FORWARDING_DEPTH,		*/
+    "group",				/* SPECIAL_GROUP,			*/
+    "layer-number",			/* SPECIAL_LAYER_NUMBER,		*/
+    "no-alignment-box",			/* SPECIAL_NO_ALIGNMENT_BOX,		*/
+    "no-async",				/* SPECIAL_NO_ASYNC_TOPOLOGICAL_SORT	*/
+    "no-cv-sqr",			/* SPECIAL_NO_CV_SQR,			*/
+    "no-phase-type",			/* SPECIAL_NO_PHASE_TYPE,		*/
+    "no-reference-task-conversion",	/* SPECIAL_NO_REF_TASK_CONVERSION,	*/
+    "prune",				/* SPECIAL_PRUNE			*/
+    "quorum-reply",			/* SPECIAL_QUORUM_REPLY,		*/
+    "rename",				/* SPECIAL_RENAME			*/
+    "sort",				/* SPECIAL_SORT,			*/
+    "squish",				/* SPECIAL_SQUISH_ENTRY_NAMES,		*/
+    "submodels",			/* SPECIAL_SUBMODEL_CONTENTS,		*/
+    "tasks-only",			/* SPECIAL_TASKS_ONLY			*/
+    "no-header",			/* SPECIAL_SPEX_HEADER			*/
     0					
 };
 
@@ -306,21 +307,21 @@ class_error::message( const std::string& method, const char * file, const unsign
     ss << method << ": " << file << " " << line << ": " << error;
     return ss.str();
 }
-
-#if HAVE_REGEX_T
-void 
-regexp_check( const int errcode, regex_t * r ) throw( runtime_error )
-{
-    if ( errcode ) {
-	char buf[BUFSIZ];
-	regerror( errcode, r, buf, BUFSIZ );
-	throw runtime_error( buf );
-    }
-}
-#endif
 
+
+size_t
+Options::find_if( const char** values, const std::string& s )
+{
+    size_t i = 0;
+    for ( ; values[i] != nullptr; ++i ) {
+	if ( s == values[i] ) return i;
+    }
+    return i;
+}
+
+
 bool
-process_pragma( const char * p )
+process_special( const char * p, LQIO::DOM::Pragma& pragmas )
 {
     if ( !p ) return false;
 
@@ -342,86 +343,78 @@ process_pragma( const char * p )
 	    }
 	}
 	while ( isspace( *p ) ) ++p;
-	rc = rc && pragma( param, value );
+	rc = rc && special( param, value, pragmas );
     } while ( *p++ == ',' );
     return rc;
 }
 
 
 bool
-pragma( const std::string& parameter, const std::string& value )
+special( const std::string& parameter, const std::string& value, LQIO::DOM::Pragma& pragmas )
 {
-    for ( unsigned int i = 0; Options::pragma[i] != 0; ++i ) {
-	if ( parameter.compare( Options::pragma[i] ) != 0 ) continue;
+    switch ( Options::find_if( Options::special, parameter ) ) {
 
-	switch ( i ) {
-	case PRAGMA_ANNOTATE:                   Flags::annotate_input 			= get_bool( value, true ); break;
-	case PRAGMA_CLEAR_LABEL_BACKGROUND:     Flags::clear_label_background 		= get_bool( value, true ); break;
-	case PRAGMA_EXHAUSTIVE_TOPOLOGICAL_SORT:Flags::exhaustive_toplogical_sort 	= get_bool( value, true ); break;
-	case PRAGMA_FLATTEN_SUBMODEL:		Flags::flatten_submodel			= get_bool( value, true ); break;
-	case PRAGMA_FORWARDING_DEPTH:           Flags::print_forwarding_by_depth 	= get_bool( value, true ); break;
-	case PRAGMA_LAYER_NUMBER:               Flags::print_layer_number 		= get_bool( value, true ); break;
-	case PRAGMA_NO_ALIGNMENT_BOX:		Flags::print_alignment_box		= get_bool( value, false ); break;
-	case PRAGMA_NO_ASYNC_TOPOLOGICAL_SORT:  Flags::async_topological_sort		= get_bool( value, false ); break;
-	case PRAGMA_NO_CV_SQR:			Flags::output_coefficient_of_variation  = get_bool( value, false ); break;
-	case PRAGMA_NO_PHASE_TYPE:		Flags::output_phase_type                = get_bool( value, false ); break;
-	case PRAGMA_NO_REF_TASK_CONVERSION:	Flags::convert_to_reference_task	= get_bool( value, false ); break;
-	case PRAGMA_RENAME:			Flags::rename_model	 		= get_bool( value, true ); break;
-	case PRAGMA_SQUISH_ENTRY_NAMES:         Flags::squish_names	 		= get_bool( value, true ); break;
-	case PRAGMA_SUBMODEL_CONTENTS:          Flags::print_submodels 			= get_bool( value, true ); break;
-//	case PRAGMA_SPEX_HEADER:		LQIO::Spex::__no_header			= get_bool( value, true ); break;
+    case SPECIAL_ANNOTATE:		      Flags::annotate_input			= get_bool( value, true ); break;
+    case SPECIAL_CLEAR_LABEL_BACKGROUND:      Flags::clear_label_background		= get_bool( value, true ); break;
+    case SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT: Flags::exhaustive_toplogical_sort		= get_bool( value, true ); break;
+    case SPECIAL_FLATTEN_SUBMODEL:	      Flags::flatten_submodel			= get_bool( value, true ); break;
+    case SPECIAL_FORWARDING_DEPTH:	      Flags::print_forwarding_by_depth		= get_bool( value, true ); break;
+    case SPECIAL_LAYER_NUMBER:		      Flags::print_layer_number			= get_bool( value, true ); break;
+    case SPECIAL_NO_ALIGNMENT_BOX:	      Flags::print_alignment_box		= get_bool( value, false ); break;
+    case SPECIAL_NO_ASYNC_TOPOLOGICAL_SORT:   Flags::async_topological_sort		= get_bool( value, false ); break;
+    case SPECIAL_NO_CV_SQR:		      Flags::output_coefficient_of_variation	= get_bool( value, false ); break;
+    case SPECIAL_NO_PHASE_TYPE:		      Flags::output_phase_type			= get_bool( value, false ); break;
+    case SPECIAL_NO_REF_TASK_CONVERSION:      Flags::convert_to_reference_task		= get_bool( value, false ); break;
+    case SPECIAL_RENAME:		      Flags::rename_model			= get_bool( value, true ); break;
+    case SPECIAL_SQUISH_ENTRY_NAMES:	      Flags::squish_names			= get_bool( value, true ); break;
+    case SPECIAL_SUBMODEL_CONTENTS:	      Flags::print_submodels			= get_bool( value, true ); break;
 	    
-	case PRAGMA_QUORUM_REPLY:
-	    LQIO::io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
-	    break;
+    case SPECIAL_PRUNE:
+	pragmas.insert(LQIO::DOM::Pragma::_prune_, get_bool( value, true ) ? "true" : "false" );
+	break;
 
-	case PRAGMA_TASKS_ONLY:
-	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES; 
-	    if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {
-		if ( processor_output() || share_output() ) {
-		    Flags::print[Y_SPACING].value.f = 45;
-		} else {
-		    Flags::print[Y_SPACING].value.f = 27;
-		}
-		Flags::icon_height = 18;
-		Flags::entry_height = Flags::icon_height * 0.6; 
-	    }
-	    break;
+    case SPECIAL_QUORUM_REPLY:
+	LQIO::io_vars.error_messages[LQIO::ERR_REPLY_NOT_GENERATED].severity = LQIO::WARNING_ONLY;
+	break;
 
-	case PRAGMA_SORT:
-	    Flags::sort = INVALID_SORT;
-	    if ( value.size() ) {
-		for ( int i = 0; i < INVALID_SORT; ++i ) {
-		    if ( value.compare( Options::sort[i] ) == 0 ) {
-			Flags::sort = static_cast<sort_type>(i);
-		    }
-		} 
-	    }
-	    if ( Flags::sort == INVALID_SORT ) {
-		std::cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to 'sort=' :" << value << std::endl; 
-		return false;
-	    }
-	    break;
-
-	case PRAGMA_ARROW_SCALING:
-	    Flags::arrow_scaling = strtod( value.c_str(), 0 );
-	    break;
-
-#if HAVE_REGEX_T
-	case PRAGMA_GROUP:
-	    Model::add_group( value.c_str() );
-	    break;
-#endif
-
-	default:
-	    std::cerr << LQIO::io_vars.lq_toolname << ": Unknown pragma: \"" << parameter;
-	    if ( value.size() ) {
-		std::cerr << "\"=\"" << value;
-	    }
-	    std::cerr << "\"" << std::endl;
+    case SPECIAL_SORT:
+	Flags::sort = static_cast<sort_type>(Options::find_if( Options::sort, value ));
+	if ( Flags::sort == INVALID_SORT ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid argument to 'sort=' :" << value << std::endl; 
 	    return false;
 	}
+	break;
+
+    case SPECIAL_TASKS_ONLY:
+	Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES; 
+	if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {
+	    if ( processor_output() || share_output() ) {
+		Flags::print[Y_SPACING].value.f = 45;
+	    } else {
+		Flags::print[Y_SPACING].value.f = 27;
+	    }
+	    Flags::icon_height = 18;
+	    Flags::entry_height = Flags::icon_height * 0.6; 
+	}
+	break;
+
+    case SPECIAL_ARROW_SCALING:
+	Flags::arrow_scaling = strtod( value.c_str(), 0 );
+	break;
+
+    case SPECIAL_GROUP:
+	Model::add_group( value.c_str() );
+	break;
+
+    default:
+	std::cerr << LQIO::io_vars.lq_toolname << ": Unknown special: \"" << parameter;
+	if ( value.size() ) {
+	    std::cerr << "\"=\"" << value;
+	}
+	std::cerr << "\"" << std::endl;
+	return false;
     }
+
     return true;
 }
 
@@ -490,10 +483,7 @@ bool
 partial_output()
 {
     return submodel_output() || queueing_output()
-#if HAVE_REGEX_T
-	|| Flags::print[INCLUDE_ONLY].value.r != 0
-#endif
-      ;
+	|| Flags::print[INCLUDE_ONLY].value.r != nullptr;
 }
 
 bool

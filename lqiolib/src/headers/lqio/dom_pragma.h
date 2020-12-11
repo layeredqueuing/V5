@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14178 2020-12-07 21:16:43Z greg $
+ * $Id: dom_pragma.h 14201 2020-12-10 16:33:17Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -79,10 +79,10 @@ namespace LQIO {
 	    static const char * _initial_delay_;
 	    static const char * _initial_loops_;
 	    static const char * _interlocking_;
-	    static const char * _layering_;
-	    static const char * _linearizer_;
 	    static const char * _join_delay_;		// Quorum
 	    static const char * _keep_all_;		// Quorum
+	    static const char * _layering_;
+	    static const char * _linearizer_;
 	    static const char * _mak_;
 	    static const char * _markov_;
 	    static const char * _max_blocks_;
@@ -100,7 +100,7 @@ namespace LQIO {
 	    static const char * _precision_;
 	    static const char * _processor_scheduling_;
 	    static const char * _processors_;
-	    static const char * _prune_;
+	    static const char * _prune_;		// BUG_270
 	    static const char * _quorum_delayed_calls_;	// Quroum
 	    static const char * _quorum_distribution_;	// Quroum
 	    static const char * _quorum_idle_time_;	// Qurom

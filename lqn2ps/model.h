@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: model.h 14209 2020-12-11 21:48:29Z greg $
  */
 
 #ifndef _MODEL_H
@@ -30,10 +30,6 @@ namespace LQIO {
 	class Entity;
     }
 }
-
-#if HAVE_REGEX_T
-extern void add_group( LQIO::DOM::Group* group );
-#endif
 
 class Model
 {
@@ -117,13 +113,13 @@ protected:
 
 	Stats & accumulate( double value, const std::string& );
 	Stats & accumulate( const Model *, const std::string& );
-	Stats & accumulate( const modelFunc aFunc ) { myFunc = aFunc; return *this; }
-	Stats & name( const std::string& aName ) { myName = aName; return *this; }
+	Stats & accumulate( const modelFunc func ) { f = func; return *this; }
+	Stats & name( const std::string& aName ) { _name = aName; return *this; }
 	double sum() const { return x; }
 	std::ostream& print( std::ostream& ) const;
 
     private:
-	std::string myName;
+	std::string _name;
 	unsigned n;
 	double x;
 	double x_sqr;
@@ -133,7 +129,7 @@ protected:
 	double max;
 	std::string min_filename;
 	std::string max_filename;
-	modelFunc myFunc;
+	modelFunc f;
     };
 
     friend std::ostream& operator<<( std::ostream& output, const Model::Stats& self ) { return self.print( output ); }
@@ -143,10 +139,11 @@ public:
 
     virtual ~Model();
     static bool prepare( const LQIO::DOM::Document * document );
-    static unsigned topologicalSort();
-#if HAVE_REGEX_T
-    static void add_group( const std::string& );
+#if BUG_270
+    static bool prune();
 #endif
+    static unsigned topologicalSort();
+    static void add_group( const std::string& );
 
 private:
     Model( const Model& );		/* Copying is verbotten */
@@ -289,6 +286,7 @@ protected:
 
 private:
     static Model * __model;
+    static Stats stats[];
 
     LQIO::DOM::Document * _document;
     const std::string _inputFileName;
@@ -298,7 +296,7 @@ private:
     unsigned int _modelNumber;
     double _scaling;
 
-    static Stats stats[];
+    static std::vector<Task *> __zombies;	/* transmorgrify	*/
 };
 
 /* --------------------- Batched Partition Model ---------------------- */

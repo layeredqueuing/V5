@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14170 2020-12-05 03:18:42Z greg $
+ * $Id: task.cc 14209 2020-12-11 21:48:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -83,7 +83,7 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
       _entries(entries),
       _activities(),
       _precedences(),
-      _processor(aProc),
+      _processors(),
       _share(aShare),
       _maxPhase(0),
       _entryWidthInPts(0)
@@ -91,6 +91,7 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
     for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
 
     if ( aProc ) {
+	_processors.insert(aProc);
 	ProcessorCall * aCall = new ProcessorCall(this,aProc);
 	_calls.push_back(aCall);
 	const_cast<Processor *>(aProc)->addDstCall( aCall );
@@ -134,6 +135,14 @@ Task::reset()
 
 /* ------------------------ Instance Methods -------------------------- */
 
+
+bool
+Task::hasProcessor( const Processor * processor ) const
+{
+    return std::find( _processors.begin(), _processors.end(), processor ) != _processors.end();
+}
+
+
 bool
 Task::hasPriority() const
 {
@@ -141,6 +150,20 @@ Task::hasPriority() const
 }
 
 
+const Processor *
+Task::findProcessor( const LQIO::DOM::Processor * dom ) const
+{
+    for ( std::set<const Processor *>::const_iterator processor = _processors.begin(); processor != _processors.end(); ++processor ) {
+	if ( (*processor)->getDOM() == dom ) return (*processor);
+    }
+    return nullptr;
+}
+
+const LQIO::DOM::Processor *
+Task::getDOMProcessor() const
+{
+    return getDOM() != nullptr ? dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getProcessor() : nullptr;
+}
 
 /* ------------------------------ Results ----------------------------- */
 
@@ -665,7 +688,7 @@ Task::hasQueueingTime() const
 bool
 Task::isSelectedIndirectly() const
 {
-    return Entity::isSelectedIndirectly() || processor()->isSelected()
+    return Entity::isSelectedIndirectly() || std::any_of( processors().begin(), processors().end(), Predicate<Processor>( &Processor::isSelected ) )
 	|| std::any_of( entries().begin(), entries().end(), ::Predicate<Entry>( &Entry::isSelectedIndirectly ) )
 	|| std::any_of( activities().begin(), activities().end(), ::Predicate<Activity>( &Activity::isSelectedIndirectly ) );
 }
@@ -690,9 +713,10 @@ bool
 Task::isPureServer() const
 {
     std::vector<Entity *> servers;
+    const Processor * processor = findProcessor( getDOMProcessor() );
 
     this->servers( servers );
-    return servers.size() == 0 && processor()->nTasks() == 1;
+    return servers.size() == 0 && processor != nullptr && processor->nClients() == 1;
 }
 
 
@@ -701,13 +725,14 @@ bool
 Task::check() const
 {
     bool rc = true;
-    const Processor * aProcessor = processor();
     const std::string& srcName = name();
 
     /* Check prio/scheduling. */
 
-    if ( aProcessor && hasPriority() && !aProcessor->hasPriorities() ) {
-	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, srcName.c_str(), aProcessor->name().c_str() );
+    const Processor * processor = findProcessor( getDOMProcessor() );
+
+    if ( processor != nullptr && hasPriority() && !processor->hasPriorities() ) {
+	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, srcName.c_str(), processor->name().c_str() );
     }
 
     /* Check replication */
@@ -718,10 +743,10 @@ Task::check() const
     }
 
     double srcReplicasValue = 1.0;
-    if ( aProcessor->isReplicated() ) {
+    if ( processor != nullptr && processor->isReplicated() ) {
 	bool ok = true;
 	double dstReplicasValue = 1.0;
-	const LQIO::DOM::ExternalVariable& dstReplicas = aProcessor->replicas();
+	const LQIO::DOM::ExternalVariable& dstReplicas = processor->replicas();
 	if ( dstReplicas.wasSet() && dstReplicas.getValue( dstReplicasValue ) && isReplicated() ) {
 	    const LQIO::DOM::ExternalVariable& srcReplicas = replicas();
 	    if ( srcReplicas.wasSet() && srcReplicas.getValue( srcReplicasValue ) ) {
@@ -734,7 +759,7 @@ Task::check() const
 	if ( !ok ) {
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
 				  static_cast<int>(srcReplicasValue), srcName.c_str(),
-				  static_cast<int>(dstReplicasValue), aProcessor->name().c_str() );
+				  static_cast<int>(dstReplicasValue), processor->name().c_str() );
 	    if ( Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE ) {
 		rc = false;
 	    }
@@ -942,6 +967,14 @@ Task::findOrAddPseudoCall( Entity * toEntity )
 }
 
 
+#if defined(BUG_270)
+void
+Task::addSrcCall( EntityCall * call )
+{
+    _calls.push_back( call );
+}
+#endif
+
 
 /*
  * Return all servers to this task.
@@ -1039,16 +1072,17 @@ Task::isInClosedModel( const std::vector<Entity *>& servers ) const
 size_t
 Task::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    size_t max_depth = std::max( callStack.size(), level() );
-    const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
+    const size_t depth = std::max( callStack.size(), level() );
+    size_t max_depth = depth;
 
-    setLevel( max_depth ).addPath( directPath );
+    setLevel( depth ).addPath( directPath );
 
-    if ( processor() ) {
-	max_depth = std::max( max_depth + 1, processor()->level() );
-	const_cast<Processor *>(processor())->setLevel( max_depth ).addPath( directPath );
+    for ( std::set<const Processor *>::const_iterator processor = processors().begin(); processor != processors().end(); ++processor ) {
+	const_cast<Processor *>(*processor)->setLevel( std::max( (*processor)->level(), depth + 1 ) ).addPath( directPath );
+	max_depth = std::max( max_depth, (*processor)->level() );	
     }
 
+    const Entry * dstEntry = callStack.back() ? callStack.back()->dstEntry() : nullptr;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	max_depth = std::max( max_depth,
 			      (*entry)->findChildren( callStack,
@@ -1500,7 +1534,8 @@ Task::moveSrc()
 	calls().front()->moveSrc( aPoint );
     } else if ( calls().size() == 1 && dynamic_cast<ProcessorCall *>(calls().front()) ) {
 	Point aPoint = bottomCenter();
-	double diff = aPoint.x() - processor()->center().x();
+	const Processor * processor = findProcessor( getDOMProcessor() );
+	double diff = aPoint.x() - processor->center().x();
 	if ( diff > 0 && fabs( diff ) > width() / 4 ) {
 	    aPoint.moveBy( -width() / 4, 0 );
 	} else if ( diff < 0 && fabs( diff ) > width() / 4 ) {
@@ -1764,6 +1799,16 @@ Task::translateY( const double dy )
     return *this;
 }
 
+#if defined(BUG_270)
+Task&
+Task::linkToClients()
+{
+    for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
+    return *this;
+}
+#endif
+
+
 #if defined(REP2FLAT)
 Task&
 Task::removeReplication()
@@ -1786,14 +1831,15 @@ Task&
 Task::expandTask()
 {
     const unsigned int numTaskReplicas = replicasValue();
-    const unsigned int procFanOut = numTaskReplicas / processor()->replicasValue();
-
+    const unsigned int procFanOut = numTaskReplicas / getDOMProcessor()->getReplicasValue();
+    const Processor * processor = findProcessor( getDOMProcessor() );
+    
     for ( unsigned int replica = 1; replica <= numTaskReplicas; ++replica ) {
 
 	/* Get a pointer to the replicated processor */
 
 	const unsigned int proc_replica = static_cast<unsigned int>(static_cast<double>(replica-1) / static_cast<double>(procFanOut)) + 1;
-	const Processor *aProcessor = Processor::find_replica( processor()->name(), proc_replica );
+	const Processor *aProcessor = Processor::find_replica( processor->name(), proc_replica );
 
 	std::ostringstream aName;
 	aName << name() << "_" << replica;
@@ -2082,8 +2128,8 @@ Task::draw( std::ostream& output ) const
     aComment << "Task " << name()
 	     << task_scheduling_of( *this )
 	     << entries_of( *this );
-    if ( processor() ) {
-	aComment << " " << processor()->name();
+    if ( getDOMProcessor() ) {
+	aComment << " " << getDOMProcessor()->getName();
     }
 #if defined(BUG_375)
     aComment << " span=" << span() << ", index=" << index();
@@ -2217,13 +2263,16 @@ ReferenceTask::thinkTime() const
 Graphic::colour_type
 ReferenceTask::colour() const
 {
+    const Processor * processor = findProcessor( getDOMProcessor() ); 
     switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_SERVER_TYPE:
 	return Graphic::RED;
 
     case COLOUR_RESULTS:
-	return processor()->colour();
-	break;
+	if ( processor != nullptr ) {
+	    return processor->colour();
+	}
+	/* Fall through */
 
     default:
 	return Task::colour();
@@ -2240,13 +2289,14 @@ ReferenceTask::colour() const
 size_t
 ReferenceTask::findChildren( CallStack& callStack, const unsigned directPath )
 {
-    size_t max_depth = std::max( callStack.size(), level() );
+    const size_t depth = std::max( callStack.size(), level() );
+    size_t max_depth = depth;
 
-    setLevel( max_depth ).addPath( directPath );
+    setLevel( depth ).addPath( directPath );
 
-    if ( processor() ) {
-	max_depth = std::max( max_depth + 1, processor()->level() );
-	const_cast<Processor *>(processor())->setLevel( max_depth ).addPath( directPath );
+    for ( std::set<const Processor *>::const_iterator processor = processors().begin(); processor != processors().end(); ++processor ) {
+	const_cast<Processor *>(*processor)->setLevel( std::max( (*processor)->level(), depth + 1 ) ).addPath( directPath );
+	max_depth = std::max( max_depth, (*processor)->level() );	
     }
 
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
@@ -2261,16 +2311,12 @@ bool
 Task::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-      && (submodel_output()
-#if HAVE_REGEX_T
-	  || Flags::print[INCLUDE_ONLY].value.r
-#endif
-      )
+      && (submodel_output() || Flags::print[INCLUDE_ONLY].value.r )
       && !isSelected()
       && !hasOpenArrivals()
       && !isInfinite()
       && nEntries() == 1
-      && processor();
+      && !_processors.empty();
 }
 
 /* --------------------------- Server Tasks --------------------------- */
@@ -2302,16 +2348,12 @@ bool
 ServerTask::canConvertToReferenceTask() const
 {
     return Flags::convert_to_reference_task
-      && (submodel_output()
-#if HAVE_REGEX_T
-	  || Flags::print[INCLUDE_ONLY].value.r
-#endif
-	  )
-      && !isSelected()
-      && !hasOpenArrivals()
-      && !isInfinite()
-      && nEntries() == 1
-      && processor();
+	&& (submodel_output() || Flags::print[INCLUDE_ONLY].value.r )
+	&& !isSelected()
+	&& !hasOpenArrivals()
+	&& !isInfinite()
+	&& nEntries() == 1
+	&& !processors().empty();
 }
 
 /*+ BUG_164 */

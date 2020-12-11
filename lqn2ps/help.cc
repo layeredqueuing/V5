@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: help.cc 14201 2020-12-10 16:33:17Z greg $
  */
 
 #include "lqn2ps.h"
@@ -148,7 +148,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14134 2020-11-25 18:12:05Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 14201 2020-12-10 16:33:17Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 
@@ -553,58 +553,61 @@ man()
 	    std::cout << "Special options:" << std::endl
 		 << ".RS" << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_ANNOTATE) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_ANNOTATE) << "\\fR" << std::endl
 		 << "Annotate the lqn input file (lqn output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_ARROW_SCALING) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_ARROW_SCALING) << "\\fR" << std::endl
 		 << "Scale the size of arrow heads by the scaling factor \\fIarg\\fP." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_CLEAR_LABEL_BACKGROUND) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_CLEAR_LABEL_BACKGROUND) << "\\fR" << std::endl
 		 << "Clear the area behind the label (fig output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_EXHAUSTIVE_TOPOLOGICAL_SORT) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT) << "\\fR" << std::endl
 		 << "Don't short circuit the topological sorter.  (Some models render better)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_FLATTEN_SUBMODEL) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_FLATTEN_SUBMODEL) << "\\fR" << std::endl
 		 << "Submodels drawn with \\-S or \\-Q normally place clients in their level found from the full model.  This option draws all clients for a given submodel in one layer." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_FORWARDING_DEPTH) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_FORWARDING_DEPTH) << "\\fR" << std::endl
 		 << "Nest forwarding instead of keeping it at the current level (historical). " << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_GROUP) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_GROUP) << "\\fR" << std::endl
 		 << "When using \\-Lgroup, name a group.  Multiple groups are named using a comma separated list." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_LAYER_NUMBER) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_LAYER_NUMBER) << "\\fR" << std::endl
 		 << "Print the layer number (valid for graphical output only)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_NO_ALIGNMENT_BOX) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_NO_ALIGNMENT_BOX) << "\\fR" << std::endl
 		 << "Don't generate the alignment boxes (Fig output)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_NO_ASYNC_TOPOLOGICAL_SORT) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_NO_ASYNC_TOPOLOGICAL_SORT) << "\\fR" << std::endl
 		 << "Don't follow asynchronous calls when doing the topological sort." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_NO_CV_SQR) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_NO_CV_SQR) << "\\fR" << std::endl
 		 << "Remove all coefficient of variation terms from a model.  This option is used when generating new models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_NO_PHASE_TYPE) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_NO_PHASE_TYPE) << "\\fR" << std::endl
 		 << "Remove all phase type flag terms from a model.  This option is used when generating new models." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_NO_REF_TASK_CONVERSION) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_NO_REF_TASK_CONVERSION) << "\\fR" << std::endl
 		 << "When generating new models as submodels of existing models, servers in the original model are converted to reference tasks when possible.  This option overrides this conversion; these models use open-arrivals instead." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_RENAME) << "\\fR" << std::endl
+		      << "\\fB" << current_arg(i,SPECIAL_PRUNE) << "\\fR" << std::endl
+		      << "All tasks which are infinite servers are merged into non-infinite server tasks and clients" << std::endl;
+	    std::cout << ".TP" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_RENAME) << "\\fR" << std::endl
 		 << "Rename all of the icons to p\\fIn\\fP, t\\fIn\\fP, e\\fIn\\fP and a\\fIn\\fP where \\fIn\\fP is an integer starting from one." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_SORT) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_SORT) << "\\fR" << std::endl
 		 << "Set the order of sorting of objects in a layer (ascending, descending, topological, none)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_SQUISH_ENTRY_NAMES) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_SQUISH_ENTRY_NAMES) << "\\fR" << std::endl
 		 << "Rename entries/activities by taking only capital letters, letters following an underscore, or numbers." << std::endl; 
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_SUBMODEL_CONTENTS) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_SUBMODEL_CONTENTS) << "\\fR" << std::endl
 		 << "For graphical output, output the submodels (though this only works for a strictly layered model)." << std::endl;
 	    std::cout << ".TP" << std::endl
-		 << "\\fB" << current_arg(i,PRAGMA_TASKS_ONLY) << "\\fR" << std::endl
+		 << "\\fB" << current_arg(i,SPECIAL_TASKS_ONLY) << "\\fR" << std::endl
 		 << "Draw the model omitting all entries." << std::endl;
 	    std::cout << ".RE" << std::endl;
 	    break;

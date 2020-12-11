@@ -1,6 +1,6 @@
 /* group.cc	-- Greg Franks Thu Mar 24 2005
  *
- * $Id: group.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: group.cc 14208 2020-12-11 20:44:05Z greg $
  */
 
 #include "group.h"
@@ -98,7 +98,7 @@ Group::populate()
 	}
 
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    if ( (*task)->processor() == (*processor) && (*task)->isSelectedIndirectly() ) {
+	    if ( (*task)->hasProcessor(*processor) && (*task)->isSelectedIndirectly() ) {
 		_layers.at((*task)->level()).append((*task));
 		if ( !submodel_output() || !(*task)->isSelected() ) {
 		    isUsed( true );
@@ -229,32 +229,22 @@ Group::draw( std::ostream& output ) const
     return output;
 }
 
-#if HAVE_REGEX_T
-GroupByRegex::GroupByRegex( const std::string& s )
-    : Group( s )
+GroupByRegex::GroupByRegex( unsigned int n, const std::string& s )
+    : Group( n, s ), _pattern(s)
 {
-    myPattern = static_cast<regex_t *>(malloc( sizeof( regex_t ) ));
-    if ( myPattern ) {
-	myErrorCode = regcomp( myPattern, s.c_str(), REG_EXTENDED );
-    }
 }
 
 
 GroupByRegex::~GroupByRegex()
 {
-    if ( myPattern ) {
-	regfree( myPattern );
-	::free( myPattern );
-    }
 }
 
 
 bool
 GroupByRegex::match( const std::string& s ) const
 {
-    return regexec( myPattern, const_cast<char *>(s.c_str()), 0, 0, 0 ) != REG_NOMATCH;
+    return std::regex_match( s, _pattern );
 }
-#endif
 
 GroupByProcessor::GroupByProcessor( const unsigned nLayers, const Processor * processor )
   : Group( nLayers, processor->name() ), myProcessor( processor )

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: phase.cc 14208 2020-12-11 20:44:05Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -386,7 +386,7 @@ Phase::serviceTimeForSRVNInput() const
 
 	/* Add in processor queueing if it isn't selected */
 
-	if ( !owner()->processor()->isSelected() ) {
+	if ( std::any_of( owner()->processors().begin(), owner()->processors().end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
 	    time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
 	}
     }

@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 13477 2020-02-08 23:14:37Z greg $
+# $Id: Makefile.am 14188 2020-12-08 18:25:09Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config 
 SUBDIRS		= 
@@ -19,11 +19,11 @@ bin_PROGRAMS 	= lqn2ps
 OTHEREXE	= lqn2emf lqn2fig lqn2out lqn2lqn lqn2svg lqn2xml $(MAYBE_PNG) $(MAYBE_JPEG) $(MAYBE_GIF) rep2flat 
 lqn2ps_SOURCES 	= activity.cc actlayer.cc actlist.cc arc.cc call.cc share.cc element.cc entity.cc entry.cc errmsg.cc \
 		getopt2.cc graphic.cc group.cc help.cc key.cc label.cc layer.cc lqn2ps.cc main.cc model.cc node.cc \
-		open.cc phase.cc point.cc processor.cc runlqx.cc task.cc
+		open.cc phase.cc point.cc pragma.cc processor.cc runlqx.cc task.cc
 
 noinst_HEADERS 	= actlayer.h activity.h actlist.h arc.h call.h share.h element.h entity.h entry.h errmsg.h \
 		getopt2.h graphic.h group.h help.h key.h label.h layer.h lqn2ps.h model.h node.h \
-		open.h phase.h point.h processor.h runlqx.h task.h
+		open.h phase.h point.h pragma.h processor.h runlqx.h task.h
 
 EXTRA_DIST	= lqn2ps.1 
 

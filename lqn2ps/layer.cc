@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: layer.cc 14208 2020-12-11 20:44:05Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -585,7 +585,7 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 
 	/* Create a fake processor if necessary */
 
-	if ( !aTask->processor()->isSelected() ) {
+	if ( std::any_of( aTask->processors().begin(), aTask->processors().end(), Predicate<Entity>( &Entity::isSelected ) ) ) {
 	    findOrAddSurrogateProcessor( document, surrogate_processor, aTask, number() );
 	}
 
@@ -632,7 +632,7 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 Processor *
 Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const
 {
-    LQIO::DOM::Processor * dom_processor = 0;
+    LQIO::DOM::Processor * dom_processor = nullptr;
     if ( !processor ) {
 	/* Need to create a new processor */
 	dom_processor = new LQIO::DOM::Processor( document, "Surrogate", SCHEDULE_DELAY, NULL, NULL );
@@ -651,7 +651,7 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 	old_list.erase( pos );		// Remove task from original processor 
 	dom_processor->addTask( dom_task );
 	dom_task->setProcessor( dom_processor );
-	Processor * old_processor = const_cast<Processor *>(task->processor());
+	Processor * old_processor = const_cast<Processor *>(task->findProcessor(dom_task->getProcessor()));
 	old_processor->removeTask( task );
 	processor->addTask( task );
 

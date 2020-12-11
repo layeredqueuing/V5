@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: lqn2ps.cc 14209 2020-12-11 21:48:29Z greg $
  */
 
 #include "lqn2ps.h"
@@ -84,7 +84,7 @@ option_type Flags::print[] = {
     { "warnings",              'W', 0,                     0,                      {INIT_FALSE},        false, "Suppress warnings." },
     { "x-spacing",             'X', "spacing[,width]",     Options::real,          {0},                 false, "X spacing [and task width] (points)." },
     { "y-spacing",             'Y', "spacing[,height]",    Options::real,          {0},                 false, "Y spacing [and task height] (points)." },
-    { "special",               'Z', "special[=arg]",       Options::pragma,        {0},                 false, "Special option." },
+    { "special",               'Z', "special[=arg]",       Options::special,       {0},                 false, "Special option." },
     { "open-wait",             'a', 0,                     0,                      {INIT_TRUE},         true,  "Print queue length results for open arrivals." },
     { "throughput-bounds",     'b', 0,                     0,                      {INIT_FALSE},        true,  "Print task throughput bounds." },
     { "confidence-intervals",  'c', 0,                     0,                      {INIT_FALSE},        true,  "Print confidence intervals." },
@@ -125,7 +125,7 @@ option_type Flags::print[] = {
     { "hwsw-layering",     512+'h', 0,                     0,                      {0},                 false, "Use HW/SW layering instead of batched layering." },
     { "srvn-layering",     512+'w', 0,                     0,                      {0},                 false, "Use SRVN layering instead of batched layering." }, 
     { "method-of-layers",  512+'m', 0,                     0,                      {0},                 false, "Use the Method Of Layers instead of batched layering." },
-    /* Pragma shortcuts */
+    /* Special shortcuts */
     { "flatten",	   512+'f', 0,			   0,			   {0},			false, "Flatten submodel/queueing output by placing clients in one layer." },
     { "no-sort",           512+'s', 0,                     0,                      {0},                 false, "Do not sort objects for output." },
     { "number-layers",     512+'n', 0,                     0,                      {0},                 false, "Print layer numbers." },
@@ -153,15 +153,17 @@ option_type Flags::print[] = {
     { "generate-manual",   512+'M', 0,                     0,                      {0},                 false, "Generate manual suitable for input to man(1)." },
     { 0,                         0, 0,                     0,                      {0},                 false, 0 }
 };
+
 #if HAVE_GETOPT_H
 static void makeopts( std::string& opts, std::vector<struct option>& );
 #else
 static void makeopts( std::string& opts );
 #endif
 
-
 static char copyrightDate[20];
 static void process( const std::string& inputFileName,  const std::string& output_file_name, int model_no );
+
+static LQIO::DOM::Pragma pragmas;
 
 /*----------------------------------------------------------------------*/
 /*			      Main line					*/
@@ -177,7 +179,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-07 16:16:43 -0500 (Mon, 07 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-11 16:48:29 -0500 (Fri, 11 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -220,6 +222,8 @@ lqn2ps( int argc, char *argv[] )
 	if ( optarg ) {
 	    command_line += optarg;
 	}
+
+	pragmas.insert( getenv( "LQNS_PRAGMAS" ) );
 
 	switch( c ) {
 	case 'A':
@@ -343,12 +347,9 @@ lqn2ps( int argc, char *argv[] )
 	    }
 	    break;
 
-#if HAVE_REGEX_T
 	case 512+'I':
-	    Flags::print[INCLUDE_ONLY].value.r = static_cast<regex_t *>(malloc( sizeof( regex_t ) ));
-	    regexp_check( regcomp( Flags::print[INCLUDE_ONLY].value.r, optarg, REG_EXTENDED ), Flags::print[INCLUDE_ONLY].value.r );
+	    Flags::print[INCLUDE_ONLY].value.r = new std::regex( optarg );
 	    break;
-#endif
 
 	case 'J':
 	    options = optarg;
@@ -439,41 +440,38 @@ lqn2ps( int argc, char *argv[] )
 	    options = optarg;
 	    while ( *options ) {
 		arg = getsubopt( &options, const_cast<char * const *>(Options::layering), &value );
+		Flags::print[LAYERING].value.i = arg;
 
 		switch ( arg ) {
 		case LAYERING_HWSW:
-		case LAYERING_SRVN:
-		case LAYERING_SQUASHED:
-		case LAYERING_PROCESSOR_TASK:
 		case LAYERING_MOL:
-		case LAYERING_TASK_PROCESSOR:
+		case LAYERING_SQUASHED:
+		case LAYERING_SRVN:
+		    pragmas.insert(LQIO::DOM::Pragma::_layering_,Options::layering[arg]);
 		    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
-		    Flags::print[LAYERING].value.i = arg;
-		    break;
-
-		case LAYERING_PROCESSOR:
-		    Flags::print[PROCESSORS].value.i = PROCESSOR_NONE;
-		    Flags::print[LAYERING].value.i = LAYERING_PROCESSOR;
-		    break;
-
-		case LAYERING_SHARE:
-		    Flags::print[PROCESSORS].value.i = PROCESSOR_NONE;
-		    Flags::print[LAYERING].value.i = LAYERING_SHARE;
 		    break;
 
 		case LAYERING_BATCH:
-		    Flags::print[LAYERING].value.i = arg;
+		    pragmas.insert(LQIO::DOM::Pragma::_layering_,Options::layering[arg]);
 		    break;
 
-#if HAVE_REGEX_T
+		    /* Non-pragma layering */
+		case LAYERING_PROCESSOR_TASK:
+		case LAYERING_TASK_PROCESSOR:
+		    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
+		    break;
+
+		case LAYERING_PROCESSOR:
+		case LAYERING_SHARE:
+		    Flags::print[PROCESSORS].value.i = PROCESSOR_NONE;
+		    break;
+
 		case LAYERING_GROUP:
 		    if ( value ) {
 			Model::add_group( value );
 		    }
-		    Flags::print[LAYERING].value.i = LAYERING_GROUP;
 		    Flags::print[PROCESSORS].value.i = PROCESSOR_ALL;
 		    break;
-#endif
 
 		default:
 		    invalid_option( c, optarg );
@@ -608,7 +606,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 512+'t':
-	    pragma( "tasks-only", "" );
+	    special( "tasks-only", "true", pragmas );
 	    break;
 
 	case 'V':
@@ -670,7 +668,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 
 	case 'Z':	/* Always set... :-) */
-	    if ( !process_pragma( optarg ) ) {
+	    if ( !process_special( optarg, pragmas ) ) {
 		exit( 1 );
 	    }
 	    break;
@@ -727,27 +725,25 @@ lqn2ps( int argc, char *argv[] )
     /* Check for sensible combinations of options. */
 
     if ( Flags::annotate_input && !input_output() ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::pragma[PRAGMA_ANNOTATE] 
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z " << Options::special[SPECIAL_ANNOTATE] 
 	     << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i]
 	     << " output are mutually exclusive." << std::endl;
 	Flags::annotate_input = false;
     }
 
     if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES && !(graphical_output() || queueing_output()) ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_TASKS_ONLY] 
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::special[SPECIAL_TASKS_ONLY] 
 	     << " and " <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
 	     << " output are mutually exclusive." << std::endl;
 	exit( 1 );
     }
 
-#if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r && submodel_output() ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -I<regexp> "
 	     << "and -S" <<  Flags::print[SUBMODEL].value.i 
 	     << " are mutually exclusive." << std::endl;
 	exit( 1 );
     }
-#endif
 
     if ( submodel_output() && Flags::print_submodels ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -S" << Flags::print[SUBMODEL].value.i
@@ -785,7 +781,7 @@ lqn2ps( int argc, char *argv[] )
     }
 
     if ( Flags::flatten_submodel && !(submodel_output() || queueing_output()) ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::pragma[PRAGMA_FLATTEN_SUBMODEL]
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::special[SPECIAL_FLATTEN_SUBMODEL]
 	     << " can only be used with either -Q<n> -S<n>." << std::endl;
     }
 
@@ -862,16 +858,12 @@ lqn2ps( int argc, char *argv[] )
 	}
     }
 
-#if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r ) {
-	regfree( Flags::print[INCLUDE_ONLY].value.r );
-	free( Flags::print[INCLUDE_ONLY].value.r );
+	delete Flags::print[INCLUDE_ONLY].value.r;
     }
     if ( Flags::client_tasks ) {
-	regfree( Flags::client_tasks );
-	free( Flags::client_tasks );
+	delete Flags::client_tasks;
     }
-#endif
 
     return 0;
 }
@@ -933,7 +925,13 @@ process( const std::string& input_file_name, const std::string& output_file_name
 
     /* Now fold, mutiliate and spindle */
 
-    Model::prepare( document );			/* This creates the various objects 	*/
+    document->mergePragmas( pragmas.getList() );       	/* Save pragmas -- prepare will process */
+    Model::prepare( document );				/* This creates the various objects 	*/
+#if BUG_270
+    if ( Flags::prune ) {
+	Model::prune();
+    }
+#endif
     const unsigned n_layers = Model::topologicalSort();
 
     Model * aModel;

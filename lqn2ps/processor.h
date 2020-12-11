@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 13523 2020-03-03 16:19:29Z greg $
+ * $Id: processor.h 14208 2020-12-11 20:44:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -44,8 +44,6 @@ public:
     int nTasks() const { return _tasks.size(); }
     const std::set<Share *,LT<Share> >& shares() const { return _shares; }
     int nShares() const { return _shares.size(); }
-    virtual Entity& processor( const Processor * aProcessor );
-    virtual const Processor * processor() const;
     bool hasRate() const;
     LQIO::DOM::ExternalVariable& rate() const;
     bool hasQuantum() const;

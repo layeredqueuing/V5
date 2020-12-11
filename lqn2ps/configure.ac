@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 13996 2020-10-24 22:01:20Z greg $
+# $Id: configure.ac 14194 2020-12-09 22:17:26Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
 AC_INIT(lqn2ps, 5.19, greg@sce.carleton.ca)
@@ -57,7 +57,7 @@ AC_CHECK_HEADERS([float.h ieeefp.h])
 if test "x$enable_shared" = "xyes"; then
    AC_CHECK_HEADERS([gd.h])
 fi
-AC_CHECK_HEADERS([limits.h regex.h stdlib.h string.h unistd.h values.h])
+AC_CHECK_HEADERS([limits.h stdlib.h string.h unistd.h values.h])
 AC_CHECK_HEADERS([getopt.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -77,7 +77,6 @@ if test "x$enable_shared" = "xyes"; then
 fi
 AC_CHECK_FUNCS([getopt_long])
 AC_CHECK_FUNCS([mkdir rmdir])
-AC_CHECK_FUNCS([regcomp])
 AC_CHECK_FUNCS([strchr strdup strerror strrchr strtol])
 #
 # Final pass for jpeg/png/gd. 

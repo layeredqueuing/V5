@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: dim.h 14201 2020-12-10 16:33:17Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -26,6 +26,8 @@
 #include <stdexcept>
 #include <string>
 #include <cstring>
+
+#define	BUG_270		1
 
 #define MAX_CLASSES     200                     /* Max classes (clients)        */
 #define MAX_PHASES      3                       /* Number of Phases.            */

@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: entry.cc 14209 2020-12-11 21:48:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -76,8 +76,8 @@ Entry::Entry( const LQIO::DOM::DocumentObject * dom )
       _calls(),
       _callers(),
       _startActivity(nullptr),
-      myActivityCall(nullptr),
-      myActivityCallers()
+      _activityCall(nullptr),
+      _activityCallers()
 {
     /* Allocate phases */
 
@@ -108,8 +108,8 @@ Entry::Entry( const Entry& src )
       _calls(),
       _callers(),
       _startActivity(nullptr),
-      myActivityCall(nullptr),
-      myActivityCallers()
+      _activityCall(nullptr),
+      _activityCallers()
 {
     myNode = Node::newNode( Flags::entry_width, Flags::entry_height );
     myLabel = Label::newLabel();
@@ -182,8 +182,8 @@ Entry::~Entry()
     delete myNode;
     delete myLabel;
 
-    if ( myActivityCall ) {
-	delete myActivityCall;
+    if ( _activityCall ) {
+	delete _activityCall;
     }
 }
 
@@ -512,9 +512,9 @@ Entry&
 Entry::setStartActivity( Activity * anActivity )
 {
     _startActivity = anActivity;
-    if ( myActivityCall ) delete myActivityCall;
-    myActivityCall = Arc::newArc();
-    anActivity->rootEntry( this, myActivityCall );
+    if ( _activityCall ) delete _activityCall;
+    _activityCall = Arc::newArc();
+    anActivity->rootEntry( this, _activityCall );
     _maxPhase = 1;
     return *this;
 }
@@ -538,18 +538,28 @@ Entry::getPhaseDOM( unsigned p ) const
 void
 Entry::removeDstCall( GenericCall * aCall)
 {
-    std::vector<GenericCall *>::iterator pos = find_if( _callers.begin(), _callers.end(), EQ<GenericCall>( aCall ) );
+    std::vector<GenericCall *>::iterator pos = std::find( _callers.begin(), _callers.end(), aCall );
     if ( pos != _callers.end() ) {
 	_callers.erase( pos );
+    }
+}
+
+
+void
+Entry::removeSrcCall( Call * aCall )
+{
+    std::vector<Call *>::iterator pos = std::find( _calls.begin(), _calls.end(), aCall ) ;
+    if ( pos != _calls.end() ) {
+	_calls.erase( pos );
     }
 }
 
 void
 Entry::deleteActivityReplyArc( Reply * aReply )
 {
-    std::vector<Reply *>::iterator pos = find_if( myActivityCallers.begin(), myActivityCallers.end(), EQ<GenericCall>( aReply ) );
-    if ( pos != myActivityCallers.end() ) {
-	myActivityCallers.erase( pos );
+    std::vector<Reply *>::iterator pos = find_if( _activityCallers.begin(), _activityCallers.end(), EQ<GenericCall>( aReply ) );
+    if ( pos != _activityCallers.end() ) {
+	_activityCallers.erase( pos );
     }
 }
 
@@ -1453,11 +1463,11 @@ Entry::aggregate()
 
     if ( dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ) {
 	_startActivity = nullptr;
-	if ( myActivityCall ) {
-	    delete myActivityCall;
-	    myActivityCall = nullptr;
+	if ( _activityCall ) {
+	    delete _activityCall;
+	    _activityCall = nullptr;
 	}
-	myActivityCallers.clear();
+	_activityCallers.clear();
     }
 
     switch ( Flags::print[AGGREGATION].value.i ) {
@@ -1479,7 +1489,7 @@ Entry::aggregate()
 unsigned
 Entry::setChain( unsigned curr_k, unsigned next_k, const Entity * aServer, callPredicate aFunc )
 {
-    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->processor() == aServer) ) ) {
+    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->hasProcessor(dynamic_cast<const Processor *>(aServer)) ) ) ) {
 	setServerChain( curr_k ).setClientClosedChain( curr_k );		/* Catch case where there are no calls. */
     }
 
@@ -1669,10 +1679,10 @@ Entry::moveTo( const double x, const double y )
     moveSrc();		/* Move Arcs	*/
     moveDst();
 
-    if ( myActivityCall ) {
-	myActivityCall->moveSrc( bottomCenter() );
+    if ( _activityCall ) {
+	_activityCall->moveSrc( bottomCenter() );
 
-	std::sort( myActivityCallers.begin(), myActivityCallers.end(), Call::compareDst );
+	std::sort( _activityCallers.begin(), _activityCallers.end(), Call::compareDst );
 
 	std::vector<Reply *> left_side;
 	std::vector<Reply *> right_side;
@@ -1681,7 +1691,7 @@ Entry::moveTo( const double x, const double y )
 
 	/* Sort left and right */
 
-	for ( std::vector<Reply *>::const_iterator reply = myActivityCallers.begin(); reply != myActivityCallers.end(); ++reply ) {
+	for ( std::vector<Reply *>::const_iterator reply = _activityCallers.begin(); reply != _activityCallers.end(); ++reply ) {
 	    if ( (*reply)->srcActivity()->left() < left() ) {
 		right_side.push_back(*reply);
 	    } else {
@@ -1841,8 +1851,8 @@ Entry::scaleBy( const double sx, const double sy )
 {
     Element::scaleBy( sx, sy );
     for_each( calls().begin(), calls().end(), ExecXY<GenericCall>( &GenericCall::scaleBy, sx, sy ) );
-    if ( myActivityCall ) {
-	myActivityCall->scaleBy( sx, sy );
+    if ( _activityCall ) {
+	_activityCall->scaleBy( sx, sy );
     }
     return *this;
 }
@@ -1854,8 +1864,8 @@ Entry::translateY( const double dy )
 {
     Element::translateY( dy );
     for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
-    if ( myActivityCall ) {
-	myActivityCall->translateY( dy );
+    if ( _activityCall ) {
+	_activityCall->translateY( dy );
     }
     return *this;
 }
@@ -1867,8 +1877,8 @@ Entry::depth( const unsigned depth  )
 {
     Element::depth( depth-1 );
     for_each( calls().begin(), calls().end(), Exec1<GenericCall,unsigned int>( &GenericCall::depth, depth-2 ) );
-    if ( myActivityCall ) {
-	myActivityCall->depth( depth-2 );
+    if ( _activityCall ) {
+	_activityCall->depth( depth-2 );
     }
     return *this;
 }
@@ -1995,6 +2005,63 @@ Entry::rename()
     const_cast<LQIO::DOM::DocumentObject *>(getDOM())->setName( name.str() );
     return *this;
 }
+
+
+#if defined(BUG_270)
+/* 
+ * Find all callers to this entry, then move the arc to the client.  Delete the client arc.  We don't do activities (yet)
+ */
+
+Entry&
+Entry::linkToClients( const std::vector<EntityCall *>& proc )
+{
+    if ( isActivityEntry() ) throw not_implemented( "Entry::linkToClients", __FILE__, __LINE__ );
+
+#if defined(BUG_270)
+    std::cerr << "linkToClients() for " << name() << std::endl;
+#endif
+    for ( std::vector<GenericCall *>::const_iterator x = callers().begin(); x != callers().end(); ++x ) {
+	const EntryCall * client_call = dynamic_cast<const EntryCall *>(*x);
+	if ( !client_call ) throw not_implemented( "Entry::linkToClients", __FILE__, __LINE__ );
+	Entry * client_entry = const_cast<Entry *>(client_call->srcEntry());
+	client_entry->removeSrcCall( const_cast<EntryCall *>(client_call) );		// unlink from parent entry.
+
+	/* What about the rate from the client to the server??? */
+	for ( std::vector<Call *>::const_iterator y = calls().begin(); y != calls().end(); ++y ) {
+	    Call * clone = dynamic_cast<Call *>((*y)->clone());
+	    if ( dynamic_cast<EntryCall *>(clone) != nullptr ) {
+		dynamic_cast<EntryCall *>(clone)->setSrcEntry( client_entry );	// Will be a phase/activity
+	    }
+	    client_entry->addSrcCall( clone );	// copy to parent entry.  Duplicates?
+	    const Entry * entry = (*y)->dstEntry();
+	    const_cast<Entry *>(entry)->addDstCall( clone );
+#if defined(BUG_270)
+	    std::cerr << "  Move " << (*y)->srcName() <<  "->" << (*y)->dstName()  << std::endl
+		      << "    to " << clone->srcName() << "->" << clone->dstName() << std::endl;
+#endif
+	}
+
+	// have to move proc calls to calling task too (owner of client).
+
+	for ( std::vector<EntityCall *>::const_iterator p = proc.begin(); p != proc.end(); ++p ) {
+	    EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
+	    Task * client_task = const_cast<Task *>(client_entry->owner());
+	    clone->setSrcTask( client_task );
+	    client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
+	    const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
+	    client_task->addProcessor( processor );
+	    const_cast<Processor *>(processor)->addDstCall( clone );
+//	    const_cast<Processor *>(processor)->addTask( client_task );
+#if defined(BUG_270)
+	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()  << std::endl
+		      << "    to " << clone->srcName() << "->" << clone->dstName() << std::endl;
+#endif
+	}
+    }
+
+    return *this;
+}
+#endif
 
 
 
@@ -2269,14 +2336,14 @@ Entry::draw( std::ostream& output ) const
 	}
     }
 
-    if ( myActivityCall ) {
-	myActivityCall->penColour( colour() );
-	myActivityCall->draw( output );
+    if ( _activityCall ) {
+	_activityCall->penColour( colour() );
+	_activityCall->draw( output );
     }
 
     /* Draw reply arcs here for PostScript layering */
 
-    for_each( myActivityCallers.begin(), myActivityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
+    for_each( _activityCallers.begin(), _activityCallers.end(), ConstExec1<GenericCall,std::ostream&>(&GenericCall::draw, output) );
     return *this;
 }
 

@@ -1,6 +1,6 @@
 /* label.cc	-- Greg Franks Wed Jan 29 2003
  * 
- * $Id: label.cc 14139 2020-11-25 18:38:03Z greg $
+ * $Id: label.cc 14206 2020-12-11 17:59:18Z greg $
  */
 
 #include "lqn2ps.h"
@@ -105,6 +105,17 @@ Label::Label()
       _backgroundColour(TRANSPARENT), 
       _justification(CENTER_JUSTIFY), 
       _mathMode(false)
+{
+}
+
+
+Label::Label( const Label& src ) 
+    : Graphic(), 
+      _origin(src._origin),
+      _lines(src._lines),		// Deep copy?
+      _backgroundColour(src._backgroundColour), 
+      _justification(src._justification), 
+      _mathMode(src._mathMode)
 {
 }
 

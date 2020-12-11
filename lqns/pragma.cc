@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14187 2020-12-08 14:29:28Z greg $ *
+ * $Id: pragma.cc 14204 2020-12-11 12:50:59Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -17,9 +17,26 @@
 #include <algorithm>
 #include <iomanip>
 #include "pragma.h"
+#include "lqio/glblerr.h"
 
 Pragma * Pragma::__cache = nullptr;
 std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
+
+std::map<std::string,Pragma::pragma_force_multiserver> Pragma::__force_multiserver;
+std::map<std::string,Pragma::pragma_layering> Pragma::__layering_pragma;
+std::map<std::string,Pragma::pragma_multiserver> Pragma::__multiserver_pragma;
+std::map<std::string,Pragma::pragma_mva> Pragma::__mva_pragma;
+std::map<std::string,Pragma::pragma_overtaking> Pragma::__overtaking_pragma;
+std::map<std::string,scheduling_type> Pragma::__processor_scheduling_pragma;
+std::map<std::string,LQIO::severity_t> Pragma::__serverity_level_pragma;
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+std::map<std::string,Pragma::pragma_quorum_distribution> Pragma::__quorum_distribution_pragma;
+std::map<std::string,Pragma::pragma_quorum_delayed_calls> Pragma::__quorum_delayed_calls_pragma;
+std::map<std::string,Pragma::pragma_quorum_idle_time> Pragma::__quorum_idle_time_pragma;
+#endif
+std::map<std::string,Pragma::pragma_threads> Pragma::__threads_pragma;
+std::map<std::string,Pragma::pragma_variance> Pragma::__variance_pragma;
+
 
 /*
  * Set default values in the constructor.  Defaults are used below.
@@ -36,9 +53,9 @@ Pragma::Pragma() :
     _overtaking(MARKOV_OVERTAKING),
     _processor_scheduling(SCHEDULE_PS),
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    _quorumDistribution(DEFAULT_QUORUM_DISTRIBUTION),
-    _quorumDelayedCalls(DEFAULT_QUORUM_DELAYED_CALLS),
-    _quorumIdleTime(DEFAULT_IDLETIME),
+    _quorum_distribution(DEFAULT_QUORUM_DISTRIBUTION),
+    _quorum_delayed_calls(DEFAULT_QUORUM_DELAYED_CALLS),
+    _quorum_idle_time(DEFAULT_IDLETIME),
 #endif
 #if RESCHEDULE
     _reschedule_on_async_send(false),
@@ -89,7 +106,79 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_tau_] = &Pragma::setTau;
     __set_pragma[LQIO::DOM::Pragma::_threads_] = &Pragma::setThreads;
     __set_pragma[LQIO::DOM::Pragma::_variance_] = &Pragma::setVariance;
+
+    __force_multiserver[LQIO::DOM::Pragma::_all_] =		FORCE_ALL;
+    __force_multiserver[LQIO::DOM::Pragma::_none_] =		FORCE_NONE;
+    __force_multiserver[LQIO::DOM::Pragma::_tasks_] =		FORCE_TASKS;
+    __force_multiserver[LQIO::DOM::Pragma::_processors_] =	FORCE_PROCESSORS;
+
+    __layering_pragma[ LQIO::DOM::Pragma::_batched_] =	    BATCHED_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_batched_back_] = BACKPROPOGATE_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_hwsw_] =	    HWSW_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_mol_] =	    METHOD_OF_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_mol_back_] =	    BACKPROPOGATE_METHOD_OF_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_squashed_] =	    SQUASHED_LAYERS;
+    __layering_pragma[ LQIO::DOM::Pragma::_srvn_] =	    SRVN_LAYERS;
+
+    __multiserver_pragma[LQIO::DOM::Pragma::_bruell_] =		BRUELL_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_conway_] =		CONWAY_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_reiser_] =		REISER_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_reiser_ps_] =	REISER_PS_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_rolia_] =		ROLIA_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_rolia_ps_] =	ROLIA_PS_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_schmidt_] =	SCHMIDT_MULTISERVER;
+    __multiserver_pragma[LQIO::DOM::Pragma::_suri_] =		SURI_MULTISERVER;
+
+    __mva_pragma[LQIO::DOM::Pragma::_exact_] = 			EXACT_MVA;
+    __mva_pragma[LQIO::DOM::Pragma::_schweitzer_] = 		SCHWEITZER_MVA;
+    __mva_pragma[LQIO::DOM::Pragma::_fast_] = 			FAST_MVA;
+    __mva_pragma[LQIO::DOM::Pragma::_one_step_] = 		ONESTEP_MVA;
+    __mva_pragma[LQIO::DOM::Pragma::_one_step_linearizer_] = 	ONESTEP_LINEARIZER;
+    
+    __overtaking_pragma[LQIO::DOM::Pragma::_markov_] =	MARKOV_OVERTAKING;
+    __overtaking_pragma[LQIO::DOM::Pragma::_none_] =	NO_OVERTAKING;
+    __overtaking_pragma[LQIO::DOM::Pragma::_rolia_] =	ROLIA_OVERTAKING;
+    __overtaking_pragma[LQIO::DOM::Pragma::_simple_] =	SIMPLE_OVERTAKING;
+    __overtaking_pragma[LQIO::DOM::Pragma::_special_] =	SPECIAL_OVERTAKING;
+
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_DELAY].XML] =	SCHEDULE_DELAY;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_FIFO].XML] =	SCHEDULE_FIFO;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_HOL].XML] =		SCHEDULE_HOL;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_PPR].XML] =		SCHEDULE_PPR;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_PS].XML] =		SCHEDULE_PS;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_RAND].XML] =	SCHEDULE_RAND;
+
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    __quorum_distribution_pragma[LQIO::DOM::Pragma::_threepoint_] = 	THREEPOINT_QUORUM_DISTRIBUTION;
+    __quorum_distribution_pragma[LQIO::DOM::Pragma::_gamma_] = 		GAMMA_QUORUM_DISTRIBUTION;
+    __quorum_distribution_pragma[LQIO::DOM::Pragma::_geometric_] = 	CLOSEDFORM_GEOMETRIC_QUORUM_DISTRIBUTION;
+    __quorum_distribution_pragma[LQIO::DOM::Pragma::_deterministic_] = 	CLOSEDFORM_DETRMINISTIC_QUORUM_DISTRIBUTION;
+    __quorum_distribution_pragma[LQIO::DOM::Pragma::_default_] = 	DEFAULT_QUORUM_DISTRIBUTION;
+
+    __quorum_delayed_calls_pragma[LQIO::DOM::Pragma::_keep_all_] =	KEEP_ALL_QUORUM_DELAYED_CALLS;
+    __quorum_delayed_calls_pragma[LQIO::DOM::Pragma::_abort_all_] =	ABORT_ALL_QUORUM_DELAYED_CALLS;
+    __quorum_delayed_calls_pragma[LQIO::DOM::Pragma::_abort_local_] =	ABORT_LOCAL_ONLY_QUORUM_DELAYED_CALLS;
+    __quorum_delayed_calls_pragma[LQIO::DOM::Pragma::_abort_remote_] =	ABORT_REMOTE_ONLY_QUORUM_DELAYED_CALLS;
+    __quorum_delayed_calls_pragma[LQIO::DOM::Pragma::_default_] =	DEFAULT_QUORUM_DELAYED_CALLS;
+
+    __quorum_idle_time_pragma[LQIO::DOM::Pragma::_default_] = 		DEFAULT_IDLETIME;
+    __quorum_idle_time_pragma[LQIO::DOM::Pragma::_join_delay_] =	JOINDELAY_IDLETIME;
+#endif
+    
+    __serverity_level_pragma[LQIO::DOM::Pragma::_advisory_] =	LQIO::ADVISORY_ONLY;
+    __serverity_level_pragma[LQIO::DOM::Pragma::_run_time_] =	LQIO::RUNTIME_ERROR;
+    __serverity_level_pragma[LQIO::DOM::Pragma::_warning_] =	LQIO::WARNING_ONLY;
+
+    __threads_pragma[LQIO::DOM::Pragma::_hyper_] =	HYPER_THREADS;
+    __threads_pragma[LQIO::DOM::Pragma::_mak_] =	MAK_LUNDSTROM_THREADS;
+    __threads_pragma[LQIO::DOM::Pragma::_none_] =	NO_THREADS;
+
+    __variance_pragma[LQIO::DOM::Pragma::_default_] =		DEFAULT_VARIANCE;
+    __variance_pragma[LQIO::DOM::Pragma::_mol_] =		MOL_VARIANCE;
+    __variance_pragma[LQIO::DOM::Pragma::_none_] =		NO_VARIANCE;
+    __variance_pragma[LQIO::DOM::Pragma::_stochastic_] =	STOCHASTIC_VARIANCE;
 }
+    
 
 void
 Pragma::set( const std::map<std::string,std::string>& list )
@@ -99,12 +188,21 @@ Pragma::set( const std::map<std::string,std::string>& list )
     if ( __cache != nullptr ) delete __cache;
     __cache = new Pragma();
 
-    for ( std::map<std::string,std::string>::const_iterator i = list.begin(); i != list.end(); ++i ) {
-	const std::string& param = i->first;
-	const std::map<std::string,fptr>::const_iterator j = __set_pragma.find(param);
-	if ( j != __set_pragma.end() ) {
+    std::for_each( list.begin(), list.end(), set_pragma );
+}
+
+
+void Pragma::set_pragma( const std::pair<std::string,std::string>& p )
+{
+    const std::string& param = p.first;
+    const std::map<std::string,fptr>::const_iterator j = __set_pragma.find(param);
+    if ( j != __set_pragma.end() ) {
+	try {
 	    fptr f = j->second;
-	    (__cache->*f)(i->second);
+	    (__cache->*f)(p.second);
+	}
+	catch ( std::domain_error& e ) {
+	    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	}
     }
 }
@@ -117,14 +215,11 @@ void Pragma::setAllowCycles(const std::string& value)
 
 void Pragma::setForceMultiserver(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_all_ ) {
-	_force_multiserver = FORCE_ALL;
-    } else if ( value == LQIO::DOM::Pragma::_tasks_ ) {
-	_force_multiserver = FORCE_TASKS;
-    } else if ( value == LQIO::DOM::Pragma::_processors_ ) {
-	_force_multiserver = FORCE_PROCESSORS;
+    const std::map<std::string,pragma_force_multiserver>::const_iterator pragma = __force_multiserver.find( value );
+    if ( pragma != __force_multiserver.end() ) {
+	_force_multiserver = pragma->second;
     } else {
-	_force_multiserver = FORCE_NONE;
+	throw std::domain_error( value.c_str() );
     }
 }
 
@@ -135,98 +230,101 @@ void Pragma::setInterlock(const std::string& value)
 
 void Pragma::setLayering(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_batched_back_ ) {
-	_layering = BACKPROPOGATE_LAYERS;
-    } else if ( value == LQIO::DOM::Pragma::_mol_ ) {
-	_layering = METHOD_OF_LAYERS;
-    } else if ( value == LQIO::DOM::Pragma::_mol_back_ ) {
-	_layering = BACKPROPOGATE_METHOD_OF_LAYERS;
-    } else if ( value == LQIO::DOM::Pragma::_srvn_ ) {
-	_layering = SRVN_LAYERS;
-    } else if ( value == LQIO::DOM::Pragma::_squashed_ ) {
-	_layering = SQUASHED_LAYERS;
-    } else if ( value == LQIO::DOM::Pragma::_hwsw_ ) {
-	_layering = HWSW_LAYERS;
+    const std::map<std::string,pragma_layering>::const_iterator pragma = __layering_pragma.find( value );
+    if ( pragma != __layering_pragma.end() ) {
+	_layering = pragma->second;
     } else {
-	_layering = BATCHED_LAYERS;
-    }
+	throw std::domain_error( value.c_str() );
+    } 
 }
 
 void Pragma::setMultiserver(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_conway_ ) {
-	_multiserver = CONWAY_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_reiser_ ) {
-	_multiserver = REISER_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_reiser_ps_ ) {
-	_multiserver = REISER_PS_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_rolia_ ) {
-	_multiserver = ROLIA_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_rolia_ps_ ) {
-	_multiserver = ROLIA_PS_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_bruell_ ) {
-	_multiserver = BRUELL_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_schmidt_ ) {
-	_multiserver = SCHMIDT_MULTISERVER;
-    } else if ( value == LQIO::DOM::Pragma::_suri_ ) {
-	_multiserver = SURI_MULTISERVER;
-    } else {
+    const std::map<std::string,pragma_multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
+    if ( pragma != __multiserver_pragma.end() ) {
+	_multiserver = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_multiserver = DEFAULT_MULTISERVER;
+    } else {
+	throw std::domain_error( value.c_str() );
     }
 }
 
 void Pragma::setMva(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_exact_ ) {
-	_mva = EXACT_MVA;
-    } else if ( value == LQIO::DOM::Pragma::_schweitzer_ ) {
-	_mva = SCHWEITZER_MVA;
-    } else if ( value == LQIO::DOM::Pragma::_fast_ ) {
-	_mva = FAST_MVA;
-    } else if ( value == LQIO::DOM::Pragma::_one_step_ ) {
-	_mva = ONESTEP_MVA;
-    } else if ( value == LQIO::DOM::Pragma::_one_step_linearizer_ ) {
-	_mva = ONESTEP_LINEARIZER;
+    const std::map<std::string,pragma_mva>::const_iterator pragma = __mva_pragma.find( value );
+    if ( pragma != __mva_pragma.end() ) {
+	_mva = pragma->second;
     } else {
-	_mva = LINEARIZER_MVA;
+	throw std::domain_error( value.c_str() );
     }
 }
 
 
 void Pragma::setOvertaking(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_markov_ ) {
-	_overtaking = MARKOV_OVERTAKING;
-    } else if ( value == LQIO::DOM::Pragma::_rolia_ ) {
-	_overtaking = ROLIA_OVERTAKING;
-    } else if ( value == LQIO::DOM::Pragma::_simple_ ) {
-	_overtaking = SIMPLE_OVERTAKING;
-    } else if ( value == LQIO::DOM::Pragma::_special_ ) {
-	_overtaking = SPECIAL_OVERTAKING;
+    const std::map<std::string,pragma_overtaking>::const_iterator pragma = __overtaking_pragma.find( value );
+    if ( pragma != __overtaking_pragma.end() ) {
+	_overtaking = pragma->second;
     } else {
-	_overtaking = NO_OVERTAKING;
+	throw std::domain_error( value.c_str() );
     }
 }
 
 void Pragma::setProcessorScheduling(const std::string& value)
 {
-    _default_processor_scheduling = false;
-    if ( value == scheduling_label[SCHEDULE_DELAY].XML ) {
-	_processor_scheduling = SCHEDULE_DELAY;
-    } else if ( value == scheduling_label[SCHEDULE_FIFO].XML ) {
-	_processor_scheduling = SCHEDULE_FIFO;
-    } else if ( value == scheduling_label[SCHEDULE_HOL].XML ) {
-	_processor_scheduling = SCHEDULE_HOL;
-    } else if ( value == scheduling_label[SCHEDULE_PPR].XML ) {
-	_processor_scheduling = SCHEDULE_PPR;
-    } else if ( value == scheduling_label[SCHEDULE_PS].XML ) {
-	_processor_scheduling = SCHEDULE_PS;
-    } else if ( value == scheduling_label[SCHEDULE_RAND].XML ) {
-	_processor_scheduling = SCHEDULE_RAND;
-    } else {
+    const std::map<std::string,scheduling_type>::const_iterator pragma = __processor_scheduling_pragma.find( value );
+    if ( pragma != __processor_scheduling_pragma.end() ) {
+	_default_processor_scheduling = false;
+	_processor_scheduling = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_processor_scheduling = true;
+    } else {
+	throw std::domain_error( value.c_str() );
     }
 }
+
+
+#if BUG_270
+void Pragma::setPrune(const std::string& value)
+{
+    _prune = isTrue(value);
+}
+#endif
+
+
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+void Pragma::setQuorumDistribution(const std::string& value)
+{
+    const std::map<std::string,pragma_quorum_distribution>::const_iterator pragma = __quorum_distribution_pragma.find( value );
+    if ( pragma != __quorum_distribution_pragma.end() ) {
+	_quorum_distribution = pragma->second;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
+    
+void Pragma::setQuorumDelayedCalls(const std::string& value)
+{
+    const std::map<std::string,pragma_quorum_delayed_calls>::const_iterator pragma = __quorum_delayed_calls_pragma.find( value );
+    if ( pragma != __quorum_delayed_calls_pragma.end() ) {
+	_quorum_delayed_calls = pragma->second;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
+
+void Pragma::setQuorumIdleTime(const std::string& value)
+{
+    const std::map<std::string,pragma_quorum_idle_time>::const_iterator pragma = __quorum_idle_time_pragma.find( value );
+    if ( pragma != __quorum_idle_time_pragma.end() ) {
+	_quorum_idle_time = pragma->second;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
+#endif
+
 
 #if RESCHEDULE
 void Pragma::setRescheduleOnAsyncSend(const std::string& value)
@@ -242,12 +340,9 @@ void Pragma::setSpexHeader(const std::string& value)
 
 void Pragma::setSeverityLevel(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_warning_ ) {
-	_severity_level = LQIO::WARNING_ONLY;
-    } else if ( value == LQIO::DOM::Pragma::_advisory_) {
-	_severity_level = LQIO::ADVISORY_ONLY;
-    } else if ( value == LQIO::DOM::Pragma::_run_time_) {
-	_severity_level = LQIO::RUNTIME_ERROR;
+    const std::map<std::string,LQIO::severity_t>::const_iterator pragma = __serverity_level_pragma.find( value );
+    if ( pragma != __serverity_level_pragma.end() ) {
+	_severity_level = pragma->second;
     } else {
 	_severity_level = LQIO::NO_ERROR;
     }
@@ -256,8 +351,9 @@ void Pragma::setSeverityLevel(const std::string& value)
 void Pragma::setStopOnBogusUtilization(const std::string& value)
 {
     char * endptr = nullptr;
-    _stop_on_bogus_utilization = std::strtod( value.c_str(), &endptr );
-    if ( (_stop_on_bogus_utilization < 1 && _stop_on_bogus_utilization != 0) || *endptr != '\0' ) throw std::domain_error( "Invalid stop_on_bogus_utilization" );
+    const double temp = std::strtod( value.c_str(), &endptr );
+    if ( (temp < 1 && temp != 0) || *endptr != '\0' ) throw std::domain_error( value.c_str() );
+    _stop_on_bogus_utilization = temp;
 }
 
 void Pragma::setStopOnMessageLoss(const std::string& value)
@@ -268,37 +364,34 @@ void Pragma::setStopOnMessageLoss(const std::string& value)
 void Pragma::setTau(const std::string& value)
 {
     char * endptr = nullptr;
-    _tau = std::strtol( value.c_str(), &endptr, 10 );
-    if ( _tau > 20 || *endptr != '\0' ) throw std::domain_error( "Invalid tau" );
+    const unsigned int temp = std::strtol( value.c_str(), &endptr, 10 );
+    if ( temp > 20 || *endptr != '\0' ) throw std::domain_error( value.c_str() );
+    _tau = temp;
 }
 
 void Pragma::setThreads(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_exponential_ ) {
+    const std::map<std::string,pragma_threads>::const_iterator pragma = __threads_pragma.find( value );
+    if ( pragma != __threads_pragma.end() ) {
+	_threads = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_exponential_ ) {
 	_exponential_paths = true;
-    } else if ( value == LQIO::DOM::Pragma::_hyper_ ) {
-	_threads = HYPER_THREADS;
-    } else if ( value == LQIO::DOM::Pragma::_mak_ ) {
-	_threads = MAK_LUNDSTROM_THREADS;
     } else {
-	_threads = NO_THREADS;
+	throw std::domain_error( value.c_str() );
     }
 }
 	
 void Pragma::setVariance(const std::string& value)
 {
-    if ( value == LQIO::DOM::Pragma::_no_entry_ ) {
+    const std::map<std::string,pragma_variance>::const_iterator pragma = __variance_pragma.find( value );
+    if ( pragma != __variance_pragma.end() ) {
+	_variance = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_no_entry_ ) {
 	_entry_variance = false;
     } else if ( value == LQIO::DOM::Pragma::_init_only_ ) {
 	_init_variance_only = true;
-    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
-	_variance = DEFAULT_VARIANCE;
-    } else if ( value == LQIO::DOM::Pragma::_stochastic_ ) {
-	_variance = STOCHASTIC_VARIANCE;
-    } else if ( value == LQIO::DOM::Pragma::_mol_ ) {
-	_variance = MOL_VARIANCE;
     } else {
-	_variance = NO_VARIANCE;
+	throw std::domain_error( value.c_str() );
     }
 }
 

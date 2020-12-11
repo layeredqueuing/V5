@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: open.h 14208 2020-12-11 20:44:05Z greg $
  */
 
 #ifndef _OPEN_H
@@ -28,8 +28,6 @@ public:
     virtual OpenArrivalSource& squishName() { return *this; }	/* Don't bother */
     virtual OpenArrivalSource& moveSrc( const Point& aPoint );
     double utilization() const { return 0.0; }
-    virtual OpenArrivalSource& processor( const Processor * );
-    const Processor * processor() const { return 0; }
 
     const std::vector<OpenArrival *>& calls() const { return _calls; }
 

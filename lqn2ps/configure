@@ -16600,7 +16600,7 @@ fi
 done
 
 fi
-for ac_header in limits.h regex.h stdlib.h string.h unistd.h values.h
+for ac_header in limits.h stdlib.h string.h unistd.h values.h
 do :
   as_ac_Header=`$as_echo "ac_cv_header_$ac_header" | $as_tr_sh`
 ac_fn_cxx_check_header_mongrel "$LINENO" "$ac_header" "$as_ac_Header" "$ac_includes_default"
@@ -17077,17 +17077,6 @@ ac_fn_cxx_check_func "$LINENO" "$ac_func" "$as_ac_var"
 if eval test \"x\$"$as_ac_var"\" = x"yes"; then :
   cat >>confdefs.h <<_ACEOF
 #define `$as_echo "HAVE_$ac_func" | $as_tr_cpp` 1
-_ACEOF
-
-fi
-done
-
-for ac_func in regcomp
-do :
-  ac_fn_cxx_check_func "$LINENO" "regcomp" "ac_cv_func_regcomp"
-if test "x$ac_cv_func_regcomp" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_REGCOMP 1
 _ACEOF
 
 fi

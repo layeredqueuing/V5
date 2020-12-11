@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: entry.h 14206 2020-12-11 17:59:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -166,11 +166,13 @@ public:
     Entry& setPhaseDOM( unsigned phase, const LQIO::DOM::Phase* phaseInfo );
     const LQIO::DOM::Phase * getPhaseDOM( unsigned phase ) const;
 
+    void addSrcCall( Call * aCall ) { _calls.push_back(aCall); }
+    void removeSrcCall( Call * aCall );
     void addDstCall( GenericCall * aCall ) { _callers.push_back( aCall ); }
     void removeDstCall( GenericCall * aCall );
     const std::vector<GenericCall *>& callers() const { return _callers; }
     const std::vector<Call *>& calls() const { return _calls; }
-    void addActivityReplyArc( Reply * aReply ) { myActivityCallers.push_back(aReply); }
+    void addActivityReplyArc( Reply * aReply ) { _activityCallers.push_back(aReply); }
     void deleteActivityReplyArc( Reply * aReply );
 
     bool isActivityEntry() const;
@@ -216,6 +218,9 @@ public:
 
     virtual Entry& rename();
 
+#if defined(BUG_270)
+    Entry& linkToClients( const std::vector<EntityCall *>& );
+#endif
 #if defined(REP2FLAT)
     static Entry * find_replica( const std::string&, const unsigned );
 
@@ -236,7 +241,6 @@ private:
     ProxyEntryCall * findOrAddFwdCall( const Entry * anEntry );
     Call * findOrAddPseudoCall( const Entry * anEntry );		// For -Lclient
 
-    void addSrcCall( Call * aCall ) { _calls.push_back(aCall); }
     Entry& moveSrc();
     Entry& moveDst();
 
@@ -258,8 +262,8 @@ private:
     std::vector<Call *> _calls;			/* Who I call.			*/
     std::vector<GenericCall *> _callers;	/* Who calls me.		*/
     Activity * _startActivity;			/* If I have activities.	*/
-    Arc *myActivityCall;			/* Arc to who I call		*/
-    std::vector<Reply *> myActivityCallers;	/* Arcs from who reply to me.	*/
+    Arc *_activityCall;				/* Arc to who I call		*/
+    std::vector<Reply *> _activityCallers;	/* Arcs from who reply to me.	*/
 };
 
 /*

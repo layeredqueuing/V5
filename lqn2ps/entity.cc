@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: entity.cc 14192 2020-12-09 20:18:06Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -68,14 +68,11 @@ Entity::Entity( const LQIO::DOM::Entity* domEntity, const size_t id )
       _isSelected(true),
       _isSurrogate(false)
 {
-#if HAVE_REGEX_T
     if ( Flags::print[INCLUDE_ONLY].value.r ) {
-	_isSelected = regexec( Flags::print[INCLUDE_ONLY].value.r, const_cast<char *>(name().c_str()), 0, 0, 0 ) != REG_NOMATCH;
-    } else 
-#endif
-      if ( submodel_output()
-	 || queueing_output()
-	 || Flags::print[CHAIN].value.i != 0 ) {
+	_isSelected = std::regex_match( name(), *Flags::print[INCLUDE_ONLY].value.r );
+    } else if ( submodel_output()
+		|| queueing_output()
+		|| Flags::print[CHAIN].value.i != 0 ) {
 	_isSelected = false;
     }
 }

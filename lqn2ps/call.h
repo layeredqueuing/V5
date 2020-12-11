@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14178 2020-12-07 21:16:43Z greg $
+ * $Id: call.h 14209 2020-12-11 21:48:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -49,9 +49,16 @@ public:
 	const callPredicate _p;
     };
 
+private:
+    GenericCall& operator=( const GenericCall& src );
+
+protected:
+    GenericCall( const GenericCall& src );
+    
 public:
     GenericCall();
     virtual ~GenericCall();
+    virtual GenericCall * clone() const = 0;
 
     virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const { return nullptr; }
 
@@ -92,10 +99,10 @@ public:
     virtual GenericCall& setChain( const unsigned ) = 0;
 
     virtual Graphic::colour_type colour() const = 0;
-    GenericCall& linestyle( Graphic::linestyle_type aLinestyle ) { myArc->linestyle( aLinestyle ); return *this; }
+    GenericCall& linestyle( Graphic::linestyle_type aLinestyle ) { _arc->linestyle( aLinestyle ); return *this; }
     
-    unsigned int nPoints() const { return myArc->nPoints(); }
-    Point& pointAt( const unsigned i ) const { return myArc->pointAt(i); }
+    unsigned int nPoints() const { return _arc->nPoints(); }
+    Point& pointAt( const unsigned i ) const { return _arc->pointAt(i); }
 
     virtual GenericCall& moveDst( const Point& aPoint );
     virtual GenericCall& moveSrc( const Point& aPoint );
@@ -116,8 +123,8 @@ public:
     static bool compareSrc( const GenericCall *, const GenericCall * );
 
 protected:
-    Label * myLabel;
-    Arc * myArc;
+    Label * _label;
+    Arc * _arc;
 };
 
 inline std::ostream& operator<<( std::ostream& output, const GenericCall& self ) { self.draw( output ); return output; }
@@ -137,10 +144,6 @@ public:
 	const size_t _depth;
     };
 
-private:
-    static bool hasVariance;
-
-public:
     struct PredicateAndEntry
     {
 	PredicateAndEntry( const Entry * e, const callPredicate p ) : _e(e), _p(p) {};
@@ -160,8 +163,10 @@ public:
     };
 
 private:
-    Call( const Call& aCall );
     Call& operator=( const Call& );
+
+protected:
+    Call( const Call& aCall );
 
 protected:
     typedef SRVNCallManip (* print_func_ptr)( const Call& );
@@ -170,6 +175,7 @@ public:
     Call();
     Call( const Entry * toEntry, const unsigned );
     virtual ~Call();
+    
     static void reset();
     virtual bool check() const = 0;
     bool checkReplication() const;
@@ -223,8 +229,8 @@ public:
     virtual bool hasRendezvous() const;
     virtual bool hasSendNoReply() const;
     virtual bool hasForwarding() const;
-    virtual bool hasRendezvousVariance() const { return hasRendezvous() && hasVariance; }
-    virtual bool hasSendNoReplyVariance() const { return hasSendNoReply() && hasVariance; }
+    virtual bool hasRendezvousVariance() const { return hasRendezvous() && __hasVariance; }
+    virtual bool hasSendNoReplyVariance() const { return hasSendNoReply() && __hasVariance; }
     virtual bool hasDropProbability() const;
     virtual bool hasInfiniteWait() const;
     virtual bool isSelected() const;
@@ -260,20 +266,28 @@ private:
 private:
     /* Input */
 	
-    const Entry* _destination;		/* to whom I am referring to	*/	
+    const Entry* _destination;			/* to whom I am referring to	*/	
     std::vector<const LQIO::DOM::Call *> _rendezvous;
     std::vector<const LQIO::DOM::Call *> _sendNoReply;	/* send no reply.	*/
     const LQIO::DOM::Call * _forwarding;	/* Forwarding probability.	*/
+    static bool __hasVariance;
 };
 
 class EntryCall : public Call 
 {
+private:
+    EntryCall( const EntryCall& );
+    
 public:
     EntryCall( const Entry * fromEntry, const Entry * toEntry );
     virtual ~EntryCall();
+
+    virtual EntryCall * clone() const { return new EntryCall( *this ); }
+
     virtual bool check() const;
 
-    const Entry * srcEntry() const { return source; }
+    EntryCall& setSrcEntry( const Entry * entry ) { _source = entry; return *this; }
+    const Entry * srcEntry() const { return _source; }
     virtual const std::string & srcName() const;
     virtual const Task * srcTask() const;
     virtual double srcIndex() const;
@@ -287,7 +301,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
 private:
-    const Entry* source;		/* Calling entry.		*/
+    const Entry* _source;		/* Calling entry.		*/
 };
 
 
@@ -316,12 +330,17 @@ public:
 
 class ActivityCall : public Call 
 {
+private:
+    ActivityCall( const ActivityCall& );
+
 public:
     ActivityCall( const Activity * fromActivity, const Entry * toEntry );
     virtual ~ActivityCall();
+    virtual ActivityCall * clone() const { return new ActivityCall(*this); }
+
     virtual bool check() const;
 
-    const Activity * srcActivity() const { return source; }
+    const Activity * srcActivity() const { return _source; }
     virtual const std::string & srcName() const;
     virtual const Task * srcTask() const;
     virtual double srcIndex() const;
@@ -338,7 +357,7 @@ protected:
     virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
 
 private:
-    const Activity* source;		/* Calling entry.		*/
+    const Activity* _source;		/* Calling entry.		*/
 };
 
 class ProxyActivityCall : public ActivityCall 
@@ -368,10 +387,14 @@ public:
 /* ----------------- Calls to processors from tasks. ------------------ */
 
 class EntityCall : public GenericCall {
+private:
+    EntityCall( const EntityCall& );
+    
 public:
     EntityCall( const Task * fromTask, const Entity * toEntity ) : GenericCall(), _srcTask(fromTask), _dstEntity(toEntity) {}
 
     virtual const std::string & srcName() const;
+    EntityCall& setSrcTask( const Task * task ) { _srcTask = task; return *this; }
     virtual const Task * srcTask() const { return _srcTask; }
 
     EntityCall& setDstEntity( const Entity * entity ) { _dstEntity = entity; return *this; }
@@ -390,9 +413,13 @@ protected:
 
 class TaskCall : public EntityCall 
 {
+private:
+    TaskCall( const TaskCall& );
+    
 public:
     TaskCall( const Task * fromTask, const Task * toTask );
     virtual ~TaskCall();
+    virtual TaskCall * clone() const { return new TaskCall( *this ); }
 
     int operator==( const TaskCall& item ) const;
     int operator!=( const TaskCall& item ) const { return !(*this == item); }
@@ -452,9 +479,13 @@ public:
 /* ----------------- Calls to processors from tasks. ------------------ */
 
 class ProcessorCall : public EntityCall {
+private:
+    ProcessorCall( const ProcessorCall& );
+    
 public:
     ProcessorCall( const Task * fromTask, const Processor * toProcessor );
     virtual ~ProcessorCall();
+    virtual ProcessorCall * clone() const {  return new ProcessorCall( *this ); }
 
     int operator==( const ProcessorCall& item ) const;
     int operator!=( const ProcessorCall& item ) const { return !(*this == item); }
@@ -494,9 +525,14 @@ public:
 /* ----------- Calls to tasks from Open Arrival Sources . ------------- */
 
 class OpenArrival : public GenericCall {
+private:
+    OpenArrival( const OpenArrival& );
+    
 public:
     OpenArrival( const OpenArrivalSource *, const Entry * );
     virtual ~OpenArrival();
+
+    OpenArrival * clone() const { return new OpenArrival( *this ); }
 
     int operator==( const OpenArrival& item ) const;
     int operator!=( const OpenArrival& item ) const { return !(*this == item); }
@@ -529,7 +565,7 @@ public:
     virtual std::ostream& print( std::ostream& output ) const { return output; }
 
 private:
-    const OpenArrivalSource * source;
+    const OpenArrivalSource * _source;
     const Entry * _destination;
 };
 
@@ -586,4 +622,3 @@ SRVNCallManip print_sendnoreply( const Call& aCall );
 SRVNCallManip print_forwarding( const Call& aCall );
 LabelCallManip print_wait( const Call& aCall );
 #endif
-

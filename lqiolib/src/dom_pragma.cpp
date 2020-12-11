@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14178 2020-12-07 21:16:43Z greg $
+ *  $Id: dom_pragma.cpp 14201 2020-12-10 16:33:17Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -44,7 +44,6 @@ namespace LQIO {
 	    __pragmas[Pragma::_tau_] =              nullptr;		/* lqns */
 	    __pragmas[Pragma::_underrelaxation_] =  nullptr;		/* lqns */
 
-#if 1
 	    /* Boolean */
 	    
 	    static std::set<std::string> true_false_arg;
@@ -54,7 +53,7 @@ namespace LQIO {
 	    true_false_arg.insert(Pragma::_no_);
 	    __pragmas[Pragma::_cycles_] = &true_false_arg;			/* lqns */
 	    __pragmas[Pragma::_interlocking_] = &true_false_arg;		/* lqns */
-	    __pragmas[Pragma::_prune_] = &true_false_arg;			/* lqns */
+	    __pragmas[Pragma::_prune_] = &true_false_arg;			// BUG_270
 	    __pragmas[Pragma::_quorum_reply_] =	&true_false_arg;		/* lqsim */
 	    __pragmas[Pragma::_reschedule_on_async_send_] = &true_false_arg;
 	    __pragmas[Pragma::_spex_header_] = &true_false_arg;
@@ -72,11 +71,11 @@ namespace LQIO {
 	    static std::set<std::string> layering_args;		/* lqns */
 	    layering_args.insert(Pragma::_batched_);
 	    layering_args.insert(Pragma::_batched_back_);
+	    layering_args.insert(Pragma::_hwsw_);
 	    layering_args.insert(Pragma::_mol_);
 	    layering_args.insert(Pragma::_mol_back_);
 	    layering_args.insert(Pragma::_squashed_);
 	    layering_args.insert(Pragma::_srvn_);
-	    layering_args.insert(Pragma::_hwsw_);
 	    __pragmas[_layering_] = &layering_args;
 	    
 	    static std::set<std::string> multiserver_args;	/* lqns */
@@ -174,11 +173,6 @@ namespace LQIO {
 	    warning_args.insert(Pragma::_advisory_);
 	    warning_args.insert(Pragma::_run_time_);
 	    __pragmas["severity-level"] = &warning_args;
-
-#else
-	    static const char * mva_args[] = { Pragma::_linearizer_, Pragma::_exact_, Pragma::_schweitzer_, Pragma::_fast_, Pragma::_one_step_, Pragma::_one_step_linearizer_ };
-	    __pragmas["mva"] = new std::set<const std::string>( mva_args, mva_args+6 );
-#endif
 	}
 
 	bool Pragma::insert(const std::string& param,const std::string& value)
@@ -285,7 +279,7 @@ namespace LQIO {
 	    return true;
 	}
 
-	/* Lables */
+	/* Labels */
 	
 	const char * Pragma::_abort_all_ = 			"abort-all";		// Quorum
 	const char * Pragma::_abort_local_ = 			"abort-local";		// Quorum

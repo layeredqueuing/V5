@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: activity.cc 14208 2020-12-11 20:44:05Z greg $
  */
 
 #include "activity.h"
@@ -499,7 +499,7 @@ Activity::setChain( std::deque<const Activity *>& activityStack, unsigned curr_k
 	return next_k;
     }
 
-    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->processor() == aServer) ) ) {
+    if ( aFunc != &GenericCall::hasSendNoReply && (!aServer || (owner()->hasProcessor( dynamic_cast<const Processor *>(aServer) ) ) ) ) {
 	setServerChain( curr_k ).setClientClosedChain( curr_k );		/* Catch case where there are no calls. */
     }
 
@@ -804,7 +804,7 @@ Activity::serviceTimeForSRVNInput() const
 
     /* Add in processor queueing is it isn't selected */
 
-    if ( !owner()->processor()->isSelected() ) {
+    if ( std::any_of( owner()->processors().begin(), owner()->processors().end(), Predicate<Processor>( &Processor::isSelected ) ) ) {
 	time += queueingTime();		/* queueing time is already multiplied my nRendezvous.  See lqns/parasrvn. */
     }
 
