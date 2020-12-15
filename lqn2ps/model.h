@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14209 2020-12-11 21:48:29Z greg $
+ * $Id: model.h 14222 2020-12-15 16:00:35Z greg $
  */
 
 #ifndef _MODEL_H
@@ -238,6 +238,9 @@ private:
     std::ostream& printFIG( std::ostream& output ) const;
 #if HAVE_LIBGD
     std::ostream& printGD( std::ostream& output, outputFuncPtr func ) const;
+#endif
+#if defined(JMVA_OUTPUT)
+    std::ostream& printJMVA( std::ostream& output ) const;
 #endif
     std::ostream& printPostScript( std::ostream& output ) const;
 #if defined(SVG_OUTPUT)

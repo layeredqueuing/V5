@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 14146 2020-11-26 21:53:48Z greg $
+ *  $Id: dom_phase.cpp 14214 2020-12-14 17:17:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -20,7 +20,7 @@ namespace LQIO {
 	const char * Phase::__typeName = "phase";
 
 	/* Dummy Phase */
-	Phase::Phase() 
+	Phase::Phase()
 	    : DocumentObject(), _serviceTime(NULL),
 	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(nullptr),
 	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
@@ -33,7 +33,7 @@ namespace LQIO {
 	}
 
 	/* Normal constructor */
-	Phase::Phase(const Document * document,Entry* parentEntry) 
+	Phase::Phase(const Document * document,Entry* parentEntry)
 	    : DocumentObject(document,""), _calls(), _serviceTime(NULL),
 	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(parentEntry),
 	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
@@ -45,10 +45,13 @@ namespace LQIO {
 	{
 	}
 
-	Phase::Phase( const LQIO::DOM::Phase& src ) 
-	    : DocumentObject(src.getDocument(),src.getName().c_str()), _calls(), _serviceTime(const_cast<LQIO::DOM::ExternalVariable *>(src.getServiceTime())),
+	Phase::Phase( const LQIO::DOM::Phase& src )
+	    : DocumentObject(src.getDocument(),src.getName()),
+	      _calls(),		/* WARNING! Not copied */
+	      _serviceTime(src._serviceTime->clone()),
 	      _phaseTypeFlag(src.getPhaseTypeFlag()), _entry(const_cast<LQIO::DOM::Entry*>(src.getSourceEntry())),
-	      _thinkTime(const_cast<LQIO::DOM::ExternalVariable *>(src.getThinkTime())), _coeffOfVariationSq(const_cast<LQIO::DOM::ExternalVariable *>(src.getCoeffOfVariationSquared())), _histogram(NULL),
+	      _thinkTime(src._thinkTime->clone()),
+	      _coeffOfVariationSq(src._coeffOfVariationSq->clone()), _histogram(NULL),
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
@@ -71,7 +74,7 @@ namespace LQIO {
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-	bool Phase::isPresent() const 
+	bool Phase::isPresent() const
 	{
 	    return hasServiceTime() || hasThinkTime() || _calls.size() > 0;
 	}
@@ -179,7 +182,7 @@ namespace LQIO {
 	    }
 
 	}
-	
+
 	void Phase::setMaxServiceTimeValue(double time)
 	{
 	    if ( _histogram != NULL ) {
@@ -248,7 +251,7 @@ namespace LQIO {
 	}
 
 	bool Phase::hasHistogram() const
-	{ 
+	{
 	    return _histogram != 0 && _histogram->isHistogram();
 	}
 
@@ -258,9 +261,9 @@ namespace LQIO {
 	    _histogram = histogram;
 	}
 
-	bool Phase::hasMaxServiceTimeExceeded() const	
-	{ 
-	    return _histogram && _histogram->isTimeExceeded(); 
+	bool Phase::hasMaxServiceTimeExceeded() const
+	{
+	    return _histogram && _histogram->isTimeExceeded();
 	}
 
 	void Phase::addCall(Call* call)
@@ -276,7 +279,7 @@ namespace LQIO {
 		_calls.erase( iter );
 	    }
 	}
-	    
+
 
 	const std::vector<Call*>& Phase::getCalls() const
 	{
@@ -303,7 +306,7 @@ namespace LQIO {
 	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasSendNoReply ) ) != _calls.end();
 	}
 
-	bool Phase::hasResultVarianceWaitingTime() const 
+	bool Phase::hasResultVarianceWaitingTime() const
 	{
 	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultVarianceWaitingTime ) ) != _calls.end();
 	}

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14209 2020-12-11 21:48:29Z greg $
+ * $Id: lqn2ps.h 14222 2020-12-15 16:00:35Z greg $
  *
  */
 
@@ -9,6 +9,7 @@
 #define _LQN2PS_H
 
 #define EMF_OUTPUT	1
+#define JMVA_OUTPUT	1
 #define SVG_OUTPUT	1
 #define SXD_OUTPUT	1
 #define TXT_OUTPUT	1
@@ -106,6 +107,9 @@ typedef enum {
     FORMAT_FIG,
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
     FORMAT_GIF,
+#endif
+#if defined(JMVA_OUTPUT)
+    FORMAT_JMVA,
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     FORMAT_JPEG,
@@ -349,6 +353,7 @@ struct Flags
     static std::regex * client_tasks;
     static sort_type sort;
     static unsigned long span;
+    static const unsigned int size;
 };
 
 class Options
@@ -549,6 +554,77 @@ private:
 	{ return m.f(os,m.myVar); }
 };
 
+
+namespace XML {
+    class BooleanManip {
+    public:
+	BooleanManip( std::ostream& (*f)(std::ostream&, const std::string&, const bool ), const std::string& a, const bool b ) : _f(f), _a(a), _b(b) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const bool );
+	const std::string& _a;
+	const bool _b;
+
+	friend std::ostream& operator<<(std::ostream & os, const BooleanManip& m ) { return m._f(os,m._a,m._b); }
+    };
+
+    class StringManip {
+    public:
+	StringManip( std::ostream& (*f)(std::ostream&, const std::string&, const std::string& ), const std::string& a, const std::string& v=0 ) : _f(f), _a(a), _v(v) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const std::string& );
+	const std::string& _a;
+	const std::string& _v;
+
+	friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) { return m._f(os,m._a,m._v); }
+    };
+
+    class UnsignedManip {
+    public:
+	UnsignedManip( std::ostream& (*f)(std::ostream&, const std::string&, const unsigned int ), const std::string& a, const unsigned int u ) : _f(f), _a(a), _u(u) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const unsigned int );
+	const std::string& _a;
+	const unsigned int _u;
+
+	friend std::ostream& operator<<(std::ostream & os, const UnsignedManip& m ) { return m._f(os,m._a,m._u); }
+    };
+
+    class DoubleManip {
+    public:
+	DoubleManip( std::ostream& (*f)(std::ostream&, const std::string&, const double ), const std::string& a, const double v ) : _f(f), _a(a), _v(v) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const double );
+	const std::string& _a;
+	const double _v;
+
+	friend std::ostream& operator<<(std::ostream & os, const DoubleManip& m ) { return m._f(os,m._a,m._v); }
+    };
+
+    class InlineElementManip {
+    public:
+	InlineElementManip( std::ostream& (*f)(std::ostream&, const std::string&, const std::string&, const std::string&, double ), const std::string& e, const std::string& a, const std::string& v, double d )
+	    : _f(f), _e(e), _a(a), _v(v), _d(d) {}
+    private:
+	std::ostream& (*_f)( std::ostream&, const std::string&, const std::string&, const std::string&, double );
+	const std::string& _e;
+	const std::string& _a;
+	const std::string& _v;
+	const double _d;
+
+	friend std::ostream& operator<<(std::ostream & os, const InlineElementManip& m ) 
+	    { return m._f(os,m._e,m._a,m._v,m._d); }
+    };
+
+    BooleanManip start_element( const std::string& e, bool b=true );
+    BooleanManip end_element( const std::string& e, bool b=true );
+    BooleanManip simple_element( const std::string& e );
+    InlineElementManip inline_element( const std::string& e, double value );
+    StringManip attribute( const std::string& a, const std::string& v );
+    DoubleManip attribute( const std::string&a, double v );
+    UnsignedManip attribute( const std::string&a, unsigned int v );
+}
+
+
 /*
  * Return square.  C++ doesn't even have an exponentiation operator, let
  * alone a smart one.
@@ -589,14 +665,14 @@ bool queueing_output();			/* true if generating queueing network */
 bool submodel_output();			/* true if generating a submodel */
 bool difference_output();		/* true if print differences */
 bool share_output();			/* true if sorting by processor share */
-int set_indent( const unsigned int anInt );
+int set_indent( int anInt );
 inline double normalized_font_size() { return Flags::print[FONT_SIZE].value.i / Flags::print[MAGNIFICATION].value.f; }
 
-IntegerManip indent( const int anInt );
-IntegerManip temp_indent( const int anInt );
-Integer2Manip conf_level( const int, const int );
-StringPlural plural( const std::string& s, const unsigned i );
-DoubleManip opt_pct( const double aDouble );
+IntegerManip indent( const int anInt );				/* See main.cc */
+IntegerManip temp_indent( const int anInt );			/* See main.cc */
+Integer2Manip conf_level( const int, const int );		/* See main.cc */
+StringPlural plural( const std::string& s, const unsigned i );	/* See main.cc */
+DoubleManip opt_pct( const double aDouble );			/* See main.cc */
 
 /* ------------------------------------------------------------------------ */
 

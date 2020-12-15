@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14209 2020-12-11 21:48:29Z greg $
+ * $Id: entry.cc 14223 2020-12-15 19:27:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -71,7 +71,6 @@ Entry::Entry( const LQIO::DOM::DocumentObject * dom )
       drawRight(true),
       _phases(),
       _owner(0),
-      _maxPhase(0),
       _isCalled(NOT_CALLED),
       _calls(),
       _callers(),
@@ -103,7 +102,6 @@ Entry::Entry( const Entry& src )
       drawRight(src.drawRight),
       _phases(),
       _owner(0),
-      _maxPhase(src._maxPhase),
       _isCalled(src._isCalled),
       _calls(),
       _callers(),
@@ -515,7 +513,6 @@ Entry::setStartActivity( Activity * anActivity )
     if ( _activityCall ) delete _activityCall;
     _activityCall = Arc::newArc();
     anActivity->rootEntry( this, _activityCall );
-    _maxPhase = 1;
     return *this;
 }
 
@@ -1242,7 +1239,7 @@ Entry::aggregateService( const Activity * anActivity, const unsigned p, const do
     const std::vector<Call *>& calls = anActivity->calls();
     for ( std::vector<Call *>::const_iterator call = calls.begin(); call != calls.end(); ++call ) {
 	Entry * dstEntry = const_cast<Entry *>((*call)->dstEntry());
-	dstEntry->removeDstCall( (*call) );
+	dstEntry->removeDstCall( *call );
 	
 	/* Aggregate the calls made by the activity to the entry */
 
@@ -1253,10 +1250,14 @@ Entry::aggregateService( const Activity * anActivity, const unsigned p, const do
 	    dstCall = findOrAddCall( dstEntry );
 	}
 	dstCall->merge( getPhase(p), p, **call, rate );
+	delete *call;
     }
 
     const_cast<std::vector<Call *>&>(calls).clear();
     const std::vector<LQIO::DOM::Call*>& dom_calls = anActivity->getDOM()->getCalls();
+    for ( std::vector<LQIO::DOM::Call *>::const_iterator call = dom_calls.begin(); call != dom_calls.end(); ++call ) {
+	delete *call;
+    }
     const_cast<std::vector<LQIO::DOM::Call *>&>(dom_calls).clear();
     return *this;
 }
@@ -1365,16 +1366,14 @@ Entry::check() const
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 		rc = false;
 	    }
-	    _maxPhase = std::max( _maxPhase, next_p );
-	    max_phases = std::max( _maxPhase, max_phases );		/* Set global value.	*/
+	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
 	}
 
     } else {
 	bool hasServiceTime = false;
 	for ( std::map<unsigned,Phase>::const_iterator p = _phases.begin(); p != _phases.end(); ++p ) {
 	    const Phase& phase = p->second;
-	    _maxPhase = std::max( _maxPhase, p->first );
-	    max_phases = std::max( _maxPhase, max_phases );		/* Set global value.	*/
+	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
 	    rc = phase.check() && rc;
 	    hasServiceTime = hasServiceTime || phase.hasServiceTime();
 	}
@@ -2009,7 +2008,9 @@ Entry::rename()
 
 #if defined(BUG_270)
 /* 
- * Find all callers to this entry, then move the arc to the client.  Delete the client arc.  We don't do activities (yet)
+ * Find all callers to this entry, then move the arc to the client.  Delete the client arc.  
+ * We don't do activities (yet)
+ * Async calls to inf servers?  Do supply demand on processor.
  */
 
 Entry&
@@ -2032,34 +2033,64 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    if ( dynamic_cast<EntryCall *>(clone) != nullptr ) {
 		dynamic_cast<EntryCall *>(clone)->setSrcEntry( client_entry );	// Will be a phase/activity
 	    }
+	    clone->updateRateFrom( *client_call );
+	    /* I will have to replace the DOM call with a clone and change the rate.   See Call.cc::rendezvous(p). */
+	    
 	    client_entry->addSrcCall( clone );	// copy to parent entry.  Duplicates?
 	    const Entry * entry = (*y)->dstEntry();
 	    const_cast<Entry *>(entry)->addDstCall( clone );
 #if defined(BUG_270)
-	    std::cerr << "  Move " << (*y)->srcName() <<  "->" << (*y)->dstName()  << std::endl
-		      << "    to " << clone->srcName() << "->" << clone->dstName() << std::endl;
+	    std::cerr << "  Move " << (*y)->srcName() <<  "->" << (*y)->dstName()  
+		      << "    to " << clone->srcName() << "->" << clone->dstName() 
+		      << ", rate=" << clone->sumOfRendezvous() << std::endl;
 #endif
 	}
 
 	// have to move proc calls to calling task too (owner of client).
 
 	for ( std::vector<EntityCall *>::const_iterator p = proc.begin(); p != proc.end(); ++p ) {
-	    EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
-	    Task * client_task = const_cast<Task *>(client_entry->owner());
-	    clone->setSrcTask( client_task );
-	    client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
-	    const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
-	    client_task->addProcessor( processor );
-	    const_cast<Processor *>(processor)->addDstCall( clone );
-//	    const_cast<Processor *>(processor)->addTask( client_task );
+	    for ( std::vector<const LQIO::DOM::Call *>::const_iterator i = client_call->_calls.begin(); i != client_call->_calls.end(); ++i ) {
+		if ( *i == nullptr ) continue;
+// entry_call	    
+// Will have to clone by phase of client call.
+		EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
+		if ( dynamic_cast<ProcessorCall *>(clone) ) {
+		    clone->updateRateFrom( *client_call, *i );
+		}
+	    
+		Task * client_task = const_cast<Task *>(client_entry->owner());
+		clone->setSrcTask( client_task );
+		client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
+		const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
+		client_task->addProcessor( processor );
+		const_cast<Processor *>(processor)->addDstCall( clone );
+		const_cast<Processor *>(processor)->addTask( client_task );		// ??
 #if defined(BUG_270)
-	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()  << std::endl
-		      << "    to " << clone->srcName() << "->" << clone->dstName() << std::endl;
+		std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
+			  << "    to " << clone->srcName() << "->" << clone->dstName()
+			  << ", rate=" << clone->sumOfRendezvous() << std::endl;
 #endif
+	    }
 	}
     }
 
     return *this;
+}
+
+
+
+Entry&
+Entry::unlinkFromServers()
+{
+    std::for_each( calls().begin(), calls().end(), &Entry::remove_from_dst );
+    return *this;
+}
+
+
+void
+Entry::remove_from_dst( Call * call )
+{
+    if ( call != nullptr ) const_cast<Entry *>(call->dstEntry())->removeDstCall( call );
 }
 #endif
 
@@ -2138,7 +2169,7 @@ Entry::expandCall()
 
 		}
 		if ( srcEntry->hasForwarding() ) {
-		    dom_call = (*call)->getDOMFwd()->clone();
+		    dom_call = (*call)->getFwdDOM()->clone();
 		    dom_call->setDestinationEntry( dst_dom );
 		    srcEntry->forward( dstEntry, dom_call );
                     src_dom->addForwardingCall(dom_call);

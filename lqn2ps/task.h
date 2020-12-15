@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14208 2020-12-11 20:44:05Z greg $
+ * $Id: task.h 14223 2020-12-15 19:27:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -68,8 +68,7 @@ public:
     Entity& addProcessor( const Processor * aProcessor ) { _processors.insert(aProcessor); return *this; }
     const std::set<const Processor *>& processors() const { return _processors; }
     bool hasProcessor( const Processor * ) const;
-    const Processor * findProcessor( const LQIO::DOM::Processor * ) const;
-    const LQIO::DOM::Processor * getDOMProcessor() const;
+    const Processor * processor() const;
     
     const Share * share() const { return _share; }
     bool hasPriority() const;
@@ -173,6 +172,7 @@ public:
 
 #if defined(BUG_270)
     Task& linkToClients();
+    Task& unlinkFromServers();
 #endif
 #if defined(REP2FLAT)
     virtual Task& removeReplication();

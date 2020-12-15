@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14208 2020-12-11 20:44:05Z greg $
+ * $Id: layer.cc 14223 2020-12-15 19:27:55Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -429,6 +429,23 @@ Layer::label()
     }
     return *this;
 }
+
+
+
+void Layer::Position::operator()( Entity * entity )
+{
+    if ( !entity->isSelectedIndirectly() ) return;
+    if ( _x != 0.0 ) _x += Flags::print[X_SPACING].value.f;
+    Task * aTask = dynamic_cast<Task *>(entity);
+    if ( aTask && Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
+	(aTask->*_f)();
+    }
+    if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
+    entity->moveTo( _x, (_f == &Task::reformat ? entity->bottom() : _y) );
+    _x += entity->width();
+    _y = std::min( _y, entity->bottom() );
+    _h = std::max( _h, entity->height() );
+}
 
 /*
  * Select all servers in this submodel for printing.
@@ -645,13 +662,13 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 	dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
     }
     if ( task ) {
+	Processor * old_processor = const_cast<Processor *>(task->processor());
 	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
 	std::set<LQIO::DOM::Task*>& old_list = const_cast<std::set<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
 	std::set<LQIO::DOM::Task*>::iterator pos = find( old_list.begin(), old_list.end(), dom_task );
 	old_list.erase( pos );		// Remove task from original processor 
 	dom_processor->addTask( dom_task );
 	dom_task->setProcessor( dom_processor );
-	Processor * old_processor = const_cast<Processor *>(task->findProcessor(dom_task->getProcessor()));
 	old_processor->removeTask( task );
 	processor->addTask( task );
 
@@ -821,7 +838,10 @@ Layer::printSummary( std::ostream& output ) const
 
     return output;
 }
-
+
+/* -------------------------------------------------------------------- */
+/*			   Queueing Models				*/
+/* -------------------------------------------------------------------- */
 
 
 /*
@@ -831,7 +851,6 @@ Layer::printSummary( std::ostream& output ) const
 std::ostream&
 Layer::drawQueueingNetwork( std::ostream& output ) const
 {
-
     double max_x = x() + width();
     for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	bool is_in_open_model = false;
@@ -851,9 +870,9 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
     std::vector<bool> chain( nChains()+1, false );	/* for drawing */
     std::vector<Arc *> clientArc( nChains()+1 );
 
-    for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
-	if ( (*entity)->isSelected() ) {
-	    (*entity)->drawQueueingNetwork( output, max_x, y(), chain, clientArc );	/* Draw it. */
+    for ( std::vector<Entity *>::const_iterator server = entities().begin(); server != entities().end(); ++server ) {
+	if ( (*server)->isSelected() ) {
+	    (*server)->drawQueueingNetwork( output, max_x, y(), chain, clientArc );	/* Draw it. */
 	}
     }
     for ( unsigned k = 1; k <= nChains(); ++k ) {
@@ -865,20 +884,111 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 }
 
 
-void Layer::Position::operator()( Entity * entity )
+#if defined(JMVA_OUTPUT)
+std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
 {
-    if ( !entity->isSelectedIndirectly() ) return;
-    if ( _x != 0.0 ) _x += Flags::print[X_SPACING].value.f;
-    Task * aTask = dynamic_cast<Task *>(entity);
-    if ( aTask && Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
-	(aTask->*_f)();
+    set_indent(0);
+    output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
+    output << XML::start_element( "model" )
+	   << XML::attribute( "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance" )
+	   << XML::attribute( "xsi:noNamespaceSchemaLocation", "JMTmodel.xsd" )
+	   << ">" << std::endl;
+	      
+    output << XML::start_element( "parameters" )
+	   << ">" << std::endl;
+
+    /* Clients */
+
+    output << XML::start_element( "classes" )
+	   << XML::attribute( "number", static_cast<unsigned>(_clients.size()) )
+	   << ">" << std::endl;
+    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	if ( (*client)->isInClosedModel( entities() ) ) {
+	    output << XML::simple_element( "closedclass" )
+		   << XML::attribute( "name", (*client)->name() )
+		   << XML::attribute( "population", (*client)->copiesValue() )
+		   << "/>" << std::endl;
+	}
+	if ( (*client)->isInOpenModel( entities() ) ) {
+	}
     }
-    if ( Flags::debug ) std::cerr << "  Layer::Position move " << entity->name() << " to (" << _x << "," << entity->bottom() << ")" << std::endl;
-    entity->moveTo( _x, (_f == &Task::reformat ? entity->bottom() : _y) );
-    _x += entity->width();
-    _y = std::min( _y, entity->bottom() );
-    _h = std::max( _h, entity->height() );
+    output << XML::end_element( "classes" ) << std::endl;
+
+    /* Servers */
+
+     output << XML::start_element( "stations" )
+	   << XML::attribute( "number", static_cast<unsigned int>(std::count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isSelected )) ) )
+	   << ">" << std::endl;
+    for ( std::vector<Entity *>::const_iterator server = entities().begin(); server != entities().end(); ++server ) {
+	std::string element;
+	if ( (*server)->isInfinite() ) element = "delaystation";
+	else element = "listation";
+
+	output << XML::start_element( element );
+	output << XML::attribute( "name", (*server)->name() );
+	if ( (*server)->isMultiServer() ) output << XML::attribute( "servers", (*server)->copiesValue() );
+	output << ">" << std::endl;
+	output << XML::start_element( "servicetimes" ) << ">" << std::endl;
+	output << XML::end_element( "servicetimes" ) << std::endl;
+	output << XML::start_element( "visits" ) << ">" << std::endl;
+	output << XML::end_element( "visits" ) << std::endl;
+	output << XML::end_element( element );
+    }
+    output << XML::end_element( "stations" ) << std::endl;
+
+    /* Reference */
+
+    output << XML::start_element( "ReferenceStation" )
+	   << XML::attribute( "number", static_cast<unsigned>(std::count_if( _clients.begin(), _clients.end(), Predicate1<Entity,const std::vector<Entity *>&>( &Entity::isInClosedModel,entities()) ) ) )
+	   << ">" << std::endl;
+#if 0
+    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	if ( (*client)->isInClosedModel( entities() ) ) {
+	    output << XML::simple_element( "Class" )
+		   << XML::attribute( "name", (*client)->name() )
+		   << XML::attribute( "refStation", (*client)->copiesValue() )
+		   << "/>" << std::endl;
+	}
+	if ( (*client)->isInOpenModel( entities() ) ) {
+	}
+    }
+    output << XML::end_element( "ReferenceStation" ) << std::endl;
+#endif
+
+#if 0
+	<servicetimes>
+	  <servicetime customerclass="Class1">2.0</servicetime>
+	  <servicetime customerclass="Class2">3.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">1.0</visit>
+	  <visit customerclass="Class2">1.0</visit>
+	</visits>
+      </delaystation>
+    </stations>
+    <stations number="2">
+      <listation name="Station1" servers="1">
+	<servicetimes>
+	  <servicetime customerclass="Class1">4.0</servicetime>
+	  <servicetime customerclass="Class2">5.0</servicetime>
+	</servicetimes>
+	<visits>
+	  <visit customerclass="Class1">1.0</visit>
+	  <visit customerclass="Class2">1.0</visit>
+	</visits>
+      </listation>
+    <ReferenceStation number="2">
+      <Class name="Class1" refStation="Station1"/>
+      <Class name="Class2" refStation="Station1"/>
+    </ReferenceStation>
+  </parameters>
+  <algParams>
+    <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+    <compareAlgs value="false"/>
+  </algParams>
+#endif
+    output << XML::end_element( "parameters" ) << std::endl;
+    output << XML::end_element( "model" ) << std::endl;
+    return output;
 }
-
-
-
+#endif

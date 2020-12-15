@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14209 2020-12-11 21:48:29Z greg $
+ * $Id: model.cc 14223 2020-12-15 19:27:55Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -501,7 +501,7 @@ Model::process()
     /* Simplify to tasks (for queueing models) */
 
     if ( Flags::print[AGGREGATION].value.i == AGGREGATE_ENTRIES ) {
-//	for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
+	for_each( _layers.begin(), _layers.end(), ::Exec<Layer>( &Layer::aggregate ) );
     }
 
     if ( Flags::print[SUMMARY].value.b || Flags::print_submodels ) {
@@ -831,23 +831,26 @@ Model::getExtension()
     case FORMAT_FIG:
 	extension = "fig";
 	break;
-#if HAVE_GD_H && HAVE_LIBGD
-#if HAVE_GDIMAGEGIFPTR
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
     case FORMAT_GIF:
 	extension = "gif";
 	break;
 #endif
-#if HAVE_LIBJPEG
+#if defined(JMVA_OUTPUT)
+    case FORMAT_JMVA:
+	extension = "jmva";
+	break;
+#endif
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
     case FORMAT_JPEG:
 	extension = "jpg";
 	break;
 #endif
-#if HAVE_LIBPNG
+#if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
     case FORMAT_PNG:
 	extension = "png";
 	break;
 #endif
-#endif	/* HAVE_LIBGD */
     case FORMAT_NULL:
 	extension = "txt";
 	break;
@@ -914,7 +917,8 @@ Model::prune()
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
 	if ( (*task)->isInfinite() ) {
 	    (*task)->linkToClients();
-	    __zombies.push_back((*task));
+	    (*task)->unlinkFromServers();
+	    __zombies.push_back( *task );
 	}
     }
     
@@ -1470,6 +1474,11 @@ Model::print( std::ostream& output ) const
 	printGD( output, &GD::outputJPG );
 	break;
 #endif
+#if defined(JMVA_OUTPUT)
+    case FORMAT_JMVA:
+	printJMVA( output );
+	break;
+#endif
     case FORMAT_NULL:
 	break;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
@@ -1841,6 +1850,23 @@ Model::printInput( std::ostream& output ) const
     srvn.print( output );
     return output;
 }
+
+
+#if defined(JMVA_OUTPUT)
+/*
+ * It has to be a submodel...
+ */
+
+std::ostream&
+Model::printJMVA( std::ostream& output ) const
+{
+    if ( queueing_output() ) {
+	_layers.at(Flags::print[QUEUEING_MODEL].value.i).printJMVAQueueingNetwork( output );
+    }
+    return output;
+}
+#endif
+
 
 
 /*

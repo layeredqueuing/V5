@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 13764 2020-08-17 19:50:05Z greg $
+ *  $Id: srvn_spex.cpp 14216 2020-12-14 20:19:51Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -953,8 +953,8 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
 {
     expr_list * program = static_cast<expr_list *>(param_arg);
     if ( program && LQIO::spex.construct_program( program, 
-						       static_cast<expr_list *>(result_arg), 
-						       static_cast<expr_list *>(convergence_arg) ) ) {
+						  static_cast<expr_list *>(result_arg), 
+						  static_cast<expr_list *>(convergence_arg) ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }
@@ -1321,7 +1321,7 @@ void * spex_convergence_assignment_statement( const char * name, void * expr )
 void * spex_list( void * list_arg, void * node )
 {
     std::vector<LQX::SyntaxTreeNode *> * list = static_cast<expr_list *>(list_arg);
-    if ( !list ) {
+    if ( !list && node != nullptr ) {
 	list = new std::vector<LQX::SyntaxTreeNode*>();
     }
     if ( node ) {

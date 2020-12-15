@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_task.cpp 14148 2020-11-26 22:03:07Z greg $
+ *  $Id: dom_task.cpp 14213 2020-12-14 17:14:40Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -55,10 +55,10 @@ namespace LQIO {
 	    : Entity( src.getDocument(), "", src.getSchedulingType(), const_cast<LQIO::DOM::ExternalVariable*>(src.getCopies()),
 		      const_cast<LQIO::DOM::ExternalVariable*>(src.getReplicas()) ),
 	      _entryList(),				/* Need to reset this. */
-	      _queueLength(src.getQueueLength()),
+	      _queueLength(src._queueLength->clone()),
 	      _processor(),				/* Need to reset this */
-	      _priority(src.getPriority()),
-	      _thinkTime(src.getThinkTime()),
+	      _priority(src._priority->clone()),
+	      _thinkTime(src._thinkTime->clone()),
 	      _group(),					/* Need to reset this */
 	      _activities(), _precedences(),
 	      _fanOut(), _fanIn(),
@@ -70,6 +70,12 @@ namespace LQIO {
 	    for ( unsigned int p = 0; p < Phase::MAX_PHASE; ++p ) {
 		_resultPhaseUtilizations[p] = 0;
 		_resultPhaseUtilizationVariances[p] = 0;
+	    }
+	    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::iterator fan_out = _fanOut.begin(); fan_out != _fanOut.end(); ++fan_out ) {
+		fan_out->second = fan_out->second->clone();
+	    }
+	    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::iterator fan_in = _fanIn.begin(); fan_in != _fanIn.end(); ++fan_in ) {
+		fan_in->second = fan_in->second->clone();
 	    }
 	}
 

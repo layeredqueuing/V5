@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 14204 2020-12-11 12:50:59Z greg $
+ * $Id: pragma.h 14210 2020-12-11 23:50:58Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -253,8 +253,6 @@ private:
     void setThreads(const std::string&);
     void setVariance(const std::string&);
     
-    static bool isTrue(const std::string&);
-
 public:
     static void set( const std::map<std::string,std::string>& );
     static void initialize();

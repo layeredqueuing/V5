@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: actlist.h 14216 2020-12-14 20:19:51Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -325,7 +325,7 @@ protected:
     virtual const char * typeStr() const { return "+"; }
 
 private:
-    std::map<Activity *,Label *> myLabelList;
+    std::map<Activity *,Label *> _labelList;
 };
 
 /* -------------------------------------------------------------------- */
@@ -438,8 +438,8 @@ public:
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
 
-    bool isSynchPoint() const { return myJoinType == SYNCHRONIZATION_POINT; }
-    bool isInternalForkJoin() const { return myJoinType == INTERNAL_FORK_JOIN; }
+    bool isSynchPoint() const { return _joinType == SYNCHRONIZATION_POINT; }
+    bool isInternalForkJoin() const { return _joinType == INTERNAL_FORK_JOIN; }
 
     double joinDelay() const;
     double joinVariance() const;
@@ -460,13 +460,13 @@ protected:
 
 private:
     bool addToEntryList( unsigned i, Entry * anEntry ) const;
+    bool joinType( const join_type );
     const AndForkActivityList * forkList() const { return _forkList; }
 
 private:
-    Label * myLabel;
-    std::string myTypeStr;
-    bool joinType( const join_type );
-    mutable join_type myJoinType;		/* Barrier synch point.	*/
+    Label * _label;
+    std::string _typeStr;
+    mutable join_type _joinType;		/* Barrier synch point.	*/
     const AndForkActivityList * _forkList;
 
     mutable size_t _depth;
@@ -523,7 +523,7 @@ protected:
 private:
     std::vector<Activity *> _activityList;
     std::map<Activity *,Arc *> myArcList;
-    std::map<Activity *,Label *> myLabelList;
+    std::map<Activity *,Label *> _labelList;
     Node * myNode;
     ActivityList * prevLink;
 };

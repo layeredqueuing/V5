@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: layer.h 14222 2020-12-15 16:00:35Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -95,6 +95,9 @@ public:
     std::ostream& printSubmodelSummary( std::ostream& ) const;
     std::ostream& printSubmodel( std::ostream& ) const;
     std::ostream& drawQueueingNetwork( std::ostream& ) const;
+#if defined(JMVA_OUTPUT)
+    std::ostream& printJMVAQueueingNetwork( std::ostream& ) const;
+#endif
 
 private:
     Processor * findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *& processor, Task * task, const size_t level ) const;

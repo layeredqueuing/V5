@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 14136 2020-11-25 18:27:35Z greg $
+ * $Id: actlist.cc 14216 2020-12-14 20:19:51Z greg $
  */
 
 
@@ -772,7 +772,7 @@ OrJoinActivityList::clone() const
 
 OrForkActivityList::~OrForkActivityList()
 {
-    for ( std::map<Activity *, Label *>::iterator label = myLabelList.begin(); label != myLabelList.end(); ++label ) {
+    for ( std::map<Activity *, Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
 	delete label->second;
     }
 }
@@ -791,7 +791,7 @@ OrForkActivityList::add( Activity * anActivity )
     ForkJoinActivityList::add( anActivity );
     Label * aLabel = Label::newLabel();
     if ( aLabel ) {
-	myLabelList[anActivity] = aLabel;
+	_labelList[anActivity] = aLabel;
 	aLabel->justification( Flags::label_justification );
     }
     return *this;
@@ -925,7 +925,7 @@ OrForkActivityList&
 OrForkActivityList::translateY( const double dy )
 {
     ForkJoinActivityList::translateY( dy );
-    for_each( myLabelList.begin(), myLabelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
+    for_each( _labelList.begin(), _labelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
     return *this;
 }
 
@@ -934,7 +934,7 @@ OrForkActivityList&
 OrForkActivityList::scaleBy( const double sx, const double sy )
 {
     ForkJoinActivityList::scaleBy( sx, sy );
-    for_each( myLabelList.begin(), myLabelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
+    for_each( _labelList.begin(), _labelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
     return *this;
 }
 
@@ -945,7 +945,7 @@ OrForkActivityList::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
 	for ( std::vector<Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	    *(myLabelList[*activity]) << prBranch( *activity );
+	    *(_labelList[*activity]) << prBranch( *activity );
 	}
     }
     return *this;
@@ -960,7 +960,7 @@ OrForkActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 #if 0
     for ( unsigned int i = 1; i <= size(); ++i ) {
 	Point aPoint = myArcList[i]->pointFromDst(height()/3.0);
-	myLabelList[i]->moveTo( aPoint );
+	_labelList[i]->moveTo( aPoint );
     }
 #endif
     return *this;
@@ -974,7 +974,7 @@ OrForkActivityList::moveDstTo( const Point& dst, Activity * anActivity )
     AndOrForkActivityList::moveDstTo( dst, anActivity );
     for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
 	Point aPoint = arc->second->pointFromDst(height()/3.0);
-	myLabelList[arc->first]->moveTo( aPoint );
+	_labelList[arc->first]->moveTo( aPoint );
     }
     return *this;
 }
@@ -986,7 +986,7 @@ OrForkActivityList::draw( std::ostream& output ) const
 {
     AndOrForkActivityList::draw( output );
     for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
+    for_each( _labelList.begin(), _labelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
     return *this;
 }
 
@@ -1288,28 +1288,32 @@ OrJoinActivityList::setChain( std::deque<const Activity *>& activityStack, unsig
 /* -------------------------------------------------------------------- */
 
 AndJoinActivityList::AndJoinActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist ) 
-    : AndOrJoinActivityList( owner, dom_activitylist ), 
-      myJoinType(JOIN_NOT_DEFINED)
+    : AndOrJoinActivityList( owner, dom_activitylist ),
+      _label(nullptr),
+      _typeStr(),
+      _joinType(JOIN_NOT_DEFINED),
+      _forkList(nullptr),
+      _depth(0)
 {
-    myLabel = Label::newLabel();
-    if ( myLabel ) {
-	myLabel->justification( Flags::label_justification );
+    _label = Label::newLabel();
+    if ( _label ) {
+	_label->justification( Flags::label_justification );
     }
     const LQIO::DOM::AndJoinActivityList * dom = dynamic_cast<const LQIO::DOM::AndJoinActivityList *>(dom_activitylist);
     if ( dom && dom->hasQuorumCount() ) {
 	char buf[10];
 	sprintf( buf, "%d", dom->getQuorumCountValue() );
-	myTypeStr = buf;
+	_typeStr = buf;
     } else {
-	myTypeStr = "&";		/* Can be changed if quorum is set. */
+	_typeStr = "&";		/* Can be changed if quorum is set. */
     }
 }
 
 
 AndJoinActivityList::~AndJoinActivityList()
 {
-    if ( myLabel ) {
-	delete myLabel;
+    if ( _label ) {
+	delete _label;
     }
 }
 
@@ -1336,11 +1340,11 @@ AndJoinActivityList::add( Activity * anActivity )
 bool
 AndJoinActivityList::joinType( const join_type aType ) 
 {
-    if ( myJoinType == JOIN_NOT_DEFINED ) {
-	myJoinType = aType;
+    if ( _joinType == JOIN_NOT_DEFINED ) {
+	_joinType = aType;
 	return true;
     } else {
-	return aType == myJoinType;
+	return aType == _joinType;
     }
 }
 
@@ -1349,7 +1353,7 @@ AndJoinActivityList::joinType( const join_type aType )
 const char * 
 AndJoinActivityList::typeStr() const
 {
-    return myTypeStr.c_str();
+    return _typeStr.c_str();
 }
 
 
@@ -1372,9 +1376,9 @@ AndJoinActivityList::quorumCount(int quorumCount)
     if ( quorumCount > 0 && graphical_output() ) {
 	char buf[10];
 	sprintf( buf, "%d", quorumCount );
-	myTypeStr = buf;
+	_typeStr = buf;
     } else {
-	myTypeStr = "&";
+	_typeStr = "&";
     }
     return *this; 
 }
@@ -1490,7 +1494,7 @@ AndJoinActivityList&
 AndJoinActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 {
     AndOrJoinActivityList::moveSrcTo( src, anActivity );
-    myLabel->moveTo( myNode->center() ).moveBy( radius(), 0.0 ).justification( LEFT_JUSTIFY );
+    _label->moveTo( myNode->center() ).moveBy( radius(), 0.0 ).justification( LEFT_JUSTIFY );
     return *this;
 }
 
@@ -1500,7 +1504,7 @@ AndJoinActivityList&
 AndJoinActivityList::translateY( const double dy )
 {
     ForkJoinActivityList::translateY( dy );
-    myLabel->translateY( dy );
+    _label->translateY( dy );
     return *this;
 }
 
@@ -1510,7 +1514,7 @@ AndJoinActivityList&
 AndJoinActivityList::scaleBy( const double sx, const double sy )
 {
     ForkJoinActivityList::scaleBy( sx, sy );
-    myLabel->scaleBy( sx, sy );
+    _label->scaleBy( sx, sy );
     return *this;
 }
 
@@ -1520,7 +1524,7 @@ AndJoinActivityList&
 AndJoinActivityList::label()
 {
     if ( Flags::have_results && Flags::print[JOIN_DELAYS].value.b ) {
-	*myLabel << begin_math() << opt_pct(joinDelay()) << end_math();
+	*_label << begin_math() << opt_pct(joinDelay()) << end_math();
     }
     return *this;
 }
@@ -1532,7 +1536,7 @@ AndJoinActivityList::draw( std::ostream& output ) const
 {
     AndOrJoinActivityList::draw( output );
     for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
-    output << *myLabel;
+    output << *_label;
     return *this;
 }
 
@@ -1554,7 +1558,7 @@ RepeatActivityList::~RepeatActivityList()
     for ( std::map<Activity *,Arc *>::iterator arc = myArcList.begin(); arc != myArcList.end(); ++arc ) {
 	delete arc->second;
     }
-    for ( std::map<Activity *,Label *>::iterator label = myLabelList.begin(); label != myLabelList.end(); ++label ) {
+    for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
 	delete label->second;
     }
 }
@@ -1574,7 +1578,7 @@ RepeatActivityList&
 RepeatActivityList::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b ) {
-	for ( std::map<Activity *,Label *>::iterator label = myLabelList.begin(); label != myLabelList.end(); ++label ) {
+	for ( std::map<Activity *,Label *>::iterator label = _labelList.begin(); label != _labelList.end(); ++label ) {
 	    const LQIO::DOM::ExternalVariable * var = rateBranch(label->first);
 	    if ( var ) {
 		*label->second << *var;
@@ -1639,7 +1643,7 @@ RepeatActivityList::add( Activity * anActivity )
 
 	Label * aLabel = Label::newLabel();
 	if ( aLabel ) {
-	    myLabelList[anActivity] = aLabel;
+	    _labelList[anActivity] = aLabel;
 	    aLabel->justification( Flags::label_justification );
 	}
 
@@ -1711,7 +1715,7 @@ RepeatActivityList::scaleBy( const double sx, const double sy )
 {
     myArc->scaleBy( sx, sy );
     for_each( myArcList.begin(), myArcList.end(), ExecXY<Arc>( &Arc::scaleBy, sx, sy ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
+    for_each( _labelList.begin(), _labelList.end(), ExecXY<Label>( &Label::scaleBy, sx, sy ) );
     if ( activityList().size() ) {
 	myNode->scaleBy( sx, sy );
     }
@@ -1725,7 +1729,7 @@ RepeatActivityList::translateY( const double dy )
 {
     myArc->translateY( dy );
     for_each( myArcList.begin(), myArcList.end(), ExecX<Arc,std::pair<Activity *,Arc *>,double>( &Arc::translateY, dy ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
+    for_each( _labelList.begin(), _labelList.end(), ExecX<Label,std::pair<Activity *,Label *>,double>( &Label::translateY, dy ) );
     if ( activityList().size() ) {
 	myNode->translateY( dy );
     }
@@ -1739,7 +1743,7 @@ RepeatActivityList::depth( unsigned depth )
 {
     myArc->depth( depth );
     for_each( myArcList.begin(), myArcList.end(), ExecX<Graphic,std::pair<Activity *, Arc *>,unsigned>( &Graphic::depth, depth ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
+    for_each( _labelList.begin(), _labelList.end(), ExecX<Graphic,std::pair<Activity *,Label *>,unsigned>( &Graphic::depth, depth ) );
     if ( activityList().size() ) {
 	myNode->depth( depth );
     }
@@ -1787,7 +1791,7 @@ RepeatActivityList::moveSrcTo( const Point& src, Activity * anActivity )
 	const Point src3 = arc->second->srcIntersectsCircle( src, radius() );
 	arc->second->moveSrc( src3 );
 	const Point aPoint = arc->second->pointFromDst(height()/3.0);
-	myLabelList[arc->first]->moveTo( aPoint );
+	_labelList[arc->first]->moveTo( aPoint );
     }
 
     return *this; 
@@ -1825,7 +1829,7 @@ RepeatActivityList::draw( std::ostream& output ) const
 
     ForkActivityList::draw( output );
     for_each( myArcList.begin(), myArcList.end(), ConstExecX<Arc,std::pair<Activity *,Arc *>,std::ostream&>( &Arc::draw, output ) );
-    for_each( myLabelList.begin(), myLabelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
+    for_each( _labelList.begin(), _labelList.end(), ConstExecX<Label,std::pair<Activity *,Label *>,std::ostream&>( &Label::draw, output ) );
 
     const Point ctr( myNode->center() );
     myNode->penColour( pen_colour ).fillColour( colour() );

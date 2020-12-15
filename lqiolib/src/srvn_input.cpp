@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 13996 2020-10-24 22:01:20Z greg $
+ *  $Id: srvn_input.cpp 14216 2020-12-14 20:19:51Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -181,6 +181,10 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 	task = new LQIO::DOM::Task( LQIO::DOM::__document, task_name, scheduling, *static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries), processor );
     }
 
+    /* Task Constructor copies the vector, so... */
+
+    delete static_cast<const std::vector<LQIO::DOM::Entry *>*>(entries);
+    
     /* Link in the entity information */
 
     LQIO::DOM::__document->addTaskEntity(task);
@@ -686,7 +690,7 @@ srvn_store_activity_coeff_of_variation( void * activity, void * cv2 )
 }
  
 void  *
-srvn_store_activity_rnv_data ( void * activity, void * dst_entry_v, void * calls ) 
+srvn_store_activity_rnv_data( void * activity, void * dst_entry_v, void * calls ) 
 {
     LQIO::DOM::Entry* dst_entry = static_cast<LQIO::DOM::Entry *>(dst_entry_v);
     if ( !activity || !dst_entry ) return NULL;

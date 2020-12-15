@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: entity.cc 14213 2020-12-14 17:14:40Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -475,7 +475,7 @@ Entity::deltaUtilization() const
 {
     const double thisUtilization = utilization();
     double delta;
-    if ( isinf( thisUtilization ) && isinf( _lastUtilization ) ) {
+    if ( std::isinf( thisUtilization ) && std::isinf( _lastUtilization ) ) {
 	delta = 0.0;
     } else {
 	delta = thisUtilization - _lastUtilization;

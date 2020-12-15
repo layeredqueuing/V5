@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14208 2020-12-11 20:44:05Z greg $
+ * $Id: activity.cc 14216 2020-12-14 20:19:51Z greg $
  */
 
 #include "activity.h"
@@ -77,6 +77,27 @@ Activity::Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom )
 }
 
 
+/*
+ * Free resources.
+ */
+
+Activity::~Activity()
+{
+    _inputFrom = NULL;
+    _outputTo = NULL;
+    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
+	delete *call;
+    }
+    for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
+	delete reply->second;
+    }
+
+    delete myNode;
+    delete myLabel;
+}
+
+
+
 Activity&
 Activity::merge( const Activity &src, const double rate )
 {
@@ -113,23 +134,6 @@ Activity::merge( const Activity &src, const double rate )
     const_cast<LQIO::DOM::Phase *>(getDOM())->setServiceTimeValue(to_double(*getDOM()->getServiceTime()) * rate);
 
     return *this;
-}
-
-
-
-/*
- * Free resources.
- */
-
-Activity::~Activity()
-{
-    _inputFrom = NULL;
-    _outputTo = NULL;
-    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
-	delete *call;
-    }
-    delete myNode;
-    delete myLabel;
 }
 
 

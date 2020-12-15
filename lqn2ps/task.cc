@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14209 2020-12-11 21:48:29Z greg $
+ * $Id: task.cc 14223 2020-12-15 19:27:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -150,19 +150,18 @@ Task::hasPriority() const
 }
 
 
+/*
+ * Find the processor allocated to this task.
+ */
+
 const Processor *
-Task::findProcessor( const LQIO::DOM::Processor * dom ) const
+Task::processor() const
 {
+    const LQIO::DOM::Processor * dom = dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getProcessor();
     for ( std::set<const Processor *>::const_iterator processor = _processors.begin(); processor != _processors.end(); ++processor ) {
-	if ( (*processor)->getDOM() == dom ) return (*processor);
+	if ( (*processor)->getDOM() == dom ) return *processor;
     }
     return nullptr;
-}
-
-const LQIO::DOM::Processor *
-Task::getDOMProcessor() const
-{
-    return getDOM() != nullptr ? dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getProcessor() : nullptr;
 }
 
 /* ------------------------------ Results ----------------------------- */
@@ -712,10 +711,11 @@ Task::canConvertToOpenArrivals() const
 bool
 Task::isPureServer() const
 {
-    std::vector<Entity *> servers;
-    const Processor * processor = findProcessor( getDOMProcessor() );
+    const Processor * processor = this->processor();
 
+    std::vector<Entity *> servers;
     this->servers( servers );
+
     return servers.size() == 0 && processor != nullptr && processor->nClients() == 1;
 }
 
@@ -729,7 +729,7 @@ Task::check() const
 
     /* Check prio/scheduling. */
 
-    const Processor * processor = findProcessor( getDOMProcessor() );
+    const Processor * processor = this->processor();
 
     if ( processor != nullptr && hasPriority() && !processor->hasPriorities() ) {
 	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, srcName.c_str(), processor->name().c_str() );
@@ -1534,7 +1534,7 @@ Task::moveSrc()
 	calls().front()->moveSrc( aPoint );
     } else if ( calls().size() == 1 && dynamic_cast<ProcessorCall *>(calls().front()) ) {
 	Point aPoint = bottomCenter();
-	const Processor * processor = findProcessor( getDOMProcessor() );
+	const Processor * processor = this->processor();
 	double diff = aPoint.x() - processor->center().x();
 	if ( diff > 0 && fabs( diff ) > width() / 4 ) {
 	    aPoint.moveBy( -width() / 4, 0 );
@@ -1806,6 +1806,19 @@ Task::linkToClients()
     for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
     return *this;
 }
+
+
+Task&
+Task::unlinkFromServers()
+{
+    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::unlinkFromServers ) );
+
+    /* Unlink from processor */
+
+    const_cast<Processor *>(this->processor())->removeTask( this );
+
+    return *this;
+}
 #endif
 
 
@@ -1831,8 +1844,8 @@ Task&
 Task::expandTask()
 {
     const unsigned int numTaskReplicas = replicasValue();
-    const unsigned int procFanOut = numTaskReplicas / getDOMProcessor()->getReplicasValue();
-    const Processor * processor = findProcessor( getDOMProcessor() );
+    const unsigned int procFanOut = numTaskReplicas / processor()->replicasValue();
+    const Processor * processor = this->processor();
     
     for ( unsigned int replica = 1; replica <= numTaskReplicas; ++replica ) {
 
@@ -2128,8 +2141,8 @@ Task::draw( std::ostream& output ) const
     aComment << "Task " << name()
 	     << task_scheduling_of( *this )
 	     << entries_of( *this );
-    if ( getDOMProcessor() ) {
-	aComment << " " << getDOMProcessor()->getName();
+    if ( processor() ) {
+	aComment << " " << processor()->name();
     }
 #if defined(BUG_375)
     aComment << " span=" << span() << ", index=" << index();
@@ -2263,7 +2276,7 @@ ReferenceTask::thinkTime() const
 Graphic::colour_type
 ReferenceTask::colour() const
 {
-    const Processor * processor = findProcessor( getDOMProcessor() ); 
+    const Processor * processor = this->processor(); 
     switch ( Flags::print[COLOUR].value.i ) {
     case COLOUR_SERVER_TYPE:
 	return Graphic::RED;

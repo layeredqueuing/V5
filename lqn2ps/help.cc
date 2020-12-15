@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14201 2020-12-10 16:33:17Z greg $
+ * $Id: help.cc 14220 2020-12-15 00:35:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -38,14 +38,14 @@ usage( const bool full_usage )
     std::cerr << "Options:" << std::endl;
     if ( !full_usage ) {
 	std::cerr << "[(+|-)";
-	for ( unsigned i = 0; Flags::print[i].name != 0; ++i ) {
+	for ( unsigned int i = 0; i < Flags::size; ++i ) {
 	    if ( (Flags::print[i].c & 0xff00) == 0 && !Flags::print[i].arg ) {
 		std::cerr << static_cast<char>(Flags::print[i].c);
 	    }
 	}
 	std::cerr << ']';
 
-	for ( unsigned int j = 0, i = 0; Flags::print[i].name != 0; ++i ) {
+	for ( unsigned int j = 0, i = 0; i < Flags::size; ++i ) {
 	    if ( (Flags::print[i].c & 0xff00) == 0 && Flags::print[i].arg ) {
 		if ( (j % 4) == 0 ) std::cerr << std::endl << "   ";
 		std::cerr << " [-" << static_cast<char>(Flags::print[i].c) << " <" << Flags::print[i].arg << ">]";
@@ -57,7 +57,7 @@ usage( const bool full_usage )
     }
 
 #if HAVE_GETOPT_LONG
-    for ( unsigned int i = 0; Flags::print[i].name != 0; ++i ) {
+    for ( unsigned int i = 0; i < Flags::size; ++i ) {
 	std::string s;
 	if ( (Flags::print[i].c & 0xff00) != 0 ) {
 	    s = "         --";
@@ -148,7 +148,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14201 2020-12-10 16:33:17Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 14220 2020-12-15 00:35:35Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 

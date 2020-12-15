@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14206 2020-12-11 17:59:18Z greg $
+ * $Id: entry.h 14223 2020-12-15 19:27:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,6 +20,7 @@
 #include <cstring>
 #include <vector>
 #include <set>
+#include <numeric>
 #include "element.h"
 #include "phase.h"
 #include "call.h"
@@ -51,6 +52,7 @@ public:
     static unsigned totalOpenArrivals;
     static unsigned max_phases;		/* maximum phase encounterd.	*/
     static const char * phaseTypeFlagStr [];
+    static unsigned int max_phase( unsigned int a, const std::pair<unsigned,Phase>& p ) { return std::max( a, p.first ); }
 
 private:
     Entry& operator=( const Entry& );
@@ -188,7 +190,7 @@ public:
     bool entryTypeOk( const LQIO::DOM::Entry::EntryType );
     bool entrySemaphoreTypeOk( const semaphore_entry_type );
     bool entryRWLockTypeOk( const rwlock_entry_type );
-    unsigned maxPhase() const { return _maxPhase; }
+    unsigned maxPhase() const { return std::accumulate( _phases.begin(), _phases.end(), 1, &max_phase ); }
 
     unsigned countArcs( const callPredicate = 0 ) const;
     unsigned countCallers( const callPredicate = 0 ) const;
@@ -220,6 +222,7 @@ public:
 
 #if defined(BUG_270)
     Entry& linkToClients( const std::vector<EntityCall *>& );
+    Entry& unlinkFromServers();
 #endif
 #if defined(REP2FLAT)
     static Entry * find_replica( const std::string&, const unsigned );
@@ -244,6 +247,10 @@ private:
     Entry& moveSrc();
     Entry& moveDst();
 
+#if defined(BUG_270)
+    static void remove_from_dst( Call * call );
+#endif
+
     std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
 
 public:
@@ -257,7 +264,6 @@ protected:
 
 private:
     const Task * _owner;
-    mutable unsigned int _maxPhase;		/* Largest phase index.		*/
     requesting_type _isCalled;			/* true if entry referenced.	*/
     std::vector<Call *> _calls;			/* Who I call.			*/
     std::vector<GenericCall *> _callers;	/* Who calls me.		*/

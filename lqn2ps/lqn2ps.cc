@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: lqn2ps.cc 14209 2020-12-11 21:48:29Z greg $
+ * $Id: lqn2ps.cc 14222 2020-12-15 16:00:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -150,9 +150,11 @@ option_type Flags::print[] = {
     { "debug-xml",         512+'X', 0,                     0,                      {0},                 false, "Output debugging information while parsing XML input." },
     { "debug-formatting",  512+'F', 0,                     0,                      {0},                 false, "Output debugging information while formatting." },
     { "dump-graphviz",	   512+'G', 0,			   0, 			   {0},			false, "Output LQX parse tree in graphviz format." },
-    { "generate-manual",   512+'M', 0,                     0,                      {0},                 false, "Generate manual suitable for input to man(1)." },
-    { 0,                         0, 0,                     0,                      {0},                 false, 0 }
+    { "generate-manual",   512+'M', 0,                     0,                      {0},                 false, "Generate manual suitable for input to man(1)." }
 };
+
+const unsigned int Flags::size = sizeof( Flags::print ) / sizeof( Flags::print[0] );
+
 
 #if HAVE_GETOPT_H
 static void makeopts( std::string& opts, std::vector<struct option>& );
@@ -179,7 +181,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-11 16:48:29 -0500 (Fri, 11 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-15 11:00:35 -0500 (Tue, 15 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -865,6 +867,11 @@ lqn2ps( int argc, char *argv[] )
 	delete Flags::client_tasks;
     }
 
+#if HAVE_GETOPT_H
+    for ( std::vector<struct option>::iterator opt = longopts.begin(); opt != longopts.end(); ++opt ) {
+	if ( opt->name != nullptr ) free( const_cast<char *>(opt->name) );
+    }
+#endif
     return 0;
 }
 
@@ -1048,11 +1055,10 @@ makeopts( std::string& opts, std::vector<struct option>& longopts )
     opt.val  = 0;
     opt.name = 0;
     opt.has_arg = 0;
-    const unsigned int count = sizeof( Flags::print ) / sizeof( Flags::print[0] );
-    longopts.resize( count * 2, opt );
-    for ( unsigned int i = 0; i < count; ++i, ++k ) {
+    longopts.resize( Flags::size * 2, opt );
+    for ( unsigned int i = 0; i < Flags::size; ++i, ++k ) {
 	longopts[k].has_arg = (Flags::print[i].arg != 0 ? required_argument : no_argument);
-	longopts[k].name    = Flags::print[i].name;
+	longopts[k].name    = strdup(Flags::print[i].name);
 	longopts[k].val     = Flags::print[i].c;
 	if ( (Flags::print[i].c & 0xff00) == 0 && islower( Flags::print[i].c ) && Flags::print[i].arg == 0 ) {
 	    /* These are the +/- options */
@@ -1121,6 +1127,11 @@ setOutputFormat( const int i )
     case FORMAT_NULL:
 	break;
 
+#if defined(JMVA_OUTPUT)
+    case FORMAT_JMVA:
+	break;
+#endif
+	
 #if defined(X11_OUTPUT)
     case FORMAT_X11:
 	break;

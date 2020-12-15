@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14201 2020-12-10 16:33:17Z greg $
+ *  $Id: dom_pragma.cpp 14210 2020-12-11 23:50:58Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -277,6 +277,29 @@ namespace LQIO {
 		}
 	    }
 	    return true;
+	}
+
+
+	/* 
+	 * Return true or false depending on value.   Throw on anything not allowed
+	 */
+	
+	bool Pragma::isTrue(const std::string& value)
+	{
+	    static std::map<std::string,bool> __true_false_arg;
+	    if ( __true_false_arg.empty() ) {
+		__true_false_arg[LQIO::DOM::Pragma::_true_]  = true;
+		__true_false_arg[LQIO::DOM::Pragma::_yes_]   = true;
+		__true_false_arg[LQIO::DOM::Pragma::_false_] = false;
+		__true_false_arg[LQIO::DOM::Pragma::_no_]    = false;
+		__true_false_arg["t"] = true;
+		__true_false_arg["y"] = true;
+		__true_false_arg["f"] = false;
+		__true_false_arg["n"] = false;
+	    }
+	    const std::map<std::string,bool>::const_iterator x = __true_false_arg.find( value );
+	    if ( x == __true_false_arg.end() ) throw std::domain_error( value.c_str() );
+	    return x->second;
 	}
 
 	/* Labels */

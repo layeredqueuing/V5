@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14201 2020-12-10 16:33:17Z greg $
+ * $Id: dom_pragma.h 14210 2020-12-11 23:50:58Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -35,11 +35,12 @@ namespace LQIO {
 	    bool insert( const std::string&,const std::string&);
 	    bool insert( const char * );		/* pragma=value */
 	    void merge( const std::map<std::string,std::string>& list );
+	    void clear();
 	    const std::map<std::string,std::string>& getList() const;
 	    size_t size() const { return getList().size(); }
 	    const std::string get( const std::string& ) const;
 	    static const std::set<std::string>* getValues( const std::string& );
-	    void clear();
+	    static bool isTrue(const std::string& value);
 
 	private:
 	    bool check( const std::string&, const std::string& ) const;

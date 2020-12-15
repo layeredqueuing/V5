@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: task.h 14213 2020-12-14 17:14:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -49,11 +49,7 @@ public:
 	}
     };
 
-#if __cplusplus >= 201103L
-    enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
-#else
     typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
-#endif
 
 private:
     struct find_max_depth {

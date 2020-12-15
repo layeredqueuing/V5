@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: entry.cc 14213 2020-12-14 17:14:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -907,9 +907,9 @@ Entry::isInterlocked( const Entry * dstEntry ) const
 bool
 Entry::checkDroppedCalls() const
 {
-    bool rc = isfinite( openWait() );
+    bool rc = std::isfinite( openWait() );
     for ( std::set<Call *>::const_iterator call = callerList().begin(); call != callerList().end(); ++call ) {
-	rc = rc && ( !(*call)->hasSendNoReply() || isfinite( (*call)->wait() ) );
+	rc = rc && ( !(*call)->hasSendNoReply() || std::isfinite( (*call)->wait() ) );
     }
     return rc;
 }

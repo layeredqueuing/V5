@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14204 2020-12-11 12:50:59Z greg $ *
+ * $Id: pragma.cc 14210 2020-12-11 23:50:58Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -210,7 +210,7 @@ void Pragma::set_pragma( const std::pair<std::string,std::string>& p )
 
 void Pragma::setAllowCycles(const std::string& value)
 {
-    _allow_cycles = isTrue(value);
+    _allow_cycles = LQIO::DOM::Pragma::isTrue(value);
 }
 
 void Pragma::setForceMultiserver(const std::string& value)
@@ -225,7 +225,7 @@ void Pragma::setForceMultiserver(const std::string& value)
 
 void Pragma::setInterlock(const std::string& value)
 {
-    _interlock = isTrue(value);
+    _interlock = LQIO::DOM::Pragma::isTrue(value);
 }
 
 void Pragma::setLayering(const std::string& value)
@@ -288,7 +288,7 @@ void Pragma::setProcessorScheduling(const std::string& value)
 #if BUG_270
 void Pragma::setPrune(const std::string& value)
 {
-    _prune = isTrue(value);
+    _prune = LQIO::DOM::Pragma::isTrue(value);
 }
 #endif
 
@@ -329,13 +329,13 @@ void Pragma::setQuorumIdleTime(const std::string& value)
 #if RESCHEDULE
 void Pragma::setRescheduleOnAsyncSend(const std::string& value)
 {
-    _reschedule_on_async_send = isTrue(value);
+    _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue(value);
 }
 #endif
 
 void Pragma::setSpexHeader(const std::string& value)
 {
-    _spex_header = isTrue( value );
+    _spex_header = LQIO::DOM::Pragma::isTrue( value );
 }
 
 void Pragma::setSeverityLevel(const std::string& value)
@@ -358,7 +358,7 @@ void Pragma::setStopOnBogusUtilization(const std::string& value)
 
 void Pragma::setStopOnMessageLoss(const std::string& value)
 {
-    _stop_on_message_loss = isTrue(value);
+    _stop_on_message_loss = LQIO::DOM::Pragma::isTrue(value);
 }
 
 void Pragma::setTau(const std::string& value)
@@ -394,13 +394,7 @@ void Pragma::setVariance(const std::string& value)
 	throw std::domain_error( value.c_str() );
     }
 }
-
-
-bool Pragma::isTrue(const std::string& value )
-{
-    return value == "true" || value == LQIO::DOM::Pragma::_yes_;
-}
-
+
 /*
  * Print out available pragmas.
  */
