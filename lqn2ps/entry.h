@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14223 2020-12-15 19:27:55Z greg $
+ * $Id: entry.h 14226 2020-12-16 14:00:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -21,10 +21,11 @@
 #include <vector>
 #include <set>
 #include <numeric>
+#include <lqio/dom_entry.h>
+#include "demand.h"
 #include "element.h"
 #include "phase.h"
 #include "call.h"
-#include <lqio/dom_entry.h>
 
 class Arc;
 class Activity;
@@ -45,6 +46,15 @@ class Entry : public Element {
     friend class Task;
     friend std::ostream& histogram_of_str( std::ostream& output, const Entry& anEntry );
     typedef SRVNEntryManip (* print_func_ptr)( const Entry& );
+
+public:
+    struct count_callers {
+	count_callers( const callPredicate predicate ) : _predicate(predicate) {}
+	unsigned int operator()( unsigned int, const Entry * entry ) const;
+	
+    private:
+	const callPredicate _predicate;
+    };
 	
 public:
     static Entry * create(LQIO::DOM::Entry* domEntry );
@@ -192,13 +202,14 @@ public:
     bool entryRWLockTypeOk( const rwlock_entry_type );
     unsigned maxPhase() const { return std::accumulate( _phases.begin(), _phases.end(), 1, &max_phase ); }
 
-    unsigned countArcs( const callPredicate = 0 ) const;
-    unsigned countCallers( const callPredicate = 0 ) const;
+    unsigned countArcs( const callPredicate = nullptr ) const;
+    unsigned countCallers( const callPredicate = nullptr ) const;
 
     double serviceTimeForSRVNInput() const;
     double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
+    static Demand accumulate_demand( const Demand&, const Entry * );
 
     static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );

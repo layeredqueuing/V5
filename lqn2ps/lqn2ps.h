@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14222 2020-12-15 16:00:35Z greg $
+ * $Id: lqn2ps.h 14226 2020-12-16 14:00:48Z greg $
  *
  */
 
@@ -27,7 +27,6 @@
 #include <stdexcept>
 #include <deque>
 #include <regex>
-#include <lqio/input.h>
 #include <lqio/dom_extvar.h>
 #if defined(HAVE_VALUES_H)
 #include <values.h>
@@ -618,7 +617,7 @@ namespace XML {
     BooleanManip start_element( const std::string& e, bool b=true );
     BooleanManip end_element( const std::string& e, bool b=true );
     BooleanManip simple_element( const std::string& e );
-    InlineElementManip inline_element( const std::string& e, double value );
+    InlineElementManip inline_element( const std::string& e, const std::string& a, const std::string& v, double d );
     StringManip attribute( const std::string& a, const std::string& v );
     DoubleManip attribute( const std::string&a, double v );
     UnsignedManip attribute( const std::string&a, unsigned int v );

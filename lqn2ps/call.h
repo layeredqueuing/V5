@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14221 2020-12-15 01:33:14Z greg $
+ * $Id: call.h 14230 2020-12-16 22:56:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -74,6 +74,7 @@ public:
     virtual unsigned fanIn() const = 0;
     virtual unsigned fanOut() const = 0;
 
+    virtual LQIO::DOM::Call::CallType callType() const { return LQIO::DOM::Call::NULL_CALL; }
     virtual bool hasRendezvous() const { return false; }
     virtual bool hasSendNoReply() const { return false; }
     virtual bool hasForwarding() const { return false; }
@@ -122,6 +123,9 @@ public:
 
     static bool compareDst( const GenericCall *, const GenericCall * );
     static bool compareSrc( const GenericCall *, const GenericCall * );
+
+protected:
+    virtual void dump() const = 0;
 
 protected:
     Label * _label;
@@ -227,6 +231,8 @@ public:
     const std::string & dstName() const;
     virtual double dstIndex() const;
     virtual unsigned dstLevel() const;
+    size_t numberOfPhases() const { return _calls.size(); }
+    virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
 
     bool hasRendezvousForPhase( const unsigned ) const;
     bool hasSendNoReplyForPhase( const unsigned ) const;
@@ -250,7 +256,7 @@ public:
     double srcVisits( const unsigned, const unsigned, const unsigned = 0 ) const;
     Call& aggregatePhases( LQIO::DOM::Phase& );
 #if defined(BUG_270)
-    Call& updateRateFrom( const Call& );
+    Call& updateRateFrom( const Call& client, const Call& server );
 #endif
     
     virtual Graphic::colour_type colour() const;
@@ -266,9 +272,9 @@ public:
 protected:
     Call& setArcType();
     virtual std::ostream& printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const;
+    virtual void dump() const;
 
 private:
-    size_t numberOfPhases() const { return _calls.size(); }
     static double sum_of_calls( double augend, const LQIO::DOM::Call * call );
     
 private:
@@ -411,9 +417,8 @@ public:
     virtual double dstIndex() const;
 
 #if defined(BUG_270)
-    virtual EntityCall& updateRateFrom( const Call&, const LQIO::DOM::Call* );
+    virtual EntityCall& updateRateFrom( const Call& );
 #endif
-
 protected:
     const Task * _srcTask;
     const Entity * _dstEntity;
@@ -461,6 +466,9 @@ public:
     virtual TaskCall& label();
     virtual std::ostream& print( std::ostream& output ) const { return output; }
 
+protected:
+    virtual void dump() const;
+
 private:
     LQIO::DOM::ConstantExternalVariable _rendezvous;
     LQIO::DOM::ConstantExternalVariable _sendNoReply;
@@ -501,6 +509,7 @@ public:
 
     virtual bool hasRendezvous() const { return _callType == LQIO::DOM::Call::RENDEZVOUS; }
     virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
+    virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
 
     virtual const LQIO::DOM::ExternalVariable& rendezvous( const unsigned p = 1 ) const;
     virtual double sumOfRendezvous() const;
@@ -509,8 +518,10 @@ public:
     virtual const LQIO::DOM::ExternalVariable& forward() const;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
+    double visits() const;
+    double demand() const;
 #if defined(BUG_270)
-    virtual ProcessorCall& updateRateFrom( const Call&, const LQIO::DOM::Call* );
+    virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
 
     virtual bool isSelected() const;
@@ -528,10 +539,15 @@ public:
 
 private:
     void moveLabel();
+    static double sum_of_extvar( double, const LQIO::DOM::ConstantExternalVariable& );
+
+protected:
+    virtual void dump() const;
 
 private:
-    LQIO::DOM::Call::CallType _callType;
-    LQIO::DOM::ConstantExternalVariable _rate;
+    LQIO::DOM::Call::CallType _callType;		/* Union discriminator		*/
+    LQIO::DOM::ConstantExternalVariable _visits;
+    LQIO::DOM::ConstantExternalVariable _serviceTime;	/* No phases on processor	*/
 };
 
 class PseudoProcessorCall : public ProcessorCall 
@@ -584,6 +600,9 @@ public:
     virtual OpenArrival& moveDst( const Point& aPoint );
     virtual OpenArrival& label();
     virtual std::ostream& print( std::ostream& output ) const { return output; }
+
+protected:
+    virtual void dump() const;
 
 private:
     const OpenArrivalSource * _source;

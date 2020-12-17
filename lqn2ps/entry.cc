@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14223 2020-12-15 19:27:55Z greg $
+ * $Id: entry.cc 14233 2020-12-17 13:15:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -528,7 +528,7 @@ const LQIO::DOM::Phase *
 Entry::getPhaseDOM( unsigned p ) const
 {
     const std::map<unsigned,Phase>::const_iterator i = _phases.find(p);
-    return i != _phases.end() ? i->second.getDOM() : NULL;
+    return i != _phases.end() ? i->second.getDOM() : nullptr;
 }
 
 
@@ -1192,7 +1192,6 @@ Entry::countArcs( const callPredicate predicate ) const
 }
 
 
-
 /*
  * Count the number of calls that match the criteria passed
  */
@@ -1201,6 +1200,12 @@ unsigned
 Entry::countCallers( const callPredicate predicate ) const
 {
     return count_if( callers().begin(), callers().end(), GenericCall::PredicateAndSelected( predicate ) );
+}
+
+unsigned
+Entry::count_callers::operator()( unsigned int augend, const Entry * entry ) const
+{
+    return augend + entry->countCallers( _predicate );
 }
 
 
@@ -1218,7 +1223,7 @@ Entry::aggregateService( const Activity * anActivity, const unsigned p, const do
     
     const LQIO::DOM::Entry * entry = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
     LQIO::DOM::Phase * phase = const_cast<LQIO::DOM::Phase *>(getPhase(p).getDOM());
-    if ( phase == NULL ) {
+    if ( phase == nullptr ) {
 	phase = const_cast<LQIO::DOM::Entry *>(entry)->getPhase(p);	/* create a DOM object */
 	setPhaseDOM( p, phase );
     } else {
@@ -1276,7 +1281,7 @@ Entry::aggregatePhases()
 
     const LQIO::DOM::Entry * entry = dynamic_cast<const LQIO::DOM::Entry *>(getDOM());
     LQIO::DOM::Phase * phase_1 = const_cast<LQIO::DOM::Phase *>(getPhase(1).getDOM());
-    if ( phase_1 == NULL ) {
+    if ( phase_1 == nullptr ) {
 	phase_1 = const_cast<LQIO::DOM::Entry *>(entry)->getPhase(1);	/* create a DOM object */
 	setPhaseDOM( 1, phase_1 );
     } else {
@@ -1285,8 +1290,8 @@ Entry::aggregatePhases()
 
     /* Merge up the times. */
     
-    double service_time = 0;
-    double execution_time = 0;
+    double service_time = 0.;
+    double execution_time = 0.;
     for ( std::map<unsigned,Phase>::iterator p = _phases.begin(); p != _phases.end(); ++p ) {
 	const LQIO::DOM::Phase * phase = p->second.getDOM();
 	if ( !phase || !phase->hasServiceTime() ) continue;
@@ -1313,6 +1318,13 @@ Entry::aggregatePhases()
     }
 
     return *this;
+}
+
+
+/* static */ Demand
+Entry::accumulate_demand( const Demand& augend, const Entry * entry )
+{
+    return std::accumulate( entry->_phases.begin(), entry->_phases.end(), augend, &Phase::accumulate_demand );
 }
 
 /*
@@ -2028,49 +2040,54 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	client_entry->removeSrcCall( const_cast<EntryCall *>(client_call) );		// unlink from parent entry.
 
 	/* What about the rate from the client to the server??? */
-	for ( std::vector<Call *>::const_iterator y = calls().begin(); y != calls().end(); ++y ) {
-	    Call * clone = dynamic_cast<Call *>((*y)->clone());
+	for ( std::vector<Call *>::const_iterator server_call = calls().begin(); server_call != calls().end(); ++server_call ) {
+	    Call * clone = dynamic_cast<Call *>((*server_call)->clone());
+#if defined(BUG_270)
+	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName();
+#endif
 	    if ( dynamic_cast<EntryCall *>(clone) != nullptr ) {
 		dynamic_cast<EntryCall *>(clone)->setSrcEntry( client_entry );	// Will be a phase/activity
 	    }
-	    clone->updateRateFrom( *client_call );
-	    /* I will have to replace the DOM call with a clone and change the rate.   See Call.cc::rendezvous(p). */
+#if defined(BUG_270)
+	    std::cerr << "    to " << clone->srcName() << "->" << clone->dstName();
+#endif
+	    clone->updateRateFrom( *client_call, **server_call );
+
+	    /* Replace the DOM call with a clone and change the rate.   See Call.cc::rendezvous(p). */
 	    
 	    client_entry->addSrcCall( clone );	// copy to parent entry.  Duplicates?
-	    const Entry * entry = (*y)->dstEntry();
+	    const Entry * entry = (*server_call)->dstEntry();
 	    const_cast<Entry *>(entry)->addDstCall( clone );
 #if defined(BUG_270)
-	    std::cerr << "  Move " << (*y)->srcName() <<  "->" << (*y)->dstName()  
-		      << "    to " << clone->srcName() << "->" << clone->dstName() 
-		      << ", rate=" << clone->sumOfRendezvous() << std::endl;
+	    std::cerr << ", rate=" << clone->sumOfRendezvous() << std::endl;
 #endif
 	}
 
-	// have to move proc calls to calling task too (owner of client).
+	/* Move the Processor calls to calling task too (owner of client). */
 
 	for ( std::vector<EntityCall *>::const_iterator p = proc.begin(); p != proc.end(); ++p ) {
-	    for ( std::vector<const LQIO::DOM::Call *>::const_iterator i = client_call->_calls.begin(); i != client_call->_calls.end(); ++i ) {
-		if ( *i == nullptr ) continue;
-// entry_call	    
-// Will have to clone by phase of client call.
-		EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
-		if ( dynamic_cast<ProcessorCall *>(clone) ) {
-		    clone->updateRateFrom( *client_call, *i );
-		}
-	    
-		Task * client_task = const_cast<Task *>(client_entry->owner());
-		clone->setSrcTask( client_task );
-		client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
-		const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
-		client_task->addProcessor( processor );
-		const_cast<Processor *>(processor)->addDstCall( clone );
-		const_cast<Processor *>(processor)->addTask( client_task );		// ??
+	    EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
 #if defined(BUG_270)
-		std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
-			  << "    to " << clone->srcName() << "->" << clone->dstName()
-			  << ", rate=" << clone->sumOfRendezvous() << std::endl;
+	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName();
 #endif
+	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
+		clone->updateRateFrom( *client_call );
 	    }
+	    
+	    Task * client_task = const_cast<Task *>(client_entry->owner());
+	    clone->setSrcTask( client_task );
+#if defined(BUG_270)
+	    std::cerr << "    to " << clone->srcName() << "->" << clone->dstName();
+#endif
+	    
+	    client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
+	    const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
+	    client_task->addProcessor( processor );
+	    const_cast<Processor *>(processor)->addTask( client_task );
+	    const_cast<Processor *>(processor)->addDstCall( clone );
+#if defined(BUG_270)
+	    std::cerr << ", rate=" << clone->sumOfRendezvous() << std::endl;
+#endif
 	}
     }
 
@@ -2203,7 +2220,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultPhase3ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTime },
     { &LQIO::DOM::DocumentObject::setResultPhase3Utilization, &LQIO::DOM::DocumentObject::getResultPhase3Utilization },
     { &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTime },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 static struct {
@@ -2228,7 +2245,7 @@ static struct {
     { &LQIO::DOM::DocumentObject::setResultPhase3ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTimeVariance },
     { &LQIO::DOM::DocumentObject::setResultPhase3UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase3UtilizationVariance },
     { &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTimeVariance },
-    { NULL, NULL }
+    { nullptr, nullptr }
 };
 
 Entry&
@@ -2244,7 +2261,7 @@ Entry::replicateEntry( LQIO::DOM::DocumentObject ** root )
 	(*root)->setName( root_name );
 	const_cast<LQIO::DOM::Document *>(dom->getDocument())->addEntry( dom );		    /* Reconnect all of the dom stuff. */
     } else if ( root_name == (*root)->getName() ) {
-	for ( unsigned int i = 0; entry_mean[i].first != NULL; ++i ) {
+	for ( unsigned int i = 0; entry_mean[i].first != nullptr; ++i ) {
 	    update_mean( *root, entry_mean[i].first, getDOM(), entry_mean[i].second, replica );
 	    update_variance( *root, entry_variance[i].first, getDOM(), entry_variance[i].second );
 	}
@@ -2269,11 +2286,15 @@ Entry::replicateCall()
 	std::vector<Call *> old_calls = _calls;
 	_calls.clear();
 
-	/* Remove Calls from DOM.  Reinsert useful calls.  A bit of a pain since DOM calls are attached to DOM phases */
-	/* while drawing calls are associated with entries */
+	/* 
+	 * Remove Calls from DOM.  Reinsert useful calls.  A bit of a
+	 * pain since DOM calls are attached to DOM phases while
+	 * drawing calls are associated with entries
+	 */
+	
 	for_each( _phases.begin(), _phases.end(), Exec<Phase>( &Phase::replicateCall ) );
 
-	Call * root = NULL;
+	Call * root = nullptr;
 	for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
     }
     return *this;
@@ -2342,7 +2363,7 @@ Entry::draw( std::ostream& output ) const
     myLabel->backgroundColour( colour() ).comment( output, aComment.str() );
     output << *myLabel;
 
-    Call * lastCall = 0;
+    Call * lastCall = nullptr;
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( (*call)->isSelected() ) {
 	    if ( (*call)->hasForwarding() ) {
@@ -2451,7 +2472,7 @@ Entry::create( LQIO::DOM::Entry* domEntry )
 	return nullptr;
     } else {
 	Entry * anEntry = new Entry( domEntry );
-	assert( anEntry != 0 );
+	assert( anEntry != nullptr );
 	__entries.insert( anEntry );
 	return anEntry;
     }

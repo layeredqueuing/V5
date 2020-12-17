@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14222 2020-12-15 16:00:35Z greg $
+ * $Id: layer.h 14231 2020-12-16 23:57:28Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -39,7 +39,7 @@ private:
 	double _y;
 	double _h;
     };
-    
+
 public:
     Layer();
     Layer( const Layer& );
@@ -97,6 +97,7 @@ public:
     std::ostream& drawQueueingNetwork( std::ostream& ) const;
 #if defined(JMVA_OUTPUT)
     std::ostream& printJMVAQueueingNetwork( std::ostream& ) const;
+    std::ostream& printJMVAReferenceStation( std::ostream& output, const Demand::map_t& ) const;
 #endif
 
 private:

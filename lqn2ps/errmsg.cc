@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 14134 2020-11-25 18:12:05Z greg $
+ * $Id: errmsg.cc 14233 2020-12-17 13:15:17Z greg $
  *
  * Error messages.
  *
@@ -35,6 +35,7 @@ struct LQIO::error_message_type local_error_messages[] = {
     { LQIO::RUNTIME_ERROR, "No objects selected to print." },                                                                   /* LQIO::ERR_NO_OBJECTS                 */
     { LQIO::RUNTIME_ERROR, "\"%s\" -- Not implemented." },                                                                      /* LQIO::ERR_NOT_IMPLEMENTED            */
     { LQIO::RUNTIME_ERROR, "\"%s\" -- Should not implement." },                                                                 /* LQIO::ERR_SHOULD_NOT_IMPLEMENT       */
+    { LQIO::RUNTIME_ERROR, "The model has unassigned variables." },								/* LQIO::ERR_UNASSIGNED_VARIABLES	*/
     { LQIO::WARNING_ONLY,  "Coefficient of variation is incompatible with phase type at %s \"%s\" %s \"%s\"." },                /* WRN_COEFFICIENT_OF_VARIATION         */
     { LQIO::WARNING_ONLY,  "Mixed phase type detected during merge: source %s \"%s\", destination %s \"%s\"." },		/* WRN_MIXED_PHASE_TYPE			*/
 };

@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14222 2020-12-15 16:00:35Z greg $
+ * $Id: main.cc 14225 2020-12-16 03:44:19Z greg $
  */
 
 #include "lqn2ps.h"
@@ -631,7 +631,7 @@ namespace XML {
 
     std::ostream& printInlineElement( std::ostream& output, const std::string& e, const std::string& a, const std::string& v, double d )
     {
-	output << indent( 0  ) << "<" << e << attribute( a, v )  << "/" << e << ">" << std::endl;
+	output << indent( 0 ) << "<" << e << attribute( a, v )  << ">" << d << "</" << e << ">";
 	return output;
     }
     

@@ -1,6 +1,15 @@
-/* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
+/*  -*- c++ -*-
+ * $Id: lqn2ps.cc 14226 2020-12-16 14:00:48Z greg $
  *
- * $Id: lqn2ps.cc 14222 2020-12-15 16:00:35Z greg $
+ * Command line processing.
+ *
+ * Copyright the Real-Time and Distributed Systems Group,
+ * Department of Systems and Computer Engineering,
+ * Carleton University, Ottawa, Ontario, Canada. K1S 5B6
+ *
+ * December 15, 2020
+ *
+ * ------------------------------------------------------------------------
  */
 
 #include "lqn2ps.h"
@@ -181,7 +190,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-15 11:00:35 -0500 (Tue, 15 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-16 09:00:48 -0500 (Wed, 16 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -777,6 +786,13 @@ lqn2ps( int argc, char *argv[] )
 	}
     }
 
+#if defined(BUG_270)
+    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JMVA && !queueing_output() ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": -O" << Options::io[FORMAT_JMVA]
+	     << " must be used with -Q<submodel>." << std::endl;
+	exit( 1 );
+    }
+#endif
 
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN && !partial_output() ) {
 	Flags::print[RESULTS].value.b = false;	/* Ignore results */
@@ -785,11 +801,13 @@ lqn2ps( int argc, char *argv[] )
     if ( Flags::flatten_submodel && !(submodel_output() || queueing_output()) ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -Z" << Options::special[SPECIAL_FLATTEN_SUBMODEL]
 	     << " can only be used with either -Q<n> -S<n>." << std::endl;
+	exit( 1 );
     }
 
     if ( submodel_output() && Flags::print[LAYERING].value.i == LAYERING_SQUASHED ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -L" << Options::layering[LAYERING_SQUASHED]
 	     << " can only be used with full models." << std::endl;
+	exit( 1 );
     }
 
     if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE 

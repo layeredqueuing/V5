@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14221 2020-12-15 01:33:14Z greg $
+ * $Id: call.cc 14233 2020-12-17 13:15:17Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -277,6 +277,19 @@ GenericCall::compareDst( const GenericCall * call1, const GenericCall * call2 )
     }
     return diff < 0;
 }
+
+
+void
+GenericCall::dump() const
+{
+    std::cout << "(" << srcName() << "->" << dstName() << ") ";
+    switch ( callType() ) {
+    case LQIO::DOM::Call::NULL_CALL: std::cout << "NULL"; break;
+    case LQIO::DOM::Call::RENDEZVOUS: std::cout << "RNV"; break;
+    case LQIO::DOM::Call::SEND_NO_REPLY: std::cout << "SNR"; break;
+    default: std::cout << "???"; break;
+    }
+}
 
 /*----------------------------------------------------------------------*/
 /*                          Calls between Entries                       */
@@ -481,25 +494,39 @@ Call::aggregatePhases( LQIO::DOM::Phase& src )
 
 
 #if defined(BUG_270)
+/*
+ * multiply rate from client call (by phase) by server (by phase) and overwrite clone.  The 
+ * server should only have one phase.
+ */
+
 Call&
-Call::updateRateFrom( const Call& src )
+Call::updateRateFrom( const Call& client, const Call& server )
 {
-    size_t size = std::max( _calls.size(), src._calls.size() );
-    _calls.resize( size );
-    for ( size_t p = 0; p < size; ++p ) {
-	if ( _calls[p] == nullptr  ) {
-	    _calls[p] = src._calls[p]->clone();
-	} else if ( equalType( src ) ) {
-	    try {
-		/* The value in either the source or destination may not be a constant */
-		if ( src._calls[p] != nullptr ) {
-		    const_cast<LQIO::DOM::Call *>(_calls[p])->setCallMeanValue( _calls[p]->getCallMeanValue() * src._calls[p]->getCallMeanValue() );
+    if ( !client.equalType( server ) ) return *this;
+    
+    const size_t client_size = client._calls.size();
+    const size_t server_size = server.maxPhase();
+    assert( server_size == 1 );	/* Otherwise, server has more phases... */
+    _calls.resize( client_size );
+    try {
+	/* The value in either the source or destination may not be a constant */
+	for ( size_t p = 0; p < client_size; ++p ) {
+	    const double client_calls = client._calls[p] != nullptr ? client._calls[p]->getCallMeanValue() : 0.;
+	    if ( client_calls == 0 ) {
+		if ( _calls[p] != nullptr ) {
+		    delete _calls[p];
+		    _calls[p] = nullptr;
 		}
-	    }
-	    catch ( const std::domain_error& e ) {
-		/* so if it isn't, just ignore the rate.  Signal problem? */
+	    } else {
+		if ( _calls[p] == nullptr ) {
+		    _calls[p] = server._calls[0]->clone();
+		}
+		const_cast<LQIO::DOM::Call *>(_calls[p])->setCallMeanValue( server._calls[0]->getCallMeanValue() * client_calls );
 	    }
 	}
+    }
+    catch ( const std::domain_error& e ) {
+	/* so if it isn't, just ignore the rate.  Signal problem? */
     }
     return *this;
 }
@@ -663,11 +690,9 @@ double
 Call::sum_of_calls( double augend, const LQIO::DOM::Call * call ) 
 {
     if ( call == nullptr ) return augend;
-    const LQIO::DOM::ExternalVariable * value = call->getCallMean();
-    double addend;
-    if ( !value ) return augend;
-    else if ( !value->getValue(addend) ) abort(); 		/* throw not_defined */
-    else return augend + addend;
+    const LQIO::DOM::ExternalVariable * addend = call->getCallMean();
+    if ( !addend ) return augend;
+    return augend + to_double( *addend );	// will throw domain_error
 }
 
 /* --- */
@@ -1039,6 +1064,25 @@ Call::printSRVNLine( std::ostream& output, char code, print_func_ptr func ) cons
 	   << dstName() << " "
 	   << (*func)( *this ) << " -1" << std::endl;
     return output;
+}
+
+
+void
+Call::dump() const
+{
+    std::cout << "Call";
+    GenericCall::dump();
+    std::cout << "(";
+    for ( std::vector<const LQIO::DOM::Call *>::const_iterator p = _calls.begin(); p != _calls.end(); ++p ) {
+	if ( p != _calls.begin() ) std::cout << ",";
+	if ( *p != nullptr ) std::cout << *(*p)->getCallMean();
+	else std::cout << "NULL";
+    }
+    std::cout << ")";
+    if ( _forwarding ) {
+	std::cout << ", FWD" << *_forwarding->getCallMean();
+    }
+    std::cout << std::endl;
 }
 
 /* ------------------------ Exception Handling ------------------------ */
@@ -1428,7 +1472,7 @@ EntityCall::dstLevel() const
 
 #if defined(BUG_270)
 EntityCall&
-EntityCall::updateRateFrom( const Call& src, const LQIO::DOM::Call* )
+EntityCall::updateRateFrom( const Call& src )
 {
     return *this;
 }
@@ -1668,6 +1712,19 @@ TaskCall::label()
     }
     return *this;
 }
+
+
+
+void
+TaskCall::dump() const
+{
+    std::cout << "EntityCall";
+    GenericCall::dump();
+    std::cout << "RNV" << _rendezvous;
+    std::cout << ", SNR" << _sendNoReply;
+    std::cout << ", FWD" << _forwarding;
+    std::cout << std::endl;
+}
 
 /* -------------------- Calls to tasks from tasks. -------------------- */
 
@@ -1692,10 +1749,19 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 
 /* ----------------- Calls to processors from tasks. ------------------ */
 
+/*
+ * A call from a task to its processor.  Normally, a task only makes
+ * one call to the processor, but if we are pruning, other tasks can
+ * also call the processor (via the tasks that were "pruned").  For
+ * the latter case, one call is made per entry with the _visits and
+ * _serviceTime set.
+ */
+
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
-      _callType(LQIO::DOM::Call::NULL_CALL),
-      _rate(1.0)
+      _callType(LQIO::DOM::Call::NULL_CALL),	/* Default (from task) */
+      _visits(0.0),
+      _serviceTime(0.0)
 {
 }
 
@@ -1703,7 +1769,8 @@ ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcess
 ProcessorCall::ProcessorCall( const ProcessorCall& src )
     : EntityCall( src._srcTask, src._dstEntity ),
       _callType(src._callType),
-      _rate(src._rate)
+      _visits(src._visits),
+      _serviceTime(src._serviceTime)
 {
 }
 
@@ -1722,7 +1789,7 @@ ProcessorCall::operator==( const ProcessorCall& item ) const
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::rendezvous( const unsigned p ) const
 {
-    if ( p == 1 && hasRendezvous() ) return _rate;
+    if ( hasRendezvous() && p == 1 ) return _visits;
     else return Element::ZERO;
 }
 
@@ -1730,15 +1797,15 @@ ProcessorCall::rendezvous( const unsigned p ) const
 double
 ProcessorCall::sumOfRendezvous() const
 {
-    if ( hasRendezvous() ) return LQIO::DOM::to_double( _rate );
-    else return 0.0;
+    if ( !hasRendezvous() ) return 0.0;
+    else return to_double( _visits );
 }
 
 
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::sendNoReply( const unsigned p ) const
 {
-    if ( p == 1 && hasSendNoReply() ) return _rate;
+    if ( hasSendNoReply() && p == 1 ) return _visits;
     else return Element::ZERO;
 }
 
@@ -1746,11 +1813,16 @@ ProcessorCall::sendNoReply( const unsigned p ) const
 double
 ProcessorCall::sumOfSendNoReply() const
 {
-    if ( hasSendNoReply() ) return LQIO::DOM::to_double( _rate );
-    else return 0.0;
+    if ( !hasSendNoReply() ) return 0.0;
+    else return to_double( _visits );
 }
 
 
+double
+ProcessorCall::sum_of_extvar( double augend, const LQIO::DOM::ConstantExternalVariable& addend )
+{
+    return augend + to_double( addend );
+}
 
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::forward() const
@@ -1771,6 +1843,18 @@ ProcessorCall::fanOut() const
     return 1;
 }
 
+
+double
+ProcessorCall::visits() const
+{
+    return to_double( _visits );
+}
+
+double
+ProcessorCall::demand() const
+{
+    return to_double( _visits ) * to_double( _serviceTime );
+}
 
 bool
 ProcessorCall::isSelected() const
@@ -1848,7 +1932,7 @@ ProcessorCall::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b && Flags::prune ) {
 	if ( hasRendezvous() || hasSendNoReply() ) {	/* Ignore the default */
-	    *_label << '(' << _rate << ')';
+	    *_label << '(' << _visits << ')';
 	}
     } 
     if ( !Flags::have_results ) return *this;
@@ -1909,24 +1993,34 @@ ProcessorCall::moveLabel()
 
 #if defined(BUG_270)
 ProcessorCall&
-ProcessorCall::updateRateFrom( const Call& call, const LQIO::DOM::Call* multiplier )
+ProcessorCall::updateRateFrom( const Call& call )
 {
-    try {
-	if ( _callType != LQIO::DOM::Call::SEND_NO_REPLY ) {
-	    _callType = LQIO::DOM::Call::RENDEZVOUS;
-	    _rate.set( to_double(_rate) * multiplier->getCallMeanValue() );
-	} else if ( _callType != LQIO::DOM::Call::RENDEZVOUS ) {
-	    _callType = LQIO::DOM::Call::SEND_NO_REPLY;
-	    _rate.set( to_double(_rate) * multiplier->getCallMeanValue() );
-	} else {
-	    LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );
-	}
-    }
-    catch ( const std::domain_error& e ) {
-    }
+    if ( callType() == LQIO::DOM::Call::NULL_CALL ) {
+	/* First time for this call.  Save service time and visits */
+	_visits = 1;
+	_serviceTime = call.dstEntry()->serviceTime();
+	_callType = call.callType();
+    } else if ( callType() != call.callType() ) {
+	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );
+	return *this;
+    } 
+    _visits = to_double(_visits) * call.sumOfRendezvous();
     return *this;
 }
 #endif
+
+
+
+void
+ProcessorCall::dump() const
+{
+    std::cout << "ProcessorCall";
+    GenericCall::dump();
+    std::cout << "(";
+    std::cout << _visits;
+    std::cout << ")";
+    std::cout << std::endl;
+}
 
 /* ----------------- Calls to processors from tasks. ------------------ */
 
@@ -2128,6 +2222,15 @@ OpenArrival::label()
 	print = true;
     }
     return *this;
+}
+
+
+void
+OpenArrival::dump() const
+{
+    std::cout << "OpenArrival";
+    GenericCall::dump();
+    std::cout << std::endl;
 }
 
 /*----------------------------------------------------------------------*/

@@ -1,37 +1,55 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14208 2020-12-11 20:44:05Z greg $
+ * $Id: entity.h 14231 2020-12-16 23:57:28Z greg $
  */
 
 #ifndef _ENTITY_H
 #define _ENTITY_H
 #include "lqn2ps.h"
-#include <iostream>
 #include <vector>
-#include "element.h"
+#include <map>
 #include <lqio/input.h>
+#include "element.h"
+#include "demand.h"
 
 class Processor;
 class Task;
 class Arc;
 class EntityCall;
+class Entity;
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
 class Entity : public Element
 {
 public:
-    struct CountCallers {
-	CountCallers( const callPredicate predicate ) : _predicate(predicate), _count(0) {}
-	void operator()( const Entity * entity );
-	unsigned int count() const { return _count; }
+    struct count_callers {
+	count_callers( const callPredicate predicate ) : _predicate(predicate) {}
+	unsigned int operator()( unsigned int, const Entity * entity ) const;
 	
     private:
 	const callPredicate _predicate;
-	unsigned int _count;
     };
 
+    struct accumulate_demand {
+	accumulate_demand( Demand::map_t& demand ) : _demand(demand) {}
+	void operator()( const Entity * entity ) const { entity->accumulateDemand( _demand[entity] ); }
+    private:
+	Demand::map_t& _demand;
+    };
+
+
+    struct pad_demand {
+	pad_demand( const std::vector<Entity *>& clients, Demand::map_t& demand ) : _clients(clients), _demand(demand) {}
+	void operator()( const Entity * entity ) const;
+
+    private:
+	const std::vector<Entity *>& _clients;	
+	Demand::map_t& _demand;
+    };
+    
+    
 public:
     Entity( const LQIO::DOM::Entity*, const size_t id );
     virtual ~Entity();
@@ -116,10 +134,15 @@ public:
 
     virtual std::ostream& printName( std::ostream& output, const int = 0 ) const;
 
+#if defined(BUG_270)
+    const Entity& printJMVAStation( std::ostream&, const Demand::map_t& ) const;
+    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const = 0;
+#endif
+    
 protected:
     double radius() const;
     unsigned countCallers() const;
-
+    
 private:
     Graphic::colour_type chainColour( unsigned int ) const;
     std::ostream& drawServerToClient( std::ostream&, const double, const double, const Entity *, std::vector<bool> &, const unsigned ) const;

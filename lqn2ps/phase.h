@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: phase.h 14226 2020-12-16 14:00:48Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,6 +17,7 @@
 #define PHASE_H
 
 #include <lqio/input.h>
+#include "demand.h"
 
 class Call;
 class Entry;
@@ -114,6 +115,7 @@ public:
     double serviceExceeded() const;
     double queueingTime() const;
     double utilization() const;
+    static Demand accumulate_demand( const Demand& augend, const std::pair<unsigned,Phase>& );
 
     bool hasQueueingTime() const;
     bool isNonExponential() const;

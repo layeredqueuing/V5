@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14208 2020-12-11 20:44:05Z greg $
+ * $Id: phase.cc 14226 2020-12-16 14:00:48Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -195,6 +195,18 @@ Phase::utilization() const
 {
     const LQIO::DOM::Phase * dom = getDOM();
     return dom ? dom->getResultUtilization() : 0.0;
+}
+
+
+
+/*
+ * I only visit the processor once for all intents and purposes.
+ */
+
+/* static */ Demand
+Phase::accumulate_demand( const Demand& augend, const std::pair<unsigned,Phase>& p )
+{
+    return augend + Demand( to_double(p.second.serviceTime()), 1 );
 }
 
 /* --- */

@@ -1,10 +1,11 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14220 2020-12-15 00:35:35Z greg $
+ * $Id: help.cc 14226 2020-12-16 14:00:48Z greg $
  */
 
 #include "lqn2ps.h"
 #include <cstring>
+#include <lqio/input.h>
 
 class HelpManip {
 public:
@@ -148,7 +149,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14220 2020-12-15 00:35:35Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 14226 2020-12-16 14:00:48Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 

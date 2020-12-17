@@ -1,4 +1,4 @@
-/* $Id: para_library.c 12548 2016-04-06 15:13:47Z greg $ */
+/* $Id: para_library.c 14234 2020-12-17 13:46:02Z greg $ */
 
 /************************************************************************/
 /*	para_library.c - PARASOL library source file			*/
@@ -497,9 +497,9 @@ SYSCALL	ps_create2(
 		return(OTHER_ERR("growing task table"));
 
 #if	HAVE_SIGALTSTACK && !_WIN32 && !_WIN64
-	stacksize = (long)(stackscale * (double)0x8000) + MINSIGSTKSZ;	/* punt... */
+	stacksize = (long)(stackscale * (double)0x10000) + MINSIGSTKSZ;	/* punt... */
 #else
-	stacksize = (long)(stackscale * (double)sp_dss) + 0x100;
+	stacksize = (long)(stackscale * (double)sp_dss) + 0x1000;
 	stacksize -= stacksize % sizeof(double);
 
 /* 	Two step test necessary because of gcc bug!			*/

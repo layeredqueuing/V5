@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14223 2020-12-15 19:27:55Z greg $
+ * $Id: layer.cc 14231 2020-12-16 23:57:28Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -147,7 +147,7 @@ Layer::count( const taskPredicate predicate ) const
 unsigned
 Layer::count( const callPredicate aFunc ) const
 {
-    return for_each( entities().begin(), entities().end(), Entity::CountCallers( aFunc ) ).count();
+    return std::accumulate( entities().begin(), entities().end(), 0, Entity::count_callers( aFunc ) );
 }
 
 
@@ -887,6 +887,10 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 #if defined(JMVA_OUTPUT)
 std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
 {
+    Demand::map_t demand;
+    for_each ( entities().begin(), entities().end(), Entity::accumulate_demand( demand ) );
+    for_each ( entities().begin(), entities().end(), Entity::pad_demand( _clients, demand ) );
+    
     set_indent(0);
     output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
     output << XML::start_element( "model" )
@@ -916,24 +920,11 @@ std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
 
     /* Servers */
 
-     output << XML::start_element( "stations" )
-	   << XML::attribute( "number", static_cast<unsigned int>(std::count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isSelected )) ) )
+    output << XML::start_element( "stations" )
+	   << XML::attribute( "number", static_cast<unsigned int>(std::count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isSelected )) + 1 ) )
 	   << ">" << std::endl;
-    for ( std::vector<Entity *>::const_iterator server = entities().begin(); server != entities().end(); ++server ) {
-	std::string element;
-	if ( (*server)->isInfinite() ) element = "delaystation";
-	else element = "listation";
-
-	output << XML::start_element( element );
-	output << XML::attribute( "name", (*server)->name() );
-	if ( (*server)->isMultiServer() ) output << XML::attribute( "servers", (*server)->copiesValue() );
-	output << ">" << std::endl;
-	output << XML::start_element( "servicetimes" ) << ">" << std::endl;
-	output << XML::end_element( "servicetimes" ) << std::endl;
-	output << XML::start_element( "visits" ) << ">" << std::endl;
-	output << XML::end_element( "visits" ) << std::endl;
-	output << XML::end_element( element );
-    }
+    printJMVAReferenceStation( output, demand );
+    std::for_each( entities().begin(), entities().end(), ConstExec2<Entity,std::ostream&,const Demand::map_t&>( &Entity::printJMVAStation, output, demand ) );
     output << XML::end_element( "stations" ) << std::endl;
 
     /* Reference */
@@ -941,54 +932,60 @@ std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
     output << XML::start_element( "ReferenceStation" )
 	   << XML::attribute( "number", static_cast<unsigned>(std::count_if( _clients.begin(), _clients.end(), Predicate1<Entity,const std::vector<Entity *>&>( &Entity::isInClosedModel,entities()) ) ) )
 	   << ">" << std::endl;
-#if 0
     for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	if ( (*client)->isInClosedModel( entities() ) ) {
 	    output << XML::simple_element( "Class" )
 		   << XML::attribute( "name", (*client)->name() )
-		   << XML::attribute( "refStation", (*client)->copiesValue() )
+		   << XML::attribute( "refStation", "Reference" )
 		   << "/>" << std::endl;
 	}
 	if ( (*client)->isInOpenModel( entities() ) ) {
 	}
     }
     output << XML::end_element( "ReferenceStation" ) << std::endl;
-#endif
-
-#if 0
-	<servicetimes>
-	  <servicetime customerclass="Class1">2.0</servicetime>
-	  <servicetime customerclass="Class2">3.0</servicetime>
-	</servicetimes>
-	<visits>
-	  <visit customerclass="Class1">1.0</visit>
-	  <visit customerclass="Class2">1.0</visit>
-	</visits>
-      </delaystation>
-    </stations>
-    <stations number="2">
-      <listation name="Station1" servers="1">
-	<servicetimes>
-	  <servicetime customerclass="Class1">4.0</servicetime>
-	  <servicetime customerclass="Class2">5.0</servicetime>
-	</servicetimes>
-	<visits>
-	  <visit customerclass="Class1">1.0</visit>
-	  <visit customerclass="Class2">1.0</visit>
-	</visits>
-      </listation>
-    <ReferenceStation number="2">
-      <Class name="Class1" refStation="Station1"/>
-      <Class name="Class2" refStation="Station1"/>
-    </ReferenceStation>
-  </parameters>
-  <algParams>
-    <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
-    <compareAlgs value="false"/>
-  </algParams>
-#endif
     output << XML::end_element( "parameters" ) << std::endl;
+
+    output << XML::start_element( "algParams" ) << ">" << std::endl
+	   << XML::simple_element( "algType" ) << XML::attribute( "maxSamples", "10000" ) << XML::attribute( "name", "MVA" ) << XML::attribute( "tolerance", "1.0E-7" ) << "/>" << std::endl
+	   << XML::simple_element( "compareAlgs" ) << XML::attribute( "value", "false" ) << "/>" << std::endl
+	   << XML::end_element( "algParams" ) << std::endl;
+
+
     output << XML::end_element( "model" ) << std::endl;
+
+    return output;
+}
+
+std::ostream&
+Layer::printJMVAReferenceStation( std::ostream& output, const Demand::map_t& demands ) const
+{
+    output << XML::start_element( "delaystation" )
+	   << XML::attribute( "name", "Reference" )
+	   << ">" << std::endl;
+
+    /* Get total demand over all classes */
+
+    Demand::item_t total;
+    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	const Task * task = dynamic_cast<const Task *>(*client);
+	total[task] = std::accumulate( demands.begin(), demands.end(), Demand(), Demand::select( task ) );
+    }
+
+    /* No service times for the reference station (unless there is think time for the class) */
+    
+    output << XML::start_element( "servicetimes" ) << ">" << std::endl;
+    for ( Demand::item_t::const_iterator demand = total.begin(); demand != total.end(); ++demand ) {
+	output << XML::inline_element( "servicetime", "customerClass", demand->first->name(), 0. ) << std::endl;
+    }
+    output << XML::end_element( "servicetimes" ) << std::endl;
+    
+    /* But there are visits. */
+    output << XML::start_element( "visits" ) << ">" << std::endl;
+    for ( Demand::item_t::const_iterator demand = total.begin(); demand != total.end(); ++demand ) {
+	output << XML::inline_element( "visit", "customerClass", demand->first->name(), demand->second.visits() ) << std::endl;
+    }
+    output << XML::end_element( "visits" ) << std::endl;
+    output << XML::end_element( "delaystation" ) << std::endl;
     return output;
 }
 #endif

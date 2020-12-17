@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14223 2020-12-15 19:27:55Z greg $
+ * $Id: task.cc 14226 2020-12-16 14:00:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1156,6 +1156,21 @@ Task::repliesTo( Entry * anEntry ) const
     }
     return aCltn;
 }
+
+
+#if defined(BUG_270)
+void
+Task::accumulateDemand( std::map<const Task *,Demand>& ) const
+{
+}
+#endif
+
+
+/* static */ Demand
+Task::accumulate_demand( const Demand& augend, const Task * task )
+{
+    return std::accumulate( task->entries().begin(), task->entries().end(), augend, &Entry::accumulate_demand ); 
+}
 
 /*
  * Sort activities (if any).
@@ -1815,8 +1830,13 @@ Task::unlinkFromServers()
 
     /* Unlink from processor */
 
-    const_cast<Processor *>(this->processor())->removeTask( this );
-
+    const_cast<Processor *>(processor())->removeTask( this );
+    for ( std::vector<EntityCall *>::iterator call = _calls.begin(); call != _calls.end(); ++call ) {
+	if ( dynamic_cast<ProcessorCall *>(*call) && dynamic_cast<ProcessorCall *>(*call)->dstEntity() == processor() ) {
+	    const_cast<Processor *>(processor())->removeDstCall(*call);
+	    break;
+	}
+    }
     return *this;
 }
 #endif

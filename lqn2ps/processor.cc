@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14208 2020-12-11 20:44:05Z greg $
+ * $Id: processor.cc 14226 2020-12-16 14:00:48Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -510,7 +510,6 @@ Processor::replicateProcessor( LQIO::DOM::DocumentObject ** root )
 /*                                  Output                                  */
 /* ------------------------------------------------------------------------ */
 
-
 const Processor&
 Processor::draw( std::ostream& output ) const
 {
@@ -537,6 +536,34 @@ Processor::draw( std::ostream& output ) const
     output << *myLabel;
     return *this;
 }
+
+
+#if defined(BUG_270)
+/* 
+ * Find the total demand by each class (client tasks in submodel), 
+ * then change back to visits/service time when needed 
+ */
+
+void
+Processor::accumulateDemand( std::map<const Task *,Demand>& demand ) const
+{
+    for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
+	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
+	if ( !src ) continue;
+	
+        const std::pair<std::map<const Task *,Demand>::iterator,bool> result = demand.insert( std::pair<const Task *,Demand>( src->srcTask(), Demand() ) );
+	std::map<const Task *,Demand>::iterator item = result.first;
+	
+	if ( src->callType() == LQIO::DOM::Call::NULL_CALL ) {
+	    /* If it is generic processor call then accumulate by entry */
+	    item->second.accumulate( Task::accumulate_demand( Demand(), src->srcTask() ) );
+	} else {
+	    item->second.accumulate( src->visits(), src->demand() );
+	}
+    }
+}
+#endif
+
 
 /*----------------------------------------------------------------------*/
 /*		 	   Called from yyparse.  			*/

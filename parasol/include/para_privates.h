@@ -1,4 +1,4 @@
-/* $Id: para_privates.h 12547 2016-04-05 18:32:45Z greg $ */
+/* $Id: para_privates.h 14234 2020-12-17 13:46:02Z greg $ */
 /************************************************************************/
 /*	para_privates.h - PARASOL library internal header file		*/
 /*									*/
@@ -37,7 +37,7 @@
 #ifndef _PARA_PRIVATES
 #define _PARA_PRIVATES
 
-#define STACK_TESTING
+#define STACK_TESTING	1
 
 #ifndef LOCAL
 #define	LOCAL static	

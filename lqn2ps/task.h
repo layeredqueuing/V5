@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14223 2020-12-15 19:27:55Z greg $
+ * $Id: task.h 14226 2020-12-16 14:00:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -146,6 +146,10 @@ public:
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
+#if defined(BUG_270)
+    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const;
+#endif
+    static Demand accumulate_demand( const Demand&, const Task * );
     /* Activities */
     
     unsigned generate();

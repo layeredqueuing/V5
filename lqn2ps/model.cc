@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14223 2020-12-15 19:27:55Z greg $
+ * $Id: model.cc 14233 2020-12-17 13:15:17Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -908,18 +908,24 @@ Model::getExtension()
 
 #if BUG_270
 /*
- * Transform the model by removing infinite servers.
+ * Transform the model by removing infinite servers.  Multiple entries
+ * are allowed, but multiple phases are not.
  */
 
 /* static */ bool
 Model::prune()
 {
-    for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	if ( (*task)->isInfinite() ) {
-	    (*task)->linkToClients();
-	    (*task)->unlinkFromServers();
-	    __zombies.push_back( *task );
+    try {
+	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
+	    if ( (*task)->isInfinite() && (*task)->maxPhase() == 1 ) {
+		(*task)->linkToClients();
+		(*task)->unlinkFromServers();
+		__zombies.push_back( *task );
+	    }
 	}
+    }
+    catch ( const std::domain_error& e ) {
+	LQIO::solution_error( ERR_UNASSIGNED_VARIABLES );
     }
     
     return Flags::print[IGNORE_ERRORS].value.b || !LQIO::io_vars.anError();

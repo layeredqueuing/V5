@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14208 2020-12-11 20:44:05Z greg $
+ * $Id: processor.h 14225 2020-12-16 03:44:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -93,6 +93,11 @@ public:
     /* Printing */
 
     virtual const Processor& draw( std::ostream& output ) const;
+
+protected:
+#if defined(BUG_270)
+    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const;
+#endif
 
 public:
     static std::ostream& printHeader( std::ostream& );
