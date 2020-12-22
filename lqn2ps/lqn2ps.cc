@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14226 2020-12-16 14:00:48Z greg $
+ * $Id: lqn2ps.cc 14240 2020-12-22 21:14:49Z greg $
  *
  * Command line processing.
  *
@@ -190,7 +190,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-16 09:00:48 -0500 (Wed, 16 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-22 16:14:49 -0500 (Tue, 22 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -1054,6 +1054,9 @@ process( const std::string& input_file_name, const std::string& output_file_name
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
 	}
 #endif
+	catch ( const std::domain_error& error ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
+	}
 	catch ( const std::runtime_error &error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << error.what() << std::endl;
 	}

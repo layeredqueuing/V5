@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14233 2020-12-17 13:15:17Z greg $
+ * $Id: model.cc 14236 2020-12-17 23:54:49Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -917,7 +917,7 @@ Model::prune()
 {
     try {
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    if ( (*task)->isInfinite() && (*task)->maxPhase() == 1 ) {
+	    if ( (*task)->canPrune() ) {
 		(*task)->linkToClients();
 		(*task)->unlinkFromServers();
 		__zombies.push_back( *task );

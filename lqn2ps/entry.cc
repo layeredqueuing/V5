@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14233 2020-12-17 13:15:17Z greg $
+ * $Id: entry.cc 14237 2020-12-18 12:41:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1206,6 +1206,16 @@ unsigned
 Entry::count_callers::operator()( unsigned int augend, const Entry * entry ) const
 {
     return augend + entry->countCallers( _predicate );
+}
+
+/* static */ std::set<const Task *>
+Entry::collect_callers( const std::set<const Task *>& in, const Entry * entry )
+{
+    std::set<const Task *> out = in;
+    for ( std::vector<GenericCall *>::const_iterator call = entry->callers().begin(); call != entry->callers().end(); ++call ) {
+	out.insert( (*call)->srcTask() );
+    }
+    return out;
 }
 
 

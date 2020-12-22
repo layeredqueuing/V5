@@ -1,5 +1,5 @@
 /*
- * $Id: srvn_gram.y 13556 2020-05-25 17:39:26Z greg $ 
+ * $Id: srvn_gram.y 14240 2020-12-22 21:14:49Z greg $ 
  */
 
 %{
@@ -48,10 +48,10 @@ extern int LQIO_lex();
     void * aParseTreeList;
 }
 
-%type <aVariable>	quantum act_prob act_count group_share conv_val it_limit print_int underrelax_coeff
+%type <aVariable>	act_prob act_count group_share conv_val it_limit print_int underrelax_coeff
 %type <aVariable>	real integer quorum_count rvalue
 %type <domObject>	entry_ref dest_ref activity_def activity_ref task_ref
-%type <schedulingFlag>	proc_sched_flag task_sched_flag
+%type <schedulingFlag>	proc_sched_flag proc_sched_quantum task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
 %type <anInt>		cap_flag hist_bins
@@ -232,26 +232,27 @@ proc_id			: symbol
 			;
 
 			/* 1  2       3               4       5                 6                7 */
-p_decl			: 'p' proc_id proc_sched_flag quantum 
+p_decl			: 'p' proc_id proc_sched_flag 
+				{ curr_proc = srvn_add_processor( $2, $3, NULL ); (void) free( $2 );	}
+				proc_opts proc_obs
+			| 'p' proc_id proc_sched_quantum real
 				{ curr_proc = srvn_add_processor( $2, $3, $4 ); (void) free( $2 );	}
 				proc_opts proc_obs
 			| 'd' proc_id proc_id real
 				{ srvn_add_communication_delay( $2, $3, $4 ); }
     			;
 
-proc_sched_flag 	: 'H'	{ $$ = SCHEDULE_PS_HOL; }		/* Processor Sharing.			*/
-			| 'P'	{ $$ = SCHEDULE_PS_PPR; }		/* Processor Sharing.			*/
-			| 'f'	{ $$ = SCHEDULE_FIFO; }			/* First come first served.		*/
+proc_sched_flag 	: 'f'	{ $$ = SCHEDULE_FIFO; }			/* First come first served.		*/
 			| 'i'	{ $$ = SCHEDULE_DELAY; }		/* Infinite Server			*/
 			| 'r'	{ $$ = SCHEDULE_RAND; }			/* Random scheduling (!?!)		*/
-			| 's'	{ $$ = SCHEDULE_PS; }			/* Processor Sharing.			*/
     			| 'h'	{ $$ = SCHEDULE_HOL; }			/* Head of line.			*/
     			| 'p'	{ $$ = SCHEDULE_PPR; }			/* Priority, preemptive resume		*/
     			| 'c'	{ $$ = SCHEDULE_CFS; }			/* Completely fair share		*/
     			;
 
-quantum			: real	{ $$ = $1; }
-			| 	{ $$ = NULL; }
+proc_sched_quantum 	: 's'	{ $$ = SCHEDULE_PS; }			/* Processor Sharing.			*/
+			| 'H'	{ $$ = SCHEDULE_PS_HOL; }		/* Processor Sharing.			*/
+			| 'P'	{ $$ = SCHEDULE_PS_PPR; }		/* Processor Sharing.			*/
     			;
 
 proc_opts		: proc_flags proc_opts

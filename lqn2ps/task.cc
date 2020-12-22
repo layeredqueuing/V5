@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14226 2020-12-16 14:00:48Z greg $
+ * $Id: task.cc 14237 2020-12-18 12:41:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1159,6 +1159,26 @@ Task::repliesTo( Entry * anEntry ) const
 
 
 #if defined(BUG_270)
+bool
+Task::canPrune() const
+{
+    if ( maxPhase() > 1 ) return false;	    	/* Just give up... */
+    if ( isInfinite() ) return true;		/* No way to queue at me */
+
+    /* 
+     * The harder path.  I want to make sure that I can't queue below
+     * me.  Find all callers to my servers... if it's just me, then we
+     * are good to go.
+     */
+
+    if ( copiesValue() != 1 || processor()->nClients() != 1 ) return false;
+
+    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
+    return callers.size() == 1;
+}
+
+
+
 void
 Task::accumulateDemand( std::map<const Task *,Demand>& ) const
 {

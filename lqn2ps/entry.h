@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14226 2020-12-16 14:00:48Z greg $
+ * $Id: entry.h 14237 2020-12-18 12:41:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,6 +55,7 @@ public:
     private:
 	const callPredicate _predicate;
     };
+    static std::set<const Task *> collect_callers( const std::set<const Task *>&, const Entry * );
 	
 public:
     static Entry * create(LQIO::DOM::Entry* domEntry );

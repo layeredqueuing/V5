@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14226 2020-12-16 14:00:48Z greg $
+ * $Id: task.h 14236 2020-12-17 23:54:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -175,6 +175,7 @@ public:
     Task& aggregate();
 
 #if defined(BUG_270)
+    bool canPrune() const;
     Task& linkToClients();
     Task& unlinkFromServers();
 #endif
