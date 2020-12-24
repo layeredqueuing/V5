@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14231 2020-12-16 23:57:28Z greg $
+ * $Id: entity.h 14252 2020-12-24 20:35:14Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -10,8 +10,8 @@
 #include <vector>
 #include <map>
 #include <lqio/input.h>
+#include <lqio/bcmp_document.h>
 #include "element.h"
-#include "demand.h"
 
 class Processor;
 class Task;
@@ -33,21 +33,51 @@ public:
     };
 
     struct accumulate_demand {
-	accumulate_demand( Demand::map_t& demand ) : _demand(demand) {}
-	void operator()( const Entity * entity ) const { entity->accumulateDemand( _demand[entity] ); }
+	accumulate_demand( BCMP::Model& model ) : _model(model) {}
+	void operator()( const Entity * entity ) const { entity->accumulateDemand( _model.stationAt(entity->name() ) ); }
     private:
-	Demand::map_t& _demand;
+	BCMP::Model& _model;
     };
 
-
-    struct pad_demand {
-	pad_demand( const std::vector<Entity *>& clients, Demand::map_t& demand ) : _clients(clients), _demand(demand) {}
-	void operator()( const Entity * entity ) const;
-
+    struct create_station {
+	create_station( BCMP::Model& model, BCMP::Model::Station::Type type = BCMP::Model::Station::NOT_DEFINED ) : _model(model), _type(type) {}
+	void operator()( const Entity * entity ) const
+	    {
+		BCMP::Model::Station::Type type;
+		if ( _type == BCMP::Model::Station::REFERENCE ) type = _type;
+		else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
+		else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
+		else type = BCMP::Model::Station::LOAD_INDEPENDENT;
+		_model.insertStation( entity->name(), type, entity->copiesValue() );
+	    }
     private:
-	const std::vector<Entity *>& _clients;	
-	Demand::map_t& _demand;
+	BCMP::Model& _model;
+	const BCMP::Model::Station::Type _type;
     };
+
+    struct create_class {
+	create_class( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
+	void operator()( const Entity * entity ) const
+	    {
+		BCMP::Model::Class::Type type;
+		if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Class::MIXED;
+		else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Class::OPEN;
+		else type = BCMP::Model::Class::CLOSED;
+		_model.insertClass( entity->name(), type, entity->copiesValue() );
+	    }
+    private:
+	BCMP::Model& _model;
+	const std::vector<Entity *>& _servers;
+    };
+
+    struct label_BCMP_model {
+	label_BCMP_model( const BCMP::Model& model  ) : _model(model) {}
+	void operator()( Entity * entity ) const;
+	
+    private:
+	const BCMP::Model& _model;
+    };
+
     
     
 public:
@@ -114,7 +144,7 @@ public:
     virtual unsigned setChain( unsigned k, callPredicate aFunc ) const { return k; }
 
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const { return false; }
-    virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const { return false; }
+    virtual bool isInClosedModel( const std::vector<Entity *>& servers ) const { return false; }
 
 #if defined(REP2FLAT)
     virtual Entity& removeReplication();
@@ -125,6 +155,9 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Entity& label();
+    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand_t& ) = 0;
+
+    virtual void accumulateDemand( BCMP::Model::Station& ) const = 0;
 
     std::ostream& print( std::ostream& output ) const;
 
@@ -133,12 +166,7 @@ public:
     virtual std::ostream& drawServer( std::ostream& ) const;
 
     virtual std::ostream& printName( std::ostream& output, const int = 0 ) const;
-
-#if defined(BUG_270)
-    const Entity& printJMVAStation( std::ostream&, const Demand::map_t& ) const;
-    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const = 0;
-#endif
-    
+   
 protected:
     double radius() const;
     unsigned countCallers() const;

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14226 2020-12-16 14:00:48Z greg $
+ * $Id: phase.cc 14249 2020-12-24 05:12:09Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -203,10 +203,10 @@ Phase::utilization() const
  * I only visit the processor once for all intents and purposes.
  */
 
-/* static */ Demand
-Phase::accumulate_demand( const Demand& augend, const std::pair<unsigned,Phase>& p )
+/* static */ BCMP::Model::Station::Demand
+Phase::accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& p )
 {
-    return augend + Demand( to_double(p.second.serviceTime()), 1 );
+    return augend + BCMP::Model::Station::Demand( 1.0, to_double(p.second.serviceTime()) );
 }
 
 /* --- */

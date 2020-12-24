@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14226 2020-12-16 14:00:48Z greg $
+ * $Id: processor.cc 14251 2020-12-24 16:02:46Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -437,6 +437,23 @@ Processor::label()
 
 
 /*
+ * demand is map<class,<visits,service>> for this station.
+ */
+
+Processor&
+Processor::labelBCMPModel( const BCMP::Model::Station::Demand_t& demands )
+{
+    *myLabel << name();
+    for ( BCMP::Model::Station::Demand_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
+	myLabel->newLine();
+	*myLabel << demand->first << "(" << demand->second.visits() << "," << demand->second.service_time() << ")";
+    }
+    return *this;
+}
+
+
+
+/*
  * Rename processors
  */
 
@@ -538,32 +555,33 @@ Processor::draw( std::ostream& output ) const
 }
 
 
-#if defined(BUG_270)
 /* 
  * Find the total demand by each class (client tasks in submodel), 
  * then change back to visits/service time when needed 
  */
 
 void
-Processor::accumulateDemand( std::map<const Task *,Demand>& demand ) const
+Processor::accumulateDemand( BCMP::Model::Station& station ) const
 {
+    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
+    
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
 	if ( !src ) continue;
-	
-        const std::pair<std::map<const Task *,Demand>::iterator,bool> result = demand.insert( std::pair<const Task *,Demand>( src->srcTask(), Demand() ) );
-	std::map<const Task *,Demand>::iterator item = result.first;
+
+	BCMP::Model::Station::Demand_t& demands = const_cast<BCMP::Model::Station::Demand_t&>(station.demands());
+        const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Demand() ) );	/* null entry */
+	demand_map::iterator item = result.first;
 	
 	if ( src->callType() == LQIO::DOM::Call::NULL_CALL ) {
 	    /* If it is generic processor call then accumulate by entry */
-	    item->second.accumulate( Task::accumulate_demand( Demand(), src->srcTask() ) );
+	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
 	} else {
 	    item->second.accumulate( src->visits(), src->demand() );
 	}
     }
 }
-#endif
-
 
 /*----------------------------------------------------------------------*/
 /*		 	   Called from yyparse.  			*/

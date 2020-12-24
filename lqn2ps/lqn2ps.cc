@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14240 2020-12-22 21:14:49Z greg $
+ * $Id: lqn2ps.cc 14253 2020-12-24 22:16:18Z greg $
  *
  * Command line processing.
  *
@@ -190,7 +190,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-22 16:14:49 -0500 (Tue, 22 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-24 17:16:18 -0500 (Thu, 24 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -789,7 +789,7 @@ lqn2ps( int argc, char *argv[] )
 #if defined(BUG_270)
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JMVA && !queueing_output() ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -O" << Options::io[FORMAT_JMVA]
-	     << " must be used with -Q<submodel>." << std::endl;
+		  << " must be used with -Q<submodel>." << std::endl;
 	exit( 1 );
     }
 #endif
@@ -814,6 +814,10 @@ lqn2ps( int argc, char *argv[] )
 	 || Flags::print[LAYERING].value.i == LAYERING_PROCESSOR
 	 || Flags::print[LAYERING].value.i == LAYERING_SHARE ) {
 	Flags::print[PROCESSOR_QUEUEING].value.b = false;
+    }
+
+    if ( Flags::bcmp_model ) {
+	Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
     }
 
     /*
@@ -950,6 +954,9 @@ process( const std::string& input_file_name, const std::string& output_file_name
 
     /* Now fold, mutiliate and spindle */
 
+    if ( queueing_output() ) {
+	pragmas.insert(LQIO::DOM::Pragma::_bcmp_,LQIO::DOM::Pragma::_true_);
+    }
     document->mergePragmas( pragmas.getList() );       	/* Save pragmas -- prepare will process */
     Model::prepare( document );				/* This creates the various objects 	*/
 #if BUG_270
@@ -1148,8 +1155,14 @@ setOutputFormat( const int i )
     case FORMAT_NULL:
 	break;
 
-#if defined(JMVA_OUTPUT)
+#if JMVA_OUTPUT
     case FORMAT_JMVA:
+	Flags::bcmp_model = true;				/* No entries. */
+	break;
+#endif
+#if QNAP2_OUTPUT
+    case FORMAT_QNAP2:
+	Flags::bcmp_model = true;				/* No entries. */
 	break;
 #endif
 	

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14237 2020-12-18 12:41:13Z greg $
+ * $Id: task.cc 14249 2020-12-24 05:12:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1176,18 +1176,18 @@ Task::canPrune() const
     std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
     return callers.size() == 1;
 }
+#endif
 
 
 
 void
-Task::accumulateDemand( std::map<const Task *,Demand>& ) const
+Task::accumulateDemand( BCMP::Model::Station& ) const
 {
 }
-#endif
 
 
-/* static */ Demand
-Task::accumulate_demand( const Demand& augend, const Task * task )
+/* static */ BCMP::Model::Station::Demand
+Task::accumulate_demand( const BCMP::Model::Station::Demand& augend, const Task * task )
 {
     return std::accumulate( task->entries().begin(), task->entries().end(), augend, &Entry::accumulate_demand ); 
 }
@@ -1695,7 +1695,7 @@ Graphic::colour_type Task::colour() const
  * Label the node.
  */
 
-Entity&
+Task&
 Task::label()
 {
     if ( queueing_output() ) {
@@ -1767,6 +1767,24 @@ Task::label()
     for_each( calls().begin(), calls().end(), Exec<GenericCall>( &GenericCall::label ) );   	/* And the outgoing arcs, if any */
     for_each( precedences().begin(), precedences().end(), Exec<ActivityList>( &ActivityList::label ) );
     for_each( _layers.rbegin(), _layers.rend(), Exec<ActivityLayer>( &ActivityLayer::label ) );
+    return *this;
+}
+
+
+
+/*
+ *
+ */
+
+Task&
+Task::labelBCMPModel( const BCMP::Model::Station::Demand_t& demand )
+{
+    *myLabel << name();
+    myLabel->newLine();
+    *myLabel << "[" << copies() << "]";
+    const BCMP::Model::Station::Demand& reference = demand.at(this->name());
+    myLabel->newLine();
+    *myLabel << "(" << reference.visits() << "," << reference.service_time() << ")";
     return *this;
 }
 
@@ -1847,16 +1865,24 @@ Task&
 Task::unlinkFromServers()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::unlinkFromServers ) );
+    unlinkFromProcessor();
+    return *this;
+}
 
-    /* Unlink from processor */
 
-    const_cast<Processor *>(processor())->removeTask( this );
+
+Task&
+Task::unlinkFromProcessor()
+{
+    Processor * processor = const_cast<Processor *>(this->processor());
+    processor->removeTask( this );
     for ( std::vector<EntityCall *>::iterator call = _calls.begin(); call != _calls.end(); ++call ) {
-	if ( dynamic_cast<ProcessorCall *>(*call) && dynamic_cast<ProcessorCall *>(*call)->dstEntity() == processor() ) {
-	    const_cast<Processor *>(processor())->removeDstCall(*call);
+	if ( dynamic_cast<ProcessorCall *>(*call) && dynamic_cast<ProcessorCall *>(*call)->dstEntity() == processor ) {
+	    processor->removeDstCall(*call);
 	    break;
 	}
     }
+    _processors.erase(processor);
     return *this;
 }
 #endif
@@ -2257,20 +2283,21 @@ Task::drawClient( std::ostream& output, const bool is_in_open_model, const bool 
     myNode->comment( output, aComment );
     myNode->penColour( colour() == Graphic::GREY_10 ? Graphic::BLACK : colour() ).fillColour( colour() );
 
-    myLabel->moveTo( bottomCenter() ).justification( LEFT_JUSTIFY );
+    myLabel->moveTo( bottomCenter() )
+	.justification( LEFT_JUSTIFY );
     if ( is_in_open_model && is_in_closed_model ) {
 	Point aPoint = bottomCenter();
 	aPoint.moveBy( radius() * -3.0, 0 );
 	myNode->multi_server( output, aPoint, radius() );
-	aPoint = bottomCenter().moveBy( radius() * 1.5, 0 );
+	aPoint = bottomCenter().moveBy( radius() * 1.0, 0.0 );
 	myNode->open_source( output, aPoint, radius() );
-	myLabel->moveBy( radius() * 1, radius() * 3 * myNode->direction() );
+	myLabel->moveBy( radius() * 0.5, radius() * 4.0 * myNode->direction() );
     } else if ( is_in_open_model ) {
 	myNode->open_source( output, bottomCenter(), radius() );
-	myLabel->moveBy( radius() * 1, radius() * myNode->direction() );
+	myLabel->moveBy( radius() * 0.5, radius() * myNode->direction() );
     } else {
 	myNode->multi_server( output, bottomCenter(), radius() );
-	myLabel->moveBy( radius() * 1, radius() * 3 * myNode->direction() );
+	myLabel->moveBy( radius() * 0.5, radius() * 4.0 * myNode->direction() );
     }
     output << *myLabel;
     return output;

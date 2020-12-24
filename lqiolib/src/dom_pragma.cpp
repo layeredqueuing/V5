@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14210 2020-12-11 23:50:58Z greg $
+ *  $Id: dom_pragma.cpp 14253 2020-12-24 22:16:18Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -61,7 +61,16 @@ namespace LQIO {
 	    
 	    /* string */
 	    	
-	    static std::set<std::string> force_multiserver_args;		/* lqns */
+	    static std::set<std::string> bcmp_args;
+	    bcmp_args.insert(Pragma::_lqn_);
+	    bcmp_args.insert(Pragma::_extended_);
+	    bcmp_args.insert(Pragma::_true_);
+	    bcmp_args.insert(Pragma::_yes_);
+	    bcmp_args.insert("t");
+	    bcmp_args.insert("y");
+	    __pragmas[Pragma::_bcmp_] = &bcmp_args;
+	    
+	    static std::set<std::string> force_multiserver_args;	/* lqns */
 	    force_multiserver_args.insert(Pragma::_none_);
 	    force_multiserver_args.insert(Pragma::_processors_);
 	    force_multiserver_args.insert(Pragma::_tasks_);
@@ -90,7 +99,7 @@ namespace LQIO {
 	    multiserver_args.insert(Pragma::_suri_);
 	    __pragmas[_multiserver_] = &multiserver_args;
 
-	    static std::set<std::string> mva_args;
+	    static std::set<std::string> mva_args;		/* lqns */
 	    mva_args.insert(Pragma::_linearizer_);
 	    mva_args.insert(Pragma::_exact_);
 	    mva_args.insert(Pragma::_schweitzer_);
@@ -99,7 +108,7 @@ namespace LQIO {
 	    mva_args.insert(Pragma::_one_step_linearizer_);
 	    __pragmas[_mva_] = &mva_args;
 
-	    static std::set<std::string> overtaking_args;
+	    static std::set<std::string> overtaking_args;	/* lqns */
 	    overtaking_args.insert(Pragma::_markov_);
 	    overtaking_args.insert(Pragma::_rolia_);
 	    overtaking_args.insert(Pragma::_simple_);
@@ -136,7 +145,7 @@ namespace LQIO {
 	    quorum_idle_time_args.insert(Pragma::_join_delay_);
 	    __pragmas[Pragma::_quorum_idle_time_] = &quorum_delayed_calls_args;
 
-	    static std::set<std::string> scheduling_model_args;
+	    static std::set<std::string> scheduling_model_args;	/* lqsim */
 	    scheduling_model_args.insert(Pragma::_default_);
 	    scheduling_model_args.insert(Pragma::_default_natural_);
 	    scheduling_model_args.insert(Pragma::_custom_);
@@ -151,14 +160,14 @@ namespace LQIO {
 	    task_args.insert(scheduling_label[SCHEDULE_RAND].XML);
 	    __pragmas[Pragma::_task_scheduling_] = &task_args;
 	    
-	    static std::set<std::string> threads_args;
+	    static std::set<std::string> threads_args;		/* lqns */
 	    threads_args.insert(Pragma::_hyper_);
 	    threads_args.insert(Pragma::_mak_);
 	    threads_args.insert(Pragma::_none_);
 	    threads_args.insert(Pragma::_exponential_);
 	    __pragmas[Pragma::_threads_] = &threads_args;
 
-	    static std::set<std::string> variance_args;
+	    static std::set<std::string> variance_args;		/* lqns */
 	    variance_args.insert(Pragma::_default_);
 	    variance_args.insert(Pragma::_none_);
 	    variance_args.insert(Pragma::_stochastic_);
@@ -296,6 +305,7 @@ namespace LQIO {
 		__true_false_arg["y"] = true;
 		__true_false_arg["f"] = false;
 		__true_false_arg["n"] = false;
+		__true_false_arg[""]  = true;		/* No argument */
 	    }
 	    const std::map<std::string,bool>::const_iterator x = __true_false_arg.find( value );
 	    if ( x == __true_false_arg.end() ) throw std::domain_error( value.c_str() );
@@ -311,6 +321,7 @@ namespace LQIO {
 	const char * Pragma::_all_ =				"all";
 	const char * Pragma::_batched_ =			"batched";
 	const char * Pragma::_batched_back_ =			"batched-back";
+	const char * Pragma::_bcmp_ =				"bcmp";			// BUG 270
 	const char * Pragma::_block_period_ =			"block-period";
 	const char * Pragma::_bruell_ =				"bruell";
 	const char * Pragma::_conway_ =				"conway";
@@ -322,6 +333,7 @@ namespace LQIO {
 	const char * Pragma::_deterministic_ = 			"deterministic";	// Quorum
 	const char * Pragma::_exact_ =				"exact";
 	const char * Pragma::_exponential_ =			"exponential";
+	const char * Pragma::_extended_ =			"extended";		// BUG 270
 	const char * Pragma::_false_ =				"false";
 	const char * Pragma::_fast_ =				"fast";
 	const char * Pragma::_force_multiserver_ =		"force-multiserver";
@@ -337,6 +349,7 @@ namespace LQIO {
 	const char * Pragma::_keep_all_ = 			"keep-all";		// Quorum
 	const char * Pragma::_layering_ = 			"layering";
 	const char * Pragma::_linearizer_ =			"linearizer";
+	const char * Pragma::_lqn_ =				"lqn";			// BUG 270
 	const char * Pragma::_mak_ =				"mak";
 	const char * Pragma::_markov_ =				"markov";
 	const char * Pragma::_max_blocks_ =			"max-blocks";

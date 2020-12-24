@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14210 2020-12-11 23:50:58Z greg $
+ * $Id: dom_pragma.h 14253 2020-12-24 22:16:18Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -58,6 +58,7 @@ namespace LQIO {
 	    static const char * _all_;
 	    static const char * _batched_;
 	    static const char * _batched_back_;
+	    static const char * _bcmp_;			// BUG 270
 	    static const char * _block_period_;
 	    static const char * _bruell_;
 	    static const char * _conway_;
@@ -69,6 +70,7 @@ namespace LQIO {
 	    static const char * _deterministic_;	// Quorum
 	    static const char * _exact_;
 	    static const char * _exponential_;
+	    static const char * _extended_;		// BUG 270
 	    static const char * _false_;
 	    static const char * _fast_;
 	    static const char * _force_multiserver_;
@@ -84,6 +86,7 @@ namespace LQIO {
 	    static const char * _keep_all_;		// Quorum
 	    static const char * _layering_;
 	    static const char * _linearizer_;
+	    static const char * _lqn_;			// BUG 270
 	    static const char * _mak_;
 	    static const char * _markov_;
 	    static const char * _max_blocks_;
@@ -101,7 +104,7 @@ namespace LQIO {
 	    static const char * _precision_;
 	    static const char * _processor_scheduling_;
 	    static const char * _processors_;
-	    static const char * _prune_;		// BUG_270
+	    static const char * _prune_;		// BUG 270
 	    static const char * _quorum_delayed_calls_;	// Quroum
 	    static const char * _quorum_distribution_;	// Quroum
 	    static const char * _quorum_idle_time_;	// Qurom

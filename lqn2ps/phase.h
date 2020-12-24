@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14226 2020-12-16 14:00:48Z greg $
+ * $Id: phase.h 14249 2020-12-24 05:12:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,7 +17,7 @@
 #define PHASE_H
 
 #include <lqio/input.h>
-#include "demand.h"
+#include <lqio/bcmp_document.h>
 
 class Call;
 class Entry;
@@ -115,7 +115,7 @@ public:
     double serviceExceeded() const;
     double queueingTime() const;
     double utilization() const;
-    static Demand accumulate_demand( const Demand& augend, const std::pair<unsigned,Phase>& );
+    static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& );
 
     bool hasQueueingTime() const;
     bool isNonExponential() const;

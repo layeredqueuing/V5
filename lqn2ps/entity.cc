@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14232 2020-12-17 00:42:44Z greg $
+ * $Id: entity.cc 14252 2020-12-24 20:35:14Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -492,8 +492,9 @@ Entity::drawServer( std::ostream& output ) const
 
     /* Draw the label */
 
-    myLabel->moveTo( bottomCenter() );
-    myLabel->justification( LEFT_JUSTIFY ).moveBy( radius() * 2, radius() * 2 * myNode->direction() );
+    myLabel->moveTo( bottomCenter() )
+	.justification( LEFT_JUSTIFY )
+	.moveBy( radius() * 1.5, radius() * 3.0 * myNode->direction() );
     output << *myLabel;
 
     return output;
@@ -709,43 +710,10 @@ Entity::offsetOf( const std::set<unsigned>& chains, unsigned k )
 }
 
     
-#if defined(BUG_270)
-const Entity&
-Entity::printJMVAStation( std::ostream& output, const Demand::map_t& demands ) const
-{
-    std::string element;
-    if ( isInfinite() ) element = "delaystation";
-    else element = "listation";
-
-    output << XML::start_element( element );
-    output << XML::attribute( "name", name() );
-    if ( isMultiServer() ) output << XML::attribute( "servers", copiesValue() );
-    output << ">" << std::endl;
-    output << XML::start_element( "servicetimes" ) << ">" << std::endl;
-    for ( Demand::item_t::const_iterator demand = demands.at(this).begin(); demand != demands.at(this).end(); ++demand ) {
-	output << XML::inline_element( "servicetime", "customerClass", demand->first->name(), demand->second.service() ) << std::endl;
-    }
-    output << XML::end_element( "servicetimes" ) << std::endl;
-    output << XML::start_element( "visits" ) << ">" << std::endl;
-    for ( Demand::item_t::const_iterator demand = demands.at(this).begin(); demand != demands.at(this).end(); ++demand ) {
-	output << XML::inline_element( "visit", "customerClass", demand->first->name(), demand->second.visits() ) << std::endl;
-    }
-    output << XML::end_element( "visits" ) << std::endl;
-    output << XML::end_element( element ) << std::endl;
-    return *this;
-}
-#endif
-
-/*
- * JMVA insists that service time/visits exist for --all-- classes for --all--stations
- * so pad the demand_map to make it so.
- */
-
 void
-Entity::pad_demand::operator()( const Entity * entity ) const
+Entity::label_BCMP_model::operator()( Entity * entity ) const
 {
-    Demand::item_t& demand = _demand.at(entity);
-    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	demand.insert( std::pair<const Task *,Demand>(dynamic_cast<Task *>(*client), Demand()) );	// Insert will fail it key exists
-    }
+    const BCMP::Model::Station& station = const_cast<BCMP::Model&>(_model).stationAt( entity->name() );
+    entity->labelBCMPModel( station.demands() );
 }
+

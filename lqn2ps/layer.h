@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14231 2020-12-16 23:57:28Z greg $
+ * $Id: layer.h 14252 2020-12-24 20:35:14Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -9,6 +9,7 @@
 
 #include "lqn2ps.h"
 #include <vector>
+#include <lqio/bcmp_document.h>
 #include "entity.h"
 #include "point.h"
 
@@ -22,9 +23,9 @@ private:
     typedef Task& (Task::*taskFPtr)();
 
     /*
-     * Position tasks and processors 
+     * Position tasks and processors
      */
-    
+
     class Position
     {
     public:
@@ -79,7 +80,8 @@ public:
     Layer& generateSubmodel();
     Layer& transmorgrify( LQIO::DOM::Document *, Processor *&, Task *& );			/* BUG_626. */
     Layer& aggregate();
-    
+    Layer& computeBCMPParameters();
+
     unsigned int size() const { return entities().size(); }
     double width() const { return _extent.x(); }
     double height() const { return _extent.y(); }
@@ -97,7 +99,9 @@ public:
     std::ostream& drawQueueingNetwork( std::ostream& ) const;
 #if defined(JMVA_OUTPUT)
     std::ostream& printJMVAQueueingNetwork( std::ostream& ) const;
-    std::ostream& printJMVAReferenceStation( std::ostream& output, const Demand::map_t& ) const;
+#endif
+#if defined(QNAP2_OUTPUT)
+    std::ostream& printQNAP2QueueingNetwork( std::ostream& ) const;
 #endif
 
 private:
@@ -113,8 +117,9 @@ private:
     unsigned _number;
     Label * _label;
 
-    std::vector<Entity *> _clients;		/* Only if doing a submodel */
+    std::vector<Entity *> _clients;		/* Only if doing a submodel 	*/
     mutable unsigned _chains;			/* Only set if doing a submodel */
+    BCMP::Model  _bcmp_model;			/* For queuing output		*/
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Layer& self ) { return self.print( output ); }

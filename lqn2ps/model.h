@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14222 2020-12-15 16:00:35Z greg $
+ * $Id: model.h 14253 2020-12-24 22:16:18Z greg $
  */
 
 #ifndef _MODEL_H
@@ -242,6 +242,9 @@ private:
 #if defined(JMVA_OUTPUT)
     std::ostream& printJMVA( std::ostream& output ) const;
 #endif
+#if defined(QNAP2_OUTPUT)
+    std::ostream& printQNAP2( std::ostream& output ) const;
+#endif
     std::ostream& printPostScript( std::ostream& output ) const;
 #if defined(SVG_OUTPUT)
     std::ostream& printSVG( std::ostream& output ) const;
@@ -299,7 +302,7 @@ private:
     unsigned int _modelNumber;
     double _scaling;
 
-    static std::vector<Task *> __zombies;	/* transmorgrify	*/
+    static std::vector<Entity *> __zombies;	/* transmorgrify	*/
 };
 
 /* --------------------- Batched Partition Model ---------------------- */

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 13717 2020-08-03 00:04:28Z greg $
+# $Id: Makefile.am 14247 2020-12-24 01:18:16Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -6,7 +6,8 @@
 # This project uses Libtool to generate a product
 SUBDIRS = headers/lqio
 lib_LTLIBRARIES = liblqio.la
-liblqio_la_SOURCES = commandline.cpp \
+liblqio_la_SOURCES = bcmp_document.cpp \
+	commandline.cpp \
 	common_io.cpp \
 	confidence_intervals.cpp \
 	dom_activity.cpp \
@@ -29,13 +30,13 @@ liblqio_la_SOURCES = commandline.cpp \
 	getsbopt.cc \
 	glblerr.cpp \
 	labels.cpp \
+	srvn_gram.y \
 	srvn_input.cpp \
 	srvn_output.cpp \
-	srvn_results.cpp \
-	srvn_spex.cpp \
-	srvn_scan.l \
-	srvn_gram.y \
 	srvn_result_scan.l \
+	srvn_results.cpp \
+	srvn_scan.l \
+	srvn_spex.cpp \
 	srvn_result_gram.y
 noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
 

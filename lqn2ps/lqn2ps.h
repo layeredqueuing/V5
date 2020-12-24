@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14226 2020-12-16 14:00:48Z greg $
+ * $Id: lqn2ps.h 14252 2020-12-24 20:35:14Z greg $
  *
  */
 
@@ -10,6 +10,7 @@
 
 #define EMF_OUTPUT	1
 #define JMVA_OUTPUT	1
+#define QNAP2_OUTPUT	1
 #define SVG_OUTPUT	1
 #define SXD_OUTPUT	1
 #define TXT_OUTPUT	1
@@ -116,6 +117,9 @@ typedef enum {
     FORMAT_LQX,
     FORMAT_NULL,
     FORMAT_OUTPUT,
+#if QNAP2_OUTPUT
+    FORMAT_QNAP2,
+#endif
     FORMAT_PARSEABLE,
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
     FORMAT_PNG,
@@ -315,6 +319,7 @@ struct Flags
 {
     static bool annotate_input;
     static bool async_topological_sort;
+    static bool bcmp_model;
     static bool clear_label_background;
     static bool convert_to_reference_task; 
     static bool debug;

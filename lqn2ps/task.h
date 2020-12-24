@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14236 2020-12-17 23:54:49Z greg $
+ * $Id: task.h 14249 2020-12-24 05:12:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -23,14 +23,14 @@
 #include "entity.h"
 #include "actlayer.h"
 
-class Task;
-class Processor;
-class Share;
+class ActivityList;
 class Call;
-class TaskCall;
 class EntityCall;
 class OpenArrival;
-class ActivityList;
+class Processor;
+class Share;
+class Task;
+class TaskCall;
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
@@ -146,10 +146,8 @@ public:
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
-#if defined(BUG_270)
-    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const;
-#endif
-    static Demand accumulate_demand( const Demand&, const Task * );
+    virtual void accumulateDemand( BCMP::Model::Station& ) const;
+    static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Task * );
     /* Activities */
     
     unsigned generate();
@@ -169,7 +167,9 @@ public:
 
     virtual Graphic::colour_type colour() const;
 
-    virtual Entity& label();
+    virtual Task& label();
+    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand_t& );
+
     virtual Task& rename();
     virtual Task& squishName();
     Task& aggregate();
@@ -178,6 +178,8 @@ public:
     bool canPrune() const;
     Task& linkToClients();
     Task& unlinkFromServers();
+    Task& unlinkFromProcessor();
+
 #endif
 #if defined(REP2FLAT)
     virtual Task& removeReplication();

@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14237 2020-12-18 12:41:13Z greg $
+ * $Id: entry.cc 14249 2020-12-24 05:12:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1331,8 +1331,8 @@ Entry::aggregatePhases()
 }
 
 
-/* static */ Demand
-Entry::accumulate_demand( const Demand& augend, const Entry * entry )
+/* static */ BCMP::Model::Station::Demand
+Entry::accumulate_demand( const BCMP::Model::Station::Demand& augend, const Entry * entry )
 {
     return std::accumulate( entry->_phases.begin(), entry->_phases.end(), augend, &Phase::accumulate_demand );
 }

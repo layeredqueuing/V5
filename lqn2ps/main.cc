@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14225 2020-12-16 03:44:19Z greg $
+ * $Id: main.cc 14252 2020-12-24 20:35:14Z greg $
  */
 
 #include "lqn2ps.h"
@@ -29,6 +29,7 @@ std::string command_line;
 
 bool Flags::annotate_input		= false;
 bool Flags::async_topological_sort      = true;
+bool Flags::bcmp_model			= false;
 bool Flags::clear_label_background 	= false;
 bool Flags::convert_to_reference_task	= true;
 bool Flags::debug			= false;
@@ -107,14 +108,14 @@ const char * Options::integer [] =
 const char * Options::io[] =
 {
     "eepic",
-#if defined(EMF_OUTPUT)
+#if EMF_OUTPUT
     "emf",
 #endif
     "fig",
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_GDIMAGEGIFPTR
     "gif",
 #endif
-#if defined(JMVA_OUTPUT)
+#if JMVA_OUTPUT
     "jmva",
 #endif
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
@@ -123,6 +124,9 @@ const char * Options::io[] =
     "lqx",
     "null",
     "out",
+#if QNAP2_OUTPUT
+    "qnap2",
+#endif
     "parseable",
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
     "png",

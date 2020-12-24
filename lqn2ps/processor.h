@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14225 2020-12-16 03:44:19Z greg $
+ * $Id: processor.h 14249 2020-12-24 05:12:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,6 +24,7 @@
 
 class Task;
 class Share;
+class Demand;
 
 class Processor : public Entity {
 public:
@@ -77,6 +78,8 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Processor& label();
+    virtual Processor& labelBCMPModel( const BCMP::Model::Station::Demand_t& );
+
     virtual Processor& rename();
 
     Processor& addTask( Task * task ) { _tasks.insert(task); return *this; }
@@ -95,9 +98,7 @@ public:
     virtual const Processor& draw( std::ostream& output ) const;
 
 protected:
-#if defined(BUG_270)
-    virtual void accumulateDemand( std::map<const Task *,Demand>& ) const;
-#endif
+    virtual void accumulateDemand( BCMP::Model::Station& ) const;
 
 public:
     static std::ostream& printHeader( std::ostream& );

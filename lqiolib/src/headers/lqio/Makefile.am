@@ -1,6 +1,7 @@
-# $Id: Makefile.am 13717 2020-08-03 00:04:28Z greg $
+# $Id: Makefile.am 14247 2020-12-24 01:18:16Z greg $
 # ------------------------------------------------------------------------
-noinst_HEADERS = commandline.h \
+noinst_HEADERS = bcmp_document.h \
+	commandline.h \
 	common_io.h \
 	confidence_intervals.h \
 	dom_activity.h \

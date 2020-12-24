@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14237 2020-12-18 12:41:13Z greg $
+ * $Id: entry.h 14249 2020-12-24 05:12:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,7 +22,7 @@
 #include <set>
 #include <numeric>
 #include <lqio/dom_entry.h>
-#include "demand.h"
+#include <lqio/bcmp_document.h>
 #include "element.h"
 #include "phase.h"
 #include "call.h"
@@ -210,7 +210,7 @@ public:
     double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
-    static Demand accumulate_demand( const Demand&, const Entry * );
+    static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Entry * );
 
     static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );

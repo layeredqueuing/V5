@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14236 2020-12-17 23:54:49Z greg $
+ * $Id: model.cc 14252 2020-12-24 20:35:14Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -66,7 +66,7 @@ private:
 
 
 Model * Model::__model = 0;
-std::vector<Task *> Model::__zombies;
+std::vector<Entity *> Model::__zombies;
 
 unsigned Model::iteration_limit   = 50;
 unsigned Model::print_interval    = 10;
@@ -560,6 +560,10 @@ Model::process()
 	return false;
     }
 
+    if ( Flags::bcmp_model ) {
+	_layers.at(std::min(static_cast<unsigned>(1),layer)).computeBCMPParameters();
+    }
+
     if ( graphical_output() ) {
 	format();
 
@@ -857,6 +861,11 @@ Model::getExtension()
     case FORMAT_OUTPUT:
 	extension = "out";
 	break;
+#if QNAP2_OUTPUT
+    case FORMAT_QNAP2:
+	extension = "qnap2";
+	break;
+#endif
     case FORMAT_PARSEABLE:
 	extension = "p";
 	break;
@@ -917,7 +926,13 @@ Model::prune()
 {
     try {
 	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    if ( (*task)->canPrune() ) {
+	    if ( (*task)->isReferenceTask() ) {
+		const Processor * processor = (*task)->processor();
+		if ( !processor->isInteresting() ) {
+		    (*task)->unlinkFromProcessor();
+		    __zombies.push_back( const_cast<Processor *>(processor) );
+		}
+	    } else if ( (*task)->canPrune() ) {
 		(*task)->linkToClients();
 		(*task)->unlinkFromServers();
 		__zombies.push_back( *task );
@@ -1504,6 +1519,11 @@ Model::print( std::ostream& output ) const
     case FORMAT_POSTSCRIPT:
 	printPostScript( output );
 	break;
+#if defined(QNAP2_OUTPUT)
+    case FORMAT_QNAP2:
+	printQNAP2( output );
+	break;
+#endif
     case FORMAT_RTF:
 	printRTF( output );
 	break;
@@ -1901,6 +1921,22 @@ Model::printParseable( std::ostream& output ) const
     return output;
 }
 
+
+
+#if defined(JMVA_OUTPUT)
+/*
+ * It has to be a submodel...
+ */
+
+std::ostream&
+Model::printQNAP2( std::ostream& output ) const
+{
+    if ( queueing_output() ) {
+	_layers.at(Flags::print[QUEUEING_MODEL].value.i).printQNAP2QueueingNetwork( output );
+    }
+    return output;
+}
+#endif
 
 
 /*

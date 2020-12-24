@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14231 2020-12-16 23:57:28Z greg $
+ * $Id: layer.cc 14252 2020-12-24 20:35:14Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -64,13 +64,13 @@ private:
     
 
 Layer::Layer()  
-    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(0), _clients(), _chains(0)
+    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model()
 {
     _label = Label::newLabel();
 }
 
 Layer::Layer( const Layer& src )  
-    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(0), _clients(), _chains()
+    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model()
 {
     _label = Label::newLabel();
 }
@@ -423,13 +423,17 @@ Layer::shift( unsigned i, double amount )
 Layer&
 Layer::label()
 {
-    for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
+    if ( !_bcmp_model.empty() ) {
+	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_model( _bcmp_model ) );
+	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_model( _bcmp_model ) );
+    } else {
+	std::for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
+    }
     if ( Flags::print_layer_number ) {
 	*_label << "Layer " << number();
     }
     return *this;
 }
-
 
 
 void Layer::Position::operator()( Entity * entity )
@@ -478,7 +482,7 @@ Layer::deselectSubmodel()
 Layer&
 Layer::generateSubmodel()
 {
-    if ( _clients.size() > 0 ) return *this;
+    if ( clients().size() > 0 ) return *this;
 
     _chains = 0;
 
@@ -492,7 +496,7 @@ Layer::generateSubmodel()
 
     /* Set the chains in the model */
 
-    for ( std::vector<Entity *>::iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	if ( (*client)->isInClosedModel( entities() ) ) {
 	    _chains += 1;
 	    _chains = const_cast<Entity *>(*client)->setChain( _chains, &GenericCall::hasRendezvous );
@@ -593,7 +597,7 @@ Layer::transmorgrify( LQIO::DOM::Document * document, Processor *& surrogate_pro
 
     /* ---------- Clients ---------- */
 
-    for ( std::vector<Entity *>::iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	Task * aTask = dynamic_cast<Task *>(*client);
 	if ( !aTask ) continue;
 
@@ -745,6 +749,74 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
     return entry;
 }
 /*- BUG_626 */
+
+
+Layer&
+Layer::computeBCMPParameters()
+{
+    /* Create stations */
+
+    std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
+    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
+    std::for_each( clients().begin(), clients().end(), Entity::create_station( _bcmp_model, BCMP::Model::Station::REFERENCE ) );
+    std::for_each( clients().begin(), clients().end(), Task::create_class( _bcmp_model, entities() ) );
+
+    /* Get total demand over all classes */
+
+    const BCMP::Model::Station_t& stations = _bcmp_model.stations();
+    BCMP::Model::Station::Demand_t total;
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	const Task * task = dynamic_cast<const Task *>(*client);
+	total[task->name()] = std::accumulate( stations.begin(), stations.end(), BCMP::Model::Station::Demand(), BCMP::Model::Station::select( task->name() ) );
+    }
+
+    /* 
+     * Insert total visits into clients and set service time for class
+     * if the processor has been removed.  Include task think time.
+     * One reference station exists for all classes, though there be
+     * more than one client in the queueing model.
+     */
+
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	const Task * task = dynamic_cast<const Task *>(*client);
+	
+	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
+
+	double service = 0.0;
+	if ( task->hasThinkTime() && dynamic_cast<const ReferenceTask *>(task) ) {
+	    service += to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime() );
+	}
+	if ( task->processor() == nullptr ) {
+	    service += task->entries().at(0)->serviceTime();  // for all entries s += prVisit(e) * e->serviceTime 
+	}
+	BCMP::Model::Station::Demand& demand = total.at(task->name());
+	demand.setDemand( service );
+    }
+
+    /* Insert into table. */
+
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	const std::string& class_name = (*client)->name();
+	BCMP::Model::Station& station = _bcmp_model.stationAt(class_name);
+	BCMP::Model::Station::Demand_t& demands = const_cast<BCMP::Model::Station::Demand_t&>(station.demands());
+	std::pair<BCMP::Model::Station::Demand_t::iterator,bool> result = demands.insert(std::pair<const std::string,BCMP::Model::Station::Demand>(class_name,total.at(class_name) ) );
+	if ( !result.second ) {
+	    /* Key exists already... */
+	}
+    }
+
+    /*
+     * The Java Modelling Tools need service and visits for all
+     * classes for all stations, so add zero entries for all stations
+     * that aren't visited by a class.  
+     */
+    
+#if 0
+    std::for_each( entities().begin(), entities().end(), Entity::pad_demand( clients(), _demand ) );
+#endif
+    
+    return *this;
+}
 
 /*
  * Print a layer.
@@ -773,12 +845,12 @@ Layer::print( std::ostream& output ) const
 std::ostream&
 Layer::printSubmodel( std::ostream& output ) const
 {
-    const size_t n_clients = _clients.size();
+    const size_t n_clients = clients().size();
     output << "---------- Submodel: " << number() << " ----------" << std::endl;
 
     if ( n_clients > 0 ) {
 	output << "Clients: " << std::endl;
-	for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+	for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	    (*client)->print( output );
 	}
     }
@@ -796,7 +868,7 @@ Layer::printSubmodel( std::ostream& output ) const
 std::ostream&
 Layer::printSubmodelSummary( std::ostream& output ) const
 {
-    unsigned int n_clients  = _clients.size();
+    unsigned int n_clients  = clients().size();
     unsigned int n_servers  = entities().size();
     unsigned int n_multi    = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isMultiServer ) );
     unsigned int n_infinite = count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isInfinite ) );
@@ -852,7 +924,7 @@ std::ostream&
 Layer::drawQueueingNetwork( std::ostream& output ) const
 {
     double max_x = x() + width();
-    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
+    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	bool is_in_open_model = false;
 	bool is_in_closed_model = false;
 	if ( (*client)->isInClosedModel( entities() ) ) {
@@ -887,105 +959,16 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 #if defined(JMVA_OUTPUT)
 std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
 {
-    Demand::map_t demand;
-    for_each ( entities().begin(), entities().end(), Entity::accumulate_demand( demand ) );
-    for_each ( entities().begin(), entities().end(), Entity::pad_demand( _clients, demand ) );
-    
-    set_indent(0);
-    output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl;
-    output << XML::start_element( "model" )
-	   << XML::attribute( "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance" )
-	   << XML::attribute( "xsi:noNamespaceSchemaLocation", "JMTmodel.xsd" )
-	   << ">" << std::endl;
-	      
-    output << XML::start_element( "parameters" )
-	   << ">" << std::endl;
-
-    /* Clients */
-
-    output << XML::start_element( "classes" )
-	   << XML::attribute( "number", static_cast<unsigned>(_clients.size()) )
-	   << ">" << std::endl;
-    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	if ( (*client)->isInClosedModel( entities() ) ) {
-	    output << XML::simple_element( "closedclass" )
-		   << XML::attribute( "name", (*client)->name() )
-		   << XML::attribute( "population", (*client)->copiesValue() )
-		   << "/>" << std::endl;
-	}
-	if ( (*client)->isInOpenModel( entities() ) ) {
-	}
-    }
-    output << XML::end_element( "classes" ) << std::endl;
-
-    /* Servers */
-
-    output << XML::start_element( "stations" )
-	   << XML::attribute( "number", static_cast<unsigned int>(std::count_if( entities().begin(), entities().end(), Predicate<Entity>( &Entity::isSelected )) + 1 ) )
-	   << ">" << std::endl;
-    printJMVAReferenceStation( output, demand );
-    std::for_each( entities().begin(), entities().end(), ConstExec2<Entity,std::ostream&,const Demand::map_t&>( &Entity::printJMVAStation, output, demand ) );
-    output << XML::end_element( "stations" ) << std::endl;
-
-    /* Reference */
-
-    output << XML::start_element( "ReferenceStation" )
-	   << XML::attribute( "number", static_cast<unsigned>(std::count_if( _clients.begin(), _clients.end(), Predicate1<Entity,const std::vector<Entity *>&>( &Entity::isInClosedModel,entities()) ) ) )
-	   << ">" << std::endl;
-    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	if ( (*client)->isInClosedModel( entities() ) ) {
-	    output << XML::simple_element( "Class" )
-		   << XML::attribute( "name", (*client)->name() )
-		   << XML::attribute( "refStation", "Reference" )
-		   << "/>" << std::endl;
-	}
-	if ( (*client)->isInOpenModel( entities() ) ) {
-	}
-    }
-    output << XML::end_element( "ReferenceStation" ) << std::endl;
-    output << XML::end_element( "parameters" ) << std::endl;
-
-    output << XML::start_element( "algParams" ) << ">" << std::endl
-	   << XML::simple_element( "algType" ) << XML::attribute( "maxSamples", "10000" ) << XML::attribute( "name", "MVA" ) << XML::attribute( "tolerance", "1.0E-7" ) << "/>" << std::endl
-	   << XML::simple_element( "compareAlgs" ) << XML::attribute( "value", "false" ) << "/>" << std::endl
-	   << XML::end_element( "algParams" ) << std::endl;
-
-
-    output << XML::end_element( "model" ) << std::endl;
-
+    _bcmp_model.printJMVA( output );
     return output;
 }
+#endif
 
-std::ostream&
-Layer::printJMVAReferenceStation( std::ostream& output, const Demand::map_t& demands ) const
+
+#if defined(QNAP2_OUTPUT)
+std::ostream& Layer::printQNAP2QueueingNetwork( std::ostream& output ) const
 {
-    output << XML::start_element( "delaystation" )
-	   << XML::attribute( "name", "Reference" )
-	   << ">" << std::endl;
-
-    /* Get total demand over all classes */
-
-    Demand::item_t total;
-    for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	const Task * task = dynamic_cast<const Task *>(*client);
-	total[task] = std::accumulate( demands.begin(), demands.end(), Demand(), Demand::select( task ) );
-    }
-
-    /* No service times for the reference station (unless there is think time for the class) */
-    
-    output << XML::start_element( "servicetimes" ) << ">" << std::endl;
-    for ( Demand::item_t::const_iterator demand = total.begin(); demand != total.end(); ++demand ) {
-	output << XML::inline_element( "servicetime", "customerClass", demand->first->name(), 0. ) << std::endl;
-    }
-    output << XML::end_element( "servicetimes" ) << std::endl;
-    
-    /* But there are visits. */
-    output << XML::start_element( "visits" ) << ">" << std::endl;
-    for ( Demand::item_t::const_iterator demand = total.begin(); demand != total.end(); ++demand ) {
-	output << XML::inline_element( "visit", "customerClass", demand->first->name(), demand->second.visits() ) << std::endl;
-    }
-    output << XML::end_element( "visits" ) << std::endl;
-    output << XML::end_element( "delaystation" ) << std::endl;
+    _bcmp_model.printQNAP2( output );
     return output;
 }
 #endif
