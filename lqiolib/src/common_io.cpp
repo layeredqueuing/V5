@@ -79,16 +79,6 @@ namespace LQIO {
 	    scheduling_table[scheduling_label[SCHEDULE_RWLOCK].XML] =      SCHEDULE_RWLOCK;
 	}
 
-	/* static */ void
-	Common_IO::invalid_argument( const std::string& attr, const std::string& arg )
-	{
-	    std::string err = attr;
-	    err += "=";
-	    err += arg;
-	    throw std::invalid_argument( err.c_str() );
-	}
-
-
 	double
 	Common_IO::invert( const double arg ) const
 	{

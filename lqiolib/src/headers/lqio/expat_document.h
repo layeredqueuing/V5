@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: expat_document.h 14273 2020-12-27 14:47:06Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -38,8 +38,8 @@ namespace LQIO {
 
 	    struct parse_stack_t
 	    {
-		parse_stack_t(const XML_Char * e, start_fptr sh, DocumentObject * o, DocumentObject * r=NULL) : element(e), start(sh), end(NULL), object(o), extra_object(r) {}
-		parse_stack_t(const XML_Char * e, start_fptr sh, end_fptr eh, DocumentObject * o ) : element(e), start(sh), end(eh), object(o), extra_object(NULL) {}
+		parse_stack_t(const XML_Char * e, start_fptr sh, DocumentObject * o, DocumentObject * r=nullptr) : element(e), start(sh), end(nullptr), object(o), extra_object(r) {}
+		parse_stack_t(const XML_Char * e, start_fptr sh, end_fptr eh, DocumentObject * o ) : element(e), start(sh), end(eh), object(o), extra_object(nullptr) {}
 		bool operator==( const XML_Char * ) const;
 
 		const std::basic_string<XML_Char> element;
@@ -249,7 +249,6 @@ namespace LQIO {
 	    static int handle_encoding( void * data, const XML_Char *name, XML_Encoding *info );
 
 	private:
-	    void initialize();
 	    bool parse();
 	    void input_error( const char * fmt, ... ) const;
 
@@ -319,18 +318,10 @@ namespace LQIO {
 	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 	    Histogram * findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
 
-	    bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
-
-	    LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char ** attributes, const XML_Char * argument, const XML_Char * default_value=NULL ) const;
+	    bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
 	    LQIO::DOM::ExternalVariable * getOptionalAttribute( const XML_Char ** attributes, const XML_Char * argument ) const;
-	    const XML_Char * getStringAttribute( const XML_Char ** attributes, const XML_Char * Xcomment, const XML_Char * default_value=NULL ) const;
-	    const double getDoubleAttribute( const XML_Char ** attributes, const XML_Char * Xconv_val, const double default_value=-1.0 ) const;
-	    const long getLongAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const long default_value=-1 ) const;
-	    const bool getBoolAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int, const bool default_value=false ) const;
-	    const double getTimeAttribute( const XML_Char ** attributes, const XML_Char * Xprint_int ) const;
-	    const scheduling_type getSchedulingAttribute( const XML_Char ** attributes, const scheduling_type ) const;
-
-	    double get_double( const char *, const char * ) const;
+	    LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char ** attributes, const XML_Char * argument, const XML_Char * default_value=nullptr ) const;
+	    static const scheduling_type getSchedulingAttribute( const XML_Char ** attributes, const scheduling_type );
 
 	    void exportHeader( std::ostream& output ) const;
 	    void exportSPEXParameters( std::ostream& output ) const;
@@ -425,14 +416,14 @@ namespace LQIO {
 	    static const XML_Char *Xactivity_graph;
 	    static const XML_Char *Xasynch_call;
 	    static const XML_Char *Xbegin;
-	    static const XML_Char *Xbound_to_entry;
 	    static const XML_Char *Xbottleneck_strength;
+	    static const XML_Char *Xbound_to_entry;
 	    static const XML_Char *Xcall_order;
 	    static const XML_Char *Xcalls_mean;
 	    static const XML_Char *Xcap;
+	    static const XML_Char *Xcomment;
 	    static const XML_Char *Xconf_95;
 	    static const XML_Char *Xconf_99;
-	    static const XML_Char *Xcomment;
 	    static const XML_Char *Xconv_val;
 	    static const XML_Char *Xconv_val_result;
 	    static const XML_Char *Xcore;
@@ -494,6 +485,8 @@ namespace LQIO {
 	    static const XML_Char *Xqueue_length;
 	    static const XML_Char *Xqueue_length_distribution;
 	    static const XML_Char *Xquorum;
+	    static const XML_Char *Xr_lock;
+	    static const XML_Char *Xr_unlock;
 	    static const XML_Char *Xreplication;
 	    static const XML_Char *Xreply_activity;
 	    static const XML_Char *Xreply_entry;
@@ -508,19 +501,17 @@ namespace LQIO {
 	    static const XML_Char *Xresult_observation;
 	    static const XML_Char *Xresult_processor;
 	    static const XML_Char *Xresult_task;
-	    static const XML_Char *Xr_lock;
-	    static const XML_Char *Xr_unlock;
 	    static const XML_Char *Xrwlock;
-	    static const XML_Char *Xrwlock_reader_waiting;
-	    static const XML_Char *Xrwlock_reader_waiting_variance;
 	    static const XML_Char *Xrwlock_reader_holding;
 	    static const XML_Char *Xrwlock_reader_holding_variance;
 	    static const XML_Char *Xrwlock_reader_utilization;
-	    static const XML_Char *Xrwlock_writer_waiting;
-	    static const XML_Char *Xrwlock_writer_waiting_variance;
+	    static const XML_Char *Xrwlock_reader_waiting;
+	    static const XML_Char *Xrwlock_reader_waiting_variance;
 	    static const XML_Char *Xrwlock_writer_holding;
 	    static const XML_Char *Xrwlock_writer_holding_variance;
 	    static const XML_Char *Xrwlock_writer_utilization;
+	    static const XML_Char *Xrwlock_writer_waiting;
+	    static const XML_Char *Xrwlock_writer_waiting_variance;
 	    static const XML_Char *Xscheduling;
 	    static const XML_Char *Xsemaphore;
 	    static const XML_Char *Xsemaphore_utilization;
@@ -555,12 +546,12 @@ namespace LQIO {
 	    static const XML_Char *Xutilization;
 	    static const XML_Char *Xvalid;
 	    static const XML_Char *Xvalue;
+	    static const XML_Char *Xw_lock;
+	    static const XML_Char *Xw_unlock;
 	    static const XML_Char *Xwait;
 	    static const XML_Char *Xwait_squared;
 	    static const XML_Char *Xwaiting;
 	    static const XML_Char *Xwaiting_variance;
-	    static const XML_Char *Xw_lock;
-	    static const XML_Char *Xw_unlock;
 	    static const XML_Char *Xxml_debug;
             static const XML_Char *Xhistogram_bin;
             static const XML_Char *Xoverflow_bin;

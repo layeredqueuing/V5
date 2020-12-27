@@ -21,8 +21,20 @@ namespace LQIO {
 namespace BCMP {
     class Model {
 	
+
     public:
-	class Class {
+	class BCMP_Object {
+	public:
+	    BCMP_Object() {}
+
+	    std::string& getComment() { return _comment; }
+
+	private:
+	    std::string _comment;
+	};
+	
+    public:
+	class Class : public BCMP_Object {
 	    
 	public:
 	    typedef std::map<const std::string,Class> map_t;
@@ -58,7 +70,7 @@ namespace BCMP {
 
 	/* -------------------------- Station ------------------------- */
 
-	class Station {
+	class Station : public BCMP_Object {
 	    
 	public:
 	    typedef std::map<const std::string,Station> map_t;
@@ -175,9 +187,10 @@ namespace BCMP {
     class JMVA : public Model {
     public:
 	JMVA() : Model() {}
+	virtual ~JMVA() {}
 
 	void print( std::ostream& ) const;
-
+	
     private:
 	void printClientStation( std::ostream& ) const;
 
@@ -223,6 +236,7 @@ namespace BCMP {
     class QNAP2 : public Model {
     public:
 	QNAP2() : Model() {}
+	virtual ~QNAP2() {}
 
 	void print( std::ostream& ) const;
 

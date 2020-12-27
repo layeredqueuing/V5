@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: common_io.h 14273 2020-12-27 14:47:06Z greg $
  *
  *  Greg Franks
  */
@@ -115,7 +115,6 @@ namespace LQIO {
 	protected:
 	    double invert( const double ) const;
 	    static void init_tables();
-	    static void invalid_argument( const std::string& attr, const std::string& arg );
 	    static unsigned int get_phase( const LQIO::DOM::Phase * );
 
 	protected:
