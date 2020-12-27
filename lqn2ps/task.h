@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14249 2020-12-24 05:12:09Z greg $
+ * $Id: task.h 14260 2020-12-26 14:01:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -168,7 +168,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Task& label();
-    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand_t& );
+    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand::map_t& );
 
     virtual Task& rename();
     virtual Task& squishName();

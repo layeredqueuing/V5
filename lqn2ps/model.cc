@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14252 2020-12-24 20:35:14Z greg $
+ * $Id: model.cc 14269 2020-12-27 05:03:18Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -342,9 +342,6 @@ Model::prepare( const LQIO::DOM::Document * document )
     /* We use this to add all calls */
     std::vector<LQIO::DOM::Entry*> allEntries;
 
-    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 0: Add Pragmas] */
-    Pragma::set( document->getPragmaList() );
-
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 
     /* We need to add all of the processors */
@@ -561,7 +558,7 @@ Model::process()
     }
 
     if ( Flags::bcmp_model ) {
-	_layers.at(std::min(static_cast<unsigned>(1),layer)).computeBCMPParameters();
+	_layers.at(std::min(static_cast<unsigned>(1),layer)).createBCMPModel();
     }
 
     if ( graphical_output() ) {
@@ -840,7 +837,7 @@ Model::getExtension()
 	extension = "gif";
 	break;
 #endif
-#if defined(JMVA_OUTPUT)
+#if JMVA_OUTPUT
     case FORMAT_JMVA:
 	extension = "jmva";
 	break;
@@ -1495,9 +1492,9 @@ Model::print( std::ostream& output ) const
 	printGD( output, &GD::outputJPG );
 	break;
 #endif
-#if defined(JMVA_OUTPUT)
+#if JMVA_OUTPUT
     case FORMAT_JMVA:
-	printJMVA( output );
+	printBCMP( output );
 	break;
 #endif
     case FORMAT_NULL:
@@ -1519,9 +1516,9 @@ Model::print( std::ostream& output ) const
     case FORMAT_POSTSCRIPT:
 	printPostScript( output );
 	break;
-#if defined(QNAP2_OUTPUT)
+#if QNAP2_OUTPUT
     case FORMAT_QNAP2:
-	printQNAP2( output );
+	printBCMP( output );
 	break;
 #endif
     case FORMAT_RTF:
@@ -1865,6 +1862,22 @@ Model::Remap::operator()( const Entity * entity )
 }
 
 
+#if QNAP2_OUTPUT || JMVA_OUTPUT
+/*
+ * It has to be a submodel...
+ */
+
+std::ostream&
+Model::printBCMP( std::ostream& output ) const
+{
+    if ( queueing_output() ) {
+	_layers.at(Flags::print[QUEUEING_MODEL].value.i).printBCMPQueueingNetwork( output );
+    }
+    return output;
+}
+#endif
+
+
 /*
  * Output an input file.
  */
@@ -1876,22 +1889,6 @@ Model::printInput( std::ostream& output ) const
     srvn.print( output );
     return output;
 }
-
-
-#if defined(JMVA_OUTPUT)
-/*
- * It has to be a submodel...
- */
-
-std::ostream&
-Model::printJMVA( std::ostream& output ) const
-{
-    if ( queueing_output() ) {
-	_layers.at(Flags::print[QUEUEING_MODEL].value.i).printJMVAQueueingNetwork( output );
-    }
-    return output;
-}
-#endif
 
 
 
@@ -1921,22 +1918,6 @@ Model::printParseable( std::ostream& output ) const
     return output;
 }
 
-
-
-#if defined(JMVA_OUTPUT)
-/*
- * It has to be a submodel...
- */
-
-std::ostream&
-Model::printQNAP2( std::ostream& output ) const
-{
-    if ( queueing_output() ) {
-	_layers.at(Flags::print[QUEUEING_MODEL].value.i).printQNAP2QueueingNetwork( output );
-    }
-    return output;
-}
-#endif
 
 
 /*
@@ -2850,5 +2831,3 @@ Squashed_Model::Justify::operator()( Group * group )
 {
     group->format().label().resizeBox().positionLabel();
 }
-
-

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14249 2020-12-24 05:12:09Z greg $
+ * $Id: task.cc 14261 2020-12-26 15:45:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1173,16 +1173,35 @@ Task::canPrune() const
 
     if ( copiesValue() != 1 || processor()->nClients() != 1 ) return false;
 
-    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
-    return callers.size() == 1;
+    /* 
+     * This part is trickier, and I may just punt.  Locate everyone
+     * who I call, and if they can only be called by me, then we are
+     * golden.  I should have aggregated the entries to the task at
+     * this point.  canPrune could be recursive?
+     */
+
+    assert( Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES );
+//    std::set<const Task *> callers = std::accumulate( entries().begin(), entries().end(), std::set<const Task *>(), &Entry::collect_callers );
+    return calls().size() == 1;
 }
 #endif
 
 
 
+/*
+ * This has to be done by class.
+ */
+
 void
-Task::accumulateDemand( BCMP::Model::Station& ) const
+Task::accumulateDemand( BCMP::Model::Station& station ) const
 {
+    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
+
+    BCMP::Model::Station::Demand::map_t& demands = const_cast<demand_map&>(station.demands());
+    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Demand() ) );	/* null entry */
+    demand_map::iterator item = result.first;
+    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
 }
 
 
@@ -1777,11 +1796,11 @@ Task::label()
  */
 
 Task&
-Task::labelBCMPModel( const BCMP::Model::Station::Demand_t& demand )
+Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand )
 {
     *myLabel << name();
     myLabel->newLine();
-    *myLabel << "[" << copies() << "]";
+    *myLabel << "[" << copiesValue() << "]";
     const BCMP::Model::Station::Demand& reference = demand.at(this->name());
     myLabel->newLine();
     *myLabel << "(" << reference.visits() << "," << reference.service_time() << ")";

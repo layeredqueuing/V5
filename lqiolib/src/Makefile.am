@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14247 2020-12-24 01:18:16Z greg $
+# $Id: Makefile.am 14262 2020-12-26 17:13:10Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -37,7 +37,9 @@ liblqio_la_SOURCES = bcmp_document.cpp \
 	srvn_results.cpp \
 	srvn_scan.l \
 	srvn_spex.cpp \
-	srvn_result_gram.y
+	srvn_result_gram.y \
+	xml_output.cpp
+
 noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
 
 #liblqio_la_LIBADD = ../../lqx/libsrc/liblqx.la 

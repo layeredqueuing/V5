@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14249 2020-12-24 05:12:09Z greg $
+ * $Id: processor.h 14260 2020-12-26 14:01:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -78,7 +78,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Processor& label();
-    virtual Processor& labelBCMPModel( const BCMP::Model::Station::Demand_t& );
+    virtual Processor& labelBCMPModel( const BCMP::Model::Station::Demand::map_t& );
 
     virtual Processor& rename();
 

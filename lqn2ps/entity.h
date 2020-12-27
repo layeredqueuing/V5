@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14252 2020-12-24 20:35:14Z greg $
+ * $Id: entity.h 14260 2020-12-26 14:01:57Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -44,7 +44,7 @@ public:
 	void operator()( const Entity * entity ) const
 	    {
 		BCMP::Model::Station::Type type;
-		if ( _type == BCMP::Model::Station::REFERENCE ) type = _type;
+		if ( _type == BCMP::Model::Station::CUSTOMER ) type = _type;
 		else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
 		else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
 		else type = BCMP::Model::Station::LOAD_INDEPENDENT;
@@ -155,7 +155,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Entity& label();
-    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand_t& ) = 0;
+    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand::map_t& ) = 0;
 
     virtual void accumulateDemand( BCMP::Model::Station& ) const = 0;
 

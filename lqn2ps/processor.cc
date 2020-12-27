@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14251 2020-12-24 16:02:46Z greg $
+ * $Id: processor.cc 14261 2020-12-26 15:45:57Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -441,10 +441,10 @@ Processor::label()
  */
 
 Processor&
-Processor::labelBCMPModel( const BCMP::Model::Station::Demand_t& demands )
+Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands )
 {
     *myLabel << name();
-    for ( BCMP::Model::Station::Demand_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
+    for ( BCMP::Model::Station::Demand::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
 	myLabel->newLine();
 	*myLabel << demand->first << "(" << demand->second.visits() << "," << demand->second.service_time() << ")";
     }
@@ -556,8 +556,9 @@ Processor::draw( std::ostream& output ) const
 
 
 /* 
- * Find the total demand by each class (client tasks in submodel), 
- * then change back to visits/service time when needed 
+ * Find the total demand by each class (client tasks in submodel),
+ * then change back to visits/service time when needed.  Demands are
+ * stored in entries of tasks.
  */
 
 void
@@ -570,7 +571,7 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
 	if ( !src ) continue;
 
-	BCMP::Model::Station::Demand_t& demands = const_cast<BCMP::Model::Station::Demand_t&>(station.demands());
+	demand_map& demands = const_cast<demand_map&>(station.demands());
         const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Demand() ) );	/* null entry */
 	demand_map::iterator item = result.first;
 	

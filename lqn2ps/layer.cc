@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14252 2020-12-24 20:35:14Z greg $
+ * $Id: layer.cc 14269 2020-12-27 05:03:18Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -64,13 +64,13 @@ private:
     
 
 Layer::Layer()  
-    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model()
+    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model(nullptr)
 {
     _label = Label::newLabel();
 }
 
 Layer::Layer( const Layer& src )  
-    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model()
+    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model(nullptr)
 {
     _label = Label::newLabel();
 }
@@ -78,6 +78,7 @@ Layer::Layer( const Layer& src )
 Layer::~Layer()  
 {
     delete _label;
+    if ( _bcmp_model ) delete _bcmp_model;
 }
 
 Layer&
@@ -417,17 +418,18 @@ Layer::shift( unsigned i, double amount )
 
 
 /*
- * Label all objects in this layer.
+ * Label all objects in this layer.  If it's a BCMP model, then only
+ * one layer needs to (and can) be labelled.
  */
 
 Layer&
 Layer::label()
 {
-    if ( !_bcmp_model.empty() ) {
-	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_model( _bcmp_model ) );
-	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_model( _bcmp_model ) );
-    } else {
+    if ( !Flags::bcmp_model ) {
 	std::for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
+    } else if ( _bcmp_model != nullptr ) {
+	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_model( *_bcmp_model ) );
+	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_model( *_bcmp_model ) );
     }
     if ( Flags::print_layer_number ) {
 	*_label << "Layer " << number();
@@ -752,69 +754,52 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 
 
 Layer&
-Layer::computeBCMPParameters()
+Layer::createBCMPModel()
 {
     /* Create stations */
 
-    std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
-    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
-    std::for_each( clients().begin(), clients().end(), Entity::create_station( _bcmp_model, BCMP::Model::Station::REFERENCE ) );
-    std::for_each( clients().begin(), clients().end(), Task::create_class( _bcmp_model, entities() ) );
-
-    /* Get total demand over all classes */
-
-    const BCMP::Model::Station_t& stations = _bcmp_model.stations();
-    BCMP::Model::Station::Demand_t total;
-    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	const Task * task = dynamic_cast<const Task *>(*client);
-	total[task->name()] = std::accumulate( stations.begin(), stations.end(), BCMP::Model::Station::Demand(), BCMP::Model::Station::select( task->name() ) );
+    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
+#if JMVA_OUTPUT
+    case FORMAT_JMVA:	_bcmp_model = new BCMP::JMVA(); break;
+#endif
+#if QNAP2_OUTPUT
+    case FORMAT_QNAP2:	_bcmp_model = new BCMP::QNAP2(); break;
+#endif
+    default: abort();
     }
+
+    std::for_each( entities().begin(), entities().end(), Entity::create_station( *_bcmp_model ) );
+    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( *_bcmp_model ) );
+    std::for_each( clients().begin(), clients().end(), Entity::create_station( *_bcmp_model, BCMP::Model::Station::CUSTOMER ) );
+    std::for_each( clients().begin(), clients().end(), Task::create_class( *_bcmp_model, entities() ) );
 
     /* 
      * Insert total visits into clients and set service time for class
      * if the processor has been removed.  Include task think time.
-     * One reference station exists for all classes, though there be
-     * more than one client in the queueing model.
      */
 
     for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	const Task * task = dynamic_cast<const Task *>(*client);
+	const std::string name = task->name();
 	
-	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
-
-	double service = 0.0;
+	/* Think time for a task is the class think time. */
+	
 	if ( task->hasThinkTime() && dynamic_cast<const ReferenceTask *>(task) ) {
-	    service += to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime() );
+	    _bcmp_model->classAt(name).setThinkTime( to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime() ) );
 	}
+
+	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
+	
+	BCMP::Model::Station::Demand demand( 1.0, 0.0 );	/* One visit */
 	if ( task->processor() == nullptr ) {
-	    service += task->entries().at(0)->serviceTime();  // for all entries s += prVisit(e) * e->serviceTime 
+	    // for all entries s += prVisit(e) * e->serviceTime ??
+	    demand.setDemand( task->entries().at(0)->serviceTime() );
 	}
-	BCMP::Model::Station::Demand& demand = total.at(task->name());
-	demand.setDemand( service );
+	_bcmp_model->stationAt(name).insertDemand( name, demand );
+	_bcmp_model->computeCustomerVisits(name);
     }
 
-    /* Insert into table. */
 
-    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	const std::string& class_name = (*client)->name();
-	BCMP::Model::Station& station = _bcmp_model.stationAt(class_name);
-	BCMP::Model::Station::Demand_t& demands = const_cast<BCMP::Model::Station::Demand_t&>(station.demands());
-	std::pair<BCMP::Model::Station::Demand_t::iterator,bool> result = demands.insert(std::pair<const std::string,BCMP::Model::Station::Demand>(class_name,total.at(class_name) ) );
-	if ( !result.second ) {
-	    /* Key exists already... */
-	}
-    }
-
-    /*
-     * The Java Modelling Tools need service and visits for all
-     * classes for all stations, so add zero entries for all stations
-     * that aren't visited by a class.  
-     */
-    
-#if 0
-    std::for_each( entities().begin(), entities().end(), Entity::pad_demand( clients(), _demand ) );
-#endif
-    
     return *this;
 }
 
@@ -956,19 +941,10 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 }
 
 
-#if defined(JMVA_OUTPUT)
-std::ostream& Layer::printJMVAQueueingNetwork( std::ostream& output ) const
+#if JMVA_OUTPUT || QNAP2_OUTPUT
+std::ostream& Layer::printBCMPQueueingNetwork( std::ostream& output ) const
 {
-    _bcmp_model.printJMVA( output );
-    return output;
-}
-#endif
-
-
-#if defined(QNAP2_OUTPUT)
-std::ostream& Layer::printQNAP2QueueingNetwork( std::ostream& output ) const
-{
-    _bcmp_model.printQNAP2( output );
+    _bcmp_model->print( output );
     return output;
 }
 #endif

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14253 2020-12-24 22:16:18Z greg $
+ * $Id: lqn2ps.cc 14269 2020-12-27 05:03:18Z greg $
  *
  * Command line processing.
  *
@@ -29,17 +29,18 @@
 #include <lqio/dom_document.h>
 #include <lqio/srvn_results.h>
 #include <lqio/srvn_spex.h>
-#include "runlqx.h"
+#include "activity.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "getopt2.h"
+#include "graphic.h"
+#include "help.h"
 #include "layer.h"
 #include "model.h"
-#include "errmsg.h"
-#include "help.h"
-#include "graphic.h"
-#include "task.h"
-#include "entry.h"
+#include "pragma.h"
 #include "processor.h"
-#include "activity.h"
+#include "runlqx.h"
+#include "task.h"
 
 extern "C" int LQIO_debug;
 extern "C" int resultdebug;
@@ -190,7 +191,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-24 17:16:18 -0500 (Thu, 24 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-27 00:03:18 -0500 (Sun, 27 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -786,14 +787,6 @@ lqn2ps( int argc, char *argv[] )
 	}
     }
 
-#if defined(BUG_270)
-    if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JMVA && !queueing_output() ) {
-	std::cerr << LQIO::io_vars.lq_toolname << ": -O" << Options::io[FORMAT_JMVA]
-		  << " must be used with -Q<submodel>." << std::endl;
-	exit( 1 );
-    }
-#endif
-
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN && !partial_output() ) {
 	Flags::print[RESULTS].value.b = false;	/* Ignore results */
     }
@@ -958,6 +951,17 @@ process( const std::string& input_file_name, const std::string& output_file_name
 	pragmas.insert(LQIO::DOM::Pragma::_bcmp_,LQIO::DOM::Pragma::_true_);
     }
     document->mergePragmas( pragmas.getList() );       	/* Save pragmas -- prepare will process */
+    Pragma::set( document->getPragmaList() );
+    
+#if defined(BUG_270)
+    if ( !queueing_output()
+	 && (   Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JMVA
+	     || Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP2) ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": -O" << Options::io[FORMAT_JMVA]
+		  << " must be used with -Q<submodel>." << std::endl;
+	exit( 1 );
+    }
+#endif
     Model::prepare( document );				/* This creates the various objects 	*/
 #if BUG_270
     if ( Flags::prune ) {

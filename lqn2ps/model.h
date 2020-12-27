@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14253 2020-12-24 22:16:18Z greg $
+ * $Id: model.h 14269 2020-12-27 05:03:18Z greg $
  */
 
 #ifndef _MODEL_H
@@ -231,6 +231,9 @@ private:
     Model const& accumulateEntryStats( const std::string& ) const;	/* Does not count ref. tasks. */
     std::map<unsigned, LQIO::DOM::Entity *>& remapEntities() const;
 
+#if JMVA_OUTPUT || QNAP2_OUTPUT
+    std::ostream& printBCMP( std::ostream& output ) const;
+#endif
     std::ostream& printEEPIC( std::ostream& output ) const;
 #if defined(EMF_OUTPUT)
     std::ostream& printEMF( std::ostream& output ) const;
@@ -238,12 +241,6 @@ private:
     std::ostream& printFIG( std::ostream& output ) const;
 #if HAVE_LIBGD
     std::ostream& printGD( std::ostream& output, outputFuncPtr func ) const;
-#endif
-#if defined(JMVA_OUTPUT)
-    std::ostream& printJMVA( std::ostream& output ) const;
-#endif
-#if defined(QNAP2_OUTPUT)
-    std::ostream& printQNAP2( std::ostream& output ) const;
 #endif
     std::ostream& printPostScript( std::ostream& output ) const;
 #if defined(SVG_OUTPUT)

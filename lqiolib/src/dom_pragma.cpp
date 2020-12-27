@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14253 2020-12-24 22:16:18Z greg $
+ *  $Id: dom_pragma.cpp 14261 2020-12-26 15:45:57Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -51,6 +51,11 @@ namespace LQIO {
 	    true_false_arg.insert("false");
 	    true_false_arg.insert(Pragma::_yes_);
 	    true_false_arg.insert(Pragma::_no_);
+	    true_false_arg.insert("t");
+	    true_false_arg.insert("f");
+	    true_false_arg.insert("y");
+	    true_false_arg.insert("n");
+	    true_false_arg.insert("");
 	    __pragmas[Pragma::_cycles_] = &true_false_arg;			/* lqns */
 	    __pragmas[Pragma::_interlocking_] = &true_false_arg;		/* lqns */
 	    __pragmas[Pragma::_prune_] = &true_false_arg;			// BUG_270
@@ -68,6 +73,7 @@ namespace LQIO {
 	    bcmp_args.insert(Pragma::_yes_);
 	    bcmp_args.insert("t");
 	    bcmp_args.insert("y");
+	    bcmp_args.insert("");
 	    __pragmas[Pragma::_bcmp_] = &bcmp_args;
 	    
 	    static std::set<std::string> force_multiserver_args;	/* lqns */

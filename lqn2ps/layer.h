@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14252 2020-12-24 20:35:14Z greg $
+ * $Id: layer.h 14269 2020-12-27 05:03:18Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -80,7 +80,7 @@ public:
     Layer& generateSubmodel();
     Layer& transmorgrify( LQIO::DOM::Document *, Processor *&, Task *& );			/* BUG_626. */
     Layer& aggregate();
-    Layer& computeBCMPParameters();
+    Layer& createBCMPModel();
 
     unsigned int size() const { return entities().size(); }
     double width() const { return _extent.x(); }
@@ -97,11 +97,8 @@ public:
     std::ostream& printSubmodelSummary( std::ostream& ) const;
     std::ostream& printSubmodel( std::ostream& ) const;
     std::ostream& drawQueueingNetwork( std::ostream& ) const;
-#if defined(JMVA_OUTPUT)
-    std::ostream& printJMVAQueueingNetwork( std::ostream& ) const;
-#endif
-#if defined(QNAP2_OUTPUT)
-    std::ostream& printQNAP2QueueingNetwork( std::ostream& ) const;
+#if JMVA_OUTPUT || QNAP2_OUTPUT
+    std::ostream& printBCMPQueueingNetwork( std::ostream& ) const;
 #endif
 
 private:
@@ -119,7 +116,7 @@ private:
 
     std::vector<Entity *> _clients;		/* Only if doing a submodel 	*/
     mutable unsigned _chains;			/* Only set if doing a submodel */
-    BCMP::Model  _bcmp_model;			/* For queuing output		*/
+    BCMP::Model * _bcmp_model;			/* For queuing output		*/
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Layer& self ) { return self.print( output ); }

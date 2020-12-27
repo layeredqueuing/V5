@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14247 2020-12-24 01:18:16Z greg $
+# $Id: Makefile.am 14262 2020-12-26 17:13:10Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = bcmp_document.h \
 	commandline.h \
@@ -31,6 +31,4 @@ noinst_HEADERS = bcmp_document.h \
 	srvn_results.h \
 	srvn_spex.h \
 	submodel_info.h \
-	xerces_common.h \
-	xerces_document.h \
-	xerces_write.h
+	xml_output.h
