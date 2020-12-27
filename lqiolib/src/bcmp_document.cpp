@@ -58,17 +58,32 @@ namespace BCMP {
     }
     
     Model::Station::Demand::map_t
-    Model::sumVisits::operator()( const Station::Demand::map_t& input, const Station::Demand::pair_t& demand ) const
+    Model::sum_visits::operator()( const Station::Demand::map_t& input, const Station::Demand::pair_t& demand ) const
     {
 	Station::Demand::map_t output = input;
 	std::pair<Station::Demand::map_t::iterator,bool>result = output.insert( Station::Demand::pair_t(demand.first, demand.second) );
 	result.first->second.setVisits( _visits.at(demand.first).visits() );
 	return output;
     }
+
+    /*
+     * JMVA insists that service time/visits exist for --all-- classes for --all--stations
+     * so pad the demand_map to make it so.
+     */
+
+    void
+    Model::pad_demand::operator()( const Station::pair_t& m ) const
+    {
+	for ( Class::map_t::const_iterator k = _classes.begin(); k != _classes.end(); ++k ) {
+	    const std::string& class_name = k->first;
+	    Station& station = const_cast<Station&>(m.second);
+	    station.insertDemand( class_name, BCMP::Model::Station::Demand() );
+	}
+    }
 
     void JMVA::print( std::ostream& output ) const
     {
-	std::for_each( _stations.begin(), _stations.end(), Station::pad_demand( classes() ) );	/* JMVA want's zeros */
+	std::for_each( _stations.begin(), _stations.end(), pad_demand( classes() ) );	/* JMVA want's zeros */
 	
 	XML::set_indent(0);
 	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
@@ -124,7 +139,7 @@ namespace BCMP {
 	
 	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
 	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sumVisits(visits) );
+	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
 
 	const std::string element( "delaystation" );
 	output << XML::start_element( element ) << XML::attribute( "name", "Reference" );
@@ -266,6 +281,20 @@ namespace BCMP {
 	} 
     }
 
+    std::string
+    QNAP2::printTransit::operator()( const std::string& str, const Station::pair_t& m ) const
+    {
+	std::ostringstream out;
+	const Station& station = m.second;
+
+	out << str;
+	if ( station.type() != Station::CUSTOMER && station.hasClass(_name) ) {
+	    if ( !str.empty() ) out << ",";
+	    out << m.first << "," << station.demandAt(_name).visits();
+	}
+	return out.str();
+    }
+
     void
     QNAP2::printClientStation( std::ostream& output ) const
     {
@@ -275,10 +304,10 @@ namespace BCMP {
 	       << qnap2_output("init=n_users", "Population by class" ) << std::endl
 	       << qnap2_output("service=exp(think_t)", "Think time by class" ) << std::endl;
 	if ( classes().size() == 1 ) {
-	    output << qnap2_output("transit=" + std::accumulate( stations().begin(), stations().end(), std::string(""), Station::printQNAP2Transit(classes().begin()->first) ), "visits to servers" ) << std::endl;
+	    output << qnap2_output("transit=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(classes().begin()->first) ), "visits to servers" ) << std::endl;
 	} else {
 	    for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
-		output << qnap2_output("transit(" + k->first + ")=" + std::accumulate( stations().begin(), stations().end(), std::string(""), Station::printQNAP2Transit(k->first) ), "visits to servers" ) << std::endl;
+		output << qnap2_output("transit(" + k->first + ")=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(k->first) ), "visits to servers" ) << std::endl;
 	    }
 	}
     }
@@ -296,17 +325,21 @@ namespace BCMP {
 	
 	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
 	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sumVisits(visits) );
+	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
 
 	const bool multiclass = classes().size() > 1;
 	for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
+	    std::ostringstream think_time;
+	    std::ostringstream customers;
+	    think_time << demands.at(k->first).service_time();
+	    customers  << k->second.customers();
 	    if ( multiclass ) {
 		output << qnap2_output( k->first + ".name:=" + k->first, "Class (client) name" );
-		output << qnap2_output( k->first + ".think_t:=" + std::to_string(demands.at(k->first).service_time()) ) << std::endl;
-		output << qnap2_output( k->first + ".n_users:=" + std::to_string(k->second.customers()) ) << std::endl;
+		output << qnap2_output( k->first + ".think_t:=" + think_time.str() ) << std::endl;
+		output << qnap2_output( k->first + ".n_users:=" + customers.str()  ) << std::endl;
 	    } else {
-		output << qnap2_output( "think_t:=" + std::to_string(demands.at(k->first).service_time()) ) << std::endl;
-		output << qnap2_output( "n_users:=" + std::to_string(k->second.customers()) ) << std::endl;
+		output << qnap2_output( "think_t:=" + think_time.str() ) << std::endl;
+		output << qnap2_output( "n_users:=" + customers.str()  ) << std::endl;
 	    }
 	}
     }
@@ -319,15 +352,18 @@ namespace BCMP {
 	const Station& station = m.second;
 	for ( Class::map_t::const_iterator k = _classes.begin(); k != _classes.end(); ++k ) {
 	    if ( station.type() == Station::CUSTOMER ) continue;
-	    double time = 0.0;
-	    if ( station.hasClass(k->first) ) {
-		time = station.demandAt(k->first).service_time();
+	    double temp = station.hasClass(k->first) ? station.demandAt(k->first).service_time() : 0.;
+	    std::string comment;
+	    if ( temp == 0 ) {
+		temp = 0.000001;		// Qnap doesn't like zero for service time.
+		comment = "QNAP does not like zero (0)";
 	    }
-	    if ( time == 0 ) time = 0.000001;		// Qnap doesn't like zero for service time.
+	    std::ostringstream time;
+	    time << temp;
 	    if ( multiclass ) {
-		_output << qnap2_output( k->first + "." + m.first + "_t" + ":=" + std::to_string(time) ) << std::endl;
+		_output << qnap2_output( k->first + "." + m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
 	    } else {
-		_output << qnap2_output(  m.first + "_t" + ":=" + std::to_string(time) ) << std::endl;
+		_output << qnap2_output(  m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
 	    }
 	}
     }
@@ -358,21 +394,6 @@ namespace BCMP {
     }
 
 
-    /*
-     * JMVA insists that service time/visits exist for --all-- classes for --all--stations
-     * so pad the demand_map to make it so.
-     */
-
-    void
-    Model::Station::pad_demand::operator()( const Station::pair_t& m ) const
-    {
-	for ( Class::map_t::const_iterator k = _classes.begin(); k != _classes.end(); ++k ) {
-	    const std::string& class_name = k->first;
-	    Station& station = const_cast<Station&>(m.second);
-	    station.insertDemand( class_name, BCMP::Model::Station::Demand() );
-	}
-    }
-
     Model::Station::Demand::map_t
     Model::Station::select::operator()( const Model::Station::Demand::map_t& augend, const std::pair<const std::string,Model::Station>& m ) const
     {
@@ -383,20 +404,6 @@ namespace BCMP {
 	} else {
 	    return augend;
 	}
-    }
-
-    std::string
-    Model::Station::printQNAP2Transit::operator()( const std::string& str, const Station::pair_t& m ) const
-    {
-	std::ostringstream out;
-	const Station& station = m.second;
-
-	out << str;
-	if ( station.type() != CUSTOMER && station.hasClass(_class_name) ) {
-	    if ( !str.empty() ) out << ",";
-	    out << m.first << "," << station.demandAt(_class_name).visits();
-	}
-	return out.str();
     }
 
     std::string

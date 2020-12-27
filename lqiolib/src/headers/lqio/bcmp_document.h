@@ -23,7 +23,6 @@ namespace BCMP {
 	
     public:
 	class Class {
-	    friend class Model;
 	    
 	public:
 	    typedef std::map<const std::string,Class> map_t;
@@ -31,11 +30,10 @@ namespace BCMP {
 
 	    typedef enum { NONE, CLOSED, OPEN, MIXED } Type;
 	    
-	private:
+	public:
 	    Class() : _type(NONE), _customers(0), _think_time(0.0) {}
 	    Class( Type type, unsigned int customers, double think_time ) : _type(type), _customers(customers), _think_time(think_time) {}
 
-	public:
 	    Type type() const { return _type; }
 	    unsigned int customers() const { return _customers; }
 	    void setCustomers( unsigned int customers ) { _customers = customers; }
@@ -61,7 +59,6 @@ namespace BCMP {
 	/* -------------------------- Station ------------------------- */
 
 	class Station {
-	    friend class JMVA;
 	    
 	public:
 	    typedef std::map<const std::string,Station> map_t;
@@ -130,21 +127,6 @@ namespace BCMP {
 	    private:
 		const std::string& _suffix;
 	    };
-
-	    struct printQNAP2Transit {
-		printQNAP2Transit( const std::string& class_name ) : _class_name(class_name) {}
-		std::string operator()( const std::string&, const Station::pair_t& ) const;
-	    private:
-		const std::string _class_name;
-	    };
-	    
-	private:
-	    struct pad_demand {
-		pad_demand( const Class::map_t& classes ) : _classes(classes) {}
-		void operator()( const Station::pair_t& station ) const;
-	    private:
-		const Class::map_t& _classes;	
-	    };
 	};
 
 	/* --------------------------- Model -------------------------- */
@@ -175,11 +157,18 @@ namespace BCMP {
 	Class::map_t _classes;
 	Station::map_t _stations;
 
-	struct sumVisits {
-	    sumVisits( const Station::Demand::map_t& visits ) : _visits(visits) {}
+	struct sum_visits {
+	    sum_visits( const Station::Demand::map_t& visits ) : _visits(visits) {}
 	    Station::Demand::map_t operator()( const Station::Demand::map_t& input, const Station::Demand::pair_t& visit ) const;
 	private:
 	    const Station::Demand::map_t& _visits;
+	};
+
+	struct pad_demand {
+	    pad_demand( const Class::map_t& classes ) : _classes(classes) {}
+	    void operator()( const Station::pair_t& station ) const;
+	private:
+	    const Class::map_t& _classes;	
 	};
     };
 
@@ -254,6 +243,14 @@ namespace BCMP {
 	    std::ostream& _output;
 	    const Class::map_t& _classes;
 	};
+
+	struct printTransit {
+	    printTransit( const std::string& name ) : _name(name) {}
+	    std::string operator()( const std::string&, const Station::pair_t& ) const;
+	private:
+	    const std::string& _name;
+	};
+	    
 
 	struct printStationVariables {
 	    printStationVariables( std::ostream& output, const Class::map_t& classes ) : _output(output), _classes(classes) {}
