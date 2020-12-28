@@ -45,6 +45,8 @@ namespace BCMP {
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _document(new BCMP::JMVA()), _input_file_name(input_file_name), _parser(nullptr), _stack()
     {
+	LQIO::DOM::Document::__debugXML = true;
+	init_tables();
     }
     
     /* static */ JMVA_Document *
@@ -100,7 +102,7 @@ namespace BCMP {
 	XML_SetUnknownEncodingHandler( _parser, handle_encoding, static_cast<void *>(this) );
 	XML_SetUserData( _parser, static_cast<void *>(this) );
 
-	_stack.push( parse_stack_t("",&JMVA_Document::startDocument,0) );
+	_stack.push( parse_stack_t("",&JMVA_Document::startDocument) );
 
 #if HAVE_MMAP
 	char *buffer;
@@ -194,7 +196,7 @@ namespace BCMP {
 	try {
 	    if ( document->_stack.size() > 0 ) {
 		const parse_stack_t& top = document->_stack.top();
-		(document->*top.start)(top.object,el,attr);
+		(document->*top.start)(top.object.o,el,attr);
 	    }
 	}
 	catch ( const LQIO::duplicate_symbol& e ) {
@@ -238,7 +240,7 @@ namespace BCMP {
 	    }
 	    done = top == el;
 	    if ( top.end ) {		/* Run the end handler if necessary */
-		(document->*top.end)(top.object,el);
+		(document->*top.end)(top.object.o,el);
 	    }
 	    document->_stack.pop();
 	}
@@ -268,18 +270,22 @@ namespace BCMP {
     {
 	JMVA_Document * parser = static_cast<JMVA_Document *>(data);
 	if ( parser->_stack.size() == 0 ) return;
-#if 0
-	if ( top.start == &JMVA_Document::startLQX ) {
-	    std::string& program = const_cast<std::string &>(parser->_document.getLQXProgramText());
-	    program.append( text, length );
-	} else if ( top.start == &JMVA_Document::startSPEXParameters ) {
-	    parser->_spex_parameters.append( text, length );
-	} else if ( top.start == &JMVA_Document::startSPEXResults ) {
-	    parser->_spex_results.append( text, length );
-	} else if ( top.start == &JMVA_Document::startSPEXConvergence ) {
-	    parser->_spex_convergence.append( text, length );
+	char * endptr = nullptr;
+	const parse_stack_t& top = parser->_stack.top();
+	if ( top.start == &JMVA_Document::startServiceTime ) {
+	    std::string buf( text, length );
+	    double value = strtod( buf.c_str(), &endptr );
+	    if ( value < 0. || *endptr != 0 ) throw std::domain_error( buf.c_str() );
+	    Model::Station::Demand * d = top.object.d;		// Through the magic of unions...
+	    d->setServiceTime( value );
+	} else if ( top.start == &JMVA_Document::startVisit ) {
+	    std::string buf( text, length );
+	    double value = strtod( buf.c_str(), &endptr );
+	    if ( value < 0. || *endptr != 0 ) throw std::domain_error( buf.c_str() );
+	    Model::Station::Demand * d = top.object.d;		// Through the magic of unions...
+	    d->setVisits( value );
 	}
-#endif
+
     }
 
     /*
@@ -292,7 +298,7 @@ namespace BCMP {
 	JMVA_Document * parser = static_cast<JMVA_Document *>(data);
 	if ( parser->_stack.size() == 0 ) return;
 	const parse_stack_t& top = parser->_stack.top();
-	JMVA::BCMP_Object * object = top.object;
+	Model::Object * object = top.object.o;
 	if ( object ) {
 	    std::string& comment = const_cast<std::string&>(object->getComment());
 	    if ( comment.size() ) {
@@ -345,74 +351,253 @@ namespace BCMP {
     /* Parser functions.                                                */
     /* ---------------------------------------------------------------- */
     void
-    JMVA_Document::startDocument( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::startDocument( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, document_table );
 	if ( strcasecmp( element, Xmodel ) == 0 ) {
 	    LQIO::DOM::Document::__debugXML = (LQIO::DOM::Document::__debugXML || XML::getBoolAttribute(attributes,Xxml_debug));
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel,nullptr) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startModel) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
     }
 
     void
-    JMVA_Document::startModel( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::startModel( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
     {
-	checkAttributes( element, attributes, null_table );
+	checkAttributes( element, attributes, null_table );		// Hoist: All elements the same 
 	if ( strcasecmp( element, Xparameters) == 0 ) {
-//	    handleModel( object, attributes );
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startParameters,0) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startParameters) );
 	} else if ( strcasecmp( element, XalgParams) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startAlgParams) );
 	}
     }
 
+
+    /*
+     * <parameters>
+     *   <classes number="1">
+     *   <stations number="3">
+     *   <ReferenceStation number="1">
+     * </parameters>
+     */
+   
     void
-    JMVA_Document::startParameters( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::startParameters( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	checkAttributes( element, attributes, parameter_table );		// Hoist: All elements the same 
+	if ( strcasecmp( element, Xclasses ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startClasses) );
+	} else if ( strcasecmp( element, Xstations ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStations) );
+	} else if ( strcasecmp( element, XReferenceStation ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startReferenceStation) );
+	} else {
+	    throw LQIO::element_error( element );
+	}
+    }
+
+
+    /* 
+     * <classes number="1">
+     *   <closedclass name="c1" population="4"/>
+     * </classes>
+     */
+
+    void
+    JMVA_Document::startClasses( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	if ( strcasecmp( element, Xclosedclass) == 0 ) {
+	    createClosedClass( attributes );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
+	} else if ( strcasecmp( element, Xopenclass) == 0 ) {
+	    createOpenClass( attributes );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
+	} else {
+	    throw LQIO::element_error( element );
+	}
+    }
+
+
+    /*
+     * <stations number="3">
+     *   <delaystation name="Reference">...
+     *   <listation name="p2">...
+     * </stations>
+     */
+
+    void
+    JMVA_Document::startStations( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	checkAttributes( element, attributes, station_table );	// Hoist.  Common to all stations.
+	if ( strcasecmp( element, Xdelaystation ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,createStation( Model::Station::DELAY, attributes ) ) );
+	} else if ( strcasecmp( element, Xlistation ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStation,createStation( Model::Station::LOAD_INDEPENDENT, attributes ) ) );
+	} else { // multiserver???
+	    throw LQIO::element_error( element );
+	}
+    }
+
+    /* 
+     * <listation name="p3">
+     *   <servicetimes>
+     *     <servicetime customerclass="c1">1</servicetime>
+     *   </servicetimes>
+     *   <visits>
+     *     <visits customerclass="c1">1</visits>
+     *   </visits>
+     * </listation>
+     */
+    
+    void
+    JMVA_Document::startStation( Model::Object * station, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, null_table );
-	if ( strcasecmp( element, Xclasses) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startClasses,nullptr) );
-	} else if ( strcasecmp( element, Xstations) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startStations,nullptr) );
+	if ( strcasecmp( element, Xservicetimes ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTimes,station) );
+	} else if ( strcasecmp( element, Xvisits ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startVisits,station) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
     }
+    
+    /* Place holder for handle_text */
+    
+    void
+    JMVA_Document::startServiceTimes( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	checkAttributes( element, attributes, demand_table );		// common to visits
+	Model::Station * station = dynamic_cast<Model::Station *>(object);
+	assert( station != nullptr );
+	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
+	if ( strcasecmp( element, Xservicetime ) == 0 ) {
+	    Model::Station::Demand::map_t& demands = station->demands();		// Will insert...
+	    const std::pair<Model::Station::Demand::map_t::iterator,bool> result = demands.insert( Model::Station::Demand::pair_t( class_name, Model::Station::Demand() ) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startServiceTime,parse_stack_t::Object(&result.first->second) ) );
+	} else {
+	    throw LQIO::element_error( element );      		/* Should not get here. */
+	}
+    }
+    
+    void
+    JMVA_Document::startServiceTime( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	throw LQIO::element_error( element );           	/* Should not get here. */
+    }
 
     void
-    JMVA_Document::startClasses( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::startVisits( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
     {
-	checkAttributes( element, attributes, parameter_table );
-	/* Don't care about number=... */
-	if ( strcasecmp( element, Xclosedclass) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startClass,nullptr) );
-	} else if ( strcasecmp( element, Xopenclass) == 0 ) {
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startClass,nullptr) );
+	checkAttributes( element, attributes, demand_table );		// commmon to servicetime.
+	Model::Station * station = dynamic_cast<Model::Station *>(object);
+	assert( station != nullptr );
+	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
+	if ( strcasecmp( element, Xvisits ) == 0 ) {
+	    Model::Station::Demand::map_t& demands = station->demands();		// Will insert...
+	    const std::pair<Model::Station::Demand::map_t::iterator,bool> result = demands.insert( Model::Station::Demand::pair_t( class_name, Model::Station::Demand() ) );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startVisit,parse_stack_t::Object(&result.first->second) ) );
+	} else {
+	    throw LQIO::element_error( element );       	/* Should not get here. */
+	}
+    }
+
+    /* Place holder for handle_text */
+
+    void
+    JMVA_Document::startVisit( Model::Object * cls, const XML_Char * element, const XML_Char ** attributes )
+    {
+	throw LQIO::element_error( element );           /* Should not get here. */
+    }
+
+
+    /* 
+     * <ReferenceStation number="1">
+     *   <Class name="c1" refStation="Reference"/>
+     * </ReferenceStation>
+     */
+    
+    void
+    JMVA_Document::startReferenceStation( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	if ( strcasecmp( element, XClass ) == 0 ) {
+	    checkAttributes( element, attributes, ReferenceStation_table );
+	    std::string name = XML::getStringAttribute( attributes, Xname );
+	    std::string refStation = XML::getStringAttribute( attributes, XrefStation );
+	    // I will have to fix BCMP::... here
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
     }
+    
+
+    /* 
+     * <algParams>
+     *   <algType maxSamples="10000" name="MVA" tolerance="1.0E-7"/>
+     *   <compareAlgs value="false"/>
+     * </algParams>
+     */
 
     void
-    JMVA_Document::startClass( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::startAlgParams( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
     {
-	checkAttributes( element, attributes, class_table );
-	if ( strcasecmp( element, Xclosedclass) == 0 ) {
-//	    _stack.push( parse_stack_t(element,&JMVA_Document::startClass,new BCMP::Class()) );
-	} else if ( strcasecmp( element, Xopenclass) == 0 ) {
-//	    _stack.push( parse_stack_t(element,&JMVA_Document::startClass,new BCMP::Class()) );
-	} else {
-	    throw LQIO::element_error( element );
+	if ( strcasecmp( element, XalgType ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
+	} else if ( strcasecmp( element, XcompareAlgs ) == 0 ) {
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	}
+     }
+
+
+    void
+    JMVA_Document::startNOP( Model::Object * object, const XML_Char * element, const XML_Char ** attributes )
+    {
+	throw LQIO::element_error( element );             /* Should not get here. */
+    }
+
+    void
+    JMVA_Document::createClosedClass( const XML_Char ** attributes )
+    {
+	checkAttributes( Xclosedclass, attributes, closedclass_table );
+	_document->insertClass( XML::getStringAttribute( attributes, Xname ),
+				Model::Class::CLOSED, 
+				XML::getLongAttribute( attributes, Xpopulation ),
+				XML::getDoubleAttribute( attributes, Xthinktime, 0.0 ) );
     }
 
+    
     void
-    JMVA_Document::startStations( JMVA::BCMP_Object * object, const XML_Char * element, const XML_Char ** attributes )
+    JMVA_Document::createOpenClass( const XML_Char ** attributes )
     {
-	checkAttributes( element, attributes, parameter_table );
-	/* Don't care about number=... */
-	throw LQIO::element_error( element );
+	checkAttributes( Xopenclass, attributes, openclass_table );
+//	_document.insertClass( XML::getStringAttribute( Xname, attributes ),
+//			       Model::Class::CLOSED, 
+//			       XML::getLognAttribue( Xpopulation, attributes );
+//			       XML::getDoubleAttribute( Xthinktime, attributes, 0.0 ) );
+    }
+
+    
+    Model::Station *
+    JMVA_Document::createStation( Model::Station::Type type, const XML_Char ** attributes )
+    {
+	Model::Station::map_t& stations = _document->stations();
+	const std::pair<Model::Station::map_t::iterator,bool> result = stations.insert( Model::Station::pair_t( XML::getStringAttribute( attributes, Xname ),
+														Model::Station( type, XML::getLongAttribute( attributes, Xmultiplicity, 1 ) ) ) );
+	if ( !result.second ) {
+	    // Duplicate Symbol
+	}
+	return &result.first->second;								
+    }
+}
+
+namespace BCMP {
+    std::ostream&
+    JMVA_Document::print( std::ostream& output ) const
+    {
+	_document->print( output );
+	return output;
     }
 }
 
@@ -422,31 +607,57 @@ namespace BCMP {
     {
 	if ( document_table.size() != 0 ) return;
 
+	closedclass_table.insert(Xname);
+	openclass_table.insert(Xname);
+	closedclass_table.insert(Xpopulation);
 	document_table.insert(Xxml_debug);
 	parameter_table.insert(Xnumber);
-	station_table.insert(Xname);
+	station_table.insert(Xname);// copies??
+	demand_table.insert(Xcustomerclass);
+	ReferenceStation_table.insert(Xname);
+	ReferenceStation_table.insert(XrefStation);
+	algParams_table.insert(Xtolerance);
+	algParams_table.insert(XmaxSamples);
+	algParams_table.insert(Xname);
+	compareAlgs_table.insert(Xvalue);
     }
 
-    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::class_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::ReferenceStation_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::algParams_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::closedclass_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::compareAlgs_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::demand_table;
     std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::document_table;
     std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::null_table;
+    std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::openclass_table;
     std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::parameter_table;
     std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::station_table;
     
+    const XML_Char * JMVA_Document::XClass		= "Class";
     const XML_Char * JMVA_Document::XReferenceStation	= "ReferenceStation";
     const XML_Char * JMVA_Document::XalgParams		= "algParams";
+    const XML_Char * JMVA_Document::XalgType		= "algType";
     const XML_Char * JMVA_Document::Xclasses		= "classes";
     const XML_Char * JMVA_Document::Xclosedclass	= "closedclass";
+    const XML_Char * JMVA_Document::XcompareAlgs	= "compareAlqs";
     const XML_Char * JMVA_Document::Xcustomerclass	= "customerclass";
     const XML_Char * JMVA_Document::Xdelaystation	= "delaystation";
     const XML_Char * JMVA_Document::Xlistation		= "listation";
+    const XML_Char * JMVA_Document::XmaxSamples		= "maxSamples";
     const XML_Char * JMVA_Document::Xmodel		= "model";
+    const XML_Char * JMVA_Document::Xmultiplicity	= "multiplicity";
     const XML_Char * JMVA_Document::Xname		= "name";
     const XML_Char * JMVA_Document::Xnumber		= "number";
     const XML_Char * JMVA_Document::Xopenclass		= "openclass";
     const XML_Char * JMVA_Document::Xparameters		= "parameters";
+    const XML_Char * JMVA_Document::Xpopulation		= "population";
+    const XML_Char * JMVA_Document::XrefStation		= "refStation";
+    const XML_Char * JMVA_Document::Xservicetime	= "servicetime";
     const XML_Char * JMVA_Document::Xservicetimes	= "servicetimes";
     const XML_Char * JMVA_Document::Xstations		= "stations";
+    const XML_Char * JMVA_Document::Xthinktime 		= "thinktime";
+    const XML_Char * JMVA_Document::Xtolerance		= "tolerance";
+    const XML_Char * JMVA_Document::Xvalue		= "value";
     const XML_Char * JMVA_Document::Xvisits		= "visits";
     const XML_Char * JMVA_Document::Xxml_debug 		= "xml-debug";
 }

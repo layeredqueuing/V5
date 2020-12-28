@@ -428,6 +428,34 @@ namespace BCMP {
     }
     
 
+    void Model::Station::Demand::setVisits( double visits )
+    {
+	_visits = visits;
+	if ( _visits == 0 ) {
+	    _demand = 0;
+	} else if ( (_demand == 0. && _service_time > 0) || _state == SET_SERVICE ) {
+	    _demand = _service_time * _visits;
+	} else if ( (_service_time == 0 && _demand > 0) || _state == SET_DEMAND ) {
+	    _service_time = _demand / _visits;
+	} 
+    }
+
+    void Model::Station::Demand::setDemand( double demand )
+    {
+	_demand = demand;
+	_state = SET_DEMAND;
+	if ( _visits > 0 ) {
+	    _service_time = _demand / _visits;
+	}
+    }
+
+    void Model::Station::Demand::setServiceTime( double service_time )
+    {
+	_service_time = service_time;
+	_state = SET_SERVICE;
+	_demand = _visits * _service_time;
+    }
+
     Model::Station::Demand::map_t
     Model::Station::Demand::collect( const Demand::map_t& augend, const Demand::pair_t& addend )
     {

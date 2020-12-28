@@ -23,9 +23,10 @@ namespace BCMP {
 	
 
     public:
-	class BCMP_Object {
+	class Object {
 	public:
-	    BCMP_Object() {}
+	    Object() : _comment() {}
+	    virtual ~Object() {}
 
 	    std::string& getComment() { return _comment; }
 
@@ -34,7 +35,7 @@ namespace BCMP {
 	};
 	
     public:
-	class Class : public BCMP_Object {
+	class Class : public Object {
 	    
 	public:
 	    typedef std::map<const std::string,Class> map_t;
@@ -70,7 +71,7 @@ namespace BCMP {
 
 	/* -------------------------- Station ------------------------- */
 
-	class Station : public BCMP_Object {
+	class Station : public Object {
 	    
 	public:
 	    typedef std::map<const std::string,Station> map_t;
@@ -79,37 +80,43 @@ namespace BCMP {
 	    typedef enum { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER } Type;
 
 	    class Demand {
+		typedef enum { NOT_SET, SET_VISITS, SET_SERVICE, SET_DEMAND } state_t;
+		
 	    public:
 		typedef std::map<const std::string,Demand> map_t;
 		typedef std::pair<const std::string,Demand> pair_t;
 
-		Demand() : _visits(0.0), _demand(0.0) {}
-		Demand( double visits, double demand ) : _visits(visits), _demand(demand) {}
+		Demand() : _visits(0.0), _demand(0.0), _service_time(0.0) {}
+		Demand( double visits, double demand ) : _visits(visits), _demand(demand), _service_time(visits > 0 ? demand/visits : 0.) {}
 		
 		Demand operator+( const Demand& augend ) const { return Demand( _visits + augend._visits, _demand + augend._demand ); }
 		Demand& operator+=( const Demand& addend ) { _visits += addend._visits; _demand += addend._demand; return *this; }
 		double visits() const { return _visits; }
-		double service_time() const { return _visits > 0 ? _demand / _visits : 0.; }
+		double service_time() const { return _service_time; }
 		double demand() const { return _demand; }
 		Demand& accumulate( double visits, double demand ) { _visits += visits; _demand += demand; return *this; }
 		Demand& accumulate( const Demand& addend ) { _visits += addend._visits; _demand += addend._demand; return *this; }
-		void setVisits( double visits ) { _visits = visits; }
-		void setDemand( double demand ) { _demand = demand; }
+		void setVisits( double visits );
+		void setDemand( double demand );
+		void setServiceTime( double service_time );
 		
 		static Demand::map_t collect( const Demand::map_t& augend_t, const Demand::pair_t& );
 	    private:
 		double _visits;
 		double _demand;
+		double _service_time;
+		state_t _state;
 	    };
 	
+	public:
 	    Station() : _type(NOT_DEFINED), _copies(1), _demands() {}
 	    Station( Type type, unsigned int copies ) : _type(type), _copies(copies) {}
 
-	public:
 	    bool insertDemand( const std::string&, const Demand& );
 	    
 	    Type type() const { return _type; }
 	    unsigned int copies() const { return _copies; }
+	    Demand::map_t& demands() { return _demands; }
 	    const Demand::map_t& demands() const { return _demands; }
 	    Demand& demandAt( const std::string& name ) { return _demands.at(name); }
 	    const Demand& demandAt( const std::string& name ) const { return _demands.at(name); }
@@ -148,7 +155,9 @@ namespace BCMP {
 	virtual ~Model() {}
 
 	bool empty() const { return _classes.size() == 0 || _stations.size() == 0; }
+	Class::map_t& classes() { return _classes; }
 	const Class::map_t& classes() const { return _classes; }
+	Station::map_t& stations() { return _stations; }
 	const Station::map_t& stations() const { return _stations; }
 	unsigned int nClasses() const { return _classes.size(); }
 	unsigned int nStations() const { return _stations.size(); }

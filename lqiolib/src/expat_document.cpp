@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cpp 14273 2020-12-27 14:47:06Z greg $
+ * $Id: expat_document.cpp 14276 2020-12-28 02:25:21Z greg $
  *
  * Read in XML input files.
  *
@@ -88,7 +88,7 @@ namespace LQIO {
         }
 
 	bool
-        Expat_Document::load( Document& document, const std::string& input_filename, unsigned& errorCode, const bool load_results )
+        Expat_Document::load( Document& document, const std::string& input_filename, const bool load_results )
         {
 	    Expat_Document input( document, input_filename, true, load_results );
 
@@ -125,7 +125,7 @@ namespace LQIO {
          */
 
         /* static */ bool
-        Expat_Document::loadResults( Document& document, const std::string& input_file_name, unsigned& errorCode )
+        Expat_Document::loadResults( Document& document, const std::string& input_file_name )
         {
 	    Expat_Document input( document, input_file_name, false, true );
 	    return input.parse();

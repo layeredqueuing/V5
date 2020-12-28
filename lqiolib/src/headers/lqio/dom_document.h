@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14026 2020-10-28 14:28:13Z greg $
+ *  $Id: dom_document.h 14276 2020-12-28 02:25:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -32,7 +32,7 @@ namespace LQIO {
 
 	public:
 	    typedef enum { DEFAULT_OUTPUT, LQN_OUTPUT, XML_OUTPUT, JSON_OUTPUT, RTF_OUTPUT, PARSEABLE_OUTPUT } output_format;
-	    typedef enum { AUTOMATIC_INPUT, LQN_INPUT, XML_INPUT, JSON_INPUT } input_format;
+	    typedef enum { AUTOMATIC_INPUT, LQN_INPUT, XML_INPUT, JSON_INPUT, JMVA_INPUT } input_format;
 
 	private:
 	    typedef enum { SET_FALSE, SET_TRUE, NOT_SET } cached;

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14146 2020-11-26 21:53:48Z greg $
+ *  $Id: dom_document.cpp 14276 2020-12-28 02:25:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -18,6 +18,7 @@
 #include "glblerr.h"
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
+#include "jmva_document.h"
 #endif
 #include "srvn_input.h"
 #include "srvn_results.h"
@@ -744,35 +745,58 @@ namespace LQIO {
 	    __input_file_name = input_filename;
             io_vars.reset();                   /* See error.c */
 
-	    errorCode = 0;
-
 	    /* Figure out input file type based on suffix */
 
 	    if ( format == AUTOMATIC_INPUT ) {
 		format = getInputFormatFromFilename( input_filename );
 	    }
 
-	    /* Create a document to store the product */
-	    Document * document = new Document( format );
-	
-	    /* Read in the model, invoke the builder, and see what happened */
-
 	    bool rc = true;
 	    LQIO::Spex::initialize_control_parameters();
-	    if ( format == LQN_INPUT ) {
-		rc = SRVN::load( *document, input_filename, errorCode, load_results );
-	    } else {
+	    /* Create a document to store the product */
+	
+	    Document * document = new Document( format );
+
+	    /* Read in the model, invoke the builder, and see what happened */
+
+	    switch ( format ) {
+
+	    case AUTOMATIC_INPUT:
+	    case LQN_INPUT:
+		rc = SRVN::load( *document, input_filename, load_results );
+		break;
+
 #if HAVE_LIBEXPAT
-		rc = Expat_Document::load( *document, input_filename, errorCode, load_results );
-#else
+	    case XML_INPUT:
+		rc = Expat_Document::load( *document, input_filename, load_results );
+		break;
+		
+	    case JMVA_INPUT:
+	    {
+		/* Will have to convert the JMVA into LQN... */
+		BCMP::JMVA_Document * jmva = BCMP::JMVA_Document::create( input_filename );
+		jmva->print( std::cout );
 		rc = false;
-#endif
 	    }
-	    if ( errorCode != 0 ) {
+		break;
+#else
+	    case XML_INPUT:
+	    case JMVA_INPUT:
 		rc = false;
-	    } 
+		break;
+#endif
+
+	    case JSON_INPUT:
+		rc = false;
+		break;
+
+	    default:
+		rc = false;
+		break;
+	    }
 
 	    /* All went well, so return it */
+
 	    if ( rc ) {
 //		I will have to register functions for LQX here.
 		LQX::Program * program = document->getLQXProgram();
@@ -783,7 +807,7 @@ namespace LQIO {
 		return document;
 	    } else {
 		delete document;
-		return 0;
+		return nullptr;
 	    }
 	}
 
@@ -791,17 +815,17 @@ namespace LQIO {
 	bool
 	Document::loadResults(const std::string& directory_name, const std::string& file_name, const std::string& suffix, unsigned& errorCode )
 	{
-	    if ( getInputFormat() == LQN_INPUT ) {
-		LQIO::Filename filename( file_name, "p", directory_name, suffix );
-		return LQIO::SRVN::loadResults( filename() );
-	    } else if ( getInputFormat() == XML_INPUT ) {
-		LQIO::Filename filename( file_name, "lqxo", directory_name, suffix );
+	    switch ( getInputFormat() ) {
+	    case LQN_INPUT:
+		return LQIO::SRVN::loadResults( LQIO::Filename( file_name, "p", directory_name, suffix )() );
+
+	    case XML_INPUT:
 #if HAVE_LIBEXPAT
-		return Expat_Document::loadResults( *this, filename(), errorCode );
+		return Expat_Document::loadResults( *this, LQIO::Filename( file_name, "lqxo", directory_name, suffix )() );
 #else
 		return false;
 #endif
-	    } else {
+	    default:
 		return false;
 	    }
 	}
@@ -817,6 +841,8 @@ namespace LQIO {
 		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
 		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
 		    return LQN_INPUT;		/* Override */
+		} else if ( suffix == "jmva" ) {
+		    return JMVA_INPUT;
 		} else {
 		    return XML_INPUT;
 		}

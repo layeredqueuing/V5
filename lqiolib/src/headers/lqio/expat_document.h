@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 14273 2020-12-27 14:47:06Z greg $
+ *  $Id: expat_document.h 14276 2020-12-28 02:25:21Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -233,8 +233,8 @@ namespace LQIO {
 
 	    void serializeDOM( std::ostream& output ) const;
 	    
-	    static bool load( Document&, const std::string&, unsigned int & errorCode, const bool load_results );		// Factory.
-	    static bool loadResults( Document&, const std::string&, unsigned& errorCode );
+	    static bool load( Document&, const std::string&, const bool load_results );		// Factory.
+	    static bool loadResults( Document&, const std::string& );
 
 	private:
 	    Expat_Document( const Expat_Document& );
