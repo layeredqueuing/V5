@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14276 2020-12-28 02:25:21Z greg $
+ *  $Id: dom_document.cpp 14284 2020-12-28 23:23:00Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -772,12 +772,7 @@ namespace LQIO {
 		break;
 		
 	    case JMVA_INPUT:
-	    {
-		/* Will have to convert the JMVA into LQN... */
-		BCMP::JMVA_Document * jmva = BCMP::JMVA_Document::create( input_filename );
-		jmva->print( std::cout );
-		rc = false;
-	    }
+		rc = BCMP::JMVA_Document::load( *document, input_filename );
 		break;
 #else
 	    case XML_INPUT:

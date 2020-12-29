@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14230 2020-12-16 22:56:43Z greg $
+ * $Id: call.h 14280 2020-12-28 18:20:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -519,7 +519,7 @@ public:
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
     double visits() const;
-    double demand() const;
+    double serviceTime() const;
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif

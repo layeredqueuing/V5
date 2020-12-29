@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14261 2020-12-26 15:45:57Z greg $
+ * $Id: processor.cc 14280 2020-12-28 18:20:34Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -437,11 +437,12 @@ Processor::label()
 
 
 /*
- * demand is map<class,<visits,service>> for this station.
+ * demand is map<class,<visits,service>> for this station.  Processors
+ * are always servers, so label for all classes.
  */
 
 Processor&
-Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands )
+Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands, const std::string& )
 {
     *myLabel << name();
     for ( BCMP::Model::Station::Demand::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
@@ -579,7 +580,7 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	    /* If it is generic processor call then accumulate by entry */
 	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
 	} else {
-	    item->second.accumulate( src->visits(), src->demand() );
+	    item->second.accumulate( src->visits(), src->serviceTime() );
 	}
     }
 }

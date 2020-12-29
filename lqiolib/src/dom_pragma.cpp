@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14261 2020-12-26 15:45:57Z greg $
+ *  $Id: dom_pragma.cpp 14281 2020-12-28 18:21:03Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -71,8 +71,12 @@ namespace LQIO {
 	    bcmp_args.insert(Pragma::_extended_);
 	    bcmp_args.insert(Pragma::_true_);
 	    bcmp_args.insert(Pragma::_yes_);
+	    bcmp_args.insert(Pragma::_false_);
+	    bcmp_args.insert(Pragma::_no_);
 	    bcmp_args.insert("t");
 	    bcmp_args.insert("y");
+	    bcmp_args.insert("f");
+	    bcmp_args.insert("n");
 	    bcmp_args.insert("");
 	    __pragmas[Pragma::_bcmp_] = &bcmp_args;
 	    

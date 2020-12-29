@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: input.h 14288 2020-12-29 13:24:52Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -20,22 +20,22 @@
 typedef enum {
     SCHEDULE_CUSTOMER,
     SCHEDULE_DELAY,
-    SCHEDULE_FIFO, 
-    SCHEDULE_HOL,  
-    SCHEDULE_PPR,  
-    SCHEDULE_RAND, 
-    SCHEDULE_PS,   
+    SCHEDULE_FIFO,
+    SCHEDULE_HOL,
+    SCHEDULE_PPR,
+    SCHEDULE_RAND,
+    SCHEDULE_PS,
     SCHEDULE_PS_HOL,
     SCHEDULE_PS_PPR,
-    SCHEDULE_POLL, 
+    SCHEDULE_POLL,
     SCHEDULE_BURST,
     SCHEDULE_UNIFORM,
     SCHEDULE_SEMAPHORE,
     SCHEDULE_CFS,
-    SCHEDULE_RWLOCK
-} scheduling_type;	      
+    SCHEDULE_RWLOCK   
+} scheduling_type;
 #define	N_SCHEDULING_TYPES    15
-			      
+
 #define SCHED_CUSTOMER_BIT   (1 << SCHEDULE_CUSTOMER)
 #define SCHED_DELAY_BIT	     (1 << SCHEDULE_DELAY)
 #define SCHED_FIFO_BIT	     (1 << SCHEDULE_FIFO)
@@ -57,14 +57,14 @@ typedef enum { SEMAPHORE_NONE, SEMAPHORE_SIGNAL, SEMAPHORE_WAIT } semaphore_entr
 typedef enum { DEFAULT_MATHERR, IGNORE_MATHERR, REPORT_MATHERR, ABORT_MATHERR } matherr_type;
 typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOCK_W_LOCK } rwlock_entry_type;
 
-/* Exit codes -- can be ored */   
+/* Exit codes -- can be ored */
 #define NORMAL_TERMINATION      (0)
 #define INVALID_OUTPUT          (1 << 0)
 #define INVALID_INPUT           (1 << 1)
 #define INVALID_ARGUMENT        (1 << 2)
 #define FILEIO_ERROR            (1 << 3)
 #define EXCEPTION_EXIT	        0xff
-	
+
 #if defined(__cplusplus)
 #include "error.h"
 #include <vector>
@@ -72,7 +72,7 @@ typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOC
 
 namespace LQIO {
     typedef struct LQIO::error_message_type ErrorMessageType;
-	
+
     typedef struct lqio_params_stats
     {
 	lqio_params_stats( const char * version, void (*action)(unsigned) );
@@ -80,16 +80,16 @@ namespace LQIO {
 	bool anError() const { return error_count > 0; }
 	const char * toolname() const { return lq_toolname.c_str(); }
 	void init( const std::string& version, const std::string& toolname, void (*sa)(unsigned), ErrorMessageType * local=nullptr, size_t size=0 );
-	
+
 	std::string lq_toolname;                /* I:Name of tool for messages    */
 	std::string lq_version;			/* I: version number	          */
 	std::string lq_command_line;		/* I:Command line		  */
 	void (*severity_action)(unsigned);	/* I:Severity action              */
-	
+
 	unsigned max_error;			/* I:Maximum error ID number      */
 	mutable unsigned error_count;		/* IO:Number of errors            */
 	LQIO::severity_t severity_level;        /* I:Messages < severity_level ignored. */
-	
+
 	std::vector<ErrorMessageType> error_messages;	/* IO:Error Messages */
     } lqio_params_stats;
 

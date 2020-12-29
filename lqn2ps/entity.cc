@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14252 2020-12-24 20:35:14Z greg $
+ * $Id: entity.cc 14288 2020-12-29 13:24:52Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -711,9 +711,48 @@ Entity::offsetOf( const std::set<unsigned>& chains, unsigned k )
 
     
 void
-Entity::label_BCMP_model::operator()( Entity * entity ) const
+Entity::label_BCMP_server::operator()( Entity * entity ) const
 {
     const BCMP::Model::Station& station = const_cast<BCMP::Model&>(_model).stationAt( entity->name() );
     entity->labelBCMPModel( station.demands() );
+}
+
+
+void
+Entity::label_BCMP_client::operator()( Entity * entity ) const
+{
+    const BCMP::Model::Station& station = const_cast<BCMP::Model&>(_model).stationAt( ReferenceTask::__BCMP_station_name );
+    entity->labelBCMPModel( station.demands(), entity->name() );
+}
+
+
+void
+Entity::create_class::operator()( const Entity * entity ) const
+{
+    BCMP::Model::Class::Type type;
+    if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Class::MIXED;
+    else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Class::OPEN;
+    else type = BCMP::Model::Class::CLOSED;
+
+    /* Think time for a task is the class think time. */
+
+    double think_time = 0.0;
+    const Task * task = dynamic_cast<const Task *>(entity);
+    if ( task->hasThinkTime() && dynamic_cast<const ReferenceTask *>(task) ) {
+	think_time = to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime());
+    }
+    _model.insertClass( entity->name(), type, entity->copiesValue(), think_time );
+}
+
+
+void
+Entity::create_station::operator()( const Entity * entity ) const
+{
+    BCMP::Model::Station::Type type;
+    if ( _type == BCMP::Model::Station::CUSTOMER ) type = _type;
+    else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
+    else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
+    else type = BCMP::Model::Station::LOAD_INDEPENDENT;
+    _model.insertStation( entity->name(), type, scheduling(), entity->copiesValue() );
 }
 

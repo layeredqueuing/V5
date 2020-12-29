@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14233 2020-12-17 13:15:17Z greg $
+ * $Id: call.cc 14280 2020-12-28 18:20:34Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1851,9 +1851,9 @@ ProcessorCall::visits() const
 }
 
 double
-ProcessorCall::demand() const
+ProcessorCall::serviceTime() const
 {
-    return to_double( _visits ) * to_double( _serviceTime );
+    return to_double( _serviceTime );
 }
 
 bool

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14261 2020-12-26 15:45:57Z greg $
+ * $Id: task.cc 14282 2020-12-28 19:44:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -48,6 +48,7 @@
 #include "model.h"
 
 std::set<Task *,LT<Task> > Task::__tasks;
+const std::string ReferenceTask::__BCMP_station_name("terminal");	/* No more than 8 characters -- qnap2 limit. */
 
 bool Task::thinkTimePresent             = false;
 bool Task::holdingTimePresent           = false;
@@ -1198,10 +1199,9 @@ Task::accumulateDemand( BCMP::Model::Station& station ) const
     typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
     typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
 
-    BCMP::Model::Station::Demand::map_t& demands = const_cast<demand_map&>(station.demands());
+    demand_map& demands = station.demands();
     const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Demand() ) );	/* null entry */
-    demand_map::iterator item = result.first;
-    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
+    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
 }
 
 
@@ -1792,16 +1792,17 @@ Task::label()
 
 
 /*
- *
+ * Clients in the LQN model represent a class, but clients in the BCMP model are represented by 
+ * a single multi-class station (termainals). 
  */
 
 Task&
-Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand )
+Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand, const std::string& class_name )
 {
     *myLabel << name();
     myLabel->newLine();
     *myLabel << "[" << copiesValue() << "]";
-    const BCMP::Model::Station::Demand& reference = demand.at(this->name());
+    const BCMP::Model::Station::Demand& reference = demand.at(class_name);
     myLabel->newLine();
     *myLabel << "(" << reference.visits() << "," << reference.service_time() << ")";
     return *this;
@@ -2416,6 +2417,26 @@ Task::canConvertToReferenceTask() const
       && !isInfinite()
       && nEntries() == 1
       && !_processors.empty();
+}
+
+
+/*
+ * This has to be done by class.
+ */
+
+void
+ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
+{
+    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
+    BCMP::Model::Station::Demand demand;
+    if ( hasThinkTime() ) {
+	demand.setServiceTime( to_double(thinkTime() ) );
+    }
+
+    demand_map& demands = const_cast<demand_map&>(station.demands());
+    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), demand ) );
+    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
 }
 
 /* --------------------------- Server Tasks --------------------------- */

@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14260 2020-12-26 14:01:57Z greg $
+ * $Id: task.h 14282 2020-12-28 19:44:18Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -168,7 +168,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Task& label();
-    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand::map_t& );
+    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand::map_t&, const std::string& class_name="" );
 
     virtual Task& rename();
     virtual Task& squishName();
@@ -266,6 +266,11 @@ public:
 
     virtual Graphic::colour_type colour() const;
     virtual size_t findChildren( CallStack&, const unsigned );
+
+    virtual void accumulateDemand( BCMP::Model::Station& ) const;
+
+public:
+    static const std::string __BCMP_station_name;
 };
 
 

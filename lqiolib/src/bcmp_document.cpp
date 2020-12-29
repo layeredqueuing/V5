@@ -21,24 +21,17 @@
 #include <numeric>
 #include "bcmp_document.h"
 #include "input.h"
-#include "common_io.h"
-#include "xml_output.h"
 
 namespace BCMP {
-
-    const std::string JMVA::__client_name = "Reference";
-    const std::string QNAP2::__client_name = "terminal";
-
-
     bool Model::insertClass( const std::string& name, Class::Type type, unsigned int customers, double think_time )
     {
 	std::pair<Class::map_t::iterator,bool> result = _classes.insert( Class::pair_t( name, Class( type, customers, think_time ) ) );
 	return result.second;
     }
     
-    bool Model::insertStation( const std::string& name, Station::Type type, unsigned int copies)
+    bool Model::insertStation( const std::string& name, const Station& station )
     {
-	std::pair<Station::map_t::iterator,bool> result = _stations.insert( Station::pair_t( name, Station( type, copies ) ) );
+	std::pair<Station::map_t::iterator,bool> result = _stations.insert( Station::pair_t( name, station ) );
 	return result.second;
     }
     
@@ -49,12 +42,20 @@ namespace BCMP {
 	return station->second.insertDemand( class_name, demands );
     }
     
-    void
-    Model::computeCustomerVisits( const std::string& name )
+    /* 
+     * Sum service time over all clients and visits over all servers.
+     * The demand at the reference station is the demand (service
+     * time) at the reference station but the visits over all
+     * non-customer stations.
+     */
+	
+    Model::Station::Demand::map_t
+    Model::computeCustomerDemand( const std::string& name ) const
     {
 	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
-	Station::Demand& demand = stationAt(name).demandAt(name);
-	demand.setVisits( visits.at(name).visits() );
+	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
+	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
+	return demands;
     }
     
     Model::Station::Demand::map_t
@@ -65,6 +66,31 @@ namespace BCMP {
 	result.first->second.setVisits( _visits.at(demand.first).visits() );
 	return output;
     }
+
+
+    bool
+    Model::convertToLQN( LQIO::DOM::Document& document ) const
+    {
+	for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
+	    const std::string& client_name = k->first;
+	}
+	for ( Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    const std::string& station_name = m->first;
+	}
+
+	// for all classes create tasks/entries/processor.
+	// for all stations create tasks/entries/processors.
+	// Create calls.
+	return false;
+    }
+
+    
+    std::ostream&
+    Model::print( std::ostream& output ) const
+    {
+	return output;
+    }
+    
 
     /*
      * JMVA insists that service time/visits exist for --all-- classes for --all--stations
@@ -81,331 +107,6 @@ namespace BCMP {
 	}
     }
 
-    void JMVA::print( std::ostream& output ) const
-    {
-	std::for_each( _stations.begin(), _stations.end(), pad_demand( classes() ) );	/* JMVA want's zeros */
-	
-	XML::set_indent(0);
-	output << "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\"?>" << std::endl
-	       << "<!-- " << LQIO::DOM::Common_IO::svn_id() << " -->" << std::endl;
-	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-	    output << "<!-- " << LQIO::io_vars.lq_command_line << " -->" << std::endl;
-	}
-
-	output << XML::start_element( "model" )
-	       << XML::attribute( "xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance" )
-	       << XML::attribute( "xsi:noNamespaceSchemaLocation", "JMTmodel.xsd" )
-	       << ">" << std::endl;
-	      
-	output << XML::start_element( "parameters" ) << ">" << std::endl;
-
-	output << XML::start_element( "classes" ) << XML::attribute( "number", nClasses() ) << ">" << std::endl;
-	std::for_each( classes().begin(), classes().end(), printClass( output ) );
-	output << XML::end_element( "classes" ) << std::endl;
-
-	const unsigned int n_stations = std::count_if( stations().begin(), stations().end(), &Station::isServer ) + 1;
-	output << XML::start_element( "stations" ) << XML::attribute( "number", n_stations ) << ">" << std::endl;
-	printClientStation( output );
-	std::for_each( stations().begin(), stations().end(), printStation( output ) );
-	output << XML::end_element( "stations" ) << std::endl;
-
-	output << XML::start_element( "ReferenceStation" ) << XML::attribute( "number", nClasses() ) << ">" << std::endl;
-	std::for_each( classes().begin(), classes().end(), printReference( output ) );
-	output << XML::end_element( "ReferenceStation" ) << std::endl;
-
-	output << XML::end_element( "parameters" ) << std::endl;
-	output << XML::start_element( "algParams" ) << ">" << std::endl
-	       << XML::simple_element( "algType" ) << XML::attribute( "maxSamples", "10000" ) << XML::attribute( "name", "MVA" ) << XML::attribute( "tolerance", "1.0E-7" ) << "/>" << std::endl
-	       << XML::simple_element( "compareAlgs" ) << XML::attribute( "value", "false" ) << "/>" << std::endl
-	       << XML::end_element( "algParams" ) << std::endl;
-
-
-	output << XML::end_element( "model" ) << std::endl;
-    }
-
-    /*
-     * Print out the special "reference" station.
-     */
-    
-    void
-    JMVA::printClientStation( std::ostream& output ) const
-    {
-	/* 
-	 * Sum service time over all clients and visits over all
-	 * servers.  The demand at the reference station is the demand
-	 * (service time) at the reference station but the visits over
-	 * all non-customer stations.  
-	 */
-	
-	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
-	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
-
-	const std::string element( "delaystation" );
-	output << XML::start_element( element ) << XML::attribute( "name", "Reference" );
-	output << ">" << std::endl;
-	output << XML::start_element( "servicetimes" ) << ">" << std::endl;
-	std::for_each( demands.begin(), demands.end(), printService( output ) );
-	output << XML::end_element( "servicetimes" ) << std::endl;
-	output << XML::start_element( "visits" ) << ">" << std::endl;
-	std::for_each( demands.begin(), demands.end(), printVisits( output ) );
-	output << XML::end_element( "visits" ) << std::endl;
-	output << XML::end_element( element ) << std::endl;
-    }
-
-    void
-    JMVA::printStation::operator()( const Station::pair_t& m ) const
-    {
-	const Station& station = m.second;
-	std::string element;
-	switch ( station.type() ) {
-	case Station::CUSTOMER:	return;		/* Don't do these.  JMVA wants only ONE reference station */
-	case Station::DELAY:		element = "delaystation"; break;
-	case Station::LOAD_INDEPENDENT:	element = "listation"; break;
-	default: abort();
-	}
-	_output << XML::start_element( element ) << XML::attribute( "name", m.first );
-	if ( station.copies() > 1 ) _output << XML::attribute( "servers", station.copies() );
-	_output << ">" << std::endl;
-	_output << XML::start_element( "servicetimes" ) << ">" << std::endl;
-	std::for_each( station.demands().begin(), station.demands().end(), printService( _output ) );
-	_output << XML::end_element( "servicetimes" ) << std::endl;
-	_output << XML::start_element( "visits" ) << ">" << std::endl;
-	std::for_each( station.demands().begin(), station.demands().end(), printVisits( _output ) );
-	_output << XML::end_element( "visits" ) << std::endl;
-	_output << XML::end_element( element ) << std::endl;
-    }
-
-    void
-    JMVA::printClass::operator()( const std::pair<const std::string&,Class>& k ) const
-    {
-	if ( k.second.isInClosedModel() ) {
-	    _output << XML::simple_element( "closedclass" )
-		    << XML::attribute( "name", k.first )
-		    << XML::attribute( "population", k.second.customers() )
-		    << "/>" << std::endl;
-	}
-	if ( k.second.isInOpenModel() ) {
-	}
-    }
-    
-    void
-    JMVA::printReference::operator()( const std::pair<const std::string&,Class>& k ) const
-    {
-	if ( k.second.isInClosedModel() ) {
-	    _output << XML::simple_element( "Class" )
-		    << XML::attribute( "name", k.first )
-		    << XML::attribute( "refStation", "Reference" )
-		    << "/>" << std::endl;
-	}
-	if ( k.second.isInOpenModel() ) {
-	}
-    }
-
-
-    void
-    JMVA::printService::operator()( const std::pair<const std::string, Station::Demand>& d ) const
-    {
-	_output << XML::inline_element( "servicetime", "customerclass", d.first, d.second.service_time() ) << std::endl;
-    }
-
-    void
-    JMVA::printVisits::operator()( const std::pair<const std::string, Station::Demand>& d ) const
-    {
-	_output << XML::inline_element( "visits", "customerclass", d.first, d.second.visits() ) << std::endl;
-    }
-
-    void
-    QNAP2::print( std::ostream& output ) const
-    {
-	std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
-	output << "& " << LQIO::DOM::Common_IO::svn_id() << std::endl;
-	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-	    output << "& " << LQIO::io_vars.lq_command_line << std::endl;
-	}
-	    
-	output << "/declare/" << std::endl;
-	output << qnap2_output( "queue " + std::accumulate( stations().begin(), stations().end(), __client_name, Station::fold() ), "Station identifiers" ) << std::endl;
-	
-	if ( classes().size() ==  1 ) {
-	    output << qnap2_output( "real " + std::accumulate( stations().begin(), stations().end(), std::string("think_t"), Station::fold( "_t") ), "Station service time" ) << std::endl
-		   << qnap2_output( "integer n_users" ) << std::endl;
-	} else {
-	    /* Variables */
-	    output << qnap2_output( "class string name" ) << std::endl
-		   << qnap2_output( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Station::fold( "_t") ), "Station service time" ) << std::endl
-		   << qnap2_output( "class real think_t" ) << std::endl
-		   << qnap2_output( "class integer n_users" ) << std::endl;
-	    /* Classes */
-	    output << qnap2_output( "class " + std::accumulate( classes().begin(), classes().end(), std::string(""), Class::fold() ), "Class names" ) << std::endl;
-	}
-
-	printClientStation( output );	// Customers.
-	std::for_each( stations().begin(), stations().end(), printStation( output, classes() )   );	// Stations.
-
-	if ( classes().size() > 1 ) {
-	    output << "/control/ class=all queue;" << std::endl;	// print for all classes.
-	}
-
-	output << "/exec/" << std::endl
-	       << qnap2_output( "begin" ) << std::endl;
-        printClassVariables( output );
-	std::for_each( stations().begin(), stations().end(), printStationVariables( output, classes() ) );
-	output << qnap2_output( "solve" ) << std::endl
-	       << qnap2_output( "end" ) << std::endl;
-	output << "/terminal/" << std::endl;
-        output.flags(flags);
-
-	/* for custom output, one needs /control/ option=nresult; and /exec/ exit=begin ... end */
-    }
-
-    /*
-     * Prints stations.
-     */
-    
-    void
-    QNAP2::printStation::operator()( const Station::pair_t& m ) const
-    {
-	const Station& station = m.second;
-	if ( station.type() == Station::CUSTOMER ) return;
-	_output << "&" << std::endl
-		<< "/station/ name=" << m.first << ";" << std::endl;
-	if ( station.type() == Station::DELAY ) {
-	    _output << qnap2_output( "type=infinite" );
-	}
-	_output << qnap2_output( "service=exp(" + m.first + "_t)" ) << std::endl;
-	if ( _classes.size() == 1 ) {
-	    _output << qnap2_output( "transit=" + __client_name + ",1" ) << std::endl;
-	} else {
-	    _output << qnap2_output( "transit(all class)=" + __client_name + ",1" ) << std::endl;
-	} 
-    }
-
-    std::string
-    QNAP2::printTransit::operator()( const std::string& str, const Station::pair_t& m ) const
-    {
-	std::ostringstream out;
-	const Station& station = m.second;
-
-	out << str;
-	if ( station.type() != Station::CUSTOMER && station.hasClass(_name) ) {
-	    if ( !str.empty() ) out << ",";
-	    out << m.first << "," << station.demandAt(_name).visits();
-	}
-	return out.str();
-    }
-
-    void
-    QNAP2::printClientStation( std::ostream& output ) const
-    {
-	output << "&" << std::endl;
-	output << "/station/ name=" << std::setw(64-15) << (__client_name + ";") << "& Customer Class" << std::endl
-	       << qnap2_output("type=infinite") << std::endl
-	       << qnap2_output("init=n_users", "Population by class" ) << std::endl
-	       << qnap2_output("service=exp(think_t)", "Think time by class" ) << std::endl;
-	if ( classes().size() == 1 ) {
-	    output << qnap2_output("transit=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(classes().begin()->first) ), "visits to servers" ) << std::endl;
-	} else {
-	    for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
-		output << qnap2_output("transit(" + k->first + ")=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(k->first) ), "visits to servers" ) << std::endl;
-	    }
-	}
-    }
-
-
-    void
-    QNAP2::printClassVariables( std::ostream& output ) const
-    {
-	/* 
-	 * Sum service time over all clients and visits over all
-	 * servers.  The demand at the reference station is the demand
-	 * (service time) at the reference station but the visits over
-	 * all non-customer stations.  
-	 */
-	
-	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
-	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
-
-	const bool multiclass = classes().size() > 1;
-	for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
-	    std::ostringstream think_time;
-	    std::ostringstream customers;
-	    think_time << demands.at(k->first).service_time();
-	    customers  << k->second.customers();
-	    if ( multiclass ) {
-		output << qnap2_output( k->first + ".name:=" + k->first, "Class (client) name" );
-		output << qnap2_output( k->first + ".think_t:=" + think_time.str() ) << std::endl;
-		output << qnap2_output( k->first + ".n_users:=" + customers.str()  ) << std::endl;
-	    } else {
-		output << qnap2_output( "think_t:=" + think_time.str() ) << std::endl;
-		output << qnap2_output( "n_users:=" + customers.str()  ) << std::endl;
-	    }
-	}
-    }
-
-
-    void
-    QNAP2::printStationVariables::operator()( const Station::pair_t& m ) const
-    {
-	const bool multiclass = _classes.size() > 1;
-	const Station& station = m.second;
-	for ( Class::map_t::const_iterator k = _classes.begin(); k != _classes.end(); ++k ) {
-	    if ( station.type() == Station::CUSTOMER ) continue;
-	    double temp = station.hasClass(k->first) ? station.demandAt(k->first).service_time() : 0.;
-	    std::string comment;
-	    if ( temp == 0 ) {
-		temp = 0.000001;		// Qnap doesn't like zero for service time.
-		comment = "QNAP does not like zero (0)";
-	    }
-	    std::ostringstream time;
-	    time << temp;
-	    if ( multiclass ) {
-		_output << qnap2_output( k->first + "." + m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
-	    } else {
-		_output << qnap2_output(  m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
-	    }
-	}
-    }
-
-
-    /*
-     * Format for QNAP output.  I may have to line wrap as lines are
-     * limited to 80 characters (fortran).  If s2 is present, it's a
-     * comment.
-     */
-    
-    /* static */ std::ostream&
-    QNAP2::printOutput( std::ostream& output, const std::string& s1, const std::string& s2 )
-    {
-	output << "   ";
-	if ( s2.empty() ) {
-	    output << s1 << ";";
-	} else {
-	    output << std::setw(60) << (s1 + ";") << "& " << s2;
-	}
-	return output;
-    }
-
-    bool
-    Model::Station::insertDemand( const std::string& class_name, const Demand& demand )
-    {
-	return _demands.insert( Demand::pair_t( class_name, demand ) ).second;
-    }
-
-
-    Model::Station::Demand::map_t
-    Model::Station::select::operator()( const Model::Station::Demand::map_t& augend, const std::pair<const std::string,Model::Station>& m ) const
-    {
-	const Station& station = m.second;
-	if ( (*_test)( m ) ) {
-	    const Demand::map_t& demands = station.demands();
-	    return std::accumulate( demands.begin(), demands.end(), augend, &Station::Demand::collect );
-	} else {
-	    return augend;
-	}
-    }
-
     std::string
     Model::Class::fold::operator()( const std::string& s1, const Class::pair_t& c2 ) const
     {
@@ -414,6 +115,12 @@ namespace BCMP {
 	} else {
 	    return c2.first + _suffix;
 	}
+    }
+
+    bool
+    Model::Station::insertDemand( const std::string& class_name, const Demand& demand )
+    {
+	return _demands.insert( Demand::pair_t( class_name, demand ) ).second;
     }
 
     std::string 
@@ -426,34 +133,17 @@ namespace BCMP {
 	    return s1 + "," + s2.first + _suffix;
 	}
     }
-    
 
-    void Model::Station::Demand::setVisits( double visits )
+    Model::Station::Demand::map_t
+    Model::Station::select::operator()( const Station::Demand::map_t& augend, const Station::pair_t& m ) const
     {
-	_visits = visits;
-	if ( _visits == 0 ) {
-	    _demand = 0;
-	} else if ( (_demand == 0. && _service_time > 0) || _state == SET_SERVICE ) {
-	    _demand = _service_time * _visits;
-	} else if ( (_service_time == 0 && _demand > 0) || _state == SET_DEMAND ) {
-	    _service_time = _demand / _visits;
-	} 
-    }
-
-    void Model::Station::Demand::setDemand( double demand )
-    {
-	_demand = demand;
-	_state = SET_DEMAND;
-	if ( _visits > 0 ) {
-	    _service_time = _demand / _visits;
+	const Station& station = m.second;
+	if ( (*_test)( m ) ) {
+	    const Demand::map_t& demands = station.demands();
+	    return std::accumulate( demands.begin(), demands.end(), augend, &Station::Demand::collect );
+	} else {
+	    return augend;
 	}
-    }
-
-    void Model::Station::Demand::setServiceTime( double service_time )
-    {
-	_service_time = service_time;
-	_state = SET_SERVICE;
-	_demand = _visits * _service_time;
     }
 
     Model::Station::Demand::map_t
@@ -466,6 +156,5 @@ namespace BCMP {
 	    sum_ref += addend.second;
 	}
 	return sum;
-
     }
 }

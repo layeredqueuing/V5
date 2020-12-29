@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14269 2020-12-27 05:03:18Z greg $
+ * $Id: layer.h 14285 2020-12-29 02:50:15Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -116,7 +116,7 @@ private:
 
     std::vector<Entity *> _clients;		/* Only if doing a submodel 	*/
     mutable unsigned _chains;			/* Only set if doing a submodel */
-    BCMP::Model * _bcmp_model;			/* For queuing output		*/
+    BCMP::Model  _bcmp_model;			/* For queuing output		*/
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Layer& self ) { return self.print( output ); }

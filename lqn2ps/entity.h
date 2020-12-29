@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14260 2020-12-26 14:01:57Z greg $
+ * $Id: entity.h 14279 2020-12-28 16:06:39Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -41,15 +41,7 @@ public:
 
     struct create_station {
 	create_station( BCMP::Model& model, BCMP::Model::Station::Type type = BCMP::Model::Station::NOT_DEFINED ) : _model(model), _type(type) {}
-	void operator()( const Entity * entity ) const
-	    {
-		BCMP::Model::Station::Type type;
-		if ( _type == BCMP::Model::Station::CUSTOMER ) type = _type;
-		else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
-		else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
-		else type = BCMP::Model::Station::LOAD_INDEPENDENT;
-		_model.insertStation( entity->name(), type, entity->copiesValue() );
-	    }
+	void operator()( const Entity * entity ) const;
     private:
 	BCMP::Model& _model;
 	const BCMP::Model::Station::Type _type;
@@ -57,21 +49,23 @@ public:
 
     struct create_class {
 	create_class( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
-	void operator()( const Entity * entity ) const
-	    {
-		BCMP::Model::Class::Type type;
-		if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Class::MIXED;
-		else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Class::OPEN;
-		else type = BCMP::Model::Class::CLOSED;
-		_model.insertClass( entity->name(), type, entity->copiesValue() );
-	    }
+	void operator()( const Entity * entity ) const;
     private:
 	BCMP::Model& _model;
 	const std::vector<Entity *>& _servers;
     };
 
-    struct label_BCMP_model {
-	label_BCMP_model( const BCMP::Model& model  ) : _model(model) {}
+    struct label_BCMP_server {
+	label_BCMP_server( const BCMP::Model& model ) : _model(model) {}
+	void operator()( Entity * entity ) const;
+	
+    private:
+	const BCMP::Model& _model;
+    };
+
+    
+    struct label_BCMP_client {
+	label_BCMP_client( const BCMP::Model& model ) : _model(model) {}
 	void operator()( Entity * entity ) const;
 	
     private:
@@ -155,7 +149,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Entity& label();
-    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand::map_t& ) = 0;
+    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand::map_t&, const std::string& class_name="" ) = 0;
 
     virtual void accumulateDemand( BCMP::Model::Station& ) const = 0;
 

@@ -16,7 +16,12 @@
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <cmath>
 #include <cstdlib>
+#include <cstring>
+#if HAVE_STRINGS_H
+#include <strings.h>
+#endif
 #include "common_io.h"
 #include "xml_input.h"
 #include "dom_document.h"
@@ -80,7 +85,7 @@ namespace XML
 	    if ( strcasecmp( *attributes, attribute ) == 0 ) {
 		char * end_ptr = 0;
 		const double value = strtod( *(attributes+1), &end_ptr );
-		if ( value < 0. || rint(value) != value || ( end_ptr && *end_ptr != '\0' ) ) {
+		if ( value < 0. || std::rint(value) != value || ( end_ptr && *end_ptr != '\0' ) ) {
 		    invalid_argument( *attributes, *(attributes+1) );
 		}
 		return static_cast<long>(value);

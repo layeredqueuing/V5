@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14267 2020-12-27 00:11:30Z greg $
+ * $Id: lqn2ps.h 14280 2020-12-28 18:20:34Z greg $
  *
  */
 
@@ -202,6 +202,7 @@ typedef enum {
 typedef enum {
     SPECIAL_ANNOTATE,
     SPECIAL_ARROW_SCALING,
+    SPECIAL_BCMP,
     SPECIAL_CLEAR_LABEL_BACKGROUND,
     SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT,
     SPECIAL_FLATTEN_SUBMODEL,

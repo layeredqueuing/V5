@@ -10,7 +10,7 @@
 #include <map>
 #include <string>
 #include <iostream>
-#include "xml_output.h"
+#include "input.h"
 
 namespace LQIO {
     namespace DOM {
@@ -34,6 +34,11 @@ namespace BCMP {
 	    std::string _comment;
 	};
 	
+
+	/* ------------------------------------------------------------ */
+	/*                           Station                            */
+	/* ------------------------------------------------------------ */
+
     public:
 	class Class : public Object {
 	    
@@ -68,8 +73,10 @@ namespace BCMP {
 		const std::string& _suffix;
 	    };
 	};
-
-	/* -------------------------- Station ------------------------- */
+
+	/* ------------------------------------------------------------ */
+	/*                           Station                            */
+	/* ------------------------------------------------------------ */
 
 	class Station : public Object {
 	    
@@ -80,41 +87,40 @@ namespace BCMP {
 	    typedef enum { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER } Type;
 
 	    class Demand {
-		typedef enum { NOT_SET, SET_VISITS, SET_SERVICE, SET_DEMAND } state_t;
-		
 	    public:
 		typedef std::map<const std::string,Demand> map_t;
 		typedef std::pair<const std::string,Demand> pair_t;
 
-		Demand() : _visits(0.0), _demand(0.0), _service_time(0.0) {}
-		Demand( double visits, double demand ) : _visits(visits), _demand(demand), _service_time(visits > 0 ? demand/visits : 0.) {}
+		Demand() : _visits(0.0), _service_time(0.0) {}
+		Demand( double visits, double service_time ) : _visits(visits), _service_time(service_time) {}
 		
-		Demand operator+( const Demand& augend ) const { return Demand( _visits + augend._visits, _demand + augend._demand ); }
-		Demand& operator+=( const Demand& addend ) { _visits += addend._visits; _demand += addend._demand; return *this; }
 		double visits() const { return _visits; }
 		double service_time() const { return _service_time; }
-		double demand() const { return _demand; }
-		Demand& accumulate( double visits, double demand ) { _visits += visits; _demand += demand; return *this; }
-		Demand& accumulate( const Demand& addend ) { _visits += addend._visits; _demand += addend._demand; return *this; }
-		void setVisits( double visits );
-		void setDemand( double demand );
-		void setServiceTime( double service_time );
+		double demand() const { return _service_time * _visits; }
+		void setVisits( double visits ) { _visits = visits; }
+		void setServiceTime( double service_time ) { _service_time = service_time; }
 		
+		Demand operator+( const Demand& augend ) const { return Demand( _visits + augend._visits, _service_time + augend._service_time ); }
+		Demand& operator+=( const Demand& addend ) { _visits += addend._visits; _service_time += addend._service_time; return *this; }
+		Demand& accumulate( double visits, double demand ) { _visits += visits; _service_time += demand; return *this; }
+		Demand& accumulate( const Demand& addend ) { _visits += addend._visits; _service_time += addend._service_time; return *this; }
 		static Demand::map_t collect( const Demand::map_t& augend_t, const Demand::pair_t& );
+
 	    private:
 		double _visits;
-		double _demand;
 		double _service_time;
-		state_t _state;
 	    };
 	
+	/* -------------------------- Station ------------------------- */
+
 	public:
-	    Station() : _type(NOT_DEFINED), _copies(1), _demands() {}
-	    Station( Type type, unsigned int copies ) : _type(type), _copies(copies) {}
+	    Station() : _type(NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(1), _demands() {}
+	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) : _type(type), _scheduling(SCHEDULE_DELAY), _copies(copies) {}
 
 	    bool insertDemand( const std::string&, const Demand& );
 	    
 	    Type type() const { return _type; }
+	    scheduling_type scheduling() const { return _scheduling; }
 	    unsigned int copies() const { return _copies; }
 	    Demand::map_t& demands() { return _demands; }
 	    const Demand::map_t& demands() const { return _demands; }
@@ -126,29 +132,40 @@ namespace BCMP {
 	    static bool isCustomer( const Station::pair_t& m ) { return m.second.type() == CUSTOMER; }
 	    static bool isServer( const Station::pair_t& m ) { return m.second.type() != CUSTOMER && m.second.type() != NOT_DEFINED; }
 
-	private:
-	    Type _type;
-	    unsigned int _copies;
-	    Demand::map_t _demands;
-
 	public:
 	    struct select {
-		typedef bool (*predicate)( const std::pair<const std::string,Model::Station>& );
+		typedef bool (*predicate)( const Station::pair_t& );
 		select( const predicate test ) : _test(test) {}
-		Demand::map_t operator()( const Demand::map_t& augend, const Station::pair_t& ) const;
+		Demand::map_t operator()( const Demand::map_t& augend, const Station::pair_t& m ) const;
 	    private:
 		const predicate _test;
 	    };
 
+	    struct test {
+		typedef bool (*predicate)( const Station::pair_t& m );
+		test( const predicate t ) : _test(t) {}
+		bool operator()( const Station::pair_t& m ) const { return (*_test)( m ); }
+	    private:
+		const predicate _test;
+	    };
+	    
 	    struct fold {
 		fold( const std::string& suffix="" ) : _suffix(suffix) {}
-		std::string operator()( const std::string& s1, const Station::pair_t& s2 ) const;
+		std::string operator()( const std::string& s1, const Station::pair_t& m ) const;
 	    private:
 		const std::string& _suffix;
 	    };
+  
+	private:
+	    Type _type;
+	    scheduling_type _scheduling;
+	    unsigned int _copies;
+	    Demand::map_t _demands;
 	};
-
-	/* --------------------------- Model -------------------------- */
+
+	/* ------------------------------------------------------------ */
+	/*                            Model                             */
+	/* ------------------------------------------------------------ */
 
     public:
 	Model() : _classes(), _stations() {}
@@ -159,24 +176,28 @@ namespace BCMP {
 	const Class::map_t& classes() const { return _classes; }
 	Station::map_t& stations() { return _stations; }
 	const Station::map_t& stations() const { return _stations; }
-	unsigned int nClasses() const { return _classes.size(); }
-	unsigned int nStations() const { return _stations.size(); }
 	Station& stationAt( const std::string& name ) { return _stations.at(name); }
 	const Station& stationAt( const std::string& name ) const { return _stations.at(name); }
 	Class& classAt( const std::string& name ) { return _classes.at(name); }
 	const Class& classAt( const std::string& name ) const { return _classes.at(name); }
 
 	bool insertClass( const std::string&, Class::Type, unsigned int, double=0.0 );
-	bool insertStation( const std::string&, Station::Type, unsigned int=1 );
+	bool insertStation( const std::string&, const Station& ); 
+	bool insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 	bool insertDemand( const std::string&, const std::string&, const Station::Demand& );
-	void computeCustomerVisits( const std::string& );
-	LQIO::DOM::Document * convertToLQN() const;
-	
-	virtual void print( std::ostream& ) const = 0;
 
-    protected:
-	Class::map_t _classes;
-	Station::map_t _stations;
+	Station::Demand::map_t computeCustomerDemand( const std::string& ) const;
+	bool convertToLQN( LQIO::DOM::Document& ) const;
+	
+	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
+
+    public:
+	struct pad_demand {
+	    pad_demand( const Class::map_t& classes ) : _classes(classes) {}
+	    void operator()( const Station::pair_t& station ) const;
+	private:
+	    const Class::map_t& _classes;	
+	};
 
 	struct sum_visits {
 	    sum_visits( const Station::Demand::map_t& visits ) : _visits(visits) {}
@@ -185,102 +206,16 @@ namespace BCMP {
 	    const Station::Demand::map_t& _visits;
 	};
 
-	struct pad_demand {
-	    pad_demand( const Class::map_t& classes ) : _classes(classes) {}
-	    void operator()( const Station::pair_t& station ) const;
+    protected:
+	Class::map_t _classes;
+	Station::map_t _stations;
+
+	struct update_demand {
+	    update_demand( Station& station, Station::Demand::map_t& demands ) : _station(station), _demands(demands) {}
+	    void operator()( const Class::pair_t& k ) { _station.demandAt( k.first ) = _demands.at( k.first ); }
 	private:
-	    const Class::map_t& _classes;	
-	};
-    };
-
-    class JMVA : public Model {
-    public:
-	JMVA() : Model() {}
-	virtual ~JMVA() {}
-
-	void print( std::ostream& ) const;
-	
-    private:
-	void printClientStation( std::ostream& ) const;
-
-    private:
-	static const std::string __client_name;
-
-	struct printClass {
-	    printClass( std::ostream& output ) : _output(output) {}
-	    void operator()( const std::pair<const std::string&,Class>& k ) const;
-	private:
-	    std::ostream& _output;
-	};
-
-	struct printStation {
-	    printStation( std::ostream& output ) : _output(output) {}
-	    void operator()( const Station::pair_t& m ) const;
-	private:
-	    std::ostream& _output;
-	};
-
-	struct printReference {
-	    printReference( std::ostream& output ) : _output(output) {}
-	    void operator()( const std::pair<const std::string&,Class>& k ) const;
-	private:
-	    std::ostream& _output;
-	};
-
-	struct printService {
-	    printService( std::ostream& output ) : _output(output) {}
-	    void operator()( const Station::Demand::pair_t& d ) const;
-	private:
-	    std::ostream& _output;
-	};
-
-	struct printVisits {
-	    printVisits( std::ostream& output ) : _output(output) {}
-	    void operator()( const Station::Demand::pair_t& d ) const;
-	private:
-	    std::ostream& _output;
-	};
-    };
-
-    class QNAP2 : public Model {
-    public:
-	QNAP2() : Model() {}
-	virtual ~QNAP2() {}
-
-	void print( std::ostream& ) const;
-
-    private:
-	void printClientStation( std::ostream& ) const;
-	void printClassVariables( std::ostream& ) const;
-
-	static std::ostream& printOutput( std::ostream&, const std::string& s1, const std::string& s2 );
-	static XML::StringManip qnap2_output( const std::string& s1, const std::string& s2="" ) { return XML::StringManip( &QNAP2::printOutput, s1, s2 ); }
-
-    private:
-	static const std::string __client_name;
-
-	struct printStation {
-	    printStation( std::ostream& output, const Class::map_t& classes ) : _output(output), _classes(classes) {}
-	    void operator()( const Station::pair_t& m ) const;
-	private:
-	    std::ostream& _output;
-	    const Class::map_t& _classes;
-	};
-
-	struct printTransit {
-	    printTransit( const std::string& name ) : _name(name) {}
-	    std::string operator()( const std::string&, const Station::pair_t& ) const;
-	private:
-	    const std::string& _name;
-	};
-	    
-
-	struct printStationVariables {
-	    printStationVariables( std::ostream& output, const Class::map_t& classes ) : _output(output), _classes(classes) {}
-	    void operator()( const Station::pair_t& m ) const;
-	private:
-	    std::ostream& _output;
-	    const Class::map_t& _classes;
+	    Station& _station;
+	    const Station::Demand::map_t& _demands;
 	};
     };
 }

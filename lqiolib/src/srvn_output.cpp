@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14243 2020-12-22 21:32:54Z greg $
+ *  $Id: srvn_output.cpp 14281 2020-12-28 18:21:03Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1130,8 +1130,12 @@ namespace LQIO {
         const map<string,string>& pragmas = _document.getPragmaList();
         if ( pragmas.size() ) {
             output << std::endl;
-            for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
-                output << "#pragma " << nextPragma->first << "=" << nextPragma->second << std::endl;
+            for ( map<string,string>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma ) {
+                output << "#pragma " << pragma->first;
+		if ( !pragma->second.empty() ) {
+		    output << "=" << pragma->second;
+		}
+		output << std::endl;
             }
         }
         return output;
@@ -1330,8 +1334,12 @@ namespace LQIO {
         const map<string,string>& pragmas = document.getPragmaList();
         if ( pragmas.size() ) {
             _output << "Pragma" << (pragmas.size() > 1 ? "s:" : ":") << newline;
-            for ( map<string,string>::const_iterator nextPragma = pragmas.begin(); nextPragma != pragmas.end(); ++nextPragma ) {
-                _output << "    " << nextPragma->first << "=" << nextPragma->second << newline;
+            for ( map<string,string>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma ) {
+                _output << "    " << pragma->first;
+		if ( !pragma->second.empty() ) {
+		    _output << "=" << pragma->second;
+		}
+		_output << newline;
             }
             _output << newline;
         }

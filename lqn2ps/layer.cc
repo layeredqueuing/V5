@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14269 2020-12-27 05:03:18Z greg $
+ * $Id: layer.cc 14285 2020-12-29 02:50:15Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -20,6 +20,8 @@
 #include <lqio/error.h>
 #include <lqio/srvn_output.h>
 #include <lqio/dom_document.h>
+#include <lqio/jmva_document.h>
+#include <lqio/qnap2_document.h>
 #include "layer.h"
 #include "entity.h"
 #include "task.h"
@@ -64,13 +66,13 @@ private:
     
 
 Layer::Layer()  
-    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model(nullptr)
+    : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model()
 {
     _label = Label::newLabel();
 }
 
 Layer::Layer( const Layer& src )  
-    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model(nullptr)
+    : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model()
 {
     _label = Label::newLabel();
 }
@@ -78,7 +80,6 @@ Layer::Layer( const Layer& src )
 Layer::~Layer()  
 {
     delete _label;
-    if ( _bcmp_model ) delete _bcmp_model;
 }
 
 Layer&
@@ -427,9 +428,9 @@ Layer::label()
 {
     if ( !Flags::bcmp_model ) {
 	std::for_each( entities().begin(), entities().end(), ::Exec<Element>( &Element::label ) );
-    } else if ( _bcmp_model != nullptr ) {
-	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_model( *_bcmp_model ) );
-	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_model( *_bcmp_model ) );
+    } else if ( !_bcmp_model.empty() ) {
+	std::for_each( clients().begin(), clients().end(), Entity::label_BCMP_client( _bcmp_model ) );
+	std::for_each( entities().begin(), entities().end(), Entity::label_BCMP_server( _bcmp_model ) );
     }
     if ( Flags::print_layer_number ) {
 	*_label << "Layer " << number();
@@ -756,49 +757,42 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 Layer&
 Layer::createBCMPModel()
 {
-    /* Create stations */
-
-    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
-#if JMVA_OUTPUT
-    case FORMAT_JMVA:	_bcmp_model = new BCMP::JMVA(); break;
-#endif
-#if QNAP2_OUTPUT
-    case FORMAT_QNAP2:	_bcmp_model = new BCMP::QNAP2(); break;
-#endif
-    default: abort();
-    }
-
-    std::for_each( entities().begin(), entities().end(), Entity::create_station( *_bcmp_model ) );
-    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( *_bcmp_model ) );
-    std::for_each( clients().begin(), clients().end(), Entity::create_station( *_bcmp_model, BCMP::Model::Station::CUSTOMER ) );
-    std::for_each( clients().begin(), clients().end(), Task::create_class( *_bcmp_model, entities() ) );
 
     /* 
-     * Insert total visits into clients and set service time for class
-     * if the processor has been removed.  Include task think time.
+     * Create all of the stations except for the terminals (which are
+     * the clients in the lqn schema.
      */
 
+    std::for_each( clients().begin(),  clients().end(),  Task::create_class( _bcmp_model, entities() ) );
+    std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
+    std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
+
+    /* 
+     * Create a terminal station.  Insert total visits into clients
+     * and set service time for class if the processor has been
+     * removed.  Include task think time.
+     */
+
+    BCMP::Model::Station terminals( BCMP::Model::Station::CUSTOMER );
     for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	const Task * task = dynamic_cast<const Task *>(*client);
-	const std::string name = task->name();
 	
-	/* Think time for a task is the class think time. */
-	
-	if ( task->hasThinkTime() && dynamic_cast<const ReferenceTask *>(task) ) {
-	    _bcmp_model->classAt(name).setThinkTime( to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime() ) );
-	}
-
 	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
 	
-	BCMP::Model::Station::Demand demand( 1.0, 0.0 );	/* One visit */
+	double time = 0.0;
+	if ( task->hasThinkTime() ) {
+	    time = to_double(dynamic_cast<const ReferenceTask *>(task)->thinkTime());
+	}
 	if ( task->processor() == nullptr ) {
 	    // for all entries s += prVisit(e) * e->serviceTime ??
-	    demand.setDemand( task->entries().at(0)->serviceTime() );
+	    time += task->entries().at(0)->serviceTime();
 	}
-	_bcmp_model->stationAt(name).insertDemand( name, demand );
-	_bcmp_model->computeCustomerVisits(name);
-    }
+	BCMP::Model::Station::Demand demand( 1.0, time );	/* One visit */
 
+	const std::string name = task->name();
+	terminals.insertDemand( name, demand );
+    }
+    _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
 
     return *this;
 }
@@ -944,7 +938,19 @@ Layer::drawQueueingNetwork( std::ostream& output ) const
 #if JMVA_OUTPUT || QNAP2_OUTPUT
 std::ostream& Layer::printBCMPQueueingNetwork( std::ostream& output ) const
 {
-    _bcmp_model->print( output );
+    /* Create them model type then print. */
+
+    switch ( Flags::print[OUTPUT_FORMAT].value.i ) {
+#if JMVA_OUTPUT
+    case FORMAT_JMVA:	output << BCMP::JMVA_Document("",_bcmp_model);	break;
+#endif
+#if QNAP2_OUTPUT
+    case FORMAT_QNAP2:	output << BCMP::QNAP2_Document("",_bcmp_model);	break;
+#endif
+    default:
+	break;
+    }
+
     return output;
 }
 #endif

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14273 2020-12-27 14:47:06Z greg $
+# $Id: Makefile.am 14285 2020-12-29 02:50:15Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = bcmp_document.h \
 	commandline.h \
@@ -27,6 +27,7 @@ noinst_HEADERS = bcmp_document.h \
 	input.h \
 	jmva_document.h \
 	labels.h \
+	qnap2_document.h \
 	srvn_input.h \
 	srvn_output.h \
 	srvn_results.h \
