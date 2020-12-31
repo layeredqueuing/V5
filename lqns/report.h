@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: report.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,7 +19,7 @@
 
 #include "dim.h"
 #include <lqio/common_io.h>
-#include "vector.h"
+#include <mva/vector.h>
 
 namespace LQIO {
     namespace DOM {

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_call.h 14290 2020-12-29 17:12:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -55,8 +55,8 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializer for the call information */
-	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=0 );
-	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=0 );
+	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=nullptr );
+	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=nullptr );
 	    virtual ~Call();
 	    Call * clone() const;
 

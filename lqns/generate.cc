@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: generate.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -25,6 +25,9 @@
 #endif
 #include <lqio/error.h>
 #include <lqio/glblerr.h>
+#include <mva/mva.h>
+#include <mva/open.h>
+#include <mva/server.h>
 #include "generate.h"
 #include "entity.h"
 #include "task.h"
@@ -32,9 +35,6 @@
 #include "entry.h"
 #include "model.h"
 #include "submodel.h"
-#include "server.h"
-#include "mva.h"
-#include "open.h"
 #include "lqns.h"
 #include "pragma.h"
 

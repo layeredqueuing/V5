@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 13875 2020-09-25 20:02:38Z greg $
+ * $Id: model.cc 14292 2020-12-30 16:29:20Z greg $
  *
  * Load the SRVN model.
  */
@@ -1635,7 +1635,7 @@ Model::insert_DOM_results( const bool valid, const solution_stats_t& stats )
 
     std::stringstream buf;
     buf << "Tangible: " << stats.tangible << ", Vanishing: " << stats.vanishing;
-    _document->setExtraComment( buf.str() );
+    _document->setDocumentComment( buf.str() );
 
     LQIO::DOM::CPUTime stop_time;
     stop_time.init();

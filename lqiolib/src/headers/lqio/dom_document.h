@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14276 2020-12-28 02:25:21Z greg $
+ *  $Id: dom_document.h 14292 2020-12-30 16:29:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -104,9 +104,8 @@ namespace LQIO {
 	    void clearPragmaList();
 
 	    /* Model Parameters */
-	    const std::string& getExtraComment() const;
-	    Document& setExtraComment( const std::string& );		/* Does not show up in input file. */
-
+	    const std::string& getDocumentComment() const;
+	    Document& setDocumentComment( const std::string& );
 	    const ExternalVariable * getModelComment() const { return get( XComment ); }
 	    const char * getModelCommentString() const;
 	    Document& setModelComment( ExternalVariable * );
@@ -226,6 +225,10 @@ namespace LQIO {
 	    static const char * XSpexUnderrelaxation;
 
 	private:
+	    /* Parameter Information */
+	    const std::string _modelComment;
+	    std::string _documentComment;
+
 	    /* List of Objects */
 
 	    std::map<std::string, Processor*> _processors;    	/* processor.name -> Processor */
@@ -241,10 +244,6 @@ namespace LQIO {
 
 	    unsigned _nextEntityId;                           	/* for sorting, see _entities 	*/
 	    const input_format _format;				/* input format 		*/
-
-	    /* Parameter Information */
-	    static const std::string __comment;
-	    std::string _comment2;
 
 	    /* The stored LQX program, if any */
 	    std::string _lqxProgram;

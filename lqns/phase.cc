@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: phase.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -22,11 +22,13 @@
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_histogram.h>
+#include <mva/fpgoop.h>
+#include <mva/prob.h>
+#include <mva/vector.h>
 #include "call.h"
 #include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
-#include "fpgoop.h"
 #include "gamma.h"
 #include "group.h"
 #include "lqns.h"
@@ -34,12 +36,10 @@
 #include "option.h"
 #include "phase.h"
 #include "pragma.h"
-#include "prob.h"
 #include "processor.h"
 #include "submodel.h"
 #include "task.h"
 #include "variance.h"
-#include "vector.h"
 
 
 

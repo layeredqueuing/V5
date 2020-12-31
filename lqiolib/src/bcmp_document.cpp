@@ -20,6 +20,7 @@
 #include <algorithm>
 #include <numeric>
 #include "bcmp_document.h"
+#include "bcmp_to_lqn.h"
 #include "input.h"
 
 namespace BCMP {
@@ -69,19 +70,9 @@ namespace BCMP {
 
 
     bool
-    Model::convertToLQN( LQIO::DOM::Document& document ) const
+    Model::convertToLQN( LQIO::DOM::Document& dom ) const
     {
-	for ( Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
-	    const std::string& client_name = k->first;
-	}
-	for ( Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    const std::string& station_name = m->first;
-	}
-
-	// for all classes create tasks/entries/processor.
-	// for all stations create tasks/entries/processors.
-	// Create calls.
-	return false;
+	return LQIO::DOM::BCMP_to_LQN( *this, dom ).convert();
     }
 
     

@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14213 2020-12-14 17:14:40Z greg $
+ * $Id: entry.cc 14305 2020-12-31 14:51:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -27,21 +27,21 @@
 #include <stdarg.h>
 #include <string.h>
 #include <lqio/error.h>
-#include "errmsg.h"
-#include "model.h"
-#include "entry.h"
-#include "fpgoop.h"
+#include <mva/fpgoop.h>
+#include <mva/prob.h>
 #include "actlist.h"
 #include "call.h"
-#include "task.h"
-#include "processor.h"
-#include "submodel.h"
-#include "lqns.h"
-#include "prob.h"
-#include "variance.h"
-#include "pragma.h"
+#include "entry.h"
 #include "entrythread.h"
+#include "errmsg.h"
+#include "lqns.h"
+#include "model.h"
+#include "pragma.h"
+#include "processor.h"
 #include "randomvar.h"
+#include "submodel.h"
+#include "task.h"
+#include "variance.h"
 
 unsigned Entry::totalOpenArrivals   = 0;
 

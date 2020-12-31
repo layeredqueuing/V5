@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14285 2020-12-29 02:50:15Z greg $
+# $Id: Makefile.am 14308 2020-12-31 16:00:47Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -7,6 +7,7 @@
 SUBDIRS = headers/lqio
 lib_LTLIBRARIES = liblqio.la
 liblqio_la_SOURCES = bcmp_document.cpp \
+	bcmp_to_lqn.cpp \
 	commandline.cpp \
 	common_io.cpp \
 	confidence_intervals.cpp \

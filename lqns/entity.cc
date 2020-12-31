@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14213 2020-12-14 17:14:40Z greg $
+ * $Id: entity.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -23,22 +23,22 @@
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
-#include "errmsg.h"
-#include "vector.h"
-#include "fpgoop.h"
-#include "entity.h"
-#include "lqns.h"
-#include "errmsg.h"
-#include "entry.h"
-#include "task.h"
-#include "pragma.h"
+#include <mva/fpgoop.h>
+#include <mva/open.h>
+#include <mva/mva.h>
+#include <mva/ph2serv.h>
+#include <mva/server.h>
+#include <mva/vector.h>
 #include "call.h"
-#include "open.h"
-#include "variance.h"
-#include "server.h"
-#include "ph2serv.h"
+#include "entity.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "errmsg.h"
+#include "lqns.h"
+#include "pragma.h"
 #include "submodel.h"
-#include "mva.h"
+#include "task.h"
+#include "variance.h"
 
 
 #define DEFERRED_UTULIZATION	false

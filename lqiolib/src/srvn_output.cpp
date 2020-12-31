@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14281 2020-12-28 18:21:03Z greg $
+ *  $Id: srvn_output.cpp 14292 2020-12-30 16:29:20Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1126,6 +1126,9 @@ namespace LQIO {
         output << "# Invoked as: " << io_vars.lq_command_line << ' ' << DOM::Document::__input_file_name << std::endl
 	       << "# " << DOM::Common_IO::svn_id() << std::endl
 	       << "# " << std::setfill( '-' ) << std::setw( 72 ) << '-' << std::setfill( ' ' ) << std::endl;
+        if ( !_document.getDocumentComment().empty() ) {
+            output << "# " << _document.getDocumentComment() << std::endl;
+        }
 
         const map<string,string>& pragmas = _document.getPragmaList();
         if ( pragmas.size() ) {
@@ -1319,6 +1322,9 @@ namespace LQIO {
         if ( document.getModelComment()->wasSet() ) {
             _output << "Comment: " << document.getModelCommentString() << newline;
         }
+        if ( !document.getDocumentComment().empty() ) {
+            _output << "Other:                  " << document.getDocumentComment() << newline;
+        }
         if ( document.getSymbolExternalVariableCount() > 0 ) {
             _output << "Variables: ";
             document.printExternalVariables( _output ) << newline;
@@ -1326,9 +1332,6 @@ namespace LQIO {
         _output << newline
                 << "Convergence test value: " << document.getResultConvergenceValue() << newline
                 << "Number of iterations:   " << document.getResultIterations() << newline;
-        if ( document.getExtraComment().length() > 0 ) {
-            _output << "Other:                  " << document.getExtraComment() << newline;
-        }
         _output << newline;
 
         const map<string,string>& pragmas = document.getPragmaList();

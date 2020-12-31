@@ -1,9 +1,9 @@
 # -*- Makefile -*-
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 13795 2020-08-25 16:45:34Z greg $
+# $Id: Makefile.am 14308 2020-12-31 16:00:47Z greg $
 # ------------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I config
-SUBDIRS = lqx lqiolib parasol lqns lqsim srvndiff lqn2ps lqngen doc xml dist
+SUBDIRS = lqx lqiolib libmva parasol lqns lqsim srvndiff lqn2ps lqngen doc xml dist
 EXTRA_DIST = README NEWS ChangeLog AUTHORS COPYING 
 RPMDIR = @RPMDIR@
 
@@ -23,4 +23,3 @@ $(RPMDIR)/SOURCES/$(PACKAGE)-$(VERSION).tar.gz: $(distdir).tar.gz
 
 $(distdir).tar.gz:
 	$(MAKE) dist
-

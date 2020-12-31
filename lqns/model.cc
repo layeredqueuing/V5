@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14174 2020-12-07 16:59:53Z greg $
+ * $Id: model.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -53,16 +53,18 @@
 #include <lqio/error.h>
 #include <lqio/filename.h>
 #include <lqio/input.h>
+#include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
+#include <mva/fpgoop.h>
+#include <mva/server.h>
+#include <mva/mva.h>
+#include <mva/open.h>
 #include "errmsg.h"
-#include "fpgoop.h"
 #include "model.h"
 #include "group.h"
 #include "processor.h"
 #include "entry.h"
 #include "call.h"
-#include "server.h"
-#include "mva.h"
-#include "open.h"
 #include "overtake.h"
 #include "submodel.h"
 #include "synmodel.h"
@@ -78,8 +80,6 @@
 #include "task.h"
 #include "report.h"
 #include "runlqx.h"
-#include <lqio/srvn_output.h>
-#include <lqio/srvn_spex.h>
 
 double Model::convergence_value = 0.00001;
 unsigned Model::iteration_limit = 50;;

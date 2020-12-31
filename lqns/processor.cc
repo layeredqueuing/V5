@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14187 2020-12-08 14:29:28Z greg $
+ * $Id: processor.cc 14305 2020-12-31 14:51:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,20 +22,20 @@
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
+#include <mva/fpgoop.h>
+#include <mva/multserv.h>
+#include <mva/mva.h>
+#include <mva/open.h>
+#include <mva/server.h>
 #include "activity.h"
 #include "call.h"
 #include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
-#include "fpgoop.h"
 #include "lqns.h"
 #include "model.h"
-#include "multserv.h"
-#include "mva.h"
-#include "open.h"
 #include "pragma.h"
 #include "processor.h"
-#include "server.h"
 #include "submodel.h"
 #include "task.h"
 

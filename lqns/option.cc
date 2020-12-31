@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: option.cc 14305 2020-12-31 14:51:49Z greg $
  */
 
 #include <config.h>
@@ -12,12 +12,12 @@
 #include "dim.h"
 #include <lqio/error.h>
 #include <lqio/dom_document.h>
+#include <mva/mva.h>
 #include "option.h"
 #include "lqns.h"
 #include "help.h"
 #include "model.h"
 #include "generate.h"
-#include "mva.h"
 #include "pragma.h"
 
 std::map<const char *, Options::Debug, lt_str> Options::Debug::__table;

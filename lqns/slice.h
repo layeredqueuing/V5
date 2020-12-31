@@ -10,7 +10,7 @@
  *
  * November, 1994
  *
- * $Id: slice.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: slice.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -20,7 +20,7 @@
 
 #include "dim.h"
 #include <set>
-#include "prob.h"
+#include <mva/prob.h>
 
 class Entry;
 class Phase;

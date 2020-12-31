@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14284 2020-12-28 23:23:00Z greg $
+ *  $Id: dom_document.cpp 14292 2020-12-30 16:29:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -37,7 +37,6 @@ namespace LQIO {
 	bool Document::__debugXML = false;
 	std::map<const char *, double> Document::__initialValues;
 	std::string Document::__input_file_name = "";
-	const std::string Document::__comment( "" );
 	const char * Document::XComment = "comment";
 	const char * Document::XConvergence = "conv_val";			/* Matches schema. 	*/
 	const char * Document::XIterationLimit = "it_limit";			/* Matched schema.	*/
@@ -47,9 +46,10 @@ namespace LQIO {
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
 	Document::Document( input_format format ) 
-	    : _processors(), _groups(), _tasks(), _entries(), 
+	    : _modelComment(), _documentComment(),
+	      _processors(), _groups(), _tasks(), _entries(), 
 	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
-	      _format(format), _comment2(), 
+	      _format(format), 
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
 	      _hasRendezvous(NOT_SET), _hasSendNoReply(NOT_SET), _taskHasAndJoin(NOT_SET),		/* Cached valuess */
@@ -136,7 +136,7 @@ namespace LQIO {
 	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
 		if ( iter->second->getString( s ) ) return s;
 	    } 
-	    return __comment.c_str();
+	    return _modelComment.c_str();
 	}
 
 	Document& Document::setModelComment( ExternalVariable * comment )
@@ -151,14 +151,14 @@ namespace LQIO {
 	    return *this;
 	}
 
-	const std::string& Document::getExtraComment() const 
+	const std::string& Document::getDocumentComment() const 
 	{
-	    return _comment2;
+	    return _documentComment;
 	}
 
-	Document& Document::setExtraComment( const std::string& value )
+	Document& Document::setDocumentComment( const std::string& value )
 	{	
-	    _comment2 = value;
+	    _documentComment = value;
 	    return *this;
 	}
 
@@ -467,7 +467,7 @@ namespace LQIO {
 	    }
 
 	    ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[XComment]);
-	    const char * s = __comment.c_str();
+	    const char * s = _modelComment.c_str();
 	    if ( constant ) {
 		constant->getString( s );			// get set value.
 	    }

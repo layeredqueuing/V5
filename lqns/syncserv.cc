@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: syncserv.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: syncserv.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -14,12 +14,12 @@
 #include <cmath>
 #include <stdarg.h>
 #include <cstdlib>
+#include <mva/vector.h>
+#include <mva/server.h>
+#include <mva/ph2serv.h>
+#include <mva/prob.h>
+#include <mva/mva.h>
 #include "syncserv.h"
-#include "vector.h"
-#include "server.h"
-#include "ph2serv.h"
-#include "prob.h"
-#include "mva.h"
 
 #define DEBUG
 

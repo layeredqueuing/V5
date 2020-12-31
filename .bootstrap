@@ -4,6 +4,7 @@ find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in
 aclocal -I config
 (cd lqx; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd lqiolib; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
+(cd libmva; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd parasol; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqns; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqsim; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)

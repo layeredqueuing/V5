@@ -2,20 +2,20 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14140 2020-11-25 20:24:15Z greg $
+ * $Id: runlqx.cc 14305 2020-12-31 14:51:49Z greg $
  * ------------------------------------------------------------------------
  */
 
+#include <iomanip>
+#include <sstream>
 #include <lqio/dom_document.h>
 #include <lqx/Program.h>
 #include <lqx/MethodTable.h>
 #include <lqx/Environment.h>
-#include <iomanip>
-#include <sstream>
+#include <mva/fpgoop.h>
 #include "runlqx.h"
 #include "model.h"
 #include "lqns.h"
-#include "fpgoop.h"
 
 namespace SolverInterface 
 {
@@ -88,6 +88,10 @@ namespace SolverInterface
 	    _document->setResultInvocationNumber( invocationCount );
 	    ok = (_aModel->*_solve)();
 	}
+	catch ( const exception_handled& error ) {
+	    LQIO::io_vars.error_count += 1;
+	    ok = false;
+	}
 	catch ( const std::runtime_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
@@ -96,10 +100,6 @@ namespace SolverInterface
 	}
 	catch ( const floating_point_error& error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
-	    LQIO::io_vars.error_count += 1;
-	    ok = false;
-	}
-	catch ( const exception_handled& error ) {
 	    LQIO::io_vars.error_count += 1;
 	    ok = false;
 	}

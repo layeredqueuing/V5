@@ -1,16 +1,16 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14178 2020-12-07 21:16:43Z greg $
+ * $Id: entrythread.cc 14305 2020-12-31 14:51:49Z greg $
  *
  */
 
 
 #include "dim.h"
+#include <mva/fpgoop.h>
 #include "entrythread.h"
 #include "entity.h"
 #include "task.h"
 #include "lqns.h"
 #include "actlist.h"
-#include "fpgoop.h"
 #include "pragma.h"
 /* -------------------- Global External functions --------------------- */
 

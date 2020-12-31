@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: model.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,9 +19,9 @@
 
 #include "dim.h"
 #include <set>
-#include "vector.h"
-#include "report.h"
 #include <lqio/dom_document.h>
+#include <mva/vector.h>
+#include "report.h"
 
 class Call;
 class Entity;

@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 13996 2020-10-24 22:01:20Z greg $
+# $Id: configure.ac 14305 2020-12-31 14:51:49Z greg $
 # ------------------------------------------------------------------------
 AC_INIT(lqns, 5.19, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
@@ -87,5 +87,5 @@ AC_STRUCT_TM
 AC_CHECK_FUNCS([ctime floor isascii lgamma mkdir pow sqrt snprintf strcasecmp strdup strerror strrchr strtol uname rmdir])
 AC_CHECK_FUNCS([feclearexcept feenableexcept fesetexceptflag fetestexcept finite fpgetsticky fpsetmask fpsetsticky ieee_retrospective signbit])
 AC_CHECK_FUNCS([getopt_long getsubopt getrusage])
-AC_CONFIG_FILES([Makefile unit-test/Makefile regression/Makefile])
+AC_CONFIG_FILES([Makefile regression/Makefile])
 AC_OUTPUT

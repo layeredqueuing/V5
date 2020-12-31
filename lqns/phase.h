@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14145 2020-11-26 21:52:21Z greg $
+ * $Id: phase.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -20,9 +20,9 @@
 #include <string>
 #include <set>
 #include <lqio/input.h>
-#include "vector.h"
+#include <mva/vector.h>
+#include <mva/prob.h>
 #include "call.h"
-#include "prob.h"
 #include "interlock.h"
 
 class ProcessorCall;

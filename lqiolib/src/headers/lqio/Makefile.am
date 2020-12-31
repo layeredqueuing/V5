@@ -1,6 +1,7 @@
-# $Id: Makefile.am 14285 2020-12-29 02:50:15Z greg $
+# $Id: Makefile.am 14289 2020-12-29 16:15:11Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = bcmp_document.h \
+	bcmp_to_lqn.h \
 	commandline.h \
 	common_io.h \
 	confidence_intervals.h \

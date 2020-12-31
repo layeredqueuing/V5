@@ -1,5 +1,5 @@
-/* -*- c++ -*-
- * $Id: expat_document.cpp 14276 2020-12-28 02:25:21Z greg $
+/* -*- C++ -*-
+ * $Id: expat_document.cpp 14294 2020-12-30 19:30:18Z greg $
  *
  * Read in XML input files.
  *
@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include <cstdio>
 #include <cstring>
+#include <sstream>
 #include <vector>
 #include <cassert>
 #include <errno.h>
@@ -60,6 +61,7 @@
 #include "srvn_results.h"
 #include "srvn_spex.h"
 #include "xml_input.h"
+#include "xml_output.h"
 
 extern "C" {
 #include "srvn_gram.h"
@@ -68,8 +70,6 @@ extern "C" {
 
 namespace LQIO {
     namespace DOM {
-
-        int Expat_Document::__indent = 0;
 
         /* ---------------------------------------------------------------- */
         /* DOM input.                                                       */
@@ -221,20 +221,7 @@ namespace LQIO {
 		input_error( "Unexpected element <%s> ", e.what() );
 		rc = false;
 	    }
-	    catch ( const LQIO::missing_attribute & e ) {
-		rc = false;
-	    }
-	    catch ( const LQIO::unexpected_attribute & e ) {
-		rc = false;
-	    }
-	    catch ( const std::invalid_argument & e ) {
-		rc = false;
-	    }
-	    catch ( const LQIO::undefined_symbol & e ) {
-		rc = false;
-	    }
-	    catch ( const std::domain_error & e ) {
-		input_error( "Domain error: %s ", e.what() );
+	    catch ( const std::runtime_error& e ) {
 		rc = false;
 	    }
 
@@ -293,11 +280,14 @@ namespace LQIO {
             catch ( const LQIO::unexpected_attribute & e ) {
 		LQIO::input_error2( LQIO::ERR_UNEXPECTED_ATTRIBUTE, el, e.what() );
             }
-            catch ( const std::invalid_argument & e ) {
-		LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
-            }
             catch ( const LQIO::undefined_symbol & e ) {
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, e.what() );
+            }
+	    catch ( const std::domain_error & e ) {
+		LQIO::input_error( "Domain error: %s ", e.what() );
+	    }
+            catch ( const std::invalid_argument & e ) {
+		LQIO::input_error2( LQIO::ERR_INVALID_ARGUMENT, el, e.what() );
             }
         }
 
@@ -2073,9 +2063,9 @@ namespace LQIO {
 		{
 		    const char * attribute = LQIO::DOM::Expat_Document::__key_lqx_function_map.at(obs.getKey());
 		    if ( _conf_level && obs.getConfLevel() == _conf_level ) {
-			_output << LQIO::DOM::Expat_Document::attribute( attribute, obs.getConfVariableName() );
+			_output << XML::attribute( attribute, obs.getConfVariableName() );
 		    } else {
-			_output << LQIO::DOM::Expat_Document::attribute( attribute, obs.getVariableName() );
+			_output << XML::attribute( attribute, obs.getVariableName() );
 		    }
 		}
 
@@ -2133,9 +2123,9 @@ namespace LQIO {
 		   << "<!-- " << Common_IO::svn_id() << " -->" << std::endl;
 
 	    if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
-		output << comment( LQIO::io_vars.lq_command_line );
+		output << XML::comment( LQIO::io_vars.lq_command_line );
 	    }
-            output << start_element( Xlqn_model ) << attribute( Xname, base_name() )
+            output << XML::start_element( Xlqn_model ) << XML::attribute( Xname, base_name() )
                    << " description=\"" << LQIO::io_vars.lq_toolname << " " << io_vars.lq_version << " solution for model from: " << _input_file_name << ".\""
                    << " xmlns:xsi=\"" << XMLSchema_instance << "\" xsi:noNamespaceSchemaLocation=\"";
 
@@ -2171,11 +2161,11 @@ namespace LQIO {
 	Expat_Document::exportSPEXParameters( std::ostream& output ) const
 	{
 	    const int precision = output.precision(10);
-	    output << start_element( Xspex_parameters ) << ">" /* <![CDATA[" */ << std::endl;
+	    output << XML::start_element( Xspex_parameters ) << ">" /* <![CDATA[" */ << std::endl;
 	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
 	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 	    for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputVariable( output ) );
-	    output /* << "]]>" << std::endl */ << end_element( Xspex_parameters ) << std::endl;
+	    output /* << "]]>" << std::endl */ << XML::end_element( Xspex_parameters ) << std::endl;
 	    output.precision(precision);
 	}
     
@@ -2189,59 +2179,59 @@ namespace LQIO {
 	    const std::vector<Spex::ObservationInfo> doc_vars = Spex::get_document_variables();
 	    const bool complex_element = hasResults() || _document.hasPragmas() || doc_vars.size() > 0;
 
-            output << start_element( Xsolver_parameters, complex_element )
-                   << attribute( Xcomment, *_document.getModelComment() )
-                   << attribute( Xconv_val, *_document.getModelConvergence() )
-                   << attribute( Xit_limit, *_document.getModelIterationLimit() )
-                   << attribute( Xunderrelax_coeff, *_document.getModelUnderrelaxationCoefficient() )
-                   << attribute( Xprint_int, *_document.getModelPrintInterval() );
+            output << XML::start_element( Xsolver_parameters, complex_element )
+                   << XML::attribute( Xcomment, *_document.getModelComment() )
+                   << XML::attribute( Xconv_val, *_document.getModelConvergence() )
+                   << XML::attribute( Xit_limit, *_document.getModelIterationLimit() )
+                   << XML::attribute( Xunderrelax_coeff, *_document.getModelUnderrelaxationCoefficient() )
+                   << XML::attribute( Xprint_int, *_document.getModelPrintInterval() );
             if ( complex_element ) {
                 output << ">" << std::endl;
                 if ( _document.hasPragmas() ) {
                     const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
                     for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {
-                        output << start_element( Xpragma, false )
-                               << attribute( Xparam, next_pragma->first )
-                               << attribute( Xvalue, next_pragma->second );
-                        output << end_element( Xpragma, false ) << std::endl;
+                        output << XML::start_element( Xpragma, false )
+                               << XML::attribute( Xparam, next_pragma->first )
+                               << XML::attribute( Xvalue, next_pragma->second );
+                        output << XML::end_element( Xpragma, false ) << std::endl;
                     }
                 }
 		if ( doc_vars.size() > 0 ) {
-                    output << simple_element( Xresult_observation );
+                    output << XML::simple_element( Xresult_observation );
 		    for_each( doc_vars.begin(), doc_vars.end(), ExportObservation( output ) );
 		    output << "/>" << std::endl;
 		}
                 if ( hasResults() ) {
 		    const MVAStatistics& mva_info = _document.getResultMVAStatistics();
                     const bool has_mva_info = mva_info.getNumberOfSubmodels() > 0;
-                    output << start_element( Xresult_general, has_mva_info )
-			   << attribute( Xsolver_info, _document.getResultSolverInformation() )
-                           << attribute( Xvalid, _document.getResultValid() ? "YES" : "NO" )
-                           << attribute( Xconv_val_result, _document.getResultConvergenceValue() )
-                           << attribute( Xiterations, _document.getResultIterations() )
-                           << attribute( Xplatform_info, _document.getResultPlatformInformation() )
-                           << time_attribute( Xuser_cpu_time, _document.getResultUserTime() )
-                           << time_attribute( Xsystem_cpu_time, _document.getResultSysTime() )
-                           << time_attribute( Xelapsed_time, _document.getResultElapsedTime() );
+                    output << XML::start_element( Xresult_general, has_mva_info )
+			   << XML::attribute( Xsolver_info, _document.getResultSolverInformation() )
+                           << XML::attribute( Xvalid, _document.getResultValid() ? "YES" : "NO" )
+                           << XML::attribute( Xconv_val_result, _document.getResultConvergenceValue() )
+                           << XML::attribute( Xiterations, _document.getResultIterations() )
+                           << XML::attribute( Xplatform_info, _document.getResultPlatformInformation() )
+                           << XML::time_attribute( Xuser_cpu_time, _document.getResultUserTime() )
+                           << XML::time_attribute( Xsystem_cpu_time, _document.getResultSysTime() )
+                           << XML::time_attribute( Xelapsed_time, _document.getResultElapsedTime() );
 		    if ( _document.getResultMaxRSS() > 0 ) {
-			output << attribute( Xmax_rss, _document.getResultMaxRSS() );
+			output << XML::time_attribute( Xmax_rss, _document.getResultMaxRSS() );
 		    }
                     if ( has_mva_info ) {
                         output << ">" << std::endl;
-                        output << simple_element( Xmva_info )
-                               << attribute( Xsubmodels, mva_info.getNumberOfSubmodels() )
-                               << attribute( Xcore, static_cast<double>(mva_info.getNumberOfCore()) )
-                               << attribute( Xstep, mva_info.getNumberOfStep() )
-                               << attribute( Xstep_squared, mva_info.getNumberOfStepSquared() )
-                               << attribute( Xwait, mva_info.getNumberOfWait() )
-                               << attribute( Xwait_squared, mva_info.getNumberOfWaitSquared() )
-                               << attribute( Xfaults, mva_info.getNumberOfFaults() )
+                        output << XML::simple_element( Xmva_info )
+                               << XML::attribute( Xsubmodels, mva_info.getNumberOfSubmodels() )
+                               << XML::attribute( Xcore, static_cast<double>(mva_info.getNumberOfCore()) )
+                               << XML::attribute( Xstep, mva_info.getNumberOfStep() )
+                               << XML::attribute( Xstep_squared, mva_info.getNumberOfStepSquared() )
+                               << XML::attribute( Xwait, mva_info.getNumberOfWait() )
+                               << XML::attribute( Xwait_squared, mva_info.getNumberOfWaitSquared() )
+                               << XML::attribute( Xfaults, mva_info.getNumberOfFaults() )
                                << "/>" << std::endl;
                     }
-                    output << end_element( Xresult_general, has_mva_info ) << std::endl;
+                    output << XML::end_element( Xresult_general, has_mva_info ) << std::endl;
                 }
             }
-            output << end_element( Xsolver_parameters, complex_element ) << std::endl;
+            output << XML::end_element( Xsolver_parameters, complex_element ) << std::endl;
         }
 
 
@@ -2261,34 +2251,34 @@ namespace LQIO {
             if ( !task_list.size() ) return;
 
             const scheduling_type scheduling = processor.getSchedulingType();
-            output << start_element( Xprocessor )
-                   << attribute( Xname, processor.getName() );
+            output << XML::start_element( Xprocessor )
+                   << XML::attribute( Xname, processor.getName() );
 	    if ( processor.isInfinite() ) {
-		output << attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );        // see labels.cpp
+		output << XML::attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );        // see labels.cpp
 		/* All other attributes don't matter for a delay server */
 	    } else {
-		output << attribute( Xscheduling, scheduling_label[scheduling].XML );            // see labels.cpp
+		output << XML::attribute( Xscheduling, scheduling_label[scheduling].XML );            // see labels.cpp
 		if ( processor.isMultiserver() ) {
-		    output << attribute( Xmultiplicity, *processor.getCopies() );
+		    output << XML::attribute( Xmultiplicity, *processor.getCopies() );
 		}
 		if ( processor.hasRate() ) {
-		    output << attribute( Xspeed_factor, *processor.getRate() );
+		    output << XML::attribute( Xspeed_factor, *processor.getRate() );
 		}
 		if ( processor.hasQuantumScheduling() ) {
 		    if ( processor.hasQuantum() ) {
-			output << attribute( Xquantum, *processor.getQuantum() );
+			output << XML::attribute( Xquantum, *processor.getQuantum() );
 		    } else {
-			output << attribute( Xquantum, 0. );
+			output << XML::attribute( Xquantum, 0. );
 		    }
 		}
 	    }
             if ( processor.hasReplicas() ) {
-                output << attribute( Xreplication, *processor.getReplicas() );
+                output << XML::attribute( Xreplication, *processor.getReplicas() );
             }
             output << ">" << std::endl;
 
 	    if ( processor.getComment().size() > 0 ) {
-		output << comment( processor.getComment() );
+		output << XML::comment( processor.getComment() );
 	    }
 
 	    if ( hasSPEX() && !_document.instantiated() ) {
@@ -2296,12 +2286,12 @@ namespace LQIO {
 	    }
             if ( hasResults() ) {
                 if ( _document.hasConfidenceIntervals() ) {
-                    output << start_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << ">" << std::endl;
-                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << end_element( Xresult_processor ) << std::endl;
+                    output << XML::start_element( Xresult_processor ) << XML::attribute( Xutilization, processor.getResultUtilization() ) << ">" << std::endl;
+                    output << XML::simple_element( Xresult_conf_95 )  << XML::attribute( Xutilization, _conf_95( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << XML::simple_element( Xresult_conf_99 )  << XML::attribute( Xutilization, _conf_99( processor.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << XML::end_element( Xresult_processor ) << std::endl;
                 } else {
-                    output << simple_element( Xresult_processor ) << attribute( Xutilization, processor.getResultUtilization() ) << "/>" << std::endl;
+                    output << XML::simple_element( Xresult_processor ) << XML::attribute( Xutilization, processor.getResultUtilization() ) << "/>" << std::endl;
                 }
             }
 
@@ -2310,16 +2300,16 @@ namespace LQIO {
 
 	    for_each( task_list.begin(), task_list.end(), ExportTask( output, *this, true ) );
 
-            output << end_element( Xprocessor ) << std::endl;
+            output << XML::end_element( Xprocessor ) << std::endl;
         }
 
 
         void
         Expat_Document::exportGroup( std::ostream& output, const Group & group ) const
         {
-            output << start_element( Xgroup ) << attribute( Xname, group.getName() )
-                   << attribute( Xshare, *group.getGroupShare() )
-                   << attribute( Xcap, group.getCap() )
+            output << XML::start_element( Xgroup ) << XML::attribute( Xname, group.getName() )
+                   << XML::attribute( Xshare, *group.getGroupShare() )
+                   << XML::attribute( Xcap, group.getCap() )
                    << ">" << std::endl;
 
 	    if ( hasSPEX() && !_document.instantiated() ) {
@@ -2327,12 +2317,12 @@ namespace LQIO {
 	    }
             if ( hasResults() ) {
                 if ( _document.hasConfidenceIntervals() ) {
-                    output << start_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << ">" << std::endl;
-                    output << simple_element( Xresult_conf_95 )  << attribute( Xutilization, _conf_95( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << simple_element( Xresult_conf_99 )  << attribute( Xutilization, _conf_99( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
-                    output << end_element( Xresult_group ) << std::endl;
+                    output << XML::start_element( Xresult_group ) << XML::attribute( Xutilization, group.getResultUtilization() ) << ">" << std::endl;
+                    output << XML::simple_element( Xresult_conf_95 )  << XML::attribute( Xutilization, _conf_95( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << XML::simple_element( Xresult_conf_99 )  << XML::attribute( Xutilization, _conf_99( group.getResultUtilizationVariance() ) ) << "/>" << std::endl;
+                    output << XML::end_element( Xresult_group ) << std::endl;
                 } else {
-                    output << simple_element( Xresult_group ) << attribute( Xutilization, group.getResultUtilization() ) << "/>" << std::endl;
+                    output << XML::simple_element( Xresult_group ) << XML::attribute( Xutilization, group.getResultUtilization() ) << "/>" << std::endl;
                 }
             }
 
@@ -2340,7 +2330,7 @@ namespace LQIO {
             const std::set<Task*>& task_list = group.getTaskList();
 	    for_each( task_list.begin(), task_list.end(), ExportTask( output, *this ) );
 
-            output << end_element( Xgroup ) << std::endl;
+            output << XML::end_element( Xgroup ) << std::endl;
         }
 
 
@@ -2358,36 +2348,36 @@ namespace LQIO {
         void
         Expat_Document::exportTask( std::ostream& output, const Task & task ) const
         {
-            output << start_element( Xtask ) << attribute( Xname, task.getName() );
+            output << XML::start_element( Xtask ) << XML::attribute( Xname, task.getName() );
 	    if ( task.isInfinite() ) {
-		output << attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );            // see lqio/labels.c
+		output << XML::attribute( Xscheduling, scheduling_label[SCHEDULE_DELAY].XML );            // see lqio/labels.c
 	    } else { 
-		output << attribute( Xscheduling, scheduling_label[task.getSchedulingType()].XML );            // see lqio/labels.c
+		output << XML::attribute( Xscheduling, scheduling_label[task.getSchedulingType()].XML );            // see lqio/labels.c
 		if ( task.isMultiserver() ) {
-		    output << attribute( Xmultiplicity, *task.getCopies() );
+		    output << XML::attribute( Xmultiplicity, *task.getCopies() );
 		}
 	    }
 
             if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
-                output << attribute( Xthink_time, *task.getThinkTime() );
+                output << XML::attribute( Xthink_time, *task.getThinkTime() );
             }
             if ( task.hasPriority() ) {
-                output << attribute( Xpriority, *task.getPriority() );
+                output << XML::attribute( Xpriority, *task.getPriority() );
             }
             if ( task.hasQueueLength() ) {
-                output << attribute( Xqueue_length, *task.getQueueLength() );
+                output << XML::attribute( Xqueue_length, *task.getQueueLength() );
             }
             if ( task.hasReplicas() ) {
-                output << attribute( Xreplication, *task.getReplicas() );
+                output << XML::attribute( Xreplication, *task.getReplicas() );
             }
             if ( task.getSchedulingType() == SCHEDULE_SEMAPHORE && dynamic_cast<const SemaphoreTask&>(task).getInitialState() == SemaphoreTask::INITIALLY_EMPTY ) {
-                output << attribute( Xinitially, 0.0 );
+                output << XML::attribute( Xinitially, 0.0 );
             }
 
             output << ">" << std::endl;
 
 	    if ( task.getComment().size() > 0 ) {
-		output << comment( task.getComment() );
+		output << XML::comment( task.getComment() );
 	    }
 
 	    if ( hasSPEX() && !_document.instantiated() ) {
@@ -2399,101 +2389,101 @@ namespace LQIO {
                 }
 
                 const bool has_confidence = _document.hasConfidenceIntervals();
-                output << start_element( Xresult_task, has_confidence )
-                       << attribute( Xthroughput, task.getResultThroughput() )
-                       << attribute( Xutilization, task.getResultUtilization() )
+                output << XML::start_element( Xresult_task, has_confidence )
+                       << XML::attribute( Xthroughput, task.getResultThroughput() )
+                       << XML::attribute( Xutilization, task.getResultUtilization() )
                        << task_phase_results( task, XphaseP_utilization, &Task::getResultPhasePUtilization )
-                       << attribute( Xproc_utilization, task.getResultProcessorUtilization() );
+                       << XML::attribute( Xproc_utilization, task.getResultProcessorUtilization() );
 		if ( _document.hasBottleneckStrength() ) {
-		    output << attribute( Xbottleneck_strength, task.getResultBottleneckStrength() );
+		    output << XML::attribute( Xbottleneck_strength, task.getResultBottleneckStrength() );
 		}
 
                 if ( dynamic_cast<const SemaphoreTask *>(&task) ) {
-                    output << attribute( Xsemaphore_waiting, task.getResultHoldingTime() )
-                           << attribute( Xsemaphore_waiting_variance, task.getResultVarianceHoldingTime() )
-                           << attribute( Xsemaphore_utilization, task.getResultHoldingUtilization() );
+                    output << XML::attribute( Xsemaphore_waiting, task.getResultHoldingTime() )
+                           << XML::attribute( Xsemaphore_waiting_variance, task.getResultVarianceHoldingTime() )
+                           << XML::attribute( Xsemaphore_utilization, task.getResultHoldingUtilization() );
                 } else if ( dynamic_cast<const RWLockTask *>(&task) ) {
-                    output << attribute( Xrwlock_reader_waiting, task.getResultReaderBlockedTime() )
-                           << attribute( Xrwlock_reader_waiting_variance, task.getResultVarianceReaderBlockedTime() )
-                           << attribute( Xrwlock_reader_holding, task.getResultReaderHoldingTime() )
-                           << attribute( Xrwlock_reader_holding_variance, task.getResultVarianceReaderHoldingTime() )
-                           << attribute( Xrwlock_reader_utilization, task.getResultReaderHoldingUtilization() )
-                           << attribute( Xrwlock_writer_waiting, task.getResultWriterBlockedTime() )
-                           << attribute( Xrwlock_writer_waiting_variance, task.getResultVarianceWriterBlockedTime() )
-                           << attribute( Xrwlock_writer_holding, task.getResultWriterHoldingTime() )
-                           << attribute( Xrwlock_writer_holding_variance, task.getResultVarianceWriterHoldingTime() )
-                           << attribute( Xrwlock_writer_utilization, task.getResultWriterHoldingUtilization() );
+                    output << XML::attribute( Xrwlock_reader_waiting, task.getResultReaderBlockedTime() )
+                           << XML::attribute( Xrwlock_reader_waiting_variance, task.getResultVarianceReaderBlockedTime() )
+                           << XML::attribute( Xrwlock_reader_holding, task.getResultReaderHoldingTime() )
+                           << XML::attribute( Xrwlock_reader_holding_variance, task.getResultVarianceReaderHoldingTime() )
+                           << XML::attribute( Xrwlock_reader_utilization, task.getResultReaderHoldingUtilization() )
+                           << XML::attribute( Xrwlock_writer_waiting, task.getResultWriterBlockedTime() )
+                           << XML::attribute( Xrwlock_writer_waiting_variance, task.getResultVarianceWriterBlockedTime() )
+                           << XML::attribute( Xrwlock_writer_holding, task.getResultWriterHoldingTime() )
+                           << XML::attribute( Xrwlock_writer_holding_variance, task.getResultVarianceWriterHoldingTime() )
+                           << XML::attribute( Xrwlock_writer_utilization, task.getResultWriterHoldingUtilization() );
                 }
 
                 if ( has_confidence ) {
                     output << ">" << std::endl;
-                    output << simple_element( Xresult_conf_95 )
-                           << attribute( Xthroughput, _conf_95( task.getResultThroughputVariance() ) )
-                           << attribute( Xutilization, _conf_95( task.getResultUtilizationVariance() ) )
+                    output << XML::simple_element( Xresult_conf_95 )
+                           << XML::attribute( Xthroughput, _conf_95( task.getResultThroughputVariance() ) )
+                           << XML::attribute( Xutilization, _conf_95( task.getResultUtilizationVariance() ) )
                            << task_phase_results( task, XphaseP_utilization, &Task::getResultPhasePUtilizationVariance, &_conf_95 )
-                           << attribute( Xproc_utilization, _conf_95(task.getResultProcessorUtilizationVariance() ) );
+                           << XML::attribute( Xproc_utilization, _conf_95(task.getResultProcessorUtilizationVariance() ) );
 
                     if ( dynamic_cast<const SemaphoreTask *>(&task) ) {
-                        output << attribute( Xsemaphore_waiting, _conf_95(task.getResultHoldingTimeVariance()) )
-                               << attribute( Xsemaphore_waiting_variance, _conf_95(task.getResultVarianceHoldingTimeVariance()) )
-                               << attribute( Xsemaphore_utilization, _conf_95(task.getResultHoldingUtilizationVariance()) );
+                        output << XML::attribute( Xsemaphore_waiting, _conf_95(task.getResultHoldingTimeVariance()) )
+                               << XML::attribute( Xsemaphore_waiting_variance, _conf_95(task.getResultVarianceHoldingTimeVariance()) )
+                               << XML::attribute( Xsemaphore_utilization, _conf_95(task.getResultHoldingUtilizationVariance()) );
                     } else if ( dynamic_cast<const RWLockTask *>(&task) ) {
-                        output << attribute( Xrwlock_reader_waiting, _conf_95(task.getResultReaderBlockedTime()) )
-                               << attribute( Xrwlock_reader_waiting_variance, _conf_95(task.getResultVarianceReaderBlockedTime()) )
-                               << attribute( Xrwlock_reader_holding, _conf_95(task.getResultReaderHoldingTime()) )
-                               << attribute( Xrwlock_reader_holding_variance, _conf_95(task.getResultVarianceReaderHoldingTime()) )
-                               << attribute( Xrwlock_reader_utilization, _conf_95(task.getResultReaderHoldingUtilization()) )
-                               << attribute( Xrwlock_writer_waiting, _conf_95(task.getResultWriterBlockedTime()) )
-                               << attribute( Xrwlock_writer_waiting_variance, _conf_95(task.getResultVarianceWriterBlockedTime()) )
-                               << attribute( Xrwlock_writer_holding, _conf_95(task.getResultWriterHoldingTime()) )
-                               << attribute( Xrwlock_writer_holding_variance, _conf_95(task.getResultVarianceWriterHoldingTime()) )
-                               << attribute( Xrwlock_writer_utilization, _conf_95(task.getResultWriterHoldingUtilization()) );
+                        output << XML::attribute( Xrwlock_reader_waiting, _conf_95(task.getResultReaderBlockedTime()) )
+                               << XML::attribute( Xrwlock_reader_waiting_variance, _conf_95(task.getResultVarianceReaderBlockedTime()) )
+                               << XML::attribute( Xrwlock_reader_holding, _conf_95(task.getResultReaderHoldingTime()) )
+                               << XML::attribute( Xrwlock_reader_holding_variance, _conf_95(task.getResultVarianceReaderHoldingTime()) )
+                               << XML::attribute( Xrwlock_reader_utilization, _conf_95(task.getResultReaderHoldingUtilization()) )
+                               << XML::attribute( Xrwlock_writer_waiting, _conf_95(task.getResultWriterBlockedTime()) )
+                               << XML::attribute( Xrwlock_writer_waiting_variance, _conf_95(task.getResultVarianceWriterBlockedTime()) )
+                               << XML::attribute( Xrwlock_writer_holding, _conf_95(task.getResultWriterHoldingTime()) )
+                               << XML::attribute( Xrwlock_writer_holding_variance, _conf_95(task.getResultVarianceWriterHoldingTime()) )
+                               << XML::attribute( Xrwlock_writer_utilization, _conf_95(task.getResultWriterHoldingUtilization()) );
                     }
 
                     output << "/>" << std::endl;
 
-                    output << simple_element( Xresult_conf_99 )
-                           << attribute( Xthroughput, _conf_99( task.getResultThroughputVariance() ) )
-                           << attribute( Xutilization, _conf_99( task.getResultUtilizationVariance() ) )
+                    output << XML::simple_element( Xresult_conf_99 )
+                           << XML::attribute( Xthroughput, _conf_99( task.getResultThroughputVariance() ) )
+                           << XML::attribute( Xutilization, _conf_99( task.getResultUtilizationVariance() ) )
                            << task_phase_results( task, XphaseP_utilization, &Task::getResultPhasePUtilizationVariance, &_conf_99 )
-                           << attribute( Xproc_utilization, _conf_99(task.getResultProcessorUtilizationVariance() ) );
+                           << XML::attribute( Xproc_utilization, _conf_99(task.getResultProcessorUtilizationVariance() ) );
                     if ( dynamic_cast<const SemaphoreTask *>(&task) ) {
-                        output << attribute( Xsemaphore_waiting, _conf_99(task.getResultHoldingTimeVariance()) )
-                               << attribute( Xsemaphore_waiting_variance, _conf_99(task.getResultVarianceHoldingTimeVariance()) )
-                               << attribute( Xsemaphore_utilization, _conf_99(task.getResultHoldingUtilizationVariance()) );
+                        output << XML::attribute( Xsemaphore_waiting, _conf_99(task.getResultHoldingTimeVariance()) )
+                               << XML::attribute( Xsemaphore_waiting_variance, _conf_99(task.getResultVarianceHoldingTimeVariance()) )
+                               << XML::attribute( Xsemaphore_utilization, _conf_99(task.getResultHoldingUtilizationVariance()) );
                     } else if ( dynamic_cast<const RWLockTask *>(&task) ) {
-                        output << attribute( Xrwlock_reader_waiting, _conf_99(task.getResultReaderBlockedTime()) )
-                               << attribute( Xrwlock_reader_waiting_variance, _conf_99(task.getResultVarianceReaderBlockedTime()) )
-                               << attribute( Xrwlock_reader_holding, _conf_99(task.getResultReaderHoldingTime()) )
-                               << attribute( Xrwlock_reader_holding_variance, _conf_99(task.getResultVarianceReaderHoldingTime()) )
-                               << attribute( Xrwlock_reader_utilization, _conf_99(task.getResultReaderHoldingUtilization()) )
-                               << attribute( Xrwlock_writer_waiting, _conf_99(task.getResultWriterBlockedTime()) )
-                               << attribute( Xrwlock_writer_waiting_variance, _conf_99(task.getResultVarianceWriterBlockedTime()) )
-                               << attribute( Xrwlock_writer_holding, _conf_99(task.getResultWriterHoldingTime()) )
-                               << attribute( Xrwlock_writer_holding_variance, _conf_99(task.getResultVarianceWriterHoldingTime()) )
-                               << attribute( Xrwlock_writer_utilization, _conf_99(task.getResultWriterHoldingUtilization()) );
+                        output << XML::attribute( Xrwlock_reader_waiting, _conf_99(task.getResultReaderBlockedTime()) )
+                               << XML::attribute( Xrwlock_reader_waiting_variance, _conf_99(task.getResultVarianceReaderBlockedTime()) )
+                               << XML::attribute( Xrwlock_reader_holding, _conf_99(task.getResultReaderHoldingTime()) )
+                               << XML::attribute( Xrwlock_reader_holding_variance, _conf_99(task.getResultVarianceReaderHoldingTime()) )
+                               << XML::attribute( Xrwlock_reader_utilization, _conf_99(task.getResultReaderHoldingUtilization()) )
+                               << XML::attribute( Xrwlock_writer_waiting, _conf_99(task.getResultWriterBlockedTime()) )
+                               << XML::attribute( Xrwlock_writer_waiting_variance, _conf_99(task.getResultVarianceWriterBlockedTime()) )
+                               << XML::attribute( Xrwlock_writer_holding, _conf_99(task.getResultWriterHoldingTime()) )
+                               << XML::attribute( Xrwlock_writer_holding_variance, _conf_99(task.getResultVarianceWriterHoldingTime()) )
+                               << XML::attribute( Xrwlock_writer_utilization, _conf_99(task.getResultWriterHoldingUtilization()) );
                     }
 
                     output << "/>" << std::endl;
                 }
 
-                output << end_element( Xresult_task, has_confidence ) << std::endl;
+                output << XML::end_element( Xresult_task, has_confidence ) << std::endl;
             }
 
 
             for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanin = task.getFanIns().begin(); next_fanin != task.getFanIns().end(); ++next_fanin ) {
                 const std::string& src = next_fanin->first;
                 const ExternalVariable * value = next_fanin->second;
-                output << simple_element( Xfanin ) << attribute( Xsource, src )
-                       << attribute( Xvalue, *value )
+                output << XML::simple_element( Xfanin ) << XML::attribute( Xsource, src )
+                       << XML::attribute( Xvalue, *value )
                        << "/>" << std::endl;
             }
 
             for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanout = task.getFanOuts().begin(); next_fanout != task.getFanOuts().end(); ++next_fanout ) {
                 const std::string dst = next_fanout->first;
                 const ExternalVariable * value = next_fanout->second;
-                output << simple_element( Xfanout ) << attribute( Xdest, dst )
-                       << attribute( Xvalue, *value )
+                output << XML::simple_element( Xfanout ) << XML::attribute( Xdest, dst )
+                       << XML::attribute( Xvalue, *value )
                        << "/>" << std::endl;
             }
 
@@ -2505,7 +2495,7 @@ namespace LQIO {
 
                 /* The activities */
 
-                output << start_element( Xtask_activities ) << ">" << std::endl;
+                output << XML::start_element( Xtask_activities ) << ">" << std::endl;
                 for_each( activities.begin(), activities.end(), ExportActivity( output, *this ) );
 
                 /* Precedence connections */
@@ -2527,18 +2517,18 @@ namespace LQIO {
 
                 for ( std::map<const Entry *,std::vector<const Activity *> >::const_iterator next_entry = entry_reply_list.begin(); next_entry != entry_reply_list.end(); ++next_entry ) {
                     const Entry * entry = next_entry->first;
-                    output << start_element( Xreply_entry ) << attribute( Xname, entry->getName() ) << ">" << std::endl;
+                    output << XML::start_element( Xreply_entry ) << XML::attribute( Xname, entry->getName() ) << ">" << std::endl;
                     const std::vector<const Activity *>& activity_list = next_entry->second;
                     for ( std::vector<const Activity *>::const_iterator next_activity = activity_list.begin(); next_activity != activity_list.end(); ++next_activity ) {
-                        output << simple_element( Xreply_activity ) << attribute( Xname, (*next_activity)->getName() ) << "/>" << std::endl;
+                        output << XML::simple_element( Xreply_activity ) << XML::attribute( Xname, (*next_activity)->getName() ) << "/>" << std::endl;
                     }
-                    output << end_element( Xreply_entry ) << std::endl;
+                    output << XML::end_element( Xreply_entry ) << std::endl;
                 }
 
-                output << end_element( Xtask_activities ) << std::endl;
+                output << XML::end_element( Xtask_activities ) << std::endl;
             }
 
-            output << end_element( Xtask ) << std::endl;
+            output << XML::end_element( Xtask ) << std::endl;
         }
 
 
@@ -2568,35 +2558,35 @@ namespace LQIO {
                 || entry.getForwarding().size() > 0
 		|| (entry.getStartActivity() && entry.hasHistogram())           /* Activity entry with a histogram */
                 || hasResults();
-            output << start_element( Xentry, complex_element )
-                   << attribute( Xname, entry.getName() );
+            output << XML::start_element( Xentry, complex_element )
+                   << XML::attribute( Xname, entry.getName() );
 
             if ( entry.isStandardEntry() ) {
-                output << attribute( Xtype, XPH1PH2 );
+                output << XML::attribute( Xtype, XPH1PH2 );
             } else {
-                output << attribute( Xtype, XNONE );
+                output << XML::attribute( Xtype, XNONE );
             }
 
             /* Parameters for an entry. */
 
             if ( entry.getOpenArrivalRate() ) {
-                output << attribute( Xopen_arrival_rate, *entry.getOpenArrivalRate() );
+                output << XML::attribute( Xopen_arrival_rate, *entry.getOpenArrivalRate() );
             }
             if ( entry.getEntryPriority() ) {
-                output << attribute( Xpriority, *entry.getEntryPriority() );
+                output << XML::attribute( Xpriority, *entry.getEntryPriority() );
             }
 
             switch ( entry.getSemaphoreFlag() ) {
-            case SEMAPHORE_SIGNAL: output << attribute( Xsemaphore, Xsignal ); break;
-            case SEMAPHORE_WAIT:   output << attribute( Xsemaphore, Xwait ); break;
+            case SEMAPHORE_SIGNAL: output << XML::attribute( Xsemaphore, Xsignal ); break;
+            case SEMAPHORE_WAIT:   output << XML::attribute( Xsemaphore, Xwait ); break;
 	    default: break;
             }
 
             switch ( entry.getRWLockFlag() ) {
-            case RWLOCK_R_UNLOCK: output << attribute( Xrwlock, Xr_unlock ); break;
-            case RWLOCK_R_LOCK:   output << attribute( Xrwlock, Xr_lock ); break;
-            case RWLOCK_W_UNLOCK: output << attribute( Xrwlock, Xw_unlock ); break;
-            case RWLOCK_W_LOCK:   output << attribute( Xrwlock, Xw_lock ); break;
+            case RWLOCK_R_UNLOCK: output << XML::attribute( Xrwlock, Xr_unlock ); break;
+            case RWLOCK_R_LOCK:   output << XML::attribute( Xrwlock, Xr_lock ); break;
+            case RWLOCK_W_UNLOCK: output << XML::attribute( Xrwlock, Xw_unlock ); break;
+            case RWLOCK_W_LOCK:   output << XML::attribute( Xrwlock, Xw_lock ); break;
 	    default: break;
             }
 
@@ -2604,7 +2594,7 @@ namespace LQIO {
                 output << ">" << std::endl;
 
 		if ( entry.getComment().size() > 0 ) {
-		    output << comment( entry.getComment() );
+		    output << XML::comment( entry.getComment() );
 		}
 
 		if ( hasSPEX() && !_document.instantiated() ) {
@@ -2621,16 +2611,16 @@ namespace LQIO {
 
                     const bool has_confidence = _document.hasConfidenceIntervals();
 
-                    output << start_element( Xresult_entry, has_confidence )
-                           << attribute( Xutilization, entry.getResultUtilization() )
-                           << attribute( Xthroughput, entry.getResultThroughput() )
-                           << attribute( Xsquared_coeff_variation, entry.getResultSquaredCoeffVariation() )
-                           << attribute( Xproc_utilization, entry.getResultProcessorUtilization() );
+                    output << XML::start_element( Xresult_entry, has_confidence )
+                           << XML::attribute( Xutilization, entry.getResultUtilization() )
+                           << XML::attribute( Xthroughput, entry.getResultThroughput() )
+                           << XML::attribute( Xsquared_coeff_variation, entry.getResultSquaredCoeffVariation() )
+                           << XML::attribute( Xproc_utilization, entry.getResultProcessorUtilization() );
 		    if ( entry.hasResultsForThroughputBound() ) {
-			output << attribute( Xthroughput_bound, entry.getResultThroughputBound() );
+			output << XML::attribute( Xthroughput_bound, entry.getResultThroughputBound() );
 		    }
                     if ( entry.hasResultsForOpenWait() ) {
-                        output << attribute( Xopen_wait_time, entry.getResultWaitingTime() );
+                        output << XML::attribute( Xopen_wait_time, entry.getResultWaitingTime() );
                     }
 
                     /* Results for activity entries. */
@@ -2644,13 +2634,13 @@ namespace LQIO {
                     if ( has_confidence ) {
                         output << ">" << std::endl;
 
-                        output << simple_element( Xresult_conf_95 )
-                               << attribute( Xutilization, _conf_95( entry.getResultUtilizationVariance() ) )
-                               << attribute( Xthroughput, _conf_95( entry.getResultThroughputVariance() ) )
-                               << attribute( Xsquared_coeff_variation, _conf_95( entry.getResultSquaredCoeffVariationVariance() ) )
-                               << attribute( Xproc_utilization, _conf_95( entry.getResultProcessorUtilizationVariance() ) );
+                        output << XML::simple_element( Xresult_conf_95 )
+                               << XML::attribute( Xutilization, _conf_95( entry.getResultUtilizationVariance() ) )
+                               << XML::attribute( Xthroughput, _conf_95( entry.getResultThroughputVariance() ) )
+                               << XML::attribute( Xsquared_coeff_variation, _conf_95( entry.getResultSquaredCoeffVariationVariance() ) )
+                               << XML::attribute( Xproc_utilization, _conf_95( entry.getResultProcessorUtilizationVariance() ) );
                         if ( entry.hasResultsForOpenWait() ) {
-                            output << attribute( Xopen_wait_time, _conf_95( entry.getResultWaitingTimeVariance() ) );
+                            output << XML::attribute( Xopen_wait_time, _conf_95( entry.getResultWaitingTimeVariance() ) );
                         }
 
                         /* Results for activity entries. */
@@ -2662,13 +2652,13 @@ namespace LQIO {
                         }
                         output << "/>" << std::endl;
 
-                        output << simple_element( Xresult_conf_99 )
-                               << attribute( Xutilization, _conf_99( entry.getResultUtilizationVariance() ) )
-                               << attribute( Xthroughput, _conf_99( entry.getResultThroughputVariance() ) )
-                               << attribute( Xsquared_coeff_variation, _conf_99( entry.getResultSquaredCoeffVariationVariance() ) )
-                               << attribute( Xproc_utilization, _conf_99( entry.getResultProcessorUtilizationVariance() ) );
+                        output << XML::simple_element( Xresult_conf_99 )
+                               << XML::attribute( Xutilization, _conf_99( entry.getResultUtilizationVariance() ) )
+                               << XML::attribute( Xthroughput, _conf_99( entry.getResultThroughputVariance() ) )
+                               << XML::attribute( Xsquared_coeff_variation, _conf_99( entry.getResultSquaredCoeffVariationVariance() ) )
+                               << XML::attribute( Xproc_utilization, _conf_99( entry.getResultProcessorUtilizationVariance() ) );
                         if ( entry.hasResultsForOpenWait() ) {
-                            output << attribute( Xopen_wait_time, _conf_99( entry.getResultWaitingTimeVariance() ) );
+                            output << XML::attribute( Xopen_wait_time, _conf_99( entry.getResultWaitingTimeVariance() ) );
                         }
 
                         /* Results for activity entries. */
@@ -2681,25 +2671,25 @@ namespace LQIO {
                         output << "/>" << std::endl;
                     }
 
-                    output << end_element( Xresult_entry, has_confidence ) << std::endl;
+                    output << XML::end_element( Xresult_entry, has_confidence ) << std::endl;
                 }
 
                 const std::vector<Call*>& forwarding = entry.getForwarding();
                 for_each( forwarding.begin(), forwarding.end(), ExportCall( output, *this ) );
 
                 if ( entry.isStandardEntry() ) {
-                    output << start_element( Xentry_phase_activities ) << ">" << std::endl;
+                    output << XML::start_element( Xentry_phase_activities ) << ">" << std::endl;
 
                     const std::map<unsigned, Phase*>& phases = entry.getPhaseList();
                     for_each ( phases.begin(), phases.end(), ExportPhase( output, *this ) );
-                    output << end_element( Xentry_phase_activities ) << std::endl;
+                    output << XML::end_element( Xentry_phase_activities ) << std::endl;
                 }
             } /* if ( complex_element ) */
 
-            output << end_element( Xentry, complex_element ) << std::endl;
+            output << XML::end_element( Xentry, complex_element ) << std::endl;
 
 	    if ( !complex_element && entry.getComment().size() > 0 ) {
-		output << comment( entry.getComment() );
+		output << XML::comment( entry.getComment() );
 	    }
         }
 
@@ -2724,39 +2714,39 @@ namespace LQIO {
         {
             const std::vector<Call*>& calls = phase.getCalls();
             const bool complex_element = calls.size() > 0 || hasResults() || phase.hasHistogram() || hasSPEX();
-            output << start_element( Xactivity, complex_element )
-                   << attribute( Xname, phase.getName() );
+            output << XML::start_element( Xactivity, complex_element )
+                   << XML::attribute( Xname, phase.getName() );
 
             const Activity * activity = dynamic_cast<const Activity *>(&phase);
             if ( activity ) {
                 if ( activity->isStartActivity() ) {
-                    output << attribute ( Xbound_to_entry, activity->getSourceEntry()->getName() );
+                    output << XML::attribute( Xbound_to_entry, activity->getSourceEntry()->getName() );
                 }
             } else {
-                output << attribute( Xphase, p );
+                output << XML::attribute( Xphase, p );
             }
 
             if ( phase.getServiceTime() ) {
-                output << attribute( Xhost_demand_mean, *phase.getServiceTime() );
+                output << XML::attribute( Xhost_demand_mean, *phase.getServiceTime() );
             }
             if ( phase.isNonExponential() ) {
-                output << attribute( Xhost_demand_cvsq, *phase.getCoeffOfVariationSquared() );
+                output << XML::attribute( Xhost_demand_cvsq, *phase.getCoeffOfVariationSquared() );
             }
             if ( phase.hasThinkTime() ) {
-                output << attribute( Xthink_time,  *phase.getThinkTime() );
+                output << XML::attribute( Xthink_time,  *phase.getThinkTime() );
             }
             if ( phase.hasMaxServiceTimeExceeded() ) {
-                output << attribute( Xmax_service_time, phase.getMaxServiceTime() );
+                output << XML::attribute( Xmax_service_time, phase.getMaxServiceTime() );
             }
             if ( phase.hasDeterministicCalls() ) {
-                output << attribute( Xcall_order, XDETERMINISTIC );
+                output << XML::attribute( Xcall_order, XDETERMINISTIC );
             }
 
             if ( complex_element ) {
                 output << ">" << std::endl;
 
 		if ( phase.getComment().size() > 0 ) {
-		    output << comment( phase.getComment() );
+		    output << XML::comment( phase.getComment() );
 		}
 
 		if ( hasSPEX() && !_document.instantiated() ) {
@@ -2770,67 +2760,67 @@ namespace LQIO {
 
                     const bool has_confidence = _document.hasConfidenceIntervals();
 
-                    output << start_element( Xresult_activity, has_confidence )
-                           << attribute( Xproc_waiting, phase.getResultProcessorWaiting() )
-                           << attribute( Xservice_time, phase.getResultServiceTime() )
-			   << attribute( Xutilization, phase.getResultUtilization() );
+                    output << XML::start_element( Xresult_activity, has_confidence )
+                           << XML::attribute( Xproc_waiting, phase.getResultProcessorWaiting() )
+                           << XML::attribute( Xservice_time, phase.getResultServiceTime() )
+			   << XML::attribute( Xutilization, phase.getResultUtilization() );
 
 		    if ( has_variance ) {
-			output << attribute( Xservice_time_variance, phase.getResultVarianceServiceTime() );	// optional attribute.
+			output << XML::attribute( Xservice_time_variance, phase.getResultVarianceServiceTime() );	// optional attribute.
 		    }
 		    if ( dynamic_cast<const Activity *>(&phase) ) {
-			output << attribute( Xthroughput, phase.getResultThroughput() )
-			       << attribute( Xproc_utilization, phase.getResultProcessorUtilization() );
+			output << XML::attribute( Xthroughput, phase.getResultThroughput() )
+			       << XML::attribute( Xproc_utilization, phase.getResultProcessorUtilization() );
 		    }
                     if ( phase.hasMaxServiceTimeExceeded() ) {
-                        output << attribute( Xprob_exceed_max_service_time, phase.getResultMaxServiceTimeExceeded() );
+                        output << XML::attribute( Xprob_exceed_max_service_time, phase.getResultMaxServiceTimeExceeded() );
                     }
 
                     if ( has_confidence ) {
                         output << ">" << std::endl;
-                        output << simple_element( Xresult_conf_95 )
-                               << attribute( Xproc_waiting, _conf_95( phase.getResultProcessorWaitingVariance() ) )
-                               << attribute( Xservice_time, _conf_95( phase.getResultServiceTimeVariance() ) )
-                               << attribute( Xutilization, _conf_95( phase.getResultUtilizationVariance() ) );
+                        output << XML::simple_element( Xresult_conf_95 )
+                               << XML::attribute( Xproc_waiting, _conf_95( phase.getResultProcessorWaitingVariance() ) )
+                               << XML::attribute( Xservice_time, _conf_95( phase.getResultServiceTimeVariance() ) )
+                               << XML::attribute( Xutilization, _conf_95( phase.getResultUtilizationVariance() ) );
 			if ( has_variance ) {
-			    output << attribute( Xservice_time_variance, _conf_95( phase.getResultVarianceServiceTimeVariance() ) );
+			    output << XML::attribute( Xservice_time_variance, _conf_95( phase.getResultVarianceServiceTimeVariance() ) );
 			}
 			if ( dynamic_cast<const Activity *>(&phase) ) {
-			    output << attribute( Xthroughput, _conf_95( phase.getResultThroughputVariance() ) )
-				   << attribute( Xproc_utilization, _conf_95( phase.getResultProcessorUtilizationVariance() ) );
+			    output << XML::attribute( Xthroughput, _conf_95( phase.getResultThroughputVariance() ) )
+				   << XML::attribute( Xproc_utilization, _conf_95( phase.getResultProcessorUtilizationVariance() ) );
 			}
                         if ( phase.hasMaxServiceTimeExceeded() ) {
-                            output << attribute( Xprob_exceed_max_service_time, _conf_95( phase.getResultMaxServiceTimeExceededVariance() ) );
+                            output << XML::attribute( Xprob_exceed_max_service_time, _conf_95( phase.getResultMaxServiceTimeExceededVariance() ) );
                         }
                         output << "/>" << std::endl;
 
-                        output << simple_element( Xresult_conf_99 )
-                               << attribute( Xproc_waiting, _conf_99( phase.getResultProcessorWaitingVariance() ) )
-                               << attribute( Xservice_time, _conf_99( phase.getResultServiceTimeVariance() ) )
-                               << attribute( Xutilization, _conf_99( phase.getResultUtilizationVariance() ) );
+                        output << XML::simple_element( Xresult_conf_99 )
+                               << XML::attribute( Xproc_waiting, _conf_99( phase.getResultProcessorWaitingVariance() ) )
+                               << XML::attribute( Xservice_time, _conf_99( phase.getResultServiceTimeVariance() ) )
+                               << XML::attribute( Xutilization, _conf_99( phase.getResultUtilizationVariance() ) );
 			if ( has_variance ) {
-			    output << attribute( Xservice_time_variance, _conf_99( phase.getResultVarianceServiceTimeVariance() ) );
+			    output << XML::attribute( Xservice_time_variance, _conf_99( phase.getResultVarianceServiceTimeVariance() ) );
 			}
 			if ( dynamic_cast<const Activity *>(&phase) ) {
-			    output << attribute( Xthroughput, _conf_99( phase.getResultThroughputVariance() ) )
-				   << attribute( Xproc_utilization, _conf_95( phase.getResultProcessorUtilizationVariance() ) );
+			    output << XML::attribute( Xthroughput, _conf_99( phase.getResultThroughputVariance() ) )
+				   << XML::attribute( Xproc_utilization, _conf_95( phase.getResultProcessorUtilizationVariance() ) );
 			}
                         if ( phase.hasMaxServiceTimeExceeded() ) {
-                            output << attribute( Xprob_exceed_max_service_time, _conf_99( phase.getResultMaxServiceTimeExceededVariance() ) );
+                            output << XML::attribute( Xprob_exceed_max_service_time, _conf_99( phase.getResultMaxServiceTimeExceededVariance() ) );
                         }
                         output << "/>" << std::endl;
                     }
 
-                    output << end_element( Xresult_activity, has_confidence ) << std::endl;
+                    output << XML::end_element( Xresult_activity, has_confidence ) << std::endl;
                 }
 
 		for_each( calls.begin(), calls.end(), ExportCall( output, *this ) );
             } /* if ( complex_element ) */
 
-            output << end_element( Xactivity, complex_element ) << std::endl;
+            output << XML::end_element( Xactivity, complex_element ) << std::endl;
 
 	    if ( !complex_element && phase.getComment().size() > 0 ) {
-		output << comment( phase.getComment() );
+		output << XML::comment( phase.getComment() );
 	    }
         }
 
@@ -2842,18 +2832,18 @@ namespace LQIO {
         Expat_Document::ExportPrecedence::operator()( const ActivityList * activity_list ) const {
 	    /* look for the 'pre' side.  Do the post side based on the pre-side */
 	    if ( activity_list->isForkList() ) return;
-	    _output << _self.start_element( Xprecedence ) << ">" << std::endl;
+	    _output << XML::start_element( Xprecedence ) << ">" << std::endl;
 	    _self.exportPrecedence( _output, *activity_list );
 	    if ( activity_list->getNext() ) {
 		_self.exportPrecedence( _output, *(activity_list->getNext()) );
 	    }
-	    _output << _self.end_element( Xprecedence ) << std::endl;
+	    _output << XML::end_element( Xprecedence ) << std::endl;
 	}
 
         void
         Expat_Document::exportPrecedence( std::ostream& output, const ActivityList& activity_list ) const
         {
-            output << start_element( precedence_type_table[activity_list.getListType()] );
+            output << XML::start_element( precedence_type_table[activity_list.getListType()] );
             const AndJoinActivityList * join_list = dynamic_cast<const AndJoinActivityList *>(&activity_list);
             if ( join_list && hasResults() ) {
                 output  << ">" << std::endl;
@@ -2862,27 +2852,27 @@ namespace LQIO {
                 }
                 bool has_confidence = _document.hasConfidenceIntervals();
 
-                output << start_element( Xresult_join_delay, has_confidence )
-                       << attribute( Xjoin_waiting, join_list->getResultJoinDelay() )
-                       << attribute( Xjoin_variance, join_list->getResultVarianceJoinDelay() );
+                output << XML::start_element( Xresult_join_delay, has_confidence )
+                       << XML::attribute( Xjoin_waiting, join_list->getResultJoinDelay() )
+                       << XML::attribute( Xjoin_variance, join_list->getResultVarianceJoinDelay() );
                 if ( has_confidence ) {
                     output << ">" << std::endl;
-                    output << simple_element( Xresult_conf_95 )
-                           << attribute( Xjoin_waiting, _conf_95( join_list->getResultJoinDelayVariance() ) )
-                           << attribute( Xjoin_variance, _conf_95( join_list->getResultVarianceJoinDelayVariance() ) )
+                    output << XML::simple_element( Xresult_conf_95 )
+                           << XML::attribute( Xjoin_waiting, _conf_95( join_list->getResultJoinDelayVariance() ) )
+                           << XML::attribute( Xjoin_variance, _conf_95( join_list->getResultVarianceJoinDelayVariance() ) )
                            << "/>" << std::endl;
-                    output << simple_element( Xresult_conf_99 )
-                           << attribute( Xjoin_waiting, _conf_99( join_list->getResultJoinDelayVariance() ) )
-                           << attribute( Xjoin_variance, _conf_99( join_list->getResultVarianceJoinDelayVariance() ) )
+                    output << XML::simple_element( Xresult_conf_99 )
+                           << XML::attribute( Xjoin_waiting, _conf_99( join_list->getResultJoinDelayVariance() ) )
+                           << XML::attribute( Xjoin_variance, _conf_99( join_list->getResultVarianceJoinDelayVariance() ) )
                            << "/>" << std::endl;
                 }
-                output << end_element( Xresult_join_delay, has_confidence ) << std::endl;
+                output << XML::end_element( Xresult_join_delay, has_confidence ) << std::endl;
             } else if ( activity_list.getListType() == ActivityList::REPEAT_ACTIVITY_LIST ) {
                 const std::vector<const Activity*>& list = activity_list.getList();
                 for ( std::vector<const Activity*>::const_iterator next_activity = list.begin(); next_activity != list.end(); ++next_activity ) {
                     const Activity * activity = *next_activity;
                     if ( activity_list.getParameter( activity ) == NULL ) {
-                        output << attribute( Xend, activity->getName() );
+                        output << XML::attribute( Xend, activity->getName() );
                     }
                 }
                 output  << ">" << std::endl;
@@ -2904,22 +2894,22 @@ namespace LQIO {
 		default: break;
                 }
 
-                output << simple_element( Xactivity )
-                       << attribute( Xname, activity->getName() );
+                output << XML::simple_element( Xactivity )
+                       << XML::attribute( Xname, activity->getName() );
 
                 switch ( activity_list.getListType() ) {
                 case ActivityList::OR_FORK_ACTIVITY_LIST:
-                    output << attribute( Xprob, *value );
+                    output << XML::attribute( Xprob, *value );
                     break;
 
                 case ActivityList::REPEAT_ACTIVITY_LIST:
-                    output << attribute( Xcount, *value );
+                    output << XML::attribute( Xcount, *value );
                     break;
 		default: break;
                 }
                 output << "/>" << std::endl;
             }
-            output << end_element( precedence_type_table[activity_list.getListType()] ) << std::endl;
+            output << XML::end_element( precedence_type_table[activity_list.getListType()] ) << std::endl;
         }
 
 
@@ -2939,10 +2929,10 @@ namespace LQIO {
         Expat_Document::exportCall( std::ostream& output, const Call & call ) const
         {
             const bool complex_type = hasResults() || call.hasHistogram() || hasSPEX();
-            output << start_element( call_type_table[call.getCallType()].element, complex_type )
-                   << attribute( Xdest, call.getDestinationEntry()->getName() );
+            output << XML::start_element( call_type_table[call.getCallType()].element, complex_type )
+                   << XML::attribute( Xdest, call.getDestinationEntry()->getName() );
             if ( call.getCallMean() ) {
-                output << attribute( call_type_table[call.getCallType()].attribute, *call.getCallMean() );
+                output <<  XML::attribute( call_type_table[call.getCallType()].attribute, *call.getCallMean() );
             }
 
             if ( complex_type ) {
@@ -2953,37 +2943,37 @@ namespace LQIO {
 		}
 		if ( hasResults() ) {
 		    const bool has_confidence = _document.hasConfidenceIntervals();
-		    output << start_element( Xresult_call, has_confidence )
-			   << attribute( Xwaiting, call.getResultWaitingTime() );
+		    output << XML::start_element( Xresult_call, has_confidence )
+			   << XML::attribute( Xwaiting, call.getResultWaitingTime() );
 		    if ( call.hasResultVarianceWaitingTime() ) {
-			output << attribute( Xwaiting_variance, call.getResultVarianceWaitingTime() );
+			output << XML::attribute( Xwaiting_variance, call.getResultVarianceWaitingTime() );
 		    }
 		    if ( call.hasResultDropProbability() ) {
-			output << attribute( Xloss_probability, call.getResultDropProbability() );
+			output << XML::attribute( Xloss_probability, call.getResultDropProbability() );
 		    }
 
 		    if ( has_confidence ) {
 			output << ">" << std::endl;
-			output << simple_element( Xresult_conf_95 )
-			       << attribute( Xwaiting, _conf_95( call.getResultWaitingTimeVariance() ) );
+			output << XML::simple_element( Xresult_conf_95 )
+			       << XML::attribute( Xwaiting, _conf_95( call.getResultWaitingTimeVariance() ) );
 			if ( call.hasResultVarianceWaitingTime() ) {
-			    output << attribute( Xwaiting_variance, _conf_95( call.getResultVarianceWaitingTimeVariance() ) );
+			    output << XML::attribute( Xwaiting_variance, _conf_95( call.getResultVarianceWaitingTimeVariance() ) );
 			}
 			if ( call.hasResultDropProbability() ) {
-			    output << attribute( Xloss_probability, _conf_95( call.getResultDropProbabilityVariance() ) );
+			    output << XML::attribute( Xloss_probability, _conf_95( call.getResultDropProbabilityVariance() ) );
 			}
 			output << "/>" << std::endl;
-			output << simple_element( Xresult_conf_99 )
-			       << attribute( Xwaiting, _conf_99( call.getResultWaitingTimeVariance() ) );
+			output << XML::simple_element( Xresult_conf_99 )
+			       << XML::attribute( Xwaiting, _conf_99( call.getResultWaitingTimeVariance() ) );
 			if ( call.hasResultVarianceWaitingTime() ) {
-			    output << attribute( Xwaiting_variance, _conf_99( call.getResultVarianceWaitingTimeVariance() ) );
+			    output << XML::attribute( Xwaiting_variance, _conf_99( call.getResultVarianceWaitingTimeVariance() ) );
 			}
 			if ( call.hasResultDropProbability() ) {
-			    output << attribute( Xloss_probability, _conf_99( call.getResultDropProbabilityVariance() ) );
+			    output << XML::attribute( Xloss_probability, _conf_99( call.getResultDropProbabilityVariance() ) );
 			}
 			output << "/>" << std::endl;
 		    }
-		    output << end_element( Xresult_call, has_confidence ) << std::endl;
+		    output << XML::end_element( Xresult_call, has_confidence ) << std::endl;
 		}
 
 		if ( call.hasHistogram() ) {
@@ -2991,7 +2981,7 @@ namespace LQIO {
 		}
             }
 
-            output << end_element( call_type_table[call.getCallType()].element, complex_type ) << std::endl;
+            output << XML::end_element( call_type_table[call.getCallType()].element, complex_type ) << std::endl;
         }
 
 
@@ -3003,12 +2993,12 @@ namespace LQIO {
 	    const bool complex_type = histogram.hasResults();
 	    const XML_Char * element_name = histogram.getHistogramType() == Histogram::CONTINUOUS ? Xservice_time_distribution : Xqueue_length_distribution;
 
-            output << start_element( element_name, complex_type )
-                   << attribute( Xnumber_bins, histogram.getBins() )
-                   << attribute( Xmin, histogram.getMin() )
-                   << attribute( Xmax, histogram.getMax() );
+            output << XML::start_element( element_name, complex_type )
+                   << XML::attribute( Xnumber_bins, histogram.getBins() )
+                   << XML::attribute( Xmin, histogram.getMin() )
+                   << XML::attribute( Xmax, histogram.getMax() );
 	    if ( phase > 0 ) {
-		output << attribute( Xphase, phase );
+		output << XML::attribute( Xphase, phase );
 	    }
 	    if ( complex_type ) {
 		output << ">" << std::endl;
@@ -3023,20 +3013,20 @@ namespace LQIO {
 		    } else {
 			bin_name = Xhistogram_bin;
 		    }
-		    output << start_element( bin_name, false )
-			   << attribute( Xbegin, histogram.getBinBegin(i) )
-			   << attribute( Xend,   histogram.getBinEnd(i)  )
-			   << attribute( Xprob,  histogram.getBinMean(i) );
+		    output << XML::start_element( bin_name, false )
+			   << XML::attribute( Xbegin, histogram.getBinBegin(i) )
+			   << XML::attribute( Xend,   histogram.getBinEnd(i)  )
+			   << XML::attribute( Xprob,  histogram.getBinMean(i) );
 		    const double variance = histogram.getBinVariance(i);
 		    if ( variance > 0 && _document.hasConfidenceIntervals() ) {
-			output << attribute( Xconf_95, _conf_95( variance ) )
-			       << attribute( Xconf_99, _conf_99( variance ) );
+			output << XML::attribute( Xconf_95, _conf_95( variance ) )
+			       << XML::attribute( Xconf_99, _conf_99( variance ) );
 		    }
-		    output << end_element( bin_name, false ) << std::endl;
+		    output << XML::end_element( bin_name, false ) << std::endl;
 		}
 	    }
 
-            output << end_element( element_name, complex_type ) << std::endl;
+            output << XML::end_element( element_name, complex_type ) << std::endl;
         }
 
 
@@ -3048,22 +3038,22 @@ namespace LQIO {
 		const bool has_95 = find_if( range.first, range.second, HasConfidenceObservation( 95 ) ) != range.second;
 		const bool has_99 = find_if( range.first, range.second, HasConfidenceObservation( 99 ) ) != range.second;
 		const bool complex_type = has_95 || has_99;
-		output << start_element( Xresult_observation, complex_type );
+		output << XML::start_element( Xresult_observation, complex_type );
 		for_each( range.first, range.second, ExportObservation( output ) );
 		if ( complex_type ) {
 		    output << ">" << std::endl;
 		    if ( has_95 ) {
-			output << start_element( Xconf_95, false );
+			output << XML::start_element( Xconf_95, false );
 			for_each( range.first, range.second, ExportObservation( output, 95 ) );
 			output << "/>" << std::endl;
 		    }
 		    if ( has_99 ) {
-			output << start_element( Xconf_99, false );
+			output << XML::start_element( Xconf_99, false );
 			for_each( range.first, range.second, ExportObservation( output, 99 ) );
 			output << "/>" << std::endl;
 		    }
 		}
-		output << end_element( Xresult_observation, complex_type ) << std::endl;
+		output << XML::end_element( Xresult_observation, complex_type ) << std::endl;
 	    }
 	}
 	
@@ -3074,13 +3064,15 @@ namespace LQIO {
 	    const std::string& program_text = _document.getLQXProgramText();
             if ( program_text.size() > 0 || program != NULL ) {
 		const int precision = output.precision(10);
-                output << start_element( Xlqx ) << "><![CDATA[" << std::endl;
-		if ( program_text.size() > 0 ) {
-		    output << program_text;
+                output << XML::start_element( Xlqx );
+		if (  !program_text.empty() ) {
+		    output << XML::cdata( "\n" + program_text );
 		} else {
-		    program->print( output );
+		    std::ostringstream ss;
+		    program->print( ss );
+		    output << XML::cdata( ss.str() );
 		}
-		output << "]]>" << std::endl << end_element( Xlqx ) << std::endl;
+		output << std::endl << XML::end_element( Xlqx ) << std::endl;
 		output.precision(precision);
 	    }
         }
@@ -3093,11 +3085,11 @@ namespace LQIO {
 	    if ( results.size() > 0 ) {
 		const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
 		const int precision = output.precision(10);
-		output << start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
+		output << XML::start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
 		LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 		for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputArrayVariable( output ) );
 		for_each( results.begin(), results.end(), Spex::PrintResultVariable( output ) );
-		output /* << "]]>" << std::endl */ << end_element( Xspex_results ) << std::endl;
+		output /* << "]]>" << std::endl */ << XML::end_element( Xspex_results ) << std::endl;
 		output.precision(precision);
 	    }
 	}
@@ -3110,7 +3102,7 @@ namespace LQIO {
         void
         Expat_Document::exportFooter( std::ostream& output ) const
         {
-            output << end_element( Xlqn_model ) << std::endl;
+            output << XML::end_element( Xlqn_model ) << std::endl;
         }
 
         bool
@@ -3132,7 +3124,7 @@ namespace LQIO {
                 if ( !entry.hasResultsForPhase(p) ) continue;
                 const double value = (entry.*func)(p);
                 if ( value > 0.0 ) {
-                    output << attribute( attributes[p-1], conf ? (*conf)(value) : value );
+                    output <<  XML::attribute( attributes[p-1], conf ? (*conf)(value) : value );
                 }
             }
             return output;
@@ -3151,7 +3143,7 @@ namespace LQIO {
             for ( unsigned p = 1; p <= task.getResultPhaseCount(); ++p ) {
                 const double value = (task.*func)(p);
                 if ( value > 0.0 ) {
-                    output << attribute( attributes[p-1], conf ? (*conf)(value) : value );
+                    output <<  XML::attribute( attributes[p-1], conf ? (*conf)(value) : value );
                 }
             }
             return output;
@@ -3189,12 +3181,6 @@ namespace LQIO {
             entry_table.insert(Xopen_arrival_rate);
             entry_table.insert(Xsemaphore);
             entry_table.insert(Xrwlock);
-
-	    escape_table['&']  = "&amp;";
-	    escape_table['\''] = "&apos;";
-	    escape_table['>']  = "&gt;";
-	    escape_table['<']  = "&lt;";
-	    escape_table['"']  = "&qout;";
 
             group_table.insert(Xname);
             group_table.insert(Xcap);
@@ -3338,115 +3324,6 @@ namespace LQIO {
 	    __key_lqx_function_map[KEY_WAITING]			= Xwaiting;
 	    __key_lqx_function_map[KEY_WAITING_VARIANCE]	= Xwaiting_variance;
         };
-
-        std::ostream&
-        Expat_Document::printIndent( std::ostream& output, const int i )
-        {
-            if ( i < 0 ) {
-                if ( __indent + i < 0 ) {
-                    __indent = 0;
-                } else {
-                    __indent += i;
-                }
-            }
-            if ( __indent != 0 ) {
-                output << std::setw( __indent * 3 ) << " ";
-            }
-            if ( i > 0 ) {
-                __indent += i;
-            }
-            return output;
-        }
-
-
-        std::ostream&
-        Expat_Document::printStartElement( std::ostream& output, const XML_Char * element, const bool complex_element )
-        {
-            output << indent( complex_element ? 1 : 0  ) << "<" << element;
-            return output;
-        }
-
-        std::ostream&
-        Expat_Document::printEndElement( std::ostream& output, const XML_Char * element, const bool complex_element )
-        {
-            if ( complex_element ) {
-                output << indent( -1 ) << "</" << element << ">";
-            } else {
-                output << "/>";
-            }
-            return output;
-        }
-
-
-        /*
-	 * Print out an attribtue stored as a string.  If we encounter
-	 * an &, or any other character in escape_table, we have to
-	 * escape it.
-	 */
-
-	std::ostream&
-        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const XML_Char * value )
-        {
-            output << " " << attribute << "=\"";
-	    for ( ; *value != 0; ++value ) {
-		std::map<const XML_Char,const XML_Char *>::const_iterator item = escape_table.find(*value);
-		if ( item == escape_table.end() ) {
-		    output << *value;
-		} else if ( item->first != '&' ) {
-		    output << item->second;
-		} else {
-		    unsigned int i;
-		    bool valid = false;
-		    for ( i = 1; isalnum( value[i] ); ++i );
-		    valid = ( value[i] == ';' );
-		    if ( !valid && value[1] == '#' ) {
-			for ( i = 2; isxdigit( value[i] ); ++i );
-			valid = ( value[i] == ';' );
-		    }
-		    if ( valid ) {
-			output << *value;	/* Found valid escape... ignore processing here */
-		    } else {
-			output << item->second;	/* No match in table so must escape ampresand */
-		    }
-		}
-	    }
-	    output << "\"";
-            return output;
-        }
-
-        std::ostream&
-        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const double value )
-        {
-            output << " " << attribute << "=\"" <<  value << "\"";
-            return output;
-        }
-
-        std::ostream&
-        Expat_Document::printAttribute( std::ostream& output, const XML_Char * attribute, const ExternalVariable& var )
-        {
-            output << " " << attribute << "=\"" << var << "\"";
-            return output;
-        }
-
-	std::ostream&
-	Expat_Document::printComment( std::ostream& output, const std::string& s )
-	{
-	    output << indent(0) << "<!-- ";
-	    for ( std::string::const_iterator p = s.begin(); p != s.end() ; ++p ) {	/* Handle comments */
-		if ( *p != '-' || *(p+1) != '-' ) {
-		    output << *p;						/* Strip '--' strings */
-		}
-	    }
-	    output << " -->" << std::endl;
-	    return output;
-	}
-
-        std::ostream&
-        Expat_Document::printTime( std::ostream& output, const XML_Char * attribute, const double time )
-        {
-            output << " " << attribute << "=\"" << LQIO::DOM::CPUTime::print( time ) <<  "\"";
-            return output;
-        }
     }
 }
 
@@ -3610,7 +3487,6 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xwaiting_variance =                    "waiting-variance";
         const XML_Char * Expat_Document::Xxml_debug =                           "xml-debug";
 
-	std::map<const XML_Char, const XML_Char *> Expat_Document::escape_table;
         std::map<const XML_Char *,ActivityList::ActivityListType,Expat_Document::attribute_table_t> Expat_Document::precedence_table;
         std::map<const XML_Char *,Expat_Document::result_table_t,Expat_Document::result_table_t>  Expat_Document::result_table;
         std::map<const XML_Char *,Expat_Document::observation_table_t,Expat_Document::observation_table_t>  Expat_Document::observation_table;	/* SPEX */

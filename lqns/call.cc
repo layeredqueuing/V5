@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: call.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -17,11 +17,12 @@
 #include <cmath>
 #include <sstream>
 #include <algorithm>
+#include <mva/server.h>
+#include <mva/fpgoop.h>
 #include "call.h"
 #include "entry.h"
 #include "task.h"
 #include "submodel.h"
-#include "server.h"
 #include "phase.h"
 #include "activity.h"
 #include "errmsg.h"

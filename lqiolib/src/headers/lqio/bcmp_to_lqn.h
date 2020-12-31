@@ -13,6 +13,8 @@
 
 namespace LQIO {
     namespace DOM {
+	class Entry;
+	class Task;
 	class Document;
     }
 }
@@ -21,30 +23,57 @@ namespace LQIO {
 namespace LQIO {
     namespace DOM {
 	class BCMP_to_LQN {
-	public:
-	    BCMP_to_LQN( const BCMP::Model& bcmp, Document& lqn ) : _bcmp(bcmp), _lqn(lqn) {}
+	    typedef std::pair<std::string,LQIO::DOM::Entry *> entry_item;
+	    typedef std::map<std::string,LQIO::DOM::Entry *> entry_type;
 
-	    bool convert() const;
+	public:
+	    BCMP_to_LQN( const BCMP::Model& bcmp, Document& lqn ) : _bcmp(bcmp), _lqn(lqn), _client_entries(), _server_entries() {}
+
+	    bool convert();
 
 	private:
 	    const BCMP::Model::Model::Station::map_t& stations() const { return _bcmp.stations(); }
 	    const BCMP::Model::Class::map_t& classes() const { return _bcmp.classes(); }
-	    
 	
 	private:
-	    struct createLQNTaskProcessor
+	    class Self {
+	    public:
+		Self( BCMP_to_LQN& self ) : _self(self) {}
+		
+		const BCMP::Model::Model::Station::map_t& stations() const { return _self.stations(); }
+		const BCMP::Model::Class::map_t& classes() const { return _self.classes(); }
+		Document& lqn() { return _self._lqn; }
+		entry_type& client_entries() { return _self._client_entries; };
+		const entry_type& client_entries() const { return _self._client_entries; };
+		entry_type& server_entries() { return _self._server_entries; };
+		const entry_type& server_entries() const { return _self._server_entries; };
+
+	    private:
+		BCMP_to_LQN& _self;
+	    };
+	    
+	    class createLQNTaskProcessor : private Self
 	    {
-		createLQNTaskProcessor( LQIO::DOM::Document& lqn ) : _lqn(lqn) {}
+	    public:
+		createLQNTaskProcessor( BCMP_to_LQN& self ) : Self(self) {}
 
 		void operator()( const BCMP::Model::Station::pair_t& );
 		void operator()( const BCMP::Model::Class::pair_t& );
-	    private:
-		LQIO::DOM::Document& _lqn;
+	    };
+
+	    class connectClassToStation : private Self
+	    {
+	    public:
+		connectClassToStation( BCMP_to_LQN& self ) : Self(self) {}
+
+		void operator()( const BCMP::Model::Class::pair_t& );
 	    };
 
 	private:
 	    const BCMP::Model& _bcmp;
 	    Document& _lqn;
+	    entry_type _client_entries;
+	    entry_type _server_entries;
 	};
     }
 }

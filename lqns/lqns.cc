@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: lqns.cc 14306 2020-12-31 15:17:22Z greg $
  *
  * Command line processing.
  *
@@ -34,6 +34,8 @@
 #if !defined(HAVE_GETSUBOPT)
 #include <lqio/getsbopt.h>
 #endif
+#include <mva/fpgoop.h>
+#include <mva/mva.h>
 #include "generate.h"
 #include "help.h"
 #include "option.h"
@@ -41,8 +43,6 @@
 #include "errmsg.h"
 #include "lqns.h"
 #include "model.h"
-#include "fpgoop.h"
-#include "mva.h"
 #include "runlqx.h"
 
 extern "C" int LQIO_debug;
@@ -189,7 +189,7 @@ int main (int argc, char *argv[])
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
     command_line = LQIO::io_vars.lq_toolname;
 
-    sscanf( "$Date: 2020-11-26 16:52:21 -0500 (Thu, 26 Nov 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-31 10:17:22 -0500 (Thu, 31 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     matherr_disposition = FP_IMMEDIATE_ABORT;
 
@@ -711,8 +711,8 @@ under_relax( double& old_value, const double new_value, const double relax )
 #endif
 
 #if defined(__GNUC__) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-#include "prob.h"
-#include "server.h"
+#include <mva/prob.h>
+#include <mva/server.h>
 #if !defined(TESTMVA) && !defined(TESTDIST)
 #include "randomvar.h"
 #include "activity.h"
@@ -734,37 +734,7 @@ under_relax( double& old_value, const double new_value, const double relax )
 #if !defined(TESTMVA) || defined(TESTDIST)
 #include "randomvar.h"
 #endif
-#include "vector.h"
-#include "vector.cc"
-
-#if	!defined(TESTMVA) && !defined(TESTDIST)
-template class Vector<Activity *>;
-template class Vector<const Activity *>;
-template class Vector<Entry *>;
-template class Vector<Submodel *>;
-template class Vector<Thread *>;
-template class Vector<const AndForkActivityList*>;
-template class Vector<Exponential>;
-template class Vector<Phase>;
-template class Vector<InterlockInfo>;
-template class Vector<MVACount>;
-#if _WIN64
-template class Vector<unsigned long long>;
-#endif
-template class Vector<Vector<Exponential> >;
-template class Vector<Vector<unsigned> >;
-template class Vector<VectorMath<double> >;
-template class Vector<VectorMath<unsigned> >;
-template class Vector<unsigned short>;
-#endif
-template class Vector<double>;
-template class Vector<unsigned int>;
-template class Vector<unsigned long>;
-template class Vector<Server *>;
-template class Vector<Probability>;
-template class VectorMath<unsigned int>;
-template class VectorMath<double>;
-template class VectorMath<Probability>;
+#include <mva/vector.h>
 
 template std::ostream& operator<< ( std::ostream& output, const Vector<unsigned int>& self );
 template std::ostream& operator<< ( std::ostream& output, const VectorMath<unsigned int>& self );

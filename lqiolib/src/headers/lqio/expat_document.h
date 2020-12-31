@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 14276 2020-12-28 02:25:21Z greg $
+ *  $Id: expat_document.h 14292 2020-12-30 16:29:20Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -115,18 +115,6 @@ namespace LQIO {
 
 		friend std::ostream& operator<<(std::ostream & os, const XMLCharDoubleManip& m ) { return m._f(os,m._a,m._v); }
 	    };
-
-	    class ExternalVariableManip {
-	    public:
-		ExternalVariableManip( std::ostream& (*f)(std::ostream&, const XML_Char *, const ExternalVariable& ), const XML_Char * a, const ExternalVariable& v ) : _f(f), _a(a), _v(v) {}
-	    private:
-		std::ostream& (*_f)( std::ostream&, const XML_Char *, const ExternalVariable& );
-		const XML_Char * _a;
-		const ExternalVariable& _v;
-
-		friend std::ostream& operator<<(std::ostream & os, const ExternalVariableManip& m ) { return m._f(os,m._a,m._v); }
-	    };
-
 
 	    class EntryResultsManip {
 	    public:
@@ -340,28 +328,8 @@ namespace LQIO {
 	    void exportSPEXConvergence( std::ostream& output ) const;
 	    void exportFooter( std::ostream& output ) const;
 	    static void init_tables();
-	    static std::ostream& printIndent( std::ostream& output, const int i );
-	    static std::ostream& printStartElement( std::ostream& output, const XML_Char * a, const bool b );
-	    static std::ostream& printEndElement( std::ostream& output, const XML_Char * a, const bool b );
-	    static std::ostream& printAttribute( std::ostream& output, const XML_Char * a, const XML_Char * v );
-	    static std::ostream& printAttribute( std::ostream& output, const XML_Char * a, const double v );
-	    static std::ostream& printAttribute( std::ostream& output, const XML_Char * a, const ExternalVariable& v );
-	    static std::ostream& printComment( std::ostream& output, const std::string& s );
-	    static std::ostream& printTime( std::ostream& output, const XML_Char * a, const double v );
 	    static std::ostream& printEntryPhaseResults( std::ostream& output, const Entry & entry, const XML_Char ** attributes, const doubleEntryFunc func, const ConfidenceIntervals * );
 	    static std::ostream& printTaskPhaseResults( std::ostream& output, const Task & task, const XML_Char ** attributes, const doubleTaskFunc func, const ConfidenceIntervals * );
-
-	    static IntegerManip indent( const int i ) { return IntegerManip( &printIndent, i ); }
-	    static XMLCharManip attribute( const XML_Char *a, const XML_Char * v ) { return XMLCharManip( &printAttribute, a, v ); }
-	    static XMLCharManip attribute( const XML_Char *a, const std::string& v ) { return XMLCharManip( &printAttribute, a, v.c_str() ); }
-	    static StringManip comment( const std::string& s ) { return StringManip( &printComment, s ); }
-	    static ExternalVariableManip attribute( const XML_Char *a, const ExternalVariable& v ) { return ExternalVariableManip( &printAttribute, a, v ); }
-	    static XMLCharDoubleManip attribute( const XML_Char *a, const double v ) { return XMLCharDoubleManip( &printAttribute, a, v ); }
-	    static XMLCharDoubleManip time_attribute( const XML_Char *a, const double v ) { return XMLCharDoubleManip( &printTime, a, v ); }
-	    static XMLCharBoolManip start_element( const XML_Char * e, const bool b=true ) { return XMLCharBoolManip( &printStartElement, e, b ); }
-	    static XMLCharBoolManip end_element( const XML_Char * e, const bool b=true ) { return XMLCharBoolManip( &printEndElement, e, b ); }
-	    static XMLCharBoolManip simple_element( const XML_Char * e ) { return XMLCharBoolManip( &printStartElement, e, false ); }
-
 	    static EntryResultsManip entry_phase_results( const Entry& t, const XML_Char ** l, doubleEntryFunc f, const ConfidenceIntervals * c=0 ) { return EntryResultsManip( &printEntryPhaseResults, t, l, f, c ); }
 	    static TaskResultsManip task_phase_results( const Task& t, const XML_Char ** l, doubleTaskFunc f, const ConfidenceIntervals * c=0 ) { return TaskResultsManip( &printTaskPhaseResults, t, l, f, c ); }
 
@@ -384,8 +352,6 @@ namespace LQIO {
 	    std::set<LQIO::Spex::ObservationInfo,LQIO::Spex::ObservationInfo> _spex_observation;
 	    /*- SPEX */
 
-	    static int __indent;
-
 	private:
 	    static std::set<const XML_Char *,attribute_table_t> model_table;
 	    static std::set<const XML_Char *,attribute_table_t> parameter_table;
@@ -397,7 +363,6 @@ namespace LQIO {
 	    static std::set<const XML_Char *,attribute_table_t> call_table;
 	    static std::set<const XML_Char *,attribute_table_t> histogram_table;
 
-	    static std::map<const XML_Char,const XML_Char *> escape_table;
 
 	    static std::map<const XML_Char *,ActivityList::ActivityListType,attribute_table_t> precedence_table;
 	    static const XML_Char * precedence_type_table[];

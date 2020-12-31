@@ -753,6 +753,6 @@ Entity::create_station::operator()( const Entity * entity ) const
     else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
     else type = BCMP::Model::Station::LOAD_INDEPENDENT;
-    _model.insertStation( entity->name(), type, scheduling(), entity->copiesValue() );
+    _model.insertStation( entity->name(), type, entity->scheduling(), entity->copiesValue() );
 }
 

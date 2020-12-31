@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14269 2020-12-27 05:03:18Z greg $
+ * $Id: lqn2ps.cc 14292 2020-12-30 16:29:20Z greg $
  *
  * Command line processing.
  *
@@ -191,7 +191,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-27 00:03:18 -0500 (Sun, 27 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2020-12-30 11:29:20 -0500 (Wed, 30 Dec 2020) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -964,7 +964,7 @@ process( const std::string& input_file_name, const std::string& output_file_name
 #endif
     Model::prepare( document );				/* This creates the various objects 	*/
 #if BUG_270
-    if ( Flags::prune ) {
+    if ( Flags::prune ) {		/* Never prune if generating LQN	*/
 	Model::prune();
     }
 #endif

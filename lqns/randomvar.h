@@ -8,7 +8,7 @@
  *
  * January, 2005
  *
- * $Id: randomvar.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: randomvar.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -16,9 +16,9 @@
 #ifndef LQNS_AGGR_H
 #define LQNS_AGGR_H
 
-#include "vector.h"
-#include "prob.h"
 #include <string>
+#include <mva/vector.h>
+#include <mva/prob.h>
 	  
 class Exponential;
 class DiscretePoints;

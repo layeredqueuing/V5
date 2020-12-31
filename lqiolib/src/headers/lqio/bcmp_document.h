@@ -115,11 +115,12 @@ namespace BCMP {
 
 	public:
 	    Station() : _type(NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(1), _demands() {}
-	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) : _type(type), _scheduling(SCHEDULE_DELAY), _copies(copies) {}
+	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) : _type(type), _scheduling(scheduling), _copies(copies) {}
 
 	    bool insertDemand( const std::string&, const Demand& );
 	    
 	    Type type() const { return _type; }
+	    void setType(Type type) { _type = type; }
 	    scheduling_type scheduling() const { return _scheduling; }
 	    unsigned int copies() const { return _copies; }
 	    Demand::map_t& demands() { return _demands; }
@@ -168,10 +169,11 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
     public:
-	Model() : _classes(), _stations() {}
+	Model() : _comment(), _classes(), _stations() {}
 	virtual ~Model() {}
 
 	bool empty() const { return _classes.size() == 0 || _stations.size() == 0; }
+	const std::string& comment() const { return _comment; }
 	Class::map_t& classes() { return _classes; }
 	const Class::map_t& classes() const { return _classes; }
 	Station::map_t& stations() { return _stations; }
@@ -181,6 +183,7 @@ namespace BCMP {
 	Class& classAt( const std::string& name ) { return _classes.at(name); }
 	const Class& classAt( const std::string& name ) const { return _classes.at(name); }
 
+	bool insertComment( const std::string comment ) { _comment = comment; return true; }
 	bool insertClass( const std::string&, Class::Type, unsigned int, double=0.0 );
 	bool insertStation( const std::string&, const Station& ); 
 	bool insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) { return insertStation( name, Station( type, scheduling, copies ) ); }
@@ -191,7 +194,6 @@ namespace BCMP {
 	
 	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
 
-    public:
 	struct pad_demand {
 	    pad_demand( const Class::map_t& classes ) : _classes(classes) {}
 	    void operator()( const Station::pair_t& station ) const;
@@ -206,10 +208,7 @@ namespace BCMP {
 	    const Station::Demand::map_t& _visits;
 	};
 
-    protected:
-	Class::map_t _classes;
-	Station::map_t _stations;
-
+    private:
 	struct update_demand {
 	    update_demand( Station& station, Station::Demand::map_t& demands ) : _station(station), _demands(demands) {}
 	    void operator()( const Class::pair_t& k ) { _station.demandAt( k.first ) = _demands.at( k.first ); }
@@ -217,6 +216,11 @@ namespace BCMP {
 	    Station& _station;
 	    const Station::Demand::map_t& _demands;
 	};
+
+    private:
+	std::string _comment;
+	Class::map_t _classes;
+	Station::map_t _stations;
     };
 }
 #endif /* */

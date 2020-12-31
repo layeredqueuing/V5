@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14201 2020-12-10 16:33:17Z greg $
+ * $Id: dim.h 14305 2020-12-31 14:51:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -41,27 +41,6 @@ const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
 
-/*
- * Compute and return factorial.
- */
-double ln_gamma( const double x );
-double factorial( unsigned n );
-double log_factorial( const unsigned n );
-double binomial_coef( const unsigned n, const unsigned k );
-
-/*
- * Compute and return power.  We don't use pow() because we know that b is always an integer.
- */
-
-double power( double a, int b );
-
-/*
- * Choose
- */
-
-double choose( unsigned i, unsigned j );
-
-
 /* 
  * Common under-relaxation code.  Adapted to include newton-raphson
  * adjustment.  
@@ -69,64 +48,11 @@ double choose( unsigned i, unsigned j );
 
 void under_relax( double& old_value, const double new_value, const double relax );
 
-class class_error : public std::exception 
+class exception_handled : public std::runtime_error
 {
 public:
-    class_error( const std::string& aStr, const char * file, const unsigned line, const char * anError );
-    virtual ~class_error() throw() = 0;
-    virtual const char* what() const throw();
-
-private:
-    std::string _msg;
-};
-
-
-class subclass_responsibility : public class_error 
-{
-public:
-    subclass_responsibility( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Subclass responsibility." ) {}
-    virtual ~subclass_responsibility() throw() {}
-};
-
-class not_implemented  : public class_error 
-{
-public:
-    not_implemented( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Not implemented." ) {}
-    virtual ~not_implemented() throw() {}
-};
-
-
-class should_not_implement  : public class_error 
-{
-public:
-    should_not_implement( const std::string& aStr, const char * file, const unsigned line )
-	: class_error( aStr, file, line, "Should not implement." ) {}
-    virtual ~should_not_implement() throw() {}
-};
-
-class path_error : public std::exception {
-public:
-    explicit path_error( const unsigned depth=0 ) : _depth(depth) {}
-    virtual ~path_error() throw() = 0;
-    virtual const char * what() const throw();
-    unsigned depth() const { return _depth; }
-
-protected:
-    std::string _msg;
-    const unsigned _depth;
-};
-
-class exception_handled : public std::exception 
-{
-public:
-    explicit exception_handled( const std::string& aStr ) : std::exception(), _msg(aStr) {}
+    explicit exception_handled( const std::string& aStr ) : std::runtime_error(aStr.c_str()) {}
     virtual ~exception_handled() throw() {}
-    virtual const char * what() const throw();
-
-private:
-    std::string _msg;
 };
 
 static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14145 2020-11-26 21:52:21Z greg $
+ * $Id: submodel.cc 14305 2020-12-31 14:51:49Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -52,29 +52,29 @@
 #include <cstdlib>
 #include <string.h>
 #include <cmath>
+#include <mva/mva.h>
+#include <mva/open.h>
+#include <mva/prob.h>
+#include <mva/server.h>
+#include <mva/vector.h>
+#include <mva/fpgoop.h>
 #include "activity.h"
 #include "call.h"
 #include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
-#include "fpgoop.h"
 #include "generate.h"
 #include "group.h"
 #include "interlock.h"
 #include "lqns.h"
 #include "model.h"
-#include "mva.h"
-#include "open.h"
 #include "option.h"
 #include "overtake.h"
 #include "pragma.h"
-#include "prob.h"
 #include "processor.h"
 #include "report.h"
-#include "server.h"
 #include "submodel.h"
 #include "task.h"
-#include "vector.h"
 
 #define	QL_INTERLOCK
 
