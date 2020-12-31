@@ -1,0 +1,47 @@
+& $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/libmva/regression/test0.qnap $
+&
+& Lazowska, Ch 6, Page 117
+&
+& ------------------------------------------------------------------------
+& $Id: test0.qnap 7648 2008-01-19 20:40:21Z greg $
+& ------------------------------------------------------------------------
+/declare/
+   queue Disk1, Disk2, Think, CPU;
+&
+&
+&
+/station/
+   name = CPU;
+   service = exp(0.005);
+   init = 3;
+   transit = Disk1,70,
+       Disk2,50,
+       Think,1;
+
+/station/
+   name = Disk1;
+   sched = fifo;
+   service = exp(0.03);
+   transit = CPU;
+
+/station/
+   name = Disk2;
+   sched = fifo;
+   service = exp(0.027);
+   transit = CPU;
+
+/station/
+   name = Think;
+   type = infinite;
+   sched = fifo;
+   service = exp(15);
+   transit = CPU;
+
+&
+&
+&
+/exec/
+   begin
+      solve;
+   end;
+/end/

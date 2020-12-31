@@ -1,0 +1,33 @@
+# $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/libmva/regression/test0.lqn $
+#
+# Lazowska, Ch 6, Page 117
+#
+# ------------------------------------------------------------------------
+# $Id: test0.lqn 7651 2008-01-21 01:09:25Z greg $
+# ------------------------------------------------------------------------
+
+G "" 1e-05 50 10 0.9 -1
+
+P 3
+  p CPU f
+  p Disk1 f i
+  p Disk2 f i
+-1
+
+T 3
+  t Client r Client -1 CPU z 15 m 3
+  t Disk1 n Disk1 -1 Disk1
+  t Disk2 n Disk2 -1 Disk2
+-1
+
+E 3
+# ---------- Client ----------
+  s Client 0.605 -1
+  y Client Disk1 70 -1
+  y Client Disk2 50 -1
+# ---------- Disk1 ----------
+  s Disk1 0.03 -1
+# ---------- Disk2 ----------
+  s Disk2 0.027 -1
+-1
+

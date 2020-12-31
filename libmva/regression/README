@@ -1,0 +1,27 @@
+Args to test* programs.
+-a: all solvers.
+-b: Bard Schweitzer
+-d: debug
+-e: Exact MVA
+-f: Fast linearizer.
+-l: Linearizer. [default]
+-n <arg>: count?
+-s: silent mode.
+-S: nocheck mode.
+-v: verbose flag.
+-z <arg>: special.
+
+
+test1 -	Chandy and Neuse, Linearizer, CACM, Feb 1982, 25(2) pp 126-134
+test2 - FCFS 
+test3 - Pg 264, Lazowska, FCFS
+test4 - Pg 264, Lazowska, HVFCFS
+test5 - Pg 264, Lazowska test. FCFS
+test6 - 
+test7 - Markov Phased Server
+test8 - Conway Multi Server
+test9 - Reiser Multi Server
+test10 - Rolia Multi Server
+test11 - Priority MVA
+test12 - Conway (deSouza...) Multi Server
+test13 - Suri Multi Server
