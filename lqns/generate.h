@@ -9,7 +9,7 @@ double  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/g
  *
  * November, 1994
  *
- * $Id: generate.h 14140 2020-11-25 20:24:15Z greg $
+ * $Id: generate.h 14319 2021-01-02 04:11:00Z greg $
  *
  * ------------------------------------------------------------------------
  */

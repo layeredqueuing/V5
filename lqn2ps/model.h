@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14269 2020-12-27 05:03:18Z greg $
+ * $Id: model.h 14328 2021-01-04 02:24:47Z greg $
  */
 
 #ifndef _MODEL_H
@@ -218,7 +218,7 @@ private:
     Model& returnReplication();
 #endif
     Model& rename();
-    Model& squishNames();
+    Model& squish();
     Model const& format( Layer& aSubmodel );
 
     unsigned count( const taskPredicate ) const;

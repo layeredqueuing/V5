@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14249 2020-12-24 05:12:09Z greg $
+ * $Id: phase.h 14316 2021-01-01 06:15:29Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -115,7 +115,9 @@ public:
     double serviceExceeded() const;
     double queueingTime() const;
     double utilization() const;
+    static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const std::pair<unsigned int, Phase>& );
     static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& );
+    static double accumulate_execution( double, const std::pair<unsigned int, Phase>& );
 
     bool hasQueueingTime() const;
     bool isNonExponential() const;

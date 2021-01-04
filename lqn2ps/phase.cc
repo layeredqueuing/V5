@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14249 2020-12-24 05:12:09Z greg $
+ * $Id: phase.cc 14316 2021-01-01 06:15:29Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -132,10 +132,7 @@ Phase::thinkTime() const
 bool
 Phase::hasCV_sqr() const 
 {
-    if ( getDOM() == NULL ) return false;
-    const LQIO::DOM::ExternalVariable * var = getDOM()->getCoeffOfVariationSquared();
-    double value = 1.0;
-    return var != NULL && ( !var->wasSet() || !var->getValue( value ) || value != 1.0 );
+    return !LQIO::DOM::ExternalVariable::isDefault( getDOM()->getCoeffOfVariationSquared(), 1.0 );
 }
 
 
@@ -198,6 +195,22 @@ Phase::utilization() const
 }
 
 
+/*
+ * Add two constant external variables.  Otherwise propogate one of the other.
+ */
+
+/* static */
+const LQIO::DOM::ExternalVariable *
+Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& addend )
+{
+    if ( !LQIO::DOM::ExternalVariable::isDefault( augend ) && !LQIO::DOM::ExternalVariable::isDefault( addend.second.getDOM()->getServiceTime() ) ) {
+	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend.second.getDOM()->getServiceTime()) );
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+	return addend.second.getDOM()->getServiceTime();
+    } else {
+	return augend;
+    }
+}
 
 /*
  * I only visit the processor once for all intents and purposes.
@@ -206,8 +219,15 @@ Phase::utilization() const
 /* static */ BCMP::Model::Station::Demand
 Phase::accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& p )
 {
-    return augend + BCMP::Model::Station::Demand( 1.0, to_double(p.second.serviceTime()) );
+    return augend + BCMP::Model::Station::Demand( new LQIO::DOM::ConstantExternalVariable(1.0), &p.second.serviceTime() );
 }
+
+/* static */ double
+Phase::accumulate_execution( double augend, const std::pair<unsigned int, Phase>& addend )
+{
+    return augend + addend.second.executionTime();
+}
+
 
 /* --- */
 

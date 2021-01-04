@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: option.cc 14319 2021-01-02 04:11:00Z greg $
  */
 
 #include <config.h>

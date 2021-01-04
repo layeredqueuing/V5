@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14269 2020-12-27 05:03:18Z greg $
+ * $Id: model.cc 14328 2021-01-04 02:24:47Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -202,6 +202,13 @@ Model::~Model()
 	delete *g;
     }
     Group::__groups.clear();
+
+    Processor::__key_table.clear();
+    Processor::__symbol_table.clear();
+    Task::__key_table.clear();
+    Task::__symbol_table.clear();
+    Entry::__key_table.clear();
+    Entry::__symbol_table.clear();
 
     _layers.clear();
     if ( _key ) {
@@ -521,7 +528,7 @@ Model::process()
     if ( Flags::rename_model ) {
 	rename();
     } else if ( Flags::squish_names ) {
-	squishNames();
+	squish();
     }
 
     Processor * surrogate_processor = 0;
@@ -1096,11 +1103,11 @@ Model::rename()
  */
 
 Model&
-Model::squishNames()
+Model::squish()
 {
-    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec<Element>( &Element::squishName ) );
-    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec<Element>( &Element::squishName ) );
-    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec<Element>( &Element::squishName ) );
+    for_each( Processor::__processors.begin(), Processor::__processors.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Processor::__key_table, Processor::__symbol_table ) );
+    for_each( Task::__tasks.begin(), Task::__tasks.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Task::__key_table, Task::__symbol_table ) );
+    for_each( Entry::__entries.begin(), Entry::__entries.end(), ::Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, Entry::__key_table, Entry::__symbol_table ) );
     return *this;
 }
 

@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14282 2020-12-28 19:44:18Z greg $
+ * $Id: task.h 14328 2021-01-04 02:24:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -171,7 +171,7 @@ public:
     virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand::map_t&, const std::string& class_name="" );
 
     virtual Task& rename();
-    virtual Task& squishName();
+    virtual Task& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );
     Task& aggregate();
 
 #if defined(BUG_270)
@@ -223,6 +223,8 @@ public:
 #endif
 
     static std::set<Task *,LT<Task> > __tasks;	/* All tasks in model		*/
+    static std::map<std::string,unsigned> __key_table;		/* For squish	*/
+    static std::map<std::string,std::string> __symbol_table;	/* For squish	*/
 
 protected:
     std::vector<Entry *> _entries;		/* Entries for this entity.	*/
@@ -240,6 +242,8 @@ private:
     std::vector<EntityCall *> _calls;		/* Arc calling processor	*/
     std::vector<ActivityLayer> _layers;	
     double _entryWidthInPts;
+    std::map<std::string,unsigned> _key_table;		/* For squishName 	*/
+    std::map<std::string,std::string> _symbol_table;	/* For rename		*/
 
     static const double JLQNDEF_TASK_BOX_SCALING;
 };

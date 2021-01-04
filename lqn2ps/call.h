@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14280 2020-12-28 18:20:34Z greg $
+ * $Id: call.h 14316 2021-01-01 06:15:29Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -518,8 +518,8 @@ public:
     virtual const LQIO::DOM::ExternalVariable& forward() const;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
-    double visits() const;
-    double serviceTime() const;
+    const LQIO::DOM::ExternalVariable * visits() const { return _visits; }
+    const LQIO::DOM::ExternalVariable * serviceTime() const { return _serviceTime; }
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
@@ -546,8 +546,8 @@ protected:
 
 private:
     LQIO::DOM::Call::CallType _callType;		/* Union discriminator		*/
-    LQIO::DOM::ConstantExternalVariable _visits;
-    LQIO::DOM::ConstantExternalVariable _serviceTime;	/* No phases on processor	*/
+    const LQIO::DOM::ExternalVariable* _visits;
+    const LQIO::DOM::ExternalVariable* _serviceTime;	/* No phases on processor	*/
 };
 
 class PseudoProcessorCall : public ProcessorCall 

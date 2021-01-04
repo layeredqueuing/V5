@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14288 2020-12-29 13:24:52Z greg $
+ * $Id: entity.cc 14330 2021-01-04 11:51:36Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -736,12 +736,10 @@ Entity::create_class::operator()( const Entity * entity ) const
 
     /* Think time for a task is the class think time. */
 
-    double think_time = 0.0;
     const Task * task = dynamic_cast<const Task *>(entity);
-    if ( task->hasThinkTime() && dynamic_cast<const ReferenceTask *>(task) ) {
-	think_time = to_double( dynamic_cast<const ReferenceTask *>(task)->thinkTime());
-    }
-    _model.insertClass( entity->name(), type, entity->copiesValue(), think_time );
+    const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : new LQIO::DOM::ConstantExternalVariable( 1 );
+    const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : new LQIO::DOM::ConstantExternalVariable( 0. );
+    _model.insertClass( entity->name(), type, copies, think_time );
 }
 
 
@@ -753,6 +751,6 @@ Entity::create_station::operator()( const Entity * entity ) const
     else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
     else type = BCMP::Model::Station::LOAD_INDEPENDENT;
-    _model.insertStation( entity->name(), type, entity->scheduling(), entity->copiesValue() );
+    _model.insertStation( entity->name(), type, entity->scheduling(), &entity->copies() );
 }
 

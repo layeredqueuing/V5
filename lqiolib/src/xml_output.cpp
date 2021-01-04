@@ -84,9 +84,9 @@ namespace XML {
 	return output;
     }
 
-    static std::ostream& printInlineElement( std::ostream& output, const std::string& e, const std::string& a, const std::string& v, double d )
+    static std::ostream& printInlineElement( std::ostream& output, const std::string& e, const std::string& a, const std::string& v, const std::string& t )
     {
-	output << indent( 0 ) << "<" << e << attribute( a, v )  << ">" << d << "</" << e << ">";
+	output << indent( 0 ) << "<" << e << attribute( a, v )  << ">" << t << "</" << e << ">";
 	return output;
     }
     
@@ -170,8 +170,9 @@ namespace XML {
     BooleanManip start_element( const std::string& e, bool b ) { return BooleanManip( &printStartElement, e, b ); }
     BooleanManip end_element( const std::string& e, bool b ) { return BooleanManip( &printEndElement, e, b ); }
     BooleanManip simple_element( const std::string& e ) { return BooleanManip( &printStartElement, e, false ); }
-    InlineElementManip inline_element( const std::string& e, const std::string& a, const std::string& v, double d ) { return InlineElementManip( &printInlineElement, e, a, v, d ); }
+    String2Manip inline_element( const std::string& e, const std::string& a, const std::string& v, const std::string& t ) { return String2Manip( &printInlineElement, e, a, v, t ); }
     StringManip attribute( const std::string& a, const std::string& v ) { return StringManip( &printAttribute, a, v ); }
+    StringManip attribute( const std::string& a, const char * v ) { return StringManip( &printAttribute, a, std::string(v) ); }
     DoubleManip attribute( const std::string& a, double v ) { return DoubleManip( &printAttribute, a, v ); }
     UnsignedManip attribute( const std::string& a, unsigned v ) { return UnsignedManip( &printAttribute, a, v ); }
     BooleanManip attribute( const std::string& a, bool v ) { return BooleanManip( &printAttribute, a, v ); }

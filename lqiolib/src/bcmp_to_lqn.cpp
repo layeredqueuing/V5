@@ -68,10 +68,10 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Class::
 //    phase->setServiceTimeValue(k.second.think_time());
     DOM::Phase* phase = entry->getPhase(1);
     phase->setName(k.first);
-    phase->setServiceTimeValue(demand.service_time());
+    phase->setServiceTime(const_cast<DOM::ExternalVariable *>(demand.service_time()));
 
     DOM::Task * task = new DOM::Task( &lqn(), k.first, SCHEDULE_CUSTOMER, entries, processor );
-    task->setCopiesValue(k.second.customers());
+    task->setCopies(const_cast<DOM::ExternalVariable *>(k.second.customers()));
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -104,14 +104,14 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	DOM::Phase* phase = entry->getPhase(1);
 	phase->setName(name.str());
 	const BCMP::Model::Station::Demand& demand = m.second.demandAt(k->first);
-	phase->setServiceTimeValue(demand.service_time());
+	phase->setServiceTime(const_cast<DOM::ExternalVariable *>((demand.service_time())));
 	entries.push_back(entry);
     }
 
     /* Create the task */
     scheduling_type scheduling = m.second.type() == BCMP::Model::Station::DELAY ? SCHEDULE_DELAY : SCHEDULE_FIFO;
     DOM::Task * task = new DOM::Task( &lqn(), m.first, scheduling, entries, processor );
-    task->setCopiesValue(m.second.copies());
+    task->setCopies(const_cast<DOM::ExternalVariable *>(m.second.copies()));
     processor->addTask(task);
     lqn().addTaskEntity(task);
 }
@@ -137,7 +137,7 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Class::p
 	LQIO::DOM::Phase * client_phase = client_entry->getPhase(1);
 	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::RENDEZVOUS, client_phase, server_entry );
 	const BCMP::Model::Station::Demand& demand = m->second.demandAt(k.first);
-	call->setCallMeanValue( demand.visits() );
+	call->setCallMean( const_cast<DOM::ExternalVariable *>(demand.visits()) );
 	client_phase->addCall(call);
     }
 }

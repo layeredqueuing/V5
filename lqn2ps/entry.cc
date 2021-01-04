@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14249 2020-12-24 05:12:09Z greg $
+ * $Id: entry.cc 14328 2021-01-04 02:24:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,6 +46,8 @@
 #include "arc.h"
 
 std::set<Entry *,LT<Entry> > Entry::__entries;
+std::map<std::string,unsigned> Entry::__key_table;		/* For squishName 	*/
+std::map<std::string,std::string> Entry::__symbol_table;		/* For rename		*/
 
 unsigned Entry::max_phases		= 0;
 
@@ -660,10 +662,10 @@ Entry::serviceTime( const unsigned p ) const
     return getPhase(p).serviceTime();
 }
 
-double
+const LQIO::DOM::ExternalVariable *
 Entry::serviceTime() const
 {
-    return for_each( _phases.begin(), _phases.end(), Sum<Phase,LQIO::DOM::ExternalVariable>( &Phase::serviceTime ) ).sum();
+    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_service );
 }
 
 
@@ -1300,16 +1302,8 @@ Entry::aggregatePhases()
 
     /* Merge up the times. */
     
-    double service_time = 0.;
-    double execution_time = 0.;
-    for ( std::map<unsigned,Phase>::iterator p = _phases.begin(); p != _phases.end(); ++p ) {
-	const LQIO::DOM::Phase * phase = p->second.getDOM();
-	if ( !phase || !phase->hasServiceTime() ) continue;
-	service_time += to_double(*phase->getServiceTime());
-	execution_time += executionTime(p->first);
-    }
-    phase_1->setServiceTimeValue(service_time);
-    phase_1->setResultServiceTime(execution_time);
+    phase_1->setServiceTime(const_cast<LQIO::DOM::ExternalVariable *>(serviceTime()));
+    phase_1->setResultServiceTime(std::accumulate( _phases.begin(), _phases.end(), 0., &Phase::accumulate_execution ));
 
     /* Merge all calls to phase 1 */
     

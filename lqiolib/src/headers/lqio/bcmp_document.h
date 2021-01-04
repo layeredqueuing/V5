@@ -11,6 +11,7 @@
 #include <string>
 #include <iostream>
 #include "input.h"
+#include "dom_extvar.h"
 
 namespace LQIO {
     namespace DOM {
@@ -19,9 +20,9 @@ namespace LQIO {
 }
 
 namespace BCMP {
+    using namespace LQIO;
     class Model {
 	
-
     public:
 	class Object {
 	public:
@@ -41,7 +42,8 @@ namespace BCMP {
 
     public:
 	class Class : public Object {
-	    
+	    friend class Model;
+
 	public:
 	    typedef std::map<const std::string,Class> map_t;
 	    typedef std::pair<const std::string,Class> pair_t;
@@ -49,29 +51,31 @@ namespace BCMP {
 	    typedef enum { NONE, CLOSED, OPEN, MIXED } Type;
 	    
 	public:
-	    Class() : _type(NONE), _customers(0), _think_time(0.0) {}
-	    Class( Type type, unsigned int customers, double think_time ) : _type(type), _customers(customers), _think_time(think_time) {}
+	    Class() : _type(NONE), _customers(nullptr), _think_time(new DOM::ConstantExternalVariable(0.)) {}
+	    Class( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(type), _customers(customers), _think_time(think_time) {}
 
 	    Type type() const { return _type; }
-	    unsigned int customers() const { return _customers; }
-	    void setCustomers( unsigned int customers ) { _customers = customers; }
-	    double think_time() const { return _think_time; }
-	    void setThinkTime( double think_time ) { _think_time = think_time; }
+	    const DOM::ExternalVariable* customers() const { return _customers; }
+	    void setCustomers( DOM::ExternalVariable* customers ) { _customers = customers; }
+	    const DOM::ExternalVariable* think_time() const { return _think_time; }
+	    void setThinkTime( DOM::ExternalVariable* think_time ) { _think_time = think_time; }
 	    bool isInClosedModel() const { return _type == CLOSED || _type == MIXED; }
 	    bool isInOpenModel() const { return _type == OPEN || _type == MIXED; }
 
-	private:
-	    Type _type;
-	    unsigned int _customers;
-	    double _think_time;
-
-	public:
 	    struct fold {
 		fold( const std::string& suffix="" ) : _suffix(suffix) {}
 		std::string operator()( const std::string& s1, const Class::pair_t& c2 ) const;
 	    private:
 		const std::string& _suffix;
 	    };
+
+	    static bool has_constant_customers( const Class::pair_t& );
+
+	private:
+	    Type _type;
+	    const DOM::ExternalVariable * _customers;
+	    const DOM::ExternalVariable * _think_time;
+
 	};
 
 	/* ------------------------------------------------------------ */
@@ -79,6 +83,7 @@ namespace BCMP {
 	/* ------------------------------------------------------------ */
 
 	class Station : public Object {
+	    friend class Model;
 	    
 	public:
 	    typedef std::map<const std::string,Station> map_t;
@@ -87,42 +92,48 @@ namespace BCMP {
 	    typedef enum { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER } Type;
 
 	    class Demand {
+		friend class Station;
+
 	    public:
 		typedef std::map<const std::string,Demand> map_t;
 		typedef std::pair<const std::string,Demand> pair_t;
 
-		Demand() : _visits(0.0), _service_time(0.0) {}
-		Demand( double visits, double service_time ) : _visits(visits), _service_time(service_time) {}
+		Demand() : _visits(nullptr), _service_time(nullptr) {}
+		Demand( const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time ) : _visits(visits), _service_time(service_time) {}
 		
-		double visits() const { return _visits; }
-		double service_time() const { return _service_time; }
-		double demand() const { return _service_time * _visits; }
-		void setVisits( double visits ) { _visits = visits; }
-		void setServiceTime( double service_time ) { _service_time = service_time; }
+		const DOM::ExternalVariable* visits() const { return _visits; }
+		const DOM::ExternalVariable* service_time() const { return _service_time; }
+		void setVisits( const DOM::ExternalVariable* visits ) { _visits = visits; }
+		void setServiceTime( const DOM::ExternalVariable* service_time ) { _service_time = service_time; }
 		
-		Demand operator+( const Demand& augend ) const { return Demand( _visits + augend._visits, _service_time + augend._service_time ); }
-		Demand& operator+=( const Demand& addend ) { _visits += addend._visits; _service_time += addend._service_time; return *this; }
-		Demand& accumulate( double visits, double demand ) { _visits += visits; _service_time += demand; return *this; }
-		Demand& accumulate( const Demand& addend ) { _visits += addend._visits; _service_time += addend._service_time; return *this; }
+		Demand operator+( const Demand& augend ) const;
+		Demand& operator+=( const Demand& addend );
+		Demand& accumulate( double visits, double demand );
+		Demand& accumulate( const Demand& addend );
+
+		static bool has_constant_service_time( const Demand::pair_t& );
+		static bool has_constant_visits( const Demand::pair_t& );
+
+	    private:
 		static Demand::map_t collect( const Demand::map_t& augend_t, const Demand::pair_t& );
 
 	    private:
-		double _visits;
-		double _service_time;
+		const DOM::ExternalVariable* _visits;
+		const DOM::ExternalVariable* _service_time;
 	    };
 	
 	/* -------------------------- Station ------------------------- */
 
 	public:
-	    Station() : _type(NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(1), _demands() {}
-	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) : _type(type), _scheduling(scheduling), _copies(copies) {}
+	    Station() : _type(NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(nullptr), _demands() {}
+	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) : _type(type), _scheduling(scheduling), _copies(copies) {}
 
 	    bool insertDemand( const std::string&, const Demand& );
 	    
 	    Type type() const { return _type; }
 	    void setType(Type type) { _type = type; }
 	    scheduling_type scheduling() const { return _scheduling; }
-	    unsigned int copies() const { return _copies; }
+	    const DOM::ExternalVariable* copies() const { return _copies; }
 	    Demand::map_t& demands() { return _demands; }
 	    const Demand::map_t& demands() const { return _demands; }
 	    Demand& demandAt( const std::string& name ) { return _demands.at(name); }
@@ -132,8 +143,9 @@ namespace BCMP {
 
 	    static bool isCustomer( const Station::pair_t& m ) { return m.second.type() == CUSTOMER; }
 	    static bool isServer( const Station::pair_t& m ) { return m.second.type() != CUSTOMER && m.second.type() != NOT_DEFINED; }
+	    bool hasConstantServiceTime() const;
+	    bool hasConstantVisits() const;
 
-	public:
 	    struct select {
 		typedef bool (*predicate)( const Station::pair_t& );
 		select( const predicate test ) : _test(test) {}
@@ -160,7 +172,7 @@ namespace BCMP {
 	private:
 	    Type _type;
 	    scheduling_type _scheduling;
-	    unsigned int _copies;
+	    const DOM::ExternalVariable* _copies;
 	    Demand::map_t _demands;
 	};
 
@@ -183,16 +195,19 @@ namespace BCMP {
 	Class& classAt( const std::string& name ) { return _classes.at(name); }
 	const Class& classAt( const std::string& name ) const { return _classes.at(name); }
 
+	bool hasConstantCustomers() const;
+
 	bool insertComment( const std::string comment ) { _comment = comment; return true; }
-	bool insertClass( const std::string&, Class::Type, unsigned int, double=0.0 );
+	bool insertClass( const std::string&, Class::Type, const DOM::ExternalVariable *, const DOM::ExternalVariable * service_time=nullptr );
 	bool insertStation( const std::string&, const Station& ); 
-	bool insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, unsigned int copies=1 ) { return insertStation( name, Station( type, scheduling, copies ) ); }
+	bool insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 	bool insertDemand( const std::string&, const std::string&, const Station::Demand& );
 
 	Station::Demand::map_t computeCustomerDemand( const std::string& ) const;
-	bool convertToLQN( LQIO::DOM::Document& ) const;
+	bool convertToLQN( DOM::Document& ) const;
 	
 	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
+	static bool isSet( const LQIO::DOM::ExternalVariable * var, double default_value=0.0 );
 
 	struct pad_demand {
 	    pad_demand( const Class::map_t& classes ) : _classes(classes) {}

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14282 2020-12-28 19:44:18Z greg $
+ * $Id: task.cc 14329 2021-01-04 03:13:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -48,6 +48,8 @@
 #include "model.h"
 
 std::set<Task *,LT<Task> > Task::__tasks;
+std::map<std::string,unsigned> Task::__key_table;		/* For squishName 	*/
+std::map<std::string,std::string> Task::__symbol_table;		/* For rename		*/
 const std::string ReferenceTask::__BCMP_station_name("terminal");	/* No more than 8 characters -- qnap2 limit. */
 
 bool Task::thinkTimePresent             = false;
@@ -87,7 +89,9 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
       _processors(),
       _share(aShare),
       _maxPhase(0),
-      _entryWidthInPts(0)
+      _entryWidthInPts(0),
+      _key_table(),			/* Squish name - activities 	*/
+      _symbol_table()			/* Squish name - activities 	*/
 {
     for_each( _entries.begin(), _entries.end(), Exec1<Entry,const Task *>( &Entry::owner, this ) );
 
@@ -220,11 +224,11 @@ Task::rename()
 
 
 Task&
-Task::squishName()
+Task::squish( std::map<std::string,unsigned>& key_table, std::map<std::string,std::string>& symbol_table )
 {
     const std::string old_name = name();
-    Element::squishName();
-    for_each( activities().begin(), activities().end(), Exec<Element>( &Element::squishName ) );
+    Element::squish( key_table, symbol_table );
+    for_each( activities().begin(), activities().end(), Exec2<Element,std::map<std::string,unsigned>&,std::map<std::string,std::string>&>( &Element::squish, _key_table, _symbol_table ) );
 
     renameFanInOut( old_name, name() );
     return *this;
@@ -1801,10 +1805,14 @@ Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand, const s
 {
     *myLabel << name();
     myLabel->newLine();
-    *myLabel << "[" << copiesValue() << "]";
+    if ( isMultiServer() ) {		/* copies() will be NULL if not */
+	*myLabel << "[" << copies() << "]";
+    } else {
+	*myLabel << "[1]";
+    }
     const BCMP::Model::Station::Demand& reference = demand.at(class_name);
     myLabel->newLine();
-    *myLabel << "(" << reference.visits() << "," << reference.service_time() << ")";
+    *myLabel << "(" << *reference.visits() << "," << *reference.service_time() << ")";
     return *this;
 }
 
@@ -2431,7 +2439,7 @@ ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
     typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
     BCMP::Model::Station::Demand demand;
     if ( hasThinkTime() ) {
-	demand.setServiceTime( to_double(thinkTime() ) );
+	demand.setServiceTime( &thinkTime() );
     }
 
     demand_map& demands = const_cast<demand_map&>(station.demands());

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: svn://franks.dnsalias.com/lqn/trunk/lqns/lqns.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/gamma.h $
  *
  * Gamma distribution.
  *
@@ -9,7 +9,7 @@
  *
  * November, 2012
  *
- * $Id: lqns.h 10906 2012-05-25 12:24:51Z greg $
+ * $Id: gamma.h 14319 2021-01-02 04:11:00Z greg $
  *
  * ------------------------------------------------------------------------
  */

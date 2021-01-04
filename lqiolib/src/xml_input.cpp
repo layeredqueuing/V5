@@ -25,6 +25,7 @@
 #include "common_io.h"
 #include "xml_input.h"
 #include "dom_document.h"
+#include "dom_extvar.h"
 
 namespace XML
 {

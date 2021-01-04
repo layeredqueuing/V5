@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14280 2020-12-28 18:20:34Z greg $
+ * $Id: lqn2ps.h 14316 2021-01-01 06:15:29Z greg $
  *
  */
 
@@ -829,7 +829,6 @@ template <class Type> struct EQStr
 private:
     const std::string & _s;
 };
-
 
 template <class Type> struct LT
 {

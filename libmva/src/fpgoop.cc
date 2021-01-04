@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: fpgoop.cc 14319 2021-01-02 04:11:00Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -31,6 +31,7 @@
 #include <cstdlib>
 #include <signal.h>
 #include <cmath>
+#include <cassert>
 #if HAVE_FENV_H
 #include <fenv.h>
 #elif HAVE_IEEEFP_H && !defined(MSDOS)

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 14307 2020-12-31 15:54:48Z greg $
+ * $Id: mva.cc 14323 2021-01-03 03:49:05Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -192,13 +192,6 @@ MVA::MVA( Vector<Server *>& q, const Population& N,
       nPrio(0), sortedPrio(), stepCount(0), waitCount(0), _isThread(), maxOffset(0)
 {
     assert( M > 0 && K > 0 );
-
-    for ( unsigned m = 1; m <= M; ++m ) {
-	Q[m]->closedIndex = m;					/* Set index in each station */
-	Q[m]->setMarginalProbabilitiesSize( N );
-	maxP[m] = 0;
-    }
-	
     initialize();
 }
 
@@ -212,7 +205,6 @@ MVA::~MVA()
 {
     dimension( 0 );
 }
-
 
 
 /*
@@ -397,6 +389,12 @@ MVA::reset()
 void
 MVA::initialize()
 {
+    for ( unsigned m = 1; m <= M; ++m ) {
+	Q[m]->closedIndex = m;					/* Set index in each station */
+	Q[m]->setMarginalProbabilitiesSize( NCust.size() );
+	maxP[m] = 0;
+    }
+	
     sortedPrio.resize(K);
     _isThread.resize(K+1);
 
@@ -1094,20 +1092,6 @@ MVA::throughput( const Server& station, const unsigned k ) const
 
 
 
-#if defined(TESTMVA)
-double
-MVA::throughput( const unsigned m, const unsigned k ) const
-{
-    const unsigned n = offset(NCust);						/* Hoist */
-    if ( std::isfinite( X[n][k] ) ) {
-	return X[n][k] * Q[m]->V(k);
-    } else {
-	return 0;
-    }
-}
-#endif
-
-
 /*
  * Return throughtput at `station', entry `e'
  */
@@ -1171,6 +1155,18 @@ MVA::normalizedThroughput( const Server& station, const unsigned e,  const unsig
 	return sum / totCust;
     } else {
 	return 0.0;
+    }
+}
+
+
+double
+MVA::throughput( const unsigned m, const unsigned k, const Population& N ) const
+{
+    const unsigned n = offset(N);						/* Hoist */
+    if ( std::isfinite( X[n][k] ) ) {
+	return X[n][k] * Q[m]->V(k);
+    } else {
+	return 0;
     }
 }
 
@@ -1620,9 +1616,9 @@ MVA::print( std::ostream& output ) const
 	    }
 	}
 	if ( count > 1 ) {
-	    output << "   SumL = " << L_sum << std::endl;
-	    output << "   SumW = " << W_sum << std::endl;
-	    output << "   SumU = " << U_sum << std::endl;
+	    output <<  "   SumL = " << L_sum
+		   << ",   SumW = " << W_sum
+		   << ",   SumU = " << U_sum << std::endl;
 	}
 	const unsigned n = offset(NCust);
 	if ( Q[m]->vectorProbabilities() ) {
@@ -2094,6 +2090,8 @@ SchweitzerCommon::reset()
 void
 SchweitzerCommon::initialize()
 {
+    MVA::initialize();
+    
     unsigned m;
     const unsigned n = offset(NCust);						/* Hoist */
     unsigned k;

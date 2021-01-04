@@ -7,6 +7,7 @@ aclocal -I config
 (cd libmva; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd parasol; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqns; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
+(cd qnsolver; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqsim; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqn2ps; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)
 (cd lqngen; aclocal -I ../config; automake -a -c; autoheader; autoconf; automake)

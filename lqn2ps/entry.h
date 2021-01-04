@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14249 2020-12-24 05:12:09Z greg $
+ * $Id: entry.h 14328 2021-01-04 02:24:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -110,7 +110,7 @@ public:
 
     bool hasServiceTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& serviceTime( const unsigned p ) const;
-    double serviceTime() const;
+    const LQIO::DOM::ExternalVariable * serviceTime() const;
 
     bool hasThinkTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& thinkTime( const unsigned p ) const;
@@ -267,6 +267,8 @@ private:
 
 public:
     static std::set<Entry *,LT<Entry> > __entries;
+    static std::map<std::string,unsigned> __key_table;		/* For squish	*/
+    static std::map<std::string,std::string> __symbol_table;	/* For squish	*/
 
     bool drawLeft;
     bool drawRight;

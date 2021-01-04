@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14229 2020-12-16 16:37:38Z greg $
+ *  $Id: dom_extvar.cpp 14317 2021-01-01 15:51:48Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -13,8 +13,17 @@
 
 namespace LQIO {
     namespace DOM {
-
+	class ExternalVariable;
+	
 	double to_double( const LQIO::DOM::ExternalVariable& arg )
+	{
+	    double value;
+	    if ( !arg.getValue( value ) ) throw std::domain_error( "unassigned variable" );
+	    return value;
+	}
+
+
+	double to_unsigned( const LQIO::DOM::ExternalVariable& arg )
 	{
 	    double value;
 	    if ( !arg.getValue( value ) ) throw std::domain_error( "unassigned variable" );
@@ -28,7 +37,6 @@ namespace LQIO {
 	    if ( !arg.getString( value ) ) throw std::domain_error( "unassigned variable" );
 	    return value;
 	}
-
 
 	std::ostream&
 	operator<<( std::ostream& output, const LQIO::DOM::ExternalVariable& self )
@@ -59,15 +67,22 @@ namespace LQIO {
 	{
 	}
 
-	/* static */ bool ExternalVariable::isPresent( const ExternalVariable * var, double default_value )
-	{
-	    double value = 0.0;
-	    return var && (!var->wasSet() || !var->getValue(value) || (std::isfinite(value) && value != default_value));
-	}
-
 	/* static */ std::ostream& ExternalVariable::printVariableName( std::ostream& output, const ExternalVariable& var )
 	{
 	    return var.printVariableName( output );
+	}
+
+	/* static */ bool ExternalVariable::isPresent( const ExternalVariable * var, double default_value )
+	{
+	    double value = 0.0;
+	    return var != nullptr && (!var->wasSet() || !var->getValue(value) || (std::isfinite(value) && value != default_value));
+	}
+
+
+	/* static */ bool ExternalVariable::isDefault( const ExternalVariable * var, double default_value )
+	{
+	    double value = 0.0;
+	    return var == nullptr || (var->wasSet() && var->getValue(value) && value == default_value);
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

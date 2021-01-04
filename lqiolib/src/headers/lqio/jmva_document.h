@@ -75,6 +75,21 @@ namespace BCMP {
 	{
 	    bool operator()( const XML_Char * s1, const XML_Char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 	};
+
+	struct Comprehension
+	{
+	public:
+	    Comprehension( const std::string& s ) : _begin(-1.), _end(-1.), _stride(0.) { convert(s); }
+	    double begin() const { return _begin; }
+	    double end() const { return _end; }
+	    double stride() const { return _stride; }
+	private:
+	    void convert( const std::string& );
+		
+	    double _begin;
+	    double _end;
+	    double _stride;
+	};
 	
     public:
 	JMVA_Document( const std::string& input_file_name );
@@ -124,16 +139,23 @@ namespace BCMP {
 	void startMeasure( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startNOP( Object&, const XML_Char * element, const XML_Char ** attributes );
 
+	LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
+	
 	void createClosedClass( const XML_Char ** attributes );
 	void createOpenClass( const XML_Char ** attributes );
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
+	void createWhatIf( const XML_Char ** attributes );
+
+	
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
 	/* -------------------------- Output -------------------------- */
 
     private:
+	Model::Station::map_t& stations() { return _model.stations(); }	/* Not const */
 	const Model::Station::map_t& stations() const { return _model.stations(); }
+	Model::Class::map_t& classes() { return _model.classes(); }
 	const Model::Class::map_t& classes() const { return _model.classes(); }
 
 	struct printClass {
@@ -178,6 +200,8 @@ namespace BCMP {
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
+	std::map<std::string,LQIO::DOM::ExternalVariable *> _class_vars;
+	std::map<std::string,LQIO::DOM::ExternalVariable *> _station_vars;
 
 	static std::set<const XML_Char *,attribute_table_t> ReferenceStation_table;
 	static std::set<const XML_Char *,attribute_table_t> algParams_table;
@@ -190,6 +214,7 @@ namespace BCMP {
 	static std::set<const XML_Char *,attribute_table_t> openclass_table;
 	static std::set<const XML_Char *,attribute_table_t> parameter_table;
 	static std::set<const XML_Char *,attribute_table_t> station_table;
+	static std::set<const XML_Char *,attribute_table_t> whatIf_table;
 	
 	static const XML_Char * XClass;
 	static const XML_Char * XReferenceStation;
@@ -231,6 +256,11 @@ namespace BCMP {
 	static const XML_Char * Xsolutions;
 	static const XML_Char * Xstationresults;
 	static const XML_Char * Xsuccessful;
+
+	static const XML_Char * XclassName;
+	static const XML_Char * XstationName;
+	static const XML_Char * Xtype;
+	static const XML_Char * Xvalues;
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }

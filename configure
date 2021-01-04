@@ -775,7 +775,7 @@ LIBS
 CPPFLAGS
 LT_SYS_LIBRARY_PATH
 CPP'
-ac_subdirs_all='lqiolib lqx libmva lqns srvndiff parasol lqsim lqn2ps lqngen doc'
+ac_subdirs_all='lqiolib lqx libmva lqns lqsim lqn2ps lqngen qnsolver srvndiff parasol doc'
 
 # Initialize some variables set by options.
 ac_init_help=
@@ -11897,7 +11897,7 @@ fi
 # ------------------------------------------------------------------------
 
 
-subdirs="$subdirs lqiolib lqx libmva lqns srvndiff parasol lqsim lqn2ps lqngen doc"
+subdirs="$subdirs lqiolib lqx libmva lqns lqsim lqn2ps lqngen qnsolver srvndiff parasol doc"
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether ${MAKE-make} sets \$(MAKE)" >&5
 $as_echo_n "checking whether ${MAKE-make} sets \$(MAKE)... " >&6; }

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14174 2020-12-07 16:59:53Z greg $
+ * $Id: help.h 14319 2021-01-02 04:11:00Z greg $
  */
 
 #ifndef _HELP_H

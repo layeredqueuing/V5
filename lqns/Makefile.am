@@ -1,34 +1,29 @@
 # 
-# $Id: Makefile.am 14305 2020-12-31 14:51:49Z greg $
+# $Id: Makefile.am 14322 2021-01-02 22:44:33Z greg $
 #
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
 SUBDIRS		= regression 
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
-bin_PROGRAMS 	= lqns qnsolver
+bin_PROGRAMS 	= lqns
 lqns_SOURCES	= activity.cc actlist.cc call.cc entity.cc entry.cc \
 		  entrythread.cc errmsg.cc gamma.cc generate.cc group.cc help.cc interlock.cc \
 		  model.cc option.cc overtake.cc  \
 		  phase.cc pragma.cc processor.cc randomvar.cc report.cc runlqx.cc \
 		  slice.cc lqns.cc submodel.cc  \
 		  synmodel.cc task.cc variance.cc
-qnsolver_SOURCES= bcmpsolve.cc qnsolver.cc
 noinst_HEADERS	= activity.h actlist.h call.h dim.h entity.h entry.h entrythread.h \
 		  errmsg.h gamma.h generate.h group.h help.h interlock.h model.h \
 		  option.h overtake.h phase.h pragma.h \
 		  processor.h randomvar.h report.h slice.h lqns.h runlqx.h \
-		  submodel.h  synmodel.h task.h variance.h \
-		  bcmpsolve.h
+		  submodel.h  synmodel.h task.h variance.h 
 
 EXTRA_DIST	= lqns.1 
 
 lqns_CXXFLAGS   = -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqns_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio  -L../libmva/src/.libs -lmva
 lqns_LDFLAGS	= @STATIC@
-qnsolver_CXXFLAGS= -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
-qnsolver_LDADD	= -L../lqiolib/src/.libs -llqio -L../libmva/src/.libs -lmva
-qnsolver_LDFLAGS= @STATIC@
 man1_MANS	= lqns.1
 
 clean-local:

@@ -6,7 +6,7 @@
  *
  *
  * ------------------------------------------------------------------------
- * $Id: test4.cc 13676 2020-07-10 15:46:20Z greg $
+ * $Id: test4.cc 14323 2021-01-03 03:49:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -100,7 +100,7 @@ special_check( ostream& output, const MVA& solver, const unsigned )
 
     output << "Terminal Response Time (by sum of R()) = " << solver.responseTime(  *solver.Q[m], k ) << endl;
 
-    const double response_time = solver.NCust[k] / solver.throughput( m, k ) - solver.Q[m]->S(k);
+    const double response_time = solver.NCust[k] / solver.throughput( m, k, solver.NCust ) - solver.Q[m]->S(k);
     output << "Terminal Response Time (by throughput) = " << response_time << endl;
 }
 

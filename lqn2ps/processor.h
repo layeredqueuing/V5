@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14279 2020-12-28 16:06:39Z greg $
+ * $Id: processor.h 14328 2021-01-04 02:24:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -103,6 +103,8 @@ protected:
 public:
     static std::ostream& printHeader( std::ostream& );
     static std::set<Processor *, LT<Processor> > __processors;
+    static std::map<std::string,unsigned> __key_table;		/* For squish	*/
+    static std::map<std::string,std::string> __symbol_table;	/* For squish	*/
 
 private:
     Processor( const Processor& );

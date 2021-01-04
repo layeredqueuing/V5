@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14285 2020-12-29 02:50:15Z greg $
+ * $Id: layer.cc 14330 2021-01-04 11:51:36Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -778,16 +778,19 @@ Layer::createBCMPModel()
 	const Task * task = dynamic_cast<const Task *>(*client);
 	
 	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
-	
-	double time = 0.0;
+	/* Put think time in class, and service time into demand */
 	if ( task->hasThinkTime() ) {
-	    time = to_double(dynamic_cast<const ReferenceTask *>(task)->thinkTime());
+//	    time = to_double(dynamic_cast<const ReferenceTask *>(task)->thinkTime());
 	}
+	const LQIO::DOM::ExternalVariable * service_time = nullptr;
 	if ( task->processor() == nullptr ) {
 	    // for all entries s += prVisit(e) * e->serviceTime ??
-	    time += task->entries().at(0)->serviceTime();
+	    service_time = task->entries().at(0)->serviceTime();
+	} else {
+	    service_time = new LQIO::DOM::ConstantExternalVariable( 0. );
 	}
-	BCMP::Model::Station::Demand demand( 1.0, time );	/* One visit */
+	BCMP::Model::Station::Demand demand( new LQIO::DOM::ConstantExternalVariable(1.0),	/* One visit */
+					     service_time );
 
 	const std::string name = task->name();
 	terminals.insertDemand( name, demand );

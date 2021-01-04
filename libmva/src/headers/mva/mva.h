@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 14303 2020-12-31 13:31:52Z greg $
+ * $Id: mva.h 14323 2021-01-03 03:49:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -64,8 +64,8 @@ protected:
 
 
 public:
-    MVA( Vector<Server *>&, const Population &, const VectorMath<double>&,
-	 const Vector<unsigned>&, const VectorMath<double>* );
+    MVA();
+    MVA( Vector<Server *>&, const Population &, const VectorMath<double>&, const Vector<unsigned>&, const VectorMath<double>* );
     virtual ~MVA();
 
     virtual void reset();
@@ -134,13 +134,16 @@ protected:
     unsigned offset_e_j( const Population& N, const unsigned j ) const { return getMap().offset_e_j( N, j ); }
     void clearCount() { waitCount = 0; stepCount = 0; faultCount = 0; }
 
+public:
+    double throughput( const unsigned m, const unsigned k, const Population& N ) const;
     double utilization( const unsigned m, const unsigned k, const Population& N ) const;
     double utilization( const unsigned m, const Population& N ) const;
+    double queueLength( const unsigned m, const Population& N ) const;
+    double queueLength( const unsigned m, const unsigned k, const Population& N ) const;
 
+protected:
     void step( const Population& );
     void step( const Population&, const unsigned );
-    double queueLength( const unsigned, const Population& N ) const;
-    double queueLength( const unsigned m, const unsigned k, const Population& N ) const;
     virtual void marginalProbabilities( const unsigned m, const Population& N ) = 0;
     virtual void marginalProbabilities2( const unsigned m, const Population& N ) = 0;
 
@@ -153,9 +156,6 @@ protected:
     std::ostream& printVectorP( std::ostream& output, const unsigned m, const Population& N ) const;
 
 private:
-#if defined(TESTMVA)
-    double throughput( const unsigned m, const unsigned k ) const;
-#endif
     double tau_overlap( const Server&, const unsigned j, const unsigned k, const Population& N ) const;
     double tau( const Server&, const unsigned j, const unsigned k, const Population& ) const;
 
@@ -163,7 +163,8 @@ private:
     std::ostream& printX( std::ostream& ) const;
     std::ostream& printPri( std::ostream& output ) const;
 
-    void initialize();
+protected:
+    virtual void initialize();
 
 public:
     static int __bounds_limit;		/* Enable bounds limiting.	*/
@@ -246,7 +247,7 @@ public:
 
 protected:
     virtual void reset();
-    void initialize();
+    virtual void initialize();
 
     void core( const Population &, const unsigned );
 
@@ -319,7 +320,7 @@ protected:
 
     virtual void estimate_P( const Population & N );
 
-    void initialize();
+    virtual void initialize();
     void save_L();
     void restore_L();
 

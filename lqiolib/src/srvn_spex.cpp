@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14216 2020-12-14 20:19:51Z greg $
+ *  $Id: srvn_spex.cpp 14327 2021-01-04 01:59:22Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -103,9 +103,9 @@ namespace LQIO {
 	__document_variables.clear();			/* Saves all key-$var for the document */
 	__input_iterator.clear();
 	__inline_expression.clear();			/* Maps temp vars to expressions */
-	__parameter_list = 0;
-	__result_list = 0;
-	__convergence_list = 0;
+	__parameter_list = nullptr;
+	__result_list = nullptr;
+	__convergence_list = nullptr;
     }
 
 
@@ -770,10 +770,10 @@ namespace LQIO {
     const char * Spex::__convergence_limit_str = "$convergence_limit";
 
     /*+ JSON */
-    void * Spex::__parameter_list = 0;
-    void * Spex::__result_list = 0;
-    void * Spex::__convergence_list = 0;
-    void * Spex::__temp_variable = 0;
+    void * Spex::__parameter_list = nullptr;
+    void * Spex::__result_list = nullptr;
+    void * Spex::__convergence_list = nullptr;
+    void * Spex::__temp_variable = nullptr;
     /*- JSON */
 }
 

@@ -1,11 +1,12 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 14149 2020-11-27 13:16:29Z greg $
+ * $Id: element.cc 14328 2021-01-04 02:24:47Z greg $
  */
 
 #include "element.h"
 #include <cmath>
 #include <cstdlib>
+#include <map>
 #include <limits.h>
 #include <lqio/error.h>
 #include "errmsg.h"
@@ -17,11 +18,12 @@
 
 const LQIO::DOM::ConstantExternalVariable Element::ZERO(0.);
 
+
 Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )
     : _documentObject( dom ),
       _elementId( id ),
-      myLabel(0),
-      myNode(0)
+      myLabel(nullptr),
+      myNode(nullptr)
 {
 }
 
@@ -35,20 +37,45 @@ Element::~Element()
 
 
 /*
- * Squish the name (hopefully keeping it unique).
+ * Squish the name (hopefully keeping it unique in the first six
+ * characters).  There are three global name spaces, processors,
+ * tasks, and entries (groups too maybe?) and on local name space
+ * (activities).
  */
 
 Element&
-Element::squishName()
+Element::squish( std::map<std::string,unsigned>& key_table, std::map<std::string,std::string>& symbol_table )
 {
-    const unsigned n = elementId();
-    const std::string& old_name = name();
-    if ( old_name.size() > 5 ) {
-	std::ostringstream new_name;
-	new_name << old_name.substr(0,5);
-	new_name << "_" << n;
-	const_cast<LQIO::DOM::DocumentObject *>(_documentObject)->setName( new_name.str() );
+    std::string key = name().substr(0,5);
+    std::pair<std::map<std::string,unsigned>::const_iterator,bool> hit = key_table.insert( std::pair<std::string,unsigned>( key, 0 ) );
+    if ( hit.second == true ) return *this;	/* Unique in first 6 chars.  OK for qnap */
+    /* Take first two caps, or convert _z to _Z and treat as caps.  Strip numbers. */
+
+    std::string new_name = name().substr( 0, 3 );
+    char first =  '_';
+    char second = '_';
+    for ( std::string::const_iterator c = name().begin() + 3; c != name().end(); ++c ) {
+	if ( isupper(*c) ) {
+	    if ( islower(first) ) first = *c;
+	    else if ( islower(second) ) second = *c;
+	} else if ( *c == '_' && std::next(c) != name().end() && isalpha(*std::next(c)) ) {
+	    ++c;
+	    if ( islower(first) ) first = toupper(*c);
+	    else if ( islower(second) ) second = toupper(*c);
+	} else if ( isalpha(*c) ) {
+	    if ( first == '_' ) first = *c;
+	    else if ( second == '_' ) second = *c;
+	}
     }
+    new_name += first + second;
+    std::pair< std::map<std::string,unsigned>::iterator,bool> item = key_table.insert( std::pair<std::string,unsigned>( new_name, 1 ) );
+    item.first->second += 1;			/* will get item in table if existed before */
+    new_name += std::to_string(item.first->second);
+    std::pair<std::map<std::string,std::string>::const_iterator,bool> result = symbol_table.insert( std::pair<std::string,std::string>( new_name, name() ) );
+    if ( result.second == false ) {
+	throw std::logic_error( "Duplicate symbol" );
+    }
+    const_cast<LQIO::DOM::DocumentObject *>(_documentObject)->setName( new_name );
     return *this;
 }
 

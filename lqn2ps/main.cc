@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14285 2020-12-29 02:50:15Z greg $
+ * $Id: main.cc 14316 2021-01-01 06:15:29Z greg $
  */
 
 #include "lqn2ps.h"
@@ -620,4 +620,3 @@ IntegerManip temp_indent( const int i ) { return IntegerManip( &temp_indent_str,
 Integer2Manip conf_level( const int fill, const int level ) { return Integer2Manip( &conf_level_str, fill, level ); }
 StringPlural plural( const std::string& s, const unsigned i ) { return StringPlural( &pluralize, s, i ); }
 DoubleManip opt_pct( const double aDouble ) { return DoubleManip( &opt_pct_str, aDouble ); }
-

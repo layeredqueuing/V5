@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14280 2020-12-28 18:20:34Z greg $
+ * $Id: call.cc 14316 2021-01-01 06:15:29Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1760,8 +1760,8 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
       _callType(LQIO::DOM::Call::NULL_CALL),	/* Default (from task) */
-      _visits(0.0),
-      _serviceTime(0.0)
+      _visits(nullptr),
+      _serviceTime(nullptr)
 {
 }
 
@@ -1789,7 +1789,7 @@ ProcessorCall::operator==( const ProcessorCall& item ) const
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::rendezvous( const unsigned p ) const
 {
-    if ( hasRendezvous() && p == 1 ) return _visits;
+    if ( hasRendezvous() && _visits != nullptr && p == 1 ) return *_visits;
     else return Element::ZERO;
 }
 
@@ -1797,15 +1797,15 @@ ProcessorCall::rendezvous( const unsigned p ) const
 double
 ProcessorCall::sumOfRendezvous() const
 {
-    if ( !hasRendezvous() ) return 0.0;
-    else return to_double( _visits );
+    if ( !hasRendezvous() || _visits != nullptr ) return 0.0;
+    else return to_double( *_visits );
 }
 
 
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::sendNoReply( const unsigned p ) const
 {
-    if ( hasSendNoReply() && p == 1 ) return _visits;
+    if ( hasSendNoReply() && _visits != nullptr && p == 1 ) return *_visits;
     else return Element::ZERO;
 }
 
@@ -1813,8 +1813,8 @@ ProcessorCall::sendNoReply( const unsigned p ) const
 double
 ProcessorCall::sumOfSendNoReply() const
 {
-    if ( !hasSendNoReply() ) return 0.0;
-    else return to_double( _visits );
+    if ( !hasSendNoReply() || _visits == nullptr ) return 0.0;
+    else return to_double( *_visits );
 }
 
 
@@ -1843,18 +1843,6 @@ ProcessorCall::fanOut() const
     return 1;
 }
 
-
-double
-ProcessorCall::visits() const
-{
-    return to_double( _visits );
-}
-
-double
-ProcessorCall::serviceTime() const
-{
-    return to_double( _serviceTime );
-}
 
 bool
 ProcessorCall::isSelected() const
@@ -1932,7 +1920,7 @@ ProcessorCall::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b && Flags::prune ) {
 	if ( hasRendezvous() || hasSendNoReply() ) {	/* Ignore the default */
-	    *_label << '(' << _visits << ')';
+	    *_label << '(' << *_visits << ')';
 	}
     } 
     if ( !Flags::have_results ) return *this;
@@ -1997,14 +1985,18 @@ ProcessorCall::updateRateFrom( const Call& call )
 {
     if ( callType() == LQIO::DOM::Call::NULL_CALL ) {
 	/* First time for this call.  Save service time and visits */
-	_visits = 1;
+	_visits = new LQIO::DOM::ConstantExternalVariable( 1.0 );
 	_serviceTime = call.dstEntry()->serviceTime();
 	_callType = call.callType();
     } else if ( callType() != call.callType() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );
 	return *this;
-    } 
-    _visits = to_double(_visits) * call.sumOfRendezvous();
+    }
+    /* Preserve variable if multiplier is one (1) (which is likely is) */
+    const double multiplier = call.sumOfRendezvous();
+    if ( multiplier != 1.0 ) {
+	_visits = new LQIO::DOM::ConstantExternalVariable( to_double(*_visits) * multiplier );
+    }
     return *this;
 }
 #endif
@@ -2017,7 +2009,7 @@ ProcessorCall::dump() const
     std::cout << "ProcessorCall";
     GenericCall::dump();
     std::cout << "(";
-    std::cout << _visits;
+    std::cout << *_visits;
     std::cout << ")";
     std::cout << std::endl;
 }

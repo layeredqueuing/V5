@@ -30,7 +30,6 @@ liblqio_la_SOURCES = bcmp_document.cpp \
 	filename.cpp \
 	getsbopt.cc \
 	glblerr.cpp \
-	jmva_document.cpp \
 	labels.cpp \
 	qnap2_document.cpp \
 	srvn_gram.y \
@@ -49,7 +48,7 @@ noinst_HEADERS = srvn_gram.h  srvn_result_gram.h
 #liblqio_la_LIBADD = ../../lqx/libsrc/liblqx.la 
 liblqio_la_LIBADD = -L../../lqx/libsrc/.libs -llqx
 if EXPAT
-liblqio_la_SOURCES += expat_document.cpp
+liblqio_la_SOURCES += expat_document.cpp jmva_document.cpp
 liblqio_la_LIBADD += -lexpat
 endif
 

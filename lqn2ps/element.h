@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 14134 2020-11-25 18:12:05Z greg $
+ * $Id: element.h 14328 2021-01-04 02:24:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -11,6 +11,7 @@
 
 #include "lqn2ps.h"
 #include <set>
+#include <map>
 #include <lqio/dom_object.h>
 #include <lqio/dom_extvar.h>
 #include "node.h"
@@ -41,7 +42,8 @@ public:
     Element& setDOM( const LQIO::DOM::DocumentObject * dom ) { _documentObject = dom; return *this; }
 
     virtual Element& rename() = 0;
-    virtual Element& squishName();
+    virtual Element& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );
+
     Element& addPath( const unsigned );
 
     bool hasPath( const unsigned aPath ) const { return myPaths.find( aPath ) != myPaths.end(); }

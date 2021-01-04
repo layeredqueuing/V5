@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14280 2020-12-28 18:20:34Z greg $
+ * $Id: processor.cc 14329 2021-01-04 03:13:46Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -36,6 +36,8 @@
 #include "model.h"
 
 std::set<Processor *,LT<Processor> > Processor::__processors;
+std::map<std::string,unsigned> Processor::__key_table;		/* For squishName 	*/
+std::map<std::string,std::string> Processor::__symbol_table;	/* For rename		*/
 
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
@@ -445,9 +447,14 @@ Processor&
 Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands, const std::string& )
 {
     *myLabel << name();
+    if ( isMultiServer() ) {
+	*myLabel << "{" << copies() << "}";
+    } else if ( isInfinite() ) {
+	*myLabel << "{" << _infty() << "}";
+    }
     for ( BCMP::Model::Station::Demand::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
 	myLabel->newLine();
-	*myLabel << demand->first << "(" << demand->second.visits() << "," << demand->second.service_time() << ")";
+	*myLabel << demand->first << "(" << *demand->second.visits() << "," << *demand->second.service_time() << ")";
     }
     return *this;
 }
@@ -580,7 +587,7 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	    /* If it is generic processor call then accumulate by entry */
 	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
 	} else {
-	    item->second.accumulate( src->visits(), src->serviceTime() );
+	    item->second.accumulate( BCMP::Model::Station::Demand(src->visits(), src->serviceTime()) );
 	}
     }
 }

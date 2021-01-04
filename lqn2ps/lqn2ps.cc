@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14292 2020-12-30 16:29:20Z greg $
+ * $Id: lqn2ps.cc 14328 2021-01-04 02:24:47Z greg $
  *
  * Command line processing.
  *
@@ -191,7 +191,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2020-12-30 11:29:20 -0500 (Wed, 30 Dec 2020) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-03 21:24:47 -0500 (Sun, 03 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -1166,6 +1166,8 @@ setOutputFormat( const int i )
 #endif
 #if QNAP2_OUTPUT
     case FORMAT_QNAP2:
+#warning .. need to separate by class and station
+	Flags::squish_names = true;				/* Always */ 
 	Flags::bcmp_model = true;				/* No entries. */
 	break;
 #endif

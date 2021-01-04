@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: variance.cc 14308 2020-12-31 16:00:47Z greg $
+ * $Id: variance.cc 14319 2021-01-02 04:11:00Z greg $
  *
  * Variance calculations.  Pick and choose as desired.
  *

@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: entrythread.cc 14319 2021-01-02 04:11:00Z greg $
  *
  */
 
