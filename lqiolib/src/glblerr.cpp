@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 13877 2020-09-26 02:15:28Z greg $
+ * $Id: glblerr.cpp 14331 2021-01-04 20:40:05Z greg $
  *
  * Error messages common to solvers.
  *
@@ -105,6 +105,7 @@ namespace LQIO {
 	{ ADVISORY_ONLY, "SPEX result variable \"%s\" was not defined." },							    /* ADV_SPEX_UNDEFINED_RESULT_VARIABLE   */
 	{ ADVISORY_ONLY, "SPEX result variable \"%s\" was not previously used in an observation." },				    /* ADV_SPEX_UNUSED_RESULT_VARIABLE	    */
 	{ ADVISORY_ONLY, "Too many dependent variables to plot from \"%s\" onwards." },						    /* ADV_TOO_MANY_GNUPLOT_VARIABLES	    */
+        { WARNING_ONLY,  "%s \"%s\" %s \"%s\" has no service time specified." },                                                    /* WRN_NO_SERVICE_TIME_FOR              */
         { WARNING_ONLY,  "%s \"%s\" %s \"%s\" makes zero (0) calls to entry \"%s\"." },                                             /* WRN_NO_CALLS_FOR                     */
         { WARNING_ONLY,  "%s \"%s\" is an infinite server with a multiplicity of %d." },                                            /* WRN_INFINITE_MULTI_SERVER            */
         { WARNING_ONLY,  "%s \"%s\" is not used." },                                                                                /* WRN_NOT_USED                         */
@@ -112,14 +113,14 @@ namespace LQIO {
         { WARNING_ONLY,  "Entry \"%s\" does not receive any requests." },                                                           /* WRN_NO_REQUESTS_TO_ENTRY             */
         { WARNING_ONLY,  "Entry \"%s\" has no service time specified for any phase." },                                             /* WRN_NO_SERVICE_TIME                  */
 	{ WARNING_ONLY,  "Entry \"%s\" attribute type=\"%s\" - entry type should be \"%s\"." },					    /* WRN_ENTRY_TYPE_MISMATCH		    */
+        { WARNING_ONLY,  "Group \"%s\" specified for processor \"%s\" which is not running fair share scheduling." },               /* WRN_NON_CFS_PROCESSOR                */
 	{ WARNING_ONLY,  "Invalid phase, %d, specified for SPEX result \"%%%s\" for entry \"%s\"." },				    /* WRN_INVALID_SPEX_RESULT_PHASE	    */
+	{ WARNING_ONLY,  "No SPEX Observations were specified in the input model." },						    /* WRN_NO_SPEX_OBSERVATIONS		    */
         { WARNING_ONLY,  "Processor \"%s\" using \"%s\" scheduling has a non-zero quantum specified." },                            /* WRN_QUANTUM_SCHEDULING               */
         { WARNING_ONLY,  "Number of %s defined (%d) does not match number specified (%d)." },                                       /* WRN_DEFINED_NE_SPECIFIED_X           */
 	{ WARNING_ONLY,  "Pragma \"%s\" is not recognized." },									    /* WRN_PRAGMA_UNKNOWN		    */
 	{ WARNING_ONLY,  "Pragma \"%s\": invalid argument \"%s\"." },								    /* WRN_PRAGMA_ARGUMENT_INVALID	    */
         { WARNING_ONLY,  "Parameter is specified multiple times." },                                                                /* WRN_MULTIPLE_SPECIFICATION           */
-        { WARNING_ONLY,  "%s \"%s\" %s \"%s\" has no service time specified." },                                                    /* WRN_NO_SERVICE_TIME_FOR              */
-        { WARNING_ONLY,  "Group \"%s\" specified for processor \"%s\" which is not running fair share scheduling." },               /* WRN_NON_CFS_PR0CESSOR                */
         { WARNING_ONLY,  "Processor \"%s\" has no tasks." },                                                                        /* WRN_NO_TASKS_DEFINED_FOR_PROCESSOR   */
         { WARNING_ONLY,  "Queue length parameter not supported for task \"%s\"." },                                                 /* WRN_QUEUE_LENGTH                     */
         { WARNING_ONLY,  "Reference task \"%s\" does not send any messages." },                                                     /* WRN_NO_SENDS_FROM_REF_TASK           */

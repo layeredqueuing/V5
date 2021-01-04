@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14327 2021-01-04 01:59:22Z greg $
+ *  $Id: srvn_spex.cpp 14331 2021-01-04 20:40:05Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -951,10 +951,14 @@ namespace LQIO {
 
 void spex_set_program( void * param_arg, void * result_arg, void * convergence_arg )
 {
+    if ( !LQIO::spex.has_vars() || param_arg == nullptr ) return;	/* Nothing to do */
     expr_list * program = static_cast<expr_list *>(param_arg);
-    if ( program && LQIO::spex.construct_program( program, 
-						  static_cast<expr_list *>(result_arg), 
-						  static_cast<expr_list *>(convergence_arg) ) ) {
+    if ( LQIO::spex.__observations.empty() ) {
+	LQIO::solution_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
+    }
+    if ( LQIO::spex.construct_program( program, 
+				       static_cast<expr_list *>(result_arg), 
+				       static_cast<expr_list *>(convergence_arg) ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }
@@ -1056,7 +1060,7 @@ void * spex_array_comprehension( const char * name, double begin, double end, do
 
     LQIO::Spex::__array_variables.push_back( std::string(name) );		/* Save variable name for looping */
     LQIO::Spex::__comprehensions[name] = LQIO::Spex::ComprehensionInfo( begin, end, stride );
-    LQIO::Spex::__input_variables[name] = 0;
+    LQIO::Spex::__input_variables[name] = nullptr;
     return nullptr;
 }
 
@@ -1318,13 +1322,17 @@ void * spex_convergence_assignment_statement( const char * name, void * expr )
     return new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, true ), static_cast<LQX::SyntaxTreeNode *>(expr) );
 }
 
+/*
+ * Push nulls (nops)
+ */
+
 void * spex_list( void * list_arg, void * node )
 {
     std::vector<LQX::SyntaxTreeNode *> * list = static_cast<expr_list *>(list_arg);
-    if ( !list && node != nullptr ) {
+    if ( list == nullptr ) {
 	list = new std::vector<LQX::SyntaxTreeNode*>();
     }
-    if ( node ) {
+    if ( node != nullptr ) {
 	list->push_back(static_cast<LQX::SyntaxTreeNode*>(node));
     }
     return list;

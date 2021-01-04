@@ -1,5 +1,5 @@
 /*
- * $Id: srvn_gram.y 14240 2020-12-22 21:14:49Z greg $ 
+ * $Id: srvn_gram.y 14331 2021-01-04 20:40:05Z greg $ 
  */
 
 %{
@@ -145,7 +145,7 @@ general_obs_info	: KEY_WAITING VARIABLE				{ spex_document_observation( KEY_WAIT
 
 /* -------------------------- Parameter list -------------------------- */
 /*+ spex */
-parameter_list		: 						{ $$ = spex_list( 0,  0 ); }
+parameter_list		: 						{ $$ = 0; }
 			| parameter_list forall_expr			{ $$ = spex_list( $1, $2 ); }
 			;
 
