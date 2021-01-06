@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14316 2021-01-01 06:15:29Z greg $
+ * $Id: phase.cc 14344 2021-01-06 15:21:51Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -29,7 +29,7 @@
 #include "errmsg.h"
 
 Phase::Phase()
-    : _documentObject(0),
+    : _dom(nullptr),
       _entry(0), 
       _phase(0)
 {
@@ -45,7 +45,7 @@ Phase::~Phase()
 
 Phase::Phase( const Phase& src )
     : _histogram( src._histogram ),
-      _documentObject( src._documentObject ),
+      _dom( src._dom ),
       _entry( src._entry ),
       _phase( src._phase )
 {
@@ -60,8 +60,7 @@ Phase::operator=( const Phase& src )
 {
     if ( *this == src ) return *this;
 
-    _documentObject = src._documentObject;
-    _entry = src._entry;
+    _dom = src._dom;
     _phase = src._phase;
     _histogram = src._histogram;
     return *this;
@@ -196,19 +195,22 @@ Phase::utilization() const
 
 
 /*
- * Add two constant external variables.  Otherwise propogate one of the other.
+ * Add two constant external variables.  Otherwise propogate a copy of one or the other.
  */
 
 /* static */
-const LQIO::DOM::ExternalVariable *
-Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& addend )
+LQIO::DOM::ExternalVariable *
+Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
 {
-    if ( !LQIO::DOM::ExternalVariable::isDefault( augend ) && !LQIO::DOM::ExternalVariable::isDefault( addend.second.getDOM()->getServiceTime() ) ) {
-	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend.second.getDOM()->getServiceTime()) );
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
-	return addend.second.getDOM()->getServiceTime();
+    const LQIO::DOM::ExternalVariable * addend = phase.second.getDOM()->getServiceTime();
+    if ( !LQIO::DOM::ExternalVariable::isDefault( augend ) && !LQIO::DOM::ExternalVariable::isDefault( addend ) ) {
+	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
+    } else if ( addend != nullptr && LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+	return addend->clone();
+    } else if ( augend != nullptr ) {
+	return augend->clone();
     } else {
-	return augend;
+	return nullptr;
     }
 }
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 14253 2020-12-24 22:16:18Z greg $
+ * $Id: pragma.h 14337 2021-01-05 11:32:10Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -44,16 +44,22 @@ private:
 public:
     static pragma_bcmp getBCMP();
     static layering_format layering();
+    static bool defaultProcessorScheduling() { assert( __cache != nullptr ); return __cache->_default_processor_scheduling; }
+    static scheduling_type processorScheduling() { assert( __cache != nullptr ); return __cache->_processor_scheduling; }
     static bool prune();
     static LQIO::severity_t severityLevel();
     static bool spexHeader();
+    static bool defaultTaskScheduling() { assert( __cache != nullptr ); return __cache->_default_task_scheduling; }
+    static scheduling_type taskScheduling() { assert( __cache != nullptr ); return __cache->_task_scheduling; }
 
 private:
     void setBCMP(const std::string&);
     void setLayering(const std::string&);
+    void setProcessorScheduling(const std::string&);
     void setPrune(const std::string&);
     void setSeverityLevel(const std::string&);
     void setSpexHeader(const std::string&);
+    void setTaskScheduling(const std::string&);
     
 public:
     static void set( const std::map<std::string,std::string>& );
@@ -63,11 +69,20 @@ public:
 private:
     static void initialize();
 
+private:
+    scheduling_type _processor_scheduling;
+    scheduling_type _task_scheduling;
+    /* bonus */
+    bool _default_processor_scheduling;
+    bool _default_task_scheduling;
+    
     static Pragma * __cache;
     static std::map<std::string,Pragma::fptr> __set_pragma;
     
     static std::map<std::string,pragma_bcmp> __bcmp_pragma;
     static std::map<std::string,layering_format> __layering_pragma;
+    static std::map<std::string,scheduling_type> __processor_scheduling_pragma;
     static std::map<std::string,LQIO::severity_t> __serverity_level_pragma;
+    static std::map<std::string,scheduling_type> __task_scheduling_pragma;
 };
 #endif

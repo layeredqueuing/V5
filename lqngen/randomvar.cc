@@ -10,7 +10,7 @@
 namespace RV
 {
     RandomVariable&
-    RandomVariable::setMean( const std::string& str ) throw (std::domain_error)
+    RandomVariable::setMean( const std::string& str )
     {
 	char * endptr = 0;
 	setMean( strtod( str.c_str(), &endptr ) );
@@ -20,7 +20,7 @@ namespace RV
 
 
     RandomVariable&
-    RandomVariable::setArg( unsigned int i, const std::string& arg ) throw (std::domain_error)
+    RandomVariable::setArg( unsigned int i, const std::string& arg )
     {
 	char * endptr = 0;
 	setArg( i, strtod( arg.c_str(), &endptr ) );
@@ -55,7 +55,7 @@ namespace RV
     }
 
 
-    Beta& Beta::setMean( double mean ) throw (std::domain_error)
+    Beta& Beta::setMean( double mean )
     {
 	if ( mean <= 0 || 1 <= mean ) throw std::domain_error( "mean <= 0 || 1 <= mean" );
 	_a = mean * _b / ( 1.0 - mean );
@@ -77,14 +77,14 @@ namespace RV
 	}
     }
 
-    Pareto& Pareto::setMean( double mean ) throw (std::domain_error)
+    Pareto& Pareto::setMean( double mean )
     {
 	if ( mean <= 1.0 ) throw std::domain_error( "mean <= 1" );
 	_a = mean / ( mean - 1.0 );
 	return *this;
     }
 
-    Probability& Probability::setMean( double mean ) throw (std::domain_error)
+    Probability& Probability::setMean( double mean )
     {
 	if ( mean < 0 || 1 < mean ) throw std::domain_error( "mean < 0 || 1 < mean" );
 	_mean = mean;

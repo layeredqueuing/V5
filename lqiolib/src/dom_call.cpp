@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 14216 2020-12-14 20:19:51Z greg $
+ *  $Id: dom_call.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -18,7 +18,7 @@ namespace LQIO {
 	Call::Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean ) :
 	    DocumentObject(document,""),
 	    _callType(type), _sourceObject(source), _destinationEntry(destination), 
-	    _callMean(callMean), _histogram(0),
+	    _callMean(callMean), _histogram(nullptr),
 	    _hasResultVarianceWaitingTime(false), _hasResultDropProbability(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
@@ -30,7 +30,7 @@ namespace LQIO {
 	Call::Call(const Document * document, Entry* source, Entry* destination, ExternalVariable* callMean ) :
 	    DocumentObject(document,""),
 	    _callType(Call::FORWARD), _sourceObject(source), _destinationEntry(destination), 
-	    _callMean(callMean), _histogram(0),
+	    _callMean(callMean), _histogram(nullptr),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),
@@ -52,9 +52,6 @@ namespace LQIO {
 
 	Call::~Call()
 	{
-	    /* Delete the variables */
-	    if ( _callMean != nullptr ) delete _callMean;
-	    if ( _histogram != nullptr ) delete _histogram;
 	}
     
 	Call * Call::clone() const
@@ -124,7 +121,7 @@ namespace LQIO {
     
 	bool Call::hasHistogram() const
 	{
-	    return _histogram != 0 && _histogram->getBins() > 0; 
+	    return _histogram != nullptr && _histogram->getBins() > 0; 
 	}
     
 	void Call::setHistogram(Histogram* histogram)

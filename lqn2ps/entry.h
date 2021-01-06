@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14328 2021-01-04 02:24:47Z greg $
+ * $Id: entry.h 14342 2021-01-05 23:11:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -110,7 +110,7 @@ public:
 
     bool hasServiceTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& serviceTime( const unsigned p ) const;
-    const LQIO::DOM::ExternalVariable * serviceTime() const;
+    const LQIO::DOM::ExternalVariable * serviceTime() const;		/* sums up over all phases */
 
     bool hasThinkTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& thinkTime( const unsigned p ) const;

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14329 2021-01-04 03:13:46Z greg $
+ * $Id: processor.cc 14337 2021-01-05 11:32:10Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -27,13 +27,14 @@
 #include <lqio/error.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_document.h>
-#include "errmsg.h"
-#include "processor.h"
-#include "entry.h"
-#include "task.h"
 #include "call.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "label.h"
 #include "model.h"
+#include "pragma.h"
+#include "processor.h"
+#include "task.h"
 
 std::set<Processor *,LT<Processor> > Processor::__processors;
 std::map<std::string,unsigned> Processor::__key_table;		/* For squishName 	*/
@@ -61,14 +62,18 @@ static inline SRVNProcessorManip proc_scheduling_of( const Processor & aProcesso
 
 /* ------------------------ Constructors etc. ------------------------- */
 
-Processor::Processor( const LQIO::DOM::Processor* aDomObject ) 
-    : Entity( aDomObject, __processors.size()+1 ),
+Processor::Processor( const LQIO::DOM::Processor* dom ) 
+    : Entity( dom, __processors.size()+1 ),
       _tasks(),
       _shares(),
       _groupIsSelected(false)
 { 
     if ( Flags::print[PROCESSORS].value.i == PROCESSOR_NONE ) {
 	isSelected(false);
+    }
+    if ( !isMultiServer() && scheduling() != SCHEDULE_DELAY && !Pragma::defaultProcessorScheduling() ) {
+	/* Change scheduling type for uni-processors (usually from FCFS to PS) */
+	const_cast<LQIO::DOM::Processor *>(dom)->setSchedulingType(Pragma::processorScheduling());
     }
 
     const double r = Flags::graphical_output_style == TIMEBENCH_STYLE ? Flags::icon_height : Flags::entry_height;

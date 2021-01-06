@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14316 2021-01-01 06:15:29Z greg $
+ * $Id: phase.h 14344 2021-01-06 15:21:51Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -73,11 +73,12 @@ private:
 	callPredicate _f;
     };
 
+
 public:
     Phase();
+    Phase( const Phase& );
     virtual ~Phase();
     Phase& operator=( const Phase& );
-    Phase( const Phase& );		/* Copying is verbotten */ 
 	
     int operator==( const Phase& aPhase ) const { return &aPhase == this; }
 
@@ -90,8 +91,8 @@ public:
 
     /* Instance variable access */
 	
-    Phase& setDOM( const LQIO::DOM::Phase * dom ) { _documentObject = dom; return *this; }
-    virtual const LQIO::DOM::Phase * getDOM() const { return _documentObject; }
+    Phase& setDOM( const LQIO::DOM::Phase * dom ) { _dom = dom; return *this; }
+    virtual const LQIO::DOM::Phase * getDOM() const { return _dom; }
     int phase() const { return _phase; }
     const Entry * entry() const { return _entry; }
     virtual const Task * owner() const;
@@ -115,7 +116,7 @@ public:
     double serviceExceeded() const;
     double queueingTime() const;
     double utilization() const;
-    static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const std::pair<unsigned int, Phase>& );
+    static LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const std::pair<unsigned int, Phase>& );
     static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& );
     static double accumulate_execution( double, const std::pair<unsigned int, Phase>& );
 
@@ -148,7 +149,7 @@ protected:
     Histogram _histogram;		/* Histogram information	*/
 
 private:
-    const LQIO::DOM::Phase * _documentObject;
+    const LQIO::DOM::Phase * _dom;
     Entry *_entry;
     unsigned _phase;
 };

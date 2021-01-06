@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14323 2021-01-03 03:49:05Z greg $
+ * $Id: qnsolver.cc 14333 2021-01-04 23:17:05Z greg $
  */
 
 #include <lqio/jmva_document.h>
@@ -160,11 +160,10 @@ int main (int argc, char *argv[])
 		
 	    if ( mva != nullptr ) {
 		mva->solve();
-		BCMPResult * result = new BCMPResult( model );
-		mva->print(std::cout);
-		result->get(*mva);
-		result->print( std::cout );
+//		mva->print(std::cout);
+		model.insertResult( new BCMPResult( model.N(), model.Q(), *mva ) );
 	    }
+	    model.print( std::cout );
 	    delete mva;
 	}
     }

@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: pragma.h 14336 2021-01-05 04:13:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -58,6 +58,9 @@ private:
 
     static void set_pragma( const std::pair<std::string,std::string>& p );
     
+    /* Used to non-empty names into a string */
+    static std::string fold( const std::string& s1, const std::string& s2 ) { if ( s2.empty() ) { return s1; } else if ( s1.empty() ) { return s2; } else { return s1 + "," + s2; } }
+
 public:
     static bool allowCycles()
 	{
@@ -183,6 +186,18 @@ public:
 	    return __cache->_stop_on_bogus_utilization;
 	}
 
+    static bool defaultTaskScheduling()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_default_task_scheduling;
+	}
+    
+    static scheduling_type taskScheduling()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_task_scheduling;
+	}
+    
     static double tau()
 	{
 	    assert( __cache != nullptr );
@@ -249,6 +264,7 @@ private:
     void setSpexHeader(const std::string&);
     void setStopOnBogusUtilization(const std::string&);
     void setStopOnMessageLoss(const std::string&);
+    void setTaskScheduling(const std::string&);
     void setTau(const std::string&);
     void setThreads(const std::string&);
     void setVariance(const std::string&);
@@ -284,11 +300,13 @@ private:
     bool _spex_header;
     double _stop_on_bogus_utilization;
     bool _stop_on_message_loss;
+    scheduling_type _task_scheduling;
     unsigned  _tau;
     pragma_threads _threads;
     pragma_variance _variance;
     /* bonus */
     bool _default_processor_scheduling;
+    bool _default_task_scheduling;
     bool _init_variance_only;
     bool _entry_variance;
     
@@ -297,19 +315,20 @@ private:
     static Pragma * __cache;
     static std::map<std::string,Pragma::fptr> __set_pragma;
 
-    static std::map<std::string,LQIO::severity_t> __serverity_level_pragma;
     static std::map<std::string,pragma_force_multiserver> __force_multiserver;
     static std::map<std::string,pragma_layering> __layering_pragma;
     static std::map<std::string,pragma_multiserver> __multiserver_pragma;
     static std::map<std::string,pragma_mva> __mva_pragma;
     static std::map<std::string,pragma_overtaking> __overtaking_pragma;
+    static std::map<std::string,scheduling_type> __processor_scheduling_pragma;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     static std::map<std::string,pragma_quorum_distribution> __quorum_distribution_pragma;
     static std::map<std::string,pragma_quorum_delayed_calls> __quorum_delayed_calls_pragma;
     static std::map<std::string,pragma_quorum_idle_time> __quorum_idle_time_pragma;
 #endif
+    static std::map<std::string,LQIO::severity_t> __serverity_level_pragma;
+    static std::map<std::string,scheduling_type> __task_scheduling_pragma;
     static std::map<std::string,pragma_threads> __threads_pragma;
     static std::map<std::string,pragma_variance> __variance_pragma;
-    static std::map<std::string,scheduling_type> __processor_scheduling_pragma;
 };
 #endif

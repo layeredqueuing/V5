@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14328 2021-01-04 02:24:47Z greg $
+ * $Id: entry.cc 14342 2021-01-05 23:11:24Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1302,7 +1302,7 @@ Entry::aggregatePhases()
 
     /* Merge up the times. */
     
-    phase_1->setServiceTime(const_cast<LQIO::DOM::ExternalVariable *>(serviceTime()));
+    phase_1->setServiceTime(const_cast<LQIO::DOM::ExternalVariable *>(serviceTime()));		/*Sums over all phases */
     phase_1->setResultServiceTime(std::accumulate( _phases.begin(), _phases.end(), 0., &Phase::accumulate_execution ));
 
     /* Merge all calls to phase 1 */
@@ -1311,15 +1311,13 @@ Entry::aggregatePhases()
 
     /* Delete old stuff */
 
-    for ( std::map<unsigned,Phase>::iterator p = _phases.begin(); p != _phases.end(); ) {
-	if ( p != _phases.begin() ) {
-	    Phase& phase = p->second;
-	    if ( phase.getDOM() ) const_cast<LQIO::DOM::Entry *>(entry)->erasePhase(p->first);
-	    _phases.erase(p++);		/* Use post-increment so that iterator is not invalidated */
-	} else {
-	    ++p;
-	}
+    assert( _phases.size() >= 1 );
+    for ( std::map<unsigned,Phase>::iterator p = std::next(_phases.begin()); p != _phases.end(); ++p ) {
+	Phase& phase = p->second;
+	if ( phase.getDOM() ) const_cast<LQIO::DOM::Entry *>(entry)->erasePhase(p->first);
+	phase.setDOM( nullptr );
     }
+    _phases.erase(std::next(_phases.begin()), _phases.end());
 
     return *this;
 }

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14292 2020-12-30 16:29:20Z greg $ *
+ * $Id: pragma.cc 14338 2021-01-05 12:45:56Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -20,17 +20,23 @@
 #include "pragma.h"
 
 Pragma * Pragma::__cache = nullptr;
-std::map<std::string,Pragma::pragma_bcmp> Pragma::__bcmp_pragma;
 std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
-std::map<std::string,layering_format> Pragma::__layering_pragma;
 
+std::map<std::string,Pragma::pragma_bcmp> Pragma::__bcmp_pragma;
+std::map<std::string,layering_format> Pragma::__layering_pragma;
+std::map<std::string,scheduling_type> Pragma::__processor_scheduling_pragma;
 std::map<std::string,LQIO::severity_t> Pragma::__serverity_level_pragma;
+std::map<std::string,scheduling_type> Pragma::__task_scheduling_pragma;
 
 /*
  * Set default values in the constructor.  Defaults are used below.
  */
 
-Pragma::Pragma()
+Pragma::Pragma() :
+    _processor_scheduling(SCHEDULE_PS),
+    _task_scheduling(SCHEDULE_FIFO),
+    _default_processor_scheduling(true),
+    _default_task_scheduling(true)
 {
     if ( __cache != nullptr ) delete __cache;
     __cache = this;
@@ -42,14 +48,15 @@ Pragma::Pragma()
 void
 Pragma::initialize()
 {
-
     if ( !__set_pragma.empty() ) return;
 
     __set_pragma[LQIO::DOM::Pragma::_bcmp_] = &Pragma::setBCMP;
     __set_pragma[LQIO::DOM::Pragma::_layering_] = &Pragma::setLayering;
+    __set_pragma[LQIO::DOM::Pragma::_processor_scheduling_] = &Pragma::setProcessorScheduling;
     __set_pragma[LQIO::DOM::Pragma::_prune_] = &Pragma::setPrune;
     __set_pragma[LQIO::DOM::Pragma::_severity_level_] = &Pragma::setSeverityLevel;
     __set_pragma[LQIO::DOM::Pragma::_spex_header_] = &Pragma::setSpexHeader;
+    __set_pragma[LQIO::DOM::Pragma::_task_scheduling_] = &Pragma::setTaskScheduling;
 
     __bcmp_pragma[LQIO::DOM::Pragma::_extended_] = 		BCMP_EXTENDED;
     __bcmp_pragma[LQIO::DOM::Pragma::_lqn_] = 			BCMP_LQN;		/* default */
@@ -71,9 +78,19 @@ Pragma::initialize()
     __layering_pragma[LQIO::DOM::Pragma::_squashed_] =		LAYERING_SQUASHED;
     __layering_pragma[LQIO::DOM::Pragma::_srvn_] =	    	LAYERING_SRVN;
 
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_DELAY].XML] =	SCHEDULE_DELAY;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_FIFO].XML] =	SCHEDULE_FIFO;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_HOL].XML] =		SCHEDULE_HOL;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_PPR].XML] =		SCHEDULE_PPR;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_PS].XML] =		SCHEDULE_PS;
+    __processor_scheduling_pragma[scheduling_label[SCHEDULE_RAND].XML] =	SCHEDULE_RAND;
+
     __serverity_level_pragma[LQIO::DOM::Pragma::_advisory_] =	LQIO::ADVISORY_ONLY;
     __serverity_level_pragma[LQIO::DOM::Pragma::_run_time_] =	LQIO::RUNTIME_ERROR;
     __serverity_level_pragma[LQIO::DOM::Pragma::_warning_] =	LQIO::WARNING_ONLY;
+
+    __task_scheduling_pragma[scheduling_label[SCHEDULE_DELAY].XML] =	SCHEDULE_DELAY;
+    __task_scheduling_pragma[scheduling_label[SCHEDULE_FIFO].XML] =	SCHEDULE_FIFO;
 }
 
 
@@ -81,6 +98,9 @@ void
 Pragma::set( const std::map<std::string,std::string>& list )
 {
     initialize();
+    if ( __cache != nullptr ) delete __cache;
+    __cache = new Pragma();
+
     std::for_each( list.begin(), list.end(), set_pragma );
 }
 
@@ -151,6 +171,20 @@ void Pragma::setLayering(const std::string& value)
 }
 
 
+void Pragma::setProcessorScheduling(const std::string& value)
+{
+    const std::map<std::string,scheduling_type>::const_iterator pragma = __processor_scheduling_pragma.find( value );
+    if ( pragma != __processor_scheduling_pragma.end() ) {
+	_default_processor_scheduling = false;
+	_processor_scheduling = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
+	_default_processor_scheduling = true;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
+
+
 void Pragma::setPrune(const std::string& value)
 {
     if ( input_output() ) return;		// Ignore if generating input.
@@ -183,6 +217,21 @@ bool Pragma::spexHeader()
 void Pragma::setSpexHeader(const std::string& value)
 {
     LQIO::Spex::__no_header = !LQIO::DOM::Pragma::isTrue( value );
+}
+
+
+
+void Pragma::setTaskScheduling(const std::string& value)
+{
+    const std::map<std::string,scheduling_type>::const_iterator pragma = __task_scheduling_pragma.find( value );
+    if ( pragma != __task_scheduling_pragma.end() ) {
+	_default_task_scheduling = false;
+	_task_scheduling = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
+	_default_task_scheduling = true;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
 }
 
 /*

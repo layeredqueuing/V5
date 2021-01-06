@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14328 2021-01-04 02:24:47Z greg $
+ * $Id: lqn2ps.cc 14343 2021-01-06 02:03:12Z greg $
  *
  * Command line processing.
  *
@@ -191,7 +191,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-03 21:24:47 -0500 (Sun, 03 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-05 21:03:12 -0500 (Tue, 05 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -552,7 +552,7 @@ lqn2ps( int argc, char *argv[] )
 
 	case 512+'o':
 	    Flags::print[OUTPUT_FORMAT].value.i = FORMAT_LQX;
-	    setOutputFormat( arg );
+	    setOutputFormat( FORMAT_LQX );
 	    break;
 	    
 	case 'P':

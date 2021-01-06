@@ -9,29 +9,22 @@
  *
  * December 2020
  *
- * $Id: bcmpresult.h 14324 2021-01-03 04:11:49Z greg $
+ * $Id: bcmpresult.h 14333 2021-01-04 23:17:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #if !defined(BCMPRESULT_H)
 #define BCMPRESULT_H
-#include "bcmpmodel.h"
+#include <map>
 #include <mva/mva.h>
 #include <mva/vector.h>
+#include <mva/server.h>
 
 class BCMPResult {
 
-    struct Q_t {						/* Stations	*/
-	Q_t( const Model& model ) : _model(model) {}
-	const Server& operator[]( size_t m ) const { return *_model.Q()[m]; }
-    private:
-	const Model& _model;
-    };
-
 public:
     class Item {
-	friend std::ostream& operator<<( std::ostream&, const BCMPResult::Item& );
 
     public:
 	Item() : _S(0.), _V(0.), _X(0.), _L(0.), _R(0.), _U(0.) {}
@@ -47,11 +40,6 @@ public:
 	Item& deriveStationAverage();
 //	Item& adjustTerminalForQNAPOutput();
 
-	std::ostream& print( std::ostream& ) const;
-
-	static std::string header();
-	static std::string blankline();
-
     private:
 	double _S;			/* Service Time (QNAP) 	*/
 	double _V;			/* Visits.		*/
@@ -60,34 +48,19 @@ public:
 	double _R;			/* Residence time (W)	*/
 	double _U;			/* Utilization		*/
     };
+
     typedef std::pair<size_t,BCMPResult::Item> item_pair;
     typedef std::multimap<size_t,item_pair> result_map;	/* m,k,Item */
     typedef std::pair<size_t,item_pair> result_pair;	/* m,k,Item */
 
 public:
-    BCMPResult( Model& model ) : _model(model), Q(model) {}
-    void get( const MVA& solver );
-    std::ostream& print( std::ostream& ) const;
+    BCMPResult( const Population& N, const Vector<Server *>& Q, const MVA& solver );
+
+    const result_map& results() const { return _results; }
+    BCMPResult::Item sum( size_t m ) const;	/* Return sum over all stations */
 
 private:
-    /* inputs */
-    const std::map<std::string,size_t>& classes() const { return _model.index().k; }
-    const std::map<std::string,size_t>& stations() const { return _model.index().m; }
-    const std::map<size_t,std::string>& class_names() const { return _model.reverse().k; }
-    /* Outputs */
-    const Population& N() const { return _model.N(); }		/* Populations	*/
-
-private:
-    /* input */
-    Model& _model;
     /* ouptut */
     result_map _results;
-    const Q_t Q;
-
-    static std::streamsize __width;
-    static std::streamsize __precision;
-    static std::string __separator;	/* Column separator	*/
 };
-
-inline std::ostream& operator<<( std::ostream& output, const BCMPResult::Item& item ) { return item.print( output ); }
 #endif

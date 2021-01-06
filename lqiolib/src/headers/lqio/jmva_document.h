@@ -7,9 +7,13 @@
 #ifndef __LQIO_JMVA_DOCUMENT__
 #define __LQIO_JMVA_DOCUMENT__
 
+#include <config.h>
 #include <expat.h>
 #include <stack>
 #include <set>
+#if HAVE_STRINGS_H
+#include <strings.h>
+#endif
 #include "bcmp_document.h"
 
 namespace LQIO {

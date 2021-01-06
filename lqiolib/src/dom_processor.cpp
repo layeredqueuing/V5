@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 14213 2020-12-14 17:14:40Z greg $
+ *  $Id: dom_processor.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -48,8 +48,6 @@ namespace LQIO {
 	    for ( std::set<Task*>::const_iterator task = _taskList.begin(); task != _taskList.end(); ++task) {
 		delete *task;
 	    }
-	    if ( _processorRate != nullptr ) delete _processorRate;
-	    if ( _processorQuantum != nullptr ) delete _processorQuantum;
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */

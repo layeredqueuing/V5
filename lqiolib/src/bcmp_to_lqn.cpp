@@ -16,6 +16,7 @@
 #include <config.h>
 #endif
 #include <sstream>
+#include <algorithm>
 #include "dom_document.h"
 #include "dom_processor.h"
 #include "dom_task.h"
@@ -36,7 +37,7 @@ DOM::BCMP_to_LQN::convert()
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( classes().begin(), classes().end(), connectClassToStation( *this ) );
     }
-    catch ( std::runtime_error ) {
+    catch ( const std::runtime_error& ) {
 	return false;
     }
     return true;

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 14214 2020-12-14 17:17:38Z greg $
+ *  $Id: dom_phase.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -51,7 +51,8 @@ namespace LQIO {
 	      _serviceTime(src._serviceTime->clone()),
 	      _phaseTypeFlag(src.getPhaseTypeFlag()), _entry(const_cast<LQIO::DOM::Entry*>(src.getSourceEntry())),
 	      _thinkTime(src._thinkTime->clone()),
-	      _coeffOfVariationSq(src._coeffOfVariationSq->clone()), _histogram(NULL),
+	      _coeffOfVariationSq(src._coeffOfVariationSq->clone()),
+	      _histogram(nullptr),	/* not copied */
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
@@ -66,9 +67,6 @@ namespace LQIO {
 	    for ( std::vector<Call*>::iterator call = _calls.begin(); call != _calls.end(); ++call) {
 		delete *call;
 	    }
-	    if ( _serviceTime != nullptr ) delete _serviceTime;
-	    if ( _thinkTime != nullptr ) delete _thinkTime;
-	    if ( _coeffOfVariationSq != nullptr ) delete _coeffOfVariationSq;
 	    if ( _histogram != nullptr ) delete _histogram;
 	}
 
@@ -93,10 +91,6 @@ namespace LQIO {
 	void Phase::setServiceTime(ExternalVariable* serviceTime)
 	{
 	    /* Stores the given ServiceTime of the Phase */
-	    if (_serviceTime != NULL) {
-//        printf("WARNING: Overwriting existing ExternalVariable in Phase.\n");
-	    }
-
 	    _serviceTime = checkDoubleVariable( serviceTime, 0.0 );
 	}
 

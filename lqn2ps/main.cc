@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14316 2021-01-01 06:15:29Z greg $
+ * $Id: main.cc 14337 2021-01-05 11:32:10Z greg $
  */
 
 #include "lqn2ps.h"
@@ -204,14 +204,16 @@ const char * Options::special[] = {
     "no-phase-type",			/* SPECIAL_NO_PHASE_TYPE,		*/
     "no-reference-task-conversion",	/* SPECIAL_NO_REF_TASK_CONVERSION,	*/
     "prune",				/* SPECIAL_PRUNE			*/
+    "processor-scheduling"		/* SPECIAL_PROCESSOR_SCHEDULING		*/
     "quorum-reply",			/* SPECIAL_QUORUM_REPLY,		*/
     "rename",				/* SPECIAL_RENAME			*/
     "sort",				/* SPECIAL_SORT,			*/
     "squish",				/* SPECIAL_SQUISH_ENTRY_NAMES,		*/
+    "no-header",			/* SPECIAL_SPEX_HEADER			*/
     "submodels",			/* SPECIAL_SUBMODEL_CONTENTS,		*/
     "tasks-only",			/* SPECIAL_TASKS_ONLY			*/
-    "no-header",			/* SPECIAL_SPEX_HEADER			*/
-    0
+    "task-scheduling",			/* SPECIAL_TASK_SCHEDULING		*/
+    nullptr
 };
 
 const char * Options::processor[] = {
@@ -219,12 +221,12 @@ const char * Options::processor[] = {
     "default",
     "non-infinite",
     "all",
-    0
+    nullptr
 };
 
 const char * Options::real [] = {
     "float",
-    0
+    nullptr
 };
 
 const char * Options::replication [] =
@@ -232,7 +234,7 @@ const char * Options::replication [] =
     "none",
     "remove",
     "expand",
-    0
+    nullptr
 };
 
 const char * Options::sort [] = {
@@ -240,12 +242,12 @@ const char * Options::sort [] = {
     "descending",
     "topological",
     "none",
-    0
+    nullptr
 };
 
 const char * Options::string [] = {
     "string",
-    0
+    nullptr
 };
 
 static bool get_bool( const std::string&, bool default_value );
@@ -381,11 +383,15 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	case SPECIAL_SUBMODEL_CONTENTS:		  Flags::print_submodels		= get_bool( value, true ); break;
 
 	case SPECIAL_BCMP:
-	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_, get_bool( value, true ) ? "true" : "false" );
+	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_, value );
+	    break;
+	    
+	case SPECIAL_PROCESSOR_SCHEDULING:
+	    pragmas.insert(LQIO::DOM::Pragma::_processor_scheduling_, value );
 	    break;
 	    
 	case SPECIAL_PRUNE:
-	    pragmas.insert(LQIO::DOM::Pragma::_prune_, get_bool( value, true ) ? "true" : "false" );
+	    pragmas.insert(LQIO::DOM::Pragma::_prune_, value );
 	    break;
 
 	case SPECIAL_QUORUM_REPLY:
@@ -397,6 +403,10 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	    if ( Flags::sort == INVALID_SORT ) throw std::domain_error( value );
 	    break;
 
+	case SPECIAL_TASK_SCHEDULING:
+	    pragmas.insert(LQIO::DOM::Pragma::_task_scheduling_, value );
+	    break;
+	    
 	case SPECIAL_TASKS_ONLY:
 	    Flags::print[AGGREGATION].value.i = AGGREGATE_ENTRIES;
 	    if ( Flags::icon_height == DEFAULT_ICON_HEIGHT ) {

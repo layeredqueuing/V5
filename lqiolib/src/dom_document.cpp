@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14292 2020-12-30 16:29:20Z greg $
+ *  $Id: dom_document.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -96,10 +96,16 @@ namespace LQIO {
 		delete var->second;
 	    }
 
+	    /* BUG_277 Delete External Variables */
+
+	    for ( std::map<std::string, SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
+		delete var->second;
+	    }
+	    
+	    LQIO::Spex::clear();
+
 	    __document = nullptr;
 	    __input_file_name = "";
-
-	    LQIO::Spex::clear();
 	}
     
 	void Document::setModelParameters(const std::string& comment, LQIO::DOM::ExternalVariable* conv_val, LQIO::DOM::ExternalVariable* it_limit, LQIO::DOM::ExternalVariable* print_int, LQIO::DOM::ExternalVariable* underrelax_coeff, const void * element )

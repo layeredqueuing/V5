@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14317 2021-01-01 15:51:48Z greg $
+ *  $Id: dom_extvar.cpp 14342 2021-01-05 23:11:24Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -223,7 +223,6 @@ namespace LQIO {
 	SymbolExternalVariable::SymbolExternalVariable(const SymbolExternalVariable& src ) :
 	    _externalSymbol(src._externalSymbol), _name(src._name)
 	{
-	    abort();
 	}
 
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: lqns.cc 14335 2021-01-05 04:10:54Z greg $
  *
  * Command line processing.
  *
@@ -626,9 +626,6 @@ process ( const std::string& inputFileName, const std::string& outputFileName )
     }
     catch ( const std::runtime_error& e ) {
 	rc = INVALID_INPUT;
-    }
-    catch ( const exception_handled& e ) {
-	rc = INVALID_OUTPUT;
     }
 
     /* Clean things up */

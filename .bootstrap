@@ -1,7 +1,9 @@
 #!/bin/sh
 mkdir -p config
-find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in \) -print | xargs rm -rf 
-aclocal -I config
+automake -a -c
+autoheader
+autoconf
+automake
 (cd lqx; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd lqiolib; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)
 (cd libmva; aclocal -I ../config; automake -a -c; glibtoolize --force; libtoolize --force; autoheader; autoconf; automake)

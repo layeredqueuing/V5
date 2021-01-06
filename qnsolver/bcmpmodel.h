@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: bcmpmodel.h 14321 2021-01-02 15:35:47Z greg $
+ * $Id: bcmpmodel.h 14333 2021-01-04 23:17:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,10 +21,12 @@
 #include <map>
 #include <lqio/bcmp_document.h>
 #include <mva/pop.h>
+#include "bcmpresult.h"
 
 class Server;
 
 class Model {
+    
 private:
     class CreateClass {
     public:
@@ -80,25 +82,54 @@ private:
 	std::map<size_t,std::string> k;
 	std::map<size_t,std::string> m;
     };
-    
+
+    
 public:
     Model( const BCMP::Model& model );
 
+    void insertResult( BCMPResult * result ) { _results = result; }	// Will change to vector.
+
     bool operator!() const { return _result == false; }
     
+    const Population& N() const { return _N; }
+    const Vector<Server *>& Q() const { return _Q; }
+    const VectorMath<double>& Z() const { return _Z; }
+    const VectorMath<unsigned>& priority() const { return _priority; }
     Population& N() { return _N; }
     Vector<Server *>& Q() { return _Q; }
-    const Vector<Server *>& Q() const { return _Q; }
     VectorMath<double>& Z() { return _Z; }
     VectorMath<unsigned>& priority() { return _priority; }
+
+private:
     const Index& index() const { return _index; }
     const Reverse& reverse() const { return _reverse; }
 
-private:
+#if 0
+    class OutputQNAP {
+#endif
+	static std::streamsize __width;
+	static std::streamsize __precision;
+	static std::string __separator;
+
+	static std::string header();
+	static std::string blankline();
+
+	std::ostream& print( std::ostream& output, const BCMPResult::Item& item ) const;
+    public:
+	std::ostream& print( std::ostream& ) const;
+    private:
+#if 0
+    };
+
+    class OutputLQN {
+    };
+#endif
+
     bool construct();
+    /* inputs */
     const BCMP::Model::Class::map_t& classes() const { return _model.classes(); }
     const BCMP::Model::Station::map_t& stations() const { return _model.stations(); }
-    
+
 private:
     const BCMP::Model& _model;				/* Input */
     Index _index;
@@ -109,5 +140,6 @@ private:
     VectorMath<double> _Z;				/* Think Time */
     VectorMath<unsigned> _priority;			/* Priority */
     bool _result;
+    BCMPResult * _results;			// will change to vector
 };
 #endif

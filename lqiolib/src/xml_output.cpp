@@ -161,7 +161,7 @@ namespace XML {
 
     static std::ostream& printCData( std::ostream& output, const std::string& s, const std::string& )
     {
-	output << "><![CDATA[" << s << output << "]]>";
+	output << "><![CDATA[" << s << "]]>";
 	return output;
     }
     

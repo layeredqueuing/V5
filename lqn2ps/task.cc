@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14329 2021-01-04 03:13:46Z greg $
+ * $Id: task.cc 14344 2021-01-06 15:21:51Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -28,24 +28,25 @@
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
-#include <lqio/dom_task.h>
-#include <lqio/dom_entry.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
-#include <lqio/dom_processor.h>
-#include <lqio/dom_group.h>
 #include <lqio/dom_document.h>
+#include <lqio/dom_entry.h>
+#include <lqio/dom_group.h>
+#include <lqio/dom_processor.h>
+#include <lqio/dom_task.h>
 #include <lqio/srvn_output.h>
-#include "errmsg.h"
-#include "task.h"
-#include "entry.h"
 #include "activity.h"
 #include "actlist.h"
-#include "share.h"
-#include "processor.h"
 #include "call.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "label.h"
 #include "model.h"
+#include "pragma.h"
+#include "processor.h"
+#include "share.h"
+#include "task.h"
 
 std::set<Task *,LT<Task> > Task::__tasks;
 std::map<std::string,unsigned> Task::__key_table;		/* For squishName 	*/
@@ -2439,7 +2440,7 @@ ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
     typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
     BCMP::Model::Station::Demand demand;
     if ( hasThinkTime() ) {
-	demand.setServiceTime( &thinkTime() );
+	demand.setServiceTime( thinkTime().clone() );
     }
 
     demand_map& demands = const_cast<demand_map&>(station.demands());
@@ -2452,6 +2453,10 @@ ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
 ServerTask::ServerTask( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * aShare, const std::vector<Entry *>& entries )
     : Task( dom, aProc, aShare, entries )
 {
+    if ( !isMultiServer() && scheduling() != SCHEDULE_DELAY && !Pragma::defaultTaskScheduling() ) {
+	/* Change scheduling type for fixed rate servers (usually from FCFS to DELAY) */
+	const_cast<LQIO::DOM::Task *>(dom)->setSchedulingType(Pragma::taskScheduling());
+    }
 }
 
 

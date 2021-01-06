@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 14213 2020-12-14 17:14:40Z greg $
+ *  $Id: dom_entry.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -77,8 +77,6 @@ namespace LQIO {
 	    for ( std::map<unsigned, Histogram*>::iterator histogram = _histograms.begin(); histogram != _histograms.end(); ++histogram) {
 		delete histogram->second;
 	    }
-	    if ( _openArrivalRate != nullptr ) delete _openArrivalRate;
-	    if ( _entryPriority != nullptr ) delete _entryPriority;
 	}
 
 	Entry& Entry::clearPhaseResults()

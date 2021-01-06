@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14328 2021-01-04 02:24:47Z greg $
+ * $Id: model.cc 14337 2021-01-05 11:32:10Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -218,7 +218,12 @@ Model::~Model()
 	delete _label;
     }
 
-    __model = 0;
+    /* Reset Flags */
+
+    Flags::print[LAYERING].value.i = LAYERING_BATCH;
+    LQIO::io_vars.severity_level = LQIO::NO_ERROR;
+    Flags::bcmp_model = false;
+    __model = nullptr;
 }
 
 /*

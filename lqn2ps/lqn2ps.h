@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14332 2021-01-04 20:41:20Z greg $
+ * $Id: lqn2ps.h 14337 2021-01-05 11:32:10Z greg $
  *
  */
 
@@ -215,13 +215,15 @@ typedef enum {
     SPECIAL_NO_PHASE_TYPE,
     SPECIAL_NO_REF_TASK_CONVERSION,
     SPECIAL_PRUNE,
+    SPECIAL_PROCESSOR_SCHEDULING,
     SPECIAL_QUORUM_REPLY,
     SPECIAL_RENAME,
     SPECIAL_SORT,
     SPECIAL_SQUISH_ENTRY_NAMES,
+    SPECIAL_SPEX_HEADER,
     SPECIAL_SUBMODEL_CONTENTS,
     SPECIAL_TASKS_ONLY,	
-    SPECIAL_SPEX_HEADER
+    SPECIAL_TASK_SCHEDULING
 } special_type;
 
 typedef enum {

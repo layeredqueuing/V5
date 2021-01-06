@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14319 2021-01-02 04:11:00Z greg $ *
+ * $Id: pragma.cc 14337 2021-01-05 11:32:10Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <numeric>
 #include <iomanip>
 #include "pragma.h"
 #include "lqio/glblerr.h"
@@ -34,6 +35,7 @@ std::map<std::string,Pragma::pragma_quorum_distribution> Pragma::__quorum_distri
 std::map<std::string,Pragma::pragma_quorum_delayed_calls> Pragma::__quorum_delayed_calls_pragma;
 std::map<std::string,Pragma::pragma_quorum_idle_time> Pragma::__quorum_idle_time_pragma;
 #endif
+std::map<std::string,scheduling_type> Pragma::__task_scheduling_pragma;
 std::map<std::string,Pragma::pragma_threads> Pragma::__threads_pragma;
 std::map<std::string,Pragma::pragma_variance> Pragma::__variance_pragma;
 
@@ -64,10 +66,12 @@ Pragma::Pragma() :
     _spex_header(true),
     _stop_on_bogus_utilization(0),
     _stop_on_message_loss(true),
+    _task_scheduling(SCHEDULE_FIFO),
     _tau(8),
     _threads(HYPER_THREADS),
     _variance(DEFAULT_VARIANCE),
     _default_processor_scheduling(true),
+    _default_task_scheduling(true),
     _init_variance_only(false),
     _entry_variance(true)
 {
@@ -103,6 +107,7 @@ Pragma::initialize()
     __set_pragma[LQIO::DOM::Pragma::_spex_header_] = &Pragma::setSpexHeader;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_bogus_utilization_] = &Pragma::setStopOnBogusUtilization;
     __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] = &Pragma::setStopOnMessageLoss;
+    __set_pragma[LQIO::DOM::Pragma::_task_scheduling_] = &Pragma::setTaskScheduling;
     __set_pragma[LQIO::DOM::Pragma::_tau_] = &Pragma::setTau;
     __set_pragma[LQIO::DOM::Pragma::_threads_] = &Pragma::setThreads;
     __set_pragma[LQIO::DOM::Pragma::_variance_] = &Pragma::setVariance;
@@ -168,6 +173,9 @@ Pragma::initialize()
     __serverity_level_pragma[LQIO::DOM::Pragma::_advisory_] =	LQIO::ADVISORY_ONLY;
     __serverity_level_pragma[LQIO::DOM::Pragma::_run_time_] =	LQIO::RUNTIME_ERROR;
     __serverity_level_pragma[LQIO::DOM::Pragma::_warning_] =	LQIO::WARNING_ONLY;
+
+    __task_scheduling_pragma[scheduling_label[SCHEDULE_DELAY].XML] =	SCHEDULE_DELAY;
+    __task_scheduling_pragma[scheduling_label[SCHEDULE_FIFO].XML] =	SCHEDULE_FIFO;
 
     __threads_pragma[LQIO::DOM::Pragma::_hyper_] =	HYPER_THREADS;
     __threads_pragma[LQIO::DOM::Pragma::_mak_] =	MAK_LUNDSTROM_THREADS;
@@ -361,6 +369,20 @@ void Pragma::setStopOnMessageLoss(const std::string& value)
     _stop_on_message_loss = LQIO::DOM::Pragma::isTrue(value);
 }
 
+void Pragma::setTaskScheduling(const std::string& value)
+{
+    const std::map<std::string,scheduling_type>::const_iterator pragma = __task_scheduling_pragma.find( value );
+    if ( pragma != __task_scheduling_pragma.end() ) {
+	_default_task_scheduling = false;
+	_task_scheduling = pragma->second;
+    } else if ( value == LQIO::DOM::Pragma::_default_ ) {
+	_default_task_scheduling = true;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
+
+
 void Pragma::setTau(const std::string& value)
 {
     char * endptr = nullptr;
@@ -414,13 +436,8 @@ Pragma::usage( std::ostream& output )
 	} else {
 	    const std::set<std::string>* args = LQIO::DOM::Pragma::getValues( i->first );
 	    if ( args && args->size() > 1 ) {
-		output << " = {";
-
-		for ( std::set<std::string>::const_iterator q = args->begin(); q != args->end(); ++q ) {
-		    if ( q != args->begin() ) output << ",";
-		    output << *q;
-		}
-		output << "}" << std::endl;
+		std::string s = std::accumulate( std::next( args->begin() ), args->end(), *args->begin(), &fold );
+		output << " = {" << s << "}" << std::endl;
 	    } else {
 		output << " = <arg>" << std::endl;
 	    }

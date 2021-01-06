@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 14213 2020-12-14 17:14:40Z greg $
+ *  $Id: dom_entity.cpp 14346 2021-01-06 16:04:22Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -35,9 +35,6 @@ namespace LQIO {
 
 	Entity::~Entity()
 	{
-	    /* Delete variables */
-	    if ( _copies != nullptr ) delete _copies;
-	    if ( _replicas != nullptr ) delete _replicas;
 	}
     
 	const unsigned int Entity::getId() const
