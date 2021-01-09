@@ -116,7 +116,7 @@ public:
     double serviceExceeded() const;
     double queueingTime() const;
     double utilization() const;
-    static LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const std::pair<unsigned int, Phase>& );
+    static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const std::pair<unsigned int, Phase>& );
     static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& );
     static double accumulate_execution( double, const std::pair<unsigned int, Phase>& );
 

@@ -17,15 +17,14 @@
 #define ENTRY_H
 
 #include "lqn2ps.h"
-#include <cstring>
 #include <vector>
 #include <set>
 #include <numeric>
 #include <lqio/dom_entry.h>
 #include <lqio/bcmp_document.h>
+#include "call.h"
 #include "element.h"
 #include "phase.h"
-#include "call.h"
 
 class Arc;
 class Activity;

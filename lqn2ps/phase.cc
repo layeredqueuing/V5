@@ -194,25 +194,31 @@ Phase::utilization() const
 }
 
 
+
+/* +BUG_270 */
 /*
- * Add two constant external variables.  Otherwise propogate a copy of one or the other.
+ * Add two constant external variables.  Otherwise propogate a copy of
+ * one or the other.  If either the augend or the addend is a
+ * SymbolExternalVariable, then I will have to create an expression.
+ * See srvn_spex.cpp::spex_inline_expression(), but I will have to
+ * create the expr to pass into this function.
  */
 
 /* static */
-LQIO::DOM::ExternalVariable *
+const LQIO::DOM::ExternalVariable *
 Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
 {
     const LQIO::DOM::ExternalVariable * addend = phase.second.getDOM()->getServiceTime();
     if ( !LQIO::DOM::ExternalVariable::isDefault( augend ) && !LQIO::DOM::ExternalVariable::isDefault( addend ) ) {
 	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
-    } else if ( addend != nullptr && LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
-	return addend->clone();
-    } else if ( augend != nullptr ) {
-	return augend->clone();
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+	return addend;
     } else {
-	return nullptr;
+	return augend;
     }
 }
+/* -BUG_270 */
+
 
 /*
  * I only visit the processor once for all intents and purposes.
