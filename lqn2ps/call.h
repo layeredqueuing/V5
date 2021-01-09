@@ -511,14 +511,16 @@ public:
     virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
     virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
 
-    virtual const LQIO::DOM::ExternalVariable& rendezvous( const unsigned p = 1 ) const;
+    ProcessorCall& rendezvous( const LQIO::DOM::ExternalVariable * value );
+    virtual const LQIO::DOM::ExternalVariable& rendezvous() const;
     virtual double sumOfRendezvous() const;
-    virtual const LQIO::DOM::ExternalVariable& sendNoReply( const unsigned p = 1 ) const;
+    virtual const LQIO::DOM::ExternalVariable& sendNoReply() const;
     virtual double sumOfSendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable& forward() const;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
     const LQIO::DOM::ExternalVariable * visits() const { return _visits; }
+    void serviceTime( const LQIO::DOM::ExternalVariable * serviceTime ) { _serviceTime = serviceTime; }
     const LQIO::DOM::ExternalVariable * serviceTime() const { return _serviceTime; }
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );

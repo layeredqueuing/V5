@@ -33,6 +33,12 @@ class Share;
 class Task;
 class TaskCall;
 
+#if defined(BUG_270)
+typedef std::multimap<const Entity *,EntityCall *>::const_iterator merge_iter;
+typedef std::pair<const Entity *,EntityCall *> merge_pair;
+#endif
+
+
 /* ----------------------- Abstract Superclass ------------------------ */
 
 class Task : public Entity {
@@ -147,6 +153,10 @@ public:
     virtual bool isInOpenModel( const std::vector<Entity *>& servers ) const;
     virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
+#if defined(BUG_270)
+    static double accumulate_rendezvous( double, const merge_pair& );		// will change to extvar.
+    static double accumulate_service_time( double, const merge_pair& );
+#endif
     virtual void accumulateDemand( BCMP::Model::Station& ) const;
     static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Task * );
     /* Activities */

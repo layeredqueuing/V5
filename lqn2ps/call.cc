@@ -1785,11 +1785,18 @@ ProcessorCall::operator==( const ProcessorCall& item ) const
     return this == &item;
 }
 
+ProcessorCall&
+ProcessorCall::rendezvous( const LQIO::DOM::ExternalVariable * value )
+{
+    _callType = LQIO::DOM::Call::RENDEZVOUS;
+    _visits = value;
+    return *this;
+}
 
 const LQIO::DOM::ExternalVariable&
-ProcessorCall::rendezvous( const unsigned p ) const
+ProcessorCall::rendezvous() const
 {
-    if ( hasRendezvous() && _visits != nullptr && p == 1 ) return *_visits;
+    if ( hasRendezvous() && _visits != nullptr ) return *_visits;
     else return Element::ZERO;
 }
 
@@ -1803,9 +1810,9 @@ ProcessorCall::sumOfRendezvous() const
 
 
 const LQIO::DOM::ExternalVariable&
-ProcessorCall::sendNoReply( const unsigned p ) const
+ProcessorCall::sendNoReply() const
 {
-    if ( hasSendNoReply() && _visits != nullptr && p == 1 ) return *_visits;
+    if ( hasSendNoReply() && _visits != nullptr ) return *_visits;
     else return Element::ZERO;
 }
 

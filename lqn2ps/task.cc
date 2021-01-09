@@ -20,6 +20,7 @@
 #include <cmath>
 #include <cstdlib>
 #include <string>
+#include <vector>
 #if HAVE_FLOAT_H
 #include <float.h>
 #endif
@@ -1938,7 +1939,45 @@ Task::mergeCalls()
     for ( std::vector<EntityCall *>::const_iterator call = _calls.begin(); call != _calls.end(); ++call ) {
 	merge.insert( std::pair<const Entity *,EntityCall *>( (*call)->dstEntity(), *call ) );
     }
+
+    std::vector<EntityCall *> new_calls;
+    merge_iter upper;
+    for ( merge_iter lower = merge.begin(); lower != merge.end(); lower = upper ) {
+	const Entity * server = lower->first;
+	upper = merge.upper_bound( server ); 
+	const double visits       = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
+	if ( visits == 0 ) continue;
+	const double service_time = std::accumulate( lower, upper, 0., &accumulate_service_time );
+
+	/* create a new call with the number of vists and the service time / number of visits */
+	if ( server->isProcessor() ) {
+	    ProcessorCall * call;
+	    call = new ProcessorCall( this, dynamic_cast<const Processor *>(server) );
+	    call->rendezvous( new LQIO::DOM::ConstantExternalVariable( visits ) );
+	    call->serviceTime( new LQIO::DOM::ConstantExternalVariable( service_time / visits ) );
+	    new_calls.push_back( call );
+	} else {
+	    abort();
+	}
+    }
+
+    _calls = new_calls;    /* copy over the new call list */
+
     return *this;
+}
+
+
+double
+Task::accumulate_rendezvous( double augend, const merge_pair& addend )		// will change to extvar.
+{
+    return augend + addend.second->sumOfRendezvous();
+}
+
+
+double
+Task::accumulate_service_time( double augend, const merge_pair& addend )
+{
+    return augend + addend.second->sumOfRendezvous();
 }
 #endif
 
