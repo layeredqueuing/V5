@@ -180,6 +180,14 @@ namespace LQIO {
 	/* If we have only set control variables, then nothing to do. */
 	if ( !has_vars() ) return false;		
 
+	/* If we don't have any results, print them all. */
+	if ( __result_variables.empty() ) {
+	    // copy name from observation variable __observation_variables to __result_variable.
+	    for ( std::map<std::string,LQX::SyntaxTreeNode *>::iterator obs_p = __observation_variables.begin(); obs_p != __observation_variables.end(); ++obs_p ) {
+		spex_result_assignment_statement( obs_p->first.c_str(), nullptr );
+	    }
+	}
+	
 	/* Add magic variable if not present */
 	if ( __convergence_variables.size() > 0 && !DOM::__document->hasSymbolExternalVariable( __convergence_limit_str ) ) {
 	    double convergence_value = DOM::__document->getModelConvergenceValue();

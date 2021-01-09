@@ -47,7 +47,7 @@
 
 std::set<Entry *,LT<Entry> > Entry::__entries;
 std::map<std::string,unsigned> Entry::__key_table;		/* For squishName 	*/
-std::map<std::string,std::string> Entry::__symbol_table;		/* For rename		*/
+std::map<std::string,std::string> Entry::__symbol_table;	/* For rename		*/
 
 unsigned Entry::max_phases		= 0;
 
