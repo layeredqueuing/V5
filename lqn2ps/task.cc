@@ -15,12 +15,11 @@
  */
 
 #include "lqn2ps.h"
-#include <string>
-#include <cstdlib>
-#include <cassert>
-#include <cstring>
 #include <algorithm>
+#include <cassert>
 #include <cmath>
+#include <cstdlib>
+#include <string>
 #if HAVE_FLOAT_H
 #include <float.h>
 #endif
@@ -1164,6 +1163,20 @@ Task::repliesTo( Entry * anEntry ) const
 }
 
 
+bool
+Task::canConvertToReferenceTask() const
+{
+    return Flags::convert_to_reference_task
+      && (submodel_output() || Flags::print[INCLUDE_ONLY].value.r )
+      && !isSelected()
+      && !hasOpenArrivals()
+      && !isInfinite()
+      && nEntries() == 1
+      && !_processors.empty();
+}
+
+
+
 #if defined(BUG_270)
 bool
 Task::canPrune() const
@@ -1881,20 +1894,17 @@ Task::translateY( const double dy )
     return *this;
 }
 
+
+
 #if defined(BUG_270)
 Task&
-Task::linkToClients()
+Task::relink()
 {
+    if ( !canPrune() ) return *this;
     for_each( entries().begin(), entries().end(), Exec1<Entry,const std::vector<EntityCall *>&>( &Entry::linkToClients, calls() ) );
-    return *this;
-}
-
-
-Task&
-Task::unlinkFromServers()
-{
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::unlinkFromServers ) );
     unlinkFromProcessor();
+    Model::__zombies.push_back( this );
     return *this;
 }
 
@@ -1912,6 +1922,22 @@ Task::unlinkFromProcessor()
 	}
     }
     _processors.erase(processor);
+    Model::__zombies.push_back( processor );
+    return *this;
+}
+
+
+/*
+ * Find all calls from this task going to a common server, then merge
+ */
+
+Task&
+Task::mergeCalls()
+{
+    std::multimap<const Entity *,EntityCall *> merge;
+    for ( std::vector<EntityCall *>::const_iterator call = _calls.begin(); call != _calls.end(); ++call ) {
+	merge.insert( std::pair<const Entity *,EntityCall *>( (*call)->dstEntity(), *call ) );
+    }
     return *this;
 }
 #endif
@@ -2416,17 +2442,16 @@ ReferenceTask::findChildren( CallStack& callStack, const unsigned directPath )
 }
 
 
-bool
-Task::canConvertToReferenceTask() const
+#if defined(BUG_270)
+Task&
+ReferenceTask::relink()
 {
-    return Flags::convert_to_reference_task
-      && (submodel_output() || Flags::print[INCLUDE_ONLY].value.r )
-      && !isSelected()
-      && !hasOpenArrivals()
-      && !isInfinite()
-      && nEntries() == 1
-      && !_processors.empty();
+    if ( processor()->isInteresting() ) return *this;		/* don't do these! */
+    unlinkFromProcessor();
+    Model::__zombies.push_back( const_cast<Processor *>(processor()) );
+    return *this;
 }
+#endif
 
 
 /*

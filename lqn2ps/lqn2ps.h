@@ -26,7 +26,6 @@
 #include <iomanip>
 #include <string>
 #include <stdexcept>
-#include <deque>
 #include <regex>
 #include <lqio/dom_extvar.h>
 #if defined(HAVE_VALUES_H)

@@ -18,8 +18,9 @@
 #define TASK_H
 
 #include "lqn2ps.h"
+#include <string>
+#include <map>
 #include <vector>
-#include <cstring>
 #include "entity.h"
 #include "actlayer.h"
 
@@ -176,10 +177,9 @@ public:
 
 #if defined(BUG_270)
     bool canPrune() const;
-    Task& linkToClients();
-    Task& unlinkFromServers();
+    virtual Task& relink();
     Task& unlinkFromProcessor();
-
+    Task& mergeCalls();
 #endif
 #if defined(REP2FLAT)
     virtual Task& removeReplication();
@@ -271,6 +271,10 @@ public:
     virtual Graphic::colour_type colour() const;
     virtual size_t findChildren( CallStack&, const unsigned );
 
+#if defined(BUG_270)
+    bool canPrune() const;
+    virtual Task& relink();
+#endif
     virtual void accumulateDemand( BCMP::Model::Station& ) const;
 
 public:

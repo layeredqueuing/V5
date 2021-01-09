@@ -299,7 +299,10 @@ private:
     unsigned int _modelNumber;
     double _scaling;
 
+public:
+#if BUG_270
     static std::vector<Entity *> __zombies;	/* transmorgrify	*/
+#endif
 };
 
 /* --------------------- Batched Partition Model ---------------------- */

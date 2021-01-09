@@ -928,25 +928,16 @@ Model::getExtension()
 /*
  * Transform the model by removing infinite servers.  Multiple entries
  * are allowed, but multiple phases are not.
+ * Step one - map calls to clients.  We may get multiple calls to a given entity 
+ * Step two - merge the calls. 
  */
 
 /* static */ bool
 Model::prune()
 {
     try {
-	for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	    if ( (*task)->isReferenceTask() ) {
-		const Processor * processor = (*task)->processor();
-		if ( !processor->isInteresting() ) {
-		    (*task)->unlinkFromProcessor();
-		    __zombies.push_back( const_cast<Processor *>(processor) );
-		}
-	    } else if ( (*task)->canPrune() ) {
-		(*task)->linkToClients();
-		(*task)->unlinkFromServers();
-		__zombies.push_back( *task );
-	    }
-	}
+	std::for_each ( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::relink ) );
+	std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::mergeCalls ) );
     }
     catch ( const std::domain_error& e ) {
 	LQIO::solution_error( ERR_UNASSIGNED_VARIABLES );
