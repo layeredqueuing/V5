@@ -141,6 +141,9 @@ option_type Flags::print[] = {
     { "number-layers",     512+'n', 0,                     0,                      {0},                 false, "Print layer numbers." },
     { "rename",            512+'N', 0,                     0,                      {0},                 false, "Rename all objects." },
     { "tasks-only",        512+'t', 0,                     0,                      {0},                 false, "Print tasks only." },
+#if BUG_270
+    { "no-bcmp",	   512+'B', 0,			   0,			   {0},			false, "Do not perform BCMP model conversion." },
+#endif
     /* Miscellaneous */
     { "no-activities",	   512+'A', 0,			   0,			   {0},			false, "Don't print activities." },
     { "no-colour",	   512+'C', 0,			   0,			   {0},		        false, "Use grey scale when colouring result." },
@@ -261,6 +264,10 @@ lqn2ps( int argc, char *argv[] )
 	    } 
 	    break;
 
+	case 512+'B':
+	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_,LQIO::DOM::Pragma::_false_);
+	    break;
+	    
 	case 'C':
 	    options = optarg;
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::colouring), &value );
