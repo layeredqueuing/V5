@@ -588,12 +588,16 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
         const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Demand() ) );	/* null entry */
 	demand_map::iterator item = result.first;
 	
+#if 0
 	if ( src->callType() == LQIO::DOM::Call::NULL_CALL ) {
 	    /* If it is generic processor call then accumulate by entry */
 	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
 	} else {
 	    item->second.accumulate( BCMP::Model::Station::Demand(src->visits(), src->serviceTime()) );
 	}
+#else 
+	item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
+#endif
     }
 }
 

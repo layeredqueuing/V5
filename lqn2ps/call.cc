@@ -1760,8 +1760,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
       _callType(LQIO::DOM::Call::NULL_CALL),	/* Default (from task) */
-      _visits(nullptr),
-      _serviceTime(nullptr)
+      _visits(nullptr)
 {
 }
 
@@ -1769,8 +1768,7 @@ ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcess
 ProcessorCall::ProcessorCall( const ProcessorCall& src )
     : EntityCall( src._srcTask, src._dstEntity ),
       _callType(src._callType),
-      _visits(src._visits),
-      _serviceTime(src._serviceTime)
+      _visits(src._visits)
 {
 }
 
@@ -1991,9 +1989,8 @@ ProcessorCall&
 ProcessorCall::updateRateFrom( const Call& call )
 {
     if ( callType() == LQIO::DOM::Call::NULL_CALL ) {
-	/* First time for this call.  Save service time and visits */
+	/* First time for this call.  Save visits */
 	_visits = new LQIO::DOM::ConstantExternalVariable( 1.0 );
-	_serviceTime = call.dstEntry()->serviceTime();
 	_callType = call.callType();
     } else if ( callType() != call.callType() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );

@@ -520,8 +520,6 @@ public:
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
     const LQIO::DOM::ExternalVariable * visits() const { return _visits; }
-    void serviceTime( const LQIO::DOM::ExternalVariable * serviceTime ) { _serviceTime = serviceTime; }
-    const LQIO::DOM::ExternalVariable * serviceTime() const { return _serviceTime; }
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
@@ -549,7 +547,6 @@ protected:
 private:
     LQIO::DOM::Call::CallType _callType;		/* Union discriminator		*/
     const LQIO::DOM::ExternalVariable* _visits;
-    const LQIO::DOM::ExternalVariable* _serviceTime;	/* No phases on processor	*/
 };
 
 class PseudoProcessorCall : public ProcessorCall 

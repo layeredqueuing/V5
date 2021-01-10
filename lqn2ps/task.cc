@@ -1946,15 +1946,18 @@ Task::mergeCalls()
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
 	const double visits       = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
+#if 0
 	if ( visits == 0 ) continue;
 	const double service_time = std::accumulate( lower, upper, 0., &accumulate_service_time );
-
+#endif
 	/* create a new call with the number of vists and the service time / number of visits */
 	if ( server->isProcessor() ) {
 	    ProcessorCall * call;
 	    call = new ProcessorCall( this, dynamic_cast<const Processor *>(server) );
 	    call->rendezvous( new LQIO::DOM::ConstantExternalVariable( visits ) );
+#if 0
 	    call->serviceTime( new LQIO::DOM::ConstantExternalVariable( service_time / visits ) );
+#endif
 	    new_calls.push_back( call );
 	} else {
 	    abort();
