@@ -1935,6 +1935,9 @@ Task::unlinkFromProcessor()
 Task&
 Task::mergeCalls()
 {
+#if BUG_270	
+    std::cout << "Task::mergeCalls() for " << name() << std::endl;
+#endif
     std::multimap<const Entity *,EntityCall *> merge;
     for ( std::vector<EntityCall *>::const_iterator call = _calls.begin(); call != _calls.end(); ++call ) {
 	merge.insert( std::pair<const Entity *,EntityCall *>( (*call)->dstEntity(), *call ) );
@@ -1946,26 +1949,30 @@ Task::mergeCalls()
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
 	const double visits       = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
+	const double service_time = std::accumulate( lower, upper, 0., &accumulate_service_time );
+#if BUG_270	
+	size_t count = merge.count( server );
+	std::cout << "  To " << server->name() << ", count=" << count
+		  << ", visits=" << visits << ", service time=" << service_time << std::endl;
+#endif
 #if 0
 	if ( visits == 0 ) continue;
-	const double service_time = std::accumulate( lower, upper, 0., &accumulate_service_time );
-#endif
 	/* create a new call with the number of vists and the service time / number of visits */
 	if ( server->isProcessor() ) {
 	    ProcessorCall * call;
 	    call = new ProcessorCall( this, dynamic_cast<const Processor *>(server) );
 	    call->rendezvous( new LQIO::DOM::ConstantExternalVariable( visits ) );
-#if 0
 	    call->serviceTime( new LQIO::DOM::ConstantExternalVariable( service_time / visits ) );
-#endif
 	    new_calls.push_back( call );
 	} else {
 	    abort();
 	}
+#endif
     }
 
+#if 0
     _calls = new_calls;    /* copy over the new call list */
-
+#endif
     return *this;
 }
 

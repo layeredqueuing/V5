@@ -2033,7 +2033,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
     if ( isActivityEntry() ) throw not_implemented( "Entry::linkToClients", __FILE__, __LINE__ );
 
 #if defined(BUG_270)
-    std::cerr << "linkToClients() for " << name() << std::endl;
+    std::cerr << "Entry::linkToClients() for " << name() << std::endl;
 #endif
     for ( std::vector<GenericCall *>::const_iterator x = callers().begin(); x != callers().end(); ++x ) {
 	const EntryCall * client_call = dynamic_cast<const EntryCall *>(*x);

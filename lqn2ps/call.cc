@@ -1852,11 +1852,7 @@ ProcessorCall::fanOut() const
 bool
 ProcessorCall::isSelected() const
 {
-    return ( dstEntity()->isSelected()
-#if HAVE_REGEX_T
-	     || Flags::print[INCLUDE_ONLY].value.r
-#endif
-	)
+    return ( dstEntity()->isSelected() || Flags::print[INCLUDE_ONLY].value.r )
 	&& ( dynamic_cast<const Processor *>(dstEntity())->isInteresting()
 	     || (Flags::print[CHAIN].value.i != 0 && dstEntity()->isSelectedIndirectly())
 	     || submodel_output()
