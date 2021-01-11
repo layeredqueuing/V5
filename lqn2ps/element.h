@@ -124,6 +124,7 @@ protected:
 
 public:
     static const LQIO::DOM::ConstantExternalVariable ZERO;
+    static const LQIO::DOM::ConstantExternalVariable ONE;
 };
 
 typedef bool (* compare_func_ptr)( const Element *, const Element * );

@@ -507,7 +507,7 @@ public:
     int operator==( const ProcessorCall& item ) const;
     int operator!=( const ProcessorCall& item ) const { return !(*this == item); }
 
-    virtual bool hasRendezvous() const { return _callType == LQIO::DOM::Call::RENDEZVOUS; }
+    virtual bool hasRendezvous() const { return _callType != LQIO::DOM::Call::SEND_NO_REPLY; }	/* Default is also rendezvous */
     virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
     virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
 

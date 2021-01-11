@@ -17,6 +17,7 @@
 #include "activity.h"
 
 const LQIO::DOM::ConstantExternalVariable Element::ZERO(0.);
+const LQIO::DOM::ConstantExternalVariable Element::ONE(1.);
 
 
 Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )

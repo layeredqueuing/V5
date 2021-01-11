@@ -1794,15 +1794,17 @@ ProcessorCall::rendezvous( const LQIO::DOM::ExternalVariable * value )
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::rendezvous() const
 {
-    if ( hasRendezvous() && _visits != nullptr ) return *_visits;
-    else return Element::ZERO;
+    if ( !hasRendezvous() ) return Element::ZERO;
+    else if ( _visits == nullptr ) return Element::ONE;	/* Default processor call. */
+    else return *_visits;
 }
 
 
 double
 ProcessorCall::sumOfRendezvous() const
 {
-    if ( !hasRendezvous() || _visits != nullptr ) return 0.0;
+    if ( !hasRendezvous() ) return 0.0;
+    else if ( _visits == nullptr ) return 1.0;		/* Default processor call. */
     else return to_double( *_visits );
 }
 
@@ -1810,8 +1812,8 @@ ProcessorCall::sumOfRendezvous() const
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::sendNoReply() const
 {
-    if ( hasSendNoReply() && _visits != nullptr ) return *_visits;
-    else return Element::ZERO;
+    if ( !hasSendNoReply() || _visits == nullptr ) return Element::ZERO;
+    else return *_visits;
 }
 
 
