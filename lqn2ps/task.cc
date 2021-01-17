@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14344 2021-01-06 15:21:51Z greg $
+ * $Id: task.cc 14352 2021-01-12 23:26:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -32,6 +32,7 @@
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_document.h>
 #include <lqio/dom_entry.h>
+#include <lqio/dom_extvar.h>
 #include <lqio/dom_group.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_task.h>
@@ -1948,12 +1949,17 @@ Task::mergeCalls()
     for ( merge_iter lower = merge.begin(); lower != merge.end(); lower = upper ) {
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
-	const double visits       = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
-	const double service_time = std::accumulate( lower, upper, 0., &accumulate_service_time );
+	const double visits = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
+	const LQIO::DOM::ExternalVariable * service_time = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &accumulate_service );
 #if BUG_270	
 	size_t count = merge.count( server );
 	std::cout << "  To " << server->name() << ", count=" << count
-		  << ", visits=" << visits << ", service time=" << service_time << std::endl;
+		  << ", visits=" << visits << ", service time=";
+	if ( service_time != nullptr ) {
+	    std::cout << *service_time << std::endl;
+	} else {
+	    std::cout << "0.000" << std::endl;
+	}
 #endif
 #if 0
 	if ( visits == 0 ) continue;
@@ -1984,11 +1990,15 @@ Task::accumulate_rendezvous( double augend, const merge_pair& addend )		// will 
 }
 
 
-double
-Task::accumulate_service_time( double augend, const merge_pair& addend )
+/* +BUG_270 */
+const LQIO::DOM::ExternalVariable *
+Task::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend )
 {
-    return augend + addend.second->sumOfRendezvous();
+    const ProcessorCall * call = dynamic_cast<const ProcessorCall *>(addend.second);
+    if ( call == nullptr || call->srcEntry() == nullptr ) return augend;
+    return Entity::addExternalVariables( augend, call->srcEntry()->serviceTime() );
 }
+/* -BUG_270 */
 #endif
 
 

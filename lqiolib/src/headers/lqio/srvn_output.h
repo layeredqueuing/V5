@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 13806 2020-08-27 18:05:17Z greg $
+ * $Id: srvn_output.h 14358 2021-01-14 22:42:50Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -356,17 +356,17 @@ namespace LQIO {
 
 	public:
 	    virtual std::ostream& print( std::ostream& output ) const;
-	    static IsSetAndGTManip is_double_and_gt( const std::string& s, const DOM::ExternalVariable * v, double d )  { return IsSetAndGTManip( &SRVN::Input::doubleAndGreaterThan, s, v, d ); }
+	    static IsSetAndGTManip is_double_and_ne( const std::string& s, const DOM::ExternalVariable * v, double d )  { return IsSetAndGTManip( &SRVN::Input::doubleAndNotEqual, s, v, d ); }
 	    static IsSetAndGTManip is_integer_and_gt( const std::string& s, const DOM::ExternalVariable * v, double d ) { return IsSetAndGTManip( &SRVN::Input::integerAndGreaterThan, s, v, d ); }
 	    static ExtvarPrintingManip print_integer_parameter( const DOM::ExternalVariable* v, double d ) { return ExtvarPrintingManip( &SRVN::Input::printIntegerExtvarParameter, v, d ); }
-	    static ExtvarPrintingManip print_double_parameter( const DOM::ExternalVariable* v, double d )  { return ExtvarPrintingManip( &SRVN::Input::printDoubleExtvarParameter, v, d ); }
+	    static ExtvarPrintingManip print_double_parameter( const DOM::ExternalVariable* v, double d=0. )  { return ExtvarPrintingManip( &SRVN::Input::printDoubleExtvarParameter, v, d ); }
 	    
 	private:
 	    std::ostream& printHeader( std::ostream& output ) const;
 	    std::ostream& printGeneral( std::ostream& output ) const;
 	    static bool is_processor( const std::pair<unsigned, DOM::Entity *>& );
 	    static bool is_task( const std::pair<unsigned, DOM::Entity *>& );
-	    static std::ostream& doubleAndGreaterThan( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
+	    static std::ostream& doubleAndNotEqual( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
 	    static std::ostream& integerAndGreaterThan( std::ostream& output, const std::string& s, const DOM::ExternalVariable * v, double d );
 	    static std::ostream& printIntegerExtvarParameter( std::ostream& output, const DOM::ExternalVariable * v, double d );
 	    static std::ostream& printDoubleExtvarParameter( std::ostream& output, const DOM::ExternalVariable * v, double d );

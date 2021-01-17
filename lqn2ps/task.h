@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14328 2021-01-04 02:24:47Z greg $
+ * $Id: task.h 14352 2021-01-12 23:26:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -155,7 +155,7 @@ public:
 
 #if defined(BUG_270)
     static double accumulate_rendezvous( double, const merge_pair& );		// will change to extvar.
-    static double accumulate_service_time( double, const merge_pair& );
+    static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const merge_pair& );
 #endif
     virtual void accumulateDemand( BCMP::Model::Station& ) const;
     static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Task * );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14330 2021-01-04 11:51:36Z greg $
+ * $Id: qnap2_document.cpp 14370 2021-01-16 19:40:56Z greg $
  *
  * Read in XML input files.
  *
@@ -15,21 +15,24 @@
 #if HAVE_CONFIG_H
 #include <config.h>
 #endif
-#include <sstream>
-#include <iomanip>
-#include <cstring>
 #include <algorithm>
+#include <cstring>
+#include <iterator>
+#include <iomanip>
 #include <numeric>
-#include "qnap2_document.h"
+#include <sstream>
+#include <lqx/SyntaxTree.h>
+#include "common_io.h"
 #include "error.h"
 #include "glblerr.h"
 #include "input.h"
-#include "common_io.h"
+#include "qnap2_document.h"
+#include "srvn_gram.h"
 
 namespace BCMP {
 
     std::map<scheduling_type,std::string> QNAP2_Document::__scheduling_str;
-    
+    std::map<int,QNAP2_Document::getObservations::f> QNAP2_Document::getObservations::__key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
     
     QNAP2_Document::QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model ) :
 	_input_file_name(input_file_name), _model(model)
@@ -50,6 +53,13 @@ namespace BCMP {
 	    __scheduling_str[SCHEDULE_SEMAPHORE]= "";
 	    __scheduling_str[SCHEDULE_CFS]      = "";
 	    __scheduling_str[SCHEDULE_RWLOCK]   = "";
+
+	    getObservations::__key_map[KEY_THROUGHPUT]		    = &getObservations::get_throughput;
+	    getObservations::__key_map[KEY_UTILIZATION]		    = &getObservations::get_utilization;
+	    getObservations::__key_map[KEY_PROCESSOR_UTILIZATION]   = &getObservations::get_utilization;
+	    getObservations::__key_map[KEY_PROCESSOR_WAITING]	    = &getObservations::get_waiting_time; 
+	    getObservations::__key_map[KEY_SERVICE_TIME]	    = &getObservations::get_service_time;
+	    getObservations::__key_map[KEY_WAITING]		    = &getObservations::get_waiting_time;
 	}
     }
 
@@ -76,23 +86,28 @@ namespace BCMP {
 
 	/* 1) Declare all SPEX variables */
 	output << qnap2_keyword( "declare" ) << std::endl;
-	const std::string integer_vars = std::accumulate( classes().begin(), classes().end(), std::string(""), getVariables( model() ) );
-	if ( !integer_vars.empty() )     output << qnap2_statement( "integer " + integer_vars, "SPEX customers vars." ) << std::endl;
-	const std::string real_vars    = std::accumulate( stations().begin(), stations().end(), std::string(""), getVariables( model() ) );
-	if ( !real_vars.empty() )        output << qnap2_statement( "real " + real_vars,       "SPEX service time vars." ) << std::endl;
+	std::set<const LQIO::DOM::ExternalVariable *> symbol_table;
+	const std::string integer_vars 	= std::accumulate( classes().begin(), classes().end(), std::string(""), getVariables( model(), symbol_table ) );
+	if ( !integer_vars.empty() )    output << qnap2_statement( "integer " + integer_vars, "SPEX customers vars." ) << std::endl;
+	const std::string real_vars    	= std::accumulate( stations().begin(), stations().end(), std::string(""), getVariables( model(), symbol_table ) );
+	if ( !real_vars.empty() )       output << qnap2_statement( "real " + real_vars,       "SPEX service time vars." ) << std::endl;
+	const std::string deferred_vars	= std::accumulate( Spex::inline_expressions().begin(), Spex::inline_expressions().end(), std::string(""), &getDeferredVariables );
+	if ( !deferred_vars.empty() )   output << qnap2_statement( "real " + deferred_vars,   "SPEX service time deferred vars." ) << std::endl;
 
 	/* 2) Declare all stations */
 	output << qnap2_statement( "queue " + std::accumulate( stations().begin(), stations().end(), terminal.first, Model::Station::fold() ), "Station identifiers" ) << std::endl;
 
 	/* 3) Declare the classes */
 	if ( classes().size() ==  1 ) {
-	    output << qnap2_statement( "integer n_users", "Population" ) << std::endl;
+	    output << qnap2_statement( "integer n_users", "Population" ) << std::endl
+		   << qnap2_statement( "real think_t", "Think time." ) << std::endl
+		   << qnap2_statement( "real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Model::Station::fold( "_t") ), "Station service time" ) << std::endl;
 	} else {
 	    /* Variables */
 	    output << qnap2_statement( "class string name", "Name (for output)" ) << std::endl		// LQN client.
-		   << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Model::Station::fold( "_t") ), "Station service time" ) << std::endl
+		   << qnap2_statement( "class integer n_users", "Population." ) << std::endl
 		   << qnap2_statement( "class real think_t", "Think time." ) << std::endl
-		   << qnap2_statement( "class integer n_users", "Population." ) << std::endl;
+		   << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Model::Station::fold( "_t") ), "Station service time" ) << std::endl;
 	    /* Classes */
 	    output << qnap2_statement( "class " + std::accumulate( classes().begin(), classes().end(), std::string(""), Model::Class::fold() ), "Class names" ) << std::endl;
 	}
@@ -100,22 +115,72 @@ namespace BCMP {
 	/* 4) output the statations */
 	std::for_each( stations().begin(), stations().end(), printStation( output, model() ) );	// Stations.
 
+
+	/* Output control stuff if necessary */
+
+	if ( classes().size() > 1 || !Spex::observations().empty() ) {
+	    output << "&" << std::endl
+		   << qnap2_keyword( "control" ) << std::endl;
+	}
 	if ( classes().size() > 1 ) {
-	    output << qnap2_keyword( "control", "class=all queue" ) << std::endl;	// print for all classes.
+	    output << qnap2_statement( "class=all queue", "Compute for all classes" ) << std::endl;	// print for all classes.
+	}
+	if ( !Spex::observations().empty() ) {
+	    output << qnap2_statement( "option=nresult", "Suppress default output" ) << std::endl;
+	}
+	
+	/* 6) Finally, assign the parameters defined in steps 2 & 3 from the constants and variables in the model */
+
+	output << "&" << std::endl
+	       << qnap2_keyword( "exec" ) << std::endl
+	       << "   begin" << std::endl;
+
+	if ( !Spex::result_variables().empty() ) {
+	    const std::string result_vars = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), &getResultVariables );
+	    output << qnap2_statement( "print(\"" + result_vars + "\")", "SPEX results" ) << std::endl;
 	}
 
-	/* 5) Finally, assign the parameters defined in steps 2 & 3 from the constants and variables in the model */
-	output << qnap2_keyword( "exec" ) << std::endl
-	       << "   begin" << std::endl;
-        printClassVariables( output );
-	std::for_each( stations().begin(), stations().end(), printStationVariables( output, model() ) );
-	output << qnap2_statement( "solve" ) << std::endl
-	       << qnap2_statement( "end" ) << std::endl;
-        output.flags(flags);
+	if ( Spex::input_variables().size() > Spex::array_variables().size() ) {	// Only care about scalars
+	    output << "&  -- SPEX scalar variables --" << std::endl;
+	    std::for_each( Spex::input_variables().begin(), Spex::input_variables().end(), printSPEXScalars( output ) );	/* Scalars */
+	}
 
-	output << "& For custom output, one needs: " << std::endl
-	       << "&   /control/ option=nresult;" << std::endl
-	       << "&   /exec/ exit=begin ... end" << std::endl;
+	/* Insert QNAP for statements for arrays and completions. */
+	if ( !Spex::array_variables().empty() ) {
+	    output << "&  -- SPEX arrays and completions --" << std::endl;
+	    std::for_each( Spex::array_variables().begin(), Spex::array_variables().end(), for_loop( output ) );
+	}
+
+	if ( !Spex::inline_expressions().empty() ) {
+	    output << "&  -- SPEX deferred assignments --" << std::endl;
+	    std::for_each( Spex::inline_expressions().begin(), Spex::inline_expressions().end(), printSPEXDeferred( output ) );	/* Arrays and completions */
+	}
+	
+	output << "&  -- Class variables --" << std::endl;
+        printClassVariables( output );
+	output << "&  -- Station variables --" << std::endl;
+	std::for_each( stations().begin(), stations().end(), printStationVariables( output, model() ) );
+
+	/* Let 'er rip! */
+	output << "&  -- Let 'er rip! --" << std::endl;
+	output << qnap2_statement( "solve" ) << std::endl;
+	if ( !Spex::result_variables().empty() ) {
+	    output << "&  -- SPEX results for QNAP2 solutions are converted to" << std::endl
+		   << "&  -- the LQN output for throughput, service and waiting time." << std::endl
+		   << "&  -- QNAP2 throughput for a reference task is per-slice," << std::endl
+		   << "&  -- and not the aggregate so divide by the number of transits." << std::endl
+		   << "&  -- Service time is mservice() + sum of mresponse()." << std::endl
+		   << "&  -- Waiting time is mresponse() - mservice()." << std::endl;
+	    std::string observations = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), getObservations( model() ) );
+	    output << qnap2_statement( "print(" + observations + ")", "SPEX results" ) << std::endl;
+	}
+
+	/* insert end's for each for. */
+	std::for_each( Spex::array_variables().rbegin(), Spex::array_variables().rend(), end_for( output ) );
+	
+	/* End of program */
+	output << qnap2_statement( "end" ) << std::endl;
+        output.flags(flags);
 
 	output << qnap2_keyword( "terminal" ) << std::endl;
 
@@ -123,13 +188,14 @@ namespace BCMP {
     }
 
     /* 
-     * Think times. 
+     * Think times. Only add an item to the string if it's a variable (the name), and the variable
+     * has not been seen before.
      */
 
     std::string
     QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Class::pair_t& k ) const
     {
-	if ( !Model::Class::has_constant_customers( k ) ) {
+	if ( !Model::Class::has_constant_customers( k ) && _symbol_table.insert(k.second.customers()).second == true ) {
 	    std::ostringstream ss;
 	    ss << s1;
 	    if ( !s1.empty() ) ss << ",";
@@ -144,17 +210,19 @@ namespace BCMP {
     QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Station::pair_t& m ) const
     {
 	const Model::Station::Demand::map_t& demands = m.second.demands();
-	return std::accumulate( demands.begin(), demands.end(), s1, getVariables( model() ) );
+	return std::accumulate( demands.begin(), demands.end(), s1, getVariables( model(), _symbol_table ) );
     }
     
     /*
-     * Collect all variables.
+     * Collect all variables.  Only add an itemm to the string if it's
+     * a variable (the name), and the variable has not been seen
+     * before (insert will return true).
      */
     
     std::string
     QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Station::Demand::pair_t& demand ) const
     {
-	if ( !Model::Station::Demand::has_constant_service_time( demand ) ){
+	if ( !Model::Station::Demand::has_constant_service_time( demand ) && _symbol_table.insert(demand.second.service_time()).second == true ) {
 	    std::ostringstream ss;
 	    ss << s1;
 	    if ( !s1.empty() ) ss << ",";
@@ -165,6 +233,27 @@ namespace BCMP {
 	}
     }
 
+
+    std::string
+    QNAP2_Document::getDeferredVariables( const std::string& s1, const std::pair<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>& p2 )
+    {
+	std::string s3;
+	if ( !s1.empty() ) {
+	    return s1 + "," + p2.first->getName();
+	} else {
+	    return p2.first->getName();
+	}
+    }
+
+    std::string
+    QNAP2_Document::getResultVariables( const std::string& s1, const Spex::var_name_and_expr& var )
+    {
+	if ( !s1.empty() ) {
+	    return s1 + "," + var.first;
+	} else {
+	    return var.first;
+	}
+    }
 
     /*
      * Prints stations.
@@ -260,7 +349,7 @@ namespace BCMP {
 	    think_time << *demands.at(k->first).service_time();
 	    customers  << *k->second.customers();
 	    if ( !k->second.customers()->wasSet() ) {
-		comment = "SPEX Variable";
+		comment = "SPEX variable " + k->second.customers()->getName();
 	    }
 	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visit( k->first ) );
 	    if ( multiclass ) {
@@ -297,7 +386,7 @@ namespace BCMP {
 	    } else {
 		time << *service_time;		// Might have to strip off $
 		if ( !service_time->wasSet() ) {
-		    comment = "SPEX variable";
+		    comment = "SPEX variable " + service_time->getName();
 		}
 	    }
 	    if ( multiclass ) {
@@ -306,6 +395,171 @@ namespace BCMP {
 		_output << qnap2_statement(  m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
 	    }
 	}
+    }
+
+
+    /*
+     * Print out all deferred assignment variables (they go inside all loop bodies that
+     * arise for array and completion assignements
+     */
+    
+    void
+    QNAP2_Document::printSPEXScalars::operator()( const std::pair<std::string, const LQX::SyntaxTreeNode *>& expr ) const
+    {
+	if ( !expr.second ) return;		/* Comprehension or array.  I could check array_variables. */
+	std::ostringstream ss;
+	ss << expr.first << ":=";
+	expr.second->print(ss,0);
+	std::string s(ss.str());
+	s.erase(std::remove(s.begin(), s.end(), ' '), s.end());	/* Strip blanks */
+	_output << qnap2_statement( s ) << std::endl;	/* Swaps $ to _ and appends ;	*/
+    }
+    
+    void
+    QNAP2_Document::printSPEXDeferred::operator()( const std::pair<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>& expr ) const
+    {
+	std::ostringstream ss;
+	ss << expr.first->getName() << ":=";
+	expr.second->print(ss,0);
+	std::string s(ss.str());
+	s.erase(std::remove(s.begin(), s.end(), ' '), s.end());	/* Strip blanks */
+	_output << qnap2_statement( s ) << std::endl;	/* Swaps $ to _ and appends ;	*/
+    }
+    
+    /*
+     * Generate for loops;
+     */
+
+    void
+    QNAP2_Document::for_loop::operator()( const std::string& var ) const
+    {
+	const std::map<std::string,Spex::ComprehensionInfo>::const_iterator comprehension = Spex::comprehensions().find( var );
+	std::string loop;
+	std::ostringstream ss;
+	if ( comprehension != Spex::comprehensions().end() ) {
+	    /* Comprehension */
+	    /* FOR i:=1 STEP n UNTIL m DO... */
+	    ss << comprehension->second.getInit() << " step " << comprehension->second.getStep() << " until " << comprehension->second.getTest();
+	    loop = ss.str();
+	} else {
+	    /* Array variable */
+	    /* FOR i:=1,2,3... DO */
+	    const std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator array = Spex::input_variables().find(var);
+	    array->second->print(ss);
+	    loop = ss.str();
+	    /* Get rid of brackets and spaces from array_create(0.5, 1, 1.5) */
+	    loop.erase(loop.begin(), loop.begin()+13);	/* "array_create(" */
+	    loop.erase(loop.end()-1,loop.end());	/* ")" */
+	    loop.erase(std::remove(loop.begin(), loop.end(), ' '), loop.end());	/* Strip blanks */
+	}
+	std::string name = var;
+	std::replace( name.begin(), name.end(), '$', '_'); 		// Make variables acceptable for QNAP2.
+	_output << "   " << "for "<< name << ":=" << loop << " do begin" << std::endl;
+    }
+
+    /* 
+     * Need to search Spex::observations() for var.first (the name).
+     * Use the key to find right function.  Next, we use the name of
+     * the object to find out if it's a class or a station.  If it's 
+     * a class, then query "terminal", otherwise query the station.
+     */
+
+    std::string
+    QNAP2_Document::getObservations::operator()( const std::string& s1, const Spex::var_name_and_expr& var ) const
+    {
+	std::string result;
+	const Spex::obs_var_tab_t observations = Spex::observations();
+
+	/* try to find the observation, then see if we can handle it here */
+	for ( Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
+	    if ( obs->second.getVariableName() != var.first ) continue;	/* !Found the var. */
+	    const std::map<int,f>::const_iterator key = __key_map.find( obs->second.getKey() );
+	    if ( key != __key_map.end() ) {
+		result = (this->*(key->second))( obs->first->getName() );
+	    } else { 
+		result = "\"N/A\"";
+//		throw std::domain_error( "Observation not handled" );
+	    }
+	    break;
+	}
+
+	/* Otherwise, check input vars */
+	if ( result.empty() && Spex::has_input_var( var.first ) ) {
+	    result = var.first;
+	}
+	
+	/* All done.  Concatenate for std::accumulate() */
+	if ( result.empty() ) {
+	    return s1;			/* Nothing to do 	*/
+	} else if ( s1.empty() ) {
+	    return result;		/* Nothing in string	*/
+	} else {
+	    return s1 + std::string(",\",\",") + result;	/* append argument */
+	}
+    }
+
+    /* mservice, mbusypct, mcustnb, vcustnb, mresponse, mthruput, custnb */
+
+    std::string
+    QNAP2_Document::getObservations::get_throughput( const std::string& name ) const
+    {
+	std::string result;
+	if ( classes().find( name ) != classes().end() ) {
+	    /* Class is a reference task, and name exists even if we have only one class */
+	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visit( name ) );
+	    result = "mthruput(terminal)/(" + think_visits + ")";	/* correct for model */
+	} else if ( stations().find( name ) != stations().end() ) {
+	    result = "mthruput(" + name + ")";
+	} else {
+	    result = "\"N/A\"";
+	}
+	return result;
+    }
+    std::string
+    QNAP2_Document::getObservations::get_utilization( const std::string& name ) const
+    {
+	std::string result;
+	if ( classes().find( name ) != classes().end() ) {
+	    /* must be the terminal? */
+	    if ( classes().size() == 1 ) {
+		result = "mbusypct(terminal)";
+	    } else {
+//		result = "mbusypct(" + "terminal." + name + ")";	// ???
+	    }
+	} else if ( stations().find( name ) != stations().end() ) {
+	    result = "mbusypct(" + name + ")";
+	}
+	return result;
+    }
+
+    /*
+     * KEY_SERVICE is mservice + sum_of mrespone
+     */
+    
+    std::string
+    QNAP2_Document::getObservations::get_service_time( const std::string& name ) const
+    {
+	std::string result;
+	return result;
+    }
+
+    /*
+     * KEY_WAITING is mresponse-mservice.
+     */
+    
+    std::string
+    QNAP2_Document::getObservations::get_waiting_time( const std::string& name ) const
+    {
+	std::string result;
+	return result;
+    }
+
+    void
+    QNAP2_Document::end_for::operator()( const std::string& var ) const
+    {
+	std::string comment = "for " + var;
+	std::replace( comment.begin(), comment.end(), '$', '_'); 	// Make variables acceptable for QNAP2.
+	_output << qnap2_statement( "end", comment ) << std::endl;
     }
 
     std::string
@@ -356,19 +610,42 @@ namespace BCMP {
     }
     
     /*
-     * Format for QNAP output.  I may have to line wrap as lines are
-     * limited to 80 characters (fortran).  If s2 is present, it's a
-     * comment.
+     * Format for QNAP output.  Swap all $ to _. I may have to line
+     * wrap as lines are limited to 80 characters (fortran).  If s2 is
+     * present, it's a comment.
      */
     
     /* static */ std::ostream&
     QNAP2_Document::printStatement( std::ostream& output, const std::string& s1, const std::string& s2 )
     {
-	output << "   ";
-	if ( s2.empty() ) {
-	    output << s1 << ";";
-	} else {
-	    output << std::setw(60) << (s1 + ";") << "& " << s2;
+	std::string::const_iterator brk = s1.end();
+	for ( std::string::const_iterator begin = s1.begin(); begin != s1.end(); begin = brk ) {
+	    bool in_quote = false;
+
+	    if ( s1.end() - begin < 60 ) {
+		brk = s1.end();
+	    } else {
+		/* look for ',' not in quotes. */
+		for ( std::string::const_iterator curr = begin; curr - begin < 60 && curr != s1.end(); ++curr ) {
+		    if ( *curr == '"' ) in_quote = !in_quote;
+		    if ( !in_quote && *curr == ',' ) brk = curr;
+		}
+	    }
+
+	    /* Take everthing up to brk and make variables variables acceptable for QNAP2. */
+	    std::string buffer(brk - begin,' ');	/* reserve space */
+	    std::replace_copy( begin, brk, buffer.begin(), '$', '_');
+//	    std::replace_copy( begin, brk, std::back_inserter<std::string>(buffer.begin()), '$', '_');
+
+	    /* Output the buffer */
+	    output << "   ";
+	    if ( brk != s1.end() ) {
+		output << buffer << std::endl;		/* break the line 	*/
+	    } else if ( s2.empty() ) {
+		output << buffer << ";";		/* Don't fill 		*/
+	    } else {
+		output << std::setw(60) << (buffer + ';') << "& " << s2;
+	    }
 	}
 	return output;
     }

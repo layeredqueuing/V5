@@ -2,9 +2,10 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 11987 2014-04-16 20:57:40Z greg $
+# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
 # ------------------------------------------------------------------------
 
+if HAVE_LATEX
 SUBDIRS = model bookstore replication srvn-schema timing-diagrams xml-schema 
 DST = 	userman
 INFILE = infile
@@ -69,3 +70,4 @@ distclean-local:
 	rm -f $(OBJS) $(DST).bbl 
 
 gurjari-install: $(DST).pdf $(INFILE).pdf
+endif

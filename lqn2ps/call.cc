@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14316 2021-01-01 06:15:29Z greg $
+ * $Id: call.cc 14352 2021-01-12 23:26:55Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1759,8 +1759,9 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
-      _callType(LQIO::DOM::Call::NULL_CALL),	/* Default (from task) */
-      _visits(nullptr)
+      _callType(LQIO::DOM::Call::NULL_CALL),	/* Not null if cloned BUG_270 */
+      _visits(nullptr),				/* Not null if cloned BUG_270 */
+      _source(nullptr)				/* Not null if cloned BUG_270 */
 {
 }
 
@@ -1922,7 +1923,7 @@ ProcessorCall&
 ProcessorCall::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b && Flags::prune ) {
-	if ( hasRendezvous() || hasSendNoReply() ) {	/* Ignore the default */
+	if ( (hasRendezvous() || hasSendNoReply()) && _visits != nullptr ) {	/* Ignore the default */
 	    *_label << '(' << *_visits << ')';
 	}
     } 

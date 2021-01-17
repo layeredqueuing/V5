@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14342 2021-01-05 23:11:24Z greg $
+ * $Id: entry.cc 14360 2021-01-15 04:03:31Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2044,15 +2044,9 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	/* What about the rate from the client to the server??? */
 	for ( std::vector<Call *>::const_iterator server_call = calls().begin(); server_call != calls().end(); ++server_call ) {
 	    Call * clone = dynamic_cast<Call *>((*server_call)->clone());
-#if defined(BUG_270)
-	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName();
-#endif
 	    if ( dynamic_cast<EntryCall *>(clone) != nullptr ) {
 		dynamic_cast<EntryCall *>(clone)->setSrcEntry( client_entry );	// Will be a phase/activity
 	    }
-#if defined(BUG_270)
-	    std::cerr << "    to " << clone->srcName() << "->" << clone->dstName();
-#endif
 	    clone->updateRateFrom( *client_call, **server_call );
 
 	    /* Replace the DOM call with a clone and change the rate.   See Call.cc::rendezvous(p). */
@@ -2061,7 +2055,9 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    const Entry * entry = (*server_call)->dstEntry();
 	    const_cast<Entry *>(entry)->addDstCall( clone );
 #if defined(BUG_270)
-	    std::cerr << ", rate=" << clone->sumOfRendezvous() << std::endl;
+	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName()
+		      << "    to " << clone->srcName() << "->" << clone->dstName()
+		      << ", visits=" << clone->sumOfRendezvous() << std::endl;
 #endif
 	}
 
@@ -2069,26 +2065,29 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 
 	for ( std::vector<EntityCall *>::const_iterator p = proc.begin(); p != proc.end(); ++p ) {
 	    EntityCall * clone = dynamic_cast<EntityCall *>((*p)->clone());
-#if defined(BUG_270)
-	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName();
-#endif
 	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
+		dynamic_cast<ProcessorCall *>(clone)->setSrcEntry( this );
 		clone->updateRateFrom( *client_call );
 	    }
 	    
 	    Task * client_task = const_cast<Task *>(client_entry->owner());
 	    clone->setSrcTask( client_task );
-#if defined(BUG_270)
-	    std::cerr << "    to " << clone->srcName() << "->" << clone->dstName();
-#endif
-	    
 	    client_task->addSrcCall( clone );	// copy to parent task.  Duplicates?
 	    const Processor * processor = dynamic_cast<const Processor *>((*p)->dstEntity());
 	    client_task->addProcessor( processor );
 	    const_cast<Processor *>(processor)->addTask( client_task );
 	    const_cast<Processor *>(processor)->addDstCall( clone );
 #if defined(BUG_270)
-	    std::cerr << ", rate=" << clone->sumOfRendezvous() << std::endl;
+	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
+		      << "    to " << clone->srcName() << "->" << clone->dstName()
+		      << ", visits=" << clone->sumOfRendezvous();
+	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
+		const Entry * entry = dynamic_cast<ProcessorCall *>(clone)->srcEntry();
+		if ( entry != nullptr ) {
+		    std::cerr << ", service time=" << *entry->serviceTime() << " from " << entry->name();
+		}
+	    }
+	    std::cerr << std::endl;
 #endif
 	}
     }

@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14307 2020-12-31 15:54:48Z greg $
+# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
 # ------------------------------------------------------------------------
 noinst_HEADERS = fpgoop.h \
 	multserv.h \
@@ -6,5 +6,6 @@ noinst_HEADERS = fpgoop.h \
 	open.h \
 	ph2serv.h \
 	pop.h \
+	prob.h \
 	server.h \
 	vector.h

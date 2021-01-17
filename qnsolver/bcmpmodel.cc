@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/bcmpmodel.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn1/trunk-V5/qnsolver/bcmpmodel.cc $
  *
  * SRVN command line interface.
  *

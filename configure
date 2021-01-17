@@ -11930,7 +11930,7 @@ $as_echo "no" >&6; }
   SET_MAKE="MAKE=${MAKE-make}"
 fi
 
-ac_config_files="$ac_config_files Makefile xml/Makefile dist/Makefile dist/examples/Makefile"
+ac_config_files="$ac_config_files Makefile xml/Makefile dist/Makefile dist/examples/Makefile dist/win-nt/Makefile"
 
 cat >confcache <<\_ACEOF
 # This file is a shell script that caches the results of configure
@@ -12947,6 +12947,7 @@ do
     "xml/Makefile") CONFIG_FILES="$CONFIG_FILES xml/Makefile" ;;
     "dist/Makefile") CONFIG_FILES="$CONFIG_FILES dist/Makefile" ;;
     "dist/examples/Makefile") CONFIG_FILES="$CONFIG_FILES dist/examples/Makefile" ;;
+    "dist/win-nt/Makefile") CONFIG_FILES="$CONFIG_FILES dist/win-nt/Makefile" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
   esac

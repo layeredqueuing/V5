@@ -1,4 +1,4 @@
-$Id: README-LOCAL 12548 2016-04-06 15:13:47Z greg $
+$Id: README-LOCAL 14357 2021-01-14 21:50:48Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -8,12 +8,16 @@ Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 
 
 This package contains:
-lqns:      Analytic solver for Layered Queueing Networks
-lqsim:     Simulator for Layered Queueing Networks
-srvndiff:  Result comparison program.
-parasol:   Event-driven Simulation package.
+libmva:	   Mean Value Analysis (Exact,Linearizer) for Extended Queueing Networks.
 lqiolib:   LQN/SRVN input/output file parsing library.
 lqn2ps:    LQN file format converter.
+lqngen:	   LQN model generator.
+lqns:      Analytic solver for Layered Queueing Networks.
+lqsim:     Simulator for Layered Queueing Networks.
+lqx:	   Layered Queueing eXperiment interpreter.
+parasol:   Event-driven Simulation package.
+qnsolver:  Analytic solver for conventional Queueing Networks.
+srvndiff:  Result comparison program.
 
 BUILD INSTRUCTIONS (Unix variants)
 ----------------------------------
@@ -37,8 +41,8 @@ distribution as it builds native executables in Win32 mode.  Cygwin is
 probably the best choice for development.  I believe the original MinGW is no 
 longer supported.  DJGPP builds for DOS.
 
-If using MinGW2:
-1) Install mingw2.  It's relatively painless now.
+If using MinGW2 
+1) Install mingw2 (See msys2.org).  It's relatively painless now.
    - Update packages to latest:
      % pacman -Syu
    - I recommend to you install most used developer apps by:
@@ -64,11 +68,22 @@ If using MinGW2:
    ** Make sure that you run the 64 bit version of MINGW (Programs->MSYS2 64bit->MinGW-w64 Win64 Shell)
    ** You need /mingw64/bin/gcc
 
-   ./bootstrap
-   ./configure-mingw
+   If buidling from the repo:
+   ./.bootstrap
+   ./.configure-mingw64
    make
    make install
 
+   If building from lqns-?.??.tar.gz:
+   ./configure --disable-shared LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include' CXXFLAGS='-static-libstdc++ -static-libgcc'
+   make
+   make install
+
+5) To install on Windows:
+   Install the Nullsoft Installer.  (https://nsis.sourceforge.io/Download)
+   go to dist/win-nt
+   Run the NSI Installer on the installer scripts.
+   Run the installer.
 
 
 If using Cygwin:

@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14316 2021-01-01 06:15:29Z greg $
+ * $Id: call.h 14352 2021-01-12 23:26:55Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -507,6 +507,9 @@ public:
     int operator==( const ProcessorCall& item ) const;
     int operator!=( const ProcessorCall& item ) const { return !(*this == item); }
 
+    ProcessorCall& setSrcEntry( const Entry * entry ) { _source = entry; return *this; }
+    const Entry * srcEntry() const { return _source; }
+
     virtual bool hasRendezvous() const { return _callType != LQIO::DOM::Call::SEND_NO_REPLY; }	/* Default is also rendezvous */
     virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
     virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
@@ -547,6 +550,7 @@ protected:
 private:
     LQIO::DOM::Call::CallType _callType;		/* Union discriminator		*/
     const LQIO::DOM::ExternalVariable* _visits;
+    const Entry * _source;				/* not null if a clone.		*/
 };
 
 class PseudoProcessorCall : public ProcessorCall 

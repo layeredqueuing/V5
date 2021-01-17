@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 13764 2020-08-17 19:50:05Z greg $
+ * $Id: srvn_spex.h 14364 2021-01-16 02:19:52Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -258,14 +258,20 @@ namespace LQIO {
 	static bool has_input_var( const std::string& );
 	static bool has_observation_var( const std::string& );
 	static LQX::SyntaxTreeNode * get_input_var_expr( const std::string& );
-	static const std::vector<ObservationInfo>& get_document_variables() { return  __document_variables; }
-	static const obs_var_tab_t& get_observations() { return __observations; }
-	static const std::map<std::string,LQX::SyntaxTreeNode *>& get_input_variables() { return __input_variables; }
 	static void clear_input_variables() { __input_variables.clear(); }
 	static unsigned int numberOfInputVariables() { return __input_variables.size(); }
 	static unsigned int numberOfResultVariables() { return __result_variables.size(); }
-	static const std::vector<var_name_and_expr>& get_result_variables() { return __result_variables; }
 	static void setGnuplotVars( const std::string& );
+
+	/* Used by srvn_output and qnap_document... */
+	static const std::vector<std::string>& array_variables() { return  __array_variables; }				/* Saves $<array_name> for generating nest for loops */
+	static const std::map<std::string,ComprehensionInfo>& comprehensions() { return __comprehensions; }		/* comprehension name (and values) */
+	static const std::vector<ObservationInfo>& document_variables() { return  __document_variables; }
+	static const std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *>& inline_expressions() { return __inline_expression; }	/* Maps temp vars to expressions */
+	static const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables() { return __input_variables; }
+	static const obs_var_tab_t& observations() { return __observations; }
+	static const std::vector<var_name_and_expr>& result_variables() { return __result_variables; }
+
 	
 	static std::ostream& printResultVariables( std::ostream& output );
 	static VariableManip print_input_variable( const var_name_and_expr& var ) { return VariableManip( printInputVariable, var ); }
@@ -321,15 +327,12 @@ namespace LQIO {
 
 	/* For SRVN input output */
 
-	static std::map<std::string,LQX::SyntaxTreeNode *> __input_variables;	/* Saves input values per iteration */
 	static obs_var_tab_t __observations;					/* Saves all key-$var for each object */
 	static std::vector<ObservationInfo> __document_variables;		/* Saves all key-$var for the document */
 	static std::map<std::string,std::string> __input_iterator;		/* Saves iterator for x, y = expr statements */
-
-    public:
+	static std::map<std::string,LQX::SyntaxTreeNode *> __input_variables;	/* Saves input values per iteration */
 	static std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *> __inline_expression;	/* Maps temp vars to expressions */
 
-    private:
 	static std::map<std::string,attribute_table_t> __control_parameters;
 	static std::map<int,std::pair<std::string,std::string> > __key_code_map;/* Maps srvn_gram.h KEY_XXX to name */
 	static std::map<int,std::string> __key_lqx_function_map;		/* Maps srvn_gram.h KEY_XXX to lqx function name */

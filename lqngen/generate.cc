@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 13764 2020-08-17 19:50:05Z greg $
+ * $Id: generate.cc 14367 2021-01-16 03:17:33Z greg $
  */
 
 #include "lqngen.h"
@@ -1167,7 +1167,7 @@ void
 Generate::EntityObservation::operator()( const std::pair<unsigned,LQIO::DOM::Entity *>& e ) const
 {
     const LQIO::DOM::Entity * entity = e.second;
-    std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::get_observations().equal_range( entity );
+    std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::observations().equal_range( entity );
     if ( isInterestingProcessor( entity ) && Flags::observe[Flags::UTILIZATION] ) {
 	if ( count_if( range.first, range.second, HasKey( KEY_UTILIZATION ) ) == 0 ) {
 	    std::string name = "$p_";
@@ -1197,7 +1197,7 @@ Generate::EntryObservation::operator()( const std::pair<std::string,LQIO::DOM::E
 {
     const LQIO::DOM::Entry * entry = e.second;
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = entry->getPhaseList();
-    std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::get_observations().equal_range( entry );
+    std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::observations().equal_range( entry );
     if ( Flags::observe[Flags::RESIDENCE_TIME] && count_if( range.first, range.second, HasKey( KEY_SERVICE_TIME ) ) == 0 ) {
 	for_each( phases.begin(), phases.end(), PhaseObservation( entry ) );
     }

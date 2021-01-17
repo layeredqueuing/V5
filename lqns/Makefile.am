@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile.am 14322 2021-01-02 22:44:33Z greg $
+# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
 #
 #----------------------------------------------------------------------
 
@@ -34,10 +34,10 @@ distclean-local:
 		rm -f config.cache
 
 lqns.ps:	$(man1_MANS)
-		tbl < $(man1_MANS)  | groff -man > lqns.ps
+		groff -t -man  $(man1_MANS) > lqns.ps
 
 lqns.pdf:	lqns.ps
 		ps2pdf lqns.ps
 
-lqns.txt:	$(man1_MANS)
-		tbl < $(man1_MANS)  | nroff -man | col -b > lqns.txt
+lqns.html:	$(man1_MANS)
+		groff -t -man -Thtml $(man1_MANS) > lqns.html

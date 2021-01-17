@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14344 2021-01-06 15:21:51Z greg $
+ * $Id: phase.cc 14352 2021-01-12 23:26:55Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -18,15 +18,15 @@
 #include <lqio/error.h>
 #include <lqio/dom_phase.h>
 #include <lqio/dom_extvar.h>
+#include "activity.h"
+#include "call.h"
+#include "entity.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "model.h"
 #include "phase.h"
-#include "activity.h"
-#include "entry.h"
-#include "entity.h"
-#include "task.h"
-#include "call.h"
 #include "processor.h"
-#include "errmsg.h"
+#include "task.h"
 
 Phase::Phase()
     : _dom(nullptr),
@@ -196,26 +196,12 @@ Phase::utilization() const
 
 
 /* +BUG_270 */
-/*
- * Add two constant external variables.  Otherwise propogate a copy of
- * one or the other.  If either the augend or the addend is a
- * SymbolExternalVariable, then I will have to create an expression.
- * See srvn_spex.cpp::spex_inline_expression(), but I will have to
- * create the expr to pass into this function.
- */
 
 /* static */
 const LQIO::DOM::ExternalVariable *
 Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
 {
-    const LQIO::DOM::ExternalVariable * addend = phase.second.getDOM()->getServiceTime();
-    if ( !LQIO::DOM::ExternalVariable::isDefault( augend ) && !LQIO::DOM::ExternalVariable::isDefault( addend ) ) {
-	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
-	return addend;
-    } else {
-	return augend;
-    }
+    return Entity::addExternalVariables( augend, phase.second.getDOM()->getServiceTime() ); 
 }
 /* -BUG_270 */
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: phase.cc 14356 2021-01-14 00:21:47Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -215,11 +215,13 @@ NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m,
 Phase::Phase( const std::string& name )
     : NullPhase(),
       _entry(nullptr),
-      _processorCall(nullptr),
+      _callList(),
+      _devices(),
+//      _processorCall(nullptr),
       _thinkCall(nullptr),
-      _processorEntry(nullptr),
-      _procEntryDOM(nullptr),
-      _procCallDOM(nullptr),
+//      _processorEntry(nullptr),
+//      _procEntryDOM(nullptr),
+//      _procCallDOM(nullptr),
       _thinkEntry(nullptr),
       _thinkEntryDOM(nullptr),
       _thinkCallDOM(nullptr),
@@ -232,11 +234,13 @@ Phase::Phase( const std::string& name )
 Phase::Phase()
     : NullPhase(),
       _entry(nullptr),
-      _processorCall(nullptr),
+      _callList(),
+      _devices(),
+//      _processorCall(nullptr),
       _thinkCall(nullptr),
-      _processorEntry(nullptr),
-      _procEntryDOM(nullptr),
-      _procCallDOM(nullptr),
+//      _processorEntry(nullptr),
+//      _procEntryDOM(nullptr),
+//      _procCallDOM(nullptr),
       _thinkEntry(nullptr),
       _thinkEntryDOM(nullptr),
       _thinkCallDOM(nullptr),
@@ -251,9 +255,12 @@ Phase::Phase()
 
 Phase::~Phase()
 {
-    if ( _processorCall ) delete _processorCall;
-    if ( _procCallDOM != nullptr ) delete _procCallDOM;
-    if ( _procEntryDOM != nullptr ) delete _procEntryDOM;
+    for ( std::vector<DeviceInfo *>::const_iterator x = _devices.begin(); x != _devices.end(); ++x ) {
+	delete *x;
+    }
+//    if ( _processorCall ) delete _processorCall;
+//    if ( _procCallDOM != nullptr ) delete _procCallDOM;
+//    if ( _procEntryDOM != nullptr ) delete _procEntryDOM;
 /*    if ( _thinkCall ) delete _thinkCall;	Don't do this as it is in the callList */
     if ( _thinkCallDOM != nullptr ) delete _thinkCallDOM;
     if ( _thinkEntryDOM != nullptr ) delete _thinkEntryDOM;
@@ -370,8 +377,8 @@ Phase&
 Phase::initWait()
 {
     for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
-    if ( _processorCall ) {
-	_processorCall->initWait();
+    if ( processorCall() ) {
+	processorCall()->initWait();
     }
     return *this;
 }
@@ -757,6 +764,35 @@ Phase::utilization() const
     } else {
 	return 0.0;
     }
+}
+
+
+Phase::DeviceInfo *
+Phase::getProcessor() const
+{
+    for ( std::vector<DeviceInfo *>::const_iterator x = _devices.begin(); x != _devices.end(); ++x ) {
+	if ( (*x)->isHost() ) return *x;
+    }
+    return nullptr;
+}
+
+
+ProcessorCall *
+Phase::processorCall() const
+{
+    DeviceInfo * processor = getProcessor();
+    if ( processor ) return processor->call();
+    return nullptr;
+}
+
+
+
+DeviceEntry *
+Phase::processorEntry() const
+{
+    DeviceInfo * processor = getProcessor();
+    if ( processor ) return processor->entry();
+    return nullptr;
 }
 
 
@@ -1169,44 +1205,10 @@ Phase::insertDOMResults() const
 Phase&
 Phase::recalculateDynamicValues()
 {	
-    if ( !_processorEntry ) return *this;
-	
-    const bool phase_is_present = serviceTime() > 0 || isPseudo();
-    const double nCalls = phase_is_present ? numberOfSlices() : 0.0;
-    const double newSliceTime = phase_is_present ? serviceTime() / nCalls : 0.0;
-    const double oldSliceTime = _processorEntry->serviceTimeForPhase(1);
-    if ( oldSliceTime != newSliceTime || flags.full_reinitialize ) {
-	_processorEntry->setServiceTime(newSliceTime).setCV_sqr(CV_sqr());
-	_processorEntry->initVariance();	// Reset variance.
-	_processorEntry->initWait();		// Reset values in wait[].
-		
-	const LQIO::DOM::Call* callDOM = _processorCall->getDOM();
-	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	if ( callDOM ) delete callDOM;
-	_processorCall->rendezvous( new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS, 
-							 nullptr, _processorEntry->getDOM(), new LQIO::DOM::ConstantExternalVariable(nCalls)) );
-	/* Recompute dynamic values. */
-		
-	const double newWait = oldSliceTime > 0.0 ? _processorCall->wait() * newSliceTime / oldSliceTime : newSliceTime;
-	_processorCall->setWait( newWait );		/* extrapolate value */
-    }
-
-    if ( hasThinkTime() ) {
-	const double newThinkTime = thinkTime();
-	const double oldThinkTime = _thinkEntry->serviceTimeForPhase(1);
-	if ( oldThinkTime != newThinkTime || flags.full_reinitialize ) {
-	    _thinkEntry->setServiceTime(newThinkTime);
-	    _thinkEntry->initVariance();	// Reset variance.
-	    _thinkEntry->initWait();		// Reset values in wait[].
-		
-	    /* Recompute dynamic values. */
-		
-	    _thinkCall->setWait( newThinkTime );
-	}
-    }
+    for_each( _devices.begin(), _devices.end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
     return *this;
 }
-
+
 /*----------------------------------------------------------------------*/
 /*                       Variance Calculation                           */
 /*----------------------------------------------------------------------*/
@@ -1454,40 +1456,20 @@ Phase::random_phase() const
 Phase&
 Phase::initProcessor()
 {	
-    if ( _processorEntry || getDOM() == nullptr ) return *this;
+    if ( getProcessor() != nullptr || getDOM() == nullptr ) return *this;
     const Processor * processor = owner()->getProcessor();
     if ( !processor ) return *this;
     
-    /* If I don't have an entry on the processor, create one provided that the processor is interesting */
+    /* 
+     * If I don't have an entry on the processor, create one provided
+     * that the processor is interesting 
+     */
 	
     if ( getDOM()->hasServiceTime() ) {
 	std::string entry_name( owner()->name() );
 	entry_name += ':';
 	entry_name += name();
-	
-	double nCalls = numberOfSlices();
-		
-	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	_procEntryDOM   = new LQIO::DOM::Entry( aDocument, entry_name );
-	_processorEntry = new DeviceEntry( _procEntryDOM, Model::__entry.size() + 1, const_cast<Processor *>( processor ) );
-	Model::__entry.insert( _processorEntry );
-		
-	_processorEntry->setServiceTime( serviceTime() / nCalls )
-	    .setCV_sqr( CV_sqr() )
-	    .setPriority( owner()->priority() );
-	_processorEntry->initVariance();
-
-	/* 
-	 * We may have to change this at some point.  However, we can't do
-	 * priority by class in the analytic solver anyway - only by
-	 * chain.  Note - _procCallDOM is NOT stored in the DOM, so we delete it.
-	 */	
-
-	_processorCall = new ProcessorCall( this, _processorEntry );
-	_procCallDOM = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS,
-					   getDOM(), _processorEntry->getDOM(),
-					   new LQIO::DOM::ConstantExternalVariable(nCalls));
-	_processorCall->rendezvous( _procCallDOM );
+	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::HOST ) );
     }
 
     /*
@@ -1495,29 +1477,98 @@ Phase::initProcessor()
      */
     
     if ( hasThinkTime() ) {
-			
-	std::string think_entry_name;
-	think_entry_name = Model::thinkServer->name();
-	think_entry_name += "-";
-	think_entry_name += name();
-
-	const LQIO::DOM::Document * aDocument = getDOM()->getDocument();
-	_thinkEntryDOM = new LQIO::DOM::Entry( aDocument, think_entry_name );
-	_thinkEntry = new DeviceEntry( _thinkEntryDOM, Model::__entry.size() + 1,
-				       Model::thinkServer );
-	Model::__entry.insert( _thinkEntry );
-		
-	_thinkEntry->setServiceTime(thinkTime()).setCV_sqr(1.0);
-	_thinkEntry->initVariance();
-
-	_thinkCall = new ProcessorCall( this, _thinkEntry );
-	_thinkCallDOM = new LQIO::DOM::Call(aDocument, LQIO::DOM::Call::QUASI_RENDEZVOUS,
-					    getDOM(), _thinkEntry->getDOM(),
-					    new LQIO::DOM::ConstantExternalVariable(1));
-	_thinkCall->rendezvous( _thinkCallDOM );
-	addSrcCall( _thinkCall );
+	std::string entry_name;
+	entry_name = Model::thinkServer->name();
+	entry_name += ":";
+	entry_name += name();
+	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::THINK_TIME ) );
     }
 
+    return *this;
+}
+
+Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type type )
+    : _phase(phase), _name(name), _type(type),
+      _entry(nullptr), _call(nullptr), _entry_dom(nullptr), _call_dom(nullptr)
+{
+    const LQIO::DOM::Document * document = _phase.getDOM()->getDocument();
+    const Processor * processor = _phase.owner()->getProcessor();
+
+    _entry_dom = new LQIO::DOM::Entry( document, name );
+    if ( isProcessor() ) {
+	_entry = new DeviceEntry( _entry_dom, Model::__entry.size() + 1, const_cast<Processor *>( processor ) );
+    } else {
+	_entry = new DeviceEntry( _entry_dom, Model::__entry.size() + 1, Model::thinkServer );
+    }
+    Model::__entry.insert( _entry );
+		
+    if ( isProcessor() ) {
+	_entry->setServiceTime( service_time() / n_calls() )
+	    .setCV_sqr( cv_sqr() )
+	    .initVariance()
+	    .setPriority( phase.owner()->priority() );
+
+    } else {
+	_entry->setServiceTime( think_time() )
+	    .setCV_sqr( 1.0 )
+	    .initVariance();
+    }
+
+
+    /* 
+     * We may have to change this at some point.  However, we can't do
+     * priority by class in the analytic solver anyway - only by
+     * chain.  Note - _call_dom is NOT stored in the DOM, so we delete it.
+     */	
+
+    LQIO::DOM::ConstantExternalVariable * visits;
+    if ( isProcessor() ) {
+	visits = new LQIO::DOM::ConstantExternalVariable(n_calls());
+    } else {
+	visits = new LQIO::DOM::ConstantExternalVariable(1.0);
+    }
+    _call = new ProcessorCall( &_phase, _entry );
+    _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::QUASI_RENDEZVOUS,
+				     _phase.getDOM(), _entry->getDOM(), visits );
+    _call->rendezvous( _call_dom );
+}
+
+
+Phase::DeviceInfo::~DeviceInfo()
+{
+    if ( _call != nullptr ) delete _call;
+    if ( _call_dom != nullptr ) delete _call_dom;
+    if ( _entry_dom != nullptr ) delete _entry_dom;
+    /* Model will delete _entry */
+}
+
+
+Phase::DeviceInfo&
+Phase::DeviceInfo::recalculateDynamicValues()
+{
+    const double old_time = entry()->serviceTimeForPhase(1);
+    if ( isProcessor() ) {
+	const double new_time = n_calls() > 0. ? service_time() / n_calls() : 0.0;
+	if ( old_time == new_time && !flags.full_reinitialize ) return *this;
+
+	_entry->setServiceTime(new_time)
+	    .setCV_sqr(cv_sqr())
+	    .initVariance()
+	    .initWait();
+
+	_call_dom->setCallMeanValue( n_calls() );
+	_call->setWait( old_time > 0.0 ? _call->wait() * new_time / old_time : new_time );
+
+    } else {
+	const double new_time = think_time();
+	if ( new_time == new_time && !flags.full_reinitialize ) return *this;
+
+	_entry->setServiceTime(new_time)
+	    .initVariance()
+	    .initWait();
+
+	_call->setWait( new_time );
+    }
     return *this;
 }
 

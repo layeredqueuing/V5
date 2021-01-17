@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * model.h	-- Greg Franks
  *
- * $Id: model.h 14328 2021-01-04 02:24:47Z greg $
+ * $Id: model.h 14352 2021-01-12 23:26:55Z greg $
  */
 
 #ifndef _MODEL_H
@@ -28,6 +28,7 @@ namespace LQIO {
     namespace DOM {
 	class Group;
 	class Entity;
+	class ExternalVariable;
     }
 }
 

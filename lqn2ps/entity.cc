@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14330 2021-01-04 11:51:36Z greg $
+ * $Id: entity.cc 14360 2021-01-15 04:03:31Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -22,10 +22,12 @@
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
+#include <lqx/SyntaxTree.h>
 #include <lqio/error.h>
 #include <lqio/dom_entity.h>
 #include <lqio/dom_task.h>
 #include <lqio/srvn_output.h>
+#include <lqio/srvn_spex.h>
 #include "model.h"
 #include "entity.h"
 #include "entry.h"
@@ -754,3 +756,42 @@ Entity::create_station::operator()( const Entity * entity ) const
     _model.insertStation( entity->name(), type, entity->scheduling(), &entity->copies() );
 }
 
+/* +BUG_270 */
+/*
+ * Add two external variables.  Otherwise propogate a copy of one or
+ * the other.  If either the augend or the addend is a
+ * SymbolExternalVariable, then I will have to create an expression to
+ * add the two.
+ */
+
+static LQX::SyntaxTreeNode *
+getVariableExpression( const LQIO::DOM::ExternalVariable * variable )
+{
+    double value;
+    LQX::SyntaxTreeNode * expression;
+    if ( variable->wasSet() && variable->getValue( value ) ) {
+	expression = new LQX::ConstantValueExpression( to_double(*variable) );
+    } else {
+	expression = new LQX::VariableExpression( variable->getName(), true );
+    }
+    return expression;
+}
+
+const LQIO::DOM::ExternalVariable *
+Entity::addExternalVariables( const LQIO::DOM::ExternalVariable * augend, const LQIO::DOM::ExternalVariable * addend )
+{
+    if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+	return addend;
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+	return augend;
+    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(augend) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(addend) ) {
+	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
+    } else {
+	/* More complicated... */
+	LQX::SyntaxTreeNode * arg1 = getVariableExpression( augend );
+	LQX::SyntaxTreeNode * arg2 = getVariableExpression( addend );
+	LQIO::DOM::ExternalVariable * sum = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_add( arg1, arg2 ) ));
+	std::cout << "Entity::addExternalVariables(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
+	return sum;
+    }
+}

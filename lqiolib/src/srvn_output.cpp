@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14292 2020-12-30 16:29:20Z greg $
+ *  $Id: srvn_output.cpp 14364 2021-01-16 02:19:52Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -500,7 +500,7 @@ namespace LQIO {
     std::ostream&
     SRVN::ObjectOutput::entryInfo( std::ostream& output, const DOM::Entry & entry, const entryFunc func )
     {
-	output << std::setw(__maxDblLen) << Input::print_double_parameter( (entry.*func)(), 0. ) << ' ';
+	output << std::setw(__maxDblLen) << Input::print_double_parameter( (entry.*func)() ) << ' ';
         return output;
     }
 
@@ -513,7 +513,7 @@ namespace LQIO {
         for (p = phases.begin(); p != phases.end(); ++p) {
             const DOM::Phase* phase = p->second;
             if ( phase ) {
-                output << std::setw(__maxDblLen-1) << Input::print_double_parameter( (phase->*func)(), 0. ) << ' ';
+                output << std::setw(__maxDblLen-1) << Input::print_double_parameter( (phase->*func)() ) << ' ';
             } else {
                 output << std::setw(__maxDblLen) << 0.0;
             }
@@ -665,7 +665,7 @@ namespace LQIO {
     {
 	output << " " << std::setw(ObjectInput::__maxInpLen);
 	if ( call != nullptr ) {
-	    output << Input::print_double_parameter( call->getCallMean(), 0. );
+	    output << Input::print_double_parameter( call->getCallMean() );
 	} else {
 	    output << 0;
 	}
@@ -692,7 +692,7 @@ namespace LQIO {
     /* static  */ std::ostream&
     SRVN::ObjectInput::printObservationVariables( std::ostream& output, const DOM::DocumentObject& object )
     {
-	std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::get_observations().equal_range( &object );
+	std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::observations().equal_range( &object );
 	for ( Spex::obs_var_tab_t::const_iterator obs = range.first; obs != range.second; ++obs ) {
 	    output << " ";
 	    obs->second.print( output );
@@ -1022,7 +1022,7 @@ namespace LQIO {
 		       << "#   $index is a variable defined using SYNTAX-FORM-B or C.  $index may or may not appear in spex_expr." << std::endl
 		       << "#   This form is used to allow one array to change multiple variables." << std::endl;
 	    }
-	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
+	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::input_variables();
 	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 	    for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputVariable( output ) );
         }
@@ -1099,7 +1099,7 @@ namespace LQIO {
 		output << "# SYNTAX: spex-expr" << std::endl
 		       << "#   Any variable defined earlier can be used." << std::endl;
 	    }
-	    const std::vector<Spex::var_name_and_expr>& results = Spex::get_result_variables();
+	    const std::vector<Spex::var_name_and_expr>& results = Spex::result_variables();
 	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 	    for_each( results.begin(), results.end(), Spex::PrintResultVariable( output, 2 ) );
             output << "-1" << std::endl;
@@ -1167,7 +1167,7 @@ namespace LQIO {
                    << -1;
         }
         if ( !_document.instantiated() ) {
-	    for ( std::vector<Spex::ObservationInfo>::const_iterator obs = Spex::get_document_variables().begin(); obs != Spex::get_document_variables().end(); ++obs ) {
+	    for ( std::vector<Spex::ObservationInfo>::const_iterator obs = Spex::document_variables().begin(); obs != Spex::document_variables().end(); ++obs ) {
 		output << " ";
 		obs->print( output );
 	    }
@@ -1194,22 +1194,17 @@ namespace LQIO {
      */
 
     /* static */ std::ostream&
-    SRVN::Input::doubleAndGreaterThan( std::ostream& output, const std::string& str, const DOM::ExternalVariable * var, double floor_value )
+    SRVN::Input::doubleAndNotEqual( std::ostream& output, const std::string& str, const DOM::ExternalVariable * var, double default_value )
     {
         if ( !var ) {
 	    return output;
 	} else if ( !var->wasSet() ) {
-	    output << str << print_double_parameter( var, floor_value );
+	    output << str << print_double_parameter( var );
 	} else {
 	    double value;
 	    if ( !var->getValue(value) ) throw std::domain_error( "not a number" );
 	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
-	    if ( value < floor_value ) {
-		std::stringstream ss;
-		ss << value << " < " << floor_value;
-		throw std::domain_error( ss.str() );
-	    }
-	    if ( value > floor_value ) {
+	    if ( value != default_value ) {
 		output << str << *var;		/* Ignore if it's the default */
 	    }
         }
@@ -1258,8 +1253,8 @@ namespace LQIO {
 	    }
 	    output << value;
 	} else {
-	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::__inline_expression.find( var );
-	    if ( vp != Spex::__inline_expression.end() ) {
+	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::inline_expressions().find( var );
+	    if ( vp != Spex::inline_expressions().end() ) {
 		output << "{ ";
 		vp->second->print( output );
 		output << " }";
@@ -1284,8 +1279,8 @@ namespace LQIO {
 	    }
 	    output << value;
 	} else {
-	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::__inline_expression.find( var );
-	    if ( vp != Spex::__inline_expression.end() ) {
+	    std::map<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>::const_iterator vp = Spex::inline_expressions().find( var );
+	    if ( vp != Spex::inline_expressions().end() ) {
 		output << "{ ";
 		vp->second->print( output );
 		output << " }";
@@ -1438,7 +1433,7 @@ namespace LQIO {
 	} else {
 	    _output << scheduling_label[processor.getSchedulingType()].str;
 	    if ( processor.hasRate() ) {
-		_output << " " << Input::print_double_parameter( processor.getRate(), 0. );
+		_output << " " << Input::print_double_parameter( processor.getRate() );
 	    }
 	}
         _output << newline;
@@ -1676,7 +1671,7 @@ namespace LQIO {
     SRVN::ProcessorInput::printRate( std::ostream& output, const DOM::Processor& processor )
     {
 	try {
-	    output << Input::is_double_and_gt( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 0.0 );
+	    output << Input::is_double_and_ne( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 0.0 );
 	}
 	catch ( const std::domain_error& e ) {
 	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", processor.getName().c_str(), e.what() );
@@ -1695,7 +1690,7 @@ namespace LQIO {
 	} else {
 	    output << scheduling_label[static_cast<unsigned int>(processor.getSchedulingType())].flag;
 	    if ( processor.hasQuantumScheduling() ) {
-		output << ' ' << Input::print_double_parameter( processor.getQuantum(), 0. );
+		output << ' ' << Input::print_double_parameter( processor.getQuantum() );
 	    }
 	}
         return output;
@@ -1719,7 +1714,7 @@ namespace LQIO {
     {
         const ios_base::fmtflags oldFlags = _output.setf( ios::left, ios::adjustfield );
         _output << std::setw(__maxStrLen-1) << group.getName()
-                << " " << std::setw(6) << Input::print_double_parameter( group.getGroupShare(), 0. );
+                << " " << std::setw(6) << Input::print_double_parameter( group.getGroupShare() );
         if ( group.getCap() ) {
             _output << " cap  ";
         } else {
@@ -1749,7 +1744,7 @@ namespace LQIO {
     SRVN::GroupInput::print( const DOM::Group& group ) const
     {
         _output << "  g " << group.getName()
-                << " " << Input::print_double_parameter( group.getGroupShare(), 0. );
+                << " " << Input::print_double_parameter( group.getGroupShare() );
         if ( group.getCap() ) {
             _output << " c";
         }
@@ -1784,11 +1779,11 @@ namespace LQIO {
             const DOM::Group * group = task.getGroup();
             _output << ' ' << std::setw(__maxStrLen-1) << ( group ? group->getName() : "--");
         }
-        _output << ' ' << std::setw(3) << Input::print_double_parameter( task.getPriority(), 0. );
+        _output << ' ' << std::setw(3) << Input::print_double_parameter( task.getPriority() );
         if ( task.getDocument()->taskHasThinkTime() ) {
             _output << std::setw(__maxDblLen-1);
             if ( task.getSchedulingType() == SCHEDULE_CUSTOMER ) {
-                _output << Input::print_double_parameter( task.getThinkTime(), 0. );
+                _output << Input::print_double_parameter( task.getThinkTime() );
             } else {
                 _output << " ";
             }
@@ -2212,7 +2207,7 @@ namespace LQIO {
     SRVN::TaskInput::printThinkTime( std::ostream& output,  const DOM::Task & task )
     {
         if ( task.getSchedulingType() == SCHEDULE_CUSTOMER && task.hasThinkTime() ) {
-            output << " z " << Input::print_double_parameter( task.getThinkTime(), 0 );
+            output << " z " << Input::print_double_parameter( task.getThinkTime() );
         }
         return output;
     }
@@ -2363,7 +2358,7 @@ namespace LQIO {
 	    _output << entity_name( entity, print_task_name )
 		    << entry_name( entry )
 		    << entry_name( *dest )
-		    << std::setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean(), 0. )
+		    << std::setw(__maxDblLen) << Input::print_double_parameter( call->getCallMean() )
 		    << newline;
 	}
     }
@@ -2403,7 +2398,7 @@ namespace LQIO {
     void
     SRVN::EntryOutput::printActivity( const DOM::Activity& activity, const activityFunc func ) const
     {
-	_output << std::setw(__maxStrLen) << " " << std::setw(__maxStrLen) << activity.getName() << std::setw(__maxDblLen) << Input::print_double_parameter( (activity.*func)(), 0. ) << newline;
+	_output << std::setw(__maxStrLen) << " " << std::setw(__maxStrLen) << activity.getName() << std::setw(__maxDblLen) << Input::print_double_parameter( (activity.*func)() ) << newline;
     }
 
     /* ---- Entry Results ---- */
@@ -2577,7 +2572,7 @@ namespace LQIO {
 
         if ( entry.hasOpenArrivalRate() ) {
 	    try {
-		_output << "  a " << entry.getName() << " " << Input::print_double_parameter( entry.getOpenArrivalRate(), 0. ) << std::endl;
+		_output << "  a " << entry.getName() << " " << Input::print_double_parameter( entry.getOpenArrivalRate() ) << std::endl;
 	    }
 	    catch ( const std::domain_error& e ) {
 		solution_error( LQIO::ERR_INVALID_PARAMETER, "open arrivals", "entry", entry.getName().c_str(), e.what() );
@@ -2748,7 +2743,7 @@ namespace LQIO {
     void SRVN::PhaseInput::printCoefficientOfVariation( const DOM::Phase& p ) const
     {
 	try {
-	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getCoeffOfVariationSquared(), 0. );
+	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getCoeffOfVariationSquared() );
 	}
 	catch ( const std::domain_error& e ) {
 	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
@@ -2776,7 +2771,7 @@ namespace LQIO {
     void SRVN::PhaseInput::printServiceTime( const DOM::Phase& p ) const
     {
 	try {
-	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getServiceTime(), 0. );
+	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getServiceTime() );
 	}
 	catch ( const std::domain_error& e ) {
 	    solution_error( LQIO::ERR_INVALID_PARAMETER, "service time", p.getTypeName(), p.getName().c_str(), e.what() );
@@ -2787,7 +2782,7 @@ namespace LQIO {
     void SRVN::PhaseInput::printThinkTime( const DOM::Phase& p ) const
     {
 	try {
-	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getThinkTime(), 0. );
+	    _output << " " << std::setw(ObjectInput::__maxInpLen) << Input::print_double_parameter( p.getThinkTime() );
 	}
 	catch ( const std::domain_error& e ) {
 	    solution_error( LQIO::ERR_INVALID_PARAMETER, "CV sq", p.getTypeName(), p.getName().c_str(), e.what() );
@@ -3057,7 +3052,7 @@ namespace LQIO {
     SRVN::CallOutput::printCallRate( const DOM::Call * call, const ConfidenceIntervals* ) const
     {
         if ( call ) {
-	    _output << Input::print_double_parameter( call->getCallMean(), 0 );
+	    _output << Input::print_double_parameter( call->getCallMean() );
         } else {
             _output << 0.0;
         }

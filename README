@@ -2,10 +2,12 @@ LAYERED QUEUEING NETWORK MODELING SOFTWARE
 
 Commands:
 
-lqns         -- Analytical model solver
-lqsim        -- Model simulator
+lqn2ps       -- Model formatter and converter.
+lqngen	     -- Model creation tool (start here for a input file template).
+lqns         -- Analytical model solver.
+lqsim        -- Model simulator.
+qnsolver     -- BCMP Queuing Network solver (uses JMVA as input).
 srvndiff     -- Result file differencer.
-lqn2ps       -- Model formatter and converter
 
 Type "<command> --help" for a quick summary of usage.
 

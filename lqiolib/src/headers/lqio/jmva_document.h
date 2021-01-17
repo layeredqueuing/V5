@@ -11,6 +11,7 @@
 #include <expat.h>
 #include <stack>
 #include <set>
+#include <cstring>
 #if HAVE_STRINGS_H
 #include <strings.h>
 #endif

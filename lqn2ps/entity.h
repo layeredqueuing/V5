@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14279 2020-12-28 16:06:39Z greg $
+ * $Id: entity.h 14360 2021-01-15 04:03:31Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -72,8 +72,9 @@ public:
 	const BCMP::Model& _model;
     };
 
-    
-    
+public:    
+    static const LQIO::DOM::ExternalVariable * addExternalVariables( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::ExternalVariable * );
+
 public:
     Entity( const LQIO::DOM::Entity*, const size_t id );
     virtual ~Entity();

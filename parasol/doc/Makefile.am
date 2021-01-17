@@ -2,8 +2,9 @@
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 11431 2013-06-17 14:18:13Z greg $
+# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
 # ------------------------------------------------------------------------
+if HAVE_LATEX
 
 SUBDIRS = 
 DST = 	parasol
@@ -55,3 +56,4 @@ $(DST).txt: $(DST).dvi
 clean-local:
 	rm -f $(OBJS)  $(DST).aux $(DST).blg $(DST).dvi $(DST).idx $(DST).ind $(DST).ing $(DST).lof $(DST).log $(DST).lot $(DST).pdf $(DST).ps $(DST).toc $(DST).out *.fig.bak *.eps
 
+endif

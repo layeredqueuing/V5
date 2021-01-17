@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14294 2020-12-30 19:30:18Z greg $
+ * $Id: expat_document.cpp 14364 2021-01-16 02:19:52Z greg $
  *
  * Read in XML input files.
  *
@@ -2162,7 +2162,7 @@ namespace LQIO {
 	{
 	    const int precision = output.precision(10);
 	    output << XML::start_element( Xspex_parameters ) << ">" /* <![CDATA[" */ << std::endl;
-	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
+	    const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::input_variables();
 	    LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 	    for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputVariable( output ) );
 	    output /* << "]]>" << std::endl */ << XML::end_element( Xspex_parameters ) << std::endl;
@@ -2176,7 +2176,7 @@ namespace LQIO {
         void
         Expat_Document::exportGeneral( std::ostream& output ) const
         {
-	    const std::vector<Spex::ObservationInfo> doc_vars = Spex::get_document_variables();
+	    const std::vector<Spex::ObservationInfo> doc_vars = Spex::document_variables();
 	    const bool complex_element = hasResults() || _document.hasPragmas() || doc_vars.size() > 0;
 
             output << XML::start_element( Xsolver_parameters, complex_element )
@@ -2206,7 +2206,7 @@ namespace LQIO {
                     const bool has_mva_info = mva_info.getNumberOfSubmodels() > 0;
                     output << XML::start_element( Xresult_general, has_mva_info )
 			   << XML::attribute( Xsolver_info, _document.getResultSolverInformation() )
-                           << XML::attribute( Xvalid, _document.getResultValid() ? "YES" : "NO" )
+                           << XML::attribute( Xvalid, _document.getResultValid() )
                            << XML::attribute( Xconv_val_result, _document.getResultConvergenceValue() )
                            << XML::attribute( Xiterations, _document.getResultIterations() )
                            << XML::attribute( Xplatform_info, _document.getResultPlatformInformation() )
@@ -3033,7 +3033,7 @@ namespace LQIO {
         void
 	Expat_Document::exportObservation( std::ostream& output, const DocumentObject * object ) const
 	{
-	    std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::get_observations().equal_range( object );
+	    std::pair<Spex::obs_var_tab_t::const_iterator, Spex::obs_var_tab_t::const_iterator> range = Spex::observations().equal_range( object );
     	    if ( range.first != range.second ) {
 		const bool has_95 = find_if( range.first, range.second, HasConfidenceObservation( 95 ) ) != range.second;
 		const bool has_99 = find_if( range.first, range.second, HasConfidenceObservation( 99 ) ) != range.second;
@@ -3081,9 +3081,9 @@ namespace LQIO {
 	void
 	Expat_Document::exportSPEXResults( std::ostream& output ) const
 	{
-	    const std::vector<Spex::var_name_and_expr>& results = Spex::get_result_variables();
+	    const std::vector<Spex::var_name_and_expr>& results = Spex::result_variables();
 	    if ( results.size() > 0 ) {
-		const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::get_input_variables();
+		const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::input_variables();
 		const int precision = output.precision(10);
 		output << XML::start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
 		LQX::SyntaxTreeNode::setVariablePrefix( "$" );

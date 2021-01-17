@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: phase.h 14356 2021-01-14 00:21:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,16 +25,17 @@
 #include "call.h"
 #include "interlock.h"
 
-class ProcessorCall;
-class Entry;
+class Activity;
+class ActivityList;
+class AndForkActivityList;
 class DeviceEntry;
 class Entity;
-class TaskEntry;
-class Task;
+class Entry;
+class Processor;
+class ProcessorCall;
 class Submodel;
-class AndForkActivityList;
-class ActivityList;
-class Activity;
+class Task;
+class TaskEntry;
 
 namespace LQIO {
     namespace DOM {
@@ -145,6 +146,36 @@ private:
 	Interlock::CollectTasks& _path;
     };
 
+private:
+    /* Bonus entries are created on devices for each phase */
+    class DeviceInfo {
+    public:
+	typedef enum { HOST, PROCESSOR, THINK_TIME } Type;
+
+	DeviceInfo( const Phase&, const std::string&, Type );		/* True if this device is the phase's processor */
+	~DeviceInfo();
+
+	bool isHost() const { return _type == HOST; }
+	bool isProcessor() const { return _type == HOST || _type == PROCESSOR; }
+	ProcessorCall * call() const { return _call; }
+	DeviceEntry * entry() const { return _entry; }
+	DeviceInfo& recalculateDynamicValues();
+
+    private:
+	double service_time() const { return _phase.serviceTime(); }
+	double think_time() const { return _phase.thinkTime(); }
+	double n_calls() const { return _phase.numberOfSlices(); }
+	double cv_sqr() const { return _phase.CV_sqr(); }
+
+    private:
+	const Phase& _phase;
+	const std::string _name;
+	const Type _type;
+	DeviceEntry * _entry;
+	ProcessorCall * _call;
+	LQIO::DOM::Entry * _entry_dom;		/* Only for ~Phase		*/
+	LQIO::DOM::Call * _call_dom;		/* Only for ~Phase		*/
+    };
 
 public:
     class CallExec {
@@ -214,7 +245,9 @@ public:
 
     /* Calls to processors */
 	
-    ProcessorCall * processorCall() const { return _processorCall; }
+    DeviceInfo * getProcessor() const;
+    ProcessorCall * processorCall() const;
+    DeviceEntry * processorEntry() const;
     double processorCalls() const;
     double queueingTime() const;
     double processorWait() const;
@@ -272,13 +305,14 @@ private:
 protected:
     const Entry * _entry;		/* Root for activity			*/
     std::set<Call *> _callList;         /* Who I call.                          */
-    ProcessorCall * _processorCall;    	/* Link to processor.                   */
-    ProcessorCall * _thinkCall;		/* Link to processor.                   */
 
 private:
-    DeviceEntry * _processorEntry;     	/*                                      */
-    LQIO::DOM::Entry * _procEntryDOM;	/* Only for ~Phase			*/
-    LQIO::DOM::Call * _procCallDOM;	/* Only for ~Phase			*/
+    std::vector<DeviceInfo *> _devices;	/* Will replace below			*/
+//    ProcessorCall * _processorCall;    	/* Link to processor.                   */
+    ProcessorCall * _thinkCall;		/* Link to processor.                   */
+//    DeviceEntry * _processorEntry;     	/*                                      */
+//    LQIO::DOM::Entry * _procEntryDOM;	/* Only for ~Phase			*/
+// LQIO::DOM::Call * _procCallDOM;	/* Only for ~Phase			*/
     DeviceEntry * _thinkEntry;         	/*                                      */
     LQIO::DOM::Entry * _thinkEntryDOM;	/* Only for ~Phase			*/
     LQIO::DOM::Call * _thinkCallDOM;	/* Only for ~Phase			*/

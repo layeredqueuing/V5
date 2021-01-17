@@ -586,6 +586,11 @@ PACKAGE_URL=''
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+BUILD_latexdoc_FALSE
+BUILD_latexdoc_TRUE
+HAVE_LATEX_FALSE
+HAVE_LATEX_TRUE
+XLATEX
 AM_BACKSLASH
 AM_DEFAULT_VERBOSITY
 AM_DEFAULT_V
@@ -655,6 +660,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 enable_silent_rules
+enable_latex_doc
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1275,6 +1281,8 @@ Optional Features:
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
   --enable-silent-rules   less verbose build output (undo: "make V=1")
   --disable-silent-rules  verbose build output (undo: "make V=0")
+  --disable-latex-doc     disable building the PDF documentation from LaTeX
+                          source
 
 Report bugs to <greg@sce.carleton.ca>.
 _ACEOF
@@ -1909,12 +1917,7 @@ program_transform_name=`$as_echo "$program_transform_name" | sed "$ac_script"`
 am_aux_dir=`cd "$ac_aux_dir" && pwd`
 
 if test x"${MISSING+set}" != xset; then
-  case $am_aux_dir in
-  *\ * | *\	*)
-    MISSING="\${SHELL} \"$am_aux_dir/missing\"" ;;
-  *)
-    MISSING="\${SHELL} $am_aux_dir/missing" ;;
-  esac
+  MISSING="\${SHELL} '$am_aux_dir/missing'"
 fi
 # Use eval to expand $SHELL
 if eval "$MISSING --is-lightweight"; then
@@ -2312,6 +2315,83 @@ END
   fi
 fi
 
+# The user can disable building of the PDF of the manual, for example
+# if the required LaTeX packages are not installed
+# Check whether --enable-latex-doc was given.
+if test "${enable_latex_doc+set}" = set; then :
+  enableval=$enable_latex_doc; latexdoc=no
+else
+  latexdoc=yes
+fi
+
+
+if test "x$latexdoc" = "xyes"; then
+   { $as_echo "$as_me:${as_lineno-$LINENO}: building of the PDF of the user manual from LaTeX source is enabled" >&5
+$as_echo "$as_me: building of the PDF of the user manual from LaTeX source is enabled" >&6;}
+   # Check for presence of pdfLaTeX
+   for ac_prog in latex
+do
+  # Extract the first word of "$ac_prog", so it can be a program name with args.
+set dummy $ac_prog; ac_word=$2
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
+$as_echo_n "checking for $ac_word... " >&6; }
+if ${ac_cv_prog_XLATEX+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  if test -n "$XLATEX"; then
+  ac_cv_prog_XLATEX="$XLATEX" # Let the user override the test.
+else
+as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+for as_dir in $PATH
+do
+  IFS=$as_save_IFS
+  test -z "$as_dir" && as_dir=.
+    for ac_exec_ext in '' $ac_executable_extensions; do
+  if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
+    ac_cv_prog_XLATEX="$ac_prog"
+    $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
+    break 2
+  fi
+done
+  done
+IFS=$as_save_IFS
+
+fi
+fi
+XLATEX=$ac_cv_prog_XLATEX
+if test -n "$XLATEX"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $XLATEX" >&5
+$as_echo "$XLATEX" >&6; }
+else
+  { $as_echo "$as_me:${as_lineno-$LINENO}: result: no" >&5
+$as_echo "no" >&6; }
+fi
+
+
+  test -n "$XLATEX" && break
+done
+
+   if test -z "$XLATEX"; then
+      { $as_echo "$as_me:${as_lineno-$LINENO}: LaTeX not found - Unable to create PDF version of the user manual" >&5
+$as_echo "$as_me: LaTeX not found - Unable to create PDF version of the user manual" >&6;}
+   fi
+fi
+ if test -n "$XLATEX"; then
+  HAVE_LATEX_TRUE=
+  HAVE_LATEX_FALSE='#'
+else
+  HAVE_LATEX_TRUE='#'
+  HAVE_LATEX_FALSE=
+fi
+
+ if test "x$latexdoc" = "xyes"; then
+  BUILD_latexdoc_TRUE=
+  BUILD_latexdoc_FALSE='#'
+else
+  BUILD_latexdoc_TRUE='#'
+  BUILD_latexdoc_FALSE=
+fi
+
 ac_config_files="$ac_config_files Makefile tutorial/Makefile tutorial/model/Makefile tutorial/pseudo-tasks/Makefile tutorial/calls/Makefile tutorial/activity-templ/Makefile tutorial/web-server/Makefile userman/Makefile userman/model/Makefile userman/bookstore/Makefile userman/srvn-schema/Makefile userman/timing-diagrams/Makefile userman/replication/Makefile userman/xml-schema/Makefile"
 
 cat >confcache <<\_ACEOF
@@ -2468,6 +2548,14 @@ $as_echo_n "checking that generated files are newer than configure... " >&6; }
    { $as_echo "$as_me:${as_lineno-$LINENO}: result: done" >&5
 $as_echo "done" >&6; }
 
+if test -z "${HAVE_LATEX_TRUE}" && test -z "${HAVE_LATEX_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_LATEX\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${BUILD_latexdoc_TRUE}" && test -z "${BUILD_latexdoc_FALSE}"; then
+  as_fn_error $? "conditional \"BUILD_latexdoc\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
 
 : "${CONFIG_STATUS=./config.status}"
 ac_write_fail=0

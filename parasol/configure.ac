@@ -42,5 +42,23 @@ if test ${ac_cv_func_drand48} = "no"; then
    DRAND48=drand48.o
 fi
 
+# The user can disable building of the PDF of the manual, for example
+# if the required LaTeX packages are not installed
+AC_ARG_ENABLE([latex-doc],
+    [AS_HELP_STRING([--disable-latex-doc], [disable building the PDF
+    documentation from LaTeX source])],
+    [latexdoc=no],
+    [latexdoc=yes])
+
+if test "x$latexdoc" = "xyes"; then
+   AC_MSG_NOTICE([building of the PDF of the user manual from LaTeX source is enabled])
+   # Check for presence of pdfLaTeX
+   AC_CHECK_PROGS(XLATEX, latex)
+   if test -z "$XLATEX"; then
+      AC_MSG_NOTICE([LaTeX not found - Unable to create PDF version of the user manual])
+   fi
+fi
+AM_CONDITIONAL([HAVE_LATEX], test -n "$XLATEX")
+AM_CONDITIONAL([BUILD_latexdoc], test "x$latexdoc" = "xyes")
 AC_CONFIG_FILES([Makefile include/Makefile src/Makefile doc/Makefile tests/Makefile])
 AC_OUTPUT
