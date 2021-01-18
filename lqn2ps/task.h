@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14352 2021-01-12 23:26:55Z greg $
+ * $Id: task.h 14375 2021-01-18 00:35:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -154,7 +154,7 @@ public:
     virtual bool isInClosedModel( const std::vector<Entity *>& servers  ) const;
 
 #if defined(BUG_270)
-    static double accumulate_rendezvous( double, const merge_pair& );		// will change to extvar.
+    static const LQIO::DOM::ExternalVariable * accumulate_rendezvous( const LQIO::DOM::ExternalVariable *, const merge_pair& );		// will change to extvar.
     static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const merge_pair& );
 #endif
     virtual void accumulateDemand( BCMP::Model::Station& ) const;

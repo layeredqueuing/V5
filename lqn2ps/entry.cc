@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14360 2021-01-15 04:03:31Z greg $
+ * $Id: entry.cc 14378 2021-01-18 13:48:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -355,7 +355,7 @@ Entry::rendezvous( const Entry * anEntry ) const
 {
     const Call * aCall = findCall( anEntry, &GenericCall::hasRendezvous  );
     if ( aCall ) {
-	return aCall->sumOfRendezvous();
+	return to_double( *aCall->sumOfRendezvous() );
     } else {
 	return 0.0;
     }
@@ -2056,8 +2056,10 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    const_cast<Entry *>(entry)->addDstCall( clone );
 #if defined(BUG_270)
 	    std::cerr << "  Move " << (*server_call)->srcName() <<  "->" << (*server_call)->dstName()
-		      << "    to " << clone->srcName() << "->" << clone->dstName()
-		      << ", visits=" << clone->sumOfRendezvous() << std::endl;
+		      << "    to " << clone->srcName() << "->" << clone->dstName();
+	    if ( clone->sumOfRendezvous() != nullptr ) {
+		std::cerr << ", visits=" << *clone->sumOfRendezvous();
+	    }
 #endif
 	}
 
@@ -2079,8 +2081,11 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 	    const_cast<Processor *>(processor)->addDstCall( clone );
 #if defined(BUG_270)
 	    std::cerr << "  Move " << (*p)->srcName() <<  "->" << (*p)->dstName()
-		      << "    to " << clone->srcName() << "->" << clone->dstName()
-		      << ", visits=" << clone->sumOfRendezvous();
+		      << "    to " << clone->srcName() << "->" << clone->dstName();
+	    if ( clone->sumOfRendezvous() != nullptr ) {
+		std::cerr << ", visits=" << *clone->sumOfRendezvous();
+	    }
+#endif
 	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
 		const Entry * entry = dynamic_cast<ProcessorCall *>(clone)->srcEntry();
 		if ( entry != nullptr ) {
@@ -2088,7 +2093,6 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 		}
 	    }
 	    std::cerr << std::endl;
-#endif
 	}
     }
 

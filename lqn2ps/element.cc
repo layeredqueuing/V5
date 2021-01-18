@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 14348 2021-01-11 20:26:57Z greg $
+ * $Id: element.cc 14375 2021-01-18 00:35:36Z greg $
  */
 
 #include "element.h"
@@ -167,7 +167,7 @@ Element::addForwardingRendezvous( CallStack& callStack ) const
 
     for ( CallStack::const_reverse_iterator call = callStack.rbegin(); call != callStack.rend(); ++call ) {
 	if ( (*call)->hasRendezvous() ) {
-	    rate *= (*call)->sumOfRendezvous(); 
+	    rate *= to_double( *(*call)->sumOfRendezvous() );
 	    Call * psuedo = const_cast<Call *>((*call))->addForwardingCall( const_cast<Entry *>(callStack.back()->dstEntry()), rate );
 	    if ( psuedo ) {
 		psuedo->proxy( const_cast<Call *>(callStack.back()) );

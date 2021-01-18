@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14352 2021-01-12 23:26:55Z greg $
+ * $Id: task.cc 14375 2021-01-18 00:35:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1949,12 +1949,16 @@ Task::mergeCalls()
     for ( merge_iter lower = merge.begin(); lower != merge.end(); lower = upper ) {
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
-	const double visits = std::accumulate( lower, upper, 0., &accumulate_rendezvous );
+	const LQIO::DOM::ExternalVariable * visits       = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &accumulate_rendezvous );
 	const LQIO::DOM::ExternalVariable * service_time = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &accumulate_service );
 #if BUG_270	
 	size_t count = merge.count( server );
 	std::cout << "  To " << server->name() << ", count=" << count
-		  << ", visits=" << visits << ", service time=";
+		  << ", visits=";
+	if ( visits != nullptr ) {
+	    std::cout << *visits;
+	}
+	std::cout << ", service time=";
 	if ( service_time != nullptr ) {
 	    std::cout << *service_time << std::endl;
 	} else {
@@ -1983,10 +1987,10 @@ Task::mergeCalls()
 }
 
 
-double
-Task::accumulate_rendezvous( double augend, const merge_pair& addend )		// will change to extvar.
+const LQIO::DOM::ExternalVariable *
+Task::accumulate_rendezvous( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend ) 
 {
-    return augend + addend.second->sumOfRendezvous();
+    return Entity::addExternalVariables( augend, addend.second->sumOfRendezvous() );
 }
 
 

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14370 2021-01-16 19:40:56Z greg $
+ *  $Id: qnap2_document.h 14377 2021-01-18 13:25:58Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -36,6 +36,7 @@ namespace BCMP {
 	const Model::Model::Station::map_t& stations() const { return _model.stations(); }
 	const Model::Class::map_t& classes() const { return _model.classes(); }
 	const Model& model() const { return _model; }
+	bool multiclass() const { return classes().size() > 1; }
 
 	void printClassVariables( std::ostream& ) const;
 
@@ -56,20 +57,28 @@ namespace BCMP {
 	    const Model& model() const { return _model; }
 	    const Model::Class::map_t& classes() const { return _model.classes(); }	/* For demand */
 	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
+	    bool multiclass() const { return classes().size() > 1; }
 	private:
 	    const Model& _model;
-	    mutable std::set<const LQIO::DOM::ExternalVariable *> _symbol_table;
+	    std::set<const LQIO::DOM::ExternalVariable *>& _symbol_table;
 	};
 	    
 	static std::string getDeferredVariables( const std::string&, const std::pair<const DOM::ExternalVariable *, const LQX::SyntaxTreeNode *>& );
-	static std::string getResultVariables( const std::string&, const Spex::var_name_and_expr& );
 
+	struct getResultVariables {
+	    getResultVariables( const std::set<const LQIO::DOM::ExternalVariable *>& symbol_table );
+	    std::string operator()( const std::string&, const Spex::var_name_and_expr& ) const;
+	private:
+	    std::set<std::string> _symbol_table;	/* Converted from arg. */
+	};
+	
 	struct printStation {
 	    printStation( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
 	    void operator()( const Model::Station::pair_t& m ) const;
 	private:
 	    const Model::Class::map_t& classes() const { return _model.classes(); }	/* For demand */
 	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
+	    bool multiclass() const { return classes().size() > 1; }
 	private:
 	    std::ostream& _output;
 	    const Model& _model;
@@ -87,6 +96,7 @@ namespace BCMP {
 	    void operator()( const Model::Station::pair_t& m ) const;
 	private:
 	    const Model::Class::map_t& classes() const { return _model.classes(); }
+	    bool multiclass() const { return classes().size() > 1; }
 	private:
 	    std::ostream& _output;
 	    const Model& _model;
@@ -108,19 +118,22 @@ namespace BCMP {
 	
 	class getObservations {
 	public:
-	    typedef std::string (getObservations::*f)( const std::string& ) const;
+	    typedef std::pair<std::string,std::string> (getObservations::*f)( const std::string& ) const;
 	    static std::map<int,f> __key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
 	    
-	    getObservations( const Model& model ) : _model(model) {}
-	    std::string operator()( const std::string&, const Spex::var_name_and_expr& ) const;
-	    std::string get_throughput( const std::string& name ) const;
-	    std::string get_utilization( const std::string& name ) const;
-	    std::string get_service_time( const std::string& name ) const;
-	    std::string get_waiting_time( const std::string& name ) const;
+	    getObservations( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
+	    void operator()( const Spex::var_name_and_expr& ) const;
+	    std::pair<std::string,std::string> get_throughput( const std::string& name ) const;
+	    std::pair<std::string,std::string> get_utilization( const std::string& name ) const;
+	    std::pair<std::string,std::string> get_service_time( const std::string& name ) const;
+	    std::pair<std::string,std::string> get_waiting_time( const std::string& name ) const;
 	private:
 	    const Model::Class::map_t& classes() const { return _model.classes(); }
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
+	    bool multiclass() const { return classes().size() > 1; }
+	    static const std::string& get_entity_name( int key, const LQIO::DOM::DocumentObject * object );
 	private:
+	    std::ostream& _output;
 	    const Model& _model;
 	};
 
@@ -143,11 +156,21 @@ namespace BCMP {
 	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const;
 	};
 	    
-	struct fold_visit {
-	    fold_visit( const std::string& name ) : _name(name) {}
+	struct fold_visits {
+	    fold_visits( const std::string& name ) : _name(name) {}
 	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const;
 	private:
 	    const std::string& _name;
+	};
+
+	struct fold_mresponse {
+	    fold_mresponse( const std::string& name, const Model::Class::map_t& classes ) : _name(name), _classes(classes) {}
+	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const;
+	private:
+	    bool multiclass() const { return _classes.size() > 1; }
+	private:
+	    const std::string& _name;
+	    const Model::Class::map_t& _classes;
 	};
 
     private:

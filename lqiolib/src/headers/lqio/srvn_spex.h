@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14364 2021-01-16 02:19:52Z greg $
+ * $Id: srvn_spex.h 14377 2021-01-18 13:25:58Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -167,7 +167,7 @@ namespace LQIO {
 	class ObservationInfo {
 	public:
 	    ObservationInfo() : _key(0), _phase(0), _variable_name(""), _conf_level(0), _conf_variable_name("") {}
-	    ObservationInfo( int key, unsigned int phase, const char * variable_name=NULL, unsigned int conf_level=0, const char * conf_variable_name=NULL );
+	    ObservationInfo( int key, unsigned int phase, const char * variable_name=nullptr, unsigned int conf_level=0, const char * conf_variable_name=nullptr );
 	    ObservationInfo& operator=( const ObservationInfo& );
 	    bool operator()( const DOM::DocumentObject * o1, const DOM::DocumentObject * o2 ) const;
 	    bool operator()( const ObservationInfo&, const ObservationInfo& ) const;

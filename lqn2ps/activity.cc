@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14216 2020-12-14 20:19:51Z greg $
+ * $Id: activity.cc 14375 2021-01-18 00:35:36Z greg $
  */
 
 #include "activity.h"
@@ -116,11 +116,11 @@ Activity::merge( const Activity &src, const double rate )
 
 	/* Set phase type to stochastic iff we have a non-integral number of calls. */
 
-	if ( phaseTypeFlag() == PHASE_DETERMINISTIC
-	     && ( remainder( dstCall->sumOfRendezvous(), 1.0 ) > EPSILON
-		  || remainder( dstCall->sumOfSendNoReply(), 1.0 ) > EPSILON ) ) {
-	    phaseTypeFlag( PHASE_STOCHASTIC );
-	}
+	// if ( phaseTypeFlag() == PHASE_DETERMINISTIC
+	//      && ( remainder( dstCall->sumOfRendezvous(), 1.0 ) > EPSILON
+	// 	  || remainder( dstCall->sumOfSendNoReply(), 1.0 ) > EPSILON ) ) {
+	//     phaseTypeFlag( PHASE_STOCHASTIC );
+	// }
 
 	dstEntry->removeDstCall( (*src_call) );	/* Unlink the activities calls. */
     }
@@ -802,7 +802,7 @@ Activity::serviceTimeForSRVNInput() const
     double time = to_double(*getDOM()->getServiceTime());
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	if ( !(*call)->isSelected() && (*call)->hasRendezvous() ) {
-	    time += (*call)->sumOfRendezvous() * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
+	    time += to_double(*(*call)->sumOfRendezvous()) * ((*call)->waiting(1) + (*call)->dstEntry()->executionTime(1));
 	}
     }
 

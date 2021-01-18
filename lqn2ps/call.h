@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14352 2021-01-12 23:26:55Z greg $
+ * $Id: call.h 14375 2021-01-18 00:35:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,9 +20,9 @@
 #include "lqn2ps.h"
 #include <vector>
 #include <deque>
-#include "arc.h"
 #include <lqio/dom_call.h>
 #include <lqio/dom_extvar.h>
+#include "arc.h"
 
 class Entity;
 class Entry;
@@ -95,7 +95,7 @@ public:
     virtual bool isLoopBack() const { return false; }
     virtual bool isProcessorCall() const { return false; }
 
-    virtual double sumOfRendezvous() const = 0;			/* Sum over all phases. */
+    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const = 0;			/* Sum over all phases. */
     virtual double sumOfSendNoReply() const = 0;		/* Sum over all phases.	*/
 
     virtual GenericCall& setChain( const unsigned ) = 0;
@@ -197,7 +197,7 @@ public:
 
     virtual const LQIO::DOM::Call * getDOM( const unsigned p ) const;
     const LQIO::DOM::Call * getFwdDOM() const { return _forwarding; }
-    virtual double sumOfRendezvous() const;
+    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
     Call& rendezvous( const unsigned p, const double value );
     Call& rendezvous( const unsigned p, const LQIO::DOM::Call * value );
     const LQIO::DOM::ExternalVariable & rendezvous( const unsigned p = 1 ) const;
@@ -275,7 +275,7 @@ protected:
     virtual void dump() const;
 
 private:
-    static double sum_of_calls( double augend, const LQIO::DOM::Call * call );
+    static const LQIO::DOM::ExternalVariable * sum_of_calls( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::Call * );
     
 private:
     /* Input */
@@ -441,7 +441,7 @@ public:
 
     virtual const LQIO::DOM::ExternalVariable& rendezvous() const { return _rendezvous; }
     TaskCall& rendezvous( const LQIO::DOM::ConstantExternalVariable& );
-    virtual double sumOfRendezvous() const;
+    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
     virtual const LQIO::DOM::ExternalVariable& sendNoReply() const { return _sendNoReply; }
     TaskCall& sendNoReply( const LQIO::DOM::ConstantExternalVariable& );
     virtual double sumOfSendNoReply() const;
@@ -516,7 +516,7 @@ public:
 
     ProcessorCall& rendezvous( const LQIO::DOM::ExternalVariable * value );
     virtual const LQIO::DOM::ExternalVariable& rendezvous() const;
-    virtual double sumOfRendezvous() const;
+    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const;
     virtual const LQIO::DOM::ExternalVariable& sendNoReply() const;
     virtual double sumOfSendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable& forward() const;
@@ -587,7 +587,7 @@ public:
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
 
-    virtual double sumOfRendezvous() const { return 0.0; }
+    virtual const LQIO::DOM::ExternalVariable * sumOfRendezvous() const { return nullptr; }
     virtual double sumOfSendNoReply() const;
     virtual const LQIO::DOM::ExternalVariable & rendezvous() const;
     virtual const LQIO::DOM::ExternalVariable & sendNoReply() const;

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14360 2021-01-15 04:03:31Z greg $
+ * $Id: entity.cc 14375 2021-01-18 00:35:36Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -753,7 +753,7 @@ Entity::create_station::operator()( const Entity * entity ) const
     else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
     else type = BCMP::Model::Station::LOAD_INDEPENDENT;
-    _model.insertStation( entity->name(), type, entity->scheduling(), &entity->copies() );
+    _model.insertStation( entity->name(), type, entity->scheduling(), dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies() );
 }
 
 /* +BUG_270 */
@@ -764,8 +764,8 @@ Entity::create_station::operator()( const Entity * entity ) const
  * add the two.
  */
 
-static LQX::SyntaxTreeNode *
-getVariableExpression( const LQIO::DOM::ExternalVariable * variable )
+/* static */ LQX::SyntaxTreeNode *
+Entity::getVariableExpression( const LQIO::DOM::ExternalVariable * variable )
 {
     double value;
     LQX::SyntaxTreeNode * expression;

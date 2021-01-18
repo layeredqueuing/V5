@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14360 2021-01-15 04:03:31Z greg $
+ * $Id: entity.h 14375 2021-01-18 00:35:36Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -18,6 +18,10 @@ class Task;
 class Arc;
 class EntityCall;
 class Entity;
+
+namespace LQX {
+    class SyntaxTreeNode;
+}
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
@@ -73,6 +77,7 @@ public:
     };
 
 public:    
+    static LQX::SyntaxTreeNode * getVariableExpression( const LQIO::DOM::ExternalVariable * variable );
     static const LQIO::DOM::ExternalVariable * addExternalVariables( const LQIO::DOM::ExternalVariable *, const LQIO::DOM::ExternalVariable * );
 
 public:
