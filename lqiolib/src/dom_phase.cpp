@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_phase.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -20,10 +20,10 @@ namespace LQIO {
 	const char * Phase::__typeName = "phase";
 
 	/* Dummy Phase */
-	Phase::Phase()
-	    : DocumentObject(), _serviceTime(NULL),
-	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(nullptr),
-	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
+	Phase::Phase() 
+	    : DocumentObject(), _serviceTime(nullptr),
+	      _phaseTypeFlag(Type::STOCHASTIC), _entry(nullptr),
+	      _thinkTime(nullptr), _coeffOfVariationSq(nullptr), _histogram(nullptr),
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
@@ -33,10 +33,10 @@ namespace LQIO {
 	}
 
 	/* Normal constructor */
-	Phase::Phase(const Document * document,Entry* parentEntry)
-	    : DocumentObject(document,""), _calls(), _serviceTime(NULL),
-	      _phaseTypeFlag(PHASE_STOCHASTIC), _entry(parentEntry),
-	      _thinkTime(NULL), _coeffOfVariationSq(NULL), _histogram(NULL),
+	Phase::Phase(const Document * document,Entry* parentEntry) 
+	    : DocumentObject(document,""), _calls(), _serviceTime(nullptr),
+	      _phaseTypeFlag(Type::STOCHASTIC), _entry(parentEntry),
+	      _thinkTime(nullptr), _coeffOfVariationSq(nullptr), _histogram(nullptr),
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
 	      _resultVarianceServiceTime(0.0), _resultVarianceServiceTimeVariance(0.0),
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0),
@@ -48,9 +48,9 @@ namespace LQIO {
 	Phase::Phase( const LQIO::DOM::Phase& src )
 	    : DocumentObject(src.getDocument(),src.getName()),
 	      _calls(),		/* WARNING! Not copied */
-	      _serviceTime(src._serviceTime->clone()),
+	      _serviceTime(src._serviceTime),
 	      _phaseTypeFlag(src.getPhaseTypeFlag()), _entry(const_cast<LQIO::DOM::Entry*>(src.getSourceEntry())),
-	      _thinkTime(src._thinkTime->clone()),
+	      _thinkTime(src._thinkTime),
 	      _coeffOfVariationSq(src._coeffOfVariationSq->clone()),
 	      _histogram(nullptr),	/* not copied */
 	      _resultServiceTime(0.0), _resultServiceTimeVariance(0.0),
@@ -97,7 +97,7 @@ namespace LQIO {
 	void Phase::setServiceTimeValue(double value)
 	{
 	    /* Store the value into the ExtVar */
-	    if (_serviceTime == NULL) {
+	    if (_serviceTime == nullptr) {
 		_serviceTime = new ConstantExternalVariable(value);
 	    } else {
 		_serviceTime->set(value);
@@ -109,13 +109,13 @@ namespace LQIO {
 	    return ExternalVariable::isPresent( getServiceTime(), 0.0 );
 	}
 
-	phase_type Phase::getPhaseTypeFlag() const
+	Phase::Type Phase::getPhaseTypeFlag() const
 	{
 	    /* Returns the PhaseTypeFlags of the Phase */
 	    return _phaseTypeFlag;
 	}
 
-	void Phase::setPhaseTypeFlag(const phase_type phaseTypeFlag)
+	void Phase::setPhaseTypeFlag(const Phase::Type phaseTypeFlag)
 	{
 	    /* Stores the given PhaseTypeFlags of the Phase */
 	    _phaseTypeFlag = phaseTypeFlag;
@@ -152,7 +152,7 @@ namespace LQIO {
 
 	void Phase::setThinkTimeValue( double value )
 	{
-	    if ( _thinkTime == NULL ) {
+	    if ( _thinkTime == nullptr ) {
 		_thinkTime = new ConstantExternalVariable(value);
 	    } else {
 		_thinkTime->set(value);
@@ -169,7 +169,7 @@ namespace LQIO {
 	    /* Weird one as can't be changed dynamically */
 	    double value = 0.0;
 	    /* LQX may set this negative, so we don't know it's wrong until it's used. */
-	    if ( time != NULL && (time->getValue(value) == true && value > 0 )) {
+	    if ( time != nullptr && (time->getValue(value) == true && value > 0 )) {
 		setMaxServiceTimeValue( value );
 	    } else {
 		throw std::domain_error( "invalid max service time" );
@@ -179,10 +179,10 @@ namespace LQIO {
 
 	void Phase::setMaxServiceTimeValue(double time)
 	{
-	    if ( _histogram != NULL ) {
+	    if ( _histogram != nullptr ) {
 		_histogram->setTimeExceeded( time );
 	    } else {
-		_histogram = new LQIO::DOM::Histogram( getDocument(), LQIO::DOM::Histogram::CONTINUOUS, 0, time, time );
+		_histogram = new LQIO::DOM::Histogram( getDocument(), Histogram::Type::CONTINUOUS, 0, time, time );
 	    }
 	}
 
@@ -198,7 +198,7 @@ namespace LQIO {
 	double Phase::getCoeffOfVariationSquaredValue() const
 	{
 	    double value = 1.0;		/* Default is one, but zero allowed */
-	    if ( _coeffOfVariationSq != NULL && ( _coeffOfVariationSq->getValue(value) != true || std::isinf(value) || value < 0.0 ) ) {
+	    if ( _coeffOfVariationSq != nullptr && ( _coeffOfVariationSq->getValue(value) != true || std::isinf(value) || value < 0.0 ) ) {
 		throw std::domain_error( "invalid external variable" );
 	    }
 	    return value;
@@ -212,7 +212,7 @@ namespace LQIO {
 
 	void Phase::setCoeffOfVariationSquared(ExternalVariable* cvsq)
 	{
-	    if (_coeffOfVariationSq != NULL) {
+	    if (_coeffOfVariationSq != nullptr) {
 //        printf("WARNING: Overwriting existing ExternalVariable in Phase.\n");
 	    }
 
@@ -223,7 +223,7 @@ namespace LQIO {
 	void Phase::setCoeffOfVariationSquaredValue(double value)
 	{
 	    /* Set the coefficient of variation value */
-	    if (_coeffOfVariationSq == NULL) {
+	    if (_coeffOfVariationSq == nullptr) {
 		_coeffOfVariationSq = new ConstantExternalVariable(value);
 	    } else {
 		_coeffOfVariationSq->set(value);
@@ -241,7 +241,7 @@ namespace LQIO {
 	{
 	    /* Return true is CV != 1.0 (it must be set) */
 	    double value = 1.0;
-	    return _coeffOfVariationSq != NULL && (!_coeffOfVariationSq->getValue(value) || value != 1.0);
+	    return _coeffOfVariationSq != nullptr && (!_coeffOfVariationSq->getValue(value) || value != 1.0);
 	}
 
 	bool Phase::hasHistogram() const
@@ -287,27 +287,27 @@ namespace LQIO {
 	    std::vector<Call*>::const_iterator iter = std::find_if( _calls.begin(), _calls.end(), Call::eqDestEntry(entry) );
 	    if ( iter != _calls.end() ) return *iter;
 
-	    return NULL;
+	    return nullptr;
 	}
 
 	bool Phase::hasRendezvous() const
 	{
-	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasRendezvous ) ) != _calls.end();
+	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasRendezvous ) );
 	}
 
 	bool Phase::hasSendNoReply() const
 	{
-	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasSendNoReply ) ) != _calls.end();
+	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasSendNoReply ) );
 	}
 
 	bool Phase::hasResultVarianceWaitingTime() const
 	{
-	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultVarianceWaitingTime ) ) != _calls.end();
+	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultVarianceWaitingTime ) );
 	}
 
 	bool Phase::hasResultDropProbability() const
 	{
-	    return std::find_if( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultDropProbability ) ) != _calls.end();
+	    return std::any_of( _calls.begin(), _calls.end(), Predicate<LQIO::DOM::Call>( &Call::hasResultDropProbability ) );
 	}
 
 

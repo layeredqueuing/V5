@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14026 2020-10-28 14:28:13Z greg $
+ * $Id: pragma.cc 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,7 +18,21 @@
 #include <lqio/glblerr.h>
 
 Pragma * Pragma::__pragmas = nullptr;
-std::map<std::string,Pragma::fptr> Pragma::__set_pragma;
+const std::map<std::string,Pragma::fptr> Pragma::__set_pragma = {
+    { LQIO::DOM::Pragma::_nice_,			&Pragma::set_nice },
+    { LQIO::DOM::Pragma::_quorum_reply_,		&Pragma::set_quorum_delayed_calls },
+    { LQIO::DOM::Pragma::_reschedule_on_async_send_,	&Pragma::set_reschedule_on_async_send },
+    { LQIO::DOM::Pragma::_scheduling_model_,		&Pragma::set_scheduling_model },
+    { LQIO::DOM::Pragma::_severity_level_,		&Pragma::set_severity_level },
+    { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::set_abort_on_dropped_message },
+    { LQIO::DOM::Pragma::_block_period_, 	        &Pragma::set_block_period },
+    { LQIO::DOM::Pragma::_initial_delay_, 	        &Pragma::set_initial_delay },
+    { LQIO::DOM::Pragma::_initial_loops_, 	        &Pragma::set_initial_loops },
+    { LQIO::DOM::Pragma::_max_blocks_, 			&Pragma::set_max_blocks },
+    { LQIO::DOM::Pragma::_precision_, 	        	&Pragma::set_precision },
+    { LQIO::DOM::Pragma::_run_time_, 			&Pragma::set_run_time },
+    { LQIO::DOM::Pragma::_seed_value_, 			&Pragma::set_seed_value }
+};
 
 Pragma::Pragma() :
     _abort_on_dropped_message(true),  /* halt on dropped msgs.	*/
@@ -41,8 +55,6 @@ Pragma::Pragma() :
 void
 Pragma::set( const std::map<std::string,std::string>& list )
 {
-    initialize();
-    
     if ( __pragmas != nullptr ) delete __pragmas;
     __pragmas = new Pragma();
 
@@ -90,14 +102,14 @@ Pragma::set_severity_level(const std::string& value)
 bool
 Pragma::set_reschedule_on_async_send( const std::string& value )
 {
-    _reschedule_on_async_send = is_true( value );
+    _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue( value );
     return true;
 }
 
 bool
 Pragma::set_abort_on_dropped_message( const std::string& value )
 {
-    _abort_on_dropped_message = is_true( value );
+    _abort_on_dropped_message = LQIO::DOM::Pragma::isTrue( value );
     return true;
 }
 
@@ -117,7 +129,7 @@ Pragma::set_nice( const std::string& value )
 bool
 Pragma::set_quorum_delayed_calls( const string& value ) 
 {
-    _quorum_delayed_calls = is_true( value );
+    _quorum_delayed_calls = LQIO::DOM::Pragma::isTrue( value );
     return true;
 }
 
@@ -198,29 +210,6 @@ bool Pragma::set_run_time( const std::string& value )
     return true;
 }
 
-void
-Pragma::initialize()
-{
-    if ( __set_pragma.size() > 0 ) return;
-
-    __set_pragma[LQIO::DOM::Pragma::_nice_] =			&Pragma::set_nice;
-    __set_pragma[LQIO::DOM::Pragma::_quorum_reply_] =		&Pragma::set_quorum_delayed_calls;
-    __set_pragma[LQIO::DOM::Pragma::_reschedule_on_async_send_]=&Pragma::set_reschedule_on_async_send;
-    __set_pragma[LQIO::DOM::Pragma::_scheduling_model_] =	&Pragma::set_scheduling_model;
-    __set_pragma[LQIO::DOM::Pragma::_severity_level_] =		&Pragma::set_severity_level;
-    __set_pragma[LQIO::DOM::Pragma::_stop_on_message_loss_] =	&Pragma::set_abort_on_dropped_message;
-
-    __set_pragma[LQIO::DOM::Pragma::_block_period_] = 	        &Pragma::set_block_period;
-    __set_pragma[LQIO::DOM::Pragma::_initial_delay_] = 	        &Pragma::set_initial_delay;
-    __set_pragma[LQIO::DOM::Pragma::_initial_loops_] = 	        &Pragma::set_initial_loops;
-    __set_pragma[LQIO::DOM::Pragma::_max_blocks_] = 		&Pragma::set_max_blocks;
-    __set_pragma[LQIO::DOM::Pragma::_precision_] = 	        &Pragma::set_precision;
-    __set_pragma[LQIO::DOM::Pragma::_run_time_] = 		&Pragma::set_run_time;
-    __set_pragma[LQIO::DOM::Pragma::_seed_value_] = 		&Pragma::set_seed_value;
-}
-
-
-
 /*
  * Print out available pragmas.
  */
@@ -228,8 +217,6 @@ Pragma::initialize()
 void
 Pragma::usage( std::ostream& output )
 {
-    Pragma::initialize();
-    
     output << "Valid pragmas: " << endl;
     ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
 
@@ -253,13 +240,6 @@ Pragma::usage( std::ostream& output )
 	}
     }
     output.setf( flags );
-}
-
-
-bool
-Pragma::is_true( const std::string& value ) const
-{
-    return value == "true" || value == LQIO::DOM::Pragma::_yes_;
 }
 
 

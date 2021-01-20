@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_output.h 14358 2021-01-14 22:42:50Z greg $
+ * $Id: srvn_output.h 14381 2021-01-19 18:52:02Z greg $
  *
  * This class is used to hide the methods used to output to the Xerces DOM.
  */
@@ -58,7 +58,7 @@ namespace LQIO {
 	typedef double (DOM::Call::*doubleCallFunc)() const;
 	typedef double (DOM::Entry::*doubleEntryPhaseFunc)( const unsigned ) const;
 	typedef const DOM::Histogram* (DOM::Entry::*histogramEntryFunc)( const unsigned ) const;
-	typedef phase_type (DOM::Phase::*phaseTypeFunc)() const;
+	typedef DOM::Phase::Type (DOM::Phase::*phaseTypeFunc)() const;
 
 	typedef const DOM::ExternalVariable* (DOM::Entry::*entryFunc)() const;
 

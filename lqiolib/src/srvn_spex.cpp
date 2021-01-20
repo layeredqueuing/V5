@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14372 2021-01-17 14:22:46Z greg $
+ *  $Id: srvn_spex.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -34,60 +34,6 @@ namespace LQIO {
     Spex::Spex()
     {
     }
-
-	
-    /*
-     * Initialize the control parameters array.  Done at run time because it doesn't like being done in the constructor during program initialization.
-     */
-
-    void Spex::initialize_control_parameters()
-    {
-	if ( LQIO::Spex::__control_parameters.size() != 0 ) return;
-	clear();
-
-	__control_parameters["$convergence_iters"] 		= attribute_table_t( DOM::Document::XSpexIterationLimit );
-	__control_parameters["$convergence_under_relax"]	= attribute_table_t( DOM::Document::XSpexUnderrelaxation );
-	__control_parameters[__convergence_limit_str] 		= attribute_table_t( &DOM::Document::setModelConvergence );
-	__control_parameters["$iteration_limit"]   		= attribute_table_t( &DOM::Document::setModelIterationLimit );
-	__control_parameters["$model_comment"]     		= attribute_table_t( DOM::Document::XComment );
-	__control_parameters["$print_interval"]    		= attribute_table_t( &DOM::Document::setModelPrintInterval );
-	__control_parameters["$underrelaxation"]   		= attribute_table_t( &DOM::Document::setModelUnderrelaxationCoefficient );
-
-	/* This should map srvn_scan.l */
-
-	__key_code_map[KEY_ELAPSED_TIME]		= std::pair<std::string,std::string>("time","Elapsed Time");
-	__key_code_map[KEY_EXCEEDED_TIME]		= std::pair<std::string,std::string>("x","Pr");
-	__key_code_map[KEY_ITERATIONS]			= std::pair<std::string,std::string>("i","Iterations");
-	__key_code_map[KEY_PROCESSOR_UTILIZATION]	= std::pair<std::string,std::string>("pu","Utilization");
-	__key_code_map[KEY_PROCESSOR_WAITING]		= std::pair<std::string,std::string>("pw","Waiting Time");
-	__key_code_map[KEY_SERVICE_TIME]		= std::pair<std::string,std::string>("s","Service Time");
-	__key_code_map[KEY_SYSTEM_TIME]			= std::pair<std::string,std::string>("sys","System Time");
-	__key_code_map[KEY_THROUGHPUT]			= std::pair<std::string,std::string>("f","Throughput");
-	__key_code_map[KEY_THROUGHPUT_BOUND]		= std::pair<std::string,std::string>("fb","Throughput Bound");
-	__key_code_map[KEY_USER_TIME]			= std::pair<std::string,std::string>("usr","User Time" );
-	__key_code_map[KEY_UTILIZATION]			= std::pair<std::string,std::string>("u","Utilization");
-	__key_code_map[KEY_VARIANCE]			= std::pair<std::string,std::string>("v","Variance");
-	__key_code_map[KEY_WAITING]			= std::pair<std::string,std::string>("w","Waiting Time");
-	__key_code_map[KEY_WAITING_VARIANCE]		= std::pair<std::string,std::string>("wv","Waiting Time Variance");
-
-	/* this table must match dom_bindings.cpp */
-	
-	__key_lqx_function_map[KEY_ELAPSED_TIME]            = __lqx_elapsed_time;
-	__key_lqx_function_map[KEY_EXCEEDED_TIME]           = __lqx_pr_exceeded;
-	__key_lqx_function_map[KEY_ITERATIONS]              = __lqx_iterations;
-	__key_lqx_function_map[KEY_PROCESSOR_UTILIZATION]   = __lqx_processor_utilization;
-	__key_lqx_function_map[KEY_PROCESSOR_WAITING]       = __lqx_processor_waiting;
-	__key_lqx_function_map[KEY_SERVICE_TIME]            = __lqx_service_time;
-	__key_lqx_function_map[KEY_SYSTEM_TIME]             = __lqx_system_time;
-	__key_lqx_function_map[KEY_THROUGHPUT]              = __lqx_throughput;
-	__key_lqx_function_map[KEY_THROUGHPUT_BOUND]        = __lqx_throughput_bound;
-	__key_lqx_function_map[KEY_USER_TIME]               = __lqx_user_time;
-	__key_lqx_function_map[KEY_UTILIZATION]             = __lqx_utilization;
-	__key_lqx_function_map[KEY_VARIANCE]                = __lqx_variance;
-	__key_lqx_function_map[KEY_WAITING]                 = __lqx_waiting;
-	__key_lqx_function_map[KEY_WAITING_VARIANCE]        = __lqx_waiting_variance;
-    }
-
 
     void Spex::clear()
     {
@@ -161,9 +107,9 @@ namespace LQIO {
 	size_t end = start;
 
 	while (start != std::string::npos) {
-	    end = s.find(",", start);	    				// Find next occurence of delimiter
-	    __gnuplot_variables.push_back(s.substr(start, end-start));  // Push back the token found into vector
-	    start = s.find_first_not_of(",", end);        		// Skip all occurences of the delimiter to find new start
+	    end = s.find(",", start);					// Find next occurence of delimiter
+	    __gnuplot_variables.push_back(s.substr(start, end-start));	// Push back the token found into vector
+	    start = s.find_first_not_of(",", end);			// Skip all occurences of the delimiter to find new start
 	}	
     }
 
@@ -205,7 +151,7 @@ namespace LQIO {
 
 	/* Add observation variables */
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::iterator obs_p = __observation_variables.begin(); obs_p != __observation_variables.end(); ++obs_p ) {
-	    const std::string& name = obs_p->first;                 /* Strip $ for LQX var name  vvvvvvvv */
+	    const std::string& name = obs_p->first;		    /* Strip $ for LQX var name	 vvvvvvvv */
 	    main_line->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), new LQX::ConstantValueExpression( 0.0 ) ) );	/* Initialize all observations variables */
 	}
 
@@ -235,7 +181,7 @@ namespace LQIO {
     }
 
     /*
-     * Figure out the destination (lvalue) for an assignment statement.  If it's a control variable, attribute_table_t::operator() will
+     * Figure out the destination (lvalue) for an assignment statement.	 If it's a control variable, attribute_table_t::operator() will
      * determined if the destination is a variable or if it is a "field" for an ObjectPropertyReadNode (somewhat misnamed).  Otherwise,
      * the destination is simply a variable.
      */
@@ -243,8 +189,8 @@ namespace LQIO {
     LQX::SyntaxTreeNode * Spex::get_destination( const std::string& name ) const
     {
 	LQX::SyntaxTreeNode * destination;
-	std::map<std::string,LQIO::Spex::attribute_table_t>::const_iterator i = LQIO::Spex::__control_parameters.find( name );
-	if ( i != LQIO::Spex::__control_parameters.end() ) {
+	std::map<const std::string,const Spex::attribute_table_t>::const_iterator i = Spex::__control_parameters.find( name );
+	if ( i != Spex::__control_parameters.end() ) {
 	    destination = i->second( i->first );
 	} else {
 	    destination = new LQX::VariableExpression(name,true);
@@ -268,12 +214,12 @@ namespace LQIO {
 	case KEY_WAITING:	node = new LQX::ObjectPropertyReadNode( object, "waits" ); break;	/* Waits */
 	case KEY_SERVICE_TIME:	node = new LQX::ObjectPropertyReadNode( object, "steps" ); break;	/* Steps */
 	case KEY_ITERATIONS:	node = new LQX::ObjectPropertyReadNode( object, "iterations" ); break;
-	case KEY_ELAPSED_TIME:	node = new LQX::ObjectPropertyReadNode( object,  __lqx_elapsed_time ); break;
+	case KEY_ELAPSED_TIME:	node = new LQX::ObjectPropertyReadNode( object,	 __lqx_elapsed_time ); break;
 	case KEY_USER_TIME:	node = new LQX::ObjectPropertyReadNode( object, "user_cpu_time" ); break;
 	case KEY_SYSTEM_TIME:	node = new LQX::ObjectPropertyReadNode( object, "system_cpu_time" ); break;
 	default:	abort();
 	}
-	const std::string& name = obs.getVariableName();              /* Strip $ for LQX name vvvvvvvv */
+	const std::string& name = obs.getVariableName();	      /* Strip $ for LQX name vvvvvvvv */
 	__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ), node );
 	return object;		/* For chaining */
     }
@@ -347,13 +293,13 @@ namespace LQIO {
 	}
 	__observations.insert( std::pair<const DOM::DocumentObject*,ObservationInfo>(doc_obj,obs) );			/* Save variable names per DOM object */
 	__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),	/* Strip $ for LQX variable name */
-									  new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map[key] ) );
+									  new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map.at(key) ) );
 	const unsigned int conf_level = obs.getConfLevel();
 	if ( conf_level != 0 ) {
 	    const std::string& conf_name = obs.getConfVariableName().c_str();
 	    lqx_obj = new LQX::MethodInvocationExpression( "conf_int", lqx_obj, new LQX::ConstantValueExpression( static_cast<double>(conf_level) ), 0 );
 	    __observation_variables[conf_name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &conf_name[1], false ),
-										   new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map[key] ) );
+										   new LQX::ObjectPropertyReadNode( lqx_obj, __key_lqx_function_map.at(key) ) );
 	}
 	return lqx_obj;		/* For chaining */
     }
@@ -361,7 +307,7 @@ namespace LQIO {
     /*
      * foreach( i,$var in list );
      * loop_stmt(X) ::= FOREACH OBRACKET IDENTIFIER(A) COMMA IDENTIFIER(B) IN expr(C) CBRACKET stmt(D).
-     *                 { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
+     *		       { X = new ForeachStatementNode( A->getStoredIdentifier(), B->getStoredIdentifier(), A->getIsExternal(), B->getIsExternal(), C, D ); }
      */
 
     LQX::SyntaxTreeNode* Spex::foreach_loop( std::vector<std::string>::const_iterator var_p, expr_list * result, expr_list * convergence ) const
@@ -476,7 +422,7 @@ namespace LQIO {
 	if ( __verbose ) {
 	    /* Need to go thru all input_variables */
 
-	    expr_list * print_args = make_list( new LQX::ConstantValueExpression( const_cast<char *>("Input parameters:") ), NULL );
+	    expr_list * print_args = make_list( new LQX::ConstantValueExpression( const_cast<char *>("Input parameters:") ), nullptr );
 	    for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator iv_p = __input_variables.begin(); iv_p != __input_variables.end(); ++iv_p ) {
 		std::string s = " ";
 		s += iv_p->first;
@@ -552,7 +498,7 @@ namespace LQIO {
 	
     expr_list * Spex::solve_failure( expr_list * result ) const
     {
-	return make_list( new LQX::FilePrintStatementNode( make_list( new LQX::ConstantValueExpression( "solver failed: $0=" ), new LQX::VariableExpression( "_0", false ), NULL ), true, false ), NULL );
+	return make_list( new LQX::FilePrintStatementNode( make_list( new LQX::ConstantValueExpression( "solver failed: $0=" ), new LQX::VariableExpression( "_0", false ), nullptr ), true, false ), nullptr );
     }
 
     /*
@@ -561,7 +507,7 @@ namespace LQIO {
 
     LQX::SyntaxTreeNode* Spex::print_header() const
     {
-	expr_list * list = make_list( new LQX::ConstantValueExpression( ", " ), NULL );
+	expr_list * list = make_list( new LQX::ConstantValueExpression( ", " ), nullptr );
 	for ( std::vector<Spex::var_name_and_expr>::iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
 	    list->push_back( new LQX::ConstantValueExpression( var->first ) );	/* Variable name */
 	}
@@ -570,7 +516,7 @@ namespace LQIO {
 
     expr_list * Spex::print_gnuplot_preamble( expr_list * list ) const
     {
-	expr_list * args = make_list( new LQX::ConstantValueExpression( " " ), new LQX::ConstantValueExpression( "# " ), NULL );
+	expr_list * args = make_list( new LQX::ConstantValueExpression( " " ), new LQX::ConstantValueExpression( "# " ), nullptr );
 	for ( std::vector<std::string>::const_iterator i = __gnuplot_variables.begin(); i != __gnuplot_variables.end(); ++i ) {
 	    args->push_back( new LQX::ConstantValueExpression( *i ) );
 	}
@@ -661,7 +607,7 @@ namespace LQIO {
 	    list->push_back( print_node( y2_label.str() ) );
 	}
 	list->push_back( print_node( ss.str() ) );
- 	return list;
+	return list;
     }
 
     /*
@@ -670,10 +616,10 @@ namespace LQIO {
 
     expr_list * Spex::make_list( LQX::SyntaxTreeNode* arg1, ... )
     {
- 	expr_list * list = new expr_list;
-	va_list arguments;                     // A place to store the list of arguments
+	expr_list * list = new expr_list;
+	va_list arguments;		       // A place to store the list of arguments
 
-	va_start ( arguments, arg1 );           // Initializing arguments to store all values after num
+	va_start ( arguments, arg1 );		// Initializing arguments to store all values after num
 	for ( LQX::SyntaxTreeNode* arg = arg1; arg != nullptr; arg = va_arg( arguments, LQX::SyntaxTreeNode* ) ) {
 	    list->push_back( arg );
 	}
@@ -684,7 +630,7 @@ namespace LQIO {
 
     LQX::SyntaxTreeNode * Spex::print_node( const std::string& s )
     {
-	return new LQX::FilePrintStatementNode( make_list( new LQX::ConstantValueExpression( s ), NULL ), true, false );
+	return new LQX::FilePrintStatementNode( make_list( new LQX::ConstantValueExpression( s ), nullptr ), true, false );
     }
 
     /*
@@ -713,7 +659,7 @@ namespace LQIO {
 
 
     /* ------------------------------------------------------------------------ */
-    /* lqn 'input' output functions for printing spex stuff out in input file.  */
+    /* lqn 'input' output functions for printing spex stuff out in input file.	*/
     /* ------------------------------------------------------------------------ */
 
     std::ostream&
@@ -756,26 +702,23 @@ namespace LQIO {
 
     class Spex spex;
 
-    std::vector<std::string> Spex::__array_variables;                       /* Saves $<array_name> for generating nest for loops */
-    std::set<std::string> Spex::__array_references;                         /* Saves $<array_name> when used as an lvalue */
-    std::vector<Spex::var_name_and_expr> Spex::__result_variables;          /* Saves $<name> for printing the header of variable names */
-    std::vector<std::string> Spex::__convergence_variables;                 /* Saves $<name> for all variables used in convergence section */
-    std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;       /* Saves all observations (name, and funky assignment) */
+    std::vector<std::string> Spex::__array_variables;			    /* Saves $<array_name> for generating nest for loops */
+    std::set<std::string> Spex::__array_references;			    /* Saves $<array_name> when used as an lvalue */
+    std::vector<Spex::var_name_and_expr> Spex::__result_variables;	    /* Saves $<name> for printing the header of variable names */
+    std::vector<std::string> Spex::__convergence_variables;		    /* Saves $<name> for all variables used in convergence section */
+    std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;	     /* Saves all observations (name, and funky assignment) */
     std::map<std::string,Spex::ComprehensionInfo> Spex::__comprehensions;   /* Saves all comprehensions for $<name> */
     expr_list Spex::__deferred_assignment;
 
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__input_variables;    /* Save for printing when __verbose == true */
-    Spex::obs_var_tab_t Spex::__observations;	                      	    /* Saves all key-$var for each object */
-    std::vector<Spex::ObservationInfo> Spex::__document_variables;          /* Saves all key-$var for the document */
-    std::map<std::string,std::string> Spex::__input_iterator;               /* Saves iterator for x, y = expr statements */
+    Spex::obs_var_tab_t Spex::__observations;				    /* Saves all key-$var for each object */
+    std::vector<Spex::ObservationInfo> Spex::__document_variables;	    /* Saves all key-$var for the document */
+    std::map<std::string,std::string> Spex::__input_iterator;		    /* Saves iterator for x, y = expr statements */
 
-    std::map<std::string,Spex::attribute_table_t> Spex::__control_parameters;
-    std::map<int,std::pair<std::string,std::string> > Spex::__key_code_map; /* Maps srvn_gram.h KEY_XXX to name */
-    std::map<int,std::string> Spex::__key_lqx_function_map;                 /* Maps srvn_gram.h KEY_XXX to lqx function name */
     std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *> Spex::__inline_expression;  /* Maps temp vars to expressions */
 
     bool Spex::__gnuplot_output = false;				    /* True if doing gnuplot.			*/
-    std::vector<std::string> Spex::__gnuplot_variables;			    /* Variables for output using gnuplot. 	*/
+    std::vector<std::string> Spex::__gnuplot_variables;			    /* Variables for output using gnuplot.	*/
 
     bool Spex::__verbose = false;
     bool Spex::__no_header = false;
@@ -788,6 +731,58 @@ namespace LQIO {
     void * Spex::__convergence_list = nullptr;
     void * Spex::__temp_variable = nullptr;
     /*- JSON */
+
+
+    const std::map<const std::string,const Spex::attribute_table_t> Spex::__control_parameters =
+    {
+	{ "$convergence_iters",		    Spex::attribute_table_t( DOM::Document::XSpexIterationLimit ) },
+	{ "$convergence_under_relax",	    Spex::attribute_table_t( DOM::Document::XSpexUnderrelaxation ) },
+	{ Spex::__convergence_limit_str,    Spex::attribute_table_t( &DOM::Document::setModelConvergence ) },
+	{ "$iteration_limit",		    Spex::attribute_table_t( &DOM::Document::setModelIterationLimit ) },
+	{ "$model_comment",		    Spex::attribute_table_t( DOM::Document::XComment ) },
+	{ "$print_interval",		    Spex::attribute_table_t( &DOM::Document::setModelPrintInterval ) },
+	{ "$underrelaxation",		    Spex::attribute_table_t( &DOM::Document::setModelUnderrelaxationCoefficient ) }
+    };
+
+
+    /* Maps srvn_gram.h KEY_XXX to name.  First is the SPEX "key", second is the name. */
+    const std::map<const int,const std::pair<const std::string,const std::string> > Spex::__key_code_map =
+    {
+	{ KEY_ELAPSED_TIME,		{ "time","Elapsed Time" } },
+	{ KEY_EXCEEDED_TIME,		{ "x","Pr" } },
+	{ KEY_ITERATIONS,		{ "i","Iterations" } },
+	{ KEY_PROCESSOR_UTILIZATION,	{ "pu","Utilization" } },
+	{ KEY_PROCESSOR_WAITING,	{ "pw","Waiting Time" } },
+	{ KEY_SERVICE_TIME,		{ "s","Service Time" } },
+	{ KEY_SYSTEM_TIME,		{ "sys","System Time" } },
+	{ KEY_THROUGHPUT,		{ "f","Throughput" } },
+	{ KEY_THROUGHPUT_BOUND,		{ "fb","Throughput Bound" } },
+	{ KEY_USER_TIME,		{ "usr","User Time"  } },
+	{ KEY_UTILIZATION,		{ "u","Utilization" } },
+	{ KEY_VARIANCE,			{ "v","Variance" } },
+	{ KEY_WAITING,			{ "w","Waiting Time" } },
+	{ KEY_WAITING_VARIANCE,		{ "wv","Waiting Time Variance" } }
+    };
+
+
+    /* Maps srvn_gram.h KEY_XXX to lqx function name */
+    const std::map<const int,const std::string> Spex::__key_lqx_function_map =
+    {
+	{ KEY_ELAPSED_TIME,		__lqx_elapsed_time },
+	{ KEY_EXCEEDED_TIME,		__lqx_pr_exceeded },
+	{ KEY_ITERATIONS,		__lqx_iterations },
+	{ KEY_PROCESSOR_UTILIZATION,	__lqx_processor_utilization },
+	{ KEY_PROCESSOR_WAITING,	__lqx_processor_waiting },
+	{ KEY_SERVICE_TIME,		__lqx_service_time },
+	{ KEY_SYSTEM_TIME,		__lqx_system_time },
+	{ KEY_THROUGHPUT,		__lqx_throughput },
+	{ KEY_THROUGHPUT_BOUND,		__lqx_throughput_bound },
+	{ KEY_USER_TIME,		__lqx_user_time },
+	{ KEY_UTILIZATION,		__lqx_utilization },
+	{ KEY_VARIANCE,			__lqx_variance },
+	{ KEY_WAITING,			__lqx_waiting },
+	{ KEY_WAITING_VARIANCE,		__lqx_waiting_variance },
+    };
 }
 
 namespace LQIO {
@@ -836,11 +831,11 @@ namespace LQIO {
     LQX::SyntaxTreeNode * Spex::attribute_table_t::operator()( const std::string& name ) const
     {
 	switch ( _t ) {
-	case IS_EXTVAR:
+	case attribute::IS_EXTVAR:
 	    (DOM::__document->*_f.a_extvar)( DOM::__document->db_build_parameter_variable( name.c_str(), nullptr ) );
 	    return new LQX::VariableExpression(name.c_str(),true);
 
-	case IS_PROPERTY:
+	case attribute::IS_PROPERTY:
 	    return new LQX::ObjectPropertyReadNode( new LQX::MethodInvocationExpression( "document" ), _f.a_string );
 	    break;
 
@@ -892,7 +887,7 @@ namespace LQIO {
 
     std::string Spex::ObservationInfo::getKeyCode() const
     {
-	const std::map<int,std::pair<std::string,std::string> >::const_iterator ix = __key_code_map.find(getKey());
+	const std::map<const int,const std::pair<const std::string,const std::string> >::const_iterator ix = __key_code_map.find(getKey());
 	std::string key_str = "%";
 	if ( ix == __key_code_map.end() ) abort();
 
@@ -907,7 +902,7 @@ namespace LQIO {
 
     const std::string& Spex::ObservationInfo::getKeyName() const
     {
-	const std::map<int,std::pair<std::string,std::string> >::const_iterator ix = __key_code_map.find(getKey());
+	const std::map<const int,const std::pair<const std::string,const std::string> >::const_iterator ix = __key_code_map.find(getKey());
 	if ( ix == __key_code_map.end() ) abort();
 
 	return ix->second.second;
@@ -956,7 +951,7 @@ namespace LQIO {
 /* ------------------------------------------------------------------------ */
 
 /*
- * Create a program.  Param_arg makes up the main line.  mearsure_arg
+ * Create a program.  Param_arg makes up the main line.	 mearsure_arg
  * is composed of all the %x type annotations for results.  result_arg
  * is composed of the result section.  measure and result are tacked
  * on after the solve() function to produce output.
@@ -969,9 +964,9 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
     if ( LQIO::spex.__observations.empty() ) {
 	LQIO::solution_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
     }
-    if ( LQIO::spex.construct_program( program,
-				       static_cast<expr_list *>(result_arg),
-				       static_cast<expr_list *>(convergence_arg) ) ) {
+    if ( program && LQIO::spex.construct_program( program,
+						       static_cast<expr_list *>(result_arg),
+						       static_cast<expr_list *>(convergence_arg) ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }
@@ -1017,7 +1012,7 @@ void * spex_assignment_statement( const char * name, void * expr, const bool con
     static_cast<LQX::SyntaxTreeNode *>(expr)->print(ss,0);
     if ( strncmp( "array_create", ss.str().c_str(), 12 ) == 0 ) {
 	LQIO::Spex::__array_variables.push_back( std::string(name) );		/* Save variable name for looping */
-        std::string local = name;
+	std::string local = name;
 	local[0] = '_';
 	var = new LQX::VariableExpression(local,false);
     } else {
@@ -1056,7 +1051,7 @@ void * spex_array_assignment( const char * name, void * list, const bool constan
     std::string local = name;
     local[0] = '_';
     LQX::SyntaxTreeNode * statement = new LQX::AssignmentStatementNode( new LQX::VariableExpression( local, false ), array );
-    LQIO::Spex::__input_variables[std::string(name)] =  array;
+    LQIO::Spex::__input_variables[std::string(name)] =	array;
     return statement;
 }
 
@@ -1263,12 +1258,12 @@ void * spex_entry_observation( const void * obj, const int key, const int phase,
 
     const LQIO::DOM::Entry * entry = static_cast<const LQIO::DOM::Entry *>(obj);
 
-    if ( ((0 < phase && phase <= (int)LQIO::DOM::Phase::MAX_PHASE) && ( key == KEY_SERVICE_TIME || key == KEY_UTILIZATION  || key == KEY_PROCESSOR_UTILIZATION  || key == KEY_PROCESSOR_WAITING  || key == KEY_VARIANCE || KEY_EXCEEDED_TIME ))
- 	 || (phase == 0 && (key == KEY_THROUGHPUT || key == KEY_THROUGHPUT_BOUND || key == KEY_UTILIZATION || key == KEY_PROCESSOR_UTILIZATION || key == KEY_WAITING)) ) {
+    if ( ((0 < phase && phase <= (int)LQIO::DOM::Phase::MAX_PHASE) && ( key == KEY_SERVICE_TIME || key == KEY_UTILIZATION  || key == KEY_PROCESSOR_UTILIZATION	|| key == KEY_PROCESSOR_WAITING	 || key == KEY_VARIANCE || KEY_EXCEEDED_TIME ))
+	 || (phase == 0 && (key == KEY_THROUGHPUT || key == KEY_THROUGHPUT_BOUND || key == KEY_UTILIZATION || key == KEY_PROCESSOR_UTILIZATION || key == KEY_WAITING)) ) {
 	/* This is by phase... but LQX needs entry and phase name */
 	return LQIO::spex.observation( entry, LQIO::Spex::ObservationInfo( key, phase, var, conf, var2 ) );
     } else {
-	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map[key].first.c_str(), entry->getName().c_str() );
+	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), entry->getName().c_str() );
 	return nullptr;
     }
 
@@ -1290,7 +1285,7 @@ void * spex_call_observation( const void * src, const int key, const int phase, 
     const LQIO::DOM::Entry * dst_entry = static_cast<const LQIO::DOM::Entry *>(dst);
 
     if ( phase <= 0 || (int)LQIO::DOM::Phase::MAX_PHASE < phase ) {
-	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map[key].first.c_str(), src_entry->getName().c_str() );
+	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
 	return nullptr;
     } else {
 	return LQIO::spex.observation( src_entry, phase, dst_entry, LQIO::Spex::ObservationInfo( key, phase, var, conf, var2 ) );
@@ -1321,7 +1316,7 @@ void * spex_result_assignment_statement( const char * name, void * expr )
     if ( expr ) {
 	return new LQX::AssignmentStatementNode( variable, static_cast<LQX::SyntaxTreeNode *>(expr) );
     } else {
-        return variable;
+	return variable;
     }
 }
 

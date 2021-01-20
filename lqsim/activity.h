@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: activity.h 13761 2020-08-12 02:14:55Z greg $
+ * $Id: activity.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -47,7 +47,7 @@ public:
     double cv_sqr() const { return (_dom && _dom->hasCoeffOfVariationSquared()) ? _dom->getCoeffOfVariationSquaredValue() : 1.0; }
     double service() const;
     double think_time() const { return _think_time; }		/* Need to cache _think_time!!! */
-    phase_type type() const { return _dom ? _dom->getPhaseTypeFlag() : PHASE_STOCHASTIC; }
+    LQIO::DOM::Phase::Type type() const { return _dom ? _dom->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC; }
 
     bool is_specified() const { return _dom != 0; } 	/* True if some value set.	*/
     bool is_activity() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) != 0; }

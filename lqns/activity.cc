@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1092,9 +1092,9 @@ Activity::add_calls()
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
 	} else if (!destEntry->isReferenceTaskEntry()) {
 	    isSpecified(true);
-	    if (domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY) {
+	    if (domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY) {
 		sendNoReply(destEntry, domCall);
-	    } else if (domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
+	    } else if (domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
 		rendezvous(destEntry, domCall);
 	    }
 	}
@@ -1158,13 +1158,13 @@ Activity::add_activity_lists()
 	    }
 
 	    switch ( joinList->getListType() ) {
-	    case LQIO::DOM::ActivityList::JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::JOIN:
 		localActivityList = nextActivity->act_join_item( joinList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_JOIN:
 		localActivityList = nextActivity->act_and_join_list( localActivityList, joinList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_JOIN:
 		localActivityList = nextActivity->act_or_join_list( localActivityList, joinList );
 		break;
 	    default:
@@ -1196,16 +1196,16 @@ Activity::add_activity_lists()
 			
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:	
+	    case LQIO::DOM::ActivityList::Type::FORK:
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_FORK:
 		localActivityList = nextActivity->act_and_fork_list(localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_FORK:
 		localActivityList = nextActivity->act_or_fork_list( localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::REPEAT_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::REPEAT:
 		localActivityList = nextActivity->act_loop_list( localActivityList, forkList );
 		break;
 	    default:

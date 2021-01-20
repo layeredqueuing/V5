@@ -38,45 +38,34 @@
 #include "dom_phase.h"
 #include "common_io.h"
 
-using namespace std;
-
 namespace LQIO {
     namespace DOM {
 
-	bool
-	Common_IO::Compare::operator()( const char * s1, const char * s2 ) const
-	{
-	    return strcasecmp( s1, s2 ) < 0;
-	}
+	bool Common_IO::Compare::operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 
-	std::map<const char *, scheduling_type,Common_IO::Compare> Common_IO::scheduling_table;
+	std::map<const char *, const scheduling_type,Common_IO::Compare> Common_IO::scheduling_table =
+	{
+	    { scheduling_label[SCHEDULE_CUSTOMER].XML, 	SCHEDULE_CUSTOMER },
+	    { scheduling_label[SCHEDULE_DELAY].XML,	SCHEDULE_DELAY },
+	    { scheduling_label[SCHEDULE_FIFO].XML, 	SCHEDULE_FIFO },
+	    { scheduling_label[SCHEDULE_HOL].XML,  	SCHEDULE_HOL },
+	    { scheduling_label[SCHEDULE_PPR].XML,  	SCHEDULE_PPR },
+	    { scheduling_label[SCHEDULE_RAND].XML, 	SCHEDULE_RAND },
+	    { scheduling_label[SCHEDULE_PS].XML,   	SCHEDULE_PS },
+	    { scheduling_label[SCHEDULE_PS_HOL].XML,    SCHEDULE_PS_HOL },
+	    { scheduling_label[SCHEDULE_PS_PPR].XML,    SCHEDULE_PS_PPR },
+	    { scheduling_label[SCHEDULE_POLL].XML, 	SCHEDULE_POLL },
+	    { scheduling_label[SCHEDULE_BURST].XML,	SCHEDULE_BURST },
+	    { scheduling_label[SCHEDULE_UNIFORM].XML,   SCHEDULE_UNIFORM },
+	    { scheduling_label[SCHEDULE_SEMAPHORE].XML, SCHEDULE_SEMAPHORE },
+	    { scheduling_label[SCHEDULE_CFS].XML,	SCHEDULE_CFS },
+	    { scheduling_label[SCHEDULE_RWLOCK].XML,    SCHEDULE_RWLOCK }
+	};
 
 	Common_IO::Common_IO()
 	    : _conf_95( ConfidenceIntervals( LQIO::ConfidenceIntervals::CONF_95 ) ),
 	      _conf_99( ConfidenceIntervals( LQIO::ConfidenceIntervals::CONF_99 ) )
 	{
-	}
-
-	void
-	Common_IO::init_tables()
-	{
-            if ( scheduling_table.size() != 0 ) return;		/* Done already */
-
-	    scheduling_table[scheduling_label[SCHEDULE_CUSTOMER].XML] =    SCHEDULE_CUSTOMER;
-	    scheduling_table[scheduling_label[SCHEDULE_DELAY].XML] =	   SCHEDULE_DELAY;
-	    scheduling_table[scheduling_label[SCHEDULE_FIFO].XML] = 	   SCHEDULE_FIFO;
-	    scheduling_table[scheduling_label[SCHEDULE_HOL].XML] =  	   SCHEDULE_HOL;
-	    scheduling_table[scheduling_label[SCHEDULE_PPR].XML] =  	   SCHEDULE_PPR;
-	    scheduling_table[scheduling_label[SCHEDULE_RAND].XML] = 	   SCHEDULE_RAND;
-	    scheduling_table[scheduling_label[SCHEDULE_PS].XML] =   	   SCHEDULE_PS;
-	    scheduling_table[scheduling_label[SCHEDULE_PS_HOL].XML] =      SCHEDULE_PS_HOL;
-	    scheduling_table[scheduling_label[SCHEDULE_PS_PPR].XML] =      SCHEDULE_PS_PPR;
-	    scheduling_table[scheduling_label[SCHEDULE_POLL].XML] = 	   SCHEDULE_POLL;
-	    scheduling_table[scheduling_label[SCHEDULE_BURST].XML] =	   SCHEDULE_BURST;
-	    scheduling_table[scheduling_label[SCHEDULE_UNIFORM].XML] =     SCHEDULE_UNIFORM;
-	    scheduling_table[scheduling_label[SCHEDULE_SEMAPHORE].XML] =   SCHEDULE_SEMAPHORE;
-	    scheduling_table[scheduling_label[SCHEDULE_CFS].XML] =	   SCHEDULE_CFS;
-	    scheduling_table[scheduling_label[SCHEDULE_RWLOCK].XML] =      SCHEDULE_RWLOCK;
 	}
 
 	double
@@ -105,7 +94,7 @@ namespace LQIO {
 	Common_IO::is_default_value( const LQIO::DOM::ExternalVariable * var, double default_value ) 
 	{
 	    double value = 0.0;
-	    return var == NULL || (var->wasSet() && var->getValue(value) && value == default_value);
+	    return var == nullptr || (var->wasSet() && var->getValue(value) && value == default_value);
 	}
 
 	CPUTime
@@ -177,15 +166,15 @@ static inline double tv_to_double( struct timeval& tv ) { return (static_cast<do
 	    const double hrs   = floor( time / 3600.0 );
 	    const double msecs = floor( (time - floor( time )) * 1000.0 );
 
-	    const ios_base::fmtflags flags = output.setf( ios::dec|ios::fixed, ios::basefield|ios::fixed );
+	    const std::ios_base::fmtflags flags = output.setf( std::ios::dec|std::ios::fixed, std::ios::basefield|std::ios::fixed );
 	    const int precision = output.precision(0);
-	    output.setf( ios::right, ios::adjustfield );
+	    output.setf( std::ios::right, std::ios::adjustfield );
 
-	    output << setw(2) << hrs;
+	    output << std::setw(2) << hrs;
 	    char fill = output.fill('0');
-	    output << ':' << setw(2) << mins;
-	    output << ':' << setw(2) << secs;
-	    output << '.' << setw(3) << msecs;
+	    output << ':' << std::setw(2) << mins;
+	    output << ':' << std::setw(2) << secs;
+	    output << '.' << std::setw(3) << msecs;
 
 	    output.flags(flags);
 	    output.precision(precision);
@@ -194,7 +183,7 @@ static inline double tv_to_double( struct timeval& tv ) { return (static_cast<do
 	}
 
 	ForPhase::ForPhase()
-	    : _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::NULL_CALL)
+	    : _maxPhase(DOM::Phase::MAX_PHASE), _type(DOM::Call::Type::NULL_CALL)
 	{
 	    for ( unsigned p = 0; p < DOM::Phase::MAX_PHASE; ++p ) {
 		ia[p] = 0;

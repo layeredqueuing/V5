@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14375 2021-01-18 00:35:36Z greg $
+ * $Id: task.h 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -57,7 +57,7 @@ class Task : public Entity {
 #endif
     
 public:
-    typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
+    enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
 
     static bool thinkTimePresent;
     static bool holdingTimePresent;
@@ -276,7 +276,7 @@ public:
 
     virtual bool canConvertToOpenArrivals() const { return false; }
 
-    virtual root_level_t rootLevel() const { return IS_REFERENCE; }
+    virtual root_level_t rootLevel() const { return root_level_t::IS_REFERENCE; }
 
     virtual Graphic::colour_type colour() const;
     virtual size_t findChildren( CallStack&, const unsigned );

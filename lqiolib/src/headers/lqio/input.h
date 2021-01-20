@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: input.h 14288 2020-12-29 13:24:52Z greg $
+ * $Id: input.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #if	!defined(LQIO_INPUT_H)
@@ -52,10 +52,7 @@ typedef enum {
 #define SCHED_CFS_BIT  	     (1 << SCHEDULE_CFS)
 #define SCHED_RWLOCK_BIT     (1 << SCHEDULE_RWLOCK)
 
-typedef enum { PHASE_STOCHASTIC, PHASE_DETERMINISTIC } phase_type;
-typedef enum { SEMAPHORE_NONE, SEMAPHORE_SIGNAL, SEMAPHORE_WAIT } semaphore_entry_type;
 typedef enum { DEFAULT_MATHERR, IGNORE_MATHERR, REPORT_MATHERR, ABORT_MATHERR } matherr_type;
-typedef enum { RWLOCK_NONE, RWLOCK_R_UNLOCK, RWLOCK_R_LOCK,RWLOCK_W_UNLOCK,RWLOCK_W_LOCK } rwlock_entry_type;
 
 /* Exit codes -- can be ored */
 #define NORMAL_TERMINATION      (0)

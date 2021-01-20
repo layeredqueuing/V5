@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14375 2021-01-18 00:35:36Z greg $
+ * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 #include "activity.h"
@@ -116,11 +116,10 @@ Activity::merge( const Activity &src, const double rate )
 
 	/* Set phase type to stochastic iff we have a non-integral number of calls. */
 
-	// if ( phaseTypeFlag() == PHASE_DETERMINISTIC
+	// if ( phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC
 	//      && ( remainder( dstCall->sumOfRendezvous(), 1.0 ) > EPSILON
 	// 	  || remainder( dstCall->sumOfSendNoReply(), 1.0 ) > EPSILON ) ) {
-	//     phaseTypeFlag( PHASE_STOCHASTIC );
-	// }
+	//     phaseTypeFlag( LQIO::DOM::Phase::Type::STOCHASTIC );
 
 	dstEntry->removeDstCall( (*src_call) );	/* Unlink the activities calls. */
     }
@@ -244,7 +243,7 @@ Activity::forwardingRendezvous( Entry * dstEntry, const double rate )
 {
     ProxyActivityCall * aCall = findOrAddFwdCall( dstEntry );
     LQIO::DOM::Call * dom = new LQIO::DOM::Call( getDOM()->getDocument(),
-						 LQIO::DOM::Call::RENDEZVOUS,
+						 LQIO::DOM::Call::Type::RENDEZVOUS,
 						 const_cast<LQIO::DOM::Activity *>(dynamic_cast<const LQIO::DOM::Activity *>(getDOM())),
 						 const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM())),
 						 new LQIO::DOM::ConstantExternalVariable( rendezvous( aCall->dstEntry() ) ) );
@@ -1275,9 +1274,9 @@ Activity::add_calls()
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
 	} else if (!destEntry->isReferenceTaskEntry()) {
 	    isSpecified(true);
-	    if (domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY) {
+	    if (domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY) {
 		sendNoReply(destEntry, domCall);
-	    } else if (domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
+	    } else if (domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
 		rendezvous(destEntry, domCall);
 	    }
 	}
@@ -1350,13 +1349,13 @@ Activity::add_activity_lists()
 	    }
 
 	    switch ( joinList->getListType() ) {
-	    case LQIO::DOM::ActivityList::JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::JOIN:
 		localActivityList = nextActivity->act_join_item( joinList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_JOIN:
 		localActivityList = nextActivity->act_and_join_list( localActivityList, joinList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_JOIN:
 		localActivityList = nextActivity->act_or_join_list( localActivityList, joinList );
 		break;
 	    default:
@@ -1388,16 +1387,16 @@ Activity::add_activity_lists()
 
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::FORK:
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_FORK:
 		localActivityList = nextActivity->act_and_fork_list(localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_FORK:
 		localActivityList = nextActivity->act_or_fork_list( localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::REPEAT_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::REPEAT:
 		localActivityList = nextActivity->act_loop_list( localActivityList, forkList );
 		break;
 	    default:

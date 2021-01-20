@@ -1,6 +1,6 @@
 /* -*- c++ -*- node.h	-- Greg Franks
  *
- * $Id: label.h 14206 2020-12-11 17:59:18Z greg $
+ * $Id: label.h 14383 2021-01-20 13:13:16Z greg $
  */
 
 #ifndef _LABEL_H
@@ -80,7 +80,7 @@ public:
     Label& operator<<( const SRVNEntryManip& m) { return appendSEM( m ); }
     Label& operator<<( const TaskCallManip& m ) { return appendSTM( m ); }
     Label& operator<<( const DoubleManip& m ) { return appendDM( m ); }
-    Label& operator<<( const char * s ) { return appendPC( s ); }
+    Label& operator<<( const char * s ) { return appendPC( static_cast<const char *>(s) ); }
     Label& operator<<( const char c ) { return appendC( c ); }
     Label& operator<<( const double d ) { return appendD( d ); }
     Label& operator<<( const int i ) { return appendI( i ); }

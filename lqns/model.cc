@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: model.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -124,31 +124,31 @@ Model::createModel( const LQIO::DOM::Document * document, const std::string& inp
 	    initProcessors();		/* Set Processor Service times.	*/
 
 	switch ( Pragma::layering() ) {
-	case Pragma::BATCHED_LAYERS: 
+	case Pragma::Layering::BATCHED: 
 	    aModel = new Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::BACKPROPOGATE_LAYERS:
+	case Pragma::Layering::BACKPROPOGATE_BATCHED:
 	    aModel = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::METHOD_OF_LAYERS:
+	case Pragma::Layering::METHOD_OF_LAYERS:
 	    aModel = new MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::BACKPROPOGATE_METHOD_OF_LAYERS:
+	case Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS:
 	    aModel = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::SRVN_LAYERS:
+	case Pragma::Layering::SRVN:
 	    aModel = new SRVN_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::SQUASHED_LAYERS:
+	case Pragma::Layering::SQUASHED:
 	    aModel = new Squashed_Model( document, inputFileName, outputFileName );
 	    break;
 
-	case Pragma::HWSW_LAYERS:
+	case Pragma::Layering::HWSW:
 	    aModel = new HwSw_Model( document, inputFileName, outputFileName );
 	    break;
 	}

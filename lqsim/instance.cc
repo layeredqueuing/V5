@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 14154 2020-11-30 21:26:43Z greg $
+ * $Id: instance.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 /*
@@ -479,7 +479,7 @@ srn_semaphore::run()
 
     /* Create tokens */
 
-    const bool count_down = dynamic_cast<LQIO::DOM::RWLockTask *>(cp->getDOM()) || dynamic_cast<LQIO::DOM::SemaphoreTask *>(cp->getDOM())->getInitialState() == LQIO::DOM::SemaphoreTask::INITIALLY_FULL;
+    const bool count_down = dynamic_cast<LQIO::DOM::RWLockTask *>(cp->getDOM()) || dynamic_cast<LQIO::DOM::SemaphoreTask *>(cp->getDOM())->getInitialState() == LQIO::DOM::SemaphoreTask::InitialState::FULL;
     for ( unsigned i = 0; i < cp->multiplicity(); ++i ) {
 	Instance * task;
 	if ( count_down ) {

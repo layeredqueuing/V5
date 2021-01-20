@@ -2152,6 +2152,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 ac_config_headers="$ac_config_headers config.h"
 
+(config.h)
 am__api_version='1.16'
 
 # Find a good install program.  We prefer a C program (faster),

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14352 2021-01-12 23:26:55Z greg $
+ * $Id: phase.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -142,16 +142,16 @@ Phase::Cv_sqr() const
 }
 
 
-phase_type
+LQIO::DOM::Phase::Type
 Phase::phaseTypeFlag() const 
 { 
     const LQIO::DOM::Phase * dom = getDOM();
-    return dom ? dom->getPhaseTypeFlag() : PHASE_STOCHASTIC;
+    return dom ? dom->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
 }
 
 
 Phase&
-Phase::phaseTypeFlag( phase_type aType ) 
+Phase::phaseTypeFlag( LQIO::DOM::Phase::Type aType ) 
 {
     LQIO::DOM::Phase * dom = const_cast<LQIO::DOM::Phase *>(getDOM());
     dom->setPhaseTypeFlag( aType );
@@ -249,7 +249,7 @@ Phase::check() const
 {
     bool rc = for_each( calls().begin(), calls().end(), AndPredicate<Call>( &Call::check ) ).result();
 
-    if ( phaseTypeFlag() == PHASE_STOCHASTIC && hasCV_sqr() ) {
+    if ( phaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC && hasCV_sqr() ) {
 	if ( dynamic_cast<const Activity *>(this) ) {			/* c, phase_flag are incompatible  */
 	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	} else {
@@ -257,7 +257,7 @@ Phase::check() const
 	}
     }
 
-    Model::deterministicPhasesPresent  = Model::deterministicPhasesPresent  || phaseTypeFlag() == PHASE_DETERMINISTIC;
+    Model::deterministicPhasesPresent  = Model::deterministicPhasesPresent  || phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC;
     Model::maxServiceTimePresent       = Model::maxServiceTimePresent       || maxServiceTime() > 0.0;
     Model::nonExponentialPhasesPresent = Model::nonExponentialPhasesPresent || isNonExponential();
     Model::serviceExceededPresent      = Model::serviceExceededPresent      || serviceExceeded() > 0.0;
@@ -381,7 +381,7 @@ Phase::merge( LQIO::DOM::Phase& dst, const LQIO::DOM::Phase& src, double rate )
     if ( (src.hasStochasticCalls() && dst.hasDeterministicCalls()) || (src.hasDeterministicCalls() && dst.hasStochasticCalls()) ) {
 //	LQIO::solution_error( WRN_MIXED_PHASE_TYPE, ... );
     } else if ( src.hasDeterministicCalls() ) {
-	dst.setPhaseTypeFlag( PHASE_DETERMINISTIC );
+	dst.setPhaseTypeFlag( LQIO::DOM::Phase::Type::DETERMINISTIC );
     }
 }
 

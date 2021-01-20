@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_entity.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -80,7 +80,7 @@ namespace LQIO {
 	void Entity::setCopiesValue( const unsigned int value )
 	{
 	    /* Set the number of copies */
-	    if ( _copies == NULL ) {
+	    if ( _copies == nullptr ) {
 		_copies = new ConstantExternalVariable(value);
 	    } else {
 		_copies->set(value);
@@ -91,7 +91,7 @@ namespace LQIO {
 	{
 	    /* Set the number of copies.  Allow infinity (so don't use checkIntegerVariable) */
 	    double value = 1.;
-	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || value != rint(value) || value < 1. ) ) {
+	    if ( var != nullptr && var->wasSet() && ( var->getValue(value) != true || value != rint(value) || value < 1. ) ) {
 		throw std::domain_error( "invalid integer" );
 	    }
 	    _copies = var;
@@ -117,7 +117,7 @@ namespace LQIO {
 	void Entity::setReplicasValue( const unsigned int value )
 	{
 	    /* Set the number of replicas */
-	    if ( _replicas == NULL ) {
+	    if ( _replicas == nullptr ) {
 		_replicas = new ConstantExternalVariable(value);
 	    } else {
 		_replicas->set(value);

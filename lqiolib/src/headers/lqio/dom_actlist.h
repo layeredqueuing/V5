@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_actlist.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -26,19 +26,19 @@ namespace LQIO {
 	public:
       
 	    /* Descriminator for the list type */
-	    typedef enum ActivityListType {
-		JOIN_ACTIVITY_LIST = 1,
-		FORK_ACTIVITY_LIST,
-		AND_FORK_ACTIVITY_LIST,
-		AND_JOIN_ACTIVITY_LIST,
-		OR_FORK_ACTIVITY_LIST,
-		OR_JOIN_ACTIVITY_LIST,
-		REPEAT_ACTIVITY_LIST
-	    } ActivityListType;
+	    enum class Type {
+		JOIN,
+		FORK,
+		AND_FORK,
+		AND_JOIN,
+		OR_FORK,
+		OR_JOIN,
+		REPEAT
+	    };
       
 	public:
 	    /* Designated constructor and destructor */
-	    ActivityList(const Document * document,const Task *,ActivityListType type );
+	    ActivityList(const Document * document,const Task *,ActivityList::Type type );
 	    virtual ~ActivityList();
       
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Input Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
@@ -53,7 +53,7 @@ namespace LQIO {
 	    void setTask( const Task * task );
 	    const Task * getTask() const;
 	    const std::vector<const Activity*>& getList() const;
-	    const ActivityListType getListType() const;
+	    const ActivityList::Type getListType() const;
 	    ActivityList& add(const Activity* activity, ExternalVariable * arg=NULL);
 
 	    void addValue( const Activity* activity, double arg );
@@ -90,7 +90,7 @@ namespace LQIO {
 	    const Task * _task;
 	    std::vector<const Activity*> _list;
 	    std::map<const Activity*,ExternalVariable *> _arguments;
-	    ActivityListType _type;
+	    ActivityList::Type _type;
 	    ActivityList* _next;
 	    ActivityList* _prev;
 	    bool _processed;

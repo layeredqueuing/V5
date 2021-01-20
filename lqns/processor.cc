@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: processor.cc 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -123,7 +123,7 @@ Processor::configure( const unsigned nSubmodels )
 	LQIO::solution_error( ADV_SERVICE_TIME_RANGE, getDOM()->getTypeName(), name().c_str(), minS, maxS );
     }
     Entity::configure( nSubmodels );
-    if ( Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
+    if ( Pragma::forceMultiserver( Pragma::ForceMultiserver::PROCESSORS ) ) {
 	attributes.variance = 0;
     }
     
@@ -230,7 +230,7 @@ Processor::isInteresting() const
 bool
 Processor::hasVariance() const
 {
-    if ( Pragma::variance(Pragma::NO_VARIANCE)
+    if ( Pragma::variance(Pragma::Variance::NONE)
 	 || !Pragma::defaultProcessorScheduling()
 	 || scheduling() == SCHEDULE_PS
 	 || isMultiServer()
@@ -291,7 +291,7 @@ Processor::makeServer( const unsigned nChains )
 	if ( dynamic_cast<Infinite_Server *>(_station) ) return nullptr;
 	_station = new Infinite_Server( nEntries(), nChains, maxPhase() );
 
-    } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::FORCE_PROCESSORS ) ) {
+    } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::ForceMultiserver::PROCESSORS ) ) {
 
 	/* ---------------- Multi Servers ---------------- */
 
@@ -299,17 +299,17 @@ Processor::makeServer( const unsigned nChains )
 
 	    switch ( Pragma::multiserver() ) {
 	    default:
-	    case Pragma::DEFAULT_MULTISERVER:
-	    case Pragma::CONWAY_MULTISERVER:
-	    case Pragma::REISER_MULTISERVER:
-	    case Pragma::REISER_PS_MULTISERVER:
-	    case Pragma::SCHMIDT_MULTISERVER:
+	    case Pragma::Multiserver::DEFAULT:
+	    case Pragma::Multiserver::CONWAY:
+	    case Pragma::Multiserver::REISER:
+	    case Pragma::Multiserver::REISER_PS:
+	    case Pragma::Multiserver::SCHMIDT:
 		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::ROLIA_PS_MULTISERVER:
-	    case Pragma::ROLIA_MULTISERVER:
+	    case Pragma::Multiserver::ROLIA_PS:
+	    case Pragma::Multiserver::ROLIA:
 		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
@@ -319,7 +319,7 @@ Processor::makeServer( const unsigned nChains )
 
 	    switch ( Pragma::multiserver() ) {
 	    default:
-	    case Pragma::DEFAULT_MULTISERVER:
+	    case Pragma::Multiserver::DEFAULT:
 		if ( copies() < 20 && nChains <= 5 ) {
 		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains );
@@ -329,37 +329,37 @@ Processor::makeServer( const unsigned nChains )
 		}
 		break;
 
-	    case Pragma::CONWAY_MULTISERVER:
+	    case Pragma::Multiserver::CONWAY:
 		if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::REISER_MULTISERVER:
+	    case Pragma::Multiserver::REISER:
 		if ( dynamic_cast<Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Reiser_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::REISER_PS_MULTISERVER:
+	    case Pragma::Multiserver::REISER_PS:
 		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::ROLIA_MULTISERVER:
+	    case Pragma::Multiserver::ROLIA:
 		if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return nullptr;
 		_station = new Rolia_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::ROLIA_PS_MULTISERVER:
+	    case Pragma::Multiserver::ROLIA_PS:
 		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::BRUELL_MULTISERVER:
+	    case Pragma::Multiserver::BRUELL:
 		if ( dynamic_cast<Bruell_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Bruell_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::SCHMIDT_MULTISERVER:
+	    case Pragma::Multiserver::SCHMIDT:
 		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Schmidt_Multi_Server( copies(), nEntries(), nChains );
 		break;

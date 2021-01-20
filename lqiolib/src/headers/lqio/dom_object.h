@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 13806 2020-08-27 18:05:17Z greg $
+ *  $Id: dom_object.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -26,8 +26,9 @@ namespace LQIO {
 
 	    public:
 		Predicate<Type>( const test_fn f ) : _f(f) {}
-		bool operator()( const Type * object ) const { return (object->*_f)(); }
+		bool operator()( const Type* object ) const { return (object->*_f)(); }
 		bool operator()( const std::pair<std::string, Type *>& object ) const { return (object.second->*_f)(); }
+		bool operator()( const std::pair<unsigned, Type *>& object ) const { return (object.second->*_f)(); }
 	    
 	    private:
 		const test_fn _f;

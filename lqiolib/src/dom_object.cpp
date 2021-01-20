@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_object.cpp 13675 2020-07-10 15:29:36Z greg $
+ *  $Id: dom_object.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -68,38 +68,14 @@ namespace LQIO {
 
 	void DocumentObject::subclass() const
 	{
-	    if ( dynamic_cast<const Activity *>(this) ) {
-		throw should_implement( "Activity" );
-	    } else if ( dynamic_cast<const ActivityList *>(this) ) {
-		throw should_implement( "ActivityList" );
-	    } else if ( dynamic_cast<const AndJoinActivityList *>(this) ) {
-		throw should_implement( "AndJoinActivityList" );
-	    } else if ( dynamic_cast<const Call *>(this) ) {
-		throw should_implement( "Call" );
-	    } else if ( dynamic_cast<const Entry *>(this) ) {
-		throw should_implement( "Entry" );
-	    } else if ( dynamic_cast<const Group *>(this) ) {
-		throw should_implement( "Group" );
-	    } else if ( dynamic_cast<const Phase *>(this) ) {
-		throw should_implement( "Phase" );
-	    } else if ( dynamic_cast<const Processor *>(this) ) {
-		throw should_implement( "Processor" );
-	    } else if ( dynamic_cast<const SemaphoreTask *>(this) ) {
-		throw should_implement( "SemaphoreTask" );
-	    } else if ( dynamic_cast<const RWLockTask *>(this) ) {
-		throw should_implement( "RWLockTask" );
-	    } else if ( dynamic_cast<const Task *>(this) ) {
-		throw should_implement( "Task" );
-	    } else {
-		throw should_implement( "unknown" );
-	    }
+	    throw should_implement( getTypeName() );
 	}
 
 	ExternalVariable * DocumentObject::checkIntegerVariable( ExternalVariable * var, int floor_value ) const
 	{
 	    /* Check for a valid variable (if set).  Return the var */
 	    double value = floor_value;
-	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value != rint(value) || value < floor_value ) ) {
+	    if ( var != nullptr && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value != rint(value) || value < floor_value ) ) {
 		throw std::domain_error( "invalid integer" );
 	    }
 	    return var;
@@ -109,7 +85,7 @@ namespace LQIO {
 	{
 	    /* Return a valid integer */
 	    double value = floor_value;
-	    if ( var == NULL ) return floor_value;
+	    if ( var == nullptr ) return floor_value;
 	    if ( var->wasSet() != true ) throw std::domain_error( "not set" );
 	    if ( var->getValue(value) != true ) throw std::domain_error( "not a number" );	/* Sets value for return! */
 	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
@@ -126,7 +102,7 @@ namespace LQIO {
 	{
 	    /* Check for a valid variable (if set).  Return the var */
 	    double value = floor_value;
-	    if ( var != NULL && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value < floor_value || (floor_value < ceiling_value && ceiling_value < value) ) ){
+	    if ( var != nullptr && var->wasSet() && ( var->getValue(value) != true || std::isinf(value) || value < floor_value || (floor_value < ceiling_value && ceiling_value < value) ) ){
 		throw std::domain_error( "invalid double" );
 	    }
 	    return var;
@@ -136,7 +112,7 @@ namespace LQIO {
 	{
 	    /* Return a valid double */
 	    double value = floor_value;
-	    if ( var == NULL ) return floor_value;
+	    if ( var == nullptr ) return floor_value;
 	    if ( var->wasSet() != true ) throw std::domain_error( "not set" );
 	    if ( var->getValue(value) != true ) throw std::domain_error( "not a number" );	/* Sets value for return! */
 	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );

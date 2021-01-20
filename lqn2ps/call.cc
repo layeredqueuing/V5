@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14375 2021-01-18 00:35:36Z greg $
+ * $Id: call.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -187,7 +187,7 @@ const GenericCall&
 GenericCall::draw( std::ostream& output ) const
 {
     if ( !isSelected() ) return *this;
-
+    
     std::ostringstream aComment;
     aComment << "Call "
 	     << srcName() << " "
@@ -285,9 +285,9 @@ GenericCall::dump() const
 {
     std::cout << "(" << srcName() << "->" << dstName() << ") ";
     switch ( callType() ) {
-    case LQIO::DOM::Call::NULL_CALL: std::cout << "NULL"; break;
-    case LQIO::DOM::Call::RENDEZVOUS: std::cout << "RNV"; break;
-    case LQIO::DOM::Call::SEND_NO_REPLY: std::cout << "SNR"; break;
+    case LQIO::DOM::Call::Type::NULL_CALL: std::cout << "NULL"; break;
+    case LQIO::DOM::Call::Type::RENDEZVOUS: std::cout << "RNV"; break;
+    case LQIO::DOM::Call::Type::SEND_NO_REPLY: std::cout << "SNR"; break;
     default: std::cout << "???"; break;
     }
 }
@@ -299,7 +299,7 @@ GenericCall::dump() const
 Call::Call()
     : GenericCall(),
       _destination(nullptr),
-      _callType(LQIO::DOM::Call::NULL_CALL),
+      _callType(LQIO::DOM::Call::Type::NULL_CALL),
       _calls(),
       _forwarding(nullptr)
 {
@@ -313,7 +313,7 @@ Call::Call()
 Call::Call( const Entry * toEntry, const unsigned nPhases )
     : GenericCall(),
       _destination(toEntry),
-      _callType(LQIO::DOM::Call::NULL_CALL),
+      _callType(LQIO::DOM::Call::Type::NULL_CALL),
       _calls(nPhases,nullptr),
       _forwarding(nullptr)
 {
@@ -590,7 +590,7 @@ Call::rendezvous( const unsigned p, const LQIO::DOM::Call * value )
     if ( hasSendNoReply() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
     } else if ( !_calls.at(p-1) ) {
-	_callType = LQIO::DOM::Call::RENDEZVOUS;
+	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	_calls[p-1] = value;
 	if ( _arc ) {
 	    _arc->arrowhead(Graphic::CLOSED_ARROW);
@@ -605,7 +605,7 @@ Call::rendezvous( const unsigned p, const double value )
     if ( hasSendNoReply() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
     } else if ( !_calls.at(p-1) ) {
-	_callType = LQIO::DOM::Call::RENDEZVOUS;
+	_callType = LQIO::DOM::Call::Type::RENDEZVOUS;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
 	    _arc->arrowhead(Graphic::CLOSED_ARROW);
@@ -638,7 +638,7 @@ Call::sendNoReply( const unsigned p, const LQIO::DOM::Call * value )
     if ( hasRendezvous() || hasForwarding() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
     } else if ( !_calls.at(p-1) ) {
-	_callType = LQIO::DOM::Call::SEND_NO_REPLY;
+	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	_calls[p-1] = value;
 	if ( _arc ) {
 	    _arc->arrowhead(Graphic::OPEN_ARROW);
@@ -653,7 +653,7 @@ Call::sendNoReply( const unsigned p, const double value )
     if ( hasRendezvous() || hasForwarding() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntry()->name().c_str() );
     } else if ( !_calls.at(p-1) ) {
-	_callType = LQIO::DOM::Call::SEND_NO_REPLY;
+	_callType = LQIO::DOM::Call::Type::SEND_NO_REPLY;
 	const_cast<LQIO::DOM::Call *>(_calls[p-1])->setCallMeanValue(value);
 	if ( _arc ) {
 	    _arc->arrowhead(Graphic::OPEN_ARROW);
@@ -715,7 +715,7 @@ Call::getDOM( const unsigned int p ) const
 bool
 Call::equalType( const Call& dst ) const
 {
-    return _callType == LQIO::DOM::Call::NULL_CALL
+    return _callType == LQIO::DOM::Call::Type::NULL_CALL
 	|| ((hasRendezvous() || hasForwarding()) && (dst.hasRendezvous() || dst.hasForwarding()))
 	|| (hasSendNoReply() && dst.hasSendNoReply());
 }
@@ -1059,9 +1059,9 @@ Call::print( std::ostream& output ) const
 std::ostream&
 Call::printSRVNLine( std::ostream& output, char code, print_func_ptr func ) const
 {
-    output << "  " << code << " "
-	   << srcName() << " "
-	   << dstName() << " "
+    output << "  " << code << " " 
+	   << srcName() << " " 
+	   << dstName() << " " 
 	   << (*func)( *this ) << " -1" << std::endl;
     return output;
 }
@@ -1152,7 +1152,7 @@ EntryCall::check() const
 		    ss << value << " < " << 0;
 		    throw std::domain_error( ss.str() );
 		}
-		if ( srcEntry()->phaseTypeFlag(p) == PHASE_DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
+		if ( srcEntry()->phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
 	    }
 	    catch ( const std::domain_error& e ) {
 		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcName().c_str(), "phase", p_str, dstName().c_str(), e.what() );
@@ -1172,7 +1172,7 @@ EntryCall::check() const
  * Return the name of the source entry.
  */
 
-const std::string&
+const std::string& 
 EntryCall::srcName() const
 {
     return srcEntry()->name();
@@ -1204,7 +1204,7 @@ EntryCall::maxPhase() const
 }
 
 
-phase_type
+LQIO::DOM::Phase::Type
 EntryCall::phaseTypeFlag( const unsigned p ) const
 {
     return srcEntry()->phaseTypeFlag(p);
@@ -1305,7 +1305,7 @@ ActivityCall::check() const
 		ss << value << " < " << 0;
 		throw std::domain_error( ss.str() );
 	    }
-	    if ( srcActivity()->phaseTypeFlag() == PHASE_DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
+	    if ( srcActivity()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != rint(value) ) throw std::domain_error( "invalid integer" );
 	}
 	catch ( const std::domain_error& e ) {
 	    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), "activity", srcName().c_str(), dstName().c_str(), e.what() );
@@ -1360,7 +1360,7 @@ ActivityCall::setChain( const unsigned k )
 }
 
 
-phase_type
+LQIO::DOM::Phase::Type
 ActivityCall::phaseTypeFlag( const unsigned ) const
 {
     return srcActivity()->phaseTypeFlag();
@@ -1398,9 +1398,9 @@ ActivityCall::printSRVNLine( std::ostream& output, char code, print_func_ptr fun
 {
     if ( isPseudoCall() ) return output;
 
-    output << "  " << code << " "
-	   << srcName() << " "
-	   << dstName() << " "
+    output << "  " << code << " " 
+	   << srcName() << " " 
+	   << dstName() << " " 
 	   << (*func)( *this ) << std::endl;
     return output;
 }
@@ -1759,7 +1759,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
-      _callType(LQIO::DOM::Call::NULL_CALL),	/* Not null if cloned BUG_270 */
+      _callType(LQIO::DOM::Call::Type::NULL_CALL),	/* Not null if cloned BUG_270 */
       _visits(nullptr),				/* Not null if cloned BUG_270 */
       _source(nullptr)				/* Not null if cloned BUG_270 */
 {
@@ -1787,7 +1787,7 @@ ProcessorCall::operator==( const ProcessorCall& item ) const
 ProcessorCall&
 ProcessorCall::rendezvous( const LQIO::DOM::ExternalVariable * value )
 {
-    _callType = LQIO::DOM::Call::RENDEZVOUS;
+    _callType = LQIO::DOM::Call::Type::RENDEZVOUS;
     _visits = value;
     return *this;
 }
@@ -1987,7 +1987,7 @@ ProcessorCall::moveLabel()
 ProcessorCall&
 ProcessorCall::updateRateFrom( const Call& call )
 {
-    if ( callType() == LQIO::DOM::Call::NULL_CALL ) {
+    if ( callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
 	/* First time for this call.  Save visits */
 	_visits = new LQIO::DOM::ConstantExternalVariable( 1.0 );
 	_callType = call.callType();
@@ -2306,7 +2306,7 @@ format_prologue( std::ostream& output, const Call& aCall, int p )
 	if ( p != 1 ) {
 	    output << ',';
 	}
-	if ( aCall.phaseTypeFlag(p) == PHASE_DETERMINISTIC ) {
+	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << "\\fbox{";
 	}
 	break;
@@ -2337,14 +2337,14 @@ format_epilogue( std::ostream& output, const Call& aCall, int p )
     switch( Flags::print[OUTPUT_FORMAT].value.i ) {
     case FORMAT_EEPIC:
     case FORMAT_PSTEX:
-	if ( aCall.phaseTypeFlag(p) == PHASE_DETERMINISTIC ) {
+	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << "}";
 	}
 	break;
     case FORMAT_POSTSCRIPT:
     case FORMAT_SVG:
     case FORMAT_FIG:
-	if ( aCall.phaseTypeFlag(p) == PHASE_DETERMINISTIC ) {
+	if ( aCall.phaseTypeFlag(p) == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	    output << ":D";
 	}
 	break;

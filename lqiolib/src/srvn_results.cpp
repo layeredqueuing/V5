@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_results.cpp 13996 2020-10-24 22:01:20Z greg $
+ *  $Id: srvn_results.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,7 +54,7 @@ void set_general(int v, double c, int i, int pr, int ph)
     LQIO::DOM::__document->setResultValid( v != 0 )
 	.setResultConvergenceValue( c )
 	.setResultIterations( i );
-    if ( ph < 0 || LQIO::DOM::Phase::MAX_PHASE < ph ) throw std::runtime_error( "set_general" );
+    if ( ph < 0 || static_cast<int>(LQIO::DOM::Phase::MAX_PHASE) < ph ) throw std::runtime_error( "set_general" );
     n_phases = ph;
 }
 
@@ -869,12 +869,12 @@ srvn_find_activity( const char * task_name, const char * activity_name )
     const LQIO::DOM::Task * task = LQIO::DOM::__document->getTaskByName( task_name );
     if ( !task ) {
 	results_error2( LQIO::ERR_NOT_DEFINED, task_name );
-	return 0;
+	return nullptr;
     } else {
 	LQIO::DOM::Activity* activity = task->getActivity(activity_name);
 	if ( !activity ) {
 	    results_error2( LQIO::ERR_NOT_DEFINED, activity_name );
-	    return 0;
+	    return nullptr;
 	}
 	return activity;
     }
@@ -1209,7 +1209,7 @@ namespace LQIO {
 	    if ( filename == "-" ) {
 		resultin = stdin;
 		resultparse();
-	    } else if ( ( resultin = fopen( filename.c_str(), "r" ) ) != NULL ) {
+	    } else if ( ( resultin = fopen( filename.c_str(), "r" ) ) != nullptr ) {
 		results_file_name = filename.c_str();
 		resultlineno = 1;
 #if HAVE_MMAP

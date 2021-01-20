@@ -8,7 +8,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14348 2021-01-11 20:26:57Z greg $
+ * $Id: phase.h 14381 2021-01-19 18:52:02Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,6 +18,7 @@
 
 #include <lqio/input.h>
 #include <lqio/bcmp_document.h>
+#include <lqio/dom_phase.h>
 
 class Call;
 class Entry;
@@ -99,8 +100,8 @@ public:
 
     virtual const std::string& name() const;
 
-    Phase& phaseTypeFlag( phase_type aType );
-    phase_type phaseTypeFlag() const;
+    Phase& phaseTypeFlag( LQIO::DOM::Phase::Type aType );
+    LQIO::DOM::Phase::Type phaseTypeFlag() const;
 
     bool hasServiceTime() const;
     const LQIO::DOM::ExternalVariable& serviceTime() const;
@@ -122,7 +123,7 @@ public:
 
     bool hasQueueingTime() const;
     bool isNonExponential() const;
-    bool isDeterministic() const { return phaseTypeFlag() == PHASE_DETERMINISTIC; }
+    bool isDeterministic() const { return phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC; }
 
     bool hasHistogram() const { return _histogram.hasHistogram(); }
     Phase& histogram( const double min, const double max, const unsigned n_bins );

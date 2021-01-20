@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_entity.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -20,37 +20,22 @@ namespace LQIO {
 
 	class Entity : public DocumentObject {
 	protected:
-	    template <class Type> struct Sum {
+	    template <class Type> struct add_using {
 		typedef double (Type::*fp)();
-		Sum<Type>( fp f ) : _f(f), _sum(0.) {}
-		void operator()( Type * object ) { _sum += (object->*_f)(); }
-		void operator()( const std::pair<std::string,Type *>& object ) { _sum += (object.second->*_f)(); }
-		double sum() const { return _sum; }
+		add_using<Type>( fp f ) : _f(f) {}
+		double operator()( double sum, Type * object ) { return sum + (object->*_f)(); }
+		double operator()( double sum, const std::pair<std::string,Type *>& object ) { return sum + (object.second->*_f)(); }
 	    private:
-		fp _f;
-		double _sum;
+		const fp _f;
 	    };
 
-	    template <class Type> struct ConstSum {
+	    template <class Type> struct add_using_const {
 		typedef double (Type::*fp)() const;
-		ConstSum<Type>( fp f ) : _f(f), _sum(0.) {}
-		void operator()( const Type * object ) { _sum += (object->*_f)(); }
-		void operator()( const std::pair<std::string,Type *>& object ) { _sum += (object.second->*_f)(); }
-		double sum() const { return _sum; }
+		add_using_const<Type>( fp f ) : _f(f) {}
+		double operator()( double sum, const Type * object ) { return sum + (object->*_f)(); }
+		double operator()( double sum, const std::pair<std::string,Type *>& object ) { return sum + (object.second->*_f)(); }
 	    private:
-		fp _f;
-		double _sum;
-	    };
-
-	    template <class Type> struct ConstSumP {
-		typedef double (Type::*fp)( unsigned int p ) const;
-		ConstSumP<Type>( fp f, unsigned int p ) : _f(f), _p(p), _sum(0.) {}
-		void operator()( const Type * object ) { _sum += (object->*_f)(_p); }
-		double sum() const { return _sum; }
-	    private:
-		fp _f;
-		const unsigned int _p;
-		double _sum;
+		const fp _f;
 	    };
 
 	protected:

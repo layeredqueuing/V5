@@ -1,5 +1,5 @@
 /*
- * $Id: srvn_gram.y 14331 2021-01-04 20:40:05Z greg $ 
+ * $Id: srvn_gram.y 14381 2021-01-19 18:52:02Z greg $ 
  */
 
 %{
@@ -54,7 +54,7 @@ extern int LQIO_lex();
 %type <schedulingFlag>	proc_sched_flag proc_sched_quantum task_sched_flag
 %type <entryList>	entry_list act_entry_list
 %type <activityList>	join_list fork_list and_join_list and_fork_list or_join_list or_fork_list loop_list
-%type <anInt>		cap_flag hist_bins
+%type <anInt>		cap_flag hist_bins 
 %type <aFloat>		constant 
 %type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix arrayref factor 
 %type <aParseTreeNode>  opt_report_info r_decl c_decl
@@ -437,13 +437,13 @@ entry_decl		: 'a' entry_ref arrival_rate entry_obs
 			| 'H' entry_ref histogram
 			| 'M' entry_ref max_ph_serv_time entry_obs
 			| 'p' entry_ref priority
-			| 'R' entry_ref					{ srvn_set_rwlock_flag( $2, RWLOCK_R_LOCK ); }
-			| 'P' entry_ref					{ srvn_set_semaphore_flag( $2, SEMAPHORE_SIGNAL ); }
+			| 'R' entry_ref					{ srvn_set_rwlock_flag( $2, 'R' ); }
+			| 'P' entry_ref					{ srvn_set_semaphore_flag( $2, 'P' ); }
 			| 's' entry_ref ph_serv_time entry_obs
-			| 'U' entry_ref					{ srvn_set_rwlock_flag( $2, RWLOCK_R_UNLOCK ); }
-			| 'V' entry_ref					{ srvn_set_semaphore_flag( $2, SEMAPHORE_WAIT ); }
-			| 'W' entry_ref					{ srvn_set_rwlock_flag( $2, RWLOCK_W_LOCK ); }
-			| 'X' entry_ref					{ srvn_set_rwlock_flag( $2, RWLOCK_W_UNLOCK ); }
+			| 'U' entry_ref					{ srvn_set_rwlock_flag( $2, 'U' ); }
+			| 'V' entry_ref					{ srvn_set_semaphore_flag( $2, 'V' ); }
+			| 'W' entry_ref					{ srvn_set_rwlock_flag( $2, 'W' ); }
+			| 'X' entry_ref					{ srvn_set_rwlock_flag( $2, 'X' ); }
 			| 'y' entry_ref dest_ref ph_RNV_nb call_obs
 			| 'z' entry_ref dest_ref ph_SNR_nb call_obs
 			| 'Z' entry_ref ph_think_time entry_obs

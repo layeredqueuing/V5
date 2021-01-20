@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 14290 2020-12-29 17:12:22Z greg $
+ *  $Id: dom_call.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -37,14 +37,14 @@ namespace LQIO {
 	    };
 
 	    /* Different types of calls */
-	    typedef enum CallType {
+	    enum class Type {
 		NULL_CALL,
 		SEND_NO_REPLY,
 		RENDEZVOUS,
 		FORWARD,
 		QUASI_SEND_NO_REPLY,		// Special (lqsim/petrisrvn)
 		QUASI_RENDEZVOUS		// Special (lqns)
-	    } CallType;
+	    };
 
 	    typedef bool (DOM::Call::*boolCallFunc)() const;
 
@@ -55,7 +55,7 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializer for the call information */
-	    Call(const Document * document, const CallType type, Phase* source, Entry* destination, ExternalVariable* callMean=nullptr );
+	    Call(const Document * document, const Type type, Phase* source, Entry* destination, ExternalVariable* callMean=nullptr );
 	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=nullptr );
 	    virtual ~Call();
 	    Call * clone() const;
@@ -65,17 +65,17 @@ namespace LQIO {
 	    /* Accessors and Mutators */
 	    const char * getTypeName() const { return __typeName; }
 
-	    const CallType getCallType() const;
-	    void setCallType(const CallType callType);
+	    const Type getCallType() const;
+	    void setCallType(const Type callType);
 	    void setSourceObject( DocumentObject* );
 	    void setDestinationEntry( Entry* );
 	    const Histogram* getHistogram() const { return _histogram; }
 	    void setHistogram(Histogram* histogram);
 
 	    bool hasHistogram() const;
-	    bool hasRendezvous() const { return _callType == Call::RENDEZVOUS; }
-	    bool hasSendNoReply() const { return _callType == Call::SEND_NO_REPLY; }
-	    bool hasForwarding() const { return _callType == Call::FORWARD; }
+	    bool hasRendezvous() const { return _callType == Call::Type::RENDEZVOUS; }
+	    bool hasSendNoReply() const { return _callType == Call::Type::SEND_NO_REPLY; }
+	    bool hasForwarding() const { return _callType == Call::Type::FORWARD; }
 
 	    /* Accessors for Call Information */
 	    const DocumentObject* getSourceObject() const;
@@ -108,7 +108,7 @@ namespace LQIO {
 	private:
 
 	    /* Type of Entry */
-	    CallType _callType;
+	    Type _callType;
 	    DocumentObject * _sourceObject;
 	    Entry* _destinationEntry;
 

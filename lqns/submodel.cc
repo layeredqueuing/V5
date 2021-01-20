@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: submodel.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -311,7 +311,7 @@ MVASubmodel::build()
 
     /* ------- Create overlap probabilities and durations. -------- */
 
-    if ( ( hasThreads() || hasSynchs() ) && !Pragma::threads(Pragma::NO_THREADS) ) {
+    if ( ( hasThreads() || hasSynchs() ) && !Pragma::threads(Pragma::Threads::NONE) ) {
 	_overlapFactor = new VectorMath<double> [nChains()+1];
 	for ( unsigned i = 1; i <= nChains(); ++i ) {
 	    _overlapFactor[i].resize( nChains(), 1.0 );
@@ -328,22 +328,22 @@ MVASubmodel::build()
 
     if ( nChains() > 0 && n_closedStns() > 0 ) {
 	switch ( Pragma::mva() ) {
-	case Pragma::EXACT_MVA:
+	case Pragma::MVA::EXACT:
 	    closedModel = new ExactMVA(          closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
-	case Pragma::SCHWEITZER_MVA:
+	case Pragma::MVA::SCHWEITZER:
 	    closedModel = new Schweitzer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
-	case Pragma::LINEARIZER_MVA:
+	case Pragma::MVA::LINEARIZER:
 	    closedModel = new Linearizer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
-	case Pragma::FAST_MVA:
+	case Pragma::MVA::FAST:
 	    closedModel = new Linearizer2(       closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
-	case Pragma::ONESTEP_MVA:
+	case Pragma::MVA::ONESTEP:
 	    closedModel = new OneStepMVA(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
-	case Pragma::ONESTEP_LINEARIZER:
+	case Pragma::MVA::ONESTEP_LINEARIZER:
 	    closedModel = new OneStepLinearizer( closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	}

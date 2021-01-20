@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 14292 2020-12-30 16:29:20Z greg $
+ *  $Id: expat_document.h 14384 2021-01-20 18:46:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  */
@@ -63,8 +63,8 @@ namespace LQIO {
 		observation_table_t() : key(0), phase(0) {}
 		observation_table_t( int k, int p=0 ) : key(k), phase(p) {}
 		bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-		int key;
-		int phase;
+		const int key;
+		const int phase;
 	    };
 	    /*- SPEX */
 	    
@@ -289,9 +289,9 @@ namespace LQIO {
 	    Activity * handleTaskActivity( DocumentObject * object, const XML_Char ** attributes );
 	    void handleActivity( Phase * phase, const XML_Char ** attributes );
 	    void handleActivityList( ActivityList * activity_list, const XML_Char ** attributes );
-	    Call * handleActivityCall( DocumentObject *, const XML_Char ** attributes, const Call::CallType call_type );
+	    Call * handleActivityCall( DocumentObject *, const XML_Char ** attributes, const Call::Type call_type );
 	    Call * handleEntryCall( DocumentObject *, const XML_Char ** attributes );
-	    Call * handlePhaseCall( DocumentObject *, const XML_Char ** attributes, const Call::CallType call_type );
+	    Call * handlePhaseCall( DocumentObject *, const XML_Char ** attributes, const Call::Type call_type );
 	 // DecisionPath * handleDecisionPath( DocumentObject * object, const XML_Char ** attributes );
 	    Histogram * handleHistogram( DocumentObject * object, const XML_Char ** attributes );
 
@@ -303,10 +303,11 @@ namespace LQIO {
 	    void handleJoinResults95( AndJoinActivityList *, const XML_Char ** attributes );
 	    void handleSPEXObservation( DocumentObject *, const XML_Char ** attributes, unsigned int = 0 );
 	    void handleSPEXObservation95( DocumentObject *, const XML_Char ** attributes );
-	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
-	    Histogram * findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::histogram_t type, unsigned int n_bins, double min, double max );
+	    Histogram * findOrAddHistogram( DocumentObject * object, Histogram::Type type, unsigned int n_bins, double min, double max );
+	    Histogram * findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::Type type, unsigned int n_bins, double min, double max );
 
 	    bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,Expat_Document::attribute_table_t>& table ) const;
+
 	    LQIO::DOM::ExternalVariable * getOptionalAttribute( const XML_Char ** attributes, const XML_Char * argument ) const;
 	    LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char ** attributes, const XML_Char * argument, const XML_Char * default_value=nullptr ) const;
 	    static const scheduling_type getSchedulingAttribute( const XML_Char ** attributes, const scheduling_type );
@@ -353,23 +354,12 @@ namespace LQIO {
 	    /*- SPEX */
 
 	private:
-	    static std::set<const XML_Char *,attribute_table_t> model_table;
-	    static std::set<const XML_Char *,attribute_table_t> parameter_table;
-	    static std::set<const XML_Char *,attribute_table_t> processor_table;
-	    static std::set<const XML_Char *,attribute_table_t> group_table;
-	    static std::set<const XML_Char *,attribute_table_t> task_table;
-	    static std::set<const XML_Char *,attribute_table_t> entry_table;
-	    static std::set<const XML_Char *,attribute_table_t> activity_table;
-	    static std::set<const XML_Char *,attribute_table_t> call_table;
-	    static std::set<const XML_Char *,attribute_table_t> histogram_table;
-
-
-	    static std::map<const XML_Char *,ActivityList::ActivityListType,attribute_table_t> precedence_table;
-	    static const XML_Char * precedence_type_table[];
-	    static std::map<const XML_Char *,result_table_t,result_table_t>  result_table;
-	    static std::map<const XML_Char *,observation_table_t,observation_table_t>  observation_table;	/* SPEX */
-	    static std::map<int,const char *> __key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to SPEX attribute name */
-	    static call_type_table_t call_type_table[];
+	    static const std::set<const XML_Char *,attribute_table_t> call_table;
+	    static const std::set<const XML_Char *,Expat_Document::attribute_table_t> histogram_table;
+	    static const std::map<const XML_Char *,const result_table_t,result_table_t>  result_table;
+	    static const std::map<const XML_Char *,const observation_table_t,observation_table_t>  observation_table;	/* SPEX */
+	    static const std::map<const int,const char *> __key_lqx_function_map;			/* Maps srvn_gram.h KEY_XXX to SPEX attribute name */
+	    static const std::map<const Call::Type,const call_type_table_t> call_type_table;
 
 	    static const XML_Char * XMLSchema_instance;
 

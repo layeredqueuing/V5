@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14281 2020-12-28 18:21:03Z greg $
+ *  $Id: dom_pragma.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -19,181 +19,11 @@
 
 namespace LQIO {
     namespace DOM {
-	std::map<std::string,std::set<std::string>*> Pragma::__pragmas;
 
 	Pragma::Pragma() : _loadedPragmas()
 	{
-	    initialize();
 	}
 
-	void Pragma::initialize()
-	{
-	    if ( __pragmas.size() != 0 ) return;
-
-	    /* Number */
-	    
-	    __pragmas[Pragma::_block_period_] =     nullptr;		/* lqsim */
-	    __pragmas[Pragma::_initial_delay_] =    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_initial_loops_] =    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_max_blocks_] = 	    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_nice_] =             nullptr;		/* lqsim */
-	    __pragmas[Pragma::_precision_] = 	    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_run_time_] = 	    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_seed_value_] = 	    nullptr;		/* lqsim */
-	    __pragmas[Pragma::_stop_on_bogus_utilization_] = nullptr;	/* lqns */
-	    __pragmas[Pragma::_tau_] =              nullptr;		/* lqns */
-	    __pragmas[Pragma::_underrelaxation_] =  nullptr;		/* lqns */
-
-	    /* Boolean */
-	    
-	    static std::set<std::string> true_false_arg;
-	    true_false_arg.insert("true");
-	    true_false_arg.insert("false");
-	    true_false_arg.insert(Pragma::_yes_);
-	    true_false_arg.insert(Pragma::_no_);
-	    true_false_arg.insert("t");
-	    true_false_arg.insert("f");
-	    true_false_arg.insert("y");
-	    true_false_arg.insert("n");
-	    true_false_arg.insert("");
-	    __pragmas[Pragma::_cycles_] = &true_false_arg;			/* lqns */
-	    __pragmas[Pragma::_interlocking_] = &true_false_arg;		/* lqns */
-	    __pragmas[Pragma::_prune_] = &true_false_arg;			// BUG_270
-	    __pragmas[Pragma::_quorum_reply_] =	&true_false_arg;		/* lqsim */
-	    __pragmas[Pragma::_reschedule_on_async_send_] = &true_false_arg;
-	    __pragmas[Pragma::_spex_header_] = &true_false_arg;
-	    __pragmas[Pragma::_stop_on_message_loss_] = &true_false_arg;
-	    
-	    /* string */
-	    	
-	    static std::set<std::string> bcmp_args;
-	    bcmp_args.insert(Pragma::_lqn_);
-	    bcmp_args.insert(Pragma::_extended_);
-	    bcmp_args.insert(Pragma::_true_);
-	    bcmp_args.insert(Pragma::_yes_);
-	    bcmp_args.insert(Pragma::_false_);
-	    bcmp_args.insert(Pragma::_no_);
-	    bcmp_args.insert("t");
-	    bcmp_args.insert("y");
-	    bcmp_args.insert("f");
-	    bcmp_args.insert("n");
-	    bcmp_args.insert("");
-	    __pragmas[Pragma::_bcmp_] = &bcmp_args;
-	    
-	    static std::set<std::string> force_multiserver_args;	/* lqns */
-	    force_multiserver_args.insert(Pragma::_none_);
-	    force_multiserver_args.insert(Pragma::_processors_);
-	    force_multiserver_args.insert(Pragma::_tasks_);
-	    force_multiserver_args.insert(Pragma::_all_);
-	    __pragmas[Pragma::_force_multiserver_] = &force_multiserver_args;	
-	    
-	    static std::set<std::string> layering_args;		/* lqns */
-	    layering_args.insert(Pragma::_batched_);
-	    layering_args.insert(Pragma::_batched_back_);
-	    layering_args.insert(Pragma::_hwsw_);
-	    layering_args.insert(Pragma::_mol_);
-	    layering_args.insert(Pragma::_mol_back_);
-	    layering_args.insert(Pragma::_squashed_);
-	    layering_args.insert(Pragma::_srvn_);
-	    __pragmas[_layering_] = &layering_args;
-	    
-	    static std::set<std::string> multiserver_args;	/* lqns */
-	    multiserver_args.insert(Pragma::_bruell_);
-	    multiserver_args.insert(Pragma::_conway_);
-	    multiserver_args.insert(Pragma::_default_);
-	    multiserver_args.insert(Pragma::_reiser_);
-	    multiserver_args.insert(Pragma::_reiser_ps_);
-	    multiserver_args.insert(Pragma::_rolia_);
-	    multiserver_args.insert(Pragma::_rolia_ps_);
-	    multiserver_args.insert(Pragma::_schmidt_);
-	    multiserver_args.insert(Pragma::_suri_);
-	    __pragmas[_multiserver_] = &multiserver_args;
-
-	    static std::set<std::string> mva_args;		/* lqns */
-	    mva_args.insert(Pragma::_linearizer_);
-	    mva_args.insert(Pragma::_exact_);
-	    mva_args.insert(Pragma::_schweitzer_);
-	    mva_args.insert(Pragma::_fast_);
-	    mva_args.insert(Pragma::_one_step_);
-	    mva_args.insert(Pragma::_one_step_linearizer_);
-	    __pragmas[_mva_] = &mva_args;
-
-	    static std::set<std::string> overtaking_args;	/* lqns */
-	    overtaking_args.insert(Pragma::_markov_);
-	    overtaking_args.insert(Pragma::_rolia_);
-	    overtaking_args.insert(Pragma::_simple_);
-	    overtaking_args.insert(Pragma::_special_);
-	    overtaking_args.insert(Pragma::_none_);
-	    __pragmas[Pragma::_overtaking_] = &overtaking_args;
-
-	    static std::set<std::string> processor_args;
-	    processor_args.insert(Pragma::_default_);
-	    processor_args.insert(scheduling_label[SCHEDULE_DELAY].XML);
-	    processor_args.insert(scheduling_label[SCHEDULE_FIFO].XML);
-	    processor_args.insert(scheduling_label[SCHEDULE_HOL].XML);
-	    processor_args.insert(scheduling_label[SCHEDULE_PPR].XML);
-	    processor_args.insert(scheduling_label[SCHEDULE_PS].XML);
-	    processor_args.insert(scheduling_label[SCHEDULE_RAND].XML);
-	    __pragmas[Pragma::_processor_scheduling_] = &processor_args;
-	    
-	    static std::set<std::string> quorum_distribution_args;
-	    quorum_distribution_args.insert(Pragma::_threepoint_);
-	    quorum_distribution_args.insert(Pragma::_gamma_);
-	    quorum_distribution_args.insert(Pragma::_geometric_);
-	    quorum_distribution_args.insert(Pragma::_deterministic_);
-	    __pragmas[Pragma::_quorum_distribution_] = &quorum_distribution_args;
-
-	    static std::set<std::string> quorum_delayed_calls_args;
-	    quorum_delayed_calls_args.insert(Pragma::_keep_all_);
-	    quorum_delayed_calls_args.insert(Pragma::_abort_all_);
-	    quorum_delayed_calls_args.insert(Pragma::_abort_local_);
-	    quorum_delayed_calls_args.insert(Pragma::_abort_remote_);
-	    __pragmas[Pragma::_quorum_delayed_calls_] = &quorum_delayed_calls_args;
-
-	    static std::set<std::string> quorum_idle_time_args;
-	    quorum_idle_time_args.insert(Pragma::_default_);
-	    quorum_idle_time_args.insert(Pragma::_join_delay_);
-	    __pragmas[Pragma::_quorum_idle_time_] = &quorum_delayed_calls_args;
-
-	    static std::set<std::string> scheduling_model_args;	/* lqsim */
-	    scheduling_model_args.insert(Pragma::_default_);
-	    scheduling_model_args.insert(Pragma::_default_natural_);
-	    scheduling_model_args.insert(Pragma::_custom_);
-	    scheduling_model_args.insert(Pragma::_custom_natural_);
-	    __pragmas[Pragma::_scheduling_model_] = &scheduling_model_args;
-
-	    static std::set<std::string> task_args;
-	    task_args.insert(Pragma::_default_);
-	    task_args.insert(scheduling_label[SCHEDULE_DELAY].XML);
-	    task_args.insert(scheduling_label[SCHEDULE_FIFO].XML);
-	    task_args.insert(scheduling_label[SCHEDULE_HOL].XML);
-	    task_args.insert(scheduling_label[SCHEDULE_RAND].XML);
-	    __pragmas[Pragma::_task_scheduling_] = &task_args;
-	    
-	    static std::set<std::string> threads_args;		/* lqns */
-	    threads_args.insert(Pragma::_hyper_);
-	    threads_args.insert(Pragma::_mak_);
-	    threads_args.insert(Pragma::_none_);
-	    threads_args.insert(Pragma::_exponential_);
-	    __pragmas[Pragma::_threads_] = &threads_args;
-
-	    static std::set<std::string> variance_args;		/* lqns */
-	    variance_args.insert(Pragma::_default_);
-	    variance_args.insert(Pragma::_none_);
-	    variance_args.insert(Pragma::_stochastic_);
-	    variance_args.insert(Pragma::_mol_);
-	    variance_args.insert(Pragma::_no_entry_);
-	    variance_args.insert(Pragma::_init_only_);
-	    __pragmas["variance"] = &variance_args;
-
-	    static std::set<std::string> warning_args;
-	    warning_args.insert(Pragma::_all_);
-	    warning_args.insert(Pragma::_warning_);
-	    warning_args.insert(Pragma::_advisory_);
-	    warning_args.insert(Pragma::_run_time_);
-	    __pragmas["severity-level"] = &warning_args;
-	}
-
 	bool Pragma::insert(const std::string& param,const std::string& value)
 	{
 	    if ( check( param, value ) ) {
@@ -213,7 +43,7 @@ namespace LQIO {
 	    if ( !p ) return false;
 
 	    bool rc = true;
-	    do { 
+	    do {
 		while ( isspace( *p ) ) ++p;            /* Skip leading whitespace. */
 		std::string param;
 		std::string value;
@@ -239,7 +69,7 @@ namespace LQIO {
 
 	void Pragma::merge( const std::map<std::string,std::string>& list )
 	{
-	    for_each( list.begin(), list.end(), Merge(*this) );
+	    std::for_each( list.begin(), list.end(), Merge(*this) );
 	}
 
 	
@@ -260,7 +90,7 @@ namespace LQIO {
 	
 	const std::set<std::string>* Pragma::getValues( const std::string& s )
 	{
-	    const std::map<std::string,std::set<std::string>*>::const_iterator i = __pragmas.find(s);
+	    const std::map<const std::string,const std::set<std::string>*>::const_iterator i = __pragmas.find(s);
 	    if ( i != __pragmas.end() ) {
 		return i->second;
 	    } else {
@@ -276,7 +106,7 @@ namespace LQIO {
 
 	bool Pragma::check( const std::string& param, const std::string& value ) const
 	{
-	    std::map<std::string,std::set<std::string>*>::const_iterator i = __pragmas.find( param );
+	    const std::map<const std::string,const std::set<std::string>*>::const_iterator i = __pragmas.find( param );
 	    if ( i == __pragmas.end() ) {
 		LQIO::solution_error( LQIO::WRN_PRAGMA_UNKNOWN, param.c_str() );
 		return false;
@@ -300,23 +130,24 @@ namespace LQIO {
 
 
 	/* 
-	 * Return true or false depending on value.   Throw on anything not allowed
+	 * Return true or false depending on value.   Throw on anything not allowed.  
+	 * __true_false_arg here is a map with a return value which should match the
+	 * __true_false_args global set.
 	 */
 	
 	bool Pragma::isTrue(const std::string& value)
 	{
-	    static std::map<std::string,bool> __true_false_arg;
-	    if ( __true_false_arg.empty() ) {
-		__true_false_arg[LQIO::DOM::Pragma::_true_]  = true;
-		__true_false_arg[LQIO::DOM::Pragma::_yes_]   = true;
-		__true_false_arg[LQIO::DOM::Pragma::_false_] = false;
-		__true_false_arg[LQIO::DOM::Pragma::_no_]    = false;
-		__true_false_arg["t"] = true;
-		__true_false_arg["y"] = true;
-		__true_false_arg["f"] = false;
-		__true_false_arg["n"] = false;
-		__true_false_arg[""]  = true;		/* No argument */
-	    }
+	    static const std::map<std::string,bool> __true_false_arg = {
+		{LQIO::DOM::Pragma::_true_,  true},
+		{LQIO::DOM::Pragma::_yes_,   true},
+		{LQIO::DOM::Pragma::_false_, false},
+		{LQIO::DOM::Pragma::_no_,    false},
+		{"t", true},
+		{"y", true},
+		{"f", false},
+		{"n", false},
+		{"",  true},		/* No argument */
+	    };
 	    const std::map<std::string,bool>::const_iterator x = __true_false_arg.find( value );
 	    if ( x == __true_false_arg.end() ) throw std::domain_error( value.c_str() );
 	    return x->second;
@@ -412,6 +243,63 @@ namespace LQIO {
 	const char * Pragma::_variance_ =			"variance";
 	const char * Pragma::_warning_ =			"warning";
 	const char * Pragma::_yes_ =				"yes";
+
+	/* Args */
+	
+	const std::set<std::string> Pragma::__bcmp_args = { _lqn_, _extended_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
+	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_ };
+	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _squashed_, _srvn_, _hwsw_ };
+	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_ };
+	const std::set<std::string> Pragma::__mva_args = { _linearizer_, _exact_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
+	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
+	const std::set<std::string> Pragma::__processor_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_PPR].XML, scheduling_label[SCHEDULE_PS].XML, scheduling_label[SCHEDULE_RAND].XML };
+	const std::set<std::string> Pragma::__quorum_delayed_calls_args = { _keep_all_, _abort_all_, _abort_local_, _abort_remote_ };
+	const std::set<std::string> Pragma::__quorum_distribution_args = { _threepoint_, _gamma_, _geometric_, _deterministic_ };
+	const std::set<std::string> Pragma::__quorum_idle_time_args = { _default_, _join_delay_ };
+	const std::set<std::string> Pragma::__scheduling_model_args = { _default_, _default_natural_, _custom_, _custom_natural_ };
+	const std::set<std::string> Pragma::__task_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_RAND].XML };
+	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };
+	const std::set<std::string> Pragma::__true_false_arg = { "true", "false", _yes_, _no_, "t", "f", "y", "n", "" };
+	const std::set<std::string> Pragma::__variance_args = { _default_, _none_, _stochastic_, _mol_, _no_entry_, _init_only_ };
+	const std::set<std::string> Pragma::__warning_args = { _all_, _warning_, _advisory_, _run_time_ };
+
+	/* Pragmas */
+	
+	const std::map<const std::string,const std::set<std::string>*> Pragma::__pragmas = {
+	    { _bcmp_,			    &__true_false_arg },	    /* lqns */
+	    { _block_period_,      	    nullptr },			    /* lqsim */
+	    { _cycles_,  	    	    &__true_false_arg },	    /* lqns */
+	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
+	    { _initial_delay_,     	    nullptr },			    /* lqsim */
+	    { _initial_loops_,     	    nullptr },			    /* lqsim */
+	    { _interlocking_,      	    &__true_false_arg },	    /* lqns */
+	    { _layering_,     	    	    &__layering_args },		    /* lqns */
+	    { _max_blocks_,  	    	    nullptr },			    /* lqsim */
+	    { _multiserver_,  	    	    &__multiserver_args },	    /* lqns */
+	    { _mva_,  		   	    &__mva_args },		    /* lqns */
+	    { _nice_,              	    nullptr },			    /* lqsim */
+	    { _overtaking_,  	    	    &__overtaking_args },	    /* lqns */
+	    { _precision_,  	    	    nullptr },			    /* lqsim */
+	    { _processor_scheduling_,	    &__processor_args },
+	    { _prune_,  		    &__true_false_arg },	    /* lqns */
+	    { _quorum_delayed_calls_,  	    &__quorum_delayed_calls_args }, /* lqns */
+	    { _quorum_distribution_,  	    &__quorum_distribution_args },  /* lqns */
+	    { _quorum_idle_time_,  	    &__quorum_idle_time_args },     /* lqns */
+	    { _quorum_reply_, 		    &__true_false_arg },	    /* lqsim */
+	    { _reschedule_on_async_send_,   &__true_false_arg },
+	    { _run_time_,  	    	    nullptr },			    /* lqsim */
+	    { _scheduling_model_,  	    &__scheduling_model_args },
+	    { _seed_value_,  	    	    nullptr },			    /* lqsim */
+	    { _severity_level_,  	    &__warning_args },
+	    { _spex_header_,  		    &__true_false_arg },
+	    { _stop_on_bogus_utilization_,  nullptr },			    /* lqns */
+	    { _stop_on_message_loss_,  	    &__true_false_arg },
+	    { _task_scheduling_,  	    &__task_args },
+	    { _tau_,               	    nullptr },			    /* lqns */
+	    { _threads_,  		    &__threads_args },		    /* lqns */
+	    { _underrelaxation_,	    nullptr },			    /* lqns */
+	    { _variance_,  		    &__variance_args }		    /* lqns */
+	};
+	
     }
 }
-

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14359 2021-01-14 23:29:42Z greg $
+ * $Id: processor.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -588,7 +588,7 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
         const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Demand() ) );	/* null entry */
 	demand_map::iterator item = result.first;
 	
-	if ( src->callType() == LQIO::DOM::Call::NULL_CALL ) {
+	if ( src->callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
 	    /* If it is generic processor call then accumulate by entry */
 	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
 	} else {

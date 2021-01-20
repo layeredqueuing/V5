@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14253 2020-12-24 22:16:18Z greg $
+ * $Id: dom_pragma.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -28,7 +28,7 @@ namespace LQIO {
 	    private:
 		Pragma& _p;
 	    };
-	    
+	
 	public:
 	    Pragma();
 
@@ -44,11 +44,27 @@ namespace LQIO {
 
 	private:
 	    bool check( const std::string&, const std::string& ) const;
-	    void initialize();
-	    
+	
 	private:
-	    static std::map<std::string,std::set<std::string>*> __pragmas;
 	    std::map<std::string,std::string> _loadedPragmas;
+
+	    const static std::map<const std::string,const std::set<std::string>*> __pragmas;
+	    const static std::set<std::string> __bcmp_args;
+	    const static std::set<std::string> __force_multiserver_args;
+	    const static std::set<std::string> __layering_args;
+	    const static std::set<std::string> __multiserver_args;
+	    const static std::set<std::string> __mva_args;
+	    const static std::set<std::string> __overtaking_args;
+	    const static std::set<std::string> __processor_args;
+	    const static std::set<std::string> __quorum_delayed_calls_args;
+	    const static std::set<std::string> __quorum_distribution_args;
+	    const static std::set<std::string> __quorum_idle_time_args;
+	    const static std::set<std::string> __scheduling_model_args;
+	    const static std::set<std::string> __task_args;
+	    const static std::set<std::string> __threads_args;
+	    const static std::set<std::string> __true_false_arg;
+	    const static std::set<std::string> __variance_args;
+	    const static std::set<std::string> __warning_args;
 
 	public:
 	    static const char * _abort_all_;		// Quorum

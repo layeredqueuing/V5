@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14356 2021-01-14 00:21:47Z greg $
+ * $Id: phase.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -430,7 +430,7 @@ Phase::check() const
 
     for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
 
-    if ( phaseTypeFlag() == PHASE_STOCHASTIC && CV_sqr() != 1.0 ) {
+    if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC && CV_sqr() != 1.0 ) {
 	if ( isActivity() ) {			/* c, phase_flag are incompatible  */
 	    LQIO::solution_error( WRN_COEFFICIENT_OF_VARIATION, "Task", owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
 	} else {
@@ -670,7 +670,7 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 	}
 	Call * aCall = findOrAddFwdCall( toEntry, fwdCall );
 	LQIO::DOM::Phase* aDOM = getDOM();
-	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::RENDEZVOUS,
+	LQIO::DOM::Call* rendezvousCall = new LQIO::DOM::Call( aDOM->getDocument(), LQIO::DOM::Call::Type::RENDEZVOUS,
 							       getDOM(), toEntry->getDOM(), 
 							       new LQIO::DOM::ConstantExternalVariable(value));
 	aCall->rendezvous(rendezvousCall);
@@ -1224,8 +1224,8 @@ Phase::computeVariance()
 	_variance = elapsedTime();
     } else switch ( Pragma::variance() ) {
 
-	case Pragma::MOL_VARIANCE:
-	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
+	case Pragma::Variance::MOL:
+	    if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC ) {
 		_variance =  mol_phase();
 		break;
 	    } else {
@@ -1233,8 +1233,8 @@ Phase::computeVariance()
 	    }
 	    break;
 
-	case Pragma::STOCHASTIC_VARIANCE:
-	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
+	case Pragma::Variance::STOCHASTIC:
+	    if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC ) {
 		_variance =  stochastic_phase();
 		break;
 	    } else {
@@ -1242,8 +1242,8 @@ Phase::computeVariance()
 	    }
 	    break;
 		
-	case Pragma::DEFAULT_VARIANCE:
-	    if ( phaseTypeFlag() == PHASE_STOCHASTIC ) {
+	case Pragma::Variance::DEFAULT:
+	    if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC ) {
 		_variance =  stochastic_phase();
 	    } else {
 		_variance =  deterministic_phase();
@@ -1528,7 +1528,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 	visits = new LQIO::DOM::ConstantExternalVariable(1.0);
     }
     _call = new ProcessorCall( &_phase, _entry );
-    _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::QUASI_RENDEZVOUS,
+    _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::Type::QUASI_RENDEZVOUS,
 				     _phase.getDOM(), _entry->getDOM(), visits );
     _call->rendezvous( _call_dom );
 }

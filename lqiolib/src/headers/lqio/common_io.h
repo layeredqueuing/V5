@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: common_io.h 14273 2020-12-27 14:47:06Z greg $
+ *  $Id: common_io.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Greg Franks
  */
@@ -114,14 +114,13 @@ namespace LQIO {
 
 	protected:
 	    double invert( const double ) const;
-	    static void init_tables();
 	    static unsigned int get_phase( const LQIO::DOM::Phase * );
 
 	protected:
 	    const ConfidenceIntervals _conf_95;
 	    const ConfidenceIntervals _conf_99;
 
-	    static std::map<const char *, scheduling_type,Common_IO::Compare> scheduling_table;
+	    static std::map<const char *,const scheduling_type,Common_IO::Compare> scheduling_table;
 
 	private:
 	    static std::ostream& printSVNId( std::ostream& output ) { output << "$" << "Id" << "$"; return output; }
@@ -165,13 +164,13 @@ namespace LQIO {
 		
 	    ForPhase& setMaxPhase( const unsigned mp ) { _maxPhase = mp; return *this; }
 	    const unsigned getMaxPhase() const { return _maxPhase; }
-	    ForPhase& setType( const Call::CallType type ) { _type = type; return *this; }
-	    const Call::CallType getType() const { return _type; }
+	    ForPhase& setType( const Call::Type type ) { _type = type; return *this; }
+	    const Call::Type getType() const { return _type; }
 
 	private:
 	    const Call * ia[Phase::MAX_PHASE];
 	    unsigned _maxPhase;
-	    Call::CallType _type;
+	    Call::Type _type;
 	};
 
 	/*

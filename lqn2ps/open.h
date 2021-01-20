@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * open.h	-- Greg Franks
  *
- * $Id: open.h 14328 2021-01-04 02:24:47Z greg $
+ * $Id: open.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef _OPEN_H

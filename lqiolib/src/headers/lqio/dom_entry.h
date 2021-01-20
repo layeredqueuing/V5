@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 14178 2020-12-07 21:16:43Z greg $
+ *  $Id: dom_entry.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -24,31 +24,26 @@ namespace LQIO {
 
 	class Entry : public DocumentObject {
 	public:
-	    class Count {
+	    class any_of {
 	    protected:
 		typedef bool (LQIO::DOM::Phase::*test_fn)() const;
 		
 	    public:
-		Count( test_fn f ) :  _f(f), _count( 0 ) {}
+		any_of( test_fn f ) : _f(f) {}
 		
-		Count& operator()( const LQIO::DOM::Entry * );
-		unsigned int count() const { return _count; }
+		bool operator()( const LQIO::DOM::Entry * ) const;
 
 	    private:
 		const test_fn _f;
-		unsigned int _count;
 	    };
 
-	    template <class Type> class Predicate {
-		typedef bool (Type::*test_fn)() const;
-
-	    public:
-		Predicate<Type>( const test_fn f ) : _f(f) {}
-//		bool operator()( const Type * object ) const { return (object->*_f)(); }
-		bool operator()( const std::pair<unsigned, Type *>& object ) const { return (object.second->*_f)(); }
-	    
+	    struct add_phase_using {
+		typedef double (Entry::*fp)( unsigned int p ) const;
+		add_phase_using( fp f, unsigned int p ) : _f(f), _p(p) {}
+		double operator()( double sum, const Entry * object ) { return sum + (object->*_f)(_p); }
 	    private:
-		const test_fn _f;
+		const fp _f;
+		const unsigned int _p;
 	    };
 
 	private:
@@ -57,14 +52,9 @@ namespace LQIO {
 
 	public:
 
-	    typedef enum EntryType {
-		ENTRY_NOT_DEFINED,
-		ENTRY_STANDARD,
-		ENTRY_ACTIVITY,
-		ENTRY_STANDARD_NOT_DEFINED,
-		ENTRY_ACTIVITY_NOT_DEFINED,
-		ENTRY_DEVICE
-	    } EntryType;
+	    enum class Type { NOT_DEFINED, STANDARD, ACTIVITY, STANDARD_NOT_DEFINED, ACTIVITY_NOT_DEFINED, DEVICE };
+	    enum class Semaphore { NONE, SIGNAL, WAIT };
+	    enum class RWLock { NONE, READ_UNLOCK, READ_LOCK, WRITE_UNLOCK, WRITE_LOCK };
 
 	    /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Structors] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
 
@@ -101,19 +91,19 @@ namespace LQIO {
 	    int getEntryPriorityValue() const;
 	    bool hasEntryPriority() const;
 
-	    bool entrySemaphoreTypeOk(semaphore_entry_type newType);
-	    void setSemaphoreFlag(semaphore_entry_type set);
-	    semaphore_entry_type getSemaphoreFlag() const;
+	    bool entrySemaphoreTypeOk(Entry::Semaphore);
+	    void setSemaphoreFlag(Entry::Semaphore);
+	    Entry::Semaphore getSemaphoreFlag() const;
 
-	    bool entryRWLockTypeOk(rwlock_entry_type newType);
-	    void setRWLockFlag(rwlock_entry_type set);
-	    rwlock_entry_type getRWLockFlag() const;
+	    bool entryRWLockTypeOk(RWLock newType);
+	    void setRWLockFlag(RWLock set);
+	    RWLock getRWLockFlag() const;
 
 	    bool isDefined() const;
 	    bool isStandardEntry() const;
-	    bool entryTypeOk(EntryType newType);
-	    const EntryType getEntryType() const;
-	    void setEntryType(EntryType newType);
+	    bool entryTypeOk(Type newType);
+	    const Type getEntryType() const;
+	    void setEntryType(Type newType);
 
 	    virtual bool hasHistogram() const;
 	    virtual bool hasHistogramForPhase( unsigned ) const;
@@ -250,7 +240,7 @@ namespace LQIO {
 
 	    /* Instance variables */
 
-	    EntryType _type;
+	    Type _type;
 	    std::map<unsigned, Phase*> _phases;
 	    unsigned int _maxPhase;
 	    Task* _task;
@@ -259,8 +249,8 @@ namespace LQIO {
 	    /* Additional Entry Parameters */
 	    ExternalVariable* _openArrivalRate;
 	    ExternalVariable* _entryPriority;
-	    semaphore_entry_type _semaphoreType;
-	    rwlock_entry_type _rwlockType;
+	    Semaphore _semaphoreType;
+	    RWLock _rwlockType;
 	    std::vector<Call *> _forwarding;
 
 	    /* Variables for Activities */

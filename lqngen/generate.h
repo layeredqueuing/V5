@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: generate.h 13477 2020-02-08 23:14:37Z greg $
+ * $Id: generate.h 14381 2021-01-19 18:52:02Z greg $
  *
  */
 
@@ -19,8 +19,6 @@
 #include <lqio/dom_extvar.h>
 #include "lqngen.h"
 #include "randomvar.h"
-
-using namespace std;
 
 namespace LQIO {
     namespace DOM {
@@ -53,12 +51,12 @@ private:
 
     class ProgramManip {
     public:
-	ProgramManip( std::ostream& (*f)(std::ostream&, const LQIO::DOM::Document& d, const int, const string& s ), const LQIO::DOM::Document& d, const int i, const string& s ) : _f(f), _d(d), _i(i), _s(s) {}
+	ProgramManip( std::ostream& (*f)(std::ostream&, const LQIO::DOM::Document& d, const int, const std::string& s ), const LQIO::DOM::Document& d, const int i, const std::string& s ) : _f(f), _d(d), _i(i), _s(s) {}
     private:
-	std::ostream& (*_f)( std::ostream&, const LQIO::DOM::Document&, const int, const string& );
+	std::ostream& (*_f)( std::ostream&, const LQIO::DOM::Document&, const int, const std::string& );
 	const LQIO::DOM::Document& _d;
 	const int _i;
-	const string _s;
+	const std::string _s;
 
 	friend std::ostream& operator<<(std::ostream & os, const ProgramManip& m ) { return m._f(os,m._d,m._i,m._s); }
     };
@@ -286,14 +284,14 @@ private:
     public:
 	AccumulateMultiplicity() : Accumulate() {}
 	void operator()( const LQIO::DOM::Task * );
-	void operator()( const vector<LQIO::DOM::Task *>& );
+	void operator()( const std::vector<LQIO::DOM::Task *>& );
 	void operator()( const LQIO::DOM::Processor * );
     };
 
     class AccumulateDelayServer : public Accumulate {
     public:
 	AccumulateDelayServer() : Accumulate() {}
-	void operator()( const vector<LQIO::DOM::Task *>& );
+	void operator()( const std::vector<LQIO::DOM::Task *>& );
 	void operator()( const LQIO::DOM::Task * );
     };
 
@@ -335,18 +333,18 @@ public:
     Generate& groupize();
     Generate& reparameterize();
 
-    ostream& print( ostream& ) const;
-    ostream& printStatistics( ostream& ) const;
+    std::ostream& print( std::ostream& ) const;
+    std::ostream& printStatistics( std::ostream& ) const;
 
 private:
     LQIO::DOM::Document& getDOM() const { return *_document; }
 
     void populateLayers();
     Generate& generate();
-    LQIO::DOM::Processor * addProcessor( const string&, const scheduling_type sched_flag );
+    LQIO::DOM::Processor * addProcessor( const std::string&, const scheduling_type sched_flag );
     LQIO::DOM::Group * addGroup( LQIO::DOM::Processor * processor, double share );
-    LQIO::DOM::Task * addTask( const string& name, const scheduling_type sched_flag, const vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * processor );
-    LQIO::DOM::Entry * addEntry( const string& name, const RV::Probability& rv );
+    LQIO::DOM::Task * addTask( const std::string& name, const scheduling_type sched_flag, const std::vector<LQIO::DOM::Entry *>& entries, LQIO::DOM::Processor * processor );
+    LQIO::DOM::Entry * addEntry( const std::string& name, const RV::Probability& rv );
     LQIO::DOM::Call * addCall( LQIO::DOM::Entry *, LQIO::DOM::Entry *, const RV::Probability& );
 
     static bool isReferenceTask( const LQIO::DOM::Entity * );
@@ -363,13 +361,13 @@ private:
     void populate();
 
     static std::ostream& printIndent( std::ostream& output, const int i );
-    static std::ostream& printHeader( std::ostream& output, const LQIO::DOM::Document& d, const int i, const string&  );
-    static std::ostream& printResults( std::ostream& output, const LQIO::DOM::Document& d, const int i, const string&  );
+    static std::ostream& printHeader( std::ostream& output, const LQIO::DOM::Document& d, const int i, const std::string&  );
+    static std::ostream& printResults( std::ostream& output, const LQIO::DOM::Document& d, const int i, const std::string&  );
     static void documentObservation( struct document_observation& obs );
 
     static IntegerManip indent( const int i ) { return IntegerManip( &printIndent, i ); }
-    static ProgramManip print_header( const LQIO::DOM::Document& d, const int i, const string& s="" ) { return ProgramManip( &printHeader, d, i, s ); }
-    static ProgramManip print_results( const LQIO::DOM::Document& d, const int i, const string& s="" ) { return ProgramManip( &printResults, d, i, s ); }
+    static ProgramManip print_header( const LQIO::DOM::Document& d, const int i, const std::string& s="" ) { return ProgramManip( &printHeader, d, i, s ); }
+    static ProgramManip print_results( const LQIO::DOM::Document& d, const int i, const std::string& s="" ) { return ProgramManip( &printResults, d, i, s ); }
 
 public:
     static layering_t __task_layering;
@@ -399,7 +397,7 @@ public:
     static std::map<std::string,std::string> __pragma;
 
 protected:
-    static vector<std::string> __random_variables;		/* LQX variable names */
+    static std::vector<std::string> __random_variables;		/* LQX variable names */
 
 private:
     LQIO::DOM::Document * _document;
@@ -411,17 +409,17 @@ private:
     const unsigned int _number_of_clients;
     const unsigned int _number_of_tasks;
 
-    vector<unsigned int> _number_of_tasks_for_layer;	/* set by populateLayers() */
+    std::vector<unsigned int> _number_of_tasks_for_layer;	/* set by populateLayers() */
 
     std::string _comment;
-    vector<vector<LQIO::DOM::Task *> > _task;
-    vector<LQIO::DOM::Entry *> _entry;
-    vector<LQIO::DOM::Processor *> _processor;
-    vector<LQIO::DOM::Call *> _call;
+    std::vector<std::vector<LQIO::DOM::Task *> > _task;
+    std::vector<LQIO::DOM::Entry *> _entry;
+    std::vector<LQIO::DOM::Processor *> _processor;
+    std::vector<LQIO::DOM::Call *> _call;
 
-    ostringstream _program;
+    std::ostringstream _program;
 };
 
 
-inline ostream& operator<<( ostream& output, const Generate& self ) { return self.print( output ); }
+inline std::ostream& operator<<( std::ostream& output, const Generate& self ) { return self.print( output ); }
 #endif

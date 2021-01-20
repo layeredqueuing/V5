@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: entry.h 14381 2021-01-19 18:52:02Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -224,7 +224,7 @@ public:
 
     unsigned int index() const { return _index; }
     unsigned int entryId() const { return _entryId; }
-    phase_type phaseTypeFlag( const unsigned p ) const { return _phase[p].phaseTypeFlag(); }
+    LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned p ) const { return _phase[p].phaseTypeFlag(); }
     double openArrivalRate() const;
     double CV_sqr( const unsigned p ) const { return _phase[p].CV_sqr(); }
     double computeCV_sqr( const unsigned p ) const { return _phase[p].computeCV_sqr(); }
@@ -275,8 +275,8 @@ public:
     virtual bool isProcessorEntry() const { return false; }
     bool isActivityEntry() const { return _entryType == ACTIVITY_ENTRY; }
     bool isStandardEntry() const { return _entryType == STANDARD_ENTRY; }
-    bool isSignalEntry() const { return _semaphoreType == SEMAPHORE_SIGNAL; }
-    bool isWaitEntry() const { return _semaphoreType == SEMAPHORE_WAIT; }
+    bool isSignalEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::SIGNAL; }
+    bool isWaitEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::WAIT; }
     bool isInterlocked( const Entry * ) const;
     bool isReferenceTaskEntry() const;
 	
@@ -288,7 +288,7 @@ public:
     bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
 		
     bool entryTypeOk( const entry_type );
-    bool entrySemaphoreTypeOk( const semaphore_entry_type aType );
+    bool entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType );
     unsigned maxPhase() const { return _phase.size(); }
     unsigned concurrentThreads() const;
     std::set<Entity *>& getServers( const std::set<Entity *>& ) const;	// Called tasks/processors
@@ -372,7 +372,7 @@ private:
     const unsigned _entryId;			/* Gobal entry id. (for chain)	*/
     const unsigned short _index;		/* My index (for mva)		*/
     entry_type _entryType;
-    semaphore_entry_type _semaphoreType;	/* Extra type information	*/
+    LQIO::DOM::Entry::Semaphore _semaphoreType;	/* Extra type information	*/
     requesting_type _calledBy;			/* true if entry referenced.	*/
     double _throughput;				/* Computed throughput.		*/
     double _throughputBound;			/* Type 1 throughput bound.	*/

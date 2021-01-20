@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14335 2021-01-05 04:10:54Z greg $
+ * $Id: lqns.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Command line processing.
  *
@@ -177,9 +177,9 @@ int main (int argc, char *argv[])
 {
     std::string outputFileName = "";
 #if HAVE_GETOPT_LONG
-    LQIO::CommandLine command_line( opts, longopts );
+    LQIO::CommandLine command_line( longopts );
 #else
-    LQIO::CommandLine command_line( opts );
+    LQIO::CommandLine command_line( );
 #endif
 
     unsigned global_error_flag = 0;     /* Error detected anywhere??    */

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14292 2020-12-30 16:29:20Z greg $
+ *  $Id: dom_document.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -35,7 +35,7 @@ namespace LQIO {
 	    typedef enum { AUTOMATIC_INPUT, LQN_INPUT, XML_INPUT, JSON_INPUT, JMVA_INPUT } input_format;
 
 	private:
-	    typedef enum { SET_FALSE, SET_TRUE, NOT_SET } cached;
+	    enum class cached { SET_FALSE, SET_TRUE, NOT_SET };
 
 	private:
 	    Document& operator=( const Document& );
@@ -203,7 +203,7 @@ namespace LQIO {
 
 	    /* Semi-private */
 
-	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::EntryType requisiteType = DOM::Entry::ENTRY_NOT_DEFINED );
+	    static void db_check_set_entry(DOM::Entry* entry, const std::string& toEntryName, DOM::Entry::Type requisiteType = DOM::Entry::Type::NOT_DEFINED );
 	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
 	    static void lqx_parser_trace( FILE * );
 	    static std::string __input_file_name;

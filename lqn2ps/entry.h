@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14348 2021-01-11 20:26:57Z greg $
+ * $Id: entry.h 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -101,7 +101,7 @@ public:
     Entry& owner( const Task * owner ) { _owner = owner; return *this; }
 
     const LQIO::DOM::ExternalVariable & openArrivalRate() const;
-    phase_type phaseTypeFlag( const unsigned p ) const;
+    LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned p ) const;
     const LQIO::DOM::ExternalVariable & Cv_sqr( const unsigned p ) const;
     double Cv_sqr() const;
     bool hasPriority() const;    
@@ -197,9 +197,9 @@ public:
     bool is_w_lock_Entry() const;
     bool is_w_unlock_Entry() const;
 
-    bool entryTypeOk( const LQIO::DOM::Entry::EntryType );
-    bool entrySemaphoreTypeOk( const semaphore_entry_type );
-    bool entryRWLockTypeOk( const rwlock_entry_type );
+    bool entryTypeOk( const LQIO::DOM::Entry::Type );
+    bool entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore );
+    bool entryRWLockTypeOk( const LQIO::DOM::Entry::RWLock );
     unsigned maxPhase() const { return std::accumulate( _phases.begin(), _phases.end(), 1, &max_phase ); }
 
     unsigned countArcs( const callPredicate = nullptr ) const;

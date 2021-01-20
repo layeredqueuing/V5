@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14375 2021-01-18 00:35:36Z greg $
+ * $Id: task.cc 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -25,9 +25,6 @@
 #include <float.h>
 #endif
 #include <limits.h>
-#include <lqio/error.h>
-#include <lqio/input.h>
-#include <lqio/labels.h>
 #include <lqio/dom_activity.h>
 #include <lqio/dom_actlist.h>
 #include <lqio/dom_document.h>
@@ -36,6 +33,9 @@
 #include <lqio/dom_group.h>
 #include <lqio/dom_processor.h>
 #include <lqio/dom_task.h>
+#include <lqio/error.h>
+#include <lqio/input.h>
+#include <lqio/labels.h>
 #include <lqio/srvn_output.h>
 #include "activity.h"
 #include "actlist.h"
@@ -517,7 +517,7 @@ Task::addActivity( const Activity& srcActivity, const unsigned replica )
 	Entry *dstEntry = Entry::find_replica( srcActivity.rootEntry()->name(), replica );
 	dstActivity->rootEntry( dstEntry, nullptr );
 	const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM()))->setStartActivity( dstDOM );
-	if (dstEntry->entryTypeOk(LQIO::DOM::Entry::ENTRY_ACTIVITY)) {
+	if (dstEntry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY)) {
 	    dstEntry->setStartActivity(dstActivity);
 	}
     }
@@ -563,17 +563,20 @@ Task::addPrecedence( ActivityList * aPrecedence )
 Task::root_level_t
 Task::rootLevel() const
 {
-    root_level_t level = IS_NON_REFERENCE;
+    root_level_t level = root_level_t::IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	const requesting_type callType = (*entry)->isCalled();
 	switch ( callType ) {
 
 	case OPEN_ARRIVAL_REQUEST:	/* Root task, but at lower level */
-	    level = HAS_OPEN_ARRIVALS;
+	    level = root_level_t::HAS_OPEN_ARRIVALS;
 	    break;
 
 	case RENDEZVOUS_REQUEST:	/* Non-root task. 		*/
 	case SEND_NO_REPLY_REQUEST:	/* Non-root task. 		*/
+	    return root_level_t::IS_NON_REFERENCE;
+	    break;
+	    
 	case NOT_CALLED:		/* No operation.		*/
 	    break;
 	}
@@ -780,10 +783,10 @@ Task::check() const
 	    LQIO::solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, srcName.c_str(), nEntries(), N_SEMAPHORE_ENTRIES );
 	    rc = false;
 	}
-	if ( !((entries().at(0)->isSignalEntry() && entries().at(1)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
-	       || (entries().at(0)->isWaitEntry() && entries().at(1)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))
-	       || (entries().at(1)->isSignalEntry() && entries().at(0)->entrySemaphoreTypeOk(SEMAPHORE_WAIT))
-	       || (entries().at(1)->isWaitEntry() && entries().at(0)->entrySemaphoreTypeOk(SEMAPHORE_SIGNAL))) ) {
+	if ( !((entries().at(0)->isSignalEntry() && entries().at(1)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
+	       || (entries().at(0)->isWaitEntry() && entries().at(1)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))
+	       || (entries().at(1)->isSignalEntry() && entries().at(0)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::WAIT))
+	       || (entries().at(1)->isWaitEntry() && entries().at(0)->entrySemaphoreTypeOk(LQIO::DOM::Entry::Semaphore::SIGNAL))) ) {
 	    LQIO::solution_error( LQIO::ERR_NO_SEMAPHORE, srcName.c_str() );
 	    rc = false;
 	} else if ( entries().at(0)->isCalled() && !entries().at(1)->isCalled() ) {

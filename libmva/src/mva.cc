@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 14323 2021-01-03 03:49:05Z greg $
+ * $Id: mva.cc 14383 2021-01-20 13:13:16Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -232,10 +232,10 @@ MVA::dimension( const size_t mapMaxOffset )
 
 		L[n][m] = new double * [E+1];
 		U[n][m] = new double * [E+1];
-		P[n][m] = 0;
+		P[n][m] = nullptr;
 
-		L[n][m][0] = 0;
-		U[n][m][0] = 0;
+		L[n][m][0] = nullptr;
+		U[n][m][0] = nullptr;
 		for ( unsigned e = 1; e <= E; ++e ) {
 		    L[n][m][e] = new double [K+1];
 		    U[n][m][e] = new double [K+1];
@@ -303,16 +303,19 @@ MVA::dimension( const size_t mapMaxOffset )
 bool
 MVA::dimension( std::vector<double **>& array, const size_t mapMaxOffset )
 {
+#if 1
+    std::cerr << "MVA::dimension( array, " << mapMaxOffset << ")" << std::endl;
+#endif
     bool rc = false;
     for ( unsigned n = 0; n < mapMaxOffset; ++n ) {
 	for ( unsigned m = 1; m <= M; ++m ) {
 	    const unsigned J = Q[m]->marginalProbabilitiesSize();
 	    if ( J != maxP[m] && array[n][m] ) {	// Size change
 		delete [] array[n][m];
-		array[n][m] = 0;
+		array[n][m] = nullptr;
 		rc = true;
 	    }
-	    if ( J != 0 && array[n][m] == 0 ) {
+	    if ( J != 0 && array[n][m] == nullptr ) {
 		array[n][m] = new double [J+1];
 		for ( unsigned j = 0; j <= J; ++j ) {
 		    array[n][m][j] = 0.0;

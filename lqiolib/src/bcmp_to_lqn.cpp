@@ -59,7 +59,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Class::
     DOM::Entry * entry = new DOM::Entry( &lqn(), k.first );
     std::vector<DOM::Entry *> entries;
     entries.push_back( entry );
-    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::ENTRY_STANDARD);
+    LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
     client_entries().insert( entry_item( k.first, entry ) );
 
     /* Add service time */
@@ -98,7 +98,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	std::ostringstream name;
 	name << m.first << "_" << e;	/* Station name, index for class */
 	DOM::Entry * entry = new DOM::Entry( &lqn(), name.str() );
-	LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::ENTRY_STANDARD);
+	LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
 	server_entries().insert( entry_item(m.first + k->first, entry) );
 
 	/* Add service time */
@@ -136,7 +136,7 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Class::p
 	DOM::Entry * server_entry = server_iter->second;
 
 	LQIO::DOM::Phase * client_phase = client_entry->getPhase(1);
-	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::RENDEZVOUS, client_phase, server_entry );
+	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::Type::RENDEZVOUS, client_phase, server_entry );
 	const BCMP::Model::Station::Demand& demand = m->second.demandAt(k.first);
 	call->setCallMean( const_cast<DOM::ExternalVariable *>(demand.visits()) );
 	client_phase->addCall(call);

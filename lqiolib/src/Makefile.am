@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14331 2021-01-04 20:40:05Z greg $
+# $Id: Makefile.am 14380 2021-01-18 19:43:03Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -53,7 +53,7 @@ liblqio_la_LIBADD += -lexpat
 endif
 
 liblqio_la_CPPFLAGS = -I ../../lqx/libsrc/headers -I headers/lqio
-liblqio_la_CXXFLAGS = -Wall -Wno-unknown-pragmas
+liblqio_la_CXXFLAGS = -std=c++11 -Wall -Wno-unknown-pragmas
 liblqio_la_LDFLAGS =  -no-undefined -version-info 0:1:0
 
 # Force rename of variables.  For FLEX -- should check. :-)

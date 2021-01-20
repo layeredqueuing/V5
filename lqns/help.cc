@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: help.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 #include <config.h>
@@ -360,7 +360,6 @@ Help::initialize()
 std::ostream&
 Help::print( std::ostream& output ) const
 {
-    Pragma::initialize();
     preamble( output );
     output << bold( *this, "Lqns" ) << " reads its input from " << filename( *this, "filename" ) << ", specified at the" << std::endl
 	   << "command line if present, or from the standard input otherwise.  By" << std::endl
@@ -418,8 +417,8 @@ Help::print( std::ostream& output ) const
 
 
     dl_begin( output );
-    const std::map<std::string, Pragma::fptr>& pragmas = Pragma::getPragmas();
-    for ( std::map<std::string, Pragma::fptr>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma  ) {
+    const std::map<const std::string, const Pragma::fptr>& pragmas = Pragma::getPragmas();
+    for ( std::map<const std::string, const Pragma::fptr>::const_iterator pragma = pragmas.begin(); pragma != pragmas.end(); ++pragma  ) {
 	print_pragma( output, pragma->first );
     }
     dl_end( output );
@@ -1890,7 +1889,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14319 2021-01-02 04:11:00Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14381 2021-01-19 18:52:02Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2187,7 +2186,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14319 2021-01-02 04:11:00Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14381 2021-01-19 18:52:02Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

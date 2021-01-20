@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: entity.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -117,7 +117,7 @@ Entity::configure( const unsigned nSubmodels )
 {
     std::for_each( entries().begin(), entries().end(), Exec1<Entry,unsigned>( &Entry::configure, nSubmodels ) );
     if ( std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasDeterministicPhases ) ) ) attributes.deterministic = 1;
-    if ( !Pragma::variance(Pragma::NO_VARIANCE)
+    if ( !Pragma::variance(Pragma::Variance::NONE)
 	 && ((nEntries() > 1 && Pragma::entry_variance())
 	     || std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasVariance ) )) ) attributes.variance = 1;
     _maxPhase = (*std::max_element( entries().begin(), entries().end(), Entry::max_phase ))->maxPhase();
@@ -376,7 +376,7 @@ Entity::markovOvertaking() const
 {
     return (bool)( hasSecondPhase()
 		   && !isInfinite()
-		   && Pragma::overtaking( Pragma::MARKOV_OVERTAKING ) );
+		   && Pragma::overtaking( Pragma::Overtaking::MARKOV ) );
 }
 
 
@@ -611,7 +611,7 @@ Entity::initServerStation( Submodel& submodel )
 	setInterlock( submodel );
     }
 
-    if ( hasSynchs() && !Pragma::threads(Pragma::NO_THREADS) ) {
+    if ( hasSynchs() && !Pragma::threads(Pragma::Threads::NONE) ) {
 	joinOverlapFactor( submodel );
     }
     

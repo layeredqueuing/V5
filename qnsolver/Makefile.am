@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile.am 14321 2021-01-02 15:35:47Z greg $
+# $Id: Makefile.am 14381 2021-01-19 18:52:02Z greg $
 #
 #----------------------------------------------------------------------
 
@@ -11,7 +11,7 @@ noinst_HEADERS	= bcmpmodel.h bcmpresult.h
 
 #EXTRA_DIST	= qnsolver.1 
 
-qnsolver_CXXFLAGS= -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
+qnsolver_CXXFLAGS= -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
 qnsolver_LDADD	= -L../lqiolib/src/.libs -llqio -L../libmva/src/.libs -lmva
 qnsolver_LDFLAGS= @STATIC@
 #man1_MANS	= qnsolver.1

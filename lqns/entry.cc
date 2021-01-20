@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: entry.cc 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,7 +62,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, const unsigned id, const unsigned index )
       _entryId(id),
       _index(index+1),
       _entryType(ENTRY_NOT_DEFINED),
-      _semaphoreType(dom ? dom->getSemaphoreFlag() : SEMAPHORE_NONE),
+      _semaphoreType(dom ? dom->getSemaphoreFlag() : LQIO::DOM::Entry::Semaphore::NONE),
       _calledBy(NOT_CALLED),
       _throughput(0.0),
       _throughputBound(0.0),
@@ -480,9 +480,9 @@ Entry::entryTypeOk( const entry_type aType )
  */
 
 bool
-Entry::entrySemaphoreTypeOk( const semaphore_entry_type aType )
+Entry::entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType )
 {
-    if ( _semaphoreType == SEMAPHORE_NONE ) {
+    if ( _semaphoreType == LQIO::DOM::Entry::Semaphore::NONE ) {
 	_semaphoreType = aType;
     } else if ( _semaphoreType != aType ) {
 	LQIO::input_error2( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name().c_str() );
@@ -1703,9 +1703,9 @@ void
 Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
 {
     /* Make sure this is one of the supported call types */
-    if (domCall->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY &&
-	domCall->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
-	domCall->getCallType() != LQIO::DOM::Call::QUASI_RENDEZVOUS) {
+    if (domCall->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY &&
+	domCall->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS &&
+	domCall->getCallType() != LQIO::DOM::Call::Type::QUASI_RENDEZVOUS) {
 	abort();
     }
 
@@ -1719,9 +1719,9 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
     if ( !entryTypeOk(STANDARD_ENTRY) ) {
 	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name().c_str() );
     } else if ( map_entry_name( to_entry_name, toEntry, true ) ) {
-	if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS) {
+	if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
 	    rendezvous( toEntry, p, domCall );
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY ) {
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
 	    sendNoReply( toEntry, p, domCall );
 	}
     }

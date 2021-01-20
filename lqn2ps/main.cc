@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14337 2021-01-05 11:32:10Z greg $
+ * $Id: main.cc 14385 2021-01-20 18:48:57Z greg $
  */
 
 #include "lqn2ps.h"
@@ -10,13 +10,7 @@
 #include <cmath>
 #include <cstring>
 #include <sstream>
-#if HAVE_IEEEFP_H
-#include <ieeefp.h>
-#endif
 #include <libgen.h>
-#if !HAVE_GETSUBOPT
-#include <lqio/getsbopt.h>
-#endif
 #include <lqio/dom_object.h>
 #include <lqio/dom_pragma.h>
 #include "layer.h"
@@ -326,9 +320,8 @@ Options::find_if( const char** values, const std::string& s )
     for ( ; values[i] != nullptr; ++i ) {
 	if ( s == values[i] ) return i;
     }
-    return i;
+    return i+1;
 }
-
 
 bool
 process_special( const char * p, LQIO::DOM::Pragma& pragmas )

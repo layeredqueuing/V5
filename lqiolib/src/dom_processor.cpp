@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_processor.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -7,6 +7,7 @@
  */
 
 #include <algorithm>
+#include <numeric>
 #include "dom_document.h"
 #include "dom_processor.h"
 #include "dom_group.h"
@@ -22,8 +23,8 @@ namespace LQIO {
 	Processor::Processor(const Document * document, const std::string& name, scheduling_type scheduling_flag,
 			     ExternalVariable* n_cpus, ExternalVariable* n_replicas )
 	    : Entity(document, name, scheduling_flag, n_cpus, n_replicas ),
-	      _processorRate(NULL),
-	      _processorQuantum(NULL),
+	      _processorRate(nullptr),
+	      _processorQuantum(nullptr),
 	      _taskList(),
 	      _groupList(),
 	      _resultUtilization(0.0),
@@ -70,7 +71,7 @@ namespace LQIO {
 	void Processor::setRateValue(const double value)
 	{
 	    /* Store the new processor rate */
-	    if ( _processorRate == NULL ) {
+	    if ( _processorRate == nullptr ) {
 		_processorRate = new ConstantExternalVariable( value );
 	    } else {
 		_processorRate->set(value);
@@ -101,7 +102,7 @@ namespace LQIO {
 	void Processor::setQuantumValue(const double value )
 	{
 	    /* Store the new CPU Time Quantum */
-	    if ( _processorQuantum == NULL ) {
+	    if ( _processorQuantum == nullptr ) {
 		_processorQuantum = new ConstantExternalVariable( value );
 	    } else {
 		_processorQuantum->set(value);
@@ -157,11 +158,8 @@ namespace LQIO {
 	double Processor::computeResultUtilization()
 	{
 	    if ( getResultUtilization() == 0 || _taskList.size() == 1 ) {
-		double sum = for_each( _taskList.begin(), _taskList.end(), Sum<Task>( &Task::computeResultProcessorUtilization ) ).sum();
-		double sum_var = for_each( _taskList.begin(), _taskList.end(), ConstSum<Task>( &Task::getResultProcessorUtilizationVariance ) ).sum();
-
-		setResultUtilization( sum );
-		setResultUtilizationVariance( sum_var );
+		setResultUtilization( std::accumulate( _taskList.begin(), _taskList.end(), 0.0, add_using<Task>( &Task::computeResultProcessorUtilization ) ) );
+		setResultUtilizationVariance( std::accumulate( _taskList.begin(), _taskList.end(), 0., add_using_const<Task>( &Task::getResultProcessorUtilizationVariance ) ) );
 	    }
 	    return getResultUtilization();
 	}

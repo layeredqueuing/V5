@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 13761 2020-08-12 02:14:55Z greg $
+ * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 #include <parasol.h>
@@ -139,7 +139,7 @@ Activity::service() const
 double
 Activity::configure()
 {
-    const double n_calls = tinfo.configure( _dom, (bool)(type() == PHASE_STOCHASTIC) );
+    const double n_calls = tinfo.configure( _dom, (bool)(type() == LQIO::DOM::Phase::Type::STOCHASTIC) );
     double slice;
     
     _active = 0;
@@ -158,7 +158,7 @@ Activity::configure()
 	}
     }
 
-    if ( type() == PHASE_DETERMINISTIC ) {
+    if ( type() == LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	slice = service() / (n_calls + 1);	/* Spread calls evenly */
     } else if ( n_calls > 0.0 ) {
 	slice = service() / n_calls;		/* Geometric distribution */
@@ -417,9 +417,9 @@ Activity::add_calls()
 	/* Make sure all is well */
 	if (!destEntry) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::RENDEZVOUS && !destEntry->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !destEntry->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
 	    continue;
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) {
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) {
 	    continue;
 	} else if ( !destEntry->task()->is_reference_task()) {
 	    tinfo.store_target_info( destEntry, domCall );
@@ -484,13 +484,13 @@ Activity::add_activity_lists()
 			
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( joinList->getListType() ) {
-	    case LQIO::DOM::ActivityList::JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::JOIN:
 		localActivityList = nextActivity->act_join_item( joinList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_JOIN:
 		localActivityList = nextActivity->act_and_join_list( localActivityList, joinList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_JOIN:
 		localActivityList = nextActivity->act_or_join_list( localActivityList, joinList );
 		break;
 	    default:
@@ -522,16 +522,16 @@ Activity::add_activity_lists()
 			
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:	
+	    case LQIO::DOM::ActivityList::Type::FORK:	
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_FORK:
 		localActivityList = nextActivity->act_and_fork_list( localActivityList, forkList  );
 		break;
-	    case LQIO::DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_FORK:
 		localActivityList = nextActivity->act_or_fork_list( localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::REPEAT_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::REPEAT:
 		localActivityList = nextActivity->act_loop_list( localActivityList, forkList );
 		break;
 	    default:
@@ -571,7 +571,7 @@ void
 Activity::print_debug_info()
 {
 	
-    (void) fprintf( stddbg, "----------\n%s, phase %d %s\n", name(), _phase, type() == PHASE_DETERMINISTIC ? "Deterministic" : "" );
+    (void) fprintf( stddbg, "----------\n%s, phase %d %s\n", name(), _phase, type() == LQIO::DOM::Phase::Type::DETERMINISTIC ? "Deterministic" : "" );
 
     (void) fprintf( stddbg, "\tservice: %5.2g {%5.2g, %5.2g}\n", service(), _shape, _scale );
 

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 14216 2020-12-14 20:19:51Z greg $
+ * $Id: actlist.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -51,6 +51,9 @@ class ActivityList
     friend class AndOrJoinActivityList;
     friend class AndOrForkActivityList;
 
+protected:
+    enum struct Type { SEQUENCE, REPEAT, AND_FORK, AND_JOIN, AND_SYNCH, OR_FORK, OR_JOIN };
+
 public:
     static void act_connect(ActivityList *, ActivityList *);
 
@@ -59,7 +62,6 @@ private:
     ActivityList& operator=( const ActivityList& );
 
 public:
-    typedef enum { SEQUENCE, REPEAT, AND_FORK, AND_JOIN, AND_SYNCH, OR_FORK, OR_JOIN } activity_type;
 
     ActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist );
     virtual ~ActivityList();
@@ -67,14 +69,13 @@ public:
     virtual ActivityList* clone() const = 0;   
     /* Instance Variable Access */
 	
-    virtual activity_type myType() const = 0;
     virtual ActivityList& add( Activity * anActivity ) = 0;
     virtual unsigned size() const = 0;
 
-    const Task * owner() const { return myOwner; }
+    const Task * owner() const { return _owner; }
     ActivityList& setOwner( const Task * owner );
     virtual ActivityList& resetLevel() { return *this; }
-    const LQIO::DOM::ActivityList * getDOM() const { return myDOM; }
+    const LQIO::DOM::ActivityList * getDOM() const { return _dom; }
 
     virtual ActivityList& label() { return *this; }
 
@@ -114,14 +115,15 @@ public:
     virtual ActivityList& prev( ActivityList * );	/* Link to Join list		*/
 
 protected:
+    virtual Type myType() const = 0;
     virtual Point findSrcPoint() const = 0;
     virtual Point findDstPoint() const = 0;
 
     virtual const char * typeStr() const { return " "; }
 
 private:
-    const Task * myOwner;
-    const LQIO::DOM::ActivityList * myDOM;
+    const Task * _owner;
+    const LQIO::DOM::ActivityList * _dom;
 };
 
 inline std::ostream&  operator<<( std::ostream& output, const ActivityList& self ) { self.draw( output ); return output; }
@@ -170,7 +172,7 @@ class ForkActivityList : public SequentialActivityList
 public:
     ForkActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist );
     ForkActivityList * clone() const;
-    virtual activity_type myType() const { return SEQUENCE; }
+    virtual Type myType() const { return Type::SEQUENCE; }
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
     virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
@@ -204,7 +206,7 @@ public:
     JoinActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist );
     JoinActivityList * clone() const;
 	
-    virtual activity_type myType() const { return SEQUENCE; }
+    virtual Type myType() const { return Type::SEQUENCE; }
 
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
     virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
@@ -308,7 +310,7 @@ public:
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
     virtual OrForkActivityList& add( Activity * anActivity );
-    virtual activity_type myType() const { return OR_FORK; }
+    virtual Type myType() const { return Type::OR_FORK; }
 
     virtual OrForkActivityList& moveSrcTo( const Point& src, Activity * anActivity );
     virtual OrForkActivityList& moveDstTo( const Point& src, Activity * anActivity );
@@ -342,7 +344,6 @@ public:
     AndForkActivityList * clone() const;
 
     virtual AndForkActivityList& add( Activity * anActivity );
-    virtual activity_type myType() const { return AND_FORK; }
 
     AndForkActivityList& quorumCount (int quorumCount) { myQuorumCount = quorumCount; return *this; }
     int quorumCount () const { return myQuorumCount; }
@@ -353,6 +354,7 @@ public:
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
 
 protected:
+    virtual Type myType() const { return Type::AND_FORK; }
     virtual const char * typeStr() const { return "&"; }
 
 private:
@@ -404,7 +406,6 @@ public:
 	{}
     OrJoinActivityList * clone() const;
 
-    virtual activity_type myType() const { return OR_JOIN; }
     virtual OrJoinActivityList& add( Activity * anActivity );
 
     virtual size_t findActivityChildren( std::deque<const Activity *>&, std::deque<const AndForkActivityList *>&, Entry *, size_t, const unsigned, const double ) const;
@@ -413,6 +414,7 @@ public:
 
 
 protected:
+    virtual Type myType() const { return Type::OR_JOIN; }
     virtual const char * typeStr() const { return "+"; }
 };
 
@@ -421,15 +423,15 @@ protected:
 class AndJoinActivityList : public AndOrJoinActivityList
 {
     friend class AndForkActivityList;
+    enum struct JoinType { NOT_DEFINED, INTERNAL_FORK_JOIN, SYNCHRONIZATION_POINT };
 
 public:
-    typedef enum { JOIN_NOT_DEFINED, INTERNAL_FORK_JOIN, SYNCHRONIZATION_POINT } join_type;
 
     AndJoinActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist );
     AndJoinActivityList * clone() const;
 
     ~AndJoinActivityList();
-    ActivityList& resetLevel() { _depth = 0; return *this; }
+    AndJoinActivityList& resetLevel() { _depth = 0; return *this; }
 
     int quorumCount() const;
     AndJoinActivityList& quorumCount( int );
@@ -438,8 +440,8 @@ public:
     virtual double aggregate( Entry *, const unsigned, unsigned&, const double, std::deque<const Activity *>&, aggregateFunc );
     virtual unsigned setChain( std::deque<const Activity *>&, unsigned, unsigned, const Entity * aServer, const callPredicate aFunc ) const;
 
-    bool isSynchPoint() const { return _joinType == SYNCHRONIZATION_POINT; }
-    bool isInternalForkJoin() const { return _joinType == INTERNAL_FORK_JOIN; }
+    bool isSynchPoint() const { return _joinType == JoinType::SYNCHRONIZATION_POINT; }
+    bool isInternalForkJoin() const { return _joinType == JoinType::INTERNAL_FORK_JOIN; }
 
     double joinDelay() const;
     double joinVariance() const;
@@ -451,22 +453,21 @@ public:
     virtual AndJoinActivityList& translateY( const double );
     virtual AndJoinActivityList& label();
 
-    virtual activity_type myType() const { return AND_JOIN; }
-
     virtual const AndJoinActivityList& draw( std::ostream& output ) const;
 
 protected:
+    virtual Type myType() const { return Type::AND_JOIN; }
     virtual const char * typeStr() const;
 
 private:
     bool addToEntryList( unsigned i, Entry * anEntry ) const;
-    bool joinType( const join_type );
+    bool joinType( const JoinType );
     const AndForkActivityList * forkList() const { return _forkList; }
 
 private:
     Label * _label;
     std::string _typeStr;
-    mutable join_type _joinType;		/* Barrier synch point.	*/
+    mutable JoinType _joinType;		/* Barrier synch point.	*/
     const AndForkActivityList * _forkList;
 
     mutable size_t _depth;
@@ -484,7 +485,6 @@ public:
     virtual RepeatActivityList& add( Activity * anActivity );
 	
     const std::vector<Activity *> & activityList() const { return _activityList; }
-    virtual activity_type myType() const { return REPEAT; }
 
     virtual unsigned size() const;
     virtual size_t findChildren( CallStack&, const unsigned, std::deque<const Activity *>& ) const;
@@ -511,6 +511,7 @@ public:
     virtual const RepeatActivityList& draw( std::ostream& ) const;
 
 protected:
+    virtual Type myType() const { return Type::REPEAT; }
     virtual const char * typeStr() const { return "*"; }
 
     virtual Point findSrcPoint() const;

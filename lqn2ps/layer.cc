@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14330 2021-01-04 11:51:36Z greg $
+ * $Id: layer.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -746,7 +746,7 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 
     /* This is a server, so reset it. */
 
-    dom_entry->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );	/* Force type to standard */
+    dom_entry->setEntryType( LQIO::DOM::Entry::Type::STANDARD );	/* Force type to standard */
     const std::map<unsigned, LQIO::DOM::Phase*>& phases = dom_entry->getPhaseList();
     for_each( phases.begin(), phases.end(), ResetServerPhaseParameters( document->hasResults() ) );
     return entry;
@@ -832,7 +832,7 @@ Layer::printSubmodel( std::ostream& output ) const
 
     if ( n_clients > 0 ) {
 	output << "Clients: " << std::endl;
-	for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
+	for ( std::vector<Entity *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	    (*client)->print( output );
 	}
     }

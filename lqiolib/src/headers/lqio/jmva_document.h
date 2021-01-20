@@ -107,9 +107,7 @@ namespace BCMP {
 	std::ostream& print( std::ostream& ) const;
 	
     private:
-	static void init_tables();
-
-	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
+	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
 	
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
 	static void end( void *data, const XML_Char *el );
@@ -150,6 +148,43 @@ namespace BCMP {
 	void createOpenClass( const XML_Char ** attributes );
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
+
+	class what_if {
+	private:
+	    class has_customers {
+	    public:
+		has_customers( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Class::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+	    
+	    class has_var {
+	    public:
+		has_var( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Station::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+	    
+	    class has_service_time {
+	    public:
+		has_service_time( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Station::pair_t& c2 ) const;
+		bool operator()( const Model::Station::Demand::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+	    
+	public:
+	    what_if( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
+	    void operator()( const std::string& ) const;
+	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
+	    const Model::Class::map_t& classes() const { return _model.classes(); }
+	private:
+	    std::ostream& _output;
+	    const BCMP::Model _model;
+	};
 
 	
 
@@ -208,18 +243,11 @@ namespace BCMP {
 	std::map<std::string,LQIO::DOM::ExternalVariable *> _class_vars;
 	std::map<std::string,LQIO::DOM::ExternalVariable *> _station_vars;
 
-	static std::set<const XML_Char *,attribute_table_t> ReferenceStation_table;
-	static std::set<const XML_Char *,attribute_table_t> algParams_table;
-	static std::set<const XML_Char *,attribute_table_t> closedclass_table;
-	static std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
-	static std::set<const XML_Char *,attribute_table_t> demand_table;
-	static std::set<const XML_Char *,attribute_table_t> document_table;
-	static std::set<const XML_Char *,attribute_table_t> measure_table;
-	static std::set<const XML_Char *,attribute_table_t> null_table;
-	static std::set<const XML_Char *,attribute_table_t> openclass_table;
-	static std::set<const XML_Char *,attribute_table_t> parameter_table;
-	static std::set<const XML_Char *,attribute_table_t> station_table;
-	static std::set<const XML_Char *,attribute_table_t> whatIf_table;
+	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
+	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
+	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> demand_table;
+	static const std::set<const XML_Char *,attribute_table_t> measure_table;
+	static const std::set<const XML_Char *,attribute_table_t> null_table;
 	
 	static const XML_Char * XClass;
 	static const XML_Char * XReferenceStation;

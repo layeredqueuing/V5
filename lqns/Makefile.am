@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
+# $Id: Makefile.am 14381 2021-01-19 18:52:02Z greg $
 #
 #----------------------------------------------------------------------
 
@@ -21,7 +21,7 @@ noinst_HEADERS	= activity.h actlist.h call.h dim.h entity.h entry.h entrythread.
 
 EXTRA_DIST	= lqns.1 
 
-lqns_CXXFLAGS   = -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
+lqns_CXXFLAGS   = -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqns_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio  -L../libmva/src/.libs -lmva
 lqns_LDFLAGS	= @STATIC@
 man1_MANS	= lqns.1

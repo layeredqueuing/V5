@@ -1,6 +1,6 @@
 # Makefile for .
 # Copyright (C) 2003 Greg Franks <rgfranks@alumni.uwaterloo.ca>
-# $Id: Makefile.am 14249 2020-12-24 05:12:09Z greg $
+# $Id: Makefile.am 14381 2021-01-19 18:52:02Z greg $
 # ----------------------------------------------------------------------
 ACLOCAL_AMFLAGS=-I ../config 
 SUBDIRS		= 
@@ -27,7 +27,7 @@ noinst_HEADERS 	= actlayer.h activity.h actlist.h arc.h call.h element.h entity.
 
 EXTRA_DIST	= lqn2ps.1 
 
-lqn2ps_CXXFLAGS = -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
+lqn2ps_CXXFLAGS = -std=c++11 -Wall -Wno-parentheses -Wno-switch -Wno-unknown-pragmas -Wno-overloaded-virtual
 lqn2ps_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio 
 lqn2ps_LDFLAGS	= @STATIC@
 

@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 14343 2021-01-06 02:03:12Z greg $
+ * $Id: actlist.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 
@@ -69,8 +69,8 @@ bool ActivityList::first = true;
 /*               Activity Lists -- Abstract Superclass                  */
 /* -------------------------------------------------------------------- */
 
-ActivityList::ActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom_activitylist )
-    : myOwner(owner), myDOM(dom_activitylist) 
+ActivityList::ActivityList( const Task * owner, const LQIO::DOM::ActivityList * dom )
+    : _owner(owner), _dom(dom) 
 {
     if ( owner ) {
 	const_cast<Task *>(owner)->addPrecedence(this);
@@ -85,7 +85,7 @@ ActivityList::~ActivityList()
 ActivityList&
 ActivityList::setOwner( const Task * owner ) 
 {
-    myOwner = owner;
+    _owner = owner;
     return *this;
 }
 
@@ -1291,7 +1291,7 @@ AndJoinActivityList::AndJoinActivityList( const Task * owner, const LQIO::DOM::A
     : AndOrJoinActivityList( owner, dom_activitylist ),
       _label(nullptr),
       _typeStr(),
-      _joinType(JOIN_NOT_DEFINED),
+      _joinType(JoinType::NOT_DEFINED),
       _forkList(nullptr),
       _depth(0)
 {
@@ -1336,9 +1336,9 @@ AndJoinActivityList::add( Activity * anActivity )
 
 
 bool
-AndJoinActivityList::joinType( const join_type aType ) 
+AndJoinActivityList::joinType( const JoinType aType ) 
 {
-    if ( _joinType == JOIN_NOT_DEFINED ) {
+    if ( _joinType == JoinType::NOT_DEFINED ) {
 	_joinType = aType;
 	return true;
     } else {
@@ -1417,13 +1417,13 @@ AndJoinActivityList::findActivityChildren( std::deque<const Activity *>& activit
 	    for ( std::deque<const AndForkActivityList *>::const_reverse_iterator fork_list = forkStack.rbegin(); fork_list != forkStack.rend() && forkList() == nullptr; ++fork_list ) {
 		if ( resultSet.find( *fork_list ) == resultSet.end() ) continue;
 	    
-		if ( !const_cast<AndJoinActivityList *>(this)->joinType( INTERNAL_FORK_JOIN  ) ) {
+		if ( !const_cast<AndJoinActivityList *>(this)->joinType( JoinType::INTERNAL_FORK_JOIN  ) ) {
 		    throw bad_internal_join( *this );
 		}
 		const_cast<AndForkActivityList *>(*fork_list)->myJoinList = this;		/* Random choice :-) */
 		const_cast<AndJoinActivityList *>(this)->_forkList = *fork_list;
 	    }
-	} else if ( !const_cast<AndJoinActivityList *>(this)->joinType( SYNCHRONIZATION_POINT ) ) {
+	} else if ( !const_cast<AndJoinActivityList *>(this)->joinType( JoinType::SYNCHRONIZATION_POINT ) ) {
 	    throw bad_internal_join( *this );
 	}
     }

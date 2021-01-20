@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14348 2021-01-11 20:26:57Z greg $
+ * $Id: lqn2ps.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Command line processing.
  *
@@ -194,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-11 15:26:57 -0500 (Mon, 11 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-19 13:52:02 -0500 (Tue, 19 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -792,6 +792,17 @@ lqn2ps( int argc, char *argv[] )
 	    std::cerr << LQIO::io_vars.lq_toolname << ": aggregating entries to tasks with " 
 		 << Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output." << std::endl;
 	}
+#if defined(QNAP_OUTPUT)
+	if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP ) {
+	    Flags::squish_names		= true;
+	}
+#endif
+#if defined(QNAP_OUTPUT) || defined(PMIF_OUTPUT)
+    } else if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP || Flags::print[OUTPUT_FORMAT].value.i == FORMAT_PMIF ) {
+	std::cerr << LQIO::io_vars.lq_toolname << ": -Q<submodel> must be used with the "
+		  <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output format." << std::endl;
+	exit( 1 );
+#endif
     }
 
     if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN && !partial_output() ) {

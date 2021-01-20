@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14348 2021-01-11 20:26:57Z greg $
+ * $Id: model.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -982,12 +982,12 @@ Model::topologicalSort()
 
     unsigned int i = 1;			/* Client path number */
     for ( std::set<Task *>::const_iterator task = Task::__tasks.begin(); task != Task::__tasks.end(); ++task ) {
-	if ( (*task)->rootLevel() == Task::IS_NON_REFERENCE 
+	if ( (*task)->rootLevel() == Task::root_level_t::IS_NON_REFERENCE 
 	     || (Flags::client_tasks != nullptr && regex_match( (*task)->name(), *Flags::client_tasks ) ) ) continue;
 
 	try {
-	    CallStack callStack;
-	    if ( (*task)->rootLevel() == Task::HAS_OPEN_ARRIVALS ) callStack.push_back( nullptr );
+	    CallStack callStack;	/* Open arrivals start at level 1 */
+	    if ( (*task)->rootLevel() == Task::root_level_t::HAS_OPEN_ARRIVALS ) callStack.push_back( nullptr );
 	    max_depth = std::max( (*task)->findChildren( callStack, i ), max_depth );
 	}
 	catch( const Call::cycle_error& error ) {
@@ -1965,6 +1965,10 @@ Model::printXML( std::ostream& output ) const
     _document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Don't output LQX code if running. */
     return output;
 }
+
+
+
+
 
 /*
  * Print out one layer at at time.  Used by most graphical output routines.

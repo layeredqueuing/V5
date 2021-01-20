@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14379 2021-01-18 14:38:37Z greg $
+ * $Id: qnap2_document.cpp 14384 2021-01-20 18:46:35Z greg $
  *
  * Read in XML input files.
  *
@@ -36,28 +36,28 @@
 
 namespace BCMP {
 
-    std::map<scheduling_type,std::string> QNAP2_Document::__scheduling_str;
-    std::map<int,QNAP2_Document::getObservations::f> QNAP2_Document::getObservations::__key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
+    std::map<scheduling_type,std::string> QNAP2_Document::__scheduling_str = {
+	{ SCHEDULE_CUSTOMER,"infinite" },
+	{ SCHEDULE_DELAY,   "infinite" },
+	{ SCHEDULE_FIFO,    "fifo" },
+	{ SCHEDULE_PPR,     "prior" },
+	{ SCHEDULE_PS, 	    "ps" }
+    };
+	
+    std::map<int,QNAP2_Document::getObservations::f> QNAP2_Document::getObservations::__key_map = {
+	{ KEY_THROUGHPUT,	    &getObservations::get_throughput },
+	{ KEY_UTILIZATION,	    &getObservations::get_utilization },
+	{ KEY_PROCESSOR_UTILIZATION,&getObservations::get_utilization },
+	{ KEY_PROCESSOR_WAITING,    &getObservations::get_waiting_time },
+	{ KEY_SERVICE_TIME,	    &getObservations::get_service_time },
+	{ KEY_WAITING,		    &getObservations::get_waiting_time }
+    };	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
+
 
     QNAP2_Document::QNAP2_Document( const std::string& input_file_name, const BCMP::Model& model ) :
 	_input_file_name(input_file_name), _model(model)
     {
-	if ( __scheduling_str.empty() ) {
-	    __scheduling_str[SCHEDULE_CUSTOMER] = "infinite";
-	    __scheduling_str[SCHEDULE_DELAY]    = "infinite";
-	    __scheduling_str[SCHEDULE_FIFO]     = "fifo";
-	    __scheduling_str[SCHEDULE_PPR]      = "prior";
-	    __scheduling_str[SCHEDULE_PS]       = "ps";
-
-	    getObservations::__key_map[KEY_THROUGHPUT]		    = &getObservations::get_throughput;
-	    getObservations::__key_map[KEY_UTILIZATION]		    = &getObservations::get_utilization;
-	    getObservations::__key_map[KEY_PROCESSOR_UTILIZATION]   = &getObservations::get_utilization;
-	    getObservations::__key_map[KEY_PROCESSOR_WAITING]	    = &getObservations::get_waiting_time;
-	    getObservations::__key_map[KEY_SERVICE_TIME]	    = &getObservations::get_service_time;
-	    getObservations::__key_map[KEY_WAITING]		    = &getObservations::get_waiting_time;
-	}
     }
-
 
     /*
      * "&" is a comment.
@@ -306,8 +306,8 @@ namespace BCMP {
 	case Model::Station::MULTISERVER:
 	    _output << qnap2_statement( "type=multiple(" + to_unsigned(station.copies()) + ")" ) << std::endl;
 	    break;
-	default:
-	    abort();
+	case Model::Station::NOT_DEFINED:
+	    throw std::range_error( "QNAP2_Document::printStation::operator(): Undefined station type." );
 	}
 	if ( station.type() != Model::Station::CUSTOMER ) {
 
@@ -591,8 +591,14 @@ namespace BCMP {
     {
 	std::string result;
 	std::string comment;
+	/* Go through the references tasks and try to find who calls this entry */
+	/* This may have to be done at by lqn2ps */
 	if ( stations().find( name ) != stations().end() ) {
-	    result = "mresponse(" + name + ")-mservice(" + name + ")";	/* No classes */
+	    result = "mresponse(" + name;
+//	    if ( multiclass() ) result += "," class name;
+	    result += ")-mservice(" + name;
+//	    if ( multiclass() ) result += "," class name;
+	    result += ")";
 	    comment = "Convert to LQN queueing time";
 	}
 	return std::pair<std::string,std::string>(result,comment);

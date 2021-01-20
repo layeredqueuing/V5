@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14375 2021-01-18 00:35:36Z greg $
+ * $Id: call.h 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -74,7 +74,7 @@ public:
     virtual unsigned fanIn() const = 0;
     virtual unsigned fanOut() const = 0;
 
-    virtual LQIO::DOM::Call::CallType callType() const { return LQIO::DOM::Call::NULL_CALL; }
+    virtual LQIO::DOM::Call::Type callType() const { return LQIO::DOM::Call::Type::NULL_CALL; }
     virtual bool hasRendezvous() const { return false; }
     virtual bool hasSendNoReply() const { return false; }
     virtual bool hasForwarding() const { return false; }
@@ -133,7 +133,7 @@ protected:
 };
 
 inline std::ostream& operator<<( std::ostream& output, const GenericCall& self ) { self.draw( output ); return output; }
-
+
 /* ------------------- Arcs between entries are... -------------------- */
 
 class Call : public GenericCall
@@ -208,7 +208,7 @@ public:
     Call& forward( const LQIO::DOM::Call * value );
     virtual const LQIO::DOM::ExternalVariable & forward() const;
     virtual Call * addForwardingCall( Entry * toEntry, const double ) = 0;
-    virtual phase_type phaseTypeFlag( const unsigned p ) const = 0;
+    virtual LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned p ) const = 0;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
 
@@ -232,12 +232,12 @@ public:
     virtual double dstIndex() const;
     virtual unsigned dstLevel() const;
     size_t numberOfPhases() const { return _calls.size(); }
-    virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
+    virtual LQIO::DOM::Call::Type callType() const { return _callType; }
 
     bool hasRendezvousForPhase( const unsigned ) const;
     bool hasSendNoReplyForPhase( const unsigned ) const;
-    virtual bool hasRendezvous() const { return _callType == LQIO::DOM::Call::RENDEZVOUS; }
-    virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
+    virtual bool hasRendezvous() const { return _callType == LQIO::DOM::Call::Type::RENDEZVOUS; }
+    virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::Type::SEND_NO_REPLY; }
     virtual bool hasForwarding() const { return _forwarding != nullptr; }
     virtual bool hasRendezvousVariance() const { return hasRendezvous() && __hasVariance; }
     virtual bool hasSendNoReplyVariance() const { return hasSendNoReply() && __hasVariance; }
@@ -281,7 +281,7 @@ private:
     /* Input */
 	
     const Entry* _destination;			/* to whom I am referring to	*/	
-    LQIO::DOM::Call::CallType _callType;
+    LQIO::DOM::Call::Type _callType;
     std::vector<const LQIO::DOM::Call *> _calls;/* RNV, SNR, FWD (by phase)	*/
     const LQIO::DOM::Call * _forwarding;
     static bool __hasVariance;
@@ -308,7 +308,7 @@ public:
     virtual EntryCall& setChain( const unsigned );
 
     virtual unsigned maxPhase() const;
-    virtual phase_type phaseTypeFlag( const unsigned p ) const;
+    virtual LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned p ) const;
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
 
@@ -360,7 +360,7 @@ public:
     virtual ActivityCall& setChain( const unsigned );
 
     virtual unsigned maxPhase() const { return 1; }
-    virtual phase_type phaseTypeFlag( const unsigned ) const;
+    virtual LQIO::DOM::Phase::Type phaseTypeFlag( const unsigned ) const;
 
     virtual Call * addForwardingCall( Entry * toEntry, const double );
 
@@ -510,9 +510,9 @@ public:
     ProcessorCall& setSrcEntry( const Entry * entry ) { _source = entry; return *this; }
     const Entry * srcEntry() const { return _source; }
 
-    virtual bool hasRendezvous() const { return _callType != LQIO::DOM::Call::SEND_NO_REPLY; }	/* Default is also rendezvous */
-    virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::SEND_NO_REPLY; }
-    virtual LQIO::DOM::Call::CallType callType() const { return _callType; }
+    virtual bool hasRendezvous() const { return _callType != LQIO::DOM::Call::Type::SEND_NO_REPLY; }	/* Default is also rendezvous */
+    virtual bool hasSendNoReply() const { return _callType == LQIO::DOM::Call::Type::SEND_NO_REPLY; }
+    virtual LQIO::DOM::Call::Type callType() const { return _callType; }
 
     ProcessorCall& rendezvous( const LQIO::DOM::ExternalVariable * value );
     virtual const LQIO::DOM::ExternalVariable& rendezvous() const;
@@ -548,7 +548,7 @@ protected:
     virtual void dump() const;
 
 private:
-    LQIO::DOM::Call::CallType _callType;		/* Union discriminator		*/
+    LQIO::DOM::Call::Type _callType;		/* Union discriminator		*/
     const LQIO::DOM::ExternalVariable* _visits;
     const Entry * _source;				/* not null if a clone.		*/
 };

@@ -3,7 +3,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 14026 2020-10-28 14:28:13Z greg $
+ * $Id: pragma.h 14381 2021-01-19 18:52:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -49,7 +49,6 @@ public:
     LQIO::severity_t severity_level() { return _severity_level; }
     bool spex_header() const { return _spex_header; }
 
-    static void initialize();
     static void usage( std::ostream& output );
 
 private:
@@ -68,8 +67,6 @@ private:
     bool set_scheduling_model( const std::string& );
     bool set_seed_value( const std::string& );
     bool set_severity_level(const std::string& );
-
-    bool is_true( const string& s ) const;
 
 private:
     bool _abort_on_dropped_message;
@@ -94,6 +91,6 @@ public:
     static Pragma * __pragmas;
 
 private:
-    static std::map<std::string,Pragma::fptr> __set_pragma;
+    static const std::map<std::string,Pragma::fptr> __set_pragma;
 };
 #endif

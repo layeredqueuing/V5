@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_histogram.cpp 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: dom_histogram.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 07/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,7 +16,7 @@ namespace LQIO {
 
 	const char * Histogram::__typeName = "histogram";
 
-	Histogram::Histogram( const Document * document, histogram_t type, unsigned n_bins, double min, double max ) 
+	Histogram::Histogram( const Document * document, Type type, unsigned n_bins, double min, double max ) 
 	    : DocumentObject( document, "" ),
 	      _n_bins(n_bins), _min(min), _max(max), _bin_size(0), _has_results(false),
 	      _histogram_type(type), _bins()

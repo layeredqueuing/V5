@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_phase.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -35,6 +35,9 @@ namespace LQIO {
 		const DOM::Phase * _phase;
 	    };
 
+	    enum Type { STOCHASTIC, DETERMINISTIC };
+
+
 	public:
       
 	    /* Designated initializer for the call information */
@@ -54,10 +57,10 @@ namespace LQIO {
 	    void setServiceTime(ExternalVariable* serviceTime);
 	    void setServiceTimeValue(double value);
 	    bool hasServiceTime() const;
-	    phase_type getPhaseTypeFlag() const;
-	    void setPhaseTypeFlag(const phase_type phaseTypeFlag);
-	    bool hasDeterministicCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == PHASE_DETERMINISTIC; }
-	    bool hasStochasticCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == PHASE_STOCHASTIC; }
+	    Phase::Type getPhaseTypeFlag() const;
+	    void setPhaseTypeFlag(const Phase::Type phaseTypeFlag);
+	    bool hasDeterministicCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == Type::DETERMINISTIC; }
+	    bool hasStochasticCalls() const { return getCalls().size() > 0 && _phaseTypeFlag == Type::STOCHASTIC; }
 	    const Entry* getSourceEntry() const;
 	    void setSourceEntry(Entry* entry);
 	    double getThinkTimeValue() const;
@@ -118,7 +121,7 @@ namespace LQIO {
 
 	    std::vector<Call*> _calls;
 	    ExternalVariable* _serviceTime;
-	    phase_type _phaseTypeFlag;
+	    Phase::Type _phaseTypeFlag;
 	    Entry* _entry;
 	    ExternalVariable* _thinkTime;
 	    ExternalVariable* _coeffOfVariationSq;

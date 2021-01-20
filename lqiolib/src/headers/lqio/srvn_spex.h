@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14377 2021-01-18 13:25:58Z greg $
+ * $Id: srvn_spex.h 14381 2021-01-19 18:52:02Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -217,17 +217,17 @@ namespace LQIO {
 	class attribute_table_t 
 	{
 	private:
-	    typedef enum { IS_NULL, IS_EXTVAR, IS_STRING, IS_PROPERTY } dom_attribute_t;
+	    enum class attribute { IS_NULL, IS_EXTVAR, IS_STRING, IS_PROPERTY };
 
 	public:
-	    attribute_table_t() : _t(IS_NULL) { _f.a_null = 0; }
-	    attribute_table_t( set_extvar_f f ) : _t(IS_EXTVAR) { _f.a_extvar = f; } 
-	    attribute_table_t( const char * s ) : _t(IS_PROPERTY) { _f.a_string = s; }
+	    attribute_table_t() : _t(attribute::IS_NULL) { _f.a_null = nullptr; }
+	    attribute_table_t( set_extvar_f f ) : _t(attribute::IS_EXTVAR) { _f.a_extvar = f; } 
+	    attribute_table_t( const char * s ) : _t(attribute::IS_PROPERTY) { _f.a_string = s; }
 
 	    LQX::SyntaxTreeNode * operator()( const std::string& name ) const;
 
 	private:
-	    dom_attribute_t _t;
+	    const attribute _t;
 	    union {
 		void *	 a_null;
 		set_extvar_f a_extvar;
@@ -251,8 +251,6 @@ namespace LQIO {
 	 * Parameters have all been declared and set.  Now we start the control program.
 	 * Create the foreach loops for all of the local variables created due to array lists in the parameters.
 	 */
-
-	static void initialize_control_parameters();
 
 	static bool is_global_var( const std::string& );
 	static bool has_input_var( const std::string& );
@@ -333,9 +331,9 @@ namespace LQIO {
 	static std::map<std::string,LQX::SyntaxTreeNode *> __input_variables;	/* Saves input values per iteration */
 	static std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *> __inline_expression;	/* Maps temp vars to expressions */
 
-	static std::map<std::string,attribute_table_t> __control_parameters;
-	static std::map<int,std::pair<std::string,std::string> > __key_code_map;/* Maps srvn_gram.h KEY_XXX to name */
-	static std::map<int,std::string> __key_lqx_function_map;		/* Maps srvn_gram.h KEY_XXX to lqx function name */
+	static const std::map<const std::string,const attribute_table_t> __control_parameters;
+	static const std::map<const int,const std::pair<const std::string,const std::string> > __key_code_map;	/* Maps srvn_gram.h KEY_XXX to name */
+	static const std::map<const int,const std::string> __key_lqx_function_map;	/* Maps srvn_gram.h KEY_XXX to lqx function name */
 
 	static const char * __convergence_limit_str;
 

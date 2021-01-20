@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_entry.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -23,13 +23,13 @@ namespace LQIO {
 
 	Entry::Entry(const Document * document, const std::string& name ) 
 	    : DocumentObject(document,name),
-	      _type(Entry::ENTRY_NOT_DEFINED), _phases(), 
-	      _maxPhase(0), _task(NULL), _histograms(),
-	      _openArrivalRate(NULL), _entryPriority(NULL),
-	      _semaphoreType(SEMAPHORE_NONE),
-	      _rwlockType(RWLOCK_NONE),
+	      _type(Entry::Type::NOT_DEFINED), _phases(), 
+	      _maxPhase(0), _task(nullptr), _histograms(),
+	      _openArrivalRate(nullptr), _entryPriority(nullptr),
+	      _semaphoreType(Semaphore::NONE),
+	      _rwlockType(RWLock::NONE),
 	      _forwarding(),
-	      _startActivity(NULL),
+	      _startActivity(nullptr),
 	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
 	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
@@ -47,10 +47,10 @@ namespace LQIO {
 	Entry::Entry( const Entry& src ) 
 	    : DocumentObject( src ),
 	      _type(src._type), _phases(),
-	      _maxPhase(src._maxPhase), _task(NULL), _histograms(),
-	      _openArrivalRate(src._openArrivalRate->clone()), _entryPriority(src._entryPriority->clone()),
+	      _maxPhase(src._maxPhase), _task(nullptr), _histograms(),
+	      _openArrivalRate(src._openArrivalRate), _entryPriority(src._entryPriority),
 	      _semaphoreType(src._semaphoreType), _rwlockType(src._rwlockType), _forwarding(src._forwarding),
-	      _startActivity(NULL),
+	      _startActivity(nullptr),
 	      _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	      _resultPhasePProcessorWaiting(), _resultPhasePProcessorWaitingVariance(),
 	      _resultPhasePServiceTime(), _resultPhasePServiceTimeVariance(),
@@ -130,7 +130,7 @@ namespace LQIO {
       
 	    std::map<unsigned, Phase*>::const_iterator phase = _phases.find(p);
 	    if ( phase == _phases.end() ) {
-		return  0;
+		return nullptr;
 	    } else {
 		return phase->second;
 	    }
@@ -183,7 +183,7 @@ namespace LQIO {
 	    if (hasPhase(phase)) {
 		return getPhase(phase)->getCallToTarget(target);
 	    } else {
-		return NULL;
+		return nullptr;
 	    }
 	}
     
@@ -222,13 +222,13 @@ namespace LQIO {
 	bool Entry::hasEntryPriority() const
 	{
 	    /* Find out whether a value was set */
-	    return _entryPriority != NULL;
+	    return _entryPriority != nullptr;
 	}
     
-	bool Entry::entrySemaphoreTypeOk(semaphore_entry_type newType)
+	bool Entry::entrySemaphoreTypeOk(Semaphore newType)
 	{
 	    /* Set the type only if it was undefined to begin with */
-	    if (_semaphoreType == SEMAPHORE_NONE ) {
+	    if (_semaphoreType == Entry::Semaphore::NONE ) {
 		_semaphoreType = newType;
 		return true;
 	    }
@@ -236,22 +236,22 @@ namespace LQIO {
 	    return _semaphoreType == newType;
 	}
 
-	void Entry::setSemaphoreFlag(semaphore_entry_type set)
+	void Entry::setSemaphoreFlag(Semaphore set)
 	{
 	    /* Set the semaphore flag */
 	    _semaphoreType = set;
 	}
     
-	semaphore_entry_type Entry::getSemaphoreFlag() const
+	Entry::Semaphore Entry::getSemaphoreFlag() const
 	{
 	    /* Return the semaphore type */
 	    return _semaphoreType;
 	}
     
-	bool Entry::entryRWLockTypeOk(rwlock_entry_type newType)
+	bool Entry::entryRWLockTypeOk(RWLock newType)
 	{
 	    /* Set the type only if it was undefined to begin with */
-	    if (_rwlockType == RWLOCK_NONE ) {
+	    if (_rwlockType == RWLock::NONE ) {
 		_rwlockType = newType;
 		return true;
 	    }
@@ -259,13 +259,13 @@ namespace LQIO {
 	    return _rwlockType == newType;
 	}
 
-	void Entry::setRWLockFlag(rwlock_entry_type set)
+	void Entry::setRWLockFlag(RWLock set)
 	{
 	    /* Set the rwlock flag */
 	    _rwlockType = set;
 	}
     
-	rwlock_entry_type Entry::getRWLockFlag() const
+	Entry::RWLock Entry::getRWLockFlag() const
 	{
 	    /* Return the rwlock type */
 	    return _rwlockType;
@@ -274,53 +274,53 @@ namespace LQIO {
   
 	bool Entry::isDefined() const
 	{
-	    return _type != Entry::ENTRY_NOT_DEFINED 
-		&& _type != Entry::ENTRY_STANDARD_NOT_DEFINED  
-		&& _type != Entry::ENTRY_ACTIVITY_NOT_DEFINED;
+	    return _type != Entry::Type::NOT_DEFINED 
+		&& _type != Entry::Type::STANDARD_NOT_DEFINED  
+		&& _type != Entry::Type::ACTIVITY_NOT_DEFINED;
 	}
 
 
 	bool Entry::isStandardEntry() const
 	{
-	    return _type == Entry::ENTRY_STANDARD_NOT_DEFINED || _type == Entry::ENTRY_STANDARD;
+	    return _type == Entry::Type::STANDARD_NOT_DEFINED || _type == Entry::Type::STANDARD;
 	}
 
-	bool Entry::entryTypeOk(EntryType newType)
+	bool Entry::entryTypeOk(Entry::Type newType)
 	{
-	    static const char * entry_types [] = { "?", "Ph1Ph2", "None", "Ph1Ph2", "None", "?" };
+	    static const std::map<const Entry::Type,const std::string> entry_types = { {Type::NOT_DEFINED, "?"}, {Type::STANDARD, "Ph1Ph2"}, {Type::ACTIVITY, "None"}, {Type::STANDARD_NOT_DEFINED, "Ph1Ph2"}, {Type::ACTIVITY_NOT_DEFINED, "None"}, {Type::DEVICE, "?"} };
 
 	    /* Set the type only if it was undefined to begin with */
-	    if (_type == Entry::ENTRY_NOT_DEFINED 
-		|| (_type == Entry::ENTRY_STANDARD_NOT_DEFINED && newType == Entry::ENTRY_STANDARD)
-		|| (_type == Entry::ENTRY_ACTIVITY_NOT_DEFINED && newType == Entry::ENTRY_ACTIVITY) ) {
+	    if (_type == Entry::Type::NOT_DEFINED 
+		|| (_type == Entry::Type::STANDARD_NOT_DEFINED && newType == Entry::Type::STANDARD)
+		|| (_type == Entry::Type::ACTIVITY_NOT_DEFINED && newType == Entry::Type::ACTIVITY) ) {
 		_type = newType;
 		return true;
-	    } else if ( (_type == Entry::ENTRY_STANDARD_NOT_DEFINED && newType != Entry::ENTRY_STANDARD)
-			|| (_type == Entry::ENTRY_ACTIVITY_NOT_DEFINED && newType != Entry::ENTRY_ACTIVITY) ) {
-		LQIO::solution_error( LQIO::WRN_ENTRY_TYPE_MISMATCH, getName().c_str(), entry_types[_type], entry_types[newType] );
+	    } else if ( (_type == Entry::Type::STANDARD_NOT_DEFINED && newType != Entry::Type::STANDARD)
+			|| (_type == Entry::Type::ACTIVITY_NOT_DEFINED && newType != Entry::Type::ACTIVITY) ) {
+		const std::map<const Entry::Type,const std::string>::const_iterator i = entry_types.find(_type);
+		const std::map<const Entry::Type,const std::string>::const_iterator j = entry_types.find(newType);
+		assert ( i != entry_types.end() && j != entry_types.end() );
+		LQIO::solution_error( LQIO::WRN_ENTRY_TYPE_MISMATCH, getName().c_str(), i->second.c_str(), j->second.c_str() );
 		_type = newType;
 		return true;
 	    }
 	    return _type == newType;
 	}
     
-	void Entry::setEntryType(EntryType newType) 
+	void Entry::setEntryType(Entry::Type newType) 
 	{
 	    _type = newType;
 	}
     
-	const Entry::EntryType Entry::getEntryType() const
+	const Entry::Type Entry::getEntryType() const
 	{
 	    return _type;
 	}
     
 	bool Entry::hasHistogram() const 
 	{
-	    if ( std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasHistogram ) ) != _phases.end() ) {
-		return true;
-	    }
-	    /* Bug 668 - check for histogram at entry level (activity entry) */
-	    return std::find_if( _histograms.begin(),  _histograms.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isHistogram ) ) != _histograms.end();
+	    return std::any_of( _phases.begin(), _phases.end(), Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasHistogram ) )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isHistogram ) );
 	}
 
 	bool Entry::hasHistogramForPhase( unsigned p) const
@@ -345,7 +345,7 @@ namespace LQIO {
 		    return histogram->second;
 		}
 	    }
-	    return  0;
+	    return nullptr;
 	}
 
 	void Entry::setHistogramForPhase( unsigned p, Histogram* histogram )
@@ -360,10 +360,8 @@ namespace LQIO {
 
 	bool Entry::hasMaxServiceTimeExceeded() const 
  	{
-	    if ( std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) ) != _phases.end() ) {
-		return true;
-	    }
-	    return std::find_if( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) ) != _histograms.end();
+	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) )
+		|| std::any_of( _histograms.begin(),  _histograms.end(), Predicate<LQIO::DOM::Histogram>( &LQIO::DOM::Histogram::isTimeExceeded ) );
  	}
 
 
@@ -404,7 +402,7 @@ namespace LQIO {
 	    std::vector<Call*>::const_iterator iter = std::find_if( _forwarding.begin(), _forwarding.end(), Call::eqDestEntry(entry) );
 	    if ( iter != _forwarding.end() ) return *iter;
 
-	    return NULL;
+	    return nullptr;
 	}
 
 	bool Entry::hasForwarding() const
@@ -434,17 +432,17 @@ namespace LQIO {
     
 	const bool Entry::hasThinkTime() const
 	{
-	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasThinkTime ) ) != _phases.end();
+ 	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasThinkTime ) );
 	}
 
 	const bool Entry::hasDeterministicPhases() const
 	{
-	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) ) != _phases.end();
+	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::hasDeterministicCalls ) );
 	}
 	    
 	const bool Entry::hasNonExponentialPhases() const
 	{
-	    return std::find_if( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::isNonExponential ) ) != _phases.end();
+	    return std::any_of( _phases.begin(), _phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( &LQIO::DOM::Phase::isNonExponential ) );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Result Values] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -845,7 +843,7 @@ namespace LQIO {
 		    }
 		}
 	    }
-	    return 0;
+	    return 0.;
 	}
 
 	double Entry::getResultPhasePMaxServiceTimeExceededVariance( unsigned p ) const
@@ -894,11 +892,14 @@ namespace LQIO {
  
 	/* ------------------------------------------------------------------------ */
 
-	Entry::Count& Entry::Count::operator()( const LQIO::DOM::Entry * e ) 
+	/* 
+	 * Return true if any phase satisfies the predicate _f.
+	 */
+	
+	bool Entry::any_of::operator()( const LQIO::DOM::Entry * e ) const
 	{
 	    const std::map<unsigned, Phase*>& phases = e->getPhaseList();
-	    _count += std::count_if( phases.begin(), phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( _f ) );
-	    return *this;
+	    return std::any_of( phases.begin(), phases.end(), LQIO::DOM::Entry::Predicate<LQIO::DOM::Phase>( _f ) );
 	}
     }
 }

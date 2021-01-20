@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 13764 2020-08-17 19:50:05Z greg $
+ * $Id: lqngen.cc 14381 2021-01-19 18:52:02Z greg $
  */
 
 #include "lqngen.h"
@@ -187,19 +187,19 @@ main( int argc, char *argv[] )
     }
     extern char *optarg;
 
-    static string opts = "";
+    static std::string opts = "";
 #if HAVE_GETOPT_H
     int optflag = 0;
     static std::vector<struct option> longopts;
     makeopts( opts, longopts, &optflag );
 #if __cplusplus < 201103L
-    LQIO::CommandLine command_line( opts, &longopts.front() );
+    LQIO::CommandLine command_line( &longopts.front() );
 #else
-    LQIO::CommandLine command_line( opts, longopts.data() );
+    LQIO::CommandLine command_line( longopts.data() );
 #endif
 #else
     makeopts( opts );
-    LQIO::CommandLine command_line( opts );
+    LQIO::CommandLine command_line();
 #endif
     command_line = LQIO::io_vars.lq_toolname;
     
@@ -246,7 +246,7 @@ main( int argc, char *argv[] )
 	    case 0x100+'1':
 		Generate::__convergence_value = strtod( optarg, &endptr );
 		if ( Generate::__convergence_value <= 0 ) {
-		    cerr << LQIO::io_vars.lq_toolname << "convergence=" << Generate::__convergence_value << " is invalid, choose non-negative real." << endl;
+		    std::cerr << LQIO::io_vars.lq_toolname << "convergence=" << Generate::__convergence_value << " is invalid, choose non-negative real." << std::endl;
 		    (void) exit( 3 );
 		}
 		break;
@@ -259,7 +259,7 @@ main( int argc, char *argv[] )
 	    case 0x100+'2':
 		Generate::__convergence_value = strtod( optarg, &endptr );
 		if ( Generate::__convergence_value <= 0.0 ) {
-		    cerr << LQIO::io_vars.lq_toolname << "convergence=" <<  Generate::__convergence_value << " is invalid, choose non-negative real." << endl;
+		    std::cerr << LQIO::io_vars.lq_toolname << "convergence=" <<  Generate::__convergence_value << " is invalid, choose non-negative real." << std::endl;
 		    exit( 3 );
 		}
 		break;
@@ -267,7 +267,7 @@ main( int argc, char *argv[] )
 	    case 0x100+'3':
 		Generate::__iteration_limit = static_cast<unsigned int>(strtol( optarg, &endptr, 10 ));
 		if ( Generate::__iteration_limit == 0 ) {
-		    cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << Generate::__iteration_limit << " is invalid, choose non-negative integer." << endl;
+		    std::cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << Generate::__iteration_limit << " is invalid, choose non-negative integer." << std::endl;
 		}
 		break;
 
@@ -734,7 +734,7 @@ main( int argc, char *argv[] )
 		break;
 
 	    case 'V':
-		cerr << "Layered Queueing Network Generator, Version " << VERSION << endl << endl;
+		std::cerr << "Layered Queueing Network Generator, Version " << VERSION << std::endl << std::endl;
 		break;
 		
 	    case 0x100+'V':
@@ -796,14 +796,14 @@ main( int argc, char *argv[] )
 	    }
 
 	    if ( customers_set && (dynamic_cast<const RV::Constant *>(total_customers) == NULL || (*total_customers)() != 0) ) {
-		cerr << LQIO::io_vars.lq_toolname << ": --customers and --total-customers are mutually exclusive." << endl;
+		std::cerr << LQIO::io_vars.lq_toolname << ": --customers and --total-customers are mutually exclusive." << std::endl;
 		exit( 1 );
 	    }
 	}
 
 	catch ( const std::domain_error& err ) {
 	    if ( !optarg ) {
-		cerr << LQIO::io_vars.lq_toolname << ": " << err.what() << " -- '"  << longopts.at(optind).name << "'." << endl;
+		std::cerr << LQIO::io_vars.lq_toolname << ": " << err.what() << " -- '"  << longopts.at(optind).name << "'." << std::endl;
 		help();
 	    } else {
 		::invalid_argument( c, optarg, err.what() );
@@ -854,22 +854,22 @@ lqngen( int argc, char *argv[0] )
 	
 
 	if ( Flags::number_of_models > 1 ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": a directory name is required as an argument for the option '--models=" 
+	    std::cerr << LQIO::io_vars.lq_toolname << ": a directory name is required as an argument for the option '--models=" 
 		 << Flags::number_of_models << "." << std::endl;
 	    exit ( 1 );
 	}
 
-	execute( cout, "" );
+	execute( std::cout, "" );
 
     } else if ( argc == optind + 1 ) {
 
 	if ( Flags::number_of_models <= 1 ) {
-	    ofstream output_file;
+	    std::ofstream output_file;
 	    output_file_name = argv[optind];
 	    LQIO::Filename::backup( output_file_name );
-	    output_file.open( argv[optind], ios::out );
+	    output_file.open( argv[optind], std::ios::out );
 	    if ( !output_file ) {
-		cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << output_file_name << " - " << strerror( errno ) << endl;
+		std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << output_file_name << " - " << strerror( errno ) << std::endl;
 		exit ( 1 );
 	    }
 	    if ( Flags::output_format == LQIO::DOM::Document::AUTOMATIC_INPUT ) {
@@ -886,7 +886,7 @@ lqngen( int argc, char *argv[0] )
 
     } else {
 
-	cerr << LQIO::io_vars.lq_toolname << ": arg count." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": arg count." << std::endl;
 
     }
 
@@ -910,14 +910,14 @@ lqn2lqx( int argc, char **argv )
 	    Generate aModel( document, Flags::output_format, Flags::number_of_runs, (*total_customers)() );
 	    aModel.groupize().reparameterize();
 	    if ( output_file_name.size() == 0 || output_file_name == "-" ) {
-		cout << aModel;
+		std::cout << aModel;
 	    } else {
 		LQIO::Filename::backup( output_file_name );
 		
 		std::ofstream output;
-		output.open( output_file_name.c_str(), ios::out|ios::binary );
+		output.open( output_file_name.c_str(), std::ios::out|std::ios::binary );
 		if ( !output ) {
-		    cerr << "Cannot open output file " << output_file_name << " - " << strerror( errno );
+		    std::cerr << "Cannot open output file " << output_file_name << " - " << strerror( errno );
 		} else {
 		    output << aModel;
 		    output.close();
@@ -926,7 +926,7 @@ lqn2lqx( int argc, char **argv )
 	}
 
     } else if ( output_file_name.size() > 0 && argc - optind != 1 ) {
-	cerr << LQIO::io_vars.lq_toolname << ": Only one input file can be specified when using --output=filename." << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Only one input file can be specified when using --output=filename." << std::endl;
 	exit( 1 );
     } else {
 	for ( ;optind < argc; ++optind ) {
@@ -939,7 +939,7 @@ lqn2lqx( int argc, char **argv )
 	    aModel.groupize().reparameterize();
 	    
 	    if ( output_file_name == "-" ) {
-		cout << aModel;
+		std::cout << aModel;
 	    } else {
 		LQIO::Filename filename;
 		if ( output_file_name.size() ) {
@@ -949,10 +949,10 @@ lqn2lqx( int argc, char **argv )
 		}
 		filename.backup();		/* Overwriting input file. -- back up */
 
-		ofstream output;
-		output.open( filename().c_str(), ios::out );
+		std::ofstream output;
+		output.open( filename().c_str(), std::ios::out );
 		if ( !output ) {
-		    cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << filename() << " - " << strerror( errno ) << endl;
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << filename() << " - " << strerror( errno ) << std::endl;
 		    exit ( 1 );
 		}
 		output << aModel;
@@ -975,18 +975,18 @@ multi( const std::string& dir )
     struct stat sb;
     if ( stat ( dir.c_str(), &sb ) < 0 ) {
 	if ( errno != ENOENT ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << std::endl;
 	    exit ( 1 );
 	} else if ( mkdir( dir.c_str()
 #if !defined(WINNT) && !defined(MSDOS)
 			   ,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH
 #endif
 			) < 0 ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << std::endl;
 	    exit( 1 );
 	}
     } else if ( !S_ISDIR( sb.st_mode ) ) {
-	cerr << LQIO::io_vars.lq_toolname << ": Cannot output multiple files to " << dir << endl;
+	std::cerr << LQIO::io_vars.lq_toolname << ": Cannot output multiple files to " << dir << std::endl;
 	exit( 1 );
     }
 
@@ -994,12 +994,12 @@ multi( const std::string& dir )
 
     for ( unsigned i = 1; i <= Flags::number_of_models; ++i ) {
 	std::ostringstream file_name;
-	file_name << dir << "/case-" << setw( w ) << setfill( '0' ) << i << "." << output_suffix[Flags::output_format];
-	ofstream output_file;
-	output_file.open( file_name.str().c_str(), ios::out );
+	file_name << dir << "/case-" << std::setw( w ) << std::setfill( '0' ) << i << "." << output_suffix[Flags::output_format];
+	std::ofstream output_file;
+	output_file.open( file_name.str().c_str(), std::ios::out );
 
 	if ( !output_file ) {
-	    cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << endl;
+	    std::cerr << LQIO::io_vars.lq_toolname << ": Cannot open output file " << file_name.str() << " - " << strerror( errno ) << std::endl;
 	    exit ( 1 );
 	}
 
@@ -1055,7 +1055,7 @@ check_argument( const RV::RandomVariable * rv )
 
 #if HAVE_GETOPT_H
 void
-makeopts( string& opts, std::vector<struct option>& longopts, int * optflag ) 
+makeopts( std::string& opts, std::vector<struct option>& longopts, int * optflag ) 
 {
     struct option opt;
     opt.flag = optflag;
@@ -1165,7 +1165,7 @@ severity_action (unsigned severity)
     case LQIO::RUNTIME_ERROR:
 	LQIO::io_vars.error_count += 1;
 	if  ( LQIO::io_vars.error_count >= LQIO::io_vars.max_error ) {
-	    throw runtime_error( "Too many errors" );
+	    throw std::runtime_error( "Too many errors" );
 	}
 	break;
     }

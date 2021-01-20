@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_activity.cpp 13683 2020-07-13 14:25:00Z greg $
+ *  $Id: dom_activity.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -15,9 +15,9 @@ namespace LQIO {
 	const char * Activity::__typeName = "activity";
 	
 	Activity::Activity(const Document * document, const std::string& name)
-	    : Phase(document,NULL),
-	      _replyList(), _isSpecified(false), _task(NULL),
-	      _outputList(NULL), _inputList(NULL),
+	    : Phase(document,nullptr),
+	      _replyList(), _isSpecified(false), _task(nullptr),
+	      _outputList(nullptr), _inputList(nullptr),
 	      _resultCVSquared(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0)
@@ -28,7 +28,7 @@ namespace LQIO {
 	Activity::Activity( const LQIO::DOM::Activity & src )
 	    : Phase( src ),
 	      _replyList(), _isSpecified(src.isSpecified()), _task(src._task),
-	      _outputList(NULL), _inputList(NULL),
+	      _outputList(nullptr), _inputList(nullptr),
 	      _resultCVSquared(0.0),
 	      _resultThroughput(0.0), _resultThroughputVariance(0.0),
 	      _resultProcessorUtilization(0.0), _resultProcessorUtilizationVariance(0.0)
@@ -70,7 +70,7 @@ namespace LQIO {
 		
 	void Activity::outputTo(ActivityList* outputList)
 	{
-	    if (_outputList != NULL && outputList != NULL) {
+	    if (_outputList != nullptr && outputList != nullptr) {
 		input_error2( ERR_DUPLICATE_ACTIVITY_LVALUE, getTask()->getName().c_str(), getName().c_str() );
 	    } else {
 		_outputList = outputList;
@@ -79,7 +79,7 @@ namespace LQIO {
 
 	void Activity::inputFrom(ActivityList* inputList)
 	{
-	    if (_inputList != NULL && inputList != NULL) {
+	    if (_inputList != nullptr && inputList != nullptr) {
 		input_error2( ERR_DUPLICATE_ACTIVITY_RVALUE, getTask()->getName().c_str(), getName().c_str() );
 	    } else if ( isStartActivity() ) {
 		input_error2( ERR_IS_START_ACTIVITY, getTask()->getName().c_str(), getName().c_str() );

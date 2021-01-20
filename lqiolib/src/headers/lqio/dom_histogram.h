@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_histogram.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_histogram.h 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 07/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,7 +21,7 @@ namespace LQIO {
 	    Histogram& operator=( const Histogram& );
 	    
 	public:
-	    typedef enum { CONTINUOUS, DISCRETE } histogram_t;
+	    enum class Type { CONTINUOUS, DISCRETE };
 	    
 	    class HistogramBin {
 		friend class Histogram;
@@ -40,7 +40,7 @@ namespace LQIO {
 	    };
       
 	    /* Constructor for the basic histogram type */
-	    Histogram(const Document *, histogram_t type, unsigned n_bins, double min, double max );
+	    Histogram(const Document *, Type type, unsigned n_bins, double min, double max );
 	    virtual ~Histogram();
       
 	    /* Accessors and Mutators */
@@ -55,7 +55,7 @@ namespace LQIO {
 	    double getBinEnd( unsigned int ) const;
 	    double getBinMean( unsigned int ) const;
 	    double getBinVariance( unsigned int ) const;
-	    histogram_t getHistogramType() const { return _histogram_type; }
+	    Type getHistogramType() const { return _histogram_type; }
 	    Histogram& setBinMeanVariance( unsigned int, double, double=0 );
 	    void setTimeExceeded( double );		/* Must be of type isTimeExceeded */
 	    double getTimeExceeded() const;		/* Must be of type isTimeExceeded */
@@ -74,7 +74,7 @@ namespace LQIO {
 	    double _max;
 	    double _bin_size;
 	    bool _has_results;
-	    const histogram_t _histogram_type;
+	    const Type _histogram_type;
 	    std::vector<HistogramBin> _bins;
 
 	public:

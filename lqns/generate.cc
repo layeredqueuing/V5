@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: generate.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: generate.cc 14381 2021-01-19 18:52:02Z greg $
  *
  * Print out model information.  We can also print out the
  * submodels as C++ source.
@@ -51,12 +51,13 @@ static const char * myIncludes[] = {
     0
 };
 
-static const char * solvers[] = {
-    "Linearizer",
-    "ExactMVA",
-    "Schweitzer",
-    "Linearizer",
-    "Linearizer2"
+static const std::map<const Pragma::MVA,const std::string> solvers = {
+    { Pragma::MVA::EXACT, 		"ExactMVA" },
+    { Pragma::MVA::FAST, 		"Linearizer2" },
+    { Pragma::MVA::LINEARIZER,		"Linearizer" },
+    { Pragma::MVA::ONESTEP, 		"OneStepMVA" },
+    { Pragma::MVA::ONESTEP_LINEARIZER, 	"OneStepLinearizer" },
+    { Pragma::MVA::SCHWEITZER, 		"Schweitzer" }
 };
 
 std::string Generate::file_name;
@@ -191,7 +192,7 @@ Generate::print( std::ostream& output ) const
 	if ( MVA::__bounds_limit ) {
 	    output << "    " << "MVA::boundsLimit = " << MVA::__bounds_limit << ";" << std::endl;
 	}
-	output << "    " << solvers[Pragma::mva()];
+	output << "    " << solvers.at(Pragma::mva());
 	output << " model( station, customers, thinkTime, priority";
 	if ( _submodel._overlapFactor ) {
 	    output << ", _overlapFactor";

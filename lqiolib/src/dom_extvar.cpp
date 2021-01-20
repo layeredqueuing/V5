@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14342 2021-01-05 23:11:24Z greg $
+ *  $Id: dom_extvar.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -216,7 +216,7 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
 	SymbolExternalVariable::SymbolExternalVariable(const std::string & name) :
-	    _externalSymbol(NULL), _name(name)
+	    _externalSymbol(nullptr), _name(name)
 	{
 	}
 
@@ -255,7 +255,7 @@ namespace LQIO {
 	{
 	    /* Obtain a symbol for registration and set the double */
 	    _externalSymbol = pgm->defineExternalVariable(_name);
-	    if (_externalSymbol == NULL) {
+	    if (_externalSymbol == nullptr) {
 		return false;
 	    } else {
 		_externalSymbol->assignNull();
@@ -265,7 +265,7 @@ namespace LQIO {
 
 	ExternalVariable::Type SymbolExternalVariable::getType() const
 	{
-	    if ( !(_externalSymbol == NULL) ) {
+	    if ( !(_externalSymbol == nullptr) ) {
 		switch ( _externalSymbol->getType() ) {
 		case LQX::Symbol::SYM_DOUBLE: return VAR_DOUBLE;
 		case LQX::Symbol::SYM_STRING: return VAR_STRING;
@@ -278,7 +278,7 @@ namespace LQIO {
 	void SymbolExternalVariable::set(double value)
 	{
 	    /* If unregistered set the initial */
-	    if (_externalSymbol == NULL) {
+	    if (_externalSymbol == nullptr) {
 		throw std::domain_error("unassigned variable");
 	    } else {
 		_externalSymbol->assignDouble(value);
@@ -288,7 +288,7 @@ namespace LQIO {
 	bool SymbolExternalVariable::getValue(double& result) const
 	{
 	    /* If unregistered return the initial */
-	    if (_externalSymbol == NULL) {
+	    if (_externalSymbol == nullptr) {
 		throw std::domain_error("unassigned variable");
 	    } else if (_externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE) {
 		result = _externalSymbol->getDoubleValue();
@@ -301,7 +301,7 @@ namespace LQIO {
 	void SymbolExternalVariable::setString(const char * value)
 	{
 	    /* If unregistered set the initial */
-	    if (_externalSymbol == NULL) {
+	    if (_externalSymbol == nullptr) {
 		throw std::domain_error("unassigned variable");
 	    } else {
 		_externalSymbol->assignString(value);
@@ -311,7 +311,7 @@ namespace LQIO {
 	bool SymbolExternalVariable::getString(const char *& result) const
 	{
 	    /* If unregistered return the initial */
-	    if (_externalSymbol == NULL) {
+	    if (_externalSymbol == nullptr) {
 		throw std::domain_error("unassigned variable");
 	    } else if (_externalSymbol->getType() == LQX::Symbol::SYM_STRING) {
 		result = _externalSymbol->getStringValue();
@@ -324,7 +324,7 @@ namespace LQIO {
 	bool SymbolExternalVariable::wasSet() const
 	{
 	    /* This is just a very basic check */
-	    return _externalSymbol != NULL && (_externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE || _externalSymbol->getType() == LQX::Symbol::SYM_STRING);
+	    return _externalSymbol != nullptr && (_externalSymbol->getType() == LQX::Symbol::SYM_DOUBLE || _externalSymbol->getType() == LQX::Symbol::SYM_STRING);
 	}
 
 	std::ostream& SymbolExternalVariable::print( std::ostream& output ) const

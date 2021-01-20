@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_document.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -33,7 +33,7 @@ namespace LQIO {
     lqio_params_stats io_vars(VERSION,nullptr);
     
     namespace DOM {
-	Document* __document = NULL;
+	Document* __document = nullptr;
 	bool Document::__debugXML = false;
 	std::map<const char *, double> Document::__initialValues;
 	std::string Document::__input_file_name = "";
@@ -52,7 +52,7 @@ namespace LQIO {
 	      _format(format), 
 	      _lqxProgram(""), _lqxProgramLineNumber(0), _parsedLQXProgram(0), _instantiated(false), _pragmas(),
 	      _maximumPhase(0), _hasResults(false),
-	      _hasRendezvous(NOT_SET), _hasSendNoReply(NOT_SET), _taskHasAndJoin(NOT_SET),		/* Cached valuess */
+	      _hasRendezvous(cached::NOT_SET), _hasSendNoReply(cached::NOT_SET), _taskHasAndJoin(cached::NOT_SET),		/* Cached valuess */
 	      _resultValid(false), _hasConfidenceIntervals(false), _hasBottleneckStrength(false),
 	      _resultInvocationNumber(0),
 	      _resultConvergenceValue(0.0),
@@ -211,7 +211,7 @@ namespace LQIO {
 	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
 	    if ( iter != _controlVariables.end() ) {
 		const ExternalVariable * var = iter->second;
-		if ( var != NULL && var->wasSet() ) {
+		if ( var != nullptr && var->wasSet() ) {
 		    var->getValue(value);
 		}
 	    }
@@ -256,7 +256,7 @@ namespace LQIO {
 	    if( processor != _processors.end()) {
 		return processor->second;
 	    } else {
-		return NULL;
+		return nullptr;
 	    }
 	}
     
@@ -280,7 +280,7 @@ namespace LQIO {
 	    if (task != _tasks.end()) {
 		return task->second;
 	    } else {
-		return NULL;
+		return nullptr;
 	    }
 	}
     
@@ -317,7 +317,7 @@ namespace LQIO {
 	    std::map<std::string, Entry*>::const_iterator entry = _entries.find(name);
 	    /* Return the named entry */
 	    if ( entry == _entries.end()) {
-		return NULL;
+		return nullptr;
 	    } else {
 		return entry->second;
 	    }
@@ -342,7 +342,7 @@ namespace LQIO {
 	    if ( group != _groups.end()) {
 		return group->second;
 	    } else {
-		return NULL;
+		return nullptr;
 	    }
 	}
     
@@ -585,107 +585,107 @@ namespace LQIO {
 	bool Document::hasRendezvous() const
 	{
 	    /* This is a property of phases and activities, so count_if can't be used here */
-	    if ( _hasRendezvous == NOT_SET ) {
-		_hasRendezvous = (for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasRendezvous ) ).count() != 0 ? SET_TRUE : SET_FALSE);
+	    if ( _hasRendezvous == cached::NOT_SET ) {
+		_hasRendezvous = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasRendezvous ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
-	    return _hasRendezvous == SET_TRUE;
+	    return _hasRendezvous == cached::SET_TRUE;
 	}
 
 	bool Document::hasSendNoReply() const
 	{
-	    if ( _hasSendNoReply == NOT_SET ) {
-		_hasSendNoReply = (for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasSendNoReply ) ).count() != 0 ? SET_TRUE : SET_FALSE);
+	    if ( _hasSendNoReply == cached::NOT_SET ) {
+		_hasSendNoReply = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasSendNoReply ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
-	    return _hasSendNoReply == SET_TRUE;
+	    return _hasSendNoReply == cached::SET_TRUE;
 	}
 
 	bool Document::hasForwarding() const
 	{
-	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasForwarding ) ) != _entries.end();
+	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasForwarding ) );
 	}
 
 	bool Document::hasNonExponentialPhase() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::isNonExponential ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::isNonExponential ) );
 	}
 
 	bool Document::hasDeterministicPhase() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasDeterministicCalls ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasDeterministicCalls ) );
 	}
 
 	bool Document::hasMaxServiceTimeExceeded() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasMaxServiceTimeExceeded ) );
 	}
 
 	bool Document::hasHistogram() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasHistogram ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasHistogram ) );
 	}
 
 	bool Document::entryHasWaitingTimeVariance() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultVarianceWaitingTime ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultVarianceWaitingTime ) );
 	}
 
 	bool Document::entryHasDropProbability() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultDropProbability ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultDropProbability ) );
 	}
 
 	bool Document::entryHasServiceTimeVariance() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasResultServiceTimeVariance ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasResultServiceTimeVariance ) );
 	}
 
 	bool Document::processorHasRate() const
 	{
-	    return std::find_if( _processors.begin(), _processors.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Processor>( &LQIO::DOM::Processor::hasRate ) ) != _processors.end();
+	    return std::any_of( _processors.begin(), _processors.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Processor>( &LQIO::DOM::Processor::hasRate ) );
 	}
 
 	bool Document::taskHasAndJoin() const
 	{
-	    if ( _taskHasAndJoin == NOT_SET ) {
-		_taskHasAndJoin = (std::find_if( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasAndJoinActivityList ) ) != _tasks.end() ? SET_TRUE : SET_FALSE );
+	    if ( _taskHasAndJoin == cached::NOT_SET ) {
+		_taskHasAndJoin = std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasAndJoinActivityList ) ) ? cached::SET_TRUE : cached::SET_FALSE;
 	    }
-	    return _taskHasAndJoin == SET_TRUE;
+	    return _taskHasAndJoin == cached::SET_TRUE;
 	}
 
 	bool Document::taskHasThinkTime() const
 	{
 	    /* This is a property of tasks only */
-	    return std::find_if( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasThinkTime ) ) != _tasks.end();
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Task>( &LQIO::DOM::Task::hasThinkTime ) );
 	}
 
 	bool Document::hasSemaphoreWait() const
 	{
-	    return std::find_if( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isSemaphoreTask ) != _tasks.end();
+	    return std::any_of( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isSemaphoreTask );
 	}
 
 	bool Document::hasRWLockWait() const
 	{
-	    return std::find_if( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isRWLockTask ) != _tasks.end();
+	    return std::any_of( _tasks.begin(), _tasks.end(), &LQIO::DOM::Task::isRWLockTask );
 	}
 
 	bool Document::hasThinkTime() const
 	{
-	    return for_each( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::Count( &LQIO::DOM::Phase::hasThinkTime ) ).count() != 0;
+	    return std::any_of( _tasks.begin(), _tasks.end(), LQIO::DOM::Task::any_of( &LQIO::DOM::Phase::hasThinkTime ) );
 	}
 
 	bool Document::hasOpenArrivals() const
 	{
-	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasOpenArrivalRate ) ) != _entries.end();
+	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasOpenArrivalRate ) );
 	}
 
 	bool Document::entryHasThroughputBound() const 
 	{
-	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForThroughputBound ) ) != _entries.end();
+	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForThroughputBound ) );
 	}
 
 	bool Document::entryHasOpenWait() const
 	{
-	    return std::find_if( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForOpenWait ) ) != _entries.end();
+	    return std::any_of( _entries.begin(), _entries.end(), LQIO::DOM::DocumentObject::Predicate<LQIO::DOM::Entry>( &LQIO::DOM::Entry::hasResultsForOpenWait ) );
 	}
 
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Dom builder ] -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-= */
@@ -694,8 +694,8 @@ namespace LQIO {
 	Document::db_build_parameter_variable(const char* input, bool* isSymbol)
 	{
 	    if (isSymbol) { *isSymbol = false; }
-	    if ( input == NULL ) {
-		/* NULL input means a zero */
+	    if ( input == nullptr ) {
+		/* nullptr input means a zero */
 		return new ConstantExternalVariable(0.0);
 	    } else if ( input[0] == '$' ) {
 		if (isSymbol) { *isSymbol = true; }
@@ -704,7 +704,7 @@ namespace LQIO {
 		return new ConstantExternalVariable( srvn_get_infinity() );
 	    } else {
 		double result = 0.0;
-		char* endPtr = NULL;
+		char* endPtr = nullptr;
 		const char* realEndPtr = input + strlen(input);
 		result = strtod(input, &endPtr);
 
@@ -722,11 +722,11 @@ namespace LQIO {
 	}
 	
 	void 
-	Document::db_check_set_entry(Entry* entry, const std::string& entry_name, Entry::EntryType requisiteType)
+	Document::db_check_set_entry(Entry* entry, const std::string& entry_name, Entry::Type requisiteType)
 	{
 	    if ( !entry ) {
 		input_error2( ERR_NOT_DEFINED, entry_name.c_str() );
-	    } else if ( requisiteType != Entry::ENTRY_NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
+	    } else if ( requisiteType != Entry::Type::NOT_DEFINED && !entry->entryTypeOk( requisiteType ) ) {
 		input_error2( ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
 	    }
 	}
@@ -757,10 +757,9 @@ namespace LQIO {
 		format = getInputFormatFromFilename( input_filename );
 	    }
 
-	    bool rc = true;
-	    LQIO::Spex::initialize_control_parameters();
 	    /* Create a document to store the product */
 	
+	    bool rc = true;
 	    Document * document = new Document( format );
 
 	    /* Read in the model, invoke the builder, and see what happened */
@@ -788,6 +787,7 @@ namespace LQIO {
 #endif
 
 	    case JSON_INPUT:
+//		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
 		rc = false;
 		break;
 

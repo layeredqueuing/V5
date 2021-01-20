@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_group.cpp 14346 2021-01-06 16:04:22Z greg $
+ *  $Id: dom_group.cpp 14381 2021-01-19 18:52:02Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -24,7 +24,7 @@ namespace LQIO {
 	}
     
 	Group::Group(const Group& src ) 
-	    : DocumentObject(src.getDocument(),""), _processor(NULL), _groupShare(src.getGroupShare()), _cap(src.getCap())
+	    : DocumentObject(src.getDocument(),""), _processor(nullptr), _groupShare(src.getGroupShare()), _cap(src.getCap())
 	{ 
 	}
     
@@ -68,7 +68,7 @@ namespace LQIO {
     
 	void Group::setGroupShareValue(const double value)
 	{
-	    if ( _groupShare == NULL ) {
+	    if ( _groupShare == nullptr ) {
 		_groupShare = new ConstantExternalVariable(value);
 	    } else {
 		_groupShare->set(value);
