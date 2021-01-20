@@ -303,9 +303,6 @@ MVA::dimension( const size_t mapMaxOffset )
 bool
 MVA::dimension( std::vector<double **>& array, const size_t mapMaxOffset )
 {
-#if 1
-    std::cerr << "MVA::dimension( array, " << mapMaxOffset << ")" << std::endl;
-#endif
     bool rc = false;
     for ( unsigned n = 0; n < mapMaxOffset; ++n ) {
 	for ( unsigned m = 1; m <= M; ++m ) {

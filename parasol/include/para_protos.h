@@ -1,4 +1,4 @@
-/* $Id: para_protos.h 12546 2016-04-05 16:43:26Z greg $ */
+/* $Id: para_protos.h 14386 2021-01-20 23:58:29Z greg $ */
 
 /************************************************************************/
 /*	para_protos.h - PARASOL library prototype and macro file	*/
@@ -920,7 +920,7 @@ extern long ps_get_node_stat_index(
 
 /************************************************************************/
 
-#if !defined(WINNT) && !defined(__CYGWIN__)
+#if !defined(__WINNT__) && !defined(__CYGWIN__)
 static inline
 #endif
 SYSCALL  ps_record_stat(
@@ -929,7 +929,7 @@ SYSCALL  ps_record_stat(
 	long	stat,				/* statistics index	*/
 	double	value				/* sample | value	*/
 )
-#if !defined(WINNT) && !defined(__CYGWIN__)
+#if !defined(__WINNT__) && !defined(__CYGWIN__)
 {
 	ps_stat_t	*sp;			/* statistics pointer	*/
 	double 	temp;				/* temporary		*/
@@ -978,7 +978,7 @@ SYSCALL  ps_record_stat(
 
 /************************************************************************/
 
-#if !defined(WINNT) && !defined(__CYGWIN__)
+#if !defined(__WINNT__) && !defined(__CYGWIN__)
 static inline
 #endif
 SYSCALL	ps_record_stat2(
@@ -989,7 +989,7 @@ SYSCALL	ps_record_stat2(
 	double	value,				/* sample | value	*/
 	double  start				/* Start time.		*/
 )
-#if !defined(WINNT) && !defined(__CYGWIN__)
+#if !defined(__WINNT__) && !defined(__CYGWIN__)
 {
 	ps_stat_t	*sp;			/* statistics pointer	*/
 	double 	temp;				/* temporary		*/

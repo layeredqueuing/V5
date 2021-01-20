@@ -211,7 +211,7 @@ static inline double tv_to_double( struct timeval& tv ) { return (static_cast<do
 #if HAVE_GETEUID && HAVE_GETPWUID
 	    struct passwd * passwd = getpwuid(geteuid());
 	    output << passwd->pw_name;
-#elif defined(WINNT)
+#elif defined(__WINNT__)
 	    output << getenv("USERNAME");
 #endif
 	    return output;

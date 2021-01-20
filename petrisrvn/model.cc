@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14292 2020-12-30 16:29:20Z greg $
+ * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
  *
  * Load the SRVN model.
  */
@@ -1692,7 +1692,7 @@ Model::createDirectory() const
 	int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
 	if ( rc < 0 ) {
 	    if ( errno == ENOENT ) {
-#if defined(WINNT)
+#if defined(__WINNT__)
 		rc = mkdir( directory_name.c_str() );
 #else
 		rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );

@@ -2,7 +2,7 @@
  * Model file generator.
  * This is actually part of lqn2ps, but if lqn2ps is invoked as lqngen, then this magically runs.
  *
- * $Id: lqngen.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: lqngen.cc 14386 2021-01-20 23:58:29Z greg $
  */
 
 #include "lqngen.h"
@@ -978,7 +978,7 @@ multi( const std::string& dir )
 	    std::cerr << LQIO::io_vars.lq_toolname << ": " << strerror( errno ) << std::endl;
 	    exit ( 1 );
 	} else if ( mkdir( dir.c_str()
-#if !defined(WINNT) && !defined(MSDOS)
+#if !defined(__WINNT__) && !defined(MSDOS)
 			   ,S_IRWXU|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH
 #endif
 			) < 0 ) {

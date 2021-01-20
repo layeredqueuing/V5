@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 14154 2020-11-30 21:26:43Z greg $
+ * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -656,7 +656,7 @@ Model::createDirectory() const
 	int rc = access( directoryName.c_str(), R_OK|W_OK|X_OK );
 	if ( rc < 0 ) {
 	    if ( errno == ENOENT ) {
-#if defined(WINNT)
+#if defined(__WINNT__)
 		rc = mkdir( directoryName.c_str() );
 #else
 		rc = mkdir( directoryName.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );

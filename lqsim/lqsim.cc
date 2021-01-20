@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: lqsim.cc 14386 2021-01-20 23:58:29Z greg $
  */
 
 #define STACK_TESTING
@@ -59,7 +59,7 @@
 
 extern FILE* Timeline_Open(char* file_name); /* Open the timeline output stream */
 
-#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(WINNT))
+#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(__WINNT__))
 typedef	fp_except fp_bit_type;
 #elif defined(_AIX)
 typedef	fpflag_t fp_bit_type;
@@ -256,7 +256,7 @@ static struct {
     fp_bit_type bit;
     const char * str;
 } fp_op_str[] = {
-#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(WINNT))
+#if defined(__hpux) || (defined(HAVE_IEEEFP_H) && !defined(MSDOS) && !defined(__WINNT__))
     { FP_X_INV, "Invalid operation" },
     { FP_X_DZ, "Overflow" },
     { FP_X_OFL, "Underflow" },
@@ -326,7 +326,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-01-19 13:52:02 -0500 (Tue, 19 Jan 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-01-20 18:58:29 -0500 (Wed, 20 Jan 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -629,7 +629,7 @@ main( int argc, char * argv[] )
 	reload_flag = false;
     }
 	
-#if !defined(WINNT)
+#if !defined(__WINNT__)
     if ( nice_value > 0 ) {
 	nice( nice_value );	/* Lower nice level for run */
     }
@@ -655,7 +655,7 @@ main( int argc, char * argv[] )
 	    global_error_flag = true;
 	}
 
-#if defined(DEBUG) || defined(WINNT)
+#if defined(DEBUG) || defined(__WINNT__)
     } else if ( argc - optind > 1 ) {
 	(void) fprintf( stderr, "%s: Too many input files specified -- only one can be specified with this version.\n", LQIO::io_vars.toolname() );
 	exit( INVALID_ARGUMENT );
@@ -868,7 +868,7 @@ report_matherr( FILE * output )
     fp_bit_type bits = fetestexcept( FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW );
 #elif HAVE_IEEEFP_H && HAVE_FPGETSTICKY
     fp_bit_type bits = fpgetsticky() & (FP_X_INV|FP_X_OFL|FP_X_UFL|FP_X_DZ);
-#elif defined(WINNT)
+#elif defined(__WINNT__)
     fp_bit_type bits =  _status87() & (FE_DIVBYZERO|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW );
 #else
     fp_bit_type bits = 0;

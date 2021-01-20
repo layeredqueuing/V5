@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: lqn2ps.cc 14386 2021-01-20 23:58:29Z greg $
  *
  * Command line processing.
  *
@@ -194,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-19 13:52:02 -0500 (Tue, 19 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-20 18:58:29 -0500 (Wed, 20 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -856,7 +856,7 @@ lqn2ps( int argc, char *argv[] )
 
     /* If stdout is not a terminal For pipelines.	*/
 
-#if !defined(WINNT) && !defined(MSDOS)
+#if !defined(__WINNT__) && !defined(MSDOS)
     if ( output_file_name == "" && LQIO::Filename::isWriteableFile( fileno( stdout ) ) > 0 ) {
 	output_file_name = "-";
     }

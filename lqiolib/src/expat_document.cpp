@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14384 2021-01-20 18:46:35Z greg $
+ * $Id: expat_document.cpp 14386 2021-01-20 23:58:29Z greg $
  *
  * Read in XML input files.
  *
@@ -2224,7 +2224,7 @@ namespace LQIO {
                     schema_path = (string) psBuffer;
                 }
 
-#elif defined(WINNT)
+#elif defined(__WINNT__)
                 schema_path = "file:///C:/Program Files/LQN Solvers/";
 #else
                 schema_path = "/usr/local/share/lqns/";

@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -698,7 +698,7 @@ Model::store()
 		directory_name = filename();
 		int rc = access( directory_name.c_str(), R_OK|W_OK|X_OK );
 		if ( rc < 0 ) {
-#if defined(WINNT)
+#if defined(__WINNT__)
 		    rc = mkdir( directory_name.c_str() );
 #else
 		    rc = mkdir( directory_name.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
@@ -2066,7 +2066,7 @@ Model::printPostScriptPrologue( std::ostream& output, const std::string& title,
 /* Open Office output...
  * The output is somewhat more complicated because we have to write out a pile of crap.
  */
-#if defined(WINNT)
+#if defined(__WINNT__)
 #define MKDIR(a1,a2) mkdir( a1 )
 #else
 #define MKDIR(a1,a2) mkdir( a1, a2 )
@@ -2128,7 +2128,7 @@ Model::printSXD( const std::string& dst_name, const std::string& dir_name, const
 	(this->*aFunc)( output );
 	output.close();
 
-#if !defined(WINNT)
+#if !defined(__WINNT__)
 	std::ostringstream command;
 	command << "cd " << dir_name << "; zip -r ../" << dst_name << " " << file_name;
 	int rc = system( command.str().c_str() );

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14333 2021-01-04 23:17:05Z greg $
+ * $Id: qnsolver.cc 14386 2021-01-20 23:58:29Z greg $
  */
 
 #include <lqio/jmva_document.h>
@@ -79,6 +79,8 @@ int main (int argc, char *argv[])
     makeopts( longopts, opts );
 #endif
     
+    LQIO::io_vars.init( VERSION, basename( argv[0] ), nullptr );
+
     for ( ;; ) {
 #if HAVE_GETOPT_LONG
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts, NULL );

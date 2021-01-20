@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -1083,7 +1083,7 @@ Model::createDirectory() const
 	int rc = access( directoryName.c_str(), R_OK|W_OK|X_OK );
 	if ( rc < 0 ) {
 	    if ( errno == ENOENT ) {
-#if defined(WINNT)
+#if defined(__WINNT__)
 		rc = mkdir( directoryName.c_str() );
 #else
 		rc = mkdir( directoryName.c_str(), S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
