@@ -70,4 +70,7 @@ distclean-local:
 	rm -f $(OBJS) $(DST).bbl 
 
 gurjari-install: $(DST).pdf $(INFILE).pdf
+else
+all:
+	echo LaTeX is required to make the user manual.
 endif

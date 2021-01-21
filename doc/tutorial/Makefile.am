@@ -49,4 +49,6 @@ $(DST).txt: $(DST).dvi
 
 clean-local:
 	rm -f $(OBJS)  $(DST).aux $(DST).bbl $(DST).blg $(DST).dvi $(DST).log $(DST).pdf $(DST).ps $(DST).out *.fig.bak *.eps
+else
+	echo LaTeX is required to make the tutorial.
 endif
