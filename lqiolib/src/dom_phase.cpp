@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_phase.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_phase.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -88,7 +88,7 @@ namespace LQIO {
 	    return _serviceTime;
 	}
 
-	void Phase::setServiceTime(ExternalVariable* serviceTime)
+	void Phase::setServiceTime(const ExternalVariable* serviceTime)
 	{
 	    /* Stores the given ServiceTime of the Phase */
 	    _serviceTime = checkDoubleVariable( serviceTime, 0.0 );
@@ -100,7 +100,7 @@ namespace LQIO {
 	    if (_serviceTime == nullptr) {
 		_serviceTime = new ConstantExternalVariable(value);
 	    } else {
-		_serviceTime->set(value);
+		const_cast<ExternalVariable *>(_serviceTime)->set(value);	// Should just overwrite.
 	    }
 	}
 
@@ -144,7 +144,7 @@ namespace LQIO {
 	    return _thinkTime;
 	}
 
-	void Phase::setThinkTime(ExternalVariable* thinkTime)
+	void Phase::setThinkTime(const ExternalVariable* thinkTime)
 	{
 	    /* Store the new think time */
 	    _thinkTime = checkDoubleVariable( thinkTime, 0.0 );
@@ -155,7 +155,7 @@ namespace LQIO {
 	    if ( _thinkTime == nullptr ) {
 		_thinkTime = new ConstantExternalVariable(value);
 	    } else {
-		_thinkTime->set(value);
+		const_cast<ExternalVariable *>(_thinkTime)->set(value);
 	    }
 	}
 
@@ -164,7 +164,7 @@ namespace LQIO {
 	    return ExternalVariable::isPresent( getThinkTime(), 0.0 );
 	}
 
-	void Phase::setMaxServiceTime(ExternalVariable* time)
+	void Phase::setMaxServiceTime(const ExternalVariable* time)
 	{
 	    /* Weird one as can't be changed dynamically */
 	    double value = 0.0;
@@ -210,12 +210,8 @@ namespace LQIO {
 	    return _coeffOfVariationSq;
 	}
 
-	void Phase::setCoeffOfVariationSquared(ExternalVariable* cvsq)
+	void Phase::setCoeffOfVariationSquared(const ExternalVariable* cvsq)
 	{
-	    if (_coeffOfVariationSq != nullptr) {
-//        printf("WARNING: Overwriting existing ExternalVariable in Phase.\n");
-	    }
-
 	    /* Store the new coefficient of variation */
 	    _coeffOfVariationSq = cvsq;
 	}
@@ -226,7 +222,7 @@ namespace LQIO {
 	    if (_coeffOfVariationSq == nullptr) {
 		_coeffOfVariationSq = new ConstantExternalVariable(value);
 	    } else {
-		_coeffOfVariationSq->set(value);
+		const_cast<ExternalVariable *>(_coeffOfVariationSq)->set(value);
 	    }
 	}
 

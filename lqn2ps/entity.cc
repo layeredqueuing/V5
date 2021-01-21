@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: entity.cc 14387 2021-01-21 14:09:16Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -739,8 +739,8 @@ Entity::create_class::operator()( const Entity * entity ) const
     /* Think time for a task is the class think time. */
 
     const Task * task = dynamic_cast<const Task *>(entity);
-    const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : new LQIO::DOM::ConstantExternalVariable( 1 );
-    const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : new LQIO::DOM::ConstantExternalVariable( 0. );
+    const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : &Element::ONE;
+    const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : &Element::ZERO;
     _model.insertClass( entity->name(), type, copies, think_time );
 }
 

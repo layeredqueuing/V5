@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_call.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -15,7 +15,7 @@ namespace LQIO {
     
 	const char * Call::__typeName = "call";
 
-	Call::Call(const Document * document, const Type type, Phase* source, Entry* destination, ExternalVariable* callMean ) :
+	Call::Call(const Document * document, const Type type, Phase* source, Entry* destination, const ExternalVariable* callMean ) :
 	    DocumentObject(document,""),
 	    _callType(type), _sourceObject(source), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(nullptr),
@@ -27,7 +27,7 @@ namespace LQIO {
 	}
         
 	/* Special case for forwarding */
-	Call::Call(const Document * document, Entry* source, Entry* destination, ExternalVariable* callMean ) :
+	Call::Call(const Document * document, Entry* source, Entry* destination, const ExternalVariable* callMean ) :
 	    DocumentObject(document,""),
 	    _callType(Call::Type::FORWARD), _sourceObject(source), _destinationEntry(destination), 
 	    _callMean(callMean), _histogram(nullptr),
@@ -99,7 +99,7 @@ namespace LQIO {
 	    return _callMean;
 	}
     
-	void Call::setCallMean(ExternalVariable* callMean)
+	void Call::setCallMean(const ExternalVariable* callMean)
 	{
 	    if ( _callMean != nullptr ) delete _callMean;
 	    _callMean = checkDoubleVariable( callMean, 0.0 );
@@ -115,7 +115,7 @@ namespace LQIO {
 	    if ( _callMean == nullptr ) {
 		_callMean = new ConstantExternalVariable( value );
 	    } else {
-		_callMean->set(value);
+		const_cast<ExternalVariable *>(_callMean)->set(value);
 	    }
 	}
     

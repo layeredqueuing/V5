@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: activity.cc 14387 2021-01-21 14:09:16Z greg $
  */
 
 #include <parasol.h>
@@ -939,8 +939,8 @@ Activity::realloc_list( const list_type type, const ActivityList * input_list, L
 
     }
 
-    LQIO::DOM::ExternalVariable * count;
-    if ( type == ACT_LOOP_LIST && (count = dom_activity_list->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_DOM()))) == NULL ) {
+    const LQIO::DOM::ExternalVariable * count;
+    if ( type == ACT_LOOP_LIST && (count = dom_activity_list->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_DOM()))) == nullptr ) {
 	list->u.loop.endlist = this;
     } else {
 	list->list[list->na] = this;

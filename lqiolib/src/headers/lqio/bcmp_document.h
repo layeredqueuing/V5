@@ -100,6 +100,7 @@ namespace BCMP {
 
 		Demand() : _visits(nullptr), _service_time(nullptr) {}
 		Demand( const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time ) : _visits(visits), _service_time(service_time) {}
+		~Demand() {}
 		
 		const DOM::ExternalVariable* visits() const { return _visits; }
 		const DOM::ExternalVariable* service_time() const { return _service_time; }
@@ -127,7 +128,8 @@ namespace BCMP {
 	public:
 	    Station() : _type(NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(nullptr), _demands() {}
 	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) : _type(type), _scheduling(scheduling), _copies(copies) {}
-
+	    ~Station();
+	    
 	    bool insertDemand( const std::string&, const Demand& );
 	    
 	    Type type() const { return _type; }
@@ -182,7 +184,7 @@ namespace BCMP {
 
     public:
 	Model() : _comment(), _classes(), _stations() {}
-	virtual ~Model() {}
+	virtual ~Model();
 
 	bool empty() const { return _classes.size() == 0 || _stations.size() == 0; }
 	const std::string& comment() const { return _comment; }

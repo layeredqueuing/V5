@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: task.cc 14387 2021-01-21 14:09:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -248,20 +248,20 @@ Task::renameFanInOut( const std::string& old_name, const std::string& new_name )
     const std::map<std::string,LQIO::DOM::Task*>& tasks = document->getTasks();	// Get all tasks for remap
     for ( std::map<std::string,LQIO::DOM::Task*>::const_iterator t = tasks.begin(); t != tasks.end(); ++t ) {
 	const LQIO::DOM::Task * task = t->second;
-	renameFanInOut( const_cast<std::map<const std::string,LQIO::DOM::ExternalVariable *>&>(task->getFanIns()), old_name, new_name );
-	renameFanInOut( const_cast<std::map<const std::string,LQIO::DOM::ExternalVariable *>&>(task->getFanOuts()), old_name, new_name );
+	renameFanInOut( const_cast<std::map<const std::string,const LQIO::DOM::ExternalVariable *>&>(task->getFanIns()), old_name, new_name );
+	renameFanInOut( const_cast<std::map<const std::string,const LQIO::DOM::ExternalVariable *>&>(task->getFanOuts()), old_name, new_name );
     }
 }
 
 
 void
-Task::renameFanInOut( std::map<const std::string,LQIO::DOM::ExternalVariable *>& fan_ins_or_outs, const std::string& old_name, const std::string& new_name )
+Task::renameFanInOut( std::map<const std::string,const LQIO::DOM::ExternalVariable *>& fan_ins_or_outs, const std::string& old_name, const std::string& new_name )
 {
-    std::map<const std::string,LQIO::DOM::ExternalVariable *>::iterator index = fan_ins_or_outs.find( old_name );
+    std::map<const std::string,const LQIO::DOM::ExternalVariable *>::iterator index = fan_ins_or_outs.find( old_name );
     if ( index != fan_ins_or_outs.end() ) {
-	LQIO::DOM::ExternalVariable * value = index->second;
+	const LQIO::DOM::ExternalVariable * value = index->second;
 	fan_ins_or_outs.erase( index );						// Remove old item.
-	fan_ins_or_outs.insert( std::pair<const std::string,LQIO::DOM::ExternalVariable *>(new_name, value) );
+	fan_ins_or_outs.insert( std::pair<const std::string,const LQIO::DOM::ExternalVariable *>(new_name, value) );
     }
 }
 
@@ -2016,11 +2016,11 @@ Task::removeReplication()
     Entity::removeReplication();
 
     LQIO::DOM::Task * dom = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(getDOM()));
-    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fi = dom->getFanIns().begin(); fi != dom->getFanIns().end(); ++fi ) {
-	dom->setFanIn( fi->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
+    for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::const_iterator fi = dom->getFanIns().begin(); fi != dom->getFanIns().end(); ++fi ) {
+	dom->setFanIn( fi->first, &Element::ONE );
     }
-    for ( std::map<const std::string, LQIO::DOM::ExternalVariable *>::const_iterator fo = dom->getFanOuts().begin(); fo != dom->getFanOuts().end(); ++fo ) {
-	dom->setFanOut( fo->first, new LQIO::DOM::ConstantExternalVariable( 1 ) );
+    for ( std::map<const std::string, const LQIO::DOM::ExternalVariable *>::const_iterator fo = dom->getFanOuts().begin(); fo != dom->getFanOuts().end(); ++fo ) {
+	dom->setFanOut( fo->first, &Element::ONE );
     }
 
     return *this;
@@ -2162,7 +2162,7 @@ Task::expandActivities( const Task& src, int replica )
 		/* A little tricky here.  We need to copy over whatever parameter there was. */
 
 		const LQIO::DOM::ActivityList * dstPrecedenceDOM = dstPrecedence->getDOM();
-		LQIO::DOM::ExternalVariable * parameter = dstPrecedenceDOM->getParameter( dynamic_cast<const LQIO::DOM::Activity *>((*activity)->getDOM()) );
+		const LQIO::DOM::ExternalVariable * parameter = dstPrecedenceDOM->getParameter( dynamic_cast<const LQIO::DOM::Activity *>((*activity)->getDOM()) );
 		post_list_dom->add( post_activity_dom, parameter );
 	    }
 
@@ -2449,7 +2449,7 @@ ReferenceTask::hasThinkTime() const
     return dynamic_cast<const LQIO::DOM::Task *>(getDOM())->hasThinkTime();
 }
 
-LQIO::DOM::ExternalVariable&
+const LQIO::DOM::ExternalVariable&
 ReferenceTask::thinkTime() const
 {
     return *dynamic_cast<const LQIO::DOM::Task *>(getDOM())->getThinkTime();

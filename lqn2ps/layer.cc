@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: layer.cc 14387 2021-01-21 14:09:16Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -787,10 +787,9 @@ Layer::createBCMPModel()
 	    // for all entries s += prVisit(e) * e->serviceTime ??
 	    service_time = task->entries().at(0)->serviceTime();
 	} else {
-	    service_time = new LQIO::DOM::ConstantExternalVariable( 0. );
+	    service_time = &Element::ZERO;
 	}
-	BCMP::Model::Station::Demand demand( new LQIO::DOM::ConstantExternalVariable(1.0),	/* One visit */
-					     service_time );
+	BCMP::Model::Station::Demand demand( &Element::ONE, service_time );	/* One visit */
 
 	const std::string name = task->name();
 	terminals.insertDemand( name, demand );

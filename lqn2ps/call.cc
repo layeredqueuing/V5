@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: call.cc 14387 2021-01-21 14:09:16Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1989,7 +1989,7 @@ ProcessorCall::updateRateFrom( const Call& call )
 {
     if ( callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
 	/* First time for this call.  Save visits */
-	_visits = new LQIO::DOM::ConstantExternalVariable( 1.0 );
+	_visits = &Element::ONE;
 	_callType = call.callType();
     } else if ( callType() != call.callType() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );

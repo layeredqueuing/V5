@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: task.h 14387 2021-01-21 14:09:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -220,7 +220,7 @@ private:
     Task& moveSrcBy( const double dx, const double dy );
 
     void renameFanInOut( const std::string&, const std::string& );
-    void renameFanInOut( std::map<const std::string,LQIO::DOM::ExternalVariable *>&, const std::string&, const std::string& );
+    void renameFanInOut( std::map<const std::string,const LQIO::DOM::ExternalVariable *>&, const std::string&, const std::string& );
     
 #if defined(REP2FLAT)
     Task& expandActivities( const Task& src, int replica );
@@ -272,7 +272,7 @@ public:
     virtual bool isReferenceTask() const { return true; }
     virtual bool isPureServer() const { return false; }
     virtual bool hasThinkTime() const;
-    LQIO::DOM::ExternalVariable& thinkTime() const;
+    const LQIO::DOM::ExternalVariable& thinkTime() const;
 
     virtual bool canConvertToOpenArrivals() const { return false; }
 

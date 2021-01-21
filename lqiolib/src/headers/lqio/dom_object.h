@@ -1,5 +1,5 @@
 /*  -*- C++ -*-
- *  $Id: dom_object.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_object.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -53,17 +53,17 @@ namespace LQIO {
 	    const std::string& getComment() const;
 
 	protected:
-	    ExternalVariable * checkIntegerVariable( ExternalVariable * var, int floor_value ) const;
+	    const ExternalVariable * checkIntegerVariable( const ExternalVariable * var, int floor_value ) const;
 	    int getIntegerValue( const ExternalVariable * var, int floor_value ) const;
-	    ExternalVariable * checkDoubleVariable( ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
+	    const ExternalVariable * checkDoubleVariable( const ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
 	    double getDoubleValue( const ExternalVariable * var, double floor_value, double ceiling_value = 0.0 ) const;
 	    
 	public:
 	    virtual bool hasHistogram() const { return false; }		/* Any object could have a histogram... */
-	    virtual const Histogram* getHistogram() const { subclass(); return 0; }	/* But don't... */
+	    virtual const Histogram* getHistogram() const { subclass(); return nullptr; }	/* But don't... */
 	    virtual void setHistogram( Histogram* ) { subclass(); }
 	    virtual bool hasHistogramForPhase( unsigned ) const { return false; };
-	    virtual const Histogram* getHistogramForPhase ( unsigned ) const { subclass(); return 0; }	/* But don't... */
+	    virtual const Histogram* getHistogramForPhase ( unsigned ) const { subclass(); return nullptr; }	/* But don't... */
 	    virtual void setHistogramForPhase( unsigned, Histogram* ) { subclass(); }
 
 	    /* Results -- overridden by subclasses */

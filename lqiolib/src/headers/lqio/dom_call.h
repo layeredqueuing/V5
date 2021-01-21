@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_call.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -9,7 +9,6 @@
 #ifndef __LQIO_DOM_CALL__
 #define __LQIO_DOM_CALL__
 
-#include "dom_object.h"
 #include "dom_object.h"
 
 namespace LQIO {
@@ -55,8 +54,8 @@ namespace LQIO {
 	public:
 
 	    /* Designated initializer for the call information */
-	    Call(const Document * document, const Type type, Phase* source, Entry* destination, ExternalVariable* callMean=nullptr );
-	    Call(const Document * document, Entry *source, Entry* destination, ExternalVariable* callMean=nullptr );
+	    Call(const Document * document, const Type type, Phase* source, Entry* destination, const ExternalVariable* callMean=nullptr );
+	    Call(const Document * document, Entry *source, Entry* destination, const ExternalVariable* callMean=nullptr );
 	    virtual ~Call();
 	    Call * clone() const;
 
@@ -83,7 +82,7 @@ namespace LQIO {
 
 	    /* External Variable Access (Do not call until set) */
 	    const ExternalVariable* getCallMean() const;
-	    void setCallMean(ExternalVariable* callMean);
+	    void setCallMean(const ExternalVariable* callMean);
 	    const double getCallMeanValue() const;
 	    void setCallMeanValue(double);
 
@@ -113,7 +112,7 @@ namespace LQIO {
 	    Entry* _destinationEntry;
 
 	    /* Variables which can be scripted */
-	    ExternalVariable* _callMean;
+	    const ExternalVariable* _callMean;
 	    Histogram * _histogram;
 
 	    /* Results for the call */

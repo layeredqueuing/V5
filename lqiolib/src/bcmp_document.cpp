@@ -122,6 +122,17 @@ namespace BCMP {
 	}
     }
 
+    Model::~Model()
+    {
+	_classes.clear();
+	_stations.clear();
+    }
+    
+    Model::Station::~Station()
+    {
+	_demands.clear();
+    }
+    
     bool
     Model::Station::insertDemand( const std::string& class_name, const Demand& demand )
     {

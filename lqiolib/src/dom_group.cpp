@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_group.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_group.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 1/07/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -16,7 +16,7 @@ namespace LQIO {
     
 	const char * Group::__typeName = "group";
 
-	Group::Group(const Document * document, const char * name, Processor* proc, ExternalVariable * share, bool cap ) 
+	Group::Group(const Document * document, const char * name, Processor* proc, const ExternalVariable * share, bool cap ) 
 	    : DocumentObject(document,name), _processor(proc), _groupShare(share), _cap(cap), 
 	      _resultUtilization(0.0), _resultUtilizationVariance(0.0)
 	      
@@ -54,13 +54,13 @@ namespace LQIO {
 	    return value;
 	}
 
-	ExternalVariable * Group::getGroupShare() const
+	const ExternalVariable * Group::getGroupShare() const
 	{
 	    /* Returns the GroupShare of the Group */
 	    return _groupShare;
 	}
 
-	void Group::setGroupShare( ExternalVariable * groupShare )
+	void Group::setGroupShare( const ExternalVariable * groupShare )
 	{
 	    /* Stores the given GroupShare of the Group */ 
 	    _groupShare = checkDoubleVariable( groupShare, 0.0 );
@@ -71,7 +71,7 @@ namespace LQIO {
 	    if ( _groupShare == nullptr ) {
 		_groupShare = new ConstantExternalVariable(value);
 	    } else {
-		_groupShare->set(value);
+		const_cast<ExternalVariable *>(_groupShare)->set(value);
 	    }
 	}
     

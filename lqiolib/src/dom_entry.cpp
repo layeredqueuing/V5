@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_entry.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -187,7 +187,7 @@ namespace LQIO {
 	    }
 	}
     
-	void Entry::setOpenArrivalRate(ExternalVariable* value)
+	void Entry::setOpenArrivalRate(const ExternalVariable* value)
 	{
 	    /* Store the given open arrival rate */
 	    _openArrivalRate = checkDoubleVariable( value, 0.0 );
@@ -203,7 +203,7 @@ namespace LQIO {
 	    return ExternalVariable::isPresent( getOpenArrivalRate(), 0.0 );
 	}
     
-	void Entry::setEntryPriority(ExternalVariable* value)
+	void Entry::setEntryPriority(const ExternalVariable* value)
 	{
 	    /* Store the entry priority */
 	    _entryPriority = checkIntegerVariable( value, 0 );

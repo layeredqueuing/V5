@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_task.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_task.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -49,8 +49,8 @@ namespace LQIO {
 	    /* Designated initializer for the Task entity */
 	    Task(const Document * document, const std::string& name, const scheduling_type scheduling,
 		 const std::vector<DOM::Entry *>& entryList,
-		 const Processor* processor=nullptr, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
-		 ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+		 const Processor* processor=nullptr, const ExternalVariable* queue_length=nullptr, const ExternalVariable * priority=nullptr,
+		 const ExternalVariable* n_copies=nullptr, const ExternalVariable* n_replicas=nullptr,
 		 const Group * group=nullptr );
 
 	    Task( const Task& );
@@ -65,30 +65,30 @@ namespace LQIO {
 
 	    /* Variable Accessors and Mutators */
 	    unsigned int getQueueLengthValue() const;
-	    ExternalVariable * getQueueLength() const;
+	    const ExternalVariable * getQueueLength() const;
 	    void setQueueLengthValue(const unsigned int queueLength);
-	    void setQueueLength(ExternalVariable * queueLength);
+	    void setQueueLength(const ExternalVariable * queueLength);
 	    bool hasQueueLength() const;
 	    int getPriorityValue() const;
-	    ExternalVariable * getPriority() const;
-	    void setPriority(ExternalVariable *);
+	    const ExternalVariable * getPriority() const;
+	    void setPriority(const ExternalVariable *);
 	    void setPriorityValue( int );
 	    bool hasPriority() const;
 	    double getThinkTimeValue() const;
-	    ExternalVariable * getThinkTime() const;
-	    void setThinkTime(ExternalVariable * thinkTime);
+	    const ExternalVariable * getThinkTime() const;
+	    void setThinkTime(const ExternalVariable * thinkTime);
 	    void setThinkTimeValue( double value );
 	    bool hasThinkTime() const;
-	    void setFanOut( const std::string&, ExternalVariable * );
+	    void setFanOut( const std::string&, const ExternalVariable * );
 	    void setFanOutValue( const std::string&, unsigned int );
-	    ExternalVariable * getFanOut( const std::string& ) const;
+	    const ExternalVariable * getFanOut( const std::string& ) const;
 	    unsigned int getFanOutValue( const std::string& ) const;
-	    const std::map<const std::string,ExternalVariable *>& getFanOuts() const;
-	    void setFanIn( const std::string&, ExternalVariable * );
+	    const std::map<const std::string,const ExternalVariable *>& getFanOuts() const;
+	    void setFanIn( const std::string&, const ExternalVariable * );
 	    void setFanInValue( const std::string&, unsigned int );
-	    ExternalVariable * getFanIn( const std::string& ) const;
+	    const ExternalVariable * getFanIn( const std::string& ) const;
 	    unsigned int getFanInValue( const std::string& ) const;
-	    const std::map<const std::string,ExternalVariable *>& getFanIns() const;
+	    const std::map<const std::string,const ExternalVariable *>& getFanIns() const;
 
 	    /* Access to the "constant" elements */
 	    void setProcessor( Processor * );		// Used for cloning only.
@@ -157,10 +157,10 @@ namespace LQIO {
 
 	    /* Input Variables from the Document */
 	    std::vector<Entry*> _entryList;
-	    ExternalVariable * _queueLength;
+	    const ExternalVariable * _queueLength;
 	    Processor* _processor;
-	    ExternalVariable * _priority;
-	    ExternalVariable * _thinkTime;
+	    const ExternalVariable * _priority;
+	    const ExternalVariable * _thinkTime;
 	    Group * _group;
   	
 	    /* Variables for Activities */
@@ -168,8 +168,8 @@ namespace LQIO {
 	    std::set<ActivityList *> _precedences;
 
 	    /* Variables for replication */
-	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanOut;
-	    std::map<const std::string, LQIO::DOM::ExternalVariable *> _fanIn;
+	    std::map<const std::string, const LQIO::DOM::ExternalVariable *> _fanOut;
+	    std::map<const std::string, const LQIO::DOM::ExternalVariable *> _fanIn;
   	
 	    /* Computation Results from LQNS */
 	    unsigned int _resultPhaseCount;
@@ -193,8 +193,8 @@ namespace LQIO {
 	    enum class InitialState { EMPTY, FULL };
 
 	    SemaphoreTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList,
-			  const Processor* processor, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
-			  ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+			  const Processor* processor, const ExternalVariable* queue_length=nullptr, const ExternalVariable * priority=nullptr,
+			  const ExternalVariable* n_copies=nullptr, const ExternalVariable* n_replicas=nullptr,
 			  const Group * group=nullptr );
 	    SemaphoreTask( const SemaphoreTask& );
 	    virtual ~SemaphoreTask();
@@ -238,8 +238,8 @@ namespace LQIO {
 	public:
 	
 	    RWLockTask(const Document * document, const char * name, const std::vector<DOM::Entry *>& entryList,
-		       const Processor* processor, ExternalVariable* queue_length=nullptr, ExternalVariable * priority=nullptr,
-		       ExternalVariable* n_copies=nullptr, ExternalVariable* n_replicas=nullptr,
+		       const Processor* processor, const ExternalVariable* queue_length=nullptr, const ExternalVariable * priority=nullptr,
+		       const ExternalVariable* n_copies=nullptr, const ExternalVariable* n_replicas=nullptr,
 		       const Group * group=nullptr );
 	    //  n_copies is the number of concurrent readers
 

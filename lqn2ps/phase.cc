@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: phase.cc 14387 2021-01-21 14:09:16Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -213,7 +213,7 @@ Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std
 /* static */ BCMP::Model::Station::Demand
 Phase::accumulate_demand( const BCMP::Model::Station::Demand& augend, const std::pair<unsigned,Phase>& p )
 {
-    return augend + BCMP::Model::Station::Demand( new LQIO::DOM::ConstantExternalVariable(1.0), &p.second.serviceTime() );
+    return augend + BCMP::Model::Station::Demand( &Element::ONE, &p.second.serviceTime() );
 }
 
 /* static */ double

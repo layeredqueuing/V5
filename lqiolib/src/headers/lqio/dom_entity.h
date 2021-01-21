@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entity.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_entity.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -42,14 +42,14 @@ namespace LQIO {
 	    Entity(const Entity&);
 
 	public:
-      
+
 	    /* Designated initializers for the SVN DOM Entity type */
-	    Entity(const Document * document, const std::string& name, 
+	    Entity(const Document * document, const std::string& name,
 		   const scheduling_type schedulingType,
-		   ExternalVariable * copies,
-		   ExternalVariable* replicas );
+		   const ExternalVariable * copies,
+		   const ExternalVariable* replicas );
 	    virtual ~Entity();
-      
+
 	    /* Accessors and Mutators */
 	    const unsigned int getId() const;
 	    void setId(const unsigned int newId);
@@ -58,26 +58,25 @@ namespace LQIO {
 	    bool hasCopies() const;
 	    const unsigned int getCopiesValue() const;
 	    const ExternalVariable* getCopies() const;
-	    void setCopies(ExternalVariable* newCopies);
+	    void setCopies(const ExternalVariable* newCopies);
 	    void setCopiesValue(const unsigned int);
 	    bool hasReplicas() const;
 	    const unsigned int getReplicasValue() const;
 	    const ExternalVariable* getReplicas() const;
 	    void setReplicasValue(const unsigned int newReplicas);
-	    void setReplicas(ExternalVariable* newReplicas);
+	    void setReplicas(const ExternalVariable* newReplicas);
 
 	    const bool isMultiserver() const;
 	    const bool isInfinite() const;
 
 	private:
 	    Entity& operator=( const Entity& );
-      
+
 	    /* Instance variables for Entities */
 	    unsigned int _entityId;
 	    scheduling_type _entitySchedulingType;
-	    ExternalVariable* _copies;
-	    ExternalVariable* _replicas;
-      
+	    const ExternalVariable* _copies;
+	    const ExternalVariable* _replicas;
 	};
     }
 }

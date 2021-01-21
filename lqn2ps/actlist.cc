@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: actlist.cc 14387 2021-01-21 14:09:16Z greg $
  */
 
 
@@ -778,7 +778,7 @@ OrForkActivityList::~OrForkActivityList()
 }
 
 
-LQIO::DOM::ExternalVariable& 
+const LQIO::DOM::ExternalVariable& 
 OrForkActivityList::prBranch( const Activity * anActivity ) const
 {
     return *getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(anActivity->getDOM()));
@@ -1659,7 +1659,7 @@ RepeatActivityList::add( Activity * anActivity )
     return *this;
 }
 
-LQIO::DOM::ExternalVariable *
+const LQIO::DOM::ExternalVariable *
 RepeatActivityList::rateBranch( const Activity * anActivity ) const
 {
     return getDOM()->getParameter(dynamic_cast<const LQIO::DOM::Activity *>(anActivity->getDOM()));

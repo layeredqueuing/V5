@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_phase.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_phase.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -54,7 +54,7 @@ namespace LQIO {
 	    bool isPresent() const;
 	    double getServiceTimeValue() const;
 	    const ExternalVariable* getServiceTime() const;
-	    void setServiceTime(ExternalVariable* serviceTime);
+	    void setServiceTime(const ExternalVariable* serviceTime);
 	    void setServiceTimeValue(double value);
 	    bool hasServiceTime() const;
 	    Phase::Type getPhaseTypeFlag() const;
@@ -65,16 +65,16 @@ namespace LQIO {
 	    void setSourceEntry(Entry* entry);
 	    double getThinkTimeValue() const;
 	    const ExternalVariable* getThinkTime() const;
-	    void setThinkTime(ExternalVariable* thinkTime);
+	    void setThinkTime(const ExternalVariable* thinkTime);
 	    void setThinkTimeValue( double value );
 	    bool hasThinkTime() const;
 	    double getCoeffOfVariationSquaredValue() const;
 	    const ExternalVariable* getCoeffOfVariationSquared() const;
-	    void setCoeffOfVariationSquared(ExternalVariable* cvsq);
+	    void setCoeffOfVariationSquared(const ExternalVariable* cvsq);
 	    void setCoeffOfVariationSquaredValue(double value);
 	    bool hasCoeffOfVariationSquared() const;
 	    bool isNonExponential() const;
-	    void setMaxServiceTime(ExternalVariable* serviceTime);
+	    void setMaxServiceTime(const ExternalVariable* serviceTime);
 	    void setMaxServiceTimeValue(double value);
 	    virtual double getMaxServiceTime() const;
 	    virtual bool hasMaxServiceTimeExceeded() const;
@@ -120,11 +120,11 @@ namespace LQIO {
 	    /* Type of Entry */
 
 	    std::vector<Call*> _calls;
-	    ExternalVariable* _serviceTime;
+	    const ExternalVariable* _serviceTime;
 	    Phase::Type _phaseTypeFlag;
 	    Entry* _entry;
-	    ExternalVariable* _thinkTime;
-	    ExternalVariable* _coeffOfVariationSq;
+	    const ExternalVariable* _thinkTime;
+	    const ExternalVariable* _coeffOfVariationSq;
 	    Histogram* _histogram;
       
 	    /* Computation Results from LQNS */

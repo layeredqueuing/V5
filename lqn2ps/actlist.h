@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * actlist.h	-- Greg Franks
  *
- * $Id: actlist.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: actlist.h 14387 2021-01-21 14:09:16Z greg $
  */
 
 #ifndef _ACTLIST_H
@@ -320,7 +320,7 @@ public:
 
     virtual const OrForkActivityList& draw( std::ostream& ) const;
 
-    LQIO::DOM::ExternalVariable& prBranch( const Activity * ) const;
+    const LQIO::DOM::ExternalVariable& prBranch( const Activity * ) const;
     double sum() const;
 
 protected:
@@ -519,7 +519,7 @@ protected:
     virtual ActivityList * prev() const { return prevLink; }	/* Link to join list 		*/
     virtual RepeatActivityList& prev( ActivityList * aList) { prevLink = aList; return *this; }
 
-    LQIO::DOM::ExternalVariable* rateBranch( const Activity * ) const;
+    const LQIO::DOM::ExternalVariable* rateBranch( const Activity * ) const;
 
 private:
     std::vector<Activity *> _activityList;

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14386 2021-01-20 23:58:29Z greg $
+ * $Id: expat_document.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  * Read in XML input files.
  *
@@ -2550,7 +2550,7 @@ namespace LQIO {
             }
 
 
-            for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanin = task.getFanIns().begin(); next_fanin != task.getFanIns().end(); ++next_fanin ) {
+            for ( std::map<const std::string, const ExternalVariable *>::const_iterator next_fanin = task.getFanIns().begin(); next_fanin != task.getFanIns().end(); ++next_fanin ) {
                 const std::string& src = next_fanin->first;
                 const ExternalVariable * value = next_fanin->second;
                 output << XML::simple_element( Xfanin ) << XML::attribute( Xsource, src )
@@ -2558,7 +2558,7 @@ namespace LQIO {
                        << "/>" << std::endl;
             }
 
-            for ( std::map<const std::string, ExternalVariable *>::const_iterator next_fanout = task.getFanOuts().begin(); next_fanout != task.getFanOuts().end(); ++next_fanout ) {
+            for ( std::map<const std::string, const ExternalVariable *>::const_iterator next_fanout = task.getFanOuts().begin(); next_fanout != task.getFanOuts().end(); ++next_fanout ) {
                 const std::string dst = next_fanout->first;
                 const ExternalVariable * value = next_fanout->second;
                 output << XML::simple_element( Xfanout ) << XML::attribute( Xdest, dst )

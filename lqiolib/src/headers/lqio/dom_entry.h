@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_entry.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_entry.h 14387 2021-01-21 14:09:16Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -82,11 +82,11 @@ namespace LQIO {
 	    Call* getCallToTarget(const Entry* target, unsigned phase) const;
 
 	    /* Additional Entry Parameters */
-	    void setOpenArrivalRate(ExternalVariable* value);
+	    void setOpenArrivalRate(const ExternalVariable* value);
 	    const ExternalVariable * getOpenArrivalRate() const { return _openArrivalRate; }
 	    double getOpenArrivalRateValue() const;
 	    bool hasOpenArrivalRate() const;
-	    void setEntryPriority(ExternalVariable* value);
+	    void setEntryPriority(const ExternalVariable* value);
 	    const ExternalVariable* getEntryPriority() const;
 	    int getEntryPriorityValue() const;
 	    bool hasEntryPriority() const;
@@ -247,8 +247,8 @@ namespace LQIO {
 	    std::map<unsigned, Histogram*> _histograms;
 
 	    /* Additional Entry Parameters */
-	    ExternalVariable* _openArrivalRate;
-	    ExternalVariable* _entryPriority;
+	    const ExternalVariable* _openArrivalRate;
+	    const ExternalVariable* _entryPriority;
 	    Semaphore _semaphoreType;
 	    RWLock _rwlockType;
 	    std::vector<Call *> _forwarding;

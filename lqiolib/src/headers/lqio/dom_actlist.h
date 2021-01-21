@@ -3,7 +3,7 @@
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
  *
- *  $Id: dom_actlist.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_actlist.h 14387 2021-01-21 14:09:16Z greg $
  */
 
 #ifndef __LQIO_DOM_ACTLIST__
@@ -54,10 +54,10 @@ namespace LQIO {
 	    const Task * getTask() const;
 	    const std::vector<const Activity*>& getList() const;
 	    const ActivityList::Type getListType() const;
-	    ActivityList& add(const Activity* activity, ExternalVariable * arg=NULL);
+	    ActivityList& add(const Activity* activity, const ExternalVariable * arg=NULL);
 
 	    void addValue( const Activity* activity, double arg );
-	    ExternalVariable * getParameter(const Activity* activity) const;
+	    const ExternalVariable * getParameter(const Activity* activity) const;
 	    double getParameterValue(const Activity* activity) const;
       
 	    /* Managing connections */
@@ -89,7 +89,7 @@ namespace LQIO {
 	    /* Instance variables */
 	    const Task * _task;
 	    std::vector<const Activity*> _list;
-	    std::map<const Activity*,ExternalVariable *> _arguments;
+	    std::map<const Activity*,const ExternalVariable *> _arguments;
 	    ActivityList::Type _type;
 	    ActivityList* _next;
 	    ActivityList* _prev;
@@ -105,14 +105,14 @@ namespace LQIO {
     
 	class AndJoinActivityList : public ActivityList {
 	public:
-	    AndJoinActivityList(const Document * document, const Task * task, ExternalVariable *quorumCount );
+	    AndJoinActivityList(const Document * document, const Task * task, const ExternalVariable *quorumCount );
 	    AndJoinActivityList( const AndJoinActivityList& );
 	    virtual ~AndJoinActivityList();
 
 	    AndJoinActivityList& setQuorumCountValue(const unsigned quorum);
 	    unsigned getQuorumCountValue() const;
-	    AndJoinActivityList& setQuorumCount(ExternalVariable * quorum);
-	    ExternalVariable * getQuorumCount() const;
+	    AndJoinActivityList& setQuorumCount(const ExternalVariable * quorum);
+	    const ExternalVariable * getQuorumCount() const;
 	    bool hasQuorumCount() const;
 
 	    virtual bool hasHistogram() const;
@@ -132,7 +132,7 @@ namespace LQIO {
 	    const bool hasResultVarianceJoinDelay() const { return  _hasResultVarianceJoinDelay; }
 
 	private:
-	    ExternalVariable * _quorum;
+	    const ExternalVariable * _quorum;
 	    Histogram * _histogram;
 
 	    double _resultJoinDelay;

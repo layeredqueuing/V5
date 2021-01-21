@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: srvn_output.cpp 14387 2021-01-21 14:09:16Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -2084,12 +2084,12 @@ namespace LQIO {
         }
         _output << std::endl;
 
-        for ( std::map<const std::string, DOM::ExternalVariable *>::const_iterator fi = task.getFanIns().begin(); fi != task.getFanIns().end(); ++fi ) {
+        for ( std::map<const std::string, const DOM::ExternalVariable *>::const_iterator fi = task.getFanIns().begin(); fi != task.getFanIns().end(); ++fi ) {
             if ( !DOM::Common_IO::is_default_value( fi->second, 1 ) ) {     /* task name, fan in */
                 _output << "  I " << fi->first << " " << task.getName() << " " << Input::print_integer_parameter(fi->second,0) << std::endl;
             }
         }
-        for ( std::map<const std::string, DOM::ExternalVariable *>::const_iterator fo = task.getFanOuts().begin(); fo != task.getFanOuts().end(); ++fo ) {
+        for ( std::map<const std::string, const DOM::ExternalVariable *>::const_iterator fo = task.getFanOuts().begin(); fo != task.getFanOuts().end(); ++fo ) {
             if ( !DOM::Common_IO::is_default_value( fo->second, 1 ) ) {
                 _output << "  O " << task.getName() << " " << fo->first << " " << Input::print_integer_parameter(fo->second,0) << std::endl;
             }
