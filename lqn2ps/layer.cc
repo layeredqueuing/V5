@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: layer.cc 14405 2021-01-24 22:01:02Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -773,7 +773,7 @@ Layer::createBCMPModel()
      * removed.  Include task think time.
      */
 
-    BCMP::Model::Station terminals( BCMP::Model::Station::CUSTOMER );
+    BCMP::Model::Station terminals( BCMP::Model::Station::Type::CUSTOMER );
     for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
 	const Task * task = dynamic_cast<const Task *>(*client);
 	
@@ -789,10 +789,10 @@ Layer::createBCMPModel()
 	} else {
 	    service_time = &Element::ZERO;
 	}
-	BCMP::Model::Station::Demand demand( &Element::ONE, service_time );	/* One visit */
+	BCMP::Model::Station::Class demand( &Element::ONE, service_time );	/* One visit */
 
 	const std::string name = task->name();
-	terminals.insertDemand( name, demand );
+	terminals.insertClass( name, demand );
     }
     _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
 

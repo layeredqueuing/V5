@@ -33,7 +33,7 @@ namespace LQIO {
 
 	private:
 	    const BCMP::Model::Model::Station::map_t& stations() const { return _bcmp.stations(); }
-	    const BCMP::Model::Class::map_t& classes() const { return _bcmp.classes(); }
+	    const BCMP::Model::Chain::map_t& chains() const { return _bcmp.chains(); }
 	
 	private:
 	    class Self {
@@ -41,7 +41,7 @@ namespace LQIO {
 		Self( BCMP_to_LQN& self ) : _self(self) {}
 		
 		const BCMP::Model::Model::Station::map_t& stations() const { return _self.stations(); }
-		const BCMP::Model::Class::map_t& classes() const { return _self.classes(); }
+		const BCMP::Model::Chain::map_t& chains() const { return _self.chains(); }
 		Document& lqn() { return _self._lqn; }
 		entry_type& client_entries() { return _self._client_entries; };
 		const entry_type& client_entries() const { return _self._client_entries; };
@@ -58,7 +58,7 @@ namespace LQIO {
 		createLQNTaskProcessor( BCMP_to_LQN& self ) : Self(self) {}
 
 		void operator()( const BCMP::Model::Station::pair_t& );
-		void operator()( const BCMP::Model::Class::pair_t& );
+		void operator()( const BCMP::Model::Chain::pair_t& );
 	    };
 
 	    class connectClassToStation : private Self
@@ -66,7 +66,7 @@ namespace LQIO {
 	    public:
 		connectClassToStation( BCMP_to_LQN& self ) : Self(self) {}
 
-		void operator()( const BCMP::Model::Class::pair_t& );
+		void operator()( const BCMP::Model::Chain::pair_t& );
 	    };
 
 	private:

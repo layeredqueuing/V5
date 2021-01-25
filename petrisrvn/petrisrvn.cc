@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 13897 2020-09-29 15:15:25Z greg $
+ * $Id: petrisrvn.cc 14407 2021-01-25 13:56:07Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -246,6 +246,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'h':
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,LQIO::DOM::Pragma::_Xfalse_);
 	    LQIO::Spex::__no_header = true;
 	    break;
 

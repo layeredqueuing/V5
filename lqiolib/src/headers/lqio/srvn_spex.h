@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: srvn_spex.h 14406 2021-01-25 03:09:25Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -29,6 +29,7 @@ namespace LQX {
 namespace LQIO {
     namespace DOM {
 	class ExternalVariable;
+	class SymbolExternalVariable;
 	class Document;
 	class Processor;
 	class Group;
@@ -245,6 +246,9 @@ namespace LQIO {
 	static bool __no_header;	/* Suppresses the header on output.	*/
 
 	Spex();
+
+	bool construct_program( expr_list * main_line, expr_list * result, expr_list * convergence );
+
 	static void clear();
 
 	/*
@@ -289,8 +293,6 @@ namespace LQIO {
 	bool has_vars() const;							/* True if any $var (except control args) set */
 	static bool gnuplot_output() { return __gnuplot_output; }
 	
-	bool construct_program( expr_list * main_line, expr_list * result, expr_list * convergence );
-
 	LQX::SyntaxTreeNode * get_destination( const std::string& name ) const;
 	LQX::SyntaxTreeNode * observation( LQX::MethodInvocationExpression * lqx_obj, const DOM::DocumentObject * document_obj, const ObservationInfo& obs );
 
@@ -313,6 +315,9 @@ namespace LQIO {
 	static std::ostream& printResultVariable( std::ostream& output, const var_name_and_expr& var );
 
 	static std::vector<var_name_and_expr>::const_iterator find( std::vector<var_name_and_expr>::const_iterator, std::vector<var_name_and_expr>::const_iterator, const std::string& );
+
+    public:
+	static std::map<std::string, LQIO::DOM::SymbolExternalVariable*>* __global_variables;	/* Document global variables. (input) */
 
     private:
 	static std::vector<std::string> __array_variables;			/* Saves $<array_name> for generating nest for loops */

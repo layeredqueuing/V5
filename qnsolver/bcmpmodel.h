@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: bcmpmodel.h 14333 2021-01-04 23:17:05Z greg $
+ * $Id: bcmpmodel.h 14407 2021-01-25 13:56:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,88 +21,106 @@
 #include <map>
 #include <lqio/bcmp_document.h>
 #include <mva/pop.h>
-#include "bcmpresult.h"
 
 class Server;
+class MVA;
 
-class Model {
+class BCMPModel {
+public:
+    	enum class Using {EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
     
 private:
-    class CreateClass {
+    class CreateChainIndex {
     public:
-	CreateClass( Model& model ) : _model(model) {}
-	void operator()( const BCMP::Model::Class::pair_t& pair );
+	CreateChainIndex( BCMPModel& model ) : _model(model) {}
+	void operator()( const BCMP::Model::Chain::pair_t& pair );
 
     private:
-	std::map<std::string,size_t>& index() { return _model._index.k; }
-	std::map<size_t,std::string>& reverse() { return _model._reverse.k; }
-	unsigned& N(size_t k) { return _model._N[k]; }
-	double& Z(size_t k) { return _model._Z[k]; }
-	unsigned& priority(size_t k) { return _model._priority[k]; }
+	std::map<const std::string,size_t>& index() { return _model._index.k; }
 	
     private:
-	Model& _model;
+	BCMPModel& _model;
     };
-
-    class CreateStation {
+
+    class CreateStationIndex {
+    public:
+	CreateStationIndex( BCMPModel& model ) : _model(model) {}
+	void operator()( const BCMP::Model::Station::pair_t& pair );
+	std::map<const std::string,size_t>& index() { return _model._index.m; }
+
     private:
-	class CreateDemand {
+	BCMPModel& _model;
+    };
+
+    class InstantiateChain {
+    public:
+	InstantiateChain( BCMPModel& model ) : _model(model) {}
+	void operator()( const BCMP::Model::Chain::pair_t& pair );
+
+    private:
+	size_t indexAt( const std::string& name ) { return _model._index.k.at(name); }
+	unsigned& N(size_t k) { return _model.N[k]; }
+	double& Z(size_t k) { return _model.Z[k]; }
+	unsigned& priority(size_t k) { return _model.priority[k]; }
+	
+    private:
+	BCMPModel& _model;
+    };
+
+    class InstantiateStation {
+    private:
+	class InstantiateClass {
 	public:
-	    CreateDemand( Model& model, Server& server ) : _model(model), _server(server) {}
-	    void operator()( const BCMP::Model::Station::Demand::pair_t& );
+	    InstantiateClass( BCMPModel& model, Server& server ) : _model(model), _server(server) {}
+	    void operator()( const BCMP::Model::Station::Class::pair_t& );
 
 	private:
-	    const BCMP::Model::Class::map_t& classes() const { return _model.classes(); }
+	    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
 	    size_t indexAt(const std::string& name) const { return _model._index.k.at(name); }
 	    
 	private:
-	    Model& _model;
+	    BCMPModel& _model;
 	    Server& _server;
 	};
 
     public:
-	CreateStation( Model& model ) : _model(model) {}
+	InstantiateStation( BCMPModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
-	std::map<std::string,size_t>& index() { return _model._index.m; }
-	std::map<size_t,std::string>& reverse() { return _model._reverse.m; }
+	size_t indexAt(const std::string& name ) const { return _model._index.m.at(name); }
 
     private:
-	size_t n_classes() const { return _model._index.k.size(); }
-	Server*& Q(size_t m) { return _model._Q[m]; }
+	size_t n_chains() const { return _model._index.k.size(); }
+	Server*& Q(size_t m) { return _model.Q[m]; }
 
     private:
-	Model& _model;
+	BCMPModel& _model;
     };
 
-    struct Index {					/* Map string to int for classes/stations */
-	std::map<std::string,size_t> k;
-	std::map<std::string,size_t> m;
-    };
-    struct Reverse {
-	std::map<size_t,std::string> k;
-	std::map<size_t,std::string> m;
+    struct Index {					/* Map string to int for chains/stations */
+	std::map<const std::string,size_t> k;
+	std::map<const std::string,size_t> m;
     };
 
     
 public:
-    Model( const BCMP::Model& model );
-
-    void insertResult( BCMPResult * result ) { _results = result; }	// Will change to vector.
+    BCMPModel( const BCMP::Model& model );
+    ~BCMPModel();
 
     bool operator!() const { return _result == false; }
+    bool instantiate();
+    std::ostream& debug( std::ostream& output ) const;
+    bool solve( Using );
     
-    const Population& N() const { return _N; }
-    const Vector<Server *>& Q() const { return _Q; }
-    const VectorMath<double>& Z() const { return _Z; }
-    const VectorMath<unsigned>& priority() const { return _priority; }
-    Population& N() { return _N; }
-    Vector<Server *>& Q() { return _Q; }
-    VectorMath<double>& Z() { return _Z; }
-    VectorMath<unsigned>& priority() { return _priority; }
-
 private:
+    void saveResults( const MVA& mva );
+
+    /* inputs */
+    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
+    const BCMP::Model::Station::map_t& stations() const { return _model.stations(); }
+    const BCMP::Model::Station::Class::map_t& classesAt( const std::string& name ) const { return _model.stationAt(name).classes(); }
+
     const Index& index() const { return _index; }
-    const Reverse& reverse() const { return _reverse; }
+
 
 #if 0
     class OutputQNAP {
@@ -114,7 +132,7 @@ private:
 	static std::string header();
 	static std::string blankline();
 
-	std::ostream& print( std::ostream& output, const BCMPResult::Item& item ) const;
+	std::ostream& print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const;
     public:
 	std::ostream& print( std::ostream& ) const;
     private:
@@ -125,21 +143,15 @@ private:
     };
 #endif
 
-    bool construct();
-    /* inputs */
-    const BCMP::Model::Class::map_t& classes() const { return _model.classes(); }
-    const BCMP::Model::Station::map_t& stations() const { return _model.stations(); }
-
 private:
-    const BCMP::Model& _model;				/* Input */
-    Index _index;
-    Reverse _reverse;
+    const BCMP::Model& _model;			/* Input */
+    Index _index;				/* Map name to station/class no. */
     
-    Population _N;					/* Population (by class) */
-    Vector<Server *> _Q;				/* Stations. */
-    VectorMath<double> _Z;				/* Think Time */
-    VectorMath<unsigned> _priority;			/* Priority */
+    Population N;				/* Population (by class) */
+    Vector<Server *> Q;				/* Stations. */
+    VectorMath<double> Z;			/* Think Time */
+    VectorMath<unsigned> priority;		/* Priority */
     bool _result;
-    BCMPResult * _results;			// will change to vector
+    std::string _solver;
 };
 #endif

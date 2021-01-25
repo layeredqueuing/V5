@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: srvn_spex.cpp 14407 2021-01-25 13:56:07Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -55,10 +55,9 @@ namespace LQIO {
     }
 
 
-    /* static */ bool
-    Spex::is_global_var( const std::string& name )
+    bool Spex::is_global_var( const std::string& name )
     {
-	return DOM::__document->hasSymbolExternalVariable( name );
+	return __global_variables != nullptr && __global_variables->find( name ) != __global_variables->end();
     }
 
     bool Spex::has_input_var( const std::string& name )
@@ -166,7 +165,7 @@ namespace LQIO {
 	/*+ GNUPlot or other header stuff. */
 	if ( gnuplot_output() ) {
 	    main_line = print_gnuplot_preamble( main_line );
-	} else if ( !__no_header && DOM::__document->getPragma( "no-header" ) != "true" ) {
+	} else if ( !__no_header ) {
 	    main_line->push_back( print_header() );
 	}
 
@@ -401,7 +400,7 @@ namespace LQIO {
 	/* "Assign" any array variables which are used as parameters.  The array variable cannot be directly referenced. */
 	for ( std::vector<std::string>::const_iterator var_p = __array_variables.begin(); var_p != __array_variables.end(); ++var_p ) {
 	    const std::string& name = *var_p;
-	    if ( is_global_var( name ) ) {
+	    if ( (*is_global_var)( name ) ) {
 		loop_code->push_back( new LQX::AssignmentStatementNode( get_destination(*var_p), new LQX::VariableExpression( &name[1], false ) ) );
 	    }
 	}
@@ -410,7 +409,7 @@ namespace LQIO {
 	
 	for ( std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator iv_p = __input_variables.begin(); iv_p != __input_variables.end(); ++iv_p ) {
 	    const std::string& name = iv_p->first;
-	    if ( is_global_var( name ) && std::find( __array_variables.begin(), __array_variables.end(), name ) == __array_variables.end() ) {
+	    if ( (*is_global_var)( name ) && std::find( __array_variables.begin(), __array_variables.end(), name ) == __array_variables.end() ) {
 		loop_code->push_back( new LQX::AssignmentStatementNode( get_destination(name), new LQX::VariableExpression( &name[1], false ) ) );
 	    }
 	}
@@ -429,11 +428,8 @@ namespace LQIO {
 		s += "=";
 		print_args->push_back( new LQX::ConstantValueExpression( s ) );
 
-		const bool is_external = LQIO::Spex::is_global_var( iv_p->first );
+		const bool is_external = (*is_global_var)( iv_p->first );
 		const std::string& name = iv_p->first;
-//		    if ( !is_external && local[0] == '$' ) {
-//			local[0] = '_';
-//		    }
 		LQX::VariableExpression * variable = new LQX::VariableExpression( name, is_external );
 		print_args->push_back( variable );
 	    }
@@ -706,10 +702,11 @@ namespace LQIO {
     std::set<std::string> Spex::__array_references;			    /* Saves $<array_name> when used as an lvalue */
     std::vector<Spex::var_name_and_expr> Spex::__result_variables;	    /* Saves $<name> for printing the header of variable names */
     std::vector<std::string> Spex::__convergence_variables;		    /* Saves $<name> for all variables used in convergence section */
-    std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;	     /* Saves all observations (name, and funky assignment) */
+    std::map<std::string,LQX::SyntaxTreeNode *> Spex::__observation_variables;	/* Saves all observations (name, and funky assignment) */
     std::map<std::string,Spex::ComprehensionInfo> Spex::__comprehensions;   /* Saves all comprehensions for $<name> */
     expr_list Spex::__deferred_assignment;
 
+    std::map<std::string, DOM::SymbolExternalVariable*>* Spex::__global_variables = nullptr;	/* Document global variables. (input) */
     std::map<std::string,LQX::SyntaxTreeNode *> Spex::__input_variables;    /* Save for printing when __verbose == true */
     Spex::obs_var_tab_t Spex::__observations;				    /* Saves all key-$var for each object */
     std::vector<Spex::ObservationInfo> Spex::__document_variables;	    /* Saves all key-$var for the document */
@@ -731,7 +728,6 @@ namespace LQIO {
     void * Spex::__convergence_list = nullptr;
     void * Spex::__temp_variable = nullptr;
     /*- JSON */
-
 
     const std::map<const std::string,const Spex::attribute_table_t> Spex::__control_parameters =
     {
@@ -964,9 +960,16 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
     if ( LQIO::spex.__observations.empty() ) {
 	LQIO::solution_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
     }
+
+    /* Handle this here -- can't change after program is compiled */
+    if ( !LQIO::Spex::__no_header ) {
+	std::string header = LQIO::DOM::__document->getPragma( "spex-header" );
+	LQIO::Spex::__no_header = !LQIO::DOM::Pragma::isTrue(header);
+    }
+
     if ( program && LQIO::spex.construct_program( program,
-						       static_cast<expr_list *>(result_arg),
-						       static_cast<expr_list *>(convergence_arg) ) ) {
+						  static_cast<expr_list *>(result_arg),
+						  static_cast<expr_list *>(convergence_arg) ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }

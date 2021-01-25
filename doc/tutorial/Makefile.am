@@ -3,7 +3,7 @@
 # Carleton University, Ottawa, Ontario, Canada. K1S 5B6
 #
 #----------------------------------------------------------------------
-# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
+# $Id: Makefile.am 14388 2021-01-22 02:35:36Z greg $
 #----------------------------------------------------------------------
 
 if HAVE_LATEX
@@ -50,5 +50,6 @@ $(DST).txt: $(DST).dvi
 clean-local:
 	rm -f $(OBJS)  $(DST).aux $(DST).bbl $(DST).blg $(DST).dvi $(DST).log $(DST).pdf $(DST).ps $(DST).out *.fig.bak *.eps
 else
+all:
 	echo LaTeX is required to make the tutorial.
 endif

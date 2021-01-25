@@ -26,53 +26,55 @@
 namespace BCMP {
     const LQIO::DOM::ConstantExternalVariable _ZERO_(0.);
 
-    bool Model::insertClass( const std::string& name, Class::Type type, const LQIO::DOM::ExternalVariable * customers, const LQIO::DOM::ExternalVariable * think_time )
+    const char * const Model::Station::__typeName = "station";
+
+    std::pair<Model::Chain::map_t::iterator,bool>
+    Model::insertChain( const std::string& name, Chain::Type type, const LQIO::DOM::ExternalVariable * customers, const LQIO::DOM::ExternalVariable * think_time )
     {
-	std::pair<Class::map_t::iterator,bool> result = _classes.insert( Class::pair_t( name, Class( type, customers, think_time ) ) );
-	return result.second;
+	return _chains.emplace( name, Chain( type, customers, think_time )  );
     }
-    
-    bool Model::insertStation( const std::string& name, const Station& station )
+
+    std::pair<Model::Station::map_t::iterator,bool>
+    Model::insertStation( const std::string& name, const Station& station )
     {
-	std::pair<Station::map_t::iterator,bool> result = _stations.insert( Station::pair_t( name, station ) );
-	return result.second;
+	return _stations.insert( Station::pair_t( name, station ) );
     }
-    
-    bool Model::insertDemand( const std::string& station_name, const std::string& class_name, const Station::Demand& demands )
+
+    bool Model::insertClass( const std::string& station_name, const std::string& class_name, const Station::Class& classes )
     {
 	Station::map_t::iterator station = _stations.find( station_name );
 	if ( station == _stations.end() ) return false;
-	return station->second.insertDemand( class_name, demands );
+	return station->second.insertClass( class_name, classes );
     }
-    
-    /* 
+
+    bool
+    Model::hasConstantCustomers() const
+    {
+	return std::all_of( chains().begin(), chains().end(), &Model::Chain::has_constant_customers );
+    }
+
+    /*
      * Sum service time over all clients and visits over all servers.
-     * The demand at the reference station is the demand (service
+     * The clasx at the reference station is the clasx (service
      * time) at the reference station but the visits over all
      * non-customer stations.
      */
 	
-    Model::Station::Demand::map_t
+    Model::Station::Class::map_t
     Model::computeCustomerDemand( const std::string& name ) const
     {
-	const Station::Demand::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isServer ) );
-	const Station::Demand::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Demand::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Demand::map_t demands = std::accumulate( service_times.begin(), service_times.end(), Station::Demand::map_t(), sum_visits(visits) );
-	return demands;
-    }
-    
-    bool
-    Model::hasConstantCustomers() const
-    {
-	return std::all_of( classes().begin(), classes().end(), &Model::Class::has_constant_customers );
+	const Station::Class::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isServer ) );
+	const Station::Class::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isCustomer ) );
+	Station::Class::map_t classes = std::accumulate( service_times.begin(), service_times.end(), Station::Class::map_t(), sum_visits(visits) );
+	return classes;
     }
 
-    Model::Station::Demand::map_t
-    Model::sum_visits::operator()( const Station::Demand::map_t& input, const Station::Demand::pair_t& demand ) const
+    Model::Station::Class::map_t
+    Model::sum_visits::operator()( const Station::Class::map_t& input, const Station::Class::pair_t& clasx ) const
     {
-	Station::Demand::map_t output = input;
-	std::pair<Station::Demand::map_t::iterator,bool>result = output.insert( Station::Demand::pair_t(demand.first, demand.second) );
-	result.first->second.setVisits( _visits.at(demand.first).visits() );
+	Station::Class::map_t output = input;
+	std::pair<Station::Class::map_t::iterator,bool>result = output.insert( Station::Class::pair_t(clasx.first, clasx.second) );
+	result.first->second.setVisits( _visits.at(clasx.first).visits() );
 	return output;
     }
 
@@ -83,37 +85,39 @@ namespace BCMP {
 	return LQIO::DOM::BCMP_to_LQN( *this, dom ).convert();
     }
 
-    
+
     std::ostream&
     Model::print( std::ostream& output ) const
     {
 	return output;
     }
-    
+
 
     /*
-     * JMVA insists that service time/visits exist for --all-- classes for --all--stations
-     * so pad the demand_map to make it so.
+     * JMVA insists that service time/visits exist for --all-- chains for --all--stations
+     * so pad the class_map to make it so.
      */
 
     void
     Model::pad_demand::operator()( const Station::pair_t& m ) const
     {
-	for ( Class::map_t::const_iterator k = _classes.begin(); k != _classes.end(); ++k ) {
+	for ( Chain::map_t::const_iterator k = _chains.begin(); k != _chains.end(); ++k ) {
 	    const std::string& class_name = k->first;
 	    Station& station = const_cast<Station&>(m.second);
-	    station.insertDemand( class_name, BCMP::Model::Station::Demand() );
+	    station.insertClass( class_name, BCMP::Model::Station::Class() );
 	}
     }
 
+    const char * const Model::Chain::__typeName = "class";
+
     /* static */ bool
-    Model::Class::has_constant_customers( const Class::pair_t& k )
+    Model::Chain::has_constant_customers( const Chain::pair_t& k )
     {
 	return k.second.customers() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(k.second.customers()) != nullptr;
     }
 
     std::string
-    Model::Class::fold::operator()( const std::string& s1, const Class::pair_t& c2 ) const
+    Model::Chain::fold::operator()( const std::string& s1, const Chain::pair_t& c2 ) const
     {
 	if ( !s1.empty() ) {
 	    return s1 + "," + c2.first + _suffix;
@@ -124,37 +128,94 @@ namespace BCMP {
 
     Model::~Model()
     {
-	_classes.clear();
+	_chains.clear();
 	_stations.clear();
     }
-    
+
     Model::Station::~Station()
     {
-	_demands.clear();
+	_classes.clear();
     }
-    
+
     bool
-    Model::Station::insertDemand( const std::string& class_name, const Demand& demand )
+    Model::Station::insertClass( const std::string& class_name, const Class& clasx )
     {
-	return _demands.insert( Demand::pair_t( class_name, demand ) ).second;
+	return _classes.insert( Class::pair_t( class_name, clasx ) ).second;
     }
 
     bool
     Model::Station::hasConstantServiceTime() const
     {
-	return std::all_of( demands().begin(), demands().end(), &Demand::has_constant_service_time );
+	return std::all_of( classes().begin(), classes().end(), &Class::has_constant_service_time );
     }
 
     bool
     Model::Station::hasConstantVisits() const
     {
-	return std::all_of( demands().begin(), demands().end(), &Demand::has_constant_visits );
+	return std::all_of( classes().begin(), classes().end(), &Class::has_constant_visits );
     }
 
-    std::string 
+    double Model::Station::throughput() const
+    {
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_throughput );
+    }
+
+    double Model::Station::queue_length() const
+    {
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_utilization );
+    }
+
+    double Model::Station::residence_time() const
+    {
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_residence_time );
+    }
+
+    double Model::Station::utilization() const
+    {
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_queue_length );
+    }
+
+    double Model::Station::sum_throughput( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    {
+	return augend + addend.second.throughput();
+    }
+
+    double Model::Station::sum_utilization( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    {
+	return augend + addend.second.utilization();
+    }
+
+    double Model::Station::sum_residence_time( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    {
+	return augend + addend.second.residence_time();
+    }
+
+    double Model::Station::sum_queue_length( double augend, const BCMP::Model::Station::Class::pair_t& addend )
+    {
+	return augend + addend.second.queue_length();
+    }
+
+    /*
+     * Sum results except for S and R.  Those have to be computed after
+     * the sum is found.
+     */
+
+    Model::Station::Class
+    Model::Station::sumResults( const Model::Station::Class& augend, const Model::Station::Class::pair_t& addend )
+    {
+	Class sum = augend;
+	sum._throughput     += addend.second._throughput;	/* Throughput		*/
+	sum._queue_length   += addend.second._queue_length;	/* Length (n cust)	*/
+	sum._residence_time = 0.0;				/* Need to derive 	*/
+	sum._utilization    += addend.second._utilization;	/* Utilization		*/
+	return sum;
+    }
+
+
+    std::string
     Model::Station::fold::operator()( const std::string& s1, const Station::pair_t& s2 ) const
     {
-	if ( s2.second.type() == CUSTOMER ) return s1;
+	if ( s2.second.type() == Type::CUSTOMER ) return s1;
 	else if ( s1.empty() ) {
 	    return s2.first + _suffix;
 	} else {
@@ -162,39 +223,41 @@ namespace BCMP {
 	}
     }
 
-    Model::Station::Demand::map_t
-    Model::Station::select::operator()( const Station::Demand::map_t& augend, const Station::pair_t& m ) const
+    Model::Station::Class::map_t
+    Model::Station::select::operator()( const Station::Class::map_t& augend, const Station::pair_t& m ) const
     {
 	const Station& station = m.second;
 	if ( (*_test)( m ) ) {
-	    const Demand::map_t& demands = station.demands();
-	    return std::accumulate( demands.begin(), demands.end(), augend, &Station::Demand::collect );
+	    const Class::map_t& classes = station.classes();
+	    return std::accumulate( classes.begin(), classes.end(), augend, &Station::Class::collect );
 	} else {
 	    return augend;
 	}
     }
+
+    const char * const Model::Station::Class::__typeName = "Class";
 
-    /* 
-     * Return true if my demand is constant 
+    /*
+     * Return true if my class is constant
      */
 
-    bool Model::Station::Demand::has_constant_service_time( const Station::Demand::pair_t& demand )
+    bool Model::Station::Class::has_constant_service_time( const Station::Class::pair_t& clasx )
     {
-	return demand.second.service_time() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(demand.second.service_time()) != nullptr;
+	return clasx.second.service_time() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(clasx.second.service_time()) != nullptr;
     }
 
-    bool Model::Station::Demand::has_constant_visits( const Station::Demand::pair_t& demand )
+    bool Model::Station::Class::has_constant_visits( const Station::Class::pair_t& clasx )
     {
-	return demand.second.visits() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(demand.second.visits()) != nullptr;
+	return clasx.second.visits() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(clasx.second.visits()) != nullptr;
     }
 
-    Model::Station::Demand::map_t
-    Model::Station::Demand::collect( const Demand::map_t& augend, const Demand::pair_t& addend )
+    Model::Station::Class::map_t
+    Model::Station::Class::collect( const Class::map_t& augend, const Class::pair_t& addend )
     {
-	Demand::map_t sum = augend;
-	std::pair<Demand::map_t::iterator,bool> result = sum.insert( addend );
+	Class::map_t sum = augend;
+	std::pair<Class::map_t::iterator,bool> result = sum.insert( addend );
 	if ( result.second == false ) {
-	    Demand& sum_ref = result.first->second;
+	    Class& sum_ref = result.first->second;
 	    sum_ref += addend.second;
 	}
 	return sum;
@@ -206,9 +269,9 @@ namespace BCMP {
      * Adding symbol variable to another variable will throw (from
      * to_double).
      */
-    
-    Model::Station::Demand
-    Model::Station::Demand::operator+( const Model::Station::Demand& addend ) const
+
+    Model::Station::Class
+    Model::Station::Class::operator+( const Model::Station::Class& addend ) const
     {
 	const LQIO::DOM::ExternalVariable * visits = this->visits();
 	if ( isSet(visits) && isSet(addend.visits()) ) {
@@ -223,27 +286,27 @@ namespace BCMP {
 	    service_time = addend.service_time();
 	}
 	assert( service_time != nullptr );
-	return Demand( visits, service_time );
+	return Class( visits, service_time );
     }
 
-    Model::Station::Demand&
-    Model::Station::Demand::operator+=( const Model::Station::Demand& addend )
+    Model::Station::Class&
+    Model::Station::Class::operator+=( const Model::Station::Class& addend )
     {
 	return accumulate( addend );
     }
 
-    Model::Station::Demand&
-    Model::Station::Demand::accumulate( double visits, double service_time )
+    Model::Station::Class&
+    Model::Station::Class::accumulate( double visits, double service_time )
     {
-	return accumulate( Demand(new LQIO::DOM::ConstantExternalVariable(visits), new LQIO::DOM::ConstantExternalVariable(service_time) ) );
+	return accumulate( Class(new LQIO::DOM::ConstantExternalVariable(visits), new LQIO::DOM::ConstantExternalVariable(service_time) ) );
     }
 
     /*
      * Accumlate.  Copy the addend (might be a var) if the addend is the default value (0).
      */
-    
-    Model::Station::Demand&
-    Model::Station::Demand::accumulate( const Demand& addend ) 
+
+    Model::Station::Class&
+    Model::Station::Class::accumulate( const Class& addend )
     {
 	if ( isSet(visits()) && isSet(addend.visits()) ) {
 	    _visits       = new LQIO::DOM::ConstantExternalVariable( to_double(*visits()) + to_double(*addend.visits()) );
@@ -259,10 +322,22 @@ namespace BCMP {
 	return *this;
     }
 
+    /*
+     * Derive waiting time over all chains.
+     */
+
+    Model::Station::Class&
+    Model::Station::Class::deriveStationAverage()
+    {
+	if ( _throughput == 0 ) return *this;
+	_residence_time = _queue_length / _throughput;
+	return *this;
+    }
+
 
     /* Check for a valid variable (if set) and NOT the default value (0). */
 
-    bool 
+    bool
     Model::isSet( const LQIO::DOM::ExternalVariable * var, double default_value )
     {
 	double value;

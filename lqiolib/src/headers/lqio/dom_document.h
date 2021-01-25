@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_document.h 14406 2021-01-25 03:09:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -207,12 +207,20 @@ namespace LQIO {
 	    DOM::ExternalVariable* db_build_parameter_variable(const char* input, bool* isSymbol);
 	    static void lqx_parser_trace( FILE * );
 	    static std::string __input_file_name;
+
 	    static bool __debugXML;
 	    static bool __debugJSON;
 
 	private:
 	    const double getValue( const char * ) const;
 	    const ExternalVariable * get( const char * ) const;
+	    static inline bool wasSet(const std::pair<std::string,SymbolExternalVariable*>& var ) { return var.second->wasSet(); }
+	    struct notSet {
+		notSet(std::vector<std::string>& list) : _list(list) {}
+		void operator()( const std::pair<std::string,SymbolExternalVariable*>& var ) { if (!var.second->wasSet()) _list.push_back(var.first); }
+	    private:
+		std::vector<std::string>& _list;
+	    };
 
 	public:
 	    /* Names of document attributes */

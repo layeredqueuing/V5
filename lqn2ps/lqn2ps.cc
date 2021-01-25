@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14386 2021-01-20 23:58:29Z greg $
+ * $Id: lqn2ps.cc 14407 2021-01-25 13:56:07Z greg $
  *
  * Command line processing.
  *
@@ -194,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-20 18:58:29 -0500 (Wed, 20 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-25 08:56:07 -0500 (Mon, 25 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -349,6 +349,7 @@ lqn2ps( int argc, char *argv[] )
 	    break;
 	    
 	case 512+'H':
+	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
             LQIO::Spex::__no_header = true;
 	    break;
 

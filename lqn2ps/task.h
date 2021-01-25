@@ -10,7 +10,7 @@
  * April 2010.
  *
  * ------------------------------------------------------------------------
- * $Id: task.h 14387 2021-01-21 14:09:16Z greg $
+ * $Id: task.h 14405 2021-01-24 22:01:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -158,7 +158,7 @@ public:
     static const LQIO::DOM::ExternalVariable * accumulate_service( const LQIO::DOM::ExternalVariable *, const merge_pair& );
 #endif
     virtual void accumulateDemand( BCMP::Model::Station& ) const;
-    static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Task * );
+    static BCMP::Model::Station::Class accumulate_demand( const BCMP::Model::Station::Class&, const Task * );
     /* Activities */
     
     unsigned generate();
@@ -179,7 +179,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Task& label();
-    virtual Task& labelBCMPModel( const BCMP::Model::Station::Demand::map_t&, const std::string& class_name="" );
+    virtual Task& labelBCMPModel( const BCMP::Model::Station::Class::map_t&, const std::string& class_name="" );
 
     virtual Task& rename();
     virtual Task& squish( std::map<std::string,unsigned>&, std::map<std::string,std::string>& );

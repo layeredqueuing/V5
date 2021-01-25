@@ -16,6 +16,7 @@
 #include <strings.h>
 #endif
 #include "bcmp_document.h"
+#include "srvn_spex.h"
 
 namespace LQIO {
     namespace DOM {
@@ -24,39 +25,45 @@ namespace LQIO {
 }
 
 namespace BCMP {
-    class JMVA_Document;
-
+    typedef std::map<const std::string,std::multimap<const std::string,const std::string> > result_t;
     
     class JMVA_Document {
 
 	class Object {
-	    const enum { VOID, MODEL, CLASS, OBJECT, STATION, DEMAND } _discriminator;
 	public:
-	    Object() : _discriminator(VOID), u() {}
-	    Object(Model * _m_) : _discriminator(MODEL), u(_m_) {}
-	    Object(Model::Class * _k_) : _discriminator(CLASS), u(_k_) {}
-	    Object(Model::Object * _o_ ) : _discriminator(OBJECT), u(_o_) {}
-	    Object(Model::Station *_s_) : _discriminator(STATION), u(_s_) {}
-	    Object(Model::Station::Demand * _d_) : _discriminator(DEMAND), u(_d_) {}
-	    Model * getModel() const { assert( _discriminator == MODEL ); return u.m; }
-	    Model::Class * getClass() const { assert( _discriminator == CLASS ); return u.k; }
-	    Model::Station * getStation() const { assert( _discriminator == STATION ); return u.s; }
-	    Model::Station::Demand * getDemand() const { assert( _discriminator == DEMAND ); return u.d; }
-	    Model::Object * getObject() const { assert( _discriminator == OBJECT ); return u.o; }
+	    enum class type { VOID, MODEL, CLASS, OBJECT, STATION, DEMAND, PAIR };
+	    typedef std::pair<const Model::Station *,const Model::Chain *> MK;
+	    Object() : _discriminator(type::VOID), u() {}
+	    Object(Model * _m_) : _discriminator(type::MODEL), u(_m_) {}
+	    Object(Model::Chain * _k_) : _discriminator(type::CLASS), u(_k_) {}
+	    Object(Model::Object * _o_ ) : _discriminator(type::OBJECT), u(_o_) {}
+	    Object(Model::Station *_s_) : _discriminator(type::STATION), u(_s_) {}
+	    Object(Model::Station::Class * _d_) : _discriminator(type::DEMAND), u(_d_) {}
+	    Object(const MK* _p_ ) : _discriminator(type::PAIR), u(_p_) {}
+	    type getDiscriminator() const { return _discriminator; }
+	    Model * getModel() const { assert( _discriminator == type::MODEL ); return u.m; }
+	    Model::Chain * getClass() const { assert( _discriminator == type::CLASS ); return u.k; }
+	    Model::Station * getStation() const { assert( _discriminator == type::STATION ); return u.s; }
+	    Model::Station::Class * getDemand() const { assert( _discriminator == type::DEMAND ); return u.d; }
+	    Model::Object * getObject() const { assert( _discriminator == type::OBJECT ); return u.o; }
+	    const MK* getMK() const { assert( _discriminator == type::PAIR ); return u.p; }
 
+	    const type _discriminator;	/* Once set, that's it. */
 	    union u {
 		u() : v(nullptr) {}
 		u(Model * _m_) : m(_m_) {}
-		u(Model::Class * _k_) : k(_k_) {}
+		u(Model::Chain * _k_) : k(_k_) {}
 		u(Model::Object * _o_ ) : o(_o_) {}
 		u(Model::Station *_s_) : s(_s_) {}
-		u(Model::Station::Demand * _d_) : d(_d_) {}
+		u(Model::Station::Class * _d_) : d(_d_) {}
+		u(const MK* _p_) : p(_p_) {}
 		void * v;
 		Model * m;
 		Model::Object * o;
-		Model::Class * k;
+		Model::Chain * k;
 		Model::Station * s;
-		Model::Station::Demand * d;
+		Model::Station::Class * d;
+		const MK* p;
 	    } u;
 	};
 
@@ -95,15 +102,26 @@ namespace BCMP {
 	    double _end;
 	    double _stride;
 	};
-	
+
+	struct register_variable {
+	    register_variable( LQX::Program * lqx ) : _lqx(lqx) {}
+	    void operator()( const std::pair<std::string, LQIO::DOM::SymbolExternalVariable*>& symbol ) const;
+	private:
+	    LQX::Program * _lqx;
+	}; 
+	
     public:
 	JMVA_Document( const std::string& input_file_name );
 	JMVA_Document( const std::string&, const BCMP::Model& );
-	virtual ~JMVA_Document() {}
+	virtual ~JMVA_Document();
 	static JMVA_Document * create( const std::string& input_file_name );
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
 	bool parse();
+	bool hasSPEX() const { return !_variables.empty(); }
 	const BCMP::Model& model() const { return _model; }
+	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
+
+	void registerExternalSymbolsWithProgram(LQX::Program* program);
 	std::ostream& print( std::ostream& ) const;
 	
     private:
@@ -134,27 +152,27 @@ namespace BCMP {
 	void endVisit( Object&, const XML_Char * element );
 	void startReferenceStation( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startAlgParams( Object&, const XML_Char * element, const XML_Char ** attributes );
-	void startWhatIf( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startSolutions( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startAlgorithm( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startStationResults( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startClassResults( Object& object, const XML_Char * element, const XML_Char ** attributes );
-	void startMeasure( Object& object, const XML_Char * element, const XML_Char ** attributes );
 	void startNOP( Object&, const XML_Char * element, const XML_Char ** attributes );
 
-	LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
+	const LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
+	const LQIO::DOM::ExternalVariable * getVariable( const XML_Char * attribute, const XML_Char * value );
 	
 	void createClosedClass( const XML_Char ** attributes );
 	void createOpenClass( const XML_Char ** attributes );
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
+	void createResults( const Object& object, const XML_Char ** attributes );
 
 	class what_if {
 	private:
 	    class has_customers {
 	    public:
 		has_customers( const std::string& var ) : _var(var) {}
-		bool operator()( const Model::Class::pair_t& c2 ) const;
+		bool operator()( const Model::Chain::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -171,7 +189,7 @@ namespace BCMP {
 	    public:
 		has_service_time( const std::string& var ) : _var(var) {}
 		bool operator()( const Model::Station::pair_t& c2 ) const;
-		bool operator()( const Model::Station::Demand::pair_t& c2 ) const;
+		bool operator()( const Model::Station::Class::pair_t& c2 ) const;
 	    private:
 		const std::string& _var;
 	    };
@@ -180,12 +198,32 @@ namespace BCMP {
 	    what_if( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
 	    void operator()( const std::string& ) const;
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
-	    const Model::Class::map_t& classes() const { return _model.classes(); }
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }
 	private:
 	    std::ostream& _output;
 	    const BCMP::Model _model;
 	};
 
+	class getObservations {
+	public:
+	    typedef std::string (getObservations::*f)( const std::string& ) const;
+	    static std::map<int,f> __key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
+	    
+	    getObservations( result_t& output, const Model& model ) : _output(output), _model(model) {}
+	    void operator()( const Spex::var_name_and_expr& ) const;
+	    std::string get_throughput( const std::string& name ) const;
+	    std::string get_utilization( const std::string& name ) const;
+	    std::string get_service_time( const std::string& name ) const;
+	    std::string get_waiting_time( const std::string& name ) const;
+	private:
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }
+	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
+	    bool multiclass() const { return chains().size() > 1; }
+	    static const std::string& get_entity_name( int key, const LQIO::DOM::DocumentObject * object );
+	private:
+	    result_t& _output;
+	    const Model& _model;
+	};
 	
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
@@ -195,12 +233,12 @@ namespace BCMP {
     private:
 	Model::Station::map_t& stations() { return _model.stations(); }	/* Not const */
 	const Model::Station::map_t& stations() const { return _model.stations(); }
-	Model::Class::map_t& classes() { return _model.classes(); }
-	const Model::Class::map_t& classes() const { return _model.classes(); }
+	Model::Chain::map_t& chains() { return _model.chains(); }
+	const Model::Chain::map_t& chains() const { return _model.chains(); }
 
 	struct printClass {
 	    printClass( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Class::pair_t& k ) const;
+	    void operator()( const Model::Chain::pair_t& k ) const;
 	private:
 	    std::ostream& _output;
 	};
@@ -214,7 +252,7 @@ namespace BCMP {
 
 	struct printReference {
 	    printReference( std::ostream& output, const Model::Station::map_t& stations ) : _output(output), _stations(stations) {}
-	    void operator()( const Model::Class::pair_t& ) const;
+	    void operator()( const Model::Chain::pair_t& ) const;
 	private:
 	    std::ostream& _output;
 	    const Model::Station::map_t& _stations;
@@ -222,14 +260,14 @@ namespace BCMP {
 
 	struct printService {
 	    printService( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Station::Demand::pair_t& d ) const;
+	    void operator()( const Model::Station::Class::pair_t& d ) const;
 	private:
 	    std::ostream& _output;
 	};
 
 	struct printVisits {
 	    printVisits( std::ostream& output ) : _output(output) {}
-	    void operator()( const Model::Station::Demand::pair_t& d ) const;
+	    void operator()( const Model::Station::Class::pair_t& d ) const;
 	private:
 	    std::ostream& _output;
 	};
@@ -240,12 +278,19 @@ namespace BCMP {
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
-	std::map<std::string,LQIO::DOM::ExternalVariable *> _class_vars;
-	std::map<std::string,LQIO::DOM::ExternalVariable *> _station_vars;
+	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
+
+	/* Maps for asssociating var (the string) to an object */
+	std::map<const Model::Chain *,std::string> _think_time_vars;		/* class, var 	*/
+	std::map<const Model::Chain *,std::string> _population_vars;		/* class, var	*/
+	std::map<const Model::Station *,std::string> _multiplicity_vars;		/* station, var	*/
+	std::map<const Model::Station::Class *,std::string> _service_time_vars;
+	std::map<const Model::Station::Class *,std::string> _visit_vars;
 
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
+	static const std::set<const XML_Char *,attribute_table_t> class_results_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
-	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> demand_table;
+	static const std::set<const XML_Char *,attribute_table_t> demand_table;
 	static const std::set<const XML_Char *,attribute_table_t> measure_table;
 	static const std::set<const XML_Char *,attribute_table_t> null_table;
 	
@@ -272,6 +317,7 @@ namespace BCMP {
 	static const XML_Char * Xservers;
 	static const XML_Char * Xservicetime;
 	static const XML_Char * Xservicetimes;
+	static const XML_Char * Xstation;
 	static const XML_Char * Xstations;
 	static const XML_Char * Xthinktime;
 	static const XML_Char * Xtolerance;
@@ -294,6 +340,19 @@ namespace BCMP {
 	static const XML_Char * XstationName;
 	static const XML_Char * Xtype;
 	static const XML_Char * Xvalues;
+
+	static const XML_Char * XalgCount;
+	static const XML_Char * Xiterations;
+	static const XML_Char * XiterationValue;
+	static const XML_Char * Xok;
+	static const XML_Char * Xfalse;
+	static const XML_Char * XsolutionMethod;
+
+	static const XML_Char * XNumber_of_Customers;
+	static const XML_Char * XThroughput;
+	static const XML_Char * XResidence_time;
+	static const XML_Char * XUtilization;
+
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }

@@ -1,5 +1,5 @@
-/*
- *  $Id: dom_extvar.h 14316 2021-01-01 06:15:29Z greg $
+/* -*- c++ -*-
+ *  $Id: dom_extvar.h 14388 2021-01-22 02:35:36Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -137,12 +137,7 @@ namespace LQIO {
 	    virtual std::ostream& printVariableName( std::ostream& ) const;
 
 	    /* This one's a bit more complicated */
-#if	__GNUC__ == 4 && __GNUC_MINOR__ == 0
-	public:
-#else
 	private:
-#endif
-
 	    LQX::SymbolAutoRef _externalSymbol;
 	    std::string _name;
 	};

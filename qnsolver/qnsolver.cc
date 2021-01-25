@@ -1,9 +1,7 @@
 /*
- * $Id: qnsolver.cc 14386 2021-01-20 23:58:29Z greg $
+ * $Id: qnsolver.cc 14407 2021-01-25 13:56:07Z greg $
  */
 
-#include <lqio/jmva_document.h>
-#include <lqio/dom_document.h>
 #include <algorithm>
 #include <iostream>
 #include <iomanip>
@@ -11,11 +9,14 @@
 #include <getopt.h>
 #include <libgen.h>
 #include <mva/mva.h>
+#include <lqio/jmva_document.h>
+#include <lqio/dom_document.h>
+#include <lqio/bcmp_bindings.h>
+#include <lqio/srvn_spex.h>
+#include <lqx/Program.h>
 #include "bcmpmodel.h"
-#include "bcmpresult.h"
+#include "runlqx.h"
 
-
-typedef enum {EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL } solver_type;
 
 static void makeopts( const struct option * longopts, std::string& opts );
 static void usage() ;
@@ -25,9 +26,7 @@ const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
     { "bard-schweitzer", no_argument,       0, 'b' },
-#if DEBUG_MVA
     { "debug-mva",	 no_argument,	    0, 'd' },
-#endif
     { "exact-mva",       no_argument,       0, 'e' },
     { "fast-linearizer", no_argument,       0, 'f' },
     { "help",            no_argument,       0, 'h' },
@@ -36,23 +35,18 @@ const struct option longopts[] =
     { "verbose",         no_argument,       0, 'v' },
     { "experimental",	 no_argument,	    0, 'x' },
     { "debug-xml",	 no_argument, 	    0, 'X' },
+    { "debug-lqx",	 no_argument,	    0, 'L' },
     { 0, 0, 0, 0 }
 };
 
 static std::string opts;
 #else
-#if DEBUG_MVA
 static std::string opts = "bdefhlsvx";
-#else
-static std::string opts = "befhlsvx";
-#endif
 #endif
 
 const char * opthelp[]  = {
     /* "bard-schweitzer", */    "Test using Bard-Schweitzer solver.",
-#if DEBUG_MVA
     /* "debug",           */    "Enable debug code.",
-#endif
     /* "exact-mva",       */    "Test using Exact MVA solver.",
     /* "fast-linearizer", */    "Test using the Fast Linearizer solver.",
     /* "help",            */    "Show this.",
@@ -66,12 +60,16 @@ const char * opthelp[]  = {
 
 static bool silencio_flag = false;			/* Don't print results if 1	*/
 static bool verbose_flag = true;			/* Print results		*/
+static bool print_lqx = false;				/* Print LQX program		*/
+static bool debug_flag = false;
 
 std::string program_name;
+
+BCMP::JMVA_Document* __input = nullptr;
 
 int main (int argc, char *argv[])
 {
-    solver_type solver = EXACT_MVA;
+    BCMPModel::Using solver = BCMPModel::Using::EXACT_MVA;
     program_name = basename( argv[0] );
     
     /* Process all command line arguments.  If none specified, then     */
@@ -91,25 +89,26 @@ int main (int argc, char *argv[])
 
 	switch( c ) {
 	case 'b':
-	    solver = BARD_SCHWEITZER;
+	    solver = BCMPModel::Using::BARD_SCHWEITZER;
 	    break;
 
-#if DEBUG_MVA
 	case 'd':
+	    debug_flag = true;
+#if DEBUG_MVA
 	    MVA::debug_D = true;
 	    MVA::debug_L = true;
 	    MVA::debug_P = true;
 	    MVA::debug_U = true;
 	    MVA::debug_W = true;
-	    break;
 #endif
+	    break;
 
 	case 'e':
-	    solver = EXACT_MVA;
+	    solver = BCMPModel::Using::EXACT_MVA;
 	    break;
 			
 	case 'f':
-	    solver = LINEARIZER2;
+	    solver = BCMPModel::Using::LINEARIZER2;
 	    break;
 
 	case 'h':
@@ -117,7 +116,7 @@ int main (int argc, char *argv[])
 	    return 0;
 
 	case 'l':
-	    solver = LINEARIZER;
+	    solver = BCMPModel::Using::LINEARIZER;
 	    break;
 			
 	case 's':
@@ -129,11 +128,15 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'x':
-	    solver = EXPERIMENTAL;
+	    solver = BCMPModel::Using::EXPERIMENTAL;
 	    break;
 
 	case 'X':
             LQIO::DOM::Document::__debugXML = true;
+	    break;
+	    
+	case 'L':
+	    print_lqx = true;
 	    break;
 	    
 	default:
@@ -151,22 +154,41 @@ int main (int argc, char *argv[])
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
 	    if ( !input.parse() ) continue;
-	    Model model( input.model() );
+	    BCMPModel model( input.model() );
 	    if ( !model ) continue;
-	    MVA * mva = nullptr;
-	    switch ( solver ) {
-	    case EXACT_MVA:	    mva = new ExactMVA( model.Q(), model.N(), model.Z(), model.priority() ); break;
-	    case BARD_SCHWEITZER:   mva = new Schweitzer( model.Q(), model.N(), model.Z(), model.priority() ); break;
-	    case LINEARIZER:	    mva = new Linearizer( model.Q(), model.N(), model.Z(), model.priority() ); break;
-	    }
+
+	    if ( input.hasSPEX() ) {
+		std::vector<LQX::SyntaxTreeNode *> * program = new std::vector<LQX::SyntaxTreeNode *>;
+		if ( !LQIO::spex.construct_program( program, nullptr, nullptr ) ) continue;		/* arg 2 should be observations... */
+		LQX::Program * lqx = LQX::Program::loadRawProgram( program );
+		input.registerExternalSymbolsWithProgram( lqx );
+		if ( print_lqx ) {
+		    lqx->print( std::cout );
+		}
+		LQX::Environment * environment = lqx->getEnvironment();
+		environment->getMethodTable()->registerMethod(new SolverInterface::Solve(model, solver));
+		BCMP::RegisterBindings(environment, &input.model());
+//		set output...
+//		    environment->setDefaultOutput( output );      /* Default is stdout */
+		/* Invoke the LQX program itself */
+		if ( !lqx->invoke() ) {
+//		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
+//		    rc = INVALID_INPUT;
+		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
+		    /* There was no call to solve the LQX */
+//		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
+		    std::vector<LQX::SymbolAutoRef> args;
+		    environment->invokeGlobalMethod("solve", &args);
+		}
 		
-	    if ( mva != nullptr ) {
-		mva->solve();
-//		mva->print(std::cout);
-		model.insertResult( new BCMPResult( model.N(), model.Q(), *mva ) );
+	    } else if ( model.instantiate() ) {
+		if ( debug_flag ) {
+		    model.debug( std::cout );
+		}
+		if ( model.solve( solver ) ) {
+		    model.print( std::cout );		/* for now. */
+		}
 	    }
-	    model.print( std::cout );
-	    delete mva;
 	}
     }
     return 0;
@@ -184,8 +206,6 @@ makeopts( const struct option * longopts, std::string& opts )
 	}
     }
 }
-
-
 
 static void
 usage() 

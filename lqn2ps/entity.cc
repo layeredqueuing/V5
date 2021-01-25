@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: entity.cc 14405 2021-01-24 22:01:02Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -716,7 +716,7 @@ void
 Entity::label_BCMP_server::operator()( Entity * entity ) const
 {
     const BCMP::Model::Station& station = const_cast<BCMP::Model&>(_model).stationAt( entity->name() );
-    entity->labelBCMPModel( station.demands() );
+    entity->labelBCMPModel( station.classes() );
 }
 
 
@@ -724,24 +724,24 @@ void
 Entity::label_BCMP_client::operator()( Entity * entity ) const
 {
     const BCMP::Model::Station& station = const_cast<BCMP::Model&>(_model).stationAt( ReferenceTask::__BCMP_station_name );
-    entity->labelBCMPModel( station.demands(), entity->name() );
+    entity->labelBCMPModel( station.classes(), entity->name() );
 }
 
 
 void
 Entity::create_class::operator()( const Entity * entity ) const
 {
-    BCMP::Model::Class::Type type;
-    if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Class::MIXED;
-    else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Class::OPEN;
-    else type = BCMP::Model::Class::CLOSED;
+    BCMP::Model::Chain::Type type;
+    if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Chain::MIXED;
+    else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Chain::OPEN;
+    else type = BCMP::Model::Chain::CLOSED;
 
     /* Think time for a task is the class think time. */
 
     const Task * task = dynamic_cast<const Task *>(entity);
     const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : &Element::ONE;
     const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : &Element::ZERO;
-    _model.insertClass( entity->name(), type, copies, think_time );
+    _model.insertChain( entity->name(), type, copies, think_time );
 }
 
 
@@ -749,10 +749,10 @@ void
 Entity::create_station::operator()( const Entity * entity ) const
 {
     BCMP::Model::Station::Type type;
-    if ( _type == BCMP::Model::Station::CUSTOMER ) type = _type;
-    else if ( entity->isInfinite() ) type = BCMP::Model::Station::DELAY;
-    else if ( entity->isMultiServer() ) type = BCMP::Model::Station::MULTISERVER;
-    else type = BCMP::Model::Station::LOAD_INDEPENDENT;
+    if ( _type == BCMP::Model::Station::Type::CUSTOMER ) type = _type;
+    else if ( entity->isInfinite() ) type = BCMP::Model::Station::Type::DELAY;
+    else if ( entity->isMultiServer() ) type = BCMP::Model::Station::Type::MULTISERVER;
+    else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
     _model.insertStation( entity->name(), type, entity->scheduling(), dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies() );
 }
 

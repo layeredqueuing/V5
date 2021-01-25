@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: lqns.cc 14407 2021-01-25 13:56:07Z greg $
  *
  * Command line processing.
  *
@@ -287,6 +287,8 @@ int main (int argc, char *argv[])
             break;
 
         case 512+'h':
+	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
+	    LQIO::Spex::__no_header = true;
 	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
             break;
 

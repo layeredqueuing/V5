@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14387 2021-01-21 14:09:16Z greg $
+ * $Id: expat_document.cpp 14388 2021-01-22 02:35:36Z greg $
  *
  * Read in XML input files.
  *
@@ -2086,6 +2086,7 @@ namespace LQIO {
 	    for ( ; *attributes; attributes += 2 ) {
 		if ( strcasecmp( *attributes, attribute ) == 0 ) {
 		    s = *(attributes+1);
+		    break;
 		}
 	    }
 	    if ( !s ) {

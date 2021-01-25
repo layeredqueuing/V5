@@ -33,9 +33,9 @@ DOM::BCMP_to_LQN::convert()
     _lqn.addPragma( LQIO::DOM::Pragma::_prune_, LQIO::DOM::Pragma::_true_ );
     _lqn.setDocumentComment( "*** Manually change task-processors representing processors to processors. **" );
     try {
-	std::for_each( classes().begin(), classes().end(), createLQNTaskProcessor( *this) );
+	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this) );
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );
-	std::for_each( classes().begin(), classes().end(), connectClassToStation( *this ) );
+	std::for_each( chains().begin(), chains().end(), connectClassToStation( *this ) );
     }
     catch ( const std::runtime_error& ) {
 	return false;
@@ -45,11 +45,11 @@ DOM::BCMP_to_LQN::convert()
 
 
 /*
- * Create LQN Reference tasks from classes.
+ * Create LQN Reference tasks from chains.
  */
 
 void
-DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Class::pair_t& k ) 
+DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::pair_t& k ) 
 {
     /* Create the processor */
     DOM::Processor * processor = new DOM::Processor( &lqn(), k.first, SCHEDULE_DELAY );
@@ -65,11 +65,11 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Class::
     /* Add service time */
     const BCMP::Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &BCMP::Model::Station::isCustomer );
     if ( terminal == stations().end() ) throw std::runtime_error( "No Customer." );
-    const BCMP::Model::Station::Demand& demand = terminal->second.demandAt(k.first);
+    const BCMP::Model::Station::Class& clasx = terminal->second.classAt(k.first);
 //    phase->setServiceTimeValue(k.second.think_time());
     DOM::Phase* phase = entry->getPhase(1);
     phase->setName(k.first);
-    phase->setServiceTime(const_cast<DOM::ExternalVariable *>(demand.service_time()));
+    phase->setServiceTime(const_cast<DOM::ExternalVariable *>(clasx.service_time()));
 
     DOM::Task * task = new DOM::Task( &lqn(), k.first, SCHEDULE_CUSTOMER, entries, processor );
     task->setCopies(const_cast<DOM::ExternalVariable *>(k.second.customers()));
@@ -84,7 +84,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Class::
 void
 DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station::pair_t& m ) 
 {
-    if ( m.second.type() == BCMP::Model::Station::CUSTOMER ) return;
+    if ( m.second.type() == BCMP::Model::Station::Type::CUSTOMER ) return;
     
     /* Always a PS type processor */
     DOM::Processor * processor = new DOM::Processor( &lqn(), m.first, SCHEDULE_PS );
@@ -93,7 +93,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
     /* Create the entries */
     std::vector<DOM::Entry *> entries;
     unsigned int e = 1;			/* Used to create name_<n> where n is the class. */
-    for ( BCMP::Model::Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k, ++e ) {
+    for ( BCMP::Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k, ++e ) {
 	if ( !m.second.hasClass( k->first ) ) continue;
 	std::ostringstream name;
 	name << m.first << "_" << e;	/* Station name, index for class */
@@ -104,13 +104,13 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	/* Add service time */
 	DOM::Phase* phase = entry->getPhase(1);
 	phase->setName(name.str());
-	const BCMP::Model::Station::Demand& demand = m.second.demandAt(k->first);
-	phase->setServiceTime(const_cast<DOM::ExternalVariable *>((demand.service_time())));
+	const BCMP::Model::Station::Class& clasx = m.second.classAt(k->first);
+	phase->setServiceTime(const_cast<DOM::ExternalVariable *>((clasx.service_time())));
 	entries.push_back(entry);
     }
 
     /* Create the task */
-    scheduling_type scheduling = m.second.type() == BCMP::Model::Station::DELAY ? SCHEDULE_DELAY : SCHEDULE_FIFO;
+    scheduling_type scheduling = m.second.type() == BCMP::Model::Station::Type::DELAY ? SCHEDULE_DELAY : SCHEDULE_FIFO;
     DOM::Task * task = new DOM::Task( &lqn(), m.first, scheduling, entries, processor );
     task->setCopies(const_cast<DOM::ExternalVariable *>(m.second.copies()));
     processor->addTask(task);
@@ -119,12 +119,12 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 
 
 /*
- * All classes and stations are represented by tasks with one entry
+ * All chains and stations are represented by tasks with one entry
  * per class.  Create a class for any non-zero visit.
  */
 
 void
-DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Class::pair_t& k )
+DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Chain::pair_t& k )
 {
     for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 	std::string key = m->first + k.first;
@@ -137,8 +137,8 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Class::p
 
 	LQIO::DOM::Phase * client_phase = client_entry->getPhase(1);
 	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::Type::RENDEZVOUS, client_phase, server_entry );
-	const BCMP::Model::Station::Demand& demand = m->second.demandAt(k.first);
-	call->setCallMean( const_cast<DOM::ExternalVariable *>(demand.visits()) );
+	const BCMP::Model::Station::Class& clasx = m->second.classAt(k.first);
+	call->setCallMean( const_cast<DOM::ExternalVariable *>(clasx.visits()) );
 	client_phase->addCall(call);
     }
 }

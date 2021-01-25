@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14380 2021-01-18 19:43:03Z greg $
+# $Id: Makefile.am 14402 2021-01-24 04:20:16Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -6,7 +6,8 @@
 # This project uses Libtool to generate a product
 SUBDIRS = headers/lqio
 lib_LTLIBRARIES = liblqio.la
-liblqio_la_SOURCES = bcmp_document.cpp \
+liblqio_la_SOURCES = bcmp_bindings.cpp \
+	bcmp_document.cpp \
 	bcmp_to_lqn.cpp \
 	commandline.cpp \
 	common_io.cpp \
@@ -77,4 +78,3 @@ srvn_input.cpp: srvn_gram.h
 
 # Files to remove during cleanup
 MOSTLYCLEANFILES = srvn_gram.h srvn_gram.c srvn_scan.c srvn_result_gram.h srvn_result_gram.c srvn_result_scan.c
-

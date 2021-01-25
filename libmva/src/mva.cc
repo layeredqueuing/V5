@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 14383 2021-01-20 13:13:16Z greg $
+ * $Id: mva.cc 14398 2021-01-23 03:28:47Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -1867,6 +1867,8 @@ MVA::printVectorP( std::ostream& output, const unsigned m, const Population& N )
 
 /* ---------------------------- Exact MVA. ---------------------------- */
 
+const char * const ExactMVA::__typeName = "Exact MVA";
+
 ExactMVA::ExactMVA( Vector<Server *>&q, const Population& N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
     : MVA( q, N, z, prio, of), map(N)
 {
@@ -1878,7 +1880,7 @@ ExactMVA::ExactMVA( Vector<Server *>&q, const Population& N, const VectorMath<do
  * to nCust.  The dimensionality of N is limited by stack size...
  */
 
-void
+bool
 ExactMVA::solve()
 {
     /* Allocate array space and initialize */
@@ -1891,6 +1893,7 @@ ExactMVA::solve()
     for ( PopulationMap::iterator n = map.begin(); n != map.end(); ++n ) {
 	step( *n );
     }
+    return true;
 }
 
 
@@ -2552,6 +2555,8 @@ SchweitzerCommon::priorityInflation( const Server& station, const Population &N,
 
 /* ------------------------- Bard Schweitzer. ------------------------- */
 
+const char * const Schweitzer::__typeName = "Bard-Schweitzer";
+
 /*
  * Allocate storage and distribute customers to queues.  All populations
  * are of type SpecialPop since we don't need to go through the entire
@@ -2603,7 +2608,7 @@ Schweitzer::estimate_P( const Population & N )
  * Solve the model.  This member function is very very complicated.
  */
 
-void
+bool
 Schweitzer::solve()
 {
     map.dimension( NCust );				/* Reset ALL associated arrays */
@@ -2622,10 +2627,14 @@ Schweitzer::solve()
     }
     catch ( const MVA::iteration_limit& error ) {
 	faultCount += 1;
+	return false;
     }
+    return true;
 }
 
 /* -------------------------- One Step MVA. --------------------------- */
+
+const char * const OneStepMVA::__typeName = "One-Step";
 
 /*
  * Constructor...
@@ -2642,7 +2651,7 @@ OneStepMVA::OneStepMVA( Vector<Server *>&q, const Population & n, const VectorMa
  * and one step only.
  */
 
-void
+bool
 OneStepMVA::solve()
 {
     map.dimension( NCust );				/* Reset ALL associated arrays */
@@ -2660,9 +2669,12 @@ OneStepMVA::solve()
     estimate_L( NCust );
     estimate_P( NCust );
     step( NCust );
+    return true;
 }
 
 /* --------------------------- Linearizer. ---------------------------- */
+
+const char * const Linearizer::__typeName = "Linearizer";
 
 /*
  * Constructor...
@@ -2811,7 +2823,7 @@ Linearizer::reset()
  * Solver for linearizer.  See reference for description.
  */
 
-void
+bool
 Linearizer::solve()
 {
     Population N;			/* Population vector.		*/
@@ -2859,7 +2871,9 @@ Linearizer::solve()
     }
     catch ( const MVA::iteration_limit& error ) {
 	faultCount += 1;
+	return false;
     }
+    return true;
 }
 
 
@@ -3037,6 +3051,8 @@ Linearizer::printD( std::ostream& output, const Population & N ) const
 
 /* ----------------------- One Step Linearizer. ----------------------- */
 
+const char * const OneStepLinearizer::__typeName = "One-Step Linearizer";
+
 /*
  * Constructor...
  */
@@ -3052,7 +3068,7 @@ OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const Population & n, 
  * and one step only.
  */
 
-void
+bool
 OneStepLinearizer::solve()
 {
     Population N;			/* Population vector.		*/
@@ -3090,6 +3106,7 @@ OneStepLinearizer::solve()
     estimate_L( NCust );
     estimate_P( NCust );
     step( NCust );
+    return true;
 }
 
 /* ------------------------ Linearizer variant. ----------------------- */
@@ -3108,6 +3125,8 @@ OneStepLinearizer::solve()
  *
  * Warning: This algorithm has FP stability problems.
  */
+
+const char * const Linearizer2::__typeName = "Fast Linearizer";
 
 
 /*
@@ -3296,4 +3315,3 @@ Linearizer2::sumOf_SL_m( const Server& station, const Population &N, const unsig
 
     return Lm[Nej][station.closedIndex];
 }
-

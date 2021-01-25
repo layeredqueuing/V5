@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14377 2021-01-18 13:25:58Z greg $
+ *  $Id: qnap2_document.h 14405 2021-01-24 22:01:02Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -34,9 +34,9 @@ namespace BCMP {
 
     private:
 	const Model::Model::Station::map_t& stations() const { return _model.stations(); }
-	const Model::Class::map_t& classes() const { return _model.classes(); }
+	const Model::Chain::map_t& chains() const { return _model.chains(); }
 	const Model& model() const { return _model; }
-	bool multiclass() const { return classes().size() > 1; }
+	bool multiclass() const { return chains().size() > 1; }
 
 	void printClassVariables( std::ostream& ) const;
 
@@ -50,14 +50,14 @@ namespace BCMP {
     private:
 	struct getVariables {
 	    getVariables( const Model& model, std::set<const LQIO::DOM::ExternalVariable *>& symbol_table ) : _model(model), _symbol_table(symbol_table) {}
-	    std::string operator()( const std::string&, const Model::Class::pair_t& k ) const;
+	    std::string operator()( const std::string&, const Model::Chain::pair_t& k ) const;
 	    std::string operator()( const std::string&, const Model::Station::pair_t& m ) const;
-	    std::string operator()( const std::string&, const Model::Station::Demand::pair_t& d ) const;
+	    std::string operator()( const std::string&, const Model::Station::Class::pair_t& d ) const;
 	private:
 	    const Model& model() const { return _model; }
-	    const Model::Class::map_t& classes() const { return _model.classes(); }	/* For demand */
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }	/* For demand */
 	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
-	    bool multiclass() const { return classes().size() > 1; }
+	    bool multiclass() const { return chains().size() > 1; }
 	private:
 	    const Model& _model;
 	    std::set<const LQIO::DOM::ExternalVariable *>& _symbol_table;
@@ -76,9 +76,9 @@ namespace BCMP {
 	    printStation( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
 	    void operator()( const Model::Station::pair_t& m ) const;
 	private:
-	    const Model::Class::map_t& classes() const { return _model.classes(); }	/* For demand */
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }	/* For demand */
 	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
-	    bool multiclass() const { return classes().size() > 1; }
+	    bool multiclass() const { return chains().size() > 1; }
 	private:
 	    std::ostream& _output;
 	    const Model& _model;
@@ -95,8 +95,8 @@ namespace BCMP {
 	    printStationVariables( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
 	    void operator()( const Model::Station::pair_t& m ) const;
 	private:
-	    const Model::Class::map_t& classes() const { return _model.classes(); }
-	    bool multiclass() const { return classes().size() > 1; }
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }
+	    bool multiclass() const { return chains().size() > 1; }
 	private:
 	    std::ostream& _output;
 	    const Model& _model;
@@ -119,7 +119,6 @@ namespace BCMP {
 	class getObservations {
 	public:
 	    typedef std::pair<std::string,std::string> (getObservations::*f)( const std::string& ) const;
-	    static std::map<int,f> __key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
 	    
 	    getObservations( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
 	    void operator()( const Spex::var_name_and_expr& ) const;
@@ -128,9 +127,9 @@ namespace BCMP {
 	    std::pair<std::string,std::string> get_service_time( const std::string& name ) const;
 	    std::pair<std::string,std::string> get_waiting_time( const std::string& name ) const;
 	private:
-	    const Model::Class::map_t& classes() const { return _model.classes(); }
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
-	    bool multiclass() const { return classes().size() > 1; }
+	    bool multiclass() const { return chains().size() > 1; }
 	    static const std::string& get_entity_name( int key, const LQIO::DOM::DocumentObject * object );
 	private:
 	    std::ostream& _output;
@@ -164,13 +163,13 @@ namespace BCMP {
 	};
 
 	struct fold_mresponse {
-	    fold_mresponse( const std::string& name, const Model::Class::map_t& classes ) : _name(name), _classes(classes) {}
+	    fold_mresponse( const std::string& name, const Model::Chain::map_t& chains ) : _name(name), _chains(chains) {}
 	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const;
 	private:
-	    bool multiclass() const { return _classes.size() > 1; }
+	    bool multiclass() const { return _chains.size() > 1; }
 	private:
 	    const std::string& _name;
-	    const Model::Class::map_t& _classes;
+	    const Model::Chain::map_t& _chains;
 	};
 
     private:

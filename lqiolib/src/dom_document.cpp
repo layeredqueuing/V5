@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_document.cpp 14406 2021-01-25 03:09:25Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -393,26 +393,14 @@ namespace LQIO {
 	bool Document::areAllExternalVariablesAssigned() const
 	{
 	    /* Check to make sure all external variables were set */
-	    for (std::map<std::string, SymbolExternalVariable*>::const_iterator iter = _variables.begin(); iter != _variables.end(); ++iter) {
-		SymbolExternalVariable* current = iter->second;
-		if (current->wasSet() == false) {
-		    return false;
-		}
-	    }
-      
-	    return true;
+	    return std::all_of( _variables.begin(), _variables.end(), &wasSet );
 	}
     
 	std::vector<std::string> Document::getUndefinedExternalVariables() const
 	{
 	    /* Returns a list of all undefined external variables as a string */
 	    std::vector<std::string> names;
-	    for (std::map<std::string, SymbolExternalVariable*>::const_iterator iter = _variables.begin(); iter != _variables.end(); ++iter) {
-		SymbolExternalVariable* current = iter->second;
-		if (current->wasSet() == false) {
-		    names.push_back(iter->first);
-		}
-	    }
+	    std::for_each( _variables.begin(), _variables.end(), notSet(names) );
 	    return names;
 	}
     
@@ -761,6 +749,7 @@ namespace LQIO {
 	
 	    bool rc = true;
 	    Document * document = new Document( format );
+	    LQIO::Spex::__global_variables = &document->_variables;	/* For SPEX */
 
 	    /* Read in the model, invoke the builder, and see what happened */
 

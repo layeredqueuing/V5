@@ -1,6 +1,7 @@
-# $Id: Makefile.am 14357 2021-01-14 21:50:48Z greg $
+# $Id: Makefile.am 14402 2021-01-24 04:20:16Z greg $
 # ------------------------------------------------------------------------
-noinst_HEADERS = bcmp_document.h \
+noinst_HEADERS = bcmp_bindings.h \
+	bcmp_document.h \
 	bcmp_to_lqn.h \
 	commandline.h \
 	common_io.h \

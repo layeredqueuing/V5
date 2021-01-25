@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 14323 2021-01-03 03:49:05Z greg $
+ * $Id: mva.h 14398 2021-01-23 03:28:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -69,7 +69,8 @@ public:
     virtual ~MVA();
 
     virtual void reset();
-    virtual void solve() = 0;
+    virtual bool solve() = 0;
+    virtual const char * getTypeName() const = 0;
 
     unsigned nChains() const { return K; }
     virtual double filter() const = 0;
@@ -216,7 +217,8 @@ public:
     ExactMVA( Vector<Server *>&, const Population&, const VectorMath<double>&,
 	      const Vector<unsigned>&, const VectorMath<double>* of = 0 );
 
-    void solve();
+    virtual bool solve();
+    virtual const char * getTypeName() const { return __typeName; }
     virtual Probability priorityInflation( const Server& station, const Population &N, const unsigned k ) const;
     virtual double filter() const { return 1.0; }
     virtual bool isExactMVA() const {return true;}
@@ -232,6 +234,7 @@ private:
 
 private:
     FullPopulationMap map;
+    static const char * const __typeName;
 };
 
 /* -------------------------------------------------------------------- */
@@ -279,7 +282,8 @@ public:
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Schweitzer();
 
-    virtual void solve();
+    virtual bool solve();
+    virtual const char * getTypeName() const { return __typeName; }
 
 protected:
     virtual const PopulationMap& getMap() const { return map; }
@@ -288,6 +292,7 @@ protected:
 
 protected:
     SinglePopulationMap map;
+    static const char * const __typeName;
 };
 
 /* -------------------------------------------------------------------- */
@@ -296,7 +301,10 @@ class OneStepMVA: public Schweitzer {
 public:
     OneStepMVA( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		const Vector<unsigned>&, const VectorMath<double>* of = 0 );
-    virtual void solve();
+    virtual bool solve();
+    virtual const char * getTypeName() const { return __typeName; }
+private:
+    static const char * const __typeName;
 };
 
 /* -------------------------------------------------------------------- */
@@ -308,7 +316,8 @@ public:
     virtual ~Linearizer();
 
     virtual void reset();
-    virtual void solve();
+    virtual bool solve();
+    virtual const char * getTypeName() const { return __typeName; }
 
 protected:
     virtual const PopulationMap& getMap() const { return map; }
@@ -331,6 +340,8 @@ protected:
     double ****D;			/* Delta Fraction of jobs.	*/
     unsigned c;				/* Customer from class c removed*/
     PartialPopulationMap map;
+private:
+    static const char * const __typeName;
 };
 
 /* -------------------------------------------------------------------- */
@@ -339,7 +350,10 @@ class OneStepLinearizer: public Linearizer {
 public:
     OneStepLinearizer( Vector<Server *>&, const Population&, const VectorMath<double>&,
 		       const Vector<unsigned>&, const VectorMath<double>* of = 0 );
-    virtual void solve();
+    virtual bool solve();
+    virtual const char * getTypeName() const { return __typeName; }
+private:
+    static const char * const __typeName;
 };
 
 /* -------------------------------------------------------------------- */
@@ -349,6 +363,8 @@ public:
     Linearizer2( Vector<Server *>&, const Population&,
 		 const VectorMath<double>&, const Vector<unsigned>&, const VectorMath<double>* of = 0 );
     virtual ~Linearizer2();
+    virtual const char * getTypeName() const { return __typeName; }
+
     virtual double sumOf_L_m( const Server& station, const Population &N, const unsigned j ) const;
     virtual double sumOf_SL_m( const Server&, const Population &, const unsigned ) const;
 
@@ -359,5 +375,6 @@ protected:
 private:
     std::vector<double *> Lm;		/* Queue length sum (Fast lin.)	*/
     double ***D_k;			/* Sum over k.			*/
+    static const char * const __typeName;
 };
 #endif

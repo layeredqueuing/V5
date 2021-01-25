@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: processor.cc 14405 2021-01-24 22:01:02Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -449,7 +449,7 @@ Processor::label()
  */
 
 Processor&
-Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands, const std::string& )
+Processor::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demands, const std::string& )
 {
     *myLabel << name();
     if ( isMultiServer() ) {
@@ -457,7 +457,7 @@ Processor::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demands, c
     } else if ( isInfinite() ) {
 	*myLabel << "{" << _infty() << "}";
     }
-    for ( BCMP::Model::Station::Demand::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
+    for ( BCMP::Model::Station::Class::map_t::const_iterator demand = demands.begin(); demand != demands.end(); ++demand ) {
 	myLabel->newLine();
 	*myLabel << demand->first << "(" << *demand->second.visits() << "," << *demand->second.service_time() << ")";
     }
@@ -577,23 +577,23 @@ Processor::draw( std::ostream& output ) const
 void
 Processor::accumulateDemand( BCMP::Model::Station& station ) const
 {
-    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
+    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
     
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
 	if ( !src ) continue;
 
-	demand_map& demands = const_cast<demand_map&>(station.demands());
-        const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Demand() ) );	/* null entry */
+	demand_map& demands = const_cast<demand_map&>(station.classes());
+        const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Class() ) );	/* null entry */
 	demand_map::iterator item = result.first;
 	
 	if ( src->callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
 	    /* If it is generic processor call then accumulate by entry */
-	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), src->srcTask() ) );
+	    item->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), src->srcTask() ) );
 	} else {
 	    /* Otherwise, we've been cloned, so get the values */
-	    item->second.accumulate( BCMP::Model::Station::Demand(src->visits(), src->srcEntry()->serviceTime()) );
+	    item->second.accumulate( BCMP::Model::Station::Class(src->visits(), src->srcEntry()->serviceTime()) );
 	}
     }
 }

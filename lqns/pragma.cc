@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14383 2021-01-20 13:13:16Z greg $ *
+ * $Id: pragma.cc 14407 2021-01-25 13:56:07Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -322,7 +322,7 @@ void Pragma::setSeverityLevel(const std::string& value)
     const std::map<const std::string,const LQIO::severity_t> __serverity_level_pragma = {
 	{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },
 	{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },
-	{ LQIO::DOM::Pragma::_warning_,	LQIO::WARNING_ONLY }
+	{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }
     };
 
     const std::map<const std::string,const LQIO::severity_t>::const_iterator pragma = __serverity_level_pragma.find( value );

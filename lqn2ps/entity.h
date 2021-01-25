@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: entity.h 14405 2021-01-24 22:01:02Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -44,7 +44,7 @@ public:
     };
 
     struct create_station {
-	create_station( BCMP::Model& model, BCMP::Model::Station::Type type = BCMP::Model::Station::NOT_DEFINED ) : _model(model), _type(type) {}
+	create_station( BCMP::Model& model, BCMP::Model::Station::Type type = BCMP::Model::Station::Type::NOT_DEFINED ) : _model(model), _type(type) {}
 	void operator()( const Entity * entity ) const;
     private:
 	BCMP::Model& _model;
@@ -155,7 +155,7 @@ public:
     virtual Graphic::colour_type colour() const;
 
     virtual Entity& label();
-    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Demand::map_t&, const std::string& class_name="" ) = 0;
+    virtual Entity& labelBCMPModel( const BCMP::Model::Station::Class::map_t&, const std::string& class_name="" ) = 0;
 
     virtual void accumulateDemand( BCMP::Model::Station& ) const = 0;
 

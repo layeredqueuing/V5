@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: task.cc 14405 2021-01-24 22:01:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1219,17 +1219,17 @@ Task::canPrune() const
 void
 Task::accumulateDemand( BCMP::Model::Station& station ) const
 {
-    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
+    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
 
-    demand_map& demands = station.demands();
-    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Demand() ) );	/* null entry */
-    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
+    demand_map& demands = station.classes();
+    const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), BCMP::Model::Station::Class() ) );	/* null entry */
+    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), this ) );
 }
 
 
-/* static */ BCMP::Model::Station::Demand
-Task::accumulate_demand( const BCMP::Model::Station::Demand& augend, const Task * task )
+/* static */ BCMP::Model::Station::Class
+Task::accumulate_demand( const BCMP::Model::Station::Class& augend, const Task * task )
 {
     return std::accumulate( task->entries().begin(), task->entries().end(), augend, &Entry::accumulate_demand ); 
 }
@@ -1820,7 +1820,7 @@ Task::label()
  */
 
 Task&
-Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand, const std::string& class_name )
+Task::labelBCMPModel( const BCMP::Model::Station::Class::map_t& demand, const std::string& class_name )
 {
     *myLabel << name();
     myLabel->newLine();
@@ -1829,7 +1829,7 @@ Task::labelBCMPModel( const BCMP::Model::Station::Demand::map_t& demand, const s
     } else {
 	*myLabel << "[1]";
     }
-    const BCMP::Model::Station::Demand& reference = demand.at(class_name);
+    const BCMP::Model::Station::Class& reference = demand.at(class_name);
     myLabel->newLine();
     *myLabel << "(" << *reference.visits() << "," << *reference.service_time() << ")";
     return *this;
@@ -2527,16 +2527,16 @@ ReferenceTask::relink()
 void
 ReferenceTask::accumulateDemand( BCMP::Model::Station& station ) const
 {
-    typedef std::pair<const std::string,BCMP::Model::Station::Demand> demand_item;
-    typedef std::map<const std::string,BCMP::Model::Station::Demand> demand_map;
-    BCMP::Model::Station::Demand demand;
+    typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
+    typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
+    BCMP::Model::Station::Class demand;
     if ( hasThinkTime() ) {
 	demand.setServiceTime( thinkTime().clone() );
     }
 
-    demand_map& demands = const_cast<demand_map&>(station.demands());
+    demand_map& demands = const_cast<demand_map&>(station.classes());
     const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( name(), demand ) );
-    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Demand(), this ) );
+    result.first->second.accumulate( Task::accumulate_demand( BCMP::Model::Station::Class(), this ) );
 }
 
 /* --------------------------- Server Tasks --------------------------- */

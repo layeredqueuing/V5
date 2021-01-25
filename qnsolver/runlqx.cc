@@ -1,22 +1,20 @@
 /* runlqx.h	-- Greg Franks
  *
- * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
+ * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14402 2021-01-24 04:20:16Z greg $
+ * $Id: runlqx.cc 14406 2021-01-25 03:09:25Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include <iomanip>
 #include <sstream>
-#include <numeric>
-#include <lqio/dom_document.h>
+#include <lqio/jmva_document.h>
 #include <lqx/Program.h>
 #include <lqx/MethodTable.h>
 #include <lqx/Environment.h>
 #include <mva/fpgoop.h>
+#include <mva/mva.h>
 #include "runlqx.h"
-#include "model.h"
-#include "lqns.h"
 
 namespace SolverInterface 
 {
@@ -54,47 +52,42 @@ namespace SolverInterface
 	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
 #endif
 			
-	/* Tell the world the iteration number */
-	if ( flags.trace_mva ) {
-	    std::cout << "\fSolving iteration #" << invocationCount << std::endl;
-	} else if ( flags.verbose ) {
-	    std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
-	}
+	// /* Tell the world the iteration number */
+	// if ( flags.trace_mva ) {
+	//     std::cout << "\fSolving iteration #" << invocationCount << std::endl;
+	// } else if ( flags.verbose ) {
+	//     std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
+	// }
 			
 	/* Make sure all external variables are accounted for */
 	bool ok = false;
+	    
+	    // const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
+	    // if ( undefined.size() > 0) {
+	    // 	std::string msg = "The following external variables were not assigned at time of solve: ";
+	    // 	for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
+	    // 	    if ( var != undefined.begin() ) msg += ", ";
+	    // 	    msg += *var;
+	    // 	}
+	    // 	throw std::runtime_error( msg );
+	    // }
 	try {
-	    const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
-	    if ( undefined.size() > 0) {
-		const std::string msg = "The following external variables were not assigned at time of solve: " 
-		    + std::accumulate( std::next(undefined.begin()), undefined.end(), undefined.front(), &fold );
-		throw std::runtime_error( msg );
-	    } 
-			
-	    /* Recalculate dynamic values */
-	    Model::recalculateDynamicValues( _document );
-			
-	    /* Run the solver and return its success as a boolean value */
-	    assert( _aModel );
-	    if ( LQIO::io_vars.anError() == true || !_aModel->initializeModel() ) {
-		throw std::runtime_error( "Unable to initialize model." );
+	    if ( _model.instantiate() ) {
+		ok = _model.solve( _solver );
+		if ( ok ) {
+		    _model.print( std::cout );		/* for now. */
+		}
+	    } else {
+		ok = false;
 	    }
-
-	    std::stringstream ss;
-	    _document->printExternalVariables( ss );
-	    _document->setModelCommentString( ss.str() );
-	    _document->setResultInvocationNumber( invocationCount );
-	    ok = (_aModel->*_solve)();
-	}
-	catch ( const exception_handled& error ) {
-	    LQIO::io_vars.error_count += 1;
-	    ok = false;
 	}
 	catch ( const std::runtime_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
+	    ok = false;
 	}
 	catch ( const std::logic_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
+	    ok = false;
 	}
 	catch ( const floating_point_error& error ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
@@ -103,6 +96,4 @@ namespace SolverInterface
 	}
 	return LQX::Symbol::encodeBoolean(ok);
     }
-
-    std::string SolverInterface::Solve::fold( const std::string& s1, const std::string& s2 ) { return s1 + "," + s2; }
 }

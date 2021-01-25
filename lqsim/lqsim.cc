@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14386 2021-01-20 23:58:29Z greg $
+ * $Id: lqsim.cc 14407 2021-01-25 13:56:07Z greg $
  */
 
 #define STACK_TESTING
@@ -326,7 +326,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-01-20 18:58:29 -0500 (Wed, 20 Jan 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-01-25 08:56:07 -0500 (Mon, 25 Jan 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -431,6 +431,8 @@ main( int argc, char * argv[] )
 		break;
 
 	    case 256+'h':
+		/* Set immediately, as it can't be changed once the SPEX program is loaded */
+		LQIO::Spex::__no_header = true;
 		pragmas.insert(LQIO::DOM::Pragma::_spex_header_,"false");
 		break;
 

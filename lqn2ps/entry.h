@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: entry.h 14405 2021-01-24 22:01:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -209,7 +209,7 @@ public:
     double serviceTimeForSRVNInput( const unsigned p ) const;
     Entry& aggregateService( const Activity * anActivity, const unsigned p, const double rate );
     Entry& aggregatePhases();
-    static BCMP::Model::Station::Demand accumulate_demand( const BCMP::Model::Station::Demand&, const Entry * );
+    static BCMP::Model::Station::Class accumulate_demand( const BCMP::Model::Station::Class&, const Entry * );
 
     static Entry * find( const std::string& );
     static bool compare( const Entry *, const Entry * );
