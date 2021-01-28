@@ -22,7 +22,7 @@ namespace LQIO {
 namespace BCMP {
     using namespace LQIO;
     class Model {
-	
+
     public:
 	class Object {
 	public:
@@ -38,12 +38,17 @@ namespace BCMP {
 
 	class Result {
 	public:
+	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, THROUGHPUT, UTILIZATION };
+	    typedef std::map<Type,std::string> map_t;
+	    typedef std::pair<Type,std::string> pair_t;
+
 	    Result() {}
 
 	    virtual double throughput() const = 0;
 	    virtual double queue_length() const = 0;
 	    virtual double residence_time() const = 0;
 	    virtual double utilization() const = 0;
+	    static const Type index[];
 	};
 
 	/* ------------------------------------------------------------ */
@@ -58,20 +63,23 @@ namespace BCMP {
 	    typedef std::map<const std::string,Chain> map_t;
 	    typedef std::pair<const std::string,Chain> pair_t;
 
-	    typedef enum { NONE, CLOSED, OPEN, MIXED } Type;
-	    
+	    typedef enum { NONE, CLOSED, OPEN } Type;
+
 	public:
-	    Chain() : _type(NONE), _customers(nullptr), _think_time(new DOM::ConstantExternalVariable(0.)) {}
-	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(type), _customers(customers), _think_time(think_time) {}
+	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
+	    Chain( Type type, const DOM::ExternalVariable* arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
+
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
-	    const DOM::ExternalVariable* customers() const { return _customers; }
-	    void setCustomers( DOM::ExternalVariable* customers ) { _customers = customers; }
-	    const DOM::ExternalVariable* think_time() const { return _think_time; }
-	    void setThinkTime( DOM::ExternalVariable* think_time ) { _think_time = think_time; }
-	    bool isInClosedModel() const { return _type == CLOSED || _type == MIXED; }
-	    bool isInOpenModel() const { return _type == OPEN || _type == MIXED; }
+ 	    const DOM::ExternalVariable* customers() const { assert(type()==Type::CLOSED); return _customers; }
+	    void setCustomers( DOM::ExternalVariable* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
+	    const DOM::ExternalVariable* think_time() const { assert(type()==Type::CLOSED); return _think_time; }
+	    void setThinkTime( DOM::ExternalVariable* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
+	    const DOM::ExternalVariable* arrival_rate() const { assert(type()==Type::CLOSED); return _arrival_rate; }
+	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::CLOSED); _arrival_rate = arrival_rate; }
+	    bool isClosed() const { return _type == CLOSED; }
+	    bool isOpen() const { return _type == OPEN; }
 
 	    virtual double throughput() const { return 0; }
 	    virtual double queue_length() const { return 0; }
@@ -94,21 +102,23 @@ namespace BCMP {
 	    Type _type;
 	    const DOM::ExternalVariable * _customers;
 	    const DOM::ExternalVariable * _think_time;
-
+	    const DOM::ExternalVariable * _arrival_rate;
 	};
 
-	/* ------------------------------------------------------------ */
-	/*                           Station                            */
-	/* ------------------------------------------------------------ */
+	/* -------------------------- Station ------------------------- */
 
 	class Station : public Object, public Result {
 	    friend class Model;
-	    
+
 	public:
 	    typedef std::map<const std::string,Station> map_t;
 	    typedef std::pair<const std::string,Station> pair_t;
 
 	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER };
+
+	    /* -------------------------------------------------------- */
+	    /*                          Class                           */
+	    /* -------------------------------------------------------- */
 
 	    class Class : public Result {
 		friend class Station;
@@ -117,19 +127,19 @@ namespace BCMP {
 		typedef std::map<const std::string,Class> map_t;
 		typedef std::pair<const std::string,Class> pair_t;
 
-		Class() : _visits(nullptr), _service_time(nullptr) {}
-		Class( const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time ) : _visits(visits), _service_time(service_time),
-		    _throughput(0.), _queue_length(0.), _residence_time(0.), _utilization(0.) {}
-		void setResults( double throughput, double queue_length, double residence_time, double utilization ) { _throughput = throughput; _queue_length = queue_length; _residence_time = residence_time; _utilization = utilization; }
+		Class( const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
+		~Class() {}
+
+		void setResults( double throughput, double queue_length, double residence_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
 
-		~Class() {}
-		
+
 		const DOM::ExternalVariable* visits() const { return _visits; }
 		const DOM::ExternalVariable* service_time() const { return _service_time; }
 		void setVisits( const DOM::ExternalVariable* visits ) { _visits = visits; }
 		void setServiceTime( const DOM::ExternalVariable* service_time ) { _service_time = service_time; }
-		
+		Result::map_t& resultVariables()  { return _result_vars; }
+		const Result::map_t& resultVariables() const { return _result_vars; }
 
 		Class operator+( const Class& augend ) const;
 		Class& operator+=( const Class& addend );
@@ -139,11 +149,12 @@ namespace BCMP {
 		static bool has_constant_service_time( const Class::pair_t& );
 		static bool has_constant_visits( const Class::pair_t& );
 
-		double throughput() const { return _throughput; }
-		double queue_length() const { return _queue_length; }
-		double residence_time() const { return _residence_time; }
-		double utilization() const { return _utilization; }
-		Class& deriveStationAverage();
+		double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
+		double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
+		double residence_time() const { return _results.at(Result::Type::RESIDENCE_TIME); }
+		double utilization() const { return _results.at(Result::Type::UTILIZATION); }
+		Class& deriveResidenceTime();
+		void insertResultVariable( Result::Type, const std::string& );
 
 	    private:
 		static Class::map_t collect( const Class::map_t& augend_t, const Class::pair_t& );
@@ -154,21 +165,22 @@ namespace BCMP {
 	    private:
 		const DOM::ExternalVariable* _visits;
 		const DOM::ExternalVariable* _service_time;
-		double _throughput;
-		double _queue_length;
-		double _residence_time;
-		double _utilization;
+		std::map<Result::Type,double> _results;
+		Result::map_t _result_vars;
 	    };
-	
-	/* -------------------------- Station ------------------------- */
+
+	/* ------------------------------------------------------------ */
+	/*                           Station                            */
+	/* ------------------------------------------------------------ */
 
 	public:
-	    Station() : _type(Type::NOT_DEFINED), _scheduling(SCHEDULE_DELAY), _copies(nullptr), _classes() {}
-	    Station( Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) : _type(type), _scheduling(scheduling), _copies(copies) {}
+	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) :
+		_type(type), _scheduling(scheduling), _copies(copies) {}
 	    ~Station();
-	    
+
 	    bool insertClass( const std::string&, const Class& );
-	    
+	    void insertResultVariable( Result::Type, const std::string& );
+
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
 	    void setType(Type type) { _type = type; }
@@ -179,8 +191,11 @@ namespace BCMP {
 	    const Class::map_t& classes() const { return _classes; }
 	    Class& classAt( const std::string& name ) { return _classes.at(name); }
 	    const Class& classAt( const std::string& name ) const { return _classes.at(name); }
+	    Result::map_t& resultVariables() { return _result_vars; }
+	    const Result::map_t& resultVariables() const { return _result_vars; }
 
 	    bool hasClass( const std::string& name ) const { return _classes.find(name) != _classes.end(); }
+	    Class::map_t::const_iterator findClass( const Class * k ) const;
 
 	    static bool isCustomer( const Station::pair_t& m ) { return m.second.type() == Type::CUSTOMER; }
 	    static bool isServer( const Station::pair_t& m ) { return m.second.type() != Type::CUSTOMER && m.second.type() != Type::NOT_DEFINED; }
@@ -208,7 +223,7 @@ namespace BCMP {
 	    private:
 		const predicate _test;
 	    };
-	    
+
 	    struct fold {
 		fold( const std::string& suffix="" ) : _suffix(suffix) {}
 		std::string operator()( const std::string& s1, const Station::pair_t& m ) const;
@@ -230,6 +245,7 @@ namespace BCMP {
 	    scheduling_type _scheduling;
 	    const DOM::ExternalVariable* _copies;
 	    Class::map_t _classes;
+	    Result::map_t _result_vars;
 	};
 
 	/* ------------------------------------------------------------ */
@@ -252,16 +268,18 @@ namespace BCMP {
 	const Chain& chainAt( const std::string& name ) const { return _chains.at(name); }
 
 	bool hasConstantCustomers() const;
+	Station::map_t::const_iterator findStation( const Station* m ) const;
 
 	bool insertComment( const std::string comment ) { _comment = comment; return true; }
-	std::pair<Chain::map_t::iterator,bool> insertChain( const std::string&, Chain::Type, const DOM::ExternalVariable *, const DOM::ExternalVariable * service_time=nullptr );
-	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& ); 
+	std::pair<Chain::map_t::iterator,bool> insertClosedChain( const std::string&, const DOM::ExternalVariable *, const DOM::ExternalVariable * think_time=nullptr );
+	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, const DOM::ExternalVariable * );
+	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
 	bool insertClass( const std::string&, const std::string&, const Station::Class& );
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
 	bool convertToLQN( DOM::Document& ) const;
-	
+
 	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
 	static bool isSet( const LQIO::DOM::ExternalVariable * var, double default_value=0.0 );
 
@@ -269,7 +287,7 @@ namespace BCMP {
 	    pad_demand( const Chain::map_t& chains ) : _chains(chains) {}
 	    void operator()( const Station::pair_t& station ) const;
 	private:
-	    const Chain::map_t& _chains;	
+	    const Chain::map_t& _chains;
 	};
 
 	struct sum_visits {

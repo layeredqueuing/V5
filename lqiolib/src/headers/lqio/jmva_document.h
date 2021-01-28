@@ -26,28 +26,37 @@ namespace LQIO {
 
 namespace BCMP {
     typedef std::map<const std::string,std::multimap<const std::string,const std::string> > result_t;
-    
+
     class JMVA_Document {
 
+	/* Safe union for stack object */
 	class Object {
 	public:
 	    enum class type { VOID, MODEL, CLASS, OBJECT, STATION, DEMAND, PAIR };
-	    typedef std::pair<const Model::Station *,const Model::Chain *> MK;
+	    typedef std::pair<const Model::Station *,const Model::Station::Class *> MK;
 	    Object() : _discriminator(type::VOID), u() {}
 	    Object(Model * _m_) : _discriminator(type::MODEL), u(_m_) {}
 	    Object(Model::Chain * _k_) : _discriminator(type::CLASS), u(_k_) {}
 	    Object(Model::Object * _o_ ) : _discriminator(type::OBJECT), u(_o_) {}
 	    Object(Model::Station *_s_) : _discriminator(type::STATION), u(_s_) {}
 	    Object(Model::Station::Class * _d_) : _discriminator(type::DEMAND), u(_d_) {}
-	    Object(const MK* _p_ ) : _discriminator(type::PAIR), u(_p_) {}
+	    Object(const MK& _mk_ ) : _discriminator(type::PAIR), u(_mk_) {}
 	    type getDiscriminator() const { return _discriminator; }
+	    bool isModel() const { return _discriminator == type::MODEL; }
+	    bool isClass() const { return _discriminator == type::CLASS; }
+	    bool isStation() const { return _discriminator == type::STATION; }
+	    bool isDemand() const { return _discriminator == type::DEMAND; }
+	    bool isObject() const { return _discriminator == type::OBJECT; }
+	    bool isMK() const { return _discriminator == type::PAIR; }
 	    Model * getModel() const { assert( _discriminator == type::MODEL ); return u.m; }
 	    Model::Chain * getClass() const { assert( _discriminator == type::CLASS ); return u.k; }
 	    Model::Station * getStation() const { assert( _discriminator == type::STATION ); return u.s; }
 	    Model::Station::Class * getDemand() const { assert( _discriminator == type::DEMAND ); return u.d; }
 	    Model::Object * getObject() const { assert( _discriminator == type::OBJECT ); return u.o; }
-	    const MK* getMK() const { assert( _discriminator == type::PAIR ); return u.p; }
+	    MK& getMK() { assert( _discriminator == type::PAIR ); return u.mk; }
+	    const MK& getMK() const { assert( _discriminator == type::PAIR ); return u.mk; }
 
+	private:
 	    const type _discriminator;	/* Once set, that's it. */
 	    union u {
 		u() : v(nullptr) {}
@@ -56,14 +65,14 @@ namespace BCMP {
 		u(Model::Object * _o_ ) : o(_o_) {}
 		u(Model::Station *_s_) : s(_s_) {}
 		u(Model::Station::Class * _d_) : d(_d_) {}
-		u(const MK* _p_) : p(_p_) {}
+		u(const MK& _mk_) : mk(_mk_) {}
 		void * v;
 		Model * m;
 		Model::Object * o;
 		Model::Chain * k;
 		Model::Station * s;
 		Model::Station::Class * d;
-		const MK* p;
+		MK mk;
 	    } u;
 	};
 
@@ -97,7 +106,7 @@ namespace BCMP {
 	    double stride() const { return _stride; }
 	private:
 	    void convert( const std::string& );
-		
+
 	    double _begin;
 	    double _end;
 	    double _stride;
@@ -108,8 +117,8 @@ namespace BCMP {
 	    void operator()( const std::pair<std::string, LQIO::DOM::SymbolExternalVariable*>& symbol ) const;
 	private:
 	    LQX::Program * _lqx;
-	}; 
-	
+	};
+
     public:
 	JMVA_Document( const std::string& input_file_name );
 	JMVA_Document( const std::string&, const BCMP::Model& );
@@ -120,13 +129,14 @@ namespace BCMP {
 	bool hasSPEX() const { return !_variables.empty(); }
 	const BCMP::Model& model() const { return _model; }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
+	expr_list * getResultVariables() const { return _result_vars; }
 
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
 	std::ostream& print( std::ostream& ) const;
-	
+
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
-	
+
 	static void start( void *data, const XML_Char *el, const XML_Char **attr );
 	static void end( void *data, const XML_Char *el );
 	static void start_cdata( void *data );
@@ -160,12 +170,14 @@ namespace BCMP {
 
 	const LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
 	const LQIO::DOM::ExternalVariable * getVariable( const XML_Char * attribute, const XML_Char * value );
-	
+
 	void createClosedClass( const XML_Char ** attributes );
 	void createOpenClass( const XML_Char ** attributes );
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
-	void createResults( const Object& object, const XML_Char ** attributes );
+	void createResults( Object& object, const XML_Char ** attributes );
+	void setResultVariables( const std::string& );
+	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, Model::Station *, Model::Station::Class * );
 
 	class what_if {
 	private:
@@ -176,7 +188,7 @@ namespace BCMP {
 	    private:
 		const std::string& _var;
 	    };
-	    
+
 	    class has_var {
 	    public:
 		has_var( const std::string& var ) : _var(var) {}
@@ -184,7 +196,7 @@ namespace BCMP {
 	    private:
 		const std::string& _var;
 	    };
-	    
+
 	    class has_service_time {
 	    public:
 		has_service_time( const std::string& var ) : _var(var) {}
@@ -193,7 +205,7 @@ namespace BCMP {
 	    private:
 		const std::string& _var;
 	    };
-	    
+
 	public:
 	    what_if( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
 	    void operator()( const std::string& ) const;
@@ -203,28 +215,6 @@ namespace BCMP {
 	    std::ostream& _output;
 	    const BCMP::Model _model;
 	};
-
-	class getObservations {
-	public:
-	    typedef std::string (getObservations::*f)( const std::string& ) const;
-	    static std::map<int,f> __key_map;	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
-	    
-	    getObservations( result_t& output, const Model& model ) : _output(output), _model(model) {}
-	    void operator()( const Spex::var_name_and_expr& ) const;
-	    std::string get_throughput( const std::string& name ) const;
-	    std::string get_utilization( const std::string& name ) const;
-	    std::string get_service_time( const std::string& name ) const;
-	    std::string get_waiting_time( const std::string& name ) const;
-	private:
-	    const Model::Chain::map_t& chains() const { return _model.chains(); }
-	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
-	    bool multiclass() const { return chains().size() > 1; }
-	    static const std::string& get_entity_name( int key, const LQIO::DOM::DocumentObject * object );
-	private:
-	    result_t& _output;
-	    const Model& _model;
-	};
-	
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
 
@@ -271,7 +261,16 @@ namespace BCMP {
 	private:
 	    std::ostream& _output;
 	};
-	
+
+	struct printResultVariable {
+	    printResultVariable( std::ostream& output ) : _output(output) {}
+	    void operator()( const Model::Result::pair_t& r ) const;
+	private:
+	    std::ostream& _output;
+	};
+
+	static std::string fold( const std::string& s1, const Spex::var_name_and_expr& v2 );
+
     private:
 	BCMP::Model _model;
 	const std::string _input_file_name;
@@ -281,11 +280,13 @@ namespace BCMP {
 	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */
-	std::map<const Model::Chain *,std::string> _think_time_vars;		/* class, var 	*/
-	std::map<const Model::Chain *,std::string> _population_vars;		/* class, var	*/
-	std::map<const Model::Station *,std::string> _multiplicity_vars;		/* station, var	*/
-	std::map<const Model::Station::Class *,std::string> _service_time_vars;
-	std::map<const Model::Station::Class *,std::string> _visit_vars;
+	std::map<const Model::Chain *,std::string> _think_time_vars;		/* chain, var 	*/
+	std::map<const Model::Chain *,std::string> _population_vars;		/* chain, var	*/
+	std::map<const Model::Chain *,std::string> _arrival_rate_vars;		/* chain, var	*/
+	std::map<const Model::Station *,std::string> _multiplicity_vars;	/* station, var	*/
+	std::map<const Model::Station::Class *,std::string> _service_time_vars;	/* class, var	*/
+	std::map<const Model::Station::Class *,std::string> _visit_vars;	/* class, var	*/
+	expr_list* _result_vars;
 
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> class_results_table;
@@ -293,11 +294,13 @@ namespace BCMP {
 	static const std::set<const XML_Char *,attribute_table_t> demand_table;
 	static const std::set<const XML_Char *,attribute_table_t> measure_table;
 	static const std::set<const XML_Char *,attribute_table_t> null_table;
-	
+
+	static const XML_Char * XArrivalProcess;
 	static const XML_Char * XClass;
 	static const XML_Char * XReferenceStation;
 	static const XML_Char * XalgParams;
 	static const XML_Char * XalgType;
+	static const XML_Char * Xclass;
 	static const XML_Char * Xclasses;
 	static const XML_Char * Xclosedclass;
 	static const XML_Char * XcompareAlgs;
@@ -313,6 +316,7 @@ namespace BCMP {
 	static const XML_Char * Xopenclass;
 	static const XML_Char * Xparameters;
 	static const XML_Char * Xpopulation;
+	static const XML_Char * Xrate;
 	static const XML_Char * XrefStation;
 	static const XML_Char * Xservers;
 	static const XML_Char * Xservicetime;
@@ -348,6 +352,7 @@ namespace BCMP {
 	static const XML_Char * Xfalse;
 	static const XML_Char * XsolutionMethod;
 
+	static const XML_Char * XResultVariables;
 	static const XML_Char * XNumber_of_Customers;
 	static const XML_Char * XThroughput;
 	static const XML_Char * XResidence_time;

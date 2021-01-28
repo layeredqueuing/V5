@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14406 2021-01-25 03:09:25Z greg $
+ * $Id: runlqx.cc 14423 2021-01-28 18:44:11Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -15,6 +15,8 @@
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
 #include "runlqx.h"
+
+extern bool debug_flag;
 
 namespace SolverInterface 
 {
@@ -73,10 +75,9 @@ namespace SolverInterface
 	    // }
 	try {
 	    if ( _model.instantiate() ) {
+		if ( debug_flag ) _model.debug(std::cout);
 		ok = _model.solve( _solver );
-		if ( ok ) {
-		    _model.print( std::cout );		/* for now. */
-		}
+		if ( debug_flag ) _model.print(std::cout);
 	    } else {
 		ok = false;
 	    }

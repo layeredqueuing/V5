@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14405 2021-01-24 22:01:02Z greg $
+ *  $Id: qnap2_document.h 14418 2021-01-27 23:33:14Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -118,19 +118,18 @@ namespace BCMP {
 	
 	class getObservations {
 	public:
-	    typedef std::pair<std::string,std::string> (getObservations::*f)( const std::string& ) const;
+	    typedef std::pair<std::string,std::string> (getObservations::*f)( const std::string&, const std::string& ) const;
 	    
 	    getObservations( std::ostream& output, const Model& model ) : _output(output), _model(model) {}
 	    void operator()( const Spex::var_name_and_expr& ) const;
-	    std::pair<std::string,std::string> get_throughput( const std::string& name ) const;
-	    std::pair<std::string,std::string> get_utilization( const std::string& name ) const;
-	    std::pair<std::string,std::string> get_service_time( const std::string& name ) const;
-	    std::pair<std::string,std::string> get_waiting_time( const std::string& name ) const;
+	    std::pair<std::string,std::string> get_throughput( const std::string&, const std::string& ) const;
+	    std::pair<std::string,std::string> get_utilization( const std::string&, const std::string& ) const;
+	    std::pair<std::string,std::string> get_service_time( const std::string&, const std::string& ) const;
+	    std::pair<std::string,std::string> get_waiting_time( const std::string&, const std::string& ) const;
 	private:
 	    const Model::Chain::map_t& chains() const { return _model.chains(); }
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
 	    bool multiclass() const { return chains().size() > 1; }
-	    static const std::string& get_entity_name( int key, const LQIO::DOM::DocumentObject * object );
 	private:
 	    std::ostream& _output;
 	    const Model& _model;

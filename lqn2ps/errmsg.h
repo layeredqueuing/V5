@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 14233 2020-12-17 13:15:17Z greg $
+ * $Id: errmsg.h 14410 2021-01-26 17:26:06Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -40,6 +40,7 @@ enum {
     ERR_NOT_IMPLEMENTED,
     ERR_SHOULD_NOT_IMPLEMENT,
     ERR_UNASSIGNED_VARIABLES,
+    ERR_BCMP_CONVERSION_FAILURE,
     WRN_COEFFICIENT_OF_VARIATION,
     WRN_MIXED_PHASE_TYPE,
     LSTLCLERRMSG=WRN_MIXED_PHASE_TYPE

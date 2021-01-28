@@ -3,7 +3,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.h $
  * ------------------------------------------------------------------------
- * $Id: runlqx.h 14402 2021-01-24 04:20:16Z greg $
+ * $Id: runlqx.h 14427 2021-01-28 23:13:01Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -12,7 +12,7 @@
 
 #include <lqx/MethodTable.h>
 #include <lqx/Environment.h>
-#include "bcmpmodel.h"
+#include "closedmodel.h"
 
 class MVA;
 	
@@ -24,7 +24,7 @@ namespace SolverInterface {
 	typedef bool (MVA::*solve_fptr)();
 		
 	/* Parameters necessary to call runSolverOnCurrentDOM() */
-	Solve(BCMPModel& model, BCMPModel::Using solver ) : _model(model), _solver(solver) {}
+	Solve(ClosedModel& model, ClosedModel::Using solver ) : _model(model), _solver(solver) {}
 	virtual ~Solve() {}
 		
 	/* All of the glue code to make sure LQX can call solve() */
@@ -37,8 +37,8 @@ namespace SolverInterface {
 	static std::string customSuffix;
 	
     private:
-	BCMPModel& _model;
-	BCMPModel::Using _solver;
+	ClosedModel& _model;
+	ClosedModel::Using _solver;
 
 	static unsigned int invocationCount;
     };

@@ -44,9 +44,9 @@ namespace LQIO {
 		const BCMP::Model::Chain::map_t& chains() const { return _self.chains(); }
 		Document& lqn() { return _self._lqn; }
 		entry_type& client_entries() { return _self._client_entries; };
-		const entry_type& client_entries() const { return _self._client_entries; };
+//		const entry_type& client_entries() const { return _self._client_entries; };
 		entry_type& server_entries() { return _self._server_entries; };
-		const entry_type& server_entries() const { return _self._server_entries; };
+//		const entry_type& server_entries() const { return _self._server_entries; };
 
 	    private:
 		BCMP_to_LQN& _self;

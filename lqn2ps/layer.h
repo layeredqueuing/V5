@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * layer.h	-- Greg Franks
  *
- * $Id: layer.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: layer.h 14410 2021-01-26 17:26:06Z greg $
  */
 
 #ifndef _LQN2PS_LAYER_H
@@ -80,7 +80,7 @@ public:
     Layer& generateSubmodel();
     Layer& transmorgrify( LQIO::DOM::Document *, Processor *&, Task *& );			/* BUG_626. */
     Layer& aggregate();
-    Layer& createBCMPModel();
+    bool createBCMPModel();
 
     unsigned int size() const { return entities().size(); }
     double width() const { return _extent.x(); }

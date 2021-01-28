@@ -1,6 +1,6 @@
 /* layer.cc	-- Greg Franks Tue Jan 28 2003
  *
- * $Id: layer.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: layer.cc 14417 2021-01-27 20:54:15Z greg $
  *
  * A layer consists of a set of tasks with the same nesting depth from
  * reference tasks.  Reference tasks are in layer 1, the immediate
@@ -22,15 +22,16 @@
 #include <lqio/dom_document.h>
 #include <lqio/jmva_document.h>
 #include <lqio/qnap2_document.h>
-#include "layer.h"
-#include "entity.h"
-#include "task.h"
-#include "processor.h"
-#include "entry.h"
 #include "activity.h"
 #include "arc.h"
+#include "entity.h"
+#include "entry.h"
+#include "errmsg.h"
 #include "label.h"
+#include "layer.h"
 #include "open.h"
+#include "processor.h"
+#include "task.h"
 
 /*----------------------------------------------------------------------*/
 /*                         Helper Functions                             */
@@ -47,7 +48,7 @@ private:
     void reset( LQIO::DOM::Phase * phase ) const
 	{
 	    std::vector<LQIO::DOM::Call*>& dom_calls = const_cast<std::vector<LQIO::DOM::Call*>& >(phase->getCalls());
-	    dom_calls.clear();		// Should likely delete... 
+	    dom_calls.clear();		// Should likely delete...
 
 	    if ( _hasResults ) {
 		const double mean = phase->getResultServiceTime();
@@ -63,27 +64,26 @@ private:
 
     bool _hasResults;
 };
-    
 
-Layer::Layer()  
+Layer::Layer()
     : _entities(), _origin(0,0), _extent(0,0), _number(0), _label(nullptr), _clients(), _chains(0), _bcmp_model()
 {
     _label = Label::newLabel();
 }
 
-Layer::Layer( const Layer& src )  
+Layer::Layer( const Layer& src )
     : _entities(src._entities), _origin(src._origin), _extent(src._extent), _number(src._number), _label(nullptr), _clients(), _chains(), _bcmp_model()
 {
     _label = Label::newLabel();
 }
 
-Layer::~Layer()  
+Layer::~Layer()
 {
     delete _label;
 }
 
 Layer&
-Layer::operator=( const Layer& src ) 
+Layer::operator=( const Layer& src )
 {
     _entities = src._entities;
     _origin = src._origin;
@@ -94,7 +94,7 @@ Layer::operator=( const Layer& src )
     return *this;
 }
 
-double 
+double
 Layer::labelWidth() const
 {
     return _label->width();
@@ -121,11 +121,11 @@ Layer::erase( std::vector<Entity *>::iterator pos )
     return *this;
 }
 
-Layer& 
-Layer::number( const unsigned n ) 
-{ 
-    _number = n; 
-    return *this; 
+Layer&
+Layer::number( const unsigned n )
+{
+    _number = n;
+    return *this;
 }
 
 
@@ -159,7 +159,7 @@ Layer::count( const callPredicate aFunc ) const
  */
 
 Layer&
-Layer::prune() 
+Layer::prune()
 {
     for ( std::vector<Entity *>::iterator entity = _entities.begin(); entity != _entities.end(); ++entity ) {
 	Task * aTask = dynamic_cast<ReferenceTask *>((*entity));
@@ -171,10 +171,10 @@ Layer::prune()
 
 	} else if ( aProc ) {
 
-	    /* 
+	    /*
 	     * If a processor is not refereneced, or if the task was
 	     * removed because it's a reference task that makes no
-	     * calls, then delete the processor. 
+	     * calls, then delete the processor.
 	     */
 
 	    if ( aProc->nTasks() == 0 ) {
@@ -193,7 +193,7 @@ Layer::prune()
 
 
 Layer&
-Layer::sort( compare_func_ptr compare ) 
+Layer::sort( compare_func_ptr compare )
 {
     std::sort( _entities.begin(), _entities.end(), compare );
     return *this;
@@ -234,7 +234,7 @@ Layer::moveBy( const double dx, const double dy )
 
 
 
-/* 
+/*
  * Move the label to...
  */
 
@@ -291,7 +291,7 @@ Layer::fill( const double maxWidthPts )
 
     _origin.x( fill );
 
-    double x = fill; 
+    double x = fill;
     for ( std::vector<Entity *>::const_iterator entity = entities().begin(); entity != entities().end(); ++entity ) {
 	const double y = (*entity)->bottom();
 	(*entity)->moveTo( x, y );
@@ -328,7 +328,7 @@ Layer::justify( const double maxWidthPts, const justification_type justification
 	moveBy( 0.0, 0.0 );		/* Force recomputation of slopes */
 	break;
     default:
-	abort();	
+	abort();
     }
     return *this;
 }
@@ -357,7 +357,7 @@ Layer&
 Layer::alignEntities()
 {
     std::sort( _entities.begin(), _entities.end(), &Entity::compareCoord );
-    
+
     if ( Flags::debug ) std::cerr << "Layer::alignEntities layer " << number() << std::endl;
     /* Move objects right starting from the right side */
     for ( unsigned int i = size(); i > 0; ) {
@@ -396,8 +396,8 @@ Layer::shift( unsigned i, double amount )
 	_extent.x( _entities.back()->right() - _entities.front()->left() );
 	if ( i + 1 < size() && _entities[i]->forwardsTo( dynamic_cast<Task *>(_entities[i+1]) ) ) {
 	    shift( i+1, amount );
-	} 
-    } else if ( amount > 0.0 ) { 
+	}
+    } else if ( amount > 0.0 ) {
 	/* move right if I can */
 	if ( Flags::debug ) std::cerr << "Layer::shift layer " << number() << " shift " << _entities.at(i)->name() << " right from ("
 				      << _entities.at(i)->left() << "," << _entities.at(i)->bottom() << ")";
@@ -673,7 +673,7 @@ Layer::findOrAddSurrogateProcessor( LQIO::DOM::Document * document, Processor *&
 	LQIO::DOM::Task * dom_task = const_cast<LQIO::DOM::Task *>(dynamic_cast<const LQIO::DOM::Task *>(task->getDOM()));
 	std::set<LQIO::DOM::Task*>& old_list = const_cast<std::set<LQIO::DOM::Task*>&>(dom_task->getProcessor()->getTaskList());
 	std::set<LQIO::DOM::Task*>::iterator pos = find( old_list.begin(), old_list.end(), dom_task );
-	old_list.erase( pos );		// Remove task from original processor 
+	old_list.erase( pos );		// Remove task from original processor
 	dom_processor->addTask( dom_task );
 	dom_task->setProcessor( dom_processor );
 	old_processor->removeTask( task );
@@ -705,7 +705,7 @@ Layer::findOrAddSurrogateTask( LQIO::DOM::Document* document, Processor*& proces
     if ( !task ) {
 	findOrAddSurrogateProcessor( document, processor, 0, level+1 );
 	LQIO::DOM::Processor * dom_processor = const_cast<LQIO::DOM::Processor *>(dynamic_cast<const LQIO::DOM::Processor *>(processor->getDOM()));
-	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor, 
+	dom_task = new LQIO::DOM::Task( document, "Surrogate", SCHEDULE_DELAY, dom_entries, dom_processor,
 					0, 0, NULL, NULL, NULL );
 	document->addTaskEntity( dom_task );
 	dom_processor->addTask( dom_task );
@@ -753,50 +753,42 @@ Layer::findOrAddSurrogateEntry( LQIO::DOM::Document* document, Task* task, Entry
 }
 /*- BUG_626 */
 
+/*
+ * Translate a "pruned" lqn model into a BCMP model.
+ */
 
-Layer&
+bool
 Layer::createBCMPModel()
 {
+    std::vector<const Entity *> tasks = std::accumulate( entities().begin(), entities().end(), std::vector<const Entity *>(), Select<const Entity>( &Entity::isTask ) );
+    if ( !tasks.empty() ) {
+	std::vector<std::string> names = std::accumulate( tasks.begin(), tasks.end(), std::vector<std::string>(), Collect<std::string,const Entity>( &Entity::name ) );
+	LQIO::solution_error( ERR_BCMP_CONVERSION_FAILURE, std::accumulate( std::next(names.begin()), names.end(), names.front(), &fold ).c_str() );
+	return false;
+    }
 
     /* 
+     * Create all of the chains for the model.
+     */
+
+    std::for_each( clients().begin(),  clients().end(),  Entity::create_chain( _bcmp_model, entities() ) );
+
+    /*
      * Create all of the stations except for the terminals (which are
      * the clients in the lqn schema.
      */
 
-    std::for_each( clients().begin(),  clients().end(),  Task::create_class( _bcmp_model, entities() ) );
     std::for_each( entities().begin(), entities().end(), Entity::create_station( _bcmp_model ) );
     std::for_each( entities().begin(), entities().end(), Entity::accumulate_demand( _bcmp_model ) );
 
-    /* 
-     * Create a terminal station.  Insert total visits into clients
-     * and set service time for class if the processor has been
-     * removed.  Include task think time.
+    /*
+     * Populate the customers.  This will create a terminals station.
      */
-
-    BCMP::Model::Station terminals( BCMP::Model::Station::Type::CUSTOMER );
-    for ( std::vector<Entity *>::const_iterator client = clients().begin(); client != clients().end(); ++client ) {
-	const Task * task = dynamic_cast<const Task *>(*client);
-	
-	/* If processor is missing, use service time here.  "class" may have to generalize to entry */
-	/* Put think time in class, and service time into demand */
-	if ( task->hasThinkTime() ) {
-//	    time = to_double(dynamic_cast<const ReferenceTask *>(task)->thinkTime());
-	}
-	const LQIO::DOM::ExternalVariable * service_time = nullptr;
-	if ( task->processor() == nullptr ) {
-	    // for all entries s += prVisit(e) * e->serviceTime ??
-	    service_time = task->entries().at(0)->serviceTime();
-	} else {
-	    service_time = &Element::ZERO;
-	}
-	BCMP::Model::Station::Class demand( &Element::ONE, service_time );	/* One visit */
-
-	const std::string name = task->name();
-	terminals.insertClass( name, demand );
-    }
+    
+    BCMP::Model::Station terminals(BCMP::Model::Station::Type::CUSTOMER);
+    std::for_each( clients().begin(),  clients().end(),  Entity::create_customers( terminals ) );
     _bcmp_model.insertStation( ReferenceTask::__BCMP_station_name, terminals );	// QNAP2 limit is 8.
-
-    return *this;
+    return true;
 }
 
 /*

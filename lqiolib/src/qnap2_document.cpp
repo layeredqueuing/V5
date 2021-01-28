@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14405 2021-01-24 22:01:02Z greg $
+ * $Id: qnap2_document.cpp 14426 2021-01-28 20:17:28Z greg $
  *
  * Read in XML input files.
  *
@@ -32,7 +32,6 @@
 #include "glblerr.h"
 #include "input.h"
 #include "qnap2_document.h"
-#include "srvn_gram.h"
 
 namespace BCMP {
 
@@ -473,87 +472,89 @@ namespace BCMP {
     }
 
     /*
-     * Need to search Spex::observations() for var.first (the name).
-     * Use the key to find right function.  Next, we use the name of
-     * the object to find out if it's a class or a station.  If it's
-     * a class, then query "terminal", otherwise query the station.
+     * Sequence through the stations and classes looking for the result variables. 
      */
+
+    /* mservice, mbusypct, mcustnb, vcustnb, mresponse, mthruput, custnb */
+
 
     void
     QNAP2_Document::getObservations::operator()( const Spex::var_name_and_expr& var ) const
     {
-	static const std::map<int,QNAP2_Document::getObservations::f> key_map = {
-	    { KEY_THROUGHPUT,	    	&getObservations::get_throughput },
-	    { KEY_UTILIZATION,	    	&getObservations::get_utilization },
-	    { KEY_PROCESSOR_UTILIZATION,&getObservations::get_utilization },
-	    { KEY_PROCESSOR_WAITING,    &getObservations::get_waiting_time },
-	    { KEY_SERVICE_TIME,	    	&getObservations::get_service_time },
-	    { KEY_WAITING,		&getObservations::get_waiting_time }
-	};	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
+	static const std::map<const BCMP::Model::Result::Type,QNAP2_Document::getObservations::f> key_map = {
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH,   &getObservations::get_waiting_time },
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME, &getObservations::get_service_time },
+	    { BCMP::Model::Result::Type::THROUGHPUT,     &getObservations::get_throughput }, 
+	    { BCMP::Model::Result::Type::UTILIZATION,    &getObservations::get_utilization }
+	};
 
-	const Spex::obs_var_tab_t observations = Spex::observations();
+	for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 
-	/* try to find the observation, then see if we can handle it here */
-	for ( Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
-	    if ( obs->second.getVariableName() != var.first ) continue;	/* !Found the var. */
+	    /* Check for station results */
 
-	    std::pair<std::string,std::string> expression;
-	    const std::map<int,f>::const_iterator key = key_map.find( obs->second.getKey() );
-	    if ( key != key_map.end() ) {
-		/* Map up to entity */
-		expression = (this->*(key->second))( get_entity_name( obs->second.getKey(), obs->first ) );
-	    } else {
-		expression.first = "\"N/A\"";
-//		throw std::domain_error( "Observation not handled" );
+	    const BCMP::Model::Result::map_t& station_variables = m->second.resultVariables();
+	    for ( BCMP::Model::Result::map_t::const_iterator r = station_variables.begin(); r != station_variables.end(); ++r ) {
+		if ( r->second != var.first ) continue;
+		const std::map<const BCMP::Model::Result::Type,f>::const_iterator key = key_map.find( r->first );
+		if ( key != key_map.end() ) {
+		    std::pair<std::string,std::string> expression;
+		    expression = (this->*(key->second))( m->first, std::string() );
+		    _output << qnap2_statement( var.first + ":=" + expression.first, expression.second ) << std::endl;
+		}
 	    }
-	    _output << qnap2_statement( var.first + ":=" + expression.first, expression.second ) << std::endl;
-	    break;
+
+	    /* Check for class results */
+ 
+	    for ( BCMP::Model::Station::Class::map_t::const_iterator k = m->second.classes().begin(); k != m->second.classes().end(); ++k ) {
+		const BCMP::Model::Result::map_t& class_variables = k->second.resultVariables();
+		for ( BCMP::Model::Result::map_t::const_iterator r = class_variables.begin(); r != class_variables.end(); ++r ) {
+		    if ( r->second != var.first ) continue;
+		    const std::map<const BCMP::Model::Result::Type,f>::const_iterator key = key_map.find( r->first );
+		    if ( key != key_map.end() ) {
+			std::pair<std::string,std::string> expression;
+			expression = (this->*(key->second))( m->first, k->first );
+			_output << qnap2_statement( var.first + ":=" + expression.first, expression.second ) << std::endl;
+		    }
+		}
+	    }
 	}
     }
 
-    /* mservice, mbusypct, mcustnb, vcustnb, mresponse, mthruput, custnb */
-
     std::pair<std::string,std::string>
-    QNAP2_Document::getObservations::get_throughput( const std::string& name ) const
+    QNAP2_Document::getObservations::get_throughput( const std::string& station_name, const std::string& class_name ) const
     {
 	std::string result;
 	std::string comment;
-	if ( chains().find( name ) != chains().end() ) {
-	    /* Class is a reference task, and name exists even if we have only one class */
-	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( name ) );
-	    result = "mthruput(terminal";
-	    if ( multiclass() ) {
-		result += "," + name;
-	    }
+	const BCMP::Model::Station& station = stations().at(station_name);
+	result = "mthruput(";
+	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
+	    result += "terminal";
+	    if ( multiclass() ) result += "," + class_name;
 	    result += ")/(" + think_visits + ")";
 	    comment = "Convert to LQN throughput";
-	} else if ( stations().find( name ) != stations().end() ) {
-	    result = "mthruput(" + name + ")";
 	} else {
-	    result = "\"N/A\"";
+	    result += station_name;
+	    if ( !class_name.empty() ) result += "," + class_name;
+	    result += ")";
 	}
 	return std::pair<std::string,std::string>(result,comment);
     }
 
     std::pair<std::string,std::string>
-    QNAP2_Document::getObservations::get_utilization( const std::string& name ) const
+    QNAP2_Document::getObservations::get_utilization( const std::string& station_name, const std::string& class_name ) const
     {
 	std::string result;
 	std::string comment;
-	Model::Model::Station::map_t::const_iterator m = stations().find( name );
-	if ( m != stations().end() ) {
-	    const BCMP::Model::Station& station = m->second;
-	    result = "mbusypct(" + name + ")";
-	    if ( !LQIO::DOM::Common_IO::is_default_value(station.copies(), 1.0) ) {
-		result += "*" + to_unsigned(station.copies());
-		comment = "Convert to LQN utilization";
-	    }
-	} else if ( chains().find( name ) != chains().end() ) {
-	    /* must be the terminal? */
-	    result = "mbusypct(terminal";
-	    if ( multiclass() ) result += "," + name;
-	    result += ")";
+	const BCMP::Model::Station& station = stations().at(station_name);
+	result = "mbusypct(";
+	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    result += "terminal";
+	} else {
+	    result += station_name;
 	}
+	if ( !class_name.empty() ) result += "," + class_name;
+	result += ")";
 	return std::pair<std::string,std::string>(result,comment);
     }
 
@@ -562,20 +563,24 @@ namespace BCMP {
      */
 
     std::pair<std::string,std::string>
-    QNAP2_Document::getObservations::get_service_time( const std::string& name ) const
+    QNAP2_Document::getObservations::get_service_time( const std::string& station_name, const std::string& class_name ) const
     {
 	std::string result;
 	std::string comment;
-	if ( chains().find( name ) != chains().end() ) {
-	    result = "mservice(terminal";
-	    if ( multiclass() ) result += "," + name;
+	const BCMP::Model::Station& station = stations().at(station_name);
+	result =  "mservice(";
+	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    result = "terminal";
+	    if ( multiclass() ) result += "," + class_name;
 	    result += ")*(";
-	    result = std::accumulate( stations().begin(), stations().end(), result, fold_visits( name ) );
+	    result = std::accumulate( stations().begin(), stations().end(), result, fold_visits( class_name ) );
 	    result += ")";
-	    result = std::accumulate( stations().begin(), stations().end(), result, fold_mresponse( name, chains() ) );
+	    result = std::accumulate( stations().begin(), stations().end(), result, fold_mresponse( class_name, chains() ) );
 	    comment = "Convert to LQN service time";
-	} else if ( stations().find( name ) != stations().end() ) {
-	    result = "mservice(" + name + ")";
+	} else {
+	    result += station_name + ")";
+	    if ( multiclass() && !class_name.empty() ) result += "," + class_name;
+	    result += ")";
 	    comment = "Station service time only.";
 	}
 	return std::pair<std::string,std::string>(result,comment);
@@ -586,40 +591,27 @@ namespace BCMP {
      */
 
     std::pair<std::string,std::string>
-    QNAP2_Document::getObservations::get_waiting_time( const std::string& name  ) const
+    QNAP2_Document::getObservations::get_waiting_time( const std::string& station_name, const std::string& class_name  ) const
     {
 	std::string result;
 	std::string comment;
-	/* Go through the references tasks and try to find who calls this entry */
-	/* This may have to be done at by lqn2ps */
-	if ( stations().find( name ) != stations().end() ) {
-	    result = "mresponse(" + name;
-//	    if ( multiclass() ) result += "," class name;
-	    result += ")-mservice(" + name;
-//	    if ( multiclass() ) result += "," class name;
-	    result += ")";
-	    comment = "Convert to LQN queueing time";
+	const BCMP::Model::Station& station = stations().at(station_name);
+	result = "mresponse(";
+	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    result += "terminal";
+	} else {
+	    result += station_name;
 	}
+	result += ")-mservice(";
+	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    result += "terminal";
+	} else {
+	    result += station_name;
+	}
+	if ( multiclass() && !class_name.empty() ) result += "," + class_name;
+	result += ")";
+	comment = "Convert to LQN queueing time";
 	return std::pair<std::string,std::string>(result,comment);
-    }
-
-    const std::string&
-    QNAP2_Document::getObservations::get_entity_name( int key, const LQIO::DOM::DocumentObject * object )
-    {
-	const LQIO::DOM::Task * task = nullptr;
-	if ( dynamic_cast<const LQIO::DOM::Phase *>(object) ) {
-	    task = dynamic_cast<const LQIO::DOM::Phase *>(object)->getSourceEntry()->getTask();
-	} else if ( dynamic_cast<const LQIO::DOM::Entry *>(object) ) {
-	    task = dynamic_cast<const LQIO::DOM::Entry *>(object)->getTask();
-	} else {
-	    return object->getName();
-	}
-	/* handle %pu, %pw, %u, %w */
-	if ( key == KEY_PROCESSOR_UTILIZATION || key == KEY_PROCESSOR_WAITING ) {
-	    return task->getProcessor()->getName();
-	} else {
-	    return task->getName();
-	}
     }
 
     void

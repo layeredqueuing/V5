@@ -1,18 +1,18 @@
 # 
-# $Id: Makefile.am 14396 2021-01-23 01:26:57Z greg $
+# $Id: Makefile.am 14427 2021-01-28 23:13:01Z greg $
 #
 #----------------------------------------------------------------------
 
 ACLOCAL_AMFLAGS=-I ../config
 AM_CPPFLAGS	= -I.. -I../lqiolib/src/headers -I../lqx/libsrc/headers -I../libmva/src/headers
 bin_PROGRAMS 	= qnsolver
-qnsolver_SOURCES= bcmpmodel.cc qnsolver.cc runlqx.cc
-noinst_HEADERS	= bcmpmodel.h runlqx.h
+qnsolver_SOURCES= closedmodel.cc qnsolver.cc runlqx.cc
+noinst_HEADERS	= closedmodel.h runlqx.h
 
 #EXTRA_DIST	= qnsolver.1 
 
 qnsolver_CXXFLAGS= -std=c++11 -Wall -Wno-parentheses -Wno-unknown-pragmas -Wno-overloaded-virtual
-qnsolver_LDADD	= -L../lqiolib/src/.libs -llqio -L../libmva/src/.libs -lmva
+qnsolver_LDADD	= -L../lqx/libsrc/.libs -llqx -L../lqiolib/src/.libs -llqio -L../libmva/src/.libs -lmva 
 qnsolver_LDFLAGS= @STATIC@
 #man1_MANS	= qnsolver.1
 

@@ -31,6 +31,7 @@ DOM::BCMP_to_LQN::convert()
 {
     _lqn.addPragma( LQIO::DOM::Pragma::_bcmp_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_prune_, LQIO::DOM::Pragma::_true_ );
+    _lqn.addPragma( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_exact_ );
     _lqn.setDocumentComment( "*** Manually change task-processors representing processors to processors. **" );
     try {
 	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this) );
@@ -56,11 +57,13 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
     lqn().addProcessorEntity(processor);
 
     /* Create an entry */
-    DOM::Entry * entry = new DOM::Entry( &lqn(), k.first );
     std::vector<DOM::Entry *> entries;
-    entries.push_back( entry );
+    DOM::Entry * entry = new DOM::Entry( &lqn(), k.first );
     LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
-    client_entries().insert( entry_item( k.first, entry ) );
+    lqn().addEntry(entry);
+    entries.push_back( entry );
+    std::pair<entry_type::iterator,bool> item = client_entries().emplace( k.first, entry );
+    assert( item.second );
 
     /* Add service time */
     const BCMP::Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &BCMP::Model::Station::isCustomer );
@@ -78,7 +81,8 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
 }
 
 /*
- * Create LQN servers tasks from stations.
+ * Create LQN servers tasks from stations.  Recall: The processor is the server in the
+ * BCMP model, so that task in the LQN model is only a placeholder.
  */
 
 void
@@ -89,6 +93,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
     /* Always a PS type processor */
     DOM::Processor * processor = new DOM::Processor( &lqn(), m.first, SCHEDULE_PS );
     lqn().addProcessorEntity(processor);
+    processor->setCopies(const_cast<DOM::ExternalVariable *>(m.second.copies()));
 
     /* Create the entries */
     std::vector<DOM::Entry *> entries;
@@ -99,7 +104,8 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station
 	name << m.first << "_" << e;	/* Station name, index for class */
 	DOM::Entry * entry = new DOM::Entry( &lqn(), name.str() );
 	LQIO::DOM::Document::db_check_set_entry(entry, entry->getName(), LQIO::DOM::Entry::Type::STANDARD);
-	server_entries().insert( entry_item(m.first + k->first, entry) );
+	lqn().addEntry(entry);
+	server_entries().emplace( m.first + k->first, entry );
 
 	/* Add service time */
 	DOM::Phase* phase = entry->getPhase(1);
@@ -135,6 +141,7 @@ DOM::BCMP_to_LQN::connectClassToStation::operator()( const BCMP::Model::Chain::p
 	DOM::Entry * client_entry = client_entries().find(k.first)->second;
 	DOM::Entry * server_entry = server_iter->second;
 
+	assert(client_entry->getMaximumPhase() == 1);
 	LQIO::DOM::Phase * client_phase = client_entry->getPhase(1);
 	LQIO::DOM::Call* call = new LQIO::DOM::Call(&lqn(), LQIO::DOM::Call::Type::RENDEZVOUS, client_phase, server_entry );
 	const BCMP::Model::Station::Class& clasx = m->second.classAt(k.first);

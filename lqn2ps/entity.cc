@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: entity.cc 14427 2021-01-28 23:13:01Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -28,6 +28,7 @@
 #include <lqio/dom_task.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#include <lqio/../../srvn_gram.h>
 #include "model.h"
 #include "entity.h"
 #include "entry.h"
@@ -729,19 +730,18 @@ Entity::label_BCMP_client::operator()( Entity * entity ) const
 
 
 void
-Entity::create_class::operator()( const Entity * entity ) const
+Entity::create_chain::operator()( const Entity * entity ) const
 {
-    BCMP::Model::Chain::Type type;
-    if ( entity->isInOpenModel(_servers) && entity->isInClosedModel(_servers) ) type = BCMP::Model::Chain::MIXED;
-    else if ( entity->isInOpenModel(_servers) ) type = BCMP::Model::Chain::OPEN;
-    else type = BCMP::Model::Chain::CLOSED;
-
-    /* Think time for a task is the class think time. */
-
     const Task * task = dynamic_cast<const Task *>(entity);
-    const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : &Element::ONE;
-    const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : &Element::ZERO;
-    _model.insertChain( entity->name(), type, copies, think_time );
+    if ( entity->isInClosedModel(_servers) ) {
+	/* Think time for a task is the class think time. */
+	const LQIO::DOM::ExternalVariable * copies = entity->isMultiServer() ? &entity->copies() : &Element::ONE;
+	const LQIO::DOM::ExternalVariable * think_time = task->hasThinkTime() ? &dynamic_cast<const ReferenceTask *>(task)->thinkTime() : &Element::ZERO;
+	_model.insertClosedChain( entity->name(), copies, think_time );
+    }
+    if ( entity->isInOpenModel(_servers) ) {
+	_model.insertOpenChain( entity->name(), &Element::ZERO );
+    }
 }
 
 
@@ -755,6 +755,49 @@ Entity::create_station::operator()( const Entity * entity ) const
     else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
     _model.insertStation( entity->name(), type, entity->scheduling(), dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies() );
 }
+
+
+/*
+ * Create a terminal station.  Insert total visits into clients and
+ * set service time for class if the processor has been removed.
+ * Include task think time.
+ */
+
+void
+Entity::create_customers::operator()( const Entity * client )
+{
+    const Task * task = dynamic_cast<const Task *>(client);
+
+    /* If processor is missing, use service time here.  "class" may have to generalize to entry */
+    /* Put think time in class, and service time into demand */
+    if ( task->hasThinkTime() ) {
+//	    time = to_double(dynamic_cast<const ReferenceTask *>(task)->thinkTime());
+    }
+    const LQIO::DOM::ExternalVariable * service_time = nullptr;
+    if ( task->processor() == nullptr ) {
+	// for all entries s += prVisit(e) * e->serviceTime ??
+	service_time = task->entries().at(0)->serviceTime();
+    } else {
+	service_time = &Element::ZERO;
+    }
+    BCMP::Model::Station::Class demand( &Element::ONE, service_time );	/* One visit */
+
+    const std::string name = task->name();
+    _terminals.insertClass( name, demand );
+
+    /* Find all observations for this chain - it will become a result_var for the termianls station */
+
+    const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
+    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
+	if ( obs->first != task->getDOM() ) continue;
+	switch ( obs->second.getKey() ) {
+	case KEY_THROUGHPUT:	_terminals.classAt(name).insertResultVariable( BCMP::Model::Result::Type::THROUGHPUT, obs->second.getVariableName() ); break;
+	case KEY_UTILIZATION:	_terminals.classAt(name).insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+	}
+    }
+}
+
+
 
 /* +BUG_270 */
 /*

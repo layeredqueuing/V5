@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/bcmpmodel.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/closedmodel.h $
  *
  * SRVN command line interface.
  *
@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: bcmpmodel.h 14407 2021-01-25 13:56:07Z greg $
+ * $Id: closedmodel.h 14427 2021-01-28 23:13:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,36 +25,36 @@
 class Server;
 class MVA;
 
-class BCMPModel {
+class ClosedModel {
 public:
     	enum class Using {EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
     
 private:
     class CreateChainIndex {
     public:
-	CreateChainIndex( BCMPModel& model ) : _model(model) {}
+	CreateChainIndex( ClosedModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Chain::pair_t& pair );
 
     private:
 	std::map<const std::string,size_t>& index() { return _model._index.k; }
 	
     private:
-	BCMPModel& _model;
+	ClosedModel& _model;
     };
 
     class CreateStationIndex {
     public:
-	CreateStationIndex( BCMPModel& model ) : _model(model) {}
+	CreateStationIndex( ClosedModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
 	std::map<const std::string,size_t>& index() { return _model._index.m; }
 
     private:
-	BCMPModel& _model;
+	ClosedModel& _model;
     };
 
     class InstantiateChain {
     public:
-	InstantiateChain( BCMPModel& model ) : _model(model) {}
+	InstantiateChain( ClosedModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Chain::pair_t& pair );
 
     private:
@@ -64,14 +64,14 @@ private:
 	unsigned& priority(size_t k) { return _model.priority[k]; }
 	
     private:
-	BCMPModel& _model;
+	ClosedModel& _model;
     };
 
     class InstantiateStation {
     private:
 	class InstantiateClass {
 	public:
-	    InstantiateClass( BCMPModel& model, Server& server ) : _model(model), _server(server) {}
+	    InstantiateClass( ClosedModel& model, Server& server ) : _model(model), _server(server) {}
 	    void operator()( const BCMP::Model::Station::Class::pair_t& );
 
 	private:
@@ -79,12 +79,12 @@ private:
 	    size_t indexAt(const std::string& name) const { return _model._index.k.at(name); }
 	    
 	private:
-	    BCMPModel& _model;
+	    ClosedModel& _model;
 	    Server& _server;
 	};
 
     public:
-	InstantiateStation( BCMPModel& model ) : _model(model) {}
+	InstantiateStation( ClosedModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
 	size_t indexAt(const std::string& name ) const { return _model._index.m.at(name); }
 
@@ -93,7 +93,7 @@ private:
 	Server*& Q(size_t m) { return _model.Q[m]; }
 
     private:
-	BCMPModel& _model;
+	ClosedModel& _model;
     };
 
     struct Index {					/* Map string to int for chains/stations */
@@ -103,8 +103,8 @@ private:
 
     
 public:
-    BCMPModel( const BCMP::Model& model );
-    ~BCMPModel();
+    ClosedModel( const BCMP::Model& model );
+    ~ClosedModel();
 
     bool operator!() const { return _result == false; }
     bool instantiate();

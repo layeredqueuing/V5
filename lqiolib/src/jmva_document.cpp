@@ -33,6 +33,7 @@
 #endif
 #include <lqx/SyntaxTree.h>
 #include <lqx/Program.h>
+#include "bcmp_bindings.h"
 #include "common_io.h"
 #include "dom_document.h"
 #include "dom_extvar.h"
@@ -52,12 +53,16 @@ namespace BCMP {
     /* ---------------------------------------------------------------- */
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-									 _variables(), _think_time_vars(), _population_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars()
+									 _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
+									 _result_vars(nullptr)
     {
     }
     
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-												   _variables(), _think_time_vars(), _population_vars(), _multiplicity_vars(), _service_time_vars(), _visit_vars()
+												   _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
+												   _result_vars(nullptr)
     {
     }
 
@@ -308,8 +313,8 @@ namespace BCMP {
 	JMVA_Document * parser = static_cast<JMVA_Document *>(data);
 	if ( parser->_stack.size() == 0 ) return;
 	const parse_stack_t& top = parser->_stack.top();
-	Model::Object * object = top.object.u.o;
-	if ( object ) {
+	if ( top.object.isObject() ) {
+	    Model::Object * object = top.object.getObject();
 	    std::string& comment = const_cast<std::string&>(object->getComment());
 	    if ( comment.size() ) {
 		comment += "\n";
@@ -390,7 +395,7 @@ namespace BCMP {
     void
     JMVA_Document::startModel( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiterations, XiterationValue, Xok, XsolutionMethod };
+	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiterations, XiterationValue, Xok, XsolutionMethod, XResultVariables };
 
 	if ( strcasecmp( element, Xdescription ) == 0 ) {
 	    checkAttributes( element, attributes, null_table );
@@ -409,6 +414,7 @@ namespace BCMP {
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else if ( strcasecmp( element, Xsolutions ) == 0 ) {
 	    checkAttributes( element, attributes, solutions_table );
+	    setResultVariables( XML::getStringAttribute( attributes, XResultVariables, "" ) );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startSolutions) );
 	} else {
 	    throw LQIO::element_error( element );
@@ -425,7 +431,7 @@ namespace BCMP {
     void JMVA_Document::endDescription( Object& object, const XML_Char * element )
     {
 	// Through the magic of unions...
-	object.u.m->insertComment(_text);
+	object.getModel()->insertComment(_text);
     }
 
     
@@ -465,12 +471,12 @@ namespace BCMP {
     JMVA_Document::startClasses( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	if ( strcasecmp( element, Xclosedclass) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> closedclass_table = { Xname, Xpopulation };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> closedclass_table = { Xname, Xpopulation, Xthinktime };
 	    checkAttributes( element, attributes, closedclass_table );
 	    createClosedClass( attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
 	} else if ( strcasecmp( element, Xopenclass) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> openclass_table = { Xname };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> openclass_table = { Xname, Xrate };
 	    checkAttributes( element, attributes, openclass_table );
 	    createOpenClass( attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP) );
@@ -538,7 +544,7 @@ namespace BCMP {
     JMVA_Document::startServiceTimes( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, demand_table );	// common to visits
-	Model::Station * station = object.u.s;
+	Model::Station * station = object.getStation();
 	assert( station != nullptr );
 	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
 	if ( strcasecmp( element, Xservicetime ) == 0 ) {
@@ -560,15 +566,15 @@ namespace BCMP {
     void JMVA_Document::endServiceTime( Object& object, const XML_Char * element ) 
     {
 	const LQIO::DOM::ExternalVariable * service_time = getVariable( element, _text.c_str() );
-	object.u.d->setServiceTime( service_time );			// Through the magic of unions...
-	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(service_time) ) _service_time_vars.emplace(object.u.d,service_time->getName());
+	object.getDemand()->setServiceTime( service_time );			// Through the magic of unions...
+	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(service_time) ) _service_time_vars.emplace(object.getDemand(),service_time->getName());
     }
 
     void
     JMVA_Document::startVisits( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	checkAttributes( element, attributes, demand_table );	// commmon to servicetime.
-	Model::Station * station = object.u.s;
+	Model::Station * station = object.getStation();
 	assert( station != nullptr );
 	std::string class_name = XML::getStringAttribute( attributes, Xcustomerclass );
 	if ( strcasecmp( element, Xvisit ) == 0 ) {
@@ -593,8 +599,8 @@ namespace BCMP {
     void JMVA_Document::endVisit( Object& object, const XML_Char * element ) 
     {
 	const LQIO::DOM::ExternalVariable * visits = getVariable( element, _text.c_str() );
-	object.u.d->setVisits( visits );				// Through the magic of unions...
-	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(visits) ) _visit_vars.emplace(object.u.d,visits->getName());
+	object.getDemand()->setVisits( visits );				// Through the magic of unions...
+	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(visits) ) _visit_vars.emplace(object.getDemand(),visits->getName());
     }
     
     /* 
@@ -610,7 +616,9 @@ namespace BCMP {
 	if ( strcasecmp( element, XClass ) == 0 ) {
 	    checkAttributes( element, attributes, ReferenceStation_table );
 	    const std::string refStation = XML::getStringAttribute( attributes, XrefStation );
-	    _model.stationAt( refStation ).setType(Model::Station::Type::CUSTOMER);
+	    if ( refStation != XArrivalProcess ) {
+		_model.stationAt( refStation ).setType(Model::Station::Type::CUSTOMER);
+	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
 	    throw LQIO::element_error( element );
@@ -661,20 +669,24 @@ namespace BCMP {
 	}
     }
 
-    const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::class_results_table = { Xcustomerclass };
+    const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::class_results_table = { Xclass, XNumber_of_Customers, XThroughput, XResidence_time, XUtilization };
     
     void
     JMVA_Document::startAlgorithm( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	if ( strcasecmp( element, Xstationresults ) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_results_table = { Xstation };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_results_table = { Xstation, XNumber_of_Customers, XThroughput, XResidence_time, XUtilization };
 	    checkAttributes( element, attributes, station_results_table );
-	    const std::string name = XML::getStringAttribute(attributes,Xname);
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startStationResults,Object(&_model.stationAt(name))) );
+	    const std::string name = XML::getStringAttribute(attributes,Xstation);
+	    Object mk_object(Object::MK(&_model.stationAt(name),nullptr));
+	    createResults( mk_object, attributes );
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startStationResults,mk_object) );
+#if 0
 	} else if ( strcasecmp( element, Xclassresults ) == 0 ) {
 	    checkAttributes( element, attributes, class_results_table );
-	    const std::string name = XML::getStringAttribute(attributes,Xname);
+	    const std::string name = XML::getStringAttribute(attributes,Xclass);
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startClassResults,Object(&_model.chainAt(name))) );
+#endif
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -685,9 +697,12 @@ namespace BCMP {
     {
 	if ( strcasecmp( element, Xclassresults ) == 0 ) {
 	    checkAttributes( element, attributes, class_results_table );
-	    const std::string name = XML::getStringAttribute(attributes,Xname);
-	    const Object::MK mk(object.u.s,&_model.chainAt(name));
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startClassResults,Object(&mk) ) );
+	    createResults( object, attributes );
+	    const std::string name = XML::getStringAttribute(attributes,Xclass);
+	    Object::MK& mk = object.getMK();
+	    const BCMP::Model::Station * m = mk.first;
+	    mk.second = &m->classAt(name);
+	    _stack.push( parse_stack_t(element,&JMVA_Document::startClassResults,object) );
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -703,7 +718,6 @@ namespace BCMP {
 	if ( strcasecmp( element, Xmeasure ) == 0 ) {
 	    const std::set<const XML_Char *,JMVA_Document::attribute_table_t> measure_table = { XmeanValue, XmeasureType, Xsuccessful };
 	    checkAttributes( element, attributes, measure_table );
-	    createResults( object, attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
 	    throw LQIO::element_error( element );
@@ -761,7 +775,7 @@ namespace BCMP {
 	std::string name = XML::getStringAttribute( attributes, Xname );
 	const LQIO::DOM::ExternalVariable * population = getVariableAttribute( attributes, Xpopulation );
 	const LQIO::DOM::ExternalVariable * think_time = getVariableAttribute( attributes, Xthinktime, 0.0 );
-	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertChain( name, Model::Chain::CLOSED, population, think_time );
+	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertClosedChain( name, population, think_time );
 	if ( !result.second ) std::runtime_error( "Duplicate class" );
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(population) ) _population_vars.emplace(&result.first->second,population->getName());
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(think_time) ) _think_time_vars.emplace(&result.first->second,think_time->getName());
@@ -771,10 +785,11 @@ namespace BCMP {
     void
     JMVA_Document::createOpenClass( const XML_Char ** attributes )
     {
-//	_document.insertClass( XML::getStringAttribute( Xname, attributes ),
-//			       Model::Chain::CLOSED, 
-//			       XML::getLognAttribue( Xpopulation, attributes );
-//			       XML::getDoubleAttribute( Xthinktime, attributes, 0.0 ) );
+	std::string name = XML::getStringAttribute( attributes, Xname );
+	const LQIO::DOM::ExternalVariable * arrival_rate = getVariableAttribute( attributes, Xrate );
+	std::pair<Model::Chain::map_t::iterator,bool> result = _model.insertOpenChain( name, arrival_rate );
+	if ( !result.second ) std::runtime_error( "Duplicate class" );
+	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(arrival_rate) ) _arrival_rate_vars.emplace(&result.first->second,arrival_rate->getName());
     }
 
     
@@ -882,25 +897,83 @@ namespace BCMP {
 	spex_array_comprehension( name.c_str(), comprehension.begin(), comprehension.end(), comprehension.stride() );
     }
 
+    /* 
+     * Tokeninze the string.
+     */
+    
     void
-    JMVA_Document::createResults( const Object& object, const XML_Char ** attributes )
+    JMVA_Document::setResultVariables( const std::string& attr )
     {
-	static const std::map<const std::string,int> table = { {XNumber_of_Customers, 0}, {XThroughput, 1}, {XResidence_time, 2}, {XUtilization, 3} };
-	assert ( object.getDiscriminator() == Object::type::PAIR );
-	const Model::Station * m = object.getMK()->first;
-	const Model::Chain   * k = object.getMK()->second;
-	const std::string result = XML::getStringAttribute(attributes,XmeasureType);
-
-	switch ( table.at(result) ) {
-	case 1:		/* Queue length */
-	    break;
-	case 2:
-	    break;
-	case 3:
-	    break;
-	case 4:
-	    break;
+	std::string s = attr;
+	size_t pos = 0;
+	while ((pos = s.find(";")) != std::string::npos) {
+	    std::string variable = s.substr(0, pos);
+	    s.erase(0, pos + 1);
+	    _result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( variable.c_str(), nullptr ) ) );
 	}
+	if ( !s.empty() ) {
+	    _result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( s.c_str(), nullptr ) ) );
+	}
+    }
+
+    /*
+     * Set the result variables.  They can be either at the Station or at the Class within the station.
+     */
+    
+    void
+    JMVA_Document::createResults( Object& object, const XML_Char ** attributes )
+    {
+	static const std::map<const std::string,const Model::Result::Type> table = {
+	    {XNumber_of_Customers,  Model::Result::Type::QUEUE_LENGTH},
+	    {XThroughput, 	    Model::Result::Type::THROUGHPUT},
+	    {XResidence_time, 	    Model::Result::Type::RESIDENCE_TIME},
+	    {XUtilization, 	    Model::Result::Type::UTILIZATION}
+	};
+
+	Model::Station * m = const_cast<Model::Station*>(object.getMK().first);
+	Model::Station::Class * k = const_cast<Model::Station::Class *>(object.getMK().second);
+	Model::Result::map_t& result_vars = (k != nullptr ? k->resultVariables() : m->resultVariables());
+
+	for ( ; *attributes; attributes += 2 ) {
+	    const std::map<const std::string,const Model::Result::Type>::const_iterator item = table.find(*attributes);
+	    if ( item != table.end() ) {
+		result_vars[item->second] = *(attributes+1);		/* Create item if not present.	*/
+		createObservation( *(attributes+1), item->second, m, k );
+	    }
+	}
+    }
+
+
+    LQX::SyntaxTreeNode * 
+    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, Model::Station * m, Model::Station::Class * k )
+    {
+	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME, BCMP::__lqx_residence_time },
+	    { BCMP::Model::Result::Type::THROUGHPUT, BCMP::__lqx_throughput },
+	    { BCMP::Model::Result::Type::UTILIZATION, BCMP::__lqx_utilization },
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH, BCMP::__lqx_queue_length }
+	};
+
+	/* Will need station/class names -- search map for m */
+	BCMP::Model::Station::map_t::const_iterator mi = model().findStation(m);
+	if ( mi == model().stations().end() ) return nullptr;
+
+	/* Get the station object */
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( m->getTypeName(), new LQX::ConstantValueExpression( mi->first ), 0 );
+	
+	if ( k == nullptr ) {
+	    /* No class, so return station function to extract result */
+	    LQIO::Spex::__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),	/* Strip $ for LQX variable name */
+											  new LQX::ObjectPropertyReadNode( object, lqx_function.at(type) ) );
+	} else {
+	    /* Get the class object from the station */
+	    BCMP::Model::Station::Class::map_t::const_iterator ki = m->findClass(k);
+	    if ( ki == m->classes().end() ) return nullptr;
+	    object = new LQX::MethodInvocationExpression( k->getTypeName(), object, new LQX::ConstantValueExpression( ki->first ), 0 );
+	    LQIO::Spex::__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),	/* Strip $ for LQX variable name */
+											  new LQX::ObjectPropertyReadNode( object, lqx_function.at(type) ) );
+	}
+	return object;
     }
     
     void
@@ -974,7 +1047,7 @@ namespace BCMP {
 	/* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
 	if ( !Spex::array_variables().empty() ) {
-	    output << "<!-- SPEX arrays and completions -->" << std::endl;
+	    output << "   <!-- SPEX arrays and completions -->" << std::endl;
 	    std::for_each( Spex::array_variables().begin(), Spex::array_variables().end(), what_if( output, _model ) );
 	}
 
@@ -982,17 +1055,48 @@ namespace BCMP {
 	/* Insert a results section, but only to output the variables */
 	
 	if ( !Spex::result_variables().empty() ) {
-	    std::map<const std::string,std::multimap<const std::string,const std::string> > results;
-	    /* Store in a map<station,multimap<class,measure>>, then output by station and class. */
-	    std::for_each( Spex::result_variables().begin(), Spex::result_variables().end(), getObservations( results, model() ) );
-	    output << XML::start_element( Xsolutions ) << XML::attribute( Xok, Xfalse ) << ">" << std::endl;
-	    output << XML::start_element( Xiterations ) << ">" << std::endl;
+	    output << "   <!-- SPEX results -->" << std::endl;
+	    /* Store in a map<station,pair<string,map<class,string>>, then output by station and class. */
+	    output << XML::start_element( Xsolutions ) << XML::attribute( Xok, Xfalse );
+	    const std::string result_vars = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), &fold );
+	    if ( !result_vars.empty() ) output << XML::attribute( XResultVariables, result_vars );
+	    output << ">" << std::endl;
+	    output << XML::start_element( Xalgorithm ) << XML::attribute( Xiterations, static_cast<unsigned int>(0) ) << ">" << std::endl;
 	    /* Output by station, then class */
-	    output << XML::end_element( Xiterations ) << std::endl;
+	    for ( BCMP::Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+		output << XML::start_element( Xstationresults ) << XML::attribute( Xstation, m->first );
+		const BCMP::Model::Station& station = m->second;
+		const BCMP::Model::Result::map_t& station_variables = station.resultVariables();
+		std::for_each( station_variables.begin(), station_variables.end(), printResultVariable( output ) );
+		output << ">" << std::endl;
+		for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
+		output << XML::start_element( Xclassresults ) << XML::attribute( Xclass, k->first );
+		const BCMP::Model::Station::Class& clasx = k->second;
+		const BCMP::Model::Result::map_t& class_variables = clasx.resultVariables();
+		std::for_each( class_variables.begin(), class_variables.end(), printResultVariable( output ) );
+		output << ">" << std::endl;
+		}
+		output << XML::end_element( Xclassresults ) << std::endl;
+		output << XML::end_element( Xstationresults ) << std::endl;
+	    }
+	    output << XML::end_element( Xalgorithm ) << std::endl;
 	    output << XML::end_element( Xsolutions ) << std::endl;
 	}
 	output << XML::end_element( Xmodel ) << std::endl;
 	return output;
+    }
+
+
+    void
+    JMVA_Document::printResultVariable::operator()( const Model::Result::pair_t& r ) const
+    {
+	static const std::map<const BCMP::Model::Result::Type,const char * const> attribute = {
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH, XNumber_of_Customers },
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME, XResidence_time },
+	    { BCMP::Model::Result::Type::THROUGHPUT, XThroughput }, 
+	    { BCMP::Model::Result::Type::UTILIZATION, XUtilization }
+	};
+	_output << XML::attribute( attribute.at(r.first), r.second );
     }
 
     /*
@@ -1032,13 +1136,18 @@ namespace BCMP {
     void
     JMVA_Document::printClass::operator()( const BCMP::Model::Chain::pair_t& k ) const
     {
-	if ( k.second.isInClosedModel() ) {
-	    _output << XML::simple_element( "closedclass" )
-		    << XML::attribute( "name", k.first )
-		    << XML::attribute( "population", *k.second.customers() )
+	if ( k.second.isClosed() ) {
+	    _output << XML::simple_element( Xclosedclass )
+		    << XML::attribute( Xname, k.first )
+		    << XML::attribute( Xpopulation, *k.second.customers() )
 		    << "/>" << std::endl;
-	}
-	if ( k.second.isInOpenModel() ) {
+	} else if ( k.second.isOpen() ) {
+	    _output << XML::simple_element( Xopenclass )
+		    << XML::attribute( Xname, k.first )
+		    << XML::attribute( Xrate, *k.second.arrival_rate() )
+		    << "/>" << std::endl;
+	} else {
+	    throw std::range_error( "JMVA_Document::printClass::operator(): Undefined class." );
 	}
     }
     
@@ -1160,63 +1269,15 @@ namespace BCMP {
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
     }
 
-    /*
-     * Need to search Spex::observations() for var.first (the name).
-     * Use the key to find right function.  Next, we use the name of
-     * the object to find out if it's a class or a station.  If it's a
-     * class, then query the reference station, otherwise query the
-     * station.
-     */
-
-    void
-    JMVA_Document::getObservations::operator()( const Spex::var_name_and_expr& var ) const
-    {
-	static const std::map<int,JMVA_Document::getObservations::f> key_map = {
-	    { KEY_THROUGHPUT,	    	&getObservations::get_throughput },
-#if 0
-	    { KEY_UTILIZATION,	    	&getObservations::get_utilization },
-	    { KEY_PROCESSOR_UTILIZATION,&getObservations::get_utilization },
-	    { KEY_PROCESSOR_WAITING,    &getObservations::get_waiting_time },
-	    { KEY_SERVICE_TIME,	    	&getObservations::get_service_time },
-	    { KEY_WAITING,		&getObservations::get_waiting_time }
-#endif
-	};	/* Maps srvn_gram.h KEY_XXX to qnap2 function */
-
-	const Spex::obs_var_tab_t observations = Spex::observations();
-
-	/* try to find the observation, then see if we can handle it here */
-	for ( Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
-	    if ( obs->second.getVariableName() != var.first ) continue;	/* !Found the var. */
-
-	    std::pair<std::string,std::string> expression;
-	    const std::map<int,f>::const_iterator key = key_map.find( obs->second.getKey() );
-	    if ( key != key_map.end() ) {
-		/* Map up to entity */
-	    } else {
-		expression.first = "\"N/A\"";
-//		throw std::domain_error( "Observation not handled" );
-	    }
-//	    _output << qnap2_statement( var.first + ":=" + expression.first, expression.second ) << std::endl;
-	    break;
-	}
-    }
-
-    /* mservice, mbusypct, mcustnb, vcustnb, mresponse, mthruput, custnb */
-
     std::string
-    JMVA_Document::getObservations::get_throughput( const std::string& name ) const
+    JMVA_Document::fold( const std::string& s1, const Spex::var_name_and_expr& v2 )
     {
-	std::string result;
-	if ( chains().find( name ) != chains().end() ) {
-	    /* terminals,name, throughput */
-	    /* Class is a reference task, and name exists even if we have only one class */
-	} else if ( stations().find( name ) != stations().end() ) {
-	    /* name,class?*/
+	if ( !s1.empty() ) {
+	    return s1 + ";" + v2.first;
 	} else {
+	    return v2.first;
 	}
-	return result;
     }
-    
 }
 
 namespace BCMP {
@@ -1234,10 +1295,12 @@ namespace BCMP {
     const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::compareAlgs_table = { XmeanValue, XmeasureType, Xsuccessful };
     const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::null_table = {};
     
+    const XML_Char * JMVA_Document::XArrivalProcess	= "Arrival Process";
     const XML_Char * JMVA_Document::XClass		= "Class";
     const XML_Char * JMVA_Document::XReferenceStation	= "ReferenceStation";
     const XML_Char * JMVA_Document::XalgParams		= "algParams";
     const XML_Char * JMVA_Document::XalgType		= "algType";
+    const XML_Char * JMVA_Document::Xclass		= "class";
     const XML_Char * JMVA_Document::Xclasses		= "classes";
     const XML_Char * JMVA_Document::Xclosedclass	= "closedclass";
     const XML_Char * JMVA_Document::XcompareAlgs	= "compareAlgs";
@@ -1253,6 +1316,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xopenclass		= "openclass";
     const XML_Char * JMVA_Document::Xparameters		= "parameters";
     const XML_Char * JMVA_Document::Xpopulation		= "population";
+    const XML_Char * JMVA_Document::Xrate		= "rate";
     const XML_Char * JMVA_Document::XrefStation		= "refStation";
     const XML_Char * JMVA_Document::Xservers		= "servers";
     const XML_Char * JMVA_Document::Xservicetime	= "servicetime";
@@ -1288,9 +1352,9 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xfalse		= "false";
     const XML_Char * JMVA_Document::XsolutionMethod   	= "solutionMethod";
 
+    const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
     const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
     const XML_Char * JMVA_Document::XThroughput         = "Throughput";
     const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
     const XML_Char * JMVA_Document::XUtilization        = "Utilization";
-    
 }

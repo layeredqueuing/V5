@@ -26,18 +26,37 @@
 namespace BCMP {
     const LQIO::DOM::ConstantExternalVariable _ZERO_(0.);
 
-    const char * const Model::Station::__typeName = "station";
+    /* For treating results as an array */
+    const Model::Station::Class::Result::Type Model::Station::Class::Result::index[] = {
+	Result::Type::QUEUE_LENGTH, Result::Type::RESIDENCE_TIME, Result::Type::THROUGHPUT, Result::Type::UTILIZATION
+    };
+
+    /* ---------------------------------------------------------------- */
+    /*			           Model				*/
+    /* ---------------------------------------------------------------- */
+
+    Model::~Model()
+    {
+	_chains.clear();
+	_stations.clear();
+    }
 
     std::pair<Model::Chain::map_t::iterator,bool>
-    Model::insertChain( const std::string& name, Chain::Type type, const LQIO::DOM::ExternalVariable * customers, const LQIO::DOM::ExternalVariable * think_time )
+    Model::insertClosedChain( const std::string& name, const LQIO::DOM::ExternalVariable * customers, const LQIO::DOM::ExternalVariable * think_time )
     {
-	return _chains.emplace( name, Chain( type, customers, think_time )  );
+	return _chains.emplace( name, Chain( Chain::Type::CLOSED, customers, think_time )  );
+    }
+
+    std::pair<Model::Chain::map_t::iterator,bool>
+    Model::insertOpenChain( const std::string& name, const LQIO::DOM::ExternalVariable * arrival_rate )
+    {
+	return _chains.emplace( name, Chain( Chain::Type::OPEN, arrival_rate )  );
     }
 
     std::pair<Model::Station::map_t::iterator,bool>
     Model::insertStation( const std::string& name, const Station& station )
     {
-	return _stations.insert( Station::pair_t( name, station ) );
+	return _stations.emplace( name, station );
     }
 
     bool Model::insertClass( const std::string& station_name, const std::string& class_name, const Station::Class& classes )
@@ -52,14 +71,27 @@ namespace BCMP {
     {
 	return std::all_of( chains().begin(), chains().end(), &Model::Chain::has_constant_customers );
     }
-
+
+    /*
+     * Find the station in the map
+     */
+
+    Model::Station::map_t::const_iterator
+    Model::findStation( const Station* m ) const
+    {
+	for ( Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
+	    if ( m == &mi->second ) return mi;
+	}
+	return stations().end();
+    }
+
     /*
      * Sum service time over all clients and visits over all servers.
      * The clasx at the reference station is the clasx (service
      * time) at the reference station but the visits over all
      * non-customer stations.
      */
-	
+
     Model::Station::Class::map_t
     Model::computeCustomerDemand( const std::string& name ) const
     {
@@ -73,7 +105,7 @@ namespace BCMP {
     Model::sum_visits::operator()( const Station::Class::map_t& input, const Station::Class::pair_t& clasx ) const
     {
 	Station::Class::map_t output = input;
-	std::pair<Station::Class::map_t::iterator,bool>result = output.insert( Station::Class::pair_t(clasx.first, clasx.second) );
+	std::pair<Station::Class::map_t::iterator,bool>result = output.emplace( clasx.first, clasx.second );
 	result.first->second.setVisits( _visits.at(clasx.first).visits() );
 	return output;
     }
@@ -92,6 +124,14 @@ namespace BCMP {
 	return output;
     }
 
+    /* Check for a valid variable (if set) and NOT the default value (0). */
+
+    bool
+    Model::isSet( const LQIO::DOM::ExternalVariable * var, double default_value )
+    {
+	double value;
+	return  var != nullptr && var->wasSet() && var->getValue(value) && value != default_value;
+    }
 
     /*
      * JMVA insists that service time/visits exist for --all-- chains for --all--stations
@@ -108,7 +148,11 @@ namespace BCMP {
 	}
     }
 
-    const char * const Model::Chain::__typeName = "class";
+    /* ---------------------------------------------------------------- */
+    /*			           Chains				*/
+    /* ---------------------------------------------------------------- */
+
+    const char * const Model::Chain::__typeName = "chain";
 
     /* static */ bool
     Model::Chain::has_constant_customers( const Chain::pair_t& k )
@@ -126,27 +170,41 @@ namespace BCMP {
 	}
     }
 
-    Model::~Model()
-    {
-	_chains.clear();
-	_stations.clear();
-    }
+    /* ---------------------------------------------------------------- */
+    /*			         Station				*/
+    /* ---------------------------------------------------------------- */
+
+    const char * const Model::Station::__typeName = "station";
 
     Model::Station::~Station()
     {
 	_classes.clear();
     }
 
+
     bool
     Model::Station::insertClass( const std::string& class_name, const Class& clasx )
     {
-	return _classes.insert( Class::pair_t( class_name, clasx ) ).second;
+	return _classes.emplace( class_name, clasx ).second;
     }
 
     bool
     Model::Station::hasConstantServiceTime() const
     {
 	return std::all_of( classes().begin(), classes().end(), &Class::has_constant_service_time );
+    }
+
+    /*
+     * Find the station in the map
+     */
+
+    Model::Station::Class::map_t::const_iterator
+    Model::Station::findClass( const Class* k ) const
+    {
+	for ( Class::map_t::const_iterator ki = classes().begin(); ki != classes().end(); ++ki ) {
+	    if ( k == &ki->second ) return ki;
+	}
+	return classes().end();
     }
 
     bool
@@ -162,7 +220,7 @@ namespace BCMP {
 
     double Model::Station::queue_length() const
     {
-	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_utilization );
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_queue_length );
     }
 
     double Model::Station::residence_time() const
@@ -172,7 +230,7 @@ namespace BCMP {
 
     double Model::Station::utilization() const
     {
-	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_queue_length );
+	return std::accumulate( classes().begin(), classes().end(), 0.0, &sum_utilization );
     }
 
     double Model::Station::sum_throughput( double augend, const BCMP::Model::Station::Class::pair_t& addend )
@@ -204,11 +262,20 @@ namespace BCMP {
     Model::Station::sumResults( const Model::Station::Class& augend, const Model::Station::Class::pair_t& addend )
     {
 	Class sum = augend;
-	sum._throughput     += addend.second._throughput;	/* Throughput		*/
-	sum._queue_length   += addend.second._queue_length;	/* Length (n cust)	*/
-	sum._residence_time = 0.0;				/* Need to derive 	*/
-	sum._utilization    += addend.second._utilization;	/* Utilization		*/
+	for ( const auto i : Model::Station::Class::Result::index ) {
+	    if ( i == Result::Type::RESIDENCE_TIME ) sum._results.at(i) = 0.0;				/* Need to derive 	*/
+	    else sum._results.at(i) += addend.second._results.at(i);
+	}
 	return sum;
+    }
+
+
+    void
+    Model::Station::insertResultVariable( Result::Type type, const std::string& name  )
+    {
+	if ( !_result_vars.emplace(type,name).second ) {
+	    throw std::runtime_error( "Duplicate Result Variable" );
+	}
     }
 
 
@@ -235,7 +302,50 @@ namespace BCMP {
 	}
     }
 
+    /* ---------------------------------------------------------------- */
+    /*			           Classes				*/
+    /* ---------------------------------------------------------------- */
+
     const char * const Model::Station::Class::__typeName = "Class";
+
+    Model::Station::Class::Class( const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time ) :
+	_visits(visits), _service_time(service_time), _results(), _result_vars()
+    {
+	_results[Result::Type::THROUGHPUT] = 0.;
+	_results[Result::Type::QUEUE_LENGTH] = 0.;
+	_results[Result::Type::RESIDENCE_TIME] = 0.;
+	_results[Result::Type::UTILIZATION] = 0.;
+    }
+
+    void
+    Model::Station::Class::setResults( double throughput, double queue_length, double residence_time, double utilization )
+    {
+	_results[Result::Type::THROUGHPUT] = throughput;
+	_results[Result::Type::QUEUE_LENGTH] = queue_length;
+	_results[Result::Type::RESIDENCE_TIME] = residence_time;
+	_results[Result::Type::UTILIZATION] = utilization;
+    }
+
+    void
+    Model::Station::Class::insertResultVariable( Result::Type type, const std::string& name  )
+    {
+	if ( !_result_vars.emplace(type,name).second ) {
+	    throw std::runtime_error( "Duplicate Result Variable" );
+	}
+    }
+
+    /*
+     * Derive waiting time over all chains.  Usually after summing in
+     * an external application such as qnap2_output.
+     */
+
+    Model::Station::Class&
+    Model::Station::Class::deriveResidenceTime()
+    {
+	if ( _results.at(Result::Type::THROUGHPUT) == 0. ) return *this;
+	_results.at(Result::Type::RESIDENCE_TIME) = _results.at(Result::Type::QUEUE_LENGTH) / _results.at(Result::Type::THROUGHPUT);
+	return *this;
+    }
 
     /*
      * Return true if my class is constant
@@ -321,27 +431,4 @@ namespace BCMP {
 	assert( _service_time != nullptr );
 	return *this;
     }
-
-    /*
-     * Derive waiting time over all chains.
-     */
-
-    Model::Station::Class&
-    Model::Station::Class::deriveStationAverage()
-    {
-	if ( _throughput == 0 ) return *this;
-	_residence_time = _queue_length / _throughput;
-	return *this;
-    }
-
-
-    /* Check for a valid variable (if set) and NOT the default value (0). */
-
-    bool
-    Model::isSet( const LQIO::DOM::ExternalVariable * var, double default_value )
-    {
-	double value;
-	return  var != nullptr && var->wasSet() && var->getValue(value) && value != default_value;
-    }
-	
 }

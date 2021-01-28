@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/bcmpmodel.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/closedmodel.cc $
  *
  * SRVN command line interface.
  *
@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: bcmpmodel.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: closedmodel.cc 14427 2021-01-28 23:13:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,17 +21,17 @@
 #include <numeric>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
-#include "bcmpmodel.h"
+#include "closedmodel.h"
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
 #include <mva/prob.h>
 #include <mva/multserv.h>
 
-BCMPModel::BCMPModel( const BCMP::Model& model ) : _model(model), _index(), N(), Z(), priority(), _solver("")
+ClosedModel::ClosedModel( const BCMP::Model& model ) : _model(model), _index(), N(), Z(), priority(), _solver("")
 {
     /* Dimension the parameters */
     
-    const size_t n_chains =  chains().size();
+    const size_t n_chains = chains().size();		/* !!!This will have to be changed to only count closed chains !!!*/
     const size_t n_stations = stations().size();
     N.resize(n_chains);
     Z.resize(n_chains);
@@ -49,13 +49,13 @@ BCMPModel::BCMPModel( const BCMP::Model& model ) : _model(model), _index(), N(),
 }
 
 
-BCMPModel::~BCMPModel()
+ClosedModel::~ClosedModel()
 {
 }
 
 
 bool
-BCMPModel::instantiate()
+ClosedModel::instantiate()
 {
     try {
 	std::for_each( chains().begin(), chains().end(), InstantiateChain( *this ) );
@@ -70,7 +70,7 @@ BCMPModel::instantiate()
 
 
 bool
-BCMPModel::solve( Using solver )
+ClosedModel::solve( Using solver )
 {
     /* Run the solver and return its success as a boolean value */
     MVA * mva = nullptr;
@@ -90,7 +90,7 @@ BCMPModel::solve( Using solver )
 
 
 void
-BCMPModel::saveResults( const MVA& solver )
+ClosedModel::saveResults( const MVA& solver )
 {
     _solver = solver.getTypeName();
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
@@ -106,22 +106,23 @@ BCMPModel::saveResults( const MVA& solver )
 }
 
 void
-BCMPModel::CreateChainIndex::operator()( const BCMP::Model::Chain::pair_t& input ) 
+ClosedModel::CreateChainIndex::operator()( const BCMP::Model::Chain::pair_t& input ) 
 {
-    const size_t k = index().size() + 1;
-    index().emplace( input.first, k );
+    if ( !input.second.isClosed() ) return;
+    index().emplace( input.first, index().size() + 1 );
 }
 
 void
-BCMPModel::CreateStationIndex::operator()( const BCMP::Model::Station::pair_t& input )
+ClosedModel::CreateStationIndex::operator()( const BCMP::Model::Station::pair_t& input )
 {
     const size_t m = index().size() + 1;
     index().emplace( input.first, m );
 }
 
 void
-BCMPModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input ) 
+ClosedModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input ) 
 {
+    if ( !input.second.isClosed() ) return;
     const size_t k = indexAt(input.first);
     N(k) = LQIO::DOM::to_unsigned(*input.second.customers());
     Z(k) = LQIO::DOM::to_double(*input.second.think_time());
@@ -129,16 +130,21 @@ BCMPModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input
 }
 
 void
-BCMPModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
+ClosedModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
 {
-    const size_t k = indexAt(input.first);
-    const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
-    _server.setService( k, LQIO::DOM::to_double( *demand.service_time()) );
-    _server.setVisits( k, LQIO::DOM::to_double( *demand.visits()) );
+    try {
+	const size_t k = indexAt(input.first);
+	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
+	_server.setService( k, LQIO::DOM::to_double( *demand.service_time()) );
+	_server.setVisits( k, LQIO::DOM::to_double( *demand.visits()) );
+    }
+    catch ( const std::out_of_range& e ) {
+	/* Open class, ignore */
+    }
 }
 
 void
-BCMPModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input )
+ClosedModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input )
 {
     const size_t m = indexAt(input.first);
     if ( Q(m) != nullptr ) delete Q(m);		/* out with the old... */
@@ -181,13 +187,17 @@ BCMPModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& i
 }
 
 std::ostream&
-BCMPModel::debug( std::ostream& output ) const
+ClosedModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-	output << "Class "  << ki->first << ": customers=" << *ki->second.customers() << std::endl;
+	output << "Class "  << ki->first;
+	if ( ki->second.isClosed() ) {
+	    output << ": customers=" << *ki->second.customers() << std::endl;
+	} else {
+	    output << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
+	}
     }
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
-	const size_t m = _index.m.at(mi->first);
 	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();
 	output << "Station " << mi->first << ": servers=" << *mi->second.copies() << std::endl;
 	for ( BCMP::Model::Station::Class::map_t::const_iterator ki = classes.begin(); ki != classes.end(); ++ki ) {
@@ -198,13 +208,13 @@ BCMPModel::debug( std::ostream& output ) const
 }
 
 
-std::streamsize BCMPModel::__width = 10;
-std::streamsize BCMPModel::__precision = 6;
-std::string BCMPModel::__separator = "*";
+std::streamsize ClosedModel::__width = 10;
+std::streamsize ClosedModel::__precision = 6;
+std::string ClosedModel::__separator = "*";
 
 
 std::ostream&
-BCMPModel::print( std::ostream& output ) const
+ClosedModel::print( std::ostream& output ) const
 {
     const std::streamsize old_precision = output.precision(__precision);
     output << " - (" << _solver << ") - " << std::endl;
@@ -218,15 +228,14 @@ BCMPModel::print( std::ostream& output ) const
 	const size_t m = _index.m.at(mi->first);
 
 	const BCMP::Model::Station::Class::map_t& results = mi->second.classes();
-	BCMP::Model::Station::Class sum = std::accumulate( std::next(results.begin()), results.end(), results.begin()->second, &BCMP::Model::Station::sumResults );
-	sum.deriveStationAverage();
+	const BCMP::Model::Station::Class sum = std::accumulate( std::next(results.begin()), results.end(), results.begin()->second, &BCMP::Model::Station::sumResults ).deriveResidenceTime();
 	const double service = sum.throughput() > 0 ? sum.utilization() / sum.throughput() : 0.0;
 	
 	/* Sum will work for single class too. */
 	output.setf(std::ios::left, std::ios::adjustfield);
 	output.fill(' ');
 	if ( results.size() > 1 ) {
-	    output << __separator << std::setw(__width) << " " << BCMPModel::blankline() << __separator << std::endl;
+	    output << __separator << std::setw(__width) << " " << ClosedModel::blankline() << __separator << std::endl;
 	}
 	output << __separator << std::setw(__width) << ( " " + mi->first );
 	print(output,service,sum);
@@ -241,7 +250,7 @@ BCMPModel::print( std::ostream& output ) const
 	    }
 	}
     }
-    output << __separator << std::setw(__width) << " " << BCMPModel::blankline() << __separator << std::endl;
+    output << __separator << std::setw(__width) << " " << ClosedModel::blankline() << __separator << std::endl;
     output.fill('*');
     output << std::setw(__width*6+7) << "*" << std::endl;
     output.precision(old_precision);
@@ -249,7 +258,7 @@ BCMPModel::print( std::ostream& output ) const
 }
 
 std::ostream&
-BCMPModel::print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const
+ClosedModel::print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const
 {
     output.unsetf( std::ios::floatfield );
     output << __separator << std::setw(__width) << service_time
@@ -262,7 +271,7 @@ BCMPModel::print( std::ostream& output, double service_time, const BCMP::Model::
 
 
 std::string
-BCMPModel::header()
+ClosedModel::header()
 {
     std::ostringstream output;
     output << __separator << std::setw(__width) << "service "
@@ -274,7 +283,7 @@ BCMPModel::header()
 }
 
 std::string
-BCMPModel::blankline()
+ClosedModel::blankline()
 {
     std::ostringstream output;
     for ( unsigned i = 0; i < 5; ++i ) {

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: qnsolver.cc 14427 2021-01-28 23:13:01Z greg $
  */
 
 #include <algorithm>
@@ -14,7 +14,7 @@
 #include <lqio/bcmp_bindings.h>
 #include <lqio/srvn_spex.h>
 #include <lqx/Program.h>
-#include "bcmpmodel.h"
+#include "closedmodel.h"
 #include "runlqx.h"
 
 
@@ -35,7 +35,7 @@ const struct option longopts[] =
     { "verbose",         no_argument,       0, 'v' },
     { "experimental",	 no_argument,	    0, 'x' },
     { "debug-xml",	 no_argument, 	    0, 'X' },
-    { "debug-lqx",	 no_argument,	    0, 'L' },
+    { "debug-spex",	 no_argument,	    0, 'S' },
     { 0, 0, 0, 0 }
 };
 
@@ -55,13 +55,14 @@ const char * opthelp[]  = {
     /* "verbose",         */    "",
     /* "experimental",	  */	"",
     /* "debug-xml"	  */    "Debug XML input.",
+    /* "debug-spex"	  */	"Debug SPEX program.",
     nullptr
 };
 
 static bool silencio_flag = false;			/* Don't print results if 1	*/
 static bool verbose_flag = true;			/* Print results		*/
-static bool print_lqx = false;				/* Print LQX program		*/
-static bool debug_flag = false;
+static bool print_spex = false;				/* Print LQX program		*/
+bool debug_flag = false;
 
 std::string program_name;
 
@@ -69,7 +70,7 @@ BCMP::JMVA_Document* __input = nullptr;
 
 int main (int argc, char *argv[])
 {
-    BCMPModel::Using solver = BCMPModel::Using::EXACT_MVA;
+    ClosedModel::Using solver = ClosedModel::Using::EXACT_MVA;
     program_name = basename( argv[0] );
     
     /* Process all command line arguments.  If none specified, then     */
@@ -89,7 +90,7 @@ int main (int argc, char *argv[])
 
 	switch( c ) {
 	case 'b':
-	    solver = BCMPModel::Using::BARD_SCHWEITZER;
+	    solver = ClosedModel::Using::BARD_SCHWEITZER;
 	    break;
 
 	case 'd':
@@ -104,11 +105,11 @@ int main (int argc, char *argv[])
 	    break;
 
 	case 'e':
-	    solver = BCMPModel::Using::EXACT_MVA;
+	    solver = ClosedModel::Using::EXACT_MVA;
 	    break;
 			
 	case 'f':
-	    solver = BCMPModel::Using::LINEARIZER2;
+	    solver = ClosedModel::Using::LINEARIZER2;
 	    break;
 
 	case 'h':
@@ -116,7 +117,7 @@ int main (int argc, char *argv[])
 	    return 0;
 
 	case 'l':
-	    solver = BCMPModel::Using::LINEARIZER;
+	    solver = ClosedModel::Using::LINEARIZER;
 	    break;
 			
 	case 's':
@@ -128,15 +129,15 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'x':
-	    solver = BCMPModel::Using::EXPERIMENTAL;
+	    solver = ClosedModel::Using::EXPERIMENTAL;
 	    break;
 
 	case 'X':
             LQIO::DOM::Document::__debugXML = true;
 	    break;
 	    
-	case 'L':
-	    print_lqx = true;
+	case 'S':
+	    print_spex = true;
 	    break;
 	    
 	default:
@@ -154,15 +155,15 @@ int main (int argc, char *argv[])
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
 	    if ( !input.parse() ) continue;
-	    BCMPModel model( input.model() );
+	    ClosedModel model( input.model() );
 	    if ( !model ) continue;
 
 	    if ( input.hasSPEX() ) {
 		std::vector<LQX::SyntaxTreeNode *> * program = new std::vector<LQX::SyntaxTreeNode *>;
-		if ( !LQIO::spex.construct_program( program, nullptr, nullptr ) ) continue;		/* arg 2 should be observations... */
+		if ( !LQIO::spex.construct_program( program, input.getResultVariables(), nullptr ) ) continue;
 		LQX::Program * lqx = LQX::Program::loadRawProgram( program );
 		input.registerExternalSymbolsWithProgram( lqx );
-		if ( print_lqx ) {
+		if ( print_spex ) {
 		    lqx->print( std::cout );
 		}
 		LQX::Environment * environment = lqx->getEnvironment();

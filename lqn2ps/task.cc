@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: task.cc 14409 2021-01-26 03:20:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1192,10 +1192,13 @@ Task::canPrune() const
     /* 
      * The harder path.  I want to make sure that I can't queue below
      * me.  Find all callers to my servers... if it's just me, then we
-     * are good to go.
+     * are good to go.  Note that both the task and it's processor can
+     * be multiservers, but the both must have equivalent copies.
+     * Processor::nClients() returns the sum of the copies of all the
+     * tasks that call it.
      */
 
-    if ( copiesValue() != 1 || processor()->nClients() != 1 ) return false;
+    if ( processor()->nClients() != processor()->copiesValue() ) return false;
 
     /* 
      * This part is trickier, and I may just punt.  Locate everyone

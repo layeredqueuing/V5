@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: processor.cc 14416 2021-01-27 19:58:25Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -22,11 +22,13 @@
 #if HAVE_FLOAT_H
 #include <float.h>
 #endif
+#include <lqio/dom_document.h>
+#include <lqio/dom_processor.h>
+#include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
-#include <lqio/error.h>
-#include <lqio/dom_processor.h>
-#include <lqio/dom_document.h>
+#include <lqio/../../srvn_gram.h>
+#include <lqio/srvn_spex.h>
 #include "call.h"
 #include "entry.h"
 #include "errmsg.h"
@@ -580,12 +582,13 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
     typedef std::pair<const std::string,BCMP::Model::Station::Class> demand_item;
     typedef std::map<const std::string,BCMP::Model::Station::Class> demand_map;
     
+    demand_map& classes = const_cast<demand_map&>(station.classes());
+    
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
 	const ProcessorCall * src = dynamic_cast<const ProcessorCall *>(*call);
 	if ( !src ) continue;
 
-	demand_map& demands = const_cast<demand_map&>(station.classes());
-        const std::pair<demand_map::iterator,bool> result = demands.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Class() ) );	/* null entry */
+        const std::pair<demand_map::iterator,bool> result = classes.insert( demand_item( src->srcTask()->name(), BCMP::Model::Station::Class() ) );	/* null entry */
 	demand_map::iterator item = result.first;
 	
 	if ( src->callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
@@ -594,6 +597,26 @@ Processor::accumulateDemand( BCMP::Model::Station& station ) const
 	} else {
 	    /* Otherwise, we've been cloned, so get the values */
 	    item->second.accumulate( BCMP::Model::Station::Class(src->visits(), src->srcEntry()->serviceTime()) );
+	}
+    }
+
+    /* Search for SPEX observations. */
+    const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
+    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
+	if ( obs->first == getDOM() ) {
+	    switch ( obs->second.getKey() ) {
+	    case KEY_THROUGHPUT:  station.insertResultVariable( BCMP::Model::Result::Type::THROUGHPUT, obs->second.getVariableName() ); break;
+	    case KEY_UTILIZATION: station.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+	    }
+	} else {
+	    for ( demand_map::iterator k = classes.begin(); k != classes.end(); ++k ) {
+		LQIO::DOM::Task * task = getDOM()->getDocument()->getTaskByName( k->first );
+		if ( obs->first == task ) {
+		    switch ( obs->second.getKey() ) {
+		    case KEY_PROCESSOR_UTILIZATION: k->second.insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+		    }
+		}
+	    }
 	}
     }
 }

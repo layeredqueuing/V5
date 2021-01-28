@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: lqn2ps.h 14411 2021-01-26 19:00:33Z greg $
  *
  */
 
@@ -777,6 +777,29 @@ private:
     const Type2 _p;
     unsigned int _count;
 };
+
+template <class Type> struct Select
+{
+    typedef bool (Type::*predicate)() const;
+    Select<Type>( const predicate p ) : _p(p) {};
+    std::vector<Type*> operator()( const std::vector<Type*>& in, const Type* object ) const { if ( (object->*_p)() ) { std::vector<Type*> out(in); out.push_back(object);  return out; } else { return in;} }
+    std::vector<Type*> operator()( const std::vector<Type*>& in, const Type& object ) const { if ( (object.*_p)()  ) { std::vector<Type*> out(in); out.push_back(&object); return out; } else { return in;} }
+private:
+    const predicate _p;
+};
+
+
+template <class Type1, class Type2> struct Collect
+{
+    typedef const Type1& (Type2::*function)() const;
+    Collect<Type1,Type2>( const function f ) : _f(f) {};
+    std::vector<Type1> operator()( const std::vector<Type1>& in, const Type2* object ) const { std::vector<Type1> out(in); out.push_back((object->*_f)()); return out; }
+    std::vector<Type1> operator()( const std::vector<Type1>& in, const Type2& object ) const { std::vector<Type1> out(in); out.push_back((object.*_f)());  return out; }
+private:
+    const function _f;
+};
+
+inline std::string fold( const std::string& s1, const std::string& s2 ) { return s1 + "," + s2; }
 
 template <class Type1, class Type2> struct Sum
 {

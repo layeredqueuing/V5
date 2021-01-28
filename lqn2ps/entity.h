@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14405 2021-01-24 22:01:02Z greg $
+ * $Id: entity.h 14417 2021-01-27 20:54:15Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -51,12 +51,19 @@ public:
 	const BCMP::Model::Station::Type _type;
     };
 
-    struct create_class {
-	create_class( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
+    struct create_chain {
+	create_chain( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
 	void operator()( const Entity * entity ) const;
     private:
 	BCMP::Model& _model;
 	const std::vector<Entity *>& _servers;
+    };
+
+    struct create_customers {
+	create_customers( BCMP::Model::Station& terminals ) : _terminals(terminals) {}
+	void operator()( const Entity * entity );
+    private:
+	BCMP::Model::Station& _terminals;
     };
 
     struct label_BCMP_server {
