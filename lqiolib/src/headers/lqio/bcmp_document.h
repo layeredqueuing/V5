@@ -95,6 +95,14 @@ namespace BCMP {
 
 	    static bool has_constant_customers( const Chain::pair_t& );
 
+	private:
+	    struct is_a {
+		is_a( Type type ) : _type(type) {}
+		bool operator()( const Chain::pair_t& chain ) const { return chain.second.type() == _type; }
+	    private:
+		const Type _type;
+	    };
+
 	public:
 	    static const char * const __typeName;
 
@@ -267,6 +275,9 @@ namespace BCMP {
 	Chain& chainAt( const std::string& name ) { return _chains.at(name); }
 	const Chain& chainAt( const std::string& name ) const { return _chains.at(name); }
 
+	size_t n_closed_chains() const;
+	size_t n_open_chains() const;
+	
 	bool hasConstantCustomers() const;
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 

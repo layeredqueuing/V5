@@ -66,6 +66,18 @@ namespace BCMP {
 	return station->second.insertClass( class_name, classes );
     }
 
+    size_t
+    Model::n_closed_chains() const
+    {
+	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(Chain::Type::CLOSED) );
+    }
+
+    size_t
+    Model::n_open_chains() const
+    {
+	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(Chain::Type::OPEN) );
+    }
+    
     bool
     Model::hasConstantCustomers() const
     {

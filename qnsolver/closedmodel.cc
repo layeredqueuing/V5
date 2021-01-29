@@ -27,16 +27,15 @@
 #include <mva/prob.h>
 #include <mva/multserv.h>
 
-ClosedModel::ClosedModel( const BCMP::Model& model ) : _model(model), _index(), N(), Z(), priority(), _solver("")
+ClosedModel::ClosedModel( const BCMP::Model& model ) : _model(model), _n_chains(model.n_closed_chains()), _n_stations(model.stations().size()),
+						       _index(), N(), Z(), priority(), _solver("")
 {
     /* Dimension the parameters */
     
-    const size_t n_chains = chains().size();		/* !!!This will have to be changed to only count closed chains !!!*/
-    const size_t n_stations = stations().size();
-    N.resize(n_chains);
-    Z.resize(n_chains);
-    priority.resize(n_chains);
-    Q.resize(n_stations);
+    N.resize(_n_chains);
+    Z.resize(_n_chains);
+    priority.resize(_n_chains);
+    Q.resize(_n_stations);
 
     try {
 	std::for_each( chains().begin(), chains().end(), CreateChainIndex( *this ) );
@@ -71,6 +70,7 @@ ClosedModel::instantiate()
 
 bool
 ClosedModel::solve( Using solver )
+
 {
     /* Run the solver and return its success as a boolean value */
     MVA * mva = nullptr;
@@ -133,6 +133,7 @@ void
 ClosedModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
 {
     try {
+	if ( !chainAt(input.first).isClosed() ) return;		/* open chain, ignore */
 	const size_t k = indexAt(input.first);
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
 	_server.setService( k, LQIO::DOM::to_double( *demand.service_time()) );

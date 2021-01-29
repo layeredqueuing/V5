@@ -75,11 +75,11 @@ private:
 	    void operator()( const BCMP::Model::Station::Class::pair_t& );
 
 	private:
-	    const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
+	    const BCMP::Model::Chain& chainAt( const std::string& name ) const { return _model._model.chainAt(name); }
 	    size_t indexAt(const std::string& name) const { return _model._index.k.at(name); }
 	    
 	private:
-	    ClosedModel& _model;
+	    const ClosedModel& _model;
 	    Server& _server;
 	};
 
@@ -145,6 +145,8 @@ private:
 
 private:
     const BCMP::Model& _model;			/* Input */
+    const size_t _n_chains;
+    const size_t _n_stations;
     Index _index;				/* Map name to station/class no. */
     
     Population N;				/* Population (by class) */
