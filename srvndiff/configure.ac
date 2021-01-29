@@ -35,6 +35,10 @@ AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_YACC
 AM_PROG_LEX
+if test -z "$XPS2PDF"; then
+  AC_MSG_NOTICE([Ps2pdf not found - Unable to create PDF version of the user manual])
+fi
+AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
 
 # ----------------------------------------------------------------------
 # Checks for libraries.

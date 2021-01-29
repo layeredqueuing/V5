@@ -28,7 +28,9 @@ man1_MANS	= lqns.1
 
 clean-local:
 
+if HAVE_PS2PDF
 install-data-local:	lqns.pdf
+endif
 
 distclean-local:
 		rm -f config.cache
@@ -36,8 +38,10 @@ distclean-local:
 lqns.ps:	$(man1_MANS)
 		groff -t -man  $(man1_MANS) > lqns.ps
 
+if HAVE_PS2PDF
 lqns.pdf:	lqns.ps
 		ps2pdf lqns.ps
+endif
 
 lqns.html:	$(man1_MANS)
 		groff -t -man -Thtml $(man1_MANS) > lqns.html

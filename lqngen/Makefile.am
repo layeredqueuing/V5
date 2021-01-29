@@ -30,16 +30,20 @@ install-exec-hook:
 	  (cd $(DESTDIR)$(bindir); $(LN_S) lqngen$(EXEEXT) $$i$(EXEEXT)); \
 	done
 
+if HAVE_PS2PDF
 install-data-local: lqngen.pdf lqn2lqx.pdf
+endif
 
 lqngen.ps: lqngen.1
 	cat lqngen.1  | groff -man > lqngen.ps
 
-lqngen.pdf: lqngen.ps
-	ps2pdf lqngen.ps
-
 lqn2lqx.ps: lqn2lqx.1
 	cat lqn2lqx.1  | groff -man > lqn2lqx.ps
 
+if HAVE_PS2PDF
+lqngen.pdf: lqngen.ps
+	ps2pdf lqngen.ps
+
 lqn2lqx.pdf: lqn2lqx.ps
 	ps2pdf lqn2lqx.ps
+endif

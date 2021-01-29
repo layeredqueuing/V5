@@ -50,13 +50,17 @@ install-data-hook:
 	  (cd $(DESTDIR)$(mandir)/man1; $(LN_S) lqn2ps.1 $$i.1); \
 	done
 
+if HAVE_PS2PDF
 install-data-local: lqn2ps.pdf 
+endif
 
 lqn2ps.ps: lqn2ps.1
 	cat lqn2ps.1 | groff -man > lqn2ps.ps
 
+if HAVE_PS2PDF
 lqn2ps.pdf: lqn2ps.ps
 	ps2pdf lqn2ps.ps
+endif
 
 lqn2ps.txt: lqn2ps.1
 	nroff -man lqn2ps.1 | col -b > lqn2ps.txt

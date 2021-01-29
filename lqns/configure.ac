@@ -33,6 +33,11 @@ fi
 AC_PROG_CC_STDC
 AC_PROG_INSTALL
 AC_PROG_LN_S
+if test -z "$XPS2PDF"; then
+  AC_MSG_NOTICE([Ps2pdf not found - Unable to create PDF version of the user manual])
+fi
+AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
+
 # ----------------------------------------------------------------------
 # Checks for libraries.
 #

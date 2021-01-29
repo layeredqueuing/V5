@@ -20,13 +20,17 @@ EXTRA_DIST	= srvndiff.1
 
 man1_MANS	= srvndiff.1
 
+if HAVE_PS2PDF
 install-data-local:	srvndiff.pdf
+endif
 
 srvndiff.ps:	$(man1_MANS)
 		cat $(man1_MANS) | groff -man  > srvndiff.ps
 
+if HAVE_PS2PDF
 srvndiff.pdf:	srvndiff.ps
 		ps2pdf srvndiff.ps
+endif
 
 srvndiff.txt:	$(man1_MANS)
 		nroff -man $(man1_MANS) | col -b > srvndiff.txt

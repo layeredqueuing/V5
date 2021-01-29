@@ -640,6 +640,8 @@ EXPAT_TRUE
 POW_LIB
 LIBOBJS
 ALLOCA
+HAVE_PS2PDF_FALSE
+HAVE_PS2PDF_TRUE
 LEXLIB
 LEX_OUTPUT_ROOT
 LEX
@@ -17248,6 +17250,18 @@ fi
 if test "$LEX" = :; then
   LEX=${am_missing_run}flex
 fi
+if test -z "$XPS2PDF"; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: Ps2pdf not found - Unable to create PDF version of the user manual" >&5
+$as_echo "$as_me: Ps2pdf not found - Unable to create PDF version of the user manual" >&6;}
+fi
+ if test -n "$XPS2PDF"; then
+  HAVE_PS2PDF_TRUE=
+  HAVE_PS2PDF_FALSE='#'
+else
+  HAVE_PS2PDF_TRUE='#'
+  HAVE_PS2PDF_FALSE=
+fi
+
 
 # ----------------------------------------------------------------------
 # Checks for libraries.
@@ -19779,6 +19793,10 @@ Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 if test -z "${am__fastdepCC_TRUE}" && test -z "${am__fastdepCC_FALSE}"; then
   as_fn_error $? "conditional \"am__fastdepCC\" was never defined.
+Usually this means the macro was only invoked conditionally." "$LINENO" 5
+fi
+if test -z "${HAVE_PS2PDF_TRUE}" && test -z "${HAVE_PS2PDF_FALSE}"; then
+  as_fn_error $? "conditional \"HAVE_PS2PDF\" was never defined.
 Usually this means the macro was only invoked conditionally." "$LINENO" 5
 fi
 
