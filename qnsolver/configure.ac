@@ -4,7 +4,7 @@
 # ------------------------------------------------------------------------
 AC_INIT(lqns, 5.19, greg@sce.carleton.ca)
 AC_CONFIG_AUX_DIR([../config])
-AC_CONFIG_SRCDIR([bcmpmodel.h])
+AC_CONFIG_SRCDIR([closedmodel.h])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE([subdir-objects])
 AC_PROG_MAKE_SET
