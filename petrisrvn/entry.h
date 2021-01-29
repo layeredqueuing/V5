@@ -65,8 +65,8 @@ public:
 
     const char * name() const;
     const Task * task() const { return _task; }
-    LQIO::DOM::Entry::EntryType type() const { return get_dom()->getEntryType(); }
-    semaphore_entry_type semaphore_type() const { return get_dom()->getSemaphoreFlag(); }
+    LQIO::DOM::Entry::Type type() const { return get_dom()->getEntryType(); }
+    LQIO::DOM::Entry::Semaphore semaphore_type() const { return get_dom()->getSemaphoreFlag(); }
     double openArrivalRate() const { return get_dom()->getOpenArrivalRateValue(); }
 
     requesting_type requests() const { return _requests; }
@@ -82,9 +82,9 @@ public:
     double yy( const Entry * e ) const;
     double zz( const Entry * e ) const;
 
-    bool is_regular_entry() const { return type() == LQIO::DOM::Entry::ENTRY_STANDARD; }
-    bool is_activity_entry() const { return type() == LQIO::DOM::Entry::ENTRY_ACTIVITY; }
-    bool test_and_set( LQIO::DOM::Entry::EntryType );			/* Sets _type too!		*/
+    bool is_regular_entry() const { return type() == LQIO::DOM::Entry::Type::STANDARD; }
+    bool is_activity_entry() const { return type() == LQIO::DOM::Entry::Type::ACTIVITY; }
+    bool test_and_set( LQIO::DOM::Entry::Entry::Type );			/* Sets _type too!		*/
     bool test_and_set_recv( requesting_type );
 
     static Entry * find( const std::string& );

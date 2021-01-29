@@ -50,7 +50,7 @@ Entry::Entry( LQIO::DOM::Entry * dom, Task * task )
       _n_phases(0),
       _fwd()
 {
-    unsigned n_phases = dom->getEntryType() == LQIO::DOM::Entry::ENTRY_STANDARD ? dom->getMaximumPhase() : 2;
+    unsigned n_phases = dom->getEntryType() == LQIO::DOM::Entry::Type::STANDARD ? dom->getMaximumPhase() : 2;
     for ( unsigned int p = 1; p <= n_phases; ++p ) {
 	phase[p].set_dom( dom->getPhase(p), this );
     }
@@ -142,7 +142,7 @@ double Entry::zz(const Entry* entry) const
 }
 
 bool
-Entry::test_and_set( LQIO::DOM::Entry::EntryType type )
+Entry::test_and_set( LQIO::DOM::Entry::Type type )
 {
     const bool rc = get_dom()->entryTypeOk( type );
     if ( !rc ) {
@@ -168,13 +168,13 @@ void
 Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 {
     /* Make sure this is one of the supported call types */
-    if (call->getCallType() != LQIO::DOM::Call::SEND_NO_REPLY && 
-	call->getCallType() != LQIO::DOM::Call::RENDEZVOUS &&
-	call->getCallType() != LQIO::DOM::Call::QUASI_SEND_NO_REPLY) {
+    if (call->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY && 
+	call->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS &&
+	call->getCallType() != LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY) {
 	abort();
     }
 	
-    if ( !test_and_set( LQIO::DOM::Entry::ENTRY_STANDARD ) ) return;
+    if ( !test_and_set( LQIO::DOM::Entry::Type::STANDARD ) ) return;
     phase[p].add_call( call );
 }
 
@@ -182,7 +182,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 /* static */ void Entry::add_fwd_call( LQIO::DOM::Call * call ) 
 {
     /* Make sure this is one of the supported call types */
-    if (call->getCallType() != LQIO::DOM::Call::FORWARD) {
+    if (call->getCallType() != LQIO::DOM::Call::Type::FORWARD) {
 	abort();
     }
 
@@ -257,7 +257,7 @@ Entry::check (void)
     }
 
     if ( !has_service_time ) {
-	if ( task()->type() == REF_TASK && !has_deterministic_phases ) {
+	if ( task()->type() == Task::Type::REF_TASK && !has_deterministic_phases ) {
 	    LQIO::solution_error( ERR_BOGUS_REFERENCE_TASK, name(), task()->name() );
 	} else {
 	    solution_error( LQIO::WRN_NO_SERVICE_TIME, name() );
@@ -266,9 +266,9 @@ Entry::check (void)
 
     const_cast<Task *>(task())->set_n_phases( n_phases() );
 
-    if ( semaphore_type() != SEMAPHORE_NONE && task()->type() != SEMAPHORE ) {
+    if ( semaphore_type() != LQIO::DOM::Entry::Semaphore::NONE && task()->type() != Task::Type::SEMAPHORE ) {
 	solution_error( LQIO::ERR_NOT_SEMAPHORE_TASK, task()->name(),
-			(semaphore_type() == SEMAPHORE_SIGNAL ? "signal" : "wait"),
+			(semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ? "signal" : "wait"),
 			name() );
     }
 
@@ -332,7 +332,7 @@ Entry::transmorgrify( double base_x_pos, double base_y_pos, unsigned ix_e, struc
 	    }
 	    /*+ BUG_164 */
 	    if ( d_place ) {
-		if ( task()->type() == SEMAPHORE && semaphore_type() == SEMAPHORE_WAIT ) {
+		if ( task()->type() == Task::Type::SEMAPHORE && semaphore_type() == LQIO::DOM::Entry::Semaphore::WAIT ) {
 		    create_arc( layer_mask, TO_PLACE, phase[n_phases()].doneX[m], task()->LX[m] );
 		} else {
 		    create_arc( layer_mask, TO_PLACE, phase[n_phases()].doneX[m], d_place );

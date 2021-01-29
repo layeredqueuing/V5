@@ -254,13 +254,13 @@ Activity& Activity::add_activity_lists()
 			
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( joinList->getListType() ) {
-	    case LQIO::DOM::ActivityList::JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::JOIN:
 		localActivityList = nextActivity->act_join_item( joinList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_JOIN:
 		localActivityList = nextActivity->act_and_join_list( localActivityList, joinList );
 		break;
-	    case LQIO::DOM::ActivityList::OR_JOIN_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_JOIN:
 		localActivityList = nextActivity->act_or_join_list( localActivityList, joinList );
 		break;
 	    default:
@@ -292,16 +292,16 @@ Activity& Activity::add_activity_lists()
 			
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
-	    case LQIO::DOM::ActivityList::FORK_ACTIVITY_LIST:	
+	    case LQIO::DOM::ActivityList::Type::FORK:	
 		localActivityList = nextActivity->act_fork_item( forkList );
 		break;
-	    case LQIO::DOM::ActivityList::AND_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::AND_FORK:
 		localActivityList = nextActivity->act_and_fork_list( localActivityList, forkList  );
 		break;
-	    case LQIO::DOM::ActivityList::OR_FORK_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::OR_FORK:
 		localActivityList = nextActivity->act_or_fork_list( localActivityList, forkList );
 		break;
-	    case LQIO::DOM::ActivityList::REPEAT_ACTIVITY_LIST:
+	    case LQIO::DOM::ActivityList::Type::REPEAT:
 		localActivityList = nextActivity->act_loop_list( localActivityList, forkList );
 		break;
 	    default:
@@ -362,7 +362,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
     if ( i == join_list->n_acts() ) abort();
 	
     switch ( join_list->type() ) {
-    case ACT_AND_JOIN_LIST:
+    case ActivityList::Type::AND_JOIN:
 
 	if ( !join_list->FjP[m] ) {
 
@@ -374,7 +374,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	create_arc( layer_mask, TO_PLACE, join_trans, join_list->FjP[m] );
 	    
 
-	if ( join_list->u.join.type == JOIN_SYNCHRONIZATION ) {
+	if ( join_list->u.join.type == ActivityList::JoinType::SYNCHRONIZATION ) {
 #if defined(BUG_163)
 	    create_arc( layer_mask, TO_PLACE, join_trans, task()->SyX[m] );	/* Release task */
 #else
@@ -411,7 +411,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	    }
 #endif
 
-	    if ( join_list->u.join.type == JOIN_SYNCHRONIZATION ) {
+	    if ( join_list->u.join.type == ActivityList::JoinType::SYNCHRONIZATION ) {
 #if defined(BUG_163)
 		create_arc( layer_mask, TO_TRANS, join_trans, task()->SyX[m] );	/* Acquire task */
 #else
@@ -446,7 +446,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	x_pos += 0.5 * ne;
 	break;
 		
-    case ACT_OR_JOIN_LIST:
+    case ActivityList::Type::OR_JOIN:
 	if ( !join_list->FjP[m] ) {
 	    /* Create place and link join trans */
 	    join_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OJ%s%d", this->name(), m ), Place::PLACE_X_OFFSET, Place::PLACE_Y_OFFSET );
@@ -462,7 +462,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	x_pos += 0.5 * ne;
 	break;
 	
-    case ACT_JOIN_LIST:
+    case ActivityList::Type::JOIN:
 	if ( !join_list->FjT[0][m] ) {
 	    join_list->FjT[0][m] = join_trans;
 	}
@@ -475,7 +475,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
     if ( !fork_list ) return true;
 
     switch ( fork_list->type() ) {
-    case ACT_AND_FORK_LIST:
+    case ActivityList::Type::AND_FORK:
 	fork_list->u.fork.prev->FjF[m] = join_trans;
 
 	if ( !fork_list->u.fork.join ) {
@@ -504,7 +504,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 
 		}
 
-		if ( !task()->inservice_flag() || task()->type() != SERVER ) {
+		if ( !task()->inservice_flag() || task()->type() != Task::Type::SERVER ) {
 		    create_arc( layer_mask, TO_PLACE, join_trans, next_act->ZX[m] );
 		}
 
@@ -529,7 +529,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	    create_arc( JOIN_LAYER, TO_PLACE, join_trans, fork_list->u.fork.join->u.join.FjM[m] );
 	}
 	/* Fall through */
-    case ACT_FORK_LIST:
+    case ActivityList::Type::FORK:
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
 	    next_act = fork_list->list[i];
 	    curr_pos = next_act->transmorgrify( x_pos, y_pos+i, m, e, p_pos, enabling, end_place, can_reply );
@@ -542,7 +542,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 	break;
 
-    case ACT_OR_FORK_LIST:
+    case ActivityList::Type::OR_FORK:
 	/* Create place */
 		
 	fork_list->FjP[m] = move_place_tag( create_place( X_OFFSET(p_pos,0.25), y_pos, layer_mask, 0, "OF%s%d", this->name(), m ),
@@ -575,7 +575,7 @@ Activity::link_activity( double x_pos, double y_pos, const Entry * e, const unsi
 	}
 	break;
 
-    case ACT_LOOP_LIST:
+    case ActivityList::Type::LOOP:
 	sum = 1;
 	for ( i = 0; i < fork_list->n_acts(); ++i ) {
 	    sum += fork_list->u.loop.count[i];
@@ -694,7 +694,7 @@ Activity::act_join_item( LQIO::DOM::ActivityList * dom_activitylist )
     if ( _output ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_JOIN_LIST, 0, dom_activitylist );
+	list = realloc_list( ActivityList::Type::JOIN, 0, dom_activitylist );
 	list->u.join.quorumCount = 0;
 	list->list[list->_n_acts++] = this;
 	_output = list;
@@ -716,7 +716,7 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
 	return input_list;
     } 
 
-    ActivityList * list = realloc_list( ACT_AND_JOIN_LIST, input_list, dom_activitylist );
+    ActivityList * list = realloc_list( ActivityList::Type::AND_JOIN, input_list, dom_activitylist );
     list->list[list->_n_acts++] = this;
     _output = list;
 
@@ -744,7 +744,7 @@ Activity::act_or_join_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     if ( _output ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_LVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_OR_JOIN_LIST, input_list, dom_activitylist );
+	list = realloc_list( ActivityList::Type::OR_JOIN, input_list, dom_activitylist );
 	list->list[list->_n_acts++] = this;
 	_output = list;
     }
@@ -763,7 +763,7 @@ Activity::act_fork_item( LQIO::DOM::ActivityList * dom_activitylist)
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_FORK_LIST, 0, dom_activitylist );
+	list = realloc_list( ActivityList::Type::FORK, 0, dom_activitylist );
 	list->list[list->_n_acts++] = this;
 	_input = list;
     }
@@ -786,7 +786,7 @@ Activity::act_and_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name() );
     } else {
-	list = realloc_list( ACT_AND_FORK_LIST, input_list, dom_activitylist );
+	list = realloc_list( ActivityList::Type::AND_FORK, input_list, dom_activitylist );
 	list->list[list->_n_acts++] = this;
 	_input = list;
     }
@@ -809,7 +809,7 @@ Activity::act_or_fork_list ( ActivityList * input_list, LQIO::DOM::ActivityList 
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_OR_FORK_LIST, input_list, dom_activitylist );
+	list = realloc_list( ActivityList::Type::OR_FORK, input_list, dom_activitylist );
 	list->u.fork.prob[list->_n_acts] = dom_activitylist->getParameterValue(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
 	list->list[list->_n_acts++] = this;
 	_input = list;
@@ -833,8 +833,8 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
     } else if ( _input ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_ACTIVITY_RVALUE, task()->name(), name() );
     } else {
-	list = realloc_list( ACT_LOOP_LIST, input_list, dom_activitylist );
-	LQIO::DOM::ExternalVariable * count = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
+	list = realloc_list( ActivityList::Type::LOOP, input_list, dom_activitylist );
+	const LQIO::DOM::ExternalVariable * count = dom_activitylist->getParameter(dynamic_cast<LQIO::DOM::Activity *>(get_dom()));
 	if ( count != NULL ) {
 	    list->u.loop.count[list->_n_acts] = LQIO::DOM::to_double( *count );
 	    list->list[list->_n_acts++] = this;
@@ -853,7 +853,7 @@ Activity::act_loop_list ( ActivityList * input_list, LQIO::DOM::ActivityList * d
  */
 
 ActivityList * 	
-Activity::realloc_list ( const list_type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list )
+Activity::realloc_list ( const ActivityList::Type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list )
 {
     ActivityList * list;
 	

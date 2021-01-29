@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: srvn_output.cpp 14428 2021-01-29 02:24:47Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -1195,7 +1195,7 @@ namespace LQIO {
 	    double value;
 	    if ( !var->getValue(value) ) throw std::domain_error( "not a number" );
 	    if ( std::isinf(value) ) throw std::domain_error( "infinity" );
-	    if ( value != default_value ) {
+	    if ( value > 0.0 && value != default_value ) {
 		output << str << *var;		/* Ignore if it's the default */
 	    }
         }
@@ -1658,7 +1658,7 @@ namespace LQIO {
     SRVN::ProcessorInput::printRate( std::ostream& output, const DOM::Processor& processor )
     {
 	try {
-	    output << Input::is_double_and_ne( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 0.0 );
+	    output << Input::is_double_and_ne( " R ", dynamic_cast<const DOM::Processor&>(processor).getRate(), 1.0 );
 	}
 	catch ( const std::domain_error& e ) {
 	    solution_error( LQIO::ERR_INVALID_PARAMETER, "rate", "processor", processor.getName().c_str(), e.what() );

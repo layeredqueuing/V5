@@ -23,13 +23,6 @@
 
 #include "place.h"
 
-typedef enum {
-    SERVER,
-    REF_TASK,
-    OPEN_SRC,
-    SEMAPHORE
-} task_type;
-
 #define SERVER_BIT	(1<<SERVER)
 #define REF_TASK_BIT	(1<<REF_TASK)
 #define OPEN_SRC_BIT	(1<<OPEN_SRC)
@@ -55,8 +48,12 @@ namespace LQIO {
 }
 
 class Task : public Place {
+public:
+    enum class Type { SERVER, REF_TASK, OPEN_SRC, SEMAPHORE };
+
+
 protected:
-    Task( LQIO::DOM::Task* dom, task_type type, Processor * );
+    Task( LQIO::DOM::Task* dom, Type type, Processor * );
 
 private:
     Task( const Task& );
@@ -66,7 +63,7 @@ public:
     static Task * create( LQIO::DOM::Task * dom );
     bool check();
 
-    task_type type() const { return _type; }
+    Type type() const { return _type; }
     virtual int priority() const;			/* Priority for this task.	*/
     virtual double think_time() const;			/* Think time for ref. task.	*/
 
@@ -140,7 +137,7 @@ public:
 
 private:
     Processor * _processor;			/* Processor ID			*/
-    const task_type _type;			/* Task types.			*/
+    const Type _type;				/* Task types.			*/
     bool _sync_server;				/* true for external sync.	*/
     bool _has_main_thread;			/* true if fork and join.	*/
     bool _inservice_flag;			/* Print inservice probs.	*/
@@ -172,7 +169,7 @@ public:
 
 class OpenTask : public Task {
 public:
-    OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst ) : Task( 0, OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst) {}
+    OpenTask( LQIO::DOM::Document * document, const std::string& name, const Entry * dst ) : Task( 0, Type::OPEN_SRC, 0 ), _document(document), _name(name), _dst(dst) {}
 
     const char * name() const { return _name.c_str(); }
 

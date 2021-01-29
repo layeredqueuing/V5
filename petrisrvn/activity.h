@@ -74,7 +74,7 @@ private:
     ActivityList * act_and_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_or_fork_list( ActivityList * activityList, LQIO::DOM::ActivityList * dom_activitylist );
     ActivityList * act_loop_list( ActivityList * activity_list, LQIO::DOM::ActivityList * dom_activitylist );
-    ActivityList * realloc_list ( const list_type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list );
+    ActivityList * realloc_list ( const ActivityList::Type type, const ActivityList * input_list, LQIO::DOM::ActivityList * dom_activity_list );
     bool link_activity( double x_pos, double y_pos, const Entry * e, const unsigned m,
 			double &p_pos, const short enabling,
 			struct place_object * end_place, const bool can_reply );

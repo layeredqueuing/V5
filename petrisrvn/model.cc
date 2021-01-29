@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
+ * $Id: model.cc 14428 2021-01-29 02:24:47Z greg $
  *
  * Load the SRVN model.
  */
@@ -467,12 +467,12 @@ Model::transform()
 #endif
 
     for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
-	if ( (*t)->type() != REF_TASK || (*t)->n_activities() == 0 ) continue;
+	if ( (*t)->type() != Task::Type::REF_TASK || (*t)->n_activities() == 0 ) continue;
 
 	for ( vector<ActivityList *>::const_iterator l = (*t)->act_lists.begin(); l != (*t)->act_lists.end(); ++l ) {
-	    if ( ( (*l)->type() == ACT_AND_FORK_LIST || (*l)->type() == ACT_OR_FORK_LIST ) && (*l)->n_acts() > max_width ) {
+	    if ( ( (*l)->type() == ActivityList::Type::AND_FORK || (*l)->type() == ActivityList::Type::OR_FORK ) && (*l)->n_acts() > max_width ) {
 		max_width = (*l)->n_acts();
-	    } else if ( (*l)->type() == ACT_LOOP_LIST && max_width < 2 ) {
+	    } else if ( (*l)->type() == ActivityList::Type::LOOP && max_width < 2 ) {
 		max_width = 2;
 	    }
 	}
@@ -690,7 +690,7 @@ Model::make_queues()
 	double idle_x;
 	unsigned k 	= 0;			/* Queue Kounter	*/
 	queue_fnptr queue_func;			/* Local version.	*/
-	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || bit_test( (*t)->type(), SEMAPHORE_BIT ) || (*t)->is_infinite();
+	bool sync_server = (*t)->is_sync_server() || (*t)->has_random_queueing() || (*t)->type() == Task::Type::SEMAPHORE || (*t)->is_infinite();
 
 	/* Override if dest is a join function. */
 		
@@ -811,7 +811,7 @@ Model::make_queue( double x_pos,		/* x coordinate.		*/
     if ( calls == 0.0) return k;	/* No operation. */
 	
     for ( m = 0; m < max_m; ++m ) {
-	bool async_call = a->z(b) > 0 || a->task()->type() == OPEN_SRC;
+	bool async_call = a->z(b) > 0 || a->task()->type() == Task::Type::OPEN_SRC;
 		
 	if ( a->has_stochastic_calls() ) {
 	    k += 1;
@@ -908,7 +908,7 @@ Model::fifo_queue( double x_pos,		/* x coordinate.		*/
 	create_arc( FIFO_LAYER, TO_PLACE, q_trans, no_place( "Sh%s%d", task_name, l ) );
 	create_arc( layer_mask, TO_TRANS, q_trans, r_place );
 	/*+ BUG_164 */
-	if ( j->type() == SEMAPHORE ) {
+	if ( j->type() == Task::Type::SEMAPHORE ) {
 	    abort();	/* Should not use FIFO queue for semaphore task */
 	} else {
 	    create_arc( layer_mask, TO_TRANS, q_trans, j->TX[b_m] );
@@ -1005,7 +1005,7 @@ Model::random_queue( double x_pos,		/* x coordinate.		*/
 
 	create_arc( layer_mask, TO_TRANS, q_trans, r_place );
 	/*+ BUG_164 */
-	if ( j->type() == SEMAPHORE && b->semaphore_type() == SEMAPHORE_SIGNAL ) {
+	if ( j->type() == Task::Type::SEMAPHORE && b->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ) {
 	    create_arc( layer_mask, TO_TRANS, q_trans, j->LX[b_m] );
 	} else {
 	    create_arc( layer_mask, TO_TRANS, q_trans, j->TX[b_m] );
@@ -1387,7 +1387,7 @@ Model::build_open_arrivals ()
     const unsigned n_entries = ::entry.size();
     for ( unsigned int e = 0; e < n_entries; ++e  ) {
 	Entry * dst_entry = ::entry[e];
-	if ( dst_entry->task()->type() == OPEN_SRC ) continue;
+	if ( dst_entry->task()->type() == Task::Type::OPEN_SRC ) continue;
 
 	LQIO::DOM::Entry * dst_dom = dst_entry->get_dom();
 	if ( !dst_dom->hasOpenArrivalRate() ) continue;
@@ -1400,7 +1400,7 @@ Model::build_open_arrivals ()
 	buf = "OE";
 	buf += dst_entry->name();
 	LQIO::DOM::Entry * pseudo = new LQIO::DOM::Entry( dst_dom->getDocument(), buf.c_str() );
-	pseudo->setEntryType( LQIO::DOM::Entry::ENTRY_STANDARD );
+	pseudo->setEntryType( LQIO::DOM::Entry::Type::STANDARD );
 	LQIO::DOM::Phase* phase = pseudo->getPhase(1);
 	try {
 	    phase->setServiceTimeValue( 1.0 / dst_dom->getOpenArrivalRateValue() );
@@ -1416,7 +1416,7 @@ Model::build_open_arrivals ()
 	a_task->entries.push_back( an_entry );
 
 	LQIO::DOM::ConstantExternalVariable  * var  = new LQIO::DOM::ConstantExternalVariable( 1 );
-	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::QUASI_SEND_NO_REPLY, phase, dst_dom, var );
+	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY, phase, dst_dom, var );
 	phase->addCall( call );
 	an_entry->phase[1].add_call( call );
     }
@@ -1489,7 +1489,7 @@ Model::trans_res ()
     char name_str[BUFSIZ];
 
     for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
-	if ( (*t)->type() != REF_TASK ) continue;
+	if ( (*t)->type() != Task::Type::REF_TASK ) continue;
 			
 	for ( vector<Entry *>::const_iterator e = (*t)->entries.begin(); e != (*t)->entries.end(); ++e ) {
 

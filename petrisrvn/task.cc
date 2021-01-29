@@ -54,7 +54,7 @@ double Task::__queue_y_offset;
  * Add a task to the model.
  */
 
-Task::Task( LQIO::DOM::Task* dom, task_type type, Processor * processor )
+Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
     : Place( dom ),
       entries(),
 #if !defined(BUFFER_BY_ENTRY)
@@ -191,7 +191,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->isInfinite() ) {
 	    input_error2( LQIO::ERR_REFERENCE_TASK_IS_INFINITE, task_name.c_str() );
 	}
-	task = new Task( dom, REF_TASK, processor );
+	task = new Task( dom, Task::Type::REF_TASK, processor );
 	break;
 	
     case SCHEDULE_PPR:
@@ -203,7 +203,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->hasThinkTime() ) {
 	    input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
 	}
-        task = new Task( dom, SERVER, processor );
+        task = new Task( dom, Task::Type::SERVER, processor );
 	break;
 	
     case SCHEDULE_DELAY:
@@ -216,7 +216,7 @@ Task::create( LQIO::DOM::Task * dom )
 	if ( dom->isMultiserver() ) {
 	    LQIO::input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Task", task_name.c_str(), dom->getCopiesValue() );
 	}	
-	task = new Task( dom, SERVER, processor );
+	task = new Task( dom, Task::Type::SERVER, processor );
 	break;
 
     case SCHEDULE_SEMAPHORE:
@@ -235,7 +235,7 @@ Task::create( LQIO::DOM::Task * dom )
 	    dom->setCopiesValue( MAX_MULT );
 	}
 #endif
-	task = new Task( dom, SEMAPHORE, processor );
+	task = new Task( dom, Task::Type::SEMAPHORE, processor );
 	break;
     }
 
@@ -274,16 +274,16 @@ Task::check()
 	}
     }
 
-    if ( type() == SEMAPHORE ) {
+    if ( type() == Task::Type::SEMAPHORE ) {
 	if ( n_entries() != N_SEMAPHORE_ENTRIES ) {
 	    solution_error( LQIO::ERR_ENTRY_COUNT_FOR_TASK, name(), n_entries(), N_SEMAPHORE_ENTRIES );
 	}
-	if ( entries[0]->semaphore_type() == SEMAPHORE_SIGNAL ) {
-	    if ( entries[1]->semaphore_type() != SEMAPHORE_WAIT ) {
+	if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::SIGNAL ) {
+	    if ( entries[1]->semaphore_type() !=LQIO::DOM:: Entry::Semaphore::WAIT ) {
 		solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	    }
-	} else if ( entries[0]->semaphore_type() == SEMAPHORE_WAIT ) {
-	    if ( entries[1]->semaphore_type() != SEMAPHORE_SIGNAL ) {
+	} else if ( entries[0]->semaphore_type() == LQIO::DOM::Entry::Semaphore::WAIT ) {
+	    if ( entries[1]->semaphore_type() != LQIO::DOM::Entry::Semaphore::SIGNAL ) {
 		solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	    }
 	} else {
@@ -303,7 +303,7 @@ Task::check()
 	if ( (*l)->check_fork_has_join( ) ) {
 	    _has_main_thread = true;
 	}
-	if ( (*l)->type() == ACT_AND_FORK_LIST ) {
+	if ( (*l)->type() == ActivityList::Type::AND_FORK ) {
 	    if ( (*l)->n_acts() > n_threads() ) {
 		_n_threads = (*l)->n_acts();
 	    }
@@ -378,18 +378,26 @@ double Task::think_time() const
 
 bool Task::is_server() const
 {
-    return bit_test( type(), SERVER_BIT|SEMAPHORE_BIT );
+    switch ( type() ) {
+    case Task::Type::SERVER:
+    case Task::Type::SEMAPHORE: return true;
+    default: return false;
+    }
 }
 
 bool Task::is_client() const
 {
-    return bit_test( type(), REF_TASK_BIT|OPEN_SRC_BIT );
+    switch ( type() ) {
+    case Task::Type::REF_TASK:
+    case Task::Type::OPEN_SRC: return true;
+    default: return false;
+    }
 }
 
 
 bool Task::is_single_place_task() const
 {
-    return type() == REF_TASK && (customers_flag
+    return type() == Task::Type::REF_TASK && (customers_flag
 				  || (n_threads() > 1 && !processor()->is_infinite()));
 }
 
@@ -411,7 +419,7 @@ unsigned int Task::ref_count() const
 
 unsigned Task::n_customers() const
 {
-    if ( is_single_place_task() || type() == OPEN_SRC) {
+    if ( is_single_place_task() || type() == Task::Type::OPEN_SRC) {
 	return 1;
     } else {
 	return multiplicity();
@@ -490,7 +498,7 @@ unsigned int Task::set_queue_length()
 	/* Count rendezvous from other tasks 'i' */
 	    
 	for ( vector<Task *>::const_iterator i = ::task.begin(); i != ::task.end(); ++i ) {
-	    if ( (*i) == this || (*i)->type() == OPEN_SRC ) continue;
+	    if ( (*i) == this || (*i)->type() == Task::Type::OPEN_SRC ) continue;
 	    
 	    for ( vector<Entry *>::const_iterator d = (*i)->entries.begin(); d != (*i)->entries.end(); ++d ) {
 		if ( (*d)->prob_fwd(*e) == 0.0 ) continue;
@@ -537,7 +545,7 @@ unsigned int Task::set_queue_length()
 #else
 	    if ( !open_model ) {
 		open_model = true;
-		if ( _sync_server || has_random_queueing() || bit_test( type(), SEMAPHORE_BIT) || is_infinite() ) {
+		if ( _sync_server || has_random_queueing() || type() == Task::Type::SEMAPHORE || is_infinite() ) {
 		    length += 1;
 		} else {
 		    length += _open_tokens;
@@ -563,7 +571,7 @@ unsigned int Task::set_queue_length()
 void
 Task::build_forwarding_lists()
 {
-//    if ( type() != REF_TASK ) return;
+//    if ( type() != Task::Type::REF_TASK ) return;
 		
     for ( vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
 	for ( unsigned p = 1; p <= (*e)->n_phases(); ++p ) {
@@ -636,7 +644,7 @@ Task::transmorgrify()
     /* task places */
 
     if ( is_single_place_task()
-	 || type() == OPEN_SRC
+	 || type() == Task::Type::OPEN_SRC
 	 || (is_infinite() && this->n_threads() == 1) ) {
 		
 	next_x = create_instance( x_pos, y_pos, 0, INFINITE_SERVER );
@@ -684,7 +692,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
 
     if ( is_infinite() ) {
 	customers = open_model_tokens;
-    } else if ( is_single_place_task() || type() == OPEN_SRC ) {
+    } else if ( is_single_place_task() || type() == Task::Type::OPEN_SRC ) {
 	customers = this->multiplicity();
     } else {
 	customers = 1;
@@ -701,7 +709,7 @@ Task::create_instance( double base_x_pos, double base_y_pos, unsigned m, short e
     d_place = create_place( temp_x, Y_OFFSET(0.0), make_layer_mask( m ), customers, "T%s%d", this->name(), m );
     this->TX[m] = d_place;
 
-    if ( type() == SEMAPHORE ) {	/* BUG_164 */
+    if ( type() == Task::Type::SEMAPHORE ) {	/* BUG_164 */
 	this->LX[m] = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "LX%s%d", this->name(), m );
     } else if ( this->_sync_server ) { 
 	d_place = create_place( temp_x+0.5, Y_OFFSET(0.0), make_layer_mask( m ), 0, "Gd%s%d", this->name(), m );
@@ -812,7 +820,7 @@ Task::get_results( unsigned m )
     }
     this->task_tokens[m] = 0.0;
 
-    if ( type() == SEMAPHORE ) {
+    if ( type() == Task::Type::SEMAPHORE ) {
 	this->lock_tokens[m] = get_pmmean( "LX%s%d", name(), m );
     } else {
 	this->lock_tokens[m] = 0.0;
@@ -978,7 +986,7 @@ Task::insert_DOM_results()
 	for ( unsigned m = 0; m < max_m; ++m ) {
 	    tput += (*e)->_throughput[m];
 	}
-	if ( type() != SEMAPHORE || e == entries.begin() ) {
+	if ( type() != Task::Type::SEMAPHORE || e == entries.begin() ) {
 	    tput_sum += tput;		// For semaphore tasks, only count throughput once.
 	}
 
@@ -1005,7 +1013,7 @@ Task::insert_DOM_results()
 
     /* Forks-Join lists.		*/
     for ( std::vector<ActivityList *>::const_iterator l = act_lists.begin(); l != act_lists.end(); ++l ) {
-	if ( (*l)->type() != ACT_AND_JOIN_LIST ) continue;
+	if ( (*l)->type() != ActivityList::Type::AND_JOIN ) continue;
 	(*l)->insert_DOM_results();
     }
 
@@ -1022,7 +1030,7 @@ OpenTask::get_results( unsigned m )
     Phase& phase = entries[0]->phase[1];
     Call call;
     LQIO::DOM::ConstantExternalVariable value(1.0);
-    LQIO::DOM::Call dom( _document, LQIO::DOM::Call::SEND_NO_REPLY, 0, 0, &value );
+    LQIO::DOM::Call dom( _document, LQIO::DOM::Call::Type::SEND_NO_REPLY, 0, 0, &value );
     call._dom = &dom;
     phase.compute_queueing_delay( call, m, _dst, multiplicity(), &phase );
 }

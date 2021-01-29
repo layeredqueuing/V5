@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: petrisrvn.cc 14428 2021-01-29 02:24:47Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -190,7 +190,7 @@ int
 main (int argc, char *argv[])
 {
     std::string output_file = "";
-    LQIO::CommandLine command_line( opts, longopts );
+    LQIO::CommandLine command_line( longopts );
 
     char * options;
     char * value;
@@ -246,7 +246,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'h':
-	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,LQIO::DOM::Pragma::_Xfalse_);
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_header_,LQIO::DOM::Pragma::_false_);
 	    LQIO::Spex::__no_header = true;
 	    break;
 
@@ -265,7 +265,7 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'l':
-	    ModLangParserTrace(stderr, "lqx:");
+	    LQIO::DOM::Document::lqx_parser_trace(stderr);
 	    break;
 
 	case 'm':

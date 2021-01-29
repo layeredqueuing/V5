@@ -28,7 +28,7 @@
 static jmp_buf loop_env;
 
 
-ActivityList::ActivityList( list_type type, LQIO::DOM::ActivityList * dom )
+ActivityList::ActivityList( Type type, LQIO::DOM::ActivityList * dom )
     : _type(type), _dom(dom), u(), _n_acts(0)
 {
     for ( unsigned int b = 0; b < MAX_BRANCH; ++b ) {
@@ -44,9 +44,9 @@ ActivityList::ActivityList( list_type type, LQIO::DOM::ActivityList * dom )
     } 
 
     switch ( type ) {
-    case ACT_FORK_LIST:
-    case ACT_OR_FORK_LIST:
-    case ACT_AND_FORK_LIST:
+    case Type::FORK:
+    case Type::OR_FORK:
+    case Type::AND_FORK:
 	u.fork.prev    = 0;
 	u.fork.join    = 0;
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
@@ -55,7 +55,7 @@ ActivityList::ActivityList( list_type type, LQIO::DOM::ActivityList * dom )
 	}
 	break;
 	    
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	u.loop.prev    = 0;
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
 	    u.loop.count[i] = 0.0;
@@ -67,11 +67,11 @@ ActivityList::ActivityList( list_type type, LQIO::DOM::ActivityList * dom )
 	}
 	break;
 
-    case ACT_AND_JOIN_LIST:
-    case ACT_JOIN_LIST:
-    case ACT_OR_JOIN_LIST:
+    case Type::AND_JOIN:
+    case Type::JOIN:
+    case Type::OR_JOIN:
 	u.join.next    = 0;
-	u.join.type    = JOIN_UNDEFINED;
+	u.join.type    = JoinType::UNDEFINED;
 #if defined(BUG_263)
 	u.join.quorumCount = 0;
 #endif
@@ -94,9 +94,9 @@ ActivityList::remove_netobj()
 {
     for ( unsigned int m = 0; m < MAX_MULT; ++m ) {
 	switch ( type() ) {
-	case ACT_OR_JOIN_LIST:
-	case ACT_JOIN_LIST:
-	case ACT_AND_JOIN_LIST:
+	case Type::OR_JOIN:
+	case Type::JOIN:
+	case Type::AND_JOIN:
 	    u.join.FjM[m] = 0;
 	    break;
 	}
@@ -127,12 +127,12 @@ ActivityList::join_find_children( std::deque<Activity *>& activity_stack, std::d
 
     switch ( this->type() ) {
 
-    case ACT_JOIN_LIST:
-    case ACT_AND_JOIN_LIST:
-    case ACT_OR_JOIN_LIST:
+    case Type::JOIN:
+    case Type::AND_JOIN:
+    case Type::OR_JOIN:
 	find_fork_list( e->task(), activity_stack, activity_stack.size(), fork_stack );
 	/* Fall through */
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	this->entry[j] = e;
 	break;
 		
@@ -162,19 +162,19 @@ ActivityList::fork_join_name() const
 	} else if ( i > 0 ) {
 	    *p++ = ' ';
 	    switch ( this->type() ) {
-	    case ACT_OR_FORK_LIST:
-	    case ACT_OR_JOIN_LIST:
+	    case Type::OR_FORK:
+	    case Type::OR_JOIN:
 		*p++ = '+';
 		break;
-	    case ACT_AND_FORK_LIST:
-	    case ACT_AND_JOIN_LIST:
+	    case Type::AND_FORK:
+	    case Type::AND_JOIN:
 		*p++ = '&';
 		break;
-	    case ACT_LOOP_LIST:
+	    case Type::LOOP:
 		*p++ = '*';
 		break;
-	    case ACT_FORK_LIST:
-	    case ACT_JOIN_LIST:
+	    case Type::FORK:
+	    case Type::JOIN:
 		abort();
 	    }
 	    *p++ = ' ';
@@ -195,7 +195,7 @@ bool ActivityList::check_external_joins() const
     unsigned e1;
     unsigned e2;
 	
-    if ( this->type() != ACT_AND_JOIN_LIST || this->u.join.type != JOIN_SYNCHRONIZATION ) return false;
+    if ( this->type() != Type::AND_JOIN || this->u.join.type != JoinType::SYNCHRONIZATION ) return false;
     
     for ( e1 = 0; e1 + 1 < this->n_acts(); ++e1 ) {
 	for ( e2 = e1 + 1; e2 < this->n_acts(); ++e2 ) {
@@ -210,7 +210,7 @@ bool ActivityList::check_external_joins() const
 
 bool ActivityList::check_fork_no_join() const
 {
-    if ( this->type() == ACT_AND_FORK_LIST ) {
+    if ( this->type() == Type::AND_FORK ) {
 	for ( unsigned int i = 0; i < this->n_acts(); ++i ) {
 	    if ( !this->u.fork.reachable[i] ) return true;
 	}
@@ -224,7 +224,7 @@ bool ActivityList::check_fork_no_join() const
 bool ActivityList::check_quorum_join() const 
 {
 #if defined(BUG_263)
-    return type() == ACT_AND_JOIN_LIST && u.join.quorumCount > 0;
+    return type() == Type::AND_JOIN && u.join.quorumCount > 0;
 #else
     return false;
 #endif
@@ -236,7 +236,7 @@ bool ActivityList::check_quorum_join() const
 
 bool ActivityList::check_fork_has_join() const 
 {
-    if ( type() == ACT_AND_FORK_LIST ) {
+    if ( type() == Type::AND_FORK ) {
 	for ( unsigned i = 0; i < n_acts(); ++i ) {
 	    if ( u.fork.reachable[i] ) return true;
 	}
@@ -256,16 +256,16 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 	    } else {
 		int j = backtrack( this->list[i], fork_stack, this->list[i] );
 		if ( j >= 0 ) {
-		    if ( !this->set_join_type( JOIN_INTERNAL_FORK_JOIN ) ) {
+		    if ( !this->set_join_type( JoinType::INTERNAL_FORK_JOIN ) ) {
 			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
 		    } else if ( !this->u.join.fork[i] || std::find( fork_stack.begin(), fork_stack.end(), this->u.join.fork[i] ) != fork_stack.end() ) {
 			ActivityList * fork_list = fork_stack[j];
-			if ( (   fork_list->type() == ACT_AND_FORK_LIST && this->type() == ACT_AND_JOIN_LIST)
-			     || (fork_list->type() == ACT_OR_FORK_LIST && this->type() == ACT_OR_JOIN_LIST) ) {
+			if ( (   fork_list->type() == Type::AND_FORK && this->type() == Type::AND_JOIN)
+			     || (fork_list->type() == Type::OR_FORK && this->type() == Type::OR_JOIN) ) {
 			    /* Fork and join match. */
 			    this->u.join.fork[i] = fork_list;
 			    fork_list->u.fork.join = this;
-			} else if ( fork_list->type() == ACT_OR_FORK_LIST && this->type() == ACT_AND_JOIN_LIST ) {
+			} else if ( fork_list->type() == Type::OR_FORK && this->type() == Type::AND_JOIN ) {
 			    /* Or fork connected to AND join? */
 			    path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
 			} else {
@@ -277,7 +277,7 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 		    if ( debug_flag ) {
 			int k;
 			fprintf( stddbg, "%sJoin: %*s %s: %s ",
-				 this->type() == ACT_AND_JOIN_LIST ? "AND" : "OR",
+				 this->type() == Type::AND_JOIN ? "AND" : "OR",
 				 depth, " ",
 				 curr_activity->name(), this->list[i]->name() );
 			for ( k = fork_stack.size()-1; k >= 0; --k ) {
@@ -291,7 +291,7 @@ void ActivityList::find_fork_list( const Task * curr_task, std::deque<Activity *
 			fprintf( stddbg, "\n" );
 		    }
 		} else {
-		    if ( !this->set_join_type( JOIN_SYNCHRONIZATION ) ) {
+		    if ( !this->set_join_type( JoinType::SYNCHRONIZATION ) ) {
 			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
 		    } else if ( !add_to_join_list( j, activity_stack[0] ) ) {
 			path_error( LQIO::ERR_JOIN_BAD_PATH, curr_task->name(), activity_stack );
@@ -316,7 +316,7 @@ ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::d
     unsigned k;
     switch ( this->type() ) {
 
-    case ACT_FORK_LIST:
+    case Type::FORK:
 	for ( k = 0; k < this->n_acts(); ++k ) {
 	    if ( this->list[k]->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
@@ -324,14 +324,14 @@ ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::d
 	}
 	break;
 
-    case ACT_OR_FORK_LIST:
-    case ACT_AND_FORK_LIST:
+    case Type::OR_FORK:
+    case Type::AND_FORK:
 	fork_stack.push_back( this );
 	for ( k = 0; k < this->n_acts(); ++k ) {
 	    if ( debug_flag ) {
 		Activity * ap = activity_stack.back();
 		fprintf( stddbg, "%sFork: %*s %s -> %s\n",
-			 this->type() == ACT_AND_FORK_LIST ? "AND" : "OR",
+			 this->type() == Type::AND_FORK ? "AND" : "OR",
 			 static_cast<int>(activity_stack.size()), " ",
 			 ap->name(), this->list[k]->name() );
 	    }
@@ -343,7 +343,7 @@ ActivityList::fork_find_children( std::deque<Activity *>& activity_stack, std::d
 	break;
 
 			
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	if ( this->u.loop.endlist ) {
 	    if ( this->u.loop.endlist->find_children( activity_stack, fork_stack, e ) ) {
 		has_service_time = true;
@@ -376,8 +376,8 @@ ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_s
 
     } else switch ( fork_list->type() ) {
 	
-    case ACT_OR_FORK_LIST:
-    case ACT_AND_FORK_LIST:
+    case Type::OR_FORK:
+    case Type::AND_FORK:
 	for ( unsigned int i = 0; i < fork_list->n_acts(); ++i ) {
 	    if ( fork_list->list[i] == activity ) {
 		fork_list->u.fork.reachable[i] = true;
@@ -388,11 +388,11 @@ ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_s
 	    return j - fork_stack.begin();
 	}
 	/* Fall through */
-    case ACT_FORK_LIST:
+    case Type::FORK:
 	join_list = fork_list->u.fork.prev;
 	break;
 
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	join_list = fork_list->u.loop.prev;
 	break;
 
@@ -405,9 +405,9 @@ ActivityList::backtrack( Activity * activity, std::deque<ActivityList *>& fork_s
 
     } else switch ( join_list->type() ) {
 	
-    case ACT_JOIN_LIST:
-    case ACT_OR_JOIN_LIST:
-    case ACT_AND_JOIN_LIST:
+    case Type::JOIN:
+    case Type::OR_JOIN:
+    case Type::AND_JOIN:
 	for ( unsigned int i = 0; i < join_list->n_acts(); ++i ) {
 	    if ( join_list->list[i] == start_activity ) {
 		longjmp( loop_env, 1 );
@@ -465,9 +465,9 @@ ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const 
     
     switch ( this->type() ) {
 
-    case ACT_AND_JOIN_LIST:
+    case Type::AND_JOIN:
 	/* If it is a sync point... */
-	if ( this->u.join.type == JOIN_SYNCHRONIZATION && this->u.join.next ) {
+	if ( this->u.join.type == JoinType::SYNCHRONIZATION && this->u.join.next ) {
 	    sum = this->u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
 	} else if ( curr_phase > next_phase ) {		/* BUG 151 */
 	    next_phase = curr_phase;
@@ -478,8 +478,8 @@ ActivityList::join_count_replies( std::deque<Activity *>& activity_stack, const 
 	}
 	break;
 
-    case ACT_JOIN_LIST:
-    case ACT_OR_JOIN_LIST:
+    case Type::JOIN:
+    case Type::OR_JOIN:
 	if ( this->u.join.next ) {
 	    sum = this->u.join.next->fork_count_replies( activity_stack, e, rate, curr_phase, next_phase );
 	}
@@ -511,7 +511,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 
     switch ( this->type() ) {
 
-    case ACT_AND_FORK_LIST:
+    case Type::AND_FORK:
 	join_list = this->u.fork.join;
 	for ( i = 0; i < this->n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
@@ -554,7 +554,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	} 
 	break;
 
-    case ACT_FORK_LIST:
+    case Type::FORK:
 	for ( i = 0; i < this->n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
 	    sum += this->list[i]->count_replies( activity_stack, e, rate, curr_phase, branch_phase ); 
@@ -564,7 +564,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	}
 	break;
 
-    case ACT_OR_FORK_LIST:
+    case Type::OR_FORK:
 	for ( i = 0; i < this->n_acts(); ++i ) {
 	    unsigned branch_phase = curr_phase;
 	    sum += this->list[i]->count_replies( activity_stack, e, rate * this->u.fork.prob[i], curr_phase, branch_phase );
@@ -575,7 +575,7 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 	break;
 
 			
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	if ( this->u.loop.endlist ) {
 	    unsigned branch_phase = curr_phase;
 	    sum += this->u.loop.endlist->count_replies( activity_stack, e, rate, curr_phase, branch_phase );
@@ -601,9 +601,9 @@ ActivityList::fork_count_replies( std::deque<Activity *>& activity_stack,  const
 
 
 bool
-ActivityList::set_join_type( join_type_t a_type )
+ActivityList::set_join_type( JoinType a_type )
 {
-    if ( this->u.join.type == JOIN_UNDEFINED ) {
+    if ( this->u.join.type == JoinType::UNDEFINED ) {
 	this->u.join.type = a_type;
 	return true;
     } else {
@@ -616,23 +616,23 @@ ActivityList::set_join_type( join_type_t a_type )
 
 bool ActivityList::is_join_list() const
 {
-    return type() == ACT_JOIN_LIST || type() == ACT_AND_JOIN_LIST || type() == ACT_OR_JOIN_LIST;
+    return type() == Type::JOIN || type() == Type::AND_JOIN || type() == Type::OR_JOIN;
 }
 
 
 bool ActivityList::is_fork_list() const
 {
-    return type() == ACT_FORK_LIST || type() == ACT_AND_FORK_LIST || type() == ACT_OR_FORK_LIST;
+    return type() == Type::FORK || type() == Type::AND_FORK || type() == Type::OR_FORK;
 }
 
 bool ActivityList::is_loop_list() const
 {
-    return type() == ACT_LOOP_LIST;
+    return type() == Type::LOOP;
 }
 
 void ActivityList::insert_DOM_results() 
 {
-    if ( type() == ACT_AND_JOIN_LIST && list[0]->_throughput[0] ) {
+    if ( type() == Type::AND_JOIN && list[0]->_throughput[0] ) {
 	_dom->setResultJoinDelay( u.join.tokens[0] / list[0]->_throughput[0] );
     }
 }
@@ -661,7 +661,7 @@ ActivityList::follow_join_for_tokens( const Entry * e, unsigned p, const unsigne
 				      Phase::util_fnptr util_func, double mean_tokens[] )
 {
     switch ( this->type() ) {
-    case ACT_AND_JOIN_LIST:
+    case Type::AND_JOIN:
 
 	if ( util_func == &Phase::get_utilization ) {
 	    if ( this->list[0] == curr_activity ) {
@@ -669,18 +669,18 @@ ActivityList::follow_join_for_tokens( const Entry * e, unsigned p, const unsigne
 	    }
 	}
 
-	if ( this->u.join.type != JOIN_SYNCHRONIZATION ) {
+	if ( this->u.join.type != JoinType::SYNCHRONIZATION ) {
 	    return;	/* Handled on fork side. */
 	}
 	break;
 
-    case ACT_OR_JOIN_LIST:
+    case Type::OR_JOIN:
 	/* This handles both internal and external or-joins */
 	/* I should probably scale by the ratio of throughtputs to the entry if its external */
 	scale /= static_cast<double>(this->n_acts());
 	break;
 	
-    case ACT_JOIN_LIST:
+    case Type::JOIN:
 	break;
 		
     default:
@@ -703,7 +703,7 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
 
     switch ( this->type() ) {
 
-    case ACT_AND_FORK_LIST:
+    case Type::AND_FORK:
 	if ( sum_forks ) {
 	    for ( j = 0; j < this->n_acts(); ++j ) {
 		this->list[j]->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
@@ -740,14 +740,14 @@ ActivityList::follow_fork_for_tokens( const Entry * e, unsigned p, const unsigne
 	}
 	break;
 			
-    case ACT_OR_FORK_LIST:
-    case ACT_FORK_LIST:
+    case Type::OR_FORK:
+    case Type::FORK:
 	for ( j = 0; j < this->n_acts(); ++j ) {
 	    this->list[j]->follow_activity_for_tokens(e, p, m, sum_forks, scale, util_func, mean_tokens );
 	}
 	break;
 
-    case ACT_LOOP_LIST:
+    case Type::LOOP:
 	if ( this->u.loop.endlist ) {
 	    this->u.loop.endlist->follow_activity_for_tokens( e, p, m, sum_forks, scale, util_func, mean_tokens );
 	}

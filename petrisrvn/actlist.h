@@ -1,3 +1,4 @@
+/* -*- c++ -*- */
 /************************************************************************/
 /* Copyright the Real-Time and Distributed Systems Group,		*/
 /* Department of Systems and Computer Engineering,			*/
@@ -27,39 +28,40 @@ namespace LQIO {
     }
 }
 
-typedef enum list_type {
-    ACT_FORK_LIST,
-    ACT_OR_FORK_LIST,
-    ACT_AND_FORK_LIST,
-    ACT_LOOP_LIST,
-    ACT_JOIN_LIST,
-    ACT_AND_JOIN_LIST,
-    ACT_OR_JOIN_LIST
-} list_type;
-
-typedef enum join_type
-{
-    JOIN_UNDEFINED,
-    JOIN_INTERNAL_FORK_JOIN,
-    JOIN_SYNCHRONIZATION
-} join_type_t;
-
 class Activity;
 class Entry;
 class Task;
 
 class ActivityList {
     friend class Activity;
+
+public:
+    enum class Type {
+	FORK,
+	OR_FORK,
+	AND_FORK,
+	LOOP,
+	JOIN,
+	AND_JOIN,
+	OR_JOIN
+    };
+
+    enum class JoinType
+    {
+	UNDEFINED,
+	INTERNAL_FORK_JOIN,
+	SYNCHRONIZATION
+    };
     
 private:
     ActivityList& operator=( const ActivityList& );
     ActivityList( const ActivityList& );
     
 public:
-    ActivityList( list_type, LQIO::DOM::ActivityList * );
+    ActivityList( Type, LQIO::DOM::ActivityList * );
     virtual ~ActivityList() {}
 
-    list_type type() const { return _type; }
+    Type type() const { return _type; }
     unsigned int n_acts() const { return _n_acts; }
     char * fork_join_name() const;
     
@@ -87,7 +89,7 @@ private:
     void find_fork_list( const Task * curr_task, std::deque<Activity *>& activity_stack, int depth, std::deque<ActivityList *>& fork_stack );
     bool add_to_join_list( unsigned int i, Activity * an_activity );
     void path_error( int err, const char * task_name, std::deque<Activity *>& activity_stack );
-    bool set_join_type( join_type_t a_type );
+    bool set_join_type( JoinType a_type );
     int backtrack( Activity * activity, std::deque<ActivityList *>& fork_stack, Activity * start_activity );
 
     void follow_fork_for_tokens( const Entry * e, unsigned p, const unsigned m, 
@@ -95,7 +97,7 @@ private:
 
 
 private:
-    const list_type _type;
+    const Type _type;
     LQIO::DOM::ActivityList * _dom;
     union {
 	struct {
@@ -110,7 +112,7 @@ private:
 	    Activity * source[MAX_BRANCH];   	/* My start activity 	*/
 	    struct place_object * FjM[MAX_MULT];/* Measuring place.		*/
 	    double tokens[MAX_MULT];		/* Join-delay Result.		*/
-	    join_type_t type;			/* join type.			*/
+	    JoinType type;			/* join type.			*/
 #if defined(BUG_263)
 	    int quorumCount; 			/* BUG_263			*/
 #endif

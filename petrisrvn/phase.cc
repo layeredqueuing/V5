@@ -218,7 +218,7 @@ Phase::service_rate() const
 
 bool Phase::has_stochastic_calls() const
 {
-    return get_dom()->getPhaseTypeFlag() == PHASE_STOCHASTIC;
+    return get_dom()->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::STOCHASTIC;
 }
 
 
@@ -227,7 +227,7 @@ Phase::has_deterministic_service() const
 {
     return coeff_of_var() == 0.0
 	&& s() > 0.0
-	&& task()->type() != OPEN_SRC;
+	&& task()->type() != Task::Type::OPEN_SRC;
 }
 
 
@@ -236,7 +236,7 @@ Phase::is_hyperexponential() const
 {
     return coeff_of_var() > 1.0
 	&& s() > 0.0
-	&& task()->type() != OPEN_SRC;
+	&& task()->type() != Task::Type::OPEN_SRC;
 }
 
 
@@ -260,12 +260,12 @@ Phase::add_call( LQIO::DOM::Call * call )
     Entry* to_entry = Entry::find(toDOMEntry->getName());
     if (!to_entry) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
-    } else if ( call->getCallType() == LQIO::DOM::Call::RENDEZVOUS ) {
+    } else if ( call->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	if ( to_entry->test_and_set_recv( RENDEZVOUS_REQUEST ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
-    } else if (call->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY
-	       || call->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY ) {
+    } else if (call->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY
+	       || call->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY ) {
 	if ( to_entry->test_and_set_recv( SEND_NO_REPLY_REQUEST ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
@@ -384,7 +384,7 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	    c_trans = create_trans( X_OFFSET(s_pos+1,0), y_pos - 0.5, layer_mask,
 				    this->_prob_a, 1, IMMEDIATE, "w%s%d%d", this->name(), m, s );
 	    if ( this->s() > 0.0 ) {
-	        if ( task()->type() == OPEN_SRC ) {
+	        if ( task()->type() == Task::Type::OPEN_SRC ) {
 		    create_arc( layer_mask, INHIBITOR, c_trans, curr_slice->SX[m][1] );
 		} else {
 		    request_processor( c_trans, m, s );
@@ -404,12 +404,12 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask,  1.0, 1, IMMEDIATE, "s%s%d%d", this->name(), m, s );
 	} else if ( this->has_deterministic_service() ) {
 	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], 1, DETERMINISTIC, "s%s%d%d", this->name(), m, s );
-	} else if ( task()->type() != OPEN_SRC ) {	/* Infinite server! */
+	} else if ( task()->type() != Task::Type::OPEN_SRC ) {	/* Infinite server! */
 	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], enabling, EXPONENTIAL, "s%s%d%d", this->name(), m, s );
 	} else {
 	    c_trans = create_trans( X_OFFSET(s_pos+2,0), y_pos - 0.5, layer_mask, -this->_rpar_s[0], 1, EXPONENTIAL, "s%s%d%d", this->name(), m, s );
 	}
-	if ( this->s() > 0.0 && task()->type() != OPEN_SRC ) {
+	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
 	    processor_acquired( c_trans, m, s );
 	}
 
@@ -429,7 +429,7 @@ Phase::transmorgrify( const double x_pos, const double y_pos, const unsigned m,
 	} else {
 	    this->doneX[m] = c_trans;
 	}
-	if ( this->s() > 0.0 && task()->type() != OPEN_SRC ) {
+	if ( this->s() > 0.0 && task()->type() != Task::Type::OPEN_SRC ) {
 	    release_processor( c_trans, m, s );
 	}
 	if ( this->is_hyperexponential() ) {
@@ -811,8 +811,8 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 
 	    /* Drop probabiltity */
 
-	    if ( call._dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY
-		 || call._dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY ) {
+	    if ( call._dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY
+		 || call._dom->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY ) {
 		src->second._dp = drop_lambda( m, b, src_phase ) / tput;
 	    }
 
@@ -928,7 +928,7 @@ Phase::simplify_phase() const
 bool
 Call::is_rendezvous() const
 {
-    return _dom->getCallType() == LQIO::DOM::Call::RENDEZVOUS || _dom->getCallType() == LQIO::DOM::Call::QUASI_RENDEZVOUS;
+    return _dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom->getCallType() == LQIO::DOM::Call::Type::QUASI_RENDEZVOUS;
 }
 
 
@@ -936,7 +936,7 @@ Call::is_rendezvous() const
 bool
 Call::is_send_no_reply() const
 {
-    return _dom->getCallType() == LQIO::DOM::Call::SEND_NO_REPLY || _dom->getCallType() == LQIO::DOM::Call::QUASI_SEND_NO_REPLY;
+    return _dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY || _dom->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY;
 }
 
 double
