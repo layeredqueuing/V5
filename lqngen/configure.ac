@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqngen/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 13996 2020-10-24 22:01:20Z greg $
+# $Id: configure.ac 14429 2021-01-29 20:49:19Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ(2.57)
 AC_INIT(lqngen, 5.19, greg@sce.carleton.ca)

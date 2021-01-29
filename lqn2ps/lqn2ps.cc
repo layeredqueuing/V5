@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: lqn2ps.cc 14429 2021-01-29 20:49:19Z greg $
  *
  * Command line processing.
  *
@@ -194,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-25 08:56:07 -0500 (Mon, 25 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-01-29 15:49:19 -0500 (Fri, 29 Jan 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -967,7 +967,7 @@ process( const std::string& input_file_name, const std::string& output_file_name
     /* Now fold, mutiliate and spindle */
 
     if ( queueing_output() ) {
-	pragmas.insert(LQIO::DOM::Pragma::_bcmp_,LQIO::DOM::Pragma::_true_);
+//	pragmas.insert(LQIO::DOM::Pragma::_bcmp_,LQIO::DOM::Pragma::_true_);
     }
     document->mergePragmas( pragmas.getList() );       	/* Save pragmas -- prepare will process */
     Pragma::set( document->getPragmaList() );

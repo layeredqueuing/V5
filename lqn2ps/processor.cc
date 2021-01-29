@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14416 2021-01-27 19:58:25Z greg $
+ * $Id: processor.cc 14429 2021-01-29 20:49:19Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -393,21 +393,16 @@ Processor::colour() const
 Processor&
 Processor::label()
 {
+    *myLabel << name();
     if ( Flags::print[INPUT_PARAMETERS].value.b && queueing_output() ) {
 	for ( std::set<Task *>::const_iterator nextTask = tasks().begin(); nextTask != tasks().end(); ++nextTask ) {
 	    const Task * aTask = *nextTask;
 	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
-		*myLabel << (*entry)->name() << " (" << print_number_slices( *(*entry) ) << ")";
 		myLabel->newLine();
-	    }
-	    myLabel->newLine();
-	    Entity::label();
-	    for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
-		myLabel->newLine() << (*entry)->name() << " [" << print_slice_time( *(*entry) ) << "]";
+		*myLabel << (*entry)->name() << " [" << print_service_time( *(*entry) ) << "]";
 	    }
 	}
     } else {
-	*myLabel << name();
 	if ( scheduling() != SCHEDULE_FIFO && !isInfinite() ) {
 	    *myLabel << "*";
 	}

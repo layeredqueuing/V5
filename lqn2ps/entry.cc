@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: entry.cc 14429 2021-01-29 20:49:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1983,6 +1983,7 @@ Entry::labelQueueingNetworkWaiting( Label& aLabel )
 Entry&
 Entry::labelQueueingNetworkService( Label& aLabel ) 
 {
+    aLabel.newLine() << name() << "[" << print_service_time(*this) << "]";
     return *this;
 }
 
