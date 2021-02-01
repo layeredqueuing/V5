@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14427 2021-01-28 23:13:01Z greg $
+ * $Id: qnsolver.cc 14436 2021-02-01 13:12:53Z greg $
  */
 
 #include <algorithm>
@@ -15,6 +15,7 @@
 #include <lqio/srvn_spex.h>
 #include <lqx/Program.h>
 #include "closedmodel.h"
+#include "openmodel.h"
 #include "runlqx.h"
 
 
@@ -155,8 +156,9 @@ int main (int argc, char *argv[])
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
 	    if ( !input.parse() ) continue;
-	    ClosedModel model( input.model() );
-	    if ( !model ) continue;
+	    ClosedModel closed_model( input.model() );
+	    OpenModel open_model( input.model() );
+	    if ( !closed_model && !open_model ) continue;
 
 	    if ( input.hasSPEX() ) {
 		std::vector<LQX::SyntaxTreeNode *> * program = new std::vector<LQX::SyntaxTreeNode *>;
@@ -167,7 +169,7 @@ int main (int argc, char *argv[])
 		    lqx->print( std::cout );
 		}
 		LQX::Environment * environment = lqx->getEnvironment();
-		environment->getMethodTable()->registerMethod(new SolverInterface::Solve(model, solver));
+		environment->getMethodTable()->registerMethod(new SolverInterface::Solve(closed_model, solver, open_model));
 		BCMP::RegisterBindings(environment, &input.model());
 //		set output...
 //		    environment->setDefaultOutput( output );      /* Default is stdout */
@@ -182,12 +184,19 @@ int main (int argc, char *argv[])
 		    environment->invokeGlobalMethod("solve", &args);
 		}
 		
-	    } else if ( model.instantiate() ) {
+	    } else if ( open_model && open_model.instantiate() ) {
 		if ( debug_flag ) {
-		    model.debug( std::cout );
+		    open_model.debug( std::cout );
 		}
-		if ( model.solve( solver ) ) {
-		    model.print( std::cout );		/* for now. */
+		if ( open_model.solve() ) {
+		    open_model.print( std::cout );		/* for now. */
+		}
+	    } else if ( closed_model && closed_model.instantiate() ) {
+		if ( debug_flag ) {
+		    closed_model.debug( std::cout );
+		}
+		if ( closed_model.solve( solver ) ) {
+		    closed_model.print( std::cout );		/* for now. */
 		}
 	    }
 	}

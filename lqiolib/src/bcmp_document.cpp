@@ -78,12 +78,6 @@ namespace BCMP {
 	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(Chain::Type::OPEN) );
     }
     
-    bool
-    Model::hasConstantCustomers() const
-    {
-	return std::all_of( chains().begin(), chains().end(), &Model::Chain::has_constant_customers );
-    }
-
     /*
      * Find the station in the map
      */
@@ -166,12 +160,6 @@ namespace BCMP {
 
     const char * const Model::Chain::__typeName = "chain";
 
-    /* static */ bool
-    Model::Chain::has_constant_customers( const Chain::pair_t& k )
-    {
-	return k.second.customers() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(k.second.customers()) != nullptr;
-    }
-
     std::string
     Model::Chain::fold::operator()( const std::string& s1, const Chain::pair_t& c2 ) const
     {
@@ -200,12 +188,6 @@ namespace BCMP {
 	return _classes.emplace( class_name, clasx ).second;
     }
 
-    bool
-    Model::Station::hasConstantServiceTime() const
-    {
-	return std::all_of( classes().begin(), classes().end(), &Class::has_constant_service_time );
-    }
-
     /*
      * Find the station in the map
      */
@@ -217,12 +199,6 @@ namespace BCMP {
 	    if ( k == &ki->second ) return ki;
 	}
 	return classes().end();
-    }
-
-    bool
-    Model::Station::hasConstantVisits() const
-    {
-	return std::all_of( classes().begin(), classes().end(), &Class::has_constant_visits );
     }
 
     double Model::Station::throughput() const
@@ -303,7 +279,7 @@ namespace BCMP {
     }
 
     Model::Station::Class::map_t
-    Model::Station::select::operator()( const Station::Class::map_t& augend, const Station::pair_t& m ) const
+    Model::Station::select::operator()( const Class::map_t& augend, const Station::pair_t& m ) const
     {
 	const Station& station = m.second;
 	if ( (*_test)( m ) ) {
@@ -357,20 +333,6 @@ namespace BCMP {
 	if ( _results.at(Result::Type::THROUGHPUT) == 0. ) return *this;
 	_results.at(Result::Type::RESIDENCE_TIME) = _results.at(Result::Type::QUEUE_LENGTH) / _results.at(Result::Type::THROUGHPUT);
 	return *this;
-    }
-
-    /*
-     * Return true if my class is constant
-     */
-
-    bool Model::Station::Class::has_constant_service_time( const Station::Class::pair_t& clasx )
-    {
-	return clasx.second.service_time() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(clasx.second.service_time()) != nullptr;
-    }
-
-    bool Model::Station::Class::has_constant_visits( const Station::Class::pair_t& clasx )
-    {
-	return clasx.second.visits() == nullptr || dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(clasx.second.visits()) != nullptr;
     }
 
     Model::Station::Class::map_t

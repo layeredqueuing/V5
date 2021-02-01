@@ -176,8 +176,9 @@ namespace BCMP {
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
 	void createResults( Object& object, const XML_Char ** attributes );
+	expr_list* createResult( expr_list*, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r );
 	void setResultVariables( const std::string& );
-	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, Model::Station *, Model::Station::Class * );
+	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const Model::Station *, const Model::Station::Class * );
 
 	class what_if {
 	private:
@@ -346,6 +347,7 @@ namespace BCMP {
 	static const XML_Char * Xvalues;
 
 	static const XML_Char * XalgCount;
+	static const XML_Char * Xiteration;
 	static const XML_Char * Xiterations;
 	static const XML_Char * XiterationValue;
 	static const XML_Char * Xok;
@@ -354,9 +356,12 @@ namespace BCMP {
 
 	static const XML_Char * XResultVariables;
 	static const XML_Char * XNumber_of_Customers;
+	static const XML_Char * XNumberOfCustomers;
 	static const XML_Char * XThroughput;
 	static const XML_Char * XResidence_time;
+	static const XML_Char * XResidenceTime;
 	static const XML_Char * XUtilization;
+	static const XML_Char * Xnormconst;
 
     };
 

@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14423 2021-01-28 18:44:11Z greg $
+ * $Id: runlqx.cc 14436 2021-02-01 13:12:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,7 +62,7 @@ namespace SolverInterface
 	// }
 			
 	/* Make sure all external variables are accounted for */
-	bool ok = false;
+	bool ok = true;
 	    
 	    // const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	    // if ( undefined.size() > 0) {
@@ -74,12 +74,15 @@ namespace SolverInterface
 	    // 	throw std::runtime_error( msg );
 	    // }
 	try {
-	    if ( _model.instantiate() ) {
-		if ( debug_flag ) _model.debug(std::cout);
-		ok = _model.solve( _solver );
-		if ( debug_flag ) _model.print(std::cout);
-	    } else {
-		ok = false;
+	    if ( _open_model && _open_model.instantiate() ) {
+		if ( debug_flag ) _open_model.debug(std::cout);
+		ok = _open_model.solve();
+		if ( debug_flag ) _open_model.print(std::cout);
+	    }
+	    if ( _closed_model && _closed_model.instantiate() ) {
+		if ( debug_flag ) _closed_model.debug(std::cout);
+		ok = _closed_model.solve( _solver );
+		if ( debug_flag ) _closed_model.print(std::cout);
 	    }
 	}
 	catch ( const std::runtime_error& error ) {

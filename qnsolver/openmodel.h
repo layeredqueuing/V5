@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/closedmodel.h $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/openmodel.h $
  *
  * SRVN command line interface.
  *
@@ -9,70 +9,64 @@
  *
  * December 2020
  *
- * $Id: closedmodel.h 14435 2021-02-01 03:05:05Z greg $
+ * $Id: openmodel.h 14436 2021-02-01 13:12:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if !defined(CLOSEDMODEL_H)
-#define CLOSEDMODEL_H
+#if !defined(OPENMODEL_H)
+#define OPENMODEL_H
 #include <config.h>
 #include <string>
 #include <map>
 #include <lqio/bcmp_document.h>
-#include <mva/pop.h>
 #include <mva/vector.h>
 
+
 class Server;
-class MVA;
+class Open;
 
-class ClosedModel {
-public:
-    	enum class Using {EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
-    
+class OpenModel {
 private:
     class CreateChainIndex {
     public:
-	CreateChainIndex( ClosedModel& model ) : _model(model) {}
+	CreateChainIndex( OpenModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Chain::pair_t& pair );
 
     private:
 	std::map<const std::string,size_t>& index() { return _model._index.k; }
 	
     private:
-	ClosedModel& _model;
+	OpenModel& _model;
     };
 
     class CreateStationIndex {
     public:
-	CreateStationIndex( ClosedModel& model ) : _model(model) {}
+	CreateStationIndex( OpenModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
 	std::map<const std::string,size_t>& index() { return _model._index.m; }
 
     private:
-	ClosedModel& _model;
+	OpenModel& _model;
     };
 
     class InstantiateChain {
     public:
-	InstantiateChain( ClosedModel& model ) : _model(model) {}
+	InstantiateChain( OpenModel& model ) : _model(model) {}
 	void operator()( const BCMP::Model::Chain::pair_t& pair );
 
     private:
 	size_t indexAt( const std::string& name ) { return _model._index.k.at(name); }
-	unsigned& N(size_t k) { return _model.N[k]; }
-	double& Z(size_t k) { return _model.Z[k]; }
-	unsigned& priority(size_t k) { return _model.priority[k]; }
 	
     private:
-	ClosedModel& _model;
+	OpenModel& _model;
     };
 
     class InstantiateStation {
     private:
 	class InstantiateClass {
 	public:
-	    InstantiateClass( ClosedModel& model, Server& server ) : _model(model), _server(server) {}
+	    InstantiateClass( OpenModel& model, Server& server ) : _model(model), _server(server) {}
 	    void operator()( const BCMP::Model::Station::Class::pair_t& );
 
 	private:
@@ -80,12 +74,12 @@ private:
 	    size_t indexAt(const std::string& name) const { return _model._index.k.at(name); }
 	    
 	private:
-	    const ClosedModel& _model;
+	    const OpenModel& _model;
 	    Server& _server;
 	};
 
     public:
-	InstantiateStation( ClosedModel& model ) : _model(model), K(model._index.k.size()) {}
+	InstantiateStation( OpenModel& model ) : _model(model), K(model._index.k.size()) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
 	size_t indexAt(const std::string& name ) const { return _model._index.m.at(name); }
 
@@ -93,7 +87,7 @@ private:
 	Server*& Q(size_t m) { return _model.Q[m]; }
 
     private:
-	ClosedModel& _model;
+	OpenModel& _model;
 	size_t K;
     };
 
@@ -104,16 +98,16 @@ private:
 
     
 public:
-    ClosedModel( const BCMP::Model& model );
-    ~ClosedModel();
+    OpenModel( const BCMP::Model& model );
+    ~OpenModel();
 
     explicit operator bool() const { return _result == true; }
     bool instantiate();
     std::ostream& debug( std::ostream& output ) const;
-    bool solve( Using );
+    bool solve();
     
 private:
-    void saveResults( const MVA& mva );
+    void saveResults( const Open& open );
 
     /* inputs */
     const BCMP::Model::Chain::map_t& chains() const { return _model.chains(); }
@@ -148,11 +142,7 @@ private:
     const BCMP::Model& _model;			/* Input */
     Index _index;				/* Map name to station/class no. */
     
-    Population N;				/* Population (by class) 	*/
     Vector<Server *> Q;				/* Stations. */
-    VectorMath<double> Z;			/* Think Time */
-    VectorMath<unsigned> priority;		/* Priority */
     bool _result;
-    std::string _solver;
 };
 #endif

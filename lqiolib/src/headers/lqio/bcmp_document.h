@@ -93,8 +93,6 @@ namespace BCMP {
 		const std::string& _suffix;
 	    };
 
-	    static bool has_constant_customers( const Chain::pair_t& );
-
 	private:
 	    struct is_a {
 		is_a( Type type ) : _type(type) {}
@@ -154,9 +152,6 @@ namespace BCMP {
 		Class& accumulate( double visits, double demand );
 		Class& accumulate( const Class& addend );
 
-		static bool has_constant_service_time( const Class::pair_t& );
-		static bool has_constant_visits( const Class::pair_t& );
-
 		double throughput() const { return _results.at(Result::Type::THROUGHPUT); }
 		double queue_length() const { return _results.at(Result::Type::QUEUE_LENGTH); }
 		double residence_time() const { return _results.at(Result::Type::RESIDENCE_TIME); }
@@ -207,8 +202,6 @@ namespace BCMP {
 
 	    static bool isCustomer( const Station::pair_t& m ) { return m.second.type() == Type::CUSTOMER; }
 	    static bool isServer( const Station::pair_t& m ) { return m.second.type() != Type::CUSTOMER && m.second.type() != Type::NOT_DEFINED; }
-	    bool hasConstantServiceTime() const;
-	    bool hasConstantVisits() const;
 
 	    virtual double throughput() const;
 	    virtual double queue_length() const;
@@ -278,7 +271,6 @@ namespace BCMP {
 	size_t n_closed_chains() const;
 	size_t n_open_chains() const;
 	
-	bool hasConstantCustomers() const;
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 
 	bool insertComment( const std::string comment ) { _comment = comment; return true; }

@@ -395,7 +395,7 @@ namespace BCMP {
     void
     JMVA_Document::startModel( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
-	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiterations, XiterationValue, Xok, XsolutionMethod, XResultVariables };
+	static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> solutions_table = { XalgCount, Xiteration, XiterationValue, Xok, XsolutionMethod, XResultVariables };
 
 	if ( strcasecmp( element, Xdescription ) == 0 ) {
 	    checkAttributes( element, attributes, null_table );
@@ -661,7 +661,7 @@ namespace BCMP {
     JMVA_Document::startSolutions( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	if ( strcasecmp( element, Xalgorithm ) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> table = { XalgCount, Xiterations, XiterationValue, Xok, XsolutionMethod };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> table = { Xiterations, Xname };
 	    checkAttributes( element, attributes, table );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startAlgorithm,object) );
 	} else {
@@ -669,24 +669,19 @@ namespace BCMP {
 	}
     }
 
-    const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::class_results_table = { Xclass, XNumber_of_Customers, XThroughput, XResidence_time, XUtilization };
+    const std::set<const XML_Char *,JMVA_Document::attribute_table_t> JMVA_Document::class_results_table = { Xcustomerclass, XThroughput, XUtilization, XResidenceTime, XNumberOfCustomers };
     
     void
     JMVA_Document::startAlgorithm( Object& object, const XML_Char * element, const XML_Char ** attributes )
     {
 	if ( strcasecmp( element, Xstationresults ) == 0 ) {
-	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_results_table = { Xstation, XNumber_of_Customers, XThroughput, XResidence_time, XUtilization };
+	    static const std::set<const XML_Char *,JMVA_Document::attribute_table_t> station_results_table = { Xstation, XThroughput, XUtilization, XResidenceTime, XNumberOfCustomers };
 	    checkAttributes( element, attributes, station_results_table );
 	    const std::string name = XML::getStringAttribute(attributes,Xstation);
 	    Object mk_object(Object::MK(&_model.stationAt(name),nullptr));
 	    createResults( mk_object, attributes );
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startStationResults,mk_object) );
-#if 0
-	} else if ( strcasecmp( element, Xclassresults ) == 0 ) {
-	    checkAttributes( element, attributes, class_results_table );
-	    const std::string name = XML::getStringAttribute(attributes,Xclass);
-	    _stack.push( parse_stack_t(element,&JMVA_Document::startClassResults,Object(&_model.chainAt(name))) );
-#endif
+	} else if ( strcasecmp( element, Xnormconst ) == 0 ) {
 	} else {
 	    throw LQIO::element_error( element );
 	}
@@ -698,7 +693,7 @@ namespace BCMP {
 	if ( strcasecmp( element, Xclassresults ) == 0 ) {
 	    checkAttributes( element, attributes, class_results_table );
 	    createResults( object, attributes );
-	    const std::string name = XML::getStringAttribute(attributes,Xclass);
+	    const std::string name = XML::getStringAttribute(attributes,Xcustomerclass);
 	    Object::MK& mk = object.getMK();
 	    const BCMP::Model::Station * m = mk.first;
 	    mk.second = &m->classAt(name);
@@ -889,6 +884,18 @@ namespace BCMP {
 		_variables.emplace( name, x );
 	    }
 	    m.setCopies( x );
+	} else if ( type == "Arrival Rates" ) {
+	    Model::Chain& k = chains().at(className);
+	    std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
+	    if ( var != _arrival_rate_vars.end() ) {
+		x = _variables.at(var->second);
+		name = x->getName();
+	    } else {
+		name = "$M" + std::to_string(_arrival_rate_vars.size() + 1);
+		x = new LQIO::DOM::SymbolExternalVariable( name );
+		_arrival_rate_vars.emplace( &k, name );
+		_variables.emplace( name, x );
+	    }
 	} else {
 	    abort();
 	}
@@ -898,21 +905,40 @@ namespace BCMP {
     }
 
     /* 
-     * Tokeninze the string.
+     * Save the result variables that control the output.  If none are
+     * present (like if reading a model produced from JMVA, then
+     * auto-create them all).
      */
     
     void
     JMVA_Document::setResultVariables( const std::string& attr )
     {
 	std::string s = attr;
-	size_t pos = 0;
-	while ((pos = s.find(";")) != std::string::npos) {
-	    std::string variable = s.substr(0, pos);
-	    s.erase(0, pos + 1);
-	    _result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( variable.c_str(), nullptr ) ) );
-	}
 	if ( !s.empty() ) {
-	    _result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( s.c_str(), nullptr ) ) );
+	    /* Tokeninze the input string on ';' */
+	    size_t pos = 0;
+	    while ((pos = s.find(";")) != std::string::npos) {
+		std::string variable = s.substr(0, pos);
+		s.erase(0, pos + 1);
+		_result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( variable.c_str(), nullptr ) ) );
+	    }
+	    if ( !s.empty() ) {
+		_result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( s.c_str(), nullptr ) ) );
+	    }
+	} else {
+	    /* For all stations... create name_X, name_Q, name_R and name_U */
+	    for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+		static const std::map<const std::string,const Model::Result::Type> result = {
+		    {"_Q", Model::Result::Type::QUEUE_LENGTH},
+		    {"_X", Model::Result::Type::THROUGHPUT},
+		    {"_R", Model::Result::Type::RESIDENCE_TIME},
+		    {"_U", Model::Result::Type::UTILIZATION}
+		};
+
+		for ( std::map<const std::string,const Model::Result::Type>::const_iterator r = result.begin(); r != result.end(); ++r ) {
+		    _result_vars = createResult( _result_vars, m, r );
+		}
+	    }
 	}
     }
 
@@ -924,9 +950,9 @@ namespace BCMP {
     JMVA_Document::createResults( Object& object, const XML_Char ** attributes )
     {
 	static const std::map<const std::string,const Model::Result::Type> table = {
-	    {XNumber_of_Customers,  Model::Result::Type::QUEUE_LENGTH},
+	    {XNumberOfCustomers,    Model::Result::Type::QUEUE_LENGTH},
 	    {XThroughput, 	    Model::Result::Type::THROUGHPUT},
-	    {XResidence_time, 	    Model::Result::Type::RESIDENCE_TIME},
+	    {XResidenceTime, 	    Model::Result::Type::RESIDENCE_TIME},
 	    {XUtilization, 	    Model::Result::Type::UTILIZATION}
 	};
 
@@ -944,8 +970,23 @@ namespace BCMP {
     }
 
 
+    /* 
+     * Create result and observation.
+     */
+    
+    expr_list* 
+    JMVA_Document::createResult( expr_list* list, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r )
+    {
+	std::string name;
+	name = m->first + r->first;
+	list = static_cast<expr_list*>( spex_list( list, spex_result_assignment_statement( name.c_str(), nullptr ) ) );
+	createObservation( name, r->second, &m->second, nullptr );		/* Station results only */
+	return list;
+    }
+
+
     LQX::SyntaxTreeNode * 
-    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, Model::Station * m, Model::Station::Class * k )
+    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, const Model::Station * m, const Model::Station::Class * k )
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
 	    { BCMP::Model::Result::Type::RESIDENCE_TIME, BCMP::__lqx_residence_time },
@@ -1070,7 +1111,7 @@ namespace BCMP {
 		std::for_each( station_variables.begin(), station_variables.end(), printResultVariable( output ) );
 		output << ">" << std::endl;
 		for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
-		output << XML::start_element( Xclassresults ) << XML::attribute( Xclass, k->first );
+		output << XML::start_element( Xclassresults ) << XML::attribute( Xcustomerclass, k->first );
 		const BCMP::Model::Station::Class& clasx = k->second;
 		const BCMP::Model::Result::map_t& class_variables = clasx.resultVariables();
 		std::for_each( class_variables.begin(), class_variables.end(), printResultVariable( output ) );
@@ -1091,8 +1132,8 @@ namespace BCMP {
     JMVA_Document::printResultVariable::operator()( const Model::Result::pair_t& r ) const
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> attribute = {
-	    { BCMP::Model::Result::Type::QUEUE_LENGTH, XNumber_of_Customers },
-	    { BCMP::Model::Result::Type::RESIDENCE_TIME, XResidence_time },
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH, XNumberOfCustomers },
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME, XResidenceTime },
 	    { BCMP::Model::Result::Type::THROUGHPUT, XThroughput }, 
 	    { BCMP::Model::Result::Type::UTILIZATION, XUtilization }
 	};
@@ -1346,6 +1387,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xvalues		= "values";
 
     const XML_Char * JMVA_Document::XalgCount 		= "algCount"; 
+    const XML_Char * JMVA_Document::Xiteration		= "iteration";
     const XML_Char * JMVA_Document::Xiterations		= "iterations";
     const XML_Char * JMVA_Document::XiterationValue	= "iterationValue";
     const XML_Char * JMVA_Document::Xok			= "ok";
@@ -1354,7 +1396,10 @@ namespace BCMP {
 
     const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
     const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
+    const XML_Char * JMVA_Document::XNumberOfCustomers	= "NumberOfCustomers";
     const XML_Char * JMVA_Document::XThroughput         = "Throughput";
     const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
+    const XML_Char * JMVA_Document::XResidenceTime      = "ResidenceTime";
     const XML_Char * JMVA_Document::XUtilization        = "Utilization";
+    const XML_Char * JMVA_Document::Xnormconst          = "normconst";
 }

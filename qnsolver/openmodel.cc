@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/closedmodel.cc $
+ * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/openmodel.cc $
  *
  * SRVN command line interface.
  *
@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 14435 2021-02-01 03:05:05Z greg $
+ * $Id: openmodel.cc 14436 2021-02-01 13:12:53Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -21,26 +21,24 @@
 #include <numeric>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
-#include "closedmodel.h"
+#include "openmodel.h"
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
 #include <mva/prob.h>
 #include <mva/multserv.h>
+#include <mva/open.h>
 
-ClosedModel::ClosedModel( const BCMP::Model& model ) : _model(model), _index(), N(), Z(), priority(), _solver("")
+OpenModel::OpenModel( const BCMP::Model& model ) : _model(model), _index()
 {
-    const size_t K = model.n_closed_chains();
+    const size_t K = model.n_open_chains();
     if ( K == 0 ) {
 	_result = false;
 	return;
     } 
 
-    /* Dimension the parameters */
-    
-    N.resize(K);
-    Z.resize(K);
-    priority.resize(K);
     Q.resize(model.stations().size());
+    
+    /* Dimension the parameters */
 
     try {
 	std::for_each( chains().begin(), chains().end(), CreateChainIndex( *this ) );
@@ -53,16 +51,14 @@ ClosedModel::ClosedModel( const BCMP::Model& model ) : _model(model), _index(), 
 }
 
 
-ClosedModel::~ClosedModel()
+OpenModel::~OpenModel()
 {
 }
 
 
 bool
-ClosedModel::instantiate()
+OpenModel::instantiate()
 {
-    if ( !_result ) return _result;		/* Nothing to do. */
-
     try {
 	std::for_each( chains().begin(), chains().end(), InstantiateChain( *this ) );
 	std::for_each( stations().begin(), stations().end(), InstantiateStation( *this ) );
@@ -76,71 +72,62 @@ ClosedModel::instantiate()
 
 
 bool
-ClosedModel::solve( Using solver )
-
+OpenModel::solve()
 {
-    /* Run the solver and return its success as a boolean value */
-    MVA * mva = nullptr;
-    switch ( solver ) {
-    case Using::EXACT_MVA:	    mva = new ExactMVA(   Q, N, Z, priority ); break;
-    case Using::BARD_SCHWEITZER:    mva = new Schweitzer( Q, N, Z, priority ); break;
-    case Using::LINEARIZER:	    mva = new Linearizer( Q, N, Z, priority ); break;
+    Open open( Q );
+    try {
+	open.solve();
+	saveResults( open );
     }
-    assert( mva != nullptr );
-    bool ok = mva->solve();
-    if ( ok ) {
-	saveResults( *mva );
+    catch ( const std::range_error& e ) {
+	return false;
     }
-    delete mva;
-    return ok;
+    return true;
 }
 
 
 void
-ClosedModel::saveResults( const MVA& solver )
+OpenModel::saveResults( const Open& open )
 {
-    _solver = solver.getTypeName();
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	const size_t m = _index.m.at(mi->first);
 	for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	    const size_t k = _index.k.at(ki->first);
-	    const_cast<BCMP::Model::Station&>(mi->second).classes()[ki->first].setResults( solver.throughput( m, k, N ),
-											   solver.queueLength( m, k, N ),
+	    const_cast<BCMP::Model::Station&>(mi->second).classes()[ki->first].setResults( open.throughput( *Q[m] ),
+											   0. /* open.queueLength( m, k ) */,
 											   Q[m]->R(k),
-											   solver.utilization( m, k, N ) );
+											   open.utilization( *Q[m] ) );
 	}
     }
 }
 
 void
-ClosedModel::CreateChainIndex::operator()( const BCMP::Model::Chain::pair_t& input ) 
+OpenModel::CreateChainIndex::operator()( const BCMP::Model::Chain::pair_t& input ) 
 {
-    if ( !input.second.isClosed() ) return;
+    if ( !input.second.isOpen() ) return;
     index().emplace( input.first, index().size() + 1 );
 }
 
 void
-ClosedModel::CreateStationIndex::operator()( const BCMP::Model::Station::pair_t& input )
+OpenModel::CreateStationIndex::operator()( const BCMP::Model::Station::pair_t& input )
 {
     const size_t m = index().size() + 1;
     index().emplace( input.first, m );
 }
 
 void
-ClosedModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input ) 
+OpenModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input ) 
 {
-    if ( !input.second.isClosed() ) return;
-    const size_t k = indexAt(input.first);
-    N(k) = LQIO::DOM::to_unsigned(*input.second.customers());
-    Z(k) = LQIO::DOM::to_double(*input.second.think_time());
-    priority(k) = 0;
+    if ( !input.second.isOpen() ) return;
+    /* Nothing to do here */
+//    const size_t k = indexAt(input.first);
 }
 
 void
-ClosedModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
+OpenModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
 {
     try {
-	if ( !chainAt(input.first).isClosed() ) return;		/* open chain, ignore */
+	if ( !chainAt(input.first).isOpen() ) return;		/* open chain, ignore */
 	const size_t k = indexAt(input.first);
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
 	_server.setService( k, LQIO::DOM::to_double( *demand.service_time()) );
@@ -152,7 +139,7 @@ ClosedModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model
 }
 
 void
-ClosedModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input )
+OpenModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input )
 {
     const size_t m = indexAt(input.first);
     if ( Q(m) != nullptr ) delete Q(m);		/* out with the old... */
@@ -194,11 +181,11 @@ ClosedModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t&
 }
 
 std::ostream&
-ClosedModel::debug( std::ostream& output ) const
+OpenModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
 	output << "Class "  << ki->first;
-	if ( ki->second.isClosed() ) {
+	if ( ki->second.isOpen() ) {
 	    output << ": customers=" << *ki->second.customers() << std::endl;
 	} else {
 	    output << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
@@ -215,16 +202,16 @@ ClosedModel::debug( std::ostream& output ) const
 }
 
 
-std::streamsize ClosedModel::__width = 10;
-std::streamsize ClosedModel::__precision = 6;
-std::string ClosedModel::__separator = "*";
+std::streamsize OpenModel::__width = 10;
+std::streamsize OpenModel::__precision = 6;
+std::string OpenModel::__separator = "*";
 
 
 std::ostream&
-ClosedModel::print( std::ostream& output ) const
+OpenModel::print( std::ostream& output ) const
 {
     const std::streamsize old_precision = output.precision(__precision);
-    output << " - (" << _solver << ") - " << std::endl;
+//    output << " - (" << _solver << ") - " << std::endl;
     output.fill('*');
     output << std::setw(__width*6+7) << "*" << std::endl;
     output.fill(' ');
@@ -242,7 +229,7 @@ ClosedModel::print( std::ostream& output ) const
 	output.setf(std::ios::left, std::ios::adjustfield);
 	output.fill(' ');
 	if ( results.size() > 1 ) {
-	    output << __separator << std::setw(__width) << " " << ClosedModel::blankline() << __separator << std::endl;
+	    output << __separator << std::setw(__width) << " " << OpenModel::blankline() << __separator << std::endl;
 	}
 	output << __separator << std::setw(__width) << ( " " + mi->first );
 	print(output,service,sum);
@@ -257,7 +244,7 @@ ClosedModel::print( std::ostream& output ) const
 	    }
 	}
     }
-    output << __separator << std::setw(__width) << " " << ClosedModel::blankline() << __separator << std::endl;
+    output << __separator << std::setw(__width) << " " << OpenModel::blankline() << __separator << std::endl;
     output.fill('*');
     output << std::setw(__width*6+7) << "*" << std::endl;
     output.precision(old_precision);
@@ -265,7 +252,7 @@ ClosedModel::print( std::ostream& output ) const
 }
 
 std::ostream&
-ClosedModel::print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const
+OpenModel::print( std::ostream& output, double service_time, const BCMP::Model::Station::Result& item ) const
 {
     output.unsetf( std::ios::floatfield );
     output << __separator << std::setw(__width) << service_time
@@ -278,7 +265,7 @@ ClosedModel::print( std::ostream& output, double service_time, const BCMP::Model
 
 
 std::string
-ClosedModel::header()
+OpenModel::header()
 {
     std::ostringstream output;
     output << __separator << std::setw(__width) << "service "
@@ -290,7 +277,7 @@ ClosedModel::header()
 }
 
 std::string
-ClosedModel::blankline()
+OpenModel::blankline()
 {
     std::ostringstream output;
     for ( unsigned i = 0; i < 5; ++i ) {

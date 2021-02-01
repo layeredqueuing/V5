@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14426 2021-01-28 20:17:28Z greg $
+ * $Id: qnap2_document.cpp 14433 2021-01-31 23:24:13Z greg $
  *
  * Read in XML input files.
  *
@@ -186,7 +186,7 @@ namespace BCMP {
     std::string
     QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Chain::pair_t& k ) const
     {
-	if ( !Model::Chain::has_constant_customers( k ) && _symbol_table.insert(k.second.customers()).second == true ) {
+	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(k.second.customers()) && _symbol_table.insert(k.second.customers()).second == true ) {
 	    std::ostringstream ss;
 	    ss << s1;
 	    if ( !s1.empty() ) ss << ",";
@@ -213,7 +213,7 @@ namespace BCMP {
     std::string
     QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Station::Class::pair_t& demand ) const
     {
-	if ( !Model::Station::Class::has_constant_service_time( demand ) && _symbol_table.insert(demand.second.service_time()).second == true ) {
+	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(demand.second.service_time()) && _symbol_table.insert(demand.second.service_time()).second == true ) {
 	    std::ostringstream ss;
 	    ss << s1;
 	    if ( !s1.empty() ) ss << ",";
