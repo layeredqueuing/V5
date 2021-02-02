@@ -891,11 +891,12 @@ namespace BCMP {
 		x = _variables.at(var->second);
 		name = x->getName();
 	    } else {
-		name = "$M" + std::to_string(_arrival_rate_vars.size() + 1);
+		name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
 		x = new LQIO::DOM::SymbolExternalVariable( name );
 		_arrival_rate_vars.emplace( &k, name );
 		_variables.emplace( name, x );
 	    }
+	    k.setArrivalRate( x );
 	} else {
 	    abort();
 	}
@@ -926,13 +927,16 @@ namespace BCMP {
 		_result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( s.c_str(), nullptr ) ) );
 	    }
 	} else {
+	    for (std::map<std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
+		_result_vars = static_cast<expr_list *>(spex_list( _result_vars, spex_result_assignment_statement( var->first.c_str(), nullptr ) ));
+	    }
 	    /* For all stations... create name_X, name_Q, name_R and name_U */
 	    for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 		static const std::map<const std::string,const Model::Result::Type> result = {
-		    {"_Q", Model::Result::Type::QUEUE_LENGTH},
-		    {"_X", Model::Result::Type::THROUGHPUT},
-		    {"_R", Model::Result::Type::RESIDENCE_TIME},
-		    {"_U", Model::Result::Type::UTILIZATION}
+		    {"$Q_", Model::Result::Type::QUEUE_LENGTH},
+		    {"$X_", Model::Result::Type::THROUGHPUT},
+		    {"$R_", Model::Result::Type::RESIDENCE_TIME},
+		    {"$U_", Model::Result::Type::UTILIZATION}
 		};
 
 		for ( std::map<const std::string,const Model::Result::Type>::const_iterator r = result.begin(); r != result.end(); ++r ) {
@@ -978,7 +982,9 @@ namespace BCMP {
     JMVA_Document::createResult( expr_list* list, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r )
     {
 	std::string name;
-	name = m->first + r->first;
+	name = r->first + m->first;	// Don't forget leading $!
+	Model::Result::map_t& result_vars = const_cast<Model::Result::map_t&>(m->second.resultVariables());
+	result_vars[r->second] = name;
 	list = static_cast<expr_list*>( spex_list( list, spex_result_assignment_statement( name.c_str(), nullptr ) ) );
 	createObservation( name, r->second, &m->second, nullptr );		/* Station results only */
 	return list;

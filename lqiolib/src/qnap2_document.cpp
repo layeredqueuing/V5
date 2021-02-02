@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14433 2021-01-31 23:24:13Z greg $
+ * $Id: qnap2_document.cpp 14438 2021-02-02 02:08:50Z greg $
  *
  * Read in XML input files.
  *
@@ -573,9 +573,10 @@ namespace BCMP {
 	    result = "terminal";
 	    if ( multiclass() ) result += "," + class_name;
 	    result += ")*(";
-	    result = std::accumulate( stations().begin(), stations().end(), result, fold_visits( class_name ) );
+	    result += std::accumulate( stations().begin(), stations().end(), result, fold_visits( class_name ) );
+	    result += ")+(";
+	    result += std::accumulate( stations().begin(), stations().end(), result, fold_mresponse( class_name, chains() ) );
 	    result += ")";
-	    result = std::accumulate( stations().begin(), stations().end(), result, fold_mresponse( class_name, chains() ) );
 	    comment = "Convert to LQN service time";
 	} else {
 	    result += station_name + ")";

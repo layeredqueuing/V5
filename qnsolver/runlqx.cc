@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14436 2021-02-01 13:12:53Z greg $
+ * $Id: runlqx.cc 14440 2021-02-02 12:44:31Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -76,7 +76,7 @@ namespace SolverInterface
 	try {
 	    if ( _open_model && _open_model.instantiate() ) {
 		if ( debug_flag ) _open_model.debug(std::cout);
-		ok = _open_model.solve();
+		ok = _open_model.solve( _closed_model );
 		if ( debug_flag ) _open_model.print(std::cout);
 	    }
 	    if ( _closed_model && _closed_model.instantiate() ) {

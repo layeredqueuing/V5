@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.cc 14436 2021-02-01 13:12:53Z greg $
+ * $Id: openmodel.cc 14440 2021-02-02 12:44:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -22,6 +22,7 @@
 #include <lqio/jmva_document.h>
 #include <lqio/dom_extvar.h>
 #include "openmodel.h"
+#include "closedmodel.h"
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
 #include <mva/prob.h>
@@ -71,13 +72,20 @@ OpenModel::instantiate()
 }
 
 
+/*
+ * Mixed model MVA 
+ */
+
 bool
-OpenModel::solve()
+OpenModel::solve( ClosedModel& closed )
 {
-    Open open( Q );
     try {
-	open.solve();
-	saveResults( open );
+	Open open( Q );
+	if ( closed ) {
+	} else {
+	    open.solve();
+	    saveResults( open );
+	}
     }
     catch ( const std::range_error& e ) {
 	return false;
@@ -89,14 +97,17 @@ OpenModel::solve()
 void
 OpenModel::saveResults( const Open& open )
 {
+    static const size_t k = 0;
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	const size_t m = _index.m.at(mi->first);
 	for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-	    const size_t k = _index.k.at(ki->first);
-	    const_cast<BCMP::Model::Station&>(mi->second).classes()[ki->first].setResults( open.throughput( *Q[m] ),
-											   0. /* open.queueLength( m, k ) */,
-											   Q[m]->R(k),
-											   open.utilization( *Q[m] ) );
+	    const size_t e = _index.k.at(ki->first);
+	    const double lambda = open.entryThroughput( *Q[m], e );
+	    const double residence_time = Q[m]->R(e,k);
+	    const_cast<BCMP::Model::Station&>(mi->second).classes()[ki->first].setResults( lambda,
+											   residence_time * lambda,
+											   residence_time,
+											   open.entryUtilization( *Q[m], e ) );
 	}
     }
 }
@@ -123,15 +134,21 @@ OpenModel::InstantiateChain::operator()( const BCMP::Model::Chain::pair_t& input
 //    const size_t k = indexAt(input.first);
 }
 
+/*
+ * For open models, index 0 is used.  Classes are respresented using the entries.
+ */
+
 void
 OpenModel::InstantiateStation::InstantiateClass::operator()( const BCMP::Model::Station::Class::pair_t& input )
 {
+    static const size_t k = 0;
     try {
-	if ( !chainAt(input.first).isOpen() ) return;		/* open chain, ignore */
-	const size_t k = indexAt(input.first);
+	const BCMP::Model::Chain& chain = chainAt(input.first);
+	if ( !chain.isOpen() ) return;		/* open chain, ignore */
 	const BCMP::Model::Station::Class& demand = input.second;	// From BCMP model.
-	_server.setService( k, LQIO::DOM::to_double( *demand.service_time()) );
-	_server.setVisits( k, LQIO::DOM::to_double( *demand.visits()) );
+	const size_t e = indexAt(input.first);
+	_server.setService( e, k, LQIO::DOM::to_double( *demand.service_time() ) );
+	_server.setVisits( e, k, LQIO::DOM::to_double( *demand.visits() ) * LQIO::DOM::to_double( *chain.arrival_rate() ) );
     }
     catch ( const std::out_of_range& e ) {
 	/* Open class, ignore */
@@ -142,6 +159,7 @@ void
 OpenModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& input )
 {
     const size_t m = indexAt(input.first);
+    const size_t K = 0;				/* Will probably change with mixed models */
     if ( Q(m) != nullptr ) delete Q(m);		/* out with the old... */
 
     const BCMP::Model::Station& station = input.second;
@@ -150,30 +168,30 @@ OpenModel::InstantiateStation::operator()( const BCMP::Model::Station::pair_t& i
     switch ( station.scheduling() ) {
     case SCHEDULE_FIFO:
 	if ( station.type() == BCMP::Model::Station::Type::DELAY ) {
-	    server = new Infinite_Server(K);
+	    server = new Infinite_Server(E,K);
 	} else if ( copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
-	    server = new FCFS_Server(copies,K);
+	    server = new FCFS_Server(copies,E,K);
 	} else {
-	    server = new Reiser_Multi_Server(copies,K);
+	    server = new Reiser_Multi_Server(copies,E,K);
 	}
 	break;
     case SCHEDULE_PS:
 	if ( station.type() == BCMP::Model::Station::Type::DELAY ) {
-	    server = new Infinite_Server(K);
+	    server = new Infinite_Server(E,K);
 	} else if ( copies == 1 && station.type() == BCMP::Model::Station::Type::LOAD_INDEPENDENT ) {
-	    server = new PS_Server(K);
+	    server = new PS_Server(E,K);
 	} else {
-	    server = new Reiser_PS_Multi_Server(copies,K);
+	    server = new Reiser_PS_Multi_Server(copies,E,K);
 	}
 	break;
     case SCHEDULE_DELAY:
-	server = new Infinite_Server(K);
+	server = new Infinite_Server(E,K);
 	break;
     default:
 	abort();
 	break;
     }
-	
+
     Q(m) = server;				/* ...and in with the new */
 
     const BCMP::Model::Station::Class::map_t& classes = station.classes();
@@ -184,12 +202,8 @@ std::ostream&
 OpenModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-	output << "Class "  << ki->first;
-	if ( ki->second.isOpen() ) {
-	    output << ": customers=" << *ki->second.customers() << std::endl;
-	} else {
-	    output << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
-	}
+	if ( !ki->second.isOpen() ) continue;
+	output << ": customers=" << *ki->second.customers() << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
     }
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();

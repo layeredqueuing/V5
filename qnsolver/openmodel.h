@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.h 14436 2021-02-01 13:12:53Z greg $
+ * $Id: openmodel.h 14440 2021-02-02 12:44:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -25,6 +25,7 @@
 
 class Server;
 class Open;
+class ClosedModel;
 
 class OpenModel {
 private:
@@ -79,7 +80,7 @@ private:
 	};
 
     public:
-	InstantiateStation( OpenModel& model ) : _model(model), K(model._index.k.size()) {}
+	InstantiateStation( OpenModel& model ) : _model(model), E(model._index.k.size()) {}
 	void operator()( const BCMP::Model::Station::pair_t& pair );
 	size_t indexAt(const std::string& name ) const { return _model._index.m.at(name); }
 
@@ -88,7 +89,7 @@ private:
 
     private:
 	OpenModel& _model;
-	size_t K;
+	size_t E;
     };
 
     struct Index {					/* Map string to int for chains/stations */
@@ -104,7 +105,7 @@ public:
     explicit operator bool() const { return _result == true; }
     bool instantiate();
     std::ostream& debug( std::ostream& output ) const;
-    bool solve();
+    bool solve( ClosedModel& );
     
 private:
     void saveResults( const Open& open );

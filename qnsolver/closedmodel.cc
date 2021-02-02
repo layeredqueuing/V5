@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 14435 2021-02-01 03:05:05Z greg $
+ * $Id: closedmodel.cc 14440 2021-02-02 12:44:31Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -197,12 +197,8 @@ std::ostream&
 ClosedModel::debug( std::ostream& output ) const
 {
     for ( BCMP::Model::Chain::map_t::const_iterator ki = chains().begin(); ki != chains().end(); ++ki ) {
-	output << "Class "  << ki->first;
-	if ( ki->second.isClosed() ) {
-	    output << ": customers=" << *ki->second.customers() << std::endl;
-	} else {
-	    output << ": arrival rate=" << *ki->second.arrival_rate() << std::endl;
-	}
+	if ( !ki->second.isClosed() ) continue;
+	output << "Class "  << ": customers=" << *ki->second.customers() << std::endl;
     }
     for ( BCMP::Model::Station::map_t::const_iterator mi = stations().begin(); mi != stations().end(); ++mi ) {
 	const BCMP::Model::Station::Class::map_t& classes = mi->second.classes();

@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14436 2021-02-01 13:12:53Z greg $
+ * $Id: qnsolver.cc 14441 2021-02-02 15:01:43Z greg $
  */
 
 #include <algorithm>
@@ -12,6 +12,7 @@
 #include <lqio/jmva_document.h>
 #include <lqio/dom_document.h>
 #include <lqio/bcmp_bindings.h>
+#include <lqio/qnap2_document.h>
 #include <lqio/srvn_spex.h>
 #include <lqx/Program.h>
 #include "closedmodel.h"
@@ -35,6 +36,7 @@ const struct option longopts[] =
     { "silent",          no_argument,       0, 's' },
     { "verbose",         no_argument,       0, 'v' },
     { "experimental",	 no_argument,	    0, 'x' },
+    { "export-qnap2",	 no_argument,	    0, 'Q' },
     { "debug-xml",	 no_argument, 	    0, 'X' },
     { "debug-spex",	 no_argument,	    0, 'S' },
     { 0, 0, 0, 0 }
@@ -55,6 +57,7 @@ const char * opthelp[]  = {
     /* "silent",          */    "",
     /* "verbose",         */    "",
     /* "experimental",	  */	"",
+    /* "export-qnap2",	  */	"Export a QNAP2 model.  Do not solve.",
     /* "debug-xml"	  */    "Debug XML input.",
     /* "debug-spex"	  */	"Debug SPEX program.",
     nullptr
@@ -62,6 +65,7 @@ const char * opthelp[]  = {
 
 static bool silencio_flag = false;			/* Don't print results if 1	*/
 static bool verbose_flag = true;			/* Print results		*/
+static bool print_qnap2 = false;			/* Export to qnap2.  		*/
 static bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
 
@@ -133,12 +137,16 @@ int main (int argc, char *argv[])
 	    solver = ClosedModel::Using::EXPERIMENTAL;
 	    break;
 
-	case 'X':
-            LQIO::DOM::Document::__debugXML = true;
+	case 'Q':
+	    print_qnap2 = true;
 	    break;
-	    
+		
 	case 'S':
 	    print_spex = true;
+	    break;
+	    
+	case 'X':
+            LQIO::DOM::Document::__debugXML = true;
 	    break;
 	    
 	default:
@@ -156,6 +164,10 @@ int main (int argc, char *argv[])
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
 	    if ( !input.parse() ) continue;
+	    if ( print_qnap2 ) {
+		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
+		continue;
+	    }
 	    ClosedModel closed_model( input.model() );
 	    OpenModel open_model( input.model() );
 	    if ( !closed_model && !open_model ) continue;
@@ -184,19 +196,24 @@ int main (int argc, char *argv[])
 		    environment->invokeGlobalMethod("solve", &args);
 		}
 		
-	    } else if ( open_model && open_model.instantiate() ) {
-		if ( debug_flag ) {
-		    open_model.debug( std::cout );
+	    } else {
+		if ( open_model ) open_model.instantiate();
+		if ( closed_model ) closed_model.instantiate();
+		if ( open_model ) {
+		    if ( debug_flag ) {
+			open_model.debug( std::cout );
+		    }
+		    if ( open_model.solve( closed_model ) ) {
+			open_model.print( std::cout );		/* for now. */
+		    }
 		}
-		if ( open_model.solve() ) {
-		    open_model.print( std::cout );		/* for now. */
-		}
-	    } else if ( closed_model && closed_model.instantiate() ) {
-		if ( debug_flag ) {
-		    closed_model.debug( std::cout );
-		}
-		if ( closed_model.solve( solver ) ) {
-		    closed_model.print( std::cout );		/* for now. */
+		if ( closed_model && closed_model.instantiate() ) {
+		    if ( debug_flag ) {
+			closed_model.debug( std::cout );
+		    }
+		    if ( closed_model.solve( solver ) ) {
+			closed_model.print( std::cout );		/* for now. */
+		    }
 		}
 	    }
 	}

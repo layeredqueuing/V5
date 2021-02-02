@@ -76,8 +76,8 @@ namespace BCMP {
 	    void setCustomers( DOM::ExternalVariable* customers ) { assert(type()==Type::CLOSED); _customers = customers; }
 	    const DOM::ExternalVariable* think_time() const { assert(type()==Type::CLOSED); return _think_time; }
 	    void setThinkTime( DOM::ExternalVariable* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
-	    const DOM::ExternalVariable* arrival_rate() const { assert(type()==Type::CLOSED); return _arrival_rate; }
-	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::CLOSED); _arrival_rate = arrival_rate; }
+	    const DOM::ExternalVariable* arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
+	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
 	    bool isClosed() const { return _type == CLOSED; }
 	    bool isOpen() const { return _type == OPEN; }
 
