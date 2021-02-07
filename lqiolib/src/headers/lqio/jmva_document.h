@@ -171,8 +171,8 @@ namespace BCMP {
 	const LQIO::DOM::ExternalVariable * getVariableAttribute( const XML_Char **attributes, const XML_Char * attribute, double default_value=-1.0 );
 	const LQIO::DOM::ExternalVariable * getVariable( const XML_Char * attribute, const XML_Char * value );
 
-	void createClosedClass( const XML_Char ** attributes );
-	void createOpenClass( const XML_Char ** attributes );
+	void createClosedChain( const XML_Char ** attributes );
+	void createOpenChain( const XML_Char ** attributes );
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
 	void createResults( Object& object, const XML_Char ** attributes );

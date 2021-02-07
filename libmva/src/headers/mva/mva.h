@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 14398 2021-01-23 03:28:47Z greg $
+ * $Id: mva.h 14446 2021-02-04 03:12:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -23,6 +23,7 @@
 #include "vector.h"
 #include "server.h"
 #include "prob.h"
+#include "fpgoop.h"
 
 class MVA;
 class FullPopulationMap;

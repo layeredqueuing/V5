@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14438 2021-02-02 02:08:50Z greg $
+ * $Id: qnap2_document.cpp 14445 2021-02-03 17:23:56Z greg $
  *
  * Read in XML input files.
  *
@@ -64,16 +64,36 @@ namespace BCMP {
 	if ( LQIO::io_vars.lq_command_line.size() > 0 ) {
 	    output << "& " << LQIO::io_vars.lq_command_line << std::endl;
 	}
-	/* compute terminal service times based on visits */
-	const std::string name = std::find_if( stations().begin(), stations().end(), &Model::Station::isCustomer )->first;
-	const std::pair<const std::string,const Model::Station::Class::map_t> terminal( name, _model.computeCustomerDemand( name ) );
+
+
+	/* Special stations for closed and open classes */
+	bool has_closed_chain = false;
+	bool has_open_chain = false;
+	std::string customers;		/* Special station names */
+	Model::Station::map_t::const_iterator customer = std::find_if( stations().begin(), stations().end(), &Model::Station::isCustomer );
+	if ( customer != stations().end() ) {
+	    has_closed_chain = true;
+	    const std::string name = customer->first;
+	    _model.computeCustomerDemand( name );	/* compute terminal service times based on visits */
+	    customers = name;
+	}
+	Model::Chain::map_t::const_iterator chain = std::find_if( chains().begin(), chains().end(), &Model::Chain::openChain );
+	if ( chain != chains().end() ) {
+	    has_open_chain = true;
+	    const std::string name = "source";
+	    Model::Station& source = const_cast<Model&>(model()).insertStation( name, Model::Station::Type::SOURCE ).first->second;
+	    source.insertClass( chain->first, nullptr, chain->second.arrival_rate() );
+	    if ( !customers.empty() ) customers += ',';
+	    customers += name;
+	}
+	
 
 	/* 1) Declare all SPEX variables */
 	output << qnap2_keyword( "declare" ) << std::endl;
 	std::set<const LQIO::DOM::ExternalVariable *> symbol_table;
-	const std::string integer_vars 	= std::accumulate( chains().begin(), chains().end(), std::string(""), getVariables( model(), symbol_table ) );
+	const std::string integer_vars 	= std::accumulate( chains().begin(), chains().end(), std::string(""), getIntegerVariables( model(), symbol_table ) );
 	if ( !integer_vars.empty() )    output << qnap2_statement( "integer " + integer_vars, "SPEX customers vars." ) << std::endl;
-	const std::string real_vars    	= std::accumulate( stations().begin(), stations().end(), std::string(""), getVariables( model(), symbol_table ) );
+	const std::string real_vars    	= std::accumulate( stations().begin(), stations().end(), std::string(""), getRealVariables( model(), symbol_table ) );
 	if ( !real_vars.empty() )       output << qnap2_statement( "real " + real_vars, "SPEX service time vars." ) << std::endl;
 	const std::string deferred_vars	= std::accumulate( Spex::inline_expressions().begin(), Spex::inline_expressions().end(), std::string(""), &getDeferredVariables );
 	if ( !deferred_vars.empty() )   output << qnap2_statement( "real " + deferred_vars, "SPEX deferred vars." ) << std::endl;
@@ -81,19 +101,29 @@ namespace BCMP {
 	if ( !result_vars.empty() )     output << qnap2_statement( "real " + result_vars, "SPEX result vars." ) << std::endl;
 
 	/* 2) Declare all stations */
-	output << qnap2_statement( "queue " + std::accumulate( stations().begin(), stations().end(), terminal.first, Model::Station::fold() ), "Station identifiers" ) << std::endl;
+	output << qnap2_statement( "queue " + std::accumulate( stations().begin(), stations().end(), customers, fold_station() ), "Station identifiers" ) << std::endl;
 
 	/* 3) Declare the chains */
 	if ( !multiclass() ) {
-	    output << qnap2_statement( "integer n_users", "Population" ) << std::endl
-		   << qnap2_statement( "real think_t", "Think time." ) << std::endl
-		   << qnap2_statement( "real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Model::Station::fold( "_t") ), "Station service time" ) << std::endl;
+	    if ( has_closed_chain ) {
+		output << qnap2_statement( "integer n_users", "Population" ) << std::endl
+		       << qnap2_statement( "real think_t", "Think time." ) << std::endl;
+	    }
+	    if ( has_open_chain ) {
+		output << qnap2_statement( "real arrivals", "Arrival Rate." ) << std::endl;
+	    }
+	    output << qnap2_statement( "real " + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
 	} else {
 	    /* Variables */
-	    output << qnap2_statement( "class string name", "Name (for output)" ) << std::endl		// LQN client.
-		   << qnap2_statement( "class integer n_users", "Population." ) << std::endl
-		   << qnap2_statement( "class real think_t", "Think time." ) << std::endl
-		   << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), Model::Station::fold( "_t") ), "Station service time" ) << std::endl;
+	    output << qnap2_statement( "class string name", "Name (for output)" ) << std::endl;		// LQN client.
+	    if ( has_open_chain ) {
+		output << qnap2_statement( "class integer n_users", "Population." ) << std::endl	
+		       << qnap2_statement( "class real think_t", "Think time." ) << std::endl;
+	    }
+	    if ( has_open_chain ) {
+		output << qnap2_statement( "real arrivals", "Arrival Rate." ) << std::endl;
+	    }
+	    output << qnap2_statement( "class real " + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_station( "_t") ), "Station service time" ) << std::endl;
 	    /* Chains */
 	    output << qnap2_statement( "class " + std::accumulate( chains().begin(), chains().end(), std::string(""), Model::Chain::fold() ), "Class names" ) << std::endl;
 	}
@@ -101,9 +131,7 @@ namespace BCMP {
 	/* 4) output the statations */
 	std::for_each( stations().begin(), stations().end(), printStation( output, model() ) );	// Stations.
 
-
 	/* Output control stuff if necessary */
-
 	if ( multiclass() || !Spex::observations().empty() ) {
 	    output << "&" << std::endl
 		   << qnap2_keyword( "control" ) << std::endl;
@@ -184,24 +212,35 @@ namespace BCMP {
      */
 
     std::string
-    QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Chain::pair_t& k ) const
+    QNAP2_Document::getIntegerVariables::operator()( const std::string& s1, const Model::Chain::pair_t& k ) const
     {
-	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(k.second.customers()) && _symbol_table.insert(k.second.customers()).second == true ) {
-	    std::ostringstream ss;
-	    ss << s1;
-	    if ( !s1.empty() ) ss << ",";
-	    ss << *k.second.customers();		/* Will print out name */
-	    return ss.str();
-	} else {
-	    return s1;
+	std::string s = s1;
+	if ( k.second.isClosed() && dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(k.second.customers()) && _symbol_table.insert(k.second.customers()).second == true ) {
+	    if ( !s.empty() ) s += ",";
+	    s += k.second.customers()->getName();
 	}
+	return s;
     }
 
     std::string
-    QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Station::pair_t& m ) const
+    QNAP2_Document::getRealVariables::operator()( const std::string& s1, const Model::Chain::pair_t& k ) const
+    {
+	std::string s = s1;
+	if ( k.second.isClosed() && dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(k.second.think_time()) && _symbol_table.insert(k.second.think_time()).second == true ) {
+	    if ( !s.empty() ) s += ",";
+	    s += k.second.think_time()->getName();
+	} else if ( k.second.isOpen() && dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(k.second.arrival_rate()) && _symbol_table.insert(k.second.arrival_rate()).second == true ) {
+	    if ( !s.empty() ) s += ",";
+	    s += k.second.arrival_rate()->getName();
+	}
+	return s;
+    }
+
+    std::string
+    QNAP2_Document::getRealVariables::operator()( const std::string& s1, const Model::Station::pair_t& m ) const
     {
 	const Model::Station::Class::map_t& classes = m.second.classes();
-	return std::accumulate( classes.begin(), classes.end(), s1, getVariables( model(), _symbol_table ) );
+	return std::accumulate( classes.begin(), classes.end(), s1, getRealVariables( model(), _symbol_table ) );
     }
 
     /*
@@ -211,7 +250,7 @@ namespace BCMP {
      */
 
     std::string
-    QNAP2_Document::getVariables::operator()( const std::string& s1, const Model::Station::Class::pair_t& demand ) const
+    QNAP2_Document::getRealVariables::operator()( const std::string& s1, const Model::Station::Class::pair_t& demand ) const
     {
 	if ( dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(demand.second.service_time()) && _symbol_table.insert(demand.second.service_time()).second == true ) {
 	    std::ostringstream ss;
@@ -277,7 +316,13 @@ namespace BCMP {
 	    _output << qnap2_statement( "init=n_users", "Population by class" ) << std::endl
 		    << qnap2_statement( "type=" + __scheduling_str.at(SCHEDULE_CUSTOMER) ) << std::endl
 		    << qnap2_statement( "service=exp(think_t)" ) << std::endl;
-	    break;
+	    printCustomerTransit();
+	    return;
+	case Model::Station::Type::SOURCE:
+	    _output << qnap2_statement( "type=source" ) << std::endl;
+	    printInterarrivalTime();
+	    printCustomerTransit();
+	    return;
 	case Model::Station::Type::DELAY:
 	    _output << qnap2_statement( "type=" + __scheduling_str.at(SCHEDULE_DELAY) ) << std::endl;
 	    break;
@@ -298,41 +343,85 @@ namespace BCMP {
 	case Model::Station::Type::NOT_DEFINED:
 	    throw std::range_error( "QNAP2_Document::printStation::operator(): Undefined station type." );
 	}
-	if ( station.type() != Model::Station::Type::CUSTOMER ) {
 
-	    /* Print out service time variables. */
+	/* Print out service time variables and visits for non-special stations */
 
-	    _output << qnap2_statement( "service=exp(" + m.first + "_t)" ) << std::endl;
+	_output << qnap2_statement( "service=exp(" + m.first + "_t)" ) << std::endl;
+	printServerTransit( m );
+    }
 
-	    const Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &Model::Station::isCustomer );
-	    if ( !multiclass() ) {
-		_output << qnap2_statement( "transit=" + terminal->first + ",1" ) << std::endl;
-	    } else {
-		_output << qnap2_statement( "transit(all class)=" + terminal->first + ",1" ) << std::endl;
-	    }
+    void 
+    QNAP2_Document::printStation::printCustomerTransit() const
+    {
+	if ( !multiclass() ) {
+	    _output << qnap2_statement("transit=" + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_transit(chains().begin()->first) ), "visits to servers" ) << std::endl;
 	} else {
-	    if ( !multiclass() ) {
-		_output << qnap2_statement("transit=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(chains().begin()->first) ), "visits to servers" ) << std::endl;
-	    } else {
-		for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-		    _output << qnap2_statement("transit(" + k->first + ")=" + std::accumulate( stations().begin(), stations().end(), std::string(""), printTransit(k->first) ), "visits to servers" ) << std::endl;
-		}
+	    for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+		_output << qnap2_statement("transit(" + k->first + ")=" + std::accumulate( stations().begin(), stations().end(), std::string(""), fold_transit(k->first) ), "visits to servers" ) << std::endl;
 	    }
 	}
     }
 
-    std::string
-    QNAP2_Document::printTransit::operator()( const std::string& str, const Model::Station::pair_t& m ) const
-    {
-	std::ostringstream out;
-	const Model::Station& station = m.second;
+    /*
+     * If I have mixed models, then I have to transit by class 
+     */
 
-	out << str;
-	if ( station.type() != Model::Station::Type::CUSTOMER && station.hasClass(_name) ) {
-	    if ( !str.empty() ) out << ",";
-	    out << m.first << "," << *station.classAt(_name).visits();
+    void 
+    QNAP2_Document::printStation::printServerTransit( const Model::Station::pair_t& m ) const
+    {
+	const Model::Station::Class::map_t& classes = m.second.classes();
+	const std::string closed_classes = std::accumulate( classes.begin(), classes.end(), std::string(), fold_class( chains(), Model::Chain::Type::CLOSED ) );
+	const std::string open_classes = std::accumulate( classes.begin(), classes.end(), std::string(), fold_class( chains(), Model::Chain::Type::OPEN ) );
+	const Model::Station::map_t::const_iterator terminal = std::find_if( stations().begin(), stations().end(), &Model::Station::isCustomer );
+
+	if ( !closed_classes.empty() & !open_classes.empty() ) {
+	    _output << qnap2_statement( "transit( " + closed_classes + ")=" + terminal->first );
+	    _output << qnap2_statement( "transit( " + open_classes + ")=out" );
+	} else {
+	    std::string name;
+	    if ( terminal != stations().end() ) name = terminal->first;
+	    else name = "out";
+	    if ( multiclass() ) {
+		_output << qnap2_statement( "transit(all class)=" + name ) << std::endl;
+	    } else {
+		_output << qnap2_statement( "transit=" + name ) << std::endl;
+	    }
 	}
-	return out.str();
+    }
+
+    /* 
+     * Convert arrival rate to inter-arrival time, then adjust for the
+     * fact that the visits for open chains are converted to a
+     * probability in QNAP2 by multipling the rate by the total visits
+     * to all open classes.
+     */
+    
+    void 
+    QNAP2_Document::printStation::printInterarrivalTime() const
+    {
+	if ( !multiclass() ) {
+	    const std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( chains().begin()->first ) );
+	    _output << qnap2_statement( "service=exp(1./((" + visits + ")*arrivals))", "Convert to inter-arrival time" ) << std::endl;
+	} else {
+	    for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+		const std::string visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( k->first ) );
+		_output << qnap2_statement( "service=(" + k->first + ")=exp(1./((" + visits + ")*arrivals))", "Convert to inter-arrival time." ) << std::endl;
+	    }
+	}
+    }
+	
+    std::string
+    QNAP2_Document::fold_transit::operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const
+    {
+	const Model::Station& station = m2.second;
+	if ( station.type() == Model::Station::Type::CUSTOMER || !station.hasClass(_name) || LQIO::DOM::ExternalVariable::isDefault(station.classAt(_name).visits(),0.) ) {
+	    return s1;
+	} else {
+	    std::string s = s1;
+	    if ( !s.empty() ) s += ",";
+	    s += m2.first + "," + to_real( station.classAt(_name).visits() );
+	    return s;
+	}
     }
 
     void
@@ -358,9 +447,10 @@ namespace BCMP {
 	 */
 	
 	for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
+	    if ( !k->second.isClosed() ) continue;
+	    std::string comment;
 	    std::ostringstream think_time;
 	    std::ostringstream customers;
-	    std::string comment;
 	    think_time << *classes.at(k->first).service_time();
 	    customers  << *k->second.customers();
 	    if ( !k->second.customers()->wasSet() ) {
@@ -390,23 +480,37 @@ namespace BCMP {
     {
 	const Model::Station& station = m.second;
 	for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
-	    if ( station.type() == Model::Station::Type::CUSTOMER ) continue;
-	    const LQIO::DOM::ExternalVariable * service_time = station.hasClass(k->first) ? station.classAt(k->first).service_time() : nullptr;
-	    std::ostringstream time;
+	    std::string name;
+	    
+	    switch ( station.type() ) {
+	    case Model::Station::Type::CUSTOMER:
+		continue;
+	    case Model::Station::Type::SOURCE:
+		name = "arrivals";
+		break;
+	    default:
+		name = m.first + "_t";
+		break;
+	    }
+
+	    std::string time;
 	    std::string comment;
-	    if ( LQIO::DOM::ExternalVariable::isDefault(service_time,0.) ) {
-		time << "0.000001";		// Qnap doesn't like zero for service time.
+	    if ( !station.hasClass(k->first) || LQIO::DOM::ExternalVariable::isDefault(station.classAt(k->first).service_time(),0.) ) {
+		time = "0.000001";		// Qnap doesn't like zero for service time.
 		comment = "QNAP does not like zero (0)";
 	    } else {
-		time << *service_time;		// Might have to strip off $
+		const LQIO::DOM::ExternalVariable * service_time = station.classAt(k->first).service_time();
 		if ( !service_time->wasSet() ) {
+		    time = service_time->getName();
 		    comment = "SPEX variable " + service_time->getName();
+		} else {
+		    time = to_real(service_time);
 		}
 	    }
 	    if ( multiclass() ) {
-		_output << qnap2_statement( k->first + "." + m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
+		_output << qnap2_statement( k->first + "." + name + ":=" + time, comment ) << std::endl;
 	    } else {
-		_output << qnap2_statement(  m.first + "_t" + ":=" + time.str(), comment ) << std::endl;
+		_output << qnap2_statement(  name + ":=" + time, comment ) << std::endl;
 	    }
 	}
     }
@@ -528,9 +632,9 @@ namespace BCMP {
 	const BCMP::Model::Station& station = stations().at(station_name);
 	result = "mthruput(";
 	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	    /* Report class results for the customers; the station name is the class name */
 	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
-	    result += "terminal";
-	    if ( multiclass() ) result += "," + class_name;
+	    result += "terminal," + class_name;
 	    result += ")/(" + think_visits + ")";
 	    comment = "Convert to LQN throughput";
 	} else {
@@ -624,11 +728,34 @@ namespace BCMP {
     }
 
     std::string
+    QNAP2_Document::fold_station::operator()( const std::string& s1, const Model::Station::pair_t& s2 ) const
+    {
+	if ( s2.second.type() == Model::Station::Type::CUSTOMER || s2.second.type() == Model::Station::Type::SOURCE ) return s1;
+	else if ( s1.empty() ) {
+	    return s2.first + _suffix;
+	} else {
+	    return s1 + "," + s2.first + _suffix;
+	}
+    }
+
+    std::string
+    QNAP2_Document::fold_class::operator()( const std::string& s1, const Model::Station::Class::pair_t& k2 ) const
+    {
+	if ( _chains.at(k2.first).type() != _type ) return s1;
+	else if ( s1.empty() ) {
+	    return k2.first;
+	} else {
+	    return s1 + "," + k2.first;
+	}
+    }
+
+    std::string
     QNAP2_Document::fold_visits::operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const
     {
 	const Model::Station& station = m2.second;
 	if ( !station.hasClass(_name) || station.type() == Model::Station::Type::CUSTOMER ) return s1;	/* Don't visit self */
 	const LQIO::DOM::ExternalVariable * visits = station.classAt(_name).visits();
+	if ( LQIO::DOM::ExternalVariable::isDefault(visits,0.) ) return s1;	/* ignore zeros */
 	std::string s2 = to_real( visits );
 	if ( s1.empty() ) {
 	    return s2;

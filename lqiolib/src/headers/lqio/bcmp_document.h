@@ -63,12 +63,11 @@ namespace BCMP {
 	    typedef std::map<const std::string,Chain> map_t;
 	    typedef std::pair<const std::string,Chain> pair_t;
 
-	    typedef enum { NONE, CLOSED, OPEN } Type;
+	    typedef enum { UNDEFINED, CLOSED, OPEN } Type;
 
 	public:
 	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
 	    Chain( Type type, const DOM::ExternalVariable* arrival_rate ) : _type(Type::OPEN), _customers(nullptr), _think_time(nullptr), _arrival_rate(arrival_rate) { assert(type==Type::OPEN); }
-
 
 	    virtual const char * getTypeName() const { return __typeName; }
 	    Type type() const { return _type; }
@@ -80,6 +79,8 @@ namespace BCMP {
 	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
 	    bool isClosed() const { return _type == CLOSED; }
 	    bool isOpen() const { return _type == OPEN; }
+	    static bool closedChain( const Chain::pair_t& k ) { return k.second.type() == Type::CLOSED; }
+	    static bool openChain( const Chain::pair_t& k ) { return k.second.type() == Type::OPEN; }
 
 	    virtual double throughput() const { return 0; }
 	    virtual double queue_length() const { return 0; }
@@ -120,7 +121,7 @@ namespace BCMP {
 	    typedef std::map<const std::string,Station> map_t;
 	    typedef std::pair<const std::string,Station> pair_t;
 
-	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER };
+	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER, SOURCE };
 
 	    /* -------------------------------------------------------- */
 	    /*                          Class                           */
@@ -138,7 +139,6 @@ namespace BCMP {
 
 		void setResults( double throughput, double queue_length, double residence_time, double utilization );
 		virtual const char * getTypeName() const { return __typeName; }
-
 
 		const DOM::ExternalVariable* visits() const { return _visits; }
 		const DOM::ExternalVariable* service_time() const { return _service_time; }
@@ -181,7 +181,8 @@ namespace BCMP {
 		_type(type), _scheduling(scheduling), _copies(copies) {}
 	    ~Station();
 
-	    bool insertClass( const std::string&, const Class& );
+	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const Class& );
+	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const DOM::ExternalVariable* visits=nullptr, const DOM::ExternalVariable* service_time=nullptr );
 	    void insertResultVariable( Result::Type, const std::string& );
 
 	    virtual const char * getTypeName() const { return __typeName; }
@@ -225,11 +226,18 @@ namespace BCMP {
 		const predicate _test;
 	    };
 
-	    struct fold {
-		fold( const std::string& suffix="" ) : _suffix(suffix) {}
-		std::string operator()( const std::string& s1, const Station::pair_t& m ) const;
+	    bool any_of( const Chain::map_t& chains, Chain::Type type ) const;
+	    size_t count_if( const Chain::map_t& chains, Chain::Type type ) const;
+	    
+	    struct is_a {
+		is_a( const Model& model, Chain::Type type ) : _model(model), _type(type) {}
+		bool operator()( const Station::pair_t& station ) const { return _type == Chain::Type::UNDEFINED || station.second.any_of( chains(), _type ); }
 	    private:
-		const std::string& _suffix;
+		const Chain::map_t& chains() const { return _model.chains(); }
+
+	    private:
+		const Model& _model;
+		const Chain::Type _type;
 	    };
 
 	private:
@@ -268,8 +276,8 @@ namespace BCMP {
 	Chain& chainAt( const std::string& name ) { return _chains.at(name); }
 	const Chain& chainAt( const std::string& name ) const { return _chains.at(name); }
 
-	size_t n_closed_chains() const;
-	size_t n_open_chains() const;
+	size_t n_chains(Chain::Type) const;
+	size_t n_stations(Chain::Type) const;
 	
 	Station::map_t::const_iterator findStation( const Station* m ) const;
 
@@ -278,7 +286,6 @@ namespace BCMP {
 	std::pair<Chain::map_t::iterator,bool> insertOpenChain( const std::string&, const DOM::ExternalVariable * );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string&, const Station& );
 	std::pair<Station::map_t::iterator,bool> insertStation( const std::string& name, Station::Type type, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) { return insertStation( name, Station( type, scheduling, copies ) ); }
-	bool insertClass( const std::string&, const std::string&, const Station::Class& );
 
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
 	bool convertToLQN( DOM::Document& ) const;

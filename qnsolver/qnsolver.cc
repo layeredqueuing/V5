@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14441 2021-02-02 15:01:43Z greg $
+ * $Id: qnsolver.cc 14455 2021-02-07 03:41:16Z greg $
  */
 
 #include <algorithm>
@@ -8,16 +8,10 @@
 #include <cstdlib>
 #include <getopt.h>
 #include <libgen.h>
-#include <mva/mva.h>
 #include <lqio/jmva_document.h>
 #include <lqio/dom_document.h>
-#include <lqio/bcmp_bindings.h>
 #include <lqio/qnap2_document.h>
-#include <lqio/srvn_spex.h>
-#include <lqx/Program.h>
-#include "closedmodel.h"
-#include "openmodel.h"
-#include "runlqx.h"
+#include "model.h"
 
 
 static void makeopts( const struct option * longopts, std::string& opts );
@@ -33,6 +27,7 @@ const struct option longopts[] =
     { "fast-linearizer", no_argument,       0, 'f' },
     { "help",            no_argument,       0, 'h' },
     { "linearizer",      no_argument,       0, 'l' },
+    { "output", 	 required_argument, 0, 'o' },
     { "silent",          no_argument,       0, 's' },
     { "verbose",         no_argument,       0, 'v' },
     { "experimental",	 no_argument,	    0, 'x' },
@@ -54,6 +49,7 @@ const char * opthelp[]  = {
     /* "fast-linearizer", */    "Test using the Fast Linearizer solver.",
     /* "help",            */    "Show this.",
     /* "linearizer",      */    "Test using Generic Linearizer.",
+    /* "output",	  */	"Send output to ARG.",
     /* "silent",          */    "",
     /* "verbose",         */    "",
     /* "experimental",	  */	"",
@@ -66,8 +62,6 @@ const char * opthelp[]  = {
 static bool silencio_flag = false;			/* Don't print results if 1	*/
 static bool verbose_flag = true;			/* Print results		*/
 static bool print_qnap2 = false;			/* Export to qnap2.  		*/
-static bool print_spex = false;				/* Print LQX program		*/
-bool debug_flag = false;
 
 std::string program_name;
 
@@ -75,7 +69,8 @@ BCMP::JMVA_Document* __input = nullptr;
 
 int main (int argc, char *argv[])
 {
-    ClosedModel::Using solver = ClosedModel::Using::EXACT_MVA;
+    std::string output_filename;
+    Model::Using solver = Model::Using::EXACT_MVA;
     program_name = basename( argv[0] );
     
     /* Process all command line arguments.  If none specified, then     */
@@ -95,7 +90,7 @@ int main (int argc, char *argv[])
 
 	switch( c ) {
 	case 'b':
-	    solver = ClosedModel::Using::BARD_SCHWEITZER;
+	    solver = Model::Using::BARD_SCHWEITZER;
 	    break;
 
 	case 'd':
@@ -110,11 +105,11 @@ int main (int argc, char *argv[])
 	    break;
 
 	case 'e':
-	    solver = ClosedModel::Using::EXACT_MVA;
+	    solver = Model::Using::EXACT_MVA;
 	    break;
 			
 	case 'f':
-	    solver = ClosedModel::Using::LINEARIZER2;
+	    solver = Model::Using::LINEARIZER2;
 	    break;
 
 	case 'h':
@@ -122,9 +117,13 @@ int main (int argc, char *argv[])
 	    return 0;
 
 	case 'l':
-	    solver = ClosedModel::Using::LINEARIZER;
+	    solver = Model::Using::LINEARIZER;
 	    break;
 			
+	case 'o':
+            output_filename = optarg;
+	    break;
+	    
 	case 's':
 	    silencio_flag = true;
 	    break;
@@ -134,7 +133,7 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'x':
-	    solver = ClosedModel::Using::EXPERIMENTAL;
+	    solver = Model::Using::EXPERIMENTAL;
 	    break;
 
 	case 'Q':
@@ -158,62 +157,22 @@ int main (int argc, char *argv[])
     /* input is assumed to come in from stdin.                          */
 
     if ( optind == argc ) {
-//	Model document( std::string( "-" ) );
-//	solve( document, EXACT_MVA );
+	BCMP::JMVA_Document input( "-" );
+	if ( !input.parse() ) return 1;
+	Model model( input, solver );
+	if ( model.construct() ) {
+	    model.solve();
+	}
     } else {
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
 	    if ( !input.parse() ) continue;
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
-		continue;
-	    }
-	    ClosedModel closed_model( input.model() );
-	    OpenModel open_model( input.model() );
-	    if ( !closed_model && !open_model ) continue;
-
-	    if ( input.hasSPEX() ) {
-		std::vector<LQX::SyntaxTreeNode *> * program = new std::vector<LQX::SyntaxTreeNode *>;
-		if ( !LQIO::spex.construct_program( program, input.getResultVariables(), nullptr ) ) continue;
-		LQX::Program * lqx = LQX::Program::loadRawProgram( program );
-		input.registerExternalSymbolsWithProgram( lqx );
-		if ( print_spex ) {
-		    lqx->print( std::cout );
-		}
-		LQX::Environment * environment = lqx->getEnvironment();
-		environment->getMethodTable()->registerMethod(new SolverInterface::Solve(closed_model, solver, open_model));
-		BCMP::RegisterBindings(environment, &input.model());
-//		set output...
-//		    environment->setDefaultOutput( output );      /* Default is stdout */
-		/* Invoke the LQX program itself */
-		if ( !lqx->invoke() ) {
-//		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
-//		    rc = INVALID_INPUT;
-		} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
-		    /* There was no call to solve the LQX */
-//		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
-		    std::vector<LQX::SymbolAutoRef> args;
-		    environment->invokeGlobalMethod("solve", &args);
-		}
-		
 	    } else {
-		if ( open_model ) open_model.instantiate();
-		if ( closed_model ) closed_model.instantiate();
-		if ( open_model ) {
-		    if ( debug_flag ) {
-			open_model.debug( std::cout );
-		    }
-		    if ( open_model.solve( closed_model ) ) {
-			open_model.print( std::cout );		/* for now. */
-		    }
-		}
-		if ( closed_model && closed_model.instantiate() ) {
-		    if ( debug_flag ) {
-			closed_model.debug( std::cout );
-		    }
-		    if ( closed_model.solve( solver ) ) {
-			closed_model.print( std::cout );		/* for now. */
-		    }
+		Model model( input, solver );
+		if ( model.construct() ) {
+		    model.solve();
 		}
 	    }
 	}

@@ -59,25 +59,18 @@ namespace BCMP {
 	return _stations.emplace( name, station );
     }
 
-    bool Model::insertClass( const std::string& station_name, const std::string& class_name, const Station::Class& classes )
+    size_t
+    Model::n_chains(Model::Chain::Type type) const
     {
-	Station::map_t::iterator station = _stations.find( station_name );
-	if ( station == _stations.end() ) return false;
-	return station->second.insertClass( class_name, classes );
+	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(type) );
     }
 
     size_t
-    Model::n_closed_chains() const
+    Model::n_stations(Model::Chain::Type type) const
     {
-	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(Chain::Type::CLOSED) );
+	return std::count_if( stations().begin(), stations().end(), Model::Station::is_a(*this,type) );
     }
 
-    size_t
-    Model::n_open_chains() const
-    {
-	return std::count_if( chains().begin(), chains().end(), Model::Chain::is_a(Chain::Type::OPEN) );
-    }
-    
     /*
      * Find the station in the map
      */
@@ -182,10 +175,16 @@ namespace BCMP {
     }
 
 
-    bool
+    std::pair<Model::Station::Class::map_t::iterator,bool> 
     Model::Station::insertClass( const std::string& class_name, const Class& clasx )
     {
-	return _classes.emplace( class_name, clasx ).second;
+	return _classes.emplace( class_name, clasx );
+    }
+
+    std::pair<Model::Station::Class::map_t::iterator,bool> 
+    Model::Station::insertClass( const std::string& class_name, const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time )
+    {
+	return _classes.emplace( class_name, Class( visits, service_time ) );
     }
 
     /*
@@ -267,16 +266,34 @@ namespace BCMP {
     }
 
 
-    std::string
-    Model::Station::fold::operator()( const std::string& s1, const Station::pair_t& s2 ) const
+    /*
+     * Return true if the station is in the open or closed model
+     * (type).
+     */
+
+    bool
+    Model::Station::any_of( const Model::Chain::map_t& chains, Model::Chain::Type type ) const
     {
-	if ( s2.second.type() == Type::CUSTOMER ) return s1;
-	else if ( s1.empty() ) {
-	    return s2.first + _suffix;
-	} else {
-	    return s1 + "," + s2.first + _suffix;
+	if ( type == Chain::Type::UNDEFINED ) return true;
+	for ( Station::Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
+	    const Chain::map_t::const_iterator& chain = chains.find(k->first);
+	    if ( chain != chains.end() && chain->second.type() == type ) return true;
 	}
+	return false;
     }
+
+
+    size_t
+    Model::Station::count_if( const Model::Chain::map_t& chains, Model::Chain::Type type ) const
+    {
+	size_t count = 0;
+	for ( Station::Class::map_t::const_iterator k = classes().begin(); k != classes().end(); ++k ) {
+	    const Chain::map_t::const_iterator& chain = chains.find(k->first);
+	    if ( chain != chains.end() && ( type == Chain::Type::UNDEFINED || chain->second.type() == type ) ) count += 1;
+	}
+	return count;
+    }
+
 
     Model::Station::Class::map_t
     Model::Station::select::operator()( const Class::map_t& augend, const Station::pair_t& m ) const
@@ -289,6 +306,7 @@ namespace BCMP {
 	    return augend;
 	}
     }
+
 
     /* ---------------------------------------------------------------- */
     /*			           Classes				*/

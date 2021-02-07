@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14440 2021-02-02 12:44:31Z greg $
+ * $Id: runlqx.cc 14446 2021-02-04 03:12:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -62,7 +62,6 @@ namespace SolverInterface
 	// }
 			
 	/* Make sure all external variables are accounted for */
-	bool ok = true;
 	    
 	    // const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	    // if ( undefined.size() > 0) {
@@ -73,31 +72,6 @@ namespace SolverInterface
 	    // 	}
 	    // 	throw std::runtime_error( msg );
 	    // }
-	try {
-	    if ( _open_model && _open_model.instantiate() ) {
-		if ( debug_flag ) _open_model.debug(std::cout);
-		ok = _open_model.solve( _closed_model );
-		if ( debug_flag ) _open_model.print(std::cout);
-	    }
-	    if ( _closed_model && _closed_model.instantiate() ) {
-		if ( debug_flag ) _closed_model.debug(std::cout);
-		ok = _closed_model.solve( _solver );
-		if ( debug_flag ) _closed_model.print(std::cout);
-	    }
-	}
-	catch ( const std::runtime_error& error ) {
-	    throw LQX::RuntimeException( error.what() );
-	    ok = false;
-	}
-	catch ( const std::logic_error& error ) {
-	    throw LQX::RuntimeException( error.what() );
-	    ok = false;
-	}
-	catch ( const floating_point_error& error ) {
-	    std::cerr << LQIO::io_vars.lq_toolname << ": floating point error - " << error.what() << std::endl;
-	    LQIO::io_vars.error_count += 1;
-	    ok = false;
-	}
-	return LQX::Symbol::encodeBoolean(ok);
+	return LQX::Symbol::encodeBoolean( _model.execute() );
     }
 }

@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14418 2021-01-27 23:33:14Z greg $
+ *  $Id: qnap2_document.h 14445 2021-02-03 17:23:56Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -48,8 +48,21 @@ namespace BCMP {
 	static std::string to_unsigned( const LQIO::DOM::ExternalVariable* v );
 
     private:
-	struct getVariables {
-	    getVariables( const Model& model, std::set<const LQIO::DOM::ExternalVariable *>& symbol_table ) : _model(model), _symbol_table(symbol_table) {}
+	struct getIntegerVariables {
+	    getIntegerVariables( const Model& model, std::set<const LQIO::DOM::ExternalVariable *>& symbol_table ) : _model(model), _symbol_table(symbol_table) {}
+	    std::string operator()( const std::string&, const Model::Chain::pair_t& k ) const;
+	private:
+	    const Model& model() const { return _model; }
+	    const Model::Chain::map_t& chains() const { return _model.chains(); }	/* For demand */
+	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
+	    bool multiclass() const { return chains().size() > 1; }
+	private:
+	    const Model& _model;
+	    std::set<const LQIO::DOM::ExternalVariable *>& _symbol_table;
+	};
+	    
+	struct getRealVariables {
+	    getRealVariables( const Model& model, std::set<const LQIO::DOM::ExternalVariable *>& symbol_table ) : _model(model), _symbol_table(symbol_table) {}
 	    std::string operator()( const std::string&, const Model::Chain::pair_t& k ) const;
 	    std::string operator()( const std::string&, const Model::Station::pair_t& m ) const;
 	    std::string operator()( const std::string&, const Model::Station::Class::pair_t& d ) const;
@@ -79,13 +92,16 @@ namespace BCMP {
 	    const Model::Chain::map_t& chains() const { return _model.chains(); }	/* For demand */
 	    const Model::Station::map_t& stations() const { return _model.stations(); }	/* For visits */
 	    bool multiclass() const { return chains().size() > 1; }
+	    void printCustomerTransit() const;
+	    void printServerTransit( const Model::Station::pair_t& m ) const;
+	    void printInterarrivalTime() const;
 	private:
 	    std::ostream& _output;
 	    const Model& _model;
 	};
 
-	struct printTransit {
-	    printTransit( const std::string& name ) : _name(name) {}
+	struct fold_transit {
+	    fold_transit( const std::string& name ) : _name(name) {}
 	    std::string operator()( const std::string&, const Model::Station::pair_t& ) const;
 	private:
 	    const std::string& _name;
@@ -149,9 +165,19 @@ namespace BCMP {
 	    std::ostream& _output;
 	};
 	
-	struct fold_service_time {
-	    fold_service_time() {}
-	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const;
+	struct fold_station {
+	    fold_station( const std::string& suffix="" ) : _suffix(suffix) {}
+	    std::string operator()( const std::string& s1, const Model::Station::pair_t& m ) const;
+	private:
+	    const std::string& _suffix;
+	};
+
+	struct fold_class {
+	    fold_class( const Model::Chain::map_t& chains, Model::Chain::Type type ) : _chains(chains), _type(type) {}
+	    std::string operator()( const std::string& s1, const Model::Station::Class::pair_t& k2 ) const;
+	private:
+	    const Model::Chain::map_t& _chains;
+	    const Model::Chain::Type _type;
 	};
 	    
 	struct fold_visits {
