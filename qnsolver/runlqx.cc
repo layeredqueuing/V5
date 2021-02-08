@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14446 2021-02-04 03:12:49Z greg $
+ * $Id: runlqx.cc 14466 2021-02-08 02:40:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -55,23 +55,21 @@ namespace SolverInterface
 #endif
 			
 	// /* Tell the world the iteration number */
-	// if ( flags.trace_mva ) {
-	//     std::cout << "\fSolving iteration #" << invocationCount << std::endl;
 	// } else if ( flags.verbose ) {
 	//     std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
 	// }
 			
 	/* Make sure all external variables are accounted for */
 	    
-	    // const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
-	    // if ( undefined.size() > 0) {
-	    // 	std::string msg = "The following external variables were not assigned at time of solve: ";
-	    // 	for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
-	    // 	    if ( var != undefined.begin() ) msg += ", ";
-	    // 	    msg += *var;
-	    // 	}
-	    // 	throw std::runtime_error( msg );
-	    // }
+	const std::vector<std::string>& undefined = _model._input.getUndefinedExternalVariables();
+	if ( !undefined.empty() ) {
+	    std::string msg = "The following external variables were not assigned at time of solve: ";
+	    for ( std::vector<std::string>::const_iterator var = undefined.begin(); var != undefined.end(); ++var ) {
+		if ( var != undefined.begin() ) msg += ", ";
+		msg += *var;
+	    }
+	    throw std::runtime_error( msg );
+	}
 	return LQX::Symbol::encodeBoolean( _model.execute() );
     }
 }

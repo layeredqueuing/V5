@@ -109,10 +109,8 @@ Model::instantiate()
 bool
 Model::solve()
 {
-//    if ( !_closed_model && !_open_model ) return false;
-
     if ( _input.hasSPEX() ) {
-	std::vector<LQX::SyntaxTreeNode *> * program = new std::vector<LQX::SyntaxTreeNode *>;
+	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
 	if ( !LQIO::spex.construct_program( program, _input.getResultVariables(), nullptr ) ) return false;
 	LQX::Program * lqx = LQX::Program::loadRawProgram( program );
 	_input.registerExternalSymbolsWithProgram( lqx );

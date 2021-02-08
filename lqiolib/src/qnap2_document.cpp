@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14445 2021-02-03 17:23:56Z greg $
+ * $Id: qnap2_document.cpp 14464 2021-02-07 16:15:45Z greg $
  *
  * Read in XML input files.
  *
@@ -116,7 +116,7 @@ namespace BCMP {
 	} else {
 	    /* Variables */
 	    output << qnap2_statement( "class string name", "Name (for output)" ) << std::endl;		// LQN client.
-	    if ( has_open_chain ) {
+	    if ( has_closed_chain ) {
 		output << qnap2_statement( "class integer n_users", "Population." ) << std::endl	
 		       << qnap2_statement( "class real think_t", "Think time." ) << std::endl;
 	    }
@@ -132,15 +132,15 @@ namespace BCMP {
 	std::for_each( stations().begin(), stations().end(), printStation( output, model() ) );	// Stations.
 
 	/* Output control stuff if necessary */
-	if ( multiclass() || !Spex::observations().empty() ) {
+	if ( multiclass() || !Spex::result_variables().empty() ) {
 	    output << "&" << std::endl
 		   << qnap2_keyword( "control" ) << std::endl;
-	}
-	if ( multiclass() ) {
-	    output << qnap2_statement( "class=all queue", "Compute for all classes" ) << std::endl;	// print for all classes.
-	}
-	if ( !Spex::observations().empty() ) {
-	    output << qnap2_statement( "option=nresult", "Suppress default output" ) << std::endl;
+	    if ( multiclass() ) {
+		output << qnap2_statement( "class=all queue", "Compute for all classes" ) << std::endl;	// print for all classes.
+	    }
+	    if ( !Spex::result_variables().empty() ) {
+		output << qnap2_statement( "option=nresult", "Suppress default output" ) << std::endl;
+	    }
 	}
 	
 	/* 6) Finally, assign the parameters defined in steps 2 & 3 from the constants and variables in the model */
@@ -188,10 +188,7 @@ namespace BCMP {
 	    /* Output statements to have Qnap2 compute LQN results */
 	    std::for_each( Spex::result_variables().begin(), Spex::result_variables().end(), getObservations( output, model() ) );
 	    /* Print them */
-	    const std::string result_vars = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), getResultVariables( std::set<const LQIO::DOM::ExternalVariable *>() ) );
-	    output << qnap2_statement( "print("
-				       + std::regex_replace( result_vars, std::regex(","), ",\",\"," )	/* For CSV output */
-				       + ")", "SPEX results" ) << std::endl;
+	    printResults( output, Spex::result_variables() );
 	}
 
 	/* insert end's for each for. */
@@ -459,10 +456,10 @@ namespace BCMP {
 	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( k->first ) );
 	    if ( multiclass() ) {
 		output << qnap2_statement( k->first + ".name:=\"" + k->first + "\"", "Class (client) name" ) << std::endl;
-		output << qnap2_statement( k->first + ".think_t:=(" + think_time.str() + ")/(" + think_visits + ")", "Slice time at client" ) << std::endl;
+		output << qnap2_statement( k->first + ".think_t:=" + think_time.str() + "/(" + think_visits + ")", "Slice time at client" ) << std::endl;
 		output << qnap2_statement( k->first + ".n_users:=" + customers.str(), comment  ) << std::endl;
 	    } else {
-		output << qnap2_statement( "think_t:=(" + think_time.str() + ")/(" + think_visits + ")", "Slice time at client" ) << std::endl;
+		output << qnap2_statement( "think_t:=" + think_time.str() + "/(" + think_visits + ")", "Slice time at client" ) << std::endl;
 		output << qnap2_statement( "n_users:=" + customers.str(), comment  ) << std::endl;
 	    }
 	}
@@ -543,6 +540,37 @@ namespace BCMP {
 	s.erase(std::remove(s.begin(), s.end(), ' '), s.end());	/* Strip blanks */
 	_output << qnap2_statement( s ) << std::endl;	/* Swaps $ to _ and appends ;	*/
     }
+
+
+    /*
+     * Print out the SPEX result variables in chunks as QNAP2 doesn't like BIG print statements.
+     */
+    
+    void
+    QNAP2_Document::printResults( std::ostream& output, const std::vector<Spex::var_name_and_expr>& vars ) const
+    {
+	std::string s;
+	std::string comment = "SPEX results";
+	bool continuation = false;
+	size_t count = 0;
+	for ( std::vector<Spex::var_name_and_expr>::const_iterator var = vars.begin(); var != vars.end(); ++var ) {
+	    ++count;
+	    if ( s.empty() && continuation ) s += "\",\",";	/* second print statement, signal continuation with "," */
+	    else if ( !s.empty() ) s += ",\",\",";		/* between vars. */
+	    s += var->first;
+	    if ( count > 6 ) {
+		output << qnap2_statement( "print(" + s + ")", comment ) << std::endl;
+		s.clear();
+		count = 0;
+		continuation = true;
+		comment = "... continued";
+	    }
+	}
+	if ( !s.empty() ) {
+	    output << qnap2_statement( "print(" + s + ")", comment ) << std::endl;
+	}
+    }
+    
 
     /*
      * Generate for loops;
@@ -634,7 +662,8 @@ namespace BCMP {
 	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
 	    /* Report class results for the customers; the station name is the class name */
 	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
-	    result += "terminal," + class_name;
+	    result += "terminal";
+	    if ( multiclass() ) result += "," + class_name;
 	    result += ")/(" + think_visits + ")";
 	    comment = "Convert to LQN throughput";
 	} else {

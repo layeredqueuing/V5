@@ -126,10 +126,12 @@ namespace BCMP {
 	static JMVA_Document * create( const std::string& input_file_name );
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
 	bool parse();
-	bool hasSPEX() const { return !_variables.empty(); }
+	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
 	const BCMP::Model& model() const { return _model; }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
+	expr_list * getLQXProgram() const { return _lqx_program; }
 	expr_list * getResultVariables() const { return _result_vars; }
+	std::vector<std::string> getUndefinedExternalVariables() const;
 
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
 	std::ostream& print( std::ostream& ) const;
@@ -209,7 +211,7 @@ namespace BCMP {
 
 	public:
 	    what_if( std::ostream& output, const BCMP::Model& model ) : _output(output), _model(model) {}
-	    void operator()( const std::string& ) const;
+	    void operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& ) const;
 	    const Model::Model::Station::map_t& stations() const { return _model.stations(); }
 	    const Model::Chain::map_t& chains() const { return _model.chains(); }
 	private:
@@ -218,6 +220,13 @@ namespace BCMP {
 	};
 
 	bool convertToLQN( LQIO::DOM::Document& ) const;
+
+	struct notSet {
+	    notSet(std::vector<std::string>& list) : _list(list) {}
+	    void operator()( const std::pair<std::string,LQIO::DOM::SymbolExternalVariable*>& var ) { if (!var.second->wasSet()) _list.push_back(var.first); }
+	private:
+	    std::vector<std::string>& _list;
+	};
 
 	/* -------------------------- Output -------------------------- */
 
@@ -278,6 +287,7 @@ namespace BCMP {
 	XML_Parser _parser;
 	std::string _text;
 	std::stack<parse_stack_t> _stack;
+	expr_list* _lqx_program;
 	std::map<std::string,LQIO::DOM::SymbolExternalVariable*> _variables;	/* Spex vars */
 
 	/* Maps for asssociating var (the string) to an object */

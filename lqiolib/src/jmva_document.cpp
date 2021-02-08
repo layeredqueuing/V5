@@ -53,14 +53,14 @@ namespace BCMP {
     /* ---------------------------------------------------------------- */
 
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-									 _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+									 _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 									 _result_vars(nullptr)
     {
     }
     
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
-												   _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
+												   _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
 												   _result_vars(nullptr)
     {
@@ -830,7 +830,6 @@ namespace BCMP {
 	const std::string type = XML::getStringAttribute( attributes, Xtype );
 	const std::string className = XML::getStringAttribute( attributes, XclassName, "" );		/* className and/or stationName */
 	const std::string stationName = XML::getStringAttribute( attributes, XstationName, "" );	/* className and/or stationName */
-	const Comprehension comprehension( XML::getStringAttribute( attributes, Xvalues ) );
 	
 	std::string name;
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
@@ -901,8 +900,18 @@ namespace BCMP {
 	    abort();
 	}
 
-	/* create a spex array comprehension for evaluation by LQX */
-	spex_array_comprehension( name.c_str(), comprehension.begin(), comprehension.end(), comprehension.stride() );
+	const Comprehension comprehension( XML::getStringAttribute( attributes, Xvalues ) );
+	void * statement = nullptr;
+	if ( comprehension.begin() == comprehension.end() ) {
+	    /* One item = scalar */
+	    statement = spex_assignment_statement( name.c_str(), new LQX::ConstantValueExpression( comprehension.begin() ), true );
+	} else if ( comprehension.stride() > 0 ) {
+	    /* Stride present, so it's a... */
+	    statement = spex_array_comprehension( name.c_str(), comprehension.begin(), comprehension.end(), comprehension.stride() );
+	} else {
+	    /* it's a string of values */
+	}
+	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
     }
 
     /* 
@@ -1041,7 +1050,15 @@ namespace BCMP {
 	    previous = value;
 	}
     }
-    
+
+    std::vector<std::string>
+    JMVA_Document::getUndefinedExternalVariables() const
+    {
+	/* Returns a list of all undefined external variables as a string */
+	std::vector<std::string> names;
+	std::for_each( _variables.begin(), _variables.end(), notSet(names) );
+	return names;
+    }
 }
 
 namespace BCMP {
@@ -1093,9 +1110,9 @@ namespace BCMP {
 	/* Insert WhatIf for statements for arrays and completions. */
 	/* 	<whatIf className="c1" stationName="p2" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/> */
 
-	if ( !Spex::array_variables().empty() ) {
-	    output << "   <!-- SPEX arrays and completions -->" << std::endl;
-	    std::for_each( Spex::array_variables().begin(), Spex::array_variables().end(), what_if( output, _model ) );
+	if ( !Spex::input_variables().empty() ) {
+	    output << "   <!-- SPEX input variables -->" << std::endl;
+	    std::for_each( Spex::input_variables().begin(), Spex::input_variables().end(), what_if( output, _model ) );
 	}
 
 	/* SPEX */
@@ -1117,13 +1134,13 @@ namespace BCMP {
 		std::for_each( station_variables.begin(), station_variables.end(), printResultVariable( output ) );
 		output << ">" << std::endl;
 		for ( BCMP::Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
-		output << XML::start_element( Xclassresults ) << XML::attribute( Xcustomerclass, k->first );
-		const BCMP::Model::Station::Class& clasx = k->second;
-		const BCMP::Model::Result::map_t& class_variables = clasx.resultVariables();
-		std::for_each( class_variables.begin(), class_variables.end(), printResultVariable( output ) );
-		output << ">" << std::endl;
+		    output << XML::start_element( Xclassresults ) << XML::attribute( Xcustomerclass, k->first );
+		    const BCMP::Model::Station::Class& clasx = k->second;
+		    const BCMP::Model::Result::map_t& class_variables = clasx.resultVariables();
+		    std::for_each( class_variables.begin(), class_variables.end(), printResultVariable( output ) );
+		    output << ">" << std::endl;
+		    output << XML::end_element( Xclassresults ) << std::endl;
 		}
-		output << XML::end_element( Xclassresults ) << std::endl;
 		output << XML::end_element( Xstationresults ) << std::endl;
 	    }
 	    output << XML::end_element( Xalgorithm ) << std::endl;
@@ -1242,25 +1259,24 @@ namespace BCMP {
      */
 
     void
-    JMVA_Document::what_if::operator()( const std::string& var ) const
+    JMVA_Document::what_if::operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& var ) const
     {
 	_output << XML::simple_element( XwhatIf );
 	std::ostringstream ss;
-	std::string array;
-	BCMP::Model::Chain::map_t::const_iterator k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var ) );
+	BCMP::Model::Chain::map_t::const_iterator k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) );
 	if ( k != chains().end() ) {
 	    _output << XML::attribute( XclassName, k->first )
 		    << XML::attribute( Xtype, "Customer Numbers" );
 	} else {
-	    BCMP::Model::Station::map_t::const_iterator m = std::find_if( stations().begin(), stations().end(), what_if::has_var( var ) );
+	    BCMP::Model::Station::map_t::const_iterator m = std::find_if( stations().begin(), stations().end(), what_if::has_var( var.first ) );
 	    if ( m != stations().end() ) {
 		const LQIO::DOM::ExternalVariable * copies = m->second.copies();
-		if ( copies != nullptr && !copies->wasSet() && copies->getName() == var ) {
+		if ( copies != nullptr && !copies->wasSet() && copies->getName() == var.first ) {
 		    _output << XML::attribute( XstationName, m->first )
 			    << XML::attribute( Xtype, "Number of Servers" );
 		} else {
 		    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
-		    const BCMP::Model::Station::Class::map_t::const_iterator d = std::find_if( classes.begin(), classes.end(), what_if::has_service_time( var ) );
+		    const BCMP::Model::Station::Class::map_t::const_iterator d = std::find_if( classes.begin(), classes.end(), what_if::has_service_time( var.first ) );
 		    _output << XML::attribute( XstationName, m->first )
 			    << XML::attribute( XclassName, d->first )
 			    << XML::attribute( Xtype, "Service Demands" );
@@ -1268,27 +1284,31 @@ namespace BCMP {
 	    }
 	}
 
-	const std::map<std::string,Spex::ComprehensionInfo>::const_iterator comprehension = Spex::comprehensions().find( var );
-	if ( comprehension != Spex::comprehensions().end() ) {
+	std::string values;
+	std::map<std::string,Spex::ComprehensionInfo>::const_iterator comprehension;
+	std::vector<std::string>::const_iterator array;
+	if ( (comprehension = Spex::comprehensions().find( var.first )) != Spex::comprehensions().end() ) {
 	    /* Simple, run the comprehension directly */
 	    for ( double value = comprehension->second.getInit(); value <= comprehension->second.getTest(); value += comprehension->second.getStep() ) {
 		if ( value != comprehension->second.getInit() ) ss << ";";
 		ss << value;
 	    }
-	    array = ss.str();
-	} else {
+	    values = ss.str();
+	} else if ( (array = std::find( Spex::array_variables().begin(), Spex::array_variables().end(), var.first )) != Spex::array_variables().end() ) {
 	    /* Little harder, the values are encoded in the varible's LQX statement directly */
-	    const std::map<std::string,LQX::SyntaxTreeNode *>::const_iterator lqx = Spex::input_variables().find(var);
-	    lqx->second->print(ss);		/* So print out the LQX */
-	    array = ss.str();
+	    var.second->print(ss);		/* So print out the LQX */
+	    values = ss.str();
 	    /* Get rid of brackets and spaces from array_create(0.5, 1, 1.5) */
-	    array.erase(array.begin(), array.begin()+13);		/* "array_create(" */
-	    array.erase(std::prev(array.end()),array.end());		/* ")" */
-	    std::replace(array.begin(), array.end(), ',', ';' );	/* Xerces wants ';', not ',' */
-	    array.erase(std::remove(array.begin(), array.end(), ' '), array.end());	/* Strip blanks */
+	    values.erase(values.begin(), values.begin()+13);		/* "array_create(" */
+	    values.erase(std::prev(values.end()),values.end());		/* ")" */
+	    std::replace(values.begin(), values.end(), ',', ';' );	/* Xerces wants ';', not ',' */
+	    values.erase(std::remove(values.begin(), values.end(), ' '), values.end());	/* Strip blanks */
+	} else {
+	    var.second->print(ss);		/* So print out the LQX */
+	    values = ss.str();
 	}
-	_output << XML::attribute( Xvalues, array );
-	_output << "/>  <!--" << var << "-->" << std::endl;
+	_output << XML::attribute( Xvalues, values );
+	_output << "/>  <!--" << var.first << "-->" << std::endl;
     }
 
     /* Return true if this class has the variable */
