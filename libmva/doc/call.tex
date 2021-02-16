@@ -1,26 +1,7 @@
-\C 
-\C $Id: call.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:51  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.3  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.2  1994/12/09  02:02:36  greg
-\C update.
-\C
-\C Revision 1.1  1994/06/24  19:11:32  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: call.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% ----------------------------------------------------------------------
 \section{Call}
 \label{sec:call}
 
@@ -63,11 +44,11 @@ protected:
 
 \item[rnvCalls] \texonly{---} The number of rendezvous, by 
   phase of \var{source}.  Set by calls to
-  \link{\code{store_rnv_data()}}{sec:entry-load}. 
+  \link{\code{store\_rnv\_data()}}{sec:entry-load}. 
 
 \item[snrCalls] \texonly{---} The number of asynchronous requests, by
   phase of \var{source}.  Set by calls to
-  \link{\code{store_snr_data()}}{sec:entry-load}. 
+  \link{\code{store\_snr\_data()}}{sec:entry-load}. 
 
 \item[wait] \texonly{---} The computed waiting time for one call.  Set
   by \link{\code{saveWait()}}[ (\Sec\Ref)]{sec:entry-saveWait}.
@@ -75,7 +56,7 @@ protected:
 \item[prForward] \texonly{---} The forwarding probability from the
   \var{source} entry to the destination \var{realEntry}.
 
-\item[partition] \texonly{---} The \link{\bold{partition}}[
+\item[partition] \texonly{---} The \link{\bf{partition}}[
   (\Sec\Ref)]{sec:layerize} number to which the waiting time results,
   \var{wait}, apply.
 \end{description}
@@ -114,19 +95,19 @@ Clear \var{rnvCalls}, \var{snrCalls} and \var{wait}.
 \code{void setFESCEntry( Entry * anEntry ) }
 
 \item[ setWait] \texonly{---} \\
-\code{Call& setWait( unsigned p, double value ) }
+\code{Call\& setWait( unsigned p, double value ) }
 
 \item[owner] \texonly{---} \\
 \code{const Entry * owner() }
 
 \item[ rendezvous] \texonly{---} \\
-\code{Call& rendezvous( const unsigned p, const double value );}
+\code{Call\& rendezvous( const unsigned p, const double value );}
 
 \item[rendezvous] \texonly{---} \\
 \code{double rendezvous( const unsigned p ) }
 
 \item[ sendNoReply] \texonly{---} \\
-\code{Call& sendNoReply( const unsigned p, const double value );}
+\code{Call\& sendNoReply( const unsigned p, const double value );}
 
 \item[sendNoReply] \texonly{---} \\
 \code{double sendNoReply( const unsigned p ) }
@@ -168,10 +149,10 @@ Clear \var{rnvCalls}, \var{snrCalls} and \var{wait}.
 \begin{description}
 
 \item[ print] \texonly{---} \\
-\code{ostream& print( ostream& = cout ) }
+\code{ostream\& print( ostream\& = cout ) }
 
 \item[ printDelays] \texonly{---} \\
-\code{ostream& printDelays( ostream& output, const unsigned np, const
+\code{ostream\& printDelays( ostream\& output, const unsigned np, const
   double rnv[], const double fwd[] ) }
 
 \end{description}
@@ -205,7 +186,7 @@ be in-lined.
 \code{double variance( const unsigned phase ) }
 
 \item[type] \texonly{---} \\
-\code{phase_type phaseTypeFlag( const unsigned phase ) }
+\code{phase\_type phaseTypeFlag( const unsigned phase ) }
 
 \item[serviceTime] \texonly{---} \\
 \code{double serviceTime( const unsigned phase ) }
@@ -214,12 +195,12 @@ be in-lined.
 \code{double elapsedTime( const unsigned phase ) }
 
 \item[Cv] \texonly{---} \\
-\code{double Cv_sqr() }
+\code{double Cv\_sqr() }
 
 \end{description}
 
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 
 

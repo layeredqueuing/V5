@@ -1,29 +1,29 @@
-\C 
-\C $Id: entry.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.4  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.3  1994/12/09  02:02:36  greg
-\C update.
-\C
-\C Revision 1.2  1994/08/04  20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.1  1994/06/24  19:11:32  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: entry.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% $Log$
+% Revision 31.0  2005/01/02 02:30:29  greg
+% Bring all files up to revision 31.
+%
+% Revision 30.0  2003/11/12 18:56:52  greg
+% Bring all files up to revision 30.0
+%
+% Revision 29.0  2003/06/13 00:48:38  greg
+% bounce version number.
+%
+% Revision 1.4  1995/01/11 21:05:12  greg
+% Revised for R12 of MVA software.
+%
+% Revision 1.3  1994/12/09  02:02:36  greg
+% update.
+%
+% Revision 1.2  1994/08/04  20:52:11  greg
+% Intermediate save
+%
+% Revision 1.1  1994/06/24  19:11:32  greg
+% Initial revision
+%
+% ----------------------------------------------------------------------
 \section{Entry}
 \label{sec:entry}
 
@@ -85,7 +85,7 @@ Entry( const char * aStr, const unsigned id=0 );
 
 \label{sec:entry-initWait}
 \item[initWait] \texonly{---} \\
-\code{void initWait( const Layerize& );}
+\code{void initWait( const Layerize\& );}
 
 \end{description}
 \subsubsection{Copying}
@@ -93,36 +93,36 @@ Entry( const char * aStr, const unsigned id=0 );
 
 \begin{description}
 \item[task] \texonly{---} \\
-\code{Entry& task( const Task * );}\\
+\code{Entry\& task( const Task * );}\\
 \code{const Task * task() const}
 
 \item[phaseTypeFlag] \texonly{---} \\
-\code{phase_type& phaseTypeFlag( const unsigned phase );}\\
-\code{phase_type phaseTypeFlag( const unsigned phase ) const;}
+\code{phase\_type\& phaseTypeFlag( const unsigned phase );}\\
+\code{phase\_type phaseTypeFlag( const unsigned phase ) const;}
 
 \item[coefficientOfVariation] \texonly{---} \\
-\code{double& coefficientOfVariation( const unsigned phase );}\\
+\code{double\& coefficientOfVariation( const unsigned phase );}\\
 \code{double coefficientOfVariation( const unsigned phase ) const;}
 
 \item[openArrivalRate] \texonly{---} \\
-\code{double& openArrivalRate();}\\
+\code{double\& openArrivalRate();}\\
 \code{double openArrivalRate() const;}
 
 \item[trace] \texonly{---} \\
-\code{Entry& trace( const int flag );}\\
+\code{Entry\& trace( const int flag );}\\
 \code{int trace() const;}
 
 \item[isCalled] \texonly{---} \\
-\code{Entry& isCalled( const short aFlag );}\\
+\code{Entry\& isCalled( const short aFlag );}\\
 \code{short isCalled() const;}
 
 \item[serviceTime] \texonly{---} \\
-\code{Entry& serviceTime( const unsigned, double );} \\
+\code{Entry\& serviceTime( const unsigned, double );} \\
 \code{double serviceTime( const unsigned phase ) const;} \\
 \code{double serviceTime() const;}
 
 \item[rendezvous] \texonly{---} \\
-\code{Entry& rendezvous( Entry *, const unsigned, const double );}\\
+\code{Entry\& rendezvous( Entry *, const unsigned, const double );}\\
 \code{double rendezvous( const Entry *, const unsigned ) const;}\\
 \code{double rendezvous( const Entry * ) const;}
 
@@ -137,7 +137,7 @@ Entry( const char * aStr, const unsigned id=0 );
 \code{double sumOfPostRendezvousCalls() const;}
 
 \item[sendNoReply] \texonly{---} \\
-\code{Entry& sendNoReply( Entry *, const unsigned, const double );}\\
+\code{Entry\& sendNoReply( Entry *, const unsigned, const double );}\\
 \code{double sendNoReply( const Entry *, const unsigned ) const;}\\
 \code{double sendNoReply( const Entry * ) const;}
 
@@ -146,7 +146,7 @@ Entry( const char * aStr, const unsigned id=0 );
 
 \item[double throughput] \texonly{---} \\
 \code{double throughput() const;}
-\code{Entry& throughput( const double );}
+\code{Entry\& throughput( const double );}
 \end{description}
 
 \subsubsection{Queries}
@@ -168,7 +168,7 @@ Entry( const char * aStr, const unsigned id=0 );
 
 \subsection{Helper Functions}
 \label{sec:entry-load}
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

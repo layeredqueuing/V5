@@ -1,43 +1,21 @@
-\C 
-\C $Id: population.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.4  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.3  1994/08/04  20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.2  1994/06/24  19:11:32  greg
-\C Format changes.
-\C
-\C Revision 1.1  1994/06/23  19:11:01  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: population.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% ----------------------------------------------------------------------
 \section{Population}
 \label{sec:population}
 
 Population objects are like arrays except that the index to elements
 stored therein is a \emph{vector} rather than a scalar; the vector
 used as the index is called a \emph{Population Vector} and has the
-type \dfn{PopVector}.  The class \code{Population} itself is an
+type \dfn{PopVector}.  The class \texttt{Population} itself is an
 abstract superclass.  Populations should be either of class
-\link{\code{GeneralPop}}{sec:general-population} or of class
-\link{\code{SpecialPop}}{sec:special-population}.
+\link{\texttt{GeneralPop}}{sec:general-population} or of class
+\link{\texttt{SpecialPop}}{sec:special-population}.
 
 General populations allow the number of customers to vary from zero to
 the maximum number set by the
-\link{\code{capacity()}}{sec:population-capacity} function.  This
+\link{\texttt{capacity()}}{sec:population-capacity} function.  This
 class is used with \link{Exact MVA}{sec:mva-exact}.  The number of
 elements allocated for the \link{\var{array}}{sec:population-ivars} is
 given by the expression \math[n1*n2*...*nk]{n_1 \times n_2 \times ...
@@ -77,19 +55,19 @@ unsigned arraysize;
 
 Population objects are created with the following constructor.  Due to
 quirks in C++ regarding the allocation arrays of objects, the object
-is intialized with the \code{capacity()} call after it has been
+is intialized with the \texttt{capacity()} call after it has been
 created.
 
-\code{Population();}
+\texttt{Population();}
 
 \subsubsection{Initialization}
 
 \begin{description}
 \item[capacity] \texonly{---} Public member function\\
   \label{sec:population-capacity}
-  \code{void capacity( const PopVector &N );}
+  \texttt{void capacity( const PopVector \&N );}
 
-  The \code{capacity()} call is used to allocated storage for the
+  The \texttt{capacity()} call is used to allocated storage for the
   Population objects.  The argument \var{N} specifies the maximum number
   of customers in each customer class (and is used to set the instance
   variable \link{\var{maxCust}}{sec:population-ivars}.  Classes range
@@ -101,19 +79,19 @@ created.
 \subsubsection{Copying}
 \label{sec:population-copy}
 
-The \code{save()} and \code{restore()} functions are used to copy
+The \texttt{save()} and \texttt{restore()} functions are used to copy
 subsets of the population space from one population object to another.
 They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
 \begin{description}
 
 \item[save] \texonly{---} Public member function\\
-  \code{void save( Population & src, const PopVector & N );}
+  \texttt{void save( Population \& src, const PopVector \& N );}
 
   \var{save()} copies the element at {\bf N} and \math{{\bf N} - e_j}
   for all \math{j} in \link{\var{nClasses}}{sec:population-ivars}.
 
 \item[Restore] \texonly{---} Public member function\\
-  \code{void restore( Population & src, const PopVector & N );}
+  \texttt{void restore( Population \& src, const PopVector \& N );}
 
   \var{restore()} performs the inverse operation \emph{except} that it
   does not copy the value at {\bf N}.
@@ -124,15 +102,15 @@ They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
 
 \begin{description}
 \item[Index] \texonly{---} Operator\\
-  \code{double& operator[]( const PopVector & N );}\\
-  \code{double operator[]( const PopVector & N );}\\
-  \code{double& operator[]( const unsigned n );}
+  \texttt{double\& operator[]( const PopVector \& N );}\\
+  \texttt{double operator[]( const PopVector \& N );}\\
+  \texttt{double\& operator[]( const unsigned n );}
 
-  Elements in \code{Population} objects are accessed throught the C++
-  operator `\code{[]}', so that population objects look like arrays.
-  However, unlike \code{Vector} objects and conventional arrays which
-  take scalars, the \emph{index} to \code{Population} objects is of type
-  \code{Vector<unsigned>}.  The vector argument must have at least as
+  Elements in \texttt{Population} objects are accessed throught the C++
+  operator `\texttt{[]}', so that population objects look like arrays.
+  However, unlike \texttt{Vector} objects and conventional arrays which
+  take scalars, the \emph{index} to \texttt{Population} objects is of type
+  \texttt{Vector<unsigned>}.  The vector argument must have at least as
   many elements as \link{\var{nClasses}}{sec:population-ivars} and begin
   at offset 1.  Each element must be no larger than the value specified
   by its corresponding element in
@@ -142,26 +120,26 @@ They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
 
   A special index operator taking a simple scalar \var{n} is also
   supplied.  However, {\bf no} range checking is performed.  This
-  operator is used in conjunction with the \link{\code{offset()}
+  operator is used in conjunction with the \link{\texttt{offset()}
     function}{sec:population-offset} described elsewhere and is provided
   to improve the performance of the MVA solvers.
 
 \item[e\_j] \texonly{---} Special Access Functions\\
-  \code{double& e_j( const PopVector & N, const unsigned j );}\\
-  \code{double& e_c_e_j( const unsigned c, const unsigned j );}
+  \texttt{double\& e\_j( const PopVector \& N, const unsigned j );} \linebreak
+  \texttt{double\& e\_c\_e\_j( const unsigned c, const unsigned j );}
 
-  \code{e_j()} and \code{e_c_e_j()} are also provided to store and
-  retrieve data in \code{Population} objects.  The \code{e_j()} function
-  performs the operation \math{{\bf N} - e_j}, that is, it accesses the
+  \texttt{e\_j()} and \texttt{e\_c\_e\_j()} are also provided to store and
+  retrieve data in \texttt{Population} objects.  The \texttt{e\_j()} function
+  performs the operation \math{{\bf N} - e\_j}, that is, it accesses the
   element in the population space at the population vector {\bf N} with
   one customer removed from class \var{j}.  There must be at least one
-  customer in class \var{j}.  \code{e_c_e_j()} performs a similar
+  customer in class \var{j}.  \texttt{e\_c\_e\_j()} performs a similar
   function except that customers are removed from both class \var{c} and
   \var{j} (See \link{offset functions}[~Section
   \Ref]{sec:population-offset}).  Class \var{c} and \var{j} may, in
   fact, be the same class.
 
-  Both the \code{[]} operator and the \code{e_j()} and \code{e_c_e_j()}
+  Both the \texttt{[]} operator and the \texttt{e\_j()} and \texttt{e\_c\_e\_j()}
   functions can be used on either side of the assignment operator (i.e.,
   they can be used to both store and retrive values).
 \end{description}
@@ -172,19 +150,19 @@ They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
 
 \item[offset] \texonly{---} Array offset functions\\
   \label{sec:population-offset}
-  \code{unsigned offset( const PopVector& N)}\\
-  \code{unsigned offset_e_j( const PopVector& N, const unsigned j )}\\
-  \code{unsigned offset_e_c_e_j( const unsigned c, const unsigned j )}
+  \texttt{unsigned offset( const PopVector\& N)}\\
+  \texttt{unsigned offset\_e\_j( const PopVector\& N, const unsigned j )}\\
+  \texttt{unsigned offset\_e\_c\_e\_j( const unsigned c, const unsigned j )}
 
-  The \code{offset()} function is used to translate the population vector
+  The \texttt{offset()} function is used to translate the population vector
   \var{N} to an offset into \var{array}.  It range checks both the
   number of elements in \var{N}, and the size of each of the elements.
 
-  \code{Offset_e_j()} performs the same function as \code{offset()},
+  \texttt{Offset\_e\_j()} performs the same function as \texttt{offset()},
   except one customer is removed from class \var{j} first.  There must
   be at least one customer in class \var{j}.
 
-  \code{Offset_e_c_e_j()} also computes an offset into \var{array}.
+  \texttt{Offset\_e\_c\_e\_j()} also computes an offset into \var{array}.
   However, one customer is removed from both class \var{c} and \var{j}
   at the maximum population value
   \link{\var{maxCust}}{sec:population-ivars}.  Both \var{c} and \var{j}
@@ -194,23 +172,23 @@ They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
   customers in each class.
 
 \item[Not] \texonly{---} Operator\\
-  \code{int operator!() const;}
+  \texttt{int operator!() const;}
 
-  The \code{!} operator will return true if the value of the population
+  The \texttt{!} operator will return true if the value of the population
   space at the maximum customer level equals zero.  Otherwise, it
   returns false.
 
 \item[maxPopValue] \texonly{---} Public member function\\
-  \code{double maxPopValue() const;}
+  \texttt{double maxPopValue() const;}
 
-  \code{maxPopValue()} returns the value of the population space at the
+  \texttt{maxPopValue()} returns the value of the population space at the
   maximum number of customers.
 
 
 \item[n] \texonly{---} Public member function\\
-  \code{double n( const unsigned k ) const;}
+  \texttt{double n( const unsigned k ) const;}
 
-  \code{n()} returns the maximum number of customers for class \var{k}.
+  \texttt{n()} returns the maximum number of customers for class \var{k}.
 
 \end{description}
 
@@ -218,7 +196,7 @@ They are used by the \link{linearizer}{sec:mva-linearizer} MVA solvers.
 \label{sec:population-io}
 \begin{description}
 \item[Insertion] \texonly{---} Operator\\
-  \code{friend ostream& operator<<( ostream&, const Population& );}
+  \texttt{friend ostream\& operator < <( ostream\&, const Population\& );}
 
   Print out the the maximum customer population
   \link{\var{maxCust}}{sec:population-ivars} and its value.
@@ -235,7 +213,7 @@ the number of customers in each customer class.
 \subsubsection{Initialization}
 \begin{description}
 \item[capacity] \texonly{---} Public member function\\
-  \code{void capacity( const PopVector &N );}
+  \texttt{void capacity( const PopVector \&N );}
 \end{description}
 
 \subsubsection{Queries}
@@ -243,11 +221,11 @@ the number of customers in each customer class.
 \begin{description}
 
 \item[offset] \texonly{---} Array offset functions\\
-  \code{unsigned offset( const PopVector& N)}\\
-  \code{unsigned offset_e_c_e_j( const unsigned c, const unsigned j )}
+  \texttt{unsigned offset( const PopVector\& N)}\\
+  \texttt{unsigned offset\_e\_c\_e\_j( const unsigned c, const unsigned j )}
 
   Return the array offset for the specified population vector.
-  \code{offset_e_c_e_j()} removes a customer from classes \var{c} and
+  \texttt{offset\_e\_c\_e\_j()} removes a customer from classes \var{c} and
   \var{j}.  A value of zero for either \var{c} or \var{j} denotes that
   no customer for the argument is to be removed.
 
@@ -268,7 +246,7 @@ are removed from class \var{c}.
 
 \htmlonly{The figure below}\texonly{Figure~\ref{fig:specialpop}} shows
 the method which data is stored in this class.  The row and column
-labels \var{c} and \var{j} correspond to the removal of \bold{one}
+labels \var{c} and \var{j} correspond to the removal of \bf{one}
 customer from class \emph{c} and \emph{j} respectively.  The
 relationship \math[\var{c} >= \var{j}]{c >= j} must always hold.  The removal
 of two customers from one class is accomplished by setting
@@ -278,9 +256,9 @@ by setting \math[\var{c} = \var{j} = 0]{c = j = 0}.
 \begin{figure}[htbp]
   \label{fig:specialpop}
   \begin{center}
-    \T \tex \leavevmode \input{specialpop.epic}
-    \caption{Special population array structure.}
-    \H \htmlimage{mva.gif}
+%    \T \tex \leavevmode \input{specialpop.epic}
+%    \caption{Special population array structure.}
+%    \H \htmlimage{mva.gif}
   \end{center}
 \end{figure}
 
@@ -294,18 +272,18 @@ number of customers in each class.
 \subsubsection{Initialization}
 \begin{description}
 \item[capacity] \texonly{---} Public member function\\
-  \code{void capacity( const PopVector &N );}
+  \texttt{void capacity( const PopVector \&N );}
 \end{description}
 
 \subsubsection{Queries}
 
 \begin{description}
 \item[offset] \texonly{---} Array offset functions\\
-  \code{unsigned offset( const PopVector& N )}\\
-  \code{unsigned offset_e_c_e_j( const unsigned c, const unsigned j )}
+  \texttt{unsigned offset( const PopVector\& N )}\\
+  \texttt{unsigned offset\_e\_c\_e\_j( const unsigned c, const unsigned j )}
 
   Compute and return array offset.  The population vector passed to
-  \code{offset()} can have no more than two customers removed from the
+  \texttt{offset()} can have no more than two customers removed from the
   population space.  A run time exception will be generated otherwise.
 
 \end{description}
@@ -341,20 +319,20 @@ protected:
 
 \subsubsection{Constructors for PopulationIterator}
 
-Population Iterators are created with the \code{PopulationIterator(N)}
+Population Iterators are created with the \texttt{PopulationIterator(N)}
 constructor where the argument \var{N} is a population vector defining
 the maximum number of customers in each class.  The size of the
 population vector \var{N} determines the number of classes. 
 
 \begin{verbatim}
-    PopulationIterator( const PopVector& N);
+    PopulationIterator( const PopVector\& N);
 \end{verbatim}
 
 \subsubsection{Computation}
 
 \begin{description}
 \item[Next Population] \texonly{---} Operator\\
-  \code{int operator()(PopVector& N);}
+  \texttt{int operator()(PopVector\& N);}
 
   Compute the next population value.  Return 1 if the new population is
   valid (i.e., the number of customers in each class is less that or
@@ -363,21 +341,21 @@ population vector \var{N} determines the number of classes.
   zeros otherwise.
 
 \item[step] \texonly{---} Private member function\\
-  \code{int step( PopVector& N, const unsigned k );}
+  \texttt{int step( PopVector\& N, const unsigned k );}
 
   Increase the number of customers for class \var{k} by one.  If the
   number of customers exceeds the limit for this class, then reset the
-  count to zero, and \code{step()} the next class.
+  count to zero, and \texttt{step()} the next class.
 
 \end{description}
 
-\C
-\C ----------------------------------------------------------------------
-\C
-\subsection{Class B_Iterator}
+%
+% ----------------------------------------------------------------------
+%
+\subsection{Class B\_Iterator}
 \label{sec:pop-BIter}
 
-The \file{B_Iterator} class is used to generate all feasible
+The \file{B\_Iterator} class is used to generate all feasible
 populations for the \var{xr} term of \link{first-come-first-served
 multi-servers}[~(\Sec\Ref)]{sec:multiserver} (\link{Eqn
 (16)}[~\Cite]{queue:deSouzaeSilva-87}).  The following constraints are
@@ -386,14 +364,14 @@ enforced:
 \begin{iftex}
   \tex
   \begin{eqnarray*}
-    |{\bf n}| & = & J \\
-    {\bf n} & \leq & ({\bf N} - e_k)
+    |{\bf n}| \& = \& J \\
+    {\bf n} \& \leq \& ({\bf N} - e_k)
   \end{eqnarray*}
 \end{iftex}
 \begin{ifhtml}
   \begin{tabular}
-    n1 + ... + nk & = & J \\
-    n & <= & (N - ek)
+    n1 + ... + nk \& = \& J \\
+    n \& <= \& (N - ek)
   \end{tabular}
 \end{ifhtml}
 
@@ -407,14 +385,14 @@ enforced:
 
 \begin{description}
 \item[J] \texonly{---} The total number of customers over all classes
-  which the \code{()} operator will enforce.
+  which the \texttt{()} operator will enforce.
 \item[K] \texonly{---} The total number of classes.  This variable is
   set by the argument \var{N} to the constructor.
 \item[index] \texonly{---} A local variable used for generating
   populations. 
 \end{description}
 
-\subsubsection{Constructors for B_Iterator}
+\subsubsection{Constructors for B\_Iterator}
 
 \begin{description}
 \item[N] \texonly{---} Maximum number of customers per class.
@@ -423,14 +401,14 @@ enforced:
 \end{description}
 
 \begin{verbatim}
-    B_Iterator( const unsigned j, const PopVector& N, const unsigned k );
+    B_Iterator( const unsigned j, const PopVector\& N, const unsigned k );
 \end{verbatim}
 
 \subsubsection{Computation}
 
 \begin{description}
 \item[next] \texonly{---} Next Population operator\\
-  \code{int operator()(PopVector& N);}
+  \texttt{int operator()(PopVector\& N);}
 
   Compute the next population value.  Return 1 if the new population is
   valid (i.e., the number of customers in each class is less that or
@@ -439,7 +417,7 @@ enforced:
   zeros otherwise.
 
 \item[step] \texonly{---} Generate next population.\\
-  \code{int step( PopVector& N, const unsigned i, const unsigned n );}
+  \texttt{int step( PopVector\& N, const unsigned i, const unsigned n );}
 
   Ultra-funky recursive step function.  It returns 1 if the population
   vector was updated properly, and zero otherwise.  The inherited
@@ -448,17 +426,17 @@ enforced:
   the first feasible population.
 \end{description}
 
-\C
-\C ----------------------------------------------------------------------
-\C
-\subsection{Class A_Iterator}
+%
+% ----------------------------------------------------------------------
+%
+\subsection{Class A\_Iterator}
 \label{sec:pop-AIter}
 
-The \file{A_Iterator} class is used to generate all feasible
+The \file{A\_Iterator} class is used to generate all feasible
 populations for the \var{xe} term of \link{first-come-first-served
   multi-servers}[~(\Sec\Ref)]{sec:multiserver} (\link{Eqn
   (17)}[~\Cite]{queue:deSouzaeSilva-87}).  This class differs from
-\file{B_Iterator} in that one chain, \var{i}, must always have one
+\file{B\_Iterator} in that one chain, \var{i}, must always have one
 customer.
 
 The following constraints are
@@ -467,9 +445,9 @@ enforced:
 \begin{iftex}
   \tex
   \begin{eqnarray*}
-    |{\bf n}| & = & J \\
-    {\bf n} & \leq & ({\bf N} - e_k) \\
-    n_i & \geq & 1
+    |{\bf n}| \& = \& J \\
+    {\bf n} \& \leq \& ({\bf N} - e_k) \\
+    n_i \& \geq \& 1
   \end{eqnarray*}
 \end{iftex}
 \begin{ifhtml}
@@ -489,10 +467,10 @@ private:
 \end{verbatim}
 
 \begin{description}
-\item[class_i] \texonly{---} Class that must always have at least 1 customer.
+\item[class\_i] \texonly{---} Class that must always have at least 1 customer.
 \end{description}
 
-\subsubsection{Constructors for A_Iterator}
+\subsubsection{Constructors for A\_Iterator}
 
 \begin{description}
 \item[N] \texonly{---} Maximum number of customers per class.
@@ -504,14 +482,14 @@ private:
 \end{description}
 
 \begin{verbatim}
-    A_Iterator( const unsigned j, const unsigned i, const PopVector& N, const unsigned k );
+    A_Iterator( const unsigned j, const unsigned i, const PopVector\& N, const unsigned k );
 \end{verbatim}
 
 \subsubsection{Computation}
 
 \begin{description}
 \item[next] \texonly{---} Next Population operator\\
-  \code{int operator()(PopVector& n);}
+  \texttt{int operator()(PopVector\& n);}
 
   Compute the next population value.  Return 1 if the new population is
   valid (i.e., the number of customers in each class is less that or
@@ -521,7 +499,7 @@ private:
 \end{description}
 
 
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

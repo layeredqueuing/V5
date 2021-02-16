@@ -1,30 +1,7 @@
-\C 
-\C $Id: layerize.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.4  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.3  1994/12/09  02:02:36  greg
-\C update.
-\C
-\C Revision 1.2  1994/08/04  20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.1  1994/06/24  19:11:32  greg
-\C Initial revision
-\C
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: layerize.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% ----------------------------------------------------------------------
 \section{Layerizer}
 \label{sec:layerize}
 
@@ -35,7 +12,7 @@ a global solution for a \link{\emph{``Stochastic Rendevous
 strategy is as follows:
 \begin{enumerate}
 \item The original model is broken up into a set set of submodels or
-  \bold{partitions}.
+  \bf{partitions}.
 \item Each submodel is solved using \link{Mean Value
     Analysis}{sec:mva}.
 \item The residence times found from one submodel are then used to
@@ -57,7 +34,7 @@ There are two different layer generation schemes defined:
 The class relationships for the layer creation module are shown in
 \htmlonly{the \link{figure
     below}{fig:layerize}}\texonly{Figure~\ref{fig:layerize}}.  The
-classes \file{Layerize} and \file{HwSw_Layerize} are both abstract
+classes \file{Layerize} and \file{HwSw\_Layerize} are both abstract
 superclasses which are not used directly.  The class \file{Interlock}
 is used to augment the MVA solution with interlocking.  It's operation
 is orthognal to layer creation, so if it's functionality is needed, it
@@ -67,9 +44,9 @@ is included and replaces the
 \begin{figure}[htbp]
   \label{fig:layerize}
   \begin{center}
-    \T \tex \leavevmode \input{layerize.epic}
-    \caption{Layerizer Class Hierarchy}
-    \H \htmlimage{layerize.gif}
+%    \T \tex \leavevmode \input{layerize.epic}
+%    \caption{Layerizer Class Hierarchy}
+%    \H \htmlimage{layerize.gif}
   \end{center}
 \end{figure}
 
@@ -117,9 +94,9 @@ private:
 \item[coreCount] \texonly{---} The number of iterations of the core
   MVA \link{\code{step()}}{sec:mva-step} function.
 \item[maxDepth] \texonly{---} The number of levels in the model.
-\item[n_partitions] \texonly{---} The number of submodels.  See
-  classes \link{\code{HwSw_Layerize}}[ (\Sec\Ref)]{sec:hwsw} and
-  \link{Merged_Layerize}[ (\Sec\Ref)]{sec:merged}
+\item[n\_partitions] \texonly{---} The number of submodels.  See
+  classes \link{\code{HwSw\_Layerize}}[ (\Sec\Ref)]{sec:hwsw} and
+  \link{Merged\_Layerize}[ (\Sec\Ref)]{sec:merged}
 \item[path] \texonly{---} Current path being traced through
   \link{\code{findChildren()}}{sec:layerize-findChildren}. \\
 \item[server] \texonly{---} An array of vectors of pointers to
@@ -153,7 +130,7 @@ The class \file{Layerize} itself is an abstract superclass.
 
 \label{sec:layerize-generate}
 \item[generate] \texonly{---} Generate layers.\\
-\code{void generate( Vector<Task *>& tasks, const unsigned n );}
+\code{void generate( Vector<Task *>\& tasks, const unsigned n );}
 
 Generate the model from the input data.  The alorithm is as follows:
 
@@ -174,11 +151,11 @@ it sets the tasks's \link{\var{depth}}{sec:entity-ivars} based on the
 depth of the task in the call graph.  \code{AddToLayer()} is called to
 add each task (and possibly processor) in the model to either the
 \var{client} or \var{server} or both data structures.  It must be
-implemented by subclasses (See classes \link{\file{HwSw_Layerize}}[
-(\Sec\Ref)]{sec:hwsw} and \link{\file{Merged_Layerize}}[(
+implemented by subclasses (See classes \link{\file{HwSw\_Layerize}}[
+(\Sec\Ref)]{sec:hwsw} and \link{\file{Merged\_Layerize}}[(
 \Sec\Ref)]{sec:merged}).  \code{Extend()} is used to add additional
 entities to the model as needed; by default it performs no operation
-(it is overriddenin \link{\file{HwSw_Layerize}}[
+(it is overriddenin \link{\file{HwSw\_Layerize}}[
 (\Sec\Ref)]{sec:hwsw}).  The function
 \link{\code{initialize()}}{sec:layerize-initialize} is used to set the
 initial waiting times, generate additional linkage information
@@ -203,10 +180,10 @@ Add tasks to the various layers.  Implemented by subclasses.
 
 \label{sec:layerize-extend}
 \item[extend] \texonly{---} Extend model.\\
-\code{unsigned extend( Vector<Task *>& tasks, const unsigned n );}
+\code{unsigned extend( Vector<Task *>\& tasks, const unsigned n );}
 
 Extend the model by creating new entities.  Return the number of new
-\bold{servers} created.  Implemented by subclasses.
+\bf{servers} created.  Implemented by subclasses.
 
 \label{sec:layerize-initialize}
 \item[initialize] \texonly{---} Initialize data structures.\\
@@ -218,11 +195,11 @@ to the processor corresponding to each entry on every task by calling
 \Ref]{sec:entry-configure}.  This functionality is extended by
 subclasses to perform any other initialization.  Refer to:
 \begin{itemize}
-\item \link{\file{HwSw_Layerize}}[ (\Sec\Ref)]{sec:hwsw},
-\item \link{\file{Merged_Layerize}}[( \Sec\Ref)]{sec:merged},
-\item \link{\file{HwSw_Strict_Interlock_Layerize}}[( \Sec\Ref)]{sec:hwsw-strict-interlock},
-\item \link{\file{HwSw_Loose_interlock_Layerize}}[( \Sec\Ref)]{sec:hwsw-loose-interlock} and
-\item \link{\file{HwSw_Merged_Interlock_Layerize}}[( \Sec\Ref)]{sec:merged-interlock}).
+\item \link{\file{HwSw\_Layerize}}[ (\Sec\Ref)]{sec:hwsw},
+\item \link{\file{Merged\_Layerize}}[( \Sec\Ref)]{sec:merged},
+\item \link{\file{HwSw\_Strict\_Interlock\_Layerize}}[( \Sec\Ref)]{sec:hwsw-strict-interlock},
+\item \link{\file{HwSw\_Loose\_interlock\_Layerize}}[( \Sec\Ref)]{sec:hwsw-loose-interlock} and
+\item \link{\file{HwSw\_Merged\_Interlock\_Layerize}}[( \Sec\Ref)]{sec:merged-interlock}).
 \end{itemize}
 
 \end{description}
@@ -234,13 +211,13 @@ subclasses to perform any other initialization.  Refer to:
 \item[partition] \texonly{---} Return partition number\\
 \code{unsigned partition( const Entry * anEntry ) const;}
 
-Return the \link{\bold{partition}}{sec:layerize} number for
+Return the \link{\bf{partition}}{sec:layerize} number for
 \var{anEntry}.  The partition number is used as an index into
 \link{\var{savedWait}}[ (\Sec\Ref)]{sec:entry-ivars}. This
 function is implemented by subclasses.  See:
 \begin{itemize}
-\item Class \link{\file{HwSw_Layerize}}[ (\Sec\Ref)]{sec:hwsw-partition}
-\item Class \link{\file{Merged_Layerize}}[ (\Sec\Ref)]{sec:merged-partition}
+\item Class \link{\file{HwSw\_Layerize}}[ (\Sec\Ref)]{sec:hwsw-partition}
+\item Class \link{\file{Merged\_Layerize}}[ (\Sec\Ref)]{sec:merged-partition}
 \end{itemize}
 \end{description}
 
@@ -250,7 +227,7 @@ function is implemented by subclasses.  See:
 
 \label{sec:layerize-interlock}
 \item[interlock] \texonly{---} Interlocking Calculation\\
-\code{void interlock( Task& aTask, const unsigned nClasses ) const;}
+\code{void interlock( Task\& aTask, const unsigned nClasses ) const;}
 
 Set the interlocked throughput component for \var{aTask}.  The
 interlocked throughput is used to adjust the queue length at the
@@ -276,14 +253,14 @@ Implemented by subclasses.
 
 \label{sec:layerize-solveLayer}
 \item[solveLayer] \texonly{---} Solve a layer and return difference with last solution.\\
-\code{solveLayer( ( const unsigned n_clients, Vector<Task *>& clients,
-  const unsigned n_servers, Vector<Entity *>& servers, const unsigned
+\code{solveLayer( ( const unsigned n\_clients, Vector<Task *>\& clients,
+  const unsigned n\_servers, Vector<Entity *>\& servers, const unsigned
   classType, const unsigned waitType );} 
 
 \code{SolveLayer()} creates a model for the \link{MVA}{sec:mva}
 solver, solves it, then stores the results back in the original
-\link{\bold{task}}{sec:task} and
-\link{\bold{processor}}{sec:processor} data structures.  The algorithm
+\link{\bf{task}}{sec:task} and
+\link{\bf{processor}}{sec:processor} data structures.  The algorithm
 is shown below.
 
 \begin{example}
@@ -318,13 +295,13 @@ The first section of the agorithm creates the MVA model.  The
 functions \link{\code{makeClient}}[ (\Sec\Ref)]{sec:task-makeClient}
 and \link{\code{makeServer}}[ (\Sec\Ref)]{sec:entity-makeServer} are
 used to create the appropriate server type (e.g., delay, FCFS,...),
-and set the \bold{service time} and \bold{visit ratios}.  The service
+and set the \bf{service time} and \bf{visit ratios}.  The service
 time for a task or processor acting as a server in the MVA model is
 the sum of the residence times to each of the entities that it calls.
 The service time for a client is the sum of the residence times to all
 entities in all submodels except for the submodel identified by
 \var{partition}.  Each client is represented as a separate
-\bold{class} in the MVA model.  The \bold{think time} assigned to each
+\bf{class} in the MVA model.  The \bf{think time} assigned to each
 class is set to the idle time of the corresponding client entity.
 
 The second section of the algorthim calls the MVA solver to solve the
@@ -350,21 +327,21 @@ between iterations.
 \subsubsection{Input and Output}
 \begin{description}
 \item[print] \texonly{---} Print layers \\
-\code{ostream& print( ostream& os ) const;}
+\code{ostream\& print( ostream\& os ) const;}
 
 This function is used to debug the solver and is invoked whenever the
-\bold{-d} flag is specified.
+\bf{-d} flag is specified.
 
 \end{description}
 
 \htmlrule
-\subsection{Class HwSw_Layerize}
+\subsection{Class HwSw\_Layerize}
 \label{sec:hwsw}
 
-The class \file{HwSw_Layerize} itself is an abstract superclass for
+The class \file{HwSw\_Layerize} itself is an abstract superclass for
 solving models using the ``Method of Layers'' solution strategy.
 Models are split into \link{two separate submodels}[
-(Figure~\Ref)]{fig:hwsw-layering} or \bold{partitions}, one modeling
+(Figure~\Ref)]{fig:hwsw-layering} or \bf{partitions}, one modeling
 the contention delays between software tasks, and the second modeling
 contention for hardware devices.  The solution proceeds by iterating
 between the hardware and software submodels, using the member
@@ -375,9 +352,9 @@ until the convergence criteria is met.
 \begin{figure}[p]
   \label{fig:hwsw-layering}
   \begin{center}
-    \T \tex \leavevmode \input{hwsw-layering.epic}
-    \caption{Hardware-Software Layering strategy}
-    \H \htmlimage{hwsw-layering.gif}
+    % \T \tex \leavevmode \input{hwsw-layering.epic}
+    % \caption{Hardware-Software Layering strategy}
+    % \H \htmlimage{hwsw-layering.gif}
   \end{center}
 \end{figure}
 
@@ -385,13 +362,13 @@ As shown in the figure, the software model can also consist of a
 number of layers.  The solver creates submodels consisting of adjacent
 layers which are solved iteratively to convergence.
 
-The subclasses of \file{HwSw_Layerize} supply the member function
+The subclasses of \file{HwSw\_Layerize} supply the member function
 \link{\code{solveSoftware()}}{sec:hwsw-solveSoftware}.  These classes are:
 \begin{itemize}
-\item \link{\file{HwSw_Strict_Layerize}}{sec:hwsw-strict},
-\item \link{\file{HwSw_Strict_Interlock_Layerize}}{sec:hwsw-strict-interlock},
-\item \link{\file{HwSw_Loose_Layerize}}{sec:hwsw-loose}, and
-\item \link{\file{HwSw_Loose_Interlock_Layerize}}{sec:hwsw-loose-interlock}.
+\item \link{\file{HwSw\_Strict\_Layerize}}{sec:hwsw-strict},
+\item \link{\file{HwSw\_Strict\_Interlock\_Layerize}}{sec:hwsw-strict-interlock},
+\item \link{\file{HwSw\_Loose\_Layerize}}{sec:hwsw-loose}, and
+\item \link{\file{HwSw\_Loose\_Interlock\_Layerize}}{sec:hwsw-loose-interlock}.
 \end{itemize}
 The differences arrise from the method used to solve breaches in the
 strict layering, and for interlocking effects.
@@ -407,7 +384,7 @@ Flow-Equivalent Service Centers to the model.
     Vector <Task *> fesc_task;  /* A collection of FESC.        */
 \end{verbatim}
 
-In addition to \var{fesc_task}, \file{HwSw_Layerize} also
+In addition to \var{fesc\_task}, \file{HwSw\_Layerize} also
 treats \var{client} and \var{server} specially.
 
 \begin{description}
@@ -418,7 +395,7 @@ treats \var{client} and \var{server} specially.
   and servers are placed in \emph{both} this array and the
   \var{client} array.  The array is dimensioned by \var{maxDepth} and
   is indexed from 1 to n.
-\item[fesc_task] \texonly{---} An array of vectors of pointers to
+\item[fesc\_task] \texonly{---} An array of vectors of pointers to
   tasks.  These tasks are flow equivalent service centers that have
   been added to the model through the call to \code{extend()}.
 \item[server] \texonly{---} An array of vectors of pointers to
@@ -430,7 +407,7 @@ treats \var{client} and \var{server} specially.
   \var{maxDepth} and is indexed from 1 to n.
 \end{description}
 
-\subsubsection{Constructors for HwSw_Layerize}
+\subsubsection{Constructors for HwSw\_Layerize}
 
 Abstract Superclass.
 
@@ -443,7 +420,7 @@ Abstract Superclass.
 
 \label{sec:hwsw-layerize-extend}
 \item[extend] \texonly{---} Extend model.\\
-\code{unsigned extend( Vector<Task *>&, const unsigned );}
+\code{unsigned extend( Vector<Task *>\&, const unsigned );}
 
 Extend the model with flow equivalent service centers.  Return the
 number of new servers created.  Overrides
@@ -456,7 +433,7 @@ Initialize residence times assuming no contention.
 
 \label{sec:hwsw-strict-fesc}
 \item[makeFESCServer] \texonly{---} Create a FESC Server.\\
-\code{void makeFESCServer( const Task& fromTask, Call& toEntry );}
+\code{void makeFESCServer( const Task\& fromTask, Call\& toEntry );}
 
 Create and connect a flow equivalent service center task to span the
 layers between \var{fromTask} and \var{toEntry}. 
@@ -472,8 +449,8 @@ layers between \var{fromTask} and \var{toEntry}.
 \code{unsigned partition( const Entry * anEntry ) const;}
 
 Return the partition number.  For this class and its
-descendents, there are two partitions: \strong{R_DEVICE} corresponding to
-the hardware submodel and \strong{R_GROUP} corresponding to the task
+descendents, there are two partitions: \strong{R\_DEVICE} corresponding to
+the hardware submodel and \strong{R\_GROUP} corresponding to the task
 model. 
 
 \end{description}
@@ -495,7 +472,7 @@ number of inner loop iterations.
 
 Generate and solve the hardware submodel.  The algorithm is very simple:
 \begin{example}
-  \link{\code{solveLayer}}{sec:layerize-solveLayer}(\var{task},\var{processor},\strong{R_DEVICE})
+  \link{\code{solveLayer}}{sec:layerize-solveLayer}(\var{task},\var{processor},\strong{R\_DEVICE})
 \end{example}
 
 Note that the arguments \var{task} and \var{processor} correspond to
@@ -507,28 +484,28 @@ all tasks and all processors in the original model.
 
 Solve the software model.  Abstract superclass.  Implemented in:
 \begin{itemize}
-\item \link{\code{HwSw_Strict_Layerize}}{sec:hwsw-strict-solveSoftware}
-\item \link{\code{HwSw_Loose_Layerize}}{sec:hwsw-loose-solveSoftware}
+\item \link{\code{HwSw\_Strict\_Layerize}}{sec:hwsw-strict-solveSoftware}
+\item \link{\code{HwSw\_Loose\_Layerize}}{sec:hwsw-loose-solveSoftware}
 \end{itemize}
 \end{description}
 
 
 \htmlrule
-\subsection{Class HwSw_Strict_Layerize}
+\subsection{Class HwSw\_Strict\_Layerize}
 \label{sec:hwsw-strict}
 
 This class solves the software contention model a complete layer at a
 time, i.e., all tasks in layer 1 \texonly{in
-  Figure~\ref{fig:hwsw-layering}} are \bold{clients} and all tasks in
-layer 2 are \bold{servers} \link{(cf. loose layers}[ in
+  Figure~\ref{fig:hwsw-layering}} are \bf{clients} and all tasks in
+layer 2 are \bf{servers} \link{(cf. loose layers}[ in
 Section~\Ref]{sec:hwsw-loose}).  The model assumes that tasks in layer
 \math{i} only call tasks in layer {i+1}.  If this assumption is
 violated, then \dfn{Flow Equivalent Server Centers} are created at the
 intermediate levels to restore the strict layering.
 
-\subsubsection{Constructors for HwSw_Strict_Layerize}
+\subsubsection{Constructors for HwSw\_Strict\_Layerize}
 
-The constructor for \file{HwSw_Strict_Layerize} takes no arguments.
+The constructor for \file{HwSw\_Strict\_Layerize} takes no arguments.
 
 \begin{verbatim}
     HwSw_Strict_Layerize() : HwSw_Layerize()
@@ -549,14 +526,14 @@ shown below:
 \begin{example}
   \var{i} = 1
   while \var{i} < \var{maxDepth} do
-    \link{\code{solveLayer}}{sec:layerize-solveLayer}(\var{client}[\var{i}],\var{server}[\var{i}+1],\strong{R_GROUP})
+    \link{\code{solveLayer}}{sec:layerize-solveLayer}(\var{client}[\var{i}],\var{server}[\var{i}+1],\strong{R\_GROUP})
     \var{i} = \var{i} + 1
   end while
 \end{example}
 
 Each loop of the algorithm updates the value of
 \link{\var{savedWait}}[ (\Sec\Ref)]{sec:entry-ivars} for the partition
-\strong{R_GROUP} for the level \var{i} (i.e., from the top of
+\strong{R\_GROUP} for the level \var{i} (i.e., from the top of
 \htmlonly{\link{the figure}}{fig:hwsw-layering}
 \texonly{Figure~\ref{fig:hwsw-layering}} down).
 
@@ -566,7 +543,7 @@ found by \code{solveLayer()}.
 \end{description}
 
 \htmlrule
-\subsection{Class HwSw_Loose_Layerize}
+\subsection{Class HwSw\_Loose\_Layerize}
 \label{sec:hwsw-loose}
 
 Loose Layers.  This scheme is much like the method used by
@@ -582,37 +559,37 @@ Loose Layers.  This scheme is much like the method used by
 \end{description}
 
 \htmlrule
-\subsection{Class HwSw_Strict_Interlock_Layerize}
+\subsection{Class HwSw\_Strict\_Interlock\_Layerize}
 \label{sec:hwsw-strict-interlock}
 
 interlocker...
 
 \htmlrule
-\subsection{Class HwSw_Loose_Interlock_Layerize}
+\subsection{Class HwSw\_Loose\_Interlock\_Layerize}
 \label{sec:hwsw-loose-interlock}
 
 interlocker...
 
 \htmlrule
-\subsection{Class Merged_Layerize}
+\subsection{Class Merged\_Layerize}
 \label{sec:merged}
 
-The class \file{Merged_Layerize} implements a different form of
+The class \file{Merged\_Layerize} implements a different form of
 layering which merges the hardware and software contention models
 together into \link{one model}[ (Figure~\Ref)]{fig:merged-layering}.
 
 \begin{figure}[htp]
   \label{fig:merged-layering}
   \begin{center}
-    \T \tex \leavevmode \input{merged-layering.epic}
-    \caption{Merged Layering strategy}
-    \H \htmlimage{merged-layering.gif}
+    % \T \tex \leavevmode \input{merged-layering.epic}
+    % \caption{Merged Layering strategy}
+    % \H \htmlimage{merged-layering.gif}
   \end{center}
 \end{figure}
 
 Submodel construction begins from the bottom up and is based on the
-\bold{servers} at a given layer (\link{cf. Class
-  \file{HwSw_Layerize}}{sec:hwsw}).  The following steps are
+\bf{servers} at a given layer (\link{cf. Class
+  \file{HwSw\_Layerize}}{sec:hwsw}).  The following steps are
 performed:
 \begin{enumerate}
 \item The layer number for a particular server is found using the
@@ -632,7 +609,7 @@ The submodels are solved by picking clients and servers from adjacent
 levels and calling
 \link{\code{solveLayer()}}[ (\Sec\Ref)]{sec:layerize-solveLayer}.  
 
-The \bold{partition number} (or submodel) passed to
+The \bf{partition number} (or submodel) passed to
 \link{\code{solveLayer()}}{sec:layerize-solveLayer} corresponds to the
 actual client layer being solved.  When setting up the MVA model, the
 service times for clients do not include the residence times for the
@@ -641,10 +618,10 @@ these times are updated and used for all of the other submodels.
 
 \subsubsection{Constructors for Layerize}
 
-The constructor for \file{Merged_Layerize} takes no arguments.  
+The constructor for \file{Merged\_Layerize} takes no arguments.  
 
 \begin{verbatim}
-    Merged_Layerize() : Layerize() {}
+    Merged\_Layerize() : Layerize() {}
 \end{verbatim}
 
 \subsubsection{Initialization}
@@ -714,8 +691,8 @@ Each loop of the algorithm updates the value of
 This algorithm is almost identical to that for
 \link{\code{solveSoftware()}}[
 (\Sec\Ref)]{sec:hwsw-strict-solveSoftware} in class
-\file{HwSw_Strict_Layerize} except that the partition number is
-\var{i} instead of \strong{R_GROUP} and that there is one more
+\file{HwSw\_Strict\_Layerize} except that the partition number is
+\var{i} instead of \strong{R\_GROUP} and that there is one more
 iteration of the inner loop to account for the addition of processors
 to the model.
 
@@ -728,15 +705,15 @@ to the model.
 
 \begin{description}
 \item[print] \texonly{---} Print layers\\
-\code{ostream& print( ostream& ) const;}
+\code{ostream\& print( ostream\& ) const;}
 
 This function is used to debug the solver and is invoked whenever the
-\bold{-d} flag is specified.
+\bf{-d} flag is specified.
 
 \end{description}
 
 \htmlrule
-\subsection{Class Merged_Interlock_Layerize}
+\subsection{Class Merged\_Interlock\_Layerize}
 \label{sec:merged-interlock}
 
 \htmlrule
@@ -774,9 +751,9 @@ Allocate a \var{chainTable} and initialize it.
 
 \begin{description}
 \item[interlock] \texonly{---} Set interlocked throughput \\
-\code{void interlock( Task&, const unsigned ) const;}
+\code{void interlock( Task\&, const unsigned ) const;}
 
-Set the interlocked throughput for all calling \bold{classes} of
+Set the interlocked throughput for all calling \bf{classes} of
 \var{aTask}.  This function is meant to override
 \link{\code{interlock()}}[ defined in class
 \file{Layerize}]{sec:layerize-interlock}.  It calls
@@ -787,10 +764,10 @@ Set the interlocked throughput for all calling \bold{classes} of
 \subsubsection{Input and Output}
 \begin{description}
 \item[print] \texonly{---} Print out chain table\\
-\code{ostream& print( ostream& ) const;}
+\code{ostream\& print( ostream\& ) const;}
 
 \end{description}
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

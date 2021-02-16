@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14455 2021-02-07 03:41:16Z greg $
+ * $Id: qnsolver.cc 14468 2021-02-09 11:57:04Z greg $
  */
 
 #include <algorithm>
@@ -69,7 +69,7 @@ BCMP::JMVA_Document* __input = nullptr;
 
 int main (int argc, char *argv[])
 {
-    std::string output_filename;
+    std::string output_file_name;
     Model::Using solver = Model::Using::EXACT_MVA;
     program_name = basename( argv[0] );
     
@@ -121,7 +121,7 @@ int main (int argc, char *argv[])
 	    break;
 			
 	case 'o':
-            output_filename = optarg;
+            output_file_name = optarg;
 	    break;
 	    
 	case 's':
@@ -159,7 +159,7 @@ int main (int argc, char *argv[])
     if ( optind == argc ) {
 	BCMP::JMVA_Document input( "-" );
 	if ( !input.parse() ) return 1;
-	Model model( input, solver );
+	Model model( input, solver, output_file_name );
 	if ( model.construct() ) {
 	    model.solve();
 	}
@@ -170,7 +170,7 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
-		Model model( input, solver );
+		Model model( input, solver, output_file_name );
 		if ( model.construct() ) {
 		    model.solve();
 		}

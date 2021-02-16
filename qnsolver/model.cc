@@ -22,6 +22,7 @@
 #include <cmath>
 #include <lqio/bcmp_bindings.h>
 #include <lqio/jmva_document.h>
+#include <lqio/glblerr.h>
 #include <lqx/Program.h>
 #include <mva/multserv.h>
 #include <mva/mva.h>
@@ -33,9 +34,23 @@
 bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
 
+Model::Model( BCMP::JMVA_Document& input, Model::Using solver, const std::string& output_file_name )
+    : _model(input.model()), _solver(solver),
+      Q(), _result(false), _input(input), _output_file_name(output_file_name), _closed_model(nullptr), _open_model(nullptr)
+{
+    const size_t M = _model.n_stations(type());	// Size based on type.
+    if ( M == 0 ) {
+	_result = false;
+	return;
+    }
+
+    Q.resize(M);
+}
+
+
 Model::Model( BCMP::JMVA_Document& input, Model::Using solver )
     : _model(input.model()), _solver(solver),
-      Q(), _result(false), _input(input), _closed_model(nullptr), _open_model(nullptr)
+      Q(), _result(false), _input(input), _output_file_name(), _closed_model(nullptr), _open_model(nullptr)
 {
     const size_t M = _model.n_stations(type());	// Size based on type.
     if ( M == 0 ) {
@@ -120,8 +135,15 @@ Model::solve()
 	LQX::Environment * environment = lqx->getEnvironment();
 	environment->getMethodTable()->registerMethod(new SolverInterface::Solve(*this));
 	BCMP::RegisterBindings(environment, &_input.model());
-//		set output...
-//		    environment->setDefaultOutput( output );      /* Default is stdout */
+	if ( !_output_file_name.empty() ) {
+	    FILE * output = fopen( _output_file_name.c_str(), "w" );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+		return false;
+	    } else {
+		environment->setDefaultOutput( output );      /* Default is stdout */
+	    }
+	}
 	/* Invoke the LQX program itself */
 	if ( !lqx->invoke() ) {
 //		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );

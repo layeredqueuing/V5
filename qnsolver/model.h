@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 14462 2021-02-07 14:34:12Z greg $
+ * $Id: model.h 14468 2021-02-09 11:57:04Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,6 +47,7 @@ public:
     enum class Using {OPEN, EXACT_MVA, LINEARIZER, LINEARIZER2, BARD_SCHWEITZER, EXPERIMENTAL };
     
 public:
+    Model( BCMP::JMVA_Document& input, Model::Using mva, const std::string& );
     Model( BCMP::JMVA_Document& input, Model::Using mva );
     Model();
     virtual ~Model();
@@ -171,6 +172,7 @@ protected:
 
 private:
     BCMP::JMVA_Document& _input;		/* Input */
+    const std::string _output_file_name;
     /* mixed model */  /* Might change to a vector */
     ClosedModel * _closed_model;
     OpenModel * _open_model;

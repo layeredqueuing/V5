@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14388 2021-01-22 02:35:36Z greg $
+ * $Id: expat_document.cpp 14467 2021-02-09 02:16:52Z greg $
  *
  * Read in XML input files.
  *
@@ -3172,11 +3172,9 @@ namespace LQIO {
 	{
 	    const std::vector<Spex::var_name_and_expr>& results = Spex::result_variables();
 	    if ( results.size() > 0 ) {
-		const std::map<std::string,LQX::SyntaxTreeNode *>& input_variables = Spex::input_variables();
 		const int precision = output.precision(10);
 		output << XML::start_element( Xspex_results ) << ">" /* <![CDATA[" */ << std::endl;
 		LQX::SyntaxTreeNode::setVariablePrefix( "$" );
-		std::for_each( input_variables.begin(), input_variables.end(), Spex::PrintInputArrayVariable( output ) );
 		std::for_each( results.begin(), results.end(), Spex::PrintResultVariable( output ) );
 		output /* << "]]>" << std::endl */ << XML::end_element( Xspex_results ) << std::endl;
 		output.precision(precision);

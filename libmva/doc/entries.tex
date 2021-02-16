@@ -1,0 +1,38 @@
+% 
+% $Id: entries.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% ----------------------------------------------------------------------
+\chapter{Entries}
+\label{sec:entries}
+
+Connections between \link{entities}{sec:entities} in the layered
+queueing network model are actually from an
+\link{\dfn{entry}}[~(\Sec\Ref)]{sec:entry} on the source entity to an
+entry on the destination entry.  Connections between entries are made
+through objects of class \link{\file{Call}}[~(\Sec\Ref)]{sec:call}.
+The class relationships for entries and calls are shown in
+\htmlonly{the \link{figure
+    below}{fig:entry}}\texonly{Figure~\ref{fig:entry}}.
+
+\begin{figure}[htbp]
+  \label{fig:entry}
+  \begin{center}
+%    \T \tex \leavevmode \input{entry.epic}
+%    \caption{Entry class hierarchy}
+%    \H \htmlimage{entry.gif}
+  \end{center}
+\end{figure}
+
+\begin{iftex}
+\begin{itemize}
+\item Entry
+\item Call
+\end{itemize}
+\end{iftex}
+\input{entry.tex}
+\input{call.tex}
+
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

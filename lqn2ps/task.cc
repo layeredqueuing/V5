@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14409 2021-01-26 03:20:02Z greg $
+ * $Id: task.cc 14473 2021-02-12 18:58:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1901,8 +1901,10 @@ Task::translateY( const double dy )
     for_each( calls().begin(), calls().end(), Exec1<GenericCall,double>( &GenericCall::translateY, dy ) );
     return *this;
 }
-
-
+
+/* -------------------------------------------------------------------- */
+/* Converion to BCMP model.						*/
+/* -------------------------------------------------------------------- */
 
 #if defined(BUG_270)
 Task&
@@ -1945,6 +1947,7 @@ Task::mergeCalls()
 #if BUG_270	
     std::cout << "Task::mergeCalls() for " << name() << std::endl;
 #endif
+    /* At this point, they are all processor calls */
     std::multimap<const Entity *,EntityCall *> merge;
     for ( std::vector<EntityCall *>::const_iterator call = _calls.begin(); call != _calls.end(); ++call ) {
 	merge.insert( std::pair<const Entity *,EntityCall *>( (*call)->dstEntity(), *call ) );
@@ -1955,8 +1958,10 @@ Task::mergeCalls()
     for ( merge_iter lower = merge.begin(); lower != merge.end(); lower = upper ) {
 	const Entity * server = lower->first;
 	upper = merge.upper_bound( server ); 
-	const LQIO::DOM::ExternalVariable * visits       = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &accumulate_rendezvous );
-	const LQIO::DOM::ExternalVariable * service_time = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &accumulate_service );
+	const LQIO::DOM::ExternalVariable * visits       = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Task::sum_rendezvous );
+	/* Accumlating visits appears to be correct, but service time is NOT... I need demand, then normalize to visits */
+	const LQIO::DOM::ExternalVariable * demand 	 = std::accumulate( lower, upper, static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Task::sum_demand );
+	const LQIO::DOM::ExternalVariable * service_time = Entity::divideExternalVariables( demand, visits );
 #if BUG_270	
 	size_t count = merge.count( server );
 	std::cout << "  To " << server->name() << ", count=" << count
@@ -1968,22 +1973,21 @@ Task::mergeCalls()
 	if ( service_time != nullptr ) {
 	    std::cout << *service_time << std::endl;
 	} else {
-	    std::cout << "0.000" << std::endl;
+	    std::cout << "0.000" << std::endl;		// I need to get rid of this.
 	}
 #endif
-#if 0
 	if ( visits == 0 ) continue;
 	/* create a new call with the number of vists and the service time / number of visits */
 	if ( server->isProcessor() ) {
 	    ProcessorCall * call;
 	    call = new ProcessorCall( this, dynamic_cast<const Processor *>(server) );
-	    call->rendezvous( new LQIO::DOM::ConstantExternalVariable( visits ) );
-	    call->serviceTime( new LQIO::DOM::ConstantExternalVariable( service_time / visits ) );
+	    call->rendezvous( visits );
+//	    call->setServiceTime( Enttiy::divideExternalVariables( service_time, visits ) );
+	    call->setServiceTime( service_time );
 	    new_calls.push_back( call );
 	} else {
 	    abort();
 	}
-#endif
     }
 
 #if 0
@@ -1994,7 +1998,7 @@ Task::mergeCalls()
 
 
 const LQIO::DOM::ExternalVariable *
-Task::accumulate_rendezvous( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend ) 
+Task::sum_rendezvous( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend ) 
 {
     return Entity::addExternalVariables( augend, addend.second->sumOfRendezvous() );
 }
@@ -2002,15 +2006,20 @@ Task::accumulate_rendezvous( const LQIO::DOM::ExternalVariable * augend, const m
 
 /* +BUG_270 */
 const LQIO::DOM::ExternalVariable *
-Task::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend )
+Task::sum_demand( const LQIO::DOM::ExternalVariable * augend, const merge_pair& addend )
 {
     const ProcessorCall * call = dynamic_cast<const ProcessorCall *>(addend.second);
     if ( call == nullptr || call->srcEntry() == nullptr ) return augend;
-    return Entity::addExternalVariables( augend, call->srcEntry()->serviceTime() );
+    // !!! Fix this!!
+    const LQIO::DOM::ExternalVariable * demand = Entity::multiplyExternalVariables( call->sumOfRendezvous(), call->srcEntry()->serviceTime() );
+    return Entity::addExternalVariables( augend, demand );
 }
 /* -BUG_270 */
 #endif
-
+
+/* -------------------------------------------------------------------- */
+/* Replication								*/
+/* -------------------------------------------------------------------- */
 
 #if defined(REP2FLAT)
 Task&

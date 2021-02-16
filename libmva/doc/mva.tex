@@ -1,29 +1,6 @@
-\C 
-\C $Id: mva.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.4  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.3  1994/08/04  20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.2  1994/06/24  19:11:32  greg
-\C Format changes.
-\C
-\C Revision 1.1  1994/06/23  19:11:01  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: mva.tex 14472 2021-02-11 16:43:45Z greg $
+% ----------------------------------------------------------------------
 \section{MVA}
 \label{sec:mva}
 
@@ -39,9 +16,9 @@ superclasses which is not used directly.
 \begin{figure}[htbp]
   \label{fig:mva}
   \begin{center}
-    \T \tex \leavevmode \input{mva.epic}
-    \caption{MVA class hierarchy}
-    \H \htmlimage{mva.gif}
+%    \T \tex \leavevmode \input{mva.epic}
+%    \caption{MVA class hierarchy}
+%    \H \htmlimage{mva.gif}
   \end{center}
 \end{figure}
 
@@ -69,17 +46,17 @@ The functions in class
 \link{\file{Population}}[~(\Sec\Ref)]{sec:population} exported to aid
 hoisting are:
 \begin{itemize}
-\item \code{unsigned offset( const PopVector & N ) const;}
-\item \code{unsigned offset_e_j( const PopVector & N, const unsigned j );}
-\item \code{unsigned offset_e_c_e_j( const unsigned c, const unsigned j);}
+\item \code{unsigned offset( const PopVector \& N ) const;}
+\item \code{unsigned offset\_e\_j( const PopVector \& N, const unsigned j );}
+\item \code{unsigned offset\_e\_c\_e\_j( const unsigned c, const unsigned j);}
 \end{itemize}
 
 The instance variable \link{\var{c}}{sec:mva-ivars} used in the
 \link{Linearizer solver}[ (\Sec\Ref)]{sec:mva-linearizer} and subclasses
 is also very special.  It represents the class of the customer being
 removed by the linearizer algorithm.  This variable is not be
-explicitly visible.  However, it is used, so \bold{DO NOT USE} \var{c}
-as a local variable \bold{ANYWHERE}.  It is used in \bold{ALL CLASSES}
+explicitly visible.  However, it is used, so \bf{DO NOT USE} \var{c}
+as a local variable \bf{ANYWHERE}.  It is used in \bf{ALL CLASSES}
 including MVA and especially \code{MVA::step()}.
 
 \subsection{Class MVA --- Abstract Superclass}
@@ -116,27 +93,27 @@ members of the class.
   in the MVA \link{\code{step()}}{sec:mva-step} function.
 \item[coreCount] \texonly{---} A counter that is incremented each time
   the \link{\code{step()}}{sec:mva-step} function is executed.
-\item[K] \texonly{---} The maximum number of \bold{classes} at any station.
-\item[L] \texonly{---} Queue \underline{L}ength.  Dimensioned by \bold{entry} and \bold{class}.
-\item[M] \texonly{---} The number of \bold{stations} in the network.
+\item[K] \texonly{---} The maximum number of \bf{classes} at any station.
+\item[L] \texonly{---} Queue \underline{L}ength.  Dimensioned by \bf{entry} and \bf{class}.
+\item[M] \texonly{---} The number of \bf{stations} in the network.
 \item[NCust] \texonly{---} A \link{vector}{sec:vector} containing the number of
-  customers for each \bold{class}.  Classes range from 1 to \var{K}.
+  customers for each \bf{class}.  Classes range from 1 to \var{K}.
   \var{NCust[0]} is not used.
 \item[P] \texonly{---} The \link{marginal
     probabilities}{sec:mva-marginal} for each station in the network.
   Population space is allocated only for those stations that need
-  marginal probabilities (for example, multiservers).  \bold{Note:}
+  marginal probabilities (for example, multiservers).  \bf{Note:}
   \var{P[m][J][N]} is \var{PB[m][N]} where \var{J} is the number of
   servers at a multiserver.
 \item[Q] \texonly{---} The \link{stations}{sec:server} in the network.  It is an
   array of pointers to stations and is indexed from 1 to \var{M}.
   \var{Q[0]} is not used.  
-\item[U] \texonly{---} Station \underline{U}tilization.  Dimensioned by \bold{entry}
-  and \bold{class}. 
-\item[X] \texonly{---} the throughput for each \bold{class}.  It is
+\item[U] \texonly{---} Station \underline{U}tilization.  Dimensioned by \bf{entry}
+  and \bf{class}. 
+\item[X] \texonly{---} the throughput for each \bf{class}.  It is
   valid for the last \link{population}{sec:population} vector solved
   (which is usually the maximum customer population.)
-\item[Z] \texonly{---} The think time for each \bold{class}.
+\item[Z] \texonly{---} The think time for each \bf{class}.
 each time the MVA core step is executed.
 \end{description}
 
@@ -183,7 +160,7 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
 
 \begin{description}
 \item[thinkTime] \texonly{---} Think Time.\\
-  \code{double& thinkTime( const unsigned k );}
+  \code{double\& thinkTime( const unsigned k );}
 
   The instance variable \var{Z}, (think time) can be set or retrieved
   with this function.
@@ -196,16 +173,16 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
   \code{double throughput( const unsigned e, const unsigned k ) const;}\\
   \code{double throughput( const unsigned e ) const;}
 
-  Return the station's throughput for a given \bold{entry} and
-  [optionally] \bold{class}.
+  Return the station's throughput for a given \bf{entry} and
+  [optionally] \bf{class}.
 
 \item[utilization] \texonly{---} Return the utilization of the station.\\
-  \code{double utilization( const Server& station, const PopVector& N,
+  \code{double utilization( const Server\& station, const PopVector\& N,
     const unsigned j ) const;} \\
-  \code{double utilization( const Server& station, const unsigned k,
-    const PopVector& N, const unsigned j ) const;} \\
+  \code{double utilization( const Server\& station, const unsigned k,
+    const PopVector\& N, const unsigned j ) const;} \\
   \code{double utilization( const unsigned m, const unsigned k, const
-    PopVector& N ) const;} 
+    PopVector\& N ) const;} 
 
   The first of the three member functions returns the total
   utilization of \var{station} with one customer removed from class
@@ -214,11 +191,11 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
   final version returns the utilization for class \var{k} at the full
   customer population \var{N}.
 
-\item[sumOf_SL_m] \texonly{---} Queue length sum.\\
-  \code{double sumOf_SL_m( const Server& s, const unsigned e, const
-    PopVector &N, const unsigned j) const;}
+\item[sumOf\_SL\_m] \texonly{---} Queue length sum.\\
+  \code{double sumOf\_SL\_m( const Server\& s, const unsigned e, const
+    PopVector \&N, const unsigned j) const;}
 
-  The function \code{sumOf_SL_m()} returns the sum of the service time
+  The function \code{sumOf\_SL\_m()} returns the sum of the service time
   multiplied by the queue length at station \var{s}, entry \var{e}, at
   the \link{population}{sec:population} \var{N} when one customer is
   removed from class \var{j}; i.e., \math[]{\sum_k s_{mk} L_m({\bf
@@ -226,8 +203,8 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
   \link{\file{Server}}{sec:server} class.  Its implementation depends on the
   MVA solver class.
 
-\item[sumOf_p] \texonly{---} \math[Sum of Pi]{\sum (J_i-1-j)P_i(j,{\bf N} - e_j)}.\\
-  \code{double sumOf_p( const Server& station, const PopVector &N, const
+\item[sumOf\_p] \texonly{---} \math[Sum of Pi]{\sum (J_i-1-j)P_i(j,{\bf N} - e_j)}.\\
+  \code{double sumOf\_p( const Server\& station, const PopVector \&N, const
     unsigned j ) const}
 
   Return the \emph{something} with one customer removed from class
@@ -236,7 +213,7 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
     (2.1)}[~\Cite]{queue:conway-88}.)
 
 \item[PB] \texonly{---} Pr(All Servers Busy)\\
-  \code{double PB( const Server& station, const PopVector &N, const unsigned j ) const;}
+  \code{double PB( const Server\& station, const PopVector \&N, const unsigned j ) const;}
 
   Return the probability that all servers are busy for a population of
   \var{N} and one customer removed from class \var{j}.
@@ -244,7 +221,7 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
   Note: \math[PB(N) = P(J,N)]{{\it PB}_{m}({\bf N}) = P_{m}(J,{\bf N})}
 
 \item[queueLength] \texonly{---} Find queue length.\\ \code{double
-    queueLength( const Server&, const unsigned k, const PopVector& N,
+    queueLength( const Server\&, const unsigned k, const PopVector\& N,
     const unsigned j ) const;}
 
   Find the queue length at the server for class \var{k} with one customer
@@ -258,8 +235,8 @@ MVA( unsigned m, unsigned k, Server **q, Vector& N );
   \link{\code{step}}{sec:mva-step} is called.
 
 \item[offset] \texonly{---} Array offset calculation.\\
-  \code{virtual unsigned offset( const PopVector& N ) const;} \\
-  \code{virtual unsigned offset_e_j( const PopVector& N, const unsigned
+  \code{virtual unsigned offset( const PopVector\& N ) const;} \\
+  \code{virtual unsigned offset\_e\_j( const PopVector\& N, const unsigned
     j ) const;} \\
 
   Calculate and return the \link{internal array
@@ -285,7 +262,7 @@ calculation.  Implemented by subclasses.
 
 \label{sec:mva-step}
 \item[step] \texonly{---} Core MVA step.\\
-\code{void step( const PopVector& N );}
+\code{void step( const PopVector\& N );}
 
 The \code{step()} member function is used to compute the queue lenght
 and untilization at each station in the queueing network for the
@@ -349,11 +326,11 @@ stations and customer populations.  (See \link{Eqn.
 \end{iftex}
 
 \item[marginalProbabilities] \texonly{---} Compute P.\\
-\code{void marginalProbabilities( const unsigned m, const PopVector& N );}
+\code{void marginalProbabilities( const unsigned m, const PopVector\& N );}
 
 Compute the marginal probability that there are \var{j} customers at
 station \var{m} for population \var{N}. The probabilities are stored
-in \link{\var{P[m][j][N]}}{sec:mva-ivars}.  \bold{Note:} The
+in \link{\var{P[m][j][N]}}{sec:mva-ivars}.  \bf{Note:} The
 probability that all servers are busy is denoted as \var{PB} in the
 literature, but is stored in \var{P} in the expected place (i.e.
 \math[\var{j} = \var{M}]{j = J}).  (See Equations \link{(2.10) and
@@ -377,38 +354,38 @@ Note that $P_{m}(J,{\bf N}) = PB_m({\bf N})$.
 
 \subsubsection{Printing}
 \begin{description}
-\item[print] \texonly{---} Print all results.\\ \code{ostream& print(
-    ostream& os );}
+\item[print] \texonly{---} Print all results.\\ \code{ostream\& print(
+    ostream\& os );}
 
   Print the throughput and utilization for all
   \link{stations}{sec:server} using the
   \link{\code{printResults}}{sec:server-print} function.
 
-\item[printL] \texonly{---} Print Queue Lengths.\\ \code{ostream&
-    printL( ostream& os, const PopVector& N );}
+\item[printL] \texonly{---} Print Queue Lengths.\\ \code{ostream\&
+    printL( ostream\& os, const PopVector\& N );}
 
   Print the value of queue length \link{\var{L}}{sec:server-ivars} at
   the \link{population}{sec:population} \var{N}.  This function is
   used to debug the solvers.
 
 \item[printP] \texonly{---} Print marginal probabilities.\\ 
-  \code{ostream& printZ( ostream& os );}
+  \code{ostream\& printZ( ostream\& os );}
 
   Print marginal probabilities for all classes.
 
-\item[printW] \texonly{---} Print waiting times.\\ \code{ostream&
-    printL( ostream& os );}
+\item[printW] \texonly{---} Print waiting times.\\ \code{ostream\&
+    printL( ostream\& os );}
 
   Print the value of waiting time \link{\var{W}}{sec:server-ivars}.
   This function is used to debug the solvers.
 
 \item[printX] \texonly{---} Print throughputs.\\ 
-  \code{ostream& printZ( ostream& os );}
+  \code{ostream\& printZ( ostream\& os );}
 
   Print throughputs for all classes.
 
 \item[printZ] \texonly{---} Print think times.\\ 
-  \code{ostream& printZ( ostream& os );}
+  \code{ostream\& printZ( ostream\& os );}
 
   Print think times for all classes.
 
@@ -428,8 +405,8 @@ populations, starting at \math[0,0,...0]{0_1,0_2,...,0_K}, calling the
 \subsubsection{Queries}
 \begin{description}
 \item[offset] \texonly{---} Return array offset for population\\ 
-  \code{unsigned offset( const PopVector& N ) const}\\ \code{unsigned
-    offset_e_j( const PopVector& N, const unsigned j ) const}
+  \code{unsigned offset( const PopVector\& N ) const}\\ \code{unsigned
+    offset\_e\_j( const PopVector\& N, const unsigned j ) const}
 
   Return \link{population}{sec:population} array offset.
 
@@ -462,15 +439,15 @@ private:
 \end{verbatim}
 
 \begin{description}
-\item[last_L] \texonly{---} Previous value of the queue length \var{L}
+\item[last\_L] \texonly{---} Previous value of the queue length \var{L}
   and is used to test for the termination condition.
 \end{description}
 
 \subsubsection{Initialization}
 \begin{description}
 \label{sec:mva-schweitzer-init-L}
-\item[init_L] \texonly{---} Initialize Queue Lengths\\
-\code{virtual void init_L( const PopVector & N);}
+\item[init\_L] \texonly{---} Initialize Queue Lengths\\
+\code{virtual void init\_L( const PopVector \& N);}
 
 Find the queue length based on fraction \var{F} of class \var{k} jobs
 at station for population \var{N} (See \link{Eqn.
@@ -483,20 +460,20 @@ L_{mk}({\bf N} - e_j) = ({\bf N} - e_j)F_{mk}({\bf N}) + D_{mk}(\bf N)
 \end{equation}
 \end{iftex}
 
-\item[init_U] \texonly{---} Initialize Utilizations\\
-\code{virtual void init_U( const PopVector & );}
+\item[init\_U] \texonly{---} Initialize Utilizations\\
+\code{virtual void init\_U( const PopVector \& );}
 
 Initialize the utilization array \math[\var{U}]{U \forall m,e,k} for
 population \math[\var{N} with one customer removed from each class in
-turn]{N - e_j, 1 \leq j \leq K}.  \code{init_U()} is separated from
-\link{\code{init_L()}}{sec:mva-schweitzer-init-L} to permit subclasses to override.
+turn]{N - e_j, 1 \leq j \leq K}.  \code{init\_U()} is separated from
+\link{\code{init\_L()}}{sec:mva-schweitzer-init-L} to permit subclasses to override.
 
 \end{description}
         
 \subsubsection{Queries}
 \begin{description}
-\item[D_mekj] \texonly{---} Return D\\
-\code{virtual double D_mekj(unsigned m,unsigned e,unsigned k,unsigned j);}
+\item[D\_mekj] \texonly{---} Return D\\
+\code{virtual double D\_mekj(unsigned m,unsigned e,unsigned k,unsigned j);}
 
 Return the change in the fraction of class \var{k} jobs at queue
 \var{m} after one class \var{j} job has been removed.  For the
@@ -513,11 +490,11 @@ Schweitzer solver, the best estimate of \var{D} is zero.
 
 \label{sec:mva-schweitzer-core}
 \item[core] \texonly{---} \\
-\code{void core( const PopVector & );}
+\code{void core( const PopVector \& );}
 
 \code{Core()} is the basic iterative solver for Bard Schweitzer and
 Linearizer algorithms.  For each iteraction, it first calls
-\link{\code{init_L()}}{sec:mva-schweitzer-init-L} and \code{init_U()}
+\link{\code{init\_L()}}{sec:mva-schweitzer-init-L} and \code{init\_U()}
 followed by \link{\code{step()}}{sec:mva-step}.
 
 \end{description}
@@ -550,15 +527,15 @@ protected:
   customer is removed.
 \item[F] \texonly{---} The fraction of class \var{k} jobs at station
   \var{m}, entry \var{e}. 
-\item[saved_L] \texonly{---} Saved queue lengths.
-\item[saved_U] \texonly{---} Saved station utilizations.
+\item[saved\_L] \texonly{---} Saved queue lengths.
+\item[saved\_U] \texonly{---} Saved station utilizations.
 \end{description}
 
 \subsubsection{Initialization}
 \begin{description}
 \label{sec:mva-linearizer-init-D}
-\item[init_D] \texonly{---} Intialize \var{D}\\
-\code{virtual void init_D( const PopVector & N );}
+\item[init\_D] \texonly{---} Intialize \var{D}\\
+\code{virtual void init\_D( const PopVector \& N );}
 
 Initialize \var{D}, the difference in queue lengths when a customer
 from class \var{j} is removed (See Eqn.
@@ -577,8 +554,8 @@ D_{mkj}({\bf N}) = F_{mk}({\bf N} - e_j) - F_{mk}({\bf N})
 
 \begin{description}
 
-\item[D_mekj] \texonly{---} Return D\\
-code{double D_mekj( unsigned m, unsigned e, unsigned k, unsigned j );}
+\item[D\_mekj] \texonly{---} Return D\\
+code{double D\_mekj( unsigned m, unsigned e, unsigned k, unsigned j );}
 
 Return the change in the fraction of class \var{k} jobs at queue
 \var{m} after one class \var{j} job has been removed.  This function
@@ -601,7 +578,7 @@ instance variable \link{\var{c}}{sec:mva-ivars}, defined in the
 abstract superclass, is set according to the class in which the
 customer is removed.
 
-The member function \link{\code{init_D()}}{sec:mva-linearizer-init-D}
+The member function \link{\code{init\_D()}}{sec:mva-linearizer-init-D}
 is called to initialize the \var{D} array before each call to the
 Schweitzer \code{core()} solver.  
 
@@ -610,8 +587,8 @@ Schweitzer \code{core()} solver.
 \subsubsection{Input and Output}
 \begin{description}
 \item[print] \texonly{---} Printing fuctions\\
-\code{ostream& printF( ostream&, const PopVector& N );}\\
-\code{ostream& printD( ostream&, const PopVector& N );}
+\code{ostream\& printF( ostream\&, const PopVector\& N );}\\
+\code{ostream\& printD( ostream\&, const PopVector\& N );}
 
 Print out the value of the instance variables \var{F} and \var{D} for
 the population \var{N} respecitively.  Used for debugging only.
@@ -633,28 +610,28 @@ private:
 \end{verbatim}
 
 \begin{description}
-\item[D_k] \texonly{---} \math[Sum over class \var{k} of
+\item[D\_k] \texonly{---} \math[Sum over class \var{k} of
   \var{D}]{D^\prime_{mj} = \sum_{k=1}^{K} N_k D_{mkj}({\bf N})}.
 \item[Lm] \texonly{---} Queue \underline{L}ength summed over all stations.  Used by
-  the \link{fast linearizer}{sec:mva-fast}.  Dimensioned by \bold{entry}.
+  the \link{fast linearizer}{sec:mva-fast}.  Dimensioned by \bf{entry}.
 \item[Um] \texonly{---} Station \underline{U}tilization.  Used by the \link{fast
-    linearizer}{sec:mva-fast}.  Dimensioned by \bold{entry}. 
+    linearizer}{sec:mva-fast}.  Dimensioned by \bf{entry}. 
 \end{description}
 \subsubsection{Initialization}
 
 \begin{description}
 \label{sec:mva-fast-init-D}
-\item[init_D] \texonly{---} Initialize D array.\\
-\code{void init_D( const PopVector & );}
+\item[init\_D] \texonly{---} Initialize D array.\\
+\code{void init\_D( const PopVector \& );}
 
 Initialize \var{D}, the difference in queue lengths when a customer
-from class \var{j} is removed.  This version of the \code{init_D()}
+from class \var{j} is removed.  This version of the \code{init\_D()}
 member function also initializes \math[\var{D_k}]{D^\prime_{mj}}.
 
 
 \label{sec:mva-linearizer-init-L}
-\item[init_L] \texonly{---} Initialize Queue lengths.\\
-\code{void init_L( const PopVector & );}
+\item[init\_L] \texonly{---} Initialize Queue lengths.\\
+\code{void init\_L( const PopVector \& );}
 
 Pre-compute \math[\var{S} times \var{Lm}]{S \cdot L_{mk}} and save.
 \math[\var{S} times \var{L}]{S \cdot L_{mk}} must be pre-computed
@@ -676,8 +653,8 @@ D^\prime_{mj}({\bf M}) - D_{mjj}({\bf M}) + - D_{mcj}({\bf M}) \\
 \end{eqnarray}
 \end{iftex}
 
-\item[init_U] \texonly{---} Initialize Utilizations.\\
-\code{void init_U( const PopVector & );}
+\item[init\_U] \texonly{---} Initialize Utilizations.\\
+\code{void init\_U( const PopVector \& );}
 
 Initialize the utilization array \math[\var{U}]{U \forall m,e,k} for
 population \math[\var{N}]{N - e_j, 1 \leq j \leq K}.
@@ -687,17 +664,17 @@ population \math[\var{N}]{N - e_j, 1 \leq j \leq K}.
 
 \begin{description}
 
-\item[sumOf_SL_m] \texonly{---} Queue length sum.\\
-\code{double sumOf_SL_m( const Server& s, const unsigned e, const
-  PopVector &N, const unsigned j ) const;}
+\item[sumOf\_SL\_m] \texonly{---} Queue length sum.\\
+\code{double sumOf\_SL\_m( const Server\& s, const unsigned e, const
+  PopVector \&N, const unsigned j ) const;}
 
 Return the pre-computed value of \var{Lm} for entry \var{e}, class
 \var{j}.  This value was calculated in
-\link{\code{init_L()}}{sec:mva-linearizer-init-L} earlier.
+\link{\code{init\_L()}}{sec:mva-linearizer-init-L} earlier.
 
 \end{description}
 
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

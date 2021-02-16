@@ -1063,6 +1063,10 @@ namespace BCMP {
 
 namespace BCMP {
 
+    /* ---------------------------------------------------------------- */
+    /* Output.								*/
+    /* ---------------------------------------------------------------- */
+
     std::ostream&
     JMVA_Document::print( std::ostream& output ) const
     {
@@ -1261,29 +1265,45 @@ namespace BCMP {
     void
     JMVA_Document::what_if::operator()( const std::pair<std::string,LQX::SyntaxTreeNode *>& var ) const
     {
-	_output << XML::simple_element( XwhatIf );
-	std::ostringstream ss;
-	BCMP::Model::Chain::map_t::const_iterator k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) );
-	if ( k != chains().end() ) {
-	    _output << XML::attribute( XclassName, k->first )
+	/* Find the variable */
+	BCMP::Model::Station::map_t::const_iterator m;
+	BCMP::Model::Chain::map_t::const_iterator k;
+	if ( (k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) )) != chains().end() ) {
+	    _output << XML::simple_element( XwhatIf )
+		    << XML::attribute( XclassName, k->first )
 		    << XML::attribute( Xtype, "Customer Numbers" );
-	} else {
-	    BCMP::Model::Station::map_t::const_iterator m = std::find_if( stations().begin(), stations().end(), what_if::has_var( var.first ) );
-	    if ( m != stations().end() ) {
-		const LQIO::DOM::ExternalVariable * copies = m->second.copies();
-		if ( copies != nullptr && !copies->wasSet() && copies->getName() == var.first ) {
-		    _output << XML::attribute( XstationName, m->first )
-			    << XML::attribute( Xtype, "Number of Servers" );
-		} else {
-		    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
-		    const BCMP::Model::Station::Class::map_t::const_iterator d = std::find_if( classes.begin(), classes.end(), what_if::has_service_time( var.first ) );
-		    _output << XML::attribute( XstationName, m->first )
-			    << XML::attribute( XclassName, d->first )
-			    << XML::attribute( Xtype, "Service Demands" );
-		}
+	} else if ( (k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) )) != chains().end() ) {
+	    _output << XML::simple_element( XwhatIf )
+		    << XML::attribute( XclassName, k->first )
+		    << XML::attribute( Xtype, "Arrival Rate" );
+	} else if ( (m = std::find_if( stations().begin(), stations().end(), what_if::has_copies( var.first ) )) != stations().end() ) {
+	    _output << XML::simple_element( XwhatIf )
+		    << XML::attribute( XstationName, m->first )
+		    << XML::attribute( Xtype, "Number of Servers" );
+	} else if ( (m = std::find_if( stations().begin(), stations().end(), what_if::has_var( var.first ) )) != stations().end() ) {
+	    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
+	    BCMP::Model::Station::Class::map_t::const_iterator d;
+	    _output << XML::simple_element( XwhatIf );
+	    if ( (d = std::find_if( classes.begin(), classes.end(), what_if::has_service_time( var.first ) )) != classes.end() ) {
+		_output << XML::attribute( XstationName, m->first )
+			<< XML::attribute( XclassName, d->first )
+			<< XML::attribute( Xtype, "Service Demands" );
+	    } else if ( (d = std::find_if( classes.begin(), classes.end(), what_if::has_visits( var.first ) )) != classes.end() ) {
+		_output << XML::attribute( XstationName, m->first )
+			<< XML::attribute( XclassName, d->first )
+			<< XML::attribute( Xtype, "Visits" );
+	    } else {
+		abort();
 	    }
+	} else {
+	    /* Var not found! */
+	    _output << "<!-- Var not found: " << var.first << " -->" << std::endl;
+	    return;
 	}
 
+	/* Print it out */
+	
+	std::ostringstream ss;
 	std::string values;
 	std::map<std::string,Spex::ComprehensionInfo>::const_iterator comprehension;
 	std::vector<std::string>::const_iterator array;
@@ -1316,23 +1336,47 @@ namespace BCMP {
     bool
     JMVA_Document::what_if::has_customers::operator()( const Model::Chain::pair_t& k ) const
     {
+	if ( !k.second.isClosed() ) return false;
 	const LQIO::DOM::ExternalVariable * var = k.second.customers();
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
     }
 
     bool
-    JMVA_Document::what_if::has_var::operator()( const Model::Station::pair_t& m ) const
+    JMVA_Document::what_if::has_arrival_rate::operator()( const Model::Chain::pair_t& k ) const
+    {
+	if ( !k.second.isOpen() ) return false;
+	const LQIO::DOM::ExternalVariable * var = k.second.arrival_rate();
+	return var != nullptr && !var->wasSet() && var->getName() == _var;
+    }
+
+    bool
+    JMVA_Document::what_if::has_copies::operator()( const Model::Station::pair_t& m ) const
     {
 	const LQIO::DOM::ExternalVariable * var = m.second.copies();
-	if ( var != nullptr && !var->wasSet() && var->getName() == _var ) return true;
+	return var != nullptr && !var->wasSet() && var->getName() == _var;
+    }
+
+    /* Search for the variable in all classes */
+    
+    bool
+    JMVA_Document::what_if::has_var::operator()( const Model::Station::pair_t& m ) const
+    {
 	const BCMP::Model::Station::Class::map_t& classes = m.second.classes();
-	return std::any_of( classes.begin(), classes.end(), what_if::has_service_time( _var ) );
+	return std::any_of( classes.begin(), classes.end(), what_if::has_service_time( _var ) )
+	    || std::any_of( classes.begin(), classes.end(), what_if::has_visits( _var ) );
     }
 
     bool
     JMVA_Document::what_if::has_service_time::operator()( const Model::Station::Class::pair_t& d ) const
     {
 	const LQIO::DOM::ExternalVariable * var = d.second.service_time();
+	return var != nullptr && !var->wasSet() && var->getName() == _var;
+    }
+
+    bool
+    JMVA_Document::what_if::has_visits::operator()( const Model::Station::Class::pair_t& d ) const
+    {
+	const LQIO::DOM::ExternalVariable * var = d.second.visits();
 	return var != nullptr && !var->wasSet() && var->getName() == _var;
     }
 

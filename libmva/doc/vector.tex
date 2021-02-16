@@ -1,26 +1,7 @@
-\C 
-\C $Id: vector.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.3  1994/08/04 20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.2  1994/06/24  19:11:32  greg
-\C Format changes.
-\C
-\C Revision 1.1  1994/06/23  19:11:01  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: vector.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% ----------------------------------------------------------------------
 \section{Vectors}
 \label{sec:vector}
 
@@ -96,24 +77,24 @@ The operator ``\code{=}'' copies the vector.  The size of the receiver
 will be set to the size of the sender.  
 
 \item[Insertion] \texonly{---} Concatenation operator.\\
-\code{Vector<Type>& operator<<( const Type& element );}\\
-\code{Vector<Type>& operator<<( const Vector<Type>& vector );}
+\code{Vector<Type>\& operator < < ( const Type\& element );}\\
+\code{Vector<Type>\& operator < < ( const Vector<Type>\& vector );}
 
 Append an object to the vector.  There are two forms:
 \begin{itemize}
-\item \code{Type&} \var{element} --- insert a single
+\item \code{Type\&} \var{element} --- insert a single
   \var{element} to the end of the vector.
-\item \code{const Vector<Type>&} \var{vector} --- concatenate a
+\item \code{const Vector<Type>\&} \var{vector} --- concatenate a
   complete \var{vector} to the vector.
 \end{itemize}
 
 \item[Extraction] \texonly{---} Concatenation operator\\
-\code{Vector<Type>& operator>>( const Type& element );}
+\code{Vector<Type>\& operator>>( const Type\& element );}
 
 Insert \var{element} at the front of the vector.  
 
 \item[findOrAdd] \texonly{---} Find or add element in vector.\\
-\code{unsigned findOrAdd( const Type& element );}
+\code{unsigned findOrAdd( const Type\& element );}
 
 Locate \var{element} in the vector.  If it is found, return the
 corresponding index.  Otherwise, append \var{element} and return the
@@ -126,7 +107,7 @@ index.
 \begin{description}
 
 \item[Index] \texonly{---} Index operator.\\
-\code{Type& operator[](const unsigned ix);}\\
+\code{Type\& operator[](const unsigned ix);}\\
 \code{Type operator[](const unsigned ix);}
 
 Return the element at the index \var{ix}.  The index is range checked.
@@ -143,7 +124,7 @@ Return the element at the index \var{ix}.  The index is range checked.
 Return the size of the vector.
 
 \item[find] \texonly{---} Find element in vector.\\
-\code{int find( const Type & ) const;}
+\code{int find( const Type\& ) const;}
 
 The \code{find()} function returns the index of the first object which
 equates to \var{elem}.  \var{elem} must respond to the ``\code{==}''
@@ -155,11 +136,11 @@ operator.  If no matching objects are found, \code{find()} returns -1.
 
 \begin{description}
 \item[Extraction] \texonly{---} Printing operator.\\
-\code{ostream& operator << ( ostream& os, const Vector<Type>&
+\code{ostream\& operator < < ( ostream\& os, const Vector<Type>\&
   vector);}\\
-\code{void print( ostream& os = cout ) const;}
+\code{void print( ostream\& os = cout ) const;}
 
-The output operator \code{<<} writes the contents of \var{vector} to
+The output operator \code{< <} writes the contents of \var{vector} to
 the stream \var{os} in the form \kbd{<n>(1,2,...,n)}.  The member
 function \code{print()} performs the same function.  If \var{os} is
 not supplied, output is sent to \var{cout}.
@@ -203,7 +184,7 @@ VectorIteratorPtr( const Vector<Type>& aVec );
 \code{Type operator()();}
 
 Return the next object in the vector.  If there are no further
-objects, return \bold{Nil} and reset \var{index} to zero.  The next
+objects, return \bf{Nil} and reset \var{index} to zero.  The next
 call to this function will then return the first object in the vector.
 
 \end{description}
@@ -211,11 +192,11 @@ call to this function will then return the first object in the vector.
 \subsection{Class VectorIteratorPtr}
 
 This class is similar to the preceding one except that the function
-operator returns \bold{pointers} to the elements in the vector rather
+operator returns \bf{pointers} to the elements in the vector rather
 than the elements themselves.  It can be used for both simple and
 complex types.
 
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "libmva"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "libmva"
+% End: 

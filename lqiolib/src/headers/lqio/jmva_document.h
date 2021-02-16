@@ -192,6 +192,22 @@ namespace BCMP {
 		const std::string& _var;
 	    };
 
+	    class has_arrival_rate {
+	    public:
+		has_arrival_rate( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Chain::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+
+	    class has_copies {
+	    public:
+		has_copies( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Station::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+
 	    class has_var {
 	    public:
 		has_var( const std::string& var ) : _var(var) {}
@@ -203,6 +219,15 @@ namespace BCMP {
 	    class has_service_time {
 	    public:
 		has_service_time( const std::string& var ) : _var(var) {}
+		bool operator()( const Model::Station::pair_t& c2 ) const;
+		bool operator()( const Model::Station::Class::pair_t& c2 ) const;
+	    private:
+		const std::string& _var;
+	    };
+
+	    class has_visits {
+	    public:
+		has_visits( const std::string& var ) : _var(var) {}
 		bool operator()( const Model::Station::pair_t& c2 ) const;
 		bool operator()( const Model::Station::Class::pair_t& c2 ) const;
 	    private:

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: call.cc 14471 2021-02-10 23:11:37Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -1760,7 +1760,7 @@ PseudoTaskCall::PseudoTaskCall( const Task * fromTask, const Task * toTask )
 ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcessor )
     : EntityCall( fromTask, toProcessor ),
       _callType(LQIO::DOM::Call::Type::NULL_CALL),	/* Not null if cloned BUG_270 */
-      _visits(nullptr),				/* Not null if cloned BUG_270 */
+      _demand(),				/* Not null if cloned BUG_270 */
       _source(nullptr)				/* Not null if cloned BUG_270 */
 {
 }
@@ -1769,7 +1769,7 @@ ProcessorCall::ProcessorCall( const Task * fromTask, const Processor * toProcess
 ProcessorCall::ProcessorCall( const ProcessorCall& src )
     : EntityCall( src._srcTask, src._dstEntity ),
       _callType(src._callType),
-      _visits(src._visits)
+      _demand(src._demand)
 {
 }
 
@@ -1788,7 +1788,7 @@ ProcessorCall&
 ProcessorCall::rendezvous( const LQIO::DOM::ExternalVariable * value )
 {
     _callType = LQIO::DOM::Call::Type::RENDEZVOUS;
-    _visits = value;
+    _demand.setVisits(value);
     return *this;
 }
 
@@ -1796,8 +1796,8 @@ const LQIO::DOM::ExternalVariable&
 ProcessorCall::rendezvous() const
 {
     if ( !hasRendezvous() ) return Element::ZERO;
-    else if ( _visits == nullptr ) return Element::ONE;	/* Default processor call. */
-    else return *_visits;
+    else if ( _demand.visits() == nullptr ) return Element::ONE;	/* Default processor call. */
+    else return *_demand.visits();
 }
 
 
@@ -1805,24 +1805,24 @@ const LQIO::DOM::ExternalVariable *
 ProcessorCall::sumOfRendezvous() const
 {
     if ( !hasRendezvous() ) return nullptr;
-    else if ( _visits == nullptr ) return &Element::ONE;	/* Default processor call. */
-    else return _visits;
+    else if ( _demand.visits() == nullptr ) return &Element::ONE;	/* Default processor call. */
+    else return _demand.visits();
 }
 
 
 const LQIO::DOM::ExternalVariable&
 ProcessorCall::sendNoReply() const
 {
-    if ( !hasSendNoReply() || _visits == nullptr ) return Element::ZERO;
-    else return *_visits;
+    if ( !hasSendNoReply() || _demand.visits() == nullptr ) return Element::ZERO;
+    else return *_demand.visits();
 }
 
 
 double
 ProcessorCall::sumOfSendNoReply() const
 {
-    if ( !hasSendNoReply() || _visits == nullptr ) return 0.0;
-    else return to_double( *_visits );
+    if ( !hasSendNoReply() || _demand.visits() == nullptr ) return 0.0;
+    else return to_double( *_demand.visits() );
 }
 
 
@@ -1923,8 +1923,8 @@ ProcessorCall&
 ProcessorCall::label()
 {
     if ( Flags::print[INPUT_PARAMETERS].value.b && Flags::prune ) {
-	if ( (hasRendezvous() || hasSendNoReply()) && _visits != nullptr ) {	/* Ignore the default */
-	    *_label << '(' << *_visits << ')';
+	if ( (hasRendezvous() || hasSendNoReply()) && _demand.visits() != nullptr ) {	/* Ignore the default */
+	    *_label << '(' << *_demand.visits() << ')';
 	}
     } 
     if ( !Flags::have_results ) return *this;
@@ -1989,7 +1989,13 @@ ProcessorCall::updateRateFrom( const Call& call )
 {
     if ( callType() == LQIO::DOM::Call::Type::NULL_CALL ) {
 	/* First time for this call.  Save visits */
-	_visits = &Element::ONE;
+	_demand.setVisits( &Element::ONE );
+	/* Get service time from the phase */
+	const EntryCall * entry_call = dynamic_cast<const EntryCall *>(&call);
+	if ( entry_call != nullptr ) {
+	    const Entry * entry = entry_call->srcEntry();
+	    _demand.setServiceTime(entry->serviceTime());
+	}
 	_callType = call.callType();
     } else if ( callType() != call.callType() ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, dstEntity()->name().c_str() );
@@ -1997,17 +2003,14 @@ ProcessorCall::updateRateFrom( const Call& call )
     }
     /* Preserve variable if multiplier is one (1) (which is likely is) */
     const LQIO::DOM::ExternalVariable * multiplier = call.sumOfRendezvous();
-    if ( LQIO::DOM::ExternalVariable::isDefault( _visits, 1.0 ) ) {
-	_visits = multiplier;
+    if ( LQIO::DOM::ExternalVariable::isDefault( _demand.visits(), 1.0 ) ) {
+	_demand.setVisits( multiplier );
     } else if ( LQIO::DOM::ExternalVariable::isDefault( multiplier, 1.0 ) ) {
 	return *this;
-    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(_visits) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplier) ) {
-	_visits = new LQIO::DOM::ConstantExternalVariable( to_double(*_visits) * to_double(*multiplier) );
-    } else {
-	/* More complicated... */
-	LQX::SyntaxTreeNode * arg1 = Entity::getVariableExpression( _visits );
-	LQX::SyntaxTreeNode * arg2 = Entity::getVariableExpression( multiplier );
-	_visits = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_add( arg1, arg2 ) ));
+    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(_demand.visits()) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplier) ) {
+	_demand.setVisits( new LQIO::DOM::ConstantExternalVariable( to_double(*_demand.visits()) * to_double(*multiplier) ) );
+    } else {	/* More complicated... */
+	_demand.setVisits( Entity::multiplyExternalVariables( _demand.visits(), multiplier ) );
     }
     return *this;
 }
@@ -2021,7 +2024,7 @@ ProcessorCall::dump() const
     std::cout << "ProcessorCall";
     GenericCall::dump();
     std::cout << "(";
-    std::cout << *_visits;
+    std::cout << *_demand.visits();
     std::cout << ")";
     std::cout << std::endl;
 }

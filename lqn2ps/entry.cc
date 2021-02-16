@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14429 2021-01-29 20:49:19Z greg $
+ * $Id: entry.cc 14471 2021-02-10 23:11:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2089,9 +2089,7 @@ Entry::linkToClients( const std::vector<EntityCall *>& proc )
 #endif
 	    if ( dynamic_cast<ProcessorCall *>(clone) ) {
 		const Entry * entry = dynamic_cast<ProcessorCall *>(clone)->srcEntry();
-		if ( entry != nullptr ) {
-		    std::cerr << ", service time=" << *entry->serviceTime() << " from " << entry->name();
-		}
+		std::cerr << ", service time=" << *dynamic_cast<ProcessorCall *>(clone)->service_time() << " from " << entry->name();
 	    }
 	    std::cerr << std::endl;
 	}

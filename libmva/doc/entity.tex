@@ -1,29 +1,29 @@
-\C 
-\C $Id: entity.tex 5439 2005-01-02 02:30:31Z greg $
-\C 
-\C $Log$
-\C Revision 31.0  2005/01/02 02:30:29  greg
-\C Bring all files up to revision 31.
-\C
-\C Revision 30.0  2003/11/12 18:56:52  greg
-\C Bring all files up to revision 30.0
-\C
-\C Revision 29.0  2003/06/13 00:48:38  greg
-\C bounce version number.
-\C
-\C Revision 1.4  1995/01/11 21:05:12  greg
-\C Revised for R12 of MVA software.
-\C
-\C Revision 1.3  1994/12/09  02:02:36  greg
-\C update.
-\C
-\C Revision 1.2  1994/08/04  20:52:11  greg
-\C Intermediate save
-\C
-\C Revision 1.1  1994/06/24  19:11:32  greg
-\C Initial revision
-\C
-\C ----------------------------------------------------------------------
+% 
+% $Id: entity.tex 14472 2021-02-11 16:43:45Z greg $
+% 
+% $Log$
+% Revision 31.0  2005/01/02 02:30:29  greg
+% Bring all files up to revision 31.
+%
+% Revision 30.0  2003/11/12 18:56:52  greg
+% Bring all files up to revision 30.0
+%
+% Revision 29.0  2003/06/13 00:48:38  greg
+% bounce version number.
+%
+% Revision 1.4  1995/01/11 21:05:12  greg
+% Revised for R12 of MVA software.
+%
+% Revision 1.3  1994/12/09  02:02:36  greg
+% update.
+%
+% Revision 1.2  1994/08/04  20:52:11  greg
+% Intermediate save
+%
+% Revision 1.1  1994/06/24  19:11:32  greg
+% Initial revision
+%
+% ----------------------------------------------------------------------
 \section{Entity}
 \label{sec:entity}
 
@@ -73,28 +73,28 @@ Entity( const char * aStr, Vector<Entry *> * entries );
 
 \begin{description}
 \item[trace] \texonly{---} \\
-\code{Entity& trace( const int flag );}\\
+\code{Entity\& trace( const int flag );}\\
 \code{int trace() const;}
 
 Set or return \link{\var{traceFlag}}{sec:entity-ivars} for this
-\bold{entity}.  If \var{traceFlag} is set, debugging information will be
+\bf{entity}.  If \var{traceFlag} is set, debugging information will be
 printed out for this entity.
 
 \item[copies] \texonly{---} \\
-\code{Entity& copies( const unsigned );}\\
+\code{Entity\& copies( const unsigned );}\\
 \code{unsigned copies() const;}
 
-Set or return the number of copies of the \bold{entity}.  Implemented
+Set or return the number of copies of the \bf{entity}.  Implemented
 by subclasses.
 
 \item[scheduling] \texonly{---} \\
-\code{Entity& scheduling( const scheduling_type aType );}\\
-\code{scheduling_type scheduling() const;}
+\code{Entity\& scheduling( const scheduling\_type aType );}\\
+\code{scheduling\_type scheduling() const;}
 
 Set or return \link{\var{myScheduling}}{sec:entity-ivars}.
 
 \item[entries] \texonly{---} \\
-\code{const Vector<Entry *>& entries() const;}
+\code{const Vector<Entry *>\& entries() const;}
 
 Return the \link{\var{entryList}}{sec:entity-ivars} of the entity.  
 
@@ -115,7 +115,7 @@ Return the \link{\var{entryList}}{sec:entity-ivars} of the entity.
 \item[isProcessor] \texonly{---} Am I a processor?\\
 \code{int isProcessor() const}
 
-\item[nEntries] \texonly{---} Return the number of \link{\bold{entries}}{sec:entries}\\
+\item[nEntries] \texonly{---} Return the number of \link{\bf{entries}}{sec:entries}\\
 \code{unsigned nEntries() const;}
 
 \end{description}
@@ -134,7 +134,7 @@ the realm of the \link{layerizer}{sec:layerize}.
 \code{Server * makeServer( const unsigned );}
 
 Generate a station for the MVA model for an entity which acts as a
-\bold{server}.  Implemented in:
+\bf{server}.  Implemented in:
 \begin{itemize}
 \item \link{Task}{sec:task-mva}
 \item \link{Processor}{sec:processor-mva}
@@ -158,14 +158,14 @@ solved.
 
 \begin{description}
 \item[print] \texonly{---} Print entity information.\\
-\code{ostream& print( ostream& ) const;}
+\code{ostream\& print( ostream\& ) const;}
 
 \item[printStation] \texonly{---} Print corresponding MVA station information.\\
-\code{ostream& printStation( ostream& ) const;}
+\code{ostream\& printStation( ostream\& ) const;}
 
 \end{description}
 
-\C Local Variables: 
-\C mode: latex
-\C TeX-master: "lqns"
-\C End: 
+% Local Variables: 
+% mode: latex
+% TeX-master: "lqns"
+% End: 

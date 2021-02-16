@@ -10,7 +10,7 @@
  * May 2010
  *
  * ------------------------------------------------------------------------
- * $Id: call.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: call.h 14470 2021-02-10 20:38:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,8 +20,10 @@
 #include "lqn2ps.h"
 #include <vector>
 #include <deque>
+#include <lqio/bcmp_document.h>
 #include <lqio/dom_call.h>
 #include <lqio/dom_extvar.h>
+#include <lqio/srvn_spex.h>
 #include "arc.h"
 
 class Entity;
@@ -139,6 +141,7 @@ inline std::ostream& operator<<( std::ostream& output, const GenericCall& self )
 class Call : public GenericCall
 {
     friend class Entry;
+    friend class ProcessorCall;
     
 public:
     class cycle_error : public std::runtime_error
@@ -522,7 +525,9 @@ public:
     virtual const LQIO::DOM::ExternalVariable& forward() const;
     virtual unsigned fanIn() const;
     virtual unsigned fanOut() const;
-    const LQIO::DOM::ExternalVariable * visits() const { return _visits; }
+    const LQIO::DOM::ExternalVariable * visits() const { return _demand.visits(); }
+    const LQIO::DOM::ExternalVariable * service_time() const { return _demand.service_time(); }
+    void setServiceTime( const LQIO::DOM::ExternalVariable * service_time ) { _demand.setServiceTime( service_time ); }
 #if defined(BUG_270)
     virtual ProcessorCall& updateRateFrom( const Call& );
 #endif
@@ -549,8 +554,8 @@ protected:
 
 private:
     LQIO::DOM::Call::Type _callType;		/* Union discriminator		*/
-    const LQIO::DOM::ExternalVariable* _visits;
-    const Entry * _source;				/* not null if a clone.		*/
+    BCMP::Model::Station::Class _demand;
+    const Entry * _source;			/* not null if a clone.		*/
 };
 
 class PseudoProcessorCall : public ProcessorCall 

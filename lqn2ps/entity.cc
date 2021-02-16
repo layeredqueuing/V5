@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14427 2021-01-28 23:13:01Z greg $
+ * $Id: entity.cc 14470 2021-02-10 20:38:43Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -825,7 +825,7 @@ Entity::addExternalVariables( const LQIO::DOM::ExternalVariable * augend, const 
 {
     if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
 	return addend;
-    } else if ( LQIO::DOM::ExternalVariable::isDefault( augend ) ) {
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( addend ) ) {
 	return augend;
     } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(augend) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(addend) ) {
 	return new LQIO::DOM::ConstantExternalVariable( to_double(*augend) + to_double(*addend) );
@@ -836,5 +836,43 @@ Entity::addExternalVariables( const LQIO::DOM::ExternalVariable * augend, const 
 	LQIO::DOM::ExternalVariable * sum = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_add( arg1, arg2 ) ));
 	std::cout << "Entity::addExternalVariables(" << *augend << "," << *addend << ") --> " << *(sum) << std::endl;
 	return sum;
+    }
+}
+
+const LQIO::DOM::ExternalVariable *
+Entity::multiplyExternalVariables( const LQIO::DOM::ExternalVariable * multiplicand, const LQIO::DOM::ExternalVariable * multiplier )
+{
+    if ( LQIO::DOM::ExternalVariable::isDefault( multiplicand, 1. ) ) {
+	return multiplier;
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( multiplier, 1. ) ) {
+	return multiplicand;
+    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplicand) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(multiplier) ) {
+	return new LQIO::DOM::ConstantExternalVariable( to_double(*multiplicand) + to_double(*multiplier) );
+    } else {
+	/* More complicated... */
+	LQX::SyntaxTreeNode * arg1 = getVariableExpression( multiplicand );
+	LQX::SyntaxTreeNode * arg2 = getVariableExpression( multiplier );
+	LQIO::DOM::ExternalVariable * product = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_multiply( arg1, arg2 ) ));
+	std::cout << "Entity::addExternalVariables(" << *multiplicand << "," << *multiplier << ") --> " << *(product) << std::endl;
+	return product;
+    }
+}
+
+const LQIO::DOM::ExternalVariable *
+Entity::divideExternalVariables( const LQIO::DOM::ExternalVariable * dividend, const LQIO::DOM::ExternalVariable * divisor )
+{
+    if ( LQIO::DOM::ExternalVariable::isDefault( dividend, 0. ) ) {		/* zero / ? -> zero */
+	return dividend;
+    } else if ( LQIO::DOM::ExternalVariable::isDefault( divisor, 1. ) ) {	/* division by one */
+	return dividend;
+    } else if ( dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(dividend) && dynamic_cast<const LQIO::DOM::ConstantExternalVariable *>(divisor) ) {
+	return new LQIO::DOM::ConstantExternalVariable( to_double(*dividend) / to_double(*divisor) );
+    } else {
+	/* More complicated... */
+	LQX::SyntaxTreeNode * arg1 = getVariableExpression( dividend );
+	LQX::SyntaxTreeNode * arg2 = getVariableExpression( divisor );
+	LQIO::DOM::ExternalVariable * quotient = static_cast<LQIO::DOM::ExternalVariable *>(spex_inline_expression( spex_divide( arg1, arg2 ) ));
+	std::cout << "Entity::addExternalVariables(" << *dividend << "," << *divisor << ") --> " << *(quotient) << std::endl;
+	return quotient;
     }
 }
