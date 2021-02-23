@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14468 2021-02-09 11:57:04Z greg $
+ * $Id: qnsolver.cc 14476 2021-02-18 00:00:37Z greg $
  */
 
 #include <algorithm>
@@ -21,14 +21,15 @@ static void usage() ;
 const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
-    { "bard-schweitzer", no_argument,       0, 'b' },
+    { "bounds",		 no_argument, 	    0, 'b' },
     { "debug-mva",	 no_argument,	    0, 'd' },
     { "exact-mva",       no_argument,       0, 'e' },
     { "fast-linearizer", no_argument,       0, 'f' },
+    { "gnuplot",	 no_argument,	    0, 'g' },
     { "help",            no_argument,       0, 'h' },
     { "linearizer",      no_argument,       0, 'l' },
     { "output", 	 required_argument, 0, 'o' },
-    { "silent",          no_argument,       0, 's' },
+    { "bard-schweitzer", no_argument,       0, 's' },
     { "verbose",         no_argument,       0, 'v' },
     { "experimental",	 no_argument,	    0, 'x' },
     { "export-qnap2",	 no_argument,	    0, 'Q' },
@@ -43,14 +44,15 @@ static std::string opts = "bdefhlsvx";
 #endif
 
 const char * opthelp[]  = {
-    /* "bard-schweitzer", */    "Test using Bard-Schweitzer solver.",
+    /* "bounds"		  */    "Compute bounds",
     /* "debug",           */    "Enable debug code.",
-    /* "exact-mva",       */    "Test using Exact MVA solver.",
-    /* "fast-linearizer", */    "Test using the Fast Linearizer solver.",
+    /* "exact-mva",       */    "Use Exact MVA.",
+    /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
+    /* "gnuplot"	  */	"Output gnuplot.",
     /* "help",            */    "Show this.",
-    /* "linearizer",      */    "Test using Generic Linearizer.",
+    /* "linearizer",      */    "Use Linearizer.",
     /* "output",	  */	"Send output to ARG.",
-    /* "silent",          */    "",
+    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
     /* "verbose",         */    "",
     /* "experimental",	  */	"",
     /* "export-qnap2",	  */	"Export a QNAP2 model.  Do not solve.",
@@ -59,7 +61,6 @@ const char * opthelp[]  = {
     nullptr
 };
 
-static bool silencio_flag = false;			/* Don't print results if 1	*/
 static bool verbose_flag = true;			/* Print results		*/
 static bool print_qnap2 = false;			/* Export to qnap2.  		*/
 
@@ -90,9 +91,8 @@ int main (int argc, char *argv[])
 
 	switch( c ) {
 	case 'b':
-	    solver = Model::Using::BARD_SCHWEITZER;
 	    break;
-
+	    
 	case 'd':
 	    debug_flag = true;
 #if DEBUG_MVA
@@ -112,6 +112,9 @@ int main (int argc, char *argv[])
 	    solver = Model::Using::LINEARIZER2;
 	    break;
 
+	case 'g':
+	    break;
+	    
 	case 'h':
 	    usage();
 	    return 0;
@@ -125,7 +128,7 @@ int main (int argc, char *argv[])
 	    break;
 	    
 	case 's':
-	    silencio_flag = true;
+	    solver = Model::Using::BARD_SCHWEITZER;
 	    break;
 
 	case 'v':

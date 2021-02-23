@@ -1,5 +1,5 @@
 /*
- * $Id: srvn_gram.y 14381 2021-01-19 18:52:02Z greg $ 
+ * $id: srvn_gram.y 14381 2021-01-19 18:52:02Z greg $ 
  */
 
 %{
@@ -57,8 +57,8 @@ extern int LQIO_lex();
 %type <anInt>		cap_flag hist_bins 
 %type <aFloat>		constant 
 %type <aParseTreeNode>  forall_expr ternary_expr assignment or_expr and_expr compare_expr expression term power prefix arrayref factor 
-%type <aParseTreeNode>  opt_report_info r_decl c_decl
-%type <aParseTreeList>	parameter_list expression_list r_decl_list c_decl_list opt_convergence_info
+%type <aParseTreeNode>  opt_report_info r_decl c_decl 
+%type <aParseTreeList>	parameter_list expression_list variable_list r_decl_list c_decl_list opt_convergence_info
 
 /*
  *			   *** WARNING ***
@@ -692,19 +692,24 @@ act_call_obs_info	: KEY_WAITING VARIABLE					{ spex_activity_call_observation( c
 /*- spex */
 /* -------------------------- Report Section -------------------------- */
 /*+ spex */
-opt_report_info		: 'R' INTEGER r_decl_list END_LIST	{ $$ = $3; }
+opt_report_info		: 'R' INTEGER r_decl_list  END_LIST	{ $$ = $3; }
 			|					{ $$ = 0; }
 			;
-
-
 r_decl_list		: r_decl				{ $$ = spex_list( 0, $1 ); }
 			| r_decl_list r_decl 			{ $$ = spex_list( $1, $2 ); }
 			;
 
 r_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_result_assignment_statement( $1, $3 ); }
 			| VARIABLE				{ $$ = spex_result_assignment_statement( $1, 0 ); }
+			| rvalue '(' variable_list ')'		{ $$ = spex_result_function( $1, $3 ); }
 			;
-/*- spex */
+variable_list		: VARIABLE				{ $$ = spex_list( 0, $1 ); }
+			| variable_list ',' VARIABLE		{ $$ = spex_list( $1, $3 ); }
+			;
+
+/*
+*/
+/*- Spex */
 
 
 /* ------------------------ Convergence Section ----------------------- */
@@ -747,7 +752,6 @@ symbol			: SYMBOL				{ $$ = $1; }
 
 /*+ spex */
 rvalue			: SYMBOL				{ $$ = $1; }
-			| VARIABLE				{ $$ = $1; }
 			;
 /*- spex */
 

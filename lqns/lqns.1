@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "17 August 2020" "5.16"
-.\" $Id: lqns.1 13764 2020-08-17 19:50:05Z greg $
+.TH lqns 1 "17 February 2021" "5.19"
+.\" $Id: lqns.1 14475 2021-02-17 12:20:16Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -202,6 +202,9 @@ Print throughput's values.
 \fBvariance\fR
 Print out the variances calculated after each submodel is solved.
 .TP
+\fBvirtual-entry\fR
+Print waiting time for each rendezvous in the model after it has been computed; include virtual entries.
+.TP
 \fBwait\fR
 Print waiting time for each rendezvous in the model after it has been computed.
 .RE
@@ -383,17 +386,25 @@ instead of a fixed-rate server whenever the multiplicity of a server is one.
 \fIArg\fP must be one of: 
 .RS
 .TP
-\fBno\fP
-Always use a mutlierver solution even if the number of servers is one (1).
+\fBall\fP
+Always use a multiserver solution for non-delay servers (tasks and processors) even if the number of servers is one (1).
 The Rolia mutliserver approximationis known to fail for this case.
 .TP
-\fByes\fP
+\fBnone\fP
 Use fixed-rate servers whenever a server multiplicity is one (1).
 Note that fixed-rateservers with variance
 may have results that differ from fixed-rate servers that don't and that the
 multiserver servers never take variance into consideration.
+.TP
+\fBprocessors\fP
+Always use a multiserver solution for non-delay processors even if the number of servers is one (1).
+The Rolia mutliserver approximationis known to fail for this case.
+.TP
+\fBtasks\fP
+Always use a multiserver solution for non-delay server tasks even if the number of servers is one (1).
+The Rolia mutliserver approximationis known to fail for this case.
 .LP
-The default is yes.
+The default is none.
 .RE
 .TP
 \fBinterlocking\fR=\fIarg\fR

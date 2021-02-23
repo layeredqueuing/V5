@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: lqns.cc 14475 2021-02-17 12:20:16Z greg $
  *
  * Command line processing.
  *
@@ -272,6 +272,10 @@ int main (int argc, char *argv[])
             pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_conway_);
             break;
 
+	case 'G':
+	    LQIO::Spex::setGnuplotVars( optarg );
+	    break;
+	    
 	case 'h':
 	    pragmas.insert(LQIO::DOM::Pragma::_interlocking_,LQIO::DOM::Pragma::_no_);
             pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);

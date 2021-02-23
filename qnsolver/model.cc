@@ -30,6 +30,7 @@
 #include "runlqx.h"
 #include "closedmodel.h"
 #include "openmodel.h"
+#include "bound.h"
 
 bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
@@ -121,12 +122,28 @@ Model::instantiate()
 }
 
 
+/*
+ * For each chain, find the station with the highest demand, and find the total demand.
+ * Highest demand gives throughput bound, total demand gives response bound.
+ */
+
+void
+Model::bounds()
+{
+    std::map<std::string,Bound> bounds;
+    for ( BCMP::Model::Chain::map_t::const_iterator chain = chains().begin(); chain != chains().end(); ++chain ) {
+	bounds.emplace( chain->first, Bound(*chain,stations()) );
+    }
+}
+
+
 bool
 Model::solve()
 {
     if ( _input.hasSPEX() ) {
 	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
-	if ( !LQIO::spex.construct_program( program, _input.getResultVariables(), nullptr ) ) return false;
+	/* 4th argument is gnuplot */
+	if ( !LQIO::spex.construct_program( program, _input.getResultVariables(), nullptr, nullptr ) ) return false;
 	LQX::Program * lqx = LQX::Program::loadRawProgram( program );
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_spex ) {
@@ -157,7 +174,7 @@ Model::solve()
 	return true;
 	
     } else {
-	bool ok = execute();
+	bool ok = compute();
 	if ( ok ) {
 	    print( std::cout );
 	}
@@ -172,7 +189,7 @@ Model::solve()
  */
 
 bool
-Model::execute()
+Model::compute()
 {
     bool ok = true;
     try {
@@ -380,7 +397,6 @@ Model::InstantiateStation::replace_server( const std::string& name, Server * old
     }
     return new_server;
 }
-	
 
 std::streamsize Model::__width = 10;
 std::streamsize Model::__precision = 6;

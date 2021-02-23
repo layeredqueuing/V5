@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14407 2021-01-25 13:56:07Z greg $
+ *  $Id: srvn_spex.cpp 14482 2021-02-23 13:39:24Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -120,7 +120,7 @@ namespace LQIO {
      * Create the foreach loops for all of the local variables created due to array lists in the parameters.
      */
 
-    bool Spex::construct_program( expr_list * main_line, expr_list * result, expr_list * convergence )
+    bool Spex::construct_program( expr_list * main_line, expr_list * result, expr_list * convergence, expr_list * gnuplot )
     {
 	/* If we have only set control variables, then nothing to do. */
 	if ( !has_vars() ) return false;		
@@ -163,7 +163,7 @@ namespace LQIO {
 	}
 
 	/*+ GNUPlot or other header stuff. */
-	if ( gnuplot_output() ) {
+	if ( gnuplot != nullptr && !gnuplot->empty() ) {
 	    main_line = print_gnuplot_preamble( main_line );
 	} else if ( !__no_header ) {
 	    main_line->push_back( print_header() );
@@ -172,9 +172,10 @@ namespace LQIO {
 	/* Add the code for running the SPEX program -- recursive call. */
 	main_line->push_back( foreach_loop( __array_variables.begin(), result, convergence ) );
 
-	/*+ gnuplot */
-	if ( gnuplot_output() ) {
-	    main_line = print_gnuplot_output( main_line );
+	/*+ gnuplot -> append the gnuplot program. */
+	if ( gnuplot != nullptr && !gnuplot->empty() ) {
+	    main_line->push_back( print_node( "EOF" ) );
+	    main_line->insert( main_line->end(), gnuplot->begin(), gnuplot->end() );
 	}
 	return true;
     }
@@ -524,8 +525,6 @@ namespace LQIO {
     /* Code to output GNUPLOT */
     expr_list* Spex::print_gnuplot_output( expr_list * list ) const
     {
-	list->push_back( print_node( "EOF" ) );
-
 	/* Autoload if the list is empty. */
 	if ( __gnuplot_variables.empty() ) {
 	    for ( std::vector<var_name_and_expr>::const_iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
@@ -967,9 +966,13 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
 	LQIO::Spex::__no_header = !LQIO::DOM::Pragma::isTrue(header);
     }
 
+    expr_list gnuplot;
+    if ( LQIO::Spex::gnuplot_output() ) LQIO::spex.print_gnuplot_output( &gnuplot );
+
     if ( program && LQIO::spex.construct_program( program,
 						  static_cast<expr_list *>(result_arg),
-						  static_cast<expr_list *>(convergence_arg) ) ) {
+						  static_cast<expr_list *>(convergence_arg),
+						  &gnuplot ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }
@@ -1322,6 +1325,27 @@ void * spex_result_assignment_statement( const char * name, void * expr )
 	return variable;
     }
 }
+
+/*
+ * The args are a list of variables for printing.  Return an array with the args.  I also have to set up the gnuplot stuff.
+ * Args is a list of variables.  Convert to an array and return that.
+ */
+
+void * spex_result_function( const char * s, void * args )
+{
+    if ( strcmp( s, "plot" ) != 0 ); /* error */
+    
+    std::vector<char *> * vars = static_cast<std::vector<char *>*>( args );
+    expr_list * list = new expr_list;
+    for ( std::vector<char *>::const_iterator var = vars->begin(); var != vars->end(); ++var ) {
+	/* Convert to locals */
+	list->push_back( new LQX::VariableExpression( &(*var)[1], false ) );
+    }
+    /* Convert variables to LQX expressions */
+    
+    return new LQX::MethodInvocationExpression("array_create", static_cast<expr_list *>(list) );
+}
+
 
 /*
  * I need to create a local version of each variable.  Delta them all

@@ -33,6 +33,7 @@ namespace LQX {
     DeclareLanguageMethod(array_get,        "oa",  "array_get",        "Returns the value for the given key in an Array.");
     DeclareLanguageMethod(array_has,        "oa",  "array_has",        "Returns whether or not the Array contains the object.");
     DeclareLanguageMethod(array_append,     "o+",  "array_append",     "Appends the items to end of the Array." );
+    DeclareLanguageMethod(array_keys,       "o",   "array_keys",       "Returns an array with the key names." );
     
   public:
     

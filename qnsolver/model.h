@@ -10,7 +10,7 @@
  *
  * December 2020
  *
- * $Id: model.h 14468 2021-02-09 11:57:04Z greg $
+ * $Id: model.h 14476 2021-02-18 00:00:37Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -57,6 +57,7 @@ public:
     bool construct();
     bool instantiate();
     virtual bool solve();
+    void bounds();
     
 protected:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::UNDEFINED; }
@@ -69,7 +70,7 @@ protected:
 
 private:
     size_t indexAt(BCMP::Model::Chain::Type, const std::string& name) const;
-    bool execute();
+    bool compute();
     void saveResults();
 
 private:

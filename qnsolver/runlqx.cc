@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/qnsolver/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14466 2021-02-08 02:40:40Z greg $
+ * $Id: runlqx.cc 14476 2021-02-18 00:00:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -70,6 +70,6 @@ namespace SolverInterface
 	    }
 	    throw std::runtime_error( msg );
 	}
-	return LQX::Symbol::encodeBoolean( _model.execute() );
+	return LQX::Symbol::encodeBoolean( _model.compute() );
     }
 }

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14419 2021-01-28 03:28:02Z greg $
+ * $Id: srvn_spex.h 14480 2021-02-23 02:07:21Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -67,6 +67,7 @@ extern "C" {
     void * spex_inline_expression( void * arg );
     void * spex_processor_observation( const void * obj, const int key, const int, const char * var, const char * var2 );
     void * spex_result_assignment_statement( const char *var, void * arg );
+    void * spex_result_function( const char *, void * arg );
     void * spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
 
     void * spex_list( void * list, void * stmt );
@@ -251,7 +252,7 @@ namespace LQIO {
 
 	Spex();
 
-	bool construct_program( expr_list * main_line, expr_list * result, expr_list * convergence );
+	bool construct_program( expr_list * main_line, expr_list * result, expr_list * convergence, expr_list * gnuplot=nullptr );
 
 	static void clear();
 
@@ -307,8 +308,8 @@ namespace LQIO {
 	expr_list * solve_failure( expr_list * result ) const;
 
 	LQX::SyntaxTreeNode * print_header() const;
-	expr_list * print_gnuplot_preamble( expr_list * ) const;
-	expr_list * print_gnuplot_output( expr_list * ) const;
+	expr_list * print_gnuplot_preamble( expr_list * list ) const;
+	expr_list * print_gnuplot_output( expr_list * list ) const;
 
 	static expr_list * make_list( LQX::SyntaxTreeNode*, ... );
 	static LQX::SyntaxTreeNode * print_node( const std::string& );
