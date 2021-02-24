@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14475 2021-02-17 12:20:16Z greg $
+ * $Id: lqns.cc 14484 2021-02-24 01:58:30Z greg $
  *
  * Command line processing.
  *
@@ -65,7 +65,6 @@ const struct option longopts[] =
     { "debug",                required_argument, 0, 'd' },
     { "error",                required_argument, 0, 'e' },
     { LQIO::DOM::Pragma::_fast_, no_argument,       0, 'f' },
-    { "gnuplot",	      optional_argument, 0, 'G' },
     { "help",                 optional_argument, 0, 'H' },
     { "huge",		      no_argument,	 0, 'h' },
     { "iteration-limit",      required_argument, 0, 'i' },
@@ -117,7 +116,6 @@ const char * opthelp[]  = {
     /* debug"           */      "Enable debug code.  See -Hd.",
     /* error"           */      "Set floating point exception mode.",
     /* fast             */      "Solve using one-step-linearizer, batch layering and Conway multiserver.",
-    /* gnuplot		*/	"Output code for gnuplot(1).  ARG is a list of SPEX result variables. (SPEX only).",
     /* help"            */      "Show this help.  The optional argument shows help for -d, -t, -z, and -P respectively.",
     /* huge		*/	"Solve using one-step-schweitzer, no interlocking, and Rolia multiserver.",
     /* iteration-limit" */      "Set the iteration limit to ARG.",
@@ -272,10 +270,6 @@ int main (int argc, char *argv[])
             pragmas.insert(LQIO::DOM::Pragma::_multiserver_,LQIO::DOM::Pragma::_conway_);
             break;
 
-	case 'G':
-	    LQIO::Spex::setGnuplotVars( optarg );
-	    break;
-	    
 	case 'h':
 	    pragmas.insert(LQIO::DOM::Pragma::_interlocking_,LQIO::DOM::Pragma::_no_);
             pragmas.insert(LQIO::DOM::Pragma::_mva_,LQIO::DOM::Pragma::_one_step_);

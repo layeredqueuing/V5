@@ -268,6 +268,9 @@ namespace LQX {
   
   ImplementLanguageMethod(ArrayObject::array_keys)
   {
+    /* Return a new instance of the ArrayObject type */
+    ArrayObject* builtObject = new ArrayObject();
+
     /* Decode all of the arguments from the list given */
     LanguageObject* lo = decodeObject(args, 0);
     
@@ -276,18 +279,16 @@ namespace LQX {
     if ( !array ) {
       throw RuntimeException("Argument is not an instance of `Array'");
     }
-    #warning "Implement array_keys"
-#if 0
-    std::vector<SymbolAutoRef>::iterator iter;
-    for (iter = args.begin() + 1; iter != args.end(); ++iter) {
-      SymbolAutoRef key = Symbol::encodeDouble(array->size());
+    int i = 0;
+    for ( std::map<SymbolAutoRef,SymbolAutoRef>::const_iterator iter = array->_map.begin(); iter != array->_map.end(); ++iter ) {
+      SymbolAutoRef keySym = Symbol::encodeDouble(i++);
       SymbolAutoRef symbol = Symbol::encodeNull();	/* Create a copy. */
-      symbol->copyValue( **iter );
-      array->put( key, symbol );
+      symbol->copyValue( *iter->first );
+      builtObject->put(keySym, symbol);
+      
     }
-#endif
 
-    return Symbol::encodeObject(array);
+    return Symbol::encodeObject(builtObject);
   }
 
 

@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14407 2021-01-25 13:56:07Z greg $
+ * $Id: lqsim.cc 14484 2021-02-24 01:58:30Z greg $
  */
 
 #define STACK_TESTING
@@ -124,7 +124,6 @@ static const struct option longopts[] =
     { "confidence",       required_argument, 0, 'C' },
     { "debug",	          no_argument,       0, 'd' },
     { "error",	          required_argument, 0, 'e' },
-    { "gnuplot",	  optional_argument, 0, 'G' },
     { "help",             no_argument,       0, 'H' },
     { "input-format", 	  required_argument, 0, 'I' },
     { "max-blocks",	  required_argument, 0, 'M' },
@@ -163,7 +162,6 @@ static const char * opthelp[]  = {
     /* "debug"		*/    "Enable debug code.",
     /* "error"		*/    "Set the floating pint exeception mode.",
     /* "help"		*/    "Show this help.",
-    /* "gnuplot"	*/    "Output code for gnuplot(1).  ARG is a list of SPEX result variables. (SPEX only).",
     /* input-format	*/    "Force input format to ARG.  Arg is either 'lqn' or 'xml'.",
     /* "max-blocks"	*/    "Set the maximum number of blocks for the simulation (default is 30).",
     /* "no-execute"	*/    "Build the simulation, but do not solve.",
@@ -326,7 +324,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-01-25 08:56:07 -0500 (Mon, 25 Jan 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-02-23 20:58:30 -0500 (Tue, 23 Feb 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -418,10 +416,6 @@ main( int argc, char * argv[] )
 		}
 		break;
 			
-	    case 'G':
-		LQIO::Spex::setGnuplotVars( optarg );
-		break;
-	    
 	    case 'H':
 		usage();
 		exit(0);

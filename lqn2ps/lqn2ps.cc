@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14429 2021-01-29 20:49:19Z greg $
+ * $Id: lqn2ps.cc 14484 2021-02-24 01:58:30Z greg $
  *
  * Command line processing.
  *
@@ -75,7 +75,6 @@ option_type Flags::print[] = {
     { "colour",                'C', "colour",              Options::colouring,     {COLOUR_RESULTS},    false, "Colour output." },
     { "diff-file",	       'D', "filename",            0,                      {0},			false, "Load parseable results generated using srvndiff --difference from filename." },
     { "font-size",             'F', "font-size",           Options::integer,       {9},                 false, "Set the font size (from 6 to 36 points)." },
-    { "gnuplot",	       'G', "[var[,var]*]",	   Options::string,	   {0},		        false, "Output GNUPLOT for var (SPEX input only)." },
     { "input-format",	       'I', "format",		   Options::io,		   {FORMAT_UNKNOWN},	false, "Input file format." },
     { "help",                  'H', 0,                     0,                      {0},                 false, "Print help." },
     { "justification",         'J', "object=justification",Options::justification, {DEFAULT_JUSTIFY},   false, "Justification." },
@@ -194,7 +193,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-01-29 15:49:19 -0500 (Fri, 29 Jan 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-02-23 20:58:30 -0500 (Tue, 23 Feb 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -328,12 +327,6 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::debug = true;
 	    break;
 		
-	case 'G':
-	    Flags::print[RUN_LQX].value.b 	= true;		    /* Reload lqx */
-	    Flags::print[RELOAD_LQX].value.b	= true;
-	    LQIO::Spex::setGnuplotVars( optarg );
-	    break;
-								      
 	case 512+'G':
 	    Flags::print[RUN_LQX].value.b 	= true;		    /* Run lqx */
 	    Flags::dump_graphviz 		= true;

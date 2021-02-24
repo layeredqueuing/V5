@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14482 2021-02-23 13:39:24Z greg $
+ *  $Id: srvn_spex.cpp 14484 2021-02-24 01:58:30Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -93,25 +93,6 @@ namespace LQIO {
     {
 	return __input_variables.size() > 0 || __observation_variables.size() > 0 || __document_variables.size() > 0;
     }
-
-    /*
-     * Set variables for gnuplot output.
-     */
-
-    void Spex::setGnuplotVars( const std::string& s  )
-    {
-	__gnuplot_output = true;
-	
-	size_t start = s.find_first_not_of(",");
-	size_t end = start;
-
-	while (start != std::string::npos) {
-	    end = s.find(",", start);					// Find next occurence of delimiter
-	    __gnuplot_variables.push_back(s.substr(start, end-start));	// Push back the token found into vector
-	    start = s.find_first_not_of(",", end);			// Skip all occurences of the delimiter to find new start
-	}	
-    }
-
 
     /* ------------------------------------------------------------------------ */
 
@@ -165,6 +146,7 @@ namespace LQIO {
 	/*+ GNUPlot or other header stuff. */
 	if ( gnuplot != nullptr && !gnuplot->empty() ) {
 	    main_line = print_gnuplot_preamble( main_line );
+	    main_line->push_back( print_node( "$DATA << EOF" ) );				/* Append newline.  Don't space */
 	} else if ( !__no_header ) {
 	    main_line->push_back( print_header() );
 	}
@@ -476,12 +458,7 @@ namespace LQIO {
 	/* Insert print expression for results */
 
 	if ( result && result->size() > 0 ) {
-	    LQX::SyntaxTreeNode * separator;
-	    if ( gnuplot_output() ) {
-		separator = new LQX::ConstantValueExpression( " " );	/*+ gnuplot: no commas */
-	    } else {
-		separator = new LQX::ConstantValueExpression( ", " );	/* CSV. */
-	    }
+	    LQX::SyntaxTreeNode * separator = new LQX::ConstantValueExpression( ", " );	/* CSV. */
 	    result->insert( result->begin(), separator );
 	    block->push_back( new LQX::FilePrintStatementNode( result, true, true ) );	/* Force spaced output with newline */
 	}
@@ -518,27 +495,16 @@ namespace LQIO {
 	    args->push_back( new LQX::ConstantValueExpression( *i ) );
 	}
 	list->push_back( new LQX::FilePrintStatementNode( args, true, true ) );		/* Print out a comment with the values that will follow */
-	list->push_back( print_node( "$DATA << EOF" ) );				/* Append newline.  Don't space */
+	list->push_back( print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
 	return list;
     }
 
     /* Code to output GNUPLOT */
     expr_list* Spex::print_gnuplot_output( expr_list * list ) const
     {
-	/* Autoload if the list is empty. */
-	if ( __gnuplot_variables.empty() ) {
-	    for ( std::vector<var_name_and_expr>::const_iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
-		const std::string& name = var->first;
-		if ( var->second != nullptr || has_observation_var( name ) || has_input_var( name ) ) {
-		    __gnuplot_variables.push_back( name );
-		}
-	    }
-	}
-	
 	std::ostringstream comment;
 	comment << "set title \"" << DOM::__document->getModelCommentString() << "\"";
 	list->push_back( print_node( comment.str() ) );
-	
 	if ( __gnuplot_variables.size() > 2 ) {
 	    list->push_back( print_node( "set y2tics" ) );
 	    list->push_back( print_node( "set key top left" ) );
@@ -546,15 +512,8 @@ namespace LQIO {
 	}
 
 
-	std::vector<var_name_and_expr>::const_iterator ix = find( __result_variables.begin(), __result_variables.end(), __gnuplot_variables[0] );
-	if ( ix == __result_variables.end() ) {
-	    LQIO::input_error2( LQIO::ADV_SPEX_UNDEFINED_RESULT_VARIABLE, __gnuplot_variables[0].c_str() );
-	    return list;
-	}
-	
 	std::ostringstream x_label;
-	x_label << "set xlabel \"" << ix->first << "\"";
-	const unsigned int x = ix - __result_variables.begin();
+	x_label << "set xlabel \"" << __gnuplot_variables.front() << "\"";
 	list->push_back( print_node( x_label.str() ) );
 
 	std::ostringstream y_label;
@@ -562,15 +521,8 @@ namespace LQIO {
 	std::ostringstream y2_label;
 
 	std::ostringstream ss;
-	for ( unsigned int j = 1; j < __gnuplot_variables.size(); ++j ) {
-	    const std::string& name = __gnuplot_variables[j];
-	    std::vector<var_name_and_expr>::const_iterator iy = find( __result_variables.begin(), __result_variables.end(), name );
-	    if ( iy == __result_variables.end() ) {
-		LQIO::input_error2( LQIO::ADV_SPEX_UNDEFINED_RESULT_VARIABLE, name.c_str() );
-		continue;
-	    }
-	    const unsigned int y = iy - __result_variables.begin();
-
+	for ( unsigned int y = 2; y < __gnuplot_variables.size(); ++y ) {
+	    const std::string& name = __gnuplot_variables[y];
 	    ObservationInfo * obs = findObservation( name );
 	    if ( obs == nullptr ) {
 		LQIO::input_error2( LQIO::ADV_SPEX_UNUSED_RESULT_VARIABLE, name.c_str() );
@@ -586,12 +538,12 @@ namespace LQIO {
 		y2_label << "set y2label \"" << obs->getKeyName() << "\"";
 	    }
 
-	    if ( j == 1 ) {
+	    if ( y == 1 ) {
 		ss << "plot ";
 	    } else {
 		ss << ", ";
 	    }
-	    ss << "\"$DATA\" using " << x+1 << ":" << y+1 << " with linespoints";		/* GNUPLOT starts from 1, not 0 */
+	    ss << "\"$DATA\" using " << 1 << ":" << y+1 << " with linespoints";		/* GNUPLOT starts from 1, not 0 */
 	    if ( !y2_label.str().empty() ) {
 		ss << " axes x1y2";
 	    }
@@ -713,7 +665,6 @@ namespace LQIO {
 
     std::map<const DOM::ExternalVariable *,const LQX::SyntaxTreeNode *> Spex::__inline_expression;  /* Maps temp vars to expressions */
 
-    bool Spex::__gnuplot_output = false;				    /* True if doing gnuplot.			*/
     std::vector<std::string> Spex::__gnuplot_variables;			    /* Variables for output using gnuplot.	*/
 
     bool Spex::__verbose = false;
@@ -967,7 +918,7 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
     }
 
     expr_list gnuplot;
-    if ( LQIO::Spex::gnuplot_output() ) LQIO::spex.print_gnuplot_output( &gnuplot );
+    if ( !LQIO::Spex::__gnuplot_variables.empty() ) LQIO::spex.print_gnuplot_output( &gnuplot );
 
     if ( program && LQIO::spex.construct_program( program,
 						  static_cast<expr_list *>(result_arg),
@@ -1338,12 +1289,13 @@ void * spex_result_function( const char * s, void * args )
     std::vector<char *> * vars = static_cast<std::vector<char *>*>( args );
     expr_list * list = new expr_list;
     for ( std::vector<char *>::const_iterator var = vars->begin(); var != vars->end(); ++var ) {
+	LQIO::Spex::__gnuplot_variables.push_back(*var);	/* Save for gnuplot */
 	/* Convert to locals */
 	list->push_back( new LQX::VariableExpression( &(*var)[1], false ) );
     }
-    /* Convert variables to LQX expressions */
-    
-    return new LQX::MethodInvocationExpression("array_create", static_cast<expr_list *>(list) );
+
+    /* Convert variables to LQX Array expression for printing in the loop */
+    return new LQX::MethodInvocationExpression("array_create", static_cast<expr_list *>(list));
 }
 
 
@@ -1357,8 +1309,9 @@ void * spex_convergence_assignment_statement( const char * name, void * expr )
     return new LQX::AssignmentStatementNode( new LQX::VariableExpression( name, true ), static_cast<LQX::SyntaxTreeNode *>(expr) );
 }
 
+
 /*
- * Push nulls (nops)
+ * Append node to the list.  If the list does not exist, create it.  Ignore null nodes.
  */
 
 void * spex_list( void * list_arg, void * node )

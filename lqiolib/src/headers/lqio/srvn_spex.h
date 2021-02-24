@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14480 2021-02-23 02:07:21Z greg $
+ * $Id: srvn_spex.h 14484 2021-02-24 01:58:30Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -127,7 +127,8 @@ namespace LQIO {
 	friend void * ::spex_processor_observation( const void * obj, const int key, const int, const char * var, const char * var2 );
 	friend void * ::spex_result_assignment_statement( const char * name, void * expr );
 	friend void * ::spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
-
+	friend void * ::spex_result_function( const char * s, void * args );
+	
     public:
 	typedef std::pair<std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
 
@@ -268,7 +269,6 @@ namespace LQIO {
 	static void clear_input_variables() { __input_variables.clear(); }
 	static unsigned int numberOfInputVariables() { return __input_variables.size(); }
 	static unsigned int numberOfResultVariables() { return __result_variables.size(); }
-	static void setGnuplotVars( const std::string& );
 
 	/* Used by srvn_output and qnap_document... */
 	static const std::vector<std::string>& array_variables() { return  __array_variables; }				/* Saves $<array_name> for generating nest for loops */
@@ -296,7 +296,6 @@ namespace LQIO {
 	Spex& operator=( const Spex& );
 
 	bool has_vars() const;							/* True if any $var (except control args) set */
-	static bool gnuplot_output() { return __gnuplot_output; }
 	
 	LQX::SyntaxTreeNode * get_destination( const std::string& name ) const;
 	LQX::SyntaxTreeNode * observation( LQX::MethodInvocationExpression * lqx_obj, const DOM::DocumentObject * document_obj, const ObservationInfo& obs );
@@ -347,7 +346,6 @@ namespace LQIO {
 
 	static const char * __convergence_limit_str;
 
-	static bool __gnuplot_output;						/* True if doing gnuplot.		*/
 	static std::vector<std::string> __gnuplot_variables;			/* Variable to output for gnuplot	*/
 
 	static void * __parameter_list;						/* JSON */
