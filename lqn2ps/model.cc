@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14386 2021-01-20 23:58:29Z greg $
+ * $Id: model.cc 14488 2021-02-24 22:26:04Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1466,8 +1466,8 @@ std::ostream&
 Model::print( std::ostream& output ) const
 {
     if ( Flags::print_comment && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_TXT) {
-	const char * comment = getDOM()->getModelCommentString();
-	if ( comment && comment[0] != '\0' ) {
+	const std::string comment( getDOM()->getModelCommentString() );
+	if ( !comment.empty() ) {
 	    std::cout << _inputFileName << ": " << comment << std::endl;
 	}
     }

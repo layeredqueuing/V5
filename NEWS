@@ -1,3 +1,17 @@
+* Bugs fixed in 5.19
+196 	lqx 	 	Print only array key or value as a comma separated list.
+211 	lqn2xxx 	SIGSEGV Layer::transmorgrify(LQIO::DOM::Document*, Processor*&, Task*&)
+266 	lqn2xxx 	LQIO::should_implement 	
+269 	lqn2xxx 	EXC_BAD_ACCESS lqn2svg`Layer::aggregate(this=0x0000000101009c70) at layer.cc:514:17
+272 	lqns 	  	failure with telephone switch model 
+274 	lqn2xxx 	lqn2lqn: error: Invalid rate for processor "server": 0.5 < 1.
+276 	lqiolib 	lqn2xml -Olqx does not output LQX. 
+277 	lqns 	 	Refactor External Variable handling.
+278 	lqiolib 	signal SIGFPE, Arithmetic exception. SchweitzerCommon::marginalProbabilities () at mva.cc:2398 
+280 	lqiolib 	JMVA to LQN conversion in lqns fails.
+275 	lqiolib 	Output queueing model for QNAP2 
+261 	lqiolib 	LQIO::DOM::Entry::EntryType and Lqns Entry::entry_type not compatible. 
+
 * Bugs fixed in 5.18
 243 	lqns 	 	Bruell and Schmidt multiserver fail in the population code. 
 252 	lqns 	 	Aggregation with nested loop on branch is faulty. 	

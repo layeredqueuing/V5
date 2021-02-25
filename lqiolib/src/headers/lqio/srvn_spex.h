@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14484 2021-02-24 01:58:30Z greg $
+ * $Id: srvn_spex.h 14492 2021-02-25 13:26:25Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -265,6 +265,7 @@ namespace LQIO {
 	static bool is_global_var( const std::string& );
 	static bool has_input_var( const std::string& );
 	static bool has_observation_var( const std::string& );
+	static bool has_array_var( const std::string& );
 	static LQX::SyntaxTreeNode * get_input_var_expr( const std::string& );
 	static void clear_input_variables() { __input_variables.clear(); }
 	static unsigned int numberOfInputVariables() { return __input_variables.size(); }
@@ -307,8 +308,8 @@ namespace LQIO {
 	expr_list * solve_failure( expr_list * result ) const;
 
 	LQX::SyntaxTreeNode * print_header() const;
-	expr_list * print_gnuplot_preamble( expr_list * list ) const;
-	expr_list * print_gnuplot_output( expr_list * list ) const;
+	LQX::SyntaxTreeNode * print_gnuplot_preamble() const;
+	expr_list * plot( std::vector<char *>& var_names );
 
 	static expr_list * make_list( LQX::SyntaxTreeNode*, ... );
 	static LQX::SyntaxTreeNode * print_node( const std::string& );
@@ -346,12 +347,12 @@ namespace LQIO {
 
 	static const char * __convergence_limit_str;
 
-	static std::vector<std::string> __gnuplot_variables;			/* Variable to output for gnuplot	*/
-
 	static void * __parameter_list;						/* JSON */
 	static void * __result_list;						/* JSON */
 	static void * __convergence_list;					/* JSON */
 	static void * __temp_variable;						/* JSON */
+
+	expr_list _gnuplot;							/* Gnuplot program */
     };
 
     inline std::ostream& operator<<( std::ostream& output, const Spex::ComprehensionInfo& self) { return self.print( output ); }

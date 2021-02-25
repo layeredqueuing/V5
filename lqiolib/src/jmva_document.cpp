@@ -812,107 +812,147 @@ namespace BCMP {
      * <whatIf className="c1" type="Customer Numbers" values="4.0;5.0;6.0;7.0;8.0"/>
      * <whatIf className="c1" stationName="p1" type="Service Demands" values="0.4;0.44000000000000006;0.4800000000000001;0.5200000000000001;0.56;0.6;0.64;0.68;0.72;0.76;0.8"/>
      * <whatIf stationName="p1" type="Service Demands" values="1.0;1.1;1.2;1.3;1.4;1.5;1.6;1.7;1.8;1.9;2.0"/>  <!-- all classes by ratio -->
-     * values are comprehensions, but enumerated.
+     * values are generators, but enumerated.
      *
      * If only a className XOR a station name is present, then apply
      * proportinately to all classes or stations, otherwise assign
      * values.  We can be a bit more flexible.The values are a list
-     * which can be converted to a comprehension.  The latter is
+     * which can be converted to a generator.  The latter is
      * better for QNAP2 output.
      *
      * type can be "Customer Numbers" or "Service Demands" (or
      * "Population Mix" - ratio between two classes)
      */
 	
+    const std::map<const std::string,JMVA_Document::setIndependentVariable> JMVA_Document::independent_var_table = {
+	{ XCustomer_Numbers, 	&JMVA_Document::setCustomers },
+	{ XService_Demands, 	&JMVA_Document::setDemand },
+	{ XNumber_of_Servers, 	&JMVA_Document::setMultiplicity },
+	{ XArrival_Rates, 	&JMVA_Document::setArrivalRate }
+    };
+
     void
     JMVA_Document::createWhatIf( const XML_Char ** attributes )
     {
-	const std::string type = XML::getStringAttribute( attributes, Xtype );
 	const std::string className = XML::getStringAttribute( attributes, XclassName, "" );		/* className and/or stationName */
 	const std::string stationName = XML::getStringAttribute( attributes, XstationName, "" );	/* className and/or stationName */
-	
-	std::string name;
-	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 
-	if ( type == "Customer Numbers" ) {
-	    Model::Chain& k = chains().at(className);
-	    /* Get a variable... $N1,$N2,... */
-	    std::map<const Model::Chain *,std::string>::iterator var = _population_vars.find(&k);	/* Look for class 		*/
-	    if ( var != _population_vars.end() ) {							/* Var is defined for class	*/ 
-		x = _variables.at(var->second);								/* So use it			*/
-		name = x->getName();
-	    } else {
-		name = "$N" + std::to_string(_population_vars.size() + 1);				/* Need to create one 		*/
-		x = new LQIO::DOM::SymbolExternalVariable( name );
-		_population_vars.emplace( &k, name );
-		_variables.emplace( name, x );								/* Save it.			*/
-	    }
-	    k.setCustomers( x );								/* swap constanst for variable in class */
+	const std::string x_label = XML::getStringAttribute( attributes, Xtype );
+	std::map<const std::string,JMVA_Document::setIndependentVariable>::const_iterator f = independent_var_table.find( x_label );
+	if ( f == independent_var_table.end() ) return;
 
-	} else if ( type == "Service Demands" ) {
-	    Model::Station& m = stations().at(stationName);
-	    if ( !className.empty() ) {
-		Model::Station::Class& d = m.classes().at(className);
-		/* Get a variable... $S1,$S2,... */
-		std::map<const Model::Station::Class *,std::string>::iterator var = _service_time_vars.find( &d );
-		if ( var != _service_time_vars.end() ) {
-		    x = _variables.at(var->second);
-		    name = x->getName();
-		} else {
-		    name = "$S" + std::to_string(_service_time_vars.size() + 1);
-		    x = new LQIO::DOM::SymbolExternalVariable( name );
-		    _service_time_vars.emplace( &d, name );
-		    _variables.emplace( name, x );
-		}
-		d.setServiceTime( x );
-	    } else {
-		abort();
-	    }
+	const std::string x_var = (this->*(f->second))( stationName, className );
 
-	} else if ( type == "Number of Servers" ) {
-	    Model::Station& m = stations().at(stationName);
-	    /* Get a variable... $S1,$S2,... */
-	    std::map<const Model::Station *,std::string>::iterator var = _multiplicity_vars.find( &m );
-	    if ( var != _multiplicity_vars.end() ) {
-		x = _variables.at(var->second);
-		name = x->getName();
-	    } else {
-		name = "$M" + std::to_string(_multiplicity_vars.size() + 1);
-		x = new LQIO::DOM::SymbolExternalVariable( name );
-		_multiplicity_vars.emplace( &m, name );
-		_variables.emplace( name, x );
-	    }
-	    m.setCopies( x );
-	} else if ( type == "Arrival Rates" ) {
-	    Model::Chain& k = chains().at(className);
-	    std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
-	    if ( var != _arrival_rate_vars.end() ) {
-		x = _variables.at(var->second);
-		name = x->getName();
-	    } else {
-		name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
-		x = new LQIO::DOM::SymbolExternalVariable( name );
-		_arrival_rate_vars.emplace( &k, name );
-		_variables.emplace( name, x );
-	    }
-	    k.setArrivalRate( x );
-	} else {
-	    abort();
-	}
-
-	const Comprehension comprehension( XML::getStringAttribute( attributes, Xvalues ) );
+	const Generator generator( XML::getStringAttribute( attributes, Xvalues ) );
 	void * statement = nullptr;
-	if ( comprehension.begin() == comprehension.end() ) {
+	if ( generator.begin() == generator.end() ) {
 	    /* One item = scalar */
-	    statement = spex_assignment_statement( name.c_str(), new LQX::ConstantValueExpression( comprehension.begin() ), true );
-	} else if ( comprehension.stride() > 0 ) {
+	    statement = spex_assignment_statement( x_var.c_str(), new LQX::ConstantValueExpression( generator.begin() ), true );
+	} else if ( generator.stride() > 0 ) {
 	    /* Stride present, so it's a... */
-	    statement = spex_array_comprehension( name.c_str(), comprehension.begin(), comprehension.end(), comprehension.stride() );
+	    statement = spex_array_comprehension( x_var.c_str(), generator.begin(), generator.end(), generator.stride() );
 	} else {
 	    /* it's a string of values */
 	}
+
+	/* Add the loop to the program */
 	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
+
+	/* If this is the first WhatIf, then set the first x variable for gnuplot */
+	if ( _x_label.empty() ) {
+	    _x_label = x_label;
+	}
     }
+
+
+    std::string 
+    JMVA_Document::setCustomers( const std::string& stationName, const std::string& className )
+    {
+	Model::Chain& k = chains().at(className);
+	LQIO::DOM::SymbolExternalVariable * x = nullptr;
+	std::string name;
+	/* Get a variable... $N1,$N2,... */
+	std::map<const Model::Chain *,std::string>::iterator var = _population_vars.find(&k);	/* Look for class 		*/
+	if ( var != _population_vars.end() ) {							/* Var is defined for class	*/ 
+	    x = _variables.at(var->second);							/* So use it			*/
+	    name = x->getName();
+	} else {
+	    name = "$N" + std::to_string(_population_vars.size() + 1);				/* Need to create one 		*/
+	    x = new LQIO::DOM::SymbolExternalVariable( name );
+	    _population_vars.emplace( &k, name );
+	    _variables.emplace( name, x );							/* Save it.			*/
+	}
+	k.setCustomers( x );								/* swap constanst for variable in class */
+	return name;
+    }
+
+    std::string 
+    JMVA_Document::setDemand( const std::string& stationName, const std::string& className )
+    {
+	Model::Station& m = stations().at(stationName);
+	LQIO::DOM::SymbolExternalVariable * x = nullptr;
+	std::string name;
+	if ( !className.empty() ) {
+	    Model::Station::Class& d = m.classes().at(className);
+	    /* Get a variable... $S1,$S2,... */
+	    std::map<const Model::Station::Class *,std::string>::iterator var = _service_time_vars.find( &d );
+	    if ( var != _service_time_vars.end() ) {
+		x = _variables.at(var->second);
+		name = x->getName();
+	    } else {
+		name = "$S" + std::to_string(_service_time_vars.size() + 1);
+		x = new LQIO::DOM::SymbolExternalVariable( name );
+		_service_time_vars.emplace( &d, name );
+		_variables.emplace( name, x );
+	    }
+	    d.setServiceTime( x );
+	} else {
+	    abort();
+	}
+	return name;
+    }
+
+    std::string 
+    JMVA_Document::setMultiplicity( const std::string& stationName, const std::string& className )
+    {
+	Model::Station& m = stations().at(stationName);
+	LQIO::DOM::SymbolExternalVariable * x = nullptr;
+	std::string name;
+	/* Get a variable... $S1,$S2,... */
+	std::map<const Model::Station *,std::string>::iterator var = _multiplicity_vars.find( &m );
+	if ( var != _multiplicity_vars.end() ) {
+	    x = _variables.at(var->second);
+	    name = x->getName();
+	} else {
+	    name = "$M" + std::to_string(_multiplicity_vars.size() + 1);
+	    x = new LQIO::DOM::SymbolExternalVariable( name );
+	    _multiplicity_vars.emplace( &m, name );
+	    _variables.emplace( name, x );
+	}
+	m.setCopies( x );
+	return name;
+    }
+
+    std::string 
+    JMVA_Document::setArrivalRate( const std::string& stationName, const std::string& className )
+    {
+	Model::Chain& k = chains().at(className);
+	LQIO::DOM::SymbolExternalVariable * x = nullptr;
+	std::string name;
+	std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
+	if ( var != _arrival_rate_vars.end() ) {
+	    x = _variables.at(var->second);
+	    name = x->getName();
+	} else {
+	    name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
+	    x = new LQIO::DOM::SymbolExternalVariable( name );
+	    _arrival_rate_vars.emplace( &k, name );
+	    _variables.emplace( name, x );
+	}
+	k.setArrivalRate( x );
+	return name;
+    }
+    
 
     /* 
      * Save the result variables that control the output.  If none are
@@ -1033,7 +1073,7 @@ namespace BCMP {
     }
     
     void
-    JMVA_Document::Comprehension::convert( const std::string& s )
+    JMVA_Document::Generator::convert( const std::string& s )
     {
 	double previous = 0;
 	char * endptr = nullptr;
@@ -1271,15 +1311,15 @@ namespace BCMP {
 	if ( (k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) )) != chains().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XclassName, k->first )
-		    << XML::attribute( Xtype, "Customer Numbers" );
+		    << XML::attribute( Xtype, XCustomer_Numbers );
 	} else if ( (k = std::find_if( chains().begin(), chains().end(), what_if::has_customers( var.first ) )) != chains().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XclassName, k->first )
-		    << XML::attribute( Xtype, "Arrival Rate" );
+		    << XML::attribute( Xtype, XArrival_Rates );
 	} else if ( (m = std::find_if( stations().begin(), stations().end(), what_if::has_copies( var.first ) )) != stations().end() ) {
 	    _output << XML::simple_element( XwhatIf )
 		    << XML::attribute( XstationName, m->first )
-		    << XML::attribute( Xtype, "Number of Servers" );
+		    << XML::attribute( Xtype, XNumber_of_Servers );
 	} else if ( (m = std::find_if( stations().begin(), stations().end(), what_if::has_var( var.first ) )) != stations().end() ) {
 	    const BCMP::Model::Station::Class::map_t& classes = m->second.classes();
 	    BCMP::Model::Station::Class::map_t::const_iterator d;
@@ -1287,7 +1327,7 @@ namespace BCMP {
 	    if ( (d = std::find_if( classes.begin(), classes.end(), what_if::has_service_time( var.first ) )) != classes.end() ) {
 		_output << XML::attribute( XstationName, m->first )
 			<< XML::attribute( XclassName, d->first )
-			<< XML::attribute( Xtype, "Service Demands" );
+			<< XML::attribute( Xtype, XService_Demands );
 	    } else if ( (d = std::find_if( classes.begin(), classes.end(), what_if::has_visits( var.first ) )) != classes.end() ) {
 		_output << XML::attribute( XstationName, m->first )
 			<< XML::attribute( XclassName, d->first )
@@ -1464,12 +1504,16 @@ namespace BCMP {
     const XML_Char * JMVA_Document::Xfalse		= "false";
     const XML_Char * JMVA_Document::XsolutionMethod   	= "solutionMethod";
 
-    const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
-    const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
+    const XML_Char * JMVA_Document::XArrival_Rates	= "Arrival Rates";
+    const XML_Char * JMVA_Document::XCustomer_Numbers 	= "Customer Numbers";
     const XML_Char * JMVA_Document::XNumberOfCustomers	= "NumberOfCustomers";
-    const XML_Char * JMVA_Document::XThroughput         = "Throughput";
-    const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
+    const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
+    const XML_Char * JMVA_Document::XNumber_of_Servers	= "Number of Servers";
     const XML_Char * JMVA_Document::XResidenceTime      = "ResidenceTime";
+    const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
+    const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
+    const XML_Char * JMVA_Document::XService_Demands	= "Service Demands";
+    const XML_Char * JMVA_Document::XThroughput         = "Throughput";
     const XML_Char * JMVA_Document::XUtilization        = "Utilization";
     const XML_Char * JMVA_Document::Xnormconst          = "normconst";
 }

@@ -693,15 +693,16 @@ act_call_obs_info	: KEY_WAITING VARIABLE					{ spex_activity_call_observation( c
 /* -------------------------- Report Section -------------------------- */
 /*+ spex */
 opt_report_info		: 'R' INTEGER r_decl_list  END_LIST	{ $$ = $3; }
+			| 'R' INTEGER rvalue '(' variable_list ')' END_LIST	{ $$ = spex_result_function( $3, $5 ); }
 			|					{ $$ = 0; }
 			;
+
 r_decl_list		: r_decl				{ $$ = spex_list( 0, $1 ); }
 			| r_decl_list r_decl 			{ $$ = spex_list( $1, $2 ); }
 			;
 
 r_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_result_assignment_statement( $1, $3 ); }
 			| VARIABLE				{ $$ = spex_result_assignment_statement( $1, 0 ); }
-			| rvalue '(' variable_list ')'		{ $$ = spex_result_function( $1, $3 ); }
 			;
 variable_list		: VARIABLE				{ $$ = spex_list( 0, $1 ); }
 			| variable_list ',' VARIABLE		{ $$ = spex_list( $1, $3 ); }

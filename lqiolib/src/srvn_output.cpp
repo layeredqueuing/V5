@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14465 2021-02-07 22:14:38Z greg $
+ *  $Id: srvn_output.cpp 14488 2021-02-24 22:26:04Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -748,8 +748,8 @@ namespace LQIO {
 	    output << std::endl << std::endl;
 	}
 
-	const char * comment = document.getModelCommentString();
-	if ( comment != nullptr && comment[0] != '\0' ) {
+	const std::string comment( document.getModelCommentString() );
+	if ( !comment.empty() ) {
 	    output << "#!Comment: " << print_comment( comment ) << std::endl;
 	}
 	if ( document.getResultUserTime() > 0.0 ) {
@@ -1307,8 +1307,9 @@ namespace LQIO {
         _output << ctime( &clock ) << newline;
 #endif
 
-        if ( document.getModelComment()->wasSet() ) {
-            _output << "Comment: " << document.getModelCommentString() << newline;
+	const std::string comment( document.getModelCommentString() );
+        if ( !comment.empty() ) {
+            _output << "Comment: " << comment << newline;
         }
         if ( !document.getDocumentComment().empty() ) {
             _output << "Other:                  " << document.getDocumentComment() << newline;

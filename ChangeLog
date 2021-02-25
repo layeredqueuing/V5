@@ -1,3 +1,16 @@
+2021-02-24  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
+
+	* lqiolib
+	- Change grammar for results to add plot(), remove -G<list> as option.
+	- Add bcmp_document, jmva_document, qnap2_document for plain BCMP models.
+	* libmva
+	- moved from lqns.  Shared with qnsolver.
+	* qnsolver
+	- New.  Generic BCMP model solver.
+	* lqn2ps
+	- partial conversion of lqn to bcmp models through #pragma bcmp,
+	  #pragma prune
+
 2020-09-27  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
 
 	* NEWS: Refactored activity list handling
@@ -488,4 +501,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 13884 2020-09-27 17:20:42Z greg $
+$Id: ChangeLog 14490 2021-02-25 02:01:33Z greg $

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14406 2021-01-25 03:09:25Z greg $
+ *  $Id: dom_document.cpp 14488 2021-02-24 22:26:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -135,14 +135,14 @@ namespace LQIO {
 	    }
 	}
 
-	const char * Document::getModelCommentString() const 
+	std::string Document::getModelCommentString() const 
 	{
 	    const char * s;
 	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
 	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
-		if ( iter->second->getString( s ) ) return s;
+		if ( iter->second->getString( s ) ) return std::string(s);
 	    } 
-	    return _modelComment.c_str();
+	    return _modelComment;
 	}
 
 	Document& Document::setModelComment( ExternalVariable * comment )

@@ -28,7 +28,8 @@ namespace BCMP {
     typedef std::map<const std::string,std::multimap<const std::string,const std::string> > result_t;
 
     class JMVA_Document {
-
+	typedef std::string (JMVA_Document::*setIndependentVariable)( const std::string&, const std::string& );
+	
 	/* Safe union for stack object */
 	class Object {
 	public:
@@ -97,10 +98,10 @@ namespace BCMP {
 	    bool operator()( const XML_Char * s1, const XML_Char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 	};
 
-	struct Comprehension
+	struct Generator
 	{
 	public:
-	    Comprehension( const std::string& s ) : _begin(-1.), _end(-1.), _stride(0.) { convert(s); }
+	    Generator( const std::string& s ) : _begin(-1.), _end(-1.), _stride(0.) { convert(s); }
 	    double begin() const { return _begin; }
 	    double end() const { return _end; }
 	    double stride() const { return _stride; }
@@ -131,9 +132,12 @@ namespace BCMP {
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
 	expr_list * getLQXProgram() const { return _lqx_program; }
 	expr_list * getResultVariables() const { return _result_vars; }
-	std::vector<std::string> getUndefinedExternalVariables() const;
 
+	std::vector<std::string> getUndefinedExternalVariables() const;
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
+
+	const std::string& x_label() { return _x_label; }			/* GNUPlot */
+
 	std::ostream& print( std::ostream& ) const;
 
     private:
@@ -181,6 +185,11 @@ namespace BCMP {
 	expr_list* createResult( expr_list*, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r );
 	void setResultVariables( const std::string& );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const Model::Station *, const Model::Station::Class * );
+
+	std::string setCustomers( const std::string&, const std::string& );
+	std::string setDemand( const std::string&, const std::string& );
+	std::string setMultiplicity( const std::string&, const std::string& );
+	std::string setArrivalRate( const std::string&, const std::string& );
 
 	class what_if {
 	private:
@@ -324,6 +333,11 @@ namespace BCMP {
 	std::map<const Model::Station::Class *,std::string> _visit_vars;	/* class, var	*/
 	expr_list* _result_vars;
 
+	/* Plotting */
+	std::string _x_label;			/* GNUPlot -- X axis label */
+
+	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
+	
 	static const std::set<const XML_Char *,attribute_table_t> algParams_table;
 	static const std::set<const XML_Char *,attribute_table_t> class_results_table;
 	static const std::set<const XML_Char *,attribute_table_t> compareAlgs_table;
@@ -382,22 +396,25 @@ namespace BCMP {
 	static const XML_Char * Xvalues;
 
 	static const XML_Char * XalgCount;
-	static const XML_Char * Xiteration;
-	static const XML_Char * Xiterations;
-	static const XML_Char * XiterationValue;
-	static const XML_Char * Xok;
 	static const XML_Char * Xfalse;
+	static const XML_Char * Xiteration;
+	static const XML_Char * XiterationValue;
+	static const XML_Char * Xiterations;
+	static const XML_Char * Xnormconst;
+	static const XML_Char * Xok;
 	static const XML_Char * XsolutionMethod;
 
-	static const XML_Char * XResultVariables;
-	static const XML_Char * XNumber_of_Customers;
+	static const XML_Char * XArrival_Rates;
+	static const XML_Char * XCustomer_Numbers;
 	static const XML_Char * XNumberOfCustomers;
-	static const XML_Char * XThroughput;
-	static const XML_Char * XResidence_time;
+	static const XML_Char * XNumber_of_Customers;
+	static const XML_Char * XNumber_of_Servers;
 	static const XML_Char * XResidenceTime;
+	static const XML_Char * XResidence_time;
+	static const XML_Char * XResultVariables;
+	static const XML_Char * XService_Demands;
+	static const XML_Char * XThroughput;
 	static const XML_Char * XUtilization;
-	static const XML_Char * Xnormconst;
-
     };
 
     inline std::ostream& operator<<( std::ostream& output, const JMVA_Document& doc ) { return doc.print(output); }

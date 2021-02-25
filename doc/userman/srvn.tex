@@ -7,7 +7,7 @@
 %% Created:             27 April 2011
 %%
 %% ------------------------------------------------------------------------
-%%  $Id: srvn.tex 11987 2014-04-16 20:57:40Z greg $
+%%  $Id: srvn.tex 14489 2021-02-24 22:44:45Z greg $
 %% ------------------------------------------------------------------------
 %%
 \lstdefinelanguage{LQN}{
@@ -90,6 +90,7 @@ layout of the model file.
 
   # \color{red}Result defintions (SPEX)
   R 0
+    plot( $var, $var,... )
     $var = <expression>
   -1
 
@@ -700,11 +701,13 @@ This also happens if a phase of zero is given.
 
 The purpose of the report information section of the input file is to specify which variable values
 (including result indications) are to be printed in the SPEX result file.  The format of this section is
-shown in Listing~\ref{lst:lqn-report-info}.
+shown in Listing~\ref{lst:lqn-report-info} and consists of either a single plot
+function\index{SPEX!report!plot}, or a list of variables (with possible computed results).  
 
 \lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
 \begin{lstlisting}[caption={Report Information},label=lst:lqn-report-info,frame=single,float]
 R <int>
+  plot( <var-list> )
   $var
   $var = <ternary-expression>
 -1
@@ -714,11 +717,20 @@ There may be any number of report declarations, however, the integer parameter t
 the number of report declarations present or zero\footnote{The number is ignored; it is present in the
 syntax so that the report section matches the other sections.}.
 
-The \nonterminal{expression} may be any valid LQX expression as discussed above.  Note that in this section,
+The \nonterminal{ternary-expression} may be any valid ternaray expression as discussed above.  Note that in this section,
 the report indication variables\index{variables!report indication} and the parameter
-variables\index{variables!parameters} may both be used together.  The values of the variables listed in this
+variables\index{variables!parameters} may both be used together. 
+
+The values of the variables listed in this
 section are printed from left to right in the order that they appear in the input file separated by commas.
 This output can then be used as input to Gnuplot\index{Gnuplot} or a spreadsheet such as Excel\index{Excel}.
+
+If the \texttt{plot()}\index{Spex!report!plot} function is used, output will formatted in such a way that it
+can be used as input into gnuplot\index{gnuplot}.  The first argument to the \texttt{plot}\index{plot}
+function call is the x\index{plot!x} variable for the graph.  Multiple additional arguments are permitted
+but should be grouped by result type (ie., throughputs, utilizations).  Up to two groups can be plotted with
+results in first group being plotted against the left 'y'\index{plot!y} axis, and results from the second on
+the right 'y' axis.  Only one plot function can be specified in the report section at this time.
 
 There is a special variable called \texttt{\$0}\index{\$0} which represents the independent variable in the
 results tables (the x-axis in plots).  The variable \texttt{\$0} may be set to any expression allowing for

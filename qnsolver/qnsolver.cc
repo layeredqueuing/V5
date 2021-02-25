@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14476 2021-02-18 00:00:37Z greg $
+ * $Id: qnsolver.cc 14490 2021-02-25 02:01:33Z greg $
  */
 
 #include <algorithm>
@@ -63,6 +63,7 @@ const char * opthelp[]  = {
 
 static bool verbose_flag = true;			/* Print results		*/
 static bool print_qnap2 = false;			/* Export to qnap2.  		*/
+static bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
 
 std::string program_name;
 
@@ -113,6 +114,7 @@ int main (int argc, char *argv[])
 	    break;
 
 	case 'g':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    break;
 	    
 	case 'h':

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: help.cc 14489 2021-02-24 22:44:45Z greg $
  */
 
 #include "lqn2ps.h"
@@ -149,7 +149,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14381 2021-01-19 18:52:02Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 14489 2021-02-24 22:44:45Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 
@@ -312,11 +312,6 @@ man()
 	    std::cout << std::endl;
 	    break;
 	    
-	case 'G':
-	    std::cout << "The " << current_option(i) << " is used to generate gnuplot(1) output.  The arguments to " << current_option(i) << std::endl
-		 << "are result variables found in the input file.  This option only works for SPEX input." << std::endl;
-	    break;
-
 	case 'I':
 	    std::cout << "The " << current_option(i) << " is used to force the input file format to either \\fIxml\\fR, or \\fIlqn\\fR." << std::endl
 		 << "By default, if the suffix of the input filename is one of: \\fI.in\\fR, \\fI.lqn\\fR, \\fI.xlqn\\fR, of \\fI.txt\\fR," << std::endl

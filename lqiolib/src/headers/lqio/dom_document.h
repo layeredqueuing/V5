@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14406 2021-01-25 03:09:25Z greg $
+ *  $Id: dom_document.h 14488 2021-02-24 22:26:04Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -107,7 +107,7 @@ namespace LQIO {
 	    const std::string& getDocumentComment() const;
 	    Document& setDocumentComment( const std::string& );
 	    const ExternalVariable * getModelComment() const { return get( XComment ); }
-	    const char * getModelCommentString() const;
+	    std::string getModelCommentString() const;
 	    Document& setModelComment( ExternalVariable * );
 	    Document& setModelCommentString( const std::string& );
 	    const ExternalVariable * getModelConvergence() const { return get( XConvergence );	}
