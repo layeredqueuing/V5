@@ -22,6 +22,7 @@
 #include <cmath>
 #include <lqio/bcmp_bindings.h>
 #include <lqio/jmva_document.h>
+#include <lqio/srvn_spex.h>
 #include <lqio/glblerr.h>
 #include <lqx/Program.h>
 #include <mva/multserv.h>
@@ -208,6 +209,7 @@ Model::compute()
 	    _open_model->solve( _closed_model );
 	    if ( debug_flag ) _open_model->print(std::cout);
 	}
+	saveResults();
     }
     catch ( const std::runtime_error& error ) {
 	throw LQX::RuntimeException( error.what() );
@@ -223,6 +225,18 @@ Model::compute()
 	ok = false;
     }
     return ok;
+}
+
+
+void
+Model::saveResults()
+{
+    if ( _closed_model ) {
+	_closed_model->saveResults();
+    }
+    if ( _open_model ) {
+	_open_model->saveResults();
+    }
 }
 
 size_t
@@ -306,6 +320,7 @@ Model::InstantiateStation::InstantiateStation( const Model& model ) : _model(mod
 }
 
 /*
+
  * (Re)Create the stations as neccesary and udpate the Q vector in the
  * parent and children.
  */
@@ -514,4 +529,3 @@ Model::blankline()
               memory used:       4024 words of 4 bytes
                (  1.55  % of total memory)     
 */
-

@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.h 14453 2021-02-06 21:57:55Z greg $
+ * $Id: closedmodel.h 14494 2021-02-26 18:48:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -48,17 +48,16 @@ public:
 
     bool construct();
     bool instantiate();
-    std::ostream& debug( std::ostream& output ) const;
     bool solve();
+    void saveResults();
+
+    std::ostream& debug( std::ostream& output ) const;
     const Population& customers() const { return N; }
     const MVA* solver() const { return _solver; }
 	
-protected:
+private:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::CLOSED; }
     virtual bool isParent() const { return false; }
-
-private:
-    void saveResults();
 
 private:
     Model& _parent;

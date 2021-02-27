@@ -1099,6 +1099,14 @@ namespace BCMP {
 	std::for_each( _variables.begin(), _variables.end(), notSet(names) );
 	return names;
     }
+
+    expr_list *
+    JMVA_Document::plot()
+    {
+	_gnuplot.push_back( LQIO::Spex::print_node( "#!/opt/local/bin/gnuplot" ) );
+	const std::string comment = "set title \"" + _model.comment() + "\"";
+	_gnuplot.push_back( LQIO::Spex::print_node( comment ) );
+    }
 }
 
 namespace BCMP {

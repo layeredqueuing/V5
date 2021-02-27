@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.cc 14460 2021-02-07 13:24:41Z greg $
+ * $Id: openmodel.cc 14494 2021-02-26 18:48:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -103,7 +103,6 @@ OpenModel::solve( const ClosedModel* closed )
 	} else {
 	    _solver->solve();
 	}
-	saveResults();
     }
     catch ( const std::range_error& e ) {
 	return false;

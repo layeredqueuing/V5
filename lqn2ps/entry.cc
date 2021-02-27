@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14471 2021-02-10 23:11:37Z greg $
+ * $Id: entry.cc 14495 2021-02-27 01:02:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1383,7 +1383,7 @@ Entry::check() const
 	    max_phases = std::max( maxPhase(), max_phases );		/* Set global value.	*/
 	}
 
-    } else {
+    } else if ( isStandardEntry() ) {
 	bool hasServiceTime = false;
 	for ( std::map<unsigned,Phase>::const_iterator p = _phases.begin(); p != _phases.end(); ++p ) {
 	    const Phase& phase = p->second;
@@ -1403,6 +1403,9 @@ Entry::check() const
 
 	Model::thinkTimePresent     = Model::thinkTimePresent     || hasThinkTime();
 	Model::boundsPresent        = Model::boundsPresent        || throughputBound() > 0.0;
+
+    } else {
+	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
     }
 
     if ( (isSignalEntry() || isWaitEntry()) && owner()->scheduling() != SCHEDULE_SEMAPHORE ) {

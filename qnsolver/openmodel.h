@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: openmodel.h 14453 2021-02-06 21:57:55Z greg $
+ * $Id: openmodel.h 14494 2021-02-26 18:48:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -38,16 +38,15 @@ public:
     explicit operator bool() const { return _result == true; }
     bool construct();
     bool instantiate();
-    
-    std::ostream& debug( std::ostream& output ) const;
     bool convert( const ClosedModel* );
     bool solve( const ClosedModel* );
+    virtual void saveResults();
+    
+    std::ostream& debug( std::ostream& output ) const;
 
-protected:
+private:
     virtual BCMP::Model::Chain::Type type() const { return BCMP::Model::Chain::Type::OPEN; }
     virtual bool isParent() const { return false; }
-
-    virtual void saveResults();
 
 private:
     Model& _parent;

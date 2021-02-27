@@ -139,6 +139,7 @@ namespace BCMP {
 	const std::string& x_label() { return _x_label; }			/* GNUPlot */
 
 	std::ostream& print( std::ostream& ) const;
+	expr_list * plot();
 
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
@@ -261,7 +262,7 @@ namespace BCMP {
 	private:
 	    std::vector<std::string>& _list;
 	};
-
+
 	/* -------------------------- Output -------------------------- */
 
     private:
@@ -334,7 +335,8 @@ namespace BCMP {
 	expr_list* _result_vars;
 
 	/* Plotting */
-	std::string _x_label;			/* GNUPlot -- X axis label */
+	expr_list _gnuplot;			/* GNUPlot program		*/
+	std::string _x_label;			/* GNUPlot -- X axis label	*/
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
 	

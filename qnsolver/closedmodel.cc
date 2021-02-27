@@ -9,7 +9,7 @@
  *
  * December 2020
  *
- * $Id: closedmodel.cc 14460 2021-02-07 13:24:41Z greg $
+ * $Id: closedmodel.cc 14494 2021-02-26 18:48:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -100,7 +100,6 @@ bool
 ClosedModel::solve()
 {
     if ( _solver->solve() ) {
-	saveResults();
 	return true;
     } else {
 	return false;
