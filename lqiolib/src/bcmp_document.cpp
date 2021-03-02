@@ -26,11 +26,6 @@
 namespace BCMP {
     const LQIO::DOM::ConstantExternalVariable _ZERO_(0.);
 
-    /* For treating results as an array */
-    const Model::Station::Class::Result::Type Model::Station::Class::Result::index[] = {
-	Result::Type::QUEUE_LENGTH, Result::Type::RESIDENCE_TIME, Result::Type::THROUGHPUT, Result::Type::UTILIZATION
-    };
-
     /* ---------------------------------------------------------------- */
     /*			           Model				*/
     /* ---------------------------------------------------------------- */
@@ -94,12 +89,38 @@ namespace BCMP {
     Model::Station::Class::map_t
     Model::computeCustomerDemand( const std::string& name ) const
     {
-	const Station::Class::map_t visits = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isServer ) );
-	const Station::Class::map_t service_times = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isCustomer ) );
-	Station::Class::map_t classes = std::accumulate( service_times.begin(), service_times.end(), Station::Class::map_t(), sum_visits(visits) );
-	return classes;
+	const Station::Class::map_t servers = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isServer ) );
+	const Station::Class::map_t clients = std::accumulate( stations().begin(), stations().end(), Station::Class::map_t(), Station::select( &Station::isCustomer ) );
+	return std::accumulate( clients.begin(), clients.end(), Station::Class::map_t(), sum_visits(servers) );
     }
 
+    /*
+     * Compute reponse time for class "name" 
+     */
+    
+    double
+    Model::response_time( const std::string& name ) const
+    {
+	return std::accumulate( stations().begin(), stations().end(), 0.0, sum_residence_time( name ) );
+    }
+
+    double
+    Model::throughput( const std::string& name ) const
+    {
+	Station::map_t::const_iterator m = std::find_if( stations().begin(), stations().end(), &Station::isCustomer );
+	if ( m == stations().end() ) return 0.0;
+	const Model::Station& station = m->second;
+	if ( name.empty() ) {
+	    return station.throughput();
+	} else if ( station.hasClass(name) ) {
+	    const Station::Class& clasx = station.classAt(name);
+	    return clasx.throughput();
+	} else {
+	    return 0.0;
+	}
+    }
+    
+    
     Model::Station::Class::map_t
     Model::sum_visits::operator()( const Station::Class::map_t& input, const Station::Class::pair_t& clasx ) const
     {
@@ -144,6 +165,21 @@ namespace BCMP {
 	    const std::string& class_name = k->first;
 	    Station& station = const_cast<Station&>(m.second);
 	    station.insertClass( class_name, BCMP::Model::Station::Class() );
+	}
+    }
+
+    double Model::sum_residence_time::operator()( double augend, const Station::pair_t& m ) const
+    {
+	const Model::Station& station = m.second;
+
+	if ( !Station::isServer( m ) ) {
+	    return augend;
+	} else if ( _name.empty() ) {
+	    return augend + station.residence_time();
+	} else if ( station.hasClass( _name ) ) {
+	    return augend + station.classAt( _name ).residence_time();
+	} else {
+	    return augend;
 	}
     }
 
@@ -241,7 +277,7 @@ namespace BCMP {
     }
 
     /*
-     * Sum results except for S and R.  Those have to be computed after
+     * Sum results except for Residence Time.  Those have to be computed after
      * the sum is found.
      */
 
@@ -249,10 +285,10 @@ namespace BCMP {
     Model::Station::sumResults( const Model::Station::Class& augend, const Model::Station::Class::pair_t& addend )
     {
 	Class sum = augend;
-	for ( const auto i : Model::Station::Class::Result::index ) {
-	    if ( i == Result::Type::RESIDENCE_TIME ) sum._results.at(i) = 0.0;				/* Need to derive 	*/
-	    else sum._results.at(i) += addend.second._results.at(i);
-	}
+	sum._results[Result::Type::THROUGHPUT]     += addend.second._results.at(Result::Type::THROUGHPUT);
+	sum._results[Result::Type::QUEUE_LENGTH]   += addend.second._results.at(Result::Type::QUEUE_LENGTH);
+	sum._results[Result::Type::RESIDENCE_TIME]  = 0.0;	/* Need to derive 	*/
+	sum._results[Result::Type::UTILIZATION]    += addend.second._results.at(Result::Type::UTILIZATION);
 	return sum;
     }
 
@@ -260,7 +296,9 @@ namespace BCMP {
     void
     Model::Station::insertResultVariable( Result::Type type, const std::string& name  )
     {
-	if ( !_result_vars.emplace(type,name).second ) {
+	if ( type == Result::Type::RESPONSE_TIME ) {
+	    throw std::runtime_error( "Invalid Result::Type" );
+	} else if ( !_result_vars.emplace(type,name).second ) {
 	    throw std::runtime_error( "Duplicate Result Variable" );
 	}
     }
@@ -335,7 +373,9 @@ namespace BCMP {
     void
     Model::Station::Class::insertResultVariable( Result::Type type, const std::string& name  )
     {
-	if ( !_result_vars.emplace(type,name).second ) {
+	if ( type == Result::Type::RESPONSE_TIME ) {
+	    throw std::runtime_error( "Invalid Result::Type" );
+	} else if ( !_result_vars.emplace(type,name).second ) {
 	    throw std::runtime_error( "Duplicate Result Variable" );
 	}
     }
@@ -423,4 +463,72 @@ namespace BCMP {
 	assert( _service_time != nullptr );
 	return *this;
     }
+
+    /* ---------------------------------------------------------------- */
+    /*			           Bound				*/
+    /* ---------------------------------------------------------------- */
+
+    Model::Bound::Bound( const Model::Chain::pair_t& chain, const Model::Station::map_t& stations )
+	: _chain(chain), _stations(stations), _D_max(0.0), _D_sum(0.0), _Z(0.0)
+    {
+	compute();
+    }
+
+
+
+    void
+    Model::Bound::compute()
+    {
+	_D_max = std::accumulate( stations().begin(), stations().end(), 0., max_demand( chain() ) );
+	_D_sum = std::accumulate( stations().begin(), stations().end(), 0., sum_demand( chain() ) );
+	_Z = std::accumulate( stations().begin(), stations().end(), think_time(), sum_think_time( chain() ) );
+    }
+
+
+    double
+    Model::Bound::think_time() const
+    {
+	const Model::Chain& chain = _chain.second;
+	if ( chain.isClosed() ) return to_double( *chain.think_time() );
+	else return 0.0;
+    }
+
+    double
+    Model::Bound::max_demand::operator()( double a1, const Model::Station::pair_t& m2 )
+    {
+	const Model::Station& m = m2.second;
+	if ( (    m.type() != Model::Station::Type::DELAY
+		  && m.type() != Model::Station::Type::LOAD_INDEPENDENT
+		  && m.type() != Model::Station::Type::MULTISERVER )
+	     || !m.hasClass( _class ) ) return a1;
+	const Model::Station::Class& k = m.classAt( _class );
+	return std::max( a1, to_double( *k.visits() ) * to_double( *k.service_time() ) );
+    }
+
+
+
+    double
+    Model::Bound::sum_demand::operator()( double a1, const Model::Station::pair_t& m2 )
+    {
+	const Model::Station& m = m2.second;
+	if ( (    m.type() != Model::Station::Type::DELAY
+		  && m.type() != Model::Station::Type::LOAD_INDEPENDENT
+		  && m.type() != Model::Station::Type::MULTISERVER )
+	     || !m.hasClass( _class ) ) return a1;
+	const Model::Station::Class& k = m.classAt( _class );
+	return a1 += to_double( *k.visits() ) * to_double( *k.service_time() );
+    }
+
+
+
+    double
+    Model::Bound::sum_think_time::operator()( double a1, const Model::Station::pair_t& m2 )
+    {
+	const Model::Station& m = m2.second;
+	if ( m.type() != Model::Station::Type::CUSTOMER
+	     || !m.hasClass( _class ) ) return a1;
+	const Model::Station::Class& k = m.classAt( _class );
+	return a1 += to_double( *k.visits() ) * to_double( *k.service_time() );
+    }
+
 }

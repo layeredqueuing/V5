@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 14120 2020-11-24 15:03:14Z greg $
+ * $Id: srvndiff.cc 14500 2021-02-28 13:36:23Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -71,16 +71,6 @@ extern "C" {
 #include "srvndiff.h"
 #include "parseable.h"
 
-#if	!HAVE_FINITE
-#define finite(d) (1)
-#elif defined(__GNUC__) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-
-/*
- * Curious --- finite is found in libm, but NOT defined in a .h file.
- */
-extern int finite( double );
-#endif
-
 extern "C" int resultdebug;
 extern "C" int resultlineno;	/* Line number of current parse line in input file */
 
@@ -105,7 +95,7 @@ struct stats_buf
     double p90th() const;
     double sum() const { return sum_; }
     double n() const { return n_; }
-    double ok() const { return all_ok; } 
+    double ok() const { return all_ok; }
 
 private:
     unsigned long n_;
@@ -179,7 +169,7 @@ static bool check_wait( unsigned i, unsigned j, unsigned k, unsigned p );
 
 /*
  * Main table of functions to get and print data.  See result_str_t.
- * Cast functions to common type for initializing table.  
+ * Cast functions to common type for initializing table.
  */
 
 static const char * fmt_e	= "%-16.16s";
@@ -453,7 +443,7 @@ static struct {
     { "processor-waiting",           'b', true,  no_argument,       "Print processor waiting times.", &print_processor_waiting },
     { "coefficient-of-variation",    'c', true,  no_argument,       "Pring coefficient of variation results.", &print_cv_square },
     { "asynch-send-variance",        'd', true,  no_argument,       "Print send-no-reply waiting time variance.", &print_snr_waiting_variance },
-    { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput.", &print_entry_throughput }, 
+    { "entry-throughput", 	     'e', true,  no_argument,       "Print entry throughput.", &print_entry_throughput },
     { "format",                      'f', false, required_argument, "Set the output format for <col> to <arg>. Column can be separator, result, confidence, error, or percent-confidence. <arg> is passed to printf() as a format.", nullptr },
     { "group-utilization",	     'g', true,  no_argument,       "Print processor group utilizations.", &print_group_util },
     { "semaphore-utilization",       'h', true,  no_argument,       "Print semaphore utilization.", &print_sema_util },
@@ -752,7 +742,7 @@ main (int argc, char * const argv[])
 	case 'e':
 	    print_entry_throughput = enable;
 	    break;
-	    
+	
 	case 'E':
 	    if ( enable ) {
 		print_error_only   = true;
@@ -813,7 +803,7 @@ main (int argc, char * const argv[])
 	case 'g':
 	    print_group_util = true;
 	    break;
-	    
+	
 	case 'H':
 	    usage();
 	    exit( 0 );
@@ -1003,17 +993,17 @@ main (int argc, char * const argv[])
 	    compact_flag = true;
 	    compact_format();
 	    break;
-	    
+	
 	case (512+'c'):
 	    print_comment = true;
 	    break;
-	    
+	
 	case (512+'h'):
 	    options = optarg;
 	    while ( *options ) {
 	    }
 	    break;
-	    
+	
 	case (512+'l'):
 	    print_latex = true;
 	    separator_format = " & ";
@@ -1024,7 +1014,7 @@ main (int argc, char * const argv[])
 	    no_replication = true;
 	    (void) fprintf( stderr, "--no-replication: Not implemented.\n" );
 	    break;
-	    
+	
         case 512+'s':
             resultdebug = true;
             break;
@@ -1032,7 +1022,7 @@ main (int argc, char * const argv[])
 	case 512+'v':
 	    verbose_flag = true;
 	    break;
-	    
+	
 	case (512+'w'):
 	    LQIO::severity_level = LQIO::ADVISORY_ONLY;		/* Ignore warnings. */
 	    break;
@@ -1042,7 +1032,7 @@ main (int argc, char * const argv[])
 	    LQIO::DOM::Expat_Document::__debugXML = true;
 	    break;
 #endif
-	    
+	
 	default:
 	    usage( false );
 	    exit( 1 );
@@ -1051,7 +1041,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2020-11-24 10:03:14 -0500 (Tue, 24 Nov 2020) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2021-02-28 08:36:23 -0500 (Sun, 28 Feb 2021) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -1151,7 +1141,7 @@ main (int argc, char * const argv[])
 }
 
 static void
-makeopts( std::string& opts, std::vector<struct option>& longopts ) 
+makeopts( std::string& opts, std::vector<struct option>& longopts )
 {
     struct option opt;
     opt.flag = 0;
@@ -1354,16 +1344,15 @@ my_fopen (const char *filename, const char *mode)
     }
     return fptr;
 }
-
 
 static void
 minimize_path_name( std::vector<std::string>& path_name )
 {
     const size_t passes = path_name.size();
     std::vector<std::string> dir_name = path_name;
-    
+
     /* find directory names */
-    
+
     for ( size_t j = 0; j < passes; ++j ) {
 	std::string temp = dir_name[j];
 	dir_name[j] = dirname( const_cast<char *>(temp.c_str()) );		/* Clobbers temp */
@@ -1372,7 +1361,7 @@ minimize_path_name( std::vector<std::string>& path_name )
 	    dir_name[j] = basename( getcwd( cwd, MAXPATHLEN ) );
 	}
     }
-    
+
     bool all_match = true;
     for ( size_t j = 1; all_match && j < passes; ++j ) {
 	all_match = dir_name[0] == dir_name[j];
@@ -1896,11 +1885,11 @@ print ( unsigned passes, char * const names[] )
     }
 
     /* Waiting */
-    
+
     if ( print_waiting ) {
 	print_forwarding_waiting( P_FWD_WAITING, file_name.c_str(), passes );
     }
-    
+
     /* Waiting time variance */
 
     if ( print_waiting_variance ) {
@@ -1989,7 +1978,6 @@ print ( unsigned passes, char * const names[] )
 	print_task_result( P_RWLOCK_READER_HOLD, file_name.c_str(), passes );
 	print_task_result( P_RWLOCK_WRITER_HOLD, file_name.c_str(), passes );
     }
-
     /*- RWLOCK */
 
 
@@ -1998,7 +1986,7 @@ print ( unsigned passes, char * const names[] )
     if ( print_entry_throughput ) {
 	print_entry_result( P_ENTRY_TPUT, file_name.c_str(), passes );
     }
-    
+
     if ( print_task_throughput ) {
 	print_task_result( P_THROUGHPUT, file_name.c_str(), passes );
     }
@@ -2884,15 +2872,15 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 
     /* Accumulate statistics */
 
-    if ( j == 0 ) {
-	(*delta)[j].update( value[0] );
+    if ( j == FILE1 ) {
+	(*delta)[j].update( value[FILE1] );
     } else {
 	double error;
-	if ( static_cast<bool>(finite( value[j] )) && static_cast<bool>(finite( value[FILE1] )) ) {
+	if ( static_cast<bool>(isfinite( value[j] )) && static_cast<bool>(isfinite( value[FILE1] )) ) {
 	    error = value[j] - value[FILE1];
-	} else if ( !static_cast<bool>(finite( value[j] )) && static_cast<bool>(finite( value[FILE1] )) ) {
+	} else if ( !static_cast<bool>(isfinite( value[j] )) && static_cast<bool>(isfinite( value[FILE1] )) ) {
 	    error = value[j];
-	} else if ( static_cast<bool>(finite( value[j] )) && !static_cast<bool>(finite( value[FILE1] )) ) {
+	} else if ( static_cast<bool>(isfinite( value[j] )) && !static_cast<bool>(isfinite( value[FILE1] )) ) {
 	    error = -value[FILE1];
 	} else {
 	    error = 0.0;
@@ -2926,9 +2914,6 @@ print_rms_error ( const char * file_name, const result_str_t result, const std::
 
     if ( max_rms_error > error_threshold ) {
 	differences_found = true;	/* Ignore noise */
-	if ( verbose_flag ) {
-	    fprintf( stderr, "%s: %s - differences found.\n", file_name, result_str[(int)result].string );
-	}
     }
 
     if ( !print_results_only
@@ -4221,7 +4206,7 @@ rms_error ( const std::vector<stats_buf>& stats, std::vector<double>& rms )
     for ( s = stats.begin(), r = rms.begin(); s != stats.end() && r != rms.end(); ++s, ++r ) {
 	if ( s->n_ == 0 ) {
 	    (*r) = 0.0;
-	} else if ( finite( s->sum_sqr ) ) {
+	} else if ( isfinite( s->sum_sqr ) ) {
 	    (*r) = sqrt( s->sum_sqr / static_cast<double>(s->n_) );
 	} else {
 	    (*r) = s->sum_sqr;
@@ -4248,7 +4233,7 @@ stats_buf::update ( double value, bool ok )
 	values[n_] = value;
     }
     n_ += 1;
-    if ( finite( value ) ) {
+    if ( isfinite( value ) ) {
 	sum_    += value;
 	sum_sqr += value * value;
 	sum_abs += fabs( value );
@@ -4276,7 +4261,7 @@ stats_buf::stddev() const
 {
     if ( n_ < 2 ) {
 	return 0.0;
-    } else if ( finite( sum_sqr ) ) {
+    } else if ( isfinite( sum_sqr ) ) {
 	double mean_sqr = ( sum_ * sum_ ) / n_;
 	if ( mean_sqr > 0 ) {
 	    return sqrt( ( sum_sqr - mean_sqr ) / n_ );
@@ -4381,7 +4366,7 @@ relative_error( const double a, const double b )
 	return 0;
     } else if ( b == 0 ) {
 	return get_infinity();
-    } else if ( finite( a ) ) { 			/* BUG_171 */
+    } else if ( isfinite( a ) ) { 			/* BUG_171 */
 	return a * 100.0 / b;
     } else {
 	return a;

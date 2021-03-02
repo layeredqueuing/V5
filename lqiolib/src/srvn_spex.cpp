@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14492 2021-02-25 13:26:25Z greg $
+ *  $Id: srvn_spex.cpp 14508 2021-03-01 18:27:57Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -151,7 +151,8 @@ namespace LQIO {
 
 	/*+ GNUPlot or other header stuff. */
 	if ( gnuplot != nullptr && !gnuplot->empty() ) {
-	    main_line->push_back( print_gnuplot_preamble() );
+	    main_line->push_back( print_node( "#!/opt/local/bin/gnuplot" ) );
+	    main_line->push_back( print_gnuplot_header() );
 	    main_line->push_back( print_node( "$DATA << EOF" ) );				/* Append newline.  Don't space */
 	} else if ( !__no_header ) {
 	    main_line->push_back( print_header() );
@@ -494,7 +495,7 @@ namespace LQIO {
 	return new LQX::FilePrintStatementNode( list, true, true );		/* Println spaced, with first arg being ", " (or: output, ","). */
     }
 
-    LQX::SyntaxTreeNode * Spex::print_gnuplot_preamble() const
+    LQX::SyntaxTreeNode * Spex::print_gnuplot_header() const
     {
 	expr_list * list = make_list( new LQX::ConstantValueExpression( " " ), new LQX::ConstantValueExpression( "# " ), nullptr );
 	for ( std::vector<Spex::var_name_and_expr>::iterator var = __result_variables.begin(); var != __result_variables.end(); ++var ) {
@@ -523,7 +524,6 @@ namespace LQIO {
 	int y2_obs_key = 0;			// Independent (y2 axis) type.
 	std::ostringstream plot;		// Plot command collected here.
 
-	_gnuplot.push_back( print_node( "#!/opt/local/bin/gnuplot" ) );
 	const std::string comment = "set title \"" + DOM::__document->getModelCommentString() + "\"";
 	_gnuplot.push_back( print_node( comment ) );
 

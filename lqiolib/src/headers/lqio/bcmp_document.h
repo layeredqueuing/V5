@@ -38,7 +38,7 @@ namespace BCMP {
 
 	class Result {
 	public:
-	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, THROUGHPUT, UTILIZATION };
+	    enum class Type { QUEUE_LENGTH, RESIDENCE_TIME, RESPONSE_TIME, THROUGHPUT, UTILIZATION };
 	    typedef std::map<Type,std::string> map_t;
 	    typedef std::pair<Type,std::string> pair_t;
 
@@ -48,7 +48,6 @@ namespace BCMP {
 	    virtual double queue_length() const = 0;
 	    virtual double residence_time() const = 0;
 	    virtual double utilization() const = 0;
-	    static const Type index[];
 	};
 
 	/* ------------------------------------------------------------ */
@@ -258,6 +257,54 @@ namespace BCMP {
 	};
 
 	/* ------------------------------------------------------------ */
+	/*                            Bound                             */
+	/* ------------------------------------------------------------ */
+
+	class Bound {
+	public:
+	    Bound( const Chain::pair_t& chain, const Station::map_t& stations );
+    
+	    double think_time() const;
+
+	    double D_max() const { return _D_max; }
+	    double D_sum() const { return _D_sum; }
+	    double Z() const { return _Z; }
+	    
+	private:
+	    const std::string& chain() const { return _chain.first; }
+	    const Station::map_t& stations() const { return _stations; }
+    
+	    void compute();
+
+	    struct max_demand {
+		max_demand( const std::string& chain ) : _class(chain) {}
+		double operator()( double, const Station::pair_t& );
+	    private:
+		const std::string& _class;
+	    };
+	
+	    struct sum_demand {
+		sum_demand( const std::string& chain ) : _class(chain) {}
+		double operator()( double, const Station::pair_t& );
+	    private:
+		const std::string& _class;
+	    };
+	
+	    struct sum_think_time {
+		sum_think_time( const std::string& chain ) : _class(chain) {}
+		double operator()( double, const Station::pair_t& );
+	    private:
+		const std::string& _class;
+	    };
+
+	    const Chain::pair_t _chain;
+	    const Station::map_t& _stations;
+	    double _D_max;
+	    double _D_sum;
+	    double _Z;
+	};
+
+	/* ------------------------------------------------------------ */
 	/*                            Model                             */
 	/* ------------------------------------------------------------ */
 
@@ -290,6 +337,9 @@ namespace BCMP {
 	Station::Class::map_t computeCustomerDemand( const std::string& ) const;
 	bool convertToLQN( DOM::Document& ) const;
 
+	double response_time( const std::string& ) const;
+	double throughput( const std::string& ) const;
+
 	virtual std::ostream& print( std::ostream& output ) const;	/* NOP (lqn2ps will render) */
 	static bool isSet( const LQIO::DOM::ExternalVariable * var, double default_value=0.0 );
 
@@ -305,6 +355,13 @@ namespace BCMP {
 	    Station::Class::map_t operator()( const Station::Class::map_t& input, const Station::Class::pair_t& visit ) const;
 	private:
 	    const Station::Class::map_t& _visits;
+	};
+
+	struct sum_residence_time {
+	    sum_residence_time( const std::string& name ) : _name(name) {}
+	    double operator()( double augend, const Station::pair_t& m ) const;
+	private:
+	    const std::string& _name;
 	};
 
     private:

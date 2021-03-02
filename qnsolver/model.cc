@@ -31,7 +31,6 @@
 #include "runlqx.h"
 #include "closedmodel.h"
 #include "openmodel.h"
-#include "bound.h"
 
 bool print_spex = false;				/* Print LQX program		*/
 bool debug_flag = false;
@@ -131,9 +130,9 @@ Model::instantiate()
 void
 Model::bounds()
 {
-    std::map<std::string,Bound> bounds;
+    std::map<std::string,BCMP::Model::Bound> bounds;
     for ( BCMP::Model::Chain::map_t::const_iterator chain = chains().begin(); chain != chains().end(); ++chain ) {
-	bounds.emplace( chain->first, Bound(*chain,stations()) );
+	bounds.emplace( chain->first, BCMP::Model::Bound(*chain,stations()) );
     }
 }
 
@@ -143,8 +142,14 @@ Model::solve()
 {
     if ( _input.hasSPEX() ) {
 	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
-	/* 4th argument is gnuplot */
-	if ( !LQIO::spex.construct_program( program, _input.getResultVariables(), nullptr, nullptr ) ) return false;
+		
+	/* Get the result variables and convert to an expression list for construct */
+	const std::vector<LQIO::Spex::var_name_and_expr>& result_variables = LQIO::Spex::result_variables();
+	expr_list result_vars;
+	for ( std::vector<LQIO::Spex::var_name_and_expr>::const_iterator result = result_variables.begin(); result != result_variables.end(); ++result ) {
+	    result_vars.push_back( result->second );
+	}
+	if ( !LQIO::spex.construct_program( program, &result_vars, nullptr, _input.getGNUPlotProgram() ) ) return false;
 	LQX::Program * lqx = LQX::Program::loadRawProgram( program );
 	_input.registerExternalSymbolsWithProgram( lqx );
 	if ( print_spex ) {

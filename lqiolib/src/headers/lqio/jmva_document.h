@@ -131,7 +131,7 @@ namespace BCMP {
 	const BCMP::Model& model() const { return _model; }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
 	expr_list * getLQXProgram() const { return _lqx_program; }
-	expr_list * getResultVariables() const { return _result_vars; }
+	expr_list * getGNUPlotProgram() { return &_gnuplot; }
 
 	std::vector<std::string> getUndefinedExternalVariables() const;
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
@@ -139,7 +139,7 @@ namespace BCMP {
 	const std::string& x_label() { return _x_label; }			/* GNUPlot */
 
 	std::ostream& print( std::ostream& ) const;
-	expr_list * plot();
+	void plot( Model::Result::Type );
 
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
@@ -183,15 +183,17 @@ namespace BCMP {
 	Model::Station * createStation( Model::Station::Type, const XML_Char ** attributes );
 	void createWhatIf( const XML_Char ** attributes );
 	void createResults( Object& object, const XML_Char ** attributes );
-	expr_list* createResult( expr_list*, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r );
+	void createResult( const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r );
 	void setResultVariables( const std::string& );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const Model::Station *, const Model::Station::Class * );
+	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx );
 
 	std::string setCustomers( const std::string&, const std::string& );
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
 	std::string setArrivalRate( const std::string&, const std::string& );
-
+	void appendResultVariable( const std::string& );
+	
 	class what_if {
 	private:
 	    class has_customers {
@@ -332,11 +334,12 @@ namespace BCMP {
 	std::map<const Model::Station *,std::string> _multiplicity_vars;	/* station, var	*/
 	std::map<const Model::Station::Class *,std::string> _service_time_vars;	/* class, var	*/
 	std::map<const Model::Station::Class *,std::string> _visit_vars;	/* class, var	*/
-	expr_list* _result_vars;
 
 	/* Plotting */
 	expr_list _gnuplot;			/* GNUPlot program		*/
+	std::string _x_var;			/* GNUPlot -- X variable	*/
 	std::string _x_label;			/* GNUPlot -- X axis label	*/
+	double _x_max;				/* GNUPlot -- Largest X value	*/
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
 	
@@ -412,6 +415,7 @@ namespace BCMP {
 	static const XML_Char * XNumber_of_Customers;
 	static const XML_Char * XNumber_of_Servers;
 	static const XML_Char * XResidenceTime;
+	static const XML_Char * XResponseTime;
 	static const XML_Char * XResidence_time;
 	static const XML_Char * XResultVariables;
 	static const XML_Char * XService_Demands;

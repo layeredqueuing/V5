@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14490 2021-02-25 02:01:33Z greg $
+ * $Id: qnsolver.cc 14511 2021-03-02 20:43:37Z greg $
  */
 
 #include <algorithm>
@@ -21,49 +21,49 @@ static void usage() ;
 const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
-    { "bounds",		 no_argument, 	    0, 'b' },
-    { "debug-mva",	 no_argument,	    0, 'd' },
-    { "exact-mva",       no_argument,       0, 'e' },
-    { "fast-linearizer", no_argument,       0, 'f' },
-    { "gnuplot",	 no_argument,	    0, 'g' },
-    { "help",            no_argument,       0, 'h' },
-    { "linearizer",      no_argument,       0, 'l' },
-    { "output", 	 required_argument, 0, 'o' },
-    { "bard-schweitzer", no_argument,       0, 's' },
-    { "verbose",         no_argument,       0, 'v' },
-    { "experimental",	 no_argument,	    0, 'x' },
-    { "export-qnap2",	 no_argument,	    0, 'Q' },
-    { "debug-xml",	 no_argument, 	    0, 'X' },
-    { "debug-spex",	 no_argument,	    0, 'S' },
+    { "bounds",		    no_argument,	0, 'b' },
+    { "exact-mva",          no_argument,       	0, 'e' },
+    { "fast-linearizer",    no_argument,       	0, 'f' },
+    { "bard-schweitzer",    no_argument,       	0, 's' },
+    { "linearizer",         no_argument,       	0, 'l' },
+    { "output", 	    required_argument, 	0, 'o' },
+    { "plot-response-time", no_argument,        0, 'r' },
+    { "plot-throughput",    no_argument, 	0, 't' },
+    { "verbose",            no_argument,        0, 'v' },
+    { "help",               no_argument,       	0, 'h' },
+    { "experimental",	    no_argument,	0, 'x' },
+    { "export-qnap2",	    no_argument,	0, 'Q' },
+    { "debug-mva",	    no_argument,    	0, 'd' },
+    { "debug-xml",	    no_argument, 	0, 'X' },
+    { "debug-spex",	    no_argument,	0, 'S' },
     { 0, 0, 0, 0 }
 };
 
 static std::string opts;
 #else
-static std::string opts = "bdefhlsvx";
+static std::string opts = "bdefhlo:rstvxQSX";
 #endif
 
 const char * opthelp[]  = {
     /* "bounds"		  */    "Compute bounds",
-    /* "debug",           */    "Enable debug code.",
+    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
     /* "exact-mva",       */    "Use Exact MVA.",
     /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
-    /* "gnuplot"	  */	"Output gnuplot.",
-    /* "help",            */    "Show this.",
     /* "linearizer",      */    "Use Linearizer.",
     /* "output",	  */	"Send output to ARG.",
-    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
+    /* "plot-response-time" */	"Output gnuplot to plot response-time (and bounds).", 
+    /* "plot-throughput", */    "Output gnuplot to plot throuhgput (and bounds).",
     /* "verbose",         */    "",
+    /* "help",            */    "Show this.",
     /* "experimental",	  */	"",
     /* "export-qnap2",	  */	"Export a QNAP2 model.  Do not solve.",
+    /* "debug-mva",       */    "Enable debug code.",
     /* "debug-xml"	  */    "Debug XML input.",
     /* "debug-spex"	  */	"Debug SPEX program.",
     nullptr
 };
 
 static bool verbose_flag = true;			/* Print results		*/
-static bool print_qnap2 = false;			/* Export to qnap2.  		*/
-static bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
 
 std::string program_name;
 
@@ -73,8 +73,12 @@ int main (int argc, char *argv[])
 {
     std::string output_file_name;
     Model::Using solver = Model::Using::EXACT_MVA;
+    bool print_qnap2 = false;			/* Export to qnap2.  		*/
+    bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
+    BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
+
     program_name = basename( argv[0] );
-    
+
     /* Process all command line arguments.  If none specified, then     */
 #if HAVE_GETOPT_LONG
     makeopts( longopts, opts );
@@ -113,10 +117,6 @@ int main (int argc, char *argv[])
 	    solver = Model::Using::LINEARIZER2;
 	    break;
 
-	case 'g':
-	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
-	    break;
-	    
 	case 'h':
 	    usage();
 	    return 0;
@@ -129,10 +129,20 @@ int main (int argc, char *argv[])
             output_file_name = optarg;
 	    break;
 	    
+	case 'r':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
+	    plot_type = BCMP::Model::Result::Type::RESPONSE_TIME;
+	    break;
+	    
 	case 's':
 	    solver = Model::Using::BARD_SCHWEITZER;
 	    break;
 
+	case 't':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
+	    plot_type = BCMP::Model::Result::Type::THROUGHPUT;
+	    break;
+	    
 	case 'v':
 	    verbose_flag = true;
 	    break;
@@ -162,12 +172,8 @@ int main (int argc, char *argv[])
     /* input is assumed to come in from stdin.                          */
 
     if ( optind == argc ) {
-	BCMP::JMVA_Document input( "-" );
-	if ( !input.parse() ) return 1;
-	Model model( input, solver, output_file_name );
-	if ( model.construct() ) {
-	    model.solve();
-	}
+	std::cerr << LQIO::io_vars.lq_toolname << ": arg count." << std::endl;
+	return 1;
     } else {
         for ( ; optind < argc; ++optind ) {
 	    BCMP::JMVA_Document input( argv[optind] );
@@ -175,6 +181,7 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
+		if ( print_gnuplot ) input.plot( plot_type );
 		Model model( input, solver, output_file_name );
 		if ( model.construct() ) {
 		    model.solve();

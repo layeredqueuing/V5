@@ -55,14 +55,14 @@ namespace BCMP {
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
 									 _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-									 _result_vars(nullptr)
+									 _x_var(), _x_label(), _x_max(0.)
     {
     }
     
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
 												   _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-												   _result_vars(nullptr)
+												   _x_var(), _x_label(), _x_max(0.)
     {
     }
 
@@ -365,7 +365,7 @@ namespace BCMP {
     void
     JMVA_Document::registerExternalSymbolsWithProgram(LQX::Program* program)
     {
-	std::for_each( _variables.begin(),  _variables.end(), register_variable( program ) );
+	std::for_each( _variables.begin(), _variables.end(), register_variable( program ) );
     }
 
     void
@@ -431,6 +431,7 @@ namespace BCMP {
     void JMVA_Document::endDescription( Object& object, const XML_Char * element )
     {
 	// Through the magic of unions...
+	_text.erase (std::remove (_text.begin(), _text.end(), '\n'), _text.end());	/* Strip newlines. */
 	object.getModel()->insertComment(_text);
     }
 
@@ -860,7 +861,9 @@ namespace BCMP {
 
 	/* If this is the first WhatIf, then set the first x variable for gnuplot */
 	if ( _x_label.empty() ) {
+	    _x_var = x_var;
 	    _x_label = x_label;
+	    _x_max = std::max( _x_max, generator.end() );
 	}
     }
 
@@ -970,26 +973,26 @@ namespace BCMP {
 	    while ((pos = s.find(";")) != std::string::npos) {
 		std::string variable = s.substr(0, pos);
 		s.erase(0, pos + 1);
-		_result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( variable.c_str(), nullptr ) ) );
+		appendResultVariable( variable );
 	    }
 	    if ( !s.empty() ) {
-		_result_vars = static_cast<expr_list*>( spex_list( _result_vars, spex_result_assignment_statement( s.c_str(), nullptr ) ) );
+		appendResultVariable( s );
 	    }
 	} else {
 	    for (std::map<std::string,LQIO::DOM::SymbolExternalVariable*>::const_iterator var = _variables.begin(); var != _variables.end(); ++var ) {
-		_result_vars = static_cast<expr_list *>(spex_list( _result_vars, spex_result_assignment_statement( var->first.c_str(), nullptr ) ));
+		appendResultVariable( var->first );
 	    }
 	    /* For all stations... create name_X, name_Q, name_R and name_U */
 	    for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 		static const std::map<const std::string,const Model::Result::Type> result = {
-		    {"$Q_", Model::Result::Type::QUEUE_LENGTH},
-		    {"$X_", Model::Result::Type::THROUGHPUT},
-		    {"$R_", Model::Result::Type::RESIDENCE_TIME},
-		    {"$U_", Model::Result::Type::UTILIZATION}
+		    {"$Q", Model::Result::Type::QUEUE_LENGTH},
+		    {"$X", Model::Result::Type::THROUGHPUT},
+		    {"$R", Model::Result::Type::RESIDENCE_TIME},
+		    {"$U", Model::Result::Type::UTILIZATION}
 		};
 
 		for ( std::map<const std::string,const Model::Result::Type>::const_iterator r = result.begin(); r != result.end(); ++r ) {
-		    _result_vars = createResult( _result_vars, m, r );
+		    createResult( m, r );
 		}
 	    }
 	}
@@ -1026,17 +1029,16 @@ namespace BCMP {
     /* 
      * Create result and observation.
      */
-    
-    expr_list* 
-    JMVA_Document::createResult( expr_list* list, const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r )
+
+    void
+    JMVA_Document::createResult( const Model::Station::map_t::const_iterator& m, std::map<const std::string,const Model::Result::Type>::const_iterator& r )
     {
 	std::string name;
-	name = r->first + m->first;	// Don't forget leading $!
+	name = r->first + "_" + m->first;	// Don't forget leading $!
 	Model::Result::map_t& result_vars = const_cast<Model::Result::map_t&>(m->second.resultVariables());
 	result_vars[r->second] = name;
-	list = static_cast<expr_list*>( spex_list( list, spex_result_assignment_statement( name.c_str(), nullptr ) ) );
+	appendResultVariable( name );
 	createObservation( name, r->second, &m->second, nullptr );		/* Station results only */
-	return list;
     }
 
 
@@ -1055,7 +1057,7 @@ namespace BCMP {
 	if ( mi == model().stations().end() ) return nullptr;
 
 	/* Get the station object */
-	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( m->getTypeName(), new LQX::ConstantValueExpression( mi->first ), 0 );
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( m->getTypeName(), new LQX::ConstantValueExpression( mi->first ), nullptr );
 	
 	if ( k == nullptr ) {
 	    /* No class, so return station function to extract result */
@@ -1071,6 +1073,22 @@ namespace BCMP {
 	}
 	return object;
     }
+    
+    LQX::SyntaxTreeNode *
+    JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx )
+    {
+	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
+	    { BCMP::Model::Result::Type::RESPONSE_TIME, BCMP::__lqx_response_time },
+	    { BCMP::Model::Result::Type::THROUGHPUT, BCMP::__lqx_throughput }
+	};
+
+	/* Get the model object */
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( "chain", new LQX::ConstantValueExpression(clasx), nullptr );
+	LQIO::Spex::__observation_variables[name] = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &name[1], false ),	/* Strip $ for LQX variable name */
+										      new LQX::ObjectPropertyReadNode( object, lqx_function.at(type) ) );
+	return object;
+    }
+
     
     void
     JMVA_Document::Generator::convert( const std::string& s )
@@ -1100,12 +1118,147 @@ namespace BCMP {
 	return names;
     }
 
-    expr_list *
-    JMVA_Document::plot()
+    /*
+     * Strip the leading $ from name as all of the result variables are assigned inside the whatIf for loop
+     */
+    
+    void
+    JMVA_Document::appendResultVariable( const std::string& name )
     {
-	_gnuplot.push_back( LQIO::Spex::print_node( "#!/opt/local/bin/gnuplot" ) );
-	const std::string comment = "set title \"" + _model.comment() + "\"";
-	_gnuplot.push_back( LQIO::Spex::print_node( comment ) );
+	if ( name.empty() ) return;
+	if ( name.at(0) != '$' ) {
+	    LQIO::Spex::__result_variables.emplace_back( LQIO::Spex::var_name_and_expr( name, new LQX::VariableExpression( name.c_str(), true ) ) );
+	} else {
+	    LQIO::Spex::__result_variables.emplace_back( LQIO::Spex::var_name_and_expr( name, new LQX::VariableExpression( name.substr( 1 ), false ) ) );
+	}
+    }
+    
+    /* 
+     * Plot throughput/response time for system (and bounds)
+     */
+    
+    void
+    JMVA_Document::plot( Model::Result::Type type )
+    {
+	static const std::map<const Model::Result::Type, const std::string> table = {
+	    {Model::Result::Type::QUEUE_LENGTH,   XNumberOfCustomers },
+	    {Model::Result::Type::THROUGHPUT,     XThroughput },
+	    {Model::Result::Type::RESIDENCE_TIME, XResidenceTime },
+	    {Model::Result::Type::RESPONSE_TIME,  XResponseTime },
+	    {Model::Result::Type::UTILIZATION,    XUtilization }
+	};
+
+	/* Find the reference station */
+	const Model::Station::map_t& stations = _model.stations();
+	const Model::Chain::map_t& chains = _model.chains();
+
+	std::ostringstream plot;		// Plot command collected here.
+
+	_gnuplot.push_back( LQIO::Spex::print_node( "set title \"" + _model.comment() + "\"" ) );
+
+	LQIO::Spex::__observation_variables.clear();	/* Get rid of them all. */
+	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
+	appendResultVariable( _x_var );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x_label + "\"" ) );		// X axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + table.at(type) + "\"" ) );	// Y1 axis
+	if ( type == Model::Result::Type::THROUGHPUT ) {
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set key bottom right" ) );
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set key box" ) );
+	}
+
+	
+	if ( type == Model::Result::Type::RESIDENCE_TIME ) {
+	}
+	    
+	/* Create observation variables (Y axis).  X axis will be WhatIf. */
+
+	std::vector<const std::string> y_vars;
+	size_t n_labels = 0;
+	double y_max = 0.;
+	for ( Model::Chain::map_t::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+	    Model::Bound bounds( *k, stations );
+
+	    if ( y_vars.empty() ) {
+		plot << "plot ";
+	    } else {
+		plot << ", ";
+	    }
+
+	    /* Create observation, var name is class name. */
+	    y_vars.emplace_back( "$" + k->first );
+	    const std::string& y_var = y_vars.back();
+	    createObservation( y_var, type, k->first );
+	    appendResultVariable( y_var );
+
+	    /* Append plot command to plot */
+	    const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	    const size_t y = x + y_vars.size();
+	    std::string title;
+	    if ( chains.size() > 1 ) {
+		title = k->first + " ";
+	    }
+	    title += "MVA";
+	    plot << "\"$DATA\" using " << x << ":" << y << " with linespoints"
+		 << " title \"" << title << "\"";
+
+	    /* Now plot the bounds. */
+	    if ( type == Model::Result::Type::THROUGHPUT || type == Model::Result::Type::RESPONSE_TIME ) {
+		std::ostringstream label1;
+		std::ostringstream label2;
+		std::string title1;
+		std::string title2;
+		const double nStar = (bounds.D_sum() + bounds.Z()) / bounds.D_max();
+		double bound1 = 0.0;
+
+		if ( chains.size() > 1 ) {
+		    title1 = k->first + " ";
+		    title2 = k->first + " ";
+		}
+		switch ( type ) {
+		case Model::Result::Type::THROUGHPUT:
+		    bound1 = 1. / bounds.D_max();
+		    title1 += "1/Dmax";
+		    title2 += "1/(Dsum+Z)";
+		    break;
+		case Model::Result::Type::RESPONSE_TIME:
+		    bound1 = bounds.D_sum();
+		    title1 += "Dsum";
+		    title2 += "N*Dmax-Z";
+		    break;
+		default:
+		    break;
+		}
+		
+		n_labels += 1;
+		label1 << "set label " << n_labels << " \"" << bound1 << "\" at " << 0.2 << "," << bound1 * 1.02 << "," << 0. << " left";
+		_gnuplot.push_back( LQIO::Spex::print_node( label1.str() ) );
+
+		n_labels += 1;
+		label2 << "set label " << n_labels << " \"N*=" << nStar << "\" at " << nStar << "," << bound1 * 1.02 << "," << 0. << " right";
+		_gnuplot.push_back( LQIO::Spex::print_node( label2.str() ) );
+
+		plot << ", " << bound1 << " with lines title \"" << title1 << "\"";
+		switch ( type ) {
+		case Model::Result::Type::THROUGHPUT:
+		    plot << ", x/(" << bounds.D_sum() << "+" << bounds.Z() << ") with lines title \"" << title2 << "\"";
+		    y_max = std::max( y_max, 1./bounds.D_max() );
+		    break;
+		case Model::Result::Type::RESPONSE_TIME:
+		    plot << ", x*" << bounds.D_max() << "-" << bounds.Z() << " with lines title \"" << title2 << "\"";
+		    y_max = std::max( y_max, _x_max*bounds.D_max()-bounds.Z() );
+		    break;
+		default:
+		    break;
+		}
+	    }
+	}
+	std::ostringstream yrange;
+	yrange << "set yrange [" << 0 << ":" << y_max * 1.10 << "]";
+	_gnuplot.push_back( LQIO::Spex::print_node( yrange.str() ) );
+	    
+	/* Append the plot command to the program (plot has to be near the end) */
+	_gnuplot.push_back( LQIO::Spex::print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
+	_gnuplot.push_back( LQIO::Spex::print_node( plot.str() ) );
     }
 }
 
@@ -1519,6 +1672,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::XNumber_of_Servers	= "Number of Servers";
     const XML_Char * JMVA_Document::XResidenceTime      = "ResidenceTime";
     const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
+    const XML_Char * JMVA_Document::XResponseTime       = "ResponseTime";
     const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
     const XML_Char * JMVA_Document::XService_Demands	= "Service Demands";
     const XML_Char * JMVA_Document::XThroughput         = "Throughput";
