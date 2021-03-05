@@ -12,7 +12,7 @@
  * Comparison of srvn output results.
  * By Greg Franks.  August, 1991.
  *
- * $Id: srvndiff.cc 14500 2021-02-28 13:36:23Z greg $
+ * $Id: srvndiff.cc 14515 2021-03-03 19:10:39Z greg $
  */
 
 #define DIFFERENCE_MODE	1
@@ -1041,7 +1041,7 @@ main (int argc, char * const argv[])
 
     if ( print_copyright ) {
 	char copyright_date[20];
-	sscanf( "$Date: 2021-02-28 08:36:23 -0500 (Sun, 28 Feb 2021) $", "%*s %s %*s", copyright_date );
+	sscanf( "$Date: 2021-03-03 14:10:39 -0500 (Wed, 03 Mar 2021) $", "%*s %s %*s", copyright_date );
 	(void) fprintf( stdout, "SRVN Difference, Version %s\n", VERSION );
 	(void) fprintf( stdout, "  Copyright %s the Real-Time and Distributed Systems Group,\n", copyright_date );
 	(void) fprintf( stdout, "  Department of Systems and Computer Engineering,\n" );
@@ -2876,11 +2876,11 @@ print_entry_activity( double value[], double conf_value[], const unsigned passes
 	(*delta)[j].update( value[FILE1] );
     } else {
 	double error;
-	if ( static_cast<bool>(isfinite( value[j] )) && static_cast<bool>(isfinite( value[FILE1] )) ) {
+	if ( static_cast<bool>(std::isfinite( value[j] )) && static_cast<bool>(std::isfinite( value[FILE1] )) ) {
 	    error = value[j] - value[FILE1];
-	} else if ( !static_cast<bool>(isfinite( value[j] )) && static_cast<bool>(isfinite( value[FILE1] )) ) {
+	} else if ( !static_cast<bool>(std::isfinite( value[j] )) && static_cast<bool>(std::isfinite( value[FILE1] )) ) {
 	    error = value[j];
-	} else if ( static_cast<bool>(isfinite( value[j] )) && !static_cast<bool>(isfinite( value[FILE1] )) ) {
+	} else if ( static_cast<bool>(std::isfinite( value[j] )) && !static_cast<bool>(std::isfinite( value[FILE1] )) ) {
 	    error = -value[FILE1];
 	} else {
 	    error = 0.0;
@@ -4206,7 +4206,7 @@ rms_error ( const std::vector<stats_buf>& stats, std::vector<double>& rms )
     for ( s = stats.begin(), r = rms.begin(); s != stats.end() && r != rms.end(); ++s, ++r ) {
 	if ( s->n_ == 0 ) {
 	    (*r) = 0.0;
-	} else if ( isfinite( s->sum_sqr ) ) {
+	} else if ( std::isfinite( s->sum_sqr ) ) {
 	    (*r) = sqrt( s->sum_sqr / static_cast<double>(s->n_) );
 	} else {
 	    (*r) = s->sum_sqr;
@@ -4233,7 +4233,7 @@ stats_buf::update ( double value, bool ok )
 	values[n_] = value;
     }
     n_ += 1;
-    if ( isfinite( value ) ) {
+    if ( std::isfinite( value ) ) {
 	sum_    += value;
 	sum_sqr += value * value;
 	sum_abs += fabs( value );
@@ -4261,7 +4261,7 @@ stats_buf::stddev() const
 {
     if ( n_ < 2 ) {
 	return 0.0;
-    } else if ( isfinite( sum_sqr ) ) {
+    } else if ( std::isfinite( sum_sqr ) ) {
 	double mean_sqr = ( sum_ * sum_ ) / n_;
 	if ( mean_sqr > 0 ) {
 	    return sqrt( ( sum_sqr - mean_sqr ) / n_ );
@@ -4366,7 +4366,7 @@ relative_error( const double a, const double b )
 	return 0;
     } else if ( b == 0 ) {
 	return get_infinity();
-    } else if ( isfinite( a ) ) { 			/* BUG_171 */
+    } else if ( std::isfinite( a ) ) { 			/* BUG_171 */
 	return a * 100.0 / b;
     } else {
 	return a;

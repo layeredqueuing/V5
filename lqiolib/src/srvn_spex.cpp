@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14508 2021-03-01 18:27:57Z greg $
+ *  $Id: srvn_spex.cpp 14518 2021-03-05 22:58:24Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -558,6 +558,7 @@ namespace LQIO {
 		    plot << ", ";
 		    y1_vars.emplace_back( name );
 		} else if ( y2_vars.empty() ) {
+		    y2_obs_key = obs->getKey();
 		    const std::string y2label = "set y2label \"" + obs->getKeyName() + "\"";
 		    _gnuplot.push_back( print_node( y2label ) );
 		    _gnuplot.push_back( print_node( "set y2tics" ) );

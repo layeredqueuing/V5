@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14411 2021-01-26 19:00:33Z greg $
+ * $Id: lqn2ps.h 14516 2021-03-05 15:48:25Z greg $
  *
  */
 
@@ -263,9 +263,8 @@ typedef enum
     AGGREGATION          ,
     BORDER               ,
     COLOUR               ,
-    JLQNDEF		 ,
+    DIFFMODE		 ,
     FONT_SIZE            ,
-    GNUPLOT		 ,
     INPUT_FILE_FORMAT	 , 
     HELP                 ,
     JUSTIFICATION        ,
@@ -313,6 +312,7 @@ typedef enum
     PRINT_AGGREGATE	 ,
     RUN_LQX		 ,
     RELOAD_LQX		 ,
+    OUTPUT_LQX		 ,
     INCLUDE_ONLY         ,
     N_FLAG_VALUES               /* MUST be last! */
 } flag_values;

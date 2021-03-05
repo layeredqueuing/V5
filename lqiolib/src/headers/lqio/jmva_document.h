@@ -188,10 +188,12 @@ namespace BCMP {
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const Model::Station *, const Model::Station::Class * );
 	LQX::SyntaxTreeNode * createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx );
 
+	std::string setArrivalRate( const std::string&, const std::string& );
 	std::string setCustomers( const std::string&, const std::string& );
 	std::string setDemand( const std::string&, const std::string& );
 	std::string setMultiplicity( const std::string&, const std::string& );
-	std::string setArrivalRate( const std::string&, const std::string& );
+	std::string setPopulationMix( const std::string& stationName, const std::string& className );
+	
 	void appendResultVariable( const std::string& );
 	
 	class what_if {
@@ -414,9 +416,10 @@ namespace BCMP {
 	static const XML_Char * XNumberOfCustomers;
 	static const XML_Char * XNumber_of_Customers;
 	static const XML_Char * XNumber_of_Servers;
+	static const XML_Char * XPopulation_Mix;
 	static const XML_Char * XResidenceTime;
-	static const XML_Char * XResponseTime;
-	static const XML_Char * XResidence_time;
+	static const XML_Char * XResponse_Time;
+	static const XML_Char * XResidence_Time;
 	static const XML_Char * XResultVariables;
 	static const XML_Char * XService_Demands;
 	static const XML_Char * XThroughput;

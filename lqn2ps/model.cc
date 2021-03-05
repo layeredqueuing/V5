@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14488 2021-02-24 22:26:04Z greg $
+ * $Id: model.cc 14517 2021-03-05 18:01:37Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -887,11 +887,12 @@ Model::getExtension()
     case FORMAT_SRVN:
 	extension = "lqn";
 	{
+	    /* Non standard files names are retained (in theory) */
 	    std::size_t i = _inputFileName.find_last_of( '.' );
 	    if ( i != std::string::npos ) {
 		std::string ext = _inputFileName.substr( i+1 );
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "lqxo" ) {
+		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "lqxo" && ext != "jmva" ) {
 		    extension = ext;
 		}
 	    }

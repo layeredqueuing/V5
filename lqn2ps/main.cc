@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14385 2021-01-20 18:48:57Z greg $
+ * $Id: main.cc 14516 2021-03-05 15:48:25Z greg $
  */
 
 #include "lqn2ps.h"
@@ -142,7 +142,7 @@ const char * Options::io[] =
     "x11",
 #endif
     "xml",
-    0
+    nullptr
 };
 
 const char * Options::justification[] =

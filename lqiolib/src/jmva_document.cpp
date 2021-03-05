@@ -431,8 +431,7 @@ namespace BCMP {
     void JMVA_Document::endDescription( Object& object, const XML_Char * element )
     {
 	// Through the magic of unions...
-	_text.erase (std::remove (_text.begin(), _text.end(), '\n'), _text.end());	/* Strip newlines. */
-	object.getModel()->insertComment(_text);
+	object.getModel()->insertComment(LQIO::rtrim(LQIO::ltrim(_text)));
     }
 
     
@@ -817,19 +816,20 @@ namespace BCMP {
      *
      * If only a className XOR a station name is present, then apply
      * proportinately to all classes or stations, otherwise assign
-     * values.  We can be a bit more flexible.The values are a list
-     * which can be converted to a generator.  The latter is
-     * better for QNAP2 output.
+     * values.  We can be a bit more flexible.  The values are a list
+     * which can be converted to a generator.  The latter is better
+     * for QNAP2 output.
      *
      * type can be "Customer Numbers" or "Service Demands" (or
      * "Population Mix" - ratio between two classes)
      */
 	
     const std::map<const std::string,JMVA_Document::setIndependentVariable> JMVA_Document::independent_var_table = {
+	{ XArrival_Rates, 	&JMVA_Document::setArrivalRate },
 	{ XCustomer_Numbers, 	&JMVA_Document::setCustomers },
-	{ XService_Demands, 	&JMVA_Document::setDemand },
 	{ XNumber_of_Servers, 	&JMVA_Document::setMultiplicity },
-	{ XArrival_Rates, 	&JMVA_Document::setArrivalRate }
+	{ XPopulation_Mix,	&JMVA_Document::setPopulationMix },
+	{ XService_Demands, 	&JMVA_Document::setDemand }
     };
 
     void
@@ -867,6 +867,27 @@ namespace BCMP {
 	}
     }
 
+
+    std::string 
+    JMVA_Document::setArrivalRate( const std::string& stationName, const std::string& className )
+    {
+	Model::Chain& k = chains().at(className);
+	LQIO::DOM::SymbolExternalVariable * x = nullptr;
+	std::string name;
+	std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
+	if ( var != _arrival_rate_vars.end() ) {
+	    x = _variables.at(var->second);
+	    name = x->getName();
+	} else {
+	    name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
+	    x = new LQIO::DOM::SymbolExternalVariable( name );
+	    _arrival_rate_vars.emplace( &k, name );
+	    _variables.emplace( name, x );
+	}
+	k.setArrivalRate( x );
+	return name;
+    }
+    
 
     std::string 
     JMVA_Document::setCustomers( const std::string& stationName, const std::string& className )
@@ -936,27 +957,37 @@ namespace BCMP {
 	return name;
     }
 
+    /*
+     * A little more complicated as there are two (or more?) classes.
+     * The station is ignored.  Only two classes are allowed.
+     */
+    
     std::string 
-    JMVA_Document::setArrivalRate( const std::string& stationName, const std::string& className )
+    JMVA_Document::setPopulationMix( const std::string& stationName, const std::string& className )
     {
-	Model::Chain& k = chains().at(className);
+	if ( chains().size() != 2 ) throw std::runtime_error( "JMVA_Document::setPopulationMix" );
+	const Model::Chain::map_t::iterator i = chains().begin();
+	const Model::Chain::map_t::iterator j = std::next(i);
+	Model::Chain& k1 = i->first == className ? i->second : j->second;
+	Model::Chain& k2 = j->first == className ? j->second : i->second;
+
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
-	std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
-	if ( var != _arrival_rate_vars.end() ) {
-	    x = _variables.at(var->second);
+	/* Get a variable... $N1,$N2,... */
+	std::map<const Model::Chain *,std::string>::iterator var = _population_vars.find(&k1);	/* Look for class 		*/
+	if ( var != _population_vars.end() ) {							/* Var is defined for class	*/ 
+	    x = _variables.at(var->second);							/* So use it			*/
 	    name = x->getName();
 	} else {
-	    name = "$A" + std::to_string(_arrival_rate_vars.size() + 1);
+	    name = "$N" + std::to_string(_population_vars.size() + 1);				/* Need to create one 		*/
 	    x = new LQIO::DOM::SymbolExternalVariable( name );
-	    _arrival_rate_vars.emplace( &k, name );
-	    _variables.emplace( name, x );
+	    _population_vars.emplace( &k1, name );
+	    _variables.emplace( name, x );							/* Save it.			*/
 	}
-	k.setArrivalRate( x );
+	k1.setCustomers( x );								/* swap constanst for variable in class */
 	return name;
     }
     
-
     /* 
      * Save the result variables that control the output.  If none are
      * present (like if reading a model produced from JMVA, then
@@ -1035,6 +1066,7 @@ namespace BCMP {
     {
 	std::string name;
 	name = r->first + "_" + m->first;	// Don't forget leading $!
+	std::replace( name.begin(), name.end(), ' ', '_' );		/* Remove spaces from names */
 	Model::Result::map_t& result_vars = const_cast<Model::Result::map_t&>(m->second.resultVariables());
 	result_vars[r->second] = name;
 	appendResultVariable( name );
@@ -1140,11 +1172,11 @@ namespace BCMP {
     void
     JMVA_Document::plot( Model::Result::Type type )
     {
-	static const std::map<const Model::Result::Type, const std::string> table = {
-	    {Model::Result::Type::QUEUE_LENGTH,   XNumberOfCustomers },
+	static const std::map<const Model::Result::Type, const std::string> y_labels = {
+	    {Model::Result::Type::QUEUE_LENGTH,   XNumber_of_Customers },
 	    {Model::Result::Type::THROUGHPUT,     XThroughput },
-	    {Model::Result::Type::RESIDENCE_TIME, XResidenceTime },
-	    {Model::Result::Type::RESPONSE_TIME,  XResponseTime },
+	    {Model::Result::Type::RESIDENCE_TIME, XResidence_Time },
+	    {Model::Result::Type::RESPONSE_TIME,  XResponse_Time },
 	    {Model::Result::Type::UTILIZATION,    XUtilization }
 	};
 
@@ -1160,7 +1192,7 @@ namespace BCMP {
 	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
 	appendResultVariable( _x_var );
 	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x_label + "\"" ) );		// X axis
-	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + table.at(type) + "\"" ) );	// Y1 axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + y_labels.at(type) + "\"" ) );	// Y1 axis
 	if ( type == Model::Result::Type::THROUGHPUT ) {
 	    _gnuplot.push_back( LQIO::Spex::print_node( "set key bottom right" ) );
 	    _gnuplot.push_back( LQIO::Spex::print_node( "set key box" ) );
@@ -1172,7 +1204,8 @@ namespace BCMP {
 	    
 	/* Create observation variables (Y axis).  X axis will be WhatIf. */
 
-	std::vector<const std::string> y_vars;
+//	std::vector<const std::string> y_vars; /* GCC complains about this */
+	std::vector<std::string> y_vars;
 	size_t n_labels = 0;
 	double y_max = 0.;
 	for ( Model::Chain::map_t::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
@@ -1185,8 +1218,8 @@ namespace BCMP {
 	    }
 
 	    /* Create observation, var name is class name. */
-	    y_vars.emplace_back( "$" + k->first );
-	    const std::string& y_var = y_vars.back();
+	    const std::string y_var = "$" + k->first;
+	    y_vars.emplace_back( y_var );
 	    createObservation( y_var, type, k->first );
 	    appendResultVariable( y_var );
 
@@ -1670,9 +1703,10 @@ namespace BCMP {
     const XML_Char * JMVA_Document::XNumberOfCustomers	= "NumberOfCustomers";
     const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
     const XML_Char * JMVA_Document::XNumber_of_Servers	= "Number of Servers";
+    const XML_Char * JMVA_Document::XPopulation_Mix     = "Polulation Mix";
     const XML_Char * JMVA_Document::XResidenceTime      = "ResidenceTime";
-    const XML_Char * JMVA_Document::XResidence_time     = "Residence time";
-    const XML_Char * JMVA_Document::XResponseTime       = "ResponseTime";
+    const XML_Char * JMVA_Document::XResidence_Time     = "Residence time";
+    const XML_Char * JMVA_Document::XResponse_Time      = "Response Time";
     const XML_Char * JMVA_Document::XResultVariables	= "ResultVariables";
     const XML_Char * JMVA_Document::XService_Demands	= "Service Demands";
     const XML_Char * JMVA_Document::XThroughput         = "Throughput";
