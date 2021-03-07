@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_bindings.cpp 14523 2021-03-06 22:53:02Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -36,7 +36,7 @@ namespace LQIO {
     const char * __lqx_variance                 = "service_time_variance";
     const char * __lqx_waiting                  = "waiting";
     const char * __lqx_waiting_variance         = "waiting_variance";
-    
+
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Object] */
@@ -59,7 +59,7 @@ namespace LQIO {
 	    {
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
 		if ( attribute != __attributeTable.end() ) {
@@ -164,13 +164,13 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Processor::__typeName;
+		return DOM::Processor::__typeName;
 	    }
 
         const DOM::Processor* getDOMProcessor() const { return dynamic_cast<const DOM::Processor*>(_domObject); }
 
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of tasks */
 		if (name == "utilization") {
@@ -188,7 +188,7 @@ namespace LQIO {
 	virtual ~LQXGetProcessor() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Processor::__typeName; }
+	virtual std::string getName() const { return DOM::Processor::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the processor associated with a name."; }
 
@@ -257,13 +257,13 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Group::__typeName;
+		return DOM::Group::__typeName;
 	    }
 
         const DOM::Group* getDOMGroup() const { return dynamic_cast<const DOM::Group*>(_domObject); }
 
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of tasks */
 		if (name == "utilization") {
@@ -281,7 +281,7 @@ namespace LQIO {
 	virtual ~LQXGetGroup() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Group::__typeName; }
+	virtual std::string getName() const { return DOM::Group::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the group associated with a name."; }
 
@@ -350,7 +350,7 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Task::__typeName;
+		return DOM::Task::__typeName;
 	    }
 
         const DOM::Task* getDOMTask() const { return dynamic_cast<const DOM::Task*>(_domObject); }
@@ -364,7 +364,7 @@ namespace LQIO {
 	virtual ~LQXGetTask() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Task::__typeName; }
+	virtual std::string getName() const { return DOM::Task::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the task associated with a name."; }
 
@@ -433,10 +433,10 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Entry::__typeName;
+		return DOM::Entry::__typeName;
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		if (name == "has_phase_1") {
 		    return LQX::Symbol::encodeBoolean(getDOMEntry()->hasResultsForPhase(1));
@@ -461,7 +461,7 @@ namespace LQIO {
 	virtual ~LQXGetEntry() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Entry::__typeName; }
+	virtual std::string getName() const { return DOM::Entry::__typeName; }
 	virtual const char* getParameterInfo() const { return "s"; }
 	virtual std::string getHelp() const { return "Returns the entry with the given name."; }
 
@@ -530,7 +530,7 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Phase::__typeName;
+		return DOM::Phase::__typeName;
 	    }
 
         const DOM::Phase* getDOMPhase() const { return dynamic_cast<const DOM::Phase*>(_domObject); }
@@ -544,7 +544,7 @@ namespace LQIO {
 	virtual ~LQXGetPhase() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Phase::__typeName; }
+	virtual std::string getName() const { return DOM::Phase::__typeName; }
 	virtual const char* getParameterInfo() const { return "od"; }
 	virtual std::string getHelp() const { return "Returns the given phase of the given entry."; }
 
@@ -605,7 +605,7 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Activity::__typeName;
+		return DOM::Activity::__typeName;
 	    }
 
         const DOM::Activity* getDOMActivity() const { return dynamic_cast<const DOM::Activity*>(_domObject); }
@@ -618,7 +618,7 @@ namespace LQIO {
 	virtual ~LQXGetActivity() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Activity::__typeName; }
+	virtual std::string getName() const { return DOM::Activity::__typeName; }
 	virtual const char* getParameterInfo() const { return "os"; }
 	virtual std::string getHelp() const { return "Returns the activity with the given name."; }
 
@@ -688,7 +688,7 @@ namespace LQIO {
 
 	virtual std::string getTypeName() const
 	    {
-		return LQIO::DOM::Call::__typeName;
+		return DOM::Call::__typeName;
 	    }
 
         const DOM::Call* getDOMCall() const { return dynamic_cast<const DOM::Call*>(_domObject); }
@@ -702,7 +702,7 @@ namespace LQIO {
 	virtual ~LQXGetCall() {}
 
 	/* Basic information for the method itself */
-	virtual std::string getName() const { return LQIO::DOM::Call::__typeName; }
+	virtual std::string getName() const { return DOM::Call::__typeName; }
 	virtual const char* getParameterInfo() const { return "os"; }
 	virtual std::string getHelp() const { return "Returns the given call from entry to dest."; }
 
@@ -753,7 +753,7 @@ namespace LQIO {
 	typedef unsigned int (DOM::Document::*get_unsigned_fptr)() const;
 	typedef bool (DOM::Document::*get_bool_fptr)() const;
 	typedef double (DOM::Document::*get_clock_fptr)() const;
-	typedef const LQIO::DOM::ExternalVariable * (DOM::Document::*get_extvar_fptr)() const;
+	typedef const DOM::ExternalVariable * (DOM::Document::*get_extvar_fptr)() const;
 
 	struct attribute_table_t
 	{
@@ -768,7 +768,7 @@ namespace LQIO {
 	    attribute_table_t( get_extvar_fptr f )   : _t(IS_EXTVAR)   { fptr.r_extvar = f; }
 
 	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
-	    LQX::SymbolAutoRef operator()( const LQIO::DOM::Document& document ) const
+	    LQX::SymbolAutoRef operator()( const DOM::Document& document ) const
 		{
 		    switch ( _t ) {
 		    case IS_DOUBLE:   return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
@@ -778,12 +778,16 @@ namespace LQIO {
 		    case IS_EXTVAR: {
 			/* This is sneaky... If the external variable is writable, then we can set it using it's document property.
 			 * Otherwise, it is read-only */
-			const LQIO::DOM::ExternalVariable * var = (document.*fptr.r_extvar)();
-			const LQIO::DOM::SymbolExternalVariable * sym = dynamic_cast<const LQIO::DOM::SymbolExternalVariable *>(var);
+			const DOM::ExternalVariable * var = (document.*fptr.r_extvar)();
+			const DOM::SymbolExternalVariable * sym = dynamic_cast<const DOM::SymbolExternalVariable *>(var);
 			if ( sym ) {
 			    return sym->_externalSymbol;
 			} else if ( var && var->wasSet() ) {
-			    return LQX::Symbol::encodeDouble(to_double(*var));
+			    switch ( var->getType() ) {
+			    case DOM::ExternalVariable::VAR_DOUBLE: return LQX::Symbol::encodeDouble(to_double(*var));
+			    case DOM::ExternalVariable::VAR_STRING: return LQX::Symbol::encodeString(to_string(*var));
+			    default: break;
+			    }
 			}
 			/* Fall through to default if not set */
 		    }
@@ -835,7 +839,7 @@ namespace LQIO {
 		return "Document";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of documents */
 		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
@@ -885,8 +889,11 @@ namespace LQIO {
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
 	    /* Return an encapsulated reference to the document */
-	    LQXDocument* docObject = new LQXDocument(_document);
 	    const char* docName = "lqn-model";
+	    if (_symbolCache.find(docName) != _symbolCache.end()) {
+		return _symbolCache[docName];
+	    }
+	    LQXDocument* docObject = new LQXDocument(_document);
 	    _symbolCache[docName] = LQX::Symbol::encodeObject(docObject, false);
 	    return _symbolCache[docName];
 	}
@@ -944,7 +951,7 @@ namespace LQIO {
 		return "ConfidenceInterval";
 	    }
 
-	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
 		/* All the valid properties of document objects */
 		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name );

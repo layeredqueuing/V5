@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14488 2021-02-24 22:26:04Z greg $
+ *  $Id: dom_document.cpp 14523 2021-03-06 22:53:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -46,7 +46,7 @@ namespace LQIO {
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
 	Document::Document( input_format format ) 
-	    : _modelComment(), _documentComment(),
+	    : _extraComment(),
 	      _processors(), _groups(), _tasks(), _entries(), 
 	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
 	      _format(format), 
@@ -142,7 +142,7 @@ namespace LQIO {
 	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
 		if ( iter->second->getString( s ) ) return std::string(s);
 	    } 
-	    return _modelComment;
+	    return std::string("");
 	}
 
 	Document& Document::setModelComment( ExternalVariable * comment )
@@ -157,14 +157,14 @@ namespace LQIO {
 	    return *this;
 	}
 
-	const std::string& Document::getDocumentComment() const 
+	const std::string& Document::getExtraComment() const 
 	{
-	    return _documentComment;
+	    return _extraComment;
 	}
 
-	Document& Document::setDocumentComment( const std::string& value )
+	Document& Document::setExtraComment( const std::string& value )
 	{	
-	    _documentComment = value;
+	    _extraComment = value;
 	    return *this;
 	}
 
@@ -461,15 +461,15 @@ namespace LQIO {
 	    }
 
 	    ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[XComment]);
-	    const char * s = _modelComment.c_str();
+	    const char * s = nullptr;
 	    if ( constant ) {
 		constant->getString( s );			// get set value.
+		current = new SymbolExternalVariable(XComment);
+		current->registerInEnvironment(program);		// This assigns _externalSymbol
+		current->setString( s );				// Set value.
+		_controlVariables[XComment] = current;
+		delete constant;
 	    }
-	    current = new SymbolExternalVariable(XComment);
-	    current->registerInEnvironment(program);		// This assigns _externalSymbol
-	    current->setString( s );				// Set value.
-	    _controlVariables[XComment] = current;
-	    if ( constant ) delete constant;
 	}
     
 	void Document::addPragma(const std::string& param, const std::string& value )

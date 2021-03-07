@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14517 2021-03-05 18:01:37Z greg $
+ * $Id: srvn_spex.h 14520 2021-03-06 03:16:38Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -311,7 +311,7 @@ namespace LQIO {
 
 	LQX::SyntaxTreeNode * print_header() const;
 	LQX::SyntaxTreeNode * print_gnuplot_header() const;
-	expr_list * plot( std::vector<char *>& var_names );
+	expr_list * plot( expr_list * );
 
 	static expr_list * make_list( LQX::SyntaxTreeNode*, ... );
 	static LQX::SyntaxTreeNode * print_node( const std::string& );

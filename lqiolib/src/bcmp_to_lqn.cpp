@@ -33,7 +33,7 @@ DOM::BCMP_to_LQN::convert()
     _lqn.addPragma( LQIO::DOM::Pragma::_bcmp_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_prune_, LQIO::DOM::Pragma::_true_ );
     _lqn.addPragma( LQIO::DOM::Pragma::_mva_, LQIO::DOM::Pragma::_exact_ );
-    _lqn.setDocumentComment( "*** Manually change task-processors representing processors to processors. **" );
+    _lqn.setExtraComment( "*** Manually change task-processors representing processors to processors. **" );
     try {
 	std::for_each( chains().begin(), chains().end(), createLQNTaskProcessor( *this ) );
 	std::for_each( stations().begin(), stations().end(), createLQNTaskProcessor( *this ) );

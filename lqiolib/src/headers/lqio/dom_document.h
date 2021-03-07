@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_document.h 14488 2021-02-24 22:26:04Z greg $
+ *  $Id: dom_document.h 14523 2021-03-06 22:53:02Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -104,8 +104,8 @@ namespace LQIO {
 	    void clearPragmaList();
 
 	    /* Model Parameters */
-	    const std::string& getDocumentComment() const;
-	    Document& setDocumentComment( const std::string& );
+	    const std::string& getExtraComment() const;
+	    Document& setExtraComment( const std::string& );
 	    const ExternalVariable * getModelComment() const { return get( XComment ); }
 	    std::string getModelCommentString() const;
 	    Document& setModelComment( ExternalVariable * );
@@ -234,8 +234,7 @@ namespace LQIO {
 
 	private:
 	    /* Parameter Information */
-	    const std::string _modelComment;
-	    std::string _documentComment;
+	    std::string _extraComment;
 
 	    /* List of Objects */
 

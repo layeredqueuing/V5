@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14402 2021-01-24 04:20:16Z greg $
+ * $Id: runlqx.cc 14523 2021-03-06 22:53:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -82,7 +82,7 @@ namespace SolverInterface
 
 	    std::stringstream ss;
 	    _document->printExternalVariables( ss );
-	    _document->setModelCommentString( ss.str() );
+	    _document->setExtraComment( ss.str() );
 	    _document->setResultInvocationNumber( invocationCount );
 	    ok = (_aModel->*_solve)();
 	}
