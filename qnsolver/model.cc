@@ -16,10 +16,11 @@
 
 #include "config.h"
 #include <algorithm>
+#include <cmath>
+#include <fstream>
 #include <numeric>
 #include <sstream>
 #include <string>
-#include <cmath>
 #include <lqio/bcmp_bindings.h>
 #include <lqio/jmva_document.h>
 #include <lqio/srvn_spex.h>
@@ -140,6 +141,7 @@ Model::bounds()
 bool
 Model::solve()
 {
+    bool ok = true;
     if ( _input.hasSPEX() ) {
 	std::vector<LQX::SyntaxTreeNode *> * program = _input.getLQXProgram();
 		
@@ -155,11 +157,12 @@ Model::solve()
 	if ( print_spex ) {
 	    lqx->print( std::cout );
 	}
+	FILE * output = nullptr;
 	LQX::Environment * environment = lqx->getEnvironment();
 	environment->getMethodTable()->registerMethod(new SolverInterface::Solve(*this));
 	BCMP::RegisterBindings(environment, &_input.model());
 	if ( !_output_file_name.empty() ) {
-	    FILE * output = fopen( _output_file_name.c_str(), "w" );
+	    output = fopen( _output_file_name.c_str(), "w" );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 		return false;
@@ -169,23 +172,37 @@ Model::solve()
 	}
 	/* Invoke the LQX program itself */
 	if ( !lqx->invoke() ) {
-//		    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, inputFileName.c_str() );
-//		    rc = INVALID_INPUT;
+	    LQIO::solution_error( LQIO::ERR_LQX_EXECUTION, _input.getInputFileName().c_str() );
+	    ok = false;
 	} else if ( !SolverInterface::Solve::solveCallViaLQX ) {
 	    /* There was no call to solve the LQX */
-//		    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, inputFileName.c_str() );
+	    LQIO::solution_error( LQIO::ADV_LQX_IMPLICIT_SOLVE, _input.getInputFileName().c_str() );
 	    std::vector<LQX::SymbolAutoRef> args;
 	    environment->invokeGlobalMethod("solve", &args);
 	}
-	return true;
-	
-    } else {
-	bool ok = compute();
-	if ( ok ) {
-	    print( std::cout );
+	if ( output ) {
+	    fclose( output );
 	}
-	return ok;
+	
+    } else if ( compute() ) {
+	if ( _output_file_name.empty() ) {
+	    print( std::cout );
+	} else {
+	    std::ofstream output;
+	    output.open( _output_file_name.c_str(), std::ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
+	    } else {
+		print ( output );
+	    }
+	    output.close();
+	}
+
+    } else {
+	ok = false;
     }
+
+    return ok;
 }
 
 

@@ -119,6 +119,15 @@ namespace BCMP {
 	private:
 	    LQX::Program * _lqx;
 	};
+
+	struct plot_axis {
+	    plot_axis() : var(), label(), max(0.0) {}
+	    void set( const std::string& v, const std::string& l, double m ) { var = v; label = l; max = std::max( max, m ); }
+	    bool empty() const { return var.empty(); }
+	    std::string var;
+	    std::string label;
+	    double max;
+	};
 
     public:
 	JMVA_Document( const std::string& input_file_name );
@@ -127,16 +136,16 @@ namespace BCMP {
 	static JMVA_Document * create( const std::string& input_file_name );
 	static bool load( LQIO::DOM::Document&, const std::string& );		// Factory.
 	bool parse();
-	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
 	const BCMP::Model& model() const { return _model; }
+	const std::string& getInputFileName() const { return _input_file_name; }
+
+	bool hasSPEX() const { return !_variables.empty() || _lqx_program != nullptr; }
 	bool hasVariable( const std::string& name ) { return _variables.find(name) != _variables.end(); }
 	expr_list * getLQXProgram() const { return _lqx_program; }
 	expr_list * getGNUPlotProgram() { return &_gnuplot; }
 
 	std::vector<std::string> getUndefinedExternalVariables() const;
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
-
-	const std::string& x_label() { return _x_label; }			/* GNUPlot */
 
 	std::ostream& print( std::ostream& ) const;
 	void plot( Model::Result::Type );
@@ -339,9 +348,8 @@ namespace BCMP {
 
 	/* Plotting */
 	expr_list _gnuplot;			/* GNUPlot program		*/
-	std::string _x_var;			/* GNUPlot -- X variable	*/
-	std::string _x_label;			/* GNUPlot -- X axis label	*/
-	double _x_max;				/* GNUPlot -- Largest X value	*/
+	plot_axis _x1;
+	plot_axis _x2;
 
 	static const std::map<const std::string,JMVA_Document::setIndependentVariable> independent_var_table;
 	

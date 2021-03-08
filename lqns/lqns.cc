@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14484 2021-02-24 01:58:30Z greg $
+ * $Id: lqns.cc 14524 2021-03-07 03:21:56Z greg $
  *
  * Command line processing.
  *
@@ -539,7 +539,7 @@ process ( const std::string& inputFileName, const std::string& outputFileName )
 
     /* We can simply run if there's no control program */
     LQX::Program * program = document->getLQXProgram();
-    FILE * output = 0;
+    FILE * output = nullptr;
     try {
 	if ( !program ) {
 

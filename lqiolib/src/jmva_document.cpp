@@ -55,14 +55,14 @@ namespace BCMP {
     JMVA_Document::JMVA_Document( const std::string& input_file_name ) : _model(), _input_file_name(input_file_name), _parser(nullptr), _stack(),
 									 _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 									 _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-									 _x_var(), _x_label(), _x_max(0.)
+									 _x1(), _x2()
     {
     }
     
     JMVA_Document::JMVA_Document( const std::string& input_file_name, const BCMP::Model& model ) : _model(model), _input_file_name(input_file_name), _parser(nullptr), _stack(),
 												   _lqx_program(nullptr), _variables(), _think_time_vars(), _population_vars(), _arrival_rate_vars(),
 												   _multiplicity_vars(), _service_time_vars(), _visit_vars(),
-												   _x_var(), _x_label(), _x_max(0.)
+												   _x1(), _x2()
     {
     }
 
@@ -840,7 +840,7 @@ namespace BCMP {
 
 	const std::string x_label = XML::getStringAttribute( attributes, Xtype );
 	std::map<const std::string,JMVA_Document::setIndependentVariable>::const_iterator f = independent_var_table.find( x_label );
-	if ( f == independent_var_table.end() ) return;
+	if ( f == independent_var_table.end() ) throw std::runtime_error( "JMVA_Document::createWhatIf" );
 
 	const std::string x_var = (this->*(f->second))( stationName, className );
 
@@ -860,10 +860,10 @@ namespace BCMP {
 	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
 
 	/* If this is the first WhatIf, then set the first x variable for gnuplot */
-	if ( _x_label.empty() ) {
-	    _x_var = x_var;
-	    _x_label = x_label;
-	    _x_max = std::max( _x_max, generator.end() );
+	if ( _x1.empty() ) {
+	    _x1.set( x_var, x_label, generator.end() );
+	} else if ( _x2.empty() ) {
+	    _x2.set( x_var, x_label, generator.end() );
 	}
     }
 
@@ -874,7 +874,7 @@ namespace BCMP {
 	Model::Chain& k = chains().at(className);
 	LQIO::DOM::SymbolExternalVariable * x = nullptr;
 	std::string name;
-	std::map<const Model::Chain *,std::string>::iterator var =  _arrival_rate_vars.find( &k );		/* chain, var	*/
+	std::map<const Model::Chain *,std::string>::iterator var = _arrival_rate_vars.find( &k );		/* chain, var	*/
 	if ( var != _arrival_rate_vars.end() ) {
 	    x = _variables.at(var->second);
 	    name = x->getName();
@@ -959,32 +959,55 @@ namespace BCMP {
 
     /*
      * A little more complicated as there are two (or more?) classes.
-     * The station is ignored.  Only two classes are allowed.
+     * The station is ignored.  Only two classes are allowed.  The
+     * Beta parameter determines the fraction of customers in
+     * className, starting with 1 up to className.customers-1.
      */
     
     std::string 
     JMVA_Document::setPopulationMix( const std::string& stationName, const std::string& className )
     {
-	if ( chains().size() != 2 ) throw std::runtime_error( "JMVA_Document::setPopulationMix" );
+ 	if ( chains().size() != 2 ) throw std::runtime_error( "JMVA_Document::setPopulationMix" );
 	const Model::Chain::map_t::iterator i = chains().begin();
 	const Model::Chain::map_t::iterator j = std::next(i);
-	Model::Chain& k1 = i->first == className ? i->second : j->second;
-	Model::Chain& k2 = j->first == className ? j->second : i->second;
 
-	LQIO::DOM::SymbolExternalVariable * x = nullptr;
-	std::string name;
-	/* Get a variable... $N1,$N2,... */
-	std::map<const Model::Chain *,std::string>::iterator var = _population_vars.find(&k1);	/* Look for class 		*/
-	if ( var != _population_vars.end() ) {							/* Var is defined for class	*/ 
-	    x = _variables.at(var->second);							/* So use it			*/
-	    name = x->getName();
-	} else {
-	    name = "$N" + std::to_string(_population_vars.size() + 1);				/* Need to create one 		*/
-	    x = new LQIO::DOM::SymbolExternalVariable( name );
-	    _population_vars.emplace( &k1, name );
-	    _variables.emplace( name, x );							/* Save it.			*/
-	}
-	k1.setCustomers( x );								/* swap constanst for variable in class */
+	const std::string name = "$Beta";					/* Need to create one 		*/
+	LQIO::DOM::SymbolExternalVariable * Beta = new LQIO::DOM::SymbolExternalVariable( name );
+	_variables.emplace( name, Beta );					/* Save it.			*/
+
+	/* 
+	 * Two new variables are needed, n1, for class 1, which is $N
+	 * times class 1 customers, and n2, which is (1-$N) times
+	 * class 2 customers.  Both need to be rounded to the next
+	 * highest integer.  Return the "beta" value to the caller.
+	 */
+	
+	const Model::Chain::map_t::iterator k1 = i->first == className ? i : j;
+	const Model::Chain::map_t::iterator k2 = i->first == className ? j : i;
+
+	double k1_customers = to_double( *k1->second.customers());
+	const std::string class1_name = "$N_" + k1->first;
+	LQIO::DOM::SymbolExternalVariable * n1 = new LQIO::DOM::SymbolExternalVariable( class1_name );
+	_population_vars.emplace( &k1->second, class1_name );
+	_variables.emplace( class1_name, n1 );
+	k1->second.setCustomers( n1 );								/* swap constanst for variable in class */
+	LQIO::Spex::__deferred_assignment.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( class1_name, true ),
+										       new LQX::MathExpression(LQX::MathExpression::MULTIPLY,
+													       new LQX::VariableExpression( &name[1], false ),
+													       new LQX::ConstantValueExpression( k1_customers ) ) ) );
+//	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
+	
+	double k2_customers = to_double( *k2->second.customers());
+	const std::string class2_name = "$N_" + k2->first;
+	LQIO::DOM::SymbolExternalVariable * n2 = new LQIO::DOM::SymbolExternalVariable( class2_name );
+	_population_vars.emplace( &k2->second, class2_name );
+	_variables.emplace( class2_name, n2 );
+	k2->second.setCustomers( n2 );								/* swap constanst for variable in class */
+	LQIO::Spex::__deferred_assignment.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( class2_name, true ),
+										       new LQX::MathExpression(LQX::MathExpression::MULTIPLY,
+													       new LQX::VariableExpression( &name[1], false ),
+													       new LQX::ConstantValueExpression( k2_customers ) ) ) );
+
 	return name;
     }
     
@@ -1190,8 +1213,8 @@ namespace BCMP {
 
 	LQIO::Spex::__observation_variables.clear();	/* Get rid of them all. */
 	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
-	appendResultVariable( _x_var );
-	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x_label + "\"" ) );		// X axis
+	appendResultVariable( _x1.var );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );		// X axis
 	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + y_labels.at(type) + "\"" ) );	// Y1 axis
 	if ( type == Model::Result::Type::THROUGHPUT ) {
 	    _gnuplot.push_back( LQIO::Spex::print_node( "set key bottom right" ) );
@@ -1278,7 +1301,7 @@ namespace BCMP {
 		    break;
 		case Model::Result::Type::RESPONSE_TIME:
 		    plot << ", x*" << bounds.D_max() << "-" << bounds.Z() << " with lines title \"" << title2 << "\"";
-		    y_max = std::max( y_max, _x_max*bounds.D_max()-bounds.Z() );
+		    y_max = std::max( y_max, _x1.max*bounds.D_max()-bounds.Z() );
 		    break;
 		default:
 		    break;
@@ -1703,7 +1726,7 @@ namespace BCMP {
     const XML_Char * JMVA_Document::XNumberOfCustomers	= "NumberOfCustomers";
     const XML_Char * JMVA_Document::XNumber_of_Customers= "Number of Customers";
     const XML_Char * JMVA_Document::XNumber_of_Servers	= "Number of Servers";
-    const XML_Char * JMVA_Document::XPopulation_Mix     = "Polulation Mix";
+    const XML_Char * JMVA_Document::XPopulation_Mix     = "Population Mix";
     const XML_Char * JMVA_Document::XResidenceTime      = "ResidenceTime";
     const XML_Char * JMVA_Document::XResidence_Time     = "Residence time";
     const XML_Char * JMVA_Document::XResponse_Time      = "Response Time";

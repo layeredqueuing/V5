@@ -1,5 +1,5 @@
 /*
- *  $Id: bcmp_bindings.cpp 14511 2021-03-02 20:43:37Z greg $
+ *  $Id: bcmp_bindings.cpp 14530 2021-03-08 03:01:26Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -242,8 +242,17 @@ namespace BCMP {
 #pragma mark -
 
     class LQXChain : public LQX::LanguageObject {
-    public:
+    protected:
+	typedef double (Model::*get_model_fptr)( const std::string& ) const;
 
+	struct attribute_table_t
+	{
+	    attribute_table_t( get_model_fptr v=nullptr ) : value(v) {}
+	    LQX::SymbolAutoRef operator()( const Model& model, const std::string& k ) const { return LQX::Symbol::encodeDouble( (model.*value)(k) ); }
+	    const get_model_fptr value;
+	};
+
+    public:
         const static uint32_t kLQXChainObjectTypeId = 10+3;
 
         /* Designated Initializers */
@@ -281,8 +290,13 @@ namespace BCMP {
 	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name) 
 	    {
 		/* All the valid properties of classs */
-		if (name == "response_time") {
-		    return LQX::Symbol::encodeDouble(_model.response_time(_chain));
+		std::map<const std::string,attribute_table_t>::const_iterator attribute =  __attributeTable.find( name.c_str() );
+		if ( attribute != __attributeTable.end() ) {
+		    try {
+			return attribute->second( _model, _chain );
+		    }
+		    catch ( const LQIO::should_implement& e ) {
+		    }
 		}
 
 		/* Anything we don't handle may be handled by our superclass */
@@ -292,6 +306,12 @@ namespace BCMP {
     private:
 	const BCMP::Model& _model;
         const std::string _chain;
+
+	const std::map<const std::string,attribute_table_t> __attributeTable =
+	{
+	    { __lqx_response_time,  attribute_table_t( &Model::response_time ) },
+	    { __lqx_throughput,     attribute_table_t( &Model::throughput ) }
+	};
     };
 
     class LQXGetChain : public LQX::Method {
