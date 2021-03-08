@@ -991,23 +991,28 @@ namespace BCMP {
 	_population_vars.emplace( &k1->second, class1_name );
 	_variables.emplace( class1_name, n1 );
 	k1->second.setCustomers( n1 );								/* swap constanst for variable in class */
-	LQIO::Spex::__deferred_assignment.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( class1_name, true ),
-										       new LQX::MathExpression(LQX::MathExpression::MULTIPLY,
-													       new LQX::VariableExpression( &name[1], false ),
-													       new LQX::ConstantValueExpression( k1_customers ) ) ) );
-//	_lqx_program = static_cast<expr_list *>(spex_list( _lqx_program, statement ));
-	
+	LQX::SyntaxTreeNode * assignment_expr;
+	expr_list * function_args = new expr_list;
+	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
+							   new LQX::VariableExpression( &name[1], false ),
+							   new LQX::ConstantValueExpression( k1_customers ) ) );
+	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &class1_name[1], false ), new LQX::MethodInvocationExpression( "ceil", function_args ) );
+	LQIO::Spex::__deferred_assignment.push_back( assignment_expr );
+	LQIO::Spex::__input_variables[class1_name] = assignment_expr;
+
 	double k2_customers = to_double( *k2->second.customers());
 	const std::string class2_name = "$N_" + k2->first;
 	LQIO::DOM::SymbolExternalVariable * n2 = new LQIO::DOM::SymbolExternalVariable( class2_name );
 	_population_vars.emplace( &k2->second, class2_name );
 	_variables.emplace( class2_name, n2 );
 	k2->second.setCustomers( n2 );								/* swap constanst for variable in class */
-	LQIO::Spex::__deferred_assignment.push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( class2_name, true ),
-										       new LQX::MathExpression(LQX::MathExpression::MULTIPLY,
-													       new LQX::VariableExpression( &name[1], false ),
-													       new LQX::ConstantValueExpression( k2_customers ) ) ) );
-
+	function_args = new expr_list;
+	function_args->push_back( new LQX::MathExpression( LQX::MathExpression::MULTIPLY,
+							   new LQX::MathExpression( LQX::MathExpression::SUBTRACT,  new LQX::ConstantValueExpression( 1. ), new LQX::VariableExpression( &name[1], false ) ),
+							   new LQX::ConstantValueExpression( k2_customers ) ) );
+	assignment_expr = new LQX::AssignmentStatementNode( new LQX::VariableExpression( &class2_name[1], false ), new LQX::MethodInvocationExpression( "floor", function_args ) );
+	LQIO::Spex::__deferred_assignment.push_back( assignment_expr );
+	LQIO::Spex::__input_variables[class2_name] = assignment_expr;
 	return name;
     }
     
