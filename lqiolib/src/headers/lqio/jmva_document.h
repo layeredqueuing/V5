@@ -163,6 +163,7 @@ namespace BCMP {
 
 	void startDocument( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void startModel( Object&, const XML_Char * element, const XML_Char ** attributes );
+	void endModel( Object&, const XML_Char * element );
 	void startDescription( Object&, const XML_Char * element, const XML_Char ** attributes );
 	void endDescription( Object&, const XML_Char * element );
 	void startParameters( Object&, const XML_Char * element, const XML_Char ** attributes );
@@ -275,6 +276,9 @@ namespace BCMP {
 	private:
 	    std::vector<std::string>& _list;
 	};
+
+	std::ostream& default_plot( std::ostream& plot, Model::Result::Type type );
+	std::ostream& population_mix_plot( std::ostream& plot );
 
 	/* -------------------------- Output -------------------------- */
 
@@ -348,6 +352,7 @@ namespace BCMP {
 
 	/* Plotting */
 	expr_list _gnuplot;			/* GNUPlot program		*/
+	bool _plot_population_mix;
 	plot_axis _x1;
 	plot_axis _x2;
 

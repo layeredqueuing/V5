@@ -493,16 +493,24 @@ namespace BCMP {
 	else return 0.0;
     }
 
+    /*
+     * Find the largest demand at a station that forms queues.  Adjust
+     * for multiplicity.
+     */
+    
     double
     Model::Bound::max_demand::operator()( double a1, const Model::Station::pair_t& m2 )
     {
 	const Model::Station& m = m2.second;
-	if ( (    m.type() != Model::Station::Type::DELAY
-		  && m.type() != Model::Station::Type::LOAD_INDEPENDENT
-		  && m.type() != Model::Station::Type::MULTISERVER )
+	if ( (    m.type() != Model::Station::Type::LOAD_INDEPENDENT
+	       && m.type() != Model::Station::Type::MULTISERVER )
 	     || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
-	return std::max( a1, to_double( *k.visits() ) * to_double( *k.service_time() ) );
+	double demand = to_double( *k.visits() ) * to_double( *k.service_time() );
+	if ( m.type() == Model::Station::Type::MULTISERVER ) {
+	    demand = demand / to_double( *m.copies() );
+	}
+	return std::max( a1, demand );
     }
 
 
@@ -512,8 +520,8 @@ namespace BCMP {
     {
 	const Model::Station& m = m2.second;
 	if ( (    m.type() != Model::Station::Type::DELAY
-		  && m.type() != Model::Station::Type::LOAD_INDEPENDENT
-		  && m.type() != Model::Station::Type::MULTISERVER )
+	       && m.type() != Model::Station::Type::LOAD_INDEPENDENT
+	       && m.type() != Model::Station::Type::MULTISERVER )
 	     || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
 	return a1 += to_double( *k.visits() ) * to_double( *k.service_time() );
