@@ -184,6 +184,8 @@ exp_stmt(X) ::= prefix_stmt(A) EXP exp_stmt(B).                               { 
 
 prefix_stmt(X) ::= vpf_stmt(A).                                               { X = A; }
 prefix_stmt(X) ::= LOGIC_NOT vpf_stmt(A).                                     { X = new LogicExpression(LogicExpression::NOT, A, NULL); }
+prefix_stmt(X) ::= PLUS vpf_stmt(A).                                          { X = A; }
+prefix_stmt(X) ::= MINUS vpf_stmt(A).                                         { X = new MathExpression(MathExpression::NEGATE, A, NULL); }
 
 vpf_stmt(X) ::= postfix_stmt(A).                                              { X = A; }
 vpf_stmt(X) ::= vpf_stmt(A) OSQUARE logic_or_stmt(B) CSQUARE.                 { X = new MethodInvocationExpression("array_get", A, B, NULL); }

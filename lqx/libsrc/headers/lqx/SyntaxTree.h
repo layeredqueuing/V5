@@ -222,7 +222,8 @@ namespace LQX {
       MULTIPLY,
       DIVIDE,
       MODULUS,
-      POWER
+      POWER,
+      NEGATE,
     } MathOperation;
     
   public:

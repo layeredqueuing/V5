@@ -89,8 +89,8 @@
 /* Regular Expressions */
 digit       [0-9]
 digits      {digit}+
-integer     ("-")?{digits}
-real        ("-")?{digits}\.({digits}?)([eE]("+"|"-")?{digits})?
+integer     {digits}
+real        {digits}\.({digits}?)([eE]("+"|"-")?{digits})?
 letter      [a-zA-Z]
 identifier  ("_"|{letter})({letter}|{digit}|"_")*
 

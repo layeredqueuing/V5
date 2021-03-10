@@ -616,21 +616,27 @@ namespace LQX {
   {
     /* Find out what we are operaing on */
     SymbolAutoRef left = _left->invoke(env);
-    SymbolAutoRef right = _right->invoke(env);
+    SymbolAutoRef right(NULL);
+    if ( _operation != NEGATE ) {
+      right = _right->invoke(env);
+    }
 
     /* Check if everything actually worked out right */
-    if (left == NULL || right == NULL) {
+    if (left == NULL || (_operation != NEGATE && right == NULL)) {
       throw InternalErrorException("Left or Right Side Didn't Evaluate to a Symbol.");
     } else if (left->getType() != Symbol::SYM_DOUBLE) {
       throw IncompatibleTypeException( _left, left->getTypeName(), "double" );
-    } else if (right->getType() != Symbol::SYM_DOUBLE) {
+    } else if (_operation != NEGATE && right->getType() != Symbol::SYM_DOUBLE) {
       throw IncompatibleTypeException( _right, right->getTypeName(), "double" );
     }
 
     /* Pull out the values */
     double leftNumber = left->getDoubleValue();
-    double rightNumber = right->getDoubleValue();
-    double result = 0.0f;
+    double rightNumber = 0.0;
+    if ( _operation != NEGATE ) {
+	rightNumber = right->getDoubleValue();
+    }
+    double result = 0.0;
 
     /* Perform the operation itself */
     switch (_operation) {
@@ -658,6 +664,9 @@ namespace LQX {
         break;
       case POWER:
 	result = pow( leftNumber, rightNumber );
+	break;
+    case NEGATE:
+	result = -leftNumber;
 	break;
       default:
         throw InternalErrorException("Unsupported Math Operation");
