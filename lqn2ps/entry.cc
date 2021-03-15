@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14495 2021-02-27 01:02:04Z greg $
+ * $Id: entry.cc 14547 2021-03-15 17:48:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -665,7 +665,14 @@ Entry::serviceTime( const unsigned p ) const
 const LQIO::DOM::ExternalVariable *
 Entry::serviceTime() const
 {
-    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_service );
+    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_service_time );
+}
+
+
+const LQIO::DOM::ExternalVariable *
+Entry::thinkTime() const
+{
+    return std::accumulate( _phases.begin(), _phases.end(), static_cast<const LQIO::DOM::ExternalVariable *>(nullptr), &Phase::accumulate_think_time );
 }
 
 
@@ -1600,12 +1607,12 @@ Entry::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
  */
 
 unsigned
-Entry::clients( std::vector<Entity *> &clients, const callPredicate aFunc ) const
+Entry::clients( std::vector<Task *> &clients, const callPredicate aFunc ) const
 {
     for ( std::vector<GenericCall *>::const_iterator call = callers().begin(); call != callers().end(); ++call ) {
-	const Entity * task = (*call)->srcTask();
+	const Task * task = (*call)->srcTask();
 	if ( (*call)->isSelected() && (!aFunc || ((*call)->*aFunc)()) && task->pathTest() && std::none_of( clients.begin(), clients.end(), EQ<Element>(task) ) ) {
-	    clients.push_back( const_cast<Entity *>(task) );
+	    clients.push_back( const_cast<Task *>(task) );
 	}
     }
     return clients.size();

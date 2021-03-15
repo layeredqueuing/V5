@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14405 2021-01-24 22:01:02Z greg $
+ * $Id: processor.h 14547 2021-03-15 17:48:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -66,7 +66,7 @@ public:
 
     virtual unsigned nClients() const;
     virtual unsigned referenceTasks( std::vector<Entity *>&, Element * dst ) const;
-    virtual unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const;
+    virtual unsigned clients( std::vector<Task *>&, const callPredicate = 0 ) const;
     virtual unsigned servers( std::vector<Entity *>& ) const { return 0; }	/* Processors don't have servers */
 
     /* Model Building. */

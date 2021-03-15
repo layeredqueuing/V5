@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14405 2021-01-24 22:01:02Z greg $
+ * $Id: entry.h 14547 2021-03-15 17:48:06Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -90,7 +90,7 @@ public:
     const Entry& aggregateEntries( const unsigned ) const;
     unsigned setChain( unsigned curr_k, unsigned next_k, const Entity * aServer, callPredicate aFunc );
     unsigned referenceTasks( std::vector<Entity *>&, Element * dst ) const;
-    unsigned clients( std::vector<Entity *>&, const callPredicate = 0 ) const;
+    unsigned clients( std::vector<Task *>&, const callPredicate = nullptr ) const;
     virtual Entry& setClientClosedChain( unsigned );
     virtual Entry& setClientOpenChain( unsigned );
     virtual Entry& setServerChain( unsigned );
@@ -113,6 +113,7 @@ public:
 
     bool hasThinkTime( const unsigned int p ) const;
     const LQIO::DOM::ExternalVariable& thinkTime( const unsigned p ) const;
+    const LQIO::DOM::ExternalVariable * thinkTime() const;		/* sums up over all phases */
 
     Entry& histogram( const unsigned p, const double min, const double max, const unsigned n_bins );
     Entry& histogramBin( const unsigned p, const double begin, const double end, const double prob, const double conf95, const double conf99 );

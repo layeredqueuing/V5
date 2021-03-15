@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * entity.h	-- Greg Franks
  *
- * $Id: entity.h 14470 2021-02-10 20:38:43Z greg $
+ * $Id: entity.h 14547 2021-03-15 17:48:06Z greg $
  */
 
 #ifndef _ENTITY_H
@@ -49,21 +49,6 @@ public:
     private:
 	BCMP::Model& _model;
 	const BCMP::Model::Station::Type _type;
-    };
-
-    struct create_chain {
-	create_chain( BCMP::Model& model, const std::vector<Entity *>& servers ) : _model(model), _servers(servers) {}
-	void operator()( const Entity * entity ) const;
-    private:
-	BCMP::Model& _model;
-	const std::vector<Entity *>& _servers;
-    };
-
-    struct create_customers {
-	create_customers( BCMP::Model::Station& terminals ) : _terminals(terminals) {}
-	void operator()( const Entity * entity );
-    private:
-	BCMP::Model::Station& _terminals;
     };
 
     struct label_BCMP_server {
@@ -145,7 +130,7 @@ public:
     
     virtual bool check() const { return true; }
     virtual unsigned referenceTasks( std::vector<Entity *>&, Element * ) const = 0;
-    virtual unsigned clients( std::vector<Entity *> &, const callPredicate = 0 ) const = 0;
+    virtual unsigned clients( std::vector<Task *> &, const callPredicate = nullptr ) const = 0;
     virtual unsigned servers( std::vector<Entity *> & ) const = 0;
 
     virtual double getIndex() const { return index(); }

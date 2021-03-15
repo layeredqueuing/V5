@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14517 2021-03-05 18:01:37Z greg $
+ * $Id: model.cc 14547 2021-03-15 17:48:06Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -937,8 +937,8 @@ Model::getExtension()
 Model::prune()
 {
     try {
-	std::for_each ( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::relink ) );
 	std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::mergeCalls ) );
+	std::for_each ( Task::__tasks.begin(), Task::__tasks.end(), Exec<Task>( &Task::relink ) );
     }
     catch ( const std::domain_error& e ) {
 	LQIO::solution_error( ERR_UNASSIGNED_VARIABLES );
@@ -1157,8 +1157,8 @@ const Model&
 Model::format( Layer& serverLayer )
 {
     Layer clientLayer;
-    for ( std::vector<Entity *>::const_iterator client = serverLayer.clients().begin(); client != serverLayer.clients().end(); ++client ) {
-	clientLayer.append( const_cast<Entity *>(*client) );
+    for ( std::vector<Task *>::const_iterator client = serverLayer.clients().begin(); client != serverLayer.clients().end(); ++client ) {
+	clientLayer.append( *client );
     }
 
     double start_y = serverLayer.y();

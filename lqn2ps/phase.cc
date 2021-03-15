@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14405 2021-01-24 22:01:02Z greg $
+ * $Id: phase.cc 14547 2021-03-15 17:48:06Z greg $
  *
  * Everything you wanted to know about a phase, but were afraid to ask.
  *
@@ -199,9 +199,17 @@ Phase::utilization() const
 
 /* static */
 const LQIO::DOM::ExternalVariable *
-Phase::accumulate_service( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
+Phase::accumulate_service_time( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
 {
     return Entity::addExternalVariables( augend, phase.second.getDOM()->getServiceTime() ); 
+}
+
+
+/* static */
+const LQIO::DOM::ExternalVariable *
+Phase::accumulate_think_time( const LQIO::DOM::ExternalVariable * augend, const std::pair<unsigned int, Phase>& phase )
+{
+    return Entity::addExternalVariables( augend, phase.second.getDOM()->getThinkTime() ); 
 }
 /* -BUG_270 */
 

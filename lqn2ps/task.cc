@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14473 2021-02-12 18:58:43Z greg $
+ * $Id: task.cc 14548 2021-03-15 19:01:34Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,6 +36,7 @@
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
+#include <lqio/../../srvn_gram.h>
 #include <lqio/srvn_output.h>
 #include "activity.h"
 #include "actlist.h"
@@ -892,7 +893,7 @@ Task::check() const
  */
 
 unsigned
-Task::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
+Task::referenceTasks( std::vector<Entity *>& clients, Element * dst ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	(*entry)->referenceTasks( clients, (dst == this) ? (*entry) : dst );	/* Map task to entry if this is the dst */
@@ -907,7 +908,7 @@ Task::referenceTasks( std::vector<Entity *> &clients, Element * dst ) const
  */
 
 unsigned
-Task::clients( std::vector<Entity *> &clients, const callPredicate aFunc ) const
+Task::clients( std::vector<Task *>& clients, const callPredicate aFunc ) const
 {
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	(*entry)->clients( clients, aFunc );
@@ -1235,6 +1236,62 @@ Task::accumulateDemand( BCMP::Model::Station& station ) const
 Task::accumulate_demand( const BCMP::Model::Station::Class& augend, const Task * task )
 {
     return std::accumulate( task->entries().begin(), task->entries().end(), augend, &Entry::accumulate_demand ); 
+}
+
+
+/*
+ * Normally, chains have think times.  JMVA represents this as the service time at the reference station
+ */
+
+void
+Task::create_chain::operator()( const Task * task ) const
+{
+    if ( task->isInClosedModel(_servers) ) {
+	/* Think time for a task is the class think time. */
+	const LQIO::DOM::ExternalVariable * copies = task->isMultiServer() ? &task->copies() : &Element::ONE;
+	_model.insertClosedChain( task->name(), copies, &Element::ZERO );
+    }
+    if ( task->isInOpenModel(_servers) ) {
+	_model.insertOpenChain( task->name(), &Element::ZERO );
+    }
+}
+
+
+/*
+ * Create a terminal station.  Insert total visits into clients and
+ * set service time for class if the processor has been removed.
+ * Include task think time.
+ */
+
+void
+Task::create_customers::operator()( const Task * task )
+{
+    /* If processor is missing, use service time here.  "class" may have to generalize to entry */
+
+    const ReferenceTask * client = dynamic_cast<const ReferenceTask *>(task);
+    const LQIO::DOM::ExternalVariable * service_time = nullptr;
+    if ( client != nullptr ) {
+	service_time = addExternalVariables( client->entries().at(0)->thinkTime(), &client->thinkTime() );
+    }
+    if ( task->processor() == nullptr ) {
+	// for all entries s += prVisit(e) * e->serviceTime ??
+	service_time = addExternalVariables( service_time, task->entries().at(0)->serviceTime() );
+    }
+    BCMP::Model::Station::Class demand( &Element::ONE, service_time );	/* One visit */
+
+    const std::string name = task->name();
+    _terminals.insertClass( name, demand );
+
+    /* Find all observations for this chain - it will become a result_var for the termianls station */
+
+    const LQIO::Spex::obs_var_tab_t& observations = LQIO::Spex::observations();
+    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = observations.begin(); obs != observations.end(); ++obs ) {
+	if ( obs->first != task->getDOM() ) continue;
+	switch ( obs->second.getKey() ) {
+	case KEY_THROUGHPUT:	_terminals.classAt(name).insertResultVariable( BCMP::Model::Result::Type::THROUGHPUT, obs->second.getVariableName() ); break;
+	case KEY_UTILIZATION:	_terminals.classAt(name).insertResultVariable( BCMP::Model::Result::Type::UTILIZATION, obs->second.getVariableName() ); break;
+	}
+    }
 }
 
 /*

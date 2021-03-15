@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14429 2021-01-29 20:49:19Z greg $
+ * $Id: processor.cc 14547 2021-03-15 17:48:06Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -259,7 +259,7 @@ Processor::referenceTasks( std::vector<Entity *>& clientCltn, Element * dst ) co
  */
 
 unsigned
-Processor::clients( std::vector<Entity *>& clients, const callPredicate aFunc ) const
+Processor::clients( std::vector<Task *>& clients, const callPredicate aFunc ) const
 {
     for ( std::set<Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 	if ( std::none_of( clients.begin(), clients.end(), EQ<Element>((*task)) ) ) {
@@ -298,11 +298,11 @@ Processor::nClients() const
 double
 Processor::getIndex() const
 {
-    std::vector<Entity *> clients;
+    std::vector<Task *> clients;
     double anIndex = MAXDOUBLE;
     this->clients( clients );
 
-    for( std::vector<Entity *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+    for( std::vector<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
 	anIndex = std::min( anIndex, (*client)->index() );
     }
 
