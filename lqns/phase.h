@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: phase.h 14546 2021-03-14 11:57:44Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -149,6 +149,8 @@ private:
 private:
     /* Bonus entries are created on devices for each phase */
     class DeviceInfo {
+	friend class Phase;
+	
     public:
 	typedef enum { HOST, PROCESSOR, THINK_TIME } Type;
 
@@ -167,6 +169,7 @@ private:
 	double n_calls() const { return _phase.numberOfSlices(); }
 	double cv_sqr() const { return _phase.CV_sqr(); }
 
+	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
     private:
 	const Phase& _phase;
 	const std::string _name;
@@ -308,15 +311,6 @@ protected:
 
 private:
     std::vector<DeviceInfo *> _devices;	/* Will replace below			*/
-//    ProcessorCall * _processorCall;    	/* Link to processor.                   */
-    ProcessorCall * _thinkCall;		/* Link to processor.                   */
-//    DeviceEntry * _processorEntry;     	/*                                      */
-//    LQIO::DOM::Entry * _procEntryDOM;	/* Only for ~Phase			*/
-// LQIO::DOM::Call * _procCallDOM;	/* Only for ~Phase			*/
-    DeviceEntry * _thinkEntry;         	/*                                      */
-    LQIO::DOM::Entry * _thinkEntryDOM;	/* Only for ~Phase			*/
-    LQIO::DOM::Call * _thinkCallDOM;	/* Only for ~Phase			*/
-
     VectorMath<double> _surrogateDelay;	/* Saved old surrogate delay. REP N-R	*/
     Probability _prOvertaking;
 };

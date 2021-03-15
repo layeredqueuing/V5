@@ -1,0 +1,58 @@
+.\" -*- nroff -*-
+.TH lqngen 1 ""  "5.13"
+.\" $Id: lqngen.1 13479 2020-02-08 23:30:37Z greg $
+.\"
+.\" --------------------------------
+.SH "NAME"
+qnsolver \- Solve a conventional BCMP queueing network model using Mean Value Analysis
+.SH "SYNOPSIS"
+.br
+.B qnsolver
+[\fIOPTION \&.\|.\|.\fP] [\fIFILE\fR] \&.\|.\|. ]
+.SH "DESCRIPTION"
+\fBqnsolver\fP is used to conventional BCMP queueing network models
+using Exact or Approximate Mean Value Analysis.  
+
+.SH "OPTIONS"
+.TP
+.TP
+\fB\-b\fR, \fB\-\-bounds\fR
+Compute the throughput and response time bounds.  (NOP for now, done
+implicitly with \fB\-\-plot\-throughput\fR and \fB\-\-plot\-response\-time\fR.
+.TP
+\fB\-e\fR, \fB\-\-exact\-mva\fR
+Use Exact Mean Value Analysis to solve the model(s).
+.TP
+\fB\-l\fR, \fB\-\-linearizer\fR
+Use Linearizer approximate MVA to solve the model(s).
+.TP
+\fB\-s\fR, \fB\-\-bard-\-schweitzer\fR
+Use Bard\-Schweitzer approximate MVA to solve the model(s).
+.TP
+\fB\-s\fR, \fB\-\-fast-\-linearizer\fR
+Use ``Fast Linearizer'' approximate MVA to solve the model(s).
+.TP
+\fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
+Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
+directs output to standard output.
+.TP
+\fB\-t\fP, \fB\-\-plot\-throughput\fR
+Generate gnuplot(1) for plotting the throughput and bounds for the
+``Reference Station'' from the
+solution of a ``What-If'' model.  The independent ``What-If''
+variable is used as the X-axis.  If a What-If analysis of population
+mix is specified in the input file, then the throughput and bounds for the second
+class is plotted versus the throughput and bounds for the first class.
+\fB\-t\fP, \fB\-\-plot\-response\-time\fR
+Generate gnuplot(1) for plotting the response time and bounds for the
+system from the solution of a ``What-If'' model.  The independent ``What-If''
+variable is used as the X-axis.  
+.TP
+\fB\-X\fP, \fB\-\-debug\-xml\fR
+Debug XML input.
+.TP
+\fB\-X\fP, \fB\-\-debug\-spex\fR
+Output the SPEX program generated.
+.SH "SEE ALSO"
+\fBlqns\fP(1)
+

@@ -148,7 +148,7 @@ namespace BCMP {
 	void registerExternalSymbolsWithProgram(LQX::Program* program);
 
 	std::ostream& print( std::ostream& ) const;
-	void plot( Model::Result::Type );
+	void plot( Model::Result::Type, const std::string& );
 
     private:
 	bool checkAttributes( const XML_Char * element, const XML_Char ** attributes, const std::set<const XML_Char *,JMVA_Document::attribute_table_t>& table ) const;
@@ -277,8 +277,10 @@ namespace BCMP {
 	    std::vector<std::string>& _list;
 	};
 
-	std::ostream& default_plot( std::ostream& plot, Model::Result::Type type );
-	std::ostream& population_mix_plot( std::ostream& plot );
+	std::ostream& plot_chain( std::ostream& plot, Model::Result::Type type );
+	std::ostream& plot_class( std::ostream& plot, Model::Result::Type type, const std::string& );
+	std::ostream& plot_station( std::ostream& plot, Model::Result::Type type, const std::string& );
+	std::ostream& plot_population_mix( std::ostream& plot );
 
 	/* -------------------------- Output -------------------------- */
 

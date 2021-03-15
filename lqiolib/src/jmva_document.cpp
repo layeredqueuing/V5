@@ -1151,8 +1151,11 @@ namespace BCMP {
     JMVA_Document::createObservation( const std::string& name, Model::Result::Type type, const std::string& clasx )
     {
 	static const std::map<const BCMP::Model::Result::Type,const char * const> lqx_function = {
-	    { BCMP::Model::Result::Type::RESPONSE_TIME, BCMP::__lqx_response_time },
-	    { BCMP::Model::Result::Type::THROUGHPUT, BCMP::__lqx_throughput }
+	    { BCMP::Model::Result::Type::QUEUE_LENGTH,	 BCMP::__lqx_queue_length },
+	    { BCMP::Model::Result::Type::RESIDENCE_TIME, BCMP::__lqx_residence_time },
+	    { BCMP::Model::Result::Type::RESPONSE_TIME,  BCMP::__lqx_response_time },
+	    { BCMP::Model::Result::Type::THROUGHPUT,     BCMP::__lqx_throughput },
+            { BCMP::Model::Result::Type::UTILIZATION,    BCMP::__lqx_utilization }
 	};
 
 	/* Get the model object */
@@ -1211,18 +1214,25 @@ namespace BCMP {
      */
     
     void
-    JMVA_Document::plot( Model::Result::Type type )
+    JMVA_Document::plot( Model::Result::Type type, const std::string& arg )
     {
-	std::ostringstream plot;		// Plot command collected here.
-
 	LQIO::Spex::__observation_variables.clear();	/* Get rid of them all. */
 	LQIO::Spex::__result_variables.clear();		/* Get rid of them all. */
-
 	_gnuplot.push_back( LQIO::Spex::print_node( "set title \"" + _model.comment() + "\"" ) );
+
+	std::ostringstream plot;		// Plot command collected here.
+	plot << "plot ";
+
 	if ( type == Model::Result::Type::THROUGHPUT && _plot_population_mix ) {
-	    population_mix_plot( plot );
+	    plot_population_mix( plot );
+	} else if ( arg.empty() ) {
+	    plot_chain( plot, type );
+	} else if ( chains().find( arg ) != chains().end() ) {
+	    plot_class( plot, type, arg );		/* If arg is a class, plot all stations */
+	} else if ( stations().find( arg ) != stations().end() ) {
+	    plot_station( plot, type, arg );		/* If arg is a station, plot all classes */
 	} else {
-	    default_plot( plot, type );
+	    throw std::invalid_argument( arg );
 	}
 
 	/* Append the plot command to the program (plot has to be near the end) */
@@ -1230,15 +1240,100 @@ namespace BCMP {
 	_gnuplot.push_back( LQIO::Spex::print_node( plot.str() ) );
     }
 
+    /*
+     * for all stations plot class arg.
+     */
+    
     std::ostream&
-    JMVA_Document::default_plot( std::ostream& plot, Model::Result::Type type )
+    JMVA_Document::plot_class( std::ostream& plot, Model::Result::Type type, const std::string& arg )
     {
 	static const std::map<const Model::Result::Type, const std::string> y_labels = {
 	    {Model::Result::Type::QUEUE_LENGTH,   XNumber_of_Customers },
-	    {Model::Result::Type::THROUGHPUT,     XThroughput },
 	    {Model::Result::Type::RESIDENCE_TIME, XResidence_Time },
-	    {Model::Result::Type::RESPONSE_TIME,  XResponse_Time },
+	    {Model::Result::Type::THROUGHPUT,     XThroughput },
 	    {Model::Result::Type::UTILIZATION,    XUtilization }
+	};
+
+	appendResultVariable( _x1.var );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );		// X axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + y_labels.at(type) + "\"" ) );	// Y1 axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set key title \"Class " + arg + "\"" ) );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set key top left box" ) );
+
+	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	size_t y = x;
+	
+	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
+	    if ( m->second.type() == Model::Station::Type::CUSTOMER || !m->second.hasClass(arg) ) continue;
+
+	    if ( y > 1 ) plot << ", ";
+
+	    /* Create observation, var name is class name. */
+	    y += 1;
+	    const std::string y_var = "$" + m->first;
+	    createObservation( y_var, type, &m->second, &m->second.classAt(arg) );
+	    appendResultVariable( y_var );
+
+	    /* Append plot command to plot */
+	    std::string title = m->first;
+	    plot << "\"$DATA\" using " << x << ":" << y << " with linespoints"
+		 << " title \"" << title << "\"";
+	    
+	}
+
+	return plot;
+    }
+
+    /*
+     * for station arg plot all classes
+     */
+    
+    std::ostream&
+    JMVA_Document::plot_station( std::ostream& plot, Model::Result::Type type, const std::string& arg )
+    {
+	static const std::map<const Model::Result::Type, const std::string> y_labels = {
+	    {Model::Result::Type::QUEUE_LENGTH,   XNumber_of_Customers },
+	    {Model::Result::Type::RESIDENCE_TIME, XResidence_Time },
+	    {Model::Result::Type::THROUGHPUT,     XThroughput },
+	    {Model::Result::Type::UTILIZATION,    XUtilization }
+	};
+
+	appendResultVariable( _x1.var );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set xlabel \"" + _x1.label + "\"" ) );		// X axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set ylabel \"" + y_labels.at(type) + "\"" ) );	// Y1 axis
+	_gnuplot.push_back( LQIO::Spex::print_node( "set key title \"Station " + arg + "\"" ) );
+	_gnuplot.push_back( LQIO::Spex::print_node( "set key top left box" ) );
+
+	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	size_t y = x;
+	
+	const Model::Station& station = stations().at( arg );
+	for ( Model::Station::Class::map_t::const_iterator k = station.classes().begin(); k != station.classes().end(); ++k ) {
+	    if ( k != station.classes().begin() ) plot << ", ";
+
+	    /* Create observation, var name is class name. */
+	    y += 1;
+	    const std::string y_var = "$" + k->first;
+	    createObservation( y_var, type, &station, &k->second );
+	    appendResultVariable( y_var );
+
+	    /* Append plot command to plot */
+	    std::string title = k->first;
+	    plot << "\"$DATA\" using " << x << ":" << y << " with linespoints"
+		 << " title \"" << title << "\"";
+	    
+	}
+
+	return plot;
+    }
+
+    
+    std::ostream&
+    JMVA_Document::plot_chain( std::ostream& plot, Model::Result::Type type )
+    {
+	static const std::map<const Model::Result::Type, const std::string> y_labels = {
+	    {Model::Result::Type::THROUGHPUT,     XThroughput },
+	    {Model::Result::Type::RESPONSE_TIME,  XResponse_Time },
 	};
 
 	appendResultVariable( _x1.var );
@@ -1251,28 +1346,24 @@ namespace BCMP {
 
 	/* Create observation variables (Y axis).  X axis will be WhatIf. */
 
-//	std::vector<const std::string> y_vars; /* GCC complains about this */
-	std::vector<std::string> y_vars;
 	size_t n_labels = 0;
 	double y_max = 0.;
+
+	const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
+	size_t y = x;
+
 	for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
 	    Model::Bound bounds( *k, stations() );
 
-	    if ( y_vars.empty() ) {
-		plot << "plot ";
-	    } else {
-		plot << ", ";
-	    }
+	    if ( k != chains().begin() ) plot << ", ";
 
 	    /* Create observation, var name is class name. */
 	    const std::string y_var = "$" + k->first;
-	    y_vars.emplace_back( y_var );
 	    createObservation( y_var, type, k->first );
 	    appendResultVariable( y_var );
 
 	    /* Append plot command to plot */
-	    const size_t x = 1;		/* GNUPLOT starts from 1, not 0 */
-	    const size_t y = x + y_vars.size();
+	    y += 1;
 	    std::string title;
 	    if ( chains().size() > 1 ) {
 		title = k->first + " ";
@@ -1347,7 +1438,7 @@ namespace BCMP {
 //   (10-x)/10*20 with lines title "Disk B Bound"
 
     std::ostream&
-    JMVA_Document::population_mix_plot( std::ostream& plot )
+    JMVA_Document::plot_population_mix( std::ostream& plot )
     {
 	const Model::Chain::map_t::iterator x = chains().begin();
 	const Model::Chain::map_t::iterator y = std::next(x);
@@ -1364,12 +1455,13 @@ namespace BCMP {
 	_gnuplot.push_back( LQIO::Spex::print_node( "set key bottom left" ) );
 	_gnuplot.push_back( LQIO::Spex::print_node( "set key box" ) );
 
-	plot << "plot \"$DATA\" using 1:2 with linespoints title \"MVA\"";
+	plot << "\"$DATA\" using 1:2 with linespoints title \"MVA\"";
 
 	/* Compute bound for each station */
 
 	double x_max = 0;
 	double y_max = 0;
+	bool parametric = false;
 	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
 	    if (     m->second.type() != Model::Station::Type::LOAD_INDEPENDENT
 		  && m->second.type() != Model::Station::Type::MULTISERVER ) continue;
@@ -1396,15 +1488,22 @@ namespace BCMP {
 	    } else if ( D_x == 0. ) {
 		plot << ", " << D_y;
 	    } else if ( D_y == 0. ) {
-		_gnuplot.push_back( LQIO::Spex::print_node( "set parametric" ) );
-		plot << ", " << D_y << ",t";
+		parametric = true;
+		plot << ", " << D_x << ",t";
 	    } else {
 		plot << ", (1-x*" << D_x << ")/" << D_y;
 	    }
 	    plot << " with lines title \"" << m->first << " Bound\"";
 	}
 	if ( x_max > 0 ) _gnuplot.push_back( LQIO::Spex::print_node( "set xrange [0:" + std::to_string(1.0/x_max) + "]" ) );
-	if ( y_max > 0 ) _gnuplot.push_back( LQIO::Spex::print_node( "set xrange [0:" + std::to_string(1.0/y_max) + "]" ) );
+	if ( y_max > 0 ) _gnuplot.push_back( LQIO::Spex::print_node( "set yrange [0:" + std::to_string(1.0/y_max) + "]" ) );
+
+	/* If a line has to be drawn at x (D_y = 0), use parametric */
+	if ( parametric ) {
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set parametric" ) );
+	    _gnuplot.push_back( LQIO::Spex::print_node( "set trange [0:" + std::to_string(1.0/y_max) + "]" ) );
+	}
+	    
 	return plot;
     }
 }

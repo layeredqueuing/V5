@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14511 2021-03-02 20:43:37Z greg $
+ * $Id: qnsolver.cc 14542 2021-03-12 22:33:47Z greg $
  */
 
 #include <algorithm>
@@ -27,8 +27,11 @@ const struct option longopts[] =
     { "bard-schweitzer",    no_argument,       	0, 's' },
     { "linearizer",         no_argument,       	0, 'l' },
     { "output", 	    required_argument, 	0, 'o' },
+    { "plot-queue-length",  required_argument,  0, 'q' },
     { "plot-response-time", no_argument,        0, 'r' },
-    { "plot-throughput",    no_argument, 	0, 't' },
+    { "plot-throughput",    optional_argument, 	0, 't' },
+    { "plot-utilization",   required_argument,	0, 'u' },
+    { "plot-waiting-time",  required_argument,  0, 'w' },
     { "verbose",            no_argument,        0, 'v' },
     { "help",               no_argument,       	0, 'h' },
     { "experimental",	    no_argument,	0, 'x' },
@@ -51,8 +54,11 @@ const char * opthelp[]  = {
     /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
     /* "linearizer",      */    "Use Linearizer.",
     /* "output",	  */	"Send output to ARG.",
-    /* "plot-response-time" */	"Output gnuplot to plot response-time (and bounds).", 
-    /* "plot-throughput", */    "Output gnuplot to plot throuhgput (and bounds).",
+    /* "plot-queue-length */	"Output gnuplot to plot station queue-length.  ARG specifies a class or station.",
+    /* "plot-response-time" */	"Output gnuplot to plot system response-time (and bounds).", 
+    /* "plot-throughput", */    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG.",
+    /* "plot-utilization  */	"Output gnuplot to plot utilization.  ARG specifies a class or station.",
+    /* "plot-waiting-time */	"Output gnuplot to plot station waiting-tims.  ARG specifies a class or station.",
     /* "verbose",         */    "",
     /* "help",            */    "Show this.",
     /* "experimental",	  */	"",
@@ -76,6 +82,7 @@ int main (int argc, char *argv[])
     bool print_qnap2 = false;			/* Export to qnap2.  		*/
     bool print_gnuplot = false;			/* Output WhatIf as gnuplot	*/
     BCMP::Model::Result::Type plot_type = BCMP::Model::Result::Type::THROUGHPUT;
+    std::string plot_arg;
 
     program_name = basename( argv[0] );
 
@@ -129,6 +136,12 @@ int main (int argc, char *argv[])
             output_file_name = optarg;
 	    break;
 	    
+	case 'q':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
+	    plot_type = BCMP::Model::Result::Type::QUEUE_LENGTH;
+	    if ( optarg != nullptr ) plot_arg = optarg;
+	    break;
+	    
 	case 'r':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::RESPONSE_TIME;
@@ -141,12 +154,25 @@ int main (int argc, char *argv[])
 	case 't':
 	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
 	    plot_type = BCMP::Model::Result::Type::THROUGHPUT;
+	    if ( optarg != nullptr ) plot_arg = optarg;
+	    break;
+	    
+	case 'u':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
+	    plot_type = BCMP::Model::Result::Type::UTILIZATION;
+	    if ( optarg != nullptr ) plot_arg = optarg;
 	    break;
 	    
 	case 'v':
 	    verbose_flag = true;
 	    break;
 			
+	case 'w':
+	    print_gnuplot = true;			/* Output WhatIf as gnuplot	*/
+	    plot_type = BCMP::Model::Result::Type::RESIDENCE_TIME;
+	    if ( optarg != nullptr ) plot_arg = optarg;
+	    break;
+	    
 	case 'x':
 	    solver = Model::Using::EXPERIMENTAL;
 	    break;
@@ -181,7 +207,12 @@ int main (int argc, char *argv[])
 	    if ( print_qnap2 ) {
 		std::cout << BCMP::QNAP2_Document("",input.model()) << std::endl;
 	    } else {
-		if ( print_gnuplot ) input.plot( plot_type );
+		try {
+		    if ( print_gnuplot ) input.plot( plot_type, plot_arg );
+		}
+		catch ( const std::invalid_argument& e ) {
+		    std::cerr << LQIO::io_vars.lq_toolname << ": Invalid class or station name for --plot: " << e.what() << std::endl;
+		}
 		Model model( input, solver, output_file_name );
 		if ( model.construct() ) {
 		    model.solve();

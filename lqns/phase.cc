@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: phase.cc 14546 2021-03-14 11:57:44Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -217,14 +217,6 @@ Phase::Phase( const std::string& name )
       _entry(nullptr),
       _callList(),
       _devices(),
-//      _processorCall(nullptr),
-      _thinkCall(nullptr),
-//      _processorEntry(nullptr),
-//      _procEntryDOM(nullptr),
-//      _procCallDOM(nullptr),
-      _thinkEntry(nullptr),
-      _thinkEntryDOM(nullptr),
-      _thinkCallDOM(nullptr),
       _prOvertaking(0.)
 {
     setName(name);
@@ -236,14 +228,6 @@ Phase::Phase()
       _entry(nullptr),
       _callList(),
       _devices(),
-//      _processorCall(nullptr),
-      _thinkCall(nullptr),
-//      _processorEntry(nullptr),
-//      _procEntryDOM(nullptr),
-//      _procCallDOM(nullptr),
-      _thinkEntry(nullptr),
-      _thinkEntryDOM(nullptr),
-      _thinkCallDOM(nullptr),
       _prOvertaking(0.)
 {
 }
@@ -258,13 +242,6 @@ Phase::~Phase()
     for ( std::vector<DeviceInfo *>::const_iterator x = _devices.begin(); x != _devices.end(); ++x ) {
 	delete *x;
     }
-//    if ( _processorCall ) delete _processorCall;
-//    if ( _procCallDOM != nullptr ) delete _procCallDOM;
-//    if ( _procEntryDOM != nullptr ) delete _procEntryDOM;
-/*    if ( _thinkCall ) delete _thinkCall;	Don't do this as it is in the callList */
-    if ( _thinkCallDOM != nullptr ) delete _thinkCallDOM;
-    if ( _thinkEntryDOM != nullptr ) delete _thinkEntryDOM;
-
     /* Release forward links */
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	delete *call;
@@ -316,9 +293,10 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	    }
 	}
     }
-    if ( processorCall() ) {
-	callStack.push_back( processorCall() );
-	const Entity * child = processorCall()->dstTask();
+    for ( std::vector<DeviceInfo *>::const_iterator device = _devices.begin(); device != _devices.end(); ++device ) {
+	Call * call = (*device)->call();
+	callStack.push_back( call );
+	const Entity * child = call->dstTask();
 	max_depth = std::max( child->findChildren( callStack, directPath ), max_depth );
 	callStack.pop_back();
     }
@@ -376,10 +354,8 @@ Phase::initReplication( const unsigned maxSize )
 Phase&
 Phase::initWait()
 {
-    for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
-    if ( processorCall() ) {
-	processorCall()->initWait();
-    }
+    std::for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
+    std::for_each( _devices.begin(), _devices.end(), &DeviceInfo::initWait );
     return *this;
 }
 
@@ -468,12 +444,12 @@ Phase::hasVariance() const
 void
 Phase::callsPerform( const CallExec& exec ) const
 {
-    for_each( callList().begin(), callList().end(), exec );
-    
-    Call * aCall = processorCall();
-    if ( aCall ) {
-	exec( aCall );
+    std::for_each( callList().begin(), callList().end(), exec );
+    for ( auto& device : _devices ) {
+	exec( device->call() );
     }
+//    std::for_each( _devices.begin(), _devices.end(), DeviceInfo::CallsPerform( exec ) );
+//	exec( aCall );
 }
 
 
