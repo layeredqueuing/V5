@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14546 2021-03-14 11:57:44Z greg $
+ * $Id: phase.cc 14549 2021-03-15 22:03:42Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1547,15 +1547,25 @@ Phase::DeviceInfo::recalculateDynamicValues()
     }
     return *this;
 }
+
+
+std::set<Entity *>& Phase::DeviceInfo::add_server( std::set<Entity *>& servers, const DeviceInfo * device )
+{
+    servers.insert(const_cast<Entity *>(device->call()->dstTask()));
+    return servers;
+}
+
 
 void
 Phase::get_servers::operator()( const Phase& phase ) const		// For phases
 {
     _servers = std::accumulate( phase.callList().begin(), phase.callList().end(), _servers, Call::add_server );
+    _servers = std::accumulate( phase.devices().begin(),  phase.devices().end(),  _servers, DeviceInfo::add_server );
 }
 
 void
 Phase::get_servers::operator()( const Phase* phase ) const		// For activities
 {
     _servers = std::accumulate( phase->callList().begin(), phase->callList().end(), _servers, Call::add_server );
+    _servers = std::accumulate( phase->devices().begin(),  phase->devices().end(),  _servers, DeviceInfo::add_server );
 }

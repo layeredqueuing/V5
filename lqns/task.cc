@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: task.cc 14549 2021-03-15 22:03:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -530,13 +530,11 @@ std::set<Entity *>
 Task::getServers( const std::set<Entity *>& includeOnly ) const
 {
     std::set<Entity *> servers;
-    servers.insert( const_cast<Processor *>(getProcessor()) );
     std::for_each( entries().begin(), entries().end(), Entry::get_servers( servers ) );
     std::for_each( activities().begin(), activities().end(), Phase::get_servers( servers ) );
 
     std::set<Entity *> result;
     std::set_intersection( servers.begin(), servers.end(), includeOnly.begin(), includeOnly.end(), std::inserter( result, result.begin() ) );
-
     return result;
 }
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14546 2021-03-14 11:57:44Z greg $
+ * $Id: phase.h 14549 2021-03-15 22:03:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -170,6 +170,7 @@ private:
 	double cv_sqr() const { return _phase.CV_sqr(); }
 
 	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
+	static std::set<Entity *>& add_server( std::set<Entity *>&, const DeviceInfo * );
     private:
 	const Phase& _phase;
 	const std::string _name;
@@ -254,6 +255,7 @@ public:
     double processorCalls() const;
     double queueingTime() const;
     double processorWait() const;
+    const std::vector<DeviceInfo *>& devices() const { return _devices; }
 	
     /* Queries */
 
