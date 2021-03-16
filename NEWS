@@ -1,4 +1,7 @@
 * Bugs fixed in 5.19
+290 	lqx 		lqx parser doesn't like -1... sometimes. 
+286 	lqiolib 	GNUPlot enhancements. 	
+293 	lqns 	 	Phase think time not being used by analytic solver. 
 196 	lqx 	 	Print only array key or value as a comma separated list.
 211 	lqn2xxx 	SIGSEGV Layer::transmorgrify(LQIO::DOM::Document*, Processor*&, Task*&)
 266 	lqn2xxx 	LQIO::should_implement 	
