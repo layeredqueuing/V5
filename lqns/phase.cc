@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14549 2021-03-15 22:03:42Z greg $
+ * $Id: phase.cc 14557 2021-03-17 18:42:04Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -293,7 +293,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	    }
 	}
     }
-    for ( std::vector<DeviceInfo *>::const_iterator device = _devices.begin(); device != _devices.end(); ++device ) {
+    for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
 	Call * call = (*device)->call();
 	callStack.push_back( call );
 	const Entity * child = call->dstTask();
@@ -355,7 +355,7 @@ Phase&
 Phase::initWait()
 {
     std::for_each( callList().begin(), callList().end(), Exec<Call>( &Call::initWait ) );
-    std::for_each( _devices.begin(), _devices.end(), &DeviceInfo::initWait );
+    std::for_each( devices().begin(), devices().end(), &DeviceInfo::initWait );
     return *this;
 }
 
@@ -445,11 +445,9 @@ void
 Phase::callsPerform( const CallExec& exec ) const
 {
     std::for_each( callList().begin(), callList().end(), exec );
-    for ( auto& device : _devices ) {
-	exec( device->call() );
+    for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
+	exec( (*device)->call() );
     }
-//    std::for_each( _devices.begin(), _devices.end(), DeviceInfo::CallsPerform( exec ) );
-//	exec( aCall );
 }
 
 
@@ -746,8 +744,8 @@ Phase::utilization() const
 Phase::DeviceInfo *
 Phase::getProcessor() const
 {
-    for ( std::vector<DeviceInfo *>::const_iterator x = _devices.begin(); x != _devices.end(); ++x ) {
-	if ( (*x)->isHost() ) return *x;
+    for ( std::vector<DeviceInfo *>::const_iterator device = devices().begin(); device != devices().end(); ++device ) {
+	if ( (*device)->isHost() ) return *device;
     }
     return nullptr;
 }
@@ -903,15 +901,11 @@ Phase::updateWait( const Submodel& aSubmodel, const double relax )
     const unsigned submodel = aSubmodel.number();
     const double oldWait    = _wait[submodel];
 
-    /* Sum up waits to all other tasks in this submodel */
+    /* Sum up waits to all other tasks and devices in this submodel */
 
-    double newWait = std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( submodel ) );
-
-    /* Tack on processor delay if necessary */
-
-    if ( processorCall() && processorCall()->submodel() == submodel ) {
-	newWait += processorCall()->rendezvousDelay();
-    }
+    const double newWait = std::accumulate( devices().begin(), devices().end(),
+					    std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( submodel ) ),
+					    DeviceInfo::add_wait( submodel ) );
 
     /* Now update waiting values */
 
@@ -1117,13 +1111,24 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 const Phase&
 Phase::followInterlock( Interlock::CollectTable& path ) const
 {
-    for_each( callList().begin(), callList().end(), ConstExec1<Call,Interlock::CollectTable&>( &Call::followInterlock, path ) );
-
-    if ( processorCall() ) {
-	processorCall()->followInterlock( path );
-    }
+    for_each( callList().begin(), callList().end(), follow_interlock( path ) );
+    for_each( devices().begin(), devices().end(), follow_interlock( path ) );
     return *this;
 }
+
+
+void
+Phase::follow_interlock::operator()( const Call * call ) const
+{
+    call->followInterlock( _path );
+}
+
+void
+Phase::follow_interlock::operator()( const DeviceInfo* device ) const
+{
+    device->call()->followInterlock( _path );
+}
+
 
 
 /*
@@ -1139,8 +1144,9 @@ Phase::followInterlock( Interlock::CollectTable& path ) const
 bool
 Phase::getInterlockedTasks( Interlock::CollectTasks& path ) const
 {
-    bool found = std::accumulate( callList().begin(), callList().end(), false, get_interlocked_tasks( path ) );
-    return ( processorCall() && processorCall()->dstEntry()->getInterlockedTasks( path ) ) || found;	/* don't short circuit! */
+    return std::accumulate( callList().begin(), callList().end(),
+			    std::accumulate( devices().begin(), devices().end(), false, get_interlocked_tasks( path ) ),
+			    get_interlocked_tasks( path ) );
 }
 
 
@@ -1150,6 +1156,14 @@ Phase::get_interlocked_tasks::operator()( bool found, const Call * call ) const
     const Entry * entry = call->dstEntry();
     return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
 }
+
+bool
+Phase::get_interlocked_tasks::operator()( bool found, const DeviceInfo* device ) const
+{
+    const Entry * entry = device->call()->dstEntry();
+    return (!_path.has_entry( entry ) && entry->getInterlockedTasks( _path )) || found;			/* don't short circuit! */
+}
+
 
 
 const Phase&
@@ -1181,7 +1195,7 @@ Phase::insertDOMResults() const
 Phase&
 Phase::recalculateDynamicValues()
 {	
-    for_each( _devices.begin(), _devices.end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
+    for_each( devices().begin(), devices().end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
     return *this;
 }
 
@@ -1555,6 +1569,14 @@ std::set<Entity *>& Phase::DeviceInfo::add_server( std::set<Entity *>& servers, 
     return servers;
 }
 
+
+double
+Phase::DeviceInfo::add_wait::operator()( double sum, const DeviceInfo * device ) const
+{
+    const Call * call = device->call();
+    if ( call->submodel() == _submodel ) sum += call->rendezvousDelay();
+    return sum;
+}
 
 void
 Phase::get_servers::operator()( const Phase& phase ) const		// For phases

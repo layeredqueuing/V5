@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
-<!-- $Id: 09-sanity.lqxo 13899 2020-09-30 13:07:24Z greg $ -->
-<!-- lqns -pragma=variance=mol,threads=mak -->
-<lqn-model name="09-sanity" description="lqns 5.18 solution for model from: 09-sanity.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 09-sanity.lqxo 14556 2021-03-17 18:08:06Z greg $ -->
+<!-- lqns -pragma=variance=mol,threads=hyper -parseable -no-warnings -->
+<lqn-model name="09-sanity" description="lqns 5.19 solution for model from: 09-sanity.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Most Common features." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
-      <pragma param="threads" value="mak"/>
+      <pragma param="severity-level" value="advisory"/>
+      <pragma param="threads" value="hyper"/>
       <pragma param="variance" value="mol"/>
-      <result-general solver-info="lqns 5.18" valid="YES" conv-val="2.3976e-06" iterations="10" platform-info="Gregs-Retina-iMac.local Darwin 19.6.0" user-cpu-time=" 0:00:00.003" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.003">
-         <mva-info submodels="3" core="30" step="286" step-squared="2990" wait="15942" wait-squared="1.23688e+07" faults="0"/>
+      <result-general solver-info="lqns 5.19" valid="true" conv-val="1.80431e-06" iterations="10" platform-info="Gregs-Retina-iMac.local Darwin 20.3.0" user-cpu-time=" 0:00:00.004" system-cpu-time=" 0:00:00.000" elapsed-time=" 0:00:00.004">
+         <mva-info submodels="3" core="30" step="337" step-squared="3955" wait="21276" wait-squared="1.93603e+07" faults="0"/>
       </result-general>
    </solver-params>
    <processor name="client" scheduling="inf">
@@ -17,9 +18,9 @@
             <result-entry utilization="3" throughput="1.16877" squared-coeff-variation="1.867" proc-utilization="1.16877" throughput-bound="1.82927"/>
             <entry-phase-activities>
                <activity name="client_ph1" phase="1" host-demand-mean="1">
-                  <result-activity proc-waiting="0" service-time="2.56681" utilization="3" service-time-variance="12.3008"/>
+                  <result-activity proc-waiting="0" service-time="2.5668" utilization="3" service-time-variance="12.3007"/>
                   <synch-call dest="entry1" calls-mean="1">
-                     <result-call waiting="0.601684"/>
+                     <result-call waiting="0.601673"/>
                   </synch-call>
                </activity>
             </entry-phase-activities>
@@ -29,43 +30,43 @@
    <processor name="server" scheduling="fcfs" multiplicity="2">
       <result-processor utilization="1.43758"/>
       <task name="server1" scheduling="fcfs" multiplicity="2">
-         <result-task throughput="1.16876" utilization="1.55753" phase1-utilization="0.84834" phase2-utilization="0.709194" proc-utilization="1.16876"/>
+         <result-task throughput="1.16877" utilization="1.55754" phase1-utilization="0.848344" phase2-utilization="0.709197" proc-utilization="1.16877"/>
          <entry name="entry1" type="PH1PH2">
-            <result-entry utilization="1.55753" throughput="1.16876" squared-coeff-variation="0.446428" proc-utilization="1.16876" throughput-bound="1.92308"/>
+            <result-entry utilization="1.55754" throughput="1.16877" squared-coeff-variation="0.446428" proc-utilization="1.16877" throughput-bound="1.92308"/>
             <forwarding dest="entry2" prob="0.5">
-               <result-call waiting="0.13266"/>
+               <result-call waiting="0.132662"/>
             </forwarding>
             <entry-phase-activities>
                <activity name="entry1_ph1" phase="1" host-demand-mean="0.5">
-                  <result-activity proc-waiting="0.128147" service-time="0.725843" utilization="0.84834" service-time-variance="0.531411"/>
+                  <result-activity proc-waiting="0.128148" service-time="0.725845" utilization="0.848344" service-time-variance="0.531414"/>
                   <synch-call dest="entry2" calls-mean="0.2">
-                     <result-call waiting="0.142575"/>
+                     <result-call waiting="0.142577"/>
                   </synch-call>
                </activity>
                <activity name="entry1_ph2" phase="2" host-demand-mean="0.5">
-                  <result-activity proc-waiting="0.106789" service-time="0.606789" utilization="0.709194" service-time-variance="0.261404"/>
+                  <result-activity proc-waiting="0.10679" service-time="0.60679" utilization="0.709197" service-time-variance="0.261404"/>
                   <asynch-call dest="entry3" calls-mean="0.3">
-                     <result-call waiting="0.510349"/>
+                     <result-call waiting="0.510351"/>
                   </asynch-call>
                </activity>
             </entry-phase-activities>
          </entry>
       </task>
       <task name="server2" scheduling="fcfs">
-         <result-task throughput="1.16877" utilization="0.439344" phase1-utilization="0.439344" proc-utilization="0.268816"/>
+         <result-task throughput="1.16877" utilization="0.439347" phase1-utilization="0.439347" proc-utilization="0.268817"/>
          <entry name="entry2" type="PH1PH2">
-            <result-entry utilization="0.282997" throughput="0.818136" squared-coeff-variation="0.512229" proc-utilization="0.163627" throughput-bound="5"/>
+            <result-entry utilization="0.282999" throughput="0.818138" squared-coeff-variation="0.512228" proc-utilization="0.163628" throughput-bound="5"/>
             <entry-phase-activities>
                <activity name="entry2_ph1" phase="1" host-demand-mean="0.2">
-                  <result-activity proc-waiting="0.145904" service-time="0.345904" utilization="0.282997" service-time-variance="0.061288"/>
+                  <result-activity proc-waiting="0.145906" service-time="0.345906" utilization="0.282999" service-time-variance="0.0612885"/>
                </activity>
             </entry-phase-activities>
          </entry>
          <entry name="entry3" type="PH1PH2">
-            <result-entry utilization="0.156347" throughput="0.350629" squared-coeff-variation="0.559713" proc-utilization="0.105189" throughput-bound="3.33333"/>
+            <result-entry utilization="0.156348" throughput="0.35063" squared-coeff-variation="0.559711" proc-utilization="0.105189" throughput-bound="3.33333"/>
             <entry-phase-activities>
                <activity name="entry3_ph1" phase="1" host-demand-mean="0.3">
-                  <result-activity proc-waiting="0.145904" service-time="0.445904" utilization="0.156347" service-time-variance="0.111288"/>
+                  <result-activity proc-waiting="0.145906" service-time="0.445906" utilization="0.156348" service-time-variance="0.111288"/>
                </activity>
             </entry-phase-activities>
          </entry>

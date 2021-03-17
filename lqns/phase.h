@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14549 2021-03-15 22:03:42Z greg $
+ * $Id: phase.h 14557 2021-03-17 18:42:04Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -131,22 +131,6 @@ public:
     };
 
 private:
-    struct add_weighted_wait {
-	add_weighted_wait( unsigned int submodel, double total ) : _submodel(submodel), _total(total) {}
-	double operator()( double sum, const Call * call ) const { return call->submodel() == _submodel ? sum + call->wait() * call->rendezvous() / _total: sum; }
-    private:
-	const unsigned int _submodel;
-	const double _total;
-    };
-
-    struct get_interlocked_tasks {
-	get_interlocked_tasks( Interlock::CollectTasks& path ) : _path(path) {}
-	bool operator()( bool rc, const Call * call ) const;
-    private:
-	Interlock::CollectTasks& _path;
-    };
-
-private:
     /* Bonus entries are created on devices for each phase */
     class DeviceInfo {
 	friend class Phase;
@@ -171,6 +155,14 @@ private:
 
 	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
 	static std::set<Entity *>& add_server( std::set<Entity *>&, const DeviceInfo * );
+
+	struct add_wait {
+	    add_wait( unsigned int submodel ) : _submodel(submodel) {}
+	    double operator()( double sum, const DeviceInfo * call ) const;
+	private:
+	    const unsigned int _submodel;
+	};
+
     private:
 	const Phase& _phase;
 	const std::string _name;
@@ -179,6 +171,30 @@ private:
 	ProcessorCall * _call;
 	LQIO::DOM::Entry * _entry_dom;		/* Only for ~Phase		*/
 	LQIO::DOM::Call * _call_dom;		/* Only for ~Phase		*/
+    };
+
+    struct add_weighted_wait {
+	add_weighted_wait( unsigned int submodel, double total ) : _submodel(submodel), _total(total) {}
+	double operator()( double sum, const Call * call ) const { return call->submodel() == _submodel ? sum + call->wait() * call->rendezvous() / _total: sum; }
+    private:
+	const unsigned int _submodel;
+	const double _total;
+    };
+
+    struct follow_interlock {
+	follow_interlock( Interlock::CollectTable& path ) : _path(path) {}
+	void operator()( const Call * call ) const;
+	void operator()( const DeviceInfo* device ) const;
+    private:
+	Interlock::CollectTable& _path;
+    };
+    
+    struct get_interlocked_tasks {
+	get_interlocked_tasks( Interlock::CollectTasks& path ) : _path(path) {}
+	bool operator()( bool rc, const Call * call ) const;
+	bool operator()( bool rc, const DeviceInfo* device ) const;
+    private:
+	Interlock::CollectTasks& _path;
     };
 
 public:

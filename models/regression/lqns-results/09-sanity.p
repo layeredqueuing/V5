@@ -1,17 +1,17 @@
-# lqns 5.18
-# lqns --pragma=variance=mol,threads=mak --parseable 09-sanity.in
-# $Id: 09-sanity.p 13899 2020-09-30 13:07:24Z greg $
+# lqns 5.19
+# lqns --pragma=variance=mol,threads=hyper --parseable --no-warnings 09-sanity.lqnx
+# $Id: 09-sanity.p 14556 2021-03-17 18:08:06Z greg $
 V y
-C 2.3976e-06
+C 1.80431e-06
 I 10
 PP 2
 NP 2
 
 #!Comment: Most Common features.
-#!User:  0:00:00.003
+#!User:  0:00:00.004
 #!Sys:   0:00:00.000
-#!Real:  0:00:00.003
-#!Solver: 3 30 286 2990 15942 1.23688e+07 0
+#!Real:  0:00:00.004
+#!Solver: 3 30 337 3955 21276 1.93603e+07 0
 
 B 4
 client         :client          1.82927     
@@ -21,38 +21,38 @@ server2        :entry2          5
 -1
 
 W 2
-client         :client          entry1          0.601684    0           -1 
+client         :client          entry1          0.601673     0            -1 
                 -1 
-server1        :entry1          entry2          0.142575    0           -1 
+server1        :entry1          entry2          0.142577     0            -1 
                 -1 
 -1
 
 F 1
-server1        :entry1          entry2          0.13266     
+server1        :entry1          entry2          0.132662    
                 -1 
 -1
 
 Z 1
-server1        :entry1          entry3          0           0.510349    -1 
+server1        :entry1          entry3          0            0.510351     -1 
                 -1 
 -1
 
 X 4
-client         :client          2.56681     0           -1 
+client         :client          2.5668      0           -1 
                 -1 
-server1        :entry1          0.725843    0.606789    -1 
+server1        :entry1          0.725845    0.60679     -1 
                 -1 
-server2        :entry2          0.345904    0           -1 
-                entry3          0.445904    0           -1 
+server2        :entry2          0.345906    0           -1 
+                entry3          0.445906    0           -1 
                 -1 
 -1
 
 VAR 4
-client         :client          12.3008     0           -1 
+client         :client          12.3007     0           -1 
                 -1 
-server1        :entry1          0.531411    0.261404    -1 
+server1        :entry1          0.531414    0.261404    -1 
                 -1 
-server2        :entry2          0.061288    0           -1 
+server2        :entry2          0.0612885   0           -1 
                 entry3          0.111288    0           -1 
                 -1 
 -1
@@ -60,12 +60,12 @@ server2        :entry2          0.061288    0           -1
 FQ 3
 client         :client          1.16877     3           0           -1 3
                 -1 
-server1        :entry1          1.16876     0.84834     0.709194    -1 1.55753
+server1        :entry1          1.16877     0.848344    0.709197    -1 1.55754
                 -1 
-server2        :entry2          0.818136    0.282997    0           -1 0.282997
-                entry3          0.350629    0.156347    0           -1 0.156347
+server2        :entry2          0.818138    0.282999    0           -1 0.282999
+                entry3          0.35063     0.156348    0           -1 0.156348
                 -1 
-                                1.16877     0.439344    0           -1 0.439344
+                                1.16877     0.439347    0           -1 0.439347
 -1
 
 P client 1
@@ -74,12 +74,12 @@ client          1  0 3  client          1.16877     0           0           -1
 -1 
 
 P server 2
-server1         1  0 2  entry1          1.16876     0.128147    0.106789    -1 
+server1         1  0 2  entry1          1.16877     0.128148    0.10679     -1 
                         -1 
-server2         2  0 1  entry2          0.163627    0.145904    0           -1 
-                        entry3          0.105189    0.145904    0           -1 
+server2         2  0 1  entry2          0.163628    0.145906    0           -1 
+                        entry3          0.105189    0.145906    0           -1 
                         -1 
-                                        0.268816    
+                                        0.268817    
                 -1 
                                         1.43758
 -1 
