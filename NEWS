@@ -1,4 +1,6 @@
 * Bugs fixed in 5.19
+294 	lqns 		07-sanity 
+208 	lqiolib 	Add --gnuplot output. 
 290 	lqx 		lqx parser doesn't like -1... sometimes. 
 286 	lqiolib 	GNUPlot enhancements. 	
 293 	lqns 	 	Phase think time not being used by analytic solver. 

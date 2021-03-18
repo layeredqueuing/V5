@@ -1,9 +1,9 @@
 # Process this file with autoconf to produce a configure script.
 #
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14357 2021-01-14 21:50:48Z greg $
+# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(lqns, 5.19, greg@sce.carleton.ca)
+AC_INIT([lqns],[5.20],[greg@sce.carleton.ca])
 AM_INIT_AUTOMAKE
 # The user can disable building of the PDF of the manual, for example
 # if the required LaTeX packages are not installed

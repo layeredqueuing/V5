@@ -2,10 +2,10 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqngen/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14544 2021-03-14 00:15:09Z greg $
+# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
 # ------------------------------------------------------------------------
-AC_PREREQ(2.57)
-AC_INIT(lqngen, 5.19, greg@sce.carleton.ca)
+AC_PREREQ([2.71])
+AC_INIT([lqngen],[5.20],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqngen.h])
 AC_CONFIG_HEADERS([config.h])
@@ -17,10 +17,9 @@ AC_SUBST(STATIC)
 #
 AC_LANG(C++)
 AC_PROG_CXX
-AM_PROG_LEX
+AC_PROG_LEX
 AC_PROG_YACC
 # Add in libtool.
-AC_PROG_LIBTOOL
 LT_INIT
 
 if test "x$enable_shared" = "xno"; then
@@ -49,7 +48,6 @@ AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
 # ----------------------------------------------------------------------
 # Checks for header files.
 #
-AC_HEADER_STDC
 AC_CHECK_HEADERS([limits.h values.h])
 AC_CHECK_HEADERS([getopt.h])
 

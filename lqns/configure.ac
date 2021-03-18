@@ -1,8 +1,8 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14544 2021-03-14 00:15:09Z greg $
+# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
 # ------------------------------------------------------------------------
-AC_INIT(lqns, 5.19, greg@sce.carleton.ca)
+AC_INIT([lqns],[5.20],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([dim.h])
 AC_CONFIG_HEADERS([config.h])
@@ -16,7 +16,7 @@ AC_LANG(C++)
 AC_PROG_CXX
 
 # Add in libtool.
-AC_PROG_LIBTOOL
+LT_INIT
 LT_INIT
 
 if test "x$enable_shared" = "xno"; then
@@ -30,7 +30,7 @@ fi
 # ----------------------------------------------------------------------
 # Checks for programs.
 #
-AC_PROG_CC_STDC
+AC_PROG_CC
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_CHECK_PROGS(XPS2PDF, ps2pdf)
@@ -45,8 +45,7 @@ AM_CONDITIONAL([HAVE_PS2PDF], test -n "$XPS2PDF")
 AC_CHECK_LIB([m], [sqrt])
 quorum=no;
 AC_ARG_WITH(quorum,
-	AC_HELP_STRING([--with-quorum],
-	               [Provided the GSL libraries are present, compile with support for quorum join. [default=no]]),
+	AS_HELP_STRING([--with-quorum],[Provided the GSL libraries are present, compile with support for quorum join. [default=no]]),
         [
 	    quorum="$withval"
         ])
@@ -68,12 +67,18 @@ AC_CHECK_HEADERS([fenv.h float.h getopt.h ieeefp.h limits.h unistd.h values.h sy
 # Checks for typedefs, structures, and compiler characteristics.
 #
 AC_HEADER_STAT
-AC_DECL_SYS_SIGLIST
+AC_CHECK_DECLS([sys_siglist],[],[],[#include <signal.h>
+/* NetBSD declares sys_siglist in unistd.h.  */
+#ifdef HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+])
+
 AC_TYPE_MODE_T
 AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
-AC_HEADER_TIME
+AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_STRUCT_TM
 AC_C_BIGENDIAN
 AC_C_INLINE
@@ -83,8 +88,6 @@ AC_HEADER_STDBOOL
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_SELECT_ARGTYPES 
-AC_FUNC_SETVBUF_REVERSED
-AC_TYPE_SIGNAL
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD

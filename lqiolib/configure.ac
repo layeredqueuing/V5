@@ -1,74 +1,18 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 13767 2020-08-18 13:38:47Z greg $
+# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.58)
-AC_INIT(liblqio, 0.3.0, martinmroz@gmail.com)
+AC_PREREQ([2.71])
+AC_INIT([liblqio],[0.3.0],[martinmroz@gmail.com])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_MACRO_DIR([../config])
 AM_INIT_AUTOMAKE
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
 
-#
-# -- Xerces --
-#
-AC_DEFUN([rlc_XERCESC],
-[
-  dnl Prerequisites of AC_LIB_LINKFLAGS_BODY.
-  dnl AC_REQUIRE([AC_LIB_PREPARE_PREFIX])
-  dnl AC_REQUIRE([AC_LIB_RPATH])
-  AC_LANG_PUSH(C++)
-  dnl rlc_XERCESC_BODY()
-
-  ac_save_CPPFLAGS="$CPPFLAGS"
-  CPPFLAGS="$CPPFLAGS -I/opt/local/include"
-
-  AC_CACHE_CHECK([for libxerces-c], [ac_cv_libxerces_c], [
-   ac_save_LDFLAGS="$LDFLAGS"
-   LDFLAGS="$LDFLAGS -L/opt/local/lib -lxerces-c"
-   AC_TRY_LINK([
-#include <xercesc/util/PlatformUtils.hpp>
-#ifdef XERCES_CPP_NAMESPACE_USE
-XERCES_CPP_NAMESPACE_USE
-#endif
-	 ], [
-try
-{
-   XMLPlatformUtils::Initialize();
-}
-catch (...)
-{
-   // ...
-}
-XMLPlatformUtils::Terminate();
-	 ], [ac_cv_libxerces_c=yes], [ac_cv_libxerces_c=no])
-    LIBS="$ac_save_LIBS"
-  ])
-  if test "$ac_cv_libxerces_c" = yes; then
-    HAVE_LIBXERCES_C=yes
-    AC_DEFINE(HAVE_LIBXERCES_C, 1, [Define if you have the xerces-c library.])
-    AC_MSG_CHECKING([how to link with libxerces-c])
-    AC_MSG_RESULT([$LIBXERCES_C])
-  else
-    HAVE_LIBXERCES_C=no
-    CPPFLAGS="$ac_save_CPPFLAGS"
-    LIBXERCES_C=
-    LTLIBXERCES_C=
-  fi
-  
-  AC_LANG_POP(C++)
-  
-  AC_SUBST(HAVE_LIBXERCES_C)
-  AC_SUBST(LIBXERCES_C)
-  AC_SUBST(LTLIBXERCES_C)
-])
-
-
 # Checks for programs.
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
-AM_PROG_LEX
+LT_INIT
+AC_PROG_LEX
 AC_PROG_YACC
 AC_PROG_CXX
 AC_PROG_CC
@@ -76,7 +20,6 @@ AC_LANG(C++)
 
 # Checks for header files.
 AC_FUNC_ALLOCA
-AC_HEADER_STDC
 AC_CHECK_HEADERS([float.h inttypes.h libintl.h pwd.h malloc.h stddef.h stdlib.h string.h strings.h unistd.h values.h time.h])
 AC_CHECK_HEADERS([sys/mman.h sys/param.h sys/resource.h sys/time.h sys/times.h])
 
