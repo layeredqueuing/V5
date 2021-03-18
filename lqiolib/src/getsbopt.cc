@@ -28,10 +28,6 @@
 #include <string.h>
 #include <ctype.h>
 
-#ifndef lint
-static char * RCSid = "$Header$";
-#endif
-
 int 
 getsubopt (char **optionp, char * const * tokens, char **valuep)
 {

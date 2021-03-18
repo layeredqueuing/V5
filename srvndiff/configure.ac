@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
+# $Id: configure.ac 14565 2021-03-18 02:41:03Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([srvndiff],[5.20],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -56,13 +56,11 @@ AC_CHECK_HEADERS([inttypes.h])
 AC_CHECK_HEADERS([libgen.h]) 
 AC_CHECK_HEADERS([limits.h]) 
 AC_CHECK_HEADERS([malloc.h]) 
-AC_CHECK_HEADERS([regex.h])
 AC_CHECK_HEADERS([stddef.h]) 
 AC_CHECK_HEADERS([string.h])
 AC_CHECK_HEADERS([sys/ioctl.h]) 
 AC_CHECK_HEADERS([sys/errno.h])
 AC_CHECK_HEADERS([sys/param.h]) 
-AC_CHECK_HEADERS([sys/time.h]) 
 AC_CHECK_HEADERS([sys/uio.h]) 
 AC_CHECK_HEADERS([sys/uts_name.h]) 
 AC_CHECK_HEADERS([termios.h]) 
@@ -92,7 +90,6 @@ AC_TYPE_OFF_T
 AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_CHECK_DECLS([sys_siglist])
-AC_CHECK_HEADERS_ONCE([sys/time.h])
 AC_STRUCT_TM
 AC_CHECK_TYPES([ptrdiff_t])
 
