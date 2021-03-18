@@ -220,10 +220,10 @@ namespace LQIO {
     LQX::SyntaxTreeNode * Spex::observation( const DOM::DocumentObject* document_object, const ObservationInfo& obs )
     {
 	const unsigned p = obs.getPhase();
-	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( document_object->getTypeName(), new LQX::ConstantValueExpression( document_object->getName() ), 0 );
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( document_object->getTypeName(), new LQX::ConstantValueExpression( document_object->getName() ), nullptr );
 	if ( dynamic_cast<const DOM::Entry *>(document_object) != nullptr && 0 < p && p <= DOM::Phase::MAX_PHASE ) {
 	    /* A phase of an entry */
-	    object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(p) ), 0 );
+	    object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(p) ), nullptr );
 	    document_object = dynamic_cast<const DOM::Entry *>(document_object)->getPhase( p );
 	}
 	return observation( object, document_object, obs );
@@ -235,8 +235,8 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Task* task, const DOM::Activity * activity, const ObservationInfo& obs )
     {
-	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), 0 );
-	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), 0 );
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), nullptr );
+	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), nullptr );
 	return observation( object, activity, obs );
     }
 	
@@ -248,10 +248,10 @@ namespace LQIO {
     {
 	assert( dynamic_cast<const DOM::Entry *>(src) != 0 && phase != 0 );
 
-	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), 0 );
-	object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), 0 );
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), nullptr );
+	object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), nullptr );
 	const DOM::Call * call = dynamic_cast<const DOM::Entry *>(src)->getCallToTarget( dynamic_cast<const DOM::Entry *>(dst), phase );
-	object = new LQX::MethodInvocationExpression( call->getTypeName(), object, new LQX::ConstantValueExpression( dst->getName() ), 0 );
+	object = new LQX::MethodInvocationExpression( call->getTypeName(), object, new LQX::ConstantValueExpression( dst->getName() ), nullptr );
 	return observation( object, call, obs );
 
     }
@@ -262,10 +262,10 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Task* task, const DOM::Activity * activity, const DOM::Entry * dst, const ObservationInfo& obs )
     {
-	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), 0 );
-	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), 0 );
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( task->getTypeName(), new LQX::ConstantValueExpression( task->getName() ), nullptr );
+	object = new LQX::MethodInvocationExpression( activity->getTypeName(), object, new LQX::ConstantValueExpression( activity->getName() ), nullptr );
 	const DOM::Call * call = activity->getCallToTarget( dst );
-	object = new LQX::MethodInvocationExpression( call->getTypeName(), object, new LQX::ConstantValueExpression( dst->getName() ), 0 );
+	object = new LQX::MethodInvocationExpression( call->getTypeName(), object, new LQX::ConstantValueExpression( dst->getName() ), nullptr );
 	return observation( object, call, obs );
     }
 	
@@ -341,7 +341,7 @@ namespace LQIO {
 														   new LQX::MathExpression(LQX::MathExpression::SUBTRACT,
 																	   new LQX::VariableExpression( &name[1], false ),
 																	   new LQX::VariableExpression( name, true ) ),
-														   0 ),
+														   nullptr ),
 									      new LQX::VariableExpression( __convergence_limit_str, true ) );
 	    if ( var_p != __convergence_variables.begin() ) {
 		left_expr = new LQX::LogicExpression( LQX::LogicExpression::AND, left_expr, right_expr );
