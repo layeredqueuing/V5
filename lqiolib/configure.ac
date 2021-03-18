@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
+# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.71])
+AC_PREREQ([2.69])
 AC_INIT([liblqio],[0.3.0],[martinmroz@gmail.com])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_MACRO_DIR([../config])
@@ -12,7 +12,7 @@ AC_CONFIG_HEADERS([config.h])
 
 # Checks for programs.
 LT_INIT
-AC_PROG_LEX
+AC_PROG_LEX([noyywrap])
 AC_PROG_YACC
 AC_PROG_CXX
 AC_PROG_CC

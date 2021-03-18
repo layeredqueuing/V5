@@ -1,8 +1,8 @@
 #                                               -*- Autoconf -*-
-# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
+# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.71])
+AC_PREREQ([2.69])
 AC_INIT([liblmva],[0.1.0],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_MACRO_DIR([../config])
@@ -30,9 +30,6 @@ AC_C_BIGENDIAN
 # Checks for library functions.
 AC_CHECK_LIB([m], [sqrt])
 AC_FUNC_ERROR_AT_LINE
-AC_FUNC_SELECT_ARGTYPES 
-AC_DEFINE_UNQUOTED([RETSIGTYPE],[$ac_cv_type_signal],[Define as the return type of signal handlers
-		    (`int' or `void').])
 AC_FUNC_STAT
 AC_FUNC_STRFTIME
 AC_FUNC_STRTOD

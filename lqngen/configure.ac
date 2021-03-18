@@ -2,9 +2,9 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqngen/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
+# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
 # ------------------------------------------------------------------------
-AC_PREREQ([2.71])
+AC_PREREQ([2.69])
 AC_INIT([lqngen],[5.20],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqngen.h])
@@ -17,11 +17,8 @@ AC_SUBST(STATIC)
 #
 AC_LANG(C++)
 AC_PROG_CXX
-AC_PROG_LEX
-AC_PROG_YACC
 # Add in libtool.
 LT_INIT
-
 if test "x$enable_shared" = "xno"; then
    echo "Static build."
    STATIC=-all-static

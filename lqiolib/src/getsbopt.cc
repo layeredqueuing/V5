@@ -13,7 +13,7 @@
  *
  * Written by Greg Franks.  August, 1991.
  *
- * $Id: getsbopt.cc 9266 2010-03-23 19:26:48Z greg $
+ * $Id: getsbopt.cc 14567 2021-03-18 12:18:49Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)

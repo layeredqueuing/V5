@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14565 2021-03-18 02:41:03Z greg $
+# $Id: configure.ac 14567 2021-03-18 12:18:49Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([srvndiff],[5.20],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -32,7 +32,7 @@ AC_PROG_LN_S
 AC_PROG_MAKE_SET
 AC_PROG_RANLIB
 AC_PROG_YACC
-AC_PROG_LEX
+AC_PROG_LEX([noyywrap])
 AC_CHECK_PROGS(XPS2PDF, ps2pdf)
 if test -z "$XPS2PDF"; then
   AC_MSG_NOTICE([Ps2pdf not found - Unable to create PDF version of the user manual])
