@@ -1,12 +1,12 @@
 <?xml version="1.0"?>
-<!-- $Id: 82-sync.lqxo 14123 2020-11-24 15:20:57Z greg $ -->
-<!-- lqsim -confidence=1.0,1000 -xml -seed=1049217653 -output=82-sync.lqxo -->
-<lqn-model name="82-sync" description="lqsim 5.19 solution for model from: 82-sync.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<!-- $Id: 82-sync.lqxo 14568 2021-03-19 12:40:50Z greg $ -->
+<!-- lqsim -confidence=1.0,1000 -seed=1049217653 -->
+<lqn-model name="82-sync" description="lqsim 5.20 solution for model from: 82-sync.lqnx." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Synchronization with fork-join on one branch." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10">
       <pragma param="initial-loops" value="1000"/>
       <pragma param="precision" value="1.0"/>
       <pragma param="seed-value" value="1049217653"/>
-      <result-general solver-info="lqsim 5.19" valid="YES" conv-val="0.633367" iterations="3" platform-info="merlin.sce.carleton.ca Darwin 19.6.0" user-cpu-time=" 1:00:01.000" system-cpu-time=" 0:26:41.000" elapsed-time=" 1:29:15.000"/>
+      <result-general solver-info="lqsim 5.20" valid="true" conv-val="0.633367" iterations="3" platform-info="Gregs-MacBook.local Darwin 15.6.0" user-cpu-time=" 3:01:27.000" system-cpu-time=" 1:24:30.000" elapsed-time=" 4:28:49.000"/>
    </solver-params>
    <processor name="p1" scheduling="inf">
       <result-processor utilization="1.2304">
@@ -126,19 +126,6 @@
                </result-activity>
             </activity>
             <precedence>
-               <pre-AND>
-                  <result-join-delay join-waiting="0.928531" join-variance="0.999541">
-                     <result-conf-95 join-waiting="0.0058363" join-variance="0.0278377"/>
-                     <result-conf-99 join-waiting="0.0134616" join-variance="0.0642085"/>
-                  </result-join-delay>
-                  <activity name="a5"/>
-                  <activity name="a2"/>
-               </pre-AND>
-               <post>
-                  <activity name="a6"/>
-               </post>
-            </precedence>
-            <precedence>
                <pre>
                   <activity name="a1"/>
                </pre>
@@ -158,6 +145,19 @@
                </pre-AND>
                <post>
                   <activity name="a5"/>
+               </post>
+            </precedence>
+            <precedence>
+               <pre-AND>
+                  <result-join-delay join-waiting="0.928531" join-variance="0.999541">
+                     <result-conf-95 join-waiting="0.0058363" join-variance="0.0278377"/>
+                     <result-conf-99 join-waiting="0.0134616" join-variance="0.0642085"/>
+                  </result-join-delay>
+                  <activity name="a5"/>
+                  <activity name="a2"/>
+               </pre-AND>
+               <post>
+                  <activity name="a6"/>
                </post>
             </precedence>
             <reply-entry name="e3">

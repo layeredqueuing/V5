@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_output.cpp 14523 2021-03-06 22:53:02Z greg $
+ *  $Id: srvn_output.cpp 14568 2021-03-19 12:40:50Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -812,7 +812,7 @@ namespace LQIO {
             output << "-1" << std::endl << std::endl;
 
 	    if ( getDOM().entryHasWaitingTimeVariance() && _print_variances ) {
-                output << "VARW " << count_w << std::endl;
+                output << "VARF " << count_w << std::endl;
 		std::for_each( _entities.begin(), _entities.end(), EntryOutput( output, &EntryOutput::printForwardingVarianceWaiting, &EntryOutput::nullActivityFunc, &EntryOutput::nullActivityTest ) );
                 output << "-1" << std::endl << std::endl;
             }
