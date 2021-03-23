@@ -1,5 +1,5 @@
 .\" -*- nroff -*-
-.TH lqngen 1 ""  "5.13"
+.TH qnsolver 1 ""  "5.20"
 .\" $Id: lqngen.1 13479 2020-02-08 23:30:37Z greg $
 .\"
 .\" --------------------------------
@@ -8,17 +8,20 @@ qnsolver \- Solve a conventional BCMP queueing network model using Mean Value An
 .SH "SYNOPSIS"
 .br
 .B qnsolver
-[\fIOPTION \&.\|.\|.\fP] [\fIFILE\fR] \&.\|.\|. ]
+[\fIOPTION \&.\|.\|.\fP] [\fIFILE\fR \&.\|.\|. ]
 .SH "DESCRIPTION"
 \fBqnsolver\fP is used to conventional BCMP queueing network models
-using Exact or Approximate Mean Value Analysis.  
-
+using Exact or Approximate Mean Value Analysis.  The input file format
+is that of the Java Modeling Tools (with extensions to handle the SPEX
+modeling languge used by lqns(1).)  If a ``What-If'' element is found
+in the input file, output is either CSV, or a self-contained file that
+can be used with gnuplot(1) to plot the results.  Otherwise, the
+results for the model are printed.
 .SH "OPTIONS"
-.TP
 .TP
 \fB\-b\fR, \fB\-\-bounds\fR
 Compute the throughput and response time bounds.  (NOP for now, done
-implicitly with \fB\-\-plot\-throughput\fR and \fB\-\-plot\-response\-time\fR.
+implicitly with \fB\-\-plot\-throughput\fR and \fB\-\-plot\-response\-time\fR).
 .TP
 \fB\-e\fR, \fB\-\-exact\-mva\fR
 Use Exact Mean Value Analysis to solve the model(s).
@@ -26,27 +29,58 @@ Use Exact Mean Value Analysis to solve the model(s).
 \fB\-l\fR, \fB\-\-linearizer\fR
 Use Linearizer approximate MVA to solve the model(s).
 .TP
-\fB\-s\fR, \fB\-\-bard-\-schweitzer\fR
+\fB\-s\fR, \fB\-\-bard\-schweitzer\fR
 Use Bard\-Schweitzer approximate MVA to solve the model(s).
 .TP
-\fB\-s\fR, \fB\-\-fast-\-linearizer\fR
+\fB\-s\fR, \fB\-\-fast\-linearizer\fR
 Use ``Fast Linearizer'' approximate MVA to solve the model(s).
 .TP
 \fB\-o\fP, \fB\-\-output\fR=\fIarg\fR
 Direct analysis results to \fIoutput\fP.  A filename of `\fI-\fR'
 directs output to standard output.
 .TP
-\fB\-t\fP, \fB\-\-plot\-throughput\fR
-Generate gnuplot(1) for plotting the throughput and bounds for the
+\fB\-q\fP, \fB\-\-plot\-queue\-length\fR=\fIarg\fR
+Generate gnuplot(1) output to plot the queue length (number of
+customers) for either all stations for the class named \fIarg\fP, or
+for all classes for the station named \fIarg\fP.  The independent
+``What-If'' variable is used as the X-axis.  
+.TP
+\fB\-r\fP, \fB\-\-plot\-response\-time\fR
+Generate gnuplot(1) output for plotting the response time and bounds for the
+system from the solution of a ``What-If'' model.  The response time
+does not include the residence times for the reference station.
+The independent ``What-If'' variable is used for the X-axis.  
+.TP
+\fB\-t\fP, \fB\-\-plot\-throughput\fR[=\fIarg\fR]
+Generate gnuplot(1) output for plotting the throughput.  If the
+optional \fIarg\fP is present, the throughput is plotted for all
+stations for the class named \fIarg\fP, or for all classes for the
+station named \fIarg\fP.  If the optional \fIarg\fP is not present,
+generate gnuplot to plot the throughput and throughput bounds for the
 ``Reference Station'' from the
-solution of a ``What-If'' model.  The independent ``What-If''
-variable is used as the X-axis.  If a What-If analysis of population
+solution of a ``What-If'' model. The independent ``What-If''
+variable is used for the X-axis.  
+.IP
+If a What-If analysis of population
 mix is specified in the input file, then the throughput and bounds for the second
 class is plotted versus the throughput and bounds for the first class.
-\fB\-t\fP, \fB\-\-plot\-response\-time\fR
-Generate gnuplot(1) for plotting the response time and bounds for the
-system from the solution of a ``What-If'' model.  The independent ``What-If''
-variable is used as the X-axis.  
+.TP
+\fB\-u\fP, \fB\-\-plot\-utilization\fR
+Generate gnuplot(1) output for plotting the utilization for the for either all stations
+for the class named \fIarg\fP, or for all classes for the station
+named \fIarg\fP.  The independent ``What-If'' variable is used for the X-axis.
+The independent ``What-If''
+variable is used for the X-axis.  
+.TP
+\fB\-w\fP, \fB\-\-plot\-waiting\-time\fR
+Generate gnuplot(1) output for plotting the waiting time for either all stations
+for the class named \fIarg\fP, or for all classes for the station
+named \fIarg\fP.  The independent ``What-If'' variable is used for the X-axis.
+.TP
+\fB\-Q\fP, \fB\-\-export\-qnap2\fR
+Convert the input model into QNAP2.  The conversion \fIdoes not\fP translate
+class or station names into a form suitable for QNAP2 (i.e., no more than
+eight characters and no spaces for station and class names).
 .TP
 \fB\-X\fP, \fB\-\-debug\-xml\fR
 Debug XML input.
@@ -54,5 +88,5 @@ Debug XML input.
 \fB\-X\fP, \fB\-\-debug\-spex\fR
 Output the SPEX program generated.
 .SH "SEE ALSO"
-\fBlqns\fP(1)
+\fBlqns\fP(1), \fBgnuplot\fP(1).
 

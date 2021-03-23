@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14542 2021-03-12 22:33:47Z greg $
+ * $Id: qnsolver.cc 14572 2021-03-21 02:43:53Z greg $
  */
 
 #include <algorithm>
@@ -23,9 +23,9 @@ const struct option longopts[] =
 {
     { "bounds",		    no_argument,	0, 'b' },
     { "exact-mva",          no_argument,       	0, 'e' },
-    { "fast-linearizer",    no_argument,       	0, 'f' },
     { "bard-schweitzer",    no_argument,       	0, 's' },
     { "linearizer",         no_argument,       	0, 'l' },
+    { "fast-linearizer",    no_argument,       	0, 'f' },
     { "output", 	    required_argument, 	0, 'o' },
     { "plot-queue-length",  required_argument,  0, 'q' },
     { "plot-response-time", no_argument,        0, 'r' },
@@ -49,16 +49,16 @@ static std::string opts = "bdefhlo:rstvxQSX";
 
 const char * opthelp[]  = {
     /* "bounds"		  */    "Compute bounds",
-    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
     /* "exact-mva",       */    "Use Exact MVA.",
-    /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
+    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
     /* "linearizer",      */    "Use Linearizer.",
+    /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
     /* "output",	  */	"Send output to ARG.",
     /* "plot-queue-length */	"Output gnuplot to plot station queue-length.  ARG specifies a class or station.",
     /* "plot-response-time" */	"Output gnuplot to plot system response-time (and bounds).", 
     /* "plot-throughput", */    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG.",
     /* "plot-utilization  */	"Output gnuplot to plot utilization.  ARG specifies a class or station.",
-    /* "plot-waiting-time */	"Output gnuplot to plot station waiting-tims.  ARG specifies a class or station.",
+    /* "plot-waiting-time */	"Output gnuplot to plot station waiting-times.  ARG specifies a class or station.",
     /* "verbose",         */    "",
     /* "help",            */    "Show this.",
     /* "experimental",	  */	"",
