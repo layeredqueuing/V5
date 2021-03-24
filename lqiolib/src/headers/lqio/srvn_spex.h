@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14575 2021-03-22 18:28:33Z greg $
+ * $Id: srvn_spex.h 14581 2021-03-24 21:07:22Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -313,6 +313,7 @@ namespace LQIO {
 	LQX::SyntaxTreeNode * print_gnuplot_header() const;
 	expr_list * plot( expr_list * );
 	expr_list * splot( expr_list * );
+	std::map<const LQX::SyntaxTreeNode *,std::string> get_plot_args( expr_list *, expr_list * );
 
 	static expr_list * make_list( LQX::SyntaxTreeNode*, ... );
 	static LQX::SyntaxTreeNode * print_node( const std::string& );
@@ -356,6 +357,8 @@ namespace LQIO {
 	static void * __temp_variable;						/* JSON */
 
 	expr_list _gnuplot;							/* Gnuplot program */
+	std::map<std::string,size_t> _result_pos;				/* Index of variable in list. */
+
     };
 
     inline std::ostream& operator<<( std::ostream& output, const Spex::ComprehensionInfo& self) { return self.print( output ); }
