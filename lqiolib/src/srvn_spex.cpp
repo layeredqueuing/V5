@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14581 2021-03-24 21:07:22Z greg $
+ *  $Id: srvn_spex.cpp 14582 2021-03-25 11:04:28Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -781,7 +781,6 @@ namespace LQIO {
 	}
 	return begin;
     }
-
 
     /* ------------------------------------------------------------------------ */
     /* lqn 'input' output functions for printing spex stuff out in input file.	*/

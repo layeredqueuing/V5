@@ -227,7 +227,7 @@ namespace BCMP {
 
 	    bool any_of( const Chain::map_t& chains, Chain::Type type ) const;
 	    size_t count_if( const Chain::map_t& chains, Chain::Type type ) const;
-	    
+	
 	    struct is_a {
 		is_a( const Model& model, Chain::Type type ) : _model(model), _type(type) {}
 		bool operator()( const Station::pair_t& station ) const { return _type == Chain::Type::UNDEFINED || station.second.any_of( chains(), _type ); }
@@ -263,17 +263,17 @@ namespace BCMP {
 	class Bound {
 	public:
 	    Bound( const Chain::pair_t& chain, const Station::map_t& stations );
-    
+
 	    double think_time() const;
 
 	    double D_max() const { return _D_max; }
 	    double D_sum() const { return _D_sum; }
 	    double Z() const { return _Z; }
-	    
+	
 	private:
 	    const std::string& chain() const { return _chain.first; }
 	    const Station::map_t& stations() const { return _stations; }
-    
+
 	    void compute();
 
 	    struct max_demand {

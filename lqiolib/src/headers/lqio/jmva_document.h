@@ -35,13 +35,14 @@ namespace BCMP {
 	public:
 	    enum class type { VOID, MODEL, CLASS, OBJECT, STATION, DEMAND, PAIR };
 	    typedef std::pair<const Model::Station *,const Model::Station::Class *> MK;
+	    Object(const Object&);
 	    Object() : _discriminator(type::VOID), u() {}
 	    Object(Model * _m_) : _discriminator(type::MODEL), u(_m_) {}
 	    Object(Model::Chain * _k_) : _discriminator(type::CLASS), u(_k_) {}
 	    Object(Model::Object * _o_ ) : _discriminator(type::OBJECT), u(_o_) {}
 	    Object(Model::Station *_s_) : _discriminator(type::STATION), u(_s_) {}
 	    Object(Model::Station::Class * _d_) : _discriminator(type::DEMAND), u(_d_) {}
-	    Object(const MK& _mk_ ) : _discriminator(type::PAIR), u(_mk_) {}
+	    Object(const MK& _mk_) : _discriminator(type::PAIR), u(_mk_) {}
 	    type getDiscriminator() const { return _discriminator; }
 	    bool isModel() const { return _discriminator == type::MODEL; }
 	    bool isClass() const { return _discriminator == type::CLASS; }

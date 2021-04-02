@@ -1,0 +1,2 @@
+#!/bin/sh
+./configure -C --prefix=/usr/local LDFLAGS='-L/usr/local/lib' CPPFLAGS='-I/usr/local/include'

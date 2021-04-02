@@ -6,7 +6,7 @@
 %% Created:             Tue Jul 18 2006
 %%
 %% ----------------------------------------------------------------------
-%% $Id: input-grammar.tex 11987 2014-04-16 20:57:40Z greg $
+%% $Id: input-grammar.tex 14584 2021-03-25 13:22:14Z greg $
 %% ----------------------------------------------------------------------
 
 \newcommand{\altflg}[1]{#1}
@@ -280,12 +280,22 @@
 
 \subsection{SPEX Report Information}\index{SPEX!grammar!report}
 \begin{bnf}{multi\_server\_flag}
-  \defitem[report\_info] R \<nr> \<report\_decl\_list>
+  \defitem[report\_info] R \<nr> \<report\_decl\_list>  \<end\_list>
+  \oritem R \<nr> \<identifier> ( \<expression\_list> )
+
+  \defitem[report\_decl\_list] \rep{\<$r$\_decl>}{1}{nr}
+
+  \defitem[$r$\_decl] \<variable> = \<ternary\_expr>
+  \oritem \<expression>
 \end{bnf}
 
 \subsection{SPEX Convergence Information}\index{SPEX!grammar!convergence}
 \begin{bnf}{multi\_server\_flag}
-  \defitem[convergence\_info] C \<nc> \<convergence\_decl\_list>
+  \defitem[convergence\_info] C \<nc> \<convergence\_decl\_list>  \<end\_list>
+
+  \defitem[convergence\_decl\_list] \rep{\<$c$\_decl>}{1}{nr}
+
+  \defitem[$c$\_decl] \<variable> = \<ternary\_expr>
 \end{bnf}
 
 \subsection{Expressions}\index{SPEX!grammar!expressions}

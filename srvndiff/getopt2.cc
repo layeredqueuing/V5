@@ -64,7 +64,7 @@ int
 getopt2_long( int nargc, char * const * nargv, const char *ostr, const struct option * longopts, int * longindex )
 {
     static const char *place = EMSG;	/* option letter processing */
-    register char *oli;			/* option letter list index */
+    char *oli;				/* option letter list index */
     char *p;
     if (!(p = strrchr(*nargv, '/')))
 	p = *nargv;

@@ -7,7 +7,7 @@
 %% Created:             27 April 2011
 %%
 %% ------------------------------------------------------------------------
-%%  $Id: srvn.tex 14489 2021-02-24 22:44:45Z greg $
+%%  $Id: srvn.tex 14584 2021-03-25 13:22:14Z greg $
 %% ------------------------------------------------------------------------
 %%
 \lstdefinelanguage{LQN}{
@@ -708,8 +708,9 @@ function\index{SPEX!report!plot}, or a list of variables (with possible computed
 \begin{lstlisting}[caption={Report Information},label=lst:lqn-report-info,frame=single,float]
 R <int>
   plot( <var-list> )
-  $var
+  splot( <var-list> )
   $var = <ternary-expression>
+  <expression>
 -1
 \end{lstlisting}
 
@@ -717,20 +718,27 @@ There may be any number of report declarations, however, the integer parameter t
 the number of report declarations present or zero\footnote{The number is ignored; it is present in the
 syntax so that the report section matches the other sections.}.
 
-The \nonterminal{ternary-expression} may be any valid ternaray expression as discussed above.  Note that in this section,
-the report indication variables\index{variables!report indication} and the parameter
-variables\index{variables!parameters} may both be used together. 
+The \nonterminal{ternary-expression} may be any valid ternaray expression as discussed above.  The
+\nonterminal{expression} can be any expression, including a lone variable or a function call.  Report
+indication variables\index{variables!report indication} and the parameter
+variables\index{variables!parameters} may both be used together, but may not be mixed with either
+\texttt{plot()}\index{Spex!report!plot} or \texttt{splot()}\index{Spex!report!splot}.
 
 The values of the variables listed in this
 section are printed from left to right in the order that they appear in the input file separated by commas.
-This output can then be used as input to Gnuplot\index{Gnuplot} or a spreadsheet such as Excel\index{Excel}.
+This output can then be used as input to Gnuplot\index{Gnuplot} or a spreadsheet such as
+Excel\index{Excel}.  Output is normally sent to the terminal, but can be redirected using \flag{o}{}\texttt{output} \emph{filename}.
 
-If the \texttt{plot()}\index{Spex!report!plot} function is used, output will formatted in such a way that it
+If the \texttt{plot()}\index{Spex!report!plot} or \texttt{splot()}\index{Spex!report!splot} function is used, output will formatted in such a way that it
 can be used as input into gnuplot\index{gnuplot}.  The first argument to the \texttt{plot}\index{plot}
-function call is the x\index{plot!x} variable for the graph.  Multiple additional arguments are permitted
-but should be grouped by result type (ie., throughputs, utilizations).  Up to two groups can be plotted with
+function call is the x\index{plot!x} variable for the graph.  The first two arguments to the \texttt{splot}\index{splot}
+function call are the x\index{plot!x} and y\index{plot!y} variables for the graph.  Multiple additional arguments are permitted
+but should be grouped by result type (ie., throughputs, utilizations).  When using
+\texttt{plot}\index{plot}, up to two groups can be plotted with
 results in first group being plotted against the left 'y'\index{plot!y} axis, and results from the second on
-the right 'y' axis.  Only one plot function can be specified in the report section at this time.
+the right 'y' axis.  When using
+\texttt{splot}\index{splot}, only one group of results can be used. Only one plot function can be specified
+in the report section at this time.  The actual output is self-contained gnuplot\index{gnuplot} input.
 
 There is a special variable called \texttt{\$0}\index{\$0} which represents the independent variable in the
 results tables (the x-axis in plots).  The variable \texttt{\$0} may be set to any expression allowing for
@@ -747,7 +755,6 @@ result section:
 \lstset{language=LQN,basicstyle=\ttfamily,numbersep=10pt,firstnumber=1}
 \begin{lstlisting}[caption={Convergence Information},label=lst:lqn-convergence-info,frame=single]
 C <int>
-   $var
    $var = <ternary-expression>
 -1
 \end{lstlisting}

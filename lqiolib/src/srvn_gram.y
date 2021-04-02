@@ -718,7 +718,6 @@ c_decl_list		: c_decl				{ $$ = spex_list( 0, $1 ); }
 			;
 
 c_decl			: VARIABLE '=' ternary_expr		{ $$ = spex_convergence_assignment_statement( $1, $3 ); }
-			| VARIABLE				{ $$ = spex_convergence_assignment_statement( $1, 0 ); }
 			;
 /*- spex */
 

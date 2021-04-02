@@ -95,9 +95,9 @@ namespace BCMP {
     }
 
     /*
-     * Compute reponse time for class "name" 
+     * Compute reponse time for class "name"
      */
-    
+
     double
     Model::response_time( const std::string& name ) const
     {
@@ -119,8 +119,8 @@ namespace BCMP {
 	    return 0.0;
 	}
     }
-    
-    
+
+
     Model::Station::Class::map_t
     Model::sum_visits::operator()( const Station::Class::map_t& input, const Station::Class::pair_t& clasx ) const
     {
@@ -211,13 +211,13 @@ namespace BCMP {
     }
 
 
-    std::pair<Model::Station::Class::map_t::iterator,bool> 
+    std::pair<Model::Station::Class::map_t::iterator,bool>
     Model::Station::insertClass( const std::string& class_name, const Class& clasx )
     {
 	return _classes.emplace( class_name, clasx );
     }
 
-    std::pair<Model::Station::Class::map_t::iterator,bool> 
+    std::pair<Model::Station::Class::map_t::iterator,bool>
     Model::Station::insertClass( const std::string& class_name, const DOM::ExternalVariable* visits, const DOM::ExternalVariable* service_time )
     {
 	return _classes.emplace( class_name, Class( visits, service_time ) );
@@ -497,7 +497,7 @@ namespace BCMP {
      * Find the largest demand at a station that forms queues.  Adjust
      * for multiplicity.
      */
-    
+
     double
     Model::Bound::max_demand::operator()( double a1, const Model::Station::pair_t& m2 )
     {
