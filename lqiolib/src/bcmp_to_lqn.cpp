@@ -92,7 +92,7 @@ DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Chain::
 void
 DOM::BCMP_to_LQN::createLQNTaskProcessor::operator()( const BCMP::Model::Station::pair_t& m ) 
 {
-    if ( m.second.type() == BCMP::Model::Station::Type::CUSTOMER ) return;
+    if ( m.second.reference() ) return;
     
     /* Always a PS type processor */
     std::string name = m.first;

@@ -57,11 +57,13 @@ namespace BCMP {
     {
         switch ( _discriminator ) {
 	case type::CLASS:   u.k = o.u.k; break;
+	case type::DEMAND:  u.d = o.u.d; break;
 	case type::MODEL:   u.m = o.u.m; break;
 	case type::OBJECT:  u.o = o.u.o; break;
 	case type::PAIR:    u.mk = o.u.mk; break;
 	case type::STATION: u.s = o.u.s; break;
-	default: u.v = nullptr;
+	case type::VOID:    u.v = nullptr; break;
+	    /* NO default to catch new discriminators through warning */
 	}
     }
   
@@ -662,7 +664,7 @@ namespace BCMP {
 	    checkAttributes( element, attributes, ReferenceStation_table );
 	    const std::string refStation = XML::getStringAttribute( attributes, XrefStation );
 	    if ( refStation != XArrivalProcess ) {
-		_model.stationAt( refStation ).setType(Model::Station::Type::CUSTOMER);
+		_model.stationAt( refStation ).setReference(true);
 	    }
 	    _stack.push( parse_stack_t(element,&JMVA_Document::startNOP,object) );
 	} else {
@@ -1281,7 +1283,7 @@ namespace BCMP {
 	size_t y = x;
 	
 	for ( Model::Station::map_t::const_iterator m = stations().begin(); m != stations().end(); ++m ) {
-	    if ( m->second.type() == Model::Station::Type::CUSTOMER || !m->second.hasClass(arg) ) continue;
+	    if ( m->second.reference() || !m->second.hasClass(arg) ) continue;
 
 	    if ( y > 1 ) plot << ", ";
 
@@ -1641,7 +1643,6 @@ namespace BCMP {
 	const BCMP::Model::Station& station = m.second;
 	std::string element;
 	switch ( station.type() ) {
-	case Model::Station::Type::CUSTOMER:
 	case Model::Station::Type::DELAY:
 	    element = Xdelaystation;
 	    break;

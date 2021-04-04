@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14547 2021-03-15 17:48:06Z greg $
+ * $Id: entity.cc 14589 2021-04-04 12:28:05Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -732,8 +732,7 @@ void
 Entity::create_station::operator()( const Entity * entity ) const
 {
     BCMP::Model::Station::Type type;
-    if ( _type == BCMP::Model::Station::Type::CUSTOMER ) type = _type;
-    else if ( entity->isInfinite() ) type = BCMP::Model::Station::Type::DELAY;
+    if ( entity->isInfinite() ) type = BCMP::Model::Station::Type::DELAY;
     else if ( entity->isMultiServer() ) type = BCMP::Model::Station::Type::MULTISERVER;
     else type = BCMP::Model::Station::Type::LOAD_INDEPENDENT;
     _model.insertStation( entity->name(), type, entity->scheduling(), dynamic_cast<const LQIO::DOM::Entity *>(entity->getDOM())->getCopies() );

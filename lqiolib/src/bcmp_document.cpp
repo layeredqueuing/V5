@@ -533,8 +533,7 @@ namespace BCMP {
     Model::Bound::sum_think_time::operator()( double a1, const Model::Station::pair_t& m2 )
     {
 	const Model::Station& m = m2.second;
-	if ( m.type() != Model::Station::Type::CUSTOMER
-	     || !m.hasClass( _class ) ) return a1;
+	if ( !m.reference() || !m.hasClass( _class ) ) return a1;
 	const Model::Station::Class& k = m.classAt( _class );
 	return a1 += to_double( *k.visits() ) * to_double( *k.service_time() );
     }

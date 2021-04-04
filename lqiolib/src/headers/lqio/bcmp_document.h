@@ -120,7 +120,7 @@ namespace BCMP {
 	    typedef std::map<const std::string,Station> map_t;
 	    typedef std::pair<const std::string,Station> pair_t;
 
-	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, CUSTOMER, SOURCE };
+	    enum class Type { NOT_DEFINED, DELAY, LOAD_INDEPENDENT, MULTISERVER, SOURCE };
 
 	    /* -------------------------------------------------------- */
 	    /*                          Class                           */
@@ -177,7 +177,7 @@ namespace BCMP {
 
 	public:
 	    Station( Type type=Type::NOT_DEFINED, scheduling_type scheduling=SCHEDULE_DELAY, const DOM::ExternalVariable* copies=nullptr ) :
-		_type(type), _scheduling(scheduling), _copies(copies) {}
+		_type(type), _scheduling(scheduling), _copies(copies), _reference(false) {}
 	    ~Station();
 
 	    std::pair<Station::Class::map_t::iterator,bool> insertClass( const std::string&, const Class& );
@@ -190,6 +190,8 @@ namespace BCMP {
 	    scheduling_type scheduling() const { return _scheduling; }
 	    const DOM::ExternalVariable* copies() const { return _copies; }
 	    void setCopies( const DOM::ExternalVariable* copies ) { _copies = copies; }
+	    bool reference() const { return _reference; }
+	    void setReference( bool reference ) { _reference = reference; }
 	    Class::map_t& classes() { return _classes; }
 	    const Class::map_t& classes() const { return _classes; }
 	    Class& classAt( const std::string& name ) { return _classes.at(name); }
@@ -200,8 +202,8 @@ namespace BCMP {
 	    bool hasClass( const std::string& name ) const { return _classes.find(name) != _classes.end(); }
 	    Class::map_t::const_iterator findClass( const Class * k ) const;
 
-	    static bool isCustomer( const Station::pair_t& m ) { return m.second.type() == Type::CUSTOMER; }
-	    static bool isServer( const Station::pair_t& m ) { return m.second.type() != Type::CUSTOMER && m.second.type() != Type::NOT_DEFINED; }
+	    static bool isCustomer( const Station::pair_t& m ) { return m.second.reference(); }
+	    static bool isServer( const Station::pair_t& m ) { return !m.second.reference() && m.second.type() != Type::NOT_DEFINED; }
 
 	    virtual double throughput() const;
 	    virtual double queue_length() const;
@@ -252,6 +254,7 @@ namespace BCMP {
 	    Type _type;
 	    scheduling_type _scheduling;
 	    const DOM::ExternalVariable* _copies;
+	    bool _reference;
 	    Class::map_t _classes;
 	    Result::map_t _result_vars;
 	};

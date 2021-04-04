@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14467 2021-02-09 02:16:52Z greg $
+ * $Id: expat_document.cpp 14588 2021-04-04 03:21:42Z greg $
  *
  * Read in XML input files.
  *
@@ -298,13 +298,13 @@ namespace LQIO {
         Expat_Document::end( void *data, const XML_Char *el )
         {
             Expat_Document * document = static_cast<Expat_Document *>(data);
-            DocumentObject * extra_object = 0;
             bool done = false;
+	    DocumentObject * extra_object = nullptr;
             while ( document->_stack.size() > 0 && !done ) {
                 parse_stack_t& top = document->_stack.top();
-                if ( top.extra_object ) {
-                    extra_object = top.extra_object;
-                }
+		if ( top.extra_object != nullptr ) {
+		    extra_object = top.extra_object;		/* Propogate any extra object up */
+		}
                 if ( Document::__debugXML ) {
 		    std::cerr << std::setw(4) << LQIO_lineno << ": ";
                     for ( unsigned i = 1; i < document->_stack.size(); ++i ) {
@@ -322,7 +322,7 @@ namespace LQIO {
 		}
                 document->_stack.pop();
             }
-            if ( document->_stack.size() > 0 && extra_object ) {
+            if ( document->_stack.size() > 0 && extra_object != nullptr ) {
                 document->_stack.top().extra_object = extra_object;             // needed for act_connect.
             }
             return;
@@ -772,7 +772,7 @@ namespace LQIO {
         void
         Expat_Document::startActivityDefBase( DocumentObject * activity, const XML_Char * element, const XML_Char ** attributes )
         {
-            Call * call = 0;
+            Call * call = nullptr;
             if ( strcasecmp( element, Xresult_activity ) == 0 ) {
 		try {
 		    handleResults( activity, attributes );
@@ -952,8 +952,8 @@ namespace LQIO {
 		{ Xpost_loop,  ActivityList::Type::REPEAT }
 	    };
 
-            ActivityList * pre_list = 0;
-            ActivityList * post_list = 0;
+            ActivityList * pre_list = nullptr;
+            ActivityList * post_list = nullptr;
             std::map<const XML_Char *,const ActivityList::ActivityList::Type>::const_iterator item = precedence_table.find(element);
             if ( item != precedence_table.end() ) {
                 switch ( item->second ) {
@@ -970,7 +970,7 @@ namespace LQIO {
                     if ( post_list ) {
                         pre_list->setNext(post_list);
                         post_list->setPrevious(pre_list);
-                        _stack.top().extra_object = 0;
+                        _stack.top().extra_object = nullptr;
                         _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType,pre_list) );
                     } else {
                         _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType,pre_list,pre_list) );
@@ -986,7 +986,7 @@ namespace LQIO {
                     if ( pre_list ) {
                         pre_list->setNext(post_list);
                         post_list->setPrevious(pre_list);
-                        _stack.top().extra_object = 0;
+                        _stack.top().extra_object = nullptr;
                         _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType,post_list) );
                     } else {
                         _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType,post_list,post_list) );
@@ -1046,7 +1046,7 @@ namespace LQIO {
                 const XML_Char * activity_name = XML::getStringAttribute(attributes,Xname);
                 if ( activity_name ) {
                     const Task * task = dynamic_cast<Task *>(_stack.top().extra_object);                // entry may not have task.
-                    assert( task != 0 );
+                    assert( task != nullptr );
                     Activity * activity = task->getActivity( activity_name );
                     if ( !activity ) {
                         input_error2( ERR_NOT_DEFINED, activity_name );
@@ -1378,7 +1378,7 @@ namespace LQIO {
                 }
 
                 Processor * processor = dynamic_cast<Processor *>(object);
-                Group * group = 0;
+                Group * group = nullptr;
                 if ( !processor ) {
                     group = dynamic_cast<Group *>(object);
                     if ( !group ) {
@@ -1593,7 +1593,7 @@ namespace LQIO {
         Phase *
         Expat_Document::handlePhaseActivity( DocumentObject * entry, const XML_Char ** attributes )
         {
-            Phase* phase = 0;
+            Phase* phase = nullptr;
             const long p = XML::getLongAttribute(attributes,Xphase);
             if ( p < 1 || 3 < p ) {
                 throw std::domain_error( "phase" );
@@ -2022,7 +2022,7 @@ namespace LQIO {
         Histogram *
         Expat_Document::findOrAddHistogram( DocumentObject * object, Histogram::Type  type, unsigned int n_bins, double min, double max )
         {
-            Histogram * histogram = 0;
+            Histogram * histogram = nullptr;
             if ( _createObjects ) {
                 if ( object->hasHistogram() ) throw duplicate_symbol( object->getName() );
 
@@ -2040,7 +2040,7 @@ namespace LQIO {
         Histogram *
         Expat_Document::findOrAddHistogram( DocumentObject * object, unsigned int phase, Histogram::Type  type, unsigned int n_bins, double min, double max )
         {
-            Histogram * histogram = 0;
+            Histogram * histogram = nullptr;
             if ( _createObjects ) {
                 if ( object->hasHistogramForPhase( phase ) ) throw duplicate_symbol( object->getName() );
 

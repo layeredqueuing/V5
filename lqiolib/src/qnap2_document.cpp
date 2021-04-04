@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14464 2021-02-07 16:15:45Z greg $
+ * $Id: qnap2_document.cpp 14589 2021-04-04 12:28:05Z greg $
  *
  * Read in XML input files.
  *
@@ -309,12 +309,6 @@ namespace BCMP {
 	_output << "&" << std::endl
 		<< "/station/ name=" << m.first << ";" << std::endl;
 	switch ( station.type() ) {
-	case Model::Station::Type::CUSTOMER:
-	    _output << qnap2_statement( "init=n_users", "Population by class" ) << std::endl
-		    << qnap2_statement( "type=" + __scheduling_str.at(SCHEDULE_CUSTOMER) ) << std::endl
-		    << qnap2_statement( "service=exp(think_t)" ) << std::endl;
-	    printCustomerTransit();
-	    return;
 	case Model::Station::Type::SOURCE:
 	    _output << qnap2_statement( "type=source" ) << std::endl;
 	    printInterarrivalTime();
@@ -343,8 +337,14 @@ namespace BCMP {
 
 	/* Print out service time variables and visits for non-special stations */
 
-	_output << qnap2_statement( "service=exp(" + m.first + "_t)" ) << std::endl;
-	printServerTransit( m );
+	if ( station.reference() ) {
+	    _output << qnap2_statement( "init=n_users", "Population by class" ) << std::endl
+		    << qnap2_statement( "service=exp(think_t)" ) << std::endl;
+	    printCustomerTransit();
+	} else {
+	    _output << qnap2_statement( "service=exp(" + m.first + "_t)" ) << std::endl;
+	    printServerTransit( m );
+	}
     }
 
     void 
@@ -411,7 +411,7 @@ namespace BCMP {
     QNAP2_Document::fold_transit::operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const
     {
 	const Model::Station& station = m2.second;
-	if ( station.type() == Model::Station::Type::CUSTOMER || !station.hasClass(_name) || LQIO::DOM::ExternalVariable::isDefault(station.classAt(_name).visits(),0.) ) {
+	if ( station.reference() || !station.hasClass(_name) || LQIO::DOM::ExternalVariable::isDefault(station.classAt(_name).visits(),0.) ) {
 	    return s1;
 	} else {
 	    std::string s = s1;
@@ -479,13 +479,11 @@ namespace BCMP {
 	for ( Model::Chain::map_t::const_iterator k = chains().begin(); k != chains().end(); ++k ) {
 	    std::string name;
 	    
-	    switch ( station.type() ) {
-	    case Model::Station::Type::CUSTOMER:
-		continue;
-	    case Model::Station::Type::SOURCE:
+	    if ( station.type() == Model::Station::Type::SOURCE ) {
 		name = "arrivals";
-		break;
-	    default:
+	    } else if ( station.reference() ) {
+		continue;
+	    } else {
 		name = m.first + "_t";
 		break;
 	    }
@@ -658,16 +656,14 @@ namespace BCMP {
 	std::string result;
 	std::string comment;
 	const BCMP::Model::Station& station = stations().at(station_name);
-	result = "mthruput(";
-	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
+	result = "mthruput(" + station_name;
+	if ( station.reference() ) {
 	    /* Report class results for the customers; the station name is the class name */
 	    std::string think_visits = std::accumulate( stations().begin(), stations().end(), std::string(""), fold_visits( class_name ) );
-	    result += "terminal";
 	    if ( multiclass() ) result += "," + class_name;
 	    result += ")/(" + think_visits + ")";
 	    comment = "Convert to LQN throughput";
 	} else {
-	    result += station_name;
 	    if ( !class_name.empty() ) result += "," + class_name;
 	    result += ")";
 	}
@@ -679,13 +675,7 @@ namespace BCMP {
     {
 	std::string result;
 	std::string comment;
-	const BCMP::Model::Station& station = stations().at(station_name);
-	result = "mbusypct(";
-	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
-	    result += "terminal";
-	} else {
-	    result += station_name;
-	}
+	result = "mbusypct(" + station_name;
 	if ( !class_name.empty() ) result += "," + class_name;
 	result += ")";
 	return std::pair<std::string,std::string>(result,comment);
@@ -701,9 +691,8 @@ namespace BCMP {
 	std::string result;
 	std::string comment;
 	const BCMP::Model::Station& station = stations().at(station_name);
-	result =  "mservice(";
-	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
-	    result = "terminal";
+	result =  "mservice(" + station_name;
+	if ( station.reference() ) {
 	    if ( multiclass() ) result += "," + class_name;
 	    result += ")*(";
 	    result += std::accumulate( stations().begin(), stations().end(), result, fold_visits( class_name ) );
@@ -712,7 +701,6 @@ namespace BCMP {
 	    result += ")";
 	    comment = "Convert to LQN service time";
 	} else {
-	    result += station_name + ")";
 	    if ( multiclass() && !class_name.empty() ) result += "," + class_name;
 	    result += ")";
 	    comment = "Station service time only.";
@@ -729,19 +717,7 @@ namespace BCMP {
     {
 	std::string result;
 	std::string comment;
-	const BCMP::Model::Station& station = stations().at(station_name);
-	result = "mresponse(";
-	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
-	    result += "terminal";
-	} else {
-	    result += station_name;
-	}
-	result += ")-mservice(";
-	if ( station.type() == BCMP::Model::Station::Type::CUSTOMER ) {
-	    result += "terminal";
-	} else {
-	    result += station_name;
-	}
+	result = "mresponse(" + station_name + ")-mservice(" + station_name;
 	if ( multiclass() && !class_name.empty() ) result += "," + class_name;
 	result += ")";
 	comment = "Convert to LQN queueing time";
@@ -759,7 +735,7 @@ namespace BCMP {
     std::string
     QNAP2_Document::fold_station::operator()( const std::string& s1, const Model::Station::pair_t& s2 ) const
     {
-	if ( s2.second.type() == Model::Station::Type::CUSTOMER || s2.second.type() == Model::Station::Type::SOURCE ) return s1;
+	if ( s2.second.reference() || s2.second.type() == Model::Station::Type::SOURCE ) return s1;
 	else if ( s1.empty() ) {
 	    return s2.first + _suffix;
 	} else {
@@ -782,7 +758,7 @@ namespace BCMP {
     QNAP2_Document::fold_visits::operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const
     {
 	const Model::Station& station = m2.second;
-	if ( !station.hasClass(_name) || station.type() == Model::Station::Type::CUSTOMER ) return s1;	/* Don't visit self */
+	if ( !station.hasClass(_name) || station.reference() ) return s1;	/* Don't visit self */
 	const LQIO::DOM::ExternalVariable * visits = station.classAt(_name).visits();
 	if ( LQIO::DOM::ExternalVariable::isDefault(visits,0.) ) return s1;	/* ignore zeros */
 	std::string s2 = to_real( visits );
@@ -797,7 +773,7 @@ namespace BCMP {
     QNAP2_Document::fold_mresponse::operator()( const std::string& s1, const Model::Station::pair_t& m2 ) const
     {
 	const Model::Station& station = m2.second;
-	if ( !station.hasClass(_name) || station.type() == Model::Station::Type::CUSTOMER ) return s1;	/* Don't visit self */
+	if ( !station.hasClass(_name) || station.reference() ) return s1;	/* Don't visit self */
 	std::string s2 = "mresponse(" + m2.first;
 	if ( multiclass() ) {
 	    s2 += "," + _name;
