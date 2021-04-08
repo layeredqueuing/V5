@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14582 2021-03-25 11:04:28Z greg $
+ *  $Id: srvn_spex.cpp 14593 2021-04-08 01:03:18Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -543,6 +543,12 @@ namespace LQIO {
 
 		x = _result_pos.at(name);
 		_gnuplot.push_back( print_node( "set xlabel \"" + name + "\"" ) );
+		const std::map<std::string,Spex::ComprehensionInfo>::const_iterator i = __comprehensions.find( name );
+		/* Set range */
+		if ( i != __comprehensions.end() ) {
+		    _gnuplot.push_back( print_node( "set xtics " + std::to_string(i->second.getInit()) + "," + std::to_string(i->second.getStep()) ) );
+		    _gnuplot.push_back( print_node( "set xrange [" + std::to_string(i->second.getInit()) + ":" + std::to_string(i->second.getTest()) + "]" ) );
+		}
 
 	    } else if ( has_array_var( name ) ) {
 		/* X2 handling here */
@@ -654,6 +660,12 @@ namespace LQIO {
 
 		x = _result_pos.at( name );
 		_gnuplot.push_back( print_node( "set xlabel \"" + name + "\"" ) );
+		const std::map<std::string,Spex::ComprehensionInfo>::const_iterator i = __comprehensions.find( name );
+		/* Set range */
+		if ( i != __comprehensions.end() ) {
+		    _gnuplot.push_back( print_node( "set xtics " + std::to_string(i->second.getInit()) + "," + std::to_string(i->second.getStep()) ) );
+		    _gnuplot.push_back( print_node( "set xrange [" + std::to_string(i->second.getInit()) + ":" + std::to_string(i->second.getTest()) + "]" ) );
+		}
 
 	    } else if ( has_array_var( name ) ) {
 		/* Y independent variable */
@@ -661,6 +673,12 @@ namespace LQIO {
 		if ( y == 0 ) {
 		    y = _result_pos.at( name );
 		    _gnuplot.push_back( print_node( "set ylabel \"" + name + "\"" ) );
+		    const std::map<std::string,Spex::ComprehensionInfo>::const_iterator i = __comprehensions.find( name );
+		    /* Set range */
+		    if ( i != __comprehensions.end() ) {
+			_gnuplot.push_back( print_node( "set ytics " + std::to_string(i->second.getInit()) + "," + std::to_string(i->second.getStep()) ) );
+			_gnuplot.push_back( print_node( "set yrange [" + std::to_string(i->second.getInit()) + ":" + std::to_string(i->second.getTest()) + "]" ) );
+		    }
 
 		} else {
 		// Too many independent variables

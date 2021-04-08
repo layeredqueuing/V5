@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: qnap2_document.h 14464 2021-02-07 16:15:45Z greg $
+ *  $Id: qnap2_document.h 14592 2021-04-06 12:39:52Z greg $
  *
  *  Created by Greg Franks 2020/12/28
  */
@@ -151,6 +151,7 @@ namespace BCMP {
 	    const Model& _model;
 	};
 
+	void printResultsHeader( std::ostream& output, const std::vector<Spex::var_name_and_expr>& vars ) const;
 	void printResults( std::ostream& output, const std::vector<Spex::var_name_and_expr>& ) const;
 
 	struct for_loop {

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: qnap2_document.cpp 14589 2021-04-04 12:28:05Z greg $
+ * $Id: qnap2_document.cpp 14592 2021-04-06 12:39:52Z greg $
  *
  * Read in XML input files.
  *
@@ -150,8 +150,7 @@ namespace BCMP {
 	       << "   begin" << std::endl;
 
 	if ( !Spex::result_variables().empty() && !LQIO::Spex::__no_header ) {
-	    const std::string result_vars = std::accumulate( Spex::result_variables().begin(), Spex::result_variables().end(), std::string(""), getResultVariables( std::set<const LQIO::DOM::ExternalVariable *>() ) );
-	    output << qnap2_statement( "print(\"" + result_vars + "\")", "SPEX results" ) << std::endl;
+	    printResultsHeader( output, Spex::result_variables() );
 	}
 
 	if ( Spex::input_variables().size() > Spex::array_variables().size() ) {	// Only care about scalars
@@ -537,6 +536,36 @@ namespace BCMP {
 	std::string s(ss.str());
 	s.erase(std::remove(s.begin(), s.end(), ' '), s.end());	/* Strip blanks */
 	_output << qnap2_statement( s ) << std::endl;	/* Swaps $ to _ and appends ;	*/
+    }
+
+
+    /*
+     * Print out the Header for the results.   Format the same as printResults (next)
+     */
+
+    void
+    QNAP2_Document::printResultsHeader( std::ostream& output, const std::vector<Spex::var_name_and_expr>& vars ) const
+    {
+	std::string s;
+	std::string comment = "SPEX results";
+	bool continuation = false;
+	size_t count = 0;
+	for ( std::vector<Spex::var_name_and_expr>::const_iterator var = vars.begin(); var != vars.end(); ++var ) {
+	    ++count;
+	    if ( s.empty() && continuation ) s += "\",\",";	/* second print statement, signal continuation with "," */
+	    else if ( !s.empty() ) s += ",\",\",";		/* between vars. */
+	    s += "\"" + var->first + "\"";
+	    if ( count > 6 ) {
+		output << qnap2_statement( "print(" + s + ")", comment ) << std::endl;
+		s.clear();
+		count = 0;
+		continuation = true;
+		comment = "... continued";
+	    }
+	}
+	if ( !s.empty() ) {
+	    output << qnap2_statement( "print(" + s + ")", comment ) << std::endl;
+	}
     }
 
 

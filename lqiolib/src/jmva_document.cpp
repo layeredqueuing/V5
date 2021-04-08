@@ -1449,12 +1449,11 @@ namespace BCMP {
 	return plot;
     }
 
-// set title "Two Classes."
-// set xlabel "Class 1"
-// set ylabel "Class 2"
-// plot "$DATA" using 2:3 with linespoints title "Class1 MVA", (11.1111-x)/11.1111*10.0 with lines title "CPU Bound",\
-//   (16.6666-x)/16.666*8.3333 with lines title "Disk A Bound",\
-//   (10-x)/10*20 with lines title "Disk B Bound"
+    /*
+     * Plot the results of a population mix.  X-axis is class 1,
+     * Y-axis is class 2.  I should possibly label a few points, but
+     * they might have to computed bu gnuplot.
+     */
 
     std::ostream&
     JMVA_Document::plot_population_mix( std::ostream& plot )
