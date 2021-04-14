@@ -87,7 +87,7 @@ Pragma::Pragma() :
 }
 
 
-ovoid
+void
 Pragma::set( const std::map<std::string,std::string>& list )
 {
     if ( __cache != nullptr ) delete __cache;
