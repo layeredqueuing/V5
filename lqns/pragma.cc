@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14407 2021-01-25 13:56:07Z greg $ *
+ * $Id: pragma.cc 14595 2021-04-14 03:46:18Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -87,7 +87,7 @@ Pragma::Pragma() :
 }
 
 
-void
+ovoid
 Pragma::set( const std::map<std::string,std::string>& list )
 {
     if ( __cache != nullptr ) delete __cache;
@@ -440,9 +440,12 @@ Pragma::usage( std::ostream& output )
 	    if ( args != nullptr && args->size() > 1 ) {
 		output << " = {";
 
+		size_t count = 0;
 		for ( std::set<std::string>::const_iterator q = args->begin(); q != args->end(); ++q ) {
-		    if ( q != args->begin() ) output << ",";
+		    if ( q->empty() ) continue;
+		    if ( count > 1 ) output << ",";
 		    output << *q;
+		    count += 1;
 		}
 		output << "}" << std::endl;
 	    } else {

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: dom_pragma.h 14595 2021-04-14 03:46:18Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -50,6 +50,7 @@ namespace LQIO {
 
 	    const static std::map<const std::string,const std::set<std::string>*> __pragmas;
 	    const static std::set<std::string> __bcmp_args;
+	    const static std::set<std::string> __force_infinite_args;
 	    const static std::set<std::string> __force_multiserver_args;
 	    const static std::set<std::string> __layering_args;
 	    const static std::set<std::string> __multiserver_args;
@@ -89,6 +90,8 @@ namespace LQIO {
 	    static const char * _extended_;		// BUG 270
 	    static const char * _false_;
 	    static const char * _fast_;
+	    static const char * _fixed_rate_;
+	    static const char * _force_infinite_;
 	    static const char * _force_multiserver_;
 	    static const char * _gamma_;		// Quorum
 	    static const char * _geometric_;		// Quorum
@@ -109,6 +112,7 @@ namespace LQIO {
 	    static const char * _mol_;
 	    static const char * _mol_back_;
 	    static const char * _multiserver_;
+	    static const char * _multiservers_;
 	    static const char * _mva_;
 	    static const char * _nice_;
 	    static const char * _no_;

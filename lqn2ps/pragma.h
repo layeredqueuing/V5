@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 14337 2021-01-05 11:32:10Z greg $
+ * $Id: pragma.h 14596 2021-04-14 15:17:08Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -30,7 +30,8 @@ class Pragma {
 public:
     typedef void (Pragma::*fptr)(const std::string&);
 
-    typedef enum { BCMP_STANDARD, BCMP_EXTENDED, BCMP_LQN } pragma_bcmp;
+    enum class BCMP { STANDARD, EXTENDED, LQN };
+    enum class Force_Infinite { NONE, FIXED_RATE, MULTISERVERS, ALL };
     
 private:
     Pragma();
@@ -42,7 +43,8 @@ private:
     static void set_pragma( const std::pair<std::string,std::string>& p );
     
 public:
-    static pragma_bcmp getBCMP();
+    static BCMP getBCMP();
+    static bool forceInfinite( Force_Infinite );
     static layering_format layering();
     static bool defaultProcessorScheduling() { assert( __cache != nullptr ); return __cache->_default_processor_scheduling; }
     static scheduling_type processorScheduling() { assert( __cache != nullptr ); return __cache->_processor_scheduling; }
@@ -54,6 +56,7 @@ public:
 
 private:
     void setBCMP(const std::string&);
+    void setForceInfinite(const std::string&);
     void setLayering(const std::string&);
     void setProcessorScheduling(const std::string&);
     void setPrune(const std::string&);
@@ -64,12 +67,10 @@ private:
 public:
     static void set( const std::map<std::string,std::string>& );
     static std::ostream& usage( std::ostream&  );
-    static const std::map<std::string,Pragma::fptr>& getPragmas() { return __set_pragma; }
+    static const std::map<const std::string,const Pragma::fptr>& getPragmas() { return __set_pragma; }
     
 private:
-    static void initialize();
-
-private:
+    Force_Infinite _force_infinite;
     scheduling_type _processor_scheduling;
     scheduling_type _task_scheduling;
     /* bonus */
@@ -77,12 +78,6 @@ private:
     bool _default_task_scheduling;
     
     static Pragma * __cache;
-    static std::map<std::string,Pragma::fptr> __set_pragma;
-    
-    static std::map<std::string,pragma_bcmp> __bcmp_pragma;
-    static std::map<std::string,layering_format> __layering_pragma;
-    static std::map<std::string,scheduling_type> __processor_scheduling_pragma;
-    static std::map<std::string,LQIO::severity_t> __serverity_level_pragma;
-    static std::map<std::string,scheduling_type> __task_scheduling_pragma;
+    static std::map<const std::string,const Pragma::fptr> __set_pragma;
 };
 #endif

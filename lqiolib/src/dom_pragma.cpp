@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_pragma.cpp 14595 2021-04-14 03:46:18Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -177,6 +177,8 @@ namespace LQIO {
 	const char * Pragma::_extended_ =			"extended";		// BUG 270
 	const char * Pragma::_false_ =				"false";
 	const char * Pragma::_fast_ =				"fast";
+	const char * Pragma::_fixed_rate_ =			"fixed-rate";
+	const char * Pragma::_force_infinite_ =			"force-infinite";
 	const char * Pragma::_force_multiserver_ =		"force-multiserver";
 	const char * Pragma::_gamma_ = 				"gamma";		// Quorum
 	const char * Pragma::_geometric_ = 			"geometric";		// Quorum
@@ -197,6 +199,7 @@ namespace LQIO {
 	const char * Pragma::_mol_ =				"mol";
 	const char * Pragma::_mol_back_ =			"mol-back";
 	const char * Pragma::_multiserver_ = 			"multiserver";
+	const char * Pragma::_multiservers_ = 			"multiservers";
 	const char * Pragma::_mva_ = 				"mva";
 	const char * Pragma::_nice_ =				"nice";
 	const char * Pragma::_no_ =				"no";
@@ -247,6 +250,7 @@ namespace LQIO {
 	/* Args */
 	
 	const std::set<std::string> Pragma::__bcmp_args = { _lqn_, _extended_, _true_, _yes_, _false_, _no_, "t", "y", "f", "n", "" };
+	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_ };
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_ };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _squashed_, _srvn_, _hwsw_ };
 	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_ };
@@ -259,7 +263,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__scheduling_model_args = { _default_, _default_natural_, _custom_, _custom_natural_ };
 	const std::set<std::string> Pragma::__task_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_RAND].XML };
 	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };
-	const std::set<std::string> Pragma::__true_false_arg = { "true", "false", _yes_, _no_, "t", "f", "y", "n", "" };
+	const std::set<std::string> Pragma::__true_false_arg = { _true_, _false_, _yes_, _no_, "t", "f", "y", "n", "" };
 	const std::set<std::string> Pragma::__variance_args = { _default_, _none_, _stochastic_, _mol_, _no_entry_, _init_only_ };
 	const std::set<std::string> Pragma::__warning_args = { _all_, _warning_, _advisory_, _run_time_ };
 
@@ -269,6 +273,7 @@ namespace LQIO {
 	    { _bcmp_,			    &__true_false_arg },	    /* lqns */
 	    { _block_period_,      	    nullptr },			    /* lqsim */
 	    { _cycles_,  	    	    &__true_false_arg },	    /* lqns */
+	    { _force_infinite_,		    &__force_infinite_args },	    /* */
 	    { _force_multiserver_, 	    &__force_multiserver_args },    /* lqns */
 	    { _initial_delay_,     	    nullptr },			    /* lqsim */
 	    { _initial_loops_,     	    nullptr },			    /* lqsim */
