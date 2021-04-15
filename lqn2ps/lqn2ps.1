@@ -1,6 +1,6 @@
 .\" -*- nroff -*-
-.TH lqn2ps 1 "08 February 2020"  "5.13"
-.\" $Id: lqn2ps.1 13936 2020-10-16 14:31:26Z greg $
+.TH lqn2ps 1 "15 April 2021"  "5.20"
+.\" $Id: lqn2ps.1 14600 2021-04-15 19:19:42Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -68,17 +68,23 @@ The \fB\-C\fI colour\fR option is used to choose how to colour objects.
 .RS
 .TP
 \fB\fBoff\fR\fR
-Use gray scale instead of colour for results..TP
+Use gray scale instead of colour for results.
+.TP
 \fB\fBresults\fR\fR
-Colour nodes based on utilization and arcs based on the utilization of the destination.  This is the default..TP
+Colour nodes based on utilization and arcs based on the utilization of the destination.  This is the default.
+.TP
 \fB\fBlayers\fR\fR
-Colour nodes based on their layer..TP
+Colour nodes based on their layer.
+.TP
 \fB\fBclients\fR\fR
-Colour nodes based on their client(s)..TP
+Colour nodes based on their client(s).
+.TP
 \fB\fBtype\fR\fR
-Client tasks are coloured red, server tasks are coloured blue..TP
+Client tasks are coloured red, server tasks are coloured blue.
+.TP
 \fB\fBchains\fR\fR
-Queueing output only: colour each chain differently..TP
+Queueing output only: colour each chain differently.
+.TP
 \fB\fBdifferences\fR\fR
 Results are displayed as percent differences (found from srvndiff --difference file1 file2) with the colour reflecting
 the percentage difference.
@@ -93,13 +99,13 @@ Set the font size (from 6 to 36 points).
 \fB\-I\fR, \fB\-\-input-format=\fIformat\fR
 The \fB\-I\fI format\fR option  is used to force the input file format to either \fIxml\fR, or \fIlqn\fR.
 By default, if the suffix of the input filename is one of: \fI.in\fR, \fI.lqn\fR, \fI.xlqn\fR, of \fI.txt\fR,
-then the LQN parser will be used.  Otherwise, input is assumed to be XML.
+then the LQN parser will be used.	Otherwise, input is assumed to be XML.
 .TP
 \fB\-H\fR, \fB\-\-help\fR
 Print help.
 .TP
 \fB\-J\fR, \fB\-\-justification=\fIobject=justification\fR
-The \fB\-J\fI object=justification\fR option is used to set the justification for \fIobject\fP.  \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivities\fR.
+The \fB\-J\fI object=justification\fR option is used to set the justification for \fIobject\fP.	 \fIObject\fR is one of:\fBnodes\fR, \fBlabels\fR, or \fBactivities\fR.
 \fIJustification\fR is one of \fBleft\fR, \fBcenter\fR, \fBright\fR or \fBalign\fR.
 The default is center justifcation for all objects.
 .TP
@@ -110,7 +116,7 @@ Print key.
 The \fB\-L\fI layering\fR option is used to choose the layering strategy for output.
 .RS
 .TP
-\fB\fBbatch\fR\fR
+\fB\fBbatched\fR\fR
 Batch layering (default for lqns(1))
 .TP
 \fB\fBgroup\fR=\fIregexp\fR\fR
@@ -123,8 +129,8 @@ Groups may also be identified in the input file using the \fIgroup\fP pragma.
 Hardware-Software layering (Clients and software servers in one layer,
 software servers and processors in the other).
 .TP
-\fB\fBsrvn\fR\fR
-Each server is assigned to its own submodel.
+\fB\fBmol\fR\fR
+Mol layering (all of the processors are on their own layer).
 .TP
 \fB\fBprocessor\fR\fR
 Batch layering, but tasks are grouped by processor.
@@ -132,9 +138,6 @@ Processors are ordered by the level of their calling tasks,
 i.e., processors for reference tasks appear first.
 .TP
 \fB\fBprocessor-task\fR\fR
-Hardware-Software layering, but tasks are grouped by processor.
-.TP
-\fB\fBtask-processor\fR\fR
 Hardware-Software layering, but tasks are grouped by processor.
 .TP
 \fB\fBshare\fR\fR
@@ -146,10 +149,13 @@ i.e., processors for reference tasks appear first.
 Place all tasks in level 1, and all processors in level 2.  There is only
 one submodel overall.
 .TP
-\fB\fBmethod-of-layers\fR\fR
-Mol layering (all of the processors are on their own layer).
+\fB\fBsrvn\fR\fR
+Each server is assigned to its own submodel.
+.TP
+\fB\fBtask-processor\fR\fR
+Hardware-Software layering, but tasks are grouped by processor.
 .LP
-(The default is batch).
+(The default is batched).
 .RE
 .TP
 \fB\-M\fR, \fB\-\-magnification=\fImagnification\fR
@@ -173,7 +179,7 @@ Generate input for xfig(1).
 .TP
 \fB\fBlqx\fR\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-o\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.  If SPEX is present, it will be converted to LQX.
 New input files are always "cleaned up".
 .TP
@@ -190,8 +196,8 @@ Generate a new parseable output file using the results from a parseable output f
 Generate a new output file in Rich Text Format using the results from a parseable output file or from the results found in an XML file.
 .TP
 \fB\fBlqn\fR\fR
-Generate a new input file.  Results are ignored unless a subset of the input file is being generated.
-The \fB\-o\fR and \fB\-S\fR options can be used to generate new input models
+Generate a new input file.	 Results are ignored unless a subset of the input file is being generated.
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 If a parseable output file is available, the transformed subset will derive service times based on results. 
 Refer to \fI``SRVN Input File Format''\fR for a complete
@@ -213,7 +219,7 @@ The output file must be a regular file.  Output to special files is not supporte
 .TP
 \fB\fBxml\fR\fR
 Generate an XML input file.  If results are available, they are included.
-The \fB\-o\fR and \fB\-S\fR options can be used to generate new input models
+The \fB\-I\fR and \fB\-S\fR options can be used to generate new input models
 consisting only of the objects selected.
 New input files are always "cleaned up".
 .RE
@@ -288,6 +294,9 @@ Scale the size of arrow heads by the scaling factor \fIarg\fP.
 \fB\fBclear-label-background\fR\fR
 Clear the area behind the label (fig output only).
 .TP
+\fB\fBbcmp\fR\fR
+BCMP.
+.TP
 \fB\fBexhaustive-topological-sort\fR\fR
 Don't short circuit the topological sorter.  (Some models render better).
 .TP
@@ -318,6 +327,12 @@ Remove all phase type flag terms from a model.  This option is used when generat
 \fB\fBno-reference-task-conversion\fR\fR
 When generating new models as submodels of existing models, servers in the original model are converted to reference tasks when possible.  This option overrides this conversion; these models use open-arrivals instead.
 .TP
+\fB\fBprocessor-scheduling\fR\fR
+Change the scheduling for all fixed-rate processors to ?.
+.TP
+\fB\fBprune\fR\fR
+All tasks which are infinite servers are merged into non-infinite server tasks and clients
+.TP
 \fB\fBrename\fR\fR
 Rename all of the icons to p\fIn\fP, t\fIn\fP, e\fIn\fP and a\fIn\fP where \fIn\fP is an integer starting from one.
 .TP
@@ -332,6 +347,9 @@ For graphical output, output the submodels (though this only works for a strictl
 .TP
 \fB\fBtasks-only\fR\fR
 Draw the model omitting all entries.
+.TP
+\fB\fBtask-scheduling\fR\fR
+Change the scheduling for all fixed-rate tasks to ?.
 .RE
 .TP
 \fB(\-|+)a\fR, \fB\-\-[no-]open-wait\fR
@@ -406,7 +424,7 @@ Print maximum execution time exceeded. (The default is off).
 Print model comment.
 .TP
 \fB\-\-solver-info\fR
-Print solver information (name, version).
+Print solver information.
 .TP
 \fB\-\-verbose\fR
 Verbose output.
@@ -425,4 +443,86 @@ Print task service times (for --tasks-only).
 .TP
 \fB\-\-output-lqx\fR
 Convert SPEX to LQX for XML output.
+.TP
+\fB\-\-include-only=\fIregexp\fR
+The \fB\-I\fI regexp\fR option is used to include only those objects that match \fIregexp\fR
+and those objects who call the matching objects in the output.
+.TP
+\fB\-\-hwsw-layering\fR
+Use HW/SW layering instead of batched layering.
+.TP
+\fB\-\-srvn-layering\fR
+Use SRVN layering instead of batched layering.
+.TP
+\fB\-\-method-of-layers\fR
+Use the Method Of Layers instead of batched layering.
+.TP
+\fB\-\-flatten\fR
+Flatten submodel/queueing output by placing clients in one layer.
+.TP
+\fB\-\-no-sort\fR
+Do not sort objects for output.
+.TP
+\fB\-\-number-layers\fR
+Print layer numbers.
+.TP
+\fB\-\-rename\fR
+Rename all objects.
+.TP
+\fB\-\-tasks-only\fR
+Print tasks only.
+.TP
+\fB\-\-no-bcmp\fR
+Do not perform BCMP model conversion.
+.TP
+\fB\-\-no-activities\fR
+Don't print activities.
+.TP
+\fB\-\-no-colour\fR
+Use grey scale when colouring result.
+.TP
+\fB\-\-no-header\fR
+Do not output the variable name header on SPEX results.
+.TP
+\fB\-\-surrogates\fR
+[Don't] Add surrogate tasks for submodel/include-only output.
+.TP
+\fB\-\-merge-replicas\fR
+Merge replicas from a flattened model back to a replicated model.
+.TP
+\fB\-\-jlqndef\fR
+Use jlqnDef-style icons (rectangles).
+.TP
+\fB\-\-parse-file=\fIfilename\fR
+Load parseable results from filename.
+.TP
+\fB\-\-print-comment\fR
+Print the model comment on stdout.
+.TP
+\fB\-\-print-submodels\fR
+Show submodels.
+.TP
+\fB\-\-print-summary\fR
+Print model summary on stdout.
+.TP
+\fB\-\-debug-lqx\fR
+Output debugging information while parsing LQX input.
+.TP
+\fB\-\-debug-srvn\fR
+Output debugging information while parsing SRVN input.
+.TP
+\fB\-\-debug-p\fR
+Output debugging information while parsing parseable results input.
+.TP
+\fB\-\-debug-xml\fR
+Output debugging information while parsing XML input.
+.TP
+\fB\-\-debug-formatting\fR
+Output debugging information while formatting.
+.TP
+\fB\-\-dump-graphviz\fR
+Output LQX parse tree in graphviz format.
+.TP
+\fB\-\-generate-manual\fR
+Generate manual suitable for input to man(1).
 .SH "SEE ALSO"

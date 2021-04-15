@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14516 2021-03-05 15:48:25Z greg $
+ * $Id: main.cc 14601 2021-04-15 19:31:20Z greg $
  */
 
 #include "lqn2ps.h"
@@ -185,10 +185,11 @@ const char * Options::layering[] =
 const char * Options::special[] = {
     "annotate",				/* SPECIAL_ANNOTATE,                    */
     "arrow-scaling",			/* SPECIAL_ARROW_SCALING,		*/
-    "bcmp",				/* SPECIAL_BCMP				*/
+    LQIO::DOM::Pragma::_bcmp_,  	/* SPECIAL_BCMP				*/
     "clear-label-background", 		/* SPECIAL_CLEAR_LABEL_BACKGROUND,	*/
     "exhaustive-topological-sort",	/* SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT,	*/
     "flatten",				/* SPECIAL_FLATTEN_SUBMODEL,		*/
+    LQIO::DOM::Pragma::_force_infinite_,	/* SPECIAL_FORCE_INFINITE	*/
     "forwarding",			/* SPECIAL_FORWARDING_DEPTH,		*/
     "group",				/* SPECIAL_GROUP,			*/
     "layer-number",			/* SPECIAL_LAYER_NUMBER,		*/
@@ -198,7 +199,7 @@ const char * Options::special[] = {
     "no-phase-type",			/* SPECIAL_NO_PHASE_TYPE,		*/
     "no-reference-task-conversion",	/* SPECIAL_NO_REF_TASK_CONVERSION,	*/
     "prune",				/* SPECIAL_PRUNE			*/
-    "processor-scheduling"		/* SPECIAL_PROCESSOR_SCHEDULING		*/
+    LQIO::DOM::Pragma::_processor_scheduling_,	/* SPECIAL_PROCESSOR_SCHEDULING	*/
     "quorum-reply",			/* SPECIAL_QUORUM_REPLY,		*/
     "rename",				/* SPECIAL_RENAME			*/
     "sort",				/* SPECIAL_SORT,			*/
@@ -206,7 +207,7 @@ const char * Options::special[] = {
     "no-header",			/* SPECIAL_SPEX_HEADER			*/
     "submodels",			/* SPECIAL_SUBMODEL_CONTENTS,		*/
     "tasks-only",			/* SPECIAL_TASKS_ONLY			*/
-    "task-scheduling",			/* SPECIAL_TASK_SCHEDULING		*/
+    LQIO::DOM::Pragma::_task_scheduling_,	/* SPECIAL_TASK_SCHEDULING	*/
     nullptr
 };
 
@@ -377,6 +378,10 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 
 	case SPECIAL_BCMP:
 	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_, value );
+	    break;
+	    
+	case SPECIAL_FORCE_INFINITE:
+	    pragmas.insert(LQIO::DOM::Pragma::_force_infinite_, value );
 	    break;
 	    
 	case SPECIAL_PROCESSOR_SCHEDULING:

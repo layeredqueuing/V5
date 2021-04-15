@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14489 2021-02-24 22:44:45Z greg $
+ * $Id: help.h 14598 2021-04-15 00:31:01Z greg $
  */
 
 #ifndef _HELP_H
@@ -216,6 +216,7 @@ public:
 
     std::ostream& pragmaCycles( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaStopOnMessageLoss( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceInfinite( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaForceMultiserver( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaInterlock( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaLayering( std::ostream& output, bool verbose ) const;
@@ -242,6 +243,11 @@ public:
 
     std::ostream& pragmaCyclesAllow( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaCyclesDisallow( std::ostream& output, bool verbose ) const;
+
+    std::ostream& pragmaForceInfiniteNone( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceInfiniteFixedRate( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceInfiniteMultiServers( std::ostream& output, bool verbose ) const;
+    std::ostream& pragmaForceInfiniteAll( std::ostream& output, bool verbose ) const;
 
     std::ostream& pragmaForceMultiserverNone( std::ostream& output, bool verbose ) const;
     std::ostream& pragmaForceMultiserverProcessors( std::ostream& output, bool verbose ) const;
@@ -336,6 +342,7 @@ protected:
     
 private:
     static parameter_map_t  __cycles_args;
+    static parameter_map_t  __force_infinite_args;
     static parameter_map_t  __force_multiserver_args;
     static parameter_map_t  __interlock_args;
     static parameter_map_t  __layering_args;

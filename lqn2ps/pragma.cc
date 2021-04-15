@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14596 2021-04-14 15:17:08Z greg $ *
+ * $Id: pragma.cc 14598 2021-04-15 00:31:01Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -37,7 +37,7 @@ std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
  */
 
 Pragma::Pragma() :
-    _force_infinite(Force_Infinite::NONE),
+    _force_infinite(ForceInfinite::NONE),
     _processor_scheduling(SCHEDULE_PS),
     _task_scheduling(SCHEDULE_FIFO),
     _default_processor_scheduling(true),
@@ -84,16 +84,16 @@ void Pragma::setBCMP( const std::string& value )
 {
     static const std::map<const std::string,const Pragma::BCMP> __bcmp_pragma = {
 	{ LQIO::DOM::Pragma::_extended_,BCMP::EXTENDED },
-	{ LQIO::DOM::Pragma::_lqn_,     BCMP::LQN },		/* default */
-	{ LQIO::DOM::Pragma::_true_,    BCMP::STANDARD },
+	{ LQIO::DOM::Pragma::_lqn_,	BCMP::LQN },		/* default */
+	{ LQIO::DOM::Pragma::_true_,	BCMP::STANDARD },
 	{ LQIO::DOM::Pragma::_yes_,	BCMP::STANDARD },
-	{ LQIO::DOM::Pragma::_false_,   BCMP::LQN },
+	{ LQIO::DOM::Pragma::_false_,	BCMP::LQN },
 	{ LQIO::DOM::Pragma::_no_,	BCMP::LQN },
-	{ "t",	 		     	BCMP::STANDARD },
-	{ "y",	 		     	BCMP::STANDARD },
-	{ "f",			     	BCMP::LQN },
-	{ "n",	 		     	BCMP::LQN },
-	{ "",	 		     	BCMP::STANDARD }
+	{ "t",				BCMP::STANDARD },
+	{ "y",				BCMP::STANDARD },
+	{ "f",				BCMP::LQN },
+	{ "n",				BCMP::LQN },
+	{ "",				BCMP::STANDARD }
     };
 
     const std::map<const std::string,const BCMP>::const_iterator pragma = __bcmp_pragma.find( value );
@@ -113,26 +113,25 @@ void Pragma::setBCMP( const std::string& value )
 }
 
 
-/* static */ bool Pragma::forceInfinite( Force_Infinite value )
+/* static */ bool Pragma::forceInfinite( ForceInfinite arg )
 {
     assert( __cache != nullptr );
-    return value != Force_Infinite::NONE
-	&& ( __cache->_force_infinite == Force_Infinite::ALL
-	     || __cache->_force_infinite == value );
+    return (__cache->_force_infinite != ForceInfinite::NONE && arg == __cache->_force_infinite)
+	|| (__cache->_force_infinite == ForceInfinite::ALL  && arg != ForceInfinite::NONE );
 }
 
 
 
 void Pragma::setForceInfinite( const std::string& value )
 {
-    static const std::map<const std::string,Force_Infinite> __force_infinite_pragma = {
-	{ LQIO::DOM::Pragma::_none_, 	    Force_Infinite::NONE },
-	{ LQIO::DOM::Pragma::_fixed_rate_,  Force_Infinite::FIXED_RATE },
-	{ LQIO::DOM::Pragma::_multiservers_,Force_Infinite::MULTISERVERS },
-	{ LQIO::DOM::Pragma::_all_, 	    Force_Infinite::ALL }
+    static const std::map<const std::string,const ForceInfinite> __force_infinite_pragma = {
+	{ LQIO::DOM::Pragma::_none_,		ForceInfinite::NONE },
+	{ LQIO::DOM::Pragma::_fixed_rate_,	ForceInfinite::FIXED_RATE },
+	{ LQIO::DOM::Pragma::_multiservers_,	ForceInfinite::MULTISERVERS },
+	{ LQIO::DOM::Pragma::_all_,		ForceInfinite::ALL }
     };
 
-    const std::map<const std::string,Force_Infinite>::const_iterator pragma = __force_infinite_pragma.find( value );
+    const std::map<const std::string,const ForceInfinite>::const_iterator pragma = __force_infinite_pragma.find( value );
     if ( pragma != __force_infinite_pragma.end() ) {
 	_force_infinite = pragma->second;
     } else {
@@ -159,13 +158,13 @@ layering_format Pragma::layering()
 void Pragma::setLayering(const std::string& value)
 {
     static const std::map<const std::string,const layering_format> __layering_pragma = {
-	{ LQIO::DOM::Pragma::_batched_,	    LAYERING_BATCH },
-	{ LQIO::DOM::Pragma::_batched_back_,LAYERING_BATCH },
-	{ LQIO::DOM::Pragma::_hwsw_,	    LAYERING_HWSW },
-	{ LQIO::DOM::Pragma::_mol_,	    LAYERING_MOL },
-	{ LQIO::DOM::Pragma::_mol_back_,    LAYERING_MOL },
-	{ LQIO::DOM::Pragma::_squashed_,    LAYERING_SQUASHED },
-	{ LQIO::DOM::Pragma::_srvn_,	    LAYERING_SRVN }
+	{ LQIO::DOM::Pragma::_batched_,		LAYERING_BATCH },
+	{ LQIO::DOM::Pragma::_batched_back_,	LAYERING_BATCH },
+	{ LQIO::DOM::Pragma::_hwsw_,		LAYERING_HWSW },
+	{ LQIO::DOM::Pragma::_mol_,		LAYERING_MOL },
+	{ LQIO::DOM::Pragma::_mol_back_,	LAYERING_MOL },
+	{ LQIO::DOM::Pragma::_squashed_,	LAYERING_SQUASHED },
+	{ LQIO::DOM::Pragma::_srvn_,		LAYERING_SRVN }
     };
 
     const std::map<const std::string,const layering_format>::const_iterator pragma = __layering_pragma.find( value );
@@ -173,19 +172,19 @@ void Pragma::setLayering(const std::string& value)
 	Flags::print[LAYERING].value.i = pragma->second;
     } else {
 	throw std::domain_error( value.c_str() );
-    } 
+    }
 }
 
 
 void Pragma::setProcessorScheduling(const std::string& value)
 {
     static const std::map<const std::string,const scheduling_type> __processor_scheduling_pragma = {
-	{ scheduling_label[SCHEDULE_DELAY].XML, SCHEDULE_DELAY },
-	{ scheduling_label[SCHEDULE_FIFO].XML,  SCHEDULE_FIFO },
-	{ scheduling_label[SCHEDULE_HOL].XML,   SCHEDULE_HOL },
-	{ scheduling_label[SCHEDULE_PPR].XML,   SCHEDULE_PPR },
-	{ scheduling_label[SCHEDULE_PS].XML,    SCHEDULE_PS },
-	{ scheduling_label[SCHEDULE_RAND].XML,  SCHEDULE_RAND }
+	{ scheduling_label[SCHEDULE_DELAY].XML,	SCHEDULE_DELAY },
+	{ scheduling_label[SCHEDULE_FIFO].XML,	SCHEDULE_FIFO },
+	{ scheduling_label[SCHEDULE_HOL].XML,	SCHEDULE_HOL },
+	{ scheduling_label[SCHEDULE_PPR].XML,	SCHEDULE_PPR },
+	{ scheduling_label[SCHEDULE_PS].XML,	SCHEDULE_PS },
+	{ scheduling_label[SCHEDULE_RAND].XML,	SCHEDULE_RAND }
     };
 
     const std::map<const std::string,const scheduling_type>::const_iterator pragma = __processor_scheduling_pragma.find( value );
@@ -216,9 +215,9 @@ LQIO::severity_t severityLevel()
 void Pragma::setSeverityLevel(const std::string& value)
 {
     static const std::map<const std::string,const LQIO::severity_t> __serverity_level_pragma = {
-	{ LQIO::DOM::Pragma::_advisory_,LQIO::ADVISORY_ONLY },
-	{ LQIO::DOM::Pragma::_run_time_,LQIO::RUNTIME_ERROR },
-	{ LQIO::DOM::Pragma::_warning_,	LQIO::WARNING_ONLY }
+	{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },
+	{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },
+	{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }
     };
 
     const std::map<const std::string,const LQIO::severity_t>::const_iterator pragma = __serverity_level_pragma.find( value );

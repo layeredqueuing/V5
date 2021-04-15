@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14595 2021-04-14 03:46:18Z greg $ *
+ * $Id: pragma.cc 14598 2021-04-15 00:31:01Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -23,6 +23,7 @@ Pragma * Pragma::__cache = nullptr;
 const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 {
     { LQIO::DOM::Pragma::_cycles_,			&Pragma::setAllowCycles },
+    { LQIO::DOM::Pragma::_force_infinite_,		&Pragma::setForceInfinite },
     { LQIO::DOM::Pragma::_force_multiserver_,		&Pragma::setForceMultiserver },
     { LQIO::DOM::Pragma::_interlocking_,		&Pragma::setInterlock },
     { LQIO::DOM::Pragma::_layering_,			&Pragma::setLayering },
@@ -55,7 +56,8 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
 Pragma::Pragma() :
     _allow_cycles(false),
     _exponential_paths(false),
-    _force_multiserver(Pragma::ForceMultiserver::NONE),
+    _force_infinite(ForceInfinite::NONE),
+    _force_multiserver(ForceMultiserver::NONE),
     _interlock(true),
     _layering(Layering::BATCHED),
     _multiserver(Multiserver::DEFAULT),
@@ -111,9 +113,26 @@ Pragma::set( const std::map<std::string,std::string>& list )
 
 void Pragma::setAllowCycles(const std::string& value)
 {
-    _allow_cycles = isTrue(value);
+    _allow_cycles = LQIO::DOM::Pragma::isTrue(value);
 }
 
+
+void Pragma::setForceInfinite(const std::string& value)
+{
+    static const std::map<const std::string,const ForceInfinite> __force_infinite_pragma = {
+	{ LQIO::DOM::Pragma::_all_,		ForceInfinite::ALL },
+	{ LQIO::DOM::Pragma::_fixed_rate_,	ForceInfinite::FIXED_RATE },
+	{ LQIO::DOM::Pragma::_multiservers_,	ForceInfinite::MULTISERVERS },
+	{ LQIO::DOM::Pragma::_none_,		ForceInfinite::NONE }
+    };
+
+    const std::map<const std::string,const ForceInfinite>::const_iterator pragma = __force_infinite_pragma.find( value );
+    if ( pragma != __force_infinite_pragma.end() ) {
+	_force_infinite = pragma->second;
+    } else {
+	throw std::domain_error( value.c_str() );
+    }
+}
 
 void Pragma::setForceMultiserver(const std::string& value)
 {
@@ -135,7 +154,7 @@ void Pragma::setForceMultiserver(const std::string& value)
 
 void Pragma::setInterlock(const std::string& value)
 {
-    _interlock = isTrue(value);
+    _interlock = LQIO::DOM::Pragma::isTrue(value);
 }
 
 
@@ -189,10 +208,10 @@ void Pragma::setMultiserver(const std::string& value)
 void Pragma::setMva(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::MVA> __mva_pragma = {
-	{ LQIO::DOM::Pragma::_exact_, 		MVA::EXACT },
-	{ LQIO::DOM::Pragma::_schweitzer_, 	MVA::SCHWEITZER },
-	{ LQIO::DOM::Pragma::_fast_, 		MVA::FAST },
-	{ LQIO::DOM::Pragma::_one_step_, 	MVA::ONESTEP },
+	{ LQIO::DOM::Pragma::_exact_,		MVA::EXACT },
+	{ LQIO::DOM::Pragma::_schweitzer_,	MVA::SCHWEITZER },
+	{ LQIO::DOM::Pragma::_fast_,		MVA::FAST },
+	{ LQIO::DOM::Pragma::_one_step_,	MVA::ONESTEP },
 	{ LQIO::DOM::Pragma::_one_step_linearizer_, MVA::ONESTEP_LINEARIZER }
     };
 
@@ -250,11 +269,11 @@ void Pragma::setProcessorScheduling(const std::string& value)
 void Pragma::setQuorumDistribution(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::QuorumDistribution> __quorum_distribution_pragma = {
-	{ LQIO::DOM::Pragma::_threepoint_,  	Pragma::QuorumDistribution::THREEPOINT },
-	{ LQIO::DOM::Pragma::_gamma_,  		Pragma::QuorumDistribution::GAMMA },
-	{ LQIO::DOM::Pragma::_geometric_,  	Pragma::QuorumDistribution::CLOSEDFORM_GEOMETRIC },
-	{ LQIO::DOM::Pragma::_deterministic_,  	Pragma::QuorumDistribution::CLOSEDFORM_DETRMINISTIC },
-	{ LQIO::DOM::Pragma::_default_,  	Pragma::QuorumDistribution::DEFAULT }
+	{ LQIO::DOM::Pragma::_threepoint_,	Pragma::QuorumDistribution::THREEPOINT },
+	{ LQIO::DOM::Pragma::_gamma_,		Pragma::QuorumDistribution::GAMMA },
+	{ LQIO::DOM::Pragma::_geometric_,	Pragma::QuorumDistribution::CLOSEDFORM_GEOMETRIC },
+	{ LQIO::DOM::Pragma::_deterministic_,	Pragma::QuorumDistribution::CLOSEDFORM_DETRMINISTIC },
+	{ LQIO::DOM::Pragma::_default_,		Pragma::QuorumDistribution::DEFAULT }
     };
 
     const std::map<const std::string,const Pragma::QuorumDistribution>::const_iterator pragma = __quorum_distribution_pragma.find( value );
@@ -288,7 +307,7 @@ void Pragma::setQuorumDelayedCalls(const std::string& value)
 void Pragma::setQuorumIdleTime(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::QuorumIdleTime> __quorum_idle_time_pragma = {
-	{ LQIO::DOM::Pragma::_default_, 	Pragma::QuorumIdleTime::DEFAULT },
+	{ LQIO::DOM::Pragma::_default_,		Pragma::QuorumIdleTime::DEFAULT },
 	{ LQIO::DOM::Pragma::_join_delay_,	Pragma::QuorumIdleTime::JOINDELAY }
     };
 
@@ -305,14 +324,14 @@ void Pragma::setQuorumIdleTime(const std::string& value)
 #if RESCHEDULE
 void Pragma::setRescheduleOnAsyncSend(const std::string& value)
 {
-    _reschedule_on_async_send = isTrue(value);
+    _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue(value);
 }
 #endif
 
 
 void Pragma::setSpexHeader(const std::string& value)
 {
-    _spex_header = isTrue( value );
+    _spex_header = LQIO::DOM::Pragma::isTrue( value );
 }
 
 
@@ -345,7 +364,7 @@ void Pragma::setStopOnBogusUtilization(const std::string& value)
 
 void Pragma::setStopOnMessageLoss(const std::string& value)
 {
-    _stop_on_message_loss = isTrue(value);
+    _stop_on_message_loss = LQIO::DOM::Pragma::isTrue(value);
 }
 
 
@@ -416,11 +435,6 @@ void Pragma::setVariance(const std::string& value)
     }
 }
 
-bool Pragma::isTrue(const std::string& value )
-{
-    return value == "true" || value == LQIO::DOM::Pragma::_yes_;
-}
-
 /*
  * Print out available pragmas.
  */
@@ -443,7 +457,7 @@ Pragma::usage( std::ostream& output )
 		size_t count = 0;
 		for ( std::set<std::string>::const_iterator q = args->begin(); q != args->end(); ++q ) {
 		    if ( q->empty() ) continue;
-		    if ( count > 1 ) output << ",";
+		    if ( count > 0 ) output << ",";
 		    output << *q;
 		    count += 1;
 		}

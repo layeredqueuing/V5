@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14489 2021-02-24 22:44:45Z greg $
+ * $Id: help.cc 14598 2021-04-15 00:31:01Z greg $
  */
 
 #include <config.h>
@@ -31,6 +31,7 @@ private:
 Help::pragma_map_t Help::__pragmas;
 
 Help::parameter_map_t  Help::__cycles_args;
+Help::parameter_map_t  Help::__force_infinite_args;
 Help::parameter_map_t  Help::__force_multiserver_args;
 Help::parameter_map_t  Help::__interlock_args;
 Help::parameter_map_t  Help::__layering_args;
@@ -255,6 +256,12 @@ Help::initialize()
     __pragmas[LQIO::DOM::Pragma::_stop_on_message_loss_] =  pragma_info( &Help::pragmaStopOnMessageLoss, &__stop_on_message_loss_args );
     __stop_on_message_loss_args[LQIO::DOM::Pragma::_yes_]=  parameter_info(&Help::pragmaStopOnMessageLossFalse);
     __stop_on_message_loss_args[LQIO::DOM::Pragma::_no_] =  parameter_info(&Help::pragmaStopOnMessageLossTrue,true);
+
+    __pragmas[LQIO::DOM::Pragma::_force_infinite_] =	    pragma_info( &Help::pragmaForceInfinite, &__force_infinite_args );
+    __force_infinite_args[LQIO::DOM::Pragma::_none_] =      parameter_info(&Help::pragmaForceInfiniteNone,true);
+    __force_infinite_args[LQIO::DOM::Pragma::_fixed_rate_] = parameter_info(&Help::pragmaForceInfiniteFixedRate);
+    __force_infinite_args[LQIO::DOM::Pragma::_multiservers_] =  parameter_info(&Help::pragmaForceInfiniteMultiServers);
+    __force_infinite_args[LQIO::DOM::Pragma::_all_] =       parameter_info(&Help::pragmaForceInfiniteAll);
 
     __pragmas[LQIO::DOM::Pragma::_force_multiserver_] =	    pragma_info( &Help::pragmaForceMultiserver, &__force_multiserver_args );
     __force_multiserver_args[LQIO::DOM::Pragma::_none_] =    parameter_info(&Help::pragmaForceMultiserverNone,true);
@@ -1186,6 +1193,15 @@ Help::pragmaCycles( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
+Help::pragmaForceInfinite( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to force the use of a infinite" << ix(*this, "infinite!force" ) << std::endl
+	   << "server instead of a fixed-rate server and/or multiserver for all the tasks in the model." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
 Help::pragmaForceMultiserver( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to force the use of a multiserver" << ix(*this, "multiserver!force" ) << std::endl
@@ -1383,7 +1399,7 @@ std::ostream&
 Help::pragmaForceMultiserverProcessors( std::ostream& output, bool verbose ) const
 {
     output << "Always use a multiserver solution for non-delay processors even if the number of servers is one (1)." << std::endl
-	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << std::endl;
+	   << "The Rolia multiserver approximation" << ix( *this, "multiserver!rolia" ) << "is known to fail for this case." << std::endl;
     return output;
 }
 
@@ -1391,7 +1407,7 @@ std::ostream&
 Help::pragmaForceMultiserverTasks( std::ostream& output, bool verbose ) const
 {
     output << "Always use a multiserver solution for non-delay server tasks even if the number of servers is one (1)." << std::endl
-	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << std::endl;
+	   << "The Rolia multiserver approximation" << ix( *this, "multiserver!rolia" ) << "is known to fail for this case." << std::endl;
     return output;
 }
 
@@ -1399,7 +1415,35 @@ std::ostream&
 Help::pragmaForceMultiserverAll( std::ostream& output, bool verbose ) const
 {
     output << "Always use a multiserver solution for non-delay servers (tasks and processors) even if the number of servers is one (1)." << std::endl
-	   << "The Rolia mutliserver approximation" << ix( *this, "mutliserver!rolia" ) << "is known to fail for this case." << std::endl;
+	   << "The Rolia multiserver approximation" << ix( *this, "multiserver!rolia" ) << "is known to fail for this case." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteNone( std::ostream& output, bool verbose ) const
+{
+    output << "Do not change and fixed-rate or multiserver task to an infinite server." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteFixedRate( std::ostream& output, bool verbose ) const
+{
+    output << "Change all fixed-rate tasks to infinite servers." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteMultiServers( std::ostream& output, bool verbose ) const
+{
+    output << "Change all multiserver tasks to infinite servers." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::pragmaForceInfiniteAll( std::ostream& output, bool verbose ) const
+{
+    output << "Change all tasks to infinite servers." << std::endl;
     return output;
 }
 
@@ -1880,7 +1924,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14489 2021-02-24 22:44:45Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14598 2021-04-15 00:31:01Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2177,7 +2221,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14489 2021-02-24 22:44:45Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14598 2021-04-15 00:31:01Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

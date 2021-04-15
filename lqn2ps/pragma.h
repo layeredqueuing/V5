@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: pragma.h 14596 2021-04-14 15:17:08Z greg $
+ * $Id: pragma.h 14598 2021-04-15 00:31:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -31,7 +31,7 @@ public:
     typedef void (Pragma::*fptr)(const std::string&);
 
     enum class BCMP { STANDARD, EXTENDED, LQN };
-    enum class Force_Infinite { NONE, FIXED_RATE, MULTISERVERS, ALL };
+    enum class ForceInfinite { NONE, FIXED_RATE, MULTISERVERS, ALL };
     
 private:
     Pragma();
@@ -44,7 +44,7 @@ private:
     
 public:
     static BCMP getBCMP();
-    static bool forceInfinite( Force_Infinite );
+    static bool forceInfinite( ForceInfinite );
     static layering_format layering();
     static bool defaultProcessorScheduling() { assert( __cache != nullptr ); return __cache->_default_processor_scheduling; }
     static scheduling_type processorScheduling() { assert( __cache != nullptr ); return __cache->_processor_scheduling; }
@@ -70,7 +70,7 @@ public:
     static const std::map<const std::string,const Pragma::fptr>& getPragmas() { return __set_pragma; }
     
 private:
-    Force_Infinite _force_infinite;
+    ForceInfinite _force_infinite;
     scheduling_type _processor_scheduling;
     scheduling_type _task_scheduling;
     /* bonus */
