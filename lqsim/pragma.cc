@@ -6,6 +6,7 @@
  */
 
 #include "lqsim.h"
+#include <iostream>
 #include <iomanip>
 #include <cstdlib>
 #include <cstring>

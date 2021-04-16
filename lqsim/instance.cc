@@ -19,13 +19,14 @@
 
 #define COUNT_FIRST_SCHEDULE	1
 
-#include <iostream>
+#include <cassert>
+#include <cstdarg>
+#include <cstring>
 #include <iomanip>
+#include <iostream>
 #include <sstream>
 #include <parasol.h>
 #include "lqsim.h"
-#include <assert.h>
-#include <string.h>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include "processor.h"

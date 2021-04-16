@@ -20,8 +20,9 @@
 #include <cassert>
 #include <algorithm>
 #include <sstream>
-#include "lqsim.h"
 #include <cstdlib>
+#include <cstdarg>
+#include "lqsim.h"
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/labels.h>
