@@ -15,6 +15,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <algorithm>
+#include <iostream>
 #include <iomanip>
 #include "pragma.h"
 #include "lqio/glblerr.h"
