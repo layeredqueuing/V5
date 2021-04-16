@@ -15,11 +15,11 @@
 #include <sys/types.h>
 #include <sys/mman.h>
 #endif
-
-#include <string.h>
+#include <cstdarg>
+#include <cstring>
 #include <errno.h>
-#include "dom_document.h"
 #include <algorithm>
+#include "dom_document.h"
 #include "dom_processor.h"
 #include "dom_task.h"
 #include "dom_entry.h"
