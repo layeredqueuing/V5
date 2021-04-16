@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14595 2021-04-14 03:46:18Z greg $
+ * $Id: dom_pragma.h 14603 2021-04-16 15:53:36Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -17,6 +17,7 @@
 #include <map>
 #include <set>
 #include <string>
+#include "error.h"
 
 namespace LQIO {
     namespace DOM {
@@ -41,6 +42,7 @@ namespace LQIO {
 	    const std::string get( const std::string& ) const;
 	    static const std::set<std::string>* getValues( const std::string& );
 	    static bool isTrue(const std::string& value);
+	    static LQIO::severity_t getSeverityLevel( const std::string& value );
 
 	private:
 	    bool check( const std::string&, const std::string& ) const;

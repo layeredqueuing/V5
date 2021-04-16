@@ -4,7 +4,7 @@
  * this is all the stuff printed after the ':'.  For xml output, this
  * is all of the precendence stuff.
  * 
- * $Id: actlist.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: actlist.cc 14603 2021-04-16 15:53:36Z greg $
  */
 
 
@@ -1839,7 +1839,7 @@ RepeatActivityList::draw( std::ostream& output ) const
 /* ------------------------ Exception Handling ------------------------ */
 
 bad_internal_join::bad_internal_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName().c_str() )
+    : std::runtime_error( list.getName() )
 {
 }
 

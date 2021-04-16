@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14523 2021-03-06 22:53:02Z greg $
+ * $Id: model.cc 14603 2021-04-16 15:53:36Z greg $
  *
  * Load the SRVN model.
  */
@@ -178,7 +178,8 @@ void
 Model::set_comment()
 {
     struct com_object * buf	= (struct com_object *)malloc( CMMOBJ_SIZE );
-    const char * p = _document->getModelCommentString();
+    const std::string& comment = _document->getModelCommentString();
+    const char * p = comment.c_str();
 
     netobj->comment = buf;
 
@@ -225,6 +226,7 @@ Model::construct()
 
     Pragma::set( _document->getPragmaList() );
     LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
+    LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 	

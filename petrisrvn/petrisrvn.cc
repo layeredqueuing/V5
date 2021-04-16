@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 14428 2021-01-29 02:24:47Z greg $
+ * $Id: petrisrvn.cc 14603 2021-04-16 15:53:36Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -383,7 +383,7 @@ main (int argc, char *argv[])
 #endif
 
 		case DISTINGUISH_JOIN:
-		    distinguish_join_customers = Pragma::is_true( value );
+		    distinguish_join_customers = LQIO::DOM::Pragma::isTrue( value );
 		    break;
 
 		case SPACING:

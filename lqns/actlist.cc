@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: actlist.cc 14603 2021-04-16 15:53:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1921,14 +1921,14 @@ RepeatActivityList::printSubmodelWait( std::ostream& output, unsigned offset ) c
 /* ------------------------ Exception Handling ------------------------ */
 
 bad_internal_join::bad_internal_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName().c_str() )
+    : std::runtime_error( list.getName() )
 {
 }
 
 
 
 bad_external_join::bad_external_join( const ForkJoinActivityList& list )
-    : std::runtime_error( list.getName().c_str() )
+    : std::runtime_error( list.getName() )
 {
 }
 

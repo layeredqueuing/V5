@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14595 2021-04-14 03:46:18Z greg $
+ *  $Id: dom_pragma.cpp 14603 2021-04-16 15:53:36Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -137,7 +137,7 @@ namespace LQIO {
 	
 	bool Pragma::isTrue(const std::string& value)
 	{
-	    static const std::map<std::string,bool> __true_false_arg = {
+	    static const std::map<const std::string,bool> __true_false_arg = {
 		{LQIO::DOM::Pragma::_true_,  true},
 		{LQIO::DOM::Pragma::_yes_,   true},
 		{LQIO::DOM::Pragma::_false_, false},
@@ -148,9 +148,28 @@ namespace LQIO {
 		{"n", false},
 		{"",  true},		/* No argument */
 	    };
-	    const std::map<std::string,bool>::const_iterator x = __true_false_arg.find( value );
-	    if ( x == __true_false_arg.end() ) throw std::domain_error( value.c_str() );
-	    return x->second;
+	    const std::map<const std::string,bool>::const_iterator arg = __true_false_arg.find( value );
+	    if ( arg == __true_false_arg.end() ) throw std::domain_error( value );
+	    return arg->second;
+	}
+
+	/*
+	 * Return the severity level 
+	 */
+
+	LQIO::severity_t Pragma::getSeverityLevel(const std::string& value )
+	{
+	    static const std::map<const std::string,const LQIO::severity_t> __serverity_level_arg = {
+		{ "",					LQIO::NO_ERROR },	/* Report all	*/
+		{ LQIO::DOM::Pragma::_all_,		LQIO::NO_ERROR },	
+		{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },	/* Report Runtime only */
+		{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },	/* Report fatal only (!) */
+		{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }	/* Report Advisory & Runtime */
+	    };
+
+	    const std::map<const std::string,const LQIO::severity_t>::const_iterator arg = __serverity_level_arg.find( value );
+	    if ( arg == __serverity_level_arg.end() ) throw std::domain_error( value );
+	    return arg->second;
 	}
 
 	/* Labels */
@@ -265,7 +284,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };
 	const std::set<std::string> Pragma::__true_false_arg = { _true_, _false_, _yes_, _no_, "t", "f", "y", "n", "" };
 	const std::set<std::string> Pragma::__variance_args = { _default_, _none_, _stochastic_, _mol_, _no_entry_, _init_only_ };
-	const std::set<std::string> Pragma::__warning_args = { _all_, _warning_, _advisory_, _run_time_ };
+	const std::set<std::string> Pragma::__warning_args = { _all_, _warning_, _advisory_, _run_time_, "" };
 
 	/* Pragmas */
 	

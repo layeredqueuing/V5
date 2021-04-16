@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 13799 2020-08-27 01:12:59Z greg $
+ * $Id: pragma.h 14603 2021-04-16 15:53:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,12 +22,13 @@ private:
     Pragma( const Pragma& );		/* No copy constructor */
     
 public:
-    typedef bool (Pragma::*fptr)( const std::string& );
+    typedef void (Pragma::*fptr)( const std::string& );
 
     static void set( const std::map<std::string,std::string>& );
     
     scheduling_type processor_scheduling() const { return _processor_scheduling; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
+    LQIO::severity_t severity_level() { return _severity_level; }
     bool spex_header() const { return _spex_header; }
     bool stop_on_message_loss() const { return _stop_on_message_loss; }
     scheduling_type task_scheduling() const { return _task_scheduling; }
@@ -35,23 +36,22 @@ public:
     bool default_processor_scheduling() const { return _default_processor_scheduling; }
     bool default_task_scheduling() const { return _default_task_scheduling; }
     
-    
-    static void initialize();
     static void usage( std::ostream& output );
 
 private:
-    bool set_processor_scheduling( const std::string& );
-    bool set_reschedule_on_async_send( const std::string& );
-    bool set_spex_header( const std::string& );
-    bool set_stop_on_message_loss( const std::string& );
-    bool set_task_scheduling( const std::string& );
+    void set_processor_scheduling( const std::string& );
+    void set_reschedule_on_async_send( const std::string& );
+    void set_severity_level( const std::string& );
+    void set_spex_header( const std::string& );
+    void set_stop_on_message_loss( const std::string& );
+    void set_task_scheduling( const std::string& );
 
     static scheduling_type str_to_scheduling_type( const std::string& s );
-    static bool is_true( const std::string& );
 
 private:
     scheduling_type _processor_scheduling;
     bool _reschedule_on_async_send;
+    LQIO::severity_t _severity_level;
     bool _spex_header;
     bool _stop_on_message_loss;
     scheduling_type _task_scheduling;
@@ -62,7 +62,7 @@ public:
     static Pragma * __pragmas;
 
 private:
-    static std::map<std::string,Pragma::fptr> __set_pragma;
+    static const std::map<const std::string,Pragma::fptr> __set_pragma;
 };
 
 #endif

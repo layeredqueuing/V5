@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14598 2021-04-15 00:31:01Z greg $ *
+ * $Id: pragma.cc 14603 2021-04-16 15:53:36Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -67,7 +67,7 @@ void Pragma::set_pragma( const std::pair<std::string,std::string>& p )
 	    fptr f = j->second;
 	    (__cache->*f)(p.second);
 	}
-	catch ( std::domain_error& e ) {
+	catch ( const std::domain_error& e ) {
 	    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	}
     }
@@ -135,7 +135,7 @@ void Pragma::setForceInfinite( const std::string& value )
     if ( pragma != __force_infinite_pragma.end() ) {
 	_force_infinite = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -171,7 +171,7 @@ void Pragma::setLayering(const std::string& value)
     if ( pragma != __layering_pragma.end() ) {
 	Flags::print[LAYERING].value.i = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -194,7 +194,7 @@ void Pragma::setProcessorScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_processor_scheduling = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -214,18 +214,7 @@ LQIO::severity_t severityLevel()
 
 void Pragma::setSeverityLevel(const std::string& value)
 {
-    static const std::map<const std::string,const LQIO::severity_t> __serverity_level_pragma = {
-	{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },
-	{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },
-	{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }
-    };
-
-    const std::map<const std::string,const LQIO::severity_t>::const_iterator pragma = __serverity_level_pragma.find( value );
-    if ( pragma != __serverity_level_pragma.end() ) {
-	LQIO::io_vars.severity_level = pragma->second;
-    } else {
-	LQIO::io_vars.severity_level = LQIO::NO_ERROR;
-    }
+    LQIO::io_vars.severity_level = LQIO::DOM::Pragma::getSeverityLevel( value );
 }
 
 bool Pragma::spexHeader()
@@ -255,7 +244,7 @@ void Pragma::setTaskScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_task_scheduling = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: error.h 13742 2020-08-06 14:53:34Z greg $
+ * $Id: error.h 14603 2021-04-16 15:53:36Z greg $
  */
 
 #if	!defined(SRVNIO_LIB_ERROR_H)
@@ -52,7 +52,6 @@
  */
 
 #include <cstdio>
-#include <cstdarg>
 #include <stdexcept>
 
 namespace LQIO {

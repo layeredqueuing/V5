@@ -3,7 +3,7 @@
  *
  * $URL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: pragma.h 14604 2021-04-16 16:10:30Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -14,16 +14,8 @@
 #include <config.h>
 #endif
 #include <string>
-#include <cstdio>
-#include <cstring>
 #include <map>
-#include <lqio/dom_document.h>
-
-struct lt_str
-{
-    bool operator()(const char* s1, const char* s2) const { return strcmp(s1, s2) < 0; }
-};
-
+#include <lqio/dom_pragma.h>
 
 class Pragma
 {
@@ -31,12 +23,15 @@ private:
     Pragma();
 
 public:
-    typedef bool (Pragma::*fptr)( const std::string& );
+    enum class ForceInfinite { NONE, FIXED_RATE, MULTISERVERS, ALL };
+
+    typedef void (Pragma::*fptr)( const std::string& );
 
     static void set( const std::map<std::string,std::string>& list );
 
     bool abort_on_dropped_message() const { return _abort_on_dropped_message; }
     double block_period() const { return _block_period; }
+    ForceInfinite force_infinite() const { return _force_infinite; }
     double initial_delay() const { return _initial_delay; }
     unsigned int initial_loops() const { return _initial_loops; }
     int nice() const { return _nice_value; }
@@ -54,22 +49,24 @@ public:
 private:
     Pragma( const Pragma& );		/* No copy constructor */
 
-    bool set_abort_on_dropped_message( const std::string& );
-    bool set_block_period( const std::string& );
-    bool set_initial_delay( const std::string& );
-    bool set_initial_loops( const std::string& );
-    bool set_max_blocks( const std::string& );
-    bool set_nice( const std::string& );
-    bool set_precision( const std::string& );
-    bool set_quorum_delayed_calls( const std::string& );
-    bool set_reschedule_on_async_send( const std::string& );
-    bool set_run_time( const std::string& );
-    bool set_scheduling_model( const std::string& );
-    bool set_seed_value( const std::string& );
-    bool set_severity_level(const std::string& );
+    void set_abort_on_dropped_message( const std::string& );
+    void set_block_period( const std::string& );
+    void set_force_infinite( const std::string& );
+    void set_initial_delay( const std::string& );
+    void set_initial_loops( const std::string& );
+    void set_max_blocks( const std::string& );
+    void set_nice( const std::string& );
+    void set_precision( const std::string& );
+    void set_quorum_delayed_calls( const std::string& );
+    void set_reschedule_on_async_send( const std::string& );
+    void set_run_time( const std::string& );
+    void set_scheduling_model( const std::string& );
+    void set_seed_value( const std::string& );
+    void set_severity_level(const std::string& );
 
 private:
     bool _abort_on_dropped_message;
+    ForceInfinite _force_infinite;
     int _nice_value;
     int _quorum_delayed_calls;
     bool _reschedule_on_async_send;

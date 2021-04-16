@@ -1,13 +1,13 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14598 2021-04-15 00:31:01Z greg $
+ * $Id: help.h 14604 2021-04-16 16:10:30Z greg $
  */
 
 #ifndef _HELP_H
 #define _HELP_H
 
-//#include "dim.h"
+#include "dim.h"
 #include <config.h>
 #include <map>
 #include "lqns.h"
@@ -99,7 +99,6 @@ public:
 
 protected:
    static std::map<const int,help_fptr,lt_int> option_table;
-
 
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const = 0;

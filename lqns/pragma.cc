@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14598 2021-04-15 00:31:01Z greg $ *
+ * $Id: pragma.cc 14603 2021-04-16 15:53:36Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -103,7 +103,7 @@ Pragma::set( const std::map<std::string,std::string>& list )
 		fptr f = j->second;
 		(__cache->*f)(i->second);
 	    }
-	    catch ( std::domain_error& e ) {
+	    catch ( const std::domain_error& e ) {
 		LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), e.what() );
 	    }
 	}
@@ -130,7 +130,7 @@ void Pragma::setForceInfinite(const std::string& value)
     if ( pragma != __force_infinite_pragma.end() ) {
 	_force_infinite = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -147,7 +147,7 @@ void Pragma::setForceMultiserver(const std::string& value)
     if ( pragma != __force_multiserver.end() ) {
 	_force_multiserver = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -178,7 +178,7 @@ void Pragma::setLayering(const std::string& value)
 	/* NOP */
 #endif
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -201,7 +201,7 @@ void Pragma::setMultiserver(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_multiserver = Multiserver::DEFAULT;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -219,7 +219,7 @@ void Pragma::setMva(const std::string& value)
     if ( pragma != __mva_pragma.end() ) {
 	_mva = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -238,7 +238,7 @@ void Pragma::setOvertaking(const std::string& value)
     if ( pragma != __overtaking_pragma.end() ) {
 	_overtaking = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -261,7 +261,7 @@ void Pragma::setProcessorScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_processor_scheduling = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -280,7 +280,7 @@ void Pragma::setQuorumDistribution(const std::string& value)
     if ( pragma != __quorum_distribution_pragma.end() ) {
 	_quorum_distribution = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -299,7 +299,7 @@ void Pragma::setQuorumDelayedCalls(const std::string& value)
     if ( pragma != __quorum_delayed_calls_pragma.end() ) {
 	_quorum_delayed_calls = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -315,7 +315,7 @@ void Pragma::setQuorumIdleTime(const std::string& value)
     if ( pragma != __quorum_idle_time_pragma.end() ) {
 	_quorum_idle_time = pragma->second;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 #endif
@@ -338,18 +338,7 @@ void Pragma::setSpexHeader(const std::string& value)
 
 void Pragma::setSeverityLevel(const std::string& value)
 {
-    const std::map<const std::string,const LQIO::severity_t> __serverity_level_pragma = {
-	{ LQIO::DOM::Pragma::_advisory_,	LQIO::ADVISORY_ONLY },
-	{ LQIO::DOM::Pragma::_run_time_,	LQIO::RUNTIME_ERROR },
-	{ LQIO::DOM::Pragma::_warning_,		LQIO::WARNING_ONLY }
-    };
-
-    const std::map<const std::string,const LQIO::severity_t>::const_iterator pragma = __serverity_level_pragma.find( value );
-    if ( pragma != __serverity_level_pragma.end() ) {
-	_severity_level = pragma->second;
-    } else {
-	_severity_level = LQIO::NO_ERROR;
-    }
+    _severity_level = LQIO::DOM::Pragma::getSeverityLevel( value );
 }
 
 
@@ -357,7 +346,7 @@ void Pragma::setStopOnBogusUtilization(const std::string& value)
 {
     char * endptr = nullptr;
     const double temp = std::strtod( value.c_str(), &endptr );
-    if ( (temp < 1 && temp != 0) || *endptr != '\0' ) throw std::domain_error( value.c_str() );
+    if ( (temp < 1 && temp != 0) || *endptr != '\0' ) throw std::domain_error( value );
     _stop_on_bogus_utilization = temp;
 }
 
@@ -382,7 +371,7 @@ void Pragma::setTaskScheduling(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_default_ ) {
 	_default_task_scheduling = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -390,7 +379,7 @@ void Pragma::setTau(const std::string& value)
 {
     char * endptr = nullptr;
     const unsigned int temp = std::strtol( value.c_str(), &endptr, 10 );
-    if ( temp > 20 || *endptr != '\0' ) throw std::domain_error( value.c_str() );
+    if ( temp > 20 || *endptr != '\0' ) throw std::domain_error( value );
     _tau = temp;
 }
 
@@ -409,7 +398,7 @@ void Pragma::setThreads(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_exponential_ ) {
 	_exponential_paths = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
@@ -431,7 +420,7 @@ void Pragma::setVariance(const std::string& value)
     } else if ( value == LQIO::DOM::Pragma::_init_only_ ) {
 	_init_variance_only = true;
     } else {
-	throw std::domain_error( value.c_str() );
+	throw std::domain_error( value );
     }
 }
 
