@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14593 2021-04-08 01:03:18Z greg $
+ *  $Id: srvn_spex.cpp 14607 2021-04-18 01:37:51Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1464,20 +1464,20 @@ void * spex_result_assignment_statement( const char * name, void * expr )
     std::string var_name;
     if ( name != nullptr ) {
 	var_name = name;
-    } else {
+	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,static_cast<LQX::SyntaxTreeNode *>(expr)) );		/* Save variable name for printing */
+	LQX::VariableExpression * variable = static_cast<LQX::VariableExpression * >(spex_get_symbol( var_name.c_str() ));
+	if ( expr ) {
+	    return new LQX::AssignmentStatementNode( variable, static_cast<LQX::SyntaxTreeNode *>(expr) );
+	} else { 
+	    return variable;
+	}
+    } else if ( dynamic_cast<const LQX::VariableExpression *>(static_cast<LQX::SyntaxTreeNode *>(expr) ) ) {
 	std::ostringstream ss;
 	static_cast<LQX::SyntaxTreeNode *>(expr)->print( ss );
 	var_name = ss.str();
+	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
     }
-
-    LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,static_cast<LQX::SyntaxTreeNode *>(expr)) );		/* Save variable name for printing */
-
-    LQX::VariableExpression * variable = static_cast<LQX::VariableExpression * >(spex_get_symbol( var_name.c_str() ));
-    if ( expr ) {
-	return new LQX::AssignmentStatementNode( variable, static_cast<LQX::SyntaxTreeNode *>(expr) );
-    } else {
-	return variable;
-    }
+    return expr;
 }
 
 /*

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14557 2021-03-17 18:42:04Z greg $
+ * $Id: phase.cc 14608 2021-04-18 02:05:10Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1551,7 +1551,7 @@ Phase::DeviceInfo::recalculateDynamicValues()
 
     } else {
 	const double new_time = think_time();
-	if ( new_time == new_time && !flags.full_reinitialize ) return *this;
+	if ( old_time == new_time && !flags.full_reinitialize ) return *this;
 
 	_entry->setServiceTime(new_time)
 	    .initVariance()
