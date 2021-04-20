@@ -5,7 +5,7 @@
 
 AC_PREREQ([2.69])
 AC_INIT([parsol],[3.2],[greg@sce.carleton.ca])
-AC_CONFIG_AUX_DIR([config])
+AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([src])
 AC_CONFIG_HEADERS([config.h])
 AM_INIT_AUTOMAKE
