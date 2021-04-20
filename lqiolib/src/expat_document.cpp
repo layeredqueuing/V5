@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14588 2021-04-04 03:21:42Z greg $
+ * $Id: expat_document.cpp 14611 2021-04-19 21:35:58Z greg $
  *
  * Read in XML input files.
  *
@@ -2267,6 +2267,14 @@ namespace LQIO {
                    << XML::attribute( Xprint_int, *_document.getModelPrintInterval() );
             if ( complex_element ) {
                 output << ">" << std::endl;
+	    }
+	    if ( _document.getSymbolExternalVariableCount() > 0 ) {
+		std::ostringstream ss;
+		ss << "Variables: ";
+		_document.printExternalVariables( ss );
+		output << XML::comment( ss.str() );
+	    }
+            if ( complex_element ) {
                 if ( _document.hasPragmas() ) {
                     const std::map<std::string,std::string>& pragmas = _document.getPragmaList();
                     for ( std::map<std::string,std::string>::const_iterator next_pragma = pragmas.begin(); next_pragma != pragmas.end(); ++next_pragma ) {

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: processor.cc 14611 2021-04-19 21:35:58Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -324,12 +324,12 @@ Processor::makeServer( const unsigned nChains )
 		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		} else {
-		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return nullptr;
+		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
 		    _station = new Rolia_Multi_Server(  copies(), nEntries(), nChains );
 		}
 		break;
 
-	    case Pragma::Multiserver::CONWAY:
+	    case Pragma::Multiserver::CONWAY:	/* Marginal size == copies() */
 		if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Conway_Multi_Server( copies(), nEntries(), nChains );
 		break;
@@ -344,17 +344,17 @@ Processor::makeServer( const unsigned nChains )
 		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::Multiserver::ROLIA:
-		if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return nullptr;
+	    case Pragma::Multiserver::ROLIA:	/* Marginal size == 0 */
+		if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
 		_station = new Rolia_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
 	    case Pragma::Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return nullptr;
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
 		_station = new Rolia_PS_Multi_Server( copies(), nEntries(), nChains );
 		break;
 
-	    case Pragma::Multiserver::BRUELL:
+	    case Pragma::Multiserver::BRUELL:	/* Marginal size != copies() */
 		if ( dynamic_cast<Bruell_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Bruell_Multi_Server( copies(), nEntries(), nChains );
 		break;

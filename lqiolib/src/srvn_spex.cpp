@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14607 2021-04-18 01:37:51Z greg $
+ *  $Id: srvn_spex.cpp 14611 2021-04-19 21:35:58Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1473,8 +1473,12 @@ void * spex_result_assignment_statement( const char * name, void * expr )
 	}
     } else if ( dynamic_cast<const LQX::VariableExpression *>(static_cast<LQX::SyntaxTreeNode *>(expr) ) ) {
 	std::ostringstream ss;
-	static_cast<LQX::SyntaxTreeNode *>(expr)->print( ss );
+	const LQX::SyntaxTreeNode * node = static_cast<LQX::SyntaxTreeNode *>(expr);
+	node->print( ss );
 	var_name = ss.str();
+	if ( dynamic_cast<const LQX::VariableExpression *>(node) != nullptr && var_name[0] != '$' ) {
+	    var_name.insert( 0, "$" );			/* Convert to external variable */
+	}
 	LQIO::Spex::__result_variables.push_back( LQIO::Spex::var_name_and_expr(var_name,nullptr) );		/* Save variable name for printing */
     }
     return expr;

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14549 2021-03-15 22:03:42Z greg $
+ * $Id: task.cc 14611 2021-04-19 21:35:58Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1785,7 +1785,7 @@ ServerTask::makeServer( const unsigned nChains )
 
 	/* ---------------- Infinite Servers ---------------- */
 
-	if ( dynamic_cast<Infinite_Server *>(_station) ) return 0;
+	if ( dynamic_cast<Infinite_Server *>(_station) ) return nullptr;
 	_station = new Infinite_Server( nEntries(), nChains, maxPhase() );
 
     } else if ( isMultiServer() || Pragma::forceMultiserver( Pragma::ForceMultiserver::TASKS ) ) {
@@ -1798,51 +1798,51 @@ ServerTask::makeServer( const unsigned nChains )
 	    default:
 	    case Pragma::Multiserver::DEFAULT:
 		if ( (copies() < 128 && nChains <= 5) || isInOpenModel() ) {
-		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return 0;
+		    if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		    _station = new Conway_Multi_Server( copies(), nEntries(), nChains, maxPhase());
 		} else {
-		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return 0;
+		    if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		    _station = new Rolia_Multi_Server(  copies(), nEntries(), nChains, maxPhase());
 		}
 		break;
 
 	    case Pragma::Multiserver::CONWAY:
-		if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return 0;
+		if ( dynamic_cast<Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		_station = new Conway_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::REISER:
-		if ( dynamic_cast<Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return 0;
+		if ( dynamic_cast<Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		_station = new Reiser_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::REISER_PS:
-		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return 0;
+		if ( dynamic_cast<Reiser_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		_station = new Reiser_PS_Multi_Server( copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::ROLIA:
-		if ( dynamic_cast<Rolia_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Rolia_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		_station = new Rolia_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		_station = new Rolia_PS_Multi_Server(  copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::BRUELL:
-		if ( dynamic_cast<Bruell_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Bruell_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Bruell_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::SCHMIDT:
-		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Schmidt_Multi_Server(   copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::SURI:
-		if ( dynamic_cast<Suri_Multi_Server *>(_station)  && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Suri_Multi_Server *>(_station)  && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Suri_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 	    }
@@ -1854,28 +1854,28 @@ ServerTask::makeServer( const unsigned nChains )
 	    case Pragma::Multiserver::DEFAULT:
 	    case Pragma::Multiserver::CONWAY:
 	    case Pragma::Multiserver::SCHMIDT:
-		if ( dynamic_cast<Markov_Phased_Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Markov_Phased_Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Markov_Phased_Conway_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::REISER:
-		if ( dynamic_cast<Markov_Phased_Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Markov_Phased_Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Markov_Phased_Reiser_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::ROLIA:
-		if ( dynamic_cast<Markov_Phased_Rolia_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Markov_Phased_Rolia_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Markov_Phased_Rolia_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::REISER_PS:
 	    case Pragma::Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Markov_Phased_Rolia_PS_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Markov_Phased_Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies()) return nullptr;
 		_station = new Markov_Phased_Rolia_PS_Multi_Server(  copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::SURI:
-		if ( dynamic_cast<Markov_Phased_Suri_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return 0;
+		if ( dynamic_cast<Markov_Phased_Suri_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Markov_Phased_Suri_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
 		break;
 
@@ -1888,24 +1888,24 @@ ServerTask::makeServer( const unsigned nChains )
 	    case Pragma::Multiserver::DEFAULT:
 	    case Pragma::Multiserver::CONWAY:
 	    case Pragma::Multiserver::SCHMIDT:
-		if ( dynamic_cast<Phased_Conway_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Phased_Conway_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		_station = new Phased_Conway_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::REISER:
 	    case Pragma::Multiserver::REISER_PS:
-		if ( dynamic_cast<Phased_Reiser_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Phased_Reiser_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies() ) return nullptr;
 		_station = new Phased_Reiser_Multi_Server(    copies(), nEntries(), nChains, maxPhase());
 		break;
 
 
 	    case Pragma::Multiserver::ROLIA:
-		if ( dynamic_cast<Phased_Rolia_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Phased_Rolia_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		_station = new Phased_Rolia_Multi_Server(     copies(), nEntries(), nChains, maxPhase());
 		break;
 
 	    case Pragma::Multiserver::ROLIA_PS:
-		if ( dynamic_cast<Phased_Rolia_PS_Multi_Server *>(_station) ) return 0;
+		if ( dynamic_cast<Phased_Rolia_PS_Multi_Server *>(_station) && _station->copies() == copies() ) return nullptr;
 		_station = new Phased_Rolia_PS_Multi_Server(  copies(), nEntries(), nChains, maxPhase());
 		break;
 
@@ -1920,51 +1920,51 @@ ServerTask::makeServer( const unsigned nChains )
 
 	if ( !hasSecondPhase() || Pragma::overtaking( Pragma::Overtaking::NONE ) ) {
 	    if ( HOL_Scheduling() ) {
-		if ( dynamic_cast<HOL_HVFCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<HOL_HVFCFS_Server *>(_station) ) return nullptr;
 		_station = new HOL_HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else if ( PPR_Scheduling() ) {
-		if ( dynamic_cast<PR_HVFCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<PR_HVFCFS_Server *>(_station) ) return nullptr;
 		_station = new PR_HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else {
-		if ( dynamic_cast<HVFCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<HVFCFS_Server *>(_station) ) return nullptr;
 		_station = new HVFCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 	} else switch( Pragma::overtaking() ) {
 	    case Pragma::Overtaking::ROLIA:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_HVFCFS_Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_HVFCFS_Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_HVFCFS_Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_HVFCFS_Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_HVFCFS_Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_HVFCFS_Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<HVFCFS_Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HVFCFS_Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HVFCFS_Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
 
 	    case Pragma::Overtaking::SIMPLE:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_HVFCFS_Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_HVFCFS_Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_HVFCFS_Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_HVFCFS_Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_HVFCFS_Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_HVFCFS_Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<HVFCFS_Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HVFCFS_Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HVFCFS_Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
 
 	    case Pragma::Overtaking::MARKOV:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_HVFCFS_Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_HVFCFS_Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_HVFCFS_Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_HVFCFS_Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_HVFCFS_Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_HVFCFS_Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<HVFCFS_Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HVFCFS_Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HVFCFS_Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
@@ -1981,52 +1981,52 @@ ServerTask::makeServer( const unsigned nChains )
 
 	if ( !hasSecondPhase() || Pragma::overtaking( Pragma::Overtaking::NONE ) ) {
 	    if ( HOL_Scheduling() ) {
-		if ( dynamic_cast<HOL_FCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<HOL_FCFS_Server *>(_station) ) return nullptr;
 		_station = new HOL_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else if ( PPR_Scheduling() ) {
-		if ( dynamic_cast<PR_FCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<PR_FCFS_Server *>(_station) ) return nullptr;
 		_station = new PR_FCFS_Server( nEntries(), nChains, maxPhase() );
 	    } else {
-		if ( dynamic_cast<FCFS_Server *>(_station) ) return 0;
+		if ( dynamic_cast<FCFS_Server *>(_station) ) return nullptr;
 		_station = new FCFS_Server( nEntries(), nChains, maxPhase() );
 	    }
 
 	} else switch( Pragma::overtaking() ) {
 	    case Pragma::Overtaking::ROLIA:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<Rolia_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<Rolia_Phased_Server *>(_station) ) return nullptr;
 		    _station = new Rolia_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
 
 	    case Pragma::Overtaking::SIMPLE:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<Simple_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<Simple_Phased_Server *>(_station) ) return nullptr;
 		    _station = new Simple_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
 
 	    case Pragma::Overtaking::MARKOV:
 		if ( HOL_Scheduling() ) {
-		    if ( dynamic_cast<HOL_Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<HOL_Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new HOL_Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else if ( PPR_Scheduling() ){
-		    if ( dynamic_cast<PR_Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<PR_Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new PR_Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		} else {
-		    if ( dynamic_cast<Markov_Phased_Server *>(_station) ) return 0;
+		    if ( dynamic_cast<Markov_Phased_Server *>(_station) ) return nullptr;
 		    _station = new Markov_Phased_Server( nEntries(), nChains, maxPhase() );
 		}
 		break;
