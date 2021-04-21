@@ -1,7 +1,7 @@
 # Makefile for bookstore
 # Copyright (C) 2005 Greg Franks <rgfranks@alumni.uwaterloo.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 11982 2014-04-15 21:32:15Z greg $
+# $Id: Makefile.am 14618 2021-04-21 14:24:22Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	srvn-schema.fig
@@ -16,5 +16,5 @@ SUFFIXES = .pdf .ps .dvi .bbl .eps .pstex .eps .fig .tex
 noinst_DATA = $(SRCS:.fig=.eps) 
 
 distclean-local:
-	rm -f $(noinst_DATA)
+	rm -f *.bak
 
