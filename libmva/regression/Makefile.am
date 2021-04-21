@@ -2,7 +2,7 @@
 #
 # Make file for Unit test files
 #
-# $Id: Makefile.am 14307 2020-12-31 15:54:48Z greg $
+# $Id: Makefile.am 14616 2021-04-21 13:20:38Z greg $
 # ------------------------------------------------------------------------
 
 AM_CXXFLAGS	= -DTESTMVA -DTESTDIST -DDEBUG_MVA -I../src/headers
@@ -77,7 +77,7 @@ popitertest_SOURCES	= popitertest.cc $(EXTRA_test_SOURCES)
 
 run:	check
 	@for i in $(check_PROGRAMS); do \
-	  if test $$i != "poptest" -a $$i != "popitertest" -a $$i != "disttest"; then \
+	  if test $$i != "poptest" -a $$i != "popitertest"; then \
 	    echo $$i; \
 	    ./$$i -s; \
 	  fi \
@@ -93,7 +93,7 @@ run-all:	check
 
 run-schweitzer:	check
 	@for i in $(check_PROGRAMS); do \
-	  if test $$i != "poptest" -a $$i != "popitertest" -a $$i != "disttest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
+	  if test $$i != "poptest" -a $$i != "popitertest" -a $$i != "test1ps" -a $$i != "test2" -a $$i != "test12s" -a $$i != "testA" -a $$i != "testB"; then \
 	    echo $$i; \
 	    ./$$i -b -s; \
 	  fi \

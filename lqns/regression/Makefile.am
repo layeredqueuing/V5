@@ -2,7 +2,7 @@
 # Copyright (C) 2005 Greg Franks <greg@sce.carleton.ca>
 #
 # ------------------------------------------------------------------------
-# $Id: Makefile.am 14071 2020-11-10 14:09:24Z greg $
+# $Id: Makefile.am 14616 2021-04-21 13:20:38Z greg $
 # ------------------------------------------------------------------------
 
 SRVN=	../lqns
@@ -62,7 +62,9 @@ OTHER=	90-A01.lqxo \
 	94-5101-a2-q2b1.lqxo
 
 VAR=	90-A01-novar.lqxo \
-	90-A01-stoch.lqxo 
+	90-A01-stoch.lqxo
+
+DISTTEST=disttest
 
 
 # Can't do: $(SYNC)  Should omit $(SIM) to, as the results aren't meaningful.
@@ -119,6 +121,15 @@ check-summary:	$(OBJS)
 	@-echo $(OBJS) | tr -s " " "\n" > .files
 	srvndiff -IA -S10. -T +t -@.files ../../models/regression/{sim,lqns}-results .
 	@-rm .files
+
+disttest: disttest.o randomvar.o
+	$(CXX) -L../../libmva/src/.libs -lmva -o $@ disttest.o randomvar.o
+
+randomvar.o:	../randomvar.cc ../randomvar.h
+	$(CXX) -DTESTDIST -I.. -I../../libmva/src/headers -c -o randomvar.o ../randomvar.cc
+
+disttest.o:	disttest.cc
+	$(CXX) -I.. -I../../libmva/src/headers -c -o disttest.o disttest.cc
 
 clean:
 	@-rm -f *.lqxo *.out *.diff .files

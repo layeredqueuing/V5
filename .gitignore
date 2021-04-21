@@ -95,7 +95,7 @@ libtool
 lqn2ps/lqn2ps
 lqngen/lqngen
 lqns/lqns
-lqns/regression/disttest.cc
+lqns/regression/disttest
 lqsim/lqsim
 lqx/drvsrc/lqx
 lqx/libsrc/Parser_pre.cpp
