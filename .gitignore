@@ -5,7 +5,6 @@
 *.cache
 *.deps
 *.dvi
-*.eps
 *.exe
 *.gnuplot
 *.gz
@@ -93,14 +92,6 @@ libmva/regression/test9i
 libmva/regression/testA
 libmva/regression/testB
 libtool
-lqiolib/src/srvn_gram.c
-lqiolib/src/srvn_gram.h
-lqiolib/src/srvn_gram.output
-lqiolib/src/srvn_result_gram.c
-lqiolib/src/srvn_result_gram.h
-lqiolib/src/srvn_result_gram.output
-lqiolib/src/srvn_result_scan.c
-lqiolib/src/srvn_scan.c
 lqn2ps/lqn2ps
 lqngen/lqngen
 lqns/lqns
@@ -115,5 +106,13 @@ models/bugs
 parasol/tests
 petrisrvn/petrisrvn
 qnsolver/qnsolver
-srvndiff
+srvn_gram.c
+srvn_gram.h
+srvn_gram.output
+srvn_result_gram.c
+srvn_result_gram.h
+srvn_result_gram.output
+srvn_result_scan.c
+srvn_scan.c
+srvndiff/srvndiff
 stamp-h1
