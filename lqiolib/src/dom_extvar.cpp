@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_extvar.cpp 14623 2021-05-08 12:52:15Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -65,6 +65,12 @@ namespace LQIO {
 
 	ExternalVariable::~ExternalVariable()
 	{
+	}
+
+	/* static */ ExternalVariable * ExternalVariable::clone( const ExternalVariable * src )
+	{
+	    if ( src == nullptr ) return nullptr;
+	    return src->clone();
 	}
 
 	/* static */ std::ostream& ExternalVariable::printVariableName( std::ostream& output, const ExternalVariable& var )

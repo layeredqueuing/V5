@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 14388 2021-01-22 02:35:36Z greg $
+ *  $Id: dom_extvar.h 14623 2021-05-08 12:52:15Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -34,8 +34,9 @@ namespace LQIO {
 	    ExternalVariable();
 	    ExternalVariable( const ExternalVariable& );
 	    ExternalVariable& operator=( const ExternalVariable& );
-	    virtual ExternalVariable * clone() const = 0;
 	    virtual ~ExternalVariable();
+	    static ExternalVariable * clone( const ExternalVariable * );
+	    virtual ExternalVariable * clone() const = 0;
 
 	public:
 	    virtual Type getType() const { return VAR_UNASSIGNED; }

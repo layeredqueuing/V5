@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_call.cpp 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_call.cpp 14623 2021-05-08 12:52:15Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -41,7 +41,7 @@ namespace LQIO {
 	Call::Call(const Call& src) :
 	    DocumentObject(src.getDocument(),""),
 	    _callType(src._callType), _sourceObject(nullptr), _destinationEntry(nullptr), 
-	    _callMean(src._callMean->clone()), _histogram(src._histogram),
+	    _callMean(ExternalVariable::clone(src._callMean)), _histogram(src._histogram),
 	    _hasResultVarianceWaitingTime(false),
 	    _resultWaitingTime(0.0), _resultWaitingTimeVariance(0.0),
 	    _resultVarianceWaitingTime(0.0), _resultVarianceWaitingTimeVariance(0.0),

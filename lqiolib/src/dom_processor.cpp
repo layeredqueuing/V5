@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: dom_processor.cpp 14623 2021-05-08 12:52:15Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -34,8 +34,8 @@ namespace LQIO {
 
 	Processor::Processor(const Processor& src )
 	    : Entity(src),
-	      _processorRate(src._processorRate->clone()),
-	      _processorQuantum(src._processorQuantum->clone()),
+	      _processorRate(ExternalVariable::clone(src._processorRate)),
+	      _processorQuantum(ExternalVariable::clone(src._processorQuantum)),
 	      _taskList(),
 	      _groupList(),
 	      _resultUtilization(0.0),
