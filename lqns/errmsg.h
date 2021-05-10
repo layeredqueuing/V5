@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: errmsg.h 14624 2021-05-09 13:01:43Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -33,6 +33,7 @@ extern "C" {
 enum {
     ERR_BOGUS_COPIES=LQIO::LSTGBLERRMSG+1,
     ERR_EXTERNAL_SYNC,
+    ERR_REPLICATION_NOT_SUPPORTED,
     ERR_REPLICATION_PROCESSOR,
     ERR_REPLICATION,
     ERR_INVALID_FANINOUT_PARAMETER,

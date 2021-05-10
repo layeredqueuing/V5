@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14524 2021-03-07 03:21:56Z greg $
+ * $Id: lqns.cc 14624 2021-05-09 13:01:43Z greg $
  *
  * Command line processing.
  *
@@ -510,7 +510,7 @@ int main (int argc, char *argv[])
  */
 
 static int
-process ( const std::string& inputFileName, const std::string& outputFileName )
+process( const std::string& inputFileName, const std::string& outputFileName )
 {
     /* Open input file. */
 

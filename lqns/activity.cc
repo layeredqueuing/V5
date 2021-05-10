@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: activity.cc 14624 2021-05-09 13:01:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -719,7 +719,7 @@ Activity::estimateClosedFormGeoQuorumCDF(double level1Mean,
 bool 
 Activity::getLevelMeansAndNumberOfCalls(double & level1Mean, 
 					double & level2Mean, 
-					double &  avgNumCallsToLevel2Tasks )
+					double & avgNumCallsToLevel2Tasks )
 {
     bool anError = false;
     double relax = 1;
@@ -729,35 +729,47 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
 	std::cout <<"myActivityList[i]->owner()->submodel()=" << currentSubmodel<< std::endl;
     }        
 
+#if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	level1Mean = getReplicationProcWait(currentSubmodel,relax) ;
 	// std::cout <<"\ngetReplicationProcWait=" << 
 	//getReplicationProcWait(currentSubmodel,relax) << std::endl ;
     } else {
+#endif
 	level1Mean = getProcWait( currentSubmodel,relax);
+#if PAN_REPLICATION
     }
+#endif
     if (flags.trace_quorum) {
 	std::cout <<  "level1Mean=" <<  level1Mean << std::endl;
     }
 
+#if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	level2Mean =  getReplicationTaskWait(currentSubmodel,relax);
 	// std::cout <<"\ngetReplicationTaskWait=" << 
 	//getReplicationTaskWait(currentSubmodel,relax) << std::endl ;
     } else {
+#endif
 	level2Mean = getTaskWait(currentSubmodel, relax);
+#if PAN_REPLICATION
     }
+#endif
     if (flags.trace_quorum) {
 	std::cout <<  "level2Mean=" <<  level2Mean << std::endl;
     }
 
+#if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	avgNumCallsToLevel2Tasks =getReplicationRendezvous(currentSubmodel,relax);
 	//std::cout <<"\ngetReplicationRendezvous=" << 
 	//getReplicationRendezvous(currentSubmodel,relax) << std::endl ;
     } else {
+#endif
 	avgNumCallsToLevel2Tasks = getRendezvous(currentSubmodel, relax);
+#if PAN_REPLICATION
     }
+#endif
 
     if (flags.trace_quorum) {
 	std::cout << "Task rendevous = " <<  avgNumCallsToLevel2Tasks << std::endl;
@@ -818,6 +830,9 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
     }
 }
 
+
+
+#if PAN_REPLICATION
 /*
  * Add up all of the surrogate delays.
  */
@@ -835,6 +850,8 @@ Activity::collectReplication( Entry * entry, const Activity::Collect& data ) con
     }
 
 }
+#endif
+
 
 
 /*

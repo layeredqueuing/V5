@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: call.cc 14624 2021-05-09 13:01:43Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -344,6 +344,7 @@ Call::insertDOMResults() const
 }
 
 
+#if PAN_REPLICATION
 /*
  * Return the adjustment factor for this call.  //REPL
  */
@@ -354,6 +355,7 @@ Call::nrFactor( const Submodel& aSubmodel, const unsigned k ) const
     const Entity * dst_task = dstTask();
     return aSubmodel.nrFactor( dst_task->serverStation(), index(), k ) * fanOut() * rendezvous();	// 5.20
 }
+#endif
 
 
 

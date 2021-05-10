@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14603 2021-04-16 15:53:36Z greg $
+ * $Id: actlist.cc 14624 2021-05-09 13:01:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -671,6 +671,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
             currEntry->aggregate( submodel, p, sum[p] );
         }
 
+#if PAN_REPLICATION
     } else if ( f == &Activity::collectReplication ) {
         Vector< VectorMath<double> > sum(currEntry->maxPhase());
         for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -690,6 +691,7 @@ OrForkActivityList::collect( std::deque<const Activity *>& activityStack, std::d
             }
         }
         currEntry->aggregateReplication( sum );
+#endif
 
     } else if ( f == &Activity::collectServiceTime ) {
         VectorMath<double> sum( currEntry->maxPhase() );
@@ -1856,6 +1858,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
                 currEntry->aggregate( submodel, p, sum );
             }
 
+#if PAN_REPLICATION
         } else if ( f == &Activity::collectReplication ) {
             Vector< VectorMath<double> > sum(currEntry->maxPhase());
             for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
@@ -1863,6 +1866,7 @@ RepeatActivityList::collect( std::deque<const Activity *>& activityStack, std::d
                 sum[p] *= rateBranch(anActivity);
             }
             currEntry->aggregateReplication( sum );
+#endif
 
         } else if ( f == &Activity::collectServiceTime ) {
 	    currEntry->addServiceTime( data.phase(), rateBranch(anActivity) * anEntry->_phase[data.phase()].serviceTime() );

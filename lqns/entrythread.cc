@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: entrythread.cc 14624 2021-05-09 13:01:43Z greg $
  *
  */
 
@@ -94,6 +94,7 @@ Thread::waitExcept( const unsigned submodel, const unsigned k, const unsigned p 
 
 
 
+#if PAN_REPLICATION
 /*
  * 
  */
@@ -103,6 +104,7 @@ Thread::waitExceptChain( const unsigned submodel, const unsigned k, const unsign
 {
     return _phase[p].waitExceptChain( submodel, k );
 }
+#endif
 
 
 
