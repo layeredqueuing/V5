@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14484 2021-02-24 01:58:30Z greg $
+ * $Id: lqn2ps.cc 14633 2021-05-11 13:55:35Z greg $
  *
  * Command line processing.
  *
@@ -156,6 +156,7 @@ option_type Flags::print[] = {
     { "print-comment",	   512+'c', 0,			   0,			   {0},			false, "Print the model comment on stdout." },
     { "print-submodels",   512+'D', 0,                     0,			   {0},			false, "Show submodels." },
     { "print-summary",	   512+'S', 0,			   0,			   {0},			false, "Print model summary on stdout." },
+    { "debug-json",	   512+'J', 0,			   0,			   {0},			false, "Output debugging information while parsing JSON input." },
     { "debug-lqx",	   512+'L', 0,                     0,                      {0},                 false, "Output debugging information while parsing LQX input." },
     { "debug-srvn",	   512+'Y', 0,                     0,                      {0},                 false, "Output debugging information while parsing SRVN input." },
     { "debug-p",	   512+'Z', 0,                     0,                      {0},                 false, "Output debugging information while parsing parseable results input." },
@@ -193,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-02-23 20:58:30 -0500 (Tue, 23 Feb 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-05-11 09:55:35 -0400 (Tue, 11 May 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -349,6 +350,7 @@ lqn2ps( int argc, char *argv[] )
 	case 'I':
 	    arg = getsubopt( &options, const_cast<char * const *>(Options::io), &value );
 	    switch ( arg ) {
+	    case FORMAT_JSON:
 	    case FORMAT_LQX:
 	    case FORMAT_XML:
 	    case FORMAT_SRVN:
@@ -423,6 +425,10 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::graphical_output_style = JLQNDEF_STYLE;
 	    Flags::icon_slope = 0;
 	    Flags::print[Y_SPACING].value.f = 45;
+	    break;
+
+	case 512+'J':
+	    LQIO::DOM::Document::__debugJSON = true;
 	    break;
 
 	case 'K':
@@ -774,8 +780,12 @@ lqn2ps( int argc, char *argv[] )
 		 << " are mutually exclusive." << std::endl;
 	    exit( 1 );
 	} else if ( !graphical_output() 
+#if defined(QNAP_OUTPUT)
+		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_QNAP
+#endif
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_XML
+		    && Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
 	    ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": -Q" << Flags::print[QUEUEING_MODEL].value.i
 		 << " and " << Options::io[Flags::print[OUTPUT_FORMAT].value.i] 
@@ -791,8 +801,8 @@ lqn2ps( int argc, char *argv[] )
 	    Flags::squish_names		= true;
 	}
 #endif
-#if defined(QNAP_OUTPUT) || defined(PMIF_OUTPUT)
-    } else if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP || Flags::print[OUTPUT_FORMAT].value.i == FORMAT_PMIF ) {
+#if defined(QNAP_OUTPUT)
+    } else if ( Flags::print[OUTPUT_FORMAT].value.i == FORMAT_QNAP ) {
 	std::cerr << LQIO::io_vars.lq_toolname << ": -Q<submodel> must be used with the "
 		  <<  Options::io[Flags::print[OUTPUT_FORMAT].value.i] << " output format." << std::endl;
 	exit( 1 );
@@ -925,6 +935,9 @@ process( const std::string& input_file_name, const std::string& output_file_name
     case FORMAT_LQX:
     case FORMAT_XML:
 	input_format = LQIO::DOM::Document::XML_INPUT;
+	break;
+    case FORMAT_JSON:
+	input_format = LQIO::DOM::Document::JSON_INPUT;
 	break;
     case FORMAT_SRVN:
 	input_format = LQIO::DOM::Document::LQN_INPUT;
@@ -1152,6 +1165,7 @@ setOutputFormat( const int i )
     case FORMAT_OUTPUT:
     case FORMAT_PARSEABLE:
     case FORMAT_RTF:
+    case FORMAT_JSON:
     case FORMAT_LQX:
     case FORMAT_XML:
 	Flags::print[LAYERING].value.i = LAYERING_PROCESSOR;	/* Order by processors */

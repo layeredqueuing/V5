@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: submodel.cc 14635 2021-05-11 16:27:14Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -386,9 +386,9 @@ MVASubmodel::rebuild()
 
 #if PAN_REPLICATION
 	if ( (*client)->replicas() <= 1 ) {
-#endif
 
 	    /* ---------------- Simple case --------------- */
+#endif
 
 	    for ( unsigned i = 1; i <= threads; ++i ) {
 		k += 1;				// Add one chain.
@@ -478,9 +478,9 @@ MVASubmodel::makeChains()
 
 #if PAN_REPLICATION
 	if ( (*client)->replicas() <= 1 ) {
-#endif
 
 	    /* ---------------- Simple case --------------- */
+#endif
 
 	    size_t new_size = _customers.size() + threads;
 	    _customers.resize( new_size ); /* N.B. -- Vector class.  Must*/
@@ -601,9 +601,9 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
     for_each ( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClientStation, *this ) );
     for_each ( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServerStation, *this ) );
 
+#if PAN_REPLICATION
     /* ------------------- Replication Iteration ------------------- */
 
-#if PAN_REPLICATION
     double deltaRep	= 0.0;
     unsigned iter       = 0; //REP N-R
 

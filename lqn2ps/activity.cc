@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: activity.cc 14638 2021-05-13 14:41:08Z greg $
  */
 
 #include "activity.h"
@@ -1067,61 +1067,30 @@ Activity::expandActivityCalls( const Activity& src, int replica )
     for ( std::vector<Call *>::const_iterator call = src.calls().begin(); call != src.calls().end(); ++call ) {
 	const unsigned fan_out = (*call)->fanOut();
 	const unsigned dst_replicas = (*call)->dstEntry()->owner()->replicasValue();
-	if (fan_out > dst_replicas) {
-	    std::ostringstream msg;
-	    msg << "Activity::expandActivityCalls(): fanout of activity " << name()
-		<< " is greater than the number of replicas of the destination Entry'"
-		<< (*call)->dstEntry()->name() << "'";
-	    throw std::runtime_error( msg.str() );
-	}
+	assert( fan_out <= dst_replicas );
 
-	LQIO::DOM::Call * dom_call;
-	for (unsigned k = 0; k < fan_out; k++) {
+	for ( unsigned k = 0; k < fan_out; k++ ) {
 	    Entry *dstEntry = Entry::find_replica( (*call)->dstEntry()->name(),
 						   ((k + (replica - 1) * fan_out) % dst_replicas) + 1 );
 
 	    LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry*>(dynamic_cast<const LQIO::DOM::Entry*>(dstEntry->getDOM()));
+	    if ( dst_dom == nullptr || (!(*call)->hasRendezvous() && !(*call)->hasSendNoReply()) ) continue;
+	    LQIO::DOM::Call * dom_call = (*call)->getDOM(1)->clone();
+	    dom_call->setSourceObject( const_cast<LQIO::DOM::Phase *>(getDOM()) );
+	    dom_call->setDestinationEntry( dst_dom );
+#if BUG_299
+	    dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
+#endif
 	    if ( (*call)->hasRendezvous() ) {
-		dom_call = (*call)->getDOM(1)->clone();
-		dom_call->setSourceObject( const_cast<LQIO::DOM::Phase *>(getDOM()) );
-		dom_call->setDestinationEntry( dst_dom );
 		rendezvous( dstEntry, dom_call );
-		dom_activity->addCall( dom_call );
-
 	    } else if ( (*call)->hasSendNoReply() ) {
-		dom_call = (*call)->getDOM(1)->clone();
-		dom_call->setSourceObject( const_cast<LQIO::DOM::Phase *>(getDOM()) );
-		dom_call->setDestinationEntry( dst_dom );
 		sendNoReply( dstEntry, dom_call );
-		dom_activity->addCall( dom_call );
 	    }
+	    dom_activity->addCall( dom_call );
 	}
     }
     return *this;
 }
-
-
-
-static struct {
-    set_function first;
-    get_function second;
-} activity_mean[] = { 
-// static std::pair<set_function,get_function> activity_mean[] = {
-    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
-    { &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
-    { &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
-    { NULL, NULL }
-};
-
-static struct {
-    set_function first;
-    get_function second;
-} activity_variance[] = { 
-//static std::pair<set_function,get_function> activity_variance[] = {
-    { &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
-    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
-    { NULL, NULL }
-};
 
 
 
@@ -1132,6 +1101,25 @@ static struct {
 Activity&
 Activity::replicateActivity( LQIO::DOM::Activity * root, unsigned int replica )
 {
+    const static struct {
+	set_function first;
+	get_function second;
+    } activity_mean[] = { 
+	{ &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
+	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
+	{ &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
+	{ NULL, NULL }
+    };
+
+    const static struct {
+	set_function first;
+	get_function second;
+    } activity_variance[] = { 
+	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
+	{ &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
+	{ NULL, NULL }
+    };
+
     if ( root == nullptr || getDOM() == nullptr ) return *this;
 
     replicatePhase( root, replica );	// Super will replicate phase part.

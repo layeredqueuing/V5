@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: task.cc 14628 2021-05-10 17:56:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -152,6 +152,19 @@ Task::check() const
 	const double temp = static_cast<double>(srcReplicas) / static_cast<double>(dstReplicas);
 	if ( trunc( temp ) != temp  ) {			/* Integer multiple */
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR, srcReplicas, name().c_str(), dstReplicas, getProcessor()->name().c_str() );
+	}
+	const LQIO::DOM::Document* document = getDOM()->getDocument();
+	const std::map<const std::string,const LQIO::DOM::ExternalVariable *>& fanOuts = getDOM()->getFanOuts();
+	for ( const auto& dst : fanOuts ) {
+	    if ( document->getTaskByName( dst.first ) == nullptr ) {
+		LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan out", name().c_str(), dst.first.c_str(), "Destination task not defined" );
+	    }
+	}
+	const std::map<const std::string,const LQIO::DOM::ExternalVariable *>& fanIns = getDOM()->getFanIns();
+	for ( const auto& src : fanIns ) {
+	    if ( document->getTaskByName( src.first ) == nullptr ) {
+		LQIO::solution_error( ERR_INVALID_FANINOUT_PARAMETER, "fan in", name().c_str(), src.first.c_str(), "Source task not defined" );
+	    }
 	}
     }
 

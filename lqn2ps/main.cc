@@ -1,6 +1,6 @@
 /* srvn2eepic.c	-- Greg Franks Sun Jan 26 2003
  *
- * $Id: main.cc 14601 2021-04-15 19:31:20Z greg $
+ * $Id: main.cc 14633 2021-05-11 13:55:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -12,6 +12,7 @@
 #include <sstream>
 #include <libgen.h>
 #include <lqio/dom_object.h>
+#include <lqio/json_document.h>
 #include <lqio/dom_pragma.h>
 #include "layer.h"
 #include "model.h"
@@ -115,6 +116,7 @@ const char * Options::io[] =
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG
     "jpeg",
 #endif
+    "json",
     "lqx",
     "null",
     "out",
@@ -127,6 +129,9 @@ const char * Options::io[] =
 #endif
     "ps",
     "pstex",
+#if defined(QNAP_OUTPUT)
+    "qnap",
+#endif
     "rtf",
     "lqn",
 #if defined(SVG_OUTPUT)
@@ -360,7 +365,6 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	char * endptr = nullptr;
 
 	switch ( Options::find_if( Options::special, parameter ) ) {
-
 	case SPECIAL_ANNOTATE:			  Flags::annotate_input			= get_bool( value, true ); break;
 	case SPECIAL_CLEAR_LABEL_BACKGROUND:	  Flags::clear_label_background		= get_bool( value, true ); break;
 	case SPECIAL_EXHAUSTIVE_TOPOLOGICAL_SORT: Flags::exhaustive_toplogical_sort	= get_bool( value, true ); break;
@@ -375,7 +379,7 @@ special( const std::string& parameter, const std::string& value, LQIO::DOM::Prag
 	case SPECIAL_RENAME:			  Flags::rename_model			= get_bool( value, true ); break;
 	case SPECIAL_SQUISH_ENTRY_NAMES:	  Flags::squish_names			= get_bool( value, true ); break;
 	case SPECIAL_SUBMODEL_CONTENTS:		  Flags::print_submodels		= get_bool( value, true ); break;
-
+	    
 	case SPECIAL_BCMP:
 	    pragmas.insert(LQIO::DOM::Pragma::_bcmp_, value );
 	    break;
@@ -459,10 +463,14 @@ get_bool( const std::string& arg, const bool default_value )
 bool
 graphical_output()
 {
-    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
+    return Flags::print[OUTPUT_FORMAT].value.i != FORMAT_JSON
+	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_LQX
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_NULL
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_OUTPUT
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_PARSEABLE
+#if defined(QNAP_OUTPUT)
+	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_QNAP
+#endif
  	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_RTF
 	&& Flags::print[OUTPUT_FORMAT].value.i != FORMAT_SRVN
 #if defined(TXT_OUTPUT)
@@ -494,6 +502,7 @@ bool
 input_output()
 {
     return Flags::print[OUTPUT_FORMAT].value.i == FORMAT_SRVN
+	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_JSON
 	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_LQX
 	|| Flags::print[OUTPUT_FORMAT].value.i == FORMAT_XML
 	;

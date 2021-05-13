@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14581 2021-03-24 21:07:22Z greg $
+ * $Id: srvn_spex.h 14633 2021-05-11 13:55:35Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -100,8 +100,8 @@ extern "C" {
 typedef std::vector<LQX::SyntaxTreeNode*> expr_list;
 
 namespace LQIO {
-    typedef LQIO::DOM::Document& (LQIO::DOM::Document::*set_extvar_f)( LQIO::DOM::ExternalVariable* );
-    typedef void (*setSpexFunc)( LQIO::DOM::ExternalVariable* );
+    typedef LQIO::DOM::Document& (LQIO::DOM::Document::*set_extvar_f)( const LQIO::DOM::ExternalVariable* );
+    typedef void (*setSpexFunc)( const LQIO::DOM::ExternalVariable* );
 
     class Spex {
 	friend class BCMP::JMVA_Document;

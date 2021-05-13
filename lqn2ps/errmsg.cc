@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.cc 14410 2021-01-26 17:26:06Z greg $
+ * $Id: errmsg.cc 14630 2021-05-11 00:08:51Z greg $
  *
  * Error messages.
  *
@@ -31,6 +31,7 @@ struct LQIO::error_message_type local_error_messages[] = {
     { LQIO::RUNTIME_ERROR, "Activity \"%s\" is not reachable from any entry of task \"%s\"." },                                 /* LQIO::ERR_ACTIVITY_NOT_REACHABLE     */
     { LQIO::RUNTIME_ERROR, "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." }, /* ERR_REPLICATION_PROCESSOR */
     { LQIO::RUNTIME_ERROR, "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." },         /* LQIO::ERR_REPLICATION                */
+    { LQIO::RUNTIME_ERROR, "Replicas must be a constant for rep2flat:  %s." },							/* ERR_REPLICATION_NOT_SET 		*/
     { LQIO::RUNTIME_ERROR, "No calls from %s \"%s\" to entry \"%s\"." },                                                        /* LQIO::ERR_NO_CALLS_TO_ENTRY          */
     { LQIO::RUNTIME_ERROR, "No objects selected to print." },                                                                   /* LQIO::ERR_NO_OBJECTS                 */
     { LQIO::RUNTIME_ERROR, "\"%s\" -- Not implemented." },                                                                      /* LQIO::ERR_NOT_IMPLEMENTED            */

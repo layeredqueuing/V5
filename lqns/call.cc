@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: call.cc 14635 2021-05-11 16:27:14Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -250,9 +250,11 @@ Call::hasOvertaking() const
     return hasRendezvous() && dstEntry()->maxPhase() > 1;
 }
 
+
+
 /*
- * Return the total wait along this arc.  Take into
- * account replication.
+ * Return the total wait along this arc.  Take into account
+ * replication.  This applies for both Pan and Bug 299 replication.
  */
 
 double
@@ -266,7 +268,7 @@ Call::rendezvousDelay() const
 }
 
 
-
+#if PAN_REPLICATION
 /*
  * Compute and save old rendezvous delay.		// REPL
  */
@@ -280,6 +282,7 @@ Call::rendezvousDelay( const unsigned k )
 	return Call::rendezvousDelay();	// rendezvousDelay is already multiplied by fanOut.
     }
 }
+#endif
 
 
 
@@ -419,7 +422,11 @@ Call::setVisits( const unsigned k, const unsigned p, const double rate )
     if ( aServer->hasServerChain( k ) && hasRendezvous() && !srcTask()->hasInfinitePopulation() ) {
 	Server * aStation = aServer->serverStation();
 	const unsigned e = dstEntry()->index();
+#if BUG_299
+	aStation->addVisits( e, k, p, rendezvous() / fanOut() * rate );
+#else
 	aStation->addVisits( e, k, p, rendezvous() * rate );
+#endif
     }
 }
 

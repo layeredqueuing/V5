@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14625 2021-05-09 13:02:42Z greg $
+ * $Id: dim.h 14635 2021-05-11 16:27:14Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -32,7 +32,8 @@
 #define MAX_CLASSES     200                     /* Max classes (clients)        */
 #define MAX_PHASES      3                       /* Number of Phases.            */
 #define N_SEMAPHORE_ENTRIES     2               /* Number of semaphore entries  */
-#define PAN_REPLICATION	1			/* Use Amy Pan's replication	*/
+#define PAN_REPLICATION	0			/* Use Amy Pan's replication	*/
+#define BUG_299 1				/* Use new replication		*/
 
 /*
  * Return square.  C++ doesn't even have an exponentiation operator, let

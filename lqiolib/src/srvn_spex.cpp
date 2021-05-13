@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14611 2021-04-19 21:35:58Z greg $
+ *  $Id: srvn_spex.cpp 14638 2021-05-13 14:41:08Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -21,6 +21,7 @@
 #include "dom_document.h"
 #include "dom_bindings.h"
 #include "dom_phase.h"
+#include "filename.h"
 #include "srvn_input.h"
 #include "srvn_spex.h"
 #include "glblerr.h"
@@ -530,8 +531,9 @@ namespace LQIO {
 	const std::map<const LQX::SyntaxTreeNode *,std::string> index = get_plot_args( list, args );
 	std::ostringstream plot;		// Plot command collected here.
 
-	const std::string comment = "set title \"" + DOM::__document->getModelCommentString() + "\"";
-	_gnuplot.push_back( print_node( comment ) );
+	_gnuplot.push_back( print_node( "set title \"" + DOM::__document->getModelCommentString() + "\"" ) );
+	_gnuplot.push_back( print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg", "", "" )() ) );
+	_gnuplot.push_back( print_node( "#set terminal svg" ) );
 
 	/* Go through the args, (x, y11, y12..., y21, y22...). */
 	

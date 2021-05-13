@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Thu Mar 27 2003
  *
- * $Id: help.cc 14600 2021-04-15 19:19:42Z greg $
+ * $Id: help.cc 14633 2021-05-11 13:55:35Z greg $
  */
 
 #include "lqn2ps.h"
@@ -149,7 +149,7 @@ man()
 	 << ".TH lqn2ps 1 \"" << date << "\"  \"" << VERSION << "\"" << std::endl;
 
 
-    std::cout << comm << " $Id: help.cc 14600 2021-04-15 19:19:42Z greg $" << std::endl
+    std::cout << comm << " $Id: help.cc 14633 2021-05-11 13:55:35Z greg $" << std::endl
 	 << comm << std::endl
 	 << comm << " --------------------------------" << std::endl;
 
@@ -174,6 +174,7 @@ man()
 	case FORMAT_POSTSCRIPT:
 	case FORMAT_SRVN:
 	case FORMAT_SXD:
+	case FORMAT_JSON:
 	case FORMAT_XML:
 	    if ( printed ) {
 		std::cout << ", ";
@@ -313,9 +314,10 @@ man()
 	    break;
 	
 	case 'I':
-	    std::cout << "The " << current_option(i) << " is used to force the input file format to either \\fIxml\\fR, or \\fIlqn\\fR." << std::endl
-		 << "By default, if the suffix of the input filename is one of: \\fI.in\\fR, \\fI.lqn\\fR, \\fI.xlqn\\fR, of \\fI.txt\\fR," << std::endl
-		 << "then the LQN parser will be used.	Otherwise, input is assumed to be XML." << std::endl;
+	    std::cout << "The " << current_option(i) << " is used to force the input file format to either \\fIxml\\fR, \\fIlqn\\fR, of \\fIjson\\fR." << std::endl
+		      << "By default, if the suffix of the input filename is one of: \\fI.in\\fR, \\fI.lqn\\fR, \\fI.xlqn\\fR, of \\fI.txt\\fR," << std::endl
+		      << "then the LQN parser will be used.  If the suffix of the input filename is one of: \\fI.json\\fR, \\fI.lqnj\\fR, \\fI.jlqn\\fR, of \\fI.lqjo\\fR," << std::endl
+		      << "then the JSON parser will be used.  Otherwise, input is assumed to be XML." << std::endl;
 	    break;
 
 	case 512+'I':
@@ -433,6 +435,12 @@ man()
 		 << "\\fB" << current_arg(i,FORMAT_JPEG) << "\\fR" << std::endl
 		 << "Generate JPEG (bitmap) output." << std::endl;
 #endif
+	    std::cout << ".TP" << std::endl
+		 << "\\fB" << current_arg(i,FORMAT_JSON) << "\\fR" << std::endl
+		 << "Generate an JSON input file.  If results are available, they are included." << std::endl
+		 << "The " << current_flag( INCLUDE_ONLY ) << " and " << current_flag( SUBMODEL ) << " options can be used to generate new input models" << std::endl
+		 << "consisting only of the objects selected." << std::endl
+		 << "New input files are always \"cleaned up\"." << std::endl;
 	    std::cout << ".TP" << std::endl
 		 << "\\fB" << current_arg(i,FORMAT_LQX) << "\\fR" << std::endl
 		 << "Generate an XML input file.  If results are available, they are included." << std::endl

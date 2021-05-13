@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.cpp 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: srvn_input.cpp 14628 2021-05-10 17:56:53Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -196,14 +196,26 @@ srvn_add_task (const char * task_name, const scheduling_type scheduling, const v
 void
 srvn_store_fanin( const char * src_name, const char * dst_name, void * value )
 {
-    LQIO::DOM::Task* dst_task = LQIO::DOM::__document->getTaskByName(dst_name);
+    LQIO::DOM::Task* dst_task = static_cast<LQIO::DOM::Task*>(srvn_get_task( dst_name ));
+    if ( dst_task == nullptr ) {
+	return;
+    } else if ( src_name == dst_name ) {
+        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
+	return;
+    }
     dst_task->setFanIn( src_name, static_cast<LQIO::DOM::ExternalVariable *>(value) );
 }
 
 void
 srvn_store_fanout( const char * src_name, const char * dst_name, void * value )
 {
-    LQIO::DOM::Task* src_task = LQIO::DOM::__document->getTaskByName(src_name);
+    LQIO::DOM::Task* src_task = static_cast<LQIO::DOM::Task*>(srvn_get_task( src_name ));
+    if ( src_task == nullptr ) {
+	return;
+    } else if ( src_name == dst_name ) {
+        LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, src_name, dst_name );
+	return;
+    }
     src_task->setFanOut( dst_name, static_cast<LQIO::DOM::ExternalVariable *>(value) );
 }
 
@@ -237,6 +249,20 @@ srvn_set_model_parameters (const char *model_comment, void * conv_val, void * it
 					      static_cast<LQIO::DOM::ExternalVariable*>(print_int), 
 					      static_cast<LQIO::DOM::ExternalVariable*>(underrelax_coeff), 0);
 }
+
+void *
+srvn_get_task( const char * task_name )
+{
+    LQIO::DOM::Task* task = LQIO::DOM::__document->getTaskByName(task_name);
+    if ( task == nullptr ) {
+	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, task_name );
+	/* Define it to suppress additional errors */
+	task = new LQIO::DOM::Task(LQIO::DOM::__document, task_name, SCHEDULE_DELAY, std::vector<LQIO::DOM::Entry *>(), nullptr );
+	LQIO::DOM::__document->addTaskEntity(task);
+    }
+    return static_cast<void *>(task);
+}
+
 
 void *
 srvn_get_entry( const char * entry_name )

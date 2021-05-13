@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: model.cc 14635 2021-05-11 16:27:14Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -383,7 +383,7 @@ Model::check()
     rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
     rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;
 
-#if !PAN_REPLICATION
+#if !PAN_REPLICATION && !BUG_299
     if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReplicated ) )
 	 || std::any_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::isReplicated ) ) ) {
 	rc = false;

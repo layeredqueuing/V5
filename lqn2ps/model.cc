@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14547 2021-03-15 17:48:06Z greg $
+ * $Id: model.cc 14633 2021-05-11 13:55:35Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -33,6 +33,8 @@
 #include <lqio/dom_document.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#include "model.h"
+#include "entry.h"
 #include "activity.h"
 #include "actlist.h"
 #include "call.h"
@@ -892,7 +894,7 @@ Model::getExtension()
 	    if ( i != std::string::npos ) {
 		std::string ext = _inputFileName.substr( i+1 );
 		std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
-		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "lqxo" && ext != "jmva" ) {
+		if ( ext != "lqnx" && ext != "xlqn" && ext != "xml" && ext != "json" && ext != "lqxo" && ext != "lqjo"  && ext != "jmva" ) {
 		    extension = ext;
 		}
 	    }
@@ -908,6 +910,11 @@ Model::getExtension()
 	abort();
 	break;
 #endif
+#if defined(QNAP_OUTPUT)
+    case FORMAT_QNAP:
+	extension = "qnap";
+	break;
+#endif
 #if defined(TXT_OUTPUT)
     case FORMAT_TXT:
 	extension = "txt";
@@ -917,6 +924,10 @@ Model::getExtension()
     case FORMAT_XML:
 	extension = "lqnx";
 	break;
+    case FORMAT_JSON:
+	extension = "json";
+	break;
+
     default:
 	abort();
 	break;
@@ -1501,6 +1512,9 @@ Model::print( std::ostream& output ) const
 	printBCMP( output );
 	break;
 #endif
+    case FORMAT_JSON:
+	printJSON( output );
+	break;
     case FORMAT_NULL:
 	break;
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBPNG
@@ -1584,10 +1598,16 @@ Model::expandModel()
 
     /* Expand Processors and entries */
 
-    for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expandProcessor ) );
-    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandEntry ) );
-    for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expandTask ) );
-    for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCall ) );
+    try {
+	for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expandProcessor ) );
+	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandEntry ) );
+	for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expandTask ) );
+	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCall ) );
+    }
+    catch ( const std::domain_error& e ) {
+	LQIO::solution_error( ERR_REPLICATION_NOT_SET, e.what() );
+	return *this;
+    }
 
     /*  Delete all original Entities from the symbol table and collections */
 
@@ -1957,6 +1977,18 @@ Model::printTXT( std::ostream& output ) const
     return output;
 }
 #endif
+
+
+/*
+ * Convert to XML output.
+ */
+
+std::ostream&
+Model::printJSON( std::ostream& output ) const
+{
+    _document->print( output, LQIO::DOM::Document::JSON_OUTPUT );	/* Don't output LQX code if running. */
+    return output;
+}
 
 
 std::ostream&

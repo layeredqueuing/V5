@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14402 2021-01-24 04:20:16Z greg $
+# $Id: Makefile.am 14633 2021-05-11 13:55:35Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -31,16 +31,17 @@ liblqio_la_SOURCES = bcmp_bindings.cpp \
 	filename.cpp \
 	getsbopt.cc \
 	glblerr.cpp \
+	json_document.cpp \
 	labels.cpp \
 	qnap2_document.cpp \
 	srvn_gram.y \
 	srvn_input.cpp \
 	srvn_output.cpp \
+	srvn_result_gram.y \
 	srvn_result_scan.l \
 	srvn_results.cpp \
 	srvn_scan.l \
 	srvn_spex.cpp \
-	srvn_result_gram.y \
 	xml_input.cpp \
 	xml_output.cpp
 

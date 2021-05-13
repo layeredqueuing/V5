@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14547 2021-03-15 17:48:06Z greg $
+ * $Id: entry.cc 14638 2021-05-13 14:41:08Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -192,10 +192,9 @@ Entry::clone( unsigned int replica ) const
 {
     std::ostringstream aName;
     aName << name() << "_" << replica;
-    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str().c_str() ) );
+    std::set<Entry *>::const_iterator nextEntry = find_if( __entries.begin(), __entries.end(), EQStr<Entry>( aName.str() ) );
     if ( nextEntry != __entries.end() ) {
-	std::string msg = "Entry::expandEntry(): cannot add symbol ";
-	msg += aName.str();
+	const std::string msg = "Entry::clone(): cannot add symbol " + aName.str();
 	throw std::runtime_error( msg );
     }
 
@@ -295,12 +294,10 @@ Entry::addCall( const unsigned int p, LQIO::DOM::Call* domCall )
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, to_entry_name );
     } else if ( this == toEntry ) {
 	LQIO::input_error2( LQIO::ERR_SRC_EQUALS_DST, name().c_str(), to_entry_name );
-    } else {
-	if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
-	    rendezvous( toEntry, p, domCall );
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
-	    sendNoReply( toEntry, p, domCall );
-	}
+    } else if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
+	rendezvous( toEntry, p, domCall );
+    } else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
+	sendNoReply( toEntry, p, domCall );
     }
 }
 
@@ -2162,48 +2159,43 @@ Entry::expandCall()
 
     for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
 	int next_dst_id = 1;
+	const unsigned int dst_replicas = (*call)->dstEntry()->owner()->replicasValue();
 	for ( unsigned src_replica = 1; src_replica <= num_replicas; src_replica++) {
+	    assert( (*call)->fanOut() <= dst_replicas );
+	    Entry *src_entry = find_replica( name(), src_replica );
+	    LQIO::DOM::Entry * src_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(src_entry->getDOM()));
 
-	    if ( (*call)->fanOut() > (*call)->dstEntry()->owner()->replicasValue() ) {
-		std::ostringstream msg;
-		msg << "Entry::expandCalls(): fanout of entry " << name()
-		    << " is greater than the number of replicas of the destination Entry'" << (*call)->dstEntry()->name() << "'";
-		throw std::runtime_error( msg.str() );
-	    }
+	    const unsigned int fan_out = (*call)->fanOut();
+	    for ( unsigned int k = 1; k <= fan_out; k++ ) {
+		/* divide the destination entries equally between calling entries. */
+		const int dst_replica = (next_dst_id++ - 1) % dst_replicas + 1;
+		Entry *dst_entry = find_replica((*call)->dstEntry()->name(), dst_replica);
+		LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dst_entry->getDOM()));
 
-	    std::ostringstream srcName;
-	    Entry *srcEntry = find_replica( name(), src_replica );
-	    LQIO::DOM::Entry * src_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(srcEntry->getDOM()));
-
-	    for ( unsigned int k = 1; k <= (*call)->fanOut(); k++) {
-		// divide the destination entries equally between calling
-		// entries.
-		const int dst_replica = (next_dst_id++ - 1) % ((*call)->dstEntry()->owner()->replicasValue()) + 1;
-		Entry *dstEntry = find_replica((*call)->dstEntry()->name(), dst_replica);
-		LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dstEntry->getDOM()));
-
-		LQIO::DOM::Call * dom_call;
 		for (unsigned int p = 1; p <= MAX_PHASES; p++) {
-		    LQIO::DOM::Phase * dom_phase = const_cast<LQIO::DOM::Phase *>(srcEntry->getPhaseDOM(p));
-		    if ( !dom_phase ) continue;
+		    LQIO::DOM::Phase * dom_phase = const_cast<LQIO::DOM::Phase *>(src_entry->getPhaseDOM(p));
+		    if ( !dom_phase || (!(*call)->hasRendezvousForPhase(p) && !(*call)->hasSendNoReplyForPhase(p)) ) continue;
+		    LQIO::DOM::Call * dom_call = (*call)->getDOM(p)->clone();
+		    dom_call->setDestinationEntry( dst_dom );
+#if BUG_299
+		    dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
+#endif
 		    if ( (*call)->hasRendezvousForPhase(p) ) {
-			dom_call = (*call)->getDOM(p)->clone();
-			dom_call->setDestinationEntry( dst_dom );
-			srcEntry->rendezvous(dstEntry, p, dom_call );
-			dom_phase->addCall(dom_call);
+			src_entry->rendezvous(dst_entry, p, dom_call );
 		    } else if ( (*call)->hasSendNoReplyForPhase(p) ) {
-			dom_call = (*call)->getDOM(p)->clone();
-			dom_call->setDestinationEntry( dst_dom );
-			srcEntry->sendNoReply(dstEntry, p, dom_call );
-			dom_phase->addCall(dom_call);
+			src_entry->sendNoReply(dst_entry, p, dom_call );
 		    }
+		    dom_phase->addCall( dom_call );
 
 		}
-		if ( srcEntry->hasForwarding() ) {
-		    dom_call = (*call)->getFwdDOM()->clone();
+		if ( src_entry->hasForwarding() ) {
+		    LQIO::DOM::Call * dom_call = (*call)->getFwdDOM()->clone();
 		    dom_call->setDestinationEntry( dst_dom );
-		    srcEntry->forward( dstEntry, dom_call );
-                    src_dom->addForwardingCall(dom_call);
+#if BUG_299
+		    dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
+#endif
+		    src_entry->forward( dst_entry, dom_call );
+                    src_dom->addForwardingCall( dom_call );
 		}
 	    }
 	}
@@ -2212,59 +2204,59 @@ Entry::expandCall()
     return *this;
 }
 
-static struct {
-    set_function first;
-    get_function second;
-} entry_mean[] = { 
-// static std::pair<set_function,get_function> entry_mean[] = {
-    { &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
-    { &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
-    { &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
-    { &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
-    { &LQIO::DOM::DocumentObject::setResultWaitingTime, &LQIO::DOM::DocumentObject::getResultWaitingTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase1ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase1ProcessorWaiting },
-    { &LQIO::DOM::DocumentObject::setResultPhase1ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase1ServiceTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase1Utilization, &LQIO::DOM::DocumentObject::getResultPhase1Utilization },
-    { &LQIO::DOM::DocumentObject::setResultPhase1VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase1VarianceServiceTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase2ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase2ProcessorWaiting },
-    { &LQIO::DOM::DocumentObject::setResultPhase2ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase2ServiceTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase2Utilization, &LQIO::DOM::DocumentObject::getResultPhase2Utilization },
-    { &LQIO::DOM::DocumentObject::setResultPhase2VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase2VarianceServiceTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase3ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase3ProcessorWaiting },
-    { &LQIO::DOM::DocumentObject::setResultPhase3ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTime },
-    { &LQIO::DOM::DocumentObject::setResultPhase3Utilization, &LQIO::DOM::DocumentObject::getResultPhase3Utilization },
-    { &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTime },
-    { nullptr, nullptr }
-};
-
-static struct {
-    set_function first;
-    get_function second;
-} entry_variance[] = { 
-//static std::pair<set_function,get_function> entry_variance[] = {
-    { &LQIO::DOM::DocumentObject::setResultThroughputVariance, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
-    { &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
-    { &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance },
-    { &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariationVariance, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariationVariance },
-    { &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase1ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase1ProcessorWaitingVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase1ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase1ServiceTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase1UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase1UtilizationVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase1VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase1VarianceServiceTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase2ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase2ProcessorWaitingVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase2ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase2ServiceTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase2UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase2UtilizationVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase2VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase2VarianceServiceTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase3ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase3ProcessorWaitingVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase3ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase3UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase3UtilizationVariance },
-    { &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTimeVariance },
-    { nullptr, nullptr }
-};
-
 Entry&
 Entry::replicateEntry( LQIO::DOM::DocumentObject ** root ) 
 {
+    const static struct {
+	set_function first;
+	get_function second;
+    } entry_mean[] = { 
+	// static std::pair<set_function,get_function> entry_mean[] = {
+	{ &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
+	{ &LQIO::DOM::DocumentObject::setResultUtilization, &LQIO::DOM::DocumentObject::getResultUtilization },
+	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
+	{ &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
+	{ &LQIO::DOM::DocumentObject::setResultWaitingTime, &LQIO::DOM::DocumentObject::getResultWaitingTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase1ProcessorWaiting },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase1ServiceTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1Utilization, &LQIO::DOM::DocumentObject::getResultPhase1Utilization },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase1VarianceServiceTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase2ProcessorWaiting },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase2ServiceTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2Utilization, &LQIO::DOM::DocumentObject::getResultPhase2Utilization },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase2VarianceServiceTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3ProcessorWaiting, &LQIO::DOM::DocumentObject::getResultPhase3ProcessorWaiting },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3ServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTime },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3Utilization, &LQIO::DOM::DocumentObject::getResultPhase3Utilization },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTime, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTime },
+	{ nullptr, nullptr }
+    };
+
+    const static struct {
+	set_function first;
+	get_function second;
+    } entry_variance[] = { 
+	//static std::pair<set_function,get_function> entry_variance[] = {
+	{ &LQIO::DOM::DocumentObject::setResultThroughputVariance, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
+	{ &LQIO::DOM::DocumentObject::setResultUtilizationVariance, &LQIO::DOM::DocumentObject::getResultUtilizationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorUtilizationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariationVariance, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase1ProcessorWaitingVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase1ServiceTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase1UtilizationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase1VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase1VarianceServiceTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase2ProcessorWaitingVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase2ServiceTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase2UtilizationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase2VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase2VarianceServiceTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3ProcessorWaitingVariance, &LQIO::DOM::DocumentObject::getResultPhase3ProcessorWaitingVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3ServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3ServiceTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3UtilizationVariance, &LQIO::DOM::DocumentObject::getResultPhase3UtilizationVariance },
+	{ &LQIO::DOM::DocumentObject::setResultPhase3VarianceServiceTimeVariance, &LQIO::DOM::DocumentObject::getResultPhase3VarianceServiceTimeVariance },
+	{ nullptr, nullptr }
+    };
+
     unsigned int replica = 0;
     std::string root_name = baseReplicaName( replica );
     LQIO::DOM::Entry * dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(getDOM()));

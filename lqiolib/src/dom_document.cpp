@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14523 2021-03-06 22:53:02Z greg $
+ *  $Id: dom_document.cpp 14633 2021-05-11 13:55:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -15,11 +15,13 @@
 #include <cstdlib>
 #include <cmath>
 #include <algorithm>
+#include <numeric>
 #include "glblerr.h"
 #if HAVE_LIBEXPAT
 #include "expat_document.h"
 #include "jmva_document.h"
 #endif
+#include "json_document.h"
 #include "srvn_input.h"
 #include "srvn_results.h"
 #include "srvn_output.h"
@@ -35,6 +37,7 @@ namespace LQIO {
     namespace DOM {
 	Document* __document = nullptr;
 	bool Document::__debugXML = false;
+	bool Document::__debugJSON = false;
 	std::map<const char *, double> Document::__initialValues;
 	std::string Document::__input_file_name = "";
 	const char * Document::XComment = "comment";
@@ -92,7 +95,7 @@ namespace LQIO {
 		delete group->second;
 	    }
 
-	    for ( std::map<const char *, ExternalVariable*>::const_iterator var = _controlVariables.begin(); var != _controlVariables.end(); ++var ) {
+	    for ( std::map<const char *, const ExternalVariable*>::const_iterator var = _controlVariables.begin(); var != _controlVariables.end(); ++var ) {
 		delete var->second;
 	    }
 
@@ -112,8 +115,7 @@ namespace LQIO {
 	{
 	    /* Set up initial model parameters, but only if they were not set using SPEX variables */
 
-	    ExternalVariable * var;		// Querk of map<>[].
-	    var = _controlVariables[XComment];
+	    const ExternalVariable * var = _controlVariables[XComment];
 	    if ( !var ) {
 		_controlVariables[XComment] = new ConstantExternalVariable( comment.c_str() );
 	    }
@@ -138,14 +140,14 @@ namespace LQIO {
 	std::string Document::getModelCommentString() const 
 	{
 	    const char * s;
-	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
+	    const std::map<const char *, const ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
 	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
 		if ( iter->second->getString( s ) ) return std::string(s);
 	    } 
 	    return std::string("");
 	}
 
-	Document& Document::setModelComment( ExternalVariable * comment )
+	Document& Document::setModelComment( const ExternalVariable * comment )
 	{	
 	    _controlVariables[XComment] = comment;
 	    return *this;
@@ -168,37 +170,37 @@ namespace LQIO {
 	    return *this;
 	}
 
-	Document& Document::setModelConvergence( ExternalVariable * value )
+	Document& Document::setModelConvergence( const ExternalVariable * value )
 	{	
 	    _controlVariables[XConvergence] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelIterationLimit( ExternalVariable * value ) 
+	Document& Document::setModelIterationLimit( const ExternalVariable * value ) 
 	{
 	    _controlVariables[XIterationLimit] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelPrintInterval( ExternalVariable * value ) 
+	Document& Document::setModelPrintInterval( const ExternalVariable * value ) 
 	{
 	    _controlVariables[XPrintInterval] = value;
 	    return *this;
 	}
 
-	Document& Document::setModelUnderrelaxationCoefficient( ExternalVariable * value ) 
+	Document& Document::setModelUnderrelaxationCoefficient( const ExternalVariable * value ) 
 	{
 	    _controlVariables[XUnderrelaxationCoefficient] = value;
 	    return *this;
 	}
 
-	Document& Document::setSpexConvergenceIterationLimit( ExternalVariable * spexIterationLimit )
+	Document& Document::setSpexConvergenceIterationLimit( const ExternalVariable * spexIterationLimit )
 	{
 	    _controlVariables[XSpexIterationLimit] = spexIterationLimit;
 	    return *this;
 	}
 
-	Document& Document::setSpexConvergenceUnderrelaxation( ExternalVariable * spexUnderrelaxation )
+	Document& Document::setSpexConvergenceUnderrelaxation( const ExternalVariable * spexUnderrelaxation )
 	{
 	    _controlVariables[XSpexUnderrelaxation] = spexUnderrelaxation;
 	    return *this;
@@ -208,7 +210,7 @@ namespace LQIO {
 	{
 	    /* Set to default value if NOT set elsewhere (usually the control program) */
 	    double value = __initialValues[index];
-	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
+	    const std::map<const char *, const ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
 	    if ( iter != _controlVariables.end() ) {
 		const ExternalVariable * var = iter->second;
 		if ( var != nullptr && var->wasSet() ) {
@@ -220,7 +222,7 @@ namespace LQIO {
 
 	const ExternalVariable * Document::get( const char * index ) const
 	{
-	    const std::map<const char *, ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
+	    const std::map<const char *, const ExternalVariable *>::const_iterator iter = _controlVariables.find(index);
 	    if ( iter != _controlVariables.end() ) {
 		const ExternalVariable * var = iter->second;
 		if ( var ) {
@@ -282,22 +284,6 @@ namespace LQIO {
 	    } else {
 		return nullptr;
 	    }
-	}
-    
-	const std::string* Document::getTaskNames(unsigned& count) const
-	{
-	    /* Copy all of the keys */
-	    count = _tasks.size();
-	    std::string* names = new std::string[_tasks.size()+1];      
-	    std::map<std::string, Task*>::const_iterator iter;
-	    int i = 0;
-      
-	    /* Copy in each of the processors names to the list */
-	    for (iter = _tasks.begin(); iter != _tasks.end(); ++iter) {
-		names[i++] = iter->first;
-	    }
-      
-	    return names;
 	}
     
 	const std::map<std::string,Task*>& Document::getTasks() const
@@ -398,11 +384,11 @@ namespace LQIO {
     
 	std::vector<std::string> Document::getUndefinedExternalVariables() const
 	{
-	    /* Returns a list of all undefined external variables as a string */
 	    std::vector<std::string> names;
 	    std::for_each( _variables.begin(), _variables.end(), notSet(names) );
 	    return names;
 	}
+	
     
 	void Document::setLQXProgramText(const std::string& program)
 	{
@@ -448,7 +434,7 @@ namespace LQIO {
 
 		/* Get value if set */
 		double value = init_iter->second;
-		ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[name]);
+		const ConstantExternalVariable* constant = dynamic_cast<const ConstantExternalVariable *>(_controlVariables[name]);
 		if ( constant ) {
 		    constant->getValue( value );
 		    delete constant;
@@ -460,7 +446,7 @@ namespace LQIO {
 		_controlVariables[name] = current;
 	    }
 
-	    ConstantExternalVariable* constant = dynamic_cast<ConstantExternalVariable *>(_controlVariables[XComment]);
+	    const ConstantExternalVariable* constant = dynamic_cast<const ConstantExternalVariable *>(_controlVariables[XComment]);
 	    const char * s = nullptr;
 	    if ( constant ) {
 		constant->getString( s );			// get set value.
@@ -776,8 +762,7 @@ namespace LQIO {
 #endif
 
 	    case JSON_INPUT:
-//		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
-		rc = false;
+		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
 		break;
 
 	    default:
@@ -788,12 +773,6 @@ namespace LQIO {
 	    /* All went well, so return it */
 
 	    if ( rc ) {
-//		I will have to register functions for LQX here.
-		LQX::Program * program = document->getLQXProgram();
-		if ( program ) {
-//		    LQX::Environment * environment = program->getEnvironment();
-//	            environment->getMethodTable()->registerMethod(new SolverInterface::Solve(document, &Model::restart, aModel));
-		}
 		return document;
 	    } else {
 		delete document;
@@ -815,6 +794,10 @@ namespace LQIO {
 #else
 		return false;
 #endif
+	    case JSON_INPUT:
+//		return Json_Document::loadResults( LQIO::Filename( file_name, "lqxo", directory_name, suffix )() );
+		return false;
+		
 	    default:
 		return false;
 	    }
@@ -831,6 +814,8 @@ namespace LQIO {
 		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
 		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
 		    return LQN_INPUT;		/* Override */
+		} else if ( suffix == "json" || suffix == "lqnj" || suffix == "jlqn" || suffix == "lqjo" ) {
+		    return JSON_INPUT;
 		} else if ( suffix == "jmva" ) {
 		    return JMVA_INPUT;
 		} else {
@@ -868,6 +853,11 @@ namespace LQIO {
 		Expat_Document expat( *const_cast<Document *>(this), __input_file_name, false, false );
 		expat.serializeDOM( output );
 #endif
+		break;
+	    }
+	    case JSON_OUTPUT: {
+		Json_Document json( *const_cast<Document *>(this), __input_file_name, false, false );
+		json.serializeDOM( output );
 		break;
 	    }
 	    default:

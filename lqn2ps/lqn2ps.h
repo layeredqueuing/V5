@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14601 2021-04-15 19:31:20Z greg $
+ * $Id: lqn2ps.h 14638 2021-05-13 14:41:08Z greg $
  *
  */
 
@@ -14,9 +14,11 @@
 #define SVG_OUTPUT	1
 #define SXD_OUTPUT	1
 #define TXT_OUTPUT	1
+#define QNAP_OUTPUT
 /* #define X11_OUTPUT */
 #define REP2FLAT	1	/* Allow expansion */
 #define BUG_270		1	/* Prune Null servers */
+#define BUG_299		1	/* Divide (y) by fan-out (load balance) */
 
 #if defined(HAVE_CONFIG_H)
 #include <config.h>
@@ -27,6 +29,7 @@
 #include <string>
 #include <stdexcept>
 #include <regex>
+#include <lqio/input.h>
 #include <lqio/dom_extvar.h>
 #if defined(HAVE_VALUES_H)
 #include <values.h>
@@ -113,6 +116,7 @@ typedef enum {
 #if HAVE_GD_H && HAVE_LIBGD && HAVE_LIBJPEG 
     FORMAT_JPEG,
 #endif
+    FORMAT_JSON,
     FORMAT_LQX,
     FORMAT_NULL,
     FORMAT_OUTPUT,
@@ -125,6 +129,9 @@ typedef enum {
 #endif
     FORMAT_POSTSCRIPT,
     FORMAT_PSTEX,
+#if defined(QNAP_OUTPUT)
+    FORMAT_QNAP,
+#endif
     FORMAT_RTF,
     FORMAT_SRVN,
 #if defined(SVG_OUTPUT)

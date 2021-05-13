@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.cpp 14623 2021-05-08 12:52:15Z greg $
+ *  $Id: dom_processor.cpp 14633 2021-05-11 13:55:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -21,7 +21,7 @@ namespace LQIO {
 	const char * Processor::__typeName = "processor";
 
 	Processor::Processor(const Document * document, const std::string& name, scheduling_type scheduling_flag,
-			     ExternalVariable* n_cpus, ExternalVariable* n_replicas )
+			     const ExternalVariable* n_cpus, const ExternalVariable* n_replicas )
 	    : Entity(document, name, scheduling_flag, n_cpus, n_replicas ),
 	      _processorRate(nullptr),
 	      _processorQuantum(nullptr),
@@ -71,15 +71,11 @@ namespace LQIO {
 	void Processor::setRateValue(const double value)
 	{
 	    /* Store the new processor rate */
-	    if ( _processorRate == nullptr ) {
-		_processorRate = new ConstantExternalVariable( value );
-	    } else {
-		_processorRate->set(value);
-	    }
+	    _processorRate = new ConstantExternalVariable( value );
 	}
 
 	void
-	Processor::setRate(ExternalVariable * newRate)
+	Processor::setRate(const ExternalVariable * newRate)
 	{
 	    _processorRate = newRate;
 	}
@@ -102,11 +98,7 @@ namespace LQIO {
 	void Processor::setQuantumValue(const double value )
 	{
 	    /* Store the new CPU Time Quantum */
-	    if ( _processorQuantum == nullptr ) {
-		_processorQuantum = new ConstantExternalVariable( value );
-	    } else {
-		_processorQuantum->set(value);
-	    }
+	    _processorQuantum = new ConstantExternalVariable( value );
 	}
 
 	bool Processor::hasQuantumScheduling() const

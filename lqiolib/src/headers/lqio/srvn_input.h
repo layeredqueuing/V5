@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_input.h 14381 2021-01-19 18:52:02Z greg $
+ *  $Id: srvn_input.h 14628 2021-05-10 17:56:53Z greg $
  *  libsrvnio2
  *
  *  Created by Martin Mroz on 24/02/09.
@@ -42,6 +42,7 @@ extern "C" {
     void srvn_add_communication_delay(const char * from_proc, const char * to_proc, void * delay);
     void srvn_add_phase_call( const char * src_entry, int phase, const char * dst_entry, const void * rate, const short );
 
+    void * srvn_get_task( const char * );
     void * srvn_get_entry( const char * );
 
     void srvn_set_histogram(void * entry_v, const unsigned phase, const double min, const double max, const int n_bins );

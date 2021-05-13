@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: phase.cc 14635 2021-05-11 16:27:14Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -973,6 +973,7 @@ Phase::getReplicationTaskWait( unsigned int submodel, const double relax )
     return std::accumulate( callList().begin(), callList().end(), 0., add_using<Call>( &Call::wait ) );
 }
 #endif
+
 
 
 #if PAN_REPLICATION

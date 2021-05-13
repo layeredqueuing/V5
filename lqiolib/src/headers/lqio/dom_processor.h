@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_processor.h 13717 2020-08-03 00:04:28Z greg $
+ *  $Id: dom_processor.h 14633 2021-05-11 13:55:35Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -25,7 +25,7 @@ namespace LQIO {
 
 	    /* Designated initializers for the SVN DOM Entity type */
 	    Processor(const Document *document, const std::string& name, scheduling_type scheduling_flag,
-		      ExternalVariable* n_cpus=NULL, ExternalVariable* n_replicas=NULL );
+		      const ExternalVariable* n_cpus=nullptr, const ExternalVariable* n_replicas=nullptr );
 	    Processor( const Processor& );
 	    virtual ~Processor();
 
@@ -37,14 +37,14 @@ namespace LQIO {
 
 	    bool hasRate() const;
 	    double getRateValue() const;
-	    ExternalVariable * getRate() const { return _processorRate; }
+	    const ExternalVariable * getRate() const { return _processorRate; }
 	    void setRateValue(const double newRate);
-	    void setRate(ExternalVariable * newRate);
+	    void setRate(const ExternalVariable * newRate);
 
 	    bool hasQuantum() const;
 	    double getQuantumValue() const;
-	    ExternalVariable * getQuantum() const { return _processorQuantum; }
-	    void setQuantum( ExternalVariable * newQuantum ) { _processorQuantum = newQuantum; }
+	    const ExternalVariable * getQuantum() const { return _processorQuantum; }
+	    void setQuantum( const ExternalVariable * newQuantum ) { _processorQuantum = newQuantum; }
 	    void setQuantumValue(const double newQuantum);
 
 	    bool hasQuantumScheduling() const;
@@ -72,8 +72,8 @@ namespace LQIO {
 	private:
 
 	    /* Instance variables for Processors */
-	    ExternalVariable * _processorRate;
-	    ExternalVariable * _processorQuantum;
+	    const ExternalVariable * _processorRate;
+	    const ExternalVariable * _processorQuantum;
 	    std::set<Task*> _taskList;
 	    std::set<Group*> _groupList;
 

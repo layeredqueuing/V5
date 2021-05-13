@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14547 2021-03-15 17:48:06Z greg $
+ * $Id: processor.h 14633 2021-05-11 13:55:35Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,9 +46,9 @@ public:
     const std::set<Share *,LT<Share> >& shares() const { return _shares; }
     int nShares() const { return _shares.size(); }
     bool hasRate() const;
-    LQIO::DOM::ExternalVariable& rate() const;
+    const LQIO::DOM::ExternalVariable& rate() const;
     bool hasQuantum() const;
-    LQIO::DOM::ExternalVariable& quantum() const;
+    const LQIO::DOM::ExternalVariable& quantum() const;
     size_t taskDepth() const;
     double meanLevel() const;
 	

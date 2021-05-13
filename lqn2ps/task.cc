@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14599 2021-04-15 03:08:14Z greg $
+ * $Id: task.cc 14628 2021-05-10 17:56:53Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -753,19 +753,21 @@ Task::check() const
 	LQIO::io_vars.error_messages[ERR_REPLICATION_PROCESSOR].severity = LQIO::WARNING_ONLY;
     }
 
-    double srcReplicasValue = 1.0;
     if ( processor != nullptr && processor->isReplicated() ) {
 	bool ok = true;
+	double srcReplicasValue = 1.0;
 	double dstReplicasValue = 1.0;
 	const LQIO::DOM::ExternalVariable& dstReplicas = processor->replicas();
-	if ( dstReplicas.wasSet() && dstReplicas.getValue( dstReplicasValue ) && isReplicated() ) {
-	    const LQIO::DOM::ExternalVariable& srcReplicas = replicas();
-	    if ( srcReplicas.wasSet() && srcReplicas.getValue( srcReplicasValue ) ) {
-		const double temp = static_cast<double>(srcReplicasValue) / static_cast<double>(dstReplicasValue);
-		ok = trunc( temp ) == temp;		/* Integer multiple */
+	if ( dstReplicas.wasSet() ) {
+	    if ( dstReplicas.getValue( dstReplicasValue ) && isReplicated() ) {
+		const LQIO::DOM::ExternalVariable& srcReplicas = replicas();
+		if ( srcReplicas.wasSet() && srcReplicas.getValue( srcReplicasValue ) ) {
+		    const double temp = static_cast<double>(srcReplicasValue) / static_cast<double>(dstReplicasValue);
+		    ok = trunc( temp ) == temp;		/* Integer multiple */
+		}
+	    } else {
+		ok = false;
 	    }
-	} else {
-	    ok = false;
 	}
 	if ( !ok ) {
 	    LQIO::solution_error( ERR_REPLICATION_PROCESSOR,
