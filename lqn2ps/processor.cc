@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: processor.cc 14638 2021-05-13 14:41:08Z greg $
+ * $Id: processor.cc 14644 2021-05-14 15:09:03Z greg $
  *
  * Everything you wanted to know about a task, but were afraid to ask.
  *
@@ -494,13 +494,20 @@ Processor::find_replica( const std::string& processor_name, const unsigned repli
 
 
 Processor&
-Processor::expandProcessor()
+Processor::expand()
 {
-    unsigned int numProcReplicas = replicasValue();
-    for ( unsigned int replica = 1; replica <= numProcReplicas; replica++) {
+    unsigned int replicas = replicasValue();
+    for ( unsigned int replica = 1; replica <= replicas; replica++ ) {
 	std::ostringstream new_name;
 	new_name << name() << "_" << replica;
-	__processors.insert( clone( new_name.str() ) );
+	Processor * new_processor = clone( new_name.str() );
+	__processors.insert( new_processor );
+
+	/* Patch up observations */
+
+	if ( replica == 1 ) {
+	    cloneObservations( getDOM(), new_processor->getDOM() );
+	}
     }
     return *this;
 }

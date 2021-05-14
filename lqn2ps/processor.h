@@ -9,7 +9,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14633 2021-05-11 13:55:35Z greg $
+ * $Id: processor.h 14644 2021-05-14 15:09:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -89,7 +89,7 @@ public:
 
 #if defined(REP2FLAT)
     static Processor * find_replica( const std::string&, const unsigned );
-    Processor& expandProcessor();
+    Processor& expand();
     Processor& replicateProcessor( LQIO::DOM::DocumentObject ** );
 #endif
 

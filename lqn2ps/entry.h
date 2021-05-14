@@ -9,7 +9,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.h 14547 2021-03-15 17:48:06Z greg $
+ * $Id: entry.h 14644 2021-05-14 15:09:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -239,8 +239,8 @@ public:
 #if defined(REP2FLAT)
     static Entry * find_replica( const std::string&, const unsigned );
 
-    Entry& expandEntry();
-    Entry& expandCall();
+    Entry& expand();
+    Entry& expandCalls();
     Entry& replicateCall();
     Entry& replicateEntry( LQIO::DOM::DocumentObject ** );
 #endif

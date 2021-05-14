@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14638 2021-05-13 14:41:08Z greg $
+ * $Id: entry.cc 14644 2021-05-14 15:09:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2142,67 +2142,30 @@ Entry::find_replica( const std::string& entry_name, const unsigned replica )
 
 
 Entry&
-Entry::expandEntry() 
+Entry::expand() 
 {
-    const unsigned numEntryReplicas = owner()->replicasValue();
-    for ( unsigned int replica = 1; replica <= numEntryReplicas; ++replica ) {
-	__entries.insert( clone( replica ) );
+    const unsigned replicas = owner()->replicasValue();
+    for ( unsigned int replica = 1; replica <= replicas; ++replica ) {
+	Entry * new_entry = clone( replica );
+	__entries.insert( new_entry );
+
+	/* Patch up observations */
+
+	if ( replica == 1 ) {
+	    cloneObservations( getDOM(), new_entry->getDOM() );
+	}
     }
     return *this;
 }
 
 
 Entry&
-Entry::expandCall()
+Entry::expandCalls()
 {
-    const unsigned int num_replicas = owner()->replicasValue();
-
-    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
-	int next_dst_id = 1;
-	const unsigned int dst_replicas = (*call)->dstEntry()->owner()->replicasValue();
-	for ( unsigned src_replica = 1; src_replica <= num_replicas; src_replica++) {
-	    assert( (*call)->fanOut() <= dst_replicas );
-	    Entry *src_entry = find_replica( name(), src_replica );
-	    LQIO::DOM::Entry * src_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(src_entry->getDOM()));
-
-	    const unsigned int fan_out = (*call)->fanOut();
-	    for ( unsigned int k = 1; k <= fan_out; k++ ) {
-		/* divide the destination entries equally between calling entries. */
-		const int dst_replica = (next_dst_id++ - 1) % dst_replicas + 1;
-		Entry *dst_entry = find_replica((*call)->dstEntry()->name(), dst_replica);
-		LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dst_entry->getDOM()));
-
-		for (unsigned int p = 1; p <= MAX_PHASES; p++) {
-		    LQIO::DOM::Phase * dom_phase = const_cast<LQIO::DOM::Phase *>(src_entry->getPhaseDOM(p));
-		    if ( !dom_phase || (!(*call)->hasRendezvousForPhase(p) && !(*call)->hasSendNoReplyForPhase(p)) ) continue;
-		    LQIO::DOM::Call * dom_call = (*call)->getDOM(p)->clone();
-		    dom_call->setDestinationEntry( dst_dom );
-#if BUG_299
-		    dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
-#endif
-		    if ( (*call)->hasRendezvousForPhase(p) ) {
-			src_entry->rendezvous(dst_entry, p, dom_call );
-		    } else if ( (*call)->hasSendNoReplyForPhase(p) ) {
-			src_entry->sendNoReply(dst_entry, p, dom_call );
-		    }
-		    dom_phase->addCall( dom_call );
-
-		}
-		if ( src_entry->hasForwarding() ) {
-		    LQIO::DOM::Call * dom_call = (*call)->getFwdDOM()->clone();
-		    dom_call->setDestinationEntry( dst_dom );
-#if BUG_299
-		    dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
-#endif
-		    src_entry->forward( dst_entry, dom_call );
-                    src_dom->addForwardingCall( dom_call );
-		}
-	    }
-	}
-    }
-
+    std::for_each( calls().begin(), calls().end(), Exec1<Call,const Entry&>( &Call::expand, *this ) );
     return *this;
 }
+
 
 Entry&
 Entry::replicateEntry( LQIO::DOM::DocumentObject ** root ) 

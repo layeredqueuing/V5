@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14471 2021-02-10 23:11:37Z greg $
+ * $Id: call.cc 14644 2021-05-14 15:09:03Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -968,11 +968,13 @@ Call::label()
 	if ( Flags::print[AGGREGATION].value.i != AGGREGATE_ENTRIES ) {
 	    *_label << '(' << print_calls(*this) << ')';
 	}
-	if ( fanOut() != 1.0  ) {
-	    *_label << ", O="<< fanOut();
+	const LQIO::DOM::ExternalVariable& fan_out = srcTask()->fanOut( dstTask() );
+	if ( LQIO::DOM::ExternalVariable::isPresent( &fan_out, 1.0 )  ) {
+	    *_label << ", O=" << fan_out;
 	}
-	if ( fanIn() != 1.0 ) {
-	    *_label << ", I=" << fanIn();
+	const LQIO::DOM::ExternalVariable& fan_in = dstTask()->fanIn( srcTask() );
+	if ( LQIO::DOM::ExternalVariable::isPresent( &fan_in, 1.0 ) ) {
+	    *_label << ", I=" << fan_in;
 	}
     }
     if ( Flags::have_results ) {
@@ -989,32 +991,92 @@ Call::label()
 
 
 #if defined(REP2FLAT)
-static struct {
-    set_function first;
-    get_function second;
-} call_mean[] = {
-// static std::pair<set_function,get_function> call_mean[] = {
-    { &LQIO::DOM::DocumentObject::setResultWaitingTime, &LQIO::DOM::DocumentObject::getResultWaitingTime },
-    { &LQIO::DOM::DocumentObject::setResultDropProbability, &LQIO::DOM::DocumentObject::getResultDropProbability },
-    { &LQIO::DOM::DocumentObject::setResultVarianceWaitingTime, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTime },
-    { nullptr, nullptr }
-};
+/*
+ * Clone the call from srcEntry
+ */
 
-static struct {
-    set_function first;
-    get_function second;
-} call_variance[] = {
-//static std::pair<set_function,get_function> call_variance[] = {
-    { &LQIO::DOM::DocumentObject::setResultDropProbabilityVariance, &LQIO::DOM::DocumentObject::getResultDropProbabilityVariance },
-    { &LQIO::DOM::DocumentObject::setResultVarianceWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTimeVariance },
-    { &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance },
-    { nullptr, nullptr }
-};
+Call&
+Call::expand( const Entry& srcEntry )
+{
+    const unsigned int num_replicas = srcEntry.owner()->replicasValue();
+
+    unsigned int next_dst_id = 1;
+    const unsigned int dst_replicas = dstEntry()->owner()->replicasValue();
+    for ( unsigned src_replica = 1; src_replica <= num_replicas; src_replica++ ) {
+	assert( fanOut() <= dst_replicas );
+	Entry *src_entry = Entry::find_replica( srcEntry.name(), src_replica );
+	LQIO::DOM::Entry * src_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(src_entry->getDOM()));
+
+	const unsigned int fan_out = fanOut();
+	for ( unsigned int k = 1; k <= fan_out; k++ ) {
+	    /* divide the destination entries equally between calling entries. */
+	    const int dst_replica = (next_dst_id++ - 1) % dst_replicas + 1;
+	    Entry *dst_entry = Entry::find_replica(dstEntry()->name(), dst_replica);
+	    LQIO::DOM::Entry * dst_dom = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>(dst_entry->getDOM()));
+
+	    for (unsigned int p = 1; p <= MAX_PHASES; p++) {
+		LQIO::DOM::Phase * dom_phase = const_cast<LQIO::DOM::Phase *>(src_entry->getPhaseDOM(p));
+		if ( !dom_phase || (!hasRendezvousForPhase(p) && !hasSendNoReplyForPhase(p)) ) continue;
+		LQIO::DOM::Call * dom_call = getDOM(p)->clone();
+		dom_call->setDestinationEntry( dst_dom );
+#if BUG_299
+		dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
+#endif
+		if ( hasRendezvousForPhase(p) ) {
+		    src_entry->rendezvous(dst_entry, p, dom_call );
+		} else if ( hasSendNoReplyForPhase(p) ) {
+		    src_entry->sendNoReply(dst_entry, p, dom_call );
+		}
+		dom_phase->addCall( dom_call );
+
+		if ( src_replica == 1 ) {
+		    Element::cloneObservations( getDOM(p), dom_call );
+		}
+	    }
+	    if ( hasForwarding() ) {
+		LQIO::DOM::Call * dom_call = getFwdDOM()->clone();
+		dom_call->setDestinationEntry( dst_dom );
+#if BUG_299
+		dom_call->setCallMeanValue( dom_call->getCallMeanValue() / fan_out );			    /*+ BUG 299 */
+#endif
+		src_entry->forward( dst_entry, dom_call );
+		src_dom->addForwardingCall( dom_call );
+		if ( src_replica == 1 ) {
+		    Element::cloneObservations( getFwdDOM(), dom_call );
+		}
+	    }
+	}
+    }
+    return *this;
+}
+
 
 
 Call&
 Call::replicateCall( std::vector<Call *>& calls, Call ** root )
 {
+    const static struct {
+	set_function first;
+	get_function second;
+    } call_mean[] = {
+// static std::pair<set_function,get_function> call_mean[] = {
+	{ &LQIO::DOM::DocumentObject::setResultWaitingTime, &LQIO::DOM::DocumentObject::getResultWaitingTime },
+	{ &LQIO::DOM::DocumentObject::setResultDropProbability, &LQIO::DOM::DocumentObject::getResultDropProbability },
+	{ &LQIO::DOM::DocumentObject::setResultVarianceWaitingTime, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTime },
+	{ nullptr, nullptr }
+    };
+
+    const static struct {
+	set_function first;
+	get_function second;
+    } call_variance[] = {
+//static std::pair<set_function,get_function> call_variance[] = {
+	{ &LQIO::DOM::DocumentObject::setResultDropProbabilityVariance, &LQIO::DOM::DocumentObject::getResultDropProbabilityVariance },
+	{ &LQIO::DOM::DocumentObject::setResultVarianceWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultVarianceWaitingTimeVariance },
+	{ &LQIO::DOM::DocumentObject::setResultWaitingTimeVariance, &LQIO::DOM::DocumentObject::getResultWaitingTimeVariance },
+	{ nullptr, nullptr }
+    };
+
     const Entry * dst = dstEntry();
     unsigned int replica = 0;
     dst->baseReplicaName( replica );

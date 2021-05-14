@@ -2,7 +2,7 @@
  * element.h	-- Greg Franks
  *
  * ------------------------------------------------------------------------
- * $Id: element.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: element.h 14644 2021-05-14 15:09:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -101,6 +101,7 @@ protected:
 public:
 #if defined(REP2FLAT)
     std::string baseReplicaName( unsigned int& ) const;
+    static void cloneObservations( const LQIO::DOM::DocumentObject *, const LQIO::DOM::DocumentObject * );
 #endif    
 
     size_t elementId() const { return _elementId; }

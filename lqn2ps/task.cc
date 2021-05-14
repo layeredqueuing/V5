@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14628 2021-05-10 17:56:53Z greg $
+ * $Id: task.cc 14644 2021-05-14 15:09:03Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2099,35 +2099,34 @@ Task::removeReplication()
 
 
 Task&
-Task::expandTask()
+Task::expand()
 {
-    const unsigned int numTaskReplicas = replicasValue();
-    const unsigned int procFanOut = numTaskReplicas / processor()->replicasValue();
+    const unsigned int replicas = replicasValue();
     const Processor * processor = this->processor();
+    const unsigned int procFanOut = replicas / processor->replicasValue();
     
-    for ( unsigned int replica = 1; replica <= numTaskReplicas; ++replica ) {
+    for ( unsigned int replica = 1; replica <= replicas; ++replica ) {
 
 	/* Get a pointer to the replicated processor */
 
 	const unsigned int proc_replica = static_cast<unsigned int>(static_cast<double>(replica-1) / static_cast<double>(procFanOut)) + 1;
 	const Processor *aProcessor = Processor::find_replica( processor->name(), proc_replica );
 
-	std::ostringstream aName;
-	aName << name() << "_" << replica;
-	std::set<Task *>::const_iterator nextTask = find_if( __tasks.begin(), __tasks.end(), eqTaskStr( aName.str() ) );
-	if ( nextTask != __tasks.end() ) {
-	    std::string msg = "Task::expandTask(): cannot add symbol ";
-	    msg += aName.str();
+	std::ostringstream replica_name;
+	replica_name << name() << "_" << replica;
+	if ( find_if( __tasks.begin(), __tasks.end(), eqTaskStr( replica_name.str() ) )!= __tasks.end() ) {
+	    std::string msg = "Task::expand(): cannot add symbol ";
+	    msg += replica_name.str();
 	    throw std::runtime_error( msg );
 	}
-	Task * aTask = clone( replica, aName.str(), aProcessor, share() );
-	aTask->myPaths = myPaths;		// Bad hack?
-	aTask->setLevel( level() );
-	__tasks.insert( aTask );
+	Task * new_task = clone( replica, replica_name.str(), aProcessor, share() );
+	new_task->myPaths = myPaths;		// Bad hack?
+	new_task->setLevel( level() );
+	__tasks.insert( new_task );
 
-	std::vector<LQIO::DOM::Entry *>& dom_entries = const_cast<std::vector<LQIO::DOM::Entry *>&>( dynamic_cast<const LQIO::DOM::Task *>(aTask->getDOM())->getEntryList() );
+	std::vector<LQIO::DOM::Entry *>& dom_entries = const_cast<std::vector<LQIO::DOM::Entry *>&>( dynamic_cast<const LQIO::DOM::Task *>(new_task->getDOM())->getEntryList() );
 	dom_entries.clear();
-	for ( std::vector<Entry *>::const_iterator entry = aTask->entries().begin(); entry != aTask->entries().end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = new_task->entries().begin(); entry != new_task->entries().end(); ++entry ) {
 	    LQIO::DOM::Entry * dom_entry = const_cast<LQIO::DOM::Entry *>(dynamic_cast<const LQIO::DOM::Entry *>((*entry)->getDOM()));
 	    dom_entries.push_back( dom_entry );        /* Add to task. */
 	}
@@ -2135,7 +2134,13 @@ Task::expandTask()
 	/* Handle group if necessary */
 
 	if ( hasActivities() ) {
-	    aTask->expandActivities( *this, replica );
+	    new_task->expandActivities( *this, replica );
+	}
+
+	/* Patch up observations */
+
+	if ( replica == 1 ) {
+	    cloneObservations( getDOM(), new_task->getDOM() );
 	}
     }
     return *this;

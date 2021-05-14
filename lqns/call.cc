@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14635 2021-05-11 16:27:14Z greg $
+ * $Id: call.cc 14642 2021-05-14 00:45:32Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -543,9 +543,6 @@ TaskCall::initWait()
     _wait = elapsedTime();			/* Initialize arc wait. 	*/
     return *this;
 }
-
-
-
 
 /*----------------------------------------------------------------------*/
 /*                           Forwarded Calls                            */
@@ -556,21 +553,42 @@ TaskCall::initWait()
  */
 
 ForwardedCall::ForwardedCall( const Phase * fromPhase, const Entry * toEntry, const Call * fwdCall )
-    : TaskCall( fromPhase, toEntry ), myFwdCall(fwdCall)
+    : TaskCall( fromPhase, toEntry ), _fwdCall(fwdCall)
 {
+}
+
+bool
+ForwardedCall::check() const
+{
+    const Task * srcTask = dynamic_cast<const Task *>(_fwdCall->srcPhase()->owner());
+    const int srcReplicas = srcTask->replicas();
+    const int dstReplicas = dstTask()->replicas();
+    if ( srcReplicas > 1 || dstReplicas > 1 ) {
+	const int fanOut = srcTask->fanOut( dstTask() );
+	const int fanIn  = dstTask()->fanIn( srcTask );
+	if ( fanIn == 0 || fanOut == 0 || srcReplicas * fanOut != dstReplicas * fanIn ) {
+	    const std::string& srcName = srcTask->name();
+	    const std::string& dstName = dstTask()->name();
+	    LQIO::solution_error( ERR_REPLICATION, 
+				  fanOut, srcName.c_str(), srcReplicas,
+				  fanIn,  dstName.c_str(), dstReplicas );
+	    return false;
+	}
+    }
+    return true;
 }
 
 const std::string&
 ForwardedCall::srcName() const
 {
-    return myFwdCall->srcName();
+    return _fwdCall->srcName();
 }
 
 
 const ForwardedCall&
 ForwardedCall::insertDOMResults() const
 {
-    LQIO::DOM::Call* fwdDOM = const_cast<LQIO::DOM::Call *>(myFwdCall->getDOM());		/* Proxy */
+    LQIO::DOM::Call* fwdDOM = const_cast<LQIO::DOM::Call *>(_fwdCall->getDOM());		/* Proxy */
     fwdDOM->setResultWaitingTime(queueingTime());
     return *this;
 }

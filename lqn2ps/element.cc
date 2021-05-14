@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: element.cc 14646 2021-05-14 15:13:42Z greg $
  */
 
 #include "element.h"
@@ -418,5 +418,30 @@ Element::baseReplicaName( unsigned int& replica ) const
 	if ( *end_ptr != '\0' || replica <= 0 ) throw std::runtime_error( "Can't find replica number" );
 	return name.substr( 0, pos );
     }
+}
+#endif
+
+
+
+#if defined(REP2FLAT)
+/*
+ * Clone the observation saved by the old_DOM to the new DOM (this).
+ * It is a two step process because we can't whack the entries in the
+ * multimap without screwing up the iterators.
+ */
+
+/* static */ void 
+Element::cloneObservations( const LQIO::DOM::DocumentObject * old_DOM, const LQIO::DOM::DocumentObject * new_DOM )
+{
+    LQIO::Spex::obs_var_tab_t& observations = const_cast<LQIO::Spex::obs_var_tab_t&>(LQIO::Spex::observations());
+    const std::pair<LQIO::Spex::obs_var_tab_t::const_iterator, LQIO::Spex::obs_var_tab_t::const_iterator> range = LQIO::Spex::observations().equal_range( old_DOM );
+    if ( range.first == range.second ) return;
+
+    LQIO::Spex::obs_var_tab_t new_observations;
+    for ( LQIO::Spex::obs_var_tab_t::const_iterator obs = range.first; obs != range.second; ++obs ) {
+	new_observations.emplace( new_DOM, obs->second );			/* Make a copy.		*/
+    }
+    observations.erase( range.first, range.second );				/* Out with the old 	*/
+    observations.insert( new_observations.begin(), new_observations.end() );	/* and in with the new 	*/
 }
 #endif

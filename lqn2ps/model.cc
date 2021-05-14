@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14633 2021-05-11 13:55:35Z greg $
+ * $Id: model.cc 14644 2021-05-14 15:09:03Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -490,7 +490,7 @@ Model::process()
 
 #if defined(REP2FLAT)
     switch ( Flags::print[REPLICATION].value.i ) {
-    case REPLICATION_EXPAND: expandModel(); /* Fall through to call removeReplication()! */
+    case REPLICATION_EXPAND: expand(); /* Fall through to call removeReplication()! */
     case REPLICATION_REMOVE: removeReplication(); break;
     case REPLICATION_RETURN: returnReplication(); break;
     }
@@ -1581,7 +1581,7 @@ Model::print( std::ostream& output ) const
 
 #if defined(REP2FLAT)
 Model&
-Model::expandModel()
+Model::expand()
 {
     /* Copy arrays */
 
@@ -1599,10 +1599,10 @@ Model::expandModel()
     /* Expand Processors and entries */
 
     try {
-	for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expandProcessor ) );
-	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandEntry ) );
-	for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expandTask ) );
-	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCall ) );
+	for_each( old_processor.begin(), old_processor.end(), Exec<Processor>( &Processor::expand ) );
+	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expand ) );
+	for_each( old_task.begin(), old_task.end(), Exec<Task>( &Task::expand ) );
+	for_each( old_entry.begin(), old_entry.end(), Exec<Entry>( &Entry::expandCalls ) );
     }
     catch ( const std::domain_error& e ) {
 	LQIO::solution_error( ERR_REPLICATION_NOT_SET, e.what() );
