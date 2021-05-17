@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14638 2021-05-13 14:41:08Z greg $
+ * $Id: lqn2ps.h 14648 2021-05-15 13:47:14Z greg $
  *
  */
 
@@ -18,7 +18,7 @@
 /* #define X11_OUTPUT */
 #define REP2FLAT	1	/* Allow expansion */
 #define BUG_270		1	/* Prune Null servers */
-#define BUG_299		1	/* Divide (y) by fan-out (load balance) */
+#define BUG_299		0	/* Divide (y) by fan-out (load balance) */
 
 #if defined(HAVE_CONFIG_H)
 #include <config.h>

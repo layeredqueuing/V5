@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14638 2021-05-13 14:41:08Z greg $
+ *  $Id: srvn_spex.cpp 14649 2021-05-15 14:02:00Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -531,8 +531,9 @@ namespace LQIO {
 	const std::map<const LQX::SyntaxTreeNode *,std::string> index = get_plot_args( list, args );
 	std::ostringstream plot;		// Plot command collected here.
 
+	_gnuplot.push_back( print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
 	_gnuplot.push_back( print_node( "set title \"" + DOM::__document->getModelCommentString() + "\"" ) );
-	_gnuplot.push_back( print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg", "", "" )() ) );
+	_gnuplot.push_back( print_node( "#set output \"" + LQIO::Filename( DOM::__document->__input_file_name, "svg", "", "" )() + "\"" ) );
 	_gnuplot.push_back( print_node( "#set terminal svg" ) );
 
 	/* Go through the args, (x, y11, y12..., y21, y22...). */
@@ -578,10 +579,11 @@ namespace LQIO {
 		
 		    const std::string& conf_name = obs->getConfVariableName();
 		    if ( !conf_name.empty() ) {
+			if ( conf_name == name ) continue;	/* Handled by main result 	*/
 			const std::map<std::string,size_t>::const_iterator i = _result_pos.find(conf_name);
-			if ( i == _result_pos.end() 		/* Not requested, so ignore	*/
-			     || conf_name == name ) continue;	/* Handled by main result 	*/
-			delta = i->second;			/* set position of conf int.	*/
+			if ( i != _result_pos.end() ) {
+			    delta = i->second;			/* set position of conf int.	*/
+			}
 		    }
 		    key = obs->getKey();
 		    key_name = obs->getKeyName();
@@ -631,7 +633,6 @@ namespace LQIO {
 	}
 
 	/* Append the plot command to the program (plot has to be near the end) */
-	_gnuplot.push_back( print_node( "set datafile separator \",\"" ) );		/* Use CSV. */
 	_gnuplot.push_back( print_node( plot.str() ) );
 	return list;
     }
