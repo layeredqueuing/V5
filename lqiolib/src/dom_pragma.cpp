@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14603 2021-04-16 15:53:36Z greg $
+ *  $Id: dom_pragma.cpp 14655 2021-05-17 15:16:53Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -112,8 +112,7 @@ namespace LQIO {
 		return false;
 	    } else if ( i->second != nullptr ) {
 		const std::set<std::string>& values = *i->second;
-		std::set<std::string>::const_iterator j = values.find( value );
-		if ( j == values.end() ) {
+		if ( values.find( value ) == values.end() ) {
 		    LQIO::solution_error( LQIO::WRN_PRAGMA_ARGUMENT_INVALID, param.c_str(), value.c_str() );
 		    return false;
 		}
@@ -192,6 +191,7 @@ namespace LQIO {
 	const char * Pragma::_default_natural_ = 		"default-natural";
 	const char * Pragma::_deterministic_ = 			"deterministic";	// Quorum
 	const char * Pragma::_exact_ =				"exact";
+	const char * Pragma::_expand_ =				"expand";
 	const char * Pragma::_exponential_ =			"exponential";
 	const char * Pragma::_extended_ =			"extended";		// BUG 270
 	const char * Pragma::_false_ =				"false";
@@ -227,6 +227,7 @@ namespace LQIO {
 	const char * Pragma::_one_step_ =			"one-step";
 	const char * Pragma::_one_step_linearizer_ =		"one-step-linearizer";
 	const char * Pragma::_overtaking_ =			"overtaking";
+	const char * Pragma::_pan_ =				"pan";
 	const char * Pragma::_precision_ =			"precision";
 	const char * Pragma::_processor_scheduling_ =		"processor-scheduling";
 	const char * Pragma::_processors_ =			"processors";
@@ -237,6 +238,7 @@ namespace LQIO {
 	const char * Pragma::_quorum_reply_ =			"quorum-reply";		// Quorum
 	const char * Pragma::_reiser_ =				"reiser";
 	const char * Pragma::_reiser_ps_ =			"reiser-ps";
+	const char * Pragma::_replication_ =			"replication";
 	const char * Pragma::_reschedule_on_async_send_ =	"reschedule-on-async-send";
 	const char * Pragma::_rolia_ =				"rolia";
 	const char * Pragma::_rolia_ps_ =			"rolia-ps";
@@ -279,6 +281,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__quorum_delayed_calls_args = { _keep_all_, _abort_all_, _abort_local_, _abort_remote_ };
 	const std::set<std::string> Pragma::__quorum_distribution_args = { _threepoint_, _gamma_, _geometric_, _deterministic_ };
 	const std::set<std::string> Pragma::__quorum_idle_time_args = { _default_, _join_delay_ };
+	const std::set<std::string> Pragma::__replication_args = { _expand_, _pan_ };
 	const std::set<std::string> Pragma::__scheduling_model_args = { _default_, _default_natural_, _custom_, _custom_natural_ };
 	const std::set<std::string> Pragma::__task_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_RAND].XML };
 	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };
@@ -311,6 +314,7 @@ namespace LQIO {
 	    { _quorum_idle_time_,  	    &__quorum_idle_time_args },     /* lqns */
 	    { _quorum_reply_, 		    &__true_false_arg },	    /* lqsim */
 	    { _reschedule_on_async_send_,   &__true_false_arg },
+	    { _replication_,		    &__replication_args },	    /* lqns */
 	    { _run_time_,  	    	    nullptr },			    /* lqsim */
 	    { _scheduling_model_,  	    &__scheduling_model_args },
 	    { _seed_value_,  	    	    nullptr },			    /* lqsim */

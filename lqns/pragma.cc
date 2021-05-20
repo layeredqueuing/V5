@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14613 2021-04-19 22:19:24Z greg $ *
+ * $Id: pragma.cc 14655 2021-05-17 15:16:53Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -320,6 +320,22 @@ void Pragma::setQuorumIdleTime(const std::string& value)
     }
 }
 #endif
+
+
+void Pragma::setReplication(const std::string& value)
+{
+    static const std::map<const std::string,const Pragma::Replication> __replication_pragma = {
+	{ LQIO::DOM::Pragma::_expand_,		Pragma::Replication::EXPAND },
+	{ LQIO::DOM::Pragma::_pan_,		Pragma::Replication::PAN }
+    };
+
+    const std::map<const std::string,const Pragma::Replication>::const_iterator pragma = __replication_pragma.find( value );
+    if ( pragma != __replication_pragma.end() ) {
+	_replication = pragma->second;
+    } else {
+	throw std::domain_error( value );
+    }
+}
 
 
 #if RESCHEDULE

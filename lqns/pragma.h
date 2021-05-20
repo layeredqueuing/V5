@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 14604 2021-04-16 16:10:30Z greg $
+ * $Id: pragma.h 14651 2021-05-17 14:12:18Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -42,6 +42,7 @@ public:
     enum class QuorumDelayedCalls { DEFAULT, KEEP_ALL, ABORT_ALL, ABORT_LOCAL_ONLY, ABORT_REMOTE_ONLY };
     enum class QuorumIdleTime { DEFAULT, JOINDELAY, ROOTENTRY };
 #endif
+    enum class Replication { EXPAND, PAN };		/* Possibly new */
     enum class Threads { MAK_LUNDSTROM, HYPER, NONE };
     enum class Variance { DEFAULT, NONE, STOCHASTIC, MOL };
 
@@ -144,6 +145,13 @@ public:
 	    return __cache->_quorum_idle_time;
 	}
 #endif
+
+    static Replication replication()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_replication;
+	}
+    
 #if RESCHEDULE
     static bool getRescheduleOnAsyncSend()
 	{
@@ -245,6 +253,7 @@ private:
     void setQuorumDelayedCalls(const std::string&);
     void setQuorumIdleTime(const std::string&);
 #endif
+    void setReplication(const std::string&);
 #if RESCHEDULE
     void setRescheduleOnAsyncSend(const std::string&);
 #endif
@@ -278,6 +287,7 @@ private:
     QuorumDelayedCalls _quorum_delayed_calls;
     QuorumIdleTime _quorum_idle_time;
 #endif
+    Replication _replication;
 #if RESCHEDULE
     bool _reschedule_on_async_send;
 #endif

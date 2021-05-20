@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14603 2021-04-16 15:53:36Z greg $
+ * $Id: dom_pragma.h 14655 2021-05-17 15:16:53Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -62,6 +62,7 @@ namespace LQIO {
 	    const static std::set<std::string> __quorum_delayed_calls_args;
 	    const static std::set<std::string> __quorum_distribution_args;
 	    const static std::set<std::string> __quorum_idle_time_args;
+	    const static std::set<std::string> __replication_args;
 	    const static std::set<std::string> __scheduling_model_args;
 	    const static std::set<std::string> __task_args;
 	    const static std::set<std::string> __threads_args;
@@ -88,6 +89,7 @@ namespace LQIO {
 	    static const char * _default_natural_;
 	    static const char * _deterministic_;	// Quorum
 	    static const char * _exact_;
+	    static const char * _expand_;
 	    static const char * _exponential_;
 	    static const char * _extended_;		// BUG 270
 	    static const char * _false_;
@@ -123,6 +125,7 @@ namespace LQIO {
 	    static const char * _one_step_;
 	    static const char * _one_step_linearizer_;
 	    static const char * _overtaking_;
+	    static const char * _pan_;
 	    static const char * _precision_;
 	    static const char * _processor_scheduling_;
 	    static const char * _processors_;
@@ -133,6 +136,7 @@ namespace LQIO {
 	    static const char * _quorum_reply_;		// Quroum
 	    static const char * _reiser_;
 	    static const char * _reiser_ps_;
+	    static const char * _replication_;
 	    static const char * _reschedule_on_async_send_;
 	    static const char * _rolia_;
 	    static const char * _rolia_ps_;

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14635 2021-05-11 16:27:14Z greg $
+ * $Id: submodel.cc 14661 2021-05-17 19:39:16Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -648,7 +648,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 		catch ( const std::range_error& error ) {
 		    MVAStats.faults += 1;
-		    if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
+		    if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
 			throw exception_handled( "MVA::submodel -- open model overflow" );
 		    }
 		}
@@ -682,7 +682,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		}
 	    } 
 	    catch ( const std::range_error& error ) {
-		if ( Pragma::stopOnMessageLoss() && std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) > 0 ) {
+		if ( Pragma::stopOnMessageLoss() && std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::openModelInfinity ) ) ) {
 		    throw exception_handled( "MVA::submodel -- open model overflow" );
 		}
 	    }

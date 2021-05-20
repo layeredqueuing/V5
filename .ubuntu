@@ -1,3 +1,5 @@
+#!/bin/sh
+mkdir -p config
 cp /usr/share/libtool/build-aux/ltmain.sh config
 cp /usr/share/aclocal/libtool.m4 config
 cp /usr/share/aclocal/ltoptions.m4 config

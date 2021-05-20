@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14635 2021-05-11 16:27:14Z greg $
+ * $Id: model.cc 14661 2021-05-17 19:39:16Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -391,7 +391,7 @@ Model::check()
     }
 #endif
 
-    if ( std::count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) ) == 0 && Entry::totalOpenArrivals == 0 ) {
+    if ( std::none_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) ) && Entry::totalOpenArrivals == 0 ) {
 	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
@@ -520,7 +520,7 @@ Model::generate()
     
     /* Add submodel for join delay calculation */
 
-    if ( std::count_if( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) > 0 ) {
+    if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) ) {
 	max_depth += 1;
 	sync_submodel = max_depth;
 	_submodels.push_back(new SynchSubmodel(sync_submodel));
