@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14611 2021-04-19 21:35:58Z greg $
+ * $Id: processor.cc 14689 2021-05-24 17:58:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -275,6 +275,24 @@ Processor::validScheduling() const
 }
 
 
+
+/*
+ * Expand replicas (Not PAN_REPLICATION).
+ * Clone the processor.  Use orignal dom.  Mark as replica (through the copy constructor)
+ */
+
+Processor&
+Processor::expand()
+{
+    const unsigned int replicas = this->replicas();
+    for ( unsigned int replica = 2; replica <= replicas; ++replica ) {
+	Model::__processor.insert( clone( replica ) );
+    }
+    return *this;
+}
+
+
+
 /*
  * Create (or recreate) a server.  If we're called a a second+ time,
  * and the station type changes, then we change the underlying
@@ -533,10 +551,10 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
  */
 
 Processor *
-Processor::find( const std::string& name )
+Processor::find( const std::string& name, unsigned int replica )
 {
-    std::set<Processor *>::const_iterator processor = find_if( Model::__processor.begin(), Model::__processor.end(), EQStr<Entity>( name ) );
-    return ( processor != Model::__processor.end() ) ? *processor : NULL;
+    std::set<Processor *>::const_iterator processor = std::find_if( Model::__processor.begin(), Model::__processor.end(), Entity::equals( name, replica ) );
+    return ( processor != Model::__processor.end() ) ? *processor : nullptr;
 }
 
 

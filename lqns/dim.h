@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14648 2021-05-15 13:47:14Z greg $
+ * $Id: dim.h 14689 2021-05-24 17:58:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -67,6 +67,11 @@ struct lt_str
 struct lt_int
 {
     bool operator()(const int i1, const int i2) const { return i1 < i2;	}
+};
+
+template <class Type> struct lt_replica
+{
+    bool operator()(const Type * a, const Type * b) const { return a->name() < b->name() || a->getReplicaNumber() < b->getReplicaNumber(); }
 };
 
 template <class Type> struct Exec

@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: group.cc 14689 2021-05-24 17:58:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -29,7 +29,12 @@
 /* ------------------------ Constructors etc. ------------------------- */
 
 Group::Group( LQIO::DOM::Group* dom, const Processor * processor )
-    : _dom(dom), _taskList(), _processor(processor), _share(0.0), _cap(false)
+    : _dom(dom),
+      _taskList(),
+      _processor(processor),
+      _share(0.0),
+      _cap(false),
+      _replica_number(1)
 { 
     initialize();
 }

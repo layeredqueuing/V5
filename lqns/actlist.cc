@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: actlist.cc 14667 2021-05-21 00:29:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -998,7 +998,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 									 totalParallelLocal,
 									 totalSequentialLocal);
 
-            } else if ( submodel == Model::sync_submodel ) {
+            } else if ( submodel == Model::__sync_submodel ) {
 
                 /* Updating join delays */
 
@@ -1068,7 +1068,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 (*join) -= phase_one;
             }
             currEntry->aggregate( submodel, phase, *join );
-        } else if ( submodel == Model::sync_submodel ) {
+        } else if ( submodel == Model::__sync_submodel ) {
             if (flags.trace_quorum) {
                 std::cout << "\n_joinDelay " << join->mean() << std::endl;
                 std::cout << "_joinVariance " << join->variance() << std::endl;
@@ -1107,7 +1107,7 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
         if ( dynamic_cast<const AndJoinActivityList *>(_joinList) && dynamic_cast<const AndJoinActivityList *>(_joinList)->hasQuorum()
-             && submodel == Model::sync_submodel
+             && submodel == Model::__sync_submodel
              && !flags.disable_expanding_quorum_tree /*!pragmaQuorumDistribution.test(DISABLE_EXPANDING_QUORUM)*/
              && Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS ) {
             saveQuorumDelayedThreadsServiceTime(entryStack,*join,quorumCDFs,
@@ -1202,7 +1202,7 @@ AndForkActivityList::calcQuorumKofN( const unsigned submodel,
         join = quorumCDFs.quorumKofN( n, n );
     }
 
-    if ( submodel == Model::sync_submodel ) {
+    if ( submodel == Model::__sync_submodel ) {
         for ( std::vector<Entry *>::const_iterator entry = _entryList.begin(); entry != _entryList.end(); ++entry ) {
             if ( dynamic_cast<Thread *>(*entry) ) {
                 dynamic_cast<Thread *>(*entry)->joinDelay(join->mean());

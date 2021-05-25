@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: processor.h 14673 2021-05-21 19:15:02Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,10 +46,15 @@ public:
 
 protected:
     Processor( LQIO::DOM::Processor* );
+    Processor( const Processor& processor, unsigned int replica ) : Entity( processor, replica ) {}
 
 public:
     virtual ~Processor();
 
+protected:
+    virtual Processor * clone( unsigned int replica ) { return new Processor( *this, replica ); }
+    
+public:
     /* Initialization */
 
     virtual bool check() const;
@@ -80,6 +85,8 @@ public:
     Processor& addGroup( Group * aGroup ) { _groups.insert( aGroup ); return *this; }
     const std::set<Group *>& groups() const { return _groups; }
 
+    Processor& expand();
+    
     Server * makeServer( const unsigned nChains );
     virtual Entity& saveServerResults( const MVASubmodel&, double );
 
@@ -89,7 +96,7 @@ public:
     virtual std::ostream& print( std::ostream& ) const;
 
 public:
-    static Processor * find( const std::string& name );
+    static Processor * find( const std::string&, unsigned int=1 );
 
 private:
     SRVNManip print_processor_type() const { return SRVNManip( output_processor_type, *this ); }
@@ -115,7 +122,8 @@ private:
 class DelayServer : public Processor
 {
 public:
-    DelayServer() : Processor( 0 ) {}		/* No Dom */
+    DelayServer() : Processor( nullptr ) {}		/* No Dom */
+    virtual Processor * clone() { throw std::runtime_error( "DelayServer::clone()" ); return nullptr; }
     virtual bool check() const { return true; }
 
     virtual double rate() const { return 1.0; }

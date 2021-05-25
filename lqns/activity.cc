@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: activity.cc 14679 2021-05-22 21:40:38Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -134,9 +134,9 @@ Activity::isNotReachable() const
 
 
 ProcessorCall *
-Activity::newProcessorCall( Entry * procEntry )
+Activity::newProcessorCall( Entry * procEntry ) const
 {
-    return new ActProcCall( this, procEntry );
+    return new ActivityProcessorCall( this, procEntry );
 }
 
 

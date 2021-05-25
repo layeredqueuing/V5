@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: lqns.cc 14665 2021-05-21 00:19:09Z greg $
  *
  * Command line processing.
  *
@@ -523,18 +523,17 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 
     /* Make sure we got a document */
 
-    if ( document == NULL || LQIO::io_vars.anError() ) return INVALID_INPUT;
+    if ( document == nullptr || LQIO::io_vars.anError() ) return INVALID_INPUT;
 
     document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
     if ( Model::prepare(document) == false ) return INVALID_INPUT;
         
-
     if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
         std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
 
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
-    Model * aModel = NULL;
+    Model * aModel = nullptr;
     int rc = 0;
 
     /* We can simply run if there's no control program */
@@ -552,15 +551,16 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 		Model::recalculateDynamicValues( document );
 
 		/* create Model just before it is needed */
-		aModel = Model::createModel( document, inputFileName, outputFileName );
-		if ( !aModel ) throw std::runtime_error( "could not create model" );
 
-		if ( flags.verbose ) {
-		    std::cerr << "Solve..." << std::endl;
-		}
-
+		aModel = Model::create( document, inputFileName, outputFileName );
 		/* Simply invoke the solver for the current DOM state */
-		aModel->solve();
+
+		if ( aModel != nullptr && aModel->initialize() ) {
+		    if ( flags.verbose ) {
+			std::cerr << "Solve..." << std::endl;
+		    }
+		    aModel->solve();
+		}
 	    }
 	} else {
 
@@ -576,7 +576,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 	    }
 	
 	    /* create Model after registering external symbols above, disabling checking at this stage */
-	    aModel = Model::createModel( document, inputFileName, outputFileName, false );
+	    aModel = Model::create( document, inputFileName, outputFileName, false );
 	    if ( !aModel ) throw std::runtime_error( "could not create model" );
 		
 	    LQX::Environment * environment = program->getEnvironment();

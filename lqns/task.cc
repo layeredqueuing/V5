@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14628 2021-05-10 17:56:53Z greg $
+ * $Id: task.cc 14691 2021-05-25 12:05:43Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -69,8 +69,49 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
       _has_sync(false),
       _no_syncs(true)
 {
-    for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
+    std::for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
 }
+
+
+/*
+ * Clone a task (Not PAN_REPLICATION).
+ * Find the replica processor (same DOM/name) and possibly group.
+ * Clone the entries/activities.
+ */
+
+
+Task::Task( const Task& src, unsigned int replica )
+    : Entity( src, replica ),
+      _processor(nullptr),
+      _group(nullptr),
+      _maxThreads(src._maxThreads),
+      _activities(),
+      _precedences(),
+      _overlapFactor(src._overlapFactor),
+      _threads(src._threads),
+      _clientChains(),
+      _clientStation(),
+      _has_fork(src._has_fork),
+      _has_sync(src._has_sync),
+      _no_syncs(src._no_syncs)
+{
+    /* Link to the replica processor (this could be the original processor) */
+    _processor = Processor::find( src._processor->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src._processor->fanIn(this) ) ) ) );
+    assert( _processor != nullptr );
+    
+    /* Link to the replica group? */
+//    _group = Group::find();
+
+    /* Link in the entries */
+    for ( std::vector<Entry *>::const_iterator entry = src._entries.begin(); entry != src._entries.end(); ++entry  ) {
+	Entry * new_entry = Entry::find( (*entry)->name(), replica );
+	_entries.push_back( new_entry );
+	new_entry->owner( this );
+    }
+
+    /* Clone the activities */
+}
+
 
 
 /*
@@ -91,12 +132,6 @@ Task::~Task()
     for ( Vector<Server *>::const_iterator station = _clientStation.begin(); station != _clientStation.end(); ++station ) {
 	delete *station;
     }
-}
-
-
-void
-Task::reset()
-{
 }
 
 /* ----------------------- Abstract Superclass. ----------------------- */
@@ -425,7 +460,7 @@ Task::fanOut( const Entity * aServer ) const
 Activity *
 Task::findActivity( const std::string& name ) const
 {
-    const std::vector<Activity *>::const_iterator activity = find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
+    const std::vector<Activity *>::const_iterator activity = std::find_if( activities().begin(), activities().end(), EQStr<Activity>( name ) );
     return activity != activities().end() ? *activity : nullptr;
 }
 
@@ -523,6 +558,27 @@ Task::rootLevel() const
     return level;
 }
 
+
+
+/*
+ * Expand replicas (Not PAN_REPLICATION)
+ */
+
+Task&
+Task::expand()
+{
+    const unsigned int replicas = this->replicas();
+    for ( unsigned int replica = 2; replica <= replicas; ++replica ) {
+	Task * task = clone( replica );
+	Model::__task.insert( task );
+
+	const_cast<Processor *>(task->getProcessor())->addTask( task );
+	if ( task->getGroup() ) {
+	    const_cast<Group *>(task->getGroup())->addTask( task );
+	}
+    }
+    return *this;
+}
 
 
 /*
@@ -831,7 +887,7 @@ Task::saveClientResults( const MVASubmodel& submodel )
 		double lambda = 0;
 
 #if PAN_REPLICATION
-		if ( submodel.hasReplication() ) {
+		if ( submodel.hasPanReplication() ) {
 
 		    /*
 		     * Get throughput PER CUSTOMER because replication
@@ -1539,6 +1595,15 @@ ReferenceTask::ReferenceTask( LQIO::DOM::Task* dom, const Processor * processor,
 }
 
 
+
+
+Task *
+ReferenceTask::clone( unsigned int replica )
+{
+    return new ReferenceTask( *this, replica  );
+}
+
+
 unsigned
 ReferenceTask::copies() const
 {
@@ -1692,6 +1757,13 @@ ReferenceTask::sanityCheck() const
 }
 
 /* -------------------------- Simple Servers. ------------------------- */
+
+Task *
+ServerTask::clone( unsigned int replica )
+{
+    return new ServerTask( *this, replica );
+}
+
 
 unsigned int 
 ServerTask::queueLength() const
@@ -2074,6 +2146,13 @@ ServerTask::makeServer( const unsigned nChains )
 
 /* ------------------------- Semaphore Servers. ----------------------- */
 
+Task *
+SemaphoreTask::clone( unsigned int replica )
+{
+    return new SemaphoreTask( *this, replica );
+}
+
+
 bool
 SemaphoreTask::check() const
 {
@@ -2122,14 +2201,14 @@ SemaphoreTask::makeServer( const unsigned )
 Task*
 Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 {
-    if ( dom == nullptr || dom->getName().size() == 0 ) abort();
-    const char* task_name = dom->getName().c_str();
+    if ( dom == nullptr || dom->getName().empty() ) abort();
+    const std::string& task_name = dom->getName();
 
-    if ( entries.size() == 0 ) {
-	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name );
+    if ( entries.empty() ) {
+	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name.c_str() );
 	return nullptr;
-    } else if ( find_if( Model::__task.begin(), Model::__task.end(), EQStr<Task>( task_name ) ) != Model::__task.end() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name );
+    } else if ( std::any_of( Model::__task.begin(), Model::__task.end(), Entity::equals( task_name ) ) ) {
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name.c_str() );
 	return nullptr;
     }
 
@@ -2158,7 +2237,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 
     const scheduling_type sched_type = dom->getSchedulingType();
     if ( sched_type != SCHEDULE_CUSTOMER && dom->hasThinkTime () ) {
-	LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name );
+	LQIO::input_error2( LQIO::ERR_NON_REF_THINK_TIME, task_name.c_str() );
     }
 
     switch ( sched_type ) {
@@ -2166,7 +2245,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	/* ---------- Client tasks ---------- */
     case SCHEDULE_BURST:
     case SCHEDULE_UNIFORM:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, dom->getTypeName(), task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, dom->getTypeName(), task_name.c_str() );
 	/* Fall through */
     case SCHEDULE_CUSTOMER:
 	task = new ReferenceTask( dom, processor, group, entries );
@@ -2184,7 +2263,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	/*+ BUG_164 */
     case SCHEDULE_SEMAPHORE:
 	if ( entries.size() != N_SEMAPHORE_ENTRIES ) {
-	    LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name, entries.size(), N_SEMAPHORE_ENTRIES );
+	    LQIO::input_error2( LQIO::ERR_ENTRY_COUNT_FOR_TASK, task_name.c_str(), entries.size(), N_SEMAPHORE_ENTRIES );
 	}
 	LQIO::input_error2( LQIO::ERR_NOT_SUPPORTED, "Semaphore tasks" );
 	//	task = new SemaphoreTask( task_name, n_copies, replications, processor, entries, priority );
@@ -2193,7 +2272,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	/*- BUG_164 */
 
     default:
-	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, dom->getTypeName(), task_name );
+	LQIO::input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED, scheduling_label[static_cast<unsigned>(sched_type)].str, dom->getTypeName(), task_name.c_str() );
 	dom->setSchedulingType(SCHEDULE_FIFO);
 	task = new ServerTask( dom, processor, group, entries );
 	break;
@@ -2205,6 +2284,15 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	group->addTask( task );
     }
     return task;
+}
+
+
+
+/* static */ Task *
+Task::find( const std::string& name, unsigned int replica )
+{
+    std::set<Task *>::const_iterator task = std::find_if( Model::__task.begin(), Model::__task.end(), Entity::equals( name, replica ) );
+    return ( task != Model::__task.end() ) ? *task : nullptr;
 }
 
 /*----------------------------------------------------------------------*/

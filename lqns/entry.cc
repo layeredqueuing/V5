@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: entry.cc 14690 2021-05-24 19:33:27Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -44,22 +44,18 @@
 #include "variance.h"
 
 unsigned Entry::totalOpenArrivals   = 0;
-
 unsigned Entry::max_phases	    = 0;
-
-const char * Entry::phaseTypeFlagStr [] = { "Stochastic", "Determin" };
-
 
 /* ------------------------ Constructors etc. ------------------------- */
 
 
-Entry::Entry( LQIO::DOM::Entry* dom, const unsigned id, const unsigned index )
+Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
     : _dom(dom),
       _phase(dom && dom->getMaximumPhase() > 0 ? dom->getMaximumPhase() : 1 ),
-      _total(),
-      _nextOpenWait(0.0),			/* copy for delta computation	*/
-      _startActivity(NULL),
-      _entryId(id),
+      _total( "total" ),
+      _nextOpenWait(0.0),		/* copy for delta computation	*/
+      _startActivity(nullptr),
+      _entryId(global ? Model::__entry.size()+1 : 0),
       _index(index+1),
       _entryType(ENTRY_NOT_DEFINED),
       _semaphoreType(dom ? dom->getSemaphoreFlag() : LQIO::DOM::Entry::Semaphore::NONE),
@@ -67,14 +63,45 @@ Entry::Entry( LQIO::DOM::Entry* dom, const unsigned id, const unsigned index )
       _throughput(0.0),
       _throughputBound(0.0),
       _callerList(),
-      _interlock()
+      _interlock(),
+      _replica_number(1)		/* This object is not a replica	*/
 {
     const size_t size = _phase.size();
     for ( size_t p = 1; p <= size; ++p ) {
-	std::string s;
-	s = "123"[p-1];
 	_phase[p].setEntry( this )
-	    .setName( s );
+	    .setName( name() + "_" + "123"[p-1] )
+	    .setPhaseNumber( p );
+    }
+}
+
+
+/*
+ * Deep copy (except DOM).
+ */
+
+Entry::Entry( const Entry& src, unsigned int replica )
+    : _dom(src._dom),
+      _phase(src._phase.size()),
+      _total(src._total._name),
+      _nextOpenWait(0.0),
+      _startActivity(nullptr),
+      _entryId(src._entryId != 0 ? Model::__entry.size()+1 : 0),
+      _index(src._index),
+      _entryType(src._entryType),
+      _semaphoreType(src._semaphoreType),
+      _calledBy(src._calledBy),
+      _throughput(0.0),
+      _throughputBound(0.0),
+      _callerList(),
+      _interlock(),
+      _replica_number(replica)		/* This object is a replica	*/
+{
+    /* Copy over phases.  Call lists will be done later */
+    const size_t size = _phase.size();
+    for ( size_t p = 1; p <= size; ++p ) {
+	_phase[p].setEntry( this )
+	    .setName( src._phase[p].name() )
+	    .setPhaseNumber( p );
     }
 }
 
@@ -153,7 +180,7 @@ bool
 Entry::check() const
 {
     if ( isStandardEntry() ) {
-	std::for_each ( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
+	std::for_each( _phase.begin(), _phase.end(), Predicate<Phase>( &Phase::check ) );
     } else if ( !isActivityEntry() ) {
 	LQIO::solution_error( LQIO::ERR_ENTRY_NOT_SPECIFIED, name().c_str() );
     }
@@ -213,6 +240,34 @@ Entry::configure( const unsigned nSubmodels )
 	assert( activityStack.size() == 0 );
     }
     initServiceTime();
+    return *this;
+}
+
+
+/*
+ * Expand replicas (Not PAN_REPLICATION)
+ */
+
+Entry&
+Entry::expand()
+{
+    const unsigned replicas = owner()->replicas();
+    for ( unsigned int replica = 2; replica <= replicas; ++replica ) {
+	Model::__entry.insert( clone( replica ) );
+    }
+    return *this;
+}
+
+/*
+ * Expand the replicas of the calls (Not PAN_REPLICATION).  This has
+ * to be done separately because all of the replica entries have to
+ * exist first (just like Model::prepare)
+ */
+
+Entry&
+Entry::expandCalls()
+{
+    std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::expandCalls ) );
     return *this;
 }
 
@@ -377,7 +432,7 @@ Entry::setEntryInformation( LQIO::DOM::Entry * entryInfo )
 Entry&
 Entry::setDOM( unsigned p, LQIO::DOM::Phase* phaseInfo )
 {
-    if (phaseInfo == NULL) return *this;
+    if (phaseInfo == nullptr) return *this;
     setMaxPhase(p);
     _phase[p].setDOM(phaseInfo);
     return *this;
@@ -546,7 +601,7 @@ Entry::saveThroughput( const double value )
 Entry&
 Entry::rendezvous( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* callDOMInfo )
 {
-    if ( callDOMInfo == NULL ) return *this;
+    if ( callDOMInfo == nullptr ) return *this;
     setMaxPhase( p );
 
     _phase[p].rendezvous( toEntry, callDOMInfo );
@@ -591,7 +646,7 @@ Entry::rendezvous( const Entity *dstTask, VectorMath<double>& calls ) const
 Entry&
 Entry::sendNoReply( Entry * toEntry, const unsigned p, const LQIO::DOM::Call* callDOMInfo )
 {
-    if ( callDOMInfo == NULL ) return *this;
+    if ( callDOMInfo == nullptr ) return *this;
 
     setMaxPhase( p );
 
@@ -1033,6 +1088,26 @@ Entry::sanityCheckParameters()
 
 /* --------------------------- Task Entries --------------------------- */
 
+
+TaskEntry::TaskEntry( LQIO::DOM::Entry* domEntry, unsigned int index, bool global )
+    : Entry(domEntry,index,global),
+      _task(nullptr),
+      _openWait(0.),
+      _nextOpenWait(0.)
+{
+}
+
+TaskEntry::TaskEntry( const TaskEntry& src, unsigned int replica )
+    : Entry(src,replica),
+      _task(nullptr),
+      _openWait(0.0),
+      _nextOpenWait(0.0)
+{
+    /* Set to replica task */
+    _task = Task::find( src._task->name(), replica );
+}
+    
+
 /*
  * Initialize processor waiting time, variance and priority
  */
@@ -1345,12 +1420,19 @@ Entry::callsPerform( callFunc aFunc, const unsigned submodel, const unsigned k )
  * Make a processor Entry.
  */
 
-DeviceEntry::DeviceEntry( LQIO::DOM::Entry* dom, const unsigned id, Processor * aProc )
-    : Entry(dom,id,aProc->nEntries()), myProcessor(aProc)
+DeviceEntry::DeviceEntry( LQIO::DOM::Entry* dom, Processor * processor )
+    : Entry( dom, processor->nEntries() ), _processor(processor)
 {
-    aProc->addEntry( this );
+    processor->addEntry( this );
 }
 
+
+DeviceEntry::DeviceEntry( const DeviceEntry& src, unsigned int replica )
+    : Entry( src, replica ),
+      _processor(nullptr)
+{
+    /* !!! See task.cc to find the replica processor */
+}
 
 
 DeviceEntry::~DeviceEntry()
@@ -1419,7 +1501,7 @@ DeviceEntry&
 DeviceEntry::setServiceTime( const double service_time )
 {
     LQIO::DOM::Phase* phaseDom = _dom->getPhase(1);
-    phaseDom->setServiceTime(new LQIO::DOM::ConstantExternalVariable(service_time/dynamic_cast<const Processor *>(myProcessor)->rate()));
+    phaseDom->setServiceTime(new LQIO::DOM::ConstantExternalVariable(service_time/dynamic_cast<const Processor *>(_processor)->rate()));
     setDOM(1, phaseDom );
     return *this;
 }
@@ -1517,7 +1599,8 @@ DeviceEntry::queueingTime( const unsigned ) const
  */
 
 VirtualEntry::VirtualEntry( const Activity * anActivity )
-    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name().c_str()), 0, anActivity->owner()->nEntries() )
+    : TaskEntry( new LQIO::DOM::Entry(anActivity->getDOM()->getDocument(), anActivity->name().c_str()),
+		 anActivity->owner()->nEntries(), false )	/* Don't create an global entry id */
 {
     owner( anActivity->owner() );
 }
@@ -1530,7 +1613,6 @@ VirtualEntry::VirtualEntry( const Activity * anActivity )
 VirtualEntry::~VirtualEntry()
 {
     delete _dom;
-    _dom = 0;
 }
 
 
@@ -1546,19 +1628,19 @@ VirtualEntry::setStartActivity( Activity * anActivity )
 }
 
 static bool
-map_entry_name( const char * entry_name, Entry * & outEntry, bool receiver, const entry_type aType = ENTRY_NOT_DEFINED )
+map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver, const entry_type aType = ENTRY_NOT_DEFINED )
 {
     bool rc = true;
     outEntry = Entry::find( entry_name );
 
     if ( !outEntry ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
+	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, entry_name.c_str() );
 	rc = false;
     } else if ( receiver && outEntry->isReferenceTaskEntry() ) {
-	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name().c_str(), entry_name );
+	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name().c_str(), entry_name.c_str() );
 	rc = false;
     } else if ( aType != ENTRY_NOT_DEFINED && !outEntry->entryTypeOk( aType ) ) {
-	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name );
+	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
     }
 
     return rc;
@@ -1664,7 +1746,7 @@ CallInfo::CallInfo( const Entry& entry, const unsigned callType )
 		 || ( (callType & Call::OVERTAKING_CALL) && (*call)->hasOvertaking() && !(*call)->isForwardedCall() )
 		) {
 
-		std::vector<CallInfoItem>::iterator item = find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
+		std::vector<CallInfoItem>::iterator item = std::find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
 		if ( item == _calls.end() ) {
 		    _calls.push_back( CallInfoItem( &entry, (*call)->dstEntry() ) );
 		    _calls.back().phase[p] = (*call);
@@ -1692,19 +1774,19 @@ CallInfo::CallInfo( const Entry& entry, const unsigned callType )
 Entry *
 Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 {
-    const char* entry_name = dom->getName().c_str();
+    const std::string& entry_name = dom->getName();
 
-    std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
+    std::set<Entry *>::const_iterator nextEntry = std::find_if( Model::__entry.begin(), Model::__entry.end(), Entry::equals( entry_name ) );
     if ( nextEntry != Model::__entry.end() ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
-	return 0;
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name.c_str() );
+	return nullptr;
     } else {
-	Entry * entry = new TaskEntry( dom, Model::__entry.size() + 1, index );
+	Entry * entry = new TaskEntry( dom, index );
 	Model::__entry.insert( entry );
 
 	/* Make sure that the entry type is set properly for all entries */
 	if (entry->entryTypeOk(static_cast<const entry_type>(dom->getEntryType())) == false) {
-	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name );
+	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
 	}
 
 	/* Set field width for entry names. */
@@ -1724,7 +1806,7 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
     }
 
     LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
-    const char* to_entry_name = toDOMEntry->getName().c_str();
+    const std::string& to_entry_name = toDOMEntry->getName();
 
     /* Internal Entry references */
     Entry * toEntry;
@@ -1740,6 +1822,8 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
 	}
     }
 }
+
+
 
 Entry&
 Entry::setForwardingInformation( Entry* toEntry, LQIO::DOM::Call * call )
@@ -1760,28 +1844,31 @@ void
 set_start_activity (Task* newTask, LQIO::DOM::Entry* theDOMEntry)
 {
     Activity* activity = newTask->findActivity(theDOMEntry->getStartActivity()->getName());
-    Entry* realEntry = NULL;
+    Entry* realEntry = nullptr;
 
-    map_entry_name( theDOMEntry->getName().c_str(), realEntry, false, ACTIVITY_ENTRY );
+    map_entry_name( theDOMEntry->getName(), realEntry, false, ACTIVITY_ENTRY );
     realEntry->setStartActivity(activity);
     activity->setEntry(realEntry);
 }
 
 /* ---------------------------------------------------------------------- */
 
+bool
+Entry::equals::operator()( const Entry * entry ) const
+{
+    return entry->name() == _name && entry->getReplicaNumber() == _replica;
+}
+
+
 /*
  * Find the entry and return it.
  */
 
 /* static */ Entry *
-Entry::find( const std::string& entry_name )
+Entry::find( const std::string& name, unsigned int replica )
 {
-    std::set<Entry *>::const_iterator nextEntry = find_if( Model::__entry.begin(), Model::__entry.end(), EQStr<Entry>( entry_name ) );
-    if ( nextEntry == Model::__entry.end() ) {
-	return nullptr;
-    } else {
-	return *nextEntry;
-    }
+    std::set<Entry *>::const_iterator nextEntry = std::find_if( Model::__entry.begin(), Model::__entry.end(), Entry::equals( name, replica ) );
+    return ( nextEntry != Model::__entry.end() ) ? *nextEntry : nullptr;
 }
 
 

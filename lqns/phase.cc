@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14635 2021-05-11 16:27:14Z greg $
+ * $Id: phase.cc 14691 2021-05-25 12:05:43Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -213,24 +213,14 @@ NullPhase::insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m,
  */
 
 Phase::Phase( const std::string& name )
-    : NullPhase(),
-      _entry(nullptr),
-      _callList(),
-      _devices(),
-      _prOvertaking(0.)
-{
-    setName(name);
-}
-
-
-Phase::Phase()
-    : NullPhase(),
+    : NullPhase( name ),
       _entry(nullptr),
       _callList(),
       _devices(),
       _prOvertaking(0.)
 {
 }
+
 
 
 /*
@@ -239,8 +229,8 @@ Phase::Phase()
 
 Phase::~Phase()
 {
-    for ( std::vector<DeviceInfo *>::const_iterator x = _devices.begin(); x != _devices.end(); ++x ) {
-	delete *x;
+    for ( std::vector<DeviceInfo *>::const_iterator device = _devices.begin(); device != _devices.end(); ++device ) {
+	delete *device;
     }
     /* Release forward links */
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
@@ -319,7 +309,7 @@ Phase::addForwardingRendezvous( Call::stack& callStack ) const
     for ( Call::stack::reverse_iterator call = callStack.rbegin(); call != callStack.rend(); ++call ) {
 	if ( (*call)->hasRendezvous() ) {
 	    rate *= (*call)->rendezvous();
-	    const_cast<Phase *>((*call)->srcPhase())->forwardedRendezvous( callStack.back(), rate );
+	    const_cast<Phase *>((*call)->getSource())->forwardedRendezvous( callStack.back(), rate );
 	    break;
 	} else if ( (*call)->hasSendNoReply() ) {
 	    break;
@@ -465,7 +455,7 @@ Call *
 Phase::findCall( const Entry * anEntry, const queryFunc aFunc ) const
 {
     std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_call( anEntry, aFunc ) );
-    return call != callList().end() ?  *call : nullptr;
+    return call != callList().end() ? *call : nullptr;
 }
 
 
@@ -479,7 +469,7 @@ Call *
 Phase::findFwdCall( const Entry * anEntry ) const
 {
     std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_fwd_call( anEntry ) );
-    return call != callList().end() ?  *call : nullptr;
+    return call != callList().end() ? *call : nullptr;
 }
 
 
@@ -494,7 +484,7 @@ Phase::findOrAddCall( const Entry * anEntry, const queryFunc aFunc  )
 {
     std::set<Call *>::const_iterator call = std::find_if( callList().begin(), callList().end(), Call::find_call( anEntry, aFunc ) );
     if ( call == callList().end() ) {
-	return new TaskCall( this, anEntry );
+	return new PhaseCall( this, anEntry );
     } else {
 	return *call;
     }
@@ -566,12 +556,8 @@ Phase::rendezvous( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 double
 Phase::rendezvous( const Entry * anEntry ) const
 {
-    const Call * aCall = findCall( anEntry, &Call::hasRendezvous );
-    if ( aCall ) {
-	return aCall->rendezvous();
-    } else {
-	return 0.0;
-    }
+    const Call * call = findCall( anEntry, &Call::hasRendezvous );
+    return call ? call->rendezvous() : 0.0;
 }
 
 
@@ -624,12 +610,8 @@ Phase::sendNoReply( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 double
 Phase::sendNoReply( const Entry * anEntry ) const
 {
-    const Call * aCall = findCall( anEntry, &Call::hasSendNoReply  );
-    if ( aCall ) {
-	return aCall->sendNoReply();
-    } else {
-	return 0.0;
-    }
+    const Call * call = findCall( anEntry, &Call::hasSendNoReply  );
+    return call ? call->sendNoReply() : 0.0;
 }
 
 
@@ -692,13 +674,8 @@ Phase::forward( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 double
 Phase::forward( const Entry * toEntry ) const
 {
-    const Call * aCall = findCall( toEntry, &Call::hasForwarding );
-
-    if ( aCall ) {
-	return aCall->forward();
-    } else {
-	return 0.0;
-    }
+    const Call * call = findCall( toEntry, &Call::hasForwarding );
+    return call ? call->forward() : 0.0;
 }
 
 
@@ -1455,6 +1432,21 @@ Phase::random_phase() const
 
 
 /*
+ * Expand replicas of all of the calls from this phase (Not PAN_REPLICATION).
+ */
+
+Phase&
+Phase::expandCalls()
+{
+//    std::for_each( callList().begin(), callList().end(), Exec<Call>( &Call::expand ) );
+    const std::set<Call *> calls = callList();	/* Create a copy as the list is changed */
+    for ( auto& call : calls ) {
+	call->expand();
+    }
+    return *this;
+}
+
+/*
  * If there is a processor associated with this phase initialize it.
  * Do this during initialization, rather than construction as we
  * don't know how many slices exist until the entire model is loaded.
@@ -1473,9 +1465,7 @@ Phase::initProcessor()
      */
 	
     if ( getDOM()->hasServiceTime() ) {
-	std::string entry_name( owner()->name() );
-	entry_name += ':';
-	entry_name += name();
+	const std::string entry_name = owner()->name() + ':' + name();
 	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::HOST ) );
     }
 
@@ -1485,13 +1475,24 @@ Phase::initProcessor()
     
     if ( hasThinkTime() ) {
 	std::string entry_name;
-	entry_name = Model::thinkServer->name();
+	entry_name = Model::__think_server->name();
 	entry_name += ":";
 	entry_name += name();
 	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::THINK_TIME ) );
     }
 
     return *this;
+}
+
+
+/*
+ * Overridden by activity for activities in DeviceInfo.
+ */
+
+ProcessorCall *
+Phase::newProcessorCall( Entry * procEntry ) const
+{
+    return new PhaseProcessorCall( this, procEntry );
 }
 
 Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type type )
@@ -1503,25 +1504,19 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 
     _entry_dom = new LQIO::DOM::Entry( document, name );
     if ( isProcessor() ) {
-	_entry = new DeviceEntry( _entry_dom, Model::__entry.size() + 1, const_cast<Processor *>( processor ) );
-    } else {
-	_entry = new DeviceEntry( _entry_dom, Model::__entry.size() + 1, Model::thinkServer );
-    }
-    Model::__entry.insert( _entry );
-		
-    if ( isProcessor() ) {
+	_entry = new DeviceEntry( _entry_dom, const_cast<Processor *>( processor ) );
 	_entry->setServiceTime( service_time() / n_calls() )
 	    .setCV_sqr( cv_sqr() )
 	    .initVariance()
 	    .setPriority( phase.owner()->priority() );
-
     } else {
+	_entry = new DeviceEntry( _entry_dom, Model::__think_server );
 	_entry->setServiceTime( think_time() )
 	    .setCV_sqr( 1.0 )
 	    .initVariance();
     }
-
-
+    Model::__entry.insert( _entry );
+		
     /* 
      * We may have to change this at some point.  However, we can't do
      * priority by class in the analytic solver anyway - only by
@@ -1534,7 +1529,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
     } else {
 	visits = new LQIO::DOM::ConstantExternalVariable(1.0);
     }
-    _call = new ProcessorCall( &_phase, _entry );
+    _call = _phase.newProcessorCall( _entry );
     _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::Type::QUASI_RENDEZVOUS,
 				     _phase.getDOM(), _entry->getDOM(), visits );
     _call->rendezvous( _call_dom );

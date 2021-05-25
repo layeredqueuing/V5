@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14523 2021-03-06 22:53:02Z greg $
+ * $Id: runlqx.cc 14662 2021-05-19 18:31:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -76,15 +76,15 @@ namespace SolverInterface
 			
 	    /* Run the solver and return its success as a boolean value */
 	    assert( _aModel );
-	    if ( LQIO::io_vars.anError() == true || !_aModel->initializeModel() ) {
-		throw std::runtime_error( "Unable to initialize model." );
+	    if ( LQIO::io_vars.anError() == false && _aModel->initialize() ) {
+		std::stringstream ss;
+		_document->printExternalVariables( ss );
+		_document->setExtraComment( ss.str() );
+		_document->setResultInvocationNumber( invocationCount );
+		ok = (_aModel->*_solve)();
+	    } else {
+		ok = false;
 	    }
-
-	    std::stringstream ss;
-	    _document->printExternalVariables( ss );
-	    _document->setExtraComment( ss.str() );
-	    _document->setResultInvocationNumber( invocationCount );
-	    ok = (_aModel->*_solve)();
 	}
 	catch ( const exception_handled& error ) {
 	    LQIO::io_vars.error_count += 1;

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: entity.h 14673 2021-05-21 19:15:02Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,6 +49,21 @@ class Entity {
 
 public:
     /*
+     * Compare two entities by their name and replica number.  The
+     * default replica is one, and will only not be one if replicas
+     * are expanded to individual tasks.
+     */
+    
+    struct equals {
+	equals( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
+	bool operator()( const Entity * entity ) const { return entity->name() == _name && entity->getReplicaNumber() == _replica; }
+    private:
+	const std::string _name;
+	const unsigned int _replica;
+    };
+
+
+    /*
      * Compare two entities by their submodel. 
      */
 
@@ -73,12 +88,15 @@ private:
     };
 
 public:
-    Entity( LQIO::DOM::Entity* domVersion, const std::vector<Entry *>& entries );
+    Entity( LQIO::DOM::Entity*, const std::vector<Entry *>& );
     virtual ~Entity();
 
+protected:
+    Entity( const Entity&, unsigned int );
+    virtual Entity * clone( unsigned int ) = 0;
+
 private:
-    Entity( const Entity& );		/* Copying is verbotten */
-    Entity& operator=( const Entity& );
+    Entity& operator=( const Entity& ) = delete;
 
 public:
     /* Initialization */
@@ -112,6 +130,7 @@ public:
     Entity& setSubmodel( const unsigned submodel ) { _submodel = submodel; return *this; }
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return _thinkTime; }
     virtual Entity& setOverlapFactor( const double ) { return *this; }
+    unsigned getReplicaNumber() const { return _replica_number; }
 
     virtual unsigned int fanOut( const Entity * ) const = 0;
     virtual unsigned int fanIn( const Task * ) const = 0;
@@ -151,8 +170,8 @@ public:
     virtual bool isInfinite() const;
 
     bool isCalledBy( const Task* ) const;
-    bool isMultiServer() const   	 { return copies() > 1; }
-    bool isReplicated() const		 { return replicas() > 1; }
+    bool isMultiServer() const   	{ return copies() > 1; }
+    bool isReplicated() const		{ return replicas() > 1; }
 
     bool schedulingIsOk( const unsigned bits ) const;
 
@@ -268,5 +287,6 @@ private:
     /* MVA interface */
 
     ChainVector _serverChains;		/* Chains for this server.	*/
+    const unsigned int _replica_number;	/* > 1 if a replica		*/
 };
 #endif

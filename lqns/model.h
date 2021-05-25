@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14624 2021-05-09 13:01:43Z greg $
+ * $Id: model.h 14689 2021-05-24 17:58:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -48,16 +48,6 @@ protected:
 	const bool _verbose;
     };
 
-public:
-    static LQIO::DOM::Document* load( const std::string& inputFileName, const std::string& outputFileName );
-    static Model * createModel( const LQIO::DOM::Document *, const std::string&, const std::string&, bool check_model = true );
-    static bool prepare( const LQIO::DOM::Document* document );
-    static void recalculateDynamicValues( const LQIO::DOM::Document* document );
-    static void setModelParameters( const LQIO::DOM::Document* doc );
-
-public:
-    virtual ~Model();
-
 protected:
     explicit Model( const LQIO::DOM::Document *, const std::string&, const std::string& );
 
@@ -66,11 +56,21 @@ private:
     Model& operator=( const Model& );
 
 public:
+    virtual ~Model();
+
+public:
+    static LQIO::DOM::Document* load( const std::string& inputFileName, const std::string& outputFileName );
+    static bool prepare( const LQIO::DOM::Document* document );
+    static void recalculateDynamicValues( const LQIO::DOM::Document* document );
+    static void setModelParameters( const LQIO::DOM::Document* doc );
+    static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string&, bool check_model = true );
+
+public:
     Model& reinitialize();
-    bool initializeModel();
+    bool initialize();
 
     unsigned nSubmodels() const { return _submodels.size(); }
-    unsigned syncModelNumber() const { return sync_submodel; }
+    unsigned syncModelNumber() const { return __sync_submodel; }
     const Vector<Submodel *>& getSubmodels() const { return _submodels; }
 
     bool solve();
@@ -81,16 +81,13 @@ public:
 
     void insertDOMResults() const;
 
-    std::ostream& printLayers( std::ostream& ) const;
     std::ostream& printSubmodelWait( std::ostream& output = std::cout ) const;
 
 protected:
     virtual unsigned assignSubmodel() = 0;
     static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
-    void initialize();
-    void initClients();
-    void reinitClients();
+    void initStations();
 
     double relaxation() const;
     virtual void backPropogate() {}
@@ -102,8 +99,7 @@ protected:
 private:
     static bool check();
     bool generate();	/* Create layers.	*/
-    static void extendModel();
-    static void initProcessors();
+    static void extend();
     void configure();
     void setInitialized() { _model_initialized = true; }
 
@@ -113,18 +109,17 @@ private:
     std::ostream& printOvertaking( std::ostream& ) const;
 
 public:
-    static unsigned sync_submodel;	/* Level of special sync model. */
-    static Processor * thinkServer;
-
     static double convergence_value;
     static unsigned iteration_limit;
     static double underrelaxation;
     static unsigned print_interval;
     static LQIO::DOM::Document::input_format input_format;
-    static std::set<Processor *> __processor;
-    static std::set<Group *> __group;
-    static std::set<Task *> __task;
-    static std::set<Entry *> __entry;
+    static std::set<Processor *,lt_replica<Processor>> __processor;
+    static std::set<Group *,lt_replica<Group>> __group;
+    static std::set<Task *,lt_replica<Task>> __task;
+    static std::set<Entry *,lt_replica<Entry>> __entry;
+    static Processor * __think_server;	/* Delay server for think times	*/
+    static unsigned __sync_submodel;	/* Level of special sync model. */
     
 protected:
     Vector<Submodel *> _submodels;

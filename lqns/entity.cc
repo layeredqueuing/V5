@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: entity.cc 14673 2021-05-21 19:15:02Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -86,7 +86,8 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       _submodel(0),
       _maxPhase(1),
       _utilization(0),
-      _lastUtilization(-1.0)		/* Force update 		*/
+      _lastUtilization(-1.0),		/* Force update 		*/
+      _replica_number(1)		/* This object is not a replica	*/
 {
     attributes.initialized      = 0;		/* entity was initialized.	*/
     attributes.closed_model	= 0;		/* Stn in in closed model.     	*/
@@ -96,6 +97,36 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
     attributes.pure_server	= 1;		/* Can use FCFS schedulging.	*/
     attributes.variance         = 0;		/* */
 }
+
+
+/*
+ * Clone an entity (Not PAN_REPLICATION).
+ */
+
+Entity::Entity( const Entity& src, unsigned int replica )
+    : _dom(src._dom),
+      _entries(),
+      _tasks(),
+      _population(src._population),
+      _variance(src._variance),
+      _thinkTime(src._thinkTime),
+      _station(nullptr),		/* Reference tasks don't have server stations. */
+      _interlock( *this ),
+      _submodel(0),
+      _maxPhase(1),
+      _utilization(0),
+      _lastUtilization(-1.0),		/* Force update 		*/
+      _replica_number(replica)		/* This object is a replica	*/
+{
+    attributes.initialized      = src.attributes.initialized;
+    attributes.closed_model	= src.attributes.closed_model;
+    attributes.open_model	= src.attributes.open_model;
+    attributes.deterministic    = src.attributes.deterministic;
+    attributes.pure_delay       = src.attributes.pure_delay;
+    attributes.pure_server	= src.attributes.pure_server;
+    attributes.variance         = src.attributes.variance;
+}
+
 
 /*
  * Delete all entries associated with this task.
@@ -327,6 +358,7 @@ Entity::saturation() const
 	return utilization() / value;
     }
 }
+
 
 
 unsigned

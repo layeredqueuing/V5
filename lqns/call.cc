@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14642 2021-05-14 00:45:32Z greg $
+ * $Id: call.cc 14690 2021-05-24 19:33:27Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -23,7 +23,6 @@
 #include "entry.h"
 #include "task.h"
 #include "submodel.h"
-#include "phase.h"
 #include "activity.h"
 #include "errmsg.h"
 #include "lqns.h"
@@ -63,26 +62,36 @@ std::set<Entity *>& Call::add_server( std::set<Entity *>& servers, const Call * 
  */
 
 Call::Call( const Phase * fromPhase, const Entry * toEntry )
-    : source(fromPhase),
-      _wait(0.0),
-      destination(toEntry), 
-      _dom(nullptr),
-      _chainNumber(0)
+    : _dom(nullptr),
+      _source(fromPhase),
+      _destination(toEntry), 
+      _chainNumber(0),
+      _replica_number(1),
+      _wait(0.0)
 {
     if ( toEntry != nullptr ) {
-	const_cast<Entry *>(destination)->addDstCall( this );	/* Set reverse link	*/
+	const_cast<Entry *>(_destination)->addDstCall( this );	/* Set reverse link	*/
     }
 }
 
 
+Call::Call( const Call& src, unsigned int replica )
+    : _dom(src._dom),
+      _source(nullptr),
+      _destination(nullptr),
+      _chainNumber(src._chainNumber),
+      _replica_number(replica),
+      _wait(0.0)
+{
+}
+
+	   
 /*
  * Clean up the mess.
  */
 
 Call::~Call()
 {
-    source = 0;			/* Calling entry.		*/
-    destination = 0;		/* to whom I am referring to	*/
 }
 
 
@@ -122,70 +131,24 @@ Call::check() const
 
 
 double
-Call::rendezvous() const
+Call::getDOMValue() const
 {
-    if ( hasRendezvous() ) {
-	try {
-	    const double value = getDOM()->getCallMeanValue();
-	    if ( srcPhase()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ) ) throw std::domain_error( "invalid integer" );
-	    return value;
-	}
-	catch ( const std::domain_error &e ) {
-	    if ( isActivityCall() ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), srcPhase()->getDOM()->getTypeName(),
-				      srcPhase()->getDOM()->getName().c_str(), dstName().c_str(), e.what() );
-	    } else {
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name().c_str(), srcPhase()->getDOM()->getTypeName(),
-				      srcPhase()->getDOM()->getName().c_str(), dstName().c_str(), e.what() );
-	    }
-	    throw_bad_parameter();
-	}
+    const double value = getDOM()->getCallMeanValue();
+    if ( (getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ))
+	 || getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0 ) {
+	std::stringstream ss;
+	ss << value << " < " << value;
+	throw std::domain_error( ss.str() );
     }
-    return 0.0;
+    return value;
 }
 
-double
-Call::sendNoReply() const
-{
-    if ( hasSendNoReply() ) {
-	try {
-	    const double value = getDOM()->getCallMeanValue();
-	    if ( srcPhase()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ) ) throw std::domain_error( "invalid integer" );
-	    return value;
-	}
-	catch ( const std::domain_error &e ) {
-	    if ( isActivityCall() ) {
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), srcPhase()->getDOM()->getTypeName(), 
-				      srcPhase()->getDOM()->getName().c_str(), dstName().c_str(), e.what() );
-	    } else {
-		LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name().c_str(), srcPhase()->getDOM()->getTypeName(), 
-				      srcPhase()->getDOM()->getName().c_str(), dstName().c_str(), e.what() );
-	    }
-	    throw_bad_parameter();
-	}
-    }
-    return 0.0;
-}
 
-double
-Call::forward() const
+
+unsigned
+Call::fanIn() const
 {
-    if ( getDOM() != NULL && getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD ) {
-	try {
-	    const double value = getDOM()->getCallMeanValue();
-	    if ( value > 1.0 ) {
-		std::stringstream ss;
-		ss << value << " > " << 1;
-		throw std::domain_error( ss.str() );
-	    }
-	    return value;
-	}
-	catch ( const std::domain_error &e ) {
-	    LQIO::solution_error( LQIO::ERR_INVALID_FWDING_PARAMETER, srcEntry()->name().c_str(), dstName().c_str(), e.what() );
-	    throw_bad_parameter();
-	}
-    }
-    return 0.0;
+    return dstTask()->fanIn( srcTask() );
 }
 
 
@@ -194,31 +157,6 @@ Call::fanOut() const
 {
     return srcTask()->fanOut( dstTask() );
 }
-
-
-
-/*
- * Return entry for this call.
- */
-
-const Entry *
-Call::srcEntry() const
-{
-    return source->entry();
-}
-
-
-
-/*
- * Return the name of the source entry.
- */
-
-const std::string&
-Call::srcName() const
-{
-    return srcEntry()->name();
-}
-
 
 
 /*
@@ -285,6 +223,16 @@ Call::rendezvousDelay( const unsigned k )
 #endif
 
 
+/*
+ * Return the name of the source of this call.  Sources are always tasks.
+ */
+
+const std::string&
+Call::srcName() const
+{
+    return getSource()->name();
+}
+
 
 /*
  * Return the source task of this call.  Sources are always tasks.
@@ -293,7 +241,7 @@ Call::rendezvousDelay( const unsigned k )
 const Task *
 Call::srcTask() const
 {
-    return dynamic_cast<const Task *>(source->owner());
+    return dynamic_cast<const Task *>(getSource()->owner());
 }
 
 
@@ -460,9 +408,9 @@ Call::setLambda( const unsigned, const unsigned p, const double rate )
     Server * aStation = dstTask()->serverStation();
     const unsigned e = dstEntry()->index();
     if ( hasSendNoReply() ) {
-	aStation->addVisits( e, 0, p, srcPhase()->throughput() * sendNoReply() );
+	aStation->addVisits( e, 0, p, getSource()->throughput() * sendNoReply() );
     } else if ( hasRendezvous() && srcTask()->isInOpenModel() && srcTask()->isInfinite() ) {
-	aStation->addVisits( e, 0, p, srcPhase()->throughput() * rendezvous() );
+	aStation->addVisits( e, 0, p, getSource()->throughput() * rendezvous() );
     }
 }
 
@@ -518,17 +466,81 @@ Call::saveWait( const unsigned k, const unsigned p, const double )
 }
 
 /*----------------------------------------------------------------------*/
-/*                              Task Calls                              */
+/*                              Phase Calls                             */
+/*----------------------------------------------------------------------*/
+
+void
+NullCall::parameter_error( const std::string& s ) const
+{
+    abort();
+}
+
+void
+FromEntry::parameter_error( const std::string& s ) const
+{
+    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "entry", srcEntry()->name().c_str(), getSource()->getDOM()->getTypeName(),
+			  getSource()->getDOM()->getName().c_str(), dstName().c_str(), s.c_str() );
+    throw std::domain_error( s );
+}
+
+void
+FromActivity::parameter_error( const std::string& s ) const
+{
+    LQIO::solution_error( LQIO::ERR_INVALID_CALL_PARAMETER, "task", srcTask()->name().c_str(), getSource()->getDOM()->getTypeName(),
+			  getSource()->getDOM()->getName().c_str(), dstName().c_str(), s.c_str() );
+    throw std::domain_error( s );
+}
+
+/*----------------------------------------------------------------------*/
+/*                              Phase Calls                             */
 /*----------------------------------------------------------------------*/
 
 /*
- * call to task entry.
+ * Call from a phase to a task.
  */
 
-TaskCall::TaskCall( const Phase * fromPhase, const Entry * toEntry )
-    : Call( fromPhase, toEntry )
+PhaseCall::PhaseCall( const Phase * fromPhase, const Entry * toEntry )
+    : Call( fromPhase, toEntry ),
+      FromEntry( fromPhase->entry() )
 {
-    const_cast<Phase *>(source)->addSrcCall( this );
+    const_cast<Phase *>(getSource())->addSrcCall( this );
+}
+
+
+/*
+ * Deep copy.  Set FromEntry to the replica.
+ */
+
+PhaseCall::PhaseCall( const PhaseCall& src, unsigned int replica )
+    : Call( src, replica ),
+      FromEntry( Entry::find( src.srcEntry()->name(), src.srcEntry()->getReplicaNumber() ) )
+{
+    /* Link to source replica */
+    const Phase& src_phase = src.srcEntry()->getPhase(src.getSource()->getPhaseNumber());
+    setSource( &src_phase );    /* Swap _source to the replica !!! */
+    const_cast<Phase&>(src_phase).addSrcCall( this );
+
+    /* Link to destination replica */
+    if ( src.dstEntry() != nullptr ) {
+	setDestination( Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src.fanIn())) ) ) );
+    }
+}
+
+
+/*
+ * Expand replicas (Not PAN_REPLICATION).  I need to find the phase in
+ * the replica entry.  Note that the destination is affected by fan-out too.
+ */
+
+Call&
+PhaseCall::expand()
+{
+    const unsigned int replicas = fanOut();
+    for ( unsigned int replica = 2; replica <= replicas; ++replica ) {
+	PhaseCall * call = clone( replica );
+	const_cast<Entity *>(call->dstTask())->addTask( call->srcTask() );
+    }
+    return *this;
 }
 
 
@@ -537,10 +549,10 @@ TaskCall::TaskCall( const Phase * fromPhase, const Entry * toEntry )
  * Initialize waiting time.
  */
 
-TaskCall&
-TaskCall::initWait()
+Call&
+PhaseCall::initWait()
 {
-    _wait = elapsedTime();			/* Initialize arc wait. 	*/
+    setWait( elapsedTime() );			/* Initialize arc wait. 	*/
     return *this;
 }
 
@@ -553,14 +565,14 @@ TaskCall::initWait()
  */
 
 ForwardedCall::ForwardedCall( const Phase * fromPhase, const Entry * toEntry, const Call * fwdCall )
-    : TaskCall( fromPhase, toEntry ), _fwdCall(fwdCall)
+    : Call( fromPhase, toEntry ), PhaseCall( fromPhase, toEntry ), _fwdCall( fwdCall )
 {
 }
 
 bool
 ForwardedCall::check() const
 {
-    const Task * srcTask = dynamic_cast<const Task *>(_fwdCall->srcPhase()->owner());
+    const Task * srcTask = dynamic_cast<const Task *>(_fwdCall->getSource()->owner());
     const int srcReplicas = srcTask->replicas();
     const int dstReplicas = dstTask()->replicas();
     if ( srcReplicas > 1 || dstReplicas > 1 ) {
@@ -612,21 +624,13 @@ ProcessorCall::ProcessorCall( const Phase * fromPhase, const Entry * toEntry )
  * Set up waiting time to processors.
  */
 
-ProcessorCall&
+Call&
 ProcessorCall::initWait()
 {
-    _wait = dstEntry()->serviceTimeForPhase(1);		/* Initialize arc wait. 	*/
+    setWait( dstEntry()->serviceTimeForPhase(1) );		/* Initialize arc wait. 	*/
     return *this;
 }
-
-
-void
-ProcessorCall::setWait(double newWait)
-{
-    _wait = newWait;
-}
-
-
+
 /*----------------------------------------------------------------------*/
 /*                            Activity Calls                            */
 /*----------------------------------------------------------------------*/
@@ -635,43 +639,49 @@ ProcessorCall::setWait(double newWait)
  * Call added for activities.
  */
 
-ActivityCall::ActivityCall( const Phase * fromActivity, const Entry * toEntry )
-    : TaskCall( fromActivity, toEntry )
+ActivityCall::ActivityCall( const Activity * fromActivity, const Entry * toEntry )
+    : Call( fromActivity, toEntry ), FromActivity()
 {
+    const_cast<Phase *>(getSource())->addSrcCall( this );
 }
 
 
-/*
- * Return entry for this call.
- */
-
-const Entry *
-ActivityCall::srcEntry() const
+ActivityCall::ActivityCall( const ActivityCall& src, unsigned int replica )
+    : Call( src, replica ), FromActivity()
 {
-    throw should_not_implement( "ActivityCall::srcEntry", __FILE__, __LINE__ );
-    return 0;
+//  _destination = Entry::find( src._destination, replica adjusted for fanin/fanout, like task */	
 }
 
 
+
 /*
- * Return the name of the source activity.
+ * Expand replicas (Not PAN_REPLICATION).  I need to find the activity
+ * in the replica task.
  */
 
-const std::string&
-ActivityCall::srcName() const
+Call&
+ActivityCall::expand()
 {
-    return source->name();
+    const unsigned int replicas = srcTask()->replicas();	/* Replicas of source */
+    for ( unsigned int replica = 2; replica <= replicas; ++replica ) {
+//	Task * task = Task::find( srcTask()->name(), replica );
+//      Activity * activity = task->findActivity(...);
+//	activity->add_call( clone( replica ) );
+    }
+    return *this;
 }
 
 
+
 /*
- * Return entry for this call.
+ * Initialize waiting time.
  */
 
-const Task *
-ActivityCall::srcTask() const
+Call&
+ActivityCall::initWait()
 {
-    return dynamic_cast<const Task *>(source->owner());
+    setWait( elapsedTime() );			/* Initialize arc wait. 	*/
+    return *this;
 }
 
 /*----------------------------------------------------------------------*/
@@ -682,58 +692,27 @@ ActivityCall::srcTask() const
  * call added to transform forwarding to standard model.
  */
 
-ActivityForwardedCall::ActivityForwardedCall( const Phase * fromPhase, const Entry * toEntry )
-    : ActivityCall( fromPhase, toEntry )
+ActivityForwardedCall::ActivityForwardedCall( const Activity * fromActivity, const Entry * toEntry )
+    : Call( fromActivity, toEntry ), ActivityCall( fromActivity, toEntry )
 {
 }
 
 /*----------------------------------------------------------------------*/
-/*                       Activity Processor Calls                       */
+/*                        Phase Processor Calls                         */
 /*----------------------------------------------------------------------*/
 
-/*
- * Call to processor entry.
- */
-
-ActProcCall::ActProcCall( const Phase * fromPhase, const Entry * toEntry )
-    : ProcessorCall( fromPhase, toEntry )
+PhaseProcessorCall::PhaseProcessorCall( const Phase * fromPhase, const Entry * toEntry ) 
+    : Call( fromPhase, toEntry ), ProcessorCall( fromPhase, toEntry ), FromEntry( fromPhase->entry() )
 {
 }
+
+/*----------------------------------------------------------------------*/
+/*                      Activity Processor Calls                        */
+/*----------------------------------------------------------------------*/
 
-
-
-/*
- * Return entry for this call.
- */
-
-const Entry *
-ActProcCall::srcEntry() const
+ActivityProcessorCall::ActivityProcessorCall( const Activity * fromActivity, const Entry * toEntry )
+    : Call( fromActivity, toEntry ), ProcessorCall( fromActivity, toEntry ), FromActivity()
 {
-    std::cout<<"ActProcCall:"<<srcName()<<std::endl;
-    throw should_not_implement( "ActProcCall::srcEntry", __FILE__, __LINE__ );
-    return nullptr;
-}
-
-
-/*
- * Return the name of the source activity.
- */
-
-const std::string&
-ActProcCall::srcName() const
-{
-    return source->name();
-}
-
-
-/*
- * Return entry for this call.
- */
-
-const Task *
-ActProcCall::srcTask() const
-{
-    return dynamic_cast<const Task *>(source->owner());
 }
 
 /*----------------------------------------------------------------------*/

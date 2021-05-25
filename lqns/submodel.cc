@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14661 2021-05-17 19:39:16Z greg $
+ * $Id: submodel.cc 14691 2021-05-25 12:05:43Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -170,6 +170,9 @@ MVASubmodel::MVASubmodel( const unsigned n )
     : Submodel(n),
       _hasThreads(false),
       _hasSynchs(false),
+#if PAN_REPLICATION
+      _hasPanReplication(cached::NOT_SET),
+#endif
       closedStation(),
       openStation(),
       closedModel(nullptr),
@@ -245,11 +248,18 @@ MVASubmodel::initInterlock()
 
 
 #if PAN_REPLICATION
+/*
+ * Return true if we are using Amy Pan's replication code and replicas are present.
+ */
+
 bool
-MVASubmodel::hasReplication() const
+MVASubmodel::hasPanReplication() const
 {
-    return std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) ) 	 
-	|| std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) );
+    if ( Pragma::replication() == Pragma::Replication::PAN && _hasPanReplication == cached::NOT_SET ) {
+	_hasPanReplication = (std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) ) 	 
+			      || std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) )) ? cached::SET_TRUE : cached::SET_FALSE;
+    }
+    return _hasPanReplication == cached::SET_TRUE;
 }
 #endif
 
@@ -262,7 +272,7 @@ MVASubmodel&
 MVASubmodel::build()
 {
     /* BUG 144 */
-    if ( _servers.size() == 0 ) {
+    if ( _servers.empty() ) {
 	if ( !Pragma::allowCycles()  ) {
 	    LQIO::solution_error( ADV_EMPTY_SUBMODEL, number() );
 	}
@@ -359,7 +369,7 @@ MVASubmodel::build()
 
     std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,const MVASubmodel&>( &Task::setChain, *this ) );
 #if PAN_REPLICATION
-    if ( hasReplication() ) {
+    if ( hasPanReplication() ) {
 	unsigned not_used = 0;
 	std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, not_used ) );
     }
@@ -385,7 +395,7 @@ MVASubmodel::rebuild()
 	const unsigned threads = (*client)->nThreads();
 
 #if PAN_REPLICATION
-	if ( (*client)->replicas() <= 1 ) {
+	if ( !hasPanReplication() || (*client)->replicas() <= 1 ) {
 
 	    /* ---------------- Simple case --------------- */
 #endif
@@ -477,7 +487,7 @@ MVASubmodel::makeChains()
 	const unsigned threads = (*client)->nThreads();
 
 #if PAN_REPLICATION
-	if ( (*client)->replicas() <= 1 ) {
+	if ( !hasPanReplication() || (*client)->replicas() <= 1 ) {
 
 	    /* ---------------- Simple case --------------- */
 #endif
@@ -582,7 +592,7 @@ MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned
 MVASubmodel&
 MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
-    if ( _servers.size() == 0 ) return *this;
+    if ( _servers.empty() ) return *this;
     if ( flags.verbose ) std::cerr << '.';
     if ( flags.reset_mva ) { closedModel->reset(); }
 
@@ -613,7 +623,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* ---- Adjust Client service times for replication ---- */
 
-	if ( hasReplication() ) {
+	if ( hasPanReplication() ) {
 
 	    if ( flags.trace_mva  ) {
 		std::cout << std::endl << "Current master iteration = " << iterations << std::endl
@@ -717,7 +727,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	/* Update waits for replication */
 
 	deltaRep = 0.0;
-	if ( hasReplication() ) {
+	if ( hasPanReplication() ) {
 	    unsigned n_deltaRep = 0;
 	    deltaRep = std::for_each( _clients.begin(), _clients.end(), ExecSum2<Task,double,const Submodel&,unsigned&>( &Task::updateWaitReplication, *this, n_deltaRep ) ).sum();
 	    if ( n_deltaRep ) {
@@ -743,7 +753,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	}
 
 #if PAN_REPLICATION
-    } while ( deltaRep > Model::convergence_value );
+    } while ( hasPanReplication() && deltaRep > Model::convergence_value );
 
     /* ----------------End of Replication Iteration --------------- */
 #endif

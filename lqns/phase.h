@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14624 2021-05-09 13:01:43Z greg $
+ * $Id: phase.h 14690 2021-05-24 19:33:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -55,12 +55,13 @@ class NullPhase {
     friend class AndForkActivityList;	/* For access to myVariance */
 
 public:
-    NullPhase()
-	: _name(),
-	  _variance(0.0),
-	  _wait(),
+    NullPhase( const std::string& name )
+	: _name(name),
+	  _phase_number(0),
 	  _dom(nullptr),
-	  _serviceTime(0.0)
+	  _serviceTime(0.0),
+	  _variance(0.0),
+	  _wait()
 	{}
 
     virtual ~NullPhase() {}
@@ -69,13 +70,16 @@ public:
 
     /* Initialialization */
 	
+    /* Instance variable access */
     virtual NullPhase& configure( const unsigned );
     NullPhase& setDOM(LQIO::DOM::Phase* phaseInfo);
     virtual LQIO::DOM::Phase* getDOM() const { return _dom; }
     virtual const std::string& name() const { return _name; }
     NullPhase& setName( const std::string& name ) { _name = name; return *this; }
+    unsigned int getPhaseNumber() const { return _phase_number; }
+    NullPhase& setPhaseNumber( unsigned int p ) { _phase_number = p; return *this; }
 
-    /* Instance variable access */
+    /* Queries */
     virtual bool isPresent() const { return _dom != 0 && _dom->isPresent(); }
     bool hasThinkTime() const { return _dom && _dom->hasThinkTime(); }
     virtual bool isActivity() const { return false; }
@@ -99,14 +103,16 @@ public:
 
     static void insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m, const double v );
 
-protected:
+private:
     std::string _name;			/* Name -- computed dynamically		*/
+    unsigned int _phase_number;		/* phase of entry (if phase)		*/
+    LQIO::DOM::Phase* _dom;
+
+protected:
+    /* Computed in class Phase */
+    double _serviceTime;		/* Initial service time.		*/
     double _variance;			/* Set if this is a processor		*/
     VectorMath<double> _wait;		/* Saved waiting time.			*/
-    LQIO::DOM::Phase* _dom;
-	
-private:
-    double _serviceTime;		/* Initial service time.		*/
 };
 
 
@@ -220,12 +226,12 @@ public:
     };
     
 public:
-    Phase( const std::string& );
-    Phase();
+    Phase( const std::string& = "" );
     virtual ~Phase();
 
     /* Initialialization */
 	
+    Phase& expandCalls();
     virtual Phase& initProcessor();
 #if PAN_REPLICATION
     Phase& initReplication( const unsigned );
@@ -233,7 +239,7 @@ public:
 #endif
     Phase& initWait();
     Phase& initVariance();
-
+    
     unsigned findChildren( Call::stack&, const bool ) const;
     virtual const Phase& followInterlock( Interlock::CollectTable&  ) const;
     virtual void callsPerform( const CallExec& ) const;
@@ -243,14 +249,14 @@ public:
 
     /* Instance Variable access */
 	
-    LQIO::DOM::Phase::Type phaseTypeFlag() const { return _dom ? _dom->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC; }
+    LQIO::DOM::Phase::Type phaseTypeFlag() const { return getDOM() ? getDOM()->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC; }
     Phase& setEntry( const Entry * entry ) { _entry = entry; return *this; }
     const Entry * entry() const { return _entry; }
     virtual const Entity * owner() const;
     Phase& setPrOvertaking( const Probability& pr_ot ) { _prOvertaking = pr_ot; return *this; }
     const Probability& prOvertaking() const { return _prOvertaking; }
 
-    bool isDeterministic() const { return _dom ? _dom->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC : false; }
+    bool isDeterministic() const { return getDOM() ? getDOM()->getPhaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC : false; }
     bool isNonExponential() const { return serviceTime() > 0 && CV_sqr() != 1.0; }
     
     /* Call lists to/from entries. */
@@ -286,7 +292,7 @@ public:
     bool isUsed() const { return _callList.size() > 0.0 || serviceTime() > 0.0; }
     bool hasVariance() const;
     virtual bool isPseudo() const { return false; }		// quorum
-
+    
     /* computation */
 	
     virtual double waitExcept( const unsigned ) const;
@@ -318,6 +324,7 @@ protected:
     virtual Call * findOrAddFwdCall( const Entry * anEntry, const Call * fwdCall );
 
     double processorVariance() const;
+    virtual ProcessorCall * newProcessorCall( Entry * procEntry ) const;
 
 private:
     Phase const& addForwardingRendezvous( Call::stack& callStack ) const;

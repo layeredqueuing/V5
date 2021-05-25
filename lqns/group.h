@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: group.h 14689 2021-05-24 17:58:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,6 +47,7 @@ public:
     void reinitialize();
     Group& reset();
     Group& initGroupTask();
+    unsigned getReplicaNumber() const { return _replica_number; }
 
     /* Printing */
 
@@ -67,6 +68,7 @@ private:
     const Processor * _processor;
     const double _share;		/* group share.		*/
     const bool _cap;
+    unsigned int _replica_number;
 };
 
 inline std::ostream& operator<<( std::ostream& output, const Group& self ) { return self.print( output ); }

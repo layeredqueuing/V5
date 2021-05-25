@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14624 2021-05-09 13:01:43Z greg $
+ * $Id: task.h 14689 2021-05-24 17:58:47Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,18 +37,6 @@ class Group;
 class Task : public Entity {
 
 public:
-    /*
-     * Compare two tasks by their submodel. 
-     */
-
-    struct LT
-    {
-	bool operator()(const Task * t1, const Task * t2) const {
-	    return (t1->submodel() < t2->submodel()) 
-		|| (t1->getDOM() && (!t2->getDOM() || t1->getDOM()->getSequenceNumber() < t2->getDOM()->getSequenceNumber() ));
-	}
-    };
-
     typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
 
 private:
@@ -85,16 +73,19 @@ private:
     
 public:
     static Task* create( LQIO::DOM::Task* domTask, const std::vector<Entry *>& entries );
+    static Task * find( const std::string&, unsigned int=1 );
 
 protected:
     Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries);
+    Task( const Task&, unsigned int );
+    virtual Task * clone( unsigned int ) = 0;
 
 public:
     virtual ~Task();
-
+    
+public:
     /* Initialization */
 
-    static void reset();
     virtual bool check() const;
     bool checkReachability() const;
     virtual Task& configure( const unsigned );
@@ -116,7 +107,7 @@ public:
     virtual unsigned queueLength() const { return 0; }
     const Processor * getProcessor() const { return _processor; }
     bool hasProcessor() const { return _processor != nullptr; }
-    virtual const Group * group() const { return _group; }
+    const Group * getGroup() const { return _group; }
 
     Activity * findActivity( const std::string& name ) const;
     Activity * findOrAddActivity( const std::string& name );
@@ -160,6 +151,9 @@ public:
     /* Model Building. */
 
     virtual root_level_t rootLevel() const;
+
+    Task& expand();
+
     Server * makeClient( const unsigned, const unsigned  );
     Task& initClientStation( Submodel& );
 #if PAN_REPLICATION
@@ -262,7 +256,7 @@ private:
     mutable bool _has_sync;
     mutable bool _no_syncs;
 };
-
+
 /* ------------------------- Reference Tasks -------------------------- */
 
 class ReferenceTask : public Task {
@@ -278,6 +272,11 @@ private:
 public:
     ReferenceTask( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries );
 
+protected:
+    ReferenceTask( const ReferenceTask& task, unsigned int replica ) : Task( task, replica ) {}
+    virtual Task * clone( unsigned int );
+
+public:
     virtual unsigned copies() const;
     
     virtual ReferenceTask& initClient( const Vector<Submodel *>& );
@@ -309,6 +308,11 @@ public:
     ServerTask(LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries)
 	: Task(dom,aProc,aGroup,entries) /*myQueueLength(queue_length)*/ {}
 
+protected:
+    ServerTask( const ServerTask& task, unsigned int replica ) : Task( task, replica ) {}
+    virtual Task * clone( unsigned int );
+
+public:
     virtual bool check() const;
     virtual ServerTask& configure( const unsigned );
     virtual unsigned queueLength() const;
@@ -324,12 +328,17 @@ protected:
 };
 
 
-/* -------------------------- Server Tasks ---------------------------- */
+/* ------------------------ Semaphore Tasks --------------------------- */
 
 class SemaphoreTask : public Task {
     SemaphoreTask(LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries)
 	: Task(dom,aProc,aGroup,entries) /*myQueueLength(queue_length)*/ {}
 
+protected:
+    SemaphoreTask( const SemaphoreTask& task, unsigned int replica ) : Task( task, replica ) {}
+    virtual Task * clone( unsigned int );
+
+public:
     virtual bool check() const;
     virtual SemaphoreTask& configure( const unsigned );
 
