@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14691 2021-05-25 12:05:43Z greg $
+ * $Id: model.cc 14696 2021-05-26 13:28:02Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -105,9 +105,7 @@ std::set<Entry *,lt_replica<Entry>> Model::__entry;
 LQIO::DOM::Document*
 Model::load( const std::string& input_filename, const std::string& output_filename )
 {
-    if ( flags.verbose ) {
-	std::cerr << "Load: " << input_filename << "..." << std::endl;
-    }
+    if ( flags.verbose ) std::cerr << "Load: " << input_filename << "..." << std::endl;
 
     /*
      * Initialize everything that needs it before parsing
@@ -140,7 +138,8 @@ bool
 Model::prepare(const LQIO::DOM::Document* document)
 {
     /* Tell the user that we are starting to load up */
-    DEBUG(endl << "[0]: Beginning model load, setting parameters." << std::endl);
+    if ( flags.verbose ) std::cerr << "Prepare: ..." << std::endl;
+    DEBUG(std::endl << "[0]: Beginning model load, setting parameters." << std::endl);
 
     Pragma::set( document->getPragmaList() );
     LQIO::io_vars.severity_level = Pragma::severityLevel();
@@ -287,7 +286,7 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 Model *
 Model::create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName, bool check_model )
 {
-    Model *aModel = nullptr;
+    Model *model = nullptr;
 
     Activity::actConnections.clear();
     Activity::domToNative.clear();
@@ -298,97 +297,44 @@ Model::create( const LQIO::DOM::Document * document, const std::string& inputFil
      * disable model checking and expansion at this stage with LQX programs
      */
 
-    if ( LQIO::io_vars.anError() == false && (check_model == false || check() ) ) {
+    if ( LQIO::io_vars.anError() == false && (check_model != true || check()) ) {
 
+	if ( flags.verbose ) std::cerr << "Create: " << Pragma::getLayeringStr() << " layers..." << std::endl;
+	
 	switch ( Pragma::layering() ) {
 	case Pragma::Layering::BATCHED: 
-	    aModel = new Batch_Model( document, inputFileName, outputFileName );
+	    model = new Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::BACKPROPOGATE_BATCHED:
-	    aModel = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
+	    model = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::METHOD_OF_LAYERS:
-	    aModel = new MOL_Model( document, inputFileName, outputFileName );
+	    model = new MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS:
-	    aModel = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
+	    model = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::SRVN:
-	    aModel = new SRVN_Model( document, inputFileName, outputFileName );
+	    model = new SRVN_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::SQUASHED:
-	    aModel = new Squashed_Model( document, inputFileName, outputFileName );
+	    model = new Squashed_Model( document, inputFileName, outputFileName );
 	    break;
 
 	case Pragma::Layering::HWSW:
-	    aModel = new HwSw_Model( document, inputFileName, outputFileName );
+	    model = new HwSw_Model( document, inputFileName, outputFileName );
 	    break;
 	}
-
-	if ( !aModel ) throw std::runtime_error( "could not create model" );
-
-    }
-    return aModel;
-}
-
-
-
-/*
- * Step 4: Called AFTER lqx has run to initialize variables.
- */
-
-bool
-Model::initialize()
-{
-    /* perform all actions normally done in createModel() that need to be delayed until after */
-    /* LQX programs begin execution to avoid problems with unset variables */
-
-    extend();			/* Do this before Task::initProcessor() */
-
-    check();
-    
-    if ( !_model_initialized ) {
-	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initProcessor ) );	/* Set Processor Service times.	*/
-
-	if ( generate() ) {
-	    setInitialized();
-	}
-    }
-    return !LQIO::io_vars.anError();
-}
-
-
-
-/*
- * Check input parameters.  Return true if all went well.  Return false
- * and set anError to true otherwise.
- */
-
-bool
-Model::check()
-{
-    bool rc = true;
-    rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
-    rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;
-
-#if !PAN_REPLICATION && !BUG_299
-    if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReplicated ) )
-	 || std::any_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::isReplicated ) ) ) {
-	rc = false;
-	LQIO::solution_error( ERR_REPLICATION_NOT_SUPPORTED );
-    }
-#endif
-
-    if ( std::none_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) ) && Entry::totalOpenArrivals == 0 ) {
-	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
     }
 
-    return rc && !LQIO::io_vars.anError();
+    if ( !model ) throw std::runtime_error( "could not create model" );
+
+    return model;
 }
 
 
@@ -488,52 +434,35 @@ Model::~Model()
 
 
 /*
- * Generate layers.  Tag all top-level tasks (i.e., those without any
- * calls thereto) and then locate their children.  findChildren will()
- * set the depth value for each task and _max_depth.  There should be a
- * minimum of two layers.
- *
- * There are two arrays - one for clients and one for servers.  Clients
- * *always* call a server (otherwise the solver gets screwed up).
- * Servers NEED NOT be called, so all tasks are stuck in the server
- * array.  NOTE that the client and server arrays are indexed from 1 to n.
- * not 0 to n-1.
+ * Step 4: Called AFTER lqx has run to initialize variables.
  */
 
 bool
-Model::generate()
+Model::initialize()
 {
-    unsigned int max_depth = assignSubmodel();
+    if ( flags.verbose ) std::cerr << "Initialize..." << std::endl;
 
-    _submodels.resize(max_depth);
+    /* perform all actions normally done in createModel() that need to be delayed until after */
+    /* LQX programs begin execution to avoid problems with unset variables */
 
-    for ( unsigned int i = 1; i <= max_depth; ++i ) {
-	_submodels[i] = new MVASubmodel(i);
-    }
-    
-    /* Add submodel for join delay calculation */
+    if ( !_model_initialized ) {
+	extend();			/* Do this before Task::initProcessor() */
+	check();
+	for_each( __task.begin(), __task.end(), Exec<Task>( &Task::initProcessor ) );	/* Set Processor Service times.	*/
 
-    if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) ) {
-	max_depth += 1;
-	__sync_submodel = max_depth;
-	_submodels.push_back(new SynchSubmodel(__sync_submodel));
-    }
-
-    /* Build model. */
-
-    _MVAStats.resize(max_depth);	/* MVA statistics by level.	*/
-//    prune();				/* Delete unused stuff. 	*/
-    addToSubmodel();			/* Add tasks to layers.		*/
-    configure();			/* Dimension arrays and threads	*/
-    initStations();			/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
-
-    if ( Options::Debug::layers() ) {	/* Print out layers... 		*/
-	std::for_each( _submodels.begin(), _submodels.end(), ConstPrint<Submodel>( &Submodel::print, std::cout ) );
+	if ( flags.verbose ) std::cerr << "Generate... " << std::endl;
+	if ( generate() ) {
+	    _model_initialized = true;
+	    configure();		/* Dimension arrays and threads	*/
+	    initStations();		/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
+	}
+    } else {
+	check();
+	reinitStations();
     }
 
-    return  !LQIO::io_vars.anError();
+    return !LQIO::io_vars.anError();
 }
-
 
 
 /*
@@ -586,6 +515,82 @@ Model::extend()
 
 
 /*
+ * Check input parameters.  Return true if all went well.  Return false
+ * and set anError to true otherwise.
+ */
+
+bool
+Model::check()
+{
+    bool rc = true;
+    rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
+    rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;
+
+#if !PAN_REPLICATION && !BUG_299
+    if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReplicated ) )
+	 || std::any_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::isReplicated ) ) ) {
+	rc = false;
+	LQIO::solution_error( ERR_REPLICATION_NOT_SUPPORTED );
+    }
+#endif
+
+    if ( std::none_of( __task.begin(), __task.end(), Predicate<Task>( &Task::isReferenceTask ) ) && Entry::totalOpenArrivals == 0 ) {
+	LQIO::solution_error( LQIO::ERR_NO_REFERENCE_TASKS );
+    }
+
+    return rc && !LQIO::io_vars.anError();
+}
+
+
+
+/*
+ * Generate layers.  Tag all top-level tasks (i.e., those without any
+ * calls thereto) and then locate their children.  findChildren will()
+ * set the depth value for each task and _max_depth.  There should be a
+ * minimum of two layers.
+ *
+ * There are two arrays - one for clients and one for servers.  Clients
+ * *always* call a server (otherwise the solver gets screwed up).
+ * Servers NEED NOT be called, so all tasks are stuck in the server
+ * array.  NOTE that the client and server arrays are indexed from 1 to n.
+ * not 0 to n-1.
+ */
+
+bool
+Model::generate()
+{
+    unsigned int max_depth = assignSubmodel();
+
+    _submodels.resize(max_depth);
+
+    for ( unsigned int i = 1; i <= max_depth; ++i ) {
+	_submodels[i] = new MVASubmodel(i);
+    }
+    
+    /* Add submodel for join delay calculation */
+
+    if ( std::any_of( __task.begin(), __task.end(), Predicate<Task>( &Task::hasForks ) ) ) {
+	max_depth += 1;
+	__sync_submodel = max_depth;
+	_submodels.push_back(new SynchSubmodel(__sync_submodel));
+    }
+
+    /* Build model. */
+
+    _MVAStats.resize(max_depth);	/* MVA statistics by level.	*/
+//    prune();				/* Delete unused stuff. 	*/
+    addToSubmodel();			/* Add tasks to layers.		*/
+
+    if ( Options::Debug::layers() ) {	/* Print out layers... 		*/
+	std::for_each( _submodels.begin(), _submodels.end(), ConstPrint<Submodel>( &Submodel::print, std::cout ) );
+    }
+
+    return  !LQIO::io_vars.anError();
+}
+
+
+
+/*
  * Initialize the fan-in/out and the waiting time arrays.  The latter
  * need to know the number of layers.  Called after the model has been
  * GENERATED.  The model MUST BE COMPLETE before it can be
@@ -629,7 +634,7 @@ Model::initStations()
 
     /* Initialize waiting times and populations for the reference tasks. */
 
-    std::for_each ( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initClient, getSubmodels() ) );
+    std::for_each( __task.begin(), __task.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initClient, getSubmodels() ) );
 
     /* Initialize Interlocking */
 
@@ -650,8 +655,8 @@ Model::initStations()
  * here.
  */
 
-Model&
-Model::reinitialize()
+void
+Model::reinitStations()
 {
     /*
      * Reset all counters before a run.  In particular, iterations
@@ -692,8 +697,6 @@ Model::reinitialize()
     /* Rebuild stations and customers as needed. */
 
     std::for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::rebuild ) );
-
-    return *this;
 }
 
 
@@ -712,8 +715,9 @@ Model::solve()
 	return true;
     }
 
+    if ( flags.verbose ) std::cerr << "Solve..." << std::endl;
+
     report.start();
-    reinitialize();
 
     _converged = false;
     const double delta = run();

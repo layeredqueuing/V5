@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14691 2021-05-25 12:05:43Z greg $
+ * $Id: phase.cc 14698 2021-05-26 16:18:19Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -146,7 +146,7 @@ NullPhase::computeCV_sqr() const
 
 /*
  * Return per-call waiting to processor (includes service time.)
- * EXCEPT for waiting in submodel g.
+ * EXCEPT for waiting in submodel p.
  */
 
 double
@@ -165,11 +165,11 @@ NullPhase::waitExcept( const unsigned submodel ) const
 	}
     }
 
-    if (sum < 0) {
-	sum =0; //two-phase quorum semantics. Because of distribution fitting, the difference
-	// in the mean before and after fitting might be negative.
-    }
-    return sum;
+    // two-phase quorum semantics. Because of distribution fitting, the
+    // difference in the mean before and after fitting might be
+    // negative.
+
+    return std::max( 0.0, sum );
 }
 
 
@@ -528,7 +528,7 @@ Phase::rendezvous( const Entity * task ) const
 Phase&
 Phase::rendezvous( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != nullptr && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::RENDEZVOUS ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -582,7 +582,7 @@ Phase::sumOfRendezvous() const
 Phase&
 Phase::sendNoReply( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != nullptr && toEntry->setIsCalledBy( SEND_NO_REPLY_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::SEND_NO_REPLY ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -624,7 +624,7 @@ Phase&
 Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 {
     const Entry * toEntry = fwdCall->dstEntry();
-    if ( value > 0.0 && const_cast<Entry *>(toEntry)->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+    if ( value > 0.0 && const_cast<Entry *>(toEntry)->setIsCalledBy( Entry::RequestType::RENDEZVOUS) ) {
 	if ( owner() ) {
 	    const_cast<Entity *>(owner())->isPureServer( false );
 	}
@@ -647,7 +647,7 @@ Phase::forwardedRendezvous( const Call * fwdCall, const double value )
 Phase&
 Phase::forward( Entry * toEntry, const LQIO::DOM::Call* callDOM )
 {
-    if ( callDOM != nullptr && toEntry->setIsCalledBy( RENDEZVOUS_REQUEST ) ) {
+    if ( callDOM != nullptr && toEntry->setIsCalledBy( Entry::RequestType::RENDEZVOUS ) ) {
 	Task * client = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
 	if ( client != nullptr ) {
 	    client->isPureServer( false );
@@ -1159,6 +1159,17 @@ Phase::get_interlocked_tasks::operator()( bool found, const DeviceInfo* device )
 }
 
 
+/*
+ * Get my replica number
+ */
+
+unsigned int
+Phase::getReplicaNumber() const
+{
+    return owner()->getReplicaNumber();
+}
+
+
 
 const Phase&
 Phase::insertDOMResults() const
@@ -1445,6 +1456,8 @@ Phase::expandCalls()
     }
     return *this;
 }
+
+
 
 /*
  * If there is a processor associated with this phase initialize it.

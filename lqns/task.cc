@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14691 2021-05-25 12:05:43Z greg $
+ * $Id: task.cc 14695 2021-05-25 20:19:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -549,9 +549,9 @@ Task::rootLevel() const
 {
     root_level_t level = IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-	if ( (*entry)->isCalledUsing( RENDEZVOUS_REQUEST ) || (*entry)->isCalledUsing( SEND_NO_REPLY_REQUEST ) ) {
+	if ( (*entry)->isCalledUsing( Entry::RequestType::RENDEZVOUS ) || (*entry)->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) ) {
 	    return IS_NON_REFERENCE;	/* Non root task */
-	} else if ( (*entry)->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
+	} else if ( (*entry)->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
 	    level = HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
 	}
     }

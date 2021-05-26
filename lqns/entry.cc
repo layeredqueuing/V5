@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14690 2021-05-24 19:33:27Z greg $
+ * $Id: entry.cc 14698 2021-05-26 16:18:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -59,7 +59,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
       _index(index+1),
       _entryType(ENTRY_NOT_DEFINED),
       _semaphoreType(dom ? dom->getSemaphoreFlag() : LQIO::DOM::Entry::Semaphore::NONE),
-      _calledBy(NOT_CALLED),
+      _calledBy(RequestType::NOT_CALLED),
       _throughput(0.0),
       _throughputBound(0.0),
       _callerList(),
@@ -101,7 +101,8 @@ Entry::Entry( const Entry& src, unsigned int replica )
     for ( size_t p = 1; p <= size; ++p ) {
 	_phase[p].setEntry( this )
 	    .setName( src._phase[p].name() )
-	    .setPhaseNumber( p );
+	    .setPhaseNumber( p )
+	    .setDOM( src._phase[p].getDOM() );
     }
 }
 
@@ -228,7 +229,7 @@ Entry::configure( const unsigned nSubmodels )
 	std::deque<const Activity *> activityStack; // (dynamic_cast<const Task *>(owner())->activities().size());
 	Activity::Count_If data( this, &Activity::checkReplies );
 	const double replies = _startActivity->count_if( activityStack, data ).sum();
-	if ( isCalledUsing( RENDEZVOUS_REQUEST ) ) {
+	if ( isCalledUsing( RequestType::RENDEZVOUS ) ) {
 	    if ( replies == 0.0 ) {
 		//tomari: disable to allow a quorum use the default reply which
 		//is after all threads completes exection.
@@ -242,6 +243,7 @@ Entry::configure( const unsigned nSubmodels )
     initServiceTime();
     return *this;
 }
+
 
 
 /*
@@ -258,6 +260,8 @@ Entry::expand()
     return *this;
 }
 
+
+
 /*
  * Expand the replicas of the calls (Not PAN_REPLICATION).  This has
  * to be done separately because all of the replica entries have to
@@ -270,6 +274,7 @@ Entry::expandCalls()
     std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::expandCalls ) );
     return *this;
 }
+
 
 
 /*
@@ -424,7 +429,7 @@ Entry::setEntryInformation( LQIO::DOM::Entry * entryInfo )
 {
     /* Open arrival stuff. */
     if ( hasOpenArrivals() ) {
-	setIsCalledBy( OPEN_ARRIVAL_REQUEST );
+	setIsCalledBy( RequestType::OPEN_ARRIVAL );
     }
     return *this;
 }
@@ -460,9 +465,9 @@ Entry::addServiceTime( const unsigned p, const double value )
  */
 
 bool
-Entry::setIsCalledBy(const requesting_type callType )
+Entry::setIsCalledBy(const RequestType callType )
 {
-    if ( _calledBy != NOT_CALLED && _calledBy != callType ) {
+    if ( _calledBy != RequestType::NOT_CALLED && _calledBy != callType ) {
 	LQIO::solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name().c_str() );
 	return false;
     } else {

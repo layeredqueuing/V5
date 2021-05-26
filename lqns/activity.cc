@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14679 2021-05-22 21:40:38Z greg $
+ * $Id: activity.cc 14695 2021-05-25 20:19:05Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -788,7 +788,7 @@ Activity::checkReplies( Activity::Count_If& data ) const
 {
     const Entry * entry = data.entry();
     if ( repliesTo( entry ) ) {
-	if (  entry->isCalledUsing( SEND_NO_REPLY_REQUEST ) || entry->isCalledUsing( OPEN_ARRIVAL_REQUEST ) ) {
+	if (  entry->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) || entry->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
 	    LQIO::solution_error( LQIO::ERR_REPLY_SPECIFIED_FOR_SNR_ENTRY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
 	} else if ( !data.canReply() || data.rate() != 1 ) {
 	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );

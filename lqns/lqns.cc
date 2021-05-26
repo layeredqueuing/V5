@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14665 2021-05-21 00:19:09Z greg $
+ * $Id: lqns.cc 14699 2021-05-26 18:31:32Z greg $
  *
  * Command line processing.
  *
@@ -555,10 +555,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 		aModel = Model::create( document, inputFileName, outputFileName );
 		/* Simply invoke the solver for the current DOM state */
 
-		if ( aModel != nullptr && aModel->initialize() ) {
-		    if ( flags.verbose ) {
-			std::cerr << "Solve..." << std::endl;
-		    }
+		if ( aModel->initialize() ) {
 		    aModel->solve();
 		}
 	    }
@@ -577,7 +574,6 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 	
 	    /* create Model after registering external symbols above, disabling checking at this stage */
 	    aModel = Model::create( document, inputFileName, outputFileName, false );
-	    if ( !aModel ) throw std::runtime_error( "could not create model" );
 		
 	    LQX::Environment * environment = program->getEnvironment();
 	    if ( flags.restart ) {
@@ -687,11 +683,7 @@ void init_flags()
     flags.reload_only                = false;
     flags.restart		     = false;
 }
-
-
-
 
-#if !defined(TESTMVA)
 /*
  * Common underrelaxation code.  
  */
@@ -705,36 +697,4 @@ under_relax( double& old_value, const double new_value, const double relax )
 	old_value = new_value;
     }
 }
-#endif
 
-#if defined(__GNUC__) || (defined(__INTEL_COMPILER) && (__INTEL_COMPILER >= 700))
-#include <mva/prob.h>
-#include <mva/server.h>
-#if !defined(TESTMVA) && !defined(TESTDIST)
-#include "randomvar.h"
-#include "activity.h"
-#include "phase.h"
-#include "call.h"
-#include "entity.h"
-#include "entry.h"
-#include "processor.h"
-#include "task.h"
-#include "group.h"
-#include "report.h"
-#include "phase.h"
-#include "randomvar.h"
-#include "submodel.h"
-#include "interlock.h"
-#include "actlist.h"
-#include "entrythread.h"
-#endif
-#if !defined(TESTMVA) || defined(TESTDIST)
-#include "randomvar.h"
-#endif
-#include <mva/vector.h>
-
-template std::ostream& operator<< ( std::ostream& output, const Vector<unsigned int>& self );
-template std::ostream& operator<< ( std::ostream& output, const VectorMath<unsigned int>& self );
-template std::ostream& operator<< ( std::ostream& output, const VectorMath<Probability>& self );
-template std::ostream& operator<< ( std::ostream& output, const VectorMath<double>& self );
-#endif

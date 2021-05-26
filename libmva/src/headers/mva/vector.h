@@ -15,7 +15,7 @@
  * November, 1994
  * July 2007
  *
- * $Id: vector.h 14306 2020-12-31 15:17:22Z greg $
+ * $Id: vector.h 14698 2021-05-26 16:18:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -102,6 +102,7 @@ public:
 	    return 0;
 	}
 
+    bool empty() const { return sz == 0; }
     size_type size() const { return sz; }
     size_type max_size() const { return mx; }
     void resize( size_type amt, const value_type val = value_type() )

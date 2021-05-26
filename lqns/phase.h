@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14690 2021-05-24 19:33:27Z greg $
+ * $Id: phase.h 14698 2021-05-26 16:18:19Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -243,9 +243,9 @@ public:
     unsigned findChildren( Call::stack&, const bool ) const;
     virtual const Phase& followInterlock( Interlock::CollectTable&  ) const;
     virtual void callsPerform( const CallExec& ) const;
-    void setInterlockedCall(const unsigned submodel);
     void addSrcCall( Call * aCall ) { _callList.insert(aCall); }
     void removeSrcCall( Call *aCall ) { _callList.erase(aCall); }
+    unsigned int getReplicaNumber() const;
 
     /* Instance Variable access */
 	

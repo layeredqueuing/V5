@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14689 2021-05-24 17:58:47Z greg $
+ * $Id: entry.h 14695 2021-05-25 20:19:05Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -49,7 +49,6 @@ class Task;
 typedef Vector<unsigned> ChainVector;
 
 typedef enum { ENTRY_NOT_DEFINED, STANDARD_ENTRY, ACTIVITY_ENTRY, DEVICE_ENTRY } entry_type;
-typedef enum { NOT_CALLED, RENDEZVOUS_REQUEST, SEND_NO_REPLY_REQUEST, OPEN_ARRIVAL_REQUEST } requesting_type;
 
 /* */
 
@@ -114,6 +113,9 @@ class Entry
     friend class RepeatActivityList;	/* To access phase[].wait */
 
 public:
+    enum class RequestType { NOT_CALLED, RENDEZVOUS, SEND_NO_REPLY, OPEN_ARRIVAL };
+
+    
     class CallExec {
     public:
 	CallExec( callFunc f, unsigned submodel, unsigned k=0 ) : _f(f), _submodel(submodel), _k(k)  {}
@@ -250,9 +252,9 @@ public:
     double computeCV_sqr( const unsigned p ) const { return _phase[p].computeCV_sqr(); }
     double computeCV_sqr() const;
     int priority() const;
-    bool setIsCalledBy( const requesting_type callType );
-    bool isCalledUsing( const requesting_type callType ) const { return callType == _calledBy; }
-    bool isCalled() const { return _calledBy != NOT_CALLED; }
+    bool setIsCalledBy( const RequestType callType );
+    bool isCalledUsing( const RequestType callType ) const { return callType == _calledBy; }
+    bool isCalled() const { return _calledBy != RequestType::NOT_CALLED; }
     Entry& setEntryInformation( LQIO::DOM::Entry * entryInfo );
     virtual Entry& setDOM( unsigned phase, LQIO::DOM::Phase* phaseInfo );
     Entry& setForwardingInformation( Entry* toEntry, LQIO::DOM::Call *);
@@ -402,7 +404,7 @@ private:
     const unsigned short _index;		/* My index (for mva)		*/
     entry_type _entryType;
     LQIO::DOM::Entry::Semaphore _semaphoreType;	/* Extra type information	*/
-    requesting_type _calledBy;			/* true if entry referenced.	*/
+    RequestType _calledBy;			/* true if entry referenced.	*/
     double _throughput;				/* Computed throughput.		*/
     double _throughputBound;			/* Type 1 throughput bound.	*/
 	

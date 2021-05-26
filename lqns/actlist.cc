@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14667 2021-05-21 00:29:57Z greg $
+ * $Id: actlist.cc 14694 2021-05-25 18:58:20Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -936,7 +936,6 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
         bool isQuorumDelayedThreadsActive = false;
         double totalParallelLocal = 0;
         double totalSequentialLocal = 0;
-	double probQuorumDelaySeqExecution = 0;
 	
         /* Calculate start time */
 
@@ -1048,10 +1047,13 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 	    }
 	}
 
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+	double probQuorumDelaySeqExecution = 0;
 	if (totalParallelLocal+ totalSequentialLocal > 0) {
 	    probQuorumDelaySeqExecution = totalParallelLocal/
 		(totalParallelLocal+ totalSequentialLocal);
 	}
+#endif
 
 	//to disable accounting for sequential execution in the quorum delayed threads,
         //set probQuorumDelaySeqExecution to zero.

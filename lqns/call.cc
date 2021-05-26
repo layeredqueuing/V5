@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14690 2021-05-24 19:33:27Z greg $
+ * $Id: call.cc 14698 2021-05-26 16:18:19Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -21,6 +21,7 @@
 #include <mva/fpgoop.h>
 #include "call.h"
 #include "entry.h"
+#include "pragma.h"
 #include "task.h"
 #include "submodel.h"
 #include "activity.h"
@@ -50,6 +51,38 @@ std::set<Entity *>& Call::add_server( std::set<Entity *>& servers, const Call * 
 {
     servers.insert(const_cast<Entity *>(call->dstTask()));
     return servers;
+}
+
+/*----------------------------------------------------------------------*/
+/*                            Static methods                            */
+/*----------------------------------------------------------------------*/
+
+/*
+ * Ignore replicas because it's handled by fanOut.
+ */
+
+/* static */ double
+Call::add_rendezvous( double sum, const Call * call )
+{
+    if ( Pragma::replication() == Pragma::Replication::PAN ) {
+	return sum + call->rendezvous() * call->fanOut();
+    } else {
+	return sum + call->rendezvous();
+    }
+}
+
+/*
+ * Ignore replicas because it's handled by fanOut.
+ */
+
+/* static */ double
+Call::add_rendezvous_no_fwd( double sum, const Call * call )
+{
+    if ( call->isForwardedCall() ) {
+	return sum;
+    } else {
+	return Call::add_rendezvous( sum, call );
+    }
 }
 
 /*----------------------------------------------------------------------*/
@@ -198,10 +231,12 @@ Call::hasOvertaking() const
 double
 Call::rendezvousDelay() const
 {
-    if ( hasRendezvous() ) {
+    if ( !hasRendezvous() ) {
+	return 0.0;
+    } else if ( Pragma::replication() == Pragma::Replication::PAN ) {
 	return rendezvous() * wait() * fanOut();
     } else {
-	return 0.0;
+	return rendezvous() * wait();
     }
 }
 
@@ -522,8 +557,14 @@ PhaseCall::PhaseCall( const PhaseCall& src, unsigned int replica )
 
     /* Link to destination replica */
     if ( src.dstEntry() != nullptr ) {
-	setDestination( Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src.fanIn())) ) ) );
+	Entry * dst = Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src.fanIn())) ) );
+	setDestination( dst );
+	dst->addDstCall( this );	/* Set reverse link */
     }
+#if 0
+    std::cerr << "PhaseCall::PhaseCall() from: " << getSource()->name() << "(" << srcEntry()->getReplicaNumber() << ")"
+	      << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
+#endif
 }
 
 

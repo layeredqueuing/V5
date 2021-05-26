@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14689 2021-05-24 17:58:47Z greg $
+ * $Id: model.h 14696 2021-05-26 13:28:02Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -66,7 +66,6 @@ public:
     static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string&, bool check_model = true );
 
 public:
-    Model& reinitialize();
     bool initialize();
 
     unsigned nSubmodels() const { return _submodels.size(); }
@@ -88,6 +87,7 @@ protected:
     static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
     void initStations();
+    void reinitStations();
 
     double relaxation() const;
     virtual void backPropogate() {}
@@ -101,7 +101,6 @@ private:
     bool generate();	/* Create layers.	*/
     static void extend();
     void configure();
-    void setInitialized() { _model_initialized = true; }
 
     bool hasOutputFileName() const { return _output_file_name.size() > 0 && _output_file_name != "-"; }
     std::string createDirectory() const;

@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14686 2021-05-24 12:39:09Z greg $
+ * $Id: call.h 14698 2021-05-26 16:18:19Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -88,8 +88,8 @@ public:
 	virtual ~call_cycle() throw() {}
     };
 
-    static double add_rendezvous( double sum, const Call * call ) { return sum + call->rendezvous() * call->fanOut(); }
-    static double add_rendezvous_no_fwd( double sum, const Call * call ) { return !call->isForwardedCall() ? sum + call->rendezvous() * call->fanOut() : sum; }
+    static double add_rendezvous( double sum, const Call * call );
+    static double add_rendezvous_no_fwd( double sum, const Call * call );
     static double add_forwarding( double sum, const Call * call ) { return sum + call->forward(); }		/* BUG_304 BUG_299 */
     static std::set<Task *>& add_client( std::set<Task *>&, const Call * );
     static std::set<Entity *>& add_server( std::set<Entity *>&, const Call * );
@@ -305,6 +305,7 @@ private:
 
 class FromActivity : virtual protected Call {
 public:
+    FromActivity() {}
     virtual void parameter_error( const std::string& ) const;
 };
 

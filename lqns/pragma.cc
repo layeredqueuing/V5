@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14688 2021-05-24 15:48:00Z greg $ *
+ * $Id: pragma.cc 14696 2021-05-26 13:28:02Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -161,18 +161,29 @@ void Pragma::setInterlock(const std::string& value)
 }
 
 
+/* static */
+
+const std::map<const std::string,const Pragma::Layering> Pragma::__layering_pragma = {
+    { LQIO::DOM::Pragma::_batched_,		Pragma::Layering::BATCHED },
+    { LQIO::DOM::Pragma::_batched_back_,	Pragma::Layering::BACKPROPOGATE_BATCHED },
+    { LQIO::DOM::Pragma::_hwsw_,		Pragma::Layering::HWSW },
+    { LQIO::DOM::Pragma::_mol_,			Pragma::Layering::METHOD_OF_LAYERS },
+    { LQIO::DOM::Pragma::_mol_back_,		Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS },
+    { LQIO::DOM::Pragma::_squashed_,		Pragma::Layering::SQUASHED },
+    { LQIO::DOM::Pragma::_srvn_,		Pragma::Layering::SRVN }
+};
+
+const std::string& Pragma::getLayeringStr()
+{
+    for ( std::map<const std::string,const Pragma::Layering>::const_iterator pragma = __layering_pragma.begin(); pragma != __layering_pragma.end(); ++pragma ) {
+	if ( pragma->second == __cache->_layering ) return pragma->first;
+    }
+    abort();
+    return __layering_pragma.begin()->first;	/* Not reached */
+}
+
 void Pragma::setLayering(const std::string& value)
 {
-    static const std::map<const std::string,const Pragma::Layering> __layering_pragma = {
-	{ LQIO::DOM::Pragma::_batched_,		Layering::BATCHED },
-	{ LQIO::DOM::Pragma::_batched_back_,	Layering::BACKPROPOGATE_BATCHED },
-	{ LQIO::DOM::Pragma::_hwsw_,		Layering::HWSW },
-	{ LQIO::DOM::Pragma::_mol_,		Layering::METHOD_OF_LAYERS },
-	{ LQIO::DOM::Pragma::_mol_back_,	Layering::BACKPROPOGATE_METHOD_OF_LAYERS },
-	{ LQIO::DOM::Pragma::_squashed_,	Layering::SQUASHED },
-	{ LQIO::DOM::Pragma::_srvn_,		Layering::SRVN }
-    };
-
     const std::map<const std::string,const Pragma::Layering>::const_iterator pragma = __layering_pragma.find( value );
     if ( pragma != __layering_pragma.end() ) {
 	_layering = pragma->second;
