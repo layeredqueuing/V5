@@ -9,7 +9,7 @@
  *
  * November, 2008
  *
- * $Id: group.h 14689 2021-05-24 17:58:47Z greg $
+ * $Id: group.h 14703 2021-05-27 02:19:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -31,7 +31,6 @@ class Processor;
 
 class Group {
 public:
-
     Group( LQIO::DOM::Group *, const Processor * );
     virtual ~Group();
     static void create( const std::pair<std::string,LQIO::DOM::Group*>& );  
@@ -59,8 +58,7 @@ public:
     virtual const Group& insertDOMResults() const;
 
 public:
-    static Group * find( const std::string& );
-
+    static Group * find( const std::string&, unsigned int=1 );
     
 private:
     LQIO::DOM::Group* _dom; 		/* DOM Element to Store Data	*/

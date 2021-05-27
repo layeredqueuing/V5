@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14689 2021-05-24 17:58:47Z greg $
+ * $Id: dim.h 14705 2021-05-27 12:55:09Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -42,6 +42,7 @@
 const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
+template <typename Type> inline void Delete( Type x ) { delete x; }
 
 /* 
  * Common under-relaxation code.  Adapted to include newton-raphson
@@ -62,11 +63,6 @@ static inline void throw_bad_parameter() { throw std::domain_error( "invalid par
 struct lt_str
 {
     bool operator()(const char* s1, const char* s2) const { return strcmp(s1, s2) < 0; }
-};
-
-struct lt_int
-{
-    bool operator()(const int i1, const int i2) const { return i1 < i2;	}
 };
 
 template <class Type> struct lt_replica
@@ -216,20 +212,20 @@ private:
 };
 
 
-template <class Type> struct EQ
-{
-    EQ<Type>( const Type * const a ) : _a(a) {}
-    bool operator()( const Type * const b ) const { return _a == b; }
-private:
-    const Type * const _a;
-};
-
 template <class Type> struct EQStr
 {
     EQStr( const std::string & s ) : _s(s) {}
     bool operator()(const Type * e1 ) const { return e1->name() == _s; }
 private:
     const std::string & _s;
+};
+
+template <class Type> struct EqualsReplica {
+    EqualsReplica<Type>( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
+    bool operator()( const Type * object ) const { return object->name() == _name && object->getReplicaNumber() == _replica; }
+private:
+    const std::string _name;
+    const unsigned int _replica;
 };
 
 template <class Type> struct Predicate

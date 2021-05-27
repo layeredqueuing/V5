@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 13727 2020-08-04 14:06:18Z greg $
+ * $Id: runlqx.cc 14702 2021-05-27 01:53:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -16,7 +16,7 @@
 #include "runlqx.h"
 #include "model.h"
 
-namespace SolverInterface 
+namespace SolverInterface
 {
     unsigned int Solve::invocationCount = 0;
     std::string Solve::customSuffix;
@@ -29,7 +29,7 @@ namespace SolverInterface
 	if ( !implicitSolve ) {
 	    invocationCount += 1;
 	}
-			
+
 	/* See if we were given a suffix */
 	if (args.size() > 0) {
 	    assert(args.size() == 1);
@@ -46,16 +46,16 @@ namespace SolverInterface
 	    ss << "-" << std::setfill( '0' ) << std::setw(3) << invocationCount;
 	    customSuffix = ss.str();
 	}
-			
+
 #if defined(DEBUG_MESSAGES)
 	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
 #endif
-			
+
 	/* Tell the world the iteration number */
 	if ( verbose_flag ) {
 	    std::cerr << "Solving iteration #" << invocationCount << std::endl;
 	}
-			
+
 	/* Make sure all external variables are accounted for */
 	const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	if ( undefined.size() > 0) {
@@ -68,16 +68,16 @@ namespace SolverInterface
 	    LQIO::io_vars.error_count += 1;
 	    return LQX::Symbol::encodeBoolean(false);
 	}
-			
+
 	/* Recalculate dynamic values */
 	//recalculateDynamicValues();
-			
+
 	/* Run the solver and return its success as a boolean value */
+	bool ok = false;
 	try {
 	    assert (_aModel );
 	    _document->setResultInvocationNumber(invocationCount);
-	    const bool ok = (_aModel->*_solve)();
-	    return LQX::Symbol::encodeBoolean(ok);
+	    ok = (_aModel->*_solve)();
 	}
 	catch ( const std::runtime_error & error ) {
 	    throw LQX::RuntimeException( error.what() );
@@ -85,7 +85,6 @@ namespace SolverInterface
 	catch ( const std::logic_error& error ) {
 	    throw LQX::RuntimeException( error.what() );
 	}
-	return LQX::Symbol::encodeBoolean(false);
+	return LQX::Symbol::encodeBoolean(ok);
     }
 }
-		

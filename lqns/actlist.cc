@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14694 2021-05-25 18:58:20Z greg $
+ * $Id: actlist.cc 14705 2021-05-27 12:55:09Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -369,7 +369,6 @@ JoinActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count
 
 ForkJoinActivityList::~ForkJoinActivityList()
 {
-    _activityList.clear();
 }
 
 
@@ -427,9 +426,7 @@ AndOrForkActivityList::AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityL
 
 AndOrForkActivityList::~AndOrForkActivityList()
 {
-    for ( std::vector<Entry *>::const_iterator entry = _entryList.begin(); entry != _entryList.end(); ++entry ) {
-	delete *entry;
-    }
+    std::for_each(  _entryList.begin(), _entryList.end(), Delete<Entry *> );
 }
 
 
@@ -589,7 +586,7 @@ OrForkActivityList::add( Activity * anActivity )
     ForkJoinActivityList::add( anActivity );
 
     Entry * anEntry = new VirtualEntry( anActivity );
-    assert( anEntry->entryTypeOk(ACTIVITY_ENTRY) );
+    assert( anEntry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
     anEntry->setStartActivity( anActivity );
     _entryList.push_back( anEntry );
     assert( _entryList.size() == activityList().size() );
@@ -826,7 +823,7 @@ AndForkActivityList::add( Activity * anActivity )
     ForkJoinActivityList::add( anActivity );
 
     Thread * aThread = new Thread( anActivity, this );
-    assert( aThread->entryTypeOk(ACTIVITY_ENTRY) );
+    assert( aThread->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
     aThread->setStartActivity( anActivity );
     _entryList.push_back( aThread );
     assert( _entryList.size() == activityList().size() );
@@ -1412,6 +1409,8 @@ AndForkActivityList::concurrentThreads( unsigned n ) const
 const AndForkActivityList&
 AndForkActivityList::insertDOMResults(void) const
 {
+//    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     if ( joinList() == nullptr ) return *this;
     LQIO::DOM::AndJoinActivityList * dom = const_cast<LQIO::DOM::AndJoinActivityList *>(dynamic_cast<const LQIO::DOM::AndJoinActivityList *>(joinList()->getDOM()));
     if ( dom == nullptr ) return *this;
@@ -1497,7 +1496,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 	    
 		/* Set type for join */
 	    
-		if ( and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::INTERNAL_FORK_JOIN )) {
+		if ( and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::INTERNAL_FORK_JOIN )) {
 		    throw bad_internal_join( *this );
 		}
 
@@ -1513,7 +1512,7 @@ AndOrJoinActivityList::findChildren( Activity::Children& path ) const
 		const_cast<AndOrJoinActivityList *>(this)->setForkList( *fork_list );	       	/* Will break loop */
 	    }
 	
-	} else if ( (and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::SYNCHRONIZATION_POINT ))
+	} else if ( (and_join_list != nullptr && !const_cast<AndJoinActivityList *>(and_join_list)->joinType( AndJoinActivityList::JoinType::SYNCHRONIZATION_POINT ))
 		    || dynamic_cast<const OrJoinActivityList *>(this) ) {
 	    throw bad_external_join( *this );
 	}
@@ -1562,7 +1561,7 @@ OrJoinActivityList::updateRate( const Activity * activity, double rate )
 
 AndJoinActivityList::AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom )
     : AndOrJoinActivityList( owner, dom ),
-      _joinType(JOIN_NOT_DEFINED),
+      _joinType(AndJoinActivityList::JoinType::NOT_DEFINED),
       myQuorumCount(dom ? dynamic_cast<LQIO::DOM::AndJoinActivityList*>(dom)->getQuorumCountValue() : 0),
       myQuorumListNum(0)
 {
@@ -1571,9 +1570,9 @@ AndJoinActivityList::AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList 
 
 
 bool
-AndJoinActivityList::joinType( const join_type aType )
+AndJoinActivityList::joinType( AndJoinActivityList::JoinType aType )
 {
-    if ( _joinType == JOIN_NOT_DEFINED ) {
+    if ( _joinType == AndJoinActivityList::JoinType::NOT_DEFINED ) {
         _joinType = aType;
         return true;
     } else {
@@ -1695,11 +1694,7 @@ RepeatActivityList::RepeatActivityList( Task * owner, LQIO::DOM::ActivityList * 
 
 RepeatActivityList::~RepeatActivityList()
 {
-    _activityList.clear();
-    for ( std::vector<Entry *>::const_iterator entry = _entryList.begin(); entry != _entryList.end(); ++entry ) {
-	delete *entry;
-    }
-    _entryList.clear();
+    std::for_each(  _entryList.begin(), _entryList.end(), Delete<Entry *> );
 }
 
 
@@ -1732,7 +1727,7 @@ RepeatActivityList::add( Activity * anActivity )
 
 	Entry * anEntry = new VirtualEntry( anActivity );
 	_entryList.push_back(anEntry);
-        assert( anEntry->entryTypeOk(ACTIVITY_ENTRY) );
+        assert( anEntry->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
         anEntry->setStartActivity( anActivity );
 
     } else {

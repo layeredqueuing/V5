@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14689 2021-05-24 17:58:47Z greg $
+ * $Id: processor.cc 14703 2021-05-27 02:19:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -488,6 +488,8 @@ Processor::saveServerResults( const MVASubmodel& submodel, double relax )
 const Processor&
 Processor::insertDOMResults(void) const
 {
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     double sumOfProcUtil = 0.0;
     for ( std::set<const Task *>::const_iterator task = tasks().begin(); task != tasks().end(); ++task ) {
 
@@ -553,7 +555,7 @@ void Processor::create( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 Processor *
 Processor::find( const std::string& name, unsigned int replica )
 {
-    std::set<Processor *>::const_iterator processor = std::find_if( Model::__processor.begin(), Model::__processor.end(), Entity::equals( name, replica ) );
+    std::set<Processor *>::const_iterator processor = std::find_if( Model::__processor.begin(), Model::__processor.end(), EqualsReplica<Processor>( name, replica ) );
     return ( processor != Model::__processor.end() ) ? *processor : nullptr;
 }
 

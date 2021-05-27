@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14689 2021-05-24 17:58:47Z greg $
+ * $Id: task.h 14700 2021-05-26 19:04:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,7 +37,7 @@ class Group;
 class Task : public Entity {
 
 public:
-    typedef enum { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS } root_level_t;
+    enum class root_level_t { IS_NON_REFERENCE, IS_REFERENCE, HAS_OPEN_ARRIVALS };
 
 private:
     struct find_max_depth {
@@ -290,7 +290,7 @@ public:
     virtual bool isReferenceTask() const { return true; }
     virtual bool hasVariance() const { return false; }
     virtual bool isUsed() const { return true; }
-    virtual root_level_t rootLevel() const { return IS_REFERENCE; }
+    virtual root_level_t rootLevel() const { return root_level_t::IS_REFERENCE; }
 
     Server * makeServer( const unsigned );
 

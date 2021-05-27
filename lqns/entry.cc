@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14698 2021-05-26 16:18:19Z greg $
+ * $Id: entry.cc 14703 2021-05-27 02:19:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -57,7 +57,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
       _startActivity(nullptr),
       _entryId(global ? Model::__entry.size()+1 : 0),
       _index(index+1),
-      _entryType(ENTRY_NOT_DEFINED),
+      _entryType(LQIO::DOM::Entry::Type::NOT_DEFINED),
       _semaphoreType(dom ? dom->getSemaphoreFlag() : LQIO::DOM::Entry::Semaphore::NONE),
       _calledBy(RequestType::NOT_CALLED),
       _throughput(0.0),
@@ -524,9 +524,9 @@ Entry::hasVariance() const
  */
 
 bool
-Entry::entryTypeOk( const entry_type aType )
+Entry::entryTypeOk( const LQIO::DOM::Entry::Type aType )
 {
-    if ( _entryType == ENTRY_NOT_DEFINED ) {
+    if ( _entryType == LQIO::DOM::Entry::Type::NOT_DEFINED ) {
 	_entryType = aType;
 	return true;
     } else {
@@ -983,6 +983,8 @@ Entry::checkDroppedCalls() const
 const Entry&
 Entry::insertDOMResults(double *phaseUtils) const
 {
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     double totalPhaseUtil = 0.0;
 
     /* Write the results into the DOM */
@@ -1633,7 +1635,7 @@ VirtualEntry::setStartActivity( Activity * anActivity )
 }
 
 static bool
-map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver, const entry_type aType = ENTRY_NOT_DEFINED )
+map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver, const LQIO::DOM::Entry::Type aType = LQIO::DOM::Entry::Type::NOT_DEFINED )
 {
     bool rc = true;
     outEntry = Entry::find( entry_name );
@@ -1644,7 +1646,7 @@ map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver
     } else if ( receiver && outEntry->isReferenceTaskEntry() ) {
 	LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_IS_RECEIVER, outEntry->owner()->name().c_str(), entry_name.c_str() );
 	rc = false;
-    } else if ( aType != ENTRY_NOT_DEFINED && !outEntry->entryTypeOk( aType ) ) {
+    } else if ( aType != LQIO::DOM::Entry::Type::NOT_DEFINED && !outEntry->entryTypeOk( aType ) ) {
 	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
     }
 
@@ -1734,7 +1736,7 @@ CallInfoItem::isProcessorCall() const
  * Create a collection so that the () operator can step over it.
  */
 
-CallInfo::CallInfo( const Entry& entry, const unsigned callType )
+CallInfo::CallInfo( const Entry& entry, Call::Type callType )
     : _calls()
 {
     if ( !entry.isStandardEntry() ) return;
@@ -1744,11 +1746,9 @@ CallInfo::CallInfo( const Entry& entry, const unsigned callType )
 	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
 	    if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() ) continue;
 
-	    if ( (    (callType & Call::SEND_NO_REPLY_CALL) && (*call)->hasSendNoReply() )
-		 || ( (callType & Call::FORWARDED_CALL) && (*call)->isForwardedCall() )
-//		 || ( (callType & Call::FORWARDED_CALL) && (*call)->hasForwarding() )
-		 || ( (callType & Call::RENDEZVOUS_CALL) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
-		 || ( (callType & Call::OVERTAKING_CALL) && (*call)->hasOvertaking() && !(*call)->isForwardedCall() )
+	    if ( (    (callType == Call::Type::SEND_NO_REPLY) && (*call)->hasSendNoReply() )
+		 || ( (callType == Call::Type::FORWARDED) && (*call)->isForwardedCall() )
+		 || ( (callType == Call::Type::RENDEZVOUS) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
 		) {
 
 		std::vector<CallInfoItem>::iterator item = std::find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
@@ -1781,8 +1781,7 @@ Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 {
     const std::string& entry_name = dom->getName();
 
-    std::set<Entry *>::const_iterator nextEntry = std::find_if( Model::__entry.begin(), Model::__entry.end(), Entry::equals( entry_name ) );
-    if ( nextEntry != Model::__entry.end() ) {
+    if ( Entry::find( entry_name ) != nullptr ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name.c_str() );
 	return nullptr;
     } else {
@@ -1790,7 +1789,7 @@ Entry::create(LQIO::DOM::Entry* dom, unsigned int index )
 	Model::__entry.insert( entry );
 
 	/* Make sure that the entry type is set properly for all entries */
-	if (entry->entryTypeOk(static_cast<const entry_type>(dom->getEntryType())) == false) {
+	if (entry->entryTypeOk(static_cast<const LQIO::DOM::Entry::Type>(dom->getEntryType())) == false) {
 	    LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, entry_name.c_str() );
 	}
 
@@ -1817,7 +1816,7 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
     Entry * toEntry;
 
     /* Begin by mapping the entry names to their entry types */
-    if ( !entryTypeOk(STANDARD_ENTRY) ) {
+    if ( !entryTypeOk(LQIO::DOM::Entry::Type::STANDARD) ) {
 	LQIO::input_error2( LQIO::ERR_MIXED_ENTRY_TYPES, name().c_str() );
     } else if ( map_entry_name( to_entry_name, toEntry, true ) ) {
 	if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS) {
@@ -1851,7 +1850,7 @@ set_start_activity (Task* newTask, LQIO::DOM::Entry* theDOMEntry)
     Activity* activity = newTask->findActivity(theDOMEntry->getStartActivity()->getName());
     Entry* realEntry = nullptr;
 
-    map_entry_name( theDOMEntry->getName(), realEntry, false, ACTIVITY_ENTRY );
+    map_entry_name( theDOMEntry->getName(), realEntry, false, LQIO::DOM::Entry::Type::ACTIVITY );
     realEntry->setStartActivity(activity);
     activity->setEntry(realEntry);
 }
@@ -1872,8 +1871,8 @@ Entry::equals::operator()( const Entry * entry ) const
 /* static */ Entry *
 Entry::find( const std::string& name, unsigned int replica )
 {
-    std::set<Entry *>::const_iterator nextEntry = std::find_if( Model::__entry.begin(), Model::__entry.end(), Entry::equals( name, replica ) );
-    return ( nextEntry != Model::__entry.end() ) ? *nextEntry : nullptr;
+    std::set<Entry *>::const_iterator entry = std::find_if( Model::__entry.begin(), Model::__entry.end(), EqualsReplica<Entry>( name, replica ) );
+    return ( entry != Model::__entry.end() ) ? *entry : nullptr;
 }
 
 

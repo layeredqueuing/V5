@@ -2,7 +2,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/runlqx.cc $
  * ------------------------------------------------------------------------
- * $Id: runlqx.cc 14662 2021-05-19 18:31:05Z greg $
+ * $Id: runlqx.cc 14702 2021-05-27 01:53:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -18,7 +18,7 @@
 #include "model.h"
 #include "lqns.h"
 
-namespace SolverInterface 
+namespace SolverInterface
 {
 
     unsigned int Solve::invocationCount = 0;
@@ -49,37 +49,34 @@ namespace SolverInterface
 	    ss << "-" << std::setfill( '0' ) << std::setw(3) << invocationCount;
 	    customSuffix = ss.str();
 	}
-			
+
 #if defined(DEBUG_MESSAGES)
 	env->cleanInvokeGlobalMethod("print_symbol_table", NULL);
 #endif
-			
+
 	/* Tell the world the iteration number */
 	if ( flags.trace_mva ) {
 	    std::cout << "\fSolving iteration #" << invocationCount << std::endl;
 	} else if ( flags.verbose ) {
 	    std::cerr << "Solving iteration #" << invocationCount << "..." << std::endl;
 	}
-			
+
 	/* Make sure all external variables are accounted for */
 	bool ok = false;
 	try {
 	    const std::vector<std::string>& undefined = _document->getUndefinedExternalVariables();
 	    if ( undefined.size() > 0) {
-		const std::string msg = "The following external variables were not assigned at time of solve: " 
+		const std::string msg = "The following external variables were not assigned at time of solve: "
 		    + std::accumulate( std::next(undefined.begin()), undefined.end(), undefined.front(), &fold );
 		throw std::runtime_error( msg );
-	    } 
-			
+	    }
+
 	    /* Recalculate dynamic values */
 	    Model::recalculateDynamicValues( _document );
-			
+
 	    /* Run the solver and return its success as a boolean value */
 	    assert( _aModel );
 	    if ( LQIO::io_vars.anError() == false && _aModel->initialize() ) {
-		std::stringstream ss;
-		_document->printExternalVariables( ss );
-		_document->setExtraComment( ss.str() );
 		_document->setResultInvocationNumber( invocationCount );
 		ok = (_aModel->*_solve)();
 	    } else {

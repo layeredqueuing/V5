@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14698 2021-05-26 16:18:19Z greg $
+ * $Id: phase.cc 14705 2021-05-27 12:55:09Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -224,18 +224,13 @@ Phase::Phase( const std::string& name )
 
 
 /*
- * Free up resources.
+ * Free up resources and forward links.
  */
 
 Phase::~Phase()
 {
-    for ( std::vector<DeviceInfo *>::const_iterator device = _devices.begin(); device != _devices.end(); ++device ) {
-	delete *device;
-    }
-    /* Release forward links */
-    for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
-	delete *call;
-    }
+    std::for_each( _devices.begin(), _devices.end(), Delete<DeviceInfo *> );
+    std::for_each( callList().begin(), callList().end(), Delete<Call *> );
 }
 
 
@@ -264,7 +259,7 @@ Phase::findChildren( Call::stack& callStack, const bool directPath ) const
 	     * short-circuit test with directPath.
 	     */
 
-	    if (( find_if( callStack.begin(), callStack.end(), Call::Find(*call, directPath) ) == callStack.end() && depth >= dstTask->submodel() )
+	    if (( std::none_of( callStack.begin(), callStack.end(), Call::Find(*call, directPath) ) && depth >= dstTask->submodel() )
 		|| directPath ) {					/* Always (for forwarding)	*/
 
 		callStack.push_back( (*call) );
@@ -1174,6 +1169,8 @@ Phase::getReplicaNumber() const
 const Phase&
 Phase::insertDOMResults() const
 {
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     getDOM()->setResultServiceTime(elapsedTime())
 	.setResultVarianceServiceTime(variance())
 	.setResultUtilization(utilization())
@@ -1479,7 +1476,7 @@ Phase::initProcessor()
 	
     if ( getDOM()->hasServiceTime() ) {
 	const std::string entry_name = owner()->name() + ':' + name();
-	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::HOST ) );
+	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::Type::HOST ) );
     }
 
     /*
@@ -1487,11 +1484,8 @@ Phase::initProcessor()
      */
     
     if ( hasThinkTime() ) {
-	std::string entry_name;
-	entry_name = Model::__think_server->name();
-	entry_name += ":";
-	entry_name += name();
-	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::THINK_TIME ) );
+	const std::string entry_name = Model::__think_server->name() + ":" + name();
+	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::Type::THINK_TIME ) );
     }
 
     return *this;

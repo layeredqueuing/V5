@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14695 2021-05-25 20:19:05Z greg $
+ * $Id: activity.cc 14702 2021-05-27 01:53:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -885,6 +885,8 @@ Activity::setThroughput( Entry * entry, const Activity::Collect& ) const
 const Activity&
 Activity::insertDOMResults() const
 {
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     Phase::insertDOMResults();
     LQIO::DOM::Activity* domActivity = getDOM();
 

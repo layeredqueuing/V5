@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14673 2021-05-21 19:15:02Z greg $
+ * $Id: entity.h 14703 2021-05-27 02:19:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,7 +47,7 @@ int operator==( const Entity&, const Entity& );
 class Entity {
     friend class Generate;
 
-public:
+protected:
     /*
      * Compare two entities by their name and replica number.  The
      * default replica is one, and will only not be one if replicas
@@ -62,7 +62,7 @@ public:
 	const unsigned int _replica;
     };
 
-
+public:
     /*
      * Compare two entities by their submodel. 
      */

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14691 2021-05-25 12:05:43Z greg $
+ * $Id: submodel.cc 14705 2021-05-27 12:55:09Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -195,8 +195,6 @@ MVASubmodel::~MVASubmodel()
     if ( closedModel ) {
 	delete closedModel;
     }
-    closedStation.clear();
-    openStation.clear();
     if ( _overlapFactor ) {
 	delete [] _overlapFactor;
     }

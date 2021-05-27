@@ -10,7 +10,7 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 14689 2021-05-24 17:58:47Z greg $
+ * $Id: group.cc 14703 2021-05-27 02:19:32Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -74,6 +74,7 @@ Group::recalculateDynamicValues()
 const Group&
 Group::insertDOMResults() const
 {
+//    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
 //    _dom->setResultUtilization( getGroupUtil() );
     return *this;
 }
@@ -82,14 +83,10 @@ Group::insertDOMResults() const
 
 
 Group *
-Group::find( const std::string& group_name )
+Group::find( const std::string& group_name, unsigned int replica )
 {
-    std::set<Group *>::const_iterator nextGroup = find_if( Model::__group.begin(), Model::__group.end(), EQStr<Group>( group_name ) );
-    if ( nextGroup == Model::__group.end() ) {
-	return 0;
-    } else {
-	return *nextGroup;
-    }
+    const std::set<Group *>::const_iterator group = find_if( Model::__group.begin(), Model::__group.end(), EqualsReplica<Group>( group_name, replica ) );
+    return group != Model::__group.end() ? *group : nullptr;
 }
 
 /*
@@ -107,13 +104,12 @@ Group::create( const std::pair<std::string,LQIO::DOM::Group*>& p )
     if (processor == nullptr) { return; }
 	
     /* Check that no group was added with the existing name */
-    if ( find_if( Model::__group.begin(), Model::__group.end(), EQStr<Group>( group_name ) ) != Model::__group.end() ) {
+    if ( Group::find( group_name ) != nullptr ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name.c_str() );
 	return;
     } 
        	
     /* Generate a new group with the parameters and add it to the list */
-    // <<<<<<< .mine
     Group * group = new Group( group_dom, processor );
 
     processor->addGroup(  group );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: interlock.cc 14705 2021-05-27 12:55:09Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -66,9 +66,6 @@ Interlock::Interlock( const Entity& aServer )
 
 Interlock::~Interlock()
 {
-    _commonEntries.clear();
-    _allSourceTasks.clear();
-    _ph2SourceTasks.clear();
 }
 
 
@@ -385,8 +382,8 @@ Interlock::isBranchPoint( const Entry& srcX, const Entry& entryA, const Entry& s
      * go to a and b respectively
      */
 
-    CallInfo nextX( srcX, Call::RENDEZVOUS_CALL );
-    CallInfo nextY( srcY, Call::RENDEZVOUS_CALL );
+    CallInfo nextX( srcX, Call::Type::RENDEZVOUS );
+    CallInfo nextY( srcY, Call::Type::RENDEZVOUS );
 
     const unsigned a = entryA.entryId();
     const unsigned b = entryB.entryId();

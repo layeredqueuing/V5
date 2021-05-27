@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14696 2021-05-26 13:28:02Z greg $
+ * $Id: model.cc 14705 2021-05-27 12:55:09Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -400,19 +400,12 @@ Model::Model( const LQIO::DOM::Document * document, const std::string& inputFile
 
 Model::~Model()
 {
-    for ( Vector<Submodel *>::const_iterator submodel = _submodels.begin(); submodel != _submodels.end(); ++submodel ) {
-	delete *submodel;
-    }
-    _submodels.clear();
+    std::for_each( _submodels.begin(), _submodels.end(), Delete<Submodel *> );
 
-    for ( std::set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
-	delete *processor;
-    }
-    __processor.clear();
+    std::for_each( __processor.begin(), __processor.end(), Delete<Processor *> );
+    __processor.clear();		/* Global, so get rid of them */
 
-    for ( std::set<Group *>::const_iterator group = Model::__group.begin(); group != Model::__group.end(); ++group ) {
-	delete *group;
-    }
+    std::for_each( __group.begin(), __group.end(), Delete<Group *> );
     __group.clear();
 
     if ( __think_server ) {
@@ -420,14 +413,10 @@ Model::~Model()
 	__think_server = nullptr;
     }
 
-    for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
-	delete *task;
-    }
+    std::for_each( __task.begin(), __task.end(), Delete<Task *> );
     __task.clear();
 
-    for ( std::set<Entry *>::const_iterator entry = __entry.begin(); entry != __entry.end(); ++entry ) {
-	delete *entry;
-    }
+    std::for_each( __entry.begin(), __entry.end(), Delete<Entry *> );
     __entry.clear();
 }
 
@@ -1085,8 +1074,8 @@ Model::topologicalSort()
     
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
 	switch ( (*task)->rootLevel() ) {
-	case Task::IS_NON_REFERENCE: continue;
-	case Task::HAS_OPEN_ARRIVALS: callStack.push_back(&null_call); break;	/* Open arrivals start at 1 */
+	case Task::root_level_t::IS_NON_REFERENCE: continue;
+	case Task::root_level_t::HAS_OPEN_ARRIVALS: callStack.push_back(&null_call); break;	/* Open arrivals start at 1 */
 	default: break;
 	}
 	try {

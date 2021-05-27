@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14695 2021-05-25 20:19:05Z greg $
+ * $Id: entry.h 14701 2021-05-27 01:36:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -48,10 +48,6 @@ class Submodel;
 class Task;
 typedef Vector<unsigned> ChainVector;
 
-typedef enum { ENTRY_NOT_DEFINED, STANDARD_ENTRY, ACTIVITY_ENTRY, DEVICE_ENTRY } entry_type;
-
-/* */
-
 /*
  * Interface to parser.
  */
@@ -89,7 +85,7 @@ class CallInfo {
 	const Entry * _dstEntry;
     };
 public:
-    CallInfo( const Entry& anEntry, const unsigned );
+    CallInfo( const Entry& anEntry, Call::Type );
     CallInfo( const CallInfo& ) { abort(); }					/* Copying is verbotten */
     CallInfo& operator=( const CallInfo& ) { abort(); return *this; }		/* Copying is verbotten */
 	
@@ -298,8 +294,8 @@ public:
     virtual bool isTaskEntry() const { return false; }
     virtual bool isVirtualEntry() const { return false; }
     virtual bool isProcessorEntry() const { return false; }
-    bool isActivityEntry() const { return _entryType == ACTIVITY_ENTRY; }
-    bool isStandardEntry() const { return _entryType == STANDARD_ENTRY; }
+    bool isActivityEntry() const { return _entryType == LQIO::DOM::Entry::Type::ACTIVITY; }
+    bool isStandardEntry() const { return _entryType == LQIO::DOM::Entry::Type::STANDARD; }
     bool isSignalEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::SIGNAL; }
     bool isWaitEntry() const { return _semaphoreType == LQIO::DOM::Entry::Semaphore::WAIT; }
     bool isInterlocked( const Entry * ) const;
@@ -312,7 +308,7 @@ public:
     bool hasStartActivity() const { return _startActivity != nullptr; }
     bool hasOpenArrivals() const { return getDOM()->hasOpenArrivalRate(); }
 		
-    bool entryTypeOk( const entry_type );
+    bool entryTypeOk( const LQIO::DOM::Entry::Type );
     bool entrySemaphoreTypeOk( const LQIO::DOM::Entry::Semaphore aType );
     unsigned maxPhase() const { return _phase.size(); }
     unsigned concurrentThreads() const;
@@ -402,7 +398,7 @@ protected:
 private:
     const unsigned _entryId;			/* Gobal entry id. (for chain)	*/
     const unsigned short _index;		/* My index (for mva)		*/
-    entry_type _entryType;
+    LQIO::DOM::Entry::Type _entryType;
     LQIO::DOM::Entry::Semaphore _semaphoreType;	/* Extra type information	*/
     RequestType _calledBy;			/* true if entry referenced.	*/
     double _throughput;				/* Computed throughput.		*/

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14695 2021-05-25 20:19:05Z greg $
+ * $Id: task.cc 14707 2021-05-27 13:42:26Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -120,18 +120,9 @@ Task::Task( const Task& src, unsigned int replica )
 
 Task::~Task()
 {
-    for ( Vector<Server *>::const_iterator station = _clientStation.begin(); station != _clientStation.begin(); ++station ) {
-	delete *station;
-    }
-    for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin(); precedence != precedences().end(); ++precedence ) {
-	delete *precedence;
-    }
-    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	delete *activity;
-    }
-    for ( Vector<Server *>::const_iterator station = _clientStation.begin(); station != _clientStation.end(); ++station ) {
-	delete *station;
-    }
+    std::for_each( _clientStation.begin(), _clientStation.end(), Delete<Server *> );
+    std::for_each( precedences().begin(), precedences().end(), Delete<ActivityList *> );
+    std::for_each( activities().begin(), activities().end(), Delete<Activity *> );
 }
 
 /* ----------------------- Abstract Superclass. ----------------------- */
@@ -547,12 +538,12 @@ Task::isCalled() const
 Task::root_level_t
 Task::rootLevel() const
 {
-    root_level_t level = IS_NON_REFERENCE;
+    root_level_t level = root_level_t::IS_NON_REFERENCE;
     for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
 	if ( (*entry)->isCalledUsing( Entry::RequestType::RENDEZVOUS ) || (*entry)->isCalledUsing( Entry::RequestType::SEND_NO_REPLY ) ) {
-	    return IS_NON_REFERENCE;	/* Non root task */
+	    return root_level_t::IS_NON_REFERENCE;	/* Non root task */
 	} else if ( (*entry)->isCalledUsing( Entry::RequestType::OPEN_ARRIVAL ) ) {
-	    level = HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
+	    level = root_level_t::HAS_OPEN_ARRIVALS;	/* Root task, but move to lower level */
 	}
     }
     return level;
@@ -577,6 +568,8 @@ Task::expand()
 	    const_cast<Group *>(task->getGroup())->addTask( task );
 	}
     }
+    /* Calls are done after all entries have been created */
+    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::expandCalls ) );
     return *this;
 }
 
@@ -961,6 +954,8 @@ Task::openCallsPerform( callFunc f, const unsigned submodel ) const
     return *this;
 }
 
+
+
 /*
  * Return idle time.  Compensate for threads.
  */
@@ -1014,15 +1009,15 @@ Task::computeOvertaking( Entity * server )
  */
 
 Task&
-Task::updateWait( const Submodel& aSubmodel, const double relax )
+Task::updateWait( const Submodel& submodel, const double relax )
 {
     /* Do updateWait for each activity first. */
 
-    std::for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, aSubmodel, relax ) );
+    std::for_each( activities().begin(), activities().end(), Exec2<Phase,const Submodel&,double>( &Phase::updateWait, submodel, relax ) );
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    std::for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, aSubmodel, relax ) );
+    std::for_each( entries().begin(), entries().end(), Exec2<Entry,const Submodel&,double>( &Entry::updateWait, submodel, relax ) );
 
     /* Now recompute thread idle times */
 
@@ -1039,16 +1034,16 @@ Task::updateWait( const Submodel& aSubmodel, const double relax )
  */
 
 double
-Task::updateWaitReplication( const Submodel& aSubmodel, unsigned & n_delta )
+Task::updateWaitReplication( const Submodel& submodel, unsigned & n_delta )
 {
     /* Do updateWait for each activity first. */
 
-    double delta = std::for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, aSubmodel ) ).sum();
+    double delta = std::for_each( activities().begin(), activities().end(), ExecSum1<Activity,double,const Submodel&>( &Activity::updateWaitReplication, submodel ) ).sum();
     n_delta += activities().size();
 
     /* Entry updateWait for activity entries will update waiting times. */
 
-    delta += std::for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, aSubmodel, n_delta ) ).sum();
+    delta += std::for_each( entries().begin(), entries().end(), ExecSum2<Entry,double,const Submodel&,unsigned&>( &Entry::updateWaitReplication, submodel, n_delta ) ).sum();
 
     return delta;
 }
@@ -1460,6 +1455,8 @@ Task::store_activity_service_time ( const char * activity_name, const double ser
 const Task&
 Task::insertDOMResults(void) const
 {
+    if ( getReplicaNumber() != 1 ) return *this;		/* NOP */
+
     double totalTaskUtil   = 0.0;
     double totalThroughput = 0.0;
     double totalProcUtil   = 0.0;
@@ -1730,6 +1727,7 @@ ReferenceTask::find_max_depth::operator()( unsigned int depth, const Entry * ent
     return std::max( depth, entry->findChildren( _callStack, true ) );
 }
 
+
 /*
  * Reference tasks cannot be servers by definition.
  */
@@ -1740,6 +1738,7 @@ ReferenceTask::makeServer( const unsigned )
     throw should_not_implement( "ReferenceTask::makeServer", __FILE__, __LINE__ );
     return 0;
 }
+
 
 
 /*
@@ -2204,30 +2203,30 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
     if ( dom == nullptr || dom->getName().empty() ) abort();
     const std::string& task_name = dom->getName();
 
-    if ( entries.empty() ) {
-	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name.c_str() );
-	return nullptr;
-    } else if ( std::any_of( Model::__task.begin(), Model::__task.end(), Entity::equals( task_name ) ) ) {
+    if ( Task::find( task_name ) ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Task", task_name.c_str() );
+	return nullptr;
+    } else if ( entries.empty() ) {
+	LQIO::input_error2( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, task_name.c_str() );
 	return nullptr;
     }
 
-    const char* processor_name = dom->getProcessor()->getName().c_str();
+    const std::string& processor_name = dom->getProcessor()->getName();
     Processor * processor = Processor::find( processor_name );
 
     if ( !processor ) {
-	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name );
+	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, processor_name.c_str() );
 	return nullptr;
     }
 
     const LQIO::DOM::Group * group_dom = dom->getGroup();
     Group * group = nullptr;
-    const char * group_name = nullptr;
+
     if ( group_dom ) {
-	group_name = group_dom->getName().c_str();
+	const std::string& group_name = group_dom->getName();
 	group = Group::find( group_name );
 	if ( !group ) {
-	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name );
+	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 	}
     }
 
@@ -2291,7 +2290,7 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 /* static */ Task *
 Task::find( const std::string& name, unsigned int replica )
 {
-    std::set<Task *>::const_iterator task = std::find_if( Model::__task.begin(), Model::__task.end(), Entity::equals( name, replica ) );
+    std::set<Task *>::const_iterator task = std::find_if( Model::__task.begin(), Model::__task.end(), EqualsReplica<Task>( name, replica ) );
     return ( task != Model::__task.end() ) ? *task : nullptr;
 }
 

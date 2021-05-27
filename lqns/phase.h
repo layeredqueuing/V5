@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14698 2021-05-26 16:18:19Z greg $
+ * $Id: phase.h 14701 2021-05-27 01:36:07Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -142,13 +142,13 @@ private:
 	friend class Phase;
 	
     public:
-	typedef enum { HOST, PROCESSOR, THINK_TIME } Type;
+	enum class Type { HOST, PROCESSOR, THINK_TIME };
 
 	DeviceInfo( const Phase&, const std::string&, Type );		/* True if this device is the phase's processor */
 	~DeviceInfo();
 
-	bool isHost() const { return _type == HOST; }
-	bool isProcessor() const { return _type == HOST || _type == PROCESSOR; }
+	bool isHost() const { return _type == Type::HOST; }
+	bool isProcessor() const { return _type == Type::HOST || _type == Type::PROCESSOR; }
 	ProcessorCall * call() const { return _call; }
 	DeviceEntry * entry() const { return _entry; }
 	DeviceInfo& recalculateDynamicValues();
