@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14705 2021-05-27 12:55:09Z greg $
+ * $Id: submodel.cc 14711 2021-05-28 12:43:57Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -253,9 +253,11 @@ MVASubmodel::initInterlock()
 bool
 MVASubmodel::hasPanReplication() const
 {
-    if ( Pragma::replication() == Pragma::Replication::PAN && _hasPanReplication == cached::NOT_SET ) {
-	_hasPanReplication = (std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) ) 	 
-			      || std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) )) ? cached::SET_TRUE : cached::SET_FALSE;
+    if ( _hasPanReplication == cached::NOT_SET ) {
+	_hasPanReplication = (Pragma::pan_replication() &&
+	    (std::any_of( _clients.begin(), _clients.end(), Predicate<Task>( &Task::isReplicated ) ) 	 
+	     || std::any_of( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isReplicated ) ))) ? cached::SET_TRUE : cached::SET_FALSE;
+	
     }
     return _hasPanReplication == cached::SET_TRUE;
 }
@@ -773,14 +775,18 @@ MVASubmodel::print( std::ostream& output ) const
     output << "----------------------- Submodel  " << number() << " -----------------------" << std::endl
 	   << "Customers: " <<  _customers << std::endl
 	   << "Clients: " << std::endl;
-
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	output << std::setw(2) << "  " << *(*client) << std::endl;
+	output << std::setw(2) << "  " << **client << std::endl;
     }
-    output << std::endl << "Servers: " << std::endl;
 
+    output << std::endl << "Servers: " << std::endl;
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
 	output << std::setw(2) << "  " << **server << std::endl;
+    }
+
+    output << std::endl << "Calls: " << std::endl;
+    for ( std::set<Entry *>::const_iterator entry = Model::__entry.begin(); entry != Model::__entry.end(); ++entry ) {
+	(*entry)->printCalls( output, number() );
     }
     output << std::endl;
     return output;

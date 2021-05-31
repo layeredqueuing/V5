@@ -1,6 +1,6 @@
 /* activity.c	-- Greg Franks Thu Feb 20 1997
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/activity.cc $
- * 
+ *
  * Everything you wanted to know about an activity, but were afraid to ask.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14702 2021-05-27 01:53:13Z greg $
+ * $Id: activity.cc 14738 2021-05-30 23:13:12Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -37,9 +37,33 @@
 #if !HAVE_LIBGSL
 #include "randomvar.h"
 #endif
+
+/* ---------------------------------------------------------------------- */
 
-std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::actConnections;
-std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::domToNative;
+std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> Activity::__actConnections;
+std::map<LQIO::DOM::ActivityList*, ActivityList *> Activity::__domToNative;
+
+/* static */ void
+Activity::completeConnections()
+{
+    /* We stored all the necessary connections and resolved the list identifiers so finalize */
+    std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*>::const_iterator iter;
+    for (iter = __actConnections.begin(); iter != __actConnections.end(); ++iter) {
+	ActivityList* src = __domToNative[iter->first];
+	ActivityList* dst = __domToNative[iter->second];
+	assert(src != nullptr && dst != nullptr);
+	ActivityList::connect(src, dst);
+    }
+}
+
+
+/* static */ void
+Activity::clearConnectionMaps()
+{
+    __domToNative.clear();
+    __actConnections.clear();
+}
+
 
 Activity::Count_If&
 Activity::Count_If::operator=( const Activity::Count_If& src )
@@ -53,28 +77,78 @@ Activity::Count_If::operator=( const Activity::Count_If& src )
     return *this;
 }
 
+
+Activity::Children::Children( Call::stack& callStack, bool directPath, bool followCalls )
+    : _callStack(callStack),
+      _directPath(directPath),
+      _follow_calls(followCalls),
+      _activityStack(),
+      _forkStack(),
+      _rate(1.)
+{}
+
+Activity::Children::Children( const Children& src, double rate )
+    : _callStack(src._callStack),
+      _directPath(src._directPath),
+      _follow_calls(src._follow_calls),
+      _activityStack(src._activityStack),
+      _forkStack(src._forkStack),
+      _rate(src._rate * rate)
+{}
+
+Activity::Children::Children( const Children& src, std::deque<const AndOrForkActivityList *>& forkStack, double rate )
+    : _callStack(src._callStack),
+      _directPath(src._directPath),
+      _follow_calls(src._follow_calls),
+      _activityStack(src._activityStack),
+      _forkStack(forkStack),
+      _rate(src._rate * rate)
+{}
 
 /*----------------------------------------------------------------------*/
 /*                    Activities are like phases....                    */
 /*----------------------------------------------------------------------*/
 
 /*
- * Construct and activity.  Duplicate name.
+ * Construct an activity.  Duplicate name.
  */
 
-Activity::Activity( const Task * task, const std::string& aName )
-    : Phase( aName ),
+Activity::Activity( const Task * task, const std::string& name )
+    : Phase(name),
       _task(task),			/* Owner */
       _prevFork(nullptr),
       _nextJoin(nullptr),
       _replyList(),
       _specified(false),
       _reachable(false),
-      _throughput(0.),			/* result */
-      myLocalQuorumDelay(false)
+#if HAVE_LIBGSL
+      _remote_quorum_delay(),
+      _local_quorum_delay(false),
+#endif
+      _throughput(0.)			/* result */
 {
 }
 
+
+Activity::Activity( const Activity& src, const Task * task, unsigned int replica )
+    : Phase(src,replica),
+      _task(task),			/* Set by task constructor */
+      _prevFork(nullptr),
+      _nextJoin(nullptr),
+      _replyList(),
+      _specified(src._specified),
+      _reachable(src._reachable),
+#if HAVE_LIBGSL
+      _remote_quorum_delay(),
+      _local_quorum_delay(false),
+#endif
+      _throughput(0.)			/* result */
+{
+    /* Reconstruct replylist by linking to the cloned entry */
+    for ( std::set<const Entry *>::const_iterator entry = src._replyList.begin(); entry != src._replyList.end(); ++entry ) {
+	_replyList.insert( Entry::find( (*entry)->name(), replica ) );
+    }
+}
 
 
 /*
@@ -108,7 +182,7 @@ Activity::configure( const unsigned n )
  * Done before findChildren.
  */
 
-bool 
+bool
 Activity::check() const
 {
     if ( !isSpecified() ) {
@@ -153,13 +227,13 @@ Activity::prevFork( ActivityList * aList )
 	LQIO::input_error2( LQIO::ERR_IS_START_ACTIVITY, owner()->name().c_str(), name().c_str() );
     } else {
 	_prevFork = aList;
-    } 
+    }
     return aList;
 }
 
 
 
-/* 
+/*
  * Join list (LValue)
  */
 
@@ -180,12 +254,12 @@ Activity::nextJoin( ActivityList * aList )
  * Clear the input and output lists as this activity is being reconnected as part of the quorum calculation.
  */
 
-Activity& 
+Activity&
 Activity::resetInputOutputLists()
 {
     _nextJoin = nullptr;
     _prevFork = nullptr;
-    
+
     return *this;
 }
 
@@ -193,7 +267,7 @@ Activity::resetInputOutputLists()
 /*
  * Set phase for this activity
  */
-	
+
 bool
 Activity::repliesTo( const Entry * entry ) const
 {
@@ -275,7 +349,7 @@ unsigned
 Activity::concurrentThreads( unsigned n ) const
 {
     if ( _nextJoin ) {
-	return _nextJoin->concurrentThreads( n );	
+	return _nextJoin->concurrentThreads( n );
     } else {
 	return n;
     }
@@ -284,7 +358,7 @@ Activity::concurrentThreads( unsigned n ) const
 
 
 /*
- * Aggregate whatever aFunc into the entry at the top of stack. 
+ * Aggregate whatever aFunc into the entry at the top of stack.
  * Follow the activitylist and continue.
  */
 
@@ -296,7 +370,7 @@ Activity::collect( std::deque<const Activity *>& activityStack, std::deque<Entry
     }
     Function f = data.collect();
     (this->*f)( entryStack.back(), data );
-    
+
     if ( repliesTo( entryStack.front() ) ) {
 	data.setPhase(2);
     }
@@ -329,7 +403,7 @@ Activity::count_if( std::deque<const Activity *>& activityStack, Activity::Count
 
 
 /*
- * Aggregate whatever aFunc into the entry at the top of stack. 
+ * Aggregate whatever aFunc into the entry at the top of stack.
  * Follow the activitylist and continue.
  */
 
@@ -386,16 +460,16 @@ Activity::findOrAddCall( const Entry * entry, const queryFunc aFunc )
 
 //Estimate the Cumulative Distribution Function (CDF) for the thread service time.
 
-bool 
+bool
 Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
-				  DiscreteCDFs & quorumCDFs, 
+				  DiscreteCDFs & quorumCDFs,
 				  DiscreteCDFs & localCDFs,
-				  DiscreteCDFs & remoteCDFs,  
+				  DiscreteCDFs & remoteCDFs,
 				  const bool isThereQuorumDelayedThreads,
 				  bool & isQuorumDelayedThreadsActive,
 				  double &totalParallelLocal,
 				  double &totalSequentialLocal)
-{    
+{
     if (flags.trace_quorum) {
         std::cout <<"\n..............start Activity::estimateQuorumJoinCDFs ():";
 	std::cout <<" currActivity is " << name() << std::endl;
@@ -410,10 +484,10 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 
     getLevelMeansAndNumberOfCalls(level1Mean, level2Mean,avgNumCallsToLevel2Tasks);
 
-    if ( level2Mean > 0) { 
+    if ( level2Mean > 0) {
 	totalParallelLocal += level1Mean;
     } else {
-	totalSequentialLocal += level1Mean; 
+	totalSequentialLocal += level1Mean;
     }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
@@ -422,14 +496,14 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 	switch ( Pragma::getQuorumDistribution() ) {
 	case Pragma::THREEPOINT_QUORUM_DISTRIBUTION:
 	    estimateThreepointQuorumCDF(level1Mean, level2Mean,
-					avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-					localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+					avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+					localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 					isQuorumDelayedThreadsActive );
 	    break;
 
 	default: //GAMMA_QUORUM_DISTRIBUTION
 	    estimateGammaQuorumCDF(PHASE_DETERMINISTIC ,level1Mean, level2Mean,
-				   avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
+				   avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
 				   localCDFs,remoteCDFs,  isThereQuorumDelayedThreads, isQuorumDelayedThreadsActive);
 	}
 
@@ -441,21 +515,21 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 
 	    case Pragma::THREEPOINT_QUORUM_DISTRIBUTION:
 		estimateThreepointQuorumCDF(level1Mean, level2Mean,
-					    avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-					    localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+					    avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+					    localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 					    isQuorumDelayedThreadsActive );
 		break;
 
 	    case Pragma::CLOSEDFORM_DETRMINISTIC_QUORUM_DISTRIBUTION:
 		estimateClosedFormDetQuorumCDF(level1Mean, level2Mean,
-					       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-					       localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+					       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+					       localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 					       isQuorumDelayedThreadsActive );
 		break;
 
 	    default: //GAMMA_QUORUM_DISTRIBUTION:
 		estimateGammaQuorumCDF(PHASE_DETERMINISTIC ,level1Mean, level2Mean,
-				       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
+				       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
 				       localCDFs,remoteCDFs,  isThereQuorumDelayedThreads, isQuorumDelayedThreadsActive);
 	    }
 
@@ -466,29 +540,29 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 
 	    case Pragma::THREEPOINT_QUORUM_DISTRIBUTION:
 		estimateThreepointQuorumCDF(level1Mean, level2Mean,
-					    avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-					    localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+					    avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+					    localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 					    isQuorumDelayedThreadsActive );
 		break;
 
 	    case Pragma::GAMMA_QUORUM_DISTRIBUTION:
 		estimateGammaQuorumCDF(PHASE_STOCHASTIC ,level1Mean, level2Mean,
-				       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
+				       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
 				       localCDFs,remoteCDFs,  isThereQuorumDelayedThreads, isQuorumDelayedThreadsActive);
 		break;
 
 	    default: //CLOSEDFORM_GEOMETRIC_QUORUM_DISTRIBUTION:
 		estimateClosedFormGeoQuorumCDF(level1Mean, level2Mean,
-					       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-					       localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+					       avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+					       localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 					       isQuorumDelayedThreadsActive );
 	    }
 	}
     }
 #else
     estimateThreepointQuorumCDF(level1Mean, level2Mean,
-				avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs, 
-				localCDFs, remoteCDFs, isThereQuorumDelayedThreads, 
+				avgNumCallsToLevel2Tasks, sumTotal, sumLocal, sumRemote, quorumCDFs,
+				localCDFs, remoteCDFs, isThereQuorumDelayedThreads,
 				isQuorumDelayedThreadsActive );
 #endif
 
@@ -497,7 +571,7 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
         std::cout <<"sumLocal.mean= " << sumLocal.mean() <<" ,Variance="<<sumLocal.variance() << std::endl;
         std::cout <<"sumRemote.mean= " << sumRemote.mean() <<" ,Variance="<<sumRemote.variance() << std::endl;
 #if HAVE_LIBGSL
-        std::cout <<"remoteQuorumDelay.mean= " << remoteQuorumDelay.mean() 
+        std::cout <<"_remote_quorum_delay.mean= " << _remote_quorum_delay.mean()
 	     <<" ,Variance="<<remoteQuorumDelay.variance() << std::endl;
 #endif
 
@@ -508,25 +582,25 @@ Activity::estimateQuorumJoinCDFs (DiscretePoints & sumTotal,
 
 
 
-bool 
-Activity::estimateThreepointQuorumCDF(double level1Mean, 
+bool
+Activity::estimateThreepointQuorumCDF(double level1Mean,
 				      double level2Mean,  double avgNumCallsToLevel2Tasks,
-				      DiscretePoints & sumTotal, DiscretePoints & sumLocal, 
-				      DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs, 
-				      DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,  
-				      const bool isThereQuorumDelayedThreads, 
+				      DiscretePoints & sumTotal, DiscretePoints & sumLocal,
+				      DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs,
+				      DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,
+				      const bool isThereQuorumDelayedThreads,
 				      bool & isQuorumDelayedThreadsActive)
 {
     bool anError = false;
 
     if (flags.trace_quorum) {
-	std::cout <<"\nThreepoint fitting for quorum is used." << std::endl; 
+	std::cout <<"\nThreepoint fitting for quorum is used." << std::endl;
     }
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    if ( isThereQuorumDelayedThreads && 
+    if ( isThereQuorumDelayedThreads &&
 	 Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS) {
-	//Three-point is not the recommended distribution to be used with quorum anyways. 
+	//Three-point is not the recommended distribution to be used with quorum anyways.
 	//But this might be used only for comparison purposes to other distributions.
 
 	sumLocal.mean(level1Mean); //mean=k*theta for a gamma distribution.
@@ -534,15 +608,15 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
 
 	if (phaseTypeFlag() == PHASE_DETERMINISTIC )  {
 	    //the sum of deterministic number of exponentially distributed RVs is Erlang or Gamma.
-	    sumLocal.variance( level1Mean * level1Mean / (avgNumCallsToLevel2Tasks +1 )  );	  
+	    sumLocal.variance( level1Mean * level1Mean / (avgNumCallsToLevel2Tasks +1 )  );
 	} else {
-	    //PHASE_STOCHASTIC or Geometric calls. 
+	    //PHASE_STOCHASTIC or Geometric calls.
 	    // The sum of a geometric number of exponentially distributed random variables
 	    // is exponentially distributed.
 	    sumLocal.variance( level1Mean * level1Mean );
 	}
 
-	//The quorum delay remote part does not necessarily have a gamma or a 
+	//The quorum delay remote part does not necessarily have a gamma or a
 	//closed-form-geo distribution.
 	double level2Variance = 0;
 	if (avgNumCallsToLevel2Tasks > 0) {
@@ -554,7 +628,7 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
 	    if (level2Variance < 0 && flags.trace_quorum) {
 		std::cout <<"Activity::estimateQuorumJoinCDFs(): Warning1:" << std::endl;
 		std::cout <<"variance is less than zero. sumRemote.variance=" <<level2Variance << std::endl;
-		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl; 
+		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl;
 	    }
 	    sumRemote.variance(0);
 	}
@@ -565,11 +639,11 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
 
     quorumCDFs.addCDF(sumTotal.estimateCDF());
 
-		   
+
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    if ( remoteQuorumDelay.mean() > 0) {
-	quorumCDFs.addCDF( remoteQuorumDelay.estimateCDF() );
-	isQuorumDelayedThreadsActive = true; 
+    if ( _remote_quorum_delay.mean() > 0) {
+	quorumCDFs.addCDF( _remote_quorum_delay.estimateCDF() );
+	isQuorumDelayedThreadsActive = true;
     }
 #endif
 
@@ -578,21 +652,21 @@ Activity::estimateThreepointQuorumCDF(double level1Mean,
 
 
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-bool 
+bool
 Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 				 double level1Mean,  double level2Mean,  double avgNumCallsToLevel2Tasks,
-				 DiscretePoints & sumTotal, DiscretePoints & sumLocal, 
-				 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs, 
-				 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,  
-				 const bool isThereQuorumDelayedThreads, 
+				 DiscretePoints & sumTotal, DiscretePoints & sumLocal,
+				 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs,
+				 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,
+				 const bool isThereQuorumDelayedThreads,
 				 bool & isQuorumDelayedThreadsActive)
 {
-    bool anError = false; 
+    bool anError = false;
 
     if (flags.trace_quorum) {
-	std::cout <<"\nGamma fitting for quorum is used." << std::endl; 
+	std::cout <<"\nGamma fitting for quorum is used." << std::endl;
     }
-    if ( isThereQuorumDelayedThreads && 
+    if ( isThereQuorumDelayedThreads &&
 	 Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS ) {
 
 	sumLocal.mean(level1Mean); //mean=k*theta for a gamma distribution.
@@ -607,7 +681,7 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 	    sumLocal.variance( level1Mean * level1Mean );
 	}
 
-	//The remote part does not necessarily have a gamma or a 
+	//The remote part does not necessarily have a gamma or a
 	//closed-form-geo distribution.
 	double level2Variance = 0;
 	if (avgNumCallsToLevel2Tasks > 0) {
@@ -618,9 +692,9 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 	} else {
 	    if (level2Variance < 0 && flags.trace_quorum) {
 		std::cout <<"Activity::estimateQuorumJoinCDFs(): Warning2:" << std::endl;
-		std::cout <<"variance is less than zero. sumRemote.variance=" 
+		std::cout <<"variance is less than zero. sumRemote.variance="
 		     <<level2Variance << std::endl;
-		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl; 
+		std::cout <<"If this happens outside initialization, it might be problematic." << std::endl;
 	    }
 	    sumRemote.variance(0);
 	}
@@ -631,9 +705,9 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 
     quorumCDFs.addCDF(sumTotal.calcGammaPoints());
 
-    if ( remoteQuorumDelay.mean() > 0) {
-	quorumCDFs.addCDF( remoteQuorumDelay.calcGammaPoints() );
-	isQuorumDelayedThreadsActive = true; 
+    if ( _remote_quorum_delay.mean() > 0) {
+	quorumCDFs.addCDF( _remote_quorum_delay.calcGammaPoints() );
+	isQuorumDelayedThreadsActive = true;
 
     }
 
@@ -642,23 +716,23 @@ Activity::estimateGammaQuorumCDF(phase_type phaseTypeFlag,
 
 
 
-bool 
-Activity::estimateClosedFormDetQuorumCDF(double level1Mean, 
+bool
+Activity::estimateClosedFormDetQuorumCDF(double level1Mean,
 					 double level2Mean,  double avgNumCallsToLevel2Tasks,
-					 DiscretePoints & sumTotal, DiscretePoints & sumLocal, 
-					 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs, 
-					 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,  
-					 const bool isThereQuorumDelayedThreads, 
+					 DiscretePoints & sumTotal, DiscretePoints & sumLocal,
+					 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs,
+					 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,
+					 const bool isThereQuorumDelayedThreads,
 					 bool & isQuorumDelayedThreadsActive)
 {
     bool anError = false;
 
     if (flags.trace_quorum) {
-	std::cout <<"\nClosed-form for deterministic fitting for quorum is used." << std::endl; 
+	std::cout <<"\nClosed-form for deterministic fitting for quorum is used." << std::endl;
     }
 
 
-    if (isThereQuorumDelayedThreads 
+    if (isThereQuorumDelayedThreads
 	&& Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS) {
 
 	localCDFs.addCDF(sumLocal.closedFormDetPoints(0, level1Mean,0 ));
@@ -667,24 +741,24 @@ Activity::estimateClosedFormDetQuorumCDF(double level1Mean,
     }
 
     quorumCDFs.addCDF(sumTotal.closedFormDetPoints(avgNumCallsToLevel2Tasks,level1Mean, level2Mean));
-    if (  remoteQuorumDelay.mean() > 0) {
+    if (  _remote_quorum_delay.mean() > 0) {
 	//quorumCDFs.addCDF( remoteQuorumDelay.closedFormGeoPoints
 	//(1,0,remoteQuorumDelay.mean()) );
-	quorumCDFs.addCDF( remoteQuorumDelay.calcGammaPoints() );
-	isQuorumDelayedThreadsActive = true; 
+	quorumCDFs.addCDF( _remote_quorum_delay.calcGammaPoints() );
+	isQuorumDelayedThreadsActive = true;
     }
 
     return !anError;
 }
 
 
-bool 
-Activity::estimateClosedFormGeoQuorumCDF(double level1Mean, 
+bool
+Activity::estimateClosedFormGeoQuorumCDF(double level1Mean,
 					 double level2Mean,  double avgNumCallsToLevel2Tasks,
-					 DiscretePoints & sumTotal, DiscretePoints & sumLocal, 
-					 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs, 
-					 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,  
-					 const bool isThereQuorumDelayedThreads, 
+					 DiscretePoints & sumTotal, DiscretePoints & sumLocal,
+					 DiscretePoints & sumRemote, DiscreteCDFs & quorumCDFs,
+					 DiscreteCDFs & localCDFs, DiscreteCDFs & remoteCDFs,
+					 const bool isThereQuorumDelayedThreads,
 					 bool & isQuorumDelayedThreadsActive)
 {
     bool anError = false;
@@ -693,22 +767,22 @@ Activity::estimateClosedFormGeoQuorumCDF(double level1Mean,
 	std::cout <<"\nClosed-form for geometric fitting for quorum is used. " << std::endl;
     }
 
-    if (isThereQuorumDelayedThreads 
+    if (isThereQuorumDelayedThreads
 	&& Pragma::getQuorumDelayedCalls() == Pragma::KEEP_ALL_QUORUM_DELAYED_CALLS) {
-          
+
 	// The sum of a geometric number of exponentially distributed random variables
 	// is exponentially distributed.
 	localCDFs.addCDF(sumLocal.closedFormGeoPoints(0, level1Mean,0 ));
 	remoteCDFs.addCDF(sumRemote.closedFormGeoPoints(avgNumCallsToLevel2Tasks,
 							0, level2Mean));
     }
-      
+
     quorumCDFs.addCDF(sumTotal.closedFormGeoPoints(avgNumCallsToLevel2Tasks,level1Mean, level2Mean));
-    if (  remoteQuorumDelay.mean() > 0) {
+    if (  _remote_quorum_delay.mean() > 0) {
 	//quorumCDFs.addCDF( remoteQuorumDelay.closedFormGeoPoints
 	//(1,0,remoteQuorumDelay.mean()) );
-	quorumCDFs.addCDF( remoteQuorumDelay.calcGammaPoints() );
-	isQuorumDelayedThreadsActive = true; 
+	quorumCDFs.addCDF( _remote_quorum_delay.calcGammaPoints() );
+	isQuorumDelayedThreadsActive = true;
     }
 
     return !anError;
@@ -716,23 +790,23 @@ Activity::estimateClosedFormGeoQuorumCDF(double level1Mean,
 #endif
 
 
-bool 
-Activity::getLevelMeansAndNumberOfCalls(double & level1Mean, 
-					double & level2Mean, 
+bool
+Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
+					double & level2Mean,
 					double & avgNumCallsToLevel2Tasks )
 {
     bool anError = false;
     double relax = 1;
-    int currentSubmodel = owner()->submodel(); 
+    int currentSubmodel = owner()->submodel();
     currentSubmodel++; //As a client the actual submodel is submodel++.
     if (flags.trace_quorum) {
 	std::cout <<"myActivityList[i]->owner()->submodel()=" << currentSubmodel<< std::endl;
-    }        
+    }
 
 #if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	level1Mean = getReplicationProcWait(currentSubmodel,relax) ;
-	// std::cout <<"\ngetReplicationProcWait=" << 
+	// std::cout <<"\ngetReplicationProcWait=" <<
 	//getReplicationProcWait(currentSubmodel,relax) << std::endl ;
     } else {
 #endif
@@ -747,7 +821,7 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
 #if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	level2Mean =  getReplicationTaskWait(currentSubmodel,relax);
-	// std::cout <<"\ngetReplicationTaskWait=" << 
+	// std::cout <<"\ngetReplicationTaskWait=" <<
 	//getReplicationTaskWait(currentSubmodel,relax) << std::endl ;
     } else {
 #endif
@@ -762,7 +836,7 @@ Activity::getLevelMeansAndNumberOfCalls(double & level1Mean,
 #if PAN_REPLICATION
     if (owner()->replicas() > 1) {
 	avgNumCallsToLevel2Tasks =getReplicationRendezvous(currentSubmodel,relax);
-	//std::cout <<"\ngetReplicationRendezvous=" << 
+	//std::cout <<"\ngetReplicationRendezvous=" <<
 	//getReplicationRendezvous(currentSubmodel,relax) << std::endl ;
     } else {
 #endif
@@ -794,7 +868,7 @@ Activity::checkReplies( Activity::Count_If& data ) const
 	    LQIO::solution_error( LQIO::ERR_INVALID_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
 	} else if ( data.phase() > 1 ) {
 	    LQIO::solution_error( LQIO::ERR_DUPLICATE_REPLY, owner()->name().c_str(), name().c_str(), entry->name().c_str() );
-	} 
+	}
 	data.setPhase(2);
 	return true;
     } else if ( data.phase() > 1 ) {
@@ -822,7 +896,7 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
 	    } else {
 		std::cout << " actual entry  ";
 	    }
-	    std::cout << entry->name() << ", submodel " << submodel << ", phase " << p 
+	    std::cout << entry->name() << ", submodel " << submodel << ", phase " << p
 		 << ": wait " << _wait[submodel] << std::endl;
 	}
     } else {
@@ -991,7 +1065,7 @@ Activity::act_and_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLi
 	activityList = new AndForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
     } else if ( !dynamic_cast<AndForkActivityList *>(activityList) ) {
 	abort();
-    } 
+    }
 
     activityList->add( this );
     prevFork( activityList );
@@ -1015,8 +1089,8 @@ Activity::act_or_fork_list ( ActivityList * activityList, LQIO::DOM::ActivityLis
 	activityList = new OrForkActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
     } else if ( !dynamic_cast<OrForkActivityList *>(activityList) ) {
 	abort();
-    } 
-    
+    }
+
     prevFork( activityList );
     activityList->add( this );
 
@@ -1034,7 +1108,7 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
     if ( !activity_list ) {
 	activity_list = new RepeatActivityList( const_cast<Task *>(dynamic_cast<const Task *>(owner())), dom_activitylist );
     } else if ( !dynamic_cast<RepeatActivityList *>(activity_list ) ) {
-	abort();   
+	abort();
     }
 
     activity_list->add( this );
@@ -1046,7 +1120,7 @@ Activity::act_loop_list ( ActivityList * activity_list, LQIO::DOM::ActivityList 
 /* ------------------------ Exception Handling ------------------------ */
 
 activity_cycle::activity_cycle( const Activity * activity, const std::deque<const Activity *>& activityStack )
-    : runtime_error( std::accumulate( activityStack.rbegin(), activityStack.rend(), activity->name(), fold ).c_str() )
+    : std::runtime_error( std::accumulate( activityStack.rbegin(), activityStack.rend(), activity->name(), fold ) )
 {
 }
 
@@ -1061,7 +1135,7 @@ activity_cycle::activity_cycle( const Activity * activity, const std::deque<cons
 
 
 void
-store_activity_service_time ( void * task, const char * activity_name, const double service_time ) 
+store_activity_service_time ( void * task, const char * activity_name, const double service_time )
 {
     if ( !task ) return;
     Activity * activity = static_cast<Task *>(task)->findOrAddActivity( activity_name );
@@ -1082,12 +1156,12 @@ Activity* add_activity( Task* newTask, LQIO::DOM::Activity* activity_dom )
     /* Create a new activity assigned to a given task and set the information DOM entry for it */
     Activity * activity = newTask->findOrAddActivity( activity_dom->getName() );
     activity->setDOM(activity_dom);
-	
+
     /* Find out if we can specify the activity */
     if (activity_dom->isSpecified() == true) {
 	activity->isSpecified(true);
     }
-	
+
     return activity;
 }
 
@@ -1099,13 +1173,13 @@ Activity::add_calls()
     LQIO::DOM::Activity* domActivity = getDOM();
     const std::vector<LQIO::DOM::Call*>& callList = domActivity->getCalls();
     std::vector<LQIO::DOM::Call*>::const_iterator iter;
-	
+
     /* This provides us with the DOM Call which we can then take apart */
     for (iter = callList.begin(); iter != callList.end(); ++iter) {
 	LQIO::DOM::Call* domCall = *iter;
 	LQIO::DOM::Entry* toDOMEntry = const_cast<LQIO::DOM::Entry*>(domCall->getDestinationEntry());
 	Entry* destEntry = Entry::find(toDOMEntry->getName());
-		
+
 	/* Make sure all is well */
 	if (!destEntry) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
@@ -1123,9 +1197,6 @@ Activity::add_calls()
 
 /* ---------------------------------------------------------------------- */
 
-std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> actConnections;
-std::map<LQIO::DOM::ActivityList*, void*> domToNative;
-
 Activity&
 Activity::add_reply_list ()
 {
@@ -1135,9 +1206,9 @@ Activity::add_reply_list ()
     /* Walk over the list and do the equivalent of calling act_add_reply n times */
     for ( std::vector<LQIO::DOM::Entry*>::const_iterator domEntry = domReplyList.begin(); domEntry != domReplyList.end(); ++domEntry) {
 	Entry* myEntry = Entry::find((*domEntry)->getName());
-		
+
 	/* Check it out and add it to the list */
-	if (myEntry == NULL) {
+	if (myEntry == nullptr) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, (*domEntry)->getName().c_str() );
 	} else if ( owner()->isReferenceTask() ) {
 	    LQIO::input_error2( LQIO::ERR_REFERENCE_TASK_REPLIES, owner()->name().c_str(), (*domEntry)->getName().c_str(), name().c_str() );
@@ -1153,16 +1224,16 @@ Activity::add_reply_list ()
 
 Activity&
 Activity::add_activity_lists()
-{  
+{
     /* Obtain the Task and Activity information DOM records */
     LQIO::DOM::Activity* domAct = getDOM();
-    if (domAct == NULL) { return *this; }
+    if (domAct == nullptr) { return *this; }
     const Task * task = dynamic_cast<const Task *>(owner());
-	
+
     /* May as well start with the nextJoin, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
-    ActivityList * localActivityList = NULL;
-    if (joinList != NULL && joinList->getProcessed() == false) {
+    ActivityList * localActivityList = nullptr;
+    if (joinList != nullptr && joinList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = joinList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	joinList->setProcessed(true);
@@ -1190,18 +1261,18 @@ Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
-	domToNative[joinList] = localActivityList;
-	if (joinList->getNext() != NULL) {
-	    actConnections[joinList] = joinList->getNext();
+	__domToNative[joinList] = localActivityList;
+	if (joinList->getNext() != nullptr) {
+	    __actConnections[joinList] = joinList->getNext();
 	}
     }
-	
+
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = domAct->getInputFromList();
-    localActivityList = NULL;
-    if (forkList != NULL && forkList->getProcessed() == false) {
+    localActivityList = nullptr;
+    if (forkList != nullptr && forkList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = forkList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	forkList->setProcessed(true);
@@ -1212,7 +1283,7 @@ Activity::add_activity_lists()
 		LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domAct->getName().c_str() );
 		continue;
 	    }
-			
+
 	    /* Add the activity to the appropriate list based on what kind of list we have */
 	    switch ( forkList->getListType() ) {
 	    case LQIO::DOM::ActivityList::Type::FORK:
@@ -1231,13 +1302,15 @@ Activity::add_activity_lists()
 		abort();
 	    }
 	}
-		
+
 	/* Create the association for the activity list */
-	domToNative[forkList] = localActivityList;
-	if (forkList->getNext() != NULL) {
-	    actConnections[forkList] = forkList->getNext();
+	__domToNative[forkList] = localActivityList;
+	if (forkList->getNext() != nullptr) {
+	    __actConnections[forkList] = forkList->getNext();
 	}
     }
     return *this;
-	
+
 }
+
+

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14701 2021-05-27 01:36:07Z greg $
+ * $Id: phase.h 14713 2021-05-28 15:15:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -97,8 +97,6 @@ public:
     double elapsedTime() const { return waitExcept( 0 ); }
     double waitingTime( unsigned int submodel ) const { return _wait[submodel];}
 
-    virtual std::ostream& print( std::ostream& output ) const { return output; }
-	
     virtual NullPhase& recalculateDynamicValues() { return *this; }
 
     static void insertDOMHistogram( LQIO::DOM::Histogram * histogram, const double m, const double v );
@@ -227,6 +225,7 @@ public:
     
 public:
     Phase( const std::string& = "" );
+    Phase( const Phase&, unsigned int );
     virtual ~Phase();
 
     /* Initialialization */
@@ -349,6 +348,4 @@ private:
 #endif
     Probability _prOvertaking;
 };
-
-inline std::ostream& operator<<( std::ostream& output, const Phase& self ) { self.print( output ); return output; }
 #endif

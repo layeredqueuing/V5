@@ -1,17 +1,18 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14624 2021-05-09 13:01:43Z greg $
+ * $Id: entrythread.cc 14742 2021-05-31 15:02:01Z greg $
  *
  */
 
 
 #include "dim.h"
 #include <mva/fpgoop.h>
-#include "entrythread.h"
-#include "entity.h"
-#include "task.h"
-#include "lqns.h"
 #include "actlist.h"
+#include "entity.h"
+#include "entrythread.h"
+#include "lqns.h"
 #include "pragma.h"
+#include "task.h"
+
 /* -------------------- Global External functions --------------------- */
 
 double min( const Thread& a, const Thread& b )  
@@ -19,30 +20,42 @@ double min( const Thread& a, const Thread& b )
     DiscretePoints a_min = min( static_cast<const DiscretePoints>(a), static_cast<const DiscretePoints>(b) );
     return a_min.mean();
 }
-
+
 /*----------------------------------------------------------------------*/
 /* Thread -- ...							*/
 /*----------------------------------------------------------------------*/
+
+Thread::Thread( const Activity * anActivity, AndForkActivityList * fork ) 
+    : VirtualEntry( anActivity ),
+      DiscretePoints( 0.0, 0.0 ),
+      _fork(fork),
+      _think_time(0.0),
+      _start_time_variance(0.0),
+      _join_delay(0.0)
+{
+}
+
+
+
+Thread::Thread( const Thread& src, unsigned int replica, AndForkActivityList * fork )
+    : VirtualEntry( src, replica ),
+      DiscretePoints( 0.0, 0.0 ),
+      _fork(fork),
+      _think_time(0.0),
+      _start_time_variance(0.0),
+      _join_delay(0.0)
+{
+}
+	  
+
 
 Thread&
 Thread::configure( const unsigned nSubmodels )
 {
     Entry::configure( nSubmodels );
-    myStartTime.resize( nSubmodels );
+    _start_time.resize( nSubmodels );
     return *this;
 }
-
-
-/*
- * Check the forks-versus joins.
- */
-
-bool
-Thread::check() const
-{
-    return myFork->check();
-}
-
 
 
 /*
@@ -52,7 +65,7 @@ Thread::check() const
 Exponential
 Thread::startTime() const
 {
-    return Exponential( myStartTime.sum(), myStartTimeVariance );
+    return Exponential( _start_time.sum(), _start_time_variance );
 }
 
 
@@ -73,7 +86,7 @@ Thread::isAncestorOf( const Thread * aThread ) const
 bool
 Thread::isDescendentOf( const Thread * aThread ) const
 {
-    return myFork->isDescendentOf( aThread->myFork );
+    return _fork->isDescendentOf( aThread->_fork );
 }
 
 
@@ -120,9 +133,6 @@ Thread::setIdleTime( const double relax )
 {
     double z;
 
-    double joinDelayThroughput = 0;
-    if (joinDelay() != 0.0) {joinDelayThroughput = (1.0/joinDelay());};
-
     if ( utilization() >= owner()->population() ) {
 	z = 0.0;
     } else if ( throughput() > 0.0 ) {
@@ -132,11 +142,7 @@ Thread::setIdleTime( const double relax )
 	case Pragma::JOINDELAY_IDLETIME:
 	    //The idle time of the thread in an AND fork activity list should not
 	    //depend on the delay incurred outside the fork join list.... Bug 257
-	    if (joinDelayThroughput != 0.0) {
-		z = ( owner()->population() - utilization() ) / joinDelayThroughput ;
-	    } else {
-		z = 0;
-	    }
+	    z = ( owner()->population() - utilization() ) * joinDelay();
 	    break;
 
 	default:
@@ -157,10 +163,9 @@ Thread::setIdleTime( const double relax )
 		  << "  utilization=" << utilization()
 		  << ", population=" << owner()->population()
 		  << ", calculated (root Entry) throughput= " << throughput()
-		  << ",  joinDelayThroughput= " << joinDelayThroughput << std::endl
 		  << " Idle Time: " << z << std::endl;
     }
-    under_relax( myThinkTime, z, relax );
+    under_relax( _think_time, z, relax );
     return *this;
 }
 
@@ -174,12 +179,12 @@ Thread&
 Thread::startTime( const unsigned submodel, const double value )
 {
     if ( submodel != 0 ) {
-	myStartTime[submodel] = value;
+	_start_time[submodel] = value;
 	if (flags.trace_throughput || flags.trace_idle_time) {
-	    std::cout <<"Thread::startTime():Thread " << name() << ", myStartTime[submodel="<<submodel<<"]=" << value << std::endl;
+	    std::cout <<"Thread::startTime():Thread " << name() << ", _start_time[submodel="<<submodel<<"]=" << value << std::endl;
 	}
     } else {
-	myStartTimeVariance = value;
+	_start_time_variance = value;
     }
     return *this;
 }

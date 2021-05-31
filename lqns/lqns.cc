@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14699 2021-05-26 18:31:32Z greg $
+ * $Id: lqns.cc 14710 2021-05-27 22:58:01Z greg $
  *
  * Command line processing.
  *
@@ -230,9 +230,8 @@ int main (int argc, char *argv[])
             Options::Debug::initialize();
             options = optarg;
             while ( *options ) {
-                char * value = 0;
-                const int ix = getsubopt( &options, const_cast<char * const *>(Options::Debug::__options), &value );
-                Options::Debug::exec( ix, value );
+                char * value = nullptr;
+                Options::Debug::exec( getsubopt( &options, const_cast<char * const *>(Options::Debug::__options), &value ), value );
             }
             break;
 

@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14638 2021-05-13 14:41:08Z greg $
+ * $Id: activity.cc 14724 2021-05-29 14:16:40Z greg $
  */
 
 #include "activity.h"
@@ -63,14 +63,14 @@ private:
 Activity::Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom )
     : Element( dom, aTask->nActivities()+1 ), Phase(),
       _task(aTask),
-      _inputFrom(NULL),
-      _outputTo(NULL),
+      _inputFrom(nullptr),
+      _outputTo(nullptr),
       _replies(),
-      _rootEntry(NULL),
-      _caller(NULL),
+      _rootEntry(nullptr),
+      _caller(nullptr),
       iAmSpecified(false),
       _level(0),
-      _reachableFrom(NULL)
+      _reachableFrom(nullptr)
 {
     myNode = Node::newNode( Flags::entry_width - Flags::act_x_spacing / 2., Flags::entry_height );
     myLabel = Label::newLabel();
@@ -83,11 +83,9 @@ Activity::Activity( const Task * aTask, const LQIO::DOM::DocumentObject * dom )
 
 Activity::~Activity()
 {
-    _inputFrom = NULL;
-    _outputTo = NULL;
-    for ( std::vector<Call *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
-	delete *call;
-    }
+    _inputFrom = nullptr;
+    _outputTo = nullptr;
+    std::for_each( calls().begin(), calls().end(), Delete<Call *> );
     for ( std::map<Entry *,Reply *>::const_iterator reply = replyArcs().begin(); reply != replyArcs().end(); ++reply ){
 	delete reply->second;
     }
@@ -856,7 +854,7 @@ Activity::disconnect( Activity* nextActivity )
     /* Reconnect lists */
 
     outputTo( nextActivity->outputTo() );
-    nextActivity->outputTo( NULL );
+    nextActivity->outputTo( nullptr );
     if ( outputTo() ) {
 	outputTo()->reconnect( nextActivity, this );
     }
@@ -1108,7 +1106,7 @@ Activity::replicateActivity( LQIO::DOM::Activity * root, unsigned int replica )
 	{ &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughput },
 	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilization, &LQIO::DOM::DocumentObject::getResultProcessorUtilization },
 	{ &LQIO::DOM::DocumentObject::setResultSquaredCoeffVariation, &LQIO::DOM::DocumentObject::getResultSquaredCoeffVariation },
-	{ NULL, NULL }
+	{ nullptr, nullptr }
     };
 
     const static struct {
@@ -1117,14 +1115,14 @@ Activity::replicateActivity( LQIO::DOM::Activity * root, unsigned int replica )
     } activity_variance[] = { 
 	{ &LQIO::DOM::DocumentObject::setResultProcessorUtilizationVariance, &LQIO::DOM::DocumentObject::getResultProcessorWaitingVariance },
 	{ &LQIO::DOM::DocumentObject::setResultThroughput, &LQIO::DOM::DocumentObject::getResultThroughputVariance },
-	{ NULL, NULL }
+	{ nullptr, nullptr }
     };
 
     if ( root == nullptr || getDOM() == nullptr ) return *this;
 
     replicatePhase( root, replica );	// Super will replicate phase part.
     if ( replica > 1 ) {
-	for ( unsigned int i = 0; activity_mean[i].first != NULL; ++i ) {
+	for ( unsigned int i = 0; activity_mean[i].first != nullptr; ++i ) {
 	    update_mean( root, activity_mean[i].first, getDOM(), activity_mean[i].second, replica );
 	    update_variance( root, activity_variance[i].first, getDOM(), activity_variance[i].second );
 	}
@@ -1141,7 +1139,7 @@ Activity::replicateCall()
 
     Phase::replicateCall();		/* Reset DOM calls */
     
-    Call * root = NULL;
+    Call * root = nullptr;
     for_each( old_calls.begin(), old_calls.end(), Exec2<Call, std::vector<Call *>&, Call **>( &Call::replicateCall, _calls, &root ) );
     return *this;
 }
@@ -1247,7 +1245,7 @@ Activity::add_calls()
 {
     /* Go over all of the calls specified within this activity and do something similar to store_snr/rnv */
     const LQIO::DOM::Activity* domActivity = dynamic_cast<const LQIO::DOM::Activity *>(getDOM());
-    if ( domActivity == NULL ) return *this;	/* Bizarre */
+    if ( domActivity == nullptr ) return *this;	/* Bizarre */
     const std::vector<LQIO::DOM::Call*>& calls = domActivity->getCalls();
     std::vector<LQIO::DOM::Call*>::const_iterator iter;
 
@@ -1297,7 +1295,7 @@ Activity::add_reply_list ()
 	Entry* myEntry = Entry::find(domEntry->getName());
 
 	/* Check it out and add it to the list */
-	if (myEntry == NULL) {
+	if (myEntry == nullptr) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, domEntry->getName().c_str() );
 	} else if (myEntry->owner() != owner()) {
 	    LQIO::input_error2( LQIO::ERR_WRONG_TASK_FOR_ENTRY, domEntry->getName().c_str(), owner()->name().c_str() );
@@ -1316,13 +1314,13 @@ Activity::add_activity_lists()
 {
     /* Obtain the Task and Activity information DOM records */
     const LQIO::DOM::Activity* domAct = dynamic_cast<const LQIO::DOM::Activity *>(getDOM());
-    if (domAct == NULL) { return *this; }
+    if (domAct == nullptr) { return *this; }
     const Task * task = owner();
 
     /* May as well start with the _outputTo, this is done with various methods */
     LQIO::DOM::ActivityList* joinList = domAct->getOutputToList();
-    ActivityList * localActivityList = NULL;
-    if (joinList != NULL && joinList->getProcessed() == false) {
+    ActivityList * localActivityList = nullptr;
+    if (joinList != nullptr && joinList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = joinList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	joinList->setProcessed(true);
@@ -1353,15 +1351,15 @@ Activity::add_activity_lists()
 
 	/* Create the association for the activity list */
 	domToNative[joinList] = localActivityList;
-	if (joinList->getNext() != NULL) {
+	if (joinList->getNext() != nullptr) {
 	    actConnections[joinList] = joinList->getNext();
 	}
     }
 
     /* Now we move onto the inputList, or the fork list */
     LQIO::DOM::ActivityList* forkList = domAct->getInputFromList();
-    localActivityList = NULL;
-    if (forkList != NULL && forkList->getProcessed() == false) {
+    localActivityList = nullptr;
+    if (forkList != nullptr && forkList->getProcessed() == false) {
 	const std::vector<const LQIO::DOM::Activity*>& list = forkList->getList();
 	std::vector<const LQIO::DOM::Activity*>::const_iterator iter;
 	forkList->setProcessed(true);
@@ -1394,7 +1392,7 @@ Activity::add_activity_lists()
 
 	/* Create the association for the activity list */
 	domToNative[forkList] = localActivityList;
-	if (forkList->getNext() != NULL) {
+	if (forkList->getNext() != nullptr) {
 	    actConnections[forkList] = forkList->getNext();
 	}
     }
@@ -1547,7 +1545,7 @@ Activity::complete_activity_connections ()
     for (iter = Activity::actConnections.begin(); iter != Activity::actConnections.end(); ++iter) {
 	ActivityList* src = Activity::domToNative[iter->first];
 	ActivityList* dst = Activity::domToNative[iter->second];
-	if ( src != NULL && dst != NULL ) {
+	if ( src != nullptr && dst != nullptr ) {
 	    ActivityList::act_connect(src, dst);
 	}
     }

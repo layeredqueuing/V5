@@ -8,7 +8,7 @@
  * January 2003
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14644 2021-05-14 15:09:03Z greg $
+ * $Id: entry.cc 14724 2021-05-29 14:16:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -176,9 +176,7 @@ Entry::~Entry()
 {
     /* Release forward links */
 
-    for ( std::vector<Call *>::iterator call = _calls.begin(); call != _calls.end(); ++call ) {
-	delete *call;
-    }
+    std::for_each( _calls.begin(), _calls.end(), Delete<Call *> );
     delete myNode;
     delete myLabel;
 

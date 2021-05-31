@@ -10,15 +10,16 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14703 2021-05-27 02:19:32Z greg $
+ * $Id: processor.cc 14710 2021-05-27 22:58:01Z greg $
  * ------------------------------------------------------------------------
  */
 
 #include "dim.h"
-#include <string>
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <numeric>
+#include <sstream>
+#include <string>
 #include <lqio/input.h>
 #include <lqio/labels.h>
 #include <lqio/error.h>
@@ -518,12 +519,11 @@ std::ostream&
 Processor::print( std::ostream& output ) const
 {
     const std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
-    output << std::setw(8) << name()
-	   << " " << std::setw(9) << print_processor_type()
-	   << " " << std::setw(5) << replicas()
-	   << " " << std::setw(12) << scheduling_label[scheduling()].str
-	   << "  "
-	   << print_info( *this );	    /* Bonus information about stations -- derived by solver */
+    std::ostringstream ss;
+    ss << name() << "." << getReplicaNumber();
+    output << std::setw(10) << ss.str()
+	   << " " << std::setw(9)  << print_type() 
+	   << " " << std::setw(15) << print_info();
     output.flags(oldFlags);
     return output;
 }

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: option.h 14710 2021-05-27 22:58:01Z greg $
  */
 
 #ifndef _OPTION_H
@@ -10,6 +10,7 @@
 #include <config.h>
 #include "dim.h"
 #include <map>
+#include <vector>
 #include "help.h"
 
 namespace Options
@@ -23,7 +24,7 @@ namespace Options
 
 	Help::help_fptr help() const { return _help; }
 	bool hasArg() const { return _hasArg; }
-	optionFunc func() { return _func; }
+	optionFunc func() const { return _func; }
 
     private:
 	optionFunc _func;
@@ -33,6 +34,9 @@ namespace Options
 
     class Debug : public Option 
     {
+    private:
+	enum { ACTIVITIES=0, CALLS=1, FORKS=2, INTERLOCK=3, JOINS=4, LAYERS=5, VARIANCE=6, QUORUM=7 };
+	
     public:
 	Debug() : Option() {}
 	Debug( optionFunc func, Help::help_fptr help ) :  Option(func, false, help) {}
@@ -40,48 +44,39 @@ namespace Options
 	static void initialize();
 	static void exec( const int ix, const char * );
 	static const char ** __options;
-	static std::map<const char *, Debug, lt_str> __table;
+	static const std::map<const std::string, const Debug> __table;
 
-//	static bool activities() { return _activities; }
-//	static bool calls() { return _calls; }
-	static bool forks() { return _forks; }
-	static bool interlock() { return _interlock; }
-//	static bool joins() { return _joins; }
-	static bool layers() { return _layers; };
-	static bool variance() { return _variance; }
+//	static bool activities() { return _bits[ACTIVITIES]; }
+//	static bool calls() { return _bits[CALLS]; }
+	static bool forks() { return _bits[FORKS]; }
+	static bool interlock() { return _bits[INTERLOCK]; }
+//	static bool joins() { return _bits[JOINS]; }
+	static bool layers() { return _bits[LAYERS]; };
+	static bool variance() { return _bits[VARIANCE]; }
 #if HAVE_LIBGSL
-	static bool quorum() { return _quorum; };
+	static bool quorum() { return _bits[QUORUM]; };
 #endif
 
     private:
 	static void all( const char * ); 
 	static void all2( const char * );
-//	static void activities( const char * ) { _activities = true; }
-//	static void calls( const char * ) { _calls = true; }
-	static void forks( const char * ) { _forks = true; }
-	static void interlock( const char * ) { _interlock = true; }
-//	static void joins( const char * ) { _joins = true; }
-	static void layers( const char * ) { _layers = true; }
+//	static void activities( const char * ) { _bits[ACTIVITIES] = true; }
+//	static void calls( const char * ) { _bits[CALLS] = true; }
+	static void forks( const char * ) { _bits[FORKS] = true; }
+	static void interlock( const char * ) { _bits[INTERLOCK] = true; }
+//	static void joins( const char * ) { _bits[JOINS] = true; }
+	static void layers( const char * ) { _bits[LAYERS] = true; }
 	static void mva( const char * );
-	static void variance( const char * ) { _variance = true; }
+	static void variance( const char * ) { _bits[VARIANCE] = true; }
 	static void overtaking( const char * );
 #if HAVE_LIBGSL
-	static void quorum( const char * ) { _quorum = true; }
+	static void quorum( const char * ) { _bits[QUORUM] = true; }
 #endif
 	static void xml( const char * );
 	static void lqx( const char * );
 
     private:
-//	static bool _activities;
-//	static bool _calls;
-	static bool _forks;
-	static bool _interlock;
-//	static bool _joins;
-	static bool _layers;			/* -d: Print out debug info.		*/
-	static bool _variance;
-#if HAVE_LIBGSL
-	static bool _quorum;			/* print out local etc.			*/
-#endif
+	static std::vector<bool> _bits;
     };
 
     class Trace : public Option 

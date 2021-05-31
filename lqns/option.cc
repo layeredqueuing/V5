@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: option.cc 14710 2021-05-27 22:58:01Z greg $
  */
 
 #include <config.h>
@@ -20,31 +20,42 @@
 #include "generate.h"
 #include "pragma.h"
 
-std::map<const char *, Options::Debug, lt_str> Options::Debug::__table;
-const char ** Options::Debug::__options = NULL;
 
-//bool Options::Debug::_activities= false;
-//bool Options::Debug::_calls	= false;
-bool Options::Debug::_forks	= false;
-bool Options::Debug::_interlock	= false;
-//bool Options::Debug::_joins	= false;
-bool Options::Debug::_layers	= false;
-bool Options::Debug::_variance  = false;
-#if HAVE_LIBGSL
-bool Options::Debug::_quorum	= false;
+const std::map<const std::string, const Options::Debug> Options::Debug::__table
+{
+    { "all",        Debug( &Debug::all,         &Help::debugAll ) },
+//    { "activities", Debug( &Debug::activities,  &Help::debugActivities ) },
+//    { "calls",      Debug( &Debug::calls,       &Help::debugCalls ) },
+    { "forks",      Debug( &Debug::forks,       &Help::debugForks ) },
+    { "interlock",  Debug( &Debug::interlock,   &Help::debugInterlock ) },
+//    { "joins",      Debug( &Debug::joins,       &Help::debugJoins ) },
+    { "layers",     Debug( &Debug::layers,      &Help::debugLayers ) },
+#if DEBUG_MVA
+    { "mva",	    Debug( &Debug::mva,		&Help::debugMVA ) },
 #endif
+    { "overtaking", Debug( &Debug::overtaking,  &Help::debugOvertaking ) },
+    { "variance",   Debug( &Debug::variance,    &Help::debugVariance ) },
+#if HAVE_LIBGSL
+    { "quorum",     Debug( &Debug::quorum,      &Help::debugQuorum ) },
+#endif
+    { "xml",        Debug( &Debug::xml,         &Help::debugXML ) },
+    { "lqx",        Debug( &Debug::lqx,         &Help::debugLQX ) },
+};
 
+const char ** Options::Debug::__options = NULL;
+
+std::vector<bool> Options::Debug::_bits(Options::Debug::QUORUM+1);
 
 void
 Options::Debug::all( const char * )
 {
-//    _calls      = true;
-    _forks      = true;
-    _interlock  = true;
-//    _joins      = true;
-    _layers     = true;
+//    _bits[CALLS]      = true;
+    _bits[FORKS]      = true;
+    _bits[INTERLOCK]  = true;
+//    _bits[JOINS]      = true;
+    _bits[LAYERS]     = true;
 #if HAVE_LIBGSL
-    _quorum	= true;
+    _bits[QUORUM]     = true;
 #endif
 }
 
@@ -83,41 +94,21 @@ Options::Debug::lqx( const char * )
 /* static */ void
 Options::Debug::initialize()
 {
-    if ( __table.size() ) return;
-
-    __table["all"] =        Debug( &Debug::all,         &Help::debugAll );
-//    __table["activities"] = Debug( &Debug::activities,  &Help::debugActivities );
-//    __table["calls"] =      Debug( &Debug::calls,       &Help::debugCalls );
-    __table["forks"] =      Debug( &Debug::forks,       &Help::debugForks );
-    __table["interlock"] =  Debug( &Debug::interlock,   &Help::debugInterlock );
-//    __table["joins"] =      Debug( &Debug::joins,       &Help::debugJoins );
-    __table["layers"] =     Debug( &Debug::layers,      &Help::debugLayers );
-#if DEBUG_MVA
-    __table["mva"] =	    Debug( &Debug::mva,		&Help::debugMVA );
-#endif
-    __table["overtaking"] = Debug( &Debug::overtaking,  &Help::debugOvertaking );
-    __table["variance"] =   Debug( &Debug::variance,    &Help::debugVariance );
-#if HAVE_LIBGSL
-    __table["quorum"] =     Debug( &Debug::quorum,      &Help::debugQuorum );
-#endif
-    __table["xml"] =        Debug( &Debug::xml,         &Help::debugXML );
-    __table["lqx"] =        Debug( &Debug::lqx,         &Help::debugLQX );
-
+    if ( __options != nullptr ) return;
     __options = new const char * [__table.size()+1];
-    std::map<const char *, Options::Debug>::const_iterator next_opt;
 
-    unsigned int i = 0;
-    for ( next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
-	__options[i++] = next_opt->first;
+    size_t i = 0;
+    for ( std::map<const std::string, const Options::Debug>::const_iterator next_opt = __table.begin(); next_opt != __table.end(); ++next_opt ) {
+	__options[i++] = next_opt->first.c_str();
     }
-    __options[i] = NULL;
+    __options[i] = nullptr;
 }
 
 void
 Options::Debug::exec( const int ix, const char * arg )
 {
     if ( ix >= 0 ) {
-	(*__table[__options[ix]].func())( arg );
+	(*__table.at(std::string(__options[ix])).func())( arg );
     } else {
 	usage( 'd', optarg );
     }

@@ -10,7 +10,7 @@
  * January 2001
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14644 2021-05-14 15:09:03Z greg $
+ * $Id: task.cc 14724 2021-05-29 14:16:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -114,15 +114,9 @@ Task::Task( const LQIO::DOM::Task* dom, const Processor * aProc, const Share * a
 
 Task::~Task()
 {
-    for ( std::vector<EntityCall *>::const_iterator call = calls().begin(); call != calls().end(); ++call ) {
-	delete *call;
-    }
-    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
-	delete *activity;
-    }
-    for ( std::vector<ActivityList *>::const_iterator precedence = precedences().begin(); precedence != precedences().end(); ++precedence ) {
-	delete *precedence;
-    }
+    std::for_each( calls().begin(), calls().end(), Delete<EntityCall *> );
+    std::for_each( activities().begin(), activities().end(), Delete<Activity *> );
+    std::for_each( precedences().begin(), precedences().end(), Delete<ActivityList *> );
 }
 
 

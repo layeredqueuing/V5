@@ -10,19 +10,19 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14707 2021-05-27 13:42:26Z greg $
+ * $Id: task.cc 14739 2021-05-31 09:51:24Z greg $
  * ------------------------------------------------------------------------
  */
 
 
 #include "dim.h"
-#include <string>
-#include <cstdlib>
-#include <cmath>
 #include <algorithm>
-#include <ostream>
+#include <cmath>
+#include <cstdlib>
 #include <numeric>
-#include <string.h>
+#include <ostream>
+#include <sstream>
+#include <string>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
@@ -58,16 +58,16 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
     : Entity( dom, entries ),
       _processor(aProc),
       _group(aGroup),
-      _maxThreads(1),
       _activities(),
       _precedences(),
+      _maxThreads(1),
       _overlapFactor(1.0),
       _threads(1),
       _clientChains(),
       _clientStation(),
-      _has_fork(false),
-      _has_sync(false),
-      _no_syncs(true)
+      _has_forks(false),
+      _has_syncs(false),
+      _has_quorum(false)
 {
     std::for_each( entries.begin(), entries.end(), Exec1<Entry,const Entity *>( &Entry::owner, this ) );
 }
@@ -82,36 +82,32 @@ Task::Task( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup,
 
 Task::Task( const Task& src, unsigned int replica )
     : Entity( src, replica ),
-      _processor(nullptr),
+      _processor(Processor::find( src._processor->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src._processor->fanIn(this) ) ) ) )),
       _group(nullptr),
-      _maxThreads(src._maxThreads),
       _activities(),
       _precedences(),
+      _maxThreads(src._maxThreads),
       _overlapFactor(src._overlapFactor),
       _threads(src._threads),
       _clientChains(),
       _clientStation(),
-      _has_fork(src._has_fork),
-      _has_sync(src._has_sync),
-      _no_syncs(src._no_syncs)
+      _has_forks(src._has_forks),
+      _has_syncs(src._has_syncs),
+      _has_quorum(src._has_quorum)
 {
-    /* Link to the replica processor (this could be the original processor) */
-    _processor = Processor::find( src._processor->name(), static_cast<unsigned>(std::ceil( static_cast<double>(replica) / static_cast<double>(src._processor->fanIn(this) ) ) ) );
-    assert( _processor != nullptr );
-    
+
     /* Link to the replica group? */
 //    _group = Group::find();
 
-    /* Link in the entries */
+    /* Link in the entries -- entries were created before any task is cloned */
     for ( std::vector<Entry *>::const_iterator entry = src._entries.begin(); entry != src._entries.end(); ++entry  ) {
 	Entry * new_entry = Entry::find( (*entry)->name(), replica );
 	_entries.push_back( new_entry );
 	new_entry->owner( this );
     }
 
-    /* Clone the activities */
+    cloneActivities( src, replica );
 }
-
 
 
 /*
@@ -124,6 +120,50 @@ Task::~Task()
     std::for_each( precedences().begin(), precedences().end(), Delete<ActivityList *> );
     std::for_each( activities().begin(), activities().end(), Delete<Activity *> );
 }
+
+
+/* 
+ * Clone the activities, precedences and relink everything.
+ */
+
+void
+Task::cloneActivities( const Task& src, unsigned int replica )
+{
+    /* Clone activities */
+
+    for ( std::vector<Activity *>::const_iterator activity = src._activities.begin(); activity != src._activities.end(); ++activity ) {
+	Activity * new_activity = (*activity)->clone( this, replica );
+	_activities.push_back( new_activity );
+	if ( (*activity)->isStartActivity() ) {
+	    Entry * entry = Entry::find( (*activity)->entry()->name(), replica );
+	    entry->setStartActivity( new_activity );
+	    new_activity->setEntry( entry );
+	}
+	    
+    }
+
+    /* Do the pre(join)-lists from the list retained by the task, the post(fork)-lists will be done after the corresponding pre-list is completed. */
+
+    for ( std::vector<ActivityList *>::const_iterator precedence = src._precedences.begin(); precedence != src._precedences.end(); ++precedence ) {
+	if ( !dynamic_cast<const JoinActivityList *>(*precedence) && !dynamic_cast<const AndOrJoinActivityList *>(*precedence) ) continue;
+
+	/* Clone the join list.  The heavy listing is the ActivityList::ActivityList */
+	ActivityList * join_list = (*precedence)->clone( this, replica );
+	_precedences.push_back( join_list );
+
+	/* Find the original fork list, then clone it's join list */
+	if ( (*precedence)->next() == nullptr ) continue;
+	ActivityList * fork_list = (*precedence)->next()->clone( this, replica );
+	_precedences.push_back( fork_list );
+
+	/* Connect the clones */
+	ActivityList::connect( join_list, fork_list );
+    }
+
+    /* Reconnect Fork to Join */
+    
+    linkForkToJoin();
+}
 
 /* ----------------------- Abstract Superclass. ----------------------- */
 
@@ -135,7 +175,7 @@ Task::~Task()
 bool
 Task::hasThinkTime() const
 {
-    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) ) 
+    return std::any_of( entries().begin(), entries().end(), Predicate<Entry>( &Entry::hasThinkTime ) )
 	|| std::any_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::hasThinkTime ) );
 }
 
@@ -155,7 +195,7 @@ bool
 Task::check() const
 {
     bool rc = true;
-    
+
     /* Check prio/scheduling. */
 
     if ( !schedulingIsOk( validScheduling() ) ) {
@@ -165,7 +205,7 @@ Task::check() const
 			      name().c_str() );
 	getDOM()->setSchedulingType(defaultScheduling());
     }
-	
+
     if ( hasProcessor() && priority() != 0 && !getProcessor()->hasPriorities() ) {
 	LQIO::solution_error( LQIO::WRN_PRIO_TASK_ON_FIFO_PROC, name().c_str(), getProcessor()->name().c_str() );
     }
@@ -196,6 +236,11 @@ Task::check() const
 
     /* Check entries */
 
+    if ( entries().empty() ) {
+	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name().c_str() );
+	rc = false;
+    }
+
     rc = std::all_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::check ) ) && rc;
     if ( hasActivities() && std::none_of( entries().begin(),entries().end(), Predicate<Entry>( &Entry::isActivityEntry ) ) ) {
 	LQIO::solution_error( LQIO::ERR_NO_START_ACTIVITIES, name().c_str() );
@@ -203,22 +248,14 @@ Task::check() const
 	rc = std::all_of( activities().begin(), activities().end(), Predicate<Phase>( &Phase::check ) ) && rc;
 	rc = std::all_of( precedences().begin(), precedences().end(), Predicate<ActivityList>( &ActivityList::check ) ) && rc;
     }
+
+    /* Check reachability */
+    
+    rc = std::none_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) ) && rc;
+
     return rc;
 }
 
-
-
-/*
- * Check reachability for all activities.  This has to be done after
- * findChildren.  Activity::isNotReachable will output an error
- * message if an activity is NOT reachable (and return true).
- */
-
-bool 
-Task::checkReachability() const
-{
-    return std::none_of( activities().begin(), activities().end(), Predicate<Activity>( &Activity::isNotReachable ) );
-}
 
 
 /*
@@ -229,11 +266,6 @@ Task::checkReachability() const
 Task&
 Task::configure( const unsigned nSubmodels )
 {
-    if ( nEntries() == 0 ) {
-	LQIO::solution_error( LQIO::ERR_NO_ENTRIES_DEFINED_FOR_TASK, name().c_str() );
-	return *this;
-    }
-
     if ( copies() == 1 && scheduling() != SCHEDULE_DELAY && !Pragma::defaultTaskScheduling() ) {
 	/* Change scheduling type for fixed rate servers (usually from FCFS to DELAY) */
 	getDOM()->setSchedulingType(Pragma::taskScheduling());
@@ -243,8 +275,8 @@ Task::configure( const unsigned nSubmodels )
     _clientStation.resize( nSubmodels, 0 );	/* Prepare client cltn		*/
 
     if ( hasActivities() ) {
-	for_each( activities().begin(), activities().end(), Exec1<Activity,unsigned>( &Activity::configure, nSubmodels ) );
-	for_each( _precedences.begin(), _precedences.end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
+	std::for_each( activities().begin(), activities().end(), Exec1<Activity,unsigned>( &Activity::configure, nSubmodels ) );
+	std::for_each( _precedences.begin(), _precedences.end(), Exec1<ActivityList,unsigned>( &ActivityList::configure, nSubmodels ) );
     }
     Entity::configure( nSubmodels );
 
@@ -254,10 +286,6 @@ Task::configure( const unsigned nSubmodels )
     if ( Pragma::forceMultiserver( Pragma::ForceMultiserver::TASKS ) ) {
 	attributes.variance = 0;
     }
-
-    /* Configure the threads... */
-
-    std::for_each( _threads.begin() + 1, _threads.end(), Predicate<Thread>( &Thread::check ) );
 
     return *this;
 }
@@ -273,7 +301,7 @@ Task::configure( const unsigned nSubmodels )
  */
 
 unsigned
-Task::findChildren( Call::stack& callStack, const bool directPath ) const 
+Task::findChildren( Call::stack& callStack, const bool directPath ) const
 {
     return std::accumulate( entries().begin(), entries().end(), Entity::findChildren( callStack, directPath ), find_max_depth( callStack, directPath ) );
 }
@@ -285,6 +313,29 @@ Task::find_max_depth::operator()( unsigned int depth, const Entry * entry )
     return std::max( depth, entry->findChildren( _callStack, _directPath && entry == _dstEntry) );
 }
 
+
+
+
+/*
+ * Initialize the precedence lists (link forks to joins)
+ */
+
+Task&
+Task::linkForkToJoin()
+{
+    _has_forks = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) );
+    _has_syncs = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) );
+    _has_quorum = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::hasQuorum) );
+
+    Call::stack callStack;
+    Activity::Children path( callStack, true, false );
+    for ( std::vector<Activity *>::const_iterator activity = activities().begin(); activity != activities().end(); ++activity ) {
+	if ( (*activity)->isStartActivity() ) {
+	    (*activity)->findChildren( path );
+	}
+    }
+    return *this;
+}
 
 
 
@@ -496,9 +547,9 @@ Task::findOrAddPsuedoActivity( const std::string& name )
 
 
 void
-Task::addPrecedence( ActivityList * aPrecedence )
+Task::addPrecedence( ActivityList * precedence )
 {
-    _precedences.push_back( aPrecedence );
+    _precedences.push_back( precedence );
 }
 
 
@@ -568,7 +619,18 @@ Task::expand()
 	    const_cast<Group *>(task->getGroup())->addTask( task );
 	}
     }
-    /* Calls are done after all entries have been created */
+    return *this;
+}
+
+
+/*
+ * Expand all calls.  Done are done after all entries have been
+ * created and all entries are linked back to tasks.
+ */
+
+Task&
+Task::expandCalls()
+{
     std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::expandCalls ) );
     return *this;
 }
@@ -643,7 +705,7 @@ Task::countCallers( std::set<Task *>& reject ) const
 
 		std::pair<std::set<Task *>::const_iterator,bool> rc = reject.insert(client);
 		if ( rc.second == false ) continue;		/* exits already */
-		
+
 		double delta = 0.0;
 		if ( client->isInfinite() ) {
 		    delta = client->countCallers( reject );
@@ -923,7 +985,7 @@ Task::sanityCheck() const
 
 
 /*
- * Set the visit ratios.  Chains can result from both replication and from 
+ * Set the visit ratios.  Chains can result from both replication and from
  * threads.  _thread[0] is the main entry.
  */
 
@@ -1065,7 +1127,7 @@ Task::recalculateDynamicValues()
 }
 
 
-double 
+double
 Task::bottleneckStrength() const
 {
     /* find out who I call */
@@ -1273,31 +1335,6 @@ Task::overlapFactor( const unsigned i, const unsigned j ) const
 /*                           Synchronization                            */
 /*----------------------------------------------------------------------*/
 
-bool
-Task::hasForks() const
-{
-    if ( _has_fork ) return true;	       /* cached copy		*/
-    if ( _no_syncs == false ) return false;
-    /* Do it the hard way */
-    _has_fork = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isFork) );
-    _has_sync = std::any_of( _precedences.begin(), _precedences.end(), Predicate<ActivityList>(&ActivityList::isSync) );
-    _no_syncs = false;
-    return _has_fork;
-}
-
-
-/*
- * Return true if two entries synchronize on a join (i.e., and external join).
- */
-
-bool
-Task::hasSyncs() const
-{
-    return false;
-}
-
-
-
 /*
  * Go through all the chains for the client and generate overlap factors.
  * See (8) [Mak].
@@ -1374,10 +1411,10 @@ Task::expandQuorumGraph()
 	    localQuorumDelayActivity =  findOrAddPsuedoActivity(localQuorumDelayActivityName);
 
 	    if (localQuorumDelayActivity) {
-		localQuorumDelayActivity->remoteQuorumDelay.active(true);
-		char remoteQuorumDelayName[32];
+		localQuorumDelayActivity->_remote_quorum_delay.active(true);
+		char _remote_quorum_delayName[32];
 		sprintf( remoteQuorumDelayName, "remoteQmDelay_%d", quorumListNumber);
-		localQuorumDelayActivity->remoteQuorumDelay.nameSet(remoteQuorumDelayName);
+		localQuorumDelayActivity->_remote_quorum_delay.nameSet(remoteQuorumDelayName);
 	    } else {
 		std::cout <<"\nTask::expandQuorumGraph(): Error, could not create localQuorumDelay activity" << std::endl;
 		abort();
@@ -1420,9 +1457,9 @@ Task::expandQuorumGraph()
 			newAndForkList = dynamic_cast<AndForkActivityList *>( anActivity->act_and_fork_list( newAndForkList, 0 ));
 		    }
 
-		    act_connect ( quorumAndJoinList, newAndForkList );
+		    ActivityList::connect( quorumAndJoinList, newAndForkList );
 		    ForkActivityList * finalAndForkList = dynamic_cast<ForkActivityList *>(finalActivity->act_fork_item( 0 ));
-		    act_connect ( newAndJoinList, finalAndForkList );
+		    ActivityList::connect( newAndJoinList, finalAndForkList );
 		}
 	    }
 #endif
@@ -1742,7 +1779,7 @@ ReferenceTask::makeServer( const unsigned )
 
 
 /*
- * Check utilization.  It's too hard to do if there's think time because it should be < 1 
+ * Check utilization.  It's too hard to do if there's think time because it should be < 1
  */
 
 const Task&
@@ -1764,7 +1801,7 @@ ServerTask::clone( unsigned int replica )
 }
 
 
-unsigned int 
+unsigned int
 ServerTask::queueLength() const
 {
     try {
@@ -2307,11 +2344,19 @@ Task::print( std::ostream& output ) const
 {
     std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
 
-    output << std::setw(8) << name() 
-	   << " " << std::setw(9) << print_task_type() 
-	   << " " << std::setw(5) << replicas() 
-	   << " " << std::setw(8) << (hasProcessor() ? getProcessor()->name() : "--") 
-	   << " " << std::setw(3) << priority();
+    std::ostringstream ss;
+    ss << name() << "." << getReplicaNumber();
+    output << std::setw(10) << ss.str()
+	   << " " << std::setw(9)  << print_type()
+	   << " " << std::setw(15) << print_info();
+    ss.str("");
+    if ( hasProcessor() ) {
+	ss << getProcessor()->name() << "." << getProcessor()->getReplicaNumber();
+    } else {
+	ss << "--";
+    }
+    output << " " << std::setw(10) << ss.str()
+	   << " " << std::setw(3)  << priority();
     if ( isReferenceTask() && thinkTime() > 0.0 ) {
 	output << " " << thinkTime();
     }
@@ -2322,7 +2367,6 @@ Task::print( std::ostream& output ) const
 
     /* Bonus information about stations -- derived by solver */
 
-    output << " " << print_info( *this );
     if ( nThreads() > 1 ) {
 	output << " {" << nThreads() << " threads}";
     }
@@ -2357,27 +2401,7 @@ Task::output_entries( std::ostream& output, const Task& task )
 	if ( entry != entries.begin() ) {
 	    output << ", ";
 	}
-	output << (*entry)->name();
+	output << (*entry)->name() << "." << (*entry)->getReplicaNumber();
     }
-    return output;
-}
-
-
-std::ostream&
-Task::output_task_type( std::ostream& output, const Task& task )
-{
-    char buf[12];
-    const unsigned n = task.copies();
-
-    if ( task.scheduling() == SCHEDULE_CUSTOMER ) {
-	sprintf( buf, "ref(%d)", n );
-    } else if ( task.isInfinite() ) {
-	sprintf( buf, "inf" );
-    } else if ( n > 1 ) {
-	sprintf( buf, "mult(%d)", n );
-    } else {
-	sprintf( buf, "serv" );
-    }
-    output << buf;
     return output;
 }

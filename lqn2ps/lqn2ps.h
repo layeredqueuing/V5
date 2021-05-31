@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * lqn2ps.h	-- Greg Franks
  *
- * $Id: lqn2ps.h 14648 2021-05-15 13:47:14Z greg $
+ * $Id: lqn2ps.h 14724 2021-05-29 14:16:40Z greg $
  *
  */
 
@@ -575,6 +575,7 @@ private:
  */
 
 template <typename Type> inline Type square( Type a ) { return a * a; }
+template <typename Type> inline void Delete( Type x ) { delete x; }
 
 class Task;
 class Entity;

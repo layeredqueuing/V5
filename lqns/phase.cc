@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14705 2021-05-27 12:55:09Z greg $
+ * $Id: phase.cc 14726 2021-05-29 15:16:35Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -216,6 +216,17 @@ Phase::Phase( const std::string& name )
     : NullPhase( name ),
       _entry(nullptr),
       _callList(),
+      _devices(),
+      _prOvertaking(0.)
+{
+}
+
+
+
+Phase::Phase( const Phase& src, unsigned int replica )
+    : NullPhase(src),
+      _entry(src._entry != nullptr ? Entry::find( src._entry->name(), replica ) : nullptr ),	/* Only phases have entries */
+      _callList(),		// Done after all entries created
       _devices(),
       _prOvertaking(0.)
 {
@@ -754,7 +765,13 @@ Phase::processorEntry() const
 double
 Phase::processorCalls() const
 {
-    return processorCall() ? processorCall()->rendezvous() * processorCall()->fanOut() : 0.0;
+    if ( !processorCall() ) {
+	return 0.0;
+    } else if ( Pragma::pan_replication() ) {
+	return processorCall()->rendezvous() * processorCall()->fanOut();
+    } else {
+	return processorCall()->rendezvous();
+    }
 }
 
 
@@ -800,11 +817,12 @@ Phase::processorVariance() const
 double
 Phase::processorUtilization() const
 {
-    if ( processorCall() ) {
-	const Processor * aProc = dynamic_cast<const Processor *>(processorCall()->dstTask());
-	return throughput() * serviceTime()  / (processorCall()->fanOut() * aProc->rate() );
-    } else {
+    if ( !processorCall() ) {
 	return 0.0;		/* No processor == no utilization */
+    } else {
+	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
+	const double rate = dynamic_cast<const Processor *>(processorCall()->dstTask())->rate();
+	return (throughput() * serviceTime())  / (fan_out * rate);
     }
 }
 
@@ -1295,8 +1313,8 @@ Phase::stochastic_phase() const
  
 	/* then add up; the sum accounts for no of calls and fanout  */
 	//accumulate mean sum
-	const unsigned int fan_out = (*call)->fanOut();
-	double calls_var = (*call)->rendezvous() * fan_out * ((*call)->rendezvous() * fan_out + 1 );  //var of no of calls if geometric
+	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
+	const double calls_var = (*call)->rendezvous() * fan_out * ((*call)->rendezvous() * fan_out + 1 );  //var of no of calls if geometric
 	sumOfVariance += (*call)->rendezvous() * fan_out * (blocking_var + proc_var) 
 	    + calls_var * square(proc_wait + blocking_mean ); //accumulate variance sum
     }
@@ -1346,7 +1364,8 @@ Phase::mol_phase() const
 
 
 	Probability prVisit = (*call)->rendezvous() / sumOfRNV;
-	for ( unsigned i = 1; i <= (*call)->fanOut(); ++i ) {
+	const unsigned int fan_out = Pragma::pan_replication() ? (*call)->fanOut() : 1;
+	for ( unsigned i = 1; i <= fan_out; ++i ) {
 #ifdef NOTDEF
 	    SP_Model.addStage( prVisit, (*call)->wait(), Positive( (*call)->CV_sqr() ) );
 #else
@@ -1390,7 +1409,8 @@ Phase::deterministic_phase() const
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	const double var = (*call)->variance();
 	if ( std::isfinite( var ) ) {
-	    variance += (*call)->fanOut() * (*call)->rendezvous() * var;
+	    const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
+	    variance += (*call)->rendezvous() * fan_out * var;
 	}
     }
 
@@ -1423,10 +1443,11 @@ Phase::random_phase() const
     for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	if ( !(*call)->hasRendezvous() ) continue;
 
+	const double fan_out = Pragma::pan_replication() ? static_cast<double>(processorCall()->fanOut()) : 1.0;
 #ifdef NOTDEF
-	var_x += (*call)->fanOut() * (*call)->rendezvous() * ((*call)->dstEntry()->computeCV_sqr(1) * square((*call)->wait()));
-#else
-	var_x += (*call)->fanOut() * (*call)->rendezvous() * (*call)->variance();
+	var_x += (*call)->rendezvous() * fan_out * ((*call)->dstEntry()->computeCV_sqr(1) * square((*call)->wait()));
+#else					           
+	var_x += (*call)->rendezvous() * fan_out * (*call)->variance();
 #endif
 	sum_x += (*call)->rendezvousDelay();
     }

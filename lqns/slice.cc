@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: slice.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: slice.cc 14711 2021-05-28 12:43:57Z greg $
  *
  * Everything you wanted to know about a slice, but were afraid to ask.
  *
@@ -15,12 +15,11 @@
 #include "dim.h"
 #include <cmath>
 #include <mva/prob.h>
-#include "slice.h"
-#include "lqns.h"
-#include "entry.h"
 #include "call.h"
-
-
+#include "entry.h"
+#include "lqns.h"
+#include "pragma.h"
+#include "slice.h"
 
 /* ---------------------- Overloaded Operators ------------------------ */
 
@@ -99,6 +98,7 @@ Slice_Info::getCallInfo( const double scale, const std::set<Call *>& callList, c
 
 	const Entry& entD = *((*call)->dstEntry());
 			
+	const double fan_out = Pragma::pan_replication() ? static_cast<double>((*call)->fanOut()) : 1.0;
 	if ( (*call)->dstTask() == dst.owner() ) {
 	    lambda_ij += throughput * y_adp;
 	    y_ij      += y_adp;
@@ -108,16 +108,16 @@ Slice_Info::getCallInfo( const double scale, const std::set<Call *>& callList, c
 
 	    /* Visits to ``other'' replicas are not overtaking events. */
 			
-	    if ( (*call)->fanOut() > 1 ) {
-		const double n_other = (*call)->fanOut() - 1.0;
+	    if ( fan_out > 1 ) {
+		const double n_other = fan_out - 1.0;
 		lambda_ik += throughput * y_adp * n_other;
 		y_ik      += y_adp * n_other;
-		t_k	  += scale * (*call)->rendezvousDelay() * n_other / (*call)->fanOut();
+		t_k	  += scale * (*call)->rendezvousDelay() * n_other / fan_out;
 	    }
 			
 	} else {
-	    lambda_ik += throughput * y_adp * (*call)->fanOut();
-	    y_ik      += y_adp * (*call)->fanOut();
+	    lambda_ik += throughput * y_adp * fan_out;
+	    y_ik      += y_adp * fan_out;
 	    t_k	      += scale * (*call)->rendezvousDelay();
 	}
     }

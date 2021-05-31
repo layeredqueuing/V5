@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14706 2021-05-27 13:31:12Z greg $
+ * $Id: call.cc 14741 2021-05-31 12:34:50Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -64,7 +64,7 @@ std::set<Entity *>& Call::add_server( std::set<Entity *>& servers, const Call * 
 /* static */ double
 Call::add_rendezvous( double sum, const Call * call )
 {
-    if ( Pragma::replication() == Pragma::Replication::PAN ) {
+    if ( Pragma::pan_replication() ) {
 	return sum + call->rendezvous() * call->fanOut();
     } else {
 	return sum + call->rendezvous();
@@ -193,7 +193,7 @@ Call::getDOMValue() const
     const double value = getDOM()->getCallMeanValue();
     if ( (getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ))
 	 || getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0 ) {
-	std::stringstream ss;
+	std::ostringstream ss;
 	ss << value << " < " << value;
 	throw std::domain_error( ss.str() );
     }
@@ -257,7 +257,7 @@ Call::rendezvousDelay() const
 {
     if ( !hasRendezvous() ) {
 	return 0.0;
-    } else if ( Pragma::replication() == Pragma::Replication::PAN ) {
+    } else if ( Pragma::pan_replication() ) {
 	return rendezvous() * wait() * fanOut();
     } else {
 	return rendezvous() * wait();
@@ -431,11 +431,7 @@ Call::setVisits( const unsigned k, const unsigned p, const double rate )
     if ( aServer->hasServerChain( k ) && hasRendezvous() && !srcTask()->hasInfinitePopulation() ) {
 	Server * aStation = aServer->serverStation();
 	const unsigned e = dstEntry()->index();
-#if BUG_299
-	aStation->addVisits( e, k, p, rendezvous() / fanOut() * rate );
-#else
 	aStation->addVisits( e, k, p, rendezvous() * rate );
-#endif
     }
 }
 
@@ -701,7 +697,21 @@ ActivityCall::ActivityCall( const Activity * fromActivity, const Entry * toEntry
 ActivityCall::ActivityCall( const ActivityCall& src, unsigned int src_replica, unsigned int dst_replica )
     : Call( src, dst_replica ), FromActivity()
 {
-//  _destination = Entry::find( src._destination, replica adjusted for fanin/fanout, like task */	
+    const Task * task = Task::find( src.srcTask()->name(), src_replica );
+    const Activity * src_activity = task->findActivity( src.getSource()->name() );
+    setSource( src_activity );
+    const_cast<Activity*>(src_activity)->addSrcCall( this );
+    
+    /* Link to destination replica */
+    if ( src.dstEntry() != nullptr ) {
+	Entry * dst = Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(dst_replica) / static_cast<double>(src.fanIn())) ) );
+	setDestination( dst );
+	dst->addDstCall( this );	/* Set reverse link */
+    }
+#if 0
+    std::cerr << "ActivityCall::ActivityCall() from: " << getSource()->name() << "(" << srcEntry()->getReplicaNumber() << ")"
+	      << " to: " << dstEntry()->name() << "(" << dstEntry()->getReplicaNumber() << ")" << std::endl;
+#endif
 }
 
 

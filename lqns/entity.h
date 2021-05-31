@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14703 2021-05-27 02:19:32Z greg $
+ * $Id: entity.h 14710 2021-05-27 22:58:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -241,11 +241,13 @@ public:
     virtual std::ostream& print( std::ostream& ) const = 0;
     virtual std::ostream& printJoinDelay( std::ostream& output ) const { return output; }
     static SRVNManip print_server_chains( const Entity& entity ) { return SRVNManip( output_server_chains, entity ); }
-    static SRVNManip print_info( const Entity& entity ) { return SRVNManip( output_entity_info, entity ); }
+    SRVNManip print_info() const { return SRVNManip( output_info, *this ); }
+    SRVNManip print_type() const { return SRVNManip( output_type, *this ); }
 
 private:
-    static std::ostream& output_server_chains( std::ostream& output, const Entity& aServer );
-    static std::ostream& output_entity_info( std::ostream& output, const Entity& aServer );
+    static std::ostream& output_type( std::ostream& output, const Entity& );
+    static std::ostream& output_server_chains( std::ostream& output, const Entity& );
+    static std::ostream& output_info( std::ostream& output, const Entity& );
     
 protected:
     virtual unsigned validScheduling() const;

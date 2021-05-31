@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14644 2021-05-14 15:09:03Z greg $
+ * $Id: model.cc 14724 2021-05-29 14:16:40Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -175,34 +175,22 @@ Model::Model( LQIO::DOM::Document * document, const std::string& input_file_name
 
 Model::~Model()
 {
-    for ( std::set<Share *>::const_iterator s = Share::__share.begin(); s != Share::__share.end(); ++s ) {
-	delete *s;
-    }
+    std::for_each( Share::__share.begin(), Share::__share.end(), Delete<Share *> );
     Share::__share.clear();
 
-    for ( std::set<Task *>::const_iterator t = Task::__tasks.begin(); t != Task::__tasks.end(); ++t ) {
-	delete *t;
-    }
+    std::for_each( Task::__tasks.begin(), Task::__tasks.end(), Delete<Task *> );
     Task::__tasks.clear();
 
-    for ( std::set<Processor *>::const_iterator p = Processor::__processors.begin(); p != Processor::__processors.end(); ++p ) {
-	delete *p;
-    }
+    std::for_each( Processor::__processors.begin(), Processor::__processors.end(), Delete<Processor *> );
     Processor::__processors.clear();
 
-    for ( std::set<Entry *>::const_iterator e = Entry::__entries.begin(); e != Entry::__entries.end(); ++e ) {
-	delete *e;
-    }
+    std::for_each( Entry::__entries.begin(), Entry::__entries.end(), Delete<Entry *> );
     Entry::__entries.clear();
 
-    for ( std::vector<OpenArrivalSource *>::iterator o = OpenArrivalSource::__source.begin(); o != OpenArrivalSource::__source.end(); ++o ) {
-	delete *o;
-    }
+    std::for_each( OpenArrivalSource::__source.begin(), OpenArrivalSource::__source.end(), Delete<OpenArrivalSource *> );
     OpenArrivalSource::__source.clear();
 
-    for ( std::vector<Group *>::iterator g = Group::__groups.begin(); g != Group::__groups.end(); ++g ) {
-	delete *g;
-    }
+    std::for_each( Group::__groups.begin(), Group::__groups.end(), Delete<Group *> );
     Group::__groups.clear();
 
     Processor::__key_table.clear();
@@ -212,7 +200,6 @@ Model::~Model()
     Entry::__key_table.clear();
     Entry::__symbol_table.clear();
 
-    _layers.clear();
     if ( _key ) {
 	delete _key;
     }
@@ -1611,15 +1598,9 @@ Model::expand()
 
     /*  Delete all original Entities from the symbol table and collections */
 
-    for ( std::set<Entry *>::const_iterator entry = old_entry.begin(); entry != old_entry.end(); ++entry ) {
-	delete *entry;
-    }
-    for ( std::set<Task *>::const_iterator task = old_task.begin(); task != old_task.end(); ++task ) {
-	delete *task;
-    }
-    for ( std::set<Processor *>::const_iterator processor = old_processor.begin(); processor != old_processor.end(); ++processor ) {
-	delete *processor;
-    }
+    std::for_each( old_entry.begin(), old_entry.end(), Delete<Entry *> );
+    std::for_each( old_task.begin(), old_task.end(), Delete<Task *> );
+    std::for_each( old_processor.begin(), old_processor.end(), Delete<Processor *> );
 
     return *this;
 }

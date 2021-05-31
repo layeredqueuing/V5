@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14673 2021-05-21 19:15:02Z greg $
+ * $Id: entity.cc 14710 2021-05-27 22:58:01Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -745,17 +745,40 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
  */
 
 /* static */ std::ostream&
-Entity::output_server_chains( std::ostream& output, const Entity& aServer ) 
+Entity::output_server_chains( std::ostream& output, const Entity& entity ) 
 {
-    output << "Chains:" << aServer.serverChains() << std::endl;
+    output << "Chains:" << entity.serverChains() << std::endl;
     return output;
 }
 
 /* static */  std::ostream&
-Entity::output_entity_info( std::ostream& output, const Entity& aServer )
+Entity::output_info( std::ostream& output, const Entity& entity )
 {
-    if ( aServer.serverStation() ) {
-	output << "(" << aServer.serverStation()->typeStr() << ")";
+    if ( entity.serverStation() ) {
+	output << entity.serverStation()->typeStr();
+    } else {
+	output << "--";
     }
     return output;
 }
+
+
+/* static */ std::ostream&
+Entity::output_type( std::ostream& output, const Entity& entity )
+{
+    char buf[12];
+    const unsigned n = entity.copies();
+
+    if ( entity.scheduling() == SCHEDULE_CUSTOMER ) {
+	sprintf( buf, "ref(%d)", n );
+    } else if ( entity.isInfinite() ) {
+	sprintf( buf, "inf" );
+    } else if ( n > 1 ) {
+	sprintf( buf, "mult(%d)", n );
+    } else {
+	sprintf( buf, "serv" );
+    }
+    output << buf;
+    return output;
+}
+

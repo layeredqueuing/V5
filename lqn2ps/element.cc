@@ -1,6 +1,6 @@
 /* element.cc	-- Greg Franks Wed Feb 12 2003
  *
- * $Id: element.cc 14646 2021-05-14 15:13:42Z greg $
+ * $Id: element.cc 14724 2021-05-29 14:16:40Z greg $
  */
 
 #include "element.h"
@@ -31,8 +31,6 @@ Element::Element( const LQIO::DOM::DocumentObject * dom, const size_t id )
 
 Element::~Element()
 {
-    myLabel = 0;
-    myNode = 0;
 }
 
 

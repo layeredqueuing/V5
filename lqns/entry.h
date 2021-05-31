@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14701 2021-05-27 01:36:07Z greg $
+ * $Id: entry.h 14744 2021-05-31 15:47:38Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -218,7 +218,7 @@ private:
 
 public:
     virtual ~Entry();
-    virtual Entry * clone( unsigned int ) = 0;
+    virtual Entry * clone( unsigned int, AndOrForkActivityList * fork=nullptr ) = 0;
 
 public:
     bool check() const;
@@ -267,7 +267,8 @@ public:
     double sumOfSendNoReply( const unsigned p ) const;
     Entry& forward( Entry *, const LQIO::DOM::Call* callDOMInfo  );
     double forward( const Entry * anEntry ) const { return _phase[1].forward( anEntry ); }
-    virtual Entry& setStartActivity( Activity * );
+    const Activity * getStartActivity() const { return _startActivity; }
+    Entry& setStartActivity( Activity * );
     virtual double processorCalls( const unsigned ) const = 0;
     double processorCalls() const; 
     bool phaseIsPresent( const unsigned p ) const { return _phase[p].isPresent(); }
@@ -376,6 +377,7 @@ public:
 
     /* Printing */
 
+    std::ostream& printCalls( std::ostream& output, unsigned int submodel=0 ) const;
     std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
 
 protected:
@@ -422,7 +424,7 @@ protected:
     TaskEntry( const TaskEntry& src, unsigned int replica );
     
 public:
-    Entry * clone( unsigned int replica ) { return new TaskEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new TaskEntry( *this, replica ); }
 
     virtual TaskEntry& initProcessor();
     virtual TaskEntry& initWait();
@@ -457,12 +459,12 @@ class DeviceEntry : public Entry
 public:
     DeviceEntry( LQIO::DOM::Entry* domEntry, Processor * );
 
-protected:
+private:
     DeviceEntry( const DeviceEntry& src, unsigned int replica );
 
 public:
     virtual ~DeviceEntry();
-    Entry * clone( unsigned int replica ) { return new DeviceEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new DeviceEntry( *this, replica ); }
 
     virtual DeviceEntry& initProcessor();
     virtual DeviceEntry& initWait();
@@ -493,6 +495,10 @@ private:
 
 /* ------------------------- Virtual Entries -------------------------- */
 
+/*
+ * Used by class AndOrForkActivityList.
+ */
+
 class VirtualEntry : public TaskEntry 
 {
 public:
@@ -503,12 +509,10 @@ protected:
 
 public:
     ~VirtualEntry();
-    Entry * clone( unsigned int replica ) { return new VirtualEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new VirtualEntry( *this, replica ); }
 
     virtual bool isVirtualEntry() const { return true; }
-    virtual Entry& setStartActivity( Activity * );
-
-    virtual Call * processorCall( const unsigned ) const { return 0; }
+    virtual Call * processorCall( const unsigned ) const { return nullptr; }
 };
 
 void set_start_activity (Task* newTask, LQIO::DOM::Entry* targetEntry);

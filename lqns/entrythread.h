@@ -8,7 +8,7 @@
  * January, 2005
  *
  *
- * $Id: entrythread.h 14624 2021-05-09 13:01:43Z greg $
+ * $Id: entrythread.h 14744 2021-05-31 15:47:38Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -27,34 +27,36 @@ double min( const Thread& a, const Thread& b );
 class Thread : public VirtualEntry, public DiscretePoints
 {
 public:
+    Thread( const Activity * anActivity, AndForkActivityList * fork );
 
-    Thread( const Activity * anActivity, AndForkActivityList * aFork ) 
-	: VirtualEntry( anActivity ), DiscretePoints( 0.0, 0.0 ),
-	  myThinkTime(0.0), myStartTimeVariance(0.0), myFork(aFork), myJoinDelay(0.0) {}
+private:
+    Thread( const Thread& src, unsigned int replica, AndForkActivityList * fork );
+
+public:
+    virtual Entry * clone( unsigned int replica, AndForkActivityList * fork=nullptr ) { return new Thread( *this, replica, fork ); }
 
     virtual Thread& configure( const unsigned );
-    bool check() const;
 
     /* Instance variable access */
 
     Thread& setIdleTime( const double );
     Exponential startTime() const;
     Thread& startTime( const unsigned, const double );
-    virtual double getStartTime() const { return myStartTime.sum(); }
-    virtual double getStartTimeVariance() const { return myStartTimeVariance; }
-    Thread& joinDelay(double aJoinDelay) { myJoinDelay = aJoinDelay; return *this; }
-    double joinDelay() { return myJoinDelay; }
+    virtual double getStartTime() const { return _start_time.sum(); }
+    virtual double getStartTimeVariance() const { return _start_time_variance; }
+    Thread& joinDelay(double aJoinDelay) { _join_delay = aJoinDelay; return *this; }
+    double joinDelay() { return _join_delay; }
 
     /* Queries */
 
-    bool isSiblingOf( const Thread * sibling ) const { return myFork == sibling->myFork; }
+    bool isSiblingOf( const Thread * sibling ) const { return _fork == sibling->_fork; }
     bool isAncestorOf( const Thread * ) const;
     bool isDescendentOf( const Thread * ) const;
     bool isDisjointFrom( const Thread * ) const;
 
     /* Computation */
 
-    double thinkTime() const { return myThinkTime; }
+    double thinkTime() const { return _think_time; }
     Thread& estimateCDF();
     virtual double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */
 #if PAN_REPLICATION
@@ -62,11 +64,11 @@ public:
 #endif
 
 private:
-    double myThinkTime;
-    VectorMath<double> myStartTime;	/* Time this thread starts 	*/
-    double myStartTimeVariance;
-    const AndForkActivityList * myFork;	/* For searching for parents	*/
-    double myJoinDelay;
+    const AndForkActivityList * _fork;	/* For searching for parents	*/
+    double _think_time;
+    VectorMath<double> _start_time;	/* Time this thread starts 	*/
+    double _start_time_variance;
+    double _join_delay;
 };
 
 #endif
