@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14739 2021-05-31 09:51:24Z greg $
+ * $Id: task.cc 14746 2021-06-01 10:51:36Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -2266,7 +2266,6 @@ Task::create( LQIO::DOM::Task* dom, const std::vector<Entry *>& entries )
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, group_name.c_str() );
 	}
     }
-
     /* Pick-a-task */
 
     Task * task = nullptr;
@@ -2347,8 +2346,8 @@ Task::print( std::ostream& output ) const
     std::ostringstream ss;
     ss << name() << "." << getReplicaNumber();
     output << std::setw(10) << ss.str()
-	   << " " << std::setw(9)  << print_type()
-	   << " " << std::setw(15) << print_info();
+	   << " " << std::setw(15) << print_info()
+	   << " " << std::setw(9)  << print_type();
     ss.str("");
     if ( hasProcessor() ) {
 	ss << getProcessor()->name() << "." << getProcessor()->getReplicaNumber();
@@ -2388,20 +2387,6 @@ Task::output_activities( std::ostream& output, const Task& task )
 	    output << ", ";
 	}
 	output << (*activity)->name();
-    }
-    return output;
-}
-
-
-/* static */ std::ostream&
-Task::output_entries( std::ostream& output, const Task& task )
-{
-    const std::vector<Entry *>& entries = task.entries();
-    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
-	if ( entry != entries.begin() ) {
-	    output << ", ";
-	}
-	output << (*entry)->name() << "." << (*entry)->getReplicaNumber();
     }
     return output;
 }

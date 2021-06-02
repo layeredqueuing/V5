@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14744 2021-05-31 15:47:38Z greg $
+ * $Id: entry.h 14752 2021-06-02 12:34:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -218,7 +218,7 @@ private:
 
 public:
     virtual ~Entry();
-    virtual Entry * clone( unsigned int, AndOrForkActivityList * fork=nullptr ) = 0;
+    virtual Entry * clone( unsigned int, const AndOrForkActivityList * fork=nullptr ) const = 0;
 
 public:
     bool check() const;
@@ -424,7 +424,7 @@ protected:
     TaskEntry( const TaskEntry& src, unsigned int replica );
     
 public:
-    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new TaskEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new TaskEntry( *this, replica ); }
 
     virtual TaskEntry& initProcessor();
     virtual TaskEntry& initWait();
@@ -464,7 +464,7 @@ private:
 
 public:
     virtual ~DeviceEntry();
-    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new DeviceEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new DeviceEntry( *this, replica ); }
 
     virtual DeviceEntry& initProcessor();
     virtual DeviceEntry& initWait();
@@ -509,7 +509,7 @@ protected:
 
 public:
     ~VirtualEntry();
-    virtual Entry * clone( unsigned int replica, AndOrForkActivityList * fork=nullptr ) { return new VirtualEntry( *this, replica ); }
+    virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new VirtualEntry( *this, replica ); }
 
     virtual bool isVirtualEntry() const { return true; }
     virtual Call * processorCall( const unsigned ) const { return nullptr; }

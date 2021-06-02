@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14738 2021-05-30 23:13:12Z greg $
+ * $Id: task.h 14749 2021-06-01 12:31:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -215,10 +215,8 @@ public:
 
 private:
     SRVNManip print_activities() const { return SRVNManip( output_activities, *this ); }
-    SRVNManip print_entries() const { return SRVNManip( output_entries, *this ); }
 
     static std::ostream& output_activities( std::ostream& output, const Task& );
-    static std::ostream& output_entries( std::ostream& output, const Task& );
     static std::ostream& output_client_chains( std::ostream& output, const Task& aClient, const unsigned aSubmodel ) { aClient.printClientChains( output, aSubmodel ); return output; }
 
 protected:
@@ -271,6 +269,7 @@ private:
     
 public:
     ReferenceTask( LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries );
+    virtual ~ReferenceTask() = default;
 
 protected:
     ReferenceTask( const ReferenceTask& task, unsigned int replica ) : Task( task, replica ) {}
@@ -307,6 +306,7 @@ class ServerTask : public Task {
 public:
     ServerTask(LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries)
 	: Task(dom,aProc,aGroup,entries) {}
+    virtual ~ServerTask() = default;
 
 protected:
     ServerTask( const ServerTask& task, unsigned int replica ) : Task( task, replica ) {}
@@ -333,6 +333,7 @@ protected:
 class SemaphoreTask : public Task {
     SemaphoreTask(LQIO::DOM::Task* dom, const Processor * aProc, const Group * aGroup, const std::vector<Entry *>& entries)
 	: Task(dom,aProc,aGroup,entries) {}
+    virtual ~SemaphoreTask() = default;
 
 protected:
     SemaphoreTask( const SemaphoreTask& task, unsigned int replica ) : Task( task, replica ) {}

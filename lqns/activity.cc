@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14738 2021-05-30 23:13:12Z greg $
+ * $Id: activity.cc 14752 2021-06-02 12:34:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -121,6 +121,7 @@ Activity::Activity( const Task * task, const std::string& name )
       _replyList(),
       _specified(false),
       _reachable(false),
+      _replica_number(1),
 #if HAVE_LIBGSL
       _remote_quorum_delay(),
       _local_quorum_delay(false),
@@ -138,6 +139,7 @@ Activity::Activity( const Activity& src, const Task * task, unsigned int replica
       _replyList(),
       _specified(src._specified),
       _reachable(src._reachable),
+      _replica_number(replica),
 #if HAVE_LIBGSL
       _remote_quorum_delay(),
       _local_quorum_delay(false),
@@ -148,19 +150,6 @@ Activity::Activity( const Activity& src, const Task * task, unsigned int replica
     for ( std::set<const Entry *>::const_iterator entry = src._replyList.begin(); entry != src._replyList.end(); ++entry ) {
 	_replyList.insert( Entry::find( (*entry)->name(), replica ) );
     }
-}
-
-
-/*
- * Free resources.
- */
-
-Activity::~Activity()
-{
-    _replyList.clear();
-    _prevFork = nullptr;
-    _nextJoin = nullptr;
-
 }
 
 /* ------------------------ Instance Methods -------------------------- */
@@ -1312,5 +1301,3 @@ Activity::add_activity_lists()
     return *this;
 
 }
-
-

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14710 2021-05-27 22:58:01Z greg $
+ * $Id: entity.h 14750 2021-06-01 18:27:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -39,8 +39,6 @@ typedef Vector<unsigned> ChainVector;
 
 std::ostream& operator<<( std::ostream&, const Entity& );
 int operator==( const Entity&, const Entity& );
-
-#define TYPE_STR_BUFSIZ	20
 
 /* ----------------------- Abstract Superclass ------------------------ */
 
@@ -125,7 +123,7 @@ public:
     virtual unsigned replicas() const;
     double population() const { return _population; }
     virtual double variance() const { return _variance; }
-    virtual const Processor * getProcessor() const { return 0; }
+    virtual const Processor * getProcessor() const { return nullptr; }
     unsigned submodel() const { return _submodel; }
     Entity& setSubmodel( const unsigned submodel ) { _submodel = submodel; return *this; }
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return _thinkTime; }
@@ -243,11 +241,13 @@ public:
     static SRVNManip print_server_chains( const Entity& entity ) { return SRVNManip( output_server_chains, entity ); }
     SRVNManip print_info() const { return SRVNManip( output_info, *this ); }
     SRVNManip print_type() const { return SRVNManip( output_type, *this ); }
+    SRVNManip print_entries() const { return SRVNManip( output_entries, *this ); }
 
 private:
     static std::ostream& output_type( std::ostream& output, const Entity& );
     static std::ostream& output_server_chains( std::ostream& output, const Entity& );
     static std::ostream& output_info( std::ostream& output, const Entity& );
+    static std::ostream& output_entries( std::ostream& output, const Entity& );
     
 protected:
     virtual unsigned validScheduling() const;

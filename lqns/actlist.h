@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 14744 2021-05-31 15:47:38Z greg $
+ * $Id: actlist.h 14752 2021-06-02 12:34:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -67,7 +67,7 @@ private:
     ActivityList& operator=( const ActivityList& ) = delete;
 
 public:
-    virtual ~ActivityList() {}
+    virtual ~ActivityList() = default;
     virtual ActivityList& configure( const unsigned ) { return *this; }
 
     bool operator!=( const ActivityList& item ) const { return !(*this == item); }
@@ -123,6 +123,7 @@ class SequentialActivityList : public ActivityList
 {
 public:
     SequentialActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : ActivityList( owner, dom), _activity(nullptr) {}
+    virtual ~SequentialActivityList() = default;
 
 protected:
     SequentialActivityList( const SequentialActivityList&, const Task *, unsigned int );
@@ -146,6 +147,7 @@ class ForkActivityList : public SequentialActivityList
 {
 public:
     ForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
+    virtual ~ForkActivityList() = default;
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new ForkActivityList( *this, task, replica ); }
 
 protected:
@@ -177,6 +179,7 @@ class JoinActivityList : public SequentialActivityList
 public:
     JoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new JoinActivityList( *this, task, replica ); }
+    virtual ~JoinActivityList() = default;
 
 protected:
     JoinActivityList( const JoinActivityList&, const Task *, unsigned int );
@@ -215,13 +218,12 @@ private:
 
 public:
     ForkJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
+    virtual ~ForkJoinActivityList() = default;
 
 protected:
     ForkJoinActivityList( const ForkJoinActivityList&, const Task *, unsigned int );
 
 public:
-    virtual ~ForkJoinActivityList();
-
     virtual ForkJoinActivityList& add( Activity * anActivity );
 
     virtual bool operator==( const ActivityList& item ) const;
@@ -269,13 +271,13 @@ protected:
 	
 public:
     AndOrForkActivityList( Task * owner, LQIO::DOM::ActivityList * );
+    virtual ~AndOrForkActivityList();
 
 protected:
     AndOrForkActivityList( const AndOrForkActivityList& src, const Task * owner, unsigned int replica );
-
+    virtual VirtualEntry * cloneVirtualEntry( const Entry * src, const Task * owner, unsigned int replica ) const;
+    
 public:
-    virtual ~AndOrForkActivityList();
-
     virtual AndOrForkActivityList& configure( const unsigned );
 	
     bool hasNextFork() const;
@@ -319,6 +321,7 @@ class OrForkActivityList : public AndOrForkActivityList
 public:
     OrForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrForkActivityList( owner, dom ) {}
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new OrForkActivityList( *this, task, replica ); }
+    virtual ~OrForkActivityList() = default;
 
 protected:
     OrForkActivityList( const OrForkActivityList&, const Task *, unsigned int );
@@ -346,9 +349,11 @@ class AndForkActivityList : public AndOrForkActivityList
 public:
     AndForkActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new AndForkActivityList( *this, task, replica ); }
+    virtual ~AndForkActivityList() = default;
 
 protected:
     AndForkActivityList( const AndForkActivityList&, const Task *, unsigned int );
+    virtual VirtualEntry * cloneVirtualEntry( const Entry * src, const Task * owner, unsigned int replica ) const;
 
 public:	
     virtual AndForkActivityList& add( Activity * anActivity );
@@ -396,6 +401,7 @@ class AndOrJoinActivityList : public ForkJoinActivityList
 {
 public:
     AndOrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * );
+    virtual ~AndOrJoinActivityList() = default;
 
 protected:
     AndOrJoinActivityList( const AndOrJoinActivityList& src, const Task * owner, unsigned int replica );
@@ -431,6 +437,7 @@ private:
 
 public:
     OrJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom ) : AndOrJoinActivityList( owner, dom ), _rateList() {}
+    virtual ~OrJoinActivityList() = default;
 
 protected:
     OrJoinActivityList( const OrJoinActivityList&, const Task *, unsigned int );
@@ -468,6 +475,7 @@ public:
 
     AndJoinActivityList( Task * owner, LQIO::DOM::ActivityList * dom );
     virtual ActivityList * clone( const Task* task, unsigned int replica ) const { return new AndJoinActivityList( *this, task, replica ); }
+    virtual ~AndJoinActivityList() = default;
 
 protected:
     AndJoinActivityList( const AndJoinActivityList&, const Task *, unsigned int );

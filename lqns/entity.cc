@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14710 2021-05-27 22:58:01Z greg $
+ * $Id: entity.cc 14746 2021-06-01 10:51:36Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -751,6 +751,21 @@ Entity::output_server_chains( std::ostream& output, const Entity& entity )
     return output;
 }
 
+/* static */ std::ostream&
+Entity::output_entries( std::ostream& output, const Entity& entity )
+{
+    const std::vector<Entry *>& entries = entity.entries();
+    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
+	if ( entry != entries.begin() ) {
+	    output << ", ";
+	}
+	output << (*entry)->name() << "." << (*entry)->getReplicaNumber();
+    }
+    return output;
+}
+
+
+
 /* static */  std::ostream&
 Entity::output_info( std::ostream& output, const Entity& entity )
 {
@@ -781,4 +796,3 @@ Entity::output_type( std::ostream& output, const Entity& entity )
     output << buf;
     return output;
 }
-

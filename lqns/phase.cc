@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14726 2021-05-29 15:16:35Z greg $
+ * $Id: phase.cc 14752 2021-06-02 12:34:21Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -40,10 +40,34 @@
 #include "submodel.h"
 #include "task.h"
 #include "variance.h"
-
-
-
+
 /* ---------------------- Overloaded Operators ------------------------ */
+
+/*----------------------------------------------------------------------*/
+/*                              Null Phase                              */
+/*----------------------------------------------------------------------*/
+
+NullPhase::NullPhase( const std::string& name )
+    : _dom(nullptr),
+      _name(name),
+      _phase_number(0),
+      _serviceTime(0.0),
+      _variance(0.0),
+      _wait()
+{
+}
+
+
+NullPhase::NullPhase( const NullPhase& src )
+    : _dom(src._dom),
+      _name(src._name),
+      _phase_number(src._phase_number),
+      _serviceTime(0.0),
+      _variance(0.0),
+      _wait()
+{
+}
+
 
 /*
  * Allocate array space for submodels
@@ -1496,8 +1520,9 @@ Phase::initProcessor()
      */
 	
     if ( getDOM()->hasServiceTime() ) {
-	const std::string entry_name = owner()->name() + ':' + name();
-	_devices.push_back( new DeviceInfo( *this, entry_name, DeviceInfo::Type::HOST ) );
+	std::ostringstream entry_name;
+	entry_name << owner()->name() << "." << owner()->getReplicaNumber() << ':' << name();
+	_devices.push_back( new DeviceInfo( *this, entry_name.str(), DeviceInfo::Type::HOST ) );
     }
 
     /*
@@ -1543,7 +1568,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 	    .setCV_sqr( 1.0 )
 	    .initVariance();
     }
-    Model::__entry.insert( _entry );
+    assert( Model::__entry.insert( _entry ).second == true );
 		
     /* 
      * We may have to change this at some point.  However, we can't do

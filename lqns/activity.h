@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 14738 2021-05-30 23:13:12Z greg $
+ * $Id: activity.h 14752 2021-06-02 12:34:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -172,7 +172,7 @@ public:
 public:
     Activity( const Task *, const std::string& );
     Activity( const Activity&, const Task *, unsigned int replica );
-    virtual ~Activity();
+    virtual ~Activity() = default;
 
     Activity * clone( const Task* task, unsigned int replica ) { return new Activity( *this, task, replica ); }
 
@@ -201,6 +201,7 @@ public:
     Activity& add_activity_lists();
 
     const std::set<const Entry *>& replyList() const { return _replyList; }
+    virtual unsigned int getReplicaNumber() const { return _replica_number; }
 
     virtual Call * findOrAddCall( const Entry *, const queryFunc = 0 );
     virtual Call * findOrAddFwdCall( const Entry * anEntry );
@@ -315,7 +316,8 @@ private:
     std::set<const Entry *> _replyList;		/* Who I generate replies to.	*/
     bool _specified;				/* Set if defined		*/
     mutable bool _reachable;			/* Set if activity is reachable	*/
-
+    const unsigned int _replica_number;		/*				*/
+    
 #if HAVE_LIBGSL
 public:
     DiscretePoints _remote_quorum_delay;   	//tomari quorum

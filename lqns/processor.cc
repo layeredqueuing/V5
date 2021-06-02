@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14710 2021-05-27 22:58:01Z greg $
+ * $Id: processor.cc 14747 2021-06-01 11:39:04Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,14 +41,26 @@
 #include "task.h"
 
 bool Processor::__prune = false;
-
 
 /* ------------------------ Constructors etc. ------------------------- */
 
 Processor::Processor( LQIO::DOM::Processor* dom )
-    : Entity( dom, std::vector<Entry *>() )
+    : Entity( dom, std::vector<Entry *>() ),
+      _tasks(),
+      _groups(),
+      _utilization(0.0)
 {
 }
+
+
+Processor::Processor( const Processor& processor, unsigned int replica )
+    : Entity( processor, replica ),
+      _tasks(),
+      _groups(),
+      _utilization(0.0)
+{
+}
+
 
 
 /*
@@ -509,26 +521,8 @@ Processor::insertDOMResults(void) const
     }
     return *this;
 }
-
-
-/*
- * Print out info for this processor.
- */
-
-std::ostream&
-Processor::print( std::ostream& output ) const
-{
-    const std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
-    std::ostringstream ss;
-    ss << name() << "." << getReplicaNumber();
-    output << std::setw(10) << ss.str()
-	   << " " << std::setw(9)  << print_type() 
-	   << " " << std::setw(15) << print_info();
-    output.flags(oldFlags);
-    return output;
-}
 
-/* ----------------------- External functions. ------------------------ */
+/* -------------------------- Static methods -------------------------- */
 
 /*
  * Add a processor to the model.
@@ -558,23 +552,28 @@ Processor::find( const std::string& name, unsigned int replica )
     std::set<Processor *>::const_iterator processor = std::find_if( Model::__processor.begin(), Model::__processor.end(), EqualsReplica<Processor>( name, replica ) );
     return ( processor != Model::__processor.end() ) ? *processor : nullptr;
 }
+
+/*----------------------------------------------------------------------*/
+/*                               Printing                               */
+/*----------------------------------------------------------------------*/
 
+/*
+ * Print out info for this processor.
+ */
 
-/* static */ std::ostream&
-Processor::output_processor_type( std::ostream& output, const Processor& aProcessor )
+std::ostream&
+Processor::print( std::ostream& output ) const
 {
-    char buf[12];
-    const unsigned n = aProcessor.copies();
-
-    if ( aProcessor.scheduling() == SCHEDULE_CUSTOMER ) {
-	sprintf( buf, "ref(%d)", n );
-    } else if ( aProcessor.isInfinite() ) {
-	sprintf( buf, "inf" );
-    } else if ( n > 1 ) {
-	sprintf( buf, "mult(%d)", n );
-    } else {
-	sprintf( buf, "serv" );
-    }
-    output << buf;
+    const std::ios_base::fmtflags oldFlags = output.setf( std::ios::left, std::ios::adjustfield );
+    std::ostringstream ss;
+    ss << name() << "." << getReplicaNumber();
+    output << std::setw(10) << ss.str()
+	   << " " << std::setw(15) << print_info()
+	   << " " << std::setw(9)  << print_type(); 
+    output << " " << std::setw(10) << "--"
+	   << " " << std::setw(3)  << "--";
+    output << " " << print_entries();
+    output.flags(oldFlags);
     return output;
 }
+

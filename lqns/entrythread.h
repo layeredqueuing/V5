@@ -8,7 +8,7 @@
  * January, 2005
  *
  *
- * $Id: entrythread.h 14744 2021-05-31 15:47:38Z greg $
+ * $Id: entrythread.h 14752 2021-06-02 12:34:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -27,14 +27,13 @@ double min( const Thread& a, const Thread& b );
 class Thread : public VirtualEntry, public DiscretePoints
 {
 public:
-    Thread( const Activity * anActivity, AndForkActivityList * fork );
+    Thread( const Activity * anActivity, const AndForkActivityList * fork );
 
 private:
-    Thread( const Thread& src, unsigned int replica, AndForkActivityList * fork );
+    Thread( const Thread& src, unsigned int replica, const AndForkActivityList * fork );
 
 public:
-    virtual Entry * clone( unsigned int replica, AndForkActivityList * fork=nullptr ) { return new Thread( *this, replica, fork ); }
-
+    virtual Entry * clone( unsigned int replica, const AndOrForkActivityList * fork=nullptr ) const { return new Thread( *this, replica, dynamic_cast<const AndForkActivityList *>(fork) ); }
     virtual Thread& configure( const unsigned );
 
     /* Instance variable access */

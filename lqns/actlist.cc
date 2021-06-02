@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14744 2021-05-31 15:47:38Z greg $
+ * $Id: actlist.cc 14752 2021-06-02 12:34:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -432,11 +432,6 @@ ForkJoinActivityList::ForkJoinActivityList( const ForkJoinActivityList& src, con
 }
 
 
-ForkJoinActivityList::~ForkJoinActivityList()
-{
-}
-
-
 // Check cltns for equivalence.
 
 bool
@@ -492,11 +487,25 @@ AndOrForkActivityList::AndOrForkActivityList( const AndOrForkActivityList& src, 
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	const_cast<Activity *>(*activity)->prevFork( this );	/* Link activity to this list	*/
     }
-    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
-	VirtualEntry * new_entry = dynamic_cast<VirtualEntry * >((*entry)->clone( replica, this ));
-	_entryList.push_back( new_entry );
-	new_entry->owner( owner );
+}
+
+
+
+/*
+ * Clone the virtual entries.
+ */
+
+VirtualEntry *
+AndOrForkActivityList::cloneVirtualEntry( const Entry * src, const Task * owner, unsigned int replica ) const
+{
+    VirtualEntry * dst = dynamic_cast<VirtualEntry *>(src->clone( replica, this ));
+    dst->owner( owner );
+    if ( src->hasStartActivity() ) {
+	Activity * activity = owner->findActivity( src->getStartActivity()->name() );
+	dst->setStartActivity( activity );
+	activity->setEntry( dst );
     }
+    return dst;
 }
 
 
@@ -509,6 +518,7 @@ AndOrForkActivityList::~AndOrForkActivityList()
 {
     std::for_each( _entryList.begin(), _entryList.end(), Delete<Entry *> );
 }
+
 
 
 /*
@@ -654,9 +664,13 @@ AndOrForkActivityList::find_children::operator()( unsigned arg1, const Activity 
 /*                      Or Fork Activity Lists                          */
 /* -------------------------------------------------------------------- */
 
-OrForkActivityList::OrForkActivityList( const OrForkActivityList& src, const Task* task, unsigned int replica )
-    : AndOrForkActivityList( src, task, replica )
+OrForkActivityList::OrForkActivityList( const OrForkActivityList& src, const Task* owner, unsigned int replica )
+    : AndOrForkActivityList( src, owner, replica )
 {
+    /* Must be done here, rather in super class because constructor will not call subclass */
+    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
+	_entryList.push_back( cloneVirtualEntry( *entry, owner, replica ) );
+    }
 }
 
 
@@ -897,11 +911,29 @@ AndForkActivityList::AndForkActivityList( Task * owner, LQIO::DOM::ActivityList 
 }
 
 
-AndForkActivityList::AndForkActivityList( const AndForkActivityList& src, const Task* task, unsigned int replica )
-    : AndOrForkActivityList( src, task, replica ),
+AndForkActivityList::AndForkActivityList( const AndForkActivityList& src, const Task* owner, unsigned int replica )
+    : AndOrForkActivityList( src, owner, replica ),
       _joinDelay(0.0),
       _joinVariance(0.0)
 {
+    /* Must be done here, rather in super class because constructor will not call subclass */
+    for ( std::vector<VirtualEntry *>::const_iterator entry = src._entryList.begin(); entry != src._entryList.end(); ++entry ) {
+	_entryList.push_back( cloneVirtualEntry( *entry, owner, replica ) );
+    }
+}
+
+
+
+/*
+ * Clone the virtual entry (thread) and add the thread to the owner.
+ */
+
+VirtualEntry *
+AndForkActivityList::cloneVirtualEntry( const Entry * src, const Task * owner, unsigned int replica ) const
+{
+    Thread * dst = dynamic_cast<Thread *>(AndOrForkActivityList::cloneVirtualEntry( src, owner, replica ));
+    const_cast<Task *>(owner)->addThread( dst );
+    return dst;
 }
 
 
@@ -917,15 +949,14 @@ AndForkActivityList::add( Activity * anActivity )
 {
     ForkJoinActivityList::add( anActivity );
 
-    Thread * aThread = new Thread( anActivity, this );
-    assert( aThread->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
-    aThread->setStartActivity( anActivity );
-    _entryList.push_back( aThread );
+    Thread * thread = new Thread( anActivity, this );
+    assert( thread->entryTypeOk(LQIO::DOM::Entry::Type::ACTIVITY) );
+    thread->setStartActivity( anActivity );
+    _entryList.push_back( thread );
     assert( _entryList.size() == activityList().size() );
 
-    Task * aTask = const_cast<Task *>(dynamic_cast<const Task *>(anActivity->owner()));    /* Downcase/unconst */
-
-    aTask->addThread( aThread );
+    Task * task = const_cast<Task *>(dynamic_cast<const Task *>(anActivity->owner()));    /* Downcase/unconst */
+    task->addThread( thread );
 
     return *this;
 }
@@ -1550,6 +1581,7 @@ AndOrJoinActivityList::AndOrJoinActivityList( const AndOrJoinActivityList& src, 
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
 	const_cast<Activity *>(*activity)->nextJoin( this );	/* Link activity to this list	*/
     }
+    /* Subclasses clone the virtual entry */
 }
 
 

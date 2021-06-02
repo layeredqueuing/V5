@@ -11,7 +11,7 @@
  * May, 2009
  *
  * ------------------------------------------------------------------------
- * $Id: processor.h 14673 2021-05-21 19:15:02Z greg $
+ * $Id: processor.h 14749 2021-06-01 12:31:48Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,7 +46,7 @@ public:
 
 protected:
     Processor( LQIO::DOM::Processor* );
-    Processor( const Processor& processor, unsigned int replica ) : Entity( processor, replica ) {}
+    Processor( const Processor& processor, unsigned int replica );
 
 public:
     virtual ~Processor();
@@ -123,6 +123,13 @@ class DelayServer : public Processor
 {
 public:
     DelayServer() : Processor( nullptr ) {}		/* No Dom */
+    virtual ~DelayServer() = default;
+
+private:
+    DelayServer( const DelayServer& ) = delete;
+    DelayServer& operator=( const DelayServer& ) = delete;
+
+public:
     virtual Processor * clone() { throw std::runtime_error( "DelayServer::clone()" ); return nullptr; }
     virtual bool check() const { return true; }
 

@@ -1,5 +1,5 @@
 /* thread.cc	-- Greg Franks Fri May  2 2003
- * $Id: entrythread.cc 14742 2021-05-31 15:02:01Z greg $
+ * $Id: entrythread.cc 14752 2021-06-02 12:34:21Z greg $
  *
  */
 
@@ -25,7 +25,7 @@ double min( const Thread& a, const Thread& b )
 /* Thread -- ...							*/
 /*----------------------------------------------------------------------*/
 
-Thread::Thread( const Activity * anActivity, AndForkActivityList * fork ) 
+Thread::Thread( const Activity * anActivity, const AndForkActivityList * fork ) 
     : VirtualEntry( anActivity ),
       DiscretePoints( 0.0, 0.0 ),
       _fork(fork),
@@ -37,7 +37,7 @@ Thread::Thread( const Activity * anActivity, AndForkActivityList * fork )
 
 
 
-Thread::Thread( const Thread& src, unsigned int replica, AndForkActivityList * fork )
+Thread::Thread( const Thread& src, unsigned int replica, const AndForkActivityList * fork )
     : VirtualEntry( src, replica ),
       DiscretePoints( 0.0, 0.0 ),
       _fork(fork),
@@ -46,7 +46,7 @@ Thread::Thread( const Thread& src, unsigned int replica, AndForkActivityList * f
       _join_delay(0.0)
 {
 }
-	  
+
 
 
 Thread&
