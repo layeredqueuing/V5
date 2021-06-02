@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14746 2021-06-01 10:51:36Z greg $
+ * $Id: task.cc 14756 2021-06-02 15:47:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -134,12 +134,14 @@ Task::cloneActivities( const Task& src, unsigned int replica )
     for ( std::vector<Activity *>::const_iterator activity = src._activities.begin(); activity != src._activities.end(); ++activity ) {
 	Activity * new_activity = (*activity)->clone( this, replica );
 	_activities.push_back( new_activity );
-	if ( (*activity)->isStartActivity() ) {
-	    Entry * entry = Entry::find( (*activity)->entry()->name(), replica );
+
+	/* Copy start activities (note: virtual entries are done in the fork/repeat activity list code */
+	if ( !(*activity)->isStartActivity() ) continue;
+	Entry * entry = Entry::find( (*activity)->entry()->name(), replica );
+	if ( entry != nullptr && !entry->isVirtualEntry() ) {
 	    entry->setStartActivity( new_activity );
 	    new_activity->setEntry( entry );
 	}
-	    
     }
 
     /* Do the pre(join)-lists from the list retained by the task, the post(fork)-lists will be done after the corresponding pre-list is completed. */

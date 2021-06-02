@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: actlist.h 14752 2021-06-02 12:34:21Z greg $
+ * $Id: actlist.h 14754 2021-06-02 14:34:33Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -544,6 +544,7 @@ public:
 
 protected:
     RepeatActivityList( const RepeatActivityList&, const Task *, unsigned int );
+    virtual VirtualEntry * cloneVirtualEntry( const Entry * src, const Task * owner, unsigned int replica ) const;
 
 public:	
     virtual ~RepeatActivityList();
