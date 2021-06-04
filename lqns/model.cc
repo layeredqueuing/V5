@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14742 2021-05-31 15:02:01Z greg $
+ * $Id: model.cc 14768 2021-06-04 15:44:35Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -446,6 +446,7 @@ Model::initialize()
 	if ( flags.verbose ) std::cerr << "Generate... " << std::endl;
 	if ( generate( assignSubmodel() ) ) {
 	    _model_initialized = true;
+	    optimize();
 	    configure();		/* Dimension arrays and threads	*/
 	    initStations();		/* Init MVA values (pop&waits). */		/* -- Step 2 -- */
 	}
@@ -471,7 +472,7 @@ Model::extend()
 {
     /* Replicas. Create extra objects as needed.  */
 
-    if ( Pragma::replication() == Pragma::Replication::EXPAND ) {
+    if ( Pragma::replication() == Pragma::Replication::EXPAND || Pragma::replication() == Pragma::Replication::PRUNE ) {
 	/* Copy over original sets because we are going to insert the new objects directly */
 	const std::set<Processor *,lt_replica<Processor>> processors(Model::__processor);
 //	const std::set<Group *,lt_replica<Group>> Model::__group;
@@ -566,6 +567,7 @@ Model::generate( unsigned max_depth )
     /* Build model. */
 
     addToSubmodel();			/* Add tasks to layers.		*/
+    std::for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::addClients ) );
 
     /* split/prune submodels -- this will have to be done by subclass */
 
@@ -1272,6 +1274,20 @@ Batch_Model::addToSubmodel()
 	    _submodels[i]->addServer( __think_server );
 	}
     }
+}
+
+
+
+/*
+ * For each submodel, look for disjoint chains.  If found delete. This
+ * may be extended to the general case and may result in adding
+ * submodels.
+ */
+
+void
+Batch_Model::optimize()
+{
+    std::for_each( _submodels.begin(), _submodels.end(), Exec<Submodel>( &Submodel::optimize ) );
 }
 
 

@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14690 2021-05-24 19:33:27Z greg $
+ * $Id: submodel.h 14767 2021-06-04 12:22:55Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -77,11 +77,15 @@ public:
     void setThinkTime( unsigned int i, double thinkTime ) { _thinkTime[i] = thinkTime; }
     unsigned priority( const unsigned i ) const { return _priority[i]; }
 
-    virtual Submodel& initServers( const Model& );
+
+    Submodel& addClients();
+    virtual Submodel& initServers( const Model& ) { return *this; }
     virtual Submodel& reinitServers( const Model& ) { return *this; }
     virtual Submodel& initInterlock() { return *this; }
     virtual Submodel& build() { return *this; }
     virtual Submodel& rebuild() { return *this; }
+    virtual Submodel& optimize();
+
 
 #if PAN_REPLICATION
     virtual double nrFactor( const Server *, const unsigned, const unsigned ) const { return 0; }
@@ -130,8 +134,6 @@ class MVASubmodel : public Submodel {
     friend class Task;			/* closedModel */
     friend class Processor;		/* closedModel */
 
-    enum class cached { SET_FALSE, SET_TRUE, NOT_SET };
-
 public:
     MVASubmodel( const unsigned );
     virtual ~MVASubmodel();
@@ -157,11 +159,12 @@ public:
     virtual std::ostream& print( std::ostream& ) const;
 
 private:
-#if PAN_REPLICATION
-    bool hasPanReplication() const;
-#endif
     bool hasThreads() const { return _hasThreads; }
     bool hasSynchs() const { return _hasSynchs; }
+    bool hasReplicas() const { return _hasReplicas; }
+#if PAN_REPLICATION
+    bool usePanReplication() const;
+#endif
 
 protected:
     unsigned makeChains();
@@ -173,9 +176,7 @@ protected:
 private:
     bool _hasThreads;			/* True if client has forks.	*/
     bool _hasSynchs;			/* True if server has joins.	*/
-#if PAN_REPLICATION
-    mutable cached _hasPanReplication;
-#endif
+    bool _hasReplicas;			/* True is submodel has replica	*/
 
     /* MVA Stuff */
 	

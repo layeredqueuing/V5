@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <!-- $Id$ -->
-<!-- lqn2xml -o../regression-xml/52-replication.lqnx -->
 <lqn-model name="52-replication" description="lqn2xml 6.0 solution for model from: 52-replication.lqn." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="Simplified model from bug 166" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1"/>
+   <solver-params comment="Simplified model from bug 166, Pan replication" conv_val="0.01" it_limit="75" underrelax_coeff="0.9" print_int="1">
+      <pragma param="replication" value="pan"/>
+   </solver-params>
    <processor name="p1" scheduling="inf">
       <task name="t1" scheduling="ref">
          <fan-out dest="t2" value="2"/>

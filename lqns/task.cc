@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14756 2021-06-02 15:47:49Z greg $
+ * $Id: task.cc 14759 2021-06-03 12:26:31Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -944,7 +944,7 @@ Task::saveClientResults( const MVASubmodel& submodel )
 		double lambda = 0;
 
 #if PAN_REPLICATION
-		if ( submodel.hasPanReplication() ) {
+		if ( submodel.usePanReplication() ) {
 
 		    /*
 		     * Get throughput PER CUSTOMER because replication

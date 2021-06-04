@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14603 2021-04-16 15:53:36Z greg $
+ * $Id: model.cc 14765 2021-06-04 01:04:46Z greg $
  *
  * Load the SRVN model.
  */
@@ -1418,7 +1418,7 @@ Model::build_open_arrivals ()
 	a_task->entries.push_back( an_entry );
 
 	LQIO::DOM::ConstantExternalVariable  * var  = new LQIO::DOM::ConstantExternalVariable( 1 );
-	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY, phase, dst_dom, var );
+	LQIO::DOM::Call * call = new LQIO::DOM::Call( dst_dom->getDocument(), LQIO::DOM::Call::Type::SEND_NO_REPLY, phase, dst_dom, var );
 	phase->addCall( call );
 	an_entry->phase[1].add_call( call );
     }

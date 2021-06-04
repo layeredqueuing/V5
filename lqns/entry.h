@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14752 2021-06-02 12:34:21Z greg $
+ * $Id: entry.h 14765 2021-06-04 01:04:46Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -68,7 +68,7 @@ public:
     const Entry * dstEntry() const { return destination; }
 
 public:
-    const Call * phase[MAX_PHASES+1];
+    Vector<const Call *> phase;
 
 private:
     const Entry * source; 
@@ -85,7 +85,7 @@ class CallInfo {
 	const Entry * _dstEntry;
     };
 public:
-    CallInfo( const Entry& anEntry, Call::Type );
+    CallInfo( const Entry& anEntry, LQIO::DOM::Call::Type );
     CallInfo( const CallInfo& ) { abort(); }					/* Copying is verbotten */
     CallInfo& operator=( const CallInfo& ) { abort(); return *this; }		/* Copying is verbotten */
 	

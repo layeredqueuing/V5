@@ -169,8 +169,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call * call )
 {
     /* Make sure this is one of the supported call types */
     if (call->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY && 
-	call->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS &&
-	call->getCallType() != LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY) {
+	call->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	abort();
     }
 	

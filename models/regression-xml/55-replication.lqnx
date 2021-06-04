@@ -1,4 +1,5 @@
 <?xml version="1.0"?>
+<!-- $Id$ -->
 <!-- Test case "table1, set1" from  -->
 <!-- @Article{perf:heidelberger-83, -->
 <!--   author =       "Heidelberger, Philip and Trivedi, Kishor S.", -->
@@ -11,7 +12,9 @@
 <!--   month =        jan, -->
 <!-- Replicated version. -->
 <lqn-model name="55-replication" description="$Id: 55-replication.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="fork-join (set1) with replication" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
+   <solver-params comment="fork-join (set1) with Pan replication" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="5">
+      <pragma param="replication" value="pan"/>
+   </solver-params>
    <processor name="p1" scheduling="fcfs">
       <task name="t1" scheduling="ref">
 	 <fan-out dest="d1" value="4"/>

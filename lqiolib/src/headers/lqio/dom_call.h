@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_call.h 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_call.h 14765 2021-06-04 01:04:46Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -40,9 +40,7 @@ namespace LQIO {
 		NULL_CALL,
 		SEND_NO_REPLY,
 		RENDEZVOUS,
-		FORWARD,
-		QUASI_SEND_NO_REPLY,		// Special (lqsim/petrisrvn)
-		QUASI_RENDEZVOUS		// Special (lqns)
+		FORWARD
 	    };
 
 	    typedef bool (DOM::Call::*boolCallFunc)() const;

@@ -264,8 +264,7 @@ Phase::add_call( LQIO::DOM::Call * call )
 	if ( to_entry->test_and_set_recv( RENDEZVOUS_REQUEST ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
-    } else if (call->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY
-	       || call->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY ) {
+    } else if ( call->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
 	if ( to_entry->test_and_set_recv( SEND_NO_REPLY_REQUEST ) ) {
 	    _call[to_entry]._dom = call;		/* Save dom */
 	}
@@ -811,8 +810,7 @@ Phase::compute_queueing_delay( Call& call, const unsigned m, const Entry * b, co
 
 	    /* Drop probabiltity */
 
-	    if ( call._dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY
-		 || call._dom->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY ) {
+	    if ( call._dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY ) {
 		src->second._dp = drop_lambda( m, b, src_phase ) / tput;
 	    }
 
@@ -928,7 +926,7 @@ Phase::simplify_phase() const
 bool
 Call::is_rendezvous() const
 {
-    return _dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS || _dom->getCallType() == LQIO::DOM::Call::Type::QUASI_RENDEZVOUS;
+    return _dom->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS;
 }
 
 
@@ -936,7 +934,7 @@ Call::is_rendezvous() const
 bool
 Call::is_send_no_reply() const
 {
-    return _dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY || _dom->getCallType() == LQIO::DOM::Call::Type::QUASI_SEND_NO_REPLY;
+    return _dom->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY;
 }
 
 double

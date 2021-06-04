@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14752 2021-06-02 12:34:21Z greg $
+ * $Id: phase.cc 14765 2021-06-04 01:04:46Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1583,7 +1583,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 	visits = new LQIO::DOM::ConstantExternalVariable(1.0);
     }
     _call = _phase.newProcessorCall( _entry );
-    _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::Type::QUASI_RENDEZVOUS,
+    _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::Type::RENDEZVOUS,
 				     _phase.getDOM(), _entry->getDOM(), visits );
     _call->rendezvous( _call_dom );
 }

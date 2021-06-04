@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14696 2021-05-26 13:28:02Z greg $ *
+ * $Id: pragma.cc 14766 2021-06-04 11:44:40Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -71,7 +71,7 @@ Pragma::Pragma() :
     _quorum_delayed_calls(QuorumDelayedCalls::DEFAULT),
     _quorum_idle_time(QuorumIdleTime::DEFAULT),
 #endif
-    _replication(Replication::PAN),
+    _replication(Replication::EXPAND),
 #if RESCHEDULE
     _reschedule_on_async_send(false),
 #endif
@@ -339,6 +339,7 @@ void Pragma::setReplication(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::Replication> __replication_pragma = {
 	{ LQIO::DOM::Pragma::_expand_,		Pragma::Replication::EXPAND },
+	{ LQIO::DOM::Pragma::_prune_,		Pragma::Replication::PRUNE },
 	{ LQIO::DOM::Pragma::_pan_,		Pragma::Replication::PAN }
     };
 

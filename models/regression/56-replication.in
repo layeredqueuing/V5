@@ -17,7 +17,9 @@
 # $Id: 56-replication.in 11977 2014-04-14 00:46:01Z greg $
 # ------------------------------------------------------------------------
 
-G "Table 1, Set 5" 1e-06 50 5 0.9 -1
+#pragma replication=pan
+
+G "Table 1, Set 5, Pan Replication" 1e-06 50 5 0.9 -1
 
 P 2
   p p1 f

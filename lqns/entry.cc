@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14736 2021-05-30 22:35:59Z greg $
+ * $Id: entry.cc 14765 2021-06-04 01:04:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1039,12 +1039,21 @@ Entry::insertDOMResults(double *phaseUtils) const
 std::ostream&
 Entry::printCalls( std::ostream& output, unsigned int submodel ) const
 {
-    CallInfo calls( *this, Call::Type::RENDEZVOUS );
+    CallInfo calls( *this, LQIO::DOM::Call::Type::RENDEZVOUS );
 
     for ( std::vector<CallInfoItem>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
 	const Entry& src = *y->srcEntry();
 	const Entry& dst = *y->dstEntry();
 	if ( submodel != 0 && dst.owner()->submodel() != submodel ) continue;
+	output << std::setw(2) << " " << src.name() << "." << src.getReplicaNumber()
+	       << " -> " << dst.name() << "." << dst.getReplicaNumber() << std::endl;
+    }
+
+    CallInfo fwds( *this, LQIO::DOM::Call::Type::FORWARD );
+    for ( std::vector<CallInfoItem>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
+	const Entry& src = *y->srcEntry();
+	const Entry& dst = *y->dstEntry();
+//	if ( submodel != 0 && dst.owner()->submodel() != submodel ) continue;
 	output << std::setw(2) << " " << src.name() << "." << src.getReplicaNumber()
 	       << " -> " << dst.name() << "." << dst.getReplicaNumber() << std::endl;
     }
@@ -1662,13 +1671,9 @@ map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver
  */
 
 CallInfoItem::CallInfoItem( const Entry * src, const Entry * dst )
-    : source( src ), destination( dst )
+    : phase(MAX_PHASES), source( src ), destination( dst )
 {
-    if ( src == 0 || dst == 0 ) throw std::logic_error( "CallInfoItem::CallInfoItem" );
-
-    for ( unsigned p = 0; p <= MAX_PHASES; ++p ) {
-	phase[p] = 0;
-    }
+    if ( src == nullptr || dst == nullptr ) throw std::logic_error( "CallInfoItem::CallInfoItem" );
 }
 
 
@@ -1738,7 +1743,7 @@ CallInfoItem::isProcessorCall() const
  * Create a collection so that the () operator can step over it.
  */
 
-CallInfo::CallInfo( const Entry& entry, Call::Type callType )
+CallInfo::CallInfo( const Entry& entry, LQIO::DOM::Call::Type callType )
     : _calls()
 {
     if ( !entry.isStandardEntry() ) return;
@@ -1748,14 +1753,14 @@ CallInfo::CallInfo( const Entry& entry, Call::Type callType )
 	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
 	    if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() ) continue;
 
-	    if ( (    (callType == Call::Type::SEND_NO_REPLY) && (*call)->hasSendNoReply() )
-		 || ( (callType == Call::Type::FORWARDED) && (*call)->isForwardedCall() )
-		 || ( (callType == Call::Type::RENDEZVOUS) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
+	    if ( (    (callType == LQIO::DOM::Call::Type::SEND_NO_REPLY) && (*call)->hasSendNoReply() )
+		 || ( (callType == LQIO::DOM::Call::Type::FORWARD) && (*call)->isForwardedCall() )
+		 || ( (callType == LQIO::DOM::Call::Type::RENDEZVOUS) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
 		) {
 
 		std::vector<CallInfoItem>::iterator item = std::find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
 		if ( item == _calls.end() ) {
-		    _calls.push_back( CallInfoItem( &entry, (*call)->dstEntry() ) );
+		    _calls.emplace_back( CallInfoItem( &entry, (*call)->dstEntry() ) );
 		    _calls.back().phase[p] = (*call);
 		} else if ( item->phase[p] ) {
 		    if ( item->phase[p]->isForwardedCall() && (*call)->hasRendezvous() ) {
@@ -1806,8 +1811,7 @@ Entry::add_call( const unsigned p, const LQIO::DOM::Call* domCall )
 {
     /* Make sure this is one of the supported call types */
     if (domCall->getCallType() != LQIO::DOM::Call::Type::SEND_NO_REPLY &&
-	domCall->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS &&
-	domCall->getCallType() != LQIO::DOM::Call::Type::QUASI_RENDEZVOUS) {
+	domCall->getCallType() != LQIO::DOM::Call::Type::RENDEZVOUS ) {
 	abort();
     }
 
@@ -1895,5 +1899,3 @@ Entry::get_servers::operator()( const Entry * entry ) const
     if ( entry->isActivityEntry() ) return;
     std::for_each( entry->_phase.begin(), entry->_phase.end(), Phase::get_servers( _servers ) );
 }
-
-

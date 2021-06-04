@@ -17,7 +17,9 @@
 # $Id: 55-replication.in 11977 2014-04-14 00:46:01Z greg $
 # ------------------------------------------------------------------------
 
-G "fork-join (set1) with replication" 1e-06 50 5 0.9 -1
+#pragma replication=pan
+
+G "fork-join (set1) with Pan replication" 1e-06 50 5 0.9 -1
 
 P 2
   p p1 f

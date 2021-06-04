@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
-<!-- Invoked as: lqn2xml 51-replication.in -->
-<!-- Sat May 23 21:15:12 2009 -->
-
+<!-- $Id$ -->
 <lqn-model name="51-replication" description="$Id: 51-replication.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
-   <solver-params comment="" conv_val="1e-05" it_limit="500" print_int="10" underrelax_coeff="0.9"/>
+   <solver-params comment="Replicated model from Pan thesis." conv_val="1e-05" it_limit="500" underrelax_coeff="0.9" print_int="10">
+      <pragma param="replication" value="pan"/>
+   </solver-params>
    <processor name="A1" scheduling="fcfs" replication="2">
       <task name="A1" scheduling="ref" replication="2">
 	 <fan-out dest="C1" value="3"/>

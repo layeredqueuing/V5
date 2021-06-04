@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14655 2021-05-17 15:16:53Z greg $
+ *  $Id: dom_pragma.cpp 14766 2021-06-04 11:44:40Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -281,7 +281,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__quorum_delayed_calls_args = { _keep_all_, _abort_all_, _abort_local_, _abort_remote_ };
 	const std::set<std::string> Pragma::__quorum_distribution_args = { _threepoint_, _gamma_, _geometric_, _deterministic_ };
 	const std::set<std::string> Pragma::__quorum_idle_time_args = { _default_, _join_delay_ };
-	const std::set<std::string> Pragma::__replication_args = { _expand_, _pan_ };
+	const std::set<std::string> Pragma::__replication_args = { _expand_, _prune_, _pan_ };
 	const std::set<std::string> Pragma::__scheduling_model_args = { _default_, _default_natural_, _custom_, _custom_natural_ };
 	const std::set<std::string> Pragma::__task_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_RAND].XML };
 	const std::set<std::string> Pragma::__threads_args = { _hyper_, _mak_, _none_, _exponential_ };

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14741 2021-05-31 12:34:50Z greg $
+ * $Id: model.h 14766 2021-06-04 11:44:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -86,6 +86,7 @@ protected:
     virtual unsigned assignSubmodel() = 0;
     static unsigned topologicalSort();
     virtual void addToSubmodel() = 0;
+    virtual void optimize() {}
     void initStations();
     void reinitStations();
 
@@ -177,6 +178,7 @@ protected:
 
     virtual unsigned assignSubmodel();
     virtual void addToSubmodel();
+    virtual void optimize();
     virtual double run();
 };
 
