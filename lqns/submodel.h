@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14767 2021-06-04 12:22:55Z greg $
+ * $Id: submodel.h 14777 2021-06-07 18:56:41Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -24,7 +24,6 @@
 
 class Call;
 class Processor;
-class Entry;
 class Model;
 class MVA;
 class MVACount;
@@ -36,7 +35,10 @@ class Group;
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
 	 
 class Submodel {
-
+protected:
+    typedef std::pair< std::set<Task *>, std::set<Entity*> > submodel_group_t;
+    
+private:
     class SubmodelManip {
     public:
 	SubmodelManip( std::ostream& (*ff)(std::ostream&, const Submodel&, const unsigned long ),
@@ -48,6 +50,18 @@ class Submodel {
 	const unsigned long arg;
 
 	friend std::ostream& operator<<(std::ostream & os, const SubmodelManip& m ) { return m.f(os,m.submodel,m.arg); }
+    };
+
+    /*
+     * Remove all tasks/entites 'y' from either _clients/_servers 'x'.  Mark 'y'
+     * as pruned.
+     */
+    
+    template <class Type> struct erase_from {
+	erase_from<Type>( std::set<Type>& x ) : _x(x) {}
+	void operator()( Type y ) { _x.erase(y); y->setPruned(true); }
+    private:
+	std::set<Type>& _x;
     };
 
 public:
@@ -105,6 +119,9 @@ protected:
     SubmodelManip print_submodel_header( const Submodel& aSubModel, const unsigned long iterations  ) { return SubmodelManip( &Submodel::submodel_header_str, aSubModel, iterations ); }
 
 private:
+    void addToGroup( Task *, submodel_group_t& group ) const;
+    bool replicaGroups( const std::set<Task *>&, const std::set<Task *>& ) const;
+		     
     static std::ostream& submodel_header_str( std::ostream& output, const Submodel& aSubmodel, const unsigned long iterations );
 
 protected:

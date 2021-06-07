@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14768 2021-06-04 15:44:35Z greg $
+ * $Id: model.cc 14772 2021-06-07 12:42:47Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -91,10 +91,10 @@ Processor * Model::__think_server = nullptr;
 unsigned Model::__sync_submodel = 0;
 LQIO::DOM::Document::input_format Model::input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
 
-std::set<Processor *,lt_replica<Processor>> Model::__processor;
-std::set<Group *,lt_replica<Group>> Model::__group;
-std::set<Task *,lt_replica<Task>> Model::__task;
-std::set<Entry *,lt_replica<Entry>> Model::__entry;
+std::set<Processor *,Model::lt_replica<Processor>> Model::__processor;
+std::set<Group *,Model::lt_replica<Group>> Model::__group;
+std::set<Task *,Model::lt_replica<Task>> Model::__task;
+std::set<Entry *,Model::lt_replica<Entry>> Model::__entry;
 
 /*----------------------------------------------------------------------*/
 /*                           Factory Methods                            */

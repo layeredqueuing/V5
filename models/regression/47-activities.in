@@ -3,7 +3,7 @@
 # For: greg
 # Mon Sep 21 14:04:38 2020
 # Invoked as: lqngen or-fork.lqn
-# $Id$
+# $Id: 47-activities.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 G "OR Fork with Loop on branch (bug 252)" 	# Model comment 

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14768 2021-06-04 15:44:35Z greg $
+ * $Id: submodel.cc 14776 2021-06-07 18:35:47Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -459,27 +459,38 @@ MVASubmodel::rebuild()
 
 
 /*
- * Look for disjoint chains.
+ * Look for disjoint chains.  This works as-is for the simple case.
+ * However, it will fail for fan-in.  So:
+ *   1) starting from the first client, form a set of tasks consisting of all the servers and clients to those servers.  
+ *   2) Repeat Using the next client not found in this set and form a second set.  Compare the two (or more) sets for
+ *      intersection.  Non-intersecting sets which match based on name (but not replica) can be pruned.  Non intersecting
+ *      sets that fail pruning can be partitioned into a new submodel.  Don't forget to ++__sync_submodel and renumber
+ *      all submodels.
+ *   3) For pruned tasks, I believe the easiest thing to do for update is to copy the waiting times across in
+ *      delta_wait. Multiplying Call::rendezvousDelay() doesn't seem to work.
+ *
  */
 
 Submodel&
 Submodel::optimize()
 {
     if ( _clients.size() <= 1 ) return *this;	/* No operation */
+    std::vector<submodel_group_t> groups;
     
     /* Collect all servers for each client */
-    std::map<const Task *,std::set<Entity *>> servers;
-    std::map<const Task *,bool> pruneable;
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
-	servers.emplace( *client, (*client)->getServers( _servers ) );
+	const std::set<Task *>& group = groups.back().first;
+	if ( !groups.empty() && std::find( group.begin(), group.end(), *client ) != group.end() ) continue;	/* already there */
+	groups.resize( groups.size() + 1 );
+	addToGroup( *client, groups.back() );
     }
 
-    /* remove any set where the client and server are all replicas (the same?) and disjoint */
-    for ( std::map<const Task *,std::set<Entity *>>::const_iterator i = servers.begin(); i != servers.end(); ++i ) {
-	std::set<Task *> set_union;
-	/* don't have to go before i as tested earlier */
+    /* locate groups which match */
+    std::vector<submodel_group_t*> disjoint;
+    for ( std::vector<submodel_group_t>::iterator i = groups.begin(); i != groups.end(); ++i ) {
 	bool can_prune = true;
-	for ( std::map<const Task *,std::set<Entity *>>::const_iterator j = std::next(i); j != servers.end() && can_prune; ++j ) {
+	for ( std::vector<submodel_group_t>::const_iterator j = groups.begin(); can_prune && j != groups.end(); ++j ) {
+	    if ( i == j ) continue;
 	    std::set<Entity *> intersection;
 	    std::set_intersection( i->second.begin(), i->second.end(),
 				   j->second.begin(), j->second.end(),
@@ -487,33 +498,79 @@ Submodel::optimize()
 	    if ( !intersection.empty() ) can_prune = false;
 	}
 	if ( can_prune ) {
-	    pruneable.emplace( i->first, true );
+	    disjoint.push_back( &(*i) );
 	}
     }
     
-#if 1
-    std::cerr << "Submodel " << number() << ", can prune: ";
-    for ( std::map<const Task *,bool>::const_iterator i = pruneable.begin(); i != pruneable.end(); ++i ) {
-	if ( i != pruneable.begin() ) std::cerr << ", ";
-	const Task * task = i->first;
-	std::cerr << task->name() << ":" << task->getReplicaNumber();
-    }
-    std::cerr << std::endl;
-#endif
-
+    /* pruneble if clients are replicas of each other */
     if ( Pragma::replication() == Pragma::Replication::PRUNE ) {
-	for ( std::map<const Task *,bool>::const_iterator client = pruneable.begin(); client != pruneable.end(); ++client ) {
-	    const Task * task = client->first;
-	    if ( task->getReplicaNumber() == 1 ) continue;
-	    const std::set<Entity *>& purgeable = servers.at(task);
-	    for ( std::set<Entity *>::const_iterator server = purgeable.begin(); server != purgeable.end(); ++server ) {
-		_servers.erase( *server );
+	std::set<submodel_group_t*> purgeable;
+	for ( std::vector<submodel_group_t*>::const_iterator i = disjoint.begin(); i != disjoint.end(); ++i ) {
+	    for ( std::vector<submodel_group_t*>::const_iterator j = std::next(i); j != disjoint.end(); ++j ) {
+		/* If all the clients in j are replicas of i, then prune j */
+		if ( !replicaGroups( (*i)->first, (*j)->first ) ) continue;
+#if 1
+		std::cerr << "Submodel " << number() << ", can prune: ";
+		std::set<Task *>& clients = (*j)->first;
+		for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+		    std::cerr << (*client)->name() << ":" << (*client)->getReplicaNumber();
+		}
+		std::cerr << std::endl;
+#endif
+		purgeable.insert( *j );
 	    }
-	    _clients.erase( const_cast<Task *>(task) );
+	}
+
+	for ( std::set<submodel_group_t*>::const_iterator purge = purgeable.begin(); purge != purgeable.end(); ++purge ) {
+	    std::for_each( (*purge)->first.begin(), (*purge)->first.end(), erase_from<Task *>(  _clients ) );
+	    std::for_each( (*purge)->second.begin(), (*purge)->second.end(), erase_from<Entity *>( _servers ) );
 	}
     }
 
     return *this;
+}
+
+
+
+void
+Submodel::addToGroup( Task * task, submodel_group_t& group ) const
+{
+    group.first.insert( task );
+
+    /* Find the servers of this client (in this submodel) */
+    const std::set<Entity *> servers = task->getServers( _servers );
+    group.second.insert( servers.begin(), servers.end() );
+
+    /* Now, find all of the clients of the servers just found, and repeat this for any new client in this submodel's _clients */
+
+    for ( std::set<Entity *>::const_iterator server = servers.begin(); server != servers.end(); ++server ) {
+	std::set<Task *> clients;
+	(*server)->getClients( clients );
+
+	/* If a client is in this submodel and has not been found already, recurse */
+	for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {
+	    if ( _clients.find( *client ) == _clients.end() || group.first.find( *client ) != group.first.end() ) continue;
+	    addToGroup( *client, group );
+	}
+    }
+}
+
+
+
+/*
+ * Check b for replicas in found in a.  They must all be.
+ */
+
+bool
+Submodel::replicaGroups( const std::set<Task *>& a, const std::set<Task *>& b ) const
+{
+    std::set<Task *> dst = b;	/* Copy for erasure */
+    for ( std::set<Task *>::const_iterator src = a.begin(); src != a.end(); ++src ) {
+	std::set<Task *>::iterator item = std::find_if( dst.begin(), dst.end(), Entity::matches( (*src)->name() ) );
+	if ( item == dst.end() ) return false;
+	dst.erase( item );
+    }
+    return dst.empty();
 }
 
 

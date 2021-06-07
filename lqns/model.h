@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14766 2021-06-04 11:44:40Z greg $
+ * $Id: model.h 14772 2021-06-07 12:42:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -37,8 +37,13 @@ class Group;
 /* ----------------------- Abstract Superclass. ----------------------- */
 
 class Model {
+private:
+    template <class Type> struct lt_replica
+    {
+	bool operator()(const Type * a, const Type * b) const { return a->name() < b->name() || a->getReplicaNumber() < b->getReplicaNumber(); }
+    };
+    
 protected:
-
     class SolveSubmodel {
     public:
 	SolveSubmodel( Model& model, bool verbose ) : _model(model), _verbose(verbose) {}

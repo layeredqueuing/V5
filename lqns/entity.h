@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14750 2021-06-01 18:27:33Z greg $
+ * $Id: entity.h 14774 2021-06-07 15:07:03Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -62,9 +62,21 @@ protected:
 
 public:
     /*
-     * Compare two entities by their submodel. 
+     * Compare two entities by their name, but not replica number
+     * except that entity must be a replica.
      */
 
+    struct matches {
+	matches( const std::string& name ) : _name(name) {}
+	bool operator()( const Entity * entity ) const { return entity->name() == _name && entity->getReplicaNumber() > 1; }
+    private:
+	const std::string _name;
+    };
+
+    /*
+     * Update waiting times.
+     */
+    
     struct update_wait {
 	update_wait( Entity& entity ) : _entity(entity) {}
 	void operator()( const Submodel* submodel ) { _entity.updateWait( *submodel, 1.0 ); }
@@ -129,7 +141,8 @@ public:
     virtual double thinkTime( const unsigned = 0, const unsigned = 0 ) const { return _thinkTime; }
     virtual Entity& setOverlapFactor( const double ) { return *this; }
     unsigned getReplicaNumber() const { return _replica_number; }
-
+    Entity& setPruned( bool pruned ) { _pruned = pruned; return *this; }
+    
     virtual unsigned int fanOut( const Entity * ) const = 0;
     virtual unsigned int fanIn( const Task * ) const = 0;
 
@@ -170,6 +183,7 @@ public:
     bool isCalledBy( const Task* ) const;
     bool isMultiServer() const   	{ return copies() > 1; }
     bool isReplicated() const		{ return replicas() > 1; }
+    bool isPruned() const		{ return _pruned; }
 
     bool schedulingIsOk( const unsigned bits ) const;
 
@@ -290,5 +304,6 @@ private:
 
     ChainVector _serverChains;		/* Chains for this server.	*/
     const unsigned int _replica_number;	/* > 1 if a replica		*/
+    bool _pruned;			/* True if pruned		*/
 };
 #endif

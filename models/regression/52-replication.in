@@ -1,5 +1,5 @@
 # SRVN Model Description File, for file: bug-166.lqnx
-# $Id$
+# $Id: 52-replication.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 #pragma replication=pan

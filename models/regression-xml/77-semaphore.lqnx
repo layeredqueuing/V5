@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<!-- $Id$ -->
+<!-- $Id: 77-semaphore.lqnx 14771 2021-06-05 15:44:40Z greg $ -->
 <!-- lqn2xml -o77-semaphore.lqnx -->
 <lqn-model name="../regression/77-semaphore" description="lqn2xml 5.17 solution for model from: ../regression/77-semaphore.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Semaphore test case." conv_val="1e-05" it_limit="50" underrelax_coeff="0.9" print_int="10"/>

@@ -2,7 +2,7 @@
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/regression/01L-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id: 01L-sanity.in 11166 2012-10-18 14:11:41Z greg $
+# $Id: 01L-sanity.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 $c = [0.2 : 2.0, 0.2]	# Client Service Time

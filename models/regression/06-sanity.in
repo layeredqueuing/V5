@@ -2,7 +2,7 @@
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/regression/06-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id: 06-sanity.in 8771 2009-06-20 11:55:10Z greg $
+# $Id: 06-sanity.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - client think time." 1e-05 50 10 0.9 -1

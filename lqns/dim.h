@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: dim.h 14741 2021-05-31 12:34:50Z greg $
+ * $Id: dim.h 14772 2021-06-07 12:42:47Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -62,11 +62,6 @@ static inline void throw_bad_parameter() { throw std::domain_error( "invalid par
 struct lt_str
 {
     bool operator()(const char* s1, const char* s2) const { return strcmp(s1, s2) < 0; }
-};
-
-template <class Type> struct lt_replica
-{
-    bool operator()(const Type * a, const Type * b) const { return a->name() < b->name() || a->getReplicaNumber() < b->getReplicaNumber(); }
 };
 
 template <class Type> struct Exec

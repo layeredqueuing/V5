@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml -o61-quorum.lqnx 61-quorum.in -->
 <!-- Thu May 28 09:03:19 2009 -->
 
-<lqn-model name="61-quorum" description="$Id: 89-quorum.lqnx 11963 2014-04-10 14:36:42Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="61-quorum" description="$Id: 89-quorum.lqnx 14771 2021-06-05 15:44:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="quorum model (meets assumptions)" conv_val="1e-06" it_limit="50" print_int="5" underrelax_coeff="0.9"/>
    <processor name="p0" scheduling="fcfs">
       <task name="t0" scheduling="ref">

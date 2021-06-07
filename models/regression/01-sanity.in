@@ -2,7 +2,7 @@
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/regression/01-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id: 01-sanity.in 8674 2009-05-28 15:05:07Z greg $
+# $Id: 01-sanity.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 G "Simplest model - rendezvous." 	# Model comment 

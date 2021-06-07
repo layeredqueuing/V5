@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14746 2021-06-01 10:51:36Z greg $
+ * $Id: entity.cc 14777 2021-06-07 18:56:41Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -87,7 +87,8 @@ Entity::Entity( LQIO::DOM::Entity* dom, const std::vector<Entry *>& entries )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
-      _replica_number(1)		/* This object is not a replica	*/
+      _replica_number(1),		/* This object is not a replica	*/
+      _pruned(false)
 {
     attributes.initialized      = 0;		/* entity was initialized.	*/
     attributes.closed_model	= 0;		/* Stn in in closed model.     	*/
@@ -116,7 +117,8 @@ Entity::Entity( const Entity& src, unsigned int replica )
       _maxPhase(1),
       _utilization(0),
       _lastUtilization(-1.0),		/* Force update 		*/
-      _replica_number(replica)		/* This object is a replica	*/
+      _replica_number(replica),		/* This object is a replica	*/
+      _pruned(false)
 {
     attributes.initialized      = src.attributes.initialized;
     attributes.closed_model	= src.attributes.closed_model;

@@ -2,7 +2,7 @@
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/models/regression/09-sanity.in $
 # 
 # ------------------------------------------------------------------------
-# $Id: 09-sanity.in 13899 2020-09-30 13:07:24Z greg $
+# $Id: 09-sanity.in 14771 2021-06-05 15:44:40Z greg $
 # ------------------------------------------------------------------------
 
 G "Most Common features." 1e-05 50 10 0.9 -1
