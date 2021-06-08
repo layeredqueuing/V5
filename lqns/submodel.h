@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14777 2021-06-07 18:56:41Z greg $
+ * $Id: submodel.h 14780 2021-06-08 14:38:32Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -82,7 +82,7 @@ public:
     const std::set<Task *>& getClients() const { return _clients; }			/* Table of clients 		*/
     virtual const char * const submodelType() const = 0;
     unsigned number() const { return _submodel_number; }
-    Submodel& number( const unsigned );
+    Submodel& setSubmodelNumber( const unsigned );
 
     virtual VectorMath<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }

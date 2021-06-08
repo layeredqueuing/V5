@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14777 2021-06-07 18:56:41Z greg $
+ * $Id: entity.cc 14782 2021-06-08 15:33:25Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -36,6 +36,7 @@
 #include "errmsg.h"
 #include "lqns.h"
 #include "pragma.h"
+#include "processor.h"
 #include "submodel.h"
 #include "task.h"
 #include "variance.h"
@@ -170,6 +171,9 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
 {
     unsigned max_depth = std::max( submodel(), callStack.depth() );
 
+#if 0
+    std::cerr << "Entity::findChildren: " << name() << "." << getReplicaNumber() << "->setSubmodel(" << max_depth << ")" << std::endl;
+#endif
     const_cast<Entity *>(this)->setSubmodel( max_depth );
     return max_depth;
 }
@@ -606,9 +610,23 @@ Entity::initServerStation( Submodel& submodel )
 	computeVariance();
     }
 
+    /* If this entity has been pruned, remap to the base replica */
+#if BUG_299_PRUNE
+    const Entity * entity = nullptr;
+    if ( !isPruned() ) {
+	entity = this;
+    } else if ( isProcessor() ) {
+	entity = Processor::find( name() );
+    } else {
+	entity = Task::find( name() );
+    }
+    const std::vector<Entry *>& entries = entity->entries();
+#else
+    const std::vector<Entry *>& entries = this->entries();
+#endif
+
     const ChainVector& aChain = serverChains();
-    const std::vector<Entry *>& server_entries = entries();
-    for ( std::vector<Entry *>::const_iterator entry = server_entries.begin(); entry != server_entries.end(); ++entry ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	const unsigned e = (*entry)->index();
 	const double openArrivalRate = (*entry)->openArrivalRate();
 
@@ -617,7 +635,6 @@ Entity::initServerStation( Submodel& submodel )
 	}
 
 	/* -- Set service time for entries with visits only. -- */
-
 	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
 	    setServiceTime( (*entry), aChain[ix] );
 	}
@@ -667,7 +684,6 @@ Entity::setServiceTime( const Entry * entry, unsigned k ) const
 
     for ( unsigned p = 1; p <= entry->maxPhase(); ++p ) {
 	station->setService( e, k, p, entry->elapsedTimeForPhase(p) );
-
 	if ( hasVariance() ) {
 	    station->setVariance( e, k, p, entry->varianceForPhase(p) );
 	}

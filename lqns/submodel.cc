@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14776 2021-06-07 18:35:47Z greg $
+ * $Id: submodel.cc 14780 2021-06-08 14:38:32Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -88,7 +88,7 @@
  */
 
 Submodel&
-Submodel::number( const unsigned n )
+Submodel::setSubmodelNumber( const unsigned n )
 {
     _submodel_number = n;
     for_each( _servers.begin(), _servers.end(), Exec1<Entity,const unsigned>( &Entity::setSubmodel, n ) );
@@ -502,6 +502,7 @@ Submodel::optimize()
 	}
     }
     
+#if BUG_299_PRUNE
     /* pruneble if clients are replicas of each other */
     if ( Pragma::replication() == Pragma::Replication::PRUNE ) {
 	std::set<submodel_group_t*> purgeable;
@@ -526,7 +527,8 @@ Submodel::optimize()
 	    std::for_each( (*purge)->second.begin(), (*purge)->second.end(), erase_from<Entity *>( _servers ) );
 	}
     }
-
+#endif
+    
     return *this;
 }
 

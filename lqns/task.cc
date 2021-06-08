@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14759 2021-06-03 12:26:31Z greg $
+ * $Id: task.cc 14779 2021-06-08 13:28:19Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -830,7 +830,7 @@ Task::makeClient( const unsigned n_chains, const unsigned submodel )
 
 
 /*
- * Called from submodel to initialize client
+ * Called from submodel to initialize client.  
  */
 
 Task&
@@ -840,15 +840,22 @@ Task::initClientStation( Submodel& submodel )
     const ChainVector& chains = clientChains( n );
     Server * station = clientStation( n );
 
+    /* If the task has been pruned, use replica 1 */
+#if BUG_299_PRUNE
+    const Task * task = isPruned() ? Task::find( name() ) : this;	/* find base task if pruned */
+    const std::vector<Entry *>& entries = task->entries();
+#else
+    const std::vector<Entry *>& entries = this->entries();
+#endif
+
     for ( unsigned ix = 1; ix <= chains.size(); ++ix ) {
 	const unsigned k = chains[ix];
 
-	for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	    const unsigned e = (*entry)->index();
 
 	    for ( unsigned p = 1; p <= (*entry)->maxPhase(); ++p ) {
-		const double s = (*entry)->waitExcept( n, k, p );
-		station->setService( e, k, p, s );
+		station->setService( e, k, p, (*entry)->waitExcept( n, k, p ) );
 	    }
 	    station->setVisits( e, k, 1, (*entry)->prVisit() );	// As client, called-by phase does not matter.
 	}

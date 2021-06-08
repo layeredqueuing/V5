@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14766 2021-06-04 11:44:40Z greg $ *
+ * $Id: pragma.cc 14779 2021-06-08 13:28:19Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -339,7 +339,9 @@ void Pragma::setReplication(const std::string& value)
 {
     static const std::map<const std::string,const Pragma::Replication> __replication_pragma = {
 	{ LQIO::DOM::Pragma::_expand_,		Pragma::Replication::EXPAND },
+#if BUG_299_PRUNE
 	{ LQIO::DOM::Pragma::_prune_,		Pragma::Replication::PRUNE },
+#endif
 	{ LQIO::DOM::Pragma::_pan_,		Pragma::Replication::PAN }
     };
 

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14741 2021-05-31 12:34:50Z greg $
+ * $Id: call.cc 14781 2021-06-08 15:16:22Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -157,7 +157,7 @@ Call::expand()
 	const unsigned int dst_replicas = fanOut();
 	for ( unsigned int dst_replica = 1; dst_replica <= dst_replicas; ++dst_replica ) {
 	    if ( src_replica == 1 && dst_replica == 1 ) continue;	/* This exists already */
-	    Call * call = clone( src_replica, dst_replica );
+	    Call * call = clone( src_replica, src_replica * dst_replica );	/* 2 goes to 2, etc */
 	    const_cast<Entity *>(call->dstTask())->addTask( call->srcTask() );
 	}
     }
@@ -421,7 +421,9 @@ Call::followInterlock( Interlock::CollectTable& path ) const
 
 
 /*
- * Set the visit ratio at the destinations station.
+ * Set the visit ratio at the destinations station.  Called from
+ * Task::initClientStation only.  The calling task is mapped to the
+ * base replica if necessary.
  */
 
 void
@@ -434,6 +436,26 @@ Call::setVisits( const unsigned k, const unsigned p, const double rate )
 	aStation->addVisits( e, k, p, rendezvous() * rate );
     }
 }
+
+
+/*
+ * Set the open arrival rate to the destination's station.Called from
+ * Task::initClientStation only.  The calling task is mapped to the
+ * base replica if necessary.
+ */
+
+void
+Call::setLambda( const unsigned, const unsigned p, const double rate )
+{
+    Server * aStation = dstTask()->serverStation();
+    const unsigned e = dstEntry()->index();
+    if ( hasSendNoReply() ) {
+	aStation->addVisits( e, 0, p, getSource()->throughput() * sendNoReply() );
+    } else if ( hasRendezvous() && srcTask()->isInOpenModel() && srcTask()->isInfinite() ) {
+	aStation->addVisits( e, 0, p, getSource()->throughput() * rendezvous() );
+    }
+}
+
 
 
 //tomari: set the chain number associated with this call.
@@ -453,23 +475,6 @@ Call::setChain( const unsigned k, const unsigned p, const double rate )
 }
 
 
-
-
-/*
- * Set the open arrival rate to the destination's station.
- */
-
-void
-Call::setLambda( const unsigned, const unsigned p, const double rate )
-{
-    Server * aStation = dstTask()->serverStation();
-    const unsigned e = dstEntry()->index();
-    if ( hasSendNoReply() ) {
-	aStation->addVisits( e, 0, p, getSource()->throughput() * sendNoReply() );
-    } else if ( hasRendezvous() && srcTask()->isInOpenModel() && srcTask()->isInfinite() ) {
-	aStation->addVisits( e, 0, p, getSource()->throughput() * rendezvous() );
-    }
-}
 
 
 /*

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14772 2021-06-07 12:42:47Z greg $
+ * $Id: model.cc 14779 2021-06-08 13:28:19Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -1250,8 +1250,12 @@ void
 Batch_Model::addToSubmodel()
 {
     for ( std::set<Task *>::const_iterator task = __task.begin(); task != __task.end(); ++task ) {
-	const int i = (*task)->submodel();
+	const unsigned int i = (*task)->submodel();
 	if ( !(*task)->isReferenceTask() ) {
+	    if ( i == 0 ) {
+		const Task& client = **task;
+		throw std::runtime_error( "Batch_Model::addToSubmodel: bad submodel for task " + client.name() );
+	    }
 	    _submodels[i]->addServer( *task );
 	}
 	if ( (*task)->hasForks() ) {
@@ -1263,13 +1267,13 @@ Batch_Model::addToSubmodel()
     }
 
     for ( std::set<Processor *>::const_iterator processor = __processor.begin(); processor != __processor.end(); ++processor ) {
-	const int i = (*processor)->submodel();
+	const unsigned int i = (*processor)->submodel();
 	if ( i <= 0 ) continue;		// Device not used.
 	_submodels[i]->addServer( *processor );
     }
 
     if ( __think_server ) {
-	const int i = __think_server->submodel();
+	const unsigned int i = __think_server->submodel();
 	if ( i > 0 ) {
 	    _submodels[i]->addServer( __think_server );
 	}
