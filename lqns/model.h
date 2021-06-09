@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14772 2021-06-07 12:42:47Z greg $
+ * $Id: model.h 14785 2021-06-09 14:03:54Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -68,9 +68,10 @@ public:
     static bool prepare( const LQIO::DOM::Document* document );
     static void recalculateDynamicValues( const LQIO::DOM::Document* document );
     static void setModelParameters( const LQIO::DOM::Document* doc );
-    static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string&, bool check_model = true );
+    static Model * create( const LQIO::DOM::Document *, const std::string&, const std::string& );
 
 public:
+    bool check();
     bool initialize();
 
     unsigned nSubmodels() const { return _submodels.size(); }
@@ -103,7 +104,6 @@ protected:
     void printIntermediate( const double ) const;
 	
 private:
-    static bool check();
     bool generate( unsigned );	/* Create layers.	*/
     static void extend();
     void configure();

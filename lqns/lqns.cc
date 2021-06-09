@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14779 2021-06-08 13:28:19Z greg $
+ * $Id: lqns.cc 14785 2021-06-09 14:03:54Z greg $
  *
  * Command line processing.
  *
@@ -553,8 +553,10 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 	    try {
 		model = Model::create( document, inputFileName, outputFileName );
 
-		if ( model->initialize() ) {
+		if ( model->check() && model->initialize() ) {
 		    model->solve();
+		} else {
+		    rc = INVALID_INPUT;
 		}
 	    }
 	    catch ( const std::domain_error& e ) {
@@ -587,8 +589,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 	    program->print( std::cout );
 	}
 	
-	/* create Model after registering external symbols above, disabling checking at this stage */
-	model = Model::create( document, inputFileName, outputFileName, false );
+	model = Model::create( document, inputFileName, outputFileName );
 		
 	LQX::Environment * environment = program->getEnvironment();
 	if ( flags.restart ) {

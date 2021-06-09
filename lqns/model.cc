@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14779 2021-06-08 13:28:19Z greg $
+ * $Id: model.cc 14785 2021-06-09 14:03:54Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -288,7 +288,7 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
  */
 
 Model *
-Model::create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName, bool check_model )
+Model::create( const LQIO::DOM::Document * document, const std::string& inputFileName, const std::string& outputFileName )
 {
     Model *model = nullptr;
 
@@ -300,39 +300,37 @@ Model::create( const LQIO::DOM::Document * document, const std::string& inputFil
      * disable model checking and expansion at this stage with LQX programs
      */
 
-    if ( LQIO::io_vars.anError() == false && (check_model != true || check()) ) {
 
-	if ( flags.verbose ) std::cerr << "Create: " << Pragma::getLayeringStr() << " layers..." << std::endl;
+    if ( flags.verbose ) std::cerr << "Create: " << Pragma::getLayeringStr() << " layers..." << std::endl;
 	
-	switch ( Pragma::layering() ) {
-	case Pragma::Layering::BATCHED: 
-	    model = new Batch_Model( document, inputFileName, outputFileName );
-	    break;
+    switch ( Pragma::layering() ) {
+    case Pragma::Layering::BATCHED: 
+	model = new Batch_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::BACKPROPOGATE_BATCHED:
-	    model = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
-	    break;
+    case Pragma::Layering::BACKPROPOGATE_BATCHED:
+	model = new BackPropogate_Batch_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::METHOD_OF_LAYERS:
-	    model = new MOL_Model( document, inputFileName, outputFileName );
-	    break;
+    case Pragma::Layering::METHOD_OF_LAYERS:
+	model = new MOL_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS:
-	    model = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
-	    break;
+    case Pragma::Layering::BACKPROPOGATE_METHOD_OF_LAYERS:
+	model = new BackPropogate_MOL_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::SRVN:
-	    model = new SRVN_Model( document, inputFileName, outputFileName );
-	    break;
+    case Pragma::Layering::SRVN:
+	model = new SRVN_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::SQUASHED:
-	    model = new Squashed_Model( document, inputFileName, outputFileName );
-	    break;
+    case Pragma::Layering::SQUASHED:
+	model = new Squashed_Model( document, inputFileName, outputFileName );
+	break;
 
-	case Pragma::Layering::HWSW:
-	    model = new HwSw_Model( document, inputFileName, outputFileName );
-	    break;
-	}
+    case Pragma::Layering::HWSW:
+	model = new HwSw_Model( document, inputFileName, outputFileName );
+	break;
     }
 
     if ( !model ) throw std::runtime_error( "could not create model" );
@@ -521,6 +519,10 @@ Model::extend()
 bool
 Model::check()
 {
+    if ( flags.verbose ) std::cerr << "Check..." << std::endl;
+    
+    if ( LQIO::io_vars.anError() ) return false;	/* Don't bother */
+    
     bool rc = true;
     rc = std::all_of( __processor.begin(), __processor.end(), Predicate<Processor>( &Processor::check ) ) && rc;
     rc = std::all_of( __task.begin(), __task.end(), Predicate<Task>( &Task::check ) ) && rc;

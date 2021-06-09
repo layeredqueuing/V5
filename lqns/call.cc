@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14781 2021-06-08 15:16:22Z greg $
+ * $Id: call.cc 14784 2021-06-09 13:10:49Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -584,7 +584,13 @@ PhaseCall::PhaseCall( const PhaseCall& src, unsigned int src_replica, unsigned i
 
     /* Link to destination replica */
     if ( src.dstEntry() != nullptr ) {
-	Entry * dst = Entry::find( src.dstEntry()->name(), static_cast<unsigned>(std::ceil( static_cast<double>(dst_replica) / static_cast<double>(src.fanIn())) ) );
+	const unsigned int replica = static_cast<unsigned>(std::ceil( static_cast<double>(dst_replica) / static_cast<double>(src.fanIn()) ));
+	Entry * dst = Entry::find( src.dstEntry()->name(), replica );
+	if ( dst == nullptr ) {
+	    std::ostringstream err;
+	    err << "PhaseCall::PhaseCall: Can't find entry " << src.dstEntry()->name() << "." << replica;
+	    throw std::runtime_error( err.str() );
+	}
 	setDestination( dst );
 	dst->addDstCall( this );	/* Set reverse link */
     }
