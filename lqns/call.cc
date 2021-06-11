@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14784 2021-06-09 13:10:49Z greg $
+ * $Id: call.cc 14791 2021-06-11 00:55:56Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -157,7 +157,10 @@ Call::expand()
 	const unsigned int dst_replicas = fanOut();
 	for ( unsigned int dst_replica = 1; dst_replica <= dst_replicas; ++dst_replica ) {
 	    if ( src_replica == 1 && dst_replica == 1 ) continue;	/* This exists already */
-	    Call * call = clone( src_replica, src_replica * dst_replica );	/* 2 goes to 2, etc */
+	    Call * call = clone( src_replica, (src_replica - 1) * dst_replicas + dst_replica );	/* 2 goes to 2, etc */
+#if 0
+	    std::cerr << "Call::expand(): " << srcName() << "." << src_replica << " -> " << call->dstName() << "." << call->dstTask()->getReplicaNumber() << std::endl;
+#endif
 	    const_cast<Entity *>(call->dstTask())->addTask( call->srcTask() );
 	}
     }

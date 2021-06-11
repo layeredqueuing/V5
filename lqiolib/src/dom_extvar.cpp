@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14623 2021-05-08 12:52:15Z greg $
+ *  $Id: dom_extvar.cpp 14793 2021-06-11 11:26:56Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -95,12 +95,12 @@ namespace LQIO {
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 	/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 
-	ConstantExternalVariable::ConstantExternalVariable(double constant) : _variableType( VAR_DOUBLE )
+	ConstantExternalVariable::ConstantExternalVariable(double constant) : _variableType( Type::DOUBLE )
 	{	
 	    _value.d = constant;
 	}
 
-	ConstantExternalVariable::ConstantExternalVariable(const char * string) : _variableType( VAR_STRING )
+	ConstantExternalVariable::ConstantExternalVariable(const char * string) : _variableType( Type::STRING )
 	{	
 	    _value.s = strdup(string);
 	}
@@ -108,9 +108,9 @@ namespace LQIO {
 	ConstantExternalVariable::ConstantExternalVariable( const ExternalVariable& src )
 	{
 	    _variableType = src.getType();
-	    if ( src.getType() == VAR_DOUBLE ) {
+	    if ( src.getType() == Type::DOUBLE ) {
 		if ( !src.getValue( _value.d ) ) throw std::domain_error( "unassigned variable" );
-	    } else if ( src.getType() == VAR_STRING ) {
+	    } else if ( src.getType() == Type::STRING ) {
 		const char * s = 0;
 		if ( !src.getString( s ) )  throw std::domain_error( "unassigned variable" );
 		_value.s = strdup( s );
@@ -119,13 +119,13 @@ namespace LQIO {
 
 	ConstantExternalVariable& ConstantExternalVariable::operator=( const ConstantExternalVariable& src )
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		free ( const_cast<char *>(_value.s) );
 	    }
 	    _variableType = src._variableType;
-	    if ( src._variableType == VAR_DOUBLE ) {
+	    if ( src._variableType == Type::DOUBLE ) {
 		_value.d = src._value.d;
-	    } else if ( src._variableType == VAR_STRING ) {
+	    } else if ( src._variableType == Type::STRING ) {
 		_value.s = strdup( src._value.s );
 	    }
 	    return *this;
@@ -133,10 +133,10 @@ namespace LQIO {
 
 	ConstantExternalVariable& ConstantExternalVariable::operator=( double value )
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		free ( const_cast<char *>(_value.s) );
 	    }
-	    _variableType = VAR_DOUBLE;
+	    _variableType = Type::DOUBLE;
 	    _value.d = value;
 	    return *this;
 	}
@@ -148,32 +148,32 @@ namespace LQIO {
 
 	ConstantExternalVariable::~ConstantExternalVariable()
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		free ( const_cast<char *>(_value.s) );
 	    }
 	}
 
 	void ConstantExternalVariable::set(double value)
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		free ( const_cast<char *>(_value.s) );
 	    }
-	    _variableType = VAR_DOUBLE;
+	    _variableType = Type::DOUBLE;
 	    _value.d = value;
 	}
 
 	void ConstantExternalVariable::setString(const char * string)
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		free ( const_cast<char *>(_value.s) );
 	    }
-	    _variableType = VAR_STRING;
+	    _variableType = Type::STRING;
 	    _value.s = string;
 	}
 
 	bool ConstantExternalVariable::getValue(double& result) const
 	{
-	    if ( _variableType == VAR_DOUBLE ) {
+	    if ( _variableType == Type::DOUBLE ) {
 		result = _value.d;
 		return true;
 	    } else {
@@ -183,7 +183,7 @@ namespace LQIO {
 
 	bool ConstantExternalVariable::getString(const char *& result) const
 	{
-	    if ( _variableType == VAR_STRING ) {
+	    if ( _variableType == Type::STRING ) {
 		result = _value.s;
 		return true;
 	    } else {
@@ -199,14 +199,14 @@ namespace LQIO {
 
 	bool ConstantExternalVariable::wasSet() const
 	{
-	    return _variableType != VAR_UNASSIGNED;
+	    return _variableType != Type::UNASSIGNED;
 	}
 
 	std::ostream& ConstantExternalVariable::print( std::ostream& output ) const
 	{
 	    switch ( getType() ) {
-	    case VAR_DOUBLE: output << _value.d; break;
-	    case VAR_STRING: output << _value.s; break;
+	    case Type::DOUBLE: output << _value.d; break;
+	    case Type::STRING: output << _value.s; break;
 	    default: output << "<<unassigned>>"; break;
 	    }
 	    return output;
@@ -273,12 +273,12 @@ namespace LQIO {
 	{
 	    if ( !(_externalSymbol == nullptr) ) {
 		switch ( _externalSymbol->getType() ) {
-		case LQX::Symbol::SYM_DOUBLE: return VAR_DOUBLE;
-		case LQX::Symbol::SYM_STRING: return VAR_STRING;
+		case LQX::Symbol::SYM_DOUBLE: return Type::DOUBLE;
+		case LQX::Symbol::SYM_STRING: return Type::STRING;
 		default: break;		/* Ignore */
 		}
 	    }
-	    return VAR_UNASSIGNED;
+	    return Type::UNASSIGNED;
 	}
 
 	void SymbolExternalVariable::set(double value)
@@ -336,8 +336,8 @@ namespace LQIO {
 	std::ostream& SymbolExternalVariable::print( std::ostream& output ) const
 	{
 	    switch (  getType() ) {
-	    case LQIO::DOM::ExternalVariable::VAR_DOUBLE: output << to_double( *this ); break;
-	    case LQIO::DOM::ExternalVariable::VAR_STRING: output << to_string( *this ); break;
+	    case LQIO::DOM::ExternalVariable::Type::DOUBLE: output << to_double( *this ); break;
+	    case LQIO::DOM::ExternalVariable::Type::STRING: output << to_string( *this ); break;
 	    default: output << _name; break;
 	    }
 	    return output;

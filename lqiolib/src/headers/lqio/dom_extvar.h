@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 14623 2021-05-08 12:52:15Z greg $
+ *  $Id: dom_extvar.h 14793 2021-06-11 11:26:56Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -26,7 +26,7 @@ namespace LQIO {
 	    friend std::ostream& operator<<( std::ostream&, const LQIO::DOM::ExternalVariable& );
 
 	public:
-	    typedef enum { VAR_UNASSIGNED, VAR_DOUBLE, VAR_STRING } Type;
+	    enum class Type { UNASSIGNED, DOUBLE, STRING };
 	    
 	public:
       
@@ -39,7 +39,7 @@ namespace LQIO {
 	    virtual ExternalVariable * clone() const = 0;
 
 	public:
-	    virtual Type getType() const { return VAR_UNASSIGNED; }
+	    virtual Type getType() const { return Type::UNASSIGNED; }
 
 	    /* Obtaining the Value */
 	    virtual void set(double value) = 0;

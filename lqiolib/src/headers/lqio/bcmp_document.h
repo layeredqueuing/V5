@@ -62,7 +62,7 @@ namespace BCMP {
 	    typedef std::map<const std::string,Chain> map_t;
 	    typedef std::pair<const std::string,Chain> pair_t;
 
-	    typedef enum { UNDEFINED, CLOSED, OPEN } Type;
+	    enum class Type { UNDEFINED, CLOSED, OPEN };
 
 	public:
 	    Chain( Type type, const DOM::ExternalVariable* customers, const DOM::ExternalVariable* think_time ) : _type(Type::CLOSED), _customers(customers), _think_time(think_time), _arrival_rate(nullptr) { assert(type==Type::CLOSED); }
@@ -76,8 +76,8 @@ namespace BCMP {
 	    void setThinkTime( DOM::ExternalVariable* think_time ) { assert(type()==Type::CLOSED); _think_time = think_time; }
 	    const DOM::ExternalVariable* arrival_rate() const { assert(type()==Type::OPEN); return _arrival_rate; }
 	    void setArrivalRate( DOM::ExternalVariable* arrival_rate ) { assert(type()==Type::OPEN); _arrival_rate = arrival_rate; }
-	    bool isClosed() const { return _type == CLOSED; }
-	    bool isOpen() const { return _type == OPEN; }
+	    bool isClosed() const { return _type == Type::CLOSED; }
+	    bool isOpen() const { return _type == Type::OPEN; }
 	    static bool closedChain( const Chain::pair_t& k ) { return k.second.type() == Type::CLOSED; }
 	    static bool openChain( const Chain::pair_t& k ) { return k.second.type() == Type::OPEN; }
 

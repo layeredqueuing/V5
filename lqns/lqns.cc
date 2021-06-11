@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14785 2021-06-09 14:03:54Z greg $
+ * $Id: lqns.cc 14794 2021-06-11 12:13:01Z greg $
  *
  * Command line processing.
  *
@@ -291,9 +291,9 @@ int main (int argc, char *argv[])
 
         case 'I':
             if ( strcasecmp( optarg, "xml" ) == 0 ) {
-                Model::input_format = LQIO::DOM::Document::XML_INPUT;
+                Model::input_format = LQIO::DOM::Document::InputFormat::XML;
             } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-                Model::input_format = LQIO::DOM::Document::LQN_INPUT;
+                Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
             } else {
                 std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << std::endl;
             }
@@ -527,7 +527,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
     if ( Model::prepare(document) == false ) return INVALID_INPUT;
         
-    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
+    if ( document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN && LQIO::Spex::__no_header ) {
         std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
 

@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14603 2021-04-16 15:53:36Z greg $
+ * $Id: lqsim.cc 14794 2021-06-11 12:13:01Z greg $
  */
 
 #define STACK_TESTING
@@ -324,7 +324,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-04-16 11:53:36 -0400 (Fri, 16 Apr 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-06-11 08:13:01 -0400 (Fri, 11 Jun 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -432,9 +432,9 @@ main( int argc, char * argv[] )
 
 	    case 'I':
 		if ( strcasecmp( optarg, "xml" ) == 0 ) {
-		    Model::input_format = LQIO::DOM::Document::XML_INPUT;
+		    Model::input_format = LQIO::DOM::Document::InputFormat::XML;
 		} else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-		    Model::input_format = LQIO::DOM::Document::LQN_INPUT;
+		    Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
 		} else {
 		    throw std::invalid_argument( optarg );
 		}

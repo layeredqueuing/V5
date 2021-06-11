@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14765 2021-06-04 01:04:46Z greg $
+ * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
  *
  * Load the SRVN model.
  */
@@ -78,7 +78,7 @@ using namespace std;
 bool Model::__forwarding_present;
 bool Model::__open_class_error;
 LQIO::DOM::CPUTime Model::__start_time;
-LQIO::DOM::Document::input_format Model::__input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
+LQIO::DOM::Document::InputFormat Model::__input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
 
 /* define	UNCONDITIONAL_PROBS */
 /* define DERIVE_UTIL */
@@ -1545,7 +1545,7 @@ Model::print() const
     if ( override || ((!has_output_file_name() || directory_name.size() > 0 ) && _input_file_name != "-" ) ) {
 	ofstream output;
 
-	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || xml_flag ) {
+	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || xml_flag ) {
 	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name, suffix );
 	    filename.backup();
 	    ofstream output;
@@ -1553,20 +1553,20 @@ Model::print() const
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
+		_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
 	    }
 	    output.close();
 	}
 
 	/* Parseable output. */
 
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output && !xml_flag ) || parse_flag ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !xml_flag ) || parse_flag ) {
 	    LQIO::Filename filename( _input_file_name, "p", directory_name, suffix );
 	    output.open( filename().c_str(), ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+		_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	    }
 	    output.close();
 	}
@@ -1578,7 +1578,7 @@ Model::print() const
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else {
-	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( output );
 	    }
@@ -1588,9 +1588,9 @@ Model::print() const
     } else if ( _output_file_name == "-" || _input_file_name == "-" ) {
 
 	if ( parse_flag ) {
-	    _document->print( cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	    _document->print( cout, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( rtf_flag ) {
-	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
+	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( cout );
 	    }
@@ -1607,11 +1607,11 @@ Model::print() const
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( xml_flag ) {
-	    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
 	} else if ( parse_flag ) {
-	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else {
-	    _document->print( output, rtf_flag ? LQIO::DOM::Document::RTF_OUTPUT : LQIO::DOM::Document::LQN_OUTPUT );
+	    _document->print( output, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
 	    if ( inservice_match_pattern != 0 ) {
 		print_inservice_probability( output );
 	    }

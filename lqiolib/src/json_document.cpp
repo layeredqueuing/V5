@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 14765 2021-06-04 01:04:46Z greg $
+ * $Id: json_document.cpp 14793 2021-06-11 11:26:56Z greg $
  *
  * Read in JSON input files.
  *
@@ -620,7 +620,7 @@ namespace LQIO {
 			} else if ( entry->getEntryType() == Entry::Type::NOT_DEFINED ) {
 			    connectEntry( entry, dynamic_cast<Task *>(parent), entry_name );
 			} else {
-			    throw duplicate_symbol( entry_name.c_str() );
+			    throw duplicate_symbol( entry_name );
 			}
 
 			/* If I have a start activity, then set it.  Do this first for properly handling the remaining attributes. */
@@ -1423,7 +1423,7 @@ namespace LQIO {
 		    return static_cast<long>(value);
 		}
 	    }
-	    XML::invalid_argument( name, attr->second.to_str().c_str() );		// throws.
+	    XML::invalid_argument( name, attr->second.to_str() );		// throws.
 	    return 0;
 	}
 
@@ -1443,7 +1443,7 @@ namespace LQIO {
 		    return value;
 		}
 	    }
-	    XML::invalid_argument( name, attr->second.to_str().c_str() );		// throws.
+	    XML::invalid_argument( name, attr->second.to_str() );		// throws.
 	    return 0.;
 	}
 
@@ -2161,7 +2161,7 @@ namespace LQIO {
 		if ( Document::__debugJSON ) std::cerr << indent(0) << value.get<std::string>() << std::endl;
 		activity = task->getActivity( value.get<std::string>() );
 		if ( !activity ) {
-		    throw undefined_symbol( value.get<std::string>().c_str() );
+		    throw undefined_symbol( value.get<std::string>() );
 		}
 		list.add( activity );
 	    } else if ( value.is<picojson::object>() ) {
@@ -2172,7 +2172,7 @@ namespace LQIO {
 		    const std::string& name = i->first;
 		    activity = task->getActivity( name );
 		    if ( !activity ) {
-			throw undefined_symbol( value.get<std::string>().c_str() );
+			throw undefined_symbol( value.get<std::string>() );
 		    }
 		    const picojson::value& value = i->second;
 		    if ( value.is<std::string>() ) {
@@ -3360,7 +3360,7 @@ namespace LQIO {
 		    output << value;			/* Should be a string :-) */
 		}
 		output << "\"";
-	    } else if ( value.getType() == ExternalVariable::VAR_STRING ) {
+	    } else if ( value.getType() == ExternalVariable::Type::STRING ) {
 		output << "\"" << value << "\"";	/* Should be a string or a variable name */
 	    } else {
 		output << value;			/* Should be a number :-) */

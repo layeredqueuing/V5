@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14724 2021-05-29 14:16:40Z greg $
+ * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -1967,7 +1967,7 @@ Model::printTXT( std::ostream& output ) const
 std::ostream&
 Model::printJSON( std::ostream& output ) const
 {
-    _document->print( output, LQIO::DOM::Document::JSON_OUTPUT );	/* Don't output LQX code if running. */
+    _document->print( output, LQIO::DOM::Document::OutputFormat::JSON );	/* Don't output LQX code if running. */
     return output;
 }
 
@@ -1976,7 +1976,7 @@ std::ostream&
 Model::printXML( std::ostream& output ) const
 {
     remapEntities();		/* Reorder to our order */
-    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Don't output LQX code if running. */
+    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );	/* Don't output LQX code if running. */
     return output;
 }
 

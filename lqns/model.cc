@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14785 2021-06-09 14:03:54Z greg $
+ * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -89,7 +89,7 @@ double Model::underrelaxation = 1.0;
 unsigned Model::print_interval = 1;
 Processor * Model::__think_server = nullptr;
 unsigned Model::__sync_submodel = 0;
-LQIO::DOM::Document::input_format Model::input_format = LQIO::DOM::Document::AUTOMATIC_INPUT;
+LQIO::DOM::Document::InputFormat Model::input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
 
 std::set<Processor *,Model::lt_replica<Processor>> Model::__processor;
 std::set<Group *,Model::lt_replica<Group>> Model::__group;
@@ -744,7 +744,7 @@ Model::solve()
     }
 
     if ( override || ((!hasOutputFileName() || directoryName.size() > 0 ) && _input_file_name != "-" )) {
-	if ( _document->getInputFormat() == LQIO::DOM::Document::XML_INPUT || flags.xml_output ) {	/* No parseable/json output, so create XML */
+	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || flags.xml_output ) {	/* No parseable/json output, so create XML */
 	    LQIO::Filename filename( _input_file_name, "lqxo", directoryName, suffix );
 	    std::ofstream output;
 	    filename.backup();
@@ -752,21 +752,21 @@ Model::solve()
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
+		_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
 		output.close();
 	    }
 	}
 
 	/* Parseable output. */
 
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::LQN_INPUT && lqx_output && !flags.xml_output ) || flags.parseable_output ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !flags.xml_output ) || flags.parseable_output ) {
 	    LQIO::Filename filename( _input_file_name, "p", directoryName, suffix );
 	    std::ofstream output;
 	    output.open( filename().c_str(), std::ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
-		_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+		_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 		output.close();
 	    }
 	}
@@ -780,7 +780,7 @@ Model::solve()
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else if ( flags.rtf_output ) {
-	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::RTF );
 	} else {
 	    _document->print( output );
 	    if ( flags.print_overtaking ) {
@@ -792,9 +792,9 @@ Model::solve()
     } else if ( _output_file_name == "-" || _input_file_name == "-" ) {
 
 	if ( flags.parseable_output ) {
-	    _document->print( std::cout, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	    _document->print( std::cout, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( flags.rtf_output ) {
-	    _document->print( std::cout, LQIO::DOM::Document::RTF_OUTPUT );
+	    _document->print( std::cout, LQIO::DOM::Document::OutputFormat::RTF );
 	} else {
 	    _document->print( std::cout );
 	    if ( flags.print_overtaking ) {
@@ -813,11 +813,11 @@ Model::solve()
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( flags.xml_output ) {
-	    _document->print( output, LQIO::DOM::Document::XML_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
 	} else if ( flags.parseable_output ) {
-	    _document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( flags.rtf_output ) {
-	    _document->print( output, LQIO::DOM::Document::RTF_OUTPUT );
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::RTF );
 	} else {
 	    _document->print( output );
 	    if ( flags.print_overtaking ) {
@@ -956,9 +956,9 @@ Model::printIntermediate( const double convergence ) const
     if ( !output ) return;			/* Ignore errors */
 
     if ( flags.xml_output ) {
-	_document->print( output, LQIO::DOM::Document::XML_OUTPUT );
+	_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
     } else if ( flags.parseable_output ) {
-	_document->print( output, LQIO::DOM::Document::PARSEABLE_OUTPUT );
+	_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
     } else {
 	_document->print( output );
     }

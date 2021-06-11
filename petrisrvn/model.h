@@ -10,7 +10,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.h 13808 2020-09-08 21:16:53Z greg $
+ * $Id: model.h 14794 2021-06-11 12:13:01Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -184,6 +184,6 @@ private:
 public:
     static bool __forwarding_present;
     static bool __open_class_error;
-    static LQIO::DOM::Document::input_format __input_format;
+    static LQIO::DOM::Document::InputFormat __input_format;
 };
 #endif

@@ -32,10 +32,7 @@ namespace XML
     void
     invalid_argument( const std::string& attr, const std::string& arg )
     {
-	std::string err = attr;
-	err += "=";
-	err += arg;
-	throw std::invalid_argument( err.c_str() );
+	throw std::invalid_argument( attr + "=" + arg );
     }
 
 

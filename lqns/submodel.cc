@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14780 2021-06-08 14:38:32Z greg $
+ * $Id: submodel.cc 14789 2021-06-10 14:43:04Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -510,7 +510,7 @@ Submodel::optimize()
 	    for ( std::vector<submodel_group_t*>::const_iterator j = std::next(i); j != disjoint.end(); ++j ) {
 		/* If all the clients in j are replicas of i, then prune j */
 		if ( !replicaGroups( (*i)->first, (*j)->first ) ) continue;
-#if 1
+#if 0
 		std::cerr << "Submodel " << number() << ", can prune: ";
 		std::set<Task *>& clients = (*j)->first;
 		for ( std::set<Task *>::const_iterator client = clients.begin(); client != clients.end(); ++client ) {

@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * generate.h	-- Greg Franks
  *
- * $Id: generate.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: generate.h 14794 2021-06-11 12:13:01Z greg $
  *
  */
 
@@ -323,8 +323,8 @@ public:
     typedef enum { DETERMINISTIC_LAYERING, PYRAMID_LAYERING, FUNNEL_LAYERING, FAT_LAYERING, HOUR_GLASS_LAYERING, DEPTH_FIRST_LAYERING, BREADTH_FIRST_LAYERING, RANDOM_LAYERING, UNIFORM_LAYERING } layering_t;
 
 public:
-    Generate( LQIO::DOM::Document * doc, const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned customers );
-    Generate( const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned layers, const unsigned customers, const unsigned processors, const unsigned clients, const unsigned tasks );
+    Generate( LQIO::DOM::Document * doc, const LQIO::DOM::Document::InputFormat output_format, const unsigned runs, const unsigned customers );
+    Generate( const LQIO::DOM::Document::InputFormat output_format, const unsigned runs, const unsigned layers, const unsigned customers, const unsigned processors, const unsigned clients, const unsigned tasks );
     virtual ~Generate();
 
     unsigned long getNumberOfRuns() const { return _runs; }
@@ -401,7 +401,7 @@ protected:
 
 private:
     LQIO::DOM::Document * _document;
-    const LQIO::DOM::Document::input_format _output_format;
+    const LQIO::DOM::Document::InputFormat _output_format;
     const unsigned int _runs;
     const unsigned int _number_of_customers;
     const unsigned int _number_of_layers;		/* Number of layers for one model */

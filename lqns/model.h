@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: model.h 14785 2021-06-09 14:03:54Z greg $
+ * $Id: model.h 14794 2021-06-11 12:13:01Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -118,7 +118,7 @@ public:
     static unsigned iteration_limit;
     static double underrelaxation;
     static unsigned print_interval;
-    static LQIO::DOM::Document::input_format input_format;
+    static LQIO::DOM::Document::InputFormat input_format;
     static std::set<Processor *,lt_replica<Processor>> __processor;
     static std::set<Group *,lt_replica<Group>> __group;
     static std::set<Task *,lt_replica<Task>> __task;

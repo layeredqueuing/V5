@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 14603 2021-04-16 15:53:36Z greg $
+ * $Id: petrisrvn.cc 14794 2021-06-11 12:13:01Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -256,9 +256,9 @@ main (int argc, char *argv[])
 
 	case 'I':
 	    if ( strcasecmp( optarg, "xml" ) == 0 ) {
-		Model::__input_format = LQIO::DOM::Document::XML_INPUT;
+		Model::__input_format = LQIO::DOM::Document::InputFormat::XML;
 	    } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
-		Model::__input_format = LQIO::DOM::Document::LQN_INPUT;
+		Model::__input_format = LQIO::DOM::Document::InputFormat::LQN;
 	    } else {
 		fprintf( stderr, "%s: invalid argument to -I -- %s\n", LQIO::io_vars.toolname(), optarg );
 	    }
@@ -505,7 +505,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 
     if ( !aModel.construct() ) return FILEIO_ERROR;
 
-    if ( document->getInputFormat() != LQIO::DOM::Document::LQN_INPUT && LQIO::Spex::__no_header ) {
+    if ( document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN && LQIO::Spex::__no_header ) {
         std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
     }
 

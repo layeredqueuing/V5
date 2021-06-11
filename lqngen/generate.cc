@@ -7,7 +7,7 @@
  * However, to eliminate code here, the spex construction functions will have to save the
  * LQX expressions and then construct the program.
  * ------------------------------------------------------------------------
- * $Id: generate.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: generate.cc 14794 2021-06-11 12:13:01Z greg $
  */
 
 #include "lqngen.h"
@@ -94,11 +94,11 @@ static inline unsigned int min( unsigned int a, unsigned int b ) { return a <= b
  * Constructor for lqngen
  */
 
-Generate::Generate( const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned layers, const unsigned customers, const unsigned processors, const unsigned clients, const unsigned tasks )
+Generate::Generate( const LQIO::DOM::Document::InputFormat output_format, const unsigned runs, const unsigned layers, const unsigned customers, const unsigned processors, const unsigned clients, const unsigned tasks )
     : _document(0), _output_format(output_format), _runs(runs), _number_of_customers(customers), _number_of_layers(layers), 
       _number_of_processors(min(processors,tasks)), _number_of_clients(clients), _number_of_tasks(max(layers,tasks))
 {
-    _document = new LQIO::DOM::Document( LQIO::DOM::Document::AUTOMATIC_INPUT );		// For XML output.
+    _document = new LQIO::DOM::Document( LQIO::DOM::Document::InputFormat::AUTOMATIC );		// For XML output.
     _number_of_tasks_for_layer.resize( _number_of_layers + 1 );
     _task.resize( _number_of_layers + 1 );
     if ( Flags::spex_output ) {
@@ -107,7 +107,7 @@ Generate::Generate( const LQIO::DOM::Document::input_format output_format, const
 }
 
 
-Generate::Generate( LQIO::DOM::Document * document, const LQIO::DOM::Document::input_format output_format, const unsigned runs, const unsigned customers )
+Generate::Generate( LQIO::DOM::Document * document, const LQIO::DOM::Document::InputFormat output_format, const unsigned runs, const unsigned customers )
     : _document(document), _output_format(output_format), _runs(runs), _number_of_customers(customers), _number_of_layers(0), _number_of_processors(0), _number_of_clients(0), _number_of_tasks(0)
 {
     _task.resize( 2 );			/* Used for clients only */
@@ -603,12 +603,12 @@ Generate::reparameterize()
      */
     
     switch ( _output_format ) {
-    case LQIO::DOM::Document::AUTOMATIC_INPUT:
-    case LQIO::DOM::Document::LQN_INPUT:
+    case LQIO::DOM::Document::InputFormat::AUTOMATIC:
+    case LQIO::DOM::Document::InputFormat::LQN:
 	addSpex( &Generate::makeVariables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
 	break;
 
-    case LQIO::DOM::Document::XML_INPUT:
+    case LQIO::DOM::Document::InputFormat::XML:
 	if ( Flags::spex_output ) {
 	    addSpex( &Generate::makeVariables, getNumberOfRuns() > 1 ? &ModelVariable::spex_random : &ModelVariable::spex_scalar );
 	} else if ( Flags::sensitivity > 0.0 ) {
@@ -1418,14 +1418,14 @@ std::ostream&
 Generate::print( std::ostream& output ) const
 {
     switch ( _output_format ) {
-    case LQIO::DOM::Document::AUTOMATIC_INPUT:
-    case LQIO::DOM::Document::LQN_INPUT: {
+    case LQIO::DOM::Document::InputFormat::AUTOMATIC:
+    case LQIO::DOM::Document::InputFormat::LQN: {
 	LQIO::SRVN::Input srvn( getDOM(), _document->getEntities(), Flags::annotate_input );
 	srvn.print( output );
 	break;
     }
-    case LQIO::DOM::Document::XML_INPUT:
-	_document->print( output, LQIO::DOM::Document::XML_OUTPUT );	/* Output LQX code if running. */
+    case LQIO::DOM::Document::InputFormat::XML:
+	_document->print( output, LQIO::DOM::Document::OutputFormat::XML );	/* Output LQX code if running. */
 	break;
     }
 

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 14523 2021-03-06 22:53:02Z greg $
+ *  $Id: dom_bindings.cpp 14793 2021-06-11 11:26:56Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -195,22 +195,22 @@ namespace LQIO {
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
-	    /* Decode the name of the task and look it up in cache */
+	    /* Decode the name of the processor and look it up in cache */
 	    const char* procName = decodeString(args, 0);
 	    if (_symbolCache.find(procName) != _symbolCache.end()) {
 		return _symbolCache[procName];
 	    }
 
-	    /* Obtain the task reference  */
+	    /* Obtain the processor reference  */
 	    DOM::Processor* proc = _document->getProcessorByName(procName);
 
-	    /* There was no task given */
+	    /* There was no processor given */
 	    if (proc == nullptr) {
 		throw LQX::RuntimeException( "No processor specified with name ", procName );
 		return LQX::Symbol::encodeNull();
 	    }
 
-	    /* Return an encapsulated reference to the task */
+	    /* Return an encapsulated reference to the processor */
 	    LQXProcessor* procObject = new LQXProcessor(proc);
 	    _symbolCache[procName] = LQX::Symbol::encodeObject(procObject, false);
 	    return _symbolCache[procName];
@@ -229,7 +229,7 @@ namespace LQIO {
     class LQXGroup : public LQXDocumentObject {
     public:
 
-        const static uint32_t kLQXGroupObjectTypeId = 10+7;
+        const static uint32_t kLQXGroupObjectTypeId = 10+2;
 
         /* Designated Initializers */
         LQXGroup(const DOM::Group* group) : LQXDocumentObject(kLQXGroupObjectTypeId,group)
@@ -249,7 +249,7 @@ namespace LQIO {
 
         virtual std::string description() const
             {
-                /* Return a description of the task */
+                /* Return a description of the group */
                 std::stringstream ss;
                 ss << getTypeName() << "(" << getDOMGroup()->getName() << ")";
 		return ss.str();
@@ -265,7 +265,7 @@ namespace LQIO {
 
 	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
 	    {
-		/* All the valid properties of tasks */
+		/* All the valid properties of groups */
 		if (name == "utilization") {
 		    return LQX::Symbol::encodeDouble(getDOMGroup()->getResultUtilization());
 		}
@@ -322,7 +322,7 @@ namespace LQIO {
     {
     public:
 
-	const static uint32_t kLQXTaskObjectTypeId = 10+0;
+	const static uint32_t kLQXTaskObjectTypeId = 10+3;
 
 	/* Designated Initializers */
         LQXTask(const DOM::Task* task) : LQXDocumentObject(kLQXTaskObjectTypeId,task)
@@ -398,14 +398,14 @@ namespace LQIO {
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Entry] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
     class LQXEntry : public LQXDocumentObject {
     public:
 
-	const static uint32_t kLQXEntryObjectTypeId = 10+2;
+	const static uint32_t kLQXEntryObjectTypeId = 10+4;
 
 	/* Designated Initializers */
         LQXEntry(DOM::Entry* entry) : LQXDocumentObject(kLQXEntryObjectTypeId,entry)
@@ -468,22 +468,22 @@ namespace LQIO {
 	/* Invocation of the method from the language */
 	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
 
-	    /* Decode the name of the task and look it up in cache */
+	    /* Decode the name of the entry and look it up in cache */
 	    const char* entryName = decodeString(args, 0);
 	    if (_symbolCache.find(entryName) != _symbolCache.end()) {
 		return _symbolCache[entryName];
 	    }
 
-	    /* Obtain the task reference  */
+	    /* Obtain the entry reference  */
 	    DOM::Entry* entry = _document->getEntryByName(entryName);
 
-	    /* There was no task given */
+	    /* There was no entry given */
 	    if (entry == nullptr) {
 		throw LQX::RuntimeException("No entry specified with name `%s'.", entryName);
 		return LQX::Symbol::encodeNull();
 	    }
 
-	    /* Return an encapsulated reference to the task */
+	    /* Return an encapsulated reference to the entry */
 	    LQXEntry* entryObject = new LQXEntry(entry);
 	    _symbolCache[entryName] = LQX::Symbol::encodeObject(entryObject, false);
 	    return _symbolCache[entryName];
@@ -495,14 +495,14 @@ namespace LQIO {
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Phase] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
     class LQXPhase : public LQXDocumentObject {
     public:
 
-	const static uint32_t kLQXPhaseObjectTypeId = 10+2;
+	const static uint32_t kLQXPhaseObjectTypeId = 10+5;
 
 	/* Designated Initializers */
 	LQXPhase(const DOM::Phase* phase) : LQXDocumentObject(kLQXPhaseObjectTypeId,phase)
@@ -522,7 +522,7 @@ namespace LQIO {
 
 	virtual std::string description() const
 	    {
-		/* Return a description of the task */
+		/* Return a description of the phase */
 		std::stringstream ss;
 		ss << getTypeName() << "(n)";
 		return ss.str();
@@ -553,7 +553,7 @@ namespace LQIO {
 
 	    /* Decode the arguments to the given method */
 	    LQX::LanguageObject* lo = decodeObject(args, 0);
-	    double phase = decodeDouble(args, 1);
+	    const unsigned int phase = static_cast<unsigned int>(decodeDouble(args, 1));
 	    LQXEntry* entry = dynamic_cast<LQXEntry *>(lo);
 
 	    /* Make sure that what we have is an entry */
@@ -564,20 +564,20 @@ namespace LQIO {
 
 	    /* Obtain the phase for the entry */
 	    const DOM::Entry* domEntry = entry->getDOMEntry();
-	    const DOM::Phase* domPhase = domEntry->getPhase((unsigned)phase);
+	    const DOM::Phase* domPhase = domEntry->getPhase(phase);
 	    return LQX::Symbol::encodeObject(new LQXPhase(domPhase), false);
 	}
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Activity] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
     class LQXActivity : public LQXDocumentObject {
     public:
 
-	const static uint32_t kLQXActivityObjectTypeId = 10+4;
+	const static uint32_t kLQXActivityObjectTypeId = 10+6;
 
 	/* Designated Initializers */
 	LQXActivity(const DOM::Activity* act) : LQXDocumentObject(kLQXActivityObjectTypeId,act)
@@ -652,14 +652,14 @@ namespace LQIO {
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Call] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
     class LQXCall : public LQXDocumentObject {
     public:
 
-	const static uint32_t kLQXCallObjectTypeId = 10+3;
+	const static uint32_t kLQXCallObjectTypeId = 10+7;
 
 	/* Designated Initializers */
 	LQXCall(const DOM::Call* call) : LQXDocumentObject(kLQXCallObjectTypeId,call)
@@ -743,7 +743,7 @@ namespace LQIO {
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
-/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Doucment] */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
 
@@ -758,24 +758,24 @@ namespace LQIO {
 	struct attribute_table_t
 	{
 	private:
-	    typedef enum { IS_NULL, IS_DOUBLE, IS_BOOL, IS_UNSIGNED, IS_CLOCK, IS_EXTVAR } result_t;
+	    enum class result_is { EMPTY, DOUBLE, BOOL, UNSIGNED, CLOCK, EXTVAR };
 
 	public:
-	    attribute_table_t() : _t(IS_NULL) {}
-	    attribute_table_t( get_double_fptr f )   : _t(IS_DOUBLE)   { fptr.r_double = f; }
-	    attribute_table_t( get_unsigned_fptr f ) : _t(IS_UNSIGNED) { fptr.r_unsigned = f; }
-	    attribute_table_t( get_bool_fptr f )     : _t(IS_BOOL)     { fptr.r_bool = f; }
-	    attribute_table_t( get_extvar_fptr f )   : _t(IS_EXTVAR)   { fptr.r_extvar = f; }
+	    attribute_table_t() : _t(result_is::EMPTY) {}
+	    attribute_table_t( get_double_fptr f )   : _t(result_is::DOUBLE)   { fptr.r_double = f; }
+	    attribute_table_t( get_unsigned_fptr f ) : _t(result_is::UNSIGNED) { fptr.r_unsigned = f; }
+	    attribute_table_t( get_bool_fptr f )     : _t(result_is::BOOL)     { fptr.r_bool = f; }
+	    attribute_table_t( get_extvar_fptr f )   : _t(result_is::EXTVAR)   { fptr.r_extvar = f; }
 
 	    bool operator()( const char * s1, const char * s2 ) const { return strcasecmp( s1, s2 ) < 0; }
 	    LQX::SymbolAutoRef operator()( const DOM::Document& document ) const
 		{
 		    switch ( _t ) {
-		    case IS_DOUBLE:   return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
-		    case IS_UNSIGNED: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_unsigned)()) );
-		    case IS_CLOCK:    return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_clock)()) );
-		    case IS_BOOL:     return LQX::Symbol::encodeBoolean( (document.*fptr.r_bool)() );
-		    case IS_EXTVAR: {
+		    case result_is::DOUBLE:   return LQX::Symbol::encodeDouble( (document.*fptr.r_double)() );
+		    case result_is::UNSIGNED: return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_unsigned)()) );
+		    case result_is::CLOCK:    return LQX::Symbol::encodeDouble( static_cast<double>((document.*fptr.r_clock)()) );
+		    case result_is::BOOL:     return LQX::Symbol::encodeBoolean( (document.*fptr.r_bool)() );
+		    case result_is::EXTVAR: {
 			/* This is sneaky... If the external variable is writable, then we can set it using it's document property.
 			 * Otherwise, it is read-only */
 			const DOM::ExternalVariable * var = (document.*fptr.r_extvar)();
@@ -784,14 +784,14 @@ namespace LQIO {
 			    return sym->_externalSymbol;
 			} else if ( var && var->wasSet() ) {
 			    switch ( var->getType() ) {
-			    case DOM::ExternalVariable::VAR_DOUBLE: return LQX::Symbol::encodeDouble(to_double(*var));
-			    case DOM::ExternalVariable::VAR_STRING: return LQX::Symbol::encodeString(to_string(*var));
+			    case DOM::ExternalVariable::Type::DOUBLE: return LQX::Symbol::encodeDouble(to_double(*var));
+			    case DOM::ExternalVariable::Type::STRING: return LQX::Symbol::encodeString(to_string(*var));
 			    default: break;
 			    }
 			}
 			/* Fall through to default if not set */
 		    }
-		    default:          return LQX::Symbol::encodeNull();
+		    default: return LQX::Symbol::encodeNull();
 		}
 	    }
 
@@ -802,12 +802,12 @@ namespace LQIO {
 		get_clock_fptr r_clock;
 		get_extvar_fptr r_extvar;
 	    } fptr;
-	    result_t _t;
+	    result_is _t;
 	};
 
     public:
 
-	const static uint32_t kLQXDocumentObjectTypeId = 10+5;
+	const static uint32_t kLQXDocumentObjectTypeId = 10+10;
 
 	/* Designated Initializers */
 	LQXDocument(const DOM::Document * doc) : LQX::LanguageObject(kLQXDocumentObjectTypeId), _document(doc)
@@ -904,13 +904,106 @@ namespace LQIO {
     };
 
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Pragma] */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+    class LQXPragma : public LQXDocumentObject {
+    public:
+
+        const static uint32_t kLQXPragmaObjectTypeId = 10+11;
+
+        /* Designated Initializers */
+        LQXPragma(const std::string& value) : LQXDocumentObject(kLQXPragmaObjectTypeId,nullptr), _value(value)
+            {
+            }
+
+        virtual ~LQXPragma()
+            {
+            }
+
+        /* Comparison and Operators */
+        virtual bool isEqualTo(const LQX::LanguageObject* other) const
+            {
+                const LQXPragma* pragma = dynamic_cast<const LQXPragma *>(other);
+                return pragma && pragma->getDOMPragma() == getDOMPragma();  /* Return a comparison of the types */
+            }
+
+        virtual std::string description() const
+            {
+                /* Return a description of the pragma */
+                std::stringstream ss;
+                ss << getTypeName() << "(" << getDOMPragma() << ")";
+		return ss.str();
+	    }
+
+	virtual std::string getTypeName() const
+	    {
+		return "pramga";
+	    }
+
+        const std::string& getDOMPragma() const { return _value; }
+
+
+	virtual LQX::SymbolAutoRef getPropertyNamed(LQX::Environment* env, const std::string& name)
+	    {
+		/* All the valid properties of pragmas */
+		if (name == "value") {
+		    return LQX::Symbol::encodeString(_value.c_str());
+		}
+
+		/* Anything we don't handle may be handled by our superclass */
+		return this->LanguageObject::getPropertyNamed(env, name);
+	    }
+
+    private:
+	const std::string _value;
+    };
+
+    /*
+     * A litle different than the others... Returns a string, not an object
+     */
+
+    class LQXGetPragma : public LQX::Method {
+    public:
+	LQXGetPragma( const DOM::Document* doc) : _document(doc), _symbolCache() {}
+	virtual ~LQXGetPragma() {}
+
+	/* Basic information for the method itself */
+	virtual std::string getName() const { return "pragma"; }
+	virtual const char* getParameterInfo() const { return "s"; }
+	virtual std::string getHelp() const { return "Returns the value associated with the pragma"; }
+
+	/* Invocation of the method from the language */
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
+
+	    /* Decode the arguments to the given method */
+	    const std::string pragmaName = decodeString(args, 0);
+	    if (_symbolCache.find(pragmaName) != _symbolCache.end()) {
+		return _symbolCache[pragmaName];
+	    }
+
+	    const std::string value = _document->getPragma( pragmaName );
+	    if ( value.empty() ) {
+		return LQX::Symbol::encodeNull();	/* NOP */
+	    }
+	    LQXPragma* pragmaObject = new LQXPragma(value);
+	    _symbolCache[pragmaName] = LQX::Symbol::encodeObject(pragmaObject, false);
+	    return _symbolCache[pragmaName];
+	}
+
+    private:
+	const DOM::Document* _document;
+	std::map<std::string,LQX::SymbolAutoRef> _symbolCache;
+    };
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
 #pragma mark -
     class LQXConfidenceInterval : public LQXDocumentObject {
     public:
 
-	const static uint32_t kLQXConfidenceIntervalObjectTypeId = 10+6;
+	const static uint32_t kLQXConfidenceIntervalObjectTypeId = 10+11;
 
 	/* Designated Initializers */
 	LQXConfidenceInterval(const DOM::DocumentObject * doc, const double conf_val ) : LQXDocumentObject(kLQXConfidenceIntervalObjectTypeId,doc), _conf_int()
@@ -1022,6 +1115,7 @@ namespace LQIO {
 	mt->registerMethod(new LQXGetActivity());
 	mt->registerMethod(new LQXGetDocument(document));
 	mt->registerMethod(new LQXGetConfidenceInterval());
+	mt->registerMethod(new LQXGetPragma(document));
     }
 
 }

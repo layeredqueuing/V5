@@ -4,7 +4,7 @@
 %%  Copyright (c) 2009 __MyCompanyName__. All rights reserved.
 %%
 %% ------------------------------------------------------------------------
-%%  $Id: lqx.tex 11969 2014-04-11 21:19:54Z greg $
+%%  $Id: lqx.tex 14789 2021-06-10 14:43:04Z greg $
 %% ------------------------------------------------------------------------
 \newcommand{\ModLang}{LQX }
 \newcommand{\lqns}{Layer Queueing Network Solver}
@@ -986,7 +986,24 @@ for the cross product of {\tt phase} and {\tt calls}.
   \hline
   \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
   \hline
-  Call & {\tt call(object phase, string destinationEntry)} & Returns the call from an entry's phase (phase) to the destination entry whose name is (dest)\\
+  Call & {\tt call(object phase, string destinationEntry)} & Returns the call from an entry's phase (phase) to the destination entry whose name is (dest).\\
+  \hline
+\end{tabular}
+
+\subsection{Pragmas}
+\begin{tabular}{|p{1.0in}|p{2.3in}||p{2.8in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Attributes}}\\
+  \hline
+  string & {\tt value} & Value of pramga.\\
+  \hline
+\end{tabular}
+\\\\\ \\
+\begin{tabular}{|p{1.0in}|p{2.3in}||p{2.8in}|}
+  \hline
+  \multicolumn{3}{|l|}{\textbf{Summary of Constructors}}\\
+  \hline
+  Pragma & {\tt pragma(string pragma)} & Returns the value for the pragma supplied as an argument.\\
   \hline
 \end{tabular}
 

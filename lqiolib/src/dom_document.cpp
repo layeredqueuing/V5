@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14633 2021-05-11 13:55:35Z greg $
+ *  $Id: dom_document.cpp 14794 2021-06-11 12:13:01Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -48,7 +48,7 @@ namespace LQIO {
 	const char * Document::XSpexIterationLimit = "spex_it_limit";
 	const char * Document::XSpexUnderrelaxation = "spex_underrelax_coeff";
     
-	Document::Document( input_format format ) 
+	Document::Document( InputFormat format ) 
 	    : _extraComment(),
 	      _processors(), _groups(), _tasks(), _entries(), 
 	      _entities(), _variables(), _controlVariables(), _nextEntityId(0), 
@@ -684,10 +684,7 @@ namespace LQIO {
 
 		/* Check if we finished parsing okay */
 		if (endPtr != realEndPtr) {
-		    std::string err = "<double>: \"";
-		    err += input;
-		    err += "\"";
-		    throw std::invalid_argument( err.c_str() );
+		    throw std::invalid_argument( "<double>: \"" + std::string(input) + "\"" );
 		}
 
 		/* Return the resulting value */
@@ -720,14 +717,14 @@ namespace LQIO {
 	 */
 
 	/* static */ Document* 
-	Document::load(const std::string& input_filename, input_format format, unsigned& errorCode, bool load_results )
+	Document::load(const std::string& input_filename, InputFormat format, unsigned& errorCode, bool load_results )
 	{
 	    __input_file_name = input_filename;
             io_vars.reset();                   /* See error.c */
 
 	    /* Figure out input file type based on suffix */
 
-	    if ( format == AUTOMATIC_INPUT ) {
+	    if ( format == InputFormat::AUTOMATIC ) {
 		format = getInputFormatFromFilename( input_filename );
 	    }
 
@@ -741,27 +738,27 @@ namespace LQIO {
 
 	    switch ( format ) {
 
-	    case AUTOMATIC_INPUT:
-	    case LQN_INPUT:
+	    case InputFormat::AUTOMATIC:
+	    case InputFormat::LQN:
 		rc = SRVN::load( *document, input_filename, load_results );
 		break;
 
 #if HAVE_LIBEXPAT
-	    case XML_INPUT:
+	    case InputFormat::XML:
 		rc = Expat_Document::load( *document, input_filename, load_results );
 		break;
 		
-	    case JMVA_INPUT:
+	    case InputFormat::JMVA:
 		rc = BCMP::JMVA_Document::load( *document, input_filename );
 		break;
 #else
-	    case XML_INPUT:
-	    case JMVA_INPUT:
+	    case InputFormat::XML:
+	    case InputFormat::JMVA:
 		rc = false;
 		break;
 #endif
 
-	    case JSON_INPUT:
+	    case InputFormat::JSON:
 		rc = Json_Document::load( *document, input_filename, errorCode, load_results );
 		break;
 
@@ -785,16 +782,16 @@ namespace LQIO {
 	Document::loadResults(const std::string& directory_name, const std::string& file_name, const std::string& suffix, unsigned& errorCode )
 	{
 	    switch ( getInputFormat() ) {
-	    case LQN_INPUT:
+	    case InputFormat::LQN:
 		return LQIO::SRVN::loadResults( LQIO::Filename( file_name, "p", directory_name, suffix )() );
 
-	    case XML_INPUT:
+	    case InputFormat::XML:
 #if HAVE_LIBEXPAT
 		return Expat_Document::loadResults( *this, LQIO::Filename( file_name, "lqxo", directory_name, suffix )() );
 #else
 		return false;
 #endif
-	    case JSON_INPUT:
+	    case InputFormat::JSON:
 //		return Json_Document::loadResults( LQIO::Filename( file_name, "lqxo", directory_name, suffix )() );
 		return false;
 		
@@ -803,8 +800,8 @@ namespace LQIO {
 	    }
 	}
 
-	/* static */ Document::input_format
-	Document::getInputFormatFromFilename( const std::string& filename, const input_format default_format )
+	/* static */ Document::InputFormat
+	Document::getInputFormatFromFilename( const std::string& filename, const InputFormat default_format )
 	{
 	    const unsigned long pos = filename.find_last_of( '.' );
 	    if ( pos == std::string::npos ) {
@@ -813,13 +810,13 @@ namespace LQIO {
 		std::string suffix = filename.substr( pos+1 );
 		std::transform(suffix.begin(), suffix.end(), suffix.begin(), ::tolower);
 		if ( suffix == "in" || suffix == "lqn" || suffix == "xlqn" || suffix == "txt" || suffix == "spex" ) {
-		    return LQN_INPUT;		/* Override */
+		    return InputFormat::LQN;		/* Override */
 		} else if ( suffix == "json" || suffix == "lqnj" || suffix == "jlqn" || suffix == "lqjo" ) {
-		    return JSON_INPUT;
+		    return InputFormat::JSON;
 		} else if ( suffix == "jmva" ) {
-		    return JMVA_INPUT;
+		    return InputFormat::JMVA;
 		} else {
-		    return XML_INPUT;
+		    return InputFormat::XML;
 		}
 	    }
 	}
@@ -829,33 +826,33 @@ namespace LQIO {
 	 */
 
         std::ostream&
-	Document::print( std::ostream& output, const output_format format ) const
+	Document::print( std::ostream& output, const OutputFormat format ) const
 	{
 	    switch ( format ) {
-	    case DEFAULT_OUTPUT:
-	    case LQN_OUTPUT: {
+	    case OutputFormat::DEFAULT:
+	    case OutputFormat::LQN: {
 		SRVN::Output srvn( *this, _entities );
 		srvn.print( output );
 		break;
 	    }
-	    case PARSEABLE_OUTPUT:{
+	    case OutputFormat::PARSEABLE:{
 		SRVN::Parseable srvn( *this, _entities );
 		srvn.print( output );
 		break;		
 	    } 
-	    case RTF_OUTPUT: {
+	    case OutputFormat::RTF: {
 		SRVN::RTF srvn( *this, _entities );
 		srvn.print( output );
 		break;
 	    }
-	    case XML_OUTPUT: {
+	    case OutputFormat::XML: {
 #if HAVE_LIBEXPAT
 		Expat_Document expat( *const_cast<Document *>(this), __input_file_name, false, false );
 		expat.serializeDOM( output );
 #endif
 		break;
 	    }
-	    case JSON_OUTPUT: {
+	    case OutputFormat::JSON: {
 		Json_Document json( *const_cast<Document *>(this), __input_file_name, false, false );
 		json.serializeDOM( output );
 		break;
