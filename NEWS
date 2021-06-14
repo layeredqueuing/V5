@@ -1,3 +1,9 @@
+* Bugs fixed in 5.20
+179 	lqns 	 	Replication does not take into consideration interlock.
+228 	lqns 	 	Casale_1 model. Simulation and analytic solver differences.
+305 	lqns 	 	44-activities.in: fails in old syntax, passes in XML.
+299 	lqns 	 	Deprecate existing replication code.
+
 * Bugs fixed in 5.19
 294 	lqns 		07-sanity 
 208 	lqiolib 	Add --gnuplot output. 

@@ -1,3 +1,10 @@
+2021-06-14  Gregory Franks  <greg@Gregs-Retina-iMac.local>
+
+	* lqns
+	- New replication strategy (prune).  Use #pragma replication=prune
+	* lqiolib
+	- New LQX function pramga("parameter").value outputs "value" for "parameter".
+
 2021-03-16  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqns
@@ -512,4 +519,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 14550 2021-03-16 12:33:09Z greg $
+$Id: ChangeLog 14810 2021-06-14 19:31:10Z greg $
