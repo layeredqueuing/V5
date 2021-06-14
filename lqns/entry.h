@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14765 2021-06-04 01:04:46Z greg $
+ * $Id: entry.h 14806 2021-06-14 17:37:21Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -47,55 +47,6 @@ class Processor;
 class Submodel;
 class Task;
 typedef Vector<unsigned> ChainVector;
-
-/*
- * Interface to parser.
- */
-
-
-class CallInfoItem {
-public:
-    CallInfoItem( const Entry * src, const Entry * dst );
-	
-    bool hasRendezvous() const;
-    bool hasSendNoReply() const;
-    bool hasForwarding() const;
-		
-    bool isTaskCall() const;
-    bool isProcessorCall() const;
-	
-    const Entry * srcEntry() const { return source; }
-    const Entry * dstEntry() const { return destination; }
-
-public:
-    Vector<const Call *> phase;
-
-private:
-    const Entry * source; 
-    const Entry * destination; 
-};
-
-
-class CallInfo {
-    struct compare
-    {
-	compare( const Entry* dstEntry ) : _dstEntry(dstEntry) {}
-	bool operator()( CallInfoItem& i ) { return i.dstEntry() == _dstEntry; }
-    private:
-	const Entry * _dstEntry;
-    };
-public:
-    CallInfo( const Entry& anEntry, LQIO::DOM::Call::Type );
-    CallInfo( const CallInfo& ) { abort(); }					/* Copying is verbotten */
-    CallInfo& operator=( const CallInfo& ) { abort(); return *this; }		/* Copying is verbotten */
-	
-    std::vector<CallInfoItem>::const_iterator begin() const { return _calls.begin(); }
-    std::vector<CallInfoItem>::const_iterator end() const { return _calls.end(); }
-    unsigned size() const { return _calls.size(); }
-
-private:
-    std::vector<CallInfoItem> _calls;
-};
 
 /* -------------------- Nodes in the graph are... --------------------- */
 
@@ -107,6 +58,7 @@ class Entry
     friend class OrForkActivityList;	/* To access phase[].wait */
     friend class AndForkActivityList;	/* To access phase[].wait */
     friend class RepeatActivityList;	/* To access phase[].wait */
+    friend class CallInfo;
 
 public:
     enum class RequestType { NOT_CALLED, RENDEZVOUS, SEND_NO_REPLY, OPEN_ARRIVAL };

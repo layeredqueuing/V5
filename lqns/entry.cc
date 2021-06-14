@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14765 2021-06-04 01:04:46Z greg $
+ * $Id: entry.cc 14806 2021-06-14 17:37:21Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -334,7 +334,6 @@ Entry&
 Entry::initServiceTime()
 {
     if ( isActivityEntry() && !isVirtualEntry() ) {
-
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack;
 	entryStack.push_back( this );
@@ -357,7 +356,7 @@ Entry::initServiceTime()
 Entry&
 Entry::initReplication( const unsigned n_chains )
 {
-    std::for_each ( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
+    std::for_each( _phase.begin(), _phase.end(), Exec1<Phase,const unsigned>( &Phase::initReplication, n_chains ) );
     return *this;
 }
 #endif
@@ -367,7 +366,7 @@ Entry::initReplication( const unsigned n_chains )
 Entry&
 Entry::resetInterlock()
 {
-    std::for_each ( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
+    std::for_each( _interlock.begin(), _interlock.end(), Exec<InterlockInfo>( &InterlockInfo::reset ) );
     return *this;
 }
 
@@ -386,6 +385,8 @@ Entry::createInterlock()		/* Called from task -- initialized calls */
     initInterlock( calls );
     return *this;
 }
+
+
 
 Entry&
 Entry::initInterlock( Interlock::CollectTable& path ) 
@@ -415,7 +416,6 @@ Entry::initInterlock( Interlock::CollectTable& path )
     path.pop_back();
     return *this;
 }
-
 
 
 
@@ -581,7 +581,7 @@ Entry::saveThroughput( const double value )
 
     if ( flags.trace_replication || flags.trace_throughput ) {
 	std::cout << " Entry::throughput(): Task=" << this->owner()->name() << ", Entry=" << this->name()
-	     << ", Throughput=" << _throughput << std::endl;
+		  << ", Throughput=" << _throughput << std::endl;
     }
 
     if ( isActivityEntry() ) {
@@ -713,6 +713,7 @@ Entry::setStartActivity( Activity * anActivity )
     _startActivity = anActivity;
     return *this;
 }
+
 
 
 /*
@@ -1041,24 +1042,29 @@ Entry::printCalls( std::ostream& output, unsigned int submodel ) const
 {
     CallInfo calls( *this, LQIO::DOM::Call::Type::RENDEZVOUS );
 
-    for ( std::vector<CallInfoItem>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
+    for ( std::vector<CallInfo::Item>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
 	const Entry& src = *y->srcEntry();
 	const Entry& dst = *y->dstEntry();
 	if ( submodel != 0 && dst.owner()->submodel() != submodel ) continue;
+	if ( src.owner()->isPruned() && dst.owner()->isPruned() ) continue;
 	output << std::setw(2) << " " << src.name() << "." << src.getReplicaNumber()
 	       << " -> " << dst.name() << "." << dst.getReplicaNumber() << std::endl;
     }
 
+#if 0
     CallInfo fwds( *this, LQIO::DOM::Call::Type::FORWARD );
-    for ( std::vector<CallInfoItem>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
+    for ( std::vector<CallInfo::Item>::const_iterator y = calls.begin(); y != calls.end(); ++y ) {
 	const Entry& src = *y->srcEntry();
 	const Entry& dst = *y->dstEntry();
 //	if ( submodel != 0 && dst.owner()->submodel() != submodel ) continue;
 	output << std::setw(2) << " " << src.name() << "." << src.getReplicaNumber()
 	       << " -> " << dst.name() << "." << dst.getReplicaNumber() << std::endl;
     }
+#endif
     return output;
 }
+
+
 
 std::ostream&
 Entry::printSubmodelWait( std::ostream& output, unsigned int offset ) const
@@ -1662,121 +1668,6 @@ map_entry_name( const std::string& entry_name, Entry * & outEntry, bool receiver
     }
 
     return rc;
-}
-
-/* ----------------------- Accumulate Printing ------------------------ */
-
-/*
- * Initialize record.
- */
-
-CallInfoItem::CallInfoItem( const Entry * src, const Entry * dst )
-    : phase(MAX_PHASES), source( src ), destination( dst )
-{
-    if ( src == nullptr || dst == nullptr ) throw std::logic_error( "CallInfoItem::CallInfoItem" );
-}
-
-
-
-/*
- *
- */
-
-bool
-CallInfoItem::hasRendezvous() const
-{
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	if ( phase[p] && phase[p]->hasRendezvous() ) return true;
-    }
-    return false;
-}
-
-
-bool
-CallInfoItem::hasSendNoReply() const
-{
-    for ( unsigned p = 1; p <= MAX_PHASES; ++p ) {
-	if ( phase[p] && phase[p]->hasSendNoReply() ) return true;
-    }
-    return false;
-}
-
-
-bool
-CallInfoItem::hasForwarding() const
-{
-    return phase[1] && phase[1]->hasForwarding();
-}
-
-
-/*
- * Does this call item call another task?
- */
-
-bool
-CallInfoItem::isTaskCall() const
-{
-    for ( unsigned p = 1; p <= srcEntry()->maxPhase(); ++p ) {
-	if ( phase[p] && !phase[p]->isProcessorCall() ) return true;
-    }
-    return false;
-}
-
-
-/*
- * Does this call item call a processor?
- */
-
-bool
-CallInfoItem::isProcessorCall() const
-{
-    for ( unsigned p = 1; p <= srcEntry()->maxPhase(); ++p ) {
-	if ( phase[p] && phase[p]->isProcessorCall() ) return true;
-    }
-    return false;
-}
-
-
-
-/*
- * Locate all calls generated by entry regardless of phase.
- * Create a collection so that the () operator can step over it.
- */
-
-CallInfo::CallInfo( const Entry& entry, LQIO::DOM::Call::Type callType )
-    : _calls()
-{
-    if ( !entry.isStandardEntry() ) return;
-
-    for ( unsigned p = 1; p <= entry.maxPhase(); ++p ) {
-	const std::set<Call *>& callList = entry.callList( p );
-	for ( std::set<Call *>::const_iterator call = callList.begin(); call != callList.end(); ++call ) {
-	    if ( (*call)->isProcessorCall() || (*call)->dstEntry()->owner()->isProcessor() ) continue;
-
-	    if ( (    (callType == LQIO::DOM::Call::Type::SEND_NO_REPLY) && (*call)->hasSendNoReply() )
-		 || ( (callType == LQIO::DOM::Call::Type::FORWARD) && (*call)->isForwardedCall() )
-		 || ( (callType == LQIO::DOM::Call::Type::RENDEZVOUS) && (*call)->hasRendezvous() && !(*call)->isForwardedCall() )
-		) {
-
-		std::vector<CallInfoItem>::iterator item = std::find_if( _calls.begin(), _calls.end(), compare( (*call)->dstEntry() ) );
-		if ( item == _calls.end() ) {
-		    _calls.emplace_back( CallInfoItem( &entry, (*call)->dstEntry() ) );
-		    _calls.back().phase[p] = (*call);
-		} else if ( item->phase[p] ) {
-		    if ( item->phase[p]->isForwardedCall() && (*call)->hasRendezvous() ) {
-			item->phase[p] = (*call);	/* Drop forward -- keep rnv */
-			continue;
-		    } else if ( item->phase[p]->hasRendezvous() && (*call)->isForwardedCall() ) {
-			continue;
-		    } else {
-			LQIO::internal_error( __FILE__, __LINE__, "CallInfo::CallInfo" );
-		    }
-		} else {
-		    item->phase[p] = (*call);
-		}
-	    }
-	}
-    }
 }
 
 /*----------------------------------------------------------------------*/

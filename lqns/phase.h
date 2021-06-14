@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14752 2021-06-02 12:34:21Z greg $
+ * $Id: phase.h 14805 2021-06-14 16:53:35Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -43,6 +43,8 @@ namespace LQIO {
 	class Call;
     }
 }
+
+/* -------------------------------------------------------------------- */
 
 class NullPhase {
     friend class Entry;			/* For access to myVariance */
@@ -107,8 +109,7 @@ protected:
     double _variance;			/* Set if this is a processor		*/
     VectorMath<double> _wait;		/* Saved waiting time.			*/
 };
-
-
+
 /* -------------------------------------------------------------------- */
 
 class Phase : public NullPhase {
@@ -154,7 +155,7 @@ private:
 
 	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
 	static std::set<Entity *>& add_server( std::set<Entity *>&, const DeviceInfo * );
-
+	
 	struct add_wait {
 	    add_wait( unsigned int submodel ) : _submodel(submodel) {}
 	    double operator()( double sum, const DeviceInfo * call ) const;

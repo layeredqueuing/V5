@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14782 2021-06-08 15:33:25Z greg $
+ * $Id: entity.cc 14799 2021-06-13 10:26:34Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -757,6 +757,15 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 /* -------------------------------------------------------------------- */
 /* Funky Formatting functions for inline with <<.			*/
 /* -------------------------------------------------------------------- */
+
+/* static */ std::string
+Entity::fold( const std::string& s1, const Entity* e2 )
+{
+    std::string s = s1;
+    if ( !s.empty() ) s += " ";
+    s += e2->name();
+    return s;
+}
 
 /*
  * Print chains for this client.

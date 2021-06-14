@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: interlock.h 14809 2021-06-14 19:22:13Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,11 +18,15 @@
 #define	INTERLOCK_H
 
 #include "dim.h"
+#include <lqio/dom_call.h>
+#include <mva/vector.h>
 #include <set>
 #include <deque>
 
+class Call;
 class Entry;
 class Entity;
+class Phase;
 class Task;
 
 struct InterlockInfo 
@@ -36,6 +40,79 @@ struct InterlockInfo
     float ph1;	/* Calls from phase 1 only at root.	*/
 };
 
+class CallInfo {
+public:
+    class Item {
+    public:
+	class collect_calls {
+	    struct compare {
+		compare( const Entry* dstEntry ) : _dstEntry(dstEntry) {}
+		bool operator()( CallInfo::Item& ) const;
+	    private:
+		const Entry * _dstEntry;
+	    };
+
+	public:
+	    collect_calls( std::vector<CallInfo::Item>& calls, const Entry& entry, LQIO::DOM::Call::Type type, unsigned int p=0 ) : _calls(calls), _srcEntry(entry), _type(type), _p(p) {}
+	    collect_calls( const collect_calls& ) = default;
+	    
+	private:
+	    collect_calls& operator=( const collect_calls& ) = delete;
+
+	public:
+	    void operator()( const Phase& );
+
+	    unsigned int phase() const { return _p; }
+	    void setPhase( unsigned int p ) { _p = p; }
+	    const Entry& source() const { return _srcEntry; }
+	private:
+	    std::vector<CallInfo::Item>& _calls;
+	    const Entry& _srcEntry;
+	    const LQIO::DOM::Call::Type _type;
+	    unsigned int _p;		/* set if chasing activities */
+	};
+    
+    private:
+	struct Predicate {
+	    typedef bool (Call::*predicate)() const;
+	    Predicate( const predicate p ) : _p(p) {}
+	    bool operator()( const Call * call ) const { return call != nullptr && (call->*_p)(); }
+	private:
+	    const predicate _p;
+	};
+    
+    public:
+	Item( const Entry * src, const Entry * dst );
+	
+	bool hasRendezvous() const;
+	bool hasSendNoReply() const;
+	bool hasForwarding() const;
+		
+	bool isTaskCall() const;
+	bool isProcessorCall() const;
+    
+	const Entry * srcEntry() const { return _source; }
+	const Entry * dstEntry() const { return _destination; }
+
+    public:
+	Vector<const Call *> _phase;
+    private:
+	const Entry * _source; 
+	const Entry * _destination; 
+    };
+public:
+    CallInfo( const Entry& anEntry, LQIO::DOM::Call::Type );
+    CallInfo( const CallInfo& ) { abort(); }					/* Copying is verbotten */
+    CallInfo& operator=( const CallInfo& ) { abort(); return *this; }		/* Copying is verbotten */
+	
+    std::vector<CallInfo::Item>::const_iterator begin() const { return _calls.begin(); }
+    std::vector<CallInfo::Item>::const_iterator end() const { return _calls.end(); }
+    unsigned size() const { return _calls.size(); }
+
+private:
+    std::vector<CallInfo::Item> _calls;
+};
+
 /* --------------------------- Interlocker. --------------------------- */
 
 class Interlock {
@@ -50,8 +127,8 @@ public:
 	    {}
 
     private:
-	CollectTasks( const CollectTasks& ); // = delete;
-	CollectTasks& operator=( const CollectTasks& ); // = delete;
+	CollectTasks( const CollectTasks& ) = delete;
+	CollectTasks& operator=( const CollectTasks& ) = delete;
 
     public:
 	const Entity * server() const { return &_server; }
@@ -80,8 +157,8 @@ public:
 	    }
 
     private:
-	CollectTable( const CollectTable& ); // = delete
-	CollectTable& operator=( const CollectTable& ); // = delete
+	CollectTable( const CollectTable& ) = delete;
+	CollectTable& operator=( const CollectTable& ) = delete;
 
     public:
 	bool prune() const { return _entryStack.size() > 1 && _phase2; }

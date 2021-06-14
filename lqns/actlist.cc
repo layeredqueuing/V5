@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14758 2021-06-02 22:34:25Z greg $
+ * $Id: actlist.cc 14809 2021-06-14 19:22:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -236,6 +236,21 @@ ForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count
 
 
 /*
+ * Collect the calls by phase for the interlocker.
+ */
+
+CallInfo::Item::collect_calls&
+ForkActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    if ( getActivity() ) {
+        return getActivity()->collect_calls( stack, data );
+    } else {
+        return data;
+    }
+}
+
+
+/*
  * Recursively search from this entry to any entry on myServer.
  * When we pop back up the call stack we add all calling tasks
  * for each arc which calls myServer.  The task adder
@@ -382,6 +397,17 @@ const Activity::Count_If&
 JoinActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count_If& data ) const
 {
     return next() != nullptr ? next()->count_if( stack, data ) : data;
+}
+
+
+/*
+ * Collect the calls by phase for the interlocker.
+ */
+
+CallInfo::Item::collect_calls&
+JoinActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    return next() != nullptr ? next()->collect_calls( stack, data ) : data;
 }
 
 /*----------------------------------------------------------------------*/
@@ -818,9 +844,7 @@ OrForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Cou
     double sum = 0.0;
     unsigned phase = data.phase();
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	Activity::Count_If branch(data);
-	branch.setReplyAllowed(false);
-	branch.setRate( data.rate() * prBranch(*activity) );
+	Activity::Count_If branch(data, prBranch(*activity));
 	branch = (*activity)->count_if( stack, branch );		/* only want the last one. */
 	sum += branch.sum() - data.sum();				/* only accumulate difference */
 	phase = std::max( phase, branch.phase() );
@@ -838,6 +862,27 @@ OrForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Cou
     return data;
 }
 
+
+
+/*
+ * Collect the calls by phase for the interlocker.
+ */
+
+CallInfo::Item::collect_calls&
+OrForkActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    unsigned phase = data.phase();
+    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	CallInfo::Item::collect_calls branch(data);
+	(*activity)->collect_calls( stack, data );		/* will update data._calls on since _calls is a reference */
+	phase = std::max( phase, branch.phase() );
+    }
+    data.setPhase( phase );
+    if ( hasNextFork() ) {
+	getNextFork()->collect_calls( stack, data );
+    }
+    return data;
+}
 
 
 /*
@@ -1443,7 +1488,7 @@ AndForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Co
     double sum = 0.0;
     unsigned phase = data.phase();
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	Activity::Count_If branch( data );
+	Activity::Count_If branch( data, 1.0 );
 	const AndJoinActivityList * joinList = dynamic_cast<const AndJoinActivityList *>(this->joinList());
 	branch.setReplyAllowed(!joinList || !joinList->hasQuorum());	/* Disallow replies quorum on branches */
 	branch = (*activity)->count_if( stack, branch );
@@ -1461,6 +1506,28 @@ AndForkActivityList::count_if( std::deque<const Activity *>& stack, Activity::Co
     return data;		/* Result of last branch */
 }
 
+
+
+/*
+ * Collect the calls by phase for the interlocker.  We don't care about rates.
+ */
+
+CallInfo::Item::collect_calls&
+AndForkActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    unsigned phase = data.phase();
+    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	CallInfo::Item::collect_calls branch( data );
+	(*activity)->collect_calls( stack, branch );
+	phase = std::max( phase, branch.phase() );
+    }
+
+    data.setPhase( phase );
+    if ( hasNextFork() ) {
+	getNextFork()->collect_calls( stack, data );
+    }
+    return data;
+}
 
 
 /*
@@ -1775,6 +1842,17 @@ AndJoinActivityList::count_if( std::deque<const Activity *>& stack, Activity::Co
 }
 
 
+/*
+ * Collect the calls by phase for the interlocker.
+ */
+
+CallInfo::Item::collect_calls&
+AndJoinActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    return ( isSync() && next() ) ? next()->collect_calls( stack, data ) : data;
+}
+
+
 
 /*
  * Get the number of concurrent threads
@@ -2030,15 +2108,28 @@ const Activity::Count_If&
 RepeatActivityList::count_if( std::deque<const Activity *>& stack, Activity::Count_If& data ) const
 {
     for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
-	Activity::Count_If branch = data;
-	branch.setReplyAllowed(false);
-	branch.setRate( data.rate() * rateBranch(*activity) );
+	Activity::Count_If branch( data, rateBranch(*activity) );
 	branch = (*activity)->count_if( stack, branch );
 	data += branch.sum() - data.sum();				/* only accumulate difference */
     }
     return ForkActivityList::count_if( stack, data );
 }
 
+
+
+/*
+ * Collect the calls by phase for the interlocker.
+ */
+
+CallInfo::Item::collect_calls&
+RepeatActivityList::collect_calls( std::deque<const Activity *>& stack, CallInfo::Item::collect_calls& data ) const
+{
+    for ( std::vector<const Activity *>::const_iterator activity = activityList().begin(); activity != activityList().end(); ++activity ) {
+	CallInfo::Item::collect_calls branch( data );
+	(*activity)->collect_calls( stack, branch );
+    }
+    return ForkActivityList::collect_calls( stack, data );
+}
 
 
 

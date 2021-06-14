@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14774 2021-06-07 15:07:03Z greg $
+ * $Id: entity.h 14799 2021-06-13 10:26:34Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -256,6 +256,7 @@ public:
     SRVNManip print_info() const { return SRVNManip( output_info, *this ); }
     SRVNManip print_type() const { return SRVNManip( output_type, *this ); }
     SRVNManip print_entries() const { return SRVNManip( output_entries, *this ); }
+    static std::string fold( const std::string& s1, const Entity* );
 
 private:
     static std::ostream& output_type( std::ostream& output, const Entity& );

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14791 2021-06-11 00:55:56Z greg $
+ * $Id: call.cc 14800 2021-06-13 23:29:24Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -241,6 +241,23 @@ Call::submodel() const
     return dstTask()->submodel();
 }
 
+
+/*
+ * Return if this call matches type (for Entry::CallInfo)
+ */
+
+bool
+Call::hasTypeForCallInfo( LQIO::DOM::Call::Type type ) const
+{
+    switch ( type ) {
+    case LQIO::DOM::Call::Type::SEND_NO_REPLY: return hasSendNoReply();
+    case LQIO::DOM::Call::Type::FORWARD: return isForwardedCall();
+    case LQIO::DOM::Call::Type::RENDEZVOUS: return hasRendezvous() && !isForwardedCall();
+    default: abort();
+    }
+    return false;
+}
+		
 
 bool
 Call::hasOvertaking() const

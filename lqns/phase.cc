@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14765 2021-06-04 01:04:46Z greg $
+ * $Id: phase.cc 14805 2021-06-14 16:53:35Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -40,8 +40,6 @@
 #include "submodel.h"
 #include "task.h"
 #include "variance.h"
-
-/* ---------------------- Overloaded Operators ------------------------ */
 
 /*----------------------------------------------------------------------*/
 /*                              Null Phase                              */

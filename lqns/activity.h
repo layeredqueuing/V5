@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 14752 2021-06-02 12:34:21Z greg $
+ * $Id: activity.h 14809 2021-06-14 19:22:13Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -94,7 +94,13 @@ public:
     public:
 	Count_If() : _e(nullptr), _f(nullptr), _p(0), _replyAllowed(false), _rate(0.0), _sum(0.0) {}
 	Count_If( const Entry* e, const Predicate f ) : _e(e), _f(f), _p(1), _replyAllowed(true), _rate(1.0), _sum(0.0) {}
+	Count_If( const Count_If& src, double rate ) : _e(src._e), _f(src._f), _p(src._p), _replyAllowed(false), _rate(src._rate*rate), _sum(src._sum) {}
 
+    private:
+	Count_If( const Count_If& ) = delete;
+	Count_If& operator()( const Count_If& ) = delete;
+
+    public:
 	Count_If& operator=( const Count_If& src );
 	Count_If& operator=( double value ) { _sum = value; return *this; }
 	Count_If& operator+=( double addend ) { _sum += addend; return *this; }
@@ -121,7 +127,12 @@ public:
     public:
 	Collect() : _f(nullptr), _submodel(0), _p(0), _rate(1) {}
 	Collect( unsigned int submodel, Function f ) : _f(f), _submodel(submodel), _p(1), _rate(1) {}
+	Collect( const Collect& ) = default;
 
+    private:
+	Collect& operator=( const Collect& ) = delete;
+	
+    public:
 	Function collect() const { return _f; }
 	unsigned int submodel() const { return _submodel; }
 	unsigned int phase() const { return _p; }
@@ -281,6 +292,7 @@ public:
     virtual const Activity& followInterlock( Interlock::CollectTable& ) const;
     Collect& collect( std::deque<const Activity *>&, std::deque<Entry *>&, Collect& ) const;
     Count_If& count_if( std::deque<const Activity *>&, Count_If& ) const;
+    CallInfo::Item::collect_calls& collect_calls( std::deque<const Activity *>&, CallInfo::Item::collect_calls& ) const;
     virtual void callsPerform( const CallExec& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
     unsigned concurrentThreads( unsigned ) const;
