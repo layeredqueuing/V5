@@ -1,11 +1,21 @@
 #!/bin/sh
 dirs="lqx lqiolib libmva parasol lqns qnsolver lqsim lqn2ps lqngen srvndiff doc"
+echo "Out with the old..."
+find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in -o -name aclocal.m4 \) -print | xargs rm -rf
+echo "In with the new..."
 mkdir -p config
 aclocal -I config
-libtoolize --force
+echo "Libtoolize..."
+if test -x /opt/local/bin/glibtoolize; then glibtoolize --force
+elif test -x /usr/bin/libtoolize; then libtoolize --force
+else echo "Can't fine libtoolize!"; exit
+fi
+echo "aclocal subdirs..."
 for i in $dirs; do (cd $i; aclocal -I ../config); done
+echo "automake subdirs..."
 for i in $dirs; do (cd $i; automake -a -c; if [ $i != "doc" ]; then autoheader; fi; autoconf); done
+echo "top level..."
 automake -a -c
 autoconf
-
-
+echo "done!"
+echo "run configure; make; make install"
