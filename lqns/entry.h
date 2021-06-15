@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14806 2021-06-14 17:37:21Z greg $
+ * $Id: entry.h 14818 2021-06-15 17:22:40Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,7 +17,6 @@
 #if	!defined(ENTRY_H)
 #define ENTRY_H
 
-#include "dim.h"
 #include <lqio/input.h>
 #include <lqio/dom_entry.h>
 #include <set>
@@ -25,9 +24,7 @@
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"
-#include "phase.h"
 #include "activity.h"
-#include "interlock.h"
 #include "slice.h"
 
 namespace LQIO {
@@ -132,13 +129,6 @@ public:
     
 
 protected:
-    struct clear_wait {
-	clear_wait( unsigned int submodel ) : _submodel(submodel) {}
-	void operator()( const Phase& phase ) const { phase._wait[_submodel] = 0.0; }
-    private:
-	const unsigned int _submodel;
-    };
-
     struct add_wait {
 	add_wait( unsigned int submodel ) : _submodel(submodel) {}
 	double operator()( double sum, const Phase& phase ) const { return sum + phase._wait[_submodel]; }

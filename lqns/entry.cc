@@ -12,20 +12,16 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14806 2021-06-14 17:37:21Z greg $
+ * $Id: entry.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
-#include <string>
+#include "lqns.h"
 #include <cmath>
-#include <algorithm>
 #include <numeric>
 #include <iostream>
 #include <iomanip>
-#include <stdarg.h>
-#include <string.h>
 #include <lqio/error.h>
 #include <mva/fpgoop.h>
 #include <mva/prob.h>
@@ -34,7 +30,7 @@
 #include "entry.h"
 #include "entrythread.h"
 #include "errmsg.h"
-#include "lqns.h"
+#include "flags.h"
 #include "model.h"
 #include "pragma.h"
 #include "processor.h"
@@ -190,7 +186,7 @@ Entry::check() const
 	    const double replies = std::floor( getStartActivity()->count_if( activityStack, data ).sum() * precision ) / precision;
 	    //tomari: disable to allow a quorum use the default reply which is after all threads completes exection.
 	    //(replies == 1 || (replies == 0 && owner->hasQuorum()))
-	    //Only tasks have activity entries. 
+	    //Only tasks have activity entries.
 	    if ( replies != 1.0 && (replies != 0.0 || !dynamic_cast<const Task *>(owner())->hasQuorum()) ) {
 		LQIO::solution_error( LQIO::ERR_NON_UNITY_REPLIES, replies, name().c_str() );
 	    }
@@ -326,8 +322,8 @@ Entry::initThroughputBound()
 
 
 
-/* 
- * Compute overall service time for this entry 
+/*
+ * Compute overall service time for this entry
  */
 
 Entry&
@@ -345,7 +341,7 @@ Entry::initServiceTime()
     _total.setServiceTime( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::serviceTime ) ) );
     return *this;
 }
-    
+
 
 
 #if PAN_REPLICATION
@@ -389,7 +385,7 @@ Entry::createInterlock()		/* Called from task -- initialized calls */
 
 
 Entry&
-Entry::initInterlock( Interlock::CollectTable& path ) 
+Entry::initInterlock( Interlock::CollectTable& path )
 {
     /*
      * Check for cycles in graph.  Return if found.  Cycle catching
@@ -930,7 +926,7 @@ Entry::getInterlockedTasks( Interlock::CollectTasks& path ) const
 	found = getStartActivity()->getInterlockedTasks( path );
     }
     path.pop_back();
-    
+
     if ( found && !headOfPath ) {
 	path.insert( owner() );
     }
@@ -1069,19 +1065,19 @@ Entry::printCalls( std::ostream& output, unsigned int submodel ) const
 std::ostream&
 Entry::printSubmodelWait( std::ostream& output, unsigned int offset ) const
 {
-    for ( unsigned p = 1; p <= maxPhase(); ++p ) {
+    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 	if ( offset ) {
 	    output << std::setw( offset ) << " ";
 	}
-	output << std::setw(8-offset) ;
-	if ( p == 1 ) {
+	output << std::setw(8-offset);
+	if ( phase == _phase.begin() ) {
 	    output << name();
 	} else {
 	    output << " ";
 	}
-	output << " " << std::setw(1) << p << "  ";
-	for ( unsigned j = 1; j <= _phase[p]._wait.size(); ++j ) {
-	    output << std::setw(8) << _phase[p]._wait[j];
+	output << " " << std::setw(1) << phase->getPhaseNumber() << "  ";
+	for ( unsigned j = 1; j <= phase->_wait.size(); ++j ) {
+	    output << std::setw(8) << phase->_wait[j];
 	}
 	output << std::endl;
     }
@@ -1132,6 +1128,7 @@ TaskEntry::TaskEntry( LQIO::DOM::Entry* domEntry, unsigned int index, bool globa
 {
 }
 
+
 TaskEntry::TaskEntry( const TaskEntry& src, unsigned int replica )
     : Entry(src,replica),
       _task(nullptr),
@@ -1141,10 +1138,11 @@ TaskEntry::TaskEntry( const TaskEntry& src, unsigned int replica )
     /* Set to replica task */
     _task = Task::find( src._task->name(), replica );
 }
-    
+
 
 /*
- * Initialize processor waiting time, variance and priority
+ * Initialize processor waiting time, variance and priority.
+ * Activities are done by the task.
  */
 
 TaskEntry&
@@ -1213,11 +1211,7 @@ TaskEntry::processorUtilization() const
 double
 TaskEntry::queueingTime( const unsigned p ) const
 {
-    if ( isStandardEntry() ) {
-	return _phase[p].queueingTime();
-    } else {
-	return 0.0;
-    }
+    return isStandardEntry() ? _phase[p].queueingTime() : 0.0;
 }
 
 
@@ -1231,10 +1225,7 @@ TaskEntry::computeVariance()
 {
     _total._variance = 0.0;
     if ( isActivityEntry() ) {
-	for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-	    _phase[p]._variance = 0.0;
-	}
-
+	std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
 	std::deque<const Activity *> activityStack;
 	std::deque<Entry *> entryStack; //( dynamic_cast<const Task *>(owner())->activities().size() );
 	entryStack.push_back( this );
@@ -1272,13 +1263,11 @@ Entry::set( const Entry * src, const Activity::Collect& data )
     } else if ( f == &Activity::setThroughput ) {
         setThroughput( src->throughput() * data.rate() );
     } else if ( f == &Activity::collectWait ) {
-        for ( unsigned p = 1; p <= maxPhase(); ++p ) {
-            if ( submodel == 0 ) {
-                _phase[p]._variance = 0.0;
-            } else {
-                _phase[p]._wait[submodel] = 0.0;
-            }
-        }
+	if ( submodel == 0 ) {
+	    std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
+	} else {
+	    std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitingTime, submodel, 0.0 ) );
+	}
 #if PAN_REPLICATION
     } else if ( f == &Activity::collectReplication ) {
         for ( unsigned p = 1; p <= maxPhase(); ++p ) {
@@ -1310,7 +1299,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     if ( isActivityEntry() ) {
 
-	std::for_each( _phase.begin(), _phase.end(), clear_wait(submodel) );
+	std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitingTime, submodel, 0.0 ) );
 
 	if ( flags.trace_activities ) {
 	    std::cout << "--- AggreateWait for entry " << name() << " ---" << std::endl;
@@ -1324,7 +1313,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
 	if ( flags.trace_delta_wait || flags.trace_activities ) {
 	    std::cout << "--DW--  Entry(with Activities) " << name()
-		 << ", submodel " << submodel << std::endl;
+		      << ", submodel " << submodel << std::endl;
 	    std::cout << "        Wait=";
 	    for ( Vector<Phase>::const_iterator phase = _phase.begin(); phase != _phase.end(); ++phase ) {
 		std::cout << phase->_wait[submodel] << " ";

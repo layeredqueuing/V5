@@ -1,25 +1,26 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 14710 2021-05-27 22:58:01Z greg $
+ * $Id: option.cc 14823 2021-06-15 18:07:36Z greg $
  */
 
-#include <config.h>
+#include "lqns.h"
 #include <fstream>
 #include <sstream>
 #include <errno.h>
 #include <ctype.h>
 #include <cstdlib>
-#include "dim.h"
+#if HAVE_GETOPT_H
+#include <getopt.h>
+#endif
 #include <lqio/error.h>
 #include <lqio/dom_document.h>
 #include <mva/mva.h>
-#include "option.h"
-#include "lqns.h"
-#include "help.h"
-#include "model.h"
 #include "generate.h"
+#include "help.h"
+#include "flags.h"
+#include "model.h"
+#include "option.h"
 #include "pragma.h"
-
 
 const std::map<const std::string, const Options::Debug> Options::Debug::__table
 {

@@ -10,14 +10,12 @@
  * November, 2008
  *
  * ------------------------------------------------------------------------
- * $Id: group.cc 14703 2021-05-27 02:19:32Z greg $
+ * $Id: group.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
-#include "dim.h"
-#include <string>
+#include "lqns.h"
 #include <cmath>
-#include <algorithm>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_group.h>

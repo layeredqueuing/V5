@@ -1,7 +1,7 @@
 /* -*- c++ -*-
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqns/lqns.h $
  *
- * SRVN command line interface.
+ * Dimensions common to everything, plus some funky inline functions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -9,76 +9,315 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: lqns.h 14823 2021-06-15 18:07:36Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#if !defined(LQNS_H)
-#define LQNS_H
+#if	!defined(LQNS_LQNS_H)
+#define LQNS_LQNS_H
+
+#if defined(HAVE_CONFIG_H)
 #include <config.h>
+#endif
+
+#include <cassert>
+#include <algorithm>
+#include <stdexcept>
 #include <string>
-#if HAVE_GETOPT_H
-#include <getopt.h>
-#endif
-#include <lqio/input.h>
+#include <cstring>
 
-extern char * generate_file_name;
+#define	BUG_270		1
 
-extern struct FLAGS {
-    unsigned bounds_only:1;			/* -b: Load, compute bounds then stop.	*/
-    unsigned deprecate_merge:1;			/* -M: merge SNR and RNV waits.		*/
-    unsigned generate:1;			/* -zgenerate=xx: Generate MVA program.	*/
-    unsigned no_execute:1;			/* -n: Load, but do not solve model.	*/
-    unsigned parseable_output:1;		/* -p: Generate parseable output file	*/
-    unsigned reset_mva:1;			/* --reset-mva (reset mva each iter.)	*/
-    unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
-    unsigned verbose:1;				/* -v: Be chatty.			*/
-    unsigned xml_output:1;			/* -x: Ouptut XML output		*/
-    unsigned debug_spex:1;			/* --debug-spex: Ouptut LQX		*/
+#define MAX_CLASSES     200                     /* Max classes (clients)        */
+#define MAX_PHASES      3                       /* Number of Phases.            */
+#define N_SEMAPHORE_ENTRIES     2               /* Number of semaphore entries  */
+#define PAN_REPLICATION	1			/* Use Amy Pan's replication	*/
+#define BUG_299_PRUNE	1			/* Enable replica prune code	*/
+
+/*
+ * Return square.  C++ doesn't even have an exponentiation operator, let
+ * alone a smart one.
+ */
+const double EPSILON = 0.000001;		/* For testing against 1 or 0 */
+
+template <typename Type> inline Type square( Type a ) { return a * a; }
+template <typename Type> inline void Delete( Type x ) { delete x; }
+
+/* 
+ * Common under-relaxation code.  Adapted to include newton-raphson
+ * adjustment.  
+ */
+
+void under_relax( double& old_value, const double new_value, const double relax );
+
+class exception_handled : public std::runtime_error
+{
+public:
+    explicit exception_handled( const std::string& aStr ) : std::runtime_error(aStr.c_str()) {}
+    virtual ~exception_handled() throw() {}
+};
+
+static inline void throw_bad_parameter() { throw std::domain_error( "invalid parameter" ); }
+
+struct lt_str
+{
+    bool operator()(const char* s1, const char* s2) const { return strcmp(s1, s2) < 0; }
+};
+
+template <class Type> struct Exec
+{
+    typedef Type& (Type::*funcPtr)();
+    Exec<Type>( funcPtr f ) : _f(f) {};
+    void operator()( Type * object ) const { (object->*_f)(); }
+    void operator()( Type& object ) const { (object.*_f)(); }
+private:
+    funcPtr _f;
+};
+
+template <class Type1, class Type2> struct Exec1
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x );
+    Exec1<Type1,Type2>( funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+};
+
+template <class Type1, class Type2, class Type3> struct Exec2
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y );
+    Exec2<Type1,Type2,Type3>( funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x, _y ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x, _y ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+    Type3 _y;
+};
+
+template <class Type> struct ConstExec
+{
+    typedef const Type& (Type::*funcPtr)() const;
+    ConstExec<Type>( const funcPtr f ) : _f(f) {}
+    void operator()( const Type * object ) const { (object->*_f)(); }
+    void operator()( const Type& object ) const { (object.*_f)(); }
+private:
+    const funcPtr _f;
+};
     
-    unsigned average_variance:1;		/* Use average variance values.		*/
+template <class Type1, class Type2 > struct ExecSum
+{
+    typedef Type2 (Type1::*funcPtr)();
+    ExecSum<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {}
+    void operator()( Type1 * object ) { _sum += (object->*_f)(); }
+    void operator()( Type1& object ) { _sum += (object.*_f)(); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type2 _sum;
+};
+    
+template <class Type1, class Type2 > struct ExecSumSquare
+{
+    typedef Type2 (Type1::*funcPtr)() const;
+    ExecSumSquare<Type1,Type2>( funcPtr f ) : _f(f), _sum(0.) {}
+    void operator()( Type1 * object ) { _sum += square( (object->*_f)() ); }
+    void operator()( Type1& object ) { _sum += square( (object.*_f)() ); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type2 _sum;
+};
+    
+template <class Type1, class Type2, class Type3 > struct ExecSum1
+{
+    typedef Type2 (Type1::*funcPtr)( Type3 );
+    ExecSum1<Type1,Type2,Type3>( funcPtr f, Type3 arg ) : _f(f), _arg(arg), _sum(0.) {}
+    void operator()( Type1 * object ) { _sum += (object->*_f)( _arg ); }
+    void operator()( Type1& object ) { _sum += (object.*_f)( _arg ); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type3 _arg;
+    Type2 _sum;
+};
+    
+template <class Type1, class Type2, class Type3, class Type4 > struct ExecSum2
+{
+    typedef Type2 (Type1::*funcPtr)( Type3, Type4 );
+    ExecSum2<Type1,Type2,Type3,Type4>( funcPtr f, Type3 arg1, Type4 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2), _sum(0.) {}
+    void operator()( Type1 * object ) { _sum += (object->*_f)( _arg1, _arg2 ); }
+    void operator()( Type1& object ) { _sum += (object.*_f)( _arg1, _arg2 ); }
+    Type2 sum() const { return _sum; }
+private:
+    const funcPtr _f;
+    Type3 _arg1;
+    Type4 _arg2;
+    Type2 _sum;
+};
+    
+template <class Type1, class Type2> struct ConstExec1
+{
+    typedef const Type1& (Type1::*funcPtr)( Type2 ) const;
+    ConstExec1<Type1,Type2>( const funcPtr f, Type2 x ) : _f(f), _x(x) {}
+    void operator()( const Type1 * object ) const { (object->*_f)(_x); }
+    void operator()( const Type1& object ) const { (object.*_f)(_x); }
+private:
+    const funcPtr _f;
+    Type2 _x;
+};
+    
+template <class Type1, class Type2, class Type3> struct ConstExec2
+{
+    typedef const Type1& (Type1::*funcPtr)( Type2 x, Type3 y ) const;
+    ConstExec2<Type1,Type2,Type3>( const funcPtr f, Type2 x, Type3 y ) : _f(f), _x(x), _y(y) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _x, _y ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _x, _y ); }
+private:
+    const funcPtr _f;
+    Type2 _x;
+    Type3 _y;
+};
 
-    unsigned trace_activities:1;		/* Print out activity stuff.		*/
-    unsigned trace_convergence:1;		/* Print out convergence values.	*/
-    unsigned trace_customers:1;			/* Print out the real number of customers and maximum number of customers*/
-    unsigned trace_delta_wait:1;		/* Print out deltaWait computation.	*/
-    unsigned trace_forks:1;			/* Print out fork stuff.		*/
-    unsigned trace_idle_time:1;			/* Print out idle times.		*/
-    unsigned trace_interlock:1;			/* Print out interlocking.		*/
-    unsigned trace_intermediate:1;		/* Print out intermediate solutions.	*/
-    unsigned trace_joins:1;			/* Print out join stuff.		*/
-    unsigned trace_mva:1;			/* Print out MVA solutions.		*/
-    unsigned trace_overtaking:1;		/* Print out overtaking calc.		*/
-    unsigned trace_quorum:1;
-    unsigned trace_replication:1;		/* Print out replication stuff.		*/
-    unsigned trace_submodel:1;			/* Submodel to trace.			*/
-    unsigned trace_throughput:1;
-    unsigned trace_variance:1;			/* Print out variance solutions.	*/
-    unsigned trace_virtual_entry:1;		/* Print out wait after each major loop	*/
-    unsigned trace_wait:1;			/* Print out wait after each major loop	*/
-	
-    unsigned print_overtaking:1;		/* Print out overtaking values.		*/
+template <class Type1> struct ConstPrint
+{
+    typedef std::ostream& (Type1::*funcPtr)( std::ostream& ) const;
+    ConstPrint<Type1>( const funcPtr f, std::ostream& o ) : _f(f), _o(o) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _o ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _o ); }
+private:
+    const funcPtr _f;
+    std::ostream& _o;
+};
 
-    unsigned override_iterations:1;		/* Ignore value in model file.		*/
-    unsigned override_convergence:1;		/* Ignore value in model file.		*/
-    unsigned override_print_interval:1;		/* Ignore value in model file.		*/
-    unsigned override_underrelaxation:1;	/* Ignore value in model file.		*/
-    unsigned disable_expanding_quorum_tree:1;
-    unsigned ignore_overhanging_threads:1;
-    unsigned full_reinitialize:1;		/* Maybe a pragma?			*/
-    unsigned reload_only:1;			/* Reload lqx.				*/
-    unsigned restart:1;				/* Restart reusing valid results.	*/
-	
-    unsigned long single_step;			/* Stop after each major iteration	*/
-    unsigned int min_steps;			/* Minimum number of iterations.	*/
-} flags;
 
-extern const char opts[];
-#if HAVE_GETOPT_LONG
-extern const struct option longopts[];
-#endif
-extern const char * opthelp[];
+template <class Type1, class Type2> struct ConstPrint1
+{
+    typedef std::ostream& (Type1::*funcPtr)( std::ostream&, Type2 ) const;
+    ConstPrint1<Type1,Type2>( const funcPtr f, std::ostream& o, Type2 x ) : _f(f), _o(o), _x(x) {}
+    void operator()( const Type1 * object ) const { (object->*_f)( _o, _x ); }
+    void operator()( const Type1& object ) const { (object.*_f)( _o, _x ); }
+private:
+    const funcPtr _f;
+    std::ostream& _o;
+    const Type2 _x;
+};
 
-int main(int argc, char *argv[]);
+
+template <class Type> struct EQStr
+{
+    EQStr( const std::string & s ) : _s(s) {}
+    bool operator()(const Type * e1 ) const { return e1->name() == _s; }
+private:
+    const std::string & _s;
+};
+
+template <class Type> struct EqualsReplica {
+    EqualsReplica<Type>( const std::string& name, unsigned int replica=1 ) : _name(name), _replica(replica) {}
+    bool operator()( const Type * object ) const { return object->name() == _name && object->getReplicaNumber() == _replica; }
+private:
+    const std::string _name;
+    const unsigned int _replica;
+};
+
+template <class Type> struct Predicate
+{
+    typedef bool (Type::*predicate)() const;
+    Predicate<Type>( const predicate p ) : _p(p) {};
+    bool operator()( const Type * object ) const { return (object->*_p)(); }
+    bool operator()( const Type& object ) const { return (object.*_p)(); }
+private:
+    const predicate _p;
+};
+
+template <class Type1, class Type2> struct Predicate1
+{
+    typedef bool (Type1::*predicate)( Type2 ) const;
+    Predicate1<Type1,Type2>( const predicate p, Type2 arg ) : _p(p), _arg(arg) {};
+    bool operator()( const Type1 * object ) const { return (object->*_p)(_arg); }
+    bool operator()( const Type1& object ) const { return (object.*_p)(_arg); }
+private:
+    const predicate _p;
+    Type2 _arg;
+};
+
+template <class Type1> struct add_using
+{
+    typedef double (Type1::*funcPtr)() const;
+    add_using<Type1>( funcPtr f ) : _f(f) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(); }
+private:
+    const funcPtr _f;
+};
+
+template <class Type1, class Type2> struct add_using_arg
+{
+    typedef double (Type1::*funcPtr)( Type2 ) const;
+    add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg); }
+private:
+    const funcPtr _f;
+    Type2 _arg;
+};
+
+template <class Type1, class Type2, class Type3> struct add_two_args
+{
+    typedef double (Type1::*funcPtr)( Type2, Type3 ) const;
+    add_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
+    double operator()( double l, const Type1 * r ) const { return l + (r->*_f)(_arg1,_arg2); }
+    double operator()( double l, const Type1& r ) const { return l + (r.*_f)(_arg1,_arg2); }
+private:
+    const funcPtr _f;
+    Type2 _arg1;
+    Type3 _arg2;
+};
+
+template <class Type1> struct max_using
+{
+    typedef unsigned int (Type1::*funcPtr)() const;
+    max_using<Type1>( funcPtr f ) : _f(f) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)() ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)() ); }
+private:
+    const funcPtr _f;
+};
+
+template <class Type1, class Type2> struct max_using_arg
+{
+    typedef unsigned int (Type1::*funcPtr)( Type2 ) const;
+    max_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg) ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg) ); }
+private:
+    const funcPtr _f;
+    Type2 _arg;
+};
+
+template <class Type1, class Type2, class Type3 > struct max_two_args
+{
+    typedef unsigned int (Type1::*funcPtr)( Type2, Type3 ) const;
+    max_two_args<Type1,Type2,Type3>( funcPtr f, Type2 arg1, Type3 arg2 ) : _f(f), _arg1(arg1), _arg2(arg2) {}
+    unsigned int operator()( unsigned int l, const Type1 * r ) const { return std::max( l, (r->*_f)(_arg1,_arg2) ); }
+    unsigned int operator()( unsigned int l, const Type1& r ) const { return std::max( l, (r.*_f)(_arg1,_arg2) ); }
+private:
+    const funcPtr _f;
+    Type2 _arg1;
+    Type3 _arg2;
+};
+
+template <class Type1, class Type2> struct unsigned_add_using_arg
+{
+    typedef unsigned (Type1::*funcPtr)( Type2 ) const;
+    unsigned_add_using_arg<Type1,Type2>( funcPtr f, Type2 arg ) : _f(f), _arg(arg) {}
+    unsigned operator()( unsigned l, const Type1 * r ) const { return l + (r->*_f)(_arg); }
+    unsigned operator()( unsigned l, const Type1& r ) const { return l + (r.*_f)(_arg); }
+private:
+    const funcPtr _f;
+    Type2 _arg;
+};
 #endif

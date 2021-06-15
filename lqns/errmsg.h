@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: errmsg.h 14624 2021-05-09 13:01:43Z greg $
+ * $Id: errmsg.h 14817 2021-06-15 16:51:27Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -19,7 +19,6 @@
 #if	!defined(ERRMSG_H)
 #define	ERRMSG_H
 
-#include "dim.h"
 #include <lqio/glblerr.h>
 
 extern "C" {

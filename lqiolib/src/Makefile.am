@@ -1,4 +1,4 @@
-# $Id: Makefile.am 14633 2021-05-11 13:55:35Z greg $
+# $Id: Makefile.am 14825 2021-06-15 19:26:29Z greg $
 # -------------------------------------------------------------------- [Libtool libsrvnio2]
 
 #AM_CXXFLAGS=-std=c++11
@@ -74,6 +74,7 @@ srvn_result_scan.c: srvn_result_scan.l srvn_result_gram.h
 srvn_result_gram.c srvn_result_gram.h: srvn_result_gram.y
 	$(YACC) -dtv -p result -o srvn_result_gram.c srvn_result_gram.y
 
+json_document.cpp: srvn_gram.h
 srvn_spex.cpp: srvn_gram.h
 srvn_input.cpp: srvn_gram.h
 

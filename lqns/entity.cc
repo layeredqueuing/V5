@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14815 2021-06-15 02:28:41Z greg $
+ * $Id: entity.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -14,12 +14,10 @@
  */
 
 
-#include "dim.h"
-#include <string>
-#include <sstream>
+#include "lqns.h"
 #include <cmath>
-#include <algorithm>
 #include <numeric>
+#include <sstream>
 #include <lqio/error.h>
 #include <lqio/labels.h>
 #include <lqio/dom_extvar.h>
@@ -33,14 +31,12 @@
 #include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
-#include "errmsg.h"
-#include "lqns.h"
+#include "flags.h"
 #include "pragma.h"
 #include "processor.h"
 #include "submodel.h"
 #include "task.h"
 #include "variance.h"
-
 
 #define DEFERRED_UTULIZATION	false
 

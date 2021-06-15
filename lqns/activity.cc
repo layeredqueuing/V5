@@ -11,29 +11,26 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14809 2021-06-14 19:22:13Z greg $
+ * $Id: activity.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
-#include <stdarg.h>
-#include <algorithm>
+#include "lqns.h"
 #include <numeric>
-#include <string.h>
 #include <cmath>
 #include <lqio/input.h>
 #include <lqio/error.h>
 #include <lqio/dom_actlist.h>
-#include "errmsg.h"
-#include "actlist.h"
 #include "activity.h"
-#include "task.h"
-#include "entry.h"
-#include "processor.h"
-#include "lqns.h"
+#include "actlist.h"
 #include "call.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "flags.h"
 #include "pragma.h"
+#include "processor.h"
+#include "task.h"
 #if !HAVE_LIBGSL
 #include "randomvar.h"
 #endif

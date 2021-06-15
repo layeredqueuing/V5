@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: lqns.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Command line processing.
  *
@@ -12,14 +12,11 @@
  * ------------------------------------------------------------------------
  */
 
-#include <config.h>
-#include "dim.h"
+#include "lqns.h"
 #include <sstream>
 #include <fstream>
 #include <cstdio>
 #include <cstdlib>
-#include <stdexcept>
-#include <cstring>
 #include <cmath>
 #include <errno.h>
 #include <libgen.h>
@@ -31,18 +28,21 @@
 #include <lqio/dom_bindings.h>
 #include <lqio/srvn_spex.h>
 #include <lqio/dom_pragma.h>
+#if HAVE_GETOPT_H
+#include <getopt.h>
+#endif
 #if !defined(HAVE_GETSUBOPT)
 #include <lqio/getsbopt.h>
 #endif
 #include <mva/fpgoop.h>
 #include <mva/mva.h>
+#include "errmsg.h"
 #include "generate.h"
 #include "help.h"
+#include "flags.h"
+#include "model.h"
 #include "option.h"
 #include "pragma.h"
-#include "errmsg.h"
-#include "lqns.h"
-#include "model.h"
 #include "runlqx.h"
 
 extern "C" int LQIO_debug;

@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14789 2021-06-10 14:43:04Z greg $
+ * $Id: submodel.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -46,11 +46,8 @@
  */
 
 
-#include "dim.h"
-#include <algorithm>
-#include <string>
+#include "lqns.h"
 #include <cstdlib>
-#include <string.h>
 #include <cmath>
 #include <mva/mva.h>
 #include <mva/open.h>
@@ -60,13 +57,12 @@
 #include <mva/fpgoop.h>
 #include "activity.h"
 #include "call.h"
-#include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
 #include "generate.h"
 #include "group.h"
 #include "interlock.h"
-#include "lqns.h"
+#include "flags.h"
 #include "model.h"
 #include "option.h"
 #include "overtake.h"
@@ -75,8 +71,6 @@
 #include "report.h"
 #include "submodel.h"
 #include "task.h"
-
-#define	QL_INTERLOCK
 
 /*----------------------------------------------------------------------*/
 /*                        Merged Partition Model                        */

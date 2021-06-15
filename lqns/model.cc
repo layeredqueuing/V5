@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: model.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -40,11 +40,10 @@
 #endif
 
 
-#include "dim.h"
+#include "lqns.h"
 #if HAVE_UNISTD_H
 #include <unistd.h>
 #endif
-#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <cstdlib>
@@ -61,27 +60,26 @@
 #include <mva/server.h>
 #include <mva/mva.h>
 #include <mva/open.h>
-#include "errmsg.h"
-#include "model.h"
-#include "group.h"
-#include "processor.h"
-#include "entry.h"
-#include "call.h"
-#include "overtake.h"
-#include "submodel.h"
-#include "synmodel.h"
-#include "lqns.h"
-#include "variance.h"
-#include "pragma.h"
-#include "option.h"
-#include "generate.h"
-#include "phase.h"
 #include "activity.h"
-#include "interlock.h"
 #include "actlist.h"
-#include "task.h"
+#include "call.h"
+#include "entry.h"
+#include "errmsg.h"
+#include "generate.h"
+#include "group.h"
+#include "interlock.h"
+#include "flags.h"
+#include "model.h"
+#include "option.h"
+#include "overtake.h"
+#include "pragma.h"
+#include "processor.h"
 #include "report.h"
 #include "runlqx.h"
+#include "submodel.h"
+#include "synmodel.h"
+#include "task.h"
+#include "variance.h"
 
 double Model::convergence_value = 0.00001;
 unsigned Model::iteration_limit = 50;;

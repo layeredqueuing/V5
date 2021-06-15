@@ -11,19 +11,18 @@
  *
  * January 2005.
  *
- * $Id: randomvar.cc 14705 2021-05-27 12:55:09Z greg $
+ * $Id: randomvar.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
+#include "lqns.h"
 #include <cmath>
-#include <algorithm>
 #include <cstdlib>
 #include <mva/fpgoop.h>
 #include "randomvar.h"
 #if !defined(TESTDIST)
-#include "lqns.h"
+#include "flags.h"
 #include "pragma.h"
 #endif
 #if HAVE_GSL_GSL_MATH_H

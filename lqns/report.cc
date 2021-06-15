@@ -10,13 +10,12 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: report.cc 14563 2021-03-18 02:07:31Z greg $
+ * $Id: report.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
-#include <config.h>
+#include "lqns.h"
 #include <iomanip>
 #include <limits.h>
 #if HAVE_SYS_RESOURCE_H
@@ -26,9 +25,9 @@
 #include <sys/utsname.h>
 #endif
 #include <cmath>
-#include "lqns.h"
-#include "report.h"
 #include <lqio/dom_document.h>
+#include "flags.h"
+#include "report.h"
 
 int
 operator==( const MVACount& a, const MVACount& b )

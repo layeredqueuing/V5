@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14814 2021-06-15 02:15:54Z greg $
+ * $Id: entity.h 14828 2021-06-15 19:41:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,10 +17,10 @@
 #if	!defined(ENTITY_H)
 #define ENTITY_H
 
-#include "dim.h"
 #include <vector>
+#include <set>
+#include <lqio/dom_entity.h>
 #include <lqio/input.h>
-#include <lqio/dom_processor.h>
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"

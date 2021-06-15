@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: report.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: report.h 14817 2021-06-15 16:51:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,7 +17,6 @@
 #if	!defined(SOLVERREPORT_H)
 #define	SOLVERREPORT_H
 
-#include "dim.h"
 #include <lqio/common_io.h>
 #include <mva/vector.h>
 

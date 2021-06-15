@@ -1,16 +1,13 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14703 2021-05-27 02:19:32Z greg $
+ * $Id: help.h 14823 2021-06-15 18:07:36Z greg $
  */
 
 #ifndef _HELP_H
 #define _HELP_H
 
-#include "dim.h"
-#include <config.h>
 #include <map>
-#include "lqns.h"
 
 namespace Options {
     class Option;
@@ -21,6 +18,12 @@ void usage( const char );
 void usage( const char c, const char * s );
 
 class Help;
+
+extern const char opts[];
+#if HAVE_GETOPT_LONG
+extern const struct option longopts[];
+#endif
+extern const char * opthelp[];
 
 class StringManip {
 public:

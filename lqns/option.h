@@ -1,14 +1,12 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: option.h 14710 2021-05-27 22:58:01Z greg $
+ * $Id: option.h 14817 2021-06-15 16:51:27Z greg $
  */
 
 #ifndef _OPTION_H
 #define _OPTION_H
 
-#include <config.h>
-#include "dim.h"
 #include <map>
 #include <vector>
 #include "help.h"

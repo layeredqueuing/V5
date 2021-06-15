@@ -10,21 +10,18 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14809 2021-06-14 19:22:13Z greg $
+ * $Id: actlist.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
-#include <map>
-#include <algorithm>
-#include <numeric>
-#include <cassert>
-#include <cstdarg>
-#include <cstdlib>
+#include "lqns.h"
 #include <cmath>
-#include <iostream>
+#include <cstdlib>
 #include <iomanip>
+#include <iostream>
+#include <map>
+#include <numeric>
 #if HAVE_IEEEFP_H
 #include <ieeefp.h>
 #endif
@@ -37,7 +34,7 @@
 #include "entry.h"
 #include "entrythread.h"
 #include "errmsg.h"
-#include "lqns.h"
+#include "flags.h"
 #include "model.h"
 #include "option.h"
 #include "pragma.h"

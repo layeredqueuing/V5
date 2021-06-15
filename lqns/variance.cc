@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: variance.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: variance.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Variance calculations.  Pick and choose as desired.
  *
@@ -13,14 +13,14 @@
  */
 
 
-#include "dim.h"
+#include "lqns.h"
 #include <cmath>
 #include <mva/prob.h>
 #include "variance.h"
 #include "call.h"
 #include "entry.h"
 #include "entity.h"
-#include "lqns.h"
+#include "flags.h"
 
 /*
  * Return variance.

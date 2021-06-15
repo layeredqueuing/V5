@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: syncserv.cc 14319 2021-01-02 04:11:00Z greg $
+ * $Id: syncserv.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Copyright the Real-Time and Distributed Systems Group,
  * Department of Systems and Computer Engineering,
@@ -10,9 +10,8 @@
  * ------------------------------------------------------------------------
  */
 
-#include "dim.h"
+#include "lqns.h"
 #include <cmath>
-#include <stdarg.h>
 #include <cstdlib>
 #include <mva/vector.h>
 #include <mva/server.h>

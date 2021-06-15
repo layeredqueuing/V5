@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14801 2021-06-14 00:16:57Z greg $
+ * $Id: call.h 14817 2021-06-15 16:51:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -18,7 +18,6 @@
 #if	!defined(LQNS_CALL_H)
 #define LQNS_CALL_H
 
-#include "dim.h"
 #include <lqio/input.h>
 #include <lqio/dom_call.h>
 #include <deque>

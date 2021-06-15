@@ -8,15 +8,14 @@
  *
  * January, 2005
  *
- * $Id: randomvar.h 14319 2021-01-02 04:11:00Z greg $
+ * $Id: randomvar.h 14817 2021-06-15 16:51:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
-#ifndef LQNS_AGGR_H
-#define LQNS_AGGR_H
+#ifndef LQNS_RANDOMVAR_H
+#define LQNS_RANDOMVAR_H
 
-#include <string>
 #include <mva/vector.h>
 #include <mva/prob.h>
 	  

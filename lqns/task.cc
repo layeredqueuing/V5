@@ -10,19 +10,17 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14787 2021-06-09 18:57:33Z greg $
+ * $Id: task.cc 14823 2021-06-15 18:07:36Z greg $
  * ------------------------------------------------------------------------
  */
 
 
-#include "dim.h"
-#include <algorithm>
+#include "lqns.h"
 #include <cmath>
 #include <cstdlib>
 #include <numeric>
 #include <ostream>
 #include <sstream>
-#include <string>
 #include <lqio/error.h>
 #include <lqio/input.h>
 #include <lqio/labels.h>
@@ -39,7 +37,7 @@
 #include "errmsg.h"
 #include "group.h"
 #include "interlock.h"
-#include "lqns.h"
+#include "flags.h"
 #include "model.h"
 #include "overtake.h"
 #include "pragma.h"

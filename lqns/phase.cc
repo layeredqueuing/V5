@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14805 2021-06-14 16:53:35Z greg $
+ * $Id: phase.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -13,9 +13,8 @@
  */
 
 
-#include "dim.h"
+#include "lqns.h"
 #include <cmath>
-#include <algorithm>
 #include <numeric>
 #include <cstdlib>
 #include <sstream>
@@ -26,12 +25,11 @@
 #include <mva/prob.h>
 #include <mva/vector.h>
 #include "call.h"
-#include "entity.h"
 #include "entry.h"
 #include "errmsg.h"
 #include "gamma.h"
 #include "group.h"
-#include "lqns.h"
+#include "flags.h"
 #include "model.h"
 #include "option.h"
 #include "phase.h"

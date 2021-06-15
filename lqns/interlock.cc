@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: interlock.cc 14809 2021-06-14 19:22:13Z greg $
+ * $Id: interlock.cc 14823 2021-06-15 18:07:36Z greg $
  *
  * Call-chain/interlock finder.
  *
@@ -12,16 +12,15 @@
  * ------------------------------------------------------------------------
  */
 
-#include <algorithm>
-#include <cmath>
-#include <algorithm>
-#include <numeric>
 #include "lqns.h"
-#include "interlock.h"
-#include "task.h"
+#include <cmath>
+#include <numeric>
 #include "entry.h"
-#include "option.h"
+#include "interlock.h"
+#include "flags.h"
 #include "model.h"
+#include "option.h"
+#include "task.h"
 
 #define DEBUG_INTERLOCK 1
 

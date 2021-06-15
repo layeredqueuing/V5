@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: interlock.h 14809 2021-06-14 19:22:13Z greg $
+ * $Id: interlock.h 14817 2021-06-15 16:51:27Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,11 +17,11 @@
 #if	!defined(INTERLOCK_H)
 #define	INTERLOCK_H
 
-#include "dim.h"
+#include <deque>
+#include <set>
+#include <vector>
 #include <lqio/dom_call.h>
 #include <mva/vector.h>
-#include <set>
-#include <deque>
 
 class Call;
 class Entry;

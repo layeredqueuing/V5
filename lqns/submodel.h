@@ -7,30 +7,31 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14780 2021-06-08 14:38:32Z greg $
+ * $Id: submodel.h 14817 2021-06-15 16:51:27Z greg $
  */
 
 #ifndef _SUBMODEL_H
 #define _SUBMODEL_H
 
 
-#include "dim.h"
 #include <set>
 #include <cstdlib>
 #include <lqio/input.h>
 #include <mva/vector.h>
 #include <mva/pop.h>
-#include "task.h"
 
 class Call;
-class Processor;
-class Model;
+class Entry;
+class Entity;
+class Group;
 class MVA;
 class MVACount;
+class Model;
 class Open;
+class Processor;
 class Server;
 class SubModelManip;
-class Group;
+class Task;
 
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
 	 
