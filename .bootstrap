@@ -8,7 +8,7 @@ aclocal -I config
 echo "Libtoolize..."
 if test -x /opt/local/bin/glibtoolize; then glibtoolize --force
 elif test -x /usr/bin/libtoolize; then libtoolize --force
-else echo "Can't fine libtoolize!"; exit
+else echo "Can't find libtoolize!"; exit
 fi
 echo "aclocal subdirs..."
 for i in $dirs; do (cd $i; aclocal -I ../config); done
