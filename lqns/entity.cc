@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14799 2021-06-13 10:26:34Z greg $
+ * $Id: entity.cc 14815 2021-06-15 02:28:41Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -246,7 +246,7 @@ Entity::copies() const
 {
     unsigned int value = 1;
     if ( !getDOM()->isInfinite() ) {
-	try { 
+	try {
 	    value = getDOM()->getCopiesValue();
 	}
 	catch ( const std::domain_error& e ) {
@@ -277,7 +277,7 @@ Entity::replicas() const
 }
 
 
-bool 
+bool
 Entity::isInfinite() const
 {
     return getDOM()->isInfinite();
@@ -312,20 +312,8 @@ Entity::addEntry( Entry * anEntry )
 
 double
 Entity::throughput() const
-{		
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::throughput ) );
-}
-
-
-
-/*
- * Return the total open arrival rate to this server.
- */
-
-double
-Entity::openArrivalRate() const
 {
-    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::openArrivalRate ) );
+    return std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::throughput ) );
 }
 
 
@@ -336,7 +324,7 @@ Entity::openArrivalRate() const
 
 double
 Entity::utilization() const
-{		
+{
 #if !DEFERRED_UTILIZATION
     const_cast<Entity *>(this)->_utilization = std::accumulate( entries().begin(), entries().end(), 0., add_using<Entry>( &Entry::utilization ) );
     if ( Pragma::stopOnBogusUtilization() > 0. && !isInfinite() && _utilization / copies() > Pragma::stopOnBogusUtilization() ) {
@@ -357,10 +345,10 @@ Entity::utilization() const
 double
 Entity::saturation() const
 {
-    if ( isInfinite() ) { 
+    if ( isInfinite() ) {
 	return 0.0;
     } else {
-	double value = getDOM()->getCopiesValue(); 
+	double value = getDOM()->getCopiesValue();
 	return utilization() / value;
     }
 }
@@ -389,7 +377,7 @@ Entity::hasOpenArrivals() const
  * Find all tasks that call this task and add them to the argument.
  */
 
-std::set<Task *>& 
+std::set<Task *>&
 Entity::getClients( std::set<Task *>& clients ) const
 {
     std::for_each ( entries().begin(), entries().end(), Entry::get_clients( clients ) );
@@ -397,7 +385,7 @@ Entity::getClients( std::set<Task *>& clients ) const
 }
 
 
-double 
+double
 Entity::nCustomers() const
 {
     std::set<Task *> clients;
@@ -478,7 +466,7 @@ Entity::computeUtilization()
  */
 
 Entity&
-Entity::computeVariance() 
+Entity::computeVariance()
 {
     for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::computeVariance ) );
     return *this;
@@ -495,8 +483,8 @@ Entity::prInterlock( const Task& aClient ) const
 {
     const Probability pr = _interlock.interlockedFlow( aClient ) / population();
     if ( flags.trace_interlock ) {
-	std::cout << "Interlock: " 
-	     << aClient.name() << "(" << aClient.population() << ") -> " 
+	std::cout << "Interlock: "
+	     << aClient.name() << "(" << aClient.population() << ") -> "
 	     << name()         << "(" << population()         << ")  = " << pr << std::endl;
     }
     return pr;
@@ -531,9 +519,8 @@ Entity::deltaUtilization() const
  * threads specified than can possibly be active.
  */
 
-
 void
-Entity::setIdleTime( const double relax ) 
+Entity::setIdleTime( const double relax )
 {
     double z;
 
@@ -561,7 +548,7 @@ const Entity&
 Entity::sanityCheck() const
 {
     if ( !isInfinite() && utilization() > copies() * 1.05 ) {
-	LQIO::solution_error( ADV_INVALID_UTILIZATION, utilization(), 
+	LQIO::solution_error( ADV_INVALID_UTILIZATION, utilization(),
 			      getDOM()->getTypeName(),
 			      name().c_str(), copies() );
     }
@@ -578,9 +565,10 @@ Entity::openModelInfinity() const
 {
     bool rc = false;
     const Server * station = serverStation();
-    for ( unsigned int e = 1; e <= nEntries(); ++e ) {
+    for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
+	const unsigned e = (*entry)->index();
 	if ( !std::isfinite( station->R(e,0) ) && station->V(e,0) != 0 && station->S(e,0) != 0 ) {
-	    LQIO::solution_error( ERR_ARRIVAL_RATE, station->V(e,0), entryAt(e-1)->name().c_str(), station->mu()/station->S(e,0) );
+	    LQIO::solution_error( ERR_ARRIVAL_RATE, station->V(e,0), (*entry)->name().c_str(), station->mu()/station->S(e,0) );
 	    rc = true;
 	}
     }
@@ -665,7 +653,7 @@ Entity::initServerStation( Submodel& submodel )
     if ( hasSynchs() && !Pragma::threads(Pragma::Threads::NONE) ) {
 	joinOverlapFactor( submodel );
     }
-    
+
     return *this;
 }
 
@@ -772,11 +760,12 @@ Entity::fold( const std::string& s1, const Entity* e2 )
  */
 
 /* static */ std::ostream&
-Entity::output_server_chains( std::ostream& output, const Entity& entity ) 
+Entity::output_server_chains( std::ostream& output, const Entity& entity )
 {
     output << "Chains:" << entity.serverChains() << std::endl;
     return output;
 }
+
 
 /* static */ std::ostream&
 Entity::output_entries( std::ostream& output, const Entity& entity )

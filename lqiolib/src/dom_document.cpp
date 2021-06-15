@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_document.cpp 14794 2021-06-11 12:13:01Z greg $
+ *  $Id: dom_document.cpp 14807 2021-06-14 17:48:57Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -141,7 +141,7 @@ namespace LQIO {
 	{
 	    const char * s;
 	    const std::map<const char *, const ExternalVariable *>::const_iterator iter = _controlVariables.find(XComment);
-	    if ( iter != _controlVariables.end() && iter->second->wasSet() ) {
+	    if ( iter != _controlVariables.end() && iter->second != nullptr && iter->second->wasSet() ) {
 		if ( iter->second->getString( s ) ) return std::string(s);
 	    } 
 	    return std::string("");

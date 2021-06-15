@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14799 2021-06-13 10:26:34Z greg $
+ * $Id: entity.h 14814 2021-06-15 02:15:54Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -209,8 +209,6 @@ public:
     Server * serverStation() const { return _station; }
 
     bool markovOvertaking() const;
-
-    double openArrivalRate() const;
 
     /* Computation */
 	

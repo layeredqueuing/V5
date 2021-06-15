@@ -25,4 +25,8 @@
          </entry>
       </task>
    </processor>
+   <lqx><![CDATA[
+   solve();
+   println( "Throughput=", task("T1").throughput );
+]]></lqx>
 </lqn-model>
