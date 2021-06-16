@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14828 2021-06-15 19:41:22Z greg $
+ * $Id: entity.h 14841 2021-06-16 18:24:49Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -224,10 +224,6 @@ public:
     virtual double updateWaitReplication( const Submodel&, unsigned& ) { return 0.0; }	/* NOP */
     double deltaUtilization() const;
 
-    /* Dynamic Updates / Late Finalization */
-    /* In order to integrate LQX's support for model changes we need to have a way  */
-    /* of re-calculating what used to be static for all dynamically editable values */
-	
     /* Sanity Check */
 
     virtual const Entity& sanityCheck() const;
@@ -272,9 +268,9 @@ private:
     void setInterlock( Submodel& ) const;
 
 private:
+    LQIO::DOM::Entity* _dom;		/* The DOM Representation	*/
 
 protected:
-    LQIO::DOM::Entity* _dom;		/* The DOM Representation	*/
     std::vector<Entry *> _entries;	/* Entries for this entity.	*/
     std::set<const Task *> _tasks;	/* Clients of this entity	*/
     

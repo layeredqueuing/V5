@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: task.h 14841 2021-06-16 18:24:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -180,6 +180,7 @@ public:
 
     /* Threads */
 
+    const Vector<Thread *>& threads() const { return _threads; }	 	/* My Threads.			*/
     unsigned threadIndex( const unsigned submodel, const unsigned k ) const;
     void forkOverlapFactor( const Submodel& ) const;
     double waitExcept( const unsigned, const unsigned, const unsigned ) const;	/* For client service times */

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14818 2021-06-15 17:22:40Z greg $
+ * $Id: entry.h 14835 2021-06-16 00:25:22Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -321,13 +321,13 @@ public:
 
     std::ostream& printCalls( std::ostream& output, unsigned int submodel=0 ) const;
     std::ostream& printSubmodelWait( std::ostream& output, unsigned offset ) const;
+    static std::string fold( const std::string& s1, const Entry * e2 );
 
 protected:
     Entry& setMaxPhase( const unsigned phase );
 
 private:
     void setThroughput( const double throughput ) { _throughput = throughput; }
-
 
 protected:
     LQIO::DOM::Entry* _dom;	

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: activity.h 14835 2021-06-16 00:25:22Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -283,7 +283,6 @@ public:
 				       double &  avgNumCallsToLevel2Tasks);
 
     /* Thread manipulation */
-
     unsigned findChildren( Children& ) const;
     const Activity& backtrack( Backtrack& data ) const;
     virtual const Activity& followInterlock( Interlock::CollectTable& ) const;
@@ -293,10 +292,10 @@ public:
     virtual void callsPerform( const CallExec& ) const;
     virtual bool getInterlockedTasks( Interlock::CollectTasks& path ) const;
     unsigned concurrentThreads( unsigned ) const;
-    /* XML output */
 
+    /* XML output */
     const Activity& insertDOMResults() const;
-	
+
 protected:
     virtual ProcessorCall * newProcessorCall( Entry * procEntry ) const;
 
@@ -312,6 +311,7 @@ private:
 public:
     static void completeConnections();
     static void clearConnectionMaps();
+    static std::string fold( const std::string& s1, const Activity * a2 ) { return s1 + "," + a2->name(); }
 
 private:
     static std::map<LQIO::DOM::ActivityList*, LQIO::DOM::ActivityList*> __actConnections;
@@ -353,9 +353,6 @@ class activity_cycle : public std::runtime_error
 public:
     activity_cycle( const Activity *, const std::deque<const Activity *>& );
     virtual ~activity_cycle() throw() {}
-
-private:
-    static std::string fold( const std::string& s1, const Activity * a2 ) { return s1 + "," + a2->name(); }
 };
 
 Activity * add_activity( Task* newTask, LQIO::DOM::Activity* activity );

@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: task.cc 14841 2021-06-16 18:24:49Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1008,7 +1008,7 @@ Task::callsPerform( callFunc f, const unsigned submodel ) const
 
     while ( i <= chains.size() ) {
 	std::for_each( entries().begin(), entries().end(), Entry::CallExec( f, submodel, chains[i] ) );		// regular entries
-	i = std::for_each( std::next(_threads.begin()), _threads.end(), Entry::CallExecWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
+	i = std::for_each( std::next(threads().begin()), threads().end(), Entry::CallExecWithChain( f, submodel, chains, i + 1 ) ).index();	// threads (fork-join)
     }
     return *this;
 }
@@ -1023,7 +1023,7 @@ const Task&
 Task::openCallsPerform( callFunc f, const unsigned submodel ) const
 {
     std::for_each ( entries().begin(), entries().end(), Entry::CallExec( f, submodel ) );
-    std::for_each ( std::next(_threads.begin()), _threads.end(), Entry::CallExec( f, submodel ) );
+    std::for_each ( std::next(threads().begin()), threads().end(), Entry::CallExec( f, submodel ) );
     return *this;
 }
 
@@ -1094,7 +1094,7 @@ Task::updateWait( const Submodel& submodel, const double relax )
 
     /* Now recompute thread idle times */
 
-    std::for_each( _threads.begin() + 1, _threads.end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
+    std::for_each( threads().begin() + 1, threads().end(), Exec1<Thread,double>( &Thread::setIdleTime, relax ) );
 
     return *this;
 }
@@ -1157,7 +1157,7 @@ Task::bottleneckStrength() const
 unsigned
 Task::nThreads() const
 {
-    return std::max( (size_t)1, _threads.size() );
+    return std::max( (size_t)1, threads().size() );
 }
 
 
@@ -1561,7 +1561,7 @@ Task::printSubmodelWait( std::ostream& output ) const
     if ( flags.trace_virtual_entry ) {
 	std::for_each ( _precedences.begin(), _precedences.end(), ConstPrint1<ActivityList,unsigned>( &ActivityList::printSubmodelWait, output, 2 ) );
     } else {
-	std::for_each ( _threads.begin(), _threads.end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
+	std::for_each ( threads().begin(), threads().end(), ConstPrint1<Entry,unsigned>( &Entry::printSubmodelWait, output, 0 ) );
     }
     return output;
 }
@@ -2393,11 +2393,6 @@ Task::print( std::ostream& output ) const
 Task::output_activities( std::ostream& output, const Task& task )
 {
     const std::vector<Activity *>& activities = task.activities();
-    for ( std::vector<Activity *>::const_iterator activity = activities.begin(); activity != activities.end(); ++activity ) {
-	if ( activity != activities.begin() ) {
-	    output << ", ";
-	}
-	output << (*activity)->name();
-    }
+    output << std::accumulate( std::next(activities.begin()), activities.end(), activities.front()->name(), &Activity::fold );
     return output;
 }
