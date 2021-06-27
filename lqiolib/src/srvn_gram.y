@@ -738,6 +738,9 @@ constant		: FLOAT					{ $$ = $1; }
 
 integer			: INTEGER				{ $$ = srvn_int_constant( $1 ); }
 			| VARIABLE				{ $$ = srvn_variable( $1 ); }
+/*+ spex */
+			| '{' expression '}'			{ $$ = spex_inline_expression( $2 ); }	/* Need to assign to variable, then run deferred assignment */
+/*- spex */
 			;
 
 symbol			: SYMBOL				{ $$ = $1; }
