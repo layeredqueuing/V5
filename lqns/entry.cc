@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14837 2021-06-16 14:37:11Z greg $
+ * $Id: entry.cc 14855 2021-06-25 13:06:59Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -563,6 +563,32 @@ Entry::concurrentThreads() const
 }
 
 
+
+/*
+ * Save client results.
+ */
+
+Entry&
+Entry::saveClientResults( const MVASubmodel& submodel, const Server& station, unsigned int k )
+{
+#if PAN_REPLICATION
+    if ( submodel.usePanReplication() ) {
+
+	/*
+	 * Get throughput PER CUSTOMER because replication
+	 * monkeys with the population levels.  Fix for
+	 * multiservers.
+	 */
+
+	saveThroughput( submodel.closedModelNormalizedThroughput( station, index(), k ) * owner()->population() );
+    } else {
+#endif
+	saveThroughput( submodel.closedModelThroughput( station, index(), k ) );
+#if PAN_REPLICATION
+    }
+#endif
+    return *this;
+}
 
 /*
  * Set the throughput of this entry to value.  If this is an activity entry, then

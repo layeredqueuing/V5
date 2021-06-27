@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: submodel.cc 14863 2021-06-26 01:36:42Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -85,7 +85,7 @@ Submodel&
 Submodel::setSubmodelNumber( const unsigned n )
 {
     _submodel_number = n;
-    for_each( _servers.begin(), _servers.end(), Exec1<Entity,const unsigned>( &Entity::setSubmodel, n ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,const unsigned>( &Entity::setSubmodel, n ) );
     return *this;
 }
 
@@ -165,10 +165,10 @@ MVASubmodel::MVASubmodel( const unsigned n )
       _hasThreads(false),
       _hasSynchs(false),
       _hasReplicas(false),
-      closedStation(),
-      openStation(),
-      closedModel(nullptr),
-      openModel(nullptr),
+      _closedStation(),
+      _openStation(),
+      _closedModel(nullptr),
+      _openModel(nullptr),
       _overlapFactor()
 {
 }
@@ -181,11 +181,11 @@ MVASubmodel::MVASubmodel( const unsigned n )
 
 MVASubmodel::~MVASubmodel()
 {
-    if ( openModel ) {
-	delete openModel;
+    if ( _openModel ) {
+	delete _openModel;
     }
-    if ( closedModel ) {
-	delete closedModel;
+    if ( _closedModel ) {
+	delete _closedModel;
     }
     if ( _overlapFactor ) {
 	delete [] _overlapFactor;
@@ -205,7 +205,7 @@ MVASubmodel::~MVASubmodel()
 MVASubmodel&
 MVASubmodel::initServers( const Model& model )
 {
-    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initServer, model.getSubmodels() ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::initServer, model.getSubmodels() ) );
     return *this;
 }
 
@@ -218,7 +218,7 @@ MVASubmodel::initServers( const Model& model )
 MVASubmodel&
 MVASubmodel::reinitServers( const Model& model )
 {
-    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitServer, model.getSubmodels() ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,const Vector<Submodel *>&>( &Entity::reinitServer, model.getSubmodels() ) );
     return *this;
 }
 
@@ -231,7 +231,7 @@ MVASubmodel::reinitServers( const Model& model )
 MVASubmodel&
 MVASubmodel::initInterlock()
 {
-    for_each ( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::initInterlock ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::initInterlock ) );
     return *this;
 }
 
@@ -274,8 +274,8 @@ MVASubmodel::build()
     /* --------------------- Count the stations. ---------------------- */
 
     const unsigned n_stations  = _clients.size() + _servers.size();
-    closedStation.resize(_clients.size() + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) ) );
-    openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInOpenModel ) ) );
+    _closedStation.resize(_clients.size() + std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInClosedModel ) ) );
+    _openStation.resize( std::count_if( _servers.begin(), _servers.end(), Predicate<Entity>( &Entity::isInOpenModel ) ) );
 
     /* ----------------------- Create Chains.  ------------------------ */
 
@@ -289,30 +289,29 @@ MVASubmodel::build()
     unsigned closedStnNo = 0;
     for ( std::set<Task *>::const_iterator client = _clients.begin(); client != _clients.end(); ++client ) {
 	closedStnNo += 1;
-	closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
+	_closedStation[closedStnNo] = (*client)->makeClient( nChains(), number() );
     }
 
     /* ------------------- Create servers for model. ------------------ */
 
     unsigned openStnNo = 0;
     for ( std::set<Entity *>::const_iterator server = _servers.begin(); server != _servers.end(); ++server ) {
-	Server * aStation;
 	if ( (*server)->nEntries() == 0 ) continue;	/* Null server. */
-	aStation = (*server)->makeServer( nChains() );
+	Server * aStation = (*server)->makeServer( nChains() );
 	if ( (*server)->isInClosedModel() ) {
 	    closedStnNo += 1;
-	    closedStation[closedStnNo] = aStation;
+	    _closedStation[closedStnNo] = aStation;
 	}
 	if ( (*server)->isInOpenModel() ) {
 	    openStnNo += 1;
-	    openStation[openStnNo] = aStation;
+	    _openStation[openStnNo] = aStation;
 	}
     }
 
     /* --------- Create overlap probabilities and durations. ---------- */
 
     if ( ( hasThreads() || hasSynchs() ) && !Pragma::threads(Pragma::Threads::NONE) ) {
-	_overlapFactor = new VectorMath<double> [nChains()+1];
+	_overlapFactor = new Vector<double> [nChains()+1];
 	for ( unsigned i = 1; i <= nChains(); ++i ) {
 	    _overlapFactor[i].resize( nChains(), 1.0 );
 	}
@@ -323,33 +322,33 @@ MVASubmodel::build()
     assert ( closedStnNo <= n_stations && openStnNo <= n_stations );
 
     if ( n_openStns() > 0 && !flags.no_execute ) {
-	openModel = new Open( openStation );
+	_openModel = new Open( _openStation );
     }
 
     if ( nChains() > 0 && n_closedStns() > 0 ) {
 	switch ( Pragma::mva() ) {
 	case Pragma::MVA::EXACT:
-	    closedModel = new ExactMVA(          closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new ExactMVA(          _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::MVA::SCHWEITZER:
-	    closedModel = new Schweitzer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new Schweitzer(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::MVA::LINEARIZER:
-	    closedModel = new Linearizer(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new Linearizer(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::MVA::FAST:
-	    closedModel = new Linearizer2(       closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new Linearizer2(       _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::MVA::ONESTEP:
-	    closedModel = new OneStepMVA(        closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new OneStepMVA(        _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	case Pragma::MVA::ONESTEP_LINEARIZER:
-	    closedModel = new OneStepLinearizer( closedStation, _customers, _thinkTime, _priority, _overlapFactor );
+	    _closedModel = new OneStepLinearizer( _closedStation, _customers, _thinkTime, _priority, _overlapFactor );
 	    break;
 	}
     }
 
-    std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,const MVASubmodel&>( &Task::setChain, *this ) );
+    std::for_each( _clients.begin(), _clients.end(), ConstExec1<Task,MVASubmodel&>( &Task::setChains, *this ) );
 #if PAN_REPLICATION
     if ( usePanReplication() ) {
 	unsigned not_used = 0;
@@ -437,11 +436,11 @@ MVASubmodel::rebuild()
 
 	if ( closedIndex ) {
 	    newStation->closedIndex = closedIndex;
-	    closedStation[closedIndex] = newStation;		/* ... and in with the new...	*/
+	    _closedStation[closedIndex] = newStation;		/* ... and in with the new...	*/
 	}
 	if ( openIndex ) {
 	    newStation->openIndex = openIndex;
-	    openStation[openIndex] = newStation;		/* ... and in with the new...	*/
+	    _openStation[openIndex] = newStation;		/* ... and in with the new...	*/
 	}
 
 	delete oldStation;
@@ -571,6 +570,16 @@ Submodel::replicaGroups( const std::set<Task *>& a, const std::set<Task *>& b ) 
 
 
 
+void
+MVASubmodel::setChains( const ChainVector& chain )
+{
+    const unsigned k1 = chain[1];
+    for ( ChainVector::const_iterator k2 = std::next(chain.begin()); k2 != chain.end(); ++k2 ) {
+	_closedModel->setThreadChain( *k2, k1 );
+    }
+}
+
+
 /*
  * Determine the number of chains, their populations, and their think times.
  * Customers and thinkTime are dimensioned by CHAIN (k).  The array `chains'
@@ -612,7 +621,7 @@ MVASubmodel::makeChains()
 
 		/* add chain to all servers of this client */
 
-		for_each( clientsServers.begin(), clientsServers.end(), Exec1<Entity,unsigned int>( &Entity::addServerChain, k ) );
+		std::for_each( clientsServers.begin(), clientsServers.end(), Exec1<Entity,unsigned int>( &Entity::addServerChain, k ) );
 	    }
 
 #if PAN_REPLICATION
@@ -669,11 +678,11 @@ double
 MVASubmodel::nrFactor( const Server * aStation, const unsigned e, const unsigned k ) const
 {
     const double s = aStation->S( e, k, 1 );
-    if ( std::isfinite( s ) && closedModel ) {  //tomari
+    if ( std::isfinite( s ) && _closedModel ) {  //tomari
 	//Solution for replicated models with open arrivals.
 	// See bug # 87.
 
-	return closedModel->nrFactor( *aStation, e, k ) * s;
+	return _closedModel->nrFactor( *aStation, e, k ) * s;
 
     } else {
 	return s;
@@ -696,7 +705,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 {
     if ( _servers.empty() ) return *this;
     if ( flags.verbose ) std::cerr << '.';
-    if ( flags.reset_mva ) { closedModel->reset(); }
+    if ( flags.reset_mva ) { _closedModel->reset(); }
 
     const bool trace = flags.trace_mva && (flags.trace_submodel == 0 || flags.trace_submodel == number() );
 
@@ -709,9 +718,9 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
     /* ----------------- initialize the stations ------------------ */
 
-    for_each ( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::clear ) );	/* Clear visit ratios and what have you */
-    for_each ( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClientStation, *this ) );
-    for_each ( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServerStation, *this ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec<Entity>( &Entity::clear ) );	/* Clear visit ratios and what have you */
+    std::for_each( _clients.begin(), _clients.end(), Exec1<Task,Submodel&>( &Task::initClientStation, *this ) );
+    std::for_each( _servers.begin(), _servers.end(), Exec1<Entity,Submodel&>( &Entity::initServerStation, *this ) );
 
 #if PAN_REPLICATION
     /* ------------------- Replication Iteration ------------------- */
@@ -734,7 +743,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	    }
 
-	    for_each ( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::modifyClientServiceTime, *this ) );
+	    std::for_each( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::modifyClientServiceTime, *this ) );
 	}
 #endif
 
@@ -744,9 +753,9 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* ----------------- Solve the model. ----------------- */
 
-	if ( closedModel ) {
+	if ( _closedModel ) {
 
-	    if ( openModel ) {
+	    if ( _openModel ) {
 		if ( trace ) {
 		    printOpenModel( std::cout );
 		}
@@ -756,7 +765,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		 */
 
 		try {
-		    openModel->convert( _customers );
+		    _openModel->convert( _customers );
 		}
 		catch ( const std::range_error& error ) {
 		    MVAStats.faults += 1;
@@ -770,7 +779,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 		printClosedModel( std::cout );
 	    }
 	    try {
-		closedModel->solve();
+		_closedModel->solve();
 	    }
 	    catch ( const std::range_error& error ) {
 		throw;
@@ -778,19 +787,19 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	    /* Statistics by level -- we can use this to find performance bottlenecks */
 
-	    MVAStats.accumulate( closedModel->iterations(), closedModel->waits(), closedModel->faults() );
+	    MVAStats.accumulate( _closedModel->iterations(), _closedModel->waits(), _closedModel->faults() );
 	}
 
-	if ( openModel ) {
-	    if ( trace && !closedModel ) {
+	if ( _openModel ) {
+	    if ( trace && !_closedModel ) {
 		printOpenModel( std::cout );
 	    }
 
 	    try {
-		if ( closedModel ) {
-		    openModel->solve( *closedModel, _customers );	/* Calculate L[0] queue lengths. */
+		if ( _closedModel ) {
+		    _openModel->solve( *_closedModel, _customers );	/* Calculate L[0] queue lengths. */
 		} else {
-		    openModel->solve();
+		    _openModel->solve();
 		}
 	    } 
 	    catch ( const std::range_error& error ) {
@@ -800,13 +809,13 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    }
 
 	    if ( trace ) {
-		std::cout << *openModel << std::endl << std::endl;
+		std::cout << *_openModel << std::endl << std::endl;
 	    }
 	}
 
-	if ( closedModel && trace ) {
+	if ( _closedModel && trace ) {
 	    std::ios_base::fmtflags oldFlags = std::cout.setf( std::ios::right, std::ios::adjustfield );
-	    std::cout << *closedModel << std::endl << std::endl;
+	    std::cout << *_closedModel << std::endl << std::endl;
 	    std::cout.flags( oldFlags );
 	}
 
@@ -816,8 +825,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    std::cout <<"MVASubmodel::solve( ) .... completed solving the MVA model......." << std::endl;
 	}
 
-	for_each ( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::saveClientResults, *this ) );
-	for_each ( _servers.begin(), _servers.end(), Exec2<Entity,const MVASubmodel&,double>( &Entity::saveServerResults, *this, relax ) );
+	std::for_each( _clients.begin(), _clients.end(), Exec1<Task,const MVASubmodel&>( &Task::saveClientResults, *this ) );
+	std::for_each( _servers.begin(), _servers.end(), Exec2<Entity,const MVASubmodel&,double>( &Entity::saveServerResults, *this, relax ) );
 
 	/* --- Compute and save new values for entry service times. --- */
 
@@ -844,7 +853,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 
 	/* Update waits for everyone else. */
 
-	for_each ( _clients.begin(), _clients.end(), Exec2<Task,const Submodel&,double>( &Task::updateWait,  *this, relax ) );
+	std::for_each( _clients.begin(), _clients.end(), Exec2<Task,const Submodel&,double>( &Task::updateWait,  *this, relax ) );
 
 	if ( !check_fp_ok() ) {
 	    throw floating_point_error( __FILE__, __LINE__ );
@@ -861,6 +870,45 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 #endif
 
     return *this;
+}
+
+
+double
+MVASubmodel::openModelThroughput( const Server& station, unsigned int e ) const
+{
+    return _openModel != nullptr ? _openModel->entryThroughput( station, e ) : 0.0;
+}
+
+double
+MVASubmodel::closedModelThroughput( const Server& station, unsigned int e ) const
+{
+    return _closedModel != nullptr ? _closedModel->entryThroughput( station, e ) : 0.0;
+}
+
+double
+MVASubmodel::closedModelThroughput( const Server& station, unsigned int e, unsigned int k ) const
+{
+    return _closedModel != nullptr ? _closedModel->throughput( station, e, k ) : 0.0;
+}
+
+#if PAN_REPLICATION
+double
+MVASubmodel::closedModelNormalizedThroughput( const Server& station, unsigned int e, unsigned int k ) const
+{
+    return _closedModel != nullptr ? _closedModel->normalizedThroughput( station, e, k ) : 0.0;
+}
+#endif
+
+double
+MVASubmodel::closedModelUtilization( const Server& station, unsigned int k ) const
+{
+    return _closedModel != nullptr ? _closedModel->utilization( station, k ) : 0.0;
+}
+
+double
+MVASubmodel::openModelUtilization( const Server& station ) const
+{
+    return _openModel != nullptr ? _openModel->utilization( station ) : 0.0;
 }
 
 /*----------------------------------------------------------------------*/

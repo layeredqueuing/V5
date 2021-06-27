@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14835 2021-06-16 00:25:22Z greg $
+ * $Id: entry.h 14855 2021-06-25 13:06:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -39,6 +39,7 @@ class Call;
 class Entity;
 class Entry;
 class Exponential;
+class MVASubmodel;
 class Model;
 class Processor;
 class Submodel;
@@ -287,6 +288,7 @@ public:
 #if PAN_REPLICATION
     virtual double updateWaitReplication( const Submodel&, unsigned& ) = 0;
 #endif
+    Entry& saveClientResults( const MVASubmodel& submodel, const Server& station, unsigned int k );
     virtual Entry& saveOpenWait( const double aWait ) = 0;
     Entry& saveThroughput( double );
 

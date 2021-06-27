@@ -15,7 +15,7 @@
  * November, 1994
  * July 2007
  *
- * $Id: vector.h 14698 2021-05-26 16:18:19Z greg $
+ * $Id: vector.h 14863 2021-06-26 01:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -94,12 +94,12 @@ public:
 	    return *this;
 	}
 
-    unsigned find( const Type& elem ) const	/* temp */
+    const_iterator find( const Type& elem ) const	/* temp */
 	{
 	    for ( unsigned ix = 1; ix <= sz; ++ix ) {
-		if ( elem == ia[ix] ) return ix;
+		if ( elem == ia[ix] ) return &ia[ix];
 	    }
-	    return 0;
+	    return &ia[sz+1];
 	}
 
     bool empty() const { return sz == 0; }
@@ -265,6 +265,7 @@ public:
     VectorMath<Type>& operator=( const Vector<Type>& arg ) { Vector<Type>::operator=( arg ); return *this; }
     VectorMath<Type>& operator=( const Type& arg ) { Vector<Type>::operator=( arg ); return *this; }
     bool operator==( const Vector<Type>& arg ) const { return Vector<Type>::operator==( arg ); }
+
     VectorMath<Type> operator+( const VectorMath<Type>& addend ) const
 	{
 	    assert( addend.size() == Vector<Type>::size() );
@@ -354,6 +355,4 @@ public:
 	    return sum;
 	}
 };
-
-
 #endif

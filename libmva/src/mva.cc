@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: mva.cc 14479 2021-02-23 02:04:16Z greg $
+ * $Id: mva.cc 14863 2021-06-26 01:36:42Z greg $
  *
  * MVA solvers: Exact, Bard-Schweitzer, Linearizer and Linearizer2.
  * Abstract superclass does no operation by itself.
@@ -183,8 +183,8 @@ std::ostream& operator<<( std::ostream& output, MVA& model )
  */
 
 MVA::MVA( Vector<Server *>& q, const Population& N,
-	  const VectorMath<double>& thinkTime, const Vector<unsigned>& prio,
-	  const VectorMath<double>* of )
+	  const Vector<double>& thinkTime, const Vector<unsigned>& prio,
+	  const Vector<double>* of )
     : NCust(N), M(q.size()), K(N.size()), Q(q), Z(thinkTime),
       priority(prio), overlapFactor(of), L(), U(), P(), X(),
       faultCount(0), maxP(q.size()),
@@ -1868,7 +1868,7 @@ MVA::printVectorP( std::ostream& output, const unsigned m, const Population& N )
 
 const char * const ExactMVA::__typeName = "Exact MVA";
 
-ExactMVA::ExactMVA( Vector<Server *>&q, const Population& N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+ExactMVA::ExactMVA( Vector<Server *>&q, const Population& N, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : MVA( q, N, z, prio, of), map(N)
 {
 }
@@ -2027,7 +2027,7 @@ ExactMVA::priorityInflation( const Server& station, const Population &N, const u
 
 /* ------------------------- Bard Schweitzer. ------------------------- */
 
-SchweitzerCommon::SchweitzerCommon( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+SchweitzerCommon::SchweitzerCommon( Vector<Server *>&q, const Population & N, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : MVA( q, N, z, prio, of), termination_test(1.0 / ( 4000 + 16 * N.sum() )), initialized(false), last_L(0)
 {
     last_L = new double ** [M+1];
@@ -2562,7 +2562,7 @@ const char * const Schweitzer::__typeName = "Bard-Schweitzer";
  * population space.
  */
 
-Schweitzer::Schweitzer( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+Schweitzer::Schweitzer( Vector<Server *>&q, const Population & N, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : SchweitzerCommon( q, N, z, prio, of), map(N)
 {
     /* Allocate array space and initialize */
@@ -2639,7 +2639,7 @@ const char * const OneStepMVA::__typeName = "One-Step";
  * Constructor...
  */
 
-OneStepMVA::OneStepMVA( Vector<Server *>&q, const Population & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+OneStepMVA::OneStepMVA( Vector<Server *>&q, const Population & n, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : Schweitzer( q, n, z, prio, of)
 {
 }
@@ -2680,7 +2680,7 @@ const char * const Linearizer::__typeName = "Linearizer";
  * Allocate storage for D and F variables.  We also need to save L.
  */
 
-Linearizer::Linearizer( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+Linearizer::Linearizer( Vector<Server *>&q, const Population & N, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : SchweitzerCommon( q, N, z, prio, of), c(0), map(N)
 {
     dimension( map.dimension( NCust ).maxOffset() );		/* Set up L, U, X and P */
@@ -3056,7 +3056,7 @@ const char * const OneStepLinearizer::__typeName = "One-Step Linearizer";
  * Constructor...
  */
 
-OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const Population & n, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+OneStepLinearizer::OneStepLinearizer( Vector<Server *>&q, const Population & n, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : Linearizer( q, n, z, prio, of)
 {
 }
@@ -3133,7 +3133,7 @@ const char * const Linearizer2::__typeName = "Fast Linearizer";
  * We save computation time at the cost of more storage.
  */
 
-Linearizer2::Linearizer2( Vector<Server *>&q, const Population & N, const VectorMath<double>& z, const Vector<unsigned>& prio, const VectorMath<double>* of )
+Linearizer2::Linearizer2( Vector<Server *>&q, const Population & N, const Vector<double>& z, const Vector<unsigned>& prio, const Vector<double>* of )
     : Linearizer( q, N, z, prio, of)
 {
     Lm.resize(getMap().maxOffset());

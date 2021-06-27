@@ -10,7 +10,7 @@
  * November, 1994
  * May 2009.
  *
- * $Id: task.h 14841 2021-06-16 18:24:49Z greg $
+ * $Id: task.h 14863 2021-06-26 01:36:42Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -139,7 +139,7 @@ public:
     bool hasQuorum() const { return _has_quorum; }
     double  processorUtilization() const;
 
-    virtual unsigned hasClientChain( const unsigned submodel, const unsigned k ) const;
+    virtual bool hasClientChain( const unsigned submodel, const unsigned k ) const;
 
     virtual unsigned nClients() const;		// # Calling tasks
     virtual unsigned nThreads() const;
@@ -166,7 +166,7 @@ public:
     Task& saveClientResults( const MVASubmodel& );
     const Task& callsPerform( callFunc, const unsigned submodel ) const;
     const Task& openCallsPerform( callFunc, const unsigned submodel ) const;
-    const Task& setChain( const MVASubmodel& submodel ) const;
+    const Task& setChains( MVASubmodel& submodel ) const;
 
     /* Computation */
 	
@@ -209,7 +209,7 @@ public:
     std::ostream& print( std::ostream& output ) const;
     std::ostream& printSubmodelWait( std::ostream& output ) const;
     std::ostream& printClientChains( std::ostream& output, const unsigned ) const;
-    std::ostream& printOverlapTable( std::ostream& output, const ChainVector&, const VectorMath<double>* ) const;
+    std::ostream& printOverlapTable( std::ostream& output, const ChainVector&, const Vector<double>* ) const;
     virtual std::ostream& printJoinDelay( std::ostream& ) const;
     static SRVNIntManip print_client_chains( const Task & aTask, const unsigned aSubmodel ) { return SRVNIntManip( output_client_chains, aTask, aSubmodel ); }
 

@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: lqns.h 14823 2021-06-15 18:07:36Z greg $
+ * $Id: lqns.h 14855 2021-06-25 13:06:59Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -96,6 +96,19 @@ private:
     funcPtr _f;
     Type2 _x;
     Type3 _y;
+};
+
+template <class Type1, class Type2, class Type3, class Type4> struct Exec3
+{
+    typedef Type1& (Type1::*funcPtr)( Type2 x, Type3 y, Type4 z );
+    Exec3<Type1,Type2,Type3,Type4>( funcPtr f, Type2 x, Type3 y, Type4 z ) : _f(f), _x(x), _y(y), _z(z) {}
+    void operator()( Type1 * object ) const { (object->*_f)( _x, _y, _z ); }
+    void operator()( Type1& object ) const { (object.*_f)( _x, _y, _z ); }
+private:
+    funcPtr _f;
+    Type2 _x;
+    Type3 _y;
+    Type4 _z;
 };
 
 template <class Type> struct ConstExec

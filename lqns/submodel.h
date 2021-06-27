@@ -7,7 +7,7 @@
  *
  * June 2007
  *
- * $Id: submodel.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: submodel.h 14863 2021-06-26 01:36:42Z greg $
  */
 
 #ifndef _SUBMODEL_H
@@ -32,6 +32,8 @@ class Processor;
 class Server;
 class SubModelManip;
 class Task;
+
+typedef Vector<unsigned> ChainVector;
 
 /* ------- Submodel Abstract Superclass.  Subclassed as needed. ------- */
 	 
@@ -85,13 +87,12 @@ public:
     unsigned number() const { return _submodel_number; }
     Submodel& setSubmodelNumber( const unsigned );
 
-    virtual VectorMath<double> * getOverlapFactor() const { return nullptr; } 
+    virtual Vector<double> * getOverlapFactor() const { return nullptr; } 
     unsigned nChains() const { return _n_chains; }
     unsigned customers( const unsigned i ) const { return _customers[i]; }
     double thinkTime( const unsigned i ) const { return _thinkTime[i]; }
     void setThinkTime( unsigned int i, double thinkTime ) { _thinkTime[i] = thinkTime; }
     unsigned priority( const unsigned i ) const { return _priority[i]; }
-
 
     Submodel& addClients();
     virtual Submodel& initServers( const Model& ) { return *this; }
@@ -110,7 +111,7 @@ public:
     virtual unsigned n_openStns() const { return 0; }
 
     virtual Submodel& solve( long, MVACount&, const double ) = 0;
-	
+
     virtual std::ostream& print( std::ostream& ) const = 0;
 
     void debug_stop( const unsigned long, const double ) const;
@@ -137,7 +138,7 @@ protected:
     /* MVA Stuff */
 
     Population _customers;		/* Customers by chain k		*/
-    VectorMath<double> _thinkTime;	/* Think time for chain k	*/
+    Vector<double> _thinkTime;		/* Think time for chain k	*/
     Vector<unsigned> _priority;		/* Priority for chain k.	*/
 };
 
@@ -148,9 +149,6 @@ inline std::ostream& operator<<( std::ostream& output, const Submodel& self) { r
 
 class MVASubmodel : public Submodel {
     friend class Generate;
-    friend class Entity;		/* closedModel */
-    friend class Task;			/* closedModel */
-    friend class Processor;		/* closedModel */
 
 public:
     MVASubmodel( const unsigned );
@@ -164,25 +162,40 @@ public:
     virtual MVASubmodel& build();
     virtual MVASubmodel& rebuild();
 		
-    virtual unsigned n_closedStns() const { return closedStation.size(); }
-    virtual unsigned n_openStns() const { return openStation.size(); }
-    virtual VectorMath<double> * getOverlapFactor() const { return _overlapFactor; } 
+    virtual unsigned n_closedStns() const { return _closedStation.size(); }
+    virtual unsigned n_openStns() const { return _openStation.size(); }
+    virtual Vector<double> * getOverlapFactor() const { return _overlapFactor; } 
 
+    bool hasClosedModel() const { return _closedModel != nullptr; }
+    bool hasOpenModel() const { return _openModel != nullptr; }
+    
 #if PAN_REPLICATION
     virtual double nrFactor( const Server *, const unsigned e, const unsigned k ) const;
 #endif
 
     virtual MVASubmodel& solve( long, MVACount&, const double );
 	
-    virtual std::ostream& print( std::ostream& ) const;
+    double openModelThroughput( const Server& station, unsigned int e ) const;
+    double closedModelThroughput( const Server& station, unsigned int e ) const;
+    double closedModelThroughput( const Server& station, unsigned int e, const unsigned int k ) const;
+#if PAN_REPLICATION
+    double closedModelNormalizedThroughput( const Server& station, unsigned int e, const unsigned int k ) const;
+#endif
+    double closedModelUtilization( const Server& station, unsigned int k ) const;
+    double openModelUtilization( const Server& station ) const;
 
+    virtual std::ostream& print( std::ostream& ) const;
+    
 private:
     bool hasThreads() const { return _hasThreads; }
     bool hasSynchs() const { return _hasSynchs; }
     bool hasReplicas() const { return _hasReplicas; }
+
+public:
 #if PAN_REPLICATION
     bool usePanReplication() const;
 #endif
+    void setChains( const ChainVector& chain );
 
 protected:
     unsigned makeChains();
@@ -198,14 +211,14 @@ private:
 
     /* MVA Stuff */
 	
-    Vector<Server *> closedStation;
-    Vector<Server *> openStation;
-    MVA * closedModel;
-    Open * openModel;
+    Vector<Server *> _closedStation;
+    Vector<Server *> _openStation;
+    MVA * _closedModel;
+    Open * _openModel;
 
     /* Fork-Join stuff. */
 	
-    VectorMath<double> * _overlapFactor;
+    Vector<double> * _overlapFactor;
 };
 
 /* -------------------------------------------------------------------- */

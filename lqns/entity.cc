@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: entity.cc 14835 2021-06-16 00:25:22Z greg $
+ * $Id: entity.cc 14861 2021-06-25 21:25:15Z greg $
  *
  * Everything you wanted to know about a task or processor, but were
  * afraid to ask.
@@ -183,7 +183,7 @@ Entity::findChildren( Call::stack& callStack, const bool ) const
 Entity&
 Entity::initWait()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initWait ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::initWait ) );
     return *this;
 }
 
@@ -351,10 +351,10 @@ Entity::saturation() const
 
 
 
-unsigned
+bool
 Entity::hasServerChain( const unsigned k ) const
 {
-    return _serverChains.find(k);
+    return _serverChains.find(k) != _serverChains.end();
 }
 
 
@@ -376,7 +376,7 @@ Entity::hasOpenArrivals() const
 std::set<Task *>&
 Entity::getClients( std::set<Task *>& clients ) const
 {
-    std::for_each ( entries().begin(), entries().end(), Entry::get_clients( clients ) );
+    std::for_each( entries().begin(), entries().end(), Entry::get_clients( clients ) );
     return clients;
 }
 
@@ -464,7 +464,7 @@ Entity::computeUtilization()
 Entity&
 Entity::computeVariance()
 {
-    for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::computeVariance ) );
+    std::for_each( entries().begin(), entries().end(), Exec<Entry>( &Entry::computeVariance ) );
     return *this;
 }
 
@@ -609,7 +609,7 @@ Entity::initServerStation( Submodel& submodel )
     const std::vector<Entry *>& entries = this->entries();
 #endif
 
-    const ChainVector& aChain = serverChains();
+    const ChainVector& chains = serverChains();
     for ( std::vector<Entry *>::const_iterator entry = entries.begin(); entry != entries.end(); ++entry ) {
 	const unsigned e = (*entry)->index();
 	const double openArrivalRate = (*entry)->openArrivalRate();
@@ -619,8 +619,8 @@ Entity::initServerStation( Submodel& submodel )
 	}
 
 	/* -- Set service time for entries with visits only. -- */
-	for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	    setServiceTime( (*entry), aChain[ix] );
+	for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+	    setServiceTime( (*entry), *k );
 	}
 
 	/*
@@ -637,7 +637,7 @@ Entity::initServerStation( Submodel& submodel )
 
     if ( markovOvertaking() ) {
 	const std::set<Task *>& clients = submodel.getClients();
-	for_each( clients.begin(), clients.end(), Exec1<Task,Entity*>( &Task::computeOvertaking, this ) );
+	std::for_each( clients.begin(), clients.end(), Exec1<Task,Entity*>( &Task::computeOvertaking, this ) );
     }
 
     /* Set interlock */
@@ -686,13 +686,11 @@ Entity::setInterlock( Submodel& submodel ) const
 	const Probability PrIL = prInterlock( *(*client) );
 	if ( PrIL == 0.0 ) continue;
 
-	const ChainVector& chain = (*client)->clientChains( submodel.number() );
-
-	for ( unsigned ix = 1; ix <= chain.size(); ++ix ) {
-	    const unsigned k = chain[ix];
-	    if ( hasServerChain(k) ) {
+	const ChainVector& chains = (*client)->clientChains( submodel.number() );
+	for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+	    if ( hasServerChain(*k) ) {
 		for ( std::vector<Entry *>::const_iterator entry = entries().begin(); entry != entries().end(); ++entry ) {
-		    station->setInterlock( (*entry)->index(), k, PrIL );
+		    station->setInterlock( (*entry)->index(), *k, PrIL );
 		}
 	    }
 	}
@@ -713,12 +711,12 @@ Entity::saveServerResults( const MVASubmodel& submodel, double relax )
 	const unsigned e = (*entry)->index();
 	double lambda = 0.0;
 
-	if ( isInOpenModel() && submodel.openModel ) {
-	    lambda = submodel.openModel->entryThroughput( *station, e );		/* BUG_168 */
+	if ( isInOpenModel() ) {
+	    lambda = submodel.openModelThroughput( *station, e );		/* BUG_168 */
 	}
 
-	if ( isInClosedModel() && submodel.closedModel ) {
-	    const double tput = submodel.closedModel->entryThroughput( *station, e );
+	if ( isInClosedModel() ) {
+	    const double tput = submodel.closedModelThroughput( *station, e );
 	    if ( std::isfinite( tput ) ) {
 		lambda += tput;
 	    } else if ( tput < 0.0 ) {

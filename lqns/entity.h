@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entity.h 14841 2021-06-16 18:24:49Z greg $
+ * $Id: entity.h 14859 2021-06-25 20:16:24Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -157,10 +157,10 @@ public:
     bool hasSecondPhase() const { return (bool)(_maxPhase > 1); }
     bool hasOpenArrivals() const;
     
-    virtual unsigned hasClientChain( const unsigned, const unsigned ) const { return 0; }
-    unsigned hasServerChain( const unsigned k ) const;
+    virtual bool hasClientChain( const unsigned, const unsigned ) const { return false; }
+    bool hasServerChain( const unsigned k ) const;
     virtual bool hasActivities() const { return false; }
-    bool hasThreads() const { return nThreads() > 1 ? true : false; }
+    bool hasThreads() const { return nThreads() > 1; }
     virtual bool hasSynchs() const { return false; }
 
     bool isInOpenModel() const { return attributes.open_model ? true : false; }

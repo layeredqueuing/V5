@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: phase.cc 14861 2021-06-25 21:25:15Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -424,7 +424,7 @@ Phase::check() const
 	}
     }
 
-    for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
+    std::for_each( callList().begin(), callList().end(), Predicate<Call>( &Call::check ) );
 
     if ( phaseTypeFlag() == LQIO::DOM::Phase::STOCHASTIC && CV_sqr() != 1.0 ) {
 	if ( isActivity() ) {			/* c, phase_flag are incompatible  */
@@ -885,25 +885,23 @@ Phase::waitExceptChain( const unsigned submodel, const unsigned k )
 
 
 #if PAN_REPLICATION
+/*
+ * Return the weighted nr_factor.
+ */
+
 double
-Phase::nrFactor( const Call * aCall, const Submodel& aSubmodel ) const
+Phase::nrFactor( const Call * aCall, const Submodel& submodel ) const
 {
-    unsigned submodel = aSubmodel.number();
+    const Task * task = dynamic_cast<const Task *>(owner());
+    const ChainVector& chains = task->clientChains( submodel.number() );
+    if ( chains.empty() ) return 0.0;
+
     double nr_factor = 0.0;
-    unsigned count = 0;
-	
-    Task * aTask = const_cast<Task *>(dynamic_cast<const Task *>(owner()));
-    const ChainVector& aChain = aTask->clientChains( submodel );
-#warning should this be +=?
-    for ( unsigned ix = 1; ix <= aChain.size(); ++ix, ++count ) {
-	nr_factor = aCall->nrFactor( aSubmodel, aChain[ix] );
+    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
+	nr_factor += aCall->nrFactor( submodel, *k );
     }
 
-    if ( count ) {
-	return nr_factor / count;
-    } else {
-	return 0;
-    }
+    return nr_factor / chains.size();
 }
 #endif
 
@@ -915,24 +913,24 @@ Phase::nrFactor( const Call * aCall, const Submodel& aSubmodel ) const
  */
 
 Phase&
-Phase::updateWait( const Submodel& aSubmodel, const double relax ) 
+Phase::updateWait( const Submodel& submodel, const double relax ) 
 {
-    const unsigned submodel = aSubmodel.number();
-    const double oldWait    = _wait[submodel];
+    const unsigned n = submodel.number();
+    const double oldWait = _wait[n];
 
     /* Sum up waits to all other tasks and devices in this submodel */
 
     const double newWait = std::accumulate( devices().begin(), devices().end(),
-					    std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( submodel ) ),
-					    DeviceInfo::add_wait( submodel ) );
+					    std::accumulate( callList().begin(), callList().end(), 0.0, Call::add_wait( n ) ),
+					    DeviceInfo::add_wait( n ) );
 
     /* Now update waiting values */
 
-    under_relax( _wait[submodel], newWait, relax );
+    under_relax( _wait[n], newWait, relax );
 
     if ( oldWait && flags.trace_delta_wait ) {
-	std::cout << "Phase::updateWait(" << submodel << "," << relax << ") for " << name() << std::endl;
-	std::cout << "        Sum of wait=" << newWait << ", _wait[" << submodel << "]=" << _wait[submodel] << std::endl;
+	std::cout << "Phase::updateWait(" << n << "," << relax << ") for " << name() << std::endl;
+	std::cout << "        Sum of wait=" << newWait << ", _wait[" << n << "]=" << _wait[n] << std::endl;
     }
 
     return *this;
@@ -1054,10 +1052,9 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	std::cout <<" ..............." << std::endl; 
     }
     const Task * ownerTask = dynamic_cast<const Task *>(owner());
-    const ChainVector& aChain = ownerTask->clientChains(aSubmodel.number());
 
-    for ( unsigned ix = 1; ix <= aChain.size(); ++ix ) {
-	const unsigned k = aChain[ix];
+    const ChainVector& chains = ownerTask->clientChains(aSubmodel.number());
+    for ( ChainVector::const_iterator k = chains.begin(); k != chains.end(); ++k ) {
 
 	//std::cout <<"\n***Start processing master chain k = " << k << " *****" << std::endl;
 
@@ -1065,7 +1062,7 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	double nr_factor = 0.0;
 	double newWait = 0.0;
 
-	unsigned chainThreadIx = ownerTask->threadIndex( aSubmodel.number(), k );
+	unsigned chainThreadIx = ownerTask->threadIndex( aSubmodel.number(), *k );
 
 	for ( std::set<Call *>::const_iterator call = callList().begin(); call != callList().end(); ++call ) {
 	    if ( (*call)->submodel() != aSubmodel.number() ) continue;
@@ -1074,9 +1071,9 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 		continue;
 	    }
 	    
-	    const double temp = (*call)->rendezvousDelay( k );
-	    if ( (*call)->dstTask()->hasServerChain(k) ) {
-		nr_factor = (*call)->nrFactor( aSubmodel, k );
+	    const double temp = (*call)->rendezvousDelay( *k );
+	    if ( (*call)->dstTask()->hasServerChain( *k ) ) {
+		nr_factor = (*call)->nrFactor( aSubmodel, *k );
 	    }
 	    if ( flags.trace_replication ) {
 		std::cout << "\nCallChainNum=" << (*call)->getChain() << ",Src=" << (*call)->srcName() << ",Dst=" << (*call)->dstName() << ",Wait=" << temp << std::endl;
@@ -1093,14 +1090,14 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	if ( processorCall() && proc_mod && processorCall()->submodel() == aSubmodel.number() ) { 
    
 	    if (chainThreadIx == ownerTask->threadIndex( aSubmodel.number(), processorCall()->getChain() ) ) {
-		double temp=  processorCall()->rendezvousDelay( k );
+		double temp=  processorCall()->rendezvousDelay( *k );
 		newWait += temp;
 		if ( flags.trace_replication ) {
 		    std::cout << "\n Processor Call: CallChainNum="<<processorCall()->getChain() <<  ",Src=" << processorCall()->srcName() << ",Dst= " << processorCall()->dstName()
 			 << ",Wait=" << temp << std::endl;
 		}
-		if ( processorCall()->dstTask()->hasServerChain(k) ) {
-		    nr_factor = processorCall()->nrFactor( aSubmodel, k );
+		if ( processorCall()->dstTask()->hasServerChain( *k ) ) {
+		    nr_factor = processorCall()->nrFactor( aSubmodel, *k );
 		}
 	    }   
 	}
@@ -1108,16 +1105,16 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 	//REP NEWTON-RAPHSON (if NR selected)
 
 	if ( nr_factor != 0.0 ) { 
-	    newWait = (newWait + _surrogateDelay[k] * nr_factor) / (1.0 + nr_factor);
+	    newWait = (newWait + _surrogateDelay[*k] * nr_factor) / (1.0 + nr_factor);
 	} else {
 	    newWait = 0; 
 	}
 
-	delta = std::max( delta, square( (_surrogateDelay[k] - newWait) * throughput() ) );
-	under_relax( _surrogateDelay[k], newWait, 1.0 );
+	delta = std::max( delta, square( (_surrogateDelay[*k] - newWait) * throughput() ) );
+	under_relax( _surrogateDelay[*k], newWait, 1.0 );
 	
 	if ( flags.trace_replication ) {
-	    std::cout << std::endl << "SurrogateDelay of current master chain " << k << " =" << _surrogateDelay[k] << std::endl
+	    std::cout << std::endl << "SurrogateDelay of current master chain " << k << " =" << _surrogateDelay[*k] << std::endl
 		 << name() << ": waitExceptChain(submodel=" << aSubmodel.number() << ",k=" << k << ") = " << newWait
 		 << ", nr_factor = " << nr_factor << std::endl
 		 << ", waitExcept(submodel=" << aSubmodel.number() << ") = " << waitExcept( aSubmodel.number() ) << std::endl;
@@ -1138,8 +1135,8 @@ Phase::updateWaitReplication( const Submodel& aSubmodel )
 const Phase&
 Phase::followInterlock( Interlock::CollectTable& path ) const
 {
-    for_each( callList().begin(), callList().end(), follow_interlock( path ) );
-    for_each( devices().begin(), devices().end(), follow_interlock( path ) );
+    std::for_each( callList().begin(), callList().end(), follow_interlock( path ) );
+    std::for_each( devices().begin(), devices().end(), follow_interlock( path ) );
     return *this;
 }
 
@@ -1235,7 +1232,7 @@ Phase::insertDOMResults() const
 Phase&
 Phase::recalculateDynamicValues()
 {	
-    for_each( devices().begin(), devices().end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
+    std::for_each( devices().begin(), devices().end(), Exec<Phase::DeviceInfo>( &Phase::DeviceInfo::recalculateDynamicValues ) );
     return *this;
 }
 
