@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14649 2021-05-15 14:02:00Z greg $
+ *  $Id: srvn_spex.cpp 14867 2021-06-28 18:58:48Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -392,9 +392,6 @@ namespace LQIO {
     {
 	expr_list * loop_code = new expr_list;
 
-	/* load in all deferred assignment statements, eg '$x = $loop'... */
-	*loop_code = Spex::__deferred_assignment;
-
 	/* "Assign" any array variables which are used as parameters.  The array variable cannot be directly referenced. */
 	for ( std::vector<std::string>::const_iterator var_p = __array_variables.begin(); var_p != __array_variables.end(); ++var_p ) {
 	    const std::string& name = *var_p;
@@ -411,6 +408,9 @@ namespace LQIO {
 		loop_code->push_back( new LQX::AssignmentStatementNode( get_destination(name), new LQX::VariableExpression( &name[1], false ) ) );
 	    }
 	}
+
+	/* load in all deferred assignment statements, eg '$x = $loop'... */
+	loop_code->insert( loop_code->end(), Spex::__deferred_assignment.begin(), Spex::__deferred_assignment.end() );
 
 	/* Increment magic variable $0 */
 	loop_code->push_back( new LQX::AssignmentStatementNode( new LQX::VariableExpression( "_0", false ),
