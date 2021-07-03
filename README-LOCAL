@@ -51,7 +51,7 @@ If using MinGW2
      % pacman -S mingw-w64-i686-toolchain
 
 2) Install other libraries for mingw.
-   Install expat - 
+   None needed.
 
 3) The user manuals are built using LaTeX and 
    Install miktex - http://www.miktex.org/

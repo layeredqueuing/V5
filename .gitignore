@@ -116,3 +116,4 @@ srvn_result_scan.c
 srvn_scan.c
 srvndiff/srvndiff
 stamp-h1
+confdefs.h

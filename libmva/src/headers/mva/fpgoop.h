@@ -16,8 +16,9 @@
 
 #ifndef	FPGOOP_H
 #define	FPGOOP_H
+#include <config.h>
 
-#if HAVE_IEEEFP_H && !defined(MSDOS)
+#if HAVE_IEEEFP_H && !defined(__WINNT)
 #include <ieeefp.h>
 #endif
 #include <string>
