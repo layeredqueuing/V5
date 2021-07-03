@@ -12,7 +12,7 @@
  * November, 1994
  *
  * ----------------------------------------------------------------------
- * $Id: errmsg.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: errmsg.cc 14869 2021-06-29 01:39:40Z greg $
  * ----------------------------------------------------------------------
  */
 
@@ -30,7 +30,7 @@
 struct LQIO::error_message_type local_error_messages[] =
 {
     { LQIO::RUNTIME_ERROR, "Derived population of %g for task \"%s\" is not valid." },                                                  /* ERR_BOGUS_COPIES                     */
-    { LQIO::RUNTIME_ERROR, "External synchronization from entry \"%s\" not supported for task \"%s\": backtrace is \"%s\"." },          /* ERR_EXTERNAL_SYNC                    */
+    { LQIO::RUNTIME_ERROR, "External synchronization at join \"%s\" for task \"%s\"." },						        /* ERR_EXTERNAL_SYNC                    */
     { LQIO::RUNTIME_ERROR, "Replication is not supported." },	                                                          		/* ERR_REPLICATION_NOT_SUPPORTED        */
     { LQIO::RUNTIME_ERROR, "The number of replicas (%d) for task \"%s\" is not an integer multiple of the number of replicas (%d) for processor \"%s\"." },	/* ERR_REPLICATION_PROCESSOR 	*/
     { LQIO::RUNTIME_ERROR, "Fan-out of %d from task \"%s\" with %d replicas does not match the fan-in of %d to task \"%s\" with %d replicas." },         	/* ERR_REPLICATION              */

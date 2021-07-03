@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14855 2021-06-25 13:06:59Z greg $
+ * $Id: entry.cc 14869 2021-06-29 01:39:40Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -293,7 +293,7 @@ Entry::findChildren( Call::stack& callStack, const bool directPath ) const
 	    LQIO::solution_error( LQIO::ERR_CYCLE_IN_ACTIVITY_GRAPH, owner()->name().c_str(), error.what() );
 	}
 	catch ( const bad_external_join& error ) {
-	    LQIO::solution_error( ERR_EXTERNAL_SYNC, name().c_str(), owner()->name().c_str(), error.what() );
+	    LQIO::solution_error( LQIO::ERR_JOIN_BAD_PATH, name().c_str(), owner()->name().c_str(), error.what() );
 	}
     } else {
 	max_depth = std::accumulate( _phase.begin(), _phase.end(), 0, max_two_args<Phase,Call::stack&,bool>( &Phase::findChildren, callStack, directPath ) );

@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 14488 2021-02-24 22:26:04Z greg $
+ * $Id: glblerr.cpp 14869 2021-06-29 01:39:40Z greg $
  *
  * Error messages common to solvers.
  *
@@ -55,7 +55,7 @@ namespace LQIO {
         { RUNTIME_ERROR, "Invalid calls from %s \"%s\" %s \"%s\" to entry \"%s\": %s." },	                                    /* ERR_INVALID_CALL_PARAMETER	    */
         { RUNTIME_ERROR, "Invalid forwarding from entry \"%s\" to entry \"%s\": %s." },	                                            /* ERR_INVALID_FWDING_PARAMETER	    */
         { RUNTIME_ERROR, "Invalid lower range value for histogram of %g." },                                                        /* ERR_HISTOGRAM_INVALID_MIN            */
-        { RUNTIME_ERROR, "Invalid path from fork \"%s\" for task \"%s\": backtrace is \"%s\"." },                                   /* ERR_JOIN_BAD_PATH                    */
+        { RUNTIME_ERROR, "Invalid path from entry \"%s\" for task \"%s\": backtrace is \"%s\"." },                                  /* ERR_JOIN_BAD_PATH                    */
         { RUNTIME_ERROR, "Invalid probability of %g." },                                                                            /* ERR_INVALID_PROBABILITY              */
         { RUNTIME_ERROR, "Invalid upper range value for histogram of %g." },                                                        /* ERR_HISTOGRAM_INVALID_MAX            */
         { RUNTIME_ERROR, "Invalid %s for %s \"%s\": %s." },					                         	    /* ERR_INVALID_PARAMETER		    */
