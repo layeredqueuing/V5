@@ -1,6 +1,6 @@
 /* model.cc	-- Greg Franks Mon Feb  3 2003
  *
- * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: model.cc 14870 2021-07-03 03:16:42Z greg $
  *
  * Load, slice, and dice the lqn model.
  */
@@ -2179,7 +2179,7 @@ Model::printSXDMeta( std::ostream& output ) const
 #if defined(HAVE_CTIME)
     time_t tloc;
     time( &tloc );
-    strftime( buf, 32, "%Y-%m-%dT%T", localtime( &tloc ) );
+    strftime( buf, 32, "%Y-%m-%d %H:%M:%S", localtime( &tloc ) );
 #endif
     output << "<dc:title>" << _inputFileName << "</dc:title>" << std::endl;
     output << "<dc:comment>" << getDOM()->getModelComment() << "</dc:comment>" << std::endl;

@@ -36,7 +36,9 @@
 .svn
 Makefile
 Makefile.in
+\#*
 aclocal.m4
+confdefs.h
 config
 config.cache
 config.h
@@ -116,4 +118,3 @@ srvn_result_scan.c
 srvn_scan.c
 srvndiff/srvndiff
 stamp-h1
-confdefs.h

@@ -1,4 +1,4 @@
-$Id: README-LOCAL 14357 2021-01-14 21:50:48Z greg $
+$Id: README-LOCAL 14870 2021-07-03 03:16:42Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -51,26 +51,25 @@ If using MinGW2
      % pacman -S mingw-w64-i686-toolchain
 
 2) Install other libraries for mingw.
-   None needed.
+   None needed with the above.
 
 3) The user manuals are built using LaTeX and 
    Install miktex - http://www.miktex.org/
    Install ghostview - http://www.cs.wisc.edu/~ghost/
-   Install fig2dev - http://schmidt-web-berlin.de/winfig.htm
 
-   Modify %PATH% to point to the bin directories of the above four packages. 
+   Modify %PATH% to point to the bin directories of the above three packages. 
    See: My Computer -> Change a setting -> Performance and Maintenance -> System ->
    Advanced -> Environment Variables
 
    ** For msys64, you have to set the PATH in .bashrc
 
 4) Build away...
-   ** Make sure that you run the 64 bit version of MINGW (Programs->MSYS2 64bit->MinGW-w64 Win64 Shell)
-   ** You need /mingw64/bin/gcc
+   ** Make sure that you run the 32 bit version of MINGW (Programs->MSYS2 32bit->MinGW-wew Win64 Shell)
+   ** You need /mingw32/bin/gcc
 
    If buidling from the repo:
    ./.bootstrap
-   ./.configure-mingw64
+   ./.configure-mingw32
    make
    make install
 

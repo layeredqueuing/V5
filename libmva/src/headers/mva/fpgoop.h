@@ -9,16 +9,16 @@
  *
  * November, 1994
  *
- * $Id: fpgoop.h 14305 2020-12-31 14:51:49Z greg $
+ * $Id: fpgoop.h 14870 2021-07-03 03:16:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
 
 #ifndef	FPGOOP_H
 #define	FPGOOP_H
-#include <config.h>
 
-#if HAVE_IEEEFP_H && !defined(__WINNT)
+#include <config.h>
+#if HAVE_IEEEFP_H && !defined(__WINNT__) &&!defined(MSDOS)
 #include <ieeefp.h>
 #endif
 #include <string>

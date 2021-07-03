@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: server.h 14611 2021-04-19 21:35:58Z greg $
+ * $Id: server.h 14870 2021-07-03 03:16:42Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -17,9 +17,9 @@
 #if	!defined(SERVER_H)
 #define	SERVER_H
 
-#include "vector.h"
 #include "pop.h"
 #include "prob.h"
+#include "vector.h"
 
 #define MAX_PHASES	3
 

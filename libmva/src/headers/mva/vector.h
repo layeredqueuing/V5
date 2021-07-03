@@ -15,14 +15,14 @@
  * November, 1994
  * July 2007
  *
- * $Id: vector.h 14863 2021-06-26 01:36:42Z greg $
+ * $Id: vector.h 14870 2021-07-03 03:16:42Z greg $
  * ------------------------------------------------------------------------
  */
 
 #ifndef	LQNS_VECTOR_H
 #define	LQNS_VECTOR_H
 
-#include <assert.h>
+#include <cassert>
 #include <iostream>
 #include <iterator>
 

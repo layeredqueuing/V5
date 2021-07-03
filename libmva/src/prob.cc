@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: prob.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: prob.cc 14871 2021-07-03 03:20:32Z greg $
  *
  * This class only allows double precision values in the range of 0.0 to
  * 1.0.  Attempts to set instances to values outside this range will
@@ -15,8 +15,8 @@
 
 
 #include <cmath>
-#include "prob.h"
 #include "fpgoop.h"
+#include "prob.h"
 
 /* ----------------------- Helper Functions --------------------------- */
 

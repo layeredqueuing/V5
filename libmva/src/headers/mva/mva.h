@@ -9,7 +9,7 @@
  * November, 1994
  * August, 2005
  *
- * $Id: mva.h 14863 2021-06-26 01:36:42Z greg $
+ * $Id: mva.h 14871 2021-07-03 03:20:32Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -19,15 +19,13 @@
 /* undef DEBUG_MVA 1 */
 
 #include <vector>
-#include "pop.h"
-#include "vector.h"
-#include "server.h"
-#include "prob.h"
 #include "fpgoop.h"
+#include "pop.h"
+#include "prob.h"
+#include "vector.h"
 
 class MVA;
-class FullPopulationMap;
-class PartialPopulationMap;
+class Server;
 
 std::ostream& operator<<( std::ostream &, MVA& );
 

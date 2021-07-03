@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: ph2serv.cc 14305 2020-12-31 14:51:49Z greg $
+ * $Id: ph2serv.cc 14871 2021-07-03 03:20:32Z greg $
  *
  * Server definitions for MVA.  More complicated that those in server.C
  *
@@ -32,14 +32,10 @@
 
 #include <config.h>
 #include <cmath>
-#include <stdarg.h>
-#include <cstdlib>
-#include "ph2serv.h"
-#include "fpgoop.h"
-#include "vector.h"
-#include "server.h"
 #include "mva.h"
+#include "ph2serv.h"
 #include "prob.h"
+#include "vector.h"
 
 
 PHASE2_CORRECTION phase2_correction = COMPLEX_PHASE2;

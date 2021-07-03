@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: fpgoop.cc 14585 2021-04-02 16:40:28Z greg $
+ * $Id: fpgoop.cc 14870 2021-07-03 03:16:42Z greg $
  *
  * Floating point exception handling.  It is all different on all machines.
  * See:
@@ -49,7 +49,7 @@
 
 #include "fpgoop.h"
 
-#if !defined(__WINNT) && !defined(MSDOS) && HAVE_IEEEFP_H
+#if !defined(__WINNT__) && !defined(MSDOS) && HAVE_IEEEFP_H
 typedef	fp_except_t fp_bit_type;
 #elif defined(_AIX)
 typedef	fpflag_t fp_bit_type;
@@ -72,7 +72,7 @@ static struct {
     fp_bit_type bit;
     const char * str;
 } fp_op_str[] = {
-#if defined(__hpux) || (!defined(__WINNT) && !defined(MSDOS) && HAVE_IEEEFP_H)
+#if defined(__hpux) || (!defined(__WINNT__) && !defined(MSDOS) && HAVE_IEEEFP_H)
     { FP_X_INV, "Invalid operation" },
     { FP_X_DZ, "Overflow" },
     { FP_X_OFL, "Underflow" },
@@ -427,7 +427,7 @@ check_fp_ok()
 
     return (fp_read_flag() & fp_bits) == 0;
 
-#elif defined(MSDOS) || defined(__WINNT)
+#elif defined(MSDOS) || defined(__WINNT__)
 
     return (_status87() & fp_bits) == 0;
 
@@ -513,7 +513,7 @@ fp_status_bits()
 
     return _status87() & (SW_INVALID|SW_ZERODIVIDE|SW_OVERFLOW|SW_UNDERFLOW|SW_INEXACT);
 
-#elif defined(__WINNT)
+#elif defined(__WINNT__)
 
     return _status87() & ( FE_DIVBYZERO|FE_INEXACT|FE_INVALID|FE_OVERFLOW|FE_UNDERFLOW );
 #else
@@ -532,7 +532,7 @@ fp_status_bits()
 double
 get_infinity()
 {
-#if defined(INFINITY) && !defined(__WINNT)
+#if defined(INFINITY) && !defined(__WINNT__)
     return INFINITY;
 #else
     union {
