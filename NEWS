@@ -1,4 +1,6 @@
 * Bugs fixed in 5.20
+311 	lqiolib 	Inline expressions not working (non loop code).
+259 	lqns 		Failures in faulty models.
 179 	lqns 	 	Replication does not take into consideration interlock.
 228 	lqns 	 	Casale_1 model. Simulation and analytic solver differences.
 305 	lqns 	 	44-activities.in: fails in old syntax, passes in XML.

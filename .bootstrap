@@ -13,7 +13,7 @@ fi
 echo "aclocal subdirs..."
 for i in $dirs; do (cd $i; aclocal -I ../config); done
 echo "automake subdirs..."
-for i in $dirs; do (cd $i; if [ $i != "doc" ]; then autoheader; automake -a -c; fi; autoconf); done
+for i in $dirs; do (cd $i; if [ $i != "doc" ]; then autoheader; fi; automake -a -c; autoconf); done
 echo "top level..."
 automake -a -c
 autoconf
