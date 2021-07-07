@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14867 2021-06-28 18:58:48Z greg $
+ *  $Id: srvn_spex.cpp 14879 2021-07-07 01:51:16Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -1101,8 +1101,14 @@ namespace LQIO {
 
 void spex_set_program( void * param_arg, void * result_arg, void * convergence_arg )
 {
-    if ( !LQIO::spex.has_vars() || param_arg == nullptr ) return;	/* Nothing to do */
-    expr_list * program = static_cast<expr_list *>(param_arg);
+    if ( !LQIO::spex.has_vars() ) return;	/* Nothing to do */
+    expr_list * program;
+    if ( param_arg == nullptr ) {
+	program = new expr_list;
+    } else {
+	program = static_cast<expr_list *>(param_arg);
+    }
+	
     if ( LQIO::spex.__observations.empty() ) {
 	LQIO::solution_error( LQIO::WRN_NO_SPEX_OBSERVATIONS );
     }
@@ -1113,10 +1119,10 @@ void spex_set_program( void * param_arg, void * result_arg, void * convergence_a
 	LQIO::Spex::__no_header = !LQIO::DOM::Pragma::isTrue(header);
     }
 
-    if ( program && LQIO::spex.construct_program( program,
-						  static_cast<expr_list *>(result_arg),
-						  static_cast<expr_list *>(convergence_arg),
-						  &LQIO::spex._gnuplot ) ) {
+    if ( LQIO::spex.construct_program( program,
+				       static_cast<expr_list *>(result_arg),
+				       static_cast<expr_list *>(convergence_arg),
+				       &LQIO::spex._gnuplot ) ) {
 	LQIO::DOM::__document->setLQXProgram( LQX::Program::loadRawProgram( program ) );
     }
 }

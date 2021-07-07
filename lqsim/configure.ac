@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14563 2021-03-18 02:07:31Z greg $
+# $Id: configure.ac 14878 2021-07-06 19:07:54Z greg $
 # ------------------------------------------------------------------------
-AC_INIT([lqsim],[5.20],[greg@sce.carleton.ca])
+AC_INIT([lqsim],[5.21],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
 AC_CONFIG_SRCDIR([lqsim.h])
 AC_CONFIG_HEADERS([config.h])

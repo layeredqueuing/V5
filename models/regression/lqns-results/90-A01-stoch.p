@@ -1,6 +1,6 @@
 # lqns 5.17
 # lqns --pragma=variance=stochastic --parseable --output=90-A01-stoch.p 90-A01.in
-# $Id$
+# $Id: 90-A01-stoch.p 14886 2021-07-07 18:31:56Z greg $
 V y
 C 2.24175e-07
 I 10

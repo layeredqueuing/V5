@@ -1,6 +1,6 @@
 # lqns 5.17
 # lqns --pragma=variance=mol,threads=hyper --parseable 47-activities.in
-# $Id$
+# $Id: 47-activities.p 14886 2021-07-07 18:31:56Z greg $
 V y
 C 0
 I 2

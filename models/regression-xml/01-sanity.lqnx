@@ -2,7 +2,7 @@
 <!-- Invoked as: lqn2xml 01-sanity.in -->
 <!-- Thu Apr  2 19:24:01 2009 -->
 
-<lqn-model name="01-sanity" description="$Id: 01-sanity.lqnx 14771 2021-06-05 15:44:40Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+<lqn-model name="01-sanity" description="$Id: 01-sanity.lqnx 14886 2021-07-07 18:31:56Z greg $" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
    <solver-params comment="Simplest model." conv_val="1e-05" it_limit="50" print_int="10" underrelax_coeff="0.9"/>
    <processor name="client" scheduling="inf">
       <task name="client" scheduling="ref">

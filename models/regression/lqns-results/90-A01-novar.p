@@ -1,6 +1,6 @@
 # lqns 5.17
 # lqns --pragma=variance=none --parseable --output=90-A01-novar.p 90-A01.in
-# $Id$
+# $Id: 90-A01-novar.p 14886 2021-07-07 18:31:56Z greg $
 V y
 C 9.03544e-07
 I 8
