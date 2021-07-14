@@ -1,21 +1,23 @@
-# petrisrvn 5.18
-# petrisrvn --parseable --random-queueing 09-sanity.in
-# $Id: 09-sanity.p 13923 2020-10-07 14:29:28Z greg $
+# petrisrvn 5.21
+# petrisrvn --keep-net --verbose --random-queueing --parseable 09-sanity.in
+# $Id: 09-sanity.p 14898 2021-07-14 12:20:37Z greg $
 V y
 C 8.7823e-06
 I 0
 PP 2
 NP 2
 
+#pragma force-random-queueing
+
 #!Comment: Most Common features.
-#!User:  0:00:00.992
-#!Sys:   0:00:00.110
-#!Real:  0:00:02.826
+#!User:  0:00:00.619
+#!Sys:   0:00:00.081
+#!Real:  0:00:00.708
 
 W 2
-client         :client          entry1          0.277922    0           -1 
+client         :client          entry1          0.277922     0            -1 
                 -1 
-server1        :entry1          entry2          0.071484    0           -1 
+server1        :entry1          entry2          0.071484     0            -1 
                 -1 
 -1
 
@@ -25,7 +27,7 @@ server1        :entry1          entry2          0.0780121
 -1
 
 Z 1
-server1        :entry1          entry3          0           0.450727    -1 
+server1        :entry1          entry3          0            0.450727     -1 
                 -1 
 -1
 
@@ -47,7 +49,7 @@ server2        :entry2          0.2         0           -1
 FQ 3
 client         :client          1.5219      3           0           -1 3
                 -1 
-server1        :entry1          1.52189     0.84358     0.760945    -1 3.20905
+server1        :entry1          1.52189     0.84358     0.760945    -1 1.60452
                 -1 
 server2        :entry2          1.06533     0.213066    0           -1 0.213066
                 entry3          0.456589    0.136977    0           -1 0.136977

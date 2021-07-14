@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: pragma.cc 14898 2021-07-14 12:20:37Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -22,6 +22,7 @@
 
 Pragma * Pragma::__pragmas = nullptr;
 const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
+    { LQIO::DOM::Pragma::_force_random_queueing_, 	&Pragma::set_force_random_queueing },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::set_processor_scheduling },
     { LQIO::DOM::Pragma::_reschedule_on_async_send_, 	&Pragma::set_reschedule_on_async_send },
     { LQIO::DOM::Pragma::_severity_level_, 		&Pragma::set_severity_level },
@@ -29,8 +30,6 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_task_scheduling_,		&Pragma::set_task_scheduling },
     { LQIO::DOM::Pragma::_spex_header_, 		&Pragma::set_spex_header }
 };
-
-#define N_SCHEDULING_MODELS	4
 
 Pragma::Pragma() :
     _processor_scheduling(SCHEDULE_FIFO),
@@ -66,6 +65,18 @@ Pragma::set( const std::map<std::string,std::string>& list )
 }
 
 /* ------------------------------------------------------------------------ */
+
+void
+Pragma::set_force_random_queueing( const std::string& value )
+{
+    const bool isTrue = LQIO::DOM::Pragma::isTrue( value );
+    if ( isTrue ) {
+	_processor_scheduling = SCHEDULE_RAND;
+	_task_scheduling = SCHEDULE_RAND;
+    }
+    _default_processor_scheduling = !isTrue;
+    _default_task_scheduling = !isTrue;
+}
 
 void
 Pragma::set_processor_scheduling( const std::string& value )

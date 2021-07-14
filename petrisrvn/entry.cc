@@ -507,11 +507,11 @@ Entry::insert_DOM_results()
     _dom->setResultThroughput(tput);
 	
     for ( unsigned p = 1; p <= n_phases(); ++p ) {
+	const double util = task_utilization( p );
+	totalPhaseUtil   += util;
+	phase_utils[p-1] += util;
 	for ( unsigned m = 0; m < max_m; ++m ) {
-	    double util = task_utilization( p );
-	    totalPhaseUtil   += util;
-	    phase_utils[p-1] += util;
-	    proc_tokens      += phase[p].proc_tokens[0];
+	    proc_tokens  += phase[p].proc_tokens[0];
 	}
     }		
 	

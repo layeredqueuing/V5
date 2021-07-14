@@ -978,7 +978,6 @@ Task::insert_DOM_results()
     /* for each entry of i	    */
 
     for ( std::vector<Entry *>::const_iterator e = entries.begin(); e != entries.end(); ++e ) {
-	double row_tot = 0.0;
 	double tput = 0.0;
 
 	(*e)->insert_DOM_results();
@@ -992,7 +991,6 @@ Task::insert_DOM_results()
 
 	for ( unsigned p = 1; p <= n_phases(); p++ ) {
 	    double util = (*e)->task_utilization( p );
-	    row_tot      += util;
 	    col_tot[p-1] += util;
 	    util_sum     += util;
 	}

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14655 2021-05-17 15:16:53Z greg $
+ * $Id: dom_pragma.h 14898 2021-07-14 12:20:37Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -97,6 +97,7 @@ namespace LQIO {
 	    static const char * _fixed_rate_;
 	    static const char * _force_infinite_;
 	    static const char * _force_multiserver_;
+	    static const char * _force_random_queueing_;// Petrisrvn
 	    static const char * _gamma_;		// Quorum
 	    static const char * _geometric_;		// Quorum
 	    static const char * _hwsw_;
