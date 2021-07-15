@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_bindings.cpp 14793 2021-06-11 11:26:56Z greg $
+ *  $Id: dom_bindings.cpp 14900 2021-07-14 21:32:58Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -714,7 +714,7 @@ namespace LQIO {
 	    const char* destEntry = decodeString(args, 1);
 	    LQXPhase* phase = dynamic_cast<LQXPhase *>(lo);
 
-	    const DOM::Phase * domPhase = 0;
+	    const DOM::Phase * domPhase = nullptr;
 	    if ( phase ) {
 		/* Obtain the phase for the entry */
 		domPhase = phase->getDOMPhase();
@@ -738,6 +738,89 @@ namespace LQIO {
 	    }
 
 	    throw LQX::RuntimeException("No call found for phase `%s' with destination entry `%s'.", lo->description().c_str(), destEntry);
+	    return LQX::Symbol::encodeNull();
+	}
+    };
+
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Forwarding] */
+/* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- */
+#pragma mark -
+
+    class LQXForward : public LQXDocumentObject {
+    public:
+
+	const static uint32_t kLQXForwardObjectTypeId = 10+8;
+
+	/* Designated Initializers */
+	LQXForward(const DOM::Call* call) : LQXDocumentObject(kLQXForwardObjectTypeId,call)
+	    {
+	    }
+
+	virtual ~LQXForward()
+	    {
+	    }
+
+	/* Comparison and Operators */
+	virtual bool isEqualTo(const LQX::LanguageObject* other) const
+	    {
+		const LQXForward* fwd = dynamic_cast<const LQXForward *>(other);
+		return fwd && fwd->getDOMCall() == getDOMCall();
+	    }
+
+	virtual std::string description() const
+	    {
+		/* Return a description of the task */
+		std::stringstream ss;
+		ss << getTypeName() << "(" << getDOMCall()->getSourceObject()->getName() << "->"
+		   << getDOMCall()->getDestinationEntry()->getName() << ")";
+		return ss.str();
+	    }
+
+	virtual std::string getTypeName() const
+	    {
+		return DOM::Call::__typeName;
+	    }
+
+        const DOM::Call* getDOMCall() const { return dynamic_cast<const DOM::Call*>(_domObject); }
+    };
+
+
+// [MM] These should be cached.
+    class LQXGetForward : public LQX::Method {
+    public:
+	LQXGetForward() {}
+	virtual ~LQXGetForward() {}
+
+	/* Basic information for the method itself */
+	virtual std::string getName() const { return "forward"; }
+	virtual const char* getParameterInfo() const { return "os"; }
+	virtual std::string getHelp() const { return "Returns the given forwarding call from entry to dest."; }
+
+	/* Invocation of the method from the language */
+	virtual LQX::SymbolAutoRef invoke(LQX::Environment* env, std::vector<LQX::SymbolAutoRef >& args) {
+
+	    /* Decode the arguments to the given method */
+	    LQX::LanguageObject* lo = decodeObject(args, 0);
+	    const char* destEntry = decodeString(args, 1);
+	    LQXEntry* entry = dynamic_cast<LQXEntry *>(lo);
+
+	    if ( entry == nullptr ) {
+		throw LQX::RuntimeException("Argument 1 to forward(object,string) is not a entry.");
+		return LQX::Symbol::encodeNull();
+	    } 
+	    const DOM::Entry * domEntry = entry->getDOMEntry();
+
+	    const std::vector<DOM::Call*>& calls = domEntry->getForwarding();
+	    std::vector<DOM::Call*>::const_iterator iter;
+	    for (iter = calls.begin(); iter != calls.end(); ++iter) {
+		const DOM::Call* call = *iter;
+		if (call->getDestinationEntry()->getName() == destEntry) {
+		    return LQX::Symbol::encodeObject(new LQXForward(call), false);
+		}
+	    }
+
+	    throw LQX::RuntimeException("No call found for entry `%s' with destination entry `%s'.", lo->description().c_str(), destEntry);
 	    return LQX::Symbol::encodeNull();
 	}
     };
@@ -1112,6 +1195,7 @@ namespace LQIO {
 	mt->registerMethod(new LQXGetEntry(document));
 	mt->registerMethod(new LQXGetPhase());
 	mt->registerMethod(new LQXGetCall());
+	mt->registerMethod(new LQXGetForward());
 	mt->registerMethod(new LQXGetActivity());
 	mt->registerMethod(new LQXGetDocument(document));
 	mt->registerMethod(new LQXGetConfidenceInterval());

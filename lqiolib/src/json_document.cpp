@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 14793 2021-06-11 11:26:56Z greg $
+ * $Id: json_document.cpp 14903 2021-07-14 21:55:07Z greg $
  *
  * Read in JSON input files.
  *
@@ -25,12 +25,7 @@
 #include <vector>
 #include <cassert>
 #include <cmath>
-#if !__clang__ && __cplusplus < 201103L
-#include <sys/types.h>
-#include <regex.h>
-#else
 #include <regex>
-#endif
 #include <fcntl.h>
 #include <sys/stat.h>
 #if HAVE_SYS_MMAN_H
@@ -2289,8 +2284,10 @@ namespace LQIO {
 		    const Entry * entry = phase->getSourceEntry();
 		    const unsigned int p = get_phase( phase );
 		    LQIO::spex.observation( entry, p, destination, LQIO::Spex::ObservationInfo( key, p, var1, conf, var2 ) );
-		} else {
-		    abort(); /* forwarding */
+		} else {	/* forwarding */
+		    const Entry * entry = dynamic_cast<const Entry *>(source);
+		    assert( entry != nullptr );
+		    LQIO::spex.observation( entry, destination, LQIO::Spex::ObservationInfo( key, 0, var1, conf, var2 ) );
 		}
 	    } else {
 		abort();
@@ -2490,7 +2487,7 @@ namespace LQIO {
 		LQX::SyntaxTreeNode::setVariablePrefix( "$" );
 		_output << next_begin_array( Xresults );
 		std::for_each( input_variables.begin(), input_variables.end(), ExportInputVariables( _output, _conf_95 ) );
-		std::for_each( results.begin(), results.end(), ExportResults( _output, _conf_95 ) );
+		std::for_each( results.begin(), results.end(), ExportResults( _output, _conf_95, input_variables.size() ) );
 		_output << end_array();
 	    }
 

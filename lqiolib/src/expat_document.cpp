@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * $Id: expat_document.cpp 14897 2021-07-13 20:53:31Z greg $
+ * $Id: expat_document.cpp 14900 2021-07-14 21:32:58Z greg $
  *
  * Read in XML input files.
  *
@@ -45,15 +45,11 @@
 #include <lqx/SyntaxTree.h>
 #include "dom_activity.h"
 #include "dom_actlist.h"
-#include "dom_actlist.h"
 #include "dom_call.h"
 #include "dom_entry.h"
 #include "dom_histogram.h"
-#include "dom_histogram.h"
 #include "dom_object.h"
 #include "dom_phase.h"
-#include "dom_phase.h"
-#include "dom_task.h"
 #include "dom_task.h"
 #include "error.h"
 #include "filename.h"
@@ -1116,6 +1112,7 @@ namespace LQIO {
 	    }
 	}
 
+
 	/*
 	 * Handler called when an </element> is found.  Things like processors and tasks may have 
 	 * spex observation variables gathered up, and since the confidence variables are in a separate 
@@ -1123,7 +1120,6 @@ namespace LQIO {
 	 * done.
 	 */
 
-	
 	void
 	Expat_Document::endSPEXObservationType( DocumentObject * object, const XML_Char * element )
 	{
@@ -1159,9 +1155,13 @@ namespace LQIO {
 			    const LQIO::DOM::Phase * phase = dynamic_cast<const Phase *>(source);
 			    const LQIO::DOM::Entry * entry = phase->getSourceEntry();
 			    LQIO::spex.observation( entry, get_phase( phase ), destination, *observation );
-			} else {
-			    abort(); /* forwarding */
+			} else {    /* forwarding */
+			    const LQIO::DOM::Entry * entry = dynamic_cast<const Entry *>(source);
+			    assert( entry != nullptr );
+			    LQIO::spex.observation( entry, destination, *observation );
 			}
+		    } else {
+			abort();
 		    }
 		}
 		_spex_observation.clear();		/* Reset for another object */
@@ -1996,8 +1996,8 @@ namespace LQIO {
 			if ( dynamic_cast<const LQIO::DOM::Phase *>(source) && dynamic_cast<LQIO::DOM::Activity *>( object ) == nullptr ) {
 			    p = get_phase( dynamic_cast<const LQIO::DOM::Phase *>(source) );
 			}
-		    } else {
-			p = item->second.phase;
+		    } else if ( dynamic_cast<LQIO::DOM::Entry *>( object ) == nullptr ) {
+			p = item->second.phase;		/* Any else not an entry */
 		    }
 		    /* Find or create the observation and set necessary fields */
 		    std::pair<std::set<LQIO::Spex::ObservationInfo>::iterator,bool> item = _spex_observation.insert( LQIO::Spex::ObservationInfo( key, p ) );

@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14879 2021-07-07 01:51:16Z greg $
+ *  $Id: srvn_spex.cpp 14904 2021-07-14 23:53:34Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -248,7 +248,7 @@ namespace LQIO {
 	
     LQX::SyntaxTreeNode * Spex::observation( const DOM::Entry* src, const unsigned int phase, const DOM::Entry* dst, const ObservationInfo& obs )
     {
-	assert( dynamic_cast<const DOM::Entry *>(src) != 0 && phase != 0 );
+	assert( dynamic_cast<const DOM::Entry *>(src) != nullptr && phase != 0 );
 
 	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), NULL );
 	object = new LQX::MethodInvocationExpression( "phase", object, new LQX::ConstantValueExpression( static_cast<double>(phase) ), NULL );
@@ -256,6 +256,20 @@ namespace LQIO {
 	object = new LQX::MethodInvocationExpression( call->getTypeName(), object, new LQX::ConstantValueExpression( dst->getName() ), NULL );
 	return observation( object, call, obs );
 
+    }
+
+    /*
+     * Forwarding Variables
+     */
+	
+    LQX::SyntaxTreeNode * Spex::observation( const DOM::Entry* src, const DOM::Entry* dst, const ObservationInfo& obs )
+    {
+	assert( dynamic_cast<const DOM::Entry *>(src) != nullptr );
+
+	LQX::MethodInvocationExpression * object = new LQX::MethodInvocationExpression( src->getTypeName(), new LQX::ConstantValueExpression( src->getName() ), NULL );
+	const DOM::Call * call = dynamic_cast<const DOM::Entry *>(src)->getForwardingToTarget( dynamic_cast<const DOM::Entry *>(dst) );
+	object = new LQX::MethodInvocationExpression( "forward", object, new LQX::ConstantValueExpression( dst->getName() ), NULL );
+	return observation( object, call, obs );
     }
 
     /*
@@ -1453,12 +1467,26 @@ void * spex_call_observation( const void * src, const int key, const int phase, 
 
 }
 
+void * spex_fwd_observation( const void * src, const int key, const int phase, const void * dst, const int conf, const char * var, const char * var2 )
+{
+    if ( !src || !dst || !var ) return nullptr;
+
+    const LQIO::DOM::Entry * src_entry = static_cast<const LQIO::DOM::Entry *>(src);
+    const LQIO::DOM::Entry * dst_entry = static_cast<const LQIO::DOM::Entry *>(dst);
+
+    if ( phase != 1 ) {
+	input_error2( LQIO::WRN_INVALID_SPEX_RESULT_PHASE, phase, LQIO::Spex::__key_code_map.at(key).first.c_str(), src_entry->getName().c_str() );
+    }
+    return LQIO::spex.observation( src_entry, dst_entry, LQIO::Spex::ObservationInfo( key, 0, var, conf, var2 ) );
+}
+
+
 void * spex_activity_call_observation( const void * task, const void * activity, const int key, const void * dst, const int conf, const char * var, const char * var2 )
 {
     if ( !task || !activity || !dst || !var ) return nullptr;
 
     return LQIO::spex.observation( static_cast<const LQIO::DOM::Task *>(task), static_cast<const LQIO::DOM::Activity *>(activity),
-					static_cast<const LQIO::DOM::Entry *>(dst), LQIO::Spex::ObservationInfo( key, 0, var, conf, var2 ) );
+				   static_cast<const LQIO::DOM::Entry *>(dst), LQIO::Spex::ObservationInfo( key, 0, var, conf, var2 ) );
 }
 
 /*

@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14633 2021-05-11 13:55:35Z greg $
+ * $Id: srvn_spex.h 14904 2021-07-14 23:53:34Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -64,6 +64,7 @@ extern "C" {
     void * spex_document_observation( const int key, const char * var );
     void * spex_entry_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
     void * spex_forall( const char * arg1, const char * arg2, void * arg3 );
+    void * spex_fwd_observation( const void * src, const int key, const int phase, const void * dst, const int conf, const char * var, const char * var2  );
     void * spex_group_observation( const void * obj, const int key, const int conf, const char * var, const char * var2 );
     void * spex_inline_expression( void * arg );
     void * spex_processor_observation( const void * obj, const int key, const int, const char * var, const char * var2 );
@@ -124,12 +125,14 @@ namespace LQIO {
 	friend void * ::spex_document_observation( const int key, const char * var );
 	friend void * ::spex_entry_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
 	friend void * ::spex_forall( const char * iter_name, const char * name, void * expr );
+	friend void * ::spex_fwd_observation( const void * src, const int key, const int phase, const void * dst, const int conf, const char * var, const char * var2 );
 	friend void * ::spex_group_observation( const void * obj, const int key, const int conf, const char * var, const char * var2 );	    
 	friend void * ::spex_inline_expression( void * arg );
 	friend void * ::spex_processor_observation( const void * obj, const int key, const int, const char * var, const char * var2 );
 	friend void * ::spex_result_assignment_statement( const char * name, void * expr );
-	friend void * ::spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
 	friend void * ::spex_result_function( const char * s, void * args );
+	friend void * ::spex_task_observation( const void * obj, const int key, const int phase, const int conf, const char * var, const char * var2  );
+
 	
     public:
 	typedef std::pair<std::string,LQX::SyntaxTreeNode *> var_name_and_expr;
@@ -292,11 +295,12 @@ namespace LQIO {
 	LQX::SyntaxTreeNode * observation( const DOM::DocumentObject* object, const ObservationInfo& obs );
 	LQX::SyntaxTreeNode * observation( const DOM::Task* task, const DOM::Activity *activity, const ObservationInfo& obs );
 	LQX::SyntaxTreeNode * observation( const DOM::Entry* src, const unsigned int phase, const DOM::Entry* dst, const ObservationInfo& obs );
+	LQX::SyntaxTreeNode * observation( const DOM::Entry* src, const DOM::Entry* dst, const ObservationInfo& obs );
 	LQX::SyntaxTreeNode * observation( const DOM::Task* task, const DOM::Activity *activity, const DOM::Entry* dst, const ObservationInfo& obs );
 
     private:
-	Spex(const Spex&);
-	Spex& operator=( const Spex& );
+	Spex(const Spex&) = delete;
+	Spex& operator=( const Spex& ) = delete;
 
 	bool has_vars() const;							/* True if any $var (except control args) set */
 	
