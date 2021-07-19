@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14898 2021-07-14 12:20:37Z greg $
+ * $Id: pragma.cc 14911 2021-07-16 16:18:14Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -24,6 +24,7 @@ Pragma * Pragma::__pragmas = nullptr;
 const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_force_random_queueing_, 	&Pragma::set_force_random_queueing },
     { LQIO::DOM::Pragma::_processor_scheduling_,	&Pragma::set_processor_scheduling },
+    { LQIO::DOM::Pragma::_queue_size_,			&Pragma::set_queue_size },
     { LQIO::DOM::Pragma::_reschedule_on_async_send_, 	&Pragma::set_reschedule_on_async_send },
     { LQIO::DOM::Pragma::_severity_level_, 		&Pragma::set_severity_level },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::set_stop_on_message_loss },
@@ -83,6 +84,17 @@ Pragma::set_processor_scheduling( const std::string& value )
 {
     _processor_scheduling = str_to_scheduling_type( value );
     _default_processor_scheduling = false;
+}
+
+
+void
+Pragma::set_queue_size( const std::string& value )
+{
+    char * endptr = nullptr;
+    open_model_tokens = std::strtol( value.c_str(), &endptr, 10 );
+    if ( open_model_tokens < 1 || OPEN_MODEL_TOKENS*2 < open_model_tokens || *endptr != '\0' ) {
+	throw std::domain_error( value );
+    }
 }
 
 void

@@ -83,7 +83,7 @@ Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
 					 name(), 0, 0, 0 ) != REG_NOMATCH );
 #if !defined(BUFFER_BY_ENTRY)
     if ( dom && dom->hasQueueLength() ) {
-	_open_tokens = open_model_tokens;
+	_open_tokens = dom->getQueueLengthValue();
     }
 #endif
 }

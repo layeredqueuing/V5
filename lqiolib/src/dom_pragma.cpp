@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14898 2021-07-14 12:20:37Z greg $
+ *  $Id: dom_pragma.cpp 14911 2021-07-16 16:18:14Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -233,6 +233,7 @@ namespace LQIO {
 	const char * Pragma::_processor_scheduling_ =		"processor-scheduling";
 	const char * Pragma::_processors_ =			"processors";
 	const char * Pragma::_prune_ =				"prune";
+	const char * Pragma::_queue_size_ =			"queue-size";		// Petrisrvn.
 	const char * Pragma::_quorum_delayed_calls_ =		"quorum-delayed-calls";	// Quroum
 	const char * Pragma::_quorum_distribution_ = 		"quorum-distribution";	// Quroum
 	const char * Pragma::_quorum_idle_time_ = 		"quorum-idle-time";	// Quroum
@@ -311,6 +312,7 @@ namespace LQIO {
 	    { _precision_,  	    	    nullptr },			    /* lqsim */
 	    { _processor_scheduling_,	    &__processor_args },
 	    { _prune_,  		    &__true_false_arg },	    /* lqns */
+	    { _queue_size_,		    nullptr },			    /* petrisrvn, lqsim? */
 	    { _quorum_delayed_calls_,  	    &__quorum_delayed_calls_args }, /* lqns */
 	    { _quorum_distribution_,  	    &__quorum_distribution_args },  /* lqns */
 	    { _quorum_idle_time_,  	    &__quorum_idle_time_args },     /* lqns */

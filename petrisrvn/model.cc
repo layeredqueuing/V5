@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: model.cc 14911 2021-07-16 16:18:14Z greg $
  *
  * Load the SRVN model.
  */
@@ -184,7 +184,7 @@ Model::set_comment()
     netobj->comment = buf;
 
     buf->line = (char *)0;
-    do { 
+    do {
 	const char * q = p;
 	while ( *p != '\0' && *p != '\n' ) {
 	    ++p;	/* Look for newlines	*/
@@ -272,7 +272,7 @@ Model::construct()
 	std::vector<LQIO::DOM::Entry*>::iterator entryIter;
 	for (entryIter = activityEntries.begin(); entryIter != activityEntries.end(); ++entryIter) {
 	    LQIO::DOM::Entry* theDOMEntry = *entryIter;
-	    DEBUG("[3][b]: Setting Start Activity (" << theDOMEntry->getStartActivity()->getName().c_str() 
+	    DEBUG("[3][b]: Setting Start Activity (" << theDOMEntry->getStartActivity()->getName().c_str()
 		  << ") for Entry (" << theDOMEntry->getName().c_str() << ")" << endl);
 	    newTask->set_start_activity(theDOMEntry);
 	}
@@ -363,7 +363,7 @@ Model::recalculateDynamicValues( const LQIO::DOM::Document* document )
 }
 
 
-void Model::initialize() 
+void Model::initialize()
 {
     Model::__forwarding_present = false;
     Model::__open_class_error = false;
@@ -533,7 +533,7 @@ Model::set_queue_length()  const
 }
 
 
-/* 
+/*
  * Reset associations in preparation for another run.
  */
 
@@ -601,25 +601,25 @@ Model::solve()
     }
 
     if ( rc == NORMAL_TERMINATION ) {
-	 solution_stats_t stats;
-	 if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
-	      || !collect_res( FALSE, LQIO::io_vars.toolname() ) ) {
-	     (void) fprintf( stderr, "%s: Cannot read results for %s\n", LQIO::io_vars.toolname(), netname().c_str() );
-	     rc = FILEIO_ERROR;
-	 } else {
-	     if ( stats.precision >= 0.01 || __open_class_error ) {
-		 rc = INVALID_OUTPUT;
-	     }
-	     for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
-		 (*t)->get_results();		/* Read net to get tokens. */
-	     }
-	     insert_DOM_results( rc == 0, stats );	/* Save results */
-	     print();		/* Now output them. */
-	     if ( verbose_flag ) {
-		 cerr << stats;
-	     }
-	 }
-     }
+	solution_stats_t stats;
+	if ( !solution_stats( &stats.tangible, &stats.vanishing, &stats.precision )
+	     || !collect_res( FALSE, LQIO::io_vars.toolname() ) ) {
+	    (void) fprintf( stderr, "%s: Cannot read results for %s\n", LQIO::io_vars.toolname(), netname().c_str() );
+	    rc = FILEIO_ERROR;
+	} else {
+	    if ( stats.precision >= 0.01 || __open_class_error ) {
+		rc = INVALID_OUTPUT;
+	    }
+	    for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
+		(*t)->get_results();		/* Read net to get tokens. */
+	    }
+	    insert_DOM_results( rc == 0, stats );	/* Save results */
+	    print();		/* Now output them. */
+	    if ( verbose_flag ) {
+		cerr << stats;
+	    }
+	}
+    }
 
     /* Clean up in preparation for another run.	*/
 
@@ -658,14 +658,21 @@ Model::reload()
 }
 
 
+/*
+ * Read the result files only.  If not found, or invalid, solve it the hard way.
+ */
+
 int
 Model::restart()
 {
-    if ( reload() == NORMAL_TERMINATION && _document->getResultValid() ) {
-	return NORMAL_TERMINATION;
-    } else {
-	return solve();
+    try {
+	if ( reload() == NORMAL_TERMINATION && _document->getResultValid() ) {
+	    return NORMAL_TERMINATION;
+	}
+    } catch ( const LQX::RuntimeException& ) {
+	/* Ignore error and fall through */
     }
+    return solve();
 }
 
 /*----------------------------------------------------------------------*/
@@ -686,9 +693,9 @@ Model::make_queues()
     for ( vector<Task *>::const_iterator t = ::task.begin(); t != ::task.end(); ++t ) {
 	if ( (*t)->is_client() ) continue;  	/* Skip reference tasks. */
 
-	double x_pos	= (*t)->get_x_pos() - 0.5;                           
-	double y_pos	= (*t)->get_y_pos();                                 
-	unsigned ne	= (*t)->n_entries();                             
+	double x_pos	= (*t)->get_x_pos() - 0.5;
+	double y_pos	= (*t)->get_y_pos();
+	unsigned ne	= (*t)->n_entries();
 	double idle_x;
 	unsigned k 	= 0;			/* Queue Kounter	*/
 	queue_fnptr queue_func;			/* Local version.	*/
@@ -720,9 +727,9 @@ Model::make_queues()
 		    if ( (*d)->prob_fwd(*e) > 0.0 ) {
 			for ( vector<Forwarding *>::const_iterator f = (*d)->forwards.begin(); f != (*d)->forwards.end(); ++f ) {
 			    k += 1;
-			    (this->*queue_func)(X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x, 
-						&(*d)->phase[1], 0, *e, (*f)->_root, 
-						(*f)->_slice_no, (*f)->_m, (*d)->prob_fwd(*e),  
+			    (this->*queue_func)(X_OFFSET(1,0.0) + k * 0.5, y_pos, idle_x,
+						&(*d)->phase[1], 0, *e, (*f)->_root,
+						(*f)->_slice_no, (*f)->_m, (*d)->prob_fwd(*e),
 						k, false, ins_place );
 			}
 		    }
@@ -733,7 +740,7 @@ Model::make_queues()
 		}
 		if ( sync_server ) {
 		    k += 1;
-		} 
+		}
 	    } /* a */
 			
 	} /* lj */
@@ -754,7 +761,7 @@ Model::make_queues()
 		(*t)->TX[m]->center.x  = IN_TO_PIX( idle_x + m_delta );
 		(*t)->TX[m]->center.y += IN_TO_PIX( m_delta );
 #if defined(BUG_163)
-		if ( (*t)->is_sync_server() ) { 
+		if ( (*t)->is_sync_server() ) {
 		    (*t)->SyX[m]->center.x  = IN_TO_PIX( idle_x + 0.5 + m_delta );
 		    (*t)->SyX[m]->center.y += IN_TO_PIX( m_delta );
 		}
@@ -792,7 +799,7 @@ Model::make_queues()
 
 
 /*
- * Make a single queue for a slice.  
+ * Make a single queue for a slice.
  */
 
 unsigned
@@ -1136,10 +1143,10 @@ Model::queue_prologue( double x_pos,		/* X coordinate.		*/
 	    create_arc( layer_mask_b, TO_TRANS, c_trans, c_place );	/* req also needs token from ZZ */
 
 	    /* Loop for dropping requests. */
-	    
+	
 	    d_trans = create_trans( x_pos, y_pos - 1.0, layer_mask_a,
 				    -a->rpar_y(b), 1, IMMEDIATE,
-				"drop%s%d%s%s%d", a->name(), s_a, b->name(), e->name(), m );
+				    "drop%s%d%s%s%d", a->name(), s_a, b->name(), e->name(), m );
 	    create_arc( layer_mask_a, TO_TRANS, d_trans, a->_slice[s_a].ChX[m] );
 	    create_arc( layer_mask_a, INHIBITOR, d_trans, c_place );
 	    create_arc( layer_mask_b, TO_PLACE, d_trans, e->_slice[s_e].WX[m] );	/* Reply immediately */
@@ -1209,7 +1216,7 @@ Model::queue_epilogue( double x_pos, double y_pos,
 	    create_arc( layer_mask_b, TO_TRANS, s_trans, g_place );
 	}
 #endif
-    } 
+    }
 		
     c_place = create_place( x_pos, y_pos - 1.0, layer_mask_a, 0,
 			    "R%s%d%s%d%s%d", a->name(), s_a, b->name(), b_m, e->name(), m );
@@ -1260,10 +1267,10 @@ Model::queue_epilogue( double x_pos, double y_pos,
  */
 
 void
-Model::create_phase_instr_net( double idle_x, double y_pos, 
+Model::create_phase_instr_net( double idle_x, double y_pos,
 			       Phase * a, unsigned m,
 			       Entry * b, unsigned n, unsigned k,
-			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans, 
+			       struct trans_object * r_trans, struct trans_object * q_trans, struct trans_object * s_trans,
 			       struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
 {
     unsigned q;			/* Another phase index.		*/
@@ -1295,7 +1302,7 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 	}
 		
 	c_trans = create_trans( b->phase[q].done_xpos[m], b->phase[q].done_ypos[m],
-				MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()), 
+				MEASUREMENT_LAYER|ENTRY_LAYER(b->entry_id()),
 				1.0, 1, IMMEDIATE, "ph%d%s%d%s%d", q,
 				a->name(), m,
 				b->name(), n );
@@ -1338,10 +1345,10 @@ Model::create_phase_instr_net( double idle_x, double y_pos,
 
 void
 Model::create_inservice_net( double x_pos, double y_pos,
-		      Phase * a,	/* Entry of calling task 'i'	*/
-		      Entry * b,	/* Entry of server 'j'		*/
-		      unsigned m,	/* Instance of task 'i'		*/
-		      struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
+			     Phase * a,	/* Entry of calling task 'i'	*/
+			     Entry * b,	/* Entry of server 'j'		*/
+			     unsigned m,	/* Instance of task 'i'		*/
+			     struct debug_place_info ins_place[DIMPH+1][DIMDBGPLC][MAX_MULT] )
 {
     const Task * j	= b->task();
     struct trans_object * c_trans;
@@ -1807,7 +1814,7 @@ Model::print_inservice_probability( ostream& output ) const
  */
 
 unsigned
-Model::print_inservice_cd( ostream& output, const Entry * a, const Entry * b, const Task * j, 
+Model::print_inservice_cd( ostream& output, const Entry * a, const Entry * b, const Task * j,
 			   double tot_tput[], double col_sum[DIMPH+1] ) const
 {
     unsigned count    = 0;	/* Count of all c,d		*/
@@ -1859,7 +1866,7 @@ Model::print_inservice_cd( ostream& output, const Entry * a, const Entry * b, co
 
 		    if ( count_Pd == 1 ) {
 			output << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << a->name() << " "
-			       << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << b->name() << " " 
+			       << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << b->name() << " "
 			       << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << c->name() << " "
 			       << setw(LQIO::SRVN::ObjectOutput::__maxStrLen-1) << d->name() << " ";
 		    } else {
@@ -1873,7 +1880,7 @@ Model::print_inservice_cd( ostream& output, const Entry * a, const Entry * b, co
 			tput[0] += tput[pa];
 			if ( uncondition_flag ) {
 			    prob = tput[pa] / tot_tput[0];
-			} else if ( tot_tput[pa] > 0.0 ) { 
+			} else if ( tot_tput[pa] > 0.0 ) {
 			    prob = tput[pa] / tot_tput[pa];
 			} else {
 			    prob = 0.0;

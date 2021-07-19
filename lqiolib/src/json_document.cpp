@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: json_document.cpp 14903 2021-07-14 21:55:07Z greg $
+ * $Id: json_document.cpp 14923 2021-07-19 19:55:02Z greg $
  *
  * Read in JSON input files.
  *
@@ -2460,7 +2460,7 @@ namespace LQIO {
 	    time_t tloc;
 	    char tbuf[32];
 	    time( &tloc );
-	    strftime( tbuf, 32, "%a %b %T %Y", localtime( &tloc ) );
+	    strftime( tbuf, 32, "%a %b %H:%M:%S %Y", localtime( &tloc ) );
 	    _output << indent() << "\"" << tbuf << "\",";
 #endif
 	    _output << indent() << "\"Invoked as: " << LQIO::io_vars.lq_command_line << ' ' << LQIO::DOM::Document::__input_file_name << "\",";

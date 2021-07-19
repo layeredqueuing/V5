@@ -99,6 +99,8 @@ ActivityList::remove_netobj()
 	case Type::AND_JOIN:
 	    u.join.FjM[m] = 0;
 	    break;
+	default:
+	    break;
 	}
 	for ( unsigned int i = 0; i < MAX_BRANCH; ++i ) {
 	    FjT[i][m] = 0;

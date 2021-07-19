@@ -1,7 +1,7 @@
-.TH PETRISRVN 1 "2 March 1999"
+.TH PETRISRVN 1 "15 July 2021"
 .\" $Header$
 .SH NAME
-petrisrvn \- simulate stochastic rendezvous networks. 
+petrisrvn \- solve stochastic rendezvous networks using GreatSPN.
 .SH SYNOPSIS
 .sp
 .B petrisrvn
@@ -101,60 +101,89 @@ Display version number.
 \fB\-x\fR
 Output results in XML format.
 .TP
-\fB\-z\fI specialopts\fR
-This flag is used to select special options.  Arguments of the form
-\fInn\fP are integers while arguments of the form \fInn.n\fP are real
-numbers. 
-.RS
+\fB\-\-disjoin\-customers\fR
+Create copies for reference tasks, rather that using a single task
+with multiple tokens. (increases state space)
+\fB\-\-no\-header\fR
+Do not print out the Result Variable header when running with SPEX input.
+This option has no effect otherwise.
 .TP
-in-servicefP
-Generate addition states to measure the in-service and overtaking
-probabilities. 
+\fB\-\-overtaking[=ARG]\fR
+Find in-service and overtaking probabilities (increases state
+space). ARG=task.
 .TP
-global-delay=\fInn.n\fP
-Set the interprocessor delay to \fInn.n\fP for all tasks.  Delays
-specified in the input file will override the global value.
+\fB\-\-queue\-limit=ARG\fR
+Set the queue size at a task for any open arrivals or asynchronous
+sends to ARG.  This amount is in addition to the possible of customers
+that can arrive through rendezvous requests.
 .TP
-spacing=\fInn.n\fP
-Change the spacing between objects.  The default spacing is 3.0.
+\fB\-\-random\-processors\fR
+Use random queueing at all processors (reduces state space).
 .TP
-uncondition=\fInn.n\fP
-Uncondition the in-service probabilities.
+\fB\-\-random\-queueing\fR
+Use random queueing at all tasks and processors (reduces state space).
 .TP
-customers
-Normally, all multiserver reference tasks are translated into separate
-instances of the reference task.  The state space can be reduced by
-aggregating all of the unique instances into one copy with multiple
-tokens.   There is a tradeoff (which is?)
+\fB\-\-reload-lqx\fR
+Re-run the LQX/SPEX program without re-solving the models.  Results must exist from a previous solution run.
+This option is useful if LQX print statements or SPEX results are changed.
 .TP
-default-open-queue-max=\fIn\fP
-Set the default queue maximum size for open class traffic.  The
-default value is 15.
-.RE
+\fB\-\-restart\fR
+Re-run the LQX/SPEX program without re-solving models which were
+solved successfully.  Models which were not solved successfully because of state
+space explosion, will be solved again.
+This option is useful for running a second pass with different options
+to reduce the state space.
+.TP
+\fB\-\-simplify\fR
+Remove redundant parts of the net such as single place processors.
+.TP
+\fB\-\-spacing=ARG\fR
+Set the spacing between places and transition to ARG for the GreatSPN editor (the default is
+3).  
+\fB\-\-debug-lqx\fR
+Output debugging information as an LQX program is being parsed.
+.TP
+\fB\-\-debug-xml\fR
+Output XML elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
+this option can be used to localize the error.
 .SH "PRAGMAS"
-.TP 10
-\fItask_scheduling = \fIarg\fP
+.TP
+\fItask_scheduling=\fIarg\fP
 .RS
-.TP 15
-\fIFIFO\fP
+.TP
+\fBFIFO\fP
 Force all tasks to use first-come, first-served scheduling.
 .TP
-\fIRAND\fP
+\fBRAND\fP
 Force all tasks to use random scheduling for message servicing
 (reduces state space)
 .RE
-.TP 10
-\fIprocessor_scheduling = \fIarg\fP
+.TP
+\fIprocessor_scheduling=\fIarg\fP
 .RS
-.TP 15
-\fIFIFO\fP
+.TP
+\fBFIFO\fP
 Force all processors to use first-come, first-served scheduling.
 .TP
-\fIRAND\fP
+\fBRAND\fP
 Force all processors to use random scheduling for message servicing
 (reduces state space)
 .RE
-SH "RETURN VALUE"
+.TP
+\fBstop-on-message-loss\fR=\fIarg\fR
+This pragma is used to control the operation of the solver when the
+arrival rate exceeds the service rate of a server.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBno\fP
+Stop if messages are lost.
+.TP
+\fByes\fP
+Ignore queue overflows for open arrivals and send-no-reply requests.  If a queue overflows, its waiting times is reported as infinite..LP
+The default is no.
+.RE
+.SH "RETURN VALUE"
 \fBPetrisrvn\fR exits with 0 on success, 1 if the model failed to converge,
 2 if the input was invalid, 4 if a command line argument was
 incorrect, 8 for file read/write problems and -1 for fatal errors.  If

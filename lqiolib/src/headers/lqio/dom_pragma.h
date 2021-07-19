@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14898 2021-07-14 12:20:37Z greg $
+ * $Id: dom_pragma.h 14911 2021-07-16 16:18:14Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -131,6 +131,7 @@ namespace LQIO {
 	    static const char * _processor_scheduling_;
 	    static const char * _processors_;
 	    static const char * _prune_;		// BUG 270
+	    static const char * _queue_size_;		// Petrisrvn.
 	    static const char * _quorum_delayed_calls_;	// Quroum
 	    static const char * _quorum_distribution_;	// Quroum
 	    static const char * _quorum_idle_time_;	// Qurom

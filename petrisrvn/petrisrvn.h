@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 13552 2020-05-22 17:44:53Z greg $
+ * $Id: petrisrvn.h 14910 2021-07-16 14:09:02Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -38,6 +38,8 @@
 #define BUG_263			/* Quroum delay				*/
 
 extern struct lqio_params_stats io_vars;
+
+enum class Mode { SOLVE, RELOAD, RESTART };
 
 /*
  * Layers in the petrinet.
@@ -90,8 +92,6 @@ extern bool keep_flag;                  /* Keep result files?          		*/
 extern bool no_execute_flag;		/* Don't call solver.			*/
 extern bool parse_flag;                 /* Parsable output desired?    		*/
 extern bool reload_net_flag;		/* Reload result values and print.	*/
-extern bool reload_flag;		/* */
-extern bool restart_flag;		/* */
 extern bool rtf_flag;                   /* Parsable output desired?    		*/
 extern bool trace_flag;			/* Trace greatspn execution.		*/
 extern bool uncondition_flag;		/* Uncodition pr{inservice|}		*/
