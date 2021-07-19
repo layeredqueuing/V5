@@ -1,5 +1,5 @@
 /*
- *  $Id: netdir.c 10972 2012-06-19 01:12:22Z greg $
+ *  $Id: netdir.c 14924 2021-07-19 20:19:58Z greg $
  *
  *  Check for "nets" dir.
  *
@@ -38,7 +38,13 @@ make_net_dir( const char * dirname )
 		}
 		return;
 	} else if ( errno == ENOENT ) {
-		if ( mkdir( dirname, 0755 ) != 0 ) {
+	        int rc = 0;
+#if defined(__WINNT__)
+	        rc = mkdir( dirname, 0755 );
+#else
+		rc = mkdir( dirname, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
+#endif
+		if ( rc != 0 ) {
 			(void) fprintf( stderr, "%s: cannot create directory -- ", toolname );
 			perror( dirname );
 			exit( 1 );
