@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- petrisrvn -xml -output=petri.lqxo -->
+<lqn-model name="bug-313" description="petrisrvn 5.21 solution for model from: bug-313.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Example Two-class Layered Queueing Network" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="1">
+      <result-general solver-info="petrisrvn 5.21x Linux 5.4.0-77-generic" valid="true" conv-val="4.51894e-06" iterations="0" platform-info="greg-VirtualBox Linux 5.4.0-77-generic" user-cpu-time=" 0:00:00.035" system-cpu-time=" 0:00:00.010" elapsed-time=" 0:00:00.070"/>
+   </solver-params>
+   <processor name="ServerP" scheduling="fcfs" multiplicity="2">
+      <result-processor utilization="0.0927752"/>
+      <task name="User1" scheduling="ref" multiplicity="4">
+         <result-task throughput="0.014519" utilization="4" phase1-utilization="4" proc-utilization="0.0285573"/>
+         <entry name="User1" type="PH1PH2">
+            <result-entry utilization="4" throughput="0.014519" squared-coeff-variation="0" proc-utilization="0.0285573"/>
+            <entry-phase-activities>
+               <activity name="User1_ph1" phase="1" host-demand-mean="1.96685" think-time="273.491">
+                  <result-activity proc-waiting="0.00516042" service-time="275.501" utilization="4"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="User2" scheduling="ref" multiplicity="2">
+         <result-task throughput="0.011111" utilization="2" phase1-utilization="2" proc-utilization="0.0642178"/>
+         <entry name="User2" type="PH1PH2">
+            <result-entry utilization="2" throughput="0.011111" squared-coeff-variation="0" proc-utilization="0.0642178"/>
+            <entry-phase-activities>
+               <activity name="User2_ph1" phase="1" host-demand-mean="5.77951" think-time="174.221">
+                  <result-activity proc-waiting="0.00166183" service-time="180.002" utilization="2"/>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>

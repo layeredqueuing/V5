@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<!-- $Id$ -->
+<!-- lqsim -confidence=1,5000 -xml -output=lqsim-V5.lqxo -->
+<lqn-model name="bug-313" description="lqsim 5.21 solution for model from: bug-313.in." xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="/usr/local/share/lqns/lqn.xsd">
+   <solver-params comment="Example Two-class Layered Queueing Network" conv_val="1e-06" it_limit="50" underrelax_coeff="0.9" print_int="1">
+      <pragma param="initial-loops" value="5000"/>
+      <pragma param="precision" value="1"/>
+      <pragma param="seed-value" value="1626730636"/>
+      <result-general solver-info="lqsim 5.21" valid="true" conv-val="0.991395" iterations="4" platform-info="Gregs-MacBook.local Darwin 15.6.0" user-cpu-time=" 0:17:28.000" system-cpu-time=" 0:08:08.000" elapsed-time=" 0:25:59.000"/>
+   </solver-params>
+   <processor name="ServerP" scheduling="fcfs" multiplicity="2">
+      <result-processor utilization="0.0929188">
+         <result-conf-95 utilization="0.000783094"/>
+         <result-conf-99 utilization="0.00143748"/>
+      </result-processor>
+      <task name="User1" scheduling="ref" multiplicity="4">
+         <result-task throughput="0.0145167" utilization="4" phase1-utilization="4" proc-utilization="0.0285932">
+            <result-conf-95 throughput="0.000165551" utilization="0" proc-utilization="0.000240731"/>
+            <result-conf-99 throughput="0.000303891" utilization="0" proc-utilization="0.000441895"/>
+         </result-task>
+         <entry name="User1" type="PH1PH2">
+            <result-entry utilization="4" throughput="0.0145167" squared-coeff-variation="0.98422" proc-utilization="0.0285932" throughput-bound="0.508427">
+               <result-conf-95 utilization="0" throughput="0.000165551" squared-coeff-variation="0" proc-utilization="0.000240731"/>
+               <result-conf-99 utilization="0" throughput="0.000303891" squared-coeff-variation="0" proc-utilization="0.000441895"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="User1_ph1" phase="1" host-demand-mean="1.96685" think-time="273.491">
+                  <result-activity proc-waiting="9.78061e-05" service-time="275.547" utilization="4" service-time-variance="74727.9">
+                     <result-conf-95 proc-waiting="2.97017e-05" service-time="3.1262" utilization="0" service-time-variance="3051.5"/>
+                     <result-conf-99 proc-waiting="5.45216e-05" service-time="5.73856" utilization="0" service-time-variance="5601.45"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+      <task name="User2" scheduling="ref" multiplicity="2">
+         <result-task throughput="0.0111204" utilization="2" phase1-utilization="2" proc-utilization="0.0643256">
+            <result-conf-95 throughput="9.15442e-05" utilization="0" proc-utilization="0.000745174"/>
+            <result-conf-99 throughput="0.000168042" utilization="0" proc-utilization="0.00136787"/>
+         </result-task>
+         <entry name="User2" type="PH1PH2">
+            <result-entry utilization="2" throughput="0.0111204" squared-coeff-variation="0.939712" proc-utilization="0.0643256" throughput-bound="0.173025">
+               <result-conf-95 utilization="0" throughput="9.15442e-05" squared-coeff-variation="0" proc-utilization="0.000745174"/>
+               <result-conf-99 utilization="0" throughput="0.000168042" squared-coeff-variation="0" proc-utilization="0.00136787"/>
+            </result-entry>
+            <entry-phase-activities>
+               <activity name="User2_ph1" phase="1" host-demand-mean="5.77951" think-time="174.221">
+                  <result-activity proc-waiting="2.65477e-05" service-time="179.849" utilization="2" service-time-variance="30395.8">
+                     <result-conf-95 proc-waiting="0.000107303" service-time="1.48149" utilization="0" service-time-variance="1139.53"/>
+                     <result-conf-99 proc-waiting="0.000196969" service-time="2.71947" utilization="0" service-time-variance="2091.77"/>
+                  </result-activity>
+               </activity>
+            </entry-phase-activities>
+         </entry>
+      </task>
+   </processor>
+</lqn-model>
