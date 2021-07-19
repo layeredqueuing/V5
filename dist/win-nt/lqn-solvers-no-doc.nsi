@@ -6,7 +6,7 @@ Unicode True
 
 ; HM NIS Edit Wizard helper defines
 !define PRODUCT_NAME "LQN Solvers"
-!define PRODUCT_VERSION "5.20"
+!define PRODUCT_VERSION "5.21"
 !define PRODUCT_PUBLISHER "Systems Engineering, Carleton University"
 !define PRODUCT_WEB_SITE "http://www.layeredqueues.org"
 !define PRODUCT_DIR_REGKEY "Software\Microsoft\Windows\CurrentVersion\App Paths\lqns.exe"
@@ -44,7 +44,7 @@ Unicode True
 ; MUI end ------
 
 Name "${PRODUCT_NAME} ${PRODUCT_VERSION}"
-OutFile "lqn_nt4_5_20.exe"
+OutFile "lqn_nt4_5_21.exe"
 InstallDir "$PROGRAMFILES\LQN Solvers"
 InstallDirRegKey HKLM "${PRODUCT_DIR_REGKEY}" ""
 ShowInstDetails show
