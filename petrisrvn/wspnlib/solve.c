@@ -1,10 +1,11 @@
 /*
- *  $Id: solve.c 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: solve.c 14925 2021-07-19 20:38:20Z greg $
  *
  * Solve the petri net "net_name".  The actual work is performed by a subprocess.
  */
 
 
+#include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

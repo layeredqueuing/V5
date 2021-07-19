@@ -1,5 +1,5 @@
 /*
- *  $Id: netdir.c 14924 2021-07-19 20:19:58Z greg $
+ *  $Id: netdir.c 14925 2021-07-19 20:38:20Z greg $
  *
  *  Check for "nets" dir.
  *
