@@ -19,7 +19,9 @@
 #define PETRISRVN_MODEL_H
 
 #include <string>
+#if HAVE_SYS_TIMES_H
 #include <sys/times.h>
+#endif
 #include <lqio/filename.h>
 #include <lqio/dom_document.h>
 #include <lqio/common_io.h>

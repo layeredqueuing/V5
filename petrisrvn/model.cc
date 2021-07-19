@@ -44,7 +44,9 @@
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
+#if HAVE_SYS_ERRNO_H
 #include <sys/errno.h>
+#endif
 #include <fcntl.h>
 #include <lqio/dom_entry.h>
 #include <lqio/dom_call.h>

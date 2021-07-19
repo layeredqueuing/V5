@@ -40,7 +40,7 @@ make_net_dir( const char * dirname )
 	} else if ( errno == ENOENT ) {
 	        int rc = 0;
 #if defined(__WINNT__)
-	        rc = mkdir( dirname, 0755 );
+	        rc = mkdir( dirname );
 #else
 		rc = mkdir( dirname, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH );
 #endif
