@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: model.cc 14925 2021-07-19 20:38:20Z greg $
+ * $Id: model.cc 14929 2021-07-20 11:56:23Z greg $
  *
  * Load the SRVN model.
  */
@@ -44,8 +44,8 @@
 #if HAVE_SYS_WAIT_H
 #include <sys/wait.h>
 #endif
-#if HAVE_SYS_ERRNO_H
-#include <sys/errno.h>
+#if HAVE_ERRNO_H
+#include <errno.h>
 #endif
 #include <fcntl.h>
 #include <lqio/dom_entry.h>
@@ -1588,7 +1588,7 @@ Model::print() const
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	} else {
 	    _document->print( output, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
-	    if ( inservice_match_pattern != 0 ) {
+	    if ( inservice_match_pattern != nullptr ) {
 		print_inservice_probability( output );
 	    }
 	}
@@ -1600,7 +1600,7 @@ Model::print() const
 	    _document->print( cout, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( rtf_flag ) {
 	    _document->print( cout, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
-	    if ( inservice_match_pattern != 0 ) {
+	    if ( inservice_match_pattern != nullptr ) {
 		print_inservice_probability( cout );
 	    }
 	}
@@ -1621,7 +1621,7 @@ Model::print() const
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else {
 	    _document->print( output, rtf_flag ? LQIO::DOM::Document::OutputFormat::RTF : LQIO::DOM::Document::OutputFormat::LQN );
-	    if ( inservice_match_pattern != 0 ) {
+	    if ( inservice_match_pattern != nullptr ) {
 		print_inservice_probability( output );
 	    }
 	}

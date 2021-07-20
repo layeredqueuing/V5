@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 # $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqn2ps/configure.ac $
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14878 2021-07-06 19:07:54Z greg $
+# $Id: configure.ac 14929 2021-07-20 11:56:23Z greg $
 # ------------------------------------------------------------------------
 AC_PREREQ([2.69])
 AC_INIT([lqn2ps],[5.21],[greg@sce.carleton.ca])
@@ -17,7 +17,6 @@ AC_SUBST(STATIC)
 #
 AC_LANG(C++)
 AC_PROG_CXX
-AC_PROG_YACC
 # Add in libtool.
 LT_INIT
 if test "x$enable_shared" = "xno"; then

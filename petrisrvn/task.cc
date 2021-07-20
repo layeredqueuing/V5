@@ -78,11 +78,7 @@ Task::Task( LQIO::DOM::Task* dom, Task::Type type, Processor * processor )
       _requestor_no(0)
 {
     initialize();
-#if HAVE_REGCOMP
-    _inservice_flag = (bool)(inservice_match_pattern != 0
-    			     && regexec( inservice_match_pattern, 
-					 name(), 0, 0, 0 ) != REG_NOMATCH );
-#endif
+    _inservice_flag = inservice_match_pattern != nullptr && std::regex_match( name(), *inservice_match_pattern );
 #if !defined(BUFFER_BY_ENTRY)
     if ( dom && dom->hasQueueLength() ) {
 	_open_tokens = dom->getQueueLengthValue();

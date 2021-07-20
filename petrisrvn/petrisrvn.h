@@ -12,7 +12,7 @@
 #define _PETRISRVN_H
 
 /*
- * $Id: petrisrvn.h 14910 2021-07-16 14:09:02Z greg $
+ * $Id: petrisrvn.h 14929 2021-07-20 11:56:23Z greg $
  *
  * Solve LQN using petrinets.
  */
@@ -29,8 +29,8 @@
 #endif
 #include <stdexcept>
 #include <cstdio>
-#include <regex.h>
 #include <lqio/input.h>
+#include <regex>
 
 /*  #define OLD_JOIN */
 #define BUG_622			/* Measure service times for activities */
@@ -85,7 +85,7 @@ enum class Mode { SOLVE, RELOAD, RESTART };
 
 extern double comm_delay[DIMP+1][DIMP+1];/* Delay in sending a message.	*/
 
-extern regex_t * inservice_match_pattern;
+extern std::regex * inservice_match_pattern;
 
 extern bool debug_flag;			/* Spew out all calls to get data.	*/
 extern bool keep_flag;                  /* Keep result files?          		*/

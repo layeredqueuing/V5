@@ -1,6 +1,6 @@
 # Process this file with autoconf to produce a configure script.
 # ------------------------------------------------------------------------
-# $Id: configure.ac 14925 2021-07-19 20:38:20Z greg $
+# $Id: configure.ac 14929 2021-07-20 11:56:23Z greg $
 # ------------------------------------------------------------------------
 AC_INIT([petrisrvn],[5.21],[greg@sce.carleton.ca])
 AC_CONFIG_AUX_DIR([../config])
@@ -49,7 +49,7 @@ AC_TYPE_SIZE_T
 AC_FUNC_FORK 
 AC_FUNC_STAT
 AC_FUNC_VPRINTF
-AC_CHECK_FUNCS([dup2 feenableexcept feclearexcept floor getcwd getopt_long mkdir putenv regcomp sqrt strchr strdup strrchr uname])
+AC_CHECK_FUNCS([dup2 feenableexcept feclearexcept floor getcwd getopt_long mkdir putenv strchr strdup strrchr uname])
 
 AC_CONFIG_FILES([Makefile wspnlib/Makefile regression/Makefile])
 AC_OUTPUT

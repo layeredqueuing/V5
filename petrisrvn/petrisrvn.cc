@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 14911 2021-07-16 16:18:14Z greg $
+ * $Id: petrisrvn.cc 14929 2021-07-20 11:56:23Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -161,7 +161,7 @@ static const char * opthelp[]  = {
 #endif
 
 
-regex_t * inservice_match_pattern	= 0;
+std::regex * inservice_match_pattern	= nullptr;
 
 FILE * stddbg;				/* debugging output goes here.	*/
 
@@ -348,30 +348,14 @@ main (int argc, char *argv[])
 	    break;
 
 	case 256+'O':
+	    inservice_match_pattern = new std::regex( optarg );
 #if 0
-	    inservice_match_pattern = (regex_t *)malloc( sizeof( regex_t ) );
-	    errcode = regcomp( inservice_match_pattern, value ? value : ".*", REG_EXTENDED );
-	    if ( errcode ) {
-		char buf[BUFSIZ];
-		regerror( errcode, inservice_match_pattern, buf, BUFSIZ );
-		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), buf );
-		exit( INVALID_ARGUMENT );
-	    }
 		case UNCONDITIONAL_PROB:
 		    uncondition_flag = true;
 		    break;
 
 #endif
 	    break;
-
-
-#if 0
-		case DISTINGUISH_JOIN:
-		    distinguish_join_customers = LQIO::DOM::Pragma::isTrue( value );
-		    break;
-#endif
-
-
 
 	default:
 	    usage();
@@ -389,7 +373,7 @@ main (int argc, char *argv[])
 
     /* Quick check.  -zin-service requires that the customers are differentiated. */
 
-    if ( ( inservice_match_pattern ) && customers_flag ) {
+    if ( ( inservice_match_pattern != nullptr ) && customers_flag ) {
 	if ( LQIO::io_vars.severity_level <= LQIO::WARNING_ONLY ) {
 	    (void) fprintf( stdout, "%s: -zin-service or -zin-queue is incompatible with multiple customer clients\n", LQIO::io_vars.toolname() );
 	    (void) fprintf( stdout, "\t-zcustomers assumed\n" );
