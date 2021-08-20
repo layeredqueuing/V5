@@ -1,5 +1,5 @@
 # 
-# $Id: Makefile.am 14823 2021-06-15 18:07:36Z greg $
+# $Id: Makefile.am 14951 2021-08-20 22:09:58Z greg $
 #
 #----------------------------------------------------------------------
 
@@ -13,8 +13,8 @@ lqns_SOURCES	= activity.cc actlist.cc call.cc entity.cc entry.cc \
 		  phase.cc pragma.cc processor.cc randomvar.cc report.cc runlqx.cc \
 		  slice.cc submodel.cc synmodel.cc task.cc variance.cc
 noinst_HEADERS	= activity.h actlist.h call.h entity.h entry.h \
-		  entrythread.h errmsg.h gamma.h generate.h group.h help.h interlock.h \
-		  lqns.h model.h option.h overtake.h
+		  entrythread.h errmsg.h flags.h gamma.h generate.h group.h help.h interlock.h \
+		  lqns.h model.h option.h overtake.h \
 		  phase.h pragma.h processor.h randomvar.h report.h runlqx.h \
 		  slice.h submodel.h synmodel.h task.h variance.h 
 

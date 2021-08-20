@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14823 2021-06-15 18:07:36Z greg $ *
+ * $Id: pragma.cc 14945 2021-08-18 20:50:57Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -205,7 +205,8 @@ void Pragma::setMultiserver(const std::string& value)
 	{ LQIO::DOM::Pragma::_rolia_,		Pragma::Multiserver::ROLIA },
 	{ LQIO::DOM::Pragma::_rolia_ps_,	Pragma::Multiserver::ROLIA_PS },
 	{ LQIO::DOM::Pragma::_schmidt_,		Pragma::Multiserver::SCHMIDT },
-	{ LQIO::DOM::Pragma::_suri_,		Pragma::Multiserver::SURI }
+	{ LQIO::DOM::Pragma::_suri_,		Pragma::Multiserver::SURI },
+	{ LQIO::DOM::Pragma::_zhou_,		Pragma::Multiserver::ZHOU }
     };
     const std::map<const std::string,const Pragma::Multiserver>::const_iterator pragma = __multiserver_pragma.find( value );
     if ( pragma != __multiserver_pragma.end() ) {

@@ -1,6 +1,6 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 14560 2021-03-17 21:42:43Z greg $
+# $Id: lqns.spec 14949 2021-08-20 14:58:05Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
@@ -123,6 +123,8 @@ rm -f lqsim.%{product_man_section}
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqio.la
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqx.a
 %attr( 0755 , root , root ) %{install_prefix}/lib/liblqx.la
+%attr( 0755 , root , root ) %{install_prefix}/lib/libmva.a
+%attr( 0755 , root , root ) %{install_prefix}/lib/libmva.la
 %dir %attr( - , root , root ) %{install_prefix}/share
 %dir %attr( - , root , root ) %{install_prefix}/share/man/man%{product_man_section}*
 %attr( 0444 , root , root ) %{install_prefix}/share/man/man%{product_man_section}/lqn2ps.%{product_man_section}*

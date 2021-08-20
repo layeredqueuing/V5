@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: processor.cc 14861 2021-06-25 21:25:15Z greg $
+ * $Id: processor.cc 14945 2021-08-18 20:50:57Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -391,6 +391,10 @@ Processor::makeServer( const unsigned nChains )
 		if ( dynamic_cast<Schmidt_Multi_Server *>(_station) && _station->marginalProbabilitiesSize() == copies()) return nullptr;
 		_station = new Schmidt_Multi_Server( copies(), nEntries(), nChains );
 		break;
+
+	    case Pragma::Multiserver::SURI:
+	    case Pragma::Multiserver::ZHOU:
+		throw not_implemented( "Task::makeServer", __FILE__, __LINE__ );
 	    }
 	}
     } else {

@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14911 2021-07-16 16:18:14Z greg $
+ *  $Id: dom_pragma.cpp 14945 2021-08-18 20:50:57Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -182,9 +182,9 @@ namespace LQIO {
 	const char * Pragma::_batched_back_ =			"batched-back";
 	const char * Pragma::_bcmp_ =				"bcmp";			// BUG 270
 	const char * Pragma::_block_period_ =			"block-period";
-	const char * Pragma::_bruell_ =				"bruell";
-	const char * Pragma::_conway_ =				"conway";
-	const char * Pragma::_custom_ = 		    	"custom";
+	const char * Pragma::_bruell_ =				"bruell";		// multiserver
+	const char * Pragma::_conway_ =				"conway";		// multiserver
+	const char * Pragma::_custom_ = 		    	"custom";		// multiserver
 	const char * Pragma::_custom_natural_ =		    	"custom-natural";
 	const char * Pragma::_cycles_ =				"cycles";
 	const char * Pragma::_default_ =			"default";
@@ -238,15 +238,15 @@ namespace LQIO {
 	const char * Pragma::_quorum_distribution_ = 		"quorum-distribution";	// Quroum
 	const char * Pragma::_quorum_idle_time_ = 		"quorum-idle-time";	// Quroum
 	const char * Pragma::_quorum_reply_ =			"quorum-reply";		// Quorum
-	const char * Pragma::_reiser_ =				"reiser";
-	const char * Pragma::_reiser_ps_ =			"reiser-ps";
+	const char * Pragma::_reiser_ =				"reiser";		// multiserver
+	const char * Pragma::_reiser_ps_ =			"reiser-ps";		// multiserver
 	const char * Pragma::_replication_ =			"replication";
 	const char * Pragma::_reschedule_on_async_send_ =	"reschedule-on-async-send";
-	const char * Pragma::_rolia_ =				"rolia";
-	const char * Pragma::_rolia_ps_ =			"rolia-ps";
+	const char * Pragma::_rolia_ =				"rolia";		// multiserver
+	const char * Pragma::_rolia_ps_ =			"rolia-ps";		// multiserver
 	const char * Pragma::_run_time_ =			"run-time";
 	const char * Pragma::_scheduling_model_ = 		"scheduling-model";
-	const char * Pragma::_schmidt_ =			"schmidt";
+	const char * Pragma::_schmidt_ =			"schmidt";		// multiserver
 	const char * Pragma::_schweitzer_ =			"schweitzer";
 	const char * Pragma::_seed_value_ =			"seed-value";
 	const char * Pragma::_severity_level_ = 		"severity-level";
@@ -258,7 +258,7 @@ namespace LQIO {
 	const char * Pragma::_stochastic_ =			"stochastic";
 	const char * Pragma::_stop_on_bogus_utilization_ =	"stop-on-bogus-utilization";
 	const char * Pragma::_stop_on_message_loss_ =		"stop-on-message-loss";
-	const char * Pragma::_suri_ =				"suri";
+	const char * Pragma::_suri_ =				"suri";			// multiserver
 	const char * Pragma::_task_scheduling_ =		"task-scheduling";
 	const char * Pragma::_tasks_ =				"tasks";
 	const char * Pragma::_tau_ =				"tau";
@@ -269,6 +269,7 @@ namespace LQIO {
 	const char * Pragma::_variance_ =			"variance";
 	const char * Pragma::_warning_ =			"warning";
 	const char * Pragma::_yes_ =				"yes";
+	const char * Pragma::_zhou_ =				"zhou";			// multiserver 
 
 	/* Args */
 	
@@ -276,7 +277,7 @@ namespace LQIO {
 	const std::set<std::string> Pragma::__force_infinite_args = { _none_, _fixed_rate_, _multiservers_, _all_ };
 	const std::set<std::string> Pragma::__force_multiserver_args = { _none_, _processors_, _tasks_, _all_ };
 	const std::set<std::string> Pragma::__layering_args = { _batched_, _batched_back_, _mol_, _mol_back_, _squashed_, _srvn_, _hwsw_ };
-	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_ };
+	const std::set<std::string> Pragma::__multiserver_args = { _bruell_, _conway_, _default_, _reiser_, _reiser_ps_, _rolia_, _rolia_ps_, _schmidt_, _suri_, _zhou_ };
 	const std::set<std::string> Pragma::__mva_args = { _linearizer_, _exact_, _schweitzer_, _fast_, _one_step_, _one_step_linearizer_ };
 	const std::set<std::string> Pragma::__overtaking_args = { _markov_, _rolia_, _simple_, _special_, _none_ };
 	const std::set<std::string> Pragma::__processor_args = { _default_, scheduling_label[SCHEDULE_DELAY].XML, scheduling_label[SCHEDULE_FIFO].XML, scheduling_label[SCHEDULE_HOL].XML, scheduling_label[SCHEDULE_PPR].XML, scheduling_label[SCHEDULE_PS].XML, scheduling_label[SCHEDULE_RAND].XML };

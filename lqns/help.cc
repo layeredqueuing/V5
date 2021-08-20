@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: help.cc 14947 2021-08-19 18:24:18Z greg $
  */
 
 #include "lqns.h"
@@ -1926,7 +1926,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14823 2021-06-15 18:07:36Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14947 2021-08-19 18:24:18Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2223,7 +2223,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14823 2021-06-15 18:07:36Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14947 2021-08-19 18:24:18Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl
@@ -2578,7 +2578,7 @@ HelpPlain::print_debug( std::ostream& output )
     Options::Debug::initialize();
     HelpPlain self;
     output << "Valid arguments for --debug" << std::endl;
-    for ( std::map<const std::string, const Options::Debug, lt_str>::const_iterator tp = Options::Debug::__table.begin(); tp != Options::Debug::__table.end(); ++tp ) {
+    for ( std::map<const std::string, const Options::Debug>::const_iterator tp = Options::Debug::__table.begin(); tp != Options::Debug::__table.end(); ++tp ) {
 	self.print_option( output, tp->first.c_str(), tp->second );
     }
 }

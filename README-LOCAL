@@ -1,4 +1,4 @@
-$Id: README-LOCAL 14870 2021-07-03 03:16:42Z greg $
+$Id: README-LOCAL 14950 2021-08-20 22:08:50Z greg $
 
 The software herein with the exception of parasol is:
 
@@ -33,6 +33,17 @@ Please refer to the file INSTALL for more information.
 
 To bootstrap the build process above, run the file .bootstrap in the
 src directory.
+
+BUILD INSTRUCTIONS (Ubuntu 64 bit)
+----------------------------------
+
+The simulator does not execute on a 64 bit environment, so it is
+necessary to build a 32 bit version:
+
+sudo apt install gcc-multilib g++-multilib
+./.configure-ubuntu	      # to use -m32
+make
+make install
 
 BUILD INSTRUCTIONS (Windows)
 ----------------------------
