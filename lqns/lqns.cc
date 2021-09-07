@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: lqns.cc 14955 2021-09-07 16:52:38Z greg $
  *
  * Command line processing.
  *
@@ -99,6 +99,7 @@ const struct option longopts[] =
     { "reload-lqx",           no_argument,       0, 512+'r' },
     { "restart",	      no_argument,	 0, 512+'R' },
     { "no-header", 	      no_argument,       0, 512+'h' },
+    { "print-comment",	      no_argument,	 0, 512+'p' },
     { "reset-mva", 	      no_argument,       0, 256+'r' },
     { "trace-mva",            no_argument,       0, 256+'t' },
     { "debug-lqx",            no_argument,       0, 512+'l' },
@@ -150,6 +151,7 @@ const char * opthelp[]  = {
     /* no-variance"     */      "Ignore the variance computation during solution.",
     /* reload_lqx"      */      "Run the LQX program, but re-use the results from a previous invocation.",
     /* restart		*/	"Reuse existing valid results.  Otherwise, run the solver.",
+    /* print-comment	*/	"Output the model comment on SPEX results.",
     /* no-header        */      "Do not output the variable name header on SPEX results.",
     /* reset-mva	*/	"Reset the MVA calculation prior to solving a submodel.", 
     /* trace-mva"       */      "Trace the operation of the MVA solver.",
@@ -347,6 +349,11 @@ int main (int argc, char *argv[])
             pragmas.insert( LQIO::DOM::Pragma::_processor_scheduling_, scheduling_label[SCHEDULE_PS].XML );
             break;
 
+	case 512+'p':
+	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
+	    LQIO::Spex::__print_comment = true;
+	    break;
+	    
         case 256+'q': //tomari quorum options
             flags.disable_expanding_quorum_tree = true;
             break;
@@ -698,4 +705,3 @@ under_relax( double& old_value, const double new_value, const double relax )
 	old_value = new_value;
     }
 }
-

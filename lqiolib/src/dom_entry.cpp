@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_entry.cpp 14387 2021-01-21 14:09:16Z greg $
+ *  $Id: dom_entry.cpp 14955 2021-09-07 16:52:38Z greg $
  *
  *  Created by Martin Mroz on 24/02/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -200,7 +200,7 @@ namespace LQIO {
     
 	bool Entry::hasOpenArrivalRate() const
 	{
-	    return ExternalVariable::isPresent( getOpenArrivalRate(), 0.0 );
+	    return ExternalVariable::isPresent( getOpenArrivalRate() );
 	}
     
 	void Entry::setEntryPriority(const ExternalVariable* value)

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: pragma.cc 14945 2021-08-18 20:50:57Z greg $ *
+ * $Id: pragma.cc 14955 2021-09-07 16:52:38Z greg $ *
  * Pragma processing and definitions.
  *
  * Copyright the Real-Time and Distributed Systems Group,
@@ -40,6 +40,7 @@ const std::map<const std::string,const Pragma::fptr> Pragma::__set_pragma =
     { LQIO::DOM::Pragma::_reschedule_on_async_send_,	&Pragma::setRescheduleOnAsyncSend },
 #endif
     { LQIO::DOM::Pragma::_severity_level_,		&Pragma::setSeverityLevel },
+    { LQIO::DOM::Pragma::_spex_comment_,		&Pragma::setSpexComment },
     { LQIO::DOM::Pragma::_spex_header_,			&Pragma::setSpexHeader },
     { LQIO::DOM::Pragma::_stop_on_bogus_utilization_,	&Pragma::setStopOnBogusUtilization },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::setStopOnMessageLoss },
@@ -74,6 +75,7 @@ Pragma::Pragma() :
     _reschedule_on_async_send(false),
 #endif
     _severity_level(LQIO::NO_ERROR),
+    _spex_comment(false),
     _spex_header(true),
     _stop_on_bogus_utilization(0.),		/* Not a bool.	U > nn */
     _stop_on_message_loss(true),
@@ -359,6 +361,13 @@ void Pragma::setRescheduleOnAsyncSend(const std::string& value)
     _reschedule_on_async_send = LQIO::DOM::Pragma::isTrue(value);
 }
 #endif
+
+
+void Pragma::setSpexComment(const std::string& value)
+{
+    _spex_comment = LQIO::DOM::Pragma::isTrue( value );
+}
+
 
 
 void Pragma::setSpexHeader(const std::string& value)

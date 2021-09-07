@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: dom_pragma.h 14945 2021-08-18 20:50:57Z greg $
+ * $Id: dom_pragma.h 14955 2021-09-07 16:52:38Z greg $
  */
 
 #ifndef __LQIO_DOM_PRAGMA_H__
@@ -150,6 +150,7 @@ namespace LQIO {
 	    static const char * _severity_level_;
 	    static const char * _simple_;
 	    static const char * _special_;
+	    static const char * _spex_comment_;
 	    static const char * _spex_header_;
 	    static const char * _squashed_;
 	    static const char * _srvn_;

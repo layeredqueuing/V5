@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- *  $Id: dom_extvar.h 14793 2021-06-11 11:26:56Z greg $
+ *  $Id: dom_extvar.h 14955 2021-09-07 16:52:38Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -49,7 +49,8 @@ namespace LQIO {
 	    virtual const std::string& getName() const = 0;
 	    virtual bool wasSet() const = 0;
 
-	    static bool isPresent( const ExternalVariable *, double lower_limit=0. );	/* Variable is present (may not be instantiated) */
+	    static bool isPresent( const ExternalVariable * );				/* Variable is present (may not be instantiated, but must be non-negative */
+	    static bool isPresent( const ExternalVariable *, double lower_limit );	/* Variable is present (may not be instantiated, but must be > lower_limit ) */
 	    static bool isDefault( const ExternalVariable *, double default_value=0. );	/* Variable is present (may not be instantiated) */
 	    
 	protected:

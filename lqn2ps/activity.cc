@@ -1,6 +1,6 @@
 /* activity.cc	-- Greg Franks Thu Apr  3 2003
  *
- * $Id: activity.cc 14724 2021-05-29 14:16:40Z greg $
+ * $Id: activity.cc 14956 2021-09-07 19:27:11Z greg $
  */
 
 #include "activity.h"
@@ -173,7 +173,9 @@ Activity::check() const
     if ( !reachable() ) {
 	LQIO::solution_error( LQIO::WRN_NOT_USED, "Activity", name().c_str() );
     } else if ( !hasServiceTime() ) {
-	LQIO::solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, owner()->getDOM()->getTypeName(), owner()->name().c_str(), getDOM()->getTypeName(), name().c_str() );
+	std::string owner_type = owner()->getDOM()->getTypeName();
+	std::toupper( owner_type[0] );
+	LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, owner_type.c_str(), owner()->name().c_str(), getDOM()->getTypeName(), name().c_str(), "service" );
     }
 
     return Phase::check();

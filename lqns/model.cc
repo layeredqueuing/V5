@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14857 2021-06-25 13:45:29Z greg $
+ * $Id: model.cc 14955 2021-09-07 16:52:38Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -141,9 +141,11 @@ Model::prepare(const LQIO::DOM::Document* document)
     if ( flags.verbose ) std::cerr << "Prepare: ..." << std::endl;
     DEBUG(std::endl << "[0]: Beginning model load, setting parameters." << std::endl);
 
+    /* Update the pragma list from the document (merge), then set globals here as this has to be done prior to runlqx() */
     Pragma::set( document->getPragmaList() );
     LQIO::io_vars.severity_level = Pragma::severityLevel();
     LQIO::Spex::__no_header = !Pragma::spexHeader();
+    LQIO::Spex::__print_comment = Pragma::spexComment();
 
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 

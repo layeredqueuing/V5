@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_pragma.cpp 14945 2021-08-18 20:50:57Z greg $
+ *  $Id: dom_pragma.cpp 14955 2021-09-07 16:52:38Z greg $
  *
  *  Created by Martin Mroz on 16/04/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -252,6 +252,7 @@ namespace LQIO {
 	const char * Pragma::_severity_level_ = 		"severity-level";
 	const char * Pragma::_simple_ =				"simple";
 	const char * Pragma::_special_ =			"special";
+	const char * Pragma::_spex_comment_ = 			"spex-comment";
 	const char * Pragma::_spex_header_ =			"spex-header";
 	const char * Pragma::_squashed_ =			"squashed";
 	const char * Pragma::_srvn_ =				"srvn";
@@ -324,6 +325,7 @@ namespace LQIO {
 	    { _scheduling_model_,  	    &__scheduling_model_args },
 	    { _seed_value_,  	    	    nullptr },			    /* lqsim */
 	    { _severity_level_,  	    &__warning_args },
+	    { _spex_comment_,		    &__true_false_arg },
 	    { _spex_header_,  		    &__true_false_arg },
 	    { _stop_on_bogus_utilization_,  nullptr },			    /* lqns */
 	    { _stop_on_message_loss_,  	    &__true_false_arg },

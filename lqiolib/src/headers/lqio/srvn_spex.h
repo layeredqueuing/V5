@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: srvn_spex.h 14904 2021-07-14 23:53:34Z greg $
+ * $Id: srvn_spex.h 14955 2021-09-07 16:52:38Z greg $
  */
 
 #ifndef __LQIO_SRVN_SPEX_H__
@@ -253,8 +253,9 @@ namespace LQIO {
 	friend std::ostream& operator<<( std::ostream&, const Spex::ComprehensionInfo& );
 
     public:
-	static bool __verbose;		/* Outputs input parameters per iteration. */
-	static bool __no_header;	/* Suppresses the header on output.	*/
+	static bool __verbose;		/* Outputs input parameters per iteration.  */
+	static bool __no_header;	/* Suppresses the header on output.	    */
+	static bool __print_comment;	/* Output model comment at top of output    */
 
 	Spex();
 
@@ -313,6 +314,7 @@ namespace LQIO {
 	expr_list * solve_success( expr_list * result ) const;
 	expr_list * solve_failure( expr_list * result ) const;
 
+	LQX::SyntaxTreeNode * print_comment( const std::string& = "" ) const;
 	LQX::SyntaxTreeNode * print_header() const;
 	LQX::SyntaxTreeNode * print_gnuplot_header() const;
 	expr_list * plot( expr_list * );

@@ -10,7 +10,7 @@
  * November, 1994
  * December, 2020
  *
- * $Id: pragma.h 14945 2021-08-18 20:50:57Z greg $
+ * $Id: pragma.h 14955 2021-09-07 16:52:38Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -175,6 +175,12 @@ public:
 	    return __cache->_spex_header;
 	}
 
+    static bool spexComment()
+	{
+	    assert( __cache != nullptr );
+	    return __cache->_spex_comment;
+	}
+
     static bool stopOnMessageLoss()
 	{
 	    assert( __cache != nullptr );
@@ -261,6 +267,7 @@ private:
     void setRescheduleOnAsyncSend(const std::string&);
 #endif
     void setSeverityLevel(const std::string&);
+    void setSpexComment(const std::string&);
     void setSpexHeader(const std::string&);
     void setStopOnBogusUtilization(const std::string&);
     void setStopOnMessageLoss(const std::string&);
@@ -295,6 +302,7 @@ private:
     bool _reschedule_on_async_send;
 #endif
     LQIO::severity_t _severity_level;
+    bool _spex_comment;
     bool _spex_header;
     double _stop_on_bogus_utilization;
     bool _stop_on_message_loss;

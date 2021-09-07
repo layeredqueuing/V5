@@ -228,7 +228,7 @@ Entry::check (void)
 		has_deterministic_phases = true;
 	    }
 	    if ( calls > 0 && curr_phase->s() == 0.0 ) {
-		solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Entry", name(), "Phase", curr_phase->name() );
+		LQIO::solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "Entry", name(), get_dom()->getTypeName(), curr_phase->name(), "service" );
 	    }
 	    if ( ( calls > 0 || curr_phase->s() > 0.0 ) && p > n_phases() ) {
 		_n_phases = p;

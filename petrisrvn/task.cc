@@ -263,7 +263,7 @@ Task::check()
 		solution_error( LQIO::ERR_ACTIVITY_NOT_SPECIFIED, name(), (*a)->name() );
 	    }
 	    if ( calls > 0 && (*a)->s() == 0.0 ) {
-		solution_error( LQIO::WRN_NO_SERVICE_TIME_FOR, "Task", name(), "Activity", (*a)->name() );
+		solution_error( LQIO::WRN_XXXX_TIME_DEFINED_BUT_ZERO, "Task", name(), get_dom()->getTypeName(), (*a)->name() );
 	    }
 	}
 

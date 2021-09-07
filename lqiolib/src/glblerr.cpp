@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: glblerr.cpp 14869 2021-06-29 01:39:40Z greg $
+ * $Id: glblerr.cpp 14956 2021-09-07 19:27:11Z greg $
  *
  * Error messages common to solvers.
  *
@@ -105,7 +105,7 @@ namespace LQIO {
 	{ ADVISORY_ONLY, "SPEX result variable \"%s\" was not defined." },							    /* ADV_SPEX_UNDEFINED_RESULT_VARIABLE   */
 	{ ADVISORY_ONLY, "SPEX result variable \"%s\" was not used as an array or in an observation." },			    /* ADV_SPEX_UNUSED_RESULT_VARIABLE	    */
 	{ ADVISORY_ONLY, "Too many dependent variables to plot from \"%s\" onwards." },						    /* ADV_TOO_MANY_GNUPLOT_VARIABLES	    */
-        { WARNING_ONLY,  "%s \"%s\" %s \"%s\" has no service time specified." },                                                    /* WRN_NO_SERVICE_TIME_FOR              */
+        { WARNING_ONLY,  "%s \"%s\", %s \"%s\" has %s time defined, but its value is zero." },                                      /* WRN_XXXX_TIME_DEFINED_BUT_ZERO       */
         { WARNING_ONLY,  "%s \"%s\" %s \"%s\" makes zero (0) calls to entry \"%s\"." },                                             /* WRN_NO_CALLS_FOR                     */
         { WARNING_ONLY,  "%s \"%s\" is an infinite server with a multiplicity of %d." },                                            /* WRN_INFINITE_MULTI_SERVER            */
         { WARNING_ONLY,  "%s \"%s\" is not used." },                                                                                /* WRN_NOT_USED                         */

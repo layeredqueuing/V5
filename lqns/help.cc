@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14947 2021-08-19 18:24:18Z greg $
+ * $Id: help.cc 14955 2021-09-07 16:52:38Z greg $
  */
 
 #include "lqns.h"
@@ -241,6 +241,7 @@ Help::initialize()
     option_table[256+'t'] = &Help::flagTraceMVA;
     option_table[256+'z'] = &Help::flagSquashedLayering;
     option_table[256+'v'] = &Help::flagNoVariance;
+    option_table[512+'p'] = &Help::flagPrintComment;
     option_table[512+'h'] = &Help::flagNoHeader;
     option_table[512+'r'] = &Help::flagReloadLQX;
     option_table[512+'R'] = &Help::flagRestartLQX;
@@ -795,6 +796,14 @@ Help::flagTraceMVA( std::ostream& output, bool verbose ) const
     output << "Output the inputs and results of each MVA submodel for every iteration of the solver." << std::endl;
     return output;
 }
+
+std::ostream&
+Help::flagPrintComment( std::ostream& output, bool verbose ) const
+{
+    output << "Add the model comment to the output when running with SPEX input, or print it out to stderr otherwise." << std::endl;
+    return output;
+}
+
 
 std::ostream&
 Help::flagNoHeader( std::ostream& output, bool verbose ) const
@@ -1926,7 +1935,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14947 2021-08-19 18:24:18Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14955 2021-09-07 16:52:38Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2223,7 +2232,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14947 2021-08-19 18:24:18Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14955 2021-09-07 16:52:38Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

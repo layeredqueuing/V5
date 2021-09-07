@@ -1,5 +1,5 @@
 /*
- *  $Id: srvn_spex.cpp 14904 2021-07-14 23:53:34Z greg $
+ *  $Id: srvn_spex.cpp 14955 2021-09-07 16:52:38Z greg $
  *
  *  Created by Greg Franks on 2012/05/03.
  *  Copyright 2012 __MyCompanyName__. All rights reserved.
@@ -154,10 +154,18 @@ namespace LQIO {
 	/*+ GNUPlot or other header stuff. */
 	if ( gnuplot != nullptr && !gnuplot->empty() ) {
 	    main_line->push_back( print_node( "#!/opt/local/bin/gnuplot" ) );
+	    if ( __print_comment ) {
+		main_line->push_back( print_comment( "#" ) );
+	    }
 	    main_line->push_back( print_gnuplot_header() );
 	    main_line->push_back( print_node( "$DATA << EOF" ) );				/* Append newline.  Don't space */
-	} else if ( !__no_header ) {
-	    main_line->push_back( print_header() );
+	} else {
+	    if ( __print_comment ) {
+		main_line->push_back( print_comment() );
+	    }
+	    if ( !__no_header ) {
+		main_line->push_back( print_header() );
+	    }
 	}
 
 	/* Add the code for running the SPEX program -- recursive call. */
@@ -508,6 +516,15 @@ namespace LQIO {
      * file_output_stmt(X) ::= FILE_PRINTLN_SP OBRACKET expr_list(A) CBRACKET.	     { X = new FilePrintStatementNode( A, true, true ); }
      */
 
+    LQX::SyntaxTreeNode* Spex::print_comment( const std::string& prefix ) const
+    {
+	if ( prefix.empty() ) {
+	    return print_node( "\"" + DOM::__document->getModelCommentString() + "\"" );
+	} else {
+	    return print_node( prefix + DOM::__document->getModelCommentString() );
+	}
+    }
+    
     LQX::SyntaxTreeNode* Spex::print_header() const
     {
 	expr_list * list = make_list( new LQX::ConstantValueExpression( ", " ), nullptr );
@@ -879,6 +896,7 @@ namespace LQIO {
 
     bool Spex::__verbose = false;
     bool Spex::__no_header = false;
+    bool Spex::__print_comment = false;
 
     const char * Spex::__convergence_limit_str = "$convergence_limit";
 

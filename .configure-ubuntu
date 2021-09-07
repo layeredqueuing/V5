@@ -1,2 +1,0 @@
-./configure -C CFLAGS="$CCFLAGS -m32" CXXFLAGS="$CXXFLAGS -m32"
-

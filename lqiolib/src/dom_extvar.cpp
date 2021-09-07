@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14793 2021-06-11 11:26:56Z greg $
+ *  $Id: dom_extvar.cpp 14955 2021-09-07 16:52:38Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -78,8 +78,17 @@ namespace LQIO {
 	    return var.printVariableName( output );
 	}
 
+	/* static */ bool ExternalVariable::isPresent( const ExternalVariable * var )
+	{
+	    /* Any non-negative number */
+	    double value = 0.0;
+	    return var != nullptr && (!var->wasSet() || !var->getValue(value) || (std::isfinite(value) && value >= 0. ));
+	}
+
+
 	/* static */ bool ExternalVariable::isPresent( const ExternalVariable * var, double default_value )
 	{
+	    /* Any number greater than the default value */
 	    double value = 0.0;
 	    return var != nullptr && (!var->wasSet() || !var->getValue(value) || (std::isfinite(value) && value != default_value));
 	}

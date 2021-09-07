@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14823 2021-06-15 18:07:36Z greg $
+ * $Id: help.h 14955 2021-09-07 16:52:38Z greg $
  */
 
 #ifndef _HELP_H
@@ -161,6 +161,7 @@ private:
     std::ostream& flagTraceMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoVariance( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
+    std::ostream& flagPrintComment( std::ostream& output, bool verbose ) const;
     std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
     std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebugLQX( std::ostream& output, bool verbose ) const;
