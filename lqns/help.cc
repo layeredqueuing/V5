@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 14955 2021-09-07 16:52:38Z greg $
+ * $Id: help.cc 14961 2021-09-09 23:30:54Z greg $
  */
 
 #include "lqns.h"
@@ -46,6 +46,7 @@ Help::parameter_map_t  Help::__reschedule_args;
 #endif
 Help::parameter_map_t  Help::__processor_args;
 Help::parameter_map_t  Help::__prune_args;
+Help::parameter_map_t  Help::__spex_comment_args;
 Help::parameter_map_t  Help::__spex_header_args;
 Help::parameter_map_t  Help::__stop_on_message_loss_args;
 Help::parameter_map_t  Help::__threads_args;
@@ -350,6 +351,10 @@ Help::initialize()
     __warning_args[LQIO::DOM::Pragma::_warning_] =	    parameter_info(&Help::pragmaSeverityLevelWarnings);
     __warning_args[LQIO::DOM::Pragma::_advisory_] =	    parameter_info(&Help::pragmaSeverityLevelRunTime);
     __warning_args[LQIO::DOM::Pragma::_run_time_] =	    parameter_info(&Help::pragmaSeverityLevelRunTime);
+
+    __pragmas[LQIO::DOM::Pragma::_spex_comment_] =	    pragma_info( &Help::pragmaSpexComment, &__spex_comment_args );
+    __spex_comment_args[LQIO::DOM::Pragma::_false_] =	    parameter_info(&Help::pragmaSpexCommentFalse,true);
+    __spex_comment_args[LQIO::DOM::Pragma::_true_] =	    parameter_info(&Help::pragmaSpexCommentTrue);
 
     __pragmas[LQIO::DOM::Pragma::_spex_header_] =	    pragma_info( &Help::pragmaSpexHeader, &__spex_header_args );
     __spex_header_args[LQIO::DOM::Pragma::_false_] =	    parameter_info(&Help::pragmaSpexHeaderFalse,true);
@@ -800,7 +805,7 @@ Help::flagTraceMVA( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagPrintComment( std::ostream& output, bool verbose ) const
 {
-    output << "Add the model comment to the output when running with SPEX input, or print it out to stderr otherwise." << std::endl;
+    output << "Add the model comment as the first line of output when running with SPEX input." << std::endl;
     return output;
 }
 
@@ -1365,6 +1370,14 @@ Help::pragmaSeverityLevel( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
+Help::pragmaSpexComment( std::ostream& output, bool verbose ) const
+{
+    output << "This pragma is used to enable or disable the comment line of SPEX output." << std::endl
+	   << emph( *this, "Arg" ) << " must be one of: " << std::endl;
+    return output;
+}
+
+std::ostream&
 Help::pragmaSpexHeader( std::ostream& output, bool verbose ) const
 {
     output << "This pragma is used to enable or disable the header line of SPEX output." << std::endl
@@ -1804,6 +1817,20 @@ Help::pragmaSeverityLevelRunTime( std::ostream& output, bool verbose ) const
 }
 
 std::ostream& 
+Help::pragmaSpexCommentFalse( std::ostream& output, bool verbose ) const
+{
+    output << "Do not output a comment line (the output can then be fed into gnuplot easily)." << std::endl;
+    return output;
+}
+
+std::ostream& 
+Help::pragmaSpexCommentTrue( std::ostream& output, bool verbose ) const
+{
+    output << "Output the model comment in the SPEX output." << std::endl;
+    return output;
+}
+
+std::ostream& 
 Help::pragmaSpexHeaderFalse( std::ostream& output, bool verbose ) const
 {
     output << "Do not output a header line (the output can then be fed into gnuplot easily)." << std::endl;
@@ -1935,7 +1962,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 14955 2021-09-07 16:52:38Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 14961 2021-09-09 23:30:54Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2232,7 +2259,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 14955 2021-09-07 16:52:38Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 14961 2021-09-09 23:30:54Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

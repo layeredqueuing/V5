@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14911 2021-07-16 16:18:14Z greg $
+ * $Id: pragma.cc 14959 2021-09-08 14:48:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -29,6 +29,7 @@ const std::map<const std::string,Pragma::fptr> Pragma::__set_pragma = {
     { LQIO::DOM::Pragma::_severity_level_, 		&Pragma::set_severity_level },
     { LQIO::DOM::Pragma::_stop_on_message_loss_,	&Pragma::set_stop_on_message_loss },
     { LQIO::DOM::Pragma::_task_scheduling_,		&Pragma::set_task_scheduling },
+    { LQIO::DOM::Pragma::_spex_comment_, 		&Pragma::set_spex_comment },
     { LQIO::DOM::Pragma::_spex_header_, 		&Pragma::set_spex_header }
 };
 
@@ -36,6 +37,7 @@ Pragma::Pragma() :
     _processor_scheduling(SCHEDULE_FIFO),
     _reschedule_on_async_send(false),
     _severity_level(LQIO::NO_ERROR),
+    _spex_comment(true),
     _spex_header(true),
     _stop_on_message_loss(false),
     _task_scheduling(SCHEDULE_FIFO),
@@ -107,6 +109,12 @@ void
 Pragma::set_severity_level(const std::string& value)
 {
     _severity_level = LQIO::DOM::Pragma::getSeverityLevel( value );
+}
+
+void
+Pragma::set_spex_comment( const std::string& value )
+{
+    _spex_comment = LQIO::DOM::Pragma::isTrue( value );
 }
 
 void

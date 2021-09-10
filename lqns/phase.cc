@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: phase.cc 14956 2021-09-07 19:27:11Z greg $
+ * $Id: phase.cc 14962 2021-09-10 12:08:51Z greg $
  *
  * Everything you wanted to know about an phase, but were afraid to ask.
  *
@@ -1549,6 +1549,7 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 {
     const LQIO::DOM::Document * document = _phase.getDOM()->getDocument();
     const Processor * processor = _phase.owner()->getProcessor();
+    LQIO::DOM::ConstantExternalVariable * visits = nullptr;
 
     _entry_dom = new LQIO::DOM::Entry( document, name );
     if ( isProcessor() ) {
@@ -1557,11 +1558,13 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
 	    .setCV_sqr( cv_sqr() )
 	    .initVariance()
 	    .setPriority( phase.owner()->priority() );
+	visits = new LQIO::DOM::ConstantExternalVariable( n_processor_calls() );
     } else {
 	_entry = new DeviceEntry( _entry_dom, Model::__think_server );
 	_entry->setServiceTime( think_time() )
 	    .setCV_sqr( 1.0 )
 	    .initVariance();
+	visits = new LQIO::DOM::ConstantExternalVariable( 1.0 );
     }
     assert( Model::__entry.insert( _entry ).second == true );
 		
@@ -1571,12 +1574,6 @@ Phase::DeviceInfo::DeviceInfo( const Phase& phase, const std::string& name, Type
      * chain.  Note - _call_dom is NOT stored in the DOM, so we delete it.
      */	
 
-    LQIO::DOM::ConstantExternalVariable * visits;
-    if ( isProcessor() ) {
-	visits = new LQIO::DOM::ConstantExternalVariable(n_calls());
-    } else {
-	visits = new LQIO::DOM::ConstantExternalVariable(1.0);
-    }
     _call = _phase.newProcessorCall( _entry );
     _call_dom = new LQIO::DOM::Call( document, LQIO::DOM::Call::Type::RENDEZVOUS,
 				     _phase.getDOM(), _entry->getDOM(), visits );
@@ -1606,7 +1603,7 @@ Phase::DeviceInfo::recalculateDynamicValues()
 	    .initVariance()
 	    .initWait();
 
-	_call_dom->setCallMeanValue( n_calls() );
+	_call_dom->setCallMeanValue( n_processor_calls() );
 	_call->setWait( old_time > 0.0 ? _call->wait() * new_time / old_time : new_time );
 
     } else {

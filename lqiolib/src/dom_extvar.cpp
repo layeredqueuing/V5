@@ -1,5 +1,5 @@
 /*
- *  $Id: dom_extvar.cpp 14955 2021-09-07 16:52:38Z greg $
+ *  $Id: dom_extvar.cpp 14962 2021-09-10 12:08:51Z greg $
  *
  *  Created by Martin Mroz on 02/03/09.
  *  Copyright 2009 __MyCompanyName__. All rights reserved.
@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <cstring>
 #include <cmath>
+
+// #define BUG_315 0
 
 namespace LQIO {
     namespace DOM {
@@ -82,7 +84,19 @@ namespace LQIO {
 	{
 	    /* Any non-negative number */
 	    double value = 0.0;
+#if BUG_315
+	    /* expanded out for debugging and return false on var == 0.  */ 
+	    if ( var == nullptr ) return false;
+	    if ( !var->wasSet() || !var->getValue(value) ) return true;
+	    if ( !std::isfinite(value) ) return false;
+//	    if ( value != 0 ) return true;
+//	    return false;
+	    if ( value > 0. ) return true;
+	    if ( value < 0. ) return false;
+	    return true;
+#else
 	    return var != nullptr && (!var->wasSet() || !var->getValue(value) || (std::isfinite(value) && value >= 0. ));
+#endif
 	}
 
 

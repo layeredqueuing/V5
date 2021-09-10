@@ -11,7 +11,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
  *
- * $Id: model.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: model.cc 14959 2021-09-08 14:48:54Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -171,6 +171,7 @@ Model::construct()
     }
     Pragma::set( _document->getPragmaList() );
     LQIO::io_vars.severity_level = Pragma::__pragmas->severity_level();
+    LQIO::Spex::__print_comment = !Pragma::__pragmas->spex_comment();
     LQIO::Spex::__no_header = !Pragma::__pragmas->spex_header();
     
 	

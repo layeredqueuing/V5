@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14955 2021-09-07 16:52:38Z greg $
+ * $Id: lqns.cc 14961 2021-09-09 23:30:54Z greg $
  *
  * Command line processing.
  *
@@ -352,6 +352,7 @@ int main (int argc, char *argv[])
 	case 512+'p':
 	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
 	    LQIO::Spex::__print_comment = true;
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
 	    break;
 	    
         case 256+'q': //tomari quorum options
@@ -534,8 +535,13 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
     if ( Model::prepare(document) == false ) return INVALID_INPUT;
         
-    if ( document->getInputFormat() != LQIO::DOM::Document::InputFormat::LQN && LQIO::Spex::__no_header ) {
-        std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
+    if ( document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML ) {
+	if ( LQIO::Spex::__no_header ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
+	}
+	if ( LQIO::Spex::__print_comment ) {
+	    std::cerr << LQIO::io_vars.lq_toolname << ": --print-comment is ignored for " << inputFileName << "." << std::endl;
+	}
     }
 
     /* declare Model * at this scope but don't instantiate due to problems with LQX programs and registering external symbols*/
@@ -561,6 +567,9 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 		model = Model::create( document, inputFileName, outputFileName );
 
 		if ( model->check() && model->initialize() ) {
+		    if ( Pragma::spexComment() ) {	// Not spex/lqx, so output on stderr.
+			std::cerr << document->getModelCommentString() << std::endl;
+		    }
 		    model->solve();
 		} else {
 		    rc = INVALID_INPUT;

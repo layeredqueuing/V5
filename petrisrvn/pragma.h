@@ -2,7 +2,7 @@
  *
  * $HeadURL$
  * ------------------------------------------------------------------------
- * $Id: pragma.h 14911 2021-07-16 16:18:14Z greg $
+ * $Id: pragma.h 14959 2021-09-08 14:48:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -29,6 +29,7 @@ public:
     scheduling_type processor_scheduling() const { return _processor_scheduling; }
     bool reschedule_on_async_send() const { return _reschedule_on_async_send; }
     LQIO::severity_t severity_level() { return _severity_level; }
+    bool spex_comment() const { return _spex_comment; }
     bool spex_header() const { return _spex_header; }
     bool stop_on_message_loss() const { return _stop_on_message_loss; }
     scheduling_type task_scheduling() const { return _task_scheduling; }
@@ -44,6 +45,7 @@ private:
     void set_processor_scheduling( const std::string& );
     void set_reschedule_on_async_send( const std::string& );
     void set_severity_level( const std::string& );
+    void set_spex_comment( const std::string& );
     void set_spex_header( const std::string& );
     void set_stop_on_message_loss( const std::string& );
     void set_task_scheduling( const std::string& );
@@ -54,6 +56,7 @@ private:
     scheduling_type _processor_scheduling;
     bool _reschedule_on_async_send;
     LQIO::severity_t _severity_level;
+    bool _spex_comment;
     bool _spex_header;
     bool _stop_on_message_loss;
     scheduling_type _task_scheduling;

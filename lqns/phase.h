@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: phase.h 14955 2021-09-07 16:52:38Z greg $
+ * $Id: phase.h 14962 2021-09-10 12:08:51Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -154,6 +154,7 @@ private:
 	double think_time() const { return _phase.thinkTime(); }
 	double n_calls() const { return _phase.numberOfSlices(); }
 	double cv_sqr() const { return _phase.CV_sqr(); }
+	double n_processor_calls() const { return service_time() > 0. ? n_calls() : 0.0; }	// zero if no service. BUG 315.
 
 	static void initWait( DeviceInfo * device ) { device->call()->initWait(); }
 	static std::set<Entity *>& add_server( std::set<Entity *>&, const DeviceInfo * );

@@ -41,7 +41,7 @@ public:
     bool scheduling_is_ok( const unsigned bits ) const;
 
     virtual unsigned int multiplicity() const;
-    bool is_infinite() const;
+    virtual bool is_infinite() const;
     bool has_random_queueing() const;
 
     Place& set_origin( double x_pos, double y_pos ) { _x_pos = x_pos, _y_pos = y_pos; return *this; }

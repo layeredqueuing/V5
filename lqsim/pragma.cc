@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14655 2021-05-17 15:16:53Z greg $
+ * $Id: pragma.cc 14959 2021-09-08 14:48:54Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -41,6 +41,7 @@ Pragma::Pragma() :
     _reschedule_on_async_send(false),	/* force schedule after snr.	*/
     _scheduling_model(SCHEDULE_SLICE),
     _severity_level(LQIO::NO_ERROR),
+    _spex_comment(false),
     _spex_header(true),
     _block_period(0.0),
     _number_of_blocks(0),

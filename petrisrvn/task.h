@@ -84,6 +84,7 @@ public:
     
     virtual bool is_client() const;
     virtual bool is_server() const;
+    virtual bool is_infinite() const { return type() == Type::OPEN_SRC || Place::is_infinite(); }
     bool is_single_place_task() const;
     virtual bool is_sync_server() const { return _sync_server; }
     virtual bool inservice_flag() const { return _inservice_flag; }

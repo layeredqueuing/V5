@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: lqsim.cc 14959 2021-09-08 14:48:54Z greg $
  */
 
 #define STACK_TESTING
@@ -146,6 +146,7 @@ static const struct option longopts[] =
     { "reload-lqx",	  no_argument,       0, 256+'r' },
     { "restart",	  no_argument,	     0, 256+'R' },
     { "no-header",	  no_argument,	     0, 256+'h' },
+    { "print-comment",	  no_argument,	     0, 256+'c' },
     { "debug-lqx",        no_argument,       0, 256+'l' },
     { "debug-xml",        no_argument,       0, 256+'x' },
 #if defined(STACK_TESTING)
@@ -324,7 +325,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-06-11 08:13:01 -0400 (Fri, 11 Jun 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-09-08 10:48:54 -0400 (Wed, 08 Sep 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -391,6 +392,11 @@ main( int argc, char * argv[] )
 		pragmas.insert(LQIO::DOM::Pragma::_run_time_, token );
 		break;
 	    
+	    case 'c'+256:
+		LQIO::Spex::__print_comment = true;
+		pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
+		break;
+		
 	    case 'd':
 		debug_flag    = true;
 		raw_stat_flag = true;
