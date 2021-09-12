@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: call.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: call.cc 14969 2021-09-12 11:53:28Z greg $
  *
  * Everything you wanted to know about a call to an entry, but were afraid to ask.
  *
@@ -193,8 +193,9 @@ double
 Call::getDOMValue() const
 {
     const double value = getDOM()->getCallMeanValue();
-    if ( (getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ))
-	 || getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0 ) {
+    if ( value < 0.0
+	 || (getDOM()->getCallType() != LQIO::DOM::Call::Type::FORWARD && getSource()->phaseTypeFlag() == LQIO::DOM::Phase::Type::DETERMINISTIC && value != std::floor( value ))
+	 || (getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && value > 1.0) ) {
 	std::ostringstream ss;
 	ss << value << " < " << value;
 	throw std::domain_error( ss.str() );

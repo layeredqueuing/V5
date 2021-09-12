@@ -10,7 +10,7 @@
  * November, 1994
  * March, 2004
  *
- * $Id: call.h 14817 2021-06-15 16:51:27Z greg $
+ * $Id: call.h 14969 2021-09-12 11:53:28Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -185,9 +185,9 @@ public:
     virtual bool isForwardedCall() const { return false; }
     virtual bool isProcessorCall() const { return false; }
     bool isNotProcessorCall() const { return !isProcessorCall(); }
-    bool hasRendezvous() const { return getDOM() ?  getDOM()->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && getDOM()->getCallMeanValue() > 0: false; }
-    bool hasSendNoReply() const { return getDOM() ? getDOM()->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && getDOM()->getCallMeanValue() > 0 : false; }
-    bool hasForwarding() const { return  getDOM() ? getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD && getDOM()->getCallMeanValue() > 0 : false; }
+    bool hasRendezvous() const { return getDOM() != nullptr  && getDOM()->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS; }
+    bool hasSendNoReply() const { return getDOM() != nullptr && getDOM()->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY; }
+    bool hasForwarding() const { return  getDOM() != nullptr && getDOM()->getCallType() == LQIO::DOM::Call::Type::FORWARD; }
     bool hasOvertaking() const;
     bool hasNoCall() const { return !hasRendezvous() && !hasSendNoReply() && !hasForwarding(); }
     bool hasRendezvousOrNone() const { return !hasSendNoReply() && !hasForwarding(); }
@@ -238,8 +238,10 @@ public:
     double serviceTime() const;
 
 protected:
-    double getDOMValue() const;
     virtual void parameter_error( const std::string& ) const = 0;
+
+private:
+    double getDOMValue() const;
 
 private:
     const LQIO::DOM::Call* _dom;	/* Input */

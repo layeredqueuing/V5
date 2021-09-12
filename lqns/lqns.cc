@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14961 2021-09-09 23:30:54Z greg $
+ * $Id: lqns.cc 14966 2021-09-11 12:24:49Z greg $
  *
  * Command line processing.
  *
@@ -568,7 +568,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
 
 		if ( model->check() && model->initialize() ) {
 		    if ( Pragma::spexComment() ) {	// Not spex/lqx, so output on stderr.
-			std::cerr << document->getModelCommentString() << std::endl;
+			std::cerr << inputFileName << ": " << document->getModelCommentString() << std::endl;
 		    }
 		    model->solve();
 		} else {

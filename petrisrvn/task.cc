@@ -338,9 +338,9 @@ Task::check()
 	}
 
 	if ( ysum > 0.0 && zsum > 0.0 ) {
-	    solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, name() );
+	    solution_error( LQIO::ERR_OPEN_AND_CLOSED_CLASSES, (*e)->name() );
 	} else if ( ysum + zsum == 0.0 && is_server() ) {
-	    solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, name() );
+	    solution_error( LQIO::WRN_NO_REQUESTS_TO_ENTRY, (*e)->name() );
 	}
     }
 
