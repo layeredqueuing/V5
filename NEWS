@@ -1,59 +1,68 @@
+* Bugs fixed in 5.21
+179     lqns            Replication does not take into consideration interlock.
+228     lqns            Casale_1 model. Simulation and analytic solver differences.
+305     lqns            44-activities.in: fails in old syntax, passes in XML.
+311     lqiolib         Inline expressions not working (non loop code).
+315     lqns            Phase think time not working.
+259     lqns            Failures in faulty models.
+299     lqns            Deprecate existing replication code.
+
 * Bugs fixed in 5.20
-311 	lqiolib 	Inline expressions not working (non loop code).
-259 	lqns 		Failures in faulty models.
-179 	lqns 	 	Replication does not take into consideration interlock.
-228 	lqns 	 	Casale_1 model. Simulation and analytic solver differences.
-305 	lqns 	 	44-activities.in: fails in old syntax, passes in XML.
-299 	lqns 	 	Deprecate existing replication code.
+311     lqiolib         Inline expressions not working (non loop code).
+259     lqns            Failures in faulty models.
+179     lqns            Replication does not take into consideration interlock.
+228     lqns            Casale_1 model. Simulation and analytic solver differences.
+305     lqns            44-activities.in: fails in old syntax, passes in XML.
+299     lqns            Deprecate existing replication code.
 
 * Bugs fixed in 5.19
-294 	lqns 		07-sanity 
-208 	lqiolib 	Add --gnuplot output. 
-290 	lqx 		lqx parser doesn't like -1... sometimes. 
-286 	lqiolib 	GNUPlot enhancements. 	
-293 	lqns 	 	Phase think time not being used by analytic solver. 
-196 	lqx 	 	Print only array key or value as a comma separated list.
-211 	lqn2xxx 	SIGSEGV Layer::transmorgrify(LQIO::DOM::Document*, Processor*&, Task*&)
-266 	lqn2xxx 	LQIO::should_implement 	
-269 	lqn2xxx 	EXC_BAD_ACCESS lqn2svg`Layer::aggregate(this=0x0000000101009c70) at layer.cc:514:17
-272 	lqns 	  	failure with telephone switch model 
-274 	lqn2xxx 	lqn2lqn: error: Invalid rate for processor "server": 0.5 < 1.
-276 	lqiolib 	lqn2xml -Olqx does not output LQX. 
-277 	lqns 	 	Refactor External Variable handling.
-278 	lqiolib 	signal SIGFPE, Arithmetic exception. SchweitzerCommon::marginalProbabilities () at mva.cc:2398 
-280 	lqiolib 	JMVA to LQN conversion in lqns fails.
-275 	lqiolib 	Output queueing model for QNAP2 
-261 	lqiolib 	LQIO::DOM::Entry::EntryType and Lqns Entry::entry_type not compatible. 
+294     lqns            07-sanity 
+208     lqiolib         Add --gnuplot output. 
+290     lqx             lqx parser doesn't like -1... sometimes. 
+286     lqiolib         GNUPlot enhancements.   
+293     lqns            Phase think time not being used by analytic solver. 
+196     lqx             Print only array key or value as a comma separated list.
+211     lqn2xxx         SIGSEGV Layer::transmorgrify(LQIO::DOM::Document*, Processor*&, Task*&)
+266     lqn2xxx         LQIO::should_implement  
+269     lqn2xxx         EXC_BAD_ACCESS lqn2svg`Layer::aggregate(this=0x0000000101009c70) at layer.cc:514:17
+272     lqns            failure with telephone switch model 
+274     lqn2xxx         lqn2lqn: error: Invalid rate for processor "server": 0.5 < 1.
+276     lqiolib         lqn2xml -Olqx does not output LQX. 
+277     lqns            Refactor External Variable handling.
+278     lqiolib         signal SIGFPE, Arithmetic exception. SchweitzerCommon::marginalProbabilities () at mva.cc:2398 
+280     lqiolib         JMVA to LQN conversion in lqns fails.
+275     lqiolib         Output queueing model for QNAP2 
+261     lqiolib         LQIO::DOM::Entry::EntryType and Lqns Entry::entry_type not compatible. 
 
 * Bugs fixed in 5.18
-243 	lqns 	 	Bruell and Schmidt multiserver fail in the population code. 
-252 	lqns 	 	Aggregation with nested loop on branch is faulty. 	
-253 	lqns 	 	Regression -- 86-fork 
-251 	lqns 		Compute the "rate" value for an activity during configure and store it. 
-255 	srvndiff 	EXC_BAD_ACCESS libsystem_platform.dylib`_platform_strlen + 18 	
-256 	lqns 		Split or-fork causes phase change (abort) 
+243     lqns            Bruell and Schmidt multiserver fail in the population code. 
+252     lqns            Aggregation with nested loop on branch is faulty.       
+253     lqns            Regression -- 86-fork 
+251     lqns            Compute the "rate" value for an activity during configure and store it. 
+255     srvndiff        EXC_BAD_ACCESS libsystem_platform.dylib`_platform_strlen + 18   
+256     lqns            Split or-fork causes phase change (abort) 
 
 * Bugs fixed in 5.17.1
-245 	lqns 		uncaught exception of type subclass_responsibility: Server::setVariance: server.cc 246: Subclass responsibility. 
-247 	lqns 		Variance calculation changed for no apparent reason. 
-188 	lqns 		Model with open arrivals fails to solve. 
-194 	lqns 		Floating point error while solving model using LQNS 
-243 	lqns 		Bruell and Schmidt multiserver fail in the population code. 
-244 	lqiolib 	Assertion failed: (newEntry != NULL), function prepare, file model.cc, line 305. 
-246 	lqn2xxx 	Loading results from a .p file whacks infinite servers. 
+245     lqns            uncaught exception of type subclass_responsibility: Server::setVariance: server.cc 246: Subclass responsibility. 
+247     lqns            Variance calculation changed for no apparent reason. 
+188     lqns            Model with open arrivals fails to solve. 
+194     lqns            Floating point error while solving model using LQNS 
+243     lqns            Bruell and Schmidt multiserver fail in the population code. 
+244     lqiolib         Assertion failed: (newEntry != NULL), function prepare, file model.cc, line 305. 
+246     lqn2xxx         Loading results from a .p file whacks infinite servers. 
 
 * Bugs fixed in 5.17
-238 	srvndiff 	XML results for forwarding delay are not saved. 
-239 	lqsim 		Split configure(). 
-240 	lqiolib 	Group handling for .lqn files borked. 
-241 	lqiolib 	65-buffer.in:18: error: syntax error.
+238     srvndiff        XML results for forwarding delay are not saved. 
+239     lqsim           Split configure(). 
+240     lqiolib         Group handling for .lqn files borked. 
+241     lqiolib         65-buffer.in:18: error: syntax error.
 
 
 * Bugs fixed in 5.16
-220 	lqns 		V5: lqns regression failures.
-224 	lqns 		Backport V6 changes to V5.
-236 	lqiolib 	lqns: floating point error - Floating point exception: mva.cc 532: Divide by zero, Inexact result
-235 	lqns 		Infeasible multiserver solutions with Exact MVA 
+220     lqns            V5: lqns regression failures.
+224     lqns            Backport V6 changes to V5.
+236     lqiolib         lqns: floating point error - Floating point exception: mva.cc 532: Divide by zero, Inexact result
+235     lqns            Infeasible multiserver solutions with Exact MVA 
 
 * Bugs fixed in 5.15
 230     lqns            Error in the Phase 2 calculations 

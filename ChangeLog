@@ -1,3 +1,8 @@
+2021-09-13  Gregory Franks  <greg@Gregs-MacBookPro-2.local>
+
+	* lqiolib
+	- Added #pragma spex-comment to print comment when running SPEX.
+
 2021-06-14  Gregory Franks  <greg@Gregs-Retina-iMac.local>
 
 	* lqns
@@ -519,4 +524,4 @@
 	* parasrvn:
 	- Peter Maly added service time distributions.  See '-H' option.
 
-$Id: ChangeLog 14810 2021-06-14 19:31:10Z greg $
+$Id: ChangeLog 14976 2021-09-14 01:13:25Z greg $

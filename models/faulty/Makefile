@@ -1,7 +1,7 @@
 # Makefile for lqns regression tests
 # Copyright (C) 2003 Greg Franks <greg@sce.carleton.ca>
 # ------------------------------------------------------------------------
-# $Id: Makefile 13577 2020-05-30 02:47:06Z greg $
+# $Id: Makefile 14979 2021-09-14 23:03:15Z greg $
 # ------------------------------------------------------------------------
 
 SRCS=	err_activity_not_specified.in \
@@ -21,11 +21,11 @@ SRCS=	err_activity_not_specified.in \
 	err_invalid_probability.in \
 	err_invalid_proc_rate.in \
 	err_invalid_reply-1.in \
-	err_is_start_activity-2.in \
 	err_is_start_activity.in \
 	err_join_bad_path-2.in \
 	err_join_bad_path.in \
 	err_join_path_mismatch.in \
+	err_join_repeat.in \
 	err_missing_or_branch.in \
 	err_mixed_entry_types.in \
 	err_no_group_for_cfs.in \

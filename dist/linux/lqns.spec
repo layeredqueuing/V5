@@ -1,11 +1,11 @@
 # LQNS RPM file.
 # ------------------------------------------------------------------------
-# $Id: lqns.spec 14972 2021-09-13 14:18:46Z greg $
+# $Id: lqns.spec 14984 2021-09-23 14:45:30Z greg $
 # ------------------------------------------------------------------------
 
 %define product_name lqns
 %define product_version VERSION
-%define rpm_release 2
+%define rpm_release 1
 %define product_nameversion %{product_name}-%{product_version}
 %define product_source_dir %{product_nameversion}
 %define product_tarball %{product_nameversion}.tar.gz
@@ -40,7 +40,7 @@ resources, and the modeling concepts include asynchronous messaging,
 and parallel execution.
 
 %changelog
-* Wed  8 Sep 2021 08:48:28 EDT
+* Mon Sep 13 2021 Gregory Franks <greg@Gregs-Retina-iMac.local> - VERSION-2
 - Bug 315 	Phase think time not working 
 
 %prep
