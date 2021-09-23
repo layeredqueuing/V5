@@ -1,0 +1,30 @@
+G "ERR_IS_START_ACTIVITY" 1e-06 50 5 0.9 -1
+
+P 5
+  p p1 f
+-1
+
+T 1
+  t t1  r  e1 -1 p1
+-1
+
+E 5
+  A  e1  a1
+-1
+
+A  t1
+  s  a1  0.1
+  s  b1  0.1
+  s  b2  0.1
+  s  b2a 0.0
+  s  b2b 0.0
+  s  b3  0.1 
+  s  b3a 0.0
+  s  b3b 0.0 
+  s  c1  0.0
+:
+  a1 -> b1 & b2a & b3a;
+  b2a -> 0.5 * b2 , b2b;
+  b3a -> 0.33333 * b3 , b3b;
+  b1 & b2b & b3 & b2 -> c1
+-1
