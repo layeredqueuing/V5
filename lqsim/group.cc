@@ -9,7 +9,7 @@
 /*
  * Input output processing.
  *
- * $Id: group.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: group.cc 14997 2021-09-27 18:13:17Z greg $
  */
 #include <algorithm>
 #include <cmath>
@@ -112,12 +112,12 @@ Group::create()
  */
 
 Group *
-Group::find( const char * group_name  )
+Group::find( const std::string& group_name  )
 {
-    if ( !group_name ) return 0;
+    if ( group_name.empty() ) return nullptr;
     std::set<Group *,ltGroup>::const_iterator nextGroup = find_if( ::group.begin(), ::group.end(), eqGroupStr( group_name ) );
     if ( nextGroup == group.end() ) {
-	return 0;
+	return nullptr;
     } else {
 	return *nextGroup;
     }
@@ -132,8 +132,11 @@ Group::find( const char * group_name  )
  */
 
 void 
-Group::add( LQIO::DOM::Group* domGroup )
+Group::add( const std::pair<std::string,LQIO::DOM::Group*>& p )
 {
+    const std::string& group_name = p.first;
+    LQIO::DOM::Group* domGroup = p.second;
+
     /* Extract variables from the DOM */
     const char * processor_name = domGroup->getProcessor()->getName().c_str();
 
@@ -145,9 +148,8 @@ Group::add( LQIO::DOM::Group* domGroup )
 	LQIO::input_error2( LQIO::WRN_NON_CFS_PROCESSOR, domGroup->getName().c_str(), processor_name );
     }
 
-    const char * group_name = domGroup->getName().c_str();
     if ( Group::find( group_name ) ) {
-	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name );
+	LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Group", group_name.c_str() );
 	return;
     }
 
@@ -162,10 +164,10 @@ Group::add( LQIO::DOM::Group* domGroup )
 /*			  Output Functions.				*/
 /*----------------------------------------------------------------------*/
 
-void
+Group&
 Group::insertDOMResults()
 {
-    if ( !getDOMGroup() ) return;
+    if ( !getDOMGroup() ) return *this;
 
     double proc_util_mean = 0.0;
     double proc_util_var  = 0.0;
@@ -186,4 +188,5 @@ Group::insertDOMResults()
     if ( number_blocks > 1 ) {
 	getDOMGroup()->setResultUtilizationVariance(proc_util_var);
     }
+    return *this;
 }

@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: task.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: task.cc 14997 2021-09-27 18:13:17Z greg $
  */
 
 #include <iostream>
@@ -77,8 +77,9 @@ Task::Task( const task_type type, LQIO::DOM::Task* dom, Processor * processor, G
     : _dom(dom),
       _processor(processor),
       _group_id(-1),
-      _compute_func(NULL),
+      _compute_func(nullptr),
       _active(0),
+      _max_phases(1),
       _forks(),
       _joins(),
       _pending_msgs(),
@@ -90,7 +91,6 @@ Task::Task( const task_type type, LQIO::DOM::Task* dom, Processor * processor, G
       _act_list(),
       _hold_active(0),
       trace_flag(false),
-      max_phases(1),
       _hist_data(nullptr),
       r_cycle(),
       r_util(),
@@ -113,7 +113,7 @@ Task::Task( const task_type type, LQIO::DOM::Task* dom, Processor * processor, G
 Task::~Task()
 {
     for ( std::vector<Activity *>::iterator act = _activity.begin(); act != _activity.end(); ++act ) {
-	delete (*act);
+	delete *act;
     }
     for ( std::vector<ActivityList *>::iterator list = _act_list.begin(); list != _act_list.end(); ++list ) {
 	(*list)->free();	/* NOT allocated using new! */
@@ -248,23 +248,23 @@ Task::node_id() const
 }
 
 void 
-Task::set_start_activity( LQIO::DOM::Entry* entry_dom )
+Task::set_start_activity( LQIO::DOM::Entry* dom )
 {
-    const char * entry_name = entry_dom->getName().c_str();
+    const char * entry_name = dom->getName().c_str();
     Entry * ep = Entry::find( entry_name );
 	
     if ( !ep ) return;
     if ( !ep->test_and_set( LQIO::DOM::Entry::Type::ACTIVITY ) ) return;
 
-    const LQIO::DOM::Activity * activity_dom = entry_dom->getStartActivity();
+    const LQIO::DOM::Activity * activity_dom = dom->getStartActivity();
     const char * activity_name = activity_dom->getName().c_str();
     Activity * ap = find_activity( activity_name );
     if ( !ap ) {
 	LQIO::input_error2( LQIO::ERR_NOT_DEFINED, activity_name );
-    } else if ( ep->_activity != NULL ) {
+    } else if ( ep->get_start_activity() != nullptr ) {
 	LQIO::input_error2( LQIO::ERR_DUPLICATE_START_ACTIVITY, entry_name, activity_name );
     } else {
-	ep->_activity = ap;
+	ep->set_start_activity( ap );
 	ap->set_is_start_activity(true);
     }
 }
@@ -311,7 +311,7 @@ Task::build_links()
 bool
 Task::has_send_no_reply() const
 {
-    return find_if( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::is_send_no_reply ) ) != _entry.end();
+    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::is_send_no_reply ) );
 }
 
 /* 
@@ -539,7 +539,7 @@ Task::insertDOMResults()
 	Entry * ep = *nextEntry;
 	ep->insertDOMResults();
 
-	for ( unsigned p = 0; p < max_phases; ++p ) {
+	for ( unsigned p = 0; p < max_phases(); ++p ) {
 	    phaseUtil[p] += ep->_phase[p].r_util.mean();
 	    phaseVar[p]  += ep->_phase[p].r_util.variance();
 	    taskProcUtil += ep->_phase[p].r_cpu_util.mean();
@@ -549,13 +549,13 @@ Task::insertDOMResults()
 
     /* Store totals */
 	
-    getDOM()->setResultPhaseUtilizations(max_phases,phaseUtil)
+    getDOM()->setResultPhaseUtilizations(max_phases(),phaseUtil)
 	.setResultUtilization(r_util.mean())
 	.setResultThroughput(throughput())
 	.setResultProcessorUtilization(taskProcUtil);
 
     if ( number_blocks > 1 ) {
-	getDOM()->setResultPhaseUtilizationVariances(max_phases,phaseVar)
+	getDOM()->setResultPhaseUtilizationVariances(max_phases(),phaseVar)
 	    .setResultUtilizationVariance(r_util.variance())
 	    .setResultThroughputVariance(throughput_variance())
 	    .setResultProcessorUtilizationVariance(taskProcVar);
@@ -706,7 +706,7 @@ Task::find( const char * task_name )
 {
     std::set<Task *,ltTask>::const_iterator nextTask = find_if( ::task.begin(), ::task.end(), eqTaskStr( task_name ) );
     if ( nextTask == ::task.end() ) {
-	return 0;
+	return nullptr;
     } else {
 	return *nextTask;
     }
@@ -765,10 +765,7 @@ Task::derive_utilization() const
 bool
 Task::has_lost_messages() const
 {
-    for ( std::vector<Entry *>::const_iterator nextEntry = _entry.begin(); nextEntry != _entry.end(); ++nextEntry ) {
-	if ( (*nextEntry)->has_lost_messages() ) return true;
-    }
-    return false;
+    return std::any_of( _entry.begin(), _entry.end(), Predicate<Entry>( &Entry::has_lost_messages ) );
 }
 
 /* ------------------------------------------------------------------------ */
@@ -799,8 +796,7 @@ bool
 Reference_Task::start()
 {
     for ( std::vector<srn_client *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
-	srn_client * task = *t;
-	if ( ps_resume( task->task_id() ) != OK ) return false;
+	if ( ps_resume( (*t)->task_id() ) != OK ) return false;
     }
     return true;
 }
@@ -810,8 +806,7 @@ Reference_Task&
 Reference_Task::kill()
 {
     for ( std::vector<srn_client *>::const_iterator t = _task_list.begin(); t != _task_list.end(); ++t ) {
-	srn_client * task = *t;
-	ps_kill( task->task_id() );
+	ps_kill( (*t)->task_id() );
     }
     return *this;
 }
@@ -890,6 +885,7 @@ Semaphore_Task::Semaphore_Task( const task_type type, LQIO::DOM::Task* domTask, 
 {
 }
 
+
 Semaphore_Task&
 Semaphore_Task::create()
 {
@@ -911,14 +907,14 @@ Semaphore_Task::create_instance()
 	if ( !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::WAIT ) ) {
 	    LQIO::solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	}
-	if ( !_entry[1]->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+	if ( !_entry[1]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	    LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[1]->name() );
 	}
     } else if ( _entry[0]->is_wait() ) {
 	if ( !_entry[1]->test_and_set_semaphore( LQIO::DOM::Entry::Semaphore::SIGNAL ) ) {
 	    LQIO::solution_error( LQIO::ERR_MIXED_SEMAPHORE_ENTRY_TYPES, name() );
 	}
-	if ( !_entry[0]->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+	if ( !_entry[0]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	    LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[0]->name() );
 	}
     } else {
@@ -1061,7 +1057,7 @@ ReadWriteLock_Task::create_instance()
     if ( !_entry[E[1]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::READ_LOCK ) ) {
 	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
-    if ( !_entry[E[1]]->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+    if ( !_entry[E[1]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[1]]->name() );
     }
 	 
@@ -1074,7 +1070,7 @@ ReadWriteLock_Task::create_instance()
     if ( !_entry[E[3]]->test_and_set_rwlock( LQIO::DOM::Entry::RWLock::WRITE_LOCK ) ) {
 	LQIO::solution_error( LQIO::ERR_MIXED_RWLOCK_ENTRY_TYPES, name() );
     }
-    if ( !_entry[E[3]]->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+    if ( !_entry[E[3]]->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	LQIO::solution_error( LQIO::ERR_ASYNC_REQUEST_TO_WAIT, _entry[E[3]]->name() );
     }
 
@@ -1112,6 +1108,7 @@ ReadWriteLock_Task::create_instance()
     buf += "-writer-token";
     _writer = new srn_writer_token( this, buf.c_str() );
 }
+
 
 
 ReadWriteLock_Task&

@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.h $
  *
- * $Id: processor.h 13516 2020-02-27 17:16:20Z greg $
+ * $Id: processor.h 14997 2021-09-27 18:13:17Z greg $
  */
 
 #ifndef	PROCESSOR_H
@@ -42,7 +42,7 @@ public:
     static Processor * find( const std::string& );
     static Processor * find( const int i ) { return processor_table[i]; }
     static void reschedule( Instance * ip );
-    static void add( LQIO::DOM::Processor* );
+    static void add( const std::pair<std::string,LQIO::DOM::Processor*>& );
 
 private:
     Processor( const Processor& );

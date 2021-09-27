@@ -11,17 +11,17 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: processor.cc 14997 2021-09-27 18:13:17Z greg $
  * ------------------------------------------------------------------------
  */
 
-#include <iomanip> 
 #include <parasol.h>
-#include <cassert>
 #include <algorithm>
-#include <sstream>
-#include <cstdlib>
+#include <cassert>
 #include <cstdarg>
+#include <cstdlib>
+#include <iomanip> 
+#include <sstream>
 #include "lqsim.h"
 #include <lqio/input.h>
 #include <lqio/error.h>
@@ -492,7 +492,7 @@ Processor::insertDOMResults()
 	
 	for ( std::vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
 	    Entry * ep = *next_entry;
-	    for ( unsigned p = 0; p < cp->max_phases; ++p ) {
+	    for ( unsigned p = 0; p < cp->max_phases(); ++p ) {
 		proc_util_mean += ep->_phase[p].r_cpu_util.mean();
 		proc_util_var  += ep->_phase[p].r_cpu_util.variance();
 	    }
@@ -516,20 +516,22 @@ Processor::insertDOMResults()
  */
 
 void
-Processor::add( LQIO::DOM::Processor* domProcessor )
+Processor::add( const std::pair<std::string,LQIO::DOM::Processor*>& p )
 {
-    /* Unroll some of the encapsulated information */
-    const char* processor_name = domProcessor->getName().c_str();
+    LQIO::DOM::Processor* domProcessor = p.second;
+    const std::string& processor_name = p.first;
 
-    if ( !processor_name || strlen( processor_name ) == 0 ) abort();
+    /* Unroll some of the encapsulated information */
+
+    assert( processor_name.size() >  0 );
 
     if ( Processor::find( processor_name ) ) {
-	input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name );
+	input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Processor", processor_name.c_str() );
 	return;
     }
 
     if ( domProcessor->hasReplicas() ) {
-	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name );
+	LQIO::input_error2( ERR_REPLICATION, "processor", processor_name.c_str() );
     }
 
     const scheduling_type scheduling_flag = domProcessor->getSchedulingType();
@@ -537,7 +539,7 @@ Processor::add( LQIO::DOM::Processor* domProcessor )
     switch( scheduling_flag ) {
     case SCHEDULE_DELAY:
 	if ( domProcessor->hasCopies() ) {
-	    input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", processor_name, domProcessor->getCopiesValue() );
+	    input_error2( LQIO::WRN_INFINITE_MULTI_SERVER, "Processor", processor_name.c_str(), domProcessor->getCopiesValue() );
 	    domProcessor->setCopies(new LQIO::DOM::ConstantExternalVariable(1.0));
 	}
 	/* Fall through */
@@ -545,7 +547,7 @@ Processor::add( LQIO::DOM::Processor* domProcessor )
     case SCHEDULE_HOL:
     case SCHEDULE_PPR:
 	if ( domProcessor->hasQuantum() ) {
-	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name, scheduling_label[(unsigned)scheduling_flag].str );
+	    input_error2( LQIO::WRN_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 
@@ -554,14 +556,14 @@ Processor::add( LQIO::DOM::Processor* domProcessor )
     case SCHEDULE_PS_PPR:
     case SCHEDULE_CFS:		
 	if ( !domProcessor->hasQuantum() ) {
-	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name, scheduling_label[(unsigned)scheduling_flag].str );
+	    input_error2( LQIO::ERR_NO_QUANTUM_SCHEDULING, processor_name.c_str(), scheduling_label[(unsigned)scheduling_flag].str );
 	}
 	break;
 
     default:
 	input_error2( LQIO::WRN_SCHEDULING_NOT_SUPPORTED,
 		      scheduling_label[(unsigned)scheduling_flag].str,
-		      "processor", processor_name );
+		      "processor", processor_name.c_str() );
 	domProcessor->setSchedulingType( SCHEDULE_FIFO );
 	break;
     }

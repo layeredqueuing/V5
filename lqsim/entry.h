@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: entry.h 14997 2021-09-27 18:13:17Z greg $
  */
 
 #ifndef ENTRY_H
@@ -46,11 +46,11 @@ private:
     Entry& operator=( const Entry& );
     
 public:
-    typedef enum receive_type {
-	RECEIVE_NONE,
-	RECEIVE_RENDEZVOUS,
-	RECEIVE_SEND_NO_REPLY
-    } receive_type;
+    enum class Type {
+	NONE,
+	RENDEZVOUS,
+	SEND_NO_REPLY
+    };
 
     static Entry * find( const char * entry_name );
     static bool find( const char * from_entry_name, Entry *&from_entry, const char * to_entry_name, Entry *&to_entry );
@@ -65,6 +65,10 @@ public:
     double open_arrival_rate() const { return _dom->hasOpenArrivalRate() ? _dom->getOpenArrivalRateValue() : 0; }
     int priority() const { return _dom->hasEntryPriority() ? (int)_dom->getEntryPriorityValue() : 0; }
     
+    int get_port() const { return _port; }
+    int entry_id() const { return _entry_id; }
+    Activity * get_start_activity() const { return _activity; }
+    Entry& set_start_activity( Activity * activity ) { _activity = activity; return *this; }
     Entry& set_reply();
 
     virtual double configure();
@@ -84,12 +88,12 @@ public:
     virtual bool is_w_unlock() const;
     virtual bool is_w_lock() const;
 
-    bool is_send_no_reply() const { return _recv == RECEIVE_SEND_NO_REPLY; }
-    bool is_rendezvous() const { return _recv == RECEIVE_RENDEZVOUS; }
+    bool is_send_no_reply() const { return _recv == Type::SEND_NO_REPLY; }
+    bool is_rendezvous() const { return _recv == Type::RENDEZVOUS; }
     bool has_lost_messages() const;
 
     virtual bool test_and_set( LQIO::DOM::Entry::Type );			/* Sets _type too!		*/
-    bool test_and_set_recv( receive_type );
+    bool test_and_set_recv( Type );
     bool test_and_set_semaphore( LQIO::DOM::Entry::Semaphore );
     bool test_and_set_rwlock( LQIO::DOM::Entry::RWLock );
 
@@ -113,22 +117,22 @@ private:
     void print_debug_info();
     
 public:
-    const unsigned int entry_id;	/* Global entry id.		*/
-    int port;				/* Parasol port.		*/
-    Activity * _activity;		/* Activity list.		*/
     std::vector<Activity> _phase;	/* phase info. Dim starts at 1 	*/
     std::vector<unsigned> _active;	/* Number of active instances.	*/
-    Targets _fwd;			/* forward info		        */
     result_t r_cycle;			/* cycle time for entry.	*/
     mutable std::vector<double> _minimum_service_time;	/* Computed. 	*/
 
     static Entry * entry_table[MAX_PORTS+1];
 
 private:
-    const unsigned int _local_id;	/* Local offset (for instance)	*/
     LQIO::DOM::Entry* _dom;		/* */
-    receive_type _recv;			/* flag...			*/
+    const unsigned int _entry_id;	/* Global entry id.		*/
+    const unsigned int _local_id;	/* Local offset (for instance)	*/
+    int _port;				/* Parasol port.		*/
+    Activity * _activity;		/* Activity list.		*/
+    Type _recv;				/* flag...			*/
     Task * _task;			/* Owner of entry.		*/
+    Targets _fwd;			/* forward info		        */
     ActivityList * _join_list;		/* For joins			*/
 };
 

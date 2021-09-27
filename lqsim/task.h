@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: task.h 14997 2021-09-27 18:13:17Z greg $
  */
 
 /************************************************************************/
@@ -96,6 +96,8 @@ public:
     const char * type_name() const { return type_strings[static_cast<int>(_type)]; }
 
     unsigned n_entries() const { return _entry.size(); }
+    unsigned max_phases() const { return _max_phases; }
+    Task& max_phases( unsigned max_phases ) { _max_phases = std::max( _max_phases, max_phases ); return *this; }
 
     Instance * add_task ( const char *task_name, task_type type, int cpu_no, Instance * rip );
     virtual int std_port() const { return -1; }
@@ -154,6 +156,7 @@ private:
     int _group_id;				/* group  			*/
     syscall_func_ptr _compute_func;		/* function to use to "compute"	*/
     unsigned _active;				/* Number of active instances.	*/
+    unsigned _max_phases;			/* Max # phases, this task.	*/
 
     std::vector<ActivityList *> _forks;		/* List of forks for this task	*/
     std::vector<ActivityList *> _joins; 	/* List of joins for this task	*/
@@ -173,7 +176,6 @@ public:
 
     bool trace_flag;				/* True if task is to be traced	*/
 
-    unsigned max_phases;			/* Max # phases, this task.	*/
     Histogram * _hist_data;            		/* Structure which stores histogram data for this task */
     result_t r_cycle;				/* Cycle time.		        */
     result_t r_util;				/* Utilization.		        */
@@ -184,6 +186,10 @@ public:
 
 class Reference_Task : public Task
 {
+private:
+    Reference_Task( const Reference_Task& ) = delete;
+    Reference_Task& operator=( const Reference_Task& ) = delete;
+
 public:
     Reference_Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
 
@@ -360,4 +366,3 @@ private:
 
 extern std::set <Task *, ltTask> task;	/* Task table.	*/
 #endif
-

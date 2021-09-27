@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: instance.cc 14997 2021-09-27 18:13:17Z greg $
  */
 
 /*
@@ -206,7 +206,7 @@ Instance::server_cycle ( Entry * ep, Message * msg, bool reschedule )
 	}
 
     } else if ( ep->is_regular() ) {
-	for ( p = 0; p < _cp->max_phases; ++p ) {
+	for ( p = 0; p < _cp->max_phases(); ++p ) {
 	    _current_phase = p;
 	    ep->_active[p] += 1;
 	    execute_activity( ep, (Activity *)&ep->_phase[p], reschedule );
@@ -1086,7 +1086,7 @@ Instance::wait_for_message( long& entry_id )
 	msg = *i;					/* This is returned!			*/
 	Entry * ep = msg->target->entry;
 	if ( ep->_join_list == NULL ) {			/* Entry is available to receive.	*/
-	    entry_id = ep->entry_id;			/* This is returned!			*/
+	    entry_id = ep->entry_id();			/* This is returned!			*/
 	    _cp->_pending_msgs.erase(i);		/* Remove Message from queue		*/
 	    return msg;					/* All done.				*/
 	}
@@ -1229,8 +1229,8 @@ Instance::do_forwarding ( Message * msg, const Entry * ep )
 	    msg->intermediate = ep;
 	    msg->target       = tp;
 
-	    ps_send( fwd.target[i].entry->port,	/* Forward request.	*/
-		     fwd.target[i].entry->entry_id, (char *)msg, msg->reply_port );
+	    ps_send( fwd.target[i].entry->get_port(),	/* Forward request.	*/
+		     fwd.target[i].entry->entry_id(), (char *)msg, msg->reply_port );
 	}
     }
 }
@@ -1578,7 +1578,7 @@ again_1:
 	    timeline_trace( ACTIVITY_FORK, fork_list->list[0], this );
 	    random_shuffle_activity( fork_list->list, fork_list->na );
 				  
-	    spawn_activities( ep->entry_id, fork_list );
+	    spawn_activities( ep->entry_id(), fork_list );
 
 	    /* Wait for all threads to complete, then we're done. */
 

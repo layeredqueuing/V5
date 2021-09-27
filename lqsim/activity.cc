@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: activity.cc 14997 2021-09-27 18:13:17Z greg $
  */
 
 #include <parasol.h>
@@ -295,8 +295,8 @@ double Activity::count_replies( ActivityList::Collect& data ) const
 	} else {
 	    return data.rate;
 	}
-    } else if ( cp->max_phases < data.phase ) {
-	cp->max_phases = data.phase;
+    } else if ( cp->max_phases() < data.phase ) {
+	cp->max_phases( data.phase );
     }
     return 0;
 }
@@ -417,9 +417,9 @@ Activity::add_calls()
 	/* Make sure all is well */
 	if (!destEntry) {
 	    LQIO::input_error2( LQIO::ERR_NOT_DEFINED, toDOMEntry->getName().c_str() );
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !destEntry->test_and_set_recv( Entry::RECEIVE_RENDEZVOUS ) ) {
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::RENDEZVOUS && !destEntry->test_and_set_recv( Entry::Type::RENDEZVOUS ) ) {
 	    continue;
-	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::RECEIVE_SEND_NO_REPLY ) ) {
+	} else if ( domCall->getCallType() == LQIO::DOM::Call::Type::SEND_NO_REPLY && !destEntry->test_and_set_recv( Entry::Type::SEND_NO_REPLY ) ) {
 	    continue;
 	} else if ( !destEntry->task()->is_reference_task()) {
 	    tinfo.store_target_info( destEntry, domCall );
@@ -670,8 +670,8 @@ Activity::act_and_join_list ( ActivityList* input_list, LQIO::DOM::ActivityList 
     _output = list;
 
     Task * cp = task();
-    if ( list->u.join.quorumCount > 0 && cp->max_phases == 1 ) {
-	cp->max_phases++;
+    if ( list->u.join.quorumCount > 0 && cp->max_phases() == 1 ) {
+	cp->max_phases( 2 );
     }
           
     /* Tack new and_join_list onto join list for task */

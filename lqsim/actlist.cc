@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: actlist.cc 14997 2021-09-27 18:13:17Z greg $
  */
 
 #include <sstream>
@@ -423,8 +423,8 @@ fork_collect( ActivityList * fork_list, std::deque<Activity *>& activity_stack, 
 	} else {
 	    /* Flushing */
 	    Task * cp = data._e->task();
-	    if ( cp->max_phases < next_phase ) {
-		cp->max_phases = next_phase;
+	    if ( cp->max_phases() < next_phase ) {
+		cp->max_phases( next_phase );
 	    }
 	}
 	break;

@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
  * Global vars for simulation.
  *
- * $Id: group.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: group.h 14997 2021-09-27 18:13:17Z greg $
  */
 
 /************************************************************************/
@@ -17,15 +17,13 @@
 #define GROUP_H
 
 #include <lqio/dom_group.h>
-#include "model.h"
-#include "entry.h"
 #include "task.h"
 
 class Group 
 {
 public:
-    static Group * find( const char * );
-    static void add( LQIO::DOM::Group* domGroup );
+    static Group * find( const std::string& );
+    static void add( const std::pair<std::string,LQIO::DOM::Group*>& );
 
 public:
     Group( LQIO::DOM::Group * group, const Processor& processor );
@@ -36,17 +34,18 @@ public:
     const Processor& processor() const { return _processor; }
     Group& create();
 
-    void insertDOMResults();
+    Group& reset_stats() { r_util.reset(); return *this; }
+    Group& accumulate_data() { r_util.accumulate(); return *this; }
+    Group& insertDOMResults();
 
 public:
     std::map<Task *,int> _tasks;	/* Maps task to group 		*/
-
-    result_t r_util;			/* Utilization.			*/
 
 private:
     LQIO::DOM::Group * _domGroup;
     const Processor &_processor;
     const unsigned int _total_tasks;
+    result_t r_util;			/* Utilization.			*/
 
     std::set<Task*> _task_list;
 };
@@ -67,11 +66,11 @@ struct ltGroup
 
 struct eqGroupStr 
 {
-    eqGroupStr( const char * s ) : _s(s) {}
-    bool operator()(const Group * p1 ) const { return strcmp( p1->name(), _s ) == 0; }
+    eqGroupStr( const std::string& s ) : _s(s) {}
+    bool operator()(const Group * p1 ) const { return _s == p1->name(); }
 
 private:
-    const char * _s;
+    const std::string _s;
 };
 
 extern std::set<Group *, ltGroup> group;

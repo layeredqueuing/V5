@@ -9,9 +9,7 @@
 /*
  * Input processing.
  *
- * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/model.cc $
- *
- * $Id: model.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: model.cc 14997 2021-09-27 18:13:17Z greg $
  */
 
 /* Debug Messages for Loading */
@@ -23,17 +21,15 @@
 
 #include "lqsim.h"
 #include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstdarg>
+#include <cstdlib>
 #include <fstream>
 #include <sstream>
-#include <cstdlib>
-#include <parasol.h>
-#include <para_internals.h>
-#include <stdarg.h>
-#include <assert.h>
 #include <errno.h>
-#include <math.h>
-#include <unistd.h>
 #include <time.h>
+#include <unistd.h>
 #if HAVE_SYS_TIMES_H
 #include <sys/times.h>
 #endif
@@ -58,6 +54,8 @@
 #include <lqio/filename.h>
 #include <lqio/srvn_output.h>
 #include <lqio/srvn_spex.h>
+#include <parasol.h>
+#include <para_internals.h>
 #include "runlqx.h"
 #include "errmsg.h"
 #include "model.h"
@@ -83,7 +81,7 @@ extern "C" {
 }
 
 int Model::__genesis_task_id = 0;
-Model * Model::__model = NULL;
+Model * Model::__model = nullptr;
 double Model::max_service = 0.0;
 const double Model::simulation_parameters::DEFAULT_TIME = 1e5;
 LQIO::DOM::Document::InputFormat Model::input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
@@ -116,26 +114,22 @@ Model::Model( LQIO::DOM::Document* document, const std::string& input_file_name,
 Model::~Model()
 {
     for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	delete aProcessor;
+	delete *nextProcessor;
     }
     processor.clear();
 
     for ( std::set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	const Group * aGroup = *nextGroup;
-	delete aGroup;
+	delete *nextGroup;
     }
     group.clear();
 
     for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	const Task * aTask = *nextTask;
-	delete aTask;
+	delete *nextTask;
     }
     task.clear();
 	
     for ( std::set<Entry *,ltEntry>::const_iterator nextEntry = entry.begin(); nextEntry != entry.end(); ++nextEntry ) {
-	const Entry * anEntry = *nextEntry;
-	delete anEntry;
+	delete *nextEntry;
     }
     entry.clear();
 
@@ -145,7 +139,7 @@ Model::~Model()
     if ( _document ) {
 	delete _document;
     }
-    __model = NULL;
+    __model = nullptr;
 }
 
 
@@ -177,26 +171,14 @@ Model::construct()
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1: Add Processors] */
 	
-    /* We need to add all of the processors */
     const std::map<std::string,LQIO::DOM::Processor*>& processorList = _document->getProcessors();
-
-    /* Add all of the processors we will be needing */
-    for ( std::map<std::string,LQIO::DOM::Processor*>::const_iterator nextProcessor = processorList.begin(); nextProcessor != processorList.end(); ++nextProcessor ) {
-	LQIO::DOM::Processor* processor = nextProcessor->second;
-	DEBUG("[1]: Adding processor (" << processor->getName() << ")" << endl);
-	Processor::add(processor);
-    }
+    for_each( processorList.begin(), processorList.end(), Processor::add );
 	
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 1.5: Add Groups] */
 	
     const std::map<std::string,LQIO::DOM::Group*>& groups = _document->getGroups();
-    std::map<std::string,LQIO::DOM::Group*>::const_iterator groupIter;
-    for (groupIter = groups.begin(); groupIter != groups.end(); ++groupIter) {
-	LQIO::DOM::Group* domGroup = const_cast<LQIO::DOM::Group*>(groupIter->second);
-	DEBUG("[G]: Adding Group (" << domGroup->getName() << ")" << endl);
-	Group::add(domGroup);
-    }
-	
+    for_each( groups.begin(), groups.end(), Group::add );
+
     /* -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=- [Step 2: Add Tasks/Entries] */
 	
     /* In the DOM, tasks have entries, but here entries need to go first */
@@ -218,7 +200,7 @@ Model::construct()
 	/* Add the entries so we can reverse them */
 	for ( nextEntry = task->getEntryList().begin(); nextEntry != task->getEntryList().end(); ++nextEntry ) {
 	    newTask->_entry.push_back( Entry::add( *nextEntry, newTask ) );
-	    if ((*nextEntry)->getStartActivity() != NULL) {
+	    if ((*nextEntry)->getStartActivity() != nullptr) {
 		activityEntries.push_back(*nextEntry);
 	    }
 	}
@@ -383,7 +365,7 @@ Model::print()
     /* override is true for '-p -o filename.out filename.in' == '-p filename.in' */
  
     bool override = false;
-    if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name.c_str() ) != 0 ) {
+    if ( hasOutputFileName() && LQIO::Filename::isRegularFile( _output_file_name ) != 0 ) {
 	LQIO::Filename filename( _input_file_name.c_str(), global_rtf_flag ? "rtf" : "out" );
 	override = filename() == _output_file_name;
     }
@@ -394,7 +376,7 @@ Model::print()
 
 	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || global_xml_flag ) {	/* No parseable/json output, so create XML */
 	    std::ofstream output;
-	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name.c_str(), suffix.c_str() );
+	    LQIO::Filename filename( _input_file_name, "lqxo", directory_name, suffix );
 	    filename.backup();
 	    output.open( filename(), std::ios::out );
 	    if ( !output ) {
@@ -407,9 +389,9 @@ Model::print()
     
 	/* Parseable output. */
 
-	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output ) || global_parse_flag ) {
+	if ( ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::LQN && lqx_output && !global_xml_flag ) || global_parse_flag ) {
 	    std::ofstream output;
-	    LQIO::Filename filename( _input_file_name, "p", directory_name.c_str(), suffix.c_str() );
+	    LQIO::Filename filename( _input_file_name, "p", directory_name, suffix );
 	    output.open( filename(), std::ios::out );
 	    if ( !output ) {
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
@@ -422,7 +404,7 @@ Model::print()
 	/* Regular output */
 
 	std::ofstream output;
-	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out", directory_name.c_str(), suffix.c_str() );
+	LQIO::Filename filename( _input_file_name, global_rtf_flag ? "rtf" : "out", directory_name, suffix );
 	output.open( filename(), std::ios::out );
 	if ( !output ) {
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
@@ -443,7 +425,7 @@ Model::print()
 
 	/* Do not map filename. */
 
-	LQIO::Filename::backup( _output_file_name.c_str() );
+	LQIO::Filename::backup( _output_file_name );
 
 	std::ofstream output;
 	output.open( _output_file_name.c_str(), std::ios::out );
@@ -489,7 +471,7 @@ Model::print_intermediate()
 	extension = "out";
     }
 
-    LQIO::Filename filename( _input_file_name, extension.c_str(), directoryName.c_str(), suffix.c_str() );
+    LQIO::Filename filename( _input_file_name, extension, directoryName, suffix );
 
     /* Make filename look like an emacs autosave file. */
     filename << "~" << number_blocks << "~";
@@ -616,15 +598,9 @@ Model::insertDOMResults()
     _document->setResultSolverInformation(buf);
 
 
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	(*nextTask)->insertDOMResults();
-    }
-    for ( std::set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	(*nextGroup)->insertDOMResults();
-    }
-    for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	(*nextProcessor)->insertDOMResults();
-    }
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::insertDOMResults ) );
+    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::insertDOMResults ) );
+    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::insertDOMResults ) );
 }
 
 
@@ -641,14 +617,14 @@ std::string
 Model::createDirectory() const
 {
     std::string directoryName;
-    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name.c_str() ) > 0 ) {
+    if ( hasOutputFileName() && LQIO::Filename::isDirectory( _output_file_name ) > 0 ) {
 	directoryName = _output_file_name;
     }
 
     if ( _document->getResultInvocationNumber() > 0 ) {
 	if ( directoryName.size() == 0 ) {
 	    /* We need to create a directory to store output. */
-	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+	    LQIO::Filename filename( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 	    directoryName = filename();
 	}
     }
@@ -770,7 +746,7 @@ Model::reload()
 {
     /* Default mapping */
 
-    LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name.c_str() : _input_file_name.c_str(), "d" );		/* Get the base file name */
+    LQIO::Filename directory_name( hasOutputFileName() ? _output_file_name : _input_file_name, "d" );		/* Get the base file name */
 
     if ( access( directory_name().c_str(), R_OK|W_OK|X_OK ) < 0 ) {
 	solution_error( LQIO::ERR_CANT_OPEN_DIRECTORY, directory_name().c_str(), strerror( errno ) );
@@ -914,10 +890,7 @@ Model::run( int task_id )
 
     /* Remove instances */
 
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = task.begin(); nextTask != task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->kill();		/* Should move instance deletion here. */
-    }
+    for_each( task.begin(), task.end(), Exec<Task>( &Task::kill ) );
 
     return rc;
 }
@@ -929,18 +902,9 @@ Model::run( int task_id )
 void
 Model::accumulate_data()
 {
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = ::task.begin(); nextTask != ::task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->accumulate_data();
-    }
-    for ( std::set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	Group * aGroup = *nextGroup;
-	aGroup->r_util.accumulate();
-    }
-    for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->r_util.accumulate();
-    }
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::accumulate_data ) );
+    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::accumulate_data ) );
+    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::accumulate_data ) );
 
 #ifdef	NOTDEF
     /* Link utilization. */
@@ -960,18 +924,9 @@ Model::accumulate_data()
 void
 Model::reset_stats()
 {
-    for ( std::set<Task *,ltTask>::const_iterator nextTask = ::task.begin(); nextTask != ::task.end(); ++nextTask ) {
-	Task * aTask = *nextTask;
-	aTask->reset_stats();
-    }
-    for ( std::set<Group *,ltGroup>::const_iterator nextGroup = group.begin(); nextGroup != group.end(); ++nextGroup ) {
-	Group * aGroup = *nextGroup;
-	aGroup->r_util.reset();
-    }
-    for ( std::set<Processor *,ltProcessor>::const_iterator nextProcessor = processor.begin(); nextProcessor != processor.end(); ++nextProcessor ) {
-	Processor * aProcessor = *nextProcessor;
-	aProcessor->r_util.reset();
-    }
+    for_each( ::task.begin(), ::task.end(), Exec<Task>( &Task::reset_stats ) );
+    for_each( ::group.begin(), ::group.end(), Exec<Group>( &Group::reset_stats ) );
+    for_each( ::processor.begin(), ::processor.end(), Exec<Processor>( &Processor::reset_stats ) );
 
 #ifdef	NOTDEF
     /* Link utilization. */

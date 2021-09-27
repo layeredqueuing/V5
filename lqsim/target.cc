@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: target.cc 14997 2021-09-27 18:13:17Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -46,11 +46,11 @@ tar_t::send_synchronous( const Entry * src, const int priority, const long reply
 
     ip->timeline_trace( SYNC_INTERACTION_INITIATED, src, entry );
     if ( link() >= 0 ) {	/* !!!SEND!!! */
-	ps_link_send( _link, entry->port,
-		      entry->entry_id,
+	ps_link_send( _link, entry->get_port(),
+		      entry->entry_id(),
 		      LINKS_MESSAGE_SIZE,
 		      (char *)&msg, reply_port );
-    } else if ( ps_send_priority( entry->port, entry->entry_id,
+    } else if ( ps_send_priority( entry->get_port(), entry->entry_id(),
 			       (char *)&msg, reply_port,
 			       priority + entry->priority() ) == SYSERR ) {
 	throw std::runtime_error( "tar_t::send_synchronous" );
@@ -83,9 +83,9 @@ tar_t::send_asynchronous( const Entry * src, const int priority )
 	ip->timeline_trace( ASYNC_INTERACTION_INITIATED, src, entry );
 
 	if ( link() >= 0 ) {	/* !!!SEND!!! */
-	    ps_link_send( _link, entry->port, entry->entry_id,
+	    ps_link_send( _link, entry->get_port(), entry->entry_id(),
 			  LINKS_MESSAGE_SIZE, (char *)msg, -1 );
-	} else if ( ps_send_priority( entry->port, entry->entry_id,
+	} else if ( ps_send_priority( entry->get_port(), entry->entry_id(),
 				      (char *)msg, -1,
 				      priority + entry->priority() ) == SYSERR ) {
 	    throw std::runtime_error( "tar_t::send_asynchronous" );
