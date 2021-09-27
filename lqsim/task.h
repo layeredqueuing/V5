@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/task.h $
  * Global vars for simulation.
  *
- * $Id: task.h 14997 2021-09-27 18:13:17Z greg $
+ * $Id: task.h 15000 2021-09-27 18:48:30Z greg $
  */
 
 /************************************************************************/
@@ -52,7 +52,7 @@ class Task {
 
 public:
     /* Update service_routine in task.c when changing this enum */
-    typedef enum {
+    enum class Type {
 	UNDEFINED,
 	CLIENT,
 	SERVER,
@@ -69,9 +69,9 @@ public:
 	RWLOCK,			/* RWLOCK TASK CLASS	*/
 	RWLOCK_SERVER,		/* RWLOCK SERVER TOKEN	*/
 	WRITER_TOKEN
-    } task_type;
+    };
 
-    static const char * type_strings[];
+    static const std::map<const Type,const std::string> type_strings;
 
 public:
     static Task * find( const char * task_name );
@@ -82,7 +82,7 @@ private:
     Task& operator=( const Task& );
 
 public:
-    Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
     virtual ~Task();
 
     LQIO::DOM::Task * getDOM() const{ return _dom; }
@@ -92,14 +92,14 @@ public:
     virtual unsigned multiplicity() const;					/* Special access!		*/
     virtual int priority() const;
 
-    task_type type() const { return _type; }
-    const char * type_name() const { return type_strings[static_cast<int>(_type)]; }
+    Type type() const { return _type; }
+    const std::string& type_name() const { return type_strings.at(_type); }
 
     unsigned n_entries() const { return _entry.size(); }
     unsigned max_phases() const { return _max_phases; }
     Task& max_phases( unsigned max_phases ) { _max_phases = std::max( _max_phases, max_phases ); return *this; }
 
-    Instance * add_task ( const char *task_name, task_type type, int cpu_no, Instance * rip );
+    Instance * add_task ( const char *task_name, Type type, int cpu_no, Instance * rip );
     virtual int std_port() const { return -1; }
     virtual int worker_port() const { return -1; }
     int node_id() const;
@@ -113,7 +113,7 @@ public:
 
     bool is_infinite() const;
     bool is_multiserver() const { return multiplicity() > 1; }
-    bool is_reference_task() const { return type() == CLIENT; }
+    bool is_reference_task() const { return type() == Type::CLIENT; }
     virtual bool is_sync_server() const { return false; }
     bool has_activities() const { return _activity.size() > 0; }	/* True if activities present.	*/
     bool has_threads() const { return _forks.size() > 0; }
@@ -166,7 +166,7 @@ private:
     std::list<Message *> _free_msgs;		/* Pool of messages 		*/
 
 protected:
-    task_type _type;
+    Type _type;
 
 public:
     std::vector<Entry *> _entry;		/* entry array		        */
@@ -191,7 +191,7 @@ private:
     Reference_Task& operator=( const Reference_Task& ) = delete;
 
 public:
-    Reference_Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Reference_Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
 
     virtual double think_time() const { return _think_time; }			/* Cached.  see create()	*/
 
@@ -209,7 +209,7 @@ private:
 class Server_Task : public Task
 {
 public:
-    Server_Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Server_Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
 
     virtual int std_port() const;
 
@@ -232,7 +232,7 @@ protected:
 class Semaphore_Task : public Server_Task
 {
 public:
-    Semaphore_Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    Semaphore_Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
 
     int signal_port() const { return _signal_port; }
     Instance * signal_task() const { return _signal_task; }
@@ -263,7 +263,7 @@ protected:
 class ReadWriteLock_Task : public Semaphore_Task
 {
 public:
-    ReadWriteLock_Task( const task_type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
+    ReadWriteLock_Task( const Type type, LQIO::DOM::Task* domTask, Processor * aProc, Group * aGroup );
 
     Instance * writer() const { return _writer; }
     Instance * reader() const { return _reader; }
@@ -312,7 +312,7 @@ private:
 class Pseudo_Task : public Task
 {
 public:
-    Pseudo_Task( const char * name ) : Task( Task::OPEN_ARRIVAL_SOURCE, nullptr, nullptr, nullptr ), _name(name) {}
+    Pseudo_Task( const char * name ) : Task( Type::OPEN_ARRIVAL_SOURCE, nullptr, nullptr, nullptr ), _name(name) {}
 
     virtual const char * name() const { return _name.c_str(); }
     virtual scheduling_type discipline() const { return SCHEDULE_DELAY; }

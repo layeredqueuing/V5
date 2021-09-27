@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/instance.h $
  * Global vars for simulation.
  *
- * $Id: instance.h 14995 2021-09-27 14:01:46Z greg $
+ * $Id: instance.h 15000 2021-09-27 18:48:30Z greg $
  */
 
 /************************************************************************/
@@ -54,7 +54,7 @@ public:
 
     const char * name() const { return _cp->name(); }
     int priority() const { return _cp->priority(); }
-    virtual const char * type_name() const = 0;
+    virtual const std::string& type_name() const = 0;
     virtual void run() = 0;
     virtual int parentPort() const{ return -1;}
     virtual void setParent(int parentPort) {}
@@ -147,7 +147,7 @@ class srn_client : public Real_Instance
 public:
     srn_client( Task * cp, const char * task_name  );
 
-    virtual const char * type_name() const { return Task::type_strings[Task::CLIENT]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::CLIENT); }
     void run();
 };
 
@@ -159,7 +159,7 @@ public:
     srn_server( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::SERVER]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::SERVER); }
     void run();
     int parentPort() const{ return _parent_port;}
     void setParent(int parentPort) {_parent_port=parentPort; }
@@ -175,7 +175,7 @@ public:
     srn_multiserver( Task * cp, const char * task_name, unsigned long max_workers )
 	: Virtual_Instance( cp, task_name ), _max_workers(max_workers) {}
 
-    virtual const char * type_name() const;
+    virtual const std::string& type_name() const;
     void run();
     int parentPort() const{ return _parent_port;}
     void setParent(int parentPort) {_parent_port=parentPort; }
@@ -192,7 +192,7 @@ public:
     srn_sync_server( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::SYNCHRONIZATION_SERVER]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::SYNCHRONIZATION_SERVER); }
     void run();
 };
 
@@ -204,7 +204,7 @@ public:
     srn_semaphore( Task * cp, const char * task_name )
 	: Virtual_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::SEMAPHORE]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::SEMAPHORE); }
     void run();
 
 private:
@@ -218,7 +218,7 @@ public:
     srn_token( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    const char * type_name() const { return Task::type_strings[Task::TOKEN]; }
+    const std::string& type_name() const { return Task::type_strings.at(Task::Type::TOKEN); }
     void run();
 };
 
@@ -230,7 +230,7 @@ public:
     srn_token_r( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    const char * type_name() const { return Task::type_strings[Task::TOKEN_R]; }
+    const std::string& type_name() const { return Task::type_strings.at(Task::Type::TOKEN_R); }
     void run();
 };
 
@@ -242,7 +242,7 @@ public:
     srn_writer_token( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    const char * type_name() const { return Task::type_strings[Task::WRITER_TOKEN]; }
+    const std::string& type_name() const { return Task::type_strings.at(Task::Type::WRITER_TOKEN); }
     void run();
 };
 
@@ -253,7 +253,7 @@ public:
     srn_rwlock_server( Task * cp, const char * task_name )
 	: Virtual_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::RWLOCK_SERVER]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::RWLOCK_SERVER); }
     void run();
 };
 
@@ -264,7 +264,7 @@ class srn_open_arrivals : public Virtual_Instance
 public:
     srn_open_arrivals( Task * cp, const char * task_name );
 
-    virtual const char * type_name() const { return Task::type_strings[Task::OPEN_ARRIVAL_SOURCE]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::OPEN_ARRIVAL_SOURCE); }
     void run();
 };
 
@@ -276,7 +276,7 @@ public:
     srn_worker( Task * cp, const char * task_name )
 	: Real_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::WORKER]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::WORKER); }
     void run();
 };
 
@@ -288,7 +288,7 @@ public:
     srn_thread( Task * cp, const char * task_name, Instance * rip )
 	: Real_Instance( cp, task_name ), _root_ptr(rip) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::THREAD]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::THREAD); }
     void run();
 
 private:
@@ -304,7 +304,7 @@ public:
     srn_signal( Task * cp, const char * task_name )
 	: Virtual_Instance( cp, task_name ) {}
 
-    virtual const char * type_name() const { return Task::type_strings[Task::SIGNAL]; }
+    virtual const std::string& type_name() const { return Task::type_strings.at(Task::Type::SIGNAL); }
     void run();
 };
 
