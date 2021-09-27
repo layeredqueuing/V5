@@ -10,7 +10,7 @@
 /*
  * Input output processing.
  *
- * $Id: instance.cc 14605 2021-04-16 18:01:04Z greg $
+ * $Id: instance.cc 14995 2021-09-27 14:01:46Z greg $
  */
 
 /*
@@ -1241,7 +1241,7 @@ Instance::do_forwarding ( Message * msg, const Entry * ep )
  */
 
 void
-Instance::random_shuffle_reply( vector<const Entry *>& array )
+Instance::random_shuffle_reply( std::vector<const Entry *>& array )
 {
     const unsigned n = array.size();
     for ( unsigned i = n; i >= 1; --i ) {

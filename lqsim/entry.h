@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: entry.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: entry.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #ifndef ENTRY_H
@@ -197,5 +197,5 @@ private:
     const char * _s;
 };
 
-extern set <Entry *, ltEntry> entry;	/* Entry table.	*/
+extern std::set <Entry *, ltEntry> entry;	/* Entry table.	*/
 #endif

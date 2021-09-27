@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: histogram.cc 10334 2011-06-15 00:43:05Z greg $
+ * $Id: histogram.cc 14995 2021-09-27 14:01:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -34,7 +34,7 @@ Histogram::Histogram( const LQIO::DOM::Histogram * histogram )
     if ( _max < _min ) {
 	input_error2( LQIO::ERR_HISTOGRAM_INVALID_MAX, _max );
     }
-    for ( vector<hist_bin>::iterator bin = _hist.begin(); bin != _hist.end(); ++bin ) {
+    for ( std::vector<hist_bin>::iterator bin = _hist.begin(); bin != _hist.end(); ++bin ) {
 	bin->sum = 0;
 	bin->sum_sqr = 0;
 	bin->bin = 0;

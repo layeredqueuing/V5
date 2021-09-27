@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: model.h 14794 2021-06-11 12:13:01Z greg $
+ * $Id: model.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #ifndef LQSIM_MODEL_H
@@ -105,10 +105,10 @@ private:
     Model& operator=( const Model& );
 
 public:
-    Model( LQIO::DOM::Document* document, const string&, const string& );
+    Model( LQIO::DOM::Document* document, const std::string&, const std::string& );
     virtual ~Model();
     
-    bool operator!() const { return _document == 0; }
+    bool operator!() const { return _document == nullptr; }
     
     bool construct();	/* Step 1 */
     void add_communication_delay( const char * from_proc_name, const char * to_proc_name, double delay );
@@ -119,7 +119,7 @@ public:
     bool reload();		/* Load results from LQX */
     bool restart();
     
-    static LQIO::DOM::Document* load( const string&, const string& );
+    static LQIO::DOM::Document* load( const std::string&, const std::string& );
     static int genesis_task_id() { return __genesis_task_id; }
     static double block_period() { return __model->_parameters._block_period; }
     static void set_block_period( double block_period ) { __model->_parameters._block_period = block_period; }
@@ -137,7 +137,7 @@ private:
     void print();
     void print_intermediate();
     void print_raw_stats( FILE * output ) const;
-    string createDirectory() const;
+    std::string createDirectory() const;
     
     bool run( int );
     static double rms_confidence();
@@ -145,8 +145,8 @@ private:
 
 private:
     LQIO::DOM::Document* _document;
-    string _input_file_name;
-    string _output_file_name;
+    std::string _input_file_name;
+    std::string _output_file_name;
     clock_t _start_clock;
 #if defined(HAVE_SYS_TIMES_H)
     struct tms _start_times;

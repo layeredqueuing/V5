@@ -3,7 +3,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: target.h 14995 2021-09-27 14:01:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -20,8 +20,6 @@
 class Message;
 class Entry;
 class Activity;
-
-using namespace std;
 
 class tar_t {				/* send target struct		*/
     friend class Targets;
@@ -92,7 +90,7 @@ public:
     Targets& accumulate_data();
     Targets& insertDOMResults();
 
-    vector<tar_t> target;		/* target array			*/
+    std::vector<tar_t> target;		/* target array			*/
 
 private:
     Targets& operator=( const Targets& );

@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: message.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: message.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #ifndef MESSAGE_H
@@ -22,7 +22,7 @@ class tar_t;
 
 class Message {
 public:
-    Message( const Entry * e=NULL, tar_t  * tp=NULL ) { init( e, tp ); }
+    Message( const Entry * e=nullptr, tar_t  * tp=nullptr ) { init( e, tp ); }
     Message * init( const Entry * e, tar_t * tp );
     
     Activity * activity;		/* Activity to run.		*/

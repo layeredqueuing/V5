@@ -11,7 +11,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: activity.cc 14387 2021-01-21 14:09:16Z greg $
+ * $Id: activity.cc 14995 2021-09-27 14:01:46Z greg $
  */
 
 #include <parasol.h>
@@ -111,7 +111,7 @@ Activity::set_DOM(LQIO::DOM::Phase* phaseInfo)
 bool
 Activity::has_lost_messages() const
 {
-    for ( vector<tar_t>::const_iterator tp = tinfo.target.begin(); tp != tinfo.target.end(); ++tp ) {
+    for ( std::vector<tar_t>::const_iterator tp = tinfo.target.begin(); tp != tinfo.target.end(); ++tp ) {
 	if ( (*tp).dropped_messages() ) return true;
     }
     return false;
@@ -577,7 +577,7 @@ Activity::print_debug_info()
 
     if ( tinfo.size() > 0 ) {
 	fprintf( stddbg, "\tcalls:  " );
-	vector<tar_t>::iterator tp;
+	std::vector<tar_t>::iterator tp;
 	for ( tp = tinfo.target.begin(); tp != tinfo.target.end(); ++tp ) {
 	    if ( tp != tinfo.target.begin() ) {
 		(void) fprintf( stddbg, ", " );
@@ -970,7 +970,7 @@ find_or_create_activity ( const void * task, const char * activity_name )
 const Entry * 
 Activity::find_reply( const Entry * ep ) const
 {
-    for ( vector<const Entry *>::const_iterator rp = _reply.begin(); rp != _reply.end(); ++rp ) {
+    for ( std::vector<const Entry *>::const_iterator rp = _reply.begin(); rp != _reply.end(); ++rp ) {
 	if ( (*rp) == ep ) return ep;
     }
     return 0;

@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/group.h $
  * Global vars for simulation.
  *
- * $Id: group.h 13353 2018-06-25 20:27:13Z greg $
+ * $Id: group.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 /************************************************************************/
@@ -39,7 +39,7 @@ public:
     void insertDOMResults();
 
 public:
-    map<Task *,int> _tasks;		/* Maps task to group 		*/
+    std::map<Task *,int> _tasks;	/* Maps task to group 		*/
 
     result_t r_util;			/* Utilization.			*/
 
@@ -48,7 +48,7 @@ private:
     const Processor &_processor;
     const unsigned int _total_tasks;
 
-    set<Task*> _task_list;
+    std::set<Task*> _task_list;
 };
 
 /*
@@ -74,5 +74,5 @@ private:
     const char * _s;
 };
 
-extern set<Group *, ltGroup> group;
+extern std::set<Group *, ltGroup> group;
 #endif

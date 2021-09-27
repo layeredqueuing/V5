@@ -1,7 +1,7 @@
 /* pragma.cc	-- Greg Franks Tue Sep  1 2009
  *
  * ------------------------------------------------------------------------
- * $Id: pragma.cc 14959 2021-09-08 14:48:54Z greg $
+ * $Id: pragma.cc 14995 2021-09-27 14:01:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -142,7 +142,7 @@ void Pragma::set_precision( const std::string& value )
 }
 
 void
-Pragma::set_quorum_delayed_calls( const string& value ) 
+Pragma::set_quorum_delayed_calls( const std::string& value ) 
 {
     _quorum_delayed_calls = LQIO::DOM::Pragma::isTrue( value );
 }
@@ -174,7 +174,7 @@ void Pragma::set_run_time( const std::string& value )
 
 
 void
-Pragma::set_scheduling_model( const string& value )
+Pragma::set_scheduling_model( const std::string& value )
 {
     if ( value == "custom" ) {
 	_scheduling_model = SCHEDULE_CUSTOM;
@@ -200,13 +200,13 @@ Pragma::set_severity_level(const std::string& value)
 void
 Pragma::usage( std::ostream& output )
 {
-    output << "Valid pragmas: " << endl;
-    ios_base::fmtflags flags = output.setf( ios::left, ios::adjustfield );
+    output << "Valid pragmas: " << std::endl;
+    std::ios_base::fmtflags flags = output.setf( std::ios::left, std::ios::adjustfield );
 
     for ( std::map<std::string,Pragma::fptr>::const_iterator i = __set_pragma.begin(); i != __set_pragma.end(); ++i ) {
 	output << "\t" << std::setw(20) << i->first;
 	if ( i->first == LQIO::DOM::Pragma::_nice_ ) {
-	    output << " = <int>" << endl;
+	    output << " = <int>" << std::endl;
 	} else {
 	    const std::set<std::string>* args = LQIO::DOM::Pragma::getValues( i->first );
 	    if ( args && args->size() > 1 ) {
@@ -216,9 +216,9 @@ Pragma::usage( std::ostream& output )
 		    if ( q != args->begin() ) output << ",";
 		    output << *q;
 		}
-		output << "}" << endl;
+		output << "}" << std::endl;
 	    } else {
-		output << " = <arg>" << endl;
+		output << " = <arg>" << std::endl;
 	    }
 	}
     }

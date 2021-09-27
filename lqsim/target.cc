@@ -2,7 +2,7 @@
  * $HeadURL$
  *
  * ------------------------------------------------------------------------
- * $Id: target.cc 14381 2021-01-19 18:52:02Z greg $
+ * $Id: target.cc 14995 2021-09-27 14:01:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -269,7 +269,7 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
     const char * srcName = (dom != nullptr) ? dom->getName().c_str() : "-";
     _type = (dynamic_cast<const LQIO::DOM::Phase *>(dom) != nullptr) ? dynamic_cast<const LQIO::DOM::Phase *>(dom)->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC;
     
-    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
+    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
 	const char * dstName = tp->entry->name();
 	try {
 	    tp->configure();
@@ -300,7 +300,7 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
     if ( _type != LQIO::DOM::Phase::Type::DETERMINISTIC ) {
 	if ( normalize ) {
 	    sum += 1.0;
-	    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
+	    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
 		tp->_tprob /= sum;
 	    }
 	} else if ( sum > 1. ) {
@@ -315,7 +315,7 @@ Targets::configure( const LQIO::DOM::DocumentObject * dom, bool normalize )
 void
 Targets::initialize( const char * srcName )
 {
-    for ( vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
+    for ( std::vector<tar_t>::iterator tp = target.begin(); tp != target.end(); ++tp ) {
 	const char * dstName = tp->entry->name();
     
 	tp->r_delay.init( SAMPLE,     "Wait %-11.11s %-11.11s          ", srcName, dstName );
@@ -369,7 +369,7 @@ Targets::entry_to_send_to ( unsigned int&i, unsigned int& j ) const
 Targets&
 Targets::accumulate_data()
 {
-    vector<tar_t>::iterator tp;
+    std::vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
 	tp->r_delay_sqr.accumulate_variance( tp->r_delay.accumulate() );
 	if ( !tp->reply() ) {
@@ -384,7 +384,7 @@ Targets::accumulate_data()
 Targets&
 Targets::reset_stats()
 {
-    vector<tar_t>::iterator tp;
+    std::vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
  	tp->r_delay.reset();
  	tp->r_delay_sqr.reset();
@@ -399,7 +399,7 @@ Targets::reset_stats()
 const Targets&
 Targets::print_raw_stat( FILE * output ) const
 {
-    vector<tar_t>::const_iterator tp;
+    std::vector<tar_t>::const_iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
 	Entry * ep = tp->entry;
 	tp->r_delay.print_raw( output,      "Calling %-11.11s- delay", ep->name() );
@@ -415,7 +415,7 @@ Targets::print_raw_stat( FILE * output ) const
 Targets&
 Targets::insertDOMResults()
 {
-    vector<tar_t>::iterator tp;
+    std::vector<tar_t>::iterator tp;
     for ( tp = target.begin(); tp != target.end(); ++tp ) {
 	tp->insertDOMResults();
     }

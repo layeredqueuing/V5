@@ -11,7 +11,7 @@
  *
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/processor.cc $
  *
- * $Id: processor.cc 14605 2021-04-16 18:01:04Z greg $
+ * $Id: processor.cc 14995 2021-09-27 14:01:46Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -36,7 +36,7 @@
 
 #define	SN_PREEMPT	100			/* Message.			*/
 
-set<Processor *, ltProcessor> processor;	/* Processor table.		*/
+std::set<Processor *, ltProcessor> processor;	/* Processor table.		*/
 Processor *Processor::processor_table[MAX_NODES+1];	/* NodeId to processor		*/
 
 int Processor::scheduling_types[N_SCHEDULING_TYPES] =
@@ -66,10 +66,10 @@ int Processor::scheduling_types[N_SCHEDULING_TYPES] =
 Processor *
 Processor::find( const std::string& processor_name  )
 {
-    if ( processor_name.size() == 0 ) return 0;
-    set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( processor_name ) );
+    if ( processor_name.size() == 0 ) return nullptr;
+    std::set<Processor *,ltProcessor>::const_iterator nextProcessor = find_if( ::processor.begin(), ::processor.end(), eqProcStr( processor_name ) );
     if ( nextProcessor == processor.end() ) {
-	return 0;
+	return nullptr;
     } else {
 	return *nextProcessor;
     }
@@ -78,7 +78,7 @@ Processor::find( const std::string& processor_name  )
 
 Processor::Processor( LQIO::DOM::Processor* domProcessor )
     : trace_flag(false),
-      group(0),
+      group(nullptr),
       _node_id(0),
       _dom( domProcessor )
 {
@@ -184,7 +184,7 @@ Custom_Processor::~Custom_Processor()
     if ( _active_task ) {
 	delete [] _active_task;
     }
-    _active_task = 0;
+    _active_task = nullptr;
 }
 
 
@@ -227,7 +227,7 @@ Custom_Processor::main()
 {
     long * rtrq = static_cast<long *>(calloc( MAX_TASKS, sizeof(long) ));
 
-    _active_task[ps_my_host] = 0;
+    _active_task[ps_my_host] = nullptr;
     _scheduler = ps_std_port(ps_myself);
 	
     for ( ;; ) {
@@ -288,7 +288,7 @@ Custom_Processor::main()
 		quantum = NEVER;
 
 		_active -= 1;
-		_active_task[ps_my_host] = 0;
+		_active_task[ps_my_host] = nullptr;
 		ps_record_stat( r_util.raw, _active );
 		ps_schedule( NULL_TASK, ps_my_host );
 	    }
@@ -486,11 +486,11 @@ Processor::insertDOMResults()
     double proc_util_mean = 0.0;
     double proc_util_var  = 0.0;
 
-    vector<Task *>::const_iterator next_task;
+    std::vector<Task *>::const_iterator next_task;
     for ( next_task = _tasks.begin(); next_task != _tasks.end(); ++next_task ) {
 	Task * cp = *next_task;
 	
-	for ( vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
+	for ( std::vector<Entry *>::const_iterator next_entry = cp->_entry.begin(); next_entry != cp->_entry.end(); ++next_entry ) {
 	    Entry * ep = *next_entry;
 	    for ( unsigned p = 0; p < cp->max_phases; ++p ) {
 		proc_util_mean += ep->_phase[p].r_cpu_util.mean();
@@ -566,7 +566,7 @@ Processor::add( LQIO::DOM::Processor* domProcessor )
 	break;
     }
 
-    Processor * aProcessor = 0;
+    Processor * aProcessor = nullptr;
     if ( Pragma::__pragmas->scheduling_model() & SCHEDULE_CUSTOM ) {
 	aProcessor = new Custom_Processor( domProcessor );
     } else {

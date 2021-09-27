@@ -2,7 +2,7 @@
  * $HeadURL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/instance.h $
  * Global vars for simulation.
  *
- * $Id: instance.h 14154 2020-11-30 21:26:43Z greg $
+ * $Id: instance.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 /************************************************************************/
@@ -36,7 +36,7 @@ private:
 
 protected:
     static void start( void * = 0 );
-    static void random_shuffle_reply( vector<const Entry *>& array );
+    static void random_shuffle_reply( std::vector<const Entry *>& array );
     static void random_shuffle_activity( Activity ** array, unsigned n );
 
 protected:

@@ -12,7 +12,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/entry.cc $
  *
- * $Id: entry.cc 14765 2021-06-04 01:04:46Z greg $
+ * $Id: entry.cc 14995 2021-09-27 14:01:46Z greg $
  */
 
 #include <parasol.h>
@@ -40,7 +40,7 @@ unsigned int open_arrival_count = 0;
  * task and entry information.
  */
 
-set <Entry *, ltEntry> entry;			/* Entry table.		*/
+std::set <Entry *, ltEntry> entry;		/* Entry table.		*/
 Entry * Entry::entry_table[MAX_PORTS+1];	/* Reverse map		*/
 
 Entry::Entry( LQIO::DOM::Entry* dom, Task * task )
@@ -577,7 +577,7 @@ Pseudo_Entry::configure()
 Entry&
 Pseudo_Entry::insertDOMResults()
 {
-    for ( vector<tar_t>::iterator tp = _phase[0].tinfo.target.begin(); tp != _phase[0].tinfo.target.end(); ++tp ) {
+    for ( std::vector<tar_t>::iterator tp = _phase[0].tinfo.target.begin(); tp != _phase[0].tinfo.target.end(); ++tp ) {
 	Entry * ep = tp->entry;
 	LQIO::DOM::Entry * dom = ep->get_DOM();
 	assert( dom == get_DOM() );
@@ -605,7 +605,7 @@ Entry::add( LQIO::DOM::Entry* domEntry, Task * task )
 	input_error2( LQIO::ERR_TOO_MANY_X, "entries", MAX_PORTS );
     } else {
 	const char* entry_name = domEntry->getName().c_str();
-	set<Entry *,ltEntry>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( entry_name ) );
+	std::set<Entry *,ltEntry>::const_iterator nextEntry = find_if( entry.begin(), entry.end(), eqEntryStr( entry_name ) );
 	if ( nextEntry != entry.end() ) {
 	    LQIO::input_error2( LQIO::ERR_DUPLICATE_SYMBOL, "Entry", entry_name );
 	} else {
@@ -690,7 +690,7 @@ Entry::add_call( const unsigned int p, LQIO::DOM::Call* domCall )
 Entry *
 Entry::find( const char * entry_name )
 {
-    set<Entry *,ltEntry>::const_iterator nextEntry = find_if( ::entry.begin(), ::entry.end(), eqEntryStr( entry_name ) );
+    std::set<Entry *,ltEntry>::const_iterator nextEntry = find_if( ::entry.begin(), ::entry.end(), eqEntryStr( entry_name ) );
     if ( nextEntry == ::entry.end() ) {
 	input_error2( LQIO::ERR_NOT_DEFINED, entry_name );
 	return 0;
@@ -736,7 +736,7 @@ Entry::print_debug_info()
 
     if ( _fwd.size() > 0 ) {
 	fprintf( stddbg, "\tfwds:  " );
-	vector<tar_t>::iterator tp;
+	std::vector<tar_t>::iterator tp;
 	for ( tp = _fwd.target.begin(); tp != _fwd.target.end(); ++tp ) {
 	    if ( tp != _fwd.target.begin() ) {
 		(void) fprintf( stddbg, ", " );

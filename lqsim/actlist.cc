@@ -10,7 +10,7 @@
  * Activities are arcs in the graph that do work.
  * Nodes are points in the graph where splits and joins take place.
  *
- * $Id: actlist.cc 13877 2020-09-26 02:15:28Z greg $
+ * $Id: actlist.cc 14995 2021-09-27 14:01:46Z greg $
  */
 
 #include <sstream>
@@ -31,8 +31,6 @@
 #include "errmsg.h"
 #include "processor.h"
 
-using namespace std;
-  
 static bool set_join_type( ActivityList * join_list, join_type_t a_type );
 static bool add_to_join_list( ActivityList * join_list, unsigned i, Activity * an_activity );
 static inline int i_max( int a, int b ) { return a > b ? a : b; }
@@ -554,7 +552,7 @@ print_activity_connectivity( FILE * output, Activity * ap )
 static char *
 fork_join_name( const ActivityList * list )
 {
-    ostringstream buf;
+    std::ostringstream buf;
     unsigned i;
     for ( i = 0; i < list->na ; ++i ) {
 	if ( i > 0 ) {

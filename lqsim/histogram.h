@@ -10,7 +10,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: histogram.h 11963 2014-04-10 14:36:42Z greg $
+ * $Id: histogram.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #ifndef HISTOGRAM_H
@@ -62,7 +62,7 @@ private:
     const double _max;                  /* Upper range limit on the histogram */
     unsigned _n;			/* Number of blocks. */
     double _count;			/* Total count in all bins */
-    vector<hist_bin> _hist;
+    std::vector<hist_bin> _hist;
 };
 #endif
 

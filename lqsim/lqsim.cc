@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14982 2021-09-22 22:55:38Z greg $
+ * $Id: lqsim.cc 14995 2021-09-27 14:01:46Z greg $
  */
 
 #define STACK_TESTING
@@ -289,7 +289,7 @@ static struct {
 static LQIO::DOM::Pragma pragmas;
 
 static void usage(void);
-static int process( const string& input_file, const string& output_file );
+static int process( const std::string& input_file, const std::string& output_file );
 #if HAVE_REGCOMP
 static void trace_event_list ( char * );
 static bool regexec_check( int errcode, regex_t *r );
@@ -304,7 +304,7 @@ int
 main( int argc, char * argv[] )
 {   				
     int global_error_flag	= 0;
-    string output_file		= "";		/* Command line filename?   	*/
+    std::string output_file		= "";		/* Command line filename?   	*/
 	
     /* optarg(3) stuff */
 	
@@ -325,7 +325,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-09-22 18:55:38 -0400 (Wed, 22 Sep 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-09-27 10:01:46 -0400 (Mon, 27 Sep 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -492,7 +492,7 @@ main( int argc, char * argv[] )
 
 	    case 'P':
 		if ( !pragmas.insert( optarg ) ) {
-		    Pragma::usage( cerr );
+		    Pragma::usage( std::cerr );
 		    exit( INVALID_ARGUMENT );
 		}
 		break;
@@ -652,7 +652,7 @@ main( int argc, char * argv[] )
 	try {
 	    global_error_flag |= process( "-", output_file );
 	}
-	catch ( const runtime_error &e ) {
+	catch ( const std::runtime_error &e ) {
 	    fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
 	    global_error_flag = true;
 	}
@@ -679,7 +679,7 @@ main( int argc, char * argv[] )
 	    try {
 		global_error_flag |= process( argv[optind], output_file );
 	    }
-	    catch ( const runtime_error &e ) {
+	    catch ( const std::runtime_error &e ) {
 		fprintf( stderr, "%s: %s\n", LQIO::io_vars.toolname(), e.what() );
 		global_error_flag = true;
 	    }
@@ -701,7 +701,7 @@ usage(void)
 #if HAVE_GETOPT_LONG
     const char ** p = opthelp;
     for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
-	string s;
+	std::string s;
 	if ( o->name ) {
 	    s = "--";
 	    s += o->name;
@@ -736,7 +736,7 @@ usage(void)
 	    fputc( *s, stderr );
 	}
     }
-    cerr << ']';
+    std::cerr << ']';
 	
     for ( const char * s = opts; *s; ++s ) {
 	if ( *(s+1) == ':' ) {
@@ -777,7 +777,7 @@ usage(void)
 
 /*ARGSUSED*/
 static int
-process( const string& input_file, const string& output_file )	 
+process( const std::string& input_file, const std::string& output_file )	 
 {
     LQIO::DOM::Document* document = Model::load( input_file, output_file );
     Model aModel( document, input_file, output_file );

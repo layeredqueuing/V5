@@ -9,7 +9,7 @@
 /*
  * Global vars for simulation.
  *
- * $Id: activity.h 14381 2021-01-19 18:52:02Z greg $
+ * $Id: activity.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #ifndef ACTIVITY_H
@@ -50,11 +50,11 @@ public:
     LQIO::DOM::Phase::Type type() const { return _dom ? _dom->getPhaseTypeFlag() : LQIO::DOM::Phase::Type::STOCHASTIC; }
 
     bool is_specified() const { return _dom != 0; } 	/* True if some value set.	*/
-    bool is_activity() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) != 0; }
+    bool is_activity() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) != nullptr; }
     bool is_reachable() const { return _is_reachable; }			/* True if we can reach it	*/
     Activity& set_is_start_activity( bool val ) { _is_start_activity = val; return *this; }
     bool is_start_activity() const { return _is_start_activity; }
-    bool is_phase() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) == 0; };
+    bool is_phase() const { return dynamic_cast<LQIO::DOM::Activity *>(_dom) == nullptr; };
     bool has_service_time() const { return _scale > 0.; }
     bool has_think_time() const { return _think_time > 0.; }
     bool has_lost_messages() const;
@@ -107,7 +107,7 @@ private:
      * called frequently from execute.c should have a cached copy
      * here.
      */
-    const string _name;			/* Name of activity.		*/
+    const std::string _name;		/* Name of activity.		*/
     double _arrival_rate;		/* service time			*/
     double _cv_sqr;			/* cv_sqr			*/
     double _think_time;			/* Cached think time.	        */

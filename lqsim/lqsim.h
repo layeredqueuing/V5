@@ -14,7 +14,7 @@
  *
  * $URL: http://rads-svn.sce.carleton.ca:8080/svn/lqn/trunk-V5/lqsim/lqsim.h $
  *
- * $Id: lqsim.h 14154 2020-11-30 21:26:43Z greg $
+ * $Id: lqsim.h 14995 2021-09-27 14:01:46Z greg $
  */
 
 #if defined(HAVE_CONFIG_H)
@@ -25,8 +25,6 @@
 #if	defined(HAVE_SYS_TYPES_H)
 #include <sys/types.h>    /* Need def for size_t */
 #endif
-
-using namespace std;
 
 #define GROUP_SCHEDULING       0
 
