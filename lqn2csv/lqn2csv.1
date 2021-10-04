@@ -1,0 +1,89 @@
+.TH LQN2CSV 1 "2 October 2021"
+.\" Id$
+.SH NAME
+lqnresult \- compare SRVN results.
+.SH SYNOPSIS
+.br
+.B lqnresult
+[\fIOPTIONS\fR].\|.\|. \fIFILES\fR 
+.B 
+.SH DESCRIPTION
+\fBLqnresult\fR is used to extract the output from the LQN solvers
+\fBlqns\fR(1), \fBlqsim\fR(1) and
+\fBpetrisrvn\fR(1) and print them in a format suitable for plotting
+with gnuplot(1) or loading into a spreadsheet.
+
+The arguments to \fBlqnresult\fR are a list of file names.
+The options to \fBlqnresult\fR are used to select the results to
+extract and print.
+
+.SH "OPTIONS"
+.TP 12
+\fB\-a\fP, \fB\-\-open\-wait=\fIentry\fR
+Print open the arrival waiting time for \fIentry\fP.
+.TP 12
+\fB\-b,\fP \fB\-\-bounds=\fIentry\fR
+Print the throughput bound for \fIentry\fP.
+.TP 12
+\fB\-e,\fP \fB\-\-entry\-utilization=\fIentry\fR
+Print the utilization for \fIentry\fP.
+.TP 12
+\fB\-\fP,\fP \fB\-\-entry\-throughput=\fIentry\f\R
+Print the throughput for \fIentry\fP.
+.TP 12
+\fB\-F,\fP \fB\-\-activity\-throughput=\fItask\fP,\fIactivity\fR
+Print the througput for \fItask\fP, \fIactivity\fP.
+.TP 12
+\fB\-h,\fP \fB\-\-hold\-times\fR
+Print the hold time at a join.
+.TP 12
+\fB\-j,\fP \fB\-\-join\-delays\fR
+Print the join delay at a join,.
+.TP 12
+\fB\-l,\fP \fB\-\-loss\-probability=\fIsrc\fP,\fIn\fP,\fIdst\fR
+Print the probability of a lost message for an asynchronous send from
+entry \fIsrc\fP, phase \fIn\fP, to entry \fIdst\fP.
+.TP 12
+\fB\-o,\fP \fB\-\-output=\fIarg\fR
+Write the  output to the file named \fIarg\fP.
+.TP 12
+\fB\-p,\fP \fB\-\-processor\-utilization=\fIprocessor\fR
+Print the utilization for \fIprocessor\fP.
+.TP 12
+\fB\-q,\fP \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
+Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
+.TP 12
+\fB\-s,\fP \fB\-\-service=\fIentry\fP,\fIn\fR
+Print the service time for \fIentry\fP, phase \fIn\fP.
+.TP 12
+\fB\-S,\fP \fB\-\-activity\-service=\fIarg\fR
+Print the service time for \fItask\fP, \fIactivity\fP.
+.TP 12
+\fB\-t,\fP \fB\-\-task\-throughput=\fItask\fR
+Print the throughput for \fItask\fP.
+.TP 12
+\fB\-u,\fP \fB\-\-task\-utilization=\fItask\fR
+Print the utilization for \fItask\fP.
+.TP 12
+\fB\-v,\fP \fB\-\-variance=\fIentry\fP,\fIn\fR
+Print the  service time variance for \fIentry\fP, phase \fIn\fP.
+.TP 12
+\fB\-V,\fP \fB\-\-activity\-variance=\fIarg\fR
+Print the  service time variance for \fItask\fP, \fIactivity\fP.
+.TP 12
+\fB\-w,\fP \fB\-\-waiting=\fIsrc\fP,\fIn\fP,\fIdst\fR
+Print the waiting time for a call from the entry \fIsrc\fP, phase
+\fIn\fP to the entry \fIdst\fP entry.
+.TP 12
+\fB\-W,\fP \fB\-\-activity\-waiting=\fIarg\fR
+Print the activity call waiting time.
+.TP 12
+\fB\-x,\fP \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
+print the phase service time exceeded probability.
+.TP 12
+\fB\fB\-\-\-gnuplot\fP
+generate gnuplot ouptut.
+.TP 12
+\fB\fB\-\-\-no\-header\fP
+do not output header information.
+.TP 12

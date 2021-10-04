@@ -97,6 +97,7 @@ libmva/regression/testA
 libmva/regression/testB
 libtool
 lqn2ps/lqn2ps
+lqn2csv/lqn2csv
 lqngen/lqngen
 lqns/lqns
 lqns/regression/disttest

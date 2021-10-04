@@ -678,9 +678,9 @@ add_act_service_exceeded_confidence( const char * task, const char *activity, in
  */
 
 void
-add_entry_thpt_ut ( const char * task, const char *entry, double throughput, double *phase_util, double utilization )
+add_entry_thpt_ut ( const char *, const char *entry, double throughput, double *phase_util, double utilization )
 {
-    int entry_id = find_or_add_entry( task, entry );
+    int entry_id = find_or_add_entry( entry );
 
     if ( !entry_id ) return;
 

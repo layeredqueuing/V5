@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- *  $Id: expat_document.h 13477 2020-02-08 23:14:37Z greg $
+ *  $Id: expat_document.h 15018 2021-10-02 13:32:45Z greg $
  *
  *  Created by Greg Franks.
  */
@@ -29,26 +29,14 @@ namespace LQIO {
 	typedef XML_Char DocumentObject;
 	typedef XML_Char AndJoinActivityList;
 
-	struct ActivityList {
-	    /* Descriminator for the list type */
-	    typedef enum ActivityListType {
-		JOIN_ACTIVITY_LIST = 1,
-		FORK_ACTIVITY_LIST,
-		AND_FORK_ACTIVITY_LIST,
-		AND_JOIN_ACTIVITY_LIST,
-		OR_FORK_ACTIVITY_LIST,
-		OR_JOIN_ACTIVITY_LIST,
-		REPEAT_ACTIVITY_LIST
-	    } ActivityListType;
-	};
-	struct Call {
-	    /* Different types of calls */
-	    typedef enum CallType {
-		NULL_CALL,
-		SEND_NO_REPLY,
-		RENDEZVOUS,
-		FORWARD,
-	    } CallType;
+	enum struct ActivityList {
+	    JOIN = 1,
+	    FORK,
+	    AND_FORK,
+	    AND_JOIN,
+	    OR_FORK,
+	    OR_JOIN,
+	    REPEAT
 	};
 
 	class Expat_Document {
@@ -61,8 +49,8 @@ namespace LQIO {
 
 	    struct parse_stack_t
 	    {
-		parse_stack_t(const XML_Char * e, start_fptr f, const DocumentObject * o=Expat_Document::XNil, const DocumentObject * x=Expat_Document::XNil, const DocumentObject * d=Expat_Document::XNil, result_fptr r=0, end_fptr y=0 )
-		    : element(e), object(o), extra(x), dest(d), data(0), start_func(f), end_func(y), result(r) {}
+		parse_stack_t(const XML_Char * e, start_fptr f, const DocumentObject * o=Expat_Document::XNil, const DocumentObject * x=Expat_Document::XNil, const DocumentObject * d=Expat_Document::XNil, result_fptr r=nullptr, end_fptr y=nullptr )
+		    : element(e), object(o), extra(x), dest(d), data(nullptr), start_func(f), end_func(y), result(r) {}
 		bool operator==( const XML_Char * ) const;
 
 		const std::basic_string<XML_Char> element;
@@ -187,8 +175,8 @@ namespace LQIO {
 	    const ConfidenceIntervals _conf_99;
 
 	private:
-	    static std::map<const XML_Char *,ActivityList::ActivityListType,attribute_table_t> precedence_table;
-	    static std::map<result_fptr,result_fptr,confidence_result_table_t> confidence_result_table;
+	    static const std::map<const XML_Char *,const ActivityList,attribute_table_t> precedence_table;
+	    static const std::map<result_fptr,result_fptr,confidence_result_table_t> confidence_result_table;
 
 	    static const XML_Char *XNil;
 

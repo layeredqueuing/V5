@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2ps.cc 14794 2021-06-11 12:13:01Z greg $
+ * $Id: lqn2ps.cc 15019 2021-10-02 13:33:15Z greg $
  *
  * Command line processing.
  *
@@ -194,7 +194,7 @@ lqn2ps( int argc, char *argv[] )
     int arg;
     std::string output_file_name = "";
 
-    sscanf( "$Date: 2021-06-11 08:13:01 -0400 (Fri, 11 Jun 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-10-02 09:33:15 -0400 (Sat, 02 Oct 2021) $", "%*s %s %*s", copyrightDate );
 
     static std::string opts = "";
 #if HAVE_GETOPT_H
@@ -1146,7 +1146,7 @@ makeopts( std::string& opts, std::vector<struct option>& longopts )
 static void
 makeopts( string& opts ) 
 {
-    for ( unsigned int i = 0; Flags::print[i].name != 0; ++i ) {
+    for ( unsigned int i = 0; Flags::print[i].name != nullptr; ++i ) {
 	opts += static_cast<char>(Flags::print[i].c);
 	if ( Flags::print[i].arg ) {
 	    opts += ':';

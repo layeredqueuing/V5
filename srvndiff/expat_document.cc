@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: expat_document.cc 13996 2020-10-24 22:01:20Z greg $
+ * $Id: expat_document.cc 15018 2021-10-02 13:32:45Z greg $
  *
  * Read in XML input files.
  *
@@ -188,8 +188,35 @@ namespace LQIO {
         const XML_Char * Expat_Document::Xwaiting_variance =                    "waiting-variance";
         const XML_Char * Expat_Document::Xxml_debug =                           "xml-debug";
 
-	std::map<const XML_Char *,ActivityList::ActivityListType,Expat_Document::attribute_table_t> Expat_Document::precedence_table;
-	std::map<Expat_Document::result_fptr,Expat_Document::result_fptr,Expat_Document::confidence_result_table_t> Expat_Document::confidence_result_table;
+	const std::map<const XML_Char *,const ActivityList,Expat_Document::attribute_table_t> Expat_Document::precedence_table = {
+            { Xpre,        ActivityList::JOIN },
+            { Xpre_or,     ActivityList::OR_JOIN },
+            { Xpre_and,    ActivityList::AND_JOIN },
+            { Xpost,       ActivityList::FORK },
+            { Xpost_or,    ActivityList::OR_FORK },
+            { Xpost_and,   ActivityList::AND_FORK },
+            { Xpost_loop,  ActivityList::REPEAT }
+	};
+
+	/*
+	 * Results for most of the elements of an lqn-model are of a common type in the schema.  This table is used to
+	 * invoke the appropriate function.  The function is implemented in dom objects that support the result.
+	 */
+
+	const std::map<Expat_Document::result_fptr,Expat_Document::result_fptr,Expat_Document::confidence_result_table_t> Expat_Document::confidence_result_table = {
+            { &Expat_Document::handleProcessorResults,       &Expat_Document::handleProcessorConfResults },
+            { &Expat_Document::handleGroupResults,           &Expat_Document::handleGroupConfResults },
+            { &Expat_Document::handleTaskResults,            &Expat_Document::handleTaskConfResults },
+            { &Expat_Document::handleEntryResults,           &Expat_Document::handleEntryConfResults },
+            { &Expat_Document::handlePhaseResults,           &Expat_Document::handlePhaseConfResults },
+            { &Expat_Document::handleActivityResults,        &Expat_Document::handleActivityConfResults },
+            { &Expat_Document::handleEntryFwdCallResults,    &Expat_Document::handleEntryFwdCallConfResults },
+            { &Expat_Document::handlePhaseRNVCallResults,    &Expat_Document::handlePhaseRNVCallConfResults },
+            { &Expat_Document::handleActivityRNVCallResults, &Expat_Document::handleActivityRNVCallConfResults },
+            { &Expat_Document::handlePhaseSNRCallResults,    &Expat_Document::handlePhaseSNRCallConfResults },
+            { &Expat_Document::handleActivitySNRCallResults, &Expat_Document::handleActivitySNRCallConfResults },
+            { &Expat_Document::handleJoinResults,            &Expat_Document::handleJoinConfResults }
+	};
 
 	/* Ugly hack required here simply for sorting... C++ won't let me cast a function pointer to a caddr_t, so... */
 
@@ -228,10 +255,6 @@ namespace LQIO {
 	    _parser = XML_ParserCreateNS(NULL,'/');	/* Gobble header goop */
 	    if ( !_parser ) {
 		throw std::runtime_error("");
-	    }
-
-	    if ( precedence_table.size() == 0 ) {
-		init_tables();
 	    }
 
 	    XML_SetElementHandler( _parser, start, end );
@@ -803,23 +826,23 @@ namespace LQIO {
 	void
 	Expat_Document::startPrecedenceType( const DocumentObject * task, const XML_Char * element, const XML_Char ** attributes )
 	{
-	    std::map<const XML_Char *,ActivityList::ActivityListType>::const_iterator item = precedence_table.find(element);
+	    std::map<const XML_Char *,const ActivityList>::const_iterator item = precedence_table.find(element);
 	    if ( item != precedence_table.end() ) {
 		switch ( item->second ) {
-		case ActivityList::OR_JOIN_ACTIVITY_LIST:
-		case ActivityList::JOIN_ACTIVITY_LIST:
+		case ActivityList::OR_JOIN:
+		case ActivityList::JOIN:
 		    _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType) );
 		    break;
 
-		case ActivityList::AND_JOIN_ACTIVITY_LIST:
+		case ActivityList::AND_JOIN:
 		    _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType,task,XNil,XNil,0,&Expat_Document::endActivityListType) );
 		    _stack.top().data = static_cast<void *>(new join_info_t);
 		    break;
 
-		case ActivityList::OR_FORK_ACTIVITY_LIST:
-		case ActivityList::FORK_ACTIVITY_LIST:
-		case ActivityList::AND_FORK_ACTIVITY_LIST:
-		case ActivityList::REPEAT_ACTIVITY_LIST:
+		case ActivityList::OR_FORK:
+		case ActivityList::FORK:
+		case ActivityList::AND_FORK:
+		case ActivityList::REPEAT:
 		    _stack.push( parse_stack_t(element,&Expat_Document::startActivityListType) );
 		    break;
 		}
@@ -1415,35 +1438,5 @@ namespace LQIO {
 	    return element == str;
 	}
 
-
-	/*
-	 * Results for most of the elements of an lqn-model are of a common type in the schema.  This table is used to
-	 * invoke the appropriate function.  The function is implemented in dom objects that support the result.
-	 */
-
-	void
-	Expat_Document::init_tables()
-	{
-            precedence_table[Xpre] =       ActivityList::JOIN_ACTIVITY_LIST;
-            precedence_table[Xpre_or] =    ActivityList::OR_JOIN_ACTIVITY_LIST;
-            precedence_table[Xpre_and] =   ActivityList::AND_JOIN_ACTIVITY_LIST;
-            precedence_table[Xpost] =      ActivityList::FORK_ACTIVITY_LIST;
-            precedence_table[Xpost_or] =   ActivityList::OR_FORK_ACTIVITY_LIST;
-            precedence_table[Xpost_and] =  ActivityList::AND_FORK_ACTIVITY_LIST;
-            precedence_table[Xpost_loop] = ActivityList::REPEAT_ACTIVITY_LIST;
-
-            confidence_result_table[&Expat_Document::handleProcessorResults]        = &Expat_Document::handleProcessorConfResults;
-            confidence_result_table[&Expat_Document::handleGroupResults]            = &Expat_Document::handleGroupConfResults;
-            confidence_result_table[&Expat_Document::handleTaskResults]             = &Expat_Document::handleTaskConfResults;
-            confidence_result_table[&Expat_Document::handleEntryResults]            = &Expat_Document::handleEntryConfResults;
-            confidence_result_table[&Expat_Document::handlePhaseResults]            = &Expat_Document::handlePhaseConfResults;
-            confidence_result_table[&Expat_Document::handleActivityResults]         = &Expat_Document::handleActivityConfResults;
-            confidence_result_table[&Expat_Document::handleEntryFwdCallResults]     = &Expat_Document::handleEntryFwdCallConfResults;
-            confidence_result_table[&Expat_Document::handlePhaseRNVCallResults]     = &Expat_Document::handlePhaseRNVCallConfResults;
-            confidence_result_table[&Expat_Document::handleActivityRNVCallResults]  = &Expat_Document::handleActivityRNVCallConfResults;
-            confidence_result_table[&Expat_Document::handlePhaseSNRCallResults]     = &Expat_Document::handlePhaseSNRCallConfResults;
-            confidence_result_table[&Expat_Document::handleActivitySNRCallResults]  = &Expat_Document::handleActivitySNRCallConfResults;
-            confidence_result_table[&Expat_Document::handleJoinResults]             = &Expat_Document::handleJoinConfResults;
-	}
     }
 }
