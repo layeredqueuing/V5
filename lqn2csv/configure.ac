@@ -41,6 +41,8 @@ AC_HEADER_DIRENT
 AC_HEADER_SYS_WAIT
 AC_TYPE_SIZE_T
 AC_CHECK_HEADERS([getopt.h])
+AC_CHECK_HEADERS([glob.h])
+AC_CHECK_HEADERS([libgen.h]) 
 AC_CHECK_HEADERS([unistd.h])
 
 # ----------------------------------------------------------------------
@@ -50,5 +52,6 @@ AC_CHECK_HEADERS([unistd.h])
 # Checks for library functions.
 AC_CHECK_FUNCS([getopt_long])
 AC_CHECK_FUNCS([basename])
+AC_CHECK_FUNCS([glob])
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

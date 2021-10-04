@@ -12,6 +12,7 @@
  * ------------------------------------------------------------------------
  */
 
+#include "config.h"
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
@@ -25,11 +26,14 @@
 #include <stdexcept>
 #include <vector>
 #include <ctype.h>
-#include <glob.h>
 #include <getopt.h>
+#if HAVE_GLOB_H
+#include <glob.h>
+#endif
+#if HAVE_LIBGEN_H
 #include <libgen.h>
+#endif
 #include <unistd.h>
-#include <libgen.h>
 #include <sys/stat.h>
 #include "model.h"
 #include <lqio/dom_document.h>
@@ -115,7 +119,9 @@ std::vector<Model::Result::result_t> results;
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results );
 static std::string makeopts( const std::vector<struct option>& );
 static bool is_directory( const char * filename );
+#if HAVE_GLOB
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
+#endif
 static void usage();
 
 std::string toolname;
@@ -232,7 +238,11 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
     /* For all files do... */
 
     if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
+#if HAVE_GLOB
 	process_directory( output, argv[optind], Model::Process( output, results ) );
+#else
+	std::cerr << toolname << ": the directory option is not supported with this version." << std::endl;
+#endif
     } else {
 	std::for_each( &argv[optind], &argv[argc], Model::Process( output, results ) );
     }
@@ -265,6 +275,7 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
  * for now), then run Model::Process::operator()() on this list.
  */
 
+#if HAVE_GLOB
 static void
 process_directory( std::ostream& output, const std::string& dirname, const Model::Process& process )
 {
@@ -299,7 +310,7 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
     
     std::for_each( &dir_list.gl_pathv[0], &dir_list.gl_pathv[dir_list.gl_pathc], process );
 }
-
+#endif
 
 
 /*
