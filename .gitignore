@@ -1,5 +1,6 @@
 *.a
 *.aux
+*.bak
 *.bbl
 *.blg
 *.cache
@@ -102,6 +103,7 @@ lqngen/lqngen
 lqns/lqns
 lqns/regression/disttest
 lqsim/lqsim
+lqsim/doc
 lqx/drvsrc/lqx
 lqx/libsrc/Parser_pre.cpp
 lqx/libsrc/Parser_pre.h
