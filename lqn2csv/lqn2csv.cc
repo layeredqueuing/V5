@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15037 2021-10-04 16:35:47Z greg $
+ * $Id: lqn2csv.cc 15042 2021-10-05 14:11:14Z greg $
  *
  * Command line processing.
  *
@@ -16,15 +16,16 @@
 #include <algorithm>
 #include <cstdlib>
 #include <cstring>
-#include <iostream>
-#include <iomanip>
-#include <errno.h>
-#include <iostream>
 #include <fstream>
+#include <iomanip>
+#include <iostream>
+#include <iostream>
 #include <numeric>
+#include <regex>
 #include <sstream>
 #include <stdexcept>
 #include <vector>
+#include <errno.h>
 #include <ctype.h>
 #include <getopt.h>
 #if HAVE_GLOB_H
@@ -44,32 +45,36 @@ int no_header       = 0;
 
 const std::vector<struct option> longopts = {
     /* name */ /* has arg */ /*flag */ /* val */
-    { "open-wait",             required_argument, 0, 'a' }, 
-    { "bounds",                required_argument, 0, 'b' }, 
-    { "entry-utilization",     required_argument, 0, 'e' }, 
-    { "entry-throughput",      required_argument, 0, 'f' }, 
-    { "activity-throughput",   required_argument, 0, 'F' }, 
-    { "hold-times",            required_argument, 0, 'h' }, 
-    { "join-delays",           required_argument, 0, 'j' }, 
-    { "loss-probability",      required_argument, 0, 'l' }, 
-    { "output",                required_argument, 0, 'o' },
-    { "processor-utilization", required_argument, 0, 'p' }, 
-    { "processor-waiting",     required_argument, 0, 'q' }, 
-    { "service",               required_argument, 0, 's' }, 
-    { "activity-service",      required_argument, 0, 'S' }, 
-    { "task-throughput",       required_argument, 0, 't' }, 
-    { "task-utilization",      required_argument, 0, 'u' }, 
-    { "variance",              required_argument, 0, 'v' }, 
-    { "activity-variance",     required_argument, 0, 'V' }, 
-    { "waiting",               required_argument, 0, 'w' }, 
-    { "activity-waiting",      required_argument, 0, 'W' }, 
-    { "service-exceeded",      required_argument, 0, 'x' }, 
+    { "open-wait",             required_argument, nullptr, 'a' }, 
+    { "bounds",                required_argument, nullptr, 'b' }, 
+    { "entry-utilization",     required_argument, nullptr, 'e' }, 
+    { "entry-throughput",      required_argument, nullptr, 'f' }, 
+    { "activity-throughput",   required_argument, nullptr, 'F' }, 
+    { "hold-times",            required_argument, nullptr, 'h' }, 
+    { "join-delays",           required_argument, nullptr, 'j' }, 
+    { "loss-probability",      required_argument, nullptr, 'l' }, 
+    { "output",                required_argument, nullptr, 'o' },
+    { "processor-utilization", required_argument, nullptr, 'p' }, 
+    { "processor-waiting",     required_argument, nullptr, 'q' }, 
+    { "service",               required_argument, nullptr, 's' }, 
+    { "activity-service",      required_argument, nullptr, 'S' }, 
+    { "task-throughput",       required_argument, nullptr, 't' }, 
+    { "task-utilization",      required_argument, nullptr, 'u' }, 
+    { "variance",              required_argument, nullptr, 'v' }, 
+    { "activity-variance",     required_argument, nullptr, 'V' }, 
+    { "waiting",               required_argument, nullptr, 'w' }, 
+    { "activity-waiting",      required_argument, nullptr, 'W' }, 
+    { "service-exceeded",      required_argument, nullptr, 'x' }, 
+    { "arguments",	       required_argument, nullptr, '@' },
     { "gnuplot",               no_argument,       &gnuplot_flag, 1 },
     { "no-header",             no_argument,       &no_header,    1 },
-    { nullptr,                 0,                 0, 0 }
+    { "help",		       no_argument,	  nullptr, 0x100+'h' },
+    { "version",	       no_argument,	  nullptr, 0x100+'v' },
+    { nullptr,                 0,                 nullptr, 0 }
 };
+std::string opts;
 
-const static std::map<char,const std::string> help_str
+const static std::map<int,const std::string> help_str
 {
     { 'a', "print open arrival waiting time for <entry>." }, 
     { 'b', "print throughput bound for <entry>." }, 
@@ -90,7 +95,10 @@ const static std::map<char,const std::string> help_str
     { 'V', "print service time variance for <task>, <activity>." }, 
     { 'w', "print waiting time for <src> entry, phase <n> to <dst> entry." }, 
     { 'W', "Activity call waiting time." }, 
-    { 'x', "Probability phase service time exceeded." }
+    { 'x', "Probability phase service time exceeded." },
+    { '@', "Read the argument list from <arg>.  --output-file and --arguments are ignored." },
+    { 0x100+'h', "Print out this list." },
+    { 0x100+'v', "Print out version numbder." }
 };
 
 const static std::map<char,Model::Result::Type> result_type
@@ -117,12 +125,13 @@ const static std::map<char,Model::Result::Type> result_type
 std::vector<Model::Result::result_t> results;
 
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results );
-static std::string makeopts( const std::vector<struct option>& );
 static bool is_directory( const char * filename );
 #if HAVE_GLOB
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
 #endif
+static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
 static void usage();
+static std::string makeopts( const std::vector<struct option>& );
 
 std::string toolname;
 std::string output_file_name;
@@ -136,11 +145,12 @@ main( int argc, char *argv[] )
 {
     extern char *optarg;
     extern int optind;
+    static char copyrightDate[20];
 
-//    sscanf( "$Date: 2021-10-02 09:33:15 -0400 (Sat, 02 Oct 2021) $", "%*s %s %*s", copyrightDate );
+    sscanf( "$Date: 2021-10-02 09:33:15 -0400 (Sat, 02 Oct 2021) $", "%*s %s %*s", copyrightDate );
 
     toolname = basename( argv[0] );
-    const std::string opts = makeopts( longopts );	/* Convert to regular options */
+    opts = makeopts( longopts );	/* Convert to regular options */
 
     for ( ;; ) {
 	const int c = getopt_long( argc, argv, opts.c_str(), longopts.data(), nullptr );
@@ -148,7 +158,7 @@ main( int argc, char *argv[] )
 	
 	/* Find the option */
 	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( c );
-	if ( result != result_type.end() ) {
+	if ( optarg != nullptr && result != result_type.end() ) {
 	    results.emplace_back( optarg, result->second );
 	}
 	switch ( c ) {
@@ -158,7 +168,24 @@ main( int argc, char *argv[] )
 	    output_file_name = optarg;
 	    break;
 
+	case 0x100+'h':
+	    usage();
+	    exit( 0 );
+	    break;
+
+	case 0x100+'v':
+            std::cout << "Lqn2csv, Version " << VERSION << std::endl << std::endl;
+            std::cout << "  Copyright " << copyrightDate << " the Real-Time and Distributed Systems Group," << std::endl;
+            std::cout << "  Department of Systems and Computer Engineering," << std::endl;
+            std::cout << "  Carleton University, Ottawa, Ontario, Canada. K1S 5B6" << std::endl << std::endl;
+            break;
+	    
+	case '@':
+	    fetch_arguments( optarg, results );
+	    break;
+	    
 	case '?':
+	    std::cerr << toolname << ": invalid argument -- " << argv[optind-1] << "." << std::endl; // 
             usage();
 	    exit( 1 );
 	}
@@ -179,6 +206,7 @@ main( int argc, char *argv[] )
     } else {
 	process( std::cout, argc, argv, results );
     }
+    exit( 0 );
 }
 
 
@@ -282,24 +310,17 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
     size_t i = dirname.find_last_of( "/" );
     size_t j = dirname.find_last_of( "." );
     const std::string basepath = dirname + "/" + dirname.substr( 0, i ).substr( 0, j );	/* stip directories and suffixes */
-    int rc;
+    static const std::vector<const std::string> patterns = { "-*.lqxo", ".lqxo~*~", "-*.lqjo", "*.lqjo~*~" };
 
-    std::string pathname = basepath + "-*.lqxo";
     glob_t dir_list;
-    rc = glob( pathname.c_str(), 0, NULL, &dir_list );
-    if ( dir_list.gl_pathc == 0 ) {
-	pathname = basepath + ".lqxo~*~";
+    dir_list.gl_offs = 0;
+    dir_list.gl_pathc = 0;
+    int rc = -1;
+    for ( std::vector<const std::string>::const_iterator match = patterns.begin(); match != patterns.end() && dir_list.gl_pathc == 0 ; ++match ) {
+	std::string pathname = basepath + *match;
 	rc = glob( pathname.c_str(), 0, NULL, &dir_list );
     }
-    glob( pathname.c_str(), 0, NULL, &dir_list );
-    if ( dir_list.gl_pathc == 0 ) {
-	pathname = basepath + "-*.lqjo";
-	rc = glob( pathname.c_str(), 0, NULL, &dir_list );
-    }
-    if ( dir_list.gl_pathc == 0 ) {
-	pathname = basepath + "*.lqjo~*~";
-	rc = glob( pathname.c_str(), 0, NULL, &dir_list );
-    }
+	  
     if ( rc == GLOB_NOSPACE ) {
 	std::cerr << toolname << ": not enough space for glob." << std::endl;
 	return;
@@ -331,6 +352,61 @@ is_directory( const char * filename )
 }
 
 
+/*
+ * Read each line and store in results 
+ */
+
+static void
+fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results )
+{
+    std::ifstream input;
+    input.open( filename, std::ios::in );
+    if ( !input ) {
+	std::cerr << toolname << ": cannot open " << filename << ", " << std::endl;
+	return;
+    }
+
+    const int saved_optind = optind;		/* getopt is not reenterant... */
+    size_t line_no = 1;
+    for ( std::string str; std::getline( input, str ); line_no += 1 ) {
+
+	/* Tokenize input line. */
+	if ( str.empty() ) continue;
+	const std::regex regex(" ");
+	const std::vector<std::string> tokens( std::sregex_token_iterator(str.begin(), str.end(), regex, -1), std::sregex_token_iterator() );
+	const int argc = tokens.size() + 1;
+
+	/* Get pointers to tokens for longopt */
+	std::vector<char *> argv( argc );
+	argv.at(0) = const_cast<char *>(filename.c_str());
+	for ( size_t i = 1; i < argc; ++i ) {
+	    argv.at(i) = const_cast<char *>(tokens.at(i-1).c_str());
+	}
+
+	/* Run the option processor.  */
+	optind = 1;				/* Reset getopt_long processing */
+	const int c = getopt_long( argc, argv.data(), opts.c_str(), longopts.data(), nullptr );
+
+	/* Handle all result args (and result options --gnuplot,...) */
+	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( c );
+	if ( optarg != nullptr && result != result_type.end() ) {
+	    results.emplace_back( optarg, result->second );
+	    continue;
+	}
+
+	/* Ignore non-results options with args. (-o, -a...) */
+	switch ( c ) {
+	case EOF:
+	    break;
+	case '?':
+	    std::cerr << toolname << ": File " << filename << ", line " << line_no << ": invalid argument -- " << str << "." << std::endl; // 
+	    break;
+	}
+    }
+    optind = saved_optind;
+    input.close();
+}
+
 
 /*
  * Convert longopts to short string
@@ -343,10 +419,10 @@ makeopts( const std::vector<struct option>& longopts )
 
     for ( std::vector<struct option>::const_iterator opt = longopts.begin(); opt != longopts.end() && opt->name != nullptr; ++opt ) {
 	if ( !isgraph( opt->val ) ) continue;
+	opts += opt->val;
 	if ( opt->has_arg != no_argument ) {
 	    opts += ':';
 	}
-	opts += opt->val;
     }
 
     return opts;
@@ -371,22 +447,25 @@ usage()
 
 	std::string s = opt->name;
 	std::map<char,Model::Result::Type>::const_iterator result = result_type.find( opt->val );
-	if ( result != result_type.end() ) {
-	    switch ( Model::Result::__results.at(result->second).type ) {
-	    case Model::Object::Type::ENTRY:	    s += "=<entry>"; break;
-	    case Model::Object::Type::TASK:	    s += "=<task>"; break;
-	    case Model::Object::Type::PHASE:	    s += "=<entry>,<n>"; break;
-	    case Model::Object::Type::PROCESSOR:    s += "=<processor>"; break;
-	    case Model::Object::Type::CALL:    	    s += "=<src>,<n>,<dst>"; break;
-	    case Model::Object::Type::ACTIVITY:     s += "=<task>,<activity>"; break;
-	    case Model::Object::Type::JOIN:	    s += "not implemented"; break;
+	if ( opt->has_arg == required_argument ) {
+	    if ( result != result_type.end() ) {
+		switch ( Model::Result::__results.at(result->second).type ) {
+		case Model::Object::Type::ENTRY:      s += "=<entry>"; break;
+		case Model::Object::Type::TASK:	      s += "=<task>"; break;
+		case Model::Object::Type::PHASE:      s += "=<entry>,<n>"; break;
+		case Model::Object::Type::PROCESSOR:  s += "=<processor>"; break;
+		case Model::Object::Type::CALL:       s += "=<src>,<n>,<dst>"; break;
+		case Model::Object::Type::ACTIVITY:   s += "=<task>,<activity>"; break;
+		case Model::Object::Type::JOIN:	      s += " Not implemented."; break;
+		default: break;
+		}
+	    } else {
+		s += "=<arg>";
 	    }
-	} else if ( opt->has_arg == required_argument ) {
-	    s += "=<arg>";
 	}
-	std::cerr << std::left << std::setw(36) << s;
+	std::cerr << std::left << std::setw(40) << s;
 
-	const std::map<char,const std::string>::const_iterator i = help_str.find( opt->val );
+	const std::map<int,const std::string>::const_iterator i = help_str.find( opt->val );
 	if ( i != help_str.end() ) {
 	    std::cerr << i->second; 
 	} else if ( strcmp( opt->name, "gnuplot" ) == 0 ) {

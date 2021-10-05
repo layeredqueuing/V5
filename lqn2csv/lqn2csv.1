@@ -1,89 +1,116 @@
 .TH LQN2CSV 1 "2 October 2021"
 .\" Id$
 .SH NAME
-lqnresult \- compare SRVN results.
+lqnresult \- extract LQN results
 .SH SYNOPSIS
 .br
-.B lqnresult
-[\fIOPTIONS\fR].\|.\|. \fIFILES\fR 
-.B 
+\fBlqn2csv\fR [\fIOPTIONS\fR] \fIfiles \.\|.\|.\fR
+.br
+\fBlqn2csv\fR [\fIOPTIONS\fR] \fIdirectory\fR
+
 .SH DESCRIPTION
-\fBLqnresult\fR is used to extract the output from the LQN solvers
+\fBLqn2csv\fR is used to extract the output from the LQN solvers
 \fBlqns\fR(1), \fBlqsim\fR(1) and
 \fBpetrisrvn\fR(1) and print them in a format suitable for plotting
-with gnuplot(1) or loading into a spreadsheet.
+with \fBgnuplot\fR(1) or loading into a spreadsheet.
 
-The arguments to \fBlqnresult\fR are a list of file names.
-The options to \fBlqnresult\fR are used to select the results to
-extract and print.
+The options to \fBlqn2csv\fR are used to select the results from a
+model solution to extract and print.  The results are output in the
+order that the options are given, separated by commas. Unlike
+\fBsrvndiff(1)\fP, the model files do \fInot\fP have to be the same;
+\fBlqn2csv\fP simply searches for results that match the arguments.
+If no match is found (or if an argument is not specified correctly),
+the string ``NULL'' is output. 
 
+The arguments to \fBlqn2csv\fR are a list of file names. If a
+directory is supplied as an argument, the directory is searched for
+all files the end in \fI\-*.lqxo\fP, \fI.lqxo~*~\fP, \fI\-*.lqjo\fP, 
+or \fI.lqjo~*~\fP, in that order (i.e., the results from SPEX or LQX
+runs, or the results from using \fB\-\-print-interval\fR with
+\fBlqns(1)\fP or \fBlqsim(1)\fB).  Parseable output, \fI*.p\fR, is not
+supported for the directory version of the command at this time.
 .SH "OPTIONS"
-.TP 12
+.TP 8
+\fB\-@,\fP \fB\-\-arguments=\fIarg\fR
+Load the options to \fBlqn2csv\fP from the file named
+\fIarg\fP. Arguments in \fIarg\fP can be separated by both spaces and
+newlines. All the options to \fBlqn2csv\fP can be loaded from the file
+except for \fB\-\-arguments\fP, \fB\-\-output\fP, \fB\-\-help\fP, and
+\fB\-\-version\fP.  Options can appear on both the command line and in
+one or more occurances of \fB\-\-arguments\fR.
+.TP 8
 \fB\-a\fP, \fB\-\-open\-wait=\fIentry\fR
 Print open the arrival waiting time for \fIentry\fP.
-.TP 12
+.TP 8
 \fB\-b,\fP \fB\-\-bounds=\fIentry\fR
 Print the throughput bound for \fIentry\fP.
-.TP 12
+.TP 8
 \fB\-e,\fP \fB\-\-entry\-utilization=\fIentry\fR
 Print the utilization for \fIentry\fP.
-.TP 12
-\fB\-\fP,\fP \fB\-\-entry\-throughput=\fIentry\f\R
+.TP 8
+\fB\-\fP,\fP \fB\-\-entry\-throughput=\fIentry\fR
 Print the throughput for \fIentry\fP.
-.TP 12
+.TP 8
 \fB\-F,\fP \fB\-\-activity\-throughput=\fItask\fP,\fIactivity\fR
 Print the througput for \fItask\fP, \fIactivity\fP.
-.TP 12
+.TP 8
 \fB\-h,\fP \fB\-\-hold\-times\fR
 Print the hold time at a join.
-.TP 12
+.TP 8
 \fB\-j,\fP \fB\-\-join\-delays\fR
 Print the join delay at a join,.
-.TP 12
+.TP 8
 \fB\-l,\fP \fB\-\-loss\-probability=\fIsrc\fP,\fIn\fP,\fIdst\fR
 Print the probability of a lost message for an asynchronous send from
 entry \fIsrc\fP, phase \fIn\fP, to entry \fIdst\fP.
-.TP 12
+.TP 8
 \fB\-o,\fP \fB\-\-output=\fIarg\fR
 Write the  output to the file named \fIarg\fP.
-.TP 12
+.TP 8
 \fB\-p,\fP \fB\-\-processor\-utilization=\fIprocessor\fR
 Print the utilization for \fIprocessor\fP.
-.TP 12
+.TP 8
 \fB\-q,\fP \fB\-\-processor\-waiting=\fIentry\fP,\fIn\fR
 Print the waiting time at the processor for \fIentry\fP, phase \fIn\fP.
-.TP 12
+.TP 8
 \fB\-s,\fP \fB\-\-service=\fIentry\fP,\fIn\fR
 Print the service time for \fIentry\fP, phase \fIn\fP.
-.TP 12
+.TP 8
 \fB\-S,\fP \fB\-\-activity\-service=\fIarg\fR
 Print the service time for \fItask\fP, \fIactivity\fP.
-.TP 12
+.TP 8
 \fB\-t,\fP \fB\-\-task\-throughput=\fItask\fR
 Print the throughput for \fItask\fP.
-.TP 12
+.TP 8
 \fB\-u,\fP \fB\-\-task\-utilization=\fItask\fR
 Print the utilization for \fItask\fP.
-.TP 12
+.TP 8
 \fB\-v,\fP \fB\-\-variance=\fIentry\fP,\fIn\fR
 Print the  service time variance for \fIentry\fP, phase \fIn\fP.
-.TP 12
+.TP 8
 \fB\-V,\fP \fB\-\-activity\-variance=\fIarg\fR
 Print the  service time variance for \fItask\fP, \fIactivity\fP.
-.TP 12
+.TP 8
 \fB\-w,\fP \fB\-\-waiting=\fIsrc\fP,\fIn\fP,\fIdst\fR
 Print the waiting time for a call from the entry \fIsrc\fP, phase
 \fIn\fP to the entry \fIdst\fP entry.
-.TP 12
+.TP 8
 \fB\-W,\fP \fB\-\-activity\-waiting=\fIarg\fR
 Print the activity call waiting time.
-.TP 12
+.TP 8
 \fB\-x,\fP \fB\-\-service\-exceeded=\fIentry\fP,\fIn\fR
-print the phase service time exceeded probability.
-.TP 12
+Print the phase service time exceeded probability.
+.TP 8
 \fB\fB\-\-gnuplot\fP
-generate gnuplot ouptut.
-.TP 12
+Generate gnuplot ouptut.
+.TP 8
 \fB\fB\-\-no\-header\fP
-do not output header information.
-.TP 12
+Do not output header information.
+.TP 8
+\fB\-\-help\fP
+Print out a summary of the options.
+.TP 8
+\fB\-\-version\fP
+Print out the version number.
+.SH "SEE ALSO"
+\fIlqns\fR(1), \fIlqsim\fR(1), \fIpetrisrvn\fR(1), \fIsrvndiff\fR(1), \fIgnuplot\fR(1).
