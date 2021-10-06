@@ -10,7 +10,7 @@
  * February 1997
  *
  * ------------------------------------------------------------------------
- * $Id: actlist.cc 14869 2021-06-29 01:39:40Z greg $
+ * $Id: actlist.cc 15046 2021-10-05 21:52:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1113,9 +1113,9 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 DiscretePoints sumLocal;
                 DiscretePoints sumRemote;
 
-                anEntry->_total._variance = 0.0;
+                anEntry->_total.setVariance( 0.0 );
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total._variance += anEntry->_phase[p].variance();
+                    anEntry->_total.addVariance( anEntry->_phase[p].variance() );
                     if (flags.trace_quorum) {
                         std::cout <<"\nEntry " << anEntry->name() << ", anEntry->elapsedTime(p="<<p<<")=" << anEntry->_phase[p].elapsedTime() << std::endl;
                         std::cout << "anEntry->phase[p="<<p<<"]._wait[submodel=1]=" << anEntry->_phase[p]._wait[1] << std::endl;
@@ -1142,9 +1142,9 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
                 DiscretePoints sumLocal;
                 DiscretePoints sumRemote;
 
-                anEntry->_total._wait[submodel] = 0.0;
+                anEntry->_total.setWaitTime( submodel,0.0 );
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total._wait[submodel] += anEntry->_phase[p]._wait[submodel];
+                    anEntry->_total.addWaitTime( submodel, anEntry->_phase[p].getWaitTime( submodel ) );
                     if (flags.trace_quorum) {
                         std::cout <<"\nEntry " << anEntry->name() <<", anEntry->elapsedTime(p="<<p<<")=" <<anEntry->_phase[p].elapsedTime() << std::endl;
 //                        std::cout << "anEntry->phase[curr_p="<<curr_p<<"]._wait[submodel="<<2<<"]=" << anEntry->_phase[curr_p]._wait[2] << std::endl;
@@ -1166,9 +1166,9 @@ AndForkActivityList::collect( std::deque<const Activity *>& activityStack, std::
 
                 /* Updating the waiting time for this submodel */
 
-                anEntry->_total._wait[submodel] = 0.0;
+		    anEntry->_total.setWaitTime(submodel, 0.0 );
                 for ( unsigned p = 1; p <= currEntry->maxPhase(); ++p ) {
-                    anEntry->_total._wait[submodel] += anEntry->_phase[p]._wait[submodel];
+                    anEntry->_total.addWaitTime( submodel, anEntry->_phase[p].getWaitTime(submodel) );
                     term[p].init( anEntry->_phase[p]._wait[submodel], anEntry->_phase[p].variance() );
                 }
             }

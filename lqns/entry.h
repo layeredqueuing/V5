@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: entry.h 14855 2021-06-25 13:06:59Z greg $
+ * $Id: entry.h 15046 2021-10-05 21:52:16Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -262,7 +262,7 @@ public:
 #if PAN_REPLICATION
     double waitExceptChain( const unsigned, const unsigned, const unsigned ) const; //REP N-R
 #endif
-    double waitTime( unsigned int submodel ) { return _total._wait[submodel]; }
+//    double waitTime( unsigned int submodel ) { return _total.getWaitTimey(submodel); }
     double getProcWait( const unsigned p, int submodel )  { return _phase[p].getProcWait(submodel, 0) ;}	
 
     double elapsedTime() const { return _total.elapsedTime(); }			/* Found through deltaWait  */

@@ -11,7 +11,7 @@
  * July 2007
  *
  * ------------------------------------------------------------------------
- * $Id: activity.cc 14835 2021-06-16 00:25:22Z greg $
+ * $Id: activity.cc 15046 2021-10-05 21:52:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -906,7 +906,7 @@ Activity::collectWait( Entry * entry, const Activity::Collect& data ) const
 		 << ": wait " << _wait[submodel] << std::endl;
 	}
     } else {
-	entry->_phase[p]._variance += variance();
+	entry->_phase[p].addVariance( variance() );
     }
 }
 

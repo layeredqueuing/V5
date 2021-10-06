@@ -10,7 +10,7 @@
  * November, 1994
  *
  * ------------------------------------------------------------------------
- * $Id: task.cc 14945 2021-08-18 20:50:57Z greg $
+ * $Id: task.cc 15046 2021-10-05 21:52:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -1026,7 +1026,7 @@ Task::thinkTime( const unsigned submodel, const unsigned k ) const
 Task&
 Task::computeVariance()
 {
-    std::for_each( activities().begin(), activities().end(), ExecSum<Phase,double>( &Phase::computeVariance ) );
+    std::for_each( activities().begin(), activities().end(), Exec<Phase>( &Phase::updateVariance ) );
     Entity::computeVariance();
     return *this;
 }

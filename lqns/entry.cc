@@ -12,7 +12,7 @@
  * July 2007.
  *
  * ------------------------------------------------------------------------
- * $Id: entry.cc 14869 2021-06-29 01:39:40Z greg $
+ * $Id: entry.cc 15046 2021-10-05 21:52:16Z greg $
  * ------------------------------------------------------------------------
  */
 
@@ -79,7 +79,7 @@ Entry::Entry( LQIO::DOM::Entry* dom, unsigned int index, bool global )
 Entry::Entry( const Entry& src, unsigned int replica )
     : _dom(src._dom),
       _phase(src._phase.size()),
-      _total(src._total._name),
+      _total(src._total.name()),
       _nextOpenWait(0.0),
       _startActivity(nullptr),
       _entryId(src._entryId != 0 ? Model::__entry.size()+1 : 0),
@@ -1259,7 +1259,7 @@ TaskEntry::queueingTime( const unsigned p ) const
 TaskEntry&
 TaskEntry::computeVariance()
 {
-    _total._variance = 0.0;
+    _total.setVariance( 0.0 );
     if ( isActivityEntry() ) {
 	std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
 	std::deque<const Activity *> activityStack;
@@ -1268,9 +1268,10 @@ TaskEntry::computeVariance()
 	Activity::Collect collect( 0, &Activity::collectWait );
 	getStartActivity()->collect( activityStack, entryStack, collect );
 	entryStack.pop_back();
-	_total._variance += std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) );
+	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) ) );
     } else {
-	_total._variance += std::for_each( _phase.begin(), _phase.end(), ExecSum<Phase,double>( &Phase::computeVariance ) ).sum();
+	std::for_each( _phase.begin(), _phase.end(), Exec<Phase>( &Phase::updateVariance ) );
+	_total.addVariance( std::accumulate( _phase.begin(), _phase.end(), 0., add_using<Phase>( &Phase::variance ) ) );
     }
     if ( flags.trace_variance != 0 && (dynamic_cast<TaskEntry *>(this) != nullptr) ) {
 	std::cout << "Variance(" << name() << ",p) ";
@@ -1302,7 +1303,7 @@ Entry::set( const Entry * src, const Activity::Collect& data )
 	if ( submodel == 0 ) {
 	    std::for_each( _phase.begin(), _phase.end(), Exec1<NullPhase,double>( &Phase::setVariance, 0.0 ) );
 	} else {
-	    std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitingTime, submodel, 0.0 ) );
+	    std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitTime, submodel, 0.0 ) );
 	}
 #if PAN_REPLICATION
     } else if ( f == &Activity::collectReplication ) {
@@ -1335,7 +1336,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     if ( isActivityEntry() ) {
 
-	std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitingTime, submodel, 0.0 ) );
+	std::for_each( _phase.begin(), _phase.end(), Exec2<NullPhase,unsigned int,double>( &Phase::setWaitTime, submodel, 0.0 ) );
 
 	if ( flags.trace_activities ) {
 	    std::cout << "--- AggreateWait for entry " << name() << " ---" << std::endl;
@@ -1363,7 +1364,7 @@ TaskEntry::updateWait( const Submodel& aSubmodel, const double relax )
 
     }
 
-    _total._wait[submodel] = std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) );
+    _total.setWaitTime( submodel, std::accumulate( _phase.begin(), _phase.end(), 0.0, add_wait( submodel ) ) );
 
     return *this;
 }
@@ -1390,7 +1391,7 @@ Entry::aggregate( const unsigned submodel, const unsigned p, const Exponential& 
 	 * variance when calculating phase 2 variance can be negative.
 	 */
 
-	_phase[p]._variance += addend.variance();
+	_phase[p].addVariance( addend.variance() );
     }
 
     if (flags.trace_quorum) {
