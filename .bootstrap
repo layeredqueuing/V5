@@ -1,5 +1,5 @@
 #!/bin/sh
-dirs="lqx lqiolib libmva parasol lqns qnsolver lqsim lqn2ps lqngen srvndiff doc"
+dirs="lqx lqiolib libmva parasol lqns qnsolver lqsim petrisrvn lqn2ps lqn2csv lqngen srvndiff doc"
 echo "Out with the old..."
 find . \( -name 'libtool' -o -name '*.cache' -o -name '.deps' -o -name config.in -o -name aclocal.m4 \) -print | xargs rm -rf
 echo "In with the new..."
