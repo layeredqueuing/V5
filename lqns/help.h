@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 14961 2021-09-09 23:30:54Z greg $
+ * $Id: help.h 15049 2021-10-07 16:54:01Z greg $
  */
 
 #ifndef _HELP_H
@@ -23,7 +23,6 @@ extern const char opts[];
 #if HAVE_GETOPT_LONG
 extern const struct option longopts[];
 #endif
-extern const char * opthelp[];
 
 class StringManip {
 public:

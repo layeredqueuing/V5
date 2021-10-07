@@ -7,7 +7,7 @@
 /************************************************************************/
 
 /*
- * $Id: lqsim.cc 14995 2021-09-27 14:01:46Z greg $
+ * $Id: lqsim.cc 15049 2021-10-07 16:54:01Z greg $
  */
 
 #define STACK_TESTING
@@ -156,40 +156,39 @@ static const struct option longopts[] =
 };
 #endif
 static const char opts[] = "A:B:C:de:G:h:HI:jm:Mno:pP:rRsS:t:T:vVwx";
-static const char * opthelp[]  = {
-    /* "automatic"	*/    "Set the block time to <t>, the precision to <p> and the initial skip period to <s>.",
-    /* "blocks"		*/    "Set the number of blocks to <b>, the block time to <t> and the initial skip period to <s>.",
-    /* "confidence"     */    "Set the precision to <p>, the number of initial loops to skip to <l> and the block time to <t>.",
-    /* "debug"		*/    "Enable debug code.",
-    /* "error"		*/    "Set the floating pint exeception mode.",
-    /* "help"		*/    "Show this help.",
-    /* input-format	*/    "Force input format to ARG.  Arg is either 'lqn' or 'xml'.",
-    /* "max-blocks"	*/    "Set the maximum number of blocks for the simulation (default is 30).",
-    /* "no-execute"	*/    "Build the simulation, but do not solve.",
-    /* "output"		*/    "Redirect ouptut to FILE.",
-    /* "parseable"	*/    "Generate parseable (.p) output.",
-    /* "pragma"		*/    "Set simulation options.",
-    /* "rtf"		*/    "Output results in Rich Text Format.",
-    /* "raw-statistics"	*/    "Print out the raw statistics from the simulation.",
-    /* "seed"		*/    "Set the seed value to ARG.",
-    /* "trace"		*/    "Trace the execution of the simulation.",
-    /* "run-time"	*/    "Set the run time of the simulation to ARG.",
-    /* "verbose"	*/    "Output on standard error the progress of the simulation.",
-    /* "version"	*/    "Print the version of the simulator.",
-    /* "no-warnings"	*/    "Do not output warning messages.",
-    /* "xml"		*/    "Output results in XML format.",
-    /* "print-interval"	*/    "Ouptut results after n iterations.",
-    /* "global-delay"	*/    "Set the inter-processor communication delay to n.n.",
-    /* no-stop-on-mess  */    "Do not stop the simulator if asynchronous messages are lost due to queue overfull.",
-    /* "reload-lqx"	*/    "Run the LQX program, but re-use the results from a previous invocation.",
-    /* "restart"	*/    "Reuse existing valid results.  Otherwise, run the simulation.",
-    /* no-header	*/    "Do not output the variable name header on SPEX results.",
-    /* "debug-lqx"	*/    "Output debugging information while parsing LQX input.",
-    /* "debug-xml"	*/    "Output debugging information while parsing XML input.",
-#if defined(STACK_TESTING)
-    /* check-stacks	*/    "Check stack size after simulation run.",
-#endif
-    0
+
+static const std::map<const std::string,const std::string> opthelp  = {
+    { "automatic",	    "Set the block time to <t>, the precision to <p> and the initial skip period to <s>." },
+    { "blocks",		    "Set the number of blocks to <b>, the block time to <t> and the initial skip period to <s>." },
+    { "confidence",	    "Set the precision to <p>, the number of initial loops to skip to <l> and the block time to <t>." },
+    { "debug",		    "Enable debug code." },
+    { "error",		    "Set the floating pint exeception mode." },
+    { "help",		    "Show this help." },
+    { "input-format",  	    "Force input format to ARG.  Arg is either 'lqn' or 'xml'." },
+    { "max-blocks",	    "Set the maximum number of blocks for the simulation (default is 30)." },
+    { "no-execute",	    "Build the simulation, but do not solve." },
+    { "output",		    "Redirect ouptut to FILE." },
+    { "parseable",	    "Generate parseable (.p) output." },
+    { "pragma",		    "Set simulation options." },
+    { "rtf",		    "Output results in Rich Text Format." },
+    { "raw-statistics",	    "Print out the raw statistics from the simulation." },
+    { "seed",		    "Set the seed value to ARG." },
+    { "trace",		    "Trace the execution of the simulation." },
+    { "run-time",	    "Set the run time of the simulation to ARG." },
+    { "verbose",	    "Output on standard error the progress of the simulation." },
+    { "version",	    "Print the version of the simulator." },
+    { "no-warnings",	    "Do not output warning messages." },
+    { "xml",		    "Output results in XML format." },
+    { "print-interval",	    "Ouptut results after n iterations." },
+    { "global-delay",	    "Set the inter-processor communication delay to n.n." },
+    { "no-stop-on-message-loss",      "Do not stop the simulator if asynchronous messages are lost due to queue overfull." },
+    { "reload-lqx",	    "Run the LQX program, but re-use the results from a previous invocation." },
+    { "restart",	    "Reuse existing valid results.  Otherwise, run the simulation." },
+    { "print-comment",	    "Output the model comment on SPEX results." },
+    { "no-header",    	    "Do not output the variable name header on SPEX results." },
+    { "debug-lqx",	    "Output debugging information while parsing LQX input." },
+    { "debug-xml",	    "Output debugging information while parsing XML input." },
+    { "check-stacks", 	    "Check stack size after simulation run." }
 };
 
 static const char * trace_opts[] = {
@@ -325,7 +324,7 @@ main( int argc, char * argv[] )
     LQIO::io_vars.init( VERSION, basename( argv[0] ), severity_action, local_error_messages, LSTLCLERRMSG-LQIO::LSTGBLERRMSG );
 
     command_line = LQIO::io_vars.lq_toolname;
-    (void) sscanf( "$Date: 2021-09-27 10:01:46 -0400 (Mon, 27 Sep 2021) $", "%*s %s %*s", copyright_date );
+    (void) sscanf( "$Date: 2021-10-07 12:54:01 -0400 (Thu, 07 Oct 2021) $", "%*s %s %*s", copyright_date );
     stddbg    = stdout;
 
     /* Stuff set from the input file.				*/
@@ -699,8 +698,7 @@ usage(void)
     fprintf( stderr, "Options:\n" );
 
 #if HAVE_GETOPT_LONG
-    const char ** p = opthelp;
-    for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
+    for ( const struct option *o = longopts; (o->name || o->val); ++o ) {
 	std::string s;
 	if ( o->name ) {
 	    s = "--";
@@ -725,7 +723,7 @@ usage(void)
 	} else {
 	    fprintf( stderr, "     " );
 	}
-	fprintf( stderr, "%-28s %s\n", s.c_str(), *p );
+	fprintf( stderr, "%-28s %s\n", s.c_str(), opthelp.at(o->name).c_str() );
     }
 
 #else

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 14966 2021-09-11 12:24:49Z greg $
+ * $Id: lqns.cc 15049 2021-10-07 16:54:01Z greg $
  *
  * Command line processing.
  *
@@ -82,14 +82,12 @@ const struct option longopts[] =
     { "xml",                  no_argument,       0, 'x' },
     { "special",              required_argument, 0, 'z' },
     { "exact-mva",            no_argument,       0, 256+'e' },
-    { "schweitzer-amva",      no_argument,       0, 256+'s' },
-
+    { LQIO::DOM::Pragma::_schweitzer_, no_argument, 0, 256+'s' },
     { "batch-layering",       no_argument,	 0, 256+'b' },	/* NOP */
     { "hwsw-layering",        no_argument,       0, 256+'h' },
     { "method-of-layers",     no_argument,       0, 256+'m' },
     { "squashed-layering",    no_argument,       0, 256+'z' },
     { "srvn-layering",        no_argument,       0, 256+'l' },
-
     { "processor-sharing",    no_argument,       0, 256+'p' },
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
     { "quorum",               no_argument,       0, 256+'q' },
@@ -106,61 +104,10 @@ const struct option longopts[] =
     { "debug-xml",            no_argument,       0, 512+'x' },
     { "debug-srvn",           no_argument,       0, 512+'y' },
     { "debug-spex",	      no_argument,	 0, 512+'s' },
-    { 0, 0, 0, 0 }
+    { nullptr, 0, nullptr, 0 }
 };
 #endif
 const char opts[]       = "abc:d:e:fhH:i:I:jno:pP:rt:u:vVwxz:";
-const char * opthelp[]  = {
-    /* ignore-advisories*/      "Do not output advisory messages",
-    /* bounds-only"     */      "Compute throughput bounds only.",
-    /* convergence"     */      "Set the convergence value to ARG.",
-    /* debug"           */      "Enable debug code.  See -Hd.",
-    /* error"           */      "Set floating point exception mode.",
-    /* fast             */      "Solve using one-step-linearizer, batch layering and Conway multiserver.",
-    /* help"            */      "Show this help.  The optional argument shows help for -d, -t, -z, and -P respectively.",
-    /* huge		*/	"Solve using one-step-schweitzer, no interlocking, and Rolia multiserver.",
-    /* iteration-limit" */      "Set the iteration limit to ARG.",
-    /* input-format     */      "Force input format to ARG.  ARG is either 'lqn' or 'xml'.",
-    /* no-execute"      */      "Build the model, but do not solve.",
-    /* output"          */      "Redirect ouptut to FILE.",
-    /* parseable"       */      "Generate parseable (.p) output.",
-    /* pragma"          */      "Set solver options.  See -HP.",
-    /* rtf              */      "Output results in Rich Text Format instead of plain text.",
-    /* trace"           */      "Trace solver operation.  See -Ht.",
-    /* underrelaxation" */      "Set the under-relaxation value to ARG.",
-    /* verbose"         */      "Output on standard error the progress of the solver.",
-    /* version"         */      "Print the version of the solver.",
-    /* no-warnings"     */      "Do not output warning messages.",
-    /* xml              */      "Ouptut results in XML format.",
-    /* special"         */      "Set special options.  See -Hz.",
-
-    /* exact-mva"       */      "Use exact MVA instead of Linearizer for solving submodels.",
-    /* schweitzer-amva" */      "Use Schweitzer approximate MVA instead of Linearizer.",
-
-    /* batch-layering   */	"Default layering strategy.",
-    /* hwsw-layering"   */      "Use HW/SW layering instead of batched layering.",
-    /* method-of-layers */      "Use the Method of Layers instead of batched layering.",
-    /* squashed-layering */     "Use only one submodel to solve the model.",
-    /* srvn-layering"   */      "Use one server per layer instead of batched layering.",
-
-    /* processor-sharing */     "Use processor sharing scheduling at fifo scheduled processors.",
-#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    /* quorum"          */      "Quorum.",
-#endif
-    /* no-stop-on-message-loss*/"Ignore infinities caused by open arrivals or asynchronous sends.",
-    /* no-variance"     */      "Ignore the variance computation during solution.",
-    /* reload_lqx"      */      "Run the LQX program, but re-use the results from a previous invocation.",
-    /* restart		*/	"Reuse existing valid results.  Otherwise, run the solver.",
-    /* print-comment	*/	"Output the model comment on SPEX results.",
-    /* no-header        */      "Do not output the variable name header on SPEX results.",
-    /* reset-mva	*/	"Reset the MVA calculation prior to solving a submodel.", 
-    /* trace-mva"       */      "Trace the operation of the MVA solver.",
-    /* debug-lqx"       */      "Output debugging information while parsing LQX input.",
-    /* debug-xml"       */      "Output debugging information while parsing XML input.",
-    /* debug-srvn       */      "Output debugging information while parsing SRVN input.",
-    /* debug-spex	*/	"Output LQX progam corresponding to SPEX input.",
-    0
-};
 
 static int process ( const std::string&, const std::string& );
 static void init_flags ();

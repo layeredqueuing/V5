@@ -1,5 +1,5 @@
 /*
- * $Id: qnsolver.cc 14572 2021-03-21 02:43:53Z greg $
+ * $Id: qnsolver.cc 15049 2021-10-07 16:54:01Z greg $
  */
 
 #include <algorithm>
@@ -47,26 +47,25 @@ static std::string opts;
 static std::string opts = "bdefhlo:rstvxQSX";
 #endif
 
-const char * opthelp[]  = {
-    /* "bounds"		  */    "Compute bounds",
-    /* "exact-mva",       */    "Use Exact MVA.",
-    /* "bard-schweitzer", */    "Use Bard-Schweitzer approximate MVA.",
-    /* "linearizer",      */    "Use Linearizer.",
-    /* "fast-linearizer", */    "Use the Fast Linearizer solver.",
-    /* "output",	  */	"Send output to ARG.",
-    /* "plot-queue-length */	"Output gnuplot to plot station queue-length.  ARG specifies a class or station.",
-    /* "plot-response-time" */	"Output gnuplot to plot system response-time (and bounds).", 
-    /* "plot-throughput", */    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG.",
-    /* "plot-utilization  */	"Output gnuplot to plot utilization.  ARG specifies a class or station.",
-    /* "plot-waiting-time */	"Output gnuplot to plot station waiting-times.  ARG specifies a class or station.",
-    /* "verbose",         */    "",
-    /* "help",            */    "Show this.",
-    /* "experimental",	  */	"",
-    /* "export-qnap2",	  */	"Export a QNAP2 model.  Do not solve.",
-    /* "debug-mva",       */    "Enable debug code.",
-    /* "debug-xml"	  */    "Debug XML input.",
-    /* "debug-spex"	  */	"Debug SPEX program.",
-    nullptr
+const static std::map<const std::string,const std::string> opthelp  = {
+    { "bounds",		    "Compute bounds" },
+    { "exact-mva",	    "Use Exact MVA." },	
+    { "bard-schweitzer",    "Use Bard-Schweitzer approximate MVA." },
+    { "linearizer",	    "Use Linearizer." },
+    { "fast-linearizer",    "Use the Fast Linearizer solver." },
+    { "output",		    "Send output to ARG." },
+    { "plot-queue-length",  "Output gnuplot to plot station queue-length.  ARG specifies a class or station." },
+    { "plot-response-time", "Output gnuplot to plot system response-time (and bounds)." },
+    { "plot-throughput",    "Output gnuplot to plot system throughput (and bounds), or for a class or station with ARG." },
+    { "plot-utilization",   "Output gnuplot to plot utilization.  ARG specifies a class or station." },
+    { "plot-waiting-time",   "Output gnuplot to plot station waiting-times.  ARG specifies a class or station." },
+    { "verbose",	    "" },
+    { "help",		    "Show this." },
+    { "experimental",	    "" },
+    { "export-qnap2",	    "Export a QNAP2 model.  Do not solve." },
+    { "debug-mva",	    "Enable debug code." },
+    { "debug-xml",	    "Debug XML input." },
+    { "debug-spex",	    "Debug SPEX program." },
 };
 
 static bool verbose_flag = true;			/* Print results		*/
@@ -244,8 +243,7 @@ usage()
 #if HAVE_GETOPT_LONG
     std::cerr << " [option]" << std::endl << std::endl;
     std::cerr << "Options" << std::endl;
-    const char ** p = opthelp;
-    for ( const struct option *o = longopts; (o->name || o->val) && *p; ++o, ++p ) {
+    for ( const struct option *o = longopts; (o->name || o->val); ++o ) {
 	std::string s;
 	if ( o->name ) {
 	    s = "--";
@@ -261,7 +259,7 @@ usage()
 	    std::cerr << "     ";
 	}
 	std::cerr.setf( std::ios::left, std::ios::adjustfield );
-	std::cerr << std::setw(24) << s << *p << std::endl;
+	std::cerr << std::setw(24) << s << opthelp.at(o->name) << std::endl;
     }
 #else
     const char * s;

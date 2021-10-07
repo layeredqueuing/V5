@@ -8,7 +8,7 @@
 /************************************************************************/
 
 /*
- * $Id: petrisrvn.cc 14959 2021-09-08 14:48:54Z greg $
+ * $Id: petrisrvn.cc 15049 2021-10-07 16:54:01Z greg $
  *
  * Generate a Petri-net from an SRVN description.
  *
@@ -147,6 +147,7 @@ static const char * opthelp[]  = {
     /* "xml"		    */    "Output results in XML format.",
     /* "disjoint-customers" */    "Create copies for reference tasks (increases state space).",
     /* "no-header"	    */	  "Do not output the variable name header on SPEX results.",
+    /* "print-comment"	    */	  "Output the model comment on SPEX results.",
     /* "overtaking"	    */	  "Find in-service and overtaking probabilities (increases state space). ARG=condition",
     /* "queue-limit    	    */	  "Set the maximum queue size (open model).",
     /* "random-processors"  */	  "Use random queueing at all processors (reduces state space).",
