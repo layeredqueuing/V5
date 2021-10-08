@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15055 2021-10-08 12:16:38Z greg $
+ * $Id: help.h 15056 2021-10-08 17:18:09Z greg $
  */
 
 #ifndef _HELP_H
@@ -26,23 +26,23 @@ extern const struct option longopts[];
 
 class StringManip {
 public:
-    StringManip( std::ostream& (*ff)(std::ostream&, const Help&, const char * ), const Help& h, const char * s ) : f(ff), _h(h), _s(s) {}
+    StringManip( std::ostream& (*ff)(std::ostream&, const Help&, const std::string& ), const Help& h, const std::string& s ) : f(ff), _h(h), _s(s) {}
 private:
-    std::ostream& (*f)( std::ostream&, const Help&, const char * );
+    std::ostream& (*f)( std::ostream&, const Help&, const std::string& );
     const Help & _h;
-    const char * _s;
+    const std::string& _s;
 
     friend std::ostream& operator<<(std::ostream & os, const StringManip& m ) { return m.f(os,m._h,m._s); }
 };
 
 class StringStringManip {
 public:
-    StringStringManip( std::ostream& (*ff)(std::ostream&, const Help&, const char *, const char * ), const Help& h, const char * s1, const char * s2 ) : f(ff), _h(h), _s1(s1), _s2(s2) {}
+    StringStringManip( std::ostream& (*ff)(std::ostream&, const Help&, const std::string&, const std::string& ), const Help& h, const std::string& s1, const std::string& s2 ) : f(ff), _h(h), _s1(s1), _s2(s2) {}
 private:
-    std::ostream& (*f)( std::ostream&, const Help&, const char *, const char * );
+    std::ostream& (*f)( std::ostream&, const Help&, const std::string&, const std::string& );
     const Help & _h;
-    const char * _s1;
-    const char * _s2;
+    const std::string& _s1;
+    const std::string& _s2;
 
     friend std::ostream& operator<<(std::ostream & os, const StringStringManip& m ) { return m.f(os,m._h,m._s1,m._s2); }
 };
@@ -72,26 +72,25 @@ public:
 public:
     static void initialize();
 
-    StringManip bold( const Help& h, const char * s ) const { return StringManip( &Help::__textbf, h, s ); }
-    StringManip emph( const Help& h, const char * s ) const { return StringManip( &Help::__textit, h, s ); }
-    StringManip flag( const Help& h, const char * s ) const { return StringManip( &Help::__flag, h, s ); }
-    StringManip ix( const Help& h, const char * s ) const { return StringManip( &Help::__ix, h, s ); }
-    StringManip cite( const Help& h, const char * s ) const { return StringManip( &Help::__cite, h, s ); }
-    StringStringManip filename( const Help& h, const char * s1, const char * s2 = 0 ) const { return StringStringManip( &Help::__filename, h, s1, s2 ); }
+    static StringManip bold( const Help& h, const std::string& s ) { return StringManip( &Help::__textbf, h, s ); }
+    static StringManip emph( const Help& h, const std::string& s ) { return StringManip( &Help::__textit, h, s ); }
+    static StringManip flag( const Help& h, const std::string& s ) { return StringManip( &Help::__flag, h, s ); }
+    static StringManip ix( const Help& h, const std::string& s ) { return StringManip( &Help::__ix, h, s ); }
+    static StringManip cite( const Help& h, const std::string& s ) { return StringManip( &Help::__cite, h, s ); }
+    static StringManip tr( const Help& h, const std::string& s ) { return StringManip( &Help::__tr, h, s ); }
+    static StringStringManip filename( const Help& h, const std::string& s1, const std::string& s2 = "" ) { return StringStringManip( &Help::__filename, h, s1, s2 ); }
 
 private:
     Help( const Help& );
     Help& operator=( const Help& );
     
-    static std::ostream& __textbf( std::ostream& output, const Help & h, const char * s ) { return h.textbf( output, s ); }
-    static std::ostream& __textit( std::ostream& output, const Help & h, const char * s ) { return h.textit( output, s ); }
-    static std::ostream& __flag( std::ostream& output, const Help & h, const char * s ) { return h.flag( output, s ); }
-    static std::ostream& __ix( std::ostream& output, const Help & h, const char * s ) { return h.ix( output, s ); }
-    static std::ostream& __cite( std::ostream& output, const Help & h, const char * s ) { return h.cite( output, s ); }
-    static std::ostream& __filename( std::ostream& output, const Help & h, const char * s1, const char * s2 ) { return h.filename( output, s1, s2 ); }
-
-protected:
-    static std::ostream& __tr_( std::ostream& output, const Help& h, const char * s ) { return h.tr_( output, s ); }
+    static std::ostream& __textbf( std::ostream& output, const Help & h, const std::string& s ) { return h.textbf( output, s ); }
+    static std::ostream& __textit( std::ostream& output, const Help & h, const std::string& s ) { return h.textit( output, s ); }
+    static std::ostream& __flag( std::ostream& output, const Help & h, const std::string& s ) { return h.flag( output, s ); }
+    static std::ostream& __ix( std::ostream& output, const Help & h, const std::string& s ) { return h.ix( output, s ); }
+    static std::ostream& __cite( std::ostream& output, const Help & h, const std::string& s ) { return h.cite( output, s ); }
+    static std::ostream& __filename( std::ostream& output, const Help & h, const std::string& s1, const std::string& s2 ) { return h.filename( output, s1, s2 ); }
+    static std::ostream& __tr( std::ostream& output, const Help& h, const std::string& s ) { return h.tr( output, s ); }
 
 public:
     Help();
@@ -100,34 +99,34 @@ public:
     std::ostream& print( std::ostream& ) const;
 
 protected:
-   static const std::map<const int,const help_fptr> __option_table;
+    static const std::map<const int,const help_fptr> __option_table;
 
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const = 0;
     virtual std::ostream& see_also( std::ostream& output ) const = 0;
-    virtual std::ostream& textbf( std::ostream& output, const char * s ) const = 0;
-    virtual std::ostream& textit( std::ostream& output, const char * s ) const = 0;
-    virtual std::ostream& tr_( std::ostream& output, const char * ) const { return output; }
-    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const = 0;
+    virtual std::ostream& textbf( std::ostream& output, const std::string& s ) const = 0;
+    virtual std::ostream& textit( std::ostream& output, const std::string& s ) const = 0;
+    virtual std::ostream& tr( std::ostream& output, const std::string& ) const { return output; }
+    virtual std::ostream& filename( std::ostream& output, const std::string& s1, const std::string& s2 ) const = 0;
     virtual std::ostream& pp( std::ostream& ouptut ) const = 0;
     virtual std::ostream& br( std::ostream& ouptut ) const = 0;
     virtual std::ostream& ol_begin( std::ostream& output ) const = 0;
     virtual std::ostream& ol_end( std::ostream& output ) const = 0;
     virtual std::ostream& dl_begin( std::ostream& output ) const = 0;
     virtual std::ostream& dl_end( std::ostream& output ) const = 0;
-    virtual std::ostream& li( std::ostream& output, const char * = 0 ) const = 0;
-    virtual std::ostream& flag( std::ostream& output, const char * s ) const = 0;
-    virtual std::ostream& ix( std::ostream& output, const char * s ) const { return output; }
-    virtual std::ostream& cite( std::ostream& output, const char * s ) const { return output; }
-    virtual std::ostream& section( std::ostream& output, const char * s, const char * ) const = 0;
-    virtual std::ostream& label( std::ostream& output, const char * s ) const = 0;
+    virtual std::ostream& li( std::ostream& output, const std::string& = "" ) const = 0;
+    virtual std::ostream& flag( std::ostream& output, const std::string& s ) const = 0;
+    virtual std::ostream& ix( std::ostream& output, const std::string& s ) const { return output; }
+    virtual std::ostream& cite( std::ostream& output, const std::string& s ) const { return output; }
+    virtual std::ostream& section( std::ostream& output, const std::string& s, const std::string& ) const = 0;
+    virtual std::ostream& label( std::ostream& output, const std::string& s ) const = 0;
     virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const = 0;
     virtual std::ostream& increase_indent( std::ostream& output ) const = 0;
     virtual std::ostream& decrease_indent( std::ostream& output ) const = 0;
-    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt) const = 0;
+    virtual std::ostream& print_option( std::ostream&, const std::string& name, const Options::Option& opt) const = 0;
     virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const = 0;
     virtual std::ostream& table_header( std::ostream& ) const = 0;
-    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const = 0;
+    virtual std::ostream& table_row( std::ostream&, const std::string&, const std::string&, const std::string& ix = "" ) const = 0;
     virtual std::ostream& table_footer( std::ostream& ) const = 0;
     virtual std::ostream& trailer( std::ostream& output ) const { return output; }
 
@@ -389,30 +388,30 @@ class HelpTroff : public Help
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const;
     virtual std::ostream& see_also( std::ostream& output ) const;
-    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
-    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
-    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& textbf( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& textit( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& filename( std::ostream& output, const std::string& s1, const std::string& s2 ) const;
     virtual std::ostream& pp( std::ostream& ouptut ) const;
     virtual std::ostream& br( std::ostream& ouptut ) const;
     virtual std::ostream& ol_begin( std::ostream& output ) const;
     virtual std::ostream& ol_end( std::ostream& output ) const;
     virtual std::ostream& dl_begin( std::ostream& output ) const;
     virtual std::ostream& dl_end( std::ostream& output ) const;
-    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const;
-    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const;
-    virtual std::ostream& label( std::ostream& output, const char * s ) const;
-    virtual std::ostream& flag( std::ostream& output, const char * s ) const;
+    virtual std::ostream& li( std::ostream& output, const std::string& s = 0 ) const;
+    virtual std::ostream& section( std::ostream& output, const std::string& s1, const std::string& s2 ) const;
+    virtual std::ostream& label( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& flag( std::ostream& output, const std::string& s ) const;
     virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const;
     virtual std::ostream& increase_indent( std::ostream& output ) const;
     virtual std::ostream& decrease_indent( std::ostream& output ) const;
-    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt ) const;
+    virtual std::ostream& print_option( std::ostream&, const std::string& name, const Options::Option& opt ) const;
     virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const;
     virtual std::ostream& table_header( std::ostream& ) const;
-    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const;
+    virtual std::ostream& table_row( std::ostream&, const std::string&, const std::string&, const std::string& ix = "" ) const;
     virtual std::ostream& table_footer( std::ostream& ) const;
 
 private:
-    static const char * __comment;
+    static const std::string __comment;
 };
 
 
@@ -421,36 +420,34 @@ class HelpLaTeX : public Help
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const;
     virtual std::ostream& see_also( std::ostream& output ) const { return output; }
-    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
-    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
-    virtual std::ostream& tr_( std::ostream& output, const char * ) const;
-    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& textbf( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& textit( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& tr( std::ostream& output, const std::string& ) const;
+    virtual std::ostream& filename( std::ostream& output, const std::string& s1, const std::string& s2 ) const;
     virtual std::ostream& pp( std::ostream& ouptut ) const;
     virtual std::ostream& br( std::ostream& ouptut ) const;
     virtual std::ostream& ol_begin( std::ostream& output ) const;
     virtual std::ostream& ol_end( std::ostream& output ) const;
     virtual std::ostream& dl_begin( std::ostream& output ) const;
     virtual std::ostream& dl_end( std::ostream& output ) const;
-    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const;
-    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const;
-    virtual std::ostream& label( std::ostream& output, const char * s ) const;
-    virtual std::ostream& flag( std::ostream& output, const char * s ) const;
-    virtual std::ostream& ix( std::ostream& output, const char * s ) const;
-    virtual std::ostream& cite( std::ostream& output, const char * s ) const;
+    virtual std::ostream& li( std::ostream& output, const std::string& s = 0 ) const;
+    virtual std::ostream& section( std::ostream& output, const std::string& s1, const std::string& s2 ) const;
+    virtual std::ostream& label( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& flag( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& ix( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& cite( std::ostream& output, const std::string& s ) const;
     virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const;
     virtual std::ostream& increase_indent( std::ostream& output ) const;
     virtual std::ostream& decrease_indent( std::ostream& output ) const;
-    virtual std::ostream& print_option( std::ostream&, const char * name, const Options::Option& opt) const;
+    virtual std::ostream& print_option( std::ostream&, const std::string& name, const Options::Option& opt) const;
     virtual std::ostream& print_pragma( std::ostream&, const std::string& ) const;
     virtual std::ostream& table_header( std::ostream& ) const;
-    virtual std::ostream& table_row( std::ostream&, const char *, const char *, const char * ix=0 ) const;
+    virtual std::ostream& table_row( std::ostream&, const std::string&, const std::string&, const std::string& ix = "" ) const;
     virtual std::ostream& table_footer( std::ostream& ) const;
     virtual std::ostream& trailer( std::ostream& output ) const;
 
-    StringManip tr_( const Help& h, const char * s ) const { return StringManip( &Help::__tr_, h, s ); }
-
 private:
-    static const char * __comment;
+    static const std::string __comment;
 };
 
 class HelpPlain : public Help
@@ -458,33 +455,31 @@ class HelpPlain : public Help
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const { return output; }
     virtual std::ostream& see_also( std::ostream& output ) const { return output; }
-    virtual std::ostream& textbf( std::ostream& output, const char * s ) const;
-    virtual std::ostream& textit( std::ostream& output, const char * s ) const;
-    virtual std::ostream& tr_( std::ostream& output, const char * ) const { return output; }
-    virtual std::ostream& filename( std::ostream& output, const char * s1, const char * s2 ) const;
+    virtual std::ostream& textbf( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& textit( std::ostream& output, const std::string& s ) const;
+    virtual std::ostream& tr( std::ostream& output, const std::string& ) const { return output; }
+    virtual std::ostream& filename( std::ostream& output, const std::string& s1, const std::string& s2 ) const;
     virtual std::ostream& pp( std::ostream& output ) const { return output; }
     virtual std::ostream& br( std::ostream& output ) const { return output; }
     virtual std::ostream& ol_begin( std::ostream& output ) const { return output; }
     virtual std::ostream& ol_end( std::ostream& output ) const { return output; }
     virtual std::ostream& dl_begin( std::ostream& output ) const { return output; }
     virtual std::ostream& dl_end( std::ostream& output ) const { return output; }
-    virtual std::ostream& li( std::ostream& output, const char * s = 0 ) const { return output; }
-    virtual std::ostream& section( std::ostream& output, const char * s1, const char * s2 ) const { return output; }
-    virtual std::ostream& label( std::ostream& output, const char * s ) const { return output; }
-    virtual std::ostream& flag( std::ostream& output, const char * s ) const { return output; }
-    virtual std::ostream& ix( std::ostream& output, const char * s ) const { return output; }
-    virtual std::ostream& cite( std::ostream& output, const char * s ) const { return output; }
+    virtual std::ostream& li( std::ostream& output, const std::string& s = 0 ) const { return output; }
+    virtual std::ostream& section( std::ostream& output, const std::string& s1, const std::string& s2 ) const { return output; }
+    virtual std::ostream& label( std::ostream& output, const std::string& s ) const { return output; }
+    virtual std::ostream& flag( std::ostream& output, const std::string& s ) const { return output; }
+    virtual std::ostream& ix( std::ostream& output, const std::string& s ) const { return output; }
+    virtual std::ostream& cite( std::ostream& output, const std::string& s ) const { return output; }
     virtual std::ostream& longopt( std::ostream& output, const struct option *o ) const { return output; }
     virtual std::ostream& increase_indent( std::ostream& output ) const { return output; }
     virtual std::ostream& decrease_indent( std::ostream& output ) const { return output; }
-    virtual std::ostream& print_option( std::ostream& output, const char * name, const Options::Option& opt) const;
+    virtual std::ostream& print_option( std::ostream& output, const std::string& name, const Options::Option& opt) const;
     virtual std::ostream& print_pragma( std::ostream& output, const std::string& ) const;
     virtual std::ostream& table_header( std::ostream& output ) const { return output; }
-    virtual std::ostream& table_row( std::ostream& output , const char *, const char *, const char * ix=0 ) const { return output; }
+    virtual std::ostream& table_row( std::ostream& output , const std::string&, const std::string&, const std::string& ix = "" ) const { return output; }
     virtual std::ostream& table_footer( std::ostream& output ) const { return output; }
     virtual std::ostream& trailer( std::ostream& output ) const { return output; }
-
-    StringManip tr_( const Help& h, const char * s ) const { return StringManip( &Help::__tr_, h, s ); }
 
 public:
     static void print_special( std::ostream& output );
