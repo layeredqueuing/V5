@@ -1,5 +1,5 @@
 /* -*- c++ -*-
- * $Id: model.cc 14955 2021-09-07 16:52:38Z greg $
+ * $Id: model.cc 15053 2021-10-08 02:13:14Z greg $
  *
  * Layer-ization of model.  The basic concept is from the reference
  * below.  However, model partioning is more complex than task vs device.
@@ -81,10 +81,10 @@
 #include "task.h"
 #include "variance.h"
 
-double Model::convergence_value = 0.00001;
-unsigned Model::iteration_limit = 50;;
-double Model::underrelaxation = 1.0;
-unsigned Model::print_interval = 1;
+double Model::__convergence_value = 0.;
+unsigned Model::__iteration_limit = 0;
+double Model::__underrelaxation = 0;
+unsigned Model::__print_interval = 0;
 Processor * Model::__think_server = nullptr;
 unsigned Model::__sync_submodel = 0;
 LQIO::DOM::Document::InputFormat Model::input_format = LQIO::DOM::Document::InputFormat::AUTOMATIC;
@@ -221,7 +221,6 @@ Model::prepare(const LQIO::DOM::Document* document)
 	for (unsigned p = 1; p <= entry->getMaximumPhase(); ++p) {
 	    LQIO::DOM::Phase* phase = entry->getPhase(p);
 	    const std::vector<LQIO::DOM::Call*>& originatingCalls = phase->getCalls();
-	    std::vector<LQIO::DOM::Call*>::const_iterator iter;
 
 	    /* Add all of the calls to the system */
 	    std::for_each( originatingCalls.begin(), originatingCalls.end(), Call::Create( newEntry, p ) );
@@ -349,34 +348,30 @@ void
 Model::setModelParameters( const LQIO::DOM::Document* doc )
 {
 
-    if ( !flags.override_print_interval ) {
-	print_interval = doc->getModelPrintIntervalValue();
+    if ( __print_interval == 0 ) {
+	__print_interval = doc->getModelPrintIntervalValue();
     }
-    if ( !flags.override_iterations ) {
-	int it_limit = doc->getModelIterationLimitValue();
-	if ( it_limit < 1 ) {
-	    LQIO::input_error2( ADV_ITERATION_LIMIT, it_limit, iteration_limit );
-	} else {
-	    iteration_limit = it_limit;
+    if ( __iteration_limit == 0 ) {
+	__iteration_limit = doc->getModelIterationLimitValue();
+	if ( __iteration_limit < 1 ) {
+	    LQIO::input_error2( ADV_ITERATION_LIMIT, __iteration_limit, 50 );
+	    __iteration_limit =  50;
 	}
     }
-    if ( !flags.override_convergence ) {
-	double conv_val = doc->getModelConvergenceValue();
-	if ( conv_val <= 0 ) {
-	    LQIO::input_error2( ADV_CONVERGENCE_VALUE, conv_val, convergence_value );
-	} else {
-	    if ( conv_val > 0.01 ) {
-		LQIO::input_error2( ADV_LARGE_CONVERGENCE_VALUE, conv_val );
-	    }
-	    convergence_value = conv_val;
+    if ( __convergence_value == 0.0 ) {
+	__convergence_value = doc->getModelConvergenceValue();
+	if ( __convergence_value <= 0 ) {
+	    LQIO::input_error2( ADV_CONVERGENCE_VALUE, __convergence_value, 0.00001 );
+	    __convergence_value = 0.00001;
+	} else if ( __convergence_value > 0.01 ) {
+	    LQIO::input_error2( ADV_LARGE_CONVERGENCE_VALUE, __convergence_value );
 	}
     }
-    if ( !flags.override_underrelaxation ) {
-	double under = doc->getModelUnderrelaxationCoefficientValue();
-	if ( under <= 0.0 || 2.0 < under ) {
-	    LQIO::input_error2( ADV_UNDERRELAXATION, under, underrelaxation );
-	} else {
-	    underrelaxation = under;
+    if ( __underrelaxation == 0.0 ) {
+	__underrelaxation = doc->getModelUnderrelaxationCoefficientValue();
+	if ( __underrelaxation <= 0.0 || 2.0 < __underrelaxation ) {
+	    LQIO::input_error2( ADV_UNDERRELAXATION, __underrelaxation );
+	    __underrelaxation = 0.9;
 	}
     }
 }
@@ -713,7 +708,7 @@ Model::solve()
     report.finish( _converged, delta, _iterations );
     sanityCheck();
     if ( !_converged ) {
-	LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, convergence_value );
+	LQIO::solution_error( ADV_SOLVER_ITERATION_LIMIT, _iterations, delta, __convergence_value );
     }
     if ( report.faultCount() ) {
 	LQIO::solution_error( ADV_MVA_FAULTS, report.faultCount() );
@@ -753,6 +748,18 @@ Model::solve()
 		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
 	    } else {
 		_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+		output.close();
+	    }
+	}
+
+	if ( _document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON || flags.json_output ) {
+	    LQIO::Filename filename( _input_file_name, "lqjo", directoryName, suffix );
+	    std::ofstream output;
+	    output.open( filename().c_str(), std::ios::out );
+	    if ( !output ) {
+		solution_error( LQIO::ERR_CANT_OPEN_FILE, filename().c_str(), strerror( errno ) );
+	    } else {
+		_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
 		output.close();
 	    }
 	}
@@ -814,6 +821,8 @@ Model::solve()
 	    solution_error( LQIO::ERR_CANT_OPEN_FILE, _output_file_name.c_str(), strerror( errno ) );
 	} else if ( flags.xml_output ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+	} else if ( flags.json_output ) {
+	    _document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
 	} else if ( flags.parseable_output ) {
 	    _document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
 	} else if ( flags.rtf_output ) {
@@ -902,7 +911,7 @@ Model::relaxation() const
     if ( _iterations <= 1 ) {
 	return 1.0;
     } else {
-	return underrelaxation;
+	return __underrelaxation;
     }
 }
 
@@ -957,6 +966,8 @@ Model::printIntermediate( const double convergence ) const
 
     if ( flags.xml_output ) {
 	_document->print( output, LQIO::DOM::Document::OutputFormat::XML );
+    } else if ( flags.json_output ) {
+	_document->print( output, LQIO::DOM::Document::OutputFormat::JSON );
     } else if ( flags.parseable_output ) {
 	_document->print( output, LQIO::DOM::Document::OutputFormat::PARSEABLE );
     } else {
@@ -1175,10 +1186,10 @@ MOL_Model::run()
 	    delta = std::for_each( __task.begin(), __task.end(), ExecSumSquare<Task,double>( &Task::deltaUtilization ) ).sum();
 	    delta = sqrt( delta / __task.size() );		/* RMS */
 
-	    if ( delta > convergence_value ) {
+	    if ( delta > __convergence_value ) {
 		backPropogate();
 	    }
-	} while ( delta > convergence_value &&  _iterations < iteration_limit );		/* -- Step 4 -- */
+	} while ( delta > __convergence_value &&  _iterations < __iteration_limit );		/* -- Step 4 -- */
 
 	/* Print intermediate results if necessary */
 
@@ -1202,9 +1213,9 @@ MOL_Model::run()
 	delta = sqrt( delta / __processor.size() );		/* RMS */
 	if ( verbose ) std::cerr << " [" << delta << "]" << std::endl;
 
-    } while ( ( _iterations < flags.min_steps || delta > convergence_value ) && _iterations < iteration_limit );
+    } while ( ( _iterations < flags.min_steps || delta > __convergence_value ) && _iterations < __iteration_limit );
 
-    _converged = (delta <= convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
+    _converged = (delta <= __convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
     return delta;
 }
 
@@ -1322,11 +1333,11 @@ Batch_Model::run()
 	delta += std::for_each( __processor.begin(), __processor.end(), ExecSumSquare<Processor,double>( &Processor::deltaUtilization ) ).sum();
 	delta =  sqrt( delta / count );		/* RMS */
 
-	if ( delta > convergence_value ) {
+	if ( delta > __convergence_value ) {
 	    backPropogate();
 	}
 
-	if ( flags.trace_intermediate && _iterations % print_interval == 0 ) {
+	if ( flags.trace_intermediate && _iterations % __print_interval == 0 ) {
 	    printIntermediate( delta );
 	}
 
@@ -1339,8 +1350,8 @@ Batch_Model::run()
 	} else if ( flags.verbose || flags.trace_convergence ) {
 	    std::cerr << " [" << delta << "]" << std::endl;
 	}
-    } while ( ( _iterations < flags.min_steps || delta > convergence_value ) && _iterations < iteration_limit );
-    _converged = (delta <= convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
+    } while ( ( _iterations < flags.min_steps || delta > __convergence_value ) && _iterations < __iteration_limit );
+    _converged = (delta <= __convergence_value || _iterations == 1);	/* The model will never be converged with one step, so ignore */
     return delta;
 }
 

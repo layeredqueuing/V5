@@ -1,6 +1,6 @@
 /* -*- c++ -*-
  * submodel.C	-- Greg Franks Wed Dec 11 1996
- * $Id: submodel.cc 14863 2021-06-26 01:36:42Z greg $
+ * $Id: submodel.cc 15051 2021-10-07 23:56:46Z greg $
  *
  * MVA submodel creation and solution.  This class is the interface
  * between the input model consisting of processors, tasks, and entries,
@@ -739,7 +739,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    if ( flags.trace_mva  ) {
 		std::cout << std::endl << "Current master iteration = " << iterations << std::endl
 		     << "  Replication Iteration Number (submodel=" <<number() <<") = " << iter << std::endl
-		     << "  deltaRep = " << deltaRep << ", convergence_value = " << Model::convergence_value << std::endl;
+		     << "  deltaRep = " << deltaRep << ", convergence_value = " << Model::__convergence_value << std::endl;
 
 	    }
 
@@ -844,8 +844,8 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	    if ( n_deltaRep ) {
 		deltaRep = sqrt( deltaRep / n_deltaRep );	/* Take RMS value over all phases */
 	    }
-	    if ( iter >= Model::iteration_limit ) {
-		LQIO::solution_error( ADV_REPLICATION_ITERATION_LIMIT, number(), iter, deltaRep, Model::convergence_value );
+	    if ( iter >= Model::__iteration_limit ) {
+		LQIO::solution_error( ADV_REPLICATION_ITERATION_LIMIT, number(), iter, deltaRep, Model::__convergence_value );
 		deltaRep = 0;		/* Break out of loop */
 	    }
 	}
@@ -864,7 +864,7 @@ MVASubmodel::solve( long iterations, MVACount& MVAStats, const double relax )
 	}
 
 #if PAN_REPLICATION
-    } while ( usePanReplication() && deltaRep > Model::convergence_value );
+    } while ( usePanReplication() && deltaRep > Model::__convergence_value );
 
     /* ----------------End of Replication Iteration --------------- */
 #endif

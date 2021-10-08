@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15049 2021-10-07 16:54:01Z greg $
+ * $Id: help.h 15055 2021-10-08 12:16:38Z greg $
  */
 
 #ifndef _HELP_H
@@ -55,19 +55,19 @@ public:
     struct parameter_info {
 	parameter_info() : _help(nullptr), _default(false) {}
 	parameter_info( Help::help_fptr h, bool d=false) : _help(h), _default(d) {}
-	Help::help_fptr _help;
-	bool _default;
+	const Help::help_fptr _help;
+	const bool _default;
     };
-    typedef std::map<std::string,parameter_info> parameter_map_t;
+    typedef std::map<const std::string,const parameter_info> parameter_map_t;
     
     struct pragma_info {
 	pragma_info() : _help(nullptr), _value(nullptr) {}
-	pragma_info( Help::help_fptr h, std::map<std::string,parameter_info>* v=nullptr ) : _help(h), _value(v) {}
-	Help::help_fptr _help;
+	pragma_info( Help::help_fptr h, const std::map<const std::string,const parameter_info>* v=nullptr ) : _help(h), _value(v) {}
+	const Help::help_fptr _help;
 	const parameter_map_t* _value;
     };
 
-    typedef std::map<std::string,Help::pragma_info> pragma_map_t;
+    typedef std::map<const std::string,const Help::pragma_info> pragma_map_t;
 
 public:
     static void initialize();
@@ -100,7 +100,7 @@ public:
     std::ostream& print( std::ostream& ) const;
 
 protected:
-   static std::map<const int,help_fptr> option_table;
+   static const std::map<const int,const help_fptr> __option_table;
 
 protected:
     virtual std::ostream& preamble( std::ostream& output ) const = 0;
@@ -133,54 +133,65 @@ protected:
 
 private:
     std::ostream& flagAdvisory( std::ostream& output, bool verbose ) const;
+    std::ostream& flagBatch( std::ostream& output, bool verbose ) const;
     std::ostream& flagBound( std::ostream& output, bool verbose ) const;
+    std::ostream& flagConvergence( std::ostream& output, bool verbose ) const;
     std::ostream& flagDebug( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugJSON( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugSPEX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugSRVN( std::ostream& output, bool verbose ) const;
+    std::ostream& flagDebugXML( std::ostream& output, bool verbose ) const;
     std::ostream& flagError( std::ostream& output, bool verbose ) const;
+    std::ostream& flagExactMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagFast( std::ostream& output, bool verbose ) const;
+    std::ostream& flagHwSwLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& flagHuge( std::ostream& output, bool verbose ) const;
     std::ostream& flagInputFormat( std::ostream& output, bool verbose ) const;
+    std::ostream& flagIterationLimit( std::ostream& output, bool verbose ) const;
+    std::ostream& flagJSON( std::ostream& output, bool verbose ) const;
+    std::ostream& flagLoose( std::ostream& output, bool verbose ) const;
+    std::ostream& flagMethoOfLayers( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoExecute( std::ostream& output, bool verbose ) const;
+    std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
+    std::ostream& flagNoVariance( std::ostream& output, bool verbose ) const;
     std::ostream& flagOutput( std::ostream& output, bool verbose ) const;
     std::ostream& flagParseable( std::ostream& output, bool verbose ) const;
     std::ostream& flagPragmas( std::ostream& output, bool verbose ) const;
+    std::ostream& flagPrintComment( std::ostream& output, bool verbose ) const;
+    std::ostream& flagPrintInterval( std::ostream& output, bool verbose ) const;
+    std::ostream& flagProcessorSharing( std::ostream& output, bool verbose ) const;
+    std::ostream& flagResetMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
     std::ostream& flagRTF( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSchweitzerMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSpecial( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSquashedLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& flagStopOnMessageLoss( std::ostream& output, bool verbose ) const;
     std::ostream& flagTrace( std::ostream& output, bool verbose ) const;
+    std::ostream& flagTraceMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagUnderrelaxation( std::ostream& output, bool verbose ) const;
     std::ostream& flagVerbose( std::ostream& output, bool verbose ) const;
     std::ostream& flagVersion( std::ostream& output, bool verbose ) const;
     std::ostream& flagWarning( std::ostream& output, bool verbose ) const;
     std::ostream& flagXML( std::ostream& output, bool verbose ) const;
-    std::ostream& flagSpecial( std::ostream& output, bool verbose ) const;
-    std::ostream& flagConvergence( std::ostream& output, bool verbose ) const;
-    std::ostream& flagUnderrelaxation( std::ostream& output, bool verbose ) const;
-    std::ostream& flagIterationLimit( std::ostream& output, bool verbose ) const;
-    std::ostream& flagExactMVA( std::ostream& output, bool verbose ) const;
-    std::ostream& flagSchweitzerMVA( std::ostream& output, bool verbose ) const;
-    std::ostream& flagHwSwLayering( std::ostream& output, bool verbose ) const;
-    std::ostream& flagLoose( std::ostream& output, bool verbose ) const;
-    std::ostream& flagStopOnMessageLoss( std::ostream& output, bool verbose ) const;
-    std::ostream& flagTraceMVA( std::ostream& output, bool verbose ) const;
-    std::ostream& flagNoVariance( std::ostream& output, bool verbose ) const;
-    std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
-    std::ostream& flagPrintComment( std::ostream& output, bool verbose ) const;
-    std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
-    std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
-    std::ostream& flagDebugLQX( std::ostream& output, bool verbose ) const;
-    std::ostream& flagDebugXML( std::ostream& output, bool verbose ) const;
-    std::ostream& flagMethoOfLayers( std::ostream& output, bool verbose ) const;
-    std::ostream& flagProcessorSharing( std::ostream& output, bool verbose ) const;
-    std::ostream& flagSquashedLayering( std::ostream& output, bool verbose ) const;
 
 public:
-    std::ostream& debugAll( std::ostream & output, bool verbose ) const;
     std::ostream& debugActivities( std::ostream & output, bool verbose ) const;
+    std::ostream& debugAll( std::ostream & output, bool verbose ) const;
     std::ostream& debugCalls( std::ostream & output, bool verbose ) const;
     std::ostream& debugForks( std::ostream & output, bool verbose ) const;
     std::ostream& debugInterlock( std::ostream & output, bool verbose ) const;
+    std::ostream& debugJSON( std::ostream& output, bool verbose ) const;
     std::ostream& debugJoins( std::ostream & output, bool verbose ) const;
     std::ostream& debugLQX( std::ostream & output, bool verbose ) const;
-    std::ostream& debugMVA( std::ostream & output, bool verbose ) const;
     std::ostream& debugLayers( std::ostream & output, bool verbose ) const;
+    std::ostream& debugMVA( std::ostream & output, bool verbose ) const;
     std::ostream& debugOvertaking( std::ostream & output, bool verbose ) const;
     std::ostream& debugQuorum( std::ostream & output, bool verbose ) const;
+    std::ostream& debugSPEX( std::ostream& output, bool verbose ) const;
+    std::ostream& debugSRVN( std::ostream& output, bool verbose ) const;
     std::ostream& debugVariance( std::ostream & output, bool verbose ) const;
     std::ostream& debugXML( std::ostream & output, bool verbose ) const;
 
@@ -344,32 +355,32 @@ public:
 #endif
 
 protected:
-    static pragma_map_t __pragmas;
+    static const pragma_map_t __pragmas;
     
 private:
-    static parameter_map_t  __cycles_args;
-    static parameter_map_t  __force_infinite_args;
-    static parameter_map_t  __force_multiserver_args;
-    static parameter_map_t  __interlock_args;
-    static parameter_map_t  __layering_args;
-    static parameter_map_t  __multiserver_args;
-    static parameter_map_t  __mva_args;
-    static parameter_map_t  __overtaking_args;
-    static parameter_map_t  __processor_args;
-    static parameter_map_t  __prune_args;
+    static const parameter_map_t  __cycles_args;
+    static const parameter_map_t  __force_infinite_args;
+    static const parameter_map_t  __force_multiserver_args;
+    static const parameter_map_t  __interlock_args;
+    static const parameter_map_t  __layering_args;
+    static const parameter_map_t  __multiserver_args;
+    static const parameter_map_t  __mva_args;
+    static const parameter_map_t  __overtaking_args;
+    static const parameter_map_t  __processor_args;
+    static const parameter_map_t  __prune_args;
 #if RESCHEDULE
-    static parameter_map_t  __reschedule_args;
+    static const parameter_map_t  __reschedule_args;
 #endif
-    static parameter_map_t  __spex_comment_args;
-    static parameter_map_t  __spex_header_args;
-    static parameter_map_t  __stop_on_message_loss_args;
-    static parameter_map_t  __threads_args;
-    static parameter_map_t  __variance_args;
-    static parameter_map_t  __warning_args;
+    static const parameter_map_t  __spex_comment_args;
+    static const parameter_map_t  __spex_header_args;
+    static const parameter_map_t  __stop_on_message_loss_args;
+    static const parameter_map_t  __threads_args;
+    static const parameter_map_t  __variance_args;
+    static const parameter_map_t  __warning_args;
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    static parameter_map_t  __quorum_distribution_args;
-    static parameter_map_t  __quorum_delayed_calls_args;
-    static parameter_map_t  __idle_time_args;
+    static const parameter_map_t  __quorum_distribution_args;
+    static const parameter_map_t  __quorum_delayed_calls_args;
+    static const parameter_map_t  __idle_time_args;
 #endif
 };
 

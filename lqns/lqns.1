@@ -1,6 +1,6 @@
 .\" t -*- nroff -*-
-.TH lqns 1 "17 February 2021" "5.19"
-.\" $Id: lqns.1 14475 2021-02-17 12:20:16Z greg $
+.TH lqns 1 "08 October 2021" "5.22"
+.\" $Id: lqns.1 15055 2021-10-08 12:16:38Z greg $
 .\"
 .\" --------------------------------
 .SH "NAME"
@@ -107,17 +107,17 @@ In some instances, infinities  will be propogated within the solver.  Please ref
 This option is used to set options for quick solution of a model using One-Step (Bard-Schweitzer) MVA.
 It is equivalent to setting \fBpragma\fP \fImva\fP=\fIone-step\fP, \fIlayering\fP=\fIbatched\fP, \fImultiserver\fP=\fIconway\fP
 .TP
-\fB\-G\fP, \fB\-\-gnuplot\fR=\fIarg\fR
-This option is used to generate gnuplot(1) output.  The optional argument is a list of
-result variables found in the input file.  This option only works for SPEX input.
-.TP
 \fB\-H\fP, \fB\-\-help\fR=\fIarg\fR
 .TP
 \fB\-h\fP, \fB\-\-huge\fR
+Solve using one-step-schweitzer, no interlocking, and Rolia multiserver.
 .TP
 \fB\-i\fP, \fB\-\-iteration-limit\fR=\fIarg\fR
 Set the maximum number of iterations to \fIarg\fP.
 \fIArg\fP must be an integer greater than 0.  The default value is 50.
+.TP
+\fB\-j\fP, \fB\-\-json\fR
+Generate JSON output regardless of input format.
 .TP
 \fB\-I\fP, \fB\-\-input-format\fR=\fIarg\fR
 This option is used to force the input file format to either \fIxml\fP or \fIlqn\fP.
@@ -294,10 +294,11 @@ ignored.
 \fB\-\-exact-mva\fR
 Use Exact MVA to solve all submodels.
 .TP
-\fB\-\-schweitzer-amva\fR
+\fB\-\-schweitzer\fR
 Use Bard-Schweitzer approximate MVA to solve all submodels.
 .TP
 \fB\-\-batch-layering\fR
+Default layering strategy.
 .TP
 \fB\-\-hwsw-layering\fR
 .TP
@@ -332,7 +333,14 @@ This option is useful for running a second pass with a new convergnece value and
 Do not print out the Result Variable header when running with SPEX input.
 This option has no effect otherwise.
 .TP
+\fB\-\-print-comment\fR
+Add the model comment as the first line of output when running with SPEX input.
+.TP
+\fB\-\-print-interval\fR=\fIarg\fR
+Output the intermediate solution of the model after <n> iterations.
+.TP
 \fB\-\-reset-mva\fR
+Reset the MVA calculation prior to solving a submodel.
 .TP
 \fB\-\-trace-mva\fR
 Output the inputs and results of each MVA submodel for every iteration of the solver.
@@ -340,13 +348,15 @@ Output the inputs and results of each MVA submodel for every iteration of the so
 \fB\-\-debug-lqx\fR
 Output debugging information as an LQX program is being parsed.
 .TP
+\fB\-\-debug-spex\fR
+Output LQX progam corresponding to SPEX input.
+.TP
+\fB\-\-debug-srvn\fR
+Output debugging information while parsing SRVN input.This is the output of the Bison LALR parser.
+.TP
 \fB\-\-debug-xml\fR
 Output XML elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error,
 this option can be used to localize the error.
-.TP
-\fB\-\-debug-srvn\fR
-.TP
-\fB\-\-debug-spex\fR
 .PP
 \fBLqns\fP exits with 0 on success, 1 if the model failed to converge,
 2 if the input was invalid, 4 if a command line argument was
@@ -380,6 +390,27 @@ Allow cycles in the call graph.  The interlock adjustment is disabled.
 The default is no.
 .RE
 .TP
+\fBforce-infinite\fR=\fIarg\fR
+This pragma is used to force the use of a infinite
+server instead of a fixed-rate server and/or multiserver for all the tasks in the model.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBall\fP
+Change all tasks to infinite servers.
+.TP
+\fBfixed-rate\fP
+Change all fixed-rate tasks to infinite servers.
+.TP
+\fBmultiservers\fP
+Change all multiserver tasks to infinite servers.
+.TP
+\fBnone\fP
+Do not change and fixed-rate or multiserver task to an infinite server.
+.LP
+The default is none.
+.RE
+.TP
 \fBforce-multiserver\fR=\fIarg\fR
 This pragma is used to force the use of a multiserver
 instead of a fixed-rate server whenever the multiplicity of a server is one.
@@ -388,7 +419,7 @@ instead of a fixed-rate server whenever the multiplicity of a server is one.
 .TP
 \fBall\fP
 Always use a multiserver solution for non-delay servers (tasks and processors) even if the number of servers is one (1).
-The Rolia mutliserver approximationis known to fail for this case.
+The Rolia multiserver approximation is known to fail for this case.
 .TP
 \fBnone\fP
 Use fixed-rate servers whenever a server multiplicity is one (1).
@@ -398,11 +429,11 @@ multiserver servers never take variance into consideration.
 .TP
 \fBprocessors\fP
 Always use a multiserver solution for non-delay processors even if the number of servers is one (1).
-The Rolia mutliserver approximationis known to fail for this case.
+The Rolia multiserver approximation is known to fail for this case.
 .TP
 \fBtasks\fP
 Always use a multiserver solution for non-delay server tasks even if the number of servers is one (1).
-The Rolia mutliserver approximationis known to fail for this case.
+The Rolia multiserver approximation is known to fail for this case.
 .LP
 The default is none.
 .RE
@@ -569,6 +600,20 @@ This pragma is used to enable or disable warning messages.
 .TP
 \fBwarning\fP
 .LP
+.RE
+.TP
+\fBspex-comment\fR=\fIarg\fR
+This pragma is used to enable or disable the comment line of SPEX output.
+\fIArg\fP must be one of: 
+.RS
+.TP
+\fBfalse\fP
+Do not output a comment line (the output can then be fed into gnuplot easily).
+.TP
+\fBtrue\fP
+Output the model comment in the SPEX output.
+.LP
+The default is false.
 .RE
 .TP
 \fBspex-header\fR=\fIarg\fR

@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqn2csv.cc 15042 2021-10-05 14:11:14Z greg $
+ * $Id: lqn2csv.cc 15053 2021-10-08 02:13:14Z greg $
  *
  * Command line processing.
  *
@@ -126,9 +126,7 @@ std::vector<Model::Result::result_t> results;
 
 static void process( std::ostream& output, int argc, char **argv, const std::vector<Model::Result::result_t>& results );
 static bool is_directory( const char * filename );
-#if HAVE_GLOB
 static void process_directory( std::ostream& output, const std::string& dirname, const Model::Process& );
-#endif
 static void fetch_arguments( const std::string& filename, std::vector<Model::Result::result_t>& results );
 static void usage();
 static std::string makeopts( const std::vector<struct option>& );
@@ -266,11 +264,7 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
     /* For all files do... */
 
     if ( argc - optind == 1 && is_directory( argv[optind] ) ) {
-#if HAVE_GLOB
 	process_directory( output, argv[optind], Model::Process( output, results ) );
-#else
-	std::cerr << toolname << ": the directory option is not supported with this version." << std::endl;
-#endif
     } else {
 	std::for_each( &argv[optind], &argv[argc], Model::Process( output, results ) );
     }
@@ -303,14 +297,14 @@ process( std::ostream& output, int argc, char **argv, const std::vector<Model::R
  * for now), then run Model::Process::operator()() on this list.
  */
 
-#if HAVE_GLOB
 static void
 process_directory( std::ostream& output, const std::string& dirname, const Model::Process& process )
 {
+#if HAVE_GLOB
     size_t i = dirname.find_last_of( "/" );
     size_t j = dirname.find_last_of( "." );
-    const std::string basepath = dirname + "/" + dirname.substr( 0, i ).substr( 0, j );	/* stip directories and suffixes */
-    static const std::vector<const std::string> patterns = { "-*.lqxo", ".lqxo~*~", "-*.lqjo", "*.lqjo~*~" };
+    const std::string basepath = dirname + "/" + dirname.substr( 0, i ).substr( 0, j );	/* strip directories and suffixes */
+    static const std::vector<const std::string> patterns = { "-*.lqxo", ".lqxo~*~", "-*.lqjo", ".lqjo~*~" };
 
     glob_t dir_list;
     dir_list.gl_offs = 0;
@@ -330,8 +324,10 @@ process_directory( std::ostream& output, const std::string& dirname, const Model
     }
     
     std::for_each( &dir_list.gl_pathv[0], &dir_list.gl_pathv[dir_list.gl_pathc], process );
-}
+#else
+    std::cerr << toolname << ": the directory option is not supported with this version." << std::endl;
 #endif
+}
 
 
 /*

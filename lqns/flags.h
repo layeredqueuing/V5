@@ -9,7 +9,7 @@
  *
  * November, 1994
  *
- * $Id: flags.h 14821 2021-06-15 17:37:44Z greg $
+ * $Id: flags.h 15053 2021-10-08 02:13:14Z greg $
  *
  * ------------------------------------------------------------------------
  */
@@ -28,6 +28,7 @@ extern struct FLAGS {
     unsigned reset_mva:1;			/* --reset-mva (reset mva each iter.)	*/
     unsigned rtf_output:1;			/* -r: Generate RTF output file.	*/
     unsigned verbose:1;				/* -v: Be chatty.			*/
+    unsigned json_output:1;			/* -j: Ouptut JSON output		*/
     unsigned xml_output:1;			/* -x: Ouptut XML output		*/
     unsigned debug_spex:1;			/* --debug-spex: Ouptut LQX		*/
     
@@ -54,10 +55,6 @@ extern struct FLAGS {
 	
     unsigned print_overtaking:1;		/* Print out overtaking values.		*/
 
-    unsigned override_iterations:1;		/* Ignore value in model file.		*/
-    unsigned override_convergence:1;		/* Ignore value in model file.		*/
-    unsigned override_print_interval:1;		/* Ignore value in model file.		*/
-    unsigned override_underrelaxation:1;	/* Ignore value in model file.		*/
     unsigned disable_expanding_quorum_tree:1;
     unsigned ignore_overhanging_threads:1;
     unsigned full_reinitialize:1;		/* Maybe a pragma?			*/

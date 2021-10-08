@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: option.cc 14823 2021-06-15 18:07:36Z greg $
+ * $Id: option.cc 15051 2021-10-07 23:56:46Z greg $
  */
 
 #include "lqns.h"
@@ -276,22 +276,20 @@ const char ** Options::Special::__options = NULL;
 void
 Options::Special::iteration_limit( const char * arg )
 {
-    if ( !arg || (Model::iteration_limit = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
+    if ( !arg || (Model::__iteration_limit = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
 	std::cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << arg << " is invalid, choose non-negative integer." << std::endl;
 	(void) exit( INVALID_ARGUMENT );
-    } else {
-	flags.override_iterations = true;
     }
 }
 
 void
 Options::Special::print_interval( const char * arg )
 {
-    if ( !arg || (Model::print_interval = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
+    if ( arg != nullptr && (Model::__print_interval = (unsigned)strtol( arg, 0, 10 )) == 0 ) {
 	std::cerr << LQIO::io_vars.lq_toolname << "print-interval=" << arg << " is invalid, choose non-negative integer." << std::endl;
 	(void) exit( INVALID_ARGUMENT );
     } else {
-	flags.override_print_interval = true;
+	flags.trace_intermediate = true;
     }
 }
 
@@ -304,11 +302,9 @@ Options::Special::overtaking( const char * )
 void
 Options::Special::convergence_value( const char * arg )
 {
-    if ( !arg || (Model::convergence_value = strtod( arg, 0 )) == 0 ) {
+    if ( !arg || (Model::__convergence_value = strtod( arg, 0 )) == 0 ) {
 	std::cerr << LQIO::io_vars.lq_toolname << "convergence=" << arg << " is invalid, choose non-negative real." << std::endl;
 	(void) exit( INVALID_ARGUMENT );
-    } else {
-	flags.override_convergence = true;
     }
 }
 
@@ -326,11 +322,9 @@ Options::Special::single_step( const char * arg )
 void
 Options::Special::underrelaxation( const char * arg )
 {
-    if ( !arg || (Model::underrelaxation = strtod( arg, 0 )) <= 0.0 || 2.0 < Model::underrelaxation ) {
+    if ( !arg || (Model::__underrelaxation = strtod( arg, 0 )) <= 0.0 || 2.0 < Model::__underrelaxation ) {
 	std::cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << arg << " is invalid, choose a value between 0.0 and 2.0." << std::endl;
 	(void) exit( INVALID_ARGUMENT );
-    } else {
-	flags.override_underrelaxation = true;
     }
 }
 

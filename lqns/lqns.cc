@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15049 2021-10-07 16:54:01Z greg $
+ * $Id: lqns.cc 15053 2021-10-08 02:13:14Z greg $
  *
  * Command line processing.
  *
@@ -59,51 +59,53 @@ static LQIO::DOM::Pragma pragmas;
 const struct option longopts[] =
     /* name */ /* has arg */ /*flag */ /* val */
 {
-    { "no-advisories",        no_argument,       0, 'a' },
-    { "bounds-only",          no_argument,       0, 'b' },
-    { "convergence",          required_argument, 0, 'c' },
-    { "debug",                required_argument, 0, 'd' },
-    { "error",                required_argument, 0, 'e' },
-    { LQIO::DOM::Pragma::_fast_, no_argument,       0, 'f' },
-    { "help",                 optional_argument, 0, 'H' },
-    { "huge",		      no_argument,	 0, 'h' },
-    { "iteration-limit",      required_argument, 0, 'i' },
-    { "input-format",         required_argument, 0, 'I' },
-    { "no-execute",           no_argument,       0, 'n' },
-    { "output",               required_argument, 0, 'o' },
-    { "parseable",            no_argument,       0, 'p' },
-    { "pragma",               required_argument, 0, 'P' },
-    { "rtf",                  no_argument,       0, 'r' },
-    { "trace",                required_argument, 0, 't' },
-    { "underrelaxation",      required_argument, 0, 'u' },
-    { "verbose",              no_argument,       0, 'v' },
-    { "version",              no_argument,       0, 'V' },
-    { "no-warnings",          no_argument,       0, 'w' },
-    { "xml",                  no_argument,       0, 'x' },
-    { "special",              required_argument, 0, 'z' },
-    { "exact-mva",            no_argument,       0, 256+'e' },
-    { LQIO::DOM::Pragma::_schweitzer_, no_argument, 0, 256+'s' },
-    { "batch-layering",       no_argument,	 0, 256+'b' },	/* NOP */
-    { "hwsw-layering",        no_argument,       0, 256+'h' },
-    { "method-of-layers",     no_argument,       0, 256+'m' },
-    { "squashed-layering",    no_argument,       0, 256+'z' },
-    { "srvn-layering",        no_argument,       0, 256+'l' },
-    { "processor-sharing",    no_argument,       0, 256+'p' },
+    { "no-advisories",			    no_argument,       nullptr, 'a' },
+    { "bounds-only",			    no_argument,       nullptr, 'b' },
+    { "convergence",			    required_argument, nullptr, 'c' },
+    { "debug",				    required_argument, nullptr, 'd' },
+    { "error",				    required_argument, nullptr, 'e' },
+    { LQIO::DOM::Pragma::_fast_,	    no_argument,       nullptr, 'f' },
+    { "help",				    optional_argument, nullptr, 'H' },
+    { "huge",				    no_argument,       nullptr, 'h' },
+    { "iteration-limit",		    required_argument, nullptr, 'i' },
+    { "json",				    no_argument,       nullptr, 'j' },
+    { "input-format",			    required_argument, nullptr, 'I' },
+    { "no-execute",			    no_argument,       nullptr, 'n' },
+    { "output",				    required_argument, nullptr, 'o' },
+    { "parseable",			    no_argument,       nullptr, 'p' },
+    { "pragma",				    required_argument, nullptr, 'P' },
+    { "rtf",				    no_argument,       nullptr, 'r' },
+    { "trace",				    required_argument, nullptr, 't' },
+    { LQIO::DOM::Pragma::_underrelaxation_, required_argument, nullptr, 'u' },
+    { "verbose",			    no_argument,       nullptr, 'v' },
+    { "version",			    no_argument,       nullptr, 'V' },
+    { "no-warnings",			    no_argument,       nullptr, 'w' },
+    { "xml",				    no_argument,       nullptr, 'x' },
+    { "special",			    required_argument, nullptr, 'z' },
+    { "exact-mva",			    no_argument,       nullptr, 256+'e' },
+    { LQIO::DOM::Pragma::_schweitzer_,	    no_argument,       nullptr, 256+'s' },
+    { "batch-layering",			    no_argument,       nullptr, 256+'b' },	/* NOP */
+    { "hwsw-layering",			    no_argument,       nullptr, 256+'h' },
+    { "method-of-layers",		    no_argument,       nullptr, 256+'m' },
+    { "squashed-layering",		    no_argument,       nullptr, 256+'z' },
+    { "srvn-layering",			    no_argument,       nullptr, 256+'l' },
+    { "processor-sharing",		    no_argument,       nullptr, 256+'p' },
 #if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
-    { "quorum",               no_argument,       0, 256+'q' },
+    { "quorum",				    no_argument,       nullptr, 256+'q' },
 #endif
-    { "no-stop-on-message-loss", no_argument,    0, 256+'o' },  /* Ignore open */
-    { "no-variance",          no_argument,       0, 256+'v' },
-    { "reload-lqx",           no_argument,       0, 512+'r' },
-    { "restart",	      no_argument,	 0, 512+'R' },
-    { "no-header", 	      no_argument,       0, 512+'h' },
-    { "print-comment",	      no_argument,	 0, 512+'p' },
-    { "reset-mva", 	      no_argument,       0, 256+'r' },
-    { "trace-mva",            no_argument,       0, 256+'t' },
-    { "debug-lqx",            no_argument,       0, 512+'l' },
-    { "debug-xml",            no_argument,       0, 512+'x' },
-    { "debug-srvn",           no_argument,       0, 512+'y' },
-    { "debug-spex",	      no_argument,	 0, 512+'s' },
+    { "no-stop-on-message-loss",	    no_argument,       nullptr, 256+'o' },  /* Ignore open */
+    { "no-variance",			    no_argument,       nullptr, 256+'v' },
+    { "reload-lqx",			    no_argument,       nullptr, 512+'r' },
+    { "restart",			    no_argument,       nullptr, 512+'R' },
+    { "no-header",			    no_argument,       nullptr, 512+'h' },
+    { "print-comment",			    no_argument,       nullptr, 512+'c' },
+    { "print-interval",			    optional_argument, nullptr, 512+'p' },
+    { "reset-mva",			    no_argument,       nullptr, 256+'r' },
+    { "trace-mva",			    no_argument,       nullptr, 256+'t' },
+    { "debug-lqx",			    no_argument,       nullptr, 512+'l' },
+    { "debug-spex",			    no_argument,       nullptr, 512+'s' },
+    { "debug-srvn",			    no_argument,       nullptr, 512+'y' },
+    { "debug-xml",			    no_argument,       nullptr, 512+'x' },
     { nullptr, 0, nullptr, 0 }
 };
 #endif
@@ -167,15 +169,16 @@ int main (int argc, char *argv[])
 	    break;
 
         case 'c':
-            if ( !optarg || (Model::convergence_value = strtod( optarg, 0 )) == 0 ) {
-                std::cerr << LQIO::io_vars.lq_toolname << "convergence=" << optarg << " is invalid, choose a non-negative real." << std::endl;
-                (void) exit( INVALID_ARGUMENT );
-            } else {
-                flags.override_convergence = true;
-            }
+	    Options::Special::convergence_value( optarg );
             break;
 
-        case 'd':
+	case 512+'c':
+	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
+	    LQIO::Spex::__print_comment = true;
+	    pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
+	    break;
+        
+	case 'd':
             Options::Debug::initialize();
             options = optarg;
             while ( *options ) {
@@ -243,18 +246,19 @@ int main (int argc, char *argv[])
                 Model::input_format = LQIO::DOM::Document::InputFormat::XML;
             } else if ( strcasecmp( optarg, "lqn" ) == 0 ) {
                 Model::input_format = LQIO::DOM::Document::InputFormat::LQN;
+            } else if ( strcasecmp( optarg, "json" ) == 0 ) {
+                Model::input_format = LQIO::DOM::Document::InputFormat::JSON;
             } else {
                 std::cerr << LQIO::io_vars.lq_toolname << ": invalid argument to -I -- " << optarg << std::endl;
             }
             break;
 
         case 'i':
-            if ( !optarg || (Model::iteration_limit = (unsigned)strtol( optarg, 0, 10 )) == 0 ) {
-                std::cerr << LQIO::io_vars.lq_toolname << "iteration-limit=" << optarg << " is invalid, choose a non-negative integer." << std::endl;
-                (void) exit( INVALID_ARGUMENT );
-            } else {
-                flags.override_iterations = true;
-            }
+	    Options::Special::iteration_limit( optarg );
+            break;
+
+        case 'j':
+            flags.json_output = true;
             break;
 
         case 256+'l':
@@ -297,9 +301,7 @@ int main (int argc, char *argv[])
             break;
 
 	case 512+'p':
-	    /* Set immediately, as it can't be changed once the SPEX program is loaded */
-	    LQIO::Spex::__print_comment = true;
-	    pragmas.insert(LQIO::DOM::Pragma::_spex_comment_,"true");
+	    Options::Special::print_interval( optarg );
 	    break;
 	    
         case 256+'q': //tomari quorum options
@@ -345,12 +347,7 @@ int main (int argc, char *argv[])
             break;
 
         case 'u':
-            if ( !optarg || (Model::underrelaxation = strtod( optarg, 0 )) <= 0.0 || 2.0 < Model::underrelaxation ) {
-                std::cerr << LQIO::io_vars.lq_toolname << "underrelaxation=" << optarg << " is invalid, choose a value between 0.0 and 2.0." << std::endl;
-                (void) exit( INVALID_ARGUMENT );
-            } else {
-                flags.override_underrelaxation = true;
-            }
+	    Options::Special::underrelaxation( optarg );
             break;
 
         case 'v':
@@ -482,7 +479,7 @@ process( const std::string& inputFileName, const std::string& outputFileName )
     document->mergePragmas( pragmas.getList() );       /* Save pragmas -- prepare will process */
     if ( Model::prepare(document) == false ) return INVALID_INPUT;
         
-    if ( document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML ) {
+    if ( document->getInputFormat() == LQIO::DOM::Document::InputFormat::XML || document->getInputFormat() == LQIO::DOM::Document::InputFormat::JSON ) {
 	if ( LQIO::Spex::__no_header ) {
 	    std::cerr << LQIO::io_vars.lq_toolname << ": --no-header is ignored for " << inputFileName << "." << std::endl;
 	}
@@ -638,10 +635,6 @@ void init_flags()
 #endif
     flags.verbose               = false;
 
-    flags.override_iterations        = false;
-    flags.override_convergence       = false;
-    flags.override_print_interval    = false;
-    flags.override_underrelaxation   = false;
     flags.ignore_overhanging_threads = false;
     flags.full_reinitialize          = false;               /* Maybe a pragma?                      */
     flags.reload_only                = false;
