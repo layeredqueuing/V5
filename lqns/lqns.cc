@@ -1,5 +1,5 @@
 /*  -*- c++ -*-
- * $Id: lqns.cc 15062 2021-10-10 00:36:21Z greg $
+ * $Id: lqns.cc 15063 2021-10-10 13:37:14Z greg $
  *
  * Command line processing.
  *
@@ -98,10 +98,12 @@ const struct option longopts[] =
     { "reload-lqx",			    no_argument,       nullptr, 512+'r' },
     { "restart",			    no_argument,       nullptr, 512+'R' },
     { "no-header",			    no_argument,       nullptr, 512+'h' },
+//  { "no-variance",			    no_argument,       nullptr, 512+'v' },
     { "print-comment",			    no_argument,       nullptr, 512+'c' },
     { "print-interval",			    optional_argument, nullptr, 512+'p' },
     { "reset-mva",			    no_argument,       nullptr, 256+'r' },
     { "trace-mva",			    no_argument,       nullptr, 256+'t' },
+    { "debug-json",			    no_argument,       nullptr, 512+'j' },
     { "debug-lqx",			    no_argument,       nullptr, 512+'l' },
     { "debug-spex",			    no_argument,       nullptr, 512+'s' },
     { "debug-srvn",			    no_argument,       nullptr, 512+'y' },
@@ -186,12 +188,12 @@ int main (int argc, char *argv[])
 		options = optarg;
 		while ( *options ) {
 		    char * value = nullptr;
-		    const char * last_opt = options;
+		    const char * subopt = options;
 		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
 		    if ( ix >= 0 && value != nullptr ) {
 			Options::Debug::exec( ix, value );
 		    } else {
-			throw std::invalid_argument( std::string("--debug=") + last_opt );
+			throw std::invalid_argument( std::string("--debug=") + subopt );
 		    }
 		}
 		break;
@@ -346,12 +348,12 @@ int main (int argc, char *argv[])
 		options = optarg;
 		while ( *options ) {
 		    char * value = nullptr;
-		    const char * last_opt = options;
+		    const char * subopt = options;
 		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
 		    if ( ix >= 0 && value != nullptr ) {
 			Options::Trace::exec( ix, value );
 		    } else {
-			throw std::invalid_argument( std::string("--trace=") + last_opt );
+			throw std::invalid_argument( std::string("--trace=") + subopt );
 		    }
 		}
 		break;
@@ -400,12 +402,12 @@ int main (int argc, char *argv[])
 		options = optarg;
 		while ( *options ) {
 		    char * value = nullptr;
-		    const char * last_opt = options;
-		    const int ix = getsubopt( &options, Options::Debug::__options.data(), &value );
-		    if ( ix >= 0 && value != nullptr ) {
-			Options::Special::exec( ix, value );
+		    const char * subopt = options;
+		    const int ix = getsubopt( &options, Options::Special::__options.data(), &value );
+		    if ( ix >= 0 ) {
+			Options::Special::exec( ix, (value == nullptr ? "" : value) );
 		    } else {
-			throw std::invalid_argument( std::string("--special=") + last_opt );
+			throw std::invalid_argument( std::string("--special=") + subopt );
 		    }
 		}
 		break;

@@ -1,6 +1,6 @@
 /* help.cc	-- Greg Franks Wed Oct 12 2005
  *
- * $Id: help.cc 15062 2021-10-10 00:36:21Z greg $
+ * $Id: help.cc 15063 2021-10-10 13:37:14Z greg $
  */
 
 #include "lqns.h"
@@ -38,7 +38,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "debug",				    "Enable debug code.	 See -Hd." },
     { "error",				    "Set floating point exception mode." },
     { LQIO::DOM::Pragma::_fast_,	    "Solve using one-step-linearizer, batch layering and Conway multiserver." },
-    { "help",				    "Show this help.  The optional argument shows help for -d, -t, -z, and -P respectively." },
+    { "help",				    "Print a summary of the command line options.  The optional argument shows help for -d, -t, -z, and -P respectively." },
     { "huge",				    "Solve using one-step-schweitzer, no interlocking, and Rolia multiserver." },
     { "iteration-limit",		    "Set the iteration limit to ARG." },
     { "input-format",			    "Force input format to ARG. ARG is either 'lqn', 'json' or 'xml'." },
@@ -71,6 +71,7 @@ static const std::map<const std::string,const std::string> opt_help = {
     { "reload-lqx",			    "Run the LQX program, but re-use the results from a previous invocation." },
     { "restart",			    "Reuse existing valid results.  Otherwise, run the solver." },
     { "no-header",			    "Do not output the variable name header on SPEX results." },
+    { "no-variance",			    "Do not use variances in the waiting time calculations." },
     { "print-comment",			    "Add the model comment as the first line of output when running with SPEX input." },
     { "print-interval",			    "Output the intermediate solution of the model after <n> iterations." },
     { "reset-mva",			    "Reset the MVA calculation prior to solving a submodel." }, 
@@ -85,9 +86,6 @@ static const std::map<const std::string,const std::string> opt_help = {
 
 const std::map<const int,const Help::help_fptr> Help::__option_table =
 {
-    { 'I',	&Help::flagInputFormat },
-    { 'P',	&Help::flagPragmas },
-    { 'V',	&Help::flagVersion },
     { 'a',	&Help::flagAdvisory },
     { 'b',	&Help::flagBound },
     { 'c',	&Help::flagConvergence },
@@ -102,30 +100,36 @@ const std::map<const int,const Help::help_fptr> Help::__option_table =
     { 'n',	&Help::flagNoExecute },
     { 'o',	&Help::flagOutput },
     { 'p',	&Help::flagParseable },
+    { 'P',	&Help::flagPragmas },
     { 'r',	&Help::flagRTF },
     { 't',	&Help::flagTrace },
     { 'u',	&Help::flagUnderrelaxation },
     { 'v',	&Help::flagVerbose },
+    { 'V',	&Help::flagVersion },
     { 'w',	&Help::flagWarning },
     { 'x',	&Help::flagXML },
     { 'z',	&Help::flagSpecial },
     { 256+'e',	&Help::flagExactMVA },
-    { 256+'h',	&Help::flagHwSwLayering },
-    { 256+'l',	&Help::flagLoose },
-    { 256+'b',	&Help::flagBatch },
-    { 256+'m',	&Help::flagMethoOfLayers },
-    { 256+'o',	&Help::flagStopOnMessageLoss },
-    { 256+'p',	&Help::flagProcessorSharing },
     { 256+'s',	&Help::flagSchweitzerMVA },
-    { 256+'r',  &Help::flagResetMVA },
-    { 256+'t',	&Help::flagTraceMVA },
+    { 256+'b',	&Help::flagBatch },
+    { 256+'h',	&Help::flagHwSwLayering },
+    { 256+'m',	&Help::flagMethoOfLayers },
     { 256+'z',	&Help::flagSquashedLayering },
+    { 256+'l',  &Help::flagSRVNLayering },
+    { 256+'p',	&Help::flagProcessorSharing },
+#if HAVE_LIBGSL && HAVE_LIBGSLCBLAS
+    { 256+'p',	&Help::flagQuorum },
+#endif    
+    { 256+'o',	&Help::flagStopOnMessageLoss },
     { 256+'v',	&Help::flagNoVariance },
+    { 256+'r',  &Help::flagResetMVA },
+    { 512+'R',	&Help::flagRestartLQX },
+    { 512+'h',  &Help::flagNoHeader },
+//  { 512+'v',  &Help::flagNoVariance },
     { 512+'c',	&Help::flagPrintComment },
     { 512+'p',	&Help::flagPrintInterval },
-    { 512+'h',	&Help::flagNoHeader },
     { 512+'r',	&Help::flagReloadLQX },
-    { 512+'R',	&Help::flagRestartLQX },
+    { 256+'t',	&Help::flagTraceMVA },
     { 512+'j',	&Help::flagDebugJSON },
     { 512+'l',	&Help::flagDebugLQX },
     { 512+'s',	&Help::flagDebugSPEX },
@@ -618,6 +622,14 @@ Help::flagBound( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
+Help::flagConvergence( std::ostream& output, bool verbose ) const
+{
+    help_fptr f = Options::Special::__table["convergence-value"].help();
+    (this->*f)(output,verbose) << ix( *this, "convergence!value" );
+    return output;
+}
+
+std::ostream&
 Help::flagDebug( std::ostream& output, bool verbose ) const
 {
     output << "This option is used to enable debug output." << ix( *this, "debug" ) << std::endl
@@ -655,8 +667,6 @@ Help::flagDebugSPEX( std::ostream& output, bool verbose ) const
     return output;
 }
 
-
-
 std::ostream&
 Help::flagDebugSRVN( std::ostream& output, bool verbose ) const
 {
@@ -667,7 +677,8 @@ Help::flagDebugSRVN( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagDebugXML( std::ostream& output, bool verbose ) const
 {
-    output << "Output XML" << ix( *this, "XML!debug" ) << " elements and attributes as they are being parsed.   Since the XML parser usually stops when it encounters an error," << std::endl
+    output << "Output XML" << ix( *this, "XML!debug" ) << " elements and attributes as they are being parsed." << std::endl
+	   << "Since the XML parser usually stops when it encounters an error," << std::endl
 	   << "this option can be used to localize the error." << std::endl;
     return output;
 }
@@ -698,6 +709,13 @@ Help::flagError( std::ostream& output, bool verbose ) const
     return output;
 }
 
+std::ostream&
+Help::flagExactMVA( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "exact-mva" ) << ix( *this, "MVA!exact" ) << std::endl;
+    return output;
+}
+
 std::ostream& 
 Help::flagFast( std::ostream& output, bool verbose ) const
 {
@@ -709,10 +727,23 @@ Help::flagFast( std::ostream& output, bool verbose ) const
     return output;
 }
 
+std::ostream&
+Help::flagHelp( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "help" ) << std::endl; return output;
+}
 
 std::ostream&
-Help::flagHuge( std::ostream& output, bool verbose ) const { output << opt_help.at( "huge" ) << std::endl; return output; }
+Help::flagHuge( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "huge" ) << std::endl; return output;
+}
 
+std::ostream&
+Help::flagHwSwLayering( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "hwsw-layering" ) << std::endl; return output;
+}
 
 std::ostream&
 Help::flagInputFormat( std::ostream& output, bool verbose ) const
@@ -724,12 +755,19 @@ Help::flagInputFormat( std::ostream& output, bool verbose ) const
 }
 
 std::ostream&
+Help::flagIterationLimit( std::ostream& output, bool verbose ) const
+{
+    help_fptr f = Options::Special::__table["iteration-limit"].help();
+    (this->*f)(output,verbose);
+    return output;
+}
+
+std::ostream&
 Help::flagJSON( std::ostream& output, bool verbose ) const
 {
     output << "Generate JSON output regardless of input format." << std::endl;
     return output;
 }
-
 
 std::ostream& 
 Help::flagMethoOfLayers( std::ostream& output, bool verbose ) const
@@ -741,8 +779,10 @@ Help::flagMethoOfLayers( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagNoExecute( std::ostream& output, bool verbose ) const
 {
-    output << "Read input, but do not solve.  The input is checked for validity.  " << std::endl
-	   << "No output is generated." << std::endl;
+    output << opt_help.at( "no-execute" );
+    if ( verbose ) {
+	output << "The input is checked for validity but no output is generated." << std::endl;
+    }
     return output;
 }
 
@@ -750,9 +790,11 @@ Help::flagNoExecute( std::ostream& output, bool verbose ) const
 std::ostream&
 Help::flagNoHeader( std::ostream& output, bool verbose ) const
 {
-    output << "Do not print out the Result Variable header when running with SPEX input." << std::endl;
+    output << opt_help.at( "no-header" );
     if ( verbose ) {
-	output << "This option has no effect otherwise." << std::endl;
+	output << "This option can be also be set by using " << bold( *this, "pragma" )
+	       << " " << emph( *this, LQIO::DOM::Pragma::_spex_header_ ) << "=" << emph( *this, LQIO::DOM::Pragma::_no_ ) << ix( *this, "pragma!srvn-header" ) << "."
+	       << "This option has no effect if SPEX is not used." << std::endl;
     }
     return output;
 }
@@ -762,6 +804,10 @@ std::ostream&
 Help::flagNoVariance( std::ostream& output, bool verbose ) const
 {
     output << "Do not use variances in the waiting time calculations." << std::endl;
+    if ( verbose ) {
+	output << "The variance of an entry is used with fixed-rate servers" << ix( *this, "server!fcfs" ) << ix( *this, "variance" ) << "." << std::endl
+	       << "Ignorning variance will help with convergence problems with some models. " << ix( *this, "convergence!problems" ) << "." << std::endl;
+    }
     return output;
 }
 
@@ -830,10 +876,77 @@ Help::flagRTF( std::ostream& output, bool verbose ) const
     return output;
 }
 
+std::ostream&
+Help::flagReloadLQX( std::ostream& output, bool verbose ) const
+{
+    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving the models.  Results must exist from a previous solution run." << std::endl
+	   << "This option is useful if LQX print statements or SPEX results are changed." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::flagResetMVA( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "reset-mva" ) << std::endl;
+    return output;
+}
+
+
+std::ostream&
+Help::flagRestartLQX( std::ostream& output, bool verbose ) const
+{
+    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved." << std::endl
+	   << "This option is useful for running a second pass with a new convergnece value and/or iteration limit." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::flagSchweitzerMVA( std::ostream& output, bool verbose ) const
+{
+    output << "Use Bard-Schweitzer approximate MVA to solve all submodels." << ix( *this, "MVA!Bard-Schweitzer" ) << std::endl;
+    return output;
+}
+
 std::ostream& 
 Help::flagSquashedLayering( std::ostream& output, bool verbose ) const
 {
     output << "Use only one submodel to solve the model." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::flagSpecial( std::ostream& output, bool verbose ) const
+{
+    output << "This option is used to select special options.  Arguments of the form" << std::endl
+	   << emph( *this, "nn" ) << " are integers while arguments of the form " << emph( *this, "nn.n" ) << " are real" << std::endl
+	   << "numbers.  " << emph( *this, "Arg" ) << " can be any of the following:" << std::endl;
+    increase_indent( output );
+    dl_begin( output );
+    for ( std::map<const std::string, const Options::Special>::const_iterator opt = Options::Special::__table.begin(); opt != Options::Special::__table.end(); ++opt ) {
+	print_option( output, opt->first, opt->second );
+    }
+    dl_end( output );
+    output << "If any one of " << emph( *this, "convergence" ) << ", " << emph( *this, "iteration-limit" ) << ", or"
+	   << emph( *this, "print-interval" ) << " are used as arguments, the corresponding " << std::endl
+	   << "value specified in the input file for general information, `G', is" << std::endl
+	   << "ignored.  " << std::endl;
+    decrease_indent( output );
+    return output;
+}
+
+
+std::ostream&
+Help::flagSRVNLayering( std::ostream& output, bool verbose ) const
+{
+    output << opt_help.at( "srvn-layering" ) << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::flagStopOnMessageLoss( std::ostream& output, bool verbose ) const
+{
+    output << "Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an" << std::endl
+	   << "error message indicating that the arrival rate is too high for the service time of the entry" << std::endl;
     return output;
 }
 
@@ -853,6 +966,20 @@ Help::flagTrace( std::ostream& output, bool verbose ) const
     return output;
 }
 
+std::ostream&
+Help::flagTraceMVA( std::ostream& output, bool verbose ) const
+{
+    output << "Output the inputs and results of each MVA submodel for every iteration of the solver." << std::endl;
+    return output;
+}
+
+std::ostream&
+Help::flagUnderrelaxation( std::ostream& output, bool verbose ) const
+{
+    help_fptr f = Options::Special::__table[LQIO::DOM::Pragma::_underrelaxation_].help();
+    (this->*f)(output,verbose);
+    return output;
+}
 
 std::ostream&
 Help::flagVerbose( std::ostream& output, bool verbose ) const
@@ -881,119 +1008,6 @@ Help::flagXML( std::ostream& output, bool verbose ) const
     output << "Generate XML output regardless of input format." << std::endl;
     return output;
 }
-
-std::ostream&
-Help::flagSpecial( std::ostream& output, bool verbose ) const
-{
-    output << "This option is used to select special options.  Arguments of the form" << std::endl
-	   << emph( *this, "nn" ) << " are integers while arguments of the form " << emph( *this, "nn.n" ) << " are real" << std::endl
-	   << "numbers.  " << emph( *this, "Arg" ) << " can be any of the following:" << std::endl;
-    increase_indent( output );
-    dl_begin( output );
-    for ( std::map<const std::string, const Options::Special>::const_iterator opt = Options::Special::__table.begin(); opt != Options::Special::__table.end(); ++opt ) {
-	print_option( output, opt->first, opt->second );
-    }
-    dl_end( output );
-    br( output );
-    output << "If any one of " << emph( *this, "convergence" ) << ", " << emph( *this, "iteration-limit" ) << ", or"
-	   << emph( *this, "print-interval" ) << " are used as arguments, the corresponding " << std::endl
-	   << "value specified in the input file for general information, `G', is" << std::endl
-	   << "ignored.  " << std::endl;
-    decrease_indent( output );
-    return output;
-}
-
-std::ostream&
-Help::flagConvergence( std::ostream& output, bool verbose ) const
-{
-    help_fptr f = Options::Special::__table["convergence-value"].help();
-    (this->*f)(output,verbose) << ix( *this, "convergence!value" );
-    return output;
-}
-
-std::ostream&
-Help::flagUnderrelaxation( std::ostream& output, bool verbose ) const
-{
-    help_fptr f = Options::Special::__table[LQIO::DOM::Pragma::_underrelaxation_].help();
-    (this->*f)(output,verbose);
-    return output;
-}
-std::ostream&
-Help::flagIterationLimit( std::ostream& output, bool verbose ) const
-{
-    help_fptr f = Options::Special::__table["iteration-limit"].help();
-    (this->*f)(output,verbose);
-    return output;
-}
-
-std::ostream&
-Help::flagExactMVA( std::ostream& output, bool verbose ) const
-{
-    output << "Use Exact MVA to solve all submodels." << ix( *this, "MVA!exact" ) << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::flagSchweitzerMVA( std::ostream& output, bool verbose ) const
-{
-    output << "Use Bard-Schweitzer approximate MVA to solve all submodels." << ix( *this, "MVA!Bard-Schweitzer" ) << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::flagHwSwLayering( std::ostream& output, bool verbose ) const
-{
-    return output;
-}
-
-std::ostream&
-Help::flagLoose( std::ostream& output, bool verbose ) const
-{
-    output << "Solve the model using submodels containing exactly one server." << std::endl;
-    return output;
-}
-
-
-std::ostream&
-Help::flagResetMVA( std::ostream& output, bool verbose ) const
-{
-    output << opt_help.at( "reset-mva" ) << std::endl;
-    return output;
-}
-
-
-std::ostream&
-Help::flagReloadLQX( std::ostream& output, bool verbose ) const
-{
-    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving the models.  Results must exist from a previous solution run." << std::endl
-	   << "This option is useful if LQX print statements or SPEX results are changed." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::flagRestartLQX( std::ostream& output, bool verbose ) const
-{
-    output << "Re-run the LQX/SPEX" << ix( *this, "LQX" ) <<  " program without re-solving models which were solved successfully.  Models which were not solved because of early termination, or which were not solved successfully because of convergence problems, will be solved." << std::endl
-	   << "This option is useful for running a second pass with a new convergnece value and/or iteration limit." << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::flagStopOnMessageLoss( std::ostream& output, bool verbose ) const
-{
-    output << "Do not stop the solver on overflow (infinities) for open arrivals or send-no-reply messages to entries.  The default is to stop with an" << std::endl
-	   << "error message indicating that the arrival rate is too high for the service time of the entry" << std::endl;
-    return output;
-}
-
-std::ostream&
-Help::flagTraceMVA( std::ostream& output, bool verbose ) const
-{
-    output << "Output the inputs and results of each MVA submodel for every iteration of the solver." << std::endl;
-    return output;
-}
-
-
 
 std::ostream&
 Help::debugAll( std::ostream & output, bool verbose ) const
@@ -2119,7 +2133,7 @@ HelpTroff::preamble( std::ostream& output ) const
     output << __comment << " t -*- nroff -*-" << std::endl
 	   << ".TH lqns 1 \"" << date << "\" \"" << VERSION << "\"" << std::endl;
 
-    output << __comment << " $Id: help.cc 15062 2021-10-10 00:36:21Z greg $" << std::endl
+    output << __comment << " $Id: help.cc 15063 2021-10-10 13:37:14Z greg $" << std::endl
 	   << __comment << std::endl
 	   << __comment << " --------------------------------" << std::endl;
 
@@ -2418,7 +2432,7 @@ HelpLaTeX::preamble( std::ostream& output ) const
 	   << __comment << " Created:             " << date << std::endl
 	   << __comment << "" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl
-	   << __comment << " $Id: help.cc 15062 2021-10-10 00:36:21Z greg $" << std::endl
+	   << __comment << " $Id: help.cc 15063 2021-10-10 13:37:14Z greg $" << std::endl
 	   << __comment << " ----------------------------------------------------------------------" << std::endl << std::endl;
 
     output << "\\chapter{Invoking the Analytic Solver ``lqns''}" << std::endl

@@ -1,7 +1,7 @@
 /* -*- C++ -*-
  * help.h	-- Greg Franks
  *
- * $Id: help.h 15062 2021-10-10 00:36:21Z greg $
+ * $Id: help.h 15063 2021-10-10 13:37:14Z greg $
  */
 
 #ifndef _HELP_H
@@ -144,12 +144,12 @@ private:
     std::ostream& flagError( std::ostream& output, bool verbose ) const;
     std::ostream& flagExactMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagFast( std::ostream& output, bool verbose ) const;
-    std::ostream& flagHwSwLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& flagHelp( std::ostream& output, bool verbose ) const;
     std::ostream& flagHuge( std::ostream& output, bool verbose ) const;
+    std::ostream& flagHwSwLayering( std::ostream& output, bool verbose ) const;
     std::ostream& flagInputFormat( std::ostream& output, bool verbose ) const;
     std::ostream& flagIterationLimit( std::ostream& output, bool verbose ) const;
     std::ostream& flagJSON( std::ostream& output, bool verbose ) const;
-    std::ostream& flagLoose( std::ostream& output, bool verbose ) const;
     std::ostream& flagMethoOfLayers( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoExecute( std::ostream& output, bool verbose ) const;
     std::ostream& flagNoHeader( std::ostream& output, bool verbose ) const;
@@ -160,13 +160,14 @@ private:
     std::ostream& flagPrintComment( std::ostream& output, bool verbose ) const;
     std::ostream& flagPrintInterval( std::ostream& output, bool verbose ) const;
     std::ostream& flagProcessorSharing( std::ostream& output, bool verbose ) const;
-    std::ostream& flagResetMVA( std::ostream& output, bool verbose ) const;
-    std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
-    std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
     std::ostream& flagRTF( std::ostream& output, bool verbose ) const;
+    std::ostream& flagReloadLQX( std::ostream& output, bool verbose ) const;
+    std::ostream& flagResetMVA( std::ostream& output, bool verbose ) const;
+    std::ostream& flagRestartLQX( std::ostream& output, bool verbose ) const;
     std::ostream& flagSchweitzerMVA( std::ostream& output, bool verbose ) const;
     std::ostream& flagSpecial( std::ostream& output, bool verbose ) const;
     std::ostream& flagSquashedLayering( std::ostream& output, bool verbose ) const;
+    std::ostream& flagSRVNLayering( std::ostream& output, bool verbose ) const;
     std::ostream& flagStopOnMessageLoss( std::ostream& output, bool verbose ) const;
     std::ostream& flagTrace( std::ostream& output, bool verbose ) const;
     std::ostream& flagTraceMVA( std::ostream& output, bool verbose ) const;
